@@ -1,6 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { McpServerCard } from "@/app/interface/mcp/_components/McpServerCard";
 
+vi.mock("@/components/providers/AuthProvider", () => ({
+  useAuth: () => ({
+    user: { roles: ["admin"] },
+  }),
+}));
+
 const server = {
   id: "server-1",
   owner_id: "user-1",

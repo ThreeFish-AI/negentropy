@@ -2,6 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SubAgentCard } from "@/app/interface/subagents/_components/SubAgentCard";
 
+vi.mock("@/components/providers/AuthProvider", () => ({
+  useAuth: () => ({
+    user: { roles: ["admin"] },
+  }),
+}));
+
 const baseAgent = {
   id: "a1",
   owner_id: "u1",

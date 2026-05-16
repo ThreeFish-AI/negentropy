@@ -7,6 +7,8 @@ Interface API 模块。
 from __future__ import annotations
 
 import json
+import time as _mcp_time
+from asyncio import Lock as _AsyncLock
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -241,6 +243,8 @@ class McpServerResponse(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     tool_count: int = 0
     resource_template_count: int = 0
+    # 「系统内置」统一对外字段，前端据此渲染 Built-In 徽标 + 隐藏 Edit/Delete。
+    is_builtin: bool = False
 
     class Config:
         from_attributes = True
@@ -426,6 +430,8 @@ class SkillResponse(BaseModel):
     priority: int
     enforcement_mode: str = "warning"
     resources: list[dict[str, Any]] = Field(default_factory=list)
+    # 「系统内置」统一对外字段，与 MCP/SubAgent/Tool 字段保持一致。
+    is_builtin: bool = False
 
     class Config:
         from_attributes = True
@@ -646,6 +652,49 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
 # MCP Server Endpoints
 # =============================================================================
 
+# per-server load TTL 锁：避免 N 个 view 用户在打开 MCP 页时对同一 server 重复
+# discover。键为 server_id，值为最近一次成功 load 的 monotonic 时间戳。
+# 60s 窗口在「最终一致性」与「降低 streamablehttp 探测放大」之间取折中。
+_MCP_LOAD_TTL_SECONDS = 60.0
+_mcp_load_last_success: dict[UUID, float] = {}
+_mcp_load_locks: dict[UUID, _AsyncLock] = {}
+
+
+def _mcp_load_lock_for(server_id: UUID) -> _AsyncLock:
+    lock = _mcp_load_locks.get(server_id)
+    if lock is None:
+        lock = _AsyncLock()
+        _mcp_load_locks[server_id] = lock
+    return lock
+
+
+def _record_mcp_load_success(server_id: UUID) -> None:
+    _mcp_load_last_success[server_id] = _mcp_time.monotonic()
+
+
+async def _mcp_load_throttle_or_snapshot(db, server_id: UUID) -> LoadToolsResponse | None:
+    """若 TTL 锁命中，直接返回 DB 现有 tools/templates 快照；否则返回 None 让调用方继续 discover。"""
+    last = _mcp_load_last_success.get(server_id)
+    if last is None or (_mcp_time.monotonic() - last) >= _MCP_LOAD_TTL_SECONDS:
+        return None
+
+    tools_stmt = select(McpTool).where(McpTool.server_id == server_id).order_by(McpTool.created_at.asc())
+    templates_stmt = (
+        select(McpResourceTemplate)
+        .where(McpResourceTemplate.server_id == server_id)
+        .order_by(McpResourceTemplate.created_at.asc())
+    )
+    tool_rows = (await db.execute(tools_stmt)).scalars().all()
+    template_rows = (await db.execute(templates_stmt)).scalars().all()
+
+    return LoadToolsResponse(
+        success=True,
+        server_id=server_id,
+        tools=[_mcp_tool_to_response(t) for t in tool_rows],
+        resource_templates=[_mcp_resource_template_to_response(t) for t in template_rows],
+        duration_ms=0,
+    )
+
 
 @router.get("/mcp/servers", response_model=list[McpServerResponse])
 async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> list[McpServerResponse]:
@@ -825,6 +874,8 @@ def _mcp_server_to_response(
         config=server.config or {},
         tool_count=tool_count or 0,
         resource_template_count=resource_template_count or 0,
+        # 显式列优先；旧库未迁移到 0033 时回退 owner_id 前缀，与 permissions 模块保持一致。
+        is_builtin=bool(getattr(server, "is_system", False)) or (server.owner_id or "").startswith("system"),
     )
 
 
@@ -937,12 +988,17 @@ async def load_mcp_server_tools(
     2. 获取所有 Tools 与 Resource Templates；
     3. 同步到数据库（新增/更新；旧 server 无 resources capability 时静默兜底）；
     4. 返回完整 capability。
+
+    权限语义：``view`` 即可触发——「工具发现」对用户视角是只读操作，``mcp_tools``
+    与 ``mcp_resource_templates`` 是 server-scoped、不区分 owner 的能力快照表，
+    写入对其他用户没有副作用。这是 ISSUE: 系统内置 MCP Server（如 negentropy-perceives）
+    在普通用户的 MCP 页加载时显示 "Permission denied" 的根因修复。
     """
     from .mcp_client import McpClientService
 
     async with AsyncSessionLocal() as db:
-        # 1. 权限检查
-        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "edit")
+        # 1. 权限检查（view 即可——工具发现属于只读语义；写入由 server-scoped TTL 锁去重）。
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
@@ -951,129 +1007,150 @@ async def load_mcp_server_tools(
         if not server:
             raise HTTPException(status_code=404, detail="Server not found")
 
-        # 3. 调用 MCP Client Service
-        client = McpClientService()
-        result = await client.discover_tools(
-            transport_type=server.transport_type,
-            command=server.command,
-            args=server.args,
-            env=server.env,
-            url=server.url,
-            headers=server.headers,
-        )
+        # 3. 快速路径：TTL 锁命中时直接返回 DB 现有快照，避免重复 streamablehttp 探测。
+        cached_response = await _mcp_load_throttle_or_snapshot(db, server_id)
+        if cached_response is not None:
+            return cached_response
 
-        if not result.success:
-            return LoadToolsResponse(
-                success=False,
-                server_id=server_id,
-                tools=[],
-                resource_templates=[],
-                duration_ms=result.duration_ms,
-                error=result.error,
+    # 4. 进入 per-server 异步互斥区：并发请求串行化，再进入 lock 后做一次双检锁，
+    #    最大并发探测降为 1/60s，与 ISSUE: streamablehttp + OAuth 404 探测放大对齐。
+    async with _mcp_load_lock_for(server_id):
+        async with AsyncSessionLocal() as db:
+            # 双检：取得锁后再判断 TTL，已被前一个并发请求刷新过则直接返回快照。
+            cached_response = await _mcp_load_throttle_or_snapshot(db, server_id)
+            if cached_response is not None:
+                return cached_response
+
+            server = await db.get(McpServer, server_id)
+            if not server:
+                raise HTTPException(status_code=404, detail="Server not found")
+
+            # 5. 调用 MCP Client Service
+            client = McpClientService()
+            result = await client.discover_tools(
+                transport_type=server.transport_type,
+                command=server.command,
+                args=server.args,
+                env=server.env,
+                url=server.url,
+                headers=server.headers,
             )
 
-        # 4. 同步 Tools 到数据库
-        existing_tools_result = await db.execute(select(McpTool).where(McpTool.server_id == server_id))
-        existing_tools = existing_tools_result.scalars().all()
-        existing_map = {t.name: t for t in existing_tools}
-
-        updated_tools: list[McpTool] = []
-        for tool_info in result.tools:
-            if tool_info.name in existing_map:
-                # 更新现有 Tool
-                existing = existing_map[tool_info.name]
-                existing.title = tool_info.title
-                existing.description = tool_info.description
-                existing.input_schema = tool_info.input_schema
-                existing.output_schema = tool_info.output_schema
-                existing.icons = tool_info.icons
-                existing.annotations = tool_info.annotations
-                existing.execution = tool_info.execution
-                existing.meta = tool_info.meta
-                updated_tools.append(existing)
-            else:
-                # 新增 Tool
-                new_tool = McpTool(
+            if not result.success:
+                return LoadToolsResponse(
+                    success=False,
                     server_id=server_id,
-                    name=tool_info.name,
-                    title=tool_info.title,
-                    description=tool_info.description,
-                    input_schema=tool_info.input_schema,
-                    output_schema=tool_info.output_schema,
-                    icons=tool_info.icons,
-                    annotations=tool_info.annotations,
-                    execution=tool_info.execution,
-                    meta=tool_info.meta,
-                    is_enabled=True,
+                    tools=[],
+                    resource_templates=[],
+                    duration_ms=result.duration_ms,
+                    error=result.error,
                 )
-                db.add(new_tool)
-                updated_tools.append(new_tool)
 
-        # 5. 同步 Resource Templates 到数据库（以 uri_template 为键）
-        existing_templates_result = await db.execute(
-            select(McpResourceTemplate).where(McpResourceTemplate.server_id == server_id)
-        )
-        existing_templates = existing_templates_result.scalars().all()
-        existing_template_map = {t.uri_template: t for t in existing_templates}
+            # 6. 同步 Tools 到数据库
+            existing_tools_result = await db.execute(select(McpTool).where(McpTool.server_id == server_id))
+            existing_tools = existing_tools_result.scalars().all()
+            existing_map = {t.name: t for t in existing_tools}
 
-        updated_templates: list[McpResourceTemplate] = []
-        seen_uri_templates: set[str] = set()
-        for template_info in result.resource_templates:
-            seen_uri_templates.add(template_info.uri_template)
-            if template_info.uri_template in existing_template_map:
-                existing_tpl = existing_template_map[template_info.uri_template]
-                existing_tpl.name = template_info.name
-                existing_tpl.title = template_info.title
-                existing_tpl.description = template_info.description
-                existing_tpl.mime_type = template_info.mime_type
-                existing_tpl.annotations = template_info.annotations
-                existing_tpl.meta = template_info.meta
-                updated_templates.append(existing_tpl)
-            else:
-                new_template = McpResourceTemplate(
-                    server_id=server_id,
-                    uri_template=template_info.uri_template,
-                    name=template_info.name,
-                    title=template_info.title,
-                    description=template_info.description,
-                    mime_type=template_info.mime_type,
-                    annotations=template_info.annotations,
-                    meta=template_info.meta,
-                    is_enabled=True,
-                )
-                db.add(new_template)
-                updated_templates.append(new_template)
+            updated_tools: list[McpTool] = []
+            for tool_info in result.tools:
+                if tool_info.name in existing_map:
+                    # 更新现有 Tool
+                    existing = existing_map[tool_info.name]
+                    existing.title = tool_info.title
+                    existing.description = tool_info.description
+                    existing.input_schema = tool_info.input_schema
+                    existing.output_schema = tool_info.output_schema
+                    existing.icons = tool_info.icons
+                    existing.annotations = tool_info.annotations
+                    existing.execution = tool_info.execution
+                    existing.meta = tool_info.meta
+                    updated_tools.append(existing)
+                else:
+                    # 新增 Tool
+                    new_tool = McpTool(
+                        server_id=server_id,
+                        name=tool_info.name,
+                        title=tool_info.title,
+                        description=tool_info.description,
+                        input_schema=tool_info.input_schema,
+                        output_schema=tool_info.output_schema,
+                        icons=tool_info.icons,
+                        annotations=tool_info.annotations,
+                        execution=tool_info.execution,
+                        meta=tool_info.meta,
+                        is_enabled=True,
+                    )
+                    db.add(new_tool)
+                    updated_tools.append(new_tool)
 
-        # 仅在 server 权威返回 templates 列表时才裁剪 stale 行：
-        # ``_discover_on_transport`` 对 ``list_resource_templates`` 的所有异常都
-        # 会静默兜底返回空列表（兼容旧 server / 瞬态错误），若此处直接 prune 会
-        # 把首次错误后的 DB 模板表清空，与 tools 同步"只增量更新、不裁剪"的语义
-        # 不对称。``resource_templates_listed`` 区分"权威空列表"与"未支持/错误"。
-        if result.resource_templates_listed:
-            for stale_uri, stale_tpl in existing_template_map.items():
-                if stale_uri not in seen_uri_templates:
-                    await db.delete(stale_tpl)
+            # 7. 同步 Resource Templates 到数据库（以 uri_template 为键）
+            existing_templates_result = await db.execute(
+                select(McpResourceTemplate).where(McpResourceTemplate.server_id == server_id)
+            )
+            existing_templates = existing_templates_result.scalars().all()
+            existing_template_map = {t.uri_template: t for t in existing_templates}
 
-        await db.commit()
+            updated_templates: list[McpResourceTemplate] = []
+            seen_uri_templates: set[str] = set()
+            for template_info in result.resource_templates:
+                seen_uri_templates.add(template_info.uri_template)
+                if template_info.uri_template in existing_template_map:
+                    existing_tpl = existing_template_map[template_info.uri_template]
+                    existing_tpl.name = template_info.name
+                    existing_tpl.title = template_info.title
+                    existing_tpl.description = template_info.description
+                    existing_tpl.mime_type = template_info.mime_type
+                    existing_tpl.annotations = template_info.annotations
+                    existing_tpl.meta = template_info.meta
+                    updated_templates.append(existing_tpl)
+                else:
+                    new_template = McpResourceTemplate(
+                        server_id=server_id,
+                        uri_template=template_info.uri_template,
+                        name=template_info.name,
+                        title=template_info.title,
+                        description=template_info.description,
+                        mime_type=template_info.mime_type,
+                        annotations=template_info.annotations,
+                        meta=template_info.meta,
+                        is_enabled=True,
+                    )
+                    db.add(new_template)
+                    updated_templates.append(new_template)
 
-        # 6. 刷新以获取 ID
-        for tool in updated_tools:
-            await db.refresh(tool)
-        for tpl in updated_templates:
-            await db.refresh(tpl)
+            # 仅在 server 权威返回 templates 列表时才裁剪 stale 行：
+            # ``_discover_on_transport`` 对 ``list_resource_templates`` 的所有异常都
+            # 会静默兜底返回空列表（兼容旧 server / 瞬态错误），若此处直接 prune 会
+            # 把首次错误后的 DB 模板表清空，与 tools 同步"只增量更新、不裁剪"的语义
+            # 不对称。``resource_templates_listed`` 区分"权威空列表"与"未支持/错误"。
+            if result.resource_templates_listed:
+                for stale_uri, stale_tpl in existing_template_map.items():
+                    if stale_uri not in seen_uri_templates:
+                        await db.delete(stale_tpl)
 
-        logger.info(
-            f"Loaded {len(updated_tools)} tools and {len(updated_templates)} resource templates "
-            f"from MCP server {server.name}"
-        )
+            await db.commit()
 
-        return LoadToolsResponse(
-            success=True,
-            server_id=server_id,
-            tools=[_mcp_tool_to_response(t) for t in updated_tools],
-            resource_templates=[_mcp_resource_template_to_response(t) for t in updated_templates],
-            duration_ms=result.duration_ms,
-        )
+            # 8. 刷新以获取 ID
+            for tool in updated_tools:
+                await db.refresh(tool)
+            for tpl in updated_templates:
+                await db.refresh(tpl)
+
+            # 9. 记录 TTL 锁时间戳，未来 60s 内的并发 / 重复请求直接走 DB 快照。
+            _record_mcp_load_success(server_id)
+
+            logger.info(
+                f"Loaded {len(updated_tools)} tools and {len(updated_templates)} resource templates "
+                f"from MCP server {server.name}"
+            )
+
+            return LoadToolsResponse(
+                success=True,
+                server_id=server_id,
+                tools=[_mcp_tool_to_response(t) for t in updated_tools],
+                resource_templates=[_mcp_resource_template_to_response(t) for t in updated_templates],
+                duration_ms=result.duration_ms,
+            )
 
 
 @router.get("/mcp/servers/{server_id}/tools", response_model=list[McpToolResponse])
@@ -2058,6 +2135,7 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         priority=skill.priority,
         enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
         resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
+        is_builtin=bool(getattr(skill, "is_system", False)) or (skill.owner_id or "").startswith("system"),
     )
 
 
@@ -2350,6 +2428,8 @@ async def sync_negentropy_subagents(
                 existing.tools = materialized.get("tools") or []
                 existing.is_enabled = bool(materialized.get("is_enabled", True))
                 existing.visibility = PluginVisibility(materialized.get("visibility", "private"))
+                # 与迁移 0033 的回填语义对齐：经 negentropy 内置同步的 SubAgent 都是系统内置。
+                existing.is_system = True
                 updated_count += 1
                 touched_agents.append(existing)
                 continue
@@ -2367,6 +2447,7 @@ async def sync_negentropy_subagents(
                 skills=materialized.get("skills") or [],
                 tools=materialized.get("tools") or [],
                 is_enabled=bool(materialized.get("is_enabled", True)),
+                is_system=True,
             )
             db.add(new_agent)
             created_count += 1
@@ -2575,6 +2656,10 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
     adk_config = _extract_adk_config(agent)
     raw_kind = adk_config.get("kind") if isinstance(adk_config, dict) else None
     kind = raw_kind if raw_kind in ("root", "subagent") else "subagent"
+    # is_builtin OR 合并：显式 ``is_system`` 列（迁移 0033 起）+ 历史 config.source 标记。
+    # 迁移 0033 已将 ``config.source == "negentropy_builtin"`` 行回填 is_system=TRUE，
+    # 这里保留 OR 兼容仍未跑迁移的部署，下一个 release 周期可下线 config.source 判断。
+    is_builtin = bool(getattr(agent, "is_system", False)) or source == "negentropy_builtin"
     return SubAgentResponse(
         id=agent.id,
         owner_id=agent.owner_id,
@@ -2590,7 +2675,7 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
         skills=agent.skills or [],
         tools=agent.tools or [],
         source=source,
-        is_builtin=source == "negentropy_builtin",
+        is_builtin=is_builtin,
         is_enabled=agent.is_enabled,
         kind=kind,
     )

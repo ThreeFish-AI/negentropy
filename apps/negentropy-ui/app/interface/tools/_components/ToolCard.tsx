@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 interface BuiltinTool {
   id: string;
   owner_id: string;
@@ -31,6 +33,11 @@ export function ToolCard({
   onToggleEnabled,
   toggling = false,
 }: ToolCardProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin") ?? false;
+  // 系统内置工具仅 admin 可编辑（与 MCP / Skill / SubAgent 卡片语义对齐）。
+  const canEdit = isAdmin || !tool.is_system;
+
   const displayLabel = tool.display_name || tool.name;
 
   const hasCredentials =
@@ -71,16 +78,18 @@ export function ToolCard({
                 )}
               </button>
             )}
-            <button
-              onClick={onEdit}
-              title="Edit Tool"
-              aria-label={`Edit ${displayLabel}`}
-              className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
+            {canEdit && (
+              <button
+                onClick={onEdit}
+                title="Edit Tool"
+                aria-label={`Edit ${displayLabel}`}
+                className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
             {!tool.is_system && (
               <button
                 onClick={onDelete}
@@ -109,8 +118,11 @@ export function ToolCard({
             {tool.tool_type}
           </span>
           {tool.is_system && (
-            <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              System
+            <span
+              className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+              title="系统内置：对全员可见，仅 admin 可编辑"
+            >
+              Built-In
             </span>
           )}
           <span className="inline-flex shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
