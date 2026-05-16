@@ -2091,6 +2091,23 @@ class KnowledgeService:
 
         return updated_count
 
+    async def get_archived_source_uris(
+        self,
+        *,
+        pairs: list[tuple[UUID, str]],
+        app_name: str,
+    ) -> set[tuple[UUID, str]]:
+        """批量返回所有 chunk 均已归档的 ``(corpus_id, source_uri)`` 组合。
+
+        语义与 ``SourceSummary.archived`` 完全一致——仅当某 ``source_uri``
+        对应的全部 chunk 的 ``metadata.archived`` 均为 ``true`` 时视为归档。
+        服务层薄包装，主要供 ``DocumentResponse.archived`` 字段填充使用。
+        """
+        return await self._repository.get_archived_source_uris(
+            pairs=pairs,
+            app_name=app_name,
+        )
+
     async def ingest_url(
         self,
         *,

@@ -587,6 +587,7 @@ class DocumentResponse(BaseModel):
     markdown_extract_status: str = "pending"
     markdown_extracted_at: str | None = None
     markdown_extract_error: str | None = None
+    archived: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     class Config:

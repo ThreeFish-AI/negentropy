@@ -1476,8 +1476,13 @@ async def _resolve_user_display_names(user_ids: list[str]) -> dict[str, str]:
     return name_map
 
 
-def _build_document_response(doc, name_map: dict[str, str]) -> DocumentResponse:
-    """从 ORM 文档对象构建 DocumentResponse，注入用户显示名。"""
+def _build_document_response(
+    doc,
+    name_map: dict[str, str],
+    *,
+    archived: bool = False,
+) -> DocumentResponse:
+    """从 ORM 文档对象构建 DocumentResponse，注入用户显示名与归档状态。"""
     return DocumentResponse(
         id=doc.id,
         corpus_id=doc.corpus_id,
@@ -1494,8 +1499,37 @@ def _build_document_response(doc, name_map: dict[str, str]) -> DocumentResponse:
         markdown_extract_status=doc.markdown_extract_status,
         markdown_extracted_at=(doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None),
         markdown_extract_error=doc.markdown_extract_error,
+        archived=archived,
         metadata=doc.metadata_ or {},
     )
+
+
+async def _resolve_documents_archived_set(
+    docs: list,
+    app_name: str,
+) -> set[tuple[UUID, str]]:
+    """批量解析一批文档的归档状态，返回已归档的 ``(corpus_id, source_uri)`` 集合。
+
+    单一事实源——复用与 ``SourceSummary.archived`` 同款聚合逻辑，避免前端做映射。
+    若 ``source_uri`` 无法解析（极端老数据），该文档默认按未归档处理。
+    """
+    pairs: list[tuple[UUID, str]] = []
+    seen: set[tuple[UUID, str]] = set()
+    for doc in docs:
+        source_uri = _resolve_document_source_uri(doc)
+        if not source_uri:
+            continue
+        key = (doc.corpus_id, source_uri)
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append(key)
+
+    if not pairs:
+        return set()
+
+    service = _get_service()
+    return await service.get_archived_source_uris(pairs=pairs, app_name=app_name)
 
 
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
@@ -1530,10 +1564,16 @@ async def list_documents(
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
     name_map = await _resolve_user_display_names(unique_user_ids)
+    archived_set = await _resolve_documents_archived_set(docs, resolved_app)
+
+    def _build(doc) -> DocumentResponse:
+        source_uri = _resolve_document_source_uri(doc)
+        archived = bool(source_uri and (doc.corpus_id, source_uri) in archived_set)
+        return _build_document_response(doc, name_map, archived=archived)
 
     return DocumentListResponse(
         count=total,
-        items=[_build_document_response(doc, name_map) for doc in docs],
+        items=[_build(doc) for doc in docs],
     )
 
 
@@ -1567,10 +1607,16 @@ async def list_all_documents(
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
     name_map = await _resolve_user_display_names(unique_user_ids)
+    archived_set = await _resolve_documents_archived_set(docs, resolved_app)
+
+    def _build(doc) -> DocumentResponse:
+        source_uri = _resolve_document_source_uri(doc)
+        archived = bool(source_uri and (doc.corpus_id, source_uri) in archived_set)
+        return _build_document_response(doc, name_map, archived=archived)
 
     return DocumentListResponse(
         count=total,
-        items=[_build_document_response(doc, name_map) for doc in docs],
+        items=[_build(doc) for doc in docs],
     )
 
 
@@ -1602,6 +1648,16 @@ async def get_document_detail(
 
     name_map = await _resolve_user_display_names([doc.created_by]) if doc.created_by else {}
 
+    source_uri = _resolve_document_source_uri(doc)
+    archived = False
+    if source_uri:
+        service = _get_service()
+        archived_set = await service.get_archived_source_uris(
+            pairs=[(doc.corpus_id, source_uri)],
+            app_name=resolved_app,
+        )
+        archived = (doc.corpus_id, source_uri) in archived_set
+
     return DocumentDetailResponse(
         id=doc.id,
         corpus_id=doc.corpus_id,
@@ -1618,6 +1674,7 @@ async def get_document_detail(
         markdown_extract_status=doc.markdown_extract_status,
         markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
         markdown_extract_error=doc.markdown_extract_error,
+        archived=archived,
         metadata=doc.metadata_ or {},
         markdown_content=markdown_content,
         markdown_gcs_uri=doc.markdown_gcs_uri,
