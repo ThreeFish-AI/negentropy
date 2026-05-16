@@ -1249,6 +1249,7 @@ export interface KnowledgeDocument {
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
   markdown_extracted_at?: string | null;
   markdown_extract_error?: string | null;
+  archived?: boolean;
   metadata?: Record<string, unknown>;
 }
 

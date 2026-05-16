@@ -5,7 +5,7 @@ from collections.abc import Iterable, Sequence
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, String, cast, func, select, text, update
+from sqlalchemy import Boolean, String, cast, func, select, text, tuple_, update
 from sqlalchemy import delete as sql_delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
@@ -452,6 +452,49 @@ class KnowledgeRepository:
             )
             await db.commit()
             return result.rowcount
+
+    async def get_archived_source_uris(
+        self,
+        *,
+        pairs: list[tuple[UUID, str]],
+        app_name: str,
+    ) -> set[tuple[UUID, str]]:
+        """批量判定指定 ``(corpus_id, source_uri)`` 是否处于"全量归档"状态。
+
+        判定语义与 ``SourceSummary.archived`` 完全一致：仅当某 ``source_uri``
+        对应的全部 chunk 的 ``metadata.archived`` 均为 ``true`` 时，该组合
+        才被视为已归档（任一未归档即视为未归档）。
+
+        Args:
+            pairs: ``(corpus_id, source_uri)`` 组合列表，空列表直接返回空集合。
+            app_name: 应用名称（多租户隔离）。
+
+        Returns:
+            所有 chunk 均已归档的 ``(corpus_id, source_uri)`` 集合。
+        """
+        if not pairs:
+            return set()
+
+        async with self._get_session_factory()() as db:
+            archived_expr = func.coalesce(
+                cast(Knowledge.metadata_["archived"].astext, Boolean),
+                False,
+            )
+            stmt = (
+                select(
+                    Knowledge.corpus_id,
+                    Knowledge.source_uri,
+                    func.bool_and(archived_expr).label("all_archived"),
+                )
+                .where(
+                    Knowledge.app_name == app_name,
+                    tuple_(Knowledge.corpus_id, Knowledge.source_uri).in_(pairs),
+                )
+                .group_by(Knowledge.corpus_id, Knowledge.source_uri)
+                .having(func.bool_and(archived_expr).is_(True))
+            )
+            result = await db.execute(stmt)
+            return {(row.corpus_id, row.source_uri) for row in result}
 
     async def get_knowledge_by_id(
         self,

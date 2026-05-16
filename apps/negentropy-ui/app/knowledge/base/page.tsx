@@ -1393,16 +1393,67 @@ export default function KnowledgeBasePage() {
                                 </div>
                               </button>
                               <div className="flex flex-wrap items-center justify-end gap-1">
-                                <button onClick={() => runDocumentAction("view", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>View</button>
-                                <button onClick={() => runDocumentAction("download", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Download</button>
-                                <button onClick={() => runDocumentAction("replace", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Replace</button>
-                                <button onClick={() => runDocumentAction("rebuild", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Rebuild</button>
+                                <button
+                                  onClick={() => runDocumentAction("view", doc)}
+                                  title="在弹窗中预览文档解析后的 Markdown 正文"
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => runDocumentAction("download", doc)}
+                                  title="下载原始文件到本地"
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                >
+                                  Download
+                                </button>
+                                <button
+                                  onClick={() => runDocumentAction("replace", doc)}
+                                  title="用新文本替换该文档并重建索引（保留文档元信息）"
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                >
+                                  Replace
+                                </button>
+                                <button
+                                  onClick={() => runDocumentAction("rebuild", doc)}
+                                  title="重新分块并重建向量索引（不更换原始内容）"
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                >
+                                  Rebuild
+                                </button>
                                 {sourceType === "url" && (
-                                  <button onClick={() => runDocumentAction("sync", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Sync</button>
+                                  <button
+                                    onClick={() => runDocumentAction("sync", doc)}
+                                    title="重新抓取该 URL 源并刷新内容（仅 URL 类型）"
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  >
+                                    Sync
+                                  </button>
                                 )}
-                                <button onClick={() => runDocumentAction("archive", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Archive</button>
-                                <button onClick={() => runDocumentAction("unarchive", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Unarchive</button>
-                                <button onClick={() => runDocumentAction("delete", doc)} className={outlineButtonClassName("danger", "rounded px-2 py-1 text-[11px]")}>Delete</button>
+                                {!doc.archived ? (
+                                  <button
+                                    onClick={() => runDocumentAction("archive", doc)}
+                                    title="归档该文档，将其从默认检索中排除（可解档恢复）"
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  >
+                                    Archive
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => runDocumentAction("unarchive", doc)}
+                                    title="取消归档，恢复参与检索"
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  >
+                                    Unarchive
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => runDocumentAction("delete", doc)}
+                                  title="删除该文档及其全部 Chunks"
+                                  className={outlineButtonClassName("danger", "rounded px-2 py-1 text-[11px]")}
+                                >
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           </div>
