@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from negentropy.knowledge.api import _serialize_corpus_config, _validate_models_references
+from negentropy.knowledge._shared import _serialize_corpus_config, _validate_models_references
 
 
 class TestSerializeCorpusConfigModels:
