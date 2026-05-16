@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 interface SubAgent {
   id: string;
   owner_id: string;
@@ -27,6 +29,9 @@ interface SubAgentCardProps {
 }
 
 export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin") ?? false;
+  const canEdit = isAdmin || !agent.is_builtin;
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex min-h-0 flex-1 flex-col">
@@ -35,26 +40,30 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
             {agent.display_name || agent.name}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={onEdit}
-              title="Edit SubAgent"
-              aria-label={`Edit ${agent.display_name || agent.name}`}
-              className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button
-              onClick={onDelete}
-              title="Delete SubAgent"
-              aria-label={`Delete ${agent.display_name || agent.name}`}
-              className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            {canEdit && (
+              <>
+                <button
+                  onClick={onEdit}
+                  title="Edit SubAgent"
+                  aria-label={`Edit ${agent.display_name || agent.name}`}
+                  className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={onDelete}
+                  title="Delete SubAgent"
+                  aria-label={`Delete ${agent.display_name || agent.name}`}
+                  className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap">
@@ -82,8 +91,11 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
             </span>
           )}
           {agent.is_builtin && (
-            <span className="inline-flex min-w-0 items-center truncate rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              Negentropy Built-in
+            <span
+              className="inline-flex min-w-0 items-center truncate rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+              title="系统内置：对全员可见，仅 admin 可编辑"
+            >
+              Built-In
             </span>
           )}
         </div>

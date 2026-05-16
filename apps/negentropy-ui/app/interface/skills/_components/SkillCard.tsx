@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 interface Skill {
   id: string;
   owner_id: string;
@@ -17,6 +19,7 @@ interface Skill {
   priority: number;
   enforcement_mode?: string;
   resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
+  is_builtin?: boolean;
 }
 
 interface SkillCardProps {
@@ -43,6 +46,11 @@ export function SkillCard({
   toggling = false,
   agentTools,
 }: SkillCardProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin") ?? false;
+  const isBuiltin = skill.is_builtin ?? (skill.owner_id || "").startsWith("system");
+  const canEdit = isAdmin || !isBuiltin;
+
   const required = skill.required_tools || [];
   const missingTools =
     Array.isArray(agentTools) && required.length > 0
@@ -124,26 +132,30 @@ export function SkillCard({
                 )}
               </button>
             )}
-            <button
-              onClick={onEdit}
-              title="Edit Skill"
-              aria-label={`Edit ${displayLabel}`}
-              className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button
-              onClick={onDelete}
-              title="Delete Skill"
-              aria-label={`Delete ${displayLabel}`}
-              className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            {canEdit && (
+              <>
+                <button
+                  onClick={onEdit}
+                  title="Edit Skill"
+                  aria-label={`Edit ${displayLabel}`}
+                  className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={onDelete}
+                  title="Delete Skill"
+                  aria-label={`Delete ${displayLabel}`}
+                  className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap">
@@ -154,6 +166,14 @@ export function SkillCard({
           ) : (
             <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
               Disabled
+            </span>
+          )}
+          {isBuiltin && (
+            <span
+              className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+              title="系统内置：对全员可见，仅 admin 可编辑"
+            >
+              Built-In
             </span>
           )}
           <span className="inline-flex shrink-0 items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
