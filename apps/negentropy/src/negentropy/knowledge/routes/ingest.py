@@ -427,7 +427,7 @@ async def ingest_file(
             except json.JSONDecodeError:
                 parsed_separators = [item.strip() for item in separators.split(",") if item.strip()]
 
-        from .ingestion.content import sanitize_filename
+        from ..ingestion.content import sanitize_filename
 
         # 保留用于展示的原始文件名（仅去除路径前缀并限制长度）
         raw_filename = (file.filename or "unknown").split("/")[-1].split("\\")[-1][:255] or "unknown"

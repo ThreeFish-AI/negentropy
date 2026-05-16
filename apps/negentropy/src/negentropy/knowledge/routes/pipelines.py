@@ -146,7 +146,7 @@ async def cancel_pipeline_run(
         404: Run 不存在；
         409: Run 已是 terminal 状态（completed/failed/cancelled）。
     """
-    from .cancellation import signal_cancel
+    from ..cancellation import signal_cancel
 
     resolved_app = _resolve_app_name(payload.app_name)
     dao = _get_dao()
@@ -231,7 +231,7 @@ async def get_api_stats(
     from negentropy.models.observability import Trace
 
     resolved_app = _resolve_app_name(app_name)
-    start_time = datetime.utcnow() - timedelta(hours=period_hours)
+    start_time = datetime.now(UTC) - timedelta(hours=period_hours)
 
     async with AsyncSessionLocal() as db:
         # 构建过滤条件

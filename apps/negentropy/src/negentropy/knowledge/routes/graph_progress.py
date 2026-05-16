@@ -121,7 +121,7 @@ async def stream_latest_kg_build_progress(
     repository = _get_graph_service()._repository  # noqa: SLF001  KG service 私有 repo 复用
 
     async def _event_stream():
-        deadline = asyncio.get_event_loop().time() + max_seconds
+        deadline = asyncio.get_running_loop().time() + max_seconds
         last_payload: dict[str, Any] | None = None
         run_id_seen: str | None = None
         # 发现期 grace 窗口：ingest_paper 返回 kg_enqueued 后，前端立刻打开 SSE，
@@ -134,7 +134,7 @@ async def stream_latest_kg_build_progress(
         no_active_started_at: float | None = None
 
         try:
-            while asyncio.get_event_loop().time() < deadline:
+            while asyncio.get_running_loop().time() < deadline:
                 try:
                     record = await repository.get_latest_build_run(
                         corpus_id=corpus_id,
@@ -148,7 +148,7 @@ async def stream_latest_kg_build_progress(
                 if record is None:
                     if run_id_seen is None:
                         # 发现期：active run 尚未出现，按 poll_interval_ms 继续等待
-                        now = asyncio.get_event_loop().time()
+                        now = asyncio.get_running_loop().time()
                         if no_active_started_at is None:
                             no_active_started_at = now
                         elif now - no_active_started_at > no_active_grace_seconds:

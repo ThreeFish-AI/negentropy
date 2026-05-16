@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -10,20 +10,15 @@ from pydantic import ValidationError  # noqa: F401
 
 from negentropy.knowledge._shared import (
     _build_document_chunk_metadata,
-    _extract_legacy_chunking_payload,
     _get_service,
-    _resolve_chunking_config,
+    _resolve_document_source_uri,
     _serialize_document_chunk_item,
 )
 from negentropy.knowledge.api_helpers import _resolve_app_name
 from negentropy.knowledge.schemas import (
-    DocumentActionRequest,
     DocumentChunkDetailResponse,
     DocumentChunksResponse,
     DocumentChunkUpdateRequest,
-)
-from negentropy.knowledge.types import (
-    ChunkingConfig,
 )
 from negentropy.logging import get_logger
 
@@ -43,34 +38,6 @@ from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
 
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter()
-
-
-def _is_url_document(doc: Any) -> bool:
-    metadata = doc.metadata_ or {}
-    return metadata.get("source_type") == "url"
-
-
-def _resolve_document_source_uri(doc: Any) -> str | None:
-    metadata = doc.metadata_ or {}
-    if metadata.get("source_type") == "url":
-        origin_url = metadata.get("origin_url")
-        if isinstance(origin_url, str) and origin_url:
-            return origin_url
-    if doc.gcs_uri:
-        return doc.gcs_uri
-    return None
-
-
-def _resolve_chunking_config_from_doc_request(
-    *,
-    payload: DocumentActionRequest,
-    corpus_config: dict[str, Any],
-) -> ChunkingConfig | None:
-    return _resolve_chunking_config(
-        chunking_config=payload.chunking_config,
-        legacy_payload=_extract_legacy_chunking_payload(payload),
-        corpus_config=corpus_config,
-    )
 
 
 @router.get("/base/{corpus_id}/documents/{document_id}/chunks", response_model=DocumentChunksResponse)

@@ -304,3 +304,52 @@ async def suggest_cross_references(
         suggestions = await engine.suggest_cross_references(db, corpus_id, limit=limit)
 
     return {"items": suggestions}
+
+
+@router.get("/base/{corpus_id}/knowledge")
+async def list_knowledge(
+    corpus_id: UUID,
+    app_name: str | None = Query(default=None),
+    source_uri: str | None = Query(default=None),
+    include_archived: bool = Query(default=False),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> dict[str, Any]:
+    """列出知识库中的知识条目"""
+    resolved_app = _resolve_app_name(app_name)
+    service = _get_service()
+
+    knowledge_items, total_count, source_stats, source_summaries = await service.list_knowledge(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        source_uri=source_uri,
+        include_archived=include_archived,
+        limit=limit,
+        offset=offset,
+    )
+
+    return {
+        "count": total_count,
+        "items": [
+            {
+                "id": str(item.id),
+                "content": item.content,
+                "source_uri": item.source_uri,
+                "created_at": item.created_at,
+                "chunk_index": item.chunk_index,
+                "metadata": item.metadata,
+            }
+            for item in knowledge_items
+        ],
+        "source_stats": source_stats,
+        "source_summaries": [
+            {
+                "source_uri": summary.source_uri,
+                "display_name": summary.display_name,
+                "count": summary.count,
+                "archived": summary.archived,
+                "source_type": summary.source_type,
+            }
+            for summary in source_summaries
+        ],
+    }
