@@ -87,7 +87,7 @@ class TestValidateModelsReferences:
         fake_result.scalar_one_or_none.return_value = None
         fake_db.execute.return_value = fake_result
 
-        with patch("negentropy.knowledge.api.AsyncSessionLocal") as mock_session:
+        with patch("negentropy.knowledge._shared.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__ = AsyncMock(return_value=fake_db)
             mock_session.return_value.__aexit__ = AsyncMock(return_value=False)
 

@@ -14,7 +14,9 @@ from uuid import uuid4
 import pytest
 from fastapi import BackgroundTasks, HTTPException, UploadFile
 
-from negentropy.knowledge import api as knowledge_api
+from negentropy.knowledge._shared import _resolve_chunking_config, _resolve_chunking_config_from_doc_request
+from negentropy.knowledge.routes import catalog, chunks, ingest, provenance, search, sources
+from negentropy.knowledge.schemas import DocumentActionRequest, SearchRequest
 from negentropy.knowledge.types import ChunkingStrategy, KnowledgeRecord
 
 from .conftest import FakeKnowledgeService, FakeStorageService
@@ -61,9 +63,9 @@ async def test_list_document_chunks_success(monkeypatch):
     fake_service = FakeKnowledgeService()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(chunks, "_get_service", lambda: fake_service)
 
-    result = await knowledge_api.list_document_chunks(
+    result = await chunks.list_document_chunks(
         corpus_id=corpus_id,
         document_id=document_id,
         app_name="negentropy",
@@ -87,7 +89,7 @@ async def test_list_document_chunks_document_not_found(monkeypatch):
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
 
     with pytest.raises(HTTPException) as exc_info:
-        await knowledge_api.list_document_chunks(corpus_id=corpus_id, document_id=document_id)
+        await chunks.list_document_chunks(corpus_id=corpus_id, document_id=document_id)
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail["code"] == "DOCUMENT_NOT_FOUND"
@@ -107,7 +109,7 @@ async def test_list_document_chunks_invalid_source(monkeypatch):
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
 
     with pytest.raises(HTTPException) as exc_info:
-        await knowledge_api.list_document_chunks(corpus_id=corpus_id, document_id=document_id)
+        await chunks.list_document_chunks(corpus_id=corpus_id, document_id=document_id)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail["code"] == "INVALID_DOCUMENT_SOURCE"
@@ -160,9 +162,9 @@ async def test_list_document_chunks_excludes_child_from_top_level(monkeypatch):
     fake_storage = FakeStorageService(doc=doc)
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(chunks, "_get_service", lambda: fake_service)
 
-    result = await knowledge_api.list_document_chunks(
+    result = await chunks.list_document_chunks(
         corpus_id=corpus_id,
         document_id=document_id,
         app_name="negentropy",
@@ -193,34 +195,16 @@ async def test_sync_document_success(monkeypatch):
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
 
-    from negentropy.knowledge.ingestion.extraction import ExtractedDocumentResult
-
-    async def fake_extract_source(**kwargs):
-        return ExtractedDocumentResult(
-            plain_text="content",
-            markdown_content="# title\n\ncontent",
-        )
-
-    async def fake_store_extracted_document_artifacts(**kwargs):
-        fake_storage.saved_markdown = kwargs["extracted"].markdown_content
-        return "gs://derived/markdown.md", []
-
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr(knowledge_api, "extract_source", fake_extract_source)
-    monkeypatch.setattr(
-        knowledge_api,
-        "store_extracted_document_artifacts",
-        fake_store_extracted_document_artifacts,
-    )
+    monkeypatch.setattr(sources, "_get_service", lambda: fake_service)
     fake_service.execute_sync_document_pipeline = AsyncMock(return_value=None)
 
     background_tasks = BackgroundTasks()
 
-    result = await knowledge_api.sync_document(
+    result = await sources.sync_document(
         corpus_id=corpus_id,
         document_id=document_id,
-        payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
+        payload=DocumentActionRequest(app_name="negentropy"),
         background_tasks=background_tasks,
     )
 
@@ -244,10 +228,10 @@ async def test_sync_document_rejects_non_url(monkeypatch):
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
 
     with pytest.raises(HTTPException) as exc_info:
-        await knowledge_api.sync_document(
+        await sources.sync_document(
             corpus_id=corpus_id,
             document_id=document_id,
-            payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
+            payload=DocumentActionRequest(app_name="negentropy"),
             background_tasks=BackgroundTasks(),
         )
 
@@ -268,19 +252,19 @@ async def test_rebuild_document_url_requires_markdown(monkeypatch):
     fake_service = FakeKnowledgeService()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(sources, "_get_service", lambda: fake_service)
 
     with pytest.raises(HTTPException):
-        await knowledge_api.rebuild_document(
+        await sources.rebuild_document(
             corpus_id=corpus_id,
             document_id=document_id,
-            payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
+            payload=DocumentActionRequest(app_name="negentropy"),
             background_tasks=BackgroundTasks(),
         )
 
 
 def test_resolve_chunking_config_from_doc_request_prefers_payload_over_corpus():
-    payload = knowledge_api.DocumentActionRequest(
+    payload = DocumentActionRequest(
         app_name="negentropy",
         strategy="hierarchical",
         chunk_size=900,
@@ -290,7 +274,7 @@ def test_resolve_chunking_config_from_doc_request_prefers_payload_over_corpus():
         hierarchical_child_overlap=60,
     )
 
-    config = knowledge_api._resolve_chunking_config_from_doc_request(
+    config = _resolve_chunking_config_from_doc_request(
         payload=payload,
         corpus_config={
             "strategy": "recursive",
@@ -321,12 +305,12 @@ async def test_rebuild_document_url_success(monkeypatch):
     fake_service = FakeKnowledgeService()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(sources, "_get_service", lambda: fake_service)
 
-    result = await knowledge_api.rebuild_document(
+    result = await sources.rebuild_document(
         corpus_id=corpus_id,
         document_id=document_id,
-        payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
+        payload=DocumentActionRequest(app_name="negentropy"),
         background_tasks=BackgroundTasks(),
     )
 
@@ -348,13 +332,13 @@ async def test_rebuild_document_file_requires_gcs(monkeypatch):
     fake_service = FakeKnowledgeService()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(sources, "_get_service", lambda: fake_service)
 
     with pytest.raises(HTTPException) as exc_info:
-        await knowledge_api.rebuild_document(
+        await sources.rebuild_document(
             corpus_id=corpus_id,
             document_id=document_id,
-            payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
+            payload=DocumentActionRequest(app_name="negentropy"),
             background_tasks=BackgroundTasks(),
         )
 
@@ -393,10 +377,10 @@ async def test_get_document_provenance_uses_original_filename(monkeypatch):
     fake_service = FakeKnowledgeService()
     fake_service.source_tracker = SimpleNamespace(get_provenance=AsyncMock(return_value=doc_source))
 
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: _FakeSessionManager(_FakeApiSession([doc])))
+    monkeypatch.setattr(provenance, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(provenance, "AsyncSessionLocal", lambda: _FakeSessionManager(_FakeApiSession([doc])))
 
-    result = await knowledge_api.get_document_provenance(document_id=document_id)
+    result = await provenance.get_document_provenance(document_id=document_id)
 
     assert result.filename == "architecture-overview.pdf"
     assert result.document_id == document_id
@@ -427,10 +411,10 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
         get_node_documents=AsyncMock(return_value=([fake_doc], 1)),
     )
 
-    monkeypatch.setattr(knowledge_api, "_get_catalog_service", lambda: fake_catalog_service)
-    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: _FakeSessionManager(SimpleNamespace()))
+    monkeypatch.setattr(catalog, "_get_catalog_service", lambda: fake_catalog_service)
+    monkeypatch.setattr(catalog, "AsyncSessionLocal", lambda: _FakeSessionManager(SimpleNamespace()))
 
-    result = await knowledge_api.get_entry_documents(catalog_id=catalog_id, entry_id=entry_id)
+    result = await catalog.get_entry_documents(catalog_id=catalog_id, entry_id=entry_id)
 
     assert result["total"] == 1
     assert result["documents"][0].original_filename == "design-spec.md"
@@ -450,12 +434,12 @@ async def test_rebuild_document_file_success(monkeypatch):
     fake_service = FakeKnowledgeService()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(sources, "_get_service", lambda: fake_service)
 
-    result = await knowledge_api.rebuild_document(
+    result = await sources.rebuild_document(
         corpus_id=corpus_id,
         document_id=document_id,
-        payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
+        payload=DocumentActionRequest(app_name="negentropy"),
         background_tasks=BackgroundTasks(),
     )
 
@@ -477,9 +461,9 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     fake_service = FakeKnowledgeService()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(ingest, "_get_service", lambda: fake_service)
 
-    result = await knowledge_api.ingest_file(
+    result = await ingest.ingest_file(
         corpus_id=corpus_id,
         background_tasks=BackgroundTasks(),
         file=UploadFile(
@@ -522,7 +506,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     background_call = fake_service.ingest_file_pipeline_calls[0] if fake_service.ingest_file_pipeline_calls else None
     assert background_call is None
 
-    queued_chunking_config = knowledge_api._resolve_chunking_config(
+    queued_chunking_config = _resolve_chunking_config(
         chunking_config=None,
         legacy_payload={
             "strategy": "hierarchical",
@@ -566,11 +550,11 @@ async def test_search_route_preserves_chunk_indices_in_metadata(monkeypatch):
     corpus_id = uuid4()
     fake_service = FakeKnowledgeService()
 
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(search, "_get_service", lambda: fake_service)
 
-    result = await knowledge_api.search(
+    result = await search.search(
         corpus_id=corpus_id,
-        payload=knowledge_api.SearchRequest(
+        payload=SearchRequest(
             app_name="negentropy",
             query="context engineering",
             mode="hybrid",
