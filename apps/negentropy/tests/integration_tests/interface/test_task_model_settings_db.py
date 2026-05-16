@@ -18,8 +18,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import select
 
+import negentropy.db.session as db_session
 from negentropy.config.task_registry import ALL_TASKS
-from negentropy.db.session import AsyncSessionLocal
 from negentropy.models.model_config import ModelConfig, ModelType
 from negentropy.models.perception import Corpus
 from negentropy.models.task_model_setting import TaskModelSetting
@@ -51,12 +51,12 @@ async def _seed_model_config():
         enabled=True,
         config={},
     )
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         db.add(mc)
         await db.commit()
         await db.refresh(mc)
     yield mc
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         await db.execute(select(ModelConfig).where(ModelConfig.id == mc.id))
         await db.delete(mc)
         await db.commit()
@@ -73,13 +73,13 @@ async def _seed_corpus_pair():
         app_name="test-app",
         name=f"test-corpus-b-{uuid4().hex[:8]}",
     )
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         db.add_all([c1, c2])
         await db.commit()
         await db.refresh(c1)
         await db.refresh(c2)
     yield (c1.id, c2.id)
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         for cid in (c1.id, c2.id):
             await db.execute(select(Corpus).where(Corpus.id == cid))
         await db.delete(c1)
@@ -96,11 +96,11 @@ async def test_global_setting_insert_and_read(any_task_key, _seed_model_config):
         task_key=any_task_key,
         model_config_id=mc.id,
     )
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         db.add(row)
         await db.commit()
 
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         result = await db.execute(
             select(TaskModelSetting).where(
                 TaskModelSetting.scope_corpus_id.is_(None),
@@ -112,7 +112,7 @@ async def test_global_setting_insert_and_read(any_task_key, _seed_model_config):
         assert loaded.task_key == any_task_key
         assert loaded.model_config_id == mc.id
 
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         await db.delete(loaded)
         await db.commit()
 
@@ -126,7 +126,7 @@ async def test_global_setting_unique_constraint(any_task_key, _seed_model_config
         task_key=any_task_key,
         model_config_id=mc.id,
     )
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         db.add(row1)
         await db.commit()
 
@@ -136,11 +136,11 @@ async def test_global_setting_unique_constraint(any_task_key, _seed_model_config
         model_config_id=mc.id,
     )
     with pytest.raises(Exception, match="uq_task_model_settings_global"):  # noqa: PT012
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             db.add(row2)
             await db.commit()
 
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         loaded = (
             await db.execute(
                 select(TaskModelSetting).where(
@@ -177,11 +177,11 @@ async def test_corpus_setting_coexists_with_global(
         model_config_id=mc.id,
     )
 
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         db.add_all([global_row, corpus_row_1, corpus_row_2])
         await db.commit()
 
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         all_rows = (await db.execute(select(TaskModelSetting))).scalars().all()
         assert len(all_rows) == 3
 
