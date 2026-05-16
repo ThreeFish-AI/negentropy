@@ -509,7 +509,7 @@ class TestWikiPublicationEntriesEagerLoading:
 
 @pytest.fixture
 def patch_knowledge_api_session(db_engine, monkeypatch):
-    """将 knowledge.api 内 `from db.session import AsyncSessionLocal` 重定向到测试引擎。
+    """将 routes 子模块中 `from db.session import AsyncSessionLocal` 重定向到测试引擎。
 
     conftest.patch_db_globals 仅覆盖 db.session/db.deps 命名空间，不影响已通过
     `from X import Y` 形式静态绑定到其他模块的引用——本 fixture 形成互补，
@@ -517,10 +517,12 @@ def patch_knowledge_api_session(db_engine, monkeypatch):
     """
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-    from negentropy.knowledge import api as knowledge_api
+    from negentropy.knowledge import _shared
+    from negentropy.knowledge.routes import catalog, corpus, graph, pipelines, provenance, wiki
 
     test_session_local = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
-    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", test_session_local)
+    for mod in (_shared, catalog, corpus, graph, pipelines, provenance, wiki):
+        monkeypatch.setattr(mod, "AsyncSessionLocal", test_session_local)
     return test_session_local
 
 
@@ -581,8 +583,8 @@ class TestCreateWikiPublicationApiConflict:
         """同一 catalog 第二次创建发布 → 409 + WIKI_PUB_CATALOG_LIVE_CONFLICT"""
         from fastapi import HTTPException
 
-        from negentropy.knowledge.api import create_wiki_publication
         from negentropy.knowledge.lifecycle_schemas import WikiPublicationCreateRequest
+        from negentropy.knowledge.routes.wiki import create_wiki_publication
 
         catalog_id, _app_name = isolated_wiki_catalog
 
@@ -627,8 +629,8 @@ class TestCreateWikiPublicationApiConflict:
         from fastapi import HTTPException
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.api import create_wiki_publication
         from negentropy.knowledge.lifecycle_schemas import WikiPublicationCreateRequest
+        from negentropy.knowledge.routes.wiki import create_wiki_publication
         from negentropy.models.perception import WikiPublication
 
         catalog_id, _app_name = isolated_wiki_catalog
@@ -673,8 +675,8 @@ class TestCreateWikiPublicationApiConflict:
 
         from fastapi import HTTPException
 
-        from negentropy.knowledge.api import create_wiki_publication
         from negentropy.knowledge.lifecycle_schemas import WikiPublicationCreateRequest
+        from negentropy.knowledge.routes.wiki import create_wiki_publication
 
         with pytest.raises(HTTPException) as exc_info:
             await create_wiki_publication(

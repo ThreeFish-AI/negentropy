@@ -123,7 +123,7 @@ class TestSearchResilience:
 class TestExceptionMapping:
     def test_embedding_failed_maps_to_502(self) -> None:
         """EmbeddingFailed → HTTP 502 Bad Gateway，保留 EMBEDDING_FAILED code"""
-        from negentropy.knowledge.api import _map_exception_to_http
+        from negentropy.knowledge.api_helpers import _map_exception_to_http
 
         exc = EmbeddingFailed(
             text_preview="harness",
@@ -141,7 +141,7 @@ class TestExceptionMapping:
 
     def test_search_error_remains_500(self) -> None:
         """SearchError 维持 500（与 EmbeddingFailed 区分自身错误 vs 上游错误）"""
-        from negentropy.knowledge.api import _map_exception_to_http
+        from negentropy.knowledge.api_helpers import _map_exception_to_http
 
         exc = SearchError(
             corpus_id=str(uuid4()),

@@ -14,6 +14,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from negentropy.knowledge import api as knowledge_api
+from negentropy.knowledge.routes import pipelines as pipeline_routes
+from negentropy.knowledge.schemas import PipelinesUpsertRequest
 
 
 @pytest.mark.asyncio
@@ -53,9 +55,9 @@ async def test_get_pipelines_returns_diagnostic_summary_in_typed_response(monkey
             _ = app_name
             return 1
 
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: FakeDao())
 
-    result = await knowledge_api.get_pipelines(app_name="negentropy")
+    result = await pipeline_routes.get_pipelines(app_name="negentropy")
 
     assert result.last_updated_at == "2026-03-09T11:30:00+08:00"
     assert result.runs[0].stages["extract_primary"].error is not None
@@ -97,9 +99,9 @@ async def test_get_pipelines_normalizes_null_output_payloads(monkeypatch):
             _ = app_name
             return 1
 
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: FakeDao())
 
-    result = await knowledge_api.get_pipelines(app_name="negentropy")
+    result = await pipeline_routes.get_pipelines(app_name="negentropy")
 
     assert result.last_updated_at == "2026-03-09T16:30:00+08:00"
     assert result.runs[0].input == {}
@@ -160,10 +162,10 @@ async def test_upsert_pipelines_returns_typed_response(monkeypatch):
                 },
             )
 
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: FakeDao())
 
-    result = await knowledge_api.upsert_pipelines(
-        knowledge_api.PipelinesUpsertRequest(
+    result = await pipeline_routes.upsert_pipelines(
+        PipelinesUpsertRequest(
             app_name="negentropy",
             run_id="pipeline-2",
             status="failed",

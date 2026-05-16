@@ -21,8 +21,8 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from negentropy.knowledge import api as knowledge_api
 from negentropy.knowledge.cancellation import _CANCEL_EVENTS
+from negentropy.knowledge.routes import pipelines as pipeline_routes
 from negentropy.knowledge.schemas import PipelineCancelRequest
 
 
@@ -60,10 +60,10 @@ async def test_cancel_pending_run_directly_to_cancelled(monkeypatch):
     """pending 状态的 run 直接转 cancelled。"""
     record = _make_record(status="cancelled")  # request_pipeline_run_cancel 已变更
     dao = _FakeDao(behavior={"result": ("cancelled", record)})
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: dao)
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: dao)
     _CANCEL_EVENTS.clear()
 
-    result = await knowledge_api.cancel_pipeline_run(
+    result = await pipeline_routes.cancel_pipeline_run(
         run_id="run-1",
         payload=PipelineCancelRequest(app_name="negentropy", reason="user_cancel"),
         user=None,
@@ -81,10 +81,10 @@ async def test_cancel_running_run_to_cancelling(monkeypatch):
     """running 状态的 run 转 cancelling，task 待检查点退出。"""
     record = _make_record(status="cancelling")
     dao = _FakeDao(behavior={"result": ("cancelling", record)})
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: dao)
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: dao)
     _CANCEL_EVENTS.clear()
 
-    result = await knowledge_api.cancel_pipeline_run(
+    result = await pipeline_routes.cancel_pipeline_run(
         run_id="run-1",
         payload=PipelineCancelRequest(app_name="negentropy"),
         user=None,
@@ -99,11 +99,11 @@ async def test_cancel_terminal_run_returns_409(monkeypatch):
     """已 completed 的 run 不能取消。"""
     record = _make_record(status="completed")
     dao = _FakeDao(behavior={"result": ("terminal", record)})
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: dao)
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: dao)
     _CANCEL_EVENTS.clear()
 
     with pytest.raises(HTTPException) as exc_info:
-        await knowledge_api.cancel_pipeline_run(
+        await pipeline_routes.cancel_pipeline_run(
             run_id="run-1",
             payload=PipelineCancelRequest(),
             user=None,
@@ -116,11 +116,11 @@ async def test_cancel_terminal_run_returns_409(monkeypatch):
 async def test_cancel_nonexistent_run_returns_404(monkeypatch):
     """不存在的 run 返回 404。"""
     dao = _FakeDao(behavior={"result": ("not_found", None)})
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: dao)
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: dao)
     _CANCEL_EVENTS.clear()
 
     with pytest.raises(HTTPException) as exc_info:
-        await knowledge_api.cancel_pipeline_run(
+        await pipeline_routes.cancel_pipeline_run(
             run_id="nonexistent",
             payload=PipelineCancelRequest(),
             user=None,
@@ -133,10 +133,10 @@ async def test_cancel_already_cancelling_is_noop(monkeypatch):
     """已 cancelling 的 run 二次取消幂等返回 noop。"""
     record = _make_record(status="cancelling")
     dao = _FakeDao(behavior={"result": ("noop", record)})
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: dao)
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: dao)
     _CANCEL_EVENTS.clear()
 
-    result = await knowledge_api.cancel_pipeline_run(
+    result = await pipeline_routes.cancel_pipeline_run(
         run_id="run-1",
         payload=PipelineCancelRequest(),
         user=None,
@@ -159,11 +159,11 @@ async def test_cancel_writes_payload_metadata(monkeypatch):
             record.payload = new_payload
             return ("cancelling", record)
 
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: _CapturingDao())
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: _CapturingDao())
     _CANCEL_EVENTS.clear()
 
     user = SimpleNamespace(email="alice@example.com")
-    await knowledge_api.cancel_pipeline_run(
+    await pipeline_routes.cancel_pipeline_run(
         run_id="run-1",
         payload=PipelineCancelRequest(reason="too slow"),
         user=user,
@@ -187,10 +187,10 @@ async def test_cancel_default_reason_is_user_cancel(monkeypatch):
             captured.update(cancellation_meta)
             return ("cancelling", record)
 
-    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: _CapturingDao())
+    monkeypatch.setattr(pipeline_routes, "_get_dao", lambda: _CapturingDao())
     _CANCEL_EVENTS.clear()
 
-    await knowledge_api.cancel_pipeline_run(
+    await pipeline_routes.cancel_pipeline_run(
         run_id="run-1",
         payload=PipelineCancelRequest(),
         user=None,
