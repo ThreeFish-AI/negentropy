@@ -5,7 +5,7 @@
  *
  * 设计要点：
  * - **Portal 绝对定位**（不复用 BaseModal —— 它是 modal 语义，会拦截背景交互）；
- * - **3 个 Tab**（Agents / 检索 / 输出）按 kind 区分候选项；
+ * - **4 个 Tab**（Agents / 检索 / 输出 / 图谱）按 kind 区分候选项；
  * - **键盘导航**：↑↓ 切换条目、Tab 切换 Tab、Enter/Tab 选中、Esc 关闭；
  * - **过滤**：按 queryText 子串（不区分大小写）；
  * - **可访问性**：role=listbox + aria-activedescendant；
@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bot, BookOpen, Save, Loader2 } from "lucide-react";
+import { Bot, BookOpen, Save, Network, Loader2 } from "lucide-react";
 import type { MentionCandidate, MentionKind } from "@/types/mention";
 
 interface PopoverPosition {
@@ -48,6 +48,7 @@ const _TAB_DEFS: Array<{ kind: MentionKind; label: string; icon: typeof Bot }> =
   { kind: "agent", label: "Agents", icon: Bot },
   { kind: "corpus-retrieve", label: "知识检索", icon: BookOpen },
   { kind: "corpus-output", label: "输出沉淀", icon: Save },
+  { kind: "graph", label: "图谱模式", icon: Network },
 ];
 
 function _filter(candidates: MentionCandidate[], q: string): MentionCandidate[] {

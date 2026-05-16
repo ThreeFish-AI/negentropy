@@ -1,16 +1,19 @@
 /**
  * Home Composer @ Mention 类型定义。
  *
- * 三类 mention 共用同一数据结构，仅以 ``kind`` 字段区分：
+ * 四类 mention 共用同一数据结构，仅以 ``kind`` 字段区分：
  *
  * - ``agent`` —— 用户偏好委派的 SubAgent，refId = ``sub_agents.name``；
  * - ``corpus-retrieve`` —— 本轮 RAG 检索范围，refId = Corpus.id (UUID)；
- * - ``corpus-output`` —— 输出沉淀目标，refId = Corpus.id (UUID)。
+ * - ``corpus-output`` —— 输出沉淀目标，refId = Corpus.id (UUID)；
+ * - ``graph`` —— 强制启用图谱模式 / 跨 Corpus 桥接 / GraphRAG 全局摘要，
+ *   refId = Corpus.id (UUID)。与 ``corpus-retrieve`` 互补：前者交给 Intent
+ *   Classifier 自动决定是否触发图扩展，后者由用户显式强制。
  *
  * `inputValue` 仍是 textarea 的唯一事实源（模型会读到 `@xxx` 自然文本），
  * `MentionToken[]` 仅承担：① UI 高亮（mirror overlay）② forwardedProps 派生。
  */
-export type MentionKind = "agent" | "corpus-retrieve" | "corpus-output";
+export type MentionKind = "agent" | "corpus-retrieve" | "corpus-output" | "graph";
 
 export interface MentionToken {
   /** 前端 UUID，仅用于 React key。 */

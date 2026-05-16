@@ -93,5 +93,16 @@ export function buildStateDeltaFromForwardedProps(
       stateDelta.output_corpus_ids = output;
     }
   }
+  // Home Composer 的 @graph —— 强制启用图谱/跨 Corpus 桥接/GraphRAG 全局摘要模式。
+  // 由 ``perception.search_knowledge_base`` 消费 ``tool_context.state``：
+  // 命中非空数组时强制走 HybridPlanner 的 graph expansion 路径，
+  // 同时关键词命中「主题/概览/总体/核心」会进一步切换到 search_knowledge_graph_global。
+  // 空数组同样写入以触发清空语义。
+  if ("graph_mode_corpus_ids" in forwardedProps) {
+    const graphIds = sanitizeUuidList(forwardedProps.graph_mode_corpus_ids, CORPUS_IDS_MAX_LEN);
+    if (graphIds !== null) {
+      stateDelta.graph_mode_corpus_ids = graphIds;
+    }
+  }
   return stateDelta;
 }

@@ -153,6 +153,7 @@ describe("buildStateDeltaFromForwardedProps", () => {
         preferred_subagent: "ActionFaculty",
         scoped_corpus_ids: [UUID_A],
         output_corpus_ids: [UUID_B],
+        graph_mode_corpus_ids: [UUID_C],
       }),
     ).toEqual({
       selected_llm_model: "anthropic/claude-opus-4-7",
@@ -160,7 +161,47 @@ describe("buildStateDeltaFromForwardedProps", () => {
       preferred_subagent: "ActionFaculty",
       scoped_corpus_ids: [UUID_A],
       output_corpus_ids: [UUID_B],
+      graph_mode_corpus_ids: [UUID_C],
     });
+  });
+
+  // ----------------------------------------------------------------------
+  // @graph — graph_mode_corpus_ids（强制启用图谱/跨 Corpus 桥接模式）
+  // ----------------------------------------------------------------------
+
+  it("透传合法 UUID 列表 graph_mode_corpus_ids", () => {
+    expect(
+      buildStateDeltaFromForwardedProps({
+        graph_mode_corpus_ids: [UUID_A, UUID_B],
+      }),
+    ).toEqual({ graph_mode_corpus_ids: [UUID_A, UUID_B] });
+  });
+
+  it("graph_mode_corpus_ids 显式空数组 → 写入空数组（清空语义）", () => {
+    // 与 scoped_corpus_ids / output_corpus_ids 同构 —— 防止跨 turn 残留
+    expect(
+      buildStateDeltaFromForwardedProps({ graph_mode_corpus_ids: [] }),
+    ).toEqual({ graph_mode_corpus_ids: [] });
+  });
+
+  it("graph_mode_corpus_ids 中非 UUID 条目被过滤掉", () => {
+    expect(
+      buildStateDeltaFromForwardedProps({
+        graph_mode_corpus_ids: [UUID_A, "garbage", 99, null, UUID_B],
+      }),
+    ).toEqual({ graph_mode_corpus_ids: [UUID_A, UUID_B] });
+  });
+
+  it("graph_mode_corpus_ids 非数组类型整体忽略", () => {
+    expect(
+      buildStateDeltaFromForwardedProps({ graph_mode_corpus_ids: UUID_A }),
+    ).toEqual({});
+  });
+
+  it("graph_mode_corpus_ids 字段缺席 → 不写入 state_delta", () => {
+    expect(
+      buildStateDeltaFromForwardedProps({ scoped_corpus_ids: [UUID_A] }),
+    ).toEqual({ scoped_corpus_ids: [UUID_A] });
   });
 
   it("forwardedProps 为 null → 返回空对象", () => {
