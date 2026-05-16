@@ -5760,38 +5760,27 @@ async def cleanup_orphan_chunks(
             if not chunks:
                 continue
 
-            # Step 3: 时间聚类（60 秒窗口）
-            clusters: list[list[Any]] = []
-            current_cluster: list[Any] = [chunks[0]]
-            prev_ts = chunks[0].created_at
+            # Step 3: 时间聚类（60 秒窗口）— 复用 cleanup 模块的纯算法
+            from negentropy.knowledge.cleanup import check_index_completeness, cluster_by_time
 
-            for c in chunks[1:]:
-                gap = (c.created_at - prev_ts).total_seconds()
-                if gap <= 60:
-                    current_cluster.append(c)
-                else:
-                    clusters.append(current_cluster)
-                    current_cluster = [c]
-                prev_ts = c.created_at
-            if current_cluster:
-                clusters.append(current_cluster)
+            chunk_dicts = [
+                {"id": str(c.id), "chunk_index": c.chunk_index, "created_at": c.created_at, "role": c.role}
+                for c in chunks
+            ]
+            clusters = cluster_by_time(chunk_dicts)
 
             if len(clusters) <= 1:
                 continue
 
             # Step 4: 选最新批次
             latest = clusters[-1]
-            # 完整性检查：parent chunk_index 应连续
-            parent_indices = sorted({c.chunk_index for c in latest if c.role != "child"})
-            is_complete = not parent_indices or parent_indices == list(range(len(parent_indices)))
+            is_complete = check_index_completeness(latest)
 
             if not is_complete and len(clusters) >= 2:
                 latest = clusters[-2]
-                # 回退后重新检查完整性，与 CLI 脚本保持一致
-                fb_parent_indices = sorted({c.chunk_index for c in latest if c.role != "child"})
-                is_complete = not fb_parent_indices or fb_parent_indices == list(range(len(fb_parent_indices)))
+                is_complete = check_index_completeness(latest)
 
-            kept_ids = {str(c.id) for c in latest}
+            kept_ids = {c["id"] for c in latest}
             deleted_ids = [str(c.id) for c in chunks if str(c.id) not in kept_ids]
 
             report_items.append(
