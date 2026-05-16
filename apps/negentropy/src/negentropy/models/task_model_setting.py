@@ -16,11 +16,12 @@
     唯一性由两条偏唯一索引（在 migration 中创建）保障。
 """
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
 
 from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, fk
 
@@ -37,11 +38,14 @@ class TaskModelSetting(Base, TimestampMixin):
 
     __tablename__ = "task_model_settings"
 
+    # Surrogate UUID 主键：client 端用 ``uuid4()`` 优先生成，
+    # DB 端 ``gen_random_uuid()`` 兜底（与 migration 0032 默认表达式一致），
+    # 二者并存避免 SQLAlchemy SAWarning "Column has no default generator"。
     id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
         primary_key=True,
-        default=None,
-        server_default=None,
+        default=uuid4,
+        server_default=func.gen_random_uuid(),
         nullable=False,
     )
     scope_corpus_id: Mapped[UUID | None] = mapped_column(
