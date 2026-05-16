@@ -1998,3 +1998,35 @@
   - **完成模型流失同型 bug**：community_summarizer 当前以 caller 显式 `model` + `resolve_llm_config()` 凭证拼接的方式工作；如未来需要严格按 corpus 绑定 LLM（而非仅 model name），应迁移到与 GlobalSearchService 一致的 `llm_config_id` 注入模式；
   - **重试层 fail-fast 扩展**：`_is_non_retryable_error` 当前覆盖 LiteLLM 6 个异常类 + 6 个字符串模式；如未来引入新厂商专属错误类型，应在 `_NON_RETRYABLE_ERROR_PATTERNS` / `_NON_RETRYABLE_TYPES` 中增量添加，而非在调用点各自实现 try/except；
   - **API 端点同源校验**：所有 `/knowledge/base/{corpus_id}/...` 路径下需要语料库感知的端点（已枚举的 search/global_search/multi_hop 三处之外），应在评审时一致性检查是否使用了 `_resolve_corpus_model_ids`。
+
+---
+
+## ISSUE-087 后台 LLM 调用点缺失 UI 模型选择入口（2026-05-16）
+
+- **表因**：用户在 Interface / Models 页虽然可以注册 OpenAI / Anthropic / Gemini 三家 vendor 的若干模型，但 Memory Consolidation 流水线（事实提取 / 摘要 / 反思 / 实体规范化）、Session 标题生成、Knowledge Graph 实体 / 关系 / 文档抽取这些后台 LLM 调用**始终回退到全局唯一的 `model_configs.is_default=true`** 或硬编码 fallback `openai/gpt-5-mini`，**无法在 UI 上为每个任务单独指定使用哪个模型**。这与 ISSUE-086 在查询侧已修复的 corpus 维度绑定形成断层：用户希望"全局所有用到 LLM 和 Embedding Model 的地方"都能从已配置的目录中选具体模型，但 8 处后台调用点完全缺失对应入口。
+- **根因**（架构层面）：
+  1. **`model_configs.is_default` 仅支持单一默认**：[`model_resolver.py:_resolve_from_vendor_configs`](../apps/negentropy/src/negentropy/config/model_resolver.py) 的解析链是 `is_default → 硬编码 fallback`，没有"任务维度"的中间层；不同后台任务被迫共享同一个全局默认 LLM。
+  2. **调用点直接消费同步 `resolve_model_config()`**：[`engine/utils/model_config.py`](../apps/negentropy/src/negentropy/engine/utils/model_config.py) 旧版接口只接受 `explicit_model: str | None`，本质上把 model 选择推给了 caller，但 caller 在 [`llm_fact_extractor.py:70`](../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py) / [`memory_summarizer.py:74`](../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py) / [`reflection_generator.py:69`](../apps/negentropy/src/negentropy/engine/consolidation/reflection_generator.py) / [`entity_normalization_step.py:41`](../apps/negentropy/src/negentropy/engine/consolidation/pipeline/steps/entity_normalization_step.py) / [`summarization.py:46`](../apps/negentropy/src/negentropy/engine/summarization.py) 全部以 `None` 调用——等于把全部决策权外推给 `is_default`。
+  3. **UI 与后端契约缺失**：Interface / Models 页只能管理"模型目录"，没有"任务 → 模型"映射页；Corpus 设置页虽有 `llm_config_id / embedding_config_id`，但只作用于 KG ingestion 整体，未细分到 entity / relation / extract 三个子任务。
+- **处理方式**（5 步落地）：
+  1. **数据库 + ORM**：[`db/migrations/versions/0032_task_model_settings.py`](../apps/negentropy/src/negentropy/db/migrations/versions/0032_task_model_settings.py) 与 [`models/task_model_setting.py`](../apps/negentropy/src/negentropy/models/task_model_setting.py) 新建 `task_model_settings(scope_corpus_id NULL/UUID, task_key, model_config_id)` 复合主键表 + 偏唯一索引 `WHERE scope_corpus_id IS NULL` 保证全局映射唯一；`scope_corpus_id NULL` = 全局映射，`NOT NULL` = corpus 级覆盖。
+  2. **Task Registry 单一事实源**：[`config/task_registry.py`](../apps/negentropy/src/negentropy/config/task_registry.py) 集中登记 8 个任务槽位（5 个 global：`consolidation.fact_extract` / `consolidation.summarize` / `consolidation.reflection` / `consolidation.entity_normalization` / `session.title`；3 个 corpus：`knowledge.kg.extraction.entity` / `.relation` / `knowledge.ingestion.extract`）。前后端通过 `/interface/task-models/registry` 端点共享，避免硬编码漂移。
+  3. **Resolver 扩展 + 五级回退链**：[`model_resolver.py`](../apps/negentropy/src/negentropy/config/model_resolver.py) 新增 `resolve_llm_config_for_task(task_key, *, corpus_id)` 与同步缓存读取接口；缓存键命名空间 `task:<llm|embedding>:<corpus_id|'_'>:<task_key>` 独立，写操作触发 `invalidate_cache(prefix="task:")`。解析顺序：`explicit_model > task_model_settings(corpus) > task_model_settings(global) > model_configs.is_default > 硬编码 fallback`，每一层失败静默继续。
+  4. **调用点接入**：8 处 LLM 调用统一注入 `_TASK_KEY` 类属性 + lazy `_resolve_model()` / `_ensure_model_config(corpus_id)` 模式（llm_fact_extractor / memory_summarizer / reflection_generator / entity_normalization_step / summarization / extractors.LLMEntityExtractor / .LLMRelationExtractor / ingestion/extraction._build_llm_invocation_plan），每次公共入口前重新解析以接住 cache invalidation。KG `LLMRelationExtractor.extract` 与 `CompositeRelationExtractor.extract` 新增 `corpus_id` 可选参数，service.py:774 调用点同步传递。
+  5. **UI 与 API**：
+     - 后端 [`interface/task_models_api.py`](../apps/negentropy/src/negentropy/interface/task_models_api.py) 暴露 `/interface/task-models/{registry,settings,settings/{task_key}}` + `/knowledge/corpus/{id}/task-models/[task_key]` 双套端点；写端点要求 admin、强校验 task_key + model_type + scope 一致性。
+     - 前端 [`/interface/task-models/page.tsx`](../apps/negentropy-ui/app/interface/task-models/page.tsx) 全局管理页 + [`ModelConfigPanel.tsx`](../apps/negentropy-ui/app/knowledge/graph/_components/ModelConfigPanel.tsx) 内嵌 corpus 级 task-models 折叠区块；新组件 [`TaskModelSelect.tsx`](../apps/negentropy-ui/components/interface/TaskModelSelect.tsx) 处理 id ↔ vendor/model_name 双向映射，避免破坏复用组件 [`LlmModelSelect.tsx`](../apps/negentropy-ui/components/ui/LlmModelSelect.tsx) 的现有契约。
+- **验证证据**：
+  - 静态：`uv run ruff check` 与 `pnpm exec tsc --noEmit` 双线通过；
+  - 单元：新增 17 个用例（`tests/unit_tests/config/test_task_registry.py` 7 项、`tests/unit_tests/config/test_model_resolver_task.py` 5 项、`tests/unit_tests/interface/test_task_models_api.py` 5 项）100% 通过；
+  - 回归：`tests/unit_tests/` 1634 通过 / 1 deselected（`test_extraction_llm_plan.py::test_build_llm_invocation_plan_returns_none_when_serialization_fails` 在 master 即失败，与本次修复无关，已 `git stash` 比对验证）；
+  - 调试观测：resolver 命中后输出结构化日志 `task_model_resolved {task_key, corpus_id, resolved_model, source ∈ {corpus_task, global_task, default}}`，可用于线上链路核对。
+  - **未完成项（透明披露）**：浏览器实机回归遵循 [browser-validation 协议](./agents/browser-validation.md) 需用户在 Chrome 主 profile + 真实凭证操作；本次未在 agent 内执行实机验证——所有路径由单元测试 + 静态检查覆盖。
+- **后续防范**：
+  1. **"调用点新增 LLM 操作 → 同步登记 task_key"契约**：任何新增后台 LLM/Embedding 调用点必须先在 [`task_registry.py`](../apps/negentropy/src/negentropy/config/task_registry.py) 注册槽位，再通过 `resolve_*_for_task` 解析。Code review 时检查"裸调 `resolve_llm_config()` 或 `litellm.acompletion(model="…")`"作为 red flag。
+  2. **缓存命名空间隔离**：新增 resolver 时务必使用独立 cache key 前缀（`task:` / `subagent:` / `llm:<id>` 等已建立），写操作匹配的 `invalidate_cache(prefix=...)` 必须同步覆盖；不可与全局 `llm` / `embedding` 缓存共用键。
+  3. **Migration 兼容**：`task_model_settings` 缺行 = 回退默认链路，与现状等价；启用前先合并代码 + migration，部署后再 opt-in 即可，避免破坏性变更。
+- **同类问题影响**：
+  - 同型"硬编码模型 / 全局唯一默认"模式在 [`knowledge/retrieval/reranking.py:95`](../apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py) 与 `:217` 的 Reranker 中仍存在（BAAI/bge-reranker-v2-m3、Cohere `rerank-english-v3.0`）；用户本期决策不纳入治理范围，后续可复用同一 task_model_settings 表扩展 `reranker.local` / `reranker.api` 两个槽位；
+  - Memory Consolidation pipeline 中 `dedup_merge` / `auto_link` / `topic_cluster` 三个 step 当前为规则/嵌入驱动，未来若引入 LLM 评判，须在 task_registry 增量补充并接入 `resolve_model_config_async`；
+  - Embedding 模型当前由 `corpus.config.models.embedding_config_id` 覆盖主链路，本期未拆细粒度 embedding 任务槽；如未来 KG 子任务（实体 embedding / 关系 embedding）需要差异化 embedding 模型，可扩展 task_registry 增加 `embedding` 类型槽位。

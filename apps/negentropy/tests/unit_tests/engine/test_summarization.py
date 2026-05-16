@@ -21,12 +21,12 @@ async def test_create_uses_resolve_llm_config_with_max_tokens():
     )
 
     with patch(
-        "negentropy.config.model_resolver.resolve_llm_config",
+        "negentropy.config.model_resolver.resolve_llm_config_for_task",
         new=AsyncMock(return_value=resolved),
     ) as mock_resolve:
         summarizer = await SessionSummarizer.create()
 
-    mock_resolve.assert_awaited_once_with()
+    mock_resolve.assert_awaited_once_with("session.title")
     assert summarizer.model is not None
     assert summarizer.model.model == "openai/gpt-5-mini"
     # LiteLlm 把额外 kwargs 落到 _additional_args；title 生成的硬约束由 _TITLE_MAX_TOKENS 提供。
@@ -45,7 +45,7 @@ async def test_create_disables_thinking_for_anthropic_models():
     )
 
     with patch(
-        "negentropy.config.model_resolver.resolve_llm_config",
+        "negentropy.config.model_resolver.resolve_llm_config_for_task",
         new=AsyncMock(return_value=resolved),
     ):
         summarizer = await SessionSummarizer.create()
@@ -63,7 +63,7 @@ async def test_create_leaves_non_reasoning_model_kwargs_clean():
     )
 
     with patch(
-        "negentropy.config.model_resolver.resolve_llm_config",
+        "negentropy.config.model_resolver.resolve_llm_config_for_task",
         new=AsyncMock(return_value=resolved),
     ):
         summarizer = await SessionSummarizer.create()
@@ -79,7 +79,7 @@ async def test_create_does_not_mutate_resolver_kwargs():
     resolved = ("openai/gpt-5-mini", shared_kwargs)
 
     with patch(
-        "negentropy.config.model_resolver.resolve_llm_config",
+        "negentropy.config.model_resolver.resolve_llm_config_for_task",
         new=AsyncMock(return_value=resolved),
     ):
         await SessionSummarizer.create()

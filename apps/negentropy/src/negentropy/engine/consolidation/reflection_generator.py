@@ -26,7 +26,7 @@ from dataclasses import dataclass
 
 import litellm
 
-from negentropy.engine.utils.model_config import resolve_model_config
+from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.consolidation.reflection_generator")
@@ -60,15 +60,26 @@ class Reflection:
 class ReflectionGenerator:
     """LLM 驱动的失败反思生成器，pattern 模板兜底。"""
 
+    # task_registry.py 中登记的 task_key；用户可在 /interface/task-models 为本任务单独绑定模型。
+    _TASK_KEY = "consolidation.reflection"
+
     def __init__(
         self,
         model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
     ) -> None:
-        self._model, self._model_kwargs = resolve_model_config(model)
+        self._explicit_model = model
+        self._model: str = ""
+        self._model_kwargs: dict = {}
         self._temperature = temperature
         self._max_retries = max_retries
+
+    async def _resolve_model(self) -> None:
+        self._model, self._model_kwargs = await resolve_model_config_async(
+            self._TASK_KEY,
+            explicit_model=self._explicit_model,
+        )
 
     async def generate(
         self,
@@ -93,6 +104,9 @@ class ReflectionGenerator:
             return None
         safe_query = query.strip()[:_MAX_QUERY_PREVIEW_LEN]
         snippets = self._format_snippets(retrieved_snippets)
+
+        # 解析当前任务模型（每次 generate 入口刷新，以接住 /interface/task-models 切换）
+        await self._resolve_model()
 
         try:
             ref = await self._llm_generate(query=safe_query, snippets=snippets, outcome=outcome)

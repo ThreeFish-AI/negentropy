@@ -22,9 +22,15 @@ def _make_response(content: str) -> MagicMock:
 
 @pytest.fixture
 def generator():
-    with patch("negentropy.engine.consolidation.reflection_generator.resolve_model_config") as mock_resolve:
-        mock_resolve.return_value = ("test-model", {})
-        return ReflectionGenerator(max_retries=1)
+    # Phase 7: task-aware async 解析后改为 mock instance 方法 _resolve_model。
+    inst = ReflectionGenerator(max_retries=1)
+
+    async def _resolve():
+        inst._model = "test-model"
+        inst._model_kwargs = {}
+
+    inst._resolve_model = _resolve  # type: ignore[method-assign]
+    return inst
 
 
 class TestReflectionGenerator:

@@ -1570,6 +1570,7 @@ async def _build_llm_invocation_plan(
     source_candidates: list[SourceCandidate],
     validation_error: ValidationErrorSummary | None = None,
     llm_config_id: str | None = None,
+    corpus_id: UUID | None = None,
 ) -> AdaptiveToolInvocationPlan | None:
     if not isinstance(input_schema, dict):
         return None
@@ -1652,14 +1653,19 @@ async def _build_llm_invocation_plan(
 
     try:
         from negentropy.config.model_resolver import (
-            resolve_llm_config,
             resolve_llm_config_by_id,
+            resolve_llm_config_for_task,
         )
 
         if llm_config_id:
+            # Corpus 显式绑定的 llm_config_id 优先
             _llm_name, _llm_kwargs = await resolve_llm_config_by_id(llm_config_id)
         else:
-            _llm_name, _llm_kwargs = await resolve_llm_config()
+            # 走 task → corpus 映射 → 全局映射 → is_default → fallback
+            _llm_name, _llm_kwargs = await resolve_llm_config_for_task(
+                "knowledge.ingestion.extract",
+                corpus_id=corpus_id,
+            )
         # 过滤掉与显式参数冲突的键
         _safe_kwargs = {k: v for k, v in _llm_kwargs.items() if k not in ("model", "messages", "response_format")}
         response = await litellm.acompletion(
@@ -2096,6 +2102,7 @@ class DataExtractorProvider:
                     source_candidates=source_candidates,
                     validation_error=validation_error,
                     llm_config_id=llm_config_id,
+                    corpus_id=corpus_id,
                 )
                 if plan is None:
                     if index == 0:

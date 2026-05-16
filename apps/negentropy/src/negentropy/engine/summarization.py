@@ -41,12 +41,17 @@ class SessionSummarizer:
         self.model = model
         logger.debug("session_summarizer_initialized")
 
+    # task_registry.py 中登记的 task_key；用户可在 /interface/task-models 为本任务单独绑定模型。
+    _TASK_KEY = "session.title"
+
     @classmethod
     async def create(cls) -> "SessionSummarizer":
-        """异步工厂：从 DB 解析默认 LLM 配置（含 api_key）后构造 LiteLlm。
+        """异步工厂：从 DB 解析当前任务对应 LLM 配置（含 api_key）后构造 LiteLlm。
 
         与 commit 8ce35d5 修复 ``DynamicRootLiteLlm`` 的范式一致——所有默认
-        模型路径统一走 ``resolve_llm_config()``，不再回退到无凭证的硬编码值。
+        模型路径统一走 ``resolve_llm_config*()``，不再回退到无凭证的硬编码值。
+        改造点：从 ``resolve_llm_config()`` 切换到 ``resolve_llm_config_for_task("session.title")``，
+        以允许用户在 ``/interface/task-models`` 为标题生成单独指定模型。
 
         额外，对支持 reasoning 的 OpenAI 模型族（gpt-5 / o1 / o3 / o4）强制
         ``reasoning_effort="minimal"``——title 生成只需短文本响应，若不显式
@@ -57,10 +62,10 @@ class SessionSummarizer:
             _split_vendor_and_model,
             _supports_anthropic_thinking,
             _supports_openai_reasoning,
-            resolve_llm_config,
+            resolve_llm_config_for_task,
         )
 
-        name, kwargs = await resolve_llm_config()
+        name, kwargs = await resolve_llm_config_for_task(cls._TASK_KEY)
         # 防御性浅拷贝：resolver 内部已 copy（model_resolver.py:80/90/448），
         # 这里再独立一份避免对调用方/缓存层的契约耦合，max_tokens 不污染上游 dict。
         kwargs = dict(kwargs)

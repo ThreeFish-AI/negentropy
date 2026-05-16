@@ -771,7 +771,7 @@ class GraphService:
 
                     try:
                         relations = await asyncio.wait_for(
-                            relation_extractor.extract(entities, text),
+                            relation_extractor.extract(entities, text, corpus_id=corpus_id),
                             timeout=chunk_extract_timeout,
                         )
                         # 过滤低置信度关系
