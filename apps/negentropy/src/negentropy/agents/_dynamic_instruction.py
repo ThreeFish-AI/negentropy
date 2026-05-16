@@ -48,16 +48,26 @@ def _render_preference_prefix(preferred: str) -> str:
     return _PREFERENCE_PREFIX_TEMPLATE.format(name=preferred)
 
 
-def make_instruction_provider(agent_name: str, fallback: str) -> InstructionProvider:
+def make_instruction_provider(
+    agent_name: str,
+    fallback: str,
+    *,
+    is_root: bool = False,
+) -> InstructionProvider:
     """构造 ADK InstructionProvider：DB 命中即用，未命中 / 失败回退到 ``fallback``。
 
-    扩展：当 ``ctx.state`` 含 ``preferred_subagent``（用户 @ Agent 偏好）时，
-    在 instruction 头部 prepend 「用户偏好」段落（仅本 turn 生效，state 由 ADK
-    按 turn 派发）。Agent 名仅做轻量正则校验，避免脏数据破坏 prompt。
+    扩展：当 ``is_root=True`` 且 ``ctx.state`` 含 ``preferred_subagent``（用户
+    @ Agent 偏好）时，在 instruction 头部 prepend 「用户偏好」段落（仅本 turn
+    生效，state 由 ADK 按 turn 派发）。Agent 名仅做轻量正则校验，避免脏数据
+    破坏 prompt。
 
     Args:
         agent_name: ``sub_agents.name``，用于 DB 查询；与 ADK Agent.name 一致。
         fallback: 代码硬编码 instruction 文本，DB 未命中 / 异常时使用。
+        is_root: 是否为根 Agent（``NegentropyEngine``）。仅根 Agent 消费
+            ``preferred_subagent`` —— 它负责调度 SubAgent；其它 faculty 即使读到
+            同一 ``session.state`` 也不应被自指令（``transfer_to_agent(self)``）
+            或跨派系委派提示污染。
 
     Returns:
         Async callable，签名符合 ADK 的 ``InstructionProvider`` 类型约束。
@@ -75,9 +85,11 @@ def make_instruction_provider(agent_name: str, fallback: str) -> InstructionProv
             text = None
         base = text or fallback
 
-        # 仅 root_agent 消费 preferred_subagent；其它 SubAgent 共用同一 provider 也
-        # 不会被误注入，因为状态键由前端在选中 root 路由场景才设置；这里仍做防御性
-        # 校验：非法 / 空 / 异常类型一律忽略，永不阻塞主流程。
+        # 非 root 一律走原路径——避免 faculty 共用 provider 时被偏好 prefix 污染。
+        if not is_root:
+            return base
+
+        # 防御性校验：非法 / 空 / 异常类型一律忽略，永不阻塞主流程。
         try:
             state = getattr(ctx, "state", None)
             preferred = state.get(_PREFERENCE_KEY) if state is not None else None
