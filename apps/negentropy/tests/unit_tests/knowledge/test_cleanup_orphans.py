@@ -1,46 +1,17 @@
 """cleanup_orphan_chunks CLI 聚类算法的单元测试。
 
 不连真实 DB，仅验证时间聚类和完整性校验逻辑。
-直接内联被测函数，因为 CLI 脚本不在 Python package path 内。
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from negentropy.knowledge.cleanup import check_index_completeness, cluster_by_time
+
 
 def _ts(minutes_ago: float) -> datetime:
     return datetime.now(UTC) - timedelta(minutes=minutes_ago)
-
-
-# --- 内联被测函数（与 cleanup_orphan_chunks.py 保持一致） ---
-
-
-def _cluster_by_time(chunks: list[dict], window_seconds: int = 60) -> list[list[dict]]:
-    if not chunks:
-        return []
-    clusters: list[list[dict]] = []
-    current: list[dict] = [chunks[0]]
-    prev_ts = chunks[0]["created_at"]
-    for c in chunks[1:]:
-        ts = c["created_at"]
-        gap = (ts - prev_ts).total_seconds()
-        if gap <= window_seconds:
-            current.append(c)
-        else:
-            clusters.append(current)
-            current = [c]
-        prev_ts = ts
-    if current:
-        clusters.append(current)
-    return clusters
-
-
-def _check_index_completeness(cluster: list[dict]) -> bool:
-    parent_indices = sorted({c["chunk_index"] for c in cluster if c["role"] != "child"})
-    if not parent_indices:
-        return True
-    return parent_indices == list(range(len(parent_indices)))
 
 
 def test_cluster_by_time_single_batch():
@@ -49,7 +20,7 @@ def test_cluster_by_time_single_batch():
         {"id": f"id-{i}", "chunk_index": i, "created_at": _ts(1), "role": "parent" if i % 5 == 0 else "child"}
         for i in range(10)
     ]
-    clusters = _cluster_by_time(chunks, window_seconds=60)
+    clusters = cluster_by_time(chunks, window_seconds=60)
     assert len(clusters) == 1
     assert len(clusters[0]) == 10
 
@@ -84,7 +55,7 @@ def test_cluster_by_time_multiple_batches():
             for i in range(14)
         ]
     )
-    clusters = _cluster_by_time(chunks, window_seconds=60)
+    clusters = cluster_by_time(chunks, window_seconds=60)
     assert len(clusters) == 3
     assert all(len(c) == 14 for c in clusters)
     # 最新批次应包含 "new-" 前缀的 chunks
@@ -93,26 +64,26 @@ def test_cluster_by_time_multiple_batches():
 
 def test_cluster_by_time_empty():
     chunks = []
-    clusters = _cluster_by_time(chunks)
+    clusters = cluster_by_time(chunks)
     assert clusters == []
 
 
 def test_check_index_completeness_continuous():
     """chunk_index 从 0 起连续 → 完整。"""
     cluster = [{"chunk_index": i, "role": "parent"} for i in range(14)]
-    assert _check_index_completeness(cluster) is True
+    assert check_index_completeness(cluster) is True
 
 
 def test_check_index_completeness_with_gap():
     """chunk_index 有空缺（如 [0,1,3,4] 缺 2）→ 不完整。"""
     cluster = [{"chunk_index": i, "role": "parent"} for i in [0, 1, 3, 4]]
-    assert _check_index_completeness(cluster) is False
+    assert check_index_completeness(cluster) is False
 
 
 def test_check_index_completeness_only_children():
     """全 child 无 parent → 视为完整（无 parent 不阻止）。"""
     cluster = [{"chunk_index": i, "role": "child"} for i in range(5)]
-    assert _check_index_completeness(cluster) is True
+    assert check_index_completeness(cluster) is True
 
 
 def test_cluster_by_time_orphan_detection_scenario():
@@ -142,7 +113,7 @@ def test_cluster_by_time_orphan_detection_scenario():
             }
         )
 
-    clusters = _cluster_by_time(batches, window_seconds=60)
+    clusters = cluster_by_time(batches, window_seconds=60)
     assert len(clusters) == 11  # 10 old + 1 latest
     # 最新批次应包含 "latest-" 前缀
     assert clusters[-1][0]["id"].startswith("latest-")
