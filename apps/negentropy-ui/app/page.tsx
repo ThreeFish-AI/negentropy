@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useMemo, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { CopilotKitProvider } from "@copilotkitnext/react";
 
@@ -24,7 +24,6 @@ const SESSION_ID_QUERY_KEY = "sessionId";
  */
 function HomeInner() {
   const { user, status: authStatus, login } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const pendingSendRef = useRef<string | null>(null);
@@ -35,7 +34,8 @@ function HomeInner() {
   // 与 useEffect 内 setState 的 React 18 反模式。这意味着：
   // 1. 刷新 / 复制 URL / 浏览器返回前进 → 自然恢复对应会话（ISSUE-059）；
   // 2. 书签 / 分享链接可直接指向特定会话；
-  // 3. setSessionId 通过 router.replace 触发 Next.js 重渲染，子组件经 props 收到新值。
+  // 3. setSessionId 通过 window.history.replaceState 更新 URL，
+  //    Next.js App Router 的 useSearchParams 会监听 history API 变更并触发派生重渲染。
   //
   // ISSUE-062：useSearchParams() 每次 render 返回新的 ReadonlyURLSearchParams 引用
   // （即使 query 不变），如果直接列入 useCallback deps 会让 setSessionId 引用持续
@@ -48,8 +48,11 @@ function HomeInner() {
 
   const setSessionId = useCallback(
     (next: string | null) => {
-      // history.replaceState 而非 push：避免污染浏览器历史栈，让"返回"键回到外部上一页。
-      // 不刷新页面（router.replace + scroll: false），保留所有 client state。
+      // ISSUE-088：Next.js 16.2.3 的 useRouter().replace(target, { scroll: false })
+      // 在「同 pathname、仅 query 变化」场景下会输出 history.replaceState({__NA: true}, "", 旧URL)
+      // 的 no-op 路径，URL 不会真正更新，导致 useSearchParams 永远派生旧值。
+      // 直接调用 window.history.replaceState 绕开该 RSC 导航判定路径——
+      // Next.js 14+ App Router 的 useSearchParams 会监听 history API 变更并触发重渲染。
       const params = new URLSearchParams(queryString);
       if (next) {
         params.set(SESSION_ID_QUERY_KEY, next);
@@ -58,9 +61,11 @@ function HomeInner() {
       }
       const nextQuery = params.toString();
       const target = nextQuery ? `${pathname}?${nextQuery}` : pathname || "/";
-      router.replace(target, { scroll: false });
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", target);
+      }
     },
-    [pathname, router, queryString],
+    [pathname, queryString],
   );
 
   const agent = useMemo(() => {
