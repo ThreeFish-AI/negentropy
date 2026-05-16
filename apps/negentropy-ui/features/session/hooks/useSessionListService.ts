@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ConnectionState, LogEntry, SessionRecord } from "@/types/common";
 import { createSessionLabel, toSessionRecord, type SessionListView } from "@/utils/session";
 
@@ -56,7 +56,11 @@ export function useSessionListService(
   // deps 会让 setSessionListView 引用持续重建。改用 ``toString()`` 派生的稳定
   // 字符串作为 dep，让 React 用值相等性比较保持 callback 稳定，避免下游
   // useEffect 反复触发与 loadSessions 竞速覆盖 sessionId。
-  const router = useRouter();
+  //
+  // ISSUE-088：与 page.tsx 的 setSessionId 同源——Next.js 16.2.3 的
+  // useRouter().replace 在「同 pathname、仅 query 变更」场景下会输出
+  // __NA:true 的 no-op replaceState，URL 不更新。统一改走
+  // window.history.replaceState，由 useSearchParams 监听 history API 重渲染。
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryString = searchParams?.toString() ?? "";
@@ -75,9 +79,11 @@ export function useSessionListService(
       }
       const nextQuery = params.toString();
       const target = nextQuery ? `${pathname}?${nextQuery}` : pathname || "/";
-      router.replace(target, { scroll: false });
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", target);
+      }
     },
-    [pathname, router, queryString],
+    [pathname, queryString],
   );
 
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);

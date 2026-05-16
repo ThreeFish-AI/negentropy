@@ -1,54 +1,68 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionListService } from "@/features/session/hooks/useSessionListService";
 
 // next/navigation：在 hooks-only 测试环境（无 App Router 包裹）下 stub 出
-// useRouter / usePathname / useSearchParams，让 useSessionListService 内部
-// 的 URL 同步 (ISSUE-061 v2-D) 不会因 Provider 缺失而崩溃。
-// ``urlState.current`` 模拟当前 URL 的 ?... 部分，``routerReplace`` 解析
-// 新 URL 写入 urlState.current 并通过 React state 触发组件重渲染（让
-// useSearchParams 的下一次返回值反映变更）。
-const { routerReplace, urlState, setRenderTick } = vi.hoisted(() => {
-  const state = { current: "" };
-  const subscribers = new Set<() => void>();
-  return {
-    urlState: state,
-    setRenderTick: subscribers,
-    routerReplace: vi.fn((target: string) => {
-      const queryIdx = target.indexOf("?");
-      state.current = queryIdx >= 0 ? target.slice(queryIdx + 1) : "";
-      subscribers.forEach((cb) => cb());
-    }),
-  };
-});
+// usePathname / useSearchParams，让 useSessionListService 内部的 URL 同步
+// (ISSUE-061 v2-D) 不会因 Provider 缺失而崩溃。
+//
+// ISSUE-088：实现已从 router.replace 迁移到 window.history.replaceState。
+// jsdom 原生支持 history API 更新 location.search，但不会自动触发 React 订阅。
+// 这里通过 useSyncExternalStore + 在 beforeEach 中 patch window.history.replaceState
+// 让其在每次写入后通知所有订阅者，复刻 Next.js App Router 中
+// useSearchParams 监听 history API 变更的行为。
+const { setRenderTick } = vi.hoisted(() => ({
+  setRenderTick: new Set<() => void>(),
+}));
 vi.mock("next/navigation", async () => {
   const { useSyncExternalStore } = await import("react");
   return {
-    useRouter: () => ({ replace: routerReplace, push: vi.fn() }),
     usePathname: () => "/",
     useSearchParams: () => {
-      // 通过 useSyncExternalStore 把 urlState 转成响应式订阅，让
-      // routerReplace 后下一次 render 拿到新 searchParams。
       const snapshot = useSyncExternalStore(
         (cb: () => void) => {
           setRenderTick.add(cb);
           return () => setRenderTick.delete(cb);
         },
-        () => urlState.current,
-        () => urlState.current,
+        () => (typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : ""),
+        () => "",
       );
       return new URLSearchParams(snapshot);
     },
   };
 });
 
+// 在 mock 安装前抓住 jsdom 原生的 history.replaceState 引用，避免 beforeEach
+// 反复抓取时把上一轮的 spy 自身视作 "original"，导致递归调用栈爆炸。
+const originalReplaceState = window.history.replaceState.bind(window.history);
+
 describe("useSessionListService", () => {
+  let replaceStateSpy: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
-    routerReplace.mockClear();
-    urlState.current = "";
+
+    // 重置 jsdom URL 到根（用原生引用，绕开任何残留 spy）。
+    originalReplaceState(null, "", "/");
+    setRenderTick.clear();
+
+    // 包装 window.history.replaceState：调用真实 API 后通知所有订阅者，
+    // 让 useSearchParams 在 setSessionListView 触发后下一次 render 拿到新值。
+    replaceStateSpy = vi.fn(
+      (state: unknown, unused: string, url?: string | URL | null) => {
+        originalReplaceState(state, unused, url);
+        setRenderTick.forEach((cb) => cb());
+      },
+    );
+    window.history.replaceState = replaceStateSpy as typeof window.history.replaceState;
+  });
+
+  afterEach(() => {
+    // 恢复原生 replaceState，避免跨用例污染（一旦上一个用例残留 spy，
+    // 下一个 beforeEach 抓到的 "current" 引用就是 spy 自身，会引爆递归）。
+    window.history.replaceState = originalReplaceState as typeof window.history.replaceState;
   });
 
   it("loadSessions 会按更新时间倒序写入列表并补全 active session", async () => {
@@ -173,9 +187,11 @@ describe("useSessionListService", () => {
   });
 
   // ============================================================================
-  // ISSUE-061 v2-D：sessionListView 同步到 URL ?view=archived
+  // ISSUE-061 v2-D + ISSUE-088：sessionListView 同步到 URL ?view=archived
+  //   并通过 window.history.replaceState 直写，绕开 Next.js 16
+  //   router.replace 在同 pathname 仅 query 变更下的 __NA no-op 路径。
   // ============================================================================
-  it("ISSUE-061：setSessionListView('archived') 通过 router.replace 写入 ?view=archived", async () => {
+  it("ISSUE-088：setSessionListView('archived') 通过 window.history.replaceState 写入 ?view=archived", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => [],
@@ -198,21 +214,20 @@ describe("useSessionListService", () => {
       result.current.setSessionListView("archived");
     });
 
-    expect(routerReplace).toHaveBeenLastCalledWith(
-      "/?view=archived",
-      expect.objectContaining({ scroll: false }),
-    );
+    expect(replaceStateSpy).toHaveBeenLastCalledWith(null, "", "/?view=archived");
+    expect(window.location.search).toBe("?view=archived");
     await waitFor(() => {
       expect(result.current.sessionListView).toBe("archived");
     });
   });
 
-  it("ISSUE-061：setSessionListView('active') 删除 ?view=，URL 回到 /", async () => {
+  it("ISSUE-088：setSessionListView('active') 删除 ?view=，URL 回到 /", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => [],
     } as Response);
-    urlState.current = "view=archived";
+    // 初始 URL 上有 ?view=archived，模拟用户从归档面板回切到实时面板。
+    originalReplaceState(null, "", "/?view=archived");
     const { result } = renderHook(() =>
       useSessionListService({
         sessionId: null,
@@ -231,10 +246,8 @@ describe("useSessionListService", () => {
       result.current.setSessionListView("active");
     });
 
-    expect(routerReplace).toHaveBeenLastCalledWith(
-      "/",
-      expect.objectContaining({ scroll: false }),
-    );
+    expect(replaceStateSpy).toHaveBeenLastCalledWith(null, "", "/");
+    expect(window.location.search).toBe("");
     await waitFor(() => {
       expect(result.current.sessionListView).toBe("active");
     });
