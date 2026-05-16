@@ -267,6 +267,7 @@ def apply_adk_patches():
         from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.interface.api import router as interface_router
         from negentropy.interface.models_api import router as interface_models_router
+        from negentropy.interface.scheduler_api import router as interface_scheduler_router
         from negentropy.interface.task_models_api import corpus_router as interface_task_models_corpus_router
         from negentropy.interface.task_models_api import router as interface_task_models_router
         from negentropy.knowledge.api import router as knowledge_router
@@ -406,6 +407,9 @@ def apply_adk_patches():
             app.include_router(interface_models_router)
             app.include_router(interface_task_models_router)
             logger.info("Interface API router mounted under /interface")
+        if not any(route.path.startswith("/scheduler") for route in app.router.routes):
+            app.include_router(interface_scheduler_router)
+            logger.info("Scheduler API router mounted under /scheduler")
         # Corpus 级 task-models 路由独立挂载（prefix=/knowledge/corpus/...），
         # 不与 /interface 共享 prefix，需判定挂载唯一性。
         if not any(
@@ -421,143 +425,42 @@ def apply_adk_patches():
             app.include_router(sessions_router)
             logger.info("Sessions API router mounted for title updates")
 
-        # 预热模型配置缓存，确保同步读取 (create_model) 在首次调用时有数据
+        # Phase 4：统一心跳调度引擎（5s tick + Registry + Handlers）。
+        # 6 个旧 startup hook（cache_warm / pgvector_check / skill_scheduler /
+        # pipeline_watchdog / session_title_inspector + 示例 agent_inspection）
+        # 全部以 ScheduledTask 行的形式注册到 ``scheduled_tasks`` 表，
+        # 由 ScheduledTaskRegistry._heartbeat_tick 统一扫表分派到 handler。
+        #
+        # Feature flags：
+        #   NEGENTROPY_UNIFIED_SCHEDULER_ENABLED=false → 跳过 Registry 启动（灰度回退）
+        #   NEGENTROPY_SCHEDULER_HEARTBEAT_SECONDS=<float> → 调整 tick 周期（默认 5.0）
         @app.on_event("startup")
-        async def _warm_model_config_cache():
-            from negentropy.config.model_resolver import resolve_embedding_config, resolve_llm_config
-
+        async def _start_unified_scheduler():
             try:
-                await resolve_llm_config()
-                await resolve_embedding_config()
-                logger.info("model_config_cache_warmed")
-            except Exception as exc:
-                logger.warning("model_config_cache_warm_failed", error=str(exc))
+                from negentropy.engine.schedulers.registry import ensure_registry_started
 
-        # 检查 pgvector 扩展可用性（非阻塞：缺失不阻止启动，但明确告警）
-        @app.on_event("startup")
-        async def _check_pgvector_extension():
-            from sqlalchemy import text
-
-            from negentropy.db.session import engine as async_engine
-
-            try:
-                async with async_engine.connect() as conn:
-                    result = await conn.execute(text("SELECT extversion FROM pg_extension WHERE extname = 'vector'"))
-                    version = result.scalar_one_or_none()
-                    if version:
-                        logger.info("pgvector_extension_ok", version=version)
-                    else:
-                        logger.warning(
-                            "pgvector_extension_missing",
-                            hint="psql -d negentropy -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
-                        )
-            except Exception as exc:
-                msg = str(exc).lower()
-                if "vector" in msg and ("could not access" in msg or "undefined file" in msg):
-                    logger.error(
-                        "pgvector_library_missing",
-                        error=str(exc),
-                        hint="brew install pgvector, restart PostgreSQL, then "
-                        "psql -d negentropy -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
-                    )
-                else:
-                    logger.warning("pgvector_check_failed", error=str(exc))
-
-        # Phase 3：启动应用层 SkillScheduler（60s tick 扫 skill_schedules 表）。
-        # feature flag NEGENTROPY_SKILL_SCHEDULER_ENABLED=false 一键关闭。
-        @app.on_event("startup")
-        async def _start_skill_scheduler():
-            try:
-                from negentropy.agents.skill_scheduler import (
-                    DEFAULT_TICK_SECONDS,
-                    register_skill_scheduler,
-                )
-                from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
-
-                scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
-                register_skill_scheduler(scheduler)
-
-                # --- watchdog: finalize stale KG/KB pipeline runs ---
-                # cancelling 超 2min 未收敛 → cancelled; running 超 30min → failed
-                # 设计（ISSUE-080）：``update_build_run`` SQL 守卫修复后，watchdog 仅作
-                # backstop，主路径由 build task 异常处理写终态承担。
-                # 60s tick × 2min 阈值 ≈ 最坏 3 分钟兜底，满足用户对"取消秒~分钟级生效"的期望。
-                async def _pipeline_watchdog_tick() -> None:
-                    from negentropy.knowledge.dao import KnowledgeRunDao
-                    from negentropy.knowledge.graph.repository import AgeGraphRepository
-
-                    # KB Pipeline Runs
-                    dao = KnowledgeRunDao()
-                    result = await dao.finalize_stale_pipeline_runs()
-
-                    # KG Build Runs（独立 try/except，避免 DB 抖动影响 KB 清理路径）
-                    kg_result: dict[str, int] = {"forced_failed": 0, "forced_cancelled": 0}
-                    try:
-                        kg_repo = AgeGraphRepository()
-                        kg_result = await kg_repo.finalize_stale_kg_build_runs()
-                    except Exception:
-                        logger.exception("kg_watchdog_error")
-
-                    forced_failed = result["forced_failed"] + kg_result.get("forced_failed", 0)
-                    forced_cancelled = result["forced_cancelled"] + kg_result.get("forced_cancelled", 0)
-
-                    if forced_failed > 0 or forced_cancelled > 0:
-                        logger.info(
-                            "pipeline_watchdog_finalized",
-                            forced_failed=forced_failed,
-                            forced_cancelled=forced_cancelled,
-                            kb=result,
-                            kg=kg_result,
-                        )
-
-                scheduler.register(
-                    key="pipeline_run_watchdog",
-                    callback=_pipeline_watchdog_tick,
-                    interval_seconds=60,
-                )
-                # 注：旧版另外注册了 ``kg_build_watchdog`` 单独 tick KG 收敛——与上方
-                # ``_pipeline_watchdog_tick`` 内调用 ``finalize_stale_kg_build_runs``
-                # 完全重复。已合并到统一 watchdog，避免双倍 DB 压力。
-
-                # Session 标题巡检——补齐历史 / 失败 session 的自动标题，并在内容显著
-                # 增长后刷新。反应式触发（首条 user 消息）已由 PostgresSessionService
-                # 在 append_event 中调度，巡检负责覆盖反应触发未命中的场景（历史会话
-                # 没有新 user 消息进入；或 LLM 凭证回退期间生成失败）。
-                if settings.services.session_title_inspect_enabled:
-                    from negentropy.engine.title_inspector import SessionTitleInspector
-
-                    title_inspector = SessionTitleInspector(
-                        concurrency=settings.services.session_title_inspect_concurrency,
-                        batch_size=settings.services.session_title_inspect_batch_size,
-                        min_events=settings.services.session_title_inspect_min_events,
-                        refresh_event_delta=settings.services.session_title_inspect_refresh_event_delta,
-                        max_attempts=settings.services.session_title_inspect_max_attempts,
-                    )
-                    scheduler.register(
-                        key="session_title_inspector",
-                        callback=title_inspector.tick,
-                        interval_seconds=settings.services.session_title_inspect_interval,
-                    )
-
-                scheduler.start()
-                # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
-                app.state.skill_scheduler = scheduler
+                registry = await ensure_registry_started()
+                if registry is None:
+                    logger.info("unified_scheduler_skipped_or_disabled")
+                    return
+                # 挂在 app.state 防止 GC + shutdown 路径引用
+                app.state.unified_scheduler_registry = registry
                 logger.info(
-                    "skill_scheduler_started",
-                    jobs=scheduler.registered_jobs,
+                    "unified_scheduler_started_via_bootstrap",
+                    poll_interval=registry.poll_interval,
                 )
             except Exception as exc:
-                logger.warning("skill_scheduler_start_failed", error=str(exc))
+                logger.warning("unified_scheduler_bootstrap_failed", error=str(exc))
 
         @app.on_event("shutdown")
-        async def _stop_skill_scheduler():
-            sched = getattr(app.state, "skill_scheduler", None)
-            if sched is not None:
+        async def _stop_unified_scheduler():
+            registry = getattr(app.state, "unified_scheduler_registry", None)
+            if registry is not None:
                 try:
-                    sched.stop()
-                    logger.info("skill_scheduler_stopped")
+                    registry.stop()
+                    logger.info("unified_scheduler_stopped_via_shutdown")
                 except Exception as exc:
-                    logger.warning("skill_scheduler_stop_failed", error=str(exc))
+                    logger.warning("unified_scheduler_stop_failed", error=str(exc))
 
         return app
 

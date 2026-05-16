@@ -25,6 +25,7 @@ from .perception import (
 )
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
 from .pulse import Event, Thread
+from .scheduled_task import ScheduledTask, TaskExecution
 from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
@@ -94,6 +95,9 @@ __all__ = [
     # Skill & SubAgent
     "Skill",
     "SubAgent",
+    # Scheduled Task (统一心跳调度)
+    "ScheduledTask",
+    "TaskExecution",
     # Model Config
     "ModelConfig",
     "ModelType",
