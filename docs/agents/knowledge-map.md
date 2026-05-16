@@ -17,7 +17,7 @@
 
 - [Conversation Foundation（对话基础）](../conversation-foundation.md)
 - [Memory（记忆系统）](../memory.md) · [白皮书](../memory-whitepaper.md)
-- [Knowledge Graph（知识图谱）](../knowledge-graph.md)
+- [Knowledge Graph（知识图谱）](../knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../knowledge-graph-federated.md)
 - [Skills](../skills.md)
 - [Negentropy Wiki Ops](../negentropy-wiki-ops.md)
 - [Engineering Changelog](../engineering-changelog.md)
