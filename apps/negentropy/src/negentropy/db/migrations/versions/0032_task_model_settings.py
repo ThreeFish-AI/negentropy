@@ -14,10 +14,12 @@ Create Date: 2026-05-16 00:00:00.000000+00:00
     缺行 = 回退到 model_configs.is_default → 硬编码 fallback，零破坏。
     可灰度上线：合并代码与本 migration 后，行为与现状完全一致；用户按需 opt-in。
 
-复合主键的 NULL 处理：
-    PostgreSQL 中 PRIMARY KEY (a, b) 允许 a 为 NULL，但 (NULL, 'x') 与 (NULL, 'x')
-    会被视为各自不同（NULL ≠ NULL），导致全局映射重复。
-    解决方案：额外创建偏唯一索引 WHERE scope_corpus_id IS NULL，保证全局映射 task_key 唯一。
+主键设计（surrogate PK + 偏唯一索引）：
+    PostgreSQL PRIMARY KEY 会把所有组成列强制标为 NOT NULL，因此不能用
+    PRIMARY KEY(scope_corpus_id, task_key) 来表达 "scope_corpus_id 可为 NULL"。
+    改用 surrogate `id UUID` 作主键，通过两条偏唯一索引分别约束：
+      - WHERE scope_corpus_id IS NULL       → 全局映射 task_key 唯一
+      - WHERE scope_corpus_id IS NOT NULL   → Corpus 级 (corpus_id, task_key) 唯一
 """
 
 from collections.abc import Sequence
@@ -37,23 +39,32 @@ def upgrade() -> None:
     op.execute(
         sa.text(f"""
         CREATE TABLE IF NOT EXISTS {SCHEMA}.task_model_settings (
+            id UUID NOT NULL DEFAULT gen_random_uuid(),
             scope_corpus_id UUID NULL REFERENCES {SCHEMA}.corpus(id) ON DELETE CASCADE,
             task_key VARCHAR(128) NOT NULL,
             model_config_id UUID NOT NULL REFERENCES {SCHEMA}.model_configs(id) ON DELETE RESTRICT,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            PRIMARY KEY (scope_corpus_id, task_key)
+            PRIMARY KEY (id)
         )
         """)
     )
 
-    # 全局映射的唯一性：scope_corpus_id IS NULL 时 task_key 唯一。
-    # PG 复合主键不能约束 (NULL, 'x') 唯一，需偏唯一索引补足。
+    # 全局映射唯一性：scope_corpus_id IS NULL 时 task_key 唯一。
     op.execute(
         sa.text(f"""
         CREATE UNIQUE INDEX IF NOT EXISTS uq_task_model_settings_global
         ON {SCHEMA}.task_model_settings (task_key)
         WHERE scope_corpus_id IS NULL
+        """)
+    )
+
+    # Corpus 级映射唯一性：(scope_corpus_id, task_key) 在非 NULL 时唯一。
+    op.execute(
+        sa.text(f"""
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_task_model_settings_corpus
+        ON {SCHEMA}.task_model_settings (scope_corpus_id, task_key)
+        WHERE scope_corpus_id IS NOT NULL
         """)
     )
 
