@@ -97,6 +97,7 @@ class UnifiedRetrievalService:
         *,
         query: str,
         corpus_ids: list[UUID] | None = None,
+        accessible_corpus_ids: frozenset[UUID] | None = None,
         source_types: list[str] | None = None,
         entity_types: list[str] | None = None,
         date_from: datetime | None = None,
@@ -113,7 +114,12 @@ class UnifiedRetrievalService:
         Args:
             db: 数据库会话
             query: 查询文本
-            corpus_ids: 语料库 ID 过滤
+            corpus_ids: 用户请求范围内的语料库 ID（mention 选中或路由指定）
+            accessible_corpus_ids: **权限红线** —— 当前用户实际可见的 corpus 集合。
+                提供时强制取交集 ``effective = corpus_ids ∩ accessible_corpus_ids``；
+                若 ``corpus_ids`` 为空则 ``effective = accessible_corpus_ids``；
+                若交集为空直接返回空结果。Phase 1 暂为可选参数以保持向后兼容，
+                Phase 2 起所有 Home Studio 链路必须显式注入。
             source_types: 来源类型过滤 (url/file_pdf/file_generic/text_input)
             entity_types: 实体类型过滤
             date_from / date_to: 时间范围过滤
@@ -127,6 +133,32 @@ class UnifiedRetrievalService:
         Returns:
             统一检索结果，含分面统计、排名解释等
         """
+        # 权限红线：accessible_corpus_ids 与 corpus_ids 取交集
+        if accessible_corpus_ids is not None:
+            if corpus_ids:
+                effective = [c for c in corpus_ids if c in accessible_corpus_ids]
+            else:
+                effective = list(accessible_corpus_ids)
+            if not effective:
+                logger.info(
+                    "unified_search_blocked_by_permission",
+                    extra={
+                        "requested_count": len(corpus_ids or []),
+                        "accessible_count": len(accessible_corpus_ids),
+                    },
+                )
+                return {
+                    "items": [],
+                    "total": 0,
+                    "offset": offset,
+                    "limit": limit,
+                    "mode": "empty_permission",
+                    "facets": {},
+                    "query_intent": mode or self.classify_intent(query),
+                    "query": query,
+                }
+            corpus_ids = effective
+
         intent = mode or self.classify_intent(query)
 
         # 根据意图选择检索模式
