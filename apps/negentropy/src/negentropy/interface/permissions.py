@@ -200,8 +200,10 @@ async def get_visible_plugin_ids(
 
     queries = [owned_query, public_query, shared_query]
 
-    # 仅当该模型显式带 ``is_system`` 列时启用系统内置可见性扩展，避免对未迁移
-    # 表执行 SELECT 时产生 UndefinedColumn 错误（向后兼容旧 schema）。
+    # 系统内置可见性扩展：is_system == TRUE 的行对全员可见。
+    # 注意：hasattr 对 SQLAlchemy mapped column 始终为 True（类级描述符），
+    # 此守卫并非用于兼容「未迁移 schema」（迁移 0033 与本代码同分支发布），
+    # 而是作为语义标记：若未来新增不带 is_system 的 plugin 类型，此处自动跳过。
     if hasattr(model, "is_system"):
         builtin_query = select(model.id).where(model.is_system.is_(True))
         queries.append(builtin_query)
