@@ -18,6 +18,7 @@ import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Literal
+from uuid import UUID
 
 import httpx
 from google.adk.tools import ToolContext
@@ -242,10 +243,41 @@ async def search_knowledge_base(
     # → BFF state_delta → ADK session.state → tool_context.state）。命中时仅在指定
     # 语料库内检索；未命中则保持原"全 Corpus 聚合"行为。
     scoped_ids: list[str] | None = None
+    graph_mode_ids: list[str] | None = None
     if tool_context is not None and getattr(tool_context, "state", None):
         raw_scope = tool_context.state.get("scoped_corpus_ids")
         if isinstance(raw_scope, list) and raw_scope:
             scoped_ids = [s for s in raw_scope if isinstance(s, str) and s]
+        raw_graph = tool_context.state.get("graph_mode_corpus_ids")
+        if isinstance(raw_graph, list) and raw_graph:
+            graph_mode_ids = [s for s in raw_graph if isinstance(s, str) and s]
+
+    # Feature flag gate: 当 enable_cross_corpus_kg=True 且场景适配（scoped or @graph）
+    # 时走 HybridPlanner 四阶段管线；否则保持现有 legacy 路径，确保灰度回退安全。
+    try:
+        from negentropy.config.knowledge import KnowledgeSettings
+
+        kb_settings = KnowledgeSettings()
+        feature_flags = getattr(kb_settings, "feature_flags", None)
+        use_planner = bool(
+            feature_flags is not None
+            and getattr(feature_flags, "enable_cross_corpus_kg", False)
+            and (scoped_ids or graph_mode_ids)
+        )
+    except Exception:  # noqa: BLE001 — 任何配置异常都回退到 legacy
+        use_planner = False
+
+    if use_planner:
+        try:
+            return await _planner_search_knowledge_base(
+                query=query,
+                top_k=limit,
+                scoped_ids=scoped_ids or [],
+                graph_mode_ids=graph_mode_ids or [],
+                tool_context=tool_context,
+            )
+        except Exception as exc:  # noqa: BLE001 — Stage 异常降级到 legacy
+            logger.warning("planner_fallback_to_legacy", error=str(exc))
 
     logger.info(
         "knowledge_search_started",
@@ -427,6 +459,209 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
         "search_mode": "memory_fallback",
         "memory_context": memory_context,
     }
+
+
+# ============================================================================
+# HybridPlanner 路径（P2-3 Cross-Corpus KG + Citation Corpus Label）
+# ============================================================================
+
+
+def _resolve_corpus_label(corpus_name: str | None, corpus_id: str | None) -> str:
+    """生成 citation 中的 Corpus 来源徽章文本"""
+    if corpus_name:
+        return str(corpus_name)
+    if corpus_id:
+        return f"corpus:{corpus_id[:8]}"
+    return "unknown"
+
+
+async def _planner_search_knowledge_base(
+    *,
+    query: str,
+    top_k: int,
+    scoped_ids: list[str],
+    graph_mode_ids: list[str],
+    tool_context: ToolContext,  # noqa: ARG001  # 预留 RBAC user 上下文注入
+) -> dict[str, Any]:
+    """HybridPlanner 路径：四阶段管线 + bridges + Citation Corpus 来源徽章
+
+    返回结构兼容 legacy search_knowledge_base：
+      {status, query, count, results: [...], search_mode}
+    新增字段：
+      - intent / expansion_triggered / stage_latencies_ms（顶层）
+      - results[i].corpus_label / evidence_type / bridge_path
+      - bridges: list[EvidenceChain dict]（顶层）
+    """
+    from negentropy.agents.tools.hybrid_planner import (
+        PlannerConfig,
+        configure_planner,
+        get_planner,
+    )
+    from negentropy.knowledge.retrieval.reranking import LocalReranker
+
+    # 单例注入
+    planner = get_planner()
+    if planner._kb is None:  # noqa: SLF001
+        configure_planner(knowledge_service=_get_knowledge_service())
+    if planner._reranker is None:  # noqa: SLF001
+        try:
+            configure_planner(reranker=LocalReranker())
+        except Exception as exc:  # noqa: BLE001  reranker 加载失败不阻塞
+            logger.warning("planner_reranker_init_failed", error=str(exc))
+
+    force_graph = bool(graph_mode_ids)
+    effective_scoped = scoped_ids or graph_mode_ids or []
+    if not effective_scoped:
+        return {"status": "failed", "error": "no scoped or graph_mode corpus ids"}
+
+    # 解析 app_name 下的所有可访问 corpus（暂以 settings.app_name 为 accessible 集合
+    # 兜底；Phase 2 后续可接入 user RBAC 视图）
+    async with db_session.AsyncSessionLocal() as db:
+        corpora_rows = (await db.execute(select(Corpus).where(Corpus.app_name == settings.app_name))).scalars().all()
+    accessible = frozenset(str(c.id) for c in corpora_rows)
+    corpus_name_by_id = {str(c.id): c.name for c in corpora_rows}
+
+    result = await planner.plan(
+        query=query,
+        scoped_corpus_ids=effective_scoped,
+        accessible_corpus_ids=accessible,
+        top_k=top_k,
+        config=PlannerConfig(),
+        app_name=settings.app_name,
+        force_graph_mode=force_graph,
+    )
+
+    # 映射到 legacy 返回结构 + 注入 corpus_label + citation
+    items: list[dict[str, Any]] = []
+    for idx, cand in enumerate(result.results, start=1):
+        corpus_name = corpus_name_by_id.get(cand.corpus_id, cand.corpus_name)
+        snippet = (cand.content or "")[:_MAX_SNIPPET_CHARS]
+        items.append(
+            {
+                "id": cand.chunk_id,
+                "corpus": corpus_name,
+                "corpus_id": cand.corpus_id,
+                "corpus_label": _resolve_corpus_label(corpus_name, cand.corpus_id),
+                "source_uri": cand.source_uri,
+                "chunk_index": 0,
+                "snippet": snippet,
+                "truncated": bool(cand.content and len(cand.content) > _MAX_SNIPPET_CHARS),
+                "metadata": cand.metadata,
+                "semantic_score": round(cand.semantic_score, 4),
+                "keyword_score": round(cand.keyword_score, 4),
+                "graph_score": round(cand.graph_score, 4),
+                "combined_score": round(cand.fusion_score, 4),
+                "rerank_score": (round(cand.rerank_score, 4) if cand.rerank_score is not None else None),
+                "evidence_type": cand.evidence_type,
+                "bridge_path": cand.bridge_path,
+                "citation_id": idx,
+                "formatted_citation": _format_citation(metadata=cand.metadata, source_uri=cand.source_uri, idx=idx),
+            }
+        )
+
+    bridges_payload = [
+        {
+            "source_chunk_id": b.source_chunk_id,
+            "source_corpus_id": b.source_corpus_id,
+            "source_corpus_label": _resolve_corpus_label(corpus_name_by_id.get(b.source_corpus_id), b.source_corpus_id),
+            "target_chunk_id": b.target_chunk_id,
+            "target_corpus_id": b.target_corpus_id,
+            "target_corpus_label": _resolve_corpus_label(corpus_name_by_id.get(b.target_corpus_id), b.target_corpus_id),
+            "via_canonical_name": b.via_canonical_name,
+            "hop_count": b.hop_count,
+        }
+        for b in result.bridges
+    ]
+
+    logger.info(
+        "planner_search_completed",
+        query=query[:100],
+        intent=result.intent,
+        result_count=len(items),
+        bridge_count=len(bridges_payload),
+        expansion_triggered=result.expansion_triggered,
+        stage_latencies_ms=result.stage_latencies_ms,
+    )
+
+    return {
+        "status": "success",
+        "query": query,
+        "count": len(items),
+        "results": items,
+        "search_mode": "hybrid_planner",
+        "intent": result.intent,
+        "expansion_triggered": result.expansion_triggered,
+        "stage_latencies_ms": result.stage_latencies_ms,
+        "bridges": bridges_payload,
+    }
+
+
+async def search_knowledge_graph_global(
+    query: str,
+    tool_context: ToolContext,
+    max_communities: int = 5,
+) -> dict[str, Any]:
+    """GraphRAG 风格全局检索：基于社区摘要做 Map-Reduce 汇总
+
+    当问题明显是「主题概览 / 整体趋势 / 核心观点」类（关键词：主题/概览/总体/核心
+    overall/key topics）时调用此工具。
+
+    与 ``search_knowledge_base`` 互斥：不要在同一轮同时调用二者。
+
+    参考文献：
+      [1] D. Edge et al., "From Local to Global: A Graph RAG Approach to
+          Query-Focused Summarization," arXiv:2404.16130, 2024.
+
+    Args:
+        query: 全局摘要级问题
+        tool_context: ADK 注入；读取 scoped_corpus_ids / graph_mode_corpus_ids
+        max_communities: 每 Corpus 最多取多少社区摘要参与 Map 阶段
+
+    Returns:
+        包含 communities / answer / status 的字典
+    """
+    scoped_ids: list[str] = []
+    if tool_context is not None and getattr(tool_context, "state", None):
+        for key in ("scoped_corpus_ids", "graph_mode_corpus_ids"):
+            raw = tool_context.state.get(key)
+            if isinstance(raw, list) and raw:
+                scoped_ids.extend(s for s in raw if isinstance(s, str) and s)
+
+    if not scoped_ids:
+        return {
+            "status": "failed",
+            "error": "search_knowledge_graph_global requires @corpus or @graph mention",
+        }
+
+    try:
+        from negentropy.knowledge.graph.global_search import GlobalSearchService  # type: ignore
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("global_search_unavailable", error=str(exc))
+        return {
+            "status": "failed",
+            "error": "GlobalSearchService not available; falling back to search_knowledge_base.",
+        }
+
+    try:
+        svc = GlobalSearchService()
+        result = await svc.search(
+            query=query,
+            corpus_ids=[UUID(c) for c in scoped_ids if _is_uuid(c)],
+            max_communities=max_communities,
+            app_name=settings.app_name,
+        )
+        return {"status": "success", **result}
+    except Exception as exc:  # noqa: BLE001
+        logger.error("global_search_failed", error=str(exc))
+        return {"status": "failed", "error": str(exc)}
+
+
+def _is_uuid(s: str) -> bool:
+    try:
+        UUID(str(s))
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 async def search_web(
