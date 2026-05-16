@@ -74,6 +74,39 @@ class ServicesSettings(BaseSettings):
     vertex_location: str | None = Field(default=None, description="VertexAI location")
     vertex_agent_engine_id: str | None = Field(default=None, description="VertexAI Agent Engine ID")
 
+    # Session Title Auto-Generation Inspector
+    # 反应式触发（首条 user 消息）由 PostgresSessionService 内联完成；
+    # 这里的巡检负责：(a) 为历史 / 失败 session 补齐标题；(b) 在事件量显著增长后刷新。
+    # 仅处理 metadata.title_source == "auto"（含缺省默认值），永不覆盖 manual / legacy。
+    session_title_inspect_enabled: bool = Field(
+        default=True,
+        description="Enable periodic session-title backfill/refresh job",
+    )
+    session_title_inspect_interval: int = Field(
+        default=300,
+        description="Tick interval seconds (default 5min)",
+    )
+    session_title_inspect_concurrency: int = Field(
+        default=2,
+        description="Max concurrent LLM title generations per tick",
+    )
+    session_title_inspect_batch_size: int = Field(
+        default=20,
+        description="Max sessions inspected per tick",
+    )
+    session_title_inspect_min_events: int = Field(
+        default=1,
+        description="Minimum event count required before a session is eligible",
+    )
+    session_title_inspect_refresh_event_delta: int = Field(
+        default=20,
+        description="Refresh existing auto-title once max(sequence_num) grew by this many events",
+    )
+    session_title_inspect_max_attempts: int = Field(
+        default=5,
+        description="Skip session after this many consecutive generation failures",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
