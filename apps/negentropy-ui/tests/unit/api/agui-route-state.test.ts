@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStateDeltaFromForwardedProps } from "@/app/api/agui/route";
+import { buildStateDeltaFromForwardedProps } from "@/app/api/agui/_state-delta";
 
 const UUID_A = "11111111-2222-3333-4444-555555555555";
 const UUID_B = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
@@ -70,12 +70,22 @@ describe("buildStateDeltaFromForwardedProps", () => {
     ).toEqual({ scoped_corpus_ids: [UUID_A, UUID_B] });
   });
 
-  it("scoped_corpus_ids 全部非法 → 不写入 state_delta", () => {
+  it("scoped_corpus_ids 显式空数组 → 写入空数组（清空语义）", () => {
+    // 关键回归：跨 turn 残留修复 —— 前端在用户移除 @ Corpus 后会显式发送 []，
+    // BFF 据此写入 state_delta 触发 ADK session.state 中 ``scoped_corpus_ids`` 的清空。
+    expect(
+      buildStateDeltaFromForwardedProps({ scoped_corpus_ids: [] }),
+    ).toEqual({ scoped_corpus_ids: [] });
+  });
+
+  it("scoped_corpus_ids 全部非法 → 写入空数组（清空语义）", () => {
+    // 数组类型合法但条目全部非法 → sanitize 为 [] → 视作显式清空，
+    // 与「显式空数组」走同一路径，避免脏值阻塞清空。
     expect(
       buildStateDeltaFromForwardedProps({
         scoped_corpus_ids: ["x", null, 1],
       }),
-    ).toEqual({});
+    ).toEqual({ scoped_corpus_ids: [] });
   });
 
   it("scoped_corpus_ids 自动去重并保持首现顺序", () => {
@@ -86,13 +96,27 @@ describe("buildStateDeltaFromForwardedProps", () => {
     ).toEqual({ scoped_corpus_ids: [UUID_A, UUID_B, UUID_C] });
   });
 
-  it("scoped_corpus_ids 非数组类型整体忽略", () => {
+  it("scoped_corpus_ids 非数组类型整体忽略（保留旧 session.state）", () => {
+    // 非数组（含字符串 / 对象 / undefined 等）→ 不写 state_delta；
+    // 这是「字段类型不合法」与「显式清空」的边界。
     expect(
       buildStateDeltaFromForwardedProps({ scoped_corpus_ids: UUID_A }),
     ).toEqual({});
     expect(
       buildStateDeltaFromForwardedProps({ scoped_corpus_ids: { 0: UUID_A } }),
     ).toEqual({});
+  });
+
+  it("scoped_corpus_ids 字段不存在 → 不写入 state_delta", () => {
+    // 区分「字段缺席」与「显式清空」：缺席不应清空旧值（向后兼容旧调用方）。
+    expect(buildStateDeltaFromForwardedProps({})).toEqual({});
+  });
+
+  it("output_corpus_ids 显式空数组 → 写入空数组（清空语义）", () => {
+    // 与 scoped_corpus_ids 同构 —— 防止上一轮的 output 沉淀目标遗留到下一轮。
+    expect(
+      buildStateDeltaFromForwardedProps({ output_corpus_ids: [] }),
+    ).toEqual({ output_corpus_ids: [] });
   });
 
   // ----------------------------------------------------------------------

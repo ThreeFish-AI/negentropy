@@ -172,7 +172,10 @@ export type HomeBodyAgent = AgentLike & {
   threadId?: string;
   isRunning: boolean;
   addMessage: (message: Message) => void;
-  runAgent: (params: { runId: string }) => Promise<unknown>;
+  runAgent: (params: {
+    runId: string;
+    forwardedProps?: Record<string, unknown>;
+  }) => Promise<unknown>;
   forwardedProps?: Record<string, unknown>;
   /**
    * NDJSON Agent 提供 abortRun()；测试 Mock 可省略。
@@ -746,6 +749,11 @@ export function HomeBody({
         // AbstractAgent.prepareRunAgentInput 从 runAgent 的参数读 forwardedProps，
         // 实例属性 ``agent.forwardedProps = ...`` 不会被读取——必须把字段透传到
         // ``runAgent({forwardedProps, runId})``。下面合并实例属性兜底以兼容历史调用方。
+        //
+        // 关键修复：``preferred_subagent`` / ``scoped_corpus_ids`` / ``output_corpus_ids``
+        // 必须始终显式写入，让本轮派生值（可能为 ``null`` / ``[]``）覆盖实例属性上残留的
+        // 上一轮值。BFF ``buildStateDeltaFromForwardedProps`` 据此把 ``null`` / ``[]``
+        // 视作清空指令，避免 ADK ``session.state`` 中孤儿值被后端继续消费。
         const baseForwardedProps =
           (agent.forwardedProps as Record<string, unknown> | undefined) ?? {};
         const forwardedProps: Record<string, unknown> = {
@@ -759,15 +767,10 @@ export function HomeBody({
             ? thinkingEnabled
             : false,
           ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
-          ...(derivedMention.preferred_subagent
-            ? { preferred_subagent: derivedMention.preferred_subagent }
-            : {}),
-          ...(derivedMention.scoped_corpus_ids.length > 0
-            ? { scoped_corpus_ids: derivedMention.scoped_corpus_ids }
-            : {}),
-          ...(derivedMention.output_corpus_ids.length > 0
-            ? { output_corpus_ids: derivedMention.output_corpus_ids }
-            : {}),
+          // 三个 mention 字段无条件覆盖，确保跨 turn 不残留。
+          preferred_subagent: derivedMention.preferred_subagent,
+          scoped_corpus_ids: derivedMention.scoped_corpus_ids,
+          output_corpus_ids: derivedMention.output_corpus_ids,
         };
         agent.forwardedProps = forwardedProps; // 留作 backward-compat（其他读 ref 的逻辑）
         // 清空 Composer 附件区 + Mention 区（与 inputValue 已被清空的语义一致）
