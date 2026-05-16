@@ -19,6 +19,13 @@ import {
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 import { getAguiBaseUrl } from "@/lib/server/backend-url";
 
+// 共享 UUID 校验 —— 既给路由 sessionId 用，也给 forwardedProps.{scoped,output}_corpus_ids 用。
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// 路由偏好 Agent 名长度上限（与后端 _PREFERENCE_NAME_RE 同步：标识符 1-128 字符）。
+const PREFERRED_SUBAGENT_MAX_LEN = 128;
+// Mention 列表上限（每类 @ token 数），避免畸形 forwardedProps 撑大 state。
+const CORPUS_IDS_MAX_LEN = 32;
+
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);
 
@@ -71,6 +78,16 @@ function normalizeEvent(
   );
 }
 
+function sanitizeUuidList(raw: unknown, max: number): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const ids = raw
+    .filter((x): x is string => typeof x === "string" && UUID_RE.test(x))
+    .slice(0, max);
+  if (ids.length === 0) return null;
+  // 去重保持首现顺序；Array.from(new Set()) 即满足该语义。
+  return Array.from(new Set(ids));
+}
+
 export function buildStateDeltaFromForwardedProps(
   forwardedProps: Record<string, unknown> | null,
 ): Record<string, unknown> {
@@ -91,6 +108,32 @@ export function buildStateDeltaFromForwardedProps(
     if (typeof raw === "boolean") {
       stateDelta.thinking_enabled = raw;
     }
+  }
+  // Home Composer 的 @ Agent —— 用户偏好委派到指定 SubAgent（root_agent 软提示）。
+  // 仅透传字符串；空串/超长视作未设置，避免污染 ADK session.state。
+  if ("preferred_subagent" in forwardedProps) {
+    const raw = forwardedProps.preferred_subagent;
+    if (
+      typeof raw === "string" &&
+      raw.length > 0 &&
+      raw.length <= PREFERRED_SUBAGENT_MAX_LEN
+    ) {
+      stateDelta.preferred_subagent = raw;
+    } else if (raw === null) {
+      stateDelta.preferred_subagent = null;
+    }
+  }
+  // Home Composer 的 @ Corpus（检索）—— 限定本轮 RAG 检索范围；
+  // 仅 UUID 通过，去重并截断，由 perception.search_knowledge_base 消费。
+  const scoped = sanitizeUuidList(forwardedProps.scoped_corpus_ids, CORPUS_IDS_MAX_LEN);
+  if (scoped) {
+    stateDelta.scoped_corpus_ids = scoped;
+  }
+  // Home Composer 的 @ Corpus（输出）—— 输出沉淀目标 Corpus 列表；
+  // 仅 round-trip 留痕，前端在 RUN_FINISHED 后据此调用 ingestText。
+  const output = sanitizeUuidList(forwardedProps.output_corpus_ids, CORPUS_IDS_MAX_LEN);
+  if (output) {
+    stateDelta.output_corpus_ids = output;
   }
   return stateDelta;
 }
@@ -121,7 +164,6 @@ export async function POST(request: Request) {
       "session_id is required",
     );
   }
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_RE.test(sessionId)) {
     return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,
