@@ -245,9 +245,10 @@ class TestEntityNormalizationStep:
 
     @pytest.fixture()
     def _patch_model_config(self):
+        # Phase 7: 切换到 task-aware async 解析器后，需要 AsyncMock。
         with patch(
-            "negentropy.engine.consolidation.pipeline.steps.entity_normalization_step.resolve_model_config",
-            return_value=("test-model", {"temperature": 0.5}),
+            "negentropy.engine.consolidation.pipeline.steps.entity_normalization_step.resolve_model_config_async",
+            new=AsyncMock(return_value=("test-model", {"temperature": 0.5})),
         ):
             yield
 
