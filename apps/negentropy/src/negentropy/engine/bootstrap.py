@@ -508,6 +508,26 @@ def apply_adk_patches():
                 # ``_pipeline_watchdog_tick`` 内调用 ``finalize_stale_kg_build_runs``
                 # 完全重复。已合并到统一 watchdog，避免双倍 DB 压力。
 
+                # Session 标题巡检——补齐历史 / 失败 session 的自动标题，并在内容显著
+                # 增长后刷新。反应式触发（首条 user 消息）已由 PostgresSessionService
+                # 在 append_event 中调度，巡检负责覆盖反应触发未命中的场景（历史会话
+                # 没有新 user 消息进入；或 LLM 凭证回退期间生成失败）。
+                if settings.services.session_title_inspect_enabled:
+                    from negentropy.engine.title_inspector import SessionTitleInspector
+
+                    title_inspector = SessionTitleInspector(
+                        concurrency=settings.services.session_title_inspect_concurrency,
+                        batch_size=settings.services.session_title_inspect_batch_size,
+                        min_events=settings.services.session_title_inspect_min_events,
+                        refresh_event_delta=settings.services.session_title_inspect_refresh_event_delta,
+                        max_attempts=settings.services.session_title_inspect_max_attempts,
+                    )
+                    scheduler.register(
+                        key="session_title_inspector",
+                        callback=title_inspector.tick,
+                        interval_seconds=settings.services.session_title_inspect_interval,
+                    )
+
                 scheduler.start()
                 # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
                 app.state.skill_scheduler = scheduler

@@ -31,7 +31,7 @@ from google.adk.sessions.base_session_service import (
     GetSessionConfig,
     ListSessionsResponse,
 )
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ORM 模型与会话工厂
@@ -241,8 +241,77 @@ class PostgresSessionService(BaseSessionService):
         event.id = event_id
         return event
 
-    async def _generate_title_for_session(self, session_id: str) -> None:
-        """后台生成标题并更新 metadata_"""
+    @staticmethod
+    def _title_skip_reason(metadata: dict, *, force_refresh: bool) -> str | None:
+        """判断该 session 是否应跳过标题生成。
+
+        返回值：
+        - "manual"：用户手动设置过，永不覆盖
+        - "legacy"：标题存在但缺少 title_source，保守视为 manual
+        - "already_titled"：已是 auto 标题且未要求强制刷新
+        - None：可以生成
+        """
+        if metadata.get("title_source") == "manual":
+            return "manual"
+        has_title = bool(metadata.get("title"))
+        if has_title and metadata.get("title_source") is None:
+            return "legacy"
+        if has_title and not force_refresh:
+            return "already_titled"
+        return None
+
+    async def _persist_generated_title(
+        self,
+        db: AsyncSession,
+        session_id: str,
+        title: str,
+        max_event_seq: int,
+        current_metadata: dict | None = None,
+    ) -> None:
+        """原子写入 auto 标题与溯源字段（title_source / generated_at / event_seq）。
+
+        反应触发与 title_inspector 巡检共用同一持久化路径，保障 metadata 形状一致。
+        """
+        if current_metadata is None:
+            meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
+            current_metadata = meta_result.scalar() or {}
+        next_metadata = dict(current_metadata)
+        next_metadata["title"] = title
+        next_metadata["title_source"] = "auto"
+        next_metadata["title_generated_at_event_seq"] = max_event_seq
+        next_metadata["title_generated_at"] = datetime.now(UTC).isoformat()
+        # 成功生成后重置失败计数，恢复对该 session 的巡检尝试
+        next_metadata.pop("title_attempt_count", None)
+        next_metadata.pop("title_last_attempt_at", None)
+        await db.execute(
+            update(self.Thread).where(self.Thread.id == uuid.UUID(session_id)).values(metadata_=next_metadata)
+        )
+        await db.commit()
+
+    async def _record_title_attempt_failure(self, db: AsyncSession, session_id: str) -> None:
+        """记录一次生成失败：累加 attempt_count + 写入 last_attempt_at。
+
+        巡检候选 SQL 会根据 attempt_count >= max_attempts 把该 session 移出候选池，
+        避免单 session 反复失败拖垮 LLM 配额。
+        """
+        meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
+        current_metadata = meta_result.scalar() or {}
+        next_metadata = dict(current_metadata)
+        next_metadata["title_attempt_count"] = int(next_metadata.get("title_attempt_count", 0)) + 1
+        next_metadata["title_last_attempt_at"] = datetime.now(UTC).isoformat()
+        await db.execute(
+            update(self.Thread).where(self.Thread.id == uuid.UUID(session_id)).values(metadata_=next_metadata)
+        )
+        await db.commit()
+
+    async def _generate_title_for_session(self, session_id: str, *, force_refresh: bool = False) -> None:
+        """后台生成标题并更新 metadata_
+
+        Args:
+            session_id: 目标 session
+            force_refresh: 巡检在内容显著增长时传 True，绕过 "already_titled" 跳过；
+                manual / legacy session 在任何情况下均不会被覆盖。
+        """
         self._validate_session_id(session_id)
 
         from google.genai import types
@@ -255,7 +324,14 @@ class PostgresSessionService(BaseSessionService):
         async with db_session.AsyncSessionLocal() as db:
             meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
             current_metadata = meta_result.scalar() or {}
-            if current_metadata.get("title"):
+            skip_reason = self._title_skip_reason(current_metadata, force_refresh=force_refresh)
+            if skip_reason:
+                logger.debug(
+                    "title_generation_skipped",
+                    session_id=session_id,
+                    reason=skip_reason,
+                    force_refresh=force_refresh,
+                )
                 return
 
             events_result = await db.execute(
@@ -287,33 +363,59 @@ class PostgresSessionService(BaseSessionService):
             if not history:
                 return
 
+            logger.info(
+                "title_generation_started",
+                session_id=session_id,
+                event_count=len(recent_events),
+                force_refresh=force_refresh,
+            )
+
             try:
                 summarizer = await SessionSummarizer.create()
                 title = await summarizer.generate_title(history)
             except Exception as ex:
                 logger.warning(
-                    "Failed to generate session title",
+                    "title_generation_failed",
                     session_id=session_id,
                     error_type=type(ex).__name__,
                     error=str(ex),
                     events_count=len(recent_events),
                 )
+                await self._record_title_attempt_failure(db, session_id)
                 return
 
             if not title:
+                logger.debug("title_generation_empty", session_id=session_id)
+                await self._record_title_attempt_failure(db, session_id)
                 return
 
-            # 再次确认未被外部写入标题，避免覆盖用户手动设置
+            seq_result = await db.execute(
+                select(func.coalesce(func.max(self.Event.sequence_num), 0)).where(
+                    self.Event.thread_id == uuid.UUID(session_id)
+                )
+            )
+            max_event_seq = int(seq_result.scalar() or 0)
+
+            # 二次校验：避免与并发的手动改名 / 其他巡检 worker 产生覆盖
             meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
             current_metadata = meta_result.scalar() or {}
-            if current_metadata.get("title"):
+            skip_reason = self._title_skip_reason(current_metadata, force_refresh=force_refresh)
+            if skip_reason:
+                logger.debug(
+                    "title_generation_skipped_after_race",
+                    session_id=session_id,
+                    reason=skip_reason,
+                )
                 return
 
-            current_metadata["title"] = title
-            await db.execute(
-                update(self.Thread).where(self.Thread.id == uuid.UUID(session_id)).values(metadata_=current_metadata)
+            await self._persist_generated_title(db, session_id, title, max_event_seq, current_metadata)
+            logger.info(
+                "title_generation_completed",
+                session_id=session_id,
+                title_length=len(title),
+                source="auto",
+                event_seq=max_event_seq,
             )
-            await db.commit()
 
     def _schedule_title_generation(self, session_id: str) -> None:
         """创建后台任务生成标题，不阻塞主流程"""
@@ -359,7 +461,11 @@ class PostgresSessionService(BaseSessionService):
         session_id: str,
         title: str | None,
     ) -> bool:
-        """更新会话标题 (metadata.title)"""
+        """更新会话标题 (metadata.title)。
+
+        - 传入非空 title：标记 ``title_source = "manual"``，巡检永不覆盖。
+        - 传入 None：清空 title 及所有 auto 溯源字段，使巡检视为 fresh-auto 重新生成。
+        """
         self._validate_session_id(session_id)
 
         async with db_session.AsyncSessionLocal() as db:
@@ -374,11 +480,17 @@ class PostgresSessionService(BaseSessionService):
             if not thread:
                 return False
 
-            current_metadata = thread.metadata_ or {}
+            current_metadata = dict(thread.metadata_ or {})
             if title:
                 current_metadata["title"] = title
+                current_metadata["title_source"] = "manual"
             else:
                 current_metadata.pop("title", None)
+                current_metadata.pop("title_source", None)
+                current_metadata.pop("title_generated_at_event_seq", None)
+                current_metadata.pop("title_generated_at", None)
+                current_metadata.pop("title_attempt_count", None)
+                current_metadata.pop("title_last_attempt_at", None)
 
             await db.execute(
                 update(self.Thread)
