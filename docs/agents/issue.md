@@ -2040,7 +2040,7 @@
   - 但 ChatStream / StateSnapshot / EventTimeline 全部被清空，主区显示"发送指令开始对话…"，State 显示 "No State Available"；
   - 顶部仍显示旧会话标题，造成"清空但未切换"的错位状态。
   - 三种触发方式（`mcp__chrome_devtools__click`、JS `element.click()`、手动 `dispatchEvent(mousedown→mouseup→click)`）均稳定复现。
-- **根因**：[`apps/negentropy-ui/app/page.tsx`](../apps/negentropy-ui/app/page.tsx) 的 `setSessionId` 与 [`apps/negentropy-ui/features/session/hooks/useSessionListService.ts`](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts) 的 `setSessionListView` 都依赖 `useRouter().replace(target, { scroll: false })` 写 URL。在 Next.js 16.2.3 dev 模式下，对"同 pathname、仅 query 变更"的目标，路由器实际调用：
+- **根因**：[`apps/negentropy-ui/app/page.tsx`](../../apps/negentropy-ui/app/page.tsx) 的 `setSessionId` 与 [`apps/negentropy-ui/features/session/hooks/useSessionListService.ts`](../../apps/negentropy-ui/features/session/hooks/useSessionListService.ts) 的 `setSessionListView` 都依赖 `useRouter().replace(target, { scroll: false })` 写 URL。在 Next.js 16.2.3 dev 模式下，对"同 pathname、仅 query 变更"的目标，路由器实际调用：
   ```js
   history.replaceState(
     { __NA: true, __PRIVATE_NEXTJS_INTERNALS_TREE: { ..., renderedSearch: "?sessionId=<new>" } },
@@ -2053,11 +2053,11 @@
   1. **直写浏览器 history API，绕开 RSC 判定**：在以上两个入口将 `router.replace(target, { scroll: false })` 替换为 `window.history.replaceState(null, "", target)`。
   2. Next.js 14+ App Router 的 `useSearchParams` 会监听 `history.pushState` / `replaceState` 写入并触发派生重渲染（实机验证 OK），整条响应链（agent useMemo 重建、`loadSessionDetail` effect、ChatStream 渲染）恢复正常。
   3. 同步移除两文件中不再使用的 `useRouter` import 与 `useCallback` deps 中的 `router`；保留 `usePathname` / `useSearchParams` / `queryString` 派生稳定字符串 deps 模式（ISSUE-062）。
-  4. 单测同步迁移：[`tests/unit/features/session/useSessionListService.test.ts`](../apps/negentropy-ui/tests/unit/features/session/useSessionListService.test.ts) 取消 `routerReplace` mock，改 spy on `window.history.replaceState` + 从 `window.location.search` 派生 `useSearchParams`，覆盖 `setSessionListView('archived')` / `('active')` 两条路径。
+  4. 单测同步迁移：[`tests/unit/features/session/useSessionListService.test.ts`](../../apps/negentropy-ui/tests/unit/features/session/useSessionListService.test.ts) 取消 `routerReplace` mock，改 spy on `window.history.replaceState` + 从 `window.location.search` 派生 `useSearchParams`，覆盖 `setSessionListView('archived')` / `('active')` 两条路径。
 - **后续防范**：
   1. **同 pathname + 仅 query 变更的 URL 更新一律走 `window.history.replaceState`**：避免再次踩到 Next.js RSC 判定的 NA no-op。涉及 pathname 跳转（`/`、`/interface`、`/admin` 等）的入口继续使用 `router.replace` / `router.push`，两者职责分明。
   2. **Code review 红线**：评审看到 `router.replace(somePath, { scroll: false })` 且 `somePath` 与当前 pathname 同源（仅 query 不同）时，明确要求改写为 `window.history.replaceState`。
-  3. **实机验证为兜底底线**：本类 bug 的根因在 Next.js 路由层，vitest jsdom 环境覆盖不到——单测仅能保证"写 URL 这个动作发生"，是否"真的更新了 URL 并触发派生"必须在用户主 Chrome 实机验证（参见 [browser-validation 协议](./agents/browser-validation.md)）；任何同型 URL-only 写入改动至少 ≥ 5 个正交场景实机回归。
+  3. **实机验证为兜底底线**：本类 bug 的根因在 Next.js 路由层，vitest jsdom 环境覆盖不到——单测仅能保证"写 URL 这个动作发生"，是否"真的更新了 URL 并触发派生"必须在用户主 Chrome 实机验证（参见 [browser-validation 协议](./browser-validation.md)）；任何同型 URL-only 写入改动至少 ≥ 5 个正交场景实机回归。
   4. **故障时的错位提示**：`handleSessionChange` 仍是 `setSessionId → clearSessionState` 顺序。若未来再出现"清空但未切换"错位，说明 URL 写入又失败了——先验证 URL 是否真的更新，而不是去调换清理顺序（调换清理顺序无法解决根本问题，只会改变错位的外观）。
 - **同类问题影响**：
   - 本仓库其余 `router.replace` / `router.push` 调用（`app/admin/layout.tsx`、`app/interface/layout.tsx`、`app/interface/task-models/page.tsx`、`app/interface/models/page.tsx`、`app/knowledge/documents/page.tsx`）均为 pathname 级跳转，不在 bug 影响面，保持不变。
