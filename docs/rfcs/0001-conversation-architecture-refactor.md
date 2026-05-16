@@ -14,7 +14,7 @@
 ## 1. 背景与动机
 
 ### 1.1 现状问题
-Home 页 user↔Agent 交互链路在过去 4 个月发生 **5 次双气泡或同类型 UI 退化**（[ISSUE-031/036/039/040/041](../issue.md)），每次都通过 dedup 层"贴膏药"修复，导致：
+Home 页 user↔Agent 交互链路在过去 4 个月发生 **5 次双气泡或同类型 UI 退化**（[ISSUE-031/036/039/040/041](../agents/issue.md)），每次都通过 dedup 层"贴膏药"修复，导致：
 
 - **6 层 dedup 金字塔**（eventKey + mergeEvents + mergeEventsWithRealtimePriority + isSemanticEquivalentEntry + collapseDefaultTurnDuplicates + dedupeRedundantTextSegments）— 每层独立 heuristic，假设冲突时 bug 级联。
 - **3 处时间窗硬编码**（8000ms / 1000ms / 5-pass 稳态）— 边界 fragile，长回复 / 短回复 / 慢网络都会暴露盲区。

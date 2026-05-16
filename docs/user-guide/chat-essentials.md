@@ -41,7 +41,7 @@ sequenceDiagram
 - 附件（C5 多模态）：拖拽文件到输入框 / 点 paperclip 图标；上限 20MB（`DEFAULT_ATTACHMENT_MAX_BYTES`，参见 `apps/negentropy-ui/components/ui/Composer.tsx`）。
 - 提示词模板：通过 [Skills](./skills-basics.md) 体系发起；论文场景见 [skills-paper-hunter.md](./skills-paper-hunter.md)。
 
-**注意事项**：附件以轻量 metadata（id/name/mime/size）透传，不在 message ledger 中存原文，避免双气泡风险（[issue.md ISSUE-031](../issue.md)）。
+**注意事项**：附件以轻量 metadata（id/name/mime/size）透传，不在 message ledger 中存原文，避免双气泡风险（[issue.md ISSUE-031](../agents/issue.md)）。
 
 ## 3. 流式渲染与双气泡守卫
 
@@ -51,7 +51,7 @@ sequenceDiagram
 
 **注意事项**：
 - 即使刷新页面，每条消息仍只显示 **一个** 气泡（`expect(messageBubbles).toHaveCount(1)` 是 E2E 守卫硬约束）。
-- 若发现重复气泡，立刻按 [issue.md](../issue.md) 模板提交 RCA。
+- 若发现重复气泡，立刻按 [issue.md](../agents/issue.md) 模板提交 RCA。
 
 ## 4. 工具调用进度卡片（C3 Tool Progress）
 

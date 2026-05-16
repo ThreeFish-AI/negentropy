@@ -41,7 +41,7 @@
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值；
   4. **Testing**: 统一在 tests/ 下维护测试用例，区分单元测试（unit）和集成测试（integration），所有测试的本地运行总时间控制在 3 min 以内；
   5. **Pre-commit Hooks**: 首次克隆仓库使用 `uv run pre-commit install` 激活本地 Git hooks，使 Ruff lint（含 auto-fix）、Ruff format 及通用代码卫生检查在每次 commit 前自动运行。若 hooks 自动修复了问题，提交会被中断，执行 `git add -p` 审阅修复内容后重新提交即可；
-  6. **Issue**: 在 docs/issue.md 中维护你处理过的 Issue 摘要（问题描述、表因根因、处理方式、后续防范、同类问题影响与处理注意事项等），便于同类问题的跨上下文处理；注意识别相同 Issue，不要同 Issue 多处维护；
+  6. **Issue**: 在 [issue.md](docs/agents/issue.md) 中维护你处理过的 Issue 摘要（问题描述、表因根因、处理方式、后续防范、同类问题影响与处理注意事项等），便于同类问题的跨上下文处理；注意识别相同 Issue，不要同 Issue 多处维护；
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行；
