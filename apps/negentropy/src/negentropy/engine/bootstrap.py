@@ -267,6 +267,8 @@ def apply_adk_patches():
         from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.interface.api import router as interface_router
         from negentropy.interface.models_api import router as interface_models_router
+        from negentropy.interface.task_models_api import corpus_router as interface_task_models_corpus_router
+        from negentropy.interface.task_models_api import router as interface_task_models_router
         from negentropy.knowledge.api import router as knowledge_router
 
         class TracingInitMiddleware(BaseHTTPMiddleware):
@@ -402,7 +404,16 @@ def apply_adk_patches():
         if not any(route.path.startswith("/interface") for route in app.router.routes):
             app.include_router(interface_router)
             app.include_router(interface_models_router)
+            app.include_router(interface_task_models_router)
             logger.info("Interface API router mounted under /interface")
+        # Corpus 级 task-models 路由独立挂载（prefix=/knowledge/corpus/...），
+        # 不与 /interface 共享 prefix，需判定挂载唯一性。
+        if not any(
+            getattr(route, "path", "").startswith("/knowledge/corpus/{corpus_id}/task-models")
+            for route in app.router.routes
+        ):
+            app.include_router(interface_task_models_corpus_router)
+            logger.info("Corpus task-models router mounted under /knowledge/corpus/{id}/task-models")
         if not any(route.path.startswith("/auth") for route in app.router.routes):
             app.include_router(auth_router)
             logger.info("Auth API router mounted under /auth")

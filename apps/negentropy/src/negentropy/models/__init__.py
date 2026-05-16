@@ -29,6 +29,7 @@ from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
 from .sub_agent import SubAgent
+from .task_model_setting import TaskModelSetting
 from .vendor_config import VendorConfig
 
 __all__ = [
@@ -98,4 +99,6 @@ __all__ = [
     "ModelType",
     # Vendor Config
     "VendorConfig",
+    # Task Model Settings
+    "TaskModelSetting",
 ]
