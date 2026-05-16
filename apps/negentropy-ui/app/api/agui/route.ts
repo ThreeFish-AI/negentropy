@@ -18,6 +18,10 @@ import {
 } from "@/lib/errors";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 import { getAguiBaseUrl } from "@/lib/server/backend-url";
+// 派生 state_delta 的纯函数 + 共享 UUID 校验沉淀到 `_state-delta`：
+// Next.js App Router 限定 `route.ts` 仅可导出 HTTP handler / 配置符号，
+// 任何额外 `export`（包括纯工具函数）都会被生成路由类型校验拒绝。
+import { UUID_RE, buildStateDeltaFromForwardedProps } from "./_state-delta";
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);
@@ -71,30 +75,6 @@ function normalizeEvent(
   );
 }
 
-export function buildStateDeltaFromForwardedProps(
-  forwardedProps: Record<string, unknown> | null,
-): Record<string, unknown> {
-  const stateDelta: Record<string, unknown> = {};
-  if (!forwardedProps) {
-    return stateDelta;
-  }
-  if ("selected_llm_model" in forwardedProps) {
-    const raw = forwardedProps.selected_llm_model;
-    if (typeof raw === "string" && raw.length > 0) {
-      stateDelta.selected_llm_model = raw;
-    } else if (raw === null) {
-      stateDelta.selected_llm_model = null;
-    }
-  }
-  if ("thinking_enabled" in forwardedProps) {
-    const raw = forwardedProps.thinking_enabled;
-    if (typeof raw === "boolean") {
-      stateDelta.thinking_enabled = raw;
-    }
-  }
-  return stateDelta;
-}
-
 export async function POST(request: Request) {
   const baseUrl = getAguiBaseUrl();
 
@@ -121,7 +101,6 @@ export async function POST(request: Request) {
       "session_id is required",
     );
   }
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_RE.test(sessionId)) {
     return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,

@@ -238,6 +238,15 @@ async def search_knowledge_base(
         return {"status": "failed", "error": "top_k must be positive"}
     limit = min(top_k, _MAX_RESULTS_LIMIT)
 
+    # 用户 @ Corpus 检索范围（来自 Home Composer 的 forwardedProps.scoped_corpus_ids
+    # → BFF state_delta → ADK session.state → tool_context.state）。命中时仅在指定
+    # 语料库内检索；未命中则保持原"全 Corpus 聚合"行为。
+    scoped_ids: list[str] | None = None
+    if tool_context is not None and getattr(tool_context, "state", None):
+        raw_scope = tool_context.state.get("scoped_corpus_ids")
+        if isinstance(raw_scope, list) and raw_scope:
+            scoped_ids = [s for s in raw_scope if isinstance(s, str) and s]
+
     logger.info(
         "knowledge_search_started",
         query=query[:100],
@@ -245,17 +254,24 @@ async def search_knowledge_base(
         limit=limit,
         semantic_weight=semantic_weight,
         keyword_weight=keyword_weight,
+        scoped_corpus_ids=scoped_ids,
     )
 
     try:
-        # 获取所有可用的语料库
+        # 获取所有可用的语料库（按 scoped_ids 限定）
         async with db_session.AsyncSessionLocal() as db:
             stmt = select(Corpus).where(Corpus.app_name == settings.app_name)
+            if scoped_ids:
+                stmt = stmt.where(Corpus.id.in_(scoped_ids))
             result = await db.execute(stmt)
             corpora = result.scalars().all()
 
         if not corpora:
-            logger.warning("no_corpora_found", app_name=settings.app_name)
+            logger.warning(
+                "no_corpora_found",
+                app_name=settings.app_name,
+                scoped_corpus_ids=scoped_ids,
+            )
             return await _fallback_to_memory_search(query, limit, tool_context)
 
         # 使用混合检索从所有语料库中搜索

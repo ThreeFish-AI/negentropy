@@ -25,7 +25,8 @@ export function useCorporaList(): UseCorporaListResult {
         setError(null);
         const data = await fetchCorpora(APP_NAME);
         if (mounted) {
-          setCorpora(data);
+          // 防御：网络回退或 BFF 异常时（如未配置后端）data 可能不是数组。
+          setCorpora(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         if (mounted) {

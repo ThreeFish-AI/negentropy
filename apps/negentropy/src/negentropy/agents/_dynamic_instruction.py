@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable
 
 from google.adk.agents.readonly_context import ReadonlyContext
@@ -23,18 +24,56 @@ _logger = get_logger("negentropy.agents.dynamic_instruction")
 InstructionProvider = Callable[[ReadonlyContext], Awaitable[str]]
 
 
-def make_instruction_provider(agent_name: str, fallback: str) -> InstructionProvider:
+_PREFERENCE_KEY = "preferred_subagent"
+_PREFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_\-]{0,127}$")
+
+
+_PREFERENCE_PREFIX_TEMPLATE = """## 用户偏好 (User Preference - 本轮 turn)
+用户在本轮明确指定希望由 `{name}` 处理本次请求。
+在意图允许的前提下，**优先**使用 `transfer_to_agent(agent_name="{name}", ...)` 委派。
+若你判断该 SubAgent 不适合处理本请求（如能力不匹配），仍可按「调度之道」自主选择，
+但需在最终回答中向用户**简述偏离原因**。
+
+"""
+
+
+def _render_preference_prefix(preferred: str) -> str:
+    """渲染「用户偏好」prefix；与正文之间留一个空行分隔。
+
+    用户在 Home Composer 通过 ``@Agent`` 选中某 SubAgent 后，前端将其 ``name`` 经
+    ``forwardedProps.preferred_subagent`` → BFF ``state_delta`` → ADK session.state
+    透传到根 Agent 的 ReadonlyContext。本 prefix 仅是「软偏好」—— 若 root 判断不
+    匹配仍可自主选择，但需向用户简述偏离原因，避免静默忽略用户意图。
+    """
+    return _PREFERENCE_PREFIX_TEMPLATE.format(name=preferred)
+
+
+def make_instruction_provider(
+    agent_name: str,
+    fallback: str,
+    *,
+    is_root: bool = False,
+) -> InstructionProvider:
     """构造 ADK InstructionProvider：DB 命中即用，未命中 / 失败回退到 ``fallback``。
+
+    扩展：当 ``is_root=True`` 且 ``ctx.state`` 含 ``preferred_subagent``（用户
+    @ Agent 偏好）时，在 instruction 头部 prepend 「用户偏好」段落（仅本 turn
+    生效，state 由 ADK 按 turn 派发）。Agent 名仅做轻量正则校验，避免脏数据
+    破坏 prompt。
 
     Args:
         agent_name: ``sub_agents.name``，用于 DB 查询；与 ADK Agent.name 一致。
         fallback: 代码硬编码 instruction 文本，DB 未命中 / 异常时使用。
+        is_root: 是否为根 Agent（``NegentropyEngine``）。仅根 Agent 消费
+            ``preferred_subagent`` —— 它负责调度 SubAgent；其它 faculty 即使读到
+            同一 ``session.state`` 也不应被自指令（``transfer_to_agent(self)``）
+            或跨派系委派提示污染。
 
     Returns:
         Async callable，签名符合 ADK 的 ``InstructionProvider`` 类型约束。
     """
 
-    async def _provider(_ctx: ReadonlyContext) -> str:
+    async def _provider(ctx: ReadonlyContext) -> str:
         try:
             text = await resolve_subagent_instruction(agent_name)
         except Exception:
@@ -43,7 +82,21 @@ def make_instruction_provider(agent_name: str, fallback: str) -> InstructionProv
                 agent_name=agent_name,
                 exc_info=True,
             )
-            return fallback
-        return text or fallback
+            text = None
+        base = text or fallback
+
+        # 非 root 一律走原路径——避免 faculty 共用 provider 时被偏好 prefix 污染。
+        if not is_root:
+            return base
+
+        # 防御性校验：非法 / 空 / 异常类型一律忽略，永不阻塞主流程。
+        try:
+            state = getattr(ctx, "state", None)
+            preferred = state.get(_PREFERENCE_KEY) if state is not None else None
+        except Exception:
+            preferred = None
+        if isinstance(preferred, str) and _PREFERENCE_NAME_RE.match(preferred):
+            return _render_preference_prefix(preferred) + base
+        return base
 
     return _provider
