@@ -720,7 +720,7 @@ uv run pytest tests/performance_tests/knowledge/test_catalog_tree_perf.py -v
 > **状态**：Accepted（ADR 等价）
 > **上游**：见 [§13 Catalog / Wiki Publication 三层正交架构](#13-catalog--wiki-publication-三层正交架构)
 > **关联运维**：见 [`negentropy-wiki-ops.md` §12 单实例 Catalog 与 Wiki 发布版本管理运维](./negentropy-wiki-ops.md#12-单实例-catalog-与-wiki-发布版本管理运维)
-> **关联 Issue**：见 [`issue.md` ISSUE-015](./issue.md#issue-015)
+> **关联 Issue**：见 [`issue.md` ISSUE-015](agents/issue.md#issue-015)
 
 ### 15.1 设计动机
 

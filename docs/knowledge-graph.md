@@ -558,7 +558,7 @@ $$ LANGUAGE SQL;
 
 #### 5.3.2 社区检测 (Leiden / Louvain)
 
-采用 Python 服务层 + `igraph + leidenalg` 实现 Leiden（Traag et al., 2019<sup>[[15]](#ref15)</sup>，保证社区内部连通性），`networkx.community.louvain_communities` 兜底。**关键工程纪律**：NetworkX 3.x 的 `nx.community.leiden_communities` 是 dispatch wrapper，**不会自动派发到 leidenalg backend** — 调用时反而抛 `NotImplementedError: 'leiden_communities' is not implemented by 'networkx' backend`（参 [issue.md ISSUE-082](./issue.md#issue-082-kg-build-管线七项级联缺陷端到端修复2026-05-12)）。必须经由 `igraph.Graph + leidenalg.find_partition` 直连。
+采用 Python 服务层 + `igraph + leidenalg` 实现 Leiden（Traag et al., 2019<sup>[[15]](#ref15)</sup>，保证社区内部连通性），`networkx.community.louvain_communities` 兜底。**关键工程纪律**：NetworkX 3.x 的 `nx.community.leiden_communities` 是 dispatch wrapper，**不会自动派发到 leidenalg backend** — 调用时反而抛 `NotImplementedError: 'leiden_communities' is not implemented by 'networkx' backend`（参 [issue.md ISSUE-082](agents/issue.md#issue-082-kg-build-管线七项级联缺陷端到端修复2026-05-12)）。必须经由 `igraph.Graph + leidenalg.find_partition` 直连。
 
 ```python
 # graph_algorithms.py（实际实现）
@@ -582,7 +582,7 @@ def _run_leiden(G_undirected, *, resolution: float, seed: int) -> list[set[str]]
     return [{nodes[i] for i in cluster} for cluster in partition]
 ```
 
-**存储设计**：社区 ID 持久化到 `kg_entities.community_id`（一等公民列）；多层级摘要落 `kg_community_summaries`（GraphRAG Global Search 依赖）。批量 UPDATE 采用占位符级 `CAST(:eid_n AS uuid)` 显式类型转换 — **禁用** `FROM (VALUES …) AS v(col type)` 内联类型声明（PostgreSQL 不接受，会抛 `syntax error at or near "uuid"`，参 [ISSUE-082](./issue.md#issue-082-kg-build-管线七项级联缺陷端到端修复2026-05-12)）。
+**存储设计**：社区 ID 持久化到 `kg_entities.community_id`（一等公民列）；多层级摘要落 `kg_community_summaries`（GraphRAG Global Search 依赖）。批量 UPDATE 采用占位符级 `CAST(:eid_n AS uuid)` 显式类型转换 — **禁用** `FROM (VALUES …) AS v(col type)` 内联类型声明（PostgreSQL 不接受，会抛 `syntax error at or near "uuid"`，参 [ISSUE-082](agents/issue.md#issue-082-kg-build-管线七项级联缺陷端到端修复2026-05-12)）。
 
 ```sql
 -- 正确范式（PageRank / 社区检测 UPDATE 共用）
