@@ -8,6 +8,12 @@ import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
 import type { ComposerAttachment } from "../components/ui/AttachmentChip";
+import type { MentionCandidate, MentionToken } from "@/types/mention";
+import { deriveForwardedPropsFromMentions } from "@/utils/mention-parser";
+import { extractFinalAssistantText } from "@/utils/run-output";
+import { useSubAgentsList } from "@/hooks/useSubAgentsList";
+import { useCorporaList } from "@/app/knowledge/apis/_components/hooks/useCorporaList";
+import { ingestText } from "@/features/knowledge/utils/knowledge-api";
 import { EventTimeline } from "../components/ui/EventTimeline";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
@@ -210,6 +216,45 @@ export function HomeBody({
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  // Home Composer 的 @ Mention（agent / corpus-retrieve / corpus-output）。
+  // 与 inputValue 平行存在，仅承担 ① UI 高亮 ② forwardedProps 派生。
+  const [mentions, setMentions] = useState<MentionToken[]>([]);
+  // doSend 时 snapshot 的 output_corpus_ids；RUN_FINISHED 后被 ingestText 消费。
+  // 用 Map<runId, ids[]> 支持并发 turn（虽然当前实现一次只跑一个 run，但低成本兜底）。
+  const outputCorpusIdsByRunRef = useRef<Map<string, string[]>>(new Map());
+  const userPromptByRunRef = useRef<Map<string, string>>(new Map());
+  // @ 弹层候选项数据源
+  const { subagents, loading: subagentsLoading, error: subagentsError } =
+    useSubAgentsList();
+  const { corpora, loading: corporaLoading, error: corporaError } = useCorporaList();
+  const agentCandidates = useMemo<MentionCandidate[]>(
+    () =>
+      subagents.map((a) => ({
+        kind: "agent" as const,
+        refId: a.name,
+        label: a.display_name || a.name,
+        description: a.description || undefined,
+      })),
+    [subagents],
+  );
+  const corpusCandidates = useMemo<MentionCandidate[]>(
+    () =>
+      corpora.map((c) => ({
+        kind: "corpus-retrieve" as const, // 仅占位；MentionPopover 切换 Tab 时会改写 kind
+        refId: c.id,
+        label: c.name,
+        description: c.description || undefined,
+      })),
+    [corpora],
+  );
+  const validAgentRefIds = useMemo(
+    () => new Set(subagents.map((a) => a.name)),
+    [subagents],
+  );
+  const validCorpusRefIds = useMemo(
+    () => new Set(corpora.map((c) => c.id)),
+    [corpora],
+  );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
@@ -333,6 +378,13 @@ export function HomeBody({
   );
   const search = useConversationSearch(allNodes);
 
+  // 同步 conversationTree 到 ref，供 rawEventHandler 内 RUN_FINISHED 沉淀钩子读取
+  // （rawEventHandler 是 ref-based 回调，不会跟随 conversationTree 重建，需要 ref 来读最新值）。
+  const conversationTreeRef = useRef(conversationTree);
+  useEffect(() => {
+    conversationTreeRef.current = conversationTree;
+  }, [conversationTree]);
+
   // G3 审批门：从 snapshot 读取 pending_approvals；用户决策写回 BFF。
   const pendingApprovals = useMemo(
     () => (snapshotForDisplay?.pending_approvals as Record<string, unknown> | undefined) ?? null,
@@ -447,6 +499,65 @@ export function HomeBody({
               ? event.runId
               : undefined,
         });
+
+        // @ Corpus 输出沉淀 —— RUN_FINISHED 成功路径才触发；RUN_ERROR 仅清理 ref。
+        const finishedRunId =
+          "runId" in event && typeof event.runId === "string"
+            ? event.runId
+            : null;
+        if (finishedRunId) {
+          const outputIds = outputCorpusIdsByRunRef.current.get(finishedRunId);
+          const userPrompt = userPromptByRunRef.current.get(finishedRunId);
+          outputCorpusIdsByRunRef.current.delete(finishedRunId);
+          userPromptByRunRef.current.delete(finishedRunId);
+          if (
+            event.type === EventType.RUN_FINISHED &&
+            outputIds &&
+            outputIds.length > 0
+          ) {
+            // 延迟读 conversationTree —— RUN_FINISHED 触发的最后一波 state
+            // 经 useSessionService 异步合并；200ms 足以覆盖单 turn 的最终 flush。
+            setTimeout(() => {
+              const answerText = extractFinalAssistantText(
+                conversationTreeRef.current,
+                finishedRunId,
+              );
+              if (!answerText) {
+                toast.warning("沉淀失败：未获取到本轮助手回答");
+                return;
+              }
+              const sourceUri = `home:session/${sessionId}:run/${finishedRunId}`;
+              const metadata = {
+                source: "home_chat",
+                session_id: sessionId,
+                run_id: finishedRunId,
+                generated_at: new Date().toISOString(),
+                ...(userPrompt
+                  ? { user_prompt_excerpt: userPrompt.slice(0, 200) }
+                  : {}),
+              };
+              void Promise.allSettled(
+                outputIds.map((corpusId) =>
+                  ingestText(corpusId, {
+                    app_name: APP_NAME,
+                    text: answerText,
+                    source_uri: sourceUri,
+                    metadata,
+                  }),
+                ),
+              ).then((results) => {
+                const ok = results.filter((r) => r.status === "fulfilled").length;
+                const fail = results.length - ok;
+                if (ok > 0) {
+                  toast.success(`已沉淀到 ${ok} 个语料库`);
+                }
+                if (fail > 0) {
+                  toast.warning(`${fail} 个语料库沉淀失败`);
+                }
+              });
+            }, 200);
+          }
+        }
       }
     };
     updateSessionTimeRef.current = updateCurrentSessionTime;
@@ -619,10 +730,26 @@ export function HomeBody({
         size: a.size,
       }));
 
+      // @ Mention —— 从 mentions 派生本轮 turn 的偏好与 corpus 范围；
+      // 仅非空字段透传 forwardedProps（BFF 会进一步做 UUID/类型校验）。
+      const derivedMention = deriveForwardedPropsFromMentions(mentions, {
+        agents: validAgentRefIds,
+        corpora: validCorpusRefIds,
+      });
+      // snapshot output_corpus_ids，留待 RUN_FINISHED 时触发 ingest 沉淀。
+      if (derivedMention.output_corpus_ids.length > 0) {
+        outputCorpusIdsByRunRef.current.set(runId, derivedMention.output_corpus_ids);
+        userPromptByRunRef.current.set(runId, input.trim());
+      }
       try {
         setConnectionWithMetrics("connecting");
-        agent.forwardedProps = {
-          ...(agent.forwardedProps ?? {}),
+        // AbstractAgent.prepareRunAgentInput 从 runAgent 的参数读 forwardedProps，
+        // 实例属性 ``agent.forwardedProps = ...`` 不会被读取——必须把字段透传到
+        // ``runAgent({forwardedProps, runId})``。下面合并实例属性兜底以兼容历史调用方。
+        const baseForwardedProps =
+          (agent.forwardedProps as Record<string, unknown> | undefined) ?? {};
+        const forwardedProps: Record<string, unknown> = {
+          ...baseForwardedProps,
           approval_policy: { mode: approvalPolicyMode },
           selected_llm_model: selectedLlmModel ?? null,
           thinking_enabled: isThinkingSupportedForSelection(
@@ -632,11 +759,23 @@ export function HomeBody({
             ? thinkingEnabled
             : false,
           ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
+          ...(derivedMention.preferred_subagent
+            ? { preferred_subagent: derivedMention.preferred_subagent }
+            : {}),
+          ...(derivedMention.scoped_corpus_ids.length > 0
+            ? { scoped_corpus_ids: derivedMention.scoped_corpus_ids }
+            : {}),
+          ...(derivedMention.output_corpus_ids.length > 0
+            ? { output_corpus_ids: derivedMention.output_corpus_ids }
+            : {}),
         };
-        // 清空 Composer 附件区（与 inputValue 已被清空的语义一致）
+        agent.forwardedProps = forwardedProps; // 留作 backward-compat（其他读 ref 的逻辑）
+        // 清空 Composer 附件区 + Mention 区（与 inputValue 已被清空的语义一致）
         setAttachments([]);
+        setMentions([]);
         await agent.runAgent({
           runId,
+          forwardedProps,
         });
         scheduleSessionHydration(sessionId);
         await loadSessions();
@@ -668,6 +807,9 @@ export function HomeBody({
       llmModels,
       attachments,
       approvalPolicyMode,
+      mentions,
+      validAgentRefIds,
+      validCorpusRefIds,
     ],
   );
 
@@ -1144,6 +1286,14 @@ export function HomeBody({
                 onCancel={handleCancelRun}
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
+                mentions={mentions}
+                onMentionsChange={setMentions}
+                agentCandidates={agentCandidates}
+                corpusCandidates={corpusCandidates}
+                agentsLoading={subagentsLoading}
+                agentsError={subagentsError}
+                corporaLoading={corporaLoading}
+                corporaError={corporaError}
               />
             </div>
           </div>
