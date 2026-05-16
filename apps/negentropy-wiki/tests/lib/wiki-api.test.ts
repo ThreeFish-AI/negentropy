@@ -5,7 +5,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 // 动态导入，确保 fetch mock 在模块加载前就位
-const { wikiApi } = await import("@/lib/wiki-api");
+const { wikiApi, joinEntrySlug } = await import("@/lib/wiki-api");
 
 // ---------------------------------------------------------------------------
 // 辅助工厂
@@ -245,5 +245,25 @@ describe("WikiApiClient", () => {
 
       await expect(wikiApi.listPublications()).rejects.toThrow("Network failure");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 辅助函数（纯函数，不需要 fetch mock）
+// ---------------------------------------------------------------------------
+
+describe("joinEntrySlug", () => {
+  it("数组参数合并为 / 分隔的字符串", () => {
+    expect(joinEntrySlug(["getting-started", "installation"])).toBe(
+      "getting-started/installation",
+    );
+  });
+
+  it("单元素数组直通", () => {
+    expect(joinEntrySlug(["intro"])).toBe("intro");
+  });
+
+  it("字符串参数原样返回", () => {
+    expect(joinEntrySlug("a/b/c")).toBe("a/b/c");
   });
 });

@@ -236,3 +236,49 @@ export function resolveSectionView(
     sidebarItems: activeItem?.children ?? [],
   };
 }
+
+// ---------------------------------------------------------------------------
+// 辅助遍历（DFS 查找 / 计数 / 路径合并）
+// ---------------------------------------------------------------------------
+
+/**
+ * DFS 查找导航树中标记为 `is_index_page` 的首个有效条目。
+ *
+ * 用于 Publication 首页渲染「🏠 首页」链接。
+ */
+export function findIndexEntry(items: WikiNavTreeItem[]): WikiNavTreeItem | null {
+  for (const item of items) {
+    if (item.is_index_page && item.entry_id) return item;
+    if (item.children && item.children.length > 0) {
+      const nested = findIndexEntry(item.children);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
+/**
+ * 递归统计导航树中所有有效条目（`entry_id` 非空）的数量。
+ *
+ * 排除合成容器节点（`entry_id=null`），仅计可路由的叶子。
+ */
+export function countLeafEntries(items: WikiNavTreeItem[]): number {
+  let total = 0;
+  for (const item of items) {
+    if (item.entry_id) total += 1;
+    if (item.children && item.children.length > 0) {
+      total += countLeafEntries(item.children);
+    }
+  }
+  return total;
+}
+
+/**
+ * 将 catch-all 路由参数合并为完整 entry slug。
+ *
+ * entry_slug 使用 Materialized Path（可能包含 `/`），
+ * Next.js catch-all 路由将其拆为数组；此函数还原为原始 slug。
+ */
+export function joinEntrySlug(segments: string[] | string): string {
+  return Array.isArray(segments) ? segments.join("/") : segments;
+}
