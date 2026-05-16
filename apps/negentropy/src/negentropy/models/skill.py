@@ -38,6 +38,9 @@ class Skill(Base, UUIDMixin, TimestampMixin):
 
     # 状态
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # 「系统内置」标识：与 BuiltinTool.is_system / McpServer.is_system / SubAgent.is_system
+    # 对齐，作为可见性与权限判断的单一事实源（参见 permissions._is_plugin_builtin）。
+    is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     # Phase 2 — 工具白名单 fail-close 模式（warning|strict，默认 warning）
@@ -55,6 +58,7 @@ class Skill(Base, UUIDMixin, TimestampMixin):
         UniqueConstraint("name", name="skills_name_unique"),
         Index("ix_skills_owner", "owner_id"),
         Index("ix_skills_category", "category"),
+        Index("ix_skills_is_system", "is_system"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
