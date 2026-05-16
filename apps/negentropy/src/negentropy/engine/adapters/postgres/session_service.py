@@ -297,7 +297,7 @@ class PostgresSessionService(BaseSessionService):
         meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
         current_metadata = meta_result.scalar() or {}
         next_metadata = dict(current_metadata)
-        next_metadata["title_attempt_count"] = int(next_metadata.get("title_attempt_count", 0)) + 1
+        next_metadata["title_attempt_count"] = int(next_metadata.get("title_attempt_count") or 0) + 1
         next_metadata["title_last_attempt_at"] = datetime.now(UTC).isoformat()
         await db.execute(
             update(self.Thread).where(self.Thread.id == uuid.UUID(session_id)).values(metadata_=next_metadata)
