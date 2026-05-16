@@ -21,6 +21,7 @@ from sqlalchemy import select
 from negentropy.config.task_registry import ALL_TASKS
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.models.model_config import ModelConfig, ModelType
+from negentropy.models.perception import Corpus
 from negentropy.models.task_model_setting import TaskModelSetting
 
 
@@ -58,6 +59,31 @@ async def _seed_model_config():
     async with AsyncSessionLocal() as db:
         await db.execute(select(ModelConfig).where(ModelConfig.id == mc.id))
         await db.delete(mc)
+        await db.commit()
+
+
+@pytest.fixture
+async def _seed_corpus_pair():
+    """在 corpus 表中插入两行记录，供 corpus-scoped TaskModelSetting 的 FK 引用。"""
+    c1 = Corpus(
+        app_name="test-app",
+        name=f"test-corpus-a-{uuid4().hex[:8]}",
+    )
+    c2 = Corpus(
+        app_name="test-app",
+        name=f"test-corpus-b-{uuid4().hex[:8]}",
+    )
+    async with AsyncSessionLocal() as db:
+        db.add_all([c1, c2])
+        await db.commit()
+        await db.refresh(c1)
+        await db.refresh(c2)
+    yield (c1.id, c2.id)
+    async with AsyncSessionLocal() as db:
+        for cid in (c1.id, c2.id):
+            await db.execute(select(Corpus).where(Corpus.id == cid))
+        await db.delete(c1)
+        await db.delete(c2)
         await db.commit()
 
 
@@ -128,11 +154,12 @@ async def test_global_setting_unique_constraint(any_task_key, _seed_model_config
 
 
 @pytest.mark.asyncio
-async def test_corpus_setting_coexists_with_global(any_task_key, corpus_task_key, _seed_model_config):
+async def test_corpus_setting_coexists_with_global(
+    any_task_key, corpus_task_key, _seed_model_config, _seed_corpus_pair
+):
     """全局映射 + Corpus 级映射可共存；不同 corpus 各自独立。"""
     mc = _seed_model_config
-    corpus_id_1 = uuid4()
-    corpus_id_2 = uuid4()
+    corpus_id_1, corpus_id_2 = _seed_corpus_pair
 
     global_row = TaskModelSetting(
         scope_corpus_id=None,
