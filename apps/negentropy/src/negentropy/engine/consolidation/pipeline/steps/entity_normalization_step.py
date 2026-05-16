@@ -18,7 +18,7 @@ import time
 
 import litellm
 
-from negentropy.engine.utils.model_config import resolve_model_config
+from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
 
 from ..protocol import PipelineContext, StepResult
@@ -37,14 +37,24 @@ FACTS:
 class EntityNormalizationStep:
     name = "entity_normalization"
 
+    # task_registry.py 中登记的 task_key；用户可在 /interface/task-models 为本任务单独绑定模型。
+    _TASK_KEY = "consolidation.entity_normalization"
+
     def __init__(self, max_retries: int = 1) -> None:
-        self._model, self._model_kwargs = resolve_model_config(None)
+        self._model: str = ""
+        self._model_kwargs: dict = {}
         self._max_retries = max_retries
+
+    async def _resolve_model(self) -> None:
+        self._model, self._model_kwargs = await resolve_model_config_async(self._TASK_KEY)
 
     async def run(self, ctx: PipelineContext) -> StepResult:
         start = time.perf_counter()
         if not ctx.facts:
             return StepResult(step_name=self.name, status="skipped", duration_ms=0, output_count=0)
+
+        # 解析当前任务模型（resolver 内含 60s TTL 缓存）
+        await self._resolve_model()
 
         facts_block = "\n".join(f"- [{f.fact_type}] {f.key}: {f.value}" for f in ctx.facts[:50])
 

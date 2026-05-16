@@ -630,6 +630,10 @@ CRITICAL — Avoid noise extraction:
 Output as JSON with the following structure:
 {{"entities": [{{"name": "...", "type": "...", "description": "...", "confidence": 0.9}}]}}"""
 
+    # task_registry.py 中登记的 task_key；用户可在 Corpus 设置页（ModelConfigPanel 的 task-models 区块）
+    # 或 /interface/task-models 为该任务单独绑定模型。
+    _TASK_KEY = "knowledge.kg.extraction.entity"
+
     def __init__(
         self,
         model: str | None = None,
@@ -642,7 +646,7 @@ Output as JSON with the following structure:
         """初始化 LLM 实体提取器
 
         Args:
-            model: LLM 模型名称（默认使用配置中的 chat_model）
+            model: LLM 模型名称（默认走 task_model_settings → 全局默认链路）
             temperature: 生成温度（0.0 确保一致性）
             max_retries: 应用层最大重试次数（默认 ``KG_LLM_MAX_RETRIES``）。
                 SDK 层已通过 ``num_retries=0`` 禁用隐形重试，全链路重试仅此一层管控。
@@ -652,12 +656,13 @@ Output as JSON with the following structure:
                 service 层 ``chunk_extract_timeout`` = max_retries × llm_timeout + backoff，确保外层
                 预算覆盖内层重试。
         """
-        # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
+        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
         # 因为 __init__ 是同步的，无法调用异步 DB 查询
         self._explicit_model = model
         self._model: str | None = None
         self._model_kwargs: dict[str, Any] = {}
         self._model_config_resolved = False
+        self._resolved_corpus_id: UUID | None = None
         self._model_config_lock: asyncio.Lock | None = None
         self._temperature = temperature
         self._max_retries = max_retries
@@ -665,20 +670,28 @@ Output as JSON with the following structure:
         self._schema = schema
         self._llm_timeout = llm_timeout
 
-    async def _ensure_model_config(self) -> None:
+    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
         """异步解析模型配置（含 api_key）。
 
-        解析链：resolve_llm_config_by_model_name → resolve_llm_config → get_fallback_llm_config。
+        解析链：
+            1. explicit_model → ``resolve_llm_config_by_model_name``（用户显式指定）
+            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)`` —
+               按 task → corpus_id 映射 → 全局映射 → ``is_default`` → 硬编码 fallback。
+
+        Args:
+            corpus_id: 当前提取批次所属 Corpus；若与上次解析的 corpus_id 不同
+                则强制重新解析，以便 Corpus 级 task_model_settings 即时生效。
+
         使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
         """
-        if self._model_config_resolved:
+        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
             return
 
         if self._model_config_lock is None:
             self._model_config_lock = asyncio.Lock()
 
         async with self._model_config_lock:
-            if self._model_config_resolved:
+            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
                 return
 
             model_name: str | None = None
@@ -692,13 +705,18 @@ Output as JSON with the following structure:
                     if resolved is not None:
                         model_name, model_kwargs = resolved
                 if model_name is None:
-                    from negentropy.config.model_resolver import resolve_llm_config
+                    from negentropy.config.model_resolver import resolve_llm_config_for_task
 
-                    model_name, model_kwargs = await resolve_llm_config()
+                    model_name, model_kwargs = await resolve_llm_config_for_task(
+                        self._TASK_KEY,
+                        corpus_id=corpus_id,
+                    )
             except Exception:
                 logger.warning(
                     "model_config_async_resolve_failed",
                     explicit_model=self._explicit_model,
+                    task_key=self._TASK_KEY,
+                    corpus_id=str(corpus_id) if corpus_id else None,
                     exc_info=True,
                 )
 
@@ -709,6 +727,7 @@ Output as JSON with the following structure:
 
             self._model = model_name
             self._model_kwargs = model_kwargs
+            self._resolved_corpus_id = corpus_id
             self._model_config_resolved = True
 
     async def extract(
@@ -731,7 +750,7 @@ Output as JSON with the following structure:
         Returns:
             提取的实体节点列表
         """
-        await self._ensure_model_config()
+        await self._ensure_model_config(corpus_id=corpus_id)
 
         logger.debug(
             "llm_extract_entities_started",
@@ -1084,6 +1103,10 @@ Output as JSON with the following structure:
 {{"relations": [{{"source": "...", "target": "...", "type": "...",
 "description": "...", "evidence": "...", "confidence": 0.9}}]}}"""
 
+    # task_registry.py 中登记的 task_key；用户可在 Corpus 设置页的 task-models 区块或
+    # /interface/task-models 为该任务单独绑定模型。
+    _TASK_KEY = "knowledge.kg.extraction.relation"
+
     def __init__(
         self,
         model: str | None = None,
@@ -1096,18 +1119,19 @@ Output as JSON with the following structure:
         """初始化 LLM 关系提取器
 
         Args:
-            model: LLM 模型名称
+            model: LLM 模型名称（默认走 task_model_settings → 全局默认链路）
             temperature: 生成温度
             max_retries: 应用层最大重试次数（默认 ``KG_LLM_MAX_RETRIES``）。
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
             schema: ExtractionSchema 实例，用于约束关系类型
             llm_timeout: 单次 ``litellm.acompletion`` 超时（秒，默认 ``KG_LLM_TIMEOUT_SECONDS``）。
         """
-        # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
+        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
         self._explicit_model = model
         self._model: str | None = None
         self._model_kwargs: dict[str, Any] = {}
         self._model_config_resolved = False
+        self._resolved_corpus_id: UUID | None = None
         self._model_config_lock: asyncio.Lock | None = None
         self._temperature = temperature
         self._max_retries = max_retries
@@ -1115,20 +1139,23 @@ Output as JSON with the following structure:
         self._schema = schema
         self._llm_timeout = llm_timeout
 
-    async def _ensure_model_config(self) -> None:
+    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
         """异步解析模型配置（含 api_key）。
 
-        解析链：resolve_llm_config_by_model_name → resolve_llm_config → get_fallback_llm_config。
-        使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
+        解析链：
+            1. explicit_model → ``resolve_llm_config_by_model_name``
+            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)``
+
+        corpus_id 变化时强制重新解析，确保 Corpus 级映射即时生效。
         """
-        if self._model_config_resolved:
+        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
             return
 
         if self._model_config_lock is None:
             self._model_config_lock = asyncio.Lock()
 
         async with self._model_config_lock:
-            if self._model_config_resolved:
+            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
                 return
 
             model_name: str | None = None
@@ -1142,13 +1169,18 @@ Output as JSON with the following structure:
                     if resolved is not None:
                         model_name, model_kwargs = resolved
                 if model_name is None:
-                    from negentropy.config.model_resolver import resolve_llm_config
+                    from negentropy.config.model_resolver import resolve_llm_config_for_task
 
-                    model_name, model_kwargs = await resolve_llm_config()
+                    model_name, model_kwargs = await resolve_llm_config_for_task(
+                        self._TASK_KEY,
+                        corpus_id=corpus_id,
+                    )
             except Exception:
                 logger.warning(
                     "model_config_async_resolve_failed",
                     explicit_model=self._explicit_model,
+                    task_key=self._TASK_KEY,
+                    corpus_id=str(corpus_id) if corpus_id else None,
                     exc_info=True,
                 )
 
@@ -1159,23 +1191,28 @@ Output as JSON with the following structure:
 
             self._model = model_name
             self._model_kwargs = model_kwargs
+            self._resolved_corpus_id = corpus_id
             self._model_config_resolved = True
 
     async def extract(
         self,
         entities: list[GraphNode],
         text: str,
+        *,
+        corpus_id: UUID | None = None,
     ) -> list[GraphEdge]:
         """从文本中提取实体间关系
 
         Args:
             entities: 实体节点列表
             text: 输入文本
+            corpus_id: 可选；用于 Corpus 级 task_model_settings 路由。
+                未提供时退化到全局映射 / 默认。
 
         Returns:
             提取的关系边列表
         """
-        await self._ensure_model_config()
+        await self._ensure_model_config(corpus_id=corpus_id)
 
         logger.debug(
             "llm_extract_relations_started",
@@ -1537,18 +1574,21 @@ class CompositeRelationExtractor:
         self,
         entities: list[GraphNode],
         text: str,
+        *,
+        corpus_id: UUID | None = None,
     ) -> list[GraphEdge]:
         """从文本中提取关系
 
         Args:
             entities: 实体节点列表
             text: 输入文本
+            corpus_id: 可选；用于 Corpus 级 task_model_settings 路由。
 
         Returns:
             提取的关系边列表
         """
         if self._enable_llm and self._llm_extractor:
-            return await self._llm_extractor.extract(entities, text)
+            return await self._llm_extractor.extract(entities, text, corpus_id=corpus_id)
 
         # 禁用 LLM 时直接使用共现
         from .strategy import CooccurrenceRelationExtractor
