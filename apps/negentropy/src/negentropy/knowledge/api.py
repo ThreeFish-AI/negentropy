@@ -5780,7 +5780,7 @@ async def cleanup_orphan_chunks(
                 latest = clusters[-2]
                 is_complete = check_index_completeness(latest)
 
-            kept_ids = {str(c.id) for c in latest}
+            kept_ids = {c["id"] for c in latest}
             deleted_ids = [str(c.id) for c in chunks if str(c.id) not in kept_ids]
 
             report_items.append(
