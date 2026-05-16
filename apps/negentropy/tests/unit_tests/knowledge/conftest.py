@@ -637,3 +637,83 @@ def make_tracking_context(
         mcp_tool_name=mcp_tool_name,
         mcp_server_id=mcp_server_id,
     )
+
+
+# ---------------------------------------------------------------------------
+# 12. FakeMcpClient — parameterized fake MCP tool client
+# ---------------------------------------------------------------------------
+
+
+class FakeMcpClient:
+    """Parameterized fake MCP client for DataExtractorProvider tests.
+
+    Replaces the inline ``FakeClient`` class definitions previously
+    scattered throughout ``test_extraction_provider.py``.
+    """
+
+    def __init__(
+        self,
+        *,
+        responses: list[SimpleNamespace] | None = None,
+        capture_arguments: list | None = None,
+        discover_tools_response: SimpleNamespace | None = None,
+    ) -> None:
+        self._responses = responses or []
+        self._call_index = 0
+        self._capture_arguments = capture_arguments
+        self._discover_tools_response = discover_tools_response
+
+    async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+        if self._capture_arguments is not None:
+            self._capture_arguments.append(kwargs["arguments"])
+        if self._call_index < len(self._responses):
+            resp = self._responses[self._call_index]
+            self._call_index += 1
+            return resp
+        return SimpleNamespace(success=True, structured_content=None, content=[], error=None, duration_ms=0)
+
+    async def discover_tools(self, **kwargs):  # type: ignore[no-untyped-def]
+        if self._discover_tools_response is not None:
+            return self._discover_tools_response
+        return SimpleNamespace(success=True, error=None, tools=[])
+
+
+class FakeTextItem:
+    """Fake MCP text content item."""
+
+    type = "text"
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
+class FakeImageContent:
+    """Fake MCP image content item."""
+
+    type = "image"
+
+    def __init__(self, data: str, mime: str) -> None:
+        self.data = data
+        self.mimeType = mime
+
+
+def patch_extraction_deps(
+    monkeypatch,
+    server_id: UUID,
+    *,
+    session: FakeMcpSession | None = None,
+    llm_plan=None,
+) -> None:
+    """Patches extraction module globals for DataExtractorProvider tests."""
+    monkeypatch.setattr(
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
+        lambda: session or FakeMcpSession(server_id=server_id),
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
+        noop_increment_tool_call_count,
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
+        llm_plan or noop_llm_plan,
+    )
