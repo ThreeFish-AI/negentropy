@@ -12,6 +12,7 @@
     "lint": "next lint",
     "pretest": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "test": "vitest run",
+    "pretest:watch": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "test:watch": "vitest"
   },
   "dependencies": {
