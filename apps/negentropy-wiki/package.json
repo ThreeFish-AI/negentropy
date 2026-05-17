@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "dev": "next dev --port 3092",
     "prebuild": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
+    "prelint": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "lint": "next lint",
+    "pretest": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
