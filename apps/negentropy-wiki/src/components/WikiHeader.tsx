@@ -15,15 +15,32 @@ import {
  * - `items` 为空时早返回 `null`，避免渲染空壳。
  */
 
+interface WikiHeaderGraphTab {
+  /** 是否在 tabs 区域渲染"知识图谱"入口（按 `entries_count > 0` 决定） */
+  show: boolean;
+  /** 当前是否处于 graph 页 → 标记为选中态 */
+  active: boolean;
+  /** 自定义 label，默认为"知识图谱" */
+  label?: string;
+}
+
 interface WikiHeaderProps {
   pubSlug: string;
   items: WikiNavTreeItem[];
   activeTopSlug?: string;
   headerSlot?: React.ReactNode;
+  /** 可选：在原 tabs 末尾追加"知识图谱"入口 */
+  graphTab?: WikiHeaderGraphTab;
 }
 
-export function WikiHeader({ pubSlug, items, activeTopSlug, headerSlot }: WikiHeaderProps) {
-  if (!items.length) return null;
+export function WikiHeader({
+  pubSlug,
+  items,
+  activeTopSlug,
+  headerSlot,
+  graphTab,
+}: WikiHeaderProps) {
+  if (!items.length && !(graphTab?.show)) return null;
 
   return (
     <header className="wiki-header">
@@ -45,9 +62,18 @@ export function WikiHeader({ pubSlug, items, activeTopSlug, headerSlot }: WikiHe
               key={`${item.entry_id ?? "c"}:${item.entry_slug}`}
               item={item}
               pubSlug={pubSlug}
-              isActive={item.entry_slug === activeTopSlug}
+              isActive={!graphTab?.active && item.entry_slug === activeTopSlug}
             />
           ))}
+          {graphTab?.show && (
+            <Link
+              href={`/${pubSlug}/graph`}
+              className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
+              aria-current={graphTab.active ? "page" : undefined}
+            >
+              {graphTab.label ?? "知识图谱"}
+            </Link>
+          )}
         </nav>
         <div className="wiki-header-slot">{headerSlot}</div>
       </div>

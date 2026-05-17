@@ -78,6 +78,7 @@ export default async function WikiPublicationPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );
 
