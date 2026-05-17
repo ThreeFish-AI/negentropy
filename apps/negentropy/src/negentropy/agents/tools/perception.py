@@ -509,8 +509,11 @@ async def _planner_search_knowledge_base(
         except Exception as exc:  # noqa: BLE001  reranker 加载失败不阻塞
             logger.warning("planner_reranker_init_failed", error=str(exc))
 
+    # @graph 与 @corpus-retrieve 并集而非择一：用户可能同时 @kb-A（retrieve）
+    # 与 @graph kb-B（强制 graph 模式），二者都应纳入有效检索域；任一非空即触发
+    # force_graph，让 Planner 在并集上做 graph expansion。
     force_graph = bool(graph_mode_ids)
-    effective_scoped = scoped_ids or graph_mode_ids or []
+    effective_scoped = list({*(scoped_ids or []), *(graph_mode_ids or [])})
     if not effective_scoped:
         return {"status": "failed", "error": "no scoped or graph_mode corpus ids"}
 
@@ -618,8 +621,12 @@ async def search_knowledge_graph_global(
         max_communities: 每 Corpus 最多取多少社区摘要参与 Map 阶段
 
     Returns:
-        包含 communities / answer / status 的字典
+        多 Corpus 聚合结果：
+          ``{status, query, corpus_count, per_corpus: [{corpus_id, corpus_label,
+          answer, evidence, candidates_total, latency_ms, summaries_dirty}, ...]}``
     """
+    from dataclasses import asdict
+
     scoped_ids: list[str] = []
     if tool_context is not None and getattr(tool_context, "state", None):
         for key in ("scoped_corpus_ids", "graph_mode_corpus_ids"):
@@ -633,6 +640,10 @@ async def search_knowledge_graph_global(
             "error": "search_knowledge_graph_global requires @corpus or @graph mention",
         }
 
+    valid_ids = [UUID(c) for c in scoped_ids if _is_uuid(c)]
+    if not valid_ids:
+        return {"status": "failed", "error": "no valid corpus UUIDs in scope"}
+
     try:
         from negentropy.knowledge.graph.global_search import GlobalSearchService  # type: ignore
     except Exception as exc:  # noqa: BLE001
@@ -642,18 +653,77 @@ async def search_knowledge_graph_global(
             "error": "GlobalSearchService not available; falling back to search_knowledge_base.",
         }
 
+    # 计算 query embedding（与 GraphService.search 同款）；失败 → None，
+    # GlobalSearchService 会按 entity_count DESC fallback。
     try:
-        svc = GlobalSearchService()
-        result = await svc.search(
-            query=query,
-            corpus_ids=[UUID(c) for c in scoped_ids if _is_uuid(c)],
-            max_communities=max_communities,
-            app_name=settings.app_name,
+        embedding_fn = build_embedding_fn()
+        query_embedding = (
+            await embedding_fn(query) if inspect.iscoroutinefunction(embedding_fn) else embedding_fn(query)
         )
-        return {"status": "success", **result}
     except Exception as exc:  # noqa: BLE001
-        logger.error("global_search_failed", error=str(exc))
-        return {"status": "failed", "error": str(exc)}
+        logger.warning("global_search_embedding_failed", error=str(exc))
+        query_embedding = None
+
+    # 解析 corpus 显示名（用于来源徽章）—— 单次会话内拉一次
+    async with db_session.AsyncSessionLocal() as db:
+        rows = (
+            (
+                await db.execute(
+                    select(Corpus).where(
+                        Corpus.app_name == settings.app_name,
+                        Corpus.id.in_(valid_ids),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+    corpus_name_by_id = {str(c.id): c.name for c in rows}
+
+    svc = GlobalSearchService()
+
+    async def _one(corpus_id: UUID) -> dict[str, Any]:
+        # 每个 corpus 独立开 session：GlobalSearchService.search 要求 db 是第一位
+        # positional arg（见 knowledge/graph/global_search.py:116）。
+        async with db_session.AsyncSessionLocal() as db:
+            try:
+                result = await svc.search(
+                    db=db,
+                    corpus_id=corpus_id,
+                    query=query,
+                    query_embedding=query_embedding,
+                    max_communities=max_communities,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("global_search_per_corpus_failed", corpus_id=str(corpus_id), error=str(exc))
+                return {
+                    "corpus_id": str(corpus_id),
+                    "corpus_label": _resolve_corpus_label(corpus_name_by_id.get(str(corpus_id)), str(corpus_id)),
+                    "status": "failed",
+                    "error": str(exc),
+                }
+        payload = asdict(result)
+        payload["corpus_id"] = str(corpus_id)
+        payload["corpus_label"] = _resolve_corpus_label(corpus_name_by_id.get(str(corpus_id)), str(corpus_id))
+        payload["status"] = "success"
+        return payload
+
+    per_corpus = await asyncio.gather(*[_one(cid) for cid in valid_ids])
+    succeeded = [p for p in per_corpus if p.get("status") == "success"]
+    if not succeeded:
+        return {
+            "status": "failed",
+            "query": query,
+            "corpus_count": len(per_corpus),
+            "per_corpus": per_corpus,
+            "error": "all per-corpus global searches failed",
+        }
+    return {
+        "status": "success",
+        "query": query,
+        "corpus_count": len(per_corpus),
+        "per_corpus": per_corpus,
+    }
 
 
 def _is_uuid(s: str) -> bool:
