@@ -232,8 +232,22 @@ class ScheduledTaskRegistry:
                 scenario="agent_health",
                 category="cognitive",
                 display_name="Faculty Health Inspector",
-                description="每 5min 检查 Faculties 五系部模块可用性（示例巡检任务）",
+                description="每 5min 检查 Faculties 五系部模块可用性",
                 payload={"inspection_type": "faculty_health"},
+                token_budget=100_000,
+            ),
+            dict(
+                key="scheduled_tasks_summary_demo",
+                handler_kind="agent_inspection",
+                trigger_type="interval",
+                interval_seconds=600.0,
+                role="supervisor",
+                scenario="scheduler_health",
+                category="cognitive",
+                display_name="Scheduled Tasks Summary",
+                description="每 10min 巡检调度框架自身 last_status 分布（系统级告警）",
+                payload={"inspection_type": "scheduled_tasks_summary"},
+                token_budget=10_000,
             ),
         ]
         async with AsyncSessionLocal() as db:
