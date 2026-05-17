@@ -124,6 +124,11 @@ class TestConfigDefaults:
         cfg = CanonicalLinkConfig()
         assert cfg.stopword_corpus_ratio == 0.5
 
+    def test_upgrade_threshold_strictly_below_conflict(self) -> None:
+        """FIX-#4：升级阈值必须严格低于冲突阈值，否则 for/else 升级分支为死代码"""
+        cfg = CanonicalLinkConfig()
+        assert cfg.type_upgrade_minority_threshold < cfg.type_conflict_minority_threshold
+
 
 class TestLinkOutcome:
     """CanonicalLinkOutcome 字段聚合"""
@@ -192,6 +197,27 @@ class TestStopwordThresholdLogic:
         assert threshold == 5.0
         assert 6 >= threshold
         assert 4 < threshold
+
+    @pytest.mark.asyncio
+    async def test_refresh_stopword_uses_corpus_count_not_max(self) -> None:
+        """FIX-#5：total_corpora 必须直接查 corpus 表，而非用 MAX(mention_corpus_count) 代理"""
+        linker = CrossCorpusCanonicalLinker()
+        mock_db = MagicMock()
+        # scalar 第一次返回 corpus 总数；execute 返回 update 的 rowcount
+        mock_db.scalar = AsyncMock(return_value=10)
+        mock_update_result = MagicMock()
+        mock_update_result.rowcount = 0
+        mock_db.execute = AsyncMock(return_value=mock_update_result)
+
+        outcome = CanonicalLinkOutcome(run_id="r-fix5")
+        await linker._refresh_stopword_flags(db=mock_db, app_scope="testapp", outcome=outcome)
+
+        # 验证 scalar 被调用，且 SQL 文本含 corpus 表名（而非 MAX(mention_corpus_count)）
+        mock_db.scalar.assert_awaited_once()
+        scalar_args = mock_db.scalar.call_args.args
+        scalar_sql = str(scalar_args[0])
+        assert "corpus" in scalar_sql.lower()
+        assert "MAX(mention_corpus_count)" not in scalar_sql
 
 
 class TestContextBuilder:

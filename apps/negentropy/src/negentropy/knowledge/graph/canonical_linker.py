@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.logging import get_logger
 from negentropy.models.perception import (
+    Corpus,
     KgEntity,
     KgEntityAlias,
     KgEntityCanonical,
@@ -75,6 +76,12 @@ class CanonicalLinkConfig:
 
     # 类型冲突：任一非主类型占比超过此值 → 标记 is_under_review
     type_conflict_minority_threshold: float = 0.30
+
+    # 类型升级：在不构成冲突（所有非主类型 < type_conflict_minority_threshold）的前提下，
+    # 若某个 precedence 更高的类型占比 ≥ 此值，则把它扶正为主类型；阈值必须严格低于
+    # type_conflict_minority_threshold，否则两条分支永远不会同时可达（FIX-#4：
+    # 之前与冲突阈值同值导致升级分支为死代码）。
+    type_upgrade_minority_threshold: float = 0.15
 
     # 跨 Corpus 扩展时跳过：出现在 ≥ stopword_corpus_ratio 比例的 corpus 中
     stopword_corpus_ratio: float = 0.5
@@ -440,14 +447,17 @@ class CrossCorpusCanonicalLinker:
                 canonical.review_reason = f"type_conflict: primary={primary_type} dist={dist}"
                 break
         else:
-            # 重新评估 canonical_type：若有比当前更高的 precedence 类型出现且占比≥30%，切换
+            # 重新评估 canonical_type：所有非主类型都未达到冲突阈值时，若某个
+            # precedence 更高的类型占比 ≥ type_upgrade_minority_threshold，则升级主类型。
+            # 升级阈值必须严格低于冲突阈值，否则该分支永远不可达（FIX-#4）。
             new_primary = max(
                 dist.keys(),
                 key=lambda t: (TYPE_PRECEDENCE.get(t, 0), dist[t]),
             )
             if (
                 new_primary != primary_type
-                and dist[new_primary] / total >= self._config.type_conflict_minority_threshold
+                and TYPE_PRECEDENCE.get(new_primary, 0) > TYPE_PRECEDENCE.get(primary_type, 0)
+                and dist[new_primary] / total >= self._config.type_upgrade_minority_threshold
             ):
                 canonical.canonical_type = new_primary
 
@@ -488,15 +498,13 @@ class CrossCorpusCanonicalLinker:
     ) -> None:
         """根据 mention_corpus_count / total_corpora 标记 stopword_like
 
-        Note: total_corpora 用 app_scope 下当前 canonical 中的最大 mention_corpus_count
-        作为代理；这是一个 O(1) 的近似，避免每次都扫 corpus 表。
+        total_corpora 直接查 corpus 表：MAX(mention_corpus_count) 始终 ≤ 真实 corpus
+        数，作为分母会把阈值压得过低；此处仅一次 O(1) 索引扫描，代价可忽略。
         """
-        total_corpora_proxy = await db.scalar(
-            select(text("MAX(mention_corpus_count)"))
-            .select_from(KgEntityCanonical.__table__)
-            .where(KgEntityCanonical.app_scope == app_scope)
+        total = await db.scalar(
+            select(text("COUNT(*)")).select_from(Corpus.__table__).where(Corpus.app_name == app_scope)
         )
-        total = int(total_corpora_proxy or 0)
+        total = int(total or 0)
         if total < 4:
             # 语料库数太少时 stopword 概念无意义
             return
