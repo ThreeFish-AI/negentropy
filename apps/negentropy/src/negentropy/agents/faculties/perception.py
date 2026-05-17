@@ -6,6 +6,7 @@ from ..tools.common import log_activity
 from ..tools.paper import search_papers
 from ..tools.perception import (
     search_knowledge_base,
+    search_knowledge_graph_global,
     search_knowledge_graph_with_papers,
     search_web,
 )
@@ -49,15 +50,43 @@ _INSTRUCTION = """
 - **来源锚定 (Source Anchoring)**：每一条断言都必须有显式的 URL 或引用来源。
 - **时效敏感 (Time Sensitivity)**：明确区分"过时信息"与"最新状态"，在涉及技术版本时尤为重要。
 
-## 引用规范 (Citation Protocol — P2-3)
-- **学术 / 论文相关问题**：先调 ``search_knowledge_graph_with_papers`` 通过 KG 实体反查相关论文；
-  若 ``kg_status="graph_empty"``，再退到 ``search_knowledge_base``。
-- **引用格式**：调用 ``search_knowledge_base`` / ``search_knowledge_graph_with_papers`` 后，
-  返回结果中每条 result 都携带 ``citation_id``（数字）与 ``formatted_citation``（IEEE 风格字符串）。
+## 检索策略 (Retrieval Strategy — P3 Cross-Corpus KG)
+四个检索工具的协作规则（互斥使用，每轮最多调用一个 retrieval 工具）：
+
+1. **默认入口**：``search_knowledge_base``（已内置 intent 自适应 + 跨 Corpus KG 桥接）。
+   - 多 @Corpus 时自动启用 Hybrid Planner 四阶段管线（Intent → Seed → Graph Expand → Fuse+Rerank）；
+   - 返回 ``intent`` / ``expansion_triggered`` / ``bridges`` / 每条 result 的 ``corpus_label`` 与 ``evidence_type``。
+
+2. **全局摘要类问题** → ``search_knowledge_graph_global``。
+   - 触发关键词：「主题概览 / 整体趋势 / 核心观点 / 总体 / 主要发现 / overall theme / key topics」；
+   - 基于社区摘要（GraphRAG）做 Map-Reduce 汇总。
+
+3. **论文级反查** → ``search_knowledge_graph_with_papers``。
+   - 触发条件：问题明确指向论文实体（"哪些论文谈到 ...", "Reflexion 相关 paper"）
+     且 scoped 含 ``agent-papers`` Corpus。
+
+4. **三者互斥**：不要在同一轮同时调用 ``search_knowledge_base`` 与 ``search_knowledge_graph_global``；
+   若 graph_global 返回 ``status=failed``，再退到 ``search_knowledge_base``。
+
+## 引用规范 (Citation Protocol — P2-3 + P3 Corpus 来源标注)
+- **格式**：每条 result 都携带 ``citation_id``（数字）与 ``formatted_citation``（IEEE 风格字符串）。
   在最终回复中：
-  1. 在引用具体观点处按 ``[N]`` 格式标号（N = ``citation_id``），例如 *"Reflexion 通过自我反思迭代提升表现 [1]"*；
-  2. 回复末尾追加 *## 参考文献* 节，按 ``[N]`` 顺序列出每条 ``formatted_citation``。
+  1. 在引用具体观点处按 ``[N]`` 格式标号（N = ``citation_id``）；
+  2. 回复末尾追加 *## 参考文献* 节，按 ``[N]`` 顺序列出每条 ``formatted_citation``；
+  3. **跨 Corpus 检索时**，在 ``formatted_citation`` 末尾追加 *(from Corpus: {corpus_label})* 标注来源。
+- **证据类型区分**：当 result 的 ``evidence_type=="graph_expanded"`` 时，
+  表示该结果来自跨 Corpus 桥接扩展（非主证据）。**必须先引用 ``evidence_type=="primary"``
+  的主证据**，再引用 graph_expanded 作为辅助佐证。
 - **绝不臆造**：仅引用工具实际返回的 ``citation_id`` —— 未返回的不要凭空标号。
+
+## 跨 Corpus 桥接呈现 (Bridges Rendering — P3)
+当 ``search_knowledge_base`` 返回的 ``bridges`` 数组非空时（典型场景：用户 @ 两个或更多
+Corpus，或显式 @graph 模式），在回复末尾追加 *## 跨 Corpus 关联* 段落，按以下结构呈现：
+
+  > **{源 Corpus 名} → {目标 Corpus 名}**（经实体 *{via_canonical_name}* 桥接）
+
+每条桥接路径独立成行，让用户能看到检索为什么跨越了它原本指定的 Corpus 边界。
+段落顺序：先 *## 参考文献*，后 *## 跨 Corpus 关联*。
 """
 
 
@@ -76,6 +105,7 @@ def create_perception_agent(*, output_key: str | None = None) -> LlmAgent:
         tools=[
             log_activity,
             search_knowledge_base,
+            search_knowledge_graph_global,
             search_knowledge_graph_with_papers,
             search_web,
             search_papers,
