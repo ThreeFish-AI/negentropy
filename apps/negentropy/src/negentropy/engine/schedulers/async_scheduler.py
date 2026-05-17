@@ -226,6 +226,12 @@ class AsyncScheduler:
         """单次 tick：扫所有 job，把 due 的派发到 task。
 
         派发本身不 await（每个 job 自带 asyncio.Task），让 5s tick 永不阻塞。
+
+        关键：``job.running = True`` 必须在 ``asyncio.create_task`` 之前同步置位。
+        ``_execute_job`` 内部虽然也会再设一次，但那是被事件循环调度后才生效，
+        极短 ``poll_interval``（如单测 0.05s）+ 高负载场景下，下一轮 tick 的
+        同步段可能先于上一个 ``_execute_job`` 的首行执行，导致同一 job 被
+        重复派发。同步置位是最小代价的临界区。
         """
         now_monotonic = time.monotonic()
         now_utc = datetime.now(UTC)
@@ -234,7 +240,13 @@ class AsyncScheduler:
                 continue
             if not self._is_due(job, now_monotonic, now_utc):
                 continue
-            t = asyncio.create_task(self._execute_job(job))
+            job.running = True
+            try:
+                t = asyncio.create_task(self._execute_job(job))
+            except BaseException:
+                # create_task 仅在事件循环关闭等极端情况会抛；回滚 running 防止永封。
+                job.running = False
+                raise
             self._inflight.add(t)
             t.add_done_callback(self._inflight.discard)
 

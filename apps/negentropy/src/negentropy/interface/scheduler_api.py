@@ -255,19 +255,38 @@ async def list_tasks(
         has_more = len(rows) > limit
         rows = rows[:limit]
 
-        # 批量取每个 task 的最近 3 次执行状态
+        # 批量取每个 task 的最近 3 次执行状态：
+        # 用 ROW_NUMBER OVER (PARTITION BY task_id ORDER BY started_at DESC) 保证
+        # 每个 task_id 都能取到自己的前 3 行，避免单个高频任务（如 watchdog 每 60s
+        # 一次）按全表 LIMIT 排序后挤占低频任务（如 agent_inspection 每 5min 一次）
+        # 的状态点指示位。
         task_ids = [r.id for r in rows]
         recent_map: dict[UUID, list[str]] = {tid: [] for tid in task_ids}
         if task_ids:
-            recent_stmt = (
-                select(TaskExecution.task_id, TaskExecution.status, TaskExecution.started_at)
-                .where(TaskExecution.task_id.in_(task_ids))
-                .order_by(TaskExecution.started_at.desc())
-                .limit(len(task_ids) * 3)
+            rn_col = (
+                func.row_number()
+                .over(
+                    partition_by=TaskExecution.task_id,
+                    order_by=TaskExecution.started_at.desc(),
+                )
+                .label("rn")
             )
-            for tid, st, _started in (await db.execute(recent_stmt)).all():
-                if len(recent_map[tid]) < 3:
-                    recent_map[tid].append(st)
+            ranked = (
+                select(
+                    TaskExecution.task_id.label("task_id"),
+                    TaskExecution.status.label("status"),
+                    rn_col,
+                )
+                .where(TaskExecution.task_id.in_(task_ids))
+                .subquery()
+            )
+            recent_stmt = (
+                select(ranked.c.task_id, ranked.c.status)
+                .where(ranked.c.rn <= 3)
+                .order_by(ranked.c.task_id, ranked.c.rn)
+            )
+            for tid, st in (await db.execute(recent_stmt)).all():
+                recent_map[tid].append(st)
 
         items = [_serialize_task(r, recent=recent_map.get(r.id, [])) for r in rows]
         next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None

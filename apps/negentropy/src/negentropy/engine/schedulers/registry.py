@@ -283,8 +283,15 @@ class ScheduledTaskRegistry:
         """对单个 task 执行一次 dispatch。返回 execution_id（失败返回 None）。
 
         ``fire_reason ∈ {tick, manual, replay}``：区分调度源便于审计。
-        manual 触发在 ``_heartbeat_tick`` 外路径，不会经过 lease 认领，
-        因此可能与 tick 的并发 dispatch 重叠；由 ``max_concurrency`` 保证。
+        并发保护现状：
+        - tick 路径由 ``_claim_due_tasks`` 的 ``FOR UPDATE SKIP LOCKED`` +
+          lease（推后 ``next_fire_at`` 至 ``now + lease_seconds``）保证同一行不会
+          被 tick 重复扫到；
+        - manual 路径**不走 lease**，也不读取 ``task.max_concurrency`` 进行入口
+          限流——用户在 Dashboard 连续点 Run Now、或 manual 与 tick 并发到达，
+          都会写入多条并行 ``task_executions``、触发并行 handler 调用。
+          ``max_concurrency`` 字段目前仅作为元数据展示，留待后续接入基于
+          ``status='running'`` 行数的入口闸门。
         """
         if _registry_disabled():
             return None
@@ -472,7 +479,9 @@ async def _upsert_default_task(db: AsyncSession, spec: dict[str, Any], *, lease_
             existing.payload = merged
         return
 
-    next_fire = _utcnow() if spec.get("trigger_type") == "oneshot" else _utcnow()
+    # interval / cron / oneshot 默认首次都立即 due（oneshot 由 _claim_due_tasks 兜底
+    # 选中；interval / cron 首 tick 即跑一次，后续触发由 _compute_next_fire 推进）。
+    next_fire = _utcnow()
     new = ScheduledTask(
         key=key,
         handler_kind=spec["handler_kind"],
