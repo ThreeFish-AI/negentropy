@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 
 import type {
   KnowledgeDocument,
@@ -135,17 +136,14 @@ export function DocumentViewDialog({
     void loadDetail();
   }, [isOpen, document, loadDetail]);
 
-  useEffect(() => {
-    if (!isOpen || !document) return;
-    if ((detail?.markdown_extract_status || "").toLowerCase() !== "processing") {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      void loadDetail();
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [isOpen, document, detail?.markdown_extract_status, loadDetail]);
+  // Phase 3-A: 由 useHeartbeatPoll 统一节拍（5s）+ 自动暂停（hidden）+ 网络恢复触发
+  useHeartbeatPoll(loadDetail, {
+    enabled:
+      isOpen &&
+      !!document &&
+      (detail?.markdown_extract_status || "").toLowerCase() === "processing",
+    fireImmediately: false,
+  });
 
   const handleDownload = async () => {
     if (!document || isDownloading) return;
