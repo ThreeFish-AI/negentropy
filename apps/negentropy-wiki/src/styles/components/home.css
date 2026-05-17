@@ -1,0 +1,41 @@
+.wiki-home-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.wiki-home-hero {
+  text-align: center;
+  padding: 4rem 0 3rem;
+}
+
+.wiki-home-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 1.25rem;
+  border-radius: 20px;
+  object-fit: contain;
+}
+
+.wiki-home-title {
+  font-size: 2.5em;
+  font-weight: 800;
+  margin-bottom: 0.5em;
+}
+
+.wiki-home-subtitle {
+  font-size: 1.15em;
+  color: var(--wiki-text-secondary);
+  max-width: 600px;
+  margin: 0 auto 2.5rem;
+}
+
+@media (max-width: 768px) {
+  .wiki-home-title {
+    font-size: 1.8em;
+  }
+  .wiki-pub-grid {
+    grid-template-columns: 1fr;
+  }
+}

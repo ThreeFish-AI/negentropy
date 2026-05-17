@@ -9,6 +9,7 @@ import {
 } from "@/lib/wiki-api";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
+import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiToc } from "@/components/WikiToc";
 import { extractHeadings } from "@/lib/markdown-headings";
@@ -135,6 +136,7 @@ export default async function WikiEntryPage({ params }: Props) {
       pubSlug={pubSlug}
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
+      headerSlot={<ThemePreference />}
     />
   );
 

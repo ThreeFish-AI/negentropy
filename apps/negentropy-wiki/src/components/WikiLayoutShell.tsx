@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { WikiMobileNav } from "./WikiMobileNav";
 
 /**
  * Wiki 三栏外壳 — 持有右栏 TOC 折叠态并把 `data-toc` 写到根节点。
@@ -109,6 +110,7 @@ export function WikiLayoutShell({
   return (
     <TocContext.Provider value={ctxValue}>
       {header}
+      <WikiMobileNav>{sidebar}</WikiMobileNav>
       <div className="wiki-layout" data-toc={dataToc} data-header={header ? "" : undefined}>
         <aside className="wiki-sidebar">{sidebar}</aside>
         <main className="wiki-main">{children}</main>

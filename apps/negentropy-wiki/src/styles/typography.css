@@ -1,0 +1,59 @@
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--wiki-heading-font);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--wiki-text);
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+}
+
+h1 { font-size: 2em; }
+h2 { font-size: 1.6em; border-bottom: 1px solid var(--wiki-border); padding-bottom: 0.3em; }
+h3 { font-size: 1.3em; }
+h4 { font-size: 1.1em; }
+
+p { margin-bottom: 1em; }
+
+code {
+  font-family: var(--wiki-code-font);
+  background: var(--wiki-bg-secondary);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+pre {
+  background: var(--wiki-bg-secondary);
+  border: 1px solid var(--wiki-border);
+  border-radius: var(--wiki-radius);
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+blockquote {
+  border-left: 3px solid var(--wiki-accent);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--wiki-text-secondary);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+th, td {
+  border: 1px solid var(--wiki-border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+th { background: var(--wiki-bg-secondary); font-weight: 600; }
+
+img { max-width: 100%; height: auto; }
+hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }

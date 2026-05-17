@@ -19,9 +19,10 @@ interface WikiHeaderProps {
   pubSlug: string;
   items: WikiNavTreeItem[];
   activeTopSlug?: string;
+  headerSlot?: React.ReactNode;
 }
 
-export function WikiHeader({ pubSlug, items, activeTopSlug }: WikiHeaderProps) {
+export function WikiHeader({ pubSlug, items, activeTopSlug, headerSlot }: WikiHeaderProps) {
   if (!items.length) return null;
 
   return (
@@ -48,7 +49,7 @@ export function WikiHeader({ pubSlug, items, activeTopSlug }: WikiHeaderProps) {
             />
           ))}
         </nav>
-        <div className="wiki-header-slot" aria-hidden="true" />
+        <div className="wiki-header-slot">{headerSlot}</div>
       </div>
     </header>
   );
