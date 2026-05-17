@@ -399,12 +399,14 @@ class HybridPlanner:
             return [], []
 
         async with self._session_factory() as db:
-            # 1. seed chunks → entity_ids（mention 表回查）
-            seed_entity_ids = await self._chunks_to_entities(
+            # 1. seed chunks → (chunk_id, entity_id) 对（mention 表回查；保留 chunk→entity
+            #    映射，便于 Stage 5 正确归因 bridge 的源 chunk）
+            chunk_entity_pairs = await self._chunks_to_entities(
                 db=db, chunk_ids=seed_chunk_ids, corpus_ids=effective_corpus_ids
             )
-            if not seed_entity_ids:
+            if not chunk_entity_pairs:
                 return [], []
+            seed_entity_ids = sorted({eid for _, eid in chunk_entity_pairs})
 
             # 2. entity_ids → canonical_ids（alias 表，带 corpus_id 过滤）
             entity_to_canonical = await self._entities_to_canonical(
@@ -434,13 +436,26 @@ class HybridPlanner:
             if not neighbor_entities:
                 return [], []
 
-            # 5. 邻居 entity → mention 表反查 chunks
+            # 5. canonical → seed chunk 的精确反查（FIX-#2）：用 chunk_entity_pairs +
+            #    entity_to_canonical 链式 join，每个 canonical 绑到真正提到它的 seed chunk，
+            #    避免以前按迭代顺序乱绑导致 bridges.source_chunk_id 归因错误。
+            seed_chunk_lookup = {c.chunk_id: c for c in seed_candidates}
+            canonical_to_seed_chunk: dict[str, Candidate] = {}
+            for chunk_id, entity_id in chunk_entity_pairs:
+                cid = entity_to_canonical.get(entity_id)
+                if not cid or cid not in canonical_ids:
+                    continue
+                if cid in canonical_to_seed_chunk:
+                    continue
+                seed = seed_chunk_lookup.get(chunk_id)
+                if seed is not None:
+                    canonical_to_seed_chunk[cid] = seed
+
+            # 6. 邻居 entity → mention 表反查 chunks
             expanded_cands, bridges = await self._entities_to_expanded_chunks(
                 db=db,
                 neighbor_rows=neighbor_entities,
-                seed_entity_ids=seed_entity_ids,
-                entity_to_canonical=entity_to_canonical,
-                seed_candidates=seed_candidates,
+                canonical_to_seed_chunk=canonical_to_seed_chunk,
                 corpus_ids=effective_corpus_ids,
                 config=config,
             )
@@ -452,13 +467,18 @@ class HybridPlanner:
         db: AsyncSession,
         chunk_ids: list[str],
         corpus_ids: frozenset[str],
-    ) -> list[str]:
-        """seed chunks → 涉及的 entity_ids（mention 表）"""
+    ) -> list[tuple[str, str]]:
+        """seed chunks → ``(chunk_id, entity_id)`` 对（mention 表）。
+
+        FIX-#2：返回保留 chunk → entity 的多对多映射，调用方据此能精确反查
+        「哪个 seed chunk 实际提到了某 canonical」。若改回 DISTINCT entity_id，
+        会丢失映射信息，导致 bridges.source_chunk_id 误归因。
+        """
         if not chunk_ids or not corpus_ids:
             return []
         sql = text(
             """
-            SELECT DISTINCT entity_id
+            SELECT DISTINCT knowledge_chunk_id, entity_id
             FROM negentropy.kg_entity_mentions
             WHERE knowledge_chunk_id = ANY(:chunk_ids::uuid[])
               AND corpus_id = ANY(:corpus_ids::uuid[])
@@ -468,7 +488,7 @@ class HybridPlanner:
             sql,
             {"chunk_ids": chunk_ids, "corpus_ids": list(corpus_ids)},
         )
-        return [str(r[0]) for r in rows]
+        return [(str(r[0]), str(r[1])) for r in rows]
 
     async def _entities_to_canonical(
         self,
@@ -574,13 +594,16 @@ class HybridPlanner:
         *,
         db: AsyncSession,
         neighbor_rows: list[dict[str, Any]],
-        seed_entity_ids: list[str],
-        entity_to_canonical: dict[str, str],
-        seed_candidates: list[Candidate],
+        canonical_to_seed_chunk: dict[str, Candidate],
         corpus_ids: frozenset[str],
         config: PlannerConfig,
     ) -> tuple[list[Candidate], list[EvidenceChain]]:
-        """邻居 entity → mention 表反查 chunks，构造 EvidenceChain"""
+        """邻居 entity → mention 表反查 chunks，构造 EvidenceChain
+
+        ``canonical_to_seed_chunk`` 由调用方基于 chunk→entity→canonical 链式 join 预先
+        构造（见 :meth:`_graph_expand`），保证每个 canonical 绑定到真正提到它的 seed chunk，
+        而非旧实现中按迭代顺序乱绑（FIX-#2）。
+        """
 
         if not neighbor_rows:
             return [], []
@@ -609,15 +632,6 @@ class HybridPlanner:
 
         # 索引：entity_id → (canonical_id, display_name, corpus_id)
         ent_index = {r["entity_id"]: r for r in neighbor_rows}
-        # 索引：canonical_id → 第一个 seed chunk（用于桥接路径来源）
-        canonical_to_seed_chunk: dict[str, Candidate] = {}
-        for seed in seed_candidates:
-            # 通过 seed_entity_ids ← 反查需要保留映射 — 简化：取每个 canonical 的首个对应 seed
-            for seed_eid in seed_entity_ids:
-                cid = entity_to_canonical.get(seed_eid)
-                if cid and cid not in canonical_to_seed_chunk:
-                    canonical_to_seed_chunk[cid] = seed
-                    break
 
         cands: list[Candidate] = []
         bridges: list[EvidenceChain] = []
