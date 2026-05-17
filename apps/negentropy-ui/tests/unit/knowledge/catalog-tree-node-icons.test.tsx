@@ -9,7 +9,7 @@
 
 import { render, screen } from "@testing-library/react";
 import type { CatalogNode, CatalogNodeType } from "@/features/knowledge";
-import { CatalogTreeNode } from "@/app/knowledge/catalog/_components/CatalogTreeNode";
+import { CatalogTreeNode } from "@/app/knowledge/wiki/_components/catalog/CatalogTreeNode";
 
 function makeNode(node_type: CatalogNodeType, overrides: Partial<CatalogNode> = {}): CatalogNode {
   return {
