@@ -21,6 +21,7 @@ from .routes import (
     sources,
     unified_search,
     wiki,
+    wiki_graph,
 )
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -37,5 +38,6 @@ router.include_router(pipelines.router)
 router.include_router(provenance.router)
 router.include_router(catalog.router)
 router.include_router(wiki.router)
+router.include_router(wiki_graph.router)
 router.include_router(unified_search.router)
 router.include_router(admin.router)
