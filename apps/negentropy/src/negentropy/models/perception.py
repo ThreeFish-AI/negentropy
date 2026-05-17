@@ -798,3 +798,206 @@ class WikiSlugRedirect(Base, UUIDMixin):
         Index("ix_wiki_slug_redirects_lookup", "publication_id", "old_path"),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+# =============================================================================
+# Phase 7: 联邦知识图谱（Federated KG + Global Entity Canonical Layer）
+# ---
+# 设计动机参见 migration 0034。三张表正交分解：
+#   - KgEntityCanonical    全局规范实体（按 app_scope 隔离）
+#   - KgEntityAlias        Corpus-local 实体 → canonical 多对一映射
+#   - KgCrossCorpusBridge  跨 Corpus 显式桥接关系（可选物化）
+#
+# 权限红线（不可越过）：
+#   1. canonical 层按 app_scope 严格隔离（Phase 1 不跨 app）
+#   2. 任何对 KgEntityAlias 的查询必须显式带 corpus_id 过滤
+#      → 见本文件末尾的 SQLAlchemy event hook _require_corpus_filter_on_alias
+#   3. canonical 实体永不直接对外暴露 canonical_id；仅做 server-side join 中转
+# =============================================================================
+
+
+class KgEntityCanonical(Base, UUIDMixin, TimestampMixin):
+    """全局规范实体（跨 Corpus 唯一身份）
+
+    把分散在多个 Corpus 的 KgEntity（按 (corpus_id, canonical_name) 隔离）
+    通过 KgEntityAlias 多对一映射到这张表，实现跨 Corpus 2-hop 多跳查询而不破坏
+    物理隔离。Phase 1 强约束 app_scope 单 app；workspace federation 留待 Phase 2。
+    """
+
+    __tablename__ = "kg_entity_canonical"
+
+    app_scope: Mapped[str] = mapped_column(String(255), nullable=False)
+    canonical_name_normalized: Mapped[str] = mapped_column(String(500), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    canonical_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    type_distribution: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    primary_embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
+    aliases: Mapped[list[Any]] = mapped_column(JSONB, server_default="[]")
+
+    mention_corpus_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    mention_total_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    importance_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    is_under_review: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    is_stopword_like: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    aliases_rel: Mapped[list["KgEntityAlias"]] = relationship(
+        back_populates="canonical", cascade="all, delete-orphan", foreign_keys="KgEntityAlias.canonical_id"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "app_scope",
+            "canonical_name_normalized",
+            "canonical_type",
+            name="uq_canonical_app_name_type",
+        ),
+        # 索引由 migration 0034 显式创建（含 HNSW 与部分索引），ORM 不重复声明
+        # 避免 alembic autogenerate 误判
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class KgEntityAlias(Base, UUIDMixin):
+    """Corpus-local KgEntity → KgEntityCanonical 多对一映射
+
+    每条 alias 记录 link_method 与 confidence，便于追溯合并来源：
+      - auto_string   规范化字符串精确匹配
+      - auto_embedding 向量 ANN 命中
+      - auto_llm      LLM 边界案例验证
+      - manual        人工锚定（最高优先级）
+      - review        待审核（confidence ∈ [0.75, 0.88]）
+
+    权限红线：任何查询必须带 corpus_id 过滤，由 _require_corpus_filter_on_alias
+    event hook 在 ORM 层兜底拦截。
+    """
+
+    __tablename__ = "kg_entity_alias"
+
+    canonical_id: Mapped[UUID] = mapped_column(fk("kg_entity_canonical", ondelete="CASCADE"), nullable=False)
+    local_entity_id: Mapped[UUID] = mapped_column(fk("kg_entities", ondelete="CASCADE"), nullable=False)
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    link_method: Mapped[str] = mapped_column(String(32), nullable=False)
+    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    canonical: Mapped["KgEntityCanonical"] = relationship(back_populates="aliases_rel", foreign_keys=[canonical_id])
+
+    __table_args__ = (
+        UniqueConstraint("local_entity_id", name="uq_alias_local"),
+        # CHECK 约束 chk_alias_link_method 由 migration 0034 显式创建
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class KgCrossCorpusBridge(Base, UUIDMixin):
+    """跨 Corpus 显式桥接关系（可选物化，加速 2-hop 遍历）
+
+    Phase 1 建表不主动写入；Phase 2+ 若 dynamic alias self-join 延迟超标，
+    可由后台批任务物化高频访问路径（参考 Materialized View 风格）。
+    """
+
+    __tablename__ = "kg_cross_corpus_bridge"
+
+    app_scope: Mapped[str] = mapped_column(String(255), nullable=False)
+    canonical_source_id: Mapped[UUID] = mapped_column(fk("kg_entity_canonical", ondelete="CASCADE"), nullable=False)
+    canonical_target_id: Mapped[UUID] = mapped_column(fk("kg_entity_canonical", ondelete="CASCADE"), nullable=False)
+    bridge_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    weight: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
+    supporting_evidence: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "canonical_source_id",
+            "canonical_target_id",
+            "bridge_type",
+            name="uq_bridge_endpoints",
+        ),
+        # CHECK 约束 chk_bridge_no_self 由 migration 0034 显式创建
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+# =============================================================================
+# 权限兜底：KgEntityAlias 查询必须显式带 corpus_id 过滤
+# ---
+# 设计动机：canonical 层是跨 Corpus 检索的中转，若 alias 查询遗漏 corpus_id 过滤，
+# 会成为越权访问的旁路。我们在 ORM 编译期注册 before_compile event，无 corpus_id
+# 谓词时直接 raise PermissionError，参考既有跨 app 拦截先例：
+#   apps/negentropy/src/negentropy/knowledge/lifecycle/catalog_service.py:315-319
+#
+# 该 hook 只拦截 SELECT/UPDATE/DELETE 的 Query / select() 语句对 KgEntityAlias 的
+# 直接访问；通过 join 间接读取 canonical 时不触发（canonical 不含权限维度），
+# 但跨 Corpus 物理过滤必然要在 alias 表上做，所以这条防线足够。
+# =============================================================================
+
+from sqlalchemy import event  # noqa: E402
+from sqlalchemy.orm import Session as _OrmSession  # noqa: E402
+from sqlalchemy.sql import Select as _SaSelect  # noqa: E402
+
+_ALIAS_TABLE_NAME = "kg_entity_alias"
+
+
+def _whereclause_has_corpus_filter(whereclause: Any) -> bool:
+    """检查 SQL whereclause 是否引用 kg_entity_alias.corpus_id
+
+    采用宽松匹配：只要在 WHERE 子句的字符串表示中出现 corpus_id 即认为已过滤。
+    这是 fail-open 设计，避免因 SQLAlchemy 内部 AST 变化导致误报。
+    """
+    if whereclause is None:
+        return False
+    try:
+        text_repr = str(whereclause.compile(compile_kwargs={"literal_binds": False}))
+    except Exception:
+        text_repr = str(whereclause)
+    return "corpus_id" in text_repr
+
+
+def _statement_touches_alias_table(statement: Any) -> bool:
+    """检测一个 Select / Update / Delete 语句是否引用 kg_entity_alias 表"""
+    if not isinstance(statement, _SaSelect):
+        # Update/Delete 在 do_orm_execute 中也会出现，统一通过 froms 检测
+        froms = getattr(statement, "get_final_froms", None)
+        if callable(froms):
+            try:
+                for fc in froms():
+                    if getattr(fc, "name", None) == _ALIAS_TABLE_NAME:
+                        return True
+            except Exception:
+                return False
+        return False
+    try:
+        for fc in statement.get_final_froms():
+            if getattr(fc, "name", None) == _ALIAS_TABLE_NAME:
+                return True
+        for col in statement.exported_columns:
+            table = getattr(col, "table", None)
+            if table is not None and getattr(table, "name", None) == _ALIAS_TABLE_NAME:
+                return True
+    except Exception:
+        return False
+    return False
+
+
+@event.listens_for(_OrmSession, "do_orm_execute")
+def _require_corpus_filter_on_alias(orm_execute_state: Any) -> None:
+    """Session 级兜底：执行任何 SELECT/UPDATE/DELETE 时检查 KgEntityAlias 访问
+
+    SQLAlchemy 2.x 推荐的 ORM 拦截入口；同时覆盖 sync Session 与 AsyncSession
+    （AsyncSession 内部委托给 sync session 执行）。
+    """
+    statement = getattr(orm_execute_state, "statement", None)
+    if statement is None:
+        return
+    if not _statement_touches_alias_table(statement):
+        return
+    if _whereclause_has_corpus_filter(getattr(statement, "whereclause", None)):
+        return
+    raise PermissionError(
+        "KgEntityAlias access missing corpus_id filter — refusing to execute. "
+        "Tenant boundary requires an explicit corpus_id IN (...) predicate."
+    )

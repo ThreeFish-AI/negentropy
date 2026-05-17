@@ -171,6 +171,7 @@ describe("deriveForwardedPropsFromMentions", () => {
       preferred_subagent: null,
       scoped_corpus_ids: [],
       output_corpus_ids: [],
+      graph_mode_corpus_ids: [],
     });
   });
 
@@ -220,6 +221,33 @@ describe("deriveForwardedPropsFromMentions", () => {
       preferred_subagent: "Pipeline-A",
       scoped_corpus_ids: ["kb-1"],
       output_corpus_ids: ["out-1"],
+      graph_mode_corpus_ids: [],
     });
+  });
+
+  it("@graph → 派生 graph_mode_corpus_ids", () => {
+    const r = deriveForwardedPropsFromMentions([
+      _mkToken("@k", 0, { kind: "graph", refId: "kb-1" }),
+      _mkToken("@k2", 0, { kind: "graph", refId: "kb-2" }),
+      _mkToken("@k3", 0, { kind: "graph", refId: "kb-1" }), // 去重
+    ]);
+    expect(r.graph_mode_corpus_ids).toEqual(["kb-1", "kb-2"]);
+  });
+
+  it("@graph 与 @corpus-retrieve 共存（两路独立）", () => {
+    const r = deriveForwardedPropsFromMentions([
+      _mkToken("@k", 0, { kind: "corpus-retrieve", refId: "kb-1" }),
+      _mkToken("@k2", 0, { kind: "graph", refId: "kb-2" }),
+    ]);
+    expect(r.scoped_corpus_ids).toEqual(["kb-1"]);
+    expect(r.graph_mode_corpus_ids).toEqual(["kb-2"]);
+  });
+
+  it("@graph 也被 validRefIds.corpora 过滤", () => {
+    const r = deriveForwardedPropsFromMentions(
+      [_mkToken("@k", 0, { kind: "graph", refId: "stale-uuid" })],
+      { corpora: new Set(["valid-uuid"]) },
+    );
+    expect(r.graph_mode_corpus_ids).toEqual([]);
   });
 });
