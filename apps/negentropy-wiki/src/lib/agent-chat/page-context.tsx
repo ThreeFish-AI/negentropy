@@ -56,18 +56,18 @@ function extractHeadingsFromDom(): WikiPageContext["headings"] {
   if (!main) return [];
   const nodes = main.querySelectorAll<HTMLHeadingElement>("h1, h2, h3");
   const out: WikiPageContext["headings"] = [];
-  nodes.forEach((node) => {
+  // 采用 for...of + break：forEach 中的 return 仅跳出当前回调，无法真正终止迭代，
+  // 当 heading 较多时会持续做无效 push（最后 slice 兜底正确性但浪费）。
+  for (const node of nodes) {
     const depth = (Number(node.tagName.slice(1)) as 1 | 2 | 3) || 2;
-    if (depth > 2) return; // 只取 H1 / H2，控制体积
+    if (depth > 2) continue; // 只取 H1 / H2，控制体积
     const text = node.textContent?.trim() ?? "";
-    if (!text) return;
+    if (!text) continue;
     const slug = node.id || "";
     out.push({ depth, text, slug });
-    if (out.length >= 50) {
-      return;
-    }
-  });
-  return out.slice(0, 50);
+    if (out.length >= 50) break;
+  }
+  return out;
 }
 
 function extractTitleFromDom(): string | null {
