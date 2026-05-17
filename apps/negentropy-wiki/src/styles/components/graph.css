@@ -1,0 +1,83 @@
+/* Wiki 知识图谱页样式 ------------------------------------------------------
+ *
+ * Sigma 渲染依赖容器有显式高度才能绘制；这里把 canvas 外层撑满主区域剩余
+ * 高度（减去顶栏 header + 文档标题区域）。
+ * 不依赖 JS 测量，纯 CSS 通过 viewport - header 解决，与 markdown 文档页
+ * 风格一致。
+ */
+
+.wiki-graph-canvas-wrap {
+  /* 主区高度 = viewport - 顶部 header 高度（约 56px）- 文档标题块约 88px
+   * 实测保守值 200px 足以避开顶栏与下边距，剩余给 canvas。 */
+  height: calc(100vh - 200px);
+  min-height: 480px;
+  width: 100%;
+  position: relative;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  background: var(--surface-recessed, rgba(0, 0, 0, 0.12));
+  overflow: hidden;
+}
+
+.wiki-graph-canvas-wrap > div {
+  height: 100%;
+  width: 100%;
+}
+
+/* 客户端组件的根/容器：用真实 height 撑开，不再依赖 Tailwind h-full */
+.wiki-graph-canvas-root {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.wiki-graph-canvas-stage {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.wiki-graph-canvas-overlay {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  font-size: 12px;
+  z-index: 2;
+}
+
+.wiki-graph-badge {
+  background: rgba(24, 24, 27, 0.75);
+  color: #fafafa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.wiki-graph-badge-warn {
+  background: rgba(245, 158, 11, 0.9);
+}
+
+.wiki-graph-empty,
+.wiki-graph-error,
+.wiki-graph-loading {
+  padding: 2rem;
+  border: 1px dashed var(--border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: var(--surface-recessed, rgba(0, 0, 0, 0.06));
+}
+
+.wiki-error-detail {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  background: rgba(255, 0, 0, 0.04);
+  border-left: 3px solid rgba(255, 0, 0, 0.4);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -99,7 +99,12 @@ export function WikiGraphCanvas({
 }: WikiGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // 通过 unknown 桥接绕过 ESM 默认导出类型在 ESLint --max-warnings=0 下的过严校验。
-  const sigmaRef = useRef<{ kill: () => void; refresh: () => void } | null>(null);
+  const sigmaRef = useRef<{
+    kill: () => void;
+    refresh: () => void;
+    resize: () => void;
+  } | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const router = useRouter();
 
   // 单次挂载初始化 + 数据/路由变化时整图重建（Wiki 场景图谱体量有限，无需增量同步）
@@ -166,6 +171,7 @@ export function WikiGraphCanvas({
       sigmaRef.current = sigma as unknown as {
         kill: () => void;
         refresh: () => void;
+        resize: () => void;
       };
 
       // 节点点击 → 跳转到首个相关 entry；无 entry 时不跳转
@@ -175,12 +181,31 @@ export function WikiGraphCanvas({
           router.push(`/${pubSlug}/${slugs[0]}`);
         }
       });
+
+      // ResizeObserver：容器尺寸变化时调用 Sigma resize()（重设 WebGL canvas
+      // 像素尺寸 + 重绘）。Sigma 不自动监听容器尺寸变化，dynamic import
+      // 异步落地时容器可能仍为 0×0；ResizeObserver 在尺寸真正落定后触发。
+      if (containerRef.current && typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(() => {
+          sigmaRef.current?.resize();
+          sigmaRef.current?.refresh();
+        });
+        ro.observe(containerRef.current);
+        resizeObserverRef.current = ro;
+      }
+
+      // 首次同步尝试 resize：容器在 hydrate 之后通常已具尺寸；
+      // 兼容 ResizeObserver 首帧未触发的浏览器实现。
+      sigma.resize();
+      sigma.refresh();
     };
 
     void init();
 
     return () => {
       killed = true;
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       sigmaRef.current?.kill();
       sigmaRef.current = null;
     };
@@ -190,16 +215,16 @@ export function WikiGraphCanvas({
   const showTruncatedBanner = truncated || exceedsThreshold;
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" />
+    <div className="wiki-graph-canvas-root">
+      <div ref={containerRef} className="wiki-graph-canvas-stage" />
 
       {/* 状态横幅：左上角统计 + 截断提示 */}
-      <div className="pointer-events-none absolute left-2 top-2 flex flex-col gap-1 text-xs">
-        <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
+      <div className="wiki-graph-canvas-overlay">
+        <span className="wiki-graph-badge">
           {nodes.length} 节点 · {edges.length} 边 · Sigma WebGL
         </span>
         {showTruncatedBanner && (
-          <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
+          <span className="wiki-graph-badge wiki-graph-badge-warn">
             {truncated && totalEntities
               ? `已按 importance 截断（共 ${totalEntities} 个实体，仅显示 top-${nodes.length}）`
               : "图谱过大，建议在实体列表中筛选"}
