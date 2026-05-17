@@ -20,6 +20,7 @@
 - [Knowledge Graph（知识图谱）](../knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../knowledge-graph-federated.md) · [Wiki 知识图谱（按 Publication 切片发布）](../wiki-knowledge-graph.md)
 - [Skills](../skills.md)
 - [Negentropy Wiki Ops](../negentropy-wiki-ops.md)
+- [Agents at Wiki —— 浏览器回归验证报告](../wiki-agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
 - [Engineering Changelog](../engineering-changelog.md)
 
 ## 关键基础设施
