@@ -10,13 +10,14 @@
  * 删除 chip 时，父组件通过 ``onRemove(tokenId)`` 同步移除 textarea 中对应的
  * ``rawText`` 片段（实际逻辑由 Composer 调用 ``reconcileMentions`` 完成）。
  */
-import { Bot, BookOpen, Save, X } from "lucide-react";
+import { Bot, BookOpen, Save, Network, X } from "lucide-react";
 import type { MentionKind, MentionToken } from "@/types/mention";
 
 const _ICONS: Record<MentionKind, typeof Bot> = {
   agent: Bot,
   "corpus-retrieve": BookOpen,
   "corpus-output": Save,
+  graph: Network,
 };
 
 const _CHIP_CLASS: Record<MentionKind, string> = {
@@ -26,12 +27,15 @@ const _CHIP_CLASS: Record<MentionKind, string> = {
     "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200",
   "corpus-output":
     "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200",
+  graph:
+    "border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-700 dark:bg-violet-950/50 dark:text-violet-200",
 };
 
 const _KIND_TITLE: Record<MentionKind, string> = {
   agent: "委派 SubAgent",
   "corpus-retrieve": "限定检索范围",
   "corpus-output": "输出沉淀目标",
+  graph: "强制图谱模式",
 };
 
 export interface MentionChipListProps {
