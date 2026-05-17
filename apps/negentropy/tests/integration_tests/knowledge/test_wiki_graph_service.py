@@ -387,6 +387,91 @@ class TestWikiGraphPublicationSlice:
         assert node_1["entry_slugs"] == ["wg-entry-0"]
         assert node_1["mention_count_in_pub"] == 1
 
+    @pytest.mark.asyncio
+    async def test_total_entities_excludes_inactive(self, db_engine, graph_world):
+        """total_entities 应与候选节点查询同口径：排除 is_active=False 的实体。
+
+        将实体 0 标记为失活后：
+        - 候选节点不应包含实体 0；
+        - total_entities 也应从 4 降为 3，与节点集合一致；
+        否则前端横幅「共 X 个实体，仅显示 top-N」会把失活实体计入分母。
+        """
+        from negentropy.knowledge.lifecycle import wiki_graph_service
+        from negentropy.models.perception import KgEntity
+
+        pub_id = graph_world["pub_id"]
+        entity_ids = graph_world["entity_ids"]
+
+        factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with factory() as s:
+            await s.execute(KgEntity.__table__.update().where(KgEntity.id == entity_ids[0]).values(is_active=False))
+            await s.commit()
+
+        try:
+            async with factory() as s:
+                payload = await wiki_graph_service.get_publication_graph(s, pub_id=pub_id)
+
+            assert payload is not None
+            node_ids = {n["id"] for n in payload["nodes"]}
+            assert str(entity_ids[0]) not in node_ids
+            # 实体 1/2/3 仍 active 且被 mention → total_entities=3
+            assert payload["total_entities"] == 3
+        finally:
+            async with factory() as s:
+                await s.execute(KgEntity.__table__.update().where(KgEntity.id == entity_ids[0]).values(is_active=True))
+                await s.commit()
+
+    @pytest.mark.asyncio
+    async def test_total_entities_respects_min_importance(self, db_engine, graph_world):
+        """total_entities 应应用与候选节点查询相同的 min_importance 过滤。"""
+        from negentropy.knowledge.lifecycle import wiki_graph_service
+
+        pub_id = graph_world["pub_id"]
+
+        # fixture 中实体 importance：0.9 / 0.8 / 0.7 / 0.6（mention 集合）
+        # 设 min_importance=0.75 → 仅 0.9 / 0.8 入选 → total_entities=2
+        factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with factory() as s:
+            payload = await wiki_graph_service.get_publication_graph(s, pub_id=pub_id, min_importance=0.75)
+
+        assert payload is not None
+        assert payload["total_entities"] == 2
+        assert len(payload["nodes"]) <= 2
+
+
+class TestWikiGraphEntityList:
+    """get_publication_entities 分页与计数口径"""
+
+    @pytest.mark.asyncio
+    async def test_total_excludes_inactive_entities(self, db_engine, graph_world):
+        """``total`` 必须与 ``items`` 同口径过滤 is_active，否则跨页累计 < total。"""
+        from negentropy.knowledge.lifecycle import wiki_graph_service
+        from negentropy.models.perception import KgEntity
+
+        pub_id = graph_world["pub_id"]
+        entity_ids = graph_world["entity_ids"]
+
+        factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with factory() as s:
+            await s.execute(KgEntity.__table__.update().where(KgEntity.id == entity_ids[0]).values(is_active=False))
+            await s.commit()
+
+        try:
+            async with factory() as s:
+                payload = await wiki_graph_service.get_publication_entities(s, pub_id=pub_id, limit=100)
+
+            assert payload is not None
+            # 4 个被 mention 实体（0/1/2/3），实体 0 失活后 → total=3
+            assert payload["total"] == 3
+            returned_ids = {item["id"] for item in payload["items"]}
+            assert str(entity_ids[0]) not in returned_ids
+            # total 与 items 长度一致（一页内可容纳）
+            assert len(payload["items"]) == payload["total"]
+        finally:
+            async with factory() as s:
+                await s.execute(KgEntity.__table__.update().where(KgEntity.id == entity_ids[0]).values(is_active=True))
+                await s.commit()
+
 
 class TestWikiGraphEntityDetail:
     """get_publication_entity_detail 详情返回"""

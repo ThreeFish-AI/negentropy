@@ -201,14 +201,6 @@ async def get_publication_entities(
     if not ctx.document_ids:
         return _entity_list_empty(ctx, offset, limit)
 
-    # 统计总实体数
-    total_stmt = select(func.count(func.distinct(KgEntityMention.entity_id))).where(
-        KgEntityMention.document_id.in_(ctx.document_ids)
-    )
-    total = int((await db.execute(total_stmt)).scalar() or 0)
-    if total == 0:
-        return _entity_list_empty(ctx, offset, limit)
-
     sort_clauses: list[Any] = _resolve_entity_sort(sort_by)
     mention_subq = (
         select(KgEntityMention.entity_id.label("entity_id"))
@@ -216,6 +208,18 @@ async def get_publication_entities(
         .distinct()
         .subquery()
     )
+
+    # 总数与下方 items_stmt 同口径（JOIN KgEntity + is_active=True），避免
+    # 分页累计数 < total 导致前端「最后一页空」或页码错位。
+    total_stmt = (
+        select(func.count(KgEntity.id))
+        .join(mention_subq, mention_subq.c.entity_id == KgEntity.id)
+        .where(KgEntity.is_active.is_(True))
+    )
+    total = int((await db.execute(total_stmt)).scalar() or 0)
+    if total == 0:
+        return _entity_list_empty(ctx, offset, limit)
+
     items_stmt = (
         select(KgEntity)
         .join(mention_subq, mention_subq.c.entity_id == KgEntity.id)
@@ -547,14 +551,6 @@ async def _load_candidate_node_ids(
     设置 ctx.node_ids（全集）、ctx.kept_node_ids（截断后）、ctx.total_entities、
     ctx.truncated。
     """
-    # 全量计数：DISTINCT entity_id WHERE document_id IN documents
-    count_stmt = select(func.count(func.distinct(KgEntityMention.entity_id))).where(
-        KgEntityMention.document_id.in_(ctx.document_ids)
-    )
-    ctx.total_entities = int((await db.execute(count_stmt)).scalar() or 0)
-    if ctx.total_entities == 0:
-        return
-
     # 取候选节点 ID（联表 KgEntity 以应用 min_importance / is_active 过滤 + 排序）
     mention_subq = (
         select(KgEntityMention.entity_id.label("entity_id"))
@@ -563,20 +559,29 @@ async def _load_candidate_node_ids(
         .subquery()
     )
 
-    base_stmt = (
+    # 总数与候选查询同口径（is_active + min_importance），避免前端截断横幅
+    # 「共 X 个实体，仅显示 top-N」把失活/低权重实体计入分母而误导用户。
+    base_filters = [KgEntity.is_active.is_(True)]
+    if min_importance > 0:
+        base_filters.append(KgEntity.importance_score >= min_importance)
+
+    count_stmt = (
+        select(func.count(KgEntity.id)).join(mention_subq, mention_subq.c.entity_id == KgEntity.id).where(*base_filters)
+    )
+    ctx.total_entities = int((await db.execute(count_stmt)).scalar() or 0)
+    if ctx.total_entities == 0:
+        return
+
+    candidate_stmt = (
         select(KgEntity.id)
         .join(mention_subq, mention_subq.c.entity_id == KgEntity.id)
-        .where(KgEntity.is_active.is_(True))
+        .where(*base_filters)
         .order_by(
             KgEntity.importance_score.desc().nulls_last(),
             KgEntity.mention_count.desc(),
         )
+        .limit(max_nodes + 1)  # 多取 1 个用于检测是否截断
     )
-    if min_importance > 0:
-        base_stmt = base_stmt.where(KgEntity.importance_score >= min_importance)
-
-    # 多取 1 个用于检测是否截断
-    candidate_stmt = base_stmt.limit(max_nodes + 1)
     rows = (await db.execute(candidate_stmt)).all()
     ctx.node_ids = [row[0] for row in rows]
 
