@@ -8,6 +8,13 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
+from .cancellation import (
+    get_cancel_event,
+    is_cancelled,
+    register_cancellable_run,
+    unregister_cancellable_run,
+)
+from .exceptions import PipelineCancelled
 from .ingestion.chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
@@ -78,6 +85,9 @@ class PipelineTracker:
         self._error: dict[str, Any] | None = None
         self._status = "pending"
         self._current_stage: str | None = None
+        # 取消终态附加元数据：requested_at / requested_by / reason / chunks_persisted ...
+        # 由 cancel API 在请求时写入 payload.cancellation；tracker.cancel() 时在此聚合。
+        self._cancellation_summary: dict[str, Any] | None = None
 
     def _log_context(self) -> dict[str, Any]:
         return {
@@ -152,10 +162,25 @@ class PipelineTracker:
         self._input = self._normalize_dict_payload(payload.get("input"))
         self._output = self._normalize_dict_payload(payload.get("output"))
         self._error = payload.get("error")
+        # 恢复 cancellation 元数据（cancel API 已写入 payload.cancellation 时）
+        self._cancellation_summary = payload.get("cancellation")
         self._status = record.status
 
     async def start(self, input_data: dict[str, Any]) -> None:
-        """开始 Pipeline 执行"""
+        """开始 Pipeline 执行。
+
+        R-6 race A 修补：先 `resume()` 读 DB 当前状态——若 cancel API 已抢先把
+        status 写为 cancelling/cancelled（在 BackgroundTasks 启动 task 之前用户
+        已点取消），立即 raise PipelineCancelled，**不写 running 覆盖**取消信号。
+        否则 task 启动后会盲写 running，永远跑到自然结束，cancel 信号被静默吞掉。
+        """
+        await self.resume()
+        if self._status in ("cancelling", "cancelled"):
+            raise PipelineCancelled(self._run_id, last_stage=None)
+
+        # 注册进程内 fast-path Event；幂等，重复 start 不覆盖已 set 的 Event
+        register_cancellable_run(self._run_id)
+
         self._started_at = datetime.now(UTC).isoformat()
         self._input = input_data
         self._status = "running"
@@ -166,8 +191,25 @@ class PipelineTracker:
             payload={"input": self._normalize_dict_payload(input_data)},
         )
 
+    async def _check_cancel(self) -> None:
+        """协作式取消检查点：先 in-memory event（O(1)），再 DB（跨 worker 兜底）。
+
+        DB SELECT 仅在 stage 边界触发（每个 stage <30 次/run），开销可承受。
+        若发现取消信号，raise PipelineCancelled 由 execute_*_pipeline 顶层捕获。
+        """
+        if is_cancelled(self._run_id):
+            raise PipelineCancelled(self._run_id, last_stage=self._current_stage)
+
+        # DB-poll 兜底：cancel API 落到其他 worker 时，本 worker 通过 DB 感知
+        record = await self._dao.get_pipeline_run(self._app_name, self._run_id)
+        if record is not None and record.status in ("cancelling", "cancelled"):
+            raise PipelineCancelled(self._run_id, last_stage=self._current_stage)
+
     async def start_stage(self, stage: str) -> None:
         """开始阶段执行"""
+        # 取消检查点：在 stage 边界感知用户取消请求
+        await self._check_cancel()
+
         self._current_stage = stage
         self._stages[stage] = {
             "status": "running",
@@ -323,6 +365,18 @@ class PipelineTracker:
             payload={"reason": reason},
         )
 
+    def get_stage_output(self, stage: str) -> dict[str, Any]:
+        """读取已完成 stage 的 output 字段；不存在或未完成时返回空 dict。
+
+        供上游 pipeline 在 ``complete()`` 写顶层 summary 时复用 stage 元数据，
+        避免相同字段在多处重复维护（单一事实源）。
+        """
+        stage_data = self._stages.get(stage)
+        if not stage_data:
+            return {}
+        output = stage_data.get("output")
+        return dict(output) if isinstance(output, dict) else {}
+
     async def complete(self, output: dict[str, Any] | None = None) -> None:
         """完成 Pipeline 执行"""
         now = datetime.now(UTC).isoformat()
@@ -340,13 +394,72 @@ class PipelineTracker:
             },
         )
 
+    async def cancel(
+        self,
+        *,
+        last_stage: str | None = None,
+        summary: dict[str, Any] | None = None,
+    ) -> None:
+        """协作式取消终态写入（区别于 fail 与 complete）。
+
+        - 幂等：已是 cancelled/completed/failed 时直接 return，避免重复写入；
+        - 把当前 stage（若有）标记为 cancelled，便于前端 stages bar 直观显示
+          取消位置；
+        - 写入 cancellation summary 到 payload 供前端展示「取消时进度」（已写入
+          chunks 数、最后完成 stage 等，配合 best-effort 不回滚语义）；
+        - 触发 `pipeline_run_cancelled` 审计日志事件，与既有 `pipeline_run_*`
+          命名风格对齐（R-11 修补）。
+        """
+        if self._status in ("cancelled", "completed", "failed"):
+            return
+        now = datetime.now(UTC).isoformat()
+        target_stage = last_stage or self._current_stage
+
+        # 当前正在执行的 stage 标记为 cancelled（不污染 failed 计数）
+        if target_stage and target_stage in self._stages:
+            stage_data = self._stages[target_stage]
+            stage_started_at = stage_data.get("started_at")
+            existing_mcp_events = stage_data.get("mcp_events")
+            self._stages[target_stage] = {
+                "status": "cancelled",
+                "started_at": stage_started_at,
+                "completed_at": now,
+                "duration_ms": self._calculate_duration_ms(stage_started_at, now),
+            }
+            if existing_mcp_events:
+                self._stages[target_stage]["mcp_events"] = existing_mcp_events
+
+        self._status = "cancelled"
+        self._completed_at = now
+        self._duration_ms = self._calculate_duration_ms(self._started_at, now)
+        self._current_stage = None
+        # cancellation summary 用 payload._cancellation_summary 字段，与 _persist 协作落库
+        self._cancellation_summary = dict(summary or {}) | {
+            "cancelled_at": now,
+            "last_stage": target_stage,
+        }
+        await self._persist()
+        self._log_stage_event(
+            "pipeline_run_cancelled",
+            status=self._status,
+            payload={
+                "duration_ms": self._duration_ms,
+                "last_stage": target_stage,
+                "summary": self._cancellation_summary,
+            },
+        )
+
     async def ensure_finalized(self, error: dict[str, Any] | None = None) -> None:
-        """安全网：若 tracker 尚未处于终态（completed/failed），强制写入 failed。
+        """安全网：若 tracker 尚未处于终态（completed/failed/cancelled），强制写入 failed。
 
         在 finally 块中调用，确保无论原始异常是否被成功处理，
-        tracker 状态都不会永远停留在 running。
+        tracker 状态都不会永远停留在 running 或 cancelling。
+
+        注意：cancelling 不被视为终态——若 task 已感知 cancel 信号但因异常未完成
+        `cancel()` 调用，应交由看门狗（`finalize_stale_pipeline_runs`）超时收敛。
+        本方法不主动把 cancelling 转 cancelled，避免吞掉真实异常上下文。
         """
-        if self._status in ("completed", "failed"):
+        if self._status in ("completed", "failed", "cancelled"):
             return
         try:
             error_payload = error or {
@@ -362,7 +475,34 @@ class PipelineTracker:
             )
 
     async def _persist(self) -> None:
-        """持久化 Pipeline 状态"""
+        """持久化 Pipeline 状态。
+
+        R-7 race B 修补：写入前先读 DB——若 cancel API 已把 status 写为
+        cancelling/cancelled，本次 running 写入会**覆盖**取消信号，导致 tracker
+        在下一个检查点之前继续盲跑。修补策略：
+        - 若 DB 已 cancelling/cancelled 且本次写入态非终态（running/pending），
+          跳过写入并接管 status（self._status = DB.status），让最近的检查点
+          立即 raise PipelineCancelled。
+        - 若本次写入态是终态（cancelled/completed/failed），照常写入 — 终态
+          覆盖中间态是合法的（cancel() / complete() / fail() 路径必须能落库）。
+
+        锁策略说明：本方法不使用 ``SELECT ... FOR UPDATE``，而是采用
+        "读-判-写 + 乐观并发控制" 模式。
+        - 第一道防线（pre-check）：先读 DB，若已 cancelling/cancelled 且本次非终态，
+          跳过写入并接管 status。
+        - 第二道防线（OCC）：pre-check 到 upsert 之间 cancel API 可能提交（多 worker
+          部署），upsert 携带 ``expected_version`` 做版本校验；cancel API 写入后
+          version 已递增，upsert 检测到冲突后接管 DB 权威状态，不盲目覆盖取消信号。
+        """
+        latest = await self._dao.get_pipeline_run(self._app_name, self._run_id)
+        if (
+            latest is not None
+            and latest.status in ("cancelling", "cancelled")
+            and self._status not in ("cancelled", "completed", "failed")
+        ):
+            self._status = latest.status  # 接管 DB 权威状态
+            return
+
         payload = {
             "operation": self._operation,
             "trigger": "api",
@@ -374,15 +514,25 @@ class PipelineTracker:
             "output": self._normalize_dict_payload(self._output),
             "error": self._error,
         }
+        # 取消终态 payload 增加 cancellation 字段（best-effort 不回滚语义下的可观测性）
+        cancellation_summary = getattr(self, "_cancellation_summary", None)
+        if cancellation_summary:
+            payload["cancellation"] = cancellation_summary
 
-        await self._dao.upsert_pipeline_run(
+        result = await self._dao.upsert_pipeline_run(
             app_name=self._app_name,
             run_id=self._run_id,
             status=self._status,
             payload=payload,
             idempotency_key=None,
-            expected_version=None,
+            expected_version=getattr(latest, "version", None) if latest is not None else None,
         )
+        # 乐观并发冲突：cancel API 在 pre-check 与 upsert 之间写入了 cancelling/cancelled
+        if result.status == "conflict" and self._status not in ("cancelled", "completed", "failed"):
+            conflict_record = result.record
+            conflict_status = conflict_record.get("status", "") if isinstance(conflict_record, dict) else ""
+            if conflict_status in ("cancelling", "cancelled"):
+                self._status = conflict_status
 
 
 class KnowledgeService:
@@ -421,6 +571,10 @@ class KnowledgeService:
 
     @staticmethod
     async def _fail_pipeline_execution(tracker: PipelineTracker | None, exc: Exception) -> None:
+        # 取消不是失败：让 PipelineCancelled 穿透到顶层 except，由 tracker.cancel() 落库；
+        # 否则中间层 helper 的 `except Exception: fail; raise` 会把取消错误写成 failed 终态。
+        if isinstance(exc, PipelineCancelled):
+            return
         if not tracker:
             return
         error_payload: dict[str, Any] = {
@@ -444,14 +598,20 @@ class KnowledgeService:
         tracker: PipelineTracker | None = None,
     ) -> tuple[str, ExtractedDocumentResult]:
         """提取 URL 内容，返回 (plain_text, 完整结果)"""
-        result = await extract_source(
-            app_name=app_name,
-            corpus_id=corpus_id,
-            corpus_config=await self._get_corpus_config(corpus_id),
-            source_kind=ROUTE_URL,
-            url=url,
-            tracker=tracker,
-        )
+        cancel_event = get_cancel_event(tracker.run_id) if tracker else None
+        try:
+            result = await extract_source(
+                app_name=app_name,
+                corpus_id=corpus_id,
+                corpus_config=await self._get_corpus_config(corpus_id),
+                source_kind=ROUTE_URL,
+                url=url,
+                tracker=tracker,
+                cancel_event=cancel_event,
+            )
+        except Exception as exc:
+            self._raise_if_mcp_cancelled(exc, tracker)
+            raise
         return result.plain_text, result
 
     async def _extract_file_content(
@@ -484,16 +644,22 @@ class KnowledgeService:
         content_type: str | None,
         tracker: PipelineTracker | None = None,
     ) -> ExtractedDocumentResult:
-        result = await extract_source(
-            app_name=app_name,
-            corpus_id=corpus_id,
-            corpus_config=await self._get_corpus_config(corpus_id),
-            source_kind=resolve_source_kind(filename=filename, content_type=content_type),
-            content=content,
-            filename=filename,
-            content_type=content_type,
-            tracker=tracker,
-        )
+        cancel_event = get_cancel_event(tracker.run_id) if tracker else None
+        try:
+            result = await extract_source(
+                app_name=app_name,
+                corpus_id=corpus_id,
+                corpus_config=await self._get_corpus_config(corpus_id),
+                source_kind=resolve_source_kind(filename=filename, content_type=content_type),
+                content=content,
+                filename=filename,
+                content_type=content_type,
+                tracker=tracker,
+                cancel_event=cancel_event,
+            )
+        except Exception as exc:
+            self._raise_if_mcp_cancelled(exc, tracker)
+            raise
         return result
 
     @staticmethod
@@ -512,6 +678,18 @@ class KnowledgeService:
             }
             raise ValueError(f"Extractor produced empty document after normalization: {diagnostics}")
         return plain_text or markdown
+
+    @staticmethod
+    def _raise_if_mcp_cancelled(exc: Exception, tracker: PipelineTracker | None) -> None:
+        """若异常为 McpCancelledError，转换为 PipelineCancelled 向上传播。
+
+        集中在 _extract_file_document / _extract_url_content 层做转换，
+        让顶层 execute_*_pipeline 的现有 ``except PipelineCancelled`` 处理逻辑无需变更。
+        """
+        from negentropy.interface.mcp_client import McpCancelledError
+
+        if isinstance(exc, McpCancelledError) and tracker:
+            raise PipelineCancelled(tracker.run_id, last_stage=tracker.current_stage) from None
 
     # =========================================================================
     # Pipeline 创建与执行（支持异步后台任务）
@@ -623,6 +801,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -631,6 +813,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_ingest_url_pipeline(
         self,
@@ -714,6 +897,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
@@ -724,6 +911,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_ingest_url_document_pipeline(
         self,
@@ -856,6 +1044,10 @@ class KnowledgeService:
             )
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -864,6 +1056,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_ingest_file_pipeline(
         self,
@@ -1007,6 +1200,10 @@ class KnowledgeService:
             )
 
             return records
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
@@ -1017,6 +1214,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_replace_source_pipeline(
         self,
@@ -1051,16 +1249,8 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Delete
-            await tracker.start_stage("delete")
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
-
-            # 后续阶段复用 _ingest_text_with_tracker
+            # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
+            # 同事务保护，并合成 "delete" stage 事件供前端 Pipeline 时间轴展示
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1069,7 +1259,9 @@ class KnowledgeService:
                 metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
             await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
 
             logger.info(
@@ -1081,6 +1273,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1089,6 +1285,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_sync_source_pipeline(
         self,
@@ -1138,21 +1335,12 @@ class KnowledgeService:
             if not text:
                 raise ValueError("No content extracted from URL")
 
-            # 阶段 2: Delete
-            await tracker.start_stage("delete")
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
-
             metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_url": source_uri},
             )
 
-            # 后续阶段复用 _ingest_text_with_tracker
+            # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1161,7 +1349,9 @@ class KnowledgeService:
                 metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
             await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
 
             logger.info(
@@ -1173,6 +1363,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1181,6 +1375,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_sync_document_pipeline(
         self,
@@ -1263,16 +1458,7 @@ class KnowledgeService:
                 },
             )
 
-            # Stage 3: 删除旧知识记录
-            await tracker.start_stage("delete")
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
-
-            # Stage 4+: 分块 + 向量化
+            # Stage 3+: 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
             meta = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
@@ -1289,7 +1475,9 @@ class KnowledgeService:
                 metadata=meta,
                 chunking_config=chunking_config or self._chunking_config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
             await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
 
             logger.info(
@@ -1301,6 +1489,10 @@ class KnowledgeService:
             )
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1309,6 +1501,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_rebuild_source_pipeline(
         self,
@@ -1395,14 +1588,7 @@ class KnowledgeService:
                     message=f"Failed to extract content: {exc}",
                 ) from exc
 
-            # 阶段 2: Delete
-            await tracker.start_stage("delete")
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
+            # 阶段 2: Delete（原子化，由 _ingest_text_with_tracker 内部完成）
 
             if document_id:
                 from .ingestion.extraction import store_extracted_document_artifacts
@@ -1426,7 +1612,7 @@ class KnowledgeService:
                 metadata={"gcs_uri": source_uri, "rebuild": True},
             )
 
-            # 后续阶段复用 _ingest_text_with_tracker
+            # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1435,7 +1621,9 @@ class KnowledgeService:
                 metadata=metadata,
                 chunking_config=config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
             await tracker.complete(
                 {
                     "deleted_count": deleted_count,
@@ -1453,6 +1641,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1461,6 +1653,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
@@ -1479,6 +1672,14 @@ class KnowledgeService:
 
     async def list_corpora(self, *, app_name: str) -> list[CorpusRecord]:
         return await self._repository.list_corpora(app_name=app_name)
+
+    async def list_corpora_with_counts(self, *, app_name: str) -> list[tuple[CorpusRecord, int, int]]:
+        """语料库列表 + 双口径 chunks 计数（委托 repository）。"""
+        return await self._repository.list_corpora_with_counts(app_name=app_name)
+
+    async def get_corpus_with_counts(self, *, corpus_id: UUID, app_name: str) -> tuple[CorpusRecord, int, int] | None:
+        """单 corpus + 双口径 chunks 计数（委托 repository）。"""
+        return await self._repository.get_corpus_with_counts(corpus_id=corpus_id, app_name=app_name)
 
     async def ingest_text(
         self,
@@ -1558,12 +1759,32 @@ class KnowledgeService:
         metadata: dict[str, Any] | None = None,
         chunking_config: ChunkingConfig | None = None,
         tracker: PipelineTracker | None = None,
+        persist_mode: str | None = None,
     ) -> list[KnowledgeRecord]:
-        """内部方法：执行文本摄入，支持可选的 Pipeline 追踪"""
+        """内部方法：执行文本摄入，支持可选的 Pipeline 追踪。
+
+        ``persist_mode`` 控制持久化语义（机制与策略正交分解）：
+          - ``"replace"``：原子 DELETE→INSERT，按 ``source_uri`` 维度幂等替换。
+            ⚠️ 要求 ``source_uri`` 非空；同时会发出合成的 ``delete`` stage 事件，
+            使前端 Pipeline 时间轴展示的"删除旧记录"语义保持一致。
+          - ``"append"``：纯追加（不去重）。用于 source_uri=None 等不可幂等场景。
+          - ``None``（默认）：按 ``source_uri`` 自动决定 — 非空 → replace，空 → append。
+        """
         config = chunking_config or self._chunking_config
         # Corpus 级 Embedding 模型解析：存在则按需构建 fn，否则回退 service 默认。
         corpus_record = await self._repository.get_corpus_by_id(corpus_id)
         corpus_config_dict: dict[str, Any] | None = dict(corpus_record.config or {}) if corpus_record else None
+
+        # 解析有效持久化模式（单一事实源：source_uri 是 idempotent 的唯一锚点）
+        effective_mode = persist_mode or ("replace" if source_uri else "append")
+        if effective_mode == "replace" and not source_uri:
+            # 防御式：persist_mode=replace 要求必有 source_uri，否则降级 append 并告警
+            logger.warning(
+                "persist_mode_replace_without_source_uri_fallback_append",
+                corpus_id=str(corpus_id),
+                run_id=tracker.run_id if tracker else None,
+            )
+            effective_mode = "append"
 
         # 阶段 1: Chunking
         if tracker:
@@ -1614,28 +1835,58 @@ class KnowledgeService:
         elif tracker:
             await tracker.skip_stage("embed", reason="no_embedding_fn")
 
-        # 阶段 3: Persist
+        # 阶段 3: Persist（按 effective_mode 选择 replace/append）
         if tracker:
             await tracker.start_stage("persist")
 
-        records = await self._repository.add_knowledge(
-            corpus_id=corpus_id,
-            app_name=app_name,
-            chunks=chunks,
-        )
+        deleted_count = 0
+        if effective_mode == "replace" and source_uri:
+            # 原子 DELETE→INSERT；任一步失败 → 整事务回滚，旧数据保留原状
+            deleted_count, records = await self._repository.replace_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+                chunks=chunks,
+            )
+        else:
+            records = await self._repository.add_knowledge(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                chunks=chunks,
+            )
 
         if tracker:
-            await tracker.complete_stage(
-                "persist",
-                {
-                    "record_count": len(records),
-                },
-            )
+            persist_output: dict[str, Any] = {"record_count": len(records)}
+            if effective_mode == "replace":
+                persist_output["replaced_count"] = deleted_count
+                persist_output["mode"] = "replace"
+            else:
+                persist_output["mode"] = "append"
+            await tracker.complete_stage("persist", persist_output)
+
+            # 合成 delete stage：前端 STAGE_ORDER 仍按"delete → chunk → embed → persist"展示，
+            # 但底层删除已与 INSERT 原子化。仅在 replace 模式下发出。
+            # 单次 _persist() 写入 completed 终态，避免 start/complete 之间 crash 遗留 running 态。
+            if effective_mode == "replace" and source_uri:
+                now = datetime.now(UTC).isoformat()
+                tracker._stages["delete"] = {
+                    "status": "completed",
+                    "started_at": now,
+                    "completed_at": now,
+                    "duration_ms": 0,
+                    "output": {
+                        "deleted_count": deleted_count,
+                        "atomic_with_persist": True,
+                    },
+                }
+                await tracker._persist()
 
         logger.info(
             "ingestion_completed",
             corpus_id=str(corpus_id),
             record_count=len(records),
+            replaced_count=deleted_count if effective_mode == "replace" else None,
+            persist_mode=effective_mode,
             run_id=tracker.run_id if tracker else None,
         )
 
@@ -1688,32 +1939,7 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Delete
-            if tracker:
-                await tracker.start_stage("delete")
-
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-
-            if tracker:
-                await tracker.complete_stage(
-                    "delete",
-                    {
-                        "deleted_count": deleted_count,
-                    },
-                )
-
-            logger.info(
-                "old_records_deleted",
-                corpus_id=str(corpus_id),
-                source_uri=source_uri,
-                deleted_count=deleted_count,
-            )
-
-            # 后续阶段复用 _ingest_text_with_tracker
+            # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1722,7 +1948,9 @@ class KnowledgeService:
                 metadata=metadata,
                 chunking_config=config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
 
             # 完成 Pipeline
             if tracker:
@@ -1862,6 +2090,23 @@ class KnowledgeService:
         )
 
         return updated_count
+
+    async def get_archived_source_uris(
+        self,
+        *,
+        pairs: list[tuple[UUID, str]],
+        app_name: str,
+    ) -> set[tuple[UUID, str]]:
+        """批量返回所有 chunk 均已归档的 ``(corpus_id, source_uri)`` 组合。
+
+        语义与 ``SourceSummary.archived`` 完全一致——仅当某 ``source_uri``
+        对应的全部 chunk 的 ``metadata.archived`` 均为 ``true`` 时视为归档。
+        服务层薄包装，主要供 ``DocumentResponse.archived`` 字段填充使用。
+        """
+        return await self._repository.get_archived_source_uris(
+            pairs=pairs,
+            app_name=app_name,
+        )
 
     async def ingest_url(
         self,
@@ -2052,38 +2297,13 @@ class KnowledgeService:
             if not text:
                 raise ValueError("No content extracted from URL")
 
-            # 阶段 2: Delete - 删除该 source_uri 下的旧记录
-            if tracker:
-                await tracker.start_stage("delete")
-
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-
-            if tracker:
-                await tracker.complete_stage(
-                    "delete",
-                    {
-                        "deleted_count": deleted_count,
-                    },
-                )
-
-            logger.info(
-                "sync_source_old_records_deleted",
-                corpus_id=str(corpus_id),
-                source_uri=source_uri,
-                deleted_count=deleted_count,
-            )
-
             # 准备 metadata（保留原始 URL 信息）
             metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_url": source_uri},
             )
 
-            # 后续阶段复用 _ingest_text_with_tracker
+            # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -2092,7 +2312,9 @@ class KnowledgeService:
                 metadata=metadata,
                 chunking_config=config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
 
             # 完成 Pipeline
             if tracker:
@@ -2237,30 +2459,7 @@ class KnowledgeService:
                     message=f"Failed to extract content: {exc}",
                 ) from exc
 
-            # 阶段 2: Delete - 删除该 source_uri 下的旧记录
-            if tracker:
-                await tracker.start_stage("delete")
-
-            deleted_count = await self._repository.delete_knowledge_by_source(
-                corpus_id=corpus_id,
-                app_name=app_name,
-                source_uri=source_uri,
-            )
-
-            if tracker:
-                await tracker.complete_stage(
-                    "delete",
-                    {
-                        "deleted_count": deleted_count,
-                    },
-                )
-
-            logger.info(
-                "rebuild_source_old_records_deleted",
-                corpus_id=str(corpus_id),
-                source_uri=source_uri,
-                deleted_count=deleted_count,
-            )
+            # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
 
             # 准备 metadata
             metadata = normalize_source_metadata(
@@ -2268,7 +2467,6 @@ class KnowledgeService:
                 metadata={"gcs_uri": source_uri, "rebuild": True},
             )
 
-            # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -2277,7 +2475,9 @@ class KnowledgeService:
                 metadata=metadata,
                 chunking_config=config,
                 tracker=tracker,
+                persist_mode="replace",
             )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
 
             # 完成 Pipeline
             if tracker:

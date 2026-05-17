@@ -50,6 +50,30 @@ def _extract_upstream_text(exc: BaseException) -> str:
     return ""
 
 
+def _build_embedding_failure_hint(upstream_text: str, api_base_host: str) -> str:
+    """根据上游响应文本与代理地址生成 actionable 诊断 hint。
+
+    诊断已知代理侧不兼容场景（参 issue.md ISSUE-020 / ISSUE-030）：
+    - ``request body doesn't contain valid prompts``：本地 Gemini 翻译代理对
+      ``:batchEmbedContents`` 兼容不全；建议切换到 OpenAI 系列 embedding 或检查
+      ``NATIVE_GEMINI_BASE_URL`` 是否指向官方上游。
+
+    Returns:
+        非空字符串：可直接写入日志/响应供运维定位；为空表示无匹配模式。
+    """
+    if not upstream_text:
+        return ""
+    if "doesn't contain valid prompts" in upstream_text or "valid prompts" in upstream_text:
+        host_part = f"（代理：{api_base_host}）" if api_base_host else ""
+        return (
+            "Embedding 上游返回 'invalid prompts'，疑似本地 Gemini 翻译代理对 "
+            ":batchEmbedContents 兼容不全" + host_part + "。建议：(a) 在 Corpus Settings "
+            "切换到 openai 系列 embedding；或 (b) 校验 NATIVE_GEMINI_BASE_URL 指向官方上游 "
+            "（参 docs/issue.md ISSUE-020 / ISSUE-026）。"
+        )
+    return ""
+
+
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
 
@@ -124,6 +148,9 @@ async def _call_with_retry(
     Raises:
         最后一次重试的异常
     """
+    # 局部 import 避免与 graph.extractors 的循环依赖（embedding 是 ingestion 子模块）。
+    from negentropy.knowledge.graph.extractors import _is_non_retryable_error
+
     last_exc = None
     for attempt in range(1, max_retries + 1):
         try:
@@ -139,6 +166,17 @@ async def _call_with_retry(
             )
         except Exception as exc:
             last_exc = exc
+            # 凭证 / 路由 / 参数类终态错误：立即抛出，由上层包成 EmbeddingFailed
+            # 并触发降级路径（如 global_search 退化按 entity_count 排序）。
+            if _is_non_retryable_error(exc):
+                logger.warning(
+                    "embedding_non_retryable",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    context=context,
+                    attempt=attempt,
+                )
+                raise
             logger.warning(
                 "embedding_retry",
                 attempt=attempt,
@@ -214,11 +252,14 @@ def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> Embeddi
             )
         except (TimeoutError, Exception) as exc:
             upstream_text = _extract_upstream_text(exc)
+            api_base_host = _api_base_host(extra_kwargs.get("api_base"))
+            hint = _build_embedding_failure_hint(upstream_text, api_base_host)
             logger.error(
                 "embedding_request_failed",
                 model=model_name,
-                api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+                api_base_host=api_base_host,
                 upstream_response_text=upstream_text,
+                hint=hint or None,
                 exc_info=exc,
             )
             raise EmbeddingFailed(
@@ -313,11 +354,14 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
                     )
                 except (TimeoutError, Exception) as exc:
                     upstream_text = _extract_upstream_text(exc)
+                    api_base_host = _api_base_host(extra_kwargs.get("api_base"))
+                    hint = _build_embedding_failure_hint(upstream_text, api_base_host)
                     logger.error(
                         "batch_embedding_request_failed",
                         model=model_name,
-                        api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+                        api_base_host=api_base_host,
                         upstream_response_text=upstream_text,
+                        hint=hint or None,
                         batch_size=len(non_empty_texts),
                         exc_info=exc,
                     )

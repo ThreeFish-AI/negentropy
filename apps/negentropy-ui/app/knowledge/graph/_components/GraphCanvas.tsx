@@ -25,6 +25,8 @@ import fcose from "cytoscape-fcose";
 import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
+import { GraphCanvasFrame } from "./GraphCanvasFrame";
+import type { GraphCanvasNode, GraphCanvasEdge, GraphCanvasProps } from "./types";
 
 // fCoSE 注册一次即可（重复 register 会被 cytoscape 内部 no-op 处理）
 let _registered = false;
@@ -33,40 +35,10 @@ if (!_registered) {
   _registered = true;
 }
 
-interface GraphCanvasNode {
-  id: string;
-  label?: string;
-  type?: string;
-  importance?: number | null;
-  community_id?: number | null;
-}
-
-interface GraphCanvasEdge {
-  source: string;
-  target: string;
-  type?: string;
-}
-
-interface GraphCanvasProps {
-  corpusId: string;
-  nodes: GraphCanvasNode[];
-  edges: GraphCanvasEdge[];
-  selectedNodeId: string | null;
-  onNodeClick: (nodeId: string) => void;
-  asOf?: string | null;
-  /** 父组件可选回调：双击展开子图后通知父组件合并节点 */
-  onSubgraphMerge?: (
-    nodes: GraphCanvasNode[],
-    edges: GraphCanvasEdge[],
-  ) => void;
-  /** 节点上限提示阈值；超过时显示截断提示 */
-  truncateThreshold?: number;
-}
-
 function nodeSize(importance?: number | null): number {
-  if (importance == null) return 22;
+  if (importance == null) return 18;
   const clamped = Math.min(Math.max(importance, 0), 1);
-  return 18 + 28 * clamped;
+  return 14 + 22 * clamped;
 }
 
 function nodeColor(node: GraphCanvasNode): string {
@@ -177,15 +149,16 @@ export function GraphCanvas({
       ],
       layout: {
         name: "fcose",
-        // fCoSE 推荐参数（Dogrusoz et al., 2009）
         quality: "default",
         animate: true,
         animationDuration: 600,
         randomize: true,
-        nodeRepulsion: () => 5000,
-        idealEdgeLength: () => 80,
-        edgeElasticity: () => 0.45,
-        gravity: 0.25,
+        nodeRepulsion: () => 1500,
+        idealEdgeLength: () => 40,
+        edgeElasticity: () => 0.8,
+        gravity: 0.6,
+        gravityRange: 2.5,
+        nodeSeparation: 30,
       } as cytoscape.LayoutOptions,
       wheelSensitivity: 0.2,
       minZoom: 0.1,
@@ -243,7 +216,14 @@ export function GraphCanvas({
       }
     });
 
+    // 容器尺寸变化时同步 cytoscape viewport
+    const ro = new ResizeObserver(() => {
+      cy.resize();
+    });
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       cy.destroy();
       cyRef.current = null;
     };
@@ -265,6 +245,12 @@ export function GraphCanvas({
       animationDuration: 400,
       randomize: false,
       quality: "default",
+      nodeRepulsion: () => 1500,
+      idealEdgeLength: () => 40,
+      edgeElasticity: () => 0.8,
+      gravity: 0.6,
+      gravityRange: 2.5,
+      nodeSeparation: 30,
     } as cytoscape.LayoutOptions).run();
   }, [elements]);
 
@@ -285,23 +271,24 @@ export function GraphCanvas({
   const truncated = nodes.length >= truncateThreshold;
 
   return (
-    <div className="relative h-[600px] w-full rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-      <div ref={containerRef} className="h-full w-full" />
-      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-[10px]">
-        <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
-          {nodes.length} 节点 · {edges.length} 边
-        </span>
-        {truncated && (
-          <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
-            已按 importance 截断（双击节点展开邻居）
-          </span>
-        )}
-        {expanding && (
-          <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
-            加载子图…
-          </span>
-        )}
-      </div>
-    </div>
+    <GraphCanvasFrame
+      stats={{ nodes: nodes.length, edges: edges.length, suffix: "Cytoscape" }}
+      badges={
+        <>
+          {truncated && (
+            <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
+              已按 importance 截断（双击节点展开邻居）
+            </span>
+          )}
+          {expanding && (
+            <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
+              加载子图…
+            </span>
+          )}
+        </>
+      }
+    >
+      <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
+    </GraphCanvasFrame>
   );
 }

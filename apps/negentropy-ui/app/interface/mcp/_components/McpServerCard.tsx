@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const MARKDOWN_CONTENT_CLASS = [
   "space-y-2 overflow-hidden break-words whitespace-normal text-sm leading-relaxed",
@@ -650,6 +651,8 @@ interface McpServer {
   config: Record<string, unknown>;
   tool_count: number;
   resource_template_count: number;
+  // 「系统内置」标识：后端从显式 is_system 列 / owner_id 前缀派生。
+  is_builtin?: boolean;
 }
 
 interface McpTool {
@@ -784,6 +787,13 @@ export function McpServerCard({
   loadingTools = false,
   loadError = null,
 }: McpServerCardProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin") ?? false;
+  // 后端 _mcp_server_to_response 在显式 is_system 列与 owner_id 前缀间取并；
+  // 前端做一次同步派生以兼容旧接口（is_builtin 字段缺失时回退 owner_id）。
+  const isBuiltin = server.is_builtin ?? (server.owner_id || "").startsWith("system");
+  const canEdit = isAdmin || !isBuiltin;
+
   const [showTools, setShowTools] = useState(false);
   const [showResources, setShowResources] = useState(false);
   const [expandedToolName, setExpandedToolName] = useState<string | null>(null);
@@ -874,26 +884,30 @@ export function McpServerCard({
                   </svg>
                 )}
               </button>
-              <button
-                onClick={onEdit}
-                title="Edit Server"
-                aria-label={`Edit ${server.display_name || server.name}`}
-                className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button
-                onClick={onDelete}
-                title="Delete Server"
-                aria-label={`Delete ${server.display_name || server.name}`}
-                className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+              {canEdit && (
+                <>
+                  <button
+                    onClick={onEdit}
+                    title="Edit Server"
+                    aria-label={`Edit ${server.display_name || server.name}`}
+                    className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={onDelete}
+                    title="Delete Server"
+                    aria-label={`Delete ${server.display_name || server.name}`}
+                    className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -905,6 +919,14 @@ export function McpServerCard({
             ) : (
               <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 Disabled
+              </span>
+            )}
+            {isBuiltin && (
+              <span
+                className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                title="系统内置：对全员可见，仅 admin 可编辑"
+              >
+                Built-In
               </span>
             )}
             <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">

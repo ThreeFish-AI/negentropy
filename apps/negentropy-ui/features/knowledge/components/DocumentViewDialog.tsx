@@ -1,9 +1,16 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 
 import type {
   KnowledgeDocument,
@@ -135,17 +142,14 @@ export function DocumentViewDialog({
     void loadDetail();
   }, [isOpen, document, loadDetail]);
 
-  useEffect(() => {
-    if (!isOpen || !document) return;
-    if ((detail?.markdown_extract_status || "").toLowerCase() !== "processing") {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      void loadDetail();
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [isOpen, document, detail?.markdown_extract_status, loadDetail]);
+  // Phase 3-A: 由 useHeartbeatPoll 统一节拍（5s）+ 自动暂停（hidden）+ 网络恢复触发
+  useHeartbeatPoll(loadDetail, {
+    enabled:
+      isOpen &&
+      !!document &&
+      (detail?.markdown_extract_status || "").toLowerCase() === "processing",
+    fireImmediately: false,
+  });
 
   const handleDownload = async () => {
     if (!document || isDownloading) return;

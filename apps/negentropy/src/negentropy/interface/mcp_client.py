@@ -35,6 +35,65 @@ DEFAULT_TIMEOUT_SECONDS = 30
 DEFAULT_OPERATION_TIMEOUT_SECONDS = 120
 
 
+class McpCancelledError(Exception):
+    """MCP 工具调用被外部 pipeline 取消信号中断。
+
+    区别于 ``TimeoutError``（超时）和 ``asyncio.CancelledError``（task 取消），
+    用于标识用户主动发起的 pipeline cancel 操作穿透到 MCP 调用层。
+    """
+
+
+@asynccontextmanager
+async def _cancel_aware_timeout(
+    timeout_seconds: float,
+    cancel_event: asyncio.Event | None,
+) -> Any:
+    """异步上下文管理器：超时或 cancel_event 触发时终止 MCP 操作。
+
+    - ``cancel_event`` 为 None 时，行为与 ``asyncio.timeout`` 完全一致。
+    - ``cancel_event`` 已 set 时，立即抛出 ``McpCancelledError``。
+    - ``cancel_event`` 在操作过程中被 set 时，通过 watcher task 取消当前 task，
+      并将 ``CancelledError`` 转换为 ``McpCancelledError``。
+    - 超时先于取消触发时，抛出 ``TimeoutError``（与原有行为一致）。
+
+    参考
+    - Python asyncio cancellation 语义：``Task.cancel()`` 注入 ``CancelledError``，
+      由被取消的 task 在下一个 await 点捕获。
+    - N. Smith, "Notes on structured concurrency," §cancel scopes, 2018.
+    """
+    if cancel_event is None:
+        async with asyncio.timeout(timeout_seconds):
+            yield
+        return
+
+    if cancel_event.is_set():
+        raise McpCancelledError("Pipeline cancelled before MCP call started")
+
+    current_task = asyncio.current_task()
+
+    async def _watch_cancel() -> None:
+        await cancel_event.wait()
+        if current_task is not None and not current_task.done():
+            current_task.cancel()
+
+    watcher = asyncio.create_task(_watch_cancel())
+
+    try:
+        async with asyncio.timeout(timeout_seconds):
+            try:
+                yield
+            except asyncio.CancelledError:
+                if cancel_event.is_set():
+                    raise McpCancelledError("Pipeline cancelled during MCP tool call") from None
+                raise
+    finally:
+        watcher.cancel()
+        try:
+            await watcher
+        except (asyncio.CancelledError, Exception):
+            pass
+
+
 @asynccontextmanager
 async def logged_stdio_client(
     server: StdioServerParameters,
@@ -297,6 +356,7 @@ class McpClientService:
         arguments: dict[str, Any],
         timeout_seconds: float,
         event_callback: Callable[[dict[str, Any]], None] | None = None,
+        cancel_event: asyncio.Event | None = None,
         command: str | None = None,
         args: list[str] | None = None,
         env: dict[str, str] | None = None,
@@ -306,7 +366,7 @@ class McpClientService:
     ) -> McpToolCallResult:
         """统一的工具调用方法，适用于所有传输类型。"""
         transport_labels = {"stdio": "STDIO", "sse": "SSE", "http": "HTTP"}
-        async with asyncio.timeout(timeout_seconds):
+        async with _cancel_aware_timeout(timeout_seconds, cancel_event):
             _emit_event(
                 event_callback,
                 stage="transport_connect",
@@ -447,6 +507,7 @@ class McpClientService:
         timeout_seconds: float | None = None,
         event_callback: Callable[[dict[str, Any]], None] | None = None,
         stderr_callback: Callable[[str], None] | None = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> McpToolCallResult:
         start_time = time.time()
         effective_timeout = timeout_seconds if timeout_seconds is not None else DEFAULT_OPERATION_TIMEOUT_SECONDS
@@ -466,6 +527,7 @@ class McpClientService:
                 arguments=arguments or {},
                 timeout_seconds=effective_timeout,
                 event_callback=event_callback,
+                cancel_event=cancel_event,
                 command=command,
                 args=args,
                 env=env,
@@ -475,6 +537,8 @@ class McpClientService:
             )
             result.duration_ms = int((time.time() - start_time) * 1000)
             return result
+        except McpCancelledError:
+            raise
         except TimeoutError:
             return McpToolCallResult(
                 success=False,
@@ -580,6 +644,7 @@ class McpClientService:
         timeout_seconds: float,
         resource_concurrency: int,
         event_callback: Callable[[dict[str, Any]], None] | None = None,
+        cancel_event: asyncio.Event | None = None,
         command: str | None = None,
         args: list[str] | None = None,
         env: dict[str, str] | None = None,
@@ -597,7 +662,7 @@ class McpClientService:
         不影响主 tool_result 的可用性（与计划中的 "warn + 占位" 策略对齐）。
         """
         transport_labels = {"stdio": "STDIO", "sse": "SSE", "http": "HTTP"}
-        async with asyncio.timeout(timeout_seconds):
+        async with _cancel_aware_timeout(timeout_seconds, cancel_event):
             _emit_event(
                 event_callback,
                 stage="transport_connect",
@@ -651,6 +716,16 @@ class McpClientService:
                             if uri and uri not in seen:
                                 resource_uris.append(str(uri))
                                 seen.add(str(uri))
+
+                    # 也扫描 structuredContent.image_assets 中的 resource_uri
+                    sc = tool_result.structured_content
+                    if isinstance(sc, dict):
+                        for asset in sc.get("image_assets") or []:
+                            if isinstance(asset, dict):
+                                uri = asset.get("resource_uri")
+                                if isinstance(uri, str) and uri and uri not in seen:
+                                    resource_uris.append(uri)
+                                    seen.add(uri)
 
                     if not resource_uris:
                         return McpToolCallWithResourcesResult(tool_result=tool_result)
@@ -718,6 +793,7 @@ class McpClientService:
         resource_concurrency: int = 4,
         event_callback: Callable[[dict[str, Any]], None] | None = None,
         stderr_callback: Callable[[str], None] | None = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> McpToolCallWithResourcesResult:
         """连接 MCP Server，调用工具并在同会话内拉取所有 ResourceLink。"""
         start_time = time.time()
@@ -744,6 +820,7 @@ class McpClientService:
                 timeout_seconds=effective_timeout,
                 resource_concurrency=resource_concurrency,
                 event_callback=event_callback,
+                cancel_event=cancel_event,
                 command=command,
                 args=args,
                 env=env,
@@ -753,6 +830,8 @@ class McpClientService:
             )
             result.tool_result.duration_ms = int((time.time() - start_time) * 1000)
             return result
+        except McpCancelledError:
+            raise
         except TimeoutError:
             return McpToolCallWithResourcesResult(
                 tool_result=McpToolCallResult(

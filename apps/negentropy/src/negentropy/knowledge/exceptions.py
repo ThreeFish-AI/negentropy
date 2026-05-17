@@ -347,6 +347,30 @@ class RelationExtractionError(InfrastructureError):
         super().__init__(message, code="RELATION_EXTRACTION_ERROR", details=details)
 
 
+# ================================
+# Pipeline 取消异常 (Cooperative Cancellation)
+# 用于协作式取消，区别于 KnowledgeError 系列业务/基础设施失败
+# ================================
+
+
+class PipelineCancelled(Exception):
+    """Pipeline 被用户协作式取消（非系统故障）。
+
+    与 `KnowledgeError` 同层独立分支：取消是用户意图，不是失败；
+    特意不继承 `KnowledgeError` 以避免被业务层 `except KnowledgeError` 误捕获，
+    并且不复用 `asyncio.CancelledError`（BaseException 子类，会穿透 `except Exception`，
+    污染普通失败路径）。
+
+    `execute_*_pipeline` 顶层 try/except 中应优先捕获 `PipelineCancelled` 再捕获
+    `Exception`，触发 `tracker.cancel()` 终态写入。
+    """
+
+    def __init__(self, run_id: str, *, last_stage: str | None = None) -> None:
+        self.run_id = run_id
+        self.last_stage = last_stage
+        super().__init__(f"Pipeline {run_id} cancelled at stage={last_stage}")
+
+
 class GraphSearchError(SearchError):
     """图谱检索失败异常
 

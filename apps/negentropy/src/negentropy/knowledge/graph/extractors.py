@@ -20,9 +20,14 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
+import random
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
+
+import tiktoken
 
 from negentropy.logging import get_logger
 
@@ -30,8 +35,480 @@ if TYPE_CHECKING:
     pass
 
 from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
+from .extraction_validator import (
+    ChunkExtractionStats,
+    apply_type_overrides,
+    enforce_density_cap,
+)
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
+
+# ============================================================================
+# KG LLM 调用全局配置（环境变量可覆盖）
+# ============================================================================
+# 单次 litellm.acompletion 超时（秒）。
+# 默认 110s < Cloudflare 120s Proxy Read Timeout，避免 524 错误。
+KG_LLM_TIMEOUT_SECONDS: float = float(os.environ.get("KG_LLM_TIMEOUT_SECONDS", "110"))
+# 全链路最大重试次数（不论嵌套层级，总重试不超过此值）。
+# SDK 层 num_retries=0 禁用隐形重试，由应用层统一管控。
+KG_LLM_MAX_RETRIES: int = int(os.environ.get("KG_LLM_MAX_RETRIES", "3"))
+
+
+# ============================================================================
+# 实体质量过滤 — 噪声实体检测
+# ============================================================================
+# 通用泛化术语、技术缩写、UI 元素等，不应作为知识图谱实体。
+# LLM 经常将这些泛化名词识别为 "concept" 或 "other"，污染图谱信噪比。
+_GENERIC_ENTITY_STOPWORDS: frozenset[str] = frozenset(
+    {
+        # 数据/文件格式
+        "css",
+        "html",
+        "json",
+        "xml",
+        "yaml",
+        "yml",
+        "csv",
+        "sql",
+        "http",
+        "https",
+        "url",
+        "uri",
+        "ftp",
+        "ssh",
+        # 泛化技术术语
+        "api",
+        "app",
+        "apps",
+        "application",
+        "ui",
+        "ux",
+        "sdk",
+        "cli",
+        "ide",
+        "mcp",
+        "rpc",
+        "rest",
+        "graphql",
+        "dom",
+        # 泛化名词
+        "key",
+        "value",
+        "spec",
+        "config",
+        "settings",
+        "module",
+        "modules",
+        "component",
+        "components",
+        "feature",
+        "features",
+        "option",
+        "options",
+        "parameter",
+        "parameters",
+        "variable",
+        "variables",
+        "function",
+        "functions",
+        "method",
+        "methods",
+        "class",
+        "classes",
+        "object",
+        "objects",
+        "instance",
+        "instances",
+        "type",
+        "types",
+        "data",
+        "file",
+        "files",
+        "path",
+        "paths",
+        # 泛化流程/角色术语
+        "agent",
+        "agents",
+        "generator",
+        "evaluator",
+        "processor",
+        "handler",
+        "manager",
+        "builder",
+        "parser",
+        "loader",
+        "runner",
+        "tester",
+        "planner",
+        "validator",
+        "scheduler",
+        "executor",
+        # UI 元素
+        "panel",
+        "panels",
+        "button",
+        "buttons",
+        "tab",
+        "tabs",
+        "form",
+        "forms",
+        "dialog",
+        "dialogs",
+        "menu",
+        "menus",
+        "card",
+        "cards",
+        "list",
+        "lists",
+        "grid",
+        "grids",
+        "modal",
+        "modals",
+        "popup",
+        "popups",
+        "toast",
+        "toasts",
+        # 杂项
+        "tool",
+        "tools",
+        "task",
+        "tasks",
+        "step",
+        "steps",
+        "phase",
+        "phases",
+        "stage",
+        "stages",
+    }
+)
+
+# 噪声实体名称的正则模式（用于过滤误识别为实体的非实体片段）
+_DATE_ENTITY_PATTERN = re.compile(
+    r"^(?:published|updated|created|posted)?\s*"
+    r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}$",
+    re.IGNORECASE,
+)
+_CODE_REF_PATTERN = re.compile(r".+:\d+$")  # "LevelEditor.tsx:892"
+_FILE_NAME_PATTERN = re.compile(
+    r".+\.(?:txt|sh|json|md|py|js|ts|tsx|jsx|yaml|yml|toml|cfg|ini|conf|env|lock)$",
+    re.IGNORECASE,
+)
+
+# 知名 JS/TS 生态产品/框架白名单（小写）。
+# 这些命名虽然以 .js/.ts 结尾貌似文件名，但属于具备明确语义的产品实体，
+# 优先于 _FILE_NAME_PATTERN 过滤逻辑短路放行，避免误伤高价值实体。
+_FRAMEWORK_NAME_WHITELIST: frozenset[str] = frozenset(
+    {
+        "node.js",
+        "vue.js",
+        "next.js",
+        "nuxt.js",
+        "nest.js",
+        "three.js",
+        "react.js",
+        "express.js",
+        "ember.js",
+        "backbone.js",
+        "angular.js",
+        "alpine.js",
+        "d3.js",
+        "moment.js",
+        "chart.js",
+        "p5.js",
+        "lit.js",
+        "preact.js",
+        "solid.js",
+        "qwik.js",
+        "remix.js",
+        "astro.js",
+        "gatsby.js",
+        "svelte.js",
+        "marko.js",
+        "knockout.js",
+        "jquery.js",
+        "lodash.js",
+        "video.js",
+        "anime.js",
+        "fabric.js",
+        "paper.js",
+        "babylon.js",
+        "pixi.js",
+        "phaser.js",
+        "leaflet.js",
+        "mapbox.js",
+    }
+)
+
+
+def is_noise_entity(name: str) -> bool:
+    """判断实体名称是否为噪声/无意义提取。
+
+    过滤策略：
+    - 长度过短（≤ 2 字符）或过长（> 150 字符）
+    - 命中通用停用词表
+    - URL / 文件名 / 源码引用 / 日期字符串等非实体片段
+
+    白名单短路：知名 JS/TS 生态框架名（如 Node.js / Vue.js / Three.js）
+    虽形似文件名但属高价值产品实体，需放行。
+    """
+    if name is None:
+        return True
+    stripped = name.strip()
+    if len(stripped) <= 2 or len(stripped) > 150:
+        return True
+    lower = stripped.lower()
+    if lower in _GENERIC_ENTITY_STOPWORDS:
+        return True
+    # 知名 JS/TS 框架优先短路（必须放在 _FILE_NAME_PATTERN 检查之前）
+    if lower in _FRAMEWORK_NAME_WHITELIST:
+        return False
+    if lower.startswith(("http://", "https://", "ftp://", "ssh://")):
+        return True
+    if _DATE_ENTITY_PATTERN.match(stripped):
+        return True
+    if _CODE_REF_PATTERN.match(stripped):
+        return True
+    if _FILE_NAME_PATTERN.match(stripped):
+        return True
+    return False
+
+
+_TRANSIENT_PROVIDER_HINTS = (
+    "502",
+    "503",
+    "429",
+    "bad gateway",
+    "service unavailable",
+    "rate limit",
+    "too many requests",
+)
+
+
+def _extract_retry_after_seconds(error_str: str) -> float | None:
+    """从错误体中提取 retry_after 数值（秒）。
+
+    支持两种来源：
+      1. JSON body 形式：``'retry_after': 60`` / ``"retry_after": "60"``。
+         Cloudflare / LiteLLM 等代理常以 JSON 错误体回传此字段。
+      2. HTTP header 形式：``Retry-After: 60``。RFC 9110 §10.2.3 规范字段。
+
+    Returns:
+        提取到的整数秒数，未匹配时返回 ``None``。
+    """
+    # JSON body：'retry_after': N 或 "retry_after": "N"
+    m = re.search(r"""['"]retry_after['"]\s*:\s*['"]?(\d+)['"]?""", error_str)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    # HTTP header：Retry-After: N
+    m = re.search(r"Retry-After\s*:\s*(\d+)", error_str, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    return None
+
+
+def _compute_retry_backoff(error_str: str, attempt: int) -> float:
+    """计算重试退避时长（秒）。
+
+    优先级：
+      1. **网关超时**（Cloudflare 524 / "timeout"）：30s, 60s, 90s（cap 120s）+ jitter，
+         避免短间隔重试连续触发同一类超时浪费配额。
+      2. **服务端显式 retry_after**（仅当错误指示瞬时故障：502 / 503 / 429 等）：
+         尊重服务端建议，但叠加 floor（≥ 默认指数退避）防止反向加速，cap 120s 防超长阻塞。
+         参考 RFC 9110 §10.2.3：``Retry-After`` 是服务端对客户端的速率提示，应予尊重。
+      3. **普通错误**：指数退避 1s, 2s, 4s（cap 10s）+ jitter。
+
+    参考文献：
+        [1] R. T. Fielding et al., "HTTP semantics," IETF RFC 9110, §10.2.3, 2022.
+        [2] M. T. Nygard, *Release It! Design and Deploy Production-Ready Software*,
+            2nd ed., Pragmatic Bookshelf, 2018, ch. 5 (Stability Patterns).
+    """
+    # 指数退避基线（不含 jitter，用于 retry_after 的 floor 计算）
+    base_backoff = min(2.0**attempt, 10.0)
+
+    is_gateway_timeout = "524" in error_str or "timeout" in error_str.lower() or "timed out" in error_str.lower()
+    if is_gateway_timeout:
+        # 30s, 60s, 90s (cap 120s) + jitter
+        return min(30.0 * (attempt + 1) + random.uniform(0, 5), 120.0)
+
+    # retry_after 仅对瞬时故障生效（避免对真正不可重试错误盲目延长）
+    lower = error_str.lower()
+    is_transient_provider_error = any(hint in lower for hint in _TRANSIENT_PROVIDER_HINTS)
+    if is_transient_provider_error:
+        retry_after = _extract_retry_after_seconds(error_str)
+        if retry_after is not None:
+            # floor: 至少不低于默认指数退避（防止 retry_after=1 反而加速）
+            # cap: 最多 120s（防止 retry_after=3600 阻塞构建）+ 单层 jitter
+            return min(max(retry_after, base_backoff), 120.0) + random.uniform(0, 1)
+
+    # 普通错误：指数退避 1s, 2s, 4s (cap 10s) + jitter
+    return min(base_backoff + random.uniform(0, 1), 10.0)
+
+
+# ============================================================================
+# 不可重试错误识别 — fail-fast 防御
+# ============================================================================
+# 凭证 / 路由 / 参数类一次性错误：重试无法恢复，应立即放弃，避免 N×退避浪费。
+# 字符串模式作为 isinstance 之外的兜底：LiteLLM 偶尔会把上游错误重包成
+# 通用 ``Exception`` 或 ``APIError``，仅靠类名匹配会漏。
+_NON_RETRYABLE_ERROR_PATTERNS: tuple[str, ...] = (
+    "AuthenticationError",
+    "NotFoundError",
+    "BadRequestError",
+    "PermissionDeniedError",
+    "UnsupportedParamsError",
+    "ContextWindowExceededError",
+    "InvalidRequestError",
+    "no route matched",  # 自建网关 404 提示
+    "api_key client option must be set",  # OpenAI SDK 未配置 key 的固定文案
+    "api key not found",
+)
+
+
+def _is_non_retryable_error(exc: BaseException) -> bool:
+    """识别凭证 / 路由 / 参数类一次性错误。
+
+    捕获策略：
+      1. 优先 ``isinstance`` 匹配 ``litellm.exceptions`` 中的显式异常类（强契约）；
+      2. 退化为类名 + 错误文本模式（防御 LiteLLM 包装层把异常重包成 generic
+         ``Exception`` / ``APIError``）。
+
+    Returns:
+        ``True`` 表示该错误重试无意义；调用方应立即终止外层循环。
+    """
+    try:
+        import litellm.exceptions as _lle  # 局部 import 避免顶层硬依赖
+
+        _NON_RETRYABLE_TYPES: tuple[type[BaseException], ...] = (
+            _lle.AuthenticationError,
+            _lle.NotFoundError,
+            _lle.BadRequestError,
+            _lle.PermissionDeniedError,
+            _lle.UnsupportedParamsError,
+            _lle.ContextWindowExceededError,
+        )
+        if isinstance(exc, _NON_RETRYABLE_TYPES):
+            return True
+    except Exception:  # noqa: BLE001 - litellm 未装或重命名时降级到文本匹配
+        pass
+
+    text_blob = f"{type(exc).__name__}: {exc}"
+    lower = text_blob.lower()
+    return any(pat.lower() in lower for pat in _NON_RETRYABLE_ERROR_PATTERNS)
+
+
+async def call_llm_with_retry(
+    *,
+    model: str,
+    messages: list[dict[str, str]],
+    temperature: float = 0.3,
+    max_tokens: int | None = None,
+    context_label: str = "kg_llm",
+    extra_kwargs: dict[str, Any] | None = None,
+) -> str:
+    """带重试的 LLM 调用（KG 系统全局统一保障）。
+
+    策略：SDK 层 ``num_retries=0`` 禁用隐形重试，应用层统一管控。
+    单次超时 ``KG_LLM_TIMEOUT_SECONDS``，最大重试 ``KG_LLM_MAX_RETRIES`` 次。
+    所有失败后返回空字符串（由调用方决定降级行为）。
+
+    Args:
+        extra_kwargs: 由 ``resolve_llm_config()`` 解析得到的厂商透传参数（含
+            ``api_key`` / ``api_base`` / ``drop_params`` / ``reasoning_effort`` 等）；
+            采用 ``setdefault`` 合并，不覆盖本函数显式管理的字段（``model`` /
+            ``messages`` / ``temperature`` / ``timeout`` / ``num_retries`` /
+            ``max_retries`` / ``max_tokens``）。
+    """
+    import litellm
+
+    # 全局兜底：等价 LiteLLM 业界标准开关，确保 SDK 在遇到厂商不支持的参数
+    # （如 gpt-5 不接受 temperature≠1）时静默丢弃而非抛 UnsupportedParamsError。
+    # 即使 caller 未传 extra_kwargs 也生效；幂等设置，重复赋值无副作用。
+    if not getattr(litellm, "drop_params", False):
+        litellm.drop_params = True
+
+    # 应用层重试与超时不可被外部覆盖（避免误用 SDK 内置 num_retries 致重试放大）
+    _PROTECTED_KEYS = {"model", "messages", "temperature", "timeout", "num_retries", "max_retries", "max_tokens"}
+
+    last_error: Exception | None = None
+    for attempt in range(KG_LLM_MAX_RETRIES):
+        try:
+            kwargs: dict[str, Any] = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "timeout": KG_LLM_TIMEOUT_SECONDS,
+                "num_retries": 0,
+                "max_retries": 0,
+            }
+            if max_tokens is not None:
+                kwargs["max_tokens"] = max_tokens
+            if extra_kwargs:
+                for k, v in extra_kwargs.items():
+                    if k in _PROTECTED_KEYS:
+                        continue
+                    kwargs.setdefault(k, v)
+            response = await litellm.acompletion(**kwargs)
+            return response.choices[0].message.content or ""
+        except Exception as exc:
+            last_error = exc
+            # 凭证 / 路由 / 参数类终态错误：立即放弃，避免 N×退避空转浪费配额与延迟。
+            if _is_non_retryable_error(exc):
+                logger.error(
+                    f"{context_label}_non_retryable",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    attempt=attempt + 1,
+                )
+                return ""
+            backoff = _compute_retry_backoff(str(exc), attempt)
+            logger.warning(
+                f"{context_label}_retry",
+                attempt=attempt + 1,
+                max_retries=KG_LLM_MAX_RETRIES,
+                backoff_seconds=round(backoff, 1),
+                error=str(exc),
+            )
+            if attempt < KG_LLM_MAX_RETRIES - 1:
+                await asyncio.sleep(backoff)
+
+    logger.error(
+        f"{context_label}_exhausted",
+        error=str(last_error),
+        max_retries=KG_LLM_MAX_RETRIES,
+    )
+    return ""
+
+
+_DEFAULT_ENCODING = "cl100k_base"
+_encoding_cache: tiktoken.Encoding | None = None
+
+
+def _get_tiktoken_encoding() -> tiktoken.Encoding:
+    global _encoding_cache
+    if _encoding_cache is None:
+        _encoding_cache = tiktoken.get_encoding(_DEFAULT_ENCODING)
+    return _encoding_cache
+
+
+def _truncate_to_token_limit(text: str, max_tokens: int = 3500) -> str:
+    """基于 BPE token 计数的截断（替代字符截断 text[:4000]）。
+
+    字符截断的问题：
+    - 英文 ~4 chars/token → 4000 chars ≈ 1000 tokens（远低于模型限制）
+    - CJK ~2 chars/token → 4000 chars ≈ 2000 tokens（仍有溢出风险）
+    Token 截断确保上下文利用率最优且不超限。
+    """
+    encoding = _get_tiktoken_encoding()
+    tokens = encoding.encode(text)
+    if len(tokens) <= max_tokens:
+        return text
+    return encoding.decode(tokens[:max_tokens])
 
 
 # Backward compatibility aliases (deprecated: use KgEntityType/KgRelationType from types.py)
@@ -118,48 +595,147 @@ Important:
 - Only include entities explicitly mentioned in the text
 - Assign confidence based on how clearly the entity is identified
 
+Density guideline (precision over recall):
+- Aim for at most ~1 core entity per 200 characters of input.
+- A chunk of ~1000 characters should rarely exceed 5-6 entities.
+- Prefer fewer high-confidence entities over exhaustive listing; downstream
+  pipelines (entity resolution, community detection, summarization) suffer more
+  from false positives than from minor recall gaps.
+
+Classification guideline (resolve common confusions):
+- AI models / products → product, NOT person.
+  Examples: Claude, GPT-4, GPT-4o, Gemini, Llama, Mistral, ChatGPT, Copilot, o1.
+- AI vendors / labs → organization, NOT person.
+  Examples: Anthropic, OpenAI, Google DeepMind, Meta AI, Mistral AI.
+- Real human individuals (full names of identifiable people) → person.
+  Examples: Sam Altman, Dario Amodei, Yann LeCun.
+- Frameworks / libraries / CLI tools → product.
+  Examples: LangChain, LlamaIndex, Next.js, Playwright, Claude Code.
+
+Reasoning steps (think silently, output only JSON):
+1. List candidate mentions you see in the text.
+2. For each candidate, ask: "Is this a human individual, an organization, an AI model/product, or a generic concept?"
+3. Drop generic terms, duplicates, and noise (see CRITICAL section below).
+4. Emit at most what the density guideline allows; if you must trim, keep the highest-confidence ones.
+
+CRITICAL — Avoid noise extraction:
+- Do NOT extract generic terms or common abbreviations such as "CSS", "HTML", "JSON",
+  "API", "UI", "app", "key", "spec", "config", "panel", "button", "agent", "generator",
+  "evaluator", etc. These are not specific named entities.
+- Do NOT extract dates ("Nov 26, 2025"), URLs, file names ("foo.txt"), or
+  source-code references ("LevelEditor.tsx:892") as entities.
+- A good entity should be a SPECIFIC named thing meaningful in a cross-document
+  knowledge graph (proper nouns, product names, organizations, people, etc.).
+
 Output as JSON with the following structure:
 {{"entities": [{{"name": "...", "type": "...", "description": "...", "confidence": 0.9}}]}}"""
+
+    # task_registry.py 中登记的 task_key；用户可在 Corpus 设置页（ModelConfigPanel 的 task-models 区块）
+    # 或 /interface/task-models 为该任务单独绑定模型。
+    _TASK_KEY = "knowledge.kg.extraction.entity"
 
     def __init__(
         self,
         model: str | None = None,
         temperature: float = 0.0,
-        max_retries: int = 3,
+        max_retries: int = KG_LLM_MAX_RETRIES,
         fallback_to_regex: bool = True,
         schema: Any | None = None,
+        llm_timeout: float = KG_LLM_TIMEOUT_SECONDS,
     ) -> None:
         """初始化 LLM 实体提取器
 
         Args:
-            model: LLM 模型名称（默认使用配置中的 chat_model）
+            model: LLM 模型名称（默认走 task_model_settings → 全局默认链路）
             temperature: 生成温度（0.0 确保一致性）
-            max_retries: 最大重试次数
+            max_retries: 应用层最大重试次数（默认 ``KG_LLM_MAX_RETRIES``）。
+                SDK 层已通过 ``num_retries=0`` 禁用隐形重试，全链路重试仅此一层管控。
             fallback_to_regex: 失败时是否回退到正则提取器
             schema: ExtractionSchema 实例，用于约束提取类型
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒，默认 ``KG_LLM_TIMEOUT_SECONDS``）。
+                service 层 ``chunk_extract_timeout`` = max_retries × llm_timeout + backoff，确保外层
+                预算覆盖内层重试。
         """
-        self._model, self._model_kwargs = self._resolve_model_config(model)
+        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
+        # 因为 __init__ 是同步的，无法调用异步 DB 查询
+        self._explicit_model = model
+        self._model: str | None = None
+        self._model_kwargs: dict[str, Any] = {}
+        self._model_config_resolved = False
+        self._resolved_corpus_id: UUID | None = None
+        self._model_config_lock: asyncio.Lock | None = None
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_regex = fallback_to_regex
         self._schema = schema
+        self._llm_timeout = llm_timeout
 
-    @staticmethod
-    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
-        if explicit_model:
-            return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
+        """异步解析模型配置（含 api_key）。
 
-        cached = get_cached_llm_config()
-        if cached is not None:
-            return cached[0], cached[1]
-        return get_fallback_llm_config()
+        解析链：
+            1. explicit_model → ``resolve_llm_config_by_model_name``（用户显式指定）
+            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)`` —
+               按 task → corpus_id 映射 → 全局映射 → ``is_default`` → 硬编码 fallback。
+
+        Args:
+            corpus_id: 当前提取批次所属 Corpus；若与上次解析的 corpus_id 不同
+                则强制重新解析，以便 Corpus 级 task_model_settings 即时生效。
+
+        使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
+        """
+        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
+            return
+
+        if self._model_config_lock is None:
+            self._model_config_lock = asyncio.Lock()
+
+        async with self._model_config_lock:
+            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
+                return
+
+            model_name: str | None = None
+            model_kwargs: dict[str, Any] = {}
+
+            try:
+                if self._explicit_model:
+                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
+
+                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
+                    if resolved is not None:
+                        model_name, model_kwargs = resolved
+                if model_name is None:
+                    from negentropy.config.model_resolver import resolve_llm_config_for_task
+
+                    model_name, model_kwargs = await resolve_llm_config_for_task(
+                        self._TASK_KEY,
+                        corpus_id=corpus_id,
+                    )
+            except Exception:
+                logger.warning(
+                    "model_config_async_resolve_failed",
+                    explicit_model=self._explicit_model,
+                    task_key=self._TASK_KEY,
+                    corpus_id=str(corpus_id) if corpus_id else None,
+                    exc_info=True,
+                )
+
+            if model_name is None:
+                from negentropy.config.model_resolver import get_fallback_llm_config
+
+                model_name, model_kwargs = get_fallback_llm_config()
+
+            self._model = model_name
+            self._model_kwargs = model_kwargs
+            self._resolved_corpus_id = corpus_id
+            self._model_config_resolved = True
 
     async def extract(
         self,
         text: str,
         corpus_id: UUID,
+        *,
+        stats_out: ChunkExtractionStats | None = None,
     ) -> list[GraphNode]:
         """从文本中提取实体节点
 
@@ -168,10 +744,14 @@ Output as JSON with the following structure:
         Args:
             text: 输入文本
             corpus_id: 语料库 ID
+            stats_out: 可选的 chunk 级 stats 收集器；service 层每 chunk 创建一个空实例
+                传入，调用结束后读取累计的 type_override_count / density_truncated 等字段。
 
         Returns:
             提取的实体节点列表
         """
+        await self._ensure_model_config(corpus_id=corpus_id)
+
         logger.debug(
             "llm_extract_entities_started",
             corpus_id=str(corpus_id),
@@ -180,7 +760,7 @@ Output as JSON with the following structure:
         )
 
         try:
-            results = await self._extract_with_llm(text)
+            results = await self._extract_with_llm(text, stats=stats_out)
 
             entities = []
             seen = set()
@@ -193,18 +773,22 @@ Output as JSON with the following structure:
                 # 生成稳定的实体 ID（基于名称哈希）
                 entity_id = self._generate_entity_id(name, corpus_id)
 
+                metadata: dict[str, Any] = {
+                    "description": result.description,
+                    "confidence": result.confidence,
+                    "source": "llm_extraction",
+                    "source_text": result.source_text,
+                    "corpus_id": str(corpus_id),
+                    "model": self._model,
+                }
+                # 透传后置校验信号（type_override_source / original_type），便于审计回滚
+                metadata.update(result.metadata)
+
                 entity = GraphNode(
                     id=entity_id,
                     label=name,
                     node_type=result.entity_type,
-                    metadata={
-                        "description": result.description,
-                        "confidence": result.confidence,
-                        "source": "llm_extraction",
-                        "source_text": result.source_text,
-                        "corpus_id": str(corpus_id),
-                        "model": self._model,
-                    },
+                    metadata=metadata,
                 )
                 entities.append(entity)
                 seen.add(name)
@@ -231,19 +815,25 @@ Output as JSON with the following structure:
 
             raise
 
-    async def _extract_with_llm(self, text: str) -> list[EntityExtractionResult]:
+    async def _extract_with_llm(
+        self,
+        text: str,
+        stats: ChunkExtractionStats | None = None,
+    ) -> list[EntityExtractionResult]:
         """使用 LLM 提取实体
 
         Args:
             text: 输入文本
+            stats: 可选 stats 收集器，转发给 ``_parse_entity_response`` 写入。
 
         Returns:
             实体提取结果列表
         """
         import litellm
 
-        # 截断文本以避免 token 限制
-        truncated_text = text[:4000] if len(text) > 4000 else text
+        # Token 感知截断：英文 4000 chars ≈ 1000 token（浪费），CJK 4000 chars ≈ 2000 token（风险）
+        truncated_text = _truncate_to_token_limit(text, max_tokens=3500)
+        chunk_len = len(truncated_text)
 
         prompt = self.EXTRACTION_PROMPT.format(text=truncated_text)
 
@@ -267,7 +857,7 @@ Output as JSON with the following structure:
                 f'"description": "...", "confidence": 0.9}}]}}'
             )
 
-        # 重试逻辑
+        # 重试逻辑（全链路唯一重试层；SDK 层 num_retries=0 已禁用隐形重试）
         last_error = None
         for attempt in range(self._max_retries):
             try:
@@ -275,38 +865,65 @@ Output as JSON with the following structure:
                 safe_kwargs = {
                     k: v
                     for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format")
+                    if k
+                    not in (
+                        "model",
+                        "messages",
+                        "temperature",
+                        "response_format",
+                        "timeout",
+                        "num_retries",
+                        "max_retries",
+                    )
                 }
+                # num_retries=0 + max_retries=0：禁用 litellm/OpenAI SDK 内部隐形重试，
+                # 全链路重试由本 for 循环统一管控（上限 KG_LLM_MAX_RETRIES）。
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    timeout=self._llm_timeout,
+                    num_retries=0,
+                    max_retries=0,
                     **safe_kwargs,
                 )
 
                 content = response.choices[0].message.content
-                return self._parse_entity_response(content)
+                return self._parse_entity_response(content, chunk_len=chunk_len, stats=stats)
 
             except Exception as exc:
                 last_error = exc
+                backoff = _compute_retry_backoff(str(exc), attempt)
                 logger.warning(
                     "llm_extraction_retry",
                     attempt=attempt + 1,
+                    max_retries=self._max_retries,
+                    backoff_seconds=round(backoff, 1),
                     error=str(exc),
+                    timeout_seconds=self._llm_timeout,
                 )
-                await asyncio.sleep(2**attempt)  # 指数退避
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
 
         raise RuntimeError(f"LLM entity extraction failed after {self._max_retries} retries: {last_error}")
 
-    def _parse_entity_response(self, content: str) -> list[EntityExtractionResult]:
-        """解析 LLM 响应为实体列表
+    def _parse_entity_response(
+        self,
+        content: str,
+        chunk_len: int = 0,
+        stats: ChunkExtractionStats | None = None,
+    ) -> list[EntityExtractionResult]:
+        """解析 LLM 响应为实体列表，并应用后置校验（类型重判 + 密度截断）。
 
         Args:
             content: LLM 返回的 JSON 字符串
+            chunk_len: 当前 chunk 的字符长度，用于推导密度上限；为 0 时不做密度截断
+                （便于单元测试与 corpus 外的 ad-hoc 调用复用）。
+            stats: 可选的 stats 收集器；若提供，本函数会累加 type_override_count 等字段。
 
         Returns:
-            实体提取结果列表
+            实体提取结果列表（已应用噪声过滤、类型重判与密度截断）。
         """
         try:
             data = json.loads(content)
@@ -319,6 +936,8 @@ Output as JSON with the following structure:
             return []
 
         results = []
+        filtered_count = 0
+        type_override_count = 0
         for entity_data in entities:
             if not isinstance(entity_data, dict):
                 continue
@@ -327,9 +946,24 @@ Output as JSON with the following structure:
             if not name:
                 continue
 
+            # 过滤噪声实体（停用词 / URL / 文件名 / 源码引用 / 日期等）
+            if is_noise_entity(name):
+                filtered_count += 1
+                continue
+
             entity_type = entity_data.get("type", KgEntityType.OTHER.value)
             if entity_type not in KgEntityType.all_values():
                 entity_type = KgEntityType.OTHER.value
+
+            # 类型重判：known_entities 白名单覆盖 + AI 产品 regex 兜底
+            original_type = entity_type
+            corrected_type, override_source = apply_type_overrides(name, entity_type)
+            entity_type = corrected_type
+            metadata: dict[str, Any] = {}
+            if override_source is not None:
+                metadata["type_override_source"] = override_source
+                metadata["original_type"] = original_type
+                type_override_count += 1
 
             result = EntityExtractionResult(
                 name=name,
@@ -337,8 +971,37 @@ Output as JSON with the following structure:
                 description=entity_data.get("description"),
                 confidence=float(entity_data.get("confidence", 1.0)),
                 source_text=entity_data.get("source_text"),
+                metadata=metadata,
             )
             results.append(result)
+
+        if filtered_count:
+            logger.debug(
+                "noise_entities_filtered",
+                filtered_count=filtered_count,
+                kept_count=len(results),
+            )
+
+        # 密度截断（chunk_len > 0 时启用）
+        dropped = 0
+        if chunk_len > 0 and results:
+            results, dropped = enforce_density_cap(results, chunk_len)
+            if dropped:
+                logger.warning(
+                    "entity_density_truncated",
+                    chunk_len=chunk_len,
+                    kept=len(results),
+                    dropped=dropped,
+                    cap=len(results),
+                )
+
+        # stats 回写（供 service 层聚合到 KgBuildMetrics）
+        if stats is not None:
+            stats.type_override_count += type_override_count
+            stats.density_dropped_count += dropped
+            stats.density_truncated = stats.density_truncated or dropped > 0
+            if chunk_len > 0:
+                stats.entity_density_per_kchar = (len(results) / chunk_len) * 1000.0
 
         return results
 
@@ -433,60 +1096,124 @@ Important:
 - Only create relationships between entities from the provided list
 - Use the most specific and descriptive relationship type available
 - Include the exact text evidence when possible
+- Limit total relations to at most ceil(entity_count * 1.2); skip weak or inferred links
+  to avoid combinatorial pairing. Quality beats quantity.
 
 Output as JSON with the following structure:
 {{"relations": [{{"source": "...", "target": "...", "type": "...",
 "description": "...", "evidence": "...", "confidence": 0.9}}]}}"""
 
+    # task_registry.py 中登记的 task_key；用户可在 Corpus 设置页的 task-models 区块或
+    # /interface/task-models 为该任务单独绑定模型。
+    _TASK_KEY = "knowledge.kg.extraction.relation"
+
     def __init__(
         self,
         model: str | None = None,
         temperature: float = 0.0,
-        max_retries: int = 3,
+        max_retries: int = KG_LLM_MAX_RETRIES,
         fallback_to_cooccurrence: bool = True,
         schema: Any | None = None,
+        llm_timeout: float = KG_LLM_TIMEOUT_SECONDS,
     ) -> None:
         """初始化 LLM 关系提取器
 
         Args:
-            model: LLM 模型名称
+            model: LLM 模型名称（默认走 task_model_settings → 全局默认链路）
             temperature: 生成温度
-            max_retries: 最大重试次数
+            max_retries: 应用层最大重试次数（默认 ``KG_LLM_MAX_RETRIES``）。
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
             schema: ExtractionSchema 实例，用于约束关系类型
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒，默认 ``KG_LLM_TIMEOUT_SECONDS``）。
         """
-        self._model, self._model_kwargs = self._resolve_model_config(model)
+        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
+        self._explicit_model = model
+        self._model: str | None = None
+        self._model_kwargs: dict[str, Any] = {}
+        self._model_config_resolved = False
+        self._resolved_corpus_id: UUID | None = None
+        self._model_config_lock: asyncio.Lock | None = None
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
         self._schema = schema
+        self._llm_timeout = llm_timeout
 
-    @staticmethod
-    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
-        if explicit_model:
-            return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
+        """异步解析模型配置（含 api_key）。
 
-        cached = get_cached_llm_config()
-        if cached is not None:
-            return cached[0], cached[1]
-        return get_fallback_llm_config()
+        解析链：
+            1. explicit_model → ``resolve_llm_config_by_model_name``
+            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)``
+
+        corpus_id 变化时强制重新解析，确保 Corpus 级映射即时生效。
+        """
+        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
+            return
+
+        if self._model_config_lock is None:
+            self._model_config_lock = asyncio.Lock()
+
+        async with self._model_config_lock:
+            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
+                return
+
+            model_name: str | None = None
+            model_kwargs: dict[str, Any] = {}
+
+            try:
+                if self._explicit_model:
+                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
+
+                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
+                    if resolved is not None:
+                        model_name, model_kwargs = resolved
+                if model_name is None:
+                    from negentropy.config.model_resolver import resolve_llm_config_for_task
+
+                    model_name, model_kwargs = await resolve_llm_config_for_task(
+                        self._TASK_KEY,
+                        corpus_id=corpus_id,
+                    )
+            except Exception:
+                logger.warning(
+                    "model_config_async_resolve_failed",
+                    explicit_model=self._explicit_model,
+                    task_key=self._TASK_KEY,
+                    corpus_id=str(corpus_id) if corpus_id else None,
+                    exc_info=True,
+                )
+
+            if model_name is None:
+                from negentropy.config.model_resolver import get_fallback_llm_config
+
+                model_name, model_kwargs = get_fallback_llm_config()
+
+            self._model = model_name
+            self._model_kwargs = model_kwargs
+            self._resolved_corpus_id = corpus_id
+            self._model_config_resolved = True
 
     async def extract(
         self,
         entities: list[GraphNode],
         text: str,
+        *,
+        corpus_id: UUID | None = None,
     ) -> list[GraphEdge]:
         """从文本中提取实体间关系
 
         Args:
             entities: 实体节点列表
             text: 输入文本
+            corpus_id: 可选；用于 Corpus 级 task_model_settings 路由。
+                未提供时退化到全局映射 / 默认。
 
         Returns:
             提取的关系边列表
         """
+        await self._ensure_model_config(corpus_id=corpus_id)
+
         logger.debug(
             "llm_extract_relations_started",
             entity_count=len(entities),
@@ -583,7 +1310,7 @@ Output as JSON with the following structure:
         entity_names = entity_names[:50]
 
         # 截断文本
-        truncated_text = text[:4000] if len(text) > 4000 else text
+        truncated_text = _truncate_to_token_limit(text, max_tokens=3500)
 
         prompt = self.EXTRACTION_PROMPT.format(
             entity_names=json.dumps(entity_names, ensure_ascii=False),
@@ -615,7 +1342,7 @@ Output as JSON with the following structure:
                 f'"description": "...", "evidence": "...", "confidence": 0.9}}]}}'
             )
 
-        # 重试逻辑
+        # 重试逻辑（全链路唯一重试层；SDK 层 num_retries=0 已禁用隐形重试）
         last_error = None
         for attempt in range(self._max_retries):
             try:
@@ -623,13 +1350,25 @@ Output as JSON with the following structure:
                 safe_kwargs = {
                     k: v
                     for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format")
+                    if k
+                    not in (
+                        "model",
+                        "messages",
+                        "temperature",
+                        "response_format",
+                        "timeout",
+                        "num_retries",
+                        "max_retries",
+                    )
                 }
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    timeout=self._llm_timeout,
+                    num_retries=0,
+                    max_retries=0,
                     **safe_kwargs,
                 )
 
@@ -638,12 +1377,17 @@ Output as JSON with the following structure:
 
             except Exception as exc:
                 last_error = exc
+                backoff = _compute_retry_backoff(str(exc), attempt)
                 logger.warning(
                     "llm_relation_extraction_retry",
                     attempt=attempt + 1,
+                    max_retries=self._max_retries,
+                    backoff_seconds=round(backoff, 1),
                     error=str(exc),
+                    timeout_seconds=self._llm_timeout,
                 )
-                await asyncio.sleep(2**attempt)
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
 
         raise RuntimeError(f"LLM relation extraction failed after {self._max_retries} retries: {last_error}")
 
@@ -771,18 +1515,21 @@ class CompositeEntityExtractor:
         self,
         text: str,
         corpus_id: UUID,
+        *,
+        stats_out: ChunkExtractionStats | None = None,
     ) -> list[GraphNode]:
         """从文本中提取实体
 
         Args:
             text: 输入文本
             corpus_id: 语料库 ID
+            stats_out: 可选的 chunk 级 stats 收集器，仅在 LLM 抽取路径下生效。
 
         Returns:
             提取的实体节点列表
         """
         if self._enable_llm and self._llm_extractor:
-            return await self._llm_extractor.extract(text, corpus_id)
+            return await self._llm_extractor.extract(text, corpus_id, stats_out=stats_out)
 
         # 禁用 LLM 时直接使用正则
         from .strategy import RegexEntityExtractor
@@ -827,18 +1574,21 @@ class CompositeRelationExtractor:
         self,
         entities: list[GraphNode],
         text: str,
+        *,
+        corpus_id: UUID | None = None,
     ) -> list[GraphEdge]:
         """从文本中提取关系
 
         Args:
             entities: 实体节点列表
             text: 输入文本
+            corpus_id: 可选；用于 Corpus 级 task_model_settings 路由。
 
         Returns:
             提取的关系边列表
         """
         if self._enable_llm and self._llm_extractor:
-            return await self._llm_extractor.extract(entities, text)
+            return await self._llm_extractor.extract(entities, text, corpus_id=corpus_id)
 
         # 禁用 LLM 时直接使用共现
         from .strategy import CooccurrenceRelationExtractor

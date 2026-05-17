@@ -45,18 +45,18 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 
 ```mermaid
 flowchart LR
-  subgraph UI[/interface/skills - UI]
+  subgraph UI["/interface/skills - UI"]
     A1[SkillsPage] -->|CRUD| A2[SkillFormDialog]
     A2 -->|JSON 校验<br/>字段级锚定| A3[ConfirmDialog]
     A1 -->|Inline toggle| A4[PATCH is_enabled]
   end
 
   subgraph BFF[Next.js BFF]
-    B1[/api/interface/skills*]
+    B1["/api/interface/skills*"]
   end
 
   subgraph Backend[FastAPI / negentropy]
-    C1[/interface/skills CRUDL]
+    C1["/interface/skills CRUDL"]
     C2[Skill ORM + permissions]
     C3[skills_injector]
     C4[_load_subagent_row]

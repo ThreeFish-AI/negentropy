@@ -556,31 +556,44 @@ $$ LANGUAGE SQL;
 
 **备选方案**：若迭代 CTE 性能不佳（预期在 >10K 实体时出现瓶颈），可在 Python 服务层使用 `networkx.pagerank()` 计算后写回数据库。
 
-#### 5.3.2 社区检测 (Louvain)
+#### 5.3.2 社区检测 (Leiden / Louvain)
 
-采用 Python 服务层 + `networkx` 库实现，因为 Louvain 算法需要多轮迭代和模块度优化，不适合纯 SQL 实现<sup>[[15]](#ref15)</sup>：
+采用 Python 服务层 + `igraph + leidenalg` 实现 Leiden（Traag et al., 2019<sup>[[15]](#ref15)</sup>，保证社区内部连通性），`networkx.community.louvain_communities` 兜底。**关键工程纪律**：NetworkX 3.x 的 `nx.community.leiden_communities` 是 dispatch wrapper，**不会自动派发到 leidenalg backend** — 调用时反而抛 `NotImplementedError: 'leiden_communities' is not implemented by 'networkx' backend`（参 [issue.md ISSUE-082](agents/issue.md#issue-082-kg-build-管线七项级联缺陷端到端修复2026-05-12)）。必须经由 `igraph.Graph + leidenalg.find_partition` 直连。
 
 ```python
-# GraphService 中的社区检测方法
-async def detect_communities(
-    self, corpus_id: UUID, resolution: float = 1.0
-) -> Dict[str, int]:
-    """Louvain 社区检测
-
-    1. 从 AGE 加载图结构到 NetworkX
-    2. 执行 Louvain 聚类
-    3. 将社区 ID 写回 knowledge.metadata
-    """
-    import networkx as nx
-    from community import community_louvain
-
-    G = await self.repository.export_to_networkx(corpus_id)
-    partition = community_louvain.best_partition(G, resolution=resolution)
-    await self.repository.update_communities(corpus_id, partition)
-    return partition
+# graph_algorithms.py（实际实现）
+def _run_leiden(G_undirected, *, resolution: float, seed: int) -> list[set[str]]:
+    import igraph as ig
+    import leidenalg
+    nodes = list(G_undirected.nodes())
+    node_to_idx = {n: i for i, n in enumerate(nodes)}
+    edges, weights = [], []
+    for u, v, data in G_undirected.edges(data=True):
+        edges.append((node_to_idx[u], node_to_idx[v]))
+        weights.append(float(data.get("weight") or 1.0))
+    g = ig.Graph(n=len(nodes), edges=edges, directed=False)
+    if weights:
+        g.es["weight"] = weights
+    partition = leidenalg.find_partition(
+        g, leidenalg.RBConfigurationVertexPartition,
+        weights="weight" if weights else None,
+        resolution_parameter=resolution, seed=seed,
+    )
+    return [{nodes[i] for i in cluster} for cluster in partition]
 ```
 
-**存储设计**：社区 ID 存储在 `knowledge.metadata->>'community_id'` 中，并建立 GIN 索引以支持社区级聚合查询。
+**存储设计**：社区 ID 持久化到 `kg_entities.community_id`（一等公民列）；多层级摘要落 `kg_community_summaries`（GraphRAG Global Search 依赖）。批量 UPDATE 采用占位符级 `CAST(:eid_n AS uuid)` 显式类型转换 — **禁用** `FROM (VALUES …) AS v(col type)` 内联类型声明（PostgreSQL 不接受，会抛 `syntax error at or near "uuid"`，参 [ISSUE-082](agents/issue.md#issue-082-kg-build-管线七项级联缺陷端到端修复2026-05-12)）。
+
+```sql
+-- 正确范式（PageRank / 社区检测 UPDATE 共用）
+UPDATE negentropy.kg_entities e
+SET community_id = v.cid
+FROM (VALUES
+    (CAST(:eid_0 AS uuid), :cid_0),
+    (CAST(:eid_1 AS uuid), :cid_1)
+) AS v(eid, cid)
+WHERE e.id = v.eid AND e.corpus_id = CAST(:corpus_id AS uuid);
+```
 
 #### 5.3.3 最短路径
 

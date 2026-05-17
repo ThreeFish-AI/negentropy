@@ -234,13 +234,15 @@ cmd_start() {
   # Phase 4 — 前端构建
   if ! $skip_build; then
     log_phase "Phase 4/5: 前端构建"
+    # 先启动 backend，使 wiki SSG 构建时可从 API 拉取数据
+    start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
     log_info "构建 ui + wiki (并行)..."
     (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
     local build_ui_pid=$!
     (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
     local build_wiki_pid=$!
     local _rc=0; wait "$build_ui_pid" || _rc=$?; wait "$build_wiki_pid" || _rc=$?
-    (( _rc )) && { log_error "前端构建失败"; exit 1; }
+    (( _rc )) && { log_error "前端构建失败"; cmd_stop; exit 1; }
     log_ok "前端构建完成"
   else
     log_phase "Phase 4/5: 前端构建 (跳过)"
@@ -305,13 +307,17 @@ cmd_logs() {
 # ── 子命令: build ────────────────────────────────────────────────────────────────
 cmd_build() {
   log_phase "仅构建（不启动）"
+  run_dir_init
+  # 先启动 backend，使 wiki SSG 构建时可从 API 拉取数据
+  start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
   log_info "构建 ui + wiki (并行)..."
   (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
   local pid_ui=$!
   (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
   local pid_wiki=$!
   local _rc=0; wait "$pid_ui" || _rc=$?; wait "$pid_wiki" || _rc=$?
-  (( _rc )) && { log_error "前端构建失败"; exit 1; }
+  (( _rc )) && { log_error "前端构建失败"; stop_service "$SVC_BACKEND"; exit 1; }
+  stop_service "$SVC_BACKEND"
   log_ok "前端构建完成"
 }
 

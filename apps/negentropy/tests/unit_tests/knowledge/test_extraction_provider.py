@@ -16,7 +16,13 @@ from negentropy.knowledge.ingestion.extraction import (
     DataExtractorProvider,
 )
 
-from .conftest import FakeMcpSession, noop_increment_tool_call_count, noop_llm_plan
+from .conftest import (
+    FakeImageContent,
+    FakeMcpClient,
+    FakeMcpSession,
+    FakeTextItem,
+    patch_extraction_deps,
+)
 
 # ---------------------------------------------------------------------------
 # _invoke_target: batch schema & normalisation
@@ -28,12 +34,10 @@ async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalize
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-    captured_arguments: dict[str, object] = {}
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            captured_arguments.update(kwargs["arguments"])
-            return SimpleNamespace(
+    captured: list[dict[str, object]] = []
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={
                     "results": [
@@ -51,10 +55,14 @@ async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalize
                 error=None,
                 duration_ms=18,
             )
+        ],
+        capture_arguments=captured,
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -74,17 +82,9 @@ async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalize
             },
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -103,7 +103,7 @@ async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalize
     )
 
     assert result["success"] is True
-    assert captured_arguments == {
+    assert captured[0] == {
         "pdf_sources": [
             {
                 "filename": "report.pdf",
@@ -125,11 +125,9 @@ async def test_negentropy_perceives_provider_normalizes_list_structured_content(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content=[
                     {
@@ -142,25 +140,20 @@ async def test_negentropy_perceives_provider_normalizes_list_structured_content(
                 error=None,
                 duration_ms=18,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={"type": "object", "properties": {"pdf_sources": {"type": "array"}}},
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -194,37 +187,24 @@ async def test_negentropy_perceives_provider_normalizes_json_text_content_when_s
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-
-    class FakeTextItem:
-        type = "text"
-        text = '{"result": {"markdown_content": "# JSON Title", "plain_text": "JSON Title"}}'
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content=None,
-                content=[FakeTextItem()],
+                content=[
+                    FakeTextItem(text='{"result": {"markdown_content": "# JSON Title", "plain_text": "JSON Title"}}')
+                ],
                 error=None,
                 duration_ms=13,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(server_id=server_id),
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
+    patch_extraction_deps(monkeypatch, server_id)
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -253,37 +233,26 @@ async def test_negentropy_perceives_provider_rejects_failed_json_text_envelope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-
-    class FakeTextItem:
-        type = "text"
-        text = '{"success":false,"total_pdfs":0,"successful_count":0,"failed_count":0,"results":[],"total_pages":0}'
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content=None,
-                content=[FakeTextItem()],
+                content=[
+                    FakeTextItem(
+                        text='{"success":false,"total_pdfs":0,"successful_count":0,"failed_count":0,"results":[],"total_pages":0}'
+                    )
+                ],
                 error=None,
                 duration_ms=13,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(server_id=server_id),
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
+    patch_extraction_deps(monkeypatch, server_id)
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -310,37 +279,22 @@ async def test_negentropy_perceives_provider_uses_plain_text_content_when_json_i
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-
-    class FakeTextItem:
-        type = "text"
-        text = "# Plain Markdown"
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content=None,
-                content=[FakeTextItem()],
+                content=[FakeTextItem(text="# Plain Markdown")],
                 error=None,
                 duration_ms=13,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(server_id=server_id),
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
+    patch_extraction_deps(monkeypatch, server_id)
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -374,11 +328,9 @@ async def test_negentropy_perceives_provider_rejects_batch_payload_without_succe
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={
                     "success": True,
@@ -390,10 +342,13 @@ async def test_negentropy_perceives_provider_rejects_batch_payload_without_succe
                 error=None,
                 duration_ms=17,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -401,17 +356,9 @@ async def test_negentropy_perceives_provider_rejects_batch_payload_without_succe
             },
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -444,28 +391,21 @@ async def test_negentropy_perceives_provider_retries_after_validation_error_with
 ) -> None:
     server_id = uuid4()
     call_arguments: list[dict[str, object]] = []
-
-    class FakeClient:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            self.calls += 1
-            call_arguments.append(kwargs["arguments"])
-            if self.calls == 1:
-                return SimpleNamespace(
-                    success=False,
-                    structured_content=None,
-                    content=[],
-                    error=(
-                        "7 validation errors for call[parse_pdfs_to_markdown]\n"
-                        "pdf_sources\n  Missing required argument\n"
-                        "source_type\n  Unexpected keyword argument\n"
-                        "content_base64\n  Unexpected keyword argument\n"
-                    ),
-                    duration_ms=12,
-                )
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
+                success=False,
+                structured_content=None,
+                content=[],
+                error=(
+                    "7 validation errors for call[parse_pdfs_to_markdown]\n"
+                    "pdf_sources\n  Missing required argument\n"
+                    "source_type\n  Unexpected keyword argument\n"
+                    "content_base64\n  Unexpected keyword argument\n"
+                ),
+                duration_ms=12,
+            ),
+            SimpleNamespace(
                 success=True,
                 structured_content={
                     "result": {
@@ -476,27 +416,23 @@ async def test_negentropy_perceives_provider_retries_after_validation_error_with
                 content=[],
                 error=None,
                 duration_ms=20,
-            )
+            ),
+        ],
+        capture_arguments=call_arguments,
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={"type": "object"},
             description="Convert PDFs to markdown",
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -542,21 +478,23 @@ async def test_negentropy_perceives_provider_uses_schema_string_source_for_singl
 ) -> None:
     server_id = uuid4()
     call_arguments: list[dict[str, object]] = []
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            call_arguments.append(kwargs["arguments"])
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={"result": {"markdown_content": "# PDF", "plain_text": "PDF"}},
                 content=[],
                 error=None,
                 duration_ms=9,
             )
+        ],
+        capture_arguments=call_arguments,
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             server_name="negentropy-perceives",
             input_schema={
@@ -570,17 +508,9 @@ async def test_negentropy_perceives_provider_uses_schema_string_source_for_singl
             description="single pdf",
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -614,38 +544,6 @@ async def test_negentropy_perceives_provider_uses_llm_selected_string_source_for
     server_id = uuid4()
     call_arguments: list[dict[str, object]] = []
 
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            call_arguments.append(kwargs["arguments"])
-            return SimpleNamespace(
-                success=True,
-                structured_content={"result": {"markdown_content": "# PDF", "plain_text": "PDF"}},
-                content=[],
-                error=None,
-                duration_ms=9,
-            )
-
-        async def discover_tools(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
-                success=True,
-                error=None,
-                tools=[
-                    SimpleNamespace(
-                        name="parse_pdf_to_markdown",
-                        description="single pdf",
-                        input_schema={
-                            "type": "object",
-                            "properties": {
-                                "pdf_source": {"type": "string"},
-                                "include_metadata": {"type": "boolean"},
-                            },
-                            "required": ["pdf_source"],
-                        },
-                    )
-                ],
-            )
-
     async def fake_llm_plan(**kwargs):  # type: ignore[no-untyped-def]
         return AdaptiveToolInvocationPlan(
             adapter_name="single_string_source_v1",
@@ -654,25 +552,50 @@ async def test_negentropy_perceives_provider_uses_llm_selected_string_source_for
             diagnostics={"selected_source_kind": "local_path", "contract_mode": "nested_single"},
         )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
+                success=True,
+                structured_content={"result": {"markdown_content": "# PDF", "plain_text": "PDF"}},
+                content=[],
+                error=None,
+                duration_ms=9,
+            )
+        ],
+        capture_arguments=call_arguments,
+        discover_tools_response=SimpleNamespace(
+            success=True,
+            error=None,
+            tools=[
+                SimpleNamespace(
+                    name="parse_pdf_to_markdown",
+                    description="single pdf",
+                    input_schema={
+                        "type": "object",
+                        "properties": {
+                            "pdf_source": {"type": "string"},
+                            "include_metadata": {"type": "boolean"},
+                        },
+                        "required": ["pdf_source"],
+                    },
+                )
+            ],
+        ),
+    )
+
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             server_name="negentropy-perceives",
             scalar_returns_none=True,
         ),
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        fake_llm_plan,
+        llm_plan=fake_llm_plan,
     )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -702,35 +625,30 @@ async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_si
 ) -> None:
     server_id = uuid4()
     call_arguments: list[dict[str, object]] = []
-
-    class FakeClient:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            self.calls += 1
-            call_arguments.append(kwargs["arguments"])
-            if self.calls == 1:
-                return SimpleNamespace(
-                    success=False,
-                    structured_content=None,
-                    content=[],
-                    error=(
-                        "1 validation error for call[parse_pdf_to_markdown]\npdf_source\n  Missing required argument\n"
-                    ),
-                    duration_ms=8,
-                )
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
+                success=False,
+                structured_content=None,
+                content=[],
+                error=("1 validation error for call[parse_pdf_to_markdown]\npdf_source\n  Missing required argument\n"),
+                duration_ms=8,
+            ),
+            SimpleNamespace(
                 success=True,
                 structured_content={"result": {"markdown_content": "# PDF", "plain_text": "PDF"}},
                 content=[],
                 error=None,
                 duration_ms=10,
-            )
+            ),
+        ],
+        capture_arguments=call_arguments,
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -742,17 +660,9 @@ async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_si
             description="single pdf",
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -785,24 +695,24 @@ async def test_negentropy_perceives_provider_fails_fast_when_single_string_sourc
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
-    call_count = 0
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            nonlocal call_count
-            call_count += 1
-            _ = kwargs
-            return SimpleNamespace(
+    call_count: list[dict[str, object]] = []
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={"result": {"markdown_content": "# should not happen", "plain_text": "bad"}},
                 content=[],
                 error=None,
                 duration_ms=1,
             )
+        ],
+        capture_arguments=call_count,
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -814,17 +724,9 @@ async def test_negentropy_perceives_provider_fails_fast_when_single_string_sourc
             description="single pdf",
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -843,7 +745,7 @@ async def test_negentropy_perceives_provider_fails_fast_when_single_string_sourc
     )
 
     assert result["success"] is False
-    assert call_count == 0
+    assert len(call_count) == 0
     assert result["attempt"].failure_category == "low_confidence_contract"
     assert "string source" in result["attempt"].diagnostic_summary
 
@@ -859,33 +761,30 @@ async def test_negentropy_perceives_provider_failovers_when_primary_returns_empt
 ) -> None:
     server_id = uuid4()
     call_arguments: list[dict[str, object]] = []
-
-    class FakeClient:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            self.calls += 1
-            call_arguments.append(kwargs["arguments"])
-            if self.calls == 1:
-                return SimpleNamespace(
-                    success=True,
-                    structured_content={"result": {"metadata": {"provider": "primary"}}},
-                    content=[],
-                    error=None,
-                    duration_ms=10,
-                )
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
+                success=True,
+                structured_content={"result": {"metadata": {"provider": "primary"}}},
+                content=[],
+                error=None,
+                duration_ms=10,
+            ),
+            SimpleNamespace(
                 success=True,
                 structured_content={"result": {"markdown_content": "# Secondary", "plain_text": "Secondary"}},
                 content=[],
                 error=None,
                 duration_ms=12,
-            )
+            ),
+        ],
+        capture_arguments=call_arguments,
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -905,17 +804,9 @@ async def test_negentropy_perceives_provider_failovers_when_primary_returns_empt
             },
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider.extract(
         app_name="negentropy",
@@ -952,9 +843,10 @@ async def test_negentropy_perceives_provider_marks_unknown_contract_as_unsupport
 ) -> None:
     server_id = uuid4()
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={"type": "object", "properties": {"opaque": {"type": "integer"}}},
         ),
@@ -991,9 +883,10 @@ async def test_negentropy_perceives_provider_marks_unknown_contract_with_extra_r
 ) -> None:
     server_id = uuid4()
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -1044,32 +937,6 @@ async def test_negentropy_perceives_provider_retries_with_string_batch_contract_
     call_arguments: list[dict[str, object]] = []
     llm_calls: list[dict[str, object]] = []
 
-    class FakeClient:
-        def __init__(self) -> None:
-            self.calls = 0
-
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            self.calls += 1
-            call_arguments.append(kwargs["arguments"])
-            if self.calls == 1:
-                return SimpleNamespace(
-                    success=False,
-                    structured_content=None,
-                    content=[],
-                    error=(
-                        "1 validation error for call[parse_pdfs_to_markdown]\n"
-                        "pdf_sources.0\n  Input should be a valid string\n"
-                    ),
-                    duration_ms=7,
-                )
-            return SimpleNamespace(
-                success=True,
-                structured_content={"result": {"markdown_content": "# Batch", "plain_text": "Batch"}},
-                content=[],
-                error=None,
-                duration_ms=11,
-            )
-
     async def fake_llm_plan(**kwargs):  # type: ignore[no-untyped-def]
         llm_calls.append(kwargs)
         validation_error = kwargs.get("validation_error")
@@ -1087,9 +954,33 @@ async def test_negentropy_perceives_provider_retries_with_string_batch_contract_
             diagnostics={"selected_source_kind": "local_path"},
         )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
+                success=False,
+                structured_content=None,
+                content=[],
+                error=(
+                    "1 validation error for call[parse_pdfs_to_markdown]\n"
+                    "pdf_sources.0\n  Input should be a valid string\n"
+                ),
+                duration_ms=7,
+            ),
+            SimpleNamespace(
+                success=True,
+                structured_content={"result": {"markdown_content": "# Batch", "plain_text": "Batch"}},
+                content=[],
+                error=None,
+                duration_ms=11,
+            ),
+        ],
+        capture_arguments=call_arguments,
+    )
+
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             server_name="negentropy-perceives",
             input_schema={
@@ -1101,18 +992,11 @@ async def test_negentropy_perceives_provider_retries_with_string_batch_contract_
             },
             description="batch pdfs",
         ),
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        fake_llm_plan,
+        llm_plan=fake_llm_plan,
     )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -1150,21 +1034,9 @@ async def test_negentropy_perceives_provider_merges_image_content_items_into_ass
     图片应被提取并与 Markdown 引用匹配，生成正确的 ExtractionAsset 列表。
     """
     server_id = uuid4()
-
-    class FakeImageContent:
-        def __init__(self, data: str, mime: str) -> None:
-            self.type = "image"
-            self.data = data
-            self.mimeType = mime
-
-    class FakeTextContent:
-        type = "text"
-        text = ""
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={
                     "markdown_content": (
@@ -1175,20 +1047,22 @@ async def test_negentropy_perceives_provider_merges_image_content_items_into_ass
                     ),
                     "plain_text": "PDF Report\nSome analysis text.",
                     "metadata": {"pages": 5},
-                    # NOTE: structured_content 中没有 "assets" 字段
                 },
                 content=[
-                    FakeTextContent(),
+                    FakeTextItem(text=""),
                     FakeImageContent(data="cG5nX2RhdGFfMQ==", mime="image/png"),
                     FakeImageContent(data="cG5nX2RhdGFfMg==", mime="image/png"),
                 ],
                 error=None,
                 duration_ms=42,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -1199,17 +1073,9 @@ async def test_negentropy_perceives_provider_merges_image_content_items_into_ass
             },
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -1230,10 +1096,8 @@ async def test_negentropy_perceives_provider_merges_image_content_items_into_ass
     assert result["success"] is True
     extracted = result["result"]
 
-    # Markdown 正确提取
     assert "# PDF Report" in extracted.markdown_content
 
-    # assets 应包含从 content_items 提取的两张图片
     assert len(extracted.assets) == 2
     assert extracted.assets[0].name == "img_1_36_20260324_135001.png"
     assert extracted.assets[0].content_type == "image/png"
@@ -1250,17 +1114,9 @@ async def test_negentropy_perceives_provider_structured_assets_take_precedence_o
     content_items 中的同名 ImageContent 不应覆盖。
     """
     server_id = uuid4()
-
-    class FakeImageContent:
-        def __init__(self, data: str, mime: str) -> None:
-            self.type = "image"
-            self.data = data
-            self.mimeType = mime
-
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={
                     "markdown_content": "# Report\n![](chart.png)",
@@ -1279,10 +1135,13 @@ async def test_negentropy_perceives_provider_structured_assets_take_precedence_o
                 error=None,
                 duration_ms=20,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -1290,17 +1149,9 @@ async def test_negentropy_perceives_provider_structured_assets_take_precedence_o
             },
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",
@@ -1322,7 +1173,6 @@ async def test_negentropy_perceives_provider_structured_assets_take_precedence_o
     extracted = result["result"]
     assert len(extracted.assets) == 1
     assert extracted.assets[0].name == "chart.png"
-    # structured_content 中的数据应优先
     assert extracted.assets[0].data_base64 == "c3RydWN0dXJlZF9kYXRh"
 
 
@@ -1336,10 +1186,9 @@ async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_d
     output_dir.mkdir()
     (output_dir / "img_1.png").write_bytes(b"png")
 
-    class FakeClient:
-        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
-            _ = kwargs
-            return SimpleNamespace(
+    client = FakeMcpClient(
+        responses=[
+            SimpleNamespace(
                 success=True,
                 structured_content={
                     "markdown_content": "# Report\n![](img_1.png)",
@@ -1356,10 +1205,13 @@ async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_d
                 error=None,
                 duration_ms=20,
             )
+        ],
+    )
 
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
-        lambda: FakeMcpSession(
+    patch_extraction_deps(
+        monkeypatch,
+        server_id,
+        session=FakeMcpSession(
             server_id=server_id,
             input_schema={
                 "type": "object",
@@ -1367,17 +1219,9 @@ async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_d
             },
         ),
     )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
-        noop_llm_plan,
-    )
 
     provider = DataExtractorProvider()
-    provider._client = FakeClient()
+    provider._client = client
 
     result = await provider._invoke_target(
         app_name="negentropy",

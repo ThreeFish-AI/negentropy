@@ -27,7 +27,7 @@ import sqlalchemy as sa
 import negentropy.db.session as db_session
 from negentropy.engine.adapters.postgres.summary_service import SummaryService
 from negentropy.engine.factories.memory import get_fact_service
-from negentropy.engine.utils.model_config import resolve_model_config
+from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.engine.utils.token_counter import TokenCounter
 from negentropy.logging import get_logger
 from negentropy.models.internalization import Memory, MemorySummary
@@ -64,6 +64,9 @@ Output as JSON:
 class MemorySummarizer:
     """用户记忆画像摘要生成器"""
 
+    # task_registry.py 中登记的 task_key；用户可在 /interface/task-models 为本任务单独绑定模型。
+    _TASK_KEY = "consolidation.summarize"
+
     def __init__(
         self,
         model: str | None = None,
@@ -71,11 +74,20 @@ class MemorySummarizer:
         max_retries: int = 3,
         ttl_hours: int = _DEFAULT_TTL_HOURS,
     ) -> None:
-        self._model, self._model_kwargs = resolve_model_config(model)
+        self._explicit_model = model
+        self._model: str = ""
+        self._model_kwargs: dict = {}
         self._temperature = temperature
         self._max_retries = max_retries
         self._ttl = timedelta(hours=ttl_hours)
         self._summary_service = SummaryService()
+
+    async def _resolve_model(self) -> None:
+        """异步解析当前任务对应的模型；resolver 内置 60s TTL 缓存。"""
+        self._model, self._model_kwargs = await resolve_model_config_async(
+            self._TASK_KEY,
+            explicit_model=self._explicit_model,
+        )
 
     async def get_or_generate_summary(self, user_id: str, app_name: str) -> MemorySummary | None:
         cached = await self._summary_service.get_summary(user_id=user_id, app_name=app_name)
@@ -88,6 +100,9 @@ class MemorySummarizer:
             return cached
 
     async def generate_summary(self, user_id: str, app_name: str) -> MemorySummary | None:
+        # 解析当前任务模型（每次 generate 入口刷新，以接住 /interface/task-models 切换）
+        await self._resolve_model()
+
         memories = await self._load_memories(user_id, app_name)
         facts = await self._load_facts(user_id, app_name)
 

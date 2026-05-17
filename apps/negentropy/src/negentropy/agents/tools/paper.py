@@ -384,6 +384,57 @@ async def ingest_paper(
             "arxiv_id": arxiv_id,
         }
 
+    # P3-2 · Approval Gate 集成（RFC 0002 §4.4）
+    # 审批策略由前端 ApprovalPolicySelector 设置 → session.state.approval_policy 透传；
+    # should_request_approval 根据策略 + HIGH_RISK_TOOLS 白名单判定是否拦截。
+    from ..approval import (
+        ApprovalPolicy,
+        consume_approval_response,
+        request_approval,
+        should_request_approval,
+    )
+
+    policy_payload = None
+    if hasattr(tool_context, "state") and tool_context.state:
+        policy_payload = tool_context.state.get("approval_policy")
+    try:
+        policy = ApprovalPolicy(**policy_payload) if isinstance(policy_payload, dict) else ApprovalPolicy()
+    except TypeError:
+        logger.warning("approval_policy_parse_failed", payload=policy_payload)
+        policy = ApprovalPolicy()
+
+    if should_request_approval("ingest_paper", policy):
+        action_id = request_approval(
+            tool_context,
+            tool_name="ingest_paper",
+            label=f"入库论文: {title or arxiv_id}",
+            detail="将从 arxiv.org 下载 PDF 并写入 agent-papers 知识库",
+            args_preview={"arxiv_id": arxiv_id, "title": title},
+            risk_tier="medium",
+        )
+        if action_id:
+            # Polling 等待用户响应（前端 ApprovalDialog 写回 state.approval_responses）
+            approval_progress_id = f"approval_wait:{arxiv_id}"
+            _emit_tool_progress(tool_context, tool_call_id=approval_progress_id, percent=0, stage="等待用户审批")
+            max_wait = 30.0
+            interval = 0.5
+            elapsed = 0.0
+            response = None
+            while elapsed < max_wait:
+                await asyncio.sleep(interval)
+                elapsed += interval
+                response = consume_approval_response(tool_context, action_id)
+                if response is not None:
+                    break
+            _clear_tool_progress(tool_context, tool_call_id=approval_progress_id)
+            if response is None or response.decision == "denied":
+                logger.info("ingest_paper_denied", arxiv_id=arxiv_id, reason=getattr(response, "reason", "timeout"))
+                return {"status": "failed", "error": "用户拒绝或审批超时", "arxiv_id": arxiv_id}
+        else:
+            # request_approval 返回 None（state 不可用）— 显式 fail-close
+            logger.warning("approval_request_failed_fail_close", arxiv_id=arxiv_id)
+            return {"status": "failed", "error": "审批请求失败（state 不可用）", "arxiv_id": arxiv_id}
+
     tool_call_id = (
         getattr(tool_context, "function_call_id", None)
         or getattr(tool_context, "tool_call_id", None)

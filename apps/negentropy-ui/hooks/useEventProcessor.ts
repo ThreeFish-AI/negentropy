@@ -20,7 +20,7 @@ import {
   getEventMessageId,
   getEventToolCallId,
   getEventToolCallName,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 
 export interface UseEventProcessorOptions {
   sessionMessages?: BaseEvent[];

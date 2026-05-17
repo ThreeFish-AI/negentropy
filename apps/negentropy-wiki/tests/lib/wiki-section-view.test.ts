@@ -14,15 +14,17 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  countLeafEntries,
   findActiveTopLevelSlug,
   findFirstDocumentSlug,
+  findIndexEntry,
   resolveSectionView,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
 
 function doc(slug: string, overrides: Partial<WikiNavTreeItem> = {}): WikiNavTreeItem {
   return {
-    entry_id: `entry-${slug}`,
+    entry_id: overrides.entry_id ?? `entry-${slug}`,
     entry_slug: slug,
     entry_title: slug,
     is_index_page: false,
@@ -142,5 +144,95 @@ describe("resolveSectionView", () => {
       "alpha/blog",
       "alpha/paper",
     ]);
+  });
+});
+
+describe("findIndexEntry", () => {
+  it("空树 → null", () => {
+    expect(findIndexEntry([])).toBeNull();
+  });
+
+  it("找到顶层 is_index_page 条目", () => {
+    const items = [
+      doc("intro", { is_index_page: true }),
+      doc("guide"),
+    ];
+    const result = findIndexEntry(items);
+    expect(result?.entry_slug).toBe("intro");
+  });
+
+  it("递归查找深层 is_index_page 条目", () => {
+    const items = [
+      container("alpha", [
+        doc("alpha/home", { is_index_page: true }),
+        doc("alpha/guide"),
+      ]),
+      doc("beta"),
+    ];
+    const result = findIndexEntry(items);
+    expect(result?.entry_slug).toBe("alpha/home");
+  });
+
+  it("无 is_index_page 时返回 null", () => {
+    const items = [
+      doc("a"),
+      container("b", [doc("b/c")]),
+    ];
+    expect(findIndexEntry(items)).toBeNull();
+  });
+
+  it("is_index_page 但 entry_id 为 null 时跳过（合成容器）", () => {
+    const items = [
+      doc("ghost", { entry_id: null, is_index_page: true }),
+      doc("real", { is_index_page: true }),
+    ];
+    const result = findIndexEntry(items);
+    expect(result?.entry_slug).toBe("real");
+  });
+});
+
+describe("countLeafEntries", () => {
+  it("空树 → 0", () => {
+    expect(countLeafEntries([])).toBe(0);
+  });
+
+  it("纯文档列表", () => {
+    const items = [doc("a"), doc("b"), doc("c")];
+    expect(countLeafEntries(items)).toBe(3);
+  });
+
+  it("混合容器与文档（容器自身有 entry_id 也计入）", () => {
+    const items = [
+      container("cat", [doc("cat/p1"), doc("cat/p2")]),
+      doc("standalone"),
+    ];
+    // container "cat" 自身 entry_id 非空也计入（自 0011 起容器条目持久化）
+    expect(countLeafEntries(items)).toBe(4);
+  });
+
+  it("空容器有 entry_id 时也计入", () => {
+    const items = [
+      container("empty", []),
+      doc("real"),
+    ];
+    // container "empty" 自身 entry_id 非空也计入
+    expect(countLeafEntries(items)).toBe(2);
+  });
+
+  it("entry_id=null 的节点不计入（合成容器）", () => {
+    const items = [
+      doc("synthetic", { entry_id: null }),
+      doc("valid"),
+    ];
+    expect(countLeafEntries(items)).toBe(1);
+  });
+
+  it("容器 entry_id=null 时仅计子节点", () => {
+    const items = [
+      container("legacy", [doc("legacy/a")], { entry_id: null }),
+      doc("standalone"),
+    ];
+    // legacy 容器自身 entry_id=null 不计入，仅计子节点 + standalone
+    expect(countLeafEntries(items)).toBe(2);
   });
 });

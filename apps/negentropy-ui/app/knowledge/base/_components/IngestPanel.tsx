@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { AsyncPipelineResult } from "@/features/knowledge";
 
 interface IngestPanelProps {
@@ -20,6 +21,7 @@ export function IngestPanel({
   onIngestUrl,
   onReplace,
 }: IngestPanelProps) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [mode, setMode] = useState<"text" | "url">("text");
   const [sourceUri, setSourceUri] = useState("");
   const [text, setText] = useState("");
@@ -65,9 +67,12 @@ export function IngestPanel({
 
   const handleReplace = async () => {
     if (!corpusId || !sourceUri || !text.trim() || isSubmitting) return;
-    const confirmed = window.confirm(
-      `即将替换 source_uri "${sourceUri}" 下的全部内容，是否继续？`,
-    );
+    const confirmed = await confirm({
+      title: "Replace Source",
+      message: `即将替换 source_uri "${sourceUri}" 下的全部内容，是否继续？`,
+      confirmLabel: "Replace",
+      destructive: true,
+    });
     if (!confirmed) return;
     setIsSubmitting(true);
     setError(null);
@@ -82,7 +87,8 @@ export function IngestPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <>
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <h2 className="text-sm font-semibold text-card-foreground">
         Ingest / Replace
       </h2>
@@ -169,6 +175,8 @@ export function IngestPanel({
           </div>
         )}
       </div>
-    </div>
+      </div>
+      {confirmDialog}
+    </>
   );
 }

@@ -112,17 +112,45 @@ class FakeRepository:
         _ = corpus_id
         return SimpleNamespace(config={})
 
+    async def replace_knowledge_by_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        chunks: Iterable[KnowledgeChunk],
+    ) -> tuple[int, list[KnowledgeRecord]]:
+        self.deleted_sources.append(
+            {
+                "corpus_id": corpus_id,
+                "app_name": app_name,
+                "source_uri": source_uri,
+            }
+        )
+        items = list(chunks)
+        self.added.extend(items)
+        return 1, [_make_record(corpus_id, app_name, item) for item in items]
+
 
 async def _embedding_fn(text: str) -> list[float]:
     return [float(len(text))]
 
 
-async def test_ingest_search_replace_source_flow():
+async def test_ingest_search_replace_source_flow(monkeypatch):
     repo = FakeRepository()
     service = KnowledgeService(
         repository=repo,
         embedding_fn=_embedding_fn,
         chunking_config=ChunkingConfig(chunk_size=5, overlap=0, preserve_newlines=True),
+    )
+
+    class FakeDocumentStorageService:
+        async def get_document_by_source_uri(self, *, source_uri, corpus_id, app_name):
+            return None
+
+    monkeypatch.setattr(
+        "negentropy.storage.service.DocumentStorageService",
+        lambda: FakeDocumentStorageService(),
     )
 
     corpus_id = uuid4()

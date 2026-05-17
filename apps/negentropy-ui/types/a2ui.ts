@@ -1,5 +1,5 @@
 import type { BaseEvent, Message } from "@ag-ui/core";
-import type { CanonicalMessageRole } from "@/types/agui";
+import type { CanonicalMessageRole } from "@negentropy/agents-chat-core/protocol";
 import type { MessageLedgerEntry } from "@/types/common";
 import type { ChatMessage, ToolCallStatus } from "@/types/common";
 
@@ -131,14 +131,32 @@ export interface ReplyReasoningDisplaySegment {
   title: string;
   phase: "started" | "finished";
   stepId: string;
+  /**
+   * 推理过程文本（由 ne.a2ui.thought 自定义事件累积写入对应 reasoning 节点
+   * payload.content 后透传）。展开 ReasoningPanel 时显示给用户。
+   */
+  content?: string;
   result?: unknown;
+}
+
+export interface SubAgentTransferDisplaySegment {
+  id: string;
+  kind: "subagent-transfer";
+  nodeId: string;
+  timestamp: number;
+  sourceOrder: number;
+  fromAgent: string;
+  toAgent: string;
+  status: ToolCallStatus;
+  childResponse?: string;
 }
 
 export type AssistantReplyDisplaySegment =
   | ReplyTextDisplaySegment
   | ReplyToolGroupDisplaySegment
   | ReplyErrorDisplaySegment
-  | ReplyReasoningDisplaySegment;
+  | ReplyReasoningDisplaySegment
+  | SubAgentTransferDisplaySegment;
 
 export interface AssistantReplyDisplayBlock {
   id: string;

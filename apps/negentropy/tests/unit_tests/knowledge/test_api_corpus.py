@@ -12,7 +12,9 @@ from uuid import uuid4
 import pytest
 from fastapi import BackgroundTasks
 
-from negentropy.knowledge import api as knowledge_api
+from negentropy.knowledge import _shared
+from negentropy.knowledge.routes import corpus as corpus_routes
+from negentropy.knowledge.schemas import CorpusCreateRequest, CorpusUpdateRequest
 
 from .conftest import FakeDefaultRouteSession, FakeKnowledgeService, FakeScalarSession
 
@@ -24,11 +26,11 @@ async def test_create_corpus_serializes_chunking_strategy_to_string(monkeypatch)
     async def fake_default_routes():
         return {"url": {"targets": []}, "file_pdf": {"targets": []}}
 
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr(knowledge_api, "_resolve_default_extractor_routes", fake_default_routes)
+    monkeypatch.setattr(corpus_routes, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(corpus_routes, "_resolve_default_extractor_routes", fake_default_routes)
 
-    await knowledge_api.create_corpus(
-        knowledge_api.CorpusCreateRequest(
+    await corpus_routes.create_corpus(
+        CorpusCreateRequest(
             app_name="negentropy",
             name="docs",
             description="Knowledge base",
@@ -80,9 +82,9 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
                 },
             }
 
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(corpus_routes, "_get_service", lambda: fake_service)
     monkeypatch.setattr(
-        knowledge_api,
+        _shared,
         "settings",
         SimpleNamespace(
             knowledge=SimpleNamespace(
@@ -91,7 +93,7 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
         ),
     )
     monkeypatch.setattr(
-        knowledge_api,
+        _shared,
         "AsyncSessionLocal",
         lambda: FakeDefaultRouteSession(
             responses=[
@@ -106,8 +108,8 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
         ),
     )
 
-    result = await knowledge_api.create_corpus(
-        knowledge_api.CorpusCreateRequest(
+    result = await corpus_routes.create_corpus(
+        CorpusCreateRequest(
             app_name="negentropy",
             name="docs",
             config={},
@@ -172,11 +174,11 @@ async def test_create_corpus_keeps_explicit_extractor_routes_without_backend_ove
     async def should_not_resolve_defaults():
         pytest.fail("should not resolve backend defaults when extractor_routes already provided")
 
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr(knowledge_api, "_resolve_default_extractor_routes", should_not_resolve_defaults)
+    monkeypatch.setattr(corpus_routes, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(corpus_routes, "_resolve_default_extractor_routes", should_not_resolve_defaults)
 
-    await knowledge_api.create_corpus(
-        knowledge_api.CorpusCreateRequest(
+    await corpus_routes.create_corpus(
+        CorpusCreateRequest(
             app_name="negentropy",
             name="docs",
             config={
@@ -195,12 +197,12 @@ async def test_update_corpus_serializes_chunking_strategy_to_string(monkeypatch)
     corpus_id = uuid4()
     fake_service = FakeKnowledgeService()
 
-    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: FakeScalarSession())
+    monkeypatch.setattr(corpus_routes, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(corpus_routes, "AsyncSessionLocal", lambda: FakeScalarSession())
 
-    result = await knowledge_api.update_corpus(
+    result = await corpus_routes.update_corpus(
         corpus_id=corpus_id,
-        payload=knowledge_api.CorpusUpdateRequest(
+        payload=CorpusUpdateRequest(
             config={
                 "strategy": "hierarchical",
                 "preserve_newlines": True,

@@ -9,6 +9,7 @@ import type {
   ReplyReasoningDisplaySegment,
   ReplyTextDisplaySegment,
   ReplyToolGroupDisplaySegment,
+  SubAgentTransferDisplaySegment,
   ToolExecutionEntry,
   ToolGroupDisplayBlock,
 } from "@/types/a2ui";
@@ -18,6 +19,8 @@ import { isNonCriticalError } from "@/utils/error-filter";
 import {
   bigramJaccardSimilarity,
   isEquivalentMessageContent,
+  longestCommonSubsequenceRatio,
+  multisetCoverage,
 } from "@/utils/message";
 
 const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
@@ -35,6 +38,7 @@ function formatToolName(name: string): string {
     web_search: "Web Search",
     code_interpreter: "Code Interpreter",
     "ui.confirmation": "Confirmation",
+    transfer_to_agent: "委派至子 Agent",
   };
   return (
     toolNameMap[name] ||
@@ -293,6 +297,15 @@ function createReplyErrorSegment(node: ConversationNode): ReplyErrorDisplaySegme
 function createReplyReasoningSegment(
   node: ConversationNode,
 ): ReplyReasoningDisplaySegment {
+  // ISSUE-070：reasoning 节点的 payload.content 由 conversation-tree 在处理
+  // ne.a2ui.thought / ne.a2ui.reasoning 自定义事件时累积写入，需要透传到
+  // segment 供 ReasoningPanel 展开后渲染。不能 fallback 到 summary，否则会把
+  // 「阶段完成：步骤 synth-step...」这类生命周期标识伪装成推理内容。
+  const rawContent =
+    typeof node.payload.content === "string"
+      ? String(node.payload.content)
+      : "";
+  const content = rawContent.trim() || undefined;
   return {
     id: `reply-reasoning:${node.id}`,
     kind: "reasoning",
@@ -302,6 +315,7 @@ function createReplyReasoningSegment(
     title: node.title,
     phase: node.status === "done" || node.status === "finished" ? "finished" : "started",
     stepId: String(node.payload.stepId || node.id),
+    content,
     result: node.payload.result,
   };
 }
@@ -413,7 +427,109 @@ const REDUNDANT_TEXT_SIMILARITY_THRESHOLD = 0.5;
 const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
 
 /**
- * 折叠同一 assistant-reply 内的「冗余文本片段」，四层判定（自上而下越来越宽松,
+ * ISSUE-049 兜底层：检测「流式累积残缺版 + final 完整版」共存于同一 message 的双内容。
+ *
+ * 触发场景：流式期间 ledger 累积出残缺中间态（"Hello, test1234"，无空格、缺字），
+ * hydration / final 事件到达后又携带完整正确版（"Hello, test 1234..."），但 message-ledger
+ * 的 isSemanticEquivalentEntry 因严格前缀检查失败未合并 → conversation-tree 产出两个
+ * 独立 ReplyTextDisplaySegment，已有四层判定的相似度 / 长度阈值不能同时命中。
+ *
+ * 本函数判定双方是否为「同源不同完成度」：
+ * 1. 共享 ≥ 80% 字符 multiset（覆盖大量 markdown 段落差异，但能 catch 残缺版 vs 完整版）；
+ * 2. 双方 trimmed length ≥ 12（避免误删合理短回复 "Pong!" 之类）；
+ * 3. 较长一方至少比较短一方多 1.2x（避免相似但平级的两段被误判为同源）。
+ *
+ * 命中后丢弃较短一方（保留更完备的最终版本）。
+ */
+// ISSUE-070：multiset 覆盖阈值从 0.8 → 0.7，长度比从 1.15 → 1.10。
+// 旧阈值漏检「partial 残缺版与 final 改写版长度差较小、字符差较大」的场景
+// （如图 1：partial=`ong toPingPossible needs concrete: ) ping (...`，final=
+// `Summary — done: Replied "Pong" to your "Ping". Next options: ...`）。
+// 配合新增的第 6 层 LCS 兜底，能稳定捕捉这类同源不同表面的残留双内容。
+const STREAMING_DUPLICATE_MULTISET_RATIO = 0.7;
+const STREAMING_DUPLICATE_MIN_LENGTH = 12;
+const STREAMING_DUPLICATE_LENGTH_RATIO = 1.1;
+// 第 6 层 LCS 兜底参数：
+// - 长度门槛 50：避免误删合理短回复；
+// - LCS / 较短长度 ≥ 0.65：意味着 ≥ 65% 的较短串字符以相对顺序出现在较长
+//   串中，强烈暗示同源（即使 multiset 覆盖未达 0.7 也能命中）。
+const STREAMING_DUPLICATE_LCS_MIN_LENGTH = 50;
+const STREAMING_DUPLICATE_LCS_RATIO = 0.65;
+
+export function isStreamingDuplicateOfLater(
+  earlierContent: string,
+  laterContent: string,
+): boolean {
+  const earlierLen = earlierContent.length;
+  const laterLen = laterContent.length;
+  if (earlierLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (laterLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (laterLen < earlierLen * STREAMING_DUPLICATE_LENGTH_RATIO) return false;
+  const coverage = multisetCoverage(earlierContent, laterContent);
+  if (coverage >= STREAMING_DUPLICATE_MULTISET_RATIO) return true;
+  // 第 6 层兜底：LCS（最长公共子序列）比例 —— 顺序+字符共同覆盖。
+  if (
+    earlierLen >= STREAMING_DUPLICATE_LCS_MIN_LENGTH &&
+    laterLen >= STREAMING_DUPLICATE_LCS_MIN_LENGTH
+  ) {
+    const lcsRatio = longestCommonSubsequenceRatio(earlierContent, laterContent);
+    if (lcsRatio >= STREAMING_DUPLICATE_LCS_RATIO) return true;
+  }
+  return false;
+}
+
+/**
+ * ISSUE-065 兜底层（Layer 6）：「partial 单段 vs final 多段」场景的字符级聚合判定。
+ *
+ * Layer 5 (`isStreamingDuplicateOfLater`) 仅做两两比较，要求 later 比 earlier 长 1.15x。
+ * 但 C2 实测里 partial（earlier）混入了 reasoning first-line 而被切成单个长段，final
+ * 却被切成 3 段独立短段，single-pair 比较时 `laterLen < earlierLen * 1.15` 总成立，
+ * Layer 5 无法触发。此处补一层「聚合视角」：把 earlier 与所有后续 text 段拼接的 totalLater
+ * 比较，当 earlier 字符 multiset 几乎完全被 totalLater 包含、且 totalLater 总长比 earlier
+ * 长时，丢弃 earlier。
+ *
+ * 阈值与 Layer 5 对齐（multiset ≥ 0.8 且 length ≥ 1.15x），并额外要求 aggregate
+ * **显著长于 later 各单段中的最长一段**，从根因上区分「真分段聚合 vs 单段差异」：
+ * - 中文字符池较小、同主题段落字符复用率高（如「让我从热力学和信息论分析熵」+
+ *   多段长答详细展开）会把 multiset coverage 推过 0.7，单纯放宽阈值会误删合法
+ *   引语段（评审 #5）。
+ * - 维持 Layer 5 阈值的同时，靠「aggregate vs 任一 later 单段」的额外长度差守卫
+ *   保证只有「partial 真的被切成多段聚合后」才进入丢弃路径，而不是 final 单段
+ *   就长于 partial 的常规情况。
+ * - 仍要求双方均 ≥ STREAMING_DUPLICATE_MIN_LENGTH，避免误删合理短回复。
+ */
+const STREAMING_DUPLICATE_AGGREGATE_MULTISET_RATIO = 0.8;
+const STREAMING_DUPLICATE_AGGREGATE_LENGTH_RATIO = 1.15;
+// 额外守卫：aggregate 必须显著长于「later 各单段中最长一段」，确保确实是
+// 「多段聚合」拉长了 totalLater，而不是单段 final 本身就长。
+const STREAMING_DUPLICATE_AGGREGATE_VS_MAX_SINGLE_RATIO = 1.3;
+
+export function isStreamingDuplicateOfAggregate(
+  earlierContent: string,
+  aggregateLaterContent: string,
+  maxSingleLaterLength = 0,
+): boolean {
+  const earlierLen = earlierContent.length;
+  const aggregateLen = aggregateLaterContent.length;
+  if (earlierLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (aggregateLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (aggregateLen < earlierLen * STREAMING_DUPLICATE_AGGREGATE_LENGTH_RATIO) {
+    return false;
+  }
+  // aggregate 必须显著长于 later 任一单段，证明聚合本身才是 length-ratio
+  // 满足的根因；否则 Layer 5 已能两两命中，无需 Layer 6 介入。
+  if (
+    maxSingleLaterLength > 0 &&
+    aggregateLen < maxSingleLaterLength * STREAMING_DUPLICATE_AGGREGATE_VS_MAX_SINGLE_RATIO
+  ) {
+    return false;
+  }
+  const coverage = multisetCoverage(earlierContent, aggregateLaterContent);
+  return coverage >= STREAMING_DUPLICATE_AGGREGATE_MULTISET_RATIO;
+}
+
+/**
+ * 折叠同一 assistant-reply 内的「冗余文本片段」，**六层判定**（自上而下越来越宽松,
  * 也越来越保守，全部命中后丢弃前段，因为工具反馈后的「后段」通常是更完备的最终版本）：
  *
  * 1. **精确匹配**：trim 后两段完全相等 → 丢弃前段（不限长度）。
@@ -426,6 +542,15 @@ const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
  *    场景（如标点/空白差异）。
  * 4. **字符二元组 Jaccard**：双方均 ≥ 30 字且 Jaccard ≥ 0.5 → 丢弃前段。
  *    覆盖「主动导航 prompt 在工具前后各产出一段几乎相同总结」的长回复场景。
+ * 5. **流式残缺/完整两段**（ISSUE-049, `isStreamingDuplicateOfLater`）：multiset
+ *    coverage ≥ 0.8 且 later 比 earlier 长 1.15x → 丢弃 earlier。覆盖前 4 层未
+ *    命中、但同源不同完成度的两两场景。
+ * 6. **流式 partial 单段 vs final 多段聚合**（ISSUE-065,
+ *    `isStreamingDuplicateOfAggregate`）：把 earlier 与所有未被丢弃的后续 text
+ *    段拼接成 aggregate 比较，阈值与 Layer 5 对齐（multiset ≥ 0.8 且 length ≥
+ *    1.15x），且额外要求 aggregate 显著长于任一 later 单段。覆盖 partial 因
+ *    混入 reasoning 而比 final 任一单段都长、Layer 5 length-ratio 永不通过的真实
+ *    场景（C2）。
  *
  * 工具组（tool-group）等非文本片段的相对顺序原样保留。
  *
@@ -496,15 +621,61 @@ function dedupeRedundantTextSegments(
 
       // 4. 字符二元组 Jaccard 兜底：双方均 ≥ 30 字，避免误删短文本。
       if (
-        earlierContent.length < REDUNDANT_TEXT_JACCARD_MIN_LENGTH ||
-        laterContent.length < REDUNDANT_TEXT_JACCARD_MIN_LENGTH
+        earlierContent.length >= REDUNDANT_TEXT_JACCARD_MIN_LENGTH &&
+        laterContent.length >= REDUNDANT_TEXT_JACCARD_MIN_LENGTH
       ) {
-        continue;
+        const similarity = bigramJaccardSimilarity(earlierContent, laterContent);
+        if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+          droppedIndices.add(earlierIdx);
+          continue;
+        }
       }
-      const similarity = bigramJaccardSimilarity(earlierContent, laterContent);
-      if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+
+      // 5. ISSUE-049 流式双内容兜底：同源不同完成度的两段（残缺版 + 完整版）。
+      //    覆盖前 4 层未命中、但字符 multiset 高度互含、长度差显著的场景。
+      if (isStreamingDuplicateOfLater(earlierContent, laterContent)) {
         droppedIndices.add(earlierIdx);
       }
+    }
+  }
+
+  // 6. ISSUE-065 流式双内容聚合兜底：partial 单段 vs final 多段的场景。
+  //    前 5 层都做两两比较，partial 经常因混入 reasoning first-line 而比 final
+  //    任一单段都长，导致两两比较中的 length-ratio 守卫永远不通过；此处把所有
+  //    比 earlier 靠后且未被丢弃的 text 段拼接成 totalLater 再判定，覆盖
+  //    "partial 字符均匀分布在 final 多段中"的真实场景。
+  for (let i = 0; i < textIndices.length - 1; i += 1) {
+    const earlierIdx = textIndices[i];
+    if (droppedIndices.has(earlierIdx)) continue;
+    const earlierSegment = segments[earlierIdx];
+    if (earlierSegment.kind !== "text") continue;
+    const earlierContent = earlierSegment.content.trim();
+    if (!earlierContent) continue;
+
+    const aggregateParts: string[] = [];
+    let maxSingleLaterLength = 0;
+    for (let j = i + 1; j < textIndices.length; j += 1) {
+      const laterIdx = textIndices[j];
+      if (droppedIndices.has(laterIdx)) continue;
+      const laterSegment = segments[laterIdx];
+      if (laterSegment.kind !== "text") continue;
+      const laterContent = laterSegment.content.trim();
+      if (laterContent) {
+        aggregateParts.push(laterContent);
+        if (laterContent.length > maxSingleLaterLength) {
+          maxSingleLaterLength = laterContent.length;
+        }
+      }
+    }
+    if (aggregateParts.length < 2) {
+      // 至少 2 段才进入聚合判据；单段后继的场景由 Layer 1-5 已覆盖。
+      continue;
+    }
+    const aggregate = aggregateParts.join("\n");
+    if (
+      isStreamingDuplicateOfAggregate(earlierContent, aggregate, maxSingleLaterLength)
+    ) {
+      droppedIndices.add(earlierIdx);
     }
   }
 
@@ -520,7 +691,7 @@ function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayB
     (segment) =>
       segment.kind === "text"
         ? segment.streaming
-        : segment.kind === "tool-group"
+        : segment.kind === "tool-group" || segment.kind === "subagent-transfer"
           ? segment.status === "running"
           : false,
   );
@@ -565,6 +736,44 @@ function pushGroupedTools(
   blocks.push(createToolGroupBlock(input));
 }
 
+const CHILD_RESPONSE_MAX_LENGTH = 200;
+
+function isTransferToAgentNode(node: ConversationNode): boolean {
+  return node.payload.toolCallName === "transfer_to_agent";
+}
+
+function createSubAgentTransferSegment(
+  toolNode: ConversationNode,
+  fromAgent: string,
+): SubAgentTransferDisplaySegment {
+  const resultNode = getToolResultNode(toolNode);
+  const args = safeJsonParse(toolNode.payload.args);
+  const toAgent =
+    typeof args === "object" && args !== null && !Array.isArray(args)
+      ? String((args as Record<string, unknown>).agent_name || "Unknown Agent")
+      : "Unknown Agent";
+
+  let childResponse: string | undefined;
+  if (typeof resultNode?.payload.content === "string") {
+    const content = String(resultNode.payload.content).trim();
+    childResponse = content.length > CHILD_RESPONSE_MAX_LENGTH
+      ? content.slice(0, CHILD_RESPONSE_MAX_LENGTH) + "..."
+      : content || undefined;
+  }
+
+  return {
+    id: `subagent-transfer:${toolNode.id}`,
+    kind: "subagent-transfer",
+    nodeId: toolNode.id,
+    timestamp: toolNode.timeRange.start,
+    sourceOrder: toolNode.sourceOrder,
+    fromAgent,
+    toAgent,
+    status: getToolStatus(toolNode),
+    childResponse,
+  };
+}
+
 function pushGroupedToolsToReply(
   builder: ReplyBuilder,
   input: {
@@ -577,7 +786,31 @@ function pushGroupedToolsToReply(
   if (input.nodes.length === 0) {
     return;
   }
-  appendReplySegment(builder, createReplyToolGroupSegment(input));
+
+  // Split transfer_to_agent nodes from regular tool nodes
+  const transferNodes: ConversationNode[] = [];
+  const regularNodes: ConversationNode[] = [];
+  for (const node of input.nodes) {
+    if (isTransferToAgentNode(node)) {
+      transferNodes.push(node);
+    } else {
+      regularNodes.push(node);
+    }
+  }
+
+  // Emit SubAgentTransferDisplaySegment for each transfer node
+  const fromAgent = builder.author || "NegentropyEngine";
+  for (const transferNode of transferNodes) {
+    appendReplySegment(builder, createSubAgentTransferSegment(transferNode, fromAgent));
+  }
+
+  // Emit regular tool group for non-transfer nodes
+  if (regularNodes.length > 0) {
+    appendReplySegment(builder, createReplyToolGroupSegment({
+      ...input,
+      nodes: regularNodes,
+    }));
+  }
 }
 
 function collectAssistantSegmentsFromTextNode(
@@ -787,20 +1020,54 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
       return;
     }
     if (root.type === "tool-call") {
-      blocks.push(
-        createToolGroupBlock({
-          turnId: root.id,
-          nodes: [root],
-        }),
-      );
+      if (isTransferToAgentNode(root)) {
+        const builder = createReplyBuilder(root, root.id);
+        if (typeof root.payload.author === "string") {
+          builder.author = root.payload.author;
+        }
+        appendReplySegment(builder, createSubAgentTransferSegment(root, builder.author || "NegentropyEngine"));
+        blocks.push(buildAssistantReplyBlock(builder));
+      } else {
+        blocks.push(
+          createToolGroupBlock({
+            turnId: root.id,
+            nodes: [root],
+          }),
+        );
+      }
       return;
     }
     blocks.push(createSummaryBlock(root));
   });
 
+  // ISSUE-070：在毫秒级时钟漂移容忍窗口内，把 user message 排在 assistant
+  // 输出（assistant-reply / tool-group）之前。窗口收紧到 0.2s 以避免误吞
+  // 「秒级 follow-up」——客户端/服务端时钟漂移在 NTP 同步下典型 < 100ms，
+  // 0.2s 既足够覆盖正常抖动，也排除「用户在 Agent 回复未完成时（≤1s）紧追
+  // 问一条 follow-up」被误判为漂移、被反向插到 assistant 之前的回归
+  // （旧 1s 窗口下 t_assistant=0.5 与 t_followup=0.7 双双落入窗口，
+  // assistant 会被排到 follow-up 之后，造成「问→追问→答」乱序）。
+  const CLOCK_DRIFT_TOLERANCE_S = 0.2;
+  const isUserMessageBlock = (block: ChatDisplayBlock): boolean => {
+    if (block.kind !== "message") return false;
+    return block.message.role === "user";
+  };
+  const isAssistantOutputBlock = (block: ChatDisplayBlock): boolean =>
+    block.kind === "assistant-reply" || block.kind === "tool-group";
   blocks.sort((left, right) => {
-    if (left.timestamp !== right.timestamp) {
-      return left.timestamp - right.timestamp;
+    const timeDiff = left.timestamp - right.timestamp;
+    if (Math.abs(timeDiff) > CLOCK_DRIFT_TOLERANCE_S) {
+      return timeDiff;
+    }
+    // 时钟漂移容忍窗口内：user 消息优先于 assistant 输出（时钟偏移修正）
+    if (isUserMessageBlock(left) && isAssistantOutputBlock(right)) {
+      return -1;
+    }
+    if (isAssistantOutputBlock(left) && isUserMessageBlock(right)) {
+      return 1;
+    }
+    if (timeDiff !== 0) {
+      return timeDiff;
     }
     if (left.sourceOrder !== right.sourceOrder) {
       return left.sourceOrder - right.sourceOrder;
@@ -809,6 +1076,9 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     if (typeDiff !== 0) {
       return typeDiff;
     }
+    // ISSUE-042: localeCompare 作为最终兜底是可接受的——走到这里时
+    // timestamp / sourceOrder / typeDiff 均已相等，仅剩同类型不同 id 的块。
+    // id 格式为 "assistant-reply:${turnId}:${msgId}"，不同 id 的排序对用户体验无影响。
     return left.id.localeCompare(right.id);
   });
 

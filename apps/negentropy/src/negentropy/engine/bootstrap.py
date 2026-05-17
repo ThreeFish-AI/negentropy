@@ -267,6 +267,9 @@ def apply_adk_patches():
         from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.interface.api import router as interface_router
         from negentropy.interface.models_api import router as interface_models_router
+        from negentropy.interface.scheduler_api import router as interface_scheduler_router
+        from negentropy.interface.task_models_api import corpus_router as interface_task_models_corpus_router
+        from negentropy.interface.task_models_api import router as interface_task_models_router
         from negentropy.knowledge.api import router as knowledge_router
 
         class TracingInitMiddleware(BaseHTTPMiddleware):
@@ -374,13 +377,47 @@ def apply_adk_patches():
         if not any(route.path.startswith("/knowledge") for route in app.router.routes):
             app.include_router(knowledge_router)
             logger.info("Knowledge API router mounted under /knowledge")
+
+        # 全局 DBAPIError handler：pgvector 共享库缺失时返回 503 而非 500
+        from fastapi.responses import JSONResponse
+        from sqlalchemy.exc import DBAPIError
+
+        @app.exception_handler(DBAPIError)
+        async def _pgvector_missing_handler(request, exc):
+            msg = (str(exc.orig) if exc.orig else str(exc)).lower()
+            if "vector" in msg and ("could not access" in msg or "undefined file" in msg):
+                logger.error("pgvector_library_missing_on_request", path=request.url.path, error=str(exc))
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "code": "PGVECTOR_UNAVAILABLE",
+                        "message": "数据库 pgvector 扩展不可用，Knowledge Graph 功能无法使用。请安装 pgvector 后重试。",
+                        "hint": (
+                            "安装 pgvector 扩展后执行: psql -d negentropy -c 'CREATE EXTENSION IF NOT EXISTS vector;'"
+                        ),
+                    },
+                )
+            raise exc
+
         if not any(route.path.startswith("/memory") for route in app.router.routes):
             app.include_router(memory_router)
             logger.info("Memory API router mounted under /memory")
         if not any(route.path.startswith("/interface") for route in app.router.routes):
             app.include_router(interface_router)
             app.include_router(interface_models_router)
+            app.include_router(interface_task_models_router)
             logger.info("Interface API router mounted under /interface")
+        if not any(route.path.startswith("/scheduler") for route in app.router.routes):
+            app.include_router(interface_scheduler_router)
+            logger.info("Scheduler API router mounted under /scheduler")
+        # Corpus 级 task-models 路由独立挂载（prefix=/knowledge/corpus/...），
+        # 不与 /interface 共享 prefix，需判定挂载唯一性。
+        if not any(
+            getattr(route, "path", "").startswith("/knowledge/corpus/{corpus_id}/task-models")
+            for route in app.router.routes
+        ):
+            app.include_router(interface_task_models_corpus_router)
+            logger.info("Corpus task-models router mounted under /knowledge/corpus/{id}/task-models")
         if not any(route.path.startswith("/auth") for route in app.router.routes):
             app.include_router(auth_router)
             logger.info("Auth API router mounted under /auth")
@@ -388,50 +425,42 @@ def apply_adk_patches():
             app.include_router(sessions_router)
             logger.info("Sessions API router mounted for title updates")
 
-        # 预热模型配置缓存，确保同步读取 (create_model) 在首次调用时有数据
+        # Phase 4：统一心跳调度引擎（5s tick + Registry + Handlers）。
+        # 6 个旧 startup hook（cache_warm / pgvector_check / skill_scheduler /
+        # pipeline_watchdog / session_title_inspector + 示例 agent_inspection）
+        # 全部以 ScheduledTask 行的形式注册到 ``scheduled_tasks`` 表，
+        # 由 ScheduledTaskRegistry._heartbeat_tick 统一扫表分派到 handler。
+        #
+        # Feature flags：
+        #   NEGENTROPY_UNIFIED_SCHEDULER_ENABLED=false → 跳过 Registry 启动（灰度回退）
+        #   NEGENTROPY_SCHEDULER_HEARTBEAT_SECONDS=<float> → 调整 tick 周期（默认 5.0）
         @app.on_event("startup")
-        async def _warm_model_config_cache():
-            from negentropy.config.model_resolver import resolve_embedding_config, resolve_llm_config
-
+        async def _start_unified_scheduler():
             try:
-                await resolve_llm_config()
-                await resolve_embedding_config()
-                logger.info("model_config_cache_warmed")
-            except Exception as exc:
-                logger.warning("model_config_cache_warm_failed", error=str(exc))
+                from negentropy.engine.schedulers.registry import ensure_registry_started
 
-        # Phase 3：启动应用层 SkillScheduler（60s tick 扫 skill_schedules 表）。
-        # feature flag NEGENTROPY_SKILL_SCHEDULER_ENABLED=false 一键关闭。
-        @app.on_event("startup")
-        async def _start_skill_scheduler():
-            try:
-                from negentropy.agents.skill_scheduler import (
-                    DEFAULT_TICK_SECONDS,
-                    register_skill_scheduler,
-                )
-                from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
-
-                scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
-                register_skill_scheduler(scheduler)
-                scheduler.start()
-                # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
-                app.state.skill_scheduler = scheduler
+                registry = await ensure_registry_started()
+                if registry is None:
+                    logger.info("unified_scheduler_skipped_or_disabled")
+                    return
+                # 挂在 app.state 防止 GC + shutdown 路径引用
+                app.state.unified_scheduler_registry = registry
                 logger.info(
-                    "skill_scheduler_started",
-                    jobs=scheduler.registered_jobs,
+                    "unified_scheduler_started_via_bootstrap",
+                    poll_interval=registry.poll_interval,
                 )
             except Exception as exc:
-                logger.warning("skill_scheduler_start_failed", error=str(exc))
+                logger.warning("unified_scheduler_bootstrap_failed", error=str(exc))
 
         @app.on_event("shutdown")
-        async def _stop_skill_scheduler():
-            sched = getattr(app.state, "skill_scheduler", None)
-            if sched is not None:
+        async def _stop_unified_scheduler():
+            registry = getattr(app.state, "unified_scheduler_registry", None)
+            if registry is not None:
                 try:
-                    sched.stop()
-                    logger.info("skill_scheduler_stopped")
+                    registry.stop()
+                    logger.info("unified_scheduler_stopped_via_shutdown")
                 except Exception as exc:
-                    logger.warning("skill_scheduler_stop_failed", error=str(exc))
+                    logger.warning("unified_scheduler_stop_failed", error=str(exc))
 
         return app
 

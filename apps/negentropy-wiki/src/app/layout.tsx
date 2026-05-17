@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AgentChatMount } from "@/components/agent-chat/AgentChatMount";
 
 export const metadata: Metadata = {
   title: "Negentropy Wiki — 知识库发布站点",
   description: "基于 Negentropy 系统的知识文档浏览与检索平台",
-  // icon/shortcut 由 App Router 约定（src/app/favicon.ico）自动注入，此处仅声明 apple-touch-icon 指向 logo.png
   icons: {
     apple: "/logo.png",
   },
@@ -16,15 +16,38 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const THEME_INIT = `
+(function(){
+  try {
+    var t = localStorage.getItem('wiki:theme');
+    if (t) document.documentElement.setAttribute('data-theme', t);
+    var c = localStorage.getItem('wiki:color-scheme');
+    if (c && c !== 'system') document.documentElement.setAttribute('data-color-scheme', c);
+  } catch(e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" data-theme="default">
+    <html lang="zh-CN" data-theme="default" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className="wiki-body">
+        <a href="#wiki-main" className="skip-link">
+          跳到主要内容
+        </a>
         <div id="wiki-root">{children}</div>
+        {/*
+          Agents at Wiki —— 一主五翼 6 Agents 的右下角悬浮聊天框。
+          通过 next/dynamic({ ssr:false }) 异步装载，不阻塞 SSG/ISR 首屏；
+          完整设计见 .claude/plans/system-instruction-you-are-working-hidden-knuth.md
+        */}
+        <AgentChatMount />
       </body>
     </html>
   );

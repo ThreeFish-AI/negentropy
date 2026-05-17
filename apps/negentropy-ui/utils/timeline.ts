@@ -21,7 +21,7 @@ import {
   getEventStepName,
   getEventToolCallId,
   getEventToolCallName,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 
 /**
  * 时间线项目类型

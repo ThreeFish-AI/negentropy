@@ -9,7 +9,7 @@ import {
   mergeOptimisticMessages,
   reconcileOptimisticMessages,
 } from "@/utils/message-merge";
-import type { AgUiMessage } from "@/types/agui";
+import type { AgUiMessage } from "@negentropy/agents-chat-core/protocol";
 import { createTestMessage } from "@/tests/helpers/agui";
 
 describe("mergeOptimisticMessages", () => {

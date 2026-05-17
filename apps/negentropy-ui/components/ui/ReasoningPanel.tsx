@@ -33,6 +33,15 @@ export type ReasoningStepData = {
   stepId: string;
   title: string;
   phase: "started" | "finished";
+  /**
+   * 推理过程文本内容（来自 ne.a2ui.thought / ne.a2ui.reasoning 自定义事件，
+   * 由 conversation-tree 在处理 STEP_* + thought 事件时写入 reasoning 节点
+   * payload.content）。展开面板时显示该文本，避免「展开后只有标题、看不到
+   * 实际推理」的体验缺失（ISSUE-070）。
+   */
+  content?: string;
+  /** 步骤完成时携带的结构化结果（STEP_FINISHED.result 透传），可选展示。 */
+  result?: unknown;
 };
 
 function readPersisted(): boolean {
@@ -68,25 +77,52 @@ function subscribeStorage(callback: () => void): () => void {
 }
 
 /**
- * 同 stepId 的 started/finished 仅保留最新（finished 优先）。
+ * 同 stepId 的 started/finished 仅保留最新（finished 优先），同时合并 content。
  * 输入顺序对结果有影响：后出现的 finished 覆盖先出现的 started —— 这与
  * AG-UI step lifecycle 的事件时序一致。
+ *
+ * ISSUE-070：merge 时保留**两侧的非空 content** —— started 阶段产生的 thought
+ * 文本会先出现在 started 投影里，finished 阶段如果未携带新文本，应继承
+ * started 的内容；反之 finished 携带摘要时，与 started 内容拼接（去重换行）。
  */
 export function mergeSteps(steps: ReasoningStepData[]): ReasoningStepData[] {
   const byStepId = new Map<string, ReasoningStepData>();
   for (const step of steps) {
     const prev = byStepId.get(step.stepId);
-    // finished 永远优先；started → finished 覆盖；finished → started 不覆盖
     if (!prev) {
-      byStepId.set(step.stepId, step);
+      byStepId.set(step.stepId, { ...step });
       continue;
     }
+    const mergedContent = mergeReasoningContent(prev.content, step.content);
+    const mergedResult = step.result ?? prev.result;
     if (prev.phase === "started" && step.phase === "finished") {
-      byStepId.set(step.stepId, step);
+      byStepId.set(step.stepId, {
+        ...step,
+        content: mergedContent,
+        result: mergedResult,
+      });
+    } else {
+      // 同 phase 重入：保留首条但合并 content / result
+      byStepId.set(step.stepId, {
+        ...prev,
+        content: mergedContent,
+        result: mergedResult,
+      });
     }
-    // started → started：保留首条；finished → finished：保留首条（idempotent）
   }
   return Array.from(byStepId.values());
+}
+
+function mergeReasoningContent(prev?: string, next?: string): string | undefined {
+  const a = (prev || "").trim();
+  const b = (next || "").trim();
+  if (!a && !b) return undefined;
+  if (!a) return b;
+  if (!b) return a;
+  if (a === b) return a;
+  if (a.includes(b)) return a;
+  if (b.includes(a)) return b;
+  return `${a}\n\n${b}`;
 }
 
 export function ReasoningPanel({ steps }: { steps: ReasoningStepData[] }) {
@@ -153,6 +189,8 @@ export function ReasoningPanel({ steps }: { steps: ReasoningStepData[] }) {
               title={step.title}
               phase={step.phase}
               stepId={step.stepId}
+              content={step.content}
+              result={step.result}
             />
           ))}
           {overflow > 0 ? (

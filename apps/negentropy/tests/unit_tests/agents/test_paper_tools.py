@@ -40,6 +40,9 @@ class _FakeToolContext:
 
     def __init__(self, function_call_id: str | None = "test-call-id"):
         self.state = _FakeState()
+        # 默认关闭审批门，避免 G3 approval gate 导致测试超时。
+        # 需要测试审批逻辑的用例可显式设置不同 mode。
+        self.state.data["approval_policy"] = {"mode": "never"}
         if function_call_id:
             self.function_call_id = function_call_id
 

@@ -1,6 +1,16 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ConnectionState, LogEntry, SessionRecord } from "@/types/common";
 import { createSessionLabel, toSessionRecord, type SessionListView } from "@/utils/session";
+
+const SESSION_VIEW_QUERY_KEY = "view";
+const ARCHIVED_VIEW_VALUE = "archived";
 
 export interface UseSessionListServiceOptions {
   sessionId: string | null;
@@ -43,7 +53,45 @@ export function useSessionListService(
     onClearActiveSession,
   } = options;
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [sessionListView, setSessionListView] = useState<SessionListView>("active");
+
+  // ISSUE-061 v2-D：sessionListView（active / archived）改用 URL 单源派生，
+  // 与 sessionId 对齐。刷新 / 复制 URL / 浏览器返回前进后会自然回到目标视图，
+  // 也让"分享归档面板"成为可能。
+  //
+  // ISSUE-062：useSearchParams() 每次 render 返回新引用，直接列入 useCallback
+  // deps 会让 setSessionListView 引用持续重建。改用 ``toString()`` 派生的稳定
+  // 字符串作为 dep，让 React 用值相等性比较保持 callback 稳定，避免下游
+  // useEffect 反复触发与 loadSessions 竞速覆盖 sessionId。
+  //
+  // ISSUE-088：与 page.tsx 的 setSessionId 同源——Next.js 16.2.3 的
+  // useRouter().replace 在「同 pathname、仅 query 变更」场景下会输出
+  // __NA:true 的 no-op replaceState，URL 不更新。统一改走
+  // window.history.replaceState，由 useSearchParams 监听 history API 重渲染。
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryString = searchParams?.toString() ?? "";
+  const sessionListView: SessionListView =
+    new URLSearchParams(queryString).get(SESSION_VIEW_QUERY_KEY) ===
+    ARCHIVED_VIEW_VALUE
+      ? "archived"
+      : "active";
+  const setSessionListView = useCallback(
+    (view: SessionListView) => {
+      const params = new URLSearchParams(queryString);
+      if (view === "archived") {
+        params.set(SESSION_VIEW_QUERY_KEY, ARCHIVED_VIEW_VALUE);
+      } else {
+        params.delete(SESSION_VIEW_QUERY_KEY);
+      }
+      const nextQuery = params.toString();
+      const target = nextQuery ? `${pathname}?${nextQuery}` : pathname || "/";
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", target);
+      }
+    },
+    [pathname, queryString],
+  );
+
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearTitleRefreshTimers = useCallback(() => {
@@ -80,6 +128,12 @@ export function useSessionListService(
         sessionId &&
         !nextSessions.some((session) => session.id === sessionId)
       ) {
+        // ISSUE-063：归档视图 Back → 实时视图后，sessionId 自动切换到新列表
+        // 头部时，必须先 clear projection（messages / state / event timeline），
+        // 否则前一会话（如归档下选中的 b8676a4a）的内容会残留在主区与右栏，
+        // 与 URL 上的 sessionId 不一致。手动点 sidebar 的 selectSession 路径
+        // 由 home-body 的 handleSessionChange 已 clear，本路径补齐对称行为。
+        onClearActiveSession();
         setSessionId(nextSessions[0]?.id ?? null);
       } else if (!sessionId && nextSessions.length > 0) {
         setSessionId(nextSessions[0]!.id);
@@ -92,6 +146,7 @@ export function useSessionListService(
   }, [
     addLog,
     appName,
+    onClearActiveSession,
     sessionId,
     sessionListView,
     setConnectionWithMetrics,

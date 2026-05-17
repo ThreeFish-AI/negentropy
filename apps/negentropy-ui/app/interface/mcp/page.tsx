@@ -6,6 +6,7 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
 import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 interface McpTool {
   id: string | null;
@@ -53,6 +54,9 @@ interface McpServer {
   config: Record<string, unknown>;
   tool_count: number;
   resource_template_count: number;
+  // 「系统内置」标识：后端从显式 ``is_system`` 列 / owner_id 前缀派生，
+  // 前端据此渲染 Built-In 徽标 + 隐藏 Edit/Delete（非 admin）。
+  is_builtin?: boolean;
 }
 
 interface ServerWithTools extends McpServer {
@@ -72,6 +76,7 @@ interface LoadToolsResponse {
 }
 
 export default function McpServersPage() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [servers, setServers] = useState<ServerWithTools[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +116,13 @@ export default function McpServersPage() {
   };
 
   const handleDelete = async (serverId: string) => {
-    if (!confirm("Are you sure you want to delete this server?")) {
+    const confirmed = await confirm({
+      title: "Delete MCP Server",
+      message: "Are you sure you want to delete this server?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -123,7 +134,7 @@ export default function McpServersPage() {
       }
       fetchServers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -186,6 +197,15 @@ export default function McpServersPage() {
     }
   };
 
+  // 仅读 DB 已有 tools 快照（GET /tools），不再对所有 enabled server 自动触发
+  // POST /tools:load（discover）。原方案存在两个问题：
+  //   1. 系统内置 server（如 negentropy-perceives）owner=system，非 admin 用户
+  //      过去触发的 POST /tools:load 会被旧版 edit 权限拦截为 "Permission denied"
+  //      并渲染到卡片上（ISSUE 主诉）。后端虽已降级为 view 权限，但仍应避免每次进
+  //      MCP 页都对所有 enabled server 发起 streamablehttp 探测，从而消除 OAuth
+  //      .well-known/oauth-protected-resource 404 噪声。
+  //   2. 工具发现属于"显式动作"语义，应由用户点击"Refresh tools"触发，与
+  //      新增/编辑 server 的写入语义对称。
   useEffect(() => {
     if (loading || error || hasAutoRequestedTools || servers.length === 0) {
       return;
@@ -202,9 +222,37 @@ export default function McpServersPage() {
 
     setHasAutoRequestedTools(true);
     enabledServerIds.forEach((serverId) => {
-      void handleLoadTools(serverId);
+      void handleListTools(serverId);
     });
   }, [loading, error, hasAutoRequestedTools, servers]);
+
+  // 仅读取 DB 中已有的 tools 快照（由 admin/owner 上次 discover 时写入），
+  // 不触发任何 MCP 客户端探测；权限要求为 view，与系统内置可见性兼容。
+  const handleListTools = async (serverId: string) => {
+    try {
+      const response = await fetch(`/api/interface/mcp/servers/${serverId}/tools`);
+      if (!response.ok) {
+        // view 拒绝时静默吞掉错误；卡片仅显示 tool_count（来自 list_mcp_servers 聚合），
+        // 不渲染红色错误条，避免用户被刷错验证的失败信息打断。
+        return;
+      }
+      const tools: McpTool[] = await response.json();
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId
+            ? {
+                ...s,
+                tools,
+                tool_count: tools.length,
+                loadError: null,
+              }
+            : s
+        )
+      );
+    } catch {
+      // 网络异常静默处理，与上面同理。
+    }
+  };
 
   const handleDialogClose = () => {
     setDialogOpen(false);
@@ -320,6 +368,7 @@ export default function McpServersPage() {
           await handleLoadTools(serverId);
         }}
       />
+      {confirmDialog}
     </div>
   );
 }

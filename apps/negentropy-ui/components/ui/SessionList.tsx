@@ -9,6 +9,7 @@ import type { SessionListView } from "@/utils/session";
 type SessionItem = {
   id: string;
   label: string;
+  timeLabel?: string;
 };
 
 type SessionListProps = {
@@ -38,7 +39,7 @@ export function SessionList({
   const [draftTitle, setDraftTitle] = useState("");
   const ignoreBlurRef = useRef(false);
 
-  // 确认弹窗状态：归档 / 解档共用一套对话框，避免 window.confirm 的样式割裂（参考 ISSUE-045 / ISSUE-054）
+  // 确认弹窗状态：归档 / 解档共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
   const [confirmTarget, setConfirmTarget] = useState<
     | { kind: "archive" | "unarchive"; session: SessionItem }
     | null
@@ -150,7 +151,11 @@ export function SessionList({
           </p>
         ) : (
           sessions.map((session) => (
-            <div key={session.id}>
+            <div
+              key={session.id}
+              data-session-id={session.id}
+              data-active={session.id === activeId ? "true" : "false"}
+            >
               {editingId === session.id ? (
                 <input
                   value={draftTitle}
@@ -192,11 +197,20 @@ export function SessionList({
                         startEdit(session);
                       }
                     }}
-                    className="min-w-0 flex-1 truncate px-3 py-2 text-left text-xs font-medium"
+                    className="min-w-0 flex-1 px-3 py-2 text-left text-xs font-medium"
                     type="button"
+                    aria-label={session.label}
                     title={view === "active" && onRename ? "双击编辑标题" : undefined}
                   >
-                    {session.label}
+                    <span className="block truncate">{session.label}</span>
+                    {session.timeLabel && (
+                      <span className={cn(
+                        "block text-[10px] font-normal mt-0.5 truncate",
+                        session.id === activeId ? "text-background/60" : "text-muted-foreground",
+                      )}>
+                        {session.timeLabel}
+                      </span>
+                    )}
                   </button>
                   {view === "active" && onArchive ? (
                     <button

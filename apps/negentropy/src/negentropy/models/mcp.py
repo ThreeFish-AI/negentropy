@@ -38,12 +38,16 @@ class McpServer(Base, UUIDMixin, TimestampMixin):
     # 状态和配置
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     auto_start: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    # 「系统内置」标识：与 BuiltinTool.is_system / Skill.is_system / SubAgent.is_system
+    # 对齐，作为可见性与权限判断的单一事实源（参见 permissions._is_plugin_builtin）。
+    is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 
     __table_args__ = (
         UniqueConstraint("name", name="mcp_servers_name_unique"),
         Index("ix_mcp_servers_owner", "owner_id"),
         Index("ix_mcp_servers_visibility", "visibility"),
+        Index("ix_mcp_servers_is_system", "is_system"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

@@ -54,6 +54,8 @@ type ReasoningPanelProps = {
 
 ## 4.2 Sub-Agent 嵌套卡片
 
+> **状态更新（2026-05-10）**：Phase A 已落地。`SubAgentTransferDisplaySegment` 类型 + `SubAgentTransferCard` 组件 + `chat-display.ts` 检测逻辑。多级嵌套（最大 3 层）+ 可展开子 Agent 响应。
+
 ### 现状
 - `transfer_to_agent` 工具调用只显示「TOOL Transfer To Agent」一行，看不出是哪个 sub-agent、其响应是什么
 - 父 agent 与 sub-agent 的对话边界不清晰
@@ -113,12 +115,12 @@ type SubAgentTransferCardProps = {
 - 用户无法中断流式响应（即使已经知道答错方向，只能等完成）
 - 工具调用前无审批环节，agent 可能执行用户未明确授权的副作用操作（如发邮件、修改文件）
 
-> **进展（2026-05-05 P3-2 MVP 落地）**：协议 + UI 已完成；具体高风险工具拦截留下一个迭代。
+> **进展（2026-05-10 G3 落地）**：`ingest_paper` 已接入审批流程（PDF 下载 + 知识库写入前需用户确认）。
 > - 后端：`apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` + `should_request_approval` + `request_approval` + `consume_approval_response`）
-> - 前端：`components/ui/ApprovalPolicySelector.tsx`（dropdown + localStorage）+ `components/ui/ApprovalDialog.tsx`（state.pending_approvals 订阅 + Approve/Deny modal）
-> - 文档：`docs/observability-genai.md` 顺带说明审批 trace 要素；`docs/user-guide/chat-essentials.md` §12「审批策略」补充使用指引
-> - 单测：后端 16 + 前端 13 = 29 全过；E2E 留下一轮接入具体工具时补
-> - 留白（Phase 4）：高风险工具实际接入 `request_approval` + `consume_approval_response` polling；BFF `POST /api/agents/approval` 端点把 UI 响应写回 session.state；ne.approval.* CUSTOM 事件类型化
+> - 前端闭环已接通：`home-body.tsx` 从 `snapshotForDisplay.pending_approvals` 读取 → `ApprovalDialog` 弹窗 → BFF `POST /api/agui/sessions/{id}/approval_response` → 后端 `consume_approval_response` 读取
+> - `ApprovalPolicySelector` 已渲染在 toolbar 区域，策略通过 `forwardedProps.approval_policy` 透传后端
+> - 单测：后端 16 + 前端 13 = 29 全过；E2E 留后续 PR 补
+> - 留白（后续迭代）：其余高风险工具实际接入；ne.approval.* CUSTOM 事件类型化
 
 ### 目标
 - **Stop 按钮**：流式中显示，点击发送 `RUN_STOP` 信号，后端中断；类似 ChatGPT 的"Stop generating"（**已在 Phase 1 C4 落地**，参见 `home-body.tsx` `handleCancelRun`）

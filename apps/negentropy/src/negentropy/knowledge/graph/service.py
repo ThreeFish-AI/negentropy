@@ -19,7 +19,7 @@ import time
 import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -29,6 +29,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
 
+from ..cancellation import (
+    is_cancelled,
+    register_cancellable_run,
+    unregister_cancellable_run,
+)
+from ..exceptions import PipelineCancelled
 from ..types import (
     GraphBuildConfig,
     GraphEdge,
@@ -55,6 +61,55 @@ logger = get_logger("negentropy.knowledge.graph_service")
 # ============================================================================
 # Service Result Types
 # ============================================================================
+
+
+@dataclass
+class _LLMCircuitBreaker:
+    """Simplified circuit breaker (Nygard, "Release It!", 2018) for KG build LLM calls.
+
+    Two-state model: CLOSED (normal) → OPEN (skip LLM, use fallback directly).
+    No HALF-OPEN state: KG builds are finite batches; the LLM either works or it
+    doesn't within the build window.
+
+    failure_threshold: consecutive LLM failures before opening the circuit.
+    Once open, all remaining chunks use fallback extractors (regex/cooccurrence)
+    which complete in <1s instead of 30-90s per LLM call.
+    """
+
+    consecutive_failures: int = 0
+    failure_threshold: int = 3
+    is_open: bool = False
+
+    def record_failure(self) -> bool:
+        """Record a failure. Returns True on CLOSED→OPEN transition."""
+        self.consecutive_failures += 1
+        if self.consecutive_failures >= self.failure_threshold and not self.is_open:
+            self.is_open = True
+            return True
+        return False
+
+    def record_success(self) -> None:
+        self.consecutive_failures = 0
+        # Once open, stay open — two-state model is CLOSED→OPEN only.
+
+    def should_skip_llm(self) -> bool:
+        return self.is_open
+
+
+@dataclass
+class BuildRunContext:
+    """_init_build_run → _execute_build 的上下文传递物"""
+
+    run_id: str
+    run_uuid: UUID
+    corpus_id: UUID
+    app_name: str
+    chunks: list[dict[str, Any]]
+    config: GraphBuildConfig
+    entity_extractor: CompositeEntityExtractor
+    relation_extractor: CompositeRelationExtractor
+    start_time: float
+    normalized_llm_model: str
 
 
 @dataclass(frozen=True)
@@ -131,6 +186,38 @@ _graph_cache = _TTLCache(ttl_seconds=300, maxsize=256)
 
 
 # ============================================================================
+# Build Phase Constants
+# ============================================================================
+#
+# 单次 build 内的语义里程碑顺序：
+#   extracting → resolving → syncing → pagerank → communities → summaries → completed
+# 与 progress_percent 协同（前端 SSE payload 透传 phase + percent）：
+# - extracting：0.00 → 0.80（chunk 循环按比例线性递增）
+# - resolving / persisting：0.80 → 0.85
+# - syncing：0.85 → 0.90
+# - pagerank：0.90 → 0.93
+# - communities：0.93 → 0.96
+# - summaries：0.96 → 1.00
+# 失败也会落库为 failed 终态，前端 KgBuildProgressPill 解析 phase 字段渲染中文标签。
+PHASE_EXTRACTING = "extracting"
+PHASE_RESOLVING = "resolving"
+PHASE_SYNCING = "syncing"
+PHASE_PAGERANK = "pagerank"
+PHASE_COMMUNITIES = "communities"
+PHASE_SUMMARIES = "summaries"
+PHASE_COMPLETED = "completed"
+
+
+def _strip_phase_entries(warnings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """移除 warnings 列表中既有的 _phase 条目（保持单条最新阶段元数据）。
+
+    SSE 端点 / 前端 ``KgBuildProgressPill`` 都会取最后一条 _phase；保留多条历史
+    会污染前端渲染。``_metrics`` / 算法 warning 等其他条目原样保留。
+    """
+    return [w for w in warnings if "_phase" not in w]
+
+
+# ============================================================================
 # Graph Service
 # ============================================================================
 
@@ -200,30 +287,21 @@ class GraphService:
             logger.warning("unknown_extraction_schema", schema_name=name)
         return schema
 
-    async def build_graph(
+    async def _init_build_run(
         self,
         corpus_id: UUID,
         app_name: str,
         chunks: list[dict[str, Any]],
         config: GraphBuildConfig | None = None,
-    ) -> GraphBuildResult:
-        """构建知识图谱
+    ) -> BuildRunContext:
+        """快速创建构建运行记录（<1s），返回上下文供 _execute_build 或 build_graph 使用。
 
-        从知识块中提取实体和关系，构建图谱。
-
-        Args:
-            corpus_id: 语料库 ID
-            app_name: 应用名称
-            chunks: 知识块列表，每个包含 content 和 metadata
-            config: 构建配置（可选，覆盖默认配置）
-
-        Returns:
-            构建结果统计
+        调用方可在 API 层同步 await 本方法获取 run_id 并立即返回给客户端，
+        再通过 asyncio.create_task 将实际构建推迟到后台执行。
         """
         build_config = config or self._config
         normalized_llm_model = canonicalize_model_name(build_config.llm_model)
 
-        # 按请求级 config 动态创建提取器（单例提取器无法感知 schema 变更）
         request_schema = self._resolve_schema(build_config.extraction_schema_name)
         entity_extractor = CompositeEntityExtractor(
             llm_model=build_config.llm_model,
@@ -246,7 +324,6 @@ class GraphService:
             chunk_count=len(chunks),
         )
 
-        # 创建构建运行记录
         run_uuid = await self._repository.create_build_run(
             app_name=app_name,
             corpus_id=corpus_id,
@@ -260,11 +337,75 @@ class GraphService:
             model_name=normalized_llm_model,
         )
 
+        register_cancellable_run(run_id)
+
+        return BuildRunContext(
+            run_id=run_id,
+            run_uuid=run_uuid,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            chunks=chunks,
+            config=build_config,
+            entity_extractor=entity_extractor,
+            relation_extractor=relation_extractor,
+            start_time=start_time,
+            normalized_llm_model=normalized_llm_model,
+        )
+
+    async def build_graph(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+        chunks: list[dict[str, Any]],
+        config: GraphBuildConfig | None = None,
+    ) -> GraphBuildResult:
+        """构建知识图谱（向后兼容 wrapper：init + execute 顺序调用）。"""
+        ctx = await self._init_build_run(corpus_id, app_name, chunks, config)
+        return await self._execute_build(ctx)
+
+    async def _execute_build(
+        self,
+        ctx: BuildRunContext,
+    ) -> GraphBuildResult:
+        """执行完整 KG 构建管线。
+
+        接受 _init_build_run 创建的上下文，运行 chunk 抽取、实体消解、持久化、
+        后处理等全部阶段。成功/失败/取消均在内部写入 DB 终态。
+        """
+        build_config = ctx.config
+        entity_extractor = ctx.entity_extractor
+        relation_extractor = ctx.relation_extractor
+        run_id = ctx.run_id
+        run_uuid = ctx.run_uuid
+        corpus_id = ctx.corpus_id
+        app_name = ctx.app_name
+        chunks = ctx.chunks
+        start_time = ctx.start_time
+        normalized_llm_model = ctx.normalized_llm_model
+
+        # 提升到 try 之外：失败分支需要剥离 _phase 后落库 warnings，避免 DB 行残留
+        # 上一次 emit_phase 写入的运行期标记；同时让累积的 algorithm warning + 部分 _metrics
+        # 在失败时仍然可观测。即便异常发生在 try 内的早期阶段（如 get_processed_chunk_ids）
+        # 这两个变量也已绑定，except 不会触发 UnboundLocalError。
+        build_warnings: list[dict[str, Any]] = []
+        build_metrics: KgBuildMetrics | None = None
+        shared_session: AsyncSession | None = None
+
         try:
+            # 共享 Session：全构建生命周期复用单一 DB 连接，消除 ~2000 次 Session 创建/销毁抖动。
+            # Repository 的 _session_scope 注入模式（yield self._session + return）不接管生命周期，
+            # 每个 commit 仍正常提交事务，但底层 TCP 连接不被释放回连接池，直到 build_graph 结束。
+            from negentropy.db.session import AsyncSessionLocal
+
+            from .repository import AgeGraphRepository
+
+            shared_session = AsyncSessionLocal()
+            build_repo = AgeGraphRepository(session=shared_session)
+
             # 增量构建：跳过已处理的 chunk (Hogan et al., 2021 §6.3; Graphiti, 2025)
             prev_processed: set[str] = set()
             if build_config.incremental:
-                prev_processed = await self._repository.get_processed_chunk_ids(corpus_id, app_name)
+                prev_processed = await build_repo.get_processed_chunk_ids(corpus_id, app_name)
                 original_count = len(chunks)
                 chunks = [c for c in chunks if c.get("id") and str(c["id"]) not in prev_processed]
                 logger.info(
@@ -281,67 +422,475 @@ class GraphService:
                     )
             else:
                 # 全量构建：清除旧图谱数据
-                await self._repository.clear_graph(corpus_id)
+                await build_repo.clear_graph(corpus_id)
 
             # 分批处理
             all_entities: list[GraphNode] = []
             all_relations: list[GraphEdge] = []
             chunks_processed = 0
             failed_chunk_count = 0
-            build_warnings: list[dict[str, Any]] = []
+            chunks_fallback = 0
             total_chunks = len(chunks)
+
+            # 抽取质量观测累加器（由 process_chunk 内 nonlocal 写入；聚合到 KgBuildMetrics）
+            over_extraction_chunks = 0
+            type_override_count = 0
+            density_samples: list[float] = []
 
             batch_size = build_config.batch_size
             semaphore = asyncio.Semaphore(build_config.max_concurrency)
 
+            # 单 chunk LLM 提取超时（秒）：包裹 entity / relation extractor.extract。
+            # 由全局配置推导：max_retries × timeout + backoff，确保外层预算覆盖内层重试。
+            from .extractors import KG_LLM_MAX_RETRIES, KG_LLM_TIMEOUT_SECONDS
+
+            chunk_extract_timeout = KG_LLM_MAX_RETRIES * KG_LLM_TIMEOUT_SECONDS + KG_LLM_MAX_RETRIES
+
+            # 断路器 (Nygard, "Release It!", 2018, Ch.5)：连续 LLM 失败达到阈值后，
+            # 跳过 LLM 直接使用 fallback 提取器（regex/cooccurrence），避免每个 chunk
+            # 白等 LLM 超时。两态模型 CLOSED→OPEN，无 HALF-OPEN（构建是有限批次）。
+            circuit_breaker = _LLMCircuitBreaker(failure_threshold=3)
+
+            # 协同取消信号：断路器 OPEN 时 set，同批并发 chunk 立即跳过 LLM 走 fallback。
+            llm_cancel = asyncio.Event()
+
+            # 阶段化进度上报：把当前阶段元数据写入 warnings JSONB 的最后一条 _phase 条目，
+            # SSE 端点透传后由前端 KgBuildProgressPill 解析渲染中文标签。
+            # 设计决策（vs 新增 phase 列）：复用 warnings JSONB（已有 _metrics 同型条目模式）
+            # 避免 alembic 迁移；warnings 字段 SSE 端点已读取，零额外 API 改造。
+            # 阶段耗时跟踪：在 emit_phase 触发时计算上一阶段 elapsed_ms，便于排查
+            # 各阶段性能瓶颈（如 extracting 80s vs syncing 0.5s）。
+            phase_timing: dict[str, Any] = {
+                "prev_name": None,
+                "prev_started_at": None,
+            }
+
+            async def emit_phase(
+                phase: str,
+                progress: float,
+                **extra: Any,
+            ) -> None:
+                """写阶段化日志 + 更新 progress_percent + 把 _phase 元数据塞入 warnings。
+
+                取消检查点（R-8 + R-9）：阶段边界检查 in-memory event（O(1) 同 worker
+                fast-path）+ DB 兜底（跨 worker / 进程重启场景）。每个大阶段 < 10 次，
+                DB SELECT 开销可承受。
+                """
+                # in-memory fast-path
+                if is_cancelled(run_id):
+                    raise PipelineCancelled(run_id, last_stage=phase)
+
+                # DB 兜底：跨 worker 场景，cancel API 落到 worker A 时本 worker 通过 DB 感知。
+                # 用 hasattr/try 兜底兼容 mock repository（无该方法时降级为仅依赖 in-memory）。
+                # 注意：此处通过 self._repository（而非 build_repo）查询，_repository 使用
+                # _session_scope() 开启独立 session 做 SELECT，不与 build_repo 的
+                # shared_session 事务冲突，不会触发连接池竞争。
+                _get_run = getattr(self._repository, "get_build_run_by_run_id", None)
+                if _get_run is not None:
+                    try:
+                        latest_record = await _get_run(run_id, app_name)
+                    except Exception as poll_exc:
+                        logger.debug(
+                            "cancel_db_poll_failed",
+                            run_id=run_id,
+                            phase=phase,
+                            error=str(poll_exc),
+                        )
+                    else:
+                        if latest_record is not None and latest_record.status in ("cancelling", "cancelled"):
+                            raise PipelineCancelled(run_id, last_stage=phase)
+
+                nonlocal build_warnings
+                now_ts = time.time()
+                prev_phase_name = phase_timing["prev_name"]
+                prev_phase_elapsed_ms: float | None = None
+                if phase_timing["prev_started_at"] is not None:
+                    prev_phase_elapsed_ms = round((now_ts - float(phase_timing["prev_started_at"])) * 1000, 1)
+                phase_timing["prev_name"] = phase
+                phase_timing["prev_started_at"] = now_ts
+
+                phase_meta: dict[str, Any] = {
+                    "name": phase,
+                    "ts": datetime.now(UTC).isoformat(),
+                }
+                if extra:
+                    phase_meta.update(extra)
+                build_warnings = _strip_phase_entries(build_warnings)
+                build_warnings.append({"_phase": phase_meta})
+                log_extra: dict[str, Any] = dict(extra)
+                if prev_phase_elapsed_ms is not None:
+                    log_extra["prev_phase"] = prev_phase_name
+                    log_extra["prev_phase_elapsed_ms"] = prev_phase_elapsed_ms
+                logger.info(
+                    "graph_phase_started",
+                    run_id=run_id,
+                    phase=phase,
+                    progress_percent=round(progress, 4),
+                    **log_extra,
+                )
+                try:
+                    update_kwargs: dict[str, Any] = {
+                        "run_id": run_uuid,
+                        "human_run_id": run_id,
+                        "status": "running",
+                        "progress_percent": progress,
+                        "warnings": list(build_warnings),
+                    }
+                    # 从 extra 中提取中间态计数（可选，仅 resolving 之后阶段有值）
+                    if "entity_count" in extra:
+                        update_kwargs["entity_count"] = extra["entity_count"]
+                    if "relation_count" in extra:
+                        update_kwargs["relation_count"] = extra["relation_count"]
+                    await build_repo.update_build_run(**update_kwargs)
+                except Exception as exc:
+                    logger.warning(
+                        "update_build_run_failed",
+                        run_uuid=str(run_uuid),
+                        run_id=run_id,
+                        phase=phase,
+                        error=str(exc),
+                    )
+
+            # chunk 循环节流上报：单批 batch 内可能 30-60s（10 chunk × 3 并发 × 单 LLM 5-10s），
+            # 仅在每批结束才上报会让 SSE 静默期 ≥ 30s，前端体感"卡死"。
+            # 双触发条件：每完成 progress_report_chunk_threshold 个 chunk 或距上次上报 ≥
+            # progress_report_min_interval_s 秒，取后到者。Lock 保护避免并发互相覆盖。
+            progress_lock = asyncio.Lock()
+            # 自适应节流：20 chunks → 每 1 个上报；2000 chunks → 每 10 个上报。
+            # 时间兜底从 10s 降至 5s，避免 LLM 调用 60s 超时期间前端静默过长。
+            progress_report_chunk_threshold = max(1, total_chunks // 200)
+            # 小批次场景（≤ 50 chunks）每 chunk 耗时占比大，需要更密集的进度上报；
+            # 大批次场景（> 50 chunks）保留 5s 兜底避免 DB 写入压力。
+            progress_report_min_interval_s = 2.0 if total_chunks <= 50 else 5.0
+            progress_state: dict[str, float | int] = {
+                "last_reported_at": time.time(),
+                "last_reported_chunks": 0,
+            }
+
+            async def maybe_report_chunk_progress() -> None:
+                """chunk 处理过程中按节流条件上报 progress_percent（仅更新单字段，不改 warnings）。
+
+                取消守卫（ISSUE-080）：in-memory ``is_cancelled`` 仅覆盖**同 worker**
+                场景（cancel API 与 build task 在同一进程内通过 ``asyncio.Event`` 通信）；
+                跨 worker 场景下此检查不生效，正确性由 SQL 层 ``update_build_run`` 的
+                状态机 WHERE 守卫兜底（非终态写入不会回滚 cancelling）。
+                此处 fast-path 仅是同 worker 内减少日志噪音 + 早出节流的优化。
+                """
+                if is_cancelled(run_id):
+                    return
+                async with progress_lock:
+                    now = time.time()
+                    delta_chunks = chunks_processed - int(progress_state["last_reported_chunks"])
+                    delta_time = now - float(progress_state["last_reported_at"])
+                    if delta_chunks < progress_report_chunk_threshold and delta_time < progress_report_min_interval_s:
+                        return
+                    progress_state["last_reported_at"] = now
+                    progress_state["last_reported_chunks"] = chunks_processed
+                    progress = min(chunks_processed / total_chunks, 1.0) * 0.80 if total_chunks > 0 else 0.80
+                    # extracting 阶段累计计数同步落库（issue.md ISSUE-031）：
+                    # 此为 resolver 前的原始累计（含跨 chunk 同义实体），UI/SSE 在 progress<0.82
+                    # 阶段可见单调增长；resolving 阶段会回填去重后的最终值。
+                    current_entity_count = len(all_entities)
+                    current_relation_count = len(all_relations)
+                    try:
+                        await build_repo.update_build_run(
+                            run_id=run_uuid,
+                            human_run_id=run_id,
+                            status="running",
+                            progress_percent=progress,
+                            entity_count=current_entity_count,
+                            relation_count=current_relation_count,
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "update_build_run_failed",
+                            run_uuid=str(run_uuid),
+                            run_id=run_id,
+                            phase=PHASE_EXTRACTING,
+                            error=str(exc),
+                        )
+                    logger.info(
+                        "chunk_batch_progress",
+                        run_id=run_id,
+                        processed=chunks_processed,
+                        total=total_chunks,
+                        failed=failed_chunk_count,
+                        progress_percent=round(progress, 4),
+                        total_entities=current_entity_count,
+                        total_relations=current_relation_count,
+                    )
+
             async def process_chunk(
                 chunk: dict[str, Any],
-                _retries: int = 1,
+                chunk_index: int,
             ) -> tuple[list[GraphNode], list[GraphEdge]]:
-                """处理单个知识块，LLM 提取失败时重试一次 (Nygard, 2018)"""
+                """处理单个知识块，LLM 提取失败时降级到 fallback 提取器。
+
+                Args:
+                    chunk_index: 调度时预分配的 1-based 序号（issue.md ISSUE-030 修复）；
+                        替代 ``chunks_processed + 1`` 运行时读取，规避并发竞态导致多 chunk
+                        同时日志 `chunk_index=1` / `=11` 的观测性问题。
+
+                韧性机制（三层防御）：
+                1. **断路器 fast-path**：连续 LLM 失败 ≥ threshold 后，跳过 LLM 直接
+                   使用 fallback（regex/cooccurrence），避免剩余 chunk 白等 30-90s。
+                2. **超时降级**：单个 extractor 超时后不重试整个 chunk（浪费 120s），
+                   而是直接调用 fallback 提取器获取基本实体/关系。
+                3. **部分结果保留**：实体提取成功 + 关系提取超时时，保留实体并使用
+                   cooccurrence fallback 获取关系，而非丢弃两者。
+
+                取消检查点（R-8）：协程入口仅查 in-memory event（O(1) dict lookup），
+                **不查 DB**——chunk 数可能 1000+，DB SELECT 会成压力；DB 兜底由
+                emit_phase 阶段边界承担（最长 1 个 phase 周期感知）。
+                """
+                nonlocal chunks_fallback
+                nonlocal over_extraction_chunks, type_override_count
+
+                if is_cancelled(run_id):
+                    raise PipelineCancelled(run_id, last_stage="extracting")
+
+                chunk_start_ts = time.time()
+                chunk_id = str(chunk.get("id", "?"))
+
+                def _log_chunk_done(entities: list[GraphNode], relations: list[GraphEdge], mode: str) -> None:
+                    elapsed_ms = round((time.time() - chunk_start_ts) * 1000, 1)
+                    logger.info(
+                        "chunk_extraction_finished",
+                        run_id=run_id,
+                        chunk_id=chunk_id,
+                        mode=mode,
+                        entity_count=len(entities),
+                        relation_count=len(relations),
+                        elapsed_ms=elapsed_ms,
+                    )
+
                 async with semaphore:
                     text = chunk.get("content", "")
                     if not text:
+                        _log_chunk_done([], [], mode="empty")
                         return [], []
 
-                    try:
-                        # 提取实体
-                        entities = await entity_extractor.extract(text, corpus_id)
+                    logger.info(
+                        "chunk_processing_started",
+                        run_id=run_id,
+                        chunk_id=chunk_id,
+                        chunk_index=chunk_index,
+                        total_chunks=total_chunks,
+                        content_length=len(text),
+                        circuit_open=circuit_breaker.is_open,
+                    )
 
+                    # ── 断路器 fast-path：跳过 LLM，直接 fallback ──
+                    if circuit_breaker.should_skip_llm() or llm_cancel.is_set():
+                        chunks_fallback += 1
+                        fb_entities, fb_relations = await _fallback_extract_chunk(text, chunk_id)
+                        _log_chunk_done(fb_entities, fb_relations, mode="fallback_fast_path")
+                        return fb_entities, fb_relations
+
+                    # ── 正常 LLM 提取路径 ──
+                    # 实体提取与关系提取拆分为独立 try/except，实现部分结果保留：
+                    # - 实体成功 + 关系超时 → 保留实体，关系走 fallback
+                    # - 实体超时 → 整个 chunk 走 fallback
+                    entities: list[GraphNode] = []
+                    relations: list[GraphEdge] = []
+
+                    try:
+                        # 提取实体（带超时）+ 收集 chunk 级抽取质量信号（密度截断 / 类型重判）
+                        from .extraction_validator import ChunkExtractionStats
+
+                        chunk_stats = ChunkExtractionStats()
+                        entities = await asyncio.wait_for(
+                            entity_extractor.extract(text, corpus_id, stats_out=chunk_stats),
+                            timeout=chunk_extract_timeout,
+                        )
+                        # 抽取质量信号累加（同协程内 await 之后立即累加，与下游 nonlocal 互不冲突）
+                        if chunk_stats.density_truncated:
+                            over_extraction_chunks += 1
+                        type_override_count += chunk_stats.type_override_count
+                        if chunk_stats.entity_density_per_kchar > 0.0:
+                            density_samples.append(chunk_stats.entity_density_per_kchar)
+                        if chunk_stats.density_truncated or chunk_stats.type_override_count:
+                            logger.warning(
+                                "chunk_extraction_quality_signal",
+                                run_id=run_id,
+                                chunk_id=chunk_id,
+                                density_truncated=chunk_stats.density_truncated,
+                                density_dropped=chunk_stats.density_dropped_count,
+                                type_overrides=chunk_stats.type_override_count,
+                                density_per_kchar=round(chunk_stats.entity_density_per_kchar, 2),
+                            )
                         # 过滤低置信度实体
                         min_conf = build_config.min_entity_confidence
                         entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
+                    except (TimeoutError, Exception) as exc:
+                        if isinstance(exc, PipelineCancelled):
+                            raise
+                        # 实体提取失败：记录失败 + 整个 chunk 走 fallback
+                        just_opened = circuit_breaker.record_failure()
+                        if just_opened:
+                            llm_cancel.set()  # 通知同批并发 chunk 停止 LLM
+                            logger.warning(
+                                "llm_circuit_breaker_opened",
+                                run_id=run_id,
+                                consecutive_failures=circuit_breaker.consecutive_failures,
+                            )
+                        logger.warning(
+                            "chunk_entity_extraction_timeout_using_fallback",
+                            run_id=run_id,
+                            chunk_id=chunk_id,
+                            timeout_s=chunk_extract_timeout,
+                        )
+                        chunks_fallback += 1
+                        fb_entities, fb_relations = await _fallback_extract_chunk(text, chunk_id)
+                        _log_chunk_done(fb_entities, fb_relations, mode="fallback_entity_timeout")
+                        return fb_entities, fb_relations
 
-                        # 提取关系
-                        relations = await relation_extractor.extract(entities, text)
+                    # 实体提取成功 → 检查断路器再尝试关系提取
+                    if llm_cancel.is_set():
+                        # 断路器在实体提取后打开了，关系直接走 fallback
+                        chunks_fallback += 1
+                        try:
+                            from .strategy import CooccurrenceRelationExtractor
 
+                            relations = await CooccurrenceRelationExtractor().extract(entities, text)
+                            relations = [
+                                r
+                                for r in relations
+                                if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                            ]
+                        except Exception as fallback_exc:
+                            relations = []
+                            logger.error(
+                                "cooccurrence_fallback_also_failed",
+                                run_id=run_id,
+                                chunk_id=chunk_id,
+                                error=str(fallback_exc),
+                            )
+                        _log_chunk_done(entities, relations, mode="entity_llm_relation_cooccurrence")
+                        return entities, relations
+
+                    try:
+                        relations = await asyncio.wait_for(
+                            relation_extractor.extract(entities, text, corpus_id=corpus_id),
+                            timeout=chunk_extract_timeout,
+                        )
                         # 过滤低置信度关系
                         relations = [
                             r
                             for r in relations
                             if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
                         ]
-
+                        # LLM 全部成功 → 重置断路器
+                        circuit_breaker.record_success()
+                        _log_chunk_done(entities, relations, mode="llm_full")
                         return entities, relations
-                    except Exception:
-                        if _retries > 0:
-                            await asyncio.sleep(1.0)
-                            return await process_chunk(chunk, _retries - 1)
-                        raise
+                    except (TimeoutError, Exception) as exc:
+                        if isinstance(exc, PipelineCancelled):
+                            raise
+                        # 关系提取失败：保留已提取的实体，关系走 cooccurrence fallback
+                        just_opened = circuit_breaker.record_failure()
+                        if just_opened:
+                            llm_cancel.set()  # 通知同批并发 chunk 停止 LLM
+                            logger.warning(
+                                "llm_circuit_breaker_opened",
+                                run_id=run_id,
+                                consecutive_failures=circuit_breaker.consecutive_failures,
+                            )
+                        logger.warning(
+                            "chunk_relation_extraction_timeout_preserving_entities",
+                            run_id=run_id,
+                            chunk_id=chunk_id,
+                            entity_count=len(entities),
+                            timeout_s=chunk_extract_timeout,
+                        )
+                        chunks_fallback += 1
+                        try:
+                            from .strategy import CooccurrenceRelationExtractor
 
-            # 批量处理
+                            relations = await CooccurrenceRelationExtractor().extract(entities, text)
+                            relations = [
+                                r
+                                for r in relations
+                                if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                            ]
+                        except Exception as fallback_exc:
+                            logger.error(
+                                "cooccurrence_fallback_also_failed",
+                                run_id=run_id,
+                                chunk_id=chunk_id,
+                                error=str(fallback_exc),
+                            )
+                        _log_chunk_done(entities, relations, mode="entity_llm_relation_fallback")
+                        return entities, relations
+
+            async def _fallback_extract_chunk(
+                text: str,
+                chunk_id: str,
+            ) -> tuple[list[GraphNode], list[GraphEdge]]:
+                """使用 fallback 提取器（regex + cooccurrence）处理 chunk。
+
+                无 LLM 调用，纯本地计算，完成时间 <1s。质量低于 LLM 提取，
+                但保证每个 chunk 至少产出基本实体/关系，避免空图。
+                """
+                from .strategy import CooccurrenceRelationExtractor, RegexEntityExtractor
+
+                try:
+                    entities = await RegexEntityExtractor().extract(text, corpus_id)
+                    min_conf = build_config.min_entity_confidence
+                    entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
+                    relations = await CooccurrenceRelationExtractor().extract(entities, text)
+                    relations = [
+                        r
+                        for r in relations
+                        if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                    ]
+                    return entities, relations
+                except Exception as exc:
+                    logger.error(
+                        "fallback_extraction_failed",
+                        run_id=run_id,
+                        chunk_id=chunk_id,
+                        error=str(exc),
+                    )
+                    raise
+
+            # 阶段 1：实体/关系抽取（chunk 循环占整体进度 0.0 → 0.80）
+            await emit_phase(PHASE_EXTRACTING, 0.0, processed=0, total=total_chunks)
+
+            # 批量处理：as_completed 逐个完成逐个上报，避免 gather 全部完成后
+            # tally 循环微秒级跑完导致进度从 0 跳到 batch_size。
+            # semaphore 仍限制实际 LLM 并发为 max_concurrency，调用效率不变。
             for i in range(0, len(chunks), batch_size):
-                batch = chunks[i : i + batch_size]
-                results = await asyncio.gather(
-                    *[process_chunk(chunk) for chunk in batch],
-                    return_exceptions=True,
-                )
+                # 批次入口取消检查点（ISSUE-080）
+                if is_cancelled(run_id):
+                    raise PipelineCancelled(run_id, last_stage=PHASE_EXTRACTING)
 
-                for result in results:
-                    if isinstance(result, Exception):
+                batch = chunks[i : i + batch_size]
+                # chunk_index 在调度时一次性预分配（issue.md ISSUE-030 修复）：
+                # 同批并发 chunk 在协程内并发读 chunks_processed 导致竞态，
+                # 这里改为 1-based 全局序号 (batch 起始 i + 批内 offset + 1)，互斥唯一。
+                pending = [
+                    asyncio.ensure_future(process_chunk(chunk, chunk_index=i + offset + 1))
+                    for offset, chunk in enumerate(batch)
+                ]
+
+                for coro in asyncio.as_completed(pending):
+                    try:
+                        result = await coro
+                    except PipelineCancelled:
+                        # 取消同批剩余任务（ISSUE-080）：避免 cancel 信号
+                        # 在 chunk loop 内丢失、批次继续处理直到下一个 phase
+                        # 边界才被感知。
+                        for t in pending:
+                            if not t.done():
+                                t.cancel()
+                        raise
+                    except Exception as exc:
                         logger.warning(
                             "chunk_processing_error",
-                            error=str(result),
+                            run_id=run_id,
+                            error=str(exc),
+                            error_type=type(exc).__name__,
                         )
                         failed_chunk_count += 1
                         continue
@@ -350,17 +899,39 @@ class GraphService:
                     all_entities.extend(entities)
                     all_relations.extend(relations)
                     chunks_processed += 1
-
-                # 进度上报 (Majors, Observability Engineering, 2022)
-                progress = min((i + len(batch)) / total_chunks, 1.0) if total_chunks > 0 else 1.0
-                try:
-                    await self._repository.update_build_run(
-                        run_id=run_uuid,
-                        status="running",
-                        progress_percent=progress,
+                    logger.info(
+                        "chunk_processing_completed",
+                        run_id=run_id,
+                        processed=chunks_processed,
+                        total=total_chunks,
+                        entity_count=len(entities),
+                        relation_count=len(relations),
                     )
-                except Exception:
-                    pass  # 进度上报失败不影响构建
+                    # 每个 chunk 完成后即上报（自适应节流仍在生效）
+                    await maybe_report_chunk_progress()
+
+            # 回收 litellm 内部 HTTP Session（aiohttp.ClientSession）
+            # litellm.acompletion 每次调用可能创建内部 Session 对象，
+            # 依赖 Python GC 延迟回收会产生 "Unclosed client session" 警告。
+            # 显式 gc.collect() 在 chunk 循环结束后及时回收。
+            import gc
+
+            gc.collect()
+            logger.info(
+                "chunk_extraction_gc_completed",
+                run_id=run_id,
+            )
+
+            # 阶段 2：实体消解（多策略，Fellegi & Sunter, 1969）
+            await emit_phase(
+                PHASE_RESOLVING,
+                0.82,
+                processed=chunks_processed,
+                total=total_chunks,
+                failed=failed_chunk_count,
+                entity_count=len(all_entities),
+                relation_count=len(all_relations),
+            )
 
             # 多策略实体消解 (Fellegi & Sunter, 1969)
             # Blocking → Exact → Alias → ANN → LLM verification
@@ -369,46 +940,181 @@ class GraphService:
             resolver = EntityResolver(
                 ann_threshold=build_config.semantic_dedup_threshold or 0.85,
             )
-            entities_to_save = await resolver.resolve(
+            resolution = await resolver.resolve(
                 new_entities=all_entities,
-                find_similar=self._repository.find_similar_entities,
+                find_similar=build_repo.find_similar_entities,
                 corpus_id=corpus_id,
             )
+            entities_to_save = resolution.entities
 
             # 持久化实体
-            await self._repository.create_entities(
+            await build_repo.create_entities(
                 entities_to_save,
                 corpus_id,
             )
 
             # 重新映射关系中的实体 ID
+            #
+            # 关系端点重写策略（缺陷 2 修复）：
+            # extractors 在抽取阶段以 SHA256 哈希填充 GraphEdge.source/target
+            # （格式 ``entity:<32-hex>``）。经多策略 resolver 后，被合并的实体
+            # 不在 ``entities_to_save`` 中，旧实现 ``id_to_label`` 仅覆盖存留实体，
+            # 导致这些哈希 ref 在 _resolve_ref 链中全程 miss，最终 unresolved。
+            #
+            # 修复：使用 resolver 暴露的 ``id_merge_map`` 作为权威映射（已展平传递链
+            # 且覆盖 Exact / Token / ANN 三阶段，含 ANN→DB UUID 跨表场景），
+            # _resolve_ref 优先以 id 直查；保留 label 链作为防御性 fallback
+            # （覆盖 LLM 误输出 label 字符串而非 id 的情况）。
             label_to_id = {e.label: e.id for e in entities_to_save}
+            # 规范化标签映射（处理大小写/空格差异）
+            norm_label_to_id: dict[str, str] = {}
+            for e in entities_to_save:
+                if e.label:
+                    norm = e.label.strip().lower()
+                    if norm not in norm_label_to_id:
+                        norm_label_to_id[norm] = e.id
             # ID → Label 反向映射（用于双写时传递实体名称而非 UUID）
             id_to_label: dict[str, str] = {e.id.replace("entity:", ""): e.label for e in entities_to_save if e.label}
 
+            # 权威 ID 映射：被合并实体 id → 存留 id（含 DB UUID 跨表场景）
+            # ``resolution.id_merge_map`` 由 EntityResolver 在三 stage 内统一维护并展平。
+            id_merge_map: dict[str, str] = dict(resolution.id_merge_map or {})
+
+            # 标签级合并映射注入 label_to_id（保留旧逻辑作为 fallback，
+            # 覆盖 LLM 直接输出 label 字符串作为 source/target 的边界场景）。
+            # 同时将 DB UUID 端点（ANN Stage 2 命中 kg_entities 既有实体）注入 id_to_label，
+            # 确保下游 sync_relation 的 canonical_name 查找能命中。
+            for old_label, surviving_label in (resolution.merge_map or {}).items():
+                surviving_id = label_to_id.get(surviving_label)
+                if surviving_id and old_label not in label_to_id:
+                    label_to_id[old_label] = surviving_id
+                    norm_old = old_label.strip().lower()
+                    if norm_old not in norm_label_to_id:
+                        norm_label_to_id[norm_old] = surviving_id
+                # ANN→DB UUID 场景：surviving_label 是 DB 实体名称（不在 entities_to_save 中），
+                # surviving_id 为 None；但仍需将 old_label → surviving_label 映射注入 label_to_id，
+                # 以便 _resolve_ref 的标签级 fallback 路径能正确解析到 DB 实体名称。
+                elif not surviving_id and old_label not in label_to_id:
+                    label_to_id[old_label] = surviving_label
+
+            # 存留实体 id 集合（用于 UUID/hash 直通判定）
+            _surviving_ids: set[str] = {e.id for e in entities_to_save}
+            _surviving_clean_ids: set[str] = {e.id.replace("entity:", "") for e in entities_to_save}
+
+            # ANN→DB UUID 反向映射：DB UUID → DB 实体名称，
+            # 用于 sync_relation 的 canonical_name 查找与 _resolve_ref 的标签级 fallback。
+            # 仅当 id_merge_map 的 value 不在本批存留实体中时，才视为外部 DB UUID。
+            db_uuid_to_label: dict[str, str] = {}
+            for _old_id, _surviving_id in id_merge_map.items():
+                if _surviving_id not in _surviving_clean_ids and _surviving_id not in _surviving_ids:
+                    _label = id_to_label.get(_old_id)
+                    if _label and _label in label_to_id:
+                        db_uuid_to_label[_surviving_id] = label_to_id[_label]
+
+            def _resolve_ref(ref: str, field_name: str) -> str | None:
+                """解析关系端点引用。
+
+                优先级（由权威到防御性 fallback）：
+                  1. ID 级直查：``ref`` 是 ``entity:<hash>``，先去 ``entity:`` 前缀，
+                     若在 ``id_merge_map`` 中 → 直接返回存留 id（含 DB UUID 跨表场景）。
+                  2. ID 已是存留实体 → 原值返回。
+                  3. 标签级 fallback（覆盖 LLM 误输出 label 的边界场景）：精确 →
+                     规范化 → ID 反查标签链。
+                  4. 全部失败 → 记录 warning 返回 None。
+                """
+                if not ref:
+                    return None
+
+                # 1. ID 级直查：被合并实体 id → 存留 id（权威映射）
+                clean = ref.replace("entity:", "")
+                if clean in id_merge_map:
+                    resolved = id_merge_map[clean]
+                    # 存活检查：如果 resolved 是本批存留实体的 id（hex hash），
+                    # 直接返回；如果 resolved 是 DB UUID（kg_entities.id），
+                    # 需要转写为 label 以便下游 _create_relation_with_session（基于
+                    # knowledge.id）和 sync_relation（基于 canonical_name）能正确处理。
+                    if resolved in _surviving_clean_ids or resolved in _surviving_ids:
+                        return ref if ref.startswith("entity:") else f"entity:{clean}"
+                    # DB UUID → label → label_to_id fallback
+                    if resolved in db_uuid_to_label:
+                        return db_uuid_to_label[resolved]
+                    # resolved 是 DB UUID 但无 label 映射 → 标记 unresolved
+                    logger.warning(
+                        "relation_endpoint_db_uuid_unresolved",
+                        run_id=run_id,
+                        field=field_name,
+                        ref=ref[:64],
+                        resolved_id=resolved[:36],
+                    )
+                    return None
+                if ref in id_merge_map:
+                    resolved = id_merge_map[ref]
+                    if resolved in _surviving_clean_ids or resolved in _surviving_ids:
+                        return ref
+                    if resolved in db_uuid_to_label:
+                        return db_uuid_to_label[resolved]
+                    return None
+
+                # 2. ID 已是存留实体（无需重写）
+                if clean in _surviving_clean_ids or ref in _surviving_ids:
+                    # 规范化为 ``entity:<hash>`` 与下游 GraphEdge 一致
+                    return ref if ref.startswith("entity:") else f"entity:{clean}"
+
+                # 3. 标签级 fallback：精确 label
+                if ref in label_to_id:
+                    return label_to_id[ref]
+                # 3a. 规范化 label
+                norm = ref.strip().lower()
+                if norm in norm_label_to_id:
+                    return norm_label_to_id[norm]
+                # 3b. ID → label → label_to_id 间接查找（覆盖未在 id_merge_map 中的边界）
+                if clean in id_to_label:
+                    resolved_label = id_to_label[clean]
+                    if resolved_label in label_to_id:
+                        return label_to_id[resolved_label]
+
+                # 4. 全部失败：unresolved
+                logger.warning(
+                    "relation_endpoint_unresolved",
+                    run_id=run_id,
+                    field=field_name,
+                    ref=ref[:64],
+                )
+                return None
+
             valid_relations = []
+            self_loops_removed = 0
+            unresolved_endpoints = 0
             for relation in all_relations:
                 # 查找源和目标实体
-                source_id = relation.source
-                target_id = relation.target
+                source_id = _resolve_ref(relation.source, "source")
+                target_id = _resolve_ref(relation.target, "target")
 
-                # 如果 source/target 是 label，需要映射
-                if source_id in label_to_id:
-                    source_id = label_to_id[source_id]
-                if target_id in label_to_id:
-                    target_id = label_to_id[target_id]
+                # 确保源和目标都存在且非自环
+                if not source_id or not target_id:
+                    unresolved_endpoints += 1
+                    continue
+                if source_id == target_id:
+                    self_loops_removed += 1
+                    continue
+                updated_relation = GraphEdge(
+                    source=source_id,
+                    target=target_id,
+                    label=relation.label,
+                    edge_type=relation.edge_type,
+                    weight=relation.weight,
+                    metadata=relation.metadata,
+                )
+                valid_relations.append(updated_relation)
 
-                # 确保源和目标都存在
-                if source_id and target_id and source_id != target_id:
-                    updated_relation = GraphEdge(
-                        source=source_id,
-                        target=target_id,
-                        label=relation.label,
-                        edge_type=relation.edge_type,
-                        weight=relation.weight,
-                        metadata=relation.metadata,
-                    )
-                    valid_relations.append(updated_relation)
+            logger.info(
+                "relation_filtering_completed",
+                run_id=run_id,
+                raw_count=len(all_relations),
+                valid_count=len(valid_relations),
+                self_loops_removed=self_loops_removed,
+                unresolved_endpoints=unresolved_endpoints,
+            )
 
             # B2: 时态事实冲突检测 (Snodgrass & Ahn, 1985)
             # 必须在 create_relations 之前运行：否则在「同 (s,t,type) 但 evidence 变更」的
@@ -416,8 +1122,6 @@ class GraphService:
             # 当前流程：① 先用新关系与 DB 中既有关系比对；② 对 CONTRADICTION 互斥的旧行
             # 提前 expire；③ 再让 create_relations 走 ON CONFLICT DO UPDATE 在原行就地刷新。
             try:
-                from datetime import UTC, datetime
-
                 from .temporal_resolver import TemporalResolver
 
                 temporal_resolver = TemporalResolver()
@@ -433,14 +1137,14 @@ class GraphService:
                 ]
                 temporal_results = await temporal_resolver.resolve_relations(
                     new_relations=relation_dicts_for_temporal,
-                    existing_lookup=self._repository.find_existing_relations,
+                    existing_lookup=build_repo.find_existing_relations,
                     corpus_id=corpus_id,
                 )
                 # 对 UPDATE/CONTRADICTION 的旧关系标记失效（提前到持久化之前）
                 now = datetime.now(UTC)
                 all_expire_ids = list({eid for resolved in temporal_results for eid in resolved.get("expire_ids", [])})
                 if all_expire_ids:
-                    await self._repository.expire_relations(all_expire_ids, now)
+                    await build_repo.expire_relations(all_expire_ids, now)
                 logger.info(
                     "temporal_resolution_completed",
                     relation_count=len(temporal_results),
@@ -454,15 +1158,25 @@ class GraphService:
 
             # 持久化关系（依赖 create_relation 的 ON CONFLICT DO UPDATE 语义在 UPDATE 路径
             # 上原地覆盖 evidence，避免唯一约束 + DO NOTHING 造成的数据丢失）
-            await self._repository.create_relations(valid_relations)
+            await build_repo.create_relations(valid_relations)
+
+            # 阶段 3：一等公民表双写同步（Kleppmann DDIA §11）
+            # 进入 syncing 前清空残留事务状态，防止 resolving 阶段抛异常后
+            # session 处于非活动事务态，导致下文 `shared_session.begin()` 重抛错。
+            if shared_session.in_transaction():
+                await shared_session.rollback()
+            await emit_phase(
+                PHASE_SYNCING,
+                0.87,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
 
             # 同步到一等公民表 (kg_entities / kg_relations)
             # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性
             # 双写同步使用独立事务 + 补偿重试：AGE 写入与 first-class 表写入
             # 在不同 session 中，失败时记录不一致以供后续修复
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from .entity_service import KgEntityService
 
                 kg_service = KgEntityService()
@@ -478,8 +1192,14 @@ class GraphService:
                 ]
                 edge_dicts = [
                     {
-                        "source": id_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
-                        "target": id_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
+                        "source": id_to_label.get(
+                            r.source.replace("entity:", ""),
+                            db_uuid_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
+                        ),
+                        "target": id_to_label.get(
+                            r.target.replace("entity:", ""),
+                            db_uuid_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
+                        ),
                         "edge_type": r.edge_type,
                         "label": r.label,
                         "weight": r.weight,
@@ -487,20 +1207,23 @@ class GraphService:
                     }
                     for r in valid_relations
                 ]
-                async with AsyncSessionLocal() as sync_db:
-                    async with sync_db.begin():
-                        sync_result = await kg_service.batch_sync_from_graph_build(
-                            sync_db,
-                            nodes=node_dicts,
-                            edges=edge_dicts,
-                            corpus_id=corpus_id,
-                            app_name=app_name,
-                        )
+                async with shared_session.begin():
+                    sync_result = await kg_service.batch_sync_from_graph_build(
+                        shared_session,
+                        nodes=node_dicts,
+                        edges=edge_dicts,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
                     logger.info(
                         "kg_first_class_sync",
                         **sync_result,
                     )
             except Exception as sync_exc:
+                # shared_session.begin() 失败会自动 rollback，
+                # 但 session 可能处于非活动事务状态，显式清理确保后续阶段可用。
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append(
                     {
                         "phase": "first_class_sync",
@@ -514,85 +1237,155 @@ class GraphService:
                     error=str(sync_exc),
                 )
 
+            # 阶段 4：PageRank 实体重要性（Brin & Page, 1998）
+            # 确保 session 干净：前序阶段失败可能导致 session 处于非活动事务状态
+            if shared_session.in_transaction():
+                await shared_session.rollback()
+            await emit_phase(
+                PHASE_PAGERANK,
+                0.91,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
+
             # 计算 PageRank 实体重要性 (Brin & Page, 1998)
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from .graph_algorithms import compute_pagerank
 
-                async with AsyncSessionLocal() as pr_db:
-                    pr_result = await compute_pagerank(pr_db, corpus_id)
-                    logger.info(
-                        "pagerank_computed",
-                        entity_count=len(pr_result),
-                    )
+                pr_result = await compute_pagerank(shared_session, corpus_id)
+                logger.info(
+                    "pagerank_computed",
+                    entity_count=len(pr_result),
+                )
             except Exception as pr_exc:
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append({"algorithm": "pagerank", "error": str(pr_exc)})
                 logger.warning(
                     "pagerank_computation_failed",
                     error=str(pr_exc),
                 )
 
+            # 阶段 5：多层级社区检测（Traag et al., 2019）
+            if shared_session.in_transaction():
+                await shared_session.rollback()
+            await emit_phase(
+                PHASE_COMMUNITIES,
+                0.94,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
+
             # 多层级社区检测 (Traag et al., 2019; Edge et al., 2024)
             # 优先使用 Leiden（保证社区内部连通性），降级到 Louvain
             levels_data: dict[int, dict[str, int]] = {}
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from .graph_algorithms import compute_communities
 
-                async with AsyncSessionLocal() as cm_db:
-                    levels_data = await compute_communities(cm_db, corpus_id)
-                    total_entities = sum(len(p) for p in levels_data.values())
-                    total_communities = sum(len(set(p.values())) for p in levels_data.values())
-                    logger.info(
-                        "communities_computed",
-                        levels=len(levels_data),
-                        entity_count=total_entities,
-                        community_count=total_communities,
-                    )
+                levels_data = await compute_communities(shared_session, corpus_id)
+                total_entities = sum(len(p) for p in levels_data.values())
+                total_communities = sum(len(set(p.values())) for p in levels_data.values())
+                logger.info(
+                    "communities_computed",
+                    levels=len(levels_data),
+                    entity_count=total_entities,
+                    community_count=total_communities,
+                )
             except Exception as cm_exc:
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append({"algorithm": "community_detection", "error": str(cm_exc)})
                 logger.warning(
                     "community_detection_failed",
                     error=str(cm_exc),
                 )
 
+            # 阶段 6：社区摘要生成（Edge et al., Microsoft GraphRAG, 2024）
+            if shared_session.in_transaction():
+                await shared_session.rollback()
+            await emit_phase(
+                PHASE_SUMMARIES,
+                0.97,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
+
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
+            #
+            # 事务边界设计（缺陷 1 修复）：
+            # 旧实现使用 ``async with shared_session.begin():`` 包裹 summarizer，
+            # 但 SQLAlchemy 2.x 中本阶段前若有 ``shared_session.execute(SELECT ...)``
+            # 直接调用会隐式 auto-begin，再 begin() 抛 ``A transaction is already
+            # begun on this Session``。同时 summarizer 内部 ``db.commit()`` 与外层
+            # begin() 形成双重事务管理，违反"事务边界单一来源"原则。
+            #
+            # 修复：剥离独立 ``AsyncSessionLocal()`` 会话（与 emit_phase 通过
+            # ``_session_scope()`` 走独立 session 的模式一致），corpus 配置查询与
+            # summarizer 全部走该独立会话，shared_session 不再涉入；summarizer
+            # 内部 commit 已移除，由本阶段末尾统一 commit / 异常 rollback。
+            cs_result: dict[str, Any] = {}
             try:
                 from negentropy.db.session import AsyncSessionLocal
 
                 from ..ingestion.embedding import build_embedding_fn
                 from .community_summarizer import CommunitySummarizer
 
-                # 注入 embedding_fn — G1 GraphRAG Global Search 的 query-focused
-                # 召回依赖 kg_community_summaries.embedding；若 embedding 配置不可用
-                # （旧环境 / 单测），降级为不写 embedding，由 GlobalSearchService 的
-                # _has_summary_embeddings 探测后自动回退到 entity_count 排序。
-                try:
-                    cs_embedding_fn = build_embedding_fn()
-                except Exception as ef_exc:
-                    cs_embedding_fn = None
-                    logger.warning(
-                        "community_summary_embedding_fn_unavailable",
-                        error=str(ef_exc),
-                    )
+                async with AsyncSessionLocal() as cs_session:
+                    # 1. 读取语料库 embedding 配置（与 chunk embeddings 同向量空间）
+                    cs_embedding_config_id: str | None = None
+                    try:
+                        from sqlalchemy import text as sa_text
 
-                summarizer = CommunitySummarizer(
-                    model=normalized_llm_model,
-                    embedding_fn=cs_embedding_fn,
-                )
-                async with AsyncSessionLocal() as cs_db:
+                        from negentropy.models.base import NEGENTROPY_SCHEMA
+
+                        cfg_row = await cs_session.execute(
+                            sa_text(f"""
+                                SELECT config FROM {NEGENTROPY_SCHEMA}.corpus
+                                WHERE id = :cid
+                            """),
+                            {"cid": str(corpus_id)},
+                        )
+                        cfg_val = cfg_row.scalar()
+                        if isinstance(cfg_val, dict):
+                            models_cfg = cfg_val.get("models")
+                            if isinstance(models_cfg, dict):
+                                eid = models_cfg.get("embedding_config_id")
+                                if eid is not None:
+                                    cs_embedding_config_id = str(eid)
+                    except Exception:
+                        pass  # 查询失败 → 使用全局默认
+
+                    # 2. 构建 embedding_fn（失败降级为 None，由 GlobalSearchService 回退到
+                    # entity_count 排序）
+                    try:
+                        cs_embedding_fn = build_embedding_fn(cs_embedding_config_id)
+                    except Exception as ef_exc:
+                        cs_embedding_fn = None
+                        logger.warning(
+                            "community_summary_embedding_fn_unavailable",
+                            error=str(ef_exc),
+                        )
+
+                    # 3. 调用 summarizer（内部不 commit，由本阶段末尾统一提交）
+                    summarizer = CommunitySummarizer(
+                        model=normalized_llm_model,
+                        embedding_fn=cs_embedding_fn,
+                    )
                     cs_result = await summarizer.summarize_communities(
-                        cs_db,
+                        cs_session,
                         corpus_id,
                         levels_data=levels_data if levels_data else None,
                     )
+                    await cs_session.commit()
                     logger.info(
                         "community_summaries_generated",
                         **cs_result,
                     )
             except Exception as cs_exc:
+                # 独立 session 已由 ``async with`` 管理生命周期；shared_session
+                # 不再涉入本阶段。保留 shared_session 兜底以防御后续阶段误用。
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append({"algorithm": "community_summary", "error": str(cs_exc)})
                 logger.warning(
                     "community_summary_failed",
@@ -617,6 +1410,15 @@ class GraphService:
                 if entities_to_save
                 else 0.0
             )
+            # 抽取密度 P95（按千字符实体数）：样本不足 2 时退化为 max
+            if len(density_samples) >= 2:
+                from statistics import quantiles
+
+                # n=20 → 19 个切点，第 18 个即 P95；列表长度 < 20 时 quantiles 仍可用
+                density_p95 = quantiles(density_samples, n=20, method="inclusive")[18]
+            else:
+                density_p95 = max(density_samples) if density_samples else 0.0
+
             build_metrics = KgBuildMetrics(
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
@@ -624,22 +1426,59 @@ class GraphService:
                 avg_confidence=round(avg_conf, 4),
                 chunks_processed=chunks_processed,
                 chunks_failed=failed_chunk_count,
+                chunks_fallback=chunks_fallback,
+                llm_circuit_opened=circuit_breaker.is_open,
                 build_duration_ms=round(elapsed * 1000, 1),
-                algorithm_warnings=len(build_warnings),
+                algorithm_warnings=sum(1 for w in _strip_phase_entries(build_warnings) if "algorithm" in w),
                 community_levels=len(levels_data),
                 community_count_by_level={lv: len(set(p.values())) for lv, p in levels_data.items()},
+                over_extraction_chunks=over_extraction_chunks,
+                type_override_count=type_override_count,
+                entity_density_p95=round(density_p95, 2),
             )
 
             # 更新构建运行状态
             # metrics 无条件持久化到 warnings 尾部的 _metrics 条目，
             # 保持 warnings 本身语义：空列表 = 无异常，仅 _metrics = 正常完成
-            persisted_warnings: list[dict[str, Any]] = []
-            if build_warnings:
-                persisted_warnings.extend(build_warnings)
+            # 终态前剥离运行期 _phase 条目：阶段元数据仅服务于前端实时进度渲染，
+            # 落入终态 warnings 会污染历史检视（与 _metrics 同型 sentinel 区分）。
+            persisted_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
             persisted_warnings.append({"_metrics": build_metrics.to_dict()})
-            await self._repository.update_build_run(
+            if circuit_breaker.is_open:
+                persisted_warnings.append({"_circuit_opened": True})
+
+            # 区分 completed vs completed_with_errors：
+            # 当关键算法阶段（社区检测、摘要生成、PageRank）存在 warning 时，
+            # 标记为 completed_with_errors 以便前端/运维感知部分功能降级。
+            # 同样检测社区摘要 embedding 大面积失败和 LLM fallback 降级。
+            algo_warnings = [w for w in _strip_phase_entries(build_warnings) if "algorithm" in w]
+            has_critical_algo_failure = any(
+                w.get("algorithm") in ("community_detection", "community_summary", "pagerank") for w in algo_warnings
+            )
+            embeddings_failed = cs_result.get("embeddings_failed", 0)
+            communities_summarized = cs_result.get("communities_summarized", 0)
+            fallback_used = cs_result.get("fallback_used", 0)
+            has_embedding_degradation = communities_summarized > 0 and embeddings_failed >= communities_summarized
+            has_llm_fallback = communities_summarized > 0 and fallback_used >= communities_summarized
+            if has_embedding_degradation or has_llm_fallback:
+                persisted_warnings.append(
+                    {
+                        "algorithm": "community_summary_embedding",
+                        "embeddings_failed": embeddings_failed,
+                        "communities_summarized": communities_summarized,
+                        "fallback_used": fallback_used,
+                    }
+                )
+            final_status = (
+                "completed_with_errors"
+                if (has_critical_algo_failure or has_embedding_degradation or has_llm_fallback)
+                else "completed"
+            )
+
+            await build_repo.update_build_run(
                 run_id=run_uuid,
-                status="completed",
+                human_run_id=run_id,
+                status=final_status,
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
                 warnings=persisted_warnings if persisted_warnings else None,
@@ -660,13 +1499,67 @@ class GraphService:
             return GraphBuildResult(
                 run_id=run_id,
                 corpus_id=corpus_id,
-                status="completed",
+                status=final_status,
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
                 chunks_processed=chunks_processed,
                 elapsed_seconds=elapsed,
                 warnings=build_warnings,
                 failed_chunk_count=failed_chunk_count,
+            )
+
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，剥离运行期 _phase 标记，保留累积 warnings；
+            # best-effort 不回滚——已写入的 entities/relations 保留，前端通过详情面板看
+            # 「取消时进度」（chunks_processed / last_phase）。
+            elapsed = time.time() - start_time
+            cancellation_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
+            if build_metrics is not None:
+                cancellation_warnings.append({"_metrics": build_metrics.to_dict()})
+            cancellation_warnings.append(
+                {
+                    "_cancellation": {
+                        "cancelled_at": datetime.now(UTC).isoformat(),
+                        "last_stage": cancel_exc.last_stage,
+                        "elapsed_seconds": elapsed,
+                    }
+                }
+            )
+
+            try:
+                if shared_session is not None and not shared_session.is_active:
+                    raise RuntimeError("shared session inactive")
+                await build_repo.update_build_run(
+                    run_id=run_uuid,
+                    human_run_id=run_id,
+                    status="cancelled",
+                    warnings=cancellation_warnings if cancellation_warnings else None,
+                )
+            except Exception:
+                await self._repository.update_build_run(
+                    run_id=run_uuid,
+                    human_run_id=run_id,
+                    status="cancelled",
+                    warnings=cancellation_warnings if cancellation_warnings else None,
+                )
+
+            logger.info(
+                "kg_build_cancelled",
+                corpus_id=str(corpus_id),
+                run_id=run_id,
+                last_stage=cancel_exc.last_stage,
+                elapsed_seconds=elapsed,
+            )
+
+            return GraphBuildResult(
+                run_id=run_id,
+                corpus_id=corpus_id,
+                status="cancelled",
+                entity_count=0,
+                relation_count=0,
+                chunks_processed=0,
+                elapsed_seconds=elapsed,
+                error_message=None,
             )
 
         except Exception as exc:
@@ -681,12 +1574,34 @@ class GraphService:
                 elapsed_seconds=elapsed,
             )
 
-            # 更新构建运行状态
-            await self._repository.update_build_run(
-                run_id=run_uuid,
-                status="failed",
-                error_message=error_message,
-            )
+            # 失败终态同样剥离 _phase + 持久化已累积的 warnings：
+            # 1) 与成功分支对称，确保 DB 行 warnings 列不残留运行期 _phase 标记；
+            # 2) 保留 build_warnings 中已落地的 algorithm warning（temporal_resolution /
+            #    pagerank / community_*）作为故障诊断线索；
+            # 3) 若 build_metrics 已构造则附带 _metrics 条目（异常发生在指标统计前则跳过）。
+            failure_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
+            if build_metrics is not None:
+                failure_warnings.append({"_metrics": build_metrics.to_dict()})
+
+            # 更新构建运行状态（回退到独立 Session，避免共享 Session 已损坏导致二次失败）
+            try:
+                if shared_session is not None and not shared_session.is_active:
+                    raise RuntimeError("shared session inactive")
+                await build_repo.update_build_run(
+                    run_id=run_uuid,
+                    human_run_id=run_id,
+                    status="failed",
+                    error_message=error_message,
+                    warnings=failure_warnings if failure_warnings else None,
+                )
+            except Exception:
+                await self._repository.update_build_run(
+                    run_id=run_uuid,
+                    human_run_id=run_id,
+                    status="failed",
+                    error_message=error_message,
+                    warnings=failure_warnings if failure_warnings else None,
+                )
 
             return GraphBuildResult(
                 run_id=run_id,
@@ -698,6 +1613,13 @@ class GraphService:
                 elapsed_seconds=elapsed,
                 error_message=error_message,
             )
+
+        finally:
+            # 确保共享 Session 被关闭（归还连接到池）
+            if shared_session is not None:
+                await shared_session.close()
+            # 清理 cancellation registry，防内存泄漏
+            unregister_cancellable_run(run_id)
 
     async def search(
         self,
@@ -1258,7 +2180,7 @@ class GraphService:
                 text(f"""
                     SELECT
                         COUNT(*) AS total,
-                        COUNT(*) FILTER (WHERE status = 'completed') AS succeeded,
+                        COUNT(*) FILTER (WHERE status IN ('completed', 'completed_with_errors')) AS succeeded,
                         COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at))), 0) AS avg_duration_sec
                     FROM {NEGENTROPY_SCHEMA}.kg_build_runs
                     WHERE corpus_id = :cid

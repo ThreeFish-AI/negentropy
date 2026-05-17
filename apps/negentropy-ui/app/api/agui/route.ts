@@ -10,7 +10,7 @@ import {
   createTransportErrorFrame,
   encodeNdjsonFrame,
   parseSseStream,
-} from "@/lib/agui/stream";
+} from "@negentropy/agents-chat-core/protocol";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
@@ -18,6 +18,10 @@ import {
 } from "@/lib/errors";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 import { getAguiBaseUrl } from "@/lib/server/backend-url";
+// 派生 state_delta 的纯函数 + 共享 UUID 校验沉淀到 `_state-delta`：
+// Next.js App Router 限定 `route.ts` 仅可导出 HTTP handler / 配置符号，
+// 任何额外 `export`（包括纯工具函数）都会被生成路由类型校验拒绝。
+import { UUID_RE, buildStateDeltaFromForwardedProps } from "@negentropy/agents-chat-core/server";
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);
@@ -97,7 +101,6 @@ export async function POST(request: Request) {
       "session_id is required",
     );
   }
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_RE.test(sessionId)) {
     return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,
@@ -122,15 +125,7 @@ export async function POST(request: Request) {
     (body.forwardedProps && typeof body.forwardedProps === "object"
       ? (body.forwardedProps as Record<string, unknown>)
       : null) ?? null;
-  const stateDelta: Record<string, unknown> = {};
-  if (forwardedProps && "selected_llm_model" in forwardedProps) {
-    const raw = forwardedProps.selected_llm_model;
-    if (typeof raw === "string" && raw.length > 0) {
-      stateDelta.selected_llm_model = raw;
-    } else if (raw === null) {
-      stateDelta.selected_llm_model = null;
-    }
-  }
+  const stateDelta = buildStateDeltaFromForwardedProps(forwardedProps);
 
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");

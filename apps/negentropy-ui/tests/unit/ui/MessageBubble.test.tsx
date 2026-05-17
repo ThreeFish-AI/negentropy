@@ -110,6 +110,55 @@ describe("MessageBubble", () => {
     expect(container).toBeTruthy();
   });
 
+  it("Agent 等首个 token 时（streaming=true 且 content=空）显示三点脉冲占位（ISSUE-070）", () => {
+    render(
+      <MessageBubble
+        message={{
+          id: "a-waiting",
+          role: "assistant",
+          content: "",
+          streaming: true,
+        }}
+      />,
+    );
+
+    const placeholder = screen.getByTestId("agent-waiting-placeholder");
+    expect(placeholder).toBeInTheDocument();
+    // 三个 bouncing dots
+    expect(placeholder.querySelectorAll("span.animate-bounce").length).toBe(3);
+    // 此时不应同时显示 streaming 标签 (streaming label 仅在有内容时出现)
+    expect(screen.queryByText("Streaming")).toBeNull();
+  });
+
+  it("用户消息 streaming=true 不会显示等待态占位（仅 assistant 适用）", () => {
+    render(
+      <MessageBubble
+        message={{
+          id: "u-stream",
+          role: "user",
+          content: "",
+          streaming: true,
+        }}
+      />,
+    );
+    expect(screen.queryByTestId("agent-waiting-placeholder")).toBeNull();
+  });
+
+  it("Agent streaming=true 但已有内容时不显示等待占位（避免与正文重叠）", () => {
+    render(
+      <MessageBubble
+        message={{
+          id: "a-has-content",
+          role: "assistant",
+          content: "正在输出",
+          streaming: true,
+        }}
+      />,
+    );
+    expect(screen.queryByTestId("agent-waiting-placeholder")).toBeNull();
+    expect(screen.getByText("Streaming")).toBeInTheDocument();
+  });
+
   it("流式回复中的未闭合表格尾部会降级为安全文本，完成后恢复为表格", () => {
     const { rerender, container } = render(
       <MessageBubble

@@ -23,6 +23,24 @@ from negentropy.knowledge.types import GraphNode, KgEntityType, KgRelationType
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 
+_MOCK_LLM_CONFIG = ("openai/gpt-5-mini", {"temperature": 0.7, "drop_params": True})
+
+
+@pytest.fixture(autouse=True)
+def _mock_model_resolver():
+    """Mock 异步 model_resolver，避免测试环境触发 DB 连接。"""
+    with (
+        patch(
+            "negentropy.config.model_resolver.resolve_llm_config",
+            new=AsyncMock(return_value=_MOCK_LLM_CONFIG),
+        ),
+        patch(
+            "negentropy.config.model_resolver.resolve_llm_config_by_model_name",
+            new=AsyncMock(return_value=_MOCK_LLM_CONFIG),
+        ),
+    ):
+        yield
+
 
 class TestEntityIDGeneration:
     """实体 ID 生成测试 - 验证确定性"""

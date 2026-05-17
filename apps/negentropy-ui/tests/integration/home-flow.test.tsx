@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { EventType } from "@ag-ui/core";
 import { HomeBody, type HomeBodyAgent } from "../../app/home-body";
 import { createTestEvent } from "@/tests/helpers/agui";
-import type { AgUiEvent } from "@/types/agui";
+import type { AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 
 type MockAgent = {
   messages: unknown[];
@@ -13,6 +13,7 @@ type MockAgent = {
   subscribe: ReturnType<typeof vi.fn>;
   addMessage: ReturnType<typeof vi.fn>;
   runAgent: ReturnType<typeof vi.fn>;
+  forwardedProps?: Record<string, unknown>;
 };
 
 type HitlRenderPayload = {
@@ -69,6 +70,14 @@ vi.mock("@copilotkitnext/react", () => ({
 
 vi.mock("@/components/providers/AuthProvider", () => ({
   useAuth: () => ({ user: null, status: "authenticated" }),
+}));
+
+// ISSUE-061 v2-D：useSessionListService 依赖 next/navigation 做 ?view= URL 同步，
+// integration 测试在 jsdom 环境无 App Router 包裹，需要 stub 以避免 useRouter 抛错。
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 function Wrapper({ sessionId }: { sessionId: string | null }) {
@@ -225,6 +234,24 @@ describe("HomeBody integration", () => {
       },
       { timeout: 3000 },
     );
+  }, 10000);
+
+  it("发送消息时把 Thinking 开关写入 forwardedProps", async () => {
+    const user = userEvent.setup();
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    await user.click(screen.getByRole("switch", { name: "切换 Thinking 推理增强" }));
+    await user.type(screen.getByPlaceholderText("输入指令..."), "ping");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(mockAgent.runAgent).toHaveBeenCalled();
+    });
+    expect(mockAgent.forwardedProps).toMatchObject({
+      selected_llm_model: null,
+      thinking_enabled: true,
+    });
   }, 10000);
 
   it("历史回拉暂时为空时，实时 assistant 回复不会被清空", async () => {

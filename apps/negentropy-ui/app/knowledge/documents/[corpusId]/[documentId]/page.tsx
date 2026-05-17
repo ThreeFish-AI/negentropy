@@ -1,3 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -6,6 +12,7 @@ import Link from "next/link";
 import { toast } from "@/lib/activity-toast";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 
 import type {
   KnowledgeDocumentDetail,
@@ -132,18 +139,14 @@ export default function DocumentDetailPage() {
     void loadDetail();
   }, [loadDetail]);
 
-  // Auto-poll when markdown is still processing
-  useEffect(() => {
-    if (!detail) return;
-    if ((detail.markdown_extract_status || "").toLowerCase() !== "processing") {
-      return;
-    }
-    const timer = setInterval(() => {
-      void loadDetail();
-    }, 3000);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- detail 仅用于 null guard，加入依赖会导致轮询死循环
-  }, [detail?.markdown_extract_status, loadDetail]);
+  // Auto-poll when markdown is still processing - Phase 3-A unified heartbeat
+  // useHeartbeatPoll handles tabs visibility + online events + 5s heartbeat parity
+  // with backend NEGENTROPY_SCHEDULER_HEARTBEAT_SECONDS.
+  useHeartbeatPoll(loadDetail, {
+    enabled:
+      !!detail && (detail.markdown_extract_status || "").toLowerCase() === "processing",
+    fireImmediately: false,
+  });
 
   // ---- Action handlers ----
 

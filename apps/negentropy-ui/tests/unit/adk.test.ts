@@ -8,7 +8,7 @@ import {
   parseAdkEventPayload,
   safeParseAdkEventPayload,
 } from "../../lib/adk";
-import { getEventMessageId, getMessageStreaming, type AgUiEvent } from "../../types/agui";
+import { getEventMessageId, getMessageStreaming, type AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 
 describe("adk event mapping", () => {
   it("maps text parts to AG-UI text events", () => {

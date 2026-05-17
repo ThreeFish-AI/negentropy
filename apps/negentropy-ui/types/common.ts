@@ -6,7 +6,7 @@
  */
 
 import type { Message } from "@ag-ui/core";
-import type { CanonicalMessageRole } from "@/types/agui";
+import type { CanonicalMessageRole } from "@negentropy/agents-chat-core/protocol";
 
 /**
  * 连接状态类型
@@ -26,6 +26,8 @@ export type SessionRecord = {
   label: string;
   lastUpdateTime?: number;
   archived?: boolean;
+  /** 时间摘要（"3 分钟前" / "昨天"），由 SessionList 渲染 */
+  timeLabel?: string;
 };
 
 /**

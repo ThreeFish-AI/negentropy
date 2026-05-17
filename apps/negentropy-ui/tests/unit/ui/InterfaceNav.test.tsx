@@ -59,17 +59,18 @@ describe("InterfaceNav", () => {
     expect(screen.queryByRole("link", { name: "Models" })).toBeNull();
   });
 
-  it("按 Dashboard → Models → SubAgents → MCP → Skills 顺序渲染（admin）", () => {
+  it("按 Dashboard → Models → Task Models → SubAgents → MCP → Skills 顺序渲染（admin）", () => {
     useAuthMock.mockReturnValue({ user: { roles: ["admin"] }, status: "authenticated" });
 
     render(<InterfaceNav title="Dashboard" />);
 
     const links = screen.getAllByRole("link").map((node) => node.textContent);
-    expect(links.slice(0, 5)).toEqual([
+    expect(links.slice(0, 6)).toEqual([
       "Dashboard",
       "Models",
+      "Task Models",
       "SubAgents",
-      expect.any(String),
+      "MCP",
       "Skills",
     ]);
   });

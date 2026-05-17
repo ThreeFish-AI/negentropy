@@ -239,7 +239,7 @@ describe("KnowledgeBasePage", () => {
     const summary = screen.getByTestId("corpus-summary-11111111-1111-1111-1111-111111111111");
     const settingsButton = within(card).getByRole("button", { name: "Settings" });
 
-    expect(chunks).toHaveTextContent("chunks: 3");
+    expect(chunks).toHaveTextContent("3 chunks");
     expect(within(card).getByText("Ready")).toBeInTheDocument();
     expect(description).toHaveTextContent("No description");
     expect(description.className).toContain("line-clamp-2");

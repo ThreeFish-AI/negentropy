@@ -113,7 +113,7 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        users: [{ id: "user-1", label: "user-1 (3)" }],
+        users: [{ id: "user-1", label: "user-1 (3)", count: 3 }],
         timeline: [
           {
             id: "mem-1",
@@ -137,7 +137,7 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 
   await expect(page.getByText("Memory Timeline")).toBeVisible();
-  await expect(page.getByText("user-1 (3)")).toBeVisible();
+  await expect(page.getByText("3 memories")).toBeVisible();
   await expect(page.getByText("Test memory content")).toBeVisible();
   await expect(page.getByText("85%")).toBeVisible();
 });
@@ -181,6 +181,21 @@ test("Conflicts 页面加载和过滤", async ({ page }) => {
     });
   });
 
+  // Mock /api/memory for user dropdown
+  await page.route("**/api/memory", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        users: [
+          { id: "user-1", label: "User 1", count: 5 },
+        ],
+        timeline: [],
+        policies: {},
+      }),
+    });
+  });
+
   await page.goto("/memory/conflicts");
   await page.waitForLoadState("networkidle");
 
@@ -193,7 +208,7 @@ test("Conflicts 页面加载和过滤", async ({ page }) => {
   await expect(page.locator("span:has-text('supersede')").first()).toBeVisible();
 
   // 测试 resolution 过滤
-  const select = page.getByRole("combobox");
+  const select = page.getByRole("combobox", { name: "Filter by resolution" });
   await select.selectOption("Pending");
   await expect(page.getByText("value_contradiction")).toBeVisible();
 });
@@ -220,6 +235,19 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
             created_at: "2026-05-01T10:00:00Z",
           },
         ],
+      }),
+    });
+  });
+
+  // Mock /api/memory for user dropdown
+  await page.route("**/api/memory", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        users: [{ id: "user-1", label: "User 1", count: 1 }],
+        timeline: [],
+        policies: {},
       }),
     });
   });

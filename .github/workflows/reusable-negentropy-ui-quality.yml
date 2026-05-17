@@ -23,20 +23,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
+      # （pnpm 官方推荐的「单一事实源」模式；避免 ERR_PNPM_BAD_PM_VERSION）
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # ui 通过 import "@negentropy/agents-chat-core/*" 引用共享包；
+      # 这些子入口在 package.json `exports` 中指向 dist/ 产物，
+      # CI clean 状态下尚未 build → vitest/tsc 解析时回退到 src/.ts
+      # 触发 RollupError。先 build core 包以保证 exports 命中真实产物。
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Lint app
         run: pnpm lint
@@ -51,20 +60,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
+      # （pnpm 官方推荐的「单一事实源」模式；避免 ERR_PNPM_BAD_PM_VERSION）
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Typecheck app
         run: pnpm typecheck
@@ -82,20 +96,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
+      # （pnpm 官方推荐的「单一事实源」模式；避免 ERR_PNPM_BAD_PM_VERSION）
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Run tests with coverage
         run: pnpm test:coverage
@@ -118,20 +137,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
+      # （pnpm 官方推荐的「单一事实源」模式；避免 ERR_PNPM_BAD_PM_VERSION）
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Build app
         run: pnpm build
@@ -148,20 +172,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
+      # （pnpm 官方推荐的「单一事实源」模式；避免 ERR_PNPM_BAD_PM_VERSION）
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
@@ -174,6 +203,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: apps/negentropy-ui/playwright-report
+          path: |
+            apps/negentropy-ui/playwright-report
+            apps/negentropy-ui/tests/e2e/*-snapshots/
           if-no-files-found: warn
           retention-days: 14

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { EventType } from "@ag-ui/core";
 import { buildConversationTree } from "@/utils/conversation-tree";
-import { buildChatDisplayBlocks } from "@/utils/chat-display";
+import {
+  buildChatDisplayBlocks,
+  isStreamingDuplicateOfAggregate,
+  isStreamingDuplicateOfLater,
+} from "@/utils/chat-display";
 import { createTestEvent } from "@/tests/helpers/agui";
-import type { AgUiEvent } from "@/types/agui";
+import type { AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 import type { ConversationTree } from "@/types/a2ui";
 
 describe("buildChatDisplayBlocks", () => {
@@ -828,6 +832,469 @@ describe("buildChatDisplayBlocks", () => {
       expect(textSegments[1]?.kind === "text" ? textSegments[1].content : "").toContain(
         "查询完成",
       );
+    }
+  });
+});
+
+// =============================================================================
+// ISSUE-049：流式累积残缺版 + final 完整版双内容兜底防御
+// =============================================================================
+
+describe("isStreamingDuplicateOfLater (ISSUE-049 兜底)", () => {
+  it("命中：残缺版（无空格）vs 完整版 → 视为同源冗余", () => {
+    const earlier =
+      `"Hello, test1234"\n` +
+      `已完成：已发送要求的文本字符串（包含引号）。 可能的后续需求：- 仅返回严格的精确字符串（如果你需要机器校或管道输入），或- 该记录到/日志或- 将嵌入到更长的消息文档中。\n` +
+      `下一步（请选择一项）：A) 我现在只严格的精确字符串（覆盖本次附加说明）。理由：满足机器级精需求B此记录系统日志：留计。C 把该入指定档消息。直接付用。\n` +
+      `指要选。"Hello, test 1234"`;
+    const later =
+      `"Hello, test 1234"\n` +
+      `已完成：已发送要求的文本字符串（包含引号）。 可能的后续需求：\n仅返回严格的精确字符串（如果你需要机器校验或管道输入），或\n把该字符串记录到系统/日志，或\n将其嵌入到更长的消息/文档中。\n` +
+      `下一步建议（请选择一项）：\nA) 我现在只返回严格的精确字符串（覆盖本次附加说明）。理由：满足机器级精确需求。\nB) 将此响应记录到系统日志。理由：保留审计痕迹。\nC) 把该文本嵌入到指定文档或消息模板中。理由：直接交付可复用内容。\n请指示你要执行的选项。`;
+    expect(isStreamingDuplicateOfLater(earlier, later)).toBe(true);
+  });
+
+  it("不命中：两段长度相近且字符差异大 → 保留两段（不误删独立消息）", () => {
+    const a = "今天的天气真好，适合出去散步。";
+    const b = "明天会下雨，建议带伞。";
+    expect(isStreamingDuplicateOfLater(a, b)).toBe(false);
+    expect(isStreamingDuplicateOfLater(b, a)).toBe(false);
+  });
+
+  it("不命中：短文本（< 12 字）→ 保留两段（避免 Pong! 等被误删）", () => {
+    expect(isStreamingDuplicateOfLater("Pong!", "Pong! 下一步")).toBe(false);
+  });
+
+  it("不命中：长度差不足 1.15x → 保留两段", () => {
+    const earlier = "我会先查询资料，再回答。";
+    const later = "我会查询资料并整理后回答。";
+    // length 12 vs 13，差异 < 1.15x
+    expect(isStreamingDuplicateOfLater(earlier, later)).toBe(false);
+  });
+
+  it("命中：流式 chunk 拼接残缺 vs final 增加段落（覆盖典型双内容场景）", () => {
+    const earlier = "已完成查询。 用户名是张三。";
+    const later =
+      "已完成查询。\n用户名是张三。\n邮箱是 zhangsan@example.com。\n建议下一步：发送欢迎邮件。\n请确认。";
+    expect(isStreamingDuplicateOfLater(earlier, later)).toBe(true);
+  });
+
+  it("dedupe 集成：buildChatDisplayBlocks 在双 messageId 同源场景应只输出 1 个 text segment", () => {
+    // 构造两个 messageId 不同但内容呈现"残缺版 + 完整版"的 events 流，
+    // 模拟 ISSUE-041 / 049 中 hydration 与 realtime 在 conversation-tree 产出
+    // 两个独立 text node 的场景。
+    const earlier = "好的，我会查询数据。 结果如下：项目A、项目B、项目C。";
+    const later =
+      "好的，我会查询数据。\n\n结果如下：\n- 项目A：进行中\n- 项目B：已完成\n- 项目C：待启动\n\n是否需要进一步处理？";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-streaming",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-streaming",
+        delta: earlier,
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-streaming",
+        timestamp: 1003,
+      }),
+      // hydration / final 增量：另一个 messageId（runId 同），内容是更完备版本
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        role: "assistant",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        delta: later,
+        timestamp: 1005,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        timestamp: 1006,
+      }),
+    ];
+
+    const tree: ConversationTree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const textSegments = reply.segments.filter((s) => s.kind === "text");
+      expect(textSegments).toHaveLength(1);
+      // 保留更完备的版本
+      const content =
+        textSegments[0]?.kind === "text" ? textSegments[0].content : "";
+      expect(content).toContain("项目B：已完成");
+    }
+  });
+});
+
+// =============================================================================
+// ISSUE-065：partial 单段 vs final 多段聚合 multiset 兜底（Layer 6）
+// =============================================================================
+
+describe("isStreamingDuplicateOfAggregate (ISSUE-065 Layer 6 兜底)", () => {
+  it("命中：partial 单段被 final 多段聚合内容字符 multiset 高度覆盖", () => {
+    // 真实场景（巡检 C2）：partial 混入了 reasoning first-line + 字符级碎片化的
+    // 多段拼接，final 被切成 3 段独立短段。两两比较时 length-ratio 守卫不通过
+    // （later 比 earlier 短），仅在「聚合后段」与 partial 比较时能命中。
+    const partial =
+      "已完成：用一句话给出。后续可能需要：力或信息论确定义、公式或例子。" +
+      "建议下一步：选定方向（热力学/信息）以便我给出短展——吗？" +
+      "熵是衡量系统无序程度或信息不确定性的量。";
+    const finalSegments = [
+      "已完成：用一句话给出定义。",
+      "后续可能需要：热力学或信息论的精确定义、公式或例子。",
+      "建议下一步：选定方向（热力学/信息论）以便我给出简短扩展——需要继续吗？",
+      "熵是衡量系统无序程度或信息不确定性的量。",
+    ];
+    const finalAggregate = finalSegments.join("\n");
+    const maxSingle = Math.max(...finalSegments.map((s) => s.length));
+    expect(
+      isStreamingDuplicateOfAggregate(partial, finalAggregate, maxSingle),
+    ).toBe(true);
+  });
+
+  it("不命中：聚合内容长度不足 1.15x → 保留（与 Layer 5 长度比对齐）", () => {
+    // earlier 长度 25，aggregate 28（1.12x），未达 1.15x 阈值即便字符高度重合也不命中。
+    const earlier = "我已经完成所有的查询任务并整理好结果，请稍后查看。";
+    const aggregate = "我已经完成所有的查询任务并整理好结果，请查看。";
+    expect(
+      isStreamingDuplicateOfAggregate(earlier, aggregate, aggregate.length),
+    ).toBe(false);
+  });
+
+  it("不命中：multiset 覆盖率不足 0.8 → 保留", () => {
+    // earlier 字符与 aggregate 重合度低，不应被误判为聚合冗余。
+    const earlier = "今天上午开了一场长达三小时的产品需求评审会议。";
+    const aggregate =
+      "明天下午要去机场接待远道而来的客户，请准备好接待材料并提前确认航班时刻。";
+    expect(
+      isStreamingDuplicateOfAggregate(earlier, aggregate, aggregate.length),
+    ).toBe(false);
+  });
+
+  it("不命中：earlier 短于 STREAMING_DUPLICATE_MIN_LENGTH → 保留", () => {
+    expect(
+      isStreamingDuplicateOfAggregate(
+        "已完成",
+        "已完成查询任务并整理结果",
+        "已完成查询任务并整理结果".length,
+      ),
+    ).toBe(false);
+  });
+
+  it("不命中：高字符重合但 aggregate 未显著长于任一单段 → Layer 6 让位 Layer 5", () => {
+    // 评审 #1/#5：当 final 单段本身就比 earlier 长 1.15x（Layer 5 已可命中）时，
+    // Layer 6 不应越权。aggregate 必须显著长于任一 later 单段（≥1.3x）才介入。
+    const earlier = "请简要介绍熵的概念，谢谢。"; // 13 chars
+    const longSingle =
+      "熵的概念在热力学和信息论里有两种解释，分别衡量系统的无序程度与信息的不确定性。"; // 38 chars
+    const tinyTrailing = "请问需要继续吗？";
+    const aggregate = `${longSingle}\n${tinyTrailing}`;
+    const maxSingle = Math.max(longSingle.length, tinyTrailing.length);
+    // aggregate 仅约为 longSingle 的 1.2x，不满足 1.3x 守卫 → 留给 Layer 5 处理。
+    expect(
+      isStreamingDuplicateOfAggregate(earlier, aggregate, maxSingle),
+    ).toBe(false);
+  });
+});
+
+// =============================================================================
+// ISSUE-070 评审回归：时钟漂移容忍窗口收紧 + 仅修「漂移」不动「客观 follow-up」
+// =============================================================================
+
+describe("buildChatDisplayBlocks - 时钟漂移窗口（评审回归）", () => {
+  it("窗口内 user.timestamp 略晚于 assistant（漂移）：user 仍排到 assistant 之前", () => {
+    // 模拟原 ISSUE-070 漂移场景：user 时间戳因 client/server 时钟差比 assistant
+    // 晚 0.05s（窗口 0.2s 内），新策略仍把 user 提前。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        role: "assistant",
+        timestamp: 1000.5, // 服务端时钟
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        delta: "你好",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        role: "user",
+        timestamp: 1000.55, // 客户端时钟，比 assistant 晚 50ms
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        delta: "提问",
+        timestamp: 1000.55,
+      }),
+    ];
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const order = blocks
+      .filter(
+        (b) =>
+          (b.kind === "message" && b.message.role === "user") ||
+          b.kind === "assistant-reply",
+      )
+      .map((b) =>
+        b.kind === "message" ? `user:${b.message.id}` : `asst:${b.kind}`,
+      );
+    // user 漂在 assistant 之后但仍应排在前
+    expect(order[0]?.startsWith("user:")).toBe(true);
+    expect(order[order.length - 1]?.startsWith("asst:")).toBe(true);
+  });
+
+  it("窗口外（≥0.2s）user follow-up：保持真实时序，不被反插到 assistant 之前", () => {
+    // 关键回归：用户在 assistant 回复中（0.7s 后）紧追问 follow-up，
+    // 旧 1s 窗口会把 follow-up 排到 assistant-reply 之前。
+    // 新 0.2s 窗口下：assistant-reply 与 follow-up 时差 0.7s 超出窗口，
+    // 走真实时序排序：user → assistant-reply → user-followup。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        role: "user",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        delta: "首条提问",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        role: "assistant",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        delta: "正在回答",
+        timestamp: 1000.5,
+      }),
+      // user 在 assistant 还在流式回复时（0.7s 后）紧追一条 follow-up
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-2",
+        timestamp: 1001.2,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-2",
+        messageId: "user-2",
+        role: "user",
+        timestamp: 1001.2,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-2",
+        messageId: "user-2",
+        delta: "紧追问",
+        timestamp: 1001.2,
+      }),
+    ];
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    // 抽取 user 与 assistant-reply 的相对顺序
+    const sequence = blocks
+      .filter(
+        (b) =>
+          (b.kind === "message" && b.message.role === "user") ||
+          b.kind === "assistant-reply",
+      )
+      .map((b) =>
+        b.kind === "message" ? `user:${b.message.id}` : "asst-reply",
+      );
+    // 期望：user-1, asst-reply, user-2（绝不是 user-1, user-2, asst-reply）
+    const idxFirstUser = sequence.findIndex((s) => s === "user:user-1");
+    const idxAsst = sequence.findIndex((s) => s === "asst-reply");
+    const idxFollowup = sequence.findIndex((s) => s === "user:user-2");
+    expect(idxFirstUser).toBeGreaterThanOrEqual(0);
+    expect(idxAsst).toBeGreaterThanOrEqual(0);
+    expect(idxFollowup).toBeGreaterThanOrEqual(0);
+    expect(idxFirstUser).toBeLessThan(idxAsst);
+    expect(idxAsst).toBeLessThan(idxFollowup);
+  });
+
+  it("reasoning segment 不再把阶段 summary 当作 content 展示", () => {
+    const stepId = "synth-step:NegentropyEngine:run-1:0";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.STEP_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1001,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.STEP_FINISHED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1002,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "Pong.",
+        timestamp: 1004,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const reasoning = reply.segments.find((segment) => segment.kind === "reasoning");
+      expect(reasoning?.kind).toBe("reasoning");
+      if (reasoning?.kind === "reasoning") {
+        expect(reasoning.content).toBeUndefined();
+      }
+    }
+  });
+
+  it("真实 thought 文本会透传为 reasoning segment content", () => {
+    const stepId = "synth-step:NegentropyEngine:run-1:0";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.CUSTOM,
+        threadId: "thread-1",
+        runId: "run-1",
+        eventType: "ne.a2ui.thought",
+        data: { text: "先判断 ping，再回答 Pong。" },
+        timestamp: 1001,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.STEP_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1002,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "Pong.",
+        timestamp: 1004,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const reasoning = reply.segments.find((segment) => segment.kind === "reasoning");
+      expect(reasoning?.kind).toBe("reasoning");
+      if (reasoning?.kind === "reasoning") {
+        expect(reasoning.content).toBe("先判断 ping，再回答 Pong。");
+      }
     }
   });
 });

@@ -82,6 +82,22 @@ class WikiRevalidateSettings(BaseModel):
     )
 
 
+class KnowledgeFeatureFlags(BaseModel):
+    """联邦知识图谱与跨 Corpus 检索的 feature flag
+
+    控制 Phase 1-3 的渐进上线：
+      - enable_canonical_linker：开关 canonical 后台合并 batch（默认开，只写不读）
+      - enable_cross_corpus_kg：开关 HybridPlanner 路径与 @graph mention 透传
+      - cross_corpus_kg_app_allowlist：按 app_name 白名单灰度
+      - cross_corpus_kg_user_sample_rate：按 user_id hash 灰度（0.0-1.0）
+    """
+
+    enable_canonical_linker: bool = True
+    enable_cross_corpus_kg: bool = False
+    cross_corpus_kg_app_allowlist: list[str] = Field(default_factory=list)
+    cross_corpus_kg_user_sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
 class KnowledgeSettings(BaseSettings):
     """Knowledge 相关后台配置。"""
 
@@ -97,6 +113,9 @@ class KnowledgeSettings(BaseSettings):
     )
     wiki_revalidate: WikiRevalidateSettings = Field(
         default_factory=WikiRevalidateSettings,
+    )
+    feature_flags: KnowledgeFeatureFlags = Field(
+        default_factory=KnowledgeFeatureFlags,
     )
 
     @classmethod

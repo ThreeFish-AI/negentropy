@@ -98,24 +98,33 @@ class KnowledgeRunDao:
         *,
         app_name: str | None = None,
         stale_threshold_minutes: int = 30,
-    ) -> int:
-        """将超过阈值的 running 状态 Pipeline 标记为 failed。
+        cancelling_threshold_minutes: int = 5,
+    ) -> dict[str, int]:
+        """将卡死的中间态 Pipeline 强制收敛到终态。
+
+        - `running` 超过 `stale_threshold_minutes` 分钟未更新 → 标记为 `failed`
+          （兼容既有进程崩溃 / task 卡住场景）；
+        - `cancelling` 超过 `cancelling_threshold_minutes` 分钟未更新 → 强制收敛
+          到 `cancelled`（task 已被 kill 或检查点触发前进程重启时的兜底）。
 
         Returns:
-            int: 被终结的 Pipeline 数量。
+            dict: `{"forced_failed": int, "forced_cancelled": int}`。
         """
-        cutoff = datetime.now(UTC) - timedelta(minutes=stale_threshold_minutes)
+        now = datetime.now(UTC)
+        failed_cutoff = now - timedelta(minutes=stale_threshold_minutes)
+        cancelled_cutoff = now - timedelta(minutes=cancelling_threshold_minutes)
+
         async with self._session_factory() as db:
-            conditions = [
+            # 1) running > stale_threshold → failed
+            failed_conditions = [
                 KnowledgePipelineRun.status == "running",
-                KnowledgePipelineRun.updated_at < cutoff,
+                KnowledgePipelineRun.updated_at < failed_cutoff,
             ]
             if app_name is not None:
-                conditions.append(KnowledgePipelineRun.app_name == app_name)
-
-            stmt = (
+                failed_conditions.append(KnowledgePipelineRun.app_name == app_name)
+            failed_stmt = (
                 sql_update(KnowledgePipelineRun)
-                .where(*conditions)
+                .where(*failed_conditions)
                 .values(
                     status="failed",
                     payload=KnowledgePipelineRun.payload.op("||")(
@@ -131,9 +140,104 @@ class KnowledgeRunDao:
                     ),
                 )
             )
-            result = await db.execute(stmt)
+            failed_result = await db.execute(failed_stmt)
+
+            # 2) cancelling > cancelling_threshold → cancelled
+            #    （task 在感知 cancel 信号后未及时 cancel() 落盘，例如进程重启或 kill）
+            cancelled_conditions = [
+                KnowledgePipelineRun.status == "cancelling",
+                KnowledgePipelineRun.updated_at < cancelled_cutoff,
+            ]
+            if app_name is not None:
+                cancelled_conditions.append(KnowledgePipelineRun.app_name == app_name)
+            cancelled_stmt = (
+                sql_update(KnowledgePipelineRun)
+                .where(*cancelled_conditions)
+                .values(
+                    status="cancelled",
+                    payload=KnowledgePipelineRun.payload.op("||")(
+                        {
+                            "cancellation": {
+                                "forced_by_watchdog": True,
+                                "cancelled_at": now.isoformat(),
+                                "reason": (
+                                    f"Pipeline was cancelling for over {cancelling_threshold_minutes}"
+                                    " minutes and was forcibly converged to cancelled."
+                                ),
+                            }
+                        }
+                    ),
+                )
+            )
+            cancelled_result = await db.execute(cancelled_stmt)
+
             await db.commit()
-            return result.rowcount
+            return {
+                "forced_failed": failed_result.rowcount or 0,
+                "forced_cancelled": cancelled_result.rowcount or 0,
+            }
+
+    async def request_pipeline_run_cancel(
+        self,
+        *,
+        app_name: str,
+        run_id: str,
+        cancellation_meta: dict[str, Any],
+    ) -> tuple[str, KnowledgePipelineRun | None]:
+        """对 Pipeline Run 发起取消（条件 UPDATE，规避 race B）。
+
+        规避 race B（R-7）：`tracker._persist` 在每个 stage 边界写 running 状态，与 cancel
+        API 写 cancelling 并发；若用 `upsert_pipeline_run` 会 bump version 且无条件覆盖，
+        后写者覆盖前写者；改用条件 UPDATE：
+        - `WHERE status NOT IN ('completed','failed','cancelled')` —— 只在非终态时变更，
+          避免抢占已完成 run 的状态；
+        - `pending` → `cancelled`（task 尚未启动，无需协作）；
+        - `running` → `cancelling`（信号已发，task 在下个检查点感知后调 `tracker.cancel()`）；
+        - `cancelling` → 不变（幂等命中，返回 `noop`）。
+        - 同时 `version + 1`，并把 `cancellation_meta` 合并进 `payload.cancellation`。
+
+        DB 行锁串行化 cancel 与 _persist 的并发；_persist 写入前先读 DB（R-7 第 2 步）
+        进一步保证 running 不会覆盖 cancelling。
+
+        Returns:
+            (status, record):
+            - `("not_found", None)`：run 不存在；
+            - `("terminal", record)`：已是 completed/failed/cancelled，409；
+            - `("noop", record)`：已是 cancelling，幂等命中；
+            - `("cancelled", record)`：pending → cancelled；
+            - `("cancelling", record)`：running → cancelling。
+        """
+        async with self._session_factory() as db:
+            stmt = (
+                select(KnowledgePipelineRun)
+                .where(
+                    KnowledgePipelineRun.app_name == app_name,
+                    KnowledgePipelineRun.run_id == run_id,
+                )
+                .with_for_update()
+            )
+            result = await db.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing is None:
+                return ("not_found", None)
+
+            current_status = (existing.status or "").lower()
+            if current_status in ("completed", "failed", "cancelled"):
+                return ("terminal", existing)
+            if current_status == "cancelling":
+                return ("noop", existing)
+
+            new_status = "cancelled" if current_status == "pending" else "cancelling"
+            existing.status = new_status
+            # 合并 cancellation 元数据：保留既有 payload，叠加 cancellation 字段
+            new_payload = dict(existing.payload or {})
+            existing_cancellation = new_payload.get("cancellation") or {}
+            new_payload["cancellation"] = {**existing_cancellation, **cancellation_meta}
+            existing.payload = new_payload
+            existing.version = (existing.version or 0) + 1
+            await db.commit()
+            await db.refresh(existing)
+            return (new_status, existing)
 
     async def upsert_pipeline_run(
         self,

@@ -22,19 +22,23 @@ from contextvars import ContextVar
 from typing import Any
 
 from google.adk.models.lite_llm import LiteLlm
+from opentelemetry import trace
 
 from negentropy.config.model_resolver import (
+    apply_llm_thinking_override,
     resolve_llm_config,
     resolve_llm_config_by_model_name,
     resolve_subagent_model_name,
 )
 from negentropy.logging import get_logger
+from negentropy.model_names import observability_model_name
 
 _logger = get_logger("negentropy.agents.dynamic_model")
 
 # ContextVar：当前请求链路中 root Agent 期望使用的模型 ID（`vendor/model_name`）。
 # 来源：root_agent.before_model_callback 从 callback_context.state 读取并置入。
 _selected_root_llm: ContextVar[str | None] = ContextVar("selected_root_llm", default=None)
+_root_thinking_enabled: ContextVar[bool | None] = ContextVar("root_thinking_enabled", default=None)
 
 
 def set_selected_root_llm(value: str | None) -> None:
@@ -45,6 +49,16 @@ def set_selected_root_llm(value: str | None) -> None:
 def get_selected_root_llm() -> str | None:
     """读取当前 ContextVar；主要供调试/单测使用。"""
     return _selected_root_llm.get()
+
+
+def set_root_thinking_enabled(value: bool | None) -> None:
+    """设置 Home Composer 的 Thinking 开关；None 表示沿用模型配置。"""
+    _root_thinking_enabled.set(value if isinstance(value, bool) else None)
+
+
+def get_root_thinking_enabled() -> bool | None:
+    """读取当前 Thinking override；主要供调试/单测使用。"""
+    return _root_thinking_enabled.get()
 
 
 class _DynamicLiteLlm(LiteLlm):
@@ -69,6 +83,19 @@ class _DynamicLiteLlm(LiteLlm):
             _logger.warning("dynamic_litellm_resolve_failed", exc_info=True)
 
         if override is None:
+            # 即使回退到默认模型，也记录用户意图到 OTel span。
+            selected = _selected_root_llm.get()
+            if selected:
+                _logger.warning(
+                    "dynamic_litellm_fallback_to_default",
+                    user_selected_model=selected,
+                    fallback_model=self.model,
+                )
+                span = trace.get_current_span()
+                if span and span.is_recording():
+                    span.set_attribute("negentropy.user_selected_model", observability_model_name(selected) or selected)
+                    span.set_attribute("negentropy.effective_model", observability_model_name(self.model) or self.model)
+                    span.set_attribute("negentropy.model_fallback", True)
             async for resp in super().generate_content_async(llm_request, stream=stream):
                 yield resp
             return
@@ -78,6 +105,13 @@ class _DynamicLiteLlm(LiteLlm):
             async for resp in super().generate_content_async(llm_request, stream=stream):
                 yield resp
             return
+        thinking_enabled = _root_thinking_enabled.get()
+        if thinking_enabled is not None:
+            new_kwargs = apply_llm_thinking_override(
+                new_model,
+                new_kwargs,
+                thinking_enabled,
+            )
 
         lock = self._get_swap_lock()
         orig_model = self.model
@@ -94,6 +128,18 @@ class _DynamicLiteLlm(LiteLlm):
                     original_model=orig_model,
                     override_model=new_model,
                 )
+                # 将用户意图和实际模型写入 OTel span，便于 Langfuse 排查。
+                span = trace.get_current_span()
+                if span and span.is_recording():
+                    user_intent = _selected_root_llm.get()
+                    span.set_attribute(
+                        "negentropy.user_selected_model",
+                        observability_model_name(user_intent)
+                        or user_intent
+                        or observability_model_name(new_model)
+                        or new_model,
+                    )
+                    span.set_attribute("negentropy.effective_model", observability_model_name(new_model) or new_model)
                 async for resp in super().generate_content_async(llm_request, stream=stream):
                     yield resp
             finally:
@@ -120,7 +166,13 @@ class DynamicRootLiteLlm(_DynamicLiteLlm):
         selected = _selected_root_llm.get()
         if selected:
             resolved = await resolve_llm_config_by_model_name(selected)
-            if resolved is None:
+            if resolved is not None:
+                _logger.info(
+                    "dynamic_root_llm_resolved",
+                    selected_model=selected,
+                    resolved_model=resolved[0],
+                )
+            else:
                 _logger.warning(
                     "dynamic_root_llm_unknown_model",
                     selected_model=selected,
@@ -146,6 +198,12 @@ class DynamicSubagentLiteLlm(_DynamicLiteLlm):
         if model_id:
             resolved = await resolve_llm_config_by_model_name(model_id)
             if resolved is not None:
+                _logger.info(
+                    "dynamic_subagent_llm_resolved",
+                    agent_name=agent_name,
+                    requested_model=model_id,
+                    resolved_model=resolved[0],
+                )
                 return resolved
             _logger.warning(
                 "dynamic_subagent_llm_unknown_model",

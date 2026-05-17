@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -72,6 +72,26 @@ def _model_config_to_dict(mc) -> dict[str, Any]:
     }
 
 
+def _model_config_to_public_dict(mc) -> dict[str, Any]:
+    """ISSUE-066 / ISSUE-071：面向普通用户的精简版 model_config 字典。
+
+    剔除 ``config`` 字段（供应商特定参数，如 temperature / thinking_mode 等
+    管理员视角的可调参数）与时间戳，仅返回 Home 页 LLM 下拉渲染所需的
+    最小元数据。**永远不暴露 API key / 凭据 / endpoint / org id 等敏感信息**
+    （这些字段本身存于独立的 ``VendorConfig`` 表，与 ``model_configs`` 不同
+    出处；此函数留作公开数据的稳定边界，避免后续新增字段意外泄漏）。
+    """
+    return {
+        "id": str(mc.id),
+        "model_type": mc.model_type.value if hasattr(mc.model_type, "value") else str(mc.model_type),
+        "display_name": mc.display_name,
+        "vendor": mc.vendor,
+        "model_name": mc.model_name,
+        "is_default": mc.is_default,
+        "enabled": mc.enabled,
+    }
+
+
 def _validate_model_type(value: str):
     from negentropy.models.model_config import ModelType
 
@@ -84,9 +104,17 @@ def _validate_model_type(value: str):
         ) from exc
 
 
-def _require_admin(user: AuthUser) -> None:
-    if "admin" not in user.roles:
+async def _require_admin(user: AuthUser) -> AuthUser:
+    """以 DB ``user_states`` 中持久化的 roles 为权威，校验 admin 身份。
+
+    JWT 中的 roles 是登录瞬间的快照，DB UserState.state.roles 为运行时权威。当
+    管理员后置提升用户角色时，旧 JWT 仍是 user，但 DB 已是 admin —— 必须以
+    ``resolve_user_with_db_roles`` 拉齐两者，避免 ISSUE-049 描述的视图割裂。
+    """
+    resolved = await resolve_user_with_db_roles(user)
+    if "admin" not in resolved.roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+    return resolved
 
 
 # =============================================================================
@@ -102,7 +130,7 @@ class VendorConfigUpsert(BaseModel):
 @router.get("/vendor-configs")
 async def list_vendor_configs(current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
     """列出所有支持的供应商配置（始终返回 3 个供应商，未配置的填充 null）。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from negentropy.models.vendor_config import VendorConfig
 
@@ -140,7 +168,7 @@ async def upsert_vendor_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """创建或更新供应商配置（Upsert 语义）。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
     if vendor not in SUPPORTED_VENDOR_CONFIG_VENDORS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -189,7 +217,7 @@ async def delete_vendor_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """删除供应商配置。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
     if vendor not in SUPPORTED_VENDOR_CONFIG_VENDORS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -248,8 +276,24 @@ async def list_model_configs(
     enabled: bool | None = Query(default=None),
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """列出 model_configs 表条目。"""
-    _require_admin(current_user)
+    """列出 model_configs 表条目。
+
+    ISSUE-066 / ISSUE-071：``enabled=True`` 是普通用户为了在 Home 页 LLM
+    下拉中渲染「自己可用的模型列表」必走的查询路径。原实现一律 403 admin
+    role required，导致 UI 浏览器层留下 console error（``Failed to load
+    resource: 403`` 无法在 JS 静默），且让 dev mode build 出现两次原生错误
+    告警。
+
+    放宽策略：
+    - ``enabled=True`` 的只读列表对登录用户开放（**仅返回 display_name /
+      model_name / vendor / is_default 等 model 元数据，不包含任何 vendor
+      api_key / secret**）；
+    - 其他过滤组合（含 ``enabled=False`` / 不带 ``enabled`` 参数）保留 admin
+      限制（管理员能看到禁用配置和未激活的模型，普通用户不应介入）。
+    """
+    is_user_facing_listing = enabled is True
+    if not is_user_facing_listing:
+        current_user = await _require_admin(current_user)
 
     from negentropy.models.model_config import ModelConfig, ModelType
 
@@ -276,7 +320,8 @@ async def list_model_configs(
             detail=_sanitize_error(f"Failed to list model_configs: {exc}"),
         ) from exc
 
-    items = [_model_config_to_dict(mc) for mc in rows]
+    serializer = _model_config_to_dict if not is_user_facing_listing else _model_config_to_public_dict
+    items = [serializer(mc) for mc in rows]
     _ = ModelType
     return {"items": items, "count": len(items)}
 
@@ -287,7 +332,7 @@ async def create_model_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """新建 model_configs 条目。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from sqlalchemy import update as sa_update
     from sqlalchemy.exc import IntegrityError
@@ -346,7 +391,7 @@ async def update_model_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """更新 model_configs 条目。仅允许更新 display_name / is_default / enabled / config 字段。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from uuid import UUID as _UUID
 
@@ -411,7 +456,7 @@ async def delete_model_config(
     若有 Corpus 仍在引用（`corpus.config->'models'` 的 llm_config_id / embedding_config_id），
     返回 HTTP 409 + 引用计数。
     """
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from uuid import UUID as _UUID
 
@@ -478,6 +523,21 @@ class ModelPingRequest(BaseModel):
     api_key: str | None = None
 
 
+class ModelEmbedPingRequest(BaseModel):
+    """Embedding 测试请求 — 验证 embedding 模型连通性 + 维度。
+
+    与 ``ModelPingRequest`` 同源但多一个 ``text`` 字段；空白与超长在 Pydantic
+    层即拒收，避免把 ``[""]`` / 数万字符的 payload 透到供应商触发 400/413。
+    """
+
+    vendor: str
+    model_name: str
+    text: str = Field(..., min_length=1, max_length=2000)
+    config: dict[str, Any] = Field(default_factory=dict)
+    api_base: str | None = None
+    api_key: str | None = None
+
+
 @router.post("/ping")
 async def ping_model(
     payload: ModelPingRequest,
@@ -487,7 +547,7 @@ async def ping_model(
 
     凭证回退链: 表单 > vendor_configs (DB) > LiteLLM 环境变量。
     """
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     import asyncio
     import time
@@ -603,3 +663,181 @@ async def _ping_llm(
     )
     content = response.choices[0].message.content or ""
     return {"status": "ok", "message": f"Pong! {content.strip()[:100]}"}
+
+
+# =============================================================================
+# Embedding Ping Endpoint
+# =============================================================================
+
+
+@router.post("/ping-embedding")
+async def ping_embedding_model(
+    payload: ModelEmbedPingRequest,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """调用 embedding API 对一段文本求向量，返回维度 + 前 4 维预览。
+
+    凭证回退链与 ``/ping`` 一致：表单 > vendor_configs (DB) > LiteLLM 环境变量。
+    与 ``_ping_llm`` 同源但**不重试**——管理员交互式验证要求快速失败。
+    """
+    current_user = await _require_admin(current_user)
+
+    import asyncio
+    import time
+
+    from negentropy.config.model_resolver import build_full_model_name
+
+    text = payload.text.strip()
+    if not text:
+        # Pydantic 已校验 min_length=1，但 strip 后可能为纯空白
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="text must contain non-whitespace characters",
+        )
+
+    full_model_name = build_full_model_name(payload.vendor, payload.model_name)
+
+    effective_api_key = payload.api_key
+    effective_api_base = payload.api_base or payload.config.get("api_base")
+    api_key_source = "payload" if payload.api_key else "env"
+
+    if effective_api_key is None:
+        from negentropy.models.vendor_config import VendorConfig
+
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(VendorConfig).where(VendorConfig.vendor == payload.vendor))
+                vc = result.scalar_one_or_none()
+                if vc:
+                    effective_api_key = vc.api_key
+                    api_key_source = "db"
+                    if not effective_api_base:
+                        effective_api_base = vc.api_base
+        except Exception:
+            logger.warning(
+                "embed_ping_vendor_lookup_failed",
+                vendor=payload.vendor,
+                exc_info=True,
+            )
+
+    logger.info(
+        "model_embed_ping_start",
+        vendor=payload.vendor,
+        model_name=payload.model_name,
+        full_model_name=full_model_name,
+        api_base=effective_api_base,
+        api_key_fingerprint=_mask_api_key(effective_api_key),
+        api_key_source=api_key_source,
+        text_length=len(text),
+    )
+
+    start_time = time.monotonic()
+
+    try:
+        result = await _ping_embedding(full_model_name, effective_api_key, effective_api_base, text)
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+        result["latency_ms"] = latency_ms
+        if result.get("status") == "ok":
+            logger.info(
+                "model_embed_ping_ok",
+                vendor=payload.vendor,
+                model_name=payload.model_name,
+                latency_ms=latency_ms,
+                dimensions=result.get("dimensions"),
+            )
+        else:
+            logger.warning(
+                "model_embed_ping_failed",
+                vendor=payload.vendor,
+                model_name=payload.model_name,
+                latency_ms=latency_ms,
+                message=result.get("message"),
+            )
+        return result
+
+    except Exception as exc:
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+        error_msg = _sanitize_error(str(exc))
+        logger.warning(
+            "model_embed_ping_failed",
+            vendor=payload.vendor,
+            model_name=payload.model_name,
+            latency_ms=latency_ms,
+            exc_type=type(exc).__name__,
+            exc_status=getattr(exc, "status_code", None),
+            exc_message=_sanitize_error(str(exc), max_len=500),
+            exc_info=True,
+        )
+        # Gemini 翻译代理对 :batchEmbedContents 兼容不全的专属诊断
+        # （与 knowledge/ingestion/embedding.py::_build_embedding_failure_hint 对齐）
+        if "doesn't contain valid prompts" in error_msg or "valid prompts" in error_msg:
+            message = (
+                "Embedding 上游返回 'invalid prompts'，疑似本地 Gemini 翻译代理对"
+                " :batchEmbedContents 兼容不全。建议：(a) 切换 OpenAI 系列 embedding；"
+                "或 (b) 校验 NATIVE_GEMINI_BASE_URL 指向官方上游。\n" + error_msg
+            )
+        elif "AuthenticationError" in error_msg or "401" in error_msg:
+            message = f"认证失败：API Key 无效或已过期。\n{error_msg}"
+        elif "404" in error_msg or "NotFoundError" in error_msg:
+            message = f"模型未找到：请检查 vendor/model_name 是否正确。\n{error_msg}"
+        elif "RateLimitError" in error_msg or "429" in error_msg:
+            message = f"请求过于频繁（429）：供应商已限流，请稍后重试。\n{error_msg}"
+        elif "timeout" in error_msg.lower() or isinstance(exc, asyncio.TimeoutError):
+            message = "连接超时 (60s)，请检查网络或 API Base URL 配置。"
+        else:
+            message = f"Embedding 测试失败：{error_msg}"
+        return {"status": "error", "message": message, "latency_ms": latency_ms}
+
+
+async def _ping_embedding(
+    model: str,
+    api_key: str | None,
+    api_base: str | None,
+    text: str,
+) -> dict[str, Any]:
+    """Embedding Ping: 调用 ``litellm.aembedding`` 对一段文本求向量。
+
+    与 ``_ping_llm`` 设计同源——单次调用、无重试、固定 60s 超时；返回
+    ``dimensions`` 与前 4 维 ``preview``，便于操作员快速验证向量非零 / 维度匹配。
+    """
+    import asyncio
+
+    import litellm
+
+    from negentropy.config.model_resolver import normalize_api_base_for_litellm
+
+    kwargs: dict[str, Any] = {
+        "drop_params": True,
+        "num_retries": 0,
+    }
+    if api_key:
+        kwargs["api_key"] = api_key
+    normalized_api_base = normalize_api_base_for_litellm(model, api_base)
+    if normalized_api_base:
+        kwargs["api_base"] = normalized_api_base
+
+    response = await asyncio.wait_for(
+        litellm.aembedding(model=model, input=[text], **kwargs),
+        timeout=60.0,
+    )
+
+    # 兼容 dict / 对象访问（与 knowledge/ingestion/embedding.py 的 _extract_* 同模式）
+    data = getattr(response, "data", None)
+    if data is None and isinstance(response, dict):
+        data = response.get("data")
+    if not data:
+        return {"status": "error", "message": "Empty embedding response"}
+
+    item = data[0]
+    vec = getattr(item, "embedding", None)
+    if vec is None and isinstance(item, dict):
+        vec = item.get("embedding")
+    if not isinstance(vec, list) or not vec:
+        return {"status": "error", "message": "No embedding vector in response"}
+
+    return {
+        "status": "ok",
+        "message": "OK",
+        "dimensions": len(vec),
+        "preview": [float(x) for x in vec[:4]],
+    }

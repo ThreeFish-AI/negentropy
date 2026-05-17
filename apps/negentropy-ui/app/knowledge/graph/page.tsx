@@ -1,16 +1,33 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
   type GraphBuildRunRecord,
   type GraphSearchResultItem,
   type KnowledgeGraphPayload,
+  type CorpusModelsConfig,
+  type CorpusRecord,
+  type ModelConfigItem,
   buildKnowledgeGraph,
+  cancelPipelineRun,
   fetchCorpusGraph,
+  fetchCorpora,
+  fetchModelConfigs,
 } from "@/features/knowledge";
 
+import { BuildButton } from "./_components/BuildButton";
 import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
@@ -18,12 +35,44 @@ import { EntityListPanel } from "./_components/EntityListPanel";
 import { EvidenceChainPanel } from "./_components/EvidenceChainPanel";
 import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
 import { GraphCanvas } from "./_components/GraphCanvas";
+import { GraphCanvasFrame } from "./_components/GraphCanvasFrame";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
+import { ModelConfigPanel } from "./_components/ModelConfigPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
 import { TimeTravelSlider } from "./_components/TimeTravelSlider";
 import { entityColor, communityColor } from "./_components/constants";
+
+const SIDEBAR_STATE_KEY = "kg.sidebarOpen";
+
+const SigmaGraphCanvas = dynamic(
+  () =>
+    import("./_components/SigmaGraphCanvas").then((m) => m.SigmaGraphCanvas),
+  { ssr: false },
+);
+const ForceGraphCanvas = dynamic(
+  () =>
+    import("./_components/ForceGraphCanvas").then(
+      (m) => m.ForceGraphCanvas,
+    ),
+  { ssr: false },
+);
+// 3D 渲染器按需加载，避免 three.js 打入首屏 bundle
+const GraphCanvas3D = dynamic(
+  () =>
+    import("./_components/GraphCanvas3D").then((m) => ({
+      default: m.GraphCanvas3D,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex flex-1 min-h-0 items-center justify-center text-xs text-zinc-500">
+        Loading 3D...
+      </div>
+    ),
+  },
+);
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -53,22 +102,66 @@ function nodeRadius(importance?: number): number {
 
 export default function KnowledgeGraphPage() {
   const [corpusId, setCorpusId] = useState<string | null>(null);
+  const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
+  const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<"graph" | "entities">("graph");
   const [entityDetailId, setEntityDetailId] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
+  // pillEnqueued 与 building 解耦：building 只用于禁用按钮（POST 在飞），
+  // pillEnqueued 控制 KgBuildProgressPill 的挂载 + SSE 订阅生命周期，由 SSE 终态自驱卸载。
+  // 修复评审 #2：旧实现把 Pill 挂载绑定到 building，POST 因 BFF 15min 超时 abort 后
+  // Pill 立即卸载、SSE 关闭，用户无法收到真正的构建终态。
+  const [pillEnqueued, setPillEnqueued] = useState(false);
+  // pillSession 强制 Pill 在每次新构建点击时重新挂载（即便上一次终态尚未消失），
+  // 避免快速重复构建时旧 Pill 残留 + SSE 不重新订阅。
+  const [pillSession, setPillSession] = useState(0);
   const [searchResults, setSearchResults] = useState<GraphSearchResultItem[] | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
-  // G2: 渲染引擎切换 — Cytoscape (Phase 4 默认) vs d3-force (Phase 1 兼容回退)
-  const [renderer, setRenderer] = useState<"cytoscape" | "d3">("cytoscape");
+  // G2: 渲染引擎切换 — Cytoscape / d3-force / Sigma.js WebGL / Force Graph 2D / 3D WebGL
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("cytoscape");
+  // 右侧抽屉收起状态；localStorage 持久化，SSR 安全（初值 true，挂载后读取覆盖）。
+  // 设计要点（修复挂载期闪烁 + storage 噪声）：
+  //   1) 用 hasHydratedRef 区分「初始挂载 read」与「用户交互 write」——挂载阶段
+  //      第二个 effect 不能把默认值 "1" 回写到 localStorage，否则会瞬间覆盖用户上次
+  //      持久化的 "0"，并向其他 tab 的 storage 监听者推送一段虚假的 open→close 序列。
+  //   2) 暴露 sidebarHydrated 给 JSX，用于条件性挂载 `transition-[width]` —— 让 read
+  //      effect 写入持久值之前不要播放动画，避免首屏可见的 200ms 开→收过场。
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [sidebarHydrated, setSidebarHydrated] = useState(false);
+  const hasHydratedRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = window.localStorage.getItem(SIDEBAR_STATE_KEY);
+    if (v !== null) setSidebarOpen(v === "1");
+    hasHydratedRef.current = true;
+    setSidebarHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!hasHydratedRef.current) return; // 跳过挂载首跑，由 read effect 真实生效后再持久化用户交互
+    window.localStorage.setItem(SIDEBAR_STATE_KEY, sidebarOpen ? "1" : "0");
+  }, [sidebarOpen]);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
   >(null);
+  const { confirm, confirmDialog } = useConfirmDialog();
+
+  const corpusRecord = useMemo(
+    () => corpora.find((c) => c.id === corpusId) ?? null,
+    [corpora, corpusId],
+  );
+
+  useEffect(() => {
+    fetchModelConfigs({ modelType: "llm", enabled: true })
+      .then(setLlmModels)
+      .catch(() => {});
+  }, []);
 
   const loadGraph = useCallback(
     async (cid: string) => {
@@ -145,11 +238,26 @@ export default function KnowledgeGraphPage() {
 
   const handleBuild = useCallback(async () => {
     if (!corpusId) return;
+    // 增加 pillSession 强制 Pill 重新挂载（处理快速重复构建：上次终态展示窗口未结束就再次点击）。
+    setPillSession((prev) => prev + 1);
+    setPillEnqueued(true);
     setBuilding(true);
     setBuildError(null);
     try {
+      // 从 corpus config 解析 LLM 模型名
+      const modelsConfig = (corpusRecord?.config as Record<string, unknown> | undefined)?.models as CorpusModelsConfig | undefined;
+      const llmConfigId = modelsConfig?.llm_config_id;
+      let llmModelName: string | undefined;
+      if (llmConfigId) {
+        const item = llmModels.find((m) => m.id === llmConfigId);
+        if (item) {
+          llmModelName = `${item.vendor}/${item.model_name}`;
+        }
+      }
+
       const result = await buildKnowledgeGraph(corpusId, {
         enable_llm_extraction: true,
+        ...(llmModelName ? { llm_model: llmModelName } : {}),
       });
       if (result.status === "failed") {
         setBuildError(result.error_message ?? "构建失败");
@@ -158,9 +266,49 @@ export default function KnowledgeGraphPage() {
     } catch (err) {
       setBuildError(err instanceof Error ? err.message : String(err));
     } finally {
+      // 仅释放按钮禁用态；pillEnqueued 由 KgBuildProgressPill 的 onTerminal 回调驱动卸载。
+      // 这样即便 POST 因 BFF 15min 超时 abort 抛错，SSE 仍能在真实构建结束时推送终态、
+      // Pill 收到后再让父组件 setPillEnqueued(false) 自然消失。
       setBuilding(false);
     }
-  }, [corpusId, loadGraph]);
+  }, [corpusId, corpusRecord, llmModels, loadGraph]);
+
+  const handleCancelBuildRun = useCallback(
+    async (run: GraphBuildRunRecord) => {
+      if (!corpusId) return;
+      const confirmed = await confirm({
+        title: "取消图谱构建",
+        message: (
+          <div className="space-y-2">
+            <p>
+              确定取消构建 <span className="font-mono">{run.run_id}</span>?
+            </p>
+            <p className="text-xs opacity-80">
+              已写入的实体和关系不会回滚（best-effort 取消）。
+            </p>
+          </div>
+        ),
+        confirmLabel: "确认取消",
+        cancelLabel: "保持运行",
+        destructive: true,
+      });
+      if (!confirmed) return;
+      try {
+        await cancelPipelineRun(run.run_id || run.id, "kg", {
+          appName: APP_NAME,
+          corpusId,
+        });
+        await loadGraph(corpusId);
+      } catch (err) {
+        console.error("cancel_build_failed", err);
+      }
+    },
+    [confirm, corpusId, loadGraph],
+  );
+
+  const handlePillTerminal = useCallback(() => {
+    setPillEnqueued(false);
+  }, []);
 
   const nodes = useMemo(() => (payload?.nodes || []) as GraphNode[], [payload]);
   const edges = useMemo(() => (payload?.edges || []) as GraphEdge[], [payload]);
@@ -332,15 +480,6 @@ export default function KnowledgeGraphPage() {
   const selectedNode =
     nodes.find((n) => n.id === selectedNodeId) || null;
 
-  const entityStats = useMemo(() => {
-    const byType: Record<string, number> = {};
-    nodes.forEach((n) => {
-      const t = n.type || "other";
-      byType[t] = (byType[t] || 0) + 1;
-    });
-    return { total: nodes.length, edges: edges.length, byType };
-  }, [nodes, edges]);
-
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
@@ -348,14 +487,48 @@ export default function KnowledgeGraphPage() {
         description="实体关系视图与构建历史"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-4">
+        <div className="flex min-h-0 flex-1 gap-2 px-6 pt-4 pb-4">
           {/* Main content area */}
-          <div className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
-            <div className="space-y-4 pb-4 pr-2">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between">
-                <CorpusSelector value={corpusId} onChange={setCorpusId} />
-                <div className="flex items-center gap-3">
+          <div className="min-h-0 min-w-0 flex-[2.2] flex flex-col overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 pr-2">
+              {/* Toolbar — 三段式：左 CorpusSelector / 中 SearchBar / 右 viewTab+渲染器+构建按钮+Pill */}
+              <div className="flex items-center gap-3">
+                {/* 左 */}
+                <CorpusSelector value={corpusId} onChange={setCorpusId} onCorporaLoaded={setCorpora} />
+
+                {/* 中（仅图谱视图 + 已选语料库时显示）*/}
+                <div className="flex-1 min-w-0 flex justify-center">
+                  {viewTab === "graph" && corpusId && (
+                    <div className="relative w-full max-w-[420px]">
+                      <SearchBar
+                        corpusId={corpusId}
+                        onResults={setSearchResults}
+                        onClear={() => setSearchResults(null)}
+                      />
+                      {searchResults && searchResults.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-60 overflow-y-auto space-y-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                          {searchResults.map((item, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => setSelectedNodeId(item.entity.id)}
+                              className="flex items-center justify-between rounded border border-zinc-100 px-2 py-1 cursor-pointer hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                            >
+                              <span className="text-xs text-zinc-700 dark:text-zinc-300">
+                                {item.entity.label || item.entity.id.slice(0, 8)}
+                              </span>
+                              <span className="text-[10px] text-zinc-400">
+                                {item.combined_score.toFixed(3)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 右 */}
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700">
                     <button
                       onClick={() => setViewTab("graph")}
@@ -382,7 +555,7 @@ export default function KnowledgeGraphPage() {
                     <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 text-[10px]">
                       <button
                         onClick={() => setRenderer("cytoscape")}
-                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认，支持节点交互）"
+                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认）"
                         className={`px-2 py-1 font-medium ${
                           renderer === "cytoscape"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
@@ -394,53 +567,98 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("d3")}
                         title="d3-force（Phase 1 兼容回退）"
-                        className={`px-2 py-1 font-medium ${
+                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
                           renderer === "d3"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        }`}
+                      >
+                        d3-force
+                      </button>
+                      <button
+                        onClick={() => setRenderer("3d")}
+                        title="3D WebGL（three.js + d3-force-3d，支持三维旋转）"
+                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
+                          renderer === "3d"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        }`}
+                      >
+                        3D
+                      </button>
+                      <button
+                        onClick={() => setRenderer("sigma")}
+                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "sigma"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        }`}
+                      >
+                        Sigma
+                      </button>
+                      <button
+                        onClick={() => setRenderer("force-graph")}
+                        title="react-force-graph-2d（粒子流动效果，视觉表现力强）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "force-graph"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
                         } rounded-r-lg`}
                       >
-                        d3-force
+                        Force Graph
                       </button>
                     </div>
                   )}
-                  {building && (
-                    <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
-                      正在构建...
-                    </span>
+                  {/* 构建图谱（紧凑型）— 从右侧栏迁入工具栏；保留与 viewTab 无关地展示，
+                     未选语料库时按钮自禁用并 title 提示。 */}
+                  <BuildButton
+                    building={building}
+                    corpusId={corpusId}
+                    lastBuildError={buildError}
+                    onBuild={handleBuild}
+                  />
+                  {/*
+                   * 复用 KgBuildProgressPill 通过 SSE（/build-runs/latest/progress）
+                   * 实时展示构建阶段（phase）+ 进度百分比 + 实体/关系实时计数。
+                   * 替代旧的静态"正在构建..."文案：旧文案在长任务（849 chunk）期间无任何反馈，
+                   * 用户体感卡死；Pill 组件能在 status=running 时显示中文阶段标签。
+                   *
+                   * 挂载策略：受 pillEnqueued 驱动而非 building——POST 即便因 BFF 15min 超时
+                   * 而 504 abort，SSE 仍持续监听后端实际构建终态；Pill 收到 SSE 终态后通过
+                   * onTerminal 回调让父组件 setPillEnqueued(false) 自然卸载。pillSession 作
+                   * key，确保新一次构建强制 Pill 重新挂载并重新订阅 SSE。
+                   */}
+                  {pillEnqueued && corpusId && (
+                    <KgBuildProgressPill
+                      key={pillSession}
+                      corpusId={corpusId}
+                      enqueued={pillEnqueued}
+                      onTerminal={handlePillTerminal}
+                      compact
+                    />
                   )}
                 </div>
               </div>
-
-              {/* Content Area */}
-              {viewTab === "graph" && corpusId && (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <SearchBar
+              {viewTab === "graph" && renderer === "3d" && corpusId && nodes.length > 0 ? (
+                <GraphCanvas3D
                   corpusId={corpusId}
-                  onResults={setSearchResults}
-                  onClear={() => setSearchResults(null)}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
                 />
-                {searchResults && searchResults.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
-                    {searchResults.map((item, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setSelectedNodeId(item.entity.id)}
-                        className="flex items-center justify-between rounded border border-zinc-100 dark:border-zinc-800 px-2 py-1 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                      >
-                        <span className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {item.entity.label || item.entity.id.slice(0, 8)}
-                        </span>
-                        <span className="text-[10px] text-zinc-400">
-                          {item.combined_score.toFixed(3)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              )}
-              {viewTab === "graph" && renderer === "cytoscape" && corpusId && nodes.length > 0 ? (
+              ) : viewTab === "graph" && renderer === "3d" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" && renderer === "cytoscape" && corpusId && nodes.length > 0 ? (
                 <GraphCanvas
                   corpusId={corpusId}
                   nodes={nodes}
@@ -451,144 +669,169 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "cytoscape" ? (
-                <div className="flex h-[600px] items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                   {!corpusId
                     ? "请选择语料库"
                     : error
                       ? `加载失败：${error}`
                       : "图谱为空，请先构建"}
                 </div>
-              ) : viewTab === "graph" ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    Graph Canvas
-                  </h2>
-                  {entityStats.total > 0 && (
-                    <div className="flex gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
-                      <span>{entityStats.total} 实体</span>
-                      <span>{entityStats.edges} 关系</span>
-                    </div>
-                  )}
+              ) : viewTab === "graph" && renderer === "sigma" && corpusId && nodes.length > 0 ? (
+                <SigmaGraphCanvas
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
+                />
+              ) : viewTab === "graph" && renderer === "sigma" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
                 </div>
-                <div className="mt-3 flex h-[500px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
-                  {!corpusId ? (
-                    <div className="text-center">
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        请选择语料库
-                      </p>
-                    </div>
-                  ) : error ? (
-                    <p className="text-xs text-red-600 dark:text-red-400">
-                      加载失败：{error}
-                    </p>
-                  ) : renderer === "d3" ? (
-                    <svg
-                      ref={svgRef}
-                      width="100%"
-                      height="100%"
-                      className="rounded-xl bg-white/60 dark:bg-zinc-800/60"
-                    >
-                      <g className="graph-layer">
-                        {!layout.length ? null : <>
-                        {edges.map((edge, index) => {
-                          const source = layout.find(
-                            (node) => node.id === edge.source,
-                          );
-                          const target = layout.find(
-                            (node) => node.id === edge.target,
-                          );
-                          if (!source || !target) return null;
-                          return (
-                            <g key={`${edge.source}-${edge.target}-${index}`}>
-                              <line
-                                x1={source.x}
-                                y1={source.y}
-                                x2={target.x}
-                                y2={target.y}
-                                stroke="#d4d4d8"
-                                strokeWidth={1}
-                                strokeOpacity={0.6}
-                              />
-                              {edge.label && (
-                                <text
-                                  x={(source.x + target.x) / 2}
-                                  y={(source.y + target.y) / 2}
-                                  fontSize={8}
-                                  fill="#a1a1aa"
-                                  textAnchor="middle"
-                                >
-                                  {edge.label}
-                                </text>
-                              )}
-                            </g>
-                          );
-                        })}
-                        {layout.map((node) => (
-                          <g
-                            key={node.id}
-                            onClick={() => setSelectedNodeId(node.id)}
-                            className="cursor-pointer"
-                          >
-                            <circle
-                              cx={node.x}
-                              cy={node.y}
-                              r={
-                                selectedNodeId === node.id
-                                  ? Math.max(
-                                      nodeRadius(node.importance) + 4,
-                                      12,
-                                    )
-                                  : nodeRadius(node.importance)
-                              }
-                              fill={
-                                node.community_id != null
-                                  ? communityColor(node.community_id)
-                                  : entityColor(node.type)
-                              }
-                              stroke={
-                                selectedNodeId === node.id
-                                  ? "#18181b"
-                                  : "none"
-                              }
-                              strokeWidth={selectedNodeId === node.id ? 2 : 0}
-                              fillOpacity={
-                                selectedNodeId === node.id ? 1 : 0.85
-                              }
-                            />
-                            <text
-                              x={node.x}
-                              y={node.y + 20}
-                              fontSize={9}
-                              textAnchor="middle"
-                              fill="#52525b"
-                              className="dark:fill-zinc-400"
+              ) : viewTab === "graph" && renderer === "force-graph" && corpusId && nodes.length > 0 ? (
+                <ForceGraphCanvas
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
+                />
+              ) : viewTab === "graph" && renderer === "force-graph" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" && renderer === "d3" && corpusId && nodes.length > 0 ? (
+                <GraphCanvasFrame
+                  stats={{ nodes: nodes.length, edges: edges.length, suffix: "d3 SVG" }}
+                >
+                  <svg
+                    ref={svgRef}
+                    width="100%"
+                    height="100%"
+                    className="h-full w-full rounded-2xl"
+                  >
+                    <g className="graph-layer">
+                      {!layout.length ? null : (
+                        <>
+                          {edges.map((edge, index) => {
+                            const source = layout.find(
+                              (node) => node.id === edge.source,
+                            );
+                            const target = layout.find(
+                              (node) => node.id === edge.target,
+                            );
+                            if (!source || !target) return null;
+                            return (
+                              <g key={`${edge.source}-${edge.target}-${index}`}>
+                                <line
+                                  x1={source.x}
+                                  y1={source.y}
+                                  x2={target.x}
+                                  y2={target.y}
+                                  stroke="#d4d4d8"
+                                  strokeWidth={1}
+                                  strokeOpacity={0.6}
+                                />
+                                {edge.label && (
+                                  <text
+                                    x={(source.x + target.x) / 2}
+                                    y={(source.y + target.y) / 2}
+                                    fontSize={8}
+                                    fill="#a1a1aa"
+                                    textAnchor="middle"
+                                  >
+                                    {edge.label}
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          })}
+                          {layout.map((node) => (
+                            <g
+                              key={node.id}
+                              onClick={() => setSelectedNodeId(node.id)}
+                              className="cursor-pointer"
                             >
-                              {node.label || node.id.slice(0, 8)}
-                            </text>
-                          </g>
-                        ))}
-                        </>}
-                      </g>
-                    </svg>
-                  ) : (
-                    <div className="text-center space-y-3">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        暂无图谱数据
-                      </p>
-                      <BuildPanel
-                        building={building}
-                        corpusId={corpusId}
-                        lastBuildError={buildError}
-                        onBuild={handleBuild}
-                      />
-                    </div>
+                              <circle
+                                cx={node.x}
+                                cy={node.y}
+                                r={
+                                  selectedNodeId === node.id
+                                    ? Math.max(
+                                        nodeRadius(node.importance) + 4,
+                                        12,
+                                      )
+                                    : nodeRadius(node.importance)
+                                }
+                                fill={
+                                  node.community_id != null
+                                    ? communityColor(node.community_id)
+                                    : entityColor(node.type)
+                                }
+                                stroke={
+                                  selectedNodeId === node.id
+                                    ? "#18181b"
+                                    : "none"
+                                }
+                                strokeWidth={selectedNodeId === node.id ? 2 : 0}
+                                fillOpacity={
+                                  selectedNodeId === node.id ? 1 : 0.85
+                                }
+                              />
+                              <text
+                                x={node.x}
+                                y={node.y + 20}
+                                fontSize={9}
+                                textAnchor="middle"
+                                fill="#52525b"
+                                className="dark:fill-zinc-400"
+                              >
+                                {node.label || node.id.slice(0, 8)}
+                              </text>
+                            </g>
+                          ))}
+                        </>
+                      )}
+                    </g>
+                  </svg>
+                </GraphCanvasFrame>
+              ) : viewTab === "graph" && renderer === "d3" ? (
+                <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  <p>
+                    {!corpusId
+                      ? "请选择语料库"
+                      : error
+                        ? `加载失败：${error}`
+                        : "图谱为空，请先构建"}
+                  </p>
+                  {corpusId && !error && nodes.length === 0 && (
+                    <BuildPanel
+                      building={building}
+                      corpusId={corpusId}
+                      lastBuildError={buildError}
+                      onBuild={handleBuild}
+                    />
                   )}
                 </div>
-              </div>
+              ) : viewTab === "graph" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  请选择渲染器
+                </div>
               ) : (
               /* Entity List View */
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
                   实体列表
                 </h2>
@@ -608,26 +851,35 @@ export default function KnowledgeGraphPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <aside className="min-h-0 min-w-0 w-72 flex-shrink-0 overflow-y-auto">
-            <div className="space-y-4 pb-4 pr-2">
-              {/* Build action (when graph exists) */}
-              {corpusId && (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    构建
-                  </h3>
-                  <div className="mt-2">
-                    <BuildPanel
-                      building={building}
-                      corpusId={corpusId}
-                      lastBuildError={buildError}
-                      onBuild={handleBuild}
-                    />
-                  </div>
-                </div>
-              )}
+          {/* 抽屉 Toggle 按钮 — 始终位于 main 与 aside 之间，方便收起/展开 */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+            title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+            className="self-start mt-2 flex h-12 w-5 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:text-zinc-900 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            {sidebarOpen ? (
+              <ChevronRight className="h-3 w-3" />
+            ) : (
+              <ChevronLeft className="h-3 w-3" />
+            )}
+          </button>
 
+          {/* Sidebar — 抽屉式收起：w-72 ↔ w-0 平滑过渡；收起时内容透明并禁用交互。
+              `transition-[width]` 在 hydration 完成后才挂上，避免首屏从默认 `w-72`
+              同步切到 localStorage 持久值 `w-0` 时播放可见的 200ms 关闭动画。 */}
+          <aside
+            className={`relative min-h-0 flex-shrink-0 overflow-y-auto overflow-x-hidden ${
+              sidebarHydrated ? "transition-[width] duration-200 ease-in-out" : ""
+            } ${sidebarOpen ? "w-72" : "w-0"}`}
+            aria-hidden={!sidebarOpen}
+          >
+            <div
+              className={`w-72 space-y-4 pb-4 pr-2 ${
+                sidebarHydrated ? "transition-opacity duration-150" : ""
+              } ${sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            >
               {/* Entity Detail */}
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -672,6 +924,19 @@ export default function KnowledgeGraphPage() {
                   </p>
                 )}
               </div>
+
+              {/* Model Settings */}
+              {corpusId && corpusRecord && (
+                <ModelConfigPanel
+                  key={corpusId}
+                  corpusId={corpusId}
+                  corpusConfig={corpusRecord.config as Record<string, unknown> | undefined}
+                  llmModels={llmModels}
+                  onConfigSaved={() => {
+                    fetchCorpora(APP_NAME).then(setCorpora).catch(() => {});
+                  }}
+                />
+              )}
 
               {/* G1: GraphRAG Global Search — 全局问答 */}
               {corpusId && (
@@ -739,7 +1004,7 @@ export default function KnowledgeGraphPage() {
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   构建历史
                 </h3>
-                <BuildHistoryList runs={runs} />
+                <BuildHistoryList runs={runs} corpusId={corpusId} onCancel={handleCancelBuildRun} />
               </div>
 
               {/* Path Explorer */}
@@ -772,6 +1037,7 @@ export default function KnowledgeGraphPage() {
           </aside>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }

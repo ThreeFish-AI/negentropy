@@ -1,9 +1,18 @@
 /**
  * Wiki API 客户端
  *
- * 用于 SSG 构建时从后端拉取 Wiki 发布数据（Publications、Entries、NavTree、Content）。
+ * 用于 SSG 构建时从后端拉取 Wiki 发布数据（Publications、Entries、NavTree、Content、Graph）。
  * 运行时通过 ISR 增量再验证保持数据新鲜度。
  */
+
+import type {
+  WikiEntryGraphResponse,
+  WikiGraphEntityDetailResponse,
+  WikiGraphEntityListResponse,
+  WikiGraphEntityQueryOptions,
+  WikiGraphQueryOptions,
+  WikiGraphResponse,
+} from "./wiki-graph-types";
 
 const API_BASE =
   typeof process !== "undefined"
@@ -92,10 +101,16 @@ class WikiApiClient {
     this.baseUrl = baseUrl || API_BASE;
   }
 
-  private async fetch<T>(path: string): Promise<T> {
+  private async fetch<T>(
+    path: string,
+    init?: { tags?: string[] },
+  ): Promise<T> {
     const url = `${this.baseUrl}/knowledge/wiki${path}`;
     const res = await fetch(url, {
-      next: { revalidate: 300 }, // ISR: 5 分钟增量再验证
+      next: {
+        revalidate: 300, // ISR: 5 分钟增量再验证
+        ...(init?.tags ? { tags: init.tags } : {}),
+      },
       headers: { Accept: "application/json" },
     });
     if (!res.ok) {
@@ -156,6 +171,68 @@ class WikiApiClient {
     const result = await this.getEntries(pubId);
     const match = result.items.find((e) => e.entry_slug === entrySlug);
     return match?.id ?? null;
+  }
+
+  // -------------------------------------------------------------------------
+  // 知识图谱（按 Publication 维度切片）
+  //
+  // 后端在 `/knowledge/wiki/publications/{pub_id}/graph` 系列端点上仅暴露
+  // `status='published'` 的发布；切片语义见
+  // `apps/negentropy/.../lifecycle/wiki_graph_service.py`。
+  // `revalidateTag('wiki-graph:${pub_slug}')` 由后端发布时主动触发。
+  // -------------------------------------------------------------------------
+
+  /** 获取 Publication 整体切片图谱 */
+  async getPublicationGraph(
+    pubId: string,
+    opts?: WikiGraphQueryOptions & { tag?: string },
+  ): Promise<WikiGraphResponse> {
+    const qs = new URLSearchParams();
+    if (opts?.maxNodes != null) qs.set("max_nodes", String(opts.maxNodes));
+    if (opts?.minImportance != null) qs.set("min_importance", String(opts.minImportance));
+    if (opts?.includeIsolated != null) qs.set("include_isolated", String(opts.includeIsolated));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.fetch<WikiGraphResponse>(
+      `/publications/${pubId}/graph${suffix}`,
+      opts?.tag ? { tags: [opts.tag] } : undefined,
+    );
+  }
+
+  /** 获取 Publication 实体扁平列表（分页） */
+  async getPublicationEntities(
+    pubId: string,
+    opts?: WikiGraphEntityQueryOptions & { tag?: string },
+  ): Promise<WikiGraphEntityListResponse> {
+    const qs = new URLSearchParams();
+    if (opts?.offset != null) qs.set("offset", String(opts.offset));
+    if (opts?.limit != null) qs.set("limit", String(opts.limit));
+    if (opts?.sortBy != null) qs.set("sort_by", opts.sortBy);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.fetch<WikiGraphEntityListResponse>(
+      `/publications/${pubId}/graph/entities${suffix}`,
+      opts?.tag ? { tags: [opts.tag] } : undefined,
+    );
+  }
+
+  /** 获取单实体详情（含邻居 + 提及 entries） */
+  async getPublicationEntityDetail(
+    pubId: string,
+    entityId: string,
+  ): Promise<WikiGraphEntityDetailResponse> {
+    return this.fetch<WikiGraphEntityDetailResponse>(
+      `/publications/${pubId}/graph/entities/${entityId}`,
+    );
+  }
+
+  /** 获取单 entry 的局部图（该文档涉及实体 + 一跳邻居） */
+  async getEntryGraph(
+    entryId: string,
+    opts?: { maxNodes?: number },
+  ): Promise<WikiEntryGraphResponse> {
+    const qs = new URLSearchParams();
+    if (opts?.maxNodes != null) qs.set("max_nodes", String(opts.maxNodes));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.fetch<WikiEntryGraphResponse>(`/entries/${entryId}/graph${suffix}`);
   }
 }
 
@@ -235,4 +312,50 @@ export function resolveSectionView(
     activeItem,
     sidebarItems: activeItem?.children ?? [],
   };
+}
+
+// ---------------------------------------------------------------------------
+// 辅助遍历（DFS 查找 / 计数 / 路径合并）
+// ---------------------------------------------------------------------------
+
+/**
+ * DFS 查找导航树中标记为 `is_index_page` 的首个有效条目。
+ *
+ * 用于 Publication 首页渲染「🏠 首页」链接。
+ */
+export function findIndexEntry(items: WikiNavTreeItem[]): WikiNavTreeItem | null {
+  for (const item of items) {
+    if (item.is_index_page && item.entry_id) return item;
+    if (item.children && item.children.length > 0) {
+      const nested = findIndexEntry(item.children);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
+/**
+ * 递归统计导航树中所有有效条目（`entry_id` 非空）的数量。
+ *
+ * 排除合成容器节点（`entry_id=null`），仅计可路由的叶子。
+ */
+export function countLeafEntries(items: WikiNavTreeItem[]): number {
+  let total = 0;
+  for (const item of items) {
+    if (item.entry_id) total += 1;
+    if (item.children && item.children.length > 0) {
+      total += countLeafEntries(item.children);
+    }
+  }
+  return total;
+}
+
+/**
+ * 将 catch-all 路由参数合并为完整 entry slug。
+ *
+ * entry_slug 使用 Materialized Path（可能包含 `/`），
+ * Next.js catch-all 路由将其拆为数组；此函数还原为原始 slug。
+ */
+export function joinEntrySlug(segments: string[] | string): string {
+  return Array.isArray(segments) ? segments.join("/") : segments;
 }

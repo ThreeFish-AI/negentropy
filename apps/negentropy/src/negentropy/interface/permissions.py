@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.auth.service import AuthUser
 from negentropy.models.plugin import (
+    BuiltinTool,
     McpServer,
     PluginPermission,
     PluginPermissionType,
@@ -18,6 +19,30 @@ from negentropy.models.plugin import (
     Skill,
     SubAgent,
 )
+
+# 「系统内置」单一事实源：5 类 plugin 表统一通过显式 ``is_system`` 列识别。
+# 历史种子（mcp_servers seed=0002、builtin_tools seed=0031）的 ``owner_id``
+# 使用 ``"system"`` / ``"system:..."`` 前缀仅作来源溯源，权限判断不再依赖该字符
+# 串约定 —— 字符串前缀缺索引、缺 NOT NULL 约束、易被 SSO ``sub`` 等业务字段误中。
+PLUGIN_TYPE_MODEL_MAP = {
+    "mcp_server": McpServer,
+    "skill": Skill,
+    "sub_agent": SubAgent,
+    "builtin_tool": BuiltinTool,
+}
+
+
+def _is_plugin_builtin(plugin) -> bool:
+    """统一识别「系统内置」插件。
+
+    优先读取显式 ``is_system`` 列（与 BuiltinTool / 迁移 0033 对齐）；
+    若该插件类型尚未引入该列（向后兼容期），回退到 ``owner_id`` 前缀 ``"system"``。
+    """
+    is_system = getattr(plugin, "is_system", None)
+    if is_system is not None:
+        return bool(is_system)
+    owner_id = getattr(plugin, "owner_id", None) or ""
+    return owner_id.startswith("system")
 
 
 async def check_plugin_access(
@@ -32,7 +57,7 @@ async def check_plugin_access(
 
     Args:
         db: 数据库会话
-        plugin_type: 插件类型 ("mcp_server", "skill", "sub_agent")
+        plugin_type: 插件类型 ("mcp_server", "skill", "sub_agent", "builtin_tool")
         plugin_id: 插件 UUID
         user: 当前用户
         required_permission: 需要的权限 ("view" or "edit")
@@ -53,11 +78,18 @@ async def check_plugin_access(
     if plugin.owner_id == user.user_id:
         return True, None
 
-    # 4. 检查 visibility
+    # 4. 系统内置：所有用户 view 均通过；edit 仅 admin（已在步骤 1 命中）。
+    #    与「系统内置全员可见、不可被普通用户改写」语义对齐。
+    if _is_plugin_builtin(plugin):
+        if required_permission == "view":
+            return True, None
+        return False, "System built-in plugin cannot be edited by non-admin users"
+
+    # 5. 检查 visibility
     if plugin.visibility == PluginVisibility.PUBLIC and required_permission == "view":
         return True, None
 
-    # 5. 检查授权记录
+    # 6. 检查授权记录
     if plugin.visibility in (PluginVisibility.SHARED, PluginVisibility.PUBLIC):
         permission_record = await db.scalar(
             select(PluginPermission).where(
@@ -105,6 +137,10 @@ async def check_plugin_ownership(
     if not plugin:
         return False, "Plugin not found"
 
+    # 系统内置插件：仅 admin 可视作 owner（避免误删 / 误授权 seed 行）。
+    if _is_plugin_builtin(plugin):
+        return False, "System built-in plugin can only be managed by admin users"
+
     if plugin.owner_id == user.user_id:
         return True, None
 
@@ -132,13 +168,9 @@ async def get_visible_plugin_ids(
     Returns:
         list[UUID]: 可见的插件 ID 列表
     """
-    # 根据插件类型选择模型
-    model_map = {
-        "mcp_server": McpServer,
-        "skill": Skill,
-        "sub_agent": SubAgent,
-    }
-    model = model_map.get(plugin_type)
+    # 根据插件类型选择模型（含 builtin_tool —— 修复 ISSUE: stats.tools 永远 0/0
+    # 与 list_builtin_tools 永远空的 bug，原 model_map 漏掉了 builtin_tool 键。）
+    model = PLUGIN_TYPE_MODEL_MAP.get(plugin_type)
     if not model:
         return []
 
@@ -147,12 +179,14 @@ async def get_visible_plugin_ids(
         result = await db.scalars(select(model.id))
         return list(result.all())
 
-    # 复杂查询：owner_id == user_id OR visibility == PUBLIC OR 有授权记录
-    # 使用 union 来组合这些条件
+    # 普通用户可见的并集：
+    #   1. owner_id == user_id（自有）
+    #   2. visibility == PUBLIC（公开分享）
+    #   3. 在 PluginPermission 中有授权记录（私享）
+    #   4. is_system == TRUE（系统内置 —— 对全员可见，与 BuiltinTool 模式对齐）
     owned_query = select(model.id).where(model.owner_id == user.user_id)
     public_query = select(model.id).where(model.visibility == PluginVisibility.PUBLIC)
 
-    # 获取有授权记录的插件 ID
     shared_query = (
         select(PluginPermission.plugin_id)
         .where(
@@ -164,10 +198,19 @@ async def get_visible_plugin_ids(
         .distinct()
     )
 
-    # 组合查询
+    queries = [owned_query, public_query, shared_query]
+
+    # 系统内置可见性扩展：is_system == TRUE 的行对全员可见。
+    # 注意：hasattr 对 SQLAlchemy mapped column 始终为 True（类级描述符），
+    # 此守卫并非用于兼容「未迁移 schema」（迁移 0033 与本代码同分支发布），
+    # 而是作为语义标记：若未来新增不带 is_system 的 plugin 类型，此处自动跳过。
+    if hasattr(model, "is_system"):
+        builtin_query = select(model.id).where(model.is_system.is_(True))
+        queries.append(builtin_query)
+
     from sqlalchemy import union
 
-    combined = union(owned_query, public_query, shared_query)
+    combined = union(*queries)
     result = await db.execute(combined)
     return [row[0] for row in result.fetchall()]
 
@@ -178,12 +221,7 @@ async def _get_plugin_by_type_and_id(
     plugin_id: UUID,
 ):
     """根据类型和 ID 获取插件记录。"""
-    model_map = {
-        "mcp_server": McpServer,
-        "skill": Skill,
-        "sub_agent": SubAgent,
-    }
-    model = model_map.get(plugin_type)
+    model = PLUGIN_TYPE_MODEL_MAP.get(plugin_type)
     if not model:
         return None
     return await db.get(model, plugin_id)

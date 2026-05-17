@@ -142,8 +142,8 @@ async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timest
     assert payload["error"]["type"] == "RuntimeError"
     assert payload["error"]["message"] == "delete failed"
     assert payload["stages"]["download"]["status"] == "completed"
-    assert payload["stages"]["delete"]["status"] == "failed"
-    assert payload["stages"]["delete"]["completed_at"] is not None
+    assert payload["stages"]["persist"]["status"] == "failed"
+    assert payload["stages"]["persist"]["completed_at"] is not None
 
 
 @pytest.mark.asyncio

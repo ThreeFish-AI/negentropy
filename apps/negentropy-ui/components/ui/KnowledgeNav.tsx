@@ -8,18 +8,19 @@ import { useNavigation } from "@/components/providers/NavigationProvider";
 const NAV_ITEMS = [
   { href: "/knowledge/base", label: "Knowledge Base" },
   { href: "/knowledge/graph", label: "Knowledge Graph" },
-  { href: "/knowledge/catalog", label: "Catalog" },
-  { href: "/knowledge/wiki", label: "Wiki" },
+  { href: "/knowledge/wiki", label: "Wiki", aliases: ["/knowledge/catalog"] },
   { href: "/knowledge/documents", label: "Documents" },
   { href: "/knowledge/apis", label: "APIs" },
-  { href: "/knowledge/dashboard", label: "Dashboard" },
+  { href: "/knowledge/pipelines", label: "Pipelines" },
 ];
 
 export function KnowledgeNav({
   title,
+  modeToggle,
 }: {
   title: string;
   description?: string;
+  modeToggle?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const { setNavigationInfo } = useNavigation();
@@ -31,14 +32,15 @@ export function KnowledgeNav({
     };
   }, [title, setNavigationInfo]);
 
-  const isActive = (href: string) => pathname.startsWith(href);
+  const isActive = (href: string, aliases?: string[]) =>
+    pathname.startsWith(href) || (aliases?.some((a) => pathname.startsWith(a)) ?? false);
 
   return (
     <div className="border-b border-border bg-card px-6 py-1">
-      <div className="flex flex-wrap items-center justify-end gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <nav className="flex items-center gap-1 bg-muted/50 p-1 rounded-full">
           {NAV_ITEMS.map((item) => {
-            const active = isActive(item.href);
+            const active = isActive(item.href, item.aliases);
             return (
               <Link
                 key={item.href}
@@ -54,6 +56,7 @@ export function KnowledgeNav({
             );
           })}
         </nav>
+        {modeToggle}
       </div>
     </div>
   );

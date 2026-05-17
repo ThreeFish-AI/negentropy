@@ -172,7 +172,12 @@ class TestBatchSyncFromGraphBuild:
 
     @pytest.mark.asyncio
     async def test_batch_sync_counts(self):
-        """batch_sync 应返回正确的同步计数"""
+        """batch_sync 应返回正确的同步计数。
+
+        修复后语义（ISSUE-032）：sync_entity SELECT 全空 → entities 全部 created；
+        sync_relation 的 src/tgt SELECT 在此 mock 下也是 None → relation 端点缺失 →
+        计入 relations_skipped 而非 relations_synced（修复前的 bug：虚高计入）。
+        """
         service = KgEntityService()
         mock_db = AsyncMock()
 
@@ -180,6 +185,16 @@ class TestBatchSyncFromGraphBuild:
         mock_db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
         mock_db.flush = AsyncMock()
         mock_db.add = MagicMock()
+
+        # mock begin_nested() 返回支持 async with 协议的对象（SAVEPOINT 隔离）
+        class _NestedTxnCtx:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+        mock_db.begin_nested = MagicMock(return_value=_NestedTxnCtx())
 
         nodes = [
             {"id": str(uuid4()), "label": "Entity A", "node_type": "person", "confidence": 0.9},
@@ -197,7 +212,9 @@ class TestBatchSyncFromGraphBuild:
         )
 
         assert result["entities_synced"] == 2
-        assert result["relations_synced"] == 1
+        # 端点未在 mock 中 ready → 不计入 synced；进入 skipped 计数
+        assert result["relations_synced"] == 0
+        assert result["relations_skipped"] == 1
 
 
 class TestSchemas:

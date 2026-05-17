@@ -1,0 +1,56 @@
+# Knowledge Graph 已知实体白名单（Single Source of Truth）
+#
+# 用途：当 LLM 抽取的实体命中此白名单时，使用此处声明的 canonical name 与 type，
+# 覆盖 LLM 给出的（可能错误的）分类。例如：Claude 被 LLM 标为 person → 改判 product。
+#
+# 维护原则：
+#   1. 仅收录"高频且 LLM 易误判"的实体（AI 产品、AI 机构、知名框架等）。
+#   2. 别名匹配大小写不敏感、忽略首尾空白。
+#   3. canonical name 使用最常见的书写形式（如 "GPT-4" 而非 "gpt4"）。
+#
+# 当出现新的误判 case，请在此追加一条；勿在代码中硬编码。
+
+products:
+  # Anthropic
+  - name: "Claude"
+    aliases: ["Claude 3", "Claude 3.5", "Claude 3.7", "Claude Opus", "Claude Sonnet", "Claude Haiku"]
+  - name: "Claude Code"
+
+  # OpenAI
+  - name: "GPT-4"
+    aliases: ["GPT-4o", "GPT-4 Turbo", "GPT-4.1", "GPT-4o mini"]
+  - name: "ChatGPT"
+  - name: "o1"
+    aliases: ["o1-preview", "o1-mini"]
+
+  # Google
+  - name: "Gemini"
+    aliases: ["Gemini Pro", "Gemini Ultra", "Gemini 1.5", "Gemini 2.0"]
+
+  # Meta
+  - name: "Llama"
+    aliases: ["Llama 2", "Llama 3", "Llama 3.1", "LLaMA"]
+
+  # Mistral
+  - name: "Mistral"
+    aliases: ["Mistral 7B", "Mixtral"]
+
+  # GitHub / Microsoft
+  - name: "GitHub Copilot"
+    aliases: ["Copilot"]
+
+  # 开发框架 / 工具（易被 LLM 当人名或概念）
+  - name: "LangChain"
+  - name: "LlamaIndex"
+  - name: "Next.js"
+  - name: "Playwright"
+
+organizations:
+  - name: "Anthropic"
+  - name: "OpenAI"
+  - name: "Google DeepMind"
+    aliases: ["DeepMind"]
+  - name: "Meta AI"
+  - name: "Mistral AI"
+  - name: "Microsoft"
+  - name: "GitHub"

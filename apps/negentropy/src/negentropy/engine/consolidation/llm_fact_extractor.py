@@ -23,7 +23,7 @@ import json
 import litellm
 
 from negentropy.engine.consolidation.fact_extractor import ExtractedFact, PatternFactExtractor
-from negentropy.engine.utils.model_config import resolve_model_config
+from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.consolidation.llm_fact_extractor")
@@ -61,16 +61,30 @@ class LLMFactExtractor:
     LLM 不可用或失败时自动降级到 PatternFactExtractor。
     """
 
+    # task_registry.py 中登记的 task_key；用户可在 /interface/task-models 为本任务单独绑定模型。
+    _TASK_KEY = "consolidation.fact_extract"
+
     def __init__(
         self,
         model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
     ) -> None:
-        self._model, self._model_kwargs = resolve_model_config(model)
+        # 仅记录显式覆盖；实际解析推迟到 extract() 入口，
+        # 以便在 task_model_settings 缓存失效后立即生效。
+        self._explicit_model = model
+        self._model: str = ""
+        self._model_kwargs: dict = {}
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback = PatternFactExtractor()
+
+    async def _resolve_model(self) -> None:
+        """异步解析当前任务对应的模型；优先级见 resolve_model_config_async。"""
+        self._model, self._model_kwargs = await resolve_model_config_async(
+            self._TASK_KEY,
+            explicit_model=self._explicit_model,
+        )
 
     async def extract(self, turns: list[dict[str, str]]) -> list[ExtractedFact]:
         """从对话轮次中提取事实
@@ -84,6 +98,9 @@ class LLMFactExtractor:
         user_turns = [t for t in turns if t.get("author") == "user" and t.get("text")]
         if not user_turns:
             return []
+
+        # 解析当前任务模型（resolver 内含 60s TTL 缓存，避免高频 DB 查询）
+        await self._resolve_model()
 
         try:
             all_facts: list[ExtractedFact] = []

@@ -1,7 +1,7 @@
 import { BaseEvent, EventType } from "@ag-ui/core";
 import type { AdkEventPayload } from "@/lib/adk";
 import { adkEventToAguiEvents } from "@/lib/adk";
-import { asAgUiEvent, getEventRunId, getEventThreadId } from "@/types/agui";
+import { asAgUiEvent, getEventRunId, getEventThreadId } from "@negentropy/agents-chat-core/protocol";
 
 const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
 

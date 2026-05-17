@@ -64,6 +64,14 @@ class CommunitySummarizer:
     对 Louvain 社区检测结果生成 LLM 摘要，支持全局检索模式。
     若注入 ``embedding_fn``，会在持久化时同步计算并写入 summary embedding，
     供后续 GlobalSearchService 的 Map 阶段做余弦排序。
+
+    事务边界（重要）：
+        本类仅负责 SQL 写入，**不在内部 commit**。调用方负责事务上下文：
+        典型用法是在 ``_session_scope()`` 上下文内调用 ``summarize_communities``，
+        由 session_scope 出口统一 commit / 异常路径 rollback。
+        理由：旧实现内部 ``db.commit()`` 与外层 ``async with session.begin():``
+        双重事务管理会触发 SQLAlchemy ``A transaction is already begun on this
+        Session`` 异常（参见 plan: kg-build-fix 缺陷 1）。
     """
 
     def __init__(
@@ -93,27 +101,63 @@ class CommunitySummarizer:
         Returns:
             统计信息 {"communities_summarized": int, "errors": int}
         """
-        if levels_data is not None:
+        if levels_data:
             return await self._summarize_multi_level(db, corpus_id, levels_data)
 
         if community_entities is None:
             community_entities = await self._load_communities(db, corpus_id)
 
         if not community_entities:
-            logger.info("no_communities_found", corpus_id=str(corpus_id))
-            return {"communities_summarized": 0, "errors": 0}
+            # 降级：若 community 检测产出为空，但实体表非空，
+            # 将所有实体作为单一全局社区生成一条摘要，确保 GraphRAG Global Search
+            # 仍可命中 query-focused 召回（Edge et al., 2024）。
+            fallback_entities = await self._load_all_entities(db, corpus_id)
+            if not fallback_entities:
+                logger.info("no_communities_found", corpus_id=str(corpus_id))
+                return {"communities_summarized": 0, "errors": 0}
+            logger.info(
+                "no_communities_generating_global_summary",
+                corpus_id=str(corpus_id),
+                entity_count=len(fallback_entities),
+            )
+            try:
+                summary, used_fallback = await self._summarize_one(0, fallback_entities)
+                emb_failed = await self._persist_summary(db, corpus_id, summary, level=0)
+                # 事务边界已上移到调用方（service.py 的 _session_scope() 出口统一 commit）：
+                # 旧实现在此处 ``await db.commit()`` 与外层 ``async with session.begin():``
+                # 双重事务管理会触发 ``A transaction is already begun on this Session``。
+                # 改由调用方持有事务上下文，本方法仅负责写入。
+                result: dict[str, Any] = {"communities_summarized": 1, "errors": 0}
+                if emb_failed:
+                    result["embeddings_failed"] = 1
+                if used_fallback:
+                    result["fallback_used"] = 1
+                return result
+            except Exception as exc:
+                logger.warning(
+                    "global_fallback_summary_failed",
+                    corpus_id=str(corpus_id),
+                    error=str(exc),
+                )
+                return {"communities_summarized": 0, "errors": 1}
 
         summarized = 0
         errors = 0
+        embeddings_failed = 0
+        fallback_used = 0
 
         for community_id, entities in community_entities.items():
             if not entities:
                 continue
 
             try:
-                summary = await self._summarize_one(community_id, entities)
-                await self._persist_summary(db, corpus_id, summary, level=1)
+                summary, used_fb = await self._summarize_one(community_id, entities)
+                emb_failed = await self._persist_summary(db, corpus_id, summary, level=1)
                 summarized += 1
+                if used_fb:
+                    fallback_used += 1
+                if emb_failed:
+                    embeddings_failed += 1
             except Exception as exc:
                 errors += 1
                 logger.warning(
@@ -122,7 +166,7 @@ class CommunitySummarizer:
                     error=str(exc),
                 )
 
-        await db.commit()
+        # 事务边界由调用方持有（_session_scope 上下文出口统一 commit）。
 
         logger.info(
             "communities_summarized",
@@ -130,9 +174,16 @@ class CommunitySummarizer:
             total=len(community_entities),
             summarized=summarized,
             errors=errors,
+            embeddings_failed=embeddings_failed,
+            fallback_used=fallback_used,
         )
 
-        return {"communities_summarized": summarized, "errors": errors}
+        result: dict[str, Any] = {"communities_summarized": summarized, "errors": errors}
+        if embeddings_failed:
+            result["embeddings_failed"] = embeddings_failed
+        if fallback_used:
+            result["fallback_used"] = fallback_used
+        return result
 
     async def _summarize_multi_level(
         self,
@@ -167,6 +218,8 @@ class CommunitySummarizer:
 
         total_summarized = 0
         total_errors = 0
+        total_embeddings_failed = 0
+        total_fallback_used = 0
 
         for level, partition in levels_data.items():
             # 按 community_id 分组
@@ -184,9 +237,13 @@ class CommunitySummarizer:
                 if not entities:
                     continue
                 try:
-                    summary = await self._summarize_one(community_id, entities)
-                    await self._persist_summary(db, corpus_id, summary, level=level)
+                    summary, used_fb = await self._summarize_one(community_id, entities)
+                    emb_failed = await self._persist_summary(db, corpus_id, summary, level=level)
                     total_summarized += 1
+                    if used_fb:
+                        total_fallback_used += 1
+                    if emb_failed:
+                        total_embeddings_failed += 1
                 except Exception as exc:
                     total_errors += 1
                     logger.warning(
@@ -196,7 +253,7 @@ class CommunitySummarizer:
                         error=str(exc),
                     )
 
-        await db.commit()
+        # 事务边界由调用方持有（_session_scope 上下文出口统一 commit）。
 
         logger.info(
             "multi_level_communities_summarized",
@@ -204,9 +261,42 @@ class CommunitySummarizer:
             levels=len(levels_data),
             total_summarized=total_summarized,
             total_errors=total_errors,
+            total_embeddings_failed=total_embeddings_failed,
+            total_fallback_used=total_fallback_used,
         )
 
-        return {"communities_summarized": total_summarized, "errors": total_errors}
+        ml_result: dict[str, Any] = {"communities_summarized": total_summarized, "errors": total_errors}
+        if total_embeddings_failed:
+            ml_result["embeddings_failed"] = total_embeddings_failed
+        if total_fallback_used:
+            ml_result["fallback_used"] = total_fallback_used
+        return ml_result
+
+    async def _load_all_entities(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """加载语料库的全部活跃实体（按 importance / confidence 排序），用作全局降级摘要。"""
+        from negentropy.models.base import NEGENTROPY_SCHEMA
+
+        query = text(f"""
+            SELECT name, entity_type, confidence
+            FROM {NEGENTROPY_SCHEMA}.kg_entities
+            WHERE corpus_id = :corpus_id AND is_active = true
+            ORDER BY importance_score DESC NULLS LAST, confidence DESC, mention_count DESC
+            LIMIT :limit
+        """)
+        result = await db.execute(query, {"corpus_id": str(corpus_id), "limit": limit})
+        return [
+            {
+                "name": row[0],
+                "entity_type": row[1],
+                "confidence": float(row[2]) if row[2] else 0.0,
+            }
+            for row in result
+        ]
 
     async def _load_communities(
         self,
@@ -243,8 +333,13 @@ class CommunitySummarizer:
         self,
         community_id: int,
         entities: list[dict[str, Any]],
-    ) -> CommunitySummary:
-        """为单个社区生成摘要"""
+    ) -> tuple[CommunitySummary, bool]:
+        """为单个社区生成摘要
+
+        Returns:
+            (CommunitySummary, used_fallback) 元组，used_fallback 为 True 表示
+            LLM 调用失败后使用了实体列表拼接降级文本。
+        """
         top_entities = [e["name"] for e in entities[:10]]
 
         prompt = _SUMMARY_PROMPT.format(
@@ -256,34 +351,68 @@ class CommunitySummarizer:
         )
 
         summary_text = await self._call_llm(prompt)
+        used_fallback = False
 
         if not summary_text:
             summary_text = f"Community of {len(entities)} related entities: {', '.join(top_entities[:5])}"
+            used_fallback = True
 
-        return CommunitySummary(
-            community_id=community_id,
-            summary_text=summary_text.strip(),
-            entity_count=len(entities),
-            relation_count=0,
-            top_entities=top_entities[:5],
+        return (
+            CommunitySummary(
+                community_id=community_id,
+                summary_text=summary_text.strip(),
+                entity_count=len(entities),
+                relation_count=0,
+                top_entities=top_entities[:5],
+            ),
+            used_fallback,
         )
 
     async def _call_llm(self, prompt: str) -> str:
-        """调用 LLM 生成摘要"""
-        import litellm
+        """调用 LLM 生成摘要（带重试保障）。
 
-        model = self._model or "gpt-4o-mini"
+        通过 ``resolve_llm_config()`` 解析 DB 配置，把厂商参数（``drop_params`` 等）
+        透传到 ``call_llm_with_retry``；规避 ``temperature=0.3`` 与 gpt-5 系列模型
+        ``UnsupportedParamsError`` 的同型问题（参 issue.md ISSUE-029）。
+        """
+        from negentropy.config.model_resolver import (
+            get_fallback_llm_config,
+            resolve_llm_config,
+        )
+
+        from .extractors import call_llm_with_retry
+
         try:
-            response = await litellm.acompletion(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=200,
+            resolved_model, extra_kwargs = await resolve_llm_config()
+        except Exception:
+            # 解析失败兜底硬编码默认值（含 drop_params=True）
+            resolved_model, extra_kwargs = get_fallback_llm_config()
+
+        if self._model:
+            model = self._model
+            # caller 已显式指定 model：保留凭证透传字段，仅丢弃模型选择类参数
+            _CREDENTIAL_KEYS = frozenset(
+                {
+                    "api_key",
+                    "api_base",
+                    "api_version",
+                    "api_type",
+                    "drop_params",
+                }
             )
-            return response.choices[0].message.content or ""
-        except Exception as exc:
-            logger.warning("llm_summary_failed", model=model, error=str(exc))
-            return ""
+            extra_kwargs = {k: v for k, v in extra_kwargs.items() if k in _CREDENTIAL_KEYS}
+        else:
+            model = resolved_model
+
+        result = await call_llm_with_retry(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=200,
+            context_label="community_summary",
+            extra_kwargs=extra_kwargs,
+        )
+        return result
 
     async def _persist_summary(
         self,
@@ -298,15 +427,18 @@ class CommunitySummarizer:
 
         # 计算摘要 embedding（G1 Global Search 依赖；失败降级为不写入）
         embedding_value: list[float] | None = None
+        embedding_failed = False
         if self._embedding_fn is not None:
             try:
                 embedding_value = await self._embedding_fn(summary.summary_text)
             except Exception as exc:
+                embedding_failed = True
                 logger.warning(
                     "summary_embedding_failed",
                     community_id=summary.community_id,
                     level=level,
                     error=str(exc),
+                    text_preview=summary.summary_text[:100],
                 )
 
         import json
@@ -366,3 +498,4 @@ class CommunitySummarizer:
             }
 
         await db.execute(query, params)
+        return embedding_failed

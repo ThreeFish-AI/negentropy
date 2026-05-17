@@ -20,8 +20,8 @@ import {
   getMessageThreadId,
   normalizeCompatibleMessageRole,
   type CanonicalMessageRole,
-} from "@/types/agui";
-import { createAgUiMessage } from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
+import { createAgUiMessage } from "@negentropy/agents-chat-core/protocol";
 import type { MessageLedgerEntry } from "@/types/common";
 import {
   buildNodeSummary,
@@ -32,6 +32,7 @@ import {
   accumulateTextContent,
   bigramJaccardSimilarity,
   isEquivalentMessageContent,
+  multisetCoverage,
   normalizeMessageContent,
 } from "@/utils/message";
 import { isNonCriticalError } from "@/utils/error-filter";
@@ -42,6 +43,13 @@ type MutableNode = ConversationNode;
 type LinkInstruction = {
   childId: string;
   parentId: string;
+};
+
+type PendingThought = {
+  turnId: string;
+  runId: string;
+  text: string;
+  eventType: string;
 };
 
 const DEFAULT_THREAD_ID = "default";
@@ -348,6 +356,77 @@ function getMessageTimestamp(message: Message): number {
   return createdAt instanceof Date ? createdAt.getTime() / 1000 : Date.now() / 1000;
 }
 
+/**
+ * ISSUE-070：在指定 turn 子树中找到最近的 reasoning 节点。
+ *
+ * 选择规则（自上而下）：
+ *   1. 同 runId 下最近的 reasoning 节点（按 sourceOrder 倒序，取最近一条）；
+ *   2. 同 turn 下任意 reasoning 节点（兼容 runId 漂移）；
+ *   3. 都没有则返回 null（thought 文本会被丢弃，避免污染 turn 顶层）。
+ *
+ * 不递归遍历 nodeIndex 全表（O(N)），仅遍历 turn.children → step → reasoning
+ * 这条已知层级（O(K)，K 通常 < 50）。
+ */
+function findLatestReasoningNode(
+  turns: Map<string, MutableNode>,
+  turnId: string,
+  runId: string,
+): MutableNode | null {
+  const turn = turns.get(turnId);
+  if (!turn) return null;
+  const candidates: MutableNode[] = [];
+  const visit = (node: MutableNode) => {
+    if (node.type === "reasoning" && (!runId || !node.runId || node.runId === runId)) {
+      candidates.push(node);
+    }
+    for (const child of node.children) visit(child);
+  };
+  visit(turn);
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.sourceOrder - a.sourceOrder);
+  return candidates[0];
+}
+
+function appendThoughtText(existing: string, incoming: string): string {
+  const a = existing.trim();
+  const b = incoming.trim();
+  if (!a) return b;
+  if (!b) return a;
+  if (a === b || a.includes(b)) return a;
+  if (b.includes(a)) return b;
+  return `${a}\n\n${b}`;
+}
+
+function appendThoughtToReasoningNode(
+  target: MutableNode,
+  thoughtText: string,
+  eventType: string,
+) {
+  const existing =
+    typeof target.payload.content === "string" ? target.payload.content : "";
+  target.payload.content = appendThoughtText(existing, thoughtText);
+  if (!target.sourceEventTypes.includes(eventType)) {
+    target.sourceEventTypes.push(eventType);
+  }
+}
+
+function flushPendingThoughtsForReasoning(
+  pendingThoughts: PendingThought[],
+  target: MutableNode,
+  turnId: string,
+  runId: string,
+) {
+  for (let i = 0; i < pendingThoughts.length;) {
+    const pending = pendingThoughts[i];
+    if (pending.turnId !== turnId || !isRunCompatible(pending.runId, runId)) {
+      i += 1;
+      continue;
+    }
+    appendThoughtToReasoningNode(target, pending.text, pending.eventType);
+    pendingThoughts.splice(i, 1);
+  }
+}
+
 function findMatchingTextNodeId(
   nodeIndex: Map<string, MutableNode>,
   input: {
@@ -371,16 +450,37 @@ function findMatchingTextNodeId(
       continue;
     }
     if (node.payload.streaming !== true) {
-      // 防御性收敛：当 hydrated TEXT_MESSAGE_* 因 messageId 不同而到达此处，
-      // 而 realtime 节点已收尾，且二者内容严格相等时，仍允许复用同一节点，
-      // 避免在已 closed 的同内容节点旁新建第二个节点。仅对 assistant 路径
-      // 放宽，user 仍要求节点处于流式态以避免误并历史用户消息。
+      // ISSUE-070 / ISSUE-058 加强：当 hydrated TEXT_MESSAGE_* 因 messageId 不同
+      // 而到达此处、而 realtime 节点已收尾时，允许如下三种次级匹配以避免在已
+      // closed 的同源节点旁新建第二个独立 text node（→ 渲染双内容）：
+      //   M1 — 内容严格相等（旧实现，最严）；
+      //   M2 — 一方是另一方的严格前缀（流式累积版 vs 完整最终版）；
+      //   M3 — multiset 覆盖率 ≥ 0.75（同源但表面字符存在重排/补齐差异）。
+      // 仅对 assistant 路径放宽；user 仍要求节点处于流式态以避免误并历史用户消息。
       const existingContent = String(node.payload.content || "").trim();
-      if (
-        input.role !== "assistant" ||
-        !existingContent ||
-        existingContent !== normalizedContent
-      ) {
+      if (input.role !== "assistant" || !existingContent) {
+        continue;
+      }
+      const equal = existingContent === normalizedContent;
+      const prefix =
+        existingContent.startsWith(normalizedContent) ||
+        normalizedContent.startsWith(existingContent);
+      let multisetMatch = false;
+      if (!equal && !prefix) {
+        const shorter =
+          existingContent.length <= normalizedContent.length
+            ? existingContent
+            : normalizedContent;
+        const longer = shorter === existingContent ? normalizedContent : existingContent;
+        if (
+          shorter.length >= 12 &&
+          longer.length >= shorter.length * 1.05 &&
+          multisetCoverage(shorter, longer) >= 0.75
+        ) {
+          multisetMatch = true;
+        }
+      }
+      if (!equal && !prefix && !multisetMatch) {
         continue;
       }
     }
@@ -522,6 +622,22 @@ function sortNodeChildren(node: MutableNode) {
     if (timeDiff !== 0) {
       return timeDiff;
     }
+    // ISSUE-070：同时间戳时，按节点 role 排序 —— text:user 必排在 text:assistant 之前，
+    // 避免刷新后用户消息漂移到 assistant 回复之后的乱序（时钟漂移导致毫秒级抖动）。
+    const roleA = a.role || "";
+    const roleB = b.role || "";
+    if (roleA !== roleB) {
+      const roleOrder: Record<string, number> = {
+        user: 0,
+        system: 1,
+        developer: 2,
+        assistant: 3,
+        tool: 4,
+      };
+      const ra = roleOrder[roleA] ?? 50;
+      const rb = roleOrder[roleB] ?? 50;
+      if (ra !== rb) return ra - rb;
+    }
     const sourceOrderDiff = a.sourceOrder - b.sourceOrder;
     if (sourceOrderDiff !== 0) {
       return sourceOrderDiff;
@@ -641,6 +757,64 @@ function turnsOverlapInTime(a: MutableNode, b: MutableNode, toleranceSec = 60): 
   return aEnd >= bStart - toleranceSec && bEnd >= aStart - toleranceSec;
 }
 
+/**
+ * Phase 3：判定同 thread 内 keeper 与 candidate 之间是否存在含 user-text 的 turn。
+ * 用于 collapseOverlappingTurns 的「双 concrete turn」折叠闸门：
+ * - ADK 后端每条 event 有独立 invocationId，映射为 runId 后同一用户回合可能产出
+ *   多个 concrete turn（functionCall / functionResponse / text 各一个）。
+ * - 若这些 turn 之间没有 user-message，它们属于同一逻辑回合，可以安全折叠。
+ * - 若中间存在 user-message（=逻辑回合分隔符），则不可折叠。
+ */
+function hasUserTextBoundaryBetween(
+  keeper: MutableNode,
+  candidate: MutableNode,
+  threadTurns: MutableNode[],
+): boolean {
+  const keeperEnd = normalizeTimestamp(keeper.timeRange?.end ?? keeper.timestamp);
+  const candidateStart = normalizeTimestamp(candidate.timeRange?.start ?? candidate.timestamp);
+  return threadTurns.some((t) => {
+    if (t === keeper || t === candidate) return false;
+    const tStart = normalizeTimestamp(t.timeRange?.start ?? t.timestamp);
+    if (tStart <= keeperEnd || tStart >= candidateStart) return false;
+    return t.children.some((child) => child.type === "text" && child.role === "user");
+  });
+}
+
+/**
+ * Phase 3：将 candidate turn 的 children 合并到 keeper turn 中。
+ * 语义去重（text 节点按内容前缀关系、tool-call 按 toolCallId），避免重复。
+ */
+function mergeChildrenIntoKeeper(keeper: MutableNode, candidate: MutableNode): void {
+  for (const child of candidate.children) {
+    if (isAbsorbableSyntheticChild(child)) continue;
+    // Text 节点：检查是否已有语义等价的 child
+    if (child.type === "text" && (child.role === "assistant" || child.role === "developer")) {
+      const existing = findSubsumingTextNode(keeper, child);
+      if (existing) {
+        // keeper 已有覆盖此内容的 text 节点，跳过
+        continue;
+      }
+    }
+    // Tool-call：检查是否已有同 toolCallId 的 child
+    if (child.type === "tool-call" && child.toolCallId) {
+      const existing = keeper.children.some(
+        (k) => k.type === "tool-call" && k.toolCallId === child.toolCallId,
+      );
+      if (existing) continue;
+    }
+    // Step / Reasoning：检查是否已有同 id 的 child
+    if (child.id && keeper.children.some((k) => k.id === child.id)) continue;
+    // 未去重命中 → 将 child 重新挂到 keeper 下
+    child.parentId = keeper.id;
+    keeper.children.push(child);
+  }
+  // 合并时间范围
+  keeper.timeRange = {
+    start: Math.min(keeper.timeRange.start, candidate.timeRange.start),
+    end: Math.max(keeper.timeRange.end, candidate.timeRange.end),
+  };
+}
+
 function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
   const turnRoots = roots.filter((node) => node.type === "turn");
   if (turnRoots.length <= 1) return roots;
@@ -688,11 +862,45 @@ function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
         const keeper = sorted[j];
         if (!turnsOverlapInTime(keeper, candidate, 120)) continue;
 
-        // ISSUE-041: 双 concrete turn（都不是 synthetic）不折叠——两个真 runId
-        // 的 turn 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
-        // 仅当 candidate 或 keeper 至少一方为 synthetic 时才允许内容级折叠。
+        // ISSUE-041 / Phase 3：双 concrete turn 折叠闸门。
+        // 旧规则（ISSUE-041）：双 concrete turn 一律拒绝折叠——两个真 runId 的 turn
+        // 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
+        //
+        // Phase 3 新增：ADK 后端每条 event 有独立 invocationId，映射为 runId 后
+        // 同一用户回合产出多个 concrete turn（functionCall / functionResponse / text）。
+        // 这些 turn 之间没有 user-message（=逻辑回合分隔符），可以安全折叠。
+        // 判定方式：检查 keeper 与 candidate 时间窗之间是否存在含 user-text 的 turn。
         const bothConcrete = !isSyntheticTurnNode(candidate) && !isSyntheticTurnNode(keeper);
-        if (bothConcrete) continue;
+        if (bothConcrete) {
+          if (hasUserTextBoundaryBetween(keeper, candidate, threadTurns)) continue;
+          const keeperHasUserText = keeper.children.some(
+            (c) => c.type === "text" && c.role === "user",
+          );
+          if (keeperHasUserText) {
+            // keeper 含 user text（=同一用户回合的触发 turn），
+            // 检查前面是否已有 assistant turn：若有，说明 candidate 是对 user 消息的
+            // 独立回复（如多轮对话的下一轮），不应并入 user turn。
+            const keeperStart = normalizeTimestamp(keeper.timeRange?.start ?? keeper.timestamp);
+            const hasAssistantBeforeKeeper = threadTurns.some((t) => {
+              if (t === keeper || t === candidate || turnsToRemove.has(t.id)) return false;
+              const tEnd = normalizeTimestamp(t.timeRange?.end ?? t.timestamp);
+              return (
+                tEnd < keeperStart &&
+                t.children.some(
+                  (c) => c.type === "text" && (c.role === "assistant" || c.role === "developer"),
+                )
+              );
+            });
+            if (hasAssistantBeforeKeeper) continue;
+            // user turn 是首个 turn → 后续 assistant 均属同一回合 → 直接合并
+            mergeChildrenIntoKeeper(keeper, candidate);
+            turnsToRemove.add(candidate.id);
+            collapsed = true;
+            break;
+          }
+          // 双方均为纯 assistant turn → 退回 allCovered 检查
+          // (D3 回归保护：两个独立 round 的 assistant turn 内容不同 → 不应合并)
+        }
 
         // 检查 candidate 所有非元数据 children 是否被 keeper 覆盖
         const allCovered = candidate.children.every((child) => {
@@ -788,6 +996,7 @@ export function buildConversationTree(
   >();
   const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
+  const pendingThoughts: PendingThought[] = [];
   const ledgerByMessageId = new Map<string, MessageLedgerEntry>();
   const canonicalMessageIdByRelatedId = new Map<string, string>();
   let activeRunId: string | undefined;
@@ -803,10 +1012,28 @@ export function buildConversationTree(
     });
   });
 
+  // ISSUE-042 补丁：conversation-tree 的 sort tiebreaker 同样曾用 localeCompare，
+  // 与 message-ledger.ts 和 session-hydration.ts 的同类问题一致。此处改用事件类型权重。
+  const EVENT_TYPE_ORDER: Record<string, number> = {
+    [EventType.RUN_STARTED]: 0,
+    [EventType.STEP_STARTED]: 1,
+    [EventType.TEXT_MESSAGE_START]: 2,
+    [EventType.TEXT_MESSAGE_CONTENT]: 3,
+    [EventType.TEXT_MESSAGE_END]: 4,
+    [EventType.TOOL_CALL_START]: 5,
+    [EventType.TOOL_CALL_ARGS]: 6,
+    [EventType.TOOL_CALL_END]: 7,
+    [EventType.TOOL_CALL_RESULT]: 8,
+    [EventType.STEP_FINISHED]: 9,
+    [EventType.RUN_FINISHED]: 10,
+    [EventType.RUN_ERROR]: 11,
+  };
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
     if (timeDiff !== 0) return timeDiff;
-    return String(a.type).localeCompare(String(b.type));
+    const aOrder = EVENT_TYPE_ORDER[String(a.type)] ?? 50;
+    const bOrder = EVENT_TYPE_ORDER[String(b.type)] ?? 50;
+    return aOrder - bOrder;
   });
 
   orderedEvents.forEach((event, eventIndex) => {
@@ -1182,7 +1409,7 @@ export function buildConversationTree(
           relatedMessageIds: messageId ? [messageId] : [],
         });
         attachNode(nodeIndex, roots, turns, node.id, baseParentId);
-        upsertNode(nodeIndex, roots, turns, {
+        const reasoningNode = upsertNode(nodeIndex, roots, turns, {
           id: `reasoning:${stepId}`,
           type: "reasoning",
           parentId: node.id,
@@ -1205,7 +1432,13 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(node, nodeIndex.get(`reasoning:${stepId}`)!);
+        flushPendingThoughtsForReasoning(
+          pendingThoughts,
+          reasoningNode,
+          turn.id,
+          runId,
+        );
+        addChild(node, reasoningNode);
         return;
       }
       case EventType.RAW: {
@@ -1245,6 +1478,55 @@ export function buildConversationTree(
           return;
         }
         if (eventTypeName === "ne.a2ui.reasoning") {
+          const data = asRecord(getCustomEventData(normalizedEvent));
+          const stepId = data && typeof data.stepId === "string" ? data.stepId : "";
+          const target =
+            (stepId ? nodeIndex.get(`reasoning:${stepId}`) : undefined) ||
+            findLatestReasoningNode(turns, turn.id, runId);
+          const content =
+            data && typeof data.content === "string"
+              ? data.content
+              : data && typeof data.text === "string"
+                ? data.text
+                : "";
+          if (content.trim()) {
+            if (target) {
+              appendThoughtToReasoningNode(target, content, eventType);
+            } else {
+              pendingThoughts.push({
+                turnId: turn.id,
+                runId,
+                text: content,
+                eventType,
+              });
+            }
+          }
+          if (target && data && "result" in data) {
+            target.payload.result = data.result;
+          }
+          return;
+        }
+        // ISSUE-070：ne.a2ui.thought 承载 LLM 推理（thinking）的实际文本，需要把
+        // text 注入到当前 turn 内最近的 reasoning 节点 payload.content，以便
+        // ReasoningPanel 展开时显示推理过程；否则用户展开后只能看到「思考完成·
+        // 推理阶段」标签而看不到推理内容（图 3）。
+        if (eventTypeName === "ne.a2ui.thought") {
+          const data = asRecord(getCustomEventData(normalizedEvent));
+          const thoughtText =
+            data && typeof data.text === "string" ? data.text : "";
+          if (thoughtText.trim()) {
+            const target = findLatestReasoningNode(turns, turn.id, runId);
+            if (target) {
+              appendThoughtToReasoningNode(target, thoughtText, eventType);
+            } else {
+              pendingThoughts.push({
+                turnId: turn.id,
+                runId,
+                text: thoughtText,
+                eventType,
+              });
+            }
+          }
           return;
         }
         const node = upsertNode(nodeIndex, roots, turns, {

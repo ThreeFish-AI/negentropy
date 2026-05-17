@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { PipelineErrorPayload, PipelineStageResult } from "../utils/knowledge-api";
 import { PipelineStatusBadge } from "./PipelineStatusBadge";
 import { PipelineStagesBar } from "./PipelineStagesBar";
@@ -12,6 +13,17 @@ import {
   getFailedStages,
   getStageErrorSummary,
 } from "../utils/pipeline-helpers";
+
+const ACTIVE_STATUSES = new Set(["pending", "running", "in_progress", "cancelling"]);
+
+/** 判断 run 是否可被取消（pending/running/in_progress/cancelling 时可见取消按钮） */
+function isCancellable(status?: string): boolean {
+  return ACTIVE_STATUSES.has((status || "").toLowerCase());
+}
+
+function isCancellingState(status?: string): boolean {
+  return (status || "").toLowerCase() === "cancelling";
+}
 
 /**
  * Pipeline Run 卡片属性
@@ -43,6 +55,27 @@ export interface PipelineRunCardProps {
   selected?: boolean;
   /** 点击回调（仅 mode="selectable" 有效） */
   onSelect?: () => void;
+  // ---- KG 专属字段 ----
+  /** 来源类型 */
+  source?: "kb" | "kg";
+  /** KG: corpus ID */
+  corpus_id?: string;
+  /** KG: 进度百分比 */
+  progress_percent?: number;
+  /** KG: 实体数 */
+  entity_count?: number;
+  /** KG: 关系数 */
+  relation_count?: number;
+  /** KG: 模型名称 */
+  model_name?: string;
+  /** KG: 错误信息 */
+  error_message?: string;
+  /**
+   * 取消按钮回调：用户在二次确认通过后被调用，由父组件实际发起 cancel API
+   * 调用并刷新列表。返回 Promise 以便卡片在调用期间显示 loading 态。
+   * 仅当 status 处于活跃态（pending/running/cancelling）时按钮可见。
+   */
+  onCancel?: () => Promise<void> | void;
   /** 支持扩展字段 */
   [key: string]: unknown;
 }
@@ -79,9 +112,21 @@ function PipelineRunCardContent({
   stages,
   error,
   isSelectable,
+  source = "kb",
+  entity_count,
+  relation_count,
+  model_name,
+  error_message,
+  progress_percent,
+  onCancel,
 }: PipelineRunCardProps & { isSelectable: boolean }) {
   const duration = formatDuration(duration_ms, started_at, completed_at);
-  const operationLabel = operation ? OPERATION_LABELS[operation] || operation : null;
+  const isKg = source === "kg";
+  const operationLabel = isKg
+    ? OPERATION_LABELS.graph_build
+    : operation
+      ? OPERATION_LABELS[operation] || operation
+      : null;
   const triggerLabel = trigger ? TRIGGER_LABELS[trigger] || trigger : null;
   const hasStages = stages && Object.keys(stages).length > 0;
 
@@ -89,9 +134,28 @@ function PipelineRunCardContent({
   const endLabel = formatCompactTimestamp(completed_at);
   const hasTimeline = startLabel || endLabel;
 
+  // Cancel 按钮状态：仅活跃 run（pending/running/cancelling）显示；
+  // cancelling 时 disabled + 显示 spinner（已发出信号但未到检查点）。
+  const [submitting, setSubmitting] = useState(false);
+  const showCancelButton = onCancel && isCancellable(status);
+  const cancelDisabled = isCancellingState(status) || submitting;
+
+  const handleCancelClick = async (e: React.MouseEvent) => {
+    // 阻止冒泡：selectable 模式下点击卡片会切换选中，X 按钮不应触发选中
+    e.stopPropagation();
+    e.preventDefault();
+    if (!onCancel || cancelDisabled) return;
+    try {
+      setSubmitting(true);
+      await onCancel();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <>
-      {/* 第一行：Run ID + 共享状态标签 */}
+      {/* 第一行：Run ID + 共享状态标签 + Cancel X 按钮 */}
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className={`truncate text-xs font-semibold ${
@@ -100,10 +164,50 @@ function PipelineRunCardContent({
             {isSelectable ? run_id : truncateRunId(run_id)}
           </span>
         </div>
-        <PipelineStatusBadge status={status} />
+        <div className="flex shrink-0 items-center gap-2">
+          <PipelineStatusBadge status={status} />
+          {showCancelButton && (
+            <button
+              type="button"
+              role="button"
+              aria-label={cancelDisabled ? "正在取消" : "取消运行"}
+              title={cancelDisabled ? "正在取消..." : "取消运行"}
+              disabled={cancelDisabled}
+              onClick={handleCancelClick}
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] transition-colors ${
+                cancelDisabled
+                  ? "cursor-not-allowed opacity-60"
+                  : isSelectable
+                    ? "hover:bg-white/20"
+                    : "text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:text-zinc-500 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
+              }`}
+            >
+              {cancelDisabled ? (
+                <svg
+                  className="h-3 w-3 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.3" />
+                  <path d="M12 2 a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M6 6 L18 18 M6 18 L18 6"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* 第二行：操作类型 + 触发方式 + 时长 + 版本 */}
+      {/* 第二行：操作类型 + 触发方式/KG 统计 + 时长 + 版本 */}
       <div className={`mt-1.5 flex min-w-0 items-center justify-between text-[11px] ${
         isSelectable ? "opacity-70" : "text-zinc-500 dark:text-zinc-400"
       }`}>
@@ -113,15 +217,21 @@ function PipelineRunCardContent({
               <span className={isSelectable ? "font-medium" : "font-medium text-zinc-600 dark:text-zinc-300"}>
                 {operationLabel}
               </span>
-              {triggerLabel && (
+              {isKg && entity_count != null && relation_count != null && (
+                <>
+                  <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+                  <span>{entity_count} 实体 / {relation_count} 关系</span>
+                </>
+              )}
+              {!isKg && triggerLabel && (
                 <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
               )}
             </>
           )}
-          {triggerLabel && (
+          {!isKg && triggerLabel && (
             <span className="uppercase">{triggerLabel}</span>
           )}
-          {!operationLabel && !triggerLabel && (
+          {!operationLabel && (
             <span>{formatRelativeTime(updated_at)}</span>
           )}
           {duration !== "-" && (
@@ -130,11 +240,22 @@ function PipelineRunCardContent({
               <span>{duration}</span>
             </>
           )}
+          {isKg && model_name && (
+            <>
+              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+              <span className="truncate max-w-[100px]">{model_name}</span>
+            </>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {hasTimeline && (
             <span className={isSelectable ? "opacity-60" : "text-zinc-400 dark:text-zinc-500"}>
               {startLabel ?? "-"} → {endLabel ?? "-"}
+            </span>
+          )}
+          {isKg && progress_percent != null && status?.toLowerCase() === "running" && (
+            <span className="shrink-0 tabular-nums">
+              {Math.round(progress_percent * 100)}%
             </span>
           )}
           <span className="shrink-0">v{version}</span>
@@ -151,8 +272,17 @@ function PipelineRunCardContent({
         />
       )}
 
-      {/* 第四行：失败摘要（仅失败时显示） */}
+      {/* 第四行：失败摘要 */}
       {status === "failed" && (() => {
+        // KG: 直接展示 error_message
+        if (isKg && error_message) {
+          return (
+            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+              {error_message}
+            </p>
+          );
+        }
+        // KB: 从 stages 或 error 中提取
         const failedStageList = getFailedStages(stages);
         if (failedStageList.length > 0) {
           const first = failedStageList[0];

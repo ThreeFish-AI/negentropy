@@ -17,6 +17,7 @@ from uuid import UUID, uuid4
 from negentropy.logging import get_logger
 
 from ..types import GraphEdge, GraphNode
+from .extractors import is_noise_entity
 
 logger = get_logger("negentropy.knowledge.graph")
 
@@ -89,11 +90,80 @@ class RegexEntityExtractor(EntityExtractor):
     使用规则和模式匹配提取常见实体类型:
     - 人名（大写开头的词组）
     - 组织名（Inc, Corp, LLC 后缀）
-    - URL
 
     局限性: 无法处理中文实体，对英文的准确率较低。
     建议在生产环境中替换为 LLMEntityExtractor。
     """
+
+    # 常见 section heading / 功能性短语，不应被提取为实体
+    _HEADING_STOPWORDS = frozenset(
+        {
+            "the",
+            "and",
+            "or",
+            "for",
+            "with",
+            "from",
+            "this",
+            "that",
+            "acknowledgements",
+            "references",
+            "abstract",
+            "introduction",
+            "conclusion",
+            "appendix",
+            "chapter",
+            "section",
+            "figure",
+            "table",
+            "contents",
+            "overview",
+            "summary",
+            "testing",
+            "one",
+            "two",
+            "three",
+            "first",
+            "second",
+            "third",
+            "published",
+            "written",
+            "special",
+            "management",
+        }
+    )
+
+    # 产品关键词（首字母大写）
+    _PRODUCT_PATTERN = re.compile(
+        r"\b(?:Claude|GPT|BERT|T5|LLaMA|Mistral|Gemini|Copilot|ChatGPT)\b",
+    )
+    # 概念/技术后缀
+    _CONCEPT_PATTERN = re.compile(
+        r"\b(?:Algorithm|Framework|Architecture|Model|Method|System|Engine|"
+        r"Editor|Workstation|Protocol|Standard|Interface|Pattern|"
+        r"Dashboard|Behavior|Completeness|Stories)\b",
+    )
+
+    def _classify_type(self, name: str) -> str:
+        """启发式类型分类：正则无法精确区分人名/产品/概念，
+        但可根据关键词做基本分流，减少系统性误分类。"""
+        if self._PRODUCT_PATTERN.search(name):
+            return "product"
+        if self._CONCEPT_PATTERN.search(name):
+            return "concept"
+        return "other"
+
+    def _is_valid_name(self, name: str) -> bool:
+        """过滤 heading 碎片、跨行垃圾等无效匹配。"""
+        words = name.split()
+        if len(words) < 2:
+            return False
+        if any(w.lower() in self._HEADING_STOPWORDS for w in words):
+            return False
+        # 复用 LLM 提取器的统一噪声检测（停用词 / URL / 文件名 / 日期等）
+        if is_noise_entity(name):
+            return False
+        return True
 
     async def extract(
         self,
@@ -107,6 +177,9 @@ class RegexEntityExtractor(EntityExtractor):
             extractor="regex",
         )
 
+        # 归一化空白：防止跨行碎片（如 "Testing\\n\\nOne"）被匹配
+        text = re.sub(r"\s+", " ", text)
+
         entities: list[GraphNode] = []
         seen = set()
 
@@ -114,12 +187,17 @@ class RegexEntityExtractor(EntityExtractor):
         name_pattern = r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b"
         for match in re.finditer(name_pattern, text):
             name = match.group()
-            if name not in seen:
+            if name not in seen and self._is_valid_name(name):
+                node_type = self._classify_type(name)
                 entity = GraphNode(
                     id=f"entity:{uuid4()}",
                     label=name,
-                    node_type="person",
-                    metadata={"source": "regex_extraction", "corpus_id": str(corpus_id)},
+                    node_type=node_type,
+                    metadata={
+                        "source": "regex_extraction",
+                        "corpus_id": str(corpus_id),
+                        "confidence": 0.5,
+                    },
                 )
                 entities.append(entity)
                 seen.add(name)
@@ -133,24 +211,14 @@ class RegexEntityExtractor(EntityExtractor):
                     id=f"entity:{uuid4()}",
                     label=org,
                     node_type="organization",
-                    metadata={"source": "regex_extraction", "corpus_id": str(corpus_id)},
+                    metadata={
+                        "source": "regex_extraction",
+                        "corpus_id": str(corpus_id),
+                        "confidence": 0.6,
+                    },
                 )
                 entities.append(entity)
                 seen.add(org)
-
-        # 提取 URL
-        url_pattern = r"https?://[^\s]+"
-        for match in re.finditer(url_pattern, text):
-            url = match.group()
-            if url not in seen:
-                entity = GraphNode(
-                    id=f"entity:{uuid4()}",
-                    label=url[:50],
-                    node_type="url",
-                    metadata={"url": url, "source": "regex_extraction"},
-                )
-                entities.append(entity)
-                seen.add(url)
 
         logger.debug(
             "extract_entities_completed",

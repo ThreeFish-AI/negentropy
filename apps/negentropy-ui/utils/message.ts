@@ -21,7 +21,7 @@ import {
   getMessageStreaming,
   getMessageThreadId,
   type AgUiMessage,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 
 export type { ChatMessage };
 
@@ -62,6 +62,45 @@ function findOverlapSuffixPrefix(existing: string, incoming: string): number {
   return 0;
 }
 
+/**
+ * ISSUE-071 根因层补丁：检测 LLM 流式「改写覆盖」场景。
+ *
+ * 实测在中文流式答复中（见 ISSUE-071 验证日志），LLM 会先吐出残缺
+ * 中间态（如「负熵...或入化信息...采选项」），再以一段语义等同但表面
+ * 重排的 final 完整版（「负熵...或引入结构化信息...是否采纳哪个选项？」）
+ * 重发。两者：
+ *
+ * - 互不为前缀（首句中段开始分歧）；
+ * - 末尾/开头无显著 suffix-prefix overlap；
+ *
+ * `findOverlapSuffixPrefix` 因此返回 0，原 `accumulateTextContent` 走到
+ * 兜底分支 `${existing}${incoming}` 直接拼接，UI 渲染就出现 partial+final
+ * 两段并排的可见双内容（chat-display Layer 5/6 仅在多 text segment 之间
+ * 去重，单 segment 内的内容拼接逃逸）。
+ *
+ * 这里加一层「同源改写检测」：当 incoming 长度比 existing 略长（≥ 1.05x），
+ * 且字符 multiset 高度互含（覆盖 ≥ 0.7）+ LCS 比例 ≥ 0.6（同时具备字符与
+ * 顺序相似性），视为 LLM 用 final 改写版重发，丢弃 existing partial 残段
+ * 仅保留 incoming。阈值与 chat-display 第 5/6 层兜底一致，不会误删合法
+ * 「先短后长」的追加场景（追加场景已被前面的 prefix 分支命中）。
+ */
+const REWRITE_DETECTION_MIN_LENGTH = 50;
+const REWRITE_DETECTION_LENGTH_RATIO = 1.05;
+const REWRITE_DETECTION_MULTISET_COVERAGE = 0.7;
+const REWRITE_DETECTION_LCS_RATIO = 0.6;
+
+function isRewriteCoverOfExisting(existing: string, incoming: string): boolean {
+  if (existing.length < REWRITE_DETECTION_MIN_LENGTH) return false;
+  if (incoming.length < existing.length * REWRITE_DETECTION_LENGTH_RATIO) return false;
+  if (multisetCoverage(existing, incoming) < REWRITE_DETECTION_MULTISET_COVERAGE) {
+    return false;
+  }
+  if (longestCommonSubsequenceRatio(existing, incoming) < REWRITE_DETECTION_LCS_RATIO) {
+    return false;
+  }
+  return true;
+}
+
 export function accumulateTextContent(existing: string, incoming: string): string {
   if (!incoming) {
     return existing;
@@ -82,6 +121,10 @@ export function accumulateTextContent(existing: string, incoming: string): strin
   const overlap = findOverlapSuffixPrefix(existing, incoming);
   if (overlap > 0) {
     return `${existing}${incoming.slice(overlap)}`;
+  }
+  // ISSUE-071：LLM 改写覆盖场景，丢弃残缺 existing 用 incoming 替换。
+  if (isRewriteCoverOfExisting(existing, incoming)) {
+    return incoming;
   }
   return `${existing}${incoming}`;
 }
@@ -245,6 +288,96 @@ export function computeCharBigrams(text: string): Set<string> {
     grams.add(normalized.slice(i, i + 2));
   }
   return grams;
+}
+
+/**
+ * 字符多重集（multiset）：每个字符到其出现次数的映射。
+ * 与 Set 的区别：保留重复字符的频次，便于"较短串的字符是否被较长串覆盖"判定。
+ */
+export function characterMultiset(content: string): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const c of content) m.set(c, (m.get(c) || 0) + 1);
+  return m;
+}
+
+/**
+ * 计算 ``shorter`` 中字符在 ``longer`` 中的覆盖率（multiset 角度）。
+ *
+ * 与 ``isEquivalentMessageContent`` / ``bigramJaccardSimilarity`` 的差异：
+ * - 不要求字符 *顺序* 一致 → 能 catch "残缺累积版 + 改写完整版" 这类 LLM
+ *   流式 chunk 与 final hydration 序列；
+ * - 单向覆盖（shorter ⊆ longer）→ 适合"较短串是较长串的子集"的语义判定，
+ *   比双向 Jaccard 更精准（Jaccard 在长度差异大时会因分母膨胀而失敏）。
+ *
+ * 应用场景：
+ * 1. ``utils/chat-display.ts::isStreamingDuplicateOfLater`` —— UI 层兜底 dedupe；
+ * 2. ``utils/message-ledger.ts::isSemanticEquivalentEntry`` —— ledger 合并的
+ *    根因层判定（严格前缀检查失败时的二次判据）。
+ */
+export function multisetCoverage(shorter: string, longer: string): number {
+  if (!shorter) return 0;
+  const counts = characterMultiset(longer);
+  let matched = 0;
+  for (const c of shorter) {
+    const remaining = counts.get(c) || 0;
+    if (remaining > 0) {
+      counts.set(c, remaining - 1);
+      matched += 1;
+    }
+  }
+  return matched / shorter.length;
+}
+
+/**
+ * 最长公共子序列（LCS）长度占较短串的比例。
+ *
+ * 与 ``multisetCoverage`` / ``bigramJaccardSimilarity`` 互补：
+ * - ``multisetCoverage`` 仅统计字符 *频次*，忽略顺序 → 对乱序高重复字符串易误判；
+ * - ``bigramJaccardSimilarity`` 关注字符 *相邻对*，长度差异大时偏紧；
+ * - LCS 同时关注 *字符存在* 与 *相对顺序* → 对「累积残缺版（少字符但顺序与
+ *   final 一致）」与「同源改写版（字符大致相同但局部重排）」两种主流式
+ *   双内容场景都能稳定命中，作为 ``isStreamingDuplicateOfLater`` 第 6 层兜底。
+ *
+ * 复杂度 O(m*n)。为防长内容（>2000 字）退化，超长输入会先各取首尾 1000 字
+ * 拼接后再比较——这种长度的 LLM 答复实际由前后段 token 主导，截断后仍能稳
+ * 定区分「同源 vs 异源」。
+ *
+ * 注：分母取「实际参与 LCS 计算的较短串长度」（reduce 后），而非原串长度。
+ * 否则当较短串 > ~3077 字符时 lcsLen ≤ 2000 而分母 > 3077，ratio 上界 < 0.65，
+ * 第 6 层 LCS 兜底对长答复永远不触发——与「截断后仍稳定区分」的设计相悖。
+ */
+export function longestCommonSubsequenceRatio(a: string, b: string): number {
+  const trimA = a.trim();
+  const trimB = b.trim();
+  if (!trimA || !trimB) return 0;
+  const limit = 1000;
+  const reduce = (s: string) =>
+    s.length <= limit * 2 ? s : `${s.slice(0, limit)}${s.slice(-limit)}`;
+  const sA = reduce(trimA);
+  const sB = reduce(trimB);
+  const m = sA.length;
+  const n = sB.length;
+  if (m === 0 || n === 0) return 0;
+  // 使用滚动数组优化空间到 O(min(m, n))
+  const [shorterStr, longerStr] = m <= n ? [sA, sB] : [sB, sA];
+  const sLen = shorterStr.length;
+  const lLen = longerStr.length;
+  let prev = new Array(sLen + 1).fill(0);
+  let curr = new Array(sLen + 1).fill(0);
+  for (let i = 1; i <= lLen; i += 1) {
+    for (let j = 1; j <= sLen; j += 1) {
+      if (longerStr[i - 1] === shorterStr[j - 1]) {
+        curr[j] = prev[j - 1] + 1;
+      } else {
+        curr[j] = Math.max(prev[j], curr[j - 1]);
+      }
+    }
+    [prev, curr] = [curr, prev];
+    curr.fill(0);
+  }
+  const lcsLen = prev[sLen];
+  const shorterReducedLen = Math.min(sA.length, sB.length);
+  return shorterReducedLen === 0 ? 0 : lcsLen / shorterReducedLen;
 }
 
 export function bigramJaccardSimilarity(a: string, b: string): number {

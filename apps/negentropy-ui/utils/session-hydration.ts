@@ -23,7 +23,7 @@ import {
   getEventToolCallName,
   getMessageCreatedAt,
   type AgUiMessage,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 import { getMessageIdentityKey, normalizeMessageContent } from "@/utils/message";
 import { buildMessageLedger, isSemanticEquivalentEntry, ledgerEntriesToMessages } from "@/utils/message-ledger";
 
@@ -42,12 +42,18 @@ function normalizeTimestamp(value: unknown): number {
 
 // ISSUE-041 契约：当后端 ADK Web /sessions/{id} 不透传 runId / threadId 时，
 // 本函数必须回退到 sessionId 以让事件能进入 turn 桶；该回退会产生「合成 runId」
-// （runId === threadId === sessionId）。下游 message-ledger / conversation-tree
-// 已通过 isSyntheticRunId 把合成 runId 视为可与真 runId 兼并的占位符，避免
-// realtime + hydration 同一逻辑回答被分裂为两个 turn 渲染成双气泡。
-// 后端透传 runId 是更彻底的根治路径（Phase 2 计划），本兜底保留作为防御。
+// Phase 3 联动落地（2026-05-09）：PR-1 升级了 collapseOverlappingTurns 的双 concrete
+// turn 折叠规则（以 user-message 为回合边界，无 user-message 间隔的同 invocation
+// turn 允许折叠）。现在可以安全地将 ADK 透传的 invocationId 映射为 runId，下游
+// 多 invocationId 产生的多个 concrete turn 会被折叠为同一逻辑回合。
+// 查找优先级：runId > invocationId(驼峰) > invocation_id(下划线) > threadId > sessionId
 function fallbackRunId(payload: AdkEventPayload, sessionId: string): string {
-  return payload.runId || payload.threadId || sessionId;
+  if (typeof payload.runId === "string" && payload.runId) return payload.runId;
+  const raw = payload as Record<string, unknown>;
+  if (typeof raw.invocationId === "string" && raw.invocationId) return raw.invocationId;
+  if (typeof raw.invocation_id === "string" && raw.invocation_id) return raw.invocation_id;
+  if (typeof payload.threadId === "string" && payload.threadId) return payload.threadId;
+  return sessionId;
 }
 
 function fallbackThreadId(payload: AdkEventPayload, sessionId: string): string {

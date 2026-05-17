@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import {
+  MemoryTimelineCard,
+  RetryableErrorBanner,
   useMemoryTimeline,
   submitAudit,
   fetchAuditHistory,
@@ -69,12 +71,6 @@ export default function MemoryAuditPage() {
     return timeline.filter((item) => item.user_id === selectedUserId);
   }, [timeline, selectedUserId]);
 
-  const retentionColor = (score: number) => {
-    if (score >= 0.5) return "bg-emerald-500";
-    if (score >= 0.1) return "bg-amber-500";
-    return "bg-rose-500";
-  };
-
   const pendingCount = Object.keys(auditMap).length;
 
   const handleSubmitAudit = async () => {
@@ -107,15 +103,13 @@ export default function MemoryAuditPage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col px-6 py-6">
           {/* D5: 统一 error banner（独立块，避免被 flex-row 兄弟挤占侧边栏空间） */}
-          {timelineError && (
-            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
-              {timelineError.message || String(timelineError)}
-            </div>
-          )}
+          {/* M3: 5xx 等可重试错误暴露"重试"按钮，复用 RetryableErrorBanner */}
+          <RetryableErrorBanner error={timelineError} onRetry={reloadTimeline} />
+
 
           <div className="flex min-h-0 flex-1 gap-6">
           {/* Users sidebar */}
-          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <aside className="min-h-0 w-52 shrink-0 overflow-y-auto">
             <div className="pb-4 pr-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Users</h2>
@@ -134,7 +128,7 @@ export default function MemoryAuditPage() {
                           setAuditMap({});
                         }}
                       >
-                        <p className="text-xs font-semibold">
+                        <p className="truncate text-xs font-semibold">
                           {user.label || user.id}
                         </p>
                       </button>
@@ -164,31 +158,9 @@ export default function MemoryAuditPage() {
                 <div className="mt-4 space-y-3">
                   {filteredTimeline.length ? (
                     filteredTimeline.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-700"
-                      >
-                        <div className="flex items-start justify-between">
-                          <p className="text-zinc-900 dark:text-zinc-100">
-                            {item.content.length > 200
-                              ? `${item.content.slice(0, 200)}...`
-                              : item.content}
-                          </p>
-                          <div className="ml-3 flex items-center gap-2 shrink-0">
-                            <span
-                              className={`h-2 w-2 rounded-full ${retentionColor(item.retention_score)}`}
-                            />
-                            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              {(item.retention_score * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-zinc-400 dark:text-zinc-500">
-                          <span>Type: {item.memory_type}</span>
-                          <span>Access: {item.access_count}x</span>
-                          <span>{item.created_at || "-"}</span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                      <div key={item.id}>
+                        <MemoryTimelineCard item={item} />
+                        <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg bg-zinc-50 px-2.5 py-2 text-[11px] dark:bg-zinc-800/50">
                           {(["retain", "delete", "anonymize"] as AuditAction[]).map(
                             (action) => (
                               <button
@@ -250,7 +222,9 @@ export default function MemoryAuditPage() {
                   Submit Audit
                 </h2>
                 <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                  {pendingCount} decision(s) pending
+                  {/* 把 `(s)` 升级为真正的英文复数，避免界面出现 "0 decision(s) pending" 这类
+                      非自然写法。这里没有 JSX 表达式插入造成的 a11y 文本节点合并问题，仅是 copy 改进。 */}
+                  {`${pendingCount} decision${pendingCount !== 1 ? "s" : ""} pending`}
                 </p>
                 <textarea
                   className="mt-3 w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"

@@ -3,7 +3,7 @@ from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.llm_request import LlmRequest
 
 from ._dynamic_instruction import make_instruction_provider
-from ._dynamic_model import set_selected_root_llm
+from ._dynamic_model import set_root_thinking_enabled, set_selected_root_llm
 from ._model import create_root_model
 from .faculties.action import action_agent
 from .faculties.contemplation import contemplation_agent
@@ -29,9 +29,12 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
     try:
         state = callback_context.state
         selected = state.get("selected_llm_model") if state is not None else None
+        thinking_enabled = state.get("thinking_enabled") if state is not None else None
     except Exception:
         selected = None
+        thinking_enabled = None
     set_selected_root_llm(selected if isinstance(selected, str) else None)
+    set_root_thinking_enabled(thinking_enabled if isinstance(thinking_enabled, bool) else None)
 
 
 _ROOT_INSTRUCTION = """
@@ -135,7 +138,8 @@ root_agent = LlmAgent(
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
     # Instruction 由 sub_agents.system_prompt 经 InstructionProvider 在运行时解析；
     # DB 未命中或失败时回退到 _ROOT_INSTRUCTION 常量，永不阻塞请求。
-    instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION),
+    # is_root=True：仅根 Agent 消费 Home Composer 的 @Agent 偏好（preferred_subagent）。
+    instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION, is_root=True),
     tools=[log_activity],
     sub_agents=[
         perception_agent,

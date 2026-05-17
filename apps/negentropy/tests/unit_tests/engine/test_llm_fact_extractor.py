@@ -19,9 +19,18 @@ def _make_llm_response(content: str) -> MagicMock:
 
 @pytest.fixture
 def extractor():
-    with patch("negentropy.engine.consolidation.llm_fact_extractor.resolve_model_config") as mock_resolve:
-        mock_resolve.return_value = ("test-model", {})
-        return LLMFactExtractor()
+    # Phase 7: 切换到 task-aware async 解析器后，需要 AsyncMock；
+    # extract() 内部会 await self._resolve_model()，由 patch 直接覆盖该函数最稳。
+    extractor_instance = LLMFactExtractor()
+    extractor_instance._resolve_model = AsyncMock(  # type: ignore[method-assign]
+        side_effect=lambda: _set_model(extractor_instance)
+    )
+    return extractor_instance
+
+
+def _set_model(instance):
+    instance._model = "test-model"
+    instance._model_kwargs = {}
 
 
 class TestLLMFactExtractor:

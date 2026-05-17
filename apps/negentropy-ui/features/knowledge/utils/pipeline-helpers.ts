@@ -22,6 +22,7 @@ export const OPERATION_LABELS: Record<string, string> = {
   replace_source: "替换源",
   sync_source: "同步源",
   rebuild_source: "重建源",
+  graph_build: "图谱构建",
 };
 
 /**
@@ -52,6 +53,13 @@ export const STAGE_ORDER = [
   "chunk",
   "embed",
   "persist",
+  // KG 构建阶段
+  "kg_extracting",
+  "kg_resolving",
+  "kg_syncing",
+  "kg_pagerank",
+  "kg_communities",
+  "kg_summaries",
 ];
 
 /**
@@ -73,6 +81,13 @@ export const STAGE_LABELS: Record<string, string> = {
   chunk: "文本分块",
   embed: "向量化",
   persist: "持久化",
+  // KG 构建阶段
+  kg_extracting: "实体抽取",
+  kg_resolving: "实体消解",
+  kg_syncing: "一等公民同步",
+  kg_pagerank: "PageRank 计算",
+  kg_communities: "社区检测",
+  kg_summaries: "社区摘要生成",
 };
 
 /**
@@ -172,6 +187,43 @@ export const STAGE_COLORS: Record<
     failed: "bg-emerald-700",
     skipped: "bg-emerald-300 dark:bg-emerald-600",
   },
+  // KG 构建阶段颜色（violet/purple 色系区分 KB）
+  kg_extracting: {
+    running: "bg-violet-400",
+    completed: "bg-violet-500",
+    failed: "bg-violet-700",
+    skipped: "bg-violet-300 dark:bg-violet-600",
+  },
+  kg_resolving: {
+    running: "bg-purple-400",
+    completed: "bg-purple-500",
+    failed: "bg-purple-700",
+    skipped: "bg-purple-300 dark:bg-purple-600",
+  },
+  kg_syncing: {
+    running: "bg-fuchsia-400",
+    completed: "bg-fuchsia-500",
+    failed: "bg-fuchsia-700",
+    skipped: "bg-fuchsia-300 dark:bg-fuchsia-600",
+  },
+  kg_pagerank: {
+    running: "bg-indigo-400",
+    completed: "bg-indigo-500",
+    failed: "bg-indigo-700",
+    skipped: "bg-indigo-300 dark:bg-indigo-600",
+  },
+  kg_communities: {
+    running: "bg-blue-400",
+    completed: "bg-blue-500",
+    failed: "bg-blue-700",
+    skipped: "bg-blue-300 dark:bg-blue-600",
+  },
+  kg_summaries: {
+    running: "bg-cyan-400",
+    completed: "bg-cyan-500",
+    failed: "bg-cyan-700",
+    skipped: "bg-cyan-300 dark:bg-cyan-600",
+  },
 };
 
 /**
@@ -210,6 +262,12 @@ export const getStageColor = (stageName: string, status?: string): string => {
       return colors.failed;
     case "skipped":
       return colors.skipped;
+    case "cancelling":
+      // amber 脉动：表达"取消信号已发，等待 task 在检查点退出"的中间态
+      return "bg-amber-400 animate-pulse";
+    case "cancelled":
+      // zinc 静态：用户主动取消，区别于失败 (rose) 与跳过 (zinc-300)
+      return "bg-zinc-500";
     default:
       return colors.completed;
   }
@@ -325,8 +383,20 @@ export const getPipelineStatusColor = (status?: string): string => {
       return "bg-rose-500";
     case "pending":
       return "bg-zinc-400 animate-pulse";
+    case "cancelling":
+      // 取消进行中：amber 脉动（与 running 同色调以表达"还在运行但已收到取消信号"）
+      return "bg-amber-400 animate-pulse";
+    case "cancelled":
+      // 已取消终态：zinc 静态（区别于 failed 的 rose 与 skipped 的浅 zinc）
+      return "bg-zinc-500";
     case "skipped":
       return "bg-zinc-300 dark:bg-zinc-600";
+    case "idle":
+      return "bg-zinc-500";
+    case "timeout":
+      return "bg-rose-500";
+    case "switched":
+      return "bg-zinc-500";
     default:
       return "bg-zinc-400";
   }
@@ -350,6 +420,16 @@ export const getPipelineStatusTextColor = (status?: string): string => {
     case "error":
       return "text-rose-600 dark:text-rose-400";
     case "pending":
+      return "text-zinc-600 dark:text-zinc-400";
+    case "cancelling":
+      return "text-amber-700 dark:text-amber-300";
+    case "cancelled":
+      return "text-zinc-600 dark:text-zinc-400";
+    case "idle":
+      return "text-zinc-600 dark:text-zinc-400";
+    case "timeout":
+      return "text-rose-600 dark:text-rose-400";
+    case "switched":
       return "text-zinc-600 dark:text-zinc-400";
     default:
       return "text-zinc-500 dark:text-zinc-400";

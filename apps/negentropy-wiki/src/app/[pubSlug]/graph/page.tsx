@@ -1,0 +1,207 @@
+import Link from "next/link";
+
+import { ThemePreference } from "@/components/ThemePreference";
+import { WikiForceGraphCanvas } from "@/components/WikiForceGraphCanvas";
+import { WikiGraphCanvas } from "@/components/WikiGraphCanvas";
+import { WikiHeader } from "@/components/WikiHeader";
+import { WikiLayoutShell } from "@/components/WikiLayoutShell";
+import { WikiSidebar } from "@/components/WikiSidebar";
+import {
+  countLeafEntries,
+  findIndexEntry,
+  resolveSectionView,
+  wikiApi,
+  type WikiNavTreeItem,
+  type WikiPublication,
+} from "@/lib/wiki-api";
+import type { WikiGraphResponse } from "@/lib/wiki-graph-types";
+
+/**
+ * Publication 知识图谱页 — /:pubSlug/graph
+ *
+ * 数据流：
+ *   - 服务端 `wikiApi.getPublicationGraph(pub.id)` 拉取按 Publication 切片
+ *     的图谱 JSON（节点 + 边）；
+ *   - ISR 5 分钟 + ``wiki-graph:${pubSlug}`` tag，后端 publish 时通过
+ *     ``/api/revalidate`` webhook 主动刷新；
+ *   - 客户端组件 `WikiGraphCanvas` 自带 ``"use client"``，Sigma WebGL bundle
+ *     会被 Next.js 自动拆分进本路由的客户端 chunk，SSR 阶段不引入。
+ *
+ * 与文档详情页对齐：复用 `WikiLayoutShell` 三栏壳（无 TOC）+ `WikiHeader`
+ * tabs（带"知识图谱"入口，并标记为 active）+ `WikiSidebar` 导航子树。
+ */
+
+export const revalidate = 300;
+
+interface Props {
+  params: Promise<{ pubSlug: string }>;
+}
+
+export default async function WikiPublicationGraphPage({ params }: Props) {
+  const { pubSlug } = await params;
+
+  let publication: WikiPublication | null = null;
+  let navItems: WikiNavTreeItem[] = [];
+  let graph: WikiGraphResponse | null = null;
+  let graphError: string | null = null;
+
+  try {
+    publication = await wikiApi.findPublicationBySlug(pubSlug);
+    if (publication) {
+      const [navResult, graphResult] = await Promise.all([
+        wikiApi.getNavTree(publication.id),
+        wikiApi.getPublicationGraph(publication.id, {
+          tag: `wiki-graph:${pubSlug}`,
+        }),
+      ]);
+      navItems = navResult.nav_tree?.items || [];
+      graph = graphResult;
+    }
+  } catch (err) {
+    console.error(`[Wiki] Failed to load graph for "${pubSlug}":`, err);
+    graphError = err instanceof Error ? err.message : String(err);
+  }
+
+  if (!publication) {
+    return (
+      <main className="wiki-main wiki-not-found">
+        <h1>Wiki 未找到</h1>
+        <p className="wiki-not-found-hint">
+          Publication &quot;{pubSlug}&quot; 不存在或未发布
+        </p>
+        <Link href="/" className="wiki-back-link">
+          ← 返回首页
+        </Link>
+      </main>
+    );
+  }
+
+  const indexEntry = findIndexEntry(navItems);
+  const entriesTotal = countLeafEntries(navItems);
+  const sectionView = resolveSectionView(navItems);
+
+  const sidebar = (
+    <WikiSidebar
+      pubSlug={pubSlug}
+      publication={publication}
+      sidebarItems={sectionView.sidebarItems}
+      hasActiveItem={!!sectionView.activeItem}
+      indexEntry={indexEntry}
+    />
+  );
+
+  const header = sectionView.headerItems.length > 0 && (
+    <WikiHeader
+      pubSlug={pubSlug}
+      items={sectionView.headerItems}
+      activeTopSlug={sectionView.activeTopSlug}
+      headerSlot={<ThemePreference />}
+      graphTab={{ active: true, show: entriesTotal > 0 }}
+    />
+  );
+
+  return (
+    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined}>
+      <header className="wiki-doc-header">
+        <h1 className="wiki-doc-title">知识图谱 · {publication.name}</h1>
+        <div className="wiki-doc-meta">
+          版本 v{publication.version}
+          {graph && graph.nodes.length > 0 && (
+            <>
+              {" · "}
+              {graph.nodes.length} 节点 · {graph.edges.length} 边
+              {graph.truncated && graph.total_entities > graph.nodes.length && (
+                <>
+                  {" · "}共 {graph.total_entities} 实体
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </header>
+
+      <WikiGraphBody
+        pubSlug={pubSlug}
+        publication={publication}
+        graph={graph}
+        graphError={graphError}
+      />
+    </WikiLayoutShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 主体渲染（按 graph 状态分支：error / loading-failed / no_kg / empty / ok）
+// ---------------------------------------------------------------------------
+
+interface WikiGraphBodyProps {
+  pubSlug: string;
+  publication: WikiPublication;
+  graph: WikiGraphResponse | null;
+  graphError: string | null;
+}
+
+function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
+  if (graphError) {
+    return (
+      <div className="wiki-graph-error">
+        <p className="wiki-text-hint">
+          图谱数据暂时不可用，请稍后重试或返回
+          <Link href={`/${pubSlug}`} style={{ marginLeft: "0.3em" }}>
+            Publication 首页
+          </Link>
+          。
+        </p>
+        <pre className="wiki-error-detail">{graphError}</pre>
+      </div>
+    );
+  }
+
+  if (!graph || graph.status === "no_kg") {
+    return (
+      <div className="wiki-graph-empty">
+        <p className="wiki-text-hint">
+          该发布暂未构建知识图谱。请联系管理员在后端 Knowledge 模块对相关
+          Corpus 触发 KG 构建后重试。
+        </p>
+      </div>
+    );
+  }
+
+  if (graph.status === "empty" || graph.nodes.length === 0) {
+    return (
+      <div className="wiki-graph-empty">
+        <p className="wiki-text-hint">
+          该发布的文档暂未触发任何实体提及，图谱为空。
+        </p>
+      </div>
+    );
+  }
+
+  // 渲染器降级阈值：节点数 > 500 时切到 ForceGraph2D（Canvas 2D），避免 Sigma
+  // WebGL 在大图上的初始化卡顿与 OOM 风险。阈值与 plan 中的 truncateThreshold
+  // 保持一致；后端 max_nodes 上限 1000，组件层只在 500-1000 区间生效。
+  const useForceGraph = graph.nodes.length > 500;
+
+  return (
+    <div className="wiki-graph-canvas-wrap">
+      {useForceGraph ? (
+        <WikiForceGraphCanvas
+          pubSlug={pubSlug}
+          nodes={graph.nodes}
+          edges={graph.edges}
+          truncated={graph.truncated}
+          totalEntities={graph.total_entities}
+        />
+      ) : (
+        <WikiGraphCanvas
+          pubSlug={pubSlug}
+          nodes={graph.nodes}
+          edges={graph.edges}
+          truncated={graph.truncated}
+          totalEntities={graph.total_entities}
+        />
+      )}
+    </div>
+  );
+}

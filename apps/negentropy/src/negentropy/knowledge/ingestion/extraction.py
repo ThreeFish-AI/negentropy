@@ -621,6 +621,71 @@ def _extract_enhanced_image_assets(payload: dict[str, Any]) -> list[ExtractionAs
     return assets
 
 
+def _extract_structured_image_assets(
+    payload: dict[str, Any],
+    markdown_content: str,
+    resolved_resources: dict[str, Any],
+) -> list[ExtractionAsset]:
+    """从 payload.image_assets 提取图片资产，匹配 resolved_resources 中的资源载荷。
+
+    parse_pdf_to_markdown 等工具将图片元数据放在 structuredContent.image_assets 中，
+    每条包含 filename、resource_uri、mime_type 等。实际二进制通过同会话 resources/read
+    拉取后存入 resolved_resources。
+    """
+    raw_assets = payload.get("image_assets")
+    if not isinstance(raw_assets, list):
+        return []
+
+    image_refs = _extract_markdown_image_refs(markdown_content)
+    assets: list[ExtractionAsset] = []
+
+    for index, item in enumerate(raw_assets):
+        if not isinstance(item, dict):
+            continue
+
+        filename = item.get("filename") or item.get("name") or f"image-{index + 1}.png"
+        asset_name = Path(filename).name
+        mime_type = item.get("mime_type") or _guess_image_content_type(asset_name)
+        resource_uri = item.get("resource_uri")
+
+        data_base64: str | None = None
+        if resource_uri and isinstance(resource_uri, str):
+            resource_payload = resolved_resources.get(resource_uri)
+            if resource_payload is not None:
+                data_base64 = getattr(resource_payload, "blob_base64", None)
+                resolved_mime = getattr(resource_payload, "mime_type", None)
+                if resolved_mime:
+                    mime_type = resolved_mime
+
+        # 命名优先级：Markdown 图片引用顺序 > asset 自带 filename > 兜底序号
+        if index < len(image_refs):
+            asset_name = image_refs[index]
+
+        metadata: dict[str, Any] = {
+            "source": "structured_image_assets",
+            "origin_uri": resource_uri or "",
+        }
+        if "width" in item:
+            metadata["width"] = item["width"]
+        if "height" in item:
+            metadata["height"] = item["height"]
+        if "page_number" in item:
+            metadata["page_number"] = item["page_number"]
+        if resource_uri and not data_base64:
+            metadata["resource_read_failed"] = True
+
+        assets.append(
+            ExtractionAsset(
+                name=asset_name,
+                content_type=mime_type,
+                data_base64=data_base64,
+                metadata=metadata,
+            ),
+        )
+
+    return assets
+
+
 def _schema_properties(schema: Any) -> dict[str, Any]:
     if not isinstance(schema, dict):
         return {}
@@ -1505,6 +1570,7 @@ async def _build_llm_invocation_plan(
     source_candidates: list[SourceCandidate],
     validation_error: ValidationErrorSummary | None = None,
     llm_config_id: str | None = None,
+    corpus_id: UUID | None = None,
 ) -> AdaptiveToolInvocationPlan | None:
     if not isinstance(input_schema, dict):
         return None
@@ -1587,14 +1653,19 @@ async def _build_llm_invocation_plan(
 
     try:
         from negentropy.config.model_resolver import (
-            resolve_llm_config,
             resolve_llm_config_by_id,
+            resolve_llm_config_for_task,
         )
 
         if llm_config_id:
+            # Corpus 显式绑定的 llm_config_id 优先
             _llm_name, _llm_kwargs = await resolve_llm_config_by_id(llm_config_id)
         else:
-            _llm_name, _llm_kwargs = await resolve_llm_config()
+            # 走 task → corpus 映射 → 全局映射 → is_default → fallback
+            _llm_name, _llm_kwargs = await resolve_llm_config_for_task(
+                "knowledge.ingestion.extract",
+                corpus_id=corpus_id,
+            )
         # 过滤掉与显式参数冲突的键
         _safe_kwargs = {k: v for k, v in _llm_kwargs.items() if k not in ("model", "messages", "response_format")}
         response = await litellm.acompletion(
@@ -1804,6 +1875,7 @@ class DataExtractorProvider:
         filename: str | None = None,
         content_type: str | None = None,
         tracker: Any | None = None,
+        cancel_event: Any | None = None,
     ) -> ExtractedDocumentResult:
         targets = resolve_targets(corpus_config, source_kind)
         if not targets:
@@ -1842,6 +1914,7 @@ class DataExtractorProvider:
                 tracker=tracker,
                 stage_name=stage_name,
                 llm_config_id=llm_config_id,
+                cancel_event=cancel_event,
             )
             attempts.append(attempt["attempt"])
 
@@ -1908,6 +1981,7 @@ class DataExtractorProvider:
         tracker: Any | None = None,
         stage_name: str | None = None,
         llm_config_id: str | None = None,
+        cancel_event: Any | None = None,
     ) -> dict[str, Any]:
         # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
         if not target.timeout_ms:
@@ -2028,6 +2102,7 @@ class DataExtractorProvider:
                     source_candidates=source_candidates,
                     validation_error=validation_error,
                     llm_config_id=llm_config_id,
+                    corpus_id=corpus_id,
                 )
                 if plan is None:
                     if index == 0:
@@ -2106,6 +2181,7 @@ class DataExtractorProvider:
                     plan=plan,
                     tracker=tracker,
                     stage_name=stage_name,
+                    cancel_event=cancel_event,
                 )
                 invocation_trace.append(
                     {
@@ -2189,6 +2265,7 @@ class DataExtractorProvider:
         plan: AdaptiveToolInvocationPlan,
         tracker: Any | None = None,
         stage_name: str | None = None,
+        cancel_event: Any | None = None,
     ) -> tuple[Any, dict[str, Any], dict[str, str]]:
         """调用 MCP 工具并在同会话内拉取所有 ResourceLink 动态资源。
 
@@ -2213,6 +2290,7 @@ class DataExtractorProvider:
                 timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
                 external_event_sink=event_sink,
                 resolve_resource_links=True,
+                cancel_event=cancel_event,
             )
             return (
                 execution.call_result,
@@ -2286,11 +2364,20 @@ class DataExtractorProvider:
             resolved_resources=resolved_resources or {},
         )
 
+        structured_image_assets = _extract_structured_image_assets(
+            payload,
+            markdown,
+            resolved_resources or {},
+        )
+
         merged_assets = _merge_extraction_assets(
             _merge_extraction_assets(
                 _merge_extraction_assets(
-                    _normalize_assets(payload.get("assets")),
-                    _extract_enhanced_image_assets(payload),
+                    _merge_extraction_assets(
+                        _normalize_assets(payload.get("assets")),
+                        _extract_enhanced_image_assets(payload),
+                    ),
+                    structured_image_assets,
                 ),
                 resource_link_assets,
             ),
@@ -2341,6 +2428,7 @@ async def extract_source(
     filename: str | None = None,
     content_type: str | None = None,
     tracker: Any | None = None,
+    cancel_event: Any | None = None,
 ) -> ExtractedDocumentResult:
     targets = resolve_targets(corpus_config, source_kind)
     if not targets:
@@ -2363,6 +2451,7 @@ async def extract_source(
         filename=filename,
         content_type=content_type,
         tracker=tracker,
+        cancel_event=cancel_event,
     )
 
 

@@ -420,7 +420,7 @@ class TestCatalogIsolation:
 
 @pytest.fixture
 def patch_handler_sessions(db_engine, monkeypatch):
-    """将 knowledge.api 与 storage.service 内 `from X import AsyncSessionLocal`
+    """将 routes 子模块与 _shared 中 `from db.session import AsyncSessionLocal`
     造成的名称绑定重定向到测试引擎，使 handler 直调可命中测试 DB。
 
     conftest.patch_db_globals 仅覆盖 db.session / db.deps 命名空间，
@@ -429,12 +429,13 @@ def patch_handler_sessions(db_engine, monkeypatch):
     """
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-    from negentropy.knowledge import api as knowledge_api
+    from negentropy.knowledge import _shared
+    from negentropy.knowledge.routes import catalog, corpus, graph, pipelines, provenance, wiki
     from negentropy.storage import service as storage_service_module
 
     test_session_local = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
-    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", test_session_local)
-    monkeypatch.setattr(storage_service_module, "AsyncSessionLocal", test_session_local)
+    for mod in (_shared, catalog, corpus, graph, pipelines, provenance, wiki, storage_service_module):
+        monkeypatch.setattr(mod, "AsyncSessionLocal", test_session_local)
     return test_session_local
 
 
@@ -491,9 +492,9 @@ class TestGetCatalogDocuments:
     ):
         """候选集 = catalog.app_name 下全部 active 文档；字段与 KnowledgeDocument 接口对齐；
         跨 app 文档不可见。"""
-        from negentropy.knowledge import api as knowledge_api
+        from negentropy.knowledge.routes import catalog as catalog_routes
 
-        result = await knowledge_api.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+        result = await catalog_routes.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
 
         assert result["total"] == 3
         assert len(result["items"]) == 3
@@ -524,7 +525,7 @@ class TestGetCatalogDocuments:
         """status='deleted' 的文档必须从候选集排除。"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge import api as knowledge_api
+        from negentropy.knowledge.routes import catalog as catalog_routes
         from negentropy.models.perception import KnowledgeDocument
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -533,7 +534,7 @@ class TestGetCatalogDocuments:
             doc.status = "deleted"
             await session.commit()
 
-        result = await knowledge_api.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+        result = await catalog_routes.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
         assert result["total"] == 2
         assert all(item.id != three_docs_in_negentropy[0] for item in result["items"])
 
@@ -544,10 +545,10 @@ class TestGetCatalogDocuments:
 
         from fastapi import HTTPException
 
-        from negentropy.knowledge import api as knowledge_api
+        from negentropy.knowledge.routes import catalog as catalog_routes
 
         with pytest.raises(HTTPException) as exc_info:
-            await knowledge_api.get_catalog_documents(catalog_id=uuid4(), offset=0, limit=200)
+            await catalog_routes.get_catalog_documents(catalog_id=uuid4(), offset=0, limit=200)
         assert exc_info.value.status_code == 404
         detail = exc_info.value.detail
         assert isinstance(detail, dict)
@@ -564,7 +565,7 @@ class TestGetCatalogDocuments:
         """归档的 catalog 仍应返回候选文档（归档 gating 在「分配」动作，不在「列候选」动作）。"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge import api as knowledge_api
+        from negentropy.knowledge.routes import catalog as catalog_routes
         from negentropy.models.perception import DocCatalog
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -573,7 +574,7 @@ class TestGetCatalogDocuments:
             catalog.is_archived = True
             await session.commit()
 
-        result = await knowledge_api.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+        result = await catalog_routes.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
         assert result["total"] == 3
 
 
@@ -592,9 +593,9 @@ class TestGetEntryDocuments:
         回归 ISSUE-010 字段漂移，锁定 DocumentAssignmentSection.tsx 的显示契约。"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge import api as knowledge_api
         from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
         from negentropy.knowledge.lifecycle.catalog_service import CatalogService
+        from negentropy.knowledge.routes import catalog as catalog_routes
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = CatalogService()
@@ -614,7 +615,7 @@ class TestGetEntryDocuments:
             await service.assign_document(session, catalog_node_id=node_id, document_id=doc_in_negentropy)
             await session.commit()
 
-        result = await knowledge_api.get_entry_documents(
+        result = await catalog_routes.get_entry_documents(
             catalog_id=negentropy_catalog, entry_id=node_id, offset=0, limit=50
         )
 

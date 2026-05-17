@@ -548,7 +548,7 @@ class TestBatchSyncIntegration:
         edges = [
             {
                 "source": f"PerfNode_{i % node_count}",
-                "target": f"PerfNode_{(i + 1) % node_count}",
+                "target": f"PerfNode_{(i + 1 + i // node_count) % node_count}",
                 "edge_type": "CONNECTS",
                 "weight": float(i % 5) + 0.5,
             }

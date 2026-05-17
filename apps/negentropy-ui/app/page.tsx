@@ -1,87 +1,38 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useMemo, useRef, useState } from "react";
+/**
+ * 根路径 ``/`` → 自动重定向到 ``/studio``（Plan §3 方案 A）。
+ *
+ * 设计动机：Studio 与 Dashboard 是 Home 下并存的两个子页面，根路径不承载实际内容，
+ * 仅做导航。书签 / 分享链接的兼容性由本函数承担：透传**全部** query 参数到
+ * ``/studio?...``，避免任何携带 query 的旧链接静默失活，与 ``useSessionListService``
+ * / ``studio/page.tsx`` 中 "URL 即单源" 的约束保持一致。
+ *
+ * 演进背景：早前仅白名单透传 ``?sessionId=`` 导致 ``/?view=archived`` 直达失败
+ * （E2E `home-chat.spec.ts:725` 第 3 个守卫），泛化为全量透传后，根路径不再充当
+ * query 白名单网关，新增 query 维度无需再回到本文件修补。
+ *
+ * 实现细节：用 server-side ``redirect()``（Next.js 15+ App Router 原生）而非
+ * client-side router.push，避免 hydration mismatch；searchParams 在 Next.js 16
+ * 为 Promise，需 await 后再读取；``URLSearchParams.toString()`` 负责百分号编码，
+ * 比手写 ``encodeURIComponent`` 不易出错且原生支持重复 key（多值参数）。
+ */
+interface RootPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
 
-import { CopilotKitProvider } from "@copilotkitnext/react";
-
-import { useAuth } from "../components/providers/AuthProvider";
-import { NdjsonHttpAgent } from "@/lib/agui/ndjson-agent";
-import { buildAgentUrl } from "@/utils/session";
-
-import { AGENT_ID, APP_NAME, HomeBody } from "./home-body";
-
-export default function Home() {
-  const { user, status: authStatus, login } = useAuth();
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const pendingSendRef = useRef<string | null>(null);
-  const pendingForSessionRef = useRef<string | null>(null);
-
-  const agent = useMemo(() => {
-    if (!user || !sessionId) {
-      return null;
+export default async function Home({ searchParams }: RootPageProps) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        query.append(key, item);
+      }
+    } else if (typeof value === "string") {
+      query.set(key, value);
     }
-    const userId = user.userId;
-    return new NdjsonHttpAgent({
-      url: buildAgentUrl(sessionId, userId, APP_NAME),
-      headers: {
-        "X-Session-ID": sessionId,
-        "X-User-ID": userId,
-      },
-      threadId: sessionId,
-    });
-  }, [sessionId, user]);
-
-  if (authStatus === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
-        正在验证登录状态...
-      </div>
-    );
   }
-
-  if (authStatus === "unauthenticated" || !user) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center dark:bg-zinc-950">
-        <div className="max-w-md space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-            Negentropy UI
-          </p>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-            需要登录以继续
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            使用 Google OAuth 进行单点登录。
-          </p>
-        </div>
-        <button
-          className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white dark:bg-white dark:text-black"
-          onClick={login}
-          type="button"
-        >
-          使用 Google 登录
-        </button>
-      </div>
-    );
-  }
-
-  const homeBodyProps = {
-    sessionId,
-    userId: user.userId,
-    setSessionId,
-    pendingSendRef,
-    pendingForSessionRef,
-  };
-
-  if (!agent) {
-    return <HomeBody agent={null} {...homeBodyProps} />;
-  }
-
-  return (
-    <CopilotKitProvider
-      agents__unsafe_dev_only={{ [AGENT_ID]: agent }}
-      showDevConsole="auto"
-    >
-      <HomeBody agent={agent} {...homeBodyProps} />
-    </CopilotKitProvider>
-  );
+  const qs = query.toString();
+  redirect(qs ? `/studio?${qs}` : "/studio");
 }

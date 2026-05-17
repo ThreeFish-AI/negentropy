@@ -1,4 +1,5 @@
 import {
+  joinEntrySlug,
   resolveSectionView,
   wikiApi,
   type WikiEntry,
@@ -7,8 +8,9 @@ import {
   type WikiPublication,
 } from "@/lib/wiki-api";
 import { WikiHeader } from "@/components/WikiHeader";
-import { WikiNavTree } from "@/components/WikiNavTree";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
+import { ThemePreference } from "@/components/ThemePreference";
+import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiToc } from "@/components/WikiToc";
 import { extractHeadings } from "@/lib/markdown-headings";
 import ReactMarkdown from "react-markdown";
@@ -37,13 +39,9 @@ interface Props {
 
 type LoadStatus = "ok" | "missing" | "pending" | "orphaned";
 
-function joinSlug(entrySlug: string[] | string): string {
-  return Array.isArray(entrySlug) ? entrySlug.join("/") : entrySlug;
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { pubSlug, entrySlug } = await params;
-  const slug = joinSlug(entrySlug);
+  const slug = joinEntrySlug(entrySlug);
   return {
     title: `${slug} — ${pubSlug}`,
     description: `Negentropy Wiki 文档页面`,
@@ -52,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function WikiEntryPage({ params }: Props) {
   const { pubSlug, entrySlug } = await params;
-  const slug = joinSlug(entrySlug);
+  const slug = joinEntrySlug(entrySlug);
 
   let publication: WikiPublication | null = null;
   let navItems: WikiNavTreeItem[] = [];
@@ -122,37 +120,16 @@ export default async function WikiEntryPage({ params }: Props) {
   const headings = status === "ok" ? extractHeadings(md) : [];
   const hasToc = headings.length >= 2;
   const sectionView = resolveSectionView(navItems, slug);
+  const hasAnyEntry = sectionView.headerItems.length > 0;
 
   const sidebar = (
-    <>
-      <div className="wiki-sidebar-header">
-        <Link
-          href={`/${pubSlug}`}
-          className="wiki-sidebar-back wiki-sidebar-brand"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
-          <img
-            src="/logo.png"
-            alt="Negentropy"
-            className="wiki-sidebar-logo"
-          />
-          <span className="wiki-sidebar-title">← {publication.name}</span>
-        </Link>
-      </div>
-      {sectionView.sidebarItems.length > 0 ? (
-        <nav>
-          <WikiNavTree
-            items={sectionView.sidebarItems}
-            pubSlug={pubSlug}
-            activeSlug={slug}
-          />
-        </nav>
-      ) : (
-        sectionView.activeItem && (
-          <p className="wiki-text-hint wiki-empty-hint">该分组暂无文档</p>
-        )
-      )}
-    </>
+    <WikiSidebar
+      pubSlug={pubSlug}
+      publication={publication}
+      sidebarItems={sectionView.sidebarItems}
+      hasActiveItem={!!sectionView.activeItem}
+      activeSlug={slug}
+    />
   );
 
   const header = sectionView.headerItems.length > 0 && (
@@ -160,6 +137,8 @@ export default async function WikiEntryPage({ params }: Props) {
       pubSlug={pubSlug}
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
+      headerSlot={<ThemePreference />}
+      graphTab={{ active: false, show: hasAnyEntry }}
     />
   );
 

@@ -1,8 +1,15 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { SubAgentCard } from "./_components/SubAgentCard";
 import { SubAgentFormDialog } from "./_components/SubAgentFormDialog";
 
@@ -34,6 +41,7 @@ interface SyncResponse {
 }
 
 export default function SubAgentsPage() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [agents, setAgents] = useState<SubAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +105,13 @@ export default function SubAgentsPage() {
   };
 
   const handleDelete = async (agentId: string) => {
-    if (!confirm("Are you sure you want to delete this subagent?")) {
+    const confirmed = await confirm({
+      title: "Delete SubAgent",
+      message: "Are you sure you want to delete this subagent?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -109,7 +123,7 @@ export default function SubAgentsPage() {
       }
       fetchAgents();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -246,6 +260,7 @@ export default function SubAgentsPage() {
         onSubmit={handleFormSubmit}
         agent={editingAgent}
       />
+      {confirmDialog}
     </div>
   );
 }

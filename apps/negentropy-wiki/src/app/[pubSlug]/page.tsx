@@ -1,12 +1,15 @@
 import {
+  countLeafEntries,
+  findIndexEntry,
   resolveSectionView,
   wikiApi,
   type WikiPublication,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
 import { WikiHeader } from "@/components/WikiHeader";
-import { WikiNavTree } from "@/components/WikiNavTree";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
+import { ThemePreference } from "@/components/ThemePreference";
+import { WikiSidebar } from "@/components/WikiSidebar";
 import Link from "next/link";
 
 export const revalidate = 300;
@@ -22,28 +25,6 @@ export const revalidate = 300;
 
 interface Props {
   params: Promise<{ pubSlug: string }>;
-}
-
-function findIndexEntry(items: WikiNavTreeItem[]): WikiNavTreeItem | null {
-  for (const item of items) {
-    if (item.is_index_page && item.entry_id) return item;
-    if (item.children && item.children.length > 0) {
-      const nested = findIndexEntry(item.children);
-      if (nested) return nested;
-    }
-  }
-  return null;
-}
-
-function countLeafEntries(items: WikiNavTreeItem[]): number {
-  let total = 0;
-  for (const item of items) {
-    if (item.entry_id) total += 1;
-    if (item.children && item.children.length > 0) {
-      total += countLeafEntries(item.children);
-    }
-  }
-  return total;
 }
 
 export default async function WikiPublicationPage({ params }: Props) {
@@ -82,39 +63,13 @@ export default async function WikiPublicationPage({ params }: Props) {
   const sectionView = resolveSectionView(navItems);
 
   const sidebar = (
-    <>
-      <div className="wiki-sidebar-header">
-        <div className="wiki-sidebar-brand">
-          {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
-          <img
-            src="/logo.png"
-            alt="Negentropy"
-            className="wiki-sidebar-logo"
-          />
-          <span className="wiki-sidebar-title">{publication.name}</span>
-        </div>
-      </div>
-      {publication.description && (
-        <p className="wiki-sidebar-desc">{publication.description}</p>
-      )}
-      {indexEntry && (
-        <Link
-          href={`/${pubSlug}/${indexEntry.entry_slug}`}
-          className="wiki-nav-link active"
-        >
-          🏠 首页
-        </Link>
-      )}
-      {sectionView.sidebarItems.length > 0 ? (
-        <nav>
-          <WikiNavTree items={sectionView.sidebarItems} pubSlug={pubSlug} />
-        </nav>
-      ) : (
-        sectionView.activeItem && (
-          <p className="wiki-text-hint wiki-empty-hint">该分组暂无文档</p>
-        )
-      )}
-    </>
+    <WikiSidebar
+      pubSlug={pubSlug}
+      publication={publication}
+      sidebarItems={sectionView.sidebarItems}
+      hasActiveItem={!!sectionView.activeItem}
+      indexEntry={indexEntry}
+    />
   );
 
   const header = sectionView.headerItems.length > 0 && (
@@ -122,6 +77,8 @@ export default async function WikiPublicationPage({ params }: Props) {
       pubSlug={pubSlug}
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
+      headerSlot={<ThemePreference />}
+      graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );
 

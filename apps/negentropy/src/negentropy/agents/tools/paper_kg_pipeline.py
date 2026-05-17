@@ -126,6 +126,16 @@ async def enqueue_kg_build(
     fail-open 兜底：任何 except 都不抛出，调用方可直接合并到 ingest_paper 返回值。
     """
     try:
+        # Hierarchical 语料库：仅使用 parent chunk 构建 KG，
+        # 避免 child chunk 参与实体/关系抽取造成冗余。
+        from negentropy.knowledge.service import CHUNK_ROLE_PARENT
+
+        parent_records = [
+            r for r in records if (getattr(r, "metadata", None) or {}).get("chunk_role") == CHUNK_ROLE_PARENT
+        ]
+        if parent_records:
+            records = parent_records
+
         chunks = _records_to_chunks(records)
         if not chunks:
             return {"kg_status": "kg_skipped", "kg_error_code": "no_chunks"}

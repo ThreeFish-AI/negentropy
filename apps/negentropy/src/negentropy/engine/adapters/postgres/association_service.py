@@ -203,17 +203,23 @@ class AssociationService:
         min_weight: float = 0.6,
         limit: int = 10,
     ) -> list[UUID]:
-        """多跳扩展：从给定项目出发，沿关联扩展到相关项目"""
+        """多跳扩展：从给定项目出发，沿关联扩展到相关项目。
+
+        优化（性能次优修复）：原实现在 ``for _ in range(max_hops)`` 内反复
+        ``async with db_session.AsyncSessionLocal()``，每跳都从池中取新 session +
+        setup/teardown 开销。改为整段共享同一 session，语义不变（仅读 + 多跳遍历，
+        无写入，事务隔离不构成风险），节省 N-1 次连接 setup。
+        """
         visited: set[UUID] = set(item_ids)
         frontier: set[UUID] = set(item_ids)
         result_ids: list[UUID] = []
 
-        for _ in range(max_hops):
-            if not frontier or len(result_ids) >= limit:
-                break
+        async with db_session.AsyncSessionLocal() as db:
+            for _ in range(max_hops):
+                if not frontier or len(result_ids) >= limit:
+                    break
 
-            next_frontier: set[UUID] = set()
-            async with db_session.AsyncSessionLocal() as db:
+                next_frontier: set[UUID] = set()
                 stmt = (
                     select(MemoryAssociation)
                     .where(
@@ -242,7 +248,7 @@ class AssociationService:
                         if len(result_ids) >= limit:
                             break
 
-            frontier = next_frontier
+                frontier = next_frontier
 
         return result_ids[:limit]
 
@@ -453,6 +459,18 @@ class AssociationService:
         """
         if not seeds:
             return {}
+        # 防御性 depth 上限（5）：HippoRAG 论文经验值 depth=2 已覆盖典型语义扩散；
+        # 大于 5 跳的扩散在 KG 上会产生组合爆炸（边数指数级增长），即便 SQL 走索引
+        # 也会因 frontier 集合过大触发全表扫。调用方误传更大值时静默截断而非阻塞 BFS。
+        max_safe_depth = 5
+        if depth > max_safe_depth:
+            logger.warning(
+                "ppr_expand_depth_clamped",
+                requested=depth,
+                clamped_to=max_safe_depth,
+            )
+            depth = max_safe_depth
+
         seed_strs = [str(s) for s in seeds]
         scores: dict[str, float] = {s: 1.0 for s in seed_strs}
 
@@ -462,54 +480,57 @@ class AssociationService:
         # Review fix：frontier 持有 UUID 实例（非 text），SQL 用
         # ``ANY(:frontier::uuid[])`` 直击 ``ix_kg_relations_source/_target``
         # btree 索引；旧版 ``::text`` 转换会全表扫导致 BFS 超 timeout 静默降级。
+        # 性能优化：将 ``async with AsyncSessionLocal()`` 提到外层循环之外，整段
+        # BFS 共享同一只读 session，节省 N-1 次 setup/teardown 开销。
         frontier: set[UUID] = set(seeds)
         visited: set[str] = set(seed_strs)
-        for d in range(1, max(1, depth) + 1):
-            if not frontier:
-                break
-            decay = alpha**d
-            try:
-                async with db_session.AsyncSessionLocal() as db:
-                    sql = text(
-                        f"""
-                        SELECT r.source_id AS src, r.target_id AS tgt,
-                               COALESCE(r.weight, 1.0) AS w
-                        FROM {NEGENTROPY_SCHEMA}.kg_relations r
-                        WHERE r.is_active IS TRUE
-                          AND (r.source_id = ANY(:frontier)
-                               OR r.target_id = ANY(:frontier))
-                        """
-                    )
+        sql = text(
+            f"""
+            SELECT r.source_id AS src, r.target_id AS tgt,
+                   COALESCE(r.weight, 1.0) AS w
+            FROM {NEGENTROPY_SCHEMA}.kg_relations r
+            WHERE r.is_active IS TRUE
+              AND (r.source_id = ANY(:frontier)
+                   OR r.target_id = ANY(:frontier))
+            """
+        )
+
+        async with db_session.AsyncSessionLocal() as db:
+            for d in range(1, max(1, depth) + 1):
+                if not frontier:
+                    break
+                decay = alpha**d
+                try:
                     result = await db.execute(sql, {"frontier": list(frontier)})
                     edges = result.fetchall()
-            except Exception as exc:
-                logger.debug("ppr_expand_query_failed", depth=d, error=str(exc))
-                break
+                except Exception as exc:
+                    logger.debug("ppr_expand_query_failed", depth=d, error=str(exc))
+                    break
 
-            # 同层内每个端点的最大累积权重（对多条路径取 max，避免重复加权放大）
-            level_gain: dict[str, float] = {}
-            frontier_strs = {str(u) for u in frontier}
-            for row in edges:
-                src = str(row.src)
-                tgt = str(row.tgt)
-                w = float(row.w or 1.0)
-                # KG 视为无向图扩散（HippoRAG 论文采用对称邻接）
-                if src in frontier_strs and tgt not in visited:
-                    prev = level_gain.get(tgt, 0.0)
-                    if w > prev:
-                        level_gain[tgt] = w
-                if tgt in frontier_strs and src not in visited:
-                    prev = level_gain.get(src, 0.0)
-                    if w > prev:
-                        level_gain[src] = w
+                # 同层内每个端点的最大累积权重（对多条路径取 max，避免重复加权放大）
+                level_gain: dict[str, float] = {}
+                frontier_strs = {str(u) for u in frontier}
+                for row in edges:
+                    src = str(row.src)
+                    tgt = str(row.tgt)
+                    w = float(row.w or 1.0)
+                    # KG 视为无向图扩散（HippoRAG 论文采用对称邻接）
+                    if src in frontier_strs and tgt not in visited:
+                        prev = level_gain.get(tgt, 0.0)
+                        if w > prev:
+                            level_gain[tgt] = w
+                    if tgt in frontier_strs and src not in visited:
+                        prev = level_gain.get(src, 0.0)
+                        if w > prev:
+                            level_gain[src] = w
 
-            for node, w in level_gain.items():
-                scores[node] = scores.get(node, 0.0) + decay * w
+                for node, w in level_gain.items():
+                    scores[node] = scores.get(node, 0.0) + decay * w
 
-            new_frontier_strs = set(level_gain.keys())
-            visited.update(new_frontier_strs)
-            # 下一跳 frontier 重新升回 UUID，以便 SQL 仍走索引路径
-            frontier = {UUID(s) for s in new_frontier_strs}
+                new_frontier_strs = set(level_gain.keys())
+                visited.update(new_frontier_strs)
+                # 下一跳 frontier 重新升回 UUID，以便 SQL 仍走索引路径
+                frontier = {UUID(s) for s in new_frontier_strs}
 
         # 归一化到 [0, 1]
         if not scores:

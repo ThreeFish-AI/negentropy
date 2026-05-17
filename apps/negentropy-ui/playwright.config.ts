@@ -8,8 +8,18 @@ const reuseExistingServer =
 
 // Browser-session reuse knobs — see ../../docs/agents/browser-validation.md
 //
+// 协议边界（Browser Validation Protocol §3 / §4）：
+// 本配置仅服务两类 B 类隔离场景：
+//   ① E2E `setup` project：在用户启动的有头 Chromium 内由**真人**一次性手动完成
+//      Google OAuth，随后 `storageState` 落到 .auth/user.json 复用；
+//   ② 本地自签 `ne_sso` dev-cookie 注入（dev-cookie.setup.ts / chromium-devcookie），
+//      不接触 Google OAuth。
+// **禁止**用本套 Playwright 实例驱动 Google OAuth / SSO 自动登录跳转——所有依赖
+// 登录态的 AI Agent 即时验证一律走 mcp__chrome_devtools__* 接入用户常用 Chrome
+// 主 profile 与真实登录用户（详见 ../../docs/agents/browser-validation.md §3-§5）。
+//
 // AUTH_MODE 切换两种登录态注入方式（双 setup 共存）：
-// - "google"（默认；headless=false）：跑 auth.setup.ts，需用户手动完成 Google 同意屏。
+// - "google"（默认；headless=false）：跑 auth.setup.ts，由真人在浏览器内手动完成 Google 同意屏。
 // - "dev-cookie"（headless=true）：跑 dev-cookie.setup.ts，自签注入 ne_sso cookie，CI 友好。
 const AUTH_MODE = (process.env.PLAYWRIGHT_AUTH_MODE ?? "google") as
   | "google"

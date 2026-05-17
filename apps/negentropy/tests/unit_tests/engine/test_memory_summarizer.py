@@ -35,10 +35,16 @@ def _make_summary_obj(content: str, updated_at: datetime | None = None) -> Magic
 
 @pytest.fixture
 def summarizer():
-    with patch("negentropy.engine.consolidation.memory_summarizer.resolve_model_config") as mock:
-        mock.return_value = ("test-model", {})
-        with patch("negentropy.engine.consolidation.memory_summarizer.SummaryService"):
-            return MemorySummarizer(ttl_hours=24)
+    # Phase 7: task-aware async 解析后改为 mock instance 方法 _resolve_model。
+    with patch("negentropy.engine.consolidation.memory_summarizer.SummaryService"):
+        inst = MemorySummarizer(ttl_hours=24)
+
+    async def _resolve():
+        inst._model = "test-model"
+        inst._model_kwargs = {}
+
+    inst._resolve_model = _resolve  # type: ignore[method-assign]
+    return inst
 
 
 class TestMemorySummarizer:

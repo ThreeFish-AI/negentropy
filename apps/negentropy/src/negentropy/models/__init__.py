@@ -1,5 +1,6 @@
 from .action import Tool, ToolExecution
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
+from .builtin_tool import BuiltinTool
 from .internalization import Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpResourceTemplate, McpServer, McpTool
@@ -24,10 +25,12 @@ from .perception import (
 )
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
 from .pulse import Event, Thread
+from .scheduled_task import ScheduledTask, TaskExecution
 from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
 from .sub_agent import SubAgent
+from .task_model_setting import TaskModelSetting
 from .vendor_config import VendorConfig
 
 __all__ = [
@@ -52,6 +55,8 @@ __all__ = [
     # Action
     "Tool",
     "ToolExecution",
+    # Builtin Tools
+    "BuiltinTool",
     # Observability
     "Trace",
     # Perception (知识)
@@ -90,9 +95,14 @@ __all__ = [
     # Skill & SubAgent
     "Skill",
     "SubAgent",
+    # Scheduled Task (统一心跳调度)
+    "ScheduledTask",
+    "TaskExecution",
     # Model Config
     "ModelConfig",
     "ModelType",
     # Vendor Config
     "VendorConfig",
+    # Task Model Settings
+    "TaskModelSetting",
 ]

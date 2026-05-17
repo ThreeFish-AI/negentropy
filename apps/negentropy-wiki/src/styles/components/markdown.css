@@ -1,0 +1,107 @@
+.wiki-markdown-body {
+  font-size: 1.02em;
+  line-height: 1.8;
+}
+
+.wiki-markdown-body :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: 4.5rem;
+}
+
+.wiki-markdown-body ul,
+.wiki-markdown-body ol {
+  padding-left: 1.5rem;
+  margin: 0.6em 0 1em;
+}
+.wiki-markdown-body li {
+  margin-bottom: 0.25em;
+}
+.wiki-markdown-body li > p {
+  margin-bottom: 0.4em;
+}
+.wiki-markdown-body input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: middle;
+}
+.wiki-markdown-body table {
+  margin: 1em 0;
+}
+.wiki-markdown-body img {
+  border-radius: var(--wiki-radius);
+}
+
+/* Responsive table zebra stripe */
+.wiki-responsive-table tbody tr:nth-child(even) {
+  background: var(--wiki-bg-secondary);
+}
+
+/* Callout / Admonition */
+.wiki-callout {
+  padding: 0.75rem 1rem;
+  margin: 1em 0;
+  border-radius: var(--wiki-radius);
+  border-left: 4px solid var(--wiki-accent);
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+.wiki-callout-title {
+  font-weight: 600;
+  margin-bottom: 0.25em;
+}
+.wiki-callout-note { border-left-color: var(--wiki-accent); background: rgba(35, 131, 226, 0.06); }
+.wiki-callout-tip { border-left-color: var(--wiki-success-text); background: var(--wiki-success-bg); }
+.wiki-callout-warn { border-left-color: #d97706; background: #fffbeb; }
+.wiki-callout-danger { border-left-color: #dc2626; background: #fef2f2; }
+
+/* Code block enhancements */
+.wiki-code-block {
+  position: relative;
+}
+.wiki-code-block .wiki-code-lang {
+  position: absolute;
+  top: 0.5rem;
+  right: 3.5rem;
+  font-size: 0.72em;
+  padding: 0.1em 0.5em;
+  border-radius: 4px;
+  background: var(--wiki-border);
+  color: var(--wiki-text-secondary);
+  font-family: var(--wiki-code-font);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.wiki-code-copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--wiki-border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75em;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-code-copy:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+
+/* Anchor heading */
+.wiki-anchor-heading {
+  position: relative;
+}
+.wiki-anchor-heading .wiki-anchor-link {
+  position: absolute;
+  left: -1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--wiki-text-secondary);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  text-decoration: none;
+  font-size: 0.85em;
+}
+.wiki-anchor-heading:hover .wiki-anchor-link {
+  opacity: 1;
+}

@@ -199,7 +199,7 @@ async def test_ingest_paper_success_returns_kg_status(monkeypatch):
 
     class _Ctx:
         def __init__(self):
-            self.state = {"tool_progress": {}}
+            self.state = {"tool_progress": {}, "approval_policy": {"mode": "never"}}
             self.function_call_id = "tcid"
 
     with (

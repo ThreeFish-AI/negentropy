@@ -18,8 +18,10 @@ Knowledge Graph Repository
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -142,6 +144,7 @@ class BuildRunRecord:
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
+    updated_at: datetime | None = None
     progress_percent: float = 0.0
     warnings: list[dict[str, Any]] | None = None
 
@@ -407,15 +410,17 @@ class GraphRepository(ABC):
         entity_count: int = 0,
         relation_count: int = 0,
         error_message: str | None = None,
+        human_run_id: str | None = None,
     ) -> None:
         """更新构建运行状态
 
         Args:
-            run_id: 运行记录 ID
+            run_id: 运行记录 ID（DB PK，UUID）
             status: 新状态
             entity_count: 实体数量
             relation_count: 关系数量
             error_message: 错误信息
+            human_run_id: 人类可读 run_id（``build-<hex>-<ts>``），仅用于日志补全。
         """
         pass
 
@@ -475,12 +480,27 @@ class AgeGraphRepository(GraphRepository):
         self._session = session
         self._schema = NEGENTROPY_SCHEMA
 
-    async def _get_session(self) -> AsyncSession:
-        """获取数据库会话"""
-        if self._session:
-            return self._session
+    @asynccontextmanager
+    async def _session_scope(self) -> AsyncIterator[AsyncSession]:
+        """获取数据库会话（上下文管理器形式，确保连接归还到池）。
+
+        历史问题（PR-XXX）：旧版 ``_get_session`` 在 ``async with AsyncSessionLocal()
+        as session:`` 块内 ``return session`` —— ``async with`` 在函数返回时立即退出，
+        但 ``session`` 引用被外泄给调用方继续使用，导致底层连接未正确归还，触发
+        ``AsyncAdaptedQueuePool: garbage collector is trying to clean up
+        non-checked-in connection`` 警告，并在大批量构建（849 chunk × 多关系）时
+        耗尽连接池，使后续 ``update_build_run`` / pagerank / community 等步骤 hang。
+
+        修复：改为 ``@asynccontextmanager``，调用方使用 ``async with self._session_scope()
+        as session:``，退出时自动 close + release。注入模式（``self._session != None``）
+        保持不接管生命周期，由调用方负责。
+        """
+        if self._session is not None:
+            # 注入模式：外部 session 由调用方管理，不接管生命周期
+            yield self._session
+            return
         async with AsyncSessionLocal() as session:
-            return session
+            yield session
 
     async def create_entity(
         self,
@@ -490,8 +510,15 @@ class AgeGraphRepository(GraphRepository):
         """创建实体节点
 
         将实体信息存储到 knowledge 表，并创建 Apache AGE 节点。
+
+        SQL 占位符注意事项：
+            ``:metadata::jsonb`` 这种「命名参数紧邻 PostgreSQL ``::`` cast 操作符」
+            的写法会破坏 SQLAlchemy 命名参数边界识别，导致 ``:metadata`` 未被翻译为
+            ``$N`` 而是原样发给 asyncpg，触发 ``syntax error at or near ":"``。
+            修复：改用 ``CAST(:metadata AS jsonb)`` —— CAST 函数边界清晰，与项目
+            ``update_build_run`` 等既有写法保持一致（参见 1804 行 ``CAST(:warnings AS json)``）。
         """
-        session = await self._get_session()
+        import json as _json
 
         # 更新 knowledge 表的实体字段
         confidence = entity.metadata.get("confidence", 1.0)
@@ -500,21 +527,21 @@ class AgeGraphRepository(GraphRepository):
             UPDATE {self._schema}.knowledge
             SET entity_type = :entity_type,
                 entity_confidence = :confidence,
-                metadata = COALESCE(metadata, '{{}}'::jsonb) || :metadata::jsonb
+                metadata = COALESCE(metadata, '{{}}'::jsonb) || CAST(:metadata AS jsonb)
             WHERE id = :entity_id
         """)
 
-        await session.execute(
-            query,
-            {
-                "entity_id": entity.id.replace("entity:", ""),
-                "entity_type": entity.node_type,
-                "confidence": confidence,
-                "metadata": str({"graph_label": entity.label}),
-            },
-        )
-
-        await session.commit()
+        async with self._session_scope() as session:
+            await session.execute(
+                query,
+                {
+                    "entity_id": entity.id.replace("entity:", ""),
+                    "entity_type": entity.node_type,
+                    "confidence": confidence,
+                    "metadata": _json.dumps({"graph_label": entity.label}),
+                },
+            )
+            await session.commit()
 
         logger.debug(
             "entity_created",
@@ -530,11 +557,44 @@ class AgeGraphRepository(GraphRepository):
         entities: list[GraphNode],
         corpus_id: UUID,
     ) -> list[str]:
-        """批量创建实体节点"""
+        """批量创建实体节点（单 Session 批量提交，消除逐条连接池抖动）
+
+        SQL 占位符注意事项参见 :py:meth:`create_entity` 文档：
+        ``CAST(:metadata AS jsonb)`` 取代 ``:metadata::jsonb`` 以规避 SQLAlchemy
+        命名参数边界识别异常；参数值必须用 ``json.dumps`` 序列化为合法 JSON 字符串
+        （而非 Python ``str(dict)`` 的单引号形式，否则 ``CAST`` 会再次报语法错误）。
+        """
+        if not entities:
+            return []
+
+        import json as _json
+
+        query = text(f"""
+            UPDATE {self._schema}.knowledge
+            SET entity_type = :entity_type,
+                entity_confidence = :confidence,
+                metadata = COALESCE(metadata, '{{}}'::jsonb) || CAST(:metadata AS jsonb)
+            WHERE id = :entity_id
+        """)
+
         ids = []
+        params_list = []
         for entity in entities:
-            entity_id = await self.create_entity(entity, corpus_id)
-            ids.append(entity_id)
+            confidence = entity.metadata.get("confidence", 1.0)
+            params_list.append(
+                {
+                    "entity_id": entity.id.replace("entity:", ""),
+                    "entity_type": entity.node_type,
+                    "confidence": confidence,
+                    "metadata": _json.dumps({"graph_label": entity.label}),
+                }
+            )
+            ids.append(entity.id)
+
+        async with self._session_scope() as session:
+            for params in params_list:
+                await session.execute(query, params)
+            await session.commit()
 
         logger.info(
             "entities_created_batch",
@@ -550,30 +610,46 @@ class AgeGraphRepository(GraphRepository):
         target_id: str,
         relation: GraphEdge,
     ) -> str:
-        """创建关系边
+        """创建单条关系边（委托给 _create_relation_with_session）"""
+        async with self._session_scope() as session:
+            rid = await self._create_relation_with_session(session, source_id, target_id, relation)
+            await session.commit()
+            return rid
+
+    async def _create_relation_with_session(
+        self,
+        session: AsyncSession,
+        source_id: str,
+        target_id: str,
+        relation: GraphEdge,
+    ) -> str:
+        """在给定 Session 上创建关系边（批量场景复用同一 Session）
 
         写入 kg_relations 一等公民表（SSoT），同时保留 knowledge.metadata JSONB
         作为过渡期兼容。参见 Kleppmann §11 事务内双写模式。
+
+        ON CONFLICT DO UPDATE（而非 DO NOTHING）：唯一约束 (source_id, target_id,
+        relation_type) 命中时必须原地覆盖 evidence/weight/confidence。若使用
+        DO NOTHING，evidence 变更后 INSERT 会被静默丢弃，叠加 TemporalResolver
+        的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
         """
         import json as _json
-
-        session = await self._get_session()
 
         clean_source = source_id.replace("entity:", "")
         clean_target = target_id.replace("entity:", "")
         confidence = relation.metadata.get("confidence", 1.0)
         evidence = relation.metadata.get("evidence")
 
-        # 1. 写入 kg_relations 一等公民表
-        # 唯一约束 (source_id, target_id, relation_type) 命中时使用 DO UPDATE，
-        # 而非 DO NOTHING：否则 evidence 变更后 INSERT 被静默丢弃，再叠加
-        # TemporalResolver 的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
+        # SQL 占位符注意事项：``:metadata::jsonb`` / ``:related::jsonb`` 命名参数紧邻
+        # ``::`` cast 会破坏 SQLAlchemy 命名参数边界识别（asyncpg 报 ``syntax error at or
+        # near ":"``）。统一改为 ``CAST(:name AS jsonb)``，与 ``update_build_run`` 等既有
+        # 写法保持一致。
         insert_query = text(f"""
             INSERT INTO {self._schema}.kg_relations
                 (source_id, target_id, corpus_id, app_name, relation_type,
                  weight, confidence, evidence_text, metadata, is_active)
             SELECT :source_id, :target_id, k.corpus_id, k.app_name,
-                   :relation_type, :weight, :confidence, :evidence, :metadata::jsonb, true
+                   :relation_type, :weight, :confidence, :evidence, CAST(:metadata AS jsonb), true
             FROM {self._schema}.knowledge k
             WHERE k.id = :source_id
             ON CONFLICT (source_id, target_id, relation_type) DO UPDATE SET
@@ -585,6 +661,19 @@ class AgeGraphRepository(GraphRepository):
                 valid_to = NULL,
                 last_observed_at = NOW(),
                 observation_count = kg_relations.observation_count + 1
+        """)
+
+        select_query = text(f"""
+            SELECT metadata->'related_entities' as related
+            FROM {self._schema}.knowledge
+            WHERE id = :source_id
+        """)
+
+        update_query = text(f"""
+            UPDATE {self._schema}.knowledge
+            SET metadata = COALESCE(metadata, '{{}}'::jsonb) ||
+                          jsonb_build_object('related_entities', CAST(:related AS jsonb))
+            WHERE id = :source_id
         """)
 
         await session.execute(
@@ -600,19 +689,13 @@ class AgeGraphRepository(GraphRepository):
             },
         )
 
-        # 2. 过渡期：同时写入 JSONB（兼容旧读取路径）
+        # 过渡期：同时写入 JSONB（兼容旧读取路径）
         relation_data = {
             "target_id": clean_target,
             "relation_type": relation.edge_type,
             "confidence": confidence,
             "evidence": evidence,
         }
-
-        select_query = text(f"""
-            SELECT metadata->'related_entities' as related
-            FROM {self._schema}.knowledge
-            WHERE id = :source_id
-        """)
 
         result = await session.execute(select_query, {"source_id": clean_source})
         row = result.fetchone()
@@ -623,13 +706,6 @@ class AgeGraphRepository(GraphRepository):
 
         related_entities.append(relation_data)
 
-        update_query = text(f"""
-            UPDATE {self._schema}.knowledge
-            SET metadata = COALESCE(metadata, '{{}}'::jsonb) ||
-                          jsonb_build_object('related_entities', :related::jsonb)
-            WHERE id = :source_id
-        """)
-
         await session.execute(
             update_query,
             {
@@ -637,8 +713,6 @@ class AgeGraphRepository(GraphRepository):
                 "related": _json.dumps(related_entities),
             },
         )
-
-        await session.commit()
 
         relation_id = f"relation:{source_id}:{target_id}:{relation.edge_type}"
 
@@ -656,15 +730,21 @@ class AgeGraphRepository(GraphRepository):
         self,
         relations: list[GraphEdge],
     ) -> list[str]:
-        """批量创建关系边"""
+        """批量创建关系边（单 Session 批量提交，消除逐条连接池抖动）"""
+        if not relations:
+            return []
+
         ids = []
-        for relation in relations:
-            relation_id = await self.create_relation(
-                relation.source,
-                relation.target,
-                relation,
-            )
-            ids.append(relation_id)
+        async with self._session_scope() as session:
+            for relation in relations:
+                rid = await self._create_relation_with_session(
+                    session,
+                    relation.source,
+                    relation.target,
+                    relation,
+                )
+                ids.append(rid)
+            await session.commit()
 
         logger.info("relations_created_batch", count=len(ids))
 
@@ -682,7 +762,6 @@ class AgeGraphRepository(GraphRepository):
         通过 kg_entities + kg_relations 表进行图遍历，
         支持 1-max_depth 跳的邻居查询。
         """
-        session = await self._get_session()
         clean_id = entity_id.replace("entity:", "")
 
         # 时态过滤片段 (Snodgrass & Ahn, 1985) — 委托模块级 helper
@@ -735,10 +814,12 @@ class AgeGraphRepository(GraphRepository):
         if as_of:
             params["as_of"] = as_of
 
-        result = await session.execute(query, params)
+        async with self._session_scope() as session:
+            result = await session.execute(query, params)
+            rows = list(result)
 
         neighbors = []
-        for row in result:
+        for row in rows:
             neighbor = GraphNode(
                 id=f"entity:{row.id}",
                 label=row.name,
@@ -770,7 +851,6 @@ class AgeGraphRepository(GraphRepository):
         与 find_neighbors 不同，本查询单跳 JOIN kg_relations × kg_entities，
         每行返回邻居节点 + 连接边的 relation_type / evidence_text。
         """
-        session = await self._get_session()
         clean_id = entity_id.replace("entity:", "")
 
         temporal_filter = ""
@@ -800,7 +880,9 @@ class AgeGraphRepository(GraphRepository):
         if as_of:
             params["as_of"] = as_of
 
-        result = await session.execute(query, params)
+        async with self._session_scope() as session:
+            result = await session.execute(query, params)
+            rows = list(result)
 
         return [
             {
@@ -810,7 +892,7 @@ class AgeGraphRepository(GraphRepository):
                 "relation": row.relation_type,
                 "evidence": row.evidence_text or "",
             }
-            for row in result
+            for row in rows
         ]
 
     async def find_path(
@@ -825,7 +907,6 @@ class AgeGraphRepository(GraphRepository):
         使用广度优先搜索在 kg_relations 表上查找最短路径。
         ``as_of`` 提供时仅遍历在该时刻有效的关系（Snodgrass & Ahn, 1985）。
         """
-        session = await self._get_session()
         source_clean = source_id.replace("entity:", "")
         target_clean = target_id.replace("entity:", "")
 
@@ -885,9 +966,10 @@ class AgeGraphRepository(GraphRepository):
         if as_of:
             params["as_of"] = as_of
 
-        result = await session.execute(query, params)
+        async with self._session_scope() as session:
+            result = await session.execute(query, params)
+            row = result.first()
 
-        row = result.first()
         if row is None:
             return None
 
@@ -921,29 +1003,9 @@ class AgeGraphRepository(GraphRepository):
         关系的实体（双时态过滤；Snodgrass & Ahn, 1985）。
         """
 
-        session = await self._get_session()
-
-        if rrf_k is not None:
-            # RRF 模式：分别查询语义和图排序，然后融合
-            results = await self._rrf_search(
-                session,
-                corpus_id,
-                app_name,
-                query_embedding,
-                query_text,
-                limit,
-                rrf_k,
-                as_of=as_of,
-            )
-        else:
-            if as_of is not None:
-                # 线性加权调用 SQL 函数 kg_hybrid_search，函数本身未感知时态；
-                # 此处不静默丢弃 as_of，而是显式自动升级为 RRF 模式以满足语义。
-                logger.info(
-                    "hybrid_search_as_of_upgraded_to_rrf",
-                    corpus_id=str(corpus_id),
-                    reason="linear_weighted_path_lacks_temporal_filter",
-                )
+        async with self._session_scope() as session:
+            if rrf_k is not None:
+                # RRF 模式：分别查询语义和图排序，然后融合
                 results = await self._rrf_search(
                     session,
                     corpus_id,
@@ -951,22 +1013,41 @@ class AgeGraphRepository(GraphRepository):
                     query_embedding,
                     query_text,
                     limit,
-                    60,  # 与 unified_search 默认 rrf_k 对齐
+                    rrf_k,
                     as_of=as_of,
                 )
             else:
-                # 线性加权模式（向后兼容）
-                results = await self._linear_weighted_search(
-                    session,
-                    corpus_id,
-                    app_name,
-                    query_embedding,
-                    query_text,
-                    limit,
-                    graph_depth,
-                    semantic_weight,
-                    graph_weight,
-                )
+                if as_of is not None:
+                    # 线性加权调用 SQL 函数 kg_hybrid_search，函数本身未感知时态；
+                    # 此处不静默丢弃 as_of，而是显式自动升级为 RRF 模式以满足语义。
+                    logger.info(
+                        "hybrid_search_as_of_upgraded_to_rrf",
+                        corpus_id=str(corpus_id),
+                        reason="linear_weighted_path_lacks_temporal_filter",
+                    )
+                    results = await self._rrf_search(
+                        session,
+                        corpus_id,
+                        app_name,
+                        query_embedding,
+                        query_text,
+                        limit,
+                        60,  # 与 unified_search 默认 rrf_k 对齐
+                        as_of=as_of,
+                    )
+                else:
+                    # 线性加权模式（向后兼容）
+                    results = await self._linear_weighted_search(
+                        session,
+                        corpus_id,
+                        app_name,
+                        query_embedding,
+                        query_text,
+                        limit,
+                        graph_depth,
+                        semantic_weight,
+                        graph_weight,
+                    )
 
         logger.debug(
             "hybrid_search_completed",
@@ -1274,24 +1355,23 @@ class AgeGraphRepository(GraphRepository):
         的孤立节点会被自然剔除，因为 _load_graph_from_first_class_tables 仅
         保留两端实体在结果中的边）。
         """
-        session = await self._get_session()
-
-        # 尝试从一等公民表读取
-        nodes, edges = await self._load_graph_from_first_class_tables(
-            session,
-            corpus_id,
-            app_name,
-            as_of=as_of,
-        )
-
-        # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
-        if not nodes:
-            # JSONB 回退路径不支持时态过滤（旧数据无 valid_from/valid_to）
-            nodes, edges = await self._load_graph_from_jsonb(
+        async with self._session_scope() as session:
+            # 尝试从一等公民表读取
+            nodes, edges = await self._load_graph_from_first_class_tables(
                 session,
                 corpus_id,
                 app_name,
+                as_of=as_of,
             )
+
+            # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
+            if not nodes:
+                # JSONB 回退路径不支持时态过滤（旧数据无 valid_from/valid_to）
+                nodes, edges = await self._load_graph_from_jsonb(
+                    session,
+                    corpus_id,
+                    app_name,
+                )
 
         logger.info(
             "graph_loaded",
@@ -1455,8 +1535,6 @@ class AgeGraphRepository(GraphRepository):
         """
         import json as _json
 
-        session = await self._get_session()
-
         query = text(f"""
             SELECT id, name, 1 - (embedding <=> :emb::vector) AS similarity
             FROM {self._schema}.kg_entities
@@ -1468,17 +1546,19 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(
-            query,
-            {
-                "emb": _json.dumps(embedding),
-                "cid": str(corpus_id),
-                "type": entity_type,
-                "limit": limit,
-            },
-        )
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {
+                    "emb": _json.dumps(embedding),
+                    "cid": str(corpus_id),
+                    "type": entity_type,
+                    "limit": limit,
+                },
+            )
+            rows = list(result)
 
-        return [(str(row.id), row.name, float(row.similarity)) for row in result if float(row.similarity) >= threshold]
+        return [(str(row.id), row.name, float(row.similarity)) for row in rows if float(row.similarity) >= threshold]
 
     async def find_existing_relations(
         self,
@@ -1488,7 +1568,6 @@ class AgeGraphRepository(GraphRepository):
         corpus_id: UUID,
     ) -> list[dict[str, Any]]:
         """查找已有关系，供 TemporalResolver 冲突检测使用 (Snodgrass & Ahn, 1985)"""
-        session = await self._get_session()
         clean_source = source_id.replace("entity:", "")
 
         conditions = [
@@ -1514,7 +1593,11 @@ class AgeGraphRepository(GraphRepository):
             FROM {self._schema}.kg_relations
             WHERE {where}
         """)
-        result = await session.execute(query, params)
+
+        async with self._session_scope() as session:
+            result = await session.execute(query, params)
+            rows = list(result)
+
         return [
             {
                 "id": str(row.id),
@@ -1525,7 +1608,7 @@ class AgeGraphRepository(GraphRepository):
                 "valid_from": row.valid_from.isoformat() if row.valid_from else None,
                 "valid_to": row.valid_to.isoformat() if row.valid_to else None,
             }
-            for row in result
+            for row in rows
         ]
 
     async def expire_relations(
@@ -1545,19 +1628,18 @@ class AgeGraphRepository(GraphRepository):
         if not relation_ids:
             return 0
 
-        session = await self._get_session()
+        async with self._session_scope() as session:
+            result = await session.execute(
+                text(f"""
+                    UPDATE {self._schema}.kg_relations
+                    SET valid_to = :valid_to
+                    WHERE id = ANY(:ids)
+                """),
+                {"valid_to": valid_to, "ids": relation_ids},
+            )
+            await session.commit()
+            count = result.rowcount or 0
 
-        result = await session.execute(
-            text(f"""
-                UPDATE {self._schema}.kg_relations
-                SET valid_to = :valid_to
-                WHERE id = ANY(:ids)
-            """),
-            {"valid_to": valid_to, "ids": relation_ids},
-        )
-        await session.commit()
-
-        count = result.rowcount or 0
         logger.info(
             "relations_expired",
             requested=len(relation_ids),
@@ -1573,34 +1655,33 @@ class AgeGraphRepository(GraphRepository):
 
         同时清理 kg_entities、kg_relations 一等公民表和 knowledge.metadata JSONB。
         """
-        session = await self._get_session()
+        async with self._session_scope() as session:
+            # 1. 清理一等公民表
+            await session.execute(
+                text(f"DELETE FROM {self._schema}.kg_relations WHERE corpus_id = :cid"),
+                {"cid": str(corpus_id)},
+            )
+            entity_result = await session.execute(
+                text(f"DELETE FROM {self._schema}.kg_entities WHERE corpus_id = :cid"),
+                {"cid": str(corpus_id)},
+            )
+            entity_count = entity_result.rowcount or 0
 
-        # 1. 清理一等公民表
-        await session.execute(
-            text(f"DELETE FROM {self._schema}.kg_relations WHERE corpus_id = :cid"),
-            {"cid": str(corpus_id)},
-        )
-        entity_result = await session.execute(
-            text(f"DELETE FROM {self._schema}.kg_entities WHERE corpus_id = :cid"),
-            {"cid": str(corpus_id)},
-        )
-        entity_count = entity_result.rowcount or 0
+            # 2. 重置 knowledge 表的实体字段
+            knowledge_result = await session.execute(
+                text(f"""
+                    UPDATE {self._schema}.knowledge
+                    SET entity_type = NULL,
+                        entity_confidence = NULL,
+                        metadata = metadata - 'related_entities'
+                    WHERE corpus_id = :corpus_id
+                      AND entity_type IS NOT NULL
+                """),
+                {"corpus_id": str(corpus_id)},
+            )
+            knowledge_count = knowledge_result.rowcount or 0
 
-        # 2. 重置 knowledge 表的实体字段
-        knowledge_result = await session.execute(
-            text(f"""
-                UPDATE {self._schema}.knowledge
-                SET entity_type = NULL,
-                    entity_confidence = NULL,
-                    metadata = metadata - 'related_entities'
-                WHERE corpus_id = :corpus_id
-                  AND entity_type IS NOT NULL
-            """),
-            {"corpus_id": str(corpus_id)},
-        )
-        knowledge_count = knowledge_result.rowcount or 0
-
-        await session.commit()
+            await session.commit()
 
         count = max(entity_count, knowledge_count)
 
@@ -1622,7 +1703,6 @@ class AgeGraphRepository(GraphRepository):
         if bucket not in {"day", "week", "month"}:
             raise ValueError(f"unsupported bucket '{bucket}'; expected day|week|month")
 
-        session = await self._get_session()
         # 同一查询返回两组事件密度：
         #   active_count   = COUNT(valid_from at bucket)
         #   expired_count  = COUNT(valid_to at bucket)
@@ -1653,13 +1733,15 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(
-            query,
-            {"corpus_id": str(corpus_id), "bucket": bucket, "limit": _TIMELINE_BUCKET_CAP},
-        )
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {"corpus_id": str(corpus_id), "bucket": bucket, "limit": _TIMELINE_BUCKET_CAP},
+            )
+            rows = list(result)
 
         timeline: list[dict[str, Any]] = []
-        for row in result:
+        for row in rows:
             if row.bucket_date is None:
                 continue
             timeline.append(
@@ -1685,33 +1767,34 @@ class AgeGraphRepository(GraphRepository):
         import json
         import uuid
 
-        session = await self._get_session()
-
         run_uuid = uuid.uuid4()
 
         query = text(f"""
             INSERT INTO {self._schema}.kg_build_runs
-                (id, app_name, corpus_id, run_id, status, extractor_config, model_name, started_at)
+                (id, app_name, corpus_id, run_id, status, extractor_config, model_name, started_at, updated_at)
             VALUES
-                (:id, :app_name, :corpus_id, :run_id, 'running', CAST(:config AS jsonb), :model, NOW())
+                (:id, :app_name, :corpus_id, :run_id, 'running', CAST(:config AS jsonb), :model, NOW(), NOW())
         """)
 
-        await session.execute(
-            query,
-            {
-                "id": str(run_uuid),
-                "app_name": app_name,
-                "corpus_id": str(corpus_id),
-                "run_id": run_id,
-                "config": json.dumps(extractor_config),
-                "model": model_name,
-            },
-        )
+        async with self._session_scope() as session:
+            await session.execute(
+                query,
+                {
+                    "id": str(run_uuid),
+                    "app_name": app_name,
+                    "corpus_id": str(corpus_id),
+                    "run_id": run_id,
+                    "config": json.dumps(extractor_config),
+                    "model": model_name,
+                },
+            )
+            await session.commit()
 
-        await session.commit()
-
+        # 双字段日志：``run_uuid`` 为 DB PK，``run_id`` 为人类可读 ``build-<hex>-<ts>``。
+        # 与 ``build_run_updated`` 字段命名保持一致，便于跨日志检索。
         logger.info(
             "build_run_created",
+            run_uuid=str(run_uuid),
             run_id=run_id,
             corpus_id=str(corpus_id),
         )
@@ -1728,18 +1811,38 @@ class AgeGraphRepository(GraphRepository):
         progress_percent: float | None = None,
         warnings: list[dict[str, Any]] | None = None,
         processed_chunk_ids: list[str] | None = None,
+        human_run_id: str | None = None,
     ) -> None:
-        """更新构建运行状态
+        """更新构建运行状态。
+
+        状态机不变量（ISSUE-080）：
+        - 终态写入（``completed`` / ``failed`` / ``cancelled``）永远允许；
+        - 非终态写入（如 ``running`` 进度上报）仅当 DB 当前**不在终态/cancelling** 时
+          才生效。这避免 build task 的进度上报把取消 API 已写入的 ``cancelling``
+          状态回滚为 ``running``，导致 watchdog 命中失败、跨 worker DB 兜底失明、
+          UI 永远卡 CANCELLING 的连锁缺陷。
+        - ``completed_at`` 仅在写入终态时设为 ``NOW()``；非终态保留旧值，避免
+          被错误清零（既影响 watchdog 阈值计算，也丢失 cancel 请求时间锚）。
+
+        参考: M. Kleppmann, *Designing Data-Intensive Applications*, ch. 9 §9.4 —
+        以 DB 为权威协调源时，状态机迁移合法性必须在 SQL 层显式守护，避免
+        多写入路径（cancel API、build task heartbeat、watchdog）形成竞态覆盖。
 
         Args:
             progress_percent: 构建进度 0.0-1.0，用于前端进度条 (Nygard, 2018)
             warnings: 非致命警告列表（如 PageRank 收敛失败）
             processed_chunk_ids: 增量构建已处理的 chunk ID 列表
+            human_run_id: 人类可读的 run_id（``build-<short>-<ts>``）。仅用于日志
+                字段补全；DB 写入仍以 UUID PK 为准。传入后 ``build_run_updated`` 与
+                ``build_run_update_skipped_by_state_guard`` 同时输出 ``run_uuid`` +
+                ``run_id`` 双字段，串联 service.py 层的人类可读 run_id 与 repository
+                层的 DB PK，便于跨日志与跨 worker 排障。
         """
         import json as _json
 
-        session = await self._get_session()
-
+        # WHERE 子句守卫状态机：
+        # - 终态写入（含 cancel 异常处理路径）无条件允许；
+        # - 非终态写入要求 DB 当前不在终态/cancelling，否则零行 UPDATE 静默忽略。
         query = text(f"""
             UPDATE {self._schema}.kg_build_runs
             SET status = :status,
@@ -1747,31 +1850,56 @@ class AgeGraphRepository(GraphRepository):
                 relation_count = :relation_count,
                 error_message = :error_message,
                 progress_percent = COALESCE(:progress, progress_percent),
-                warnings = COALESCE(CAST(:warnings AS jsonb), warnings),
-                processed_chunk_ids = COALESCE(CAST(:chunk_ids AS jsonb), processed_chunk_ids),
-                completed_at = CASE WHEN :status IN ('completed', 'failed') THEN NOW() END
+                warnings = COALESCE(CAST(:warnings AS json), warnings),
+                processed_chunk_ids = COALESCE(CAST(:chunk_ids AS json), processed_chunk_ids),
+                updated_at = NOW(),
+                completed_at = CASE
+                    WHEN CAST(:status AS varchar) IN (
+                        'completed', 'completed_with_errors', 'failed', 'cancelled'
+                    ) THEN NOW()
+                    ELSE completed_at
+                END
             WHERE id = :run_id
+              AND (
+                CAST(:status AS varchar) IN ('completed', 'completed_with_errors', 'failed', 'cancelled')
+                OR status NOT IN ('completed', 'completed_with_errors', 'failed', 'cancelled', 'cancelling')
+              )
         """)
 
-        await session.execute(
-            query,
-            {
-                "run_id": str(run_id),
-                "status": status,
-                "entity_count": entity_count,
-                "relation_count": relation_count,
-                "error_message": error_message,
-                "progress": progress_percent,
-                "warnings": _json.dumps(warnings) if warnings else None,
-                "chunk_ids": _json.dumps(processed_chunk_ids) if processed_chunk_ids else None,
-            },
-        )
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {
+                    "run_id": str(run_id),
+                    "status": status,
+                    "entity_count": entity_count,
+                    "relation_count": relation_count,
+                    "error_message": error_message,
+                    "progress": progress_percent,
+                    "warnings": _json.dumps(warnings) if warnings else None,
+                    "chunk_ids": _json.dumps(processed_chunk_ids) if processed_chunk_ids else None,
+                },
+            )
+            await session.commit()
+            rowcount = result.rowcount or 0
 
-        await session.commit()
+        if rowcount == 0:
+            # 零行 UPDATE：通常意味着 DB 已在终态/cancelling 且本次为非终态写入，
+            # 这是状态机守卫的正常拒绝路径；以 debug 级保留观测线索，便于 cancel 链路排查。
+            logger.debug(
+                "build_run_update_skipped_by_state_guard",
+                run_uuid=str(run_id),
+                run_id=human_run_id,
+                attempted_status=status,
+            )
+            return
 
+        # 双字段日志：``run_uuid`` 为 DB PK（持久化主键），``run_id`` 为人类可读
+        # ``build-<hex>-<ts>``（service 层局部变量名），便于跨日志/跨 worker 串联。
         logger.info(
             "build_run_updated",
-            run_id=str(run_id),
+            run_uuid=str(run_id),
+            run_id=human_run_id,
             status=status,
             entity_count=entity_count,
             relation_count=relation_count,
@@ -1783,24 +1911,24 @@ class AgeGraphRepository(GraphRepository):
         app_name: str,
     ) -> set[str]:
         """获取最近一次成功构建已处理的 chunk ID 集合 (Hogan et al., 2021 §6.3)"""
-        session = await self._get_session()
-
         query = text(f"""
             SELECT processed_chunk_ids
             FROM {self._schema}.kg_build_runs
             WHERE corpus_id = :corpus_id
               AND app_name = :app_name
-              AND status = 'completed'
+              AND status IN ('completed', 'completed_with_errors')
               AND processed_chunk_ids IS NOT NULL
             ORDER BY completed_at DESC
             LIMIT 1
         """)
 
-        result = await session.execute(
-            query,
-            {"corpus_id": str(corpus_id), "app_name": app_name},
-        )
-        row = result.fetchone()
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {"corpus_id": str(corpus_id), "app_name": app_name},
+            )
+            row = result.fetchone()
+
         if row and row.processed_chunk_ids:
             return set(row.processed_chunk_ids)
         return set()
@@ -1819,7 +1947,6 @@ class AgeGraphRepository(GraphRepository):
 
         参考：P3-1 SSE 进度推送依赖此查询定位 paper_kg_pipeline 刚 enqueue 的后台 build。
         """
-        session = await self._get_session()
         status_filter = "AND status IN ('pending', 'running')" if only_active else ""
         query = text(f"""
             SELECT id, app_name, corpus_id, run_id, status,
@@ -1832,11 +1959,14 @@ class AgeGraphRepository(GraphRepository):
             ORDER BY created_at DESC
             LIMIT 1
         """)
-        result = await session.execute(
-            query,
-            {"corpus_id": str(corpus_id), "app_name": app_name},
-        )
-        row = result.fetchone()
+
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {"corpus_id": str(corpus_id), "app_name": app_name},
+            )
+            row = result.fetchone()
+
         if row is None:
             return None
         return BuildRunRecord(
@@ -1864,12 +1994,10 @@ class AgeGraphRepository(GraphRepository):
         limit: int = 20,
     ) -> list[BuildRunRecord]:
         """获取构建运行历史"""
-        session = await self._get_session()
-
         query = text(f"""
             SELECT id, app_name, corpus_id, run_id, status,
                    entity_count, relation_count, extractor_config, model_name,
-                   error_message, started_at, completed_at, created_at,
+                   error_message, started_at, completed_at, created_at, updated_at,
                    progress_percent, warnings
             FROM {self._schema}.kg_build_runs
             WHERE corpus_id = :corpus_id AND app_name = :app_name
@@ -1877,17 +2005,19 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(
-            query,
-            {
-                "corpus_id": str(corpus_id),
-                "app_name": app_name,
-                "limit": limit,
-            },
-        )
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {
+                    "corpus_id": str(corpus_id),
+                    "app_name": app_name,
+                    "limit": limit,
+                },
+            )
+            rows = list(result)
 
         runs = []
-        for row in result:
+        for row in rows:
             run = BuildRunRecord(
                 id=row.id,
                 app_name=row.app_name,
@@ -1902,12 +2032,208 @@ class AgeGraphRepository(GraphRepository):
                 started_at=row.started_at,
                 completed_at=row.completed_at,
                 created_at=row.created_at,
+                updated_at=row.updated_at,
                 progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
                 warnings=row.warnings if row.warnings else None,
             )
             runs.append(run)
 
         return runs
+
+    async def get_build_run_by_run_id(
+        self,
+        run_id: str,
+        app_name: str,
+    ) -> BuildRunRecord | None:
+        """按业务 `run_id`（非 UUID 主键）查找构建记录。
+
+        cancel API 收到前端的 run_id（形如 `build-xxx-timestamp`），需要根据它定位
+        kg_build_runs 行。
+        """
+        query = text(f"""
+            SELECT id, app_name, corpus_id, run_id, status,
+                   entity_count, relation_count, extractor_config, model_name,
+                   error_message, started_at, completed_at, created_at, updated_at,
+                   progress_percent, warnings
+            FROM {self._schema}.kg_build_runs
+            WHERE run_id = :run_id AND app_name = :app_name
+            LIMIT 1
+        """)
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {"run_id": run_id, "app_name": app_name},
+            )
+            row = result.fetchone()
+        if row is None:
+            return None
+        return BuildRunRecord(
+            id=row.id,
+            app_name=row.app_name,
+            corpus_id=row.corpus_id,
+            run_id=row.run_id,
+            status=row.status,
+            entity_count=row.entity_count,
+            relation_count=row.relation_count,
+            extractor_config=row.extractor_config or {},
+            model_name=row.model_name,
+            error_message=row.error_message,
+            started_at=row.started_at,
+            completed_at=row.completed_at,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+            warnings=row.warnings if row.warnings else None,
+        )
+
+    async def request_build_run_cancel(
+        self,
+        run_id: str,
+        app_name: str,
+        *,
+        cancellation_meta: dict[str, Any],
+    ) -> tuple[str, BuildRunRecord | None]:
+        """对 KG Build Run 发起取消（条件 UPDATE，规避 race）。
+
+        与 `KnowledgeRunDao.request_pipeline_run_cancel` 同思路：
+        - WHERE status NOT IN ('completed','failed','cancelled')；
+        - pending → cancelled（task 尚未启动 / 极少出现因 KG build 是同步入口）；
+        - running → cancelling；
+        - cancelling → noop；
+        - 元数据写入 warnings JSONB 末尾的 _cancellation 条目（与 _phase / _metrics
+          同型 sentinel 模式，避免 alembic 迁移）。
+
+        Returns:
+            (status, record):
+            - `("not_found", None)`
+            - `("terminal", record)`：完成/失败/已取消
+            - `("noop", record)`：已 cancelling
+            - `("cancelled", record)`：pending → cancelled
+            - `("cancelling", record)`：running → cancelling
+        """
+        import json as _json
+
+        async with self._session_scope() as session:
+            select_stmt = text(f"""
+                SELECT id, status, warnings, app_name, corpus_id, run_id,
+                       entity_count, relation_count, extractor_config, model_name,
+                       error_message, started_at, completed_at, created_at, updated_at, progress_percent
+                FROM {self._schema}.kg_build_runs
+                WHERE run_id = :run_id AND app_name = :app_name
+                FOR UPDATE
+            """)
+            row = (await session.execute(select_stmt, {"run_id": run_id, "app_name": app_name})).fetchone()
+            if row is None:
+                return ("not_found", None)
+
+            current_status = (row.status or "").lower()
+            existing_warnings = list(row.warnings or [])
+
+            def _to_record(updated_status: str, updated_warnings: list, completed_at_override=None) -> BuildRunRecord:
+                return BuildRunRecord(
+                    id=row.id,
+                    app_name=row.app_name,
+                    corpus_id=row.corpus_id,
+                    run_id=row.run_id,
+                    status=updated_status,
+                    entity_count=row.entity_count,
+                    relation_count=row.relation_count,
+                    extractor_config=row.extractor_config or {},
+                    model_name=row.model_name,
+                    error_message=row.error_message,
+                    started_at=row.started_at,
+                    completed_at=completed_at_override if completed_at_override is not None else row.completed_at,
+                    created_at=row.created_at,
+                    updated_at=row.updated_at,
+                    progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+                    warnings=updated_warnings or None,
+                )
+
+            if current_status in ("completed", "failed", "cancelled"):
+                return ("terminal", _to_record(row.status, existing_warnings))
+            if current_status == "cancelling":
+                return ("noop", _to_record(row.status, existing_warnings))
+
+            new_status = "cancelled" if current_status == "pending" else "cancelling"
+            new_warnings = list(existing_warnings) + [{"_cancellation": cancellation_meta}]
+
+            update_stmt = text(f"""
+                UPDATE {self._schema}.kg_build_runs
+                SET status = :status,
+                    warnings = CAST(:warnings AS json),
+                    completed_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            await session.execute(
+                update_stmt,
+                {
+                    "status": new_status,
+                    "warnings": _json.dumps(new_warnings),
+                    "id": str(row.id),
+                },
+            )
+            await session.commit()
+            return (new_status, _to_record(new_status, new_warnings, completed_at_override=datetime.now(UTC)))
+
+    async def finalize_stale_kg_build_runs(
+        self,
+        *,
+        app_name: str | None = None,
+        cancelling_threshold_minutes: int = 2,
+        running_threshold_minutes: int = 30,
+    ) -> dict[str, int]:
+        """KG 看门狗：把卡死的中间态 build_run 收敛到终态。
+
+        - ``running`` 超 ``running_threshold_minutes`` 分钟无更新 → 标记为 ``failed``；
+        - ``cancelling`` 超 ``cancelling_threshold_minutes`` → 强制 ``cancelled``。
+
+        阈值（ISSUE-080）：``cancelling_threshold_minutes`` 默认从 5 → 2，配合
+        bootstrap 内 watchdog tick 间隔 60s，最坏兜底 ≤ 3 分钟。``running_threshold_minutes``
+        保持 30 分钟（保守，配合 ``update_build_run`` 修复后 ``completed_at`` 保留语义，
+        真实反映任务最后一次心跳时间而非任务启动时间）。
+        """
+        async with self._session_scope() as session:
+            stale_msg = (
+                "Pipeline was running for over "
+                + str(running_threshold_minutes)
+                + " minutes and was forcibly marked as failed."
+            )
+            failed_stmt = text(f"""
+                UPDATE {self._schema}.kg_build_runs
+                SET status = 'failed',
+                    error_message = COALESCE(error_message, :stale_msg),
+                    completed_at = NOW()
+                WHERE status = 'running'
+                  AND COALESCE(updated_at, created_at) < NOW() - (:running_threshold || ' minutes')::interval
+                  {"AND app_name = :app_name" if app_name is not None else ""}
+            """)
+            cancelled_stmt = text(f"""
+                UPDATE {self._schema}.kg_build_runs
+                SET status = 'cancelled',
+                    completed_at = NOW()
+                WHERE status = 'cancelling'
+                  AND COALESCE(updated_at, created_at) < NOW() - (:cancelling_threshold || ' minutes')::interval
+                  {"AND app_name = :app_name" if app_name is not None else ""}
+            """)
+
+            params_failed: dict[str, Any] = {
+                "running_threshold": running_threshold_minutes,
+                "stale_msg": stale_msg,
+            }
+            params_cancelled: dict[str, Any] = {"cancelling_threshold": cancelling_threshold_minutes}
+            if app_name is not None:
+                params_failed["app_name"] = app_name
+                params_cancelled["app_name"] = app_name
+
+            failed_result = await session.execute(failed_stmt, params_failed)
+            cancelled_result = await session.execute(cancelled_stmt, params_cancelled)
+            await session.commit()
+
+            return {
+                "forced_failed": failed_result.rowcount or 0,
+                "forced_cancelled": cancelled_result.rowcount or 0,
+            }
 
 
 # ============================================================================

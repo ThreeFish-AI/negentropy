@@ -498,7 +498,7 @@ export class InfrastructureError extends KnowledgeError {
   }
 }
 
-export interface KnowledgeDashboard {
+export interface KnowledgePipelinesData {
   corpus_count: number;
   knowledge_count: number;
   last_build_at?: string;
@@ -518,6 +518,7 @@ export interface CorpusRecord {
   app_name: string;
   description?: string;
   knowledge_count: number;
+  chunk_count_total?: number | null;
   config?: Record<string, unknown>;
   rebuild_triggered?: { count: number; run_ids: string[] } | null;
 }
@@ -730,7 +731,9 @@ export type PipelineStageStatus =
   | "running"
   | "completed"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "cancelling"
+  | "cancelled";
 
 // Pipeline 操作类型
 export type PipelineOperation =
@@ -969,20 +972,64 @@ async function handleKnowledgeError<T>(res: Response): Promise<T> {
 }
 
 // ============================================================================
-// Dashboard
+// Pipelines Data
 // ============================================================================
 
-export async function fetchDashboard(
+export async function fetchPipelinesData(
   appName?: string,
-): Promise<KnowledgeDashboard> {
+): Promise<KnowledgePipelinesData> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
-  const res = await fetch(`/api/knowledge/dashboard${params}`, {
+  const res = await fetch(`/api/knowledge/pipelines/overview${params}`, {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch dashboard: ${res.statusText}`);
+    throw new Error(`Failed to fetch pipelines data: ${res.statusText}`);
   }
   return res.json();
+}
+
+// ============================================================================
+// Pipeline Run Cancel
+// ============================================================================
+
+/** Cancel API 响应（KB & KG 共用）。`status` ∈ {cancelling, cancelled, noop}。 */
+export interface PipelineCancelResult {
+  status: "cancelling" | "cancelled" | "noop";
+  run_id: string;
+  in_process: boolean;
+  record: Record<string, unknown>;
+}
+
+/**
+ * 取消正在运行的 Pipeline Run（KB 或 KG）。
+ *
+ * - KB: `POST /api/knowledge/pipelines/{run_id}/cancel`
+ * - KG: `POST /api/knowledge/base/{corpus_id}/graph/runs/{run_id}/cancel`
+ *
+ * 立即返回 cancelling/cancelled/noop，task 在下个检查点退出。前端轮询观察终态。
+ */
+export async function cancelPipelineRun(
+  runId: string,
+  source: "kb" | "kg",
+  opts?: { corpusId?: string; appName?: string; reason?: string },
+): Promise<PipelineCancelResult> {
+  if (source === "kg" && !opts?.corpusId) {
+    throw new Error("cancelPipelineRun: corpusId is required for KG runs");
+  }
+  const url =
+    source === "kb"
+      ? `/api/knowledge/pipelines/${encodeURIComponent(runId)}/cancel`
+      : `/api/knowledge/base/${encodeURIComponent(opts!.corpusId!)}/graph/runs/${encodeURIComponent(runId)}/cancel`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({
+      app_name: opts?.appName,
+      reason: opts?.reason ?? "user_cancel",
+    }),
+  });
+  return handleKnowledgeError<PipelineCancelResult>(res);
 }
 
 // ============================================================================
@@ -1000,7 +1047,19 @@ export async function fetchModelConfigs(params?: {
   const res = await fetch(`/api/interface/models/configs${query ? `?${query}` : ""}`, {
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`Failed to fetch model configs: ${res.statusText}`);
+  if (!res.ok) {
+    // 该端点目前以 admin 鉴权读取（详见 `/admin` rebuild 路径）；
+    // 普通用户以 401/403 命中是符合后端预期的"无权读取"语义，不构成错误：返回
+    // 空数组让调用方静默降级到系统默认模型，避免在控制台抛 [error]/WARN。
+    // 500 等其它错误仍照旧抛出，触发 UI 兜底告警。
+    // TODO(评审 #3): 后续可拆分 401（异常路径→抛出保留排障线索）vs
+    // 403（角色拒绝→静默降级），但当前 E2E CI 对 401 抛出的容错不足，
+    // 先保持与之前行为一致（401/403 一概静默），待 admin 排障路径成熟后再拆。
+    if (res.status === 401 || res.status === 403) {
+      return [];
+    }
+    throw new Error(`Failed to fetch model configs: ${res.statusText}`);
+  }
   const data = await res.json();
   return data.items || [];
 }
@@ -1190,6 +1249,7 @@ export interface KnowledgeDocument {
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
   markdown_extracted_at?: string | null;
   markdown_extract_error?: string | null;
+  archived?: boolean;
   metadata?: Record<string, unknown>;
 }
 

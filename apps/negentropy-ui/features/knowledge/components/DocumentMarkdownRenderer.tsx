@@ -1,10 +1,59 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { cn } from "@/lib/utils";
 import { MermaidDiagram } from "@/components/ui/MermaidDiagram";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+
+import "./highlight-theme.css";
+
+// 文档场景的 sanitize schema：在 defaultSchema 之上增量放行媒体标签与
+// width/height 属性。perceives 端为带尺寸的图片输出内嵌 HTML
+// <img …width="X" height="Y" style="…" />，启用 rehype-raw 后必须
+// 由 rehype-sanitize 兜底过滤。defaultSchema 已禁用 script/iframe/on*/style，
+// 我们只在其基础上"加白"，不削减安全约束。危险的 style 自动被剥离，
+// width/height 保留并由外层 CSS [&_img]:h-auto 驱动按比例响应式缩放。
+const documentSanitizeSchema: typeof defaultSchema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    "figure",
+    "figcaption",
+    "video",
+    "audio",
+    "source",
+  ],
+  attributes: {
+    ...(defaultSchema.attributes ?? {}),
+    img: [
+      ...((defaultSchema.attributes ?? {}).img ?? []),
+      "width",
+      "height",
+      "loading",
+      "decoding",
+    ],
+    video: [
+      "src",
+      "controls",
+      "poster",
+      "width",
+      "height",
+      "preload",
+      "loop",
+      "muted",
+      "autoplay",
+      "playsinline",
+    ],
+    audio: ["src", "controls", "preload", "loop", "muted", "autoplay"],
+    source: ["src", "type", "media", "srcset", "sizes"],
+    figure: [],
+    figcaption: [],
+  },
+};
 
 interface DocumentMarkdownRendererProps {
   content: string;
@@ -43,6 +92,86 @@ function extractFilename(src: string): string {
   return src.split("/").pop() || src;
 }
 
+type ImageState = "loading" | "loaded" | "error";
+
+function DocumentImage({
+  src,
+  alt,
+  width,
+  height,
+  corpusId,
+  documentId,
+  appName,
+}: {
+  src: string;
+  alt?: string;
+  width?: number | string;
+  height?: number | string;
+  corpusId: string;
+  documentId: string;
+  appName?: string;
+}) {
+  const [imgState, setImgState] = useState<ImageState>("loading");
+
+  const resolvedSrc = isAbsoluteUrl(src)
+    ? src
+    : buildAssetProxyUrl(extractFilename(src), corpusId, documentId, appName);
+
+  return (
+    <figure className="my-3">
+      {imgState === "loading" && (
+        <div className="flex items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-8 dark:border-zinc-700 dark:bg-zinc-800">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+        </div>
+      )}
+
+      {imgState === "error" && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 dark:border-zinc-600 dark:bg-zinc-800">
+          <svg
+            className="mb-2 h-8 w-8 text-zinc-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <span className="max-w-xs truncate text-xs text-zinc-500 dark:text-zinc-400">
+            {alt || extractFilename(src)}
+          </span>
+          <span className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+            Image failed to load
+          </span>
+        </div>
+      )}
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={resolvedSrc}
+        alt={alt || ""}
+        width={width}
+        height={height}
+        className={cn(
+          "h-auto max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700",
+          imgState === "loaded" ? "block" : "hidden",
+        )}
+        onLoad={() => setImgState("loaded")}
+        onError={() => setImgState("error")}
+      />
+
+      {alt && imgState === "loaded" && (
+        <figcaption className="mt-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          {alt}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
 export function DocumentMarkdownRenderer({
   content,
   corpusId,
@@ -78,8 +207,9 @@ export function DocumentMarkdownRenderer({
         "[&_tbody_tr:nth-child(even)]:bg-zinc-50 [&_tbody_tr:nth-child(even)]:dark:bg-zinc-900/30",
         "[&_th]:border [&_th]:border-zinc-200 [&_th]:dark:border-zinc-700 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
         "[&_td]:border [&_td]:border-zinc-200 [&_td]:dark:border-zinc-700 [&_td]:px-3 [&_td]:py-2",
-        // 图片
-        "[&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-3",
+        // 图片：max-w-full 限制宽度，h-auto 保证按 width/height 比例缩放
+        // （防止 perceives 输出 <img width="X" height="Y" /> 在窄屏被拉伸变形）
+        "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-3",
         // 引用块
         "[&_blockquote]:border-l-4 [&_blockquote]:border-zinc-300 [&_blockquote]:dark:border-zinc-600 [&_blockquote]:pl-4 [&_blockquote]:my-3 [&_blockquote]:text-zinc-600 [&_blockquote]:dark:text-zinc-400",
         // 分隔线
@@ -88,32 +218,28 @@ export function DocumentMarkdownRenderer({
     >
       <ReactMarkdown
         remarkPlugins={defaultRemarkPlugins}
-        rehypePlugins={defaultRehypePlugins}
+        // 顺序至关重要：rehype-raw 先把内嵌 HTML 提升为节点，
+        // rehype-sanitize 紧随其后做白名单过滤，最后才是渲染插件。
+        rehypePlugins={[
+          rehypeRaw,
+          [rehypeSanitize, documentSanitizeSchema],
+          ...defaultRehypePlugins,
+          rehypeHighlight,
+        ]}
         components={{
-          img({ src, alt, ...props }) {
+          img({ src, alt, width, height }) {
             if (!src || typeof src !== "string") return null;
-
-            const resolvedSrc = isAbsoluteUrl(src)
-              ? src
-              : buildAssetProxyUrl(
-                  extractFilename(src),
-                  corpusId,
-                  documentId,
-                  appName,
-                );
-
             return (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={resolvedSrc}
-                alt={alt || ""}
-                loading="lazy"
-                className="max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700"
-                onError={(e) => {
-                  const el = e.target as HTMLImageElement;
-                  el.style.display = "none";
-                }}
-                {...props}
+              <DocumentImage
+                src={src}
+                alt={alt || undefined}
+                width={width}
+                height={height}
+                corpusId={corpusId}
+                documentId={documentId}
+                appName={appName}
+                // pass through any remaining props via key to suppress warning
+                key={`${src}-${alt}`}
               />
             );
           },
@@ -140,7 +266,7 @@ export function DocumentMarkdownRenderer({
           },
           table({ children }) {
             return (
-              <div className="overflow-x-auto">
+              <div className="my-4 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
                 <table>{children}</table>
               </div>
             );

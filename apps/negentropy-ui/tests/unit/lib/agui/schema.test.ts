@@ -4,7 +4,7 @@ import {
   parseBaseEvent,
   safeParseAgUiEvent,
   safeParseBaseEventProps,
-} from "@/lib/agui/schema";
+} from "@negentropy/agents-chat-core/protocol";
 
 describe("AGUI schema validators", () => {
   it("accepts valid base event props", () => {

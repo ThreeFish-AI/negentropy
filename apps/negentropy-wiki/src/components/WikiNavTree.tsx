@@ -61,7 +61,7 @@ export function WikiNavTree({ items, pubSlug, activeSlug }: WikiNavTreeProps) {
   }
 
   return (
-    <ul className="wiki-nav-list">
+    <ul className="wiki-nav-list" role="tree">
       {items.map((item, idx) => (
         <WikiNavNode
           key={`${item.entry_id ?? "c"}:${item.entry_slug}:${idx}`}
@@ -106,7 +106,7 @@ function WikiNavNode({
   };
 
   return (
-    <li className="wiki-nav-item">
+    <li className="wiki-nav-item" role="treeitem">
       <div className="wiki-nav-row">
         {hasChildren && (
           <button
@@ -141,7 +141,7 @@ function WikiNavNode({
         )}
       </div>
       {hasChildren && isOpen && (
-        <ul className="wiki-nav-list wiki-nav-sublist">
+        <ul className="wiki-nav-list wiki-nav-sublist" role="group">
           {children.map((child, idx) => (
             <WikiNavNode
               key={`${child.entry_id ?? "c"}:${child.entry_slug}:${idx}`}

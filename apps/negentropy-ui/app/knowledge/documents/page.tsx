@@ -1,3 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -307,7 +313,8 @@ export default function DocumentsPage() {
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-t border-border">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">
-                    {total} document{total !== 1 ? "s" : ""}
+                    {/* 单字符串避免 JSX 文本节点相邻被 a11y 规范化为 "X document s" */}
+                    {`${total} document${total !== 1 ? "s" : ""}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
