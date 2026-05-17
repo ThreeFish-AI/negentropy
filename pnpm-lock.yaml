@@ -243,6 +243,12 @@ importers:
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0
+      graphology:
+        specifier: ^0.26.0
+        version: 0.26.0(graphology-types@0.24.8)
+      graphology-layout-forceatlas2:
+        specifier: ^0.10.1
+        version: 0.10.1(graphology-types@0.24.8)
       mdast-util-to-string:
         specifier: ^4.0.0
         version: 4.0.0
@@ -270,6 +276,9 @@ importers:
       rxjs:
         specifier: 'catalog:'
         version: 7.8.1
+      sigma:
+        specifier: ^3.0.3
+        version: 3.0.3(graphology-types@0.24.8)
       unified:
         specifier: ^11.0.5
         version: 11.0.5

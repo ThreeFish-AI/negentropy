@@ -60,11 +60,14 @@ flowchart LR
 
 ### 2.2 路由结构
 
-| 路由                   | 页面文件                                 | 功能                                |
-| ---------------------- | ---------------------------------------- | ----------------------------------- |
-| `/`                    | `src/app/page.tsx`                       | 首页：列出所有已发布的 Publication  |
-| `/:pubSlug`            | `src/app/[pubSlug]/page.tsx`             | Publication 首页：导航树 + 文档索引 |
-| `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染           |
+| 路由                   | 页面文件                                    | 功能                                |
+| ---------------------- | ------------------------------------------- | ----------------------------------- |
+| `/`                    | `src/app/page.tsx`                          | 首页：列出所有已发布的 Publication  |
+| `/:pubSlug`            | `src/app/[pubSlug]/page.tsx`                | Publication 首页：导航树 + 文档索引 |
+| `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx`    | 文档详情页：Markdown 渲染           |
+| `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`          | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
+
+> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./wiki-knowledge-graph.md)；数据流与 Markdown 页面同构，仅运行时 `fetch` + ISR，无新增持久化或部署形态。
 
 ### 2.3 数据流
 

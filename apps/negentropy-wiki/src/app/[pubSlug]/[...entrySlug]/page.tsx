@@ -120,6 +120,7 @@ export default async function WikiEntryPage({ params }: Props) {
   const headings = status === "ok" ? extractHeadings(md) : [];
   const hasToc = headings.length >= 2;
   const sectionView = resolveSectionView(navItems, slug);
+  const hasAnyEntry = sectionView.headerItems.length > 0;
 
   const sidebar = (
     <WikiSidebar
@@ -137,6 +138,7 @@ export default async function WikiEntryPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      graphTab={{ active: false, show: hasAnyEntry }}
     />
   );
 

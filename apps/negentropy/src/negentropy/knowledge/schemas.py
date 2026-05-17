@@ -661,3 +661,158 @@ class ApiStatsResponse(BaseModel):
     success_count: int = Field(description="成功调用次数")
     failed_count: int = Field(description="失败调用次数")
     avg_latency_ms: float = Field(description="平均延迟（毫秒）")
+
+
+# ============================================================================
+# Wiki Knowledge Graph Schemas
+# ----------------------------------------------------------------------------
+# 用于 ``apps/negentropy-wiki`` SSG 站点按 Publication 维度拉取知识图谱切片。
+#
+# 设计要点：
+#   - 字段命名与主站 ``apps/negentropy-ui`` GraphCanvas 同名（id/label/type/
+#     importance/community_id + source/target/label/type/weight），便于未来抽
+#     共享类型。
+#   - 节点新增 ``entry_slugs``（Wiki 内首批 ≤3 个引用本实体的文档 slug，供
+#     点击跳转）与 ``mention_count_in_pub``（仅 publication 内提及计数，区
+#     别于全语料 mention_count）。
+#   - Envelope 携带 ``publication_id`` + ``version`` + ``truncated`` +
+#     ``total_entities`` + ``status``（"ok" / "no_kg" / "empty"）。
+#   - 跨 corpus publication 阶段一按 corpus_id 各自保留（不做 canonical 合
+#     并），通过节点 ``metadata.corpus_id`` 区分。
+# ============================================================================
+
+
+class WikiGraphNode(BaseModel):
+    """Wiki 切片图谱节点"""
+
+    id: str = Field(description="实体节点 ID（沿用后端 GraphService 输出格式）")
+    label: str = Field(description="节点显示名（canonical_name 或 name）")
+    type: str = Field(description="节点类型（entity_type，如 PERSON/ORGANIZATION/CONCEPT）")
+    importance: float | None = Field(default=None, description="重要性得分（用于按 top-N 截断）")
+    community_id: int | None = Field(default=None, description="Louvain 社区 ID")
+    entry_slugs: list[str] = Field(
+        default_factory=list,
+        description="Publication 内提及本实体的前 N 个 entry slug（默认 N=3，供节点点击跳转）",
+    )
+    mention_count_in_pub: int = Field(
+        default=0,
+        ge=0,
+        description="Publication 内文档对本实体的提及总次数（区别于全语料 mention_count）",
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "节点附加元数据：corpus_id（跨 corpus publication 着色用）、entity_type、confidence、is_active 等。"
+        ),
+    )
+
+
+class WikiGraphEdge(BaseModel):
+    """Wiki 切片图谱边"""
+
+    source: str = Field(description="起点节点 ID")
+    target: str = Field(description="终点节点 ID")
+    label: str = Field(description="关系标签（relation_type）")
+    type: str = Field(description="边类型（与 label 同源；保留字段供未来精细化）")
+    weight: float = Field(default=1.0, description="边权重")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="confidence / evidence 等可选元数据")
+
+
+class WikiGraphResponse(BaseModel):
+    """Wiki Publication 整体图谱切片响应
+
+    ``status`` 语义：
+        - ``ok``     ：正常返回非空图；
+        - ``no_kg``  ：Publication 关联的 corpus 上 KG 未构建（nodes/edges 必为空）；
+        - ``empty``  ：KG 已构建但该 Publication 文档未涉及任何实体（如全 mention 被过滤）。
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    publication_id: UUID
+    version: int = Field(ge=0, description="Publication 版本号；作为客户端缓存键的一部分")
+    status: str = Field(default="ok", description="ok | no_kg | empty")
+    nodes: list[WikiGraphNode] = Field(default_factory=list)
+    edges: list[WikiGraphEdge] = Field(default_factory=list)
+    truncated: bool = Field(
+        default=False,
+        description="True 表示节点数超过 max_nodes 被截断，悬挂边已剔除",
+    )
+    total_entities: int = Field(
+        default=0,
+        ge=0,
+        description="截断前的实体总数（即满足 min_importance 的实体数）",
+    )
+    corpus_ids: list[UUID] = Field(
+        default_factory=list,
+        description="Publication 实际覆盖的 corpus_id 集合",
+    )
+
+
+class WikiGraphEntityItem(BaseModel):
+    """Wiki 实体扁平列表条目"""
+
+    id: str
+    name: str
+    entity_type: str
+    importance: float | None = None
+    community_id: int | None = None
+    mention_count_in_pub: int = Field(default=0, ge=0)
+    entry_slugs: list[str] = Field(default_factory=list)
+    corpus_id: UUID | None = None
+
+
+class WikiGraphEntityListResponse(BaseModel):
+    """Wiki 实体列表响应"""
+
+    publication_id: UUID
+    version: int
+    total: int = Field(ge=0)
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=50, ge=1, le=500)
+    items: list[WikiGraphEntityItem] = Field(default_factory=list)
+
+
+class WikiGraphNeighborItem(BaseModel):
+    """实体邻居（限定在 publication 节点集合内）"""
+
+    id: str
+    name: str
+    entity_type: str
+    relation_type: str
+    direction: str = Field(description="outgoing | incoming")
+    weight: float = 1.0
+    entry_slugs: list[str] = Field(default_factory=list)
+
+
+class WikiGraphEntityDetailResponse(BaseModel):
+    """Wiki 实体详情响应：实体属性 + 邻居 + 提及 entries"""
+
+    publication_id: UUID
+    version: int
+    entity: WikiGraphEntityItem
+    neighbors: list[WikiGraphNeighborItem] = Field(
+        default_factory=list,
+        description="邻居仅限制在 publication 节点集合内（未越过本发布边界）",
+    )
+    mentioning_entries: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="提及该实体的 Wiki entries：[{entry_id, entry_slug, entry_title, document_id, mention_count}]",
+    )
+
+
+class WikiEntryGraphResponse(BaseModel):
+    """单 entry 的局部图（该文档涉及的实体 + 一跳邻居）"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entry_id: UUID
+    publication_id: UUID
+    version: int
+    status: str = Field(default="ok", description="ok | no_kg | empty")
+    nodes: list[WikiGraphNode] = Field(default_factory=list)
+    edges: list[WikiGraphEdge] = Field(default_factory=list)
+    center_entity_ids: list[str] = Field(
+        default_factory=list,
+        description="该 entry 直接涉及的实体 ID（用作前端高亮中心节点）",
+    )
