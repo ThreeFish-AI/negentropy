@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -H localhost -p 3192",
+    "prebuild": "pnpm --filter @negentropy/agents-chat-core build",
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
     "lint": "eslint . --max-warnings=0",
