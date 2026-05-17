@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 import {
   fetchPipelinesData,
   fetchPipelines,
@@ -244,21 +245,21 @@ export default function KnowledgePipelinesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasInitialLoad, page]);
 
-  // Running-state polling
-  useEffect(() => {
-    if (page !== 1) return;
-    if (!hasActiveRuns(allRuns)) return;
-
-    const intervalId = setInterval(() => {
-      loadRuns(1).catch((err) => {
-        setError(String(err));
-      });
-    }, RUNNING_POLL_INTERVAL_MS);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [loadRuns, allRuns, page]);
+  // Running-state polling - Phase 3-A 统一节拍
+  // useHeartbeatPoll 接管 RUNNING_POLL_INTERVAL_MS = 5000：与后端心跳对齐 +
+  // 自动 visibility 暂停 + online 恢复触发 + callback 错误隔离。
+  // Bootstrap polling（上面的探测窗口）保留原生 setInterval，因为它的节奏（1s）
+  // 与"机会窗口短探测"语义正交，强行改 5s 会拖慢检测；维持业务现状。
+  useHeartbeatPoll(
+    () => {
+      loadRuns(1).catch((err) => setError(String(err)));
+    },
+    {
+      enabled: page === 1 && hasActiveRuns(allRuns),
+      intervalMs: RUNNING_POLL_INTERVAL_MS,
+      fireImmediately: false,
+    },
+  );
 
   const metrics = useMemo(() => {
     if (!pipelinesData) return [];

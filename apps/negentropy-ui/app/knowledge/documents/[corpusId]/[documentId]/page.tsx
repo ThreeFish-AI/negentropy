@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "@/lib/activity-toast";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 
 import type {
   KnowledgeDocumentDetail,
@@ -132,18 +133,14 @@ export default function DocumentDetailPage() {
     void loadDetail();
   }, [loadDetail]);
 
-  // Auto-poll when markdown is still processing
-  useEffect(() => {
-    if (!detail) return;
-    if ((detail.markdown_extract_status || "").toLowerCase() !== "processing") {
-      return;
-    }
-    const timer = setInterval(() => {
-      void loadDetail();
-    }, 3000);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- detail 仅用于 null guard，加入依赖会导致轮询死循环
-  }, [detail?.markdown_extract_status, loadDetail]);
+  // Auto-poll when markdown is still processing - Phase 3-A unified heartbeat
+  // useHeartbeatPoll handles tabs visibility + online events + 5s heartbeat parity
+  // with backend NEGENTROPY_SCHEDULER_HEARTBEAT_SECONDS.
+  useHeartbeatPoll(loadDetail, {
+    enabled:
+      !!detail && (detail.markdown_extract_status || "").toLowerCase() === "processing",
+    fireImmediately: false,
+  });
 
   // ---- Action handlers ----
 

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
+
 import {
   fetchExecutions,
   fetchKpis,
@@ -76,11 +78,12 @@ export function useSchedulerData(filters: DashboardFilters): UseSchedulerDataRet
     void loadAll();
   }, [loadAll, filtersKey]);
 
-  // 兜底定时刷新（SSE 抖动时仍能保持视图新鲜度）
-  useEffect(() => {
-    const id = window.setInterval(loadAll, FALLBACK_REFRESH_MS);
-    return () => window.clearInterval(id);
-  }, [loadAll]);
+  // 兜底定时刷新（SSE 抖动时仍能保持视图新鲜度）— Phase 3-A 统一到 useHeartbeatPoll
+  // 让 Dashboard 自身的回退路径也享受 visibility 暂停 + online 恢复触发的语义。
+  useHeartbeatPoll(loadAll, {
+    intervalMs: FALLBACK_REFRESH_MS,
+    fireImmediately: false,
+  });
 
   // SSE 推送时把最新 execution 插到时间线头部 + 更新对应 task.recent
   const pushExecution = useCallback((e: TaskExecutionDTO) => {
