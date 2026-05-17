@@ -6,9 +6,9 @@
 
 - **底层存储模型**：[apps/negentropy/src/negentropy/models/perception.py](../apps/negentropy/src/negentropy/models/perception.py)（`Corpus` / `Knowledge`）。
 - **Memory 模型**：[apps/negentropy/src/negentropy/models/internalization.py](../apps/negentropy/src/negentropy/models/internalization.py)（`Memory` / `Fact` / `MemoryAuditLog`）。
-- **Memory 专项文档**：[memory.md](./memory.md)（Memory Automation 控制面、实施过程与验收记录）。
+- **Memory 专项文档**：[memory.md](./memory/overview.md)（Memory Automation 控制面、实施过程与验收记录）。
 - **数据库权威定义**：[docs/schema/perception_schema.sql](./schema/perception_schema.sql)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
-- **前端扩展约束**：[docs/framework.md §11](./framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
+- **前端扩展约束**：[docs/architecture/framework.md §11](./architecture/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
 - **调研文档**：[034-knowledge-base.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/034-knowledge-base.md)、[035-knowledge-base-platform.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/035-knowledge-base-platform.md)。
 - **设计文档**：[020-the-hippocampus.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/design/020-the-hippocampus.md)（Memory 遗忘曲线设计）。
 
@@ -538,10 +538,10 @@ Memory 运行时能力分为两层：
 - **User Memory 面板**：Dashboard / Timeline / Facts / Audit，用于用户长期记忆的查看、审计与治理。
 - **Memory Automation 控制面**：用于仿生记忆自动化过程的配置、受管函数、调度任务与降级状态管理。
 
-为避免文档双源，Memory Automation 的设计、接口、降级矩阵与实施记录统一以 [memory.md](./memory.md) 为准；本文件仅保留 Knowledge 与 Memory 的边界说明。
+为避免文档双源，Memory Automation 的设计、接口、降级矩阵与实施记录统一以 [memory.md](./memory/overview.md) 为准；本文件仅保留 Knowledge 与 Memory 的边界说明。
 
 > [!NOTE]
-> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [memory.md](./memory.md)。
+> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [memory.md](./memory/overview.md)。
 
 ## 13. Catalog / Wiki Publication 三层正交架构
 
@@ -719,7 +719,7 @@ uv run pytest tests/performance_tests/knowledge/test_catalog_tree_perf.py -v
 
 > **状态**：Accepted（ADR 等价）
 > **上游**：见 [§13 Catalog / Wiki Publication 三层正交架构](#13-catalog--wiki-publication-三层正交架构)
-> **关联运维**：见 [`negentropy-wiki-ops.md` §12 单实例 Catalog 与 Wiki 发布版本管理运维](./negentropy-wiki-ops.md#12-单实例-catalog-与-wiki-发布版本管理运维)
+> **关联运维**：见 [`wiki/ops.md` §12 单实例 Catalog 与 Wiki 发布版本管理运维](./wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维)
 > **关联 Issue**：见 [`issue.md` ISSUE-015](agents/issue.md#issue-015)
 
 ### 15.1 设计动机
@@ -810,7 +810,7 @@ flowchart LR
     class C2,C3,N3,N4,M3,M4 foreign;
 ```
 
-合并算法关键步骤（详见 [`negentropy-wiki-ops.md` §12.2 Phase B runbook](./negentropy-wiki-ops.md#122-phase-b-merge-runbook)）：
+合并算法关键步骤（详见 [`wiki/ops.md` §12.2 Phase B runbook](./wiki/ops.md#122-phase-b-merge-runbook)）：
 
 1. **Survivor 选择**：按 `(app_name, is_archived=false) ORDER BY created_at ASC LIMIT 1`。
 2. **Virtual Root 注入**：为每个被合并 Catalog 在 survivor 顶层创建一个 `node_type='CATEGORY'` 的虚拟节点，slug 加 `legacy-<short_hash>` 后缀避免冲突。

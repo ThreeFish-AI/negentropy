@@ -2,10 +2,10 @@
 
 > 本文档是 Negentropy 系统的**架构设计单一权威参考**，基于代码事实与工程实践，描述系统的设计原理、组件结构与扩展范式。
 >
-> - 项目概览与快速上手：[README.md](../README.md)
+> - 项目概览与快速上手：[README.md](../../README.md)
 > - 开发指南：[docs/development.md](./development.md)
-> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](./qa-delivery-pipeline.md)
-> - 工程变更日志：[docs/engineering-changelog.md](./engineering-changelog.md)
+> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../qa-delivery-pipeline.md)
+> - 工程变更日志：[docs/engineering-changelog.md](../engineering-changelog.md)
 
 ---
 
@@ -47,7 +47,7 @@
 
 ### 1.2 架构哲学
 
-系统遵循 [AGENTS.md](../AGENTS.md) 定义的工程行为准则，核心原则包括：
+系统遵循 [AGENTS.md](../../AGENTS.md) 定义的工程行为准则，核心原则包括：
 
 - **正交分解 (Orthogonal Decomposition)**：独立变化的维度解耦，确保单一概念主体的变更具备局部性
 - **复用驱动 (Composition over Construction)**：优先通过组合与集成构建系统
@@ -105,11 +105,12 @@ graph TB
 
 | 应用 | 技术栈 | 包管理 | 入口 |
 | :--- | :----- | :----- | :--- |
-| **negentropy** (后端引擎) | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`agents/agent.py`](../apps/negentropy/src/negentropy/agents/agent.py) |
-| **negentropy-ui** (前端) | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS | `pnpm` | [`app/layout.tsx`](../apps/negentropy-ui/app/layout.tsx) |
-| **negentropy-wiki** (Wiki) | Next.js, TypeScript | `pnpm` | [`src/`](../apps/negentropy-wiki/src/) |
+| **negentropy** (后端引擎) | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py) |
+| **negentropy-ui** (前端) | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS | `pnpm` | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx) |
+| **negentropy-wiki** (Wiki) | Next.js, TypeScript | `pnpm` | [`src/`](../../apps/negentropy-wiki/src/) |
 
 应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [development.md](./development.md) §项目结构。
+
 
 ---
 
@@ -119,7 +120,7 @@ graph TB
 
 **`NegentropyEngine`** 是系统的调度核心（「本我」），不直接执行原子任务，而是依据正交分解原则，将意图精准委派给最合适的系部<sup>[[3]](#ref3)</sup>。
 
-> 源码位置：[`agents/agent.py`](../apps/negentropy/src/negentropy/agents/agent.py)
+> 源码位置：[`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py)
 
 ```python
 root_agent = LlmAgent(
@@ -179,7 +180,7 @@ graph LR
 | 喉舌·影响 | 🗣️ | `InfluenceFaculty` | 晦涩 | 价值传递、格式适配、说服与教育 | `publish_content`, `send_notification` |
 
 > 所有系部均共享 `log_activity` 审计工具；上表仅列出各系部**专属**工具。
-> 系部实现位于 [`agents/faculties/`](../apps/negentropy/src/negentropy/agents/faculties/) 目录
+> 系部实现位于 [`agents/faculties/`](../../apps/negentropy/src/negentropy/agents/faculties/) 目录
 
 ### 3.3 系部实现范式
 
@@ -239,7 +240,7 @@ sequenceDiagram
 
 系统预置三条标准流水线，封装了常见的多系部协作模式。
 
-> 源码位置：[`agents/pipelines/standard.py`](../apps/negentropy/src/negentropy/agents/pipelines/standard.py)
+> 源码位置：[`agents/pipelines/standard.py`](../../apps/negentropy/src/negentropy/agents/pipelines/standard.py)
 
 ### 4.1 三条标准流水线
 
@@ -309,55 +310,55 @@ SequentialAgent(
 
 - **应用**：`NegentropyEngine` 作为编排者协调五大系部和三条流水线
 - **动机**：分离"调度决策"与"能力执行"，实现认知与行动的正交分解
-- **代码**：[`agents/agent.py`](../apps/negentropy/src/negentropy/agents/agent.py)
+- **代码**：[`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py)
 
 ### 5.2 Pipeline Pattern（流水线模式）
 
 - **应用**：`SequentialAgent` 串联多个系部实现复杂流程
 - **动机**：封装常见的多步骤任务模式，减少协调熵
-- **代码**：[`agents/pipelines/standard.py`](../apps/negentropy/src/negentropy/agents/pipelines/standard.py)
+- **代码**：[`agents/pipelines/standard.py`](../../apps/negentropy/src/negentropy/agents/pipelines/standard.py)
 - **出处**：Pipes and Filters 架构风格<sup>[[4]](#ref4)</sup>
 
 ### 5.3 Factory Method Pattern（工厂方法）
 
 - **应用**：服务工厂体系（Session / Memory / Artifact / Credential / Runner）；系部工厂函数
 - **动机**：将对象创建与使用解耦；解决 ADK 单亲规则约束
-- **代码**：[`engine/factories/`](../apps/negentropy/src/negentropy/engine/factories/)、各系部 `create_*_agent()` 函数
+- **代码**：[`engine/factories/`](../../apps/negentropy/src/negentropy/engine/factories/)、各系部 `create_*_agent()` 函数
 - **出处**：GoF Factory Method<sup>[[5]](#ref5)</sup>
 
 ### 5.4 Adapter Pattern（适配器模式）
 
 - **应用**：PostgreSQL 适配器实现 ADK 抽象接口（SessionService、MemoryService 等）
 - **动机**：对接 Google ADK 框架规范的同时保留存储后端的可替换性
-- **代码**：[`engine/adapters/postgres/`](../apps/negentropy/src/negentropy/engine/adapters/postgres/)
+- **代码**：[`engine/adapters/postgres/`](../../apps/negentropy/src/negentropy/engine/adapters/postgres/)
 - **出处**：GoF Adapter<sup>[[5]](#ref5)</sup>
 
 ### 5.5 Strategy Pattern（策略模式）
 
 - **应用**：`model_resolver` 根据数据库配置动态解析 LLM / Embedding 模型
 - **动机**：支持运行时切换模型提供商而无需修改代码
-- **代码**：[`config/model_resolver.py`](../apps/negentropy/src/negentropy/config/model_resolver.py)
+- **代码**：[`config/model_resolver.py`](../../apps/negentropy/src/negentropy/config/model_resolver.py)
 - **出处**：GoF Strategy<sup>[[5]](#ref5)</sup>
 
 ### 5.6 Nested Settings Pattern（嵌套配置模式）
 
 - **应用**：Pydantic Settings 正交配置域组合
 - **动机**：每个配置域独立管理，支持 YAML 分层加载 + Shell 环境变量覆盖
-- **代码**：[`config/__init__.py`](../apps/negentropy/src/negentropy/config/__init__.py)
+- **代码**：[`config/__init__.py`](../../apps/negentropy/src/negentropy/config/__init__.py)
 - **出处**：Composition over Inheritance<sup>[[5]](#ref5)</sup>
 
 ### 5.7 Monkey-Patch Integration（运行时注入集成）
 
 - **应用**：`bootstrap.py` 通过 Monkey-Patch 将 Negentropy 的配置注入 ADK 服务工厂
 - **动机**：在不修改 ADK 框架源码的前提下实现定制化服务绑定
-- **代码**：[`engine/bootstrap.py`](../apps/negentropy/src/negentropy/engine/bootstrap.py)
+- **代码**：[`engine/bootstrap.py`](../../apps/negentropy/src/negentropy/engine/bootstrap.py)
 - **权衡**：牺牲了类型安全性换取集成灵活性；需随 ADK 版本升级验证兼容性
 
 ### 5.8 Interface Architecture（能力接入架构）
 
 - **应用**：可扩展的 Interface 模块，支持模型（Models）、子智能体（SubAgents）、MCP 服务、技能（Skills）的动态注册与接入
 - **动机**：开放封闭原则 (OCP)——对扩展开放，对修改封闭
-- **代码**：[`interface/`](../apps/negentropy/src/negentropy/interface/)
+- **代码**：[`interface/`](../../apps/negentropy/src/negentropy/interface/)
 
 ---
 
@@ -365,7 +366,7 @@ SequentialAgent(
 
 引擎层是连接智能体与基础设施的枢纽，基于 FastAPI<sup>[[7]](#ref7)</sup> 与 Google ADK Web Server 构建。
 
-> 源码位置：[`engine/`](../apps/negentropy/src/negentropy/engine/)
+> 源码位置：[`engine/`](../../apps/negentropy/src/negentropy/engine/)
 
 ### 6.1 启动引导流程
 
@@ -395,7 +396,7 @@ flowchart TD
 
 工厂模块通过配置驱动创建服务实例，支持 `inmemory` / `postgres` / `vertexai` 等多种后端。
 
-> 源码位置：[`engine/factories/__init__.py`](../apps/negentropy/src/negentropy/engine/factories/__init__.py)
+> 源码位置：[`engine/factories/__init__.py`](../../apps/negentropy/src/negentropy/engine/factories/__init__.py)
 
 | 工厂函数 | 服务类型 | 可选后端 |
 | :------- | :------- | :------- |
@@ -412,9 +413,9 @@ flowchart TD
 系统提供双通道沙箱以隔离代码执行：
 
 - **MCP (Model Context Protocol)**：通过 MCP 协议与外部工具服务通信
-  - 源码：[`engine/sandbox/mcp.py`](../apps/negentropy/src/negentropy/engine/sandbox/mcp.py)
+  - 源码：[`engine/sandbox/mcp.py`](../../apps/negentropy/src/negentropy/engine/sandbox/mcp.py)
 - **MicroSandbox**：轻量级容器化沙箱，用于安全执行用户代码
-  - 源码：[`engine/sandbox/microsandbox_runner.py`](../apps/negentropy/src/negentropy/engine/sandbox/microsandbox_runner.py)
+  - 源码：[`engine/sandbox/microsandbox_runner.py`](../../apps/negentropy/src/negentropy/engine/sandbox/microsandbox_runner.py)
 
 ### 6.4 可观测性集成
 
@@ -438,7 +439,7 @@ graph LR
 - **OpenTelemetry**：分布式追踪，通过 Langfuse 作为 OTLP 接收端
 - **TracingInitMiddleware**：从 HTTP 请求中提取/生成 `session_id`、`user_id`，注入 OTel baggage
 
-> 源码位置：[`instrumentation.py`](../apps/negentropy/src/negentropy/instrumentation.py)、[`engine/bootstrap.py`](../apps/negentropy/src/negentropy/engine/bootstrap.py) (中间件定义)
+> 源码位置：[`instrumentation.py`](../../apps/negentropy/src/negentropy/instrumentation.py)、[`engine/bootstrap.py`](../../apps/negentropy/src/negentropy/engine/bootstrap.py) (中间件定义)
 
 ---
 
@@ -448,7 +449,7 @@ graph LR
 
 系统采用 **Pydantic Settings** 的嵌套组合模式，将配置划分为独立的正交域：
 
-> 源码位置：[`config/__init__.py`](../apps/negentropy/src/negentropy/config/__init__.py)
+> 源码位置：[`config/__init__.py`](../../apps/negentropy/src/negentropy/config/__init__.py)
 
 ```python
 class Settings(BaseSettings):
@@ -481,15 +482,15 @@ class Settings(BaseSettings):
 
 | 配置域 | 源文件 | 环境变量前缀 | 职责 |
 | :----- | :----- | :----------- | :--- |
-| `EnvironmentSettings` | [`config/environment.py`](../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 YAML 配置加载 |
-| `AppSettings` | [`config/app.py`](../apps/negentropy/src/negentropy/config/app.py) | `NE_` | 应用名称等基础配置 |
-| `LoggingSettings` | [`config/logging.py`](../apps/negentropy/src/negentropy/config/logging.py) | `NE_LOG_` | 日志级别、格式、输出 sink |
-| `ObservabilitySettings` | [`config/observability.py`](../apps/negentropy/src/negentropy/config/observability.py) | `LANGFUSE_` | Langfuse 追踪配置 |
-| `DatabaseSettings` | [`config/database.py`](../apps/negentropy/src/negentropy/config/database.py) | `NE_DB_` | PostgreSQL 连接池参数 |
-| `ServicesSettings` | [`config/services.py`](../apps/negentropy/src/negentropy/config/services.py) | `NE_` | 各服务后端选择 |
-| `AuthSettings` | [`config/auth.py`](../apps/negentropy/src/negentropy/config/auth.py) | `NE_AUTH_` | Google OAuth / Session 管理 |
-| `SearchSettings` | [`config/search.py`](../apps/negentropy/src/negentropy/config/search.py) | `NE_SEARCH_` | Web 搜索提供商配置 |
-| `KnowledgeSettings` | [`config/knowledge.py`](../apps/negentropy/src/negentropy/config/knowledge.py) | `NE_KG_` | 知识图谱与向量存储 |
+| `EnvironmentSettings` | [`config/environment.py`](../../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 YAML 配置加载 |
+| `AppSettings` | [`config/app.py`](../../apps/negentropy/src/negentropy/config/app.py) | `NE_` | 应用名称等基础配置 |
+| `LoggingSettings` | [`config/logging.py`](../../apps/negentropy/src/negentropy/config/logging.py) | `NE_LOG_` | 日志级别、格式、输出 sink |
+| `ObservabilitySettings` | [`config/observability.py`](../../apps/negentropy/src/negentropy/config/observability.py) | `LANGFUSE_` | Langfuse 追踪配置 |
+| `DatabaseSettings` | [`config/database.py`](../../apps/negentropy/src/negentropy/config/database.py) | `NE_DB_` | PostgreSQL 连接池参数 |
+| `ServicesSettings` | [`config/services.py`](../../apps/negentropy/src/negentropy/config/services.py) | `NE_` | 各服务后端选择 |
+| `AuthSettings` | [`config/auth.py`](../../apps/negentropy/src/negentropy/config/auth.py) | `NE_AUTH_` | Google OAuth / Session 管理 |
+| `SearchSettings` | [`config/search.py`](../../apps/negentropy/src/negentropy/config/search.py) | `NE_SEARCH_` | Web 搜索提供商配置 |
+| `KnowledgeSettings` | [`config/knowledge.py`](../../apps/negentropy/src/negentropy/config/knowledge.py) | `NE_KG_` | 知识图谱与向量存储 |
 
 ### 7.4 LLM 模型解析链路
 
@@ -499,7 +500,7 @@ class Settings(BaseSettings):
 Admin UI → model_configs 表 → model_resolver.py → create_model() → LiteLlm 实例
 ```
 
-> 源码位置：[`config/model_resolver.py`](../apps/negentropy/src/negentropy/config/model_resolver.py)、[`agents/_model.py`](../apps/negentropy/src/negentropy/agents/_model.py)
+> 源码位置：[`config/model_resolver.py`](../../apps/negentropy/src/negentropy/config/model_resolver.py)、[`agents/_model.py`](../../apps/negentropy/src/negentropy/agents/_model.py)
 
 解析策略：优先读取数据库缓存配置，若缓存未命中则回退到硬编码默认值。缓存由 `bootstrap.py` 的 startup 事件预热。
 
@@ -559,11 +560,11 @@ graph TB
 
 | Schema 文件 | 认知域 | 核心表 | 说明 |
 | :---------- | :----- | :----- | :--- |
-| [`agent_schema.sql`](./schema/agent_schema.sql) | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
-| [`hippocampus_schema.sql`](./schema/hippocampus_schema.sql) | 记忆系统 | memories, facts, consolidation_jobs | 情景/语义记忆、艾宾浩斯衰减 |
-| [`kg_schema_extension.sql`](./schema/kg_schema_extension.sql) | 知识图谱 | 知识节点/边 | 结构化知识表示 |
-| [`mind_schema.sql`](./schema/mind_schema.sql) | 思维模式 | — | 思维模式与策略 |
-| [`perception_schema.sql`](./schema/perception_schema.sql) | 感知系统 | — | 感知数据与来源管理 |
+| [`agent_schema.sql`](../schema/agent_schema.sql) | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
+| [`hippocampus_schema.sql`](../schema/hippocampus_schema.sql) | 记忆系统 | memories, facts, consolidation_jobs | 情景/语义记忆、艾宾浩斯衰减 |
+| [`kg_schema_extension.sql`](../schema/kg_schema_extension.sql) | 知识图谱 | 知识节点/边 | 结构化知识表示 |
+| [`mind_schema.sql`](../schema/mind_schema.sql) | 思维模式 | — | 思维模式与策略 |
+| [`perception_schema.sql`](../schema/perception_schema.sql) | 感知系统 | — | 感知数据与来源管理 |
 
 ### 8.3 关键设计决策
 
@@ -790,7 +791,7 @@ type ToolProgressMap = Record<string /* tool_call_id */, {
 - **终态清理**：工具进入 completed/error 时，必须从 `state.tool_progress` 删除对应键，避免 stale 进度长期残留。
 
 **前端消费**：
-- `home-body.tsx` 从 `snapshotForDisplay.tool_progress` 提取 `ToolProgressMap`（[`memo`](../apps/negentropy-ui/app/home-body.tsx)），通过 `ChatStream.toolProgressMap` 透传至 `ToolExecutionGroup` → `ToolExecutionCard`；
+- `home-body.tsx` 从 `snapshotForDisplay.tool_progress` 提取 `ToolProgressMap`（[`memo`](../../apps/negentropy-ui/app/home-body.tsx)），通过 `ChatStream.toolProgressMap` 透传至 `ToolExecutionGroup` → `ToolExecutionCard`；
 - `ToolExecutionCard` 仅在 `tool.status === "running"` 且 `progress.percent < 100` 时渲染进度条；
 - 进度条由 `[data-testid="tool-progress"]` 锚定，便于 E2E 断言。
 
@@ -868,7 +869,7 @@ graph TB
 
 ### 10.3 测试目录结构
 
-**后端** ([`apps/negentropy/tests/`](../apps/negentropy/tests/))：
+**后端** ([`apps/negentropy/tests/`](../../apps/negentropy/tests/))：
 ```
 tests/
 ├── conftest.py           # 全局 fixtures (DB, 异步)
@@ -877,7 +878,7 @@ tests/
 └── performance_tests/    # 性能测试 (knowledge 搜索基准)
 ```
 
-**前端** ([`apps/negentropy-ui/tests/`](../apps/negentropy-ui/tests/))：
+**前端** ([`apps/negentropy-ui/tests/`](../../apps/negentropy-ui/tests/))：
 ```
 tests/
 ├── setup.ts              # Vitest 全局设置
@@ -928,10 +929,10 @@ graph LR
 ```
 
 关键设计：**PR 门禁与 Release 门禁共享同一套 QA 定义**（单一事实源），通过可复用工作流实现：
-- [`reusable-negentropy-backend-quality.yml`](../.github/workflows/reusable-negentropy-backend-quality.yml)
-- [`reusable-negentropy-ui-quality.yml`](../.github/workflows/reusable-negentropy-ui-quality.yml)
+- [`reusable-negentropy-backend-quality.yml`](../../.github/workflows/reusable-negentropy-backend-quality.yml)
+- [`reusable-negentropy-ui-quality.yml`](../../.github/workflows/reusable-negentropy-ui-quality.yml)
 
-详见 [QA 与发布流水线文档](./qa-delivery-pipeline.md)。
+详见 [QA 与发布流水线文档](../qa-delivery-pipeline.md)。
 
 ---
 
@@ -1003,5 +1004,7 @@ graph LR
 <a id="ref19"></a>[19] Y. Chen et al., "Graceful Cancellation of Long-running LLM Tasks," _IEEE Trans. Software Eng._, vol. 51, no. 1, pp. 88–104, Jan. 2026.
 
 ---
+
+- [`reusable-negentropy-ui-quality.yml`](../../.github/workflows/reusable-negentropy-ui-quality.yml)
 
 > **文档维护**：本文档与代码同步演进。架构变更时需同步更新对应章节，保持代码事实与文档描述的一致性。

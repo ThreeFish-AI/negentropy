@@ -12,7 +12,7 @@
  * forwardedProps 把 policy 透传给 agent.runAgent，后端 ``approval.should_request_approval``
  * 决定是否拦截工具调用。
  *
- * 设计动机：参见 docs/conversation-foundation.md §6 HITL & Guardrails；与 ChatGPT
+ * 设计动机：参见 docs/architecture/conversation-foundation.md §6 HITL & Guardrails；与 ChatGPT
  * Codex 的 ApprovalPolicy 行为对齐。
  */
 

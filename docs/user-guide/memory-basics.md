@@ -1,6 +1,6 @@
 # Memory User-Guide：5 分钟上手
 
-> 本文聚焦"概念入门 + UI 导航"。深入设计原理见 [`memory.md`](../memory.md)；理论支撑见 [`memory-whitepaper.md`](../memory-whitepaper.md)；API 集成见 [`memory-integration.md`](./memory-integration.md)。
+> 本文聚焦"概念入门 + UI 导航"。深入设计原理见 [`memory.md`](../memory/overview.md)；理论支撑见 [`memory-whitepaper.md`](../memory/whitepaper.md)；API 集成见 [`memory-integration.md`](./memory-integration.md)。
 
 ---
 
@@ -47,7 +47,7 @@ flowchart LR
 
 ## 2.5 高级特性开关（Phase 5）
 
-Phase 5 引入 4 个高级特性，**全部默认关闭**，按需通过环境变量或配置文件灰度启用。详细工程契约见 [`memory.md`](../memory.md) §10 与 [`memory-whitepaper.md`](../memory-whitepaper.md) §4。
+Phase 5 引入 4 个高级特性，**全部默认关闭**，按需通过环境变量或配置文件灰度启用。详细工程契约见 [`memory.md`](../memory/overview.md) §10 与 [`memory-whitepaper.md`](../memory/whitepaper.md) §4。
 
 | 特性 | 配置项 | 默认 | 何时启用 | 性能成本 |
 |---|---|---|---|---|
@@ -158,4 +158,4 @@ cd apps/negentropy && uv sync --extra pii-presidio
 - 工程师 → [`memory-integration.md`](./memory-integration.md)
 - 运维 → [`memory-automation.md`](./memory-automation.md)
 - 故障排除 → [`memory-troubleshooting.md`](./memory-troubleshooting.md)
-- 架构师 → [`memory.md`](../memory.md) + [`memory-whitepaper.md`](../memory-whitepaper.md)
+- 架构师 → [`memory.md`](../memory/overview.md) + [`memory-whitepaper.md`](../memory/whitepaper.md)

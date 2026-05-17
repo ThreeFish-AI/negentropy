@@ -65,7 +65,7 @@ def _format_citation(
     不抛异常。仅依赖 ``metadata`` 中可能存在的 ``arxiv_id`` / ``title`` / ``authors`` /
     ``published_at`` —— 这与 ``paper.py`` `ingest_paper` 注入的 metadata 兼容。
 
-    设计动机（参见 docs/conversation-foundation.md §3 RAG + 引用机制）：
+    设计动机（参见 docs/architecture/conversation-foundation.md §3 RAG + 引用机制）：
         Self-RAG 与 Corrective RAG 等近期工作均强调 retrieval 过程必须返回 stable citation
         token，让模型在生成阶段引用，从而把 hallucination 率压到可控。本 helper 是该
         契约的工程落点。
