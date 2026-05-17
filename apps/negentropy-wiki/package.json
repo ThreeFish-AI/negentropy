@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "github-slugger": "^2.0.0",
+    "graphology": "^0.26.0",
+    "graphology-layout-forceatlas2": "^0.10.1",
     "mdast-util-to-string": "^4.0.0",
     "next": "^15.5.15",
     "react": "^19.0.0",
@@ -20,6 +22,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
+    "sigma": "^3.0.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0"
   },

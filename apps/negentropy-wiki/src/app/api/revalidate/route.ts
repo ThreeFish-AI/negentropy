@@ -76,11 +76,13 @@ export async function POST(request: Request) {
 
   // 幂等：相同输入多次调用结果一致；revalidate* 内部去重。
   // 站点根路径 + 该发布的所有详情页（catch-all 子路径会因 revalidatePath
-  // 加 layout 旗标而连带刷新）。
+  // 加 layout 旗标而连带刷新）+ 知识图谱页（与文档同发布周期）。
   revalidatePath("/");
   revalidatePath(`/${payload.pub_slug}`);
   revalidatePath(`/${payload.pub_slug}/[...entrySlug]`, "page");
+  revalidatePath(`/${payload.pub_slug}/graph`);
   revalidateTag(`wiki:${payload.pub_slug}`);
+  revalidateTag(`wiki-graph:${payload.pub_slug}`);
 
   return NextResponse.json({
     revalidated: true,
