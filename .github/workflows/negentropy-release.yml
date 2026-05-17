@@ -105,17 +105,17 @@ jobs:
         working-directory: apps/negentropy
         run: uv build
 
+      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install UI dependencies
         working-directory: apps/negentropy-ui
