@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSseStream } from "@/lib/agui/stream";
+import { parseSseStream } from "@negentropy/agents-chat-core/protocol";
 
 describe("parseSseStream", () => {
   it("兼容 CRLF 与多行 data", async () => {

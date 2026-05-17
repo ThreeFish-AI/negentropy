@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStateDeltaFromForwardedProps } from "@/app/api/agui/_state-delta";
+import { buildStateDeltaFromForwardedProps } from "@negentropy/agents-chat-core/server";
 
 const UUID_A = "11111111-2222-3333-4444-555555555555";
 const UUID_B = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";

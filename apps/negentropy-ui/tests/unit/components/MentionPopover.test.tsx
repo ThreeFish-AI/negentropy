@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MentionPopover } from "@/components/ui/MentionPopover";
-import type { MentionCandidate } from "@/types/mention";
+import type { MentionCandidate } from "@negentropy/agents-chat-core/parse";
 
 const _AGENTS: MentionCandidate[] = [
   {

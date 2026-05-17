@@ -23,7 +23,7 @@ import {
   getEventToolCallName,
   getMessageCreatedAt,
   type AgUiMessage,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 import { getMessageIdentityKey, normalizeMessageContent } from "@/utils/message";
 import { buildMessageLedger, isSemanticEquivalentEntry, ledgerEntriesToMessages } from "@/utils/message-ledger";
 

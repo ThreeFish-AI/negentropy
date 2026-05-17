@@ -17,7 +17,7 @@ import {
   createTestMessage,
   createTestTextMessageEvents,
 } from "@/tests/helpers/agui";
-import type { AgUiEvent, AgUiMessage } from "@/types/agui";
+import type { AgUiEvent, AgUiMessage } from "@negentropy/agents-chat-core/protocol";
 
 function buildTextEvents(input: {
   messageId: string;

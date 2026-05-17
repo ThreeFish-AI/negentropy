@@ -19,8 +19,8 @@ import type {
   ToolCallEndEvent,
   ToolCallResultEvent,
   ToolCallStartEvent,
-} from "@/types/agui";
-import { createAgUiMessage } from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
+import { createAgUiMessage } from "@negentropy/agents-chat-core/protocol";
 
 type RequiredMessageEventProps = BaseEventProps & { messageId: string };
 

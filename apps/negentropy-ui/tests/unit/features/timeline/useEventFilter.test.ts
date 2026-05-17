@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useEventFilter } from "@/features/timeline/hooks/useEventFilter";
 import { createTestTextMessageEvents } from "@/tests/helpers/agui";
-import { getEventMessageId, type AgUiEvent } from "@/types/agui";
+import { getEventMessageId, type AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 
 describe("useEventFilter", () => {
   const msg1Events = createTestTextMessageEvents({

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { EventType } from "@ag-ui/core";
 import { HomeBody, type HomeBodyAgent } from "../../app/home-body";
 import { createTestEvent } from "@/tests/helpers/agui";
-import type { AgUiEvent } from "@/types/agui";
+import type { AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 
 type MockAgent = {
   messages: unknown[];

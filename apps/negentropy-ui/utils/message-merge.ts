@@ -10,7 +10,7 @@ import {
   getMessageCreatedAt,
   getMessageThreadId,
   type AgUiMessage,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 import {
   getMessageIdentityKey,
   getMessageTimestampMs,

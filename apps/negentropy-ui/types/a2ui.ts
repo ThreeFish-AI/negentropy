@@ -1,5 +1,5 @@
 import type { BaseEvent, Message } from "@ag-ui/core";
-import type { CanonicalMessageRole } from "@/types/agui";
+import type { CanonicalMessageRole } from "@negentropy/agents-chat-core/protocol";
 import type { MessageLedgerEntry } from "@/types/common";
 import type { ChatMessage, ToolCallStatus } from "@/types/common";
 

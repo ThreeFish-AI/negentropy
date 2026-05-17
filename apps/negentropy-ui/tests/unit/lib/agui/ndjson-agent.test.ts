@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventType } from "@ag-ui/core";
-import { NdjsonHttpAgent } from "@/lib/agui/ndjson-agent";
+import { NdjsonHttpAgent } from "@negentropy/agents-chat-core/client";
 
 describe("NdjsonHttpAgent", () => {
   afterEach(() => {

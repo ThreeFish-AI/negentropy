@@ -10,7 +10,7 @@ import {
   createTransportErrorFrame,
   encodeNdjsonFrame,
   parseSseStream,
-} from "@/lib/agui/stream";
+} from "@negentropy/agents-chat-core/protocol";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
@@ -21,7 +21,7 @@ import { getAguiBaseUrl } from "@/lib/server/backend-url";
 // 派生 state_delta 的纯函数 + 共享 UUID 校验沉淀到 `_state-delta`：
 // Next.js App Router 限定 `route.ts` 仅可导出 HTTP handler / 配置符号，
 // 任何额外 `export`（包括纯工具函数）都会被生成路由类型校验拒绝。
-import { UUID_RE, buildStateDeltaFromForwardedProps } from "./_state-delta";
+import { UUID_RE, buildStateDeltaFromForwardedProps } from "@negentropy/agents-chat-core/server";
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);

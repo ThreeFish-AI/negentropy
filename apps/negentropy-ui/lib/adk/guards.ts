@@ -7,8 +7,8 @@
  */
 
 import type { BaseEvent } from "@ag-ui/core";
-import { parseBaseEvent, safeParseBaseEventProps } from "@/lib/agui/schema";
-import type { BaseEventProps } from "@/types/agui";
+import { parseBaseEvent, safeParseBaseEventProps } from "@negentropy/agents-chat-core/protocol";
+import type { BaseEventProps } from "@negentropy/agents-chat-core/protocol";
 
 export {
   createActivitySnapshotEvent,
@@ -28,7 +28,7 @@ export {
   createToolCallResultEvent,
   createToolCallStartEvent,
 } from "@/lib/agui/factories";
-export { createOptimisticTextEvents } from "@/types/agui";
+export { createOptimisticTextEvents } from "@negentropy/agents-chat-core/protocol";
 
 /**
  * 兼容旧调用面的基础事件属性检查。

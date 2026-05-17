@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bot, BookOpen, Save, Network, Loader2 } from "lucide-react";
-import type { MentionCandidate, MentionKind } from "@/types/mention";
+import type { MentionCandidate, MentionKind } from "@negentropy/agents-chat-core/parse";
 
 interface PopoverPosition {
   top: number;

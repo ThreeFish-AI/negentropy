@@ -7,7 +7,7 @@ import {
   mergeMessageLedger,
 } from "@/utils/message-ledger";
 import { createTestEvent } from "@/tests/helpers/agui";
-import type { AgUiEvent } from "@/types/agui";
+import type { AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 
 describe("message-ledger", () => {
   it("允许 hydration 终态补全已 closed 的实时 assistant 截断内容", () => {

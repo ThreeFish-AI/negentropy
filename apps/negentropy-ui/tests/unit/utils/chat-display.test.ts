@@ -7,7 +7,7 @@ import {
   isStreamingDuplicateOfLater,
 } from "@/utils/chat-display";
 import { createTestEvent } from "@/tests/helpers/agui";
-import type { AgUiEvent } from "@/types/agui";
+import type { AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 import type { ConversationTree } from "@/types/a2ui";
 
 describe("buildChatDisplayBlocks", () => {

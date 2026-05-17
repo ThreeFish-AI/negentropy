@@ -20,8 +20,8 @@ import {
   getMessageThreadId,
   normalizeCompatibleMessageRole,
   type CanonicalMessageRole,
-} from "@/types/agui";
-import { createAgUiMessage } from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
+import { createAgUiMessage } from "@negentropy/agents-chat-core/protocol";
 import type { MessageLedgerEntry } from "@/types/common";
 import {
   buildNodeSummary,

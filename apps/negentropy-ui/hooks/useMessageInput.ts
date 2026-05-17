@@ -19,7 +19,7 @@ import {
   createAgUiMessage,
   createOptimisticTextEvents,
   type AgUiMessage,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 
 /**
  * useMessageInput Hook 参数

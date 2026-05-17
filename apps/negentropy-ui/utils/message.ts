@@ -21,7 +21,7 @@ import {
   getMessageStreaming,
   getMessageThreadId,
   type AgUiMessage,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 
 export type { ChatMessage };
 

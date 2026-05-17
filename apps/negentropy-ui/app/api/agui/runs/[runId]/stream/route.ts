@@ -6,7 +6,7 @@ import {
   createTransportErrorFrame,
   encodeNdjsonFrame,
   getCursorSequence,
-} from "@/lib/agui/stream";
+} from "@negentropy/agents-chat-core/protocol";
 import { collectAdkEventPayloads } from "@/lib/adk";
 import {
   buildSessionDetailUpstreamUrl,
@@ -16,7 +16,7 @@ import {
 } from "@/app/api/agui/sessions/_request";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import { hydrateSessionDetail } from "@/utils/session-hydration";
-import { getEventRunId, getEventThreadId } from "@/types/agui";
+import { getEventRunId, getEventThreadId } from "@negentropy/agents-chat-core/protocol";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
