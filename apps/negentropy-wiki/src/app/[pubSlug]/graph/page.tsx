@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ThemePreference } from "@/components/ThemePreference";
+import { WikiForceGraphCanvas } from "@/components/WikiForceGraphCanvas";
 import { WikiGraphCanvas } from "@/components/WikiGraphCanvas";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
@@ -177,15 +178,30 @@ function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
     );
   }
 
+  // 渲染器降级阈值：节点数 > 500 时切到 ForceGraph2D（Canvas 2D），避免 Sigma
+  // WebGL 在大图上的初始化卡顿与 OOM 风险。阈值与 plan 中的 truncateThreshold
+  // 保持一致；后端 max_nodes 上限 1000，组件层只在 500-1000 区间生效。
+  const useForceGraph = graph.nodes.length > 500;
+
   return (
     <div className="wiki-graph-canvas-wrap">
-      <WikiGraphCanvas
-        pubSlug={pubSlug}
-        nodes={graph.nodes}
-        edges={graph.edges}
-        truncated={graph.truncated}
-        totalEntities={graph.total_entities}
-      />
+      {useForceGraph ? (
+        <WikiForceGraphCanvas
+          pubSlug={pubSlug}
+          nodes={graph.nodes}
+          edges={graph.edges}
+          truncated={graph.truncated}
+          totalEntities={graph.total_entities}
+        />
+      ) : (
+        <WikiGraphCanvas
+          pubSlug={pubSlug}
+          nodes={graph.nodes}
+          edges={graph.edges}
+          truncated={graph.truncated}
+          totalEntities={graph.total_entities}
+        />
+      )}
     </div>
   );
 }
