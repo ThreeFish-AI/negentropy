@@ -50,6 +50,9 @@ importers:
       '@copilotkitnext/react':
         specifier: 1.51.3
         version: 1.51.3(@types/mdast@4.0.4)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(micromark-util-types@2.0.2)(micromark@4.0.2)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@negentropy/agents-chat-core':
+        specifier: workspace:*
+        version: link:../../packages/agents-chat-core
       cytoscape:
         specifier: ^3.33.3
         version: 3.33.3
@@ -228,6 +231,15 @@ importers:
 
   apps/negentropy-wiki:
     dependencies:
+      '@ag-ui/client':
+        specifier: 0.0.47
+        version: 0.0.47
+      '@ag-ui/core':
+        specifier: 0.0.47
+        version: 0.0.47
+      '@negentropy/agents-chat-core':
+        specifier: workspace:*
+        version: link:../../packages/agents-chat-core
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0
@@ -255,16 +267,25 @@ importers:
       remark-parse:
         specifier: ^11.0.0
         version: 11.0.0
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.1
       unified:
         specifier: ^11.0.5
         version: 11.0.5
       unist-util-visit:
         specifier: ^5.0.0
         version: 5.1.0
+      zod:
+        specifier: 'catalog:'
+        version: 3.24.4
     devDependencies:
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
       '@types/node':
         specifier: ^22.13.0
         version: 22.19.19

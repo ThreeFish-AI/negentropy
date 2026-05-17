@@ -1,0 +1,342 @@
+/**
+ * Agents at Wiki —— 右下角悬浮聊天框样式。
+ *
+ * 全部基于 wiki 既有 CSS Variable 主题（--wiki-* token），自动适配
+ * 默认主题 / 深色模式 / 备用主题；不引入额外字体或 reset。
+ */
+
+/* ---------- FAB ---------- */
+.wiki-agent-chat-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--wiki-border);
+  background: var(--wiki-accent);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transition: transform 120ms ease, background 120ms ease;
+  z-index: 9999;
+}
+
+.wiki-agent-chat-fab:hover {
+  background: var(--wiki-accent-hover);
+  transform: translateY(-2px);
+}
+
+.wiki-agent-chat-fab:focus-visible {
+  outline: 2px solid var(--wiki-accent);
+  outline-offset: 2px;
+}
+
+.wiki-agent-chat-fab__icon {
+  display: inline-block;
+}
+
+/* ---------- Drawer ---------- */
+.wiki-agent-chat-drawer {
+  position: fixed;
+  right: 24px;
+  bottom: 92px; /* FAB(56) + gap(12) + margin(24) */
+  width: min(420px, calc(100vw - 48px));
+  height: min(620px, calc(100vh - 140px));
+  display: flex;
+  flex-direction: column;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: var(--wiki-radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  z-index: 9998;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .wiki-agent-chat-drawer {
+    inset: 12px;
+    width: auto;
+    height: auto;
+    bottom: 88px;
+  }
+}
+
+.wiki-agent-chat-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--wiki-border);
+  background: var(--wiki-bg-secondary);
+}
+
+.wiki-agent-chat-drawer__title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--wiki-text);
+}
+
+.wiki-agent-chat-drawer__close {
+  border: none;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.wiki-agent-chat-drawer__close:hover {
+  background: var(--wiki-border);
+  color: var(--wiki-text);
+}
+
+.wiki-agent-chat-drawer__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wiki-agent-chat-drawer__empty {
+  color: var(--wiki-text-secondary);
+  font-size: 13px;
+  padding: 8px 4px;
+}
+
+.wiki-agent-chat-drawer__empty p {
+  margin: 0 0 8px 0;
+}
+
+.wiki-agent-chat-drawer__empty kbd {
+  background: var(--wiki-bg-secondary);
+  border: 1px solid var(--wiki-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--wiki-code-font);
+  font-size: 12px;
+}
+
+.wiki-agent-chat-drawer__page-hint {
+  font-size: 12px;
+  color: var(--wiki-text-secondary);
+}
+
+.wiki-agent-chat-drawer__error {
+  background: rgba(255, 0, 0, 0.05);
+  border: 1px solid rgba(255, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #c0392b;
+  font-size: 13px;
+}
+
+.wiki-agent-chat-drawer__composer-wrap {
+  border-top: 1px solid var(--wiki-border);
+  padding: 12px 16px;
+  background: var(--wiki-bg);
+}
+
+/* ---------- 消息气泡 ---------- */
+.wiki-agent-chat-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wiki-agent-chat-msg--user {
+  align-items: flex-end;
+}
+
+.wiki-agent-chat-msg--user .wiki-agent-chat-msg__body {
+  background: var(--wiki-accent);
+  color: #fff;
+  border-radius: 12px 12px 2px 12px;
+  padding: 8px 12px;
+  max-width: 80%;
+}
+
+.wiki-agent-chat-msg--assistant .wiki-agent-chat-msg__body {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+  border-radius: 12px 12px 12px 2px;
+  padding: 8px 12px;
+  max-width: 90%;
+}
+
+.wiki-agent-chat-msg__author {
+  font-size: 11px;
+  color: var(--wiki-text-secondary);
+  font-weight: 500;
+  padding-left: 4px;
+}
+
+.wiki-agent-chat-msg__plain {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.wiki-agent-chat-msg__cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: wiki-agent-chat-cursor 1s steps(2, end) infinite;
+}
+
+@keyframes wiki-agent-chat-cursor {
+  to {
+    opacity: 0;
+  }
+}
+
+.wiki-agent-chat-msg__wikilink {
+  color: var(--wiki-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wiki-agent-chat-msg__wikilink:hover {
+  color: var(--wiki-accent-hover);
+}
+
+/* ---------- Composer ---------- */
+.wiki-agent-chat-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wiki-agent-chat-composer__textarea-wrap {
+  position: relative;
+}
+
+.wiki-agent-chat-composer__textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 56px;
+  max-height: 200px;
+  padding: 8px 10px;
+  font-family: var(--wiki-body-font);
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  background: var(--wiki-bg);
+  color: var(--wiki-text);
+}
+
+.wiki-agent-chat-composer__textarea:focus {
+  outline: none;
+  border-color: var(--wiki-accent);
+  box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.15);
+}
+
+.wiki-agent-chat-composer__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wiki-agent-chat-composer__hint {
+  font-size: 12px;
+  color: var(--wiki-text-secondary);
+}
+
+.wiki-agent-chat-composer__btn {
+  border: 1px solid var(--wiki-accent);
+  background: var(--wiki-accent);
+  color: #fff;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+}
+
+.wiki-agent-chat-composer__btn:hover {
+  background: var(--wiki-accent-hover);
+  border-color: var(--wiki-accent-hover);
+}
+
+/* ---------- Mention Popover ---------- */
+.wiki-agent-mention-popover {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  box-shadow: var(--wiki-shadow);
+  z-index: 10;
+}
+
+.wiki-agent-mention-popover__hint {
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--wiki-text-secondary);
+  border-bottom: 1px solid var(--wiki-border);
+  background: var(--wiki-bg-secondary);
+}
+
+.wiki-agent-mention-popover__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.wiki-agent-mention-popover__item {
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wiki-agent-mention-popover__item--active,
+.wiki-agent-mention-popover__item:hover {
+  background: var(--wiki-bg-secondary);
+}
+
+.wiki-agent-mention-popover__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wiki-agent-mention-popover__name {
+  font-size: 13px;
+  color: var(--wiki-text);
+  font-weight: 500;
+}
+
+.wiki-agent-mention-popover__badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--wiki-accent);
+  color: #fff;
+}
+
+.wiki-agent-mention-popover__badge--faculty {
+  background: var(--wiki-text-secondary);
+}
+
+.wiki-agent-mention-popover__desc {
+  font-size: 11px;
+  color: var(--wiki-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

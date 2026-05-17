@@ -1,11 +1,11 @@
 /**
- * Mention 解析层入口（占位）。
+ * Mention 解析层桶导出。
  *
- * PR-2 将迁入：
- *   - mention-types.ts   ← apps/negentropy-ui/types/mention.ts
- *   - mention-parser.ts  ← apps/negentropy-ui/utils/mention-parser.ts (234 LoC)
+ * - mention-types：MentionKind / MentionToken / MentionCandidate 类型契约
+ * - mention-parser：detectMentionTrigger / applyMention / reconcileMentions /
+ *   deriveForwardedPropsFromMentions 纯函数（零外部依赖）
  *
- * 纯函数 + 零外部依赖，wiki 端复用价值最高（沿用 ui 的 @ 触发判定规则，
- * 保持双端 mention 行为完全一致）。
+ * 双端共享 @ 触发规则与 forwardedProps 派生逻辑，保证 ui 与 wiki 行为一致。
  */
-export {};
+export * from "./mention-types";
+export * from "./mention-parser";

@@ -11,6 +11,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ag-ui/client": "catalog:",
+    "@ag-ui/core": "catalog:",
+    "@negentropy/agents-chat-core": "workspace:*",
     "github-slugger": "^2.0.0",
     "mdast-util-to-string": "^4.0.0",
     "next": "^15.5.15",
@@ -20,11 +23,14 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
+    "rxjs": "catalog:",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^22.13.0",
     "@vitejs/plugin-react": "^5.0.5",
     "@types/react": "^19.0.0",

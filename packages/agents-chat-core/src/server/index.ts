@@ -1,10 +1,8 @@
 /**
- * BFF 服务端工具入口（占位）。
+ * BFF 服务端工具桶导出。
  *
- * PR-2 将从 apps/negentropy-ui/app/api/agui/_state-delta.ts (108 LoC) 迁入：
- *   - UUID_RE / PREFERRED_SUBAGENT_MAX_LEN / CORPUS_IDS_MAX_LEN
- *   - sanitizeUuidList / buildStateDeltaFromForwardedProps
- *
- * 用于 wiki 与 ui 两个 BFF 在 /api/agui 路由中各自派生 state_delta。
+ * 由 ui 与 wiki 两端的 /api/agui Route Handler 共用：
+ *   - UUID_RE / PREFERRED_SUBAGENT_MAX_LEN / CORPUS_IDS_MAX_LEN 常量
+ *   - buildStateDeltaFromForwardedProps 派生函数（含显式清空语义）
  */
-export {};
+export * from "./state-delta";
