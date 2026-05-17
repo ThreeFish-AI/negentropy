@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3092",
+    "prebuild": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
     "lint": "next lint",
