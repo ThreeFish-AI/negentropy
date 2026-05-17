@@ -39,6 +39,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # ui 通过 import "@negentropy/agents-chat-core/*" 引用共享包；
+      # 这些子入口在 package.json `exports` 中指向 dist/ 产物，
+      # CI clean 状态下尚未 build → vitest/tsc 解析时回退到 src/.ts
+      # 触发 RollupError。先 build core 包以保证 exports 命中真实产物。
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
+
       - name: Lint app
         run: pnpm lint
 
@@ -67,6 +75,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Typecheck app
         run: pnpm typecheck
@@ -99,6 +111,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Run tests with coverage
         run: pnpm test:coverage
@@ -137,6 +153,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
+
       - name: Build app
         run: pnpm build
 
@@ -167,6 +187,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium

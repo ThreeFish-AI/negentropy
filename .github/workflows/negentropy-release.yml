@@ -121,6 +121,12 @@ jobs:
         working-directory: apps/negentropy-ui
         run: pnpm install --frozen-lockfile
 
+      # 共享包 dist 产物在 ui import 路径中通过 package.json exports 解析；
+      # CI clean 状态下必须先构建以避免回退到 src/.ts 触发 RollupError。
+      - name: Build agents-chat-core
+        working-directory: packages/agents-chat-core
+        run: pnpm build
+
       - name: Build UI standalone bundle
         working-directory: apps/negentropy-ui
         run: pnpm build
