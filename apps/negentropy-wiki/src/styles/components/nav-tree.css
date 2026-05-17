@@ -1,0 +1,97 @@
+.wiki-nav-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.wiki-nav-item {
+  margin-bottom: 0.15rem;
+}
+
+.wiki-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.wiki-nav-toggle {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 4px;
+  transition: transform 0.15s ease, background 0.12s ease;
+}
+.wiki-nav-toggle:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+.wiki-nav-toggle.open {
+  transform: rotate(90deg);
+}
+.wiki-nav-toggle-spacer {
+  cursor: default;
+  pointer-events: none;
+}
+
+.wiki-nav-link {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  padding: 0.32rem 0.55rem;
+  border-radius: 6px;
+  color: var(--wiki-text-secondary);
+  font-size: 0.92em;
+  transition: all 0.12s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wiki-nav-link:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+  text-decoration: none;
+}
+.wiki-nav-link.active {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-accent);
+  font-weight: 600;
+}
+
+.wiki-nav-group {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.82em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--wiki-text-secondary);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wiki-nav-group:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+
+.wiki-nav-sublist {
+  margin-left: 0.55rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--wiki-border);
+  margin-top: 0.15rem;
+}

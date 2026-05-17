@@ -1,0 +1,91 @@
+.wiki-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--wiki-header-height);
+  background: var(--wiki-bg);
+  border-bottom: 1px solid var(--wiki-border);
+}
+
+.wiki-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 100%;
+  padding: 0 clamp(1rem, 2vw, 1.5rem);
+}
+
+.wiki-header-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+  color: var(--wiki-text);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.98em;
+  white-space: nowrap;
+}
+.wiki-header-brand:hover {
+  color: var(--wiki-accent);
+  text-decoration: none;
+}
+
+.wiki-header-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.wiki-header-name {
+  letter-spacing: 0.01em;
+}
+
+.wiki-header-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.wiki-header-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.85rem;
+  height: 100%;
+  font-size: 0.92em;
+  font-weight: 500;
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.12s ease;
+  white-space: nowrap;
+  border-radius: 0;
+}
+.wiki-header-tab:hover {
+  color: var(--wiki-text);
+  text-decoration: none;
+  background: var(--wiki-bg-secondary);
+}
+.wiki-header-tab.active {
+  color: var(--wiki-accent);
+  border-bottom-color: var(--wiki-accent);
+  font-weight: 600;
+}
+.wiki-header-tab.disabled {
+  color: var(--wiki-text-secondary);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wiki-header-tab.disabled:hover {
+  background: transparent;
+}
+
+.wiki-header-slot {
+  flex-shrink: 0;
+}

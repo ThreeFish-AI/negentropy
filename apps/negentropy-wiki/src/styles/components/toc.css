@@ -1,0 +1,95 @@
+.wiki-toc {
+  padding: 1.5rem 1rem 2rem 1.25rem;
+  font-size: 0.86em;
+  min-width: 0;
+}
+
+.wiki-toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--wiki-border);
+}
+
+.wiki-toc-title {
+  font-weight: 600;
+  color: var(--wiki-text-secondary);
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.wiki-toc-collapse,
+.wiki-toc-rail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--wiki-text-secondary);
+  border-radius: 6px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-toc-collapse {
+  padding: 0.25rem 0.4rem;
+}
+.wiki-toc-collapse:hover,
+.wiki-toc-rail:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+
+.wiki-toc-rail {
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  border-left: 1px solid var(--wiki-border);
+  padding: 1.25rem 0.25rem;
+  font-size: 0.7em;
+  color: var(--wiki-text-secondary);
+}
+.wiki-toc-rail-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.wiki-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.wiki-toc-item {
+  line-height: 1.45;
+  margin: 0.1rem 0;
+}
+.wiki-toc-item.depth-3 { padding-left: 0.85rem; }
+.wiki-toc-item.depth-4 { padding-left: 1.7rem; }
+.wiki-toc-item a {
+  display: block;
+  color: var(--wiki-text-secondary);
+  padding: 0.2rem 0.5rem;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.wiki-toc-item a:hover {
+  color: var(--wiki-text);
+  background: var(--wiki-bg-secondary);
+  text-decoration: none;
+}
+.wiki-toc-item.active > a {
+  color: var(--wiki-accent);
+  border-left-color: var(--wiki-accent);
+  background: var(--wiki-bg-secondary);
+  font-weight: 500;
+}

@@ -1,0 +1,39 @@
+[data-theme="book"] {
+  --wiki-sidebar-width: 300px;
+  --wiki-content-max-width: 900px;
+  --wiki-accent: #3e63dd;
+  --wiki-accent-hover: #2d4ec4;
+}
+
+[data-theme="docs"] {
+  --wiki-sidebar-width: 260px;
+  --wiki-content-max-width: 1024px;
+  --wiki-accent: #d63e3e;
+  --wiki-accent-hover: #b82e2e;
+}
+
+[data-color-scheme="dark"] {
+  --wiki-bg: #1a1a1a;
+  --wiki-bg-secondary: #242424;
+  --wiki-text: #e5e5e5;
+  --wiki-text-secondary: #999999;
+  --wiki-border: #333333;
+  --wiki-sidebar-bg: #1f1f1f;
+  --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --wiki-success-bg: #1b3a1e;
+  --wiki-success-text: #66bb6a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) {
+    --wiki-bg: #1a1a1a;
+    --wiki-bg-secondary: #242424;
+    --wiki-text: #e5e5e5;
+    --wiki-text-secondary: #999999;
+    --wiki-border: #333333;
+    --wiki-sidebar-bg: #1f1f1f;
+    --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --wiki-success-bg: #1b3a1e;
+    --wiki-success-text: #66bb6a;
+  }
+}

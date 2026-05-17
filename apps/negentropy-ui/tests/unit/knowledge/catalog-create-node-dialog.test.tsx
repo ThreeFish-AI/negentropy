@@ -8,7 +8,7 @@
  */
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { CreateNodeDialog } from "@/app/knowledge/catalog/_components/CreateNodeDialog";
+import { CreateNodeDialog } from "@/app/knowledge/wiki/_components/catalog/CreateNodeDialog";
 
 vi.mock("@/features/knowledge", () => ({
   createCatalogNode: vi.fn().mockResolvedValue({
