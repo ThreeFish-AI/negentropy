@@ -153,7 +153,7 @@ jobs:
 
           mkdir -p artifacts/ui-root/scripts
           cp apps/negentropy-ui/package.json artifacts/ui-root/package.json
-          cp apps/negentropy-ui/pnpm-lock.yaml artifacts/ui-root/pnpm-lock.yaml
+          cp pnpm-lock.yaml artifacts/ui-root/pnpm-lock.yaml
           cp apps/negentropy-ui/scripts/start-production.mjs artifacts/ui-root/scripts/start-production.mjs
 
           tar -czf "artifacts/negentropy-ui-${{ steps.meta.outputs.version }}.tgz" -C artifacts/ui-root .
