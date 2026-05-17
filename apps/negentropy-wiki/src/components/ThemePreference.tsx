@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useSyncExternalStore } from "react";
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 
 type Theme = "default" | "book" | "docs";
 type ColorScheme = "light" | "dark" | "system";
@@ -29,6 +29,7 @@ function subscribe(cb: () => void) {
 
 export function ThemePreference() {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const theme = useSyncExternalStore(
     subscribe,
@@ -55,12 +56,23 @@ export function ThemePreference() {
     window.dispatchEvent(new StorageEvent("storage", { key: COLOR_SCHEME_KEY }));
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
   const resolvedDark =
     colorScheme === "dark" ||
     (colorScheme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   return (
-    <div className="wiki-theme-pref" style={{ position: "relative" }}>
+    <div ref={containerRef} className="wiki-theme-pref" style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
         className="wiki-theme-toggle"

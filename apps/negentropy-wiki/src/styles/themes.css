@@ -12,9 +12,20 @@
   --wiki-accent-hover: #b82e2e;
 }
 
-[data-color-scheme="dark"],
+[data-color-scheme="dark"] {
+  --wiki-bg: #1a1a1a;
+  --wiki-bg-secondary: #242424;
+  --wiki-text: #e5e5e5;
+  --wiki-text-secondary: #999999;
+  --wiki-border: #333333;
+  --wiki-sidebar-bg: #1f1f1f;
+  --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --wiki-success-bg: #1b3a1e;
+  --wiki-success-text: #66bb6a;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root:not([data-color-scheme="light"]) {
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) {
     --wiki-bg: #1a1a1a;
     --wiki-bg-secondary: #242424;
     --wiki-text: #e5e5e5;
