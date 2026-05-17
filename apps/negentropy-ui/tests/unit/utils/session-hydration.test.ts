@@ -13,7 +13,7 @@ import {
 } from "@/utils/message-ledger";
 import { buildConversationTree } from "@/utils/conversation-tree";
 import { createTestEvent } from "@/tests/helpers/agui";
-import type { AgUiEvent } from "@/types/agui";
+import type { AgUiEvent } from "@negentropy/agents-chat-core/protocol";
 
 describe("session-hydration", () => {
   it("为历史回放补齐缺失的运行生命周期事件", () => {

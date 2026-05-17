@@ -3,11 +3,15 @@
  *
  * 集中定义 AG-UI 协议事件、消息扩展字段与统一访问器，
  * 避免业务代码在多个模块重复做 `in` 判断和局部交叉类型断言。
+ *
+ * 注：与 ./schema 形成"类型循环、运行时单向"模式 ——
+ * 本文件运行时 import schema.safeParseBaseEventProps 用于守卫；
+ * schema 仅 `import type` 本文件，无运行时回环。
  */
 
 import type { BaseEvent, Message } from "@ag-ui/core";
 import { EventType } from "@ag-ui/core";
-import { safeParseBaseEventProps } from "@/lib/agui/schema";
+import { safeParseBaseEventProps } from "./schema";
 
 /**
  * 基础事件属性

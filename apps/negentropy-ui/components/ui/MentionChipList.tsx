@@ -11,7 +11,7 @@
  * ``rawText`` 片段（实际逻辑由 Composer 调用 ``reconcileMentions`` 完成）。
  */
 import { Bot, BookOpen, Save, Network, X } from "lucide-react";
-import type { MentionKind, MentionToken } from "@/types/mention";
+import type { MentionKind, MentionToken } from "@negentropy/agents-chat-core/parse";
 
 const _ICONS: Record<MentionKind, typeof Bot> = {
   agent: Bot,

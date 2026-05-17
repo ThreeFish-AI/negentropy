@@ -4,8 +4,8 @@ import {
   deriveForwardedPropsFromMentions,
   detectMentionTrigger,
   reconcileMentions,
-} from "@/utils/mention-parser";
-import type { MentionToken } from "@/types/mention";
+} from "@negentropy/agents-chat-core/parse";
+import type { MentionToken } from "@negentropy/agents-chat-core/parse";
 
 // ---------------------------------------------------------------------------
 // detectMentionTrigger

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EventType } from "@ag-ui/core";
 import { buildConversationTree } from "@/utils/conversation-tree";
 import { createTestEvent, createTestMessage } from "@/tests/helpers/agui";
-import type { AgUiEvent, AgUiMessage } from "@/types/agui";
+import type { AgUiEvent, AgUiMessage } from "@negentropy/agents-chat-core/protocol";
 
 describe("buildConversationTree", () => {
   it("将文本、工具和结果构造成父子树", () => {

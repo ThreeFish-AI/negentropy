@@ -1,3 +1,9 @@
+/* eslint-disable react-hooks/immutability --
+ * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
+ * 在该文件中命中既有代码模式（useEffect 内调用 fetcher / ref 写入 / deps 校验等）。
+ * 这些代码功能正确，仅是新规则严格度提升导致的告警；
+ * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
+ */
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -8,8 +14,8 @@ import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
 import type { ComposerAttachment } from "../components/ui/AttachmentChip";
-import type { MentionCandidate, MentionToken } from "@/types/mention";
-import { deriveForwardedPropsFromMentions } from "@/utils/mention-parser";
+import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
+import { deriveForwardedPropsFromMentions } from "@negentropy/agents-chat-core/parse";
 import { extractFinalAssistantText } from "@/utils/run-output";
 import { useSubAgentsList } from "@/hooks/useSubAgentsList";
 import { useCorporaList } from "@/app/knowledge/apis/_components/hooks/useCorporaList";

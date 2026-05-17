@@ -1,11 +1,9 @@
 /**
- * AGUI 路由的 forwardedProps → state_delta 派生工具。
+ * AGUI BFF 路由的 forwardedProps → state_delta 派生工具。
  *
  * 拆分动因：Next.js App Router 仅允许 `route.ts` 导出受限的 HTTP/配置符号，
  * 任何额外 `export` 会被生成的路由类型校验拒绝（OmitWithTag 失败）。
- * 因此将共享常量与纯函数下沉到本 `_state-delta.ts`（项目约定的 `_` 前缀私有模块，
- * 与 `app/api/agui/sessions/_request.ts`、`_response.ts` 形成同构），由 `route.ts`
- * 与对应 `tests/unit/api/agui-route-state.test.ts` 直接复用单一事实源。
+ * 因此将共享常量与纯函数下沉到本模块，由 ui 与 wiki 两个 BFF 直接复用单一事实源。
  */
 
 // 共享 UUID 校验 —— 既给路由 sessionId 用，也给 forwardedProps.{scoped,output}_corpus_ids 用。

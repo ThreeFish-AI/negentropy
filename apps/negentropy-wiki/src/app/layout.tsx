@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AgentChatMount } from "@/components/agent-chat/AgentChatMount";
 
 export const metadata: Metadata = {
   title: "Negentropy Wiki — 知识库发布站点",
@@ -41,6 +42,12 @@ export default function RootLayout({
           跳到主要内容
         </a>
         <div id="wiki-root">{children}</div>
+        {/*
+          Agents at Wiki —— 一主五翼 6 Agents 的右下角悬浮聊天框。
+          通过 next/dynamic({ ssr:false }) 异步装载，不阻塞 SSG/ISR 首屏；
+          完整设计见 .claude/plans/system-instruction-you-are-working-hidden-knuth.md
+        */}
+        <AgentChatMount />
       </body>
     </html>
   );

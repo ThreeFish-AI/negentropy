@@ -7,7 +7,7 @@
 
 import { useMemo } from "react";
 import { BaseEvent, EventType } from "@ag-ui/core";
-import { getEventMessageId } from "@/types/agui";
+import { getEventMessageId } from "@negentropy/agents-chat-core/protocol";
 
 /**
  * useEventFilter Hook 参数

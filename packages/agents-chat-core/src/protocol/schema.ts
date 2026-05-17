@@ -1,7 +1,7 @@
 import type { BaseEvent } from "@ag-ui/core";
 import { EventType } from "@ag-ui/core";
 import { z } from "zod";
-import type { AguiEvent, BaseEventProps } from "@/types/agui";
+import type { AguiEvent, BaseEventProps } from "./agui-types";
 
 const metadataRecordSchema = z.record(z.unknown());
 

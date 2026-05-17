@@ -25,7 +25,7 @@ import {
   getEventRunId,
   getEventThreadId,
   type CanonicalMessageRole,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 import { accumulateTextContent } from "@/utils/message";
 import { resolveMessageRole } from "@/utils/message-role-resolver";
 import type { AdkEventPayload } from "@/lib/adk/schema";

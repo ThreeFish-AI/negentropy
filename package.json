@@ -1,0 +1,24 @@
+{
+  "name": "negentropy-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Negentropy monorepo root — apps + shared packages",
+  "scripts": {
+    "build": "pnpm -r --filter='./apps/*' --filter='./packages/*' build",
+    "lint": "pnpm -r --filter='./apps/*' --filter='./packages/*' lint",
+    "test": "pnpm -r --filter='./apps/*' --filter='./packages/*' test",
+    "typecheck": "pnpm -r --filter='./apps/*' --filter='./packages/*' typecheck",
+    "build:core": "pnpm --filter @negentropy/agents-chat-core build",
+    "test:core": "pnpm --filter @negentropy/agents-chat-core test",
+    "dev:ui": "pnpm --filter negentropy-ui dev",
+    "dev:wiki": "pnpm --filter negentropy-wiki dev"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@11.1.2",
+  "engines": {
+    "node": ">=20"
+  }
+}

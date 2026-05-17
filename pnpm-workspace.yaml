@@ -1,0 +1,45 @@
+# pnpm Monorepo 根 workspace 配置
+#
+# 合并自原 apps/negentropy-ui/pnpm-workspace.yaml 与 apps/negentropy-wiki/pnpm-workspace.yaml
+# 的 allowBuilds + overrides，并新增 catalog 锁定 AGUI 协议层与跨包共享运行时版本。
+#
+# 协议契约（@ag-ui/* / rxjs / zod）通过 catalog 统一锁版本，避免 ui 与 wiki 各自漂移
+# 导致协议层运行时双实例化（rxjs Observable instanceof 失效是经典坑）。
+#
+# 详见：/Users/cm.huang/.claude/plans/system-instruction-you-are-working-hidden-knuth.md
+
+packages:
+  - apps/*
+  - packages/*
+
+# 允许执行原生构建脚本（继承自 ui / wiki 旧 workspace 配置）
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+# 跨包统一锁定版本（catalog 模式）
+# 注意：catalog 的 key 必须与 import 时的 specifier 一致；使用方式：
+#   "dependencies": { "@ag-ui/client": "catalog:" }
+catalog:
+  '@ag-ui/client': 0.0.47
+  '@ag-ui/core': 0.0.47
+  '@ag-ui/encoder': 0.0.47
+  rxjs: 7.8.1
+  zod: 3.24.4
+
+# 全局 overrides（合并自子级 workspace；包含安全 patch 与协议版本对齐）
+overrides:
+  '@ag-ui/client': 0.0.47
+  '@ag-ui/core': 0.0.47
+  flatted: '>=3.4.2'
+  # jsdom@28.1.0 引用 undici/lib/handler/{wrap,unwrap}-handler.js，该路径在 undici@8 已删除；
+  # 限制上限到 <8 以保持 jsdom 兼容性，同时保留 >=7.24.0 的安全补丁要求。
+  # 等 jsdom 升级到 29+ 且生态稳定后可考虑放开。
+  undici: '>=7.24.0 <8.0.0'
+  dompurify: '>=3.4.0'
+  lodash-es: '>=4.18.1'
+  picomatch: '>=4.0.4'
+  follow-redirects: '>=1.16.0'
+  postcss: '>=8.5.10'
+  uuid: '>=14.0.0'

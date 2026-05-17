@@ -6,7 +6,7 @@
  */
 
 import type { Message } from "@ag-ui/core";
-import type { CanonicalMessageRole } from "@/types/agui";
+import type { CanonicalMessageRole } from "@negentropy/agents-chat-core/protocol";
 
 /**
  * 连接状态类型

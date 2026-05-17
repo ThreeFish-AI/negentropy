@@ -2,13 +2,13 @@ import { AbstractAgent, type AgentSubscriber, type RunAgentParameters } from "@a
 import type { BaseEvent, Message, RunAgentInput, State } from "@ag-ui/core";
 import { EventType } from "@ag-ui/core";
 import { Observable } from "rxjs";
-import { safeParseBaseEvent } from "@/lib/agui/schema";
+import { safeParseBaseEvent } from "../protocol/schema";
 import {
   AGUI_NDJSON_CONTENT_TYPE,
   AGUI_NDJSON_PROTOCOL,
   type AguiStreamFrame,
   parseNdjsonStream,
-} from "@/lib/agui/stream";
+} from "../protocol/stream";
 
 type NdjsonHttpAgentConfig = {
   url: string;

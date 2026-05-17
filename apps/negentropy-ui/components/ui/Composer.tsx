@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
-import type { MentionCandidate, MentionToken } from "@/types/mention";
+import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
 import {
   applyMention,
   detectMentionTrigger,
   reconcileMentions,
-} from "@/utils/mention-parser";
+} from "@negentropy/agents-chat-core/parse";
 
 import { LlmModelSelect } from "./LlmModelSelect";
 import { AttachmentChipList, type ComposerAttachment } from "./AttachmentChip";

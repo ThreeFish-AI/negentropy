@@ -13,7 +13,7 @@
  * （``user@example.com``）等场景误触发。query 仅允许字母数字 / 中文 / ``-`` / ``_`` /
  * ``.`` / ``:`` 等，遇到空白即截断（弹层选中后会自动追加尾空格作为闭合）。
  */
-import type { MentionKind, MentionToken } from "@/types/mention";
+import type { MentionKind, MentionToken } from "./mention-types";
 
 /** 触发态描述。 */
 export interface MentionTrigger {
@@ -26,7 +26,7 @@ export interface MentionTrigger {
 }
 
 /** ``@`` 前的合法前缀：行首、ASCII/全角空白、中文标点、英文引号等。 */
-const _LEADING_RE = /[\s 　，。；：、（）《》"'`「」『』【】]/;
+const _LEADING_RE = /[\s 　，。；：、（）《》"'`「」『』【】]/;
 /** mention query 允许的字符集（不含空白）：英文数字、中文、常见连字、``:`` 等。 */
 const _QUERY_CHAR_RE = /[\p{L}\p{N}_\-.:]/u;
 

@@ -1,4 +1,4 @@
-import type { CanonicalMessageRole } from "@/types/agui";
+import type { CanonicalMessageRole } from "@negentropy/agents-chat-core/protocol";
 import type { RoleResolutionSource } from "@/types/common";
 
 const PROTOCOL_AUTHOR_ROLE_MAP: Record<string, CanonicalMessageRole> = {

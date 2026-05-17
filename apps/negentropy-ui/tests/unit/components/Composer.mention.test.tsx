@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { Composer } from "@/components/ui/Composer";
-import type { MentionCandidate, MentionToken } from "@/types/mention";
+import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
 
 const _AGENTS: MentionCandidate[] = [
   { kind: "agent", refId: "PerceptionFaculty", label: "PerceptionFaculty" },

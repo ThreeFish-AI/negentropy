@@ -9,7 +9,7 @@ import {
   type AgUiEvent,
   type AgUiMessage,
   type CompatibleEventMessageRole,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 
 export function createTestMessage(input: {
   id: string;

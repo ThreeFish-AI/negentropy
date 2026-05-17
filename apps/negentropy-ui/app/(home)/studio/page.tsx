@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { CopilotKitProvider } from "@copilotkitnext/react";
 
 import { useAuth } from "@/components/providers/AuthProvider";
-import { NdjsonHttpAgent } from "@/lib/agui/ndjson-agent";
+import { NdjsonHttpAgent } from "@negentropy/agents-chat-core/client";
 import { buildAgentUrl } from "@/utils/session";
 
 import { AGENT_ID, APP_NAME, HomeBody } from "@/app/home-body";

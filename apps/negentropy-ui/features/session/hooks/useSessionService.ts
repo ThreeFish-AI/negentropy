@@ -4,7 +4,7 @@ import type { ConnectionState, LogEntry } from "@/types/common";
 import { collectAdkEventPayloads } from "@/lib/adk";
 import { useSessionProjection, type UseSessionProjectionReturnValue } from "@/features/session/hooks/useSessionProjection";
 import { hydrateSessionDetail } from "@/utils/session-hydration";
-import { getEventRunId } from "@/types/agui";
+import { getEventRunId } from "@negentropy/agents-chat-core/protocol";
 
 type SessionProjectionPublicApi = Pick<
   UseSessionProjectionReturnValue,

@@ -6,7 +6,11 @@ on:
       - "apps/negentropy/pyproject.toml"
       - "apps/negentropy/uv.lock"
       - "apps/negentropy-ui/package.json"
-      - "apps/negentropy-ui/pnpm-lock.yaml"
+      - "apps/negentropy-wiki/package.json"
+      - "packages/**/package.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - ".github/workflows/negentropy-dependency-review.yml"
 
 permissions:

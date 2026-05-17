@@ -14,7 +14,7 @@ import {
   getMessageStreaming,
   getMessageThreadId,
   type CanonicalMessageRole,
-} from "@/types/agui";
+} from "@negentropy/agents-chat-core/protocol";
 import type { MessageLedgerEntry } from "@/types/common";
 import {
   accumulateTextContent,
