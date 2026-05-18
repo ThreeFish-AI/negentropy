@@ -10,23 +10,22 @@ import type {
   TaskLog,
 } from "@/types";
 
-// Extend api type to include all methods
 const typedApi = api as typeof api & {
   papers: {
-    list: (params?: any) => Promise<any>;
+    list: (params?: Record<string, unknown>) => Promise<PaginatedResponse<Paper>>;
     get: (id: string) => Promise<Paper>;
     upload: (formData: FormData) => Promise<string>;
-    process: (id: string, workflow: string, options?: any) => Promise<Task>;
+    process: (id: string, workflow: string, options?: Record<string, unknown>) => Promise<Task>;
     delete: (id: string) => Promise<void>;
     batchProcess: (
       ids: string[],
       workflow: string,
-      options?: any,
+      options?: Record<string, unknown>,
     ) => Promise<Task>;
     batchDelete: (ids: string[]) => Promise<void>;
   };
   tasks: {
-    list: (params?: any) => Promise<any>;
+    list: (params?: Record<string, unknown>) => Promise<PaginatedResponse<Task>>;
     get: (id: string) => Promise<Task>;
     cancel: (id: string) => Promise<void>;
     retry: (id: string) => Promise<void>;
@@ -36,7 +35,7 @@ const typedApi = api as typeof api & {
   search: {
     papers: (
       query: string,
-      filters?: any,
+      filters?: Record<string, unknown>,
     ) => Promise<{ items: SearchResult[]; total: number }>;
     suggestions: (query: string) => Promise<string[]>;
     history: () => Promise<string[]>;
@@ -44,17 +43,17 @@ const typedApi = api as typeof api & {
   };
   stats: {
     dashboard: () => Promise<DashboardStats>;
-    papers: () => Promise<any>;
-    tasks: () => Promise<any>;
+    papers: () => Promise<Record<string, unknown>>;
+    tasks: () => Promise<Record<string, unknown>>;
   };
   system: {
-    info: () => Promise<any>;
-    health: () => Promise<any>;
+    info: () => Promise<Record<string, unknown>>;
+    health: () => Promise<{ status: string; services: Record<string, boolean> }>;
   };
 };
 
 // 通用 fetcher 函数
-const fetcher = async (url: string): Promise<any> => {
+const fetcher = async (url: string): Promise<unknown> => {
   const response = await apiClient.get(url);
   return response;
 };
@@ -75,12 +74,7 @@ export const usePapers = (
     status?: string;
     search?: string;
   },
-): SWRResponse<{
-  items: Paper[];
-  total: number;
-  page: number;
-  limit: number;
-}> => {
+): SWRResponse<PaginatedResponse<Paper>> => {
   const queryParams = new URLSearchParams();
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -97,7 +91,7 @@ export const usePapers = (
   return useSWR(
     url,
     async () => {
-      const response = await typedApi.papers.list(params);
+      const response = await typedApi.papers.list(params as Record<string, unknown> | undefined);
       return response;
     },
     swrConfig,
@@ -124,12 +118,7 @@ export const useTasks = (
     status?: string;
     type?: string;
   },
-): SWRResponse<{
-  items: Task[];
-  total: number;
-  page: number;
-  limit: number;
-}> => {
+): SWRResponse<PaginatedResponse<Task>> => {
   const queryParams = new URLSearchParams();
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -146,7 +135,7 @@ export const useTasks = (
   return useSWR(
     url,
     async () => {
-      const response = await typedApi.tasks.list(params);
+      const response = await typedApi.tasks.list(params as Record<string, unknown> | undefined);
       return response;
     },
     swrConfig,
@@ -252,7 +241,7 @@ export const useDashboardStats = (): SWRResponse<DashboardStats> => {
 
 // 系统相关的 hooks
 export const useSystemHealth = (): SWRResponse<{
-  status: "healthy" | "degraded" | "down";
+  status: string;
   services: Record<string, boolean>;
 }> => {
   return useSWR(
@@ -272,7 +261,7 @@ export const useSystemHealth = (): SWRResponse<{
 export const useApiRequest = () => {
   // 上传论文
   const uploadPaper = useCallback(
-    async (file: File, category: string, metadata?: Record<string, any>) => {
+    async (file: File, category: string, metadata?: Record<string, string | number>) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("category", category);
@@ -289,7 +278,7 @@ export const useApiRequest = () => {
 
   // 处理论文
   const processPaper = useCallback(
-    async (id: string, workflow: string, options?: Record<string, any>) => {
+    async (id: string, workflow: string, options?: Record<string, unknown>) => {
       return typedApi.papers.process(id, workflow, options);
     },
     [],
@@ -297,7 +286,7 @@ export const useApiRequest = () => {
 
   // 批量处理论文
   const batchProcessPapers = useCallback(
-    async (ids: string[], workflow: string, options?: Record<string, any>) => {
+    async (ids: string[], workflow: string, options?: Record<string, unknown>) => {
       return typedApi.papers.batchProcess(ids, workflow, options);
     },
     [],
@@ -352,7 +341,7 @@ export const useApiError = () => {
     }
 
     if (typeof error === "object" && error !== null && "response" in error) {
-      const axiosError = error as any;
+      const axiosError = error as { response?: { data?: { detail?: string } } };
       const message = axiosError.response?.data?.detail || "请求失败";
       console.error("API Error:", message);
       return message;

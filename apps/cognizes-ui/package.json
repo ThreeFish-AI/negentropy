@@ -21,7 +21,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "dayjs": "^1.11.13",
     "immer": "^11.0.1",
     "next": "16.0.10",
     "next-themes": "^0.4.4",
@@ -32,7 +31,6 @@
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.2.0",
     "react-syntax-highlighter": "^16.1.0",
-    "remark-gfm": "^4.0.1",
     "swr": "^2.3.7",
     "tailwind-merge": "^2.6.0",
     "zustand": "^5.0.9"

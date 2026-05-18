@@ -39,9 +39,9 @@ export function Header() {
 
       <div className="max-xl:hidden">
         <h1 className="mb-0.5 text-heading-5 font-bold text-dark dark:text-white">
-          Dashboard
+          Cognizes
         </h1>
-        <p className="font-medium">Next.js Admin Dashboard Solution</p>
+        <p className="font-medium">认知引擎管理平台</p>
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4">
