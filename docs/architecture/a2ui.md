@@ -109,15 +109,15 @@ flowchart TD
 
 对应代码锚点：
 
-- 传输入口：[route.ts](../apps/negentropy-ui/app/api/agui/route.ts)
-- ADK 到 AGUI 归一化：[adk.ts](../apps/negentropy-ui/lib/adk.ts)
-- Session Application Service：[useSessionService.ts](../apps/negentropy-ui/features/session/hooks/useSessionService.ts)
-- Session List Service：[useSessionListService.ts](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts)
-- Session Projection / Message Ledger：[message-ledger.ts](../apps/negentropy-ui/utils/message-ledger.ts)
-- Session Projection Hook：[useSessionProjection.ts](../apps/negentropy-ui/features/session/hooks/useSessionProjection.ts)
-- 事件到树构建：[conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts)
-- Chat 主区渲染：[ChatStream.tsx](../apps/negentropy-ui/components/ui/ChatStream.tsx)
-- 递归节点渲染：[ConversationNodeRenderer.tsx](../apps/negentropy-ui/components/ui/conversation/ConversationNodeRenderer.tsx)
+- 传输入口：[route.ts](../../apps/negentropy-ui/app/api/agui/route.ts)
+- ADK 到 AGUI 归一化：[adk.ts](../../apps/negentropy-ui/lib/adk.ts)
+- Session Application Service：[useSessionService.ts](../../apps/negentropy-ui/features/session/hooks/useSessionService.ts)
+- Session List Service：[useSessionListService.ts](../../apps/negentropy-ui/features/session/hooks/useSessionListService.ts)
+- Session Projection / Message Ledger：[message-ledger.ts](../../apps/negentropy-ui/utils/message-ledger.ts)
+- Session Projection Hook：[useSessionProjection.ts](../../apps/negentropy-ui/features/session/hooks/useSessionProjection.ts)
+- 事件到树构建：[conversation-tree.ts](../../apps/negentropy-ui/utils/conversation-tree.ts)
+- Chat 主区渲染：[ChatStream.tsx](../../apps/negentropy-ui/components/ui/ChatStream.tsx)
+- 递归节点渲染：[ConversationNodeRenderer.tsx](../../apps/negentropy-ui/components/ui/conversation/ConversationNodeRenderer.tsx)
 
 ### 3.2 Session Projection 约定
 

@@ -137,8 +137,8 @@ cd apps/negentropy && uv run ruff check .  # All checks passed!
 
 - `pnpm lint` 已成为 `apps/negentropy-ui` 的正式工程门禁。
 - `useSessionManager` 的禁用由 [apps/negentropy-ui/eslint.config.mjs](../apps/negentropy-ui/eslint.config.mjs) 中的 `no-restricted-imports` 承载。
-- `useSessionManager` 仍保留为 legacy 兼容入口，但其架构边界说明已同步收敛到 [A2UI 文档](./a2ui.md)。
-- UI 架构设计请参考 [framework.md §9](./framework.md#9-前端应用架构-negentropy-ui)；开发操作指南请参考 [development.md §5](./development.md#5-前端开发)。
+- `useSessionManager` 仍保留为 legacy 兼容入口，但其架构边界说明已同步收敛到 [A2UI 文档](./architecture/a2ui.md)。
+- UI 架构设计请参考 [framework.md §9](./architecture/framework.md#9-前端应用架构-negentropy-ui)；开发操作指南请参考 [development.md §5](./architecture/development.md#5-前端开发)。
 
 ### 验证
 
@@ -158,4 +158,4 @@ cd apps/negentropy && uv run ruff check .  # All checks passed!
 - Batch 3：[ #189 ](https://github.com/ThreeFish-AI/negentropy/issues/189) / [ #196 ](https://github.com/ThreeFish-AI/negentropy/pull/196)
 - UI workflow：[.github/workflows/negentropy-ui-tests.yml](../.github/workflows/negentropy-ui-tests.yml)
 - ESLint 约束：[apps/negentropy-ui/eslint.config.mjs](../apps/negentropy-ui/eslint.config.mjs)
-- UI 架构文档：[docs/a2ui.md](./a2ui.md)
+- UI 架构文档：[docs/architecture/a2ui.md](./architecture/a2ui.md)

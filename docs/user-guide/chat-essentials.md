@@ -1,6 +1,6 @@
 # Home / 人与 Agent 对话 · 主模块特性手册
 
-> 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../conversation-foundation.md)，协议事实参考 [framework.md](../framework.md) §9 与 [a2ui.md](../a2ui.md)，主用户手册参见 [user-guide.md](../user-guide.md) §3。
+> 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../architecture/conversation-foundation.md)，协议事实参考 [framework.md](../architecture/framework.md) §9 与 [a2ui.md](../architecture/a2ui.md)，主用户手册参见 [user-guide.md](../user-guide.md) §3。
 
 ## 0. 入口
 
@@ -59,7 +59,7 @@ sequenceDiagram
 
 **怎么做**：自动行为。后端工具通过 `state.tool_progress[tool_call_id]` 上报，前端 `ToolExecutionGroup` 渲染。
 
-**注意事项**：进度走 state-delta 旁路，不参与 message ledger（[framework.md §9.7](../framework.md)）。
+**注意事项**：进度走 state-delta 旁路，不参与 message ledger（[framework.md §9.7](../architecture/framework.md)）。
 
 ## 5. 中断 / Run 取消（C4 中断门）
 

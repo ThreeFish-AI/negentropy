@@ -3,7 +3,7 @@
 设计目标：
     高风险工具调用（write_file / send_email / update_knowledge_graph 等）执行**前**让用户
     显式批准；与流式 Stop 按钮一起构成"中断 + 审批"双门户，参见 RFC 0002 §4.4 与
-    docs/conversation-foundation.md §6 HITL & Guardrails。
+    docs/architecture/conversation-foundation.md §6 HITL & Guardrails。
 
 本期范围（MVP）：
     - 提供高风险工具白名单（``HIGH_RISK_TOOLS``）+ ``should_request_approval`` 策略判定 helper；

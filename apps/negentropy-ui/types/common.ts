@@ -85,7 +85,7 @@ export type ToolCallInfo = {
   /**
    * 流式进度（C3 增强）— 走 state_delta 旁路，不参与 message-ledger dedup。
    * 后端通过 ADK state_delta 推 `state.tool_progress[tool_call_id]`，500ms throttle。
-   * 详见 docs/framework.md §9 协议规范 与 docs/issue.md ISSUE-031（避开时间窗回归）。
+   * 详见 docs/architecture/framework.md §9 协议规范 与 docs/agents/issue.md ISSUE-031（避开时间窗回归）。
    */
   progress?: ToolProgressSnapshot;
 };

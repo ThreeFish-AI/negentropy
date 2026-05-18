@@ -87,7 +87,7 @@ def _emit_tool_progress(
     - 不参与 message-ledger 比对（仅文本内容参与），避开 ISSUE-031 时间窗回归；
     - 单点写入语义：调用方按语义里程碑（5%/20%/60%/100%）触发，里程碑天然稀疏，
       不需要时间维度 throttle；如未来增加细粒度推送，应在此处按 `tool_call_id`
-      维护上次推送时间戳实现真正的节流，并同步更新 docs/framework.md §9.7。
+      维护上次推送时间戳实现真正的节流，并同步更新 docs/architecture/framework.md §9.7。
     """
     if tool_context is None or not hasattr(tool_context, "state"):
         return
@@ -204,7 +204,7 @@ async def search_papers(
     """检索 AI Agent 相关 arXiv 论文。
 
     使用 arxiv Python 库（基于 arXiv API），按相关性 + 时间衰减综合返回 top_k 条结果。
-    流式进度通过 ADK state_delta 推送（参见 docs/framework.md §9 Tool Progress 协议）。
+    流式进度通过 ADK state_delta 推送（参见 docs/architecture/framework.md §9 Tool Progress 协议）。
 
     Args:
         query: 检索关键词（如 "LLM agent memory" / "tool use" / "multi-agent")

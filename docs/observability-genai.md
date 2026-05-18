@@ -1,14 +1,14 @@
 # GenAI 可观测性 · OpenTelemetry GenAI Semantic Conventions 落地
 
-> 本文档说明 negentropy 如何把 LLM 调用的可观测信号对齐到 **OpenTelemetry GenAI Semantic Conventions 1.28+** 标准；与 [conversation-foundation.md §7](./conversation-foundation.md) 的理论坐标系对应。
+> 本文档说明 negentropy 如何把 LLM 调用的可观测信号对齐到 **OpenTelemetry GenAI Semantic Conventions 1.28+** 标准；与 [conversation-foundation.md §7](./architecture/conversation-foundation.md) 的理论坐标系对应。
 
 ## 0. 范围
 
 适用对象：所有走 LiteLLM 完成的 chat completion 调用（系部 LLM、根 Agent、Skills、Sub-Agents 等）。
 不在本文档范围：
 
-- **业务级 trace**（HTTP request, KG build run）→ 见 [framework.md](./framework.md) §10；
-- **Tool Progress 旁路**（state delta）→ 见 [framework.md §9.7](./framework.md) 与 [conversation-foundation.md §2.2](./conversation-foundation.md)；
+- **业务级 trace**（HTTP request, KG build run）→ 见 [framework.md](./architecture/framework.md) §10；
+- **Tool Progress 旁路**（state delta）→ 见 [framework.md §9.7](./architecture/framework.md) 与 [conversation-foundation.md §2.2](./architecture/conversation-foundation.md)；
 - **KG SSE 进度**（P3-1）→ 见 [user-guide/chat-essentials.md §8](./user-guide/chat-essentials.md)。
 
 ## 1. 设计动机
