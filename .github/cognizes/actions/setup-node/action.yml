@@ -1,0 +1,190 @@
+name: "Setup Node.js Environment"
+description: "Setup Node.js with caching and dependency installation"
+author: "threefish.ai"
+
+inputs:
+  node-version:
+    description: "Node.js version to use"
+    required: false
+    default: "20"
+  working-directory:
+    description: "Working directory for Node.js project"
+    required: false
+    default: "."
+  package-manager:
+    description: "Package manager to use (npm or yarn)"
+    required: false
+    default: "yarn"
+  cache-key-suffix:
+    description: "Additional suffix for cache key"
+    required: false
+    default: ""
+  install-deps:
+    description: "Whether to install dependencies"
+    required: false
+    default: "true"
+  cache-dependency-path:
+    description: "Path to package lock file"
+    required: false
+    default: |
+      **/package-lock.json
+      **/yarn.lock
+
+outputs:
+  cache-key:
+    description: "Generated cache key"
+    value: ${{ steps.cache-key.outputs.key }}
+  node-hash:
+    description: "Hash of Node.js dependencies"
+    value: ${{ steps.cache-key.outputs.node-hash }}
+  cache-hit:
+    description: "Whether cache was hit"
+    value: ${{ steps.cache.outputs.cache-hit }}
+  package-manager:
+    description: "Detected or configured package manager"
+    value: ${{ steps.detect-pm.outputs.package-manager }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect package manager
+      id: detect-pm
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -n "${{ inputs.package-manager }}" ] && [ "${{ inputs.package-manager }}" != "auto" ]; then
+          echo "package-manager=${{ inputs.package-manager }}" >> $GITHUB_OUTPUT
+        elif [ -f yarn.lock ]; then
+          echo "package-manager=yarn" >> $GITHUB_OUTPUT
+        elif [ -f package-lock.json ]; then
+          echo "package-manager=npm" >> $GITHUB_OUTPUT
+        else
+          echo "package-manager=npm" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ steps.detect-pm.outputs.package-manager }}
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Generate cache keys
+      id: cache-key
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # Determine lock file based on package manager
+        if [ "${{ steps.detect-pm.outputs.package-manager }}" == "yarn" ]; then
+          LOCK_FILE="yarn.lock"
+        else
+          LOCK_FILE="package-lock.json"
+        fi
+
+        # Generate hash for Node.js dependencies
+        if [ -f "$LOCK_FILE" ]; then
+          if [ "$LOCK_FILE" == "yarn.lock" ]; then
+            NODE_HASH="${{ hashFiles(format('{0}/yarn.lock', inputs.working-directory), format('{0}/package.json', inputs.working-directory)) }}"
+          else
+            NODE_HASH="${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory), format('{0}/package.json', inputs.working-directory)) }}"
+          fi
+        else
+          NODE_HASH="${{ hashFiles(format('{0}/package.json', inputs.working-directory)) }}"
+        fi
+
+        # Create comprehensive cache key
+        if [ -n "${{ inputs.cache-key-suffix }}" ]; then
+          CACHE_KEY="${{ runner.os }}-node-${{ inputs.node-version }}-${NODE_HASH}-${{ inputs.cache-key-suffix }}"
+        else
+          CACHE_KEY="${{ runner.os }}-node-${{ inputs.node-version }}-${NODE_HASH}"
+        fi
+
+        echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "node-hash=$NODE_HASH" >> $GITHUB_OUTPUT
+
+    - name: Cache Node.js dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ inputs.working-directory }}/node_modules
+          ${{ inputs.working-directory }}/.yarn/cache
+          ${{ inputs.working-directory }}/.next/cache
+          ${{ inputs.working-directory }}/node_modules/.cache
+          ~/.npm
+          ~/.yarn
+        key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ inputs.node-version }}-${{ steps.cache-key.outputs.node-hash }}-
+          ${{ runner.os }}-node-${{ inputs.node-version }}-
+
+    - name: Set package manager registry
+      if: steps.detect-pm.outputs.package-manager == 'npm'
+      shell: bash
+      run: |
+        # Use public npm registry for faster downloads
+        npm config set registry https://registry.npmjs.org/
+
+    - name: Set yarn registry
+      if: steps.detect-pm.outputs.package-manager == 'yarn'
+      shell: bash
+      run: |
+        # Use public npm registry for yarn to avoid authentication issues
+        yarn config set registry https://registry.npmjs.org/
+        # Clear yarn cache to remove any cached URLs from private registry
+        yarn cache clean
+
+    - name: Fix yarn.lock registry URLs
+      if: steps.detect-pm.outputs.package-manager == 'yarn'
+      shell: bash
+      run: |
+        # Fix yarn.lock file to use public registry URLs
+        ${GITHUB_WORKSPACE}/.github/scripts/fix-yarn-lock.sh ${{ inputs.working-directory }}
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ "${{ steps.detect-pm.outputs.package-manager }}" == "yarn" ]; then
+          echo "Installing dependencies with yarn..."
+          yarn install --prefer-offline --silent
+        else
+          echo "Installing dependencies with npm..."
+          npm ci --prefer-offline --no-audit
+        fi
+
+    - name: Verify installation
+      if: inputs.install-deps == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Node.js version: $(node --version)"
+        echo "Package manager: ${{ steps.detect-pm.outputs.package-manager }}"
+
+        if [ "${{ steps.detect-pm.outputs.package-manager }}" == "yarn" ]; then
+          echo "Yarn version: $(yarn --version)"
+        else
+          echo "NPM version: $(npm --version)"
+        fi
+
+        # Show package count if verbose logging is enabled
+        if [ "${{ runner.debug }}" == "1" ]; then
+          echo ""
+          echo "Package count:"
+          if [ "${{ steps.detect-pm.outputs.package-manager }}" == "yarn" ]; then
+            yarn list --depth=0 | wc -l
+          else
+            npm ls --depth=0 --json | jq '.dependencies | keys | length'
+          fi
+        fi
+
+    - name: Cache summary
+      shell: bash
+      run: |
+        echo "## Node.js Cache Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Working Directory: ${{ inputs.working-directory }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Package Manager: ${{ steps.detect-pm.outputs.package-manager }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Cache Key: ${{ steps.cache-key.outputs.key }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Cache Hit: ${{ steps.cache.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Node.js Hash: ${{ steps.cache-key.outputs.node-hash }}" >> $GITHUB_STEP_SUMMARY

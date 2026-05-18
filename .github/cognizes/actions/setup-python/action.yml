@@ -1,0 +1,149 @@
+name: "Setup Python Environment"
+description: "Setup Python with caching and dependency installation"
+author: "threefish.ai"
+
+inputs:
+  python-version:
+    description: "Python version to use"
+    required: false
+    default: "3.12"
+  cache-key-suffix:
+    description: "Additional suffix for cache key"
+    required: false
+    default: ""
+  install-deps:
+    description: "Whether to install dependencies"
+    required: false
+    default: "true"
+  cache-dependency-path:
+    description: "Path to dependency files"
+    required: false
+    default: |
+      **/pyproject.toml
+      **/requirements*.txt
+      **/setup.py
+  pre-commit:
+    description: "Whether to setup pre-commit cache"
+    required: false
+    default: "false"
+
+outputs:
+  cache-key:
+    description: "Generated cache key"
+    value: ${{ steps.cache-key.outputs.key }}
+  python-hash:
+    description: "Hash of Python dependencies"
+    value: ${{ steps.cache-key.outputs.python-hash }}
+  cache-hit:
+    description: "Whether cache was hit"
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: "pip"
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Generate cache keys
+      id: cache-key
+      shell: bash
+      run: |
+        # Generate hash for Python dependencies
+        PYTHON_HASH="${{ hashFiles(inputs.cache-dependency-path) }}"
+
+        # Create comprehensive cache key
+        if [ -n "${{ inputs.cache-key-suffix }}" ]; then
+          CACHE_KEY="${{ runner.os }}-python-${{ inputs.python-version }}-${PYTHON_HASH}-${{ inputs.cache-key-suffix }}"
+        else
+          CACHE_KEY="${{ runner.os }}-python-${{ inputs.python-version }}-${PYTHON_HASH}"
+        fi
+
+        echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "python-hash=$PYTHON_HASH" >> $GITHUB_OUTPUT
+
+    - name: Cache pip dependencies
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.local/share/virtualenvs
+          ~/.cache/pre-commit
+        key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: |
+          ${{ runner.os }}-python-${{ inputs.python-version }}-${{ steps.cache-key.outputs.python-hash }}-
+          ${{ runner.os }}-python-${{ inputs.python-version }}-
+
+    - name: Upgrade pip
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip --quiet
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: |
+        # Install dependencies if available
+        if [ -f pyproject.toml ]; then
+          echo "Installing from pyproject.toml..."
+          pip install -e ".[dev]" --quiet
+        elif [ -f requirements.txt ]; then
+          echo "Installing from requirements.txt..."
+          pip install -r requirements.txt --quiet
+        elif [ -f requirements-dev.txt ]; then
+          echo "Installing dev requirements..."
+          pip install -r requirements-dev.txt --quiet
+        else
+          echo "No dependency file found, skipping installation"
+        fi
+
+    - name: Install common dev tools
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: |
+        # Install commonly used tools
+        pip install pytest pytest-cov pytest-xdist --quiet
+        pip install black ruff mypy --quiet
+
+    - name: Setup pre-commit cache
+      if: inputs.pre-commit == 'true'
+      shell: bash
+      run: |
+        # Install pre-commit if not already installed
+        if ! command -v pre-commit &> /dev/null; then
+          pip install pre-commit --quiet
+        fi
+
+        # Create pre-commit cache directory
+        mkdir -p ~/.cache/pre-commit
+
+        # Install pre-commit hooks if .pre-commit-config.yaml exists
+        if [ -f .pre-commit-config.yaml ]; then
+          pre-commit install --install-hooks
+        fi
+
+    - name: Verify installation
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: |
+        echo "Python version: $(python --version)"
+        echo "Pip version: $(pip --version)"
+
+        # Show installed packages if verbose logging is enabled
+        if [ "${{ runner.debug }}" == "1" ]; then
+          echo ""
+          echo "Installed packages:"
+          pip list
+        fi
+
+    - name: Cache summary
+      shell: bash
+      run: |
+        echo "## Python Cache Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Cache Key: ${{ steps.cache-key.outputs.key }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Cache Hit: ${{ steps.cache.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Python Hash: ${{ steps.cache-key.outputs.python-hash }}" >> $GITHUB_STEP_SUMMARY
