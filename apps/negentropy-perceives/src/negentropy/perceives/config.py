@@ -8,14 +8,20 @@
 
 config.default.yaml 为所有配置的单一事实默认值源。
 Python Field 定义仅作为安全回退（fallback）。
+
+内部结构：
+- 本文件：配置模型（NegentropyPerceivesSettings）+ 全局单例
+- _config_yaml.py：YAML 工具函数（展平、深度合并、文件加载）
+- _config_loader.py：配置发现、合并与全局单例管理
 """
 
 from __future__ import annotations
 
-import logging
-import yaml
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Union
+
+if TYPE_CHECKING:
+    from .core.pipeline_config import PipelineConfig
 
 from pydantic import Field, field_validator
 from pydantic_settings import (
@@ -26,397 +32,45 @@ from pydantic_settings import (
 
 from . import __version__
 
-# 通过向后兼容层导入 PipelineConfig，避免循环引用：
-# config → core.pipeline_config → core.__init__ → core.services → scraping → config.settings
-from ._pipeline_config import PipelineConfig  # type: ignore[attr-defined]  # noqa: F401 — re-exports from core.pipeline_config
-
-logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# 项目根目录定位
-# ---------------------------------------------------------------------------
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-
-
-# ---------------------------------------------------------------------------
-# 配置字典工具函数（展平 / 深度合并）
-# ---------------------------------------------------------------------------
-
-
-# 不展平的顶层键集合（嵌套结构体直接透传）
-_NO_FLATTEN_KEYS = frozenset({"pipeline"})
-
-
-def _flatten_nested_yaml(data: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
-    """将嵌套 YAML 字典递归展平为以 ``_`` 连接的扁平键。
-
-    用于将层级化的 YAML 配置转换为与 :class:`NegentropyPerceivesSettings`
-    扁平字段名一一对应的字典。例如::
-
-        {"server": {"name": "x"}, "log_level": "INFO"}
-        → {"server_name": "x", "log_level": "INFO"}
-
-    **向后兼容**：若同一键名同时出现在顶层扁平键和嵌套展开结果中，
-    **扁平键优先**，确保旧版扁平 YAML 配置无缝兼容。
-
-    **透传机制**：:data:`_NO_FLATTEN_KEYS` 中声明的顶层键不参与展平，
-    其嵌套结构体将作为完整对象直接传递给对应的 Pydantic 模型字段。
-
-    Args:
-        data: 可能包含嵌套子字典的配置字典
-        prefix: 递归调用时的键名前缀（内部使用）
-
-    Returns:
-        展平后的扁平字典
-    """
-    nested: Dict[str, Any] = {}
-    flat: Dict[str, Any] = {}
-    for key, value in data.items():
-        full_key = f"{prefix}{key}" if prefix else key
-        if not prefix and key in _NO_FLATTEN_KEYS:
-            # 顶层特殊键：不展平，整体保留
-            flat[full_key] = value
-        elif isinstance(value, dict):
-            nested.update(_flatten_nested_yaml(value, prefix=f"{full_key}_"))
-        else:
-            flat[full_key] = value
-    # 扁平键覆盖嵌套展开的同名键（向后兼容保证）
-    nested.update(flat)
-    return nested
-
-
-def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-    """递归深度合并两个字典。
-
-    合并规则：
-    - 标量值：override 覆盖 base
-    - 嵌套字典：递归合并（非整体替换）
-    - 列表值：override 完整替换 base（pipeline.*.stages 通过
-      :func:`_merge_named_list` 单独处理，参见 :func:`_prepare_user_yaml`）
-    - override 中值为 None 的键：跳过（保留 base 原值）
-
-    Args:
-        base: 底层字典（低优先级）
-        override: 覆盖字典（高优先级）
-
-    Returns:
-        合并后的新字典
-    """
-    result = base.copy()
-    for key, value in override.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = deep_merge(result[key], value)
-        elif value is not None:
-            result[key] = value
-    return result
-
-
-def _merge_named_list(
-    base: list,
-    override: list,
-    key: str = "name",
-) -> list:
-    """按 ``key`` 字段匹配合并两个对象列表。
-
-    用于 :func:`_prepare_user_yaml` 对 ``pipeline.*.stages`` 数组执行
-    按 ``name`` 匹配的智能合并，防止用户 config 的旧 stages 数组完全
-    覆盖默认 config 中新增的 ``competition`` 字段（如 ``timeout`` 增大、
-    ``early_win_cancel`` 等）。
-
-    合并策略：
-    1. 用户 config 中的 stage 按 ``name`` 与默认 stage 匹配并递归合并
-       （保留用户显式设置的值，补充默认中新增的字段）
-    2. 默认 config 中有但用户 config 中没有的 stage，追加到结果
-    3. 用户 config 中新增的 stage（默认中无）也包含
-
-    Args:
-        base: 默认 config 的 stages 列表（低优先级）
-        override: 用户 config 的 stages 列表（高优先级）
-        key: 匹配字段名，默认 ``name``
-
-    Returns:
-        合并后的 stages 列表
-    """
-    base_by_name: Dict[str, Dict[str, Any]] = {
-        item[key]: item for item in base if isinstance(item, dict) and key in item
-    }
-    result: list = []
-    seen: set = set()
-
-    for item in override:
-        if not isinstance(item, dict) or key not in item:
-            result.append(item)
-            continue
-        name = item[key]
-        if name in base_by_name:
-            merged = deep_merge(base_by_name[name], item)
-            result.append(merged)
-        else:
-            result.append(item)
-        seen.add(name)
-
-    for item in base:
-        if isinstance(item, dict) and key in item:
-            name = item[key]
-            if name not in seen:
-                result.append(item)
-
-    return result
-
-
-def _get_stages(data: Dict[str, Any], pipeline_name: str) -> Optional[list]:
-    """从配置字典中安全提取 pipeline stages 数组。"""
-    try:
-        return data.get("pipeline", {}).get(pipeline_name, {}).get("stages")
-    except (AttributeError, TypeError):
-        return None
-
-
-def _set_stages(data: Dict[str, Any], pipeline_name: str, stages: list) -> None:
-    """将合并后的 stages 写回配置字典。"""
-    pipeline = data.setdefault("pipeline", {})
-    pipe_cfg = pipeline.setdefault(pipeline_name, {})
-    pipe_cfg["stages"] = stages
-
-
-# ---------------------------------------------------------------------------
-# YAML 配置加载
-# ---------------------------------------------------------------------------
-
-
-def _load_bundled_yaml() -> Dict[str, Any]:
-    """加载内置默认 YAML 配置（打包在 wheel 内）。
-
-    作为所有配置的基线默认值源，与用户 YAML 进行深度合并后参与运行时解析。
-    同时也用于 --init-config 复制和文档参考。
-
-    Returns:
-        解析后的配置字典
-
-    Raises:
-        FileNotFoundError: 内置配置文件缺失
-        yaml.YAMLError: YAML 格式错误
-    """
-    from importlib import resources
-
-    bundled_path = resources.files(__package__).joinpath("config.default.yaml")
-    if not bundled_path.is_file():
-        raise FileNotFoundError(
-            f"Bundled config not found: {bundled_path}. "
-            "Ensure config.default.yaml is included in package_data."
-        )
-    with bundled_path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
-
-
-def _get_user_config_path() -> Path:
-    """获取用户配置文件的标准路径。
-
-    Returns:
-        用户配置文件路径：~/.negentropy/perceives.config.yaml
-    """
-    return Path.home() / ".negentropy" / "perceives.config.yaml"
-
-
-def _load_yaml_file(path: Path) -> Optional[Dict[str, Any]]:
-    """安全加载 YAML 文件。
-
-    Args:
-        path: YAML 文件路径
-
-    Returns:
-        解析后的字典，或 None（文件不存在时）
-    """
-    if not path.is_file():
-        return None
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    except (yaml.YAMLError, OSError) as exc:
-        logger.warning("加载配置文件失败 %s: %s", path, exc)
-        return None
-
-
-# ---------------------------------------------------------------------------
-# 用户 YAML 配置数据存储（供自定义 SettingsSource 读取）
-# ---------------------------------------------------------------------------
-
-# 模块级缓存：用户 YAML 配置数据（不含 bundled 默认值）
-_user_yaml_data: Dict[str, Any] = {}
-
-# CLI 覆盖路径缓存（由 reload_settings 设置）
-_config_path_override: Optional[str] = None
-
-
-class _UserYamlConfigSource(PydanticBaseSettingsSource):
-    """自定义配置源：将合并后的 YAML 配置数据注入 pydantic-settings 优先级链。
-
-    包含内置默认（config.default.yaml）与用户 YAML 深度合并后的完整配置。
-    环境变量可正确覆盖所有 YAML 配置的字段。
-
-    优先级位置（靠前者优先级更高）：init_settings(-c) > env_settings > _UserYamlConfigSource(YAML)
-    即：-c 显式配置 > 环境变量 > 合并后的 YAML 配置
-
-    pydantic-settings v2 通过 ``__call__()`` 获取配置源的完整值字典，
-    高优先级源的值自动覆盖低优先级源。
-    """
-
-    def __call__(self) -> Dict[str, Any]:
-        """返回合并后的 YAML 配置数据，供 pydantic-settings 参与优先级链合并。"""
-        return dict(_user_yaml_data)
-
-    def get_field_value(  # type: ignore[override]
-        self,
-        field: Any,
-        field_name: str,
-    ) -> tuple[Any, str | None, bool]:
-        """满足抽象方法协议（实际值已通过 __call__() 提供）。"""
-        return None, None, False
-
-
-# ---------------------------------------------------------------------------
-# 配置发现与合并（核心编排逻辑）
-# ---------------------------------------------------------------------------
-
-
-def _prepare_user_yaml(
-    *,
-    config_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """加载并合并配置：内置默认 ← 用户 YAML（深度合并）。
-
-    优先级：config.default.yaml(低) < 用户 YAML(高)
-    用户 YAML 中仅声明差异项即可，未指定的字段保留内置默认值。
-
-    Args:
-        config_path: 显式指定的配置文件路径（-c/--config 参数）
-
-    Returns:
-        合并后的配置字典
-    """
-    global _user_yaml_data
-
-    # 第 1 层：加载内置默认配置（所有配置的基线）
-    bundled_dict = _load_bundled_yaml()
-
-    # 第 2 层：加载用户配置（覆盖内置默认的差异项）
-    effective_path = config_path or _config_path_override
-    if effective_path:
-        user_path = Path(effective_path).expanduser().resolve()
-    else:
-        user_path = _get_user_config_path()
-
-    user_dict = _load_yaml_file(user_path) or {}
-
-    # 深度合并：用户配置仅覆盖差异项，非全文替换
-    merged = deep_merge(bundled_dict, user_dict)
-
-    # pipeline stages 数组需要按 name 智能合并而非整体替换。
-    # deep_merge 对列表执行整体替换，会导致用户 config 的旧 stages 数组
-    # 丢失默认 config 中新增的字段（如 timeout 增大、early_win_cancel 等）。
-    for pipeline_name in ("pdf", "webpage"):
-        base_stages = _get_stages(bundled_dict, pipeline_name)
-        user_stages = _get_stages(user_dict, pipeline_name)
-        if base_stages is not None and user_stages is not None:
-            merged_stages = _merge_named_list(base_stages, user_stages)
-            _set_stages(merged, pipeline_name, merged_stages)
-    # 嵌套 YAML 展平为扁平键（兼容层级化与扁平配置格式）
-    merged = _flatten_nested_yaml(merged)
-    _user_yaml_data = merged
-    return merged
-
-
-def build_settings(
-    *,
-    config_path: Optional[str] = None,
-) -> NegentropyPerceivesSettings:
-    """构建配置实例，执行完整的分层优先级合并。
-
-    策略：
-    - 无显式 config_path：加载内置默认 + ~/.negentropy/ 配置（深度合并），
-      通过 _UserYamlConfigSource 注入，优先级为 内置默认 < 用户YAML < 环境变量
-    - 有显式 config_path(-c)：将合并后的 YAML 作为构造参数传入，
-      优先级为 内置默认 < 用户YAML < 环境变量 < -c 显式配置(最高)
-
-    Args:
-        config_path: 显式指定的配置文件路径（-c/--config 参数）
-
-    Returns:
-        完全初始化的配置实例
-    """
-    if config_path:
-        # 显式指定配置文件：加载合并后的配置，作为构造参数传入（最高优先级）
-        user_dict = _prepare_user_yaml(config_path=config_path)
-        if user_dict:
-            return NegentropyPerceivesSettings(**user_dict)
-        return NegentropyPerceivesSettings()
-    else:
-        # 无显式指定：通过自定义 Source 注入合并后的配置
-        _prepare_user_yaml(config_path=None)
-        return NegentropyPerceivesSettings()
-
-
-def reload_settings(
-    *,
-    config_path: Optional[str] = None,
-) -> NegentropyPerceivesSettings:
-    """重建全局配置单例。
-
-    必须在任何使用 settings 之前调用（通常在 main() 入口处）。
-    用于 CLI --config 覆盖场景，使全局 settings 反映用户指定的配置文件。
-
-    Args:
-        config_path: 显式指定的配置文件路径
-
-    Returns:
-        新建的全局配置实例
-    """
-    global settings, _config_path_override
-    _config_path_override = config_path
-    settings = build_settings(config_path=config_path)
-    return settings
-
-
-# ---------------------------------------------------------------------------
-# 配置诊断
-# ---------------------------------------------------------------------------
-
-
-def describe_config_sources(
-    *,
-    config_path: Optional[str] = None,
-) -> str:
-    """报告配置来源详情，用于启动诊断。
-
-    Args:
-        config_path: 显式指定的配置文件路径
-
-    Returns:
-        人类可读的配置来源描述
-    """
-    sources: list[str] = []
-
-    # 内置默认配置始终生效
-    sources.append("bundled-default(config.default.yaml)")
-
-    # User config
-    effective_path = config_path or _config_path_override
-    if effective_path:
-        p = Path(effective_path).expanduser().resolve()
-        label = (
-            f"custom-config({p})" if p.is_file() else f"custom-config({p}, not found)"
-        )
-        sources.append(label)
-    else:
-        standard_path = _get_user_config_path()
-        if standard_path.is_file():
-            sources.append(f"user-config({standard_path})")
-
-    if len(sources) == 1:  # 仅内置默认，无用户配置
-        return "Using bundled defaults (config.default.yaml) and environment variables"
-
-    return f"Loaded: {', '.join(sources)}"
+# 直接加载 core/pipeline_config.py，绕过 core.__init__ 以避免循环引用
+import importlib.util
+import sys as _sys
+
+_pc_mod_name = "negentropy.perceives.core.pipeline_config"
+_pc_spec = importlib.util.spec_from_file_location(
+    _pc_mod_name,
+    str(Path(__file__).parent / "core" / "pipeline_config.py"),
+    submodule_search_locations=[],
+)
+if _pc_spec is None:
+    raise ImportError(f"Cannot locate {_pc_mod_name}")
+_pc_mod = _sys.modules.setdefault(
+    _pc_mod_name, importlib.util.module_from_spec(_pc_spec)
+)
+_pc_spec.loader.exec_module(_pc_mod)  # type: ignore[union-attr]
+PipelineConfig = _pc_mod.PipelineConfig  # type: ignore[misc]  # noqa: F401 — re-exports for downstream consumers
+
+# Re-export YAML 工具函数（向后兼容）
+from ._config_yaml import (  # noqa: F401, E402
+    deep_merge,
+    _flatten_nested_yaml,
+    _load_bundled_yaml,
+    _load_yaml_file,
+    _get_user_config_path,
+)
+
+# Re-export 加载函数（向后兼容）
+# NOTE: _user_yaml_data 不在此处 re-export，因其为模块级可变全局变量：
+# _prepare_user_yaml 会通过 `global` 重新绑定 _config_loader 中的名称，
+# 此处的 import 绑定无法随之更新（快照语义）。调用方应通过
+# _config_loader._user_yaml_data 或 _UserYamlConfigSource 访问最新值。
+from ._config_loader import (  # noqa: F401, E402
+    build_settings,
+    describe_config_sources,
+    reload_settings,
+    _UserYamlConfigSource,
+    _prepare_user_yaml,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -745,7 +399,7 @@ class NegentropyPerceivesSettings(BaseSettings):
         default=True,
         description=(
             "启用后在 PyMuPDF find_tables 结果上再叠加质量过滤，"
-            "剔除“空白率高 / 单值同质 / 半数列近空”的伪表格；"
+            "剔除「空白率高 / 单值同质 / 半数列近空」的伪表格；"
             "关闭后回退到仅 row_count>=2 & col_count>=2 的原行为。"
         ),
     )
@@ -755,7 +409,7 @@ class NegentropyPerceivesSettings(BaseSettings):
         le=1.0,
         description=(
             "单元格非空比例下限；低于该比例判定为伪表格。"
-            "0.40 对应“过半单元格都是空串”的稀疏结构。"
+            "0.40 对应「过半单元格都是空串」的稀疏结构。"
         ),
     )
     pdf_table_quality_max_weak_cols_ratio: float = Field(
@@ -877,18 +531,11 @@ class NegentropyPerceivesSettings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        """自定义配置源优先级链。
-
-        返回元组中从左到右优先级递减（靠前者优先级更高）：
-          init_settings(-c显式配置) > env_settings(环境变量) > _UserYamlConfigSource(合并后YAML)
-
-        注意：dotenv_settings 参数保留在签名中以符合 pydantic-settings 协议，
-        但不再加入返回元组（.env 支持已移除）。
-        """
+        """自定义配置源优先级链。"""
         return (
-            init_settings,  # -c 显式配置（最高优先级，靠前）
-            env_settings,  # 环境变量（中优先级）
-            _UserYamlConfigSource(settings_cls),  # 内置默认+用户YAML（低优先级，靠后）
+            init_settings,
+            env_settings,
+            _UserYamlConfigSource(settings_cls),
         )
 
     @field_validator("log_level")
@@ -934,15 +581,7 @@ class NegentropyPerceivesSettings(BaseSettings):
         }
 
     def get_docling_settings(self) -> Dict[str, Any]:
-        """Get Docling-specific settings as a dictionary.
-
-        Returns settings compatible with Docling's AcceleratorOptions and
-        pipeline configuration.
-
-        Example:
-            >>> settings.get_docling_settings()
-            {'device': 'auto', 'num_threads': 4, 'enable_ocr': True, ...}
-        """
+        """Get Docling-specific settings as a dictionary."""
         return {
             "device": self.accelerator_device,
             "num_threads": self.accelerator_num_threads,

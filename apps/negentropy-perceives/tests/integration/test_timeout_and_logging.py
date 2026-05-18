@@ -45,7 +45,7 @@ class TestTaskTimeout:
 
         with (
             patch(
-                "negentropy.perceives.ops.pdf.try_pipeline",
+                "negentropy.perceives.ops.pdf.attempt_pipeline",
                 new_callable=AsyncMock,
             ) as mock_try_pipeline,
             patch(
@@ -102,7 +102,7 @@ class TestTaskTimeout:
 
         with (
             patch(
-                "negentropy.perceives.ops.pdf.try_pipeline",
+                "negentropy.perceives.ops.pdf.attempt_pipeline",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -147,7 +147,7 @@ class TestPipelineContextPropagation:
 
         with (
             patch(
-                "negentropy.perceives.ops.pdf.try_pipeline",
+                "negentropy.perceives.ops.pdf.attempt_pipeline",
                 new_callable=AsyncMock,
                 side_effect=_capture_pipeline,
             ),
@@ -178,7 +178,7 @@ class TestPipelineContextPropagation:
 
         with (
             patch(
-                "negentropy.perceives.ops.pdf.try_pipeline",
+                "negentropy.perceives.ops.pdf.attempt_pipeline",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -221,7 +221,7 @@ class TestLogPrefixPropagation:
         try:
             with (
                 patch(
-                    "negentropy.perceives.ops.pdf.try_pipeline",
+                    "negentropy.perceives.ops.pdf.attempt_pipeline",
                     new_callable=AsyncMock,
                     return_value=None,
                 ),
