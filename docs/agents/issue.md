@@ -2063,3 +2063,37 @@
   - 本仓库其余 `router.replace` / `router.push` 调用（`app/admin/layout.tsx`、`app/interface/layout.tsx`、`app/interface/task-models/page.tsx`、`app/interface/models/page.tsx`、`app/knowledge/documents/page.tsx`）均为 pathname 级跳转，不在 bug 影响面，保持不变。
   - 未来若在 Knowledge / Memory / Interface 页加入"仅 query 切换 tab/filter"的入口（如 `?tab=...` / `?filter=...`），需直接采用 `window.history.replaceState` 模式而非 `router.replace`。
   - 与 [ISSUE-061](#issue-061) / [ISSUE-062](#issue-062) / [ISSUE-066](#issue-066) 一起构成 Next.js App Router URL 单源派生模式下的四件套：URL 派生（061 v2-D）、稳定 deps（062）、router.replace 异步延迟下的 pending auto-send（066）、router.replace 同 pathname no-op 绕道（本期 088）。后续接入新 URL-派生场景时，应同步审视这四件套是否完整。
+
+---
+
+## ISSUE-089 `builtin_tools.visibility` ORM Enum 与迁移 VARCHAR 漂移致 `/interface/tools` 与 `/interface/stats` 500（2026-05-18）
+
+- **表因**：服务端日志（开发本机与开发环境同步复现）`uvicorn.error` 反复抛出 `Exception in ASGI application`，根因是 SQLAlchemy 抛 `ProgrammingError`：
+  ```
+  asyncpg.exceptions.UndefinedFunctionError: operator does not exist:
+    character varying = negentropy.pluginvisibility
+  HINT: No operator matches the given name and argument types.
+  [parameters: ('google:106729725448726600925', 'PUBLIC', 'builtin_tool', 'google:...')]
+  SQL: ... WHERE negentropy.builtin_tools.visibility = $2::negentropy.pluginvisibility ...
+  ```
+  两个端点 500：`GET /interface/tools`（[`api.list_builtin_tools`](../../apps/negentropy/src/negentropy/interface/api.py)）与 `GET /interface/stats`（[`api.get_stats`](../../apps/negentropy/src/negentropy/interface/api.py)），同一链路都经过 [`permissions.get_visible_plugin_ids`](../../apps/negentropy/src/negentropy/interface/permissions.py) 的 `model.visibility == PluginVisibility.PUBLIC` 子查询。
+- **根因**：
+  1. PG 枚举 `negentropy.pluginvisibility` 在 [`0001_init_schema.py:196`](../../apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py) 创建，成员 NAME 为大写 `PRIVATE/SHARED/PUBLIC`。`mcp_servers/skills/sub_agents` 三类 plugin 均沿此模板建表。
+  2. [`0031_builtin_tools.py:82`](../../apps/negentropy/src/negentropy/db/migrations/versions/0031_builtin_tools.py) 偏离模板，把 `builtin_tools.visibility` 建为 `VARCHAR(20) NOT NULL DEFAULT 'private'`，并以小写字面量 `'public'` 种子化 `google_search` 行（line 127）。
+  3. ORM 模型 [`builtin_tool.py:30-34`](../../apps/negentropy/src/negentropy/models/builtin_tool.py) 沿用 `Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA)`，SQLAlchemy 据此生成 `WHERE visibility = $N::negentropy.pluginvisibility` 的显式 cast，绑定值用枚举成员 NAME（大写 `'PUBLIC'`）。
+  4. PG 无 `varchar = pluginvisibility` 操作符，对 VARCHAR 列做 enum cast 直接报 `UndefinedFunctionError`。
+- **处理方式**：
+  1. 新增前向迁移 [`0036_builtin_tools_visibility_enum.py`](../../apps/negentropy/src/negentropy/db/migrations/versions/0036_builtin_tools_visibility_enum.py) 三步走：
+     1. `UPDATE` 把 `LOWER(visibility::text) ∈ {'private','shared','public'}` 的行规范化为 enum 成员名（大写）；
+     2. `DO $$ ... RAISE EXCEPTION ... $$` 防御性断言：若仍有非法值，明确抛错而非让 `ALTER TYPE` 报含糊的 cast 错误；
+     3. `DROP DEFAULT` → `ALTER COLUMN visibility TYPE negentropy.pluginvisibility USING visibility::negentropy.pluginvisibility` → `SET DEFAULT 'PRIVATE'::negentropy.pluginvisibility`。
+  2. **不修改 0031**：违反 forward-only 约定会破坏既有部署的 stairway 测试，且 0036 已在数据规范化阶段覆盖 0031 的小写遗留。
+  3. `downgrade()` 同样三步反向，`USING visibility::text` 中转回 `VARCHAR(20)`、恢复 `DEFAULT 'private'`，与 [ISSUE-012](#issue-012)「枚举列上 text-only 操作必须经 `::text` cast」对齐。
+  4. 新增 integration 测试 [`tests/integration_tests/interface/test_get_visible_plugin_ids.py`](../../apps/negentropy/tests/integration_tests/interface/test_get_visible_plugin_ids.py) 守护真实 PG round-trip：参数化覆盖 4 类 plugin（`builtin_tool/mcp_server/skill/sub_agent`），断言 own + PUBLIC + SHARED（PluginPermission 授权） + is_system 的并集语义全部生效，他人 PRIVATE 不可见；并补一个直接的「`builtin_tool` PUBLIC 子查询不抛 ProgrammingError」回归点位。
+- **后续防范**：
+  1. **新增 plugin 表的强制模板**：任何新表若有 `visibility` 列，必须复用 `Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA)`（ORM）+ `sa.Enum("PRIVATE", "SHARED", "PUBLIC", name="pluginvisibility", schema="negentropy")`（迁移），与 0001 的 `mcp_servers/skills/sub_agents` 三处保持对称；review 时若发现 `visibility VARCHAR` 直接打回。
+  2. **ORM ↔ 迁移漂移的代价是「类型层 SQL 错误」**：与字段名漂移（[ISSUE-010](#issue-010)）、属性懒加载漂移（[ISSUE-016](#issue-016) 三阶）同属「写入侧契约与读取侧契约错位」家族。Review 红线：所有 `mapped_column(Enum(...))` 的 PR 必须对照同表 `CREATE TABLE` / 后续 `ALTER COLUMN` 迁移是否落地为对应 PG enum 类型。
+  3. **真实 PG round-trip 测试是底线**：单元测试只能验证纯函数语义，类似 `get_visible_plugin_ids` 这种「ORM 表达式 → PG 执行」路径必须有 integration 用例覆盖；本期补的参数化用例可作为下次新增 plugin 表时的「填空」模板。
+- **同类问题影响**：
+  - 与 [ISSUE-012](#issue-012)（枚举列上 `LOWER`/`UPPER` 必须 `::text` cast）同源——本期是「读侧 cast 失败」，012 是「迁移侧 cast 失败」，两者共同提示「PG 枚举列与 text 之间的所有交互都需要显式 cast，且 ORM 侧声明类型必须与 DB 真实列类型严格一致」。
+  - 已确认本仓库其他 plugin 表（`mcp_servers/skills/sub_agents`）的 `visibility` 列与 ORM 声明一致，无同型漂移。任何未来新增 plugin 类型（如假想中的 `prompt_template`/`workflow`）必须按上文「新增 plugin 表的强制模板」实施。
