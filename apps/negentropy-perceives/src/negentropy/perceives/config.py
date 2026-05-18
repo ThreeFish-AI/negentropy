@@ -60,12 +60,15 @@ from ._config_yaml import (  # noqa: F401, E402
 )
 
 # Re-export 加载函数（向后兼容）
+# NOTE: _user_yaml_data 不在此处 re-export，因其为模块级可变全局变量：
+# _prepare_user_yaml 会通过 `global` 重新绑定 _config_loader 中的名称，
+# 此处的 import 绑定无法随之更新（快照语义）。调用方应通过
+# _config_loader._user_yaml_data 或 _UserYamlConfigSource 访问最新值。
 from ._config_loader import (  # noqa: F401, E402
     build_settings,
     describe_config_sources,
     reload_settings,
     _UserYamlConfigSource,
-    _user_yaml_data,
     _prepare_user_yaml,
 )
 

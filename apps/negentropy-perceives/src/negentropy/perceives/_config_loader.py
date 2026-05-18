@@ -5,7 +5,10 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
+if TYPE_CHECKING:
+    from .config import NegentropyPerceivesSettings
 
 from pydantic_settings import PydanticBaseSettingsSource
 
@@ -79,7 +82,7 @@ def _prepare_user_yaml(
 def build_settings(
     *,
     config_path: Optional[str] = None,
-):
+) -> "NegentropyPerceivesSettings":
     """构建配置实例。"""
     from .config import NegentropyPerceivesSettings
 
@@ -96,7 +99,7 @@ def build_settings(
 def reload_settings(
     *,
     config_path: Optional[str] = None,
-):
+) -> "NegentropyPerceivesSettings":
     """重建全局配置单例。"""
     from . import config as _config_module
 
