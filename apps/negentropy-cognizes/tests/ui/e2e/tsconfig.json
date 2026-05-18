@@ -1,0 +1,22 @@
+{
+    "extends": "../../../ui/tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": "../../../ui",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        },
+        "types": [
+            "node",
+            "@playwright/test"
+        ]
+    },
+    "include": [
+        "./**/*.ts",
+        "./**/*.tsx"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

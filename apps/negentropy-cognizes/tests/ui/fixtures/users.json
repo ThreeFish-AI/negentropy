@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1",
+    "email": "test@example.com",
+    "name": "Test User",
+    "avatar": "https://example.com/avatar.jpg",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z",
+    "preferences": {
+      "theme": "light",
+      "language": "zh-CN",
+      "auto_translate": true,
+      "notification_email": true,
+      "papers_per_page": 10
+    }
+  },
+  {
+    "id": "2",
+    "email": "researcher@university.edu",
+    "name": "Dr. Researcher",
+    "avatar": "https://example.com/avatar2.jpg",
+    "created_at": "2024-01-02T00:00:00Z",
+    "updated_at": "2024-01-02T00:00:00Z",
+    "preferences": {
+      "theme": "dark",
+      "language": "en-US",
+      "auto_translate": false,
+      "notification_email": false,
+      "papers_per_page": 20
+    }
+  }
+]

@@ -1,0 +1,169 @@
+[
+  {
+    "id": "1",
+    "title": "Attention Is All You Need",
+    "authors": [
+      "Ashish Vaswani",
+      "Noam Shazeer",
+      "Niki Parmar",
+      "Jakob Uszkoreit",
+      "Llion Jones",
+      "Aidan N. Gomez",
+      "Lukasz Kaiser",
+      "Illia Polosukhin"
+    ],
+    "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train.",
+    "status": "translated",
+    "category": "llm-agents",
+    "uploadedAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-02T00:00:00Z",
+    "keywords": [
+      "transformer",
+      "attention",
+      "nlp",
+      "machine-translation"
+    ],
+    "filePath": "https://arxiv.org/pdf/1706.03762.pdf",
+    "fileName": "attention.pdf",
+    "fileSize": 2048576,
+    "metadata": {
+      "year": 2017,
+      "journal": "NeurIPS"
+    },
+    "translation": {
+      "title": "注意力就是你所需要的一切",
+      "abstract": "主流的序列转换模型基于复杂的循环或卷积神经网络，包括编码器和解码器。表现最好的模型还通过注意力机制连接编码器和解码器。我们提出了一种新的简单网络架构——Transformer，它完全基于注意力机制，完全摒弃了循环和卷积。在两个机器翻译任务上的实验表明，这些模型质量更优，同时更具可并行性，训练时间显著减少.",
+      "content": "...",
+      "translatedAt": "2024-01-02T10:00:00Z"
+    }
+  },
+  {
+    "id": "2",
+    "title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+    "authors": [
+      "Jacob Devlin",
+      "Ming-Wei Chang",
+      "Kenton Lee",
+      "Kristina Toutanova"
+    ],
+    "abstract": "We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications.",
+    "status": "processing",
+    "category": "context-engineering",
+    "uploadedAt": "2024-01-03T00:00:00Z",
+    "updatedAt": "2024-01-03T00:00:00Z",
+    "keywords": [
+      "bert",
+      "pre-training",
+      "nlp",
+      "language-understanding"
+    ],
+    "filePath": "https://arxiv.org/pdf/1810.04805.pdf",
+    "fileName": "bert.pdf",
+    "fileSize": 1572864,
+    "metadata": {
+      "year": 2018,
+      "journal": "NAACL"
+    }
+  },
+  {
+    "id": "3",
+    "title": "GPT-3: Language Models are Few-Shot Learners",
+    "authors": [
+      "Tom B. Brown",
+      "Benjamin Mann",
+      "Nick Ryder",
+      "Melanie Subbiah",
+      "Jared Kaplan",
+      "Prafulla Dhariwal",
+      "Arvind Neelakantan",
+      "Pranav Shyam",
+      "Girish Sastry",
+      "Amanda Askell",
+      "S. Whitney",
+      "M. Riemann",
+      "A. G. H. Wei",
+      "D. Amodei"
+    ],
+    "abstract": "Recent work has demonstrated substantial gains on many NLP tasks and benchmarks by pre-training on a large corpus of text followed by fine-tuning on a task-specific dataset. While this approach has led to significant improvements, fine-tuning still requires thousands of examples and task-specific datasets. In this paper, we demonstrate that by scaling up model size and using large amounts of unlabeled data, we can achieve strong performance on many NLP tasks without any gradient updates or fine-tuning.",
+    "status": "uploaded",
+    "category": "reasoning",
+    "uploadedAt": "2024-01-04T00:00:00Z",
+    "updatedAt": "2024-01-04T00:00:00Z",
+    "keywords": [
+      "gpt",
+      "language-model",
+      "few-shot",
+      "nlp"
+    ],
+    "filePath": "https://arxiv.org/pdf/2005.14165.pdf",
+    "fileName": "gpt3.pdf",
+    "fileSize": 3145728,
+    "metadata": {
+      "year": 2020,
+      "journal": "NeurIPS"
+    }
+  },
+  {
+    "id": "4",
+    "title": "ChatGPT: Optimizing Language Models for Dialogue",
+    "authors": [
+      "OpenAI Team"
+    ],
+    "abstract": "We've trained a model called ChatGPT which interacts in a conversational way. The dialogue format makes it possible for ChatGPT to answer followup questions, admit its mistakes, challenge incorrect premises, and reject inappropriate requests. ChatGPT is a sibling model to InstructGPT, which is trained to follow an instruction in a prompt and provide a detailed response.",
+    "status": "translated",
+    "category": "tool-use",
+    "uploadedAt": "2024-01-05T00:00:00Z",
+    "updatedAt": "2024-01-06T00:00:00Z",
+    "keywords": [
+      "chatgpt",
+      "dialogue",
+      "instruction-following",
+      "rlhf"
+    ],
+    "filePath": "https://arxiv.org/pdf/2212.08051.pdf",
+    "fileName": "chatgpt.pdf",
+    "fileSize": 1048576,
+    "translation": {
+      "title": "ChatGPT：优化对话的语言模型",
+      "abstract": "我们训练了一个名为ChatGPT的模型，它以对话的方式进行交互。对话格式使ChatGPT能够回答后续问题，承认自己的错误，挑战不正确的前提，并拒绝不当的请求。ChatGPT是InstructGPT的兄弟模型，InstructGPT被训练来遵循提示中的指令并提供详细的响应。",
+      "content": "...",
+      "translatedAt": "2024-01-06T12:00:00Z"
+    }
+  },
+  {
+    "id": "5",
+    "title": "PaLM: Scaling Language Modeling with Pathways",
+    "authors": [
+      "Aakanksha Chowdhery",
+      "Sharan Narang",
+      "Jacob Devlin",
+      "Maarten Bosma",
+      "B. G. A. Raghav",
+      "Gaurav Mishra",
+      "A. Roberts",
+      "P. Barham",
+      "Hyung Won Chung",
+      "C. Sutton",
+      "S. Gehrmann",
+      "P. Zhou",
+      "S. Hashem"
+    ],
+    "abstract": "Pathways is a new ML system that enables training models that are simultaneously dense, efficiently trained, and show state-of-the-art transfer learning across multiple tasks. We demonstrate that Pathways enables training a single 540-billion parameter language model that achieves state-of-the-art performance on a wide range of natural language processing and reasoning tasks.",
+    "status": "analyzed",
+    "category": "multi-agent",
+    "uploadedAt": "2024-01-07T00:00:00Z",
+    "updatedAt": "2024-01-08T00:00:00Z",
+    "keywords": [
+      "palm",
+      "pathways",
+      "large-language-model",
+      "scaling"
+    ],
+    "filePath": "https://arxiv.org/pdf/2204.02311.pdf",
+    "fileName": "palm.pdf",
+    "fileSize": 4194304,
+    "metadata": {
+      "year": 2022
+    }
+  }
+]
