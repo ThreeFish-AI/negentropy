@@ -31,7 +31,7 @@ services:
   # 可选的简单 UI
   ui:
     image: nginx:alpine
-    container_name: agentic-ai-cognizes-ui
+    container_name: cognizes-ui
     ports:
       - "9003:80"
     volumes:

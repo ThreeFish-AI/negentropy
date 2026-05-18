@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-2 text-dark-5 dark:bg-[#020D1A] dark:text-dark-6;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar {
+    @apply overflow-auto;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply size-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply relative flex-1 rounded-full bg-neutral-200/40 dark:bg-stroke-dark;
+  }
+}
+
+/* Table checkbox styles */
+.tableCheckbox:checked ~ div span {
+  @apply opacity-100;
+}
+
+.tableCheckbox:checked ~ div {
+  @apply border-primary bg-primary;
+}
+
+/* Task checkbox styles */
+.taskCheckbox:checked ~ .box span {
+  @apply opacity-100;
+}
+
+.taskCheckbox:checked ~ p {
+  @apply line-through;
+}
+
+.taskCheckbox:checked ~ .box {
+  @apply border-primary bg-primary dark:border-primary;
+}
+
+/* Custom input styles */
+.custom-input-date::-webkit-calendar-picker-indicator {
+  background: transparent;
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  @apply appearance-none;
+}
+
+.custom-input-date::-webkit-calendar-picker-indicator {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 20px;
+}
+
+.custom-gradient-1 {
+  background-image: linear-gradient(145deg, #eef 0%, #fff8fc 100%);
+}
