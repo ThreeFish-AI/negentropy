@@ -1,0 +1,306 @@
+# ==============================================================================
+# pyproject.toml - Python 项目元数据和构建配置
+# 遵循 PEP 621 (项目元数据)、PEP 517/518 (构建系统) 和 PEP 735 (依赖分组)
+# ==============================================================================
+
+# ==============================================================================
+# [project] - 项目核心元数据 (PEP 621)
+# 定义项目的基本信息，供 pip、uv 等工具读取
+# ==============================================================================
+[project]
+name = "agentic-ai-cognizes"            # 包名称，用于 pip install 和发布到 PyPI
+version = "0.1.0"                       # 语义化版本号: MAJOR.MINOR.PATCH
+description = "The Agentic AI Cognizes, a platform for perception, cognition, and reasoning of Agentic AI"
+readme = "README.md"                    # 长描述文件路径，PyPI 详情页显示
+requires-python = ">=3.13.11"           # Python 版本约束，确保运行环境兼容
+license = "Apache-2.0"                  # 开源许可证标识
+
+authors = [
+    { name = "ThreeFish AI", email = "threefish.ai@gmail.com" }
+]
+
+keywords = [
+    "agent", "rag", "knowledge", "memory",
+    "adk", "claude", "postgres", "pgvector",
+    "tracing", "sandbox"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+]
+
+# ------------------------------------------------------------------------------
+# dependencies - 运行时依赖列表
+# 按功能模块分组，从核心到外围、从基础到应用的逻辑顺序排列
+# 这些包会在 `uv sync` 或 `pip install` 时自动安装
+# ------------------------------------------------------------------------------
+dependencies = [
+    # === 1. 核心框架：AI/LLM Agent 基础设施 ===
+    # Agent 开发框架和 LLM 客户端，是整个系统的核心依赖
+    "google-adk>=1.22.1",               # Google Agent Development Kit: LlmAgent, SessionService 等
+    "google-generativeai>=0.8.6",       # Gemini API 客户端: Embedding 和 LLM 调用
+    "anthropic>=0.76.0",                # Claude API 客户端: Claude 模型调用
+
+    # === 2. 数据层：存储与向量检索 ===
+    # PostgreSQL 驱动和向量扩展，支撑 Memory/Knowledge 服务
+    "asyncpg>=0.31.0",                  # PostgreSQL 异步驱动: 高性能原生 async/await
+    "psycopg[binary]>=3.3.2",           # PostgreSQL 同步驱动: binary 预编译加速
+    "pgvector>=0.4.2",                  # PostgreSQL 向量扩展: 向量相似度搜索 (HNSW/IVFFlat)
+
+    # === 3. Web 框架：API 服务层 ===
+    # RESTful API 服务和 HTTP 客户端
+    "fastapi>=0.115.0",                 # 现代 Python Web 框架: 自动 OpenAPI 文档 (版本受 google-adk 约束)
+    "uvicorn[standard]>=0.40.0",        # ASGI 服务器: 运行 FastAPI/Starlette 应用
+    "python-multipart>=0.0.6",          # 文件上传支持: multipart/form-data 解析
+    "httpx>=0.28.1",                    # 现代 HTTP 客户端: 支持 async/await 和 HTTP/2
+
+    # === 4. 可观测性：追踪与监控 ===
+    # OpenTelemetry 全链路追踪，支撑 P4 Tracing 系统
+    "opentelemetry-api>=1.37.0",        # 全链路追踪 API: Span、Tracer 接口
+    "opentelemetry-sdk>=1.37.0",        # 全链路追踪 SDK: 追踪数据采集和处理 (版本受 google-adk 约束)
+    "opentelemetry-exporter-otlp>=1.37.0",  # OTLP 协议导出器: 兼容 OTEL Collector
+    "langfuse>=3.12.0",                 # LLM 可观测性平台: Prompt 追踪和评估
+
+    # === 5. AI/ML 工具：向量化与分词 ===
+    # 文本向量化和分词工具，支撑 RAG 系统
+    "sentence-transformers>=5.2.0",     # 句子向量模型: 高质量文本 Embedding
+    "tiktoken>=0.12.0",                 # OpenAI 分词器: Token 计数和文本切分
+
+    # === 6. 文档处理：知识摄取 (Perception) ===
+    # 多格式文档解析，用于知识库摄取
+    "pypdf2>=3.0.1",                    # PDF 文本提取: 纯文本 PDF 解析
+    "pdfplumber>=0.10.0",               # PDF 高级解析: 表格、图像提取
+    "markdown>=3.5.0",                  # Markdown 解析: 文档结构化处理
+    "beautifulsoup4>=4.14.3",           # HTML 解析: 网页内容提取
+    "lxml>=6.0.2",                      # XML/HTML 解析器: BeautifulSoup 后端加速
+
+    # === 7. 安全沙箱：代码执行隔离 ===
+    # Agent 生成代码的安全执行环境
+    "microsandbox>=0.1.8",              # Python 沙箱: 隔离执行不信任代码
+
+    # === 8. 核心工具：数据验证与配置 ===
+    # 类型系统、配置管理和实用程序
+    "pydantic>=2.12.4",                 # 数据验证: BaseModel、类型提示验证
+    "python-dotenv>=1.0.0",             # 环境变量: .env 文件加载
+    "pyyaml>=6.0.3",                    # YAML 解析: 配置文件解析
+    "jinja2>=3.1.6",                    # 模板引擎: Prompt 模板渲染
+
+    # === 9. CLI 与交互工具 ===
+    # 命令行界面和终端美化
+    "rich>=14.2.0",                     # 终端美化: 彩色输出、表格、进度条
+    "tqdm>=4.67.1",                     # 进度条: 批处理进度显示
+    "click>=8.3.1",                     # CLI 框架: 命令行参数解析
+
+    # === 10. 文件与媒体处理 ===
+    # 文件 I/O 和媒体类型检测
+    "aiofiles>=23.2.1",                 # 异步文件 I/O: 非阻塞文件操作
+    "python-magic>=0.4.27",             # 文件类型检测: MIME 类型识别
+    "pillow>=12.1.0",                   # 图像处理: 图像加载、转换、保存
+]
+
+# ==============================================================================
+# [dependency-groups] - 依赖分组 (PEP 735)
+# 按用途分组的开发依赖，通过 `uv sync --group <name>` 安装
+# ==============================================================================
+[dependency-groups]
+
+# === 开发依赖组：测试、代码质量、开发辅助 ===
+dev = [
+    # --- 测试框架 ---
+    "pytest>=9.0.2",                    # Python 标准测试框架
+    "pytest-asyncio>=1.3.0",            # pytest 异步测试支持: async def test_xxx
+    "pytest-cov>=7.0.0",                # pytest 覆盖率插件: --cov 参数支持
+    "pytest-mock>=3.15.1",              # pytest Mock 插件: mocker fixture
+    "pytest-xdist>=3.3.0",              # pytest 并行执行: -n auto 多进程测试
+    "pytest-dotenv>=0.5.2",             # pytest .env 加载: 测试环境变量
+
+    # --- 代码质量工具 ---
+    "ruff>=0.14.13",                    # 超快 Python Linter: 替代 flake8/isort
+    "black>=25.1.0",                    # 代码格式化: 统一代码风格
+    "mypy>=1.19.1",                     # 静态类型检查: 类型错误检测
+    "pre-commit>=3.3.0",                # Git Hook 管理: 提交前自动检查
+
+    # --- 测试数据生成 ---
+    "factory-boy>=3.3.0",               # 测试数据工厂: 模型实例生成
+    "faker>=19.0.0",                    # 假数据生成: 姓名、地址、文本等
+
+    # --- 开发辅助 ---
+    "websockets>=11.0.0",               # WebSocket 客户端: 测试 WS 连接
+
+    # --- 性能测试 ---
+    "locust>=2.43.1",                   # 负载测试框架: SessionService/MemoryService 压测
+]
+
+# === GPU/ML 依赖组：本地模型推理 ===
+gpu = [
+    "numpy>=2.4.1",                     # 数值计算: 张量操作基础
+    "torch>=2.9.1",                     # PyTorch: 深度学习框架
+    "transformers>=4.57.3",             # Hugging Face Transformers: 预训练模型
+]
+
+# === 文档依赖组：文档生成 ===
+docs = [
+    "mkdocs>=1.5.0",                    # 文档生成器: Markdown 转静态站点
+    "mkdocs-material>=9.1.0",           # MkDocs Material 主题: 现代化文档界面
+    "mkdocstrings[python]>=0.22.0",     # API 文档生成: 自动从 docstring 生成
+]
+
+# ==============================================================================
+# [project.scripts] - 命令行入口点
+# 定义 `pip install` 后可用的命令行命令
+# ==============================================================================
+[project.scripts]
+agentic-ai-cognizes = "agentic_ai_cognizes.cli:main"
+
+# ==============================================================================
+# [project.urls] - 项目链接
+# PyPI 详情页显示的相关链接
+# ==============================================================================
+[project.urls]
+Homepage = "https://threefish.site"
+Repository = "https://github.com/ThreeFish-AI/agentic-ai-cognizes.git"
+Documentation = "https://agentic-ai-cognizes.readthedocs.io"
+Issues = "https://github.com/ThreeFish-AI/agentic-ai-cognizes/issues"
+
+# ==============================================================================
+# [build-system] - 构建后端配置 (PEP 517/518)
+# 指定如何构建 wheel 和 sdist 分发包
+# ==============================================================================
+[build-system]
+requires = ["hatchling"]                # 构建依赖: hatchling 是现代 Python 构建工具
+build-backend = "hatchling.build"       # 构建后端入口点
+
+# ==============================================================================
+# [tool.hatch.build.targets.wheel] - Hatch 构建目标配置
+# 控制 wheel 包的内容和结构
+# ==============================================================================
+[tool.hatch.build.targets.wheel]
+packages = ["src/cognizes"]             # 要打包的源码目录: src layout 布局
+
+# ==============================================================================
+# [tool.uv.workspace] - uv 工作区配置
+# 用于 monorepo 多包管理
+# ==============================================================================
+[tool.uv.workspace]
+members = [
+    "src/cognizes/examples/e2e_travel_agent",  # E2E Travel Agent Demo
+]
+
+# ==============================================================================
+# [tool.pytest.ini_options] - pytest 配置
+# 等效于 pytest.ini 或 setup.cfg 中的 [tool:pytest]
+# ==============================================================================
+[tool.pytest.ini_options]
+minversion = "7.0"                      # 最低 pytest 版本要求
+addopts = [
+    "-ra",                              # 显示所有跳过/失败测试的原因
+    "-q",                               # 简洁输出模式
+    "--strict-markers",                 # 严格标记检查: 未注册标记报错
+    "--strict-config",                  # 严格配置检查: 无效配置报错
+    "--cov=cognizes",                   # 覆盖率目标: cognizes 包
+    "--cov-report=term-missing",        # 终端覆盖率报告: 显示未覆盖行
+    "--cov-report=html:htmlcov",        # HTML 覆盖率报告: 输出到 htmlcov/
+    "--cov-report=xml",                 # XML 覆盖率报告: CI 集成用
+    "--cov-fail-under=20",              # 覆盖率阈值: 低于 20% 则失败
+    "-p no:warnings",                   # 禁用警告输出
+]
+testpaths = ["tests"]                   # 测试目录
+asyncio_mode = "auto"                   # 异步测试模式: 自动检测
+asyncio_default_fixture_loop_scope = "function"  # 异步 fixture 作用域
+
+# pytest 自定义标记
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "e2e: marks tests as end-to-end tests",
+    "performance: marks tests as performance tests",
+    "websocket: marks tests that require WebSocket",
+]
+
+# ==============================================================================
+# [tool.ruff] - Ruff Linter/Formatter 配置
+# 超快 Python 代码质量工具，替代 flake8/isort/pyupgrade
+# ==============================================================================
+[tool.ruff]
+line-length = 120                       # 最大行长度
+target-version = "py313"                # 目标 Python 版本
+
+[tool.ruff.lint]
+select = [
+    "E",                                # pycodestyle 错误
+    "W",                                # pycodestyle 警告
+    "F",                                # pyflakes: 未使用变量等
+    "I",                                # isort: import 排序
+    "B",                                # flake8-bugbear: 常见 bug 模式
+    "C4",                               # flake8-comprehensions: 推导式优化
+    "UP",                               # pyupgrade: 旧语法升级
+]
+ignore = [
+    "E501",                             # 行过长: 由 black 处理
+    "B008",                             # 参数默认值函数调用: FastAPI Depends 需要
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]                # __init__.py 允许未使用 import
+
+[tool.ruff.format]
+exclude = [
+    "*.md", "*.pdf", "*.txt",           # 非代码文件
+    "*.json", "*.yml", "*.yaml",        # 配置文件
+    "papers/", "docs/",                 # 文档目录
+]
+
+# ==============================================================================
+# [tool.black] - Black 代码格式化配置
+# Python 代码自动格式化工具
+# ==============================================================================
+[tool.black]
+line-length = 88                        # 标准 Black 行长度
+target-version = ['py313']              # 目标 Python 版本
+include = '\.pyi?$'                     # 包含 .py 和 .pyi 文件
+extend-exclude = '''
+/(
+  # 排除目录
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# ==============================================================================
+# [tool.coverage] - 覆盖率报告配置
+# pytest-cov 使用的覆盖率设置
+# ==============================================================================
+[tool.coverage.run]
+source = ["cognizes"]                   # 覆盖率统计目标
+omit = [
+    "*/tests/*",                        # 排除测试文件
+    "*/test_*",                         # 排除测试文件
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",                 # 显式排除标记
+    "def __repr__",                     # __repr__ 方法
+    "if self.debug:",                   # 调试代码块
+    "if settings.DEBUG",                # 调试配置
+    "raise AssertionError",             # 断言异常
+    "raise NotImplementedError",        # 未实现异常
+    "if 0:",                            # 永假条件
+    "if __name__ == .__main__.:",       # 脚本入口
+    "class .*\\bProtocol\\):",          # Protocol 类定义
+    "@(abc\\.)?abstractmethod",         # 抽象方法
+]
