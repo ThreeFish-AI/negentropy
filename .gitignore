@@ -263,3 +263,4 @@ apps/negentropy-ui/.userdata/
 # Custom
 .claude/
 assets/
+.gitignore
