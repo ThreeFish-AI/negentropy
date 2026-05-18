@@ -25,8 +25,8 @@ export default function InterfacePage() {
       try {
         const response = await fetch("/api/interface/stats");
         if (!response.ok) {
-          // proxy 透传 backend 状态码，便于运维定位真实故障。
-          throw new Error(`Failed to fetch Dashboard stats (HTTP ${response.status}). 请检查后端日志。`);
+          // proxy 透传 backend 状态码，HTTP code 仅作为括号内的诊断信息保留。
+          throw new Error(`获取 Dashboard 统计失败（HTTP ${response.status}），请稍后重试或联系管理员。`);
         }
         const data = await response.json();
         setStats(data);

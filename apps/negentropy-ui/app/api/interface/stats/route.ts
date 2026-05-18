@@ -67,23 +67,23 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      // backend 5xx 时透传状态码而非静默兜底为 200/defaultStats。
+      // backend 非 2xx 时透传状态码而非静默兜底为 200/defaultStats。
       // 历史上兜底返回 200 + 全 0 会让 Dashboard 呈现"配置真的没生效"的假象，
       // 与 backend 实际 500 解耦 → 故障在前端不可见、运维链路缺失。
-      // 现在统一返回 backend status + defaultStats body（保 UI 不空白），
-      // 前端通过 response.ok / response.status 判断需要显示 error 提示。
+      // 仅透传 status、不带 body：前端在 !response.ok 时直接 throw 渲染错误态，
+      // 不会消费 body；返回 defaultStats 反而会让维护者误以为存在"兜底数据"链路。
       const text = await response.text();
       console.error(
         `Failed to fetch interface stats from backend: ${response.status}; body=${text.slice(0, 500)}`,
       );
-      return NextResponse.json(defaultStats, { status: response.status });
+      return new NextResponse(null, { status: response.status });
     }
 
     const stats: InterfaceStatsResponse = await response.json();
     return NextResponse.json(stats);
   } catch (error) {
-    // 网络层异常（backend 完全不可达）—— 同样透传 502 让前端可感知。
+    // 网络层异常（backend 完全不可达）—— 同样透传 502 让前端可感知，不带 body。
     console.error("Error connecting to backend for interface stats:", error);
-    return NextResponse.json(defaultStats, { status: 502 });
+    return new NextResponse(null, { status: 502 });
   }
 }

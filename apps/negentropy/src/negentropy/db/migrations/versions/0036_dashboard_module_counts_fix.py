@@ -25,6 +25,15 @@ Create Date: 2026-05-18 10:00:00.000000+00:00
        同语义，把这批种子 skills 标记为 ``is_system = TRUE``，让 union 路径
        自动接管「内置全员可见」语义 —— 无需触碰 list_skills 端点代码。
 
+跨环境注意：
+    第 2 段回填条件 ``owner_id = 'google:dev-admin' AND name LIKE
+    'ai-agent-paper-hunter%'`` 是「现场修正」语义 —— dev/staging 上 3 条种
+    子由该 owner 创建后未走 is_system 路径；其他环境若不存在该 owner 则为
+    no-op，若存在则只命中前缀严格匹配的 skills。为便于跨环境审计，回填后
+    用 ``logger.info`` 输出实际 rowcount（参见 upgrade() 末尾），运维可在
+    alembic 输出中核对影响行数；若未来需要再扩散到其他 owner，应单独走
+    seed/data-fix 脚本，避免 schema 迁移堆叠隐式数据修正。
+
 幂等性：
     - ENUM 转换前的大写回填用 ``UPDATE … WHERE visibility IN (lowercase)``
       条件守卫，重跑 noop；
@@ -37,6 +46,7 @@ downgrade：
     ``is_system`` 数据（避免误降级用户已依赖的可见性扩散）。
 """
 
+import logging
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -48,6 +58,9 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 SCHEMA = "negentropy"
+
+# 使用 alembic 自身的 runtime logger，确保审计输出与其它迁移日志同流。
+logger = logging.getLogger("alembic.runtime.migration")
 
 
 def upgrade() -> None:
@@ -82,7 +95,11 @@ def upgrade() -> None:
     #   - owner_id 等于 dev-admin 种子账户
     #   - name 以 'ai-agent-paper-hunter' 开头（覆盖原模板及自动加后缀的派生名）
     # 用 IS DISTINCT FROM TRUE 守卫保证幂等。
-    op.execute(
+    # 用 op.get_bind().execute(...) 而非 op.execute(...)，以便拿到 rowcount
+    # 输出审计日志 —— 跨环境时若发现非预期的命中行数（>3 或 在不该有此种子
+    # 的环境出现 >0），运维可立刻据此回滚或追查。
+    bind = op.get_bind()
+    skills_result = bind.execute(
         sa.text(
             f"UPDATE {SCHEMA}.skills "
             "SET is_system = TRUE "
@@ -90,6 +107,12 @@ def upgrade() -> None:
             "AND owner_id = 'google:dev-admin' "
             "AND name LIKE 'ai-agent-paper-hunter%'"
         )
+    )
+    affected = skills_result.rowcount if skills_result.rowcount is not None else 0
+    logger.info(
+        "0036.upgrade: paper-hunter skills backfill affected %d row(s) "
+        "(owner=google:dev-admin, name LIKE 'ai-agent-paper-hunter%%')",
+        affected,
     )
 
 
