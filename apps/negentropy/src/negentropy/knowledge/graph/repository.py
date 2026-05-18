@@ -2205,7 +2205,7 @@ class AgeGraphRepository(GraphRepository):
                     error_message = COALESCE(error_message, :stale_msg),
                     completed_at = NOW()
                 WHERE status = 'running'
-                  AND COALESCE(updated_at, created_at) < NOW() - (:running_threshold || ' minutes')::interval
+                  AND COALESCE(updated_at, created_at) < NOW() - make_interval(mins => :running_threshold)
                   {"AND app_name = :app_name" if app_name is not None else ""}
             """)
             cancelled_stmt = text(f"""
@@ -2213,7 +2213,7 @@ class AgeGraphRepository(GraphRepository):
                 SET status = 'cancelled',
                     completed_at = NOW()
                 WHERE status = 'cancelling'
-                  AND COALESCE(updated_at, created_at) < NOW() - (:cancelling_threshold || ' minutes')::interval
+                  AND COALESCE(updated_at, created_at) < NOW() - make_interval(mins => :cancelling_threshold)
                   {"AND app_name = :app_name" if app_name is not None else ""}
             """)
 
