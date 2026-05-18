@@ -31,7 +31,7 @@ export function AdminNav({
 
   return (
     <div className="border-b border-border bg-card px-6 py-1">
-      <div className="flex flex-wrap items-center justify-end gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-4">
         <nav className="flex flex-wrap items-center gap-1 bg-muted/50 p-1 rounded-full">
           {NAV_ITEMS.map((item) => (
             <Link

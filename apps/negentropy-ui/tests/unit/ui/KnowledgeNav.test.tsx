@@ -26,17 +26,18 @@ describe("KnowledgeNav", () => {
     expect(baseLink).toHaveAttribute("href", "/knowledge/base");
   });
 
-  // 视觉不变量：与 HomeNav/MemoryNav/InterfaceNav/AdminNav 保持二级导航靠右对齐
-  it("二级导航容器使用 justify-end，整体右对齐", () => {
+  // 视觉不变量：与 HomeNav/MemoryNav/InterfaceNav/AdminNav 保持二级导航水平居中
+  it("二级导航容器使用 justify-center，整体水平居中", () => {
     const { container } = render(<KnowledgeNav title="Pipelines" />);
     const nav = container.querySelector("nav") as HTMLElement;
     const flexRow = nav.parentElement as HTMLElement;
 
-    expect(flexRow.className).toContain("justify-end");
+    expect(flexRow.className).toContain("justify-center");
+    expect(flexRow.className).not.toContain("justify-end");
     expect(flexRow.className).not.toContain("justify-between");
   });
 
-  it("传入 modeToggle 时，渲染顺序为 modeToggle 在 nav 之前（确保 nav 始终贴最右边缘）", () => {
+  it("传入 modeToggle 时，渲染顺序为 modeToggle 在 nav 之前（确保 modeToggle 与 nav 顺序稳定）", () => {
     const { container } = render(
       <KnowledgeNav title="Wiki" modeToggle={<div data-testid="mt">toggle</div>} />,
     );
