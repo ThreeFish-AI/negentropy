@@ -1,0 +1,159 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  pr-review:
+    name: PR Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'pull_request'
+    env:
+      HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && 'true' || 'false' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip review when secret is unavailable
+        if: env.HAS_ANTHROPIC_API_KEY != 'true'
+        run: |
+          echo "## 跳过自动审查" >> "$GITHUB_STEP_SUMMARY"
+          echo "未配置 \`ANTHROPIC_API_KEY\`，本次 PR 自动审查未执行。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate Anthropic API key
+        id: anthropic-auth
+        if: env.HAS_ANTHROPIC_API_KEY == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          status="$(
+            curl -sS -o /tmp/anthropic-models.json -w "%{http_code}" \
+              -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+              -H "anthropic-version: 2023-06-01" \
+              https://api.anthropic.com/v1/models || true
+          )"
+          if [ "$status" = "200" ]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "## 跳过自动审查" >> "$GITHUB_STEP_SUMMARY"
+            echo "已配置 \`ANTHROPIC_API_KEY\`，但 Anthropic API 认证预检失败（HTTP $status）。" >> "$GITHUB_STEP_SUMMARY"
+            echo "请更新仓库 Secret 后重新运行 Code Review workflow。" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Prepare Claude trusted config restore
+        if: steps.anthropic-auth.outputs.valid == 'true'
+        run: |
+          # claude-code-action 会在 PR 场景把 CLAUDE.md 等启动配置从 base 分支恢复；
+          # 当前 base 中 CLAUDE.md 是 symlink，action 在快照 PR 侧 symlink 时会触发 ENOENT。
+          # 先移除 checkout 中的 symlink，让 action 跳过 PR 侧快照并自行恢复 base 侧可信版本。
+          if [ -L CLAUDE.md ]; then
+            rm CLAUDE.md
+          fi
+
+      - name: Run Claude PR review
+        id: claude-pr-review
+        if: steps.anthropic-auth.outputs.valid == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          track_progress: true
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            请使用中文审查这个 Pull Request，并严格遵循以下要求：
+            1. 只报告真实存在且需要处理的问题，不要描述正常实现。
+            2. 重点检查：逻辑错误、潜在 bug、安全问题、性能风险、可维护性回归、缺失测试。
+            3. 如果代码质量良好且没有需要改进的地方，请发布一条简短 PR 评论：`代码质量良好，没有发现需要改进的地方。`
+            4. 如果发现问题：
+               - 先用 `gh pr comment` 发布一条中文汇总评论；
+               - 再用 `mcp__github_inline_comment__create_inline_comment` 对具体代码位置给出精确评论，并设置 `confirmed: true`。
+            5. 只在 GitHub 上发布评论，不要把审查结果作为普通消息输出。
+
+            请特别关注：
+            - 是否引入新的行为回归
+            - 是否影响现有工作流、发布链路或文档一致性
+            - 是否存在与仓库规范冲突的实现
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+
+      - name: Report PR review failure without blocking
+        if: ${{ always() && steps.claude-pr-review.outcome == 'failure' }}
+        run: |
+          echo "## 自动审查告警" >> "$GITHUB_STEP_SUMMARY"
+          echo "Claude PR 自动审查执行失败，但根据仓库策略本次不阻塞工作流。" >> "$GITHUB_STEP_SUMMARY"
+          echo "请查看上方步骤日志排查模型超时、限流或第三方服务异常。" >> "$GITHUB_STEP_SUMMARY"
+
+  push-review:
+    name: Push Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    env:
+      HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && 'true' || 'false' }}
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Skip review when secret is unavailable
+        if: env.HAS_ANTHROPIC_API_KEY != 'true'
+        run: |
+          echo "## 跳过自动审查" >> "$GITHUB_STEP_SUMMARY"
+          echo "未配置 \`ANTHROPIC_API_KEY\`，本次主分支推送审查未执行。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run Claude push review
+        id: claude-push-review
+        if: env.HAS_ANTHROPIC_API_KEY == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            BEFORE SHA: ${{ github.event.before }}
+            CURRENT SHA: ${{ github.sha }}
+            BRANCH: ${{ github.ref_name }}
+
+            请使用中文审查本次主分支推送的 diff，并遵循以下规则：
+            1. 只报告真实存在且需要处理的问题，不要描述正常实现。
+            2. 重点关注逻辑错误、安全问题、性能回归、发布链路风险、文档与配置不一致。
+            3. 审查范围限定为 `BEFORE SHA` 到 `CURRENT SHA` 的提交差异。
+            4. 最终只发布一条 commit comment：
+               - 若没有发现问题，评论内容为：`代码质量良好，没有发现需要改进的地方。`
+               - 若发现问题，按“问题描述 / 修复建议 / 优先级”组织成中文 Markdown。
+            5. 不要创建 issue，不要修改代码，不要输出普通消息。
+
+            请先用 git 查看 diff，再通过 GitHub API 在当前 commit 上发布评论。
+          claude_args: |
+            --allowedTools "Bash(git diff:*),Bash(git rev-parse:*),Bash(gh api repos/*/commits/*/comments:*)"
+
+      - name: Report push review failure without blocking
+        if: ${{ always() && steps.claude-push-review.outcome == 'failure' }}
+        run: |
+          echo "## 自动审查告警" >> "$GITHUB_STEP_SUMMARY"
+          echo "Claude 主分支推送审查执行失败，但根据仓库策略本次不阻塞工作流。" >> "$GITHUB_STEP_SUMMARY"
+          echo "请查看上方步骤日志排查模型超时、限流或第三方服务异常。" >> "$GITHUB_STEP_SUMMARY"

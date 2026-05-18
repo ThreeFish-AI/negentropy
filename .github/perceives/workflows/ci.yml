@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, develop, "feature/**"]
+  pull_request:
+    branches: [master, main, develop, "feature/**"]
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          enable-cache: "true"
+
+      - name: Run tests
+        run: uv run pytest -v --tb=short -n auto --timeout=300 -m "not slow"
+        timeout-minutes: 20
+        env:
+          NEGENTROPY_PERCEIVES_ENABLE_JAVASCRIPT: "false"
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+
+      - name: Run ruff linting
+        run: uv run ruff check src/negentropy/perceives/
+
+      - name: Run ruff formatting check
+        run: uv run ruff format --check src/negentropy/perceives/
+
+      - name: Run mypy type checking
+        run: uv run mypy src/negentropy/perceives/
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+
+      - name: Run bandit security scan
+        run: |
+          uv run bandit -r src/negentropy/perceives/ -f json -o bandit-report.json || true
+          uv run bandit -r src/negentropy/perceives/
+
+      - name: Run pip-audit vulnerability scan
+        run: |
+          uv run pip-audit --format=json --output=audit-report.json || true
+          # 忽略已知漏洞（暂无修复版本或需依赖升级评估）
+          # CVE-2026-4539 (pygments)：暂无修复版本
+          # CVE-2025-64340 / CVE-2026-27124 (fastmcp 3.1.1)：修复版本 3.2.0，待升级评估
+          # CVE-2026-1839 (transformers 4.x)：修复版本 5.0.0rc3，major 版本跳升，需评估兼容性
+          # CVE-2026-35029 / CVE-2026-35030 / GHSA-69x8-hrgq-fjj8 (litellm 1.80.0)：修复版本 1.83.0
+          # CVE-2026-42271 (litellm 1.80.0)：修复版本 1.83.7
+          # litellm 升级受 pydantic==2.12.5 硬锁制约，待上游兼容性评估
+          uv run pip-audit \
+            --ignore-vuln CVE-2026-4539 \
+            --ignore-vuln CVE-2025-64340 \
+            --ignore-vuln CVE-2026-27124 \
+            --ignore-vuln CVE-2026-1839 \
+            --ignore-vuln CVE-2026-35029 \
+            --ignore-vuln CVE-2026-35030 \
+            --ignore-vuln GHSA-69x8-hrgq-fjj8 \
+            --ignore-vuln CVE-2026-42271
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            audit-report.json
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          install-dev: "false"
+
+      - name: Build package
+        run: uv build
+
+      - name: Test installation from wheel
+        run: |
+          uv pip install dist/*.whl
+          uv run python -c "import negentropy.perceives; print(f'Successfully imported negentropy.perceives v{negentropy.perceives.__version__}')" || uv run python -c "import negentropy.perceives; print('Successfully imported negentropy.perceives')"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-test
+          path: dist/
+          retention-days: 7
+
+  coverage:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=negentropy.perceives --cov-report=xml --cov-report=html --cov-report=term -n auto --timeout=300 -m "not slow"
+        timeout-minutes: 20
+        env:
+          NEGENTROPY_PERCEIVES_ENABLE_JAVASCRIPT: "false"
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false

@@ -1,0 +1,76 @@
+name: Update Dependencies
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+
+      - name: Update dependencies
+        run: |
+          uv lock --upgrade
+          if git diff --quiet uv.lock; then
+            echo "No dependency updates available"
+            echo "has_updates=false" >> $GITHUB_ENV
+          else
+            echo "Dependency updates found"
+            echo "has_updates=true" >> $GITHUB_ENV
+          fi
+
+      - name: Test with updated dependencies
+        if: env.has_updates == 'true'
+        run: uv run pytest -x --tb=short
+        env:
+          NEGENTROPY_PERCEIVES_ENABLE_JAVASCRIPT: "false"
+
+      - name: Create Pull Request
+        id: create_pr
+        if: env.has_updates == 'true'
+        continue-on-error: true
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(deps): 更新依赖锁文件"
+          title: "chore(deps): 更新依赖锁文件"
+          body: |
+            ## 背景
+
+            本次自动化任务已将项目依赖升级到当前可解析的最新兼容版本。
+
+            ## 本次改动
+
+            - 更新 `uv.lock`
+            - 使用升级后的依赖执行基础测试
+
+            ## 验证
+
+            - `uv run pytest -x --tb=short`
+
+            该 PR 由 GitHub Actions 自动生成。
+          branch: update-dependencies
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
+
+      - name: Report PR creation failure
+        if: always() && steps.create_pr.outcome == 'failure'
+        run: |
+          echo "## 依赖更新 PR 创建失败" >> $GITHUB_STEP_SUMMARY
+          echo "依赖升级与测试已完成，但自动创建 PR 失败。" >> $GITHUB_STEP_SUMMARY
+          echo "请检查仓库 Actions 权限配置，必要时改用 PAT。" >> $GITHUB_STEP_SUMMARY
