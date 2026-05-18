@@ -78,7 +78,7 @@ class SkillInvoker:
         """Delegate to zh_translator module."""
         from .zh_translator import handle_zh_translator
 
-        return await handle_zh_translator(params)
+        return await handle_zh_translator(params, client=self.anthropic_client)
 
     async def _handle_doc_translator(self, params: dict[str, Any]) -> dict[str, Any]:
         """Delegate to doc_translator module."""
@@ -96,7 +96,7 @@ class SkillInvoker:
         """Delegate to heartfelt module."""
         from .heartfelt import handle_heartfelt
 
-        return await handle_heartfelt(params)
+        return await handle_heartfelt(params, client=self.anthropic_client)
 
     async def _handle_batch_processor(self, params: dict[str, Any]) -> dict[str, Any]:
         """Delegate to batch_processor module."""

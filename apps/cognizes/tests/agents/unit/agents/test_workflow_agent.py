@@ -36,9 +36,8 @@ class TestWorkflowAgent:
         # Mock save methods
         agent._save_workflow_results = AsyncMock()
         agent._save_extract_result = AsyncMock()
-        agent._save_translate_result = AsyncMock()
         agent._save_heartfelt_result = AsyncMock()
-        # Note: Don't mock _async_heartfelt_analysis as we need to test the real method
+        # Note: Don't mock _run_heartfelt_analysis as we need to test the real method
 
         return agent
 
@@ -176,7 +175,6 @@ class TestWorkflowAgent:
             # Verify both agents were called
             workflow_agent.pdf_agent.extract_content.assert_called_once()
             workflow_agent.translation_agent.translate.assert_called_once()
-            workflow_agent._save_translate_result.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_heartfelt_workflow_success(self, workflow_agent, test_paper_path):
@@ -344,7 +342,7 @@ class TestWorkflowAgent:
             assert "options" in call_args
 
     @pytest.mark.asyncio
-    async def test_async_heartfelt_analysis_task_creation(self, workflow_agent, temp_dir):
+    async def test_run_heartfelt_analysis_task_creation(self, workflow_agent, temp_dir):
         """Test async heartfelt analysis task creation."""
         source_path = "/test/paper.pdf"
         extract_data = {"content": "Content..."}
@@ -363,7 +361,7 @@ class TestWorkflowAgent:
         workflow_agent._save_heartfelt_result = AsyncMock()
 
         # Call the method directly
-        await workflow_agent._async_heartfelt_analysis(source_path, extract_data, translate_data, paper_id)
+        await workflow_agent._run_heartfelt_analysis(source_path, extract_data, translate_data, paper_id)
 
         # Verify the analysis was called
         workflow_agent.heartfelt_agent.analyze.assert_called_once_with(
@@ -462,10 +460,10 @@ class TestWorkflowAgent:
             assert status["current_stage"] == "translation"
 
     @pytest.mark.asyncio
-    async def test_async_heartfelt_analysis(self, workflow_agent, temp_dir):
-        """Test the _async_heartfelt_analysis method."""
-        if not hasattr(workflow_agent, "_async_heartfelt_analysis"):
-            pytest.skip("_async_heartfelt_analysis method not implemented")
+    async def test_run_heartfelt_analysis(self, workflow_agent, temp_dir):
+        """Test the _run_heartfelt_analysis method."""
+        if not hasattr(workflow_agent, "_run_heartfelt_analysis"):
+            pytest.skip("_run_heartfelt_analysis method not implemented")
 
         paper_id = "test_paper_123"
         source_path = temp_dir / "test_paper.pdf"
@@ -492,19 +490,23 @@ class TestWorkflowAgent:
             translate_data = {"content": "Translated content"}
 
             # The method returns None, so we check if it was called
-            await workflow_agent._async_heartfelt_analysis(str(source_path), extract_data, translate_data, paper_id)
+            await workflow_agent._run_heartfelt_analysis(str(source_path), extract_data, translate_data, paper_id)
 
             # Verify the heartfelt agent was called
             workflow_agent.heartfelt_agent.analyze.assert_called_once()
             workflow_agent.heartfelt_agent.analyze.assert_called_once_with(
-                {"paper_id": paper_id, "source_path": str(source_path)}
+                {
+                    "content": "PDF content for analysis",
+                    "translation": "Translated content",
+                    "paper_id": paper_id,
+                }
             )
 
     @pytest.mark.asyncio
-    async def test_async_heartfelt_analysis_failure(self, workflow_agent, temp_dir):
-        """Test _async_heartfelt_analysis method with failure."""
-        if not hasattr(workflow_agent, "_async_heartfelt_analysis"):
-            pytest.skip("_async_heartfelt_analysis method not implemented")
+    async def test_run_heartfelt_analysis_failure(self, workflow_agent, temp_dir):
+        """Test _run_heartfelt_analysis method with failure."""
+        if not hasattr(workflow_agent, "_run_heartfelt_analysis"):
+            pytest.skip("_run_heartfelt_analysis method not implemented")
 
         paper_id = "test_paper_123"
         source_path = temp_dir / "test_paper.pdf"
@@ -524,7 +526,7 @@ class TestWorkflowAgent:
             translate_data = {"content": "Translated content"}
 
             # The method returns None, so we just verify it doesn't raise an exception
-            await workflow_agent._async_heartfelt_analysis(str(source_path), extract_data, translate_data, paper_id)
+            await workflow_agent._run_heartfelt_analysis(str(source_path), extract_data, translate_data, paper_id)
 
     @pytest.mark.asyncio
     async def test_load_metadata(self, workflow_agent, temp_dir):
@@ -579,12 +581,13 @@ class TestWorkflowAgent:
         documents = ["/test/doc1.pdf", "/test/doc2.pdf", "/test/doc3.pdf"]
 
         # Mock process method for each document
-        async def mock_process(doc_path, workflow, options=None):
+        async def mock_process(input_data):
+            doc_path = input_data.get("source_path", "")
             doc_name = Path(doc_path).stem
             return {
                 "success": True,
                 "document_id": doc_name,
-                "workflow": workflow,
+                "workflow": input_data.get("workflow", "full"),
                 "results": {"extracted": f"Content from {doc_name}"},
             }
 
@@ -614,9 +617,10 @@ class TestWorkflowAgent:
         # Mock process method with mixed success/failure
         call_count = 0
 
-        async def mock_process(doc_path, workflow, options=None):
+        async def mock_process(input_data):
             nonlocal call_count
             call_count += 1
+            doc_path = input_data.get("source_path", "")
             if call_count == 2:  # Second document fails
                 return {
                     "success": False,
@@ -626,7 +630,7 @@ class TestWorkflowAgent:
             return {
                 "success": True,
                 "document_id": Path(doc_path).stem,
-                "workflow": workflow,
+                "workflow": input_data.get("workflow", "full"),
             }
 
         with patch.object(workflow_agent, "process", side_effect=mock_process):
@@ -664,7 +668,8 @@ class TestWorkflowAgent:
         # Track execution order
         execution_order = []
 
-        async def mock_process(doc_path, workflow, options=None):
+        async def mock_process(input_data):
+            doc_path = input_data.get("source_path", "")
             execution_order.append(doc_path)
             # Add small delay to test concurrency
             await asyncio.sleep(0.01)
@@ -705,9 +710,9 @@ class TestWorkflowAgent:
                 assert mock_process.call_count == 2
                 for call in mock_process.call_args_list:
                     args, kwargs = call
-                    assert len(args) >= 2
-                    if len(args) > 2:
-                        assert args[2] == options
+                    assert len(args) >= 1
+                    assert "source_path" in args[0]
+                    assert "workflow" in args[0]
 
     @pytest.mark.asyncio
     async def test_get_workflow_status_not_found(self, workflow_agent):

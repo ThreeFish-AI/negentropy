@@ -75,8 +75,8 @@ class TestPaperService:
         with patch.object(paper_service, "_save_metadata", new_callable=AsyncMock):
             result = await paper_service.upload_paper(mock_file, "test")
 
-            # Should sanitize filename
-            assert "etc_passwd" in result["paper_id"]
+            # Should sanitize filename - path traversal is stripped
+            assert "passwd" in result["paper_id"]
             assert result["category"] == "test"
 
     @pytest.mark.asyncio
@@ -451,18 +451,14 @@ class TestPaperService:
                 )
 
     def test_sanitize_filename(self, paper_service):
-        """Test filename sanitization."""
-        # Test normal filename
-        assert paper_service._sanitize_filename("normal.pdf") == "normal.pdf"
+        """Test filename sanitization via shared utility."""
+        from cognizes.agents.utils import sanitize_filename
 
-        # Test filename with path
-        assert paper_service._sanitize_filename("path/to/file.pdf") == "path_to_file.pdf"
-
-        # Test filename with special characters
-        assert paper_service._sanitize_filename("file@#$%.pdf") == "file____.pdf"
-
-        # Test empty filename
-        assert paper_service._sanitize_filename("") == "unnamed"
+        assert sanitize_filename("normal.pdf") == "normal.pdf"
+        # os.path.basename strips directory components
+        assert sanitize_filename("path/to/file.pdf") == "file.pdf"
+        # Only unsafe filesystem chars are replaced
+        assert sanitize_filename('file<>:".pdf') == "file____.pdf"
 
     @pytest.mark.asyncio
     @patch("cognizes.api.services.paper_service.datetime")

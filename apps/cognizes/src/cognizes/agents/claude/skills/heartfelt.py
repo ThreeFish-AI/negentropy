@@ -1,32 +1,21 @@
 """Deep heartfelt analysis skill powered by the Anthropic Claude API."""
 
-import logging
-import os
-from typing import Any
+from __future__ import annotations
 
-import anthropic
+import logging
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import anthropic
 
 logger = logging.getLogger(__name__)
 
 
-def _get_anthropic_client() -> anthropic.Anthropic | None:
-    """Create an Anthropic client from environment variables.
-
-    Returns:
-        An ``Anthropic`` instance when ``ANTHROPIC_API_KEY`` is set, otherwise
-        ``None``.
-    """
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        return None
-
-    base_url = os.getenv("ANTHROPIC_BASE_URL")
-    if base_url:
-        return anthropic.Anthropic(api_key=api_key, base_url=base_url)
-    return anthropic.Anthropic(api_key=api_key)
-
-
-async def handle_heartfelt(params: dict[str, Any]) -> dict[str, Any]:
+async def handle_heartfelt(
+    params: dict[str, Any],
+    *,
+    client: anthropic.Anthropic | None = None,
+) -> dict[str, Any]:
     """Perform a deep, heartfelt analysis of document content.
 
     When the Anthropic API is not configured the function falls back to a
@@ -36,6 +25,7 @@ async def handle_heartfelt(params: dict[str, Any]) -> dict[str, Any]:
         params: Dictionary containing:
             - content: The document text to analyse.
             - analysis_type: Type of analysis (default ``"comprehensive"``).
+        client: Optional pre-configured Anthropic client.
 
     Returns:
         A result dictionary with ``success``, ``analysis``, ``insights``,
@@ -44,8 +34,6 @@ async def handle_heartfelt(params: dict[str, Any]) -> dict[str, Any]:
     """
     content = params.get("content", "")
     analysis_type = params.get("analysis_type", "comprehensive")
-
-    client = _get_anthropic_client()
 
     # Fallback: simple text analysis when no API key is available
     if client is None:

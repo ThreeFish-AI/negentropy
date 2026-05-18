@@ -49,16 +49,10 @@ def _convert_table_to_markdown(table: list[list[str]]) -> str:
             row.append("")
 
     # Compute per-column widths
-    col_widths = [
-        max(len(row[col]) for row in cleaned)
-        for col in range(max_cols)
-    ]
+    col_widths = [max(len(row[col]) for row in cleaned) for col in range(max_cols)]
 
     # Header row
-    header_cells = [
-        cleaned[0][col].ljust(col_widths[col])
-        for col in range(max_cols)
-    ]
+    header_cells = [cleaned[0][col].ljust(col_widths[col]) for col in range(max_cols)]
     lines: list[str] = [f"| {' | '.join(header_cells)} |"]
 
     # Separator row
@@ -67,10 +61,7 @@ def _convert_table_to_markdown(table: list[list[str]]) -> str:
 
     # Data rows
     for row in cleaned[1:]:
-        data_cells = [
-            row[col].ljust(col_widths[col])
-            for col in range(max_cols)
-        ]
+        data_cells = [row[col].ljust(col_widths[col]) for col in range(max_cols)]
         lines.append(f"| {' | '.join(data_cells)} |")
 
     return "\n".join(lines)
@@ -97,12 +88,7 @@ async def handle_pdf_reader(params: dict[str, Any]) -> dict[str, Any]:
         ``assets``, and ``statistics`` keys on success, or ``success``,
         ``error``, and ``error_type`` on failure.
     """
-    file_path = (
-        params.get("file_path")
-        or params.get("url")
-        or params.get("pdf_path")
-        or params.get("pdf_source")
-    )
+    file_path = params.get("file_path") or params.get("url") or params.get("pdf_path") or params.get("pdf_source")
     if not file_path:
         return {
             "success": False,
@@ -169,10 +155,7 @@ async def handle_pdf_reader(params: dict[str, Any]) -> dict[str, Any]:
                     for table in tables:
                         if table:
                             assets["tables"] += 1
-                            clean_table = [
-                                [str(cell) if cell is not None else "" for cell in row]
-                                for row in table
-                            ]
+                            clean_table = [[str(cell) if cell is not None else "" for cell in row] for row in table]
                             content_parts.append(f"\n\n{_convert_table_to_markdown(clean_table)}\n")
 
         # Assemble final Markdown

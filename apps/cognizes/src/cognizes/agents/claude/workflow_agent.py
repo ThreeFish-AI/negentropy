@@ -16,6 +16,24 @@ from .translation_agent import TranslationAgent
 
 logger = logging.getLogger(__name__)
 
+_FULL_EXTRACT_OPTIONS = {
+    "extract_images": True,
+    "extract_tables": True,
+    "extract_formulas": True,
+}
+_MINIMAL_EXTRACT_OPTIONS = {"extract_images": False}
+
+
+def _wrap_result(workflow: str, result: dict[str, Any]) -> dict[str, Any]:
+    success = result["success"]
+    return {
+        "success": success,
+        "data": result.get("data"),
+        "error": result.get("error") if not success else None,
+        "status": "completed" if success else "failed",
+        "workflow": workflow,
+    }
+
 
 class WorkflowAgent(BaseAgent):
     """工作流协调 Agent - 负责任务分解和流程编排."""
@@ -101,14 +119,7 @@ class WorkflowAgent(BaseAgent):
 
         # 1. 内容提取
         extract_result = await self.pdf_agent.extract_content(
-            {
-                "file_path": source_path,
-                "options": {
-                    "extract_images": True,
-                    "extract_tables": True,
-                    "extract_formulas": True,
-                },
-            }
+            {"file_path": source_path, "options": _FULL_EXTRACT_OPTIONS}
         )
 
         if not extract_result["success"]:
@@ -157,27 +168,12 @@ class WorkflowAgent(BaseAgent):
         """
         logger.info(f"Starting extract workflow for {source_path}")
 
-        result = await self.pdf_agent.extract_content(
-            {
-                "file_path": source_path,
-                "options": {
-                    "extract_images": True,
-                    "extract_tables": True,
-                    "extract_formulas": True,
-                },
-            }
-        )
+        result = await self.pdf_agent.extract_content({"file_path": source_path, "options": _FULL_EXTRACT_OPTIONS})
 
         if result["success"] and paper_id:
             await self._save_extract_result(paper_id, result["data"])
 
-        return {
-            "success": result["success"],
-            "data": result.get("data"),
-            "error": result.get("error") if not result["success"] else None,
-            "status": "completed" if result["success"] else "failed",
-            "workflow": "extract_only",
-        }
+        return _wrap_result("extract_only", result)
 
     async def _translate_workflow(self, source_path: str, paper_id: str | None = None) -> dict[str, Any]:
         """仅翻译流程.
@@ -193,7 +189,7 @@ class WorkflowAgent(BaseAgent):
 
         # 首先提取内容
         extract_result = await self.pdf_agent.extract_content(
-            {"file_path": source_path, "options": {"extract_images": False}}
+            {"file_path": source_path, "options": _MINIMAL_EXTRACT_OPTIONS}
         )
 
         if not extract_result["success"]:
@@ -208,13 +204,7 @@ class WorkflowAgent(BaseAgent):
             }
         )
 
-        return {
-            "success": translate_result["success"],
-            "data": translate_result.get("data"),
-            "error": translate_result.get("error") if not translate_result["success"] else None,
-            "status": "completed" if translate_result["success"] else "failed",
-            "workflow": "translate_only",
-        }
+        return _wrap_result("translate_only", translate_result)
 
     async def _heartfelt_workflow(self, source_path: str, paper_id: str | None = None) -> dict[str, Any]:
         """仅深度分析流程.
@@ -230,7 +220,7 @@ class WorkflowAgent(BaseAgent):
 
         # 首先提取内容
         extract_result = await self.pdf_agent.extract_content(
-            {"file_path": source_path, "options": {"extract_images": False}}
+            {"file_path": source_path, "options": _MINIMAL_EXTRACT_OPTIONS}
         )
 
         if not extract_result["success"]:
@@ -244,13 +234,7 @@ class WorkflowAgent(BaseAgent):
         if heartfelt_result["success"] and paper_id:
             await self._save_heartfelt_result(paper_id, heartfelt_result["data"])
 
-        return {
-            "success": heartfelt_result["success"],
-            "data": heartfelt_result.get("data"),
-            "error": heartfelt_result.get("error") if not heartfelt_result["success"] else None,
-            "status": "completed" if heartfelt_result["success"] else "failed",
-            "workflow": "heartfelt_only",
-        }
+        return _wrap_result("heartfelt_only", heartfelt_result)
 
     async def _run_heartfelt_analysis(
         self,
@@ -274,7 +258,9 @@ class WorkflowAgent(BaseAgent):
 
             analysis_request = {
                 "content": extract_data["content"],
-                "translation": translate_data.get("content") if translate_data and isinstance(translate_data, dict) else None,
+                "translation": translate_data.get("content")
+                if translate_data and isinstance(translate_data, dict)
+                else None,
                 "paper_id": paper_id,
             }
 
@@ -386,9 +372,7 @@ class WorkflowAgent(BaseAgent):
 
         async def _process_one(doc_path: str) -> dict[str, Any]:
             paper_id = os.path.splitext(os.path.basename(doc_path))[0]
-            return await self.process(
-                {"source_path": doc_path, "workflow": workflow_type, "paper_id": paper_id}
-            )
+            return await self.process({"source_path": doc_path, "workflow": workflow_type, "paper_id": paper_id})
 
         if concurrent:
             raw_results = await asyncio.gather(

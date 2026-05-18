@@ -1,32 +1,21 @@
 """Chinese translation skill using the Anthropic Claude API."""
 
-import logging
-import os
-from typing import Any
+from __future__ import annotations
 
-import anthropic
+import logging
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import anthropic
 
 logger = logging.getLogger(__name__)
 
 
-def _get_anthropic_client() -> anthropic.Anthropic | None:
-    """Create an Anthropic client from environment variables.
-
-    Returns:
-        An ``Anthropic`` instance when ``ANTHROPIC_API_KEY`` is set, otherwise
-        ``None``.
-    """
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        return None
-
-    base_url = os.getenv("ANTHROPIC_BASE_URL")
-    if base_url:
-        return anthropic.Anthropic(api_key=api_key, base_url=base_url)
-    return anthropic.Anthropic(api_key=api_key)
-
-
-async def handle_zh_translator(params: dict[str, Any]) -> dict[str, Any]:
+async def handle_zh_translator(
+    params: dict[str, Any],
+    *,
+    client: anthropic.Anthropic | None = None,
+) -> dict[str, Any]:
     """Translate Markdown content to Chinese using the Claude API.
 
     Args:
@@ -35,6 +24,7 @@ async def handle_zh_translator(params: dict[str, Any]) -> dict[str, Any]:
             - preserve_formatting: Whether to preserve Markdown formatting
               (default ``True``).
             - target_language: Target language code (default ``zh``).
+        client: Optional pre-configured Anthropic client.
 
     Returns:
         A result dictionary with ``success``, ``translated_text``, ``data``,
@@ -49,7 +39,6 @@ async def handle_zh_translator(params: dict[str, Any]) -> dict[str, Any]:
             "error_type": "ValueError",
         }
 
-    client = _get_anthropic_client()
     if client is None:
         return {
             "success": False,

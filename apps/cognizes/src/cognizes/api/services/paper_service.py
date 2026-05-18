@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import shutil
 from datetime import datetime
 from pathlib import Path
