@@ -15,6 +15,7 @@ packages:
 # 允许执行原生构建脚本（继承自 ui / wiki 旧 workspace 配置）
 allowBuilds:
   esbuild: true
+  msw: set this to true or false
   sharp: true
   unrs-resolver: true
 
