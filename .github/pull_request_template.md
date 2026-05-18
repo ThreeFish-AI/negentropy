@@ -3,7 +3,7 @@
 - 关联上下文/Issue/文档：
 
 # 核心变更
-- 
+-
 
 # 风险与回滚
 - 主要风险：
@@ -21,4 +21,4 @@
 - GitHub Actions / 文档：
 
 # Next Best Action
-- 
+-

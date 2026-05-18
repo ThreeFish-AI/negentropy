@@ -36,13 +36,13 @@ CREATE TABLE IF NOT EXISTS tool_executions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tool_id         UUID REFERENCES tools(id),
     run_id          UUID, -- REFERENCES runs(id) ON DELETE CASCADE, -- 可选关联，取决于 runs 表是否存在
-    
+
     input_params    JSONB,
     output_result   JSONB,
     status          VARCHAR(50), -- 'pending', 'success', 'failed'
     latency_ms      FLOAT,
     error           TEXT,
-    
+
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

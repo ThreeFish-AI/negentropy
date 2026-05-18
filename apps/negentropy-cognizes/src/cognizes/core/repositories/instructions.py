@@ -32,8 +32,8 @@ class InstructionsRepository(BaseRepository):
             VALUES (
                 $1, $2, $3,
                 COALESCE(
-                    (SELECT MAX(version) FROM instructions 
-                     WHERE app_name = $1 AND instruction_key = $2), 
+                    (SELECT MAX(version) FROM instructions
+                     WHERE app_name = $1 AND instruction_key = $2),
                     0
                 ) + 1,
                 $4

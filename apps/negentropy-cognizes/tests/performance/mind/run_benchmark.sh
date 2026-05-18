@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Mind 模块性能压测执行脚本
-# 
+#
 # 使用方式:
 #   ./run_benchmark.sh              # 交互式 (启动 Web UI)
 #   ./run_benchmark.sh --headless   # 无头模式 (自动运行并输出报告)
@@ -134,7 +134,7 @@ if [[ "${MODE}" == "headless" ]]; then
     # 无头模式
     REPORT_HTML="${REPORT_DIR}/report_${TIMESTAMP}.html"
     REPORT_CSV="${REPORT_DIR}/results_${TIMESTAMP}"
-    
+
     echo -e "${GREEN}运行无头模式压测...${NC}"
     locust -f "${LOCUSTFILE}" \
         --users "${USERS}" \
@@ -144,7 +144,7 @@ if [[ "${MODE}" == "headless" ]]; then
         --headless \
         --html "${REPORT_HTML}" \
         --csv "${REPORT_CSV}"
-    
+
     echo ""
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}压测完成!${NC}"
@@ -154,7 +154,7 @@ if [[ "${MODE}" == "headless" ]]; then
     echo "  - HTML: ${REPORT_HTML}"
     echo "  - CSV:  ${REPORT_CSV}_stats.csv"
     echo ""
-    
+
     # 分析结果 (简单检查 P99)
     if [[ -f "${REPORT_CSV}_stats.csv" ]]; then
         echo -e "${YELLOW}性能摘要:${NC}"
@@ -176,7 +176,7 @@ else
     echo "访问: http://localhost:8089"
     echo "按 Ctrl+C 停止"
     echo ""
-    
+
     locust -f "${LOCUSTFILE}" \
         --host "${DATABASE_URL}" \
         --web-host 127.0.0.1 \

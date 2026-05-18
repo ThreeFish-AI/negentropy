@@ -13,7 +13,7 @@ Mind 模块性能压测脚本 (Locust)
         --users 100 --spawn-rate 10 --run-time 60s \
         --host $DATABASE_URL \
         --html report_session.html
-    
+
     # 无头模式运行
     locust -f tests/performance/mind/locustfile.py \
         --users 100 --spawn-rate 10 --run-time 60s \
