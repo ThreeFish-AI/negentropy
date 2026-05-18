@@ -9,7 +9,7 @@
    JWT 旧 roles 误判为 user。
 3. ``StatsResponse`` schema 与 ``_safe_plugin_stats`` 返回值兼容 ——
    ``dict[str, int]`` 字段不会被破坏。
-4. Migration 0036 文件包含关键 UPDATE / ALTER 语句（语法 + 幂等守卫）。
+4. Migration 0037 文件包含 paper-hunter skills is_system 回填与幂等守卫。
 
 使用 unittest.mock 绕过 DB 层，验证路由层与 helper 的纯逻辑。
 """
@@ -211,39 +211,35 @@ class TestStatsResponseShape:
 
 
 # ---------------------------------------------------------------------------
-# 4) Migration 0036 关键语句校验（静态文本断言，避免起 DB 依赖）
+# 4) Migration 0037 关键语句校验（静态文本断言，避免起 DB 依赖）
 # ---------------------------------------------------------------------------
 
 
-class TestMigration0036:
-    """Migration 0036 必须包含两段修复的关键语义，且具备幂等守卫。"""
+class TestMigration0037:
+    """Migration 0037 必须包含 paper-hunter skills is_system 回填且具备幂等守卫。
+
+    注：原工作分支曾在单条 0036 中同时承担 ``builtin_tools.visibility`` ENUM
+    化与 paper-hunter 可见性扩散。前者已在 ``feature/1.x.x`` 上由独立迁移
+    ``0036_builtin_tools_visibility_enum`` 完成（其测试覆盖归属该迁移），
+    本测试只覆盖 0037 自身的增量职责。
+    """
 
     @pytest.fixture
     def migration_module(self):
         """Migration 文件名以数字开头，无法直接 ``import``，用 importlib.util 加载。"""
         root = Path(__file__).resolve().parents[3]
-        path = root / "src/negentropy/db/migrations/versions/0036_dashboard_module_counts_fix.py"
+        path = root / "src/negentropy/db/migrations/versions/0037_skills_paper_hunter_system.py"
         assert path.exists(), f"missing migration: {path}"
-        spec = importlib.util.spec_from_file_location("migration_0036", path)
+        spec = importlib.util.spec_from_file_location("migration_0037", path)
         mod = importlib.util.module_from_spec(spec)
         return mod, path
 
     def test_revision_metadata(self, migration_module) -> None:
-        """down_revision=0035 链上当前 head；revision=0036。"""
+        """down_revision=0036 链上当前 head；revision=0037。"""
         _, path = migration_module
         source = path.read_text()
-        assert 'revision: str = "0036"' in source
-        assert 'down_revision: str | None = "0035"' in source
-
-    def test_upgrade_alters_visibility_to_enum(self, migration_module) -> None:
-        """builtin_tools.visibility VARCHAR → pluginvisibility ENUM。"""
-        _, path = migration_module
-        source = path.read_text()
-        # migration 用 f-string + SCHEMA 变量拼接，断言用包含 {SCHEMA} 占位的形式
-        assert "ALTER COLUMN visibility TYPE {SCHEMA}.pluginvisibility" in source
-        # 大写回填：避免 ENUM 转换前小写值不可被 cast
-        assert "SET visibility = upper(visibility)" in source
-        assert "WHERE visibility IN ('private', 'shared', 'public')" in source
+        assert 'revision: str = "0037"' in source
+        assert 'down_revision: str | None = "0036"' in source
 
     def test_upgrade_backfills_paper_hunter_skills(self, migration_module) -> None:
         """paper-hunter 系列 skills 标记为 is_system=TRUE，识别条件保守。"""
