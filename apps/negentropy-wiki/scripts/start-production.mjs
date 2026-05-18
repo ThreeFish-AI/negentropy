@@ -26,14 +26,39 @@ function prepareStandaloneRuntime(projectRoot) {
     };
   }
 
+  // Next.js standalone 输出根的两种形态：
+  // (a) 单一 workspace：`.next/standalone/server.js`
+  // (b) monorepo 下（PR #557 之后）：`.next/standalone/apps/negentropy-wiki/server.js`，
+  //     共享 node_modules 放在 `.next/standalone/node_modules/`
+  //
+  // (b) 的情况下 Next 已经把目录组织完整（含 .next/static 软链与 node_modules），
+  // 直接原位启动即可，跳过下方 .temp 复制逻辑。
   const standaloneRoot = path.join(projectRoot, ".next", "standalone");
-  const standaloneServerEntry = path.join(standaloneRoot, "server.js");
-  if (!existsSync(standaloneServerEntry)) {
+  const directEntry = path.join(standaloneRoot, "server.js");
+  if (!existsSync(directEntry)) {
+    const monorepoEntry = path.join(standaloneRoot, "apps", "negentropy-wiki", "server.js");
+    if (existsSync(monorepoEntry)) {
+      // 把 .next/static 与 public 同步到 standalone 目录内（Next standalone 不会自动复制）
+      const monorepoNextDir = path.join(standaloneRoot, "apps", "negentropy-wiki", ".next");
+      linkRuntimeAsset(
+        path.join(projectRoot, ".next", "static"),
+        path.join(monorepoNextDir, "static"),
+      );
+      linkRuntimeAsset(
+        path.join(projectRoot, "public"),
+        path.join(standaloneRoot, "apps", "negentropy-wiki", "public"),
+      );
+      return {
+        cleanup: () => {},
+        serverEntry: monorepoEntry,
+      };
+    }
     return {
       cleanup: () => {},
       serverEntry: null,
     };
   }
+  const standaloneServerEntry = directEntry;
 
   const tempRoot = path.join(projectRoot, ".temp");
   mkdirSync(tempRoot, { recursive: true });
