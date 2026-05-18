@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 logger = logging.getLogger(__name__)
 
 
-async def try_pipeline(
+async def attempt_pipeline(
     pipeline_fn: Callable[..., Any],
     *,
     success_check: Callable[[Any], bool],

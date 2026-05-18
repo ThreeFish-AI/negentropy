@@ -18,7 +18,7 @@ from .services import (  # noqa: F401
     markdown_converter,
     web_scraper,
 )
-from .pipeline_support import try_pipeline  # noqa: F401
+from .pipeline_support import attempt_pipeline  # noqa: F401
 
 # pipeline_config 和 logging 不在此处重导出，
 # 以避免 config → core.pipeline_config → core.services → config 的循环引用。
@@ -40,5 +40,5 @@ __all__ = [
     "normalize_extract_config",
     "elapsed_ms",
     # Pipeline 工具
-    "try_pipeline",
+    "attempt_pipeline",
 ]
