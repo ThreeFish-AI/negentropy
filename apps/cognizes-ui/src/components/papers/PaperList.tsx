@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import PaperCard from "./PaperCard";
 
 interface PaperListProps {
-  papers?: any[];
+  papers?: Paper[];
   onPaperSelect?: (id: string) => void;
   onPaperProcess?: (id: string, workflow: string) => void;
   onPaperDelete?: (id: string) => void;
@@ -119,8 +119,8 @@ export function PaperList({
 
     // Sort papers
     filtered.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof Paper];
-      let bValue: any = b[sortBy as keyof Paper];
+      let aValue: string | number = a[sortBy as keyof Paper] as string | number;
+      let bValue: string | number = b[sortBy as keyof Paper] as string | number;
 
       // For translated title sort, use translated title if available
       if (sortBy === "title" && a.translation?.title) {
@@ -137,7 +137,7 @@ export function PaperList({
       }
 
       // Handle date comparison
-      if (aValue instanceof Date || bValue instanceof Date) {
+      if (typeof aValue === "string" && typeof bValue === "string" && (sortBy === "uploadedAt" || sortBy === "updatedAt")) {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
       }
@@ -331,7 +331,7 @@ export function PaperList({
           {/* Category Filter */}
           <select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as any)}
+            onChange={(e) => setCategoryFilter(e.target.value as PaperCategory | "all")}
             className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             {categories.map((cat) => (
@@ -345,7 +345,7 @@ export function PaperList({
           <select
             value={statusFilter}
             data-testid="status-filter"
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as PaperStatus | "all")}
             className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             {statuses.map((status) => (
@@ -358,7 +358,7 @@ export function PaperList({
           {/* Sort Controls */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as "uploadedAt" | "updatedAt" | "title")}
             className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             {sortOptions.map((option) => (

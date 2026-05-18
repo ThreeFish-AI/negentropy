@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useTaskStore, useUIStore } from "@/store";
 import TaskCard from "./TaskCard";
-import type { TaskStatus, TaskType } from "@/types";
+import type { Task, TaskStatus, TaskType } from "@/types";
 
 interface TaskListProps {
-  tasks?: any[];
+  tasks?: Task[];
   onTaskCancel?: (id: string) => void;
   onTaskRetry?: (id: string) => void;
   onTaskView?: (id: string) => void;
@@ -148,7 +148,7 @@ export function TaskList({
   };
 
   // Render task group
-  const renderTaskGroup = (title: string, taskList: any[], color: string) => {
+  const renderTaskGroup = (title: string, taskList: Task[], color: string) => {
     if (taskList.length === 0) return null;
 
     return (

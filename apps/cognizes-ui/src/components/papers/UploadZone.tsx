@@ -1,7 +1,7 @@
 import { usePaperStore, useUIStore } from "@/store";
 import type { PaperCategory } from "@/types";
 import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, FileRejection } from "react-dropzone";
 
 interface UploadZoneProps {
   onUploadComplete?: (taskIds: string[]) => void;
@@ -38,7 +38,7 @@ export function UploadZone({
   const { uploadPaper } = usePaperStore();
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], rejectedFiles: any[]) => {
+    (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
       // 检查文件大小
       const oversizedFiles = acceptedFiles.filter(
         (file) => file.size > MAX_FILE_SIZE,
@@ -55,7 +55,7 @@ export function UploadZone({
 
       // 检查文件格式
       const invalidFiles = rejectedFiles.filter((file) =>
-        file.errors.some((e: any) => e.code === "file-invalid-type"),
+        file.errors.some((e) => e.code === "file-invalid-type"),
       );
       if (invalidFiles.length > 0) {
         addNotification({

@@ -88,9 +88,11 @@ export function PaperViewer({ paper, className = "" }: PaperViewerProps) {
   const zoomIn = () => setScale((prev) => Math.min(prev + 0.2, 3.0));
   const zoomOut = () => setScale((prev) => Math.max(prev - 0.2, 0.5));
 
-  // Markdown components
-  const markdownComponents = {
-    code({ node, inline, className, children, ...props }: any) {
+  // Markdown components - using react-markdown's Component types via type assertion
+  // to avoid complex type compatibility issues with the library's Components type
+  const markdownComponents: Record<string, React.ComponentType<Record<string, unknown>>> = {
+    code(props: Record<string, unknown>) {
+      const { inline, className, children, ...rest } = props as { inline?: boolean; className?: string; children?: React.ReactNode; [key: string]: unknown };
       const match = /language-(\w+)/.exec(className || "");
       return !inline && match ? (
         <SyntaxHighlighter
@@ -98,52 +100,52 @@ export function PaperViewer({ paper, className = "" }: PaperViewerProps) {
           language={match[1]}
           PreTag="div"
           className="rounded-lg"
-          {...props}
+          {...rest}
         >
           {String(children).replace(/\n$/, "")}
         </SyntaxHighlighter>
       ) : (
-        <code className={className} {...props}>
+        <code className={className} {...rest}>
           {children}
         </code>
       );
     },
-    h1: ({ children }: any) => (
+    h1: ({ children }: { children?: React.ReactNode }) => (
       <h1 className="mb-4 mt-8 text-2xl font-bold">{children}</h1>
     ),
-    h2: ({ children }: any) => (
+    h2: ({ children }: { children?: React.ReactNode }) => (
       <h2 className="mb-3 mt-6 text-xl font-semibold">{children}</h2>
     ),
-    h3: ({ children }: any) => (
+    h3: ({ children }: { children?: React.ReactNode }) => (
       <h3 className="mb-2 mt-4 text-lg font-medium">{children}</h3>
     ),
-    p: ({ children }: any) => (
+    p: ({ children }: { children?: React.ReactNode }) => (
       <p className="mb-4 leading-relaxed">{children}</p>
     ),
-    ul: ({ children }: any) => (
+    ul: ({ children }: { children?: React.ReactNode }) => (
       <ul className="mb-4 list-inside list-disc space-y-1">{children}</ul>
     ),
-    ol: ({ children }: any) => (
+    ol: ({ children }: { children?: React.ReactNode }) => (
       <ol className="mb-4 list-inside list-decimal space-y-1">{children}</ol>
     ),
-    blockquote: ({ children }: any) => (
+    blockquote: ({ children }: { children?: React.ReactNode }) => (
       <blockquote className="my-4 border-l-4 border-gray-300 pl-4 italic">
         {children}
       </blockquote>
     ),
-    table: ({ children }: any) => (
+    table: ({ children }: { children?: React.ReactNode }) => (
       <div className="my-4 overflow-x-auto">
         <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
           {children}
         </table>
       </div>
     ),
-    th: ({ children }: any) => (
+    th: ({ children }: { children?: React.ReactNode }) => (
       <th className="border border-gray-300 bg-gray-100 px-4 py-2 dark:border-gray-600 dark:bg-gray-800">
         {children}
       </th>
     ),
-    td: ({ children }: any) => (
+    td: ({ children }: { children?: React.ReactNode }) => (
       <td className="border border-gray-300 px-4 py-2 dark:border-gray-600">
         {children}
       </td>

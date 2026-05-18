@@ -23,7 +23,7 @@ export default function SearchPage() {
 
   // Build search params for API
   const searchParams = React.useMemo(() => {
-    const params: any = {
+    const params: Record<string, string | number> = {
       q: query,
       page,
       limit: pageSize,
@@ -52,14 +52,14 @@ export default function SearchPage() {
   });
 
   // Handle search submission
-  const handleSearch = useCallback((newQuery: string, newFilters: any) => {
+  const handleSearch = useCallback((newQuery: string, newFilters: { category?: string; status?: string }) => {
     setQuery(newQuery);
     setPage(1);
 
     // Update filters
     const updatedFilters = {
-      categories: newFilters.category ? [newFilters.category] : [],
-      statuses: newFilters.status ? [newFilters.status] : [],
+      categories: newFilters.category ? [newFilters.category as PaperCategory] : [],
+      statuses: newFilters.status ? [newFilters.status as PaperStatus] : [],
     };
     setFilters(updatedFilters);
   }, []);

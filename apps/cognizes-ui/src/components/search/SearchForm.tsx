@@ -77,7 +77,7 @@ export function SearchForm({
   };
 
   // Handle filter change
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
+  const handleFilterChange = (key: keyof SearchFilters, value: string | undefined) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
   };

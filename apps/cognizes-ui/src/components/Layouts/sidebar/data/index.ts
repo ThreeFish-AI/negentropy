@@ -29,7 +29,7 @@ export const NAV_DATA = [
       {
         title: "搜索",
         url: "/search",
-        icon: Icons.PieChart,
+        icon: Icons.SearchIcon,
         items: [],
       },
     ],

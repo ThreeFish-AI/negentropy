@@ -207,9 +207,9 @@ export function ActivityFeed({
                     <div className="mt-2">
                       <Link
                         href={
-                          (activity.entity as any)?.title
-                            ? `/papers/${(activity.entity as any).id}`
-                            : `/tasks/${(activity.entity as any).id}`
+                          "title" in activity.entity
+                            ? `/papers/${(activity.entity as Paper).id}`
+                            : `/tasks/${(activity.entity as Task).id}`
                         }
                         className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                       >
