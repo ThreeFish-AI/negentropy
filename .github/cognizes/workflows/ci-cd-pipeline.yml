@@ -359,7 +359,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME || 'agentic-ai-cognizes' }}/agentic-ai-cognizes
+          images: ${{ secrets.DOCKER_USERNAME || 'cognizes' }}/cognizes
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -384,10 +384,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha
-            type=registry,ref=${{ secrets.DOCKER_USERNAME || 'agentic-ai-cognizes' }}/agentic-ai-cognizes:cache
+            type=registry,ref=${{ secrets.DOCKER_USERNAME || 'cognizes' }}/cognizes:cache
           cache-to: |
             type=gha,mode=max
-            type=registry,ref=${{ secrets.DOCKER_USERNAME || 'agentic-ai-cognizes' }}/agentic-ai-cognizes:cache,mode=max
+            type=registry,ref=${{ secrets.DOCKER_USERNAME || 'cognizes' }}/cognizes:cache,mode=max
           secrets: |
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
             ANTHROPIC_BASE_URL=${{ secrets.ANTHROPIC_BASE_URL }}
