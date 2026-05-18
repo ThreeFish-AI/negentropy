@@ -1,25 +1,32 @@
-name: Update Dependencies
+name: Perceives Update Dependencies
 
 on:
   schedule:
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    working-directory: apps/negentropy-perceives
+
 jobs:
   update:
     name: Update Dependencies
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/negentropy-perceives
 
       - name: Update dependencies
         run: |
@@ -45,16 +52,16 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(deps): 更新依赖锁文件"
-          title: "chore(deps): 更新依赖锁文件"
+          commit-message: "chore(perceives/deps): 更新依赖锁文件"
+          title: "chore(perceives/deps): 更新依赖锁文件"
           body: |
             ## 背景
 
-            本次自动化任务已将项目依赖升级到当前可解析的最新兼容版本。
+            本次自动化任务已将 perceives 项目依赖升级到当前可解析的最新兼容版本。
 
             ## 本次改动
 
-            - 更新 `uv.lock`
+            - 更新 `apps/negentropy-perceives/uv.lock`
             - 使用升级后的依赖执行基础测试
 
             ## 验证
@@ -62,7 +69,7 @@ jobs:
             - `uv run pytest -x --tb=short`
 
             该 PR 由 GitHub Actions 自动生成。
-          branch: update-dependencies
+          branch: perceives-update-dependencies
           delete-branch: true
           labels: |
             dependencies
@@ -71,6 +78,6 @@ jobs:
       - name: Report PR creation failure
         if: always() && steps.create_pr.outcome == 'failure'
         run: |
-          echo "## 依赖更新 PR 创建失败" >> $GITHUB_STEP_SUMMARY
-          echo "依赖升级与测试已完成，但自动创建 PR 失败。" >> $GITHUB_STEP_SUMMARY
-          echo "请检查仓库 Actions 权限配置，必要时改用 PAT。" >> $GITHUB_STEP_SUMMARY
+          echo "## 依赖更新 PR 创建失败" >> "$GITHUB_STEP_SUMMARY"
+          echo "依赖升级与测试已完成，但自动创建 PR 失败。" >> "$GITHUB_STEP_SUMMARY"
+          echo "请检查仓库 Actions 权限配置，必要时改用 PAT。" >> "$GITHUB_STEP_SUMMARY"

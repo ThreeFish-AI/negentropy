@@ -1,0 +1,36 @@
+name: Setup pnpm UI
+description: 安装 pnpm、Node.js、项目依赖并构建 agents-chat-core 共享包
+
+inputs:
+  node-version:
+    description: Node.js 版本
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    # pnpm 版本由根 package.json 的 packageManager 字段统一提供
+    # （pnpm 官方推荐的「单一事实源」模式；避免 ERR_PNPM_BAD_PM_VERSION）
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: "pnpm"
+        # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
+        cache-dependency-path: pnpm-lock.yaml
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    # ui 通过 import "@negentropy/agents-chat-core/*" 引用共享包；
+    # 这些子入口在 package.json `exports` 中指向 dist/ 产物，
+    # CI clean 状态下尚未 build → vitest/tsc 解析时回退到 src/.ts
+    # 触发 RollupError。先 build core 包以保证 exports 命中真实产物。
+    - name: Build agents-chat-core
+      shell: bash
+      working-directory: packages/agents-chat-core
+      run: pnpm build

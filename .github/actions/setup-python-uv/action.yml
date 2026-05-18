@@ -11,16 +11,18 @@ inputs:
   enable-cache:
     description: 是否启用 uv 缓存
     default: "true"
+  working-directory:
+    description: 项目目录（相对于仓库根目录）
+    default: "."
 
 runs:
   using: composite
   steps:
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v5
       with:
-        version: "latest"
         enable-cache: ${{ inputs.enable-cache == 'true' }}
-        cache-dependency-glob: "uv.lock"
+        cache-dependency-glob: "${{ inputs.working-directory }}/uv.lock"
 
     - name: Set up Python ${{ inputs.python-version }}
       shell: bash
@@ -28,6 +30,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         if [ "${{ inputs.install-dev }}" = "true" ]; then
           uv sync --group dev
