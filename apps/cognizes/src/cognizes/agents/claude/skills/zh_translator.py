@@ -68,7 +68,7 @@ Here is the content to translate:
 
 Please provide only the translated content without any explanations."""
 
-        response = await client.messages.create(
+        response = client.messages.create(
             model="claude-3-sonnet-20240229",
             max_tokens=4000,
             messages=[{"role": "user", "content": prompt}],
