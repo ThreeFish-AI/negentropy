@@ -30,9 +30,12 @@ from pydantic import BaseModel
 from sqlalchemy import and_, case, func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.scheduled_task import ScheduledTask, TaskExecution
+from negentropy.models.state import UserState
+from negentropy.models.sub_agent import SubAgent
 
 logger = get_logger("negentropy.interface.scheduler_api")
 
@@ -413,16 +416,56 @@ async def get_stats(
             )
             rows = (await db.execute(stmt)).all()
 
+            # --- Label resolution: owner / agent 维度需将 ID 映射为可读名称 ---
+            label_map: dict[str, str] = {}
+            none_label = "unknown"
+
+            if group_by == "owner":
+                owner_ids = [str(r.bucket_key) for r in rows if r.bucket_key is not None]
+                if owner_ids:
+                    user_rows = (
+                        await db.execute(
+                            select(UserState.user_id, UserState.state).where(
+                                UserState.user_id.in_(owner_ids),
+                                UserState.app_name == settings.app_name,
+                            )
+                        )
+                    ).all()
+                    for uid, state in user_rows:
+                        profile = (state or {}).get("profile", {})
+                        label_map[uid] = profile.get("name") or profile.get("email") or uid
+                none_label = "System"
+
+            elif group_by == "agent":
+                agent_ids = [r.bucket_key for r in rows if r.bucket_key is not None]
+                if agent_ids:
+                    agent_rows = (
+                        await db.execute(
+                            select(SubAgent.id, SubAgent.display_name, SubAgent.name).where(
+                                SubAgent.id.in_(agent_ids),
+                            )
+                        )
+                    ).all()
+                    for aid, dname, name in agent_rows:
+                        label_map[str(aid)] = dname or name or str(aid)
+                none_label = "Unassigned"
+
             buckets = []
             for r in rows:
-                bucket_key = str(r.bucket_key) if r.bucket_key is not None else "unknown"
+                raw_key = str(r.bucket_key) if r.bucket_key is not None else None
+                if raw_key is None:
+                    bucket_key = none_label
+                    label = none_label
+                else:
+                    bucket_key = raw_key
+                    label = label_map.get(raw_key, raw_key)
                 runs = int(r.runs or 0)
                 success = int(r.success or 0)
                 failed = int(r.failed or 0)
                 buckets.append(
                     {
                         "key": bucket_key,
-                        "label": bucket_key,
+                        "label": label,
                         "runs": runs,
                         "success": success,
                         "failed": failed,
