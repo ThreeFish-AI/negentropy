@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "commonjs",
+    "jsx": "react-jsx",
+    "types": ["jest", "@testing-library/jest-dom"],
+    "paths": {
+      "@/*": ["../ui/src/*"]
+    }
+  },
+  "include": [
+    "../tests/ui/**/*.{ts,tsx}",
+    "./src/**/__tests__/**/*.{ts,tsx}"
+  ]
+}

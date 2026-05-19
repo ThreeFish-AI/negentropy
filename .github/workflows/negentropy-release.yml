@@ -90,42 +90,15 @@ jobs:
           echo "title=${title}" >> "$GITHUB_OUTPUT"
           echo "is_prerelease=${is_prerelease}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: apps/negentropy/uv.lock
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-uv-backend
 
       - name: Build backend distribution
         working-directory: apps/negentropy
         run: uv build
 
-      # pnpm 版本由根 package.json 的 packageManager 字段统一提供
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-          # PR-1 后 pnpm-lock.yaml 已上提到 monorepo 根目录
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Install UI dependencies
-        working-directory: apps/negentropy-ui
-        run: pnpm install --frozen-lockfile
-
-      # 共享包 dist 产物在 ui import 路径中通过 package.json exports 解析；
-      # CI clean 状态下必须先构建以避免回退到 src/.ts 触发 RollupError。
-      - name: Build agents-chat-core
-        working-directory: packages/agents-chat-core
-        run: pnpm build
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm-ui
 
       - name: Build UI standalone bundle
         working-directory: apps/negentropy-ui

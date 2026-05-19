@@ -1,0 +1,210 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["negentropy*"]
+exclude = ["tests*", "reports*", "htmlcov*", "scripts*"]
+
+[tool.setuptools.package-data]
+"negentropy.perceives" = ["config.default.yaml"]
+
+[project]
+name = "negentropy-perceives"
+version = "0.2.0a3"
+description = "A commercial-grade MCP Server built on FastMCP, offering robust capabilities to read, extract, and localize (into Markdown) content from web pages and PDFs with both text and images. It is purpose-built for long-term deployment in enterprise environments."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+authors = [{ name = "ThreeFish-AI", email = "threefish.ai@gmail.com" }]
+license = "MIT"
+keywords = ["mcp", "web-crawler", "pdf", "markdown"]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    # --- MCP 框架 ---
+    "fastmcp>=3.2.4",
+    # --- 网页抓取 ---
+    "aiohttp>=3.13.5",
+    "beautifulsoup4>=4.14.0",
+    "fake-useragent>=2.2.0",
+    "requests>=2.33.1",
+    # --- 浏览器自动化 ---
+    "playwright>=1.58.0",
+    "selenium>=4.43.0",
+    "undetected-chromedriver>=3.5.5",
+    # --- PDF 处理 ---
+    "markitdown>=0.1.5",
+    "pymupdf>=1.27.2",
+    "pypdf>=6.10.2",  # 修复 CVE-2026-33699, GHSA-3crg-w4f6-42mx
+    # --- PDF 引擎 ---
+    "docling>=2.89.0",  # PDF 处理引擎 (GPU 加速)
+    "mineru>=3.0.9",  # PDF 处理引擎 (VLM 自动引擎)
+    "marker-pdf>=1.10.2",  # PDF 处理引擎 (高精度 OCR)
+    "pdfplumber>=0.11.0",  # 表格提取补充引擎
+    "albumentations>=1.4.0",  # MinerU pipeline backend MFR (数学公式识别) 图像增强依赖
+    # Apple Silicon MLX VLM 加速（仅 macOS ARM64 自动激活）
+    "mlx-vlm>=0.4.3,<1.0.0 ; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    # --- PDF 表格补充引擎 ---
+    "camelot-py>=0.11.0",  # 表格提取补充引擎（需系统级 ghostscript）
+    # --- LLM 编排（Smart 模式） ---
+    "litellm>=1.70.0",  # litellm 硬锁 pydantic==2.12.5，暂无法升级
+    # --- CLI ---
+    "typer>=0.21.2",  # docling 2.89 要求 typer<0.22.0
+    "rich>=15.0.0",
+    # --- 数据模型与配置 ---
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.13.1",
+    "pyyaml>=6.0.3",              # YAML 配置文件解析
+    # --- 运行时基础设施 ---
+    "setuptools>=82.0.1",  # 运行时补丁：undetected-chromedriver 依赖 pkg_resources（distutils），Python 3.12+ 已从标准库移除
+    "opendataloader-pdf>=2.4.3",
+]
+
+[project.urls]
+"Source Code" = "https://github.com/ThreeFish-AI/negentropy-perceives"
+"User Guide" = "https://github.com/ThreeFish-AI/negentropy-perceives/blob/master/docs/user-guide.md"
+"Bug Tracker" = "https://github.com/ThreeFish-AI/negentropy-perceives/issues"
+
+[project.scripts]
+negentropy-perceives = "negentropy.perceives.apps.app:main"
+perceives = "negentropy.perceives.cli.app:app"
+
+[tool.ruff.lint.per-file-ignores]
+# 向后兼容 shim 文件：warnings.warn() 必须在 import 之前执行，触发 E402 属于预期行为
+"src/negentropy/perceives/_logging.py" = ["E402"]
+"src/negentropy/perceives/ops/extraction.py" = ["E402"]
+"src/negentropy/perceives/pdf/device_config.py" = ["E402"]
+"src/negentropy/perceives/pdf/docling_engine.py" = ["E402"]
+"src/negentropy/perceives/pdf/llm_client.py" = ["E402"]
+"src/negentropy/perceives/pdf/llm_orchestrator.py" = ["E402"]
+"src/negentropy/perceives/pdf/marker_engine.py" = ["E402"]
+"src/negentropy/perceives/pdf/mineru_engine.py" = ["E402"]
+"src/negentropy/perceives/schemas.py" = ["E402"]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "--disable-warnings",
+    "--tb=short",
+    "-v",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "requires_network: marks tests that require network access",
+    "requires_browser: marks tests that require browser setup",
+    "requires_gpu: marks tests that require GPU acceleration (MPS/CUDA/XPU)",
+    "requires_llm: marks tests that require LLM API access (smart mode, orchestration)",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+log_cli = true
+log_cli_level = "WARNING"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.coverage.run]
+source = ["src/negentropy/perceives"]
+omit = [
+    "src/negentropy/perceives/__init__.py",
+    "tests/*",
+    "venv/*",
+    ".venv/*",
+]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+sort = "Cover"
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "Negentropy Perceives Test Coverage Report"
+
+[tool.coverage.xml]
+output = "tests/reports/coverage.xml"
+
+[tool.coverage.json]
+output = "tests/reports/coverage.json"
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = false          # 代码尚未全量标注，待类型覆盖率提升后逐步启用
+warn_unused_configs = true
+disallow_untyped_defs = false    # 同上，待类型覆盖率提升后逐步启用
+ignore_missing_imports = true    # 全局兜底：第三方库缺少 py.typed 或 stub
+
+[[tool.mypy.overrides]]
+module = [
+    "scrapy.*",
+    "undetected_chromedriver.*",
+    "fake_useragent.*",
+    "playwright.*",
+    "bs4.*",
+    "selenium.*",
+    "fastmcp.*",
+]
+ignore_missing_imports = true
+
+[tool.uv]
+# Pillow 版本统一：surya-ocr(<11) 与 MinerU(>=11) 冲突，上游 PR datalab-to/surya#489 待发布
+# lxml>=6.1.0：修复 CVE-2026-41066（间接依赖）
+# urllib3>=2.7.0：修复 CVE-2026-44431, CVE-2026-44432（间接依赖）
+# transformers 锁定 4.x：marker-pdf(^4.45.2) 与 docling[vlm](>=4.42.0) 兼容交集
+override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "transformers>=4.56.1,<5.0.0"]
+
+[dependency-groups]
+dev = [
+    # --- 测试框架 ---
+    "coverage[toml]>=7.13.5",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.1.0",
+    "pytest-html>=4.2.0",
+    "pytest-json-report>=1.5.0",
+    "pytest-mock>=3.15.1",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.8.0",
+    # --- 代码质量 ---
+    "mypy>=1.20.1",
+    "ruff>=0.15.10",
+    "types-PyYAML>=6.0.12.20260408",
+    "types-requests>=2.33.0.20260408",
+    # --- 安全审计 ---
+    "bandit>=1.9.4",
+    "pip-audit>=2.10.0",
+    # --- 工程工具 ---
+    "pre-commit>=4.5.1",
+]

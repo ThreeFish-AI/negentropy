@@ -1,0 +1,528 @@
+# =============================================================================
+# Negentropy Perceives 默认配置
+# =============================================================================
+#
+# 本文件为项目内置默认配置，同时作为用户配置的完整样板。
+# 安装后位于包内（wheel），不应直接修改。
+#
+# 配置优先级（从低到高）：
+#   1. 本文件（内置默认，所有配置的基线值源）
+#   2. 用户配置 ~/.negentropy/perceives.config.yaml（深度合并覆盖差异项）
+#   3. NEGENTROPY_PERCEIVES_* 环境变量
+#   4. -c / --config 显式指定的配置文件（最高优先级）
+#
+# 高优先级配置对低优先级配置执行深度合并（deep merge）：
+#   仅覆盖差异的独立配置项，而非全文粗暴替换。
+#
+# 层级化格式：
+#   本文件采用层级化 YAML 结构，加载时自动展平为扁平键名
+#   （如 server.name → server_name）。旧版扁平格式亦完全兼容。
+# =============================================================================
+
+# ── 服务标识 ──────────────────────────────────────────────────────────────────
+server:
+  name: negentropy-perceives
+# server_version 从 pyproject.toml 自动读取，无需在此配置
+
+# ── 传输层 ────────────────────────────────────────────────────────────────────
+transport:
+  mode: http # MCP 传输协议：stdio / http / sse
+
+http:
+  host: localhost # HTTP 服务器绑定主机
+  port: 2992 # HTTP 服务器监听端口
+  path: /mcp # HTTP 端点路径
+  cors_origins: "*" # CORS 来源白名单（* 允许所有，null 禁用）
+
+# ── 抓取引擎 ──────────────────────────────────────────────────────────────────
+concurrent_requests: 16 # 并发请求上限（> 0）
+download_delay: 1.0 # 下载间隔，单位秒（>= 0）
+randomize_download_delay: true # 随机化下载间隔
+
+autothrottle:
+  enabled: true # 启用自动节流
+  start_delay: 1.0 # 自动节流初始延迟，单位秒
+  max_delay: 60.0 # 自动节流最大延迟，单位秒
+  target_concurrency: 1.0 # 自动节流目标并发度
+
+# ── 速率限制 ──────────────────────────────────────────────────────────────────
+rate_limit:
+  requests_per_minute: 60 # 每分钟请求频率上限（>= 1）
+
+# ── 重试策略 ──────────────────────────────────────────────────────────────────
+max_retries: 3 # 失败重试最大次数（>= 0）
+retry_delay: 1.0 # 重试间隔，单位秒（>= 0）
+
+# ── 缓存系统 ──────────────────────────────────────────────────────────────────
+enable_caching: true # 启用响应缓存
+cache:
+  ttl_hours: 24 # 缓存生存时间，单位小时（> 0）
+
+# ── 日志系统 ──────────────────────────────────────────────────────────────────
+log:
+  level: INFO # 日志级别：DEBUG / INFO / WARNING / ERROR / CRITICAL
+  requests: null # 记录请求详情（可选）
+  responses: null # 记录响应详情（可选）
+
+# ── 浏览器引擎 ────────────────────────────────────────────────────────────────
+enable_javascript: false # 启用 JavaScript 执行
+
+browser:
+  headless: true # 无头浏览器模式
+  timeout: 30 # 浏览器操作超时，单位秒
+  window_size: "1920x1080" # 浏览器窗口尺寸
+
+# ── 用户代理 ──────────────────────────────────────────────────────────────────
+use_random_user_agent: true # 启用随机 User-Agent 轮换
+default_user_agent: >-
+  Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+  (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+
+# ── 代理服务 ──────────────────────────────────────────────────────────────────
+use_proxy: false # 启用代理服务器
+proxy_url: null # 代理服务器 URL（启用代理时必填）
+
+# ── 请求设置 ──────────────────────────────────────────────────────────────────
+request_timeout: 30.0 # HTTP 请求超时，单位秒（> 0）
+
+# ── 任务超时（PDF / Webpage 解析任务级兜底） ────────────────────────────────
+task_timeout_seconds: 900 # 单个解析任务默认最长耗时（秒），超过将中止并返回错误，可被 MCP 入参 timeout 覆盖。15 分钟兜底覆盖大型 PDF 多 stage 竞态
+
+# ── PDF 引擎进程池（取消传导 + 资源真释放） ────────────────────────────────
+pdf_engine_isolation: process # 引擎隔离策略：process（默认，kill 子进程释放 GPU/CPU）/ thread（兜底）/ inline（调试）
+pdf_worker_pool_size: 1 # 每种 PDF 引擎的 warm worker 数量（1 足以覆盖 95% 单实例场景）
+pdf_worker_max_tasks: 50 # 单个 worker 处理任务数上限；达到后自动回收以防内存泄漏
+pdf_worker_kill_grace_seconds: 2.0 # 取消时先 terminate，等待此秒数仍存活再 kill
+
+# ── LLM 编排（Smart 模式，需安装 litellm 可选依赖）─────────────────────────
+llm:
+  api_key: null # LLM API Key
+  api_base_url: null # LLM API Base URL（OpenAI 兼容协议，如 https://api.openai.com/v1）
+  model: gpt-5-nano # LiteLLM 模型标识
+  temperature: 0.1 # LLM 温度参数（0.0 ~ 2.0）
+  max_tokens: 4096 # LLM 最大输出 token（> 0）
+  timeout: 60.0 # LLM API 超时，单位秒（> 0）
+  max_retries: 2 # LLM API 重试次数（>= 0）
+
+# ── 硬件加速 ──────────────────────────────────────────────────────────────────
+accelerator:
+  device: auto # 推理设备：auto / cpu / cuda / mps / xpu
+  num_threads: 8 # CPU 推理线程数（>= 1）
+  ocr_batch_size: 0 # OCR 推理 batch size（0 = 自动推断）
+  layout_batch_size: 0 # Layout 推理 batch size（0 = 自动推断）
+  table_batch_size: 0 # Table 推理 batch size（0 = 自动推断）
+
+# ── Docling PDF 引擎（需安装 docling 可选依赖）────────────────────────────────
+# 默认 enabled=true：是否真实参与调度由运行时 is_available() 能力检测决定
+# （包未安装会在 Stage 初始化时被自动过滤跳过，不会破坏默认可用性）。
+# 如需在已安装环境中显式禁用，可设 enabled=false 或环境变量
+# NEGENTROPY_PERCEIVES_DOCLING_ENABLED=false。
+docling:
+  enabled: true # 启用 Docling 作为 PDF 提取引擎
+  ocr_enabled: true # 为扫描版 PDF 启用 OCR
+  table_extraction_enabled: true # 启用 Docling 高级表格提取
+  formula_extraction_enabled: true # 启用 Docling 数学公式提取
+
+# ── MinerU PDF 引擎（需安装 mineru 可选依赖）─────────────────────────────────
+# 默认 enabled=true；运行时 is_available() 过滤未安装情形。
+mineru:
+  enabled: true # 启用 MinerU 作为 PDF 提取引擎
+  device: auto # MinerU 推理设备：auto / cpu / mlx / cuda
+  backend: auto # MinerU 后端：auto（自动检测，不直接传递）/ pipeline / vlm-auto-engine
+
+# ── Marker PDF 引擎（需安装 marker-pdf 可选依赖）──────────────────────────────
+# 默认 enabled=true；运行时 is_available() 过滤未安装情形。
+marker:
+  enabled: true # 启用 Marker 作为 PDF 提取引擎
+  llm_enhanced: false # 启用 Marker LLM 增强模式
+  license_acknowledged: false # 确认 Marker GPL-3.0 许可证条款
+
+# ── OpenDataLoader PDF 引擎（Apache 2.0 / CPU-only / 全元素 bbox）─────────────
+# Java 11+ 运行时必需；运行时 is_available() 同时校验 Java 和 Python 包可用性。
+# 默认 enabled=true；包未安装时被自动过滤跳过。
+opendataloader:
+  enabled: true # 启用 OpenDataLoader 作为 PDF 提取引擎
+  use_struct_tree: true # 利用 Tagged PDF 原生结构（高质量 reading order）
+  sanitize: false # prompt injection / PII 过滤（影响内容完整性，默认关闭）
+  hybrid_enabled: false # MVP 不启用 hybrid 模式（需边车 server + docling-fast 后端）
+  hybrid_endpoint: null # hybrid server 端点（hybrid_enabled=true 时必填）
+  java_check_timeout: 3 # Java 可用性检测超时（秒）
+
+# ── PDF 相关配置 ──────────────────────────────────────────────────────
+pdf:
+  # 表格质量过滤（PyMuPDF find_tables 兜底启发式；false 时回退原行为）
+  table_quality_filter_enabled: true
+  table_quality_min_occupancy: 0.40 # 非空单元格占比下限
+  table_quality_max_weak_cols_ratio: 0.5 # 弱列（非空率 < 40%）数量占比上限
+  table_quality_min_unique_cells: 3 # 去重后单元格种类下限
+  # ── prose_like 散文检测阈值（与 _table_quality_score 信号 a/b 对齐） ──
+  table_quality_prose_rows_threshold: 50 # 信号 a 行数阈值（旧 20 → 新 50，保护学术长表）
+  table_quality_prose_cols_max: 3 # 信号 a 列数上限（旧 5 → 新 3，4-5 列更可能是真表）
+  table_quality_prose_fragment_ratio: 0.5 # 信号 b 单词断裂率阈值（旧 0.3 → 新 0.5，去抑制误杀）
+  table_quality_bypass_with_title: true # 含 "Table N:" 标题的候选跳过 prose 信号
+  # ── Stage 超时全局倍率 ────────────────────────────────────────
+  stage_timeout_multiplier: 1.0 # >1 放宽所有 Stage timeout，<1 收紧
+  # ── 图片抽取并发度 ────────────────────────────────────────────
+  image_extraction_concurrency: 8 # M 系列芯片大内存机型支持更高并发
+  # ── Docling 强制 CPU（诊断/回退）─────────────────────────────
+  docling_force_cpu: false # true 时跳过 MPS 注入，强制 CPU 推理
+  docling_mps_enrichment: granite_mlx # Apple Silicon MPS 下 code/formula：granite_mlx / disable
+  # ── 引擎预热（消除 worker 冷启动）────────────────────────────
+  engine_warmup_enabled: true # preprocessing/quick_scan 期间异步预热 docling/mineru/marker
+
+# ── Pipeline 编排配置 ────────────────────────────────────────────────────────
+# 定义 PDF 和 WebPage 两条处理管线的 Stage 列表、工具排名和竞争模式。
+# 每个 Stage 按 rank 顺序选择首个可用工具（降级模式），
+# 或启用 competition_mode 让多工具并行竞争 + LLM 评审择优。
+#
+# 引擎级门控（docling.enabled / mineru.enabled / marker.enabled）优先于此处配置：
+#   引擎级 enabled=false → 该引擎在所有 Stage 中不可用
+#   引擎级 enabled=true + Stage 级 enabled=false → 引擎已安装但不参与此 Stage
+pipeline:
+  # ── PDF → Markdown 管线 ──────────────────────────────────────────────────
+  pdf:
+    stages:
+      # S0: 预处理与源解析（PDF 下载/验证、页码范围解析、元数据提取）
+      - name: preprocessing
+        description: "PDF 源验证、下载、格式检测与页面范围解析"
+        tools:
+          - name: pymupdf
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S1: 文档特征快速扫描（为后续 Stage 提供路由决策依据）
+      - name: quick_scan
+        description: "轻量级文档特征分析（页数、表格、公式、图片、布局复杂度）"
+        input_from: preprocessing
+        tools:
+          - name: pymupdf
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S2: 版面分析与阅读顺序
+      # 默认走降级模式：仅运行 rank=1 docling 取得最佳质量（reading-order/heading-level 最准），
+      # rank=2 opendataloader 提供 CPU-only / Apache-2.0 / 全元素 bbox 路径，
+      # rank=3/4/5 作为 fallback 兜底。如需启用竞争 + LLM 评审择优（资源开销更高），
+      # 改为 competition_mode: true，下方 competition: 子配置即时生效。
+      - name: layout_analysis
+        description: "检测文档物理布局结构，确定正确阅读顺序"
+        input_from: preprocessing
+        tools:
+          - name: docling
+            rank: 1
+            enabled: true
+          - name: opendataloader
+            rank: 2
+            enabled: true
+          - name: mineru
+            rank: 3
+            enabled: true
+          - name: marker
+            rank: 4
+            enabled: true
+          - name: pymupdf
+            rank: 5
+            enabled: true
+        competition_mode: false # 默认降级；改 true 启用 4 引擎竞争
+        competition:
+          # 候选工具 4 个，启用竞争时生效；fallback 模式下不读取
+          max_concurrent: 4
+          timeout: 360 # 81 页论文 docling/mineru/marker 实测 ~150-250s；旧 120s 一刀切超时
+          early_win_cancel: true # rank=1 工具胜出后取消其余，释放 CPU/GPU
+          early_win_min_rank: 1 # 仅当 rank≤1 的工具成功才触发取消
+          early_win_grace_seconds: 5 # 给其它工具最后 5s 机会
+
+      # S3: 文本内容提取（稳定，降级模式即可）
+      # marker 加入 fallback 末位（rank=5），让 ProfileAwareSelector 在扫描版
+      # PDF 上能通过 _reorder_by_name 把 marker 重排到 rank=1（Surya OCR 路径）。
+      # 数字版 PDF 默认顺序不变（pymupdf rank=1 仍最快）。
+      - name: text_extraction
+        description: "从各文本区域中提取纯文本，保留段落结构与标题层级"
+        input_from: preprocessing
+        tools:
+          - name: pymupdf
+            rank: 1
+            enabled: true
+          - name: opendataloader
+            rank: 2
+            enabled: true
+          - name: docling
+            rank: 3
+            enabled: true
+          - name: pypdf
+            rank: 4
+            enabled: true
+          - name: marker
+            rank: 5
+            enabled: true
+        competition_mode: false
+
+      # S4: 表格识别与提取
+      # 默认走降级模式：仅运行 rank=1 docling（TableFormer 结构化识别最准），
+      # rank=2 opendataloader 提供 CPU-only / 全元素 bbox 表格路径，
+      # camelot/pdfplumber/pymupdf 作为 fallback。docling 的 init_kwargs 与 layout 对齐，
+      # 单跑模式下仍命中 worker 子进程内 _ConvertCache，节省一次完整推理。
+      # 如需启用竞争，改 competition_mode: true。
+      - name: table_extraction
+        description: "结构化表格识别与 Markdown 表格生成"
+        input_from: preprocessing
+        tools:
+          - name: docling
+            rank: 1
+            enabled: true
+          - name: opendataloader
+            rank: 2
+            enabled: true
+          - name: camelot
+            rank: 3
+            enabled: true
+          - name: pdfplumber
+            rank: 4
+            enabled: true
+          - name: pymupdf
+            rank: 5
+            enabled: true
+        competition_mode: false # 默认降级；改 true 启用 4 引擎竞争
+        competition:
+          # 候选工具 4 个，启用竞争时生效；fallback 模式下不读取
+          max_concurrent: 4
+          timeout: 300 # docling table-structure 模型对 81 页 PDF 需 ~120-200s
+          early_win_cancel: true
+          early_win_min_rank: 1
+          early_win_grace_seconds: 5
+
+      # S5: 数学公式提取
+      # 默认走降级模式：仅运行 rank=1 mineru（LaTeX 转换保真度最高），
+      # docling/pymupdf_heuristic 作为 fallback。mineru 模型独立于 docling，不复用缓存。
+      # 如需启用竞争，改 competition_mode: true。
+      - name: formula_extraction
+        description: "数学公式检测与 LaTeX 转换"
+        input_from: preprocessing
+        tools:
+          - name: mineru
+            rank: 1
+            enabled: true
+          - name: docling
+            rank: 2
+            enabled: true
+          - name: pymupdf_heuristic
+            rank: 3
+            enabled: true
+        competition_mode: false # 默认降级；改 true 启用 3 引擎竞争
+        competition:
+          # 候选工具 3 个，启用竞争时生效；fallback 模式下不读取
+          max_concurrent: 3
+          timeout: 300 # mineru / docling 公式模型对 81 页 PDF 需 ~150-250s
+          early_win_cancel: true
+          early_win_min_rank: 1
+          early_win_grace_seconds: 5
+
+      # S6: 图片/图形提取（支持 raster + vector figure 渲染）
+      # 使用 input_builder 汇聚 preprocessing + layout_analysis 结果，
+      # 使图片提取能同时处理光栅图和矢量图形（通过 bbox 渲染）。
+      - name: image_extraction
+        description: "图片提取、分类与 caption 生成"
+        input_builder: image_extraction
+        tools:
+          - name: pymupdf
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S7: 代码块识别
+      # 默认走降级模式：仅运行 rank=1 docling（CodeFormula 代码块检测最准），
+      # algorithm_detector 启发式作为 fallback。docling 的 init_kwargs 与 layout/table 对齐，
+      # 单跑模式下仍命中 worker 子进程内 _ConvertCache。
+      # 如需启用竞争，改 competition_mode: true。
+      - name: code_detection
+        description: "代码块识别与编程语言推断"
+        input_from: preprocessing
+        tools:
+          - name: docling
+            rank: 1
+            enabled: true
+          - name: algorithm_detector
+            rank: 2
+            enabled: true
+        competition_mode: false # 默认降级；改 true 启用 2 引擎竞争
+        competition:
+          max_concurrent: 2
+          timeout: 120 # docling code block 检测 ~30-60s；放宽到 120s 容忍长文档
+          early_win_cancel: true
+          early_win_min_rank: 1
+          early_win_grace_seconds: 5
+
+      # S8: Markdown 组装与排版（复合输入：汇聚各前序 Stage 结果）
+      - name: assembly
+        description: "将各 Stage 产出按阅读顺序组装为最终 Markdown 文档"
+        input_builder: assembly
+        tools:
+          - name: builtin_assembler
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S9: 资源打包（复合输入：assembly + image_extraction + preprocessing）
+      - name: asset_bundling
+        description: "整理提取的资源文件，生成最终输出包"
+        input_builder: asset_bundling
+        tools:
+          - name: builtin_bundler
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+  # ── WebPage → Markdown 管线 ──────────────────────────────────────────────
+  webpage:
+    stages:
+      # S1: 合规检查（robots.txt + URL 校验）
+      - name: compliance_check
+        description: "检查目标 URL 的 robots.txt 规则与基本合法性"
+        tools:
+          - name: robotparser
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S2: 网页获取（三级降级链：HTTP → 浏览器 → 反检测）
+      - name: page_fetching
+        description: "HTTP 或浏览器抓取目标网页完整 HTML"
+        tools:
+          - name: aiohttp
+            rank: 1
+            enabled: true
+          - name: playwright
+            rank: 2
+            enabled: true
+          - name: selenium
+            rank: 3
+            enabled: true
+        competition_mode: false
+
+      # S3: 反检测降级（仅在 S2 失败时触发）
+      - name: anti_detection
+        description: "使用隐身浏览器技术绕过反爬检测"
+        tools:
+          - name: playwright_stealth
+            rank: 1
+            enabled: true
+          - name: undetected_chromedriver
+            rank: 2
+            enabled: true
+        competition_mode: false
+
+      # S4: 主内容区域识别
+      # 默认走降级模式：仅运行 rank=1 trafilatura（主流博客/学术文章主内容定位最优），
+      # readability/beautifulsoup_heuristic 作为 fallback。
+      # 如需启用竞争，改 competition_mode: true。
+      - name: main_content_extraction
+        description: "识别并提取主要文章内容，移除导航栏/广告/侧边栏"
+        tools:
+          - name: trafilatura
+            rank: 1
+            enabled: true
+          - name: readability
+            rank: 2
+            enabled: true
+          - name: beautifulsoup_heuristic
+            rank: 3
+            enabled: true
+        competition_mode: false # 默认降级；改 true 启用 3 引擎竞争
+        competition:
+          max_concurrent: 2
+          timeout: 30
+
+      # S5: HTML 清洗与预处理
+      - name: html_sanitization
+        description: "清理残余脚本/样式，保护数学和代码元素，解析相对 URL"
+        tools:
+          - name: beautifulsoup
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S6: 数学公式提取（MathJax/KaTeX/MathML → LaTeX）
+      - name: math_formula_extraction
+        description: "检测并提取页面中的数学公式，转换为 LaTeX"
+        tools:
+          - name: beautifulsoup_math
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S7: 代码块识别
+      - name: code_block_detection
+        description: "识别 HTML 中的代码块，保留语法高亮信息"
+        tools:
+          - name: beautifulsoup_code
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S8: 表格提取
+      - name: table_extraction
+        description: "提取 HTML 表格结构，生成 Markdown 表格"
+        tools:
+          - name: beautifulsoup_table
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S9: 图片提取与处理
+      - name: image_extraction
+        description: "提取页面图片信息，可选下载并嵌入"
+        tools:
+          - name: beautifulsoup_image
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S10: Markdown 转换
+      # 默认走降级模式：仅运行 rank=1 markitdown（Microsoft 维护，标准 HTML→MD 最稳定），
+      # html2text 作为 fallback。
+      # 如需启用竞争，改 competition_mode: true。
+      - name: markdown_conversion
+        description: "将清洗后的 HTML 转换为 Markdown"
+        tools:
+          - name: markitdown
+            rank: 1
+            enabled: true
+          - name: html2text
+            rank: 2
+            enabled: true
+        competition_mode: false # 默认降级；改 true 启用 2 引擎竞争
+        competition:
+          max_concurrent: 2
+          timeout: 30
+
+      # S11: Markdown 排版与格式化
+      - name: markdown_formatting
+        description: "排版优化、段落间距归一化、表格对齐"
+        tools:
+          - name: builtin_formatter
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+      # S12: 资源打包与元数据聚合
+      - name: asset_bundling
+        description: "聚合处理结果，构建最终输出"
+        tools:
+          - name: builtin_bundler
+            rank: 1
+            enabled: true
+        competition_mode: false
+
+  # ── 全局 Pipeline 默认配置 ──────────────────────────────────────────────
+  defaults:
+    competition:
+      max_concurrent: 2 # 默认并行竞争工具数
+      timeout: 120 # 默认单工具超时（秒）
+      judge:
+        enabled: true # 启用 LLM 评审
+        strategy: best_of # best_of / merge / weighted
+        model: null # null = 继承顶层 llm.model
+        temperature: 0.1
+        max_tokens: 2048

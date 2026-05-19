@@ -8,6 +8,8 @@ import { FilterBar } from "./_components/FilterBar";
 import { KpiRow } from "./_components/KpiRow";
 import { TaskDetailDrawer } from "./_components/TaskDetailDrawer";
 import { TaskTable } from "./_components/TaskTable";
+import { useDashboardAgentOptions } from "./_hooks/useDashboardAgentOptions";
+import { useDashboardOwnerOptions } from "./_hooks/useDashboardOwnerOptions";
 import { useSchedulerData } from "./_hooks/useSchedulerData";
 import { useSchedulerStream } from "./_hooks/useSchedulerStream";
 import type { DashboardFilters, ScheduledTaskDTO } from "./_lib/types";
@@ -48,6 +50,12 @@ export default function DashboardPage() {
     pushExecution,
   } = useSchedulerData(filters);
 
+  // Agent / Owner 下拉选项是「全局枚举」（SubAgent 注册表、用户表），
+  // 不应从 useSchedulerData 返回的 tasks（已被 filters 过滤）推导，
+  // 否则下拉选项会随过滤动态塌缩。改由独立 hook 提供 SSOT。
+  const { options: agentOptions } = useDashboardAgentOptions();
+  const { options: ownerOptions } = useDashboardOwnerOptions();
+
   const { connected } = useSchedulerStream({ onExecution: pushExecution });
 
   const handleSelect = useCallback((task: ScheduledTaskDTO) => {
@@ -67,6 +75,8 @@ export default function DashboardPage() {
         <FilterBar
           filters={filters}
           tasks={tasks}
+          agentOptions={agentOptions}
+          ownerOptions={ownerOptions}
           onChange={setFilters}
           onRefresh={refresh}
           connected={connected}

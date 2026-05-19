@@ -64,11 +64,11 @@
 ## ISSUE-005 废弃端口守护成为熵源
 
 - **表因**：用户反馈「Google Auth 回调仍指向 `http://localhost:6600/auth/google/callback`」，怀疑本轮 PR 把后端端口从 `:3292` 回退到 `:6600`。
-- **根因**：项目早期完成 `:6600` / `:6666` → `:3292` 迁移时，为保兼容在 `apps/negentropy-ui/lib/server/backend-url.ts` 引入 `applyLegacyPortMigration()`（localhost 自动改写 + 一次性告警），并在 `.env.example` / `docs/development.md` / `tests/unit/lib/server/backend-url.test.ts` 多处留存「历史端口会被自动迁移」的文案与白名单。迁移已完成数月，守护机制却仍让 `6600` 作为「合法白名单值」持续循环出现，与真正的配置残留（本地 `.env` / Google Cloud Console OAuth 授权重定向 URI 白名单）互相掩盖，形成典型「熵增陷阱」。经 `git log` 取证本轮 PR 的 7 个 commits 均未改动端口/回调/API_BASE 配置——用户看到的 `:6600` 实为环境侧残留，而非代码回退。
+- **根因**：项目早期完成 `:6600` / `:6666` → `:3292` 迁移时，为保兼容在 `apps/negentropy-ui/lib/server/backend-url.ts` 引入 `applyLegacyPortMigration()`（localhost 自动改写 + 一次性告警），并在 `.env.example` / `docs/architecture/development.md` / `tests/unit/lib/server/backend-url.test.ts` 多处留存「历史端口会被自动迁移」的文案与白名单。迁移已完成数月，守护机制却仍让 `6600` 作为「合法白名单值」持续循环出现，与真正的配置残留（本地 `.env` / Google Cloud Console OAuth 授权重定向 URI 白名单）互相掩盖，形成典型「熵增陷阱」。经 `git log` 取证本轮 PR 的 7 个 commits 均未改动端口/回调/API_BASE 配置——用户看到的 `:6600` 实为环境侧残留，而非代码回退。
 - **处理方式**：
   1. 彻底删除 `LEGACY_LOCAL_PORTS` / `applyLegacyPortMigration` / `isLegacyLocalhostUrl` / `__resetLegacyPortWarningsForTests` / `LOCAL_HOSTS` / `CURRENT_BACKEND_PORT` / `warnedUrls` 及配套的 `pickFirstNonEmpty` 辅助；`backend-url.ts` 精简为纯 SSOT（约 50 行）；
   2. 对应测试从 ~180 行精简至 ~95 行，仅保留「默认值」「优先级链」两组用例；
-  3. `.env.example` 删除 2 行迁移守护注释；`docs/development.md` 删除整段「迁移守护」block quote；
+  3. `.env.example` 删除 2 行迁移守护注释；`docs/architecture/development.md` 删除整段「迁移守护」block quote；
   4. `docs/sso.md` 保留一行运维提示，指引同步更新本地 `.env` 与 Google Cloud Console OAuth 授权重定向 URI 白名单；
   5. CHANGELOG.md 在 `### Removed` 段落登记，与 Keep a Changelog 语义对齐。
 - **后续防范**：
@@ -278,9 +278,9 @@
 ## ISSUE-015 Knowledge / Catalog 与 Wiki 入口的 Catalog 选择器冗余 → 单实例 Catalog 收敛（Phase 4）
 
 - **表因**：用户在 `/knowledge/catalog` 与 `/knowledge/wiki` 两个入口顶部均看到「目录：选择目录」`<CatalogSelector>` 组件组；首次进入未选择 catalog 时整页空载，显著的 UX 摩擦点；同时 KnowledgeNav 的 7 个固定 tab、Sidebar 的 5 个一级条目均未按 catalog 分支，使「选 catalog」沦为不可观测的全局态。截图来自 `/knowledge/catalog`（参见 [`apps/negentropy-ui/app/knowledge/catalog/page.tsx:11-89`](../apps/negentropy-ui/app/knowledge/catalog/page.tsx) 与 [`apps/negentropy-ui/app/knowledge/wiki/page.tsx:5,15-68`](../apps/negentropy-ui/app/knowledge/wiki/page.tsx)）。
-- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`knowledges.md` §13](./knowledges.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
+- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`knowledges.md` §13](../knowledge/design/knowledges.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
 - **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
-  1. **架构沉淀**（本次 PR）：[`knowledges.md` §15 单实例 Catalog 收敛（Phase 4）](./knowledges.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`negentropy-wiki-ops.md` §12](./negentropy-wiki-ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
+  1. **架构沉淀**（本次 PR）：[`knowledges.md` §15 单实例 Catalog 收敛（Phase 4）](../knowledge/design/knowledges.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
   2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
   3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
   4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
@@ -294,7 +294,7 @@
 - **同类问题影响**：
   1. **Memory 域**（`MemoryEntry` 与未来可能的 `MemoryNamespace`）：若引入类似的「全局上下文」概念，应优先以 partial unique index 表达单例不变量，避免重蹈 UX selector 覆辙；
   2. **Interface 域**（`McpServer` 当前已支持多实例但 `auto_start=True` 实际只期望 1 个 manager）：本次单实例约束的 `partial unique` 范式可作为模板复用；
-  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki-ops.md` §12.3](./negentropy-wiki-ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
+  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki/ops.md` §12.3](../wiki/ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
   4. **跨 corpus 文档归属**：`doc_catalog_documents` 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 是合法行为；UI 提示去重但不强制——这是 Phase 3 N:M 解耦的天然结果，Phase 4 单例化不影响该自由度。
 
 ## ISSUE-016 Wiki 发布创建 500（app_name NOT NULL 违约）+ Wiki 页 CatalogSelector 移除
@@ -399,7 +399,7 @@
   1. 三处 `WIKI_API_BASE` 默认值统一改为 `http://localhost:3292`，与 `cli.py` + `backend-url.ts` 同源；不引入「废弃端口守护」（参考 ISSUE-005 教训：废弃值即熵源）。
   2. `config.default.yaml` 的 `knowledge:` 块新增 `wiki_revalidate.url: http://localhost:3092/api/revalidate` + `timeout_seconds: 5.0`；secret 仍由 `NE_KNOWLEDGE_WIKI_REVALIDATE__SECRET` 环境变量注入（生产必填，本地容错）。`WikiRevalidateSettings` schema 零改动，`tests/unit_tests/knowledge/test_revalidate.py` 5 例用例显式构造 cfg 不依赖默认值，回归零风险。
   3. `page.tsx` catch 分支引入 `unstable_noStore()`（Next.js 15 next ^15.5.15 已稳定支持）：失败本次响应不写入 ISR cache，回落为 per-request SSR 一次/请求；后端恢复后下次访问即可正常重建 ISR cache。`export const revalidate = 300` 保留，成功路径仍享 ISR；与 AGENTS.md 「Evolutionary Design」一致——把失败转化为可观测、可自愈的反馈环。
-  4. `docs/negentropy-wiki-ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
+  4. `docs/wiki/ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
 - **后续防范**：
   1. **跨进程默认值即合约**：所有跨进程默认端口、URL、密钥需在初始化时声明 SSOT 出处（参考 `apps/negentropy-ui/lib/server/backend-url.ts:DEFAULT_BACKEND_BASE_URL` 范式）；CR 评审涉及 `process.env.X || "http://localhost:NNNN"` 模板时，必须显式核对该端口是否与项目唯一端口分配表一致。
   2. **「降级为兜底空」的 catch 必须配套缓存失效声明**：任何 `catch (err) { return [] }` 模式在 SSG/ISR 上下文中都属潜在自愈陷阱；catch 块需配合 `unstable_noStore()` 或显式 `throw` 让上层错误边界接管，禁止"静默写盘空数组"。
@@ -609,7 +609,7 @@
 ## ISSUE-029 Home Ping 500 复发：文档侧 `--reload_agents` 未同步 `cli.py` 修复
 
 - **表因**：用户在 Home 页发送 "Ping, give me a pong"，前端无响应；后端日志 `POST /run_sse` 返回 500，异常 `ValueError: Agent not found: 'negentropy'. No matching directory or module exists in '.../src/negentropy/negentropy'`。
-- **根因**：`cli.py` 的 `agents_dir` 已在 commit `35204ff` 从 `src/negentropy` 修正为 `src`（通过 `Path(__file__)` 推导绝对路径，免疫 cwd 漂移），但 `README.md`、`docs/zh-CN/README.md`、`docs/development.md`、`docs/user-guide.md` 共 4 个文件 7 处启动命令仍写 `uv run adk web --port 8000 --reload_agents src/negentropy`。用户照文档启动后端复现旧 bug。
+- **根因**：`cli.py` 的 `agents_dir` 已在 commit `35204ff` 从 `src/negentropy` 修正为 `src`（通过 `Path(__file__)` 推导绝对路径，免疫 cwd 漂移），但 `README.md`、`docs/zh-CN/README.md`、`docs/architecture/development.md`、`docs/user-guide.md` 共 4 个文件 7 处启动命令仍写 `uv run adk web --port 8000 --reload_agents src/negentropy`。用户照文档启动后端复现旧 bug。
 - **二阶影响**：错误 `agents_dir` 导致 `src/services.py`（ADK `load_services_module` 桥接）不被加载，`apply_adk_patches()` 完全不执行 → 5 条扩展路由（`/auth`、`/knowledge`、`/memory`、`/interface`、`/sessions`）缺失，所有自定义中间件（`TracingInitMiddleware`、`AuthMiddleware`）不挂载，LiteLLM OTel callback 不注册，模型配置缓存不预热。错误命令的爆炸半径远不止 500。
 - **处理方式**：将所有文档中的 `uv run adk web ... --reload_agents src/negentropy` 统一替换为 `uv run negentropy serve ...`。CLI 包装器在 [`cli.py`](../apps/negentropy/src/negentropy/cli.py) 用 `Path(__file__)` 锚定 agents_dir，是单一事实源（SSOT），用户无需记忆易错的 `--reload_agents` 参数值。
 - **后续防范**：
@@ -754,7 +754,7 @@
 
 ## ISSUE-035 AI Agent 在 sandbox 浏览器中走项目 Google OAuth 被同意屏拦截：登录态不可复用导致验证链路中断
 
-- **表因**：AI Agent（Claude / Antigravity）在沙箱形态浏览器（Playwright 默认 `chromium.launch()` 启的空白 profile）中打开 [`localhost:3192`](http://localhost:3192) 触发项目自带的 Google OAuth 流（`/auth/google/login` → `accounts.google.com` → `/auth/google/callback`，参见 [docs/sso.md](./sso.md)），跳转到 `accounts.google.com` 后因该浏览器无任何 Google 登录态，被同意屏 / reCAPTCHA / 二步验证拦截，验证链路在此中断；用户被迫多次手动接管或放弃验证。
+- **表因**：AI Agent（Claude / Antigravity）在沙箱形态浏览器（Playwright 默认 `chromium.launch()` 启的空白 profile）中打开 [`localhost:3192`](http://localhost:3192) 触发项目自带的 Google OAuth 流（`/auth/google/login` → `accounts.google.com` → `/auth/google/callback`，参见 [docs/sso.md](../infrastructure/design/sso.md)），跳转到 `accounts.google.com` 后因该浏览器无任何 Google 登录态，被同意屏 / reCAPTCHA / 二步验证拦截，验证链路在此中断；用户被迫多次手动接管或放弃验证。
 - **根因**：双重契约错配：
   1. **会话来源错配**：默认 sandbox 浏览器的 cookie store / device fingerprint / IP 风险评分均与用户日常 Chrome 不同，Google 风控将其视为可疑设备；即便用户在沙箱内输入正确账密，亦极易被强制拉起二次验证或拒绝；
   2. **工具选型缺位**：项目 [CLAUDE.md（即 AGENTS.md）](../CLAUDE.md) 此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
@@ -1208,7 +1208,7 @@
   3. **C4 中断门**：`Composer` `isGenerating` 时 Send 切换为红色 Stop 按钮（`data-testid="composer-stop-button"`）；`home-body.handleCancelRun` 调 `agent.abortRun()` + `userCancelledAtRef` 100ms 窗口屏蔽 cancel 引发的 `RUN_ERROR`；不引入 RUN_STOPPED 协议事件（最小干预，避免污染事件流）。
   4. **C3 Tool Progress**：`types/common.ts` 加 `ToolProgressMap` / `ToolProgressSnapshot`；`ToolExecutionGroup` 加 `ToolProgressBar` 子组件（`data-testid="tool-progress"`）；`home-body` 从 `snapshotForDisplay.tool_progress` 旁路提取 → `ChatStream.toolProgressMap` → `AssistantReplyBubble` → `ToolExecutionCard`；不进入 conversationTree，不参与 message-ledger（彻底规避 ISSUE-031 时间窗）。
   5. **论文采集 MVP**：`apps/negentropy/src/negentropy/agents/tools/paper.py` 新增 `search_papers`（arxiv API + since_days 过滤 + tool_progress 推送）+ `ingest_paper`（保证 agent-papers Corpus 存在 → 调 `KnowledgeService.ingest_url`）；分别注册到 `PerceptionFaculty.tools` / `InternalizationFaculty.tools`；新增 8 个单测覆盖 progress 推送 / arxiv 序列化 / KS 调用契约。
-  6. **文档同步**：`docs/user-guide.md` 新增 §3.7 长任务/中断 + §3.8 附件 + §3.9 提示词最佳实践 + §3.10 错误排查 + §3.11 浏览器实机回归；新增 `docs/user-guide/papers-curation.md` 论文采集上手；`docs/framework.md` §9.7-9.9 增补 Tool Progress / 中断门 / Multi-modal 协议契约（含 IEEE 引用扩展至 19 条）。
+  6. **文档同步**：`docs/user-guide.md` 新增 §3.7 长任务/中断 + §3.8 附件 + §3.9 提示词最佳实践 + §3.10 错误排查 + §3.11 浏览器实机回归；新增 `docs/user-guide/papers-curation.md` 论文采集上手；`docs/architecture/framework.md` §9.7-9.9 增补 Tool Progress / 中断门 / Multi-modal 协议契约（含 IEEE 引用扩展至 19 条）。
 - **后续防范**：
   1. **任何 Home 对话路径变更必须对应 E2E 用例**：双气泡守卫断言 `[data-testid="message-bubble"][data-message-role="assistant"]` count=1 是合并前必检条款；
   2. **长时工具必须实现 tool_progress**：MVP 默认按语义里程碑（5%/20%/60%/100%）稀疏推送 + 终态清理；若改细粒度推送须按 `tool_call_id` 强制 ≥ 500ms 节流，违反将增加 ISSUE-031 类回归风险；
@@ -1288,7 +1288,7 @@
   5. **前端 `apps/negentropy-ui/utils/citation-parser.ts`**：严格 regex `(?<![\\w\\^])\[(\d+)\](?!\(|:)` 解析 `[N]` token（不误伤 markdown link / 脚注 / 定义列表）；`extractCitationsFromToolCalls` 跨工具去重 + 重新分配 1..N；
   6. **`MessageBubble.MarkdownContent` 加 prop `citations?: Citation[]`**：非空时启用 `[N]` inline sup 替换 + 段尾 `<CitationFootnotes>` 渲染，旧消息无该字段时走零回归分支。
 - **后续防范**：
-  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](./conversation-foundation.md)）；
+  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](../architecture/conversation-foundation.md)）；
   2. **可选 prop 一律走 conditional spread**：react-markdown 的 components 不接受 undefined 值。如条件性挂 component，必须 `if(condition){ components.x = fn }` 而非 `x: cond ? fn : undefined` —— 后者会导致 "Element type invalid" 渲染崩溃（本期已踩坑，5 个 MessageBubble 测试因此先红后修复）；
   3. **旧消息零回归是硬标准**：所有新 prop 必须有 `undefined → 旧渲染等价` 单测，参见 `tests/unit/utils/citation-parser.test.ts`。
 - **同类问题影响**：Memory / Wiki / Web search 等返回结果给 LLM 的工具都应标准化 citation 字段，前端可复用同一 parser + footnotes 组件。
@@ -2063,3 +2063,37 @@
   - 本仓库其余 `router.replace` / `router.push` 调用（`app/admin/layout.tsx`、`app/interface/layout.tsx`、`app/interface/task-models/page.tsx`、`app/interface/models/page.tsx`、`app/knowledge/documents/page.tsx`）均为 pathname 级跳转，不在 bug 影响面，保持不变。
   - 未来若在 Knowledge / Memory / Interface 页加入"仅 query 切换 tab/filter"的入口（如 `?tab=...` / `?filter=...`），需直接采用 `window.history.replaceState` 模式而非 `router.replace`。
   - 与 [ISSUE-061](#issue-061) / [ISSUE-062](#issue-062) / [ISSUE-066](#issue-066) 一起构成 Next.js App Router URL 单源派生模式下的四件套：URL 派生（061 v2-D）、稳定 deps（062）、router.replace 异步延迟下的 pending auto-send（066）、router.replace 同 pathname no-op 绕道（本期 088）。后续接入新 URL-派生场景时，应同步审视这四件套是否完整。
+
+---
+
+## ISSUE-089 `builtin_tools.visibility` ORM Enum 与迁移 VARCHAR 漂移致 `/interface/tools` 与 `/interface/stats` 500（2026-05-18）
+
+- **表因**：服务端日志（开发本机与开发环境同步复现）`uvicorn.error` 反复抛出 `Exception in ASGI application`，根因是 SQLAlchemy 抛 `ProgrammingError`：
+  ```
+  asyncpg.exceptions.UndefinedFunctionError: operator does not exist:
+    character varying = negentropy.pluginvisibility
+  HINT: No operator matches the given name and argument types.
+  [parameters: ('google:106729725448726600925', 'PUBLIC', 'builtin_tool', 'google:...')]
+  SQL: ... WHERE negentropy.builtin_tools.visibility = $2::negentropy.pluginvisibility ...
+  ```
+  两个端点 500：`GET /interface/tools`（[`api.list_builtin_tools`](../../apps/negentropy/src/negentropy/interface/api.py)）与 `GET /interface/stats`（[`api.get_stats`](../../apps/negentropy/src/negentropy/interface/api.py)），同一链路都经过 [`permissions.get_visible_plugin_ids`](../../apps/negentropy/src/negentropy/interface/permissions.py) 的 `model.visibility == PluginVisibility.PUBLIC` 子查询。
+- **根因**：
+  1. PG 枚举 `negentropy.pluginvisibility` 在 [`0001_init_schema.py:196`](../../apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py) 创建，成员 NAME 为大写 `PRIVATE/SHARED/PUBLIC`。`mcp_servers/skills/sub_agents` 三类 plugin 均沿此模板建表。
+  2. [`0031_builtin_tools.py:82`](../../apps/negentropy/src/negentropy/db/migrations/versions/0031_builtin_tools.py) 偏离模板，把 `builtin_tools.visibility` 建为 `VARCHAR(20) NOT NULL DEFAULT 'private'`，并以小写字面量 `'public'` 种子化 `google_search` 行（line 127）。
+  3. ORM 模型 [`builtin_tool.py:30-34`](../../apps/negentropy/src/negentropy/models/builtin_tool.py) 沿用 `Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA)`，SQLAlchemy 据此生成 `WHERE visibility = $N::negentropy.pluginvisibility` 的显式 cast，绑定值用枚举成员 NAME（大写 `'PUBLIC'`）。
+  4. PG 无 `varchar = pluginvisibility` 操作符，对 VARCHAR 列做 enum cast 直接报 `UndefinedFunctionError`。
+- **处理方式**：
+  1. 新增前向迁移 [`0036_builtin_tools_visibility_enum.py`](../../apps/negentropy/src/negentropy/db/migrations/versions/0036_builtin_tools_visibility_enum.py) 三步走：
+     1. `UPDATE` 把 `LOWER(visibility::text) ∈ {'private','shared','public'}` 的行规范化为 enum 成员名（大写）；
+     2. `DO $$ ... RAISE EXCEPTION ... $$` 防御性断言：若仍有非法值，明确抛错而非让 `ALTER TYPE` 报含糊的 cast 错误；
+     3. `DROP DEFAULT` → `ALTER COLUMN visibility TYPE negentropy.pluginvisibility USING visibility::negentropy.pluginvisibility` → `SET DEFAULT 'PRIVATE'::negentropy.pluginvisibility`。
+  2. **不修改 0031**：违反 forward-only 约定会破坏既有部署的 stairway 测试，且 0036 已在数据规范化阶段覆盖 0031 的小写遗留。
+  3. `downgrade()` 同样三步反向，`USING visibility::text` 中转回 `VARCHAR(20)`、恢复 `DEFAULT 'private'`，与 [ISSUE-012](#issue-012)「枚举列上 text-only 操作必须经 `::text` cast」对齐。
+  4. 新增 integration 测试 [`tests/integration_tests/interface/test_get_visible_plugin_ids.py`](../../apps/negentropy/tests/integration_tests/interface/test_get_visible_plugin_ids.py) 守护真实 PG round-trip：参数化覆盖 4 类 plugin（`builtin_tool/mcp_server/skill/sub_agent`），断言 own + PUBLIC + SHARED（PluginPermission 授权） + is_system 的并集语义全部生效，他人 PRIVATE 不可见；并补一个直接的「`builtin_tool` PUBLIC 子查询不抛 ProgrammingError」回归点位。
+- **后续防范**：
+  1. **新增 plugin 表的强制模板**：任何新表若有 `visibility` 列，必须复用 `Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA)`（ORM）+ `sa.Enum("PRIVATE", "SHARED", "PUBLIC", name="pluginvisibility", schema="negentropy")`（迁移），与 0001 的 `mcp_servers/skills/sub_agents` 三处保持对称；review 时若发现 `visibility VARCHAR` 直接打回。
+  2. **ORM ↔ 迁移漂移的代价是「类型层 SQL 错误」**：与字段名漂移（[ISSUE-010](#issue-010)）、属性懒加载漂移（[ISSUE-016](#issue-016) 三阶）同属「写入侧契约与读取侧契约错位」家族。Review 红线：所有 `mapped_column(Enum(...))` 的 PR 必须对照同表 `CREATE TABLE` / 后续 `ALTER COLUMN` 迁移是否落地为对应 PG enum 类型。
+  3. **真实 PG round-trip 测试是底线**：单元测试只能验证纯函数语义，类似 `get_visible_plugin_ids` 这种「ORM 表达式 → PG 执行」路径必须有 integration 用例覆盖；本期补的参数化用例可作为下次新增 plugin 表时的「填空」模板。
+- **同类问题影响**：
+  - 与 [ISSUE-012](#issue-012)（枚举列上 `LOWER`/`UPPER` 必须 `::text` cast）同源——本期是「读侧 cast 失败」，012 是「迁移侧 cast 失败」，两者共同提示「PG 枚举列与 text 之间的所有交互都需要显式 cast，且 ORM 侧声明类型必须与 DB 真实列类型严格一致」。
+  - 已确认本仓库其他 plugin 表（`mcp_servers/skills/sub_agents`）的 `visibility` 列与 ORM 声明一致，无同型漂移。任何未来新增 plugin 类型（如假想中的 `prompt_template`/`workflow`）必须按上文「新增 plugin 表的强制模板」实施。

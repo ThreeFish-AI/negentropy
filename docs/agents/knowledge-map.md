@@ -13,15 +13,30 @@
 
 - [Issues 摘要](issue.md) — 历次问题表因 / 根因 / 处理 / 防范的跨上下文留存
 
+## 系统架构与设计
+
+- [Framework（系统框架）](../architecture/framework.md)
+- [Development（开发指南）](../architecture/development.md)
+- [Conversation Foundation（对话基础）](../architecture/conversation-foundation.md)
+- [A2UI（Agent-to-UI 协议）](../architecture/a2ui.md)
+
 ## 系统能力概览
 
-- [Conversation Foundation（对话基础）](../conversation-foundation.md)
-- [Memory（记忆系统）](../memory.md) · [白皮书](../memory-whitepaper.md)
-- [Knowledge Graph（知识图谱）](../knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../knowledge-graph-federated.md) · [Wiki 知识图谱（按 Publication 切片发布）](../wiki-knowledge-graph.md)
-- [Skills](../skills.md)
-- [Negentropy Wiki Ops](../negentropy-wiki-ops.md)
-- [Agents at Wiki —— 浏览器回归验证报告](../wiki-agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
-- [Engineering Changelog](../engineering-changelog.md)
+- [Memory（记忆系统）](../memory/overview.md) · [白皮书](../memory/whitepaper.md)
+- [Knowledge Graph（知识图谱）](../knowledge/design/kg-overview.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../knowledge/design/kg-federated.md)
+- [Skills](../core/design/skills.md)
+- [Negentropy Wiki Ops](../wiki/ops.md)
+- [Wiki 知识图谱（按 Publication 切片发布）](../wiki/design/knowledge-graph.md)
+- [Agents at Wiki —— 浏览器回归验证报告](../wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
+- [Engineering Changelog](../core/engineering-changelog.md)
+
+## 用户文档与运维
+
+- [User Guide（用户指南）](../user-guide.md)
+- [Knowledges（知识库引用）](../knowledge/design/knowledges.md)
+- [SSO 配置](../infrastructure/design/sso.md)
+- [Observability / GenAI 可观测性](../infrastructure/design/observability-genai.md)
+- [QA Delivery Pipeline](../infrastructure/design/qa-delivery-pipeline.md)
 
 ## 关键基础设施
 

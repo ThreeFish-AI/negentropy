@@ -34,7 +34,7 @@ type ComposerProps = {
   onCancel?: () => void;
   /**
    * 附件 — Multi-modal 输入；空数组表示无附件。
-   * 与 AG-UI Multi-modal 子集对齐（详见 docs/framework.md §9 协议规范）。
+   * 与 AG-UI Multi-modal 子集对齐（详见 docs/architecture/framework.md §9 协议规范）。
    */
   attachments?: ComposerAttachment[];
   onAttachmentsChange?: (attachments: ComposerAttachment[]) => void;

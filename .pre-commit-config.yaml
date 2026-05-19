@@ -10,9 +10,25 @@
 # 手动运行全量检查：
 #   pre-commit run --all-files
 
+default_language_version:
+  python: python3.13
+
 default_install_hook_types: [pre-commit]
 
 repos:
+  # ── 通用文件检查 ──────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0  # pre-commit framework v5 尚未发布，暂用 v4 系列最新
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+
   # ── Python: apps/negentropy ──────────────────────────────────────────────
   # 使用官方 ruff-pre-commit 集成（版本与 pyproject.toml 中 ruff>=0.14.14 对齐）
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -51,4 +67,29 @@ repos:
         language: system
         entry: bash -c 'cd apps/negentropy-wiki && pnpm lint'
         files: ^apps/negentropy-wiki/.*\.(js|jsx|ts|tsx|mjs|cjs)$
+        pass_filenames: false
+
+  # ── Python: apps/negentropy-perceives ────────────────────────────────────
+  # 使用 local hooks（uv run），与 CI 流水线行为一致
+  # perceives 的 ruff 版本 (>=0.15.10) 与 negentropy (0.14.14) 不同，独立配置
+  - repo: local
+    hooks:
+      - id: perceives-ruff-format
+        name: ruff format (negentropy-perceives)
+        language: system
+        entry: bash -c 'cd apps/negentropy-perceives && uv run ruff format'
+        files: ^apps/negentropy-perceives/
+        types_or: [python, pyi]
+      - id: perceives-ruff-lint
+        name: ruff lint (negentropy-perceives)
+        language: system
+        entry: bash -c 'cd apps/negentropy-perceives && uv run ruff check --fix --exit-non-zero-on-fix'
+        files: ^apps/negentropy-perceives/
+        types_or: [python, pyi]
+      - id: perceives-mypy
+        name: mypy (negentropy-perceives)
+        language: system
+        entry: bash -c 'cd apps/negentropy-perceives && uv run mypy src/negentropy/perceives/'
+        files: ^apps/negentropy-perceives/
+        types_or: [python, pyi]
         pass_filenames: false

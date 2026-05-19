@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.exc import IntegrityError
 
-from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import get_current_user, get_current_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.config.model_resolver import invalidate_cache as invalidate_model_cache
@@ -590,61 +590,68 @@ class NegentropySubAgentSyncResponse(BaseModel):
 # =============================================================================
 
 
+async def _safe_plugin_stats(db, plugin_type: str, model, user: AuthUser) -> dict[str, int]:
+    """单类 plugin 的可见性 + enabled 计数，异常隔离 + 日志可定位。
+
+    设计约定：
+    - 任一段 SQL/ORM 异常（schema 漂移、迁移半途、enum 反序列化失败等）
+      不再向上抛出 → Dashboard 不会被单点故障拖垮成全 0；
+    - 失败时返回 ``{total: 0, enabled: 0}`` 与无可见行的语义一致，并
+      ``logger.exception`` 记录 root cause，便于 backend stderr 定位。
+    """
+    try:
+        visible_ids = await get_visible_plugin_ids(db, plugin_type, user)
+        total = len(visible_ids)
+        if not visible_ids:
+            return {"total": 0, "enabled": 0}
+        enabled = (
+            await db.scalar(select(func.count()).where(and_(model.id.in_(visible_ids), model.is_enabled.is_(True))))
+            or 0
+        )
+        return {"total": int(total), "enabled": int(enabled)}
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("interface_stats_plugin_failed", extra={"plugin_type": plugin_type, "error": str(exc)})
+        return {"total": 0, "enabled": 0}
+
+
 @router.get("/stats", response_model=StatsResponse)
-async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse:
-    """获取 Dashboard 统计数据"""
+async def get_stats(user: AuthUser = Depends(get_current_user_with_db_roles)) -> StatsResponse:
+    """获取 Dashboard 统计数据。
+
+    auth 依赖与 ``/auth/me`` 对齐到 ``get_current_user_with_db_roles``，避免
+    「DB 已提升 admin、JWT 仍 user」的状态闪烁（ISSUE-049）：前端通过
+    ``/auth/me`` 拿到 DB-resolved roles 显示 Models 卡片，stats 端点必须用
+    同一口径才能与子页面一致。
+    """
     async with AsyncSessionLocal() as db:
-        # MCP Servers
-        visible_mcp_ids = await get_visible_plugin_ids(db, "mcp_server", user)
-        mcp_total = len(visible_mcp_ids)
-        mcp_enabled_result = await db.scalar(
-            select(func.count()).where(and_(McpServer.id.in_(visible_mcp_ids), McpServer.is_enabled.is_(True)))
-        )
-        mcp_enabled = mcp_enabled_result or 0
+        mcp = await _safe_plugin_stats(db, "mcp_server", McpServer, user)
+        skills = await _safe_plugin_stats(db, "skill", Skill, user)
+        subagents = await _safe_plugin_stats(db, "sub_agent", SubAgent, user)
+        tools = await _safe_plugin_stats(db, "builtin_tool", BuiltinTool, user)
 
-        # Skills
-        visible_skill_ids = await get_visible_plugin_ids(db, "skill", user)
-        skill_total = len(visible_skill_ids)
-        skill_enabled_result = await db.scalar(
-            select(func.count()).where(and_(Skill.id.in_(visible_skill_ids), Skill.is_enabled.is_(True)))
-        )
-        skill_enabled = skill_enabled_result or 0
-
-        # SubAgents
-        visible_subagent_ids = await get_visible_plugin_ids(db, "sub_agent", user)
-        subagent_total = len(visible_subagent_ids)
-        subagent_enabled_result = await db.scalar(
-            select(func.count()).where(and_(SubAgent.id.in_(visible_subagent_ids), SubAgent.is_enabled.is_(True)))
-        )
-        subagent_enabled = subagent_enabled_result or 0
-
-        # Models (Vendor configs + Model configs)
-        # 仅 admin 可读，非 admin 以全 0 占位以便前端按角色决定是否展示
+        # Models / Vendor configs：仅 admin 可读，非 admin 以全 0 占位以便前端
+        # 按角色决定是否展示。同样用 try/except 隔离，避免 vendor/model 表
+        # 异常拖垮整体响应。
+        vendor_total = 0
+        model_total = 0
+        model_enabled = 0
         if "admin" in user.roles:
-            vendor_total = await db.scalar(select(func.count()).select_from(VendorConfig)) or 0
-            model_total = await db.scalar(select(func.count()).select_from(ModelConfig)) or 0
-            model_enabled = (
-                await db.scalar(select(func.count()).select_from(ModelConfig).where(ModelConfig.enabled.is_(True))) or 0
-            )
-        else:
-            vendor_total = 0
-            model_total = 0
-            model_enabled = 0
-
-        # Builtin Tools
-        visible_tool_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
-        tool_total = len(visible_tool_ids)
-        tool_enabled_result = await db.scalar(
-            select(func.count()).where(and_(BuiltinTool.id.in_(visible_tool_ids), BuiltinTool.is_enabled.is_(True)))
-        )
-        tool_enabled = tool_enabled_result or 0
+            try:
+                vendor_total = await db.scalar(select(func.count()).select_from(VendorConfig)) or 0
+                model_total = await db.scalar(select(func.count()).select_from(ModelConfig)) or 0
+                model_enabled = (
+                    await db.scalar(select(func.count()).select_from(ModelConfig).where(ModelConfig.enabled.is_(True)))
+                    or 0
+                )
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.exception("interface_stats_models_failed", extra={"error": str(exc)})
 
     return StatsResponse(
-        mcp_servers={"total": mcp_total, "enabled": mcp_enabled},
-        skills={"total": skill_total, "enabled": skill_enabled},
-        subagents={"total": subagent_total, "enabled": subagent_enabled},
-        models={"total": model_total, "enabled": model_enabled, "vendors": vendor_total},
-        tools={"total": tool_total, "enabled": tool_enabled},
+        mcp_servers=mcp,
+        skills=skills,
+        subagents=subagents,
+        models={"total": int(model_total), "enabled": int(model_enabled), "vendors": int(vendor_total)},
+        tools=tools,
     )
 
 

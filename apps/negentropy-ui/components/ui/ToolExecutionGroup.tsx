@@ -81,7 +81,7 @@ function formatEta(eta: number | undefined): string | null {
  * 设计原则：
  * - 走 state_delta 旁路，不参与 message-ledger dedup（避开 ISSUE-031 时间窗）。
  * - percent / eta / stage 来自后端 ADK state_delta 推送；MVP 默认按语义里程碑稀疏推送（5%/20%/60%/100%），
- *   细粒度推送时需在工具内部按 tool_call_id 强制 ≥ 500ms 节流（详见 docs/framework.md §9.7）。
+ *   细粒度推送时需在工具内部按 tool_call_id 强制 ≥ 500ms 节流（详见 docs/architecture/framework.md §9.7）。
  * - 已完成 / error 状态下不再展示 progress（避免冗余）。
  */
 function ToolProgressBar({ progress }: { progress: ToolProgressSnapshot }) {

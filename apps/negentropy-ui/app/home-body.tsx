@@ -731,7 +731,7 @@ export function HomeBody({
         activeSession.label === createSessionLabel(sessionId);
       // C5 MVP — 附件以轻量 metadata 透传后端（仅文件名/类型/体积），
       // PDF 抓取场景目前走 paper.fetch(url)，不需要把整个 base64 灌入 stream。
-      // 完整附件读取（read_attachment 工具）将在 V1 增强（参见 docs/framework.md §9 协议规范）。
+      // 完整附件读取（read_attachment 工具）将在 V1 增强（参见 docs/architecture/framework.md §9 协议规范）。
       const attachmentMeta = attachments.map((a) => ({
         id: a.id,
         name: a.name,
