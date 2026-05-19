@@ -14,7 +14,13 @@ runs:
   steps:
     - name: Enable Corepack and prepare yarn
       shell: bash
-      run: corepack enable && corepack prepare yarn@stable --activate
+      run: |
+        # 临时移除根 packageManager 字段，避免 Node 22 Corepack 因检测到 pnpm 而拒绝 yarn
+        if [ -f package.json ]; then
+          tmp=$(mktemp)
+          jq 'del(.packageManager)' package.json > "$tmp" && mv "$tmp" package.json
+        fi
+        corepack enable && corepack prepare yarn@stable --activate
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
