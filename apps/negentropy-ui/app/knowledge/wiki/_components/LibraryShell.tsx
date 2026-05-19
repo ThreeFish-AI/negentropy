@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useRef, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { CatalogNode, deleteCatalogNode } from "@/features/knowledge";
@@ -11,13 +10,14 @@ import { useSingletonCatalog } from "../_hooks/useSingletonCatalog";
 import { useCatalogTree } from "../_hooks/useCatalogTree";
 import { useWikiPublications } from "../_hooks/useWikiPublications";
 
-import { ModeToggle, type ViewMode } from "./ModeToggle";
 import { CatalogTreePane } from "./catalog/CatalogTreePane";
 import { NodeDetailPanel } from "./catalog/NodeDetailPanel";
 import { CreateNodeDialog } from "./catalog/CreateNodeDialog";
-import { WikiPublicationList } from "./WikiPublicationList";
-import { WikiPublicationDetail } from "./WikiPublicationDetail";
-import { CreateWikiPublicationDialog } from "./CreateWikiPublicationDialog";
+import { WikiPublishToolbar } from "./WikiPublishToolbar";
+import {
+  WikiEntriesPreview,
+  type WikiEntriesPreviewHandle,
+} from "./WikiEntriesPreview";
 
 interface ContextMenuState {
   x: number;
@@ -31,37 +31,25 @@ interface DragState {
   position: "before" | "inside" | "after" | null;
 }
 
-export function LibraryShell({ initialMode }: { initialMode: ViewMode }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export function LibraryShell() {
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const { catalogId, loading: catalogLoading, error: catalogError } = useSingletonCatalog();
   const treeApi = useCatalogTree({ catalogId });
   const pubsApi = useWikiPublications({ catalogId });
 
-  const [viewMode, setViewMode] = useState<ViewMode>(initialMode);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [createPubOpen, setCreatePubOpen] = useState(false);
   const [dragState, setDragState] = useState<DragState>({
     draggedId: null,
     targetId: null,
     position: null,
   });
 
-  const handleModeChange = useCallback(
-    (mode: ViewMode) => {
-      setViewMode(mode);
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("mode", mode);
-      router.replace(`/knowledge/wiki?${params.toString()}`);
-    },
-    [router, searchParams],
-  );
+  const entriesPreviewRef = useRef<WikiEntriesPreviewHandle | null>(null);
 
   // --- Catalog handlers ---
   const handleAddChild = useCallback((parentId: string) => {
@@ -205,9 +193,26 @@ export function LibraryShell({ initialMode }: { initialMode: ViewMode }) {
     setDragState({ draggedId: null, targetId: null, position: null });
   }, []);
 
+  const handleAfterSync = useCallback(() => {
+    entriesPreviewRef.current?.refresh();
+  }, []);
+
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
-      <KnowledgeNav title="Wiki" modeToggle={<ModeToggle value={viewMode} onChange={handleModeChange} />} />
+      <KnowledgeNav title="Wiki" />
+
+      <WikiPublishToolbar
+        catalogId={catalogId ?? ""}
+        publications={pubsApi.publications}
+        selectedPub={pubsApi.selectedPub}
+        selectedId={pubsApi.selectedId}
+        publicationsLoading={pubsApi.loading}
+        onSelectPublication={pubsApi.setSelectedId}
+        onPublicationsChanged={pubsApi.loadPublications}
+        onPublicationCreated={pubsApi.handleCreated}
+        onPublicationDeleted={pubsApi.handleDeleted}
+        onAfterSync={handleAfterSync}
+      />
 
       <div className="flex min-h-0 flex-1 px-6 py-4 gap-4">
         <CatalogTreePane
@@ -241,42 +246,19 @@ export function LibraryShell({ initialMode }: { initialMode: ViewMode }) {
           onCloseContextMenu={() => setContextMenu(null)}
         />
 
-        <main className="flex-1 min-w-0 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-          {viewMode === "edit" ? (
+        <main className="flex-1 min-w-0 rounded-2xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 overflow-auto">
             <NodeDetailPanel
               node={treeApi.selectedNode}
               catalogId={catalogId ?? ""}
               onUpdate={treeApi.refresh}
               onDelete={handleDeleted}
             />
-          ) : (
-            <div className="flex h-full">
-              <div className="w-[280px] shrink-0 border-r border-border flex flex-col">
-                <div className="p-3 border-b border-border">
-                  <button
-                    onClick={() => setCreatePubOpen(true)}
-                    disabled={!catalogId}
-                    className="w-full px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                  >
-                    + 新建发布
-                  </button>
-                </div>
-                <WikiPublicationList
-                  publications={pubsApi.publications}
-                  selectedId={pubsApi.selectedId}
-                  onSelect={(pub) => pubsApi.setSelectedId(pub.id)}
-                  loading={pubsApi.loading}
-                />
-              </div>
-              <div className="flex-1 min-w-0 overflow-auto">
-                <WikiPublicationDetail
-                  publication={pubsApi.selectedPub}
-                  onChanged={pubsApi.loadPublications}
-                  onDeleted={pubsApi.handleDeleted}
-                />
-              </div>
-            </div>
-          )}
+          </div>
+          <WikiEntriesPreview
+            ref={entriesPreviewRef}
+            publication={pubsApi.selectedPub}
+          />
         </main>
       </div>
 
@@ -289,13 +271,6 @@ export function LibraryShell({ initialMode }: { initialMode: ViewMode }) {
           setAddParentId(null);
         }}
         onCreated={handleCreated}
-      />
-
-      <CreateWikiPublicationDialog
-        open={createPubOpen}
-        catalogId={catalogId ?? ""}
-        onClose={() => setCreatePubOpen(false)}
-        onCreated={pubsApi.handleCreated}
       />
 
       {confirmDialog}
