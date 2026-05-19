@@ -56,7 +56,7 @@ dependencies = [
     # --- PDF 表格补充引擎 ---
     "camelot-py>=0.11.0",  # 表格提取补充引擎（需系统级 ghostscript）
     # --- LLM 编排（Smart 模式） ---
-    "litellm>=1.70.0",  # litellm 硬锁 pydantic==2.12.5，暂无法升级
+    "litellm>=1.83.7",  # >=1.83.7 修复 GHSA-9566(SQLi/SSTI) / 9590(MCP-RCE) / 9588(hash exposure) / 9589(OIDC bypass)
     # --- CLI ---
     "typer>=0.21.2",  # docling 2.89 要求 typer<0.22.0
     "rich>=15.0.0",
@@ -182,8 +182,10 @@ ignore_missing_imports = true
 # Pillow 版本统一：surya-ocr(<11) 与 MinerU(>=11) 冲突，上游 PR datalab-to/surya#489 待发布
 # lxml>=6.1.0：修复 CVE-2026-41066（间接依赖）
 # urllib3>=2.7.0：修复 CVE-2026-44431, CVE-2026-44432（间接依赖）
+# openai>=2.20.0：litellm>=1.83.7 要求 openai>=2.20.0（覆盖 marker-pdf<2.0.0 约束）
 # transformers 锁定 4.x：marker-pdf(^4.45.2) 与 docling[vlm](>=4.42.0) 兼容交集
-override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "transformers>=4.56.1,<5.0.0"]
+# Trainer CVE: 任意代码执行仅影响 Trainer 类调用路径，项目未使用 Trainer，风险可接受
+override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0"]
 
 [dependency-groups]
 dev = [
