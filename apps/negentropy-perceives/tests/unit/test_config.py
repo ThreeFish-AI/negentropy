@@ -998,10 +998,10 @@ class TestBundledDefaultAsSource:
         yaml_file.write_text(yaml_content, encoding="utf-8")
 
         # 模拟无 -c 场景：将 yaml_file 作为用户配置路径（非 -c 显式指定）
-        import negentropy.perceives.config as config_module
+        import negentropy.perceives._config_loader as config_loader_module
 
         with patch.object(
-            config_module, "_get_user_config_path", return_value=yaml_file
+            config_loader_module, "_get_user_config_path", return_value=yaml_file
         ):
             with patch.dict(
                 os.environ,
@@ -1018,11 +1018,11 @@ class TestBundledDefaultAsSource:
         验证修复 _UserYamlConfigSource.__call__() 返回空字典的 Bug 后，
         内置默认配置值不再被忽略，而是通过 pydantic-settings 优先级链正确注入。
         """
-        import negentropy.perceives.config as config_module
+        import negentropy.perceives._config_loader as config_loader_module
 
         # 使用不存在的用户配置文件，确保仅 bundled 默认生效
         with patch.object(
-            config_module,
+            config_loader_module,
             "_get_user_config_path",
             return_value=tmp_path / "nonexistent.yaml",
         ):
@@ -1048,10 +1048,10 @@ class TestBundledDefaultAsSource:
         yaml_file = tmp_path / "user.yaml"
         yaml_file.write_text(yaml_content, encoding="utf-8")
 
-        import negentropy.perceives.config as config_module
+        import negentropy.perceives._config_loader as config_loader_module
 
         with patch.object(
-            config_module, "_get_user_config_path", return_value=yaml_file
+            config_loader_module, "_get_user_config_path", return_value=yaml_file
         ):
             with patch.dict(os.environ, {}, clear=True):
                 cfg = build_settings(config_path=None)
