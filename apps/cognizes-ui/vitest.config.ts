@@ -41,8 +41,8 @@ export default defineConfig({
     globals: true,
     setupFiles: "./test/setup.ts",
     include: [
-      "../tests/ui/unit/**/*.{test,spec}.{ts,tsx}",
-      "../tests/ui/integration/**/*.{test,spec}.{ts,tsx}",
+      "../cognizes/tests/ui/unit/**/*.{test,spec}.{ts,tsx}",
+      "../cognizes/tests/ui/integration/**/*.{test,spec}.{ts,tsx}",
     ],
     coverage: {
       provider: "v8",
