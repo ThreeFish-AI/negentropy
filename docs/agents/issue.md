@@ -2120,3 +2120,30 @@
 - **同类问题影响**：
   - 检视其它 `features/*/index.ts` barrel：凡 `export type { ... } from "@/lib/..."` 形态的 re-export 均需用本期同款判定标准复核（是否真的属于该领域）；
   - 二级导航过载的子页（`/memory` 系 7 → 6、`/interface` 系、`/knowledge` 系）若有类似「平台级面板栖息在领域 tab 下」的错位，应统一上提到 Home / Dashboard 整体快照。
+
+---
+
+## ISSUE-091 `agent_inspection.scheduled_tasks_summary` 自巡检永久失败：SQLAlchemy 重复 `func.coalesce(col, literal)` 触发 PG `GroupingError`（2026-05-19）
+
+- **表因**：服务端日志 `engine.schedulers.registry` 每次心跳都抛 `asyncpg.exceptions.GroupingError: column "scheduled_tasks.last_status" must appear in the GROUP BY clause or be used in an aggregate function`，调用栈定位到 [`engine/schedulers/handlers/agent_inspection.py:_scheduled_tasks_summary`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/agent_inspection.py)；自巡检 `scheduled_tasks_summary` 任务永久失败，`consecutive_failures` 累积进入退避窗口，Dashboard 顶部「全员失败」系统告警链路自身瘫痪。
+  ```
+  [SQL: SELECT coalesce(scheduled_tasks.last_status, $1::VARCHAR) AS status,
+               count(scheduled_tasks.id) AS count
+         FROM scheduled_tasks
+         WHERE scheduled_tasks.enabled IS true
+         GROUP BY coalesce(scheduled_tasks.last_status, $2::VARCHAR)]
+  [parameters: ('none', 'none')]
+  ```
+- **根因**：原查询在 SELECT 与 GROUP BY 各调用了一次 `func.coalesce(ScheduledTask.last_status, "none")`，SQLAlchemy 为两个相同的 Python 字面量 `"none"` 生成独立 `BindParameter`，编译后变成 `$1` / `$2`。PostgreSQL 在校验 GROUP BY 时按 **AST 等价**（含 BindParameter 序号）判断 SELECT 非聚合表达式是否在 GROUP BY 子句中——`coalesce(col, $1)` 与 `coalesce(col, $2)` 在它眼里不是同一表达式，遂判 `last_status` 列「未分组、又非聚合」并拒绝执行。即便复用同一 Python `func.coalesce(...)` 对象，select() 编译阶段的子句克隆仍可能拆出新 bind，此模式属于 SQLAlchemy + 严格 PG 的经典陷阱。
+- **处理方式**：
+  1. 把「NULL → `"none"`」归一化**从 SQL 层下沉到 Python 层**——SELECT/GROUP BY 直接用 `ScheduledTask.last_status` 列对象（PG 允许 NULL 作为独立分组键），dict comprehension 一次性归一化键名，下游 `metrics.distribution` 键集合与原行为完全等价；
+  2. 在 [`tests/unit_tests/engine/test_scheduler_handlers.py`](../../apps/negentropy/tests/unit_tests/engine/test_scheduler_handlers.py) 新增 `TestScheduledTasksSummary` 6 个用例：全 ok / 含 NULL 行 / failed>50% / 空表 / total<2 防误报，并加 **SQL 回归守门用例**——`compile(literal_binds=True)` 后断言查询不再出现 `coalesce`，防再次踩坑。
+- **后续防范**：
+  1. **严禁在同一 statement 的 SELECT + GROUP BY 中重复出现 `func.coalesce(col, literal_value)`**（即便复用同一 expression 对象也存在 bind 拆分风险）；同类 SQL 端归一化（`coalesce` / `case when ... then literal`）只能在 GROUP BY **或** SELECT 任一侧出现一次，另一侧用别名 / 序号 / 原列引用；
+  2. **优先在 Python 层做 NULL 归一化**——对于结果集行数有限（与 distinct group 数同阶）的聚合查询，Python 端 `if x is not None else default` 比 SQL 层 `coalesce` 更稳健、可读、可测；
+  3. **自巡检模块自身必须有单测覆盖**——`agent_inspection.scheduled_tasks_summary` 这类「监控其他任务健康度」的 handler 一旦失败，告警链路就会反向静默；review 中若发现「handler 函数无对应 Test 类」一律打回；
+  4. 类似的「SQL 翻译产物与原 Python 表达式不等价」陷阱与 [ISSUE-012](#issue-012)（枚举列上的 `LOWER` 需 `::text` cast）、[ISSUE-089](#issue-089)（ORM Enum 与列类型漂移）同属「SQL 编译期细节悄悄改写语义」家族——核心律：任何含 literal 的复杂表达式跨多个子句出现时，必须用 `compile(literal_binds=True)` 打印实际 SQL 验证。
+- **同类问题影响**：
+  - 搜索 `func.coalesce` 配合 `group_by` 的全仓库使用，**仅 `_scheduled_tasks_summary` 一处命中**，本次已修复；
+  - 类似模式（`func.case` / `cast` 在 SELECT + GROUP BY 重复出现）需 review 时主动核对：本期未发现，但作为未来 review 红线纳入；
+  - 调度框架退避窗口策略本身正常：本次失败任务在修复后第一个心跳成功时 `consecutive_failures` 由 Registry 清零，无需手工 reset。
