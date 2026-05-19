@@ -4,11 +4,10 @@ AG-UI E2E 可视化验收测试
 验证所有四大支柱的 AG-UI 事件在 E2E 场景中正确发射
 """
 
-import pytest
-import asyncio
 import json
-from typing import AsyncGenerator
-from httpx import AsyncClient, ASGITransport
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 # 导入 CopilotKit AG-UI 服务端应用
 from cognizes.engine.agui.copilotkit_server import app
@@ -134,7 +133,7 @@ class TestAgUiE2E:
                     events.append(event)
 
         # 查找记忆相关事件
-        memory_events = [e for e in events if e["type"] == "CUSTOM" and e.get("name", "").startswith("memory_")]
+        [e for e in events if e["type"] == "CUSTOM" and e.get("name", "").startswith("memory_")]
 
         # 记忆召回应该被记录
         # (这取决于系统是否有足够的记忆)

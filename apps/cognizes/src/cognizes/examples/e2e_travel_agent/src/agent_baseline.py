@@ -1,19 +1,18 @@
 import asyncio
-import sys
 import os
+import sys
 
 # Ensure we can import from the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
-from google.adk.memory import InMemoryMemoryService
-from google.genai import types
-
 # Import the agent factory from agent.py
-from agent import create_travel_agent
+from agent import create_travel_agent  # noqa: E402
+from google.adk.memory import InMemoryMemoryService  # noqa: E402
+from google.adk.runners import Runner  # noqa: E402
+from google.adk.sessions import InMemorySessionService  # noqa: E402
+from google.genai import types  # noqa: E402
 
 
 async def main():

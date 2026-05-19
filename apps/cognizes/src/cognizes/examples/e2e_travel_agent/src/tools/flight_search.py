@@ -2,8 +2,8 @@
 航班查询工具 - 模拟实现
 """
 
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
 
 
 async def search_flights(origin: str, destination: str, departure_date: str, passengers: int = 1) -> list[dict]:

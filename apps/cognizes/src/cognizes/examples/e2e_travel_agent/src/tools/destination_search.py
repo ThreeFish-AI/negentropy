@@ -4,9 +4,6 @@
 参考：docs/practice/030-the-perception.md - hybrid_search_function.sql
 """
 
-from typing import Optional
-import asyncpg
-
 # 目的地静态知识（实际场景从 RAG 知识库检索）
 DESTINATIONS = [
     {"name": "巴厘岛", "tags": ["海岛", "度假", "潜水", "SPA"], "climate": "热带"},

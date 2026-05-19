@@ -3,16 +3,17 @@ Travel Agent 定义 - 完全对标 Google 官方 Demo
 """
 
 from functools import cached_property
+
+from config import config
 from google import genai
 from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
 from google.adk.tools import FunctionTool
-from config import config
+from tools.destination_search import recommend_destinations
 
 # 导入工具
 from tools.flight_search import search_flights
 from tools.hotel_booking import book_hotel, search_hotels
-from tools.destination_search import recommend_destinations
 
 
 class CustomGemini(Gemini):
