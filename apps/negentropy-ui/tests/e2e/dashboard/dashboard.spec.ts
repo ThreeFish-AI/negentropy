@@ -227,6 +227,54 @@ async function mockSchedulerAPIs(page: PageHandle, opts?: { failedRuns?: number 
   await page.route("**/api/scheduler/stream*", async (route) => {
     await route.abort("connectionfailed");
   });
+
+  // FilterBar 的 Agent 下拉走 /api/interface/subagents 取一主五翼
+  await page.route("**/api/interface/subagents", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          owner_id: "google:test-user",
+          visibility: "public",
+          name: "NegentropyEngine",
+          display_name: "Negentropy Engine",
+          description: "Root agent",
+          agent_type: "llm_agent",
+          system_prompt: null,
+          model: null,
+          config: {},
+          adk_config: { kind: "root" },
+          skills: [],
+          tools: [],
+          source: "negentropy_builtin",
+          is_builtin: true,
+          is_enabled: true,
+          kind: "root",
+        },
+        {
+          id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          owner_id: "google:test-user",
+          visibility: "public",
+          name: "PerceptionFaculty",
+          display_name: "Perception Faculty",
+          description: "wing 1",
+          agent_type: "llm_agent",
+          system_prompt: null,
+          model: null,
+          config: {},
+          adk_config: { kind: "subagent" },
+          skills: [],
+          tools: [],
+          source: "negentropy_builtin",
+          is_builtin: true,
+          is_enabled: true,
+          kind: "subagent",
+        },
+      ]),
+    });
+  });
 }
 
 test.describe("Dashboard 子页面", () => {

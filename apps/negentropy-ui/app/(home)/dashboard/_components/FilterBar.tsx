@@ -2,11 +2,16 @@
 
 import { useMemo } from "react";
 
+import type { FilterOption } from "../_hooks/filter-option";
 import type { DashboardFilters, ScheduledTaskDTO, StatsWindow } from "../_lib/types";
 
 interface FilterBarProps {
   filters: DashboardFilters;
   tasks: ScheduledTaskDTO[];
+  /** Agent 下拉选项（一主五翼），来自 ``useDashboardAgentOptions``。 */
+  agentOptions: FilterOption[];
+  /** Owner 下拉选项（Admin 见所有 User / 非 Admin 仅自身），来自 ``useDashboardOwnerOptions``。 */
+  ownerOptions: FilterOption[];
   onChange: (next: DashboardFilters) => void;
   onRefresh: () => void;
   connected: boolean;
@@ -18,12 +23,31 @@ function uniqueValues(items: Array<string | null | undefined>): string[] {
   return Array.from(new Set(items.filter((v): v is string => Boolean(v))));
 }
 
-export function FilterBar({ filters, tasks, onChange, onRefresh, connected }: FilterBarProps) {
-  const roles = useMemo(() => uniqueValues(tasks.map((t) => t.role)).sort(), [tasks]);
-  const scenarios = useMemo(() => uniqueValues(tasks.map((t) => t.scenario)).sort(), [tasks]);
-  const owners = useMemo(() => uniqueValues(tasks.map((t) => t.owner_id)).sort(), [tasks]);
-  const categories = useMemo(() => uniqueValues(tasks.map((t) => t.category)).sort(), [tasks]);
-  const agents = useMemo(() => uniqueValues(tasks.map((t) => t.agent_id)).sort(), [tasks]);
+/** 把 ``string[]`` 适配为 ``FilterOption[]``——value 与 label 同源。 */
+function asOptions(values: string[]): FilterOption[] {
+  return values.map((v) => ({ value: v, label: v }));
+}
+
+export function FilterBar({
+  filters,
+  tasks,
+  agentOptions,
+  ownerOptions,
+  onChange,
+  onRefresh,
+  connected,
+}: FilterBarProps) {
+  // Role / Scenario / Category 是任务自身扁平枚举字段，从 tasks 推导语义正确；
+  // Agent / Owner 是全局枚举（SubAgent 注册表、用户表），由独立 hook 提供选项源。
+  const roles = useMemo(() => asOptions(uniqueValues(tasks.map((t) => t.role)).sort()), [tasks]);
+  const scenarios = useMemo(
+    () => asOptions(uniqueValues(tasks.map((t) => t.scenario)).sort()),
+    [tasks],
+  );
+  const categories = useMemo(
+    () => asOptions(uniqueValues(tasks.map((t) => t.category)).sort()),
+    [tasks],
+  );
 
   function selectOption(name: keyof DashboardFilters, value: string) {
     onChange({ ...filters, [name]: value || null });
@@ -44,8 +68,18 @@ export function FilterBar({ filters, tasks, onChange, onRefresh, connected }: Fi
         options={categories}
         onSelect={(v) => selectOption("category", v)}
       />
-      <FilterSelect label="Agent" value={filters.agent} options={agents} onSelect={(v) => selectOption("agent", v)} />
-      <FilterSelect label="Owner" value={filters.owner} options={owners} onSelect={(v) => selectOption("owner", v)} />
+      <FilterSelect
+        label="Agent"
+        value={filters.agent}
+        options={agentOptions}
+        onSelect={(v) => selectOption("agent", v)}
+      />
+      <FilterSelect
+        label="Owner"
+        value={filters.owner}
+        options={ownerOptions}
+        onSelect={(v) => selectOption("owner", v)}
+      />
       <div className="flex items-center gap-1 rounded-full bg-muted/50 px-1 py-0.5">
         {WINDOWS.map((w) => (
           <button
@@ -83,7 +117,7 @@ export function FilterBar({ filters, tasks, onChange, onRefresh, connected }: Fi
 interface FilterSelectProps {
   label: string;
   value: string | null;
-  options: string[];
+  options: FilterOption[];
   onSelect: (value: string) => void;
 }
 
@@ -98,8 +132,8 @@ function FilterSelect({ label, value, options, onSelect }: FilterSelectProps) {
       >
         <option value="">All</option>
         {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
+          <option key={o.value} value={o.value}>
+            {o.label}
           </option>
         ))}
       </select>
