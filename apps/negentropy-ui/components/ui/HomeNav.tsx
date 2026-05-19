@@ -19,18 +19,20 @@ const NAV_ITEMS = [
  *   反向（Dashboard → Studio）也不主动恢复 sessionId，避免历史串扰；
  *   Studio 内部仍由 useSearchParams 自然派生 ?sessionId=。
  */
-export function HomeNav({ title }: { title: string }) {
+export function HomeNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { setNavigationInfo } = useNavigation();
 
-  useEffect(() => {
-    setNavigationInfo({ moduleLabel: "Home", pageTitle: title });
-    return () => setNavigationInfo(null);
-  }, [title, setNavigationInfo]);
-
   const isActive = (href: string) =>
     href === "/studio" ? pathname.startsWith("/studio") : pathname.startsWith(href);
+
+  const activeLabel = NAV_ITEMS.find((item) => isActive(item.href))?.label ?? "Studio";
+
+  useEffect(() => {
+    setNavigationInfo({ moduleLabel: "Home", pageTitle: activeLabel });
+    return () => setNavigationInfo(null);
+  }, [activeLabel, setNavigationInfo]);
 
   // Studio Tab 保留 sessionId（用户在 Dashboard <-> Studio 切换时不丢失会话）
   const sessionId = searchParams?.get("sessionId");
