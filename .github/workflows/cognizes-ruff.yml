@@ -1,0 +1,156 @@
+name: Cognizes Ruff Auto-fix
+
+on:
+  push:
+    branches-ignore:
+      - "fix/cognizes-ruff-*"
+      - "dependabot/**"
+    paths:
+      - "apps/cognizes/**/*.py"
+      - "apps/cognizes/pyproject.toml"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff-auto-fix:
+    name: Check and Fix Ruff Issues
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.ref, 'refs/heads/fix/cognizes-ruff-')"
+    defaults:
+      run:
+        working-directory: apps/cognizes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/cognizes
+
+      - name: Run ruff check (collect issues)
+        id: ruff-check
+        run: |
+          uv run ruff check src/cognizes/ tests/ --output-format=json > ruff-issues.json || true
+          ISSUE_COUNT=$(cat ruff-issues.json | jq length || echo "0")
+          echo "issue_count=$ISSUE_COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$ISSUE_COUNT" -gt 0 ]; then
+            echo "has_issues=true" >> "$GITHUB_OUTPUT"
+            echo "Ruff found $ISSUE_COUNT issues"
+          else
+            echo "has_issues=false" >> "$GITHUB_OUTPUT"
+            echo "No ruff issues found"
+          fi
+
+      - name: Apply Ruff fixes
+        id: apply-fixes
+        if: steps.ruff-check.outputs.has_issues == 'true'
+        run: |
+          git add -N src/cognizes/ tests/
+          uv run ruff check src/cognizes/ tests/ --fix
+          uv run ruff format src/cognizes/ tests/
+
+          CHANGED_FILES=$(git status --porcelain src/cognizes/ tests/ || true)
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Files changed after applying ruff fixes:"
+            echo "$CHANGED_FILES"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure Git
+        if: steps.apply-fixes.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create branch and commit changes
+        if: steps.apply-fixes.outputs.has_changes == 'true'
+        id: create-branch
+        run: |
+          BRANCH_NAME="fix/cognizes-ruff-$(date +%s)"
+          git checkout -b "$BRANCH_NAME"
+          git add src/cognizes/ tests/
+          git commit -m "fix(cognizes): auto-fix ruff issues" -m "Applied ruff --fix and ruff format"
+          git push origin "$BRANCH_NAME"
+          echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update PR
+        if: steps.apply-fixes.outputs.has_changes == 'true'
+        run: |
+          # Search for existing auto-fix PR
+          PR_JSON=$(gh pr list --state open --label "auto-fix" --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("fix/cognizes-ruff-"))' || echo "")
+
+          if [ -n "$PR_JSON" ]; then
+            PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+            EXISTING_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
+
+            echo "Updating existing PR #$PR_NUMBER"
+            git checkout "$EXISTING_BRANCH"
+            git pull origin "$EXISTING_BRANCH"
+            uv run ruff check src/cognizes/ tests/ --fix
+            uv run ruff format src/cognizes/ tests/
+
+            if [ -n "$(git status --porcelain src/cognizes/ tests/)" ]; then
+              git add src/cognizes/ tests/
+              git commit -m "fix(cognizes): update ruff fixes for latest changes"
+              git push origin "$EXISTING_BRANCH"
+            fi
+          else
+            echo "Creating new PR"
+            DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+            gh pr create \
+              --title "fix(cognizes): auto-fix ruff issues" \
+              --body "$(cat <<EOF
+          ## Auto-fix Ruff Issues (Cognizes)
+
+          This PR was automatically created to fix ruff linting issues found in commit ${{ github.sha }}.
+
+          ### Changes Applied
+          - \`ruff check --fix\`: Fixed automatically fixable linting issues
+          - \`ruff format\`: Applied consistent code formatting
+
+          ### Next Steps
+          - Review the changes
+          - If everything looks good, merge this PR
+          - If you see issues, close this PR without merging
+
+          ---
+          *This PR was created automatically by GitHub Actions*
+          EOF
+          )" \
+              --base "$DEFAULT_BRANCH" \
+              --head "${{ steps.create-branch.outputs.branch_name }}" \
+              --label "auto-fix,ruff,cognizes"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create summary
+        run: |
+          echo "## Cognizes Ruff Auto-fix Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Issues found**: ${{ steps.ruff-check.outputs.issue_count }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.ruff-check.outputs.has_issues }}" == "true" ]; then
+            if [ "${{ steps.apply-fixes.outputs.has_changes }}" == "true" ]; then
+              echo "- **Files modified**: Yes" >> "$GITHUB_STEP_SUMMARY"
+              echo "- **PR created**: Yes" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- **Files modified**: No changes needed" >> "$GITHUB_STEP_SUMMARY"
+              echo "- **PR created**: No" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "- **Files modified**: N/A (no issues found)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **PR created**: No (no issues to fix)" >> "$GITHUB_STEP_SUMMARY"
+          fi
