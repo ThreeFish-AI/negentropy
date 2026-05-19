@@ -3,11 +3,11 @@
 > 本文档是 Negentropy 平台 **Agent Memory 子系统**的架构设计单一权威参考，融合学术前沿分类法、工业框架对标、当前 PostgreSQL 实现详述和双阶段演进路线图，并引入可量化的价值度量体系。
 >
 > - 系统架构总览：[`framework.md`](../architecture/framework.md)
-> - Memory 与 Knowledge 职责边界：[`knowledges.md`](../knowledges.md)
-> - 知识图谱技术方案：[`knowledge-graph.md`](../knowledge-graph/overview.md)
+> - Memory 与 Knowledge 职责边界：[`knowledges.md`](../knowledge/design/knowledges.md)
+> - 知识图谱技术方案：[`knowledge-graph.md`](../knowledge/design/kg-overview.md)
 > - **理论基础白皮书（Phase 4）**：[`memory-whitepaper.md`](./whitepaper.md)
-> - **轻量上手手册（Phase 4）**：[`user-guide/memory-basics.md`](../user-guide/memory-basics.md) · [`memory-integration.md`](../user-guide/memory-integration.md) · [`memory-automation.md`](../user-guide/memory-automation.md) · [`memory-troubleshooting.md`](../user-guide/memory-troubleshooting.md)
-> - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](../schema/hippocampus_schema.sql)
+> - **轻量上手手册（Phase 4）**：[`basics`](./user-guide/basics.md) · [`integration`](./user-guide/integration.md) · [`automation`](./user-guide/automation.md) · [`troubleshooting`](./user-guide/troubleshooting.md)
+> - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 >
 > **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`memory-whitepaper.md`](./whitepaper.md) §2 与 §3。
 
@@ -39,7 +39,7 @@
 
 ## 0. 范围与事实源（Single Source of Truth）
 
-本文档的覆盖范围为 **Memory 子系统**（对应内化系部 InternalizationFaculty），不覆盖 Knowledge Base（对应感知系部 PerceptionFaculty）。两者的边界说明以 [`knowledges.md`](../knowledges.md) 为准。
+本文档的覆盖范围为 **Memory 子系统**（对应内化系部 InternalizationFaculty），不覆盖 Knowledge Base（对应感知系部 PerceptionFaculty）。两者的边界说明以 [`knowledges.md`](../knowledge/design/knowledges.md) 为准。
 
 **权威源文件索引**：
 
@@ -62,7 +62,7 @@
 | 冲突解决 | [`engine/governance/conflict_resolver.py`](../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py) | ConflictResolver — AGM 信念修正 + 三阶段检测 |
 | 主动召回 | [`engine/adapters/postgres/proactive_recall_service.py`](../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py) | ProactiveRecallService — 复合评分预加载 + TTL 缓存 |
 | 记忆关联 | [`engine/adapters/postgres/association_service.py`](../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py) | AssociationService — 自动链接 + 多跳扩展 |
-| DDL 原型 | [`docs/schema/hippocampus_schema.sql`](../schema/hippocampus_schema.sql) | 仿生记忆 DDL 草案（历史参考） |
+| DDL 原型 | [`docs/memory/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) | 仿生记忆 DDL 草案（历史参考） |
 
 ---
 
@@ -80,7 +80,7 @@ Negentropy（熵减引擎）以**「一核五翼」架构**<sup>[[1]](#ref1)</su
 
 ### 1.2 Memory 与 Knowledge 的本质区别
 
-Memory 和 Knowledge 是 Negentropy 中两个正交的认知子系统，各有独立的生命周期和治理模型。详细的职责拆分以 [`knowledges.md`](../knowledges.md) 为权威定义，此处仅做摘要：
+Memory 和 Knowledge 是 Negentropy 中两个正交的认知子系统，各有独立的生命周期和治理模型。详细的职责拆分以 [`knowledges.md`](../knowledge/design/knowledges.md) 为权威定义，此处仅做摘要：
 
 | 维度 | Knowledge Base（感知系部） | User Memory（内化系部） |
 | :-- | :-- | :-- |
@@ -617,7 +617,7 @@ retention = min(1.0, time_decay × frequency_boost × type_multiplier × semanti
 
 - Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../../apps/negentropy/src/negentropy/engine/governance/memory.py)
 - Python：`PostgresMemoryService._calculate_initial_retention()` — [`engine/adapters/postgres/memory_service.py`](../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)
-- SQL：`calculate_retention_score()` plpgsql 函数 — [`schema/hippocampus_schema.sql`](../schema/hippocampus_schema.sql) §5
+- SQL：`calculate_retention_score()` plpgsql 函数 — [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) §5
 
 ### 5.2 访问计数强化 (Retrieval-Enhanced Retention)
 
@@ -1427,7 +1427,7 @@ SELECT negentropy.trigger_maintenance_consolidation('1 hour'::interval);
 | **pg_cron** | 1.6+ | 定时任务调度（可选增强） |
 | **tsvector** | 内置 | BM25 全文检索 |
 
-DDL 原型参见 [`schema/hippocampus_schema.sql`](../schema/hippocampus_schema.sql)（历史参考，当前运行时以 Alembic migration 和 Automation 控制面为准）。
+DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)（历史参考，当前运行时以 Alembic migration 和 Automation 控制面为准）。
 
 ### 9.2 Service 实现分析
 
@@ -1512,7 +1512,7 @@ timeline
 
 #### Memory Graph
 
-将 Memory 之间的语义关联存储为 Apache AGE 图边，复用 [`knowledge-graph.md`](../knowledge-graph/overview.md) 的 AGE 基础设施：
+将 Memory 之间的语义关联存储为 Apache AGE 图边，复用 [`knowledge-graph.md`](../knowledge/design/kg-overview.md) 的 AGE 基础设施：
 
 - **节点**：每条 Memory 和 Fact 作为图节点
 - **边**：因果关系（`CAUSES`）、时序关系（`FOLLOWS`）、主题关联（`RELATED_TO`）
@@ -1584,7 +1584,7 @@ timeline
 
 ### 10.5 Phase 5 实施记录（开工于 2026-05）
 
-> 详细工程契约见 [`memory-whitepaper.md`](./whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](../user-guide/memory-basics.md) §2.5。
+> 详细工程契约见 [`memory-whitepaper.md`](./whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](./user-guide/basics.md) §2.5。
 
 | 特性 | 集成点 | 默认 flag | 状态 |
 | :-- | :-- | :-- | :-- |
@@ -1764,10 +1764,10 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 ## 14. 相关文档
 
-- Memory 与 Knowledge 职责边界：[`knowledges.md`](../knowledges.md)
-- 知识图谱技术方案：[`knowledge-graph.md`](../knowledge-graph/overview.md)
+- Memory 与 Knowledge 职责边界：[`knowledges.md`](../knowledge/design/knowledges.md)
+- 知识图谱技术方案：[`knowledge-graph.md`](../knowledge/design/kg-overview.md)
 - 系统架构总览：[`framework.md`](../architecture/framework.md)
-- DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](../schema/hippocampus_schema.sql)
+- DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 - 项目初始化与目录约定：[`project-initialization.md`](./project-initialization.md)
 - 外部设计文档：[020-the-hippocampus.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/design/020-the-hippocampus.md)
 

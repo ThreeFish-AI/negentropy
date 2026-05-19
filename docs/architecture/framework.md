@@ -4,8 +4,8 @@
 >
 > - 项目概览与快速上手：[README.md](../../README.md)
 > - 开发指南：[docs/development.md](./development.md)
-> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../qa-delivery-pipeline.md)
-> - 工程变更日志：[docs/engineering-changelog.md](../engineering-changelog.md)
+> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../infrastructure/design/qa-delivery-pipeline.md)
+> - 工程变更日志：[docs/engineering-changelog.md](../core/engineering-changelog.md)
 
 ---
 
@@ -932,7 +932,7 @@ graph LR
 - [`reusable-negentropy-backend-quality.yml`](../../.github/workflows/reusable-negentropy-backend-quality.yml)
 - [`reusable-negentropy-ui-quality.yml`](../../.github/workflows/reusable-negentropy-ui-quality.yml)
 
-详见 [QA 与发布流水线文档](../qa-delivery-pipeline.md)。
+详见 [QA 与发布流水线文档](../infrastructure/design/qa-delivery-pipeline.md)。
 
 ---
 
