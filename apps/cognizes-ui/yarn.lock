@@ -628,6 +628,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@faker-js/faker@npm:^9.0.0":
+  version: 9.9.0
+  resolution: "@faker-js/faker@npm:9.9.0"
+  checksum: 10c0/02107cb6915217b4831fa4b261603165972eb7f09d2ab2e1d4b75807df2d425a2bac8621cddbfdcc158c2c447c2bce2e14939d51c4a63fbd832df55452e7f73c
+  languageName: node
+  linkType: hard
+
 "@humanfs/core@npm:^0.19.1":
   version: 0.19.1
   resolution: "@humanfs/core@npm:0.19.1"
@@ -1139,6 +1146,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@negentropy/cognizes-ui@workspace:."
   dependencies:
+    "@faker-js/faker": "npm:^9.0.0"
     "@mswjs/interceptors": "npm:^0.40.0"
     "@playwright/test": "npm:^1.40.0"
     "@testing-library/dom": "npm:^10.4.1"
