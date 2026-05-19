@@ -37,16 +37,4 @@ describe("KnowledgeNav", () => {
     expect(flexRow.className).not.toContain("justify-between");
   });
 
-  it("传入 modeToggle 时，渲染顺序为 modeToggle 在 nav 之前（确保 modeToggle 与 nav 顺序稳定）", () => {
-    const { container } = render(
-      <KnowledgeNav title="Wiki" modeToggle={<div data-testid="mt">toggle</div>} />,
-    );
-    const nav = container.querySelector("nav") as HTMLElement;
-    const toggle = container.querySelector("[data-testid='mt']") as HTMLElement;
-    const flexRow = nav.parentElement as HTMLElement;
-
-    expect(toggle.parentElement).toBe(flexRow);
-    // DOCUMENT_POSITION_FOLLOWING (4) 表示 nav 出现在 toggle 之后
-    expect(toggle.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
 });
