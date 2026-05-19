@@ -12,9 +12,9 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Disable Corepack
+    - name: Enable Corepack and prepare yarn
       shell: bash
-      run: corepack disable
+      run: corepack enable && corepack prepare yarn@stable --activate
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
