@@ -40,6 +40,7 @@ from negentropy.models.plugin import (
     SkillSchedule,
     SkillVersion,
     SubAgent,
+    ensure_dict,
 )
 from negentropy.models.vendor_config import VendorConfig
 
@@ -181,9 +182,9 @@ def _builtin_tool_to_response(tool: BuiltinTool) -> BuiltinToolResponse:
         description=tool.description,
         tool_type=tool.tool_type,
         version=tool.version,
-        config=tool.config or {},
-        credentials=_mask_credentials(tool.credentials or {}),
-        config_schema=tool.config_schema or {},
+        config=ensure_dict(tool.config),
+        credentials=_mask_credentials(ensure_dict(tool.credentials)),
+        config_schema=ensure_dict(tool.config_schema),
         is_enabled=tool.is_enabled,
         is_system=tool.is_system,
     )
@@ -1546,8 +1547,8 @@ async def test_builtin_tool(
 
     # 请求体内联参数优先，回退到 DB 存储值
     inline = payload or BuiltinToolTestRequest()
-    config = inline.config if inline.config is not None else (tool.config or {})
-    credentials = inline.credentials if inline.credentials is not None else (tool.credentials or {})
+    config = inline.config if inline.config is not None else ensure_dict(tool.config)
+    credentials = inline.credentials if inline.credentials is not None else ensure_dict(tool.credentials)
 
     if tool.tool_type == "search" and tool.name == "google_search":
         api_key = credentials.get("api_key", "")

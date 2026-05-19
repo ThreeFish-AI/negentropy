@@ -9,7 +9,7 @@
 - sub_agent.py: 子智能体配置 (SubAgent)
 """
 
-from .builtin_tool import BuiltinTool  # noqa: F401
+from .builtin_tool import BuiltinTool, ensure_dict  # noqa: F401
 from .mcp import McpResourceTemplate, McpServer, McpTool  # noqa: F401
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset  # noqa: F401
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility  # noqa: F401

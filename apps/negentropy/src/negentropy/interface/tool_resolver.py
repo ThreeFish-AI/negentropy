@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
-from negentropy.models.builtin_tool import BuiltinTool
+from negentropy.models.builtin_tool import BuiltinTool, ensure_dict
 
 logger = get_logger("negentropy.interface.tool_resolver")
 
@@ -55,8 +55,8 @@ async def resolve_tool_config(tool_name: str) -> dict[str, Any] | None:
 
         # 合并 config 和 credentials
         merged: dict[str, Any] = {}
-        merged.update(tool.config or {})
-        merged["credentials"] = tool.credentials or {}
+        merged.update(ensure_dict(tool.config))
+        merged["credentials"] = ensure_dict(tool.credentials)
 
         # 更新缓存
         _cache[tool_name] = (merged, now + _CACHE_TTL_SECONDS)
