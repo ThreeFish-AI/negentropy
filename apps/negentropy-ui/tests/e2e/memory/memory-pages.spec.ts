@@ -59,8 +59,9 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
   await expect(page.getByText("High Importance", { exact: true })).toBeVisible();
   await expect(page.getByText("Recent Audits", { exact: true })).toBeVisible();
 
-  // 验证卡片数值（用 locator 限定到卡片容器内的值文本）
-  const cards = page.locator(".grid > div");
+  // 验证卡片数值（限定到 Memory Overview section 内，避免匹配 Dashboard 其他 section 的 .grid > div）
+  const memorySection = page.locator("section").filter({ hasText: "Memory Overview" });
+  const cards = memorySection.locator(".grid > div");
   await expect(cards).toHaveCount(8);
   // Spot check specific values using card-scoped locators
   await expect(cards.nth(0).locator("p").last()).toHaveText("7");
