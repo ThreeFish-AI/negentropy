@@ -1,8 +1,8 @@
 """Human-in-the-Loop 工具实现"""
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
-import asyncio
 
 
 @dataclass
@@ -31,7 +31,7 @@ class HumanInTheLoop:
         try:
             result = await asyncio.wait_for(future, timeout=request.timeout_seconds)
             return result
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return {"confirmed": False, "user_input": "timeout"}
         finally:
             self._pending_confirmations.pop(request_id, None)

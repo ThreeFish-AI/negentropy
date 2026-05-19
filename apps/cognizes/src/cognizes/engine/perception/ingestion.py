@@ -15,13 +15,12 @@ Usage:
 Task ID: P3-5-1
 """
 
+import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import List, Optional, Dict, Any, Union, BinaryIO
-import hashlib
-import mimetypes
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -31,11 +30,11 @@ class Document:
     content: str
     source_uri: str
     doc_id: str
-    title: Optional[str] = None
+    title: str | None = None
     mime_type: str = "text/plain"
     file_size: int = 0
     created_at: datetime = field(default_factory=datetime.now)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.doc_id:
@@ -48,7 +47,7 @@ class IngestedDocument:
     """Document with chunks and embeddings ready for storage."""
 
     document: Document
-    chunks: List[Dict[str, Any]]
+    chunks: list[dict[str, Any]]
     total_tokens: int = 0
     processing_time_ms: float = 0
 
@@ -58,12 +57,12 @@ class DocumentParser(ABC):
 
     @property
     @abstractmethod
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         """Return list of supported file extensions."""
         ...
 
     @abstractmethod
-    def parse(self, content: Union[str, bytes], source_uri: str) -> Document:
+    def parse(self, content: str | bytes, source_uri: str) -> Document:
         """Parse content and return Document."""
         ...
 
@@ -72,10 +71,10 @@ class MarkdownParser(DocumentParser):
     """Parser for Markdown documents."""
 
     @property
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         return [".md", ".markdown"]
 
-    def parse(self, content: Union[str, bytes], source_uri: str) -> Document:
+    def parse(self, content: str | bytes, source_uri: str) -> Document:
         if isinstance(content, bytes):
             content = content.decode("utf-8")
 
@@ -102,10 +101,10 @@ class TextParser(DocumentParser):
     """Parser for plain text documents."""
 
     @property
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         return [".txt", ".text"]
 
-    def parse(self, content: Union[str, bytes], source_uri: str) -> Document:
+    def parse(self, content: str | bytes, source_uri: str) -> Document:
         if isinstance(content, bytes):
             content = content.decode("utf-8")
 
@@ -127,10 +126,10 @@ class PDFParser(DocumentParser):
     """Parser for PDF documents."""
 
     @property
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         return [".pdf"]
 
-    def parse(self, content: Union[str, bytes], source_uri: str) -> Document:
+    def parse(self, content: str | bytes, source_uri: str) -> Document:
         if isinstance(content, str):
             # Already text, just use it
             text_content = content
@@ -152,9 +151,9 @@ class PDFParser(DocumentParser):
     def _extract_text(self, pdf_bytes: bytes) -> str:
         """Extract text from PDF bytes."""
         try:
-            import pypdf
-
             from io import BytesIO
+
+            import pypdf
 
             reader = pypdf.PdfReader(BytesIO(pdf_bytes))
             text_parts = []
@@ -162,7 +161,7 @@ class PDFParser(DocumentParser):
                 text_parts.append(page.extract_text())
             return "\n\n".join(text_parts)
         except ImportError:
-            raise ImportError("pypdf is required for PDF parsing. Install with: pip install pypdf")
+            raise ImportError("pypdf is required for PDF parsing. Install with: pip install pypdf") from None
 
 
 class DocumentIngester:
@@ -176,7 +175,7 @@ class DocumentIngester:
         self,
         chunker=None,
         embedder=None,
-        parsers: Optional[List[DocumentParser]] = None,
+        parsers: list[DocumentParser] | None = None,
     ):
         """
         Initialize DocumentIngester.
@@ -190,7 +189,7 @@ class DocumentIngester:
         self.embedder = embedder
         self.parsers = self._init_parsers(parsers)
 
-    def _init_parsers(self, parsers: Optional[List[DocumentParser]]) -> Dict[str, DocumentParser]:
+    def _init_parsers(self, parsers: list[DocumentParser] | None) -> dict[str, DocumentParser]:
         """Initialize parser registry."""
         if parsers is None:
             parsers = [MarkdownParser(), TextParser(), PDFParser()]
@@ -227,7 +226,7 @@ class DocumentIngester:
 
     def parse_content(
         self,
-        content: Union[str, bytes],
+        content: str | bytes,
         source_uri: str,
     ) -> Document:
         """
@@ -306,7 +305,7 @@ class DocumentIngester:
 
     async def ingest_file(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         generate_embeddings: bool = True,
     ) -> IngestedDocument:
         """
@@ -331,7 +330,7 @@ class DocumentIngester:
             with open(file_path, "rb") as f:
                 content = f.read()
         else:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
         # Parse document
@@ -374,9 +373,9 @@ class DocumentIngester:
 
     async def ingest_files(
         self,
-        file_paths: List[Union[str, Path]],
+        file_paths: list[str | Path],
         generate_embeddings: bool = True,
-    ) -> List[IngestedDocument]:
+    ) -> list[IngestedDocument]:
         """
         Ingest multiple files.
 

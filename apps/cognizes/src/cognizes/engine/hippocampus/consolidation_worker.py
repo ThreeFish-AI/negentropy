@@ -18,10 +18,9 @@ import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
-import asyncpg
 import google.generativeai as genai
 
 from cognizes.core.database import DatabaseManager
@@ -31,13 +30,13 @@ from cognizes.core.database import DatabaseManager
 # ========================================
 
 
-class JobType(str, Enum):
+class JobType(StrEnum):
     FAST_REPLAY = "fast_replay"
     DEEP_REFLECTION = "deep_reflection"
     FULL_CONSOLIDATION = "full_consolidation"
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -394,7 +393,7 @@ class MemoryConsolidationWorker:
         fact_data: dict[str, Any],
     ) -> Fact:
         """存储提取的事实 (Upsert 逻辑)"""
-        fact_id = str(uuid.uuid4())
+        str(uuid.uuid4())
         fact_type = fact_data.get("type", "preference")
         key = fact_data.get("key", "unknown")
         value = fact_data.get("value", {})

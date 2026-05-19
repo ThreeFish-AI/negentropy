@@ -11,6 +11,7 @@ MicrosandboxRunner: 基于 microsandbox 的安全沙箱
 import asyncio
 import os
 from dataclasses import dataclass
+
 from microsandbox import PythonSandbox  # pip install microsandbox
 
 
@@ -44,6 +45,7 @@ class MicrosandboxRunner:
     async def execute(self, code: str) -> SandboxResult:
         """在 microVM 中安全执行代码"""
         import time
+
         import aiohttp
 
         start = time.time()
@@ -78,7 +80,7 @@ class MicrosandboxRunner:
                 execution_time_ms=(time.time() - start) * 1000,
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return SandboxResult(
                 success=False,
                 stdout="",

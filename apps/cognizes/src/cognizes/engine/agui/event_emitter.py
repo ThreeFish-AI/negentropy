@@ -3,14 +3,13 @@ AG-UI 事件发射器
 将 Agent 执行事件转换为 AG-UI 标准事件格式
 """
 
-from enum import Enum
-from dataclasses import dataclass, field
-from typing import Any, Optional
 import json
 import time
+from dataclasses import dataclass, field
+from enum import StrEnum
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     """AG-UI 16 种标准事件类型"""
 
     # Lifecycle Events
@@ -46,7 +45,7 @@ class BaseEvent:
 
     type: EventType
     timestamp: float = field(default_factory=time.time)
-    run_id: Optional[str] = None
+    run_id: str | None = None
 
 
 @dataclass

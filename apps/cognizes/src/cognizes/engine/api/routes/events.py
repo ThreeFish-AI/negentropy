@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from starlette.responses import StreamingResponse
+
 from cognizes.engine.pulse.event_bridge import PulseEventBridge, create_sse_endpoint
 
 router = APIRouter()

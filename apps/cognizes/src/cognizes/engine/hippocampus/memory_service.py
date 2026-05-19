@@ -8,16 +8,14 @@ OpenMemoryService: ADK MemoryService 适配器
 from __future__ import annotations
 
 import json
-import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any
 
 import asyncpg
 
-from .consolidation_worker import MemoryConsolidationWorker, JobType
-from .retention_manager import MemoryRetentionManager
+from .consolidation_worker import JobType, MemoryConsolidationWorker
 from .context_assembler import ContextAssembler, ContextWindow
+from .retention_manager import MemoryRetentionManager
 
 
 @dataclass

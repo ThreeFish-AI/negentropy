@@ -16,22 +16,18 @@ OpenTelemetry 双路导出集成
 """
 
 import json
-import uuid
 from datetime import datetime
-from contextlib import asynccontextmanager
-from typing import Any
 
 import asyncpg
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider, ReadableSpan
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import (
     BatchSpanProcessor,
+    ConsoleSpanExporter,
     SpanExporter,
     SpanExportResult,
-    ConsoleSpanExporter,
 )
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.trace import Status, StatusCode
 
 
 class PostgresSpanExporter(SpanExporter):

@@ -1,11 +1,12 @@
 """CopilotKit AG-UI 服务端"""
 
-from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from typing import AsyncGenerator
 import json
 import uuid
+from collections.abc import AsyncGenerator
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
 
 app = FastAPI()
 
@@ -76,9 +77,9 @@ async def copilotkit_endpoint(request: Request):
     # REST Transport 模式下，消息直接在 body 中
     inner_body = body.get("body", body)
     messages = inner_body.get("messages", [])
-    frontend_tools = inner_body.get("tools", [])
+    inner_body.get("tools", [])
 
-    async def generate_events() -> AsyncGenerator[str, None]:
+    async def generate_events() -> AsyncGenerator[str]:
         run_id = str(uuid.uuid4())
         message_id = str(uuid.uuid4())
 

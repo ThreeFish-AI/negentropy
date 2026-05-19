@@ -70,7 +70,7 @@ class CrossEncoderReranker:
 
         # 5. 构建结果
         results = []
-        for doc, rerank_score in zip(documents, scores):
+        for doc, rerank_score in zip(documents, scores, strict=False):
             results.append(
                 RerankedResult(
                     id=doc["id"],
@@ -156,8 +156,9 @@ class RerankerPipeline:
 
 # 使用示例
 async def main():
-    from cognizes.core.database import DatabaseManager
     import numpy as np
+
+    from cognizes.core.database import DatabaseManager
 
     # 初始化
     db = DatabaseManager.get_instance()

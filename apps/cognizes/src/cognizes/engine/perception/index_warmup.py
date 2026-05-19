@@ -23,7 +23,8 @@ import sys
 import time
 import uuid
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
+
 import numpy as np
 
 # Add src to path if running mostly as script
@@ -32,8 +33,8 @@ project_root = current_file.parents[4]  # src/cognizes/engine/perception/index_w
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root / "src"))
 
-from cognizes.core.database import DatabaseManager
-from cognizes.engine.perception.rag_pipeline import get_rag_pipeline
+from cognizes.core.database import DatabaseManager  # noqa: E402
+from cognizes.engine.perception.rag_pipeline import get_rag_pipeline  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -55,7 +56,7 @@ def generate_random_text(min_length: int = 100, max_length: int = 500) -> str:
     return " ".join(words)
 
 
-def generate_metadata(idx: int, batch_idx: int) -> Dict[str, Any]:
+def generate_metadata(idx: int, batch_idx: int) -> dict[str, Any]:
     """Generate rich metadata for testing complex predicates."""
     return {
         "index": idx,
@@ -128,7 +129,7 @@ async def run_pipeline_mode(args):
     total_duration = time.perf_counter() - start_total
     qps = args.count / total_duration if total_duration > 0 else 0
 
-    logger.info(f"✅ Pipeline Warmup Completed!")
+    logger.info("✅ Pipeline Warmup Completed!")
     logger.info(f"Total Time: {total_duration:.2f}s | Throughput: {qps:.2f} docs/sec")
 
     if pool:

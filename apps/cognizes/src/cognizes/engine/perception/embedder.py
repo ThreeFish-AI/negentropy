@@ -15,10 +15,11 @@ Usage:
 Task ID: P3-5-3
 """
 
+import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Union
-import asyncio
+from typing import Any
+
 import numpy as np
 
 
@@ -27,11 +28,11 @@ class EmbeddingResult:
     """Result of embedding generation."""
 
     text: str
-    embedding: List[float]
+    embedding: list[float]
     model: str
     dimensions: int
     token_count: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class EmbeddingProvider(ABC):
@@ -50,7 +51,7 @@ class EmbeddingProvider(ABC):
         ...
 
     @abstractmethod
-    async def embed(self, texts: List[str]) -> List[List[float]]:
+    async def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for a list of texts."""
         ...
 
@@ -70,7 +71,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     def __init__(
         self,
         model: str = "models/text-embedding-004",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         batch_size: int = 100,
     ):
         self._model = model
@@ -81,8 +82,9 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     def _configure_genai(self):
         """Lazy load and configure Google GenAI."""
         try:
-            import google.generativeai as genai
             import os
+
+            import google.generativeai as genai
 
             api_key = self._api_key or os.getenv("GOOGLE_API_KEY")
             if not api_key:
@@ -94,7 +96,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             raise ImportError(
                 "google-generativeai is required for GeminiEmbeddingProvider. "
                 "Install with: pip install google-generativeai"
-            )
+            ) from None
 
     @property
     def model_name(self) -> str:
@@ -104,7 +106,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     def dimensions(self) -> int:
         return self.MODEL_DIMENSIONS.get(self._model, 768)
 
-    async def embed(self, texts: List[str]) -> List[List[float]]:
+    async def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings using Gemini API."""
         all_embeddings = []
 
@@ -120,13 +122,13 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             # Using async wrapper if available, or run_in_executor
             loop = asyncio.get_event_loop()
 
-            def _call_gemini():
+            def _call_gemini(_batch=batch):
                 return [
                     self._genai.embed_content(
                         model=self._model,
                         content=text,
                     )["embedding"]
-                    for text in batch
+                    for text in _batch
                 ]
 
             batch_embeddings = await loop.run_in_executor(None, _call_gemini)
@@ -154,7 +156,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
     def __init__(
         self,
         model: str = "text-embedding-3-small",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         batch_size: int = 100,
     ):
         self._model = model
@@ -178,10 +180,12 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
 
                 self._client = AsyncOpenAI(api_key=self._api_key)
             except ImportError:
-                raise ImportError("openai is required for OpenAIEmbeddingProvider. Install with: pip install openai")
+                raise ImportError(
+                    "openai is required for OpenAIEmbeddingProvider. Install with: pip install openai"
+                ) from None
         return self._client
 
-    async def embed(self, texts: List[str]) -> List[List[float]]:
+    async def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings using OpenAI API."""
         client = self._get_client()
         all_embeddings = []
@@ -220,7 +224,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
         self,
         model: str = "all-MiniLM-L6-v2",
         batch_size: int = 32,
-        device: Optional[str] = None,
+        device: str | None = None,
     ):
         self._model_name = model
         self._batch_size = batch_size
@@ -249,10 +253,10 @@ class SentenceTransformerProvider(EmbeddingProvider):
                 raise ImportError(
                     "sentence-transformers is required for SentenceTransformerProvider. "
                     "Install with: pip install sentence-transformers"
-                )
+                ) from None
         return self._model
 
-    async def embed(self, texts: List[str]) -> List[List[float]]:
+    async def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings using sentence-transformers."""
         model = self._get_model()
 
@@ -282,7 +286,7 @@ class MockEmbeddingProvider(EmbeddingProvider):
         self,
         model: str = "mock-embedding-model",
         dimensions: int = 1536,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         self._model_name = model
         self._dimensions = dimensions
@@ -296,7 +300,7 @@ class MockEmbeddingProvider(EmbeddingProvider):
     def dimensions(self) -> int:
         return self._dimensions
 
-    async def embed(self, texts: List[str]) -> List[List[float]]:
+    async def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate mock random embeddings."""
         embeddings = []
         for text in texts:
@@ -319,7 +323,7 @@ class Embedder:
 
     def __init__(
         self,
-        provider: Optional[EmbeddingProvider] = None,
+        provider: EmbeddingProvider | None = None,
         model_name: str = "text-embedding-3-small",
         provider_type: str = "openai",
         **kwargs,
@@ -362,7 +366,7 @@ class Embedder:
         """Return embedding dimensions."""
         return self.provider.dimensions
 
-    async def embed_texts(self, texts: List[str], **metadata) -> List[EmbeddingResult]:
+    async def embed_texts(self, texts: list[str], **metadata) -> list[EmbeddingResult]:
         """
         Generate embeddings for a list of texts.
 
@@ -376,7 +380,7 @@ class Embedder:
         embeddings = await self.provider.embed(texts)
 
         results = []
-        for text, embedding in zip(texts, embeddings):
+        for text, embedding in zip(texts, embeddings, strict=False):
             results.append(
                 EmbeddingResult(
                     text=text,
@@ -389,7 +393,7 @@ class Embedder:
 
         return results
 
-    async def embed_query(self, query: str) -> List[float]:
+    async def embed_query(self, query: str) -> list[float]:
         """
         Generate embedding for a single query.
 
@@ -404,9 +408,9 @@ class Embedder:
 
     async def embed_documents(
         self,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         content_key: str = "content",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Embed documents and add embedding to each document.
 
@@ -420,7 +424,7 @@ class Embedder:
         texts = [doc[content_key] for doc in documents]
         embeddings = await self.provider.embed(texts)
 
-        for doc, embedding in zip(documents, embeddings):
+        for doc, embedding in zip(documents, embeddings, strict=False):
             doc["embedding"] = embedding
 
         return documents
@@ -433,7 +437,7 @@ class Embedder:
 
 def get_embedder(
     provider_type: str = "mock",
-    model_name: Optional[str] = None,
+    model_name: str | None = None,
     **kwargs,
 ) -> Embedder:
     """
