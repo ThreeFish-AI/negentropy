@@ -32,7 +32,7 @@ export function MemoryUserSelect({
       onChange={(e) => onSelect(e.target.value || null)}
     >
       {allowAll ? (
-        <option value="">{loading ? "Loading users..." : allLabel}</option>
+        <option value="">{loading ? "加载用户中..." : allLabel}</option>
       ) : (
         <option value="" disabled>
           {loading ? "加载中..." : "选择用户..."}
