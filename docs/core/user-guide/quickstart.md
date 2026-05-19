@@ -86,4 +86,4 @@ sequenceDiagram
 
 在底部输入框中输入你的第一条消息，系统会**自动创建 Session** 并开始与 Agent 对话。
 
-> 详细的环境搭建与故障排查，请参阅 [开发指南](./architecture/development.md)。
+> 详细的环境搭建与故障排查，请参阅 [开发指南](../../architecture/development.md)。
