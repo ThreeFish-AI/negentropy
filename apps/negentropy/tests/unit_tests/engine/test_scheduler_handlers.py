@@ -28,6 +28,7 @@ from negentropy.engine.schedulers.handlers.agent_inspection import (
     ContextPack,
     _check_token_budget,
     _compute_backoff_seconds,
+    _scheduled_tasks_summary,
 )
 
 
@@ -246,6 +247,146 @@ class TestBackoffPolicy:
         d3 = _compute_backoff_seconds(BACKOFF_FAILURE_THRESHOLD + 3)
         # consec=阈值+3 → over=3 → 8 * BASE * jitter；理论下限 8 * BASE * 0.9 > 阈值上限
         assert d3 > d1
+
+
+class _FakeRow:
+    def __init__(self, status: str | None, count: int):
+        self.status = status
+        self.count = count
+
+
+class _FakeResult:
+    def __init__(self, rows: list[_FakeRow]):
+        self._rows = rows
+
+    def all(self) -> list[_FakeRow]:
+        return self._rows
+
+
+class _FakeAsyncSession:
+    def __init__(self, rows: list[_FakeRow]):
+        self._rows = rows
+        self.executed_stmt = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return None
+
+    async def execute(self, stmt):
+        self.executed_stmt = stmt
+        return _FakeResult(self._rows)
+
+
+def _fake_session_factory(rows: list[_FakeRow]):
+    """模仿 ``AsyncSessionLocal`` 的工厂行为（每次调用返回一个 async 上下文管理器）。"""
+
+    def _factory():
+        return _FakeAsyncSession(rows)
+
+    return _factory
+
+
+class TestScheduledTasksSummary:
+    """覆盖 ``_scheduled_tasks_summary`` 的归一化与告警阈值逻辑。
+
+    重点防回归：SQLAlchemy 重复 ``func.coalesce(col, literal)`` 在 PG GROUP BY
+    校验下抛 ``GroupingError``。修复后由 Python 端归一化 NULL → "none"。
+    """
+
+    @pytest.fixture
+    def _ctx(self):
+        return ContextPack(
+            task_id="00000000-0000-0000-0000-000000000000",
+            task_key="agent_inspection.scheduled_tasks_summary",
+            handler_kind="agent_inspection",
+            role="self_inspector",
+            scenario="general",
+        )
+
+    @pytest.mark.asyncio
+    async def test_all_ok_returns_ok_status(self, monkeypatch, _ctx):
+        rows = [_FakeRow(status="ok", count=5)]
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.agent_inspection.AsyncSessionLocal",
+            _fake_session_factory(rows),
+        )
+        result = await _scheduled_tasks_summary(_ctx)
+        assert result.status == "ok"
+        assert result.metrics["distribution"] == {"ok": 5}
+        assert result.metrics["failed_ratio"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_null_status_normalized_to_none(self, monkeypatch, _ctx):
+        """NULL 行应被归一化为键 ``"none"``（替代原 SQL 层 coalesce 行为）。"""
+        rows = [_FakeRow(status="ok", count=2), _FakeRow(status=None, count=3)]
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.agent_inspection.AsyncSessionLocal",
+            _fake_session_factory(rows),
+        )
+        result = await _scheduled_tasks_summary(_ctx)
+        assert result.status == "ok"
+        assert result.metrics["distribution"] == {"ok": 2, "none": 3}
+
+    @pytest.mark.asyncio
+    async def test_failed_majority_triggers_system_alert(self, monkeypatch, _ctx):
+        """failed/total > 50% 且 total ≥ 2 → 返回 ``status='failed'`` 系统级告警。"""
+        rows = [_FakeRow(status="failed", count=6), _FakeRow(status="ok", count=2)]
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.agent_inspection.AsyncSessionLocal",
+            _fake_session_factory(rows),
+        )
+        result = await _scheduled_tasks_summary(_ctx)
+        assert result.status == "failed"
+        assert "system-level alert" in (result.error or "")
+        assert result.metrics["failed_ratio"] == pytest.approx(6 / 8)
+
+    @pytest.mark.asyncio
+    async def test_empty_table_does_not_crash(self, monkeypatch, _ctx):
+        """无 enabled 任务时不应崩溃，distribution 为空、status=ok。"""
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.agent_inspection.AsyncSessionLocal",
+            _fake_session_factory([]),
+        )
+        result = await _scheduled_tasks_summary(_ctx)
+        assert result.status == "ok"
+        assert result.metrics["distribution"] == {}
+        assert result.metrics["failed_ratio"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_single_failed_below_total_floor_stays_ok(self, monkeypatch, _ctx):
+        """total < 2 时即便 failed 占比 100% 也不应触发系统级告警（防误报）。"""
+        rows = [_FakeRow(status="failed", count=1)]
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.agent_inspection.AsyncSessionLocal",
+            _fake_session_factory(rows),
+        )
+        result = await _scheduled_tasks_summary(_ctx)
+        assert result.status == "ok"
+        assert result.metrics["distribution"] == {"failed": 1}
+
+    @pytest.mark.asyncio
+    async def test_sql_does_not_reuse_coalesce_literal(self, monkeypatch, _ctx):
+        """回归守门：SELECT/GROUP BY 不应同时出现 ``coalesce(...)`` —— 该模式在
+        PG 下会因重复字面量 BindParameter 触发 GroupingError。"""
+        captured: dict = {}
+
+        class _SpySession(_FakeAsyncSession):
+            async def execute(self, stmt):
+                captured["sql"] = str(stmt.compile(compile_kwargs={"literal_binds": True})).lower()
+                return _FakeResult([])
+
+        def _factory():
+            return _SpySession([])
+
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.agent_inspection.AsyncSessionLocal",
+            _factory,
+        )
+        await _scheduled_tasks_summary(_ctx)
+        # 同一查询里不应出现两处 coalesce —— 防止再次踩坑
+        assert captured["sql"].count("coalesce") == 0
 
 
 class TestSkillInvokeHandler:
