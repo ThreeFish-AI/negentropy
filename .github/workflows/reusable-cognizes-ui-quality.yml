@@ -43,7 +43,7 @@ jobs:
         uses: ./.github/actions/setup-yarn-ui
 
       - name: Typecheck app
-        run: npx tsc --noEmit
+        run: yarn tsc --noEmit
 
   ui-unit-integration:
     name: UI Unit And Integration Tests

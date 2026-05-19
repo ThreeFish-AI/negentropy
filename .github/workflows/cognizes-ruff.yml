@@ -75,19 +75,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create branch and commit changes
-        if: steps.apply-fixes.outputs.has_changes == 'true'
-        id: create-branch
-        run: |
-          BRANCH_NAME="fix/cognizes-ruff-$(date +%s)"
-          git checkout -b "$BRANCH_NAME"
-          git add src/cognizes/ tests/
-          git commit -m "fix(cognizes): auto-fix ruff issues" -m "Applied ruff --fix and ruff format"
-          git push origin "$BRANCH_NAME"
-          echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
-
       - name: Create or update PR
         if: steps.apply-fixes.outputs.has_changes == 'true'
+        id: create-pr
         run: |
           # Search for existing auto-fix PR
           PR_JSON=$(gh pr list --state open --label "auto-fix" --json number,headRefName \
@@ -97,7 +87,7 @@ jobs:
             PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
             EXISTING_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
 
-            echo "Updating existing PR #$PR_NUMBER"
+            echo "Updating existing PR #$PR_NUMBER on branch $EXISTING_BRANCH"
             git checkout "$EXISTING_BRANCH"
             git pull origin "$EXISTING_BRANCH"
             uv run ruff check src/cognizes/ tests/ --fix
@@ -109,7 +99,13 @@ jobs:
               git push origin "$EXISTING_BRANCH"
             fi
           else
-            echo "Creating new PR"
+            echo "Creating new branch and PR"
+            BRANCH_NAME="fix/cognizes-ruff-$(date +%s)"
+            git checkout -b "$BRANCH_NAME"
+            git add src/cognizes/ tests/
+            git commit -m "fix(cognizes): auto-fix ruff issues" -m "Applied ruff --fix and ruff format"
+            git push origin "$BRANCH_NAME"
+
             DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
             gh pr create \
               --title "fix(cognizes): auto-fix ruff issues" \
@@ -132,7 +128,7 @@ jobs:
           EOF
           )" \
               --base "$DEFAULT_BRANCH" \
-              --head "${{ steps.create-branch.outputs.branch_name }}" \
+              --head "$BRANCH_NAME" \
               --label "auto-fix,ruff,cognizes"
           fi
         env:
