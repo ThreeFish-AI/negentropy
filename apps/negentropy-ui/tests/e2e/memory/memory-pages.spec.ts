@@ -41,8 +41,11 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
     });
   });
 
-  await page.goto("/memory");
+  await page.goto("/dashboard");
   await page.waitForLoadState("networkidle");
+
+  // Memory Section 应可见
+  await expect(page.getByText("Memory Overview")).toBeVisible();
 
   // 验证 8 个标签（DOM 文本为小写，CSS `uppercase` 视觉转换；用精确匹配避免 strict mode violation）
   await expect(page.getByText("Users", { exact: true })).toBeVisible();
@@ -85,7 +88,10 @@ test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
     });
   });
 
-  await page.goto("/memory");
+  await page.goto("/dashboard");
+
+  // Memory Section 应可见
+  await expect(page.getByText("Memory Overview")).toBeVisible();
 
   // 点击展开 Retrieval Metrics
   await page.getByText("Retrieval Metrics").click();
@@ -277,24 +283,27 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
 test("Memory 导航栏包含所有 7 个页面标签", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
-  await page.route("**/api/memory/dashboard**", async (route) => {
+  await page.route("**/api/memory**", async (route) => {
+    if (route.request().url().includes("/api/memory/dashboard")) return;
+    if (route.request().url().includes("/api/memory/search")) return;
+    if (route.request().url().includes("/api/memory/facts")) return;
+    if (route.request().url().includes("/api/memory/audit")) return;
+    if (route.request().url().includes("/api/memory/conflicts")) return;
+    if (route.request().url().includes("/api/memory/retrieval")) return;
+    if (route.request().url().includes("/api/memory/automation")) return;
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        user_count: 0,
-        memory_count: 0,
-        fact_count: 0,
-        avg_retention_score: 0,
-        avg_importance_score: 0,
-        low_retention_count: 0,
-        high_importance_count: 0,
-        recent_audit_count: 0,
+        users: [],
+        timeline: [],
+        policies: {},
       }),
     });
   });
 
-  await page.goto("/memory");
+  await page.goto("/memory/timeline");
 
   await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Timeline" })).toBeVisible();

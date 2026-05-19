@@ -5,7 +5,9 @@ import { useCallback, useState } from "react";
 import { DimensionCharts } from "./_components/DimensionCharts";
 import { ExecutionTimeline } from "./_components/ExecutionTimeline";
 import { FilterBar } from "./_components/FilterBar";
+import { InterfaceOverviewSection } from "./_components/InterfaceOverviewSection";
 import { KpiRow } from "./_components/KpiRow";
+import { MemoryOverviewSection } from "./_components/MemoryOverviewSection";
 import { TaskDetailDrawer } from "./_components/TaskDetailDrawer";
 import { TaskTable } from "./_components/TaskTable";
 import { useDashboardAgentOptions } from "./_hooks/useDashboardAgentOptions";
@@ -94,6 +96,13 @@ export default function DashboardPage() {
         </div>
       </div>
       <TaskDetailDrawer task={selectedTask} onClose={handleClose} onTaskChanged={refresh} />
+
+      <div className="mt-8 border-t border-border pt-6">
+        <MemoryOverviewSection />
+      </div>
+      <div className="mt-8 border-t border-border pt-6">
+        <InterfaceOverviewSection />
+      </div>
     </div>
   );
 }

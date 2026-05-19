@@ -40,7 +40,7 @@ const AREA_META: Record<string, Omit<AreaMeta, "key">> = {
   memory: {
     label: "Memory",
     description: "Memory dashboards and audit",
-    href: "/memory",
+    href: "/memory/timeline",
   },
   chat: {
     label: "Chat",
