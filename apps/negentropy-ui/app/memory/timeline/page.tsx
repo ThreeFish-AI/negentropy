@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
-import { UserAvatar } from "@/components/ui/UserAvatar";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   RetryableErrorBanner,
   useMemoryTimeline,
   MemoryTimelineCard,
+  MemoryUserSelect,
 } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -126,56 +126,23 @@ export default function MemoryTimelinePage() {
           <RetryableErrorBanner error={error} onRetry={reload} />
 
           <div className="flex min-h-0 flex-1 gap-6">
-            {/* Users sidebar */}
-            <aside className="min-h-0 w-52 shrink-0 overflow-y-auto">
-              <div className="pb-4 pr-2">
-                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Users</h2>
-                  <div className="mt-3 space-y-1.5">
-                    {users.length ? (
-                      users.map((user) => (
-                        <button
-                          key={user.id}
-                          className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition ${
-                            selectedUserId === user.id
-                              ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                              : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
-                          }`}
-                          onClick={() => {
-                            setSelectedUserId(user.id);
-                            handleClearSearch();
-                          }}
-                        >
-                          <UserAvatar
-                            picture={user.picture}
-                            name={user.name}
-                            email={user.email}
-                            className="h-7 w-7 shrink-0"
-                            fallbackClassName="h-7 w-7 text-[10px]"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-semibold">
-                              {user.name || user.id}
-                            </p>
-                            <p className="truncate text-[10px] text-zinc-500 dark:text-zinc-400">
-                              {user.count} memories
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {isLoading ? "Loading..." : "No users found"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </aside>
-
             {/* Timeline */}
-            <main className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
+            <main className="min-h-0 min-w-0 flex-[3] overflow-y-auto">
               <div className="pb-4 pr-2">
+                <div className="mb-4 flex items-center gap-3">
+                  <MemoryUserSelect
+                    users={users}
+                    selectedUserId={selectedUserId}
+                    onSelect={(id) => {
+                      setSelectedUserId(id);
+                      handleClearSearch();
+                    }}
+                    loading={isLoading}
+                  />
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {displayItems.length} memories
+                  </span>
+                </div>
                 <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
