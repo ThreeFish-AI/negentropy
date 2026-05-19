@@ -12,7 +12,6 @@ Create Date: 2026-05-11 00:00:00.000000+00:00
   自动迁移现有部署的凭证到 builtin_tools 表（ON CONFLICT DO NOTHING 保证幂等）。
 """
 
-import json
 import os
 from collections.abc import Sequence
 
@@ -104,17 +103,15 @@ def upgrade() -> None:
     api_key = os.environ.get("NE_SEARCH_GOOGLE_API_KEY", "")
     cx_id = os.environ.get("NE_SEARCH_GOOGLE_CX_ID", "")
 
-    config = json.dumps(
-        {
-            "cx_id": cx_id or "d5ee76f9215be4ee9",
-            "max_retries": 3,
-            "timeout_seconds": 10.0,
-            "base_backoff_seconds": 1.0,
-            "max_results": 10,
-        }
-    )
-    credentials = json.dumps({"api_key": api_key}) if api_key else "{}"
-    config_schema = json.dumps(GOOGLE_SEARCH_CONFIG_SCHEMA)
+    config = {
+        "cx_id": cx_id or "d5ee76f9215be4ee9",
+        "max_retries": 3,
+        "timeout_seconds": 10.0,
+        "base_backoff_seconds": 1.0,
+        "max_results": 10,
+    }
+    credentials = {"api_key": api_key} if api_key else {}
+    config_schema = GOOGLE_SEARCH_CONFIG_SCHEMA
 
     op.execute(
         sa.text(
