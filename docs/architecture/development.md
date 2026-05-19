@@ -3,8 +3,8 @@
 > 本文档是 Negentropy 系统的**开发操作单一参考**，覆盖环境搭建、日常开发工作流、数据库迁移、前后端对接及故障排查。
 >
 > - 架构设计与系统原理：[docs/framework.md](./framework.md)
-> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../qa-delivery-pipeline.md)
-> - 工程变更日志：[docs/engineering-changelog.md](../engineering-changelog.md)
+> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../infrastructure/design/qa-delivery-pipeline.md)
+> - 工程变更日志：[docs/engineering-changelog.md](../core/engineering-changelog.md)
 
 ---
 
@@ -600,7 +600,7 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 ### 9.2 CI 最低门禁
 
 - `lint` / `test` / `build` / `typecheck` 必须在 CI 通过
-- 详细 CI/CD 配置请参见 [QA 与发布流水线文档](../qa-delivery-pipeline.md)
+- 详细 CI/CD 配置请参见 [QA 与发布流水线文档](../infrastructure/design/qa-delivery-pipeline.md)
 
 ---
 
