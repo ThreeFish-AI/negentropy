@@ -74,3 +74,5 @@ export function useActivityLog(
     totalCount: allEntries.length,
   };
 }
+
+export type { ActivityEntry, ActivityLevel } from "@/lib/activity-store";

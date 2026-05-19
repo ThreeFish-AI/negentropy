@@ -28,7 +28,7 @@ describe("MainNav", () => {
     expect(homeLink.className).toContain("bg-foreground");
 
     expect(interfaceLink).toBeInTheDocument();
-    expect(interfaceLink).toHaveAttribute("href", "/interface");
+    expect(interfaceLink).toHaveAttribute("href", "/interface/subagents");
 
     expect(screen.queryByRole("link", { name: "Chat" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Plugins" })).not.toBeInTheDocument();

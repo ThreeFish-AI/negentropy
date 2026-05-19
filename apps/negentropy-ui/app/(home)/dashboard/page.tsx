@@ -2,10 +2,13 @@
 
 import { useCallback, useState } from "react";
 
+import { ActivityLogPanel } from "./_components/ActivityLogPanel";
 import { DimensionCharts } from "./_components/DimensionCharts";
 import { ExecutionTimeline } from "./_components/ExecutionTimeline";
 import { FilterBar } from "./_components/FilterBar";
+import { InterfaceOverviewSection } from "./_components/InterfaceOverviewSection";
 import { KpiRow } from "./_components/KpiRow";
+import { MemoryOverviewSection } from "./_components/MemoryOverviewSection";
 import { TaskDetailDrawer } from "./_components/TaskDetailDrawer";
 import { TaskTable } from "./_components/TaskTable";
 import { useDashboardAgentOptions } from "./_hooks/useDashboardAgentOptions";
@@ -32,6 +35,7 @@ const INITIAL_FILTERS: DashboardFilters = {
  * - 30s 兜底定时刷新（防 SSE 抖动）；
  * - 点击任务行 → Drawer 打开 → 加载 /scheduler/tasks/{id}；
  * - Run Now / Toggle 操作完成后调用 refresh() 同步状态。
+ * - 客户端 Activity 面板渲染 localStorage Toast 历史（与后端 Execution Timeline 正交）。
  */
 export default function DashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
@@ -93,7 +97,17 @@ export default function DashboardPage() {
           <ExecutionTimeline executions={executions} />
         </div>
       </div>
+      <div className="mt-3">
+        <ActivityLogPanel />
+      </div>
       <TaskDetailDrawer task={selectedTask} onClose={handleClose} onTaskChanged={refresh} />
+
+      <div className="mt-8 border-t border-border pt-6">
+        <MemoryOverviewSection />
+      </div>
+      <div className="mt-8 border-t border-border pt-6">
+        <InterfaceOverviewSection />
+      </div>
     </div>
   );
 }

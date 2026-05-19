@@ -38,7 +38,7 @@ describe("InterfaceNav", () => {
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
       "href",
-      "/interface",
+      "/dashboard",
     );
   });
 

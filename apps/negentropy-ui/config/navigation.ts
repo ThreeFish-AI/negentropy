@@ -19,11 +19,11 @@ export const mainNavConfig: MainNavItem[] = [
   },
   {
     title: "Memory",
-    href: "/memory",
+    href: "/memory/timeline",
   },
   {
     title: "Interface",
-    href: "/interface",
+    href: "/interface/subagents",
   },
   {
     title: "Admin",
