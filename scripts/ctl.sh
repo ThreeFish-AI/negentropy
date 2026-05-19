@@ -217,8 +217,8 @@ cmd_start() {
   (cd "$REPO_ROOT/apps/negentropy-perceives" && uv sync --dev) &
   local perceives_pid=$!
   local _rc=0; wait "$backend_pid" || _rc=$?; wait "$perceives_pid" || _rc=$?
-  (( _rc )) && { log_error "后端依赖安装失败"; exit 1; }
-  log_ok "后端依赖已安装"
+  (( _rc )) && { log_error "backend/perceives 依赖安装失败"; exit 1; }
+  log_ok "backend + perceives 依赖已安装"
 
   log_info "安装 ui + wiki 依赖 (并行)..."
   (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm install) &
