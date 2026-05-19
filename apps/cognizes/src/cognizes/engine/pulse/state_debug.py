@@ -1,8 +1,8 @@
 """状态调试面板数据接口"""
 
+import json
 from dataclasses import dataclass
 from typing import Any
-import json
 
 
 @dataclass

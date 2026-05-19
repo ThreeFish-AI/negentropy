@@ -9,15 +9,15 @@ Pulse EventBridge: 将 PostgreSQL 事件转换为 AG-UI 标准事件
 
 from __future__ import annotations
 
-import json
 import asyncio
+import json
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable, AsyncGenerator
 from datetime import datetime
+from enum import StrEnum
 
 
-class AgUiEventType(str, Enum):
+class AgUiEventType(StrEnum):
     """AG-UI 标准事件类型"""
 
     RUN_STARTED = "RUN_STARTED"
@@ -86,7 +86,7 @@ class PulseEventBridge:
         self._running = False
         await self._pg_listener.unsubscribe("event_stream")
 
-    async def subscribe(self, run_id: str) -> AsyncGenerator[AgUiEvent, None]:
+    async def subscribe(self, run_id: str) -> AsyncGenerator[AgUiEvent]:
         """
         订阅指定 run_id 的事件流
 
@@ -111,7 +111,7 @@ class PulseEventBridge:
                         AgUiEventType.RUN_ERROR,
                     ):
                         break
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # 发送心跳
                     yield AgUiEvent(
                         type=AgUiEventType.CUSTOM,

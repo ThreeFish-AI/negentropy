@@ -12,9 +12,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 import asyncpg
 
