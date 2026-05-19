@@ -17,6 +17,8 @@ import { toast as sonnerToast, type ExternalToast } from "sonner";
 import { appendActivity, type ActivityLevel } from "./activity-store";
 
 type ToastMessage = string | React.ReactNode;
+// Bridge @types/react 19.2.14 strictness: ReactElement ↛ ReactPortal
+type SonnerTitle = Parameters<typeof sonnerToast>[0];
 
 function logAndForward(
   level: ActivityLevel,
@@ -41,24 +43,24 @@ function logAndForward(
 export const toast = Object.assign(
   (message: ToastMessage, data?: ExternalToast) => {
     logAndForward("info", message, data);
-    return sonnerToast(message, data);
+    return sonnerToast(message as SonnerTitle, data);
   },
   {
     success: (message: ToastMessage, data?: ExternalToast) => {
       logAndForward("success", message, data);
-      return sonnerToast.success(message, data);
+      return sonnerToast.success(message as SonnerTitle, data);
     },
     error: (message: ToastMessage, data?: ExternalToast) => {
       logAndForward("error", message, data);
-      return sonnerToast.error(message, data);
+      return sonnerToast.error(message as SonnerTitle, data);
     },
     info: (message: ToastMessage, data?: ExternalToast) => {
       logAndForward("info", message, data);
-      return sonnerToast.info(message, data);
+      return sonnerToast.info(message as SonnerTitle, data);
     },
     warning: (message: ToastMessage, data?: ExternalToast) => {
       logAndForward("warning", message, data);
-      return sonnerToast.warning(message, data);
+      return sonnerToast.warning(message as SonnerTitle, data);
     },
     // 透传：非通知级别方法不需要记录到活动日志
     loading: sonnerToast.loading,
