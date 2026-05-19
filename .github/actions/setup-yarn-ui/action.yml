@@ -12,6 +12,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Disable Corepack
+      shell: bash
+      run: corepack disable
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
