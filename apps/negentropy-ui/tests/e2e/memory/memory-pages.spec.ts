@@ -137,7 +137,7 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 
   await expect(page.getByText("Memory Timeline")).toBeVisible();
-  await expect(page.getByText("3 memories")).toBeVisible();
+  await expect(page.getByText("1 memories")).toBeVisible();
   await expect(page.getByText("Test memory content")).toBeVisible();
   await expect(page.getByText("85%")).toBeVisible();
 });
