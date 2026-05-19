@@ -85,7 +85,7 @@ export default function ModelsPage() {
   useEffect(() => {
     if (status === "loading") return;
     if (!user?.roles?.includes("admin")) {
-      router.replace("/interface");
+      router.replace("/interface/subagents");
     }
   }, [user, status, router]);
 
