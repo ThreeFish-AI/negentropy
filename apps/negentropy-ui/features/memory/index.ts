@@ -47,6 +47,7 @@ export {
   isRetryable,
 } from "./components/RetryableErrorBanner";
 export { MemoryTimelineCard } from "./components/MemoryTimelineCard";
+export { MemoryUserSelect } from "./components/MemoryUserSelect";
 export type {
   RetryableError,
   RetryableErrorBannerProps,

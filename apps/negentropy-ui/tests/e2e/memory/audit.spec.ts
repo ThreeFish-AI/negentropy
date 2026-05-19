@@ -79,8 +79,7 @@ test("Audit 选择用户后展示 timeline + history", async ({ page }) => {
   await setupAuditRoutes(page);
 
   await page.goto("/memory/audit");
-  await expect(page.getByRole("button", { name: "user-1 (1)" })).toBeVisible();
-  await page.getByRole("button", { name: "user-1 (1)" }).click();
+  await page.getByLabel("Filter by user").selectOption("user-1");
 
   await expect(page.getByText("Standup at 10am Mon/Wed")).toBeVisible();
   await expect(page.getByText("earlier audit")).toBeVisible();
@@ -91,7 +90,7 @@ test("Audit 选择 retain 后 Submit 计数变 1", async ({ page }) => {
   await setupAuditRoutes(page);
 
   await page.goto("/memory/audit");
-  await page.getByRole("button", { name: "user-1 (1)" }).click();
+  await page.getByLabel("Filter by user").selectOption("user-1");
   await expect(page.getByText("Standup at 10am Mon/Wed")).toBeVisible();
 
   await expect(page.getByRole("button", { name: /Submit \(0\)/ })).toBeDisabled();
@@ -129,7 +128,7 @@ test("Audit 提交 POST /api/memory/audit 含 decisions + idempotency_key", asyn
   });
 
   await page.goto("/memory/audit");
-  await page.getByRole("button", { name: "user-1 (1)" }).click();
+  await page.getByLabel("Filter by user").selectOption("user-1");
   await page.getByRole("button", { name: "retain" }).click();
   await page.getByRole("button", { name: /Submit \(1\)/ }).click();
 
@@ -148,7 +147,7 @@ test("Audit 无 decision 时 Submit 禁用", async ({ page }) => {
   await setupAuditRoutes(page);
 
   await page.goto("/memory/audit");
-  await page.getByRole("button", { name: "user-1 (1)" }).click();
+  await page.getByLabel("Filter by user").selectOption("user-1");
   await expect(page.getByText("Standup at 10am Mon/Wed")).toBeVisible();
 
   await expect(page.getByRole("button", { name: /Submit \(0\)/ })).toBeDisabled();

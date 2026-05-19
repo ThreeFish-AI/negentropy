@@ -9,6 +9,7 @@ import {
   useMemoryTimeline,
   submitAudit,
   fetchAuditHistory,
+  MemoryUserSelect,
 } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -108,44 +109,20 @@ export default function MemoryAuditPage() {
 
 
           <div className="flex min-h-0 flex-1 gap-6">
-          {/* Users sidebar */}
-          <aside className="min-h-0 w-52 shrink-0 overflow-y-auto">
-            <div className="pb-4 pr-2">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Users</h2>
-                <div className="mt-3 space-y-2">
-                  {users.length ? (
-                    users.map((user) => (
-                      <button
-                        key={user.id}
-                        className={`w-full rounded-lg border px-3 py-2 text-left text-xs ${
-                          selectedUserId === user.id
-                            ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                            : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
-                        }`}
-                        onClick={() => {
-                          setSelectedUserId(user.id);
-                          setAuditMap({});
-                        }}
-                      >
-                        <p className="truncate text-xs font-semibold">
-                          {user.label || user.id}
-                        </p>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {timelineLoading ? "Loading..." : "No users found"}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </aside>
-
           {/* Main: Memories with audit actions */}
-          <main className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
+          <main className="min-h-0 min-w-0 flex-[3] overflow-y-auto">
             <div className="pb-4 pr-2">
+              <div className="mb-4 flex items-center gap-3">
+                <MemoryUserSelect
+                  users={users}
+                  selectedUserId={selectedUserId}
+                  onSelect={(id) => {
+                    setSelectedUserId(id);
+                    setAuditMap({});
+                  }}
+                  loading={timelineLoading}
+                />
+              </div>
               <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
