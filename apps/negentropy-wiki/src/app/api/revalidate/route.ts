@@ -81,8 +81,8 @@ export async function POST(request: Request) {
   revalidatePath(`/${payload.pub_slug}`);
   revalidatePath(`/${payload.pub_slug}/[...entrySlug]`, "page");
   revalidatePath(`/${payload.pub_slug}/graph`);
-  revalidateTag(`wiki:${payload.pub_slug}`);
-  revalidateTag(`wiki-graph:${payload.pub_slug}`);
+  revalidateTag(`wiki:${payload.pub_slug}`, "default");
+  revalidateTag(`wiki-graph:${payload.pub_slug}`, "default");
 
   return NextResponse.json({
     revalidated: true,
