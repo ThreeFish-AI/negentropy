@@ -1,12 +1,27 @@
-name: CI
+name: Perceives CI
 
 on:
   push:
     branches: [master, main, develop, "feature/**"]
+    paths:
+      - "apps/negentropy-perceives/**"
+      - ".github/workflows/negentropy-perceives-ci.yml"
+      - ".github/actions/setup-python-uv/**"
   pull_request:
     branches: [master, main, develop, "feature/**"]
+    paths:
+      - "apps/negentropy-perceives/**"
+      - ".github/workflows/negentropy-perceives-ci.yml"
+      - ".github/actions/setup-python-uv/**"
   workflow_call:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: apps/negentropy-perceives
 
 jobs:
   test:
@@ -18,11 +33,12 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
         with:
+          working-directory: apps/negentropy-perceives
           enable-cache: "true"
 
       - name: Run tests
@@ -36,10 +52,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/negentropy-perceives
 
       - name: Run ruff linting
         run: uv run ruff check src/negentropy/perceives/
@@ -55,10 +73,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/negentropy-perceives
 
       - name: Run bandit security scan
         run: |
@@ -86,24 +106,25 @@ jobs:
             --ignore-vuln CVE-2026-42271
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: security-reports
+          name: perceives-security-reports
           path: |
-            bandit-report.json
-            audit-report.json
+            apps/negentropy-perceives/bandit-report.json
+            apps/negentropy-perceives/audit-report.json
 
   build:
     name: Build Package
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
         with:
+          working-directory: apps/negentropy-perceives
           install-dev: "false"
 
       - name: Build package
@@ -115,10 +136,10 @@ jobs:
           uv run python -c "import negentropy.perceives; print(f'Successfully imported negentropy.perceives v{negentropy.perceives.__version__}')" || uv run python -c "import negentropy.perceives; print('Successfully imported negentropy.perceives')"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: dist-test
-          path: dist/
+          name: perceives-dist-test
+          path: apps/negentropy-perceives/dist/
           retention-days: 7
 
   coverage:
@@ -126,10 +147,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/negentropy-perceives
 
       - name: Run tests with coverage
         run: uv run pytest --cov=negentropy.perceives --cov-report=xml --cov-report=html --cov-report=term -n auto --timeout=300 -m "not slow"
@@ -138,17 +161,17 @@ jobs:
           NEGENTROPY_PERCEIVES_ENABLE_JAVASCRIPT: "false"
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: perceives-coverage-report
           path: |
-            coverage.xml
-            htmlcov/
+            apps/negentropy-perceives/coverage.xml
+            apps/negentropy-perceives/htmlcov/
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
+          files: ./apps/negentropy-perceives/coverage.xml
+          flags: perceives-unittests
+          name: perceives-codecov-umbrella
           fail_ci_if_error: false

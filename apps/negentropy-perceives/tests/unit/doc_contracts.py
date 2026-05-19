@@ -4,8 +4,9 @@ from pathlib import Path
 import re
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-DOCS_DIR = PROJECT_ROOT / "docs"
+# 仓库根目录（tests/unit/ → tests/ → negentropy-perceives/ → apps/ → repo root）
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+DOCS_DIR = PROJECT_ROOT / "docs" / "perceives"
 REQUIRED_FRONTMATTER_FIELDS = ("id", "title", "description", "last_update")
 RELATIVE_LINK_PATTERN = re.compile(r"\[.*?\]\((\.\.?/[^)#]+?)(?:#[^)]*)?\)")
 

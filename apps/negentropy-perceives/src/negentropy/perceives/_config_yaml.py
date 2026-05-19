@@ -101,7 +101,11 @@ def _load_bundled_yaml() -> Dict[str, Any]:
 
 def _get_user_config_path() -> Path:
     """获取用户配置文件的标准路径。"""
-    return Path.home() / ".negentropy" / "perceives.config.yaml"
+    try:
+        return Path.home() / ".negentropy" / "perceives.config.yaml"
+    except RuntimeError:
+        # Windows CI 等环境可能无 HOME 环境变量，回退到不存在路径
+        return Path("/nonexistent/.negentropy/perceives.config.yaml")
 
 
 def _load_yaml_file(path: Path) -> Optional[Dict[str, Any]]:

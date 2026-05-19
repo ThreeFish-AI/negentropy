@@ -26,19 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: apps/negentropy/uv.lock
-
-      - name: Install dependencies
-        run: uv sync --frozen
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-uv-backend
 
       - name: Verify Alembic graph has a single head
         run: |
@@ -108,19 +97,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: apps/negentropy/uv.lock
-
-      - name: Install dependencies
-        run: uv sync --frozen
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-uv-backend
 
       - name: Initialize database schema
         run: |
@@ -175,19 +153,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: apps/negentropy/uv.lock
-
-      - name: Install dependencies
-        run: uv sync --frozen
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-uv-backend
 
       - name: Initialize database schema
         run: |

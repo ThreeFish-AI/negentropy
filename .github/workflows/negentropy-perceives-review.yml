@@ -1,11 +1,21 @@
-name: Code Review
+name: Perceives Code Review
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - "apps/negentropy-perceives/**"
+      - ".github/workflows/negentropy-perceives-review.yml"
   push:
     branches: [master, main]
+    paths:
+      - "apps/negentropy-perceives/**"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
 
 jobs:
   pr-review:
@@ -15,14 +25,10 @@ jobs:
     if: github.event_name == 'pull_request'
     env:
       HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && 'true' || 'false' }}
-    permissions:
-      contents: read
-      pull-requests: write
-      id-token: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -114,7 +120,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -144,7 +150,7 @@ jobs:
             3. 审查范围限定为 `BEFORE SHA` 到 `CURRENT SHA` 的提交差异。
             4. 最终只发布一条 commit comment：
                - 若没有发现问题，评论内容为：`代码质量良好，没有发现需要改进的地方。`
-               - 若发现问题，按“问题描述 / 修复建议 / 优先级”组织成中文 Markdown。
+               - 若发现问题，按"问题描述 / 修复建议 / 优先级"组织成中文 Markdown。
             5. 不要创建 issue，不要修改代码，不要输出普通消息。
 
             请先用 git 查看 diff，再通过 GitHub API 在当前 commit 上发布评论。
