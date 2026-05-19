@@ -94,7 +94,7 @@ cd apps/negentropy && uv sync --extra pii-presidio
 
 ---
 
-## 3. UI 导航（7 个页面）
+## 3. UI 导航（6 个页面）
 
 | 页面 | 路径 | 核心功能 |
 |---|---|---|
@@ -104,9 +104,9 @@ cd apps/negentropy && uv sync --extra pii-presidio
 | Audit | `/memory/audit` | 审计历史 + retain/delete/anonymize 决策 |
 | Conflicts | `/memory/conflicts` | 事实冲突检视与手动解决（pending → supersede/keep_old/keep_new/merge）|
 | Automation | `/memory/automation` | pg_cron 任务管理（需 admin 角色）|
-| Activity | `/memory/activity` | 平台活动日志 |
 
 > 所有页面源自 `apps/negentropy-ui/app/memory/`。
+> Activity（平台 Toast 通知历史）已迁移至 Home / Dashboard 底部，作为 localStorage 日志面板与后端 Execution Timeline 正交并列；详见 [`/dashboard`](../../../apps/negentropy-ui/app/(home)/dashboard/page.tsx)。
 
 ### Retention 红绿灯
 - 🟢 ≥ 50%：健康

@@ -2097,3 +2097,26 @@
 - **同类问题影响**：
   - 与 [ISSUE-012](#issue-012)（枚举列上 `LOWER`/`UPPER` 必须 `::text` cast）同源——本期是「读侧 cast 失败」，012 是「迁移侧 cast 失败」，两者共同提示「PG 枚举列与 text 之间的所有交互都需要显式 cast，且 ORM 侧声明类型必须与 DB 真实列类型严格一致」。
   - 已确认本仓库其他 plugin 表（`mcp_servers/skills/sub_agents`）的 `visibility` 列与 ORM 声明一致，无同型漂移。任何未来新增 plugin 类型（如假想中的 `prompt_template`/`workflow`）必须按上文「新增 plugin 表的强制模板」实施。
+
+---
+
+## ISSUE-090 Memory/Activity 子页与 Memory 领域语义错位（2026-05-19）
+
+- **表因**：`/memory/activity` 子页位于 Memory 二级导航，但承载的是「平台 Toast 通知历史」（localStorage 数据源、跨模块写入），Memory 上下文用户找不到自己的活动记录而误以为功能丢失；Memory 二级导航 7 个 tab 又显得过载。
+- **根因**：
+  1. **领域归属错置**：`useActivityLog` / `ActivityEntry` 类型曾通过 `features/memory/index.ts` re-export，让活动日志看起来像 Memory 子领域；但实际 `lib/activity-toast.ts` 在全平台所有 toast 调用处写入，与 Memory 数据无任何耦合，违反 **正交分解** 与 **Single Source of Truth**；
+  2. **导航语义错位**：MemoryNav 7 个 tab 中 6 个均围绕 user/semantic memory 操作，唯独 Activity 是平台级日志，认知一致性被打破。
+- **处理方式**：
+  1. 将 `useActivityLog` 上移至 `apps/negentropy-ui/hooks/useActivityLog.ts`（与 `useSubAgentsList` / `useHeartbeatPoll` 等平台级 hook 同级），末尾 re-export `ActivityEntry`/`ActivityLevel` 类型供单点 import；
+  2. 在 `app/(home)/dashboard/_components/` 新建 `ActivityLogPanel.tsx`，复用 `ExecutionTimeline` 卡片视觉范式（`rounded-lg border border-border bg-card shadow-sm` + uppercase tracking-wider 头部 + `max-h-[480px] overflow-auto`），并在 `dashboard/page.tsx` 主网格之后追加整宽嵌入；
+  3. **拒绝合并为 Tab 容器**（Executions ⇄ Activity）：后端调度执行流（SSE）与前端 Toast 历史（localStorage）数据源、生命周期、消费者均正交，不应耦合进单一容器；
+  4. 删除 `app/memory/activity/page.tsx`、`features/memory/hooks/useActivityLog.ts`，清理 `features/memory/index.ts` barrel 的对应 re-export；
+  5. `components/ui/MemoryNav.tsx` 移除 Activity NAV_ITEM；e2e 测试从 `tests/e2e/memory/activity.spec.ts` 迁移到 `tests/e2e/dashboard/dashboard-activity.spec.ts`，通过 `data-testid="activity-log-panel"` 缩域避免与 `ExecutionTimeline` 选择器冲突；
+  6. `memory-pages.spec.ts` 中 「7 个页面标签」断言降为 6 个；`docs/memory/user-guide/basics.md` 同步表格 + 加迁移说明。
+- **后续防范**：
+  1. **以"数据源 + 写入触发面"判定模块归属**，而非以"看起来像什么"：凡是 `lib/*` 单例存储 + 跨模块写入的状态，hook 应栖息在 `apps/negentropy-ui/hooks/` 顶级，而非任何 `features/<domain>/` 子目录；
+  2. **二级导航 tab 列表必须保持单一概念主体**：新增 tab 前先核对其数据源与同级其它 tab 是否同源（同领域 / 同生命周期 / 同写入面）；
+  3. **`features/<domain>/index.ts` barrel 不允许 re-export 非领域类型**——本期被 re-export 的 `ActivityEntry`/`ActivityLevel` 直接来自 `lib/activity-store`，从未在 Memory 领域被消费过，纯属语义污染。
+- **同类问题影响**：
+  - 检视其它 `features/*/index.ts` barrel：凡 `export type { ... } from "@/lib/..."` 形态的 re-export 均需用本期同款判定标准复核（是否真的属于该领域）；
+  - 二级导航过载的子页（`/memory` 系 7 → 6、`/interface` 系、`/knowledge` 系）若有类似「平台级面板栖息在领域 tab 下」的错位，应统一上提到 Home / Dashboard 整体快照。
