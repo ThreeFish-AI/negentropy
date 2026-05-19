@@ -15,10 +15,9 @@ packages:
 # 允许执行原生构建脚本（继承自 ui / wiki 旧 workspace 配置）
 allowBuilds:
   esbuild: true
-  msw: set this to true or false
+  msw: true
   sharp: true
   unrs-resolver: true
-  msw: true
 
 # 跨包统一锁定版本（catalog 模式）
 # 注意：catalog 的 key 必须与 import 时的 specifier 一致；使用方式：
