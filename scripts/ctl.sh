@@ -30,32 +30,36 @@ log_phase() { echo "\n${BOLD}${BLUE}[$(_ts)] ── $* ──${RESET}"; }
 SVC_BACKEND="backend"
 SVC_UI="ui"
 SVC_WIKI="wiki"
+SVC_PERCEIVES="perceives"
 
 svc_dir() {
   case "$1" in
-    backend) echo "apps/negentropy" ;;
-    ui)      echo "apps/negentropy-ui" ;;
-    wiki)    echo "apps/negentropy-wiki" ;;
+    backend)   echo "apps/negentropy" ;;
+    ui)        echo "apps/negentropy-ui" ;;
+    wiki)      echo "apps/negentropy-wiki" ;;
+    perceives) echo "apps/negentropy-perceives" ;;
   esac
 }
 
 svc_port() {
   case "$1" in
-    backend) echo 3292 ;;
-    ui)      echo 3192 ;;
-    wiki)    echo 3092 ;;
+    backend)   echo 3292 ;;
+    ui)        echo 3192 ;;
+    wiki)      echo 3092 ;;
+    perceives) echo 2992 ;;
   esac
 }
 
 svc_start_cmd() {
   case "$1" in
-    backend) echo "uv run negentropy serve --port 3292" ;;
-    ui)      echo "node ./scripts/start-production.mjs" ;;
-    wiki)    echo "node ./scripts/start-production.mjs" ;;
+    backend)   echo "uv run negentropy serve --port 3292" ;;
+    ui)        echo "node ./scripts/start-production.mjs" ;;
+    wiki)      echo "node ./scripts/start-production.mjs" ;;
+    perceives) echo "uv run negentropy-perceives" ;;
   esac
 }
 
-ALL_SERVICES=("$SVC_BACKEND" "$SVC_UI" "$SVC_WIKI")
+ALL_SERVICES=("$SVC_BACKEND" "$SVC_UI" "$SVC_WIKI" "$SVC_PERCEIVES")
 
 # ── 进程管理工具 ─────────────────────────────────────────────────────────────────
 run_dir_init() { mkdir -p "$RUN_DIR"; }
@@ -207,9 +211,14 @@ cmd_start() {
 
   # Phase 2 — 依赖安装
   log_phase "Phase 2/5: 依赖安装"
-  log_info "安装 backend 依赖..."
-  (cd "$REPO_ROOT/apps/negentropy" && uv sync --dev)
-  log_ok "backend 依赖已安装"
+  log_info "安装 backend + perceives 依赖 (并行)..."
+  (cd "$REPO_ROOT/apps/negentropy" && uv sync --dev) &
+  local backend_pid=$!
+  (cd "$REPO_ROOT/apps/negentropy-perceives" && uv sync --dev) &
+  local perceives_pid=$!
+  local _rc=0; wait "$backend_pid" || _rc=$?; wait "$perceives_pid" || _rc=$?
+  (( _rc )) && { log_error "后端依赖安装失败"; exit 1; }
+  log_ok "后端依赖已安装"
 
   log_info "安装 ui + wiki 依赖 (并行)..."
   (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm install) &
@@ -262,11 +271,12 @@ cmd_start() {
   echo ""
   log_ok "所有服务已启动"
   echo ""
-  printf "  %-10s %s\n" "backend" "http://localhost:3292"
-  printf "  %-10s %s\n" "ui"      "http://localhost:3192"
-  printf "  %-10s %s\n" "wiki"    "http://localhost:3092"
+  printf "  %-10s %s\n" "backend"   "http://localhost:3292"
+  printf "  %-10s %s\n" "ui"        "http://localhost:3192"
+  printf "  %-10s %s\n" "wiki"      "http://localhost:3092"
+  printf "  %-10s %s\n" "perceives" "http://localhost:2992"
   echo ""
-  log_info "查看日志: ./scripts/ctl.sh logs [backend|ui|wiki]"
+  log_info "查看日志: ./scripts/ctl.sh logs [backend|ui|wiki|perceives]"
 }
 
 # ── 子命令: restart ──────────────────────────────────────────────────────────────
@@ -290,7 +300,7 @@ cmd_logs() {
     fi
   fi
   if [[ "$target" == "all" ]]; then
-    tail -f "$(log_file backend)" "$(log_file ui)" "$(log_file wiki)" 2>/dev/null \
+    tail -f "$(log_file backend)" "$(log_file ui)" "$(log_file wiki)" "$(log_file perceives)" 2>/dev/null \
       || log_error "无日志文件，请先启动服务"
   else
     local lf
@@ -334,7 +344,7 @@ ${BOLD}命令:${RESET}
   restart [--no-pull] [--skip-build] 停止后重新启动
   stop                               优雅停止所有服务
   status                             查看服务运行状态
-  logs [backend|ui|wiki]             实时查看日志（默认全部）
+  logs [backend|ui|wiki|perceives]   实时查看日志（默认全部）
   build                              仅构建前端（不启动）
 
 ${BOLD}选项:${RESET}
