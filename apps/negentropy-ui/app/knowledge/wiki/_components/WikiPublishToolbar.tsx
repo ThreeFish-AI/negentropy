@@ -217,11 +217,19 @@ export function WikiPublishToolbar({
 
         {/* 状态徽章与元信息 */}
         {selectedPub && (
-          <div className="flex items-center gap-2 text-xs text-muted">
+          <div className="flex items-center gap-2 text-xs text-muted min-w-0">
             <WikiStatusBadge status={selectedPub.status} />
-            <span className="font-mono">
+            <span className="font-mono shrink-0">
               v{selectedPub.version} · {selectedPub.entries_count} 个条目
             </span>
+            {selectedPub.description && (
+              <span
+                className="truncate max-w-[280px] text-muted/80"
+                title={selectedPub.description}
+              >
+                · {selectedPub.description}
+              </span>
+            )}
           </div>
         )}
 

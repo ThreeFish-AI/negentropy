@@ -30,7 +30,7 @@ flowchart LR
 #### 8.2.1 在控制台一步步发布（实操指南）
 
 > 适用于已经在 `/knowledge/wiki` 编排好 Catalog 树，希望把已编排内容推送到 negentropy-wiki 站点的运营/编辑同学。
-> UI 入口在 [Wiki 模块：发布入口一体化（Catalog × Publish 合并）] 之后改为「顶部粘性发布工具栏」，不再有「Catalog/Publish」模式切换。
+> UI 入口在 [Knowledge / Wiki 模块发布入口一体化](../../../CHANGELOG.md) 之后改为「顶部粘性发布工具栏」，不再有「Catalog/Publish」模式切换。
 
 ##### 前置条件
 
