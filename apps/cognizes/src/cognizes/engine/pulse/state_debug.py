@@ -45,7 +45,7 @@ class StateDebugService:
             current_state = json.loads(thread["state"]) if thread else {}
 
             # 按前缀分组
-            prefix_breakdown = {"session": {}, "user": {}, "app": {}, "temp": {}}
+            prefix_breakdown: dict[str, dict[str, Any]] = {"session": {}, "user": {}, "app": {}, "temp": {}}
 
             for key, value in current_state.items():
                 if key.startswith("user:"):

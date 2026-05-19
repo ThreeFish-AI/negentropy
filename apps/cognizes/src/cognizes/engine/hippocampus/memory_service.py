@@ -164,7 +164,7 @@ class OpenMemoryService:
             ORDER BY relevance * retention_score DESC
             LIMIT ${param_idx + 2}
         """
-        params.extend([query_embedding, min_relevance, limit])
+        params.extend([query_embedding, min_relevance, limit])  # type: ignore[list-item]
 
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
@@ -241,7 +241,7 @@ class OpenMemoryService:
             LIMIT ${param_idx}
             OFFSET ${param_idx + 1}
         """
-        params.extend([limit, offset])
+        params.extend([limit, offset])  # type: ignore[list-item]
 
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)

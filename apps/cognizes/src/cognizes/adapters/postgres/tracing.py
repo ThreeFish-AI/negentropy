@@ -36,7 +36,7 @@ class PostgresSpanExporter(SpanExporter):
     def __init__(self, pool: asyncpg.Pool):
         self._pool = pool
 
-    def export(self, spans: list[ReadableSpan]) -> SpanExportResult:
+    def export(self, spans: list[ReadableSpan]) -> SpanExportResult:  # type: ignore[override]
         """同步导出 (内部异步)"""
         import asyncio
 
@@ -64,9 +64,9 @@ class PostgresSpanExporter(SpanExporter):
                     span.kind.name if span.kind else "INTERNAL",
                     json.dumps(dict(span.attributes or {})),
                     json.dumps([self._event_to_dict(e) for e in (span.events or [])]),
-                    datetime.fromtimestamp(span.start_time / 1e9),
+                    datetime.fromtimestamp(span.start_time / 1e9),  # type: ignore[operator]
                     datetime.fromtimestamp(span.end_time / 1e9) if span.end_time else None,
-                    (span.end_time - span.start_time) if span.end_time else None,
+                    (span.end_time - span.start_time) if span.end_time else None,  # type: ignore[operator]
                     span.status.status_code.name if span.status else "UNSET",
                     span.status.description if span.status else None,
                 )

@@ -58,7 +58,7 @@ class PgNotifyListener:
         # 统一使用 DatabaseManager 获取连接
         db = DatabaseManager.get_instance(dsn=self.dsn)
         self._pool = await db.get_pool()
-        self._connection = await self._pool.acquire()
+        self._connection = await self._pool.acquire()  # type: ignore[attr-defined]
 
         for channel in self.channels:
             await self._connection.add_listener(channel, self._handle_notification)

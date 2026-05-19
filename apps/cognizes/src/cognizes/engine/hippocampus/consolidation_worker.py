@@ -269,8 +269,8 @@ class MemoryConsolidationWorker:
                         }
                     )
 
-                result["facts"] = facts_stored
-                result["insights"] = insights_stored
+                result["facts"] = facts_stored  # type: ignore[assignment]
+                result["insights"] = insights_stored  # type: ignore[assignment]
 
             # 任务完成
             job.result = result

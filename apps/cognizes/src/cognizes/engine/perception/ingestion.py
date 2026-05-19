@@ -331,7 +331,7 @@ class DocumentIngester:
                 content = f.read()
         else:
             with open(file_path, encoding="utf-8") as f:
-                content = f.read()
+                content = f.read()  # type: ignore[assignment]
 
         # Parse document
         document = self.parse_content(content, source_uri)

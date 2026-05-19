@@ -12,7 +12,7 @@ import asyncio
 import os
 from dataclasses import dataclass
 
-from microsandbox import PythonSandbox  # pip install microsandbox
+from microsandbox import PythonSandbox  # type: ignore[attr-defined]  # pip install microsandbox
 
 
 @dataclass

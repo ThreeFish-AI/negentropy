@@ -27,7 +27,7 @@ try:
 
     TIKTOKEN_AVAILABLE = True
 except ImportError:
-    tiktoken = None
+    tiktoken = None  # type: ignore[assignment]
     TIKTOKEN_AVAILABLE = False
 
 

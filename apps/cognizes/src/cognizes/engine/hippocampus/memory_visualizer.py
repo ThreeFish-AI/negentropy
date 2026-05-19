@@ -108,7 +108,7 @@ class MemoryVisualizer:
             )
 
             if not job:
-                return None
+                return None  # type: ignore[return-value]
 
             progress = ConsolidationProgress(
                 job_id=str(job["id"]),

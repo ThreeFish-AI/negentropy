@@ -25,7 +25,7 @@ class HumanInTheLoop:
         请求用户确认
         返回: {"confirmed": bool, "user_input": str}
         """
-        future = asyncio.Future()
+        future: asyncio.Future[dict[str, Any]] = asyncio.Future()  # type: ignore[assignment]
         self._pending_confirmations[request_id] = future
 
         try:

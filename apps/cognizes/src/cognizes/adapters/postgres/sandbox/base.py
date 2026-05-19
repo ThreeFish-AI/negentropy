@@ -38,7 +38,7 @@ class SandboxResult:
     stderr: str
     exit_code: int
     execution_time_ms: float
-    metadata: dict = None  # 额外信息 (如资源使用)
+    metadata: dict = None  # type: ignore[assignment]  # 额外信息 (如资源使用)
 
 
 class BaseSandboxRunner(ABC):

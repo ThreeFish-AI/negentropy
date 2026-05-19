@@ -38,7 +38,7 @@ async def handle_batch_processor(params: dict[str, Any]) -> dict[str, Any]:
 
     if operations:
         # --- Operations mode: mock extraction/translation per item ---------
-        results = []
+        results: list[dict[str, Any]] = []
         for item in items:
             extracted_result = {
                 "success": True,
@@ -88,7 +88,7 @@ async def handle_batch_processor(params: dict[str, Any]) -> dict[str, Any]:
 
     invoker = SkillInvoker()
     batch_size = params.get("batch_size", 5)
-    results: list[dict[str, Any]] = []
+    results: list[dict[str, Any]] = []  # type: ignore[no-redef]
 
     for i in range(0, len(items), batch_size):
         batch = items[i : i + batch_size]

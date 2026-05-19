@@ -222,7 +222,7 @@ class PostgresSessionService(BaseSessionService):
                 if event.actions and event.actions.state_delta:
                     await self._apply_state_delta_to_db(conn, session, event.actions.state_delta)
 
-        event.id = event_id
+        event.id = event_id  # type: ignore[assignment]
         return event
 
     async def _apply_state_delta_to_db(

@@ -119,7 +119,7 @@ class DatabaseManager:
     @property
     def dsn(self) -> str:
         """获取数据库连接字符串"""
-        return self._dsn
+        return self._dsn  # type: ignore[return-value]
 
     async def get_pool(self) -> asyncpg.Pool:
         """
@@ -441,7 +441,7 @@ class DatabaseManager:
         try:
             import psycopg
 
-            with psycopg.connect(self._dsn) as conn:
+            with psycopg.connect(self._dsn) as conn:  # type: ignore[arg-type]
                 with conn.cursor() as cur:
                     cur.execute(query, args if args else None)
                 conn.commit()
@@ -460,7 +460,7 @@ class DatabaseManager:
         try:
             import psycopg
 
-            with psycopg.connect(self._dsn) as conn:
+            with psycopg.connect(self._dsn) as conn:  # type: ignore[arg-type]
                 with conn.cursor() as cur:
                     cur.executemany(query, params_list)
                 conn.commit()

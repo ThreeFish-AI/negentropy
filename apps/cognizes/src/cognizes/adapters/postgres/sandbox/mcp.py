@@ -7,7 +7,7 @@ try:
     from mcp import StdioServerParameters
 except ImportError:
     # Use a dummy class/mock if mcp is not installed yet, to allow import
-    class StdioServerParameters:
+    class StdioServerParameters:  # type: ignore[no-redef]
         def __init__(self, command, args, env):
             self.command = command
             self.args = args

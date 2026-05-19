@@ -34,7 +34,7 @@ class PostgresMemoryService(BaseMemoryService):
     2. 基于语义相似度检索相关记忆 (复用 Phase 3 hybrid_search)
     """
 
-    def __init__(self, db: DatabaseManager, embedding_fn: callable | None = None, consolidation_worker=None):
+    def __init__(self, db: DatabaseManager, embedding_fn: callable | None = None, consolidation_worker=None):  # type: ignore[valid-type]
         self.db = db
         self._embedding_fn = embedding_fn  # 向量化函数
         self._consolidation_worker = consolidation_worker  # Phase 2 Worker
@@ -62,7 +62,7 @@ class PostgresMemoryService(BaseMemoryService):
                 if hasattr(event, "content") and event.content:
                     # ADK Event.content 可能是 Content 对象或其他格式
                     if hasattr(event.content, "parts"):
-                        for part in event.content.parts:
+                        for part in event.content.parts:  # type: ignore[union-attr]
                             if hasattr(part, "text") and part.text:
                                 user_messages.append(part.text)
                     elif isinstance(event.content, str):
@@ -77,7 +77,7 @@ class PostgresMemoryService(BaseMemoryService):
         # 生成向量 (如果有 embedding 函数)
         embedding = None
         if self._embedding_fn:
-            embedding = await self._embedding_fn(combined_content)
+            embedding = await self._embedding_fn(combined_content)  # type: ignore[misc]
 
         await self.db.memories.insert(
             thread_id=uuid.UUID(session.id) if session.id else None,
@@ -100,7 +100,7 @@ class PostgresMemoryService(BaseMemoryService):
         # 生成查询向量
         query_embedding = None
         if self._embedding_fn:
-            query_embedding = await self._embedding_fn(query)
+            query_embedding = await self._embedding_fn(query)  # type: ignore[misc]
 
         if query_embedding:
             rows = await self.db.memories.search_vector(user_id, app_name, query_embedding)
@@ -116,7 +116,7 @@ class PostgresMemoryService(BaseMemoryService):
                     content_val = {"parts": [{"text": content_val}]}
 
                 memories.append(
-                    MemoryEntry(
+                    MemoryEntry(  # type: ignore[call-arg]
                         id=str(row["id"]),
                         content=content_val,
                         author="system",
@@ -145,7 +145,7 @@ class PostgresMemoryService(BaseMemoryService):
                 content_val = {"parts": [{"text": content_val}]}
 
             memories.append(
-                MemoryEntry(
+                MemoryEntry(  # type: ignore[call-arg]
                     id=str(row["id"]),
                     content=content_val,
                     author="system",

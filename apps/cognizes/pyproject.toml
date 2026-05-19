@@ -304,3 +304,28 @@ exclude_lines = [
     "class .*\\bProtocol\\):",          # Protocol 类定义
     "@(abc\\.)?abstractmethod",         # 抽象方法
 ]
+
+# ==============================================================================
+# [tool.mypy] - 静态类型检查配置
+# mypy 类型检查器设置，控制类型检查的严格程度和行为
+# ==============================================================================
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = false
+exclude = [
+    "src/cognizes/examples/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "asyncpg.*",
+    "pgvector.*",
+    "microsandbox.*",
+    "pypdf.*",
+    "pypdf2.*",
+    "openai.*",
+]
+ignore_missing_imports = true
