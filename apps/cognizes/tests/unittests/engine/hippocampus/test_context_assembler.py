@@ -7,7 +7,7 @@ ContextAssembler 单元测试
 - 预算分配
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 

@@ -4,8 +4,9 @@ E2E 集成测试 - 完整对话流程
 """
 
 import pytest
-from cognizes.adapters.postgres.session_service import PostgresSessionService
+
 from cognizes.adapters.postgres.memory_service import PostgresMemoryService
+from cognizes.adapters.postgres.session_service import PostgresSessionService
 from cognizes.adapters.postgres.tool_registry import ToolRegistry
 
 pytestmark = pytest.mark.asyncio

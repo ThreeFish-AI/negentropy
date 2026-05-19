@@ -6,7 +6,6 @@ StateDebugService 单元测试
 - StateDebugInfo dataclass
 """
 
-import pytest
 from cognizes.engine.pulse.state_debug import StateDebugInfo
 
 

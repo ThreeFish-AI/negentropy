@@ -691,7 +691,6 @@ class TestWorkflowAgent:
             pytest.skip("batch_process_papers method not implemented")
 
         paper_paths = ["/test/paper1.pdf", "/test/paper2.pdf"]
-        options = {"preserve_format": True, "language": "zh"}
 
         with patch.object(workflow_agent, "process") as mock_process:
             mock_process.return_value = {"success": True, "paper_id": "test"}

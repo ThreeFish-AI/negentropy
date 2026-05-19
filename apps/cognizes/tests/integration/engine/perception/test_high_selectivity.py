@@ -129,7 +129,7 @@ class TestEfSearchImpact:
             print(f"ef_search={ef}: {data['count']} 结果, {data['latency']:.2f}ms")
 
         # 验证所有配置都能返回结果
-        for ef, data in results.items():
+        for _ef, data in results.items():
             assert data["count"] >= 0
 
 

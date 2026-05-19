@@ -9,12 +9,12 @@ SearchVisualizer 单元测试
 import pytest
 
 from cognizes.engine.perception.search_visualizer import (
-    SearchEventType,
+    RerankComparison,
     RetrievalPathResult,
     RRFMergeResult,
-    RerankComparison,
-    SourceCitation,
+    SearchEventType,
     SearchVisualizer,
+    SourceCitation,
 )
 
 pytestmark = pytest.mark.asyncio

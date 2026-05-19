@@ -7,10 +7,11 @@ OpenTelemetry Tracing 集成测试
 - #18-#19: Span 层级正确
 """
 
-import pytest
 import asyncio
 import os
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # pytest-asyncio 配置
 pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
@@ -291,7 +292,7 @@ class TestTracingManager:
         manager = TracingManager(service_name="test_service")
 
         with pytest.raises(ValueError):
-            async with manager.span("error_span") as span:
+            async with manager.span("error_span"):
                 raise ValueError("Test error")
 
     def test_trace_tool_call_decorator(self, mock_pool):
@@ -348,7 +349,7 @@ class TestTracingIntegration:
         manager = TracingManager(service_name="integration_test", pg_dsn=db_dsn)
 
         # 执行带追踪的操作
-        async with manager.span("test_operation") as span:
+        async with manager.span("test_operation"):
             await asyncio.sleep(0.01)
 
         # 验证 traces 表有记录
@@ -363,8 +364,8 @@ class TestTracingIntegration:
         manager = TracingManager(service_name="hierarchy_test", pg_dsn=db_dsn)
 
         # 创建嵌套 Span
-        async with manager.span("parent") as parent_span:
-            async with manager.span("child") as child_span:
+        async with manager.span("parent"):
+            async with manager.span("child"):
                 pass
 
         # 验证层级关系

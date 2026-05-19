@@ -8,19 +8,17 @@ MemoryConsolidationWorker 单元测试
 - Facts 提取 (Mock LLM)
 """
 
-import uuid
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from cognizes.engine.hippocampus.consolidation_worker import (
-    MemoryConsolidationWorker,
-    JobType,
-    JobStatus,
     ConsolidationJob,
-    Memory,
     Fact,
+    JobStatus,
+    JobType,
+    Memory,
+    MemoryConsolidationWorker,
 )
 
 

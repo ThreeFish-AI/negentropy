@@ -12,11 +12,11 @@ Task ID: P3-5-4
 """
 
 import pytest
+
 from cognizes.engine.perception.rag_pipeline import (
-    RAGPipeline,
+    IndexingResult,
     RAGResponse,
     RetrievalResult,
-    IndexingResult,
     get_rag_pipeline,
 )
 

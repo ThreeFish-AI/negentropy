@@ -1,10 +1,10 @@
-import pytest
-import uuid
 import json
-from datetime import datetime
+import uuid
+
+import pytest
 
 from cognizes.core.database import DatabaseManager
-from cognizes.engine.hippocampus.consolidation_worker import MemoryConsolidationWorker, JobType, JobStatus
+from cognizes.engine.hippocampus.consolidation_worker import JobStatus, JobType, MemoryConsolidationWorker
 
 
 @pytest.mark.asyncio
@@ -38,7 +38,7 @@ async def test_consolidation_flow_with_repos():
         ("user", "My favorite color is blue.", 3),
     ]
 
-    for author, content, seq in events:
+    for author, content, _seq in events:
         await db.events.insert(
             event_id=uuid.uuid4(),
             thread_id=thread_id,
@@ -87,7 +87,7 @@ async def test_consolidation_flow_with_repos():
     assert metadata["source"] == "fast_replay"
 
     # Verify Facts Created
-    facts = await db.facts.search(user_id=user_id, app_name=app_name, query_embedding=[0.1] * 1536, limit=10)
+    await db.facts.search(user_id=user_id, app_name=app_name, query_embedding=[0.1] * 1536, limit=10)
     # Note: search uses vector search, so our mock embedding should find it if similarity works,
     # but exact match might be better for test.
     # Let's use direct DB query to verify exact fact

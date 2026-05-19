@@ -9,11 +9,10 @@ Sandbox 安全沙箱单元测试
 - #23: 网络隔离
 """
 
-import pytest
-import asyncio
 import os
 import socket
-from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # pytest-asyncio 配置
 pytestmark = pytest.mark.asyncio
@@ -39,7 +38,7 @@ def is_microsandbox_available(host: str = "127.0.0.1", port: int = 5555, timeout
         result = sock.connect_ex((host, port))
         sock.close()
         return result == 0
-    except (socket.error, OSError):
+    except OSError:
         return False
 
 
@@ -56,9 +55,9 @@ class TestBaseSandboxRunner:
         """创建模拟沙箱执行器"""
         from cognizes.adapters.postgres.sandbox.base import (
             BaseSandboxRunner,
+            SandboxBackend,
             SandboxConfig,
             SandboxResult,
-            SandboxBackend,
         )
 
         class MockSandboxRunner(BaseSandboxRunner):

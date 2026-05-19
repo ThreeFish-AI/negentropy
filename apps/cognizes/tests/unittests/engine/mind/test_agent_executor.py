@@ -3,11 +3,12 @@ AgentExecutor 单元测试
 验证 Agent 核心编排逻辑、解析器、工具调用及超时处理
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, Mock, patch
-from datetime import datetime
-from cognizes.engine.mind.agent_executor import AgentExecutor, ExecutionStatus, ThinkingStep
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+
+from cognizes.engine.mind.agent_executor import AgentExecutor, ExecutionStatus
 
 
 # 模拟 LLM 响应

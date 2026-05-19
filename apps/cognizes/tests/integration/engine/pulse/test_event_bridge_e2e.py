@@ -6,19 +6,17 @@ EventBridge 端到端集成测试
 - SSE 订阅流
 """
 
-import asyncio
 import json
+
 import pytest
 import pytest_asyncio
 
+from cognizes.core.database import DatabaseManager
 from cognizes.engine.pulse.event_bridge import (
-    AgUiEventType,
     AgUiEvent,
+    AgUiEventType,
     PulseEventBridge,
 )
-from cognizes.engine.pulse.pg_notify_listener import PgNotifyListener
-from cognizes.core.database import DatabaseManager
-
 
 # 注意：此测试需要运行中的 PostgreSQL 数据库
 
@@ -38,7 +36,6 @@ class TestEventBridgeE2E:
     @pytest.mark.asyncio
     async def test_notify_triggers_agui_event(self, conn):
         """NOTIFY -> AG-UI Event 完整链路"""
-        received_events = []
 
         # 模拟 PgNotifyListener 的回调机制
         class MockListener:

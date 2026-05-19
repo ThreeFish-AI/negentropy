@@ -5,7 +5,7 @@ Perception 单元测试共享 Fixtures
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 

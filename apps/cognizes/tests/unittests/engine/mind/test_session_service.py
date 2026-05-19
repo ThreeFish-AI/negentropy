@@ -13,12 +13,11 @@ PostgresSessionService 单元测试
 - append_event: 事件追加与 state_delta 应用
 """
 
-import pytest
 import uuid
-import json
-import os
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 # pytest-asyncio 配置
 pytestmark = pytest.mark.asyncio
@@ -163,7 +162,7 @@ class TestPostgresSessionServiceMocked:
         pool, conn = mock_pool
 
         session_id = uuid.uuid4()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 模拟 threads 表返回
         conn.fetchrow = AsyncMock(
@@ -231,7 +230,7 @@ class TestPostgresSessionServiceMocked:
         from cognizes.adapters.postgres.session_service import PostgresSessionService
 
         pool, conn = mock_pool
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         conn.fetch = AsyncMock(
             return_value=[
@@ -279,9 +278,10 @@ class TestPostgresSessionServiceMocked:
 
     async def test_state_delta_normal_key_updates_threads(self, mock_pool):
         """测试: 无前缀键更新 threads.state"""
-        from cognizes.adapters.postgres.session_service import PostgresSessionService
-        from google.adk.sessions import Session
         from google.adk.events import Event
+        from google.adk.sessions import Session
+
+        from cognizes.adapters.postgres.session_service import PostgresSessionService
 
         pool, conn = mock_pool
         service = PostgresSessionService(pool=pool)
@@ -301,14 +301,15 @@ class TestPostgresSessionServiceMocked:
 
     async def test_state_delta_temp_prefix_not_persisted(self, mock_pool):
         """测试: temp: 前缀不写入数据库"""
-        from cognizes.adapters.postgres.session_service import PostgresSessionService
-        from google.adk.sessions import Session
         from google.adk.events import Event
+        from google.adk.sessions import Session
+
+        from cognizes.adapters.postgres.session_service import PostgresSessionService
 
         pool, conn = mock_pool
-        service = PostgresSessionService(pool=pool)
+        PostgresSessionService(pool=pool)
 
-        session = Session(id=str(uuid.uuid4()), app_name="test_app", user_id="user_012", events=[], state={})
+        Session(id=str(uuid.uuid4()), app_name="test_app", user_id="user_012", events=[], state={})
 
         # 仅包含 temp: 前缀的 state_delta
         event = Event(author="agent", timestamp=datetime.now().timestamp())
@@ -320,9 +321,10 @@ class TestPostgresSessionServiceMocked:
 
     async def test_state_delta_user_prefix_updates_user_states(self, mock_pool):
         """测试: user: 前缀更新 user_states 表"""
-        from cognizes.adapters.postgres.session_service import PostgresSessionService
-        from google.adk.sessions import Session
         from google.adk.events import Event
+        from google.adk.sessions import Session
+
+        from cognizes.adapters.postgres.session_service import PostgresSessionService
 
         pool, conn = mock_pool
         service = PostgresSessionService(pool=pool)
@@ -343,9 +345,10 @@ class TestPostgresSessionServiceMocked:
 
     async def test_state_delta_app_prefix_updates_app_states(self, mock_pool):
         """测试: app: 前缀更新 app_states 表"""
-        from cognizes.adapters.postgres.session_service import PostgresSessionService
-        from google.adk.sessions import Session
         from google.adk.events import Event
+        from google.adk.sessions import Session
+
+        from cognizes.adapters.postgres.session_service import PostgresSessionService
 
         pool, conn = mock_pool
         service = PostgresSessionService(pool=pool)

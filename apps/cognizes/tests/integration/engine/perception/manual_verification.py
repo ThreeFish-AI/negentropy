@@ -7,8 +7,8 @@ Phase 3 验收测试脚本 (Manual Verification Runner)
 """
 
 import asyncio
-import time
 import os
+import time
 
 import asyncpg
 import numpy as np
@@ -19,7 +19,7 @@ async def test_hybrid_search(pool: asyncpg.Pool):
     query = "machine learning algorithms"
     query_embedding = list(np.random.randn(1536).astype(float))
 
-    print(f"\n--- Testing Hybrid Search ---")
+    print("\n--- Testing Hybrid Search ---")
     start = time.perf_counter()
     rows = await pool.fetch(
         """
@@ -35,7 +35,7 @@ async def test_hybrid_search(pool: asyncpg.Pool):
     if len(rows) > 0:
         print(f"✅ Hybrid Search: {len(rows)} results, {latency:.1f}ms")
     else:
-        print(f"⚠️ Hybrid Search: returned 0 results (might need data ingestion first)")
+        print("⚠️ Hybrid Search: returned 0 results (might need data ingestion first)")
 
     if latency >= 100:
         print(f"⚠️ L0 latency {latency:.1f}ms exceeds 100ms target")
@@ -46,7 +46,7 @@ async def test_rrf_search(pool: asyncpg.Pool):
     query = "deep learning neural networks"
     query_embedding = list(np.random.randn(1536).astype(float))
 
-    print(f"\n--- Testing RRF Search ---")
+    print("\n--- Testing RRF Search ---")
     rows = await pool.fetch(
         """
         SELECT * FROM rrf_search($1, $2, $3, $4, 50)
@@ -64,14 +64,14 @@ async def test_rrf_search(pool: asyncpg.Pool):
         if is_sorted:
             print(f"✅ RRF Search: {len(rows)} results, scores correctly ordered")
         else:
-            print(f"❌ RRF Search: scores NOT ordered!")
+            print("❌ RRF Search: scores NOT ordered!")
     else:
-        print(f"⚠️ RRF Search: returned 0 results")
+        print("⚠️ RRF Search: returned 0 results")
 
 
 async def test_iterative_scan(pool: asyncpg.Pool):
     """测试高过滤比场景的迭代扫描"""
-    print(f"\n--- Testing Iterative Scan (High Selectivity) ---")
+    print("\n--- Testing Iterative Scan (High Selectivity) ---")
 
     # 配置迭代扫描
     try:

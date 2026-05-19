@@ -1,9 +1,10 @@
-import asyncio
 import argparse
-import asyncpg
-import uuid
+import asyncio
 import random
+import uuid
 from datetime import datetime, timedelta
+
+import asyncpg
 
 DB_URL = "postgresql://aigc:@localhost/cognizes-engine"
 USER_ID = "perf_test_user"
@@ -22,7 +23,7 @@ async def cleanup():
             print("✓ 无历史测试数据，无需清理")
         else:
             # 清理性能测试数据
-            deleted = await conn.fetchval(
+            await conn.fetchval(
                 """
                 DELETE FROM memories WHERE user_id = $1
             """,
