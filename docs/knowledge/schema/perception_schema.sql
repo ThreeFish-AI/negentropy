@@ -389,7 +389,7 @@ $$ LANGUAGE plpgsql;
 -- ================================
 -- Part 6.5: Knowledge Base RRF Search 函数
 -- Reciprocal Rank Fusion 融合检索
--- 基于 [030-the-perception.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/engine/030-the-perception.md)
+-- 基于 [030-the-perception.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/concepts/030-the-perception.md)
 -- 任务 ID: P1-2
 -- ================================
 

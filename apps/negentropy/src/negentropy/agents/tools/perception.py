@@ -4,7 +4,7 @@ Perception Faculty Tools - 感知系部专用工具
 提供知识检索、Web 搜索等信息获取能力。
 
 基于研究文档 [034-knowledge-base.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/034-knowledge-base.md)
-和 [030-the-perception.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/engine/030-the-perception.md)，
+和 [030-the-perception.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/concepts/030-the-perception.md)，
 本工具集成混合检索 (Hybrid Search) 能力，支持语义、关键词和混合三种检索模式。
 
 参考文献:
