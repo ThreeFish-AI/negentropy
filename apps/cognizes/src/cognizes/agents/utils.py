@@ -157,10 +157,10 @@ def validate_pdf_file(file_path: str) -> dict[str, Any]:
 
         # 尝试读取 PDF 文件信息
         try:
-            import pypdf2
+            import pypdf
 
             with open(file_path, "rb") as f:
-                pdf_reader = pypdf2.PdfReader(f)
+                pdf_reader = pypdf.PdfReader(f)
                 result["pages"] = len(pdf_reader.pages)
         except Exception as e:
             logger.warning(f"Could not read PDF info: {str(e)}")
