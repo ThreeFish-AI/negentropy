@@ -136,7 +136,7 @@ LLM 解码 `<available_skills>` 后，调用工具完成端到端流程；最终
 
 当前 Phase 1 的触发是 **被动**（用户 prompt 进入）。如需「每天 9 点自动跑」：
 
-- 短期：用 ctl.sh / cron 定时调 `/api/v1/agents/...` 的会话端点（接口待定）；
+- 短期：用 cli.sh / cron 定时调 `/api/v1/agents/...` 的会话端点（接口待定）；
 - 长期：Phase 2 在 SubAgent 上加 `schedule` 字段 + 调度服务（PostgreSQL `pg_cron` 已可用）。
 
 ---

@@ -53,7 +53,7 @@ const setupHeadless = AUTH_MODE === "dev-cookie";
 
 // chromium-devcookie：authed spec 专用 project，**不依赖 OAuth setup**，与上面的
 // authProjects 正交。spec 通过 utils/dev-cookie.ts 现签 ne_sso 并 addCookies 到上下文，
-// 直接 hit ctl.sh 启动的真实 backend + UI（默认 http://localhost:3192）。
+// 直接 hit cli.sh 启动的真实 backend + UI（默认 http://localhost:3192）。
 //
 // **CI 默认禁用**：authed spec 需要外部 backend + PostgreSQL；CI smoke job 仅启
 // Playwright webServer (pnpm build && pnpm start)，没有 backend，因此默认跳过。

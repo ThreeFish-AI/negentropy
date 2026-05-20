@@ -46,7 +46,7 @@ sequenceDiagram
 ### 步骤 1：确保后端服务在跑
 
 ```bash
-./scripts/ctl.sh start backend ui
+./scripts/cli.sh start backend ui
 # 后端 :3185, 前端 :3192（默认）
 ```
 
