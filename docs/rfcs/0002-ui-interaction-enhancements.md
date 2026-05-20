@@ -1,11 +1,11 @@
 # RFC 0002: Home Chat UI 交互能力增强（Phase 4 backlog）
 
-| 字段 | 值 |
-|---|---|
-| **状态** | Draft（待评审；依赖 RFC 0001 的 Turn/Item 数据模型落地） |
-| **作者** | Aurelius Huang (cm.huang@aftership.com) |
-| **创建时间** | 2026-04-29 |
-| **关联** | [RFC 0001](./0001-conversation-architecture-refactor.md) |
+| 字段         | 值                                                       |
+| ------------ | -------------------------------------------------------- |
+| **状态**     | Draft（待评审；依赖 RFC 0001 的 Turn/Item 数据模型落地） |
+| **作者**     | Aurelius Huang (cm.huang@aftership.com)                  |
+| **创建时间** | 2026-04-29                                               |
+| **关联**     | [RFC 0001](./0001-conversation-architecture-refactor.md) |
 
 ---
 
@@ -13,11 +13,11 @@
 
 完成 Phase 1 ISSUE-041 双气泡 hotfix + Phase 2 协议合规 + Phase 3 架构重塑后，Home 页交互能力可以借鉴 Codex / Claude / ChatGPT 等成熟产品进一步升级。本 RFC 列出 6 个增强子项，按用户优先级分组：
 
-| 优先级 | 子项 | 估算工时 |
-|---|---|---|
-| 1 | [4.1 Reasoning Panel](#41-reasoning-panel) + [4.2 Sub-Agent 嵌套卡片](#42-sub-agent-嵌套卡片) | 5-7 天 |
-| 2 | [4.3 工具进度可视化](#43-工具进度可视化) + [4.4 中断/审批门](#44-中断审批门) | 4-6 天 |
-| 3 | [4.5 Conversation Branching](#45-conversation-branching) + [4.6 Timeline Inspector 增强](#46-timeline-inspector-增强) | 4-6 天 |
+| 优先级 | 子项                                                                                                                  | 估算工时 |
+| ------ | --------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1      | [4.1 Reasoning Panel](#41-reasoning-panel) + [4.2 Sub-Agent 嵌套卡片](#42-sub-agent-嵌套卡片)                         | 5-7 天   |
+| 2      | [4.3 工具进度可视化](#43-工具进度可视化) + [4.4 中断/审批门](#44-中断审批门)                                          | 4-6 天   |
+| 3      | [4.5 Conversation Branching](#45-conversation-branching) + [4.6 Timeline Inspector 增强](#46-timeline-inspector-增强) | 4-6 天   |
 
 ---
 

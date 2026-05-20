@@ -38,7 +38,7 @@ flowchart TD
     D -- 是 --> E["快路径: 仅 pymupdf<br/>跳过 docling 10s 冷启动"]
     D -- 否 --> F[保持 YAML 顺序]
     C --> G[reason=scanned]
-    E --> H[reason=small_doc_{N}p]
+    E --> H["reason=small_doc_{N}p"]
     F --> I[reason=default]
 ```
 
@@ -57,22 +57,22 @@ flowchart TD
 
 ## 特征驱动型 Stage 跳过表
 
-| Stage              | 关键特征字段        | 跳过条件              | 短路输出                                       |
-|--------------------|---------------------|-----------------------|------------------------------------------------|
-| `table_extraction`   | `has_tables`        | `False`               | `TableExtractionOutput(tables=[], total_count=0)` |
-| `formula_extraction` | `has_formulas`      | `False`               | `FormulaExtractionOutput(formulas=[], ...)`    |
-| `code_detection`     | `has_code_blocks`   | `False`               | `CodeDetectionOutput(code_blocks=[], ...)`     |
-| `image_extraction`   | `has_images`        | `False`               | `ImageExtractionOutput(images=[], total_count=0)` |
+| Stage                | 关键特征字段      | 跳过条件 | 短路输出                                          |
+| -------------------- | ----------------- | -------- | ------------------------------------------------- |
+| `table_extraction`   | `has_tables`      | `False`  | `TableExtractionOutput(tables=[], total_count=0)` |
+| `formula_extraction` | `has_formulas`    | `False`  | `FormulaExtractionOutput(formulas=[], ...)`       |
+| `code_detection`     | `has_code_blocks` | `False`  | `CodeDetectionOutput(code_blocks=[], ...)`        |
+| `image_extraction`   | `has_images`      | `False`  | `ImageExtractionOutput(images=[], total_count=0)` |
 
 跳过时 `StageResult.engine_used = "skipped:profile:no_has_*"`，且
 `metadata.selector_skipped = True`。
 
 ## 配置开关
 
-| 配置项                              | 默认值          | 说明                                                       |
-|-------------------------------------|-----------------|------------------------------------------------------------|
-| `pipeline_engine_selector`          | `profile_aware` | 切到 `identity` 回退 YAML 静态行为                          |
-| `docling_enabled` / `mineru_enabled` / `marker_enabled` / `opendataloader_enabled` | `True` | 各引擎全局门控（早于 selector）                              |
+| 配置项                                                                             | 默认值          | 说明                               |
+| ---------------------------------------------------------------------------------- | --------------- | ---------------------------------- |
+| `pipeline_engine_selector`                                                         | `profile_aware` | 切到 `identity` 回退 YAML 静态行为 |
+| `docling_enabled` / `mineru_enabled` / `marker_enabled` / `opendataloader_enabled` | `True`          | 各引擎全局门控（早于 selector）    |
 
 环境变量前缀 `NEGENTROPY_PERCEIVES_`，例如：
 

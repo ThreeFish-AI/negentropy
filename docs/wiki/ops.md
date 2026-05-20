@@ -60,12 +60,12 @@ flowchart LR
 
 ### 2.2 路由结构
 
-| 路由                   | 页面文件                                    | 功能                                |
-| ---------------------- | ------------------------------------------- | ----------------------------------- |
-| `/`                    | `src/app/page.tsx`                          | 首页：列出所有已发布的 Publication  |
-| `/:pubSlug`            | `src/app/[pubSlug]/page.tsx`                | Publication 首页：导航树 + 文档索引 |
-| `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx`    | 文档详情页：Markdown 渲染           |
-| `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`          | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
+| 路由                   | 页面文件                                 | 功能                                                            |
+| ---------------------- | ---------------------------------------- | --------------------------------------------------------------- |
+| `/`                    | `src/app/page.tsx`                       | 首页：列出所有已发布的 Publication                              |
+| `/:pubSlug`            | `src/app/[pubSlug]/page.tsx`             | Publication 首页：导航树 + 文档索引                             |
+| `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染                                       |
+| `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`       | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
 
 > 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅运行时 `fetch` + ISR，无新增持久化或部署形态。
 
@@ -89,9 +89,9 @@ flowchart LR
 
 ### 3.1 环境变量
 
-| 变量名          | 默认值                  | 说明                                                          |
-| --------------- | ----------------------- | ------------------------------------------------------------- |
-| `WIKI_API_BASE` | `http://localhost:3292` | 后端 negentropy 引擎地址（与 `cli.py` 默认监听端口对齐）      |
+| 变量名          | 默认值                  | 说明                                                     |
+| --------------- | ----------------------- | -------------------------------------------------------- |
+| `WIKI_API_BASE` | `http://localhost:3292` | 后端 negentropy 引擎地址（与 `cli.py` 默认监听端口对齐） |
 
 ### 3.2 依赖版本
 
@@ -260,14 +260,14 @@ CMD ["node", "server.js"]
 
 ### 8.1 常见问题
 
-| 问题                                      | 可能原因                               | 解决方案                                                                                                                              |
-| ----------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| 构建期告警 "Failed to fetch publications" | 后端 API 不可达（WARN 级，不阻断构建） | 后端暂不可达时 SSG 渲染空首页，首次请求由 ISR 自动自愈（5 分钟窗口）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性 |
+| 问题                                              | 可能原因                                                                                                   | 解决方案                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 构建期告警 "Failed to fetch publications"         | 后端 API 不可达（WARN 级，不阻断构建）                                                                     | 后端暂不可达时 SSG 渲染空首页，首次请求由 ISR 自动自愈（5 分钟窗口）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性                                                                                                                                                                                                    |
 | 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（详见 [docs/issue.md ISSUE-020](../agents/issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
-| 页面显示 "Wiki 未找到"                    | Publication 未发布或 slug 错误         | 检查后端 Publication 状态                                                                                                             |
-| 页面内容不更新                            | ISR 缓存未过期                         | 等待 5 分钟或重新部署                                                                                                                 |
-| 深色模式样式异常                          | 浏览器未启用深色模式                   | 检查系统深色模式设置                                                                                                                  |
-| Markdown 渲染异常                         | 不支持的语法                           | 检查 markdown.ts 支持的语法子集                                                                                                       |
+| 页面显示 "Wiki 未找到"                            | Publication 未发布或 slug 错误                                                                             | 检查后端 Publication 状态                                                                                                                                                                                                                                                                                                                |
+| 页面内容不更新                                    | ISR 缓存未过期                                                                                             | 等待 5 分钟或重新部署                                                                                                                                                                                                                                                                                                                    |
+| 深色模式样式异常                                  | 浏览器未启用深色模式                                                                                       | 检查系统深色模式设置                                                                                                                                                                                                                                                                                                                     |
+| Markdown 渲染异常                                 | 不支持的语法                                                                                               | 检查 markdown.ts 支持的语法子集                                                                                                                                                                                                                                                                                                          |
 
 ### 8.2 日志查看
 
@@ -461,12 +461,12 @@ pg_restore --clean --if-exists --dbname=${DATABASE_URL} \
 
 #### 12.2.5 灰度与监控
 
-| 阶段 | 时间窗 | 观测指标 |
-|------|--------|---------|
-| Phase A 上线后 | T+0 ~ T+7d | `catalog_create_total` 写入趋势；partial unique index 不应触发 |
-| Phase B 执行后 | T+0 ~ T+24h | 守恒断言 4 项；前端 `/knowledge/catalog` 错误率；WikiPublication 渲染成功率 |
-| Phase C 前端切换后 | T+0 ~ T+14d | `catalog_create_rejected_total`（防御 409）；`useAppCatalog` SWR 命中率 |
-| Phase D 清理（可选） | T+30d 后 | 无新告警则可考虑 drop 6 周宽限期内未触发的 deprecated API |
+| 阶段                 | 时间窗      | 观测指标                                                                    |
+| -------------------- | ----------- | --------------------------------------------------------------------------- |
+| Phase A 上线后       | T+0 ~ T+7d  | `catalog_create_total` 写入趋势；partial unique index 不应触发              |
+| Phase B 执行后       | T+0 ~ T+24h | 守恒断言 4 项；前端 `/knowledge/catalog` 错误率；WikiPublication 渲染成功率 |
+| Phase C 前端切换后   | T+0 ~ T+14d | `catalog_create_rejected_total`（防御 409）；`useAppCatalog` SWR 命中率     |
+| Phase D 清理（可选） | T+30d 后    | 无新告警则可考虑 drop 6 周宽限期内未触发的 deprecated API                   |
 
 ### 12.3 WikiPublication 多版本与回退
 
@@ -508,11 +508,11 @@ COMMIT;
 
 ### 12.4 故障应对
 
-| 现象 | 排查 | 处置 |
-|------|------|------|
-| `POST /catalogs` 持续返回 409 | 旧客户端未升级 | 引导调用方迁移至 `POST /catalogs/ensure` 幂等接口；6 周宽限期后下线 |
-| 守恒断言失败 | Phase B 中途异常 | 立即从 12.2.2 快照 `pg_restore` 完整恢复 |
-| `useAppCatalog` 404 | active catalog 被误归档 | 临时 `UPDATE doc_catalogs SET is_archived=false WHERE id=?` + 复盘 |
-| WikiPublication 无 LIVE | 发布操作未提升新版本 | 按 12.3.2 回退到最近 ARCHIVED |
+| 现象                          | 排查                    | 处置                                                                |
+| ----------------------------- | ----------------------- | ------------------------------------------------------------------- |
+| `POST /catalogs` 持续返回 409 | 旧客户端未升级          | 引导调用方迁移至 `POST /catalogs/ensure` 幂等接口；6 周宽限期后下线 |
+| 守恒断言失败                  | Phase B 中途异常        | 立即从 12.2.2 快照 `pg_restore` 完整恢复                            |
+| `useAppCatalog` 404           | active catalog 被误归档 | 临时 `UPDATE doc_catalogs SET is_archived=false WHERE id=?` + 复盘  |
+| WikiPublication 无 LIVE       | 发布操作未提升新版本    | 按 12.3.2 回退到最近 ARCHIVED                                       |
 
 ---

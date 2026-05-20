@@ -37,23 +37,23 @@ flowchart LR
 
 `device_config._compute_gpu_batch_sizes(memory_gb, device_type, chip_generation)`：
 
-| 统一内存 (估算)   | M1/M2 baseline | M3 (× 1.25) | M4+ (× 1.5) |
-|-------------------|---------------:|------------:|------------:|
-| < 12GB            | 8              | 10          | 12          |
-| 12-24GB           | 12             | 15          | 18          |
-| 24-48GB           | 16             | 20          | 24          |
-| ≥ 48GB            | 32             | 40          | 48          |
+| 统一内存 (估算) | M1/M2 baseline | M3 (× 1.25) | M4+ (× 1.5) |
+| --------------- | -------------: | ----------: | ----------: |
+| < 12GB          |              8 |          10 |          12 |
+| 12-24GB         |             12 |          15 |          18 |
+| 24-48GB         |             16 |          20 |          24 |
+| ≥ 48GB          |             32 |          40 |          48 |
 
 `table_batch_size = max(4, batch // 2)`（TableFormer 模型单样本显存占用大，
 更保守以避免 OOM）。
 
 ### 调优旋钮
 
-| 配置项                                   | 默认 | 说明                                         |
-|------------------------------------------|------|----------------------------------------------|
-| `accelerator_ocr_batch_size`             | 0    | 0 = 自动按 _compute_gpu_batch_sizes，>0 覆盖 |
-| `accelerator_layout_batch_size`          | 0    | 同上                                         |
-| `accelerator_table_batch_size`           | 0    | 同上                                         |
+| 配置项                          | 默认 | 说明                                         |
+| ------------------------------- | ---- | -------------------------------------------- |
+| `accelerator_ocr_batch_size`    | 0    | 0 = 自动按 _compute_gpu_batch_sizes，>0 覆盖 |
+| `accelerator_layout_batch_size` | 0    | 同上                                         |
+| `accelerator_table_batch_size`  | 0    | 同上                                         |
 
 ## 3. Docling：MPS + MLX VLM
 
@@ -67,10 +67,10 @@ flowchart LR
 
 ### 调优旋钮
 
-| 配置项                              | 默认           | 说明                                 |
-|-------------------------------------|----------------|--------------------------------------|
-| `pdf_docling_force_cpu`             | `false`        | 紧急回退 CPU 排障                     |
-| `pdf_docling_mps_enrichment`        | `granite_mlx`  | `disable` 关闭 code/formula MLX 路径  |
+| 配置项                       | 默认          | 说明                                 |
+| ---------------------------- | ------------- | ------------------------------------ |
+| `pdf_docling_force_cpu`      | `false`       | 紧急回退 CPU 排障                    |
+| `pdf_docling_mps_enrichment` | `granite_mlx` | `disable` 关闭 code/formula MLX 路径 |
 
 ## 4. MinerU：mlx-engine 优先
 
@@ -89,22 +89,22 @@ flowchart TD
 
 ### 调优旋钮
 
-| 配置项                  | 默认           | 说明                                                       |
-|-------------------------|----------------|------------------------------------------------------------|
-| `mineru_mps_backend`    | `auto`         | `vlm-auto-engine` 强制 VLM；`pipeline` 强制 CPU pipeline    |
-| `mineru_device`         | `auto`         | 也可直接指定 mps/cuda/cpu                                   |
-| `mineru_backend`        | `auto`         | 直接指定 CLI backend（绕过自动检测）                        |
+| 配置项               | 默认   | 说明                                                     |
+| -------------------- | ------ | -------------------------------------------------------- |
+| `mineru_mps_backend` | `auto` | `vlm-auto-engine` 强制 VLM；`pipeline` 强制 CPU pipeline |
+| `mineru_device`      | `auto` | 也可直接指定 mps/cuda/cpu                                |
+| `mineru_backend`     | `auto` | 直接指定 CLI backend（绕过自动检测）                     |
 
 ## 5. Marker：MPS + FP16 + INFERENCE_RAM
 
 > Marker GPL-3.0，默认行为保守：`TORCH_DEVICE=cpu` 维持稳定。用户显式 opt-in 后启用：
 
-| 配置项                          | 默认    | 说明                                                                 |
-|---------------------------------|---------|----------------------------------------------------------------------|
-| `marker_torch_device`           | `None`  | 设 `"mps"` 显式 opt-in（Marker 上游警告 text detection 在 MPS 可能不可靠）|
-| `marker_half_precision`         | `False` | `True` 时 monkey-patch `MODEL_DTYPE=torch.float16`                    |
-| `marker_inference_ram_gb`       | `0`     | 透传 `INFERENCE_RAM`，建议设为统一内存的 ~50%                          |
-| `marker_num_workers`            | `0`     | 透传 `NUM_WORKERS`，受 `INFERENCE_RAM / VRAM_PER_TASK` 约束             |
+| 配置项                    | 默认    | 说明                                                                       |
+| ------------------------- | ------- | -------------------------------------------------------------------------- |
+| `marker_torch_device`     | `None`  | 设 `"mps"` 显式 opt-in（Marker 上游警告 text detection 在 MPS 可能不可靠） |
+| `marker_half_precision`   | `False` | `True` 时 monkey-patch `MODEL_DTYPE=torch.float16`                         |
+| `marker_inference_ram_gb` | `0`     | 透传 `INFERENCE_RAM`，建议设为统一内存的 ~50%                              |
+| `marker_num_workers`      | `0`     | 透传 `NUM_WORKERS`，受 `INFERENCE_RAM / VRAM_PER_TASK` 约束                |
 
 启用前建议在样本扫描 PDF 上跑 `scripts/benchmark/parse_pdf_bench.py`
 对比 CPU vs MPS+FP16 的输出质量与耗时。
@@ -119,9 +119,9 @@ flowchart TD
 
 ### 调优旋钮
 
-| 配置项                          | 默认 | 说明                                                  |
-|---------------------------------|------|-------------------------------------------------------|
-| `pdf_pymupdf_parallel_pages`    | `0`  | 0 = 自动；>0 显式覆盖 chunk_size                       |
+| 配置项                       | 默认 | 说明                             |
+| ---------------------------- | ---- | -------------------------------- |
+| `pdf_pymupdf_parallel_pages` | `0`  | 0 = 自动；>0 显式覆盖 chunk_size |
 
 ## 7. 引擎隔离与预热
 
