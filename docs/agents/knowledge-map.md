@@ -30,6 +30,10 @@
 - [Agents at Wiki —— 浏览器回归验证报告](../wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
 - [Engineering Changelog](../core/engineering-changelog.md)
 
+## 研究文献 / Research
+
+- [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
+
 ## 用户文档与运维
 
 - [User Guide（用户指南）](../user-guide.md)
