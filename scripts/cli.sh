@@ -122,6 +122,8 @@ start_service() {
   else
     log_error "${name} 健康检查失败，最近日志："
     tail -20 "$(log_file "$name")" 2>/dev/null
+    # 清理失败的孤儿进程与陈旧 PID 文件，避免 is_running 误判导致后续重试被静默跳过
+    stop_service "$name" >/dev/null 2>&1 || true
     return 1
   fi
 }
