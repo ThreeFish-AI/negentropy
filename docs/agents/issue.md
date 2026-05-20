@@ -2147,3 +2147,27 @@
   - 搜索 `func.coalesce` 配合 `group_by` 的全仓库使用，**仅 `_scheduled_tasks_summary` 一处命中**，本次已修复；
   - 类似模式（`func.case` / `cast` 在 SELECT + GROUP BY 重复出现）需 review 时主动核对：本期未发现，但作为未来 review 红线纳入；
   - 调度框架退避窗口策略本身正常：本次失败任务在修复后第一个心跳成功时 `consecutive_failures` 由 Registry 清零，无需手工 reset。
+
+---
+
+## ISSUE-092 Perceives Security Audit 因 PYSEC 数据库增补 21 条新告警致 pip-audit 退出 1（2026-05-20）
+
+- **表因**：[`negentropy-perceives-ci.yml`](../../.github/workflows/negentropy-perceives-ci.yml) 的 `security` job 在 PR #594（仅改动 `.github/actions/setup-python-uv/**`）触发的运行中失败；`uv run pip-audit` 列出 22 条已知漏洞（joblib 1, pyjwt 1, torch 11, transformers 8 + 既有 `CVE-2026-1839`），其中仅 1 条命中现有 `--ignore-vuln`，剩余 21 条令 pip-audit 退出码 1。
+- **根因**：PYSEC 数据库自上次成功审计后追加 21 条新条目——
+  - **joblib `PYSEC-2024-277`** / **pyjwt `PYSEC-2025-183`**：均为 supplier disputed，upstream 无 fix；
+  - **torch 2.10.0 `PYSEC-2025-189..197` / `PYSEC-2025-210` / `PYSEC-2026-139`**：本地内存破坏 / DoS / pt2 反序列化，需攻击者构造恶意 tensor 或 `.pt2`，upstream 暂无 fix；
+  - **transformers 4.57.6 `PYSEC-2025-211..218`**：`convert_config` / checkpoint 转换路径 RCE，且 transformers 受 `marker-pdf` / `docling` 兼容交集制约硬锁 `<5.0.0`，4.x 无后向 patch。
+  本项目威胁模型为：仅加载第一方已转换模型 artifact，不调用 transformers 转换工具链，亦无加载不可信 `.pt2` / `.joblib` 缓存的路径——21 条全部不适用。
+- **处理方式**：
+  1. 在 [`negentropy-perceives-ci.yml`](../../.github/workflows/negentropy-perceives-ci.yml) 把扁平 `--ignore-vuln` 链改为 **bash 数组字面量**（`ignore_args=( … )` + `"${ignore_args[@]}"`），每条按包分组、追加中文威胁模型注释，避免反斜杠续行下 inline 注释失效；
+  2. 追加 21 条新 PYSEC ID（含 dispute / upstream-无-fix / upstream-fix-但被硬锁三类），保留既有 8 条 CVE/GHSA 条目；
+  3. 本地用 Homebrew `python3.13 -m venv` + `pip-audit==2.10.0` 重现：迷你 requirements (joblib/pyjwt/torch/transformers 四列) 命中相同 22 条，套用本次新数组后输出 `No known vulnerabilities found, 22 ignored`，`exit=0`。
+- **后续防范**：
+  1. **`--ignore-vuln` 是「降噪」而非「免疫」**：每条 ignore 必须随附「包-版本-威胁模型-是否有 upstream fix」四元注释，便于季度 review 时识别可移除项；
+  2. **威胁模型门槛优先于「等 upstream fix」**：本项目所有新增 ignore 条目都被压在「需要不可信输入路径」假设上——一旦未来引入用户上传 `.joblib` 缓存 / `.pt2` artifact 的功能，该假设破裂，需立即升级或拆出独立审计；
+  3. **bash 数组优于反斜杠续行链**：多元素 CLI 列表场景（pip-audit/ruff/pytest 长 flag 列）一律走数组字面量，原生支持 `#` 注释与空行，无需依赖 `` `# foo` `` 反引号「假注释」trick；
+  4. **CI 触发面识别**：`paths` 过滤包含 `.github/actions/setup-python-uv/**` 的 workflow 会被本仓库根级 action 变更牵连——后续修改 composite action 需预判其牵涉的所有 workflow。
+- **同类问题影响**：
+  - 其它 app（`cognizes` / `negentropy` 主仓）若引入 `pip-audit` 步骤，应直接复用本数组式模板；
+  - 周期性的 PYSEC 数据库增补会让任何使用 `pip-audit` 且依赖锁定到老旧 ML 套件（torch / transformers / numpy / scipy 等）的项目出现同类「无 fix 可升、必须 ignore」局面，须按本案的「威胁模型 + 锁版本约束」双轴评估，而非盲目跟随 CVSS 分数升级；
+  - 现有 8 条历史 ignore（pygments / fastmcp / litellm）已不在本次失败报告里，下次例行升级时应核对其匹配性，避免 ignore 列表演变为僵化白名单。
