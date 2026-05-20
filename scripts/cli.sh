@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ctl.sh — Negentropy 全套服务控制脚本
-# Usage: ./scripts/ctl.sh <command> [options]
+# cli.sh — Negentropy 全套服务控制脚本
+# Usage: ./scripts/cli.sh <command> [options]
 # Commands: start | stop | restart | status | logs | build
 set -euo pipefail
 
@@ -23,7 +23,7 @@ log_info()  { echo "${BLUE}[$(_ts)]${RESET} $*"; }
 log_ok()    { echo "${GREEN}[$(_ts)]${RESET} $*"; }
 log_warn()  { echo "${YELLOW}[$(_ts)]${RESET} $*"; }
 log_error() { echo "${RED}[$(_ts)]${RESET} $*" >&2; }
-log_phase() { echo "\n${BOLD}${BLUE}[$(_ts)] ── $* ──${RESET}"; }
+log_phase() { printf '\n%s[%s] ── %s ──%s\n' "${BOLD}${BLUE}" "$(_ts)" "$*" "${RESET}"; }
 
 # ── 服务注册表 ───────────────────────────────────────────────────────────────────
 # 每个服务: name dir port start_cmd
@@ -59,7 +59,8 @@ svc_start_cmd() {
   esac
 }
 
-ALL_SERVICES=("$SVC_BACKEND" "$SVC_UI" "$SVC_WIKI" "$SVC_PERCEIVES")
+# 启动顺序遵循依赖链：perceives（MCP）→ backend（依赖 perceives）→ ui/wiki（依赖 backend）
+ALL_SERVICES=("$SVC_PERCEIVES" "$SVC_BACKEND" "$SVC_UI" "$SVC_WIKI")
 
 # ── 进程管理工具 ─────────────────────────────────────────────────────────────────
 run_dir_init() { mkdir -p "$RUN_DIR"; }
@@ -80,9 +81,12 @@ port_in_use() {
 }
 
 wait_for_health() {
+  # 端口绑定 = 服务存活：去掉 `-f` 让任意 HTTP 响应（含 404/405/406）都视为就绪，
+  # 兼容 FastMCP 等仅在 /mcp 子路径暴露端点、根路径 404 的服务；
+  # 进程级活性仍由 `is_running` 兜底，崩溃可立即检出。
   local name="$1" port="$2" attempts=60 i=1
   while (( i <= attempts )); do
-    if curl -sfLo /dev/null "http://localhost:${port}/" 2>/dev/null; then
+    if curl -sLo /dev/null "http://localhost:${port}/" 2>/dev/null; then
       return 0
     fi
     is_running "$name" || return 1
@@ -118,6 +122,8 @@ start_service() {
   else
     log_error "${name} 健康检查失败，最近日志："
     tail -20 "$(log_file "$name")" 2>/dev/null
+    # 清理失败的孤儿进程与陈旧 PID 文件，避免 is_running 误判导致后续重试被静默跳过
+    stop_service "$name" >/dev/null 2>&1 || true
     return 1
   fi
 }
@@ -157,8 +163,11 @@ stop_service() {
 # ── 子命令: stop ─────────────────────────────────────────────────────────────────
 cmd_stop() {
   log_phase "停止所有服务"
-  for svc in "${ALL_SERVICES[@]}"; do
-    stop_service "$svc"
+  # 倒序停止：先停下游（ui/wiki），再停 backend，最后停 perceives，
+  # 避免下游在依赖被回收期间发起新请求。
+  local idx
+  for (( idx=${#ALL_SERVICES[@]}-1; idx>=0; idx-- )); do
+    stop_service "${ALL_SERVICES[idx]}"
   done
   log_ok "所有服务已停止"
 }
@@ -243,7 +252,9 @@ cmd_start() {
   # Phase 4 — 前端构建
   if ! $skip_build; then
     log_phase "Phase 4/5: 前端构建"
-    # 先启动 backend，使 wiki SSG 构建时可从 API 拉取数据
+    # 依赖链：perceives（MCP 前置）→ backend（wiki SSG 数据源）
+    # backend 在 MCP 工具调用链上依赖 perceives，必须先就绪。
+    start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
     start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
     log_info "构建 ui + wiki (并行)..."
     (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
@@ -276,7 +287,7 @@ cmd_start() {
   printf "  %-10s %s\n" "wiki"      "http://localhost:3092"
   printf "  %-10s %s\n" "perceives" "http://localhost:2992"
   echo ""
-  log_info "查看日志: ./scripts/ctl.sh logs [backend|ui|wiki|perceives]"
+  log_info "查看日志: ./scripts/cli.sh logs [backend|ui|wiki|perceives]"
 }
 
 # ── 子命令: restart ──────────────────────────────────────────────────────────────
@@ -318,7 +329,8 @@ cmd_logs() {
 cmd_build() {
   log_phase "仅构建（不启动）"
   run_dir_init
-  # 先启动 backend，使 wiki SSG 构建时可从 API 拉取数据
+  # 依赖链：perceives（MCP 前置）→ backend（wiki SSG 数据源）
+  start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
   start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
   log_info "构建 ui + wiki (并行)..."
   (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
@@ -326,8 +338,15 @@ cmd_build() {
   (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
   local pid_wiki=$!
   local _rc=0; wait "$pid_ui" || _rc=$?; wait "$pid_wiki" || _rc=$?
-  (( _rc )) && { log_error "前端构建失败"; stop_service "$SVC_BACKEND"; exit 1; }
+  # 倒序回收，先停 backend 再停 perceives
+  if (( _rc )); then
+    log_error "前端构建失败"
+    stop_service "$SVC_BACKEND"
+    stop_service "$SVC_PERCEIVES"
+    exit 1
+  fi
   stop_service "$SVC_BACKEND"
+  stop_service "$SVC_PERCEIVES"
   log_ok "前端构建完成"
 }
 
@@ -337,7 +356,7 @@ cmd_help() {
 ${BOLD}Negentropy 服务控制脚本${RESET}
 
 ${BOLD}用法:${RESET}
-  ./scripts/ctl.sh <command> [options]
+  ./scripts/cli.sh <command> [options]
 
 ${BOLD}命令:${RESET}
   start [--no-pull] [--skip-build]   全生命周期启动所有服务
@@ -352,9 +371,9 @@ ${BOLD}选项:${RESET}
   --skip-build   跳过前端构建
 
 ${BOLD}示例:${RESET}
-  ./scripts/ctl.sh start              # 完整启动
-  ./scripts/ctl.sh restart --no-pull  # 不拉代码，直接重启
-  ./scripts/ctl.sh logs backend       # 查看后端日志
+  ./scripts/cli.sh start              # 完整启动
+  ./scripts/cli.sh restart --no-pull  # 不拉代码，直接重启
+  ./scripts/cli.sh logs backend       # 查看后端日志
 EOF
 }
 

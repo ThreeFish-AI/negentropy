@@ -20,7 +20,7 @@ Skill 落库（required_tools=[fetch_papers, save_to_memory, update_knowledge_gr
 
 ```bash
 # 1) 启动服务（已启则跳过）
-./scripts/ctl.sh start backend ui
+./scripts/cli.sh start backend ui
 
 # 2) 三步自检：dev cookie + skills 端点
 TOKEN=$(NE_AUTH_TOKEN_SECRET=<hex> node apps/negentropy-ui/scripts/sign-dev-cookie.mjs --quiet)

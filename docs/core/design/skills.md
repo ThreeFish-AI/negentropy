@@ -108,7 +108,7 @@ flowchart LR
   - `agents/tools/paper_hunter.py:fetch_papers(query, top_n, days_back, categories)`：arXiv API（≥3s 间隔，topN 上限 20）。
 - **9 个 authed E2E spec**：
   - `list/create/edit/delete/rbac/invoke/enforcement/resources/integration/paper-hunter.authed.spec.ts`，**全部连真实 backend + 真实 PostgreSQL**，通过 `applyDevCookie` 即时签 ne_sso 注入；
-  - 浏览器 baseURL 从 ctl.sh 启动的 UI（`http://localhost:3192`）取，跳过 webServer 重新构建；
+  - 浏览器 baseURL 从 cli.sh 启动的 UI（`http://localhost:3192`）取，跳过 webServer 重新构建；
   - 现有 17 个 mocked case 全部不退化，加上 27 个 authed case = **44 case 全绿**。
 - **浏览器实机回归**：通过 `mcp__chrome_devtools__` + dev cookie 注入完整走 「From Template → Install Paper Hunter → Preview Render」三步链路（截图存档 `.temp/skills-phase2-preview-real.png`）。
 

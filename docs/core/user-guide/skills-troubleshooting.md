@@ -18,7 +18,7 @@
    ```
    然后在 DevTools Console 中执行 `document.cookie = "ne_sso=" + TOKEN + "; path=/; SameSite=Lax";` 后刷新；
 3. **后端 `NE_AUTH_TOKEN_SECRET` 与 dev cookie 不一致**：核对 `apps/negentropy/.env.local` 与 `apps/negentropy-ui/.env.local` 中的值是否字节一致，且与 `~/.negentropy/config.yaml` 中 `auth.token_secret` 一致；
-4. **后端进程未重启**：UI 重启不会重新读取 backend secret；后端配置改动需 `./scripts/ctl.sh restart backend`。
+4. **后端进程未重启**：UI 重启不会重新读取 backend secret；后端配置改动需 `./scripts/cli.sh restart backend`。
 
 ## B. 403 Forbidden 在创建 / 删除 / 启停时
 
