@@ -234,5 +234,5 @@ graph TB
 ---
 
 <p align="center">
-  <a href="../../LICENSE">Apache License 2.0</a>, © 2026 <a href="https://github.com/ThreeFish-AI">ThreeFish-AI</a>
+  <a href="../../../LICENSE">Apache License 2.0</a>, © 2026 <a href="https://github.com/ThreeFish-AI">ThreeFish-AI</a>
 </p>
