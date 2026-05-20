@@ -293,7 +293,7 @@ class BaseSessionService(ABC):
 >
 > **参考资源**：
 >
-> - [AG-UI 协议调研](../research/070-ag-ui.md)
+> - [AG-UI 协议调研](../../research/070-ag-ui.md)
 > - [AG-UI 官方文档](https://docs.ag-ui.com/)
 
 #### 2.5.1 事件流架构概览

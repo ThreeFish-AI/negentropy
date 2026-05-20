@@ -17,7 +17,7 @@ tags:
 
 > [!NOTE]
 >
-> **基于调研**: [context-engineering](../research/010-context-engineering.md) | [agent-runtime-frameworks](../research/020-agent-runtime-frameworks.md) | [vector-search-algorithm](../research/030-vector-search-algorithm.md) | [vector-databases](../research/032-vector-databases.md) | [ag-ui](../research/070-ag-ui.md)
+> **基于调研**: [context-engineering](../../research/010-context-engineering.md) | [agent-runtime-frameworks](../../research/020-agent-runtime-frameworks.md) | [vector-search-algorithm](../../research/030-vector-search-algorithm.md) | [vector-databases](../../research/032-vector-databases.md) | [ag-ui](../../research/070-ag-ui.md)
 > **权威定义**: [Cognizes Engine README](README.md)
 
 ## 1. 验证目标
@@ -207,8 +207,8 @@ tags:
   - **High-Selectivity**: 验证 `HNSW` 索引在 `WHERE user_id = 'xxx'` (High Filter Ratio: 99%) 场景下的召回率与性能 (QPS/Recall)，验证 HNSW `ef_search` 参数对召回率的影响。
   - **L1 Reranking**: 集成 `BAAI/bge-reranker` 等轻量模型，对 PG 返回的 Top-50 结果进行从排序，验证 Precision@10 提升。
 - [ ] **3.3: Knowledge Base 验证 (RAG Pipeline 完整链路)**
-  - **Research**: 基于 [Knowledge Base 调研报告](../research/034-knowledge-base.md) 核心发现，对标 Google Vertex AI RAG Engine 与 RAGFlow/WeKnora 等系统。
-    - 参考调研: [034-knowledge-base.md](../research/034-knowledge-base.md) (RAG Pipeline & Hybrid Search)
+  - **Research**: 基于 [Knowledge Base 调研报告](../../research/034-knowledge-base.md) 核心发现，对标 Google Vertex AI RAG Engine 与 RAGFlow/WeKnora 等系统。
+    - 参考调研: [034-knowledge-base.md](../../research/034-knowledge-base.md) (RAG Pipeline & Hybrid Search)
   - **RAG Pipeline 构建**: 验证文档摄入 → 解析 → Chunking → 向量化 → 索引 → 检索 → 生成的完整 E2E 链路。
   - **Hybrid Search 融合**: 验证 RRF (Reciprocal Rank Fusion) 算法的多路召回融合效果（推荐配比：70% Semantic + 30% Keyword）。
   - **两阶段检索验证**: 验证 Embedding (L0 高召回) + Rerank (L1 高精度) 的两阶段架构在千万级数据下的稳定性。
@@ -250,7 +250,7 @@ tags:
   - **Visualization**: 部署 **Langfuse**，验证能完整还原 "User Input -> Reasoning -> Action -> Final Answer" 的全链路 Trace，并支持 Prompt Management 与 Evaluation。
 - [ ] **4.4: AG-UI 协议集成 (前端交互层)**
   - **Research**: 阅读 AG-UI 协议文档，理解 16 种标准事件类型与状态管理机制。
-    - 参考文档: [AG-UI 协议调研](../research/070-ag-ui.md)
+    - 参考文档: [AG-UI 协议调研](../../research/070-ag-ui.md)
     - 官方文档: [AG-UI Docs](https://docs.ag-ui.com/)
   - **Event Alignment**: 实现 AG-UI 事件与 The Pulse 事件流的对齐 (`RUN_STARTED/FINISHED` → `runs` 表, `TEXT_MESSAGE_*` → `events` 表)。
   - **Frontend Tools**: 集成前端定义工具 (Frontend-Defined Tools) 到 Tool Registry，支持 Human-in-the-Loop 审批流程。

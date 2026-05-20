@@ -1118,7 +1118,7 @@ class RerankerPipeline:
 >
 > **参考资源**：
 >
-> - [AG-UI 协议调研](../research/070-ag-ui.md)
+> - [AG-UI 协议调研](../../research/070-ag-ui.md)
 > - [AG-UI 官方文档](https://docs.ag-ui.com/)
 
 #### 4.4.1 检索可视化架构
@@ -1962,4 +1962,4 @@ uv run python tests/integration/engine/perception/manual_verification.py
 
 <a id="ref5"></a>5. BAAI. (2024). _BGE Reranker_. Hugging Face. [Link](https://huggingface.co/BAAI/bge-reranker-base)
 
-<a id="ref6"></a>6. Agentic AI Engine Research Team. (2026). _Knowledge Base: RAG Pipeline & Hybrid Search 调研报告_. [Link](../research/034-knowledge-base.md)
+<a id="ref6"></a>6. Agentic AI Engine Research Team. (2026). _Knowledge Base: RAG Pipeline & Hybrid Search 调研报告_. [Link](../../research/034-knowledge-base.md)
