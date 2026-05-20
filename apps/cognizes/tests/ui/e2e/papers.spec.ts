@@ -254,9 +254,9 @@ test.describe("Papers Management", () => {
     await expect(page).toHaveURL(/\/papers\/\d+/);
 
     // Verify details page content
-    // Verify details page content
-    // Verify details page content
-    await expect(page.locator("h1:not(:has-text('Dashboard'))")).toBeVisible(); // Title
+    // 详情页不应渲染"论文不存在"占位；论文标题随后由 getByRole 显式断言。
+    // 注：原 h1:not(:has-text('Dashboard')) 选择器在当前布局会命中多个 h1
+    // （触发 Playwright strict mode violation），且语义被下方 heading 断言覆盖，故移除。
     await expect(page.locator("text=论文不存在")).not.toBeVisible();
 
     // Verify paper title is visible (uses translated title by default)

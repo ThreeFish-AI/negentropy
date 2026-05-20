@@ -6,7 +6,7 @@
     "dev": "next dev -p 9003",
     "build": "next build",
     "start": "next start",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -47,7 +47,6 @@
     "@types/node": "^22",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
-
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
