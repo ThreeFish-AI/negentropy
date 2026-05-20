@@ -97,8 +97,8 @@ class FactsRepository(BaseRepository):
         self,
         user_id: str,
         app_name: str,
-        query_embedding: list[float],
-        limit: int = 10,  # type: ignore[valid-type]
+        query_embedding: list[float],  # type: ignore[valid-type]
+        limit: int = 10,
     ) -> list[asyncpg.Record]:  # type: ignore[valid-type]
         """Search facts within a user's scope using vector similarity."""
         query = """
