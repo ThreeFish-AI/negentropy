@@ -33,8 +33,6 @@
 ### 术 (Tactics - 执行规范)
 
 - **Structured AI-Pair Pipeline (规范化 AI 结对流水线)**: 遵循 **Specification-Driven (规约驱动)** + **Context-Anchored (上下文锚定)** + **AI-Pair (AI 结对)** 模式，将开发固化为可审计的流水线，避免代码腐化为无法维护的“大泥球 (Big Ball of Mud)”。
-- **Visual Documentation (图文并茂)**: 对于复杂逻辑，优先使用 Mermaid 图表（Sequence/Flowchart/Class）辅助说明，构建“图文并茂”的直观文档。
-- **Direct Hyperlinking (直接跳转)**: 在文档中提及 Repo 内其他资源（文档/代码）时，**必须**构建可跳转的相对路径链接（如 `[Doc Name](./path.md)`），严禁使用“死文本”引用，以降低信息检索熵。
 - **Operational Excellence (卓越运营)**:
   1. **Git Discipline**: 默认严禁调用 git commit；当用户显式要求提交时，一律使用 Claude Code 的自定义 Slash Command: `/commit-no-push` 进行操作（若非 Claude Code 运行环境，则读取 /commit-no-push 命令中的规则执行）。严禁执行 Rebase；
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
@@ -49,9 +47,11 @@
 - **Browser Validation Protocol (浏览器验证准则)**：Agent 不得自行完成、绕过或模拟任何 OAuth / SSO 认证流程，所有登录态均来源于用户已认证的 Chrome 主 profile（真实用户登录态）。完整协议（连通性自检、凭证管理、E2E 集成、实机回归等）详见 [浏览器验证协议](./docs/agents/browser-validation.md)；
   1. **安全红线**：禁止在 Sandbox 浏览器中跳转 Google 同意屏；禁止以模拟用户或第三方账号替代真实登录态；禁止要求用户在 chat 中粘贴密码、Cookie 或验证码；
 - **Knowledge Map (知识索引)**：项目所有文档索引统一维护在 [知识索引](./docs/agents/knowledge-map.md)，并在文档目录变更时即时同步跟新；
-- **Documentation Standards (文档规范)**：采用**Mermaid Visualization Norms (Mermaid 可视化规范)**；
-  1. 采用**Mermaid Visualization Norms (Mermaid 可视化规范)**；
+- **Documentation Standards (文档规范)**：
+  1. **Visual Documentation (图文并茂)**: 对于复杂逻辑，优先 **Mermaid Visualization Norms (Mermaid 可视化规范)**，构建“图文并茂”的直观文档；
      - **色彩语义与兼容性**：为图表节点配置具备语义辨识度的色彩，并确保在深色模式（Dark Mode）下具有极高的对比度与清晰度；
      - **逻辑模块化解构**：针对业务跨度较大的架构流程，强制采用 `subgraph` 容器进行层级解构与边界划分，以增强图表的自解说（Self-explaining）能力；
-  2. 文档需要引入必要的浏览器实操截图时，需自行通过默认浏览器打开相关页面，通过实操现场截图并保留到文档路径进行文档引用；
+  2. **语言叙事**：用语精准，叙事完备，行文专业，聚焦核心，篇幅精炼，形象具体，体现真实作用与用户吸引性，字数恰当；
+  3. **Direct Hyperlinking (直接跳转)**: 在文档中提及 Repo 内其他资源（文档/代码）时，**必须**构建可跳转的相对路径链接（如 `[Doc Name](./path.md)`），严禁使用“死文本”引用，以降低信息检索熵；
+  4. **实操截图**：文档需要引入必要的浏览器实操截图时，需自行通过默认浏览器打开相关页面，通过实操现场截图并保留到文档路径进行文档引用；
 - **Reference Specifications (IEEE)**：为保障工程决策的可追溯性与学术严谨性，核心引用需遵循 [reference-specifications.md](docs/agents/reference-specifications.md)IEEE 标准引用格式；
