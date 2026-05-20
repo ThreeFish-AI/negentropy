@@ -104,7 +104,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright smoke tests
-        run: yarn test:e2e
+        # 仅运行 chromium 项目（与上一步 --with-deps chromium 安装范围一致；
+        # firefox/webkit/mobile 项目仅供本地交互调试，CI smoke 暂不覆盖以
+        # 控制 runner 时长与体积，待专项 E2E 扩面 PR 再开启）
+        run: yarn test:e2e --project=chromium
 
       - name: Upload Playwright report
         if: always()
