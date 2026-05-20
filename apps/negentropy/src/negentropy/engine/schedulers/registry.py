@@ -452,7 +452,23 @@ class ScheduledTaskRegistry:
                 handler_kind=task.handler_kind,
             )
             result = HandlerResult(status="cancelled", error="task cancelled by shutdown")
-            await self._finalize_execution(execution_id, task_id, result, started_at, started_monotonic)
+            # ``asyncio.shield`` 把回写动作隔离出当前 task 的 cancel 域——即使上游
+            # ``AsyncScheduler.aclose`` 的 ``gather`` 因 timeout 二次 cancel 当前
+            # task，shield 内部的 ``_finalize_execution`` 仍能在 event loop 内推进
+            # 到完成，避免 Dashboard in-flight 行永远停留在 ``status='running'``。
+            # 若外层二次 cancel 命中本 await，shield 内 task 仍在 background 推进；
+            # 单条 DB UPDATE 远小于 graceful shutdown 总预算（25s），实测大概率可
+            # 完成；仅记 warning 不阻塞 cancel 透传，保留可观测信号。
+            try:
+                await asyncio.shield(
+                    self._finalize_execution(execution_id, task_id, result, started_at, started_monotonic)
+                )
+            except asyncio.CancelledError:
+                logger.warning(
+                    "dispatch_cancelled_finalize_interrupted",
+                    task_id=str(task_id),
+                    execution_id=str(execution_id),
+                )
             raise
         except TimeoutError:
             logger.warning(

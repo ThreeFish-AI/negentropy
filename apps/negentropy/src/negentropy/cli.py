@@ -152,13 +152,20 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         # click 在某些路径仍可能 raise SystemExit；透传退出码
         return int(exc.code) if isinstance(exc.code, int) else (0 if exc.code is None else 1)
     except BaseException as exc:  # noqa: BLE001 — 顶层兜底
-        # click 在 standalone_mode=False 下，SIGINT 路径可能抛 ``click.Abort`` 或
-        # ``click.exceptions.Exit``——两者 str() 通常为空，不应被当成错误。
+        # click 在 ``standalone_mode=False`` 下，SIGINT 路径抛 ``click.Abort``（视为正常退出），
+        # 而 ``click.exceptions.Exit`` 是 click 用来携带退出码的标准机制——任何非 0 的
+        # ``exit_code`` 都必须透传，避免把 ADK 通过 Exit 上抛的失败状态吞成 0。
         try:
             import click as _click
 
-            if isinstance(exc, _click.exceptions.Abort | _click.exceptions.Exit):
+            if isinstance(exc, _click.exceptions.Abort):
                 return 0
+            if isinstance(exc, _click.exceptions.Exit):
+                exit_code = getattr(exc, "exit_code", 0)
+                try:
+                    return int(exit_code)
+                except (TypeError, ValueError):  # pragma: no cover — 防御性
+                    return 1
         except Exception:  # pragma: no cover
             pass
         # 真实异常（导入失败、配置错误等）才打印

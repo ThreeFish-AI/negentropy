@@ -214,6 +214,10 @@ class AsyncScheduler:
            记录 warning 并继续 —— 上层 lifespan 会在 ``timeout_graceful_shutdown``
            内强制结束进程。
 
+        预算共享：``timeout`` 是 Step 1 + Step 2 的**总** budget；Step 2 实际
+        timeout = ``max(timeout - Step 1 已耗时, 0)``，避免最坏情况下耗时翻倍
+        而冲破上层 lifespan 的 25s graceful 窗口。
+
         参考：
         [1] R. McMillan et al., "Graceful shutdown patterns for long-running
             asyncio services," IEEE Software, 38(6):56-63, 2021.
@@ -222,36 +226,42 @@ class AsyncScheduler:
             return
 
         deadline = max(timeout, 0.0)
+        started_monotonic = time.monotonic()
+
+        def _remaining() -> float:
+            return max(deadline - (time.monotonic() - started_monotonic), 0.0)
+
         self._running = False
 
         # Step 1: 主心跳 task
         if self._task is not None and not self._task.done():
             self._task.cancel()
             try:
-                await asyncio.wait_for(asyncio.shield(self._task), timeout=deadline)
+                await asyncio.wait_for(asyncio.shield(self._task), timeout=_remaining())
             except (TimeoutError, asyncio.CancelledError):
                 pass
             except Exception:
                 logger.exception("scheduler_main_task_cleanup_failed")
         self._task = None
 
-        # Step 2: inflight dispatch tasks
+        # Step 2: inflight dispatch tasks（共享剩余预算）
         inflight = list(self._inflight)
         self._inflight.clear()
         if inflight:
             for t in inflight:
                 if not t.done():
                     t.cancel()
+            step2_timeout = _remaining()
             try:
                 await asyncio.wait_for(
                     asyncio.gather(*inflight, return_exceptions=True),
-                    timeout=deadline,
+                    timeout=step2_timeout,
                 )
             except TimeoutError:
                 pending = [t for t in inflight if not t.done()]
                 logger.warning(
                     "scheduler_aclose_timeout",
-                    timeout=deadline,
+                    timeout=step2_timeout,
                     pending_count=len(pending),
                 )
 
