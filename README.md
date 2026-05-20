@@ -1,4 +1,4 @@
-[English](./README.md) | [简体中文](./docs/zh-CN/README.md)
+[English](./README.md) | [简体中文](./docs/i18n/zh-CN/README.md)
 
 <h1 align="center">🔮 Negentropy</h1>
 
