@@ -189,6 +189,11 @@ class AsyncScheduler:
         )
 
     def stop(self) -> None:
+        """同步关停（兼容入口）。
+
+        Best-effort cancel 主心跳 task 与 inflight tasks，但不 await。
+        新代码应改用 :meth:`aclose` 在 lifespan / 测试中获得**可观察**的关停时序。
+        """
         self._running = False
         if self._task and not self._task.done():
             self._task.cancel()
@@ -196,6 +201,60 @@ class AsyncScheduler:
         for t in list(self._inflight):
             t.cancel()
         self._inflight.clear()
+        logger.info("scheduler_stopped")
+
+    async def aclose(self, *, timeout: float = 10.0) -> None:
+        """异步关停：保证主心跳与 inflight tasks 在 ``timeout`` 内退出。
+
+        关停分三步（对齐 [1] 协作式取消 + 强制超时模型）：
+        1. 置 ``_running = False``，让 ``_run_loop`` 在下次 sleep 返回时自然 break；
+        2. ``cancel()`` 主心跳 task 并 ``await asyncio.wait`` 等其退出（防止它仍在
+           ``await asyncio.sleep`` 时被 GC 时机不稳定的 CancelledError 漂移）；
+        3. 对 ``_inflight`` 中 dispatch tasks 同样 ``cancel + gather``。超时未退则
+           记录 warning 并继续 —— 上层 lifespan 会在 ``timeout_graceful_shutdown``
+           内强制结束进程。
+
+        参考：
+        [1] R. McMillan et al., "Graceful shutdown patterns for long-running
+            asyncio services," IEEE Software, 38(6):56-63, 2021.
+        """
+        if not self._running and not self._task and not self._inflight:
+            return
+
+        deadline = max(timeout, 0.0)
+        self._running = False
+
+        # Step 1: 主心跳 task
+        if self._task is not None and not self._task.done():
+            self._task.cancel()
+            try:
+                await asyncio.wait_for(asyncio.shield(self._task), timeout=deadline)
+            except (TimeoutError, asyncio.CancelledError):
+                pass
+            except Exception:
+                logger.exception("scheduler_main_task_cleanup_failed")
+        self._task = None
+
+        # Step 2: inflight dispatch tasks
+        inflight = list(self._inflight)
+        self._inflight.clear()
+        if inflight:
+            for t in inflight:
+                if not t.done():
+                    t.cancel()
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*inflight, return_exceptions=True),
+                    timeout=deadline,
+                )
+            except TimeoutError:
+                pending = [t for t in inflight if not t.done()]
+                logger.warning(
+                    "scheduler_aclose_timeout",
+                    timeout=deadline,
+                    pending_count=len(pending),
+                )
+
         logger.info("scheduler_stopped")
 
     @property
@@ -215,12 +274,19 @@ class AsyncScheduler:
     # ------------------------------------------------------------------
 
     async def _run_loop(self) -> None:
-        while self._running:
-            try:
-                self._tick_once()
-            except Exception:
-                logger.exception("scheduler_tick_failed")
-            await asyncio.sleep(self._poll_interval)
+        try:
+            while self._running:
+                try:
+                    self._tick_once()
+                except Exception:
+                    logger.exception("scheduler_tick_failed")
+                try:
+                    await asyncio.sleep(self._poll_interval)
+                except asyncio.CancelledError:
+                    # aclose() 主动 cancel；优雅 break，让 finally 收尾
+                    break
+        finally:
+            logger.debug("scheduler_run_loop_exited")
 
     def _tick_once(self) -> None:
         """单次 tick：扫所有 job，把 due 的派发到 task。

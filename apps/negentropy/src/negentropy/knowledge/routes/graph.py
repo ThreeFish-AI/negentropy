@@ -220,6 +220,13 @@ async def build_knowledge_graph(
         task = asyncio.create_task(_run_build_background())
         _KG_BUILD_BG_TASKS.add(task)
         task.add_done_callback(_KG_BUILD_BG_TASKS.discard)
+        # 纳管到全局 lifecycle：lifespan.shutdown 时统一 cancel + gather
+        try:
+            from negentropy.engine.lifecycle import track_task
+
+            track_task(task)
+        except Exception:  # pragma: no cover
+            pass
 
         logger.info(
             "api_graph_build_enqueued",

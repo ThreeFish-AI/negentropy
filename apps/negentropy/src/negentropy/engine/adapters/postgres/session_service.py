@@ -429,6 +429,16 @@ class PostgresSessionService(BaseSessionService):
             logger.warning("title_generation_skipped_no_event_loop", session_id=session_id)
             return
 
+        # 纳管到全局 lifecycle：lifespan.shutdown 时统一 cancel + gather，
+        # 避免 fire-and-forget task 在 event loop 关闭时抛
+        # "Task was destroyed but it is pending!" 警告。
+        try:
+            from negentropy.engine.lifecycle import track_task
+
+            track_task(task)
+        except Exception:  # pragma: no cover — 防御性，纳管失败不阻断主流程
+            pass
+
         self._title_tasks.add(task)
 
         def _on_done(t: asyncio.Task) -> None:

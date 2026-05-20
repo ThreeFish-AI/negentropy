@@ -46,6 +46,13 @@ _REGISTRY_ENABLED_KEY = "NEGENTROPY_UNIFIED_SCHEDULER_ENABLED"
 _HEARTBEAT_JOB_KEY = "unified_heartbeat"
 _DEFAULT_LEASE_SECONDS = 120.0  # 行级认领的 lease：执行未完前不会被另一 worker 重抢
 
+#: handler 单次执行硬上限默认 60s；可由 ``NEGENTROPY_HANDLER_DEFAULT_TIMEOUT_SECONDS``
+#: 全局调整，单 task 通过 ``payload.timeout_seconds`` 局部覆盖（优先级最高）。
+_HANDLER_TIMEOUT_ENV_KEY = "NEGENTROPY_HANDLER_DEFAULT_TIMEOUT_SECONDS"
+_HANDLER_TIMEOUT_DEFAULT = 60.0
+#: 心跳 tick 内是否并发 dispatch；DB lease 已正交保护幂等，默认开启。
+_CONCURRENT_DISPATCH_ENV_KEY = "NEGENTROPY_SCHEDULER_CONCURRENT_DISPATCH"
+
 
 def _registry_disabled() -> bool:
     """``NEGENTROPY_UNIFIED_SCHEDULER_ENABLED=false`` → 跳过统一注册中心。
@@ -53,6 +60,30 @@ def _registry_disabled() -> bool:
     Plan 第 4 节确认作为灰度回退开关。
     """
     return os.environ.get(_REGISTRY_ENABLED_KEY, "true").lower() in ("0", "false", "no")
+
+
+def _resolve_handler_timeout(task: ScheduledTask) -> float | None:
+    """计算单个 handler 的硬超时（秒）。
+
+    优先级：``task.payload.timeout_seconds`` > 环境变量 > 默认 60s。
+    返回 ``None`` 表示禁用超时（``timeout_seconds<=0`` 或环境变量显式置 0）。
+    """
+    payload = task.payload or {}
+    raw = payload.get("timeout_seconds")
+    if raw is None:
+        raw = os.environ.get(_HANDLER_TIMEOUT_ENV_KEY)
+    if raw is None:
+        return _HANDLER_TIMEOUT_DEFAULT
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        return _HANDLER_TIMEOUT_DEFAULT
+    return v if v > 0 else None
+
+
+def _concurrent_dispatch_enabled() -> bool:
+    """读取 ``NEGENTROPY_SCHEDULER_CONCURRENT_DISPATCH``。默认 true。"""
+    return os.environ.get(_CONCURRENT_DISPATCH_ENV_KEY, "true").lower() not in ("0", "false", "no")
 
 
 def _utcnow() -> datetime:
@@ -98,6 +129,19 @@ class ExecutionBus:
                     q.get_nowait()
                 with suppress(asyncio.QueueFull):
                     q.put_nowait(event)
+
+    async def close_all_subscribers(self) -> None:
+        """向所有订阅者投递 ``__shutdown__`` 哨兵 + 清空订阅表。
+
+        ``stream_executions`` 与 ``/scheduler/stream`` 在收到该哨兵后会主动结束
+        ``async for``，让 ASGI StreamingResponse 收尾，配合 uvicorn 的
+        ``timeout_graceful_shutdown`` 提早释放连接。
+        """
+        async with self._lock:
+            for q in list(self._subs):
+                with suppress(asyncio.QueueFull):
+                    q.put_nowait({"__shutdown__": True})
+            self._subs.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -164,11 +208,31 @@ class ScheduledTaskRegistry:
         logger.info("unified_scheduler_started", poll_interval=self._scheduler.poll_interval)
 
     def stop(self) -> None:
+        """同步关停（兼容入口，测试 ``reset_registry_for_tests`` 仍调用）。"""
         if not self._started:
             return
         self._scheduler.stop()
         self._started = False
         logger.info("unified_scheduler_stopped")
+
+    async def aclose(self, *, timeout: float = 15.0) -> None:
+        """异步收敛关停：scheduler + SSE 总线统一关停，可 await 等真正退出。
+
+        语义对齐 :meth:`AsyncScheduler.aclose`；额外向所有 SSE 订阅者投递哨兵，
+        让 ``/scheduler/stream`` 的 ``while True: await q.get()`` 路径能在
+        graceful 窗口内自然收尾（而非依赖 ``request.is_disconnected()`` 周期检查）。
+        """
+        if not self._started:
+            return
+        try:
+            await self._bus.close_all_subscribers()
+        except Exception:
+            logger.exception("execution_bus_close_failed")
+        try:
+            await self._scheduler.aclose(timeout=timeout)
+        finally:
+            self._started = False
+            logger.info("unified_scheduler_stopped")
 
     # ------------------------------------------------------------------
     # 默认任务幂等注入
@@ -260,7 +324,15 @@ class ScheduledTaskRegistry:
     # ------------------------------------------------------------------
 
     async def _heartbeat_tick(self) -> None:
-        """单次心跳：原子认领 due 行 → 在事务外派发到 handler。"""
+        """单次心跳：原子认领 due 行 → 在事务外派发到 handler。
+
+        派发策略：
+        - 默认 ``NEGENTROPY_SCHEDULER_CONCURRENT_DISPATCH=true`` → ``asyncio.gather``
+          并发派发；DB 端 ``FOR UPDATE SKIP LOCKED`` + lease 已正交保证幂等，单个
+          慢 handler 不会阻塞同 tick 内的其它任务，关停取消信号也能同时到达全部
+          inflight handler；
+        - 置 false 退回旧串行行为，便于灰度回滚。
+        """
         async with AsyncSessionLocal() as db:
             due_rows = await _claim_due_tasks(db, lease_seconds=self._lease_seconds)
             await db.commit()
@@ -268,7 +340,22 @@ class ScheduledTaskRegistry:
         if not due_rows:
             return
 
-        # 在事务外派发：handler 自己开新事务，避免长事务持锁
+        if _concurrent_dispatch_enabled():
+            # 并发派发；return_exceptions=True 让单个失败不影响其它 task
+            results = await asyncio.gather(
+                *(self.dispatch(row.id, fire_reason="tick") for row in due_rows),
+                return_exceptions=True,
+            )
+            for row, outcome in zip(due_rows, results, strict=False):
+                if isinstance(outcome, BaseException) and not isinstance(outcome, asyncio.CancelledError):
+                    logger.warning(
+                        "unified_scheduler_dispatch_failed",
+                        task_id=str(row.id),
+                        error=str(outcome),
+                    )
+            return
+
+        # Legacy 串行路径（灰度回退）
         for task_row in due_rows:
             try:
                 await self.dispatch(task_row.id, fire_reason="tick")
@@ -344,20 +431,66 @@ class ScheduledTaskRegistry:
             await db.refresh(exec_row)
             execution_id = exec_row.id
 
-        # 真正执行（不持 DB 事务）
+        # 真正执行（不持 DB 事务）；handler 必须在 timeout 内退出，否则记 timeout
+        # 状态并自增 ``consecutive_failures`` 让退避策略接管。
         result: HandlerResult
+        timeout_seconds = _resolve_handler_timeout(task)
         try:
-            handler_result = await handler(task)
+            if timeout_seconds is None:
+                handler_result = await handler(task)
+            else:
+                async with asyncio.timeout(timeout_seconds):
+                    handler_result = await handler(task)
             result = handler_result if isinstance(handler_result, HandlerResult) else HandlerResult(status="ok")
+        except asyncio.CancelledError:
+            # lifespan.shutdown 主动 cancel：标记 cancelled 后透传 CancelledError，
+            # 让上层 _heartbeat_tick / aclose() 能正确终止。
+            logger.info(
+                "dispatch_handler_cancelled",
+                task_id=str(task_id),
+                fire_reason=fire_reason,
+                handler_kind=task.handler_kind,
+            )
+            result = HandlerResult(status="cancelled", error="task cancelled by shutdown")
+            await self._finalize_execution(execution_id, task_id, result, started_at, started_monotonic)
+            raise
+        except TimeoutError:
+            logger.warning(
+                "dispatch_handler_timeout",
+                task_id=str(task_id),
+                handler_kind=task.handler_kind,
+                timeout=timeout_seconds,
+            )
+            result = HandlerResult(
+                status="timeout",
+                error=f"handler exceeded {timeout_seconds}s",
+            )
         except Exception as exc:
             logger.exception("dispatch_handler_exception", task_id=str(task_id))
             result = HandlerResult(status="failed", error=str(exc))
 
+        await self._finalize_execution(execution_id, task_id, result, started_at, started_monotonic)
+
+        return execution_id
+
+    async def _finalize_execution(
+        self,
+        execution_id: UUID,
+        task_id: UUID,
+        result: HandlerResult,
+        started_at: datetime,
+        started_monotonic: float,
+    ) -> None:
+        """把 handler 执行结果回写到 ``task_executions`` 与 ``scheduled_tasks``。
+
+        独立抽出以便 ``cancelled`` / ``timeout`` 等异常路径也能复用同一回写语义，
+        保障 Dashboard 的 in-flight 行不会因 shutdown 取消而永远停留在
+        ``status='running'``。``failed`` 与 ``timeout`` 均累加 ``consecutive_failures``，
+        进入既有 backoff 路径。
+        """
         duration_ms = int((time.monotonic() - started_monotonic) * 1000)
         finished_at = _utcnow()
-
         async with AsyncSessionLocal() as db:
-            # 回写 execution
             exec_row = await db.get(TaskExecution, execution_id)
             if exec_row is not None:
                 exec_row.finished_at = finished_at
@@ -372,15 +505,18 @@ class ScheduledTaskRegistry:
                 exec_row.pipeline_run_id = result.pipeline_run_id
                 exec_row.thread_id = result.thread_id
 
-            # 回写 task 状态
             task = await db.get(ScheduledTask, task_id)
             if task is not None:
                 task.last_fire_at = started_at
                 task.last_status = result.status
                 task.last_error = result.error
                 task.total_runs += 1
-                if result.status == "failed":
+                # ``failed`` / ``timeout`` 共同累加失败计数；``cancelled`` 不计失败
+                # （shutdown 主动取消不应触发退避）。
+                if result.status in ("failed", "timeout"):
                     task.consecutive_failures += 1
+                elif result.status == "cancelled":
+                    pass
                 else:
                     task.consecutive_failures = 0
                 task.next_fire_at = _compute_next_fire(task)
@@ -388,8 +524,6 @@ class ScheduledTaskRegistry:
             await db.commit()
             if exec_row is not None and task is not None:
                 await self._publish_execution(task, exec_row)
-
-        return execution_id
 
     async def _publish_execution(self, task: ScheduledTask, exec_row: TaskExecution) -> None:
         await self._bus.publish(_serialize_execution(task, exec_row))
@@ -399,11 +533,17 @@ class ScheduledTaskRegistry:
     # ------------------------------------------------------------------
 
     async def stream_executions(self, *, task_id: UUID | None = None) -> AsyncIterator[dict[str, Any]]:
-        """SSE 端点消费：异步生成 execution 事件流。"""
+        """SSE 端点消费：异步生成 execution 事件流。
+
+        收到 ``{"__shutdown__": True}`` 哨兵或 ``CancelledError`` 时主动退出，
+        让 ``/scheduler/stream`` 在 lifespan.shutdown 启动时迅速结束 StreamingResponse。
+        """
         q = await self._bus.subscribe()
         try:
             while True:
                 event = await q.get()
+                if event.get("__shutdown__"):
+                    return
                 if task_id is not None and event.get("task_id") != str(task_id):
                     continue
                 yield event
