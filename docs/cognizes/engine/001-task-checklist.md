@@ -350,7 +350,7 @@ gantt
 
 > [!NOTE]
 >
-> **目标**：基于 [034-knowledge-base.md](../research/034-knowledge-base.md) 调研成果，验证完整 RAG Pipeline 与 Hybrid Search 能力。
+> **目标**：基于 [034-knowledge-base.md](../../research/034-knowledge-base.md) 调研成果，验证完整 RAG Pipeline 与 Hybrid Search 能力。
 >
 > **核心区分**：Knowledge（静态知识）与 Memory（动态记忆）采用不同存储表，参见 [030-the-perception.md 第 3.1 节](./030-the-perception.md#31-knowledge-vs-memory-双存储架构)。
 
@@ -539,7 +539,7 @@ gantt
 >
 > **参考资源**:
 >
-> - [AG-UI 协议调研](../research/070-ag-ui.md)
+> - [AG-UI 协议调研](../../research/070-ag-ui.md)
 > - [AG-UI 官方文档](https://docs.ag-ui.com/)
 
 #### 4.5.1 AG-UI 调研
@@ -737,7 +737,7 @@ gantt
 | 类别             | 资源                                                                                                                                                                                                                                                                      |
 | :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **ADK 官方文档** | [Sessions](https://google.github.io/adk-docs/sessions/) · [Context](https://google.github.io/adk-docs/context/) · [Runtime](https://google.github.io/adk-docs/runtime/) · [Deploy](https://google.github.io/adk-docs/deploy/)                                             |
-| **调研资料**     | [context-engineering](../research/010-context-engineering.md) · [agent-runtime-frameworks](../research/020-agent-runtime-frameworks.md) · [vector-search-algorithm](../research/030-vector-search-algorithm.md) · [vector-databases](../research/032-vector-databases.md) |
+| **调研资料**     | [context-engineering](../../research/010-context-engineering.md) · [agent-runtime-frameworks](../../research/020-agent-runtime-frameworks.md) · [vector-search-algorithm](../../research/030-vector-search-algorithm.md) · [vector-databases](../../research/032-vector-databases.md) |
 | **开源项目**     | [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph) · [langchain-ai/langgraph-memory](https://github.com/langchain-ai/langgraph-memory)                                                                                                                   |
 | **Google 示例**  | [GoogleCloudPlatform/generative-ai](https://github.com/GoogleCloudPlatform/generative-ai)                                                                                                                                                                                 |
 

@@ -993,9 +993,9 @@ agentic-ai-cognizes/
 | ---- | ---------------------------- | ------------------------------------------------------------------------------------- | ------------------------------ | ---------------------- |
 | [1]  | 项目架构文档                 | [docs/001-architecture.md](./001-architecture.md)                                     | 项目整体架构与代码结构         | 全局                   |
 | [2]  | Microsoft GraphRAG 论文      | [From Local to Global](https://arxiv.org/abs/2404.16130)                              | LLM 构建知识图谱 + 图机器学习  | 内容关联分析、多跳检索 |
-| [3]  | 认知增强调研 - GraphRAG 原理 | [docs/research/000-cognitive-enhancement.md](./research/000-cognitive-enhancement.md) | 图谱增强检索生成               | 智能检索体系           |
+| [3]  | 认知增强调研 - GraphRAG 原理 | [docs/research/000-cognitive-enhancement.md](../research/000-cognitive-enhancement.md) | 图谱增强检索生成               | 智能检索体系           |
 | [4]  | Cognee 深度调研              | [docs/research/003-cognee.md](./research/003-cognee.md)                               | AI 记忆层 + 三存储架构         | 认知记忆层             |
-| [5]  | 认知增强调研报告             | [docs/research/000-cognitive-enhancement.md](./research/000-cognitive-enhancement.md) | 理论基础与框架对比             | 整体设计参考           |
+| [5]  | 认知增强调研报告             | [docs/research/000-cognitive-enhancement.md](../research/000-cognitive-enhancement.md) | 理论基础与框架对比             | 整体设计参考           |
 | [6]  | Agentic RAG 理论             | 认知增强调研 §2.4                                                                     | 主动推理、自适应检索、多步方案 | 智能问答、复杂检索     |
 | [7]  | 知识图谱在 AI 中的应用       | 认知增强调研 §2.1.4                                                                   | 减少幻觉 40-60%、可解释决策    | 内容关联分析           |
 | [8]  | BettaFish 深度调研           | [docs/research/006-bettafish.md](./research/006-bettafish.md)                         | 论坛协作机制、多 Agent 辩论    | Agent 协作设计         |

@@ -843,7 +843,7 @@ export LANGFUSE_HOST=http://localhost:3000
 >
 > **参考资源**:
 >
-> - [AG-UI 协议调研](../research/070-ag-ui.md)
+> - [AG-UI 协议调研](../../research/070-ag-ui.md)
 > - [AG-UI 官方文档](https://docs.ag-ui.com/)
 
 #### 4.9.1 AG-UI 核心概念

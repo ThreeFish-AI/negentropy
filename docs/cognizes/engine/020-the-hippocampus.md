@@ -693,7 +693,7 @@ pytest tests/integration/engine/test_memory_service.py
 >
 > **参考资源**：
 >
-> - [AG-UI 协议调研](../research/070-ag-ui.md)
+> - [AG-UI 协议调研](../../research/070-ag-ui.md)
 > - [AG-UI 官方文档](https://docs.ag-ui.com/)
 
 #### 4.5.1 记忆可视化架构
