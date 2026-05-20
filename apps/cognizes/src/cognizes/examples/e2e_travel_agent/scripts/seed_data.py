@@ -4,7 +4,6 @@
 
 import asyncio
 import json
-from pathlib import Path
 
 from cognizes.core.database import DatabaseManager
 

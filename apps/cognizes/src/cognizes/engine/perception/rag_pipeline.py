@@ -15,10 +15,9 @@ Usage:
 Task ID: P3-5-4
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Union, Callable
-import asyncio
 import time
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -28,9 +27,9 @@ class RetrievalResult:
     id: str
     content: str
     score: float
-    source_uri: Optional[str] = None
+    source_uri: str | None = None
     chunk_index: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -39,11 +38,11 @@ class RAGResponse:
 
     query: str
     answer: str
-    sources: List[RetrievalResult]
+    sources: list[RetrievalResult]
     retrieval_time_ms: float = 0
     generation_time_ms: float = 0
     total_time_ms: float = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -73,7 +72,7 @@ class RAGPipeline:
         ingester=None,
         embedder=None,
         llm_client=None,
-        corpus_id: Optional[str] = None,
+        corpus_id: str | None = None,
         app_name: str = "default",
         use_knowledge_base: bool = True,
     ):
@@ -121,8 +120,8 @@ class RAGPipeline:
         self,
         content: str,
         source_uri: str = "inline.txt",
-        corpus_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        corpus_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> IndexingResult:
         """
         Index a document into the knowledge base.
@@ -167,9 +166,9 @@ class RAGPipeline:
 
     async def _store_chunk(
         self,
-        chunk: Dict[str, Any],
-        corpus_id: Optional[str],
-        metadata: Optional[Dict[str, Any]],
+        chunk: dict[str, Any],
+        corpus_id: str | None,
+        metadata: dict[str, Any] | None,
     ):
         """Store a chunk in the database."""
         import json
@@ -225,10 +224,10 @@ class RAGPipeline:
         self,
         query: str,
         top_k: int = 10,
-        corpus_id: Optional[str] = None,
+        corpus_id: str | None = None,
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """
         Retrieve relevant chunks for a query.
 
@@ -296,7 +295,7 @@ class RAGPipeline:
 
         return results
 
-    def _mock_retrieve(self, query: str, top_k: int) -> List[RetrievalResult]:
+    def _mock_retrieve(self, query: str, top_k: int) -> list[RetrievalResult]:
         """Return mock results for testing without database."""
         return [
             RetrievalResult(
@@ -315,8 +314,8 @@ class RAGPipeline:
     async def generate(
         self,
         query: str,
-        context: List[RetrievalResult],
-        system_prompt: Optional[str] = None,
+        context: list[RetrievalResult],
+        system_prompt: str | None = None,
     ) -> str:
         """
         Generate answer using LLM with retrieved context.
@@ -359,7 +358,7 @@ If the context doesn't contain relevant information, say so honestly."""
 
         return response.choices[0].message.content
 
-    def _mock_generate(self, query: str, context: List[RetrievalResult]) -> str:
+    def _mock_generate(self, query: str, context: list[RetrievalResult]) -> str:
         """Return mock generation for testing without LLM."""
         sources = ", ".join(c.source_uri or "unknown" for c in context[:3])
         return f"Mock answer for '{query}' based on sources: {sources}"
@@ -372,10 +371,10 @@ If the context doesn't contain relevant information, say so honestly."""
         self,
         query: str,
         top_k: int = 5,
-        corpus_id: Optional[str] = None,
+        corpus_id: str | None = None,
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
     ) -> RAGResponse:
         """
         Execute complete RAG query (retrieve + generate).
@@ -433,7 +432,7 @@ If the context doesn't contain relevant information, say so honestly."""
 def get_rag_pipeline(
     db_pool=None,
     app_name: str = "default",
-    corpus_id: Optional[str] = None,
+    corpus_id: str | None = None,
     embedding_provider: str = "mock",
     use_knowledge_base: bool = True,
     **kwargs,
@@ -452,8 +451,8 @@ def get_rag_pipeline(
     Returns:
         RAGPipeline instance
     """
-    from cognizes.engine.perception.ingestion import get_ingester
     from cognizes.engine.perception.embedder import get_embedder
+    from cognizes.engine.perception.ingestion import get_ingester
 
     ingester = get_ingester(embedding_provider=embedding_provider)
     embedder = get_embedder(provider_type=embedding_provider)

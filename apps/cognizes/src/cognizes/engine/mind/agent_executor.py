@@ -5,7 +5,7 @@ AgentExecutor: Agent 执行编排器 - 管理 Thought -> Action -> Observation �
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import AsyncGenerator
+from typing import Any
 
 
 class ExecutionStatus(Enum):
@@ -45,7 +45,7 @@ class AgentExecutor:
 
     async def run(self, user_input: str, *, run_id: str | None = None) -> ExecutionResult:
         start_time = datetime.now()
-        steps = []
+        steps: list[ThinkingStep] = []
         for step_num in range(1, self._max_steps + 1):
             # 检查超时
             if (datetime.now() - start_time).total_seconds() > self._timeout:
@@ -86,7 +86,7 @@ class AgentExecutor:
         if "Final Answer:" in response:
             return response.split("Final Answer:")[-1].strip(), None, None, True
         thought = action = None
-        action_input = {}
+        action_input: dict[str, Any] = {}
         if "Thought:" in response:
             thought = response.split("Thought:")[-1].split("Action:")[0].strip()
         if "Action:" in response:

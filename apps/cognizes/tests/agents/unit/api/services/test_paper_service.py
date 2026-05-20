@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import UploadFile
 
-from cognizes.api.services.paper_service import PaperService
 from cognizes.agents.claude.base import BaseAgent
+from cognizes.api.services.paper_service import PaperService
 from tests.agents.fixtures.mocks.mock_file_operations import (
     mock_file_manager,
     patch_file_operations,

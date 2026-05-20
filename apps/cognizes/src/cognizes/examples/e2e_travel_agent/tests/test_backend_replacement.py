@@ -3,11 +3,10 @@
 """
 
 import os
+
 import pytest
-import asyncio
-from services import create_services
 from agent import create_travel_agent
-from config import config, BackendType
+from services import create_services
 
 pytestmark = pytest.mark.asyncio
 

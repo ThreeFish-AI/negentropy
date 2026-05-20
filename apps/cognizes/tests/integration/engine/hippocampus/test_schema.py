@@ -9,7 +9,6 @@ Hippocampus Schema 集成测试
 """
 
 import uuid
-from datetime import datetime
 
 import pytest
 

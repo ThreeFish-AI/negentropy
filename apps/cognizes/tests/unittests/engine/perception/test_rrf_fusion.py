@@ -6,8 +6,6 @@ RRF Fusion 单元测试
 对应任务: P3-1-8
 """
 
-import pytest
-
 from cognizes.engine.perception.rrf_fusion import SearchResult, rrf_fusion
 
 

@@ -94,8 +94,12 @@ class FactsRepository(BaseRepository):
             return await conn.fetch(query, *args)
 
     async def search(
-        self, user_id: str, app_name: str, query_embedding: list[float], limit: int = 10
-    ) -> list[asyncpg.Record]:
+        self,
+        user_id: str,
+        app_name: str,
+        query_embedding: list[float],  # type: ignore[valid-type]
+        limit: int = 10,
+    ) -> list[asyncpg.Record]:  # type: ignore[valid-type]
         """Search facts within a user's scope using vector similarity."""
         query = """
             SELECT id, fact_type, key, value, confidence,

@@ -2,7 +2,6 @@
 酒店预订工具 - 模拟实现
 """
 
-from datetime import datetime
 import random
 import uuid
 

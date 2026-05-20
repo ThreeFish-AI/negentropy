@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import asyncpg
-
 from cognizes.core.repositories.base import BaseRepository
 
 

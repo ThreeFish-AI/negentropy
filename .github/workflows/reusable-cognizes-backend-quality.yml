@@ -1,0 +1,153 @@
+name: Reusable Cognizes Backend QA
+
+on:
+  workflow_call:
+    inputs:
+      run_integration:
+        description: "是否执行集成测试"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  backend-lint:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/cognizes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/cognizes
+
+      - name: Run ruff check
+        run: uv run ruff check src/cognizes/ tests/
+
+      - name: Run ruff format check
+        run: uv run ruff format --check src/cognizes/ tests/
+
+      - name: Run mypy
+        run: uv run mypy src/cognizes/
+
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/cognizes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/cognizes
+
+      - name: Run unit tests with coverage
+        run: |
+          mkdir -p test-results
+          uv run pytest tests/unittests/ \
+            --cov=cognizes \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --junitxml=test-results/unit.junit.xml
+
+      - name: Upload unit test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cognizes-unit-artifacts
+          path: |
+            apps/cognizes/coverage.xml
+            apps/cognizes/test-results/unit.junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish summary
+        run: |
+          echo "## Cognizes Backend Unit Tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Executed: \`uv run pytest tests/unittests/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Artifacts: \`cognizes-unit-artifacts\`" >> "$GITHUB_STEP_SUMMARY"
+
+  backend-integration:
+    name: Backend Integration Tests
+    if: inputs.run_integration
+    needs: backend-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+    defaults:
+      run:
+        working-directory: apps/cognizes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/cognizes
+
+      - name: Run integration tests
+        run: |
+          mkdir -p test-results
+          uv run pytest tests/integration/ -v --no-cov \
+            --junitxml=test-results/integration.junit.xml
+
+      - name: Upload integration test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cognizes-integration-artifacts
+          path: apps/cognizes/test-results/integration.junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish summary
+        run: |
+          echo "## Cognizes Backend Integration Tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Artifacts: \`cognizes-integration-artifacts\`" >> "$GITHUB_STEP_SUMMARY"
+
+  backend-build:
+    name: Backend Build Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/cognizes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/cognizes
+          install-dev: "false"
+
+      - name: Build package
+        run: uv build
+
+      - name: Test import
+        run: uv run python -c "import cognizes; print('Successfully imported cognizes')"

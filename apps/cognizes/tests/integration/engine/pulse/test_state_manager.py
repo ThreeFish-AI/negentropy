@@ -11,16 +11,15 @@ StateManager 单元测试
 import asyncio
 import uuid
 
-import asyncpg
 import pytest
 import pytest_asyncio
 
+from cognizes.core.database import DatabaseManager
 from cognizes.engine.pulse.state_manager import (
     ConcurrencyConflictError,
     Event,
     StateManager,
 )
-from cognizes.core.database import DatabaseManager
 
 
 @pytest_asyncio.fixture
@@ -188,7 +187,6 @@ class TestTransactionRollback:
             user_id="user_rollback",
             initial_state={"value": "original"},
         )
-        original_version = session.version
 
         # 模拟一个会失败的事件（例如无效的 JSON）
         try:

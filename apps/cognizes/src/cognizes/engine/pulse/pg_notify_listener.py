@@ -12,9 +12,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 import asyncpg
 
@@ -57,7 +58,7 @@ class PgNotifyListener:
         # 统一使用 DatabaseManager 获取连接
         db = DatabaseManager.get_instance(dsn=self.dsn)
         self._pool = await db.get_pool()
-        self._connection = await self._pool.acquire()
+        self._connection = await self._pool.acquire()  # type: ignore[attr-defined]
 
         for channel in self.channels:
             await self._connection.add_listener(channel, self._handle_notification)

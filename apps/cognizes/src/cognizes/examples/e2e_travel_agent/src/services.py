@@ -2,15 +2,16 @@
 服务工厂：根据配置创建对应的 Session/Memory 服务实例
 """
 
-from config import config, BackendType
+from config import BackendType, config
+from google.adk.memory import InMemoryMemoryService
 
 # Google 托管服务（基线）
 from google.adk.sessions import InMemorySessionService
-from google.adk.memory import InMemoryMemoryService
+
+from cognizes.adapters.postgres.memory_service import PostgresMemoryService
 
 # Open Agent Engine（我们的实现）- 使用正确的包路径
 from cognizes.adapters.postgres.session_service import PostgresSessionService
-from cognizes.adapters.postgres.memory_service import PostgresMemoryService
 from cognizes.adapters.postgres.tracing import TracingManager
 from cognizes.core.database import DatabaseManager
 
@@ -94,7 +95,7 @@ async def create_services() -> tuple:
         pool = await get_db_pool()
 
         # 初始化 OpenTelemetry TracingManager (支持 PostgreSQL + Langfuse 双路导出)
-        tracing_manager = TracingManager(
+        TracingManager(
             service_name=config.service_name,
             pg_dsn=config.database_url,
             langfuse_public_key=config.langfuse_public_key,
@@ -111,7 +112,7 @@ async def create_services() -> tuple:
         if config.google_base_url:
             client_kwargs["http_options"] = types.HttpOptions(base_url=config.google_base_url)
 
-        client = genai.Client(**client_kwargs)
+        genai.Client(**client_kwargs)
 
         # 创建服务实例
         session_service = PostgresSessionService(pool=pool)

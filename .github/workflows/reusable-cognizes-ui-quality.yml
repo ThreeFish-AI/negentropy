@@ -1,0 +1,118 @@
+name: Reusable Cognizes UI QA
+
+on:
+  workflow_call:
+    inputs:
+      run_e2e:
+        description: "是否执行 Playwright 冒烟测试"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  ui-lint:
+    name: UI Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/cognizes-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup yarn environment
+        uses: ./.github/actions/setup-yarn-ui
+
+      - name: Lint app
+        run: yarn lint
+
+  ui-typecheck:
+    name: UI Type Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/cognizes-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup yarn environment
+        uses: ./.github/actions/setup-yarn-ui
+
+      - name: Typecheck app
+        run: yarn tsc --noEmit
+
+  ui-unit-integration:
+    name: UI Unit And Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/cognizes-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup yarn environment
+        uses: ./.github/actions/setup-yarn-ui
+
+      - name: Run tests with coverage
+        run: yarn test:coverage
+
+      - name: Upload UI coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cognizes-ui-coverage
+          path: apps/cognizes-ui/coverage
+          if-no-files-found: warn
+          retention-days: 14
+
+  ui-build-smoke:
+    name: UI Build Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/cognizes-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup yarn environment
+        uses: ./.github/actions/setup-yarn-ui
+
+      - name: Build app
+        run: yarn build
+
+  ui-e2e-smoke:
+    name: UI Playwright Smoke
+    if: inputs.run_e2e
+    needs: [ui-lint, ui-typecheck, ui-unit-integration, ui-build-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/cognizes-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup yarn environment
+        uses: ./.github/actions/setup-yarn-ui
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        run: yarn test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cognizes-playwright-report
+          path: |
+            apps/cognizes-ui/playwright-report
+            apps/cognizes-ui/test-results
+          if-no-files-found: warn
+          retention-days: 14

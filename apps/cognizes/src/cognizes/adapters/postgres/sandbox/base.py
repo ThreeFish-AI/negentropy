@@ -6,7 +6,6 @@ SandboxRunner 抽象基类
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
 
 class SandboxBackend(Enum):
@@ -39,7 +38,7 @@ class SandboxResult:
     stderr: str
     exit_code: int
     execution_time_ms: float
-    metadata: dict = None  # 额外信息 (如资源使用)
+    metadata: dict = None  # type: ignore[assignment]  # 额外信息 (如资源使用)
 
 
 class BaseSandboxRunner(ABC):
@@ -113,6 +112,6 @@ class BaseSandboxRunner(ABC):
         except Exception:
             return False
 
-    async def cleanup(self) -> None:
+    async def cleanup(self) -> None:  # noqa: B027
         """清理资源 (子类可覆写)"""
         pass

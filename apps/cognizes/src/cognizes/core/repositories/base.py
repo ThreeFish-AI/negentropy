@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class BaseRepository:
     """Base class for all repositories providing common functionality."""
 
-    def __init__(self, db: "DatabaseManager"):
+    def __init__(self, db: DatabaseManager):
         self.db = db
 
     async def get_pool(self) -> asyncpg.Pool:

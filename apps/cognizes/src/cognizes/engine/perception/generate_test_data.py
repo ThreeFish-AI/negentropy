@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import random
 import time
 import uuid
-import os
 
 import asyncpg
 import numpy as np
@@ -46,7 +46,7 @@ async def generate_test_data(
     rare_user_id = "rare_user_001"
     common_users = [f"common_user_{i:04d}" for i in range(100)]
 
-    print(f"\n📊 数据生成参数:")
+    print("\n📊 数据生成参数:")
     print(f"   - 总记录数: {total_records:,}")
     print(f"   - 稀有用户: {rare_user_id} ({rare_user_ratio:.1%})")
     print(f"   - 预计稀有用户记录: {int(total_records * rare_user_ratio):,}")

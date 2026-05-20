@@ -3,9 +3,13 @@ ToolRegistry: 数据库驱动的动态工具注册表
 """
 
 from __future__ import annotations
-import json, uuid
+
+import json
+import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
+
 import asyncpg
 
 
@@ -100,7 +104,8 @@ class ToolRegistry:
 
     async def invoke_tool(self, name: str, params: dict, *, run_id: str | None = None) -> Any:
         """调用工具并记录统计"""
-        import time, asyncio
+        import asyncio
+        import time
 
         func = self._function_registry.get(name)
         if not func:

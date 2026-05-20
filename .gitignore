@@ -262,7 +262,7 @@ apps/negentropy-ui/.userdata/
 
 # Custom
 .claude/
-assets/
+/assets/
 .gitignore
 output/
 benchmarks/runs/

@@ -4,10 +4,8 @@ Perception 集成测试共享 Fixtures
 提供真实数据库连接和测试数据设置。
 """
 
-import os
 import uuid
 
-import asyncpg
 import numpy as np
 import pytest
 import pytest_asyncio

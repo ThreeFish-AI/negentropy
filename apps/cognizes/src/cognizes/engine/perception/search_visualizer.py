@@ -9,14 +9,11 @@ Perception SearchVisualizer: 检索过程可视化接口
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from datetime import datetime
-from enum import Enum
+from dataclasses import dataclass
+from enum import StrEnum
 
 
-class SearchEventType(str, Enum):
+class SearchEventType(StrEnum):
     """检索相关 AG-UI 事件类型"""
 
     RETRIEVAL_DETAIL = "retrieval_detail"
@@ -63,7 +60,7 @@ class SourceCitation:
     doc_id: str
     source_type: str  # memory, document, web
     title: str
-    url: Optional[str] = None
+    url: str | None = None
     snippet: str = ""
     relevance_score: float = 0.0
 

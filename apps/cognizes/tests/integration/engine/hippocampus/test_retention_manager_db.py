@@ -8,7 +8,6 @@
 """
 
 import uuid
-from datetime import datetime, timedelta
 
 import pytest
 

@@ -4,9 +4,8 @@ PostgresSessionService 单元测试
 """
 
 import pytest
-import asyncio
-from datetime import datetime
-from cognizes.adapters.postgres.session_service import PostgresSessionService, Session, Event
+
+from cognizes.adapters.postgres.session_service import Event, PostgresSessionService
 
 # pytest-asyncio 配置
 pytestmark = pytest.mark.asyncio
@@ -88,7 +87,7 @@ class TestPostgresSessionService:
     async def test_list_sessions_by_user(self, service):
         """测试列出用户的所有会话"""
         # 创建多个会话
-        for i in range(3):
+        for _i in range(3):
             await service.create_session(app_name="test_app", user_id="user_007")
         response = await service.list_sessions(app_name="test_app", user_id="user_007")
         assert len(response.sessions) >= 3

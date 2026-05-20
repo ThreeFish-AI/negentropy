@@ -3,8 +3,9 @@
 """
 
 import os
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
+
 from dotenv import load_dotenv
 
 # Explicitly load .env file from the project root or current directory

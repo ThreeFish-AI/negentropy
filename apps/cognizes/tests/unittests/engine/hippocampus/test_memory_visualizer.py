@@ -7,17 +7,16 @@ MemoryVisualizer 单元测试
 - 进度计算
 """
 
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from cognizes.engine.hippocampus.memory_visualizer import (
-    MemoryVisualizer,
-    MemoryEventType,
     ConsolidationProgress,
-    MemoryHit,
+    MemoryEventType,
     MemoryHealthMetrics,
+    MemoryHit,
+    MemoryVisualizer,
 )
 
 

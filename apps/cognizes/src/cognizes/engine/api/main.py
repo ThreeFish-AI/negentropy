@@ -4,15 +4,15 @@ FastAPI 应用入口
 提供 WebSocket 和 SSE 端点，用于实时事件推送。
 """
 
-import os
 import asyncio
 import logging
-
+import os
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
-from cognizes.engine.pulse.pg_notify_listener import PgNotifyListener, NotifyEvent
 from cognizes.core.database import DatabaseManager
+from cognizes.engine.pulse.pg_notify_listener import NotifyEvent, PgNotifyListener
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -130,9 +130,10 @@ async def sse_events(run_id: str):
         Content-Type: text/event-stream
         data: {"type":"CUSTOM","runId":"test-run","timestamp":...}
     """
+
     from starlette.responses import StreamingResponse
+
     from cognizes.engine.pulse.event_bridge import AgUiEvent, AgUiEventType
-    import json
 
     async def event_generator():
         """生成 SSE 事件流"""
@@ -163,7 +164,7 @@ async def sse_events(run_id: str):
                     # 转换为 AG-UI 事件格式
                     agui_event = AgUiEvent(type=AgUiEventType.RAW, run_id=run_id, data={"payload": event.payload})
                     yield agui_event.to_sse()
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # 发送心跳保持连接
                     heartbeat = AgUiEvent(type=AgUiEventType.CUSTOM, run_id=run_id, data={"name": "heartbeat"})
                     yield heartbeat.to_sse()

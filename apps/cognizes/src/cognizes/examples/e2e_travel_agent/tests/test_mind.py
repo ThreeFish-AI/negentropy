@@ -3,11 +3,10 @@ The Realm of Mind 验收测试：验证 Trace 可观测性与沙箱安全
 """
 
 import pytest
-import asyncio
 from services import create_services
 
 # Fix imports
-from cognizes.adapters.postgres.tool_registry import ToolRegistry
+
 # from cognizes.adapters.postgres.sandbox.microsandbox_runner import MicrosandboxRunner, SandboxConfig
 
 pytestmark = pytest.mark.asyncio
@@ -157,5 +156,5 @@ class TestMindValidation:
         # 测试基本执行仍然可用
         result = await sandbox.execute("print('after timeout test')")
         assert result.exit_code == 0 or "after timeout test" in result.stdout, (
-            f"Sandbox still functional after timeout test"
+            "Sandbox still functional after timeout test"
         )
