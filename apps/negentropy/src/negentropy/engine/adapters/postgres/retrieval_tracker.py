@@ -150,6 +150,13 @@ class RetrievalTracker:
         task = loop.create_task(_run_reflection_safely(log_id=log_id, outcome=outcome))
         _pending_reflection_tasks.add(task)
         task.add_done_callback(_pending_reflection_tasks.discard)
+        # 纳管到全局 lifecycle：lifespan.shutdown 时统一 cancel + gather
+        try:
+            from negentropy.engine.lifecycle import track_task
+
+            track_task(task)
+        except Exception:  # pragma: no cover
+            pass
 
     async def get_effectiveness_metrics(
         self,

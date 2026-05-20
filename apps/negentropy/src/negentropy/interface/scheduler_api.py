@@ -565,6 +565,11 @@ async def scheduler_stream(
                     # 心跳保活
                     yield b": ping\n\n"
                     continue
+                # 服务关停哨兵：让 StreamingResponse 立即收尾，配合 P0-2 lifespan 的
+                # 主动 close_all_subscribers，避免 uvicorn 卡在「等连接关闭」。
+                if event.get("__shutdown__"):
+                    yield b": shutdown\n\n"
+                    break
                 if task_id is not None and event.get("task_id") != str(task_id):
                     continue
                 payload = json.dumps(event, ensure_ascii=False)
