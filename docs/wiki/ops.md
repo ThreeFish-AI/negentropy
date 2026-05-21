@@ -2,7 +2,7 @@
 
 > **适用对象**: 负责部署、监控和维护 Negentropy Wiki 知识库发布站点的运维工程师
 >
-> **相关文档**: [架构设计](../architecture/framework.md) | [知识库设计](../concepts/035-the-knowledge-base.md)
+> **相关文档**: [架构设计](../architecture/framework.md) | [知识库设计](../reference/cognizes/engine/035-the-knowledge-base.md)
 
 ---
 
@@ -324,7 +324,7 @@ curl ${WIKI_API_BASE}/knowledge/wiki/publications?status=published
 
 ## 12. 单实例 Catalog 与 Wiki 发布版本管理运维
 
-> **架构依据**：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量)
+> **架构依据**：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../reference/cognizes/engine/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量)
 > **关联 Issue**：[`issue.md` ISSUE-015](../agents/issue.md#issue-015)
 > **适用版本**：Phase 4（Migration 0007/0008）落地后
 

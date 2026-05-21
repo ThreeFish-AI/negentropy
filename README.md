@@ -221,9 +221,9 @@ graph TB
 | [User Guide](./docs/user-guide.md)                       | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki         |
 | [Development Guide](./docs/architecture/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
 | [Architecture Design](./docs/architecture/framework.md)               | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
-| [Knowledge System](./docs/concepts/035-the-knowledge-base.md)    | Detailed design and usage of the knowledge management module                                    |
-| [Memory System](./docs/concepts/025-the-memory-system.md)        | Memory lifecycle, forgetting curves, and governance mechanics                                   |
-| [Knowledge Graph](./docs/concepts/036-the-knowledge-graph.md)    | Graph modeling and query implementation                                                         |
+| [Knowledge System](./docs/reference/cognizes/engine/035-the-knowledge-base.md)    | Detailed design and usage of the knowledge management module                                    |
+| [Memory System](./docs/reference/cognizes/engine/025-the-memory-system.md)        | Memory lifecycle, forgetting curves, and governance mechanics                                   |
+| [Knowledge Graph](./docs/reference/cognizes/engine/036-the-knowledge-graph.md)    | Graph modeling and query implementation                                                         |
 | [QA Pipeline](./docs/qa-delivery-pipeline.md)            | Quality gates and release workflows                                                             |
 | [SSO Integration](./docs/sso.md)                         | Google OAuth authentication config                                                              |
 | [Engineering Changelog](./docs/engineering-changelog.md) | Milestones and baseline mutation records                                                        |
