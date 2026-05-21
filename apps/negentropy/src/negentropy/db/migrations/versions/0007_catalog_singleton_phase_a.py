@@ -26,7 +26,7 @@ Create Date: 2026-04-24 00:30:00.000000+00:00
   - 测试环境（CI）：fixture 库为空 → doc_catalogs / wiki_publications 均无数据 → 索引创建无冲突；
   - 生产环境：若已通过 0004 backfill 累积多 catalog/多 LIVE publication，
     本 migration 的 CREATE UNIQUE INDEX 步骤将抛 IntegrityError。
-    此时须按 docs/wiki/ops.md §12 runbook 先手工合并（pg_dump 备份后），
+    此时须按 docs/reference/wiki/ops.md §12 runbook 先手工合并（pg_dump 备份后），
     再重跑 alembic upgrade。
 
 Downgrade 策略：

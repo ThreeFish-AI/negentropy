@@ -280,7 +280,7 @@
 - **表因**：用户在 `/knowledge/catalog` 与 `/knowledge/wiki` 两个入口顶部均看到「目录：选择目录」`<CatalogSelector>` 组件组；首次进入未选择 catalog 时整页空载，显著的 UX 摩擦点；同时 KnowledgeNav 的 7 个固定 tab、Sidebar 的 5 个一级条目均未按 catalog 分支，使「选 catalog」沦为不可观测的全局态。截图来自 `/knowledge/catalog`（参见 [`apps/negentropy-ui/app/knowledge/catalog/page.tsx:11-89`](../apps/negentropy-ui/app/knowledge/catalog/page.tsx) 与 [`apps/negentropy-ui/app/knowledge/wiki/page.tsx:5,15-68`](../apps/negentropy-ui/app/knowledge/wiki/page.tsx)）。
 - **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`035-the-knowledge-base.md` §13](../concepts/035-the-knowledge-base.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
 - **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
-  1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
+  1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../reference/wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
   2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
   3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
   4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
@@ -294,7 +294,7 @@
 - **同类问题影响**：
   1. **Memory 域**（`MemoryEntry` 与未来可能的 `MemoryNamespace`）：若引入类似的「全局上下文」概念，应优先以 partial unique index 表达单例不变量，避免重蹈 UX selector 覆辙；
   2. **Interface 域**（`McpServer` 当前已支持多实例但 `auto_start=True` 实际只期望 1 个 manager）：本次单实例约束的 `partial unique` 范式可作为模板复用；
-  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki/ops.md` §12.3](../wiki/ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
+  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki/ops.md` §12.3](../reference/wiki/ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
   4. **跨 corpus 文档归属**：`doc_catalog_documents` 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 是合法行为；UI 提示去重但不强制——这是 Phase 3 N:M 解耦的天然结果，Phase 4 单例化不影响该自由度。
 
 ## ISSUE-016 Wiki 发布创建 500（app_name NOT NULL 违约）+ Wiki 页 CatalogSelector 移除
@@ -399,7 +399,7 @@
   1. 三处 `WIKI_API_BASE` 默认值统一改为 `http://localhost:3292`，与 `cli.py` + `backend-url.ts` 同源；不引入「废弃端口守护」（参考 ISSUE-005 教训：废弃值即熵源）。
   2. `config.default.yaml` 的 `knowledge:` 块新增 `wiki_revalidate.url: http://localhost:3092/api/revalidate` + `timeout_seconds: 5.0`；secret 仍由 `NE_KNOWLEDGE_WIKI_REVALIDATE__SECRET` 环境变量注入（生产必填，本地容错）。`WikiRevalidateSettings` schema 零改动，`tests/unit_tests/knowledge/test_revalidate.py` 5 例用例显式构造 cfg 不依赖默认值，回归零风险。
   3. `page.tsx` catch 分支引入 `unstable_noStore()`（Next.js 15 next ^15.5.15 已稳定支持）：失败本次响应不写入 ISR cache，回落为 per-request SSR 一次/请求；后端恢复后下次访问即可正常重建 ISR cache。`export const revalidate = 300` 保留，成功路径仍享 ISR；与 AGENTS.md 「Evolutionary Design」一致——把失败转化为可观测、可自愈的反馈环。
-  4. `docs/wiki/ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
+  4. `docs/reference/wiki/ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
 - **后续防范**：
   1. **跨进程默认值即合约**：所有跨进程默认端口、URL、密钥需在初始化时声明 SSOT 出处（参考 `apps/negentropy-ui/lib/server/backend-url.ts:DEFAULT_BACKEND_BASE_URL` 范式）；CR 评审涉及 `process.env.X || "http://localhost:NNNN"` 模板时，必须显式核对该端口是否与项目唯一端口分配表一致。
   2. **「降级为兜底空」的 catch 必须配套缓存失效声明**：任何 `catch (err) { return [] }` 模式在 SSG/ISR 上下文中都属潜在自愈陷阱；catch 块需配合 `unstable_noStore()` 或显式 `throw` 让上层错误边界接管，禁止"静默写盘空数组"。
