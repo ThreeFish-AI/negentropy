@@ -176,7 +176,7 @@ WHERE user_id = 'alice' GROUP BY 1, 2, 3;
 - embedding-collision 要求 cosine ≥ 0.85
 - LLM 路径需要在巩固时被启用
 
-详见 [`engine/governance/conflict_resolver.py`](../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)。
+详见 [`engine/governance/conflict_resolver.py`](../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)。
 
 ---
 
