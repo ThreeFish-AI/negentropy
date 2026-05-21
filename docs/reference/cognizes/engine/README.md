@@ -816,18 +816,18 @@ $$
 > **Architectural Decision Records (ADRs)** 记录了我们在选型过程中的关键权衡与实验数据。
 
 - **[Research-034] Knowledge Base Architecture**: 详解 RAG Pipeline 设计、Hybrid Search 原理及 Vector DB 选型对比。
-  - _Source_: [`../research/034-knowledge-base.md`](../../../research/034-knowledge-base.md)
+  - _Source_: [`../../../research/034-knowledge-base.md`](../../../research/034-knowledge-base.md)
 - **[Research-020] Agent Runtime Frameworks**: Google ADK 与其他主流 Agent 框架（LangChain, AutoGen）的深度对比分析。
-  - _Source_: [`../research/020-agent-runtime-frameworks.md`](../../../research/020-agent-runtime-frameworks.md)
+  - _Source_: [`../../../research/020-agent-runtime-frameworks.md`](../../../research/020-agent-runtime-frameworks.md)
 
 ### 工程实现规范 (Technical Specifications)
 
 > **Teaching Documents** 定义了具体的工程实现标准与最佳实践。
 
 - **[Spec-001] Knowledge Base Fundamentals**: 包含 Chunking Strategies (Recursive/Semantic)、Embedding 模型选择及检索算法详解。
-  - _Source_: [`../research/034a-knowledge-base-fundamentals.md`](../../../research/034a-knowledge-base-fundamentals.md)
+  - _Source_: [`../../../research/034a-knowledge-base-fundamentals.md`](../../../research/034a-knowledge-base-fundamentals.md)
 - **[Spec-002] Agent Engine Fundamentals**: 包含 Glass-Box Runtime 的详细设计、Memory Consolidation 机制及数据库 Schema 定义。
-  - _Source_: [`../research/020a-agent-engine-fundamentals.md`](../../../research/020a-agent-engine-fundamentals.md)
+  - _Source_: [`../../../research/020a-agent-engine-fundamentals.md`](../../../research/020a-agent-engine-fundamentals.md)
 
 ### 外部技术标准 (External Standards)
 
