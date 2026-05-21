@@ -128,7 +128,7 @@ ORDER BY created_at DESC LIMIT 20;
 
 **对策**：
 - PII 检测仅做提示，**不阻断写入或检索**
-- 误报无需修复；如需精细治理参考 [Phase 5 路线图](../memory/whitepaper.md#4-未来路线phase-5)的 Presidio 计划
+- 误报无需修复；如需精细治理参考 [Phase 5 路线图](../../concepts/026-memory-whitepaper.md#4-未来路线phase-5)的 Presidio 计划
 
 ---
 
@@ -176,7 +176,7 @@ WHERE user_id = 'alice' GROUP BY 1, 2, 3;
 - embedding-collision 要求 cosine ≥ 0.85
 - LLM 路径需要在巩固时被启用
 
-详见 [`engine/governance/conflict_resolver.py`](../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)。
+详见 [`engine/governance/conflict_resolver.py`](../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)。
 
 ---
 

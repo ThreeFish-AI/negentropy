@@ -19,7 +19,7 @@ from negentropy.knowledge.types import ChunkingConfig, CorpusSpec, SearchConfig
 class TestSearchPerformance:
     """搜索性能基准测试
 
-    性能目标（参考 docs/knowledges.md）:
+    性能目标（参考 docs/concepts/035-the-knowledge-base.md）:
     - 搜索延迟: P95 < 100ms
     - 索引速度: > 1000 chunks/秒
     """

@@ -21,7 +21,7 @@ Downgrade 策略：
   - 重建为 nullable 列，保持 schema 形状回退，与 stairway 测试兼容；
   - 不还原数据（dormant 期数据本就为空，无业务影响）。
 
-设计溯源（IEEE 引用见 docs/knowledges.md §15）：
+设计溯源（IEEE 引用见 docs/concepts/035-the-knowledge-base.md §15）：
   - [5] P. J. Sadalage and M. Fowler, *NoSQL Distilled*, ch. "Schema Migrations", 2016.
         — Expand-Contract（本迁移属 Contract 阶段，前置无任何写入路径）。
   - YAGNI: K. Beck, *Extreme Programming Explained*, Addison-Wesley, 1999.

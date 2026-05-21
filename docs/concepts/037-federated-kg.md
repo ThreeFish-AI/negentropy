@@ -1,3 +1,16 @@
+---
+id: federated-kg
+sidebar_position: 3.7
+title: 联邦知识图谱（Federated KG）+ 跨 Corpus 混合检索
+last_update:
+  author: Aurelius Huang
+tags:
+  - Knowledge Graph
+  - Federated
+  - Cross-Corpus
+  - Hybrid Retrieval
+---
+
 # 联邦知识图谱（Federated KG）+ 跨 Corpus 混合检索
 
 > **状态**：PR1–PR4 一次性落地（2026-05-17）
@@ -197,7 +210,7 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 
 ## 11. 浏览器实机验证清单（P0 必跑）
 
-按 [浏览器验证协议](../../agents/browser-validation.md) 用 `mcp__chrome_devtools` 复用用户已登录 Chrome：
+按 [浏览器验证协议](../agents/browser-validation.md) 用 `mcp__chrome_devtools` 复用用户已登录 Chrome：
 
 - [ ] 单 @Corpus → Planner 启用但无 bridges
 - [ ] 多 @Corpus + intent=fact → Planner 启用，bridges 可能为空

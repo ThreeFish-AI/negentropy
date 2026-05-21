@@ -111,7 +111,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ### 5.3 评测基线（CI 周报）
 
-每周一凌晨 04:37 自动跑 [`memory-eval` workflow](../../.github/workflows/memory-eval.yml)，产出 markdown 报告作为 artifact 保存 30 天。
+每周一凌晨 04:37 自动跑 [`memory-eval` workflow](../../../.github/workflows/memory-eval.yml)，产出 markdown 报告作为 artifact 保存 30 天。
 
 ---
 
@@ -177,4 +177,4 @@ pg_dump -h localhost -U postgres negentropy_db \
   -t negentropy.memory_core_blocks --data-only > core_blocks_$(date +%Y%m%d).sql
 ```
 
-> 数据迁移操作严禁直接删除现有数据，参考 [`AGENTS.md`](../../CLAUDE.md) "Database Management" 章节。
+> 数据迁移操作严禁直接删除现有数据，参考 [`AGENTS.md`](../../../AGENTS.md) "Database Management" 章节。
