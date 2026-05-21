@@ -125,8 +125,8 @@ def test_inject_genai_full_attributes_for_anthropic_chat() -> None:
     captured = span._captured
     assert captured["gen_ai.system"] == "anthropic"
     assert captured["gen_ai.operation.name"] == "chat"
-    assert captured["gen_ai.request.model"] == "claude-opus-4-7"
-    assert captured["gen_ai.response.model"] == "claude-opus-4-7"
+    assert captured["gen_ai.request.model"] == "anthropic/claude-opus-4-7"
+    assert captured["gen_ai.response.model"] == "anthropic/claude-opus-4-7"
     assert captured["gen_ai.request.temperature"] == 0.7
     assert captured["gen_ai.request.top_p"] == 0.95
     assert captured["gen_ai.request.max_tokens"] == 4096

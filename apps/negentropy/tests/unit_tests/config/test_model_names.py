@@ -67,49 +67,87 @@ def test_observability_model_name_handles_empty_input():
     assert observability_model_name("   ") == "   "
 
 
-def test_observability_model_name_strips_vendor_prefix():
-    assert observability_model_name("openai/gpt-5-mini") == "gpt-5-mini"
-    assert observability_model_name("anthropic/claude-3-5-sonnet") == "claude-3-5-sonnet"
-    assert observability_model_name("gemini/text-embedding-004") == "text-embedding-004"
-    assert observability_model_name("vertex_ai/gemini-1.5-pro") == "gemini-1.5-pro"
-    assert observability_model_name("deepseek/deepseek-chat") == "deepseek-chat"
-    assert observability_model_name("ollama/llama-3-8b") == "llama-3-8b"
+def test_observability_model_name_preserves_vendor_prefix():
+    # 已带显式 vendor 前缀：保持不变（这是 Langfuse 聚合的目标形态）。
+    assert observability_model_name("openai/gpt-5-mini") == "openai/gpt-5-mini"
+    assert observability_model_name("anthropic/claude-3-5-sonnet") == "anthropic/claude-3-5-sonnet"
+    assert observability_model_name("gemini/text-embedding-004") == "gemini/text-embedding-004"
+    assert observability_model_name("vertex_ai/gemini-1.5-pro") == "vertex_ai/gemini-1.5-pro"
+    assert observability_model_name("deepseek/deepseek-chat") == "deepseek/deepseek-chat"
+    assert observability_model_name("ollama/llama-3-8b") == "ollama/llama-3-8b"
 
 
-def test_observability_model_name_vendor_prefix_case_insensitive():
-    # 大小写不敏感（实际 LiteLLM 内部统一小写，但保险起见兼容）。
-    assert observability_model_name("Azure/gpt-4") == "gpt-4"
-    assert observability_model_name("OpenAI/gpt-5-mini") == "gpt-5-mini"
+def test_observability_model_name_adds_vendor_prefix_to_bare_name():
+    # 裸名通过家族前缀识别 vendor 并补齐前缀，让 Langfuse 与带前缀的调用收敛到同一聚合键。
+    assert observability_model_name("gpt-5-mini") == "openai/gpt-5-mini"
+    assert observability_model_name("gpt-5-nano") == "openai/gpt-5-nano"
+    assert observability_model_name("gpt-4o-mini") == "openai/gpt-4o-mini"
+    assert observability_model_name("claude-3-5-sonnet") == "anthropic/claude-3-5-sonnet"
+    assert observability_model_name("gemini-1.5-pro") == "gemini/gemini-1.5-pro"
+    assert observability_model_name("llama-3-8b") == "meta/llama-3-8b"
+    assert observability_model_name("deepseek-chat") == "deepseek/deepseek-chat"
+
+
+def test_observability_model_name_vendor_prefix_lowercased():
+    # 显式前缀大小写不敏感识别，输出统一小写以收敛聚合键。
+    assert observability_model_name("Azure/gpt-4") == "azure/gpt-4"
+    assert observability_model_name("OpenAI/gpt-5-mini") == "openai/gpt-5-mini"
 
 
 def test_observability_model_name_strips_date_suffix():
-    # OpenAI 风格：YYYY-MM-DD 后缀
-    assert observability_model_name("gpt-5-mini-2025-08-07") == "gpt-5-mini"
-    assert observability_model_name("gpt-4o-2024-08-06") == "gpt-4o"
+    # OpenAI 风格：YYYY-MM-DD 后缀；裸名经家族前缀识别为 openai 补齐前缀。
+    assert observability_model_name("gpt-5-mini-2025-08-07") == "openai/gpt-5-mini"
+    assert observability_model_name("gpt-4o-2024-08-06") == "openai/gpt-4o"
     # Anthropic 风格：YYYYMMDD 后缀
-    assert observability_model_name("claude-3-5-sonnet-20241022") == "claude-3-5-sonnet"
-    assert observability_model_name("claude-3-opus-20240229") == "claude-3-opus"
+    assert observability_model_name("claude-3-5-sonnet-20241022") == "anthropic/claude-3-5-sonnet"
+    assert observability_model_name("claude-3-opus-20240229") == "anthropic/claude-3-opus"
 
 
 def test_observability_model_name_combines_prefix_and_date_strip():
     # 前缀 + 日期联动：response.model 经常是 vendor 拼接 + 服务端版本号。
-    assert observability_model_name("openai/gpt-5-mini-2025-08-07") == "gpt-5-mini"
-    assert observability_model_name("anthropic/claude-3-5-sonnet-20241022") == "claude-3-5-sonnet"
+    assert observability_model_name("openai/gpt-5-mini-2025-08-07") == "openai/gpt-5-mini"
+    assert observability_model_name("anthropic/claude-3-5-sonnet-20241022") == "anthropic/claude-3-5-sonnet"
 
 
 def test_observability_model_name_does_not_strip_non_date_digits():
-    # 不误伤本身带数字的模型名（关键不变量）。
-    assert observability_model_name("gpt-4o-mini") == "gpt-4o-mini"
-    assert observability_model_name("text-embedding-3-large") == "text-embedding-3-large"
-    assert observability_model_name("o1-preview") == "o1-preview"
-    assert observability_model_name("claude-3-5-sonnet") == "claude-3-5-sonnet"
+    # 不误伤本身带数字的模型名（关键不变量），同时仍补齐 vendor 前缀。
+    assert observability_model_name("gpt-4o-mini") == "openai/gpt-4o-mini"
+    assert observability_model_name("text-embedding-3-large") == "openai/text-embedding-3-large"
+    assert observability_model_name("o1-preview") == "openai/o1-preview"
+    assert observability_model_name("claude-3-5-sonnet") == "anthropic/claude-3-5-sonnet"
     # 三/四位数字尾默认不剥（如 Gemini 1.5 Pro 002，未来如确需可加 alias map）。
-    assert observability_model_name("gemini-1.5-pro-002") == "gemini-1.5-pro-002"
+    assert observability_model_name("gemini-1.5-pro-002") == "gemini/gemini-1.5-pro-002"
 
 
-def test_observability_model_name_bedrock_double_prefix_strips_outer_only():
-    # 双层前缀只剥外层；剩余 `anthropic.claude-3-5-sonnet` 与 LiteLLM catalog 对齐。
-    assert observability_model_name("bedrock/anthropic.claude-3-5-sonnet") == "anthropic.claude-3-5-sonnet"
+def test_observability_model_name_bedrock_double_prefix_keeps_outer_vendor():
+    # 双层前缀：外层 ``bedrock/`` 作为权威 vendor 保留，内层供应商记号留在 bare 中。
+    assert observability_model_name("bedrock/anthropic.claude-3-5-sonnet") == "bedrock/anthropic.claude-3-5-sonnet"
+
+
+def test_observability_model_name_unknown_model_stays_bare():
+    # vendor 既无显式前缀也无法系族识别 → 返回裸名（避免污染 Langfuse 聚合键）。
+    assert observability_model_name("some-unknown-model") == "some-unknown-model"
+
+
+def test_observability_model_name_vendor_hint_bridges_bare_response():
+    # 跨字段一致性：request ``gemini/text-embedding-004`` 提供 ``gemini`` hint，
+    # response ``text-embedding-004`` 借此补 ``gemini/`` 而非家族前缀的 ``openai/``。
+    assert observability_model_name("text-embedding-004", vendor_hint="gemini") == "gemini/text-embedding-004"
+    # hint 同样应用于已带其它无关字符串的输入，hint 大小写规范化为小写。
+    assert observability_model_name("text-embedding-004", vendor_hint="GEMINI") == "gemini/text-embedding-004"
+
+
+def test_observability_model_name_explicit_prefix_overrides_vendor_hint():
+    # 显式前缀比 hint 权威：若原串本身带 ``anthropic/``，传 ``openai`` hint 也不应改写。
+    assert (
+        observability_model_name("anthropic/claude-3-5-sonnet", vendor_hint="openai") == "anthropic/claude-3-5-sonnet"
+    )
+
+
+def test_observability_model_name_vendor_hint_empty_or_blank_ignored():
+    # 空字符串 / 全空白 hint 视为未提供，回退到家族前缀识别。
+    assert observability_model_name("gpt-5-mini", vendor_hint="") == "openai/gpt-5-mini"
+    assert observability_model_name("gpt-5-mini", vendor_hint="   ") == "openai/gpt-5-mini"
 
 
 def test_observability_model_name_is_idempotent():
@@ -122,6 +160,7 @@ def test_observability_model_name_is_idempotent():
         "gpt-4o-mini",
         "text-embedding-3-large",
         "bedrock/anthropic.claude-3-5-sonnet",
+        "some-unknown-model",
     ]
     for sample in samples:
         first = observability_model_name(sample)
@@ -130,7 +169,7 @@ def test_observability_model_name_is_idempotent():
 
 
 def test_observability_model_name_strips_whitespace_first():
-    assert observability_model_name("  openai/gpt-5-mini-2025-08-07  ") == "gpt-5-mini"
+    assert observability_model_name("  openai/gpt-5-mini-2025-08-07  ") == "openai/gpt-5-mini"
 
 
 # ---------------------------------------------------------------------------
