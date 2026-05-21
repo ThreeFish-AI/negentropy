@@ -281,7 +281,7 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
 // Navigation
 // ============================================================================
 
-test("Memory 导航栏包含所有 6 个页面标签", async ({ page }) => {
+test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   await page.route("**/api/memory**", async (route) => {
@@ -306,7 +306,6 @@ test("Memory 导航栏包含所有 6 个页面标签", async ({ page }) => {
 
   await page.goto("/memory/timeline");
 
-  await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Timeline" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Facts" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();

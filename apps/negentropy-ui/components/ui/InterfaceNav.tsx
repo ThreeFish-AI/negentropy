@@ -10,7 +10,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 type NavItem = { href: string; label: string; adminOnly?: boolean };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard" },
   { href: "/interface/models", label: "Models", adminOnly: true },
   { href: "/interface/task-models", label: "Task Models", adminOnly: true },
   { href: "/interface/subagents", label: "SubAgents" },
@@ -37,10 +36,7 @@ export function InterfaceNav({
     };
   }, [title, setNavigationInfo]);
 
-  const isActive = (href: string) =>
-    href === "/dashboard"
-      ? pathname === "/dashboard"
-      : pathname.startsWith(href);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
