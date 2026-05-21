@@ -8,7 +8,7 @@
 - `search_papers` — 检索 arXiv 论文（注册到 PerceptionFaculty）
 - `ingest_paper` — 入库 PDF（注册到 InternalizationFaculty）
 
-PDF 解析、chunk、embedding、KB 写入均**复用现有 `KnowledgeService.ingest_url`**；KG 抽取复用 `AI_PAPER_SCHEMA`（见 `docs/knowledge-graph/overview.md` §Schema 引导构建）。
+PDF 解析、chunk、embedding、KB 写入均**复用现有 `KnowledgeService.ingest_url`**；KG 抽取复用 `AI_PAPER_SCHEMA`（见 `docs/concepts/036-the-knowledge-graph.md` §Schema 引导构建）。
 
 理论依据：
 - Bornmann & Marx 2024<sup>[[1]](#ref1)</sup>：基于规范化引用影响力的论文筛选；

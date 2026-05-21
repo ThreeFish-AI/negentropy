@@ -125,7 +125,7 @@ search:
 
 # --- Memory 子系统 Phase 5 高级特性配置 ---
 # 全部默认关闭，按需通过 NE_MEMORY_<SECTION>__<KEY> 环境变量灰度启用。
-# 详细契约见 docs/memory/overview.md §10.5、docs/memory/whitepaper.md §4。
+# 详细契约见 docs/concepts/025-the-memory-system.md §10.5、docs/concepts/026-memory-whitepaper.md §4。
 memory:
   hipporag:                                  # F1 HippoRAG PPR-Boosted Hybrid
     enabled: false

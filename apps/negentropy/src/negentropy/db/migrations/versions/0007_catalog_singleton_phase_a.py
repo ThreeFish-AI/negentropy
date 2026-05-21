@@ -33,7 +33,7 @@ Downgrade 策略：
   - 仅 DROP 新增索引 + 新增列；不反向操作既有数据（无副作用）。
   - 与 test_migrations_stairway 的 base ↔ head 往返兼容。
 
-设计溯源（IEEE 引用见 docs/knowledges.md §15）：
+设计溯源（IEEE 引用见 docs/concepts/035-the-knowledge-base.md §15）：
   - [2] E. Evans, *Domain-Driven Design*, Addison-Wesley, 2003. — Aggregate Root
   - [4] M. Kleppmann, *Designing Data-Intensive Applications*, O'Reilly, 2017. — Tombstone
   - [5] P. J. Sadalage and M. Fowler, *NoSQL Distilled*, ch. "Schema Migrations", 2016. — Expand-Contract
