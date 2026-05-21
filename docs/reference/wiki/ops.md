@@ -2,7 +2,7 @@
 
 > **适用对象**: 负责部署、监控和维护 Negentropy Wiki 知识库发布站点的运维工程师
 >
-> **相关文档**: [架构设计](../../architecture/framework.md) | [知识库设计](../../reference/cognizes/engine/035-the-knowledge-base.md)
+> **相关文档**: [架构设计](../../concepts/framework.md) | [知识库设计](../../reference/cognizes/engine/035-the-knowledge-base.md)
 
 ---
 

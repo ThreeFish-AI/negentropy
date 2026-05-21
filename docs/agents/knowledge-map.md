@@ -12,13 +12,16 @@
 ## 工程经验沉淀
 
 - [Issues 摘要](issue.md) — 历次问题表因 / 根因 / 处理 / 防范的跨上下文留存
+- [Development（开发指南）](../core/development.md) — 环境搭建、开发工作流、数据库迁移、前后端对接
 
-## 系统架构与设计
+## 系统概念与设计
 
-- [Framework（系统框架）](../architecture/framework.md)
-- [Development（开发指南）](../architecture/development.md)
-- [Conversation Foundation（对话基础）](../architecture/conversation-foundation.md)
-- [A2UI（Agent-to-UI 协议）](../architecture/a2ui.md)
+- [Framework（系统框架）](../concepts/framework.md)
+- [Conversation Foundation（对话基础）](../concepts/conversation-foundation.md)
+- [A2UI（Agent-to-UI 协议）](../concepts/a2ui.md)
+- [SSO（单点登录设计）](../concepts/design/sso.md)
+- [Observability / GenAI 可观测性](../concepts/design/observability-genai.md)
+- [QA Delivery Pipeline](../concepts/design/qa-delivery-pipeline.md)
 
 ## 系统能力概览
 
@@ -51,10 +54,8 @@
 ## 用户文档与运维
 
 - [User Guide（用户指南）](../user-guide.md)
+- [Admin（管理后台）](../core/user-guide/admin.md)
 - [Knowledges（知识库引用）](../reference/cognizes/engine/035-the-knowledge-base.md)
-- [SSO 配置](../infrastructure/design/sso.md)
-- [Observability / GenAI 可观测性](../infrastructure/design/observability-genai.md)
-- [QA Delivery Pipeline](../infrastructure/design/qa-delivery-pipeline.md)
 
 ## 关键基础设施
 

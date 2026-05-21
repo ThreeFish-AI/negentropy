@@ -15,7 +15,7 @@ tags:
 
 > 本文档是 Negentropy 平台 **Agent Memory 子系统**的架构设计单一权威参考，融合学术前沿分类法、工业框架对标、当前 PostgreSQL 实现详述和双阶段演进路线图，并引入可量化的价值度量体系。
 >
-> - 系统架构总览：[`framework.md`](../../../architecture/framework.md)
+> - 系统架构总览：[`framework.md`](../../../concepts/framework.md)
 > - Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](./035-the-knowledge-base.md)
 > - 知识图谱技术方案：[`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md)
 > - **理论基础白皮书（Phase 4）**：[`026-memory-whitepaper.md`](./026-memory-whitepaper.md)
@@ -1780,7 +1780,7 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 - Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](./035-the-knowledge-base.md)
 - 知识图谱技术方案：[`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md)
 - 理论基础白皮书：[`026-memory-whitepaper.md`](./026-memory-whitepaper.md)
-- 系统架构总览：[`framework.md`](../../../architecture/framework.md)
+- 系统架构总览：[`framework.md`](../../../concepts/framework.md)
 - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 - 外部设计文档：[020-the-hippocampus.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/concepts/020-the-hippocampus.md)
 

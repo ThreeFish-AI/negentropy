@@ -2,9 +2,9 @@
 
 > 本文档是 Negentropy 系统的**开发操作单一参考**，覆盖环境搭建、日常开发工作流、数据库迁移、前后端对接及故障排查。
 >
-> - 架构设计与系统原理：[docs/framework.md](./framework.md)
-> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../infrastructure/design/qa-delivery-pipeline.md)
-> - 工程变更日志：[docs/engineering-changelog.md](../core/engineering-changelog.md)
+> - 架构设计与系统原理：[docs/framework.md](../concepts/framework.md)
+> - QA 与发布流水线：[docs/qa-delivery-pipeline.md](../concepts/design/qa-delivery-pipeline.md)
+> - 工程变更日志：[docs/engineering-changelog.md](./engineering-changelog.md)
 
 ---
 
@@ -197,7 +197,7 @@ negentropy/
 | **测试命令**   | `uv run pytest`                         | `pnpm run test`                       |
 | **代码格式化** | `ruff`                                  | `eslint` / `prettier`                 |
 
-> 前后端仅通过 HTTP/JSON 契约交互，严禁源码互引。详见 [framework.md §2.2](./framework.md#22-应用边界与技术栈)。
+> 前后端仅通过 HTTP/JSON 契约交互，严禁源码互引。详见 [framework.md §2.2](../concepts/framework.md#22-应用边界与技术栈)。
 
 ---
 
@@ -338,7 +338,7 @@ pnpm run typecheck                     # TypeScript 类型检查
 
 - **唯一信源 (Source of Truth)**：[`src/negentropy/models/`](../../apps/negentropy/src/negentropy/models/) 中的领域模型定义
 - **脚本位置**：[`apps/negentropy/src/negentropy/db/migrations/`](../../apps/negentropy/src/negentropy/db/migrations/)
-- **Schema 分域设计**：详见 [framework.md §8](./framework.md#8-数据持久化架构)
+- **Schema 分域设计**：详见 [framework.md §8](../concepts/framework.md#8-数据持久化架构)
 
 ### 6.1 首次初始化
 
@@ -600,7 +600,7 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 ### 9.2 CI 最低门禁
 
 - `lint` / `test` / `build` / `typecheck` 必须在 CI 通过
-- 详细 CI/CD 配置请参见 [QA 与发布流水线文档](../infrastructure/design/qa-delivery-pipeline.md)
+- 详细 CI/CD 配置请参见 [QA 与发布流水线文档](../concepts/design/qa-delivery-pipeline.md)
 
 ---
 
