@@ -3,14 +3,16 @@ ThinkingVisualizer 单元测试
 验证思维链可视化、工具调用、Trace 事件发射逻辑
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, Mock
+
 from cognizes.engine.mind.thinking_visualizer import (
-    ThinkingVisualizer,
+    MindEventType,
     ThinkingStep,
+    ThinkingVisualizer,
     ToolExecution,
     TraceSpan,
-    MindEventType,
 )
 
 

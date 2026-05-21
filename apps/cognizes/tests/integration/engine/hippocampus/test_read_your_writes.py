@@ -85,7 +85,7 @@ class TestReadYourWrites:
         avg_latency = mean(latencies)
         p99_latency = sorted(latencies)[int(len(latencies) * 0.99)]
 
-        print(f"\n=== Read-Your-Writes 延迟测试结果 ===")
+        print("\n=== Read-Your-Writes 延迟测试结果 ===")
         print(f"平均延迟: {avg_latency:.2f} ms")
         print(f"P99 延迟: {p99_latency:.2f} ms")
         print(f"标准差: {stdev(latencies):.2f} ms")

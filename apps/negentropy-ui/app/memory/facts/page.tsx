@@ -17,6 +17,7 @@ import {
   searchFacts,
   fetchFactHistory,
   fetchMemories,
+  MemoryUserSelect,
 } from "@/features/memory";
 
 import { FactCard } from "./_components/FactCard";
@@ -65,11 +66,6 @@ export default function MemoryFactsPage() {
   }, [loadFacts]);
 
   const facts = payload?.items || [];
-
-  const handleSelectUser = (value: string) => {
-    if (!value) return;
-    setActiveUserId(value);
-  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !activeUserId) return;
@@ -135,20 +131,13 @@ export default function MemoryFactsPage() {
           <div className="pb-6">
             {/* User selection */}
             <div className="flex items-center gap-3 mb-6">
-              <select
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800"
-                value={activeUserId ?? ""}
-                onChange={(e) => handleSelectUser(e.target.value)}
-              >
-                <option value="" disabled>
-                  {usersLoading ? "加载中..." : "选择用户..."}
-                </option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.label || u.id}
-                  </option>
-                ))}
-              </select>
+              <MemoryUserSelect
+                users={users}
+                selectedUserId={activeUserId}
+                onSelect={(id) => id && setActiveUserId(id)}
+                loading={usersLoading}
+                allowAll={false}
+              />
               {activeUserId && (
                 <>
                   <div className="h-4 w-px bg-zinc-200 mx-1 dark:bg-zinc-700" />

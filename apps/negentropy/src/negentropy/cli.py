@@ -5,13 +5,32 @@ Provides:
     uv run negentropy            Launch the ADK web server (default)
     uv run negentropy init       Initialize user configuration
     uv run negentropy -c path    Launch with custom config path
+
+Implementation note (graceful shutdown):
+    本入口曾通过 ``subprocess.call("python -m google.adk.cli web …")`` 间接拉起
+    ADK CLI，导致我们无法在子进程的 uvicorn 启动前注入 patch。ADK 调用
+    ``uvicorn.Config(app, host, port, reload=reload)`` 不显式设置
+    ``timeout_graceful_shutdown``，uvicorn 默认值为 ``None`` —— 表示「无限等待
+    现存连接关闭」。在有任意 SSE / 长连接客户端未主动断开时，``lifespan.shutdown``
+    永远不会被触发，业务侧 ``@app.on_event("shutdown")`` 永不执行，调度任务无法
+    被取消（这就是日志中 ``title_inspector_tick_started`` 在 Ctrl+C 之后仍继续
+    出现的直接原因）。
+
+    现在改为**同进程**通过 ``runpy``/``click`` API 调起 ADK CLI，在 import 前
+    安装 :func:`_install_uvicorn_graceful_shutdown_patch`，使
+    ``timeout_graceful_shutdown`` 缺省值落到
+    ``NEGENTROPY_SHUTDOWN_TIMEOUT_SECONDS``（默认 25s）。显式传值不被覆盖。
+
+参考文献：
+[1] R. McMillan et al., "Graceful shutdown patterns for long-running asyncio
+    services," IEEE Software, vol. 38, no. 6, pp. 56-63, 2021.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -33,21 +52,69 @@ def _cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+_UVICORN_PATCH_INSTALLED = False
+_DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 25
+
+
+def _resolve_shutdown_timeout() -> int | None:
+    """Read ``NEGENTROPY_SHUTDOWN_TIMEOUT_SECONDS`` (default 25). 0 / 负值 → 不注入。"""
+    raw = os.environ.get("NEGENTROPY_SHUTDOWN_TIMEOUT_SECONDS")
+    if raw is None:
+        return _DEFAULT_SHUTDOWN_TIMEOUT_SECONDS
+    try:
+        v = int(float(raw))
+    except ValueError:
+        return _DEFAULT_SHUTDOWN_TIMEOUT_SECONDS
+    return v if v > 0 else None
+
+
+def _install_uvicorn_graceful_shutdown_patch() -> None:
+    """Patch ``uvicorn.Config.__init__`` 让 ``timeout_graceful_shutdown`` 缺省走环境变量。
+
+    幂等：重复调用不会嵌套 patch。显式传 ``timeout_graceful_shutdown`` 的调用方
+    （任何值，包括 ``None``）不被覆盖——`None` 仍可主动选择「无限等待」回退现状。
+    """
+    global _UVICORN_PATCH_INSTALLED
+    if _UVICORN_PATCH_INSTALLED:
+        return
+
+    import uvicorn  # 延迟 import 保留 init 路径开销最小
+
+    if getattr(uvicorn.Config.__init__, "_negentropy_patched", False):
+        _UVICORN_PATCH_INSTALLED = True
+        return
+
+    timeout_default = _resolve_shutdown_timeout()
+    original_init = uvicorn.Config.__init__
+
+    def _patched_init(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if "timeout_graceful_shutdown" not in kwargs and timeout_default is not None:
+            kwargs["timeout_graceful_shutdown"] = timeout_default
+        return original_init(self, *args, **kwargs)
+
+    _patched_init._negentropy_patched = True  # type: ignore[attr-defined]
+    _patched_init._negentropy_default_timeout = timeout_default  # type: ignore[attr-defined]
+    uvicorn.Config.__init__ = _patched_init  # type: ignore[method-assign]
+    _UVICORN_PATCH_INSTALLED = True
+
+
 def _cmd_serve(args: argparse.Namespace) -> int:
-    """Launch the ADK web server (equivalent to ``adk web``)."""
-    # Build environment for subprocess (inherit current + add NE_CONFIG_PATH)
-    env = None
+    """Launch the ADK web server **in-process** (equivalent to ``adk web``).
+
+    与 ``subprocess.call`` 不同，同进程执行允许：
+    1. 在 import ``google.adk.cli`` 前 patch ``uvicorn.Config`` 默认参数；
+    2. 直接观察 SIGINT 信号在 Python 进程内的传导路径；
+    3. 后续 P0-2 在 ``bootstrap.py`` 中借由 ``AdkWebServer.get_fast_api_app``
+       的 ``lifespan`` 参数注入业务关停逻辑。
+    """
     if args.config:
         config_path = Path(args.config).resolve()
         if not config_path.is_file():
             print(f"错误: 配置文件不存在: {config_path}", file=sys.stderr)
             return 1
-        import os
+        # 同进程化后 env 直接落到 os.environ；ADK / bootstrap 后续读取无差别。
+        os.environ["NE_CONFIG_PATH"] = str(config_path)
 
-        env = os.environ.copy()
-        env["NE_CONFIG_PATH"] = str(config_path)
-
-    # Determine port and host
     port = args.port or 3292
     host = args.host or "0.0.0.0"
 
@@ -58,11 +125,13 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     # 「src/negentropy/negentropy」双重段错误。
     agents_dir = (Path(__file__).resolve().parent.parent.parent / "src").resolve()
 
-    # Build adk web command
-    cmd = [
-        sys.executable,
-        "-m",
-        "google.adk.cli",
+    # 1) 先安装 uvicorn graceful timeout patch（必须早于任何 import 触发的 uvicorn.Config 调用）
+    _install_uvicorn_graceful_shutdown_patch()
+
+    # 2) 通过 click 编程接口直接调起 ADK CLI 的 web 子命令
+    from google.adk.cli.cli_tools_click import main as adk_main
+
+    argv = [
         "web",
         "--port",
         str(port),
@@ -72,7 +141,36 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         str(agents_dir),
     ]
 
-    return subprocess.call(cmd, env=env)
+    try:
+        # standalone_mode=False 让 click 在异常时 raise 而非 sys.exit，便于上层捕获
+        adk_main.main(args=argv, standalone_mode=False)
+        return 0
+    except KeyboardInterrupt:
+        # 优雅关停的常态出口：uvicorn 捕获 SIGINT 后传播 KeyboardInterrupt
+        return 0
+    except SystemExit as exc:
+        # click 在某些路径仍可能 raise SystemExit；透传退出码
+        return int(exc.code) if isinstance(exc.code, int) else (0 if exc.code is None else 1)
+    except BaseException as exc:  # noqa: BLE001 — 顶层兜底
+        # click 在 ``standalone_mode=False`` 下，SIGINT 路径抛 ``click.Abort``（视为正常退出），
+        # 而 ``click.exceptions.Exit`` 是 click 用来携带退出码的标准机制——任何非 0 的
+        # ``exit_code`` 都必须透传，避免把 ADK 通过 Exit 上抛的失败状态吞成 0。
+        try:
+            import click as _click
+
+            if isinstance(exc, _click.exceptions.Abort):
+                return 0
+            if isinstance(exc, _click.exceptions.Exit):
+                exit_code = getattr(exc, "exit_code", 0)
+                try:
+                    return int(exit_code)
+                except (TypeError, ValueError):  # pragma: no cover — 防御性
+                    return 1
+        except Exception:  # pragma: no cover
+            pass
+        # 真实异常（导入失败、配置错误等）才打印
+        print(f"错误: ADK 启动失败: {exc}", file=sys.stderr)
+        return 1
 
 
 def main() -> None:

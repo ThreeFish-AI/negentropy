@@ -12,9 +12,10 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import asyncpg
+from google.adk.events import Event
 
 # ADK 官方类型
 from google.adk.sessions import Session
@@ -23,7 +24,6 @@ from google.adk.sessions.base_session_service import (
     GetSessionConfig,
     ListSessionsResponse,
 )
-from google.adk.events import Event
 
 
 class PostgresSessionService(BaseSessionService):
@@ -47,8 +47,8 @@ class PostgresSessionService(BaseSessionService):
         *,
         app_name: str,
         user_id: str,
-        state: Optional[dict[str, Any]] = None,
-        session_id: Optional[str] = None,
+        state: dict[str, Any] | None = None,
+        session_id: str | None = None,
     ) -> Session:
         """创建新会话"""
         sid = session_id or str(uuid.uuid4())
@@ -81,8 +81,8 @@ class PostgresSessionService(BaseSessionService):
         app_name: str,
         user_id: str,
         session_id: str,
-        config: Optional[GetSessionConfig] = None,
-    ) -> Optional[Session]:
+        config: GetSessionConfig | None = None,
+    ) -> Session | None:
         """获取会话"""
         try:
             sid = uuid.UUID(session_id)
@@ -135,7 +135,7 @@ class PostgresSessionService(BaseSessionService):
                 last_update_time=row["updated_at"].timestamp(),
             )
 
-    async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
+    async def list_sessions(self, *, app_name: str, user_id: str | None = None) -> ListSessionsResponse:
         """列出所有会话"""
         async with self._pool.acquire() as conn:
             if user_id:
@@ -222,7 +222,7 @@ class PostgresSessionService(BaseSessionService):
                 if event.actions and event.actions.state_delta:
                     await self._apply_state_delta_to_db(conn, session, event.actions.state_delta)
 
-        event.id = event_id
+        event.id = event_id  # type: ignore[assignment]
         return event
 
     async def _apply_state_delta_to_db(
@@ -295,7 +295,7 @@ class PostgresSessionService(BaseSessionService):
         from google.genai import types
 
         content_dict = json.loads(row["content"]) if row["content"] else {}
-        actions_dict = json.loads(row["actions"]) if row["actions"] else {}
+        json.loads(row["actions"]) if row["actions"] else {}
 
         # 从存储的字典重建 Content 对象
         content = None

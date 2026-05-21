@@ -6,7 +6,6 @@ MemoryRetentionManager 单元测试
 - 统计信息数据类
 """
 
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

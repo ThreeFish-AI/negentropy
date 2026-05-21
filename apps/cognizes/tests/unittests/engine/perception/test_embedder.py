@@ -10,13 +10,12 @@ Tests cover:
 Task ID: P3-5-3
 """
 
-import pytest
 import numpy as np
+import pytest
+
 from cognizes.engine.perception.embedder import (
-    Embedder,
     EmbeddingResult,
     MockEmbeddingProvider,
-    SentenceTransformerProvider,
     get_embedder,
 )
 

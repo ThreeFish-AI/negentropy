@@ -3,11 +3,12 @@ Langfuse 集成测试
 验证 Trace ID 透传及 OTLP 导出逻辑
 """
 
-import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock
+
+import pytest
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+
 from cognizes.adapters.postgres.tracing import TracingManager
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.integration]

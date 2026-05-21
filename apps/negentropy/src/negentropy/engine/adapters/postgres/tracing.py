@@ -373,3 +373,34 @@ def init_tracing(
 def get_tracing_manager() -> TracingManager | None:
     """Get the current TracingManager instance, or None if not initialized."""
     return _tracing_manager
+
+
+def _shutdown_tracer_provider() -> None:
+    """Disposer：在 lifespan.shutdown 阶段调 ``TracerProvider.shutdown``。
+
+    主要回收 ``BatchSpanProcessor`` 的守护线程；同时把 OTel 异步上报队列 flush 到
+    OTLP exporter，避免最后一批 span 丢失。同步调用（OTel API 是同步的），
+    ``lifecycle.dispose_all`` 在 timeout 内 await 完成。
+    """
+    try:
+        provider = trace.get_tracer_provider()
+        shutdown_fn = getattr(provider, "shutdown", None)
+        if callable(shutdown_fn):
+            shutdown_fn()
+            logger.info("tracer_provider_shutdown_completed")
+    except Exception as exc:  # pragma: no cover — 兜底，OTel SDK 内部失败不阻塞主关停
+        logger.warning("tracer_provider_shutdown_failed", error=str(exc))
+
+
+def _register_tracer_disposer() -> None:
+    """把 ``_shutdown_tracer_provider`` 注册到 lifecycle 总线（幂等）。"""
+    try:
+        from negentropy.engine.lifecycle import register_disposer, registered_disposers
+
+        if "tracer_provider.shutdown" not in registered_disposers():
+            register_disposer("tracer_provider.shutdown", _shutdown_tracer_provider)
+    except Exception:  # pragma: no cover
+        pass
+
+
+_register_tracer_disposer()

@@ -4,17 +4,18 @@
 PostgresSessionService 已继承 ADK BaseSessionService，可直接与 ADK Runner 集成。
 """
 
-import os
-import pytest
 import asyncio
+import os
 from functools import cached_property
+
+import pytest
 from google.adk.agents import LlmAgent
-from google.adk.runners import Runner
 from google.adk.models.google_llm import Gemini
-from google.genai import Client
-from google.genai import types
-from cognizes.adapters.postgres.session_service import PostgresSessionService
+from google.adk.runners import Runner
+from google.genai import Client, types
+
 from cognizes.adapters.postgres.memory_service import PostgresMemoryService
+from cognizes.adapters.postgres.session_service import PostgresSessionService
 from cognizes.core.database import DatabaseManager
 
 pytestmark = pytest.mark.asyncio

@@ -7,14 +7,14 @@ OpenMemoryService 单元测试
 - 响应数据结构
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cognizes.engine.hippocampus.memory_service import (
     OpenMemoryService,
-    SearchMemoryResult,
     SearchMemoryResponse,
+    SearchMemoryResult,
 )
 
 

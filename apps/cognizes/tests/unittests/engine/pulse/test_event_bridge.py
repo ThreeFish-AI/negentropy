@@ -7,12 +7,12 @@ EventBridge 单元测试
 """
 
 import json
+
 import pytest
-from datetime import datetime
 
 from cognizes.engine.pulse.event_bridge import (
-    AgUiEventType,
     AgUiEvent,
+    AgUiEventType,
     PulseEventBridge,
 )
 

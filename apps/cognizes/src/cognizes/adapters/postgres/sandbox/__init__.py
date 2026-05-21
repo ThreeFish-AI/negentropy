@@ -3,7 +3,7 @@ Sandbox package initialization
 Exposes the factory function for creating sandbox runners.
 """
 
-from .base import SandboxBackend, SandboxConfig, BaseSandboxRunner
+from .base import BaseSandboxRunner, SandboxBackend, SandboxConfig
 
 
 def create_sandbox_runner(
@@ -22,7 +22,7 @@ def create_sandbox_runner(
     if backend == SandboxBackend.MICROSANDBOX:
         from .microsandbox_runner import MicrosandboxRunner
 
-        return MicrosandboxRunner(config)
+        return MicrosandboxRunner(config)  # type: ignore[return-value, arg-type]
     elif backend == SandboxBackend.DOCKER:
         # TODO: Implement DockerSandboxRunner
         # from .docker_runner import DockerSandboxRunner

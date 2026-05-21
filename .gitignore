@@ -248,6 +248,13 @@ apps/negentropy-ui/.yarn/*
 !apps/negentropy-ui/.yarn/plugins
 !apps/negentropy-ui/.yarn/releases
 !apps/negentropy-ui/.yarn/versions
+apps/cognizes-ui/.pnp
+apps/cognizes-ui/.pnp.*
+apps/cognizes-ui/.yarn/*
+!apps/cognizes-ui/.yarn/patches
+!apps/cognizes-ui/.yarn/plugins
+!apps/cognizes-ui/.yarn/releases
+!apps/cognizes-ui/.yarn/versions
 
 # Temp files
 .temp/
@@ -262,7 +269,7 @@ apps/negentropy-ui/.userdata/
 
 # Custom
 .claude/
-assets/
+/assets/
 .gitignore
 output/
 benchmarks/runs/

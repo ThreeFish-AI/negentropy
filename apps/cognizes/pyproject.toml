@@ -75,7 +75,7 @@ dependencies = [
 
     # === 6. 文档处理：知识摄取 (Perception) ===
     # 多格式文档解析，用于知识库摄取
-    "pypdf2>=3.0.1",                    # PDF 文本提取: 纯文本 PDF 解析
+    "pypdf>=3.0.0",                     # PDF 文本提取: 纯文本 PDF 解析 (PyPDF2 已废弃，合并至 pypdf)
     "pdfplumber>=0.10.0",               # PDF 高级解析: 表格、图像提取
     "markdown>=3.5.0",                  # Markdown 解析: 文档结构化处理
     "beautifulsoup4>=4.14.3",           # HTML 解析: 网页内容提取
@@ -304,3 +304,28 @@ exclude_lines = [
     "class .*\\bProtocol\\):",          # Protocol 类定义
     "@(abc\\.)?abstractmethod",         # 抽象方法
 ]
+
+# ==============================================================================
+# [tool.mypy] - 静态类型检查配置
+# mypy 类型检查器设置，控制类型检查的严格程度和行为
+# ==============================================================================
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = false
+exclude = [
+    "src/cognizes/examples/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "asyncpg.*",
+    "pgvector.*",
+    "microsandbox.*",
+    "pypdf.*",
+    "pypdf2.*",
+    "openai.*",
+]
+ignore_missing_imports = true

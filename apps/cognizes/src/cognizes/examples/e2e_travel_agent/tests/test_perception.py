@@ -2,12 +2,13 @@
 The Perception 验收测试：验证融合检索的精度与召回率
 """
 
-import pytest
 import asyncio
-from services import create_services
 from uuid import uuid4
+
+import pytest
 from google.adk.events import Event
 from google.genai import types
+from services import create_services
 
 pytestmark = pytest.mark.asyncio
 

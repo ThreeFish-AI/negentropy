@@ -10,16 +10,15 @@ StateManager 数据库集成测试
 import asyncio
 import uuid
 
-import asyncpg
 import pytest
 import pytest_asyncio
 
+from cognizes.core.database import DatabaseManager
 from cognizes.engine.pulse.state_manager import (
     ConcurrencyConflictError,
     Event,
     StateManager,
 )
-from cognizes.core.database import DatabaseManager
 
 
 @pytest_asyncio.fixture

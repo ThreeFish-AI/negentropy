@@ -15,6 +15,7 @@ import {
   fetchConflicts,
   fetchMemories,
   resolveConflict,
+  MemoryUserSelect,
 } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -102,21 +103,13 @@ export default function MemoryConflictsPage() {
           <div className="pb-6">
             {/* Controls */}
             <div className="mb-6 flex items-center gap-3">
-              <select
-                aria-label="Filter by user"
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800"
-                value={activeUserId ?? ""}
-                onChange={(e) => setActiveUserId(e.target.value || null)}
-              >
-                <option value="">
-                  {usersLoading ? "Loading users..." : "All Users"}
-                </option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.label || u.id}
-                  </option>
-                ))}
-              </select>
+              <MemoryUserSelect
+                users={users}
+                selectedUserId={activeUserId}
+                onSelect={setActiveUserId}
+                loading={usersLoading}
+                allLabel="All Users"
+              />
               <div className="h-4 w-px bg-zinc-200 mx-1 dark:bg-zinc-700" />
               <select
                 aria-label="Filter by resolution"

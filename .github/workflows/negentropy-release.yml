@@ -91,7 +91,10 @@ jobs:
           echo "is_prerelease=${is_prerelease}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Python with uv
-        uses: ./.github/actions/setup-uv-backend
+        uses: ./.github/actions/setup-python-uv
+        with:
+          working-directory: apps/negentropy
+          frozen: "true"
 
       - name: Build backend distribution
         working-directory: apps/negentropy

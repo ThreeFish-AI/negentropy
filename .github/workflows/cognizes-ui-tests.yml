@@ -1,0 +1,33 @@
+name: Cognizes UI Test Suite
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/cognizes-ui/**"
+      - "apps/cognizes/tests/ui/**"
+      - ".github/workflows/cognizes-ui-tests.yml"
+      - ".github/workflows/reusable-cognizes-ui-quality.yml"
+      - ".github/actions/setup-yarn-ui/**"
+  pull_request:
+    branches: ["**"]
+    paths:
+      - "apps/cognizes-ui/**"
+      - "apps/cognizes/tests/ui/**"
+      - ".github/workflows/cognizes-ui-tests.yml"
+      - ".github/workflows/reusable-cognizes-ui-quality.yml"
+      - ".github/actions/setup-yarn-ui/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui-quality:
+    uses: ./.github/workflows/reusable-cognizes-ui-quality.yml
+    with:
+      run_e2e: true

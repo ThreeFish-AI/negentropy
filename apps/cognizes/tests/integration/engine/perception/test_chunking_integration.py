@@ -10,20 +10,17 @@ Tests cover end-to-end scenarios:
 Task ID: P3-5-2
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
 from pathlib import Path
 
-from cognizes.engine.perception.chunking import (
-    FixedLengthChunker,
-    RecursiveChunker,
-    HierarchicalChunker,
-    get_chunker,
-    chunk_text,
-    Chunk,
-)
+import pytest
 
+from cognizes.engine.perception.chunking import (
+    HierarchicalChunker,
+    RecursiveChunker,
+    chunk_text,
+)
 
 # ============================================
 # Test Fixtures
@@ -215,7 +212,7 @@ class TestEndToEndChunking:
     def test_file_chunking(self, temp_text_file):
         """Test chunking from a file."""
         # Read file content
-        with open(temp_text_file, "r") as f:
+        with open(temp_text_file) as f:
             content = f.read()
 
         source_uri = Path(temp_text_file).name
@@ -369,7 +366,7 @@ class TestChunkingPerformance:
 
         # All should complete successfully
         assert len(results) == 10
-        for doc_id, chunk_count in results:
+        for _doc_id, chunk_count in results:
             assert chunk_count > 0
 
 

@@ -12,14 +12,23 @@ DatabaseManager: PostgreSQL 数据库统一管理器
 from __future__ import annotations
 
 import asyncio
-import json
-import uuid
 import logging
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import TYPE_CHECKING, Any
 
 import asyncpg
+
+if TYPE_CHECKING:
+    from cognizes.core.repositories import (
+        EventRepository,
+        FactsRepository,
+        InstructionsRepository,
+        MemoryRepository,
+        SessionRepository,
+        StateRepository,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +59,7 @@ class DatabaseManager:
     """
 
     # 单例实例
-    _instance: "DatabaseManager | None" = None
+    _instance: DatabaseManager | None = None
     _instance_dsn: str | None = None
 
     def __init__(
@@ -83,7 +92,7 @@ class DatabaseManager:
         self._repos: dict[str, Any] = {}
 
     @classmethod
-    def get_instance(cls, dsn: str | None = None) -> "DatabaseManager":
+    def get_instance(cls, dsn: str | None = None) -> DatabaseManager:
         """
         获取单例实例
 
@@ -110,7 +119,7 @@ class DatabaseManager:
     @property
     def dsn(self) -> str:
         """获取数据库连接字符串"""
-        return self._dsn
+        return self._dsn  # type: ignore[return-value]
 
     async def get_pool(self) -> asyncpg.Pool:
         """
@@ -229,7 +238,7 @@ class DatabaseManager:
             return await conn.fetchval(query, *args, column=column)
 
     @asynccontextmanager
-    async def transaction(self) -> AsyncGenerator[asyncpg.Connection, None]:
+    async def transaction(self) -> AsyncGenerator[asyncpg.Connection]:
         """
         事务上下文管理器
 
@@ -248,7 +257,7 @@ class DatabaseManager:
                 yield conn
 
     @asynccontextmanager
-    async def acquire(self) -> AsyncGenerator[asyncpg.Connection, None]:
+    async def acquire(self) -> AsyncGenerator[asyncpg.Connection]:
         """
         获取连接上下文管理器
 
@@ -432,7 +441,7 @@ class DatabaseManager:
         try:
             import psycopg
 
-            with psycopg.connect(self._dsn) as conn:
+            with psycopg.connect(self._dsn) as conn:  # type: ignore[arg-type]
                 with conn.cursor() as cur:
                     cur.execute(query, args if args else None)
                 conn.commit()
@@ -451,7 +460,7 @@ class DatabaseManager:
         try:
             import psycopg
 
-            with psycopg.connect(self._dsn) as conn:
+            with psycopg.connect(self._dsn) as conn:  # type: ignore[arg-type]
                 with conn.cursor() as cur:
                     cur.executemany(query, params_list)
                 conn.commit()
@@ -499,7 +508,7 @@ class DatabaseManager:
     # ========================================
 
     @property
-    def sessions(self) -> "SessionRepository":
+    def sessions(self) -> SessionRepository:
         if "sessions" not in self._repos:
             from cognizes.core.repositories import SessionRepository
 
@@ -507,7 +516,7 @@ class DatabaseManager:
         return self._repos["sessions"]
 
     @property
-    def events(self) -> "EventRepository":
+    def events(self) -> EventRepository:
         if "events" not in self._repos:
             from cognizes.core.repositories import EventRepository
 
@@ -515,7 +524,7 @@ class DatabaseManager:
         return self._repos["events"]
 
     @property
-    def states(self) -> "StateRepository":
+    def states(self) -> StateRepository:
         if "states" not in self._repos:
             from cognizes.core.repositories import StateRepository
 
@@ -523,7 +532,7 @@ class DatabaseManager:
         return self._repos["states"]
 
     @property
-    def memories(self) -> "MemoryRepository":
+    def memories(self) -> MemoryRepository:
         if "memories" not in self._repos:
             from cognizes.core.repositories import MemoryRepository
 
@@ -531,7 +540,7 @@ class DatabaseManager:
         return self._repos["memories"]
 
     @property
-    def facts(self) -> "FactsRepository":
+    def facts(self) -> FactsRepository:
         if "facts" not in self._repos:
             from cognizes.core.repositories import FactsRepository
 
@@ -539,7 +548,7 @@ class DatabaseManager:
         return self._repos["facts"]
 
     @property
-    def instructions(self) -> "InstructionsRepository":
+    def instructions(self) -> InstructionsRepository:
         if "instructions" not in self._repos:
             from cognizes.core.repositories import InstructionsRepository
 

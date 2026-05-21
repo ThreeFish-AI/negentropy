@@ -6,14 +6,12 @@ PgNotifyListener 单元测试
 - _handle_notification() JSON 解析 & 回调触发
 """
 
-import json
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from cognizes.engine.pulse.pg_notify_listener import (
-    PgNotifyListener,
     NotifyEvent,
+    PgNotifyListener,
 )
 
 

@@ -21,7 +21,7 @@ export default function HomeLayout({ children }: { children: ReactNode }) {
           </div>
         }
       >
-        <HomeNav title="Workspace" />
+        <HomeNav />
       </Suspense>
       <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
     </div>

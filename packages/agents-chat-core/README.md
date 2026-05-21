@@ -13,12 +13,12 @@ mention 解析 / state_delta 派生），避免协议层双写漂移。
 
 ## 子入口
 
-| 入口 | 来源（迁移自 ui） | 说明 |
-|---|---|---|
+| 入口                                    | 来源（迁移自 ui）                               | 说明                                 |
+| --------------------------------------- | ----------------------------------------------- | ------------------------------------ |
 | `@negentropy/agents-chat-core/protocol` | `types/agui.ts` + `lib/agui/{schema,stream}.ts` | AGUI 事件类型 / zod 校验 / NDJSON 帧 |
-| `@negentropy/agents-chat-core/client` | `lib/agui/ndjson-agent.ts` | `NdjsonHttpAgent` + resume 重连 |
-| `@negentropy/agents-chat-core/parse` | `utils/mention-parser.ts` + `types/mention.ts` | Mention 纯函数解析 |
-| `@negentropy/agents-chat-core/server` | `app/api/agui/_state-delta.ts` | BFF 端 state_delta 派生 |
+| `@negentropy/agents-chat-core/client`   | `lib/agui/ndjson-agent.ts`                      | `NdjsonHttpAgent` + resume 重连      |
+| `@negentropy/agents-chat-core/parse`    | `utils/mention-parser.ts` + `types/mention.ts`  | Mention 纯函数解析                   |
+| `@negentropy/agents-chat-core/server`   | `app/api/agui/_state-delta.ts`                  | BFF 端 state_delta 派生              |
 
 ## 当前阶段
 

@@ -9,14 +9,12 @@ Hippocampus MemoryVisualizer: 记忆系统可视化接口
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from datetime import datetime, timedelta
-from enum import Enum
+from dataclasses import dataclass
+from datetime import datetime
+from enum import StrEnum
 
 
-class MemoryEventType(str, Enum):
+class MemoryEventType(StrEnum):
     """记忆相关 AG-UI 事件类型"""
 
     CONSOLIDATION_PROGRESS = "memory_consolidation_progress"
@@ -34,8 +32,8 @@ class ConsolidationProgress:
     total_events: int
     processed_events: int
     extracted_facts: int
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
     @property
     def progress_percent(self) -> float:
@@ -52,8 +50,8 @@ class MemoryHit:
     memory_type: str  # episodic, semantic, procedural
     content_preview: str
     relevance_score: float
-    source_session_id: Optional[str] = None
-    created_at: Optional[datetime] = None
+    source_session_id: str | None = None
+    created_at: datetime | None = None
     retention_score: float = 1.0
 
 
@@ -110,7 +108,7 @@ class MemoryVisualizer:
             )
 
             if not job:
-                return None
+                return None  # type: ignore[return-value]
 
             progress = ConsolidationProgress(
                 job_id=str(job["id"]),

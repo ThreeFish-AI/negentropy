@@ -10,6 +10,7 @@
 - is_system 标识系统内置工具，API 层阻止删除
 """
 
+import json as _json
 from typing import Any
 
 from sqlalchemy import Boolean, Enum, Index, String, Text, UniqueConstraint
@@ -18,6 +19,25 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin
 from .plugin_common import PluginVisibility
+
+
+def ensure_dict(value: Any) -> dict[str, Any]:
+    """将 JSONB 列值安全转为 dict。
+
+    防御 migration 0031 中 json.dumps() + JSONB bindparam 双编码
+    导致读取时返回 str 而非 dict 的问题。
+    """
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = _json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except (ValueError, TypeError):
+            return {}
+    return {}
 
 
 class BuiltinTool(Base, UUIDMixin, TimestampMixin):

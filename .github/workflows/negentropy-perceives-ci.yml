@@ -88,22 +88,57 @@ jobs:
       - name: Run pip-audit vulnerability scan
         run: |
           uv run pip-audit --format=json --output=audit-report.json || true
-          # 忽略已知漏洞（暂无修复版本或需依赖升级评估）
-          # CVE-2026-4539 (pygments)：暂无修复版本
-          # CVE-2025-64340 / CVE-2026-27124 (fastmcp 3.1.1)：修复版本 3.2.0，待升级评估
-          # CVE-2026-1839 (transformers 4.x)：修复版本 5.0.0rc3，major 版本跳升，需评估兼容性
-          # CVE-2026-35029 / CVE-2026-35030 / GHSA-69x8-hrgq-fjj8 (litellm 1.80.0)：修复版本 1.83.0
-          # CVE-2026-42271 (litellm 1.80.0)：修复版本 1.83.7
-          # litellm 升级受 pydantic==2.12.5 硬锁制约，待上游兼容性评估
-          uv run pip-audit \
-            --ignore-vuln CVE-2026-4539 \
-            --ignore-vuln CVE-2025-64340 \
-            --ignore-vuln CVE-2026-27124 \
-            --ignore-vuln CVE-2026-1839 \
-            --ignore-vuln CVE-2026-35029 \
-            --ignore-vuln CVE-2026-35030 \
-            --ignore-vuln GHSA-69x8-hrgq-fjj8 \
+          # 忽略列表：upstream 暂无修复版本，或修复版本受其它依赖硬锁制约。
+          # 每条均已结合本项目威胁模型（仅加载第一方模型，不执行 convert/checkpoint 工具链）评估。
+          ignore_args=(
+            # pygments：暂无修复版本
+            --ignore-vuln CVE-2026-4539
+
+            # fastmcp 3.1.1：修复版本 3.2.0，待升级评估
+            --ignore-vuln CVE-2025-64340
+            --ignore-vuln CVE-2026-27124
+
+            # litellm 1.80.0：修复版本 1.83.0 / 1.83.7，受 pydantic==2.12.5 硬锁制约
+            --ignore-vuln CVE-2026-35029
+            --ignore-vuln CVE-2026-35030
+            --ignore-vuln GHSA-69x8-hrgq-fjj8
             --ignore-vuln CVE-2026-42271
+
+            # joblib 1.5.3：仅在加载不可信缓存时触发反序列化；supplier 已 dispute，upstream 无 fix
+            --ignore-vuln PYSEC-2024-277
+
+            # pyjwt 2.12.1：弱加密取决于调用方密钥长度；supplier 已 dispute，upstream 无 fix
+            --ignore-vuln PYSEC-2025-183
+
+            # transformers 4.x Trainer 路径任意代码执行；本项目未使用 Trainer
+            --ignore-vuln CVE-2026-1839
+
+            # transformers 4.57.6 convert/checkpoint 路径 RCE；本项目仅加载已转换的第一方模型，
+            # 不调用转换工具链；transformers 锁定 <5.0.0 受 marker-pdf / docling 兼容交集制约
+            --ignore-vuln PYSEC-2025-211
+            --ignore-vuln PYSEC-2025-212
+            --ignore-vuln PYSEC-2025-213
+            --ignore-vuln PYSEC-2025-214
+            --ignore-vuln PYSEC-2025-215
+            --ignore-vuln PYSEC-2025-216
+            --ignore-vuln PYSEC-2025-217
+            --ignore-vuln PYSEC-2025-218
+
+            # torch 2.10.0 本地内存破坏 / DoS，需攻击者构造恶意 tensor / pt2 文件；
+            # 本项目仅加载第一方模型 artifact，无不可信输入路径，upstream 暂无 fix
+            --ignore-vuln PYSEC-2025-189
+            --ignore-vuln PYSEC-2025-190
+            --ignore-vuln PYSEC-2025-191
+            --ignore-vuln PYSEC-2025-192
+            --ignore-vuln PYSEC-2025-193
+            --ignore-vuln PYSEC-2025-194
+            --ignore-vuln PYSEC-2025-195
+            --ignore-vuln PYSEC-2025-196
+            --ignore-vuln PYSEC-2025-197
+            --ignore-vuln PYSEC-2025-210
+            --ignore-vuln PYSEC-2026-139
+          )
+          uv run pip-audit "${ignore_args[@]}"
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4

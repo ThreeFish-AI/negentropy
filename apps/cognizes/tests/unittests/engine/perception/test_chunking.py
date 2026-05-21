@@ -12,17 +12,16 @@ Task ID: P3-5-2
 """
 
 import pytest
+
 from cognizes.engine.perception.chunking import (
     Chunk,
-    ChunkingStrategy,
     FixedLengthChunker,
+    HierarchicalChunker,
     RecursiveChunker,
     SemanticChunker,
-    HierarchicalChunker,
-    get_chunker,
     chunk_text,
+    get_chunker,
 )
-
 
 # ============================================
 # Test Fixtures

@@ -35,11 +35,6 @@ describe("InterfaceNav", () => {
     expect(skillsLink).toBeInTheDocument();
     expect(skillsLink).toHaveAttribute("href", "/interface/skills");
     expect(skillsLink.className).toContain("bg-foreground");
-
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
-      "href",
-      "/interface",
-    );
   });
 
   it("仅在用户具备 admin 角色时展示 Models 入口", () => {
@@ -59,19 +54,19 @@ describe("InterfaceNav", () => {
     expect(screen.queryByRole("link", { name: "Models" })).toBeNull();
   });
 
-  it("按 Dashboard → Models → Task Models → SubAgents → MCP → Skills 顺序渲染（admin）", () => {
+  it("按 Models → Task Models → SubAgents → MCP → Skills → Tools 顺序渲染（admin）", () => {
     useAuthMock.mockReturnValue({ user: { roles: ["admin"] }, status: "authenticated" });
 
-    render(<InterfaceNav title="Dashboard" />);
+    render(<InterfaceNav title="Models" />);
 
     const links = screen.getAllByRole("link").map((node) => node.textContent);
     expect(links.slice(0, 6)).toEqual([
-      "Dashboard",
       "Models",
       "Task Models",
       "SubAgents",
       "MCP",
       "Skills",
+      "Tools",
     ]);
   });
 });

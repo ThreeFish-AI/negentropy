@@ -192,8 +192,9 @@ class TestConvenienceFunctions:
     @pytest.mark.asyncio
     async def test_get_pool_function(self):
         """测试 get_pool 便捷函数"""
-        from cognizes.core.database import get_pool
         import asyncpg
+
+        from cognizes.core.database import get_pool
 
         pool = await get_pool()
         assert isinstance(pool, asyncpg.Pool)

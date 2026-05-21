@@ -5,7 +5,6 @@ InstructionsRepository: Procedural Memory Data Access Layer
 from __future__ import annotations
 
 import json
-import uuid
 
 import asyncpg
 

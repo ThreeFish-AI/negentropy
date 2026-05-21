@@ -278,9 +278,9 @@
 ## ISSUE-015 Knowledge / Catalog 与 Wiki 入口的 Catalog 选择器冗余 → 单实例 Catalog 收敛（Phase 4）
 
 - **表因**：用户在 `/knowledge/catalog` 与 `/knowledge/wiki` 两个入口顶部均看到「目录：选择目录」`<CatalogSelector>` 组件组；首次进入未选择 catalog 时整页空载，显著的 UX 摩擦点；同时 KnowledgeNav 的 7 个固定 tab、Sidebar 的 5 个一级条目均未按 catalog 分支，使「选 catalog」沦为不可观测的全局态。截图来自 `/knowledge/catalog`（参见 [`apps/negentropy-ui/app/knowledge/catalog/page.tsx:11-89`](../apps/negentropy-ui/app/knowledge/catalog/page.tsx) 与 [`apps/negentropy-ui/app/knowledge/wiki/page.tsx:5,15-68`](../apps/negentropy-ui/app/knowledge/wiki/page.tsx)）。
-- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`knowledges.md` §13](../knowledge/design/knowledges.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
+- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`035-the-knowledge-base.md` §13](../concepts/035-the-knowledge-base.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
 - **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
-  1. **架构沉淀**（本次 PR）：[`knowledges.md` §15 单实例 Catalog 收敛（Phase 4）](../knowledge/design/knowledges.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
+  1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../reference/wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
   2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
   3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
   4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
@@ -294,7 +294,7 @@
 - **同类问题影响**：
   1. **Memory 域**（`MemoryEntry` 与未来可能的 `MemoryNamespace`）：若引入类似的「全局上下文」概念，应优先以 partial unique index 表达单例不变量，避免重蹈 UX selector 覆辙；
   2. **Interface 域**（`McpServer` 当前已支持多实例但 `auto_start=True` 实际只期望 1 个 manager）：本次单实例约束的 `partial unique` 范式可作为模板复用；
-  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki/ops.md` §12.3](../wiki/ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
+  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki/ops.md` §12.3](../reference/wiki/ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
   4. **跨 corpus 文档归属**：`doc_catalog_documents` 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 是合法行为；UI 提示去重但不强制——这是 Phase 3 N:M 解耦的天然结果，Phase 4 单例化不影响该自由度。
 
 ## ISSUE-016 Wiki 发布创建 500（app_name NOT NULL 违约）+ Wiki 页 CatalogSelector 移除
@@ -399,7 +399,7 @@
   1. 三处 `WIKI_API_BASE` 默认值统一改为 `http://localhost:3292`，与 `cli.py` + `backend-url.ts` 同源；不引入「废弃端口守护」（参考 ISSUE-005 教训：废弃值即熵源）。
   2. `config.default.yaml` 的 `knowledge:` 块新增 `wiki_revalidate.url: http://localhost:3092/api/revalidate` + `timeout_seconds: 5.0`；secret 仍由 `NE_KNOWLEDGE_WIKI_REVALIDATE__SECRET` 环境变量注入（生产必填，本地容错）。`WikiRevalidateSettings` schema 零改动，`tests/unit_tests/knowledge/test_revalidate.py` 5 例用例显式构造 cfg 不依赖默认值，回归零风险。
   3. `page.tsx` catch 分支引入 `unstable_noStore()`（Next.js 15 next ^15.5.15 已稳定支持）：失败本次响应不写入 ISR cache，回落为 per-request SSR 一次/请求；后端恢复后下次访问即可正常重建 ISR cache。`export const revalidate = 300` 保留，成功路径仍享 ISR；与 AGENTS.md 「Evolutionary Design」一致——把失败转化为可观测、可自愈的反馈环。
-  4. `docs/wiki/ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
+  4. `docs/reference/wiki/ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
 - **后续防范**：
   1. **跨进程默认值即合约**：所有跨进程默认端口、URL、密钥需在初始化时声明 SSOT 出处（参考 `apps/negentropy-ui/lib/server/backend-url.ts:DEFAULT_BACKEND_BASE_URL` 范式）；CR 评审涉及 `process.env.X || "http://localhost:NNNN"` 模板时，必须显式核对该端口是否与项目唯一端口分配表一致。
   2. **「降级为兜底空」的 catch 必须配套缓存失效声明**：任何 `catch (err) { return [] }` 模式在 SSG/ISR 上下文中都属潜在自愈陷阱；catch 块需配合 `unstable_noStore()` 或显式 `throw` 让上层错误边界接管，禁止"静默写盘空数组"。
@@ -734,13 +734,13 @@
      - patch 幂等（重复调用函数对象不变）；
      - 模拟调用 `maybe_set_otel_providers` 后全局 `LoggerProvider` / `MeterProvider` 仍是默认 ProxyProvider（**不是** SDK 实例），证明 set 调用未发生。
 - **行为对照**：
-  | 调用 | 修复前 | 修复后 |
-  |------|--------|--------|
-  | `_logs.set_logger_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
-  | `metrics.set_meter_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
-  | `trace.set_tracer_provider` | ADK 1 次（含 OTLP traces + ApiServerSpanExporter） | 不变 |
+  | 调用                                                         | 修复前                                                   | 修复后                                         |
+  | ------------------------------------------------------------ | -------------------------------------------------------- | ---------------------------------------------- |
+  | `_logs.set_logger_provider`                                  | 项目 + ADK 各 1 次（第二次 warn）                        | **零次**                                       |
+  | `metrics.set_meter_provider`                                 | 项目 + ADK 各 1 次（第二次 warn）                        | **零次**                                       |
+  | `trace.set_tracer_provider`                                  | ADK 1 次（含 OTLP traces + ApiServerSpanExporter）       | 不变                                           |
   | `opentelemetry-instrumentation-google-genai` 写 GenAI events | 拿到 NoExporter SDK LoggerProvider（无 processor，丢弃） | 拿到默认 ProxyLoggerProvider（同样 NoOp 丢弃） |
-  | LiteLLM `"otel"` callback 上报 traces | → Langfuse `/v1/traces` | 不变 |
+  | LiteLLM `"otel"` callback 上报 traces                        | → Langfuse `/v1/traces`                                  | 不变                                           |
 - **后续防范**：
   1. **OTel 抢占模式陷阱**：抢占式 `set_*_provider` 虽能利用 `Once`-lock 阻断后续注册，但**SDK 仍会输出 WARNING**——治本方案应当是阻止上游"想 set"，而非依赖"set 失败 + 静默吞错"；
   2. **优先 patch 上游拼装入口**：当框架（ADK）在某个唯一入口（`_get_otel_exporters`）拼装多类 telemetry hooks 时，patch 该入口比 patch 各 `set_*_provider` 调用更精准；
@@ -965,8 +965,8 @@
   - V4: 刷新后一致性 → 单气泡
 - **后续防范（Phase 2-4 路线图）**：
   1. **Phase 2 后端协议合规**：在 [`apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts`](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts) 反向代理层注入 runId（将上游 ADK Web 响应中的 `invocation_id` 映射为 `runId` 写入每个事件），让 hydration 路径不再需要 fallbackRunId 兜底。Phase 1 合成识别保留作为防御。
-  2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/rfcs/0001-conversation-architecture-refactor.md`](./rfcs/0001-conversation-architecture-refactor.md)。
-  3. **Phase 4 UI 交互能力增强**：Reasoning Panel + Sub-Agent 嵌套卡片 / 工具进度 + 中断/审批门 / Conversation Branching + Timeline 增强。Backlog 见 [`docs/rfcs/0002-ui-interaction-enhancements.md`](./rfcs/0002-ui-interaction-enhancements.md)。
+  2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/concepts/0001-conversation-architecture-refactor.md`](../concepts/0001-conversation-architecture-refactor.md)。
+  3. **Phase 4 UI 交互能力增强**：Reasoning Panel + Sub-Agent 嵌套卡片 / 工具进度 + 中断/审批门 / Conversation Branching + Timeline 增强。Backlog 见 [`docs/concepts/0002-ui-interaction-enhancements.md`](../concepts/0002-ui-interaction-enhancements.md)。
   4. **dev 模式 lifecycle 完整性 invariant 断言**（建议）：在 `useSessionProjection` 加轻量断言「同 threadId 下若同时存在 synthetic turn 与 concrete turn，前者的 assistant text 必须全被后者包含」，把这类合成 turn 退化在开发期捕捉。
 - **诊断抓手（未来再复发时）**：
   1. 浏览器开发者工具抓 `/api/agui/sessions/{id}` 响应 JSON，确认事件是否含 `runId` 字段；不含则属本 issue 复发或 Phase 2 退化。
@@ -1288,7 +1288,7 @@
   5. **前端 `apps/negentropy-ui/utils/citation-parser.ts`**：严格 regex `(?<![\\w\\^])\[(\d+)\](?!\(|:)` 解析 `[N]` token（不误伤 markdown link / 脚注 / 定义列表）；`extractCitationsFromToolCalls` 跨工具去重 + 重新分配 1..N；
   6. **`MessageBubble.MarkdownContent` 加 prop `citations?: Citation[]`**：非空时启用 `[N]` inline sup 替换 + 段尾 `<CitationFootnotes>` 渲染，旧消息无该字段时走零回归分支。
 - **后续防范**：
-  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](../architecture/conversation-foundation.md)）；
+  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](../concepts/conversation-foundation.md)）；
   2. **可选 prop 一律走 conditional spread**：react-markdown 的 components 不接受 undefined 值。如条件性挂 component，必须 `if(condition){ components.x = fn }` 而非 `x: cond ? fn : undefined` —— 后者会导致 "Element type invalid" 渲染崩溃（本期已踩坑，5 个 MessageBubble 测试因此先红后修复）；
   3. **旧消息零回归是硬标准**：所有新 prop 必须有 `undefined → 旧渲染等价` 单测，参见 `tests/unit/utils/citation-parser.test.ts`。
 - **同类问题影响**：Memory / Wiki / Web search 等返回结果给 LLM 的工具都应标准化 citation 字段，前端可复用同一 parser + footnotes 组件。
@@ -1684,6 +1684,13 @@
   - <a id="ref78-1"></a>[1] OpenTelemetry Authors, *Semantic Conventions for Generative AI*, v1.28+, "gen_ai.system / gen_ai.request.model / gen_ai.response.model," 2025. [Online]. Available: https://opentelemetry.io/docs/specs/semconv/gen-ai/
   - <a id="ref78-2"></a>[2] Langfuse, *OpenTelemetry Integration — Attribute Mapping*, "Model attribute precedence: ai.response.model > gen_ai.response.model > gen_ai.request.model; langfuse.observation.* override namespace," 2026. [Online]. Available: https://langfuse.com/integrations/native/opentelemetry
   - <a id="ref78-3"></a>[3] LiteLLM, *Langfuse OTEL Integration*, "litellm.success_callback = ['otel'] forwards via OTLP," 2026. [Online]. Available: https://docs.litellm.ai/docs/observability/langfuse_otel_integration
+- **决策反转补丁（2026-05-21）**：
+  1. **现象**：上述方案落地后，Langfuse Model Costs 视图仍同时出现 `gpt-5-mini`（裸名）与 `openai/gpt-5-mini`（带前缀）两行；`gpt-5-nano` 也以裸名独立成行。即 monkey-patch 之外仍有路径绕过归一化（或被 LiteLLM 原始 OTel callback 先行写入了带前缀的 `gen_ai.request.model`）。
+  2. **新口径**：把观测路径输出形态由「裸名」**反转为 `vendor/model` 全名**（`openai/gpt-5-mini`、`anthropic/claude-3-5-sonnet`、`gemini/text-embedding-004` …）。核心论据：LiteLLM 调度路径必须收到 `vendor/` 前缀才能选择真实 API，因此带前缀的形态本就是系统中**唯一已知的全局权威形态**；把所有观测点都收敛到这个形态，比与 LiteLLM 原始 callback 在裸名形态上竞速覆盖更稳健。日期/版本后缀仍剥（`gpt-5-mini-2025-08-07` → `openai/gpt-5-mini`）。
+  3. **算法变更**：`observability_model_name(name, *, vendor_hint=None)` 改为「拆 vendor + 裸名 → 剥日期 → 别名 → 拼回 vendor/bare」。`vendor_hint` 解决跨字段一致性：当 request `gemini/text-embedding-004` 与 response 裸名 `text-embedding-004` 共存时，把 request 侧 vendor 注入 response 归一化，避免家族前缀表把 `text-embedding-` 误识别成 `openai`。提取内部小工具 `_split_vendor_and_bare()` 统一拆分逻辑。
+  4. **定价路径解耦**：`instrumentation._resolve_total_cost` 显式切到 `pricing_lookup_model_name(...)`（裸名查表），不再借观测函数；阅读时一眼能看出「定价 vs 观测」走两套不同的契约。
+  5. **测试反转**：`test_model_names.py` / `test_instrumentation.py` / `test_genai_semconv.py` 中所有 `observability_model_name` / `gen_ai.{request,response}.model` / `langfuse.observation.model.name` 断言由裸名反转为 `vendor/model`；新增 `vendor_hint` 用例 + 「请求带前缀、响应裸名」跨字段一致性用例。
+  6. **教训沉淀**：「把所有形态收敛到裸名」与「把所有形态收敛到 vendor/model」都满足 Single Source of Truth；选哪个要看**系统内已有的权威形态是什么**。在 LiteLLM 体系下，`vendor/model` 才是调度路径的硬约束，反向（剥前缀）需要主动改写多入口，更脆弱。
 
 ---
 
@@ -2097,3 +2104,101 @@
 - **同类问题影响**：
   - 与 [ISSUE-012](#issue-012)（枚举列上 `LOWER`/`UPPER` 必须 `::text` cast）同源——本期是「读侧 cast 失败」，012 是「迁移侧 cast 失败」，两者共同提示「PG 枚举列与 text 之间的所有交互都需要显式 cast，且 ORM 侧声明类型必须与 DB 真实列类型严格一致」。
   - 已确认本仓库其他 plugin 表（`mcp_servers/skills/sub_agents`）的 `visibility` 列与 ORM 声明一致，无同型漂移。任何未来新增 plugin 类型（如假想中的 `prompt_template`/`workflow`）必须按上文「新增 plugin 表的强制模板」实施。
+
+---
+
+## ISSUE-090 Memory/Activity 子页与 Memory 领域语义错位（2026-05-19）
+
+- **表因**：`/memory/activity` 子页位于 Memory 二级导航，但承载的是「平台 Toast 通知历史」（localStorage 数据源、跨模块写入），Memory 上下文用户找不到自己的活动记录而误以为功能丢失；Memory 二级导航 7 个 tab 又显得过载。
+- **根因**：
+  1. **领域归属错置**：`useActivityLog` / `ActivityEntry` 类型曾通过 `features/memory/index.ts` re-export，让活动日志看起来像 Memory 子领域；但实际 `lib/activity-toast.ts` 在全平台所有 toast 调用处写入，与 Memory 数据无任何耦合，违反 **正交分解** 与 **Single Source of Truth**；
+  2. **导航语义错位**：MemoryNav 7 个 tab 中 6 个均围绕 user/semantic memory 操作，唯独 Activity 是平台级日志，认知一致性被打破。
+- **处理方式**：
+  1. 将 `useActivityLog` 上移至 `apps/negentropy-ui/hooks/useActivityLog.ts`（与 `useSubAgentsList` / `useHeartbeatPoll` 等平台级 hook 同级），末尾 re-export `ActivityEntry`/`ActivityLevel` 类型供单点 import；
+  2. 在 `app/(home)/dashboard/_components/` 新建 `ActivityLogPanel.tsx`，复用 `ExecutionTimeline` 卡片视觉范式（`rounded-lg border border-border bg-card shadow-sm` + uppercase tracking-wider 头部 + `max-h-[480px] overflow-auto`），并在 `dashboard/page.tsx` 主网格之后追加整宽嵌入；
+  3. **拒绝合并为 Tab 容器**（Executions ⇄ Activity）：后端调度执行流（SSE）与前端 Toast 历史（localStorage）数据源、生命周期、消费者均正交，不应耦合进单一容器；
+  4. 删除 `app/memory/activity/page.tsx`、`features/memory/hooks/useActivityLog.ts`，清理 `features/memory/index.ts` barrel 的对应 re-export；
+  5. `components/ui/MemoryNav.tsx` 移除 Activity NAV_ITEM；e2e 测试从 `tests/e2e/memory/activity.spec.ts` 迁移到 `tests/e2e/dashboard/dashboard-activity.spec.ts`，通过 `data-testid="activity-log-panel"` 缩域避免与 `ExecutionTimeline` 选择器冲突；
+  6. `memory-pages.spec.ts` 中 「7 个页面标签」断言降为 6 个；`docs/concepts/user-guide/memory-basics.md`（迁移后路径，原 `docs/memory/user-guide/basics.md`）同步表格 + 加迁移说明。
+- **后续防范**：
+  1. **以"数据源 + 写入触发面"判定模块归属**，而非以"看起来像什么"：凡是 `lib/*` 单例存储 + 跨模块写入的状态，hook 应栖息在 `apps/negentropy-ui/hooks/` 顶级，而非任何 `features/<domain>/` 子目录；
+  2. **二级导航 tab 列表必须保持单一概念主体**：新增 tab 前先核对其数据源与同级其它 tab 是否同源（同领域 / 同生命周期 / 同写入面）；
+  3. **`features/<domain>/index.ts` barrel 不允许 re-export 非领域类型**——本期被 re-export 的 `ActivityEntry`/`ActivityLevel` 直接来自 `lib/activity-store`，从未在 Memory 领域被消费过，纯属语义污染。
+- **同类问题影响**：
+  - 检视其它 `features/*/index.ts` barrel：凡 `export type { ... } from "@/lib/..."` 形态的 re-export 均需用本期同款判定标准复核（是否真的属于该领域）；
+  - 二级导航过载的子页（`/memory` 系 7 → 6、`/interface` 系、`/knowledge` 系）若有类似「平台级面板栖息在领域 tab 下」的错位，应统一上提到 Home / Dashboard 整体快照。
+
+---
+
+## ISSUE-091 `agent_inspection.scheduled_tasks_summary` 自巡检永久失败：SQLAlchemy 重复 `func.coalesce(col, literal)` 触发 PG `GroupingError`（2026-05-19）
+
+- **表因**：服务端日志 `engine.schedulers.registry` 每次心跳都抛 `asyncpg.exceptions.GroupingError: column "scheduled_tasks.last_status" must appear in the GROUP BY clause or be used in an aggregate function`，调用栈定位到 [`engine/schedulers/handlers/agent_inspection.py:_scheduled_tasks_summary`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/agent_inspection.py)；自巡检 `scheduled_tasks_summary` 任务永久失败，`consecutive_failures` 累积进入退避窗口，Dashboard 顶部「全员失败」系统告警链路自身瘫痪。
+  ```
+  [SQL: SELECT coalesce(scheduled_tasks.last_status, $1::VARCHAR) AS status,
+               count(scheduled_tasks.id) AS count
+         FROM scheduled_tasks
+         WHERE scheduled_tasks.enabled IS true
+         GROUP BY coalesce(scheduled_tasks.last_status, $2::VARCHAR)]
+  [parameters: ('none', 'none')]
+  ```
+- **根因**：原查询在 SELECT 与 GROUP BY 各调用了一次 `func.coalesce(ScheduledTask.last_status, "none")`，SQLAlchemy 为两个相同的 Python 字面量 `"none"` 生成独立 `BindParameter`，编译后变成 `$1` / `$2`。PostgreSQL 在校验 GROUP BY 时按 **AST 等价**（含 BindParameter 序号）判断 SELECT 非聚合表达式是否在 GROUP BY 子句中——`coalesce(col, $1)` 与 `coalesce(col, $2)` 在它眼里不是同一表达式，遂判 `last_status` 列「未分组、又非聚合」并拒绝执行。即便复用同一 Python `func.coalesce(...)` 对象，select() 编译阶段的子句克隆仍可能拆出新 bind，此模式属于 SQLAlchemy + 严格 PG 的经典陷阱。
+- **处理方式**：
+  1. 把「NULL → `"none"`」归一化**从 SQL 层下沉到 Python 层**——SELECT/GROUP BY 直接用 `ScheduledTask.last_status` 列对象（PG 允许 NULL 作为独立分组键），dict comprehension 一次性归一化键名，下游 `metrics.distribution` 键集合与原行为完全等价；
+  2. 在 [`tests/unit_tests/engine/test_scheduler_handlers.py`](../../apps/negentropy/tests/unit_tests/engine/test_scheduler_handlers.py) 新增 `TestScheduledTasksSummary` 6 个用例：全 ok / 含 NULL 行 / failed>50% / 空表 / total<2 防误报，并加 **SQL 回归守门用例**——`compile(literal_binds=True)` 后断言查询不再出现 `coalesce`，防再次踩坑。
+- **后续防范**：
+  1. **严禁在同一 statement 的 SELECT + GROUP BY 中重复出现 `func.coalesce(col, literal_value)`**（即便复用同一 expression 对象也存在 bind 拆分风险）；同类 SQL 端归一化（`coalesce` / `case when ... then literal`）只能在 GROUP BY **或** SELECT 任一侧出现一次，另一侧用别名 / 序号 / 原列引用；
+  2. **优先在 Python 层做 NULL 归一化**——对于结果集行数有限（与 distinct group 数同阶）的聚合查询，Python 端 `if x is not None else default` 比 SQL 层 `coalesce` 更稳健、可读、可测；
+  3. **自巡检模块自身必须有单测覆盖**——`agent_inspection.scheduled_tasks_summary` 这类「监控其他任务健康度」的 handler 一旦失败，告警链路就会反向静默；review 中若发现「handler 函数无对应 Test 类」一律打回；
+  4. 类似的「SQL 翻译产物与原 Python 表达式不等价」陷阱与 [ISSUE-012](#issue-012)（枚举列上的 `LOWER` 需 `::text` cast）、[ISSUE-089](#issue-089)（ORM Enum 与列类型漂移）同属「SQL 编译期细节悄悄改写语义」家族——核心律：任何含 literal 的复杂表达式跨多个子句出现时，必须用 `compile(literal_binds=True)` 打印实际 SQL 验证。
+- **同类问题影响**：
+  - 搜索 `func.coalesce` 配合 `group_by` 的全仓库使用，**仅 `_scheduled_tasks_summary` 一处命中**，本次已修复；
+  - 类似模式（`func.case` / `cast` 在 SELECT + GROUP BY 重复出现）需 review 时主动核对：本期未发现，但作为未来 review 红线纳入；
+  - 调度框架退避窗口策略本身正常：本次失败任务在修复后第一个心跳成功时 `consecutive_failures` 由 Registry 清零，无需手工 reset。
+
+---
+
+## ISSUE-092 Perceives Security Audit 因 PYSEC 数据库增补 21 条新告警致 pip-audit 退出 1（2026-05-20）
+
+- **表因**：[`negentropy-perceives-ci.yml`](../../.github/workflows/negentropy-perceives-ci.yml) 的 `security` job 在 PR #594（仅改动 `.github/actions/setup-python-uv/**`）触发的运行中失败；`uv run pip-audit` 列出 22 条已知漏洞（joblib 1, pyjwt 1, torch 11, transformers 8 + 既有 `CVE-2026-1839`），其中仅 1 条命中现有 `--ignore-vuln`，剩余 21 条令 pip-audit 退出码 1。
+- **根因**：PYSEC 数据库自上次成功审计后追加 21 条新条目——
+  - **joblib `PYSEC-2024-277`** / **pyjwt `PYSEC-2025-183`**：均为 supplier disputed，upstream 无 fix；
+  - **torch 2.10.0 `PYSEC-2025-189..197` / `PYSEC-2025-210` / `PYSEC-2026-139`**：本地内存破坏 / DoS / pt2 反序列化，需攻击者构造恶意 tensor 或 `.pt2`，upstream 暂无 fix；
+  - **transformers 4.57.6 `PYSEC-2025-211..218`**：`convert_config` / checkpoint 转换路径 RCE，且 transformers 受 `marker-pdf` / `docling` 兼容交集制约硬锁 `<5.0.0`，4.x 无后向 patch。
+  本项目威胁模型为：仅加载第一方已转换模型 artifact，不调用 transformers 转换工具链，亦无加载不可信 `.pt2` / `.joblib` 缓存的路径——21 条全部不适用。
+- **处理方式**：
+  1. 在 [`negentropy-perceives-ci.yml`](../../.github/workflows/negentropy-perceives-ci.yml) 把扁平 `--ignore-vuln` 链改为 **bash 数组字面量**（`ignore_args=( … )` + `"${ignore_args[@]}"`），每条按包分组、追加中文威胁模型注释，避免反斜杠续行下 inline 注释失效；
+  2. 追加 21 条新 PYSEC ID（含 dispute / upstream-无-fix / upstream-fix-但被硬锁三类），保留既有 8 条 CVE/GHSA 条目；
+  3. 本地用 Homebrew `python3.13 -m venv` + `pip-audit==2.10.0` 重现：迷你 requirements (joblib/pyjwt/torch/transformers 四列) 命中相同 22 条，套用本次新数组后输出 `No known vulnerabilities found, 22 ignored`，`exit=0`。
+- **后续防范**：
+  1. **`--ignore-vuln` 是「降噪」而非「免疫」**：每条 ignore 必须随附「包-版本-威胁模型-是否有 upstream fix」四元注释，便于季度 review 时识别可移除项；
+  2. **威胁模型门槛优先于「等 upstream fix」**：本项目所有新增 ignore 条目都被压在「需要不可信输入路径」假设上——一旦未来引入用户上传 `.joblib` 缓存 / `.pt2` artifact 的功能，该假设破裂，需立即升级或拆出独立审计；
+  3. **bash 数组优于反斜杠续行链**：多元素 CLI 列表场景（pip-audit/ruff/pytest 长 flag 列）一律走数组字面量，原生支持 `#` 注释与空行，无需依赖 `` `# foo` `` 反引号「假注释」trick；
+  4. **CI 触发面识别**：`paths` 过滤包含 `.github/actions/setup-python-uv/**` 的 workflow 会被本仓库根级 action 变更牵连——后续修改 composite action 需预判其牵涉的所有 workflow。
+- **同类问题影响**：
+  - 其它 app（`cognizes` / `negentropy` 主仓）若引入 `pip-audit` 步骤，应直接复用本数组式模板；
+  - 周期性的 PYSEC 数据库增补会让任何使用 `pip-audit` 且依赖锁定到老旧 ML 套件（torch / transformers / numpy / scipy 等）的项目出现同类「无 fix 可升、必须 ignore」局面，须按本案的「威胁模型 + 锁版本约束」双轴评估，而非盲目跟随 CVSS 分数升级；
+  - 现有 8 条历史 ignore（pygments / fastmcp / litellm）已不在本次失败报告里，下次例行升级时应核对其匹配性，避免 ignore 列表演变为僵化白名单。
+
+---
+
+## ISSUE-093 Studio 左栏 Session 列表新增 Delete 选项与硬删除链路（2026-05-21）
+
+- **表因**：用户希望在 Studio 页（`/studio`，根路径 `/` 重定向至此）左栏 `SessionList` 中提供一个 **Delete** 选项，把已归档或不再需要的会话**永久清理**。现有交互只有 Archive（active 视图归档）/ Unarchive（archived 视图恢复）/ 双击重命名，已归档会话无法在 UI 上彻底清除。
+- **根因**：
+  1. 后端 `apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py` 的 `delete_session()` 被有意重写为 `archive_session(archived=True)` 以维持 ADK 基类兼容契约——这是产品级"保护数据"决策，**不能**直接改回硬删除；
+  2. 因此后端**缺失**真硬删除入口（无 `DELETE` 路由、无独立 service 方法）；
+  3. 前端 `SessionList.tsx` 没有 `onDelete` prop，`useSessionListService` 没有 `deleteSession` 方法，BFF 转发层（`[sessionId]/route.ts`）只有 GET。
+- **处理方式**：
+  1. **后端**：在 `PostgresSessionService` 新增独立的 `hard_delete_session()`，直接 `DELETE FROM threads`（`Event.thread_id` 已声明 `ondelete="CASCADE"`，关联 events 由 PostgreSQL 级联自动清理）；保留 `delete_session()` 现有的归档行为不变，避免破坏 ADK 兼容契约；在 `sessions_api.py` 新增 **`@router.post("/apps/{app}/users/{user}/sessions/{id}/delete")`** 路由（**实机回归阶段发现 ADK 路由冲突**：初版使用 `@router.delete(...)`，但 ADK Web Server 已在 `DELETE /apps/.../sessions/{id}` 上注册自己的处理器，FastAPI 路由匹配先命中 ADK 版调用被重写为"归档"的 `delete_session`，让我们的硬删除路由形同虚设——curl 验证返回 `200 + null` 而非预期的 `200 + {status: ok}` 或 `404`。改走 `POST .../delete` 路径既绕开冲突，又与同模块 `archive`/`unarchive` 风格一致），调 `hard_delete_session()`，未命中返回 404；**review 补丁**：路由外层显式 `try/except ValueError` 抛 `HTTP_400_BAD_REQUEST`，与同模块 `_update_archive_state` 行为对齐，避免非 UUID 入参回落到 FastAPI 默认 500。新增集成测试覆盖：存在→True / 不存在→False / 已归档也可硬删 / events 级联清理 / 非 UUID 入参 → `ValueError`（5 个用例）。
+  2. **前端**：在 `lib/agui/session-schema.ts` 新增 `aguiSessionDeleteResponseSchema`；`_request.ts` 新增 `buildSessionDeleteUpstreamUrl()`（路径含 `/delete` 后缀）；新建独立的 `app/api/agui/sessions/[sessionId]/delete/route.ts` 转发 `POST`（与 archive/unarchive 同构，body 承载 `app_name`/`user_id`）；`useSessionListService.ts` 新增 `deleteSession(id)`，采用与 archiveSession 同构的乐观更新 + 选中切换 + 日志范式；`SessionList.tsx` 新增 `onDelete` prop 与 `Trash2` 红色按钮（active + archived 两个视图都显示），ConfirmDialog 文案明确强调"永久删除……不可恢复"，cancel autoFocus 防误触；`home-body.tsx` 注入 `onDelete={deleteSession}`。
+  3. **修复同期发现的 race**：archive/unarchive 现有范式中"在 `setSessions((prev) => { nextActiveId = prev[0]?.id ?? null; ... })` 回调内赋值闭包变量、紧随其后读它"在 React 18+ 的 lazy reducer 调度路径下会读到 `null`（已在 vitest 用例中复现）。`deleteSession` 改用同步预计算：直接读 `sessions` 闭包值 → 过滤 → 算 `nextActiveId` → 再 dispatch `setSessions(remaining)`，把 `sessions` 加入 useCallback 依赖。
+  4. **实机回归证据**（cancun-v1 工作区独立栈，后端 3293 + UI 3193）：创建测试 session → DB 写入确认 → 通过 cancun-v1 BFF `POST /api/agui/sessions/{id}/delete` 返回 `HTTP 200 + {"status":"ok"}` → DB 中该行 `remaining=0`，端到端链路（BFF transport → POST /delete 后端路由 → hard_delete_session() → DELETE FROM threads SQL → events 级联清理）全通。删除不存在的 session 通过 BFF 返回 `502 AGUI_UPSTREAM_ERROR`（透传上游 404），与 archive/unarchive 既有错误包装行为一致。
+- **后续防范**：
+  1. **"破坏性 UI 操作"必须满足三层防御**：(a) destructive 红色按钮 + cancel autoFocus（视觉与默认焦点）；(b) ConfirmDialog 文案明确写"不可恢复"并陈述清理范围；(c) 后端 service 与 ADK 标准接口解耦命名（`hard_delete_session` ≠ `delete_session`），避免后续重构悄然回退；
+  2. **`setState((prev) => { 闭包外赋值; return next; })` 是反模式**：若 dispatch 后立即需读取赋值结果，应同步预计算或将相应状态加入 useCallback 依赖。React 18+ reducer 并非紧跟 dispatch 同步执行，存在 lazy 评估路径；archive/unarchive 现有代码同样有此潜在 race，可在未来按本次修复范式重构；
+  3. **后端 ADK 兼容接口**（`delete_session` / `update_session` / `list_sessions` 等）若要新增正交语义，须新增独立方法 + 路由，禁止覆盖基类约定；
+  4. **events 表级联**：`Event.thread_id` 的 `ondelete="CASCADE"` 是本次硬删除可行的前提；新增涉及 `threads` 表的硬删除调用前必须确认这一前提仍成立；
+  5. **ADK 路由抢占检查**：凡是新增 `apps/{app}/users/{user}/sessions/{id}/...` 或 `apps/{app}/users/{user}/sessions` 下的路由，须先确认 ADK Web Server 是否在同路径同 method 上已注册——可通过 `curl` 真实请求验证（200 + 非预期 body 即说明被 ADK 抢占）；若冲突，优先在路径加业务后缀（如 `.../delete`、`.../archive`）改走 POST，而非企图覆盖 ADK 注册。单测无法发现这类冲突（只能在真实 FastAPI app 装配的运行时复现），属于"集成 / 实机回归不可替代"的典型场景。
+- **同类问题影响**：
+  - 其他模块（Skills、Knowledge Documents、Wiki Publications 等）若已有"软删/归档"语义而后续要新增"永久清理"入口，应直接复用本案范式：独立 Service 方法 + 独立 HTTP 动词路由 + UI 二次确认 + 同测试范式；
+  - 全仓库 `setState((prev) => { 闭包赋值 })` 范式可借此机会做一轮 review（grep `let \w+: .*?\| null = null;\s*setSessions`），按需重构。

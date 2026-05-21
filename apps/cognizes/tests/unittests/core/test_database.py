@@ -8,8 +8,9 @@ DatabaseManager 单元测试
 """
 
 import os
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from cognizes.core.database import DatabaseManager
 

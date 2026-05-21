@@ -163,7 +163,7 @@ class TestEpisodicPerformance:
                 plan_json = plan[0][0]
                 plan_text = str(plan_json)
 
-                print(f"\n=== 查询计划 ===")
+                print("\n=== 查询计划 ===")
                 print(plan_text[:500])
 
                 # 验证使用索引 (Index Scan 或 Bitmap Index Scan)
@@ -205,7 +205,7 @@ class TestEpisodicPerformance:
 
             start = time.perf_counter()
             async with integration_db.acquire() as conn:
-                rows = await conn.fetch(
+                await conn.fetch(
                     """
                     SELECT id, content, retention_score, created_at
                     FROM memories

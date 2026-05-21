@@ -5,12 +5,12 @@ This package contains data access layer (Repository) classes for different entit
 """
 
 from cognizes.core.repositories.base import BaseRepository
-from cognizes.core.repositories.session import SessionRepository
 from cognizes.core.repositories.event import EventRepository
-from cognizes.core.repositories.state import StateRepository
-from cognizes.core.repositories.memory import MemoryRepository
 from cognizes.core.repositories.facts import FactsRepository
 from cognizes.core.repositories.instructions import InstructionsRepository
+from cognizes.core.repositories.memory import MemoryRepository
+from cognizes.core.repositories.session import SessionRepository
+from cognizes.core.repositories.state import StateRepository
 
 __all__ = [
     "BaseRepository",

@@ -9,10 +9,10 @@ Usage:
 """
 
 import asyncio
-import time
-import numpy as np
 import logging
-from typing import List
+import time
+
+import numpy as np
 
 from cognizes.core.database import DatabaseManager
 from cognizes.engine.perception.rrf_fusion import SearchResult, rrf_fusion

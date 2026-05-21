@@ -8,12 +8,13 @@ PostgresMemoryService 单元测试
 - #11: list_memories 列出记忆
 """
 
-import pytest
 import uuid
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
 from dataclasses import dataclass
+from datetime import datetime
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 # pytest-asyncio 配置
 pytestmark = pytest.mark.asyncio
@@ -119,8 +120,9 @@ class TestPostgresMemoryService:
 
     async def test_search_memory(self, mock_db):
         """验收项 #10: 测试语义检索"""
-        from cognizes.adapters.postgres.memory_service import PostgresMemoryService
         import json
+
+        from cognizes.adapters.postgres.memory_service import PostgresMemoryService
 
         # 模拟 Repository 返回
         mock_db.memories.search_fulltext.return_value = [
@@ -163,8 +165,9 @@ class TestPostgresMemoryService:
 
     async def test_search_memory_with_embedding(self, mock_db):
         """测试使用向量检索"""
-        from cognizes.adapters.postgres.memory_service import PostgresMemoryService
         import json
+
+        from cognizes.adapters.postgres.memory_service import PostgresMemoryService
 
         # 模拟 embedding 函数
         mock_embedding_fn = AsyncMock(return_value=[0.1] * 384)
@@ -192,8 +195,9 @@ class TestPostgresMemoryService:
 
     async def test_list_memories(self, mock_db):
         """验收项 #11: 测试列出用户所有记忆"""
-        from cognizes.adapters.postgres.memory_service import PostgresMemoryService
         import json
+
+        from cognizes.adapters.postgres.memory_service import PostgresMemoryService
 
         # 模拟 Repository 返回
         mock_db.memories.list_recent.return_value = [

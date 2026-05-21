@@ -7,11 +7,10 @@ relevant documents over noise, using synthetic data.
 This validates P3-2-8 (Precision@10 Improvement) without requiring a manually labeled dataset.
 """
 
-import asyncio
-import random
 import logging
-from typing import List, Dict, Any
+import random
 from dataclasses import dataclass
+from typing import Any
 
 from cognizes.engine.perception.reranker import CrossEncoderReranker, RerankedResult
 
@@ -36,7 +35,7 @@ CASES = [
 ]
 
 
-def generate_synthetic_docs(case: BenchmarkCase) -> List[Dict[str, Any]]:
+def generate_synthetic_docs(case: BenchmarkCase) -> list[dict[str, Any]]:
     """Generate a mix of relevant and noise documents."""
     docs = []
 
@@ -67,7 +66,7 @@ def generate_synthetic_docs(case: BenchmarkCase) -> List[Dict[str, Any]]:
     return docs
 
 
-def calculate_precision_at_k(results: List[Dict[str, Any]], k: int) -> float:
+def calculate_precision_at_k(results: list[dict[str, Any]], k: int) -> float:
     """Calculate Precision@K."""
     top_k = results[:k]
     relevant_count = sum(1 for doc in top_k if doc.get("label", 0) == 1)
@@ -105,7 +104,7 @@ def benchmark():
             {"id": d["id"], "content": d["content"], "score": 0.0, "metadata": {"label": d["label"]}} for d in docs
         ]
 
-        reranked_results: List[RerankedResult] = reranker.rerank(case.query, rerank_input, top_k=len(docs))
+        reranked_results: list[RerankedResult] = reranker.rerank(case.query, rerank_input, top_k=len(docs))
 
         # Map back to dicts with labels for evaluation
         l1_docs = []

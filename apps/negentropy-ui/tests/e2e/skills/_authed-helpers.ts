@@ -12,7 +12,7 @@
  * 设计：
  * - 不依赖 .auth/* storageState 文件，每次 fresh 签发，secret 漂移即时暴露；
  * - 复用现有 utils/dev-cookie.ts 的 HMAC-SHA256 签名实现；
- * - 默认 cookie 域 ``localhost``，与 ctl.sh 启动的 UI（http://localhost:3192）匹配。
+ * - 默认 cookie 域 ``localhost``，与 cli.sh 启动的 UI（http://localhost:3192）匹配。
  */
 import type { BrowserContext } from "@playwright/test";
 import { buildPlaywrightStorageState } from "../utils/dev-cookie";

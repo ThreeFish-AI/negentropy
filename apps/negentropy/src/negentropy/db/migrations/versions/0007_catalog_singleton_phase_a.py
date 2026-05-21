@@ -26,14 +26,14 @@ Create Date: 2026-04-24 00:30:00.000000+00:00
   - 测试环境（CI）：fixture 库为空 → doc_catalogs / wiki_publications 均无数据 → 索引创建无冲突；
   - 生产环境：若已通过 0004 backfill 累积多 catalog/多 LIVE publication，
     本 migration 的 CREATE UNIQUE INDEX 步骤将抛 IntegrityError。
-    此时须按 docs/wiki/ops.md §12 runbook 先手工合并（pg_dump 备份后），
+    此时须按 docs/reference/wiki/ops.md §12 runbook 先手工合并（pg_dump 备份后），
     再重跑 alembic upgrade。
 
 Downgrade 策略：
   - 仅 DROP 新增索引 + 新增列；不反向操作既有数据（无副作用）。
   - 与 test_migrations_stairway 的 base ↔ head 往返兼容。
 
-设计溯源（IEEE 引用见 docs/knowledges.md §15）：
+设计溯源（IEEE 引用见 docs/reference/cognizes/engine/035-the-knowledge-base.md §15）：
   - [2] E. Evans, *Domain-Driven Design*, Addison-Wesley, 2003. — Aggregate Root
   - [4] M. Kleppmann, *Designing Data-Intensive Applications*, O'Reilly, 2017. — Tombstone
   - [5] P. J. Sadalage and M. Fowler, *NoSQL Distilled*, ch. "Schema Migrations", 2016. — Expand-Contract

@@ -1,4 +1,5 @@
 import base64
+import contextlib
 import os
 import sys
 from pathlib import Path
@@ -198,6 +199,85 @@ def patched_create_artifact_service_from_options(
 
     logger.info(f"Using configured artifact backend: {settings.artifact_service_backend}")
     return get_artifact_service()
+
+
+_NEGENTROPY_LIFESPAN_TIMEOUT_REGISTRY = 15.0
+_NEGENTROPY_LIFESPAN_TIMEOUT_DISPOSERS = 5.0
+
+
+def _compose_with_negentropy_lifespan(existing):
+    """把已有 ``lifespan`` 与 :func:`_negentropy_lifespan` 嵌套合并。
+
+    返回一个新的 lifespan ``async context manager``，进入时依次：
+        _negentropy_lifespan(app) → existing(app)（若非 None）→ yield
+    退出时反向退栈，保证 negentropy 业务收尾发生在 existing 之后、ADK runner
+    清理之前（详见 patched_get_fast_api_app 的注释）。
+    """
+
+    @contextlib.asynccontextmanager
+    async def _combined(app):
+        async with _negentropy_lifespan(app):
+            if existing is not None:
+                async with existing(app):
+                    yield
+            else:
+                yield
+
+    return _combined
+
+
+@contextlib.asynccontextmanager
+async def _negentropy_lifespan(app):
+    """Negentropy 业务 lifespan：替代旧 ``@app.on_event`` 钩子。
+
+    职责：
+    - **startup**：``ensure_registry_started()`` 启动统一心跳调度器；挂到
+      ``app.state.unified_scheduler_registry`` 让 SSE / 测试可访问；
+    - **shutdown**：``await registry.aclose(15s)`` 让心跳与 inflight handler 在
+      uvicorn ``timeout_graceful_shutdown`` 窗口内退出；再 ``dispose_all(5s)``
+      释放 DB pool / tracer provider / 反应式 task。
+
+    由 ``AdkWebServer.get_fast_api_app(lifespan=...)`` 注入，嵌套在 ADK
+    ``internal_lifespan`` 内部，关停顺序：
+        ADK runner cleanup → negentropy shutdown → ADK observer teardown
+
+    fail-soft：startup 失败不阻塞 FastAPI 启动（与旧 on_event 行为一致），
+    shutdown 阶段任意子步骤抛错均被捕获并记 warning。
+    """
+    registry = None
+    try:
+        from negentropy.engine.schedulers.registry import ensure_registry_started
+
+        registry = await ensure_registry_started()
+        if registry is None:
+            logger.info("unified_scheduler_skipped_or_disabled")
+        else:
+            app.state.unified_scheduler_registry = registry
+            logger.info(
+                "unified_scheduler_started_via_lifespan",
+                poll_interval=registry.poll_interval,
+            )
+    except Exception as exc:
+        logger.warning("unified_scheduler_bootstrap_failed", error=str(exc))
+
+    try:
+        yield
+    finally:
+        logger.info("negentropy_lifespan_shutdown_started")
+        if registry is not None:
+            try:
+                await registry.aclose(timeout=_NEGENTROPY_LIFESPAN_TIMEOUT_REGISTRY)
+                logger.info("unified_scheduler_stopped_via_lifespan")
+            except Exception as exc:
+                logger.warning("unified_scheduler_stop_failed", error=str(exc))
+        try:
+            from negentropy.engine.lifecycle import dispose_all
+
+            await dispose_all(timeout=_NEGENTROPY_LIFESPAN_TIMEOUT_DISPOSERS)
+            logger.info("negentropy_lifespan_disposers_completed")
+        except Exception as exc:
+            logger.warning("negentropy_lifespan_disposers_failed", error=str(exc))
+        logger.info("negentropy_lifespan_shutdown_completed")
 
 
 def apply_adk_patches():
@@ -434,34 +514,9 @@ def apply_adk_patches():
         # Feature flags：
         #   NEGENTROPY_UNIFIED_SCHEDULER_ENABLED=false → 跳过 Registry 启动（灰度回退）
         #   NEGENTROPY_SCHEDULER_HEARTBEAT_SECONDS=<float> → 调整 tick 周期（默认 5.0）
-        @app.on_event("startup")
-        async def _start_unified_scheduler():
-            try:
-                from negentropy.engine.schedulers.registry import ensure_registry_started
-
-                registry = await ensure_registry_started()
-                if registry is None:
-                    logger.info("unified_scheduler_skipped_or_disabled")
-                    return
-                # 挂在 app.state 防止 GC + shutdown 路径引用
-                app.state.unified_scheduler_registry = registry
-                logger.info(
-                    "unified_scheduler_started_via_bootstrap",
-                    poll_interval=registry.poll_interval,
-                )
-            except Exception as exc:
-                logger.warning("unified_scheduler_bootstrap_failed", error=str(exc))
-
-        @app.on_event("shutdown")
-        async def _stop_unified_scheduler():
-            registry = getattr(app.state, "unified_scheduler_registry", None)
-            if registry is not None:
-                try:
-                    registry.stop()
-                    logger.info("unified_scheduler_stopped_via_shutdown")
-                except Exception as exc:
-                    logger.warning("unified_scheduler_stop_failed", error=str(exc))
-
+        # 启停职责已迁移到模块级 :func:`_negentropy_lifespan` 上下文管理器，
+        # 通过 ``AdkWebServer.get_fast_api_app(lifespan=...)`` 注入。详见下方
+        # patched_get_fast_api_app 的注释。
         return app
 
     # Patch get_fast_api_app via AdkWebServer so it applies to current call
@@ -472,12 +527,31 @@ def apply_adk_patches():
             original_get_fast_api_app = AdkWebServer.get_fast_api_app
 
             def patched_get_fast_api_app(self, *args, **kwargs):
+                # P0-2 关键注入点：在 ADK 构造 ``FastAPI(lifespan=internal_lifespan)``
+                # 之前，把 negentropy 业务 lifespan 包裹到 ``lifespan`` 参数。
+                #
+                # 关键发现：ADK 的 ``cli_tools_click.cli_web`` 入口已显式传
+                # ``lifespan=_lifespan``（用于打印「ADK Web Server started/shutting
+                # down」横幅），因此 ``kwargs["lifespan"]`` 几乎一定**非空**。
+                # 必须用 ``_compose_with_lifespan`` 把现有 lifespan 与 negentropy
+                # lifespan 嵌套合并，而不是「仅当为空时替换」。
+                #
+                # 嵌套结构（外到内）：
+                #   _negentropy_lifespan ← combined ← 原 lifespan (ADK banner) ← yield
+                # 关停时反向退栈：
+                #   原 lifespan finally (banner) → _negentropy_lifespan finally
+                #     (registry.aclose + dispose_all) → ADK internal_lifespan finally
+                #     (observer / runners cleanup)
+                # 这保证 negentropy 业务关停发生在 ADK runner 清理**之前**，避免
+                # 调度任务在 runner 被 close 后还试图访问其 ADK service 句柄。
+                existing_lifespan = kwargs.get("lifespan")
+                kwargs["lifespan"] = _compose_with_negentropy_lifespan(existing_lifespan)
                 app = original_get_fast_api_app(self, *args, **kwargs)
                 return _inject_negentropy_routes(app)
 
             patched_get_fast_api_app._negentropy_patched = True
             AdkWebServer.get_fast_api_app = patched_get_fast_api_app
-            patched_items.append("AdkWebServer.get_fast_api_app (Middleware Injection)")
+            patched_items.append("AdkWebServer.get_fast_api_app (Middleware + Lifespan Injection)")
     except Exception as exc:
         logger.warning(f"Failed to patch AdkWebServer.get_fast_api_app: {exc}")
 

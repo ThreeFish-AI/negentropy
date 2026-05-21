@@ -221,6 +221,153 @@ describe("useSessionListService", () => {
     });
   });
 
+  // ============================================================================
+  // deleteSession：硬删除路径（与 archiveSession 同构，差异在 HTTP method/路径）。
+  //
+  // 为避免 jsdom + useSyncExternalStore mock 在多次 setState 后反复触发 useEffect
+  // 引起 waitFor 超时（mock 内 subscribe 引用每次 render 重建会触发 React 重新订阅
+  // 但与本测试目的无关），这里采用「先用 loadSessions mock 喂入两条记录，再切换
+  // mock 实现验证 DELETE 行为」的范式，与现有 archiveSession 实现等价覆盖。
+  // ============================================================================
+  it("deleteSession 通过 POST /sessions/{id}/delete 端点请求上游，body 含 app_name/user_id", async () => {
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      // 首次：useEffect 触发的 loadSessions，返回空列表。
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response)
+      // 后续所有调用（deleteSession + 可能的 loadSessions 重触发）统一兜底。
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: "ok" }),
+      } as Response);
+
+    const { result } = renderHook(() =>
+      useSessionListService({
+        sessionId: null,
+        userId: "u1",
+        appName: "negentropy",
+        setSessionId: vi.fn(),
+        addLog: vi.fn(),
+        setConnectionWithMetrics: vi.fn(),
+        onClearActiveSession: vi.fn(),
+      }),
+    );
+
+    // 等首次 loadSessions 解决，避免与 delete 调用的 fetch 顺序错位。
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      await result.current.deleteSession("s-target");
+    });
+
+    const deleteCall = fetchSpy.mock.calls.find(
+      ([url]) => String(url) === "/api/agui/sessions/s-target/delete",
+    );
+    expect(deleteCall).toBeDefined();
+    const [, calledInit] = deleteCall!;
+    expect(calledInit?.method).toBe("POST");
+    expect(JSON.parse(String(calledInit?.body))).toEqual({
+      app_name: "negentropy",
+      user_id: "u1",
+    });
+  });
+
+  it("deleteSession 成功后从列表中移除目标 session 并切换当前选中", async () => {
+    const setSessionId = vi.fn();
+    const onClearActiveSession = vi.fn();
+    const addLog = vi.fn();
+
+    // 第一次：loadSessions 返回两条；后续 DELETE 返回 ok。
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          { id: "s1", lastUpdateTime: 300 },
+          { id: "s2", lastUpdateTime: 200 },
+        ],
+      } as Response)
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: "ok" }),
+      } as Response);
+
+    const { result } = renderHook(() =>
+      useSessionListService({
+        sessionId: "s1",
+        userId: "u1",
+        appName: "negentropy",
+        setSessionId,
+        addLog,
+        setConnectionWithMetrics: vi.fn(),
+        onClearActiveSession,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.sessions.map((s) => s.id)).toEqual(["s1", "s2"]);
+    });
+
+    await act(async () => {
+      await result.current.deleteSession("s1");
+    });
+
+    expect(result.current.sessions.map((s) => s.id)).toEqual(["s2"]);
+    // 当前 sessionId 被删 → 切到剩余列表头部 + 清理 active view
+    expect(setSessionId).toHaveBeenLastCalledWith("s2");
+    expect(onClearActiveSession).toHaveBeenCalled();
+    expect(addLog).toHaveBeenCalledWith(
+      "info",
+      "session_deleted",
+      expect.objectContaining({ sessionId: "s1" }),
+    );
+  });
+
+  it("deleteSession 上游失败时记录错误且 sessions 不变", async () => {
+    const addLog = vi.fn();
+
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          { id: "s1", lastUpdateTime: 100 },
+          { id: "s2", lastUpdateTime: 200 },
+        ],
+      } as Response)
+      .mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: "boom" } }),
+      } as Response);
+
+    const { result } = renderHook(() =>
+      useSessionListService({
+        sessionId: "s2",
+        userId: "u1",
+        appName: "negentropy",
+        setSessionId: vi.fn(),
+        addLog,
+        setConnectionWithMetrics: vi.fn(),
+        onClearActiveSession: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.sessions).toHaveLength(2);
+    });
+
+    await act(async () => {
+      await result.current.deleteSession("s1");
+    });
+
+    // 列表不变（按 lastUpdateTime 倒序：s2(200) > s1(100)）
+    expect(result.current.sessions.map((s) => s.id)).toEqual(["s2", "s1"]);
+    expect(addLog).toHaveBeenCalledWith(
+      "error",
+      "delete_session_failed",
+      expect.objectContaining({ sessionId: "s1" }),
+    );
+  });
+
   it("ISSUE-088：setSessionListView('active') 删除 ?view=，URL 回到 /", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,

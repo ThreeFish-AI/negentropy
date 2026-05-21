@@ -9,14 +9,13 @@ Mind ThinkingVisualizer: 思维链可视化接口
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
-from typing import Any, Optional
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
+from typing import Any
 
 
-class MindEventType(str, Enum):
+class MindEventType(StrEnum):
     """Mind 层 AG-UI 事件类型"""
 
     THINKING_STEP = "thinking_step"
@@ -32,7 +31,7 @@ class ThinkingStep:
     step_id: str
     step_type: str  # thought, action, observation
     content: str
-    reasoning: Optional[str] = None
+    reasoning: str | None = None
     confidence: float = 1.0
     timestamp: float = field(default_factory=lambda: datetime.now().timestamp())
 
@@ -44,7 +43,7 @@ class ToolExecution:
     tool_call_id: str
     tool_name: str
     args: dict
-    result: Optional[Any] = None
+    result: Any | None = None
     status: str = "pending"  # pending, running, completed, failed
     latency_ms: float = 0.0
 
@@ -54,10 +53,10 @@ class TraceSpan:
     """追踪 Span"""
 
     span_id: str
-    parent_span_id: Optional[str]
+    parent_span_id: str | None
     operation_name: str
     start_time: float
-    end_time: Optional[float] = None
+    end_time: float | None = None
     attributes: dict = field(default_factory=dict)
     status: str = "running"
 

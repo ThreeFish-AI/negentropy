@@ -12,31 +12,50 @@
 ## 工程经验沉淀
 
 - [Issues 摘要](issue.md) — 历次问题表因 / 根因 / 处理 / 防范的跨上下文留存
+- [Development（开发指南）](../concepts/development.md) — 环境搭建、开发工作流、数据库迁移、前后端对接
 
-## 系统架构与设计
+## 系统概念与设计
 
-- [Framework（系统框架）](../architecture/framework.md)
-- [Development（开发指南）](../architecture/development.md)
-- [Conversation Foundation（对话基础）](../architecture/conversation-foundation.md)
-- [A2UI（Agent-to-UI 协议）](../architecture/a2ui.md)
+- [Framework（系统框架）](../concepts/framework.md)
+- [Conversation Foundation（对话基础）](../concepts/conversation-foundation.md)
+- [A2UI（Agent-to-UI 协议）](../concepts/a2ui.md)
+- [SSO（单点登录设计）](../concepts/design/sso.md)
+- [Observability / GenAI 可观测性](../concepts/design/observability-genai.md)
+- [QA Delivery Pipeline](../concepts/design/qa-delivery-pipeline.md)
 
 ## 系统能力概览
 
-- [Memory（记忆系统）](../memory/overview.md) · [白皮书](../memory/whitepaper.md)
-- [Knowledge Graph（知识图谱）](../knowledge/design/kg-overview.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../knowledge/design/kg-federated.md)
-- [Skills](../core/design/skills.md)
-- [Negentropy Wiki Ops](../wiki/ops.md)
-- [Wiki 知识图谱（按 Publication 切片发布）](../wiki/design/knowledge-graph.md)
-- [Agents at Wiki —— 浏览器回归验证报告](../wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
-- [Engineering Changelog](../core/engineering-changelog.md)
+- [Memory（记忆系统）](../concepts/025-the-memory-system.md) · [白皮书](../concepts/026-memory-whitepaper.md)
+- [Knowledge Base（知识库设计）](../concepts/035-the-knowledge-base.md)
+- [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
+- [Skills](../concepts/design/skills.md)
+- [Negentropy Wiki Ops](../reference/wiki/ops.md)
+- [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
+- [Agents at Wiki —— 浏览器回归验证报告](../reference/wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
+- [Engineering Changelog](../concepts/engineering-changelog.md)
+
+## 概念层（Concepts）
+
+- [Cognizes Engine 总览](../reference/cognizes/engine/README.md) — Agentic AI Engine 一核五翼架构入口
+- [P1 The Pulse](../reference/cognizes/engine/010-the-pulse.md) · [P2 The Hippocampus](../reference/cognizes/engine/020-the-hippocampus.md) · [P3 The Perception](../reference/cognizes/engine/030-the-perception.md) · [P4 The Realm of Mind](../reference/cognizes/engine/040-the-realm-of-mind.md) · [P5 Integrated Demo](../reference/cognizes/engine/050-integrated-demo.md)
+- 子系统专项：[025 Memory System](../concepts/025-the-memory-system.md) · [026 Memory Whitepaper](../concepts/026-memory-whitepaper.md) · [035 Knowledge Base](../concepts/035-the-knowledge-base.md) · [036 Knowledge Graph](../concepts/036-the-knowledge-graph.md) · [037 Federated KG](../concepts/037-federated-kg.md)
+- 参考 DDL：[`reference/cognizes/engine/schema/`](../reference/cognizes/engine/schema/)（hippocampus / perception / kg_schema_extension）
+
+## 项目级 PRD / Plan / Checklist
+
+- [PRD & Architecture](../reference/cognizes/000-prd-architecture.md) — Agentic AI 学术研究与工程应用平台 产品需求与架构
+- [Implementation Plan](../reference/cognizes/001-implementation-plan.md) — 实施计划
+- [Task Checklist](../reference/cognizes/002-task-checklist.md) — 任务执行清单
+
+## 研究文献 / Research
+
+- [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
 
 ## 用户文档与运维
 
 - [User Guide（用户指南）](../user-guide.md)
-- [Knowledges（知识库引用）](../knowledge/design/knowledges.md)
-- [SSO 配置](../infrastructure/design/sso.md)
-- [Observability / GenAI 可观测性](../infrastructure/design/observability-genai.md)
-- [QA Delivery Pipeline](../infrastructure/design/qa-delivery-pipeline.md)
+- [Admin（管理后台）](../concepts/user-guide/admin.md)
+- [Knowledges（知识库引用）](../concepts/035-the-knowledge-base.md)
 
 ## 关键基础设施
 
@@ -56,7 +75,5 @@
 - Git 提交：使用 Claude Code `/commit` slash command，严禁 rebase；分支命名见 AGENTS.md
 - 数据库迁移：使用 alembic，严禁清理数据；新增表使用偏唯一索引覆盖 PG 复合主键 NULL 语义（参考 `0032_task_model_settings.py`）
 
-## RFC / Architecture（链接结构占位）
-
-- `docs/rfcs/` — 设计提案与决策记录
-- `docs/schema/` — 数据 schema 规范
+- [RFC 0001：会话架构重塑](../concepts/0001-conversation-architecture-refactor.md) · [RFC 0002：UI 交互增强](../concepts/0002-ui-interaction-enhancements.md) — 设计提案与决策记录
+- `docs/reference/cognizes/engine/schema/` — 数据 schema 参考 DDL（Knowledge / Memory / KG）

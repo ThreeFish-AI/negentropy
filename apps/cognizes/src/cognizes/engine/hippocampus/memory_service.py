@@ -8,16 +8,14 @@ OpenMemoryService: ADK MemoryService 适配器
 from __future__ import annotations
 
 import json
-import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any
 
 import asyncpg
 
-from .consolidation_worker import MemoryConsolidationWorker, JobType
-from .retention_manager import MemoryRetentionManager
+from .consolidation_worker import JobType, MemoryConsolidationWorker
 from .context_assembler import ContextAssembler, ContextWindow
+from .retention_manager import MemoryRetentionManager
 
 
 @dataclass
@@ -166,7 +164,7 @@ class OpenMemoryService:
             ORDER BY relevance * retention_score DESC
             LIMIT ${param_idx + 2}
         """
-        params.extend([query_embedding, min_relevance, limit])
+        params.extend([query_embedding, min_relevance, limit])  # type: ignore[list-item]
 
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)
@@ -243,7 +241,7 @@ class OpenMemoryService:
             LIMIT ${param_idx}
             OFFSET ${param_idx + 1}
         """
-        params.extend([limit, offset])
+        params.extend([limit, offset])  # type: ignore[list-item]
 
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(sql, *params)

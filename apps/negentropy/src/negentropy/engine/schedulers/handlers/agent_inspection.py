@@ -365,17 +365,21 @@ async def _scheduled_tasks_summary(ctx: ContextPack) -> HandlerResult:
     占比 > 50% 时返回 ``status='failed'``（即"全员失败"系统级警报）。
     """
     async with AsyncSessionLocal() as db:
+        # 归一化 NULL → "none" 下沉到 Python 端：避免 SELECT/GROUP BY 中重复使用
+        # ``func.coalesce(col, literal)`` —— SQLAlchemy 会为同一字面量生成独立
+        # BindParameter（$1 / $2），PostgreSQL 按 AST 等价判定 GROUP BY 时视作不同
+        # 表达式，触发 GroupingError。直接按列分组 + Python 归一化最稳健。
         stmt = (
             select(
-                func.coalesce(ScheduledTask.last_status, "none").label("status"),
+                ScheduledTask.last_status.label("status"),
                 func.count(ScheduledTask.id).label("count"),
             )
             .where(ScheduledTask.enabled.is_(True))
-            .group_by(func.coalesce(ScheduledTask.last_status, "none"))
+            .group_by(ScheduledTask.last_status)
         )
         rows = (await db.execute(stmt)).all()
 
-    distribution: dict[str, int] = {str(r.status): int(r.count) for r in rows}
+    distribution: dict[str, int] = {(r.status if r.status is not None else "none"): int(r.count) for r in rows}
     total = sum(distribution.values()) or 1
     failed = distribution.get("failed", 0)
     failed_ratio = failed / total

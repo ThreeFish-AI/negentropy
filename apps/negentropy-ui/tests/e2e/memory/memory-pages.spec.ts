@@ -41,8 +41,11 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
     });
   });
 
-  await page.goto("/memory");
+  await page.goto("/dashboard");
   await page.waitForLoadState("networkidle");
+
+  // Memory Section 应可见
+  await expect(page.getByText("Memory Overview")).toBeVisible();
 
   // 验证 8 个标签（DOM 文本为小写，CSS `uppercase` 视觉转换；用精确匹配避免 strict mode violation）
   await expect(page.getByText("Users", { exact: true })).toBeVisible();
@@ -56,8 +59,9 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
   await expect(page.getByText("High Importance", { exact: true })).toBeVisible();
   await expect(page.getByText("Recent Audits", { exact: true })).toBeVisible();
 
-  // 验证卡片数值（用 locator 限定到卡片容器内的值文本）
-  const cards = page.locator(".grid > div");
+  // 验证卡片数值（限定到 Memory Overview section 内，避免匹配 Dashboard 其他 section 的 .grid > div）
+  const memorySection = page.locator("section").filter({ hasText: "Memory Overview" });
+  const cards = memorySection.locator(".grid > div");
   await expect(cards).toHaveCount(8);
   // Spot check specific values using card-scoped locators
   await expect(cards.nth(0).locator("p").last()).toHaveText("7");
@@ -85,7 +89,10 @@ test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
     });
   });
 
-  await page.goto("/memory");
+  await page.goto("/dashboard");
+
+  // Memory Section 应可见
+  await expect(page.getByText("Memory Overview")).toBeVisible();
 
   // 点击展开 Retrieval Metrics
   await page.getByText("Retrieval Metrics").click();
@@ -137,7 +144,7 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 
   await expect(page.getByText("Memory Timeline")).toBeVisible();
-  await expect(page.getByText("3 memories")).toBeVisible();
+  await expect(page.getByText("1 memories")).toBeVisible();
   await expect(page.getByText("Test memory content")).toBeVisible();
   await expect(page.getByText("85%")).toBeVisible();
 });
@@ -274,33 +281,34 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
 // Navigation
 // ============================================================================
 
-test("Memory 导航栏包含所有 7 个页面标签", async ({ page }) => {
+test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
-  await page.route("**/api/memory/dashboard**", async (route) => {
+  await page.route("**/api/memory**", async (route) => {
+    if (route.request().url().includes("/api/memory/dashboard")) return;
+    if (route.request().url().includes("/api/memory/search")) return;
+    if (route.request().url().includes("/api/memory/facts")) return;
+    if (route.request().url().includes("/api/memory/audit")) return;
+    if (route.request().url().includes("/api/memory/conflicts")) return;
+    if (route.request().url().includes("/api/memory/retrieval")) return;
+    if (route.request().url().includes("/api/memory/automation")) return;
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        user_count: 0,
-        memory_count: 0,
-        fact_count: 0,
-        avg_retention_score: 0,
-        avg_importance_score: 0,
-        low_retention_count: 0,
-        high_importance_count: 0,
-        recent_audit_count: 0,
+        users: [],
+        timeline: [],
+        policies: {},
       }),
     });
   });
 
-  await page.goto("/memory");
+  await page.goto("/memory/timeline");
 
-  await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Timeline" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Facts" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conflicts" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Automation" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Activity" })).toBeVisible();
 });

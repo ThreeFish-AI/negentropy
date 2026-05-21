@@ -16,10 +16,10 @@ Usage:
 Task ID: P3-5-2
 """
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
-import re
+from typing import Any
 
 # tiktoken is optional - use character-based estimation as fallback
 try:
@@ -27,7 +27,7 @@ try:
 
     TIKTOKEN_AVAILABLE = True
 except ImportError:
-    tiktoken = None
+    tiktoken = None  # type: ignore[assignment]
     TIKTOKEN_AVAILABLE = False
 
 
@@ -40,11 +40,11 @@ class Chunk:
     start_char: int = 0
     end_char: int = 0
     token_count: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # For hierarchical chunking
-    parent_id: Optional[str] = None
-    children_ids: List[str] = field(default_factory=list)
+    parent_id: str | None = None
+    children_ids: list[str] = field(default_factory=list)
 
 
 class ChunkingStrategy(ABC):
@@ -91,14 +91,14 @@ class ChunkingStrategy(ABC):
         # Fallback: estimate tokens from character count
         return len(text) // self.CHARS_PER_TOKEN
 
-    def _decode_tokens(self, tokens: List[int]) -> str:
+    def _decode_tokens(self, tokens: list[int]) -> str:
         """Decode tokens back to text."""
         if self._use_tiktoken and self.encoding:
             return self.encoding.decode(tokens)
         raise NotImplementedError("Token decoding requires tiktoken")
 
     @abstractmethod
-    def split(self, text: str, source_uri: str = "", **kwargs) -> List[Chunk]:
+    def split(self, text: str, source_uri: str = "", **kwargs) -> list[Chunk]:
         """
         Split text into chunks.
 
@@ -121,7 +121,7 @@ class FixedLengthChunker(ChunkingStrategy):
     适用场景：结构化程度低的通用文本。
     """
 
-    def split(self, text: str, source_uri: str = "", **kwargs) -> List[Chunk]:
+    def split(self, text: str, source_uri: str = "", **kwargs) -> list[Chunk]:
         """Split text into fixed-length chunks by tokens or characters."""
         if not text:
             return []
@@ -132,7 +132,7 @@ class FixedLengthChunker(ChunkingStrategy):
         else:
             return self._split_by_chars(text, source_uri)
 
-    def _split_by_tokens(self, text: str, source_uri: str) -> List[Chunk]:
+    def _split_by_tokens(self, text: str, source_uri: str) -> list[Chunk]:
         """Split by tokens using tiktoken."""
         tokens = self.encoding.encode(text)
         total_tokens = len(tokens)
@@ -143,7 +143,7 @@ class FixedLengthChunker(ChunkingStrategy):
         # Ensure overlap < chunk_size to prevent infinite loop
         effective_overlap = min(self.chunk_overlap, self.chunk_size - 1)
 
-        chunks: List[Chunk] = []
+        chunks: list[Chunk] = []
         index = 0
         token_start = 0
 
@@ -176,7 +176,7 @@ class FixedLengthChunker(ChunkingStrategy):
 
         return chunks
 
-    def _split_by_chars(self, text: str, source_uri: str) -> List[Chunk]:
+    def _split_by_chars(self, text: str, source_uri: str) -> list[Chunk]:
         """Split by characters (fallback when tiktoken unavailable)."""
         # Convert token-based sizes to character-based
         char_size = self.chunk_size * self.CHARS_PER_TOKEN
@@ -189,7 +189,7 @@ class FixedLengthChunker(ChunkingStrategy):
         if total_chars == 0:
             return []
 
-        chunks: List[Chunk] = []
+        chunks: list[Chunk] = []
         index = 0
         char_start = 0
 
@@ -248,14 +248,14 @@ class RecursiveChunker(ChunkingStrategy):
         "",  # 字符级别（最后手段）
     ]
 
-    def split(self, text: str, source_uri: str = "", **kwargs) -> List[Chunk]:
+    def split(self, text: str, source_uri: str = "", **kwargs) -> list[Chunk]:
         chunks = self._recursive_split(text, self.SEPARATORS)
 
-        result: List[Chunk] = []
+        result: list[Chunk] = []
         current_chunk = ""
         current_start = 0
 
-        for i, chunk in enumerate(chunks):
+        for _i, chunk in enumerate(chunks):
             # Check if adding this chunk exceeds limit
             combined = current_chunk + chunk if current_chunk else chunk
             if self._count_tokens(combined) <= self.chunk_size:
@@ -304,7 +304,7 @@ class RecursiveChunker(ChunkingStrategy):
 
         return result
 
-    def _recursive_split(self, text: str, separators: List[str]) -> List[str]:
+    def _recursive_split(self, text: str, separators: list[str]) -> list[str]:
         """Recursively split text using separators in priority order."""
         if not separators:
             return [text]
@@ -375,7 +375,7 @@ class SemanticChunker(ChunkingStrategy):
                 raise ImportError(
                     "sentence-transformers is required for SemanticChunker. "
                     "Install with: pip install sentence-transformers"
-                )
+                ) from None
         return self._model
 
     def _compute_similarity(self, text1: str, text2: str) -> float:
@@ -389,7 +389,7 @@ class SemanticChunker(ChunkingStrategy):
         )
         return float(similarity)
 
-    def split(self, text: str, source_uri: str = "", **kwargs) -> List[Chunk]:
+    def split(self, text: str, source_uri: str = "", **kwargs) -> list[Chunk]:
         # First, split into sentences
         sentences = self._split_into_sentences(text)
 
@@ -415,7 +415,7 @@ class SemanticChunker(ChunkingStrategy):
         boundaries.append(len(sentences))
 
         # Create chunks from boundaries
-        chunks: List[Chunk] = []
+        chunks: list[Chunk] = []
         for i in range(len(boundaries) - 1):
             start_idx = boundaries[i]
             end_idx = boundaries[i + 1]
@@ -442,7 +442,7 @@ class SemanticChunker(ChunkingStrategy):
 
         return chunks
 
-    def _split_into_sentences(self, text: str) -> List[str]:
+    def _split_into_sentences(self, text: str) -> list[str]:
         """Split text into sentences."""
         # Simple sentence splitting (can be improved with NLTK/spaCy)
         pattern = r"(?<=[.!?。！？])\s+"
@@ -469,7 +469,7 @@ class HierarchicalChunker(ChunkingStrategy):
         self.parent_chunk_size = parent_chunk_size
         self.child_chunk_size = child_chunk_size
 
-    def split(self, text: str, source_uri: str = "", **kwargs) -> List[Chunk]:
+    def split(self, text: str, source_uri: str = "", **kwargs) -> list[Chunk]:
         # First, create parent chunks
         parent_chunker = RecursiveChunker(
             chunk_size=self.parent_chunk_size,
@@ -483,7 +483,7 @@ class HierarchicalChunker(ChunkingStrategy):
             chunk_overlap=self.chunk_overlap,
         )
 
-        all_chunks: List[Chunk] = []
+        all_chunks: list[Chunk] = []
 
         for parent in parent_chunks:
             parent_id = f"parent_{parent.index}"
@@ -579,7 +579,7 @@ def chunk_text(
     chunk_overlap: int = 50,
     source_uri: str = "",
     **kwargs,
-) -> List[Chunk]:
+) -> list[Chunk]:
     """
     Convenience function to chunk text with a single call.
 

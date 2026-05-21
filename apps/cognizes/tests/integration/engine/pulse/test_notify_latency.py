@@ -8,7 +8,6 @@ NOTIFY 延迟测试
 
 import asyncio
 import time
-import uuid
 
 import pytest
 import pytest_asyncio

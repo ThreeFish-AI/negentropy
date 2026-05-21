@@ -5,11 +5,8 @@ Hippocampus 集成测试配置
 """
 
 import asyncio
-import os
 import uuid
-from datetime import datetime, timedelta
 
-import asyncpg
 import pytest
 
 from cognizes.core.database import DatabaseManager

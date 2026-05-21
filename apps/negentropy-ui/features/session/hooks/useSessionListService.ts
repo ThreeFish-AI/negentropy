@@ -35,6 +35,7 @@ export interface UseSessionListServiceReturnValue {
   startNewSession: () => Promise<string | null>;
   archiveSession: (id: string) => Promise<void>;
   unarchiveSession: (id: string) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
   scheduleTitleRefresh: () => void;
   updateCurrentSessionTime: (id: string) => void;
@@ -256,6 +257,70 @@ export function useSessionListService(
     [addLog, appName, onClearActiveSession, sessionId, setSessionId, userId],
   );
 
+  const deleteSession = useCallback(
+    async (id: string) => {
+      // 与 archiveSession 同构的乐观更新 + 选中切换 + 日志范式。
+      //
+      // HTTP 方法采用 ``POST /api/agui/sessions/{id}/delete`` 而非 ``DELETE``：
+      // ADK Web Server 已在 ``DELETE /apps/.../sessions/{id}`` 上注册其自身处理器
+      // （调用被本仓库重写为"归档"的 ``delete_session``），FastAPI 会先匹配 ADK
+      // 版本，让我们的硬删除路由失活。``POST .../delete`` 既绕开该冲突，又与同
+      // 模块 archive/unarchive 路径风格一致。
+      //
+      // 后端调用 ``hard_delete_session()`` 真删，**不可恢复**——上层入口必须经
+      // destructive 二次确认（参见 ``SessionList`` 中的 ConfirmDialog）。
+      try {
+        const response = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(id)}/delete`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_name: appName,
+              user_id: userId,
+            }),
+          },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error?.message || "delete_session_failed");
+        }
+
+        // 预计算下一个状态：直接在闭包内读取 sessions 当前值后过滤，再 dispatch
+        // setSessions(next)。避免 archive/unarchive 现有范式中"setSessions 回调
+        // 内赋值闭包变量 nextActiveId、紧随其后读它"在 React 18+ 的 lazy reducer
+        // 调度路径下读到 null 的 race。代价：sessions 加入 useCallback 依赖会让
+        // deleteSession 引用随 sessions 变化重建，但 SessionList 未做 memo，无影响。
+        const remaining = sessions.filter((session) => session.id !== id);
+        const nextActiveId = remaining[0]?.id ?? null;
+        setSessions(remaining);
+
+        if (sessionId === id) {
+          setSessionId(nextActiveId);
+          onClearActiveSession();
+        }
+
+        addLog("info", "session_deleted", { sessionId: id });
+      } catch (error) {
+        addLog("error", "delete_session_failed", {
+          message: String(error),
+          sessionId: id,
+        });
+      }
+    },
+    [
+      addLog,
+      appName,
+      onClearActiveSession,
+      sessionId,
+      sessions,
+      setSessionId,
+      userId,
+    ],
+  );
+
   const renameSession = useCallback(
     async (id: string, title: string) => {
       const cleanedTitle = title.trim();
@@ -383,6 +448,7 @@ export function useSessionListService(
     startNewSession,
     archiveSession,
     unarchiveSession,
+    deleteSession,
     renameSession,
     scheduleTitleRefresh,
     updateCurrentSessionTime,

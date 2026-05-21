@@ -31,10 +31,9 @@ import json
 import os
 import time
 import uuid
-from typing import Any
 
-from locust import HttpUser, TaskSet, task, between, events
-from locust.runners import MasterRunner, WorkerRunner
+from locust import HttpUser, TaskSet, between, events, task
+from locust.runners import MasterRunner
 
 # 全局连接池 (Worker 共享)
 _pool = None

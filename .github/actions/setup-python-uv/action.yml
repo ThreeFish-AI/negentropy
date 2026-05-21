@@ -14,6 +14,9 @@ inputs:
   working-directory:
     description: 项目目录（相对于仓库根目录）
     default: "."
+  frozen:
+    description: 是否启用严格锁文件模式（uv sync --frozen），当锁文件与 pyproject 不一致时 fail-fast
+    default: "false"
 
 runs:
   using: composite
@@ -32,8 +35,12 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
+        flags=""
+        if [ "${{ inputs.frozen }}" = "true" ]; then
+          flags="--frozen"
+        fi
         if [ "${{ inputs.install-dev }}" = "true" ]; then
-          uv sync --group dev
+          uv sync $flags --group dev
         else
-          uv sync
+          uv sync $flags
         fi

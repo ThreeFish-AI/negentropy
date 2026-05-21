@@ -38,12 +38,6 @@ export type {
   UseMemoryAuditReturnValue,
 } from "./hooks/useMemoryAudit";
 
-export { useActivityLog } from "./hooks/useActivityLog";
-export type {
-  UseActivityLogOptions,
-  UseActivityLogReturnValue,
-} from "./hooks/useActivityLog";
-
 // ============================================================================
 // Components
 // ============================================================================
@@ -53,6 +47,7 @@ export {
   isRetryable,
 } from "./components/RetryableErrorBanner";
 export { MemoryTimelineCard } from "./components/MemoryTimelineCard";
+export { MemoryUserSelect } from "./components/MemoryUserSelect";
 export type {
   RetryableError,
   RetryableErrorBannerProps,
@@ -81,15 +76,6 @@ export {
   submitRetrievalFeedback,
   fetchRetrievalMetrics,
 } from "./utils/memory-api";
-
-// ============================================================================
-// Activity Log Types
-// ============================================================================
-
-export type {
-  ActivityEntry,
-  ActivityLevel,
-} from "@/lib/activity-store";
 
 // ============================================================================
 // Types

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """应用生命周期管理."""
     # 启动时初始化
     logger.info("Starting Agentic AI Papers API...")

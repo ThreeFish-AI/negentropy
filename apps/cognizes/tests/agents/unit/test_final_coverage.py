@@ -3,8 +3,8 @@
 
 def test_imports_coverage():
     """Test imports for coverage."""
-    from cognizes.api import main, routes, services
     from cognizes.agents.claude import pdf_agent, translation_agent
+    from cognizes.api import main, routes, services
 
     assert main is not None
     assert routes is not None

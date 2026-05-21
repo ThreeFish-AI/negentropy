@@ -92,7 +92,7 @@ def test_langfuse_trace():
     # 强制刷新
     client.flush()
     print("\n✅ Trace 已发送到 Langfuse!")
-    print(f"\n🔗 查看 Trace:")
+    print("\n🔗 查看 Trace:")
     print(f"   {os.environ['LANGFUSE_HOST']}/trace/{trace_id}")
 
     return trace_id
@@ -100,7 +100,7 @@ def test_langfuse_trace():
 
 def test_observe_decorator():
     """测试 @observe 装饰器"""
-    from langfuse import observe, get_client
+    from langfuse import get_client, observe
 
     # 确保客户端已初始化
     client = get_client()
@@ -139,7 +139,7 @@ def main():
     print("\n" + "-" * 40)
     print("测试 1: 基本 Trace 功能 (Context Manager)")
     print("-" * 40)
-    trace_id = test_langfuse_trace()
+    test_langfuse_trace()
 
     # 3. 测试装饰器
     print("\n" + "-" * 40)

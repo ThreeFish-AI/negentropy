@@ -897,7 +897,7 @@ class KnowledgeRepository:
         使用数据库原生的 kb_hybrid_search() 函数进行混合检索，
         相比 Python 端合并，性能更优且减少数据传输。
 
-        参考: docs/schema/perception_schema.sql Part 6
+        参考: docs/reference/cognizes/engine/schema/perception_schema.sql Part 6
         """
         params: dict[str, Any] = {
             "p_corpus_id": str(corpus_id),

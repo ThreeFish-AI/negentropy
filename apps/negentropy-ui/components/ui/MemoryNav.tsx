@@ -6,13 +6,11 @@ import { usePathname } from "next/navigation";
 import { useNavigation } from "@/components/providers/NavigationProvider";
 
 const NAV_ITEMS = [
-  { href: "/memory", label: "Dashboard" },
   { href: "/memory/timeline", label: "Timeline" },
   { href: "/memory/facts", label: "Facts" },
   { href: "/memory/audit", label: "Audit" },
   { href: "/memory/conflicts", label: "Conflicts" },
   { href: "/memory/automation", label: "Automation" },
-  { href: "/memory/activity", label: "Activity" },
 ];
 
 export function MemoryNav({
@@ -31,8 +29,7 @@ export function MemoryNav({
     };
   }, [title, setNavigationInfo]);
 
-  const isActive = (href: string) =>
-    href === "/memory" ? pathname === "/memory" : pathname.startsWith(href);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <div className="border-b border-border bg-card px-6 py-1">

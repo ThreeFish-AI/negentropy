@@ -11,22 +11,17 @@ Tests cover the RAG-E2E test cases from the design document:
 Task ID: P3-5-1, P3-5-3, P3-5-4, P3-5-5
 """
 
-import pytest
-import tempfile
 import time
-from pathlib import Path
 
+import pytest
+
+from cognizes.engine.perception.ingestion import (
+    get_ingester,
+)
 from cognizes.engine.perception.rag_pipeline import (
-    RAGPipeline,
     RAGResponse,
     get_rag_pipeline,
 )
-from cognizes.engine.perception.ingestion import (
-    DocumentIngester,
-    get_ingester,
-)
-from cognizes.engine.perception.embedder import get_embedder
-from cognizes.engine.perception.chunking import chunk_text
 
 # pytest-asyncio 配置
 pytestmark = pytest.mark.asyncio
@@ -353,5 +348,5 @@ class TestFullPipelineIntegration:
         assert len(response.answer) > 0
         assert len(response.sources) > 0
 
-        print(f"✅ Full Pipeline: Indexed and queried successfully")
+        print("✅ Full Pipeline: Indexed and queried successfully")
         print(f"  Answer preview: {response.answer[:100]}...")

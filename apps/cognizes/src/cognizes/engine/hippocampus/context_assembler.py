@@ -282,7 +282,7 @@ class ContextAssembler:
 
     def format_context(self, window: ContextWindow) -> str:
         """将上下文窗口格式化为 Prompt"""
-        sections = {
+        sections: dict[str, list[str]] = {
             "system": [],
             "fact": [],
             "memory": [],

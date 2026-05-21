@@ -9,11 +9,12 @@ ToolRegistry 单元测试
 - #16: 热更新 (无需重启)
 """
 
-import pytest
-import uuid
-import json
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+import json
+import uuid
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 # pytest-asyncio 配置
 pytestmark = pytest.mark.asyncio

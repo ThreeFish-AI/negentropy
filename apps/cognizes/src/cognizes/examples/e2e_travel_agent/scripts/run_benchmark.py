@@ -3,12 +3,11 @@
 """
 
 import asyncio
-import time
 import statistics
 import sys
-from pathlib import Path
+import time
 from dataclasses import dataclass
-from enum import Enum
+from pathlib import Path
 
 # 添加 src 目录到 Python 路径
 _HERE = Path(__file__).resolve().parent
@@ -21,10 +20,10 @@ if str(_PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
 # 导入服务
-from services import create_services
-from config import config, BackendType
-from agent import create_travel_agent
-from google.adk.runners import Runner
+from agent import create_travel_agent  # noqa: E402
+from config import BackendType, config  # noqa: E402
+from google.adk.runners import Runner  # noqa: E402
+from services import create_services  # noqa: E402
 
 
 @dataclass
@@ -90,7 +89,7 @@ class PerformanceBenchmark:
         # 预热
         print(f"Warming up {backend_type.value} backend...")
         warmup_session = await session_service.create_session(app_name="benchmark_app", user_id="warmup_user")
-        for i in range(2):
+        for _i in range(2):
             await self.run_single_request(runner, session_service, "warmup_user", warmup_session.id, "test")
 
         # 执行基准测试
