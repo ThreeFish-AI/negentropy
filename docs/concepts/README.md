@@ -104,7 +104,7 @@ Google Vertex AI 的 **RAG Engine** 和 **Agent Engine (Agent Builder)** 是我�
 
 | Google 核心模块        | 职责                          | PostgreSQL 复刻策略                   | Weaviate 复刻策略                    | Milvus 复刻策略                     | 技术实现                                                                                      | 支撑文档                                                                                  |
 | :--------------------- | :---------------------------- | :------------------------------------ | :----------------------------------- | :---------------------------------- | :-------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------- |
-| **Data Connectors**    | 多源数据接入 (GCS/Drive/Jira) | 本地文件 + URL 导入                   | Batch Import API + Unstructured 集成 | PyMilvus Bulk Insert + Kafka Stream | [`ingestion.py`](src/cognizes/engine/perception/ingestion.py) (`DocumentIngester`)            | [010-knowledge-base-fundamentals.md](../cognizes/teaching/010-knowledge-base-fundamentals.md) §2 |
+| **Data Connectors**    | 多源数据接入 (GCS/Drive/Jira) | 本地文件 + URL 导入                   | Batch Import API + Unstructured 集成 | PyMilvus Bulk Insert + Kafka Stream | [`ingestion.py`](src/cognizes/engine/perception/ingestion.py) (`DocumentIngester`)            | [034a-knowledge-base-fundamentals.md](../research/034a-knowledge-base-fundamentals.md) §2 |
 | **Document Parsers**   | 多格式解析 (PDF/OCR/Markdown) | Markdown/TXT/PDF 解析器               | Unstructured / Aryn Sycamore 集成    | PyMuPDF / Docling 集成              | [`ingestion.py`](src/cognizes/engine/perception/ingestion.py) (`MarkdownParser`, `PDFParser`) | [030-the-perception.md](030-the-perception.md) §6.1                                  |
 | **RAG Corpus Manager** | 语料库生命周期管理            | `corpus` + `knowledge_base` 表 (CRUD) | Collection + Tenant (Multi-tenancy)  | Collection + Partition              | [`perception_schema.sql`](src/cognizes/engine/schema/perception_schema.sql) (Part 1)          | [030-the-perception.md](030-the-perception.md) §3.2                                  |
 
@@ -112,8 +112,8 @@ Google Vertex AI 的 **RAG Engine** 和 **Agent Engine (Agent Builder)** 是我�
 
 | Google 核心模块       | 职责                                   | PostgreSQL 复刻策略                          | Weaviate 复刻策略                        | Milvus 复刻策略                                  | 技术实现                                                                                            | 支撑文档                                                                                    |
 | :-------------------- | :------------------------------------- | :------------------------------------------- | :--------------------------------------- | :----------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
-| **Chunking Service**  | 文档分块 (chunk_size, chunk_overlap)   | Recursive / Semantic / Fixed-Length Chunker  | Document-Based / Semantic Chunking       | Fixed-Size (256 tokens) + Overlap / Hierarchical | [`chunking.py`](src/cognizes/engine/perception/chunking.py) (`RecursiveChunker`, `SemanticChunker`) | [010-knowledge-base-fundamentals.md](../cognizes/teaching/010-knowledge-base-fundamentals.md) §2.2 |
-| **Embedding Service** | 向量化 (Gemini / text-embedding-005)   | OpenAI / SentenceTransformer / Mock Provider | Vectorizer Module (OpenAI, Cohere, etc.) | Embedding Function (OpenAI, BGE-M3, etc.)        | [`embedder.py`](src/cognizes/engine/perception/embedder.py) (`OpenAIEmbeddingProvider`)             | [010-knowledge-base-fundamentals.md](../cognizes/teaching/010-knowledge-base-fundamentals.md) §2.3 |
+| **Chunking Service**  | 文档分块 (chunk_size, chunk_overlap)   | Recursive / Semantic / Fixed-Length Chunker  | Document-Based / Semantic Chunking       | Fixed-Size (256 tokens) + Overlap / Hierarchical | [`chunking.py`](src/cognizes/engine/perception/chunking.py) (`RecursiveChunker`, `SemanticChunker`) | [034a-knowledge-base-fundamentals.md](../research/034a-knowledge-base-fundamentals.md) §2.2 |
+| **Embedding Service** | 向量化 (Gemini / text-embedding-005)   | OpenAI / SentenceTransformer / Mock Provider | Vectorizer Module (OpenAI, Cohere, etc.) | Embedding Function (OpenAI, BGE-M3, etc.)        | [`embedder.py`](src/cognizes/engine/perception/embedder.py) (`OpenAIEmbeddingProvider`)             | [034a-knowledge-base-fundamentals.md](../research/034a-knowledge-base-fundamentals.md) §2.3 |
 | **Indexing Service**  | 向量索引构建 (Vertex AI Vector Search) | PGVector HNSW 索引 + GIN 全文索引            | HNSW / Flat / Dynamic + Inverted Index   | HNSW / IVF_FLAT / DiskANN + Tantivy Inverted     | [`perception_schema.sql`](src/cognizes/engine/schema/perception_schema.sql) (Part 1.3)              | [030-the-perception.md](030-the-perception.md) §2.3                                    |
 
 ##### 阶段三：检索 (Retrieval)
@@ -123,7 +123,7 @@ Google Vertex AI 的 **RAG Engine** 和 **Agent Engine (Agent Builder)** 是我�
 | **Vertex AI Vector Search** | 向量检索托管服务    | PGVector HNSW 索引     | HNSW (DiskANN 可选)                 | HNSW / IVF / DiskANN                          | [`perception_schema.sql`](src/cognizes/engine/schema/perception_schema.sql) (HNSW Index)                                             | [030-the-perception.md](030-the-perception.md) §2.3                                              |
 | **Hybrid Retrieval**        | 向量 + 标量混合检索 | `hybrid_search()` 函数 | 原生 RRF + BM25 Inverted Index      | Sparse Vector (SPARSE_INVERTED_INDEX) + Dense | [`rrf_fusion.py`](src/cognizes/engine/perception/rrf_fusion.py), [`rag_pipeline.py`](src/cognizes/engine/perception/rag_pipeline.py) | [030-the-perception.md](030-the-perception.md) §4.1                                              |
 | **Filter-Based Retrieval**  | 元数据过滤检索      | JSONB 条件 + 部分索引  | Schema-First + Cross-Reference      | Partition Key + Scalar Field Index            | [`perception_schema.sql`](src/cognizes/engine/schema/perception_schema.sql) (Part 3)                                                 | [030-the-perception.md](030-the-perception.md) §3.5                                              |
-| **Ranking API**             | LLM 驱动的重排服务  | Cross-Encoder 本地推理 | Over-Fetch + External Reranker 集成 | SDK 集成外部 Reranker                         | [`reranker.py`](src/cognizes/engine/perception/reranker.py) (`CrossEncoderReranker`)                                                 | [010-knowledge-base-fundamentals.md](../cognizes/teaching/010-knowledge-base-fundamentals.md) §2.4 Reranking |
+| **Ranking API**             | LLM 驱动的重排服务  | Cross-Encoder 本地推理 | Over-Fetch + External Reranker 集成 | SDK 集成外部 Reranker                         | [`reranker.py`](src/cognizes/engine/perception/reranker.py) (`CrossEncoderReranker`)                                                 | [034a-knowledge-base-fundamentals.md](../research/034a-knowledge-base-fundamentals.md) §2.4 Reranking |
 
 > [!TIP]
 >
@@ -437,7 +437,7 @@ erDiagram
 > | 1000 万  | 200       | 1%     | >85%      | ~80ms    | ~100 | 生产环境基准配置 |
 > | 1000 万  | 400       | 1%     | ~95%      | ~150ms   | ~50  | 高召回率极致配置 |
 >
-> 📘 关于 Knowledge Base 的基础理论（Chunking 策略、Retrieval Pipeline、Embedding 模型选择等），请参阅教学文档：[Knowledge Base Fundamentals](../cognizes/teaching/010-knowledge-base-fundamentals.md)
+> 📘 关于 Knowledge Base 的基础理论（Chunking 策略、Retrieval Pipeline、Embedding 模型选择等），请参阅教学文档：[Knowledge Base Fundamentals](../research/034a-knowledge-base-fundamentals.md)
 
 #### A. 极端数据隔离场景 ("The Alice Problem")
 
@@ -535,7 +535,7 @@ LIMIT 10;
 >
 > **验证目标**：证明 PostgreSQL Adapter 的 **透明替换能力** —— 在不修改 ADK 上层应用代码的前提下，底层无缝切换至 PostgreSQL 基础设施，实现逻辑与存储分离。
 >
-> 📘 关于 Agent Engine 的详细实现原理、交互时序图及 Schema 设计，请参阅：[Agent Engine Fundamentals](../cognizes/teaching/020-agent-engine-fundamentals.md)
+> 📘 关于 Agent Engine 的详细实现原理、交互时序图及 Schema 设计，请参阅：[Agent Engine Fundamentals](../research/020a-agent-engine-fundamentals.md)
 
 #### A. 透明兼容性 (Drop-in Compatibility)
 
@@ -659,7 +659,7 @@ async def test_optimistic_locking():
 
 > [!TIP]
 >
-> 📘 关于 Graph RAG 与 Agentic RAG 的理论介绍，请参阅：[010-knowledge-base-fundamentals.md §3 进阶 RAG 模式](../cognizes/teaching/010-knowledge-base-fundamentals.md#3-进阶-rag-模式)
+> 📘 关于 Graph RAG 与 Agentic RAG 的理论介绍，请参阅：[034a-knowledge-base-fundamentals.md §3 进阶 RAG 模式](../research/034a-knowledge-base-fundamentals.md#3-进阶-rag-模式)
 
 ## 迁移机制与多样性 (Migration & Diversity)
 
@@ -811,9 +811,9 @@ $$
 > **Teaching Documents** 定义了具体的工程实现标准与最佳实践。
 
 - **[Spec-001] Knowledge Base Fundamentals**: 包含 Chunking Strategies (Recursive/Semantic)、Embedding 模型选择及检索算法详解。
-  - _Source_: [`../cognizes/teaching/010-knowledge-base-fundamentals.md`](../cognizes/teaching/010-knowledge-base-fundamentals.md)
+  - _Source_: [`../research/034a-knowledge-base-fundamentals.md`](../research/034a-knowledge-base-fundamentals.md)
 - **[Spec-002] Agent Engine Fundamentals**: 包含 Glass-Box Runtime 的详细设计、Memory Consolidation 机制及数据库 Schema 定义。
-  - _Source_: [`../cognizes/teaching/020-agent-engine-fundamentals.md`](../cognizes/teaching/020-agent-engine-fundamentals.md)
+  - _Source_: [`../research/020a-agent-engine-fundamentals.md`](../research/020a-agent-engine-fundamentals.md)
 
 ### 外部技术标准 (External Standards)
 
