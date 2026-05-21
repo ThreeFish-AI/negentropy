@@ -1,8 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect --
- * 分页重置逻辑需要 useEffect 内调用 setCurrentPage(1) 来响应
- * sessions.length / view 的变化。与项目中其他 hooks 采用相同的
- * eslint-disable 策略（参见 useSessionListService.ts 等）。
- */
+/* eslint-disable react-hooks/set-state-in-effect -- useEffect 内调用 setCurrentPage 重置分页 */
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
