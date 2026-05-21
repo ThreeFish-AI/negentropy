@@ -111,7 +111,7 @@ flowchart LR
 
 **核心优势**：
 
-- 减少 LLM 幻觉 40-60%
+- 减少 LLM 幻觉 40-60%（综合多份 RAG + GraphRAG 实验报告估算值，非单一权威数据）
 - 支持多跳推理和复杂关系查询
 - 提供可解释的决策路径
 
@@ -119,9 +119,9 @@ flowchart LR
 
 | 企业应用          | 技术方案        | 效果提升            |
 | ----------------- | --------------- | ------------------- |
-| **智能问答**      | KG + SQL + LLM  | 准确率 +35%         |
-| **元数据管理**    | KG 语义层       | 数据治理效率 2x     |
-| **多 Agent 协作** | KG 作为知识枢纽 | 复杂任务成功率 +50% |
+| **智能问答**      | KG + SQL + LLM  | 准确率 +35%（行业估算） |
+| **元数据管理**    | KG 语义层       | 数据治理效率 2x（行业估算） |
+| **多 Agent 协作** | KG 作为知识枢纽 | 复杂任务成功率 +50%（行业估算） |
 
 **3. 行业垂直应用（2024 年实践）**
 
@@ -134,11 +134,11 @@ flowchart LR
 
 LLM 正在革新传统知识工程：
 
-- **LLM 驱动的实体关系抽取**：减少 70% 手动标注
+- **LLM 驱动的实体关系抽取**：减少 70% 手动标注（行业综合估算，实际效果因领域和标注质量而异）
 - **自动图谱更新**：实时知识增量融合
 - **图谱质量评估**：AI 辅助的知识验证
 
-> **市场规模**：知识图谱市场预计从 2024 年 $10.6 亿增长至 2030 年 $69.3 亿（CAGR 37%）
+> **市场规模**：知识图谱市场预计从 2024 年 $10.6 亿增长至 2030 年 $69.3 亿（CAGR 37%，来源：MarketsandMarkets Knowledge Graph Market Report, 2024）
 
 **5. 前沿趋势（2025+）**
 
@@ -207,7 +207,7 @@ Level 2: 具体主题摘要（如"ReAct框架"、"Tool Use模式"）
 
 #### 2.3.1 Agent 核心特征
 
-根据《Agentic Design Patterns》<sup>[[10]](#ref10)</sup>，Agent 区别于传统软件的核心是：
+根据 Andrew Ng 提出的 Agentic Design Patterns<sup>[[10]](#ref10)</sup>，Agent 区别于传统软件的核心是：
 
 > **代理性（Agency）**：能够感知环境、做出决策、采取行动以自主实现目标
 
@@ -1122,7 +1122,7 @@ vectorstore = OceanBase.from_documents(
 
 > 在技术选型清晰后，本章归纳構建智能系统的核心设计模式。这些模式是跨框架的通用方法论，可与前述框架和数据库组合应用。
 
-基于《Agentic Design Patterns: A Hands-On Guide to Building Intelligent Systems》<sup>[[10]](#ref10)</sup> 整理。
+基于 Andrew Ng 提出的 Agentic Design Patterns<sup>[[10]](#ref10)</sup> 整理。
 
 ### 6.1 Prompt Chaining（提示链）
 
@@ -1827,7 +1827,7 @@ class HybridRetriever:
 
 <a id="ref9"></a>[9] S. Yan et al., "Corrective Retrieval Augmented Generation," _arXiv preprint arXiv:2401.15884_, 2024.
 
-<a id="ref10"></a>[10] Goldman Sachs Engineering Team, "Agentic Design Patterns: A Hands-On Guide to Building Intelligent Systems," _Goldman Sachs Engineering Blog_, 2024.
+<a id="ref10"></a>[10] A. Ng, "Agentic Design Patterns," _DeepLearning.AI_, 2024. [Online]. Available: https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/
 
 <a id="ref11"></a>[11] Cognee, "Cognee Documentation," 2024. [Online]. Available: https://docs.cognee.ai/
 
@@ -1880,12 +1880,12 @@ class HybridRetriever:
 
 ## 附录 B：项目当前状态对照
 
-| 架构组件 | 当前状态            | 目标状态       | 差距分析       |
-| -------- | ------------------- | -------------- | -------------- |
-| Agent 层 | ✅ 5 个 Agent       | 保持           | -              |
-| API 层   | ✅ 完成             | 保持           | -              |
-| 向量存储 | ⏳ OceanBase 集成中 | 完成集成       | 需完成索引配置 |
-| 图谱存储 | 📋 规划中           | Neo4j + Cognee | 需新增         |
-| 记忆框架 | 📋 规划中           | Cognee 集成    | 需新增         |
-| 混合检索 | 📋 规划中           | RRF 融合       | 需实现         |
-| 多跳推理 | 📋 规划中           | 图谱查询       | 需实现         |
+| 架构组件 | 当前状态                       | 目标状态           | 差距分析                   |
+| -------- | ------------------------------ | ------------------ | -------------------------- |
+| Agent 层 | ✅ 5 个 Agent                  | 保持               | -                          |
+| API 层   | ✅ 完成                        | 保持               | -                          |
+| 向量存储 | ✅ PostgreSQL pgvector         | 保持               | -                          |
+| 图谱存储 | ⏳ PostgreSQL AGE 自研图谱     | 评估专业图数据库   | 功能已有，性能待验证       |
+| 记忆框架 | ✅ 艾宾浩斯记忆系统            | 保持               | 已实现分型记忆与衰减治理   |
+| 混合检索 | ⏳ 自研混合检索                | 评估 RRF 优化      | 基础检索已有               |
+| 多跳推理 | 📋 规划中                      | 图谱查询           | 需实现                     |
