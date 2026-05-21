@@ -141,7 +141,7 @@ pre-commit install
 
 Fire up your browser, head over to `http://localhost:3192`, and start conversing with the NegentropyEngine.
 
-> For comprehensive guides on environment setup, database migrations, frontend-backend integration, and troubleshooting, please refer to [docs/development.md](./docs/core/development.md).
+> For comprehensive guides on environment setup, database migrations, frontend-backend integration, and troubleshooting, please refer to [docs/development.md](./docs/concepts/development.md).
 
 ---
 
@@ -219,7 +219,7 @@ graph TB
 | Document                                                 | Description                                                                                     |
 | :------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
 | [User Guide](./docs/user-guide.md)                       | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki         |
-| [Development Guide](./docs/core/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
+| [Development Guide](./docs/concepts/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
 | [Architecture Design](./docs/concepts/framework.md)               | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
 | [Knowledge System](docs/concepts/035-the-knowledge-base.md)    | Detailed design and usage of the knowledge management module                                    |
 | [Memory System](docs/concepts/025-the-memory-system.md)        | Memory lifecycle, forgetting curves, and governance mechanics                                   |
@@ -237,7 +237,7 @@ graph TB
 
 If you're holding onto an inspiration that pulls chaos back into order, or if you bump into any snags while navigating the system, please don't hesitate to share your wisdom:
 
-1. Before hitting the keyboard, kindly take a detour through the [Development Guide](./docs/core/development.md).
+1. Before hitting the keyboard, kindly take a detour through the [Development Guide](./docs/concepts/development.md).
 2. Sling your game-changing ideas into our [Issues](https://github.com/ThreeFish-AI/negentropy/issues) or directly submit a [Pull Request](https://github.com/ThreeFish-AI/negentropy/pulls) packing some serious paradigm-shifting power.
 
 Please hold "Entropy Reduction," "Context-Driven," and "Evidence-Based Engineering" as your **core principles**, ensuring every mutation aligns perfectly with Systemic Integrity.

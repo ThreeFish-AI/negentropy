@@ -201,4 +201,4 @@ UI 卡片 strict 模式显示红色 `strict` 徽章；如调用方传入 `agentT
 
 更多：
 - 排错 → [`skills-troubleshooting.md`](./skills-troubleshooting.md)
-- 原理 → [`../../design/skills.md`](../../design/skills.md)
+- 原理 → [`../design/skills.md`](../design/skills.md)

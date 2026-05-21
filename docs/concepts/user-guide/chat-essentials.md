@@ -1,6 +1,6 @@
 # Home / 人与 Agent 对话 · 主模块特性手册
 
-> 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../../concepts/conversation-foundation.md)，协议事实参考 [framework.md](../../concepts/framework.md) §9 与 [a2ui.md](../../concepts/a2ui.md)，主用户手册参见 [user-guide.md](../user-guide.md) §3。
+> 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../conversation-foundation.md)，协议事实参考 [framework.md](../framework.md) §9 与 [a2ui.md](../a2ui.md)，主用户手册参见 [user-guide.md](../../user-guide.md) §3。
 
 ## 0. 入口
 
@@ -59,7 +59,7 @@ sequenceDiagram
 
 **怎么做**：自动行为。后端工具通过 `state.tool_progress[tool_call_id]` 上报，前端 `ToolExecutionGroup` 渲染。
 
-**注意事项**：进度走 state-delta 旁路，不参与 message ledger（[framework.md §9.7](../../concepts/framework.md)）。
+**注意事项**：进度走 state-delta 旁路，不参与 message ledger（[framework.md §9.7](../framework.md)）。
 
 ## 5. 中断 / Run 取消（C4 中断门）
 
@@ -219,7 +219,7 @@ sequenceDiagram
 
 **怎么做**：自动行为。`bootstrap.py` 已注册 LiteLLM `otel` callback；`instrumentation.py` `_inject_genai_semconv_attrs` 在 span 上写入 `gen_ai.system` / `gen_ai.request.model` / `gen_ai.usage.input_tokens` 等。Langfuse trace 可直接查看。
 
-**详细说明**：参见 [observability-genai.md](../../concepts/design/observability-genai.md)。
+**详细说明**：参见 [observability-genai.md](../design/observability-genai.md)。
 
 ## 浏览器实机回归 6 步检查表
 

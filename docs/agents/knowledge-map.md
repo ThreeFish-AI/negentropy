@@ -12,7 +12,7 @@
 ## 工程经验沉淀
 
 - [Issues 摘要](issue.md) — 历次问题表因 / 根因 / 处理 / 防范的跨上下文留存
-- [Development（开发指南）](../core/development.md) — 环境搭建、开发工作流、数据库迁移、前后端对接
+- [Development（开发指南）](../concepts/development.md) — 环境搭建、开发工作流、数据库迁移、前后端对接
 
 ## 系统概念与设计
 
@@ -28,11 +28,11 @@
 - [Memory（记忆系统）](../concepts/025-the-memory-system.md) · [白皮书](../concepts/026-memory-whitepaper.md)
 - [Knowledge Base（知识库设计）](../concepts/035-the-knowledge-base.md)
 - [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
-- [Skills](../core/design/skills.md)
+- [Skills](../concepts/design/skills.md)
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
 - [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
 - [Agents at Wiki —— 浏览器回归验证报告](../reference/wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
-- [Engineering Changelog](../core/engineering-changelog.md)
+- [Engineering Changelog](../concepts/engineering-changelog.md)
 
 ## 概念层（Concepts）
 
@@ -54,7 +54,7 @@
 ## 用户文档与运维
 
 - [User Guide（用户指南）](../user-guide.md)
-- [Admin（管理后台）](../core/user-guide/admin.md)
+- [Admin（管理后台）](../concepts/user-guide/admin.md)
 - [Knowledges（知识库引用）](../concepts/035-the-knowledge-base.md)
 
 ## 关键基础设施

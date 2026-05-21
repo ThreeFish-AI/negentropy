@@ -86,4 +86,4 @@ LLM 会通过工具调用使用 Skill 提示中的逻辑（`search_arxiv`、`fet
 
 - 工具白名单 / Visibility 策略 / Progressive Disclosure 详解 → [`skills-advanced.md`](./skills-advanced.md)
 - 401 / 403 / JSON 错误等问题排查 → [`skills-troubleshooting.md`](./skills-troubleshooting.md)
-- 设计原理与主流框架对照 → [`../../design/skills.md`](../../design/skills.md)
+- 设计原理与主流框架对照 → [`../design/skills.md`](../design/skills.md)

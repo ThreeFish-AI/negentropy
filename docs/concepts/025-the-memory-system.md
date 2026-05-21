@@ -15,11 +15,11 @@ tags:
 
 > 本文档是 Negentropy 平台 **Agent Memory 子系统**的架构设计单一权威参考，融合学术前沿分类法、工业框架对标、当前 PostgreSQL 实现详述和双阶段演进路线图，并引入可量化的价值度量体系。
 >
-> - 系统架构总览：[`framework.md`](../../../concepts/framework.md)
-> - Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](035-the-knowledge-base.md)
-> - 知识图谱技术方案：[`036-the-knowledge-graph.md`](036-the-knowledge-graph.md)
-> - **理论基础白皮书（Phase 4）**：[`026-memory-whitepaper.md`](026-memory-whitepaper.md)
-> - **轻量上手手册（Phase 4）**：[`memory-basics`](../../../core/user-guide/memory-basics.md) · [`memory-integration`](../../../core/user-guide/memory-integration.md) · [`memory-automation`](../../../core/user-guide/memory-automation.md) · [`memory-troubleshooting`](../../../core/user-guide/memory-troubleshooting.md)
+> - 系统架构总览：[`framework.md`](./framework.md)
+> - Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](./035-the-knowledge-base.md)
+> - 知识图谱技术方案：[`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md)
+> - **理论基础白皮书（Phase 4）**：[`026-memory-whitepaper.md`](./026-memory-whitepaper.md)
+> - **轻量上手手册（Phase 4）**：[`memory-basics`](./user-guide/memory-basics.md) · [`memory-integration`](./user-guide/memory-integration.md) · [`memory-automation`](./user-guide/memory-automation.md) · [`memory-troubleshooting`](./user-guide/memory-troubleshooting.md)
 > - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 >
 > **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`026-memory-whitepaper.md`](026-memory-whitepaper.md) §2 与 §3。
@@ -1597,7 +1597,7 @@ timeline
 
 ### 10.5 Phase 5 实施记录（开工于 2026-05）
 
-> 详细工程契约见 [`026-memory-whitepaper.md`](026-memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](../../../core/user-guide/memory-basics.md) §2.5。
+> 详细工程契约见 [`026-memory-whitepaper.md`](./026-memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](./user-guide/memory-basics.md) §2.5。
 
 | 特性 | 集成点 | 默认 flag | 状态 |
 | :-- | :-- | :-- | :-- |

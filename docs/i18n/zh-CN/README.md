@@ -127,7 +127,7 @@ pnpm run dev                   # 启动开发服务器 (localhost:3192)
 
 打开浏览器访问 `http://localhost:3192`，开始与 NegentropyEngine 对话。
 
-> 完整的环境搭建指南、数据库迁移、前后端对接、故障排查详见 [docs/core/development.md](../../core/development.md)。
+> 完整的环境搭建指南、数据库迁移、前后端对接、故障排查详见 [docs/concepts/development.md](../../concepts/development.md)。
 
 ---
 
@@ -204,14 +204,14 @@ graph TB
 
 | 文档                                        | 说明                                                                 |
 | :------------------------------------------ | :------------------------------------------------------------------- |
-| [开发指南](../../core/development.md)               | 环境搭建、日常开发工作流、数据库迁移、前后端对接、故障排查           |
+| [开发指南](../../concepts/development.md)               | 环境搭建、日常开发工作流、数据库迁移、前后端对接、故障排查           |
 | [架构设计](../../concepts/framework.md)                 | 一核五翼详解、流水线编排、设计模式目录、引擎层、数据持久化、前端架构 |
 | [知识系统](../../concepts/035-the-knowledge-base.md)            | 知识管理模块的详细设计与使用                                         |
 | [记忆系统](../../concepts/025-the-memory-system.md)             | 记忆生命周期、遗忘曲线、治理机制                                     |
 | [知识图谱](../../concepts/036-the-knowledge-graph.md)           | 知识图谱建模与查询                                                   |
 | [QA 流水线](../../concepts/design/qa-delivery-pipeline.md)     | 质量门禁与发布流程                                                   |
 | [SSO 集成](../../concepts/design/sso.md)                       | Google OAuth 认证配置                                                |
-| [工程变更日志](../../core/engineering-changelog.md) | 里程碑与基线变更记录                                                 |
+| [工程变更日志](../../concepts/engineering-changelog.md) | 里程碑与基线变更记录                                                 |
 | [AI 协作协议](../../../AGENTS.md)              | Agent 协作行为准则与工程规范                                         |
 
 </center>
@@ -222,7 +222,7 @@ graph TB
 
 如果您手中正握有将混沌拉回秩序的灵感，或在使用过程中遇到任何问题，请务必不吝赐教：
 
-1. 动键盘前，烦请顺路翻转一页 [开发指南](../../core/development.md)
+1. 动键盘前，烦请顺路翻转一页 [开发指南](../../concepts/development.md)
 2. 将您的重磅想法掷向 [Issue](https://github.com/ThreeFish-AI/negentropy/issues) 或直接提送带有改变战局力量的 [Pull Request](https://github.com/ThreeFish-AI/negentropy/pulls)
 
 请以「熵减」、「上下文驱动」、「循证工程」为**核心原则**，确保所有变更符合 Systemic Integrity (系统完整性) 要求。

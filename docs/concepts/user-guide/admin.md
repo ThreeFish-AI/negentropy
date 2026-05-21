@@ -4,9 +4,9 @@
 
 管理后台（Admin）提供系统级治理能力，包括用户管理与角色权限管理。
 
-> ⚠️ Admin 模块仅对具有 **admin** 角色的用户可见。用户通过 Google OAuth SSO 登录后，系统根据其角色分配访问权限。详细配置请参阅 [SSO 集成](../../concepts/design/sso.md)。
+> ⚠️ Admin 模块仅对具有 **admin** 角色的用户可见。用户通过 Google OAuth SSO 登录后，系统根据其角色分配访问权限。详细配置请参阅 [SSO 集成](../design/sso.md)。
 
-> 🔀 **模型管理已迁移**：原「Admin / Models」已迁移至「Interface / Models」，详见 [Interface 能力接入](../../core/user-guide/interface.md)；Admin 模块不再承载模型配置职责。
+> 🔀 **模型管理已迁移**：原「Admin / Models」已迁移至「Interface / Models」，详见 [Interface 能力接入](./interface.md)；Admin 模块不再承载模型配置职责。
 
 ### 7.1 用户管理
 
