@@ -8,7 +8,7 @@
 -- 说明：
 -- 1. 本文件用于保留仿生记忆机制的早期 DDL 原型与研究上下文。
 -- 2. 当前 PostgreSQL 版 Memory Automation 的初始化、受管函数、受管任务、
---    降级行为与运维入口，以 docs/concepts/025-the-memory-system.md 和服务端实现为准。
+--    降级行为与运维入口，以 docs/reference/cognizes/engine/025-the-memory-system.md 和服务端实现为准。
 -- 3. 不应依据本文件手工创建、重建或维护当前运行时的 Automation 对象。
 -- ============================================
 

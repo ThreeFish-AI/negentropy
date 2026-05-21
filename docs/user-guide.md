@@ -75,8 +75,8 @@
 | :--- | :--- |
 | 系统架构 | [Framework](./architecture/framework.md) · [Development](./architecture/development.md) · [对话基础](./architecture/conversation-foundation.md) · [A2UI](./architecture/a2ui.md) |
 | 核心设计 | [Skills 模块](./core/design/skills.md) · [工程变更日志](./core/engineering-changelog.md) |
-| 知识设计 | [Knowledge 设计](./concepts/035-the-knowledge-base.md) · [KG 概览](./concepts/036-the-knowledge-graph.md) · [联邦 KG](./concepts/037-federated-kg.md) |
-| 记忆设计 | [Memory 概览](./concepts/025-the-memory-system.md) · [白皮书](./concepts/026-memory-whitepaper.md) |
+| 知识设计 | [Knowledge 设计](./reference/cognizes/engine/035-the-knowledge-base.md) · [KG 概览](./reference/cognizes/engine/036-the-knowledge-graph.md) · [联邦 KG](./reference/cognizes/engine/037-federated-kg.md) |
+| 记忆设计 | [Memory 概览](./reference/cognizes/engine/025-the-memory-system.md) · [白皮书](./reference/cognizes/engine/026-memory-whitepaper.md) |
 | 基础设施 | [SSO](./infrastructure/design/sso.md) · [Observability](./infrastructure/design/observability-genai.md) · [QA Pipeline](./infrastructure/design/qa-delivery-pipeline.md) |
 | Wiki | [Wiki 运维](./reference/wiki/ops.md) · [KG 发布设计](./reference/wiki/design/knowledge-graph.md) |
 
