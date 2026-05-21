@@ -410,6 +410,20 @@ erDiagram
 > | **并发安全** | 无锁，多 Agent 竞争会覆盖 | **乐观锁** (`version` 字段) 防止状态丢失      |
 > | **可观测性** | 无持久化，重启丢失        | **OpenTelemetry** 双路导出，支持对接 Langfuse |
 
+### 子系统专项文档 (Subsystem Deep Dives)
+
+围绕 P2 内化系部 (Memory) 与 P3 感知系部 (Knowledge) 的架构 SoT 与理论附录，均扁平归入本目录：
+
+| 编号 | 文档 | 范畴 |
+| :--- | :--- | :--- |
+| 025 | [The Memory System](./025-the-memory-system.md) | Memory 子系统架构 SoT（生命周期、治理、Automation 控制面） |
+| 026 | [Memory Whitepaper](./026-memory-whitepaper.md) | Memory 理论基础白皮书（认知科学 / IR / Agent 三类引文 + 跨框架对比矩阵） |
+| 035 | [The Knowledge Base](./035-the-knowledge-base.md) | Knowledge 子系统架构 SoT（KB / KG / User Memory 三元设计） |
+| 036 | [The Knowledge Graph](./036-the-knowledge-graph.md) | 知识图谱架构（两阶段方案：PostgreSQL → 终极阶段） |
+| 037 | [Federated KG](./037-federated-kg.md) | 联邦知识图谱 + 跨 Corpus 混合检索 |
+
+参考 DDL（带概念注释、与 `apps/cognizes/.../schema/` 运行时副本对照）：[`./schema/`](./schema/)。
+
 ## 工程验证 (Engineering Validation)
 
 > [!NOTE]
