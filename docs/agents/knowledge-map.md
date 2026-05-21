@@ -26,9 +26,9 @@
 - [Knowledge Base（知识库设计）](../concepts/035-the-knowledge-base.md)
 - [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
 - [Skills](../core/design/skills.md)
-- [Negentropy Wiki Ops](../wiki/ops.md)
-- [Wiki 知识图谱（按 Publication 切片发布）](../wiki/design/knowledge-graph.md)
-- [Agents at Wiki —— 浏览器回归验证报告](../wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
+- [Negentropy Wiki Ops](../reference/wiki/ops.md)
+- [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
+- [Agents at Wiki —— 浏览器回归验证报告](../reference/wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
 - [Engineering Changelog](../core/engineering-changelog.md)
 
 ## 概念层（Concepts）
