@@ -1,6 +1,6 @@
 ---
 id: agent-engine-fundamentals
-sidebar_position: 1
+sidebar_position: 2.1
 title: Agent Engine Fundamentals
 tags:
   - Teaching

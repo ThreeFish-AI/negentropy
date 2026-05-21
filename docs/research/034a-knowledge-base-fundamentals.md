@@ -1,6 +1,6 @@
 ---
 id: knowledge-base-fundamentals
-sidebar_position: 1
+sidebar_position: 3.41
 title: Knowledge Base Fundamentals
 tags:
   - Teaching
