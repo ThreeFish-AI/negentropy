@@ -38,6 +38,12 @@
 - 子系统专项：[025 Memory System](../concepts/025-the-memory-system.md) · [026 Memory Whitepaper](../concepts/026-memory-whitepaper.md) · [035 Knowledge Base](../concepts/035-the-knowledge-base.md) · [036 Knowledge Graph](../concepts/036-the-knowledge-graph.md) · [037 Federated KG](../concepts/037-federated-kg.md)
 - 参考 DDL：[`concepts/schema/`](../concepts/schema/)（hippocampus / perception / kg_schema_extension）
 
+## 项目级 PRD / Plan / Checklist
+
+- [PRD & Architecture](../reference/cognizes/000-prd-architecture.md) — Agentic AI 学术研究与工程应用平台 产品需求与架构
+- [Implementation Plan](../reference/cognizes/001-implementation-plan.md) — 实施计划
+- [Task Checklist](../reference/cognizes/002-task-checklist.md) — 任务执行清单
+
 ## 研究文献 / Research
 
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
