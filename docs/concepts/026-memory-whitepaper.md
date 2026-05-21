@@ -1,3 +1,16 @@
+---
+id: memory-whitepaper
+sidebar_position: 2.6
+title: Memory 模块白皮书 —— 理论基础与设计取舍
+last_update:
+  author: Aurelius Huang
+tags:
+  - Memory System
+  - Whitepaper
+  - Cognitive Science
+  - Information Retrieval
+---
+
 # Memory 模块白皮书 —— 理论基础与设计取舍
 
 > 本文档是 [`025-the-memory-system.md`](./025-the-memory-system.md) 的理论补丁，集中沉淀 Memory 模块的认知科学/信息检索/Agent 系统三类引文，附跨框架对比矩阵。日常使用请直接参考 [`memory-basics`](../core/user-guide/memory-basics.md)。

@@ -1,3 +1,16 @@
+---
+id: the-knowledge-base
+sidebar_position: 3.5
+title: The Knowledge Base 设计与工程落地（KB / KG / User Memory）
+last_update:
+  author: Aurelius Huang
+tags:
+  - Knowledge Base
+  - Perception Faculty
+  - Subsystem SoT
+  - PostgreSQL
+---
+
 # Knowledge 设计与工程落地（Knowledge Base / Knowledge Graph / User Memory）
 
 > 目标：在最小干预前提下，围绕 Perception 的 Knowledge 存储模型，落地可演进的 Knowledge 后端工程方案，并为 UI 的未来扩展预留稳定接口与流程入口。

@@ -1,3 +1,16 @@
+---
+id: the-knowledge-graph
+sidebar_position: 3.6
+title: The Knowledge Graph 架构设计与工程实施方案
+last_update:
+  author: Aurelius Huang
+tags:
+  - Knowledge Graph
+  - Apache AGE
+  - PostgreSQL
+  - GraphRAG
+---
+
 # 知识图谱架构设计与工程实施方案
 
 > 本文档是 Negentropy 知识图谱模块的**架构设计单一权威参考 (Single Source of Truth)**，涵盖学术理论基础、行业框架分析、两阶段工程方案（PostgreSQL 阶段 → 终极阶段）以及价值量化体系。

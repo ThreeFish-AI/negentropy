@@ -1,3 +1,16 @@
+---
+id: the-memory-system
+sidebar_position: 2.5
+title: The Memory System 架构设计与工程落地方案
+last_update:
+  author: Aurelius Huang
+tags:
+  - Memory System
+  - Internalization Faculty
+  - Subsystem SoT
+  - PostgreSQL
+---
+
 # Agent Memory 架构设计与工程落地方案
 
 > 本文档是 Negentropy 平台 **Agent Memory 子系统**的架构设计单一权威参考，融合学术前沿分类法、工业框架对标、当前 PostgreSQL 实现详述和双阶段演进路线图，并引入可量化的价值度量体系。

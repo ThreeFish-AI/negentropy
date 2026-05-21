@@ -1,3 +1,16 @@
+---
+id: federated-kg
+sidebar_position: 3.7
+title: 联邦知识图谱（Federated KG）+ 跨 Corpus 混合检索
+last_update:
+  author: Aurelius Huang
+tags:
+  - Knowledge Graph
+  - Federated
+  - Cross-Corpus
+  - Hybrid Retrieval
+---
+
 # 联邦知识图谱（Federated KG）+ 跨 Corpus 混合检索
 
 > **状态**：PR1–PR4 一次性落地（2026-05-17）
