@@ -25,9 +25,9 @@
 
 ## 系统能力概览
 
-- [Memory（记忆系统）](../reference/cognizes/engine/025-the-memory-system.md) · [白皮书](../reference/cognizes/engine/026-memory-whitepaper.md)
-- [Knowledge Base（知识库设计）](../reference/cognizes/engine/035-the-knowledge-base.md)
-- [Knowledge Graph（知识图谱）](../reference/cognizes/engine/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../reference/cognizes/engine/037-federated-kg.md)
+- [Memory（记忆系统）](../concepts/025-the-memory-system.md) · [白皮书](../concepts/026-memory-whitepaper.md)
+- [Knowledge Base（知识库设计）](../concepts/035-the-knowledge-base.md)
+- [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
 - [Skills](../core/design/skills.md)
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
 - [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
@@ -38,7 +38,7 @@
 
 - [Cognizes Engine 总览](../reference/cognizes/engine/README.md) — Agentic AI Engine 一核五翼架构入口
 - [P1 The Pulse](../reference/cognizes/engine/010-the-pulse.md) · [P2 The Hippocampus](../reference/cognizes/engine/020-the-hippocampus.md) · [P3 The Perception](../reference/cognizes/engine/030-the-perception.md) · [P4 The Realm of Mind](../reference/cognizes/engine/040-the-realm-of-mind.md) · [P5 Integrated Demo](../reference/cognizes/engine/050-integrated-demo.md)
-- 子系统专项：[025 Memory System](../reference/cognizes/engine/025-the-memory-system.md) · [026 Memory Whitepaper](../reference/cognizes/engine/026-memory-whitepaper.md) · [035 Knowledge Base](../reference/cognizes/engine/035-the-knowledge-base.md) · [036 Knowledge Graph](../reference/cognizes/engine/036-the-knowledge-graph.md) · [037 Federated KG](../reference/cognizes/engine/037-federated-kg.md)
+- 子系统专项：[025 Memory System](../concepts/025-the-memory-system.md) · [026 Memory Whitepaper](../concepts/026-memory-whitepaper.md) · [035 Knowledge Base](../concepts/035-the-knowledge-base.md) · [036 Knowledge Graph](../concepts/036-the-knowledge-graph.md) · [037 Federated KG](../concepts/037-federated-kg.md)
 - 参考 DDL：[`reference/cognizes/engine/schema/`](../reference/cognizes/engine/schema/)（hippocampus / perception / kg_schema_extension）
 
 ## 项目级 PRD / Plan / Checklist
@@ -55,7 +55,7 @@
 
 - [User Guide（用户指南）](../user-guide.md)
 - [Admin（管理后台）](../core/user-guide/admin.md)
-- [Knowledges（知识库引用）](../reference/cognizes/engine/035-the-knowledge-base.md)
+- [Knowledges（知识库引用）](../concepts/035-the-knowledge-base.md)
 
 ## 关键基础设施
 

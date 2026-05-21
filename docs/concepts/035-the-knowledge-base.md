@@ -19,7 +19,7 @@ tags:
 
 - **底层存储模型**：[apps/negentropy/src/negentropy/models/perception.py](../../../../apps/negentropy/src/negentropy/models/perception.py)（`Corpus` / `Knowledge`）。
 - **Memory 模型**：[apps/negentropy/src/negentropy/models/internalization.py](../../../../apps/negentropy/src/negentropy/models/internalization.py)（`Memory` / `Fact` / `MemoryAuditLog`）。
-- **Memory 专项文档**：[`025-the-memory-system.md`](./025-the-memory-system.md)（Memory Automation 控制面、实施过程与验收记录）。
+- **Memory 专项文档**：[`025-the-memory-system.md`](025-the-memory-system.md)（Memory Automation 控制面、实施过程与验收记录）。
 - **数据库权威定义**：[`schema/perception_schema.sql`](./schema/perception_schema.sql)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
 - **前端扩展约束**：[`framework.md` §11](../../../concepts/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
 - **调研文档**：[`034-knowledge-base.md`](../../../research/034-knowledge-base.md)、[`035-knowledge-base-platform.md`](../../../research/035-knowledge-base-platform.md)。
@@ -551,10 +551,10 @@ Memory 运行时能力分为两层：
 - **User Memory 面板**：Dashboard / Timeline / Facts / Audit，用于用户长期记忆的查看、审计与治理。
 - **Memory Automation 控制面**：用于仿生记忆自动化过程的配置、受管函数、调度任务与降级状态管理。
 
-为避免文档双源，Memory Automation 的设计、接口、降级矩阵与实施记录统一以 [`025-the-memory-system.md`](./025-the-memory-system.md) 为准；本文件仅保留 Knowledge 与 Memory 的边界说明。
+为避免文档双源，Memory Automation 的设计、接口、降级矩阵与实施记录统一以 [`025-the-memory-system.md`](025-the-memory-system.md) 为准；本文件仅保留 Knowledge 与 Memory 的边界说明。
 
 > [!NOTE]
-> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [`025-the-memory-system.md`](./025-the-memory-system.md)。
+> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [`025-the-memory-system.md`](025-the-memory-system.md)。
 
 ## 13. Catalog / Wiki Publication 三层正交架构
 

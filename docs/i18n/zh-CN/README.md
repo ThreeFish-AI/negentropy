@@ -206,9 +206,9 @@ graph TB
 | :------------------------------------------ | :------------------------------------------------------------------- |
 | [开发指南](../../core/development.md)               | 环境搭建、日常开发工作流、数据库迁移、前后端对接、故障排查           |
 | [架构设计](../../concepts/framework.md)                 | 一核五翼详解、流水线编排、设计模式目录、引擎层、数据持久化、前端架构 |
-| [知识系统](../../reference/cognizes/engine/035-the-knowledge-base.md)            | 知识管理模块的详细设计与使用                                         |
-| [记忆系统](../../reference/cognizes/engine/025-the-memory-system.md)             | 记忆生命周期、遗忘曲线、治理机制                                     |
-| [知识图谱](../../reference/cognizes/engine/036-the-knowledge-graph.md)           | 知识图谱建模与查询                                                   |
+| [知识系统](../../concepts/035-the-knowledge-base.md)            | 知识管理模块的详细设计与使用                                         |
+| [记忆系统](../../concepts/025-the-memory-system.md)             | 记忆生命周期、遗忘曲线、治理机制                                     |
+| [知识图谱](../../concepts/036-the-knowledge-graph.md)           | 知识图谱建模与查询                                                   |
 | [QA 流水线](../../concepts/design/qa-delivery-pipeline.md)     | 质量门禁与发布流程                                                   |
 | [SSO 集成](../../concepts/design/sso.md)                       | Google OAuth 认证配置                                                |
 | [工程变更日志](../../core/engineering-changelog.md) | 里程碑与基线变更记录                                                 |

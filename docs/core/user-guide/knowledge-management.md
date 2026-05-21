@@ -250,6 +250,6 @@ APIs 页面提供交互式的 API 文档和测试环境：
 - **左侧**：API 统计卡片（总调用次数、成功/失败计数、平均延迟）+ API 文档面板
 - **右侧**：端点列表 + Try It 测试面板（参数输入 → 执行 → 查看结果）
 
-> 更深入的知识系统设计，请参阅 [知识系统](../../reference/cognizes/engine/035-the-knowledge-base.md) 和 [知识图谱](../../reference/cognizes/engine/036-the-knowledge-graph.md)。
+> 更深入的知识系统设计，请参阅 [知识系统](../../concepts/035-the-knowledge-base.md) 和 [知识图谱](../../concepts/036-the-knowledge-graph.md)。
 
 ---

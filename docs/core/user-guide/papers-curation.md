@@ -75,7 +75,7 @@ node apps/negentropy-ui/scripts/sign-dev-cookie.mjs \
 
 ### 步骤 4：触发 KG 抽取（schema-guided）
 
-进入 `/knowledge/graph`，选择 `agent-papers` Corpus，构建 KG 时指定 `extraction_schema=ai_paper`（参考 [`036-the-knowledge-graph.md` §Schema 引导构建](../../reference/cognizes/engine/036-the-knowledge-graph.md)）。
+进入 `/knowledge/graph`，选择 `agent-papers` Corpus，构建 KG 时指定 `extraction_schema=ai_paper`（参考 [`036-the-knowledge-graph.md` §Schema 引导构建](../../concepts/036-the-knowledge-graph.md)）。
 
 完成后可在图谱可视化中看到：Author / Method / Concept / Dataset / Benchmark 实体节点 + 「proposes / improves / outperforms / cites / belongs_to_field」等关系。
 
