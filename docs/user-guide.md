@@ -64,28 +64,3 @@
 | 文档                                                       | 说明                           |
 | :--------------------------------------------------------- | :----------------------------- |
 | [Wiki 知识发布](./reference/wiki/user-guide/publishing.md) | Publication 创建、SSG/ISR 部署 |
-
----
-
-## 技术设计文档
-
-各模块的技术设计与架构文档，面向开发者：
-
-| 模块     | 文档                                                                                                                                                             |
-| :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 系统架构 | [Framework](./concepts/framework.md) · [Development](./concepts/development.md) · [对话基础](./concepts/conversation-foundation.md) · [A2UI](./concepts/a2ui.md) |
-| 核心设计 | [Skills 模块](./concepts/design/skills.md) · [工程变更日志](./concepts/engineering-changelog.md)                                                                 |
-| 知识设计 | [Knowledge 设计](./concepts/035-the-knowledge-base.md) · [KG 概览](./concepts/036-the-knowledge-graph.md) · [联邦 KG](./concepts/037-federated-kg.md)            |
-| 记忆设计 | [Memory 概览](./concepts/025-the-memory-system.md) · [白皮书](./concepts/026-memory-whitepaper.md)                                                               |
-| 基础设施 | [SSO](./concepts/design/sso.md) · [Observability](./concepts/design/observability-genai.md) · [QA Pipeline](./concepts/design/qa-delivery-pipeline.md)           |
-| Wiki     | [Wiki 运维](./reference/wiki/ops.md) · [KG 发布设计](./reference/wiki/design/knowledge-graph.md)                                                                 |
-
----
-
-## Agent 协作协议
-
-- [Agent 协作协议（AGENTS.md）](../AGENTS.md) — 项目根工程行为准则
-- [浏览器验证协议](./agents/browser-validation.md) — Chrome 实机验证规范
-- [引用规范 (IEEE)](./agents/reference-specifications.md) — 决策引用与文献格式
-- [Issues 摘要](./agents/issue.md) — 历次问题表因 / 根因 / 处理 / 防范的跨上下文留存
-- [知识索引](./agents/knowledge-map.md) — 项目文档全局导航

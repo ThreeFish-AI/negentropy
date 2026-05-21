@@ -1,7 +1,5 @@
 # 认识 Negentropy
 
-> 本文从用户手册拆分而来，原路径 [docs/user-guide.md](../../user-guide.md)。
-
 ## 1. 认识 Negentropy
 
 ### 1.1 什么是 Negentropy？
