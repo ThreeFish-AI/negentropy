@@ -15,14 +15,14 @@ tags:
 
 > 本文档是 Negentropy 平台 **Agent Memory 子系统**的架构设计单一权威参考，融合学术前沿分类法、工业框架对标、当前 PostgreSQL 实现详述和双阶段演进路线图，并引入可量化的价值度量体系。
 >
-> - 系统架构总览：[`framework.md`](../../../concepts/framework.md)
+> - 系统架构总览：[`framework.md`](./framework.md)
 > - Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](./035-the-knowledge-base.md)
 > - 知识图谱技术方案：[`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md)
 > - **理论基础白皮书（Phase 4）**：[`026-memory-whitepaper.md`](./026-memory-whitepaper.md)
-> - **轻量上手手册（Phase 4）**：[`memory-basics`](../../../concepts/user-guide/memory-basics.md) · [`memory-integration`](../../../concepts/user-guide/memory-integration.md) · [`memory-automation`](../../../concepts/user-guide/memory-automation.md) · [`memory-troubleshooting`](../../../concepts/user-guide/memory-troubleshooting.md)
+> - **轻量上手手册（Phase 4）**：[`memory-basics`](./user-guide/memory-basics.md) · [`memory-integration`](./user-guide/memory-integration.md) · [`memory-automation`](./user-guide/memory-automation.md) · [`memory-troubleshooting`](./user-guide/memory-troubleshooting.md)
 > - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 >
-> **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`026-memory-whitepaper.md`](./026-memory-whitepaper.md) §2 与 §3。
+> **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`026-memory-whitepaper.md`](026-memory-whitepaper.md) §2 与 §3。
 
 ---
 
@@ -52,7 +52,7 @@ tags:
 
 ## 0. 范围与事实源（Single Source of Truth）
 
-本文档的覆盖范围为 **Memory 子系统**（对应内化系部 InternalizationFaculty），不覆盖 Knowledge Base（对应感知系部 PerceptionFaculty）。两者的边界说明以 [`035-the-knowledge-base.md`](./035-the-knowledge-base.md) 为准。
+本文档的覆盖范围为 **Memory 子系统**（对应内化系部 InternalizationFaculty），不覆盖 Knowledge Base（对应感知系部 PerceptionFaculty）。两者的边界说明以 [`035-the-knowledge-base.md`](035-the-knowledge-base.md) 为准。
 
 **权威源文件索引**：
 
@@ -93,7 +93,7 @@ Negentropy（熵减引擎）以**「一核五翼」架构**<sup>[[1]](#ref1)</su
 
 ### 1.2 Memory 与 Knowledge 的本质区别
 
-Memory 和 Knowledge 是 Negentropy 中两个正交的认知子系统，各有独立的生命周期和治理模型。详细的职责拆分以 [`035-the-knowledge-base.md`](./035-the-knowledge-base.md) 为权威定义，此处仅做摘要：
+Memory 和 Knowledge 是 Negentropy 中两个正交的认知子系统，各有独立的生命周期和治理模型。详细的职责拆分以 [`035-the-knowledge-base.md`](035-the-knowledge-base.md) 为权威定义，此处仅做摘要：
 
 | 维度 | Knowledge Base（感知系部） | User Memory（内化系部） |
 | :-- | :-- | :-- |
@@ -1525,7 +1525,7 @@ timeline
 
 #### Memory Graph
 
-将 Memory 之间的语义关联存储为 Apache AGE 图边，复用 [`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md) 的 AGE 基础设施：
+将 Memory 之间的语义关联存储为 Apache AGE 图边，复用 [`036-the-knowledge-graph.md`](036-the-knowledge-graph.md) 的 AGE 基础设施：
 
 - **节点**：每条 Memory 和 Fact 作为图节点
 - **边**：因果关系（`CAUSES`）、时序关系（`FOLLOWS`）、主题关联（`RELATED_TO`）
@@ -1597,7 +1597,7 @@ timeline
 
 ### 10.5 Phase 5 实施记录（开工于 2026-05）
 
-> 详细工程契约见 [`026-memory-whitepaper.md`](./026-memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](../../../concepts/user-guide/memory-basics.md) §2.5。
+> 详细工程契约见 [`026-memory-whitepaper.md`](./026-memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](./user-guide/memory-basics.md) §2.5。
 
 | 特性 | 集成点 | 默认 flag | 状态 |
 | :-- | :-- | :-- | :-- |
@@ -1777,9 +1777,9 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 ## 14. 相关文档
 
-- Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](./035-the-knowledge-base.md)
-- 知识图谱技术方案：[`036-the-knowledge-graph.md`](./036-the-knowledge-graph.md)
-- 理论基础白皮书：[`026-memory-whitepaper.md`](./026-memory-whitepaper.md)
+- Memory 与 Knowledge 职责边界：[`035-the-knowledge-base.md`](035-the-knowledge-base.md)
+- 知识图谱技术方案：[`036-the-knowledge-graph.md`](036-the-knowledge-graph.md)
+- 理论基础白皮书：[`026-memory-whitepaper.md`](026-memory-whitepaper.md)
 - 系统架构总览：[`framework.md`](../../../concepts/framework.md)
 - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 - 外部设计文档：[020-the-hippocampus.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/concepts/020-the-hippocampus.md)
