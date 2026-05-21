@@ -193,7 +193,7 @@ uv run python -m tests.eval_tests.memory.eval_runner
 # 报告自动写入 .temp/eval/baseline_<timestamp>.md
 ```
 
-CI 触发：在 PR 上加 `memory-eval` 标签即可激活 [`memory-eval` workflow](../../.github/workflows/memory-eval.yml)。
+CI 触发：在 PR 上加 `memory-eval` 标签即可激活 [`memory-eval` workflow](../../../.github/workflows/memory-eval.yml)。
 
 ---
 
@@ -230,7 +230,7 @@ print(result["budget"])
 
 ## 7. <a id="phase5-features"></a>Phase 5 高级特性使用契约
 
-> 工程契约稿；代码迭代实施中，以白皮书 [§4](../memory/whitepaper.md#4-phase-5-四方向落地记录2026-05-启动) 为准。所有特性默认关闭。
+> 工程契约稿；代码迭代实施中，以白皮书 [§4](../../concepts/026-memory-whitepaper.md#4-phase-5-四方向落地记录2026-05-启动) 为准。所有特性默认关闭。
 
 ### 7.1 F1 — HippoRAG PPR 检索
 
