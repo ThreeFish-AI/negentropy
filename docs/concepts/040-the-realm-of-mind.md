@@ -1557,7 +1557,7 @@ asyncio.run(test_postgres_tracing())
 
 | 类别       | 文件路径                                                        | 描述                                  | 任务 ID         |
 | :--------- | :-------------------------------------------------------------- | :------------------------------------ | :-------------- |
-| **文档**   | `docs/engine/040-the-realm-of-mind.md`                          | 本实施方案文档                        | P4-1-1          |
+| **文档**   | `docs/concepts/040-the-realm-of-mind.md`                        | 本实施方案文档                        | P4-1-1          |
 | **Schema** | `src/cognizes/engine/schema/mind_schema.sql`                    | Mind Schema (Tools, Sandbox, Tracing) | P4-1-3          |
 | **Python** | `src/cognizes/adapters/postgres/session_service.py`             | PostgreSQL Session Service 实现       | P4-2-2          |
 | **Python** | `src/cognizes/adapters/postgres/memory_service.py`              | PostgreSQL Memory Service 实现        | P4-2-9          |
