@@ -1,6 +1,6 @@
 # Memory 模块白皮书 —— 理论基础与设计取舍
 
-> 本文档是 [`memory.md`](./overview.md) 的理论补丁，集中沉淀 Memory 模块的认知科学/信息检索/Agent 系统三类引文，附跨框架对比矩阵。日常使用请直接参考 [`user-guide/memory-basics`](./user-guide/basics.md)。
+> 本文档是 [`025-the-memory-system.md`](./025-the-memory-system.md) 的理论补丁，集中沉淀 Memory 模块的认知科学/信息检索/Agent 系统三类引文，附跨框架对比矩阵。日常使用请直接参考 [`memory-basics`](../core/user-guide/memory-basics.md)。
 
 ---
 
@@ -68,7 +68,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ## 4. Phase 5 四方向落地记录（2026-05 启动）
 
-> Phase 5 聚焦白皮书既定的四个高/中优先级缺口。所有特性默认关闭、向后兼容、灰度启用，工程契约见 [`memory.md`](./overview.md) §10 与 [`user-guide/memory-basics`](./user-guide/basics.md) "高级特性开关"。
+> Phase 5 聚焦白皮书既定的四个高/中优先级缺口。所有特性默认关闭、向后兼容、灰度启用，工程契约见 [`025-the-memory-system.md`](./025-the-memory-system.md) §10 与 [`memory-basics`](../core/user-guide/memory-basics.md) "高级特性开关"。
 
 ### 4.1 F1 — HippoRAG 神经符号检索（PPR-Boosted Hybrid）
 
