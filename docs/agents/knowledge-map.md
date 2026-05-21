@@ -75,7 +75,5 @@
 - Git 提交：使用 Claude Code `/commit` slash command，严禁 rebase；分支命名见 AGENTS.md
 - 数据库迁移：使用 alembic，严禁清理数据；新增表使用偏唯一索引覆盖 PG 复合主键 NULL 语义（参考 `0032_task_model_settings.py`）
 
-## RFC / Architecture（链接结构占位）
-
-- `docs/rfcs/` — 设计提案与决策记录
+- [RFC 0001：会话架构重塑](../concepts/0001-conversation-architecture-refactor.md) · [RFC 0002：UI 交互增强](../concepts/0002-ui-interaction-enhancements.md) — 设计提案与决策记录
 - `docs/reference/cognizes/engine/schema/` — 数据 schema 参考 DDL（Knowledge / Memory / KG）

@@ -15,7 +15,7 @@
     - **本期不强制接入具体工具**（避免改造爆炸半径）；演示与完整工具接入留 Phase 4。
 
 参考文献：
-    [1] RFC 0002 §4.4 中断/审批门（docs/rfcs/0002-ui-interaction-enhancements.md）
+    [1] RFC 0002 §4.4 中断/审批门（docs/concepts/0002-ui-interaction-enhancements.md）
     [2] T. Rebedea et al., "NeMo Guardrails: A Toolkit for Controllable and Safe LLM
         Applications with Programmable Rails," in Proc. EMNLP System Demos, 2023.
     [3] Y. Bai et al., "Constitutional AI: Harmlessness from AI Feedback," arXiv:2212.08073, 2022.
