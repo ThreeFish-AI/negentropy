@@ -1,7 +1,5 @@
 # Interface 能力接入
 
-> 本文从用户手册拆分而来，原路径 [docs/user-guide.md](../../user-guide.md)。
-
 ## 6. Interface 能力接入
 
 Interface 模块将 Negentropy 的能力接入面板统一在同一顶层导航之下，覆盖模型（Models）、子智能体（SubAgents）、MCP 服务器（MCP Servers）与技能（Skills）四个正交维度。
