@@ -234,8 +234,8 @@ describe("useSessionListService", () => {
       .spyOn(global, "fetch")
       // 首次：useEffect 触发的 loadSessions，返回空列表。
       .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response)
-      // 后续：deleteSession 的 POST 调用。
-      .mockResolvedValueOnce({
+      // 后续所有调用（deleteSession + 可能的 loadSessions 重触发）统一兜底。
+      .mockResolvedValue({
         ok: true,
         json: async () => ({ status: "ok" }),
       } as Response);
@@ -261,8 +261,11 @@ describe("useSessionListService", () => {
       await result.current.deleteSession("s-target");
     });
 
-    const [calledUrl, calledInit] = fetchSpy.mock.calls.at(-1)!;
-    expect(String(calledUrl)).toBe("/api/agui/sessions/s-target/delete");
+    const deleteCall = fetchSpy.mock.calls.find(
+      ([url]) => String(url) === "/api/agui/sessions/s-target/delete",
+    );
+    expect(deleteCall).toBeDefined();
+    const [, calledInit] = deleteCall!;
     expect(calledInit?.method).toBe("POST");
     expect(JSON.parse(String(calledInit?.body))).toEqual({
       app_name: "negentropy",

@@ -1,10 +1,13 @@
-import { useCallback, useRef, useState } from "react";
-import { Archive, ArchiveRestore, ChevronLeft, Trash2 } from "lucide-react";
+/* eslint-disable react-hooks/set-state-in-effect -- useEffect 内调用 setCurrentPage 重置分页 */
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { SessionListView } from "@/utils/session";
+
+const PAGE_SIZE = 12;
 
 type SessionItem = {
   id: string;
@@ -46,6 +49,15 @@ export function SessionList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const ignoreBlurRef = useRef(false);
+
+  // 分页：sessions.length 或 view 变化时重置到第 1 页
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sessions.length, view]);
+  const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedSessions = sessions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // 确认弹窗状态：归档 / 解档 / 删除共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
   const [confirmTarget, setConfirmTarget] = useState<
@@ -134,8 +146,8 @@ export function SessionList({
       onConfirm={handleConfirm}
       onCancel={() => setConfirmTarget(null)}
     />
-    <aside className="col-span-2 h-full border-r border-border bg-card p-4 overflow-y-auto custom-scrollbar">
-      <div className="mb-3 flex items-center justify-between">
+    <aside className="col-span-2 h-full border-r border-border bg-card p-4 flex flex-col overflow-hidden">
+      <div className="mb-3 flex items-center justify-between shrink-0">
         <div>
           <p className="text-xs font-semibold uppercase text-muted">
             {view === "archived" ? "Archived Sessions" : "Sessions"}
@@ -180,13 +192,13 @@ export function SessionList({
           )}
         </div>
       </div>
-      <div className="space-y-2">
-        {sessions.length === 0 ? (
+      <div className="space-y-2 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+        {pagedSessions.length === 0 ? (
           <p className="text-xs text-muted">
             {view === "archived" ? "暂无已归档会话" : "暂无会话"}
           </p>
         ) : (
-          sessions.map((session) => (
+          pagedSessions.map((session) => (
             <div
               key={session.id}
               data-session-id={session.id}
@@ -222,8 +234,6 @@ export function SessionList({
               ) : (
                 <div
                   className={cn(
-                    // pr-2 提供统一右内边距，让 archive / unarchive / delete 按钮无需各自携带 mr-2，
-                    // 适配"按钮数量随 props 动态变化"场景，避免间距叠加跳动。
                     "group flex items-center gap-1 rounded-lg pr-2 transition-colors",
                     session.id === activeId ? "bg-foreground text-background" : "bg-muted text-text-secondary hover:bg-accent",
                   )}
@@ -284,8 +294,6 @@ export function SessionList({
                       <ArchiveRestore className="h-3.5 w-3.5" />
                     </button>
                   ) : null}
-                  {/* Delete 按钮：active 与 archived 视图均显示，提供唯一硬删除入口。
-                      与 Archive/Unarchive 同行右侧并列，统一由父容器 pr-2 控制右内边距。 */}
                   {onDelete ? (
                     <button
                       type="button"
@@ -311,6 +319,31 @@ export function SessionList({
           ))
         )}
       </div>
+      {sessions.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border shrink-0">
+          <button
+            type="button"
+            disabled={safePage <= 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            aria-label="上一页"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-[10px] font-medium text-muted">
+            {safePage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            aria-label="下一页"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </aside>
     </>
   );
