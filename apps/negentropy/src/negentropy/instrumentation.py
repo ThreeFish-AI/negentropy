@@ -12,19 +12,25 @@ from opentelemetry import trace
 
 from negentropy.config.pricing import get_effective_model_pricing_usd, get_last_online_catalog_error
 from negentropy.logging import get_logger
-from negentropy.model_names import extract_vendor, observability_model_name
+from negentropy.model_names import extract_vendor, observability_model_name, pricing_lookup_model_name
 
 
-def _normalize_model_name(model: str | None) -> str | None:
-    """规范化模型名用于 Langfuse 上报（裸名 + 剥日期 + 别名）。
+def _normalize_model_name(model: str | None, *, vendor_hint: str | None = None) -> str | None:
+    """规范化模型名用于 Langfuse 上报（``vendor/model`` 全名 + 剥日期 + 别名）。
 
     与调度路径的 ``canonicalize_model_name`` 正交：调度需要保留 ``vendor/``
-    前缀以驱动 LiteLLM 选择真实 API；观测需要裸名以让 Langfuse 把同一模型
-    聚合到单一 cost 行。两套口径分别落在 ``model_names`` 模块。
+    前缀以驱动 LiteLLM 选择真实 API；观测同样以 ``vendor/model`` 形态上报，让
+    Langfuse Model Costs 视图把同一模型聚合到单一 cost 行（避免裸名 vs 带前缀
+    被拆成多行）。两套口径都落在 ``model_names`` 模块，但语义独立维护。
+
+    ``vendor_hint`` 用于跨字段一致性：当 response.model 是裸名（如 Gemini Embedding
+    的 ``text-embedding-004``）时，请求侧的 ``gemini/`` 前缀作为权威来源透传给
+    ``observability_model_name``，避免 ``_VENDOR_FAMILY_PREFIXES`` 误把它识别成
+    OpenAI 模型。
     """
     if model is None:
         return None
-    normalized = observability_model_name(model)
+    normalized = observability_model_name(model, vendor_hint=vendor_hint)
     return normalized if normalized else model
 
 
@@ -51,32 +57,38 @@ def _extract_response_model(response_obj: Any) -> str | None:
 
 
 def _apply_model_normalization(span: Any, kwargs: dict, response_obj: Any) -> None:
-    """归一化模型名 + 注入 cost，确保 Langfuse 聚合到单一裸名行。
+    """归一化模型名 + 注入 cost，确保 Langfuse 聚合到单一 ``vendor/model`` 行。
 
     唯一写入 ``gen_ai.request.model``、``gen_ai.response.model`` 和
     ``langfuse.observation.model.name`` 的入口。``_inject_genai_semconv_attrs``
     不再写入 model 相关属性。
+
+    跨字段 vendor 一致性：request 与 response 共用同一 ``vendor_hint``，避免
+    ``gemini/text-embedding-004`` request 与 ``text-embedding-004`` response 被
+    家族前缀表分别识别成 ``gemini`` 与 ``openai``，造成 Langfuse 拆两行。
     """
     model = kwargs.get("model")
-    normalized_model = _normalize_model_name(model) if model else None
     response_model = _extract_response_model(response_obj)
-    normalized_response_model = _normalize_model_name(response_model) if response_model else None
+
+    # vendor 单一事实源：原串前缀优先（LiteLLM 调度必带 ``vendor/``），其次响应裸名系族识别。
+    system = extract_vendor(model) or extract_vendor(response_model)
+
+    normalized_model = _normalize_model_name(model, vendor_hint=system) if model else None
+    normalized_response_model = _normalize_model_name(response_model, vendor_hint=system) if response_model else None
 
     if not _is_writable_span(span):
         return
 
-    # 覆盖 LiteLLM 原始写入的 request/response model（归一化裸名）
+    # 覆盖 LiteLLM 原始写入的 request/response model（归一化为 ``vendor/model`` 全名）
     if normalized_model:
         _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
     if normalized_response_model:
         _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
 
-    # vendor 单一事实源：原串前缀优先，否则裸名系族识别。
-    system = extract_vendor(model) or extract_vendor(response_model)
     if system:
         _safe_set_span_attribute(span, "gen_ai.system", system)
 
-    # Langfuse 私有强制覆盖键：最高优先级，确保 Model Costs 视图收敛到同一裸名行。
+    # Langfuse 私有强制覆盖键：最高优先级，确保 Model Costs 视图收敛到同一 ``vendor/model`` 行。
     langfuse_model = normalized_response_model or normalized_model
     if langfuse_model:
         _safe_set_span_attribute(span, "langfuse.observation.model.name", langfuse_model)
@@ -245,7 +257,8 @@ class LiteLLMLoggingCallback:
         """Log successful LLM interaction."""
         self._ensure_tracing()
         try:
-            model = _normalize_model_name(kwargs.get("model", "unknown"))
+            raw_model = kwargs.get("model", "unknown")
+            model = _normalize_model_name(raw_model, vendor_hint=extract_vendor(raw_model))
             input_tokens = 0
             output_tokens = 0
 
@@ -300,7 +313,8 @@ class LiteLLMLoggingCallback:
     def log_failure_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
         """Log failed LLM interaction."""
         try:
-            model = _normalize_model_name(kwargs.get("model", "unknown"))
+            raw_model = kwargs.get("model", "unknown")
+            model = _normalize_model_name(raw_model, vendor_hint=extract_vendor(raw_model))
             exception = kwargs.get("exception", "unknown error")
 
             latency_ms = (end_time - start_time).total_seconds() * 1000
@@ -329,8 +343,12 @@ def _resolve_total_cost(kwargs: dict, response_obj: Any) -> tuple[float | None, 
     3. LiteLLM's completion_cost function
     4. LiteLLM 官方在线价目表
     5. 本地 override 配置
+
+    使用 ``pricing_lookup_model_name`` 而非 ``_normalize_model_name``：定价路径需要
+    裸名作为 LiteLLM catalog 查表键（``observability_model_name`` 在 2026-05-21 反转
+    口径后输出 ``vendor/model`` 全名，与定价查表语义已不再耦合）。
     """
-    model = _normalize_model_name(kwargs.get("model"))
+    model = pricing_lookup_model_name(kwargs.get("model"))
     cost = kwargs.get("response_cost")
     if cost is None:
         standard_logging = kwargs.get("standard_logging_object")

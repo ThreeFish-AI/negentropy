@@ -63,7 +63,7 @@
 
 | 文档 | 说明 |
 | :--- | :--- |
-| [Wiki 知识发布](./wiki/user-guide/publishing.md) | Publication 创建、SSG/ISR 部署 |
+| [Wiki 知识发布](./reference/wiki/user-guide/publishing.md) | Publication 创建、SSG/ISR 部署 |
 
 ---
 
@@ -78,7 +78,7 @@
 | 知识设计 | [Knowledge 设计](./reference/cognizes/engine/035-the-knowledge-base.md) · [KG 概览](./reference/cognizes/engine/036-the-knowledge-graph.md) · [联邦 KG](./reference/cognizes/engine/037-federated-kg.md) |
 | 记忆设计 | [Memory 概览](./reference/cognizes/engine/025-the-memory-system.md) · [白皮书](./reference/cognizes/engine/026-memory-whitepaper.md) |
 | 基础设施 | [SSO](./infrastructure/design/sso.md) · [Observability](./infrastructure/design/observability-genai.md) · [QA Pipeline](./infrastructure/design/qa-delivery-pipeline.md) |
-| Wiki | [Wiki 运维](./wiki/ops.md) · [KG 发布设计](./wiki/design/knowledge-graph.md) |
+| Wiki | [Wiki 运维](./reference/wiki/ops.md) · [KG 发布设计](./reference/wiki/design/knowledge-graph.md) |
 
 ---
 

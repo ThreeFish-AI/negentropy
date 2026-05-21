@@ -732,7 +732,7 @@ uv run pytest tests/performance_tests/knowledge/test_catalog_tree_perf.py -v
 
 > **状态**：Accepted（ADR 等价）
 > **上游**：见 [§13 Catalog / Wiki Publication 三层正交架构](#13-catalog--wiki-publication-三层正交架构)
-> **关联运维**：见 [`wiki/ops.md` §12 单实例 Catalog 与 Wiki 发布版本管理运维](../../../wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维)
+> **关联运维**：见 [`wiki/ops.md` §12 单实例 Catalog 与 Wiki 发布版本管理运维](../../wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维)
 > **关联 Issue**：见 [`issue.md` ISSUE-015](../../../agents/issue.md#issue-015)
 
 ### 15.1 设计动机
@@ -823,7 +823,7 @@ flowchart LR
     class C2,C3,N3,N4,M3,M4 foreign;
 ```
 
-合并算法关键步骤（详见 [`wiki/ops.md` §12.2 Phase B runbook](../../../wiki/ops.md#122-phase-b-merge-runbook)）：
+合并算法关键步骤（详见 [`wiki/ops.md` §12.2 Phase B runbook](../../wiki/ops.md#122-phase-b-merge-runbook)）：
 
 1. **Survivor 选择**：按 `(app_name, is_archived=false) ORDER BY created_at ASC LIMIT 1`。
 2. **Virtual Root 注入**：为每个被合并 Catalog 在 survivor 顶层创建一个 `node_type='CATEGORY'` 的虚拟节点，slug 加 `legacy-<short_hash>` 后缀避免冲突。
