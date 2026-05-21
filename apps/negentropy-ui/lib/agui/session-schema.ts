@@ -53,11 +53,18 @@ export const aguiSessionTitleResponseSchema = z
   })
   .passthrough();
 
+export const aguiSessionDeleteResponseSchema = z
+  .object({
+    status: z.literal("ok"),
+  })
+  .passthrough();
+
 export type AguiSessionSummary = z.infer<typeof aguiSessionSummarySchema>;
 export type AguiSessionDetail = z.infer<typeof aguiSessionDetailSchema>;
 export type AguiCreateSessionResponse = z.infer<typeof aguiCreateSessionResponseSchema>;
 export type AguiSessionArchiveResponse = z.infer<typeof aguiSessionArchiveResponseSchema>;
 export type AguiSessionTitleResponse = z.infer<typeof aguiSessionTitleResponseSchema>;
+export type AguiSessionDeleteResponse = z.infer<typeof aguiSessionDeleteResponseSchema>;
 
 export function safeParseSessionListResponse(input: unknown) {
   return aguiSessionListSchema.safeParse(input);
@@ -77,4 +84,8 @@ export function safeParseSessionArchiveResponse(input: unknown) {
 
 export function safeParseSessionTitleResponse(input: unknown) {
   return aguiSessionTitleResponseSchema.safeParse(input);
+}
+
+export function safeParseSessionDeleteResponse(input: unknown) {
+  return aguiSessionDeleteResponseSchema.safeParse(input);
 }

@@ -434,6 +434,7 @@ export function HomeBody({
     startNewSession,
     archiveSession,
     unarchiveSession,
+    deleteSession,
     renameSession,
     scheduleTitleRefresh,
     updateCurrentSessionTime,
@@ -1175,6 +1176,7 @@ export function HomeBody({
               onRename={renameSession}
               onArchive={archiveSession}
               onUnarchive={unarchiveSession}
+              onDelete={deleteSession}
             />
           </div>
         </div>

@@ -31,7 +31,7 @@ from google.adk.sessions.base_session_service import (
     GetSessionConfig,
     ListSessionsResponse,
 )
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ORM 模型与会话工厂
@@ -195,6 +195,29 @@ class PostgresSessionService(BaseSessionService):
             session_id=session_id,
             archived=True,
         )
+
+    async def hard_delete_session(self, *, app_name: str, user_id: str, session_id: str) -> bool:
+        """从数据库永久删除会话（threads 表 DELETE）。
+
+        与 ADK 标准 :meth:`delete_session`（被本类重写为"归档"）解耦，新增独立
+        硬删除入口，避免破坏 ADK 基类兼容契约。``Event.thread_id`` 已声明
+        ``ondelete="CASCADE"``（参见 ``models/pulse.py``），故删除 thread 时
+        关联 events 由数据库级联自动清理。
+
+        :returns: 命中并删除返回 ``True``；未命中（session_id 不存在或不属于
+            该 (app_name, user_id) 三元组）返回 ``False``。
+        """
+        self._validate_session_id(session_id)
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(
+                delete(self.Thread).where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+            )
+            await db.commit()
+            return (result.rowcount or 0) > 0
 
     async def append_event(self, session: Session, event: ADKEvent) -> ADKEvent:
         """

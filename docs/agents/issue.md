@@ -2171,3 +2171,27 @@
   - 其它 app（`cognizes` / `negentropy` 主仓）若引入 `pip-audit` 步骤，应直接复用本数组式模板；
   - 周期性的 PYSEC 数据库增补会让任何使用 `pip-audit` 且依赖锁定到老旧 ML 套件（torch / transformers / numpy / scipy 等）的项目出现同类「无 fix 可升、必须 ignore」局面，须按本案的「威胁模型 + 锁版本约束」双轴评估，而非盲目跟随 CVSS 分数升级；
   - 现有 8 条历史 ignore（pygments / fastmcp / litellm）已不在本次失败报告里，下次例行升级时应核对其匹配性，避免 ignore 列表演变为僵化白名单。
+
+---
+
+## ISSUE-093 Studio 左栏 Session 列表新增 Delete 选项与硬删除链路（2026-05-21）
+
+- **表因**：用户希望在 Studio 页（`/studio`，根路径 `/` 重定向至此）左栏 `SessionList` 中提供一个 **Delete** 选项，把已归档或不再需要的会话**永久清理**。现有交互只有 Archive（active 视图归档）/ Unarchive（archived 视图恢复）/ 双击重命名，已归档会话无法在 UI 上彻底清除。
+- **根因**：
+  1. 后端 `apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py` 的 `delete_session()` 被有意重写为 `archive_session(archived=True)` 以维持 ADK 基类兼容契约——这是产品级"保护数据"决策，**不能**直接改回硬删除；
+  2. 因此后端**缺失**真硬删除入口（无 `DELETE` 路由、无独立 service 方法）；
+  3. 前端 `SessionList.tsx` 没有 `onDelete` prop，`useSessionListService` 没有 `deleteSession` 方法，BFF 转发层（`[sessionId]/route.ts`）只有 GET。
+- **处理方式**：
+  1. **后端**：在 `PostgresSessionService` 新增独立的 `hard_delete_session()`，直接 `DELETE FROM threads`（`Event.thread_id` 已声明 `ondelete="CASCADE"`，关联 events 由 PostgreSQL 级联自动清理）；保留 `delete_session()` 现有的归档行为不变，避免破坏 ADK 兼容契约；在 `sessions_api.py` 新增 **`@router.post("/apps/{app}/users/{user}/sessions/{id}/delete")`** 路由（**实机回归阶段发现 ADK 路由冲突**：初版使用 `@router.delete(...)`，但 ADK Web Server 已在 `DELETE /apps/.../sessions/{id}` 上注册自己的处理器，FastAPI 路由匹配先命中 ADK 版调用被重写为"归档"的 `delete_session`，让我们的硬删除路由形同虚设——curl 验证返回 `200 + null` 而非预期的 `200 + {status: ok}` 或 `404`。改走 `POST .../delete` 路径既绕开冲突，又与同模块 `archive`/`unarchive` 风格一致），调 `hard_delete_session()`，未命中返回 404。新增集成测试覆盖：存在→True / 不存在→False / 已归档也可硬删 / events 级联清理（4 个用例）。
+  2. **前端**：在 `lib/agui/session-schema.ts` 新增 `aguiSessionDeleteResponseSchema`；`_request.ts` 新增 `buildSessionDeleteUpstreamUrl()`（路径含 `/delete` 后缀）；新建独立的 `app/api/agui/sessions/[sessionId]/delete/route.ts` 转发 `POST`（与 archive/unarchive 同构，body 承载 `app_name`/`user_id`）；`useSessionListService.ts` 新增 `deleteSession(id)`，采用与 archiveSession 同构的乐观更新 + 选中切换 + 日志范式；`SessionList.tsx` 新增 `onDelete` prop 与 `Trash2` 红色按钮（active + archived 两个视图都显示），ConfirmDialog 文案明确强调"永久删除……不可恢复"，cancel autoFocus 防误触；`home-body.tsx` 注入 `onDelete={deleteSession}`。
+  3. **修复同期发现的 race**：archive/unarchive 现有范式中"在 `setSessions((prev) => { nextActiveId = prev[0]?.id ?? null; ... })` 回调内赋值闭包变量、紧随其后读它"在 React 18+ 的 lazy reducer 调度路径下会读到 `null`（已在 vitest 用例中复现）。`deleteSession` 改用同步预计算：直接读 `sessions` 闭包值 → 过滤 → 算 `nextActiveId` → 再 dispatch `setSessions(remaining)`，把 `sessions` 加入 useCallback 依赖。
+  4. **实机回归证据**（cancun-v1 工作区独立栈，后端 3293 + UI 3193）：创建测试 session → DB 写入确认 → 通过 cancun-v1 BFF `POST /api/agui/sessions/{id}/delete` 返回 `HTTP 200 + {"status":"ok"}` → DB 中该行 `remaining=0`，端到端链路（BFF transport → POST /delete 后端路由 → hard_delete_session() → DELETE FROM threads SQL → events 级联清理）全通。删除不存在的 session 通过 BFF 返回 `502 AGUI_UPSTREAM_ERROR`（透传上游 404），与 archive/unarchive 既有错误包装行为一致。
+- **后续防范**：
+  1. **"破坏性 UI 操作"必须满足三层防御**：(a) destructive 红色按钮 + cancel autoFocus（视觉与默认焦点）；(b) ConfirmDialog 文案明确写"不可恢复"并陈述清理范围；(c) 后端 service 与 ADK 标准接口解耦命名（`hard_delete_session` ≠ `delete_session`），避免后续重构悄然回退；
+  2. **`setState((prev) => { 闭包外赋值; return next; })` 是反模式**：若 dispatch 后立即需读取赋值结果，应同步预计算或将相应状态加入 useCallback 依赖。React 18+ reducer 并非紧跟 dispatch 同步执行，存在 lazy 评估路径；archive/unarchive 现有代码同样有此潜在 race，可在未来按本次修复范式重构；
+  3. **后端 ADK 兼容接口**（`delete_session` / `update_session` / `list_sessions` 等）若要新增正交语义，须新增独立方法 + 路由，禁止覆盖基类约定；
+  4. **events 表级联**：`Event.thread_id` 的 `ondelete="CASCADE"` 是本次硬删除可行的前提；新增涉及 `threads` 表的硬删除调用前必须确认这一前提仍成立；
+  5. **ADK 路由抢占检查**：凡是新增 `apps/{app}/users/{user}/sessions/{id}/...` 或 `apps/{app}/users/{user}/sessions` 下的路由，须先确认 ADK Web Server 是否在同路径同 method 上已注册——可通过 `curl` 真实请求验证（200 + 非预期 body 即说明被 ADK 抢占）；若冲突，优先在路径加业务后缀（如 `.../delete`、`.../archive`）改走 POST，而非企图覆盖 ADK 注册。单测无法发现这类冲突（只能在真实 FastAPI app 装配的运行时复现），属于"集成 / 实机回归不可替代"的典型场景。
+- **同类问题影响**：
+  - 其他模块（Skills、Knowledge Documents、Wiki Publications 等）若已有"软删/归档"语义而后续要新增"永久清理"入口，应直接复用本案范式：独立 Service 方法 + 独立 HTTP 动词路由 + UI 二次确认 + 同测试范式；
+  - 全仓库 `setState((prev) => { 闭包赋值 })` 范式可借此机会做一轮 review（grep `let \w+: .*?\| null = null;\s*setSessions`），按需重构。

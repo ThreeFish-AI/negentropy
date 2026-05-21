@@ -73,4 +73,74 @@ describe("SessionList", () => {
     await user.click(screen.getByTestId("confirm-dialog-cancel"));
     expect(onArchive).not.toHaveBeenCalled();
   });
+
+  it("active 视图点击 Delete 弹出确认对话框，确认后调用 onDelete 且不触发选中", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const onDelete = vi.fn();
+    render(
+      <SessionList
+        sessions={[{ id: "s1", label: "Session One" }]}
+        activeId="s1"
+        view="active"
+        onSwitchView={vi.fn()}
+        onSelect={onSelect}
+        onArchive={vi.fn()}
+        onDelete={onDelete}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete Session One" }));
+    expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
+    // 文案应明确"不可恢复"以降低误触
+    expect(screen.getByTestId("confirm-dialog")).toHaveTextContent(/不可恢复/);
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
+
+    expect(onDelete).toHaveBeenCalledWith("s1");
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("archived 视图也提供 Delete 入口，并与 Unarchive 并存", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const onUnarchive = vi.fn();
+    render(
+      <SessionList
+        sessions={[{ id: "s2", label: "Archived One" }]}
+        activeId="s2"
+        view="archived"
+        onSwitchView={vi.fn()}
+        onSelect={vi.fn()}
+        onUnarchive={onUnarchive}
+        onDelete={onDelete}
+      />,
+    );
+
+    // Unarchive 与 Delete 两个按钮都应可见
+    expect(screen.getByRole("button", { name: "Unarchive Archived One" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete Archived One" }));
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
+
+    expect(onDelete).toHaveBeenCalledWith("s2");
+    expect(onUnarchive).not.toHaveBeenCalled();
+  });
+
+  it("点击 Delete 的取消按钮不调用 onDelete", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(
+      <SessionList
+        sessions={[{ id: "s1", label: "Session One" }]}
+        activeId={null}
+        view="active"
+        onSwitchView={vi.fn()}
+        onSelect={vi.fn()}
+        onDelete={onDelete}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete Session One" }));
+    expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+    expect(onDelete).not.toHaveBeenCalled();
+  });
 });

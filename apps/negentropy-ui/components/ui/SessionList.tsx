@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Archive, ArchiveRestore, ChevronLeft } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronLeft, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
@@ -22,6 +22,13 @@ type SessionListProps = {
   onRename?: (id: string, title: string) => Promise<void> | void;
   onArchive?: (id: string) => Promise<void> | void;
   onUnarchive?: (id: string) => Promise<void> | void;
+  /**
+   * 硬删除会话回调（永久移除，不可恢复）。
+   *
+   * 与 ``onArchive``（软删=归档）正交：本回调最终触发数据库 ``DELETE FROM threads``，
+   * 故组件内部统一经 destructive ConfirmDialog 二次确认后才会触发，避免误触。
+   */
+  onDelete?: (id: string) => Promise<void> | void;
 };
 
 export function SessionList({
@@ -34,14 +41,15 @@ export function SessionList({
   onRename,
   onArchive,
   onUnarchive,
+  onDelete,
 }: SessionListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const ignoreBlurRef = useRef(false);
 
-  // 确认弹窗状态：归档 / 解档共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
+  // 确认弹窗状态：归档 / 解档 / 删除共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
   const [confirmTarget, setConfirmTarget] = useState<
-    | { kind: "archive" | "unarchive"; session: SessionItem }
+    | { kind: "archive" | "unarchive" | "delete"; session: SessionItem }
     | null
   >(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -54,12 +62,40 @@ export function SessionList({
         await onArchive(confirmTarget.session.id);
       } else if (confirmTarget.kind === "unarchive" && onUnarchive) {
         await onUnarchive(confirmTarget.session.id);
+      } else if (confirmTarget.kind === "delete" && onDelete) {
+        await onDelete(confirmTarget.session.id);
       }
     } finally {
       setConfirmBusy(false);
       setConfirmTarget(null);
     }
-  }, [confirmTarget, onArchive, onUnarchive]);
+  }, [confirmTarget, onArchive, onDelete, onUnarchive]);
+
+  const confirmDialogCopy = (() => {
+    if (!confirmTarget) {
+      return { title: "", message: "", confirmLabel: "" };
+    }
+    if (confirmTarget.kind === "archive") {
+      return {
+        title: "归档会话",
+        message: `确认归档会话「${confirmTarget.session.label}」吗？`,
+        confirmLabel: "归档",
+      };
+    }
+    if (confirmTarget.kind === "unarchive") {
+      return {
+        title: "解档会话",
+        message: `确认解档会话「${confirmTarget.session.label}」吗？`,
+        confirmLabel: "解档",
+      };
+    }
+    // delete：强调"永久不可恢复"，降低误触风险
+    return {
+      title: "删除会话",
+      message: `将永久删除会话「${confirmTarget.session.label}」及其全部消息历史，删除后不可恢复。是否继续？`,
+      confirmLabel: "删除",
+    };
+  })();
 
   const startEdit = useCallback((session: SessionItem) => {
     setEditingId(session.id);
@@ -85,15 +121,15 @@ export function SessionList({
     <>
     <ConfirmDialog
       open={confirmTarget !== null}
-      title={confirmTarget?.kind === "archive" ? "归档会话" : "解档会话"}
-      message={
-        confirmTarget
-          ? `确认${confirmTarget.kind === "archive" ? "归档" : "解档"}会话「${confirmTarget.session.label}」吗？`
-          : ""
-      }
-      confirmLabel={confirmTarget?.kind === "archive" ? "归档" : "解档"}
+      title={confirmDialogCopy.title}
+      message={confirmDialogCopy.message}
+      confirmLabel={confirmDialogCopy.confirmLabel}
       cancelLabel="取消"
-      destructive={confirmTarget?.kind === "archive"}
+      // archive 与 delete 均为破坏性动作（红色按钮 + cancel autoFocus 防误触）；
+      // unarchive 是恢复操作，使用默认中性样式即可。
+      destructive={
+        confirmTarget?.kind === "archive" || confirmTarget?.kind === "delete"
+      }
       busy={confirmBusy}
       onConfirm={handleConfirm}
       onCancel={() => setConfirmTarget(null)}
@@ -186,7 +222,9 @@ export function SessionList({
               ) : (
                 <div
                   className={cn(
-                    "group flex items-center gap-1 rounded-lg transition-colors",
+                    // pr-2 提供统一右内边距，让 archive / unarchive / delete 按钮无需各自携带 mr-2，
+                    // 适配"按钮数量随 props 动态变化"场景，避免间距叠加跳动。
+                    "group flex items-center gap-1 rounded-lg pr-2 transition-colors",
                     session.id === activeId ? "bg-foreground text-background" : "bg-muted text-text-secondary hover:bg-accent",
                   )}
                 >
@@ -222,7 +260,7 @@ export function SessionList({
                         setConfirmTarget({ kind: "archive", session });
                       }}
                       className={cn(
-                        "mr-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
+                        "inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
                         session.id === activeId ? "hover:bg-white/10" : "hover:bg-black/5 dark:hover:bg-white/10",
                       )}
                     >
@@ -239,11 +277,32 @@ export function SessionList({
                         setConfirmTarget({ kind: "unarchive", session });
                       }}
                       className={cn(
-                        "mr-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
+                        "inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
                         session.id === activeId ? "hover:bg-white/10" : "hover:bg-black/5 dark:hover:bg-white/10",
                       )}
                     >
                       <ArchiveRestore className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                  {/* Delete 按钮：active 与 archived 视图均显示，提供唯一硬删除入口。
+                      与 Archive/Unarchive 同行右侧并列，统一由父容器 pr-2 控制右内边距。 */}
+                  {onDelete ? (
+                    <button
+                      type="button"
+                      aria-label={`Delete ${session.label}`}
+                      title="删除会话（不可恢复）"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setConfirmTarget({ kind: "delete", session });
+                      }}
+                      className={cn(
+                        "inline-flex h-7 w-7 items-center justify-center rounded-md opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
+                        session.id === activeId
+                          ? "text-red-300 hover:bg-white/10 hover:text-red-200"
+                          : "text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10",
+                      )}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   ) : null}
                 </div>
