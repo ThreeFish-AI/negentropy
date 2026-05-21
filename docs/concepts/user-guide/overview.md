@@ -20,83 +20,19 @@ Negentropy 的命名源自薛定谔《生命是什么》中的"负熵"概念<sup
 
 Negentropy 的核心是一个**调度者**（The Self），它不直接执行任何原子任务，而是将意图委派给最胜任的**系部**（Faculty），如同乐队指挥与演奏家的关系。
 
-```mermaid
-graph TB
-    subgraph Input["📥 用户输入"]
-        Q["用户提问 / 指令"]
-    end
+| 系部           | 图腾   | 对抗目标   | 用户感知                           |
+| :------------- | :----- | :--------- | :--------------------------------- |
+| 👁️ 感知系部    | Perception  | 信息过载   | 广域扫描、噪音过滤、多源交叉验证   |
+| 💎 内化系部    | Internalization | 记忆断裂   | 知识结构化、长期记忆管理           |
+| 🧠 沉思系部    | Contemplation | 肤浅回应   | 二阶思维、策略规划、根因分析       |
+| ✋ 行动系部    | Action | 纸上谈兵   | 精准执行、代码生成、安全变更       |
+| 🗣️ 影响系部    | Influence | 价值衰减   | 清晰表达、格式适配、价值交付       |
 
-    subgraph Core["🔮 调度核心"]
-        Engine["NegentropyEngine<br/>The Self · 调度指挥"]
-    end
-
-    subgraph Faculties["🎯 五大系部"]
-        P["👁️ 感知系部<br/>Perception"]
-        I["💎 内化系部<br/>Internalization"]
-        C["🧠 沉思系部<br/>Contemplation"]
-        A["✋ 行动系部<br/>Action"]
-        Inf["🗣️ 影响系部<br/>Influence"]
-    end
-
-    subgraph Output["📤 价值输出"]
-        R1["结构化知识"]
-        R2["可执行方案"]
-        R3["清晰洞察"]
-    end
-
-    Q --> Engine
-    Engine -->|"单一委派<br/>or 流水线编排"| P
-    Engine --> I
-    Engine --> C
-    Engine --> A
-    Engine --> Inf
-
-    P --> R1
-    I --> R1
-    C --> R3
-    A --> R2
-    Inf --> R3
-
-    classDef core fill:#F59E0B,stroke:#92400E,color:#000
-    classDef fac fill:#3B82F6,stroke:#1E3A8A,color:#FFF
-    classDef inp fill:#10B981,stroke:#065F46,color:#FFF
-    classDef out fill:#8B5CF6,stroke:#5B21B6,color:#FFF
-
-    class Engine core
-    class P,I,C,A,Inf fac
-    class Q inp
-    class R1,R2,R3 out
-```
+> 技术架构设计（Mermaid 架构图、系部实现范式、协作序列等）详见 [Framework](../framework.md) §3 一核五翼：智能体编排架构。
 
 ### 1.3 三大标准流水线
 
 对于常见的多步骤任务，系统预置了三条**标准流水线**，免去手动编排的繁琐：
-
-```mermaid
-flowchart LR
-    subgraph KA["📚 知识获取"]
-        direction LR
-        P1["👁️ 感知"] --> I1["💎 内化"]
-    end
-
-    subgraph PS["🔧 问题解决"]
-        direction LR
-        P2["👁️ 感知"] --> C2["🧠 沉思"] --> A2["✋ 行动"] --> I2["💎 内化"]
-    end
-
-    subgraph VD["📝 价值交付"]
-        direction LR
-        P3["👁️ 感知"] --> C3["🧠 沉思"] --> Inf3["🗣️ 影响"]
-    end
-
-    classDef ka fill:#DBEAFE,stroke:#1E3A8A,color:#000
-    classDef ps fill:#FEF3C7,stroke:#92400E,color:#000
-    classDef vd fill:#D1FAE5,stroke:#065F46,color:#000
-
-    class P1,I1 ka
-    class P2,C2,A2,I2 ps
-    class P3,C3,Inf3 vd
-```
 
 | 流水线       | 执行路径                  | 适用场景                         |
 | :----------- | :------------------------ | :------------------------------- |
@@ -104,7 +40,7 @@ flowchart LR
 | **问题解决** | 感知 → 沉思 → 行动 → 内化 | Bug 修复、功能实现、系统优化     |
 | **价值交付** | 感知 → 沉思 → 影响        | 撰写文档、生成报告、决策建议     |
 
-> 更深入的架构设计细节，请参阅 [架构设计](../../concepts/framework.md)。
+> 流水线技术实现（状态传递机制、边界管控、代码位置等）详见 [Framework](../framework.md) §4 流水线编排模式。
 
 ---
 

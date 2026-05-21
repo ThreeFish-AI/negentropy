@@ -1,6 +1,6 @@
 # Skills · AI Agent Paper Hunter 端到端
 
-> 自动检索 arXiv 上 AI Agent 领域最新最有用的论文，并通过 Skills 内化到本项目 Memory + Knowledge Graph 的最小可跑通范式。理论锚点见 [`docs/skills.md`](../../core/design/skills.md) §3.2 「Phase 2 缺口 4」。
+> 自动检索 arXiv 上 AI Agent 领域最新最有用的论文，并通过 Skills 内化到本项目 Memory + Knowledge Graph 的最小可跑通范式。理论锚点见 [`docs/skills.md`](../design/skills.md) §3.2 「Phase 2 缺口 4」。
 
 ## 1. 链路总览
 

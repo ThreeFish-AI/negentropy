@@ -2119,7 +2119,7 @@
   3. **拒绝合并为 Tab 容器**（Executions ⇄ Activity）：后端调度执行流（SSE）与前端 Toast 历史（localStorage）数据源、生命周期、消费者均正交，不应耦合进单一容器；
   4. 删除 `app/memory/activity/page.tsx`、`features/memory/hooks/useActivityLog.ts`，清理 `features/memory/index.ts` barrel 的对应 re-export；
   5. `components/ui/MemoryNav.tsx` 移除 Activity NAV_ITEM；e2e 测试从 `tests/e2e/memory/activity.spec.ts` 迁移到 `tests/e2e/dashboard/dashboard-activity.spec.ts`，通过 `data-testid="activity-log-panel"` 缩域避免与 `ExecutionTimeline` 选择器冲突；
-  6. `memory-pages.spec.ts` 中 「7 个页面标签」断言降为 6 个；`docs/core/user-guide/memory-basics.md`（迁移后路径，原 `docs/memory/user-guide/basics.md`）同步表格 + 加迁移说明。
+  6. `memory-pages.spec.ts` 中 「7 个页面标签」断言降为 6 个；`docs/concepts/user-guide/memory-basics.md`（迁移后路径，原 `docs/memory/user-guide/basics.md`）同步表格 + 加迁移说明。
 - **后续防范**：
   1. **以"数据源 + 写入触发面"判定模块归属**，而非以"看起来像什么"：凡是 `lib/*` 单例存储 + 跨模块写入的状态，hook 应栖息在 `apps/negentropy-ui/hooks/` 顶级，而非任何 `features/<domain>/` 子目录；
   2. **二级导航 tab 列表必须保持单一概念主体**：新增 tab 前先核对其数据源与同级其它 tab 是否同源（同领域 / 同生命周期 / 同写入面）；

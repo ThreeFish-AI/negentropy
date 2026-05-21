@@ -9,7 +9,7 @@
 
 - **业务级 trace**（HTTP request, KG build run）→ 见 [framework.md](../framework.md) §10；
 - **Tool Progress 旁路**（state delta）→ 见 [framework.md §9.7](../framework.md) 与 [conversation-foundation.md §2.2](../conversation-foundation.md)；
-- **KG SSE 进度**（P3-1）→ 见 [user-guide/chat-essentials.md §8](../../core/user-guide/chat-essentials.md)。
+- **KG SSE 进度**（P3-1）→ 见 [user-guide/chat-essentials.md §8](../user-guide/chat-essentials.md)。
 
 ## 1. 设计动机
 
