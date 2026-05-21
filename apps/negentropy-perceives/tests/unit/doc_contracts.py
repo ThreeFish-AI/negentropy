@@ -6,7 +6,7 @@ import re
 
 # 仓库根目录（tests/unit/ → tests/ → negentropy-perceives/ → apps/ → repo root）
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-DOCS_DIR = PROJECT_ROOT / "docs" / "perceives"
+DOCS_DIR = PROJECT_ROOT / "docs" / "reference" / "perceives"
 REQUIRED_FRONTMATTER_FIELDS = ("id", "title", "description", "last_update")
 RELATIVE_LINK_PATTERN = re.compile(r"\[.*?\]\((\.\.?/[^)#]+?)(?:#[^)]*)?\)")
 
