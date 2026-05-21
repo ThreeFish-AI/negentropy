@@ -12,7 +12,7 @@
 | :------------- | :-------------------------------------------------------------------------------------------------- |
 | **首次使用者** | [认识 Negentropy](./core/user-guide/overview.md) → [快速上手](./core/user-guide/quickstart.md) → [对话交互](./core/user-guide/chat-essentials.md) |
 | **知识管理员** | [认识 Negentropy](./core/user-guide/overview.md) → [知识库管理](./core/user-guide/knowledge-management.md) → [记忆系统](./core/user-guide/memory-basics.md) |
-| **系统管理员** | [认识 Negentropy](./core/user-guide/overview.md) → [管理后台](./infrastructure/user-guide/admin.md) → [Interface](./core/user-guide/interface.md) |
+| **系统管理员** | [认识 Negentropy](./core/user-guide/overview.md) → [管理后台](./core/user-guide/admin.md) → [Interface](./core/user-guide/interface.md) |
 | **AI 研究者**  | [对话交互](./core/user-guide/chat-essentials.md) → [论文自动采集](./core/user-guide/papers-curation.md) |
 | **全面了解**   | 按模块顺序逐项阅读                                                                                    |
 
@@ -57,7 +57,7 @@
 
 | 文档 | 说明 |
 | :--- | :--- |
-| [管理后台](./infrastructure/user-guide/admin.md) | 用户管理、角色权限管理 |
+| [管理后台](./core/user-guide/admin.md) | 用户管理、角色权限管理 |
 
 ### Wiki 发布
 

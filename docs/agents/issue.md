@@ -1288,7 +1288,7 @@
   5. **前端 `apps/negentropy-ui/utils/citation-parser.ts`**：严格 regex `(?<![\\w\\^])\[(\d+)\](?!\(|:)` 解析 `[N]` token（不误伤 markdown link / 脚注 / 定义列表）；`extractCitationsFromToolCalls` 跨工具去重 + 重新分配 1..N；
   6. **`MessageBubble.MarkdownContent` 加 prop `citations?: Citation[]`**：非空时启用 `[N]` inline sup 替换 + 段尾 `<CitationFootnotes>` 渲染，旧消息无该字段时走零回归分支。
 - **后续防范**：
-  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](../architecture/conversation-foundation.md)）；
+  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](../concepts/conversation-foundation.md)）；
   2. **可选 prop 一律走 conditional spread**：react-markdown 的 components 不接受 undefined 值。如条件性挂 component，必须 `if(condition){ components.x = fn }` 而非 `x: cond ? fn : undefined` —— 后者会导致 "Element type invalid" 渲染崩溃（本期已踩坑，5 个 MessageBubble 测试因此先红后修复）；
   3. **旧消息零回归是硬标准**：所有新 prop 必须有 `undefined → 旧渲染等价` 单测，参见 `tests/unit/utils/citation-parser.test.ts`。
 - **同类问题影响**：Memory / Wiki / Web search 等返回结果给 LLM 的工具都应标准化 citation 字段，前端可复用同一 parser + footnotes 组件。
