@@ -4,29 +4,40 @@ LLM 模型名规范化工具。
 提供全局唯一的模型名规范化与查表键转换逻辑，避免观测、日志、
 持久化和定价等链路各自维护不同的命名规则。
 
-# 正交分解：调度路径 vs 观测路径
+# 正交分解：调度路径 vs 观测路径 vs 定价路径
 
-调度链路（LiteLLM `acompletion` / `aembedding`、`build_full_model_name`、定价查表）
+调度链路（LiteLLM `acompletion` / `aembedding`、`build_full_model_name`）
 **必须保留 `vendor/model_name` 前缀**——LiteLLM 依赖它选择真实 API（`openai/`、
 `gemini/` 等），所以本模块对调度链路只做轻量幂等处理：
 
 - ``canonicalize_model_name()`` —— 仅 ``strip()``，保留 vendor 前缀；
+
+定价链路（LiteLLM 在线/本地价目表查表）需要**裸名**作为查表键：
+
 - ``pricing_lookup_model_name()`` —— 在 canonicalize 之后剥前缀拿裸名查定价表。
 
-观测链路（OTel span 上报到 Langfuse）则**需要裸名**——Langfuse Model Costs 视图按
-模型字段聚合，若同一模型以 ``openai/gpt-5-mini`` / ``gpt-5-mini`` /
-``gpt-5-mini-2025-08-07`` 三种写法上报会被拆成三行统计，违反 Single Source of Truth。
-观测路径专用：
+观测链路（OTel span 上报到 Langfuse）需要**带 vendor 前缀的全名**——Langfuse
+Model Costs 视图按模型字段聚合，若同一模型以 ``openai/gpt-5-mini`` /
+``gpt-5-mini`` / ``gpt-5-mini-2025-08-07`` 三种写法上报会被拆成三行统计，
+违反 Single Source of Truth。观测路径专用：
 
-- ``observability_model_name()`` —— 剥 vendor 前缀 + 剥日期/版本后缀 + 别名映射，幂等；
+- ``observability_model_name()`` —— 补齐/保留 vendor 前缀 + 剥日期/版本后缀 +
+  别名映射，幂等；
 - ``extract_vendor()`` —— 从原串或裸名识别供应商，写到 OTel ``gen_ai.system``。
 
 **仅 ``negentropy.instrumentation`` 应当调用观测路径函数**。其它代码路径继续走
 ``canonicalize_model_name()`` / ``pricing_lookup_model_name()``。
 
-历史上 GLM 系列曾在此被强制规范为 `zai/<model>`；该专属链路已随
-ZAI/LiteLLM 整合下线。上游调用点（观测、定价、日志）保持接口不变以
-维持正交性，若未来需要引入新的供应商规范化规则，可在此处扩展。
+# 历史决策记录
+
+- 2026 初期：曾在 GLM 系列上做 `zai/<model>` 强制规范化；ZAI/LiteLLM 整合后下线。
+- 2026-05：观测路径口径**首次设计为「裸名」**（剥 vendor 前缀），目的是把
+  ``openai/gpt-5-mini`` 与裸名 ``gpt-5-mini`` 聚合到同一行。
+- 2026-05-21：**反转**为「vendor/model」全名。原因：LiteLLM 原生 OTel callback
+  在我们的 monkey-patch 之前会先写 ``gen_ai.request.model = "openai/gpt-5-mini"``
+  到 span，而 Langfuse 的 Model Costs 视图仍把带前缀的串与裸名拆成不同行。
+  与其在多入口竞速覆盖裸名，不如**承认 vendor/model 才是 LiteLLM 调度路径
+  唯一权威形态**，把所有上报收敛到这个形态，并显式补齐裸名调用方。
 """
 
 from __future__ import annotations
@@ -68,9 +79,9 @@ def pricing_lookup_model_name(model_name: str | None) -> str | None:
 # 观测链路：仅供 negentropy.instrumentation 使用
 # ---------------------------------------------------------------------------
 
-# LiteLLM 风格的 vendor 前缀白名单（小写匹配）。命中后剥外层一次。
+# LiteLLM 风格的 vendor 前缀白名单（小写匹配）。命中后保留作为权威 vendor。
 # 双层前缀场景（如 `bedrock/anthropic.claude-3-5-sonnet`）只剥 `bedrock/`，剩余
-# `anthropic.claude-3-5-sonnet` 与 LiteLLM catalog 裸名格式一致，便于定价查表对齐。
+# `anthropic.claude-3-5-sonnet` 作为 bare model；最终输出仍以 `bedrock/` 拼回。
 _VENDOR_PREFIXES: tuple[str, ...] = (
     "openai/",
     "anthropic/",
@@ -98,6 +109,8 @@ _DATE_SUFFIX_REGEXES: tuple[re.Pattern[str], ...] = (
 
 # 显式别名映射（`alias → canonical`）。起步只放最确定的一两条；新增映射
 # **必须**同步补 `tests/unit_tests/config/test_model_names.py` 单测。
+# 注意：别名作用于「裸名」阶段（剥前缀剥日期之后、拼回 vendor 之前），所以
+# 别名键也应当是裸名形态。
 _MODEL_ALIASES: dict[str, str] = {
     # 空起步：保持最小风险面；后续如发现明确同模型不同名再加。
 }
@@ -110,7 +123,7 @@ _VENDOR_FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
     ("o1-", "openai"),
     ("o3-", "openai"),
     ("o4-", "openai"),
-    ("text-embedding-", "openai"),  # OpenAI text-embedding-3-*；Gemini 同名必须走前缀
+    ("text-embedding-", "openai"),  # OpenAI text-embedding-3-*；Gemini 同名必须走前缀或 vendor_hint
     ("claude-", "anthropic"),
     ("gemini-", "gemini"),
     ("llama-", "meta"),
@@ -122,13 +135,27 @@ _VENDOR_FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
 )
 
 
-def _strip_vendor_prefix(name: str) -> str:
-    """剥外层 vendor 前缀（仅一次），大小写不敏感。未命中则返回原串。"""
+def _split_vendor_and_bare(name: str) -> tuple[str | None, str]:
+    """把 `vendor/bare` 形态拆成 ``(vendor_lowercased, bare)``；未命中返回 ``(None, name)``。
+
+    仅识别 ``_VENDOR_PREFIXES`` 白名单，避免把模型名里偶发的 ``/`` 误判为 vendor 分隔符。
+    大小写不敏感；返回的 vendor 一律 lowercase，便于在 Langfuse 聚合时收敛到同一聚合键。
+    """
     lowered = name.lower()
     for prefix in _VENDOR_PREFIXES:
         if lowered.startswith(prefix):
-            return name[len(prefix) :]
-    return name
+            return prefix.rstrip("/"), name[len(prefix) :]
+    return None, name
+
+
+def _strip_vendor_prefix(name: str) -> str:
+    """剥外层 vendor 前缀（仅一次），大小写不敏感。未命中则返回原串。
+
+    保留供 ``pricing_lookup_model_name`` 之外的潜在调用方；新代码优先使用
+    ``_split_vendor_and_bare`` 拿到 vendor + bare 一次完成。
+    """
+    _, bare = _split_vendor_and_bare(name)
+    return bare
 
 
 def _strip_date_suffix(name: str) -> str:
@@ -139,17 +166,33 @@ def _strip_date_suffix(name: str) -> str:
     return name
 
 
-def observability_model_name(model_name: str | None) -> str | None:
-    """返回**仅供观测上报**的裸模型名（剥 vendor 前缀 + 剥日期后缀 + 别名映射）。
+def observability_model_name(model_name: str | None, *, vendor_hint: str | None = None) -> str | None:
+    """返回**仅供观测上报**的全名（``vendor/model`` 形态，剥日期 + 别名 + 幂等）。
 
-    四步幂等管线：
+    五步幂等管线：
+
     1. ``strip()`` 空白；空 / None 透传。
-    2. 剥 ``vendor/`` 前缀（最外层一次，大小写不敏感）。
-    3. 剥日期/版本后缀（白名单正则，避免误伤 ``gpt-4o-mini``）。
-    4. 显式别名映射兜底。
+    2. 拆分 vendor 与裸名：若原串带 ``_VENDOR_PREFIXES`` 中的显式前缀，取该前缀（lowercase）
+       作为权威 vendor；否则 vendor 落空，bare 为整串。
+    3. 剥日期/版本后缀（白名单正则，避免误伤 ``gpt-4o-mini`` / ``text-embedding-3-large``）。
+       作用于 bare。
+    4. 别名映射兜底（``_MODEL_ALIASES``，作用于 bare）。
+    5. 决定最终 vendor 并组合输出：
+       - 显式前缀命中 → 用之；
+       - 否则使用 ``vendor_hint`` 兜底（调用方通过该参数注入 request 侧权威 vendor，
+         消除 ``gemini/text-embedding-004`` request 与 ``text-embedding-004`` response
+         在家族前缀表中被识别成不同 vendor 的歧义）；
+       - 都落空再用 ``extract_vendor(bare)`` 兜底；
+       - 最终 vendor 仍为 None 时返回裸名（保持「未知模型保持原样」契约）。
 
-    幂等保证：步骤 2 之后无 ``/``、步骤 3 之后无匹配尾、步骤 4 字典查表 fixpoint，
-    重复调用结果不变。**禁止**在 LiteLLM 调度路径使用本函数（会破坏供应商路由）。
+    幂等保证：
+    - 步骤 2 之后若再调用一次，新输入已是 ``vendor/bare`` 形态，会再次拆出同一 vendor；
+    - 步骤 3 的正则锚到 ``$``，剥完不再匹配；
+    - 步骤 4 字典查表 fixpoint；
+    - 步骤 5 组合输出后再次进入本函数，会被步骤 2 识别为 ``vendor/bare`` 形态并取同一 vendor。
+
+    **禁止**在 LiteLLM 调度路径使用本函数（语义虽然兼容，但调度路径应走
+    ``canonicalize_model_name`` 表达「不修改」的契约）。
     """
     if not model_name:
         return model_name
@@ -158,10 +201,17 @@ def observability_model_name(model_name: str | None) -> str | None:
     if not normalized:
         return model_name
 
-    normalized = _strip_vendor_prefix(normalized)
-    normalized = _strip_date_suffix(normalized)
-    normalized = _MODEL_ALIASES.get(normalized, normalized)
-    return normalized
+    explicit_vendor, bare = _split_vendor_and_bare(normalized)
+    bare = _strip_date_suffix(bare)
+    bare = _MODEL_ALIASES.get(bare, bare)
+
+    vendor = explicit_vendor or (vendor_hint.strip().lower() if vendor_hint else None)
+    if not vendor:
+        vendor = extract_vendor(bare)
+
+    if vendor:
+        return f"{vendor}/{bare}"
+    return bare
 
 
 def extract_vendor(model_name: str | None) -> str | None:
@@ -179,17 +229,15 @@ def extract_vendor(model_name: str | None) -> str | None:
     if not normalized:
         return None
 
-    lowered = normalized.lower()
-
     # 1. 显式 vendor/ 前缀
-    for prefix in _VENDOR_PREFIXES:
-        if lowered.startswith(prefix):
-            return prefix.rstrip("/")
+    explicit_vendor, _ = _split_vendor_and_bare(normalized)
+    if explicit_vendor:
+        return explicit_vendor
 
     # 2. 系族前缀回退（用裸名形式判断，避免一次错误 strip 影响后续）
-    bare = _strip_vendor_prefix(normalized).lower()
+    bare_lower = normalized.lower()
     for family_prefix, vendor in _VENDOR_FAMILY_PREFIXES:
-        if bare.startswith(family_prefix):
+        if bare_lower.startswith(family_prefix):
             return vendor
 
     return None

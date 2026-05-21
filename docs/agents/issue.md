@@ -1684,6 +1684,13 @@
   - <a id="ref78-1"></a>[1] OpenTelemetry Authors, *Semantic Conventions for Generative AI*, v1.28+, "gen_ai.system / gen_ai.request.model / gen_ai.response.model," 2025. [Online]. Available: https://opentelemetry.io/docs/specs/semconv/gen-ai/
   - <a id="ref78-2"></a>[2] Langfuse, *OpenTelemetry Integration — Attribute Mapping*, "Model attribute precedence: ai.response.model > gen_ai.response.model > gen_ai.request.model; langfuse.observation.* override namespace," 2026. [Online]. Available: https://langfuse.com/integrations/native/opentelemetry
   - <a id="ref78-3"></a>[3] LiteLLM, *Langfuse OTEL Integration*, "litellm.success_callback = ['otel'] forwards via OTLP," 2026. [Online]. Available: https://docs.litellm.ai/docs/observability/langfuse_otel_integration
+- **决策反转补丁（2026-05-21）**：
+  1. **现象**：上述方案落地后，Langfuse Model Costs 视图仍同时出现 `gpt-5-mini`（裸名）与 `openai/gpt-5-mini`（带前缀）两行；`gpt-5-nano` 也以裸名独立成行。即 monkey-patch 之外仍有路径绕过归一化（或被 LiteLLM 原始 OTel callback 先行写入了带前缀的 `gen_ai.request.model`）。
+  2. **新口径**：把观测路径输出形态由「裸名」**反转为 `vendor/model` 全名**（`openai/gpt-5-mini`、`anthropic/claude-3-5-sonnet`、`gemini/text-embedding-004` …）。核心论据：LiteLLM 调度路径必须收到 `vendor/` 前缀才能选择真实 API，因此带前缀的形态本就是系统中**唯一已知的全局权威形态**；把所有观测点都收敛到这个形态，比与 LiteLLM 原始 callback 在裸名形态上竞速覆盖更稳健。日期/版本后缀仍剥（`gpt-5-mini-2025-08-07` → `openai/gpt-5-mini`）。
+  3. **算法变更**：`observability_model_name(name, *, vendor_hint=None)` 改为「拆 vendor + 裸名 → 剥日期 → 别名 → 拼回 vendor/bare」。`vendor_hint` 解决跨字段一致性：当 request `gemini/text-embedding-004` 与 response 裸名 `text-embedding-004` 共存时，把 request 侧 vendor 注入 response 归一化，避免家族前缀表把 `text-embedding-` 误识别成 `openai`。提取内部小工具 `_split_vendor_and_bare()` 统一拆分逻辑。
+  4. **定价路径解耦**：`instrumentation._resolve_total_cost` 显式切到 `pricing_lookup_model_name(...)`（裸名查表），不再借观测函数；阅读时一眼能看出「定价 vs 观测」走两套不同的契约。
+  5. **测试反转**：`test_model_names.py` / `test_instrumentation.py` / `test_genai_semconv.py` 中所有 `observability_model_name` / `gen_ai.{request,response}.model` / `langfuse.observation.model.name` 断言由裸名反转为 `vendor/model`；新增 `vendor_hint` 用例 + 「请求带前缀、响应裸名」跨字段一致性用例。
+  6. **教训沉淀**：「把所有形态收敛到裸名」与「把所有形态收敛到 vendor/model」都满足 Single Source of Truth；选哪个要看**系统内已有的权威形态是什么**。在 LiteLLM 体系下，`vendor/model` 才是调度路径的硬约束，反向（剥前缀）需要主动改写多入口，更脆弱。
 
 ---
 
