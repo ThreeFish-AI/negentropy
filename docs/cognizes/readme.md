@@ -20,11 +20,13 @@
 - [🤖 认知增强](docs/research/000-cognitive-enhancement.md) - 认知增强
 - [📡 上下文工程](docs/research/010-context-engineering.md) - 上下文工程
 - [🤖 Agent Runtime](docs/research/020-agent-runtime-frameworks.md) - Agent Runtime
+- [📡 Agent Engine Fundamentals](docs/research/020a-agent-engine-fundamentals.md) - Agent Engine 基础原理与 ADK 接口适配
 - [📡 Vector Search Algorithm](docs/research/030-vector-search-algorithm.md) - Vector Search Algorithm
 - [📡 Vector Databases Selection](docs/research/031-vector-databases-selection.md) - Vector Databases Selection
 - [📡 Vector Databases](docs/research/032-vector-databases.md) - Vector Databases
 - [📡 OceanBase](docs/research/033-oceanbase.md) - OceanBase 调研
 - [📡 Knowledge Base](docs/research/034-knowledge-base.md) - RAG Pipeline & Hybrid Search
+- [📡 Knowledge Base Fundamentals](docs/research/034a-knowledge-base-fundamentals.md) - Knowledge Base 基础理论（Chunking/Embedding/RAG Pipeline）
 - [📡 Knowledge Base Platform](docs/research/035-knowledge-base-platform.md) - 腾讯 WeKnora 深度调研
 - [📡 Cognee](docs/research/040-cognee.md) - Cognee
 - [📡 Neo4j](docs/research/050-neo4j.md) - Neo4j
