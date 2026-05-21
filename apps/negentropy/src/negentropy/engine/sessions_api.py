@@ -175,11 +175,21 @@ async def hard_delete_session(
             detail="Session backend does not support hard delete",
         )
 
-    deleted = await service.hard_delete_session(
-        app_name=app_name,
-        user_id=user_id,
-        session_id=session_id,
-    )
+    try:
+        deleted = await service.hard_delete_session(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id,
+        )
+    except ValueError as exc:
+        # 与同模块 ``_update_archive_state`` 行为一致：``_validate_session_id`` 对
+        # 非 UUID 字符串抛 ``ValueError``，统一映射到 HTTP 400，避免与
+        # archive/unarchive 在错误码语义上分叉（参见 ISSUE-093 review）。
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

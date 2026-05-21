@@ -61,6 +61,22 @@ async def test_hard_delete_session_returns_false_when_missing():
 
 
 @pytest.mark.asyncio
+async def test_hard_delete_session_invalid_uuid_raises_value_error():
+    """非 UUID 字符串触发 ``_validate_session_id`` 的 ``ValueError``。
+
+    路由层 (``sessions_api.hard_delete_session``) 依赖该契约把非法入参映射为
+    HTTP 400，避免回落到 FastAPI 默认 500（与 archive/unarchive 行为对齐）。
+    """
+    service = PostgresSessionService()
+    with pytest.raises(ValueError):
+        await service.hard_delete_session(
+            app_name="any_app",
+            user_id="any_user",
+            session_id="not-a-uuid",
+        )
+
+
+@pytest.mark.asyncio
 async def test_hard_delete_session_works_on_archived_session():
     """归档后的 session 仍可硬删除，避免"已归档→不可清理"的死路径。"""
     service = PostgresSessionService()
