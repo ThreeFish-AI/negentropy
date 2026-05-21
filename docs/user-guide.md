@@ -12,7 +12,7 @@
 | :------------- | :-------------------------------------------------------------------------------------------------- |
 | **首次使用者** | [认识 Negentropy](./core/user-guide/overview.md) → [快速上手](./core/user-guide/quickstart.md) → [对话交互](./core/user-guide/chat-essentials.md) |
 | **知识管理员** | [认识 Negentropy](./core/user-guide/overview.md) → [知识库管理](./core/user-guide/knowledge-management.md) → [记忆系统](./core/user-guide/memory-basics.md) |
-| **系统管理员** | [认识 Negentropy](./core/user-guide/overview.md) → [管理后台](./infrastructure/user-guide/admin.md) → [Interface](./core/user-guide/interface.md) |
+| **系统管理员** | [认识 Negentropy](./core/user-guide/overview.md) → [管理后台](./core/user-guide/admin.md) → [Interface](./core/user-guide/interface.md) |
 | **AI 研究者**  | [对话交互](./core/user-guide/chat-essentials.md) → [论文自动采集](./core/user-guide/papers-curation.md) |
 | **全面了解**   | 按模块顺序逐项阅读                                                                                    |
 
@@ -57,7 +57,7 @@
 
 | 文档 | 说明 |
 | :--- | :--- |
-| [管理后台](./infrastructure/user-guide/admin.md) | 用户管理、角色权限管理 |
+| [管理后台](./core/user-guide/admin.md) | 用户管理、角色权限管理 |
 
 ### Wiki 发布
 
@@ -73,11 +73,11 @@
 
 | 模块 | 文档 |
 | :--- | :--- |
-| 系统架构 | [Framework](./architecture/framework.md) · [Development](./architecture/development.md) · [对话基础](./architecture/conversation-foundation.md) · [A2UI](./architecture/a2ui.md) |
+| 系统架构 | [Framework](./concepts/framework.md) · [Development](./core/development.md) · [对话基础](./concepts/conversation-foundation.md) · [A2UI](./concepts/a2ui.md) |
 | 核心设计 | [Skills 模块](./core/design/skills.md) · [工程变更日志](./core/engineering-changelog.md) |
 | 知识设计 | [Knowledge 设计](./reference/cognizes/engine/035-the-knowledge-base.md) · [KG 概览](./reference/cognizes/engine/036-the-knowledge-graph.md) · [联邦 KG](./reference/cognizes/engine/037-federated-kg.md) |
 | 记忆设计 | [Memory 概览](./reference/cognizes/engine/025-the-memory-system.md) · [白皮书](./reference/cognizes/engine/026-memory-whitepaper.md) |
-| 基础设施 | [SSO](./infrastructure/design/sso.md) · [Observability](./infrastructure/design/observability-genai.md) · [QA Pipeline](./infrastructure/design/qa-delivery-pipeline.md) |
+| 基础设施 | [SSO](./concepts/design/sso.md) · [Observability](./concepts/design/observability-genai.md) · [QA Pipeline](./concepts/design/qa-delivery-pipeline.md) |
 | Wiki | [Wiki 运维](./reference/wiki/ops.md) · [KG 发布设计](./reference/wiki/design/knowledge-graph.md) |
 
 ---

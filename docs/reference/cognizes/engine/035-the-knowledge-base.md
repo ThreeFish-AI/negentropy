@@ -21,7 +21,7 @@ tags:
 - **Memory 模型**：[apps/negentropy/src/negentropy/models/internalization.py](../../../../apps/negentropy/src/negentropy/models/internalization.py)（`Memory` / `Fact` / `MemoryAuditLog`）。
 - **Memory 专项文档**：[`025-the-memory-system.md`](./025-the-memory-system.md)（Memory Automation 控制面、实施过程与验收记录）。
 - **数据库权威定义**：[`schema/perception_schema.sql`](./schema/perception_schema.sql)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
-- **前端扩展约束**：[`architecture/framework.md` §11](../../../architecture/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
+- **前端扩展约束**：[`framework.md` §11](../../../concepts/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
 - **调研文档**：[`034-knowledge-base.md`](../../../research/034-knowledge-base.md)、[`035-knowledge-base-platform.md`](../../../research/035-knowledge-base-platform.md)。
 - **设计文档**：[`020-the-hippocampus.md`](./020-the-hippocampus.md)（Memory 遗忘曲线设计）。
 

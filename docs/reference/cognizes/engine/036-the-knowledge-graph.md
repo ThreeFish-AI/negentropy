@@ -15,7 +15,7 @@ tags:
 
 > 本文档是 Negentropy 知识图谱模块的**架构设计单一权威参考 (Single Source of Truth)**，涵盖学术理论基础、行业框架分析、两阶段工程方案（PostgreSQL 阶段 → 终极阶段）以及价值量化体系。
 >
-> - 系统全景架构：[`architecture/framework.md`](../../../architecture/framework.md)
+> - 系统全景架构：[`framework.md`](../../../concepts/framework.md)
 > - Knowledge 模块全景：[`035-the-knowledge-base.md`](./035-the-knowledge-base.md)
 > - Memory 模块设计：[`025-the-memory-system.md`](./025-the-memory-system.md)
 > - 数据库 Schema：[`schema/kg_schema_extension.sql`](./schema/kg_schema_extension.sql)
