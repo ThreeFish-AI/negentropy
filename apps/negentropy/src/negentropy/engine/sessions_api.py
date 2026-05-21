@@ -147,6 +147,58 @@ async def unarchive_session(
     )
 
 
+@router.post("/apps/{app_name}/users/{user_id}/sessions/{session_id}/delete")
+async def hard_delete_session(
+    app_name: str,
+    user_id: str,
+    session_id: str,
+):
+    """从数据库永久删除会话（threads 表 DELETE，级联清理 events）。
+
+    与 archive/unarchive 的"软删/恢复"语义解耦：本路由调用
+    ``service.hard_delete_session()`` 直接物理删除，**不可恢复**。前端入口应配
+    destructive 二次确认对话框（参见 ``SessionList.tsx`` 中的 ConfirmDialog 用法）。
+
+    设计动机：ADK 基类的 ``delete_session`` 在本实现中被重写为"归档"以保持兼
+    容契约；为避免覆盖该兼容行为，硬删除走独立方法。本路由刻意使用
+    ``POST .../delete`` 而非 ``DELETE``，原因是 ADK Web Server 已在
+    ``DELETE /apps/{app}/users/{user}/sessions/{id}`` 上注册自己的处理器（调用
+    被重写为"归档"的 ``delete_session``），FastAPI 在路由匹配时先命中 ADK 版
+    会让本路由形同虚设。``POST .../delete`` 既绕开冲突，又与同模块
+    ``POST .../archive`` / ``POST .../unarchive`` 的风格一致，便于前端复用 BFF
+    转发模板。
+    """
+    service = get_session_service()
+    if not hasattr(service, "hard_delete_session"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Session backend does not support hard delete",
+        )
+
+    try:
+        deleted = await service.hard_delete_session(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id,
+        )
+    except ValueError as exc:
+        # 与同模块 ``_update_archive_state`` 行为一致：``_validate_session_id`` 对
+        # 非 UUID 字符串抛 ``ValueError``，统一映射到 HTTP 400，避免与
+        # archive/unarchive 在错误码语义上分叉（参见 ISSUE-093 review）。
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    return {"status": "ok"}
+
+
 @router.post("/apps/{app_name}/users/{user_id}/sessions/{session_id}/approval_response")
 async def submit_approval_response(
     app_name: str,

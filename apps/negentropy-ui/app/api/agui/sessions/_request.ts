@@ -83,6 +83,19 @@ export function buildSessionUnarchiveUpstreamUrl(baseUrl: string, target: Sessio
   return new URL(`${buildSessionItemPath(target)}/unarchive`, baseUrl);
 }
 
+/**
+ * 硬删除会话的上游 URL（POST /apps/{app}/users/{user}/sessions/{id}/delete）。
+ *
+ * 故意采用 ``POST .../delete`` 而非 ``DELETE``——后端 ADK Web Server 已在
+ * ``DELETE /apps/{app}/users/{user}/sessions/{id}`` 上注册了自己的处理器，
+ * 路由匹配会先命中 ADK 版（其调用被重写为"归档"的 ``delete_session``），让
+ * 我们的硬删除路由形同虚设。改走 ``POST .../delete`` 既绕开冲突，又与同模块
+ * ``POST .../archive`` / ``POST .../unarchive`` 风格一致，便于复用 BFF 转发模板。
+ */
+export function buildSessionDeleteUpstreamUrl(baseUrl: string, target: SessionTarget): URL {
+  return new URL(`${buildSessionItemPath(target)}/delete`, baseUrl);
+}
+
 function missingScopeResponse(): Response {
   return aguiErrorResponse(
     AGUI_ERROR_CODES.BAD_REQUEST,
