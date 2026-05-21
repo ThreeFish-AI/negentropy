@@ -50,30 +50,30 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ## 2. Phase 4 增强的理论支撑速览
 
-| Phase 4 增强 | 理论 / 论文 | 工程参考 |
-|----|----|----|
-| 类型分层差异化 | Tulving 1972<sup>[[1]](#ref1)</sup>；CLS<sup>[[2]](#ref2)</sup> | LangGraph Memory（Semantic/Episodic/Procedural）|
-| Core Memory Block | MemGPT<sup>[[3]](#ref3)</sup> Hierarchical Memory | Letta MemGPT 的 core / archival 三层 |
-| Self-editing Memory Tools | MemGPT<sup>[[3]](#ref3)</sup>；Reflexion<sup>[[4]](#ref4)</sup> | Letta `core_memory_replace` / archival_insert |
-| LoCoMo / LongMemEval 评测 | Maharana 2024<sup>[[5]](#ref5)</sup>；Wu 2024<sup>[[6]](#ref6)</sup>；mem0<sup>[[7]](#ref7)</sup> | mem0 论文 baseline 对比 |
-| Query Intent 路由 | Tulving 三分法<sup>[[1]](#ref1)</sup> | 自研启发式 |
-| Episodic 快衰减 / Semantic 慢衰减 | Ebbinghaus<sup>[[8]](#ref8)</sup>；FadeMem<sup>[[21]](#ref21)</sup> | mem0 多衰减率 |
-| KG 双向同步 | HippoRAG<sup>[[11]](#ref11)</sup>；GraphRAG<sup>[[12]](#ref12)</sup> | HippoRAG 神经符号检索 |
+| Phase 4 增强                      | 理论 / 论文                                                                                       | 工程参考                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 类型分层差异化                    | Tulving 1972<sup>[[1]](#ref1)</sup>；CLS<sup>[[2]](#ref2)</sup>                                   | LangGraph Memory（Semantic/Episodic/Procedural） |
+| Core Memory Block                 | MemGPT<sup>[[3]](#ref3)</sup> Hierarchical Memory                                                 | Letta MemGPT 的 core / archival 三层             |
+| Self-editing Memory Tools         | MemGPT<sup>[[3]](#ref3)</sup>；Reflexion<sup>[[4]](#ref4)</sup>                                   | Letta `core_memory_replace` / archival_insert    |
+| LoCoMo / LongMemEval 评测         | Maharana 2024<sup>[[5]](#ref5)</sup>；Wu 2024<sup>[[6]](#ref6)</sup>；mem0<sup>[[7]](#ref7)</sup> | mem0 论文 baseline 对比                          |
+| Query Intent 路由                 | Tulving 三分法<sup>[[1]](#ref1)</sup>                                                             | 自研启发式                                       |
+| Episodic 快衰减 / Semantic 慢衰减 | Ebbinghaus<sup>[[8]](#ref8)</sup>；FadeMem<sup>[[21]](#ref21)</sup>                               | mem0 多衰减率                                    |
+| KG 双向同步                       | HippoRAG<sup>[[11]](#ref11)</sup>；GraphRAG<sup>[[12]](#ref12)</sup>                              | HippoRAG 神经符号检索                            |
 
 ---
 
 ## 3. 跨框架对比矩阵
 
-| 维度 | mem0 | cognee | LangGraph | Letta (MemGPT) | Google ADK | Negentropy（本项目）|
-|----|----|----|----|----|----|----|
-| **写入策略** | 早期 LLM ADD/UPDATE/DELETE/NOOP，新版退化为 ADD-only + 检索期排序 | DataPoint 抽象 + Cognify 管线（chunk→entity→graph→memify）| 显式 namespace + JSON Patch update | self-editing tools 主控 | `add_session_to_memory` 显式归档 | **巩固管线** + Phase 4 self-edit 工具，二者并存 |
-| **检索策略** | Hybrid search（vector + BM25 + recency）| GraphRAG-style 多跳 | namespace 内向量检索 | recall + archival 检索分层 | RAG 风 + LoadMemory tool | **Hybrid (BM25+pgvector) + Query-Aware + 类型加权 + 关联多跳** |
-| **记忆分层** | user / agent / session / app | DataPoint type system | Semantic / Episodic / Procedural | Core / Recall / Archival | Session vs Memory | **Core / Episodic / Semantic / Procedural / Preference / Fact** |
-| **衰减机制** | retention_score + 用户访问频率 | 默认无（依赖 LLM 重判定）| 默认无（用户管理）| 由 Agent 自主 archive | 无 | **多因子 Ebbinghaus + 类型差异化 λ** |
-| **评测指标** | LoCoMo + LongMemEval baseline | 无标准 benchmark | 无 | 无 | 无 | **LoCoMo-mini + LongMemEval-mini（CI 触发）** |
-| **KG 集成** | 可选 Neo4j | DataPoint → graph 一等公民 | 无 | 无 | 无 | **PostgreSQL 一等公民 + association.entity 双向同步** |
-| **隐私治理** | 无 | 无 | 无 | 无 | 无 | **PII 占位 + audit_log + idempotency** |
-| **可观测性** | 简易 | 无 | 无 | 无 | 无 | **search_level / score_type / 检索反馈闭环 + Rocchio**|
+| 维度         | mem0                                                              | cognee                                                     | LangGraph                          | Letta (MemGPT)             | Google ADK                       | Negentropy（本项目）                                            |
+| ------------ | ----------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------- | -------------------------- | -------------------------------- | --------------------------------------------------------------- |
+| **写入策略** | 早期 LLM ADD/UPDATE/DELETE/NOOP，新版退化为 ADD-only + 检索期排序 | DataPoint 抽象 + Cognify 管线（chunk→entity→graph→memify） | 显式 namespace + JSON Patch update | self-editing tools 主控    | `add_session_to_memory` 显式归档 | **巩固管线** + Phase 4 self-edit 工具，二者并存                 |
+| **检索策略** | Hybrid search（vector + BM25 + recency）                          | GraphRAG-style 多跳                                        | namespace 内向量检索               | recall + archival 检索分层 | RAG 风 + LoadMemory tool         | **Hybrid (BM25+pgvector) + Query-Aware + 类型加权 + 关联多跳**  |
+| **记忆分层** | user / agent / session / app                                      | DataPoint type system                                      | Semantic / Episodic / Procedural   | Core / Recall / Archival   | Session vs Memory                | **Core / Episodic / Semantic / Procedural / Preference / Fact** |
+| **衰减机制** | retention_score + 用户访问频率                                    | 默认无（依赖 LLM 重判定）                                  | 默认无（用户管理）                 | 由 Agent 自主 archive      | 无                               | **多因子 Ebbinghaus + 类型差异化 λ**                            |
+| **评测指标** | LoCoMo + LongMemEval baseline                                     | 无标准 benchmark                                           | 无                                 | 无                         | 无                               | **LoCoMo-mini + LongMemEval-mini（CI 触发）**                   |
+| **KG 集成**  | 可选 Neo4j                                                        | DataPoint → graph 一等公民                                 | 无                                 | 无                         | 无                               | **PostgreSQL 一等公民 + association.entity 双向同步**           |
+| **隐私治理** | 无                                                                | 无                                                         | 无                                 | 无                         | 无                               | **PII 占位 + audit_log + idempotency**                          |
+| **可观测性** | 简易                                                              | 无                                                         | 无                                 | 无                         | 无                               | **search_level / score_type / 检索反馈闭环 + Rocchio**          |
 
 > 数据采集时间：2026-05；mem0/cognee 处于活跃迭代，能力可能再演进。
 
@@ -117,16 +117,16 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ### 4.5 路线表（Phase 5 + 后续）
 
-| 方向 | 价值 | 复杂度 | 论文 / 资源 | 状态 |
-|---|---|---|---|---|
-| F1 HippoRAG 神经符号检索（PPR on KG）| KG ↔ Memory 联合检索，长尾召回 | 中-大 | [11], [15], [16] | ✅ 已交付 |
-| F2 Reflexion Episodic Replay | 失败反思 → few-shot 召回 | 小-中 | [4] | ✅ 已交付 |
-| F3 Memify 后处理插件管线 | 巩固后多 LLM 任务可组合（cognee 风格）| 中 | [13], [17] | ✅ 已交付 |
-| F4 Presidio PII 引擎 | 合规级 PII 检测/掩码 | 中 | [18], [19], [20] | ✅ 已交付 |
-| F5 Rocchio 相关性反馈闭环 | 反馈驱动排序优化 + PRF 查询扩展 | 小-中 | [22], [23] | ✅ 已交付 |
-| F6 巩固管线 Step 补全 | 6-step 完整管线（聚类/去重/规范化）| 中 | [3], [13] | ✅ 已交付 |
-| LongMem 全量评测 | 1000+ 样本规模化对比 | 小 | [14] | 📋 未启动 |
-| 英文版本 user-guide | 国际化 | 小 | — | 📋 未启动 |
+| 方向                                  | 价值                                   | 复杂度 | 论文 / 资源      | 状态     |
+| ------------------------------------- | -------------------------------------- | ------ | ---------------- | -------- |
+| F1 HippoRAG 神经符号检索（PPR on KG） | KG ↔ Memory 联合检索，长尾召回         | 中-大  | [11], [15], [16] | ✅ 已交付 |
+| F2 Reflexion Episodic Replay          | 失败反思 → few-shot 召回               | 小-中  | [4]              | ✅ 已交付 |
+| F3 Memify 后处理插件管线              | 巩固后多 LLM 任务可组合（cognee 风格） | 中     | [13], [17]       | ✅ 已交付 |
+| F4 Presidio PII 引擎                  | 合规级 PII 检测/掩码                   | 中     | [18], [19], [20] | ✅ 已交付 |
+| F5 Rocchio 相关性反馈闭环             | 反馈驱动排序优化 + PRF 查询扩展        | 小-中  | [22], [23]       | ✅ 已交付 |
+| F6 巩固管线 Step 补全                 | 6-step 完整管线（聚类/去重/规范化）    | 中     | [3], [13]        | ✅ 已交付 |
+| LongMem 全量评测                      | 1000+ 样本规模化对比                   | 小     | [14]             | 📋 未启动 |
+| 英文版本 user-guide                   | 国际化                                 | 小     | —                | 📋 未启动 |
 
 > ✅ 已交付：契约已固化（配置项、API 签名、降级策略），代码实施迭代式推进。
 
@@ -163,12 +163,12 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ### 4.9 Phase 7: 闭环验证 + 冲突桥接 + Rocchio 自动化
 
-| Gap | 变更 | 理论基础 |
-|-----|------|---------|
-| G1 | Consolidation Pipeline 3 个核心 Step（EntityNormalization / TopicCluster / DedupMerge）补全单元测试，覆盖率 ≥ 80% | CLS (McClelland 1995)<sup>[[2]](#ref2)</sup> 巩固正确性验证 |
-| G2 | DedupMergeStep ↔ ConflictResolver 桥接：近重复合并前检测事实冲突，偏好反转等场景通过 AGM 信念修正显式解决 | AGM (Alchourrón 1985)<sup>[[10]](#ref10)</sup> + Doyle TMS (1979) |
-| G3 | Rocchio 重加权自动化调度：新增 `reweight_relevance` Job，每 6h 聚合反馈并更新 `metadata_.relevance_weight` | Rocchio (1971)<sup>[[22]](#ref22)</sup> 反馈闭环 |
-| G4 | 端到端集成测试：全 Pipeline 巩固、去重、Rocchio 反馈、审计追踪 | "Verification Before Done" 工程准则 |
+| Gap | 变更                                                                                                              | 理论基础                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| G1  | Consolidation Pipeline 3 个核心 Step（EntityNormalization / TopicCluster / DedupMerge）补全单元测试，覆盖率 ≥ 80% | CLS (McClelland 1995)<sup>[[2]](#ref2)</sup> 巩固正确性验证       |
+| G2  | DedupMergeStep ↔ ConflictResolver 桥接：近重复合并前检测事实冲突，偏好反转等场景通过 AGM 信念修正显式解决         | AGM (Alchourrón 1985)<sup>[[10]](#ref10)</sup> + Doyle TMS (1979) |
+| G3  | Rocchio 重加权自动化调度：新增 `reweight_relevance` Job，每 6h 聚合反馈并更新 `metadata_.relevance_weight`        | Rocchio (1971)<sup>[[22]](#ref22)</sup> 反馈闭环                  |
+| G4  | 端到端集成测试：全 Pipeline 巩固、去重、Rocchio 反馈、审计追踪                                                    | "Verification Before Done" 工程准则                               |
 
 ---
 
@@ -228,9 +228,9 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 > 首次 BM25 baseline（2026-05-02 跑出）见 `.temp/eval/baseline_*.md`。CI 触发参考 [`memory-eval` workflow](../../.github/workflows/memory-eval.yml)。
 
-| Dataset | N | MRR@10 | NDCG@10 | Hit@10 | F1 |
-|----|----|----|----|----|----|
-| LoCoMo-mini | 30 | 0.933 | 0.947 | 1.000 | 0.216 |
-| LongMemEval-mini | 30 | 0.867 | 0.902 | 1.000 | 0.257 |
+| Dataset          | N   | MRR@10 | NDCG@10 | Hit@10 | F1    |
+| ---------------- | --- | ------ | ------- | ------ | ----- |
+| LoCoMo-mini      | 30  | 0.933  | 0.947   | 1.000  | 0.216 |
+| LongMemEval-mini | 30  | 0.867  | 0.902   | 1.000  | 0.257 |
 
 > 这是 **算法层**（BM25-only）基线；后续与 PostgresMemoryService 的 Hybrid 对比应有 5%+ 提升。

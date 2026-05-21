@@ -20,8 +20,8 @@
 
 ## 3. 内置模板速览
 
-| template_id | name | 用途 | 关键 required_tools |
-|------|------|------|---------------------|
+| template_id    | name                    | 用途                                       | 关键 required_tools                                          |
+| -------------- | ----------------------- | ------------------------------------------ | ------------------------------------------------------------ |
 | `paper_hunter` | `ai-agent-paper-hunter` | 检索 arXiv AI Agent 论文并写入 Memory + KG | `fetch_papers` / `save_to_memory` / `update_knowledge_graph` |
 
 继续把第二批模板加进 `apps/negentropy/src/negentropy/agents/skill_templates/*.yaml` 即可，加载器自动扫描，无需重新部署后端代码（**热加载需要重启 backend**：模板在请求时才加载）。

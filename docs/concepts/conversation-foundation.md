@@ -40,12 +40,12 @@ negentropy 把 PAO 演化为「**一核五翼**」（PerceptionFaculty / Interna
 
 ### 2.1 协议谱系
 
-| 协议 | 提出方 | 关键设计点 | negentropy 对齐情况 |
-|---|---|---|---|
-| **AG-UI** | CopilotKit (2024) | 16 标准事件 / state delta 旁路 / generative UI | ✅ 主信道。事件流见 `apps/negentropy-ui/lib/agui/ndjson-agent.ts` |
-| **A2UI** | Google (2025) | 双工 ChannelMap / A2A delegation / UI Component Tree | 🟡 ConversationNode 数据模型借鉴；Sub-Agent 嵌套卡片在 RFC 0002 §4.2 待落地 |
-| **OpenAI Assistants Stream** | OpenAI (2024) | thread + run + step + delta 四级事件 | ❌ 未直接采用 |
-| **LangGraph events** | LangChain (2024-2025) | StateGraph 中断 / 时间穿梭重放 | 🟡 Run 终态 hydration 借鉴；中断门 RFC 0002 §4.4 |
+| 协议                         | 提出方                | 关键设计点                                           | negentropy 对齐情况                                                        |
+| ---------------------------- | --------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| **AG-UI**                    | CopilotKit (2024)     | 16 标准事件 / state delta 旁路 / generative UI       | ✅ 主信道。事件流见 `apps/negentropy-ui/lib/agui/ndjson-agent.ts`           |
+| **A2UI**                     | Google (2025)         | 双工 ChannelMap / A2A delegation / UI Component Tree | 🟡 ConversationNode 数据模型借鉴；Sub-Agent 嵌套卡片在 RFC 0002 §4.2 待落地 |
+| **OpenAI Assistants Stream** | OpenAI (2024)         | thread + run + step + delta 四级事件                 | ❌ 未直接采用                                                               |
+| **LangGraph events**         | LangChain (2024-2025) | StateGraph 中断 / 时间穿梭重放                       | 🟡 Run 终态 hydration 借鉴；中断门 RFC 0002 §4.4                            |
 
 ### 2.2 设计教训
 
@@ -61,18 +61,18 @@ negentropy 把 PAO 演化为「**一核五翼**」（PerceptionFaculty / Interna
 
 ## 3. 业界框架对标（Industry Framework Benchmark）
 
-| 框架 | 流式协议 | 治理 | Reasoning 可视化 | KG 集成 | Eval |
-|---|---|---|---|---|---|
-| AG-UI / CopilotKit | ✅ 标准 16 事件 | ❌ 无 | 🟡 自定义 | ❌ | ❌ |
-| A2UI | ✅ ChannelMap | 🟡 计划中 | ✅ Component Tree | ❌ | ❌ |
-| Google ADK | 🟡 SSE | ✅ Eval harness | 🟡 step 事件 | 🟡 Vertex AI Search | ✅ |
-| Claude Code | 🟡 stdin/stdout | ❌ | 🟡 thinking 块 | ❌ | ❌ |
-| Paperclip | 🟡 控制平面 | ✅ governance | 🟡 任务图 | ❌ | 🟡 |
-| Conductor | ✅ workspace diff | 🟡 plan mode | ❌ | ❌ | ❌ |
-| LangGraph | ✅ StateGraph events | ❌ | 🟡 时间穿梭 | 🟡 Neo4j 适配器 | 🟡 LangSmith |
-| AutoGen v0.4 | ✅ multi-agent group chat | ❌ | ❌ | ❌ | ❌ |
-| Semantic Kernel | 🟡 IAsyncEnumerable | ❌ | ❌ | 🟡 Memory connector | ❌ |
-| **negentropy** | ✅ AG-UI 16 事件 + Sub-Agent Transfer 可视化 | 🟡 Approval Gate（已接入 ingest_paper） | ✅ Reasoning Panel + Sub-Agent 嵌套卡片 | ✅ KG + 向量混合 | 🟡 Langfuse |
+| 框架               | 流式协议                                    | 治理                                   | Reasoning 可视化                       | KG 集成            | Eval        |
+| ------------------ | ------------------------------------------- | -------------------------------------- | -------------------------------------- | ------------------ | ----------- |
+| AG-UI / CopilotKit | ✅ 标准 16 事件                              | ❌ 无                                   | 🟡 自定义                               | ❌                  | ❌           |
+| A2UI               | ✅ ChannelMap                                | 🟡 计划中                               | ✅ Component Tree                       | ❌                  | ❌           |
+| Google ADK         | 🟡 SSE                                       | ✅ Eval harness                         | 🟡 step 事件                            | 🟡 Vertex AI Search | ✅           |
+| Claude Code        | 🟡 stdin/stdout                              | ❌                                      | 🟡 thinking 块                          | ❌                  | ❌           |
+| Paperclip          | 🟡 控制平面                                  | ✅ governance                           | 🟡 任务图                               | ❌                  | 🟡           |
+| Conductor          | ✅ workspace diff                            | 🟡 plan mode                            | ❌                                      | ❌                  | ❌           |
+| LangGraph          | ✅ StateGraph events                         | ❌                                      | 🟡 时间穿梭                             | 🟡 Neo4j 适配器     | 🟡 LangSmith |
+| AutoGen v0.4       | ✅ multi-agent group chat                    | ❌                                      | ❌                                      | ❌                  | ❌           |
+| Semantic Kernel    | 🟡 IAsyncEnumerable                          | ❌                                      | ❌                                      | 🟡 Memory connector | ❌           |
+| **negentropy**     | ✅ AG-UI 16 事件 + Sub-Agent Transfer 可视化 | 🟡 Approval Gate（已接入 ingest_paper） | ✅ Reasoning Panel + Sub-Agent 嵌套卡片 | ✅ KG + 向量混合    | 🟡 Langfuse  |
 
 **2026-05-10 更新**：
 - G1 (Sub-Agent Transfer 可视化) 已落地，参考 AutoGen v0.4 GroupChat 嵌套卡片模式

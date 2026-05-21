@@ -37,13 +37,13 @@
 
 系统的命名源自薛定谔 (Erwin Schrödinger) 在《生命是什么》中提出的概念——生命以**负熵 (Negentropy)** 为食<sup>[[2]](#ref2)</sup>。映射到软件系统，核心对抗目标是：
 
-| 熵增形态 | 系统表征 | 对抗策略 |
-| :------- | :------- | :------- |
-| 信息过载 | 噪音淹没信号 | 感知系部：熵减过滤 |
-| 遗忘 | 知识碎片化 | 内化系部：结构化持久化 |
-| 肤浅 | 表层响应 | 坐照系部：二阶思维 |
-| 虚谈 | 认知-行动断裂 | 知行系部：精准执行 |
-| 晦涩 | 价值传递失真 | 影响系部：清晰表达 |
+| 熵增形态 | 系统表征      | 对抗策略               |
+| :------- | :------------ | :--------------------- |
+| 信息过载 | 噪音淹没信号  | 感知系部：熵减过滤     |
+| 遗忘     | 知识碎片化    | 内化系部：结构化持久化 |
+| 肤浅     | 表层响应      | 坐照系部：二阶思维     |
+| 虚谈     | 认知-行动断裂 | 知行系部：精准执行     |
+| 晦涩     | 价值传递失真  | 影响系部：清晰表达     |
 
 ### 1.2 架构哲学
 
@@ -103,11 +103,11 @@ graph TB
 
 ### 2.2 应用边界与技术栈
 
-| 应用 | 技术栈 | 包管理 | 入口 |
-| :--- | :----- | :----- | :--- |
-| **negentropy** (后端引擎) | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py) |
-| **negentropy-ui** (前端) | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS | `pnpm` | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx) |
-| **negentropy-wiki** (Wiki) | Next.js, TypeScript | `pnpm` | [`src/`](../../apps/negentropy-wiki/src/) |
+| 应用                       | 技术栈                                                                                        | 包管理                      | 入口                                                                      |
+| :------------------------- | :-------------------------------------------------------------------------------------------- | :-------------------------- | :------------------------------------------------------------------------ |
+| **negentropy** (后端引擎)  | Python 3.13+, Google ADK<sup>[[3]](#ref3)</sup>, SQLAlchemy, LiteLLM<sup>[[10]](#ref10)</sup> | `uv`<sup>[[9]](#ref9)</sup> | [`agents/agent.py`](../../apps/negentropy/src/negentropy/agents/agent.py) |
+| **negentropy-ui** (前端)   | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS                         | `pnpm`                      | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx)               |
+| **negentropy-wiki** (Wiki) | Next.js, TypeScript                                                                           | `pnpm`                      | [`src/`](../../apps/negentropy-wiki/src/)                                 |
 
 应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [development.md](./development.md) §项目结构。
 
@@ -171,13 +171,13 @@ graph LR
     class P,I,C,A,Inf faculty
 ```
 
-| 系部 | 图腾 | Agent 名称 | 对抗目标 | 核心职责 | 专属工具 |
-| :--- | :--: | :--------- | :------- | :------- | :------- |
-| 慧眼·感知 | 👁️ | `PerceptionFaculty` | 信息过载 | 广域扫描、噪音过滤、多源交叉验证 | `search_knowledge_base`, `search_web` |
-| 本心·内化 | 💎 | `InternalizationFaculty` | 遗忘 | 知识结构化、长期记忆管理、一致性维护 | `save_to_memory`, `update_knowledge_graph` |
-| 元神·坐照 | 🧠 | `ContemplationFaculty` | 肤浅 | 二阶思维、策略规划、错误根因分析 | `analyze_context`, `create_plan` |
-| 妙手·知行 | ✋ | `ActionFaculty` | 虚谈 | 精准执行、代码生成、安全变更 | `execute_code`, `read_file`, `write_file` |
-| 喉舌·影响 | 🗣️ | `InfluenceFaculty` | 晦涩 | 价值传递、格式适配、说服与教育 | `publish_content`, `send_notification` |
+| 系部      | 图腾  | Agent 名称               | 对抗目标 | 核心职责                             | 专属工具                                   |
+| :-------- | :---: | :----------------------- | :------- | :----------------------------------- | :----------------------------------------- |
+| 慧眼·感知 |   👁️   | `PerceptionFaculty`      | 信息过载 | 广域扫描、噪音过滤、多源交叉验证     | `search_knowledge_base`, `search_web`      |
+| 本心·内化 |   💎   | `InternalizationFaculty` | 遗忘     | 知识结构化、长期记忆管理、一致性维护 | `save_to_memory`, `update_knowledge_graph` |
+| 元神·坐照 |   🧠   | `ContemplationFaculty`   | 肤浅     | 二阶思维、策略规划、错误根因分析     | `analyze_context`, `create_plan`           |
+| 妙手·知行 |   ✋   | `ActionFaculty`          | 虚谈     | 精准执行、代码生成、安全变更         | `execute_code`, `read_file`, `write_file`  |
+| 喉舌·影响 |   🗣️   | `InfluenceFaculty`       | 晦涩     | 价值传递、格式适配、说服与教育       | `publish_content`, `send_notification`     |
 
 > 所有系部均共享 `log_activity` 审计工具；上表仅列出各系部**专属**工具。
 > 系部实现位于 [`agents/faculties/`](../../apps/negentropy/src/negentropy/agents/faculties/) 目录
@@ -265,11 +265,11 @@ graph LR
     class KA_P,KA_I,PS_P,PS_C,PS_A,PS_I,VD_P,VD_C,VD_Inf step
 ```
 
-| 流水线 | 执行路径 | 适用场景 |
-| :----- | :------- | :------- |
-| **KnowledgeAcquisitionPipeline** | 感知 → 内化 | 研究新领域、收集需求、构建知识库 |
-| **ProblemSolvingPipeline** | 感知 → 坐照 → 知行 → 内化 | Bug 修复、功能实现、系统优化 |
-| **ValueDeliveryPipeline** | 感知 → 坐照 → 影响 | 撰写文档、生成报告、提供建议 |
+| 流水线                           | 执行路径                  | 适用场景                         |
+| :------------------------------- | :------------------------ | :------------------------------- |
+| **KnowledgeAcquisitionPipeline** | 感知 → 内化               | 研究新领域、收集需求、构建知识库 |
+| **ProblemSolvingPipeline**       | 感知 → 坐照 → 知行 → 内化 | Bug 修复、功能实现、系统优化     |
+| **ValueDeliveryPipeline**        | 感知 → 坐照 → 影响        | 撰写文档、生成报告、提供建议     |
 
 ### 4.2 状态传递机制
 
@@ -398,13 +398,13 @@ flowchart TD
 
 > 源码位置：[`engine/factories/__init__.py`](../../apps/negentropy/src/negentropy/engine/factories/__init__.py)
 
-| 工厂函数 | 服务类型 | 可选后端 |
-| :------- | :------- | :------- |
-| `get_session_service()` | 会话管理 | inmemory, postgres, vertexai |
-| `get_memory_service()` | 记忆存储 | inmemory, postgres, vertexai |
-| `get_artifact_service()` | 工件管理 | inmemory, gcs, postgres |
-| `get_credential_service()` | 凭据管理 | inmemory, postgres |
-| `get_runner()` | ADK Runner | 内置 |
+| 工厂函数                   | 服务类型   | 可选后端                     |
+| :------------------------- | :--------- | :--------------------------- |
+| `get_session_service()`    | 会话管理   | inmemory, postgres, vertexai |
+| `get_memory_service()`     | 记忆存储   | inmemory, postgres, vertexai |
+| `get_artifact_service()`   | 工件管理   | inmemory, gcs, postgres      |
+| `get_credential_service()` | 凭据管理   | inmemory, postgres           |
+| `get_runner()`             | ADK Runner | 内置                         |
 
 每个工厂提供 `reset_*()` 函数以支持测试场景下的实例重置。
 
@@ -480,17 +480,17 @@ class Settings(BaseSettings):
 
 ### 7.3 配置域清单
 
-| 配置域 | 源文件 | 环境变量前缀 | 职责 |
-| :----- | :----- | :----------- | :--- |
-| `EnvironmentSettings` | [`config/environment.py`](../../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 YAML 配置加载 |
-| `AppSettings` | [`config/app.py`](../../apps/negentropy/src/negentropy/config/app.py) | `NE_` | 应用名称等基础配置 |
-| `LoggingSettings` | [`config/logging.py`](../../apps/negentropy/src/negentropy/config/logging.py) | `NE_LOG_` | 日志级别、格式、输出 sink |
-| `ObservabilitySettings` | [`config/observability.py`](../../apps/negentropy/src/negentropy/config/observability.py) | `LANGFUSE_` | Langfuse 追踪配置 |
-| `DatabaseSettings` | [`config/database.py`](../../apps/negentropy/src/negentropy/config/database.py) | `NE_DB_` | PostgreSQL 连接池参数 |
-| `ServicesSettings` | [`config/services.py`](../../apps/negentropy/src/negentropy/config/services.py) | `NE_` | 各服务后端选择 |
-| `AuthSettings` | [`config/auth.py`](../../apps/negentropy/src/negentropy/config/auth.py) | `NE_AUTH_` | Google OAuth / Session 管理 |
-| `SearchSettings` | [`config/search.py`](../../apps/negentropy/src/negentropy/config/search.py) | `NE_SEARCH_` | Web 搜索提供商配置 |
-| `KnowledgeSettings` | [`config/knowledge.py`](../../apps/negentropy/src/negentropy/config/knowledge.py) | `NE_KG_` | 知识图谱与向量存储 |
+| 配置域                  | 源文件                                                                                    | 环境变量前缀 | 职责                        |
+| :---------------------- | :---------------------------------------------------------------------------------------- | :----------- | :-------------------------- |
+| `EnvironmentSettings`   | [`config/environment.py`](../../apps/negentropy/src/negentropy/config/environment.py)     | `NE_`        | 环境检测与 YAML 配置加载    |
+| `AppSettings`           | [`config/app.py`](../../apps/negentropy/src/negentropy/config/app.py)                     | `NE_`        | 应用名称等基础配置          |
+| `LoggingSettings`       | [`config/logging.py`](../../apps/negentropy/src/negentropy/config/logging.py)             | `NE_LOG_`    | 日志级别、格式、输出 sink   |
+| `ObservabilitySettings` | [`config/observability.py`](../../apps/negentropy/src/negentropy/config/observability.py) | `LANGFUSE_`  | Langfuse 追踪配置           |
+| `DatabaseSettings`      | [`config/database.py`](../../apps/negentropy/src/negentropy/config/database.py)           | `NE_DB_`     | PostgreSQL 连接池参数       |
+| `ServicesSettings`      | [`config/services.py`](../../apps/negentropy/src/negentropy/config/services.py)           | `NE_`        | 各服务后端选择              |
+| `AuthSettings`          | [`config/auth.py`](../../apps/negentropy/src/negentropy/config/auth.py)                   | `NE_AUTH_`   | Google OAuth / Session 管理 |
+| `SearchSettings`        | [`config/search.py`](../../apps/negentropy/src/negentropy/config/search.py)               | `NE_SEARCH_` | Web 搜索提供商配置          |
+| `KnowledgeSettings`     | [`config/knowledge.py`](../../apps/negentropy/src/negentropy/config/knowledge.py)         | `NE_KG_`     | 知识图谱与向量存储          |
 
 ### 7.4 LLM 模型解析链路
 
@@ -558,13 +558,13 @@ graph TB
     class kg_nodes,kg_edges knowledge
 ```
 
-| Schema 文件 | 认知域 | 核心表 | 说明 |
-| :---------- | :----- | :----- | :--- |
-| [`agent_schema.sql`](../schema/agent_schema.sql) | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
-| [`hippocampus_schema.sql`](../schema/hippocampus_schema.sql) | 记忆系统 | memories, facts, consolidation_jobs | 情景/语义记忆、艾宾浩斯衰减 |
-| [`kg_schema_extension.sql`](../schema/kg_schema_extension.sql) | 知识图谱 | 知识节点/边 | 结构化知识表示 |
-| [`mind_schema.sql`](../schema/mind_schema.sql) | 思维模式 | — | 思维模式与策略 |
-| [`perception_schema.sql`](../schema/perception_schema.sql) | 感知系统 | — | 感知数据与来源管理 |
+| Schema 文件                                                    | 认知域   | 核心表                                     | 说明                             |
+| :------------------------------------------------------------- | :------- | :----------------------------------------- | :------------------------------- |
+| [`agent_schema.sql`](../schema/agent_schema.sql)               | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
+| [`hippocampus_schema.sql`](../schema/hippocampus_schema.sql)   | 记忆系统 | memories, facts, consolidation_jobs        | 情景/语义记忆、艾宾浩斯衰减      |
+| [`kg_schema_extension.sql`](../schema/kg_schema_extension.sql) | 知识图谱 | 知识节点/边                                | 结构化知识表示                   |
+| [`mind_schema.sql`](../schema/mind_schema.sql)                 | 思维模式 | —                                          | 思维模式与策略                   |
+| [`perception_schema.sql`](../schema/perception_schema.sql)     | 感知系统 | —                                          | 感知数据与来源管理               |
 
 ### 8.3 关键设计决策
 
@@ -580,14 +580,14 @@ graph TB
 
 ### 9.1 技术栈
 
-| 层次 | 技术选型 |
-| :--- | :------- |
-| 框架 | Next.js 16 (App Router) |
-| UI 库 | React 19, Tailwind CSS |
-| 状态管理 | React Hooks + Context |
-| AI 集成 | CopilotKit (AG-UI Protocol) |
-| 图表 | Mermaid |
-| 测试 | Vitest (单元/集成), Playwright (E2E) |
+| 层次     | 技术选型                             |
+| :------- | :----------------------------------- |
+| 框架     | Next.js 16 (App Router)              |
+| UI 库    | React 19, Tailwind CSS               |
+| 状态管理 | React Hooks + Context                |
+| AI 集成  | CopilotKit (AG-UI Protocol)          |
+| 图表     | Mermaid                              |
+| 测试     | Vitest (单元/集成), Playwright (E2E) |
 
 ### 9.2 功能域划分
 
@@ -620,16 +620,16 @@ apps/negentropy-ui/app/
 
 ### 9.3 分层组织
 
-| 目录 | 职责 |
-| :--- | :--- |
-| `app/` | Next.js App Router 页面与 API 路由 |
-| `components/` | 通用可复用 UI 组件 |
-| `features/` | 按功能域组织的业务组件 |
-| `lib/` | 核心工具库 |
-| `hooks/` | 自定义 React Hooks |
-| `utils/` | 纯函数工具集 |
-| `types/` | TypeScript 类型定义 |
-| `config/` | 前端配置常量 |
+| 目录          | 职责                               |
+| :------------ | :--------------------------------- |
+| `app/`        | Next.js App Router 页面与 API 路由 |
+| `components/` | 通用可复用 UI 组件                 |
+| `features/`   | 按功能域组织的业务组件             |
+| `lib/`        | 核心工具库                         |
+| `hooks/`      | 自定义 React Hooks                 |
+| `utils/`      | 纯函数工具集                       |
+| `types/`      | TypeScript 类型定义                |
+| `config/`     | 前端配置常量                       |
 
 ### 9.4 AG-UI 协议架构
 
@@ -651,12 +651,12 @@ CopilotKitProvider → useAgent (HttpAgent) → BFF /api/agui → ADK Web → SS
 
 #### 事件到 UI 的映射
 
-| AG-UI 事件类型 | UI 表现 |
-| :------------- | :------ |
-| `TEXT_MESSAGE_*` | 文本气泡（流式拼接，按 `messageId` 聚合） |
-| `TOOL_CALL_*` | 可折叠工具调用卡片（入参/出参分区） |
-| `STATE_SNAPSHOT` / `STATE_DELTA` | 右栏状态树（只读） |
-| `ACTIVITY_*` | 右栏活动日志（时间序列） |
+| AG-UI 事件类型                   | UI 表现                                   |
+| :------------------------------- | :---------------------------------------- |
+| `TEXT_MESSAGE_*`                 | 文本气泡（流式拼接，按 `messageId` 聚合） |
+| `TOOL_CALL_*`                    | 可折叠工具调用卡片（入参/出参分区）       |
+| `STATE_SNAPSHOT` / `STATE_DELTA` | 右栏状态树（只读）                        |
+| `ACTIVITY_*`                     | 右栏活动日志（时间序列）                  |
 
 ### 9.5 UI 交互状态机
 
@@ -728,16 +728,16 @@ type AguiEvent = {
 
 > 由 BFF 统一翻译后端错误，UI 只处理以下错误码与语义。
 
-| 错误码 | HTTP | 含义 | UI 行为 |
-| :----- | :--- | :--- | :------ |
-| `AGUI_BAD_REQUEST` | 400 | 请求字段不合法 | 显示表单错误，不重试 |
-| `AGUI_UNAUTHORIZED` | 401 | 鉴权失败 | 提示登录/权限不足 |
-| `AGUI_FORBIDDEN` | 403 | 权限不足 | 提示无权限，不重试 |
-| `AGUI_NOT_FOUND` | 404 | 目标资源不存在 | 提示资源不可用 |
-| `AGUI_RATE_LIMITED` | 429 | 触发限流 | 延迟重试（指数退避） |
-| `AGUI_UPSTREAM_TIMEOUT` | 504 | 上游超时 | 自动重试（限次数） |
-| `AGUI_UPSTREAM_ERROR` | 502 | 上游错误 | 自动重试（限次数） |
-| `AGUI_INTERNAL_ERROR` | 500 | BFF 内部错误 | 提示错误，可重试 |
+| 错误码                  | HTTP | 含义           | UI 行为              |
+| :---------------------- | :--- | :------------- | :------------------- |
+| `AGUI_BAD_REQUEST`      | 400  | 请求字段不合法 | 显示表单错误，不重试 |
+| `AGUI_UNAUTHORIZED`     | 401  | 鉴权失败       | 提示登录/权限不足    |
+| `AGUI_FORBIDDEN`        | 403  | 权限不足       | 提示无权限，不重试   |
+| `AGUI_NOT_FOUND`        | 404  | 目标资源不存在 | 提示资源不可用       |
+| `AGUI_RATE_LIMITED`     | 429  | 触发限流       | 延迟重试（指数退避） |
+| `AGUI_UPSTREAM_TIMEOUT` | 504  | 上游超时       | 自动重试（限次数）   |
+| `AGUI_UPSTREAM_ERROR`   | 502  | 上游错误       | 自动重试（限次数）   |
+| `AGUI_INTERNAL_ERROR`   | 500  | BFF 内部错误   | 提示错误，可重试     |
 
 #### UI 状态模型
 
@@ -862,10 +862,10 @@ graph TB
 
 ### 10.2 覆盖率门禁
 
-| 端 | 框架 | 行覆盖率 | 分支覆盖率 | 配置位置 |
-| :- | :--- | :------- | :--------- | :------- |
-| 后端 | pytest + pytest-cov | ≥ 50% | — | `pyproject.toml` `[tool.coverage.run]` |
-| 前端 | Vitest Coverage v8 | ≥ 50% | ≥ 48% | `vitest.config.ts` `coverage.thresholds` |
+| 端   | 框架                | 行覆盖率 | 分支覆盖率 | 配置位置                                 |
+| :--- | :------------------ | :------- | :--------- | :--------------------------------------- |
+| 后端 | pytest + pytest-cov | ≥ 50%    | —          | `pyproject.toml` `[tool.coverage.run]`   |
+| 前端 | Vitest Coverage v8  | ≥ 50%    | ≥ 48%      | `vitest.config.ts` `coverage.thresholds` |
 
 ### 10.3 测试目录结构
 
@@ -942,15 +942,15 @@ graph LR
 
 基于现有代码结构，系统具备以下可扩展维度：
 
-| 扩展维度 | 接入模式 | 涉及目录 |
-| :------- | :------- | :------- |
-| **新增系部** | 创建 `faculties/new_faculty.py`，实现 `create_*_agent()` 工厂函数，注册到 `root_agent.sub_agents` | `agents/faculties/` |
-| **自定义流水线** | 在 `pipelines/` 下创建工厂函数，组合现有系部实例 | `agents/pipelines/` |
-| **新工具** | 在 `agents/tools/` 下实现，注册到对应系部的 `tools` 列表 | `agents/tools/` |
-| **新存储后端** | 在 `engine/adapters/` 下实现 ADK 服务接口，更新工厂函数 | `engine/adapters/` |
-| **新 LLM 提供商** | 通过 LiteLLM 路由注册，配置 `model_configs` 表 | `config/model_resolver.py` |
-| **新能力接入** | 通过 Interface 模块注册（Models / SubAgents / MCP 服务 / Skills） | `interface/` |
-| **新配置域** | 创建 `config/new_domain.py`，在 `Settings` 中组合 | `config/` |
+| 扩展维度          | 接入模式                                                                                          | 涉及目录                   |
+| :---------------- | :------------------------------------------------------------------------------------------------ | :------------------------- |
+| **新增系部**      | 创建 `faculties/new_faculty.py`，实现 `create_*_agent()` 工厂函数，注册到 `root_agent.sub_agents` | `agents/faculties/`        |
+| **自定义流水线**  | 在 `pipelines/` 下创建工厂函数，组合现有系部实例                                                  | `agents/pipelines/`        |
+| **新工具**        | 在 `agents/tools/` 下实现，注册到对应系部的 `tools` 列表                                          | `agents/tools/`            |
+| **新存储后端**    | 在 `engine/adapters/` 下实现 ADK 服务接口，更新工厂函数                                           | `engine/adapters/`         |
+| **新 LLM 提供商** | 通过 LiteLLM 路由注册，配置 `model_configs` 表                                                    | `config/model_resolver.py` |
+| **新能力接入**    | 通过 Interface 模块注册（Models / SubAgents / MCP 服务 / Skills）                                 | `interface/`               |
+| **新配置域**      | 创建 `config/new_domain.py`，在 `Settings` 中组合                                                 | `config/`                  |
 
 ### 11.2 近期演进方向
 

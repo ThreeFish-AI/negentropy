@@ -306,14 +306,14 @@ python-multipart 0.0.26  CVE-2026-42561 0.0.27
 
 各 Stage 默认 rank=1 引擎：
 
-| 阶段 | 最佳引擎 | 关键依据 |
-|------|---------|---------|
-| PDF `layout_analysis` | docling | reading-order / heading-level 最准确 |
-| PDF `table_extraction` | docling | TableFormer 结构化识别；与 layout 共享 `_ConvertCache` |
-| PDF `formula_extraction` | mineru | LaTeX 转换保真度最高 |
-| PDF `code_detection` | docling | CodeFormula 代码块检测；与 layout/table 共享 `_ConvertCache` |
-| WebPage `main_content_extraction` | trafilatura | 学术/博客主内容定位行业基线 |
-| WebPage `markdown_conversion` | markitdown | Microsoft 维护，标准 HTML→MD 最稳定 |
+| 阶段                              | 最佳引擎    | 关键依据                                                     |
+| --------------------------------- | ----------- | ------------------------------------------------------------ |
+| PDF `layout_analysis`             | docling     | reading-order / heading-level 最准确                         |
+| PDF `table_extraction`            | docling     | TableFormer 结构化识别；与 layout 共享 `_ConvertCache`       |
+| PDF `formula_extraction`          | mineru      | LaTeX 转换保真度最高                                         |
+| PDF `code_detection`              | docling     | CodeFormula 代码块检测；与 layout/table 共享 `_ConvertCache` |
+| WebPage `main_content_extraction` | trafilatura | 学术/博客主内容定位行业基线                                  |
+| WebPage `markdown_conversion`     | markitdown  | Microsoft 维护，标准 HTML→MD 最稳定                          |
 
 ### 后续防范
 

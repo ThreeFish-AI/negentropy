@@ -4,13 +4,13 @@
 
 ## 1. SubAgent 引用语法（向后兼容）
 
-| 语法 | 含义 |
-|------|------|
-| `arxiv-fetch` | 等价于 `arxiv-fetch@*`（最新；与之前完全一致） |
-| `arxiv-fetch@1.0.0` | 精确锁定 `1.0.0` 快照 |
-| `arxiv-fetch@~1.0` | tilde range：`>=1.0,<2.0` 内最大版本 |
-| `arxiv-fetch@^1.0` | caret range：`>=1.0,<2.0`（npm 习惯） |
-| `arxiv-fetch@>=1.0,<2` | 原生 PEP 440 specifier |
+| 语法                   | 含义                                           |
+| ---------------------- | ---------------------------------------------- |
+| `arxiv-fetch`          | 等价于 `arxiv-fetch@*`（最新；与之前完全一致） |
+| `arxiv-fetch@1.0.0`    | 精确锁定 `1.0.0` 快照                          |
+| `arxiv-fetch@~1.0`     | tilde range：`>=1.0,<2.0` 内最大版本           |
+| `arxiv-fetch@^1.0`     | caret range：`>=1.0,<2.0`（npm 习惯）          |
+| `arxiv-fetch@>=1.0,<2` | 原生 PEP 440 specifier                         |
 
 无 `@` 后缀 = 用 Skill 当前字段（与 Phase 1/2 行为相同）。**所有现有 SubAgent 配置零迁移**。
 

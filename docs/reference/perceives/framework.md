@@ -76,14 +76,14 @@ graph LR
 
 ### 工具清单（6 个）
 
-| 模块                                                               | 领域     | 工具                                 | 功能                                             |
-| ------------------------------------------------------------------ | -------- | ------------------------------------ | ------------------------------------------------ |
-| [`extraction.py`](../src/negentropy/perceives/tools/extraction.py) | 数据提取 | `discover_links`                     | 链接发现与分类                                   |
-|                                                                    |          | `inspect_page`                       | 页面元数据检查                                   |
-| [`markdown.py`](../src/negentropy/perceives/tools/markdown.py)     | 内容转换 | `parse_webpage_to_markdown`          | 网页转 Markdown（method="auto" 时优先 Pipeline） |
-|                                                                    |          | `parse_webpages_to_markdown`         | 批量网页转换                                     |
-| [`pdf.py`](../src/negentropy/perceives/tools/pdf.py)               | PDF 处理 | `parse_pdf_to_markdown`              | PDF 转 Markdown（method="auto" 时优先 Pipeline） |
-|                                                                    |          | `parse_pdfs_to_markdown`             | 批量 PDF 转 Markdown                             |
+| 模块                                                               | 领域     | 工具                         | 功能                                             |
+| ------------------------------------------------------------------ | -------- | ---------------------------- | ------------------------------------------------ |
+| [`extraction.py`](../src/negentropy/perceives/tools/extraction.py) | 数据提取 | `discover_links`             | 链接发现与分类                                   |
+|                                                                    |          | `inspect_page`               | 页面元数据检查                                   |
+| [`markdown.py`](../src/negentropy/perceives/tools/markdown.py)     | 内容转换 | `parse_webpage_to_markdown`  | 网页转 Markdown（method="auto" 时优先 Pipeline） |
+|                                                                    |          | `parse_webpages_to_markdown` | 批量网页转换                                     |
+| [`pdf.py`](../src/negentropy/perceives/tools/pdf.py)               | PDF 处理 | `parse_pdf_to_markdown`      | PDF 转 Markdown（method="auto" 时优先 Pipeline） |
+|                                                                    |          | `parse_pdfs_to_markdown`     | 批量 PDF 转 Markdown                             |
 
 ### 响应模型层
 
@@ -217,18 +217,18 @@ graph TD
     style S9 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
 ```
 
-| Stage | 名称     | 描述                                                     | 模式                       |
-| ----- | -------- | -------------------------------------------------------- | -------------------------- |
-| S0    | 预处理   | PDF 源验证、下载、格式检测与页面范围解析                 | 降级                       |
-| S1    | 文档扫描 | 轻量级文档特征分析（页数、表格、公式、图片、布局复杂度） | 降级                       |
+| Stage | 名称     | 描述                                                     | 模式                         |
+| ----- | -------- | -------------------------------------------------------- | ---------------------------- |
+| S0    | 预处理   | PDF 源验证、下载、格式检测与页面范围解析                 | 降级                         |
+| S1    | 文档扫描 | 轻量级文档特征分析（页数、表格、公式、图片、布局复杂度） | 降级                         |
 | S2    | 版面分析 | 检测文档物理布局结构，确定正确阅读顺序                   | 降级（默认）/ 竞争（opt-in） |
-| S3    | 文本提取 | 从各文本区域提取纯文本，保留段落结构与标题层级           | 降级                       |
+| S3    | 文本提取 | 从各文本区域提取纯文本，保留段落结构与标题层级           | 降级                         |
 | S4    | 表格提取 | 结构化表格识别与 Markdown 表格生成                       | 降级（默认）/ 竞争（opt-in） |
 | S5    | 公式提取 | 数学公式检测与 LaTeX 转换                                | 降级（默认）/ 竞争（opt-in） |
-| S6    | 图片提取 | 图片提取、分类与 caption 生成                            | 降级                       |
+| S6    | 图片提取 | 图片提取、分类与 caption 生成                            | 降级                         |
 | S7    | 代码检测 | 代码块识别与编程语言推断                                 | 降级（默认）/ 竞争（opt-in） |
-| S8    | 组装     | 将各 Stage 产出按阅读顺序组装为 Markdown                 | 降级                       |
-| S9    | 资源打包 | 整理提取的资源文件，生成最终输出包                       | 降级                       |
+| S8    | 组装     | 将各 Stage 产出按阅读顺序组装为 Markdown                 | 降级                         |
+| S9    | 资源打包 | 整理提取的资源文件，生成最终输出包                       | 降级                         |
 
 ### WebPage Pipeline（S1 - S12）
 
@@ -267,20 +267,20 @@ graph TD
     style WS12 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
 ```
 
-| Stage | 名称          | 描述                                             | 模式                       |
-| ----- | ------------- | ------------------------------------------------ | -------------------------- |
-| S1    | 合规检查      | 检查目标 URL 的 robots.txt 规则与基本合法性      | 降级                       |
-| S2    | 网页获取      | HTTP 或浏览器抓取目标网页完整 HTML（三级降级链） | 降级                       |
-| S3    | 反检测降级    | 使用隐身浏览器技术绕过反爬检测                   | 降级                       |
+| Stage | 名称          | 描述                                             | 模式                         |
+| ----- | ------------- | ------------------------------------------------ | ---------------------------- |
+| S1    | 合规检查      | 检查目标 URL 的 robots.txt 规则与基本合法性      | 降级                         |
+| S2    | 网页获取      | HTTP 或浏览器抓取目标网页完整 HTML（三级降级链） | 降级                         |
+| S3    | 反检测降级    | 使用隐身浏览器技术绕过反爬检测                   | 降级                         |
 | S4    | 主内容提取    | 识别并提取主要文章内容，移除导航栏/广告/侧边栏   | 降级（默认）/ 竞争（opt-in） |
-| S5    | HTML 清洗     | 清理残余脚本/样式，保护数学和代码元素            | 降级                       |
-| S6    | 公式提取      | 检测并提取页面中的数学公式，转换为 LaTeX         | 降级                       |
-| S7    | 代码识别      | 识别 HTML 中的代码块，保留语法高亮信息           | 降级                       |
-| S8    | 表格提取      | 提取 HTML 表格结构，生成 Markdown 表格           | 降级                       |
-| S9    | 图片提取      | 提取页面图片信息，可选下载并嵌入                 | 降级                       |
+| S5    | HTML 清洗     | 清理残余脚本/样式，保护数学和代码元素            | 降级                         |
+| S6    | 公式提取      | 检测并提取页面中的数学公式，转换为 LaTeX         | 降级                         |
+| S7    | 代码识别      | 识别 HTML 中的代码块，保留语法高亮信息           | 降级                         |
+| S8    | 表格提取      | 提取 HTML 表格结构，生成 Markdown 表格           | 降级                         |
+| S9    | 图片提取      | 提取页面图片信息，可选下载并嵌入                 | 降级                         |
 | S10   | Markdown 转换 | 将清洗后的 HTML 转换为 Markdown                  | 降级（默认）/ 竞争（opt-in） |
-| S11   | 排版格式化    | 排版优化、段落间距归一化、表格对齐               | 降级                       |
-| S12   | 资源打包      | 聚合处理结果，构建最终输出                       | 降级                       |
+| S11   | 排版格式化    | 排版优化、段落间距归一化、表格对齐               | 降级                         |
+| S12   | 资源打包      | 聚合处理结果，构建最终输出                       | 降级                         |
 
 ### 配置驱动
 
@@ -297,8 +297,8 @@ Pipeline 的 Stage 配置完全由 [`config.default.yaml`](../src/negentropy/per
 
 [`src/negentropy/perceives/scraping/engine.py`](../src/negentropy/perceives/scraping/engine.py) 中的 `WebScraper` 作为门面类，持有两个活跃后端实例并通过方法分发进行路由：
 
-| 后端     | 类                | 技术栈                      | 状态                      |
-| -------- | ----------------- | --------------------------- | ------------------------- |
+| 后端     | 类                | 技术栈                      | 状态                     |
+| -------- | ----------------- | --------------------------- | ------------------------ |
 | HTTP     | `HttpScraper`     | requests + BeautifulSoup    | ✅ 可用                   |
 | Selenium | `SeleniumScraper` | Chrome WebDriver + headless | ✅ 可用                   |
 | Scrapy   | —                 | 路由至 HttpScraper          | ⚠️ 已禁用（reactor 冲突） |

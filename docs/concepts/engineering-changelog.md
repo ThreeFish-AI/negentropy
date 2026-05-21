@@ -16,19 +16,19 @@
 
 #### 第二阶段：手动修复（107 项）
 
-| 规则 | 数量 | 修复方式 |
-|------|------|---------|
-| **B008** | 60 | 在 `pyproject.toml` 的 `[tool.ruff.lint] ignore` 中排除——FastAPI `Depends()`/`Query()`/`File()` 用于函数签名是框架标准用法 |
-| **B904** | 21 | 为 `except` 中的 `raise` 补充 `from err` 或 `from None`，保留完整异常链 |
-| **F821** | 15 | 通过 `TYPE_CHECKING` 守卫导入解决循环依赖下的前向引用（`Event`、`KnowledgeRecord`、`CatalogService`、`WikiPublishingService`、`CorpusEngine`、`UnifiedRetrievalService`、`Thread`），以及补充 `import urllib.parse` |
-| **E501** | 7 | 拆分过长行（中文文档字符串、IEEE 引用、迁移脚本、断言字符串） |
-| **E402** | 7 | 为 Alembic env.py 配置后导入、模块尾部兼容性重导出等添加 `# noqa: E402` |
-| **B905** | 5 | 为 `zip()` 调用添加 `strict=True`（均已验证等长保证） |
-| **F841** | 4 | 移除未使用的变量赋值（保留有副作用的函数调用） |
-| **E712** | 4 | 将 SQLAlchemy 列的 `== True` 改为 `.is_(True)` |
-| **UP040** | 1 | 将 `TypeAlias` 注解迁移为 PEP 695 `type X = ...` 语法 |
-| **B023** | 1 | 通过默认参数绑定闭包中的循环变量 |
-| **B027** | 1 | 为 ABC 中有意的 no-op 方法添加 `# noqa: B027` |
+| 规则      | 数量 | 修复方式                                                                                                                                                                                                            |
+| --------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B008**  | 60   | 在 `pyproject.toml` 的 `[tool.ruff.lint] ignore` 中排除——FastAPI `Depends()`/`Query()`/`File()` 用于函数签名是框架标准用法                                                                                          |
+| **B904**  | 21   | 为 `except` 中的 `raise` 补充 `from err` 或 `from None`，保留完整异常链                                                                                                                                             |
+| **F821**  | 15   | 通过 `TYPE_CHECKING` 守卫导入解决循环依赖下的前向引用（`Event`、`KnowledgeRecord`、`CatalogService`、`WikiPublishingService`、`CorpusEngine`、`UnifiedRetrievalService`、`Thread`），以及补充 `import urllib.parse` |
+| **E501**  | 7    | 拆分过长行（中文文档字符串、IEEE 引用、迁移脚本、断言字符串）                                                                                                                                                       |
+| **E402**  | 7    | 为 Alembic env.py 配置后导入、模块尾部兼容性重导出等添加 `# noqa: E402`                                                                                                                                             |
+| **B905**  | 5    | 为 `zip()` 调用添加 `strict=True`（均已验证等长保证）                                                                                                                                                               |
+| **F841**  | 4    | 移除未使用的变量赋值（保留有副作用的函数调用）                                                                                                                                                                      |
+| **E712**  | 4    | 将 SQLAlchemy 列的 `== True` 改为 `.is_(True)`                                                                                                                                                                      |
+| **UP040** | 1    | 将 `TypeAlias` 注解迁移为 PEP 695 `type X = ...` 语法                                                                                                                                                               |
+| **B023**  | 1    | 通过默认参数绑定闭包中的循环变量                                                                                                                                                                                    |
+| **B027**  | 1    | 为 ABC 中有意的 no-op 方法添加 `# noqa: B027`                                                                                                                                                                       |
 
 ### 影响与当前状态
 

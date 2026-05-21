@@ -32,14 +32,14 @@ flowchart LR
 
 ## 2. 6 类记忆类型
 
-| 类型 | 衰减率 (λ/天) | 重要性权重 | 何时使用 |
-|----|----|----|----|
-| `core` | 0.0 | 1.0 | 用户/Agent 主动维护的常驻摘要（Phase 4 新增）|
-| `semantic` | 0.005 | 0.95 | 概念性事实（"用户是 Rust 工程师"）|
-| `preference` | 0.05 | 0.9 | 偏好（"用户喜欢深色主题"）|
-| `procedural` | 0.06 | 0.75 | 流程/技能（"如何部署服务"）|
-| `fact` | 0.08 | 0.6 | 通用事实（事件、数据点）|
-| `episodic` | 0.10 | 0.4 | 情景对话（默认；快衰减）|
+| 类型         | 衰减率 (λ/天) | 重要性权重 | 何时使用                                      |
+| ------------ | ------------- | ---------- | --------------------------------------------- |
+| `core`       | 0.0           | 1.0        | 用户/Agent 主动维护的常驻摘要（Phase 4 新增） |
+| `semantic`   | 0.005         | 0.95       | 概念性事实（"用户是 Rust 工程师"）            |
+| `preference` | 0.05          | 0.9        | 偏好（"用户喜欢深色主题"）                    |
+| `procedural` | 0.06          | 0.75       | 流程/技能（"如何部署服务"）                   |
+| `fact`       | 0.08          | 0.6        | 通用事实（事件、数据点）                      |
+| `episodic`   | 0.10          | 0.4        | 情景对话（默认；快衰减）                      |
 
 > 衰减率/权重定义见 `apps/negentropy/src/negentropy/engine/governance/memory.py` `_MEMORY_TYPE_DECAY_RATES`。
 
@@ -49,20 +49,20 @@ flowchart LR
 
 Phase 5 引入 4 个高级特性，**全部默认关闭**，按需通过环境变量或配置文件灰度启用。详细工程契约见 [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md) §10 与 [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md) §4。
 
-| 特性 | 配置项 | 默认 | 何时启用 | 性能成本 |
-|---|---|---|---|---|
-| **F1 HippoRAG PPR 检索** | `MEMORY_HIPPORAG_ENABLED` | `false` | KG 实体关联 ≥ 100 条且需要长尾召回 / 多跳一致性 | +50ms P95（含 120ms 超时） |
-| **F2 Reflexion 反思召回** | `MEMORY_REFLECTION_ENABLED` | `false` | 用户/Agent 提供 `irrelevant`/`harmful` 反馈较多 | LLM 调用按 dedup + 上限计费，默认 ≤10 次/用户·日 |
-| **F3 Memify 巩固管线** | `memory.consolidation.legacy=false` | `false`（即开启 Pipeline）| 默认即用，重构无新功能；自定义 step 时配置 `steps:` 列表 | 与 Phase 4 baseline 一致；新增 step 才有增量成本 |
-| **F4 Presidio PII** | `memory.pii.engine=presidio` | `regex` | 生产环境合规要求（GDPR / NIST 800-122） | 冷启 +200MB（spaCy 模型）；运行时 P99 < 5ms |
+| 特性                      | 配置项                              | 默认                       | 何时启用                                                 | 性能成本                                         |
+| ------------------------- | ----------------------------------- | -------------------------- | -------------------------------------------------------- | ------------------------------------------------ |
+| **F1 HippoRAG PPR 检索**  | `MEMORY_HIPPORAG_ENABLED`           | `false`                    | KG 实体关联 ≥ 100 条且需要长尾召回 / 多跳一致性          | +50ms P95（含 120ms 超时）                       |
+| **F2 Reflexion 反思召回** | `MEMORY_REFLECTION_ENABLED`         | `false`                    | 用户/Agent 提供 `irrelevant`/`harmful` 反馈较多          | LLM 调用按 dedup + 上限计费，默认 ≤10 次/用户·日 |
+| **F3 Memify 巩固管线**    | `memory.consolidation.legacy=false` | `false`（即开启 Pipeline） | 默认即用，重构无新功能；自定义 step 时配置 `steps:` 列表 | 与 Phase 4 baseline 一致；新增 step 才有增量成本 |
+| **F4 Presidio PII**       | `memory.pii.engine=presidio`        | `regex`                    | 生产环境合规要求（GDPR / NIST 800-122）                  | 冷启 +200MB（spaCy 模型）；运行时 P99 < 5ms      |
 
 ### Phase 6 新增开关
 
-| 开关 | 环境变量 | 默认 | 说明 |
-|------|----------|------|------|
-| Rocchio 反馈闭环 | `NE_MEMORY_RELEVANCE__ENABLED` | `false` | 启用后累积反馈影响搜索排序 |
-| 健康检查 | `NE_MEMORY_OBSERVABILITY__HEALTH_ENABLED` | `true` | `/memory/health` 端点 |
-| 聚合指标 | `NE_MEMORY_OBSERVABILITY__METRICS_ENABLED` | `true` | `/memory/metrics` 端点（需 admin） |
+| 开关             | 环境变量                                   | 默认    | 说明                               |
+| ---------------- | ------------------------------------------ | ------- | ---------------------------------- |
+| Rocchio 反馈闭环 | `NE_MEMORY_RELEVANCE__ENABLED`             | `false` | 启用后累积反馈影响搜索排序         |
+| 健康检查         | `NE_MEMORY_OBSERVABILITY__HEALTH_ENABLED`  | `true`  | `/memory/health` 端点              |
+| 聚合指标         | `NE_MEMORY_OBSERVABILITY__METRICS_ENABLED` | `true`  | `/memory/metrics` 端点（需 admin） |
 
 ### 启用示例
 
@@ -83,12 +83,12 @@ cd apps/negentropy && uv sync --extra pii-presidio
 
 ### 一键回退
 
-| 特性 | 回退方式 |
-|---|---|
-| F1 | `MEMORY_HIPPORAG_ENABLED=false`（即时生效） |
-| F2 | `MEMORY_REFLECTION_ENABLED=false`（已有反思记忆保留，但不再生成新的） |
-| F3 | `memory.consolidation.legacy=true`（回到 Phase 4 硬编码两步） |
-| F4 | `memory.pii.engine=regex`（已有 `pii_spans` 字段保留，gatekeeper 跳过） |
+| 特性 | 回退方式                                                                |
+| ---- | ----------------------------------------------------------------------- |
+| F1   | `MEMORY_HIPPORAG_ENABLED=false`（即时生效）                             |
+| F2   | `MEMORY_REFLECTION_ENABLED=false`（已有反思记忆保留，但不再生成新的）   |
+| F3   | `memory.consolidation.legacy=true`（回到 Phase 4 硬编码两步）           |
+| F4   | `memory.pii.engine=regex`（已有 `pii_spans` 字段保留，gatekeeper 跳过） |
 
 > 4 个特性的故障排除见 [`memory-troubleshooting.md`](./memory-troubleshooting.md) §11~§14。
 
@@ -96,14 +96,14 @@ cd apps/negentropy && uv sync --extra pii-presidio
 
 ## 3. UI 导航（6 个页面）
 
-| 页面 | 路径 | 核心功能 |
-|---|---|---|
-| Dashboard | `/memory` | 8 项指标概览（含 Avg Importance / High Importance）+ Retrieval Metrics 折叠面板 |
-| Timeline | `/memory/timeline` | 按时间分组的卡片，含双评分条（retention + importance）+ 记忆类型标识 + 用户筛选 + 搜索 |
-| Facts | `/memory/facts` | 结构化事实表，支持 History 版本链查看 + 搜索 |
-| Audit | `/memory/audit` | 审计历史 + retain/delete/anonymize 决策 |
-| Conflicts | `/memory/conflicts` | 事实冲突检视与手动解决（pending → supersede/keep_old/keep_new/merge）|
-| Automation | `/memory/automation` | pg_cron 任务管理（需 admin 角色）|
+| 页面       | 路径                 | 核心功能                                                                               |
+| ---------- | -------------------- | -------------------------------------------------------------------------------------- |
+| Dashboard  | `/memory`            | 8 项指标概览（含 Avg Importance / High Importance）+ Retrieval Metrics 折叠面板        |
+| Timeline   | `/memory/timeline`   | 按时间分组的卡片，含双评分条（retention + importance）+ 记忆类型标识 + 用户筛选 + 搜索 |
+| Facts      | `/memory/facts`      | 结构化事实表，支持 History 版本链查看 + 搜索                                           |
+| Audit      | `/memory/audit`      | 审计历史 + retain/delete/anonymize 决策                                                |
+| Conflicts  | `/memory/conflicts`  | 事实冲突检视与手动解决（pending → supersede/keep_old/keep_new/merge）                  |
+| Automation | `/memory/automation` | pg_cron 任务管理（需 admin 角色）                                                      |
 
 > 所有页面源自 `apps/negentropy-ui/app/memory/`。
 > Activity（平台 Toast 通知历史）已迁移至 Home / Dashboard 底部，作为 localStorage 日志面板与后端 Execution Timeline 正交并列；详见 [`/dashboard`](../../../apps/negentropy-ui/app/(home)/dashboard/page.tsx)。
@@ -136,20 +136,20 @@ cd apps/negentropy && uv sync --extra pii-presidio
 
 ## 4. 常见操作清单
 
-| 任务 | 入口 | 文档 |
-|---|---|---|
-| 查看系统指标 | UI Dashboard 页 | 本文档 §3 |
-| 查看检索质量 | UI Dashboard → Retrieval Metrics 面板 | 本文档 §3 |
-| 浏览用户记忆 | UI Timeline 页 | 本文档 §3 |
-| 搜索记忆 | UI Timeline / Facts 搜索框 | 本文档 §3 |
-| 查看事实版本链 | UI Facts → History 按钮 | 本文档 §3 |
-| 解决事实冲突 | UI Conflicts 页 | 本文档 §3 |
-| 程序化写入记忆 | API `/api/memory/self-edit/write` | [`memory-integration.md`](./memory-integration.md#self-edit-tools) |
-| Agent 工具调用 | `memory_search` / `memory_write` 等 5 工具 | [`memory-integration.md`](./memory-integration.md#agent-tools) |
-| 配置定时清理 | UI Automation tab | [`memory-automation.md`](./memory-automation.md) |
-| 维护 Core Block | API `/api/memory/core-blocks` 或 Agent 工具 | [`memory-integration.md`](./memory-integration.md#core-block) |
-| 查询低 retention 原因 | UI Timeline → 卡片详情 | [`memory-troubleshooting.md`](./memory-troubleshooting.md) |
-| 跑评测基线 | `pytest -m eval` | [`memory-integration.md`](./memory-integration.md#eval) |
+| 任务                  | 入口                                        | 文档                                                               |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| 查看系统指标          | UI Dashboard 页                             | 本文档 §3                                                          |
+| 查看检索质量          | UI Dashboard → Retrieval Metrics 面板       | 本文档 §3                                                          |
+| 浏览用户记忆          | UI Timeline 页                              | 本文档 §3                                                          |
+| 搜索记忆              | UI Timeline / Facts 搜索框                  | 本文档 §3                                                          |
+| 查看事实版本链        | UI Facts → History 按钮                     | 本文档 §3                                                          |
+| 解决事实冲突          | UI Conflicts 页                             | 本文档 §3                                                          |
+| 程序化写入记忆        | API `/api/memory/self-edit/write`           | [`memory-integration.md`](./memory-integration.md#self-edit-tools) |
+| Agent 工具调用        | `memory_search` / `memory_write` 等 5 工具  | [`memory-integration.md`](./memory-integration.md#agent-tools)     |
+| 配置定时清理          | UI Automation tab                           | [`memory-automation.md`](./memory-automation.md)                   |
+| 维护 Core Block       | API `/api/memory/core-blocks` 或 Agent 工具 | [`memory-integration.md`](./memory-integration.md#core-block)      |
+| 查询低 retention 原因 | UI Timeline → 卡片详情                      | [`memory-troubleshooting.md`](./memory-troubleshooting.md)         |
+| 跑评测基线            | `pytest -m eval`                            | [`memory-integration.md`](./memory-integration.md#eval)            |
 
 ---
 

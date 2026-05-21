@@ -22,42 +22,42 @@ negentropy 自 Phase 1 起接入 Langfuse + LiteLLM `otel` callback；Phase 3 P3
 
 ## 2. 实现位置
 
-| 组件 | 路径 | 角色 |
-|------|------|------|
-| Bootstrap | [`apps/negentropy/src/negentropy/engine/bootstrap.py`](../../../apps/negentropy/src/negentropy/engine/bootstrap.py) | 注入 OTLP endpoint + Basic Auth + 注册 LiteLLM callback |
-| 自定义 Callback | [`apps/negentropy/src/negentropy/instrumentation.py`](../../../apps/negentropy/src/negentropy/instrumentation.py) `LiteLLMLoggingCallback` | 结构化日志 + cost 注入 |
-| Semconv 写入 | [`instrumentation.py`](../../../apps/negentropy/src/negentropy/instrumentation.py) `_inject_genai_semconv_attrs` | 补齐 OTel GenAI 1.28+ 标准 attribute（P3-3） |
-| Span Patch | [`instrumentation.py`](../../../apps/negentropy/src/negentropy/instrumentation.py) `patch_litellm_otel_cost` | 在 LiteLLM 内置 OpenTelemetry callback 之后追加 cost + semconv |
+| 组件            | 路径                                                                                                                                       | 角色                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Bootstrap       | [`apps/negentropy/src/negentropy/engine/bootstrap.py`](../../../apps/negentropy/src/negentropy/engine/bootstrap.py)                        | 注入 OTLP endpoint + Basic Auth + 注册 LiteLLM callback        |
+| 自定义 Callback | [`apps/negentropy/src/negentropy/instrumentation.py`](../../../apps/negentropy/src/negentropy/instrumentation.py) `LiteLLMLoggingCallback` | 结构化日志 + cost 注入                                         |
+| Semconv 写入    | [`instrumentation.py`](../../../apps/negentropy/src/negentropy/instrumentation.py) `_inject_genai_semconv_attrs`                           | 补齐 OTel GenAI 1.28+ 标准 attribute（P3-3）                   |
+| Span Patch      | [`instrumentation.py`](../../../apps/negentropy/src/negentropy/instrumentation.py) `patch_litellm_otel_cost`                               | 在 LiteLLM 内置 OpenTelemetry callback 之后追加 cost + semconv |
 
 ## 3. 已写入的 GenAI 标准属性
 
-| Attribute | 来源 | 示例值 | 说明 |
-|---|---|---|---|
-| `gen_ai.system` | 模型名前缀映射 | `anthropic`, `openai`, `gemini`, `vertex_ai`, `mistral`, `cohere`, `meta`, `ollama`, `groq`, `deepseek` | 未识别 vendor 时省略，避免污染未知值 |
-| `gen_ai.operation.name` | 固定 `chat` | `chat` | TODO（Phase 3+）：区分 `embedding` / `tool_use` |
-| `gen_ai.request.model` | `kwargs.model` 经 `canonicalize_model_name` 归一 | `claude-opus-4-7` | 与 Langfuse 模型聚合一致 |
-| `gen_ai.response.model` | `response_obj.model` 归一 | `claude-opus-4-7` | LiteLLM 重写后实际模型，可与 request 不同 |
-| `gen_ai.request.temperature` / `top_p` / `max_tokens` / `stop_sequences` | `kwargs[k]` | `0.7` / `0.95` / `4096` | 仅当存在时上报 |
-| `gen_ai.usage.input_tokens` | `response.usage.prompt_tokens` | `120` | semconv 1.28+ 用 `input_tokens`（非 prompt_tokens） |
-| `gen_ai.usage.output_tokens` | `response.usage.completion_tokens` | `360` | 同上 |
-| `gen_ai.usage.cost` | LiteLLM cost / 在线价目 / 本地 override | `0.001234` | `langfuse.observation.cost_details` 同步对齐 |
-| `gen_ai.response.id` | `response_obj.id` | `msg_01abc...` | 用于 Langfuse provider trace 反查 |
-| `gen_ai.response.finish_reasons` | `response.choices[].finish_reason` 数组 | `["stop"]` / `["length"]` / `["tool_use"]` | semconv 用列表 |
+| Attribute                                                                | 来源                                             | 示例值                                                                                                  | 说明                                                |
+| ------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `gen_ai.system`                                                          | 模型名前缀映射                                   | `anthropic`, `openai`, `gemini`, `vertex_ai`, `mistral`, `cohere`, `meta`, `ollama`, `groq`, `deepseek` | 未识别 vendor 时省略，避免污染未知值                |
+| `gen_ai.operation.name`                                                  | 固定 `chat`                                      | `chat`                                                                                                  | TODO（Phase 3+）：区分 `embedding` / `tool_use`     |
+| `gen_ai.request.model`                                                   | `kwargs.model` 经 `canonicalize_model_name` 归一 | `claude-opus-4-7`                                                                                       | 与 Langfuse 模型聚合一致                            |
+| `gen_ai.response.model`                                                  | `response_obj.model` 归一                        | `claude-opus-4-7`                                                                                       | LiteLLM 重写后实际模型，可与 request 不同           |
+| `gen_ai.request.temperature` / `top_p` / `max_tokens` / `stop_sequences` | `kwargs[k]`                                      | `0.7` / `0.95` / `4096`                                                                                 | 仅当存在时上报                                      |
+| `gen_ai.usage.input_tokens`                                              | `response.usage.prompt_tokens`                   | `120`                                                                                                   | semconv 1.28+ 用 `input_tokens`（非 prompt_tokens） |
+| `gen_ai.usage.output_tokens`                                             | `response.usage.completion_tokens`               | `360`                                                                                                   | 同上                                                |
+| `gen_ai.usage.cost`                                                      | LiteLLM cost / 在线价目 / 本地 override          | `0.001234`                                                                                              | `langfuse.observation.cost_details` 同步对齐        |
+| `gen_ai.response.id`                                                     | `response_obj.id`                                | `msg_01abc...`                                                                                          | 用于 Langfuse provider trace 反查                   |
+| `gen_ai.response.finish_reasons`                                         | `response.choices[].finish_reason` 数组          | `["stop"]` / `["length"]` / `["tool_use"]`                                                              | semconv 用列表                                      |
 
 ## 4. 模型 → vendor 映射表（_detect_genai_system）
 
-| 前缀（不区分大小写） | system 值 |
-|---|---|
-| `openai/`, `gpt-`, `o1-`, `o3-` | `openai` |
-| `anthropic/`, `claude-` | `anthropic` |
-| `gemini/`, `gemini-` | `gemini` |
-| `vertex_ai/` | `vertex_ai` |
-| `mistral/` | `mistral` |
-| `cohere/` | `cohere` |
-| `llama-` | `meta` |
-| `ollama/` | `ollama` |
-| `groq/` | `groq` |
-| `deepseek/` | `deepseek` |
+| 前缀（不区分大小写）            | system 值   |
+| ------------------------------- | ----------- |
+| `openai/`, `gpt-`, `o1-`, `o3-` | `openai`    |
+| `anthropic/`, `claude-`         | `anthropic` |
+| `gemini/`, `gemini-`            | `gemini`    |
+| `vertex_ai/`                    | `vertex_ai` |
+| `mistral/`                      | `mistral`   |
+| `cohere/`                       | `cohere`    |
+| `llama-`                        | `meta`      |
+| `ollama/`                       | `ollama`    |
+| `groq/`                         | `groq`      |
+| `deepseek/`                     | `deepseek`  |
 
 未匹配者 `system` 字段省略（避免写错值）；扩展新 vendor 时同步更新映射表与单测。
 
@@ -74,13 +74,13 @@ negentropy 自 Phase 1 起接入 Langfuse + LiteLLM `otel` callback；Phase 3 P3
 
 ## 7. 后续 Phase 工作
 
-| 项目 | 期望落点 |
-|---|---|
-| `gen_ai.operation.name` 区分 chat / embedding / tool_use | 引入 LiteLLM `kwargs.litellm_call_type` 或显式分支 |
-| Embedding 调用的 input 文本数 | `gen_ai.usage.input_tokens` 同字段，需在 embedding callback 也注入 |
-| Streaming 场景的 finish_reasons 聚合 | 跟踪 stream 终态而非首 chunk |
-| OTel GenAI Events（`gen_ai.user.message`、`gen_ai.assistant.message`）| 替代当前 `_emit_semantic_logs` 的私有字段，等 LiteLLM 默认实现稳定后切换 |
-| Metrics（`gen_ai.client.token.usage`、`gen_ai.server.request.duration`）| 引入支持 metrics 的后端（SigNoz / Phoenix）后再启用，参见 `bootstrap.py` `_disable_adk_otel_logs_metrics_exporters` 注释 |
+| 项目                                                                     | 期望落点                                                                                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `gen_ai.operation.name` 区分 chat / embedding / tool_use                 | 引入 LiteLLM `kwargs.litellm_call_type` 或显式分支                                                                       |
+| Embedding 调用的 input 文本数                                            | `gen_ai.usage.input_tokens` 同字段，需在 embedding callback 也注入                                                       |
+| Streaming 场景的 finish_reasons 聚合                                     | 跟踪 stream 终态而非首 chunk                                                                                             |
+| OTel GenAI Events（`gen_ai.user.message`、`gen_ai.assistant.message`）   | 替代当前 `_emit_semantic_logs` 的私有字段，等 LiteLLM 默认实现稳定后切换                                                 |
+| Metrics（`gen_ai.client.token.usage`、`gen_ai.server.request.duration`） | 引入支持 metrics 的后端（SigNoz / Phoenix）后再启用，参见 `bootstrap.py` `_disable_adk_otel_logs_metrics_exporters` 注释 |
 
 ## 参考文献
 

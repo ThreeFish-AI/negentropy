@@ -6,13 +6,13 @@
 
 ## 1. 自动化任务清单
 
-| 任务 Key | 频率（默认）| 作用 | 实现入口 |
-|----|----|----|----|
-| `cleanup_low_value_memories` | 每天 03:00 | 清理 `retention_score < 0.05` 且 `access_count = 0` 的记忆 | `apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py` |
-| `trigger_consolidation` | 每小时 | 巩固未处理 thread | `engine/schedulers/async_scheduler.py` |
-| `reweight_relevance` | 每 6 小时 | Rocchio 相关性重加权 | `engine/relevance/rocchio_reweighter.py` |
-| `compute_importance` | 每 6 小时 | 批量更新 `importance_score`（ACT-R）| `memory_automation_service.py` |
-| `proactive_recall_warmup` | 每天 04:00 | 主动召回缓存预热 | `proactive_recall_service.py` |
+| 任务 Key                     | 频率（默认） | 作用                                                       | 实现入口                                                                               |
+| ---------------------------- | ------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `cleanup_low_value_memories` | 每天 03:00   | 清理 `retention_score < 0.05` 且 `access_count = 0` 的记忆 | `apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py` |
+| `trigger_consolidation`      | 每小时       | 巩固未处理 thread                                          | `engine/schedulers/async_scheduler.py`                                                 |
+| `reweight_relevance`         | 每 6 小时    | Rocchio 相关性重加权                                       | `engine/relevance/rocchio_reweighter.py`                                               |
+| `compute_importance`         | 每 6 小时    | 批量更新 `importance_score`（ACT-R）                       | `memory_automation_service.py`                                                         |
+| `proactive_recall_warmup`    | 每天 04:00   | 主动召回缓存预热                                           | `proactive_recall_service.py`                                                          |
 
 > 这些任务通过 `pg_cron`（推荐）或 `AsyncScheduler` 应用层调度执行；状态可在 UI Automation 页面查看。
 
@@ -141,9 +141,9 @@ curl -X POST -H "Content-Type: application/json" \
 
 定期聚合用户反馈，调整记忆检索权重。
 
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| `reweight_relevance.enabled` | `false` | 是否启用 |
+| 配置项                        | 默认值        | 说明          |
+| ----------------------------- | ------------- | ------------- |
+| `reweight_relevance.enabled`  | `false`       | 是否启用      |
 | `reweight_relevance.schedule` | `0 */6 * * *` | 每 6 小时执行 |
 
 **启用方式：**

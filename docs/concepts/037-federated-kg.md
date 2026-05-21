@@ -85,11 +85,11 @@ graph LR
 
 ### 表结构（Migration 0034）
 
-| 表 | 角色 | 关键字段 |
-|----|------|----------|
-| `kg_entity_canonical` | 全局规范实体（按 `app_scope` 隔离） | `canonical_name_normalized` + `canonical_type` 唯一；`primary_embedding` HNSW；`is_under_review` / `is_stopword_like` 状态位 |
-| `kg_entity_alias` | Corpus-local 实体 → canonical 多对一映射 | `(canonical_id, local_entity_id, corpus_id, app_name, confidence, link_method)`；`UNIQUE(local_entity_id)` |
-| `kg_cross_corpus_bridge` | 跨 Corpus 显式桥接关系（可选物化） | `(canonical_source_id, canonical_target_id, bridge_type)` 唯一 |
+| 表                       | 角色                                     | 关键字段                                                                                                                     |
+| ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `kg_entity_canonical`    | 全局规范实体（按 `app_scope` 隔离）      | `canonical_name_normalized` + `canonical_type` 唯一；`primary_embedding` HNSW；`is_under_review` / `is_stopword_like` 状态位 |
+| `kg_entity_alias`        | Corpus-local 实体 → canonical 多对一映射 | `(canonical_id, local_entity_id, corpus_id, app_name, confidence, link_method)`；`UNIQUE(local_entity_id)`                   |
+| `kg_cross_corpus_bridge` | 跨 Corpus 显式桥接关系（可选物化）       | `(canonical_source_id, canonical_target_id, bridge_type)` 唯一                                                               |
 
 ### 权限红线（三层防御）
 
@@ -118,32 +118,32 @@ graph TD
 
 ### 关键参数
 
-| 配置 | 默认值 | 说明 |
-|------|--------|------|
-| `per_corpus_limit` | 20 | 单 Corpus seed 召回上限 |
-| `pool_cap` | 100 | rerank 前总池子上限 |
-| `graph_max_depth` | 2 | 图扩展跳数（HippoRAG 2 / PathRAG 经验） |
-| `graph_neighbors_per_hop` | 100 | 单跳实体扩展上限 |
-| `rrf_k` | 60 | RRF 平滑常数（业界默认） |
-| `timeout_seconds` | 12.0 | 整管线 P99 SLO |
-| `canonical_hub_degree_threshold` | 1000 | high-degree hub 跳过阈值（stopword-like 实体） |
+| 配置                             | 默认值 | 说明                                           |
+| -------------------------------- | ------ | ---------------------------------------------- |
+| `per_corpus_limit`               | 20     | 单 Corpus seed 召回上限                        |
+| `pool_cap`                       | 100    | rerank 前总池子上限                            |
+| `graph_max_depth`                | 2      | 图扩展跳数（HippoRAG 2 / PathRAG 经验）        |
+| `graph_neighbors_per_hop`        | 100    | 单跳实体扩展上限                               |
+| `rrf_k`                          | 60     | RRF 平滑常数（业界默认）                       |
+| `timeout_seconds`                | 12.0   | 整管线 P99 SLO                                 |
+| `canonical_hub_degree_threshold` | 1000   | high-degree hub 跳过阈值（stopword-like 实体） |
 
 ### 触发条件
 
-| 用户操作 | 触发 HybridPlanner？ | force_graph_mode？ |
-|---------|---------------------|-------------------|
-| 不 @ 任何 Corpus | 否（走 legacy 全 Corpus 聚合） | — |
-| @ 单 Corpus | 是（仅本 Corpus hybrid，无 graph） | False |
-| @ 多 Corpus | 是（多 Corpus + 可能触发 graph expansion） | False |
-| @graph + ≥1 Corpus | 是（强制启用 graph expansion） | True |
+| 用户操作           | 触发 HybridPlanner？                       | force_graph_mode？ |
+| ------------------ | ------------------------------------------ | ------------------ |
+| 不 @ 任何 Corpus   | 否（走 legacy 全 Corpus 聚合）             | —                  |
+| @ 单 Corpus        | 是（仅本 Corpus hybrid，无 graph）         | False              |
+| @ 多 Corpus        | 是（多 Corpus + 可能触发 graph expansion） | False              |
+| @graph + ≥1 Corpus | 是（强制启用 graph expansion）             | True               |
 
 ## 5. 三工具协作
 
-| 工具 | 触发场景 | 互斥关系 |
-|------|---------|---------|
-| `search_knowledge_base`（升级版） | **默认入口**，所有 chunk 级问题；自动判定是否触发图扩展 | 与 graph_global 互斥 |
-| `search_knowledge_graph_global` | 全局摘要类问题（关键词：主题/概览/总体/核心） | 与 search_knowledge_base 互斥 |
-| `search_knowledge_graph_with_papers` | 论文级反查（agent-papers Corpus） | 独立 |
+| 工具                                 | 触发场景                                                | 互斥关系                      |
+| ------------------------------------ | ------------------------------------------------------- | ----------------------------- |
+| `search_knowledge_base`（升级版）    | **默认入口**，所有 chunk 级问题；自动判定是否触发图扩展 | 与 graph_global 互斥          |
+| `search_knowledge_graph_global`      | 全局摘要类问题（关键词：主题/概览/总体/核心）           | 与 search_knowledge_base 互斥 |
+| `search_knowledge_graph_with_papers` | 论文级反查（agent-papers Corpus）                       | 独立                          |
 
 Agent instruction 在 `apps/negentropy/src/negentropy/agents/faculties/perception.py:52` 明确规则。
 
@@ -160,53 +160,53 @@ LLM 在 *## 参考文献* 段落中，跨 Corpus 检索时**必须**在 `formatt
 
 Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 
-| 周次 | 范围 | 验收信号 |
-|------|------|---------|
-| Week 1 | 内部 dogfooding（`app_name="negentropy"` allowlist） | canonical 合并率 ≥ 40% auto_string |
-| Week 2 | 单 app 10% 用户（user_id hash） | 跨 Corpus 检索 ratio ≥ 15%；P99 ≤ SLO |
-| Week 3 | 50% → 100% | Click-through ≥ 0.6× 同 Corpus |
-| Week 4 | `enable_cross_corpus_kg=True` 默认开启 | 性能基准达标；review 队列 < 5% |
+| 周次   | 范围                                                 | 验收信号                              |
+| ------ | ---------------------------------------------------- | ------------------------------------- |
+| Week 1 | 内部 dogfooding（`app_name="negentropy"` allowlist） | canonical 合并率 ≥ 40% auto_string    |
+| Week 2 | 单 app 10% 用户（user_id hash）                      | 跨 Corpus 检索 ratio ≥ 15%；P99 ≤ SLO |
+| Week 3 | 50% → 100%                                           | Click-through ≥ 0.6× 同 Corpus        |
+| Week 4 | `enable_cross_corpus_kg=True` 默认开启               | 性能基准达标；review 队列 < 5%        |
 
 回退路径：feature flag off → `_legacy_search_knowledge_base` 原样保留（永不删）；HybridPlanner 内部任何 Stage 抛异常 → 降级回 legacy，打 `planner_fallback` metric。
 
 ## 8. 可观测性指标
 
-| Metric | 目标 |
-|--------|------|
+| Metric                                               | 目标                           |
+| ---------------------------------------------------- | ------------------------------ |
 | `canonical_linker.merge_decision` (link_method 分布) | auto_string ≥ 40%，review ≤ 5% |
-| `canonical_linker.conflict_queue_depth` | < 1000 |
-| `retrieval.cross_corpus_expansion_ratio` | ≥ 15%（Home Studio 多 Corpus） |
-| `retrieval.cross_corpus_path_length` | P50 1.0-1.3；P99 ≤ 2.0 |
-| `retrieval.cross_corpus_clickthrough` | ≥ 0.6× 同 Corpus |
-| `canonical_linker.build_lag_seconds` | P99 ≤ 60s |
-| `planner_fallback` | < 1% |
+| `canonical_linker.conflict_queue_depth`              | < 1000                         |
+| `retrieval.cross_corpus_expansion_ratio`             | ≥ 15%（Home Studio 多 Corpus） |
+| `retrieval.cross_corpus_path_length`                 | P50 1.0-1.3；P99 ≤ 2.0         |
+| `retrieval.cross_corpus_clickthrough`                | ≥ 0.6× 同 Corpus               |
+| `canonical_linker.build_lag_seconds`                 | P99 ≤ 60s                      |
+| `planner_fallback`                                   | < 1%                           |
 
 ## 9. 关键风险与权衡
 
-| # | 风险 | 缓解 |
-|---|------|------|
-| R1 | canonical 合并 FP 污染检索 | 双阈值（auto 0.88 / review 0.75-0.88）+ manual override |
-| R2 | 跨 Corpus 检索 P99 延迟膨胀 | HNSW + 2-hop cap + LRU 缓存 + Deep 档异步流式 |
-| R3 | canonical 成为权限旁路 | 三层防御（入口 required 参数 + event hook + app_scope 隔离） |
-| R4 | 用户预期错位（@ 两 Corpus 看到第三 Corpus） | UI bridges 折叠 + 文案明示「来自跨 Corpus 关联实体扩展」+ `--strict-scope` 开关 |
-| R5 | embedding 模型升级时 canonical 失效 | 双写迁移期 4 周 + background scrub job |
+| #   | 风险                                        | 缓解                                                                            |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------- |
+| R1  | canonical 合并 FP 污染检索                  | 双阈值（auto 0.88 / review 0.75-0.88）+ manual override                         |
+| R2  | 跨 Corpus 检索 P99 延迟膨胀                 | HNSW + 2-hop cap + LRU 缓存 + Deep 档异步流式                                   |
+| R3  | canonical 成为权限旁路                      | 三层防御（入口 required 参数 + event hook + app_scope 隔离）                    |
+| R4  | 用户预期错位（@ 两 Corpus 看到第三 Corpus） | UI bridges 折叠 + 文案明示「来自跨 Corpus 关联实体扩展」+ `--strict-scope` 开关 |
+| R5  | embedding 模型升级时 canonical 失效         | 双写迁移期 4 周 + background scrub job                                          |
 
 ## 10. 关联文件 SSOT
 
-| 关注点 | 文件 |
-|--------|------|
-| Migration | `apps/negentropy/src/negentropy/db/migrations/versions/0034_kg_federated_canonical.py` |
-| ORM 模型 + Event Hook | `apps/negentropy/src/negentropy/models/perception.py`（末尾）|
-| Canonical Linker | `apps/negentropy/src/negentropy/knowledge/graph/canonical_linker.py` |
-| HybridPlanner | `apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py` |
-| 检索工具改造 | `apps/negentropy/src/negentropy/agents/tools/perception.py`（`search_knowledge_base`, `_planner_search_knowledge_base`, `search_knowledge_graph_global`）|
-| Agent Instruction | `apps/negentropy/src/negentropy/agents/faculties/perception.py` |
-| 权限注入入口 | `apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py` |
-| Feature Flag | `apps/negentropy/src/negentropy/config/knowledge.py`（`KnowledgeFeatureFlags`）|
-| Mention 类型扩展 | `apps/negentropy-ui/types/mention.ts` |
-| 派生 forwardedProps | `apps/negentropy-ui/utils/mention-parser.ts`（`graph_mode_corpus_ids`）|
-| BFF state_delta | `apps/negentropy-ui/app/api/agui/_state-delta.ts` |
-| MentionPopover 第四 Tab | `apps/negentropy-ui/components/ui/MentionPopover.tsx` |
+| 关注点                  | 文件                                                                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration               | `apps/negentropy/src/negentropy/db/migrations/versions/0034_kg_federated_canonical.py`                                                                    |
+| ORM 模型 + Event Hook   | `apps/negentropy/src/negentropy/models/perception.py`（末尾）                                                                                             |
+| Canonical Linker        | `apps/negentropy/src/negentropy/knowledge/graph/canonical_linker.py`                                                                                      |
+| HybridPlanner           | `apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py`                                                                                           |
+| 检索工具改造            | `apps/negentropy/src/negentropy/agents/tools/perception.py`（`search_knowledge_base`, `_planner_search_knowledge_base`, `search_knowledge_graph_global`） |
+| Agent Instruction       | `apps/negentropy/src/negentropy/agents/faculties/perception.py`                                                                                           |
+| 权限注入入口            | `apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py`                                                                                    |
+| Feature Flag            | `apps/negentropy/src/negentropy/config/knowledge.py`（`KnowledgeFeatureFlags`）                                                                           |
+| Mention 类型扩展        | `apps/negentropy-ui/types/mention.ts`                                                                                                                     |
+| 派生 forwardedProps     | `apps/negentropy-ui/utils/mention-parser.ts`（`graph_mode_corpus_ids`）                                                                                   |
+| BFF state_delta         | `apps/negentropy-ui/app/api/agui/_state-delta.ts`                                                                                                         |
+| MentionPopover 第四 Tab | `apps/negentropy-ui/components/ui/MentionPopover.tsx`                                                                                                     |
 
 ## 11. 浏览器实机验证清单（P0 必跑）
 

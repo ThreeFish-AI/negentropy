@@ -56,26 +56,26 @@ tags:
 
 **权威源文件索引**：
 
-| 职责域 | 文件路径 | 说明 |
-| :-- | :-- | :-- |
-| ORM 模型 | [`models/internalization.py`](../../../../apps/negentropy/src/negentropy/models/internalization.py) | Memory, Fact, MemoryAutomationConfig, MemoryAuditLog |
-| 记忆存储 | [`engine/adapters/postgres/memory_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) | PostgresMemoryService — 混合检索 + 访问记录 |
-| 事实存储 | [`engine/adapters/postgres/fact_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py) | FactService — Fact CRUD + upsert |
-| 记忆治理 | [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py) | MemoryGovernanceService — 遗忘曲线 + 审计决策 |
-| 自动化服务 | [`engine/adapters/postgres/memory_automation_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py) | MemoryAutomationService — 配置持久化 + 函数 reconcile + pg_cron |
-| 服务工厂 | [`engine/factories/memory.py`](../../../../apps/negentropy/src/negentropy/engine/factories/memory.py) | Strategy + Factory — inmemory / postgres / vertexai |
-| API 路由 | [`engine/api.py`](../../../../apps/negentropy/src/negentropy/engine/api.py) | Memory REST API + Retrieval Feedback API |
-| 摘要服务 | [`engine/adapters/postgres/summary_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py) | SummaryService — 摘要 CRUD + upsert |
-| 检索追踪 | [`engine/adapters/postgres/retrieval_tracker.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py) | RetrievalTracker — 检索效果反馈闭环 |
-| 上下文组装 | [`engine/adapters/postgres/context_assembler.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) | ContextAssembler — Query-Aware 上下文注入 + Token 预算 |
-| LLM 事实提取 | [`engine/consolidation/llm_fact_extractor.py`](../../../../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py) | LLMFactExtractor — LLM 结构化提取 + Pattern 降级 |
-| 记忆摘要 | [`engine/consolidation/memory_summarizer.py`](../../../../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py) | MemorySummarizer — 用户画像摘要生成 + TTL 缓存 |
-| 共享工具 | [`engine/utils/model_config.py`](../../../../apps/negentropy/src/negentropy/engine/utils/model_config.py) | resolve_model_config — 统一模型配置解析 |
-| Token 计数 | [`engine/utils/token_counter.py`](../../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py) | TokenCounter — tiktoken BPE 精确计数 |
-| 冲突解决 | [`engine/governance/conflict_resolver.py`](../../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py) | ConflictResolver — AGM 信念修正 + 三阶段检测 |
-| 主动召回 | [`engine/adapters/postgres/proactive_recall_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py) | ProactiveRecallService — 复合评分预加载 + TTL 缓存 |
-| 记忆关联 | [`engine/adapters/postgres/association_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py) | AssociationService — 自动链接 + 多跳扩展 |
-| DDL 原型 | [`docs/reference/cognizes/engine/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) | 仿生记忆 DDL 草案（历史参考） |
+| 职责域       | 文件路径                                                                                                                                                    | 说明                                                            |
+| :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| ORM 模型     | [`models/internalization.py`](../../../../apps/negentropy/src/negentropy/models/internalization.py)                                                         | Memory, Fact, MemoryAutomationConfig, MemoryAuditLog            |
+| 记忆存储     | [`engine/adapters/postgres/memory_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)                       | PostgresMemoryService — 混合检索 + 访问记录                     |
+| 事实存储     | [`engine/adapters/postgres/fact_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py)                           | FactService — Fact CRUD + upsert                                |
+| 记忆治理     | [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py)                                                     | MemoryGovernanceService — 遗忘曲线 + 审计决策                   |
+| 自动化服务   | [`engine/adapters/postgres/memory_automation_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py) | MemoryAutomationService — 配置持久化 + 函数 reconcile + pg_cron |
+| 服务工厂     | [`engine/factories/memory.py`](../../../../apps/negentropy/src/negentropy/engine/factories/memory.py)                                                       | Strategy + Factory — inmemory / postgres / vertexai             |
+| API 路由     | [`engine/api.py`](../../../../apps/negentropy/src/negentropy/engine/api.py)                                                                                 | Memory REST API + Retrieval Feedback API                        |
+| 摘要服务     | [`engine/adapters/postgres/summary_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py)                     | SummaryService — 摘要 CRUD + upsert                             |
+| 检索追踪     | [`engine/adapters/postgres/retrieval_tracker.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py)                 | RetrievalTracker — 检索效果反馈闭环                             |
+| 上下文组装   | [`engine/adapters/postgres/context_assembler.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py)                 | ContextAssembler — Query-Aware 上下文注入 + Token 预算          |
+| LLM 事实提取 | [`engine/consolidation/llm_fact_extractor.py`](../../../../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py)                       | LLMFactExtractor — LLM 结构化提取 + Pattern 降级                |
+| 记忆摘要     | [`engine/consolidation/memory_summarizer.py`](../../../../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py)                         | MemorySummarizer — 用户画像摘要生成 + TTL 缓存                  |
+| 共享工具     | [`engine/utils/model_config.py`](../../../../apps/negentropy/src/negentropy/engine/utils/model_config.py)                                                   | resolve_model_config — 统一模型配置解析                         |
+| Token 计数   | [`engine/utils/token_counter.py`](../../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py)                                                 | TokenCounter — tiktoken BPE 精确计数                            |
+| 冲突解决     | [`engine/governance/conflict_resolver.py`](../../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)                               | ConflictResolver — AGM 信念修正 + 三阶段检测                    |
+| 主动召回     | [`engine/adapters/postgres/proactive_recall_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)   | ProactiveRecallService — 复合评分预加载 + TTL 缓存              |
+| 记忆关联     | [`engine/adapters/postgres/association_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)             | AssociationService — 自动链接 + 多跳扩展                        |
+| DDL 原型     | [`docs/reference/cognizes/engine/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)                                                           | 仿生记忆 DDL 草案（历史参考）                                   |
 
 ---
 
@@ -95,13 +95,13 @@ Negentropy（熵减引擎）以**「一核五翼」架构**<sup>[[1]](#ref1)</su
 
 Memory 和 Knowledge 是 Negentropy 中两个正交的认知子系统，各有独立的生命周期和治理模型。详细的职责拆分以 [`035-the-knowledge-base.md`](035-the-knowledge-base.md) 为权威定义，此处仅做摘要：
 
-| 维度 | Knowledge Base（感知系部） | User Memory（内化系部） |
-| :-- | :-- | :-- |
-| 性质 | 静态文档 | 动态记忆 |
-| 归属 | 共享（按 Corpus） | 个人（按 User） |
-| 生命周期 | 持久存在 | 遗忘曲线衰减 |
-| 治理 | 版本控制 | 审计（Retain / Delete / Anonymize） |
-| 检索 | 混合检索（Semantic + BM25 + RRF） | 语义 + 时间衰减 |
+| 维度     | Knowledge Base（感知系部）        | User Memory（内化系部）             |
+| :------- | :-------------------------------- | :---------------------------------- |
+| 性质     | 静态文档                          | 动态记忆                            |
+| 归属     | 共享（按 Corpus）                 | 个人（按 User）                     |
+| 生命周期 | 持久存在                          | 遗忘曲线衰减                        |
+| 治理     | 版本控制                          | 审计（Retain / Delete / Anonymize） |
+| 检索     | 混合检索（Semantic + BM25 + RRF） | 语义 + 时间衰减                     |
 
 ### 1.3 设计原则
 
@@ -165,12 +165,12 @@ flowchart LR
 
 将心理学分类法具体映射到 Negentropy 的 4 种记忆存储：
 
-| 心理学类型 | 学术分类 (功能)<sup>[[3]](#ref3)</sup> | Negentropy 实现 | 存储表 | 关键字段 |
-| :-- | :-- | :-- | :-- | :-- |
-| 情景记忆 (Episodic) | Experiential (Case-based) | `Memory` ORM | `memories` | content + embedding(1536d) + retention_score |
-| 语义记忆 (Semantic) | Factual | `Fact` ORM | `facts` | key-value(JSONB) + confidence + validity |
-| 程序性记忆 (Procedural) | Experiential (Skill-based) | `Skill` ORM | `skills` | versioned prompt_template + config_schema |
-| 工作记忆 (Working) | Working | `get_context_window()` | SQL 函数 | token budget 动态组装 |
+| 心理学类型              | 学术分类 (功能)<sup>[[3]](#ref3)</sup> | Negentropy 实现        | 存储表     | 关键字段                                     |
+| :---------------------- | :------------------------------------- | :--------------------- | :--------- | :------------------------------------------- |
+| 情景记忆 (Episodic)     | Experiential (Case-based)              | `Memory` ORM           | `memories` | content + embedding(1536d) + retention_score |
+| 语义记忆 (Semantic)     | Factual                                | `Fact` ORM             | `facts`    | key-value(JSONB) + confidence + validity     |
+| 程序性记忆 (Procedural) | Experiential (Skill-based)             | `Skill` ORM            | `skills`   | versioned prompt_template + config_schema    |
+| 工作记忆 (Working)      | Working                                | `get_context_window()` | SQL 函数   | token budget 动态组装                        |
 
 ### 2.3 记忆动态学：形成-演化-检索
 
@@ -211,16 +211,16 @@ stateDiagram-v2
 
 Negentropy 的 Memory 实现并非基于独立中间件，而是采用 **PostgreSQL 单栈深度集成**策略。以下为与主流 Agent Memory 框架的能力对标<sup>[[16]](#ref16)</sup><sup>[[17]](#ref17)</sup><sup>[[18]](#ref18)</sup><sup>[[19]](#ref19)</sup>：
 
-| 能力维度 | Negentropy (当前) | Mem0<sup>[[16]](#ref16)</sup> | Cognee<sup>[[17]](#ref17)</sup> | Zep/Graphiti<sup>[[18]](#ref18)</sup> | Letta<sup>[[19]](#ref19)</sup> |
-| :-- | :-- | :-- | :-- | :-- | :-- |
-| **向量检索** | pgvector HNSW | Qdrant | pgvector | Neo4j HNSW | ANN |
-| **知识图谱** | Apache AGE | Neo4j | NetworkX | Neo4j TKG | — |
-| **时序建模** | created_at / valid_until | — | — | Bi-temporal edges | — |
-| **遗忘机制** | Ebbinghaus decay | Relevance score | Memify prune | — | Self-edit |
-| **多智能体** | — | Org scope | — | — | Multi-agent blocks |
-| **工作记忆** | get_context_window | — | — | — | Virtual context |
-| **GDPR 合规** | Retain/Delete/Anonymize | — | Permissions | — | — |
-| **混合检索** | Semantic + BM25 + ilike | Vector + Graph | Vector + Graph | Semantic + BM25 + Graph | Vector |
+| 能力维度      | Negentropy (当前)        | Mem0<sup>[[16]](#ref16)</sup> | Cognee<sup>[[17]](#ref17)</sup> | Zep/Graphiti<sup>[[18]](#ref18)</sup> | Letta<sup>[[19]](#ref19)</sup> |
+| :------------ | :----------------------- | :---------------------------- | :------------------------------ | :------------------------------------ | :----------------------------- |
+| **向量检索**  | pgvector HNSW            | Qdrant                        | pgvector                        | Neo4j HNSW                            | ANN                            |
+| **知识图谱**  | Apache AGE               | Neo4j                         | NetworkX                        | Neo4j TKG                             | —                              |
+| **时序建模**  | created_at / valid_until | —                             | —                               | Bi-temporal edges                     | —                              |
+| **遗忘机制**  | Ebbinghaus decay         | Relevance score               | Memify prune                    | —                                     | Self-edit                      |
+| **多智能体**  | —                        | Org scope                     | —                               | —                                     | Multi-agent blocks             |
+| **工作记忆**  | get_context_window       | —                             | —                               | —                                     | Virtual context                |
+| **GDPR 合规** | Retain/Delete/Anonymize  | —                             | Permissions                     | —                                     | —                              |
+| **混合检索**  | Semantic + BM25 + ilike  | Vector + Graph                | Vector + Graph                  | Semantic + BM25 + Graph               | Vector                         |
 
 **Negentropy 的差异化定位**：不引入外部图数据库或独立记忆服务，而是在 PostgreSQL 16+ 上实现向量检索(pgvector)、图存储(Apache AGE)、全文检索(tsvector)、定时调度(pg_cron) 的统一方案，降低运维复杂度和数据一致性风险。
 
@@ -261,11 +261,11 @@ flowchart TD
 
 Claude Code 采用三层递进压缩策略管理有限上下文窗口：
 
-| 层级 | 触发条件 | API 调用 | 来源 |
-|:--|:--|:--|:--|
-| **MicroCompact** | 每轮静默 | 否 | `src/services/compact/microCompact.ts` |
-| **Session Memory Compact** | 自动触发 | 否（用已提取的 SM） | `src/services/compact/sessionMemoryCompact.ts` |
-| **传统 API 摘要** | 手动 / 回退 | 是 | `src/services/compact/compact.ts` |
+| 层级                       | 触发条件    | API 调用            | 来源                                           |
+| :------------------------- | :---------- | :------------------ | :--------------------------------------------- |
+| **MicroCompact**           | 每轮静默    | 否                  | `src/services/compact/microCompact.ts`         |
+| **Session Memory Compact** | 自动触发    | 否（用已提取的 SM） | `src/services/compact/sessionMemoryCompact.ts` |
+| **传统 API 摘要**          | 手动 / 回退 | 是                  | `src/services/compact/compact.ts`              |
 
 MicroCompact 维护一个白名单（`COMPACTABLE_TOOLS`），将超过时间窗口的工具输出替换为 `[Old tool result content cleared]`。Session Memory Compact 使用已提取的 Session Memory 作为压缩摘要，**无需额外 API 调用**。
 
@@ -275,12 +275,12 @@ MicroCompact 维护一个白名单（`COMPACTABLE_TOOLS`），将超过时间窗
 
 Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes.ts`）：
 
-| 类型 | 存储内容 | 关键约束 |
-|:--|:--|:--|
-| `user` | 用户角色、偏好、技术背景 | 只存无法从项目状态推导的信息 |
-| `feedback` | 工作方式纠正和确认 | 双通道：纠正 + 确认 |
-| `project` | 非代码可推导的项目上下文 | 含 Why + How to apply |
-| `reference` | 外部系统指针 | 轻量级指针，非数据副本 |
+| 类型        | 存储内容                 | 关键约束                     |
+| :---------- | :----------------------- | :--------------------------- |
+| `user`      | 用户角色、偏好、技术背景 | 只存无法从项目状态推导的信息 |
+| `feedback`  | 工作方式纠正和确认       | 双通道：纠正 + 确认          |
+| `project`   | 非代码可推导的项目上下文 | 含 Why + How to apply        |
+| `reference` | 外部系统指针             | 轻量级指针，非数据副本       |
 
 **漂移防御**（`TRUSTING_RECALL_SECTION`）：系统 Prompt 中设有"Before recommending from memory"——记忆命名了特定函数/文件/标记时，必须先验证其是否仍存在。
 
@@ -300,14 +300,14 @@ Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes
 
 ### 2.6 Negentropy 差异化定位总结
 
-| 维度 | Claude Code | mem0 / LangChain | Negentropy |
-|:--|:--|:--|:--|
-| **存储** | 纯文件系统 | 多后端（向量/图/内存） | PostgreSQL 单栈 |
-| **遗忘** | Prune 手动管理 | 无衰减 / 手动管理 | Ebbinghaus 仿生遗忘曲线 |
-| **治理** | — | — | GDPR 审计（Retain/Delete/Anonymize） |
-| **调度** | GrowthBook 远程配置 + PID 锁 | 应用层调度 | pg_cron + 应用层 AsyncScheduler 回退 |
-| **检索** | Sonnet 侧查询筛选 | 向量 / 图 / 混合 | 四级回退（Hybrid→Vector→BM25→ILIKE） |
-| **事实提取** | LLM extractMemories | LLM / 模式匹配 | 模式匹配（Phase 1）→ LLM 增强（P1） |
+| 维度         | Claude Code                  | mem0 / LangChain       | Negentropy                           |
+| :----------- | :--------------------------- | :--------------------- | :----------------------------------- |
+| **存储**     | 纯文件系统                   | 多后端（向量/图/内存） | PostgreSQL 单栈                      |
+| **遗忘**     | Prune 手动管理               | 无衰减 / 手动管理      | Ebbinghaus 仿生遗忘曲线              |
+| **治理**     | —                            | —                      | GDPR 审计（Retain/Delete/Anonymize） |
+| **调度**     | GrowthBook 远程配置 + PID 锁 | 应用层调度             | pg_cron + 应用层 AsyncScheduler 回退 |
+| **检索**     | Sonnet 侧查询筛选            | 向量 / 图 / 混合       | 四级回退（Hybrid→Vector→BM25→ILIKE） |
+| **事实提取** | LLM extractMemories          | LLM / 模式匹配         | 模式匹配（Phase 1）→ LLM 增强（P1）  |
 
 ---
 
@@ -468,26 +468,26 @@ erDiagram
 
 **索引策略**：
 
-| 表 | 索引类型 | 字段 | 用途 |
-| :-- | :-- | :-- | :-- |
-| memories | HNSW (m=16, ef=64) | embedding | 向量语义检索 |
-| memories | GIN | search_vector | BM25 全文检索 |
-| memories | B-tree 复合 | (user_id, app_name, created_at DESC) | 情景分块检索 |
-| memories | B-tree | retention_score DESC | 衰减排序 |
-| facts | GIN | value | JSONB 查询 |
-| facts | B-tree 部分 | (user_id, app_name) WHERE valid_until IS NULL | 有效期过滤 |
+| 表       | 索引类型           | 字段                                          | 用途          |
+| :------- | :----------------- | :-------------------------------------------- | :------------ |
+| memories | HNSW (m=16, ef=64) | embedding                                     | 向量语义检索  |
+| memories | GIN                | search_vector                                 | BM25 全文检索 |
+| memories | B-tree 复合        | (user_id, app_name, created_at DESC)          | 情景分块检索  |
+| memories | B-tree             | retention_score DESC                          | 衰减排序      |
+| facts    | GIN                | value                                         | JSONB 查询    |
+| facts    | B-tree 部分        | (user_id, app_name) WHERE valid_until IS NULL | 有效期过滤    |
 
 ### 3.3 服务分层架构
 
-| 层级 | 组件 | 职责 | 设计模式 |
-| :-- | :-- | :-- | :-- |
-| **Factory** | `engine/factories/memory.py` | 按配置创建服务实例 | Strategy + Factory<sup>[[5]](#ref5)</sup> |
-| **Service** | `PostgresMemoryService` | 继承 ADK `BaseMemoryService`，实现 `add_session_to_memory` + `search_memory` | Adapter<sup>[[5]](#ref5)</sup> |
-| **Service** | `FactService` | Fact CRUD + ON CONFLICT upsert | Repository |
-| **Service** | `MemoryGovernanceService` | 审计决策 + 版本控制 + 幂等性 + 遗忘曲线计算 | — |
-| **Service** | `MemoryAutomationService` | 配置 SSOT + 函数 reconcile + pg_cron 调度管理 | — |
-| **Service** | `SessionSummarizer` | LLM 对话摘要生成 | — |
-| **API** | `/memory/*` | RESTful 路由（Dashboard / Timeline / Facts / Search / Audit / Automation） | — |
+| 层级        | 组件                         | 职责                                                                         | 设计模式                                  |
+| :---------- | :--------------------------- | :--------------------------------------------------------------------------- | :---------------------------------------- |
+| **Factory** | `engine/factories/memory.py` | 按配置创建服务实例                                                           | Strategy + Factory<sup>[[5]](#ref5)</sup> |
+| **Service** | `PostgresMemoryService`      | 继承 ADK `BaseMemoryService`，实现 `add_session_to_memory` + `search_memory` | Adapter<sup>[[5]](#ref5)</sup>            |
+| **Service** | `FactService`                | Fact CRUD + ON CONFLICT upsert                                               | Repository                                |
+| **Service** | `MemoryGovernanceService`    | 审计决策 + 版本控制 + 幂等性 + 遗忘曲线计算                                  | —                                         |
+| **Service** | `MemoryAutomationService`    | 配置 SSOT + 函数 reconcile + pg_cron 调度管理                                | —                                         |
+| **Service** | `SessionSummarizer`          | LLM 对话摘要生成                                                             | —                                         |
+| **API**     | `/memory/*`                  | RESTful 路由（Dashboard / Timeline / Facts / Search / Audit / Automation）   | —                                         |
 
 ---
 
@@ -536,10 +536,10 @@ Phase 1 采用 `PatternFactExtractor`（基于正则的模式匹配），Phase 2
 
 #### 4.2.1 两级提取策略
 
-| 级别 | 实现类 | 触发条件 | 延迟 | 置信度 |
-| :-- | :-- | :-- | :-- | :-- |
-| L1 (默认) | `LLMFactExtractor` | LLM 可用 | ~200-500ms | 0.5-1.0 (动态) |
-| L2 (降级) | `PatternFactExtractor` | LLM 不可用/失败 | <1ms | 0.7 (固定) |
+| 级别      | 实现类                 | 触发条件        | 延迟       | 置信度         |
+| :-------- | :--------------------- | :-------------- | :--------- | :------------- |
+| L1 (默认) | `LLMFactExtractor`     | LLM 可用        | ~200-500ms | 0.5-1.0 (动态) |
+| L2 (降级) | `PatternFactExtractor` | LLM 不可用/失败 | <1ms       | 0.7 (固定)     |
 
 `LLMFactExtractor` 遵循 [`knowledge/llm_extractors.py`](../../../../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) 的成熟模式：
 
@@ -560,10 +560,10 @@ Phase 1 采用 `PatternFactExtractor`（基于正则的模式匹配），Phase 2
 
 `consolidation_jobs` 表支持三种任务类型，映射到认知科学中的记忆巩固层级<sup>[[2]](#ref2)</sup>：
 
-| 任务类型 | 认知映射 | 处理策略 |
-| :-- | :-- | :-- |
-| `fast_replay` | 即时复现 | 会话结束后立即提取关键信息 |
-| `deep_reflection` | 深度反思 | 跨会话关联分析，提取模式与规律 |
+| 任务类型             | 认知映射 | 处理策略                               |
+| :------------------- | :------- | :------------------------------------- |
+| `fast_replay`        | 即时复现 | 会话结束后立即提取关键信息             |
+| `deep_reflection`    | 深度反思 | 跨会话关联分析，提取模式与规律         |
 | `full_consolidation` | 完全巩固 | 全量重建记忆索引，更新 retention_score |
 
 `trigger_maintenance_consolidation()` SQL 函数按 `lookback_interval` 时间窗口自动创建巩固任务：
@@ -603,12 +603,12 @@ retention = min(1.0, time_decay × frequency_boost × type_multiplier × semanti
 
 **记忆类型衰减率映射**：
 
-| 类型 | λ | 类型乘子 | 理由 |
-| :-- | :-- | :-- | :-- |
-| preference | 0.05 | 1.3 | 用户偏好应长期保持 |
-| procedural | 0.06 | 1.2 | 技能/流程较稳定 |
-| fact | 0.08 | 1.15 | 事实中等衰减 |
-| episodic | 0.10 | 1.0 | 对话片段衰减最快（基准） |
+| 类型       | λ    | 类型乘子 | 理由                     |
+| :--------- | :--- | :------- | :----------------------- |
+| preference | 0.05 | 1.3      | 用户偏好应长期保持       |
+| procedural | 0.06 | 1.2      | 技能/流程较稳定          |
+| fact       | 0.08 | 1.15     | 事实中等衰减             |
+| episodic   | 0.10 | 1.0      | 对话片段衰减最快（基准） |
 
 - **λ_type**：记忆类型特定的衰减常数，覆盖默认 `0.1`
 - **days_elapsed**：距最后访问的天数（`last_accessed_at`）
@@ -620,11 +620,11 @@ retention = min(1.0, time_decay × frequency_boost × type_multiplier × semanti
 **典型衰减曲线**（λ=0.1, access_count=0）：
 
 | 天数 | time_decay | retention_score |
-| :-- | :-- | :-- |
-| 0 | 1.00 | 0.20 |
-| 7 | 0.50 | 0.10 |
-| 14 | 0.25 | 0.05 |
-| 30 | 0.05 | 0.01 |
+| :--- | :--------- | :-------------- |
+| 0    | 1.00       | 0.20            |
+| 7    | 0.50       | 0.10            |
+| 14   | 0.25       | 0.05            |
+| 30   | 0.05       | 0.01            |
 
 **代码实现**：
 
@@ -690,23 +690,23 @@ flowchart LR
 
 **与学术前沿的对标**：
 
-| 学术方案 | 核心理念 | Negentropy 对应 | 差距 |
-| :-- | :-- | :-- | :-- |
-| SleepGate<sup>[[22]](#ref22)</sup> | 冲突感知标记 + 遗忘门控 + 巩固压缩 | Ebbinghaus 衰减 + cleanup | 无冲突检测 |
-| LightMem<sup>[[23]](#ref23)</sup> | 离线蒸馏/摘要 + 巩固/删除 | SessionSummarizer + consolidation_jobs | 无蒸馏 |
-| EverMemOS<sup>[[24]](#ref24)</sup> | 自组织记忆 + 自动聚类 | — | 未实现 |
+| 学术方案                           | 核心理念                           | Negentropy 对应                        | 差距       |
+| :--------------------------------- | :--------------------------------- | :------------------------------------- | :--------- |
+| SleepGate<sup>[[22]](#ref22)</sup> | 冲突感知标记 + 遗忘门控 + 巩固压缩 | Ebbinghaus 衰减 + cleanup              | 无冲突检测 |
+| LightMem<sup>[[23]](#ref23)</sup>  | 离线蒸馏/摘要 + 巩固/删除          | SessionSummarizer + consolidation_jobs | 无蒸馏     |
+| EverMemOS<sup>[[24]](#ref24)</sup> | 自组织记忆 + 自动聚类              | —                                      | 未实现     |
 
 #### 5.4.1 摘要巩固策略 (Summary Consolidation)
 
 受认知科学记忆再巩固 (Reconsolidation) 理论<sup>[[26]](#ref26)</sup>启发，`MemorySummarizer` 定期将用户的碎片记忆和事实重蒸馏为结构化画像摘要。该策略借鉴：
 
-| 学术/工程来源 | 策略 | Negentropy 适配 |
-| :-- | :-- | :-- |
-| LightMem<sup>[[23]](#ref23)</sup> | 离线蒸馏压缩 | MemorySummarizer 定期重生成 |
-| GraphRAG<sup>[[10]](#ref10)</sup> | 层次化 Map-Reduce 摘要 | LLM 单次生成结构化画像 |
-| Claude Code CLAUDE.md | 文件持久化用户摘要 | `memory_summaries` 表缓存 |
-| Mem0 user profile<sup>[[29]](#ref29)</sup> | 聚合 preference/profile/rule | 同结构，facts + memories 双源输入 |
-| Letta self-edit<sup>[[30]](#ref30)</sup> | Agent 自主编辑 memory block | 摘要由系统自动维护，Agent 只读注入 |
+| 学术/工程来源                              | 策略                         | Negentropy 适配                    |
+| :----------------------------------------- | :--------------------------- | :--------------------------------- |
+| LightMem<sup>[[23]](#ref23)</sup>          | 离线蒸馏压缩                 | MemorySummarizer 定期重生成        |
+| GraphRAG<sup>[[10]](#ref10)</sup>          | 层次化 Map-Reduce 摘要       | LLM 单次生成结构化画像             |
+| Claude Code CLAUDE.md                      | 文件持久化用户摘要           | `memory_summaries` 表缓存          |
+| Mem0 user profile<sup>[[29]](#ref29)</sup> | 聚合 preference/profile/rule | 同结构，facts + memories 双源输入  |
+| Letta self-edit<sup>[[30]](#ref30)</sup>   | Agent 自主编辑 memory block  | 摘要由系统自动维护，Agent 只读注入 |
 
 摘要生成流程：
 
@@ -733,12 +733,12 @@ importance = min(1.0,
 
 **记忆类型重要性权重**：
 
-| 类型 | type_weight | 理由 |
-| :-- | :-- | :-- |
-| preference | 0.9 | 用户偏好是长期高价值信号 |
-| procedural | 0.75 | 技能/流程记忆较稳定 |
-| fact | 0.6 | 事实性知识中等价值 |
-| episodic | 0.4 | 对话片段价值相对较低（基准） |
+| 类型       | type_weight | 理由                         |
+| :--------- | :---------- | :--------------------------- |
+| preference | 0.9         | 用户偏好是长期高价值信号     |
+| procedural | 0.75        | 技能/流程记忆较稳定          |
+| fact       | 0.6         | 事实性知识中等价值           |
+| episodic   | 0.4         | 对话片段价值相对较低（基准） |
 
 **计算时机**：
 - 巩固存储时：`PostgresMemoryService._simple_consolidate()` 计算初始评分
@@ -773,19 +773,19 @@ flowchart LR
 
 **冲突分类**：
 
-| 类型 | 触发条件 | 说明 |
-| :-- | :-- | :-- |
-| contradiction | preference/rule 类型同 key 不同 value | 直接矛盾 |
-| temporal_update | profile 类型更新 | 个人信息变更 |
-| refinement | 其他类型，新置信度 > 旧置信度 | 信息细化 |
+| 类型            | 触发条件                              | 说明         |
+| :-------------- | :------------------------------------ | :----------- |
+| contradiction   | preference/rule 类型同 key 不同 value | 直接矛盾     |
+| temporal_update | profile 类型更新                      | 个人信息变更 |
+| refinement      | 其他类型，新置信度 > 旧置信度         | 信息细化     |
 
 **解决策略**：
 
-| 策略 | 行为 | 适用场景 |
-| :-- | :-- | :-- |
+| 策略      | 行为                                | 适用场景                        |
+| :-------- | :---------------------------------- | :------------------------------ |
 | supersede | 旧事实标记 `superseded`，新事实取代 | contradiction / temporal_update |
-| keep_both | 保留两者，记录冲突 | refinement 且旧置信度更高 |
-| merge | 合并两者值 | 管理员手动选择 |
+| keep_both | 保留两者，记录冲突                  | refinement 且旧置信度更高       |
+| merge     | 合并两者值                          | 管理员手动选择                  |
 
 **数据模型**：Fact 新增 `superseded_by`、`status`（active/superseded）、`superseded_at` 字段；新建 `memory_conflicts` 表记录冲突历史。
 
@@ -812,12 +812,12 @@ proactive_rank = importance_score * 0.40
                + fact_density * 0.10
 ```
 
-| 因子 | 计算 | 权重 | 含义 |
-| :-- | :-- | :-- | :-- |
-| importance_score | 五因子重要性评分 | 0.40 | 最重要的排序信号 |
-| recency_score | `max(0, 1 - days_since_access / 30)` | 0.30 | 近期访问的记忆更相关 |
-| frequency_score | `min(1, log2(1 + access_count) / log2(101))` | 0.20 | 高频访问的记忆更稳定 |
-| fact_density | 固定 0.10 | 0.10 | 基础密度因子 |
+| 因子             | 计算                                         | 权重 | 含义                 |
+| :--------------- | :------------------------------------------- | :--- | :------------------- |
+| importance_score | 五因子重要性评分                             | 0.40 | 最重要的排序信号     |
+| recency_score    | `max(0, 1 - days_since_access / 30)`         | 0.30 | 近期访问的记忆更相关 |
+| frequency_score  | `min(1, log2(1 + access_count) / log2(101))` | 0.20 | 高频访问的记忆更稳定 |
+| fact_density     | 固定 0.10                                    | 0.10 | 基础密度因子         |
 
 **缓存策略**：
 - TTL 1 小时：`memory_preload_cache` 表按 `(user_id, app_name)` 缓存
@@ -832,12 +832,12 @@ proactive_rank = importance_score * 0.40
 
 **四种自动链接策略**：
 
-| 类型 | 触发条件 | 权重 | 说明 |
-| :-- | :-- | :-- | :-- |
-| semantic | embedding 余弦相似度 > 0.75 | 相似度值 | 语义关联（每新记忆最多 5 条） |
-| temporal | 同 thread、30 分钟窗口内 | `1 - Δt / 1800` | 时间邻近关联 |
-| thread_shared | 共享 thread_id | 0.6 | 同会话关联 |
-| entity | 共享命名实体（依赖 KG） | 0.5 | 实体共现关联 |
+| 类型          | 触发条件                    | 权重            | 说明                          |
+| :------------ | :-------------------------- | :-------------- | :---------------------------- |
+| semantic      | embedding 余弦相似度 > 0.75 | 相似度值        | 语义关联（每新记忆最多 5 条） |
+| temporal      | 同 thread、30 分钟窗口内    | `1 - Δt / 1800` | 时间邻近关联                  |
+| thread_shared | 共享 thread_id              | 0.6             | 同会话关联                    |
+| entity        | 共享命名实体（依赖 KG）     | 0.5             | 实体共现关联                  |
 
 **多跳扩展**：
 
@@ -915,11 +915,11 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 
 `get_context_window()` SQL 函数按 Token Budget 三段式分配组装上下文：
 
-| 分段 | 比例 | 数据源 | 排序策略 |
-| :-- | :-- | :-- | :-- |
-| Memory | 30% (`memory_ratio`) | memories 表 | `(1 - cosine_distance) × retention_score` |
-| History | 50% (`history_ratio`) | events 表 | `created_at DESC`（时间倒序） |
-| System | 20% (保留) | — | 系统指令保留空间 |
+| 分段    | 比例                  | 数据源      | 排序策略                                  |
+| :------ | :-------------------- | :---------- | :---------------------------------------- |
+| Memory  | 30% (`memory_ratio`)  | memories 表 | `(1 - cosine_distance) × retention_score` |
+| History | 50% (`history_ratio`) | events 表   | `created_at DESC`（时间倒序）             |
+| System  | 20% (保留)            | —           | 系统指令保留空间                          |
 
 **Token 估算**：采用 tiktoken BPE 编码器精确计数（Phase 1 曾使用 `LENGTH(content) / 4` 粗略估算）。Python 侧通过 [`TokenCounter`](../../../../apps/negentropy/src/negentropy/engine/utils/token_counter.py) 工具类调用，SQL 函数 `get_context_window()` 保留 `LENGTH/4` 作为 DB 侧快速估算，Python 端后校正。参考文献 <sup>[[25]](#ref25)</sup>。
 
@@ -929,12 +929,12 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 
 ### 6.4 与学术检索范式的对标
 
-| 检索范式 | 论文/框架 | Negentropy 实现 | 演进方向 |
-| :-- | :-- | :-- | :-- |
-| 自适应遍历 | MAGMA<sup>[[8]](#ref8)</sup> | — | Phase 2: 基于查询意图路由 |
-| 时序知识图谱 | Graphiti<sup>[[18]](#ref18)</sup> | created_at 排序 | Phase 2: Bi-temporal edges |
-| 向量+图遍历 | GraphRAG<sup>[[10]](#ref10)</sup> | 独立 (pgvector + AGE) | Phase 3: 融合检索 |
-| 虚拟上下文管理 | MemGPT/Letta<sup>[[19]](#ref19)</sup> | get_context_window | — (理念相近) |
+| 检索范式       | 论文/框架                             | Negentropy 实现       | 演进方向                   |
+| :------------- | :------------------------------------ | :-------------------- | :------------------------- |
+| 自适应遍历     | MAGMA<sup>[[8]](#ref8)</sup>          | —                     | Phase 2: 基于查询意图路由  |
+| 时序知识图谱   | Graphiti<sup>[[18]](#ref18)</sup>     | created_at 排序       | Phase 2: Bi-temporal edges |
+| 向量+图遍历    | GraphRAG<sup>[[10]](#ref10)</sup>     | 独立 (pgvector + AGE) | Phase 3: 融合检索          |
+| 虚拟上下文管理 | MemGPT/Letta<sup>[[19]](#ref19)</sup> | get_context_window    | — (理念相近)               |
 
 ### 6.5 检索效果反馈闭环 (Retrieval Feedback Loop)
 
@@ -962,11 +962,11 @@ flowchart TD
 
 评估维度对齐 LongMemEval<sup>[[9]](#ref9)</sup>：
 
-| 指标 | 计算公式 | 意义 |
-| :-- | :-- | :-- |
-| Precision@K | 被引用的记忆 / 检索的记忆 | 检索结果的实际利用率 |
-| Utilization Rate | 有帮助反馈 / 总反馈 | 用户认可的记忆占比 |
-| Noise Rate | 无关反馈 / 总反馈 | 无效检索的噪声占比 |
+| 指标             | 计算公式                  | 意义                 |
+| :--------------- | :------------------------ | :------------------- |
+| Precision@K      | 被引用的记忆 / 检索的记忆 | 检索结果的实际利用率 |
+| Utilization Rate | 有帮助反馈 / 总反馈       | 用户认可的记忆占比   |
+| Noise Rate       | 无关反馈 / 总反馈         | 无效检索的噪声占比   |
 
 参考文献 <sup>[[9]](#ref9)</sup><sup>[[27]](#ref27)</sup><sup>[[28]](#ref28)</sup>。
 
@@ -978,10 +978,10 @@ flowchart TD
 
 `MemoryGovernanceService` 提供三种审计决策，同时处理 Memory 和关联 Fact 确保 GDPR 合规：
 
-| 决策 | Memory 操作 | 关联 Fact 操作 | 说明 |
-| :-- | :-- | :-- | :-- |
-| `retain` | 保留，不做操作 | 不做操作 | 显式确认保留 |
-| `delete` | 物理删除 | 物理删除（同 thread_id） | 完全遗忘权 |
+| 决策        | Memory 操作                                         | 关联 Fact 操作                                 | 说明                   |
+| :---------- | :-------------------------------------------------- | :--------------------------------------------- | :--------------------- |
+| `retain`    | 保留，不做操作                                      | 不做操作                                       | 显式确认保留           |
+| `delete`    | 物理删除                                            | 物理删除（同 thread_id）                       | 完全遗忘权             |
 | `anonymize` | content → `[ANONYMIZED]`，清除 embedding + metadata | value → `{"anonymized": True}`，清除 embedding | 保留统计价值，移除 PII |
 
 ### 7.2 版本控制与幂等性
@@ -1086,12 +1086,12 @@ flowchart TD
 
 ### 8.4 受管过程
 
-| 过程 | 受管函数 | 受管任务 | 说明 |
-| :-- | :-- | :-- | :-- |
-| Retention Cleanup | `calculate_retention_score`, `cleanup_low_value_memories` | `cleanup_memories` | 定时更新 retention 并清理低价值记忆 |
-| Context Assembler | `get_context_window` | 无 | 按 token budget 组装记忆与历史 |
-| Maintenance Consolidation | `trigger_maintenance_consolidation` | `trigger_consolidation` | 批量创建巩固任务 |
-| Rocchio Reweight | — | `reweight_relevance`（每 6h） | 聚合用户反馈，调用 Rocchio 重加权更新 `memories.metadata_.relevance_weight` |
+| 过程                      | 受管函数                                                  | 受管任务                      | 说明                                                                        |
+| :------------------------ | :-------------------------------------------------------- | :---------------------------- | :-------------------------------------------------------------------------- |
+| Retention Cleanup         | `calculate_retention_score`, `cleanup_low_value_memories` | `cleanup_memories`            | 定时更新 retention 并清理低价值记忆                                         |
+| Context Assembler         | `get_context_window`                                      | 无                            | 按 token budget 组装记忆与历史                                              |
+| Maintenance Consolidation | `trigger_maintenance_consolidation`                       | `trigger_consolidation`       | 批量创建巩固任务                                                            |
+| Rocchio Reweight          | —                                                         | `reweight_relevance`（每 6h） | 聚合用户反馈，调用 Rocchio 重加权更新 `memories.metadata_.relevance_weight` |
 
 ### 8.5 PostgreSQL 初始化前置条件
 
@@ -1189,11 +1189,11 @@ ORDER BY table_name;
 
 Automation 页面中的系统能力对应后端运行时探测结果：
 
-| 能力位 | 含义 | 对页面的影响 |
-| :-- | :-- | :-- |
-| `pg_cron_installed` | 是否安装了 `pg_cron` 扩展 | 决定是否具备调度能力基础 |
-| `pg_cron_available` | 是否可访问 `cron.job` | 决定 `Managed Jobs` 是否可写 |
-| `pg_cron_logs_accessible` | 是否可访问 `cron.job_run_details` | 决定 `Recent Logs` 是否可见 |
+| 能力位                    | 含义                              | 对页面的影响                 |
+| :------------------------ | :-------------------------------- | :--------------------------- |
+| `pg_cron_installed`       | 是否安装了 `pg_cron` 扩展         | 决定是否具备调度能力基础     |
+| `pg_cron_available`       | 是否可访问 `cron.job`             | 决定 `Managed Jobs` 是否可写 |
+| `pg_cron_logs_accessible` | 是否可访问 `cron.job_run_details` | 决定 `Recent Logs` 是否可见  |
 
 常见状态解释：
 
@@ -1382,12 +1382,12 @@ SELECT negentropy.trigger_maintenance_consolidation('1 hour'::interval);
 
 ### 8.13 降级矩阵与排障
 
-| 场景 | 配置查看 | 函数状态 | 调度任务查看 | 调度动作 | 执行日志 |
-| :-- | :-- | :-- | :-- | :-- | :-- |
-| `pg_cron` 已安装且可访问 | 可用 | 可用 | 可用 | 可用 | 可用 |
-| `pg_cron` 未安装 | 可用 | 可用 | 降级 | 只读禁用 | 空列表 |
-| `pg_cron` 已安装但 `cron.job` 不可访问 | 可用 | 可用 | 降级 | 只读禁用 | 降级 |
-| `pg_cron` 已安装但 `cron.job_run_details` 不可访问 | 可用 | 可用 | 可用 | 可用 | 空列表 + 降级告警 |
+| 场景                                               | 配置查看 | 函数状态 | 调度任务查看 | 调度动作 | 执行日志          |
+| :------------------------------------------------- | :------- | :------- | :----------- | :------- | :---------------- |
+| `pg_cron` 已安装且可访问                           | 可用     | 可用     | 可用         | 可用     | 可用              |
+| `pg_cron` 未安装                                   | 可用     | 可用     | 降级         | 只读禁用 | 空列表            |
+| `pg_cron` 已安装但 `cron.job` 不可访问             | 可用     | 可用     | 降级         | 只读禁用 | 降级              |
+| `pg_cron` 已安装但 `cron.job_run_details` 不可访问 | 可用     | 可用     | 可用         | 可用     | 空列表 + 降级告警 |
 
 说明：
 
@@ -1434,65 +1434,65 @@ SELECT negentropy.trigger_maintenance_consolidation('1 hour'::interval);
 
 当前 Memory 系统完全基于 PostgreSQL 16+ 实现，利用以下扩展能力：
 
-| 扩展 | 版本 | 用途 |
-| :-- | :-- | :-- |
+| 扩展         | 版本 | 用途                            |
+| :----------- | :--- | :------------------------------ |
 | **pgvector** | 0.7+ | HNSW 向量索引 + cosine distance |
-| **pg_cron** | 1.6+ | 定时任务调度（可选增强） |
-| **tsvector** | 内置 | BM25 全文检索 |
+| **pg_cron**  | 1.6+ | 定时任务调度（可选增强）        |
+| **tsvector** | 内置 | BM25 全文检索                   |
 
 DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)（历史参考，当前运行时以 Alembic migration 和 Automation 控制面为准）。
 
 ### 9.2 Service 实现分析
 
-| Service | 代码行数 | 核心方法 | 复杂度焦点 |
-| :-- | :-- | :-- | :-- |
-| `PostgresMemoryService` | ~487 行 | `add_session_to_memory`, `search_memory`, `_hybrid_search_native`, `_vector_search`, `_keyword_search`, `_ilike_search`, `_record_access` | 4 级检索回退 + ADK Event 三格式适配 |
-| `MemoryAutomationService` | ~26 KB | `get_snapshot`, `save_config`, `reconcile_functions`, `reconcile_jobs`, `run_job` | 系统能力探测 + SQL 函数动态生成 |
-| `MemoryGovernanceService` | ~518 行 | `audit_memory`, `calculate_retention_score`, `calculate_importance_score`, `_execute_decision` | 版本冲突 + 重要性评分 + 幂等性 + GDPR 级联 |
-| `ConflictResolver` | ~200 行 | `detect_and_resolve`, `_classify_conflict`, `manual_resolve` | AGM 信念修正 + 三阶段检测 |
-| `ProactiveRecallService` | ~240 行 | `get_or_compute_preload`, `invalidate_cache` | 复合评分预加载 + TTL 缓存 |
-| `AssociationService` | ~300 行 | `auto_link_memory`, `get_associations`, `expand_multi_hop` | 自动链接 + 多跳扩展 |
+| Service                   | 代码行数 | 核心方法                                                                                                                                  | 复杂度焦点                                 |
+| :------------------------ | :------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------- |
+| `PostgresMemoryService`   | ~487 行  | `add_session_to_memory`, `search_memory`, `_hybrid_search_native`, `_vector_search`, `_keyword_search`, `_ilike_search`, `_record_access` | 4 级检索回退 + ADK Event 三格式适配        |
+| `MemoryAutomationService` | ~26 KB   | `get_snapshot`, `save_config`, `reconcile_functions`, `reconcile_jobs`, `run_job`                                                         | 系统能力探测 + SQL 函数动态生成            |
+| `MemoryGovernanceService` | ~518 行  | `audit_memory`, `calculate_retention_score`, `calculate_importance_score`, `_execute_decision`                                            | 版本冲突 + 重要性评分 + 幂等性 + GDPR 级联 |
+| `ConflictResolver`        | ~200 行  | `detect_and_resolve`, `_classify_conflict`, `manual_resolve`                                                                              | AGM 信念修正 + 三阶段检测                  |
+| `ProactiveRecallService`  | ~240 行  | `get_or_compute_preload`, `invalidate_cache`                                                                                              | 复合评分预加载 + TTL 缓存                  |
+| `AssociationService`      | ~300 行  | `auto_link_memory`, `get_associations`, `expand_multi_hop`                                                                                | 自动链接 + 多跳扩展                        |
 
 ### 9.3 API 端点全景
 
-| 路由 | 方法 | 功能 | 认证要求 |
-| :-- | :-- | :-- | :-- |
-| `/memory/dashboard` | GET | 指标概览 | admin |
-| `/memory/list` | GET | 记忆时间线 | auth |
-| `/memory/facts` | GET | 用户 Facts (`?user_id=` Query 参数) | auth |
-| `/memory/facts/search` | POST | Facts 语义检索 | auth |
-| `/memory/search` | POST | 混合检索 | auth |
-| `/memory/audit` | POST | 审计决策 | admin |
-| `/memory/audit/history` | GET | 审计历史 (`?user_id=` Query 参数) | admin |
-| `/memory/automation` | GET | Automation 快照 | admin |
-| `/memory/automation/config` | POST | 保存并同步配置 | admin |
-| `/memory/automation/logs` | GET | 执行日志 | admin |
-| `/memory/automation/jobs/{key}/enable` | POST | 启用任务 | admin |
-| `/memory/automation/jobs/{key}/disable` | POST | 停用任务 | admin |
-| `/memory/automation/jobs/{key}/reconcile` | POST | 重建任务 | admin |
-| `/memory/automation/jobs/{key}/run` | POST | 手动触发 | admin |
-| `/memory/conflicts` | GET | 冲突列表 (`?app_name=&user_id=&resolution=`) | admin |
-| `/memory/conflicts/{conflict_id}/resolve` | POST | 手动解决冲突 | admin |
-| `/memory/facts/{fact_id}/history` | GET | 事实版本链 | admin |
-| `/memory/proactive/{user_id}` | POST | 触发主动召回计算 | auth |
-| `/memory/proactive/{user_id}` | GET | 获取预加载缓存 | auth |
-| `/memory/{memory_id}/associations` | GET | 记忆关联列表 | auth |
-| `/memory/associations` | POST | 创建手动关联 | auth |
-| `/memory/associations/{association_id}` | DELETE | 删除关联 | auth |
+| 路由                                      | 方法   | 功能                                         | 认证要求 |
+| :---------------------------------------- | :----- | :------------------------------------------- | :------- |
+| `/memory/dashboard`                       | GET    | 指标概览                                     | admin    |
+| `/memory/list`                            | GET    | 记忆时间线                                   | auth     |
+| `/memory/facts`                           | GET    | 用户 Facts (`?user_id=` Query 参数)          | auth     |
+| `/memory/facts/search`                    | POST   | Facts 语义检索                               | auth     |
+| `/memory/search`                          | POST   | 混合检索                                     | auth     |
+| `/memory/audit`                           | POST   | 审计决策                                     | admin    |
+| `/memory/audit/history`                   | GET    | 审计历史 (`?user_id=` Query 参数)            | admin    |
+| `/memory/automation`                      | GET    | Automation 快照                              | admin    |
+| `/memory/automation/config`               | POST   | 保存并同步配置                               | admin    |
+| `/memory/automation/logs`                 | GET    | 执行日志                                     | admin    |
+| `/memory/automation/jobs/{key}/enable`    | POST   | 启用任务                                     | admin    |
+| `/memory/automation/jobs/{key}/disable`   | POST   | 停用任务                                     | admin    |
+| `/memory/automation/jobs/{key}/reconcile` | POST   | 重建任务                                     | admin    |
+| `/memory/automation/jobs/{key}/run`       | POST   | 手动触发                                     | admin    |
+| `/memory/conflicts`                       | GET    | 冲突列表 (`?app_name=&user_id=&resolution=`) | admin    |
+| `/memory/conflicts/{conflict_id}/resolve` | POST   | 手动解决冲突                                 | admin    |
+| `/memory/facts/{fact_id}/history`         | GET    | 事实版本链                                   | admin    |
+| `/memory/proactive/{user_id}`             | POST   | 触发主动召回计算                             | auth     |
+| `/memory/proactive/{user_id}`             | GET    | 获取预加载缓存                               | auth     |
+| `/memory/{memory_id}/associations`        | GET    | 记忆关联列表                                 | auth     |
+| `/memory/associations`                    | POST   | 创建手动关联                                 | auth     |
+| `/memory/associations/{association_id}`   | DELETE | 删除关联                                     | auth     |
 
 ### 9.4 当前阶段的局限性
 
-| 局限 | 影响 | 演进方向 |
-| :-- | :-- | :-- |
-| 无时序建模 | 仅 `created_at` / `valid_until`，非 bi-temporal | Phase 2: Temporal edges |
-| 无组织级记忆共享 | 记忆严格按 user_id 隔离 | Phase 3: Organization scope |
-| 图谱与记忆未打通 | Knowledge Graph (AGE) 在感知系部，Memory 在内化系部 | Phase 2: Memory Graph |
-| 无多智能体协作 | 单 Agent 记忆空间 | Phase 3: Multi-agent memory |
-| ~~巩固策略简单~~ | ~~无冲突感知、无摘要蒸馏~~ | ✅ Phase 3 已实现冲突检测 + 摘要巩固 |
-| ~~Token 估算粗略~~ | ~~`LENGTH/4` 简单估算~~ | ✅ Phase 2+ 已引入 tiktoken 精确计数 |
-| ~~无记忆重要性评分~~ | ~~所有记忆同等对待~~ | ✅ Phase 3 已实现 ACT-R 五因子评分 |
-| ~~无主动召回~~ | ~~新会话冷启动~~ | ✅ Phase 3 已实现复合评分预加载 |
-| ~~无记忆关联~~ | ~~记忆孤立，无法多跳检索~~ | ✅ Phase 3 已实现自动链接 + 多跳扩展 |
+| 局限                 | 影响                                                | 演进方向                            |
+| :------------------- | :-------------------------------------------------- | :---------------------------------- |
+| 无时序建模           | 仅 `created_at` / `valid_until`，非 bi-temporal     | Phase 2: Temporal edges             |
+| 无组织级记忆共享     | 记忆严格按 user_id 隔离                             | Phase 3: Organization scope         |
+| 图谱与记忆未打通     | Knowledge Graph (AGE) 在感知系部，Memory 在内化系部 | Phase 2: Memory Graph               |
+| 无多智能体协作       | 单 Agent 记忆空间                                   | Phase 3: Multi-agent memory         |
+| ~~巩固策略简单~~     | ~~无冲突感知、无摘要蒸馏~~                          | ✅ Phase 3 已实现冲突检测 + 摘要巩固 |
+| ~~Token 估算粗略~~   | ~~`LENGTH/4` 简单估算~~                             | ✅ Phase 2+ 已引入 tiktoken 精确计数 |
+| ~~无记忆重要性评分~~ | ~~所有记忆同等对待~~                                | ✅ Phase 3 已实现 ACT-R 五因子评分   |
+| ~~无主动召回~~       | ~~新会话冷启动~~                                    | ✅ Phase 3 已实现复合评分预加载      |
+| ~~无记忆关联~~       | ~~记忆孤立，无法多跳检索~~                          | ✅ Phase 3 已实现自动链接 + 多跳扩展 |
 
 ---
 
@@ -1535,10 +1535,10 @@ timeline
 
 参考 Zep/Graphiti<sup>[[18]](#ref18)</sup>的双时态模型，为记忆边引入时间有效性：
 
-| 时间维度 | 含义 | 字段 |
-| :-- | :-- | :-- |
-| System Time | 记忆何时被系统记录 | `t_created`, `t_expired` |
-| Valid Time | 记忆所描述的事实何时有效 | `t_valid_from`, `t_valid_until` |
+| 时间维度    | 含义                     | 字段                            |
+| :---------- | :----------------------- | :------------------------------ |
+| System Time | 记忆何时被系统记录       | `t_created`, `t_expired`        |
+| Valid Time  | 记忆所描述的事实何时有效 | `t_valid_from`, `t_valid_until` |
 
 优势：支持「当前什么是真的」和「过去某时刻什么是真的」两类时态查询。
 
@@ -1556,12 +1556,12 @@ timeline
 
 参考 Mem0<sup>[[16]](#ref16)</sup>的四层作用域模型：
 
-| 作用域 | 生命周期 | Negentropy 对应 |
-| :-- | :-- | :-- |
-| Conversation | 单轮对话 | ADK Session state |
-| Session | 会话级 | threads 表 |
-| User | 用户级长期 | memories / facts 表（当前） |
-| Organization | 组织级共享 | **新增**：org_memories 表 |
+| 作用域       | 生命周期   | Negentropy 对应             |
+| :----------- | :--------- | :-------------------------- |
+| Conversation | 单轮对话   | ADK Session state           |
+| Session      | 会话级     | threads 表                  |
+| User         | 用户级长期 | memories / facts 表（当前） |
+| Organization | 组织级共享 | **新增**：org_memories 表   |
 
 #### MAGMA-Style Multi-Graph
 
@@ -1584,36 +1584,36 @@ timeline
 
 ### 10.4 技术决策记录 (ADR)
 
-| ADR | 决策 | 理由 | 切换条件 |
-| :-- | :-- | :-- | :-- |
-| ADR-001 | PostgreSQL 单栈而非独立图库 | 零增量运维 + 数据一致性 + SQL+图混合查询 | 图遍历 4+ 跳延迟不可接受时评估 Neo4j |
-| ADR-002 | Ebbinghaus 指数衰减而非线性/阶梯 | 符合认知科学 + 数学可导 + 参数可调 | 需要多维衰减因子时引入强化学习模型 |
-| ADR-003 | pg_cron 而非应用层调度器 | 数据局部性 + 无额外进程 + 事务内调度 | 需跨数据库调度或复杂 DAG 时引入 Celery |
-| ADR-004 | 4 级回退而非单一检索策略 | 最大化可用性 + 渐进降级 | Hybrid Search 稳定后可考虑收敛到 2 级 |
-| ADR-005 | Phase 5 PPR 复用 AGE Cypher 不引入 NetworkX | 零运维增量 + 数据局部性 | AGE 单跳 P99 > 100ms 时评估 NetworkX |
-| ADR-006 | Reflexion 复用 metadata.subtype 不改 schema | 最小干预 + Phase 4 baseline 不回归 | 反思类型变多需要专表分流时拆 |
-| ADR-007 | Memify 用 Strategy + CoR 而非 DAG 编排 | 大多数 step 序串行；DAG 复杂度收益不足 | 需要 5+ step 跨 LLM 并行加速时升级到 Prefect/Temporal |
-| ADR-008 | Presidio 作为可选依赖（uv extras） | 200MB+ spaCy 模型对部分部署不可接受 | 默认部署强制需要合规级 PII 时改硬依赖 |
+| ADR     | 决策                                        | 理由                                     | 切换条件                                              |
+| :------ | :------------------------------------------ | :--------------------------------------- | :---------------------------------------------------- |
+| ADR-001 | PostgreSQL 单栈而非独立图库                 | 零增量运维 + 数据一致性 + SQL+图混合查询 | 图遍历 4+ 跳延迟不可接受时评估 Neo4j                  |
+| ADR-002 | Ebbinghaus 指数衰减而非线性/阶梯            | 符合认知科学 + 数学可导 + 参数可调       | 需要多维衰减因子时引入强化学习模型                    |
+| ADR-003 | pg_cron 而非应用层调度器                    | 数据局部性 + 无额外进程 + 事务内调度     | 需跨数据库调度或复杂 DAG 时引入 Celery                |
+| ADR-004 | 4 级回退而非单一检索策略                    | 最大化可用性 + 渐进降级                  | Hybrid Search 稳定后可考虑收敛到 2 级                 |
+| ADR-005 | Phase 5 PPR 复用 AGE Cypher 不引入 NetworkX | 零运维增量 + 数据局部性                  | AGE 单跳 P99 > 100ms 时评估 NetworkX                  |
+| ADR-006 | Reflexion 复用 metadata.subtype 不改 schema | 最小干预 + Phase 4 baseline 不回归       | 反思类型变多需要专表分流时拆                          |
+| ADR-007 | Memify 用 Strategy + CoR 而非 DAG 编排      | 大多数 step 序串行；DAG 复杂度收益不足   | 需要 5+ step 跨 LLM 并行加速时升级到 Prefect/Temporal |
+| ADR-008 | Presidio 作为可选依赖（uv extras）          | 200MB+ spaCy 模型对部分部署不可接受      | 默认部署强制需要合规级 PII 时改硬依赖                 |
 
 ### 10.5 Phase 5 实施记录（开工于 2026-05）
 
 > 详细工程契约见 [`026-memory-whitepaper.md`](./026-memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](./user-guide/memory-basics.md) §2.5。
 
-| 特性 | 集成点 | 默认 flag | 状态 |
-| :-- | :-- | :-- | :-- |
-| F1 HippoRAG PPR-Boosted Hybrid | `memory_service.search_memory` + `association_service.expand_via_ppr` + AGE Cypher SQL 函数 | `MEMORY_HIPPORAG_ENABLED=false` | ✅ 已交付 |
-| F2 Reflexion Episodic Replay | `retrieval_tracker.record_feedback` + `reflection_generator` + `context_assembler.assemble` few-shot 注入 | `MEMORY_REFLECTION_ENABLED=false` | ✅ 已交付 |
-| F3 Memify Consolidation Pipeline | `consolidation/pipeline/{protocol,orchestrator,registry,steps}` + `memory_service.add_session_to_memory` 切换 | `memory.consolidation.legacy=false`（默认走 Pipeline，行为与 Phase 4 一致） | ✅ 已交付 |
-| F4 Presidio 生产级 PII | `governance/pii/{base,regex_detector,presidio_detector,factory,gatekeeper}` + 落库双字段 `content_raw / content_anonymized / pii_spans` | `memory.pii.engine=regex`（向后兼容） | ✅ 已交付 |
+| 特性                             | 集成点                                                                                                                                  | 默认 flag                                                                   | 状态     |
+| :------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- | :------- |
+| F1 HippoRAG PPR-Boosted Hybrid   | `memory_service.search_memory` + `association_service.expand_via_ppr` + AGE Cypher SQL 函数                                             | `MEMORY_HIPPORAG_ENABLED=false`                                             | ✅ 已交付 |
+| F2 Reflexion Episodic Replay     | `retrieval_tracker.record_feedback` + `reflection_generator` + `context_assembler.assemble` few-shot 注入                               | `MEMORY_REFLECTION_ENABLED=false`                                           | ✅ 已交付 |
+| F3 Memify Consolidation Pipeline | `consolidation/pipeline/{protocol,orchestrator,registry,steps}` + `memory_service.add_session_to_memory` 切换                           | `memory.consolidation.legacy=false`（默认走 Pipeline，行为与 Phase 4 一致） | ✅ 已交付 |
+| F4 Presidio 生产级 PII           | `governance/pii/{base,regex_detector,presidio_detector,factory,gatekeeper}` + 落库双字段 `content_raw / content_anonymized / pii_spans` | `memory.pii.engine=regex`（向后兼容）                                       | ✅ 已交付 |
 
 **§9.4 局限性表对应行更新**（Phase 5 实施完成后逐项打勾）：
 
-| 原局限 | Phase 5 对应特性 | 状态 |
-| :-- | :-- | :-- |
-| 图谱与记忆未打通（仅同步） | F1 HippoRAG PPR | ✅ 已交付 |
-| 失败反馈未沉淀 | F2 Reflexion | ✅ 已交付 |
-| 巩固管线难扩展 | F3 Memify Pipeline | ✅ 已交付 |
-| PII 仅 regex 占位 | F4 Presidio | ✅ 已交付 |
+| 原局限                     | Phase 5 对应特性   | 状态     |
+| :------------------------- | :----------------- | :------- |
+| 图谱与记忆未打通（仅同步） | F1 HippoRAG PPR    | ✅ 已交付 |
+| 失败反馈未沉淀             | F2 Reflexion       | ✅ 已交付 |
+| 巩固管线难扩展             | F3 Memify Pipeline | ✅ 已交付 |
+| PII 仅 regex 占位          | F4 Presidio        | ✅ 已交付 |
 
 ---
 
@@ -1625,32 +1625,32 @@ timeline
 
 ### 11.2 核心指标四层模型
 
-| 层级 | 指标名称 | 计算方式 | 目标 | 数据源 |
-| :-- | :-- | :-- | :-- | :-- |
-| **L0 基础设施** | 检索延迟 P95 | search_memory 端到端耗时 | < 100ms | Langfuse trace |
-| L0 | 向量化成功率 | embedding_success / total | > 99% | 结构化日志 |
-| L0 | Automation 健康度 | healthy / (healthy + degraded) | > 95% | automation API |
-| **L1 记忆质量** | 平均 retention_score | `AVG(retention_score)` | > 0.3 | memories 表 |
-| L1 | 记忆覆盖率 | users_with_memory / total_users | > 80% | memories 表 |
-| L1 | Fact 活跃率 | valid_facts / total_facts | > 70% | facts 表 |
-| **L2 检索效果** | 检索命中率 (HitRate@10) | queries_with_results / total_queries | > 85% | search 日志 |
-| L2 | 上下文利用率 | recalled_tokens / budget_tokens | 40-70% | context_window |
-| L2 | 检索回退率 | fallback_count / total_search | < 10% | search 日志 |
-| **L3 业务影响** | 对话满意度提升 | with_memory_rating - baseline | > +15% | 用户反馈 |
-| L3 | 重复提问减少率 | repeat_qa_reduction | > 30% | 对话分析 |
-| L3 | 个性化响应准确率 | personalized_correct / total | > 80% | 人工评估 |
+| 层级            | 指标名称                | 计算方式                             | 目标    | 数据源         |
+| :-------------- | :---------------------- | :----------------------------------- | :------ | :------------- |
+| **L0 基础设施** | 检索延迟 P95            | search_memory 端到端耗时             | < 100ms | Langfuse trace |
+| L0              | 向量化成功率            | embedding_success / total            | > 99%   | 结构化日志     |
+| L0              | Automation 健康度       | healthy / (healthy + degraded)       | > 95%   | automation API |
+| **L1 记忆质量** | 平均 retention_score    | `AVG(retention_score)`               | > 0.3   | memories 表    |
+| L1              | 记忆覆盖率              | users_with_memory / total_users      | > 80%   | memories 表    |
+| L1              | Fact 活跃率             | valid_facts / total_facts            | > 70%   | facts 表       |
+| **L2 检索效果** | 检索命中率 (HitRate@10) | queries_with_results / total_queries | > 85%   | search 日志    |
+| L2              | 上下文利用率            | recalled_tokens / budget_tokens      | 40-70%  | context_window |
+| L2              | 检索回退率              | fallback_count / total_search        | < 10%   | search 日志    |
+| **L3 业务影响** | 对话满意度提升          | with_memory_rating - baseline        | > +15%  | 用户反馈       |
+| L3              | 重复提问减少率          | repeat_qa_reduction                  | > 30%   | 对话分析       |
+| L3              | 个性化响应准确率        | personalized_correct / total         | > 80%   | 人工评估       |
 
 ### 11.3 LongMemEval 基准对标
 
 参考 LongMemEval<sup>[[9]](#ref9)</sup>（ICLR 2025）的 5 项核心能力维度，设计 Negentropy 的记忆能力评估方案：
 
-| 能力维度 | 评估目标 | Negentropy 评估方案 |
-| :-- | :-- | :-- |
-| **信息抽取** | 从历史中准确提取特定信息 | 构造测试用例：跨 N 个 session 检索特定 Fact |
-| **多会话推理** | 跨多个 session 关联推理 | 构造需要 2+ session 信息才能回答的问题 |
-| **时序推理** | 理解时间顺序 | 测试 `valid_from / valid_until` 的时态查询准确率 |
-| **知识更新** | 正确处理信息变更 | 测试 Fact upsert 后检索返回最新值 |
-| **审慎拒答** | 对无记忆支撑的问题保持审慎 | 测试无相关记忆时返回空结果的比率 |
+| 能力维度       | 评估目标                   | Negentropy 评估方案                              |
+| :------------- | :------------------------- | :----------------------------------------------- |
+| **信息抽取**   | 从历史中准确提取特定信息   | 构造测试用例：跨 N 个 session 检索特定 Fact      |
+| **多会话推理** | 跨多个 session 关联推理    | 构造需要 2+ session 信息才能回答的问题           |
+| **时序推理**   | 理解时间顺序               | 测试 `valid_from / valid_until` 的时态查询准确率 |
+| **知识更新**   | 正确处理信息变更           | 测试 Fact upsert 后检索返回最新值                |
+| **审慎拒答**   | 对无记忆支撑的问题保持审慎 | 测试无相关记忆时返回空结果的比率                 |
 
 ### 11.4 可观测性仪表盘设计
 
@@ -1700,13 +1700,13 @@ flowchart LR
 
 Memory 价值量化不仅用于展示，更构成**自我进化 (Evolutionary Design)** 闭环：
 
-| 触发指标 | 调参动作 | 闭环目标 |
-| :-- | :-- | :-- |
-| 检索命中率 < 80% | 降低 `low_retention_threshold` | 保留更多记忆提高召回 |
-| 检索命中率 > 95% + 记忆增长率过快 | 提高 `low_retention_threshold` | 精简记忆降低噪声 |
-| 检索回退率 > 15% | 检查 pgvector/tsvector 健康 | 确保 Hybrid Search 可用 |
-| 上下文利用率 < 30% | 提高 `memory_ratio` | 增加记忆在上下文中的占比 |
-| 重复提问率未下降 | 调整巩固策略 | 确保关键信息被记忆 |
+| 触发指标                          | 调参动作                       | 闭环目标                 |
+| :-------------------------------- | :----------------------------- | :----------------------- |
+| 检索命中率 < 80%                  | 降低 `low_retention_threshold` | 保留更多记忆提高召回     |
+| 检索命中率 > 95% + 记忆增长率过快 | 提高 `low_retention_threshold` | 精简记忆降低噪声         |
+| 检索回退率 > 15%                  | 检查 pgvector/tsvector 健康    | 确保 Hybrid Search 可用  |
+| 上下文利用率 < 30%                | 提高 `memory_ratio`            | 增加记忆在上下文中的占比 |
+| 重复提问率未下降                  | 调整巩固策略                   | 确保关键信息被记忆       |
 
 ---
 
@@ -1720,20 +1720,20 @@ Memory 价值量化不仅用于展示，更构成**自我进化 (Evolutionary De
 
 ### 12.2 GDPR 合规矩阵
 
-| 数据主体权利 | Memory 对应操作 | 实现方式 |
-| :-- | :-- | :-- |
-| 访问权 (Right of Access) | `GET /memory/list` + `GET /memory/facts` | 用户可查看个人记忆 |
-| 删除权 (Right to Erasure) | `POST /memory/audit` → `decision: "delete"` | 物理删除 Memory + 关联 Fact |
-| 限制处理权 | `POST /memory/audit` → `decision: "anonymize"` | 内容替换 + 清除向量 |
-| 数据可携带权 | `GET /memory/list` (JSON 格式) | 可导出个人记忆 |
+| 数据主体权利              | Memory 对应操作                                | 实现方式                    |
+| :------------------------ | :--------------------------------------------- | :-------------------------- |
+| 访问权 (Right of Access)  | `GET /memory/list` + `GET /memory/facts`       | 用户可查看个人记忆          |
+| 删除权 (Right to Erasure) | `POST /memory/audit` → `decision: "delete"`    | 物理删除 Memory + 关联 Fact |
+| 限制处理权                | `POST /memory/audit` → `decision: "anonymize"` | 内容替换 + 清除向量         |
+| 数据可携带权              | `GET /memory/list` (JSON 格式)                 | 可导出个人记忆              |
 
 ### 12.3 权限模型
 
-| 角色 | 可访问功能 |
-| :-- | :-- |
-| `admin` | Memory Dashboard + Audit + Automation（全功能） |
-| `auth` (已认证用户) | 个人 Timeline + Facts + Search |
-| 数据库用户 | `negentropy` schema 函数创建 + `cron.*` 访问（Automation 前置条件） |
+| 角色                | 可访问功能                                                          |
+| :------------------ | :------------------------------------------------------------------ |
+| `admin`             | Memory Dashboard + Audit + Automation（全功能）                     |
+| `auth` (已认证用户) | 个人 Timeline + Facts + Search                                      |
+| 数据库用户          | `negentropy` schema 函数创建 + `cron.*` 访问（Automation 前置条件） |
 
 ---
 
@@ -1767,11 +1767,11 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 ### 13.3 基准测试方案
 
-| 场景 | 目标 | 方法 |
-| :-- | :-- | :-- |
-| 检索延迟 | P95 < 100ms | 10K 记忆 × 100 并发查询 |
-| 巩固吞吐量 | > 1000 memories/min | 批量 consolidation_job 执行 |
-| LongMemEval 适配 | 5 项能力维度基线 | 构造 Negentropy-specific 评测集 |
+| 场景             | 目标                | 方法                            |
+| :--------------- | :------------------ | :------------------------------ |
+| 检索延迟         | P95 < 100ms         | 10K 记忆 × 100 并发查询         |
+| 巩固吞吐量       | > 1000 memories/min | 批量 consolidation_job 执行     |
+| LongMemEval 适配 | 5 项能力维度基线    | 构造 Negentropy-specific 评测集 |
 
 ---
 

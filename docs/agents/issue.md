@@ -734,13 +734,13 @@
      - patch 幂等（重复调用函数对象不变）；
      - 模拟调用 `maybe_set_otel_providers` 后全局 `LoggerProvider` / `MeterProvider` 仍是默认 ProxyProvider（**不是** SDK 实例），证明 set 调用未发生。
 - **行为对照**：
-  | 调用 | 修复前 | 修复后 |
-  |------|--------|--------|
-  | `_logs.set_logger_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
-  | `metrics.set_meter_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
-  | `trace.set_tracer_provider` | ADK 1 次（含 OTLP traces + ApiServerSpanExporter） | 不变 |
+  | 调用                                                         | 修复前                                                   | 修复后                                         |
+  | ------------------------------------------------------------ | -------------------------------------------------------- | ---------------------------------------------- |
+  | `_logs.set_logger_provider`                                  | 项目 + ADK 各 1 次（第二次 warn）                        | **零次**                                       |
+  | `metrics.set_meter_provider`                                 | 项目 + ADK 各 1 次（第二次 warn）                        | **零次**                                       |
+  | `trace.set_tracer_provider`                                  | ADK 1 次（含 OTLP traces + ApiServerSpanExporter）       | 不变                                           |
   | `opentelemetry-instrumentation-google-genai` 写 GenAI events | 拿到 NoExporter SDK LoggerProvider（无 processor，丢弃） | 拿到默认 ProxyLoggerProvider（同样 NoOp 丢弃） |
-  | LiteLLM `"otel"` callback 上报 traces | → Langfuse `/v1/traces` | 不变 |
+  | LiteLLM `"otel"` callback 上报 traces                        | → Langfuse `/v1/traces`                                  | 不变                                           |
 - **后续防范**：
   1. **OTel 抢占模式陷阱**：抢占式 `set_*_provider` 虽能利用 `Once`-lock 阻断后续注册，但**SDK 仍会输出 WARNING**——治本方案应当是阻止上游"想 set"，而非依赖"set 失败 + 静默吞错"；
   2. **优先 patch 上游拼装入口**：当框架（ADK）在某个唯一入口（`_get_otel_exporters`）拼装多类 telemetry hooks 时，patch 该入口比 patch 各 `set_*_provider` 调用更精准；

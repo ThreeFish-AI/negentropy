@@ -633,11 +633,11 @@ erDiagram
 
 **核心不变量**：
 
-| 层次 | 实体 | 职责 | 关键约束 |
-|------|------|------|---------|
-| 存储层 | `Corpus` + `KnowledgeDocument` | 物理存储、embedding、检索 | `app_name` 租户隔离，SSOT |
-| 组织层 | `DocCatalog` + `DocCatalogEntry` | 人类可读目录树，N:M 软引用 | `catalog.app_name` 创建后不可变 |
-| 发布层 | `WikiPublication` | 订阅 Catalog，生成公开站点 | `publication.app_name == catalog.app_name` |
+| 层次   | 实体                             | 职责                       | 关键约束                                   |
+| ------ | -------------------------------- | -------------------------- | ------------------------------------------ |
+| 存储层 | `Corpus` + `KnowledgeDocument`   | 物理存储、embedding、检索  | `app_name` 租户隔离，SSOT                  |
+| 组织层 | `DocCatalog` + `DocCatalogEntry` | 人类可读目录树，N:M 软引用 | `catalog.app_name` 创建后不可变            |
+| 发布层 | `WikiPublication`                | 订阅 Catalog，生成公开站点 | `publication.app_name == catalog.app_name` |
 
 ### 13.3 权限模型（三级取交集）
 
@@ -652,28 +652,28 @@ viewer 读取 Publication Entry 的权限 =
 
 ### 13.4 失效语义（Orphaned Entry）
 
-| 触发源 | 响应 | 用户可见行为 |
-|--------|------|------------|
+| 触发源            | 响应                                                        | 用户可见行为                    |
+| ----------------- | ----------------------------------------------------------- | ------------------------------- |
 | Document 物理删除 | `catalog_entries.document_id` SET NULL, `status = orphaned` | Wiki 渲染为占位「该文档已失效」 |
-| Corpus 被删除 | 级联所有 entries `status = orphaned` | 同上 |
-| Catalog 归档 | `is_archived = true`，新增 entry 被拒绝 | 标记「归档」 |
+| Corpus 被删除     | 级联所有 entries `status = orphaned`                        | 同上                            |
+| Catalog 归档      | `is_archived = true`，新增 entry 被拒绝                     | 标记「归档」                    |
 
 ### 13.5 Wiki 发布模式
 
-| 模式 | 行为 | 适用场景 |
-|------|------|---------|
-| `live`（默认） | 实时跟随 Catalog/Document 变更；SSG ISR 事件驱动增量刷新 | 日常在线文档 |
-| `snapshot` | 发布时冻结 `(catalog_entries, document_versions)` 到 `wiki_publication_snapshots`；后续变更不影响 | 合规留档、版本里程碑 |
+| 模式           | 行为                                                                                              | 适用场景             |
+| -------------- | ------------------------------------------------------------------------------------------------- | -------------------- |
+| `live`（默认） | 实时跟随 Catalog/Document 变更；SSG ISR 事件驱动增量刷新                                          | 日常在线文档         |
+| `snapshot`     | 发布时冻结 `(catalog_entries, document_versions)` 到 `wiki_publication_snapshots`；后续变更不影响 | 合规留档、版本里程碑 |
 
 **版本语义**：每次 `publish()` 递增 `version`；`unpublish()` → `draft`；`archive()` → `archived`（不可逆）。
 
 ### 13.6 数据库迁移（三阶段）
 
-| Revision | 内容 | 策略 |
-|---------|------|------|
-| `0003` | 新建 `doc_catalogs` / `doc_catalog_entries` / `wiki_publication_snapshots` 骨架 | 纯加法，无锁 |
-| `0004` | Backfill：从 `doc_catalog_nodes` 平移到 `doc_catalog_entries`；回填 `wiki_publications.catalog_id` | chunked batch，500 行/批 |
-| `0005` | Enforce：施加 NOT NULL 约束、UNIQUE(catalog_id, slug)；DROP `doc_catalog_nodes` / `doc_catalog_memberships` / `corpus_id` | 含 downgrade 守卫（跨 corpus catalog 拒绝降级） |
+| Revision | 内容                                                                                                                      | 策略                                            |
+| -------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `0003`   | 新建 `doc_catalogs` / `doc_catalog_entries` / `wiki_publication_snapshots` 骨架                                           | 纯加法，无锁                                    |
+| `0004`   | Backfill：从 `doc_catalog_nodes` 平移到 `doc_catalog_entries`；回填 `wiki_publications.catalog_id`                        | chunked batch，500 行/批                        |
+| `0005`   | Enforce：施加 NOT NULL 约束、UNIQUE(catalog_id, slug)；DROP `doc_catalog_nodes` / `doc_catalog_memberships` / `corpus_id` | 含 downgrade 守卫（跨 corpus catalog 拒绝降级） |
 
 ## 14. 测试覆盖
 
@@ -697,11 +697,11 @@ uv run pytest tests/integration_tests/engine/adapters/postgres/ -v
 
 **Catalog 专项集成测试**（Phase 3 新增）：
 
-| 文件 | 覆盖范围 |
-|------|---------|
-| [`test_catalog_dao_integration.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_dao_integration.py) | `CatalogDao` CRUD、树遍历、文档归入/移除 |
-| [`test_catalog_cross_corpus.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py) | 跨 app_name 权限拒绝、catalog 隔离、orphaned entry |
-| [`test_wiki_publish_modes.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_wiki_publish_modes.py) | WikiPublishingService 完整生命周期、版本递增、slug/theme 校验 |
+| 文件                                                                                                                               | 覆盖范围                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [`test_catalog_dao_integration.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_dao_integration.py) | `CatalogDao` CRUD、树遍历、文档归入/移除                      |
+| [`test_catalog_cross_corpus.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py)       | 跨 app_name 权限拒绝、catalog 隔离、orphaned entry            |
+| [`test_wiki_publish_modes.py`](../../../../apps/negentropy/tests/integration_tests/knowledge/test_wiki_publish_modes.py)           | WikiPublishingService 完整生命周期、版本递增、slug/theme 校验 |
 
 ### 14.3 性能基准（`tests/performance_tests/knowledge/`）
 
@@ -709,12 +709,12 @@ uv run pytest tests/integration_tests/engine/adapters/postgres/ -v
 uv run pytest tests/performance_tests/knowledge/test_catalog_tree_perf.py -v
 ```
 
-| 指标 | 阈值 | 备注 |
-|------|------|------|
-| `get_tree()` 平均（84 节点） | < 50ms | 含 warmup，5 次平均 |
-| `get_tree()` P99 | < 100ms | |
-| `get_subtree()` 平均 | < 20ms | |
-| `list_catalogs()` 平均 | < 10ms | |
+| 指标                         | 阈值    | 备注                |
+| ---------------------------- | ------- | ------------------- |
+| `get_tree()` 平均（84 节点） | < 50ms  | 含 warmup，5 次平均 |
+| `get_tree()` P99             | < 100ms |                     |
+| `get_subtree()` 平均         | < 20ms  |                     |
+| `list_catalogs()` 平均       | < 10ms  |                     |
 
 ---
 
@@ -765,14 +765,14 @@ CREATE UNIQUE INDEX uq_wiki_pub_catalog_active
 
 ### 15.3 与 Phase 3 的关系（叠加，不是回退）
 
-| 维度 | Phase 3（已落地） | Phase 4（本节，叠加） |
-|------|-----------------|------------------|
-| Catalog 与 Corpus 关系 | 完全解耦，正交 | **不变** |
-| `doc_catalog_documents` N:M | 一个 document_id 可挂多 entry | **不变** |
-| `(app_name, slug)` 唯一约束 | 允许同 app 多 Catalog | **保留**（向后兼容） |
-| Active Catalog 数量 | 不约束 | **新增** partial unique → ≤1 |
-| WikiPublication 多版本 | 同 catalog 内允许多 publication | **保留** |
-| LIVE Publication 数量 | 不约束 | **新增** partial unique → ≤1 |
+| 维度                        | Phase 3（已落地）               | Phase 4（本节，叠加）        |
+| --------------------------- | ------------------------------- | ---------------------------- |
+| Catalog 与 Corpus 关系      | 完全解耦，正交                  | **不变**                     |
+| `doc_catalog_documents` N:M | 一个 document_id 可挂多 entry   | **不变**                     |
+| `(app_name, slug)` 唯一约束 | 允许同 app 多 Catalog           | **保留**（向后兼容）         |
+| Active Catalog 数量         | 不约束                          | **新增** partial unique → ≤1 |
+| WikiPublication 多版本      | 同 catalog 内允许多 publication | **保留**                     |
+| LIVE Publication 数量       | 不约束                          | **新增** partial unique → ≤1 |
 
 **核心要义**：Phase 4 是 Phase 3 设计的**收敛态**，而非否定。底层 N:M schema、跨 catalog 文档引用能力、多版本 Wiki 发布机制全部保留——只在「active 子集」上加一条不变量，使 Catalog 成为合规的聚合根（Aggregate Root, DDD<sup>[[11-catalog]](#ref11-catalog)</sup>）。
 
@@ -836,25 +836,25 @@ flowchart LR
 
 ### 15.5 业界范式映射
 
-| 项目 | 聚合根 | 层级承载机制 | Phase 4 对应 |
-|------|--------|------------|------------|
-| Confluence<sup>[[9-catalog]](#ref9-catalog)</sup> | Space | Page tree (parent-child) | DocCatalog + CatalogNode |
-| GitBook<sup>[[7-catalog]](#ref7-catalog)</sup> | Book / Collection | SUMMARY.md 多级标题 | DocCatalog + 三级 CatalogNode |
-| Notion<sup>[[10-catalog]](#ref10-catalog)</sup> | Workspace | Subpage 嵌套 | DocCatalog + 自引用树 |
-| MediaWiki<sup>[[6-catalog]](#ref6-catalog)</sup> | Wiki instance | Category graph | （多对多形态，本项目不采用） |
+| 项目                                              | 聚合根            | 层级承载机制             | Phase 4 对应                  |
+| ------------------------------------------------- | ----------------- | ------------------------ | ----------------------------- |
+| Confluence<sup>[[9-catalog]](#ref9-catalog)</sup> | Space             | Page tree (parent-child) | DocCatalog + CatalogNode      |
+| GitBook<sup>[[7-catalog]](#ref7-catalog)</sup>    | Book / Collection | SUMMARY.md 多级标题      | DocCatalog + 三级 CatalogNode |
+| Notion<sup>[[10-catalog]](#ref10-catalog)</sup>   | Workspace         | Subpage 嵌套             | DocCatalog + 自引用树         |
+| MediaWiki<sup>[[6-catalog]](#ref6-catalog)</sup>  | Wiki instance     | Category graph           | （多对多形态，本项目不采用）  |
 
 我们的 Wiki 多主题/菜单/子菜单语义与 Confluence Space 的「Space → Page → Subpage」最为接近，三级 `CatalogNode` 即可完整承载，无需借助多 Catalog 平行扩展。
 
 ### 15.6 风险与缓解
 
-| 风险 | 缓解 |
-|------|-----|
-| 并发 `POST /catalogs` race | partial unique index 兜底 + service 层捕获 `IntegrityError` 降级为 ensure 语义 |
-| 嫁接后超过 `MAX_TREE_DEPTH=6` | Phase B 前预检 SQL 扫描所有 catalog 树深度，超限**中止迁移**人工介入 |
-| Slug 命名冲突 | 自动追加 `-legacy-<hash>` 后缀 + 写入迁移日志，不静默覆盖 |
-| `navigation_config` JSONB 残留旧 catalog_id | Phase B 步骤 4 显式 jsonb rewrite |
-| 旧客户端继续 `POST /catalogs` | 返回 409 + `existing_catalog_id` + 6 周宽限期；OpenAPI 标 deprecated |
-| 跨 corpus 文档归属冲突 | DOCUMENT_REF 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 合法；UI 提示去重不强制 |
+| 风险                                        | 缓解                                                                                         |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 并发 `POST /catalogs` race                  | partial unique index 兜底 + service 层捕获 `IntegrityError` 降级为 ensure 语义               |
+| 嫁接后超过 `MAX_TREE_DEPTH=6`               | Phase B 前预检 SQL 扫描所有 catalog 树深度，超限**中止迁移**人工介入                         |
+| Slug 命名冲突                               | 自动追加 `-legacy-<hash>` 后缀 + 写入迁移日志，不静默覆盖                                    |
+| `navigation_config` JSONB 残留旧 catalog_id | Phase B 步骤 4 显式 jsonb rewrite                                                            |
+| 旧客户端继续 `POST /catalogs`               | 返回 409 + `existing_catalog_id` + 6 周宽限期；OpenAPI 标 deprecated                         |
+| 跨 corpus 文档归属冲突                      | DOCUMENT_REF 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 合法；UI 提示去重不强制 |
 
 ### 15.7 验证清单
 
@@ -909,11 +909,11 @@ graph TD
 
 ### 16.3 新增组件
 
-| 组件 | 路径 | 职责 |
-|------|------|------|
-| `CatalogTreeToolbar` | `_components/CatalogTreeToolbar.tsx` | 树工具栏：搜索输入框、全部折叠、添加根节点 |
+| 组件                 | 路径                                 | 职责                                              |
+| -------------------- | ------------------------------------ | ------------------------------------------------- |
+| `CatalogTreeToolbar` | `_components/CatalogTreeToolbar.tsx` | 树工具栏：搜索输入框、全部折叠、添加根节点        |
 | `CatalogContextMenu` | `_components/CatalogContextMenu.tsx` | 右键上下文菜单：添加子节点、重命名、复制 ID、删除 |
-| `EmptyCatalogState` | `_components/EmptyCatalogState.tsx` | 空 Catalog 引导状态 |
+| `EmptyCatalogState`  | `_components/EmptyCatalogState.tsx`  | 空 Catalog 引导状态                               |
 
 ### 16.4 关键交互
 
@@ -925,12 +925,12 @@ graph TD
 
 ### 16.5 修改组件
 
-| 组件 | 变更 |
-|------|------|
+| 组件              | 变更                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------ |
 | `CatalogTreeNode` | 添加右键菜单触发、内联编辑 input、拖拽属性与事件、hover MoreHorizontal 按钮替代原 "+" 按钮 |
-| `CatalogTree` | 搜索过滤逻辑、匹配文本高亮、使用 EmptyCatalogState |
-| `useCatalogTree` | 新增 `expandAll()`、`collapseAll()`、`renameNode()`、`moveNode()` |
-| `page.tsx` | 集成工具栏、上下文菜单、搜索状态、编辑状态、拖拽状态管理 |
+| `CatalogTree`     | 搜索过滤逻辑、匹配文本高亮、使用 EmptyCatalogState                                         |
+| `useCatalogTree`  | 新增 `expandAll()`、`collapseAll()`、`renameNode()`、`moveNode()`                          |
+| `page.tsx`        | 集成工具栏、上下文菜单、搜索状态、编辑状态、拖拽状态管理                                   |
 
 <a id="ref13-catalog"></a>[13] M. Kleppmann, *Designing Data-Intensive Applications*. Sebastopol, CA: O'Reilly Media, 2017, ch. 5 ("Replication"), pp. 151–197.
 

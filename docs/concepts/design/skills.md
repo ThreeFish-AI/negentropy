@@ -24,18 +24,18 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 
 ## 2. 主流框架对照
 
-| 维度 | Anthropic Claude Skills<sup>[[4]](#ref4)</sup> | Google ADK Skills<sup>[[5]](#ref5)</sup> | OpenAI Codex Skills<sup>[[6]](#ref6)</sup> | Negentropy（本仓） |
-|------|-----------------------------------------------|------------------------------------------|--------------------------------------------|--------------------|
-| 核心载体 | `SKILL.md` + frontmatter | Python/TS 类 + 装饰器 | Markdown spec + tool 契约 | DB 表（`skills`）+ 14 字段（含 `enforcement_mode` / `resources`） |
-| Frontmatter 元数据 | ✓（`name`/`description`/`license`/`version`） | ✓（class metadata） | ✓ | ~（DB 列即元数据） |
-| 描述常驻（Layer 1） | ✓ | ✓ | ✓ | ✓（Phase 1） |
-| 模板按需（Layer 2） | ✓ | ✓ | ~ | ✓（**Phase 2**：`expand_skill` ADK tool + `POST /skills/{id}/invoke` REST + Jinja2 沙箱） |
-| 资源文件挂载（Layer 3） | ✓（`scripts/` `references/` `assets/`） | ✓ | ~ | ✓（**Phase 2**：JSONB `resources` 数组 + `fetch_skill_resource` 路由到 KG/Memory/Knowledge corpus，不直接 fetch URL 防 SSRF） |
-| 工具白名单 | ✓（`allowed-tools`） | ✓ | ✓ | ✓（**Phase 2**：`enforcement_mode=warning\|strict`，strict 抛 `SkillToolMissingError` → SubAgent 降级启动） |
-| 模板分发 / 一键安装 | ✗（手动复制 SKILL.md） | ✗ | ✓（manifest 包） | ✓（**Phase 2**：YAML 模板 + `GET /skills/templates` + `POST /skills/from-template`） |
-| 版本管理 | ✓（SemVer） | ✓ | ✗ | ~（字段保留，模板层 SemVer 强校验，DB 层尚无历史表） |
-| RBAC / 可见性 | ~（Cloud 层） | ✓ | ✗ | ✓（owner/private/shared/public） |
-| 在线编辑 / UI | ✗（文件系统） | ✗ | ✗ | ✓（`/interface/skills`：From Template / Preview / Inline toggle / 资源行编辑 / strict badge） |
+| 维度                    | Anthropic Claude Skills<sup>[[4]](#ref4)</sup> | Google ADK Skills<sup>[[5]](#ref5)</sup> | OpenAI Codex Skills<sup>[[6]](#ref6)</sup> | Negentropy（本仓）                                                                                                            |
+| ----------------------- | ---------------------------------------------- | ---------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 核心载体                | `SKILL.md` + frontmatter                       | Python/TS 类 + 装饰器                    | Markdown spec + tool 契约                  | DB 表（`skills`）+ 14 字段（含 `enforcement_mode` / `resources`）                                                             |
+| Frontmatter 元数据      | ✓（`name`/`description`/`license`/`version`）  | ✓（class metadata）                      | ✓                                          | ~（DB 列即元数据）                                                                                                            |
+| 描述常驻（Layer 1）     | ✓                                              | ✓                                        | ✓                                          | ✓（Phase 1）                                                                                                                  |
+| 模板按需（Layer 2）     | ✓                                              | ✓                                        | ~                                          | ✓（**Phase 2**：`expand_skill` ADK tool + `POST /skills/{id}/invoke` REST + Jinja2 沙箱）                                     |
+| 资源文件挂载（Layer 3） | ✓（`scripts/` `references/` `assets/`）        | ✓                                        | ~                                          | ✓（**Phase 2**：JSONB `resources` 数组 + `fetch_skill_resource` 路由到 KG/Memory/Knowledge corpus，不直接 fetch URL 防 SSRF） |
+| 工具白名单              | ✓（`allowed-tools`）                           | ✓                                        | ✓                                          | ✓（**Phase 2**：`enforcement_mode=warning\|strict`，strict 抛 `SkillToolMissingError` → SubAgent 降级启动）                   |
+| 模板分发 / 一键安装     | ✗（手动复制 SKILL.md）                         | ✗                                        | ✓（manifest 包）                           | ✓（**Phase 2**：YAML 模板 + `GET /skills/templates` + `POST /skills/from-template`）                                          |
+| 版本管理                | ✓（SemVer）                                    | ✓                                        | ✗                                          | ~（字段保留，模板层 SemVer 强校验，DB 层尚无历史表）                                                                          |
+| RBAC / 可见性           | ~（Cloud 层）                                  | ✓                                        | ✗                                          | ✓（owner/private/shared/public）                                                                                              |
+| 在线编辑 / UI           | ✗（文件系统）                                  | ✗                                        | ✗                                          | ✓（`/interface/skills`：From Template / Preview / Inline toggle / 资源行编辑 / strict badge）                                 |
 
 **关键洞察**：主流框架 _强 Schema_（文件系统 + frontmatter）但 _弱 RBAC_，Negentropy 反过来 _强 RBAC + 在线 UI_ 但 _弱文件系统_。两者并非互斥——Phase 2 路线即「保留 DB 主权 + 增量支持 SKILL.md 双向同步」（详见第 6 节）。
 
@@ -150,12 +150,12 @@ flowchart LR
 
 ## 4. 设计决策：为什么不直接复刻 Claude Skills
 
-| 决策 | 取舍 |
-|----|----|
-| **DB-first，非 file-first** | 本仓主用例是「在线协作 + RBAC」，文件 PR 流程对终端用户不友好；Phase 2 再补 SKILL.md 单向导入 |
-| **不引入 SKILL 资源目录（Phase 1）** | 资源挂载需要文件 IO + 安全沙箱，复杂度远超 PR 范围；优先用 prompt_template 字符串覆盖 80% 场景 |
-| **fail-soft 而非 fail-close** | Skills 是 _增强_ 而非 _依赖_：缺失工具或权限不应阻塞 SubAgent 启动；把决策权留给 LLM（看到工具不在白名单时会主动询问） |
-| **Progressive Disclosure 原则一以贯之** | 即便未来引入资源文件，也将遵循「描述层 / 调用层 / 资源层」的三段披露顺序，避免一次性塞满 context |
+| 决策                                    | 取舍                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **DB-first，非 file-first**             | 本仓主用例是「在线协作 + RBAC」，文件 PR 流程对终端用户不友好；Phase 2 再补 SKILL.md 单向导入                          |
+| **不引入 SKILL 资源目录（Phase 1）**    | 资源挂载需要文件 IO + 安全沙箱，复杂度远超 PR 范围；优先用 prompt_template 字符串覆盖 80% 场景                         |
+| **fail-soft 而非 fail-close**           | Skills 是 _增强_ 而非 _依赖_：缺失工具或权限不应阻塞 SubAgent 启动；把决策权留给 LLM（看到工具不在白名单时会主动询问） |
+| **Progressive Disclosure 原则一以贯之** | 即便未来引入资源文件，也将遵循「描述层 / 调用层 / 资源层」的三段披露顺序，避免一次性塞满 context                       |
 
 ---
 

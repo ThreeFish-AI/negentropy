@@ -69,13 +69,13 @@ for entry in response.memories:
 
 5 个 REST 端点（均位于 `/api/memory/...` 前缀，受 `_require_self_or_admin` 守卫：admin 角色可操作任意 `user_id`，普通用户只能操作自身）：
 
-| 端点 | 用途 |
-|---|---|
-| `POST /memory/self-edit/write` | 主动写入新记忆 |
-| `POST /memory/self-edit/update` | 修订已有记忆（保留 update_history）|
-| `POST /memory/self-edit/delete` | 软删除（保留行，可恢复）|
-| `POST /memory/core-blocks` | 新增/替换 Core Block |
-| `DELETE /memory/core-blocks` | 删除 Core Block |
+| 端点                            | 用途                                |
+| ------------------------------- | ----------------------------------- |
+| `POST /memory/self-edit/write`  | 主动写入新记忆                      |
+| `POST /memory/self-edit/update` | 修订已有记忆（保留 update_history） |
+| `POST /memory/self-edit/delete` | 软删除（保留行，可恢复）            |
+| `POST /memory/core-blocks`      | 新增/替换 Core Block                |
+| `DELETE /memory/core-blocks`    | 删除 Core Block                     |
 
 ### Curl 示例：写入
 
@@ -133,11 +133,11 @@ Core Block 是 Phase 4 新增的「常驻摘要块」，永不衰减、每次主
 
 ### 三种 scope
 
-| Scope | 范围 | 唯一键 | 用法 |
-|----|----|----|----|
-| `user` | 跨 thread 的人格画像 | `(user, app, label)` | "Alice 是一名后端工程师，偏好 Rust 与 PostgreSQL" |
-| `app` | 应用级常识 | `(app, label)` | "本系统支持中英双语交互" |
-| `thread` | 会话级目标 | `(user, app, thread, label)` | "用户当前任务：实现 Phase 4 评测脚本" |
+| Scope    | 范围                 | 唯一键                       | 用法                                              |
+| -------- | -------------------- | ---------------------------- | ------------------------------------------------- |
+| `user`   | 跨 thread 的人格画像 | `(user, app, label)`         | "Alice 是一名后端工程师，偏好 Rust 与 PostgreSQL" |
+| `app`    | 应用级常识           | `(app, label)`               | "本系统支持中英双语交互"                          |
+| `thread` | 会话级目标           | `(user, app, thread, label)` | "用户当前任务：实现 Phase 4 评测脚本"             |
 
 ### Python 用法
 
@@ -314,12 +314,12 @@ memory:
 
 ## 8. 故障排除速览
 
-| 症状 | 可能原因 | 排查 |
-|----|----|----|
-| `Rate limit exceeded` | Agent self-edit 短时间高频调用 | [troubleshooting](./memory-troubleshooting.md#rate-limit) |
-| 检索返回为空 | embedding_fn 未配置 / DB hybrid_search 函数缺失 | [troubleshooting](./memory-troubleshooting.md#search-empty) |
-| Core Block 重复条目 | scope=thread 但 thread_id 漏传 | [troubleshooting](./memory-troubleshooting.md#core-block-dup) |
-| Memory `retention=0` 大量记忆 | 自动化清理任务跑过 | [memory-automation](./memory-automation.md) |
+| 症状                          | 可能原因                                        | 排查                                                          |
+| ----------------------------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| `Rate limit exceeded`         | Agent self-edit 短时间高频调用                  | [troubleshooting](./memory-troubleshooting.md#rate-limit)     |
+| 检索返回为空                  | embedding_fn 未配置 / DB hybrid_search 函数缺失 | [troubleshooting](./memory-troubleshooting.md#search-empty)   |
+| Core Block 重复条目           | scope=thread 但 thread_id 漏传                  | [troubleshooting](./memory-troubleshooting.md#core-block-dup) |
+| Memory `retention=0` 大量记忆 | 自动化清理任务跑过                              | [memory-automation](./memory-automation.md)                   |
 
 详见 [`memory-troubleshooting.md`](./memory-troubleshooting.md)。
 
@@ -327,7 +327,7 @@ memory:
 
 ## 9. 可观测性端点
 
-| 端点 | 方法 | 鉴权 | 说明 |
-|------|------|------|------|
-| `/memory/health` | GET | 无 | 系统健康检查（DB 连通性、feature flags、表行数） |
-| `/memory/metrics` | GET | admin | 聚合指标（搜索 24h、巩固率、Retention 分布、PII 率） |
+| 端点              | 方法 | 鉴权  | 说明                                                 |
+| ----------------- | ---- | ----- | ---------------------------------------------------- |
+| `/memory/health`  | GET  | 无    | 系统健康检查（DB 连通性、feature flags、表行数）     |
+| `/memory/metrics` | GET  | admin | 聚合指标（搜索 24h、巩固率、Retention 分布、PII 率） |

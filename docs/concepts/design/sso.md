@@ -102,14 +102,14 @@ flowchart TD
 
 ## 5. 接口清单（Backend）
 
-| 接口 | 方法 | 说明 |
-| --- | --- | --- |
-| `/auth/google/login` | GET | 发起 Google OAuth 登录 |
-| `/auth/google/callback` | GET | OAuth 回调与 Cookie 写入 |
-| `/auth/me` | GET | 获取当前登录用户 |
-| `/auth/logout` | POST | 清理 Cookie 并返回 `{ status: "ok" }` |
-| `/auth/users/{user_id}` | GET | 查询用户状态（Admin） |
-| `/auth/users/{user_id}/roles` | PATCH | 更新用户角色（Admin） |
+| 接口                          | 方法  | 说明                                  |
+| ----------------------------- | ----- | ------------------------------------- |
+| `/auth/google/login`          | GET   | 发起 Google OAuth 登录                |
+| `/auth/google/callback`       | GET   | OAuth 回调与 Cookie 写入              |
+| `/auth/me`                    | GET   | 获取当前登录用户                      |
+| `/auth/logout`                | POST  | 清理 Cookie 并返回 `{ status: "ok" }` |
+| `/auth/users/{user_id}`       | GET   | 查询用户状态（Admin）                 |
+| `/auth/users/{user_id}/roles` | PATCH | 更新用户角色（Admin）                 |
 
 ## 5.1 接口事件说明（前后端联动）
 

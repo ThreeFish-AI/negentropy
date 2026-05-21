@@ -69,14 +69,14 @@ curl -fsS -b "ne_sso=$TOKEN" http://localhost:3192/api/interface/skills
 
 ## 5. 排错
 
-| 现象 | 可能原因 | 处理 |
-|------|---------|------|
-| Preview 渲染 `{{ query }}` 没替换 | Variables JSON 缺 `query` 键 | 补齐变量；StrictUndefined 模式下缺失变量 fail-soft 返回原模板 |
-| invoke 返回 503 | feature flag `NEGENTROPY_SKILLS_LAYER2_ENABLED=false` | 移除该 env 或设为 true 重启 backend |
-| invoke 返回 409 | Skill `is_enabled=false` | 卡片上点眼睛图标启用 |
-| SubAgent 起不来且日志 `subagent_skills_strict_blocked` | strict 模式 + SubAgent.tools 缺工具 | 把缺失工具补齐到 SubAgent；或临时把 Skill 改 warning 模式 |
-| arXiv 0 篇返回 | `days_back` 太短 / 关键词太冷 | 放宽到 30 天，或用更通用 query |
-| Memory/KG 无写入 | LLM 没真的调 save_to_memory（提示词理解偏差） | 把 prompt_template 改更命令式；或在 Preview 内调试新模板再覆盖 Skill |
+| 现象                                                   | 可能原因                                              | 处理                                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Preview 渲染 `{{ query }}` 没替换                      | Variables JSON 缺 `query` 键                          | 补齐变量；StrictUndefined 模式下缺失变量 fail-soft 返回原模板        |
+| invoke 返回 503                                        | feature flag `NEGENTROPY_SKILLS_LAYER2_ENABLED=false` | 移除该 env 或设为 true 重启 backend                                  |
+| invoke 返回 409                                        | Skill `is_enabled=false`                              | 卡片上点眼睛图标启用                                                 |
+| SubAgent 起不来且日志 `subagent_skills_strict_blocked` | strict 模式 + SubAgent.tools 缺工具                   | 把缺失工具补齐到 SubAgent；或临时把 Skill 改 warning 模式            |
+| arXiv 0 篇返回                                         | `days_back` 太短 / 关键词太冷                         | 放宽到 30 天，或用更通用 query                                       |
+| Memory/KG 无写入                                       | LLM 没真的调 save_to_memory（提示词理解偏差）         | 把 prompt_template 改更命令式；或在 Preview 内调试新模板再覆盖 Skill |
 
 ## 6. 进阶：v0.2 引文图（Phase 3 已落地）
 

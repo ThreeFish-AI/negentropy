@@ -16,17 +16,17 @@
 
 点击右上角「Add Skill」打开 Skill 表单，按以下顺序填写最关键的字段：
 
-| 字段 | 必填 | 示例 | 说明 |
-|------|----|----|----|
-| Name | ✓ | `arxiv-fetch` | 唯一短标识（用于 SubAgent 引用） |
-| Display Name | | `ArXiv Fetcher` | 卡片标题展示用 |
-| Description | | `检索并下载 arXiv 上 LLM Agent 相关论文` | **会作为 description 常驻 SubAgent 系统 prompt**，写得简洁清晰最关键 |
-| Category | | `research` | 用于列表页 Filter |
-| Visibility | | `Private` | 默认仅自己可见；改 `Public` 可被其它 owner 引用 |
-| Prompt Template | | 见下方 | 仅在 Skill 被实际调用时按需展开（Layer 2） |
-| Required Tools (一行一个) | | `search_arxiv`<br>`fetch_pdf` | SubAgent 必须拥有这些工具，否则启动时 warning |
-| Config Schema (JSON) | | `{}` | 预留 JSON Schema，未来用于参数校验 |
-| Default Config (JSON) | | `{}` | 预留默认参数 |
+| 字段                      | 必填 | 示例                                     | 说明                                                                 |
+| ------------------------- | ---- | ---------------------------------------- | -------------------------------------------------------------------- |
+| Name                      | ✓    | `arxiv-fetch`                            | 唯一短标识（用于 SubAgent 引用）                                     |
+| Display Name              |      | `ArXiv Fetcher`                          | 卡片标题展示用                                                       |
+| Description               |      | `检索并下载 arXiv 上 LLM Agent 相关论文` | **会作为 description 常驻 SubAgent 系统 prompt**，写得简洁清晰最关键 |
+| Category                  |      | `research`                               | 用于列表页 Filter                                                    |
+| Visibility                |      | `Private`                                | 默认仅自己可见；改 `Public` 可被其它 owner 引用                      |
+| Prompt Template           |      | 见下方                                   | 仅在 Skill 被实际调用时按需展开（Layer 2）                           |
+| Required Tools (一行一个) |      | `search_arxiv`<br>`fetch_pdf`            | SubAgent 必须拥有这些工具，否则启动时 warning                        |
+| Config Schema (JSON)      |      | `{}`                                     | 预留 JSON Schema，未来用于参数校验                                   |
+| Default Config (JSON)     |      | `{}`                                     | 预留默认参数                                                         |
 
 `Prompt Template` 示例：
 

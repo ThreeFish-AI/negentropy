@@ -99,21 +99,21 @@ node apps/negentropy-ui/scripts/sign-dev-cookie.mjs \
 
 ## 常见问题
 
-| 问题 | 解决 |
-|------|------|
-| `search_papers` 返回 0 条 | 调宽 `since_days`（默认 30，可设到 365），或换更通用 query |
+| 问题                                    | 解决                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| `search_papers` 返回 0 条               | 调宽 `since_days`（默认 30，可设到 365），或换更通用 query                     |
 | `ingest_paper` 失败：MCP extractor 缺失 | 在 `/admin/mcp-servers` 配置 marker / unstructured / GROBID 任一 PDF extractor |
-| KG 节点未出现 | 触发图谱构建时记得勾选 `ai_paper` schema；首次构建可能 5–10 分钟 |
-| 想批量入库 50 篇 | 用 Stop 中断长流程是合规操作；建议分 5 篇/批，避免 LLM 上下文溢出 |
+| KG 节点未出现                           | 触发图谱构建时记得勾选 `ai_paper` schema；首次构建可能 5–10 分钟               |
+| 想批量入库 50 篇                        | 用 Stop 中断长流程是合规操作；建议分 5 篇/批，避免 LLM 上下文溢出              |
 
 ## 与 4 大缺口（Home 对话增强）的协同
 
-| 缺口 | 论文采集场景的角色 |
-|------|--------------------|
-| **C7** Home E2E 双气泡守卫 | `tests/e2e/home-chat.spec.ts` 的论文场景用例直接验证本流水线<sup>[[3]](#ref3)</sup> |
-| **C5** 附件上传 | MVP 阶段：直接粘贴 arxiv URL；V1：上传 PDF → `read_attachment` 工具 |
-| **C3** Tool Progress | `search_papers` / `ingest_paper` 的核心可观测性载体（按语义里程碑 5%/20%/60%/100% 稀疏推送） |
-| **C4** 中断门 | 长抓取（5+ 分钟）的必要止损原语 |
+| 缺口                       | 论文采集场景的角色                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| **C7** Home E2E 双气泡守卫 | `tests/e2e/home-chat.spec.ts` 的论文场景用例直接验证本流水线<sup>[[3]](#ref3)</sup>          |
+| **C5** 附件上传            | MVP 阶段：直接粘贴 arxiv URL；V1：上传 PDF → `read_attachment` 工具                          |
+| **C3** Tool Progress       | `search_papers` / `ingest_paper` 的核心可观测性载体（按语义里程碑 5%/20%/60%/100% 稀疏推送） |
+| **C4** 中断门              | 长抓取（5+ 分钟）的必要止损原语                                                              |
 
 ## 参考文献
 
