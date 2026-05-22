@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square)](../../../LICENSE)
 [![uv](https://img.shields.io/badge/Package-uv-purple?style=flat-square&logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
 [![Google ADK](https://img.shields.io/badge/Framework-Google%20ADK-orange?style=flat-square)](https://google.github.io/adk-docs/)
-[![Next.js 22](https://img.shields.io/badge/Frontend-Next.js%2022-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js 16](https://img.shields.io/badge/Frontend-Next.js%2016-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 
 </div>
 
@@ -88,7 +88,7 @@ graph TB
 | :------------------------------- | :---------------- | :------------ |
 | Python                           | 3.13+             | 后端运行时    |
 | [uv](https://docs.astral.sh/uv/) | 最新              | Python 包管理 |
-| Node.js                          | 22+               | 前端运行时    |
+| Node.js                          | 20+               | 前端运行时    |
 | [pnpm](https://pnpm.io/)         | 最新              | 前端包管理    |
 | PostgreSQL                       | 16+ (含 pgvector) | 数据持久化    |
 
@@ -112,7 +112,7 @@ uv run negentropy init         # 生成 ~/.negentropy/config.yaml
 #   export OPENAI_API_KEY=...
 #   export ANTHROPIC_API_KEY=...
 uv run alembic upgrade head    # 应用数据库迁移
-uv run negentropy serve --port 8000  # 启动引擎
+uv run negentropy serve --port 3292  # 启动引擎
 ```
 
 ### 3. 启动前端
@@ -123,7 +123,21 @@ pnpm install                   # 安装依赖
 pnpm run dev                   # 启动开发服务器 (localhost:3192)
 ```
 
-### 4. 开始对话
+### 4. 安装 Pre-commit Hooks（推荐）
+
+安装本地 Git hooks，在每次提交前自动运行格式化与 lint 检查，保持 CI 干净：
+
+```bash
+# 安装 pre-commit（需要 uv）
+uv tool install pre-commit
+
+# 注册 hooks（项目根目录执行一次即可）
+pre-commit install
+```
+
+> 首次提交时 pre-commit 会自动下载 hook 环境。手动验证所有 hooks：`pre-commit run --all-files`
+
+### 5. 开始对话
 
 打开浏览器访问 `http://localhost:3192`，开始与 NegentropyEngine 对话。
 
@@ -160,7 +174,7 @@ pnpm run dev                   # 启动开发服务器 (localhost:3192)
 ```mermaid
 graph TB
     subgraph Presentation["🖥️ 展示层"]
-        UI["negentropy-ui<br/><i>Next.js 22 · React 19 · Tailwind</i>"]
+        UI["negentropy-ui<br/><i>Next.js 16 · React 19 · Tailwind</i>"]
         Wiki["negentropy-wiki<br/><i>Next.js</i>"]
     end
 
@@ -204,6 +218,7 @@ graph TB
 
 | 文档                                                       | 说明                                                                 |
 | :--------------------------------------------------------- | :------------------------------------------------------------------- |
+| [用户指南](../../user-guide.md)                            | 全功能使用手册：对话、知识库、记忆、插件、管理后台、Wiki             |
 | [开发指南](../../concepts/development.md)                  | 环境搭建、日常开发工作流、数据库迁移、前后端对接、故障排查           |
 | [架构设计](../../concepts/framework.md)                    | 一核五翼详解、流水线编排、设计模式目录、引擎层、数据持久化、前端架构 |
 | [知识系统](../../concepts/035-the-knowledge-base.md)       | 知识管理模块的详细设计与使用                                         |
