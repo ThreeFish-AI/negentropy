@@ -46,8 +46,8 @@ tags:
 
 1. **采用 Cognee 作为记忆框架**：统一图谱与向量存储，简化架构
 2. **实施 Agentic RAG 架构**：Adaptive + Corrective + Self-RAG 组合
-3. **Neo4j 作为图数据库首选**：成熟生态，与 LangChain/LlamaIndex 深度集成
-4. **保持 OceanBase 向量存储**：多模一体化，满足混合检索需求
+3. **PostgreSQL pgvector 作为向量存储**：基于已有 PostgreSQL 基础设施，一体化架构
+4. **PostgreSQL AGE 作为图数据库**：与 pgvector 共享基础设施，降低运维复杂度
 5. **分阶段实施**：向量增强 → 图谱增强 → Agentic RAG 完整实现
 
 ---
@@ -546,8 +546,8 @@ flowchart TB
     subgraph "Agentic RAG Pipeline"
         Query[用户查询] --> Router{智能路由}
 
-        Router -->|论文检索| OB[(OceanBase 向量)]
-        Router -->|关系探索| Neo[(Neo4j 图谱)]
+        Router -->|论文检索| OB[(pgvector 向量)]
+        Router -->|关系探索| Neo[(AGE 图谱)]
         Router -->|最新信息| Web[Web 搜索]
 
         OB & Neo & Web --> Grader[相关性评估]
@@ -1036,9 +1036,9 @@ Memgraph 是内存图数据库，专注实时处理。
 
 ## 5. 向量数据库支撑
 
-> 除图存储外，向量检索是认知增强的另一核心能力。本章重点介绍项目已选的 OceanBase 向量能力，并与其他主流向量数据库进行对比。
+> 除图存储外，向量检索是认知增强的另一核心能力。本章重点介绍调研阶段评估的 OceanBase 向量能力（项目实际落地已选用 PostgreSQL pgvector），并与其他主流向量数据库进行对比。
 
-### 5.1 OceanBase（项目已选）
+### 5.1 OceanBase（调研评估）
 
 #### 5.1.1 核心优势
 
@@ -1114,7 +1114,7 @@ vectorstore = OceanBase.from_documents(
 | **Milvus**   | 大规模、分布式       | 十亿级向量   |
 | **Chroma**   | 轻量、开发友好       | 快速原型     |
 
-**本项目建议**：继续使用 OceanBase，充分利用其多模一体化能力。
+**本项目现状**：项目实际落地选用 **PostgreSQL pgvector**，基于已有 PostgreSQL 基础设施实现一体化架构（向量 + 图谱 + 业务数据统一存储），降低运维复杂度。OceanBase 的多模一体化思路在架构设计中仍有参考价值。
 
 ---
 
@@ -1368,8 +1368,8 @@ flowchart LR
 
 | 组件           | 推荐方案         | 备选方案   | 理由                    |
 | -------------- | ---------------- | ---------- | ----------------------- |
-| **向量存储**   | OceanBase        | Qdrant     | 项目已选，多模一体化    |
-| **图存储**     | Neo4j            | FalkorDB   | 成熟生态，AI 工具链完善 |
+| **向量存储**   | PostgreSQL pgvector | OceanBase  | 已落地，一体化架构    |
+| **图存储**     | PostgreSQL AGE   | Neo4j       | 自研图谱，已具备基础能力 |
 | **记忆框架**   | Cognee           | LlamaIndex | 图+向量统一，自学习能力 |
 | **Agent 框架** | Claude SDK + ADK | -          | 双框架战略已定，保持    |
 | **评估框架**   | RAGAS            | -          | RAG 质量评估标准        |
@@ -1395,8 +1395,8 @@ flowchart TB
     end
 
     subgraph 存储层
-        OB[(OceanBase<br/>向量存储)]
-        Neo[(Neo4j<br/>知识图谱)]
+        OB[(PostgreSQL pgvector<br/>向量存储)]
+        Neo[(PostgreSQL AGE<br/>知识图谱)]
         FS[(文件系统<br/>原始文档)]
     end
 
@@ -1517,14 +1517,13 @@ gantt
     title 智能认知增强实施路线
     dateFormat  YYYY-MM
     section Phase 1 向量增强
-    OceanBase 集成完善      :2025-12, 2026-01
-    基础 RAG 检索           :2026-01, 2026-02
-    RAGAS 评估集成          :2026-02, 2026-02
+    PostgreSQL pgvector 集成  :2025-12, 2026-01, done
+    基础 RAG 检索             :2026-01, 2026-02
+    RAGAS 评估集成            :2026-02, 2026-02
     section Phase 2 图谱增强
-    Neo4j 部署配置          :2026-02, 2026-03
-    Cognee 框架集成         :2026-03, 2026-04
-    知识图谱构建            :2026-04, 2026-05
-    混合检索实现            :2026-05, 2026-06
+    PostgreSQL AGE 图谱建设   :2026-02, 2026-03
+    知识图谱构建              :2026-04, 2026-05
+    混合检索实现              :2026-05, 2026-06
     section Phase 3 认知增强
     多跳推理问答            :2026-06, 2026-07
     Agent 记忆持久化        :2026-07, 2026-08
@@ -1668,7 +1667,9 @@ cypher_retriever = TextToCypherRetriever(
 nodes = cypher_retriever.retrieve("Find all papers that cite ReAct")
 ```
 
-### 8.3 OceanBase 向量检索
+### 8.3 OceanBase 向量检索（调研参考）
+
+> **注**：以下为调研阶段的 OceanBase 示例，项目实际落地已选用 PostgreSQL pgvector，但 OceanBase 的 SQL 接口模式对理解向量检索原理仍有参考价值。
 
 #### 8.3.1 表结构创建
 
