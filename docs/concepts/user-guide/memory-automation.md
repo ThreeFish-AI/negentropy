@@ -39,15 +39,15 @@ UI 路径：`/admin/memory?tab=automation`，操作均需 Admin 权限。
 ```bash
 # 查看自动化快照
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8000/api/memory/automation?app_name=negentropy"
+  "http://localhost:3292/api/memory/automation?app_name=negentropy"
 
 # 启用某个任务
 curl -X POST -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8000/api/memory/automation/jobs/cleanup_low_value_memories/enable?app_name=negentropy"
+  "http://localhost:3292/api/memory/automation/jobs/cleanup_low_value_memories/enable?app_name=negentropy"
 
 # 立即运行一次
 curl -X POST -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8000/api/memory/automation/jobs/cleanup_low_value_memories/run?app_name=negentropy"
+  "http://localhost:3292/api/memory/automation/jobs/cleanup_low_value_memories/run?app_name=negentropy"
 
 # 调整 cron / 阈值
 curl -X POST -H "Authorization: Bearer $TOKEN" \
@@ -63,7 +63,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
       }
     }
   }' \
-  http://localhost:8000/api/memory/automation/config
+  http://localhost:3292/api/memory/automation/config
 ```
 
 ---
@@ -95,7 +95,7 @@ SELECT cron.schedule(
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8000/api/memory/retrieval/metrics?user_id=alice&days=30"
+  "http://localhost:3292/api/memory/retrieval/metrics?user_id=alice&days=30"
 # → {total_retrievals, precision_at_k, utilization_rate, noise_rate}
 ```
 
@@ -106,7 +106,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8000/api/memory/automation/logs?app_name=negentropy&limit=20"
+  "http://localhost:3292/api/memory/automation/logs?app_name=negentropy&limit=20"
 ```
 
 ### 5.3 评测基线（CI 周报）
@@ -132,7 +132,7 @@ Core Block 不参与衰减，但仍可被治理：
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"log_id": "<uuid>", "outcome": "helpful"}' \
-  http://localhost:8000/api/memory/retrieval/feedback
+  http://localhost:3292/api/memory/retrieval/feedback
 ```
 
 `outcome` ∈ {`helpful` / `irrelevant` / `harmful`} 写入 `memory_retrieval_logs.outcome_feedback`，由 Rocchio 风格重排<sup>[[27]](#ref27)</sup>下游消费。

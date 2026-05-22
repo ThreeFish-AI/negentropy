@@ -110,7 +110,7 @@ flowchart TD
 对应代码锚点：
 
 - 传输入口：[route.ts](../../apps/negentropy-ui/app/api/agui/route.ts)
-- ADK 到 AGUI 归一化：[adk.ts](../../apps/negentropy-ui/lib/adk.ts)
+- ADK 到 AGUI 归一化：[agui-normalization.ts](../../apps/negentropy-ui/utils/agui-normalization.ts)
 - Session Application Service：[useSessionService.ts](../../apps/negentropy-ui/features/session/hooks/useSessionService.ts)
 - Session List Service：[useSessionListService.ts](../../apps/negentropy-ui/features/session/hooks/useSessionListService.ts)
 - Session Projection / Message Ledger：[message-ledger.ts](../../apps/negentropy-ui/utils/message-ledger.ts)

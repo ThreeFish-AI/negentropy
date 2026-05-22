@@ -80,7 +80,7 @@ for entry in response.memories:
 ### Curl 示例：写入
 
 ```bash
-curl -X POST http://localhost:8000/api/memory/self-edit/write \
+curl -X POST http://localhost:3292/api/memory/self-edit/write \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{

@@ -125,9 +125,10 @@ graph TB
 ```python
 root_agent = LlmAgent(
     name="NegentropyEngine",
-    model=create_model(),
+    model=create_root_model(),
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
-    instruction="...",  # ~90 行调度指令，详见源码
+    instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION, is_root=True),
+    before_model_callback=_pick_root_model,  # 按请求动态选择模型
     tools=[log_activity],
     sub_agents=[
         perception_agent, internalization_agent,

@@ -324,8 +324,8 @@ Memory 和关联 Fact 同步处理，确保 GDPR 合规：
 
 ## 8. 扩展点与策略接口
 
-- **EntityExtractor**（ABC）：实体提取策略。当前实现 `RegexEntityExtractor`（正则），预留 `LLMEntityExtractor` 接口。
-- **RelationExtractor**（ABC）：关系提取策略。当前实现 `CooccurrenceRelationExtractor`（共现），预留 `LLMRelationExtractor` 接口。
+- **EntityExtractor**（ABC）：实体提取策略。已实现 `RegexEntityExtractor`（正则）、`LLMEntityExtractor`（LLM 驱动）、`CompositeEntityExtractor`（LLM 优先 + 正则回退）。
+- **RelationExtractor**（ABC）：关系提取策略。已实现 `CooccurrenceRelationExtractor`（共现）、`LLMRelationExtractor`（LLM 语义关系提取 + 证据）、`CompositeRelationExtractor`（LLM 优先 + 共现回退）。
 - **Reranker**（ABC）：L1 精排策略。已实现 `NoopReranker` / `LocalReranker` (BGE) / `APIReranker` (Cohere) / `CompositeReranker`（多级回退）。
 - **Pipeline Jobs**：支持"全量重建 / 增量更新 / 回滚"，与 UI 的 Pipelines 视图对齐。DAO 层已消除重复代码（通用 `_upsert_run()` 方法）。
 
@@ -448,7 +448,7 @@ logger.error("database_error", details=exc.details)
   - **Recursive**: 递归字符切分（按段落 `\n\n` -> 句子 `.` -> 词 ），保持语义连贯性。
   - **Semantic**: 基于 Embedding 相似度突变点进行切分，聚合语义相似的段落。
 - **Embedding Models**:
-  - 默认模型：`vertex_ai/text-embedding-005` (768维/1536维)，平衡性能与成本。
+  - 默认模型：`vertex_ai/text-embedding-005`（默认输出 768 维；`openai/text-embedding-3-small` 输出 1536 维），平衡性能与成本。
   - 备选模型：`openai/text-embedding-3-small`。
 - **Retrieval Modes (检索模式)**：
   - **Semantic**: 向量余弦相似度（Cosine Similarity），召回语义相关。

@@ -98,8 +98,6 @@ apps/negentropy/src/negentropy/
 │   ├── __init__.py                 # 包导出
 │   ├── models.py                   # ClaudeCodeConfig, ClaudeCodeResult
 │   └── service.py                  # ClaudeCodeService（SDK + CLI）
-├── engine/schedulers/handlers/
-│   └── claude_code.py              # claude_code scheduler handler
 ├── db/migrations/versions/
 │   └── 0039_seed_claude_code_builtin_tool.py  # 系统级 BuiltinTool seed
 └── interface/api.py                # test_builtin_tool 扩展
@@ -125,11 +123,11 @@ class ClaudeCodeService:
 ```python
 async def invoke_claude_code(
     task: str,                      # 任务描述
+    tool_context: ToolContext,       # ADK 注入的上下文（框架自动传入）
     working_directory: str | None,  # 工作目录
     allowed_tools: str | None,      # 允许的工具（逗号分隔）
     max_turns: int,                 # 最大迭代轮数
     system_prompt: str | None,      # 自定义系统指令
-    tool_context: ToolContext,       # ADK 注入的上下文
 ) -> dict[str, Any]                 # {status, summary, session_id, cost_usd, ...}
 ```
 
@@ -160,5 +158,5 @@ class ClaudeCodeResult:
 
 - [1] Anthropic, "Claude Code SDK," https://docs.anthropic.com/en/docs/claude-code/sdk, 2025.
 - [2] Anthropic, "Claude Code CLI Usage," https://docs.anthropic.com/en/docs/claude-code/cli-usage, 2025.
-- [3] Google, "ADK Custom Tools," https://adk.dev/tools-custom/, 2025.
+- [3] Google, "ADK Custom Tools," https://google.github.io/adk-docs/tools/custom-tools/, 2025.
 - [4] E. Gamma et al., *Design Patterns: Elements of Reusable Object-Oriented Software*, Addison-Wesley, 1994 — Adapter Pattern.

@@ -291,7 +291,7 @@ $$RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)}$$
 | GraphRAG 检索 | 🔄 LightRAG 双层模式启发     | 适配现有 `SearchConfig` |
 | 时态建模      | 🔄 Graphiti 双时态模型启发   | 扩展关系属性            |
 
-### 3.6 可采纳的架构模式精炼
+### 3.7 可采纳的架构模式精炼
 
 基于对 Cognee、Graphiti、Neo4j GDS 的深度调研，提炼出以下可直接采纳的架构模式：
 
@@ -399,7 +399,7 @@ class KgEntityType(Enum):
     OTHER = "other"              # 其他
 ```
 
-**关系类型** (12 种)：
+**关系类型** (13 种，含 Phase 5 新增 `CUSTOM`)：
 
 ```python
 class KgRelationType(Enum):
@@ -420,6 +420,8 @@ class KgRelationType(Enum):
     CREATED_BY = "CREATED_BY"      # 创建者
     # 共现关系（回退）
     CO_OCCURS = "CO_OCCURS"        # 共现
+    # 开放关系（Phase 5 E1 新增）
+    CUSTOM = "CUSTOM"              # 用户自定义关系类型
 ```
 
 ### 4.4 数据流
@@ -695,14 +697,8 @@ RRF_score(d) = 1/(k + rank_semantic(d)) + 1/(k + rank_graph(d))
 **配置扩展**：在现有 `GraphSearchMode` 类型中增加检索模式。当前定义为 `Literal` 类型别名：
 
 ```python
-# 当前定义 (types.py)
-GraphSearchMode = Literal["semantic", "graph", "hybrid"]
-
-# Phase 2 扩展为：
-GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf"]
-
-# Phase 3 扩展为：
-GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf", "graphrag"]
+# 当前定义 (types.py) — 已含 global 模式用于 Global Search
+GraphSearchMode = Literal["semantic", "graph", "hybrid", "global"]
 ```
 
 ### 5.5 实体/关系类型扩展
@@ -1334,7 +1330,7 @@ timeline
 | Neo4j 可选部署 | 依据 Phase 3 评估结论决定                                                   |
 | 高级图算法     | Node2Vec、GAT (图注意力网络)                                                |
 | 跨语料融合     | 多 Corpus 间的实体链接与关系推断                                            |
-| 联邦知识图谱   | 多租户环境下的图谱隔离与按需融合                                            |
+| 联邦知识图谱   | 多租户环境下的图谱隔离与按需融合。**已实现**，详见 [`037-federated-kg.md`](037-federated-kg.md)（PR1–PR4 于 2026-05-17 落地） |
 | 代码知识图谱   | 从代码库提取函数调用图<sup>[[14]](#ref14)</sup>，支撑 Action 系部的精准执行 |
 
 ---
