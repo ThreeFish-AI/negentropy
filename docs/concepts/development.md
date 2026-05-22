@@ -36,7 +36,7 @@
 | :------------ | :------------------------------------------------------- |
 | 语言          | Python 3.13+                                             |
 | Python 包管理 | [uv](https://docs.astral.sh/uv/)<sup>[[1]](#ref1)</sup>  |
-| Agent 框架    | [Google ADK](https://google.github.io/adk-docs/)         |
+| Agent 框架    | [Google ADK](https://adk.dev/)         |
 | LLM 接口      | [LiteLLM](https://docs.litellm.ai/) (统一 100+ LLM 接入) |
 | Web 框架      | FastAPI (通过 ADK Web Server)                            |
 | ORM           | SQLAlchemy 2.0 (async, asyncpg)                          |

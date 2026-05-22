@@ -1816,7 +1816,7 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 ### 工业框架
 
-<a id="ref12"></a>[12] Google, "Memory: Long-term knowledge with MemoryService," _Agent Development Kit Documentation_, 2026. [Online]. Available: https://google.github.io/adk-docs/sessions/memory/
+<a id="ref12"></a>[12] Google, "Memory: Long-term knowledge with MemoryService," _Agent Development Kit Documentation_, 2026. [Online]. Available: https://adk.dev/sessions/memory/
 
 <a id="ref13"></a>[13] LangChain, "Memory," _LangGraph Documentation_, 2026. [Online]. Available: https://langchain-ai.github.io/langgraph/concepts/memory/
 

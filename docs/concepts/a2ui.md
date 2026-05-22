@@ -317,6 +317,6 @@ flowchart TD
 
 <a id="ref2"></a>[2] AG-UI Docs, "Messages," *AG-UI Documentation*, 2026. [Online]. Available: https://docs.ag-ui.com/concepts/messages
 
-<a id="ref3"></a>[3] AG-UI Docs, "Generative User Interfaces," *AG-UI Documentation*, 2026. [Online]. Available: https://docs.ag-ui.com/concepts/generative-ui
+<a id="ref3"></a>[3] AG-UI Docs, "Generative UI Specifications," *AG-UI Documentation*, 2026. [Online]. Available: https://docs.ag-ui.com/concepts/generative-ui-specs
 
-<a id="ref4"></a>[4] A2UI, "A2UI Specification v0.8," *A2UI Documentation*, 2026. [Online]. Available: https://a2ui.org/specification
+<a id="ref4"></a>[4] A2UI, "A2UI Concepts Overview," *A2UI Documentation*, 2026. [Online]. Available: https://a2ui.org/concepts/overview/

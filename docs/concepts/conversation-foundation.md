@@ -55,7 +55,7 @@ negentropy 把 PAO 演化为「**一核五翼**」（PerceptionFaculty / Interna
 ### 2.3 关键引用
 
 <a id="ref5"></a>[5] G. Hohpe and B. Woolf, *Enterprise Integration Patterns*. Boston, MA, USA: Addison-Wesley, 2003.
-<a id="ref6"></a>[6] Google, "Agent-to-User Interface (A2UI) Concepts," 2025. [Online]. Available: https://google.github.io/adk-docs/
+<a id="ref6"></a>[6] Google, "Agent-to-User Interface (A2UI) Concepts," 2025. [Online]. Available: https://adk.dev/
 
 ---
 

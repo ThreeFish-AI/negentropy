@@ -158,5 +158,5 @@ class ClaudeCodeResult:
 
 - [1] Anthropic, "Claude Code SDK," https://docs.anthropic.com/en/docs/claude-code/sdk, 2025.
 - [2] Anthropic, "Claude Code CLI Usage," https://docs.anthropic.com/en/docs/claude-code/cli-usage, 2025.
-- [3] Google, "ADK Custom Tools," https://google.github.io/adk-docs/tools/custom-tools/, 2025.
+- [3] Google, "ADK Custom Tools," https://adk.dev/tools/custom-tools/, 2025.
 - [4] E. Gamma et al., *Design Patterns: Elements of Reusable Object-Oriented Software*, Addison-Wesley, 1994 — Adapter Pattern.
