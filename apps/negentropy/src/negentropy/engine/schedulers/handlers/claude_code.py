@@ -43,9 +43,11 @@ async def claude_code_handler(task) -> HandlerResult:
 
         # 会话续接（从 task execution 历史中找最近 session_id）
         if payload.get("resume"):
-            last_session_id = await _find_last_session_id(task.id)
-            if last_session_id:
-                config.resume_session_id = last_session_id
+            logger.info(
+                "claude_code_resume_requested",
+                task_id=task.id,
+                note="resume not yet implemented, starting fresh session",
+            )
 
         result = await ClaudeCodeService.invoke(prompt, config)
 
@@ -98,31 +100,3 @@ async def _load_claude_code_defaults():
             mcp_config=cfg.get("mcp_config"),
         )
     return ClaudeCodeConfig()
-
-
-async def _find_last_session_id(task_id) -> str | None:
-    """从最近一次 task_execution 的 metrics 中提取 session_id。"""
-
-    from sqlalchemy import select
-
-    from negentropy.db.session import AsyncSessionLocal
-    from negentropy.models.scheduled_task import TaskExecution
-
-    async with AsyncSessionLocal() as db:
-        stmt = (
-            select(TaskExecution)
-            .where(
-                TaskExecution.task_id == task_id,
-                TaskExecution.status == "ok",
-            )
-            .order_by(TaskExecution.started_at.desc())
-            .limit(1)
-        )
-        result = await db.execute(stmt)
-        execution = result.scalar_one_or_none()
-
-    if execution and execution.output_summary:
-        # session_id 存储在 output_summary 或 metrics 中
-        # 暂时返回 None，待 Phase 3 完善会话续接模型后启用
-        return None
-    return None

@@ -237,21 +237,25 @@ export function HomeBody({
     useSubAgentsList();
   const { corpora, loading: corporaLoading, error: corporaError } = useCorporaList();
   const agentCandidates = useMemo<MentionCandidate[]>(
-    () => [
-      ...subagents.map((a) => ({
+    () => {
+      const mapped = subagents.map((a) => ({
         kind: "agent" as const,
         refId: a.name,
         label: a.display_name || a.name,
         description: a.description || undefined,
-      })),
-      {
-        kind: "agent" as const,
-        refId: "claude_code",
-        label: "Claude Code",
-        description:
-          "提示 ADK Agent 使用 Claude Code 工具来完成代码分析、修改、测试等复杂任务",
-      },
-    ],
+      }));
+      const hasBuiltinClaudeCode = subagents.some((a) => a.name === "claude_code");
+      if (!hasBuiltinClaudeCode) {
+        mapped.push({
+          kind: "agent" as const,
+          refId: "claude_code",
+          label: "Claude Code",
+          description:
+            "提示 ADK Agent 使用 Claude Code 工具来完成代码分析、修改、测试等复杂任务",
+        });
+      }
+      return mapped;
+    },
     [subagents],
   );
   const corpusCandidates = useMemo<MentionCandidate[]>(

@@ -53,9 +53,10 @@ class ClaudeCodeService:
         t0 = time.monotonic()
         try:
             if ClaudeCodeService._check_sdk():
-                result = await ClaudeCodeService._invoke_sdk(prompt, config, abort_event)
+                coro = ClaudeCodeService._invoke_sdk(prompt, config, abort_event)
             else:
-                result = await ClaudeCodeService._invoke_cli(prompt, config, abort_event)
+                coro = ClaudeCodeService._invoke_cli(prompt, config, abort_event)
+            result = await asyncio.wait_for(coro, timeout=config.timeout_seconds)
             elapsed = time.monotonic() - t0
             logger.info(
                 "claude_code_invoke_done",
@@ -68,6 +69,9 @@ class ClaudeCodeService:
             return result
         except asyncio.CancelledError:
             return ClaudeCodeResult(status="error", summary="", error="cancelled")
+        except TimeoutError:
+            logger.warning("claude_code_invoke_timeout", timeout=config.timeout_seconds)
+            return ClaudeCodeResult(status="timeout", summary="", error=f"exceeded timeout ({config.timeout_seconds}s)")
         except Exception as exc:
             logger.warning("claude_code_invoke_failed", error=str(exc))
             return ClaudeCodeResult(status="error", summary="", error=str(exc))
@@ -100,6 +104,7 @@ class ClaudeCodeService:
         session_id = None
         cost = 0.0
         turns = 0
+        error_text = None
 
         async for msg in claude_code_sdk.query(prompt=prompt, options=options):
             # ResultMessage
@@ -111,12 +116,16 @@ class ClaudeCodeService:
                 cost = msg.cost_usd
             if hasattr(msg, "num_turns") and msg.num_turns:
                 turns = msg.num_turns
+            if hasattr(msg, "is_error") and msg.is_error:
+                error_text = result_text or "SDK returned error"
 
             if abort_event and abort_event.is_set():
                 break
 
+        status = "error" if error_text else "success"
         return ClaudeCodeResult(
-            status="success",
+            status=status,
+            error=error_text,
             summary=result_text[:_SUMMARY_MAX_LEN],
             session_id=session_id,
             cost_usd=cost,
@@ -139,7 +148,7 @@ class ClaudeCodeService:
             proc = await asyncio.create_subprocess_exec(
                 *args,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
                 cwd=config.cwd,
             )
         except FileNotFoundError:
