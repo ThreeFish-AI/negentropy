@@ -44,7 +44,7 @@ classifiers = [
 dependencies = [
     # === 1. 核心框架：AI/LLM Agent 基础设施 ===
     # Agent 开发框架和 LLM 客户端，是整个系统的核心依赖
-    "google-adk>=1.22.1",               # Google Agent Development Kit: LlmAgent, SessionService 等
+    "google-adk>=2.0.0",               # Google Agent Development Kit 2.0: Workflow Runtime, Collaborative Agents
     "google-generativeai>=0.8.6",       # Gemini API 客户端: Embedding 和 LLM 调用
     "anthropic>=0.76.0",                # Claude API 客户端: Claude 模型调用
 
