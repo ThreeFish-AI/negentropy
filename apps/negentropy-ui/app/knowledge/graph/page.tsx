@@ -122,8 +122,8 @@ export default function KnowledgeGraphPage() {
   const [buildError, setBuildError] = useState<string | null>(null);
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
-  // G2: 渲染引擎切换 — Cytoscape / d3-force / Sigma.js WebGL / Force Graph 2D / 3D WebGL
-  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("cytoscape");
+  // G2: 渲染引擎切换（默认 Sigma WebGL）— Sigma / 3D / d3-force / Force Graph / Cytoscape
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("sigma");
   // 右侧抽屉收起状态；localStorage 持久化，SSR 安全（初值 true，挂载后读取覆盖）。
   // 设计要点（修复挂载期闪烁 + storage 噪声）：
   //   1) 用 hasHydratedRef 区分「初始挂载 read」与「用户交互 write」——挂载阶段
@@ -554,26 +554,15 @@ export default function KnowledgeGraphPage() {
                   {viewTab === "graph" && (
                     <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 text-[10px]">
                       <button
-                        onClick={() => setRenderer("cytoscape")}
-                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认）"
+                        onClick={() => setRenderer("sigma")}
+                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
                         className={`px-2 py-1 font-medium ${
-                          renderer === "cytoscape"
+                          renderer === "sigma"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
                         } rounded-l-lg`}
                       >
-                        Cytoscape
-                      </button>
-                      <button
-                        onClick={() => setRenderer("d3")}
-                        title="d3-force（Phase 1 兼容回退）"
-                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
-                          renderer === "d3"
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
-                        }`}
-                      >
-                        d3-force
+                        Sigma
                       </button>
                       <button
                         onClick={() => setRenderer("3d")}
@@ -587,26 +576,37 @@ export default function KnowledgeGraphPage() {
                         3D
                       </button>
                       <button
-                        onClick={() => setRenderer("sigma")}
-                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图）"
-                        className={`px-2 py-1 font-medium ${
-                          renderer === "sigma"
+                        onClick={() => setRenderer("d3")}
+                        title="d3-force（Phase 1 兼容回退）"
+                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
+                          renderer === "d3"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
                         }`}
                       >
-                        Sigma
+                        d3-force
                       </button>
                       <button
                         onClick={() => setRenderer("force-graph")}
                         title="react-force-graph-2d（粒子流动效果，视觉表现力强）"
-                        className={`px-2 py-1 font-medium ${
+                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
                           renderer === "force-graph"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        }`}
+                      >
+                        Force Graph
+                      </button>
+                      <button
+                        onClick={() => setRenderer("cytoscape")}
+                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "cytoscape"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
                         } rounded-r-lg`}
                       >
-                        Force Graph
+                        Cytoscape
                       </button>
                     </div>
                   )}
