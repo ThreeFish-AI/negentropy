@@ -301,10 +301,8 @@ def apply_adk_patches():
     # is called INSIDE get_fast_api_app (via services.py import by ADK agent loader),
     # meaning the current call already bypasses the wrapper. We must set sys.modules
     # eagerly here so the conditional import at lines 519-535 sees the None entry.
-    _saved_dev_server = sys.modules.get("google.adk.cli.dev_server")
-    if _saved_dev_server is not None:
-        sys.modules["google.adk.cli.dev_server"] = None  # type: ignore[assignment]
-        logger.debug("Set sys.modules['google.adk.cli.dev_server'] = None to force ApiServer fallback")
+    sys.modules["google.adk.cli.dev_server"] = None  # type: ignore[assignment]
+    logger.debug("Set sys.modules['google.adk.cli.dev_server'] = None to force ApiServer fallback")
 
     patched_items = []
 
