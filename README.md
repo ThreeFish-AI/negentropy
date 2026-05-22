@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square)](./LICENSE)
 [![uv](https://img.shields.io/badge/Package-uv-purple?style=flat-square&logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
 [![Google ADK](https://img.shields.io/badge/Framework-Google%20ADK-orange?style=flat-square)](https://google.github.io/adk-docs/)
-[![Next.js 22](https://img.shields.io/badge/Frontend-Next.js%2022-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js 16](https://img.shields.io/badge/Frontend-Next.js%2016-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 
 </div>
 
@@ -88,7 +88,7 @@ graph TB
 | :------------------------------- | :------------------ | :----------------------- |
 | Python                           | 3.13+               | Backend Runtime          |
 | [uv](https://docs.astral.sh/uv/) | Latest              | Python Package Manager   |
-| Node.js                          | 22+                 | Frontend Runtime         |
+| Node.js                          | 20+                 | Frontend Runtime         |
 | [pnpm](https://pnpm.io/)         | Latest              | Frontend Package Manager |
 | PostgreSQL                       | 16+ (with pgvector) | Data Persistence         |
 
@@ -174,7 +174,7 @@ The **NegentropyEngine** refrains from executing atomic tasks directly; it exist
 ```mermaid
 graph TB
     subgraph Presentation["🖥️ Presentation Layer"]
-        UI["negentropy-ui<br/><i>Next.js 22 · React 19 · Tailwind</i>"]
+        UI["negentropy-ui<br/><i>Next.js 16 · React 19 · Tailwind</i>"]
         Wiki["negentropy-wiki<br/><i>Next.js</i>"]
     end
 
@@ -224,9 +224,9 @@ graph TB
 | [Knowledge System](docs/concepts/035-the-knowledge-base.md) | Detailed design and usage of the knowledge management module                                    |
 | [Memory System](docs/concepts/025-the-memory-system.md)     | Memory lifecycle, forgetting curves, and governance mechanics                                   |
 | [Knowledge Graph](docs/concepts/036-the-knowledge-graph.md) | Graph modeling and query implementation                                                         |
-| [QA Pipeline](./docs/qa-delivery-pipeline.md)               | Quality gates and release workflows                                                             |
-| [SSO Integration](./docs/sso.md)                            | Google OAuth authentication config                                                              |
-| [Engineering Changelog](./docs/engineering-changelog.md)    | Milestones and baseline mutation records                                                        |
+| [QA Pipeline](./docs/concepts/design/qa-delivery-pipeline.md)               | Quality gates and release workflows                                                             |
+| [SSO Integration](./docs/concepts/design/sso.md)                            | Google OAuth authentication config                                                              |
+| [Engineering Changelog](./docs/concepts/engineering-changelog.md)    | Milestones and baseline mutation records                                                        |
 | [AI Collaboration Protocol](./AGENTS.md)                    | Agent cooperation guidelines and engineering codebase                                           |
 
 </center>
