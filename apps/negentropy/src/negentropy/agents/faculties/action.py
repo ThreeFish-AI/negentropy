@@ -3,6 +3,7 @@ from google.adk.agents import LlmAgent
 from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.action import execute_code, read_file, write_file
+from ..tools.claude_code import invoke_claude_code
 from ..tools.common import log_activity
 
 _DESCRIPTION = (
@@ -61,7 +62,7 @@ def create_action_agent(*, output_key: str | None = None) -> LlmAgent:
         model=create_subagent_model(agent_name="ActionFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("ActionFaculty", _INSTRUCTION),
-        tools=[log_activity, execute_code, read_file, write_file],
+        tools=[log_activity, execute_code, read_file, write_file, invoke_claude_code],
         output_key=output_key,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,
