@@ -327,5 +327,7 @@ module = [
     "pypdf.*",
     "pypdf2.*",
     "openai.*",
+    "mcp.*",
+    "aiohttp.*",
 ]
 ignore_missing_imports = true

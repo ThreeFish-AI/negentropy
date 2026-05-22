@@ -44,10 +44,19 @@ def test_root_agent_has_8_sub_agents():
 
 
 def test_root_agent_tools():
-    """root_agent 仅绑定 log_activity（不直接执行原子任务）"""
+    """root_agent 绑定 log_activity 及 ADK 2.0 Collaborative Agents 自动注册的 single_turn 系部工具"""
     tool_names = [t.__name__ if callable(t) else getattr(t, "name", str(t)) for t in root_agent.tools]
     assert "log_activity" in tool_names
-    assert len(root_agent.tools) == 1
+    # ADK 2.0: mode="single_turn" 的五大系部自动注册为 _SingleTurnAgentTool
+    faculty_names = {
+        "PerceptionFaculty",
+        "InternalizationFaculty",
+        "ContemplationFaculty",
+        "ActionFaculty",
+        "InfluenceFaculty",
+    }
+    auto_tool_names = {name for name in tool_names if name != "log_activity"}
+    assert faculty_names == auto_tool_names, f"expected faculty tools {faculty_names}, got {auto_tool_names}"
 
 
 # ---------------------------------------------------------------------------

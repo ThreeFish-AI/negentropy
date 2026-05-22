@@ -43,8 +43,15 @@ def test_patch_disables_metric_and_log_exporters_but_keeps_traces():
         assert getattr(adk_setup._get_otel_exporters, '_negentropy_patched', False), 'missing _negentropy_patched flag'
 
         hooks = adk_setup._get_otel_exporters()
-        # traces 链路保留：env var 存在时返回 1 个 BatchSpanProcessor(OTLPSpanExporter)
-        assert len(hooks.span_processors) == 1, f'expected 1 span processor, got {hooks.span_processors!r}'
+        # ADK 2.0: span_processors depends on whether OTLP HTTP exporter is installed
+        try:
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+            expected_spans = 1
+        except ImportError:
+            expected_spans = 0
+        assert len(hooks.span_processors) == expected_spans, (
+            f'expected {expected_spans} span processor, got {hooks.span_processors!r}'
+        )
         # logs / metrics 永久置空——ADK maybe_set_otel_providers 的 if 分支由此短路
         assert hooks.metric_readers == [], f'expected zero metric readers, got {hooks.metric_readers!r}'
         assert hooks.log_record_processors == [], f'expected zero log processors, got {hooks.log_record_processors!r}'
@@ -148,7 +155,12 @@ def test_patch_does_not_construct_orphan_metric_or_log_exporters():
         hooks = adk_setup._get_otel_exporters()
         assert called['metrics'] == 0, called
         assert called['logs'] == 0, called
-        assert len(hooks.span_processors) == 1
+        # ADK 2.0: span_processors depends on whether OTLP HTTP exporter is installed
+        try:
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+            assert len(hooks.span_processors) == 1
+        except ImportError:
+            assert len(hooks.span_processors) == 0
         print('no_orphan_ok')
         """
     )

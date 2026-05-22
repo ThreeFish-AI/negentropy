@@ -71,7 +71,10 @@ def _disable_adk_otel_logs_metrics_exporters() -> None:
     def _patched_get_otel_exporters():
         span_processors = []
         if os.getenv(otel_env.OTEL_EXPORTER_OTLP_ENDPOINT) or os.getenv(otel_env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT):
-            span_processors.append(adk_otel_setup._get_otel_span_exporter())
+            try:
+                span_processors.append(adk_otel_setup._get_otel_span_exporter())
+            except (ImportError, ModuleNotFoundError):
+                pass  # ADK 2.0: OTLP HTTP exporter not installed; skip trace export
         return adk_otel_setup.OTelHooks(
             span_processors=span_processors,
             metric_readers=[],
