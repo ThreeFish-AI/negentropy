@@ -115,20 +115,20 @@ sequenceDiagram
 
 ## 3. 核心模块
 
-以下是 Agent Engine Adaptation 核心模块说明与代码关联（实际代码：`src/cognizes/adapters/postgres/`）。
+以下是 Agent Engine Adaptation 核心模块说明与代码关联（实际代码：`apps/cognizes/src/cognizes/adapters/postgres/`）。
 
-| Tag     | Component Name            | Function                                                                                             | Code Path                                             |
-| :------ | :------------------------ | :--------------------------------------------------------------------------------------------------- | :---------------------------------------------------- |
-| Feature | **PostgreSessionService** | **P1**: 完全兼容 ADK `BaseSessionService` 接口的 PostgreSQL 适配器                                   | `src/cognizes/adapters/postgres/session_service.py`   |
-|         | **PostgreMemoryService**  | **P2**: 完全兼容 ADK `BaseMemoryService` 接口的 PostgreSQL 适配器，提供记忆巩固等能力                | `src/cognizes/adapters/postgres/memory_service.py`    |
-|         | _PostgreKnowledgeService_ | **P3**: RAG Pipeline 与 Hybrid Search 封装，通过 MCP Server 暴露                                     | `src/cognizes/adapters/postgres/knowledge_service.py` |
-|         | **ToolRegistry**          | **P4**: 数据库驱动的动态工具注册表，支持 OpenAPI Schema 动态加载与热更新                             | `src/cognizes/adapters/postgres/tool_registry.py`     |
-|         | **Tracing**               | **P4**: OpenTelemetry 双路导出集成 ，支持 Langfuse + PostgreSQL                                      | `src/cognizes/adapters/postgres/tracing.py`           |
-|         | **AgentExecutor**         | **P4**: 与 ADK Runner 协同，Python 驱动的 Agent 执行器，管理 `Thought -> Action -> Observation` 循环 | `src/cognizes/engine/mind/agent_executor.py`          |
-| Test    | SessionServiceTest        | PostgresSessionService 单元测试，覆盖 ADK BaseSessionService 接口所有方法                            | `tests/unittests/mind/test_session_service.py`        |
-|         | ADKLlmAgentTest           | ADK Runner 集成示例，验证 `PostgresSessionService` 与 Google ADK `LlmAgent` + `Runner` 的完整协同    | `tests/integration/mind/test_adk_llmagent.py`         |
-|         | ADKIntegrationTest        | 验证 adk-postgres 与 Google ADK LlmAgent 的完整集成                                                  | `tests/integration/mind/test_adk_integration.py`      |
-|         | E2ETest                   | E2E 集成测试 - 完整对话流程，验证 Session -> Agent -> Tool -> Memory 全链路                          | `tests/integration/mind/test_e2e.py`                  |
+| Tag     | Component Name            | Function                                                                                             | Code Path                                                        |
+| :------ | :------------------------ | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
+| Feature | **PostgreSessionService** | **P1**: 完全兼容 ADK `BaseSessionService` 接口的 PostgreSQL 适配器                                   | `apps/cognizes/src/cognizes/adapters/postgres/session_service.py`   |
+|         | **PostgreMemoryService**  | **P2**: 完全兼容 ADK `BaseMemoryService` 接口的 PostgreSQL 适配器，提供记忆巩固等能力                | `apps/cognizes/src/cognizes/adapters/postgres/memory_service.py`    |
+|         | _PostgreKnowledgeService_ | **P3**: RAG Pipeline 与 Hybrid Search 封装，通过 MCP Server 暴露                                     | `apps/cognizes/src/cognizes/adapters/postgres/knowledge_service.py` |
+|         | **ToolRegistry**          | **P4**: 数据库驱动的动态工具注册表，支持 OpenAPI Schema 动态加载与热更新                             | `apps/cognizes/src/cognizes/adapters/postgres/tool_registry.py`     |
+|         | **Tracing**               | **P4**: OpenTelemetry 双路导出集成 ，支持 Langfuse + PostgreSQL                                      | `apps/cognizes/src/cognizes/adapters/postgres/tracing.py`           |
+|         | **AgentExecutor**         | **P4**: 与 ADK Runner 协同，Python 驱动的 Agent 执行器，管理 `Thought -> Action -> Observation` 循环 | `apps/cognizes/src/cognizes/engine/mind/agent_executor.py`          |
+| Test    | SessionServiceTest        | PostgresSessionService 单元测试，覆盖 ADK BaseSessionService 接口所有方法                            | `apps/cognizes/tests/unittests/engine/mind/test_session_service.py` |
+|         | ADKLlmAgentTest           | ADK Runner 集成示例，验证 `PostgresSessionService` 与 Google ADK `LlmAgent` + `Runner` 的完整协同    | `apps/cognizes/tests/integration/mind/test_adk_llmagent.py`         |
+|         | ADKIntegrationTest        | 验证 adk-postgres 与 Google ADK LlmAgent 的完整集成                                                  | `apps/cognizes/tests/integration/mind/test_adk_integration.py`      |
+|         | E2ETest                   | E2E 集成测试 - 完整对话流程，验证 Session -> Agent -> Tool -> Memory 全链路                          | `apps/cognizes/tests/integration/mind/test_e2e.py`                  |
 
 ## 4. Table Schema
 

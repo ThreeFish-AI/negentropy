@@ -387,10 +387,9 @@ graph LR
 ```
 
 ```sql
--- 创建 HNSW 索引
-CREATE INDEX idx_embedding_hnsw ON articles
-USING HNSW (embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 128);
+-- 创建 HNSW 向量索引（OceanBase V4.5.0 语法）
+CREATE VECTOR INDEX idx_embedding_hnsw ON articles(embedding)
+    WITH (distance=l2, type=hnsw, lib=vsag);
 ```
 
 | 参数              | 描述                 | 建议值  |
@@ -430,19 +429,18 @@ graph TB
 ```
 
 ```sql
--- 创建 IVF 索引
-CREATE INDEX idx_embedding_ivf ON articles
-USING IVF (embedding vector_l2_ops)
-WITH (nlist = 100);
+-- 创建 IVF 向量索引（OceanBase V4.5.0 语法）
+CREATE VECTOR INDEX idx_embedding_ivf ON articles(embedding)
+    WITH (distance=l2, type=ivf, lib=vsag);
 ```
 
 ### 5.4 距离度量方式
 
 | 度量方式          | 函数                | 适用场景           |
 | ----------------- | ------------------- | ------------------ |
-| **欧氏距离 (L2)** | `vector_l2_ops`     | 物理相似度         |
-| **余弦相似度**    | `vector_cosine_ops` | 语义相似度（推荐） |
-| **内积**          | `vector_ip_ops`     | 归一化向量         |
+| **欧氏距离 (L2)** | `l2_distance()`     | 物理相似度         |
+| **余弦相似度**    | `cosine_distance()` | 语义相似度（推荐） |
+| **内积**          | `inner_product()`   | 归一化向量         |
 | **曼哈顿距离**    | `vector_l1_ops`     | 特定场景           |
 
 ### 5.5 向量搜索查询
@@ -450,17 +448,18 @@ WITH (nlist = 100);
 ```sql
 -- 最近邻搜索 (KNN)
 SELECT id, title,
-       embedding <-> query_vector AS distance
+       l2_distance(embedding, '[0.1, 0.2, ...]') AS distance
 FROM articles
-ORDER BY embedding <-> '[0.1, 0.2, ...]'::vector
+ORDER BY distance ASC
 LIMIT 10;
 
 -- 带过滤条件的混合搜索
-SELECT id, title, distance
+SELECT id, title,
+       cosine_distance(embedding, '[0.1, 0.2, ...]') AS distance
 FROM articles
 WHERE category = 'technology'
   AND created_at > '2024-01-01'
-ORDER BY embedding <=> query_vector
+ORDER BY distance ASC
 LIMIT 10;
 ```
 
@@ -468,9 +467,9 @@ LIMIT 10;
 
 | 特性         | OceanBase V4.5 | PostgreSQL + pgvector | Milvus             |
 | ------------ | -------------- | --------------------- | ------------------ |
-| **向量维度** | 16,000         | 16,000                | 32,768             |
-| **索引类型** | HNSW, IVF      | HNSW, IVF             | HNSW, IVF_FLAT, 等 |
-| **混合查询** | ✅ 原生支持    | ✅ 支持               | ⚠️ 需要外部处理    |
+| **向量维度** | 16,000         | 16,000 (存储) / 2,000 (HNSW 索引) | 32,768             |
+| **索引类型** | HNSW, IVF      | HNSW, IVFFlat         | HNSW, IVF_FLAT, 等 |
+| **混合查询** | ✅ 原生支持    | ✅ 支持               | ✅ 2.4+ 原生 BM25  |
 | **事务支持** | ✅ 完整 ACID   | ✅ 完整 ACID          | ❌ 不支持          |
 | **分析能力** | ✅ HTAP        | ⚠️ 有限               | ❌ 不支持          |
 | **分布式**   | ✅ 原生分布式  | ❌ 单机               | ✅ 分布式          |
@@ -800,10 +799,9 @@ CREATE TABLE paper_embeddings (
     FOREIGN KEY (paper_id) REFERENCES papers(id)
 );
 
--- 创建 HNSW 向量索引
-CREATE INDEX idx_paper_embedding_hnsw
-ON paper_embeddings USING HNSW (embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 128);
+-- 创建 HNSW 向量索引（OceanBase 语法）
+CREATE VECTOR INDEX idx_paper_embedding_hnsw ON paper_embeddings(embedding)
+    WITH (distance=l2, type=hnsw, lib=vsag);
 
 -- 引用关系表 (分析场景)
 CREATE TABLE citations (
@@ -917,11 +915,11 @@ CREATE TABLE IF NOT EXISTS paper_embeddings (
 )
 ''')
 
-# 创建 HNSW 索引
+# 创建 HNSW 向量索引（OceanBase 语法）
 cursor.execute('''
-CREATE INDEX IF NOT EXISTS idx_embedding_hnsw
-ON paper_embeddings USING HNSW (embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 128)
+CREATE VECTOR INDEX IF NOT EXISTS idx_embedding_hnsw
+ON paper_embeddings(embedding)
+    WITH (distance=l2, type=hnsw, lib=vsag)
 ''')
 
 conn.commit()
