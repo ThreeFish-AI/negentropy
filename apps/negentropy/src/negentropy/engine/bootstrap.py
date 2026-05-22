@@ -71,7 +71,10 @@ def _disable_adk_otel_logs_metrics_exporters() -> None:
     def _patched_get_otel_exporters():
         span_processors = []
         if os.getenv(otel_env.OTEL_EXPORTER_OTLP_ENDPOINT) or os.getenv(otel_env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT):
-            span_processors.append(adk_otel_setup._get_otel_span_exporter())
+            try:
+                span_processors.append(adk_otel_setup._get_otel_span_exporter())
+            except (ImportError, ModuleNotFoundError):
+                pass  # ADK 2.0: OTLP HTTP exporter not installed; skip trace export
         return adk_otel_setup.OTelHooks(
             span_processors=span_processors,
             metric_readers=[],
@@ -574,6 +577,38 @@ def apply_adk_patches():
                 mod.create_memory_service_from_options = patched_create_memory_service_from_options
             if hasattr(mod, "create_artifact_service_from_options"):
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
+
+    # ADK 2.0 workaround: fast_api.get_fast_api_app() has a scoping bug where
+    # ApiServer is conditionally imported inside `if web:` branches. When web=True
+    # and DevServer import succeeds, the `from .api_server import ApiServer` in the
+    # except block is skipped. But nested function setup_observer() references
+    # ApiServer as a type annotation, causing UnboundLocalError.
+    # Fix: wrap get_fast_api_app to ensure DevServer import fails, forcing the
+    # ApiServer fallback path which always imports ApiServer as a local variable.
+    try:
+        from google.adk.cli import fast_api as _fast_api_mod
+
+        _original_get_fast_api_app = _fast_api_mod.get_fast_api_app
+
+        def _patched_get_fast_api_app(*args, **kwargs):
+            # Temporarily remove dev_server from sys.modules so the
+            # `from .dev_server import DevServer` always fails, ensuring
+            # the except block imports ApiServer as a local variable.
+            saved = sys.modules.get("google.adk.cli.dev_server")
+            sys.modules["google.adk.cli.dev_server"] = None  # type: ignore[assignment]
+            try:
+                return _original_get_fast_api_app(*args, **kwargs)
+            finally:
+                if saved is not None:
+                    sys.modules["google.adk.cli.dev_server"] = saved
+                else:
+                    sys.modules.pop("google.adk.cli.dev_server", None)
+
+        _fast_api_mod.get_fast_api_app = _patched_get_fast_api_app
+        patched_items.append("get_fast_api_app (ADK 2.0 ApiServer scoping fix)")
+        logger.info("Patched fast_api.get_fast_api_app to work around ADK 2.0 ApiServer scoping bug")
+    except Exception as exc:
+        logger.warning(f"Failed to patch get_fast_api_app: {exc}")
 
     logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
     logger.info(f"Using configured credential backend: {settings.credential_service_backend}")
