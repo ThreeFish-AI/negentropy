@@ -46,8 +46,8 @@ tags:
 
 1. **采用 Cognee 作为记忆框架**：统一图谱与向量存储，简化架构
 2. **实施 Agentic RAG 架构**：Adaptive + Corrective + Self-RAG 组合
-3. **Neo4j 作为图数据库首选**：成熟生态，与 LangChain/LlamaIndex 深度集成
-4. **保持 OceanBase 向量存储**：多模一体化，满足混合检索需求
+3. **PostgreSQL pgvector 作为向量存储**：基于已有 PostgreSQL 基础设施，一体化架构
+4. **PostgreSQL AGE 作为图数据库**：与 pgvector 共享基础设施，降低运维复杂度
 5. **分阶段实施**：向量增强 → 图谱增强 → Agentic RAG 完整实现
 
 ---
@@ -111,7 +111,7 @@ flowchart LR
 
 **核心优势**：
 
-- 减少 LLM 幻觉 40-60%
+- 减少 LLM 幻觉 40-60%（综合多份 RAG + GraphRAG 实验报告估算值，非单一权威数据）
 - 支持多跳推理和复杂关系查询
 - 提供可解释的决策路径
 
@@ -119,9 +119,9 @@ flowchart LR
 
 | 企业应用          | 技术方案        | 效果提升            |
 | ----------------- | --------------- | ------------------- |
-| **智能问答**      | KG + SQL + LLM  | 准确率 +35%         |
-| **元数据管理**    | KG 语义层       | 数据治理效率 2x     |
-| **多 Agent 协作** | KG 作为知识枢纽 | 复杂任务成功率 +50% |
+| **智能问答**      | KG + SQL + LLM  | 准确率 +35%（行业估算） |
+| **元数据管理**    | KG 语义层       | 数据治理效率 2x（行业估算） |
+| **多 Agent 协作** | KG 作为知识枢纽 | 复杂任务成功率 +50%（行业估算） |
 
 **3. 行业垂直应用（2024 年实践）**
 
@@ -134,11 +134,11 @@ flowchart LR
 
 LLM 正在革新传统知识工程：
 
-- **LLM 驱动的实体关系抽取**：减少 70% 手动标注
+- **LLM 驱动的实体关系抽取**：减少 70% 手动标注（行业综合估算，实际效果因领域和标注质量而异）
 - **自动图谱更新**：实时知识增量融合
 - **图谱质量评估**：AI 辅助的知识验证
 
-> **市场规模**：知识图谱市场预计从 2024 年 $10.6 亿增长至 2030 年 $69.3 亿（CAGR 37%）
+> **市场规模**：知识图谱市场预计从 2024 年 $10.6 亿增长至 2030 年 $69.3 亿（CAGR 37%，来源：MarketsandMarkets Knowledge Graph Market Report, 2024）
 
 **5. 前沿趋势（2025+）**
 
@@ -207,7 +207,7 @@ Level 2: 具体主题摘要（如"ReAct框架"、"Tool Use模式"）
 
 #### 2.3.1 Agent 核心特征
 
-根据《Agentic Design Patterns》<sup>[[10]](#ref10)</sup>，Agent 区别于传统软件的核心是：
+根据 Andrew Ng 提出的 Agentic Design Patterns<sup>[[10]](#ref10)</sup>，Agent 区别于传统软件的核心是：
 
 > **代理性（Agency）**：能够感知环境、做出决策、采取行动以自主实现目标
 
@@ -546,8 +546,8 @@ flowchart TB
     subgraph "Agentic RAG Pipeline"
         Query[用户查询] --> Router{智能路由}
 
-        Router -->|论文检索| OB[(OceanBase 向量)]
-        Router -->|关系探索| Neo[(Neo4j 图谱)]
+        Router -->|论文检索| OB[(pgvector 向量)]
+        Router -->|关系探索| Neo[(AGE 图谱)]
         Router -->|最新信息| Web[Web 搜索]
 
         OB & Neo & Web --> Grader[相关性评估]
@@ -1036,9 +1036,9 @@ Memgraph 是内存图数据库，专注实时处理。
 
 ## 5. 向量数据库支撑
 
-> 除图存储外，向量检索是认知增强的另一核心能力。本章重点介绍项目已选的 OceanBase 向量能力，并与其他主流向量数据库进行对比。
+> 除图存储外，向量检索是认知增强的另一核心能力。本章重点介绍调研阶段评估的 OceanBase 向量能力（项目实际落地已选用 PostgreSQL pgvector），并与其他主流向量数据库进行对比。
 
-### 5.1 OceanBase（项目已选）
+### 5.1 OceanBase（调研评估）
 
 #### 5.1.1 核心优势
 
@@ -1114,7 +1114,7 @@ vectorstore = OceanBase.from_documents(
 | **Milvus**   | 大规模、分布式       | 十亿级向量   |
 | **Chroma**   | 轻量、开发友好       | 快速原型     |
 
-**本项目建议**：继续使用 OceanBase，充分利用其多模一体化能力。
+**本项目现状**：项目实际落地选用 **PostgreSQL pgvector**，基于已有 PostgreSQL 基础设施实现一体化架构（向量 + 图谱 + 业务数据统一存储），降低运维复杂度。OceanBase 的多模一体化思路在架构设计中仍有参考价值。
 
 ---
 
@@ -1122,7 +1122,7 @@ vectorstore = OceanBase.from_documents(
 
 > 在技术选型清晰后，本章归纳構建智能系统的核心设计模式。这些模式是跨框架的通用方法论，可与前述框架和数据库组合应用。
 
-基于《Agentic Design Patterns: A Hands-On Guide to Building Intelligent Systems》<sup>[[10]](#ref10)</sup> 整理。
+基于 Andrew Ng 提出的 Agentic Design Patterns<sup>[[10]](#ref10)</sup> 整理。
 
 ### 6.1 Prompt Chaining（提示链）
 
@@ -1368,8 +1368,8 @@ flowchart LR
 
 | 组件           | 推荐方案         | 备选方案   | 理由                    |
 | -------------- | ---------------- | ---------- | ----------------------- |
-| **向量存储**   | OceanBase        | Qdrant     | 项目已选，多模一体化    |
-| **图存储**     | Neo4j            | FalkorDB   | 成熟生态，AI 工具链完善 |
+| **向量存储**   | PostgreSQL pgvector | OceanBase  | 已落地，一体化架构    |
+| **图存储**     | PostgreSQL AGE   | Neo4j       | 自研图谱，已具备基础能力 |
 | **记忆框架**   | Cognee           | LlamaIndex | 图+向量统一，自学习能力 |
 | **Agent 框架** | Claude SDK + ADK | -          | 双框架战略已定，保持    |
 | **评估框架**   | RAGAS            | -          | RAG 质量评估标准        |
@@ -1395,8 +1395,8 @@ flowchart TB
     end
 
     subgraph 存储层
-        OB[(OceanBase<br/>向量存储)]
-        Neo[(Neo4j<br/>知识图谱)]
+        OB[(PostgreSQL pgvector<br/>向量存储)]
+        Neo[(PostgreSQL AGE<br/>知识图谱)]
         FS[(文件系统<br/>原始文档)]
     end
 
@@ -1517,14 +1517,13 @@ gantt
     title 智能认知增强实施路线
     dateFormat  YYYY-MM
     section Phase 1 向量增强
-    OceanBase 集成完善      :2025-12, 2026-01
-    基础 RAG 检索           :2026-01, 2026-02
-    RAGAS 评估集成          :2026-02, 2026-02
+    PostgreSQL pgvector 集成  :2025-12, 2026-01, done
+    基础 RAG 检索             :2026-01, 2026-02
+    RAGAS 评估集成            :2026-02, 2026-02
     section Phase 2 图谱增强
-    Neo4j 部署配置          :2026-02, 2026-03
-    Cognee 框架集成         :2026-03, 2026-04
-    知识图谱构建            :2026-04, 2026-05
-    混合检索实现            :2026-05, 2026-06
+    PostgreSQL AGE 图谱建设   :2026-02, 2026-03
+    知识图谱构建              :2026-04, 2026-05
+    混合检索实现              :2026-05, 2026-06
     section Phase 3 认知增强
     多跳推理问答            :2026-06, 2026-07
     Agent 记忆持久化        :2026-07, 2026-08
@@ -1668,7 +1667,9 @@ cypher_retriever = TextToCypherRetriever(
 nodes = cypher_retriever.retrieve("Find all papers that cite ReAct")
 ```
 
-### 8.3 OceanBase 向量检索
+### 8.3 OceanBase 向量检索（调研参考）
+
+> **注**：以下为调研阶段的 OceanBase 示例，项目实际落地已选用 PostgreSQL pgvector，但 OceanBase 的 SQL 接口模式对理解向量检索原理仍有参考价值。
 
 #### 8.3.1 表结构创建
 
@@ -1827,7 +1828,7 @@ class HybridRetriever:
 
 <a id="ref9"></a>[9] S. Yan et al., "Corrective Retrieval Augmented Generation," _arXiv preprint arXiv:2401.15884_, 2024.
 
-<a id="ref10"></a>[10] Goldman Sachs Engineering Team, "Agentic Design Patterns: A Hands-On Guide to Building Intelligent Systems," _Goldman Sachs Engineering Blog_, 2024.
+<a id="ref10"></a>[10] A. Ng, "Agentic Design Patterns," _DeepLearning.AI_, 2024. [Online]. Available: https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/
 
 <a id="ref11"></a>[11] Cognee, "Cognee Documentation," 2024. [Online]. Available: https://docs.cognee.ai/
 
@@ -1880,12 +1881,12 @@ class HybridRetriever:
 
 ## 附录 B：项目当前状态对照
 
-| 架构组件 | 当前状态            | 目标状态       | 差距分析       |
-| -------- | ------------------- | -------------- | -------------- |
-| Agent 层 | ✅ 5 个 Agent       | 保持           | -              |
-| API 层   | ✅ 完成             | 保持           | -              |
-| 向量存储 | ⏳ OceanBase 集成中 | 完成集成       | 需完成索引配置 |
-| 图谱存储 | 📋 规划中           | Neo4j + Cognee | 需新增         |
-| 记忆框架 | 📋 规划中           | Cognee 集成    | 需新增         |
-| 混合检索 | 📋 规划中           | RRF 融合       | 需实现         |
-| 多跳推理 | 📋 规划中           | 图谱查询       | 需实现         |
+| 架构组件 | 当前状态                       | 目标状态           | 差距分析                   |
+| -------- | ------------------------------ | ------------------ | -------------------------- |
+| Agent 层 | ✅ 5 个 Agent                  | 保持               | -                          |
+| API 层   | ✅ 完成                        | 保持               | -                          |
+| 向量存储 | ✅ PostgreSQL pgvector         | 保持               | -                          |
+| 图谱存储 | ⏳ PostgreSQL AGE 自研图谱     | 评估专业图数据库   | 功能已有，性能待验证       |
+| 记忆框架 | ✅ 艾宾浩斯记忆系统            | 保持               | 已实现分型记忆与衰减治理   |
+| 混合检索 | ⏳ 自研混合检索                | 评估 RRF 优化      | 基础检索已有               |
+| 多跳推理 | 📋 规划中                      | 图谱查询           | 需实现                     |
