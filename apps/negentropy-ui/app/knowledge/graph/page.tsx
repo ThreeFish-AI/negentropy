@@ -599,7 +599,7 @@ export default function KnowledgeGraphPage() {
                       </button>
                       <button
                         onClick={() => setRenderer("cytoscape")}
-                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认）"
+                        title="Cytoscape.js + fCoSE 布局（Phase 4 历史默认）"
                         className={`px-2 py-1 font-medium ${
                           renderer === "cytoscape"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
