@@ -862,6 +862,6 @@ graph LR
 
 <a id="ref10"></a>[10] Agno, "Agno - Sessions," 2025. [Online]. Available: https://docs.agno.com/sessions/overview
 
-<a id="ref11"></a>[11] LangChain, "LangChain - Context Engineering," 2025. [Online]. Available: https://docs.langchain.com/oss/python/langchain/context-engineering
+<a id="ref11"></a>[11] LangChain, "Context Engineering in Agents," _Docs by LangChain_, 2025. [Online]. Available: https://docs.langchain.com/oss/python/langchain/context-engineering
 
-<a id="ref12"></a>[12] LangChain, "LangGraph - Memory," 2025. [Online]. Available: https://docs.langchain.com/oss/python/langgraph/memory
+<a id="ref12"></a>[12] LangChain, "Memory Overview," _Docs by LangChain_, 2025. [Online]. Available: https://docs.langchain.com/oss/python/langgraph/memory
