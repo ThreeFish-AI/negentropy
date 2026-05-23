@@ -10,8 +10,9 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { fetchMemoryDashboard, type MemoryDashboard } from "@/features/memory";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
-import { ActivityLogPanel } from "./_components/ActivityLogPanel";
+import { ActivityDrawer } from "./_components/ActivityDrawer";
 import { DashboardHeaderStrip } from "./_components/DashboardHeaderStrip";
 import { DimensionCharts } from "./_components/DimensionCharts";
 import { ExecutionTimeline } from "./_components/ExecutionTimeline";
@@ -58,6 +59,8 @@ interface InterfaceStats {
 export default function DashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
   const [selectedTask, setSelectedTask] = useState<ScheduledTaskDTO | null>(null);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const { totalCount: activityCount } = useActivityLog();
 
   const {
     kpis,
@@ -153,6 +156,8 @@ export default function DashboardPage() {
         interfaceStats={interfaceStats}
         interfaceLoading={interfaceLoading}
         isAdmin={isAdmin}
+        activityCount={activityCount}
+        onOpenActivity={() => setActivityOpen(true)}
       />
 
       {/* Expandable Memory detail panel */}
@@ -188,10 +193,8 @@ export default function DashboardPage() {
           <ExecutionTimeline executions={executions} />
         </div>
       </div>
-      <div className="mt-3">
-        <ActivityLogPanel />
-      </div>
       <TaskDetailDrawer task={selectedTask} onClose={handleClose} onTaskChanged={refresh} />
+      <ActivityDrawer open={activityOpen} onClose={() => setActivityOpen(false)} />
     </div>
   );
 }
