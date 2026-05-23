@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { ChevronDown } from "lucide-react";
 
 import type { ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
 
@@ -51,35 +52,35 @@ export function LlmModelSelect({
   const showUnknown = Boolean(value) && !knownValues.has(value);
 
   return (
-    <select
-      value={value}
-      disabled={disabled}
-      aria-label={ariaLabel ?? "LLM Model"}
-      onChange={(event) => onChange(event.target.value)}
-      className={
-        className ??
-        "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
-      }
-    >
-      {allowClear && <option value="">{placeholder}</option>}
-      {showUnknown && (
-        <option value={value} className="text-muted">
-          {value}（未知）
-        </option>
-      )}
-      {grouped.map(([vendor, items]) => (
-        <optgroup key={vendor} label={vendor}>
-          {items.map((item) => {
-            const full = buildFullModelName(item.vendor, item.model_name);
-            const label = item.display_name?.trim() ? item.display_name : full;
-            return (
-              <option key={item.id} value={full}>
-                {label}
-              </option>
-            );
-          })}
-        </optgroup>
-      ))}
-    </select>
+    <div className={className ?? "relative inline-flex items-center"}>
+      <select
+        value={value}
+        disabled={disabled}
+        aria-label={ariaLabel ?? "LLM Model"}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-7 appearance-none rounded-md border border-border/50 bg-transparent pl-2 pr-6 text-xs text-foreground outline-none transition-colors hover:border-border hover:bg-muted disabled:opacity-40 cursor-pointer"
+      >
+        {allowClear && <option value="">{placeholder}</option>}
+        {showUnknown && (
+          <option value={value} className="text-text-muted">
+            {value}（未知）
+          </option>
+        )}
+        {grouped.map(([vendor, items]) => (
+          <optgroup key={vendor} label={vendor}>
+            {items.map((item) => {
+              const full = buildFullModelName(item.vendor, item.model_name);
+              const label = item.display_name?.trim() ? item.display_name : full;
+              return (
+                <option key={item.id} value={full}>
+                  {label}
+                </option>
+              );
+            })}
+          </optgroup>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-1.5 h-3 w-3 text-text-muted" aria-hidden />
+    </div>
   );
 }
