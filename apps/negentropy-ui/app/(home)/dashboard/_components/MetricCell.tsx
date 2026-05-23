@@ -25,35 +25,33 @@ export function MetricCell({
 }: MetricCellProps) {
   const cell = (
     <div
-      className={`rounded-md bg-muted/40 px-2.5 py-1.5 ${
+      className={`flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 ${
         href ? "transition-colors hover:bg-muted/70" : ""
       }`}
     >
-      <div className="text-[10px] uppercase tracking-wider text-muted leading-none">
-        {label}
-      </div>
-      <div
-        className={`text-base font-semibold leading-tight mt-0.5 ${
-          toneClass[tone] ?? toneClass.neutral
-        }`}
-      >
-        {loading ? (
-          <span className="inline-block h-4 w-10 animate-pulse rounded bg-muted/60" />
-        ) : (
-          value
-        )}
-      </div>
+      <span className="text-xs text-muted whitespace-nowrap">{label}</span>
+      {loading ? (
+        <span className="inline-block h-3.5 w-8 animate-pulse rounded bg-muted/60" />
+      ) : (
+        <span
+          className={`text-sm font-semibold whitespace-nowrap ${
+            toneClass[tone] ?? toneClass.neutral
+          }`}
+        >
+          {value}
+        </span>
+      )}
       {hint && !loading ? (
-        <div className="text-[10px] text-muted leading-none mt-0.5">
-          {hint}
-        </div>
+        <span className="text-[10px] text-muted whitespace-nowrap">
+          ({hint})
+        </span>
       ) : null}
     </div>
   );
 
   if (href) {
     return (
-      <a href={href} className="cursor-pointer">
+      <a href={href} className="block cursor-pointer">
         {cell}
       </a>
     );

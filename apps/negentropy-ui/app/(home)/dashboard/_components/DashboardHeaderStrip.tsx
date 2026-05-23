@@ -50,7 +50,7 @@ function CellGroup({ label, children }: { label: string; children: React.ReactNo
       <div className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-2">
         {label}
       </div>
-      <div className="grid grid-cols-3 gap-x-3 gap-y-1.5">{children}</div>
+      <div className="grid grid-cols-3 gap-1.5">{children}</div>
     </div>
   );
 }
