@@ -101,8 +101,8 @@ sequenceDiagram
 > | 黑盒能力         | Google 实现 (不可见)     | 我们的 Glass-Box 复刻 (可见)                                                               |
 > | :--------------- | :----------------------- | :----------------------------------------------------------------------------------------- |
 > | **并行召回**     | 内部向量与关键词并行调度 | PostgreSQL `UNION ALL` + 应用层 `asyncio.gather()`，性能可监控                             |
-> | **RRF 融合**     | Ranking API 黑盒算法     | [`rrf_fusion.py`](src/cognizes/engine/perception/rrf_fusion.py) 开源实现，参数 `k` 可调优  |
-> | **L1 Reranking** | LLM 驱动的托管重排服务   | [`reranker.py`](src/cognizes/engine/perception/reranker.py) 本地 Cross-Encoder，模型可替换 |
+> | **RRF 融合**     | Ranking API 黑盒算法     | [`rrf_fusion.py`](../../apps/cognizes/src/cognizes/engine/perception/rrf_fusion.py) 开源实现，参数 `k` 可调优  |
+> | **L1 Reranking** | LLM 驱动的托管重排服务   | [`reranker.py`](../../apps/cognizes/src/cognizes/engine/perception/reranker.py) 本地 Cross-Encoder，模型可替换 |
 
 ## 2. 关键处理阶段
 

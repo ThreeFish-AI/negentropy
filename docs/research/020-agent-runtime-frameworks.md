@@ -948,6 +948,8 @@ profile_engineer = ClaudeAgentOptions(
 
 #### 3.4.1 Trust Levels: 信任阶梯
 
+> ⚠️ `permission_mode` 的具体枚举值（如 `acceptEdits`、`scaffold`、`auto`）为示例性写法，请以 [Claude Agent SDK 官方文档](https://platform.claude.com/docs/en/agent-sdk/python) 为准。
+
 SDK 将人机信任关系量化为三个层级，分别对应不同的 `permission_mode`：
 
 | 信任模式         | 权限代号            | 隐喻                       | 行为逻辑                                                                                                           |

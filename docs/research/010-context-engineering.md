@@ -496,7 +496,7 @@ async def my_tool(ctx: ToolContext):
    为了防止"灶台"（Context Window）堆满，ADK 采用**滑动窗口（Sliding Window）**机制，定期清理陈旧的"果皮纸屑"（Old Events）。
 
    ```python
-   # ⚠️ Note: EventsCompactionConfig 在 ADK 官方文档中未找到对应定义（截至 2026-05），以下为示意性伪代码
+   # Google ADK Context Compaction（EventsCompactionConfig 定义于 google.adk.apps.app，截至 2026-05-23 已确认存在于 ADK 2.0.0 GA）
    # Google ADK Context Compaction
    from google.adk.apps.app import EventsCompactionConfig
 
@@ -515,7 +515,7 @@ async def my_tool(ctx: ToolContext):
    对于那些体积巨大且反复使用的"食材"（如超长 System Prompt 或大文件），ADK 会将其暂存为**预制菜（Cache）**，避免每次都从零处理（Token Re-computation）。
 
    ```python
-   # ⚠️ Note: ContextCacheConfig 在 ADK 官方文档中未找到对应定义（截至 2026-05），以下为示意性伪代码
+   # Google ADK Context Cache（ContextCacheConfig 定义于 google.adk.agents.context_cache_config，截至 2026-05-23 已确认存在于 ADK 2.0.0 GA）
    from google.adk.agents.context_cache_config import ContextCacheConfig
 
    app = App(
@@ -841,7 +841,7 @@ graph LR
 
 ## References
 
-<a id="ref1"></a>[1] SII-GAIR, "Context Engineering 2.0: The Context of Context Engineering," _SII-GAIR Technical Report_, 2025. _⚠️ Note: 该文献截至 2026-05 未能通过标准学术数据库（Google Scholar、arXiv）独立验证。_
+<a id="ref1"></a>[1] Q. Hua, L. Ye, D. Fu, Y. Xiao, X. Cai, Y. Wu, J. Lin, and J. Wang, "Context Engineering 2.0: The Context of Context Engineering," _arXiv preprint arXiv:2510.26493_, Oct. 2025. [Online]. Available: https://arxiv.org/abs/2510.26493
 
 <a id="ref2"></a>[2] A. K. Dey, "Understanding and Using Context," _Pers. Ubiquitous Comput._, vol. 5, no. 1, pp. 4–7, 2001.
 
@@ -857,7 +857,7 @@ graph LR
 
 <a id="ref8"></a>[8] Agno, "Agno - Memory," 2025. [Online]. Available: https://docs.agno.com/agents/memory
 
-<a id="ref9"></a>[9] Agno, "Agno - Knowledge," 2025. [Online]. Available: https://docs.agno.com/agents/knowledge
+<a id="ref9"></a>[9] Agno, "Agno - Knowledge," 2025. [Online]. Available: https://docs.agno.com/reference/knowledge/knowledge
 
 <a id="ref10"></a>[10] Agno, "Agno - Sessions," 2025. [Online]. Available: https://docs.agno.com/agents/sessions
 

@@ -152,4 +152,4 @@ def consolidate_memory(session_id, user_id, extracted_ops):
     - [Vector Search Indexing](https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000001050212)
 
 3.  **Project Documentation**
-    - `docs/001-foundation-unified-schema-design.md`: 基础 Schema 定义。
+    - `docs/001-foundation-unified-schema-design.md`: 基础 Schema 定义（规划文档，截至 2026-05 尚未创建）。
