@@ -44,7 +44,7 @@ export function MetricCell({
         )}
       </div>
       {hint && !loading ? (
-        <div className="text-[10px] text-text-muted leading-none mt-0.5">
+        <div className="text-[10px] text-muted leading-none mt-0.5">
           {hint}
         </div>
       ) : null}

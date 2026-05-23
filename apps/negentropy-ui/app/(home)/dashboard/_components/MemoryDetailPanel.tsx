@@ -37,6 +37,10 @@ export function MemoryDetailPanel({
   const [expanded, setExpanded] = useState(false);
   const [userId, setUserId] = useState(activeUserId ?? "");
 
+  useEffect(() => {
+    setUserId(activeUserId ?? "");
+  }, [activeUserId]);
+
   const [showRetrieval, setShowRetrieval] = useState(false);
   const [retrievalMetrics, setRetrievalMetrics] =
     useState<RetrievalMetrics | null>(null);
