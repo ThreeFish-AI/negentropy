@@ -94,8 +94,10 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
   }, [executions]);
 
   // --- Flash highlight on the first item of page 1 ---
+  const pagedLen = paged.length;
+  const firstPagedId = paged[0]?.id;
   useEffect(() => {
-    if (safePage !== 1 || !paged.length) return;
+    if (safePage !== 1 || !pagedLen) return;
     const node = listRef.current?.firstElementChild as HTMLElement | undefined;
     if (!node) return;
     node.classList.add("ring-2", "ring-indigo-400");
@@ -103,7 +105,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
       node.classList.remove("ring-2", "ring-indigo-400");
     }, 800);
     return () => window.clearTimeout(id);
-  }, [safePage, paged]);
+  }, [safePage, pagedLen, firstPagedId]);
 
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm">
@@ -190,7 +192,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
           <button
             type="button"
             disabled={safePage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage(Math.max(1, safePage - 1))}
             aria-label="上一页"
             className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
           >
@@ -202,7 +204,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
           <button
             type="button"
             disabled={safePage >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage(Math.min(totalPages, safePage + 1))}
             aria-label="下一页"
             className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
           >
