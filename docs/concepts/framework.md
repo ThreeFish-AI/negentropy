@@ -563,11 +563,11 @@ graph TB
 
 | Schema 文件                                                                                                  | 认知域   | 核心表                                     | 说明                             |
 | :----------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------- | :------------------------------- |
-| [`agent_schema.sql`](../../reference/cognizes/schema/agent_schema.sql)                                       | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
-| [`hippocampus_schema.sql`](../../reference/cognizes/engine/schema/hippocampus_schema.sql)                     | 记忆系统 | memories, facts, consolidation_jobs        | 情景/语义记忆、艾宾浩斯衰减      |
-| [`kg_schema_extension.sql`](../../reference/cognizes/engine/schema/kg_schema_extension.sql)                   | 知识图谱 | 知识节点/边                                | 结构化知识表示                   |
-| [`mind_schema.sql`](../../reference/cognizes/schema/mind_schema.sql)                                         | 思维模式 | —                                          | 思维模式与策略                   |
-| [`perception_schema.sql`](../../reference/cognizes/engine/schema/perception_schema.sql)                       | 感知系统 | —                                          | 感知数据与来源管理               |
+| [`agent_schema.sql`](../reference/cognizes/schema/agent_schema.sql)                                           | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
+| [`hippocampus_schema.sql`](../reference/cognizes/engine/schema/hippocampus_schema.sql)                       | 记忆系统 | memories, facts, consolidation_jobs        | 情景/语义记忆、艾宾浩斯衰减      |
+| [`kg_schema_extension.sql`](../reference/cognizes/engine/schema/kg_schema_extension.sql)                     | 知识图谱 | 知识节点/边                                | 结构化知识表示                   |
+| [`mind_schema.sql`](../reference/cognizes/schema/mind_schema.sql)                                             | 思维模式 | —                                          | 思维模式与策略                   |
+| [`perception_schema.sql`](../reference/cognizes/engine/schema/perception_schema.sql)                         | 感知系统 | —                                          | 感知数据与来源管理               |
 
 ### 8.3 关键设计决策
 
