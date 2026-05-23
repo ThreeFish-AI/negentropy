@@ -532,7 +532,7 @@ export default function KnowledgeGraphPage() {
                   <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700">
                     <button
                       onClick={() => setViewTab("graph")}
-                      className={`px-3 py-1 text-xs font-medium ${
+                      className={`px-3 py-1 text-xs font-medium outline-hidden transition-colors ${
                         viewTab === "graph"
                           ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                           : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
@@ -542,7 +542,7 @@ export default function KnowledgeGraphPage() {
                     </button>
                     <button
                       onClick={() => setViewTab("entities")}
-                      className={`px-3 py-1 text-xs font-medium ${
+                      className={`px-3 py-1 text-xs font-medium outline-hidden transition-colors ${
                         viewTab === "entities"
                           ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                           : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
@@ -556,7 +556,7 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("sigma")}
                         title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
-                        className={`px-2 py-1 font-medium ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors ${
                           renderer === "sigma"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
@@ -567,7 +567,7 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("3d")}
                         title="3D WebGL（three.js + d3-force-3d，支持三维旋转）"
-                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-zinc-200 dark:border-zinc-700 ${
                           renderer === "3d"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
@@ -578,7 +578,7 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("d3")}
                         title="d3-force（Phase 1 兼容回退）"
-                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-zinc-200 dark:border-zinc-700 ${
                           renderer === "d3"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
@@ -589,7 +589,7 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("force-graph")}
                         title="react-force-graph-2d（粒子流动效果，视觉表现力强）"
-                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-zinc-200 dark:border-zinc-700 ${
                           renderer === "force-graph"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
@@ -600,7 +600,7 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("cytoscape")}
                         title="Cytoscape.js + fCoSE 布局（Phase 4 历史默认）"
-                        className={`px-2 py-1 font-medium ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors ${
                           renderer === "cytoscape"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
