@@ -1077,8 +1077,15 @@ for row in cursor.fetchall():
 ### 10.8 监控与运维
 
 ```sql
--- 查看向量索引状态（OceanBase 内部视图）
-SELECT * FROM oceanbase.DBA_OB_TABLE_LOCATIONS
+-- 查看向量索引定义（通过系统视图确认索引存在及配置）
+SELECT index_name, index_type, status
+FROM oceanbase.DBA_OB_INDEXES
+WHERE table_name = 'paper_embeddings'
+  AND index_type = 'VECTOR';
+
+-- 查看向量表副本分布（确认数据在集群中的位置）
+SELECT table_name, svr_ip, role, replica_type
+FROM oceanbase.DBA_OB_TABLE_LOCATIONS
 WHERE TABLE_NAME = 'paper_embeddings';
 
 -- 查看查询性能
