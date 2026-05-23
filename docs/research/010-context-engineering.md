@@ -35,10 +35,10 @@ tags:
 >   - 《Context Engineering 2.0: The Context of Context Engineering》<sup>[[1]](#ref1)</sup>
 >   - 《Understanding and Using Context》<sup>[[2]](#ref2)</sup>
 > - **主流框架**：
->   - Google ADK<sup>[[4]](#ref4)</sup><sup>[[5]](#ref5)</sup>
->   - Agno<sup>[[6]](#ref6)</sup><sup>[[7]](#ref7)</sup>
->   - LangChain<sup>[[8]](#ref8)</sup>
->   - LangGraph<sup>[[9]](#ref9)</sup>
+>   - Google ADK<sup>[[3]](#ref3)</sup><sup>[[4]](#ref4)</sup><sup>[[5]](#ref5)</sup><sup>[[6]](#ref6)</sup>
+>   - Agno<sup>[[7]](#ref7)</sup><sup>[[8]](#ref8)</sup><sup>[[9]](#ref9)</sup>
+>   - LangChain<sup>[[11]](#ref11)</sup>
+>   - LangGraph<sup>[[11]](#ref11)</sup><sup>[[12]](#ref12)</sup>
 
 ---
 
@@ -467,7 +467,7 @@ async def my_tool(ctx: ToolContext):
    | Context 类型          | 描述                         | 可访问位置                 | 角色类比                   |
    | :-------------------- | :--------------------------- | :------------------------- | :------------------------- |
    | **InvocationContext** | 完整调用上下文，包含所有信息 | Agent 的 `_run_async_impl` | **主厨**：全知全能         |
-   | **CallbackContext**   | 回调中的只读上下文           | Agent/Model 回调           | **督导**：只看不动         |
+   | **CallbackContext**   | 回调中的可写上下文（可修改状态、存取 Artifact） | Agent/Model 回调           | **质检员**：可查看也可记录备注         |
    | **ToolContext**       | 工具执行时的可写上下文       | Function Tools             | **配菜员**：可操作局部状态 |
    | **ReadonlyContext**   | 只读上下文，用于表达式评估   | Agent Config 表达式        | **显示屏**：仅供参考       |
 
@@ -516,6 +516,7 @@ async def my_tool(ctx: ToolContext):
 
    ```python
    # Google ADK Context Cache（ContextCacheConfig 定义于 google.adk.agents.context_cache_config，截至 2026-05-23 已确认存在于 ADK 2.0.0 GA）
+   from google.adk.apps.app import App
    from google.adk.agents.context_cache_config import ContextCacheConfig
 
    app = App(
@@ -632,7 +633,7 @@ agent.print_response(
 
 不管是中央厨房（ADK）还是自助餐厅（Agno），都是为你建好的房子。而 **LangChain/LangGraph 就像是"乐高积木王国"** —— 给你一地零件（工具），想盖摩天大楼还是霍比特人小屋，全看你的想象力。
 
-LangChain 官方将 Context Engineering 组织为 Model Context / Tool Context / Life-cycle Context 三大类（参见 [11]）。以下为基于官方分类的概念化综合整理：
+LangChain 官方将 Context Engineering 组织为 Model Context / Tool Context / Life-cycle Context 三大类（参见 LangChain 官方文档 Context Engineering 页面）。以下为基于官方分类的概念化综合整理：
 
 ```mermaid
 graph TD
@@ -665,7 +666,7 @@ graph TD
 
 LangGraph 还提供了各种不同款式的 **"冒险背包"（Memory Types）**：
 
-> ⚠️ **注意**: 以下为 LangChain v1 Legacy Memory 类型，已被 LangGraph 的 Checkpointer + Store 架构取代，此处保留用于概念对比参考。
+> ⚠️ **注意**: 以下为 LangChain v0.3.1 Legacy Memory 类型（于 v0.3.1 标记弃用，计划于 v1.0.0 移除），已被 LangGraph 的 Checkpointer + Store 架构取代，此处保留用于概念对比参考。
 
 | Memory 类型                         | 描述                                                                                 | 适用场景             |
 | :---------------------------------- | :----------------------------------------------------------------------------------- | :------------------- |
@@ -796,7 +797,7 @@ def my_node(state, config, *, store):
 
 ### 3.4 核心概念映射
 
-| 概念           | Google ADK<sup>[[3]](#ref3)</sup> | Agno<sup>[[7]](#ref7)</sup>   | LangGraph<sup>[[11]](#ref11)</sup> / LangGraph<sup>[[12]](#ref12)</sup> |
+| 概念           | Google ADK<sup>[[3]](#ref3)</sup> | Agno<sup>[[7]](#ref7)</sup>   | LangChain<sup>[[11]](#ref11)</sup> / LangGraph<sup>[[12]](#ref12)</sup> |
 | :------------- | :-------------------------------- | :---------------------------- | :---------------------------------------------------------------------- |
 | **会话容器**   | Session                           | Session (session_id)          | Thread (checkpointer)                                                   |
 | **临时状态**   | session.state                     | session_state                 | State (graph state)                                                     |
@@ -841,7 +842,7 @@ graph LR
 
 ## References
 
-<a id="ref1"></a>[1] Q. Hua, L. Ye, D. Fu, Y. Xiao, X. Cai, Y. Wu, J. Lin, and J. Wang, "Context Engineering 2.0: The Context of Context Engineering," _arXiv preprint arXiv:2510.26493_, Oct. 2025. [Online]. Available: https://arxiv.org/abs/2510.26493
+<a id="ref1"></a>[1] Q. Hua, L. Ye, D. Fu, Y. Xiao, X. Cai, Y. Wu, J. Lin, J. Wang, and P. Liu, "Context Engineering 2.0: The Context of Context Engineering," _arXiv preprint arXiv:2510.26493_, Oct. 2025. [Online]. Available: https://arxiv.org/abs/2510.26493
 
 <a id="ref2"></a>[2] A. K. Dey, "Understanding and Using Context," _Pers. Ubiquitous Comput._, vol. 5, no. 1, pp. 4–7, 2001.
 
@@ -851,7 +852,7 @@ graph LR
 
 <a id="ref5"></a>[5] Google, "Google ADK - State," 2025. [Online]. Available: https://google.github.io/adk-docs/sessions/state/
 
-<a id="ref6"></a>[6] Google, "Google ADK - Memory," 2025. [Online]. Available: https://google.github.io/adk-docs/sessions/memory/
+<a id="ref6"></a>[6] Google, "Google ADK - Sessions - Memory," 2025. [Online]. Available: https://google.github.io/adk-docs/sessions/memory/
 
 <a id="ref7"></a>[7] Agno, "Agno - Agent Context," 2025. [Online]. Available: https://docs.agno.com/agents/context
 
@@ -859,7 +860,7 @@ graph LR
 
 <a id="ref9"></a>[9] Agno, "Agno - Knowledge," 2025. [Online]. Available: https://docs.agno.com/reference/knowledge/knowledge
 
-<a id="ref10"></a>[10] Agno, "Agno - Sessions," 2025. [Online]. Available: https://docs.agno.com/agents/sessions
+<a id="ref10"></a>[10] Agno, "Agno - Sessions," 2025. [Online]. Available: https://docs.agno.com/sessions/overview
 
 <a id="ref11"></a>[11] LangChain, "LangChain - Context Engineering," 2025. [Online]. Available: https://docs.langchain.com/oss/python/langchain/context-engineering
 

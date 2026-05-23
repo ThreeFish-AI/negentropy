@@ -72,8 +72,8 @@ graph LR
 
 | 阶段         | 时间  | 代表                   | 特点               |
 | ------------ | ----- | ---------------------- | ------------------ |
-| 语义网       | 2001  | W3C                    | RDF/OWL 标准化     |
-| 企业知识图谱 | 2012  | Google Knowledge Graph | 大规模商业应用     |
+| 语义网       | 2001  | W3C (T. Berners-Lee)   | RDF/OWL 标准化     |
+| 大规模知识图谱 | 2012 | Google Knowledge Graph | 商业搜索增强应用   |
 | AI 增强      | 2023+ | GraphRAG               | LLM 自动构建与推理 |
 
 #### 2.1.3 与其他存储的关系
@@ -97,7 +97,7 @@ flowchart LR
     LLM --> Answer[准确回答]
 ```
 
-**核心优势**：减少 LLM 幻觉 40-60%（综合多份实验报告估算值）、支持多跳推理和复杂关系查询、提供可解释的决策路径。GraphRAG 架构与社区检测原理详见 § 2.2。
+**核心优势**：RAG 系统相较裸 LLM 可降低约 40-71% 幻觉率（综合多份生产环境报告估算值，GraphRAG 在此基础上通过图谱结构化上下文可进一步提升事实准确性）、支持多跳推理和复杂关系查询、提供可解释的决策路径。GraphRAG 架构与社区检测原理详见 § 2.2。
 
 此外，LLM 正在革新传统知识工程：**LLM 驱动的实体关系抽取**显著减少手动标注成本，**自动图谱更新**实现实时知识增量融合。
 
@@ -277,7 +277,7 @@ flowchart TB
 LangGraph 是构建 Agentic RAG 的主流框架，基于图结构编排工作流：
 
 ```python
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, List
 
 class AgentState(TypedDict):
@@ -314,7 +314,7 @@ workflow.add_node("grade", grade_documents)
 workflow.add_node("web_search", web_search)
 workflow.add_node("generate", generate)
 
-workflow.set_entry_point("retrieve")
+workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "grade")
 workflow.add_conditional_edges("grade", decide_next)
 workflow.add_edge("web_search", "generate")
@@ -389,7 +389,7 @@ flowchart TB
 
 #### 3.1.1 核心定位
 
-Cognee 是一个开源的 **AI 记忆层框架**，将原始数据转换为可搜索、可连接的智能记忆<sup>[[11]](#ref11)</sup><sup>[[20]](#ref20)</sup>。
+Cognee 是一个开源的 **AI 记忆控制平面框架**（Apache 2.0 许可证），将原始数据转换为可搜索、可连接的智能记忆<sup>[[11]](#ref11)</sup><sup>[[20]](#ref20)</sup>。
 
 > **核心理念**：图+向量混合存储，支持语义搜索与结构推理统一
 
@@ -469,9 +469,9 @@ flowchart LR
 
 LlamaIndex 提供灵活的知识图谱构建与查询能力<sup>[[14]](#ref14)</sup><sup>[[22]](#ref22)</sup>：
 
-- **PropertyGraphIndex**：属性图索引，支持节点/边属性
-- **KnowledgeGraphRAGRetriever**：图谱检索器
-- **Text2Cypher**：自然语言自动转 Cypher 查询，配合 `KnowledgeGraphQueryEngine` 实现结构化图谱查询
+- **PropertyGraphIndex**：属性图索引（推荐），支持节点/边属性，已替代已弃用的 KnowledgeGraphIndex
+- **TextToCypherRetriever**：自然语言自动转 Cypher 查询，配合 PropertyGraphIndex 实现结构化图谱查询
+- **LLMSynonymRetriever / VectorContextRetriever**：属性图检索器，支持关键词扩展和向量上下文检索
 
 > 完整代码示例与高级配置详见 [Agent 运行时框架调研](./020-agent-runtime-frameworks.md)
 
@@ -483,7 +483,7 @@ LangGraph 是 LangChain 生态的 **Agent 工作流编排框架**<sup>[[15]](#re
 
 ### 3.5 MemGPT / Letta AI
 
-MemGPT（现更名为 Letta AI）采用 **操作系统式内存管理**<sup>[[4]](#ref4)</sup><sup>[[16]](#ref16)</sup>：
+MemGPT（2024 年 9 月更名为 Letta AI，开源许可证为 Apache 2.0）采用 **操作系统式内存管理**<sup>[[4]](#ref4)</sup><sup>[[16]](#ref16)</sup>：
 
 ```mermaid
 flowchart TB
@@ -503,7 +503,7 @@ flowchart TB
     LLM <--> RM
 ```
 
-**自编辑记忆**：Agent 通过 `core_memory_append/replace`、`archival_memory_insert/search`、`conversation_search` 等工具调用管理自己的记忆。
+**自编辑记忆**：Agent 通过 `core_memory_append`、`core_memory_replace`、`archival_memory_insert`、`archival_memory_search`、`conversation_search` 等工具调用管理自己的记忆。
 
 ### 3.6 框架对比总结
 
@@ -516,7 +516,7 @@ flowchart TB
 | **自学习**   | ✅ 反馈优化 | ❌          | ❌          | ❌         | ✅ 自编辑 |
 | **状态管理** | ✅ Session  | ❌          | ❌          | ✅ 核心    | ✅ 核心   |
 | **多 Agent** | ❌          | ❌          | ❌          | ✅ 核心    | ✅ 支持   |
-| **开源**     | ✅ MIT      | ✅ MIT      | ✅ MIT      | ✅ MIT     | ✅ MIT    |
+| **开源**     | ✅ Apache 2.0 | ✅ MIT      | ✅ Apache 2.0 | ✅ MIT     | ✅ Apache 2.0 |
 | **成熟度**   | 🟡 新兴     | 🟢 稳定     | 🟢 成熟     | 🟢 成熟    | 🟡 新兴   |
 
 **选型建议**：**全栈记忆** → Cognee | **图谱 RAG** → Microsoft GraphRAG | **通用开发** → LlamaIndex | **Agent 工作流** → LangGraph | **长期记忆** → MemGPT/Letta
@@ -548,26 +548,30 @@ Neo4j 是最成熟的原生图数据库，事实上的行业标准<sup>[[13]](#r
 
 | 特性           | 说明                            |
 | -------------- | ------------------------------- |
-| **极低延迟**   | 比 Neo4j 快 10-496x（特定场景） |
+| **极低延迟**   | 比 Neo4j 快 10-496x（特定场景，厂商基准测试） |
 | **稀疏矩阵**   | 创新架构，内存高效              |
 | **Redis 兼容** | 基于 Redis 模块                 |
 | **OpenCypher** | 兼容 Cypher 语法                |
 
 **性能对比**：
 
-| 指标     | FalkorDB     | Neo4j  |
-| -------- | ------------ | ------ |
-| P99 延迟 | <140ms       | 高延迟 |
-| 图遍历   | 10.5-344x 快 | 基准   |
-| 内存效率 | 高           | 中等   |
+| 指标     | FalkorDB         | Neo4j          |
+| -------- | ---------------- | -------------- |
+| P99 延迟 | <140ms           | 可达数十秒     |
+| 图遍历   | 10-500x 快（厂商基准） | 基准     |
+| 内存效率 | 高（约 6x 节省） | 中等           |
+
+> 上述性能数据来源于 FalkorDB 官方基准测试，独立第三方验证有限。
 
 #### 4.1.3 Kuzu
 
 嵌入式高性能图数据库，类似"图数据库的 DuckDB"：**嵌入式**（无需独立服务器）、**列式存储**（OLAP 优化）、**MCP 支持**（LLM 直接交互）、**MIT 许可**（完全开源）。
 
+> **注意**：KuzuDB 已于 2025 年 10 月被创建者 Kùzu Inc. 归档废弃，GitHub 仓库已设为只读状态。现有版本仍可使用，但不再接受维护与更新，新项目需审慎评估。
+
 #### 4.1.4 Memgraph
 
-内存图数据库，专注实时处理：**内存优先**（极低延迟）、**流处理**（实时图更新）、**GraphChat**（自然语言查询）、**AI Toolkit**（Python 工具集）。性能对比：比 Neo4j 低 41x 延迟，节点插入快 10x。
+内存图数据库，专注实时处理：**内存优先**（极低延迟）、**流处理**（实时图更新）、**GraphChat**（自然语言查询）、**AI Toolkit**（Python 工具集）。性能对比：比 Neo4j 低 41x 延迟，节点插入快 10x（厂商基准测试，独立验证有限）。
 
 #### 4.1.5 图数据库对比与选型
 
@@ -577,7 +581,7 @@ Neo4j 是最成熟的原生图数据库，事实上的行业标准<sup>[[13]](#r
 | **性能**     | 🟡 中等     | 🟢 极高    | 🟢 高   | 🟢 极高   |
 | **成熟度**   | 🟢 最成熟   | 🟡 新兴    | 🟡 新兴 | 🟢 成熟   |
 | **AI 集成**  | 🟢 最丰富   | 🟢 良好    | 🟡 基础 | 🟢 良好   |
-| **开源**     | 🟡 开放核心 | 🟢 完全    | 🟢 完全 | 🟢 完全   |
+| **开源**     | 🟡 开放核心 | 🟡 SSPLv1 | 🟡 已归档 | 🟢 完全   |
 
 **本项目建议**：实际选用 **PostgreSQL AGE**（与 pgvector 共享基础设施）；Neo4j 详调见 [050-neo4j.md](./050-neo4j.md)，对比决策见 [051-postgres-neo4j.md](./051-postgres-neo4j.md)。
 
@@ -602,7 +606,7 @@ Neo4j 是最成熟的原生图数据库，事实上的行业标准<sup>[[13]](#r
 
 ## 5. Agent 设计模式
 
-> 跨框架的通用方法论，可与前述框架和数据库组合应用。基于 Andrew Ng 提出的 Agentic Design Patterns<sup>[[10]](#ref10)</sup> 整理。
+> 跨框架的通用方法论，可与前述框架和数据库组合应用。Andrew Ng 于 2024 年提出四大核心 Agentic Design Patterns（Reflection、Tool Use、Planning、Multi-Agent）<sup>[[10]](#ref10)</sup>，本章在此基础上扩展至完整设计模式体系。
 
 ### 5.1 Prompt Chaining（提示链）
 
@@ -941,7 +945,7 @@ class HybridRetriever:
 
 ## 7. References
 
-<a id="ref1"></a>[1] V. Chaudhri et al., "Knowledge Graphs: Introduction, History, and Perspectives," _AI Magazine_, vol. 44, no. 1, pp. 1–20, 2023.
+<a id="ref1"></a>[1] V. Chaudhri et al., "Knowledge Graphs: Introduction, History, and Perspectives," _AI Magazine_, vol. 43, no. 1, pp. 17–29, 2022.
 
 <a id="ref2"></a>[2] D. Edge et al., "From Local to Global: A Graph RAG Approach to Query-Focused Summarization," _arXiv preprint arXiv:2404.16130_, 2024.
 
