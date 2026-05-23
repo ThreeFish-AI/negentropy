@@ -22,14 +22,21 @@ def extract_default_content(soup: BeautifulSoup, base_url: str) -> Dict[str, Any
         for anchor in soup.find_all("a", href=True)
         if hasattr(anchor, "get")
     ]
-    images = [
-        {
+    images = []
+    for image in soup.find_all("img", src=True):
+        if not hasattr(image, "get"):
+            continue
+        img_info: Dict[str, Any] = {
             "src": urljoin(base_url, str(image.get("src", ""))),
             "alt": str(image.get("alt", "")),
         }
-        for image in soup.find_all("img", src=True)
-        if hasattr(image, "get")
-    ]
+        w = image.get("width")
+        h = image.get("height")
+        if w is not None:
+            img_info["width"] = str(w)
+        if h is not None:
+            img_info["height"] = str(h)
+        images.append(img_info)
     return {"text": text, "links": links, "images": images}
 
 

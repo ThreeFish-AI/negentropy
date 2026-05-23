@@ -104,6 +104,7 @@ class MarkdownConverter:
         url: str,
         custom_options: Optional[Dict[str, Any]],
         formatting_options: Optional[Dict[str, bool]],
+        computed_image_sizes: Optional[Dict[str, Dict[str, int]]] = None,
     ) -> str:
         """在可选格式化配置下执行 HTML 转 Markdown。"""
         original_formatter = None
@@ -114,7 +115,12 @@ class MarkdownConverter:
             self._formatter = MarkdownFormatter(merged)
 
         try:
-            return self.html_to_markdown(html_content, url, custom_options)
+            return self.html_to_markdown(
+                html_content,
+                url,
+                custom_options,
+                computed_image_sizes=computed_image_sizes,
+            )
         finally:
             if original_formatter:
                 self._formatter = original_formatter
@@ -172,6 +178,7 @@ class MarkdownConverter:
         html_content: str,
         base_url: Optional[str] = None,
         custom_options: Optional[Dict[str, Any]] = None,
+        computed_image_sizes: Optional[Dict[str, Dict[str, int]]] = None,
     ) -> str:
         """
         Convert HTML content to Markdown using MarkItDown.
@@ -180,6 +187,7 @@ class MarkdownConverter:
             html_content: HTML content to convert
             base_url: Base URL for resolving relative URLs
             custom_options: Custom options (maintained for compatibility)
+            computed_image_sizes: Selenium 抓取的图片实际渲染尺寸（src → {width, height}）
 
         Returns:
             Markdown formatted content
@@ -195,7 +203,10 @@ class MarkdownConverter:
 
             # Preprocess HTML if needed
             processed_html = preprocess_html(
-                html_content, base_url, img_registry=img_registry
+                html_content,
+                base_url,
+                img_registry=img_registry,
+                computed_image_sizes=computed_image_sizes,
             )
 
             # Create a temporary HTML file for MarkItDown to process
@@ -397,11 +408,14 @@ class MarkdownConverter:
                 scrape_result,
                 extract_main_content,
             )
+            # 从 Selenium 抓取结果中提取图片计算尺寸
+            computed_image_sizes = page_content.get("computed_image_sizes")
             markdown_content = self._convert_html_with_formatting(
                 html_content,
                 url,
                 custom_options,
                 formatting_options,
+                computed_image_sizes=computed_image_sizes,
             )
             markdown_content, embed_stats = self._embed_images_if_needed(
                 markdown_content,

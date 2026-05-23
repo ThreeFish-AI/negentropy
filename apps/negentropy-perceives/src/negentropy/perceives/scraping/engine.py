@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from typing import Dict, Any, List, Optional
 from bs4 import BeautifulSoup
 import requests
@@ -67,6 +68,43 @@ class SeleniumScraper:
             page_source = self.driver.page_source
             soup = BeautifulSoup(page_source, "html.parser")
 
+            # 捕获每张图片在浏览器中的实际渲染尺寸（CSS 计算值），
+            # 用于替代 HTML 属性中的固有尺寸，使 Markdown 输出更贴近原站布局。
+            # 先逐段滚动页面以触发懒加载图片，确保所有图片均已渲染。
+            computed_image_sizes: Dict[str, Dict[str, int]] = {}
+            try:
+                self.driver.execute_script(
+                    """
+                    (function scroll() {
+                      var h = document.body.scrollHeight;
+                      var step = window.innerHeight;
+                      for (var y = 0; y < h; y += step) {
+                        window.scrollTo(0, y);
+                      }
+                      window.scrollTo(0, 0);
+                    })();
+                    """
+                )
+                time.sleep(0.5)
+                computed_image_sizes = self.driver.execute_script(
+                    """
+                    return Array.from(document.querySelectorAll('img')).reduce(
+                      (acc, img) => {
+                        if (img.src) {
+                          var rect = img.getBoundingClientRect();
+                          var w = Math.round(rect.width);
+                          var h = Math.round(rect.height);
+                          if (w > 0 && h > 0) {
+                            acc[img.src] = { width: w, height: h };
+                          }
+                        }
+                        return acc;
+                      }, {});
+                    """
+                )
+            except Exception as js_err:  # noqa: BLE001
+                logger.warning(f"Failed to capture computed image sizes: {js_err}")
+
             result: dict[str, Any] = {
                 "url": self.driver.current_url,
                 "title": self.driver.title,
@@ -86,6 +124,10 @@ class SeleniumScraper:
                 )
             else:
                 result["content"] = extract_default_content(soup, url)
+
+            # 将浏览器中捕获的计算图片尺寸注入 content 以便下游使用
+            if computed_image_sizes:
+                result["content"]["computed_image_sizes"] = computed_image_sizes
 
             return result
 
