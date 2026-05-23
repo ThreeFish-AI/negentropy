@@ -50,6 +50,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
 
   return (
     <div
+      data-testid="activity-log-panel"
       className="fixed inset-0 z-50 flex justify-end"
       role="dialog"
       aria-modal="true"

@@ -129,12 +129,18 @@ test.describe("Dashboard Activity 面板", () => {
     await mockDashboardDependencies(page);
   });
 
+  /** 点击 Activity 按钮打开抽屉面板 */
+  async function openActivityDrawer(page: Page) {
+    await page.getByRole("button", { name: /Activity log/ }).click();
+    await expect(page.getByTestId("activity-log-panel")).toBeVisible();
+  }
+
   test("空状态展示 No activity recorded yet", async ({ page }) => {
     await seedActivityEntries(page, []);
     await page.goto("/dashboard");
+    await openActivityDrawer(page);
 
     const panel = page.getByTestId("activity-log-panel");
-    await expect(panel).toBeVisible();
     await expect(
       panel.getByText(
         "No activity recorded yet. Toast notifications will appear here as they occur across the platform.",
@@ -145,6 +151,7 @@ test.describe("Dashboard Activity 面板", () => {
   test("Level 筛选只展示对应级别", async ({ page }) => {
     await seedActivityEntries(page, SAMPLE_ENTRIES);
     await page.goto("/dashboard");
+    await openActivityDrawer(page);
 
     const panel = page.getByTestId("activity-log-panel");
     await expect(panel.getByText("Memory saved")).toBeVisible();
@@ -159,6 +166,7 @@ test.describe("Dashboard Activity 面板", () => {
   test("Clear All 清空 entries", async ({ page }) => {
     await seedActivityEntries(page, SAMPLE_ENTRIES);
     await page.goto("/dashboard");
+    await openActivityDrawer(page);
 
     const panel = page.getByTestId("activity-log-panel");
     await expect(panel.getByText("Memory saved")).toBeVisible();
@@ -178,6 +186,7 @@ test.describe("Dashboard Activity 面板", () => {
     }, [STORAGE_KEY]);
 
     await page.goto("/dashboard");
+    await openActivityDrawer(page);
 
     const panel = page.getByTestId("activity-log-panel");
     await expect(
