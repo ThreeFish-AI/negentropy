@@ -25,7 +25,7 @@ export function MetricCell({
 }: MetricCellProps) {
   const cell = (
     <div
-      className={`inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 ${
+      className={`flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 ${
         href ? "transition-colors hover:bg-muted/70" : ""
       }`}
     >
@@ -51,7 +51,7 @@ export function MetricCell({
 
   if (href) {
     return (
-      <a href={href} className="cursor-pointer">
+      <a href={href} className="block cursor-pointer">
         {cell}
       </a>
     );
