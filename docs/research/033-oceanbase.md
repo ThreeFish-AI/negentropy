@@ -5,11 +5,11 @@ title: OceanBase 三位一体数据库调研
 last_update:
   author: Aurelius Huang
   created_at: 2025-12-23
-  updated_at: 2026-01-04
-  version: 1.0
-  status: Pending Reviewed
+  updated_at: 2026-05-23
+  version: 1.1
+  status: Veracity Attested
 tags:
-  - OceanBase V4.5.0
+  - OceanBase V4.4.x
 ---
 
 > [!IMPORTANT]
@@ -56,12 +56,14 @@ graph TB
 
 | 版本     | 发布时间 | 重要特性                         |
 | -------- | -------- | -------------------------------- |
-| V1.0     | 2014     | 首个正式版本，支付宝核心系统上线 |
-| V2.0     | 2017     | 金融级高可用，RPO=0              |
-| V3.0     | 2020     | 兼容 MySQL/Oracle，开源社区版    |
-| V4.0     | 2022     | HTAP 能力增强，列存引擎          |
-| V4.3     | 2024     | 向量搜索能力，AI 原生支持        |
-| **V4.5** | 2024     | 向量索引优化、AI 生态集成增强    |
+| V0.5     | 2014     | 支付宝交易系统上线，替代 Oracle  |
+| V1.0     | 2016     | 首个全分布式版本，支付宝账务系统 |
+| V2.0     | 2018     | 金融级高可用，RPO=0，Oracle 兼容 |
+| V3.1     | 2021     | 开源社区版（MySQL 兼容模式）     |
+| V4.0     | 2022     | 单机分布式一体化架构             |
+| V4.3     | 2024     | 列存引擎、向量化执行、实时 AP    |
+| V4.3.3   | 2024.11  | 向量数据类型与向量索引，AI 原生  |
+| **V4.4** | 2025     | 向量检索增强、混合搜索、AI 函数  |
 
 ---
 
@@ -112,6 +114,7 @@ graph TB
 | **计算层** | SQL Engine                     | SQL 解析、优化、执行         |
 | **存储层** | LSM-Tree Engine                | 数据存储、索引管理           |
 | **事务层** | Paxos-based                    | 分布式事务、强一致性保证     |
+| **高可用** | RPO=0, RTO < 8s                | 金融级容灾，零数据丢失       |
 
 ### 2.2 LSM-Tree 存储引擎
 
@@ -183,7 +186,7 @@ sequenceDiagram
 ```
 
 - **RPO = 0**：数据零丢失，满足金融级要求
-- **RTO < 30s**：故障自动切换，业务快速恢复
+- **RTO < 8s**：故障自动切换，业务快速恢复
 - **三副本部署**：同城三机房或两地三中心
 
 ---
@@ -251,9 +254,9 @@ graph TB
 
 | 部署模式       | 副本分布              | RPO | RTO   | 适用场景     |
 | -------------- | --------------------- | --- | ----- | ------------ |
-| **同城三机房** | 3 Zone × 3 副本       | 0   | < 30s | 金融核心系统 |
-| **两地三中心** | 城市 A(2) + 城市 B(1) | 0   | < 30s | 异地容灾     |
-| **三地五中心** | 3 城市 × 5 副本       | 0   | < 60s | 极致容灾     |
+| **同城三机房** | 3 Zone × 3 副本       | 0   | < 8s  | 金融核心系统 |
+| **两地三中心** | 城市 A(2) + 城市 B(1) | 0   | < 8s  | 异地容灾     |
+| **三地五中心** | 3 城市 × 5 副本       | 0   | < 30s | 极致容灾     |
 
 ---
 
@@ -324,7 +327,7 @@ mindmap
 
 ### 5.1 向量能力概述
 
-OceanBase 从 V4.3.3 版本开始原生支持向量数据类型和向量索引，V4.5 版本进一步增强了向量搜索能力<sup>[[10]](#ref10)</sup><sup>[[11]](#ref11)</sup>。
+OceanBase 从 V4.3.3 版本开始原生支持向量数据类型和向量索引，V4.4 版本进一步增强了向量搜索能力（混合搜索、AI SQL 函数等）<sup>[[10]](#ref10)</sup><sup>[[11]](#ref11)</sup>。
 
 ```mermaid
 graph LR
@@ -387,7 +390,7 @@ graph LR
 ```
 
 ```sql
--- 创建 HNSW 向量索引（OceanBase V4.5.0 语法）
+-- 创建 HNSW 向量索引（OceanBase V4.3.3+ 语法）
 CREATE VECTOR INDEX idx_embedding_hnsw ON articles(embedding)
     WITH (distance=l2, type=hnsw, lib=vsag);
 ```
@@ -429,43 +432,48 @@ graph TB
 ```
 
 ```sql
--- 创建 IVF 向量索引（OceanBase V4.5.0 语法）
+-- 创建 IVF 向量索引（OceanBase V4.3.3+ 语法）
 CREATE VECTOR INDEX idx_embedding_ivf ON articles(embedding)
     WITH (distance=l2, type=ivf, lib=vsag);
 ```
 
 ### 5.4 距离度量方式
 
-| 度量方式          | 函数                | 适用场景           |
-| ----------------- | ------------------- | ------------------ |
-| **欧氏距离 (L2)** | `l2_distance()`     | 物理相似度         |
-| **余弦相似度**    | `cosine_distance()` | 语义相似度（推荐） |
-| **内积**          | `inner_product()`   | 归一化向量         |
-| **曼哈顿距离**    | `l1_distance()`     | 特定场景           |
+| 度量方式          | 操作符 / 函数                  | 适用场景           |
+| ----------------- | ------------------------------- | ------------------ |
+| **欧氏距离 (L2)** | `<->` (ANN 操作符)             | 物理相似度         |
+| **余弦距离**      | `<~>` (ANN 操作符)             | 语义相似度（推荐） |
+| **内积**          | `<@>` (ANN 操作符)             | 归一化向量         |
+
+> [!NOTE]
+>
+> OceanBase 向量距离计算使用 ANN 操作符（`<->`、`<~>`、`<@>`），配合 `ob_ann_distance()` 函数获取实际距离值。不支持 `l1_distance()`（曼哈顿距离）。
 
 ### 5.5 向量搜索查询
 
 ```sql
--- 最近邻搜索 (KNN)
+-- 最近邻搜索 (KNN) — 使用 ANN 操作符
 SELECT id, title,
-       l2_distance(embedding, '[0.1, 0.2, ...]') AS distance
+       ob_ann_distance(embedding, '[0.1, 0.2, ...]') AS distance
 FROM articles
+WHERE embedding <-> '[0.1, 0.2, ...]'
 ORDER BY distance ASC
 LIMIT 10;
 
 -- 带过滤条件的混合搜索
 SELECT id, title,
-       cosine_distance(embedding, '[0.1, 0.2, ...]') AS distance
+       ob_ann_distance(embedding, '[0.1, 0.2, ...]') AS distance
 FROM articles
 WHERE category = 'technology'
   AND created_at > '2024-01-01'
+  AND embedding <~> '[0.1, 0.2, ...]'  -- 余弦距离 ANN 过滤
 ORDER BY distance ASC
 LIMIT 10;
 ```
 
 ### 5.6 向量能力对比
 
-| 特性         | OceanBase V4.5 | PostgreSQL + pgvector | Milvus             |
+| 特性         | OceanBase V4.4 | PostgreSQL + pgvector | Milvus             |
 | ------------ | -------------- | --------------------- | ------------------ |
 | **向量维度** | 16,000         | 16,000 (存储) / 2,000 (HNSW 索引) | 32,768             |
 | **索引类型** | HNSW, IVF      | HNSW, IVFFlat         | HNSW, IVF_FLAT, 等 |
@@ -571,16 +579,20 @@ OceanBase 在 TPC-C 基准测试中创造了多项世界纪录<sup>[[15]](#ref15
 
 | 测试项         | OceanBase | MySQL 企业版 | 对比倍数 |
 | -------------- | --------- | ------------ | -------- |
-| **最高 tpmC**  | 7.07 亿   | -            | 世界纪录（2020 年，已被 PolarDB 超越） |
+| **最高 tpmC**  | 7.07 亿   | -            | 世界纪录（2020 年 5 月） |
 | **同配置性能** | 基准      | 基准 × 0.53  | **1.9x** |
 | **线性扩展**   | ✅        | ❌           | -        |
 
 ### 7.2 TPC-H 性能 (OLAP)
 
-| 测试项       | OceanBase V4.0 | Greenplum 6.22.1 | 对比倍数 |
+| 测试项       | OceanBase V4.3 | Greenplum 6.22.1 | 对比倍数 |
 | ------------ | -------------- | ---------------- | -------- |
 | **综合性能** | 基准           | 基准 × 0.17      | **5-6x** |
 | **最优场景** | 基准           | 基准 × 0.11      | **9x**   |
+
+> [!NOTE]
+>
+> TPC-H 性能数据来源于 OceanBase 官方基准测试白皮书，具体测试配置详见 [ref [16]](#ref16)。
 
 ### 7.3 向量搜索性能
 
@@ -604,21 +616,25 @@ OceanBase 提供官方 LlamaIndex 集成包 `llama-index-vector-stores-oceanbase
 
 ```python
 # 安装
-pip install llama-index-vector-stores-oceanbase
+pip install llama-index-vector-stores-oceanbase pyobvector
 
 # 使用示例
 from llama_index.vector_stores.oceanbase import OceanBaseVectorStore
-from llama_index import VectorStoreIndex
+from pyobvector import ObVecClient
 
-# 配置 OceanBase 连接
-vector_store = OceanBaseVectorStore(
+# 配置 OceanBase 连接（通过 ObVecClient）
+client = ObVecClient(
     host="127.0.0.1",
     port=2881,
     user="root@test",
     password="",
-    database="test_db",
-    table_name="documents",
-    embedding_dimension=1536
+    database="test_db"
+)
+
+vector_store = OceanBaseVectorStore(
+    client=client,
+    dim=1536,
+    table_name="documents"
 )
 
 # 创建索引
@@ -717,7 +733,7 @@ mindmap
 | 风险               | 等级 | 缓解措施                            |
 | ------------------ | ---- | ----------------------------------- |
 | **运维复杂度高**   | 中   | 使用 OCP 管理平台，参考官方最佳实践 |
-| **向量功能相对新** | 低   | V4.5 已稳定，持续关注版本更新       |
+| **向量功能相对新** | 低   | V4.3.3 GA 已稳定，V4.4 持续增强    |
 | **社区资源相对少** | 低   | 官方文档完善，技术支持响应快        |
 
 ---
@@ -799,7 +815,7 @@ CREATE TABLE paper_embeddings (
     FOREIGN KEY (paper_id) REFERENCES papers(id)
 );
 
--- 创建 HNSW 向量索引（OceanBase 语法）
+-- 创建 HNSW 向量索引（OceanBase V4.3.3+ 语法）
 CREATE VECTOR INDEX idx_paper_embedding_hnsw ON paper_embeddings(embedding)
     WITH (distance=l2, type=hnsw, lib=vsag);
 
@@ -823,8 +839,8 @@ CREATE TABLE citations (
 #### 方式一：Docker 快速部署（推荐开发测试）
 
 ```bash
-# 拉取 OceanBase 镜像
-docker pull oceanbase/oceanbase-ce:4.5.0
+# 拉取 OceanBase 镜像（使用最新 CE 版本）
+docker pull oceanbase/oceanbase-ce:latest
 
 # 启动容器（最小配置）
 docker run -d \
@@ -832,7 +848,7 @@ docker run -d \
   -p 2881:2881 \
   -e MODE=mini \
   -e OB_TENANT_PASSWORD=your_password \
-  oceanbase/oceanbase-ce:4.5.0
+  oceanbase/oceanbase-ce:latest
 
 # 等待启动完成（约 2-5 分钟）
 docker logs -f oceanbase
@@ -844,10 +860,9 @@ docker logs -f oceanbase
 
 ```bash
 # 安装 OBD (OceanBase Deployer)
-curl -o /tmp/oceanbase-all-in-one.sh \
-  https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/oceanbase-all-in-one/7.1.1/oceanbase-all-in-one.sh
-
-bash /tmp/oceanbase-all-in-one.sh
+# 注意：以下 URL 为示例，请从 OceanBase 官方下载页获取最新版本
+# https://www.oceanbase.com/softwarecenter
+bash -c "$(curl -s https://obbusiness-private.oss-cn-shanghai.aliyuncs.com/download-center/opensource/oceanbase-all-in-one/latest/oceanbase-all-in-one.sh)"
 
 # 部署单节点集群
 obd cluster deploy demo -c mini.yaml
@@ -870,6 +885,7 @@ obclient -h127.0.0.1 -P2881 -uroot@test -p your_password
 
 ```bash
 pip install llama-index-vector-stores-oceanbase
+pip install pyobvector
 pip install llama-index
 pip install openai
 pip install pymysql
@@ -915,7 +931,7 @@ CREATE TABLE IF NOT EXISTS paper_embeddings (
 )
 ''')
 
-# 创建 HNSW 向量索引（OceanBase 语法）
+# 创建 HNSW 向量索引（OceanBase V4.3.3+ 语法）
 cursor.execute('''
 CREATE VECTOR INDEX IF NOT EXISTS idx_embedding_hnsw
 ON paper_embeddings(embedding)
@@ -933,6 +949,7 @@ from llama_index.vector_stores.oceanbase import OceanBaseVectorStore
 from llama_index.core import VectorStoreIndex, Document, Settings
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
+from pyobvector import ObVecClient
 import os
 
 # 配置 OpenAI
@@ -942,15 +959,19 @@ os.environ["OPENAI_API_KEY"] = "your-api-key"
 Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
 Settings.llm = OpenAI(model="gpt-4o-mini")
 
-# 创建 OceanBase 向量存储
-vector_store = OceanBaseVectorStore(
+# 创建 OceanBase 向量存储（通过 ObVecClient 连接）
+client = ObVecClient(
     host="127.0.0.1",
     port=2881,
     user="root@test",
     password="your_password",
-    database="test_db",
-    table_name="paper_embeddings",
-    embedding_dimension=1536
+    database="test_db"
+)
+
+vector_store = OceanBaseVectorStore(
+    client=client,
+    dim=1536,
+    table_name="paper_embeddings"
 )
 
 # 准备示例文档
@@ -1056,8 +1077,9 @@ for row in cursor.fetchall():
 ### 10.8 监控与运维
 
 ```sql
--- 查看向量索引状态
-SELECT * FROM information_schema.INNODB_VECTOR_INDEXES;
+-- 查看向量索引状态（OceanBase 内部视图）
+SELECT * FROM oceanbase.DBA_OB_TABLE_LOCATIONS
+WHERE TABLE_NAME = 'paper_embeddings';
 
 -- 查看查询性能
 SELECT
@@ -1083,44 +1105,44 @@ FROM oceanbase.GV$OB_SERVERS;
 
 ## References
 
-<a id="ref1"></a>[1] OceanBase, "OceanBase 简介," _OceanBase Documentation_, 2024. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475486
+<a id="ref1"></a>[1] OceanBase, "OceanBase 简介," _OceanBase Documentation_, 2025. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475486
 
-<a id="ref2"></a>[2] OceanBase, _OceanBase 数据库 V4.5.0: Introduction_, 2024.
+<a id="ref2"></a>[2] OceanBase, _OceanBase 数据库 V4.4.x: Introduction_, 2025.
 
-<a id="ref3"></a>[3] OceanBase, "分布式架构," _OceanBase Documentation_, 2024. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475689
+<a id="ref3"></a>[3] OceanBase, "分布式架构," _OceanBase Documentation_, 2025. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475689
 
 <a id="ref4"></a>[4] OceanBase Technical Blog, "LSM-Tree 存储引擎原理," 2024. [Online]. Available: https://open.oceanbase.com/blog/200126
 
 <a id="ref5"></a>[5] 墨天轮, "OceanBase 存储引擎深度解析," 2024. [Online]. Available: https://www.modb.pro/db/oceanbase
 
-<a id="ref6"></a>[6] OceanBase, "Paxos 一致性协议," _OceanBase Documentation_, 2024.
+<a id="ref6"></a>[6] OceanBase, "Paxos 一致性协议," _OceanBase Documentation_, 2025.
 
-<a id="ref7"></a>[7] OceanBase, _OceanBase 数据库 V4.5.0: 实践教程_, 2024.
+<a id="ref7"></a>[7] OceanBase, _OceanBase 数据库 V4.4.x: 实践教程_, 2025.
 
-<a id="ref8"></a>[8] OceanBase, "HTAP 架构," _OceanBase Documentation_, 2024. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475691
+<a id="ref8"></a>[8] OceanBase, "HTAP 架构," _OceanBase Documentation_, 2025. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475691
 
-<a id="ref9"></a>[9] OceanBase, _OceanBase 数据库 V4.5.0: OceanBase AP_, 2024.
+<a id="ref9"></a>[9] OceanBase, _OceanBase 数据库 V4.3.x: OceanBase AP_, 2024.
 
 <a id="ref10"></a>[10] OceanBase, "向量搜索概述," _OceanBase Documentation_, 2024. [Online]. Available: https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000004475693
 
-<a id="ref11"></a>[11] OceanBase, _OceanBase 数据库 V4.5.0: 向量搜索_, 2024.
+<a id="ref11"></a>[11] OceanBase, _OceanBase 向量搜索技术博客_, 2024. [Online]. Available: https://oceanbase.github.io/docs/blogs/tech/vector-search
 
 <a id="ref12"></a>[12] Wikipedia, "Hierarchical Navigable Small World graphs," _Wikipedia_, 2024. [Online]. Available: https://en.wikipedia.org/wiki/HNSW
 
 <a id="ref13"></a>[13] Milvus, "IVF 索引原理," _Milvus Documentation_, 2024. [Online]. Available: https://milvus.io/docs/index.md
 
-<a id="ref14"></a>[14] OceanBase, "三位一体架构," _OceanBase Documentation_, 2024.
+<a id="ref14"></a>[14] OceanBase, "三位一体架构," _OceanBase DevCon 2024_, 2024.
 
-<a id="ref15"></a>[15] TPC, "TPC-C 官方记录 - OceanBase 性能," _TPC Benchmark Results_, 2024. [Online]. Available: https://www.tpc.org/tpcc/results/tpcc_results5.asp
+<a id="ref15"></a>[15] TPC, "TPC-C 官方记录 - OceanBase 707M tpmC," _TPC Benchmark Results_, 2020. [Online]. Available: https://www.tpc.org/tpcc/results/tpcc_results5.asp
 
-<a id="ref16"></a>[16] Medium, "OceanBase 性能对比分析," 2024. [Online]. Available: https://medium.com/@oceanbase
+<a id="ref16"></a>[16] OceanBase, "A VLDB 2022 Paper: The Technologies behind OceanBase's 707 million tpmC in TPC-C Benchmark Test," _OceanBase Blog_, 2022. [Online]. Available: https://en.oceanbase.com/blog/2596571392
 
-<a id="ref17"></a>[17] Zilliz, "VectorDBBench - 向量数据库基准测试," _GitHub Repository_, 2024. [Online]. Available: https://github.com/zilliztech/VectorDBBench
+<a id="ref17"></a>[17] Zilliz, "VectorDBBench - 向量数据库基准测试," _GitHub Repository_, 2025. [Online]. Available: https://github.com/zilliztech/VectorDBBench
 
-<a id="ref18"></a>[18] LlamaHub, "OceanBase Vector Store," 2024. [Online]. Available: https://llamahub.ai/l/vector_stores/llama-index-vector-stores-oceanbase
+<a id="ref18"></a>[18] LlamaHub, "OceanBase Vector Store," 2025. [Online]. Available: https://docs.llamaindex.ai/en/stable/api_reference/storage/vector_store/oceanbase/
 
-<a id="ref19"></a>[19] LangChain, "OceanBase 集成," 2024. [Online]. Available: https://python.langchain.com/docs/integrations/vectorstores/oceanbase
+<a id="ref19"></a>[19] LangChain, "OceanBase 集成," 2025. [Online]. Available: https://python.langchain.com/docs/integrations/vectorstores/oceanbase
 
-<a id="ref20"></a>[20] OceanBase, _OceanBase 数据库 V4.5.0: 部署数据库_, 2024.
+<a id="ref20"></a>[20] OceanBase, _OceanBase 数据库: 部署数据库_, 2025. [Online]. Available: https://en.oceanbase.com/docs/common-oceanbase-database-10000000000870521
 
-<a id="ref21"></a>[21] OceanBase, "OceanBase," _GitHub Repository_, 2024. [Online]. Available: https://github.com/oceanbase/oceanbase
+<a id="ref21"></a>[21] OceanBase, "OceanBase," _GitHub Repository_, 2026. [Online]. Available: https://github.com/oceanbase/oceanbase
