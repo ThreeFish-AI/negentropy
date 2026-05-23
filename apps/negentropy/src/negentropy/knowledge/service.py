@@ -1457,12 +1457,15 @@ class KnowledgeService:
             # 回填页面标题到文档 metadata（首次同步或历史数据补齐）
             extraction_title = extraction_result.metadata.get("title")
             if extraction_title:
-                from negentropy.storage.service import DocumentStorageService
+                try:
+                    from negentropy.storage.service import DocumentStorageService
 
-                await DocumentStorageService().update_document_metadata(
-                    document_id=document_id,
-                    metadata_patch={"title": extraction_title},
-                )
+                    await DocumentStorageService().update_document_metadata(
+                        document_id=document_id,
+                        metadata_patch={"title": extraction_title},
+                    )
+                except Exception:
+                    logger.warning("Failed to backfill title for document %s", document_id, exc_info=True)
 
             await tracker.complete_stage(
                 "markdown_store",
