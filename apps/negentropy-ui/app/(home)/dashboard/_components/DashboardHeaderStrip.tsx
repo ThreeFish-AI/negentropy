@@ -3,6 +3,7 @@
 import { MCP_HUB_LABEL } from "@/app/interface/copy";
 import type { MemoryDashboard } from "@/features/memory";
 
+import { ActivityBadgeButton } from "./ActivityBadgeButton";
 import { MetricCell } from "./MetricCell";
 import type { KpiResponse } from "../_lib/types";
 
@@ -37,6 +38,8 @@ interface DashboardHeaderStripProps {
   interfaceStats: Stats | null;
   interfaceLoading: boolean;
   isAdmin: boolean;
+  activityCount: number;
+  onOpenActivity: () => void;
 }
 
 /* ---------- Group wrapper ---------- */
@@ -62,6 +65,8 @@ export function DashboardHeaderStrip({
   interfaceStats,
   interfaceLoading,
   isAdmin,
+  activityCount,
+  onOpenActivity,
 }: DashboardHeaderStripProps) {
   const hasAlerts =
     memoryDashboard &&
@@ -227,6 +232,11 @@ export function DashboardHeaderStrip({
             href="/interface/tools"
           />
         </CellGroup>
+
+        {/* Activity trigger */}
+        <div className="flex shrink-0 items-center md:ml-2">
+          <ActivityBadgeButton count={activityCount} onClick={onOpenActivity} />
+        </div>
       </div>
     </div>
   );
