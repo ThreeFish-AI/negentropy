@@ -991,7 +991,11 @@ class KnowledgeService:
                 content=markdown_bytes,
                 filename=raw_name,
                 content_type="text/markdown",
-                metadata={"source_type": "url", "origin_url": url},
+                metadata={
+                    "source_type": "url",
+                    "origin_url": url,
+                    "title": extraction_result.metadata.get("title"),
+                },
                 created_by=user_id,
             )
             await storage_service.save_markdown_content(
@@ -1449,6 +1453,17 @@ class KnowledgeService:
                 extracted=extraction_result,
                 tracker=tracker,
             )
+
+            # 回填页面标题到文档 metadata（首次同步或历史数据补齐）
+            extraction_title = extraction_result.metadata.get("title")
+            if extraction_title:
+                from negentropy.storage.service import DocumentStorageService
+
+                await DocumentStorageService().update_document_metadata(
+                    document_id=document_id,
+                    metadata_patch={"title": extraction_title},
+                )
+
             await tracker.complete_stage(
                 "markdown_store",
                 {
