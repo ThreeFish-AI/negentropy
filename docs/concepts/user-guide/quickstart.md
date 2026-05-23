@@ -37,11 +37,11 @@ uv run negentropy init    # 写入 ~/.negentropy/config.yaml
 # 6. 应用数据库迁移
 uv run alembic upgrade head
 
-# 7. 启动引擎（开发模式，支持热重载）
-uv run negentropy serve --port 8000
+# 7. 启动引擎（开发模式，支持热重载，默认端口 3292）
+uv run negentropy serve
 ```
 
-> 后端服务启动后可访问 `http://localhost:8000`，API 文档自动生成于 `/docs`。
+> 后端服务启动后可访问 `http://localhost:3292`，API 文档自动生成于 `/docs`。
 
 ### 2.3 启动前端界面
 

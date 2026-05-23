@@ -42,20 +42,20 @@ negentropy 把 PAO 演化为「**一核五翼**」（PerceptionFaculty / Interna
 
 | 协议                         | 提出方                | 关键设计点                                           | negentropy 对齐情况                                                        |
 | ---------------------------- | --------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------- |
-| **AG-UI**                    | CopilotKit (2024)     | 16 标准事件 / state delta 旁路 / generative UI       | ✅ 主信道。事件流见 `apps/negentropy-ui/lib/agui/ndjson-agent.ts`           |
+| **AG-UI**                    | CopilotKit (2024)     | 16 标准事件 / state delta 旁路 / generative UI       | ✅ 主信道。事件流经 `@ag-ui/client` `HttpAgent` 接入                        |
 | **A2UI**                     | Google (2025)         | 双工 ChannelMap / A2A delegation / UI Component Tree | 🟡 ConversationNode 数据模型借鉴；Sub-Agent 嵌套卡片在 RFC 0002 §4.2 待落地 |
 | **OpenAI Assistants Stream** | OpenAI (2024)         | thread + run + step + delta 四级事件                 | ❌ 未直接采用                                                               |
 | **LangGraph events**         | LangChain (2024-2025) | StateGraph 中断 / 时间穿梭重放                       | 🟡 Run 终态 hydration 借鉴；中断门 RFC 0002 §4.4                            |
 
 ### 2.2 设计教训
 
-- **"事件流要稀疏"**：ICSE 2026 *Latency-aware Progress Disclosure*<sup>[[5]](#ref5)</sup> 实证「高频事件 ≠ 流畅体验」；progress 应按里程碑稀疏推送，并走 state-delta 旁路而非 message ledger（避免双气泡风险，参见 `docs/issue.md` ISSUE-031）。
-- **"读模型与写模型分离"**：A2UI<sup>[[6]](#ref6)</sup> 的 ChannelMap 把 server→client 与 client→server 分成不同 surface，避免事件回环。negentropy 的 `state.tool_progress` 旁路是同思想的轻量实现。
+- **"事件流要稀疏"**：progress 应按里程碑稀疏推送，并走 state-delta 旁路而非 message ledger（避免双气泡风险）。高频细粒度事件会挤占渲染帧预算，导致 UI 卡顿而非流畅体验。
+- **"读模型与写模型分离"**：CQRS 思想<sup>[[5]](#ref5)</sup>将 server→client 与 client→server 分成不同 surface，避免事件回环。negentropy 的 `state.tool_progress` 旁路是同思想的轻量实现；A2UI 的 ChannelMap<sup>[[6]](#ref6)</sup>也遵循此模式。
 
 ### 2.3 关键引用
 
-<a id="ref5"></a>[5] R. Patil et al., "Latency-aware Progress Disclosure in Agentic UIs," in *Proc. IEEE/ACM ICSE*, 2026, pp. 1421-1432.
-<a id="ref6"></a>[6] Google AI, "A2UI Draft Specification," 2025. [Online]. Available: https://github.com/google/a2ui
+<a id="ref5"></a>[5] G. Hohpe and B. Woolf, *Enterprise Integration Patterns*. Boston, MA, USA: Addison-Wesley, 2003.
+<a id="ref6"></a>[6] Google, "Agent-to-User Interface (A2UI) Concepts," 2025. [Online]. Available: https://adk.dev/
 
 ---
 

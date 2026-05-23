@@ -169,7 +169,7 @@ flowchart LR
 | :---------------------- | :------------------------------------- | :--------------------- | :--------- | :------------------------------------------- |
 | 情景记忆 (Episodic)     | Experiential (Case-based)              | `Memory` ORM           | `memories` | content + embedding(1536d) + retention_score |
 | 语义记忆 (Semantic)     | Factual                                | `Fact` ORM             | `facts`    | key-value(JSONB) + confidence + validity     |
-| 程序性记忆 (Procedural) | Experiential (Skill-based)             | `Skill` ORM            | `skills`   | versioned prompt_template + config_schema    |
+| 程序性记忆 (Procedural) | Experiential (Skill-based)             | `Skill` ORM *(规划中，尚未实现)* | `skills` *(规划中)* | versioned prompt_template + config_schema    |
 | 工作记忆 (Working)      | Working                                | `get_context_window()` | SQL 函数   | token budget 动态组装                        |
 
 ### 2.3 记忆动态学：形成-演化-检索
@@ -387,7 +387,7 @@ flowchart TB
 
 ### 3.2 数据模型
 
-Memory 子系统包含 6 张核心表，其 ER 关系如下：
+Memory 子系统包含 6 张核心表（及 5 张辅助表），其 ER 关系如下：
 
 ```mermaid
 erDiagram
@@ -603,12 +603,14 @@ retention = min(1.0, time_decay × frequency_boost × type_multiplier × semanti
 
 **记忆类型衰减率映射**：
 
-| 类型       | λ    | 类型乘子 | 理由                     |
-| :--------- | :--- | :------- | :----------------------- |
-| preference | 0.05 | 1.3      | 用户偏好应长期保持       |
-| procedural | 0.06 | 1.2      | 技能/流程较稳定          |
-| fact       | 0.08 | 1.15     | 事实中等衰减             |
-| episodic   | 0.10 | 1.0      | 对话片段衰减最快（基准） |
+| 类型       | λ    | 类型乘子 | 理由                         |
+| :--------- | :--- | :------- | :--------------------------- |
+| core       | 0.0  | —        | Core Memory Block，永久保留 |
+| semantic   | 0.005 | —       | 结构化语义记忆，极缓衰减   |
+| preference | 0.05 | 1.3      | 用户偏好应长期保持           |
+| procedural | 0.06 | 1.2      | 技能/流程较稳定              |
+| fact       | 0.08 | 1.15     | 事实中等衰减                 |
+| episodic   | 0.10 | 1.0      | 对话片段衰减最快（基准）     |
 
 - **λ_type**：记忆类型特定的衰减常数，覆盖默认 `0.1`
 - **days_elapsed**：距最后访问的天数（`last_accessed_at`）
@@ -1814,7 +1816,7 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 ### 工业框架
 
-<a id="ref12"></a>[12] Google, "Memory: Long-term knowledge with MemoryService," _Agent Development Kit Documentation_, 2026. [Online]. Available: https://google.github.io/adk-docs/sessions/memory/
+<a id="ref12"></a>[12] Google, "Memory: Long-term knowledge with MemoryService," _Agent Development Kit Documentation_, 2026. [Online]. Available: https://adk.dev/sessions/memory/
 
 <a id="ref13"></a>[13] LangChain, "Memory," _LangGraph Documentation_, 2026. [Online]. Available: https://langchain-ai.github.io/langgraph/concepts/memory/
 
