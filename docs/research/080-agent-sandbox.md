@@ -30,7 +30,7 @@ tags:
 
 | 项目             | 技术路线        | 隔离级别    | 启动延迟  | 核心优势           |
 | ---------------- | --------------- | ----------- | --------- | ------------------ |
-| **Wasmtime**     | WebAssembly     | 语言级      | **<5ms**  | 极致性能、跨平台   |
+| **Wasmtime**     | WebAssembly     | 语言级      | **3-46ms** | 极致性能、跨平台   |
 | **Firecracker**  | MicroVM         | 硬件级(KVM) | 125ms     | 生产验证、最高密度 |
 | **Microsandbox** | MicroVM+libkrun | 硬件级(KVM) | 150-200ms | **最佳平衡点**     |
 | **gVisor**       | App Kernel      | 用户态内核  | 200-500ms | K8s无缝集成        |
@@ -120,7 +120,7 @@ tags:
 
 | 项目             | 技术路线   | 隔离级别     | 启动延迟    | 内存开销 | Python支持 | 运维复杂度 | 核心优势     |
 | ---------------- | ---------- | ------------ | ----------- | -------- | ---------- | ---------- | ------------ |
-| **Wasmtime**     | WASM沙箱   | 语言级       | **<5ms** 🚀 | KB级     | ⚠️ 困难    | 高         | 极致性能     |
+| **Wasmtime**     | WASM沙箱   | 语言级       | **3-46ms**  | KB级     | ⚠️ 困难    | 高         | 极致性能     |
 | **Firecracker**  | MicroVM    | 硬件级(KVM)  | 125ms       | ~5MB     | ✅ 原生    | 极高       | 生产验证     |
 | **Microsandbox** | MicroVM    | 硬件级(KVM)  | 150-200ms   | 5-10MB   | ✅ 原生    | 中         | **最佳平衡** |
 | **gVisor**       | App Kernel | 内核级(拦截) | 200-500ms   | 15-20MB  | ✅ 原生    | 中         | K8s集成      |
@@ -632,7 +632,7 @@ WASI能力模型:
 
 | 性能指标     | Wasmtime    | Firecracker       | Microsandbox | gVisor    | Vertex AI  | 赢家        |
 | ------------ | ----------- | ----------------- | ------------ | --------- | ---------- | ----------- |
-| **冷启动**   | **<5ms** 🚀 | ~125ms            | 150-200ms    | 200-500ms | <1s(预热)  | Wasmtime    |
+| **冷启动**   | **3-46ms**  | ~125ms            | 150-200ms    | 200-500ms | <1s(预热)  | Wasmtime    |
 | **CPU吞吐**  | 原生90%+    | **原生99%+** ✅   | 原生99%+     | 原生95%   | 未知(配额) | FC/Micro    |
 | **I/O性能**  | 优(WASI)    | **优(Virtio)** ✅ | 优(TSI)      | 差(-50%)  | 受限(API)  | FC/Micro    |
 | **内存密度** | **KB级** 🚀 | ~5MB              | 5-10MB       | 15-20MB   | N/A        | Wasmtime    |
@@ -845,7 +845,7 @@ flowchart TD
 | **企业级数据分析**    | Vertex AI    | 零运维、预装Pandas、VPC-SC合规  | 30s超时、预装库    | gVisor自建              | Wasmtime(Pandas难)  |
 | **构建私有Agent平台** | Microsandbox | OCI兼容、强隔离、Python完美支持 | 150-200ms启动      | Firecracker(需更多工程) | Vertex AI(数据出域) |
 | **大规模多租户SaaS**  | Firecracker  | 极致密度、AWS生产验证           | 125ms启动、5MB内存 | Microsandbox(更大开销)  | gVisor(I/O瓶颈)     |
-| **边缘计算/IoT**      | Wasmtime     | 资源占用极低、跨平台            | <5ms启动、KB级内存 | Microsandbox(需KVM)     | Firecracker(太重)   |
+| **边缘计算/IoT**      | Wasmtime     | 资源占用极低、跨平台            | 3-46ms启动、KB级内存 | Microsandbox(需KVM)     | Firecracker(太重)   |
 | **K8s集群加固**       | gVisor       | 无缝集成、零应用改动            | 替换容器运行时     | Kata Containers         | -                   |
 | **快速POC验证**       | Vertex AI    | API即用、零配置                 | 亚秒级响应         | Microsandbox(本地)      | Firecracker(太复杂) |
 | **本地开发环境**      | Microsandbox | TSI零配置网络、类Docker         | 200ms启动          | Docker(不安全)          | Wasmtime(Pandas难)  |

@@ -230,11 +230,10 @@ results = await cognee.search(
 | ------------------ | --------------------- | ------------ |
 | `INSIGHTS`         | 综合向量+图谱（默认） | 一般问答     |
 | `CHUNKS`           | 仅向量相似度          | 快速语义匹配 |
-| `GRAPH_TRAVERSAL`  | 图遍历扩展            | 关系探索     |
+| `GRAPH_COMPLETION` | 图补全扩展            | 关系探索     |
 | `NATURAL_LANGUAGE` | 自然语言转 Cypher     | 结构化查询   |
 | `CYPHER`           | 直接执行 Cypher       | 高级用户     |
 | `FEELING_LUCKY`    | 自动选择最佳模式      | 不确定时使用 |
-| `FEEDBACK`         | 存储用户反馈          | 反馈收集     |
 
 ---
 

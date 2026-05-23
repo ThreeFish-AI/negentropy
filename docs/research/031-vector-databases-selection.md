@@ -659,7 +659,7 @@ $$
 
 <a id="ref3"></a>[3] A. Vaswani, N. Shazeer, N. Parmar, et al., "Attention is all you need," _Adv. Neural Inf. Process. Syst._, vol. 30, pp. 5998–6008, 2017.
 
-<a id="ref4"></a>[4] Y. A. Malkov and D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 42, no. 4, pp. 824–836, 2018.
+<a id="ref4"></a>[4] Y. A. Malkov and D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 42, no. 4, pp. 824–836, Apr. 2020.
 
 <a id="ref5"></a>[5] H. Jégou, M. Douze, and C. Schmid, "Product quantization for nearest neighbor search," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 33, no. 1, pp. 117–128, 2011.
 
