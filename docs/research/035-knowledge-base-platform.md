@@ -60,7 +60,7 @@ WeKnora 不仅仅是一个问答引擎，更是一个 Agent 框架。
 
 ### **3.2 Dify：应用编排与生态的集大成者**
 
-LangGenius 推出的 Dify 是目前 GitHub Star 数最高（138k+，截至 2026-04 15）的 LLM 应用开发平台，是”RAG + Workflow”路线的代表 11。
+LangGenius 推出的 Dify 是目前 GitHub Star 数最高（138k+，截至 2026-04-15）的 LLM 应用开发平台，是”RAG + Workflow”路线的代表 11。
 
 - **核心特质**：Dify 的护城河在于其强大的**可视化工作流编排（Visual Workflow Orchestration）**。它提供了一个画布，允许用户通过拖拽节点（Node）来构建包含分支逻辑、循环、条件判断的复杂 AI 应用。同时，Dify 拥有极其丰富的插件生态和模型支持。
 - **优势**：极低的使用门槛，非技术人员（如产品经理、运营）也能快速上手构建 AI 助手。生态完善，社区活跃度极高。

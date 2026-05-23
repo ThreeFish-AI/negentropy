@@ -441,7 +441,7 @@ CREATE VECTOR INDEX idx_embedding_ivf ON articles(embedding)
 | **欧氏距离 (L2)** | `l2_distance()`     | 物理相似度         |
 | **余弦相似度**    | `cosine_distance()` | 语义相似度（推荐） |
 | **内积**          | `inner_product()`   | 归一化向量         |
-| **曼哈顿距离**    | `vector_l1_ops`     | 特定场景           |
+| **曼哈顿距离**    | `l1_distance()`     | 特定场景           |
 
 ### 5.5 向量搜索查询
 
