@@ -292,6 +292,18 @@ def apply_adk_patches():
 
     logger.info("Monkey-patching ADK service factories to use negentropy configuration...")
 
+    # ADK 2.0 workaround (eager): fast_api.get_fast_api_app() has a scoping bug where
+    # ApiServer is conditionally imported inside `if web:` branches. When web=True
+    # and DevServer import succeeds, ApiServer is never assigned as a local variable,
+    # but setup_observer() references it as a type annotation, causing UnboundLocalError.
+    #
+    # The wrapper-based fix below (Patch #2) is insufficient because apply_adk_patches()
+    # is called INSIDE get_fast_api_app (via services.py import by ADK agent loader),
+    # meaning the current call already bypasses the wrapper. We must set sys.modules
+    # eagerly here so the conditional import at lines 519-535 sees the None entry.
+    sys.modules["google.adk.cli.dev_server"] = None  # type: ignore[assignment]
+    logger.debug("Set sys.modules['google.adk.cli.dev_server'] = None to force ApiServer fallback")
+
     patched_items = []
 
     # Helper to clean factory names for display
@@ -578,13 +590,10 @@ def apply_adk_patches():
             if hasattr(mod, "create_artifact_service_from_options"):
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
 
-    # ADK 2.0 workaround: fast_api.get_fast_api_app() has a scoping bug where
-    # ApiServer is conditionally imported inside `if web:` branches. When web=True
-    # and DevServer import succeeds, the `from .api_server import ApiServer` in the
-    # except block is skipped. But nested function setup_observer() references
-    # ApiServer as a type annotation, causing UnboundLocalError.
-    # Fix: wrap get_fast_api_app to ensure DevServer import fails, forcing the
-    # ApiServer fallback path which always imports ApiServer as a local variable.
+    # ADK 2.0 workaround (wrapper): safety net for subsequent calls to get_fast_api_app.
+    # The primary fix is the eager sys.modules override above. This wrapper protects
+    # any future calls that might bypass the eager fix (e.g., if services.py is imported
+    # before get_fast_api_app is first called).
     try:
         from google.adk.cli import fast_api as _fast_api_mod
 

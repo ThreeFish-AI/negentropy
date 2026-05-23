@@ -32,6 +32,7 @@ import argparse
 import os
 import shutil
 import sys
+import traceback
 from pathlib import Path
 
 
@@ -170,6 +171,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
             pass
         # 真实异常（导入失败、配置错误等）才打印
         print(f"错误: ADK 启动失败: {exc}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         return 1
 
 
