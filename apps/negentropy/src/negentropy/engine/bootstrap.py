@@ -292,18 +292,6 @@ def apply_adk_patches():
 
     logger.info("Monkey-patching ADK service factories to use negentropy configuration...")
 
-    # ADK 2.0 workaround (eager): fast_api.get_fast_api_app() has a scoping bug where
-    # ApiServer is conditionally imported inside `if web:` branches. When web=True
-    # and DevServer import succeeds, ApiServer is never assigned as a local variable,
-    # but setup_observer() references it as a type annotation, causing UnboundLocalError.
-    #
-    # The wrapper-based fix below (Patch #2) is insufficient because apply_adk_patches()
-    # is called INSIDE get_fast_api_app (via services.py import by ADK agent loader),
-    # meaning the current call already bypasses the wrapper. We must set sys.modules
-    # eagerly here so the conditional import at lines 519-535 sees the None entry.
-    sys.modules["google.adk.cli.dev_server"] = None  # type: ignore[assignment]
-    logger.debug("Set sys.modules['google.adk.cli.dev_server'] = None to force ApiServer fallback")
-
     patched_items = []
 
     # Helper to clean factory names for display
@@ -343,6 +331,63 @@ def apply_adk_patches():
     # For classes/functions, just use __name__ or __qualname__
     patched_items.append("CredentialService")  # get_credential_service is a function, return type implies service logic
     logger.info("Intercepted ADK default CredentialService to use configurable backend")
+
+    # ── AdkWebServer patch (MUST precede sys.modules override below) ──────────
+    # AdkWebServer 继承自 DevServer（定义在 google.adk.cli.dev_server 中），
+    # 而 dev_server 模块将在下方被设为 None 以规避 ADK 2.0 scoping bug。
+    # 因此必须先完成 AdkWebServer 的导入和 patch，否则 import 会失败，
+    # 导致 _inject_negentropy_routes 永远不被注册（/auth 等 negentropy 路由全部 404）。
+    #
+    # 重要：由于 dev_server 被设为 None，ADK 的 get_fast_api_app 会回退到 ApiServer
+    # 作为 ServerClass。因此必须同时 patch ApiServer.get_fast_api_app 和
+    # AdkWebServer.get_fast_api_app，确保无论走哪条路径都能注入 negentropy 路由。
+    _api_server_patched = False
+    try:
+        from google.adk.cli.api_server import ApiServer
+
+        if not getattr(ApiServer.get_fast_api_app, "_negentropy_patched", False):
+            _original_api_server_get_app = ApiServer.get_fast_api_app
+
+            def _patched_api_server_get_app(self, **kwargs):
+                existing_lifespan = kwargs.get("lifespan")
+                kwargs["lifespan"] = _compose_with_negentropy_lifespan(existing_lifespan)
+                app = _original_api_server_get_app(self, **kwargs)
+                return _inject_negentropy_routes(app)
+
+            _patched_api_server_get_app._negentropy_patched = True
+            ApiServer.get_fast_api_app = _patched_api_server_get_app
+            _api_server_patched = True
+            patched_items.append("ApiServer.get_fast_api_app (Middleware + Lifespan Injection)")
+    except Exception as exc:
+        logger.warning(f"Failed to patch ApiServer.get_fast_api_app: {exc}")
+
+    try:
+        from google.adk.cli.adk_web_server import AdkWebServer
+
+        if not getattr(AdkWebServer.get_fast_api_app, "_negentropy_patched", False):
+            original_get_fast_api_app = AdkWebServer.get_fast_api_app
+
+            def patched_get_fast_api_app(self, *args, **kwargs):
+                existing_lifespan = kwargs.get("lifespan")
+                kwargs["lifespan"] = _compose_with_negentropy_lifespan(existing_lifespan)
+                app = original_get_fast_api_app(self, *args, **kwargs)
+                return _inject_negentropy_routes(app)
+
+            patched_get_fast_api_app._negentropy_patched = True
+            AdkWebServer.get_fast_api_app = patched_get_fast_api_app
+            patched_items.append("AdkWebServer.get_fast_api_app (Middleware + Lifespan Injection)")
+    except Exception as exc:
+        logger.warning(f"Failed to patch AdkWebServer.get_fast_api_app: {exc}")
+
+    # ── ADK 2.0 workaround: sys.modules override ─────────────────────────────
+    # fast_api.get_fast_api_app() 的 if web: 分支中，DevServer 导入成功时
+    # ApiServer 不会被赋值为局部变量，但 setup_observer() 的类型注解引用了它，
+    # 导致 UnboundLocalError。将 dev_server 模块设为 None 可强制回退到 ApiServer。
+    #
+    # 必须在 AdkWebServer patch 之后执行：AdkWebServer 继承自 DevServer，
+    # 先设为 None 会导致 AdkWebServer 导入失败（即上方的 try 块捕获的异常）。
+    sys.modules["google.adk.cli.dev_server"] = None  # type: ignore[assignment]
+    logger.debug("Set sys.modules['google.adk.cli.dev_server'] = None to force ApiServer fallback")
 
     def _inject_negentropy_routes(app):
         logger.info("Injecting TracingInitMiddleware into ADK FastAPI app")
@@ -533,42 +578,6 @@ def apply_adk_patches():
         # 通过 ``AdkWebServer.get_fast_api_app(lifespan=...)`` 注入。详见下方
         # patched_get_fast_api_app 的注释。
         return app
-
-    # Patch get_fast_api_app via AdkWebServer so it applies to current call
-    try:
-        from google.adk.cli.adk_web_server import AdkWebServer
-
-        if not getattr(AdkWebServer.get_fast_api_app, "_negentropy_patched", False):
-            original_get_fast_api_app = AdkWebServer.get_fast_api_app
-
-            def patched_get_fast_api_app(self, *args, **kwargs):
-                # P0-2 关键注入点：在 ADK 构造 ``FastAPI(lifespan=internal_lifespan)``
-                # 之前，把 negentropy 业务 lifespan 包裹到 ``lifespan`` 参数。
-                #
-                # 关键发现：ADK 的 ``cli_tools_click.cli_web`` 入口已显式传
-                # ``lifespan=_lifespan``（用于打印「ADK Web Server started/shutting
-                # down」横幅），因此 ``kwargs["lifespan"]`` 几乎一定**非空**。
-                # 必须用 ``_compose_with_lifespan`` 把现有 lifespan 与 negentropy
-                # lifespan 嵌套合并，而不是「仅当为空时替换」。
-                #
-                # 嵌套结构（外到内）：
-                #   _negentropy_lifespan ← combined ← 原 lifespan (ADK banner) ← yield
-                # 关停时反向退栈：
-                #   原 lifespan finally (banner) → _negentropy_lifespan finally
-                #     (registry.aclose + dispose_all) → ADK internal_lifespan finally
-                #     (observer / runners cleanup)
-                # 这保证 negentropy 业务关停发生在 ADK runner 清理**之前**，避免
-                # 调度任务在 runner 被 close 后还试图访问其 ADK service 句柄。
-                existing_lifespan = kwargs.get("lifespan")
-                kwargs["lifespan"] = _compose_with_negentropy_lifespan(existing_lifespan)
-                app = original_get_fast_api_app(self, *args, **kwargs)
-                return _inject_negentropy_routes(app)
-
-            patched_get_fast_api_app._negentropy_patched = True
-            AdkWebServer.get_fast_api_app = patched_get_fast_api_app
-            patched_items.append("AdkWebServer.get_fast_api_app (Middleware + Lifespan Injection)")
-    except Exception as exc:
-        logger.warning(f"Failed to patch AdkWebServer.get_fast_api_app: {exc}")
 
     # Also patch cli.cli which imports these functions
 
