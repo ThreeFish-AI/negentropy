@@ -368,6 +368,37 @@ class BuiltinAssembler(PDFToolBase):
                             _used_formula_indices.add(fi)
                             break
 
+            # 2.4 公式-文本去重：已被公式 Stage 或孤儿匹配覆盖的文本块需移除。
+            #    比较策略：提取公式元素中的等式编号（如 "(5)"、"( 5 )"），
+            #    如果文本元素含相同编号且包含数学符号，视为重复并移除。
+            _formula_eq_nums: set[str] = set()
+            for elem in elements:
+                if elem.element_type == "formula" and elem.content.strip().startswith(
+                    "$$"
+                ):
+                    # 匹配 LaTeX 中的编号: (N) 或 ( N )
+                    for m in re.finditer(r"\(\s*(\d+)\s*\)", elem.content):
+                        _formula_eq_nums.add(m.group(1))
+            if _formula_eq_nums:
+                _math_chars = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨")
+                elements = [
+                    elem
+                    for elem in elements
+                    if not (
+                        elem.element_type == "text"
+                        and elem.block is not None
+                        and re.search(
+                            r"\(\s*("
+                            + "|".join(re.escape(n) for n in _formula_eq_nums)
+                            + r")\s*\)",
+                            elem.content,
+                        )
+                        and any(c in elem.content for c in _math_chars)
+                        and len(elem.content.strip()) < 200
+                        and not elem.content.strip().startswith("#")
+                    )
+                ]
+
             # 2.5 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
