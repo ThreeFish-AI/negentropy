@@ -118,6 +118,38 @@ class DoclingConversionResult:
     page_count: int = 0
 
 
+def _infer_heading_level_from_text(text: str) -> Optional[int]:
+    """从文本编号模式推断标题层级。
+
+    学术论文/技术文档的常见编号模式：
+        "1 Introduction"        → H2（顶级章节）
+        "2. Theoretical Frame"  → H2（顶级章节，带尾随点号）
+        "2.1 Formal Definition" → H3（子节）
+        "3.1.1 Tech Landscape"  → H4（子子节）
+        "Abstract"              → None（无编号，不推断）
+
+    Returns:
+        heading_level (1-6) 或 None（无法推断时）。
+    """
+    import re
+
+    # 匹配开头的编号模式：数字(.数字)* 后跟可选点号和空格
+    # 支持 "1 Title"、"2. Title"、"2.1 Title"、"3.1.1 Title"
+    m = re.match(r"^(\d+(?:\.\d+)*)\.?\s", text)
+    if not m:
+        return None
+
+    numbering = m.group(1)
+    parts = numbering.split(".")
+
+    if len(parts) == 1:
+        return 2  # "N Title" → H2（顶级章节）
+    elif len(parts) == 2:
+        return 3  # "N.N Title" → H3（子节）
+    else:
+        return 4  # "N.N.N+ Title" → H4
+
+
 # ---------------------------------------------------------------------------
 # Docling 引擎
 # ---------------------------------------------------------------------------
@@ -916,6 +948,12 @@ class DoclingEngine:
             page_figures.setdefault(region.page_no, []).append(region)
 
         try:
+            # 标题去重：跟踪已输出的标题文本，跳过跨页重复。
+            # 学术论文的 "References" 在每页会被 Docling 重新检测为 title/section_header，
+            # 导致最终 Markdown 出现多个 # References。使用文本指纹去重，
+            # 同一标题文本在文档中只保留首次出现。
+            seen_heading_texts: set[str] = set()
+
             for item, _level in doc.iterate_items():
                 label = str(getattr(item, "label", "")).lower()
                 if label not in self._TEXT_LABELS:
@@ -949,14 +987,62 @@ class DoclingEngine:
 
                 heading_level: Optional[int] = None
                 if label == "title":
+                    # 过滤学术论文首页的噪声标题：
+                    # - 作者机构/编号行（如 "1 SJTU 2 SII 3 GAIR"）
+                    # - 脚注标记（如 "0 † Corresponding author"）
+                    # - URL（如 "1 https://github.com/..."）
+                    stripped = text.strip()
+                    is_noise_title = False
+                    if len(stripped) < 60:
+                        # 纯数字+空格+单词的短行且无实质标题内容
+                        import re as _re
+
+                        if _re.match(r"^[\d\s\†\*\‡\§\¶]+$", stripped):
+                            is_noise_title = True
+                        # 机构编号行："1 SJTU 2 SII 3 GAIR"
+                        elif _re.match(r"^(?:\d+\s+\S+\s*){2,}$", stripped):
+                            is_noise_title = True
+                        # 脚注行："0 † Corresponding author"
+                        elif "†" in stripped or "‡" in stripped or "§" in stripped:
+                            is_noise_title = True
+                        # URL 行："1 https://..."
+                        elif _re.match(r"^\d+\s+https?://", stripped):
+                            is_noise_title = True
+                    if is_noise_title:
+                        continue
                     heading_level = 1
                 elif label == "section_header":
-                    raw_level = getattr(item, "level", None)
-                    try:
-                        heading_level = int(raw_level) if raw_level else 2
-                    except (TypeError, ValueError):
-                        heading_level = 2
+                    # 优先从文本编号推断层级：学术论文标题编号模式
+                    # "1 Introduction" → H2, "2.1 Formal Definition" → H3,
+                    # "3.1.1 Technological Landscape" → H4
+                    heading_level = _infer_heading_level_from_text(text.strip())
+                    if heading_level is None:
+                        # 降级：使用 Docling 的 _level（通常全为 1，不可靠）
+                        if isinstance(_level, int) and _level >= 1:
+                            heading_level = min(1 + _level, 6)
+                        else:
+                            raw_level = getattr(item, "level", None)
+                            try:
+                                heading_level = int(raw_level) if raw_level else 2
+                            except (TypeError, ValueError):
+                                heading_level = 2
                     heading_level = max(1, min(6, heading_level))
+
+                # 目录行过滤：跳过 PDF 目录页中带点号引导线的条目。
+                # 特征：包含连续 3+ 个点号且以数字开头（如
+                # "2 Theoretical Framework 4 2.1 Formal Definition... 4"）
+                if label in ("title", "section_header") and "..." in text:
+                    import re as _re
+
+                    if _re.search(r"\.{3,}", text) and _re.search(r"\d", text):
+                        continue
+
+                # 标题去重：同一文本在整个文档中只保留首次出现
+                if label in ("title", "section_header"):
+                    heading_key = text.strip().lower()
+                    if heading_key in seen_heading_texts:
+                        continue
+                    seen_heading_texts.add(heading_key)
 
                 blocks.append(
                     DoclingTextBlock(

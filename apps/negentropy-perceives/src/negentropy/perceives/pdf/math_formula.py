@@ -771,6 +771,44 @@ class DoclingFormulaEnricher:
         # "\ text" → "\text"
         text = re.sub(r"\\ ([a-zA-Z]+)", r"\\\1", text)
 
+        # 1.5 压缩 LaTeX 花括号外裸标识符的空格碎片
+        # "C h a r" → "Char", "i m p o r a l" → "imporal"
+        # 仅在 $$...$$ 和 $...$ 定界符内操作，且要求至少 3 个连续字母+空格模式
+        def _compress_fragmentation(delimited_text: str) -> str:
+            def _fix_inline(m: re.Match) -> str:
+                body = m.group(1)
+                compressed = re.sub(
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] )+[a-zA-Z])\b",
+                    lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
+                    body,
+                )
+                return f"${compressed}$"
+
+            def _fix_block(m: re.Match) -> str:
+                body = m.group(1)
+                compressed = re.sub(
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] )+[a-zA-Z])\b",
+                    lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
+                    body,
+                )
+                return f"$${compressed}$$"
+
+            # 处理 $$...$$ 块级公式
+            delimited_text = re.sub(
+                r"\$\$([\s\S]+?)\$\$",
+                _fix_block,
+                delimited_text,
+            )
+            # 处理 $...$ 行内公式
+            delimited_text = re.sub(
+                r"(?<!\$)\$(?!\$)([^$]+?)\$(?!\$)",
+                _fix_inline,
+                delimited_text,
+            )
+            return delimited_text
+
+        text = _compress_fragmentation(text)
+
         # 2. 清理环境包裹（保留内容）
         text = re.sub(r"\\begin\{(align|equation|gather)\*?\}", "", text)
         text = re.sub(r"\\end\{(align|equation|gather)\*?\}", "", text)
