@@ -187,6 +187,34 @@ class BuiltinAssembler(PDFToolBase):
 
             elements.sort(key=_sort_key)
 
+            # 2.5 去重：移除重复标题
+            #    仅处理两种场景：
+            #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
+            #    b) 同一标题文本在不同页重复出现（如 "References"）→ 只保留首次
+            _seen: set[str] = set()
+            _prev: str | None = None
+            _dd: List[_ContentElement] = []
+            for elem in elements:
+                content = elem.content.strip()
+                is_heading = content.startswith("#")
+                if is_heading:
+                    raw = content.lstrip("#").strip()
+                    norm = re.sub(r"[.\s]+", " ", raw.lower())
+                    # 场景 a: 紧邻重复标题（前一个也是标题）→ 移除前者
+                    if _prev is not None and norm == _prev:
+                        if _dd and _dd[-1].content.strip().startswith("#"):
+                            _dd.pop()
+                    # 场景 b: 非紧邻的重复标题（多页重复如 References）→ 跳过后续
+                    elif norm in _seen:
+                        _prev = norm
+                        continue
+                    _seen.add(norm)
+                    _prev = norm
+                else:
+                    _prev = None
+                _dd.append(elem)
+            elements = _dd
+
             # 3. 拼接 Markdown
             markdown_parts: List[str] = []
             for elem in elements:
