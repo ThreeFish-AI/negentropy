@@ -770,16 +770,18 @@ class DoclingFormulaEnricher:
         )
         # "\ text" → "\text"
         text = re.sub(r"\\ ([a-zA-Z]+)", r"\\\1", text)
+        # "\mathcal {E}" → "\mathcal{E}" — LaTeX 命令与花括号间异常空格
+        text = re.sub(r"(\\[a-zA-Z]+) \{", r"\1{", text)
 
         # 1.5 压缩 LaTeX 花括号外裸标识符的空格碎片
         # "C h a r" → "Char", "i m p o r a l" → "imporal"
-        # 仅在 $$...$$ 块级公式内操作，且要求至少 5 个连续字母+空格模式。
-        # 行内公式（$...$）不压缩，避免将独立变量乘积（如 $a b c$）误合为单变量。
+        # 仅在 $$...$$ 块级公式内操作，且要求至少 3 个连续字母+空格模式（即 4+
+        # 字母标识符）。行内公式（$...$）不压缩，避免将独立变量乘积误合为单变量。
         def _compress_fragmentation(delimited_text: str) -> str:
             def _fix_block(m: re.Match) -> str:
                 body = m.group(1)
                 compressed = re.sub(
-                    r"\b([a-zA-Z]) ((?:[a-zA-Z] ){4,}[a-zA-Z])\b",
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] ){2,}[a-zA-Z])\b",
                     lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
                     body,
                 )
@@ -802,6 +804,8 @@ class DoclingFormulaEnricher:
 
         # 3. 规范化等式编号
         text = re.sub(r"\s*\\tag\{(\d+)\}", r" \\qquad (\1)", text)
+        # 3.1 清理对齐标记混入的公式编号: "& ( N )" → "\\qquad (N)"
+        text = re.sub(r"&\s*\(\s*(\d+)\s*\)", r"\\qquad (\1)", text)
 
         return text.strip()
 
