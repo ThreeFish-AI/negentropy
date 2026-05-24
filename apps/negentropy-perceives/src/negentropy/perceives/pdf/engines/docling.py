@@ -131,8 +131,6 @@ def _infer_heading_level_from_text(text: str) -> Optional[int]:
     Returns:
         heading_level (1-6) 或 None（无法推断时）。
     """
-    import re
-
     # 匹配开头的编号模式：数字(.数字)* 后跟可选点号和空格
     # 支持 "1 Title"、"2. Title"、"2.1 Title"、"3.1.1 Title"
     m = re.match(r"^(\d+(?:\.\d+)*)\.?\s", text)
@@ -995,18 +993,16 @@ class DoclingEngine:
                     is_noise_title = False
                     if len(stripped) < 60:
                         # 纯数字+空格+单词的短行且无实质标题内容
-                        import re as _re
-
-                        if _re.match(r"^[\d\s\†\*\‡\§\¶]+$", stripped):
+                        if re.match(r"^[\d\s\†\*\‡\§\¶]+$", stripped):
                             is_noise_title = True
                         # 机构编号行："1 SJTU 2 SII 3 GAIR"
-                        elif _re.match(r"^(?:\d+\s+\S+\s*){2,}$", stripped):
+                        elif re.match(r"^(?:\d+\s+\S+\s*){2,}$", stripped):
                             is_noise_title = True
                         # 脚注行："0 † Corresponding author"
                         elif "†" in stripped or "‡" in stripped or "§" in stripped:
                             is_noise_title = True
                         # URL 行："1 https://..."
-                        elif _re.match(r"^\d+\s+https?://", stripped):
+                        elif re.match(r"^\d+\s+https?://", stripped):
                             is_noise_title = True
                     if is_noise_title:
                         continue
@@ -1032,9 +1028,7 @@ class DoclingEngine:
                 # 特征：包含连续 3+ 个点号且以数字开头（如
                 # "2 Theoretical Framework 4 2.1 Formal Definition... 4"）
                 if label in ("title", "section_header") and "..." in text:
-                    import re as _re
-
-                    if _re.search(r"\.{3,}", text) and _re.search(r"\d", text):
+                    if re.search(r"\.{3,}", text) and re.search(r"\d", text):
                         continue
 
                 # 标题去重：同一文本在整个文档中只保留首次出现

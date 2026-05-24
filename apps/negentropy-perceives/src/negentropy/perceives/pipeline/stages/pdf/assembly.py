@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Dict, List, Optional, Tuple
 
 from ...base import Stage, StageResult
@@ -71,9 +72,7 @@ class BuiltinAssembler(PDFToolBase):
                             text_table_fingerprints.add(first_data_row)
                     # 公式指纹：LaTeX 核心内容（去除空白）
                     if "$$" in text:
-                        for m in __import__("re").finditer(
-                            r"\$\$(.*?)\$\$", text, __import__("re").DOTALL
-                        ):
+                        for m in re.finditer(r"\$\$(.*?)\$\$", text, re.DOTALL):
                             core = m.group(1).strip().replace(" ", "")
                             if len(core) > 10:
                                 text_formula_fingerprints.add(core)
