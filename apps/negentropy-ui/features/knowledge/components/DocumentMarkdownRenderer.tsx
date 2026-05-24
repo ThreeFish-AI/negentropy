@@ -241,6 +241,26 @@ export function DocumentMarkdownRenderer({
           rehypeHighlight,
         ]}
         components={{
+          // 当段落仅含图片时，去掉 <p> 包裹避免 <p><figure> 嵌套违反 HTML 规范。
+          // react-markdown 将独立行的 ![alt](src) 包在 <p> 内，但自定义 img
+          // 组件渲染 <figure>（块级元素），导致浏览器自动修正 DOM、
+          // React 事件委托断裂、图片 onLoad/onError 失效。
+          p({ children, node }) {
+            // 使用 hast AST 节点判断：段落仅含 img 子节点时去掉 <p> 包裹，
+            // 避免 <p><figure> 嵌套违反 HTML 规范。
+            // 不能依赖 React 元素的 child.type === "img" 比较，
+            // 因为 React Compiler 优化会破坏该严格相等判断。
+            const isImageOnly =
+              node?.children?.length > 0
+              && node.children.every(
+                (child: { type: string; tagName?: string }) =>
+                  child.type === "element" && child.tagName === "img",
+              );
+            if (isImageOnly) {
+              return <>{children}</>;
+            }
+            return <p>{children}</p>;
+          },
           img({ src, alt, width, height }) {
             if (!src || typeof src !== "string") return null;
             return (
