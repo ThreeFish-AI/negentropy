@@ -131,8 +131,6 @@ def _infer_heading_level_from_text(text: str) -> Optional[int]:
     Returns:
         heading_level (1-6) 或 None（无法推断时）。
     """
-    import re
-
     # 匹配开头的编号模式：数字(.数字)* 后跟可选点号和空格
     # 支持 "1 Title"、"2. Title"、"2.1 Title"、"3.1.1 Title"
     m = re.match(r"^(\d+(?:\.\d+)*)\.?\s", text)
@@ -994,6 +992,7 @@ class DoclingEngine:
                     stripped = text.strip()
                     is_noise_title = False
                     if len(stripped) < 60:
+                        # 纯数字+空格+单词的短行且无实质标题内容
                         if re.match(r"^[\d\s\†\*\‡\§\¶]+$", stripped):
                             is_noise_title = True
                         # 机构编号行："1 SJTU 2 SII 3 GAIR"
