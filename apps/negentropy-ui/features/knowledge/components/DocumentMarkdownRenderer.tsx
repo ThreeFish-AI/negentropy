@@ -250,9 +250,11 @@ export function DocumentMarkdownRenderer({
             // 避免 <p><figure> 嵌套违反 HTML 规范。
             // 不能依赖 React 元素的 child.type === "img" 比较，
             // 因为 React Compiler 优化会破坏该严格相等判断。
+            const astChildren = node?.children;
             const isImageOnly =
-              node?.children?.length > 0
-              && node.children.every(
+              astChildren != null
+              && astChildren.length > 0
+              && astChildren.every(
                 (child: { type: string; tagName?: string }) =>
                   child.type === "element" && child.tagName === "img",
               );
