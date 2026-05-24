@@ -395,6 +395,9 @@ class MarkdownFormatter:
             def _typography_inner(text: str) -> str:
                 text = re.sub(r"(?<!\-)\-\-(?!\-)", "\u2014", text)
 
+                # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
+                text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
+
                 lines = text.split("\n")
                 fixed_lines = []
                 for line in lines:

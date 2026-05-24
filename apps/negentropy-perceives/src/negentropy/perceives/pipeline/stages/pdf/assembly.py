@@ -631,7 +631,12 @@ def _text_block_to_markdown(block: TextBlock) -> str:
     """将 TextBlock 转换为 Markdown 文本。"""
     if block.block_type == "heading" and block.heading_level:
         return f"{'#' * block.heading_level} {block.text}"
-    return block.text
+    # 非标题段落：转义行首 # 防止被误渲染为 Markdown 标题
+    # （如 "# bdqnghi@gmail.com" 是 PDF footnote 标记而非标题）
+    text = block.text
+    if text.startswith("#"):
+        text = "\\" + text
+    return text
 
 
 def _table_to_markdown(table: ExtractedTable) -> str:

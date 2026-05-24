@@ -73,8 +73,9 @@ class FitzQuickScanner(PDFToolBase):
             code_font_count = 0
             inline_math_hits = 0
 
-            # 仅扫描前 5 页（或指定范围内的前 5 页）
-            scan_pages = min(5, end_page - start_page)
+            # 仅扫描前 10 页（或指定范围内的前 10 页）
+            # 学术论文数学公式常集中在方法/理论章节，可能不在前 5 页
+            scan_pages = min(10, end_page - start_page)
             for page_idx in range(start_page, start_page + scan_pages):
                 page = doc[page_idx]
 
@@ -110,8 +111,13 @@ class FitzQuickScanner(PDFToolBase):
                                     "math",
                                     "symbol",
                                     "cmr",
+                                    "cmsy",
+                                    "cmmi",
+                                    "cmex",
+                                    "cmbx",
                                     "stix",
                                     "cambria",
+                                    "pazo",
                                 )
                             ):
                                 math_font_count += 1
@@ -154,7 +160,7 @@ class FitzQuickScanner(PDFToolBase):
             # - has_formulas: math 字体 ≥ 4 || inline math ≥ 3
             # - has_code_blocks: indent/def/class ≥ 5 || 等宽字体 ≥ 30 (代码块通常有大量等宽字符)
             chars.has_images = image_count > 0
-            chars.has_formulas = math_font_count > 3 or inline_math_hits >= 3
+            chars.has_formulas = math_font_count >= 3 or inline_math_hits >= 3
             chars.has_tables = native_table_count >= 1 or table_indicator_count > 2
             chars.has_code_blocks = code_indicator_count > 5 or code_font_count >= 30
             chars.sample_text = "\n".join(sample_texts)[:500]
