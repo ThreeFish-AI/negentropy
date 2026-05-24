@@ -92,6 +92,17 @@ function extractFilename(src: string): string {
   return src.split("/").pop() || src;
 }
 
+/**
+ * 将 HTML img 标签的 width/height 属性解析为像素整数值。
+ * perceives MCP 输出的 <img width="1000" /> 经过 rehype 后会以 string 传入。
+ */
+function parsePixelValue(value: number | string | undefined): number | null {
+  if (value == null) return null;
+  const str = String(value).replace(/px$/i, "").trim();
+  const num = Number(str);
+  return Number.isFinite(num) && num > 0 ? Math.round(num) : null;
+}
+
 type ImageState = "loading" | "loaded" | "error";
 
 function DocumentImage({
@@ -116,6 +127,8 @@ function DocumentImage({
   const resolvedSrc = isAbsoluteUrl(src)
     ? src
     : buildAssetProxyUrl(extractFilename(src), corpusId, documentId, appName);
+
+  const maxWidthPx = parsePixelValue(width);
 
   return (
     <figure className="my-3">
@@ -155,8 +168,10 @@ function DocumentImage({
         alt={alt || ""}
         width={width}
         height={height}
+        style={maxWidthPx ? { maxWidth: `min(${maxWidthPx}px, 100%)` } : undefined}
         className={cn(
-          "h-auto max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700",
+          "h-auto rounded-lg border border-zinc-200 dark:border-zinc-700 mx-auto",
+          !maxWidthPx && "max-w-full",
           imgState === "loaded" ? "block" : "hidden",
         )}
         onLoad={() => setImgState("loaded")}
@@ -207,9 +222,8 @@ export function DocumentMarkdownRenderer({
         "[&_tbody_tr:nth-child(even)]:bg-zinc-50 [&_tbody_tr:nth-child(even)]:dark:bg-zinc-900/30",
         "[&_th]:border [&_th]:border-zinc-200 [&_th]:dark:border-zinc-700 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
         "[&_td]:border [&_td]:border-zinc-200 [&_td]:dark:border-zinc-700 [&_td]:px-3 [&_td]:py-2",
-        // 图片：max-w-full 限制宽度，h-auto 保证按 width/height 比例缩放
-        // （防止 perceives 输出 <img width="X" height="Y" /> 在窄屏被拉伸变形）
-        "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-3",
+        // 图片：DocumentImage 已根据 width 属性设置 max-width；h-auto 保证响应式缩放
+        "[&_img]:h-auto [&_img]:rounded-lg [&_img]:my-3",
         // 引用块
         "[&_blockquote]:border-l-4 [&_blockquote]:border-zinc-300 [&_blockquote]:dark:border-zinc-600 [&_blockquote]:pl-4 [&_blockquote]:my-3 [&_blockquote]:text-zinc-600 [&_blockquote]:dark:text-zinc-400",
         // 分隔线

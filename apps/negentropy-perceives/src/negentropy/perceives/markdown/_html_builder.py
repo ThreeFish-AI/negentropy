@@ -157,6 +157,20 @@ def match_image_to_paragraph(paragraph: str, img_alt: str) -> bool:
     return alt_lower in para_lower
 
 
+def _build_img_tag(img: Dict) -> str:
+    """构建带可选 width/height 属性的 <img> 标签。"""
+    img_src = img.get("src", "")
+    img_alt = img.get("alt", "")
+    parts = [f"src='{img_src}'", f"alt='{img_alt}'"]
+    w = img.get("width")
+    h = img.get("height")
+    if w is not None:
+        parts.append(f"width='{w}'")
+    if h is not None:
+        parts.append(f"height='{h}'")
+    return "<img " + " ".join(parts) + ">"
+
+
 def build_html_from_text(text_content: str, title: str, content_data: Dict) -> str:
     """从文本内容构建基本 HTML 结构。
 
@@ -214,15 +228,11 @@ def build_html_from_text(text_content: str, title: str, content_data: Dict) -> s
             if i in placement:
                 for img_idx in placement[i]:
                     img = images[img_idx]
-                    img_src = img.get("src", "")
-                    img_alt = img.get("alt", "")
-                    html_parts.append(f"<img src='{img_src}' alt='{img_alt}'>")
+                    html_parts.append(_build_img_tag(img))
 
         if images and not paragraphs:
             for img in images:
-                img_src = img.get("src", "")
-                img_alt = img.get("alt", "")
-                html_parts.append(f"<img src='{img_src}' alt='{img_alt}'>")
+                html_parts.append(_build_img_tag(img))
 
         html_parts.append("</div>")
 
