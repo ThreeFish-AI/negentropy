@@ -389,8 +389,9 @@ class FitzTextExtractor(PDFToolBase):
         text_stripped = text.strip()
         text_lower = text_stripped.lower()
 
-        # 优先匹配编号章节标题，如 "1 Introduction", "2.1 Formal Definition"
-        numbered_match = re.match(r"^(\d+(?:\.\d+)*)\s+(.+)$", text_stripped)
+        # 优先匹配编号章节标题，如 "1 Introduction", "2.1 Formal Definition",
+        # 也支持章号后带句号的格式，如 "2. Theoretical Framework"
+        numbered_match = re.match(r"^(\d+(?:\.\d+)*)\.?\s+(.+)$", text_stripped)
         if numbered_match:
             section_num = numbered_match.group(1)
             section_title = numbered_match.group(2).strip()

@@ -59,7 +59,23 @@ class BuiltinAssembler(PDFToolBase):
             # 1. 收集所有内容元素
             elements: List[_ContentElement] = []
 
-            # 1a. 预扫描：收集文本块中的表格与公式指纹，用于跨 Stage 去重
+            # 1a. 构建专用 Stage 的空间占用索引（page → bbox 列表），
+            #     用于在添加文本块时进行反向去重：当文本块落入公式/表格/图片
+            #     区域时，优先保留专用 Stage 的高保真输出，跳过文本块的冗余版本。
+            special_regions: Dict[int, List[Tuple[float, float, float, float]]] = {}
+            for formula in input_data.formulas.formulas if input_data.formulas else []:
+                if formula.bbox:
+                    special_regions.setdefault(formula.page_number, []).append(
+                        formula.bbox
+                    )
+            for table in input_data.tables.tables if input_data.tables else []:
+                if table.bbox:
+                    special_regions.setdefault(table.page_number, []).append(table.bbox)
+            for img in input_data.images.images if input_data.images else []:
+                if img.bbox:
+                    special_regions.setdefault(img.page_number, []).append(img.bbox)
+
+            # 1b. 预扫描：收集文本块中的表格与公式指纹，用于跨 Stage 去重
             text_table_fingerprints: set[str] = set()
             text_formula_fingerprints: set[str] = set()
             if input_data.text and input_data.text.blocks:
@@ -77,9 +93,13 @@ class BuiltinAssembler(PDFToolBase):
                             if len(core) > 10:
                                 text_formula_fingerprints.add(core)
 
-            # 文本块
+            # 文本块（反向去重：跳过落入专用 Stage 区域的文本块）
             if input_data.text and input_data.text.blocks:
                 for block in input_data.text.blocks:
+                    if _block_overlaps_special(
+                        block, special_regions, iou_threshold=0.3
+                    ):
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=block.reading_order,
@@ -90,7 +110,7 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 表格（去重：跳过文本块中已存在的表格）
+            # 表格（正向去重：跳过文本块中已存在的表格）
             if input_data.tables:
                 for table in input_data.tables.tables:
                     md = table.markdown.strip() if table.markdown else ""
@@ -107,9 +127,13 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 公式（去重：跳过文本块中已存在的公式）
+            # 公式（正向去重：跳过文本块中已存在的公式；
+            #   无 bbox 的公式因无法确定位置而排在错误位置，
+            #   且 S3 文本提取已捕获其文本，故直接跳过）
             if input_data.formulas:
                 for formula in input_data.formulas.formulas:
+                    if not formula.bbox:
+                        continue
                     latex_core = (
                         formula.latex.strip().replace(" ", "") if formula.latex else ""
                     )
@@ -138,10 +162,76 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 图片：全部加入元素列表，由统一排序决定位置。
-            # normalize_image_references 会处理 <!-- image --> 占位符替换。
+            # 图片：落入表格 bbox 的散落图片（如表格内 logo）应予跳过，
+            # 因为表格的 Markdown 版本已包含完整文本内容。
+            # 同一页内 bbox 高度重叠的图片视为重复（不同引擎提取同一图），
+            # 保留有 caption 的版本。
+            table_bboxes: Dict[int, List[Tuple[float, float, float, float]]] = {}
+            if input_data.tables:
+                for table in input_data.tables.tables:
+                    if table.bbox:
+                        table_bboxes.setdefault(table.page_number, []).append(
+                            table.bbox
+                        )
             if input_data.images and input_data.images.images:
+                # 先收集所有候选图片（排除落入表格区域的）
+                image_candidates: List[ExtractedImage] = []
                 for image in input_data.images.images:
+                    if image.bbox and image.page_number in table_bboxes:
+                        img_cx = (image.bbox[0] + image.bbox[2]) / 2
+                        img_cy = (image.bbox[1] + image.bbox[3]) / 2
+                        skip = False
+                        for tx0, ty0, tx1, ty1 in table_bboxes[image.page_number]:
+                            if tx0 <= img_cx <= tx1 and ty0 <= img_cy <= ty1:
+                                skip = True
+                                break
+                        if skip:
+                            continue
+                    image_candidates.append(image)
+
+                # 空间重叠去重：同页 bbox 中心点包含或 IoU > 0.3 的图片
+                # 保留有 caption 的版本（不同引擎提取同一图时 caption 质量不同）
+                removed: set[int] = set()
+                for i in range(len(image_candidates)):
+                    if i in removed:
+                        continue
+                    img_a = image_candidates[i]
+                    if not img_a.bbox:
+                        continue
+                    for j in range(i + 1, len(image_candidates)):
+                        if j in removed:
+                            continue
+                        img_b = image_candidates[j]
+                        if img_a.page_number != img_b.page_number or not img_b.bbox:
+                            continue
+                        # 中心点包含：A 的中心落在 B 内 或 B 的中心落在 A 内
+                        ca_x = (img_a.bbox[0] + img_a.bbox[2]) / 2
+                        ca_y = (img_a.bbox[1] + img_a.bbox[3]) / 2
+                        cb_x = (img_b.bbox[0] + img_b.bbox[2]) / 2
+                        cb_y = (img_b.bbox[1] + img_b.bbox[3]) / 2
+                        overlap = (
+                            (
+                                img_b.bbox[0] <= ca_x <= img_b.bbox[2]
+                                and img_b.bbox[1] <= ca_y <= img_b.bbox[3]
+                            )
+                            or (
+                                img_a.bbox[0] <= cb_x <= img_a.bbox[2]
+                                and img_a.bbox[1] <= cb_y <= img_a.bbox[3]
+                            )
+                            or _compute_iou(img_a.bbox, img_b.bbox) > 0.3
+                        )
+                        if overlap:
+                            # 移除没有 caption 的版本，都没有则移除后出现的
+                            if img_b.caption and not img_a.caption:
+                                removed.add(i)
+                                break  # i 已被移除，无需继续比较
+                            else:
+                                removed.add(j)
+
+                kept_indices = set(range(len(image_candidates))) - removed
+
+                for idx in sorted(kept_indices):
+                    image = image_candidates[idx]
                     elements.append(
                         _ContentElement(
                             reading_order=image.reading_order,
@@ -187,11 +277,14 @@ class BuiltinAssembler(PDFToolBase):
 
             elements.sort(key=_sort_key)
 
-            # 2.5 去重：移除重复标题
-            #    仅处理两种场景：
+            # 2.5 去重：移除重复标题与重复 Figure/Table 注释
+            #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
             #    b) 同一标题文本在不同页重复出现（如 "References"）→ 只保留首次
+            #    注释去重：
+            #    c) "Table N:" / "Figure N:" 开头的注释文本在不同元素中重复出现
             _seen: set[str] = set()
+            _seen_caption: set[str] = set()
             _prev: str | None = None
             _dd: List[_ContentElement] = []
             for elem in elements:
@@ -212,6 +305,20 @@ class BuiltinAssembler(PDFToolBase):
                     _prev = norm
                 else:
                     _prev = None
+                    # 场景 c: 重复 Figure/Table 注释去重
+                    # 仅提取 "Table/Figure N: ..." 注释文本部分进行指纹比较，
+                    # 而非整个元素内容（表格元素包含完整 Markdown 表格）
+                    cap_match = re.search(
+                        r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
+                        content,
+                        re.IGNORECASE,
+                    )
+                    if cap_match:
+                        cap_text = cap_match.group(1)
+                        cap_norm = re.sub(r"[-*\s]+", " ", cap_text.lower()).strip()
+                        if cap_norm in _seen_caption:
+                            continue
+                        _seen_caption.add(cap_norm)
                 _dd.append(elem)
             elements = _dd
 
@@ -352,6 +459,52 @@ def _extract_table_fingerprint(table_text: str) -> str:
     return ""
 
 
+def _compute_iou(
+    a: Tuple[float, float, float, float],
+    b: Tuple[float, float, float, float],
+) -> float:
+    """计算两个 bbox 的交并比 (IoU)。"""
+    x0 = max(a[0], b[0])
+    y0 = max(a[1], b[1])
+    x1 = min(a[2], b[2])
+    y1 = min(a[3], b[3])
+    inter = max(0.0, x1 - x0) * max(0.0, y1 - y0)
+    if inter <= 0:
+        return 0.0
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    area_b = (b[2] - b[0]) * (b[3] - b[1])
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _block_overlaps_special(
+    block: TextBlock,
+    special_regions: Dict[int, List[Tuple[float, float, float, float]]],
+    iou_threshold: float = 0.3,
+) -> bool:
+    """判断文本块是否与专用 Stage 区域存在空间重叠。
+
+    使用两种策略：
+    1. 包含检测：文本块中心点落入特殊区域（文本块被大区域包裹）
+    2. IoU 检测：文本块与特殊区域面积重叠超过阈值（尺寸接近的元素）
+    """
+    if not block.bbox:
+        return False
+    regions = special_regions.get(block.page_number)
+    if not regions:
+        return False
+    bx0, by0, bx1, by1 = block.bbox
+    for rx0, ry0, rx1, ry1 in regions:
+        # 策略 1: 包含检测 — 文本块中心点落入特殊区域
+        cx, cy = (bx0 + bx1) / 2, (by0 + by1) / 2
+        if rx0 <= cx <= rx1 and ry0 <= cy <= ry1:
+            return True
+        # 策略 2: IoU 检测 — 面积重叠
+        if _compute_iou(block.bbox, (rx0, ry0, rx1, ry1)) >= iou_threshold:
+            return True
+    return False
+
+
 def _text_block_to_markdown(block: TextBlock) -> str:
     """将 TextBlock 转换为 Markdown 文本。"""
     if block.block_type == "heading" and block.heading_level:
@@ -360,12 +513,19 @@ def _text_block_to_markdown(block: TextBlock) -> str:
 
 
 def _table_to_markdown(table: ExtractedTable) -> str:
-    """将表格转换为 Markdown（带可选标题）。"""
-    parts: List[str] = []
-    if table.caption:
-        parts.append(f"**{table.caption}**")
-    parts.append(table.markdown)
-    return "\n\n".join(parts)
+    """将表格转换为 Markdown（带可选标题）。
+
+    当 table.markdown 已包含 caption 文本时，不再额外添加，
+    避免 table 元素内部出现重复标题。
+    """
+    md = table.markdown
+    if table.caption and table.caption.strip():
+        cap_stripped = table.caption.strip()
+        # 检查 markdown 首行是否已包含 caption 文本
+        first_line = md.split("\n", 1)[0].strip() if md else ""
+        if first_line != cap_stripped:
+            return f"**{cap_stripped}**\n\n{md}"
+    return md
 
 
 def _formula_to_markdown(formula: ExtractedFormula) -> str:
