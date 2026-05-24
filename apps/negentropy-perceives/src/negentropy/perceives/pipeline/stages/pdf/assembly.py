@@ -58,6 +58,26 @@ class BuiltinAssembler(PDFToolBase):
             # 1. 收集所有内容元素
             elements: List[_ContentElement] = []
 
+            # 1a. 预扫描：收集文本块中的表格与公式指纹，用于跨 Stage 去重
+            text_table_fingerprints: set[str] = set()
+            text_formula_fingerprints: set[str] = set()
+            if input_data.text and input_data.text.blocks:
+                for block in input_data.text.blocks:
+                    text = block.text.strip()
+                    # 表格指纹：首行非空单元格的拼接（跳过 separator 行）
+                    if text.startswith("|"):
+                        first_data_row = _extract_table_fingerprint(text)
+                        if first_data_row:
+                            text_table_fingerprints.add(first_data_row)
+                    # 公式指纹：LaTeX 核心内容（去除空白）
+                    if "$$" in text:
+                        for m in __import__("re").finditer(
+                            r"\$\$(.*?)\$\$", text, __import__("re").DOTALL
+                        ):
+                            core = m.group(1).strip().replace(" ", "")
+                            if len(core) > 10:
+                                text_formula_fingerprints.add(core)
+
             # 文本块
             if input_data.text and input_data.text.blocks:
                 for block in input_data.text.blocks:
@@ -71,9 +91,13 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 表格
+            # 表格（去重：跳过文本块中已存在的表格）
             if input_data.tables:
                 for table in input_data.tables.tables:
+                    md = table.markdown.strip() if table.markdown else ""
+                    fp = _extract_table_fingerprint(md) if md.startswith("|") else ""
+                    if fp and fp in text_table_fingerprints:
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=table.reading_order,
@@ -84,9 +108,14 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 公式
+            # 公式（去重：跳过文本块中已存在的公式）
             if input_data.formulas:
                 for formula in input_data.formulas.formulas:
+                    latex_core = (
+                        formula.latex.strip().replace(" ", "") if formula.latex else ""
+                    )
+                    if len(latex_core) > 10 and latex_core in text_formula_fingerprints:
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=formula.reading_order,
@@ -129,6 +158,9 @@ class BuiltinAssembler(PDFToolBase):
             #    - y0：bbox 顶部纵坐标（TopLeft 坐标系），缺失时退化到 reading_order * 100
             #    - x0：bbox 左侧横坐标，作为多列布局列序兜底（先左列后右列）
             #    - reading_order：稳定序兜底，保证同坐标元素遵循 Stage 内部序
+            #
+            #    无 bbox 的孤立元素（如公式提取缺少坐标）排在同页定位内容之后，
+            #    避免错误地排到页首。
             def _sort_key(
                 elem: _ContentElement,
             ) -> Tuple[int, float, float, int]:
@@ -149,7 +181,8 @@ class BuiltinAssembler(PDFToolBase):
                     y_pos = float(bbox[1])
                     x_pos = float(bbox[0])
                 else:
-                    y_pos = elem.reading_order * 100.0
+                    # 孤立元素排在同页定位内容之后（1e6 远大于任何合理的 y0）
+                    y_pos = 1_000_000.0 + elem.reading_order
                     x_pos = 0.0
                 return (page, y_pos, x_pos, elem.reading_order)
 
@@ -269,6 +302,27 @@ class _ContentElement:
 # ---------------------------------------------------------------------------
 # Markdown 转换辅助函数
 # ---------------------------------------------------------------------------
+
+
+def _extract_table_fingerprint(table_text: str) -> str:
+    """提取 Markdown 表格的首行数据单元格指纹（用于去重比较）。
+
+    跳过 separator 行（如 ``|---|---|``），取第一个含实际数据的行，
+    去除管道符和空白后作为指纹。
+    """
+    for line in table_text.split("\n"):
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        # 跳过 separator 行
+        if set(line.replace("|", "").replace("-", "").replace(":", "").strip()) <= {
+            " ",
+        }:
+            continue
+        cells = [c.strip() for c in line.split("|") if c.strip()]
+        if cells:
+            return "|".join(cells)
+    return ""
 
 
 def _text_block_to_markdown(block: TextBlock) -> str:
