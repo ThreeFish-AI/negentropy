@@ -58,6 +58,7 @@ class BuiltinAssembler(PDFToolBase):
 
             # 1. 收集所有内容元素
             elements: List[_ContentElement] = []
+            _orphan_block_formulas: List[ExtractedFormula] = []
 
             # 1a. 构建专用 Stage 的空间占用索引（page → bbox 列表），
             #     用于在添加文本块时进行反向去重：当文本块落入公式/表格/图片
@@ -127,27 +128,33 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 公式（正向去重：跳过文本块中已存在的公式；
-            #   无 bbox 的公式因无法确定位置而排在错误位置，
-            #   且 S3 文本提取已捕获其文本，故直接跳过）
+            # 公式（有 bbox 的正常插入；无 bbox 的通过文本匹配升级为 LaTeX）
             if input_data.formulas:
                 for formula in input_data.formulas.formulas:
-                    if not formula.bbox:
-                        continue
-                    latex_core = (
-                        formula.latex.strip().replace(" ", "") if formula.latex else ""
-                    )
-                    if len(latex_core) > 10 and latex_core in text_formula_fingerprints:
-                        continue
-                    elements.append(
-                        _ContentElement(
-                            reading_order=formula.reading_order,
-                            page_number=formula.page_number,
-                            element_type="formula",
-                            content=_formula_to_markdown(formula),
-                            formula=formula,
+                    if formula.bbox:
+                        latex_core = (
+                            formula.latex.strip().replace(" ", "")
+                            if formula.latex
+                            else ""
                         )
-                    )
+                        if (
+                            len(latex_core) > 10
+                            and latex_core in text_formula_fingerprints
+                        ):
+                            continue
+                        elements.append(
+                            _ContentElement(
+                                reading_order=formula.reading_order,
+                                page_number=formula.page_number,
+                                element_type="formula",
+                                content=_formula_to_markdown(formula),
+                                formula=formula,
+                            )
+                        )
+                    elif formula.latex and formula.formula_type == "block":
+                        # 无 bbox 的块级公式：尝试在文本块中定位并标记替换
+                        # 收集到临时列表，排序后通过文本匹配定位
+                        _orphan_block_formulas.append(formula)
 
             # 代码块
             if input_data.code:
@@ -276,6 +283,121 @@ class BuiltinAssembler(PDFToolBase):
                 return (page, y_pos, x_pos, elem.reading_order)
 
             elements.sort(key=_sort_key)
+
+            # 2.1 标题层级规范化：学术论文中首个 H1 为论文标题，
+            #     后续标题应整体下移一级（H1→H2, H2→H3, H3→H4），
+            #     避免所有 section 与标题同级。
+            _first_h1_seen = False
+            for elem in elements:
+                content = elem.content.strip()
+                if not content.startswith("#"):
+                    continue
+                level = len(content) - len(content.lstrip("#"))
+                if level == 1 and not _first_h1_seen:
+                    _first_h1_seen = True
+                    continue  # 论文标题保持 H1
+                if _first_h1_seen and level >= 1:
+                    # 下移一级，最大到 H5
+                    new_level = min(level + 1, 5)
+                    new_content = "#" * new_level + content[level:]
+                    elem.content = new_content
+
+            # 2.2 无 bbox 块级公式：通过公式编号或数学符号在文本块中定位并替换
+            #    策略 1：通过公式编号（如 LaTeX 末尾的 \quad (N)）匹配
+            #    策略 2：通过数学符号 + 公式特征匹配
+            if _orphan_block_formulas:
+                _used_formula_indices: set[int] = set()
+                for elem in elements:
+                    if elem.element_type != "text" or not elem.block:
+                        continue
+                    text = elem.block.text.strip()
+                    if not text or text.startswith("#") or len(text) < 10:
+                        continue
+                    for fi, formula in enumerate(_orphan_block_formulas):
+                        if fi in _used_formula_indices or not formula.latex:
+                            continue
+                        matched = False
+                        # 策略 1：公式编号匹配（最可靠）
+                        eq_num = re.search(r"\\quad\s*\(\s*(\d+)\s*\)", formula.latex)
+                        if eq_num:
+                            num_str = f"({eq_num.group(1)})"
+                            if num_str in text:
+                                matched = True
+                        # 策略 2：数学符号 + LaTeX 关键词匹配
+                        if not matched:
+                            _math_symbols = [
+                                "→",
+                                "∑",
+                                "∈",
+                                "∪",
+                                "⊆",
+                                "θ",
+                                "φ",
+                                "≥",
+                                "≤",
+                                "∧",
+                                "…",
+                            ]
+                            _has_math = any(s in text for s in _math_symbols)
+                            latex_ids = re.findall(r"\\[a-zA-Z]+", formula.latex)
+                            _latex_names = [
+                                n.replace("\\", "")
+                                for n in latex_ids
+                                if n
+                                not in (
+                                    "\\quad",
+                                    "\\colon",
+                                    "\\to",
+                                    "\\left",
+                                    "\\right",
+                                    "\\dots",
+                                    "\\text",
+                                )
+                            ]
+                            _name_match = any(
+                                n.lower() in text.lower() for n in _latex_names
+                            )
+                            if _has_math and _name_match:
+                                matched = True
+                        if matched:
+                            formula_md = _formula_to_markdown(formula)
+                            elem.content = formula_md
+                            elem.element_type = "formula"
+                            elem.formula = formula
+                            elem.block = None
+                            _used_formula_indices.add(fi)
+                            break
+
+            # 2.4 公式-文本去重：已被公式 Stage 或孤儿匹配覆盖的文本块需移除。
+            #    比较策略：提取公式元素中的等式编号（如 "(5)"、"( 5 )"），
+            #    如果文本元素含相同编号且包含数学符号，视为重复并移除。
+            _formula_eq_nums: set[str] = set()
+            for elem in elements:
+                if elem.element_type == "formula" and elem.content.strip().startswith(
+                    "$$"
+                ):
+                    # 匹配 LaTeX 中的编号: (N) 或 ( N )
+                    for m in re.finditer(r"\(\s*(\d+)\s*\)", elem.content):
+                        _formula_eq_nums.add(m.group(1))
+            if _formula_eq_nums:
+                _math_chars = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨")
+                elements = [
+                    elem
+                    for elem in elements
+                    if not (
+                        elem.element_type == "text"
+                        and elem.block is not None
+                        and re.search(
+                            r"\(\s*("
+                            + "|".join(re.escape(n) for n in _formula_eq_nums)
+                            + r")\s*\)",
+                            elem.content,
+                        )
+                        and any(c in elem.content for c in _math_chars)
+                        and len(elem.content.strip()) < 200
+                        and not elem.content.strip().startswith("#")
+                    )
+                ]
 
             # 2.5 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
