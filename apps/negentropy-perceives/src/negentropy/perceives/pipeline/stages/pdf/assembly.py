@@ -104,6 +104,12 @@ class BuiltinAssembler(PDFToolBase):
                     # 跳过学术论文页眉/页脚残留文本
                     if _is_running_header_footer(block.text):
                         continue
+                    # 跳过作者署名行（短标题含 ∗†‡ 或邮箱标记）
+                    if _is_author_byline(block):
+                        continue
+                    # 跳过 CCS Concepts 元数据标题
+                    if _is_paper_metadata_heading(block):
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=block.reading_order,
@@ -415,9 +421,7 @@ class BuiltinAssembler(PDFToolBase):
                 if elem.element_type == "image" and elem.image:
                     cap = (elem.image.caption or "").strip()
                     if cap:
-                        _img_captions.add(
-                            re.sub(r"[-–—*\s]+", " ", cap.lower()).strip()
-                        )
+                        _img_captions.add(_normalize_for_dedup(cap))
             if _img_captions:
                 elements = [
                     elem
@@ -428,8 +432,7 @@ class BuiltinAssembler(PDFToolBase):
                         and not elem.content.strip().startswith("#")
                         and len(elem.content.strip()) < 600
                         and any(
-                            ic
-                            in re.sub(r"[-–—*\s]+", " ", elem.content.strip().lower())
+                            ic in _normalize_for_dedup(elem.content.strip())
                             for ic in _img_captions
                             if len(ic) > 15
                         )
@@ -474,7 +477,7 @@ class BuiltinAssembler(PDFToolBase):
                     )
                     if cap_match:
                         cap_text = cap_match.group(1)
-                        cap_norm = re.sub(r"[-–—*\s]+", " ", cap_text.lower()).strip()
+                        cap_norm = _normalize_for_dedup(cap_text)
                         if cap_norm in _seen_caption:
                             continue
                         _seen_caption.add(cap_norm)
@@ -666,27 +669,25 @@ def _block_overlaps_special(
 
 # 页眉/页脚匹配模式（预编译，避免在循环中反复编译）
 _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
-    # ACM/IEEE 会议论文页眉：论文标题 + 会议简称
-    re.compile(
-        r"^[\w\s:]+(?:Hierarchical|Propositional|Framework|Industrial|Ontology)"
-        r".*Conference\s+acronym",
-        re.IGNORECASE,
-    ),
-    # 页眉：会议简称 + 日期 + 作者列表
-    re.compile(
-        r"^Conference\s+acronym\s+['’].*?\d{4}.*(?:and|&)\s+\w+\s*$",
-        re.IGNORECASE,
-    ),
-    # 页眉：仅会议简称 + 日期
-    re.compile(
-        r"^Conference\s+acronym\s+['’]\w+,\s+\w+\s+\d+[–-]\d+,\s+\d{4}\s+",
-        re.IGNORECASE,
-    ),
+    # ACM 会议论文页眉/页脚：含模板占位符 "Conference acronym" 的短文本
+    # （函数已有 len>500 保护，误匹配正文风险极低）
+    re.compile(r"\bConference\s+acronym\b", re.IGNORECASE),
+    # DOI URL 行
+    re.compile(r"^https?://(?:dx\.)?doi\.org/", re.IGNORECASE),
     # ACM 版权声明
     re.compile(r"^Permission\s+to\s+make\s+digital", re.IGNORECASE),
     # ACM Reference Format 行
     re.compile(r"^ACM\s+Reference\s+Format:", re.IGNORECASE),
 ]
+
+
+def _normalize_for_dedup(text: str) -> str:
+    """归一化文本用于去重比较：移除断字、智能引号、归一化破折号与空白。"""
+    text = re.sub(r"(\w)-\s+(\w)", r"\1\2", text)
+    text = text.replace("‘", "'").replace("’", "'")
+    text = text.replace("“", '"').replace("”", '"')
+    text = re.sub(r"[-–—*\s]+", " ", text)
+    return text.lower().strip()
 
 
 def _is_running_header_footer(text: str) -> bool:
@@ -700,6 +701,38 @@ def _is_running_header_footer(text: str) -> bool:
         return False
     for pattern in _RUNNING_HEADER_FOOTER_PATTERNS:
         if pattern.search(stripped):
+            return True
+    return False
+
+
+def _is_author_byline(block: TextBlock) -> bool:
+    """判断文本块是否为作者署名行（被误识别为 heading 的作者名+标记）。"""
+    if block.block_type != "heading" or not block.heading_level:
+        return False
+    text = block.text.strip()
+    # 含邮箱地址（无论长度，author+email+affiliation 组合可能较长）
+    if re.search(r"[\w.+-]+@[\w.-]+\.\w{2,}", text):
+        return True
+    # 短文本含作者标记符号
+    if len(text) >= 80:
+        return False
+    author_markers = ["∗", "†", "‡", "§", "¶", "✉"]
+    if any(m in text for m in author_markers):
+        return True
+    return False
+
+
+def _is_paper_metadata_heading(block: TextBlock) -> bool:
+    """判断文本块是否为论文元数据标题（如 CCS Concepts、Keywords）。"""
+    if block.block_type != "heading" or not block.heading_level:
+        return False
+    text = block.text.strip()
+    metadata_headings = [
+        r"^CCS\s+Concepts",
+        r"^Categories\s+and\s+Subject\s+Descriptors",
+    ]
+    for pattern in metadata_headings:
+        if re.match(pattern, text, re.IGNORECASE):
             return True
     return False
 
@@ -754,8 +787,8 @@ def _sanitize_latex(latex: str) -> str:
             len(latex),
         )
 
-    # 策略 2: 连续 \\quad 超过 4 个时截断
-    quad_run = re.compile(r"(\\quad\s*){4,}")
+    # 策略 2: 连续 \\quad 超过 4 个时截断（含大括号形式 {\quad} 和 & 分隔符）
+    quad_run = re.compile(r"(\{?\\quad\}?[\s&]*){4,}")
     match = quad_run.search(latex)
     if match:
         latex = latex[: match.start()].rstrip()
