@@ -775,22 +775,36 @@ class DoclingFormulaEnricher:
 
         # 1.5 压缩 LaTeX 花括号外裸标识符的空格碎片
         # "C h a r" → "Char", "i m p o r a l" → "imporal"
-        # 仅在 $$...$$ 块级公式内操作，且要求至少 3 个连续字母+空格模式（即 4+
-        # 字母标识符）。行内公式（$...$）不压缩，避免将独立变量乘积误合为单变量。
+        # 仅在 $$...$$ 和 $...$ 定界符内操作，且要求至少 3 个连续字母+空格模式
         def _compress_fragmentation(delimited_text: str) -> str:
+            def _fix_inline(m: re.Match) -> str:
+                body = m.group(1)
+                compressed = re.sub(
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] )+[a-zA-Z])\b",
+                    lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
+                    body,
+                )
+                return f"${compressed}$"
+
             def _fix_block(m: re.Match) -> str:
                 body = m.group(1)
                 compressed = re.sub(
-                    r"\b([a-zA-Z]) ((?:[a-zA-Z] ){2,}[a-zA-Z])\b",
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] )+[a-zA-Z])\b",
                     lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
                     body,
                 )
                 return f"$${compressed}$$"
 
-            # 仅处理 $$...$$ 块级公式
+            # 处理 $$...$$ 块级公式
             delimited_text = re.sub(
                 r"\$\$([\s\S]+?)\$\$",
                 _fix_block,
+                delimited_text,
+            )
+            # 处理 $...$ 行内公式
+            delimited_text = re.sub(
+                r"(?<!\$)\$(?!\$)([^$]+?)\$(?!\$)",
+                _fix_inline,
                 delimited_text,
             )
             return delimited_text
