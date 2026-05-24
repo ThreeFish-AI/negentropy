@@ -156,9 +156,52 @@ class BuiltinAssembler(PDFToolBase):
                         # 收集到临时列表，排序后通过文本匹配定位
                         _orphan_block_formulas.append(formula)
 
-            # 代码块
+            # 代码块（去重：对 Docling 提取的代码块，检查同页文本块中
+            #   是否存在高度相似的内容，避免 Docling 和 text_extraction
+            #   同时输出同一段 prompt 模板内容）
             if input_data.code:
                 for code_block in input_data.code.code_blocks:
+                    # algorithm_detector 的代码块保留（伪代码通常比
+                    # 文本提取的版本质量更高，且已被 fenced block 包裹）
+                    if getattr(code_block, "is_algorithm", False):
+                        elements.append(
+                            _ContentElement(
+                                reading_order=code_block.reading_order,
+                                page_number=code_block.page_number,
+                                element_type="code",
+                                content=_code_block_to_markdown(code_block),
+                                code_block=code_block,
+                            )
+                        )
+                        continue
+                    # Docling 代码块：与同页文本块逐个比较
+                    _skip = False
+                    code_words = set(
+                        re.findall(r"[a-zA-Z_]{3,}", code_block.code.lower())
+                    )
+                    if code_words:
+                        for elem in elements:
+                            if (
+                                elem.element_type != "text"
+                                or not elem.block
+                                or elem.page_number != code_block.page_number
+                            ):
+                                continue
+                            block_words = set(
+                                re.findall(
+                                    r"[a-zA-Z_]{3,}",
+                                    elem.block.text.lower(),
+                                )
+                            )
+                            if not block_words:
+                                continue
+                            overlap = len(code_words & block_words)
+                            ratio = overlap / max(len(code_words), 1)
+                            if ratio > 0.7 and overlap > 20:
+                                _skip = True
+                                break
+                    if _skip:
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=code_block.reading_order,
@@ -284,9 +327,10 @@ class BuiltinAssembler(PDFToolBase):
 
             elements.sort(key=_sort_key)
 
-            # 2.1 标题层级规范化：学术论文中首个 H1 为论文标题，
-            #     后续标题应整体下移一级（H1→H2, H2→H3, H3→H4），
-            #     避免所有 section 与标题同级。
+            # 2.1 标题层级规范化：
+            #     情况 A：首个标题为 H1 → 论文标题，后续标题下移一级
+            #     情况 B：首个标题为 H2（学术论文常见）→ 提升为 H1 作为论文标题，
+            #             后续标题也下移一级（与情况 A 相同）
             _first_h1_seen = False
             for elem in elements:
                 content = elem.content.strip()
@@ -296,8 +340,13 @@ class BuiltinAssembler(PDFToolBase):
                 if level == 1 and not _first_h1_seen:
                     _first_h1_seen = True
                     continue  # 论文标题保持 H1
-                if _first_h1_seen and level >= 1:
-                    # 下移一级，最大到 H5
+                if level == 2 and not _first_h1_seen:
+                    # 无 H1 时，首个 H2 提升为论文标题
+                    elem.content = "#" + content[level:]
+                    _first_h1_seen = True
+                    continue
+                if _first_h1_seen:
+                    # 后续标题下移一级，最大到 H5
                     new_level = min(level + 1, 5)
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
@@ -430,9 +479,17 @@ class BuiltinAssembler(PDFToolBase):
                     # 场景 c: 重复 Figure/Table 注释去重
                     # 仅提取 "Table/Figure N: ..." 注释文本部分进行指纹比较，
                     # 而非整个元素内容（表格元素包含完整 Markdown 表格）
+                    # 对于图片元素 (![Figure N: ...](path))，需要截断到
+                    # Markdown 图片语法结束符之前，避免 path 污染指纹。
+                    cap_source = content
+                    if elem.element_type == "image":
+                        # 从 ![alt](path) 中仅取 alt 部分
+                        alt_m = re.match(r"!\[([^\]]*)\]\([^)]*\)", content)
+                        if alt_m:
+                            cap_source = alt_m.group(1)
                     cap_match = re.search(
                         r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
-                        content,
+                        cap_source,
                         re.IGNORECASE,
                     )
                     if cap_match:
