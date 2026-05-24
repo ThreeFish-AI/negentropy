@@ -261,30 +261,67 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 2. 四级稳定排序：page → y0 → x0 → reading_order
+            # 2. 五级稳定排序：page → column → y0 → x0 → reading_order
             #    - page：0-based 页码，前序 Stage 已在边界归一化
+            #    - column：双栏布局列序（0=左/全宽, 1=右），单栏页全部为 0
             #    - y0：bbox 顶部纵坐标（TopLeft 坐标系），缺失时退化到 reading_order * 100
-            #    - x0：bbox 左侧横坐标，作为多列布局列序兜底（先左列后右列）
+            #    - x0：bbox 左侧横坐标，作为同列内的水平序兜底
             #    - reading_order：稳定序兜底，保证同坐标元素遵循 Stage 内部序
             #
-            #    无 bbox 的孤立元素（如公式提取缺少坐标）排在同页定位内容之后，
-            #    避免错误地排到页首。
+            #    双栏检测：通过分析每页元素的 x 中心点分布，寻找最大间隙。
+            #    若间隙显著（>25% x 范围且 >80pt），将元素分配到左/右列。
+            #    全宽元素（跨栏标题/图表）根据 x 中心就近分配。
+            #
+            #    无 bbox 的孤立元素排在同页定位内容之后。
+
+            # 2a. 双栏布局检测：收集每页元素的 x 中心，识别列分界
+            from collections import defaultdict
+
+            _page_items: Dict[int, List[Tuple[_ContentElement, Tuple]]] = defaultdict(
+                list
+            )
+            for elem in elements:
+                page = max(0, elem.page_number or 0)
+                bbox = _get_elem_bbox(elem)
+                if bbox:
+                    _page_items[page].append((elem, bbox))
+
+            _column_map: Dict[int, int] = {}  # id(elem) → column index
+            for page_num, items in _page_items.items():
+                if len(items) < 4:
+                    for elem, _ in items:
+                        _column_map[id(elem)] = 0
+                    continue
+
+                # 收集 x 中心点
+                x_centers = sorted((b[0] + b[2]) / 2 for _, b in items)
+
+                # 寻找最大间隙
+                max_gap = 0.0
+                split_x = 0.0
+                for i in range(len(x_centers) - 1):
+                    gap = x_centers[i + 1] - x_centers[i]
+                    if gap > max_gap:
+                        max_gap = gap
+                        split_x = (x_centers[i] + x_centers[i + 1]) / 2
+
+                x_range = x_centers[-1] - x_centers[0]
+                is_two_col = max_gap > max(x_range * 0.25, 80)
+
+                for elem, bbox in items:
+                    if is_two_col:
+                        x_center = (bbox[0] + bbox[2]) / 2
+                        _column_map[id(elem)] = 0 if x_center < split_x else 1
+                    else:
+                        _column_map[id(elem)] = 0
+
             def _sort_key(
                 elem: _ContentElement,
-            ) -> Tuple[int, float, float, int]:
+            ) -> Tuple[int, int, float, float, int]:
                 page = elem.page_number if elem.page_number is not None else 0
-                page = max(0, page)  # 防御：避免负页码排到首页之前
-                bbox: Optional[Tuple[float, float, float, float]] = None
-                if elem.image and elem.image.bbox:
-                    bbox = elem.image.bbox
-                elif elem.block and elem.block.bbox:
-                    bbox = elem.block.bbox
-                elif elem.table and elem.table.bbox:
-                    bbox = elem.table.bbox
-                elif elem.formula and elem.formula.bbox:
-                    bbox = elem.formula.bbox
-                elif elem.code_block and elem.code_block.bbox:
-                    bbox = elem.code_block.bbox
+                page = max(0, page)
+                col = _column_map.get(id(elem), 0)
+                bbox = _get_elem_bbox(elem)
                 if bbox is not None:
                     y_pos = float(bbox[1])
                     x_pos = float(bbox[0])
@@ -292,7 +329,7 @@ class BuiltinAssembler(PDFToolBase):
                     # 孤立元素排在同页定位内容之后（1e6 远大于任何合理的 y0）
                     y_pos = 1_000_000.0 + elem.reading_order
                     x_pos = 0.0
-                return (page, y_pos, x_pos, elem.reading_order)
+                return (page, col, y_pos, x_pos, elem.reading_order)
 
             elements.sort(key=_sort_key)
 
@@ -665,6 +702,23 @@ def _block_overlaps_special(
         if _compute_iou(block.bbox, (rx0, ry0, rx1, ry1)) >= iou_threshold:
             return True
     return False
+
+
+def _get_elem_bbox(
+    elem: _ContentElement,
+) -> Optional[Tuple[float, float, float, float]]:
+    """从内容元素中提取 bbox（优先级：image > block > table > formula > code）。"""
+    if elem.image and elem.image.bbox:
+        return elem.image.bbox
+    if elem.block and elem.block.bbox:
+        return elem.block.bbox
+    if elem.table and elem.table.bbox:
+        return elem.table.bbox
+    if elem.formula and elem.formula.bbox:
+        return elem.formula.bbox
+    if elem.code_block and elem.code_block.bbox:
+        return elem.code_block.bbox
+    return None
 
 
 # 页眉/页脚匹配模式（预编译，避免在循环中反复编译）
