@@ -101,6 +101,9 @@ class BuiltinAssembler(PDFToolBase):
                         block, special_regions, iou_threshold=0.3
                     ):
                         continue
+                    # 跳过学术论文页眉/页脚残留文本
+                    if _is_running_header_footer(block.text):
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=block.reading_order,
@@ -142,12 +145,15 @@ class BuiltinAssembler(PDFToolBase):
                             and latex_core in text_formula_fingerprints
                         ):
                             continue
+                        md = _formula_to_markdown(formula)
+                        if not md:
+                            continue
                         elements.append(
                             _ContentElement(
                                 reading_order=formula.reading_order,
                                 page_number=formula.page_number,
                                 element_type="formula",
-                                content=_formula_to_markdown(formula),
+                                content=md,
                                 formula=formula,
                             )
                         )
@@ -399,7 +405,38 @@ class BuiltinAssembler(PDFToolBase):
                     )
                 ]
 
-            # 2.5 去重：移除重复标题与重复 Figure/Table 注释
+            # 2.6 图片 caption 与纯文本去重：
+            #    当图片元素以 `![caption](path)` 形式输出后，
+            #    若紧接着一个纯文本元素的内容与该 caption 高度相似
+            #    （通常以 "Figure N:" 或 "Table N:" 开头），
+            #    则移除该冗余纯文本元素。
+            _img_captions: set[str] = set()
+            for elem in elements:
+                if elem.element_type == "image" and elem.image:
+                    cap = (elem.image.caption or "").strip()
+                    if cap:
+                        _img_captions.add(
+                            re.sub(r"[-–—*\s]+", " ", cap.lower()).strip()
+                        )
+            if _img_captions:
+                elements = [
+                    elem
+                    for elem in elements
+                    if not (
+                        elem.element_type == "text"
+                        and elem.block is not None
+                        and not elem.content.strip().startswith("#")
+                        and len(elem.content.strip()) < 600
+                        and any(
+                            ic
+                            in re.sub(r"[-–—*\s]+", " ", elem.content.strip().lower())
+                            for ic in _img_captions
+                            if len(ic) > 15
+                        )
+                    )
+                ]
+
+            # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
             #    b) 同一标题文本在不同页重复出现（如 "References"）→ 只保留首次
@@ -437,7 +474,7 @@ class BuiltinAssembler(PDFToolBase):
                     )
                     if cap_match:
                         cap_text = cap_match.group(1)
-                        cap_norm = re.sub(r"[-*\s]+", " ", cap_text.lower()).strip()
+                        cap_norm = re.sub(r"[-–—*\s]+", " ", cap_text.lower()).strip()
                         if cap_norm in _seen_caption:
                             continue
                         _seen_caption.add(cap_norm)
@@ -627,6 +664,46 @@ def _block_overlaps_special(
     return False
 
 
+# 页眉/页脚匹配模式（预编译，避免在循环中反复编译）
+_RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
+    # ACM/IEEE 会议论文页眉：论文标题 + 会议简称
+    re.compile(
+        r"^[\w\s:]+(?:Hierarchical|Propositional|Framework|Industrial|Ontology)"
+        r".*Conference\s+acronym",
+        re.IGNORECASE,
+    ),
+    # 页眉：会议简称 + 日期 + 作者列表
+    re.compile(
+        r"^Conference\s+acronym\s+['’].*?\d{4}.*(?:and|&)\s+\w+\s*$",
+        re.IGNORECASE,
+    ),
+    # 页眉：仅会议简称 + 日期
+    re.compile(
+        r"^Conference\s+acronym\s+['’]\w+,\s+\w+\s+\d+[–-]\d+,\s+\d{4}\s+",
+        re.IGNORECASE,
+    ),
+    # ACM 版权声明
+    re.compile(r"^Permission\s+to\s+make\s+digital", re.IGNORECASE),
+    # ACM Reference Format 行
+    re.compile(r"^ACM\s+Reference\s+Format:", re.IGNORECASE),
+]
+
+
+def _is_running_header_footer(text: str) -> bool:
+    """判断文本是否为学术论文的页眉/页脚残留。
+
+    检测常见的跨页重复模式：会议简称 + 日期 + 作者名列表、
+    论文标题 + 会议简称、ACM 版权/DOI 行等。
+    """
+    stripped = text.strip()
+    if not stripped or len(stripped) > 500:
+        return False
+    for pattern in _RUNNING_HEADER_FOOTER_PATTERNS:
+        if pattern.search(stripped):
+            return True
+    return False
+
+
 def _text_block_to_markdown(block: TextBlock) -> str:
     """将 TextBlock 转换为 Markdown 文本。"""
     if block.block_type == "heading" and block.heading_level:
@@ -650,11 +727,66 @@ def _table_to_markdown(table: ExtractedTable) -> str:
     return md
 
 
+def _sanitize_latex(latex: str) -> str:
+    """清洗 LaTeX 内容：截断重复模式、移除明显损坏的碎片。
+
+    常见损坏模式：
+    - ``\\quad \\text{in} \\quad \\text{in} ...`` 无限重复（Docling/Granite 幻觉）
+    - ``\\quad`` 连续出现超过 4 次
+    - LaTeX 中嵌入大量重复的 ``\\text{...}`` 碎片
+    """
+    if not latex:
+        return latex
+
+    original_len = len(latex)
+
+    # 策略 1: 检测 \\text{X} \\quad 重复模式并截断
+    # 匹配形如 \text{word}\quad\text{word}\quad 的重复序列
+    repeat_pattern = re.compile(r"(\\text\{[^}]*\}\s*\\quad\s*){3,}")
+    match = repeat_pattern.search(latex)
+    if match:
+        latex = latex[: match.start()].rstrip()
+        if latex and not latex.endswith((",", ";", ".", "\\]")):
+            latex = latex.rstrip(",; ")
+        logger.debug(
+            "公式 LaTeX 重复模式截断: %d → %d 字符",
+            original_len,
+            len(latex),
+        )
+
+    # 策略 2: 连续 \\quad 超过 4 个时截断
+    quad_run = re.compile(r"(\\quad\s*){4,}")
+    match = quad_run.search(latex)
+    if match:
+        latex = latex[: match.start()].rstrip()
+        logger.debug(
+            "公式 LaTeX \\quad 溢出截断: %d → %d 字符",
+            original_len,
+            len(latex),
+        )
+
+    # 策略 3: 单个 token 重复超过 20 次视为损坏
+    token_repeat = re.compile(r"(\\[a-zA-Z]+\s*)\1{19,}")
+    match = token_repeat.search(latex)
+    if match:
+        latex = latex[: match.start()].rstrip()
+        logger.debug(
+            "公式 LaTeX token 重复截断: %d → %d 字符",
+            original_len,
+            len(latex),
+        )
+
+    return latex
+
+
 def _formula_to_markdown(formula: ExtractedFormula) -> str:
-    """将公式转换为 Markdown LaTeX。"""
+    """将公式转换为 Markdown LaTeX（含清洗）。"""
+    latex = _sanitize_latex(formula.latex or "")
+    if not latex.strip():
+        return ""
     if formula.formula_type == "inline":
-        return f"${formula.latex}$"
-    return f"$$\n{formula.latex}\n$$"
+        return f"${latex}$"
+    return f"$$\n{latex}\n$$"
 
 
 def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
