@@ -34,4 +34,11 @@
 
   /* 首页品牌强调色 */
   --wiki-home-accent: #20B2AA;
+
+  /* 首页 Hero 液态渐变色彩 */
+  --wiki-hero-base: #0A7B71;
+  --wiki-hero-blob-1: #20B2AA;
+  --wiki-hero-blob-2: #2DD4BF;
+  --wiki-hero-blob-3: #0D9488;
+  --wiki-hero-blob-4: #34D399;
 }
