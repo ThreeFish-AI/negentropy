@@ -19,6 +19,15 @@ _IMAGE_PLACEHOLDER_RE = re.compile(r"<!--\s*image\s*-->")
 # 标准 Markdown 图片引用 ![alt](path)
 _IMAGE_REF_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 
+# HTML 内嵌 <img src="..."> 标签（带宽高的 assembly._image_to_markdown 输出形式）
+# 用于孤儿图判定：assembly 阶段图片是 HTML img 形式（保留 width/height），
+# 仅识别 markdown ``![alt](path)`` 会把所有 HTML 已引用的图当成孤儿，
+# 在文档末尾整段重复追加 56 张图（实测 Context Engineering 2.0 论文）。
+_HTML_IMG_SRC_RE = re.compile(
+    r"""<img\s+[^>]*?\bsrc\s*=\s*["']([^"']+)["']""",
+    re.IGNORECASE,
+)
+
 
 @runtime_checkable
 class ImageMeta(Protocol):
@@ -93,6 +102,18 @@ def _append_orphan_images(
         if path.startswith("data:"):
             continue
         basename = PurePosixPath(path).name
+        if basename:
+            referenced_basenames.add(basename)
+    # HTML <img src="..."> 也算引用：assembly 阶段会把图渲染为
+    # ``<img src="./images/xxx.png" width="..." height="..." />`` 以承载
+    # PDF 原始显示尺寸，仅扫描 ``![alt](path)`` 会把这些 HTML 引用全部
+    # 视为孤儿，在末尾重复追加（实测 Context Engineering 2.0 论文末尾
+    # 重复出现 56 张图，与正文已渲染的 HTML img 1:1 重叠）。
+    for match in _HTML_IMG_SRC_RE.finditer(markdown):
+        src = match.group(1)
+        if src.startswith("data:"):
+            continue
+        basename = PurePosixPath(src).name
         if basename:
             referenced_basenames.add(basename)
 
