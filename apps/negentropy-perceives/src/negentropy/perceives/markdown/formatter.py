@@ -6,6 +6,7 @@ import html
 import logging
 import os
 import re
+import unicodedata
 import uuid
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
@@ -63,6 +64,63 @@ def _classify_line(line: str) -> _LineType:
         if pattern.match(line):
             return line_type
     return _LineType.PLAIN_TEXT
+
+
+# 间隔修饰符号 → 对应的组合变音字符（U+0300 系列）映射。
+# PyMuPDF 把 ``Pokémon`` 这类含组合变音字符的词在 PDF 中拆为
+# ``base + 独立间隔符号 + 后续字母``，``" ".join`` 拼回 ``Pok ´ emon``
+# 形态。下表覆盖学术文献中最常见的几种组合：
+#   ´ (U+00B4 ACUTE)       → U+0301 COMBINING ACUTE        (é, á, í, ó, ú)
+#   ` (U+0060 GRAVE)       → U+0300 COMBINING GRAVE        (è, à)
+#   ˆ (U+02C6 CIRCUMFLEX)  → U+0302 COMBINING CIRCUMFLEX   (ê, â)
+#   ¨ (U+00A8 DIAERESIS)   → U+0308 COMBINING DIAERESIS    (ä, ö, ü)
+#   ˜ (U+02DC SMALL TILDE) → U+0303 COMBINING TILDE        (ã, õ, ñ)
+#   ˇ (U+02C7 CARON)       → U+030C COMBINING CARON        (š, č, ž)
+_DIACRITIC_MAP: Dict[str, str] = {
+    "´": "́",
+    "`": "̀",
+    "ˆ": "̂",
+    "¨": "̈",
+    "˜": "̃",
+    "ˇ": "̌",
+}
+
+_SPLIT_DIACRITIC_RE = re.compile(
+    r"([A-Za-z])\s*(["
+    + "".join(re.escape(c) for c in _DIACRITIC_MAP)
+    + r"])\s*([A-Za-z])"
+)
+
+
+def _rejoin_split_diacritics(text: str) -> str:
+    """组合 PDF 提取拆解的间隔变音符号回到预组合 Unicode 字符。
+
+    匹配 ``<letter><space>?<spacing-diacritic><space>?<letter>`` 形态，
+    在 PDF 中变音符号视觉上落在 **后续字母** 上（``Pok ´ emon`` =
+    ``Pok`` + ``é`` + ``mon``；``Westh ¨ außer`` = ``Westh`` + ``ä`` +
+    ``ußer``），因此把组合字符贴到 next_char，通过
+    ``unicodedata.normalize("NFC", ...)`` 收敛为预组合 codepoint。
+    """
+    if not text:
+        return text
+
+    def _replace(match: re.Match) -> str:
+        prev_char, diacritic, next_char = match.group(1), match.group(2), match.group(3)
+        combining = _DIACRITIC_MAP.get(diacritic)
+        if combining is None:
+            return match.group(0)
+        # 修饰符视觉上落在 **后续字母** 上：``Pok ´ emon`` = ``Pok`` + (e + ́)
+        # + ``mon``；``Westh ¨ außer`` = ``Westh`` + (a + ̈) + ``ußer``。
+        composed = unicodedata.normalize("NFC", f"{next_char}{combining}")
+        return f"{prev_char}{composed}"
+
+    # 用 while 循环处理形如 ``Pok ´ emo n`` 这种已被拆成多段的极端情况
+    # （罕见但成本极低）。每次替换可能合并相邻片段，进而暴露下一处匹配。
+    prev = None
+    while prev != text:
+        prev = text
+        text = _SPLIT_DIACRITIC_RE.sub(_replace, text)
+    return text
 
 
 def _is_list_continuation(line: str) -> bool:
@@ -490,6 +548,15 @@ class MarkdownFormatter:
 
                 # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
                 text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
+
+                # \u91cd\u7ec4 PDF \u62c6\u89e3\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff1a``Pok \u00b4 emon`` / ``Baltru \u02c7 saitis``
+                # / ``Westh \u00a8 au\u00dfer`` / ``Perdig \u02dc ao`` \u7b49\u3002PyMuPDF \u628a
+                # ``Pok\u00e9mon`` \u8fd9\u7c7b\u542b\u7ec4\u5408\u53d8\u97f3\u5b57\u7b26\u7684\u8bcd\u62c6\u4e3a ``base + \u72ec\u7acb\u95f4\u9694\u7b26\u53f7
+                # + \u540e\u7eed\u5b57\u6bcd``\uff0c``" ".join`` \u62fc\u63a5\u4e3a ``Pok \u00b4 emon``\u3002\u8fd9\u91cc\u8bc6\u522b
+                # ``<letter><space>?<diacritic><space>?<letter>`` \u6a21\u5f0f\uff0c
+                # \u7528\u5bf9\u5e94\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff08U+0300 \u7cfb\u5217\uff09\u62fc\u5408\uff0c\u5e76\u901a\u8fc7
+                # ``unicodedata.normalize("NFC", ...)`` \u6536\u655b\u4e3a\u9884\u7ec4\u5408 codepoint\u3002
+                text = _rejoin_split_diacritics(text)
 
                 # \u8de8\u884c\u65ad\u5b57\u5408\u5e76\uff1aPyMuPDF \u6587\u672c\u63d0\u53d6\u5e38\u6b8b\u7559 `word-\nword`\uff0cassembly \u9636\u6bb5
                 # \u628a `\n` \u6298\u53e0\u4e3a\u7a7a\u683c\u540e\u53d8\u6210 `word- word`\u3002\u4ec5\u5339\u914d\u4e24\u4fa7\u5747\u4e3a ASCII \u5c0f\u5199
