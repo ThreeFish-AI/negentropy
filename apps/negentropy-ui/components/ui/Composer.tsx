@@ -102,13 +102,15 @@ export function Composer({
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   // --------------------------------------------------------------------
-  // @ Mention 弹层状态：trigger 由 onChange / onSelect 检测，position 锁定
-  // textarea 左下角（不依赖光标具体像素，避免 caret 测量复杂度）。
+  // @ Mention 弹层状态：trigger 由 onChange / onSelect 检测，position 锚定
+  // textarea 上边缘 + @ 符号水平位置（通过 canvas measureText 测量）。
+  // 弹层在 MentionPopover 内部通过 ref 测量高度后向上偏移。
   // --------------------------------------------------------------------
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [popoverQuery, setPopoverQuery] = useState("");
   const triggerRangeRef = useRef<{ start: number; end: number } | null>(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+  const measureCanvasRef = useRef<CanvasRenderingContext2D | null>(null);
 
   // --------------------------------------------------------------------
   // Auto-resize：根据内容动态调整 textarea 高度
@@ -128,7 +130,25 @@ export function Composer({
     const ta = textareaRef.current;
     if (!ta) return;
     const rect = ta.getBoundingClientRect();
-    setPopoverPos({ top: rect.bottom + 4, left: rect.left });
+    const style = getComputedStyle(ta);
+    // 水平：用 canvas 测量 @ 符号之前文本的像素宽度
+    let left = rect.left;
+    const trig = triggerRangeRef.current;
+    if (trig && trig.start > 0) {
+      if (!measureCanvasRef.current) {
+        const canvas = document.createElement("canvas");
+        measureCanvasRef.current = canvas.getContext("2d");
+      }
+      const ctx = measureCanvasRef.current;
+      if (ctx) {
+        ctx.font = `${style.fontSize} ${style.fontFamily}`;
+        const textBeforeAt = ta.value.substring(0, trig.start);
+        left =
+          rect.left + parseFloat(style.paddingLeft) + ctx.measureText(textBeforeAt).width;
+      }
+    }
+    // 垂直：锚定 textarea 上边缘，MentionPopover 内部测量高度后向上偏移
+    setPopoverPos({ top: rect.top, left });
   }, []);
 
   const tryDetectTrigger = useCallback(
