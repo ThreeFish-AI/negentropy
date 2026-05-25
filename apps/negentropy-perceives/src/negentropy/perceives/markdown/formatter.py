@@ -125,6 +125,12 @@ class MarkdownFormatter:
         try:
             # 保护代码块内容不被格式化 pass 修改
             markdown_content, protected = self._protect_code_blocks(markdown_content)
+            # 保护块级数学公式 ``$$..$$`` 不被任何排版 / 段落 / 去重 pass 修改。
+            # 必须紧邻 ``_protect_code_blocks`` 之后执行，确保管线全程仅处理
+            # 占位符而非真实 LaTeX 内容。
+            markdown_content, math_protected = self._protect_math_blocks(
+                markdown_content
+            )
 
             if self.options.get("format_tables", True):
                 markdown_content = self._format_tables(markdown_content)
@@ -172,6 +178,12 @@ class MarkdownFormatter:
                     markdown_content, img_registry
                 )
 
+            # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
+            # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
+            markdown_content = self._restore_math_blocks(
+                markdown_content, math_protected
+            )
+
             # 还原被保护的代码块
             markdown_content = self._restore_code_blocks(markdown_content, protected)
 
@@ -207,6 +219,47 @@ class MarkdownFormatter:
         self, markdown_content: str, protected: Dict[str, str]
     ) -> str:
         """将占位符还原为原始代码块内容。"""
+        for placeholder, original in protected.items():
+            markdown_content = markdown_content.replace(placeholder, original)
+        return markdown_content
+
+    def _protect_math_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
+        """提取块级数学公式 ``$$..$$`` 并替换为占位符，防止格式化管线
+        在公式内部插入空行 / 跨段去重 / 排版替换破坏 LaTeX 完整性。
+
+        典型回归（Context Engineering 2.0 论文 5.3 节）：
+          1. ``_normalize_paragraph_breaks`` 把 ``$$``/``<latex>``/``$$``
+             三个相邻 PLAIN_TEXT 行之间各插入空行，把单一公式拆为 3 段；
+          2. ``_deduplicate_approximate_paragraphs`` 然后按段 Jaccard 比对，
+             因公式正文段（已脱离 ``$$`` 包裹）与上一公式正文 token 高度
+             重叠（``M``/``f``/``c``/``\\theta`` 等共享），整段被误删。
+
+        保护策略：在 format() 入口把每个完整的 ``$$\\n..$$`` 块替换为
+        ``%%MATHBLOCK_<uuid>%%`` 占位符，整个管线视其为不可破坏的原子单元；
+        管线末尾再统一还原。同步避免 ``_apply_typography_fixes`` 等步骤
+        破坏 LaTeX 内部空格 / em-dash / smart quotes。
+        """
+        protected: Dict[str, str] = {}
+
+        def _replacer(match: re.Match) -> str:
+            placeholder = f"%%MATHBLOCK_{uuid.uuid4().hex[:12]}%%"
+            protected[placeholder] = match.group(0)
+            return placeholder
+
+        # 匹配独占两行的 ``$$`` 定界符之间的块级公式
+        # （行首到行尾的 ``$$``，中间允许 ``\s*``，含多行 LaTeX）
+        result = re.sub(
+            r"^\$\$[^\S\n]*\n[\s\S]*?\n^\$\$[^\S\n]*$",
+            _replacer,
+            markdown_content,
+            flags=re.MULTILINE,
+        )
+        return result, protected
+
+    def _restore_math_blocks(
+        self, markdown_content: str, protected: Dict[str, str]
+    ) -> str:
+        """将占位符还原为原始 ``$$..$$`` 数学块内容。"""
         for placeholder, original in protected.items():
             markdown_content = markdown_content.replace(placeholder, original)
         return markdown_content
@@ -536,10 +589,22 @@ class MarkdownFormatter:
         可能产生格式不同但语义相同的重复段落。
         策略：对每个段落提取纯文字指纹（去空白/标点/Markdown 标记），
         若两个段落指纹的 Jaccard 相似度 > 0.6 且长度相近，移除后者。
+
+        **排除项**：块级数学公式 ``$$..$$`` 不参与近似去重比较。同章节的多条
+        相邻公式（如 ``M_s = f_short(...)`` 与 ``M_l = f_long(...)``）共享大量
+        同名变量与运算符令牌（``M``、``f``、``c``、``\\theta``、``\\in`` …），
+        清洗 Markdown 标记后 Jaccard 极易越过 0.6 阈值致后者被误判为重复。
+        正文段落的跨引擎重复仍照常去重。
         """
         paragraphs = re.split(r"\n{2,}", markdown_content)
         if len(paragraphs) < 2:
             return markdown_content
+
+        _math_block_re = re.compile(r"^\s*\$\$[\s\S]+\$\$\s*$")
+
+        def _is_math_block(text: str) -> bool:
+            """识别完全由 ``$$..$$`` 包裹的块级公式段落。"""
+            return bool(_math_block_re.match(text))
 
         def _fingerprint(text: str) -> set[str]:
             """提取段落的词级指纹集合。"""
@@ -552,6 +617,11 @@ class MarkdownFormatter:
         seen_fingerprints: List[set[str]] = []
 
         for para in paragraphs:
+            # 块级公式段落始终保留，不参与 Jaccard 相似度比较，
+            # 也不污染后续段落的对比基线。
+            if _is_math_block(para):
+                kept.append(para)
+                continue
             fp = _fingerprint(para)
             if len(fp) < 15:
                 kept.append(para)

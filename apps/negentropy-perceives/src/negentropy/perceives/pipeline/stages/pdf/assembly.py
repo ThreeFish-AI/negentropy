@@ -64,12 +64,25 @@ class BuiltinAssembler(PDFToolBase):
             # 1a. 构建专用 Stage 的空间占用索引（page → bbox 列表），
             #     用于在添加文本块时进行反向去重：当文本块落入公式/表格/图片
             #     区域时，优先保留专用 Stage 的高保真输出，跳过文本块的冗余版本。
+            #
+            # 公式 bbox 膨胀：PyMuPDF 把公式视觉区域内的下标 / 上标 / 极限项
+            # （如 ``\bigcup _ {e \in E_{rel}}``）按字符行拆为多个独立文本块，
+            # 其 bbox 中心常落在 MinerU 报告的公式 bbox 之外 ~5-10pt，
+            # 致使 ``_block_overlaps_special`` 的中心点包含 / IoU 双策略均判空。
+            # 给公式 bbox 加 8pt 各向余量，使形如 ``C = [`` 这类碎片中心点
+            # 进入扩展区域被识别为冗余而过滤，不影响 KaTeX 渲染主公式。
+            _FORMULA_BBOX_MARGIN_PT = 8.0
             special_regions: Dict[int, List[Tuple[float, float, float, float]]] = {}
             for formula in input_data.formulas.formulas if input_data.formulas else []:
                 if formula.bbox:
-                    special_regions.setdefault(formula.page_number, []).append(
-                        formula.bbox
+                    fx0, fy0, fx1, fy1 = formula.bbox
+                    expanded = (
+                        fx0 - _FORMULA_BBOX_MARGIN_PT,
+                        fy0 - _FORMULA_BBOX_MARGIN_PT,
+                        fx1 + _FORMULA_BBOX_MARGIN_PT,
+                        fy1 + _FORMULA_BBOX_MARGIN_PT,
                     )
+                    special_regions.setdefault(formula.page_number, []).append(expanded)
             for table in input_data.tables.tables if input_data.tables else []:
                 if table.bbox:
                     special_regions.setdefault(table.page_number, []).append(table.bbox)
