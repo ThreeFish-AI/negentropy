@@ -76,17 +76,21 @@ class BuiltinAssembler(PDFToolBase):
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
 
-            # 1b. 预扫描：收集文本块中的表格与公式指纹，用于跨 Stage 去重
-            text_table_fingerprints: set[str] = set()
+            # 1b. 预扫描：收集 table_extraction 阶段的表格指纹与文本块公式指纹
+            #     表格指纹用于反向去重：当文本块表格与 table_extraction 输出重复时，
+            #     优先保留 table_extraction 的高保真版本，跳过文本块的原始版本。
+            table_extraction_fingerprints: set[str] = set()
             text_formula_fingerprints: set[str] = set()
+            if input_data.tables:
+                for table in input_data.tables.tables:
+                    md = table.markdown.strip() if table.markdown else ""
+                    if md.startswith("|"):
+                        fp = _extract_table_fingerprint(md)
+                        if fp:
+                            table_extraction_fingerprints.add(fp)
             if input_data.text and input_data.text.blocks:
                 for block in input_data.text.blocks:
                     text = block.text.strip()
-                    # 表格指纹：首行非空单元格的拼接（跳过 separator 行）
-                    if text.startswith("|"):
-                        first_data_row = _extract_table_fingerprint(text)
-                        if first_data_row:
-                            text_table_fingerprints.add(first_data_row)
                     # 公式指纹：LaTeX 核心内容（去除空白）
                     if "$$" in text:
                         for m in re.finditer(r"\$\$(.*?)\$\$", text, re.DOTALL):
@@ -101,6 +105,21 @@ class BuiltinAssembler(PDFToolBase):
                         block, special_regions, iou_threshold=0.3
                     ):
                         continue
+                    # 跳过学术论文页眉/页脚残留文本
+                    if _is_running_header_footer(block.text):
+                        continue
+                    # 跳过文本块中的表格：当 table_extraction 已提供高保真版本时，
+                    # 不再使用文本块的原始表格（避免重复且质量更差）
+                    if block.text.strip().startswith("|"):
+                        fp = _extract_table_fingerprint(block.text.strip())
+                        if fp and fp in table_extraction_fingerprints:
+                            continue
+                    # 跳过作者署名行（短标题含 ∗†‡ 或邮箱标记）
+                    if _is_author_byline(block):
+                        continue
+                    # 跳过 CCS Concepts 元数据标题
+                    if _is_paper_metadata_heading(block):
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=block.reading_order,
@@ -111,13 +130,10 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 表格（正向去重：跳过文本块中已存在的表格）
+            # 表格 — 直接插入 table_extraction 阶段的高保真输出
+            # （重复的文本块表格已在上方文本块收集阶段被过滤）
             if input_data.tables:
                 for table in input_data.tables.tables:
-                    md = table.markdown.strip() if table.markdown else ""
-                    fp = _extract_table_fingerprint(md) if md.startswith("|") else ""
-                    if fp and fp in text_table_fingerprints:
-                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=table.reading_order,
@@ -142,12 +158,15 @@ class BuiltinAssembler(PDFToolBase):
                             and latex_core in text_formula_fingerprints
                         ):
                             continue
+                        md = _formula_to_markdown(formula)
+                        if not md:
+                            continue
                         elements.append(
                             _ContentElement(
                                 reading_order=formula.reading_order,
                                 page_number=formula.page_number,
                                 element_type="formula",
-                                content=_formula_to_markdown(formula),
+                                content=md,
                                 formula=formula,
                             )
                         )
@@ -292,30 +311,71 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 2. 四级稳定排序：page → y0 → x0 → reading_order
+            # 2. 五级稳定排序：page → column → y0 → x0 → reading_order
             #    - page：0-based 页码，前序 Stage 已在边界归一化
+            #    - column：双栏布局列序（0=左/全宽, 1=右），单栏页全部为 0
             #    - y0：bbox 顶部纵坐标（TopLeft 坐标系），缺失时退化到 reading_order * 100
-            #    - x0：bbox 左侧横坐标，作为多列布局列序兜底（先左列后右列）
+            #    - x0：bbox 左侧横坐标，作为同列内的水平序兜底
             #    - reading_order：稳定序兜底，保证同坐标元素遵循 Stage 内部序
             #
-            #    无 bbox 的孤立元素（如公式提取缺少坐标）排在同页定位内容之后，
-            #    避免错误地排到页首。
+            #    双栏检测：通过分析每页元素的 x 中心点分布，寻找最大间隙。
+            #    若间隙显著（>25% x 范围且 >80pt），将元素分配到左/右列。
+            #    全宽元素（跨栏标题/图表）根据 x 中心就近分配。
+            #
+            #    无 bbox 的孤立元素排在同页定位内容之后。
+
+            # 2a. 双栏布局检测：收集每页元素的 x 中心，识别列分界
+            from collections import defaultdict
+
+            _page_items: Dict[int, List[Tuple[_ContentElement, Tuple]]] = defaultdict(
+                list
+            )
+            for elem in elements:
+                page = max(0, elem.page_number or 0)
+                bbox = _get_elem_bbox(elem)
+                if bbox:
+                    _page_items[page].append((elem, bbox))
+
+            _column_map: Dict[int, int] = {}  # id(elem) → column index
+            for page_num, items in _page_items.items():
+                if len(items) < 4:
+                    for elem, _ in items:
+                        _column_map[id(elem)] = 0
+                    continue
+
+                # 收集 x 中心点
+                x_centers = sorted((b[0] + b[2]) / 2 for _, b in items)
+
+                # 寻找最大间隙
+                max_gap = 0.0
+                split_x = 0.0
+                for i in range(len(x_centers) - 1):
+                    gap = x_centers[i + 1] - x_centers[i]
+                    if gap > max_gap:
+                        max_gap = gap
+                        split_x = (x_centers[i] + x_centers[i + 1]) / 2
+
+                x_range = x_centers[-1] - x_centers[0]
+                is_two_col = max_gap > max(x_range * 0.25, 80)
+
+                for elem, bbox in items:
+                    if is_two_col:
+                        elem_width = bbox[2] - bbox[0]
+                        if elem_width > x_range * 0.7:
+                            _column_map[id(elem)] = 0
+                        else:
+                            x_center = (bbox[0] + bbox[2]) / 2
+                            _column_map[id(elem)] = 0 if x_center < split_x else 1
+                    else:
+                        _column_map[id(elem)] = 0
+
             def _sort_key(
                 elem: _ContentElement,
-            ) -> Tuple[int, float, float, int]:
+            ) -> Tuple[int, int, float, float, int]:
                 page = elem.page_number if elem.page_number is not None else 0
-                page = max(0, page)  # 防御：避免负页码排到首页之前
-                bbox: Optional[Tuple[float, float, float, float]] = None
-                if elem.image and elem.image.bbox:
-                    bbox = elem.image.bbox
-                elif elem.block and elem.block.bbox:
-                    bbox = elem.block.bbox
-                elif elem.table and elem.table.bbox:
-                    bbox = elem.table.bbox
-                elif elem.formula and elem.formula.bbox:
-                    bbox = elem.formula.bbox
-                elif elem.code_block and elem.code_block.bbox:
-                    bbox = elem.code_block.bbox
+                page = max(0, page)
+                col = _column_map.get(id(elem), 0)
+                bbox = _get_elem_bbox(elem)
                 if bbox is not None:
                     y_pos = float(bbox[1])
                     x_pos = float(bbox[0])
@@ -323,7 +383,7 @@ class BuiltinAssembler(PDFToolBase):
                     # 孤立元素排在同页定位内容之后（1e6 远大于任何合理的 y0）
                     y_pos = 1_000_000.0 + elem.reading_order
                     x_pos = 0.0
-                return (page, y_pos, x_pos, elem.reading_order)
+                return (page, col, y_pos, x_pos, elem.reading_order)
 
             elements.sort(key=_sort_key)
 
@@ -350,6 +410,37 @@ class BuiltinAssembler(PDFToolBase):
                     new_level = min(level + 1, 5)
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
+
+            # 2.1b 标题质量过滤：S3 text_extraction 常将双栏正文段落
+            #     误判为 H3/H4 标题。识别特征：
+            #     a) 超长（> 100 字符）且含句号/问号等段落标点
+            #     b) 以小写字母开头（真正标题首字母大写）
+            #     c) 以 bullet（•）开头（列表项而非标题）
+            for elem in elements:
+                if elem.element_type != "text" or not elem.block:
+                    continue
+                if elem.block.block_type != "heading":
+                    continue
+                content = elem.content.strip()
+                if not content.startswith("#"):
+                    continue
+                level = len(content) - len(content.lstrip("#"))
+                heading_text = content[level:].strip()
+                is_bad = False
+                # 超长 + 段落标点 → 误判段落
+                if len(heading_text) > 100 and (
+                    "." in heading_text or "?" in heading_text
+                ):
+                    is_bad = True
+                # 小写字母开头 → 句子片段
+                elif heading_text and heading_text[0].islower():
+                    is_bad = True
+                # bullet 开头 → 列表项
+                elif heading_text.startswith("• ") or heading_text.startswith("- "):
+                    is_bad = True
+                if is_bad:
+                    elem.element_type = "text"
+                    elem.content = heading_text
 
             # 2.1.1 算法/伪代码检测与去重
             #   若 code_detection 阶段已检测到算法块（is_algorithm），移除重叠文本块；
@@ -399,17 +490,19 @@ class BuiltinAssembler(PDFToolBase):
 
                     # 按页分组：page_number -> [(index, text)]
                     _page_texts: Dict[int, List[Tuple[int, str]]] = {}
-                    for idx, elem in enumerate(elements):
-                        if elem.element_type != "text" or not elem.block:
+                    for _eidx, _elem in enumerate(elements):
+                        if _elem.element_type != "text" or not _elem.block:
                             continue
-                        text = elem.block.text.strip()
+                        text = _elem.block.text.strip()
                         if not text:
                             continue
-                        _page_texts.setdefault(elem.page_number, []).append((idx, text))
+                        _page_texts.setdefault(_elem.page_number, []).append(
+                            (_eidx, text)
+                        )
 
-                    for page_num, items in _page_texts.items():
+                    for _pgnum, _pitems in _page_texts.items():
                         # 拼接同页文本块（双换行分隔，模拟段落边界）
-                        page_text = "\n\n".join(t for _, t in items)
+                        page_text = "\n\n".join(t for _, t in _pitems)
                         for region in detect_algorithm_regions(page_text):
                             if region.confidence < 0.5:
                                 continue
@@ -423,30 +516,30 @@ class BuiltinAssembler(PDFToolBase):
                             if not algo_words:
                                 continue
                             _newly_removed = False
-                            for item_idx, text in items:
-                                if item_idx in _algo_remove:
+                            for _piidx, _pitxt in _pitems:
+                                if _piidx in _algo_remove:
                                     continue
                                 block_words = set(
-                                    re.findall(r"[a-zA-Z_]{3,}", text.lower())
+                                    re.findall(r"[a-zA-Z_]{3,}", _pitxt.lower())
                                 )
                                 if not block_words:
                                     continue
                                 overlap = len(algo_words & block_words)
                                 ratio = overlap / max(len(algo_words), 1)
                                 if ratio > 0.3 and overlap > 5:
-                                    _algo_remove.add(item_idx)
+                                    _algo_remove.add(_piidx)
                                     _newly_removed = True
                             if _newly_removed:
                                 # 用首个被移除块的位置信息创建代码元素
                                 first_removed = next(
                                     e
                                     for i, e in enumerate(elements)
-                                    if i in _algo_remove and e.page_number == page_num
+                                    if i in _algo_remove and e.page_number == _pgnum
                                 )
                                 elements.append(
                                     _ContentElement(
                                         reading_order=first_removed.reading_order,
-                                        page_number=page_num,
+                                        page_number=_pgnum,
                                         element_type="code",
                                         content=f"```algorithm\n{region.content}\n```",
                                     )
@@ -556,7 +649,37 @@ class BuiltinAssembler(PDFToolBase):
                     )
                 ]
 
-            # 2.5 去重：移除重复标题与重复 Figure/Table 注释
+            # 2.6 图片 caption 与纯文本去重：
+            #    当图片元素以 `![caption](path)` 形式输出后，
+            #    若紧接着一个纯文本元素的内容与该 caption 高度相似
+            #    （通常以 "Figure N:" 或 "Table N:" 开头），
+            #    则移除该冗余纯文本元素。
+            _img_captions: set[str] = set()
+            for elem in elements:
+                if elem.element_type == "image" and elem.image:
+                    cap = (elem.image.caption or "").strip()
+                    if cap:
+                        _img_captions.add(_normalize_for_dedup(cap))
+            if _img_captions:
+                elements = [
+                    elem
+                    for elem in elements
+                    if not (
+                        elem.element_type == "text"
+                        and elem.block is not None
+                        and not elem.content.strip().startswith("#")
+                        and len(elem.content.strip()) < 600
+                        and any(
+                            _is_caption_duplicate(
+                                elem.content.strip(), ic, _img_captions
+                            )
+                            for ic in _img_captions
+                            if len(ic) > 15
+                        )
+                    )
+                ]
+
+            # 2.7 去重：移除重复标题与重复 Figure/Table 注释
             #    标题去重：
             #    a) 两个相邻标题归一化后相同 → 移除前者（通常是 TOC 版本）
             #    b) 同一标题文本在不同页重复出现（如 "References"）→ 只保留首次
@@ -602,7 +725,7 @@ class BuiltinAssembler(PDFToolBase):
                     )
                     if cap_match:
                         cap_text = cap_match.group(1)
-                        cap_norm = re.sub(r"[-*\s]+", " ", cap_text.lower()).strip()
+                        cap_norm = _normalize_for_dedup(cap_text)
                         if cap_norm in _seen_caption:
                             continue
                         _seen_caption.add(cap_norm)
@@ -792,6 +915,111 @@ def _block_overlaps_special(
     return False
 
 
+def _get_elem_bbox(
+    elem: _ContentElement,
+) -> Optional[Tuple[float, float, float, float]]:
+    """从内容元素中提取 bbox（优先级：image > block > table > formula > code）。"""
+    if elem.image and elem.image.bbox:
+        return elem.image.bbox
+    if elem.block and elem.block.bbox:
+        return elem.block.bbox
+    if elem.table and elem.table.bbox:
+        return elem.table.bbox
+    if elem.formula and elem.formula.bbox:
+        return elem.formula.bbox
+    if elem.code_block and elem.code_block.bbox:
+        return elem.code_block.bbox
+    return None
+
+
+# 页眉/页脚匹配模式（预编译，避免在循环中反复编译）
+_RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
+    # ACM 会议论文页眉/页脚：含模板占位符 "Conference acronym" 的短文本
+    # （函数已有 len>500 保护，误匹配正文风险极低）
+    re.compile(r"\bConference\s+acronym\b", re.IGNORECASE),
+    # DOI URL 行
+    re.compile(r"^https?://(?:dx\.)?doi\.org/", re.IGNORECASE),
+    # ACM 版权声明
+    re.compile(r"^Permission\s+to\s+make\s+digital", re.IGNORECASE),
+    # ACM Reference Format 行
+    re.compile(r"^ACM\s+Reference\s+Format:", re.IGNORECASE),
+]
+
+
+def _normalize_for_dedup(text: str) -> str:
+    """归一化文本用于去重比较：移除断字、智能引号、归一化破折号与空白。"""
+    text = re.sub(r"(\w)-\s+(\w)", r"\1\2", text)
+    text = text.replace("‘", "'").replace("’", "'")
+    text = text.replace("“", '"').replace("”", '"')
+    text = re.sub(r"[-–—*\s]+", " ", text)
+    return text.lower().strip()
+
+
+def _is_caption_duplicate(text: str, caption_norm: str, all_captions: set[str]) -> bool:
+    """判断文本是否为图片 caption 的冗余副本。
+
+    精确匹配归一化文本，或文本长度与 caption 接近（差异 < 30%）时的子串匹配。
+    避免因子串包含而误删引用了 caption 的正文段落。
+    """
+    text_norm = _normalize_for_dedup(text)
+    if text_norm == caption_norm:
+        return True
+    # 仅当文本长度与 caption 接近时才做子串检查，防止段落正文被误删
+    if caption_norm in text_norm:
+        ratio = len(caption_norm) / len(text_norm) if text_norm else 0
+        if ratio > 0.7:
+            return True
+    return False
+
+
+def _is_running_header_footer(text: str) -> bool:
+    """判断文本是否为学术论文的页眉/页脚残留。
+
+    检测常见的跨页重复模式：会议简称 + 日期 + 作者名列表、
+    论文标题 + 会议简称、ACM 版权/DOI 行等。
+    """
+    stripped = text.strip()
+    if not stripped or len(stripped) > 500:
+        return False
+    for pattern in _RUNNING_HEADER_FOOTER_PATTERNS:
+        if pattern.search(stripped):
+            return True
+    return False
+
+
+def _is_author_byline(block: TextBlock) -> bool:
+    """判断文本块是否为作者署名行（被误识别为 heading 的作者名+标记）。"""
+    if block.block_type != "heading" or not block.heading_level:
+        return False
+    text = block.text.strip()
+    # 含邮箱地址（无论长度，author+email+affiliation 组合可能较长）
+    if re.search(r"[\w.+-]+@[\w.-]+\.\w{2,}", text):
+        return True
+    # 短文本含作者标记符号
+    if len(text) >= 80:
+        return False
+    author_markers = ["∗", "†", "‡", "§", "¶", "✉"]
+    if any(m in text for m in author_markers):
+        return True
+    return False
+
+
+def _is_paper_metadata_heading(block: TextBlock) -> bool:
+    """判断文本块是否为论文元数据标题（如 CCS Concepts、Keywords）。"""
+    if block.block_type != "heading" or not block.heading_level:
+        return False
+    text = block.text.strip()
+    metadata_headings = [
+        r"^CCS\s+Concepts",
+        r"^Categories\s+and\s+Subject\s+Descriptors",
+        r"^Received\s+\d+.*(?:revised|accepted)",
+    ]
+    for pattern in metadata_headings:
+        if re.match(pattern, text, re.IGNORECASE):
+            return True
+    return False
+
+
 def _text_block_to_markdown(block: TextBlock) -> str:
     """将 TextBlock 转换为 Markdown 文本。"""
     if block.block_type == "heading" and block.heading_level:
@@ -820,11 +1048,66 @@ def _table_to_markdown(table: ExtractedTable) -> str:
     return md
 
 
+def _sanitize_latex(latex: str) -> str:
+    """清洗 LaTeX 内容：截断重复模式、移除明显损坏的碎片。
+
+    常见损坏模式：
+    - ``\\quad \\text{in} \\quad \\text{in} ...`` 无限重复（Docling/Granite 幻觉）
+    - ``\\quad`` 连续出现超过 4 次
+    - LaTeX 中嵌入大量重复的 ``\\text{...}`` 碎片
+    """
+    if not latex:
+        return latex
+
+    original_len = len(latex)
+
+    # 策略 1: 检测 \\text{X} \\quad 重复模式并截断
+    # 匹配形如 \text{word}\quad\text{word}\quad 的重复序列
+    repeat_pattern = re.compile(r"(\\text\{[^}]*\}\s*\\quad\s*){3,}")
+    match = repeat_pattern.search(latex)
+    if match:
+        latex = latex[: match.start()].rstrip()
+        if latex and not latex.endswith((",", ";", ".", "\\]")):
+            latex = latex.rstrip(",; ")
+        logger.debug(
+            "公式 LaTeX 重复模式截断: %d → %d 字符",
+            original_len,
+            len(latex),
+        )
+
+    # 策略 2: 连续 \\quad 超过 4 个时截断（含大括号形式 {\quad} 和 & 分隔符）
+    quad_run = re.compile(r"(\{?\\quad\}?[\s&]*){4,}")
+    match = quad_run.search(latex)
+    if match:
+        latex = latex[: match.start()].rstrip()
+        logger.debug(
+            "公式 LaTeX \\quad 溢出截断: %d → %d 字符",
+            original_len,
+            len(latex),
+        )
+
+    # 策略 3: 单个 token 重复超过 20 次视为损坏
+    token_repeat = re.compile(r"(\\[a-zA-Z]+\s*)\1{19,}")
+    match = token_repeat.search(latex)
+    if match:
+        latex = latex[: match.start()].rstrip()
+        logger.debug(
+            "公式 LaTeX token 重复截断: %d → %d 字符",
+            original_len,
+            len(latex),
+        )
+
+    return latex
+
+
 def _formula_to_markdown(formula: ExtractedFormula) -> str:
-    """将公式转换为 Markdown LaTeX。"""
+    """将公式转换为 Markdown LaTeX（含清洗）。"""
+    latex = _sanitize_latex(formula.latex or "")
+    if not latex.strip():
+        return ""
     if formula.formula_type == "inline":
-        return f"${formula.latex}$"
-    return f"$$\n{formula.latex}\n$$"
+        return f"${latex}$"
+    return f"$$\n{latex}\n$$"
 
 
 def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:

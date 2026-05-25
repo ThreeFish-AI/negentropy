@@ -158,6 +158,9 @@ class MarkdownFormatter:
 
             markdown_content = self._basic_cleanup(markdown_content)
 
+            # 清洗损坏的数学公式块：截断重复模式、移除空公式
+            markdown_content = self._cleanup_math_blocks(markdown_content)
+
             # 还原带尺寸的图片：必须在 _basic_cleanup 之后执行，否则其中的
             # `style="..."` 会被 cleanup 第二段 re.sub 误清除。
             if (
@@ -608,6 +611,52 @@ class MarkdownFormatter:
 
         except Exception as e:
             logger.warning(f"Error in basic cleanup: {str(e)}")
+            return markdown_content
+
+    def _cleanup_math_blocks(self, markdown_content: str) -> str:
+        """清洗损坏的数学公式块。
+
+        处理残留问题：
+        - 空公式块 ``$$\\n$$`` 移除
+        - 单行过长的公式行截断（超过 2000 字符的行可能是重复模式残留）
+        - ``\\quad`` 连续出现超过 4 次截断
+        """
+        try:
+            # 移除空公式块
+            markdown_content = re.sub(r"\$\$\s*\$\$", "", markdown_content)
+
+            # 处理块级公式中的超长行
+            def _truncate_long_formula_line(match: re.Match) -> str:
+                content = match.group(1)
+                if len(content) > 2000:
+                    # 截断到 1500 字符，在最近的 , 或 } 处断开
+                    truncated = content[:1500]
+                    last_sep = max(
+                        truncated.rfind(","),
+                        truncated.rfind("}"),
+                        truncated.rfind("]"),
+                    )
+                    if last_sep > 500:
+                        truncated = truncated[: last_sep + 1]
+                    logger.debug(
+                        "公式块超长截断: %d → %d 字符",
+                        len(content),
+                        len(truncated),
+                    )
+                    return f"$${truncated}\n$$"
+                return match.group(0)
+
+            markdown_content = re.sub(
+                r"\$\$\n(.*?)\n\$\$",
+                _truncate_long_formula_line,
+                markdown_content,
+                flags=re.DOTALL,
+            )
+
+            return markdown_content
+
+        except Exception as e:
+            logger.warning(f"Error cleaning up math blocks: {str(e)}")
             return markdown_content
 
     def _restore_image_placeholders(

@@ -391,19 +391,54 @@ class FitzTextExtractor(PDFToolBase):
     def _is_header_footer(text: str, bbox: tuple, page_height: float) -> bool:
         """判断文本块是否为页眉页脚或页码。
 
-        注意：SII-GAIR 后缀在调用前已被剥离（_extract_chunk 中清理），
-        此处只需处理纯噪声。
+        检测策略：
+        1. 纯页码
+        2. arXiv 标识行
+        3. 位置启发式：页面顶部 5% 或底部 5% 区域内的短文本
+        4. ACM/IEEE 会议论文页眉模式（含 "Conference", "Proceedings" 等）
+        5. 仅含作者名列表的页脚行
         """
+        text_stripped = text.strip()
+        text_len = len(text_stripped)
+
         # 纯页码（纯数字，短文本）
-        if re.match(r"^\d{1,3}$", text):
+        if re.match(r"^\d{1,3}$", text_stripped):
             return True
 
         # arXiv 标识行
-        if text.startswith("arXiv:") and len(text) < 80:
+        if text_stripped.startswith("arXiv:") and text_len < 80:
             return True
 
         # 单独的组织标识（剥离后可能残留）
-        if text.strip() in ("SII-GAIR", "SII - GAIR"):
+        if text_stripped in ("SII-GAIR", "SII - GAIR"):
+            return True
+
+        # 位置启发式：页面顶部/底部 5% 区域内的短文本
+        # 保护：要求文本长度 ≥ 20 以排除短标题（如 "Introduction"、"Results"）
+        # 页眉/页脚通常是会议简称 + 日期等组合，长度一般 ≥ 20
+        y0, y1 = bbox[1], bbox[3]
+        if y0 < page_height * 0.05 and 20 <= text_len <= 100:
+            return True
+
+        # 底部 5% 区域
+        if y1 > page_height * 0.95 and 20 <= text_len <= 100:
+            return True
+
+        # ACM/IEEE 会议论文页眉模式
+        _conf_patterns = [
+            r"Conference\s+acronym",
+            r"Proceedings\s+of",
+            r"In\s+Proceedings",
+            r"ACM\s+Reference\s+Format",
+            r"Permission\s+to\s+make\s+digital",
+            r"Copyright\s+.*\d{4}\s+ACM",
+        ]
+        for pat in _conf_patterns:
+            if re.search(pat, text_stripped, re.IGNORECASE):
+                return True
+
+        # DOI 行
+        if re.search(r"https?://doi\.org/", text_stripped) and text_len < 200:
             return True
 
         return False
