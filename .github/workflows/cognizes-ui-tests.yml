@@ -8,7 +8,10 @@ on:
       - "apps/cognizes/tests/ui/**"
       - ".github/workflows/cognizes-ui-tests.yml"
       - ".github/workflows/reusable-cognizes-ui-quality.yml"
-      - ".github/actions/setup-yarn-ui/**"
+      - ".github/actions/setup-pnpm-ui/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
   pull_request:
     branches: ["**"]
     paths:
@@ -16,7 +19,10 @@ on:
       - "apps/cognizes/tests/ui/**"
       - ".github/workflows/cognizes-ui-tests.yml"
       - ".github/workflows/reusable-cognizes-ui-quality.yml"
-      - ".github/actions/setup-yarn-ui/**"
+      - ".github/actions/setup-pnpm-ui/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
   workflow_dispatch:
 
 permissions:

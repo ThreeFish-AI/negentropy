@@ -23,11 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup yarn environment
-        uses: ./.github/actions/setup-yarn-ui
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm-ui
 
       - name: Lint app
-        run: yarn lint
+        run: pnpm lint
 
   ui-typecheck:
     name: UI Type Checks
@@ -39,11 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup yarn environment
-        uses: ./.github/actions/setup-yarn-ui
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm-ui
 
       - name: Typecheck app
-        run: yarn tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
   ui-unit-integration:
     name: UI Unit And Integration Tests
@@ -55,11 +55,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup yarn environment
-        uses: ./.github/actions/setup-yarn-ui
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm-ui
 
       - name: Run tests with coverage
-        run: yarn test:coverage
+        run: pnpm test:coverage
 
       - name: Upload UI coverage
         uses: actions/upload-artifact@v4
@@ -79,11 +79,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup yarn environment
-        uses: ./.github/actions/setup-yarn-ui
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm-ui
 
       - name: Build app
-        run: yarn build
+        run: pnpm build
 
   ui-e2e-smoke:
     name: UI Playwright Smoke
@@ -97,17 +97,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup yarn environment
-        uses: ./.github/actions/setup-yarn-ui
+      - name: Setup pnpm environment
+        uses: ./.github/actions/setup-pnpm-ui
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright smoke tests
         # 仅运行 chromium 项目（与上一步 --with-deps chromium 安装范围一致；
         # firefox/webkit/mobile 项目仅供本地交互调试，CI smoke 暂不覆盖以
         # 控制 runner 时长与体积，待专项 E2E 扩面 PR 再开启）
-        run: yarn test:e2e --project=chromium
+        run: pnpm test:e2e --project=chromium
 
       - name: Upload Playwright report
         if: always()
