@@ -22,6 +22,8 @@
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   --wiki-success-bg: #1b3a1e;
   --wiki-success-text: #66bb6a;
+
+  --home-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,5 +37,7 @@
     --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     --wiki-success-bg: #1b3a1e;
     --wiki-success-text: #66bb6a;
+
+    --home-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 }
