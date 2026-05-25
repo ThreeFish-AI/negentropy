@@ -1,4 +1,5 @@
 import {
+  findFirstDocumentSlug,
   joinEntrySlug,
   resolveSectionView,
   wikiApi,
@@ -130,6 +131,12 @@ export default async function WikiEntryPage({ params }: Props) {
     ? buildBreadcrumbPath(navItems, slug)
     : [];
 
+  const catalogItem = sectionView.activeItem;
+  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
+  const catalogName = catalogTargetSlug && catalogItem
+    ? (catalogItem.entry_title || catalogItem.entry_slug)
+    : null;
+
   const sidebar = (
     <WikiSidebar
       pubSlug={pubSlug}
@@ -137,6 +144,8 @@ export default async function WikiEntryPage({ params }: Props) {
       sidebarItems={sectionView.sidebarItems}
       hasActiveItem={!!sectionView.activeItem}
       activeSlug={slug}
+      catalogTargetSlug={catalogTargetSlug}
+      catalogName={catalogName}
     />
   );
 

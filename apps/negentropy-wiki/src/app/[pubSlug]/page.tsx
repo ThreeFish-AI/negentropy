@@ -1,5 +1,6 @@
 import {
   countLeafEntries,
+  findFirstDocumentSlug,
   findIndexEntry,
   resolveSectionView,
   wikiApi,
@@ -64,6 +65,12 @@ export default async function WikiPublicationPage({ params }: Props) {
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
 
+  const catalogItem = sectionView.activeItem;
+  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
+  const catalogName = catalogTargetSlug && catalogItem
+    ? (catalogItem.entry_title || catalogItem.entry_slug)
+    : null;
+
   const sidebar = (
     <WikiSidebar
       pubSlug={pubSlug}
@@ -71,6 +78,8 @@ export default async function WikiPublicationPage({ params }: Props) {
       sidebarItems={sectionView.sidebarItems}
       hasActiveItem={!!sectionView.activeItem}
       indexEntry={indexEntry}
+      catalogTargetSlug={catalogTargetSlug}
+      catalogName={catalogName}
     />
   );
 
@@ -89,7 +98,13 @@ export default async function WikiPublicationPage({ params }: Props) {
   return (
     <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined}>
       <header className="wiki-doc-header">
-        <h1 className="wiki-doc-title">{publication.name}</h1>
+        <h1 className="wiki-doc-title">
+          {catalogName && catalogTargetSlug ? (
+            <Link href={`/${pubSlug}/${catalogTargetSlug}`}>{catalogName}</Link>
+          ) : (
+            publication.name
+          )}
+        </h1>
         <div className="wiki-doc-meta">
           版本 v{publication.version} · {entriesTotal} 篇文档 ·{" "}
           {publication.published_at

@@ -17,6 +17,10 @@ interface WikiSidebarProps {
   hasActiveItem: boolean;
   activeSlug?: string;
   indexEntry?: WikiNavTreeItem | null;
+  /** 当前激活的一级 Catalog 首篇文档 slug，用于替换 publication.name 显示 */
+  catalogTargetSlug?: string | null;
+  /** 当前激活的一级 Catalog 显示名 */
+  catalogName?: string | null;
 }
 
 export function WikiSidebar({
@@ -26,35 +30,65 @@ export function WikiSidebar({
   hasActiveItem,
   activeSlug,
   indexEntry,
+  catalogTargetSlug,
+  catalogName,
 }: WikiSidebarProps) {
   const isEntryPage = activeSlug !== undefined;
+
+  const renderBrand = (href: string, title: string, className: string) => (
+    <Link href={href} className={className}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+      <img
+        src="/logo.png"
+        alt="Negentropy"
+        className="wiki-sidebar-logo"
+      />
+      <span className="wiki-sidebar-title">{title}</span>
+    </Link>
+  );
 
   return (
     <>
       <div className="wiki-sidebar-header">
         {isEntryPage ? (
-          <Link
-            href={`/${pubSlug}`}
-            className="wiki-sidebar-back wiki-sidebar-brand"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
-            <img
-              src="/logo.png"
-              alt="Negentropy"
-              className="wiki-sidebar-logo"
-            />
-            <span className="wiki-sidebar-title">← {publication.name}</span>
-          </Link>
+          catalogName && catalogTargetSlug ? (
+            renderBrand(
+              `/${pubSlug}/${catalogTargetSlug}`,
+              `← ${catalogName}`,
+              "wiki-sidebar-back wiki-sidebar-brand",
+            )
+          ) : (
+            <Link
+              href={`/${pubSlug}`}
+              className="wiki-sidebar-back wiki-sidebar-brand"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+              <img
+                src="/logo.png"
+                alt="Negentropy"
+                className="wiki-sidebar-logo"
+              />
+              <span className="wiki-sidebar-title">← {publication.name}</span>
+            </Link>
+          )
         ) : (
-          <div className="wiki-sidebar-brand">
-            {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
-            <img
-              src="/logo.png"
-              alt="Negentropy"
-              className="wiki-sidebar-logo"
-            />
-            <span className="wiki-sidebar-title">{publication.name}</span>
-          </div>
+          catalogName && catalogTargetSlug ? (
+            renderBrand(
+              `/${pubSlug}/${catalogTargetSlug}`,
+              catalogName,
+              "wiki-sidebar-brand",
+            )
+          ) : (
+            <div className="wiki-sidebar-brand">
+              {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+              <img
+                src="/logo.png"
+                alt="Negentropy"
+                className="wiki-sidebar-logo"
+              />
+              <span className="wiki-sidebar-title">{publication.name}</span>
+            </div>
+          )
         )}
       </div>
       {!isEntryPage && publication.description && (
