@@ -57,6 +57,7 @@ logging:
   console_level_width: 8
   console_logger_width: 21
   console_separator: " | "
+  service_name: backend
 
 # --- 数据库配置 ---
 database:

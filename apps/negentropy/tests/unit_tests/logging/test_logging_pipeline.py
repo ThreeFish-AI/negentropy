@@ -72,7 +72,7 @@ def test_file_sink_rotates_when_size_limit_exceeded(tmp_path: Path) -> None:
 
 
 def test_console_formatter_formats_stdout_source_without_color() -> None:
-    ConsoleFormatter.configure(level_width=5, logger_width=24, separator=" | ")
+    ConsoleFormatter.configure(level_width=5, logger_width=32, separator=" | ", service_name="backend")
 
     rendered = ConsoleFormatter.format(
         {
@@ -86,7 +86,7 @@ def test_console_formatter_formats_stdout_source_without_color() -> None:
         use_color=False,
     )
 
-    assert "stdout:module.worker" in rendered
+    assert "backend:stdout:module.worker" in rendered
     assert '{"ok":true}' in rendered
     assert "extra=value" in rendered
 

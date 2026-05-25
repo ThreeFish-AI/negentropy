@@ -231,7 +231,9 @@ class TestColoredFormatterWithPrefix:
             "test.logger", logging.INFO, "", 0, "hello", (), None
         )
         result = fmt.format(record)
-        assert "[" not in result.split("test.logger:")[1]
+        # 非 TTY 模式使用 | 分隔列布局，不包含旧格式的 [] 标记
+        assert "[" not in result
+        assert " | " in result
 
     def test_tty_colored_prefix(self):
         fmt = ColoredFormatter(

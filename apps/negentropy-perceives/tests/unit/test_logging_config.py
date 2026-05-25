@@ -4,6 +4,7 @@ import logging
 
 from negentropy.perceives.core.logging import (
     LOG_DATE_FORMAT,
+    ColoredFormatter,
     build_uvicorn_log_config,
     setup_logging,
 )
@@ -92,3 +93,59 @@ class TestBuildUvicornLogConfig:
         config = build_uvicorn_log_config("INFO")
         for handler_name in ("default", "access"):
             assert config["handlers"][handler_name]["stream"] == "ext://sys.stderr"
+
+
+class TestColoredFormatterNonTTY:
+    """测试 ColoredFormatter 非 TTY 模式的列对齐格式。"""
+
+    def _make_record(self, name: str, level: int, msg: str) -> logging.LogRecord:
+        return logging.LogRecord(
+            name=name,
+            level=level,
+            pathname=__file__,
+            lineno=1,
+            msg=msg,
+            args=(),
+            exc_info=None,
+        )
+
+    def test_non_tty_uses_pipe_separator(self) -> None:
+        """非 TTY 模式使用 | 分隔符而非 [] 。"""
+        fmt = ColoredFormatter(datefmt=LOG_DATE_FORMAT)
+        fmt._use_colors = False
+        record = self._make_record(
+            "negentropy.perceives.apps.app", logging.INFO, "hello"
+        )
+        output = fmt.format(record)
+        assert " | " in output
+        # 不应出现旧格式的 [LEVEL] name: 模式
+        assert "] " not in output.split("|")[0] if "|" in output else True
+
+    def test_non_tty_includes_service_prefix(self) -> None:
+        """非 TTY 模式在 logger 列包含服务名前缀。"""
+        fmt = ColoredFormatter(datefmt=LOG_DATE_FORMAT)
+        fmt._use_colors = False
+        record = self._make_record(
+            "negentropy.perceives.apps.app", logging.INFO, "hello"
+        )
+        output = fmt.format(record)
+        assert "perceives:" in output
+
+    def test_non_tty_column_alignment(self) -> None:
+        """非 TTY 模式各列正确右对齐。"""
+        fmt = ColoredFormatter(datefmt=LOG_DATE_FORMAT)
+        fmt._use_colors = False
+        record = self._make_record("test", logging.WARNING, "test message")
+        output = fmt.format(record)
+        parts = output.split(" | ")
+        assert len(parts) == 4
+        assert parts[1].strip() == "WARNING"
+
+    def test_non_tty_level_right_aligned(self) -> None:
+        """级别列右对齐至 8 字符宽度。"""
+        fmt = ColoredFormatter(datefmt=LOG_DATE_FORMAT)
+        fmt._use_colors = False
+        record = self._make_record("test", logging.DEBUG, "msg")
+        output = fmt.format(record)
+        parts = output.split(" | ")
+        assert len(parts[1]) == 8

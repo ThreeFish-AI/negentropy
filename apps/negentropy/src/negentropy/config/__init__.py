@@ -182,6 +182,10 @@ class Settings(BaseSettings):
         return self.logging.console_separator
 
     @property
+    def log_service_name(self) -> str:
+        return self.logging.service_name
+
+    @property
     def database_url(self) -> str:
         return str(self.database.url)
 
