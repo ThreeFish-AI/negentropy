@@ -271,6 +271,12 @@ class FitzTextExtractor(PDFToolBase):
 
                     text = " ".join(s["text"] for s in block_spans)
                     text = re.sub(r"\s+", " ", text).strip()
+
+                    # 重组 Small Caps 字间距碎片：PDF 使用 small caps + letter spacing 时，
+                    # PyMuPDF 提取为 "O PEN D EV" 这样的碎片化文本。
+                    # 检测模式：单字母间用空格分隔（如 "A B C"），重组为连续词。
+                    text = FitzTextExtractor._rejoin_spaced_words(text)
+
                     if not text:
                         continue
 
@@ -354,6 +360,34 @@ class FitzTextExtractor(PDFToolBase):
         return out
 
     @staticmethod
+    def _rejoin_spaced_words(text: str) -> str:
+        """重组 Small Caps 字间距碎片文本。
+
+        PDF 使用 small caps + letter spacing 时，PyMuPDF 按字距边界切分 span，
+        拼接后产生 "O PEN D EV" 这样的碎片化文本（应为 "OPENDEV"）。
+        策略：检测连续 3+ 个短大写标记（1-3 字母）由空格分隔的序列，
+        且大部分标记为单字母（Small Caps 碎片特征），将其合并为一个词。
+        正常大写词（如 "THE USA AND UK"）不满足单字母占比条件，不会被误合并。
+        """
+
+        def _rejoin_match(m: re.Match) -> str:
+            fragment = m.group(0)
+            tokens = fragment.split()
+            # Small Caps 碎片中大部分 token 为单字母（如 "O PEN D EV"），
+            # 正常大写词序列（如 "USA AND UK"）单字母占比低
+            single_letter_count = sum(1 for t in tokens if len(t) == 1)
+            if single_letter_count < len(tokens) * 0.4:
+                return fragment  # 不满足碎片特征，保留原文
+            return fragment.replace(" ", "")
+
+        text = re.sub(
+            r"(?<![A-Za-z])(?:[A-Z]{1,3} ){2,}[A-Z]{1,3}(?![A-Za-z])",
+            _rejoin_match,
+            text,
+        )
+        return text
+
+    @staticmethod
     def _is_header_footer(text: str, bbox: tuple, page_height: float) -> bool:
         """判断文本块是否为页眉页脚或页码。
 
@@ -426,6 +460,15 @@ class FitzTextExtractor(PDFToolBase):
             if re.search(r"https?://", section_title):
                 return None
 
+            # 8. 编号列表项：标题正文过长且包含后续编号（如 "1. First point... 2. Second..."）
+            #    或正文以句号开头后紧跟长段落，区分真正的章节标题
+            if len(section_title) > 100:
+                return None
+
+            # 9. 正文含多个独立编号项（如 "2. Extended ReAct... 3. Behavioral..."）
+            if re.search(r"(?:^|\s)\d+\.\s+[A-Z]", section_title):
+                return None
+
             depth = section_num.count(".") + 1
             if depth == 1:
                 return 1
@@ -447,6 +490,14 @@ class FitzTextExtractor(PDFToolBase):
             r"^(Appendix\s+[A-Z]|Figure\s+\d|Table\s+\d)", text_stripped, re.IGNORECASE
         ):
             return 3
+
+        # 排除邮箱行（如 "# bdqnghi@gmail.com"）
+        if re.match(r"^#?\s*\S+@\S+\.\S+$", text_stripped):
+            return None
+
+        # 排除 footnote 标记行（如 "† Corresponding author"）
+        if re.match(r"^[†‡*§¶]\s", text_stripped) and len(text_stripped) < 100:
+            return None
 
         # 特殊标题词（整个文本就是标题）
         special_titles = {

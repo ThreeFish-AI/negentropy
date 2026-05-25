@@ -151,6 +151,11 @@ class MarkdownFormatter:
             if self.options.get("fix_spacing", True):
                 markdown_content = self._normalize_paragraph_breaks(markdown_content)
 
+            # 近似段落去重（跨引擎内容重复）
+            markdown_content = self._deduplicate_approximate_paragraphs(
+                markdown_content
+            )
+
             markdown_content = self._basic_cleanup(markdown_content)
 
             # 还原带尺寸的图片：必须在 _basic_cleanup 之后执行，否则其中的
@@ -292,6 +297,38 @@ class MarkdownFormatter:
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection."""
         try:
+            # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
+            markdown_content = re.sub(
+                r"^```(\w*)\n```[ \t]*(\S.*?)$",
+                r"```\n\2",
+                markdown_content,
+                flags=re.MULTILINE,
+            )
+
+            # 将 FORTRAN 标签中非 FORTRAN 代码的内容改为纯代码块
+            # （Docling 常将伪代码/配置文件误标为 FORTRAN）
+            def _fix_fortran_label(m: re.Match) -> str:
+                content = m.group(1)
+                # 真正的 FORTRAN 特征：PROGRAM/FORTRAN/SUBROUTINE/COMMON
+                fortran_signals = [
+                    "PROGRAM ",
+                    "FORTRAN",
+                    "SUBROUTINE ",
+                    "COMMON ",
+                    "DIMENSION ",
+                    "IMPLICIT ",
+                ]
+                if any(s in content.upper() for s in fortran_signals):
+                    return m.group(0)
+                return f"```\n{content}\n```"
+
+            markdown_content = re.sub(
+                r"^```FORTRAN\n(.*?)^```",
+                _fix_fortran_label,
+                markdown_content,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+
             code_patterns = {
                 r"(?m)^(\s*)```\s*\n((?:(?!```).)*?def\s+\w+(?:(?!```).)*?)^\1```": r"\1```python\n\2\1```",
                 r"(?m)^(\s*)```\s*\n((?:(?!```).)*?function\s+\w+(?:(?!```).)*?)^\1```": r"\1```javascript\n\2\1```",
@@ -395,6 +432,9 @@ class MarkdownFormatter:
             def _typography_inner(text: str) -> str:
                 text = re.sub(r"(?<!\-)\-\-(?!\-)", "\u2014", text)
 
+                # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
+                text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
+
                 lines = text.split("\n")
                 fixed_lines = []
                 for line in lines:
@@ -485,6 +525,57 @@ class MarkdownFormatter:
             result.append(curr_line)
 
         return "\n".join(result)
+
+    def _deduplicate_approximate_paragraphs(self, markdown_content: str) -> str:
+        """移除跨引擎的近似重复段落。
+
+        当文本提取引擎和 Docling 引擎同时提取同一段内容时，
+        可能产生格式不同但语义相同的重复段落。
+        策略：对每个段落提取纯文字指纹（去空白/标点/Markdown 标记），
+        若两个段落指纹的 Jaccard 相似度 > 0.6 且长度相近，移除后者。
+        """
+        paragraphs = re.split(r"\n{2,}", markdown_content)
+        if len(paragraphs) < 2:
+            return markdown_content
+
+        def _fingerprint(text: str) -> set[str]:
+            """提取段落的词级指纹集合。"""
+            clean = re.sub(r"[#*`\[\]()!|>{}\\]", " ", text)
+            clean = re.sub(r"\s+", " ", clean).lower()
+            words = clean.split()
+            return set(words)
+
+        kept: List[str] = []
+        seen_fingerprints: List[set[str]] = []
+
+        for para in paragraphs:
+            fp = _fingerprint(para)
+            if len(fp) < 15:
+                kept.append(para)
+                seen_fingerprints.append(fp)
+                continue
+            is_dup = False
+            for existing_fp in seen_fingerprints:
+                if not existing_fp:
+                    continue
+                intersection = len(fp & existing_fp)
+                union = len(fp | existing_fp)
+                if union == 0:
+                    continue
+                jaccard = intersection / union
+                if jaccard > 0.6:
+                    len_ratio = min(len(fp), len(existing_fp)) / max(
+                        len(fp), len(existing_fp), 1
+                    )
+                    if len_ratio > 0.5:
+                        is_dup = True
+                        break
+            if is_dup:
+                continue
+            kept.append(para)
+            seen_fingerprints.append(fp)
+
+        return "\n\n".join(kept)
 
     def _basic_cleanup(self, markdown_content: str) -> str:
         """Apply basic cleanup operations."""

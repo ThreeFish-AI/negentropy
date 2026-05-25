@@ -206,10 +206,6 @@ async def extract_images_from_pdf_page(
                 if pix.width < 50 or pix.height < 50 or pix.width * pix.height < 5000:
                     continue
 
-                # 过滤小图片（装饰图标、内联符号等）
-                if pix.width < 32 or pix.height < 32 or pix.width * pix.height < 1024:
-                    continue
-
                 img_id = generate_asset_id("img", page_num, img_index)
                 filename = f"{img_id}.{image_format}"
                 local_path = output_dir / filename
