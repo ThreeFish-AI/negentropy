@@ -379,14 +379,15 @@ class FitzTextExtractor(PDFToolBase):
         if text_stripped in ("SII-GAIR", "SII - GAIR"):
             return True
 
-        # 位置启发式：页面顶部 5% 区域内的短文本（<=100 字符）
+        # 位置启发式：页面顶部/底部 5% 区域内的短文本
+        # 保护：要求文本长度 ≥ 20 以排除短标题（如 "Introduction"、"Results"）
+        # 页眉/页脚通常是会议简称 + 日期等组合，长度一般 ≥ 20
         y0, y1 = bbox[1], bbox[3]
-        if y0 < page_height * 0.05 and text_len <= 100:
-            # 排除实际标题（通常字号较大、文本较长）
+        if y0 < page_height * 0.05 and 20 <= text_len <= 100:
             return True
 
         # 底部 5% 区域
-        if y1 > page_height * 0.95 and text_len <= 100:
+        if y1 > page_height * 0.95 and 20 <= text_len <= 100:
             return True
 
         # ACM/IEEE 会议论文页眉模式

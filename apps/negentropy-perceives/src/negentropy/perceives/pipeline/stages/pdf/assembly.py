@@ -317,8 +317,12 @@ class BuiltinAssembler(PDFToolBase):
 
                 for elem, bbox in items:
                     if is_two_col:
-                        x_center = (bbox[0] + bbox[2]) / 2
-                        _column_map[id(elem)] = 0 if x_center < split_x else 1
+                        elem_width = bbox[2] - bbox[0]
+                        if elem_width > x_range * 0.7:
+                            _column_map[id(elem)] = 0
+                        else:
+                            x_center = (bbox[0] + bbox[2]) / 2
+                            _column_map[id(elem)] = 0 if x_center < split_x else 1
                     else:
                         _column_map[id(elem)] = 0
 
@@ -507,7 +511,9 @@ class BuiltinAssembler(PDFToolBase):
                         and not elem.content.strip().startswith("#")
                         and len(elem.content.strip()) < 600
                         and any(
-                            ic in _normalize_for_dedup(elem.content.strip())
+                            _is_caption_duplicate(
+                                elem.content.strip(), ic, _img_captions
+                            )
                             for ic in _img_captions
                             if len(ic) > 15
                         )
@@ -780,6 +786,23 @@ def _normalize_for_dedup(text: str) -> str:
     text = text.replace("“", '"').replace("”", '"')
     text = re.sub(r"[-–—*\s]+", " ", text)
     return text.lower().strip()
+
+
+def _is_caption_duplicate(text: str, caption_norm: str, all_captions: set[str]) -> bool:
+    """判断文本是否为图片 caption 的冗余副本。
+
+    精确匹配归一化文本，或文本长度与 caption 接近（差异 < 30%）时的子串匹配。
+    避免因子串包含而误删引用了 caption 的正文段落。
+    """
+    text_norm = _normalize_for_dedup(text)
+    if text_norm == caption_norm:
+        return True
+    # 仅当文本长度与 caption 接近时才做子串检查，防止段落正文被误删
+    if caption_norm in text_norm:
+        ratio = len(caption_norm) / len(text_norm) if text_norm else 0
+        if ratio > 0.7:
+            return True
+    return False
 
 
 def _is_running_header_footer(text: str) -> bool:
