@@ -1,30 +1,19 @@
+import type { WikiPublication } from "@/lib/wiki-api";
+
 interface HomeCardProps {
-  href?: string;
+  publication: WikiPublication;
   icon: React.ReactNode;
-  title: string;
-  description: string;
 }
 
-export function HomeCard({ href, icon, title, description }: HomeCardProps) {
-  const inner = (
-    <>
-      <div className="home-card-icon">{icon}</div>
-      <h3 className="home-card-title">{title}</h3>
-      <p className="home-card-desc">{description}</p>
-    </>
-  );
-
-  if (!href) {
-    return (
-      <div className="home-card home-card--disabled" aria-disabled="true">
-        {inner}
-      </div>
-    );
-  }
+export function HomeCard({ publication, icon }: HomeCardProps) {
+  const href = `/${publication.slug}`;
+  const description = publication.description || "暂无描述";
 
   return (
     <a href={href} className="home-card">
-      {inner}
+      <div className="home-card-icon">{icon}</div>
+      <h3 className="home-card-title">{publication.name}</h3>
+      <p className="home-card-desc">{description}</p>
     </a>
   );
 }

@@ -24,9 +24,14 @@ interface WikiHeaderGraphTab {
   label?: string;
 }
 
+interface HomeLink {
+  label: string;
+  href: string;
+}
+
 interface WikiHeaderProps {
-  pubSlug: string;
-  items: WikiNavTreeItem[];
+  pubSlug?: string;
+  items?: WikiNavTreeItem[];
   activeTopSlug?: string;
   headerSlot?: React.ReactNode;
   /** 可选：在原 tabs 末尾追加"知识图谱"入口 */
@@ -35,18 +40,21 @@ interface WikiHeaderProps {
   searchBox?: React.ReactNode;
   /** 右侧操作区（登录/GitHub/设置等） */
   actions?: React.ReactNode;
+  /** 首页模式：直接传入 publication 链接 */
+  homeLinks?: HomeLink[];
 }
 
 export function WikiHeader({
   pubSlug,
-  items,
+  items = [],
   activeTopSlug,
   headerSlot,
   graphTab,
   searchBox,
   actions,
+  homeLinks,
 }: WikiHeaderProps) {
-  if (!items.length && !(graphTab?.show)) return null;
+  if (!items.length && !homeLinks?.length && !(graphTab?.show)) return null;
 
   return (
     <header className="wiki-header">
@@ -63,14 +71,20 @@ export function WikiHeader({
           <span className="wiki-header-name">Negentropy Wiki</span>
         </Link>
         <nav className="wiki-header-tabs" aria-label="主导航">
-          {items.map((item) => (
-            <WikiHeaderTab
-              key={`${item.entry_id ?? "c"}:${item.entry_slug}`}
-              item={item}
-              pubSlug={pubSlug}
-              isActive={!graphTab?.active && item.entry_slug === activeTopSlug}
-            />
-          ))}
+          {homeLinks
+            ? homeLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="wiki-header-tab">
+                  {link.label}
+                </Link>
+              ))
+            : items.map((item) => (
+                <WikiHeaderTab
+                  key={`${item.entry_id ?? "c"}:${item.entry_slug}`}
+                  item={item}
+                  pubSlug={pubSlug!}
+                  isActive={!graphTab?.active && item.entry_slug === activeTopSlug}
+                />
+              ))}
           {graphTab?.show && (
             <Link
               href={`/${pubSlug}/graph`}

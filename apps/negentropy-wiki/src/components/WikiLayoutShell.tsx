@@ -61,6 +61,10 @@ interface WikiLayoutShellProps {
   header?: ReactNode;
   /** 同站多布局共存时的命名空间隔离 */
   storageKey?: string;
+  /** 布局变体：content = 三栏 Grid，home = 全宽单栏 */
+  variant?: "content" | "home";
+  /** 页脚（渲染在布局底部） */
+  footer?: ReactNode;
 }
 
 export function WikiLayoutShell({
@@ -70,6 +74,8 @@ export function WikiLayoutShell({
   hasToc = false,
   header,
   storageKey = TOC_STORAGE_KEY,
+  variant = "content",
+  footer,
 }: WikiLayoutShellProps) {
   const [collapsed, setCollapsedState] = useState(true);
 
@@ -108,15 +114,29 @@ export function WikiLayoutShell({
 
   const dataToc = !hasToc ? "none" : collapsed ? "collapsed" : "expanded";
 
+  const isHome = variant === "home";
+
   return (
     <TocContext.Provider value={ctxValue}>
       {header}
-      <WikiMobileNav>{sidebar}</WikiMobileNav>
-      <div className="wiki-layout" data-toc={dataToc} data-header={header ? "" : undefined}>
-        <aside className="wiki-sidebar">{sidebar}</aside>
-        <main className="wiki-main">{children}</main>
-        {hasToc && <aside className="wiki-toc-aside">{toc}</aside>}
-      </div>
+      {isHome ? (
+        <>
+          <WikiMobileNav>{sidebar}</WikiMobileNav>
+          <div className="wiki-layout wiki-layout--home" data-header={header ? "" : undefined}>
+            <main className="wiki-main wiki-main--home">{children}</main>
+          </div>
+        </>
+      ) : (
+        <>
+          <WikiMobileNav>{sidebar}</WikiMobileNav>
+          <div className="wiki-layout" data-toc={dataToc} data-header={header ? "" : undefined}>
+            <aside className="wiki-sidebar">{sidebar}</aside>
+            <main className="wiki-main">{children}</main>
+            {hasToc && <aside className="wiki-toc-aside">{toc}</aside>}
+          </div>
+        </>
+      )}
+      {footer}
     </TocContext.Provider>
   );
 }

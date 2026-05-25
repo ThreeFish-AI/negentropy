@@ -16,11 +16,9 @@ import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { extractHeadings } from "@/lib/markdown-headings";
 import { buildBreadcrumbPath } from "@/lib/wiki-api";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
 import { WikiCommentSection } from "@/components/WikiCommentSection";
-import remarkGfm from "remark-gfm";
-import rehypeSlug from "rehype-slug";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -200,14 +198,7 @@ export default async function WikiEntryPage({ params }: Props) {
                   ` · 文档 ID: ${String(content.document_id).slice(0, 8)}...`}
               </div>
             </header>
-            <article className="wiki-markdown-body">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeSlug]}
-              >
-                {md}
-              </ReactMarkdown>
-            </article>
+            <MarkdownRenderer content={md} />
             {entryId && (
               <WikiCommentSection entryId={entryId} />
             )}
