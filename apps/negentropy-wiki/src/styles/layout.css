@@ -69,3 +69,15 @@
     display: none;
   }
 }
+
+/* Home 变体：全宽单栏 */
+.wiki-layout--home {
+  display: block;
+  min-height: calc(100vh - var(--wiki-header-height));
+}
+.wiki-main--home {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}

@@ -28,20 +28,10 @@
   --wiki-accent-green: #4CAF50;
   --wiki-input-bg: var(--wiki-bg-secondary);
 
-  /* 首页 Navbar */
-  --home-navbar-bg: #2D2D2D;
-  --home-navbar-text: #ffffff;
-  --home-navbar-height: 60px;
+  /* Card（全局通用） */
+  --wiki-card-radius: 12px;
+  --wiki-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  /* 首页 Hero Banner */
-  --home-hero-bg: #20B2AA;
-  --home-hero-text: #ffffff;
-
-  /* 首页 Card */
-  --home-card-radius: 12px;
-  --home-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-  /* 首页 Footer */
-  --home-footer-bg: var(--wiki-bg-secondary);
-  --home-footer-text: var(--wiki-text-secondary);
+  /* 首页品牌强调色 */
+  --wiki-home-accent: #20B2AA;
 }

@@ -1,7 +1,7 @@
 /* 首页页脚 */
 .home-footer {
-  background: var(--home-footer-bg);
-  color: var(--home-footer-text);
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text-secondary);
   border-top: 1px solid var(--wiki-border);
 }
 
@@ -32,7 +32,7 @@
 
 .home-footer-link {
   font-size: 0.85em;
-  color: var(--home-footer-text);
+  color: var(--wiki-text-secondary);
   text-decoration: none;
   transition: color 0.12s ease;
 }

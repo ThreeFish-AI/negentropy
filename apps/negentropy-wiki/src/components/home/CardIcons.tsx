@@ -1,8 +1,10 @@
 /**
- * 首页四卡片插图 — 手绘风格 SVG
+ * 首页卡片插图 — 手绘风格 SVG
  *
  * viewBox 统一 120×120，stroke=currentColor，stroke-linecap="round"
  */
+
+import type { ComponentType } from "react";
 
 export function IconAI() {
   return (
@@ -92,4 +94,33 @@ export function IconKnowledge() {
       <line x1="14" y1="58" x2="8" y2="58" opacity="0.4" />
     </svg>
   );
+}
+
+export function IconGeneric() {
+  return (
+    <svg viewBox="0 0 120 120" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="100%" height="100%">
+      {/* 书本 */}
+      <path d="M20 30 L20 90 Q40 80 60 90 Q80 80 100 90 L100 30 Q80 40 60 30 Q40 40 20 30Z" />
+      <line x1="60" y1="30" x2="60" y2="90" opacity="0.3" />
+      {/* 书页线条 */}
+      <line x1="30" y1="48" x2="50" y2="44" opacity="0.3" />
+      <line x1="30" y1="60" x2="50" y2="56" opacity="0.3" />
+      <line x1="30" y1="72" x2="50" y2="68" opacity="0.3" />
+      <line x1="70" y1="44" x2="90" y2="48" opacity="0.3" />
+      <line x1="70" y1="56" x2="90" y2="60" opacity="0.3" />
+      <line x1="70" y1="68" x2="90" y2="72" opacity="0.3" />
+    </svg>
+  );
+}
+
+/** Publication 名称 → 图标映射 */
+const ICON_MAP: Record<string, ComponentType> = {
+  "数智通识": IconAI,
+  "算法通解": IconAlgo,
+  "计算通践": IconCompute,
+  "知识通感": IconKnowledge,
+};
+
+export function getPublicationIcon(name: string): ComponentType {
+  return ICON_MAP[name] ?? IconGeneric;
 }

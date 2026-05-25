@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
 import { CodeBlock } from "./CodeBlock";
 import { AnchorHeading } from "./AnchorHeading";
 import { ResponsiveTable } from "./ResponsiveTable";
@@ -13,6 +14,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     <div className="wiki-markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeSlug]}
         components={{
           h1: ({ id, children }) => <AnchorHeading level={1} id={id}>{children}</AnchorHeading>,
           h2: ({ id, children }) => <AnchorHeading level={2} id={id}>{children}</AnchorHeading>,
