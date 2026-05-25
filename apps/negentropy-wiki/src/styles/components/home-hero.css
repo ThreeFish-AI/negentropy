@@ -35,7 +35,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 20%, #34D399 0%, transparent 60%);
+  background: radial-gradient(circle at 20% 20%, var(--wiki-hero-blob-4) 0%, transparent 60%);
   opacity: 0.5;
   animation: hero-drift-3 22s ease-in-out infinite alternate;
 }
