@@ -113,6 +113,20 @@ def _apply_model_normalization(span: Any, kwargs: dict, response_obj: Any) -> No
     _inject_genai_semconv_attrs(span, kwargs, response_obj)
 
 
+def _infer_operation_name(kwargs: dict) -> str:
+    """从 LiteLLM callback kwargs 推断 OTel GenAI 操作名。
+
+    优先使用 ``litellm_call_type``（LiteLLM 注入到回调 kwargs），
+    回退到启发式：有 ``input`` 无 ``messages`` 为 embedding 调用。
+    """
+    call_type = kwargs.get("litellm_call_type")
+    if call_type == "embedding":
+        return "embeddings"
+    if "input" in kwargs and "messages" not in kwargs:
+        return "embeddings"
+    return "chat"
+
+
 def _inject_genai_semconv_attrs(
     span: Any,
     kwargs: dict,
@@ -135,7 +149,7 @@ def _inject_genai_semconv_attrs(
 
     try:
         # gen_ai.system 已由 _apply_model_normalization 写入，此处不重复
-        _safe_set_span_attribute(span, "gen_ai.operation.name", "chat")
+        _safe_set_span_attribute(span, "gen_ai.operation.name", _infer_operation_name(kwargs))
 
         # 请求参数（仅当存在时上报）
         for key, attr in (
