@@ -494,7 +494,13 @@ class MarkdownFormatter:
 
             for line in lines:
                 line = re.sub(r"^(\s*)([-\*\+])\s*(.+)$", r"\1- \3", line)
-                line = re.sub(r"^(\s*)(\d+)[\.\)]\s*(.+)$", r"\1\2. \3", line)
+                # 仅当数字后**不是**复合编号（``3.1.1``）时才把行视为有序列表项
+                # 规范化。原始 ``^(\d+)[\.\)]\s*(.+)$`` 会把 ``3.1.1 Foo`` 解析为
+                # ``\1='3', \3='1.1 Foo'``，输出 ``3. 1.1 Foo`` 强行拆裂章节
+                # 编号，破坏 ``FitzTextExtractor`` 复合编号合并的成果。
+                line = re.sub(
+                    r"^(\s*)(\d+)[\.\)]\s*(?!\d+\.\d)(.+)$", r"\1\2. \3", line
+                )
                 formatted_lines.append(line)
 
             markdown_content = "\n".join(formatted_lines)
