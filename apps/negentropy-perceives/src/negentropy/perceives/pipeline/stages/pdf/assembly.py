@@ -175,9 +175,52 @@ class BuiltinAssembler(PDFToolBase):
                         # 收集到临时列表，排序后通过文本匹配定位
                         _orphan_block_formulas.append(formula)
 
-            # 代码块
+            # 代码块（去重：对 Docling 提取的代码块，检查同页文本块中
+            #   是否存在高度相似的内容，避免 Docling 和 text_extraction
+            #   同时输出同一段 prompt 模板内容）
             if input_data.code:
                 for code_block in input_data.code.code_blocks:
+                    # algorithm_detector 的代码块保留（伪代码通常比
+                    # 文本提取的版本质量更高，且已被 fenced block 包裹）
+                    if getattr(code_block, "is_algorithm", False):
+                        elements.append(
+                            _ContentElement(
+                                reading_order=code_block.reading_order,
+                                page_number=code_block.page_number,
+                                element_type="code",
+                                content=_code_block_to_markdown(code_block),
+                                code_block=code_block,
+                            )
+                        )
+                        continue
+                    # Docling 代码块：与同页文本块逐个比较
+                    _skip = False
+                    code_words = set(
+                        re.findall(r"[a-zA-Z_]{3,}", code_block.code.lower())
+                    )
+                    if code_words:
+                        for elem in elements:
+                            if (
+                                elem.element_type != "text"
+                                or not elem.block
+                                or elem.page_number != code_block.page_number
+                            ):
+                                continue
+                            block_words = set(
+                                re.findall(
+                                    r"[a-zA-Z_]{3,}",
+                                    elem.block.text.lower(),
+                                )
+                            )
+                            if not block_words:
+                                continue
+                            overlap = len(code_words & block_words)
+                            ratio = overlap / max(len(code_words), 1)
+                            if ratio > 0.7 and overlap > 20:
+                                _skip = True
+                                break
+                    if _skip:
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=code_block.reading_order,
@@ -344,9 +387,10 @@ class BuiltinAssembler(PDFToolBase):
 
             elements.sort(key=_sort_key)
 
-            # 2.1 标题层级规范化：学术论文中首个 H1 为论文标题，
-            #     后续标题应整体下移一级（H1→H2, H2→H3, H3→H4），
-            #     避免所有 section 与标题同级。
+            # 2.1 标题层级规范化：
+            #     情况 A：首个标题为 H1 → 论文标题，后续标题下移一级
+            #     情况 B：首个标题为 H2（学术论文常见）→ 提升为 H1 作为论文标题，
+            #             后续标题也下移一级（与情况 A 相同）
             _first_h1_seen = False
             for elem in elements:
                 content = elem.content.strip()
@@ -356,8 +400,13 @@ class BuiltinAssembler(PDFToolBase):
                 if level == 1 and not _first_h1_seen:
                     _first_h1_seen = True
                     continue  # 论文标题保持 H1
-                if _first_h1_seen and level >= 1:
-                    # 下移一级，最大到 H5
+                if level == 2 and not _first_h1_seen:
+                    # 无 H1 时，首个 H2 提升为论文标题
+                    elem.content = "#" + content[level:]
+                    _first_h1_seen = True
+                    continue
+                if _first_h1_seen:
+                    # 后续标题下移一级，最大到 H5
                     new_level = min(level + 1, 5)
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
@@ -392,6 +441,116 @@ class BuiltinAssembler(PDFToolBase):
                 if is_bad:
                     elem.element_type = "text"
                     elem.content = heading_text
+
+            # 2.1.1 算法/伪代码检测与去重
+            #   若 code_detection 阶段已检测到算法块（is_algorithm），移除重叠文本块；
+            #   否则按页拼接文本块后扫描算法模式，避免 PyMuPDF 将 Algorithm 拆分为
+            #   多个短块导致单独检测时评分不足。
+            _algo_code_elems = [
+                e
+                for e in elements
+                if e.element_type == "code"
+                and e.code_block
+                and getattr(e.code_block, "is_algorithm", False)
+            ]
+            _algo_remove: set[int] = set()
+
+            if _algo_code_elems:
+                # code_detection 阶段已输出算法块：去重同页文本块
+                for algo in _algo_code_elems:
+                    algo_words = set(re.findall(r"[a-zA-Z_]{3,}", algo.content.lower()))
+                    if not algo_words:
+                        continue
+                    for idx, elem in enumerate(elements):
+                        if (
+                            elem.element_type != "text"
+                            or not elem.block
+                            or elem.page_number != algo.page_number
+                            or idx in _algo_remove
+                        ):
+                            continue
+                        block_words = set(
+                            re.findall(
+                                r"[a-zA-Z_]{3,}",
+                                elem.block.text.lower(),
+                            )
+                        )
+                        if not block_words:
+                            continue
+                        overlap = len(algo_words & block_words)
+                        ratio = overlap / max(len(algo_words), 1)
+                        if ratio > 0.5 and overlap > 15:
+                            _algo_remove.add(idx)
+            else:
+                # 无外部算法块：按页拼接文本后扫描算法模式
+                try:
+                    from ....markdown.algorithm_detector import (
+                        detect_algorithm_regions,
+                    )
+
+                    # 按页分组：page_number -> [(index, text)]
+                    _page_texts: Dict[int, List[Tuple[int, str]]] = {}
+                    for _eidx, _elem in enumerate(elements):
+                        if _elem.element_type != "text" or not _elem.block:
+                            continue
+                        text = _elem.block.text.strip()
+                        if not text:
+                            continue
+                        _page_texts.setdefault(_elem.page_number, []).append(
+                            (_eidx, text)
+                        )
+
+                    for _pgnum, _pitems in _page_texts.items():
+                        # 拼接同页文本块（双换行分隔，模拟段落边界）
+                        page_text = "\n\n".join(t for _, t in _pitems)
+                        for region in detect_algorithm_regions(page_text):
+                            if region.confidence < 0.5:
+                                continue
+                            # 找到算法区域中的关键文本，匹配回原始文本块
+                            algo_words = set(
+                                re.findall(
+                                    r"[a-zA-Z_]{3,}",
+                                    region.content.lower(),
+                                )
+                            )
+                            if not algo_words:
+                                continue
+                            _newly_removed = False
+                            for _piidx, _pitxt in _pitems:
+                                if _piidx in _algo_remove:
+                                    continue
+                                block_words = set(
+                                    re.findall(r"[a-zA-Z_]{3,}", _pitxt.lower())
+                                )
+                                if not block_words:
+                                    continue
+                                overlap = len(algo_words & block_words)
+                                ratio = overlap / max(len(algo_words), 1)
+                                if ratio > 0.3 and overlap > 5:
+                                    _algo_remove.add(_piidx)
+                                    _newly_removed = True
+                            if _newly_removed:
+                                # 用首个被移除块的位置信息创建代码元素
+                                first_removed = next(
+                                    e
+                                    for i, e in enumerate(elements)
+                                    if i in _algo_remove and e.page_number == _pgnum
+                                )
+                                elements.append(
+                                    _ContentElement(
+                                        reading_order=first_removed.reading_order,
+                                        page_number=_pgnum,
+                                        element_type="code",
+                                        content=f"```algorithm\n{region.content}\n```",
+                                    )
+                                )
+                except ImportError:
+                    pass
+
+            if _algo_remove:
+                elements = [e for i, e in enumerate(elements) if i not in _algo_remove]
+                # 新增的算法代码块需要在排序后的位置插入，重新排序
+                elements.sort(key=_sort_key)
 
             # 2.2 无 bbox 块级公式：通过公式编号或数学符号在文本块中定位并替换
             #    策略 1：通过公式编号（如 LaTeX 末尾的 \quad (N)）匹配
@@ -551,9 +710,17 @@ class BuiltinAssembler(PDFToolBase):
                     # 场景 c: 重复 Figure/Table 注释去重
                     # 仅提取 "Table/Figure N: ..." 注释文本部分进行指纹比较，
                     # 而非整个元素内容（表格元素包含完整 Markdown 表格）
+                    # 对于图片元素 (![Figure N: ...](path))，需要截断到
+                    # Markdown 图片语法结束符之前，避免 path 污染指纹。
+                    cap_source = content
+                    if elem.element_type == "image":
+                        # 从 ![alt](path) 中仅取 alt 部分
+                        alt_m = re.match(r"!\[([^\]]*)\]\([^)]*\)", content)
+                        if alt_m:
+                            cap_source = alt_m.group(1)
                     cap_match = re.search(
                         r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
-                        content,
+                        cap_source,
                         re.IGNORECASE,
                     )
                     if cap_match:
@@ -857,7 +1024,12 @@ def _text_block_to_markdown(block: TextBlock) -> str:
     """将 TextBlock 转换为 Markdown 文本。"""
     if block.block_type == "heading" and block.heading_level:
         return f"{'#' * block.heading_level} {block.text}"
-    return block.text
+    # 非标题段落：转义行首 # 防止被误渲染为 Markdown 标题
+    # （如 "# bdqnghi@gmail.com" 是 PDF footnote 标记而非标题）
+    text = block.text
+    if text.startswith("#"):
+        text = "\\" + text
+    return text
 
 
 def _table_to_markdown(table: ExtractedTable) -> str:
