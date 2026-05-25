@@ -361,6 +361,26 @@ class FitzImageExtractor(PDFToolBase):
                                 pos.get("x1", 0),
                                 pos.get("y1", 0),
                             )
+                            # 装饰性小图标二次过滤：PDF 点坐标维度 ≤ 24pt 的
+                            # 光栅图通常是项目符号、章节图标、脚注上标等装饰元素。
+                            # 上游 ``extract_images_from_pdf_page`` 已按渲染像素
+                            # （< 50px）过滤，但当原图分辨率正好 ≥ 50px 而 PDF
+                            # 显示尺寸 ≤ 24pt 时，会绕过该层防线（实测学术 PDF
+                            # 中 20×22pt 的 SII 装饰图标即如此，``ExtractedImage.bbox``
+                            # 维度算出 ``20.0×22.0`` pt）。阈值取 24pt 而非 20pt 是
+                            # 为留出 ±2pt 的栅格化抖动余量，同时与矢量 figure 渲染
+                            # 分支（< 20pt 严格剔除）形成梯度。
+                            bw = bbox[2] - bbox[0]
+                            bh = bbox[3] - bbox[1]
+                            if bw > 0 and bh > 0 and (bw <= 24 or bh <= 24):
+                                logger.debug(
+                                    "跳过装饰光栅图 p%d %s: %.1fx%.1f pt",
+                                    page_idx,
+                                    extracted_img.id,
+                                    bw,
+                                    bh,
+                                )
+                                continue
                         results.append(
                             ExtractedImage(
                                 image_id=extracted_img.id,
