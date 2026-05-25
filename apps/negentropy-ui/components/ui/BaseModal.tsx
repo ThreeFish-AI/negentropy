@@ -69,7 +69,7 @@ export function BaseModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, closeOnEscape, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const sizeClass = SIZE_CLASS[size];
 
