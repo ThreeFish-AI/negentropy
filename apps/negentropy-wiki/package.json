@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
     "prelint": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
-    "lint": "next lint",
+    "lint": "eslint .",
     "pretest": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
     "test": "vitest run",
     "pretest:watch": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
@@ -38,6 +38,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
     "@testing-library/react": "^16.3.2",
     "@types/mdast": "^4.0.4",
     "@types/node": "^22.13.0",
@@ -46,8 +48,12 @@
     "@vitejs/plugin-react": "^5.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
     "jsdom": "^28.0.0",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.3"
   }
 }
