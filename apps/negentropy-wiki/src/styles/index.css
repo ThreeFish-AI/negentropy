@@ -13,6 +13,7 @@
 @import "components/markdown.css";
 @import "components/doc.css";
 @import "components/graph.css";
+@import "components/comment.css";
 @import "components/agent-chat.css";
 @import "components/home-navbar.css";
 @import "components/home-hero.css";

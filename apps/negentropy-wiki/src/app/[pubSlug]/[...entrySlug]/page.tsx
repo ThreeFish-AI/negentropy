@@ -12,8 +12,13 @@ import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiToc } from "@/components/WikiToc";
+import { WikiSearchBox } from "@/components/WikiSearchBox";
+import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { extractHeadings } from "@/lib/markdown-headings";
+import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import ReactMarkdown from "react-markdown";
+import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
+import { WikiCommentSection } from "@/components/WikiCommentSection";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import Link from "next/link";
@@ -56,6 +61,7 @@ export default async function WikiEntryPage({ params }: Props) {
   let navItems: WikiNavTreeItem[] = [];
   let content: WikiEntryContent | null = null;
   let status: LoadStatus = "missing";
+  let entryId: string | null = null;
 
   try {
     publication = await wikiApi.findPublicationBySlug(pubSlug);
@@ -70,6 +76,7 @@ export default async function WikiEntryPage({ params }: Props) {
         (e) => e.entry_slug === slug,
       );
       if (entry) {
+        entryId = entry.id;
         if (entry.status === "orphaned" || entry.document_id === null) {
           status = "orphaned";
         } else {
@@ -121,6 +128,9 @@ export default async function WikiEntryPage({ params }: Props) {
   const hasToc = headings.length >= 2;
   const sectionView = resolveSectionView(navItems, slug);
   const hasAnyEntry = sectionView.headerItems.length > 0;
+  const breadcrumbItems = status === "ok"
+    ? buildBreadcrumbPath(navItems, slug)
+    : [];
 
   const sidebar = (
     <WikiSidebar
@@ -138,6 +148,8 @@ export default async function WikiEntryPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      searchBox={<WikiSearchBox />}
+      actions={<WikiHeaderActions />}
       graphTab={{ active: false, show: hasAnyEntry }}
     />
   );
@@ -175,6 +187,9 @@ export default async function WikiEntryPage({ params }: Props) {
       ) : (
         content && (
           <>
+            {breadcrumbItems.length > 1 && (
+              <WikiBreadcrumb items={breadcrumbItems} pubSlug={pubSlug} />
+            )}
             <header className="wiki-doc-header">
               <h1 className="wiki-doc-title">
                 {content.entry_title || slug}
@@ -193,6 +208,9 @@ export default async function WikiEntryPage({ params }: Props) {
                 {md}
               </ReactMarkdown>
             </article>
+            {entryId && (
+              <WikiCommentSection entryId={entryId} />
+            )}
           </>
         )
       )}

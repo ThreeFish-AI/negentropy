@@ -15,6 +15,28 @@
   color: var(--wiki-text-secondary);
 }
 
+/* 面包屑 */
+.wiki-doc-breadcrumb {
+  font-size: 0.75em;
+  color: var(--wiki-text-secondary);
+  margin-bottom: 0.5rem;
+}
+.wiki-doc-breadcrumb-link {
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+}
+.wiki-doc-breadcrumb-link:hover {
+  color: var(--wiki-text);
+  text-decoration: underline;
+}
+.wiki-doc-breadcrumb-sep {
+  margin: 0 0.35rem;
+  opacity: 0.5;
+}
+.wiki-doc-breadcrumb-text {
+  color: var(--wiki-text);
+}
+
 .wiki-doc-index {
   margin-top: 3rem;
 }

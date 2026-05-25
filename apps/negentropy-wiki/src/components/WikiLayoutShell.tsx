@@ -15,8 +15,8 @@ import { WikiMobileNav } from "./WikiMobileNav";
  * Wiki 三栏外壳 — 持有右栏 TOC 折叠态并把 `data-toc` 写到根节点。
  *
  * 设计要点：
- *   - 客户端组件，但首次渲染时 `collapsed = false`（与 SSR 一致）；
- *     `useEffect` 内再读取 localStorage 调整，避免 hydration mismatch。
+ *   - 客户端组件，首次渲染时 `collapsed = true`（默认折叠 TOC）；
+ *     `useEffect` 内再读取 localStorage 尊重用户历史选择，避免 hydration mismatch。
  *   - 通过 React Context 把 `collapsed / setCollapsed` 暴露给 `WikiToc`，
  *     避免 `document.querySelector` 黑魔法。
  *   - `hasToc=false` 时强制 `data-toc="none"`，CSS Grid 自动收回第三列。
@@ -71,13 +71,14 @@ export function WikiLayoutShell({
   header,
   storageKey = TOC_STORAGE_KEY,
 }: WikiLayoutShellProps) {
-  const [collapsed, setCollapsedState] = useState(false);
+  const [collapsed, setCollapsedState] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(storageKey);
-      if (raw === "1") setCollapsedState(true);
+      // 有记录则尊重用户选择；无记录则保持默认 collapsed
+      if (raw === "0") setCollapsedState(false);
     } catch {
       // 隐私模式或被禁用时忽略
     }

@@ -10,6 +10,8 @@ import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
+import { WikiSearchBox } from "@/components/WikiSearchBox";
+import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import Link from "next/link";
 
 export const revalidate = 300;
@@ -78,6 +80,8 @@ export default async function WikiPublicationPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      searchBox={<WikiSearchBox />}
+      actions={<WikiHeaderActions />}
       graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );

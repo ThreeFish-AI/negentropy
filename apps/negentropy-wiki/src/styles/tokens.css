@@ -23,6 +23,11 @@
   --wiki-success-bg: #e8f5e9;
   --wiki-success-text: #2e7d32;
 
+  /* Header & 交互 */
+  --wiki-header-bg: var(--wiki-bg);
+  --wiki-accent-green: #4CAF50;
+  --wiki-input-bg: var(--wiki-bg-secondary);
+
   /* 首页 Navbar */
   --home-navbar-bg: #2D2D2D;
   --home-navbar-text: #ffffff;

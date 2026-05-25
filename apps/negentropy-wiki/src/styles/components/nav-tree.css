@@ -63,7 +63,9 @@
 .wiki-nav-link.active {
   background: var(--wiki-bg-secondary);
   color: var(--wiki-accent);
-  font-weight: 600;
+  font-weight: 500;
+  border-left: 2px solid var(--wiki-accent);
+  padding-left: calc(0.55rem - 2px);
 }
 
 .wiki-nav-group {

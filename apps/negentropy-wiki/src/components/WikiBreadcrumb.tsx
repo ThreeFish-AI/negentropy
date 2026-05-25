@@ -12,23 +12,16 @@ export function WikiBreadcrumb({ items, pubSlug }: WikiBreadcrumbProps) {
   if (items.length <= 1) return null;
 
   return (
-    <nav aria-label="面包屑" style={{ fontSize: "0.88em", marginBottom: "0.5rem" }}>
+    <nav className="wiki-doc-breadcrumb" aria-label="面包屑">
       {items.map((item, i) => (
         <span key={i}>
-          {i > 0 && (
-            <span style={{ color: "var(--wiki-text-secondary)", margin: "0 0.4rem" }}>
-              /
-            </span>
-          )}
+          {i > 0 && <span className="wiki-doc-breadcrumb-sep">/</span>}
           {item.slug ? (
-            <a
-              href={`/${pubSlug}/${item.slug}`}
-              style={{ color: "var(--wiki-text-secondary)", textDecoration: "none" }}
-            >
+            <a href={`/${pubSlug}/${item.slug}`} className="wiki-doc-breadcrumb-link">
               {item.label}
             </a>
           ) : (
-            <span style={{ color: "var(--wiki-text)" }}>{item.label}</span>
+            <span className="wiki-doc-breadcrumb-text">{item.label}</span>
           )}
         </span>
       ))}
