@@ -2233,3 +2233,15 @@
   - 其他 PDF 元素提取（Tables / Code blocks / Footnotes / Captions）若也读取 MinerU content_list 字段，需同步审视 v3.x schema 兼容；
   - `_rewrite_markdown_image_links` / `_extract_markdown_image_refs` 的双语法覆盖思路可推广到任何"前后端约定的 Markdown 扩展语法"（如 footnote、KaTeX block、Mermaid block）的转换链路；
   - 几何分栏判断模式在长报告、产品 deck 类 PDF 上将持续出现误判，substantial-element 校验应作为通用启发式入库。
+
+### 第二轮迭代（2026-05-25 补强）
+
+继续对比 PDF 与 Markdown 后定位 3 处额外根因，承接 ISSUE-094 主条目继续抛光：
+
+- **长公式被 `_deduplicate_approximate_paragraphs` 误删（commit `61f2cf26`）**：``M_l = f_long(c ∈ C : w_importance > θ_l ∧ w_temporal ≤ θ_s)`` 长公式与同章节 ``M_s = f_short(...)`` 共享 ``M``/``f``/``c``/``\theta``/``\in`` 等大量令牌，``_normalize_paragraph_breaks`` 在 ``$$`` 与 LaTeX 之间插入空行后把数学块拆为 3 段，Jaccard 相似度比对致整段被误删。修复：``MarkdownFormatter`` 新增 ``_protect_math_blocks`` / ``_restore_math_blocks`` 范式（与 ``_protect_code_blocks`` 对称），format() 入口把 ``$$\n..\n$$`` 块替换为 ``%%MATHBLOCK_<uuid>%%`` 占位符，整个管线视其为原子单元，末尾 ``_cleanup_math_blocks`` 后统一还原；同步给 ``_deduplicate_approximate_paragraphs`` 内嵌 ``_is_math_block`` 防御性兜底。回归：公式 6/7 → 7/7。
+- **公式视觉区"字符流文本"漏过滤（commit `d8c1d2a7`）**：``_block_overlaps_special`` 的几何检测（含 8pt bbox 膨胀）对"公式视觉区垂直之上 / 之下几十 pt 的字符流文本"覆盖不足；同时 ``_formula_eq_nums`` 仅识别 ``(N)`` 形式编号，遗漏 MinerU 输出的 ``\tag{N}`` 大括号形式。修复：``assembly`` 新增 ``_formula_text_signature`` 字符级扁平签名归一化（剥 LaTeX 命令 / 大括号 / 标点 / 空白 / Unicode 数学符号，仅留 ASCII 字母数字小写），以及 ``_text_block_matches_formula`` 语义层兜底；``_formula_eq_nums`` 同时收集 ``\tag{N}`` 编号。回归：``M l = f long (...)`` / ``M l = f short (...)`` / ``f transfer ...`` / ``e ∈E rel Char ( e ) (2)`` 等 4/5 字符流碎片清零，仅余 1 处极短 ``C = [``（5 字符，无 ``(N)``/无 Unicode 数学符号，无明确过滤信号）。
+- **二轮防范要点补充**：
+  1. **多层防御**：纯几何（bbox 膨胀）+ 字符级签名（跨形式等价）+ 符号锚定（``(N)`` / ``\tag{N}``）三层组合才能高召回过滤公式冗余文本，单一手段都有死角；
+  2. **占位符保护范式可复用**：``_protect_*_blocks`` / ``_restore_*_blocks`` 模式可推广到任何"内部内容不应被任何 formatter 步骤修改"的块级元素（数学块、Mermaid 块、ASCII art 等）；
+  3. **跨形式签名的最小启用长度**：字符级扁平签名 ≥20 字符是经验阈值，更低易在短公式（如 ``\alpha = 0``）上产生假阳性匹配，更高漏过中等长度公式；
+  4. **临时调试 env-gated 探针**：``NE_DEBUG_FORMULA=1`` 可在二轮根因定位中快速暴露 7 公式如何在 ``add → join → format → final`` 各环节流转，确认是 ``format()`` 内部某步骤丢弃，比再加 print 高效得多。该探针修复落地后已移除。
