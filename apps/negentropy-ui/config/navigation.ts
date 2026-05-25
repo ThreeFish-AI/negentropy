@@ -6,12 +6,16 @@ export type NavItem = {
   roles?: string[];
 };
 
-export type MainNavItem = NavItem;
+export type MainNavItem = NavItem & {
+  /** Active 状态匹配路径前缀列表。未设置时默认为 [href] */
+  activePaths?: string[];
+};
 
 export const mainNavConfig: MainNavItem[] = [
   {
     title: "Home",
     href: "/",
+    activePaths: ["/", "/studio", "/dashboard"],
   },
   {
     title: "Knowledge",
@@ -20,10 +24,12 @@ export const mainNavConfig: MainNavItem[] = [
   {
     title: "Memory",
     href: "/memory/timeline",
+    activePaths: ["/memory"],
   },
   {
     title: "Interface",
     href: "/interface/subagents",
+    activePaths: ["/interface"],
   },
   {
     title: "Admin",

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { NavItem } from "@/config/navigation";
+import { type MainNavItem } from "@/config/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface MainNavProps {
-  items?: NavItem[];
+  items?: MainNavItem[];
 }
 
 export function MainNav({ items }: MainNavProps) {
@@ -25,13 +25,10 @@ export function MainNav({ items }: MainNavProps) {
       {visibleItems?.length ? (
         <nav className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full dark:bg-zinc-800/50">
           {visibleItems.map((item, index) => {
-            // Logic to determine active state.
-            // For "/", it matches exactly or if strictly root.
-            // For others, startsWith.
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname?.startsWith(item.href);
+            const matchPaths = item.activePaths ?? [item.href];
+            const isActive = matchPaths.some(
+              (p) => (p === "/" ? pathname === "/" : pathname?.startsWith(p))
+            );
 
             return (
               <Link
