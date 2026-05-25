@@ -61,17 +61,20 @@ export default async function WikiHomePage() {
       footer={<WikiFooter />}
     >
       <section className="home-hero">
-        <p className="home-hero-text">
-          关注人工智能与互联网技术的前沿动态，工作学习提升、生活日常记录、兴趣知识分享
-        </p>
-        <p className="home-hero-subtext">
-          你我的知识，绝非一场零和的游戏！
-        </p>
-        {firstPubSlug && (
-          <a href={firstPubSlug} className="home-hero-cta">
-            深度学习 | 引介 → 5min
-          </a>
-        )}
+        <div className="home-hero-bg" aria-hidden="true" />
+        <div className="home-hero-content">
+          <p className="home-hero-text">
+            关注人工智能与互联网技术的前沿动态，工作学习提升、生活日常记录、兴趣知识分享
+          </p>
+          <p className="home-hero-subtext">
+            你我的知识，绝非一场零和的游戏！
+          </p>
+          {firstPubSlug && (
+            <a href={firstPubSlug} className="home-hero-cta">
+              深度学习 | 引介 → 5min
+            </a>
+          )}
+        </div>
       </section>
 
       <section className="home-cards-section">
