@@ -67,15 +67,37 @@ class TestAuthorBylineFilter:
         )
         assert not _is_author_byline(block)
 
-    def test_short_sentence_with_star_not_byline(self) -> None:
-        """普通含 `*` 的短句子不应被误判（仅 1 个 `digit,*` 也算）
-
-        当只有 1 处 `affiliation,*` 模式时仍可能是作者，但需多 comma 才能算
-        多作者；此场景按 author 判定。
-        """
-        # 单作者 + affiliation,*
+    def test_single_author_with_corresponding_marker(self) -> None:
+        """单作者 + ``,*`` 通讯作者标记应被识别。"""
         text = "Alice Smith 1,*"
         assert _is_author_byline(_mk_heading(text))
+
+    def test_theorem_heading_not_byline(self) -> None:
+        """``Theorem 1`` / ``Theorem 2.3`` 等学术定理标题不应被误判为署名。"""
+        assert not _is_author_byline(_mk_heading("Theorem 1"))
+        assert not _is_author_byline(_mk_heading("Theorem 2.3 Convergence"))
+
+    def test_algorithm_heading_not_byline(self) -> None:
+        """``Algorithm N`` 类标题不应被误判为署名。"""
+        assert not _is_author_byline(_mk_heading("Algorithm 2"))
+        assert not _is_author_byline(_mk_heading("Algorithm 1 Forward Pass"))
+
+    def test_lemma_definition_heading_not_byline(self) -> None:
+        """``Lemma`` / ``Definition`` / ``Proposition`` 类标题不应被误判。"""
+        assert not _is_author_byline(_mk_heading("Lemma 3"))
+        assert not _is_author_byline(_mk_heading("Definition 5: Markov Chain"))
+        assert not _is_author_byline(_mk_heading("Proposition 4"))
+
+    def test_model_name_with_version_not_byline(self) -> None:
+        """ML 模型 + 版本号（``GPT 4``、``Llama 2``、``Python 3``）不应被误判。"""
+        assert not _is_author_byline(_mk_heading("GPT 4 Architecture"))
+        assert not _is_author_byline(_mk_heading("Llama 2 Variants"))
+        assert not _is_author_byline(_mk_heading("Python 3 Compatibility"))
+
+    def test_chapter_heading_not_byline(self) -> None:
+        """``Chapter N`` / ``Section N`` 类标题不应被误判。"""
+        assert not _is_author_byline(_mk_heading("Chapter 2 Background"))
+        assert not _is_author_byline(_mk_heading("Section 5"))
 
 
 class TestTableCaptionFilter:

@@ -1169,11 +1169,12 @@ def _is_author_byline(block: TextBlock) -> bool:
     # 含邮箱地址（无论长度，author+email+affiliation 组合可能较长）
     if re.search(r"[\w.+-]+@[\w.-]+\.\w{2,}", text):
         return True
-    # 多作者列表：典型模式 ``Name <digit>(,<digit>)*(,\*)?`` 出现 1+ 次。
-    # 当短文本含 unicode 作者标记时按原启发式判定；当文本超长但出现该
-    # 数字 affiliation 标记模式时（如 15 位作者的署名），也归入作者署名。
+    # 多作者署名：``Name <digit>`` 之后必须紧跟 affiliation 数字串（``,2``、
+    # ``,2,3``）或通讯作者标记（``,*``）才算署名。仅出现 ``Word <digit>``
+    # （如 ``Theorem 1`` / ``Algorithm 2`` / ``GPT 4 Architecture`` / ``Llama 2``）
+    # 属于学术常见的标题或模型名称，必须保留为标题，不可降级。
     multi_author_affiliation = re.compile(
-        r"[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)*\s+\d+(?:,\s*\d+)*(?:,\s*\*)?"
+        r"[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)*\s+\d+(?:(?:,\s*\d+)+|,\s*\*)"
     )
     if multi_author_affiliation.search(text):
         return True
