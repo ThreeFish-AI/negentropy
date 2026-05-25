@@ -36,13 +36,16 @@ def normalize_image_references(
     images: Sequence[ImageMeta],
     *,
     image_dir: str = "./images",
+    append_orphans: bool = True,
 ) -> str:
     """将 Markdown 中的图片引用规范化为统一的相对路径格式。
 
-    两阶段处理：
+    三阶段处理：
 
     1. 按文档顺序将 ``<!-- image -->`` 占位符替换为 ``![caption](./images/filename)``
     2. 将已有 ``![alt](path)`` 中的路径规范化为 ``./images/basename``
+    3. 追加孤儿图引用：已落盘但 Markdown 无引用的图按列表顺序补在末尾，
+       避免学术 PDF 中矢量图被 caption/IoU 去重误删后丢图
 
     跳过 ``data:`` URI（base64 内联模式）与路径已规范化的引用。
 
@@ -50,6 +53,7 @@ def normalize_image_references(
         markdown: 原始 Markdown 文本。
         images: 有序图片元数据列表（按文档顺序）。
         image_dir: 图片相对目录前缀，默认 ``./images``。
+        append_orphans: 是否启用 Phase 3 孤儿图追加（默认 ``True``）。
 
     Returns:
         规范化后的 Markdown 文本。
@@ -63,7 +67,49 @@ def normalize_image_references(
     # Phase 2: 规范化已有 ![alt](path) 引用
     markdown = _normalize_existing_refs(markdown, images, image_dir)
 
+    # Phase 3: 追加孤儿图（在 markdown 中未被引用的图）
+    if append_orphans:
+        markdown = _append_orphan_images(markdown, images, image_dir)
+
     return markdown
+
+
+def _append_orphan_images(
+    markdown: str,
+    images: Sequence[ImageMeta],
+    image_dir: str,
+) -> str:
+    """把 markdown 中未引用的图按列表顺序追加到末尾。
+
+    Markdown 中通过 basename 判定是否已引用，避免被 caption/IoU 去重误删的
+    图在最终文档中"消失"。每张图占独立段落，带 caption 作为 alt。
+    """
+    if not images:
+        return markdown
+
+    referenced_basenames: set[str] = set()
+    for match in _IMAGE_REF_RE.finditer(markdown):
+        path = match.group(2)
+        if path.startswith("data:"):
+            continue
+        basename = PurePosixPath(path).name
+        if basename:
+            referenced_basenames.add(basename)
+
+    orphans = [
+        img
+        for img in images
+        if img.filename and img.filename not in referenced_basenames
+    ]
+    if not orphans:
+        return markdown
+
+    appended_lines = ["", "<!-- orphan images appended by image_ref_normalizer -->"]
+    for img in orphans:
+        alt = img.caption or img.filename or "image"
+        appended_lines.append("")
+        appended_lines.append(f"![{alt}]({image_dir}/{img.filename})")
+    return markdown.rstrip() + "\n".join(appended_lines) + "\n"
 
 
 def _replace_image_placeholders(

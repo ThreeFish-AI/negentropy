@@ -2245,3 +2245,47 @@
   2. **占位符保护范式可复用**：``_protect_*_blocks`` / ``_restore_*_blocks`` 模式可推广到任何"内部内容不应被任何 formatter 步骤修改"的块级元素（数学块、Mermaid 块、ASCII art 等）；
   3. **跨形式签名的最小启用长度**：字符级扁平签名 ≥20 字符是经验阈值，更低易在短公式（如 ``\alpha = 0``）上产生假阳性匹配，更高漏过中等长度公式；
   4. **临时调试 env-gated 探针**：``NE_DEBUG_FORMULA=1`` 可在二轮根因定位中快速暴露 7 公式如何在 ``add → join → format → final`` 各环节流转，确认是 ``format()`` 内部某步骤丢弃，比再加 print 高效得多。该探针修复落地后已移除。
+
+### 第三轮迭代（2026-05-25 端到端质量回归：断字 / 公式漏检 / 标题误判 / TOC 错乱 / 图片孤儿）
+
+第二轮收尾后切到 71 页双栏 LaTeX 论文 `50714_Agent_Harness_Engineerin.pdf` 做端到端基线回归，再次定位 5 类独立根因（与第一/二轮正交、可单独 cherry-pick）：
+
+- **表因**：以 71 页双栏 LaTeX 论文为基准实测发现 5 类高发缺陷：跨行断字 218 处全部残留、`formula_extraction` Stage 被 selector 整段短路（71 页学术论文仅识别 0 个块级公式 / 2 个 inline）、作者署名 + Table N: caption 被 PyMuPDF 文本块识别为 H4 大字号 heading 污染目录、docling 提取的目录页 (TOC) 表格列对齐错乱（首行 `| 1 | 1 | 1 |` 而非 `| 1 | Introduction | … | 4 |`）、矢量图渲染落盘但 markdown 末段被 caption/IoU 去重链路误删导致"图片孤儿"（disk vs markdown_refs 不一致）。
+- **根因**：
+  1. **断字**：`markdown/formatter.py::_typography_inner` 无 `[a-z]- [a-z]` 合并规则，PyMuPDF 跨行 `word-\nword` 被 assembly 折行为 `word- word` 后无处复合；
+  2. **公式漏检**：`pipeline/stages/pdf/quick_scan.py::FitzQuickScanner._run` 固定扫描前 10 页（`scan_pages = min(10, end_page - start_page)`），而该 PDF math font span 集中在 page 16/18/47/62，前 10 页一无所获 → `has_formulas=False` → ProfileAwareSelector 短路 `formula_extraction` 整个 Stage；
+  3. **作者署名 / Table caption 误判**：`_is_author_byline` 要求 unicode 标记 `∗†‡` 或 `len < 80`，但本文 15 位作者用 ASCII `*` 且超长；`Table 2:` / `Table S2:` 等被 PyMuPDF 大字号识别为 heading 时无任何降级路径；
+  4. **TOC 错乱**：docling 表格结构识别在目录页（章节号 + 点 leader + 页码 4 列）的 cell merge 错乱不可挽救，且学术 PDF 的 Markdown 阅读不需要重建 TOC（H2/H3 自然导航）；
+  5. **图片孤儿**：`markdown/image_ref_normalizer.py::normalize_image_references` 只做两阶段（占位符替换 + 路径规范化），无第三阶段"已落盘但 markdown 无引用 → 末尾追加"兜底；
+  6. **货币 vs LaTeX 边界**：`pdf/math_formula.py::_MATH_DELIMITERS` 的 inline `$ ... $` 正则跨段贪婪匹配，把 `$0.30/MTok … $2.86M … $200 to $125` 三对货币号当作 math 保护整段，连锁导致区域内 `gener- ator` 等断字逃过 typography 修复（修 hyphenation 时连锁暴露）。
+- **处理方式**：
+  1. **`formatter._typography_inner`** 增加 `re.sub(r"([a-z])- ([a-z])", r"\1\2", text)`，仅匹配 ASCII 小写两侧，复合词（`state-of-the-art`）、数字范围（`20- 30`）、专有大写边界（`X- Ray`）自然不命中；
+  2. **`pdf/math_formula._MATH_DELIMITERS`** inline 段改为 `(?<!\$)\$(?![\$\d])[^$\n]+?\$(?!\d)`：开头不跟数字 + 不跨行 + 结尾不接数字，三层防御 USD 货币误识；
+  3. **`quick_scan`** 新增 `_compute_scan_page_indices(start, end, max_scan=15)`：1/3 前段 + 1/3 中段（均匀步长）+ 1/3 末段，覆盖学术论文方法/实验/附录章节的特征信号；
+  4. **`assembly`** 扩展 `_is_author_byline` 识别多作者 `Name 1,2,*` ASCII 模式（regex `[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)*\s+\d+(?:,\s*\d+)*(?:,\s*\*)?`），并把作者署名 / Table caption 误判 heading 从"continue 跳过"改为"降级为段落"（保留信息脱离层级）—— 新增 `_byline_to_paragraph`、`_table_caption_to_paragraph`；
+  5. **`assembly`** 新增 `_is_toc_table_text(text)`：GFM 表格行 ≥3 + 点 leader 行 ≥2 或章节编号行 ≥3 + 页码列 ≥2 三条件同时满足，文本块和 table_extraction 输出两处都跳过；
+  6. **`image_ref_normalizer`** 新增 Phase 3 `_append_orphan_images`：basename 不在 markdown 引用集的图片按列表顺序追加到文档末尾，带显式 HTML 注释标记 `<!-- orphan images appended -->`，可通过 `append_orphans=False` 关闭以保持旧合约；
+  7. **测试**：5 个新单测套件覆盖（hyphenation 7、math protection 货币 2、quick_scan sampling 6、assembly byline filter 14、TOC filter 6、image ref orphan 5 + 既有 21）= 共 61 个新单测 + 1 个集成测试套件（7 例）；
+  8. **golden 特征签名** 落 `tests/fixtures/pdf/harness-engineering/expected_signature.json`：计数 + 容差 + must_contain / must_not_contain 关键子串，集成测试 `tests/integration/test_pdf_harness_engineering_parity.py` 默认 CI 跳过（`@pytest.mark.slow`），本地手跑；
+  9. **端到端实机验证**：accra-v1 启独立 perceives MCP（port 2993）+ 临时切换 corpus extractor route 到新 server，通过 backend `POST /knowledge/base/{corpus_id}/documents/{document_id}/refresh_markdown` 重提取，UI 上 `chrome_devtools` 截图对照 PDF 多页（封面 / 双栏 / Figure 5 / Section 8.6 / References 列表），所有断字 / 误判 / TOC 残留全部消失，13 张图片正确缩放显示（width 属性透传 + `[&_img]:h-auto`）。
+- **量化效果**（全本 71 页）：
+  - 断字残留 218 → 0；
+  - formula_extraction 由 `skipped:profile:no_has_formulas` 改为命中 `mineru` 引擎抽取 3 个块级公式；
+  - 误判 H4 由 2 个（作者行 + Table S2）→ 0；
+  - TOC 区从 83 行错乱表格 → 干净（仅保留 `## Contents` 标题）；
+  - 全本耗时 60s（mineru 漏跑）→ 180-300s（mineru 公式抽取 200s+ 是固有开销，layout_analysis 80s，合计在 ≤320s 范围内可接受）；
+  - 切片前 5 页 24s（< 30s 目标）；
+  - 既有单测 525 例无回归。
+- **三轮防范要点补充**：
+  1. **`reverse-dedup` 反向去重一律走"降级而非丢弃"**：assembly 阶段对疑似"作者 / caption / TOC / 元数据"的 heading 识别，默认降级为段落或加粗段落，保留信息；只有完全无信息密度的页眉/页脚（如纯页码、DOI 行）才直接 drop。错误丢弃比错误保留更难诊断；
+  2. **`quick_scan` 任何"前 N 页扫描"启发式都是坑**：长文档（论文、书、报告）的特征分布从来不集中在开头；任何选项扫描必须用 first/middle/last 三段策略；
+  3. **`$ ... $` inline math 正则跨行禁用 + 货币号 negative lookahead**：`$200 to $125` 是真实学术论文（NLP/Economics）的常见结构，必须设计成不可误匹配；
+  4. **图片"落盘 vs markdown 引用"是独立的失败维度**：image_extraction 成功 != markdown 包含；最终 assembly 阶段对所有持久化的图片必须有兜底引用（孤儿追加 + 显式注释，便于审查）；
+  5. **学术 PDF 质量回归必须双 PDF 守护**（target + `2603.05344v3.pdf` 之类的相邻样本），每次改 assembly 反向去重前后跑双 PDF 计数签名，diff >10% 触发 review；
+  6. **端到端验证不能只靠 CLI**：accra-v1 工作区独立的 perceives MCP + 临时切 corpus extractor route 是低侵入的端到端验证范式，可复用到其他 PDF/Webpage extractor 改动；
+  7. **UI 透传 `<img width height>` + `[&_img]:h-auto` 是高保真渲染的关键**：perceives 端为每张图输出尺寸属性后，UI 自适应缩放无需任何额外改动（[DocumentMarkdownRenderer.tsx 现状](../apps/negentropy-ui/features/knowledge/components/DocumentMarkdownRenderer.tsx)），保持这个契约不要回退。
+- **三轮同类问题影响补充**：
+  - 任何"学术 / 长文档"型 PDF（arXiv、ICLR、NeurIPS 等）经过 `parse_pdf_to_markdown` 都会受益；本期回归基准 `2603.05344v3.pdf` 已确认无退化（14 公式 / 23 图 / 18 代码块 / 9 表全部正常）；
+  - `quick_scan` 三段采样、formatter 货币号防误识、TOC 表抑制三个改动**正交独立**，可按需 cherry-pick；
+  - `extractor_routes.targets[].timeout_ms` 在 corpus config 中需要为学术论文体量调到 600s+（默认 300s 在 71 页 + mineru 公式抽取下偶发超时）—— 本期已 UPDATE 该 corpus，新建 corpus 时需同步把 `parse_pdf_to_markdown` timeout 默认值上调或暴露 UI 配置项；
+  - 端到端实机验证范式：a) 独立工作区起 perceives MCP（不同 port），b) 临时更新 `corpus.config->extractor_routes->file_pdf->targets[].server_id/url` 指到新 MCP，c) `POST .../refresh_markdown` 触发重提取，d) 验证完后回滚 corpus config。

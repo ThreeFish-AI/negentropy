@@ -103,3 +103,23 @@ class TestFormatterMathProtection:
         result = self.formatter._deduplicate_approximate_paragraphs(md)
         # 同样的段落出现两次时，仍应去重为一次
         assert result.count("quick brown fox") == 1
+
+    def test_currency_not_treated_as_math(self) -> None:
+        """美元货币符号（$200 to $125）不应被视作 inline math 而保护起来。
+
+        Regression: 早期 _MATH_DELIMITERS 把 "$200 to $125" 整段当作 math，
+        导致区间内的断字（gener- ator / con- struct）逃过 typography 修复。
+        """
+        md = "Cost from $200 to $125 while gener- ating output."
+        result = self.formatter._apply_typography_fixes(md)
+        # 修复后断字应当被合并
+        assert "generating" in result
+        # 货币符号保留
+        assert "$200" in result and "$125" in result
+
+    def test_currency_with_real_math_alongside(self) -> None:
+        """同段落里同时存在货币与真实 LaTeX 时，两者各司其职。"""
+        md = "Price $50 and formula $\\alpha + \\beta$ used."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "$50" in result
+        assert "$\\alpha + \\beta$" in result

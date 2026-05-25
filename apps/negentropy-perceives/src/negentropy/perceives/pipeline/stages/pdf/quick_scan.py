@@ -22,6 +22,60 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# 页码采样策略
+# ---------------------------------------------------------------------------
+
+
+def _compute_scan_page_indices(start: int, end: int, max_scan: int) -> list[int]:
+    """为 quick_scan 计算分散采样的页码列表。
+
+    学术论文的数学公式 / 代码 / 表格常出现在方法、实验或附录章节，
+    连续扫描前 N 页（如前 10 页）会漏掉中后段的特征信号（实测 71 页
+    survey 论文的 math font span 集中在 page 16/18/47/62，前 10 页一无所获）。
+
+    策略：将采样窗口拆为 first/middle/last 三段，覆盖文档前/中/后段；
+    若文档总页数 ≤ 采样窗口，全量扫描。
+
+    Args:
+        start: 起始页码（含）
+        end: 结束页码（不含）
+        max_scan: 最大采样页数
+
+    Returns:
+        升序、去重的页码列表
+    """
+    total = max(0, end - start)
+    if total == 0:
+        return []
+    if total <= max_scan:
+        return list(range(start, end))
+
+    # 三段切分：1/3 first + 1/3 middle + 1/3 last
+    first_n = max_scan // 3
+    last_n = max_scan // 3
+    middle_n = max_scan - first_n - last_n
+
+    first_indices = list(range(start, start + first_n))
+    last_indices = list(range(end - last_n, end))
+
+    # 中段：在 [start + first_n, end - last_n) 内均匀取 middle_n 个
+    middle_range_start = start + first_n
+    middle_range_end = end - last_n
+    middle_span = middle_range_end - middle_range_start
+    if middle_span <= 0 or middle_n <= 0:
+        middle_indices: list[int] = []
+    else:
+        step = max(1, middle_span // middle_n)
+        middle_indices = [
+            middle_range_start + i * step
+            for i in range(middle_n)
+            if middle_range_start + i * step < middle_range_end
+        ]
+
+    return sorted(set(first_indices + middle_indices + last_indices))
+
+
+# ---------------------------------------------------------------------------
 # 工具适配器
 # ---------------------------------------------------------------------------
 
@@ -74,10 +128,15 @@ class FitzQuickScanner(PDFToolBase):
             algorithm_indicator_count = 0
             inline_math_hits = 0
 
-            # 仅扫描前 10 页（或指定范围内的前 10 页）
-            # 学术论文数学公式常集中在方法/理论章节，可能不在前 5 页
-            scan_pages = min(10, end_page - start_page)
-            for page_idx in range(start_page, start_page + scan_pages):
+            # 分散采样：first 5 + middle 5 + last 5 = 15 页，覆盖文档前/中/后段
+            # 学术论文数学公式 / 代码 / 表格常集中在方法/理论/附录章节，
+            # 连续扫描前 N 页会漏掉中后段的特征信号（实测 71 页 survey 论文
+            # math font span 集中在 page 16/18/47/62，前 10 页一无所获）。
+            scan_page_indices = _compute_scan_page_indices(
+                start=start_page, end=end_page, max_scan=15
+            )
+            scan_pages = len(scan_page_indices)
+            for page_idx in scan_page_indices:
                 page = doc[page_idx]
 
                 # 文本与字体分析

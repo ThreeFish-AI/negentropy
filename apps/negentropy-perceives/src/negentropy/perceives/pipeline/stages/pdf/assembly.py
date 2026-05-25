@@ -152,11 +152,37 @@ class BuiltinAssembler(PDFToolBase):
                         fp = _extract_table_fingerprint(block.text.strip())
                         if fp and fp in table_extraction_fingerprints:
                             continue
-                    # 跳过作者署名行（短标题含 ∗†‡ 或邮箱标记）
+                        # 跳过 TOC（目录）文本表：列对齐错乱、点 leader、
+                        # 页码列，Markdown 无可靠的章节锚点
+                        if _is_toc_table_text(block.text):
+                            continue
+                    # 作者署名行（含 ∗†‡ 或邮箱标记，或多作者 affiliation 模式）
+                    # 误识为 heading 时降级为正文段落，保留信息但脱离标题层级
                     if _is_author_byline(block):
+                        elements.append(
+                            _ContentElement(
+                                reading_order=block.reading_order,
+                                page_number=block.page_number,
+                                element_type="text",
+                                content=_byline_to_paragraph(block),
+                                block=block,
+                            )
+                        )
                         continue
                     # 跳过 CCS Concepts 元数据标题
                     if _is_paper_metadata_heading(block):
+                        continue
+                    # 表格 caption（``Table N:``）误识为 heading 时降级为段落
+                    if _is_table_caption(block):
+                        elements.append(
+                            _ContentElement(
+                                reading_order=block.reading_order,
+                                page_number=block.page_number,
+                                element_type="text",
+                                content=_table_caption_to_paragraph(block),
+                                block=block,
+                            )
+                        )
                         continue
                     elements.append(
                         _ContentElement(
@@ -172,12 +198,16 @@ class BuiltinAssembler(PDFToolBase):
             # （重复的文本块表格已在上方文本块收集阶段被过滤）
             if input_data.tables:
                 for table in input_data.tables.tables:
+                    table_md = _table_to_markdown(table)
+                    # 跳过 TOC（目录）表：列错乱 + 点 leader + 页码列
+                    if _is_toc_table_text(table_md):
+                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=table.reading_order,
                             page_number=table.page_number,
                             element_type="table",
-                            content=_table_to_markdown(table),
+                            content=table_md,
                             table=table,
                         )
                     )
@@ -1139,13 +1169,35 @@ def _is_author_byline(block: TextBlock) -> bool:
     # 含邮箱地址（无论长度，author+email+affiliation 组合可能较长）
     if re.search(r"[\w.+-]+@[\w.-]+\.\w{2,}", text):
         return True
-    # 短文本含作者标记符号
+    # 多作者署名：``Name <digit>`` 之后必须紧跟 affiliation 数字串（``,2``、
+    # ``,2,3``）或通讯作者标记（``,*``）才算署名。仅出现 ``Word <digit>``
+    # （如 ``Theorem 1`` / ``Algorithm 2`` / ``GPT 4 Architecture`` / ``Llama 2``）
+    # 属于学术常见的标题或模型名称，必须保留为标题，不可降级。
+    multi_author_affiliation = re.compile(
+        r"[A-Z][A-Za-z\-]+(?:\s+[A-Z][A-Za-z\-]+)*\s+\d+(?:(?:,\s*\d+)+|,\s*\*)"
+    )
+    if multi_author_affiliation.search(text):
+        return True
+    # 短文本含 unicode 作者标记符号
     if len(text) >= 80:
         return False
     author_markers = ["∗", "†", "‡", "§", "¶", "✉"]
     if any(m in text for m in author_markers):
         return True
     return False
+
+
+def _is_table_caption(block: TextBlock) -> bool:
+    """判断 heading 是否为 ``Table N:`` / ``Table S2:`` 等表格 caption。
+
+    PDF 中表格标题常用大字号 / 加粗排版，被 PyMuPDF 误识别为 heading；
+    Markdown 中应作为正文段落保留，避免污染目录与导航。
+    """
+    if block.block_type != "heading" or not block.heading_level:
+        return False
+    text = block.text.strip()
+    # ``Table 2:`` / ``Table S2.`` / ``Table 10:``
+    return bool(re.match(r"^Table\s+S?\d+\s*[:.]", text))
 
 
 def _is_paper_metadata_heading(block: TextBlock) -> bool:
@@ -1174,6 +1226,53 @@ def _text_block_to_markdown(block: TextBlock) -> str:
     if text.startswith("#"):
         text = "\\" + text
     return text
+
+
+def _table_caption_to_paragraph(block: TextBlock) -> str:
+    """把表格 caption 从 heading 降级为加粗段落。
+
+    保留视觉强调（**bold**）但脱离标题层级，避免污染目录与导航。
+    """
+    text = block.text.strip()
+    return f"**{text}**"
+
+
+def _byline_to_paragraph(block: TextBlock) -> str:
+    """把作者署名从 heading 降级为纯文本段落（保留信息，去掉 # 层级）。"""
+    return block.text.strip()
+
+
+def _is_toc_table_text(text: str) -> bool:
+    """识别学术论文的目录（TOC）表格。
+
+    docling/pymupdf 对 PDF 目录页常输出列对齐错乱的多列表格（包含章节号、
+    点 leader (``....``) 与页码）。Markdown 中既不便阅读、也不能可靠跳转，
+    应识别并降级抑制。
+
+    判定标准（需同时满足）：
+    1. 文本为 GFM 表格（≥3 个表格行）
+    2. 数据行（非分隔符）中含点 leader ≥ 2 行（``\\.{3,}`` 模式）
+       或 行首/中段含 ``\\d+\\.\\d+`` 章节编号 ≥ 3 行
+    3. 至少一列形如纯数字页码（``\\| \\d+ \\|``）
+    """
+    if not text:
+        return False
+    lines = [ln for ln in text.split("\n") if ln.strip().startswith("|")]
+    if len(lines) < 3:
+        return False
+    # 排除分隔符行
+    data_lines = [ln for ln in lines if not re.match(r"^\s*\|[\s\-:|]+\|\s*$", ln)]
+    if len(data_lines) < 3:
+        return False
+
+    dot_leader_rows = sum(1 for ln in data_lines if re.search(r"\.{3,}", ln))
+    section_no_rows = sum(
+        1 for ln in data_lines if re.search(r"\|\s*\d+\.\d+(?:\.\d+)?\s*\|", ln)
+    )
+    page_no_rows = sum(1 for ln in data_lines if re.search(r"\|\s*\d+\s*\|\s*$", ln))
+
+    has_toc_signature = dot_leader_rows >= 2 or section_no_rows >= 3
+    return has_toc_signature and page_no_rows >= 2
 
 
 def _table_to_markdown(table: ExtractedTable) -> str:
