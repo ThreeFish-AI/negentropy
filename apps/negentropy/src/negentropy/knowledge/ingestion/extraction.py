@@ -340,16 +340,43 @@ def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
 # ---------------------------------------------------------------------------
 
 _MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+# 内嵌 HTML <img>（perceives PDF 管线保留宽高时的输出形式），用 src 属性 capture group。
+_HTML_IMG_SRC_RE = re.compile(
+    r"""<img\b[^>]*?\bsrc=(["'])(?P<src>[^"']+)\1[^>]*?/?>""",
+    re.IGNORECASE,
+)
+
+
+def _iter_image_src_matches(markdown_content: str) -> list[tuple[int, int, int, str]]:
+    """按文档位置统一返回所有图片引用的 src capture 偏移。
+
+    返回元组 ``(match_start, src_start, src_end, src_text)``，包括：
+      - ``![alt](src)`` Markdown 形式（_MARKDOWN_IMAGE_RE）
+      - ``<img src="..." />`` HTML 形式（_HTML_IMG_SRC_RE）
+
+    用于路径重写与文件名提取的统一遍历，保证两类语法在
+    "文档顺序" 这一维度上的一致性。
+    """
+    matches: list[tuple[int, int, int, str]] = []
+    for m in _MARKDOWN_IMAGE_RE.finditer(markdown_content):
+        matches.append((m.start(), m.start(1), m.end(1), m.group(1)))
+    for m in _HTML_IMG_SRC_RE.finditer(markdown_content):
+        s = m.start("src")
+        e = m.end("src")
+        matches.append((m.start(), s, e, m.group("src")))
+    matches.sort(key=lambda t: t[0])
+    return matches
 
 
 def _extract_markdown_image_refs(markdown_content: str) -> list[str]:
-    """按顺序提取 Markdown 中本地图片引用的文件名。
+    """按文档顺序提取 Markdown 中本地图片引用的文件名。
 
-    排除绝对 URL (http/https/data/blob)，从路径中取最后一段。
+    覆盖两种语法：标准 Markdown ``![alt](src)`` 与内嵌 HTML ``<img src="…">``。
+    排除绝对 URL（``http``/``https``/``data``/``blob``），从路径中取最后一段。
     """
     refs: list[str] = []
-    for match in _MARKDOWN_IMAGE_RE.finditer(markdown_content):
-        src = match.group(1).strip()
+    for _, _, _, src_raw in _iter_image_src_matches(markdown_content):
+        src = src_raw.strip()
         if src.startswith(("http://", "https://", "data:", "blob:")):
             continue
         filename = src.split("/")[-1].split("\\")[-1]
@@ -2592,22 +2619,29 @@ def _rewrite_markdown_image_links(
 
     base_url = f"/api/documents/{document_id}/assets/"
 
-    def _replace(match: re.Match[str]) -> str:
-        full = match.group(0)
-        src_raw = match.group(1)
-        src = src_raw.strip()
-        if src.startswith(("http://", "https://", "data:", "blob:", "/")):
-            return full
-        filename = src.split("/")[-1].split("\\")[-1]
-        if not filename or filename not in available_filenames:
-            return full
-        # 用 capture group 在原字符串中的精确偏移做替换，避免当 alt 文本恰好
-        # 包含与 src 同名的子串时（如 `![img1.png](img1.png)`）误替换 alt。
-        src_start_in_full = match.start(1) - match.start(0)
-        src_end_in_full = match.end(1) - match.start(0)
-        return full[:src_start_in_full] + f"{base_url}{filename}" + full[src_end_in_full:]
+    def _build_replacer(src_group: int | str):
+        """构造按 capture group 偏移做替换的回调，避免误伤同名 alt 子串。"""
 
-    return _MARKDOWN_IMAGE_RE.sub(_replace, markdown_content)
+        def _replace(match: re.Match[str]) -> str:
+            full = match.group(0)
+            src_raw = match.group(src_group)
+            src = src_raw.strip()
+            if src.startswith(("http://", "https://", "data:", "blob:", "/")):
+                return full
+            filename = src.split("/")[-1].split("\\")[-1]
+            if not filename or filename not in available_filenames:
+                return full
+            src_start_in_full = match.start(src_group) - match.start(0)
+            src_end_in_full = match.end(src_group) - match.start(0)
+            return full[:src_start_in_full] + f"{base_url}{filename}" + full[src_end_in_full:]
+
+        return _replace
+
+    # 1) Markdown ![alt](src) 形式
+    markdown_content = _MARKDOWN_IMAGE_RE.sub(_build_replacer(1), markdown_content)
+    # 2) 内嵌 HTML <img src="..."> 形式（perceives PDF 管线保留宽高时的输出）
+    markdown_content = _HTML_IMG_SRC_RE.sub(_build_replacer("src"), markdown_content)
+    return markdown_content
 
 
 async def store_extracted_document_artifacts(

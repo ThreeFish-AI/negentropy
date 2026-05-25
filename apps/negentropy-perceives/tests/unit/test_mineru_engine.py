@@ -466,6 +466,61 @@ class TestMinerUStructuredExtraction:
         latex_values = [f.latex for f in formulas]
         assert latex_values.count("E=mc^2") == 1
 
+    def test_extract_formulas_v3_text_format_with_bbox(self) -> None:
+        """MinerU v3.x content_list 用 ``text`` 字段（已含 ``$$``）+ ``text_format``
+        + ``page_idx`` + ``bbox`` 表达公式；旧代码读 ``latex``/``format``/``page_no``
+        全错位，导致结构化公式被静默丢弃。本用例锁定 v3.x schema 兼容。"""
+        content_list = [
+            {
+                "type": "equation",
+                "text": "$$\nC = \\bigcup_e Char(e)\\tag{2}\n$$",
+                "text_format": "latex",
+                "page_idx": 3,
+                "bbox": [431.0, 225.0, 564.0, 258.0],
+            },
+            {
+                "type": "equation",
+                "text": "$E_{ref}$",
+                "text_format": "latex",
+                "page_idx": 4,
+                "bbox": [120.0, 300.0, 160.0, 312.0],
+            },
+        ]
+        engine = MinerUEngine()
+        formulas = engine._extract_formulas(content_list, "")
+        # 两条结构化公式都应被识别（不再因字段名错位丢失）
+        assert len(formulas) == 2
+        block = next(f for f in formulas if f.formula_type == "block")
+        # ``$$`` 包裹必须被剥离，留下纯 LaTeX
+        assert block.latex == r"C = \bigcup_e Char(e)\tag{2}"
+        assert block.page_number == 3
+        assert block.bbox == (431.0, 225.0, 564.0, 258.0)
+        # 行内公式 ``$..$`` 包裹也剥离
+        inline = next(f for f in formulas if f.formula_type == "inline")
+        assert inline.latex == "E_{ref}"
+        assert inline.page_number == 4
+
+    def test_extract_formulas_v3_dedup_against_markdown(self) -> None:
+        """Strategy 1（v3.x content_list 剥 $$ 后写入 seen_latex）应与 Strategy 2
+        （markdown 正则提取的纯 LaTeX）互通去重，避免同一公式重复入栈。"""
+        content_list = [
+            {
+                "type": "equation",
+                "text": "$$\nE=mc^2\n$$",
+                "text_format": "latex",
+                "page_idx": 0,
+                "bbox": [0.0, 0.0, 100.0, 20.0],
+            },
+        ]
+        md = "Some text $$E=mc^2$$ inline."
+        engine = MinerUEngine()
+        formulas = engine._extract_formulas(content_list, md)
+        # 仅保留一条（Strategy 1 优先，含 bbox/page_number）
+        assert len(formulas) == 1
+        assert formulas[0].latex == "E=mc^2"
+        assert formulas[0].bbox == (0.0, 0.0, 100.0, 20.0)
+        assert formulas[0].page_number == 0
+
     def test_extract_images(self, tmp_path: Path) -> None:
         content_list = [
             {

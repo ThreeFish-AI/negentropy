@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 from typing import Dict, List, Optional, Tuple
@@ -357,6 +358,38 @@ class BuiltinAssembler(PDFToolBase):
 
                 x_range = x_centers[-1] - x_centers[0]
                 is_two_col = max_gap > max(x_range * 0.25, 80)
+
+                # 稳健性二次校验：避免「首页装饰性元素散布两侧」被误判双栏。
+                #
+                # 典型反例（论文首页 / 报告封面）：
+                #   - 顶部双 logo 一左一右
+                #   - 中部 affiliation 编号、badges、社交链接散落于中央偏右
+                #   - 主体为单列 H1 / 作者 / 摘要 / 图表
+                # 上一步几何 gap 检测会因右侧装饰元素的 x 中心抬高 max_gap 略过阈值，
+                # 而真正的双栏正文（ACM/IEEE）每列必有数个宽度 ≥100pt 的实质性段落。
+                #
+                # 因此要求：每列均含 ≥3 个 "实质性元素"（宽度 ≥100pt 且非跨栏），
+                # 才认定为真双栏；否则强制降级为单列以保证阅读顺序自然。
+                if is_two_col:
+                    _SUBSTANTIAL_W_PT = 100.0
+                    _MIN_SUBSTANTIAL_PER_COL = 3
+                    full_width_thr = x_range * 0.7
+                    col0_substantial = 0
+                    col1_substantial = 0
+                    for _, bx in items:
+                        w = bx[2] - bx[0]
+                        if w < _SUBSTANTIAL_W_PT or w > full_width_thr:
+                            continue
+                        xc = (bx[0] + bx[2]) / 2
+                        if xc < split_x:
+                            col0_substantial += 1
+                        else:
+                            col1_substantial += 1
+                    if (
+                        col0_substantial < _MIN_SUBSTANTIAL_PER_COL
+                        or col1_substantial < _MIN_SUBSTANTIAL_PER_COL
+                    ):
+                        is_two_col = False
 
                 for elem, bbox in items:
                     if is_two_col:
@@ -710,14 +743,22 @@ class BuiltinAssembler(PDFToolBase):
                     # 场景 c: 重复 Figure/Table 注释去重
                     # 仅提取 "Table/Figure N: ..." 注释文本部分进行指纹比较，
                     # 而非整个元素内容（表格元素包含完整 Markdown 表格）
-                    # 对于图片元素 (![Figure N: ...](path))，需要截断到
-                    # Markdown 图片语法结束符之前，避免 path 污染指纹。
+                    # 对于图片元素，需要截断到图片标签语法结束符之前，
+                    # 避免 path / 尺寸属性污染指纹。支持两种语法：
+                    # 1) 标准 Markdown ``![alt](path)``
+                    # 2) 内嵌 HTML ``<img src="..." alt="...">``（保留尺寸时）
                     cap_source = content
                     if elem.element_type == "image":
-                        # 从 ![alt](path) 中仅取 alt 部分
-                        alt_m = re.match(r"!\[([^\]]*)\]\([^)]*\)", content)
-                        if alt_m:
-                            cap_source = alt_m.group(1)
+                        alt_md = re.match(r"!\[([^\]]*)\]\([^)]*\)", content)
+                        if alt_md:
+                            cap_source = alt_md.group(1)
+                        else:
+                            alt_html = re.search(
+                                r'<img\b[^>]*\balt="([^"]*)"',
+                                content,
+                            )
+                            if alt_html:
+                                cap_source = html.unescape(alt_html.group(1))
                     cap_match = re.search(
                         r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
                         cap_source,
@@ -1117,9 +1158,57 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
 
 
 def _image_to_markdown(image: ExtractedImage) -> str:
-    """将图片转换为 Markdown 图片引用。"""
-    alt = image.caption or image.filename or "image"
-    return f"![{alt}](./images/{image.filename})"
+    """将图片转换为 Markdown 图片引用，保留 PDF 原版显示尺寸。
+
+    输出 **内嵌 HTML ``<img>``** 形式，并按以下优先级决定 ``width``/``height``：
+
+    1. **优先使用 ``bbox``**（PDF 点坐标计算的显示宽高，与 PDF 原版视觉一致）：
+       - PDF 点（72pt = 1in）经验性按 1:1 映射为 CSS 像素；
+       - 这是 UI 中 ``DocumentImage`` 期望的「展示尺寸」语义，与 PDF 中视觉布局保持比例；
+       - 同时配合响应式样式 ``max-width:100%;height:auto;`` 适配窄屏；
+    2. 退化路径：当 ``bbox`` 缺失时回退到 ``image.width``/``image.height``
+       （引擎报告的栅格像素分辨率，可能远大于 PDF 显示尺寸）；
+    3. 极端兜底：无任何尺寸信息时输出标准 ``![alt](src)`` Markdown 形式。
+
+    高分辨率原图始终由 ``src`` 指向的资源端点提供（不丢失清晰度），
+    属性中的 ``width``/``height`` 仅约束 UI 展示尺寸，避免小图被放大、大图被拉伸。
+
+    UI 端契约对齐：``apps/negentropy-ui/features/knowledge/components/
+    DocumentMarkdownRenderer.tsx`` 中 ``DocumentImage`` 通过 ``parsePixelValue()``
+    读取 ``width``/``height`` 像素值约束 ``max-width``。
+    """
+    alt_text = image.caption or image.filename or "image"
+    src = f"./images/{image.filename}"
+
+    display_w: Optional[int] = None
+    display_h: Optional[int] = None
+    if image.bbox is not None:
+        try:
+            x0, y0, x1, y1 = (float(v) for v in image.bbox)
+            bw, bh = x1 - x0, y1 - y0
+            if bw > 0 and bh > 0:
+                display_w = int(round(bw))
+                display_h = int(round(bh))
+        except (TypeError, ValueError):
+            display_w = display_h = None
+
+    if display_w is None and image.width:
+        display_w = int(image.width)
+    if display_h is None and image.height:
+        display_h = int(image.height)
+
+    if display_w or display_h:
+        parts: List[str] = [
+            f'<img src="{html.escape(src, quote=True)}"',
+            f'alt="{html.escape(alt_text, quote=True)}"',
+        ]
+        if display_w:
+            parts.append(f'width="{display_w}"')
+        if display_h:
+            parts.append(f'height="{display_h}"')
+        parts.append('style="max-width:100%;height:auto;" />')
+        return " ".join(parts)
+    return f"![{alt_text}]({src})"
 
 
 # ---------------------------------------------------------------------------
