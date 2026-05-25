@@ -896,7 +896,7 @@ class MinerUEngine:
         # 历史代码读 ``item.get("latex")`` / ``page_no`` / ``format`` 三处皆错位，
         # 致使所有结构化公式被静默丢弃，仅靠 Strategy 2（正则）兜底，导致
         # 公式入栈时缺失 bbox、page_number，无法被 assembly 正确排序与定位。
-        _BLOCK_DELIMS = ("$$", "\\[", "\\]")
+        _BLOCK_DELIMS = ("$$", "\\[")
         for item in content_list:
             if item.get("type") != "equation":
                 continue
