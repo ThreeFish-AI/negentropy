@@ -10,7 +10,8 @@ export function WikiHeaderActions() {
       <button
         type="button"
         className="wiki-header-action-btn"
-        title="登录"
+        disabled
+        title="登录功能即将上线"
         aria-label="登录"
       >
         <svg

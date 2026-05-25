@@ -37,25 +37,6 @@
   color: var(--wiki-text);
 }
 
-/* 标签栏 */
-.wiki-tag-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--wiki-border);
-}
-.wiki-tag-pill {
-  display: inline-block;
-  padding: 0.2em 0.65em;
-  border-radius: 12px;
-  background: var(--wiki-bg-secondary);
-  color: var(--wiki-text-secondary);
-  font-size: 0.82em;
-  line-height: 1.4;
-}
-
 .wiki-doc-index {
   margin-top: 3rem;
 }
