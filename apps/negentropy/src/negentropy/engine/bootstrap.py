@@ -32,6 +32,7 @@ configure_logging(
     console_level_width=settings.log_console_level_width,
     console_logger_width=settings.log_console_logger_width,
     console_separator=settings.log_console_separator,
+    service_name=settings.log_service_name,
 )
 
 # Initialize logger AFTER configure_logging

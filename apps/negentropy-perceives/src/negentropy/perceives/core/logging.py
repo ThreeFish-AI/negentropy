@@ -62,10 +62,7 @@ def _render_task_prefix(record: logging.LogRecord) -> str:
 
 
 class ColoredFormatter(logging.Formatter):
-    """为 TTY 终端添加 ANSI 颜色标注；非 TTY 自动降级纯文本。
-
-    TTY 模式下同步对 logger 名称按包层级缩写，提升可读性。
-    """
+    """为 TTY 终端添加 ANSI 颜色标注；非 TTY 自动降级为与 negentropy ConsoleFormatter 一致的列布局。"""
 
     RESET = "\033[0m"
 
@@ -78,6 +75,11 @@ class ColoredFormatter(logging.Formatter):
     }
     _TIME_COLOR = "\033[2;37m"  # 暗灰（timestamp）
     _NAME_COLOR = "\033[34m"  # 蓝（logger name）
+
+    SERVICE_NAME = "perceives"
+    SEPARATOR = " | "
+    LEVEL_WIDTH = 8
+    LOGGER_WIDTH = 32
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
@@ -95,21 +97,27 @@ class ColoredFormatter(logging.Formatter):
             return name
         return ".".join([p[0] for p in parts[:-keep_last]] + parts[-keep_last:])
 
+    @staticmethod
+    def _fit_right(text: str, width: int) -> str:
+        """右对齐文本，超出宽度时截断前面部分。"""
+        if width <= 0:
+            return text
+        if len(text) > width:
+            if width <= 3:
+                text = text[-width:]
+            else:
+                text = "..." + text[-(width - 3) :]
+        return f"{text:>{width}}"
+
+    def _build_display_logger(self, record: logging.LogRecord) -> str:
+        """构建 service:logger 显示名称。"""
+        abbreviated = self._abbreviate_name(record.name)
+        return f"{self.SERVICE_NAME}:{abbreviated}"
+
     def format(self, record: logging.LogRecord) -> str:
         prefix = _render_task_prefix(record)
-        if not self._use_colors:
-            base = super().format(record)
-            if prefix:
-                # 非 TTY 模式下前缀不着色，插在消息体前，保持可 grep
-                return base.replace(
-                    record.getMessage(), f"{prefix}{record.getMessage()}", 1
-                )
-            return base
 
-        level_color = self._LEVEL_COLORS.get(record.levelno, "")
-        asctime = self.formatTime(record, self.datefmt)
-        display_name = self._abbreviate_name(record.name)
-
+        # 构建完整消息（含异常/堆栈信息）
         message = record.getMessage()
         if record.exc_info:
             if not record.exc_text:
@@ -118,6 +126,25 @@ class ColoredFormatter(logging.Formatter):
             message = f"{message}\n{record.exc_text}"
         if record.stack_info:
             message = f"{message}\n{self.formatStack(record.stack_info)}"
+
+        if not self._use_colors:
+            # 非 TTY 模式：与 negentropy ConsoleFormatter 一致的列对齐格式
+            asctime = self.formatTime(record, self.datefmt)
+            display_logger = self._build_display_logger(record)
+            level_text = self._fit_right(record.levelname, self.LEVEL_WIDTH)
+            logger_text = self._fit_right(display_logger, self.LOGGER_WIDTH)
+            full_message = f"{prefix}{message}" if prefix else message
+            return (
+                f"{asctime}{self.SEPARATOR}"
+                f"{level_text}{self.SEPARATOR}"
+                f"{logger_text}{self.SEPARATOR}"
+                f"{full_message}"
+            )
+
+        # TTY 模式：保持原有颜色格式
+        level_color = self._LEVEL_COLORS.get(record.levelno, "")
+        asctime = self.formatTime(record, self.datefmt)
+        display_name = self._abbreviate_name(record.name)
 
         colored_prefix = f"{self._NAME_COLOR}{prefix}{self.RESET}" if prefix else ""
         return (

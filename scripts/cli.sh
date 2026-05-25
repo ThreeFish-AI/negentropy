@@ -68,6 +68,23 @@ run_dir_init() { mkdir -p "$RUN_DIR"; }
 pid_file() { echo "$RUN_DIR/$1.pid"; }
 log_file() { echo "$RUN_DIR/$1.log"; }
 
+# ── 日志时间戳管道（为 Node.js 服务输出添加统一格式时间戳）──────────────────────────
+_ts_pipe() {
+  local service="$1"
+  while IFS= read -r line; do
+    printf '%s | %8s | %32s | %s\n' \
+      "$(date '+%Y-%m-%d %H:%M:%S')" "INFO" "$service" "$line"
+  done
+}
+
+# ── 日志生命周期 Banner ──────────────────────────────────────────────────────────
+_log_banner() {
+  local file="$1" service="$2" action="$3" detail="${4:-}"
+  printf '\n%s | %8s | %32s | %s\n' \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "INFO" "$service" \
+    "══════ ${action}${detail:+ (${detail})} ══════" >> "$file"
+}
+
 is_running() {
   local pid pf
   pf="$(pid_file "$1")"
@@ -114,7 +131,19 @@ start_service() {
   fi
 
   log_info "启动 ${name} (port ${port})..."
-  (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$(log_file "$name")" 2>&1 &
+  _log_banner "$(log_file "$name")" "$name" "STARTING" "port $port"
+
+  if [[ "$name" == "ui" || "$name" == "wiki" ]]; then
+    # Node.js 服务：通过 FIFO 管道添加时间戳，同时保持 PID 追踪
+    local fifo="/tmp/.negentropy_${name}_log_fifo"
+    rm -f "$fifo"; mkfifo "$fifo"
+    _ts_pipe "$name" < "$fifo" >> "$(log_file "$name")" &
+    (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$fifo" 2>&1 &
+    rm -f "$fifo"
+  else
+    # Python 服务：自带格式化，直接重定向
+    (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$(log_file "$name")" 2>&1 &
+  fi
   echo $! > "$(pid_file "$name")"
 
   if wait_for_health "$name" "$port"; then
@@ -149,6 +178,7 @@ stop_service() {
       fi
     fi
     rm -f "$pid_path"
+    _log_banner "$(log_file "$name")" "$name" "STOPPED"
   fi
 
   # 端口兜底清理
