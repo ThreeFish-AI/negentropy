@@ -137,6 +137,7 @@ export default async function WikiEntryPage({ params }: Props) {
       sidebarItems={sectionView.sidebarItems}
       hasActiveItem={!!sectionView.activeItem}
       activeSlug={slug}
+      activeItem={sectionView.activeItem}
     />
   );
 
