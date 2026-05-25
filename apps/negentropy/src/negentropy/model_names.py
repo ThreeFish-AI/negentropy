@@ -99,6 +99,11 @@ _VENDOR_PREFIXES: tuple[str, ...] = (
     "replicate/",
 )
 
+# 非 vendor 的可剥离前缀。Google Gemini Embedding API 返回
+# ``models/text-embedding-004`` 作为 response model，``models/`` 不是 vendor
+# 标识——在 vendor 检测之前剥离，避免它污染 bare model 名。
+_STRIP_PREFIXES: tuple[str, ...] = ("models/",)
+
 # 日期/版本后缀正则（白名单策略，锚到 `$`）。
 # 仅剥可识别的「日期形」尾巴，避免误伤 `gpt-4o-mini`、`text-embedding-3-large`
 # 等本身就含数字的模型名。新增正则需同步补单测覆盖。
@@ -140,8 +145,16 @@ def _split_vendor_and_bare(name: str) -> tuple[str | None, str]:
 
     仅识别 ``_VENDOR_PREFIXES`` 白名单，避免把模型名里偶发的 ``/`` 误判为 vendor 分隔符。
     大小写不敏感；返回的 vendor 一律 lowercase，便于在 Langfuse 聚合时收敛到同一聚合键。
+
+    在 vendor 检测之前，先剥离 ``_STRIP_PREFIXES`` 中的非 vendor 前缀
+    （如 Gemini Embedding API 返回的 ``models/``），避免它们污染 bare model 名。
     """
     lowered = name.lower()
+    for strip_prefix in _STRIP_PREFIXES:
+        if lowered.startswith(strip_prefix):
+            name = name[len(strip_prefix) :]
+            lowered = lowered[len(strip_prefix) :]
+            break
     for prefix in _VENDOR_PREFIXES:
         if lowered.startswith(prefix):
             return prefix.rstrip("/"), name[len(prefix) :]
@@ -229,13 +242,14 @@ def extract_vendor(model_name: str | None) -> str | None:
     if not normalized:
         return None
 
-    # 1. 显式 vendor/ 前缀
-    explicit_vendor, _ = _split_vendor_and_bare(normalized)
+    # 1. 显式 vendor/ 前缀（_split_vendor_and_bare 会先剥离 _STRIP_PREFIXES）
+    explicit_vendor, bare = _split_vendor_and_bare(normalized)
     if explicit_vendor:
         return explicit_vendor
 
-    # 2. 系族前缀回退（用裸名形式判断，避免一次错误 strip 影响后续）
-    bare_lower = normalized.lower()
+    # 2. 系族前缀回退（用剥离后的 bare 形式判断，确保 models/text-embedding-004
+    #    剥掉 models/ 后能匹配 text-embedding- 前缀）
+    bare_lower = bare.lower()
     for family_prefix, vendor in _VENDOR_FAMILY_PREFIXES:
         if bare_lower.startswith(family_prefix):
             return vendor
