@@ -1,0 +1,52 @@
+{
+  "_meta": {
+    "pdf_path": "/Users/cm.huang/Documents/projects/aurelius/negentropy/assets/papers/source/harness-engineering/50714_Agent_Harness_Engineerin.pdf",
+    "pdf_md5_partial": "ae4c5f942128df41",
+    "page_count": 71,
+    "size_bytes": 3414331,
+    "kind": "academic_paper_two_column_latex",
+    "baseline_date": "2026-05-25",
+    "baseline_commit": "post-parity-v1",
+    "notes": "Golden signature for end-to-end PDF -> Markdown parity regression. Tolerance: counts +/- 10%, hyphenation MUST be 0. Per-stage engine selection is informational, may shift if config changes."
+  },
+  "word_count": 34850,
+  "word_count_tolerance_pct": 10,
+  "tables_count": 11,
+  "tables_count_tolerance_pct": 15,
+  "formulas_count": 3,
+  "formulas_count_tolerance_pct": 50,
+  "images_count": 14,
+  "images_count_tolerance_pct": 10,
+  "code_blocks_count": 0,
+  "code_blocks_count_max": 5,
+  "headings": {
+    "h1": 1,
+    "h2": 16,
+    "h3": 57,
+    "h4": 28
+  },
+  "headings_tolerance_pct": 15,
+  "image_ref_md_count": 13,
+  "image_ref_md_count_tolerance_pct": 10,
+  "hyphenation_artifacts_max": 0,
+  "expected_engines": [
+    "pymupdf",
+    "docling",
+    "mineru",
+    "algorithm_detector",
+    "builtin_assembler",
+    "builtin_bundler"
+  ],
+  "quality_invariants": {
+    "must_not_contain": [
+      "| 1 | 1 | 1",
+      "#### Junjie Li",
+      "#### Table S2"
+    ],
+    "must_contain": [
+      "# Agent Harness Engineering: A Survey",
+      "## Abstract",
+      "## 1 Introduction"
+    ]
+  }
+}
