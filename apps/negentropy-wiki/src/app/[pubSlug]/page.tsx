@@ -78,7 +78,8 @@ export default async function WikiPublicationPage({ params }: Props) {
       sidebarItems={sectionView.sidebarItems}
       hasActiveItem={!!sectionView.activeItem}
       indexEntry={indexEntry}
-      activeItem={sectionView.activeItem}
+      catalogTargetSlug={catalogTargetSlug}
+      catalogName={catalogName}
     />
   );
 

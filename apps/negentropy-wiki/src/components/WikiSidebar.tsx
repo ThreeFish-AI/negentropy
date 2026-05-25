@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { WikiNavTree } from "./WikiNavTree";
-import { findFirstDocumentSlug, type WikiNavTreeItem } from "@/lib/wiki-api";
+import type { WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
  * Wiki 侧边栏 — 统一 Publication 首页与文档详情页的左栏渲染。
@@ -17,8 +17,10 @@ interface WikiSidebarProps {
   hasActiveItem: boolean;
   activeSlug?: string;
   indexEntry?: WikiNavTreeItem | null;
-  /** 当前激活的一级 Catalog 节点，用于替换 publication.name 显示 */
-  activeItem?: WikiNavTreeItem;
+  /** 当前激活的一级 Catalog 首篇文档 slug，用于替换 publication.name 显示 */
+  catalogTargetSlug?: string | null;
+  /** 当前激活的一级 Catalog 显示名 */
+  catalogName?: string | null;
 }
 
 export function WikiSidebar({
@@ -28,14 +30,10 @@ export function WikiSidebar({
   hasActiveItem,
   activeSlug,
   indexEntry,
-  activeItem,
+  catalogTargetSlug,
+  catalogName,
 }: WikiSidebarProps) {
   const isEntryPage = activeSlug !== undefined;
-
-  const catalogTargetSlug = activeItem ? findFirstDocumentSlug(activeItem) : null;
-  const catalogName = catalogTargetSlug
-    ? (activeItem?.entry_title || activeItem?.entry_slug)
-    : null;
 
   const renderBrand = (href: string, title: string, className: string) => (
     <Link href={href} className={className}>
