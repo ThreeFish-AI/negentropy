@@ -422,6 +422,7 @@ class BuiltinAssembler(PDFToolBase):
                             )
                             if not algo_words:
                                 continue
+                            _newly_removed = False
                             for item_idx, text in items:
                                 if item_idx in _algo_remove:
                                     continue
@@ -434,7 +435,8 @@ class BuiltinAssembler(PDFToolBase):
                                 ratio = overlap / max(len(algo_words), 1)
                                 if ratio > 0.3 and overlap > 5:
                                     _algo_remove.add(item_idx)
-                            if any(i in _algo_remove for i, _ in items):
+                                    _newly_removed = True
+                            if _newly_removed:
                                 # 用首个被移除块的位置信息创建代码元素
                                 first_removed = next(
                                     e

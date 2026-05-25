@@ -366,13 +366,19 @@ class FitzTextExtractor(PDFToolBase):
         PDF 使用 small caps + letter spacing 时，PyMuPDF 按字距边界切分 span，
         拼接后产生 "O PEN D EV" 这样的碎片化文本（应为 "OPENDEV"）。
         策略：检测连续 3+ 个短大写标记（1-3 字母）由空格分隔的序列，
-        将其合并为一个词。
+        且大部分标记为单字母（Small Caps 碎片特征），将其合并为一个词。
+        正常大写词（如 "THE USA AND UK"）不满足单字母占比条件，不会被误合并。
         """
 
-        # 匹配 3+ 个短大写标记（1-3 字母）由单个空格分隔
-        # 如 "O PEN D EV" → "OPENDEV"
         def _rejoin_match(m: re.Match) -> str:
-            return m.group(0).replace(" ", "")
+            fragment = m.group(0)
+            tokens = fragment.split()
+            # Small Caps 碎片中大部分 token 为单字母（如 "O PEN D EV"），
+            # 正常大写词序列（如 "USA AND UK"）单字母占比低
+            single_letter_count = sum(1 for t in tokens if len(t) == 1)
+            if single_letter_count < len(tokens) * 0.4:
+                return fragment  # 不满足碎片特征，保留原文
+            return fragment.replace(" ", "")
 
         text = re.sub(
             r"(?<![A-Za-z])(?:[A-Z]{1,3} ){2,}[A-Z]{1,3}(?![A-Za-z])",
