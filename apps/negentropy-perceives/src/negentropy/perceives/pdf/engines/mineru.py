@@ -664,7 +664,7 @@ class MinerUEngine:
         """在输出目录中查找 content_list.json 文件。
 
         MinerU 的输出目录可能存在多级子目录结构，此方法递归搜索
-        最深层的 content_list.json。
+        content_list.json。兼容 v2.x（精确文件名）和 v3.x（PDF 文件名前缀）。
 
         Args:
             output_dir: MinerU 输出根目录。
@@ -672,13 +672,17 @@ class MinerUEngine:
         Returns:
             content_list.json 文件路径，未找到返回 ``None``。
         """
-        # 直接位于输出目录
+        # 策略 1: v2.x 风格 — 精确文件名 content_list.json
         direct = output_dir / "content_list.json"
         if direct.exists():
             return direct
 
-        # 位于子目录中（MinerU 可能按文件名创建子目录）
+        # 策略 2: 递归搜索精确文件名（v2.x 子目录结构）
         for child in output_dir.rglob("content_list.json"):
+            return child
+
+        # 策略 3: v3.x 风格 — 文件名前缀模式 *_content_list.json
+        for child in output_dir.rglob("*_content_list.json"):
             return child
 
         return None
