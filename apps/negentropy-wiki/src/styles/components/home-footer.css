@@ -1,0 +1,57 @@
+/* 首页页脚 */
+.home-footer {
+  background: var(--home-footer-bg);
+  color: var(--home-footer-text);
+  border-top: 1px solid var(--wiki-border);
+}
+
+.home-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1rem, 3vw, 2rem) 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.home-footer-col-title {
+  font-size: 0.88em;
+  font-weight: 700;
+  color: var(--wiki-text);
+  margin-bottom: 0.75rem;
+}
+
+.home-footer-col-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.home-footer-col-links li {
+  margin-bottom: 0.4rem;
+}
+
+.home-footer-link {
+  font-size: 0.85em;
+  color: var(--home-footer-text);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+.home-footer-link:hover {
+  color: var(--wiki-accent);
+}
+
+.home-footer-bottom {
+  grid-column: 1 / -1;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--wiki-border);
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .home-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
