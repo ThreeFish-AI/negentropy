@@ -95,6 +95,25 @@ class BuiltinAssembler(PDFToolBase):
             #     优先保留 table_extraction 的高保真版本，跳过文本块的原始版本。
             table_extraction_fingerprints: set[str] = set()
             text_formula_fingerprints: set[str] = set()
+            # 公式字符级扁平签名（按页索引）：用于过滤 PyMuPDF 把 LaTeX 视觉
+            # 渲染区抽成"字符流文本"产生的冗余文本块。例如长式
+            # ``M _ { l } = f _ { l o n g } \\left( c \\in C : w _ { i m p o r t a n c e }
+            # ( c ) > \\theta _ { l } \\wedge w _ { t e m p o r a l } ( c )
+            # \\le \\theta _ { s } \\right)\\tag{6}`` 与 PyMuPDF 抽出的
+            # ``M l = f long ( c ∈ C : w importance ( c ) > θ l ∧ w temporal
+            # ( c ) ≤ θ s ) ( 6 )`` 经签名归一化后几乎完全相同，可由
+            # ``_text_block_matches_formula`` 在文本块入栈前剔除冗余版本。
+            # 仅当公式签名 ≥20 字符时启用，避免短公式（如 ``\\alpha = 0``）
+            # 与正文段产生假阳性匹配。
+            formula_text_signatures: Dict[int, List[str]] = {}
+            if input_data.formulas:
+                for formula in input_data.formulas.formulas:
+                    if formula.latex and formula.page_number is not None:
+                        sig = _formula_text_signature(formula.latex)
+                        if len(sig) >= 20:
+                            formula_text_signatures.setdefault(
+                                formula.page_number, []
+                            ).append(sig)
             if input_data.tables:
                 for table in input_data.tables.tables:
                     md = table.markdown.strip() if table.markdown else ""
@@ -118,6 +137,11 @@ class BuiltinAssembler(PDFToolBase):
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
+                        continue
+                    # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
+                    # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
+                    # 的 PyMuPDF 字符序列与 MinerU LaTeX 经签名归一化后等价）
+                    if _text_block_matches_formula(block, formula_text_signatures):
                         continue
                     # 跳过学术论文页眉/页脚残留文本
                     if _is_running_header_footer(block.text):
@@ -672,8 +696,16 @@ class BuiltinAssembler(PDFToolBase):
                 if elem.element_type == "formula" and elem.content.strip().startswith(
                     "$$"
                 ):
-                    # 匹配 LaTeX 中的编号: (N) 或 ( N )
+                    # 匹配 LaTeX 中的编号：
+                    # - ``(N)`` / ``( N )``（纯 LaTeX 源 OR 部分引擎渲染）
+                    # - ``\\tag{N}``（MinerU / 学术论文标准形式）
+                    # 两种形式均落入 ``_formula_eq_nums``，配合下方"文本块含
+                    # ``(N)`` + 数学符号 + 短长度 → 视为公式字符流冗余"规则，
+                    # 兜底 ``_text_block_matches_formula`` 对短公式签名
+                    # （<20 字符）无法启用的场景。
                     for m in re.finditer(r"\(\s*(\d+)\s*\)", elem.content):
+                        _formula_eq_nums.add(m.group(1))
+                    for m in re.finditer(r"\\tag\s*\{\s*(\d+)\s*\}", elem.content):
                         _formula_eq_nums.add(m.group(1))
             if _formula_eq_nums:
                 _math_chars = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨")
@@ -965,6 +997,61 @@ def _block_overlaps_special(
             return True
         # 策略 2: IoU 检测 — 面积重叠
         if _compute_iou(block.bbox, (rx0, ry0, rx1, ry1)) >= iou_threshold:
+            return True
+    return False
+
+
+def _formula_text_signature(s: str) -> str:
+    """提取字符级扁平签名（仅保留字母数字，全部小写）。
+
+    用于跨形式公式去重：
+      - LaTeX 命令 ``\\xxx`` 全部剥除（``\\theta``、``\\in``、``\\wedge`` 等
+        无文本字符等价，丢弃即可）；
+      - 大括号 / 下标符号 / 标点 / 空白 / Unicode 数学符号 全部丢弃；
+      - 仅保留 ASCII 字母数字。
+
+    PyMuPDF 把 LaTeX 视觉渲染区抽成"字符流文本"时，对每个字形（含上下标）
+    保留为独立字符，与 MinerU 提取的 LaTeX 字符序列（同样把 ``M _ { l }``
+    拆为 ``M l`` 等）经归一化后几乎完全相同。该签名作为跨形式等价锚点。
+    """
+    # 剥离 \xxx LaTeX 命令
+    s = re.sub(r"\\[a-zA-Z]+\*?", "", s)
+    # 仅保留 ASCII 字母数字
+    return re.sub(r"[^a-zA-Z0-9]+", "", s).lower()
+
+
+def _text_block_matches_formula(
+    block: TextBlock,
+    formula_signatures: Dict[int, List[str]],
+) -> bool:
+    """检测文本块是否为相邻公式 LaTeX 的字符级文本表示。
+
+    ``_block_overlaps_special`` 的几何检测对"公式视觉区垂直之上 / 之下
+    几十 pt 的字符流文本"覆盖不足；当 PyMuPDF 把公式视觉渲染区抽成
+    独立文本字符串时，签名归一化后与公式 LaTeX 几乎完全一致，可由本
+    函数作为语义层兜底拦截。
+
+    匹配判据（任一成立即认为是冗余）：
+      1. 公式签名是文本块签名的子串（公式被嵌入更长文本中——保守保留）；
+      2. 文本块签名等于或几乎等于公式签名（典型 PyMuPDF 字符流抽取产物）：
+         len_ratio ≥ 0.85 且公式签名是文本签名的子串。
+
+    仅在公式签名 ≥20 字符且文本块归一化后 ≥20 字符时启用，
+    避免短公式 / 短文本互相假阳性。
+    """
+    page = block.page_number
+    sigs = formula_signatures.get(page)
+    if not sigs:
+        return False
+    text_sig = _formula_text_signature(block.text or "")
+    if len(text_sig) < 20:
+        return False
+    for fsig in sigs:
+        if fsig not in text_sig:
+            continue
+        # 子串匹配 → 进一步判定长度比例，过滤"公式埋在长正文段"假阳性
+        len_ratio = len(fsig) / max(len(text_sig), 1)
+        if len_ratio >= 0.85:
             return True
     return False
 

@@ -6,14 +6,22 @@
    ``bbox``（PDF 点坐标）作为展示尺寸，与 UI ``DocumentMarkdownRenderer``
    的 ``parsePixelValue()`` 直接对接，避免历史上「原始像素分辨率被当作
    展示宽度，小图被放大到容器宽」的回归。
+2. ``_formula_text_signature`` / ``_text_block_matches_formula``：检测
+   PyMuPDF 把 LaTeX 视觉渲染区抽成"字符流文本"产生的冗余文本块，
+   作为 ``_block_overlaps_special`` 几何检测的语义层兜底。
 """
 
 from __future__ import annotations
 
 import re
+from types import SimpleNamespace
 
 from negentropy.perceives.pipeline.models import ExtractedImage
-from negentropy.perceives.pipeline.stages.pdf.assembly import _image_to_markdown
+from negentropy.perceives.pipeline.stages.pdf.assembly import (
+    _formula_text_signature,
+    _image_to_markdown,
+    _text_block_matches_formula,
+)
 
 
 class TestImageToMarkdown:
@@ -105,3 +113,88 @@ class TestImageToMarkdown:
         )
         out = _image_to_markdown(img)
         assert 'alt="Figure 1: Overview"' in out
+
+
+class TestFormulaTextSignature:
+    """``_formula_text_signature`` 字符级扁平签名归一化契约。"""
+
+    def test_latex_commands_stripped(self) -> None:
+        """``\\theta``/``\\in`` 等 LaTeX 命令被剥除，仅留字母数字。"""
+        sig = _formula_text_signature(r"\theta_{long} \in \mathcal{R}")
+        # \theta, \in, \mathcal 命令均被剥；保留 long, R
+        assert sig == "longr"
+
+    def test_braces_and_punct_dropped(self) -> None:
+        sig = _formula_text_signature(r"M _ { l } = f _ { l o n g } ( c )")
+        assert sig == "mlflongc"
+
+    def test_unicode_math_chars_dropped(self) -> None:
+        sig = _formula_text_signature("M l = f long ( c ∈ C : w > θ l ∧ s)")
+        # ∈ θ ∧ 均被丢弃；保留字母数字
+        assert sig == "mlflongcCwls".lower()
+
+    def test_latex_and_text_form_equivalent(self) -> None:
+        """同一公式 LaTeX 形式 vs PyMuPDF 字符流文本形式签名几乎等价。"""
+        latex = (
+            r"M _ { l } = f _ { l o n g } \left( c \in C : "
+            r"w _ { i m p o r t a n c e } ( c ) > \theta _ { l } "
+            r"\wedge w _ { t e m p o r a l } ( c ) \le "
+            r"\theta _ { s } \right)\tag{6}"
+        )
+        text = (
+            "M l = f long ( c ∈ C : w importance ( c ) > θ l "
+            "∧ w temporal ( c ) ≤ θ s ) ( 6 )"
+        )
+        sig_latex = _formula_text_signature(latex)
+        sig_text = _formula_text_signature(text)
+        # PyMuPDF 字符流文本经签名后应包含 LaTeX 签名（完整或前缀子串）
+        assert sig_latex in sig_text or sig_text in sig_latex
+
+
+class TestTextBlockMatchesFormula:
+    """``_text_block_matches_formula`` 语义层兜底过滤契约。"""
+
+    def _block(self, text: str, page: int = 0):
+        """构造最小化 TextBlock-likes（仅供本测试使用）。"""
+        return SimpleNamespace(text=text, page_number=page, bbox=None)
+
+    def test_matches_pymupdf_char_stream_of_formula(self) -> None:
+        """PyMuPDF 抽出的公式字符流文本应被识别为冗余。"""
+        latex = (
+            r"M _ { l } = f _ { l o n g } \left( c \in C : "
+            r"w _ { i m p o r t a n c e } ( c ) > \theta _ { l } "
+            r"\wedge w _ { t e m p o r a l } ( c ) \le "
+            r"\theta _ { s } \right)\tag{6}"
+        )
+        sig = _formula_text_signature(latex)
+        signatures = {0: [sig]}
+        block = self._block(
+            "M l = f long ( c ∈ C : w importance ( c ) > θ l "
+            "∧ w temporal ( c ) ≤ θ s ) ( 6 )"
+        )
+        assert _text_block_matches_formula(block, signatures) is True
+
+    def test_skips_normal_prose_paragraph(self) -> None:
+        """正文段不应被误判为公式字符流。"""
+        latex = r"M _ { l } = f _ { l o n g } ( c \in C )\tag{6}"
+        signatures = {0: [_formula_text_signature(latex)]}
+        block = self._block(
+            "where w importance is the importance weight of context "
+            "element c, and theta l is the importance threshold for "
+            "long-term memory consolidation."
+        )
+        assert _text_block_matches_formula(block, signatures) is False
+
+    def test_different_page_no_match(self) -> None:
+        """公式签名按页索引：跨页文本块不匹配。"""
+        latex = r"M _ { l } = f _ { l o n g } ( c \in C )\tag{6}"
+        signatures = {3: [_formula_text_signature(latex)]}
+        block = self._block("M l = f long ( c ∈ C ) ( 6 )", page=5)
+        assert _text_block_matches_formula(block, signatures) is False
+
+    def test_short_signature_skipped(self) -> None:
+        """短公式签名 (<20 字符) 不参与匹配，避免假阳性。"""
+        # 短公式 ``E = mc^2`` 签名仅 ``emc2`` (4 字符)
+        signatures = {0: [_formula_text_signature(r"E = m c ^ 2")]}
+        block = self._block("Energy mass conversion E = m c squared formula")
+        assert _text_block_matches_formula(block, signatures) is False
