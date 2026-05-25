@@ -227,3 +227,26 @@ def test_inject_genai_handles_none_span() -> None:
     from negentropy.instrumentation import _inject_genai_semconv_attrs
 
     _inject_genai_semconv_attrs(None, {"model": "gpt-4"}, None)
+
+
+def test_inject_genai_sets_operation_name_embeddings() -> None:
+    """Embedding 调用的 kwargs 应产出 ``gen_ai.operation.name = "embeddings"``。"""
+    from negentropy.instrumentation import _apply_model_normalization
+
+    span = _make_writable_span()
+    kwargs = {
+        "model": "gemini/text-embedding-004",
+        "input": ["hello", "world"],
+    }
+    response = _make_response_obj(
+        model="text-embedding-004",
+        usage={"prompt_tokens": 8, "completion_tokens": 0},
+        response_id=None,
+        finish_reasons=[],
+    )
+
+    _apply_model_normalization(span, kwargs, response)
+
+    captured = span._captured
+    assert captured["gen_ai.operation.name"] == "embeddings"
+    assert captured["gen_ai.system"] == "gemini"

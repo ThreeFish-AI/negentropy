@@ -54,12 +54,13 @@ _INSTRUCTION = """
 """
 
 
-def create_internalization_agent(*, output_key: str | None = None) -> LlmAgent:
+def create_internalization_agent(*, output_key: str | None = None, mode: str | None = None) -> LlmAgent:
     """工厂：每次调用创建独立的 InternalizationFaculty 实例。
 
     Args:
         output_key: 若非 None，则最终响应文本将自动存入 session.state[output_key]，
                     供 SequentialAgent 下游步骤通过 {output_key} 模板引用。
+        mode: ADK 2.0 Collaborative Agents 协作模式。
     """
     return LlmAgent(
         name="InternalizationFaculty",
@@ -68,11 +69,12 @@ def create_internalization_agent(*, output_key: str | None = None) -> LlmAgent:
         instruction=make_instruction_provider("InternalizationFaculty", _INSTRUCTION),
         tools=[log_activity, save_to_memory, update_knowledge_graph, ingest_paper],
         output_key=output_key,
+        mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,
         disallow_transfer_to_peers=output_key is not None,
     )
 
 
-# 向后兼容单例，供 root_agent 直接委派使用（transfer_to_agent）
-internalization_agent = create_internalization_agent()
+# ADK 2.0: mode="single_turn" — 内化系部为纯存储型，完成后自动返回 Root Agent
+internalization_agent = create_internalization_agent(mode="single_turn")

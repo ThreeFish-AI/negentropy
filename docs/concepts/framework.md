@@ -125,9 +125,10 @@ graph TB
 ```python
 root_agent = LlmAgent(
     name="NegentropyEngine",
-    model=create_model(),
+    model=create_root_model(),
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
-    instruction="...",  # ~90 行调度指令，详见源码
+    instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION, is_root=True),
+    before_model_callback=_pick_root_model,  # 按请求动态选择模型
     tools=[log_activity],
     sub_agents=[
         perception_agent, internalization_agent,
@@ -173,10 +174,10 @@ graph LR
 
 | 系部      | 图腾  | Agent 名称               | 对抗目标 | 核心职责                             | 专属工具                                   |
 | :-------- | :---: | :----------------------- | :------- | :----------------------------------- | :----------------------------------------- |
-| 慧眼·感知 |   👁️   | `PerceptionFaculty`      | 信息过载 | 广域扫描、噪音过滤、多源交叉验证     | `search_knowledge_base`, `search_web`      |
-| 本心·内化 |   💎   | `InternalizationFaculty` | 遗忘     | 知识结构化、长期记忆管理、一致性维护 | `save_to_memory`, `update_knowledge_graph` |
+| 慧眼·感知 |   👁️   | `PerceptionFaculty`      | 信息过载 | 广域扫描、噪音过滤、多源交叉验证     | `search_knowledge_base`, `search_knowledge_graph_global`, `search_knowledge_graph_with_papers`, `search_web`, `search_papers` |
+| 本心·内化 |   💎   | `InternalizationFaculty` | 遗忘     | 知识结构化、长期记忆管理、一致性维护 | `save_to_memory`, `update_knowledge_graph`, `ingest_paper` |
 | 元神·坐照 |   🧠   | `ContemplationFaculty`   | 肤浅     | 二阶思维、策略规划、错误根因分析     | `analyze_context`, `create_plan`           |
-| 妙手·知行 |   ✋   | `ActionFaculty`          | 虚谈     | 精准执行、代码生成、安全变更         | `execute_code`, `read_file`, `write_file`  |
+| 妙手·知行 |   ✋   | `ActionFaculty`          | 虚谈     | 精准执行、代码生成、安全变更         | `execute_code`, `read_file`, `write_file`, `invoke_claude_code` |
 | 喉舌·影响 |   🗣️   | `InfluenceFaculty`       | 晦涩     | 价值传递、格式适配、说服与教育       | `publish_content`, `send_notification`     |
 
 > 所有系部均共享 `log_activity` 审计工具；上表仅列出各系部**专属**工具。
@@ -188,19 +189,21 @@ graph LR
 
 ```python
 # 工厂函数：创建独立实例（用于流水线）
-def create_perception_agent(*, output_key: str | None = None) -> LlmAgent:
+def create_perception_agent(*, output_key: str | None = None, mode: str | None = None) -> LlmAgent:
     return LlmAgent(
         name="PerceptionFaculty",
         model=create_model(),
-        tools=[log_activity, search_knowledge_base, search_web],
+        tools=[log_activity, search_knowledge_base, search_knowledge_graph_global,
+               search_knowledge_graph_with_papers, search_web, search_papers],
         output_key=output_key,
+        mode=mode,  # ADK 2.0 Collaborative Agents 协作模式
         # 流水线边界管控：禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,
         disallow_transfer_to_peers=output_key is not None,
     )
 
-# 向后兼容单例：供 root_agent 直接委派
-perception_agent = create_perception_agent()
+# 单例：mode="single_turn" — 执行完毕自动返回父 Agent
+perception_agent = create_perception_agent(mode="single_turn")
 ```
 
 这一设计解决了 Google ADK 的**单亲规则 (Single-Parent Rule)**<sup>[[3]](#ref3)</sup>——同一个 Agent 实例只能被注册为一个父级的子 Agent。工厂函数确保流水线中使用的是独立实例。
@@ -558,13 +561,13 @@ graph TB
     class kg_nodes,kg_edges knowledge
 ```
 
-| Schema 文件                                                    | 认知域   | 核心表                                     | 说明                             |
-| :------------------------------------------------------------- | :------- | :----------------------------------------- | :------------------------------- |
-| [`agent_schema.sql`](../schema/agent_schema.sql)               | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
-| [`hippocampus_schema.sql`](../schema/hippocampus_schema.sql)   | 记忆系统 | memories, facts, consolidation_jobs        | 情景/语义记忆、艾宾浩斯衰减      |
-| [`kg_schema_extension.sql`](../schema/kg_schema_extension.sql) | 知识图谱 | 知识节点/边                                | 结构化知识表示                   |
-| [`mind_schema.sql`](../schema/mind_schema.sql)                 | 思维模式 | —                                          | 思维模式与策略                   |
-| [`perception_schema.sql`](../schema/perception_schema.sql)     | 感知系统 | —                                          | 感知数据与来源管理               |
+| Schema 文件                                                                                                  | 认知域   | 核心表                                     | 说明                             |
+| :----------------------------------------------------------------------------------------------------------- | :------- | :----------------------------------------- | :------------------------------- |
+| [`agent_schema.sql`](../reference/cognizes/schema/agent_schema.sql)                                           | 代理核心 | threads, events, runs, messages, snapshots | 会话管理、事件溯源、乐观锁 (OCC) |
+| [`hippocampus_schema.sql`](../reference/cognizes/engine/schema/hippocampus_schema.sql)                       | 记忆系统 | memories, facts, consolidation_jobs        | 情景/语义记忆、艾宾浩斯衰减      |
+| [`kg_schema_extension.sql`](../reference/cognizes/engine/schema/kg_schema_extension.sql)                     | 知识图谱 | 知识节点/边                                | 结构化知识表示                   |
+| [`mind_schema.sql`](../reference/cognizes/schema/mind_schema.sql)                                             | 思维模式 | —                                          | 思维模式与策略                   |
+| [`perception_schema.sql`](../reference/cognizes/engine/schema/perception_schema.sql)                         | 感知系统 | —                                          | 感知数据与来源管理               |
 
 ### 8.3 关键设计决策
 
@@ -969,13 +972,13 @@ graph LR
 
 <a id="ref2"></a>[2] E. Schrödinger, "What is Life? The Physical Aspect of the Living Cell," _Cambridge University Press_, 1944.
 
-<a id="ref3"></a>[3] Google, "Agent Development Kit - Multi-Agent Systems," _Google ADK Documentation_, 2025. [Online]. Available: https://google.github.io/adk-docs/agents/multi-agents/
+<a id="ref3"></a>[3] Google, "Agent Development Kit - Multi-Agent Systems," _Google ADK Documentation_, 2025. [Online]. Available: https://adk.dev/agents/multi-agents/
 
 <a id="ref4"></a>[4] F. Buschmann, R. Meunier, H. Rohnert, P. Sommerlad, and M. Stal, "Pattern-Oriented Software Architecture: A System of Patterns," _Wiley_, vol. 1, 1996.
 
 <a id="ref5"></a>[5] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, "Design Patterns: Elements of Reusable Object-Oriented Software," _Addison-Wesley_, 1994.
 
-<a id="ref6"></a>[6] Google, "Agent Development Kit - SequentialAgent," _Google ADK Documentation_, 2025. [Online]. Available: https://google.github.io/adk-docs/agents/workflow-agents/#sequentialagent
+<a id="ref6"></a>[6] Google, "Agent Development Kit - SequentialAgent," _Google ADK Documentation_, 2025. [Online]. Available: https://adk.dev/agents/workflow-agents/#sequentialagent
 
 <a id="ref7"></a>[7] S. Ramirez, "FastAPI Documentation," _FastAPI_, 2025. [Online]. Available: https://fastapi.tiangolo.com/
 

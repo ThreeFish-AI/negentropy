@@ -343,3 +343,64 @@ def test_normalization_handles_bare_model_name(monkeypatch):
     assert span.attributes["gen_ai.request.model"] == "openai/gpt-4o-mini"
     assert span.attributes["langfuse.observation.model.name"] == "openai/gpt-4o-mini"
     assert span.attributes["gen_ai.system"] == "openai"
+
+
+# ---------------------------------------------------------------------------
+# _infer_operation_name
+# ---------------------------------------------------------------------------
+
+
+def test_operation_name_embeddings_via_litellm_call_type():
+    """litellm_call_type="embedding" 应推断为 "embeddings"。"""
+    from negentropy.instrumentation import _infer_operation_name
+
+    assert (
+        _infer_operation_name({"litellm_call_type": "embedding", "model": "gemini/text-embedding-004"}) == "embeddings"
+    )
+
+
+def test_operation_name_embeddings_via_heuristic():
+    """kwargs 有 input 无 messages 时启发式推断为 "embeddings"。"""
+    from negentropy.instrumentation import _infer_operation_name
+
+    assert _infer_operation_name({"model": "openai/text-embedding-3-small", "input": ["hello"]}) == "embeddings"
+
+
+def test_operation_name_chat_preserved():
+    """kwargs 有 messages 时推断为 "chat"。"""
+    from negentropy.instrumentation import _infer_operation_name
+
+    assert (
+        _infer_operation_name({"model": "openai/gpt-5-mini", "messages": [{"role": "user", "content": "hi"}]}) == "chat"
+    )
+
+
+def test_operation_name_chat_default():
+    """kwargs 既无 input 也无 messages 时默认为 "chat"。"""
+    from negentropy.instrumentation import _infer_operation_name
+
+    assert _infer_operation_name({"model": "openai/gpt-5-mini"}) == "chat"
+
+
+def test_apply_model_normalization_gemini_embedding_models_prefix(monkeypatch):
+    """Gemini Embedding 响应含 ``models/`` 前缀时归一化为 ``gemini/text-embedding-004``。"""
+
+    def _original_set_attributes(self, span, kwargs, response_obj):
+        self.safe_set_attribute(span, "gen_ai.request.model", kwargs.get("model"))
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _original_set_attributes)
+    patch_litellm_otel_cost()
+
+    span = _FakeSpan()
+    callback = _FakeOpenTelemetryCallback()
+    kwargs = {"model": "gemini/text-embedding-004", "input": ["hello"]}
+    response_obj = {"model": "models/text-embedding-004"}
+
+    OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+    assert span.attributes["gen_ai.request.model"] == "gemini/text-embedding-004"
+    assert span.attributes["gen_ai.response.model"] == "gemini/text-embedding-004"
+    assert span.attributes["gen_ai.system"] == "gemini"
+    assert span.attributes["langfuse.observation.model.name"] == "gemini/text-embedding-004"
+    # embedding kwargs 推断操作名
+    assert span.attributes["gen_ai.operation.name"] == "embeddings"

@@ -141,6 +141,7 @@ def configure_logging(
     console_level_width: int = 8,
     console_logger_width: int = 36,
     console_separator: str = " | ",
+    service_name: str = "backend",
 ) -> None:
     """
     Configure the unified logging system.
@@ -152,6 +153,7 @@ def configure_logging(
         file_path: Path for file sink
         gcloud_project: GCP project ID for gcloud sink
         gcloud_log_name: Log name for gcloud sink
+        service_name: Service identity prefix for log lines
     """
     # Import interceptors here to avoid circular imports if any
     from .interceptors import RedirectStdLibHandler, intercept_third_party_loggers
@@ -165,6 +167,7 @@ def configure_logging(
         level_width=console_level_width,
         logger_width=console_logger_width,
         separator=console_separator,
+        service_name=service_name,
     )
 
     # 2. Configure Structlog

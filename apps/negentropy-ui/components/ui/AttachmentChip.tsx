@@ -1,13 +1,16 @@
+"use client";
+
+import { FileText, ImageIcon, Paperclip, X } from "lucide-react";
+
 /**
  * Attachment chip — 在 Composer 与 MessageBubble 中复用的附件展示与操作组件。
  *
  * 设计原则（参考 AG-UI Multi-modal Annex 与 A2UI 白名单组件清单）：
  * - 非交互场景（消息气泡内）传 readOnly=true，仅展示图标 + 文件名 + 体积；
- * - Composer 场景传 onRemove，提供 ✕ 按钮供撤回。
+ * - Composer 场景传 onRemove，提供 X 按钮供撤回。
  *
  * 注意：本组件不进入 message-ledger 比对（dedup 仅看 text content），避免触发 ISSUE-031 双气泡时间窗。
  */
-"use client";
 
 export type ComposerAttachment = {
   id: string;
@@ -25,11 +28,10 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function pickIcon(mime: string): string {
-  if (mime.startsWith("image/")) return "🖼";
-  if (mime.includes("pdf")) return "📄";
-  if (mime.startsWith("text/") || mime.includes("markdown")) return "📝";
-  return "📎";
+function PickIcon({ mime }: { mime: string }) {
+  if (mime.startsWith("image/")) return <ImageIcon className="h-3 w-3 shrink-0" aria-hidden />;
+  if (mime.includes("pdf")) return <FileText className="h-3 w-3 shrink-0" aria-hidden />;
+  return <Paperclip className="h-3 w-3 shrink-0" aria-hidden />;
 }
 
 export function AttachmentChip({
@@ -46,21 +48,21 @@ export function AttachmentChip({
       data-testid="attachment-chip"
       data-attachment-name={attachment.name}
       data-attachment-mime={attachment.mime}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-input px-2 py-0.5 text-[11px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 max-w-[14rem]"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1 text-[11px] text-zinc-600 dark:text-zinc-300 max-w-[14rem] transition-colors hover:bg-muted"
       title={`${attachment.name} (${formatBytes(attachment.size)})`}
     >
-      <span aria-hidden="true">{pickIcon(attachment.mime)}</span>
+      <PickIcon mime={attachment.mime} />
       <span className="truncate">{attachment.name}</span>
-      <span className="text-muted shrink-0">{formatBytes(attachment.size)}</span>
+      <span className="text-text-muted shrink-0">{formatBytes(attachment.size)}</span>
       {!readOnly && onRemove && (
         <button
           type="button"
           aria-label={`移除附件 ${attachment.name}`}
           data-testid="attachment-chip-remove"
           onClick={() => onRemove(attachment.id)}
-          className="ml-0.5 rounded-full text-muted hover:text-rose-500"
+          className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-foreground/10 hover:text-rose-500"
         >
-          ✕
+          <X className="h-2.5 w-2.5" aria-hidden />
         </button>
       )}
     </span>
@@ -78,7 +80,7 @@ export function AttachmentChipList({
 }) {
   if (attachments.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {attachments.map((attachment) => (
         <AttachmentChip
           key={attachment.id}

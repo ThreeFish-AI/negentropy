@@ -36,7 +36,7 @@
 | :------------ | :------------------------------------------------------- |
 | 语言          | Python 3.13+                                             |
 | Python 包管理 | [uv](https://docs.astral.sh/uv/)<sup>[[1]](#ref1)</sup>  |
-| Agent 框架    | [Google ADK](https://google.github.io/adk-docs/)         |
+| Agent 框架    | [Google ADK](https://adk.dev/)         |
 | LLM 接口      | [LiteLLM](https://docs.litellm.ai/) (统一 100+ LLM 接入) |
 | Web 框架      | FastAPI (通过 ADK Web Server)                            |
 | ORM           | SQLAlchemy 2.0 (async, asyncpg)                          |
@@ -51,7 +51,7 @@
 
 | 类别       | 技术选型                                                                |
 | :--------- | :---------------------------------------------------------------------- |
-| 框架       | Next.js 18+                                                             |
+| 框架       | Next.js 16+                                                             |
 | UI         | React 19, TypeScript, Tailwind CSS                                      |
 | AI 集成    | AG-UI Protocol ([CopilotKit](https://github.com/CopilotKit/CopilotKit)) |
 | 图谱可视化 | D3.js (Force Graph)                                                     |
@@ -118,7 +118,7 @@ psql -h localhost -U aigc -d negentropy -c "SELECT version();"
 cd apps/negentropy
 uv sync --dev                          # 安装全部依赖（含开发依赖）
 uv run alembic upgrade head            # 应用数据库迁移至最新版本
-uv run negentropy serve --port 8000  # 启动引擎（封装 adk web，自动锚定正确 agents_dir）
+uv run negentropy serve  # 启动引擎（封装 adk web，自动锚定正确 agents_dir，默认端口 3292）
 ```
 
 ### 1.4 前端安装与首次启动
@@ -246,8 +246,8 @@ flowchart LR
 ```bash
 cd apps/negentropy
 
-# ADK Web 模式（推荐，支持 AG-UI Protocol）
-uv run negentropy serve --port 8000
+# ADK Web 模式（推荐，支持 AG-UI Protocol，默认端口 3292）
+uv run negentropy serve
 
 # FastAPI 独立模式
 uv run fastapi dev
@@ -488,7 +488,7 @@ thread_id: Mapped[UUID] = mapped_column(
 ### 7.1 对接原则
 
 - **不侵入后端核心逻辑**：前端通过 AG-UI Protocol 与 ADK 服务通信
-- **复用现有运行入口**：使用 `uv run adk web --port 8000 src/negentropy`
+- **复用现有运行入口**：使用 `uv run negentropy serve`（默认端口 3292）
 - **BFF 代理层**：前端在 `app/api/agui/` 下设置 Route Handler 作为代理，解决 CORS/鉴权/统一路由问题
 
 ### 7.2 BFF 路由表
@@ -631,7 +631,7 @@ python --version  # 应与 .python-version 一致
 uv sync --reinstall
 
 # 检查端口占用
-lsof -i :8000
+lsof -i :3292
 ```
 
 ### 10.3 PostgreSQL 启动或连接失败

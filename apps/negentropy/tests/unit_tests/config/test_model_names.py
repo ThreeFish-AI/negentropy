@@ -212,3 +212,30 @@ def test_extract_vendor_returns_none_for_unknown():
     assert extract_vendor("") is None
     assert extract_vendor("   ") is None
     assert extract_vendor("some-unknown-model") is None
+
+
+# ---------------------------------------------------------------------------
+# models/ 前缀剥离（Gemini Embedding API 返回 models/text-embedding-004）
+# ---------------------------------------------------------------------------
+
+
+def test_observability_model_name_strips_models_prefix_with_vendor_hint():
+    """``models/text-embedding-004`` 剥前缀后借助 vendor_hint 归一化为 ``gemini/text-embedding-004``。"""
+    assert observability_model_name("models/text-embedding-004", vendor_hint="gemini") == "gemini/text-embedding-004"
+
+
+def test_observability_model_name_strips_models_prefix_bare():
+    """``models/text-embedding-004`` 剥前缀后通过家族前缀识别为 ``openai/text-embedding-004``。"""
+    assert observability_model_name("models/text-embedding-004") == "openai/text-embedding-004"
+
+
+def test_extract_vendor_strips_models_prefix():
+    """``models/text-embedding-004`` 剥前缀后识别为 ``openai``。"""
+    assert extract_vendor("models/text-embedding-004") == "openai"
+
+
+def test_observability_model_name_models_prefix_idempotent():
+    """``models/`` 前缀剥离 + 归一化整体幂等。"""
+    first = observability_model_name("models/text-embedding-004", vendor_hint="gemini")
+    second = observability_model_name(first)
+    assert first == second == "gemini/text-embedding-004"

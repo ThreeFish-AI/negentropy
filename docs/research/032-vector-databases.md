@@ -66,7 +66,7 @@ graph LR
 | 特性          | 描述             | 技术规格                                      |
 | ------------- | ---------------- | --------------------------------------------- |
 | **向量类型**  | 支持多种向量格式 | vector (FP32)、halfvec (FP16)、bit、sparsevec |
-| **最大维度**  | 单精度向量       | 2,000 维（HNSW）/ 16,000 维（存储）           |
+| **最大维度**  | 单精度向量       | 2,000 维（HNSW，vector）/ 4,000 维（HNSW，halfvec）/ 16,000 维（存储） |
 | **距离函数**  | 6 种度量方式     | L2、内积、余弦、L1、汉明、Jaccard             |
 | **索引类型**  | 近似最近邻       | HNSW、IVFFlat                                 |
 | **ACID 支持** | 完整事务保证     | ✅ 支持                                       |
@@ -393,7 +393,7 @@ SET vchordrq.prefilter = on;
 
 **核心定位**：**用（较高的）运维复杂度，换取（极高的）水平扩展能力。是“大厂”构建核心 AI 基础设施的首选。**
 
-告别“插件化”的轻量级方案，我们进入**云原生分布式**的重工业领域。Milvus 是 LF AI & Data Foundation 基金会的毕业项目，专为 **十亿级（Billion-scale）** 向量检索而生。
+告别“插件化”的轻量级方案，我们进入**云原生分布式**的重工业领域。Milvus 是 LF AI & Data Foundation 基金会的毕业项目，专为 **十亿级（Billion-scale）** 向量检索而生。当前最新版本为 **Milvus 2.6**（2025 年中发布），引入了分层存储、内置 WAL（Woodpecker）及 Int8/RaBitQ 量化等重大特性。
 
 Milvus 的部署模式就像**从“乐高积木”到“摩天大楼”**的进化：
 
@@ -643,7 +643,7 @@ def semantic_search(query: str, source_type: str = None, top_k: int = 10):
 
 def hybrid_search(query: str, top_k: int = 10):
     """混合搜索（向量 + BM25 全文）"""
-    # Milvus 2.4+ 支持 BM25 全文搜索
+    # Milvus 2.4+ 支持 BM25 全文搜索（需在 Collection 中启用全文索引）
     from pymilvus import AnnSearchRequest, RRFRanker
 
     query_embedding = get_embedding(query)
@@ -753,7 +753,7 @@ print(result["result"])
 
 ### 3.6 性能基准
 
-基于 Milvus 2.2 官方基准测试<sup>[[12]](#ref12)</sup>，单 QueryNode（8 核 CPU、8GB 内存、1M 128D Dataset）性能表现：
+基于 Milvus 2.2 官方基准测试<sup>[[12]](#ref12)</sup>（注：当前 Milvus 已发布 2.6 版本，性能已有显著提升，以下为历史参考数据），单 QueryNode（8 核 CPU、8GB 内存、1M 128D Dataset）性能表现：
 
 | 指标        | 性能表现                        |
 | ----------- | ------------------------------- |
@@ -1094,7 +1094,7 @@ graph TB
     style NS3 fill:#fbbc04,color:#000
 ```
 
-- 每个索引最多 **100,000** 个命名空间
+- 命名空间上限因计划而异：Starter **100** 个、Standard **10,000** 个、Enterprise **100,000** 个
 - 查询和写入操作指定命名空间
 - 实现多租户数据隔离
 
@@ -1248,7 +1248,7 @@ graph LR
 | **向量数据类型**   | 原生支持向量嵌入存储   | `ARRAY<FLOAT32>` / `ARRAY<FLOAT64>` + `vector_length` 注解 |
 | **最大维度**       | 取决于存储配置         | 未明确限制，支持常见嵌入模型维度（768/1536 等）            |
 | **距离函数**       | 3 种核心度量方式       | COSINE、EUCLIDEAN、DOT_PRODUCT                             |
-| **索引类型**       | 基于树的近似最近邻索引 | Tree-based Vector Index（2 层/3 层配置）                   |
+| **索引类型**       | 基于 ScaNN 的树形近似最近邻索引 | Tree-based Vector Index（2 层/3 层配置）                   |
 | **ACID 事务**      | 完整分布式事务保证     | ✅ 全局强一致性（TrueTime + Paxos）                        |
 | **Graph 支持**     | 原生图数据库能力       | Spanner Graph + ISO GQL 标准                               |
 | **ML 集成**        | 内置 AI 模型调用       | `ML.PREDICT` + Vertex AI 模型直连                          |
@@ -1256,7 +1256,7 @@ graph LR
 
 ### 6.3 向量索引算法
 
-Spanner 采用 **Tree-based Vector Index**（基于树的向量索引）作为其 ANN 搜索的核心算法<sup>[[31]](#ref31)</sup>。可以将其理解为一种**多级分区策略**：
+Spanner 采用 **Tree-based Vector Index**（基于树的向量索引，底层基于 Google Research 的 ScaNN 算法）作为其 ANN 搜索的核心算法<sup>[[31]](#ref31)</sup>。可以将其理解为一种**多级分区策略**：
 
 - **tree_depth（树深度）**：决定索引的"层级数"。就像**行政区划**——层级越多，划分越细。
   - `tree_depth = 2`：适用于 < 1000 万行的数据集（省 → 市）
@@ -1275,12 +1275,12 @@ CREATE TABLE Documents (
 -- 创建 2 层向量索引（适用于 < 1000万行）
 CREATE VECTOR INDEX DocEmbeddingIndex
 ON Documents(DocEmbedding)
-STORING (DocContents)
 OPTIONS (
     distance_type = 'COSINE',
     tree_depth = 2,
     num_leaves = 1000
-);
+)
+STORING (DocContents);
 
 -- 创建 3 层向量索引（适用于大规模数据）
 CREATE VECTOR INDEX DocEmbeddingIndexLarge
@@ -1306,7 +1306,7 @@ OPTIONS (
 > **最佳实践**<sup>[[32]](#ref32)</sup>：
 >
 > 1. **先插入数据，后建索引**：向量索引的树结构在创建时基于现有数据优化，后续大量插入可能导致结构次优。
-> 2. **使用 STORING 子句**：将过滤条件列存储在索引中，可在叶节点层面直接过滤，显著提升性能。
+> 2. **使用 STORING 子句**：将经常用于过滤的标量列存储在向量索引中，避免查询时回表（lookup），显著提升带过滤条件的查询性能。
 > 3. **定期重建索引**：当数据分布发生显著变化时，重建索引可恢复最佳召回率。
 
 ### 6.4 搜索能力
@@ -1315,7 +1315,7 @@ Spanner 同时支持 **ANN（近似最近邻）** 和 **KNN（精确最近邻）
 
 | 搜索类型 | 函数                                                                              | 适用场景      | 特点                         |
 | :------- | :-------------------------------------------------------------------------------- | :------------ | :--------------------------- |
-| **ANN**  | `APPROX_COSINE_DISTANCE`<br/>`APPROX_EUCLIDEAN_DISTANCE`<br/>`APPROX_DOT_PRODUCT` | 大规模数据    | 利用向量索引加速，毫秒级响应 |
+| **ANN**  | `APPROXIMATE_COSINE_DISTANCE`<br/>`APPROXIMATE_EUCLIDEAN_DISTANCE`<br/>`APPROXIMATE_DOT_PRODUCT` | 大规模数据    | 利用向量索引加速，毫秒级响应 |
 | **KNN**  | `COSINE_DISTANCE`<br/>`EUCLIDEAN_DISTANCE`<br/>`DOT_PRODUCT`                      | 小规模/高精度 | 暴力搜索，100% 召回          |
 
 ```sql
@@ -1323,7 +1323,7 @@ Spanner 同时支持 **ANN（近似最近邻）** 和 **KNN（精确最近邻）
 SELECT DocId, DocContents
 FROM Documents
 WHERE DocEmbedding IS NOT NULL
-ORDER BY APPROX_COSINE_DISTANCE(
+ORDER BY APPROXIMATE_COSINE_DISTANCE(
     ARRAY<FLOAT32>[0.1, 0.2, ...],  -- 查询向量
     DocEmbedding,
     options => JSON '{"num_leaves_to_search": 10}'  -- 搜索参数
@@ -1344,7 +1344,7 @@ SELECT DocId, DocContents
 FROM Documents
 WHERE DocEmbedding IS NOT NULL
   AND Category = 'Technology'  -- 标量过滤
-ORDER BY APPROX_EUCLIDEAN_DISTANCE(
+ORDER BY APPROXIMATE_EUCLIDEAN_DISTANCE(
     ARRAY<FLOAT32>[0.1, 0.2, ...],
     DocEmbedding,
     options => JSON '{"num_leaves_to_search": 20}'  -- 带过滤时增大搜索范围
@@ -1354,12 +1354,12 @@ LIMIT 10;
 
 **距离函数选择指南**<sup>[[34]](#ref34)</sup>：
 
-| 数据特征           | 推荐函数             | 说明                              |
-| :----------------- | :------------------- | :-------------------------------- |
-| **归一化向量**     | `DOT_PRODUCT`        | 计算效率最高                      |
-| **非归一化向量**   | `COSINE_DISTANCE`    | 自带归一化，适用于大多数文本嵌入  |
-| **未知是否归一化** | `COSINE_DISTANCE`    | 最安全的选择                      |
-| **物理距离场景**   | `EUCLIDEAN_DISTANCE` | 衡量绝对距离，适用于图像/音频特征 |
+| 数据特征           | 推荐函数                       | 说明                              |
+| :----------------- | :----------------------------- | :-------------------------------- |
+| **归一化向量**     | `DOT_PRODUCT` / `APPROXIMATE_DOT_PRODUCT` | 计算效率最高                      |
+| **非归一化向量**   | `COSINE_DISTANCE` / `APPROXIMATE_COSINE_DISTANCE` | 自带归一化，适用于大多数文本嵌入  |
+| **未知是否归一化** | `COSINE_DISTANCE`              | 最安全的选择                      |
+| **物理距离场景**   | `EUCLIDEAN_DISTANCE`           | 衡量绝对距离，适用于图像/音频特征 |
 
 ### 6.5 集群架构
 
@@ -1451,7 +1451,7 @@ FROM ML.PREDICT(
 SELECT DocId, Content
 FROM Documents
 WHERE Embedding IS NOT NULL
-ORDER BY APPROX_COSINE_DISTANCE(
+ORDER BY APPROXIMATE_COSINE_DISTANCE(
     (SELECT ARRAY<FLOAT32>(embeddings.values)
      FROM ML.PREDICT(MODEL TextEmbeddingModel, (SELECT @Query AS content))),
     Embedding
@@ -1568,9 +1568,9 @@ answer = qa_chain.invoke({"query": "解释 GraphRAG 的工作原理"})
 | ------------- | ------------ | ----------- | ---------------- | ------------ | ----------- | ----------------- |
 | **开源协议**  | PostgreSQL   | AGPLv3/ELv2 | Apache 2.0       | BSD-3        | 商业        | 商业 (仅托管)     |
 | **部署模式**  | 单机/集群    | 单机/集群   | 分布式/托管      | 分布式/托管  | 仅托管      | 全球分布式/托管   |
-| **最大维度**  | 2,000 (HNSW) | 60,000      | 32,768           | 无限制       | 20,000      | 数千维 (768/1536) |
-| **向量索引**  | HNSW/IVF     | RaBitQ/HNSW | IVF/HNSW/DiskANN | HNSW/Flat    | 专有算法    | Tree-based Index  |
-| **ACID 事务** | ✅ 完整      | ✅ 完整     | ❌ 不支持        | ❌ 不支持    | ❌ 不支持   | ✅ 全球强一致性   |
+| **最大维度**  | 2,000 (HNSW vector) / 4,000 (HNSW halfvec) | 60,000      | 32,768           | 无限制       | 20,000      | 数千维 (768/1536) |
+| **向量索引**  | HNSW/IVF     | RaBitQ/HNSW | IVF/HNSW/DiskANN | HNSW/Flat    | 专有算法    | Tree-based (ScaNN) |
+| **ACID 事务** | ✅ 完整      | ✅ 完整     | ⚠️ 可调读一致性  | ⚠️ 可调一致性 (QUORUM/ALL) | ❌ 不支持   | ✅ 全球强一致性   |
 | **混合搜索**  | ✅ 全文检索  | ✅ 全文检索 | ✅ BM25          | ✅ BM25+向量 | ⚠️ 需双索引 | ✅ 全文 + Graph   |
 | **内置嵌入**  | ❌           | ❌          | ⚠️ pymilvus      | ✅ 多模块    | ✅ 集成     | ✅ Vertex AI      |
 | **GPU 加速**  | ❌           | ❌          | ✅ CAGRA         | ❌           | ❌          | ❌                |
@@ -1658,7 +1658,7 @@ graph LR
 
 <a id="ref2"></a>[2] pgvector, "Open-source vector similarity search for Postgres," _GitHub Repository_, 2024. [Online]. Available: https://github.com/pgvector/pgvector
 
-<a id="ref3"></a>[3] Y. A. Malkov and D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 40, no. 11, pp. 2529–2542, Nov. 2018.
+<a id="ref3"></a>[3] Y. A. Malkov and D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 42, no. 4, pp. 824–836, Apr. 2020.
 
 <a id="ref4"></a>[4] H. Jégou, M. Douze, and C. Schmid, "Product quantization for nearest neighbor search," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 33, no. 1, pp. 117–128, Jan. 2011.
 

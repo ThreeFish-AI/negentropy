@@ -14,6 +14,7 @@ import asyncio
 import logging
 import os
 import re
+from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 from ...base import Stage, StageResult
@@ -199,6 +200,10 @@ class FitzTextExtractor(PDFToolBase):
         每个 chunk 独立 ``fitz.open()`` 因 PyMuPDF Document 不可跨线程共享。
         返回 ``[(page_idx, in_page_blocks)]`` 列表（reading_order 暂为页内序号，
         全局序号由调用方重排）。
+
+        使用 ``get_text("dict")`` 提取字体信息以支持标题检测：
+        - 基于字号差异和文本模式识别章节标题；
+        - 过滤页眉页脚（含页码、重复 header）。
         """
         from ....pdf._imports import import_fitz
 
@@ -207,36 +212,143 @@ class FitzTextExtractor(PDFToolBase):
         out: List[Tuple[int, List[TextBlock]]] = []
         doc = fitz.open(pdf_path)
         try:
+            # Pass 1: 收集所有页面的正文字号分布，确定 body_font_size
+            body_size_counter: Counter = Counter()
+            page_dict_blocks: Dict[int, dict] = {}
             for page_idx in range(start_page, end_page):
                 page = doc[page_idx]
-                raw_blocks = page.get_text("blocks")
+                pd = page.get_text("dict")
+                page_dict_blocks[page_idx] = pd
+                for block in pd.get("blocks", []):
+                    if block.get("type") != 0:
+                        continue
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            size = round(span.get("size", 10), 1)
+                            text = span.get("text", "").strip()
+                            if text:
+                                body_size_counter[size] += len(text)
+
+            body_font_size = (
+                body_size_counter.most_common(1)[0][0] if body_size_counter else 10.0
+            )
+
+            # Pass 2: 提取文本块，检测标题，过滤页眉页脚
+            for page_idx in range(start_page, end_page):
+                pd = page_dict_blocks[page_idx]
+                page_height = pd.get("height", 792)
+                raw_blocks = pd.get("blocks", [])
 
                 page_blocks: List[TextBlock] = []
                 in_page_order = 0
-                for block in sorted(raw_blocks, key=lambda b: (b[1], b[0])):
-                    if block[6] != 0:  # 跳过非文本块
+                for block in sorted(
+                    raw_blocks,
+                    key=lambda b: (
+                        b.get("bbox", (0, 0, 0, 0))[1],
+                        b.get("bbox", (0, 0, 0, 0))[0],
+                    ),
+                ):
+                    if block.get("type") != 0:
                         continue
-                    text = block[4].strip()
+
+                    # 从 dict 块中提取文本和字体信息
+                    block_spans = []
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            text = span.get("text", "").strip()
+                            if text:
+                                block_spans.append(
+                                    {
+                                        "text": text,
+                                        "size": round(span.get("size", 10), 1),
+                                        "font": span.get("font", ""),
+                                        "flags": span.get("flags", 0),
+                                    }
+                                )
+
+                    if not block_spans:
+                        continue
+
+                    text = " ".join(s["text"] for s in block_spans)
+                    text = re.sub(r"\s+", " ", text).strip()
+
+                    # 重组 Small Caps 字间距碎片：PDF 使用 small caps + letter spacing 时，
+                    # PyMuPDF 提取为 "O PEN D EV" 这样的碎片化文本。
+                    # 检测模式：单字母间用空格分隔（如 "A B C"），重组为连续词。
+                    text = FitzTextExtractor._rejoin_spaced_words(text)
+
                     if not text:
                         continue
 
+                    # 过滤页眉页脚和页码
+                    if FitzTextExtractor._is_header_footer(
+                        text, block.get("bbox", (0, 0, 0, 0)), page_height
+                    ):
+                        continue
+
+                    max_size = max(s["size"] for s in block_spans)
+                    block_bbox = block.get("bbox", (0, 0, 0, 0))
                     bbox = (
-                        float(block[0]),
-                        float(block[1]),
-                        float(block[2]),
-                        float(block[3]),
+                        float(block_bbox[0]),
+                        float(block_bbox[1]),
+                        float(block_bbox[2]),
+                        float(block_bbox[3]),
                     )
 
-                    # 合并块内换行
                     text = re.sub(r"\n+", " ", text)
+
+                    # 清理页面 header 后缀（如 "SII-GAIR"），保留有意义的标题文本
+                    for suffix in ("SII-GAIR", "SII - GAIR"):
+                        if text.endswith(suffix):
+                            cleaned = text[: -len(suffix)].strip()
+                            if cleaned:
+                                text = cleaned
+                            break
+
+                    # 检测标题
+                    block_type = "paragraph"
+                    heading_level = None
+                    heading_info = FitzTextExtractor._detect_heading(
+                        text, max_size, body_font_size
+                    )
+                    if heading_info:
+                        block_type = "heading"
+                        heading_level = heading_info
+
+                    # 标题-段落合并拆分：PyMuPDF 有时将标题和首段合并为一个块
+                    heading_text, para_text = _split_merged_heading(text)
+                    if para_text:
+                        page_blocks.append(
+                            TextBlock(
+                                text=heading_text,
+                                page_number=page_idx,
+                                bbox=bbox,
+                                block_type="heading",
+                                heading_level=heading_level,
+                                reading_order=in_page_order,
+                            )
+                        )
+                        in_page_order += 1
+                        page_blocks.append(
+                            TextBlock(
+                                text=para_text,
+                                page_number=page_idx,
+                                bbox=bbox,
+                                block_type="paragraph",
+                                heading_level=None,
+                                reading_order=in_page_order,
+                            )
+                        )
+                        in_page_order += 1
+                        continue
 
                     page_blocks.append(
                         TextBlock(
                             text=text,
                             page_number=page_idx,
                             bbox=bbox,
-                            block_type="paragraph",
-                            heading_level=None,
+                            block_type=block_type,
+                            heading_level=heading_level,
                             reading_order=in_page_order,
                         )
                     )
@@ -246,6 +358,248 @@ class FitzTextExtractor(PDFToolBase):
         finally:
             doc.close()
         return out
+
+    @staticmethod
+    def _rejoin_spaced_words(text: str) -> str:
+        """重组 Small Caps 字间距碎片文本。
+
+        PDF 使用 small caps + letter spacing 时，PyMuPDF 按字距边界切分 span，
+        拼接后产生 "O PEN D EV" 这样的碎片化文本（应为 "OPENDEV"）。
+        策略：检测连续 3+ 个短大写标记（1-3 字母）由空格分隔的序列，
+        且大部分标记为单字母（Small Caps 碎片特征），将其合并为一个词。
+        正常大写词（如 "THE USA AND UK"）不满足单字母占比条件，不会被误合并。
+        """
+
+        def _rejoin_match(m: re.Match) -> str:
+            fragment = m.group(0)
+            tokens = fragment.split()
+            # Small Caps 碎片中大部分 token 为单字母（如 "O PEN D EV"），
+            # 正常大写词序列（如 "USA AND UK"）单字母占比低
+            single_letter_count = sum(1 for t in tokens if len(t) == 1)
+            if single_letter_count < len(tokens) * 0.4:
+                return fragment  # 不满足碎片特征，保留原文
+            return fragment.replace(" ", "")
+
+        text = re.sub(
+            r"(?<![A-Za-z])(?:[A-Z]{1,3} ){2,}[A-Z]{1,3}(?![A-Za-z])",
+            _rejoin_match,
+            text,
+        )
+        return text
+
+    @staticmethod
+    def _is_header_footer(text: str, bbox: tuple, page_height: float) -> bool:
+        """判断文本块是否为页眉页脚或页码。
+
+        检测策略：
+        1. 纯页码
+        2. arXiv 标识行
+        3. 位置启发式：页面顶部 5% 或底部 5% 区域内的短文本
+        4. ACM/IEEE 会议论文页眉模式（含 "Conference", "Proceedings" 等）
+        5. 仅含作者名列表的页脚行
+        """
+        text_stripped = text.strip()
+        text_len = len(text_stripped)
+
+        # 纯页码（纯数字，短文本）
+        if re.match(r"^\d{1,3}$", text_stripped):
+            return True
+
+        # arXiv 标识行
+        if text_stripped.startswith("arXiv:") and text_len < 80:
+            return True
+
+        # 单独的组织标识（剥离后可能残留）
+        if text_stripped in ("SII-GAIR", "SII - GAIR"):
+            return True
+
+        # 位置启发式：页面顶部/底部 5% 区域内的短文本
+        # 保护：要求文本长度 ≥ 20 以排除短标题（如 "Introduction"、"Results"）
+        # 页眉/页脚通常是会议简称 + 日期等组合，长度一般 ≥ 20
+        y0, y1 = bbox[1], bbox[3]
+        if y0 < page_height * 0.05 and 20 <= text_len <= 100:
+            return True
+
+        # 底部 5% 区域
+        if y1 > page_height * 0.95 and 20 <= text_len <= 100:
+            return True
+
+        # ACM/IEEE 会议论文页眉模式
+        _conf_patterns = [
+            r"Conference\s+acronym",
+            r"Proceedings\s+of",
+            r"In\s+Proceedings",
+            r"ACM\s+Reference\s+Format",
+            r"Permission\s+to\s+make\s+digital",
+            r"Copyright\s+.*\d{4}\s+ACM",
+        ]
+        for pat in _conf_patterns:
+            if re.search(pat, text_stripped, re.IGNORECASE):
+                return True
+
+        # DOI 行
+        if re.search(r"https?://doi\.org/", text_stripped) and text_len < 200:
+            return True
+
+        return False
+
+    @staticmethod
+    def _detect_heading(
+        text: str, max_font_size: float, body_font_size: float
+    ) -> Optional[int]:
+        """基于字号差异和文本模式检测标题级别。
+
+        编号模式（如 "5.1 Textual Context Processing"）优先于字号守卫，
+        因为学术论文中子标题经常使用与正文相同或接近的字号。
+
+        Returns:
+            heading_level (1-6) 如果识别为标题，否则 None。
+        """
+        text_stripped = text.strip()
+        text_lower = text_stripped.lower()
+
+        # 优先匹配编号章节标题，如 "1 Introduction", "2.1 Formal Definition",
+        # 也支持章号后带句号的格式，如 "2. Theoretical Framework"
+        numbered_match = re.match(r"^(\d+(?:\.\d+)*)\.?\s+(.+)$", text_stripped)
+        if numbered_match:
+            section_num = numbered_match.group(1)
+            section_title = numbered_match.group(2).strip()
+
+            # --- 误判过滤 ---
+            # 1. Section 0 从不是有效章节号（如 "0 † Corresponding author."）
+            if section_num == "0":
+                return None
+
+            # 2. 标题正文至少 2 字符
+            if len(section_title) < 2:
+                return None
+
+            # 3. TOC 条目：尾部含独立页码（如 "Introduction 3"）
+            if re.search(r"\s\d{1,3}$", section_title):
+                return None
+
+            # 4. TOC 条目：含点号引导符（"........"）
+            if "..." in section_title:
+                return None
+
+            # 5. TOC 条目：一行含多个子节编号（如 "2.1 Formal... 2.2 Stage..."）
+            #    子节号后紧跟大写字母（新标题开头），排除版本号引用如 "Era 1.0 and"
+            if re.search(r"\d+\.\d+\s+[A-Z]", section_title):
+                return None
+
+            # 6. 作者单位行：含多个编号项（如 "1 SJTU 2 SII 3 GAIR"）
+            if re.search(r"\b\d+\s+[A-Z]{2,}\b", section_title):
+                return None
+
+            # 7. URL（如 "1 https://github.com/..."）
+            if re.search(r"https?://", section_title):
+                return None
+
+            # 8. 编号列表项：标题正文过长且包含后续编号（如 "1. First point... 2. Second..."）
+            #    或正文以句号开头后紧跟长段落，区分真正的章节标题
+            if len(section_title) > 100:
+                return None
+
+            # 9. 正文含多个独立编号项（如 "2. Extended ReAct... 3. Behavioral..."）
+            if re.search(r"(?:^|\s)\d+\.\s+[A-Z]", section_title):
+                return None
+
+            depth = section_num.count(".") + 1
+            if depth == 1:
+                return 1
+            elif depth == 2:
+                return 2
+            elif depth == 3:
+                return 3
+            else:
+                return min(depth, 6)
+
+        # 字号守卫：仅对非编号模式的候选标题生效
+        if max_font_size <= body_font_size + 0.5:
+            return None
+
+        size_ratio = max_font_size / body_font_size if body_font_size > 0 else 1.0
+
+        # 匹配带前缀的章节标题，如 "Appendix A" 或 "Figure 1:"
+        if re.match(
+            r"^(Appendix\s+[A-Z]|Figure\s+\d|Table\s+\d)", text_stripped, re.IGNORECASE
+        ):
+            return 3
+
+        # 排除邮箱行（如 "# bdqnghi@gmail.com"）
+        if re.match(r"^#?\s*\S+@\S+\.\S+$", text_stripped):
+            return None
+
+        # 排除 footnote 标记行（如 "† Corresponding author"）
+        if re.match(r"^[†‡*§¶]\s", text_stripped) and len(text_stripped) < 100:
+            return None
+
+        # 特殊标题词（整个文本就是标题）
+        special_titles = {
+            "abstract",
+            "contents",
+            "references",
+            "acknowledgement",
+            "acknowledgments",
+            "bibliography",
+            "appendix",
+            "summary",
+            "conclusion",
+            "conclusions",
+            "keywords",
+        }
+        if text_lower in special_titles:
+            return 1
+
+        # 基于字号比推断级别
+        if size_ratio >= 1.6:
+            return 1
+        elif size_ratio >= 1.3:
+            return 2
+        elif size_ratio >= 1.15:
+            return 3
+
+        return None
+
+
+def _split_merged_heading(text: str) -> tuple[str, str]:
+    """拆分被 PyMuPDF 合并到同一块的标题与段落文本。
+
+    当标题行与紧跟的段落在同一文本块时，整个文本会被当成标题。
+    本函数通过启发式检测标题-段落边界，将标题与段落拆开。
+
+    Returns:
+        (heading_text, paragraph_text)。若无需拆分，paragraph_text 为空串。
+    """
+    if len(text) <= 120:
+        return text, ""
+
+    m = re.match(r"^(\d+(?:\.\d+)*)\s+(.+)$", text.strip())
+    if not m:
+        return text, ""
+
+    section_num = m.group(1)
+    title_and_para = m.group(2)
+    words = title_and_para.split()
+
+    if len(words) <= 8:
+        return text, ""
+
+    # 启发式：从第 3 个词开始，找到第一个满足 "该词后紧跟小写词" 的位置
+    # 标题通常是 Title Case（每词首字母大写），而段落句中词为小写。
+    # 在该词之前切割，前面是标题，后面是段落。
+    split_at = None
+    for i in range(2, min(len(words), 16)):
+        if i + 1 < len(words) and words[i + 1][0].islower():
+            split_at = i
+            break
+
+    if split_at is None or split_at < 2:
+        return text, ""
+
+    heading = f"{section_num} {' '.join(words[:split_at])}"
+    para = " ".join(words[split_at:])
+    return heading, para
 
 
 @register_tool("text_extraction.docling")

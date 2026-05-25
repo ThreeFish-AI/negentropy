@@ -43,6 +43,7 @@ class LoggingSettings(BaseSettings):
     console_level_width: int = Field(default=8, description="Console level column width")
     console_logger_width: int = Field(default=32, description="Console logger column width")
     console_separator: str = Field(default=" | ", description="Console column separator")
+    service_name: str = Field(default="backend", description="Service identity prefix for log lines")
 
     @classmethod
     def settings_customise_sources(

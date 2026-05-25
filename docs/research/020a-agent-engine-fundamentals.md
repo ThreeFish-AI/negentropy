@@ -30,20 +30,17 @@ graph TB
     subgraph "Service Interface Layer (Abstract)"
         SS[SessionService<br>I/O & State]
         MS[MemoryService<br>Long-term Storage]
-        AS[ArtifactService<br>File Management]
     end
 
     subgraph "Agent Engine Adapters (Concrete)"
         PSS[PostgresSessionService]
         PMS[PostgresMemoryService]
-        PAS[PostgresArtifactService]
     end
 
-    R --> SS & MS & AS
+    R --> SS & MS
     A --> R
     SS -.-> PSS
     MS -.-> PMS
-    AS -.-> PAS
 
     style R fill:#4285f4,color:#fff
     style PSS fill:#34a853,color:#fff
@@ -58,7 +55,7 @@ ADK 默认的 InMemory 模式 MemoryBank 实现是不满足生存要求的，通
 | :-------------------------- | :------------------------------------------------------------------------------------------------- |
 | **Memory**: Simple List     | **Vector Search**: 使用 `PGVector` 进行真实的语义与关键字等融合检索、记忆巩固、权重衰减的遗忘机制  |
 | **Search**: Naive Filtering | **Iterative Scan**: 使用 `hnsw.iterative_scan` 避免高过滤场景的 "Recall@0" 问题                    |
-| **Concurrency**: None       | **Optimistic Locking**: 使用 `xmin` / `version` 的 CAS (Compare-And-Swap) 防止状态覆盖，实现高并发 |
+| **Concurrency**: None       | **Optimistic Locking**: 使用 `version` 字段的 CAS (Compare-And-Swap) 防止状态覆盖，实现高并发 |
 
 ## 2. ADK Runner 驱动与交互
 
@@ -87,8 +84,7 @@ sequenceDiagram
     end
 
     Agent-->>Runner: Final Event
-    Runner->>SS: finalize_session()
-    Note over SS: Commit Transaction (ACID)
+    Note over SS: 事件已通过 append_event 原子持久化
 
     opt Memory Consolidation
         Runner->>MS: add_session_to_memory()
@@ -100,10 +96,10 @@ sequenceDiagram
 
 | Behavior           | Description                                     | Implementation Detail                         |
 | :----------------- | :---------------------------------------------- | :-------------------------------------------- |
-| **State Commit**   | `state_delta` 仅在 Event 被 Runner 处理后才提交 | 需在 `append_event` / `finalize` 中原子更新   |
+| **State Commit**   | `state_delta` 仅在 Event 被 Runner 处理后才提交 | 需在 `append_event` 中通过事务原子更新 |
 | **Dirty Reads**    | 同一 Invocation 内可见未提交的 State 变更       | 内存缓存 + 最终 PG 持久化                     |
-| **Event Ordering** | Events 必须严格按序列号排序                     | 使用 `BIGSERIAL` / `UUIDv7` 保证 IDs 自增顺序 |
-| **Prefix Routing** | 不同前缀路由到不同存储位置                      | 解析 Session ID 前缀后分发到对应表            |
+| **Event Ordering** | Events 必须严格按序列号排序                     | 使用 `BIGSERIAL` 保证 IDs 自增顺序 |
+| **Prefix Routing** | 不同前缀路由到不同存储位置                      | 解析 `state_delta` 键前缀 (`user:` / `app:` / `temp:`) 后分发到对应表 |
 
 ### 2.2 MemoryService 关键行为 (P2)
 
@@ -115,20 +111,20 @@ sequenceDiagram
 
 ## 3. 核心模块
 
-以下是 Agent Engine Adaptation 核心模块说明与代码关联（实际代码：`src/cognizes/adapters/postgres/`）。
+以下是 Agent Engine Adaptation 核心模块说明与代码关联（实际代码：`apps/cognizes/src/cognizes/adapters/postgres/` 及 `apps/cognizes/src/cognizes/engine/`）。
 
-| Tag     | Component Name            | Function                                                                                             | Code Path                                             |
-| :------ | :------------------------ | :--------------------------------------------------------------------------------------------------- | :---------------------------------------------------- |
-| Feature | **PostgreSessionService** | **P1**: 完全兼容 ADK `BaseSessionService` 接口的 PostgreSQL 适配器                                   | `src/cognizes/adapters/postgres/session_service.py`   |
-|         | **PostgreMemoryService**  | **P2**: 完全兼容 ADK `BaseMemoryService` 接口的 PostgreSQL 适配器，提供记忆巩固等能力                | `src/cognizes/adapters/postgres/memory_service.py`    |
-|         | _PostgreKnowledgeService_ | **P3**: RAG Pipeline 与 Hybrid Search 封装，通过 MCP Server 暴露                                     | `src/cognizes/adapters/postgres/knowledge_service.py` |
-|         | **ToolRegistry**          | **P4**: 数据库驱动的动态工具注册表，支持 OpenAPI Schema 动态加载与热更新                             | `src/cognizes/adapters/postgres/tool_registry.py`     |
-|         | **Tracing**               | **P4**: OpenTelemetry 双路导出集成 ，支持 Langfuse + PostgreSQL                                      | `src/cognizes/adapters/postgres/tracing.py`           |
-|         | **AgentExecutor**         | **P4**: 与 ADK Runner 协同，Python 驱动的 Agent 执行器，管理 `Thought -> Action -> Observation` 循环 | `src/cognizes/engine/mind/agent_executor.py`          |
-| Test    | SessionServiceTest        | PostgresSessionService 单元测试，覆盖 ADK BaseSessionService 接口所有方法                            | `tests/unittests/mind/test_session_service.py`        |
-|         | ADKLlmAgentTest           | ADK Runner 集成示例，验证 `PostgresSessionService` 与 Google ADK `LlmAgent` + `Runner` 的完整协同    | `tests/integration/mind/test_adk_llmagent.py`         |
-|         | ADKIntegrationTest        | 验证 adk-postgres 与 Google ADK LlmAgent 的完整集成                                                  | `tests/integration/mind/test_adk_integration.py`      |
-|         | E2ETest                   | E2E 集成测试 - 完整对话流程，验证 Session -> Agent -> Tool -> Memory 全链路                          | `tests/integration/mind/test_e2e.py`                  |
+| Tag     | Component Name            | Function                                                                                             | Code Path                                                        |
+| :------ | :------------------------ | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
+| Feature | **PostgresSessionService** | **P1**: 完全兼容 ADK `BaseSessionService` 接口的 PostgreSQL 适配器                                   | `apps/cognizes/src/cognizes/adapters/postgres/session_service.py`   |
+|         | **PostgresMemoryService**  | **P2**: 完全兼容 ADK `BaseMemoryService` 接口的 PostgreSQL 适配器，提供记忆巩固等能力                | `apps/cognizes/src/cognizes/adapters/postgres/memory_service.py`    |
+|         | _KnowledgeService_        | **P3**: RAG Pipeline 与 Hybrid Search 封装 (位于 `engine/perception/`)                               | `apps/cognizes/src/cognizes/engine/perception/rag_pipeline.py` |
+|         | **ToolRegistry**          | **P4**: 数据库驱动的动态工具注册表，支持 OpenAPI Schema 动态加载与热更新                             | `apps/cognizes/src/cognizes/adapters/postgres/tool_registry.py`     |
+|         | **Tracing**               | **P4**: OpenTelemetry 双路导出集成 ，支持 Langfuse + PostgreSQL                                      | `apps/cognizes/src/cognizes/adapters/postgres/tracing.py`           |
+|         | **AgentExecutor**         | **P4**: 与 ADK Runner 协同，Python 驱动的 Agent 执行器，管理 `Thought -> Action -> Observation` 循环 | `apps/cognizes/src/cognizes/engine/mind/agent_executor.py`          |
+| Test    | SessionServiceTest        | PostgresSessionService 单元测试，覆盖 ADK BaseSessionService 接口所有方法                            | `apps/cognizes/tests/unittests/engine/mind/test_session_service.py` |
+|         | ADKLlmAgentTest           | ADK Runner 集成示例，验证 `PostgresSessionService` 与 Google ADK `LlmAgent` + `Runner` 的完整协同    | `apps/cognizes/tests/integration/engine/mind/test_adk_llmagent.py`  |
+|         | ADKIntegrationTest        | 验证 adk-postgres 与 Google ADK LlmAgent 的完整集成                                                  | `apps/cognizes/tests/integration/engine/mind/test_adk_integration.py` |
+|         | E2ETest                   | E2E 集成测试 - 完整对话流程，验证 Session -> Agent -> Tool -> Memory 全链路                          | `apps/cognizes/tests/integration/engine/mind/test_e2e.py`           |
 
 ## 4. Table Schema
 
@@ -207,7 +203,9 @@ erDiagram
 | **traces**             | OpenTelemetry Trace 存储 | Langfuse/OTLP         | 按策略清理 |
 | **sandbox_executions** | 沙箱执行记录             | Code Interpreter Log  | 按策略清理 |
 
-## 3. 附录
+## 5. 附录：Vertex AI Agent Engine 定价参考
+
+> **注**: 以下为 Google Vertex AI Agent Engine 的云端托管定价（截至 2025 年），本项目采用自托管 PostgreSQL，不适用此定价。
 
 - SessionStore: $0.25/1000 events;
 - MemoryBank.MemoriesStoredPerMonth: $0.25/1000 memories;

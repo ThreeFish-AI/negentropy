@@ -73,7 +73,7 @@
 
 ### 5.1 Phase 2: Memory Management (仿生 Google Memory Bank)
 
-- **Google 做法**:
+- **Google 做法**（注：ADK 2.0.0 GA 中实际基类名为 `BaseSessionService` / `BaseMemoryService`，以下使用概念名简称）:
   1.  `SessionService` 管理 Session 生命周期。
   2.  `MemoryService.add_session_to_memory()` 或 `generate_memories()` 触发异步 Extraction/Consolidation。
   3.  Memory Bank 使用 LLM 提取 Insights，支持 TTL 和 Memory Revisions。
@@ -104,4 +104,4 @@
 2.  **核心差异**: 最大的 gap 在于 **"Async Memory Consolidation"** 的实现。Google 有现成的托管服务 (Memory Bank)，而利用 PG 需要我们在应用层（Python Worker）或数据库层（Scheduled Task）构建这套异步提炼机制。
 3.  **下一步行动**:
     - **Phase 2**: 设计 `agent_sessions` 和 `agent_memories` 表，实现 Memory Consolidation Worker。
-    - **Phase 4**: 开发 `adk-pg` Python 包，将 ADK 的 `SessionService` 和 `MemoryService` 接口适配到 PG。
+    - **Phase 4**: 开发 `adk-oceanbase` Python 包（与 Phase 1 统一包名），将 ADK 的 `SessionService` 和 `MemoryService` 接口适配到 OceanBase/PG。

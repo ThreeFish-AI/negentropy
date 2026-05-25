@@ -21,7 +21,7 @@ async function mockAuthenticatedUser(page: import("@playwright/test").Page) {
 // Dashboard
 // ============================================================================
 
-test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
+test("Memory Dashboard 展示指标卡片", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   await page.route("**/api/memory/dashboard**", async (route) => {
@@ -42,31 +42,20 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
   });
 
   await page.goto("/dashboard");
-  await page.waitForLoadState("networkidle");
 
-  // Memory Section 应可见
-  await expect(page.getByText("Memory Overview")).toBeVisible();
+  // Memory CellGroup label 应可见
+  await expect(page.getByText("Memory", { exact: true }).first()).toBeVisible({ timeout: 10000 });
 
-  // 验证 8 个标签（DOM 文本为小写，CSS `uppercase` 视觉转换；用精确匹配避免 strict mode violation）
-  await expect(page.getByText("Users", { exact: true })).toBeVisible();
-  await expect(page.getByText("Memories", { exact: true })).toBeVisible();
+  // 验证指标标签（DashboardHeaderStrip MetricCell）
+  await expect(page.getByText("Users", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Memories", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Facts", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Avg Retention", { exact: true })).toBeVisible();
+  await expect(page.getByText("Avg Retention", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("87.6%")).toBeVisible();
-  await expect(page.getByText("Avg Importance", { exact: true })).toBeVisible();
+  await expect(page.getByText("Avg Importance", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("54.3%")).toBeVisible();
-  await expect(page.getByText("Low Retention", { exact: true })).toBeVisible();
-  await expect(page.getByText("High Importance", { exact: true })).toBeVisible();
-  await expect(page.getByText("Recent Audits", { exact: true })).toBeVisible();
-
-  // 验证卡片数值（限定到 Memory Overview section 内，避免匹配 Dashboard 其他 section 的 .grid > div）
-  const memorySection = page.locator("section").filter({ hasText: "Memory Overview" });
-  const cards = memorySection.locator(".grid > div");
-  await expect(cards).toHaveCount(8);
-  // Spot check specific values using card-scoped locators
-  await expect(cards.nth(0).locator("p").last()).toHaveText("7");
-  await expect(cards.nth(1).locator("p").last()).toHaveText("42");
-  await expect(cards.nth(2).locator("p").last()).toHaveText("15");
+  await expect(page.getByText("Alerts", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("2 low / 8 high")).toBeVisible();
 });
 
 test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
@@ -91,8 +80,11 @@ test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
 
   await page.goto("/dashboard");
 
-  // Memory Section 应可见
-  await expect(page.getByText("Memory Overview")).toBeVisible();
+  // Memory CellGroup label 应可见
+  await expect(page.getByText("Memory", { exact: true }).first()).toBeVisible();
+
+  // 展开 Memory 详情面板
+  await page.getByText("Memory 详情").click();
 
   // 点击展开 Retrieval Metrics
   await page.getByText("Retrieval Metrics").click();

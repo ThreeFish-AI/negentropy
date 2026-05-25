@@ -110,7 +110,7 @@ flowchart TD
 对应代码锚点：
 
 - 传输入口：[route.ts](../../apps/negentropy-ui/app/api/agui/route.ts)
-- ADK 到 AGUI 归一化：[adk.ts](../../apps/negentropy-ui/lib/adk.ts)
+- ADK 到 AGUI 归一化：[agui-normalization.ts](../../apps/negentropy-ui/utils/agui-normalization.ts)
 - Session Application Service：[useSessionService.ts](../../apps/negentropy-ui/features/session/hooks/useSessionService.ts)
 - Session List Service：[useSessionListService.ts](../../apps/negentropy-ui/features/session/hooks/useSessionListService.ts)
 - Session Projection / Message Ledger：[message-ledger.ts](../../apps/negentropy-ui/utils/message-ledger.ts)
@@ -317,6 +317,6 @@ flowchart TD
 
 <a id="ref2"></a>[2] AG-UI Docs, "Messages," *AG-UI Documentation*, 2026. [Online]. Available: https://docs.ag-ui.com/concepts/messages
 
-<a id="ref3"></a>[3] AG-UI Docs, "Generative User Interfaces," *AG-UI Documentation*, 2026. [Online]. Available: https://docs.ag-ui.com/concepts/generative-ui
+<a id="ref3"></a>[3] AG-UI Docs, "Generative UI Specifications," *AG-UI Documentation*, 2026. [Online]. Available: https://docs.ag-ui.com/concepts/generative-ui-specs
 
-<a id="ref4"></a>[4] A2UI, "A2UI Specification v0.8," *A2UI Documentation*, 2026. [Online]. Available: https://a2ui.org/specification
+<a id="ref4"></a>[4] A2UI, "A2UI Concepts Overview," *A2UI Documentation*, 2026. [Online]. Available: https://a2ui.org/concepts/overview/

@@ -69,14 +69,21 @@ class TestReplaceImagePlaceholders:
         assert "<!-- image -->" in result  # 第二个保留
 
     def test_more_images_than_placeholders(self) -> None:
+        """多余图片在默认 append_orphans=True 下作为孤儿追加；
+        关闭后则不应在文档中出现。"""
         md = "<!-- image -->"
         images = [
             FakeImage(filename="a.png", caption="A"),
             FakeImage(filename="b.png", caption="B"),
         ]
-        result = normalize_image_references(md, images)
-        assert "![A](./images/a.png)" in result
-        assert "b.png" not in result  # 多余图片不引用
+        result_default = normalize_image_references(md, images)
+        assert "![A](./images/a.png)" in result_default
+        # 默认追加孤儿（Phase 3）
+        assert "![B](./images/b.png)" in result_default
+
+        result_no_orphan = normalize_image_references(md, images, append_orphans=False)
+        assert "![A](./images/a.png)" in result_no_orphan
+        assert "b.png" not in result_no_orphan  # 关闭后多余图片不引用
 
     def test_no_placeholders_no_change(self) -> None:
         md = "# Title\nSome text"
@@ -166,6 +173,50 @@ class TestNormalizeExistingRefs:
         assert "![b](./images/img_b.png)" in result  # 保持不变
         assert "data:image/png;base64,abc=" in result  # data URI 不动
         assert "![d](./images/img_d.png)" in result
+
+
+# ============================================================
+# 孤儿图追加（Phase 3）
+# ============================================================
+class TestOrphanImageAppend:
+    """落盘图未被 Markdown 引用时，按列表顺序追加到文档末尾。"""
+
+    def test_single_orphan_appended(self) -> None:
+        md = "# Doc\n\nSome content."
+        images = [FakeImage(filename="fig_p39_1.png", caption="Figure 13: lifecycle")]
+        result = normalize_image_references(md, images)
+        assert "![Figure 13: lifecycle](./images/fig_p39_1.png)" in result
+        assert result.rstrip().endswith("(./images/fig_p39_1.png)")
+
+    def test_referenced_image_not_duplicated(self) -> None:
+        md = "# Doc\n\n![a](./images/fig_a.png)"
+        images = [FakeImage(filename="fig_a.png", caption="A")]
+        result = normalize_image_references(md, images)
+        assert result.count("fig_a.png") == 1
+
+    def test_mixed_referenced_and_orphan(self) -> None:
+        md = "# Doc\n\n![a](fig_a.png)\n"
+        images = [
+            FakeImage(filename="fig_a.png", caption="A"),
+            FakeImage(filename="fig_b.png", caption="B (orphan)"),
+        ]
+        result = normalize_image_references(md, images)
+        assert "![a](./images/fig_a.png)" in result
+        assert "![B (orphan)](./images/fig_b.png)" in result
+        # 顺序：a 在 b 之前
+        assert result.index("fig_a.png") < result.index("fig_b.png")
+
+    def test_orphan_with_no_caption_uses_filename(self) -> None:
+        md = "# Doc"
+        images = [FakeImage(filename="orphan.png", caption=None)]
+        result = normalize_image_references(md, images)
+        assert "![orphan.png](./images/orphan.png)" in result
+
+    def test_append_orphans_disabled(self) -> None:
+        md = "# Doc"
+        images = [FakeImage(filename="orphan.png", caption="X")]
+        result = normalize_image_references(md, images, append_orphans=False)
+        assert "orphan.png" not in result
 
 
 # ============================================================

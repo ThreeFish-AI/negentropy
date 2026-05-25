@@ -52,7 +52,7 @@ Knowledge Base（知识库）系统是一种将结构化与非结构化数据转
 | ------------- | ---------- | ---------------------------- | ------------ |
 | **RAGFlow**   | Infiniflow | 深度文档理解 RAG 引擎        | 45K+         |
 | **WeKnora**   | Tencent    | LLM 驱动的文档理解与检索框架 | 2K+          |
-| **Dify**      | LangGenius | 生产级 Agentic 工作流平台    | 90K+         |
+| **Dify**      | LangGenius | 生产级 Agentic 工作流平台    | 138K+        |
 | **FastGPT**   | Labring    | 可视化 AI 工作流知识库       | 25K+         |
 | **QAnything** | 网易有道   | 本地知识库问答系统           | 15K+         |
 | **Quivr**     | QuivrHQ    | 个人知识助手                 | 40K+         |
@@ -863,7 +863,7 @@ flowchart LR
 
 <a id="ref8"></a>[8] Meilisearch, "Hybrid Search Explained: Combining Semantic and Keyword Search," Meilisearch Blog, 2024. [Online]. Available: https://www.meilisearch.com/blog/hybrid-search
 
-<a id="ref9"></a>[9] Amazon Web Services, "Advanced Parsing and Chunking in Amazon Bedrock Knowledge Bases," AWS Blog, Jul. 2024. [Online]. Available: https://aws.amazon.com/blogs/aws/amazon-bedrock-knowledge-bases-chunking
+<a id="ref9"></a>[9] Amazon Web Services, "Amazon Bedrock Knowledge Bases now supports advanced parsing, chunking, and query reformulation," _AWS Machine Learning Blog_, Jul. 2024. [Online]. Available: https://aws.amazon.com/blogs/machine-learning/amazon-bedrock-knowledge-bases-now-supports-advanced-parsing-chunking-and-query-reformulation-giving-greater-control-of-accuracy-in-rag-based-applications/
 
 <a id="ref10"></a>[10] V. Karpukhin, B. Oğuz, S. Min, et al., "Dense Passage Retrieval for Open-Domain Question Answering," _arXiv preprint arXiv:2004.04906_, 2020.
 

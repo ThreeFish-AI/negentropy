@@ -770,6 +770,46 @@ class DoclingFormulaEnricher:
         )
         # "\ text" → "\text"
         text = re.sub(r"\\ ([a-zA-Z]+)", r"\\\1", text)
+        # "\mathcal {E}" → "\mathcal{E}" — LaTeX 命令与花括号间异常空格
+        text = re.sub(r"(\\[a-zA-Z]+) \{", r"\1{", text)
+
+        # 1.5 压缩 LaTeX 花括号外裸标识符的空格碎片
+        # "C h a r" → "Char", "i m p o r a l" → "imporal"
+        # 仅在 $$...$$ 和 $...$ 定界符内操作，且要求至少 3 个连续字母+空格模式
+        def _compress_fragmentation(delimited_text: str) -> str:
+            def _fix_inline(m: re.Match) -> str:
+                body = m.group(1)
+                compressed = re.sub(
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] )+[a-zA-Z])\b",
+                    lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
+                    body,
+                )
+                return f"${compressed}$"
+
+            def _fix_block(m: re.Match) -> str:
+                body = m.group(1)
+                compressed = re.sub(
+                    r"\b([a-zA-Z]) ((?:[a-zA-Z] )+[a-zA-Z])\b",
+                    lambda inner: inner.group(1) + inner.group(2).replace(" ", ""),
+                    body,
+                )
+                return f"$${compressed}$$"
+
+            # 处理 $$...$$ 块级公式
+            delimited_text = re.sub(
+                r"\$\$([\s\S]+?)\$\$",
+                _fix_block,
+                delimited_text,
+            )
+            # 处理 $...$ 行内公式
+            delimited_text = re.sub(
+                r"(?<!\$)\$(?!\$)([^$]+?)\$(?!\$)",
+                _fix_inline,
+                delimited_text,
+            )
+            return delimited_text
+
+        text = _compress_fragmentation(text)
 
         # 2. 清理环境包裹（保留内容）
         text = re.sub(r"\\begin\{(align|equation|gather)\*?\}", "", text)
@@ -778,6 +818,8 @@ class DoclingFormulaEnricher:
 
         # 3. 规范化等式编号
         text = re.sub(r"\s*\\tag\{(\d+)\}", r" \\qquad (\1)", text)
+        # 3.1 清理对齐标记混入的公式编号: "& ( N )" → "\\qquad (N)"
+        text = re.sub(r"&\s*\(\s*(\d+)\s*\)", r"\\qquad (\1)", text)
 
         return text.strip()
 
@@ -786,13 +828,21 @@ class DoclingFormulaEnricher:
 # 7. 公式保护工具（供 formatter.py 使用）
 # ---------------------------------------------------------------------------
 
-# 匹配所有数学定界符区域
+# 匹配所有数学定界符区域。
+#
+# inline `$ ... $` 设计要点（防误识 USD 货币）：
+#   - 开头 `$` 不得紧跟 `$`（已被 `$$` 匹配）或数字（USD 模式 `$200`）
+#   - 内容禁用 `\n`：LaTeX inline math 不跨段，避免如 `$2.86M ... $200` 误把
+#     横跨大量段落的非数学正文当成 math，造成 typography 保护范围爆炸（实测
+#     71 页学术论文中 `$0.30/MTok ... $200 to $125` 三对货币号导致整段被
+#     保护，连带断字合并失效）
+#   - 结尾 `$` 后不得紧跟数字，进一步阻断 USD 价格表达式
 _MATH_DELIMITERS = re.compile(
     r"""
-    (?:\$\$[\s\S]+?\$\$)       # $$ ... $$
-    |(?:\\\[[\s\S]+?\\\])      # \[ ... \]
-    |(?:\\\([\s\S]+?\\\))      # \( ... \)
-    |(?<!\$)\$(?!\$)[^$]+?\$   # $ ... $ (排除 $$)
+    (?:\$\$[\s\S]+?\$\$)            # $$ ... $$
+    |(?:\\\[[\s\S]+?\\\])           # \[ ... \]
+    |(?:\\\([\s\S]+?\\\))           # \( ... \)
+    |(?<!\$)\$(?![\$\d])[^$\n]+?\$(?!\d)   # $ ... $ inline，不跨行 + 非货币
     """,
     re.VERBOSE,
 )

@@ -1582,6 +1582,23 @@ async def test_builtin_tool(
         except Exception as exc:
             return BuiltinToolTestResponse(success=False, message=f"Connection failed: {exc}")
 
+    if tool.tool_type == "claude_code":
+        from negentropy.engine.claude_code.models import ClaudeCodeConfig
+        from negentropy.engine.claude_code.service import ClaudeCodeService
+
+        cc_config = ClaudeCodeConfig(
+            cli_path=config.get("cli_path", "claude"),
+            model=config.get("model"),
+            timeout_seconds=15.0,
+        )
+        result = await ClaudeCodeService.test_connection(cc_config)
+        latency = result.get("latency_ms")
+        return BuiltinToolTestResponse(
+            success=result["success"],
+            message=result["message"],
+            latency_ms=latency,
+        )
+
     return BuiltinToolTestResponse(success=False, message=f"Test not supported for tool type: {tool.tool_type}")
 
 

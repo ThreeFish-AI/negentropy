@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUp, Paperclip, Square, Sparkles } from "lucide-react";
 
 import type { ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
 import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
@@ -108,6 +109,20 @@ export function Composer({
   const [popoverQuery, setPopoverQuery] = useState("");
   const triggerRangeRef = useRef<{ start: number; end: number } | null>(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+
+  // --------------------------------------------------------------------
+  // Auto-resize：根据内容动态调整 textarea 高度
+  // --------------------------------------------------------------------
+  const adjustHeight = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+  }, []);
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value, adjustHeight]);
 
   const recomputePopoverPos = useCallback(() => {
     const ta = textareaRef.current;
@@ -232,10 +247,20 @@ export function Composer({
 
   const showStop = Boolean(isGenerating && onCancel);
 
+  const hasContent = Boolean(
+    (showMentions && mentions && mentions.length > 0) ||
+    (showAttachments && attachments && attachments.length > 0) ||
+    attachmentError,
+  );
+
   return (
     <form
       data-testid="composer-form"
-      className="mt-6 rounded-2xl border border-border bg-card p-4"
+      className={`group/composer rounded-2xl border bg-card p-3 transition-all duration-200 ${
+        dragOver
+          ? "border-amber-400/80 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]"
+          : "border-border/60 shadow-sm focus-within:shadow-md focus-within:border-text-secondary/30"
+      }`}
       autoComplete="off"
       onSubmit={(e) => e.preventDefault()}
       onDragEnter={(e) => {
@@ -259,67 +284,120 @@ export function Composer({
         handleAddFiles(e.dataTransfer.files);
       }}
     >
-      <textarea
-        ref={textareaRef}
-        name="prompt_content"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        data-testid="composer-textarea"
-        className={`h-28 w-full resize-none rounded-lg border bg-input p-3 text-sm outline-none placeholder:text-input-placeholder ${
-          dragOver
-            ? "border-amber-400 ring-2 ring-amber-300/60"
-            : "border-border focus:border-text-secondary"
-        }`}
-        placeholder={dragOver ? "释放以添加附件..." : "输入指令..."}
-        value={value}
-        onChange={(event) => {
-          const next = event.target.value;
-          onChange(next);
-          if (showMentions) {
-            // 同步对齐 mention offset，防止编辑前缀导致区间漂移
-            if (mentions && onMentionsChange && mentions.length > 0) {
-              const reconciled = reconcileMentions(value, next, mentions);
-              if (reconciled !== mentions) onMentionsChange(reconciled);
+      {/* Mention chips */}
+      {showMentions && mentions && mentions.length > 0 && (
+        <div className="mb-2" data-testid="composer-mentions-wrapper">
+          <MentionChipList mentions={mentions} onRemove={handleMentionRemove} />
+        </div>
+      )}
+
+      {/* Attachment chips */}
+      {showAttachments && attachments && attachments.length > 0 && (
+        <div className="mb-2" data-testid="composer-attachments">
+          <AttachmentChipList
+            attachments={attachments}
+            onRemove={handleRemoveAttachment}
+          />
+        </div>
+      )}
+
+      {/* Attachment error */}
+      {attachmentError && (
+        <div
+          className="mb-2 rounded-lg bg-rose-50 px-3 py-1.5 text-xs text-rose-700 dark:bg-rose-950/40 dark:text-rose-200"
+          data-testid="composer-attachment-error"
+        >
+          {attachmentError}
+        </div>
+      )}
+
+      {/* Textarea + Send button row */}
+      <div className="flex items-end gap-2">
+        <textarea
+          ref={textareaRef}
+          name="prompt_content"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-testid="composer-textarea"
+          className="min-h-[52px] max-h-[200px] w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-input-placeholder"
+          placeholder={dragOver ? "释放以添加附件..." : "输入指令..."}
+          value={value}
+          rows={1}
+          onChange={(event) => {
+            const next = event.target.value;
+            onChange(next);
+            if (showMentions) {
+              // 同步对齐 mention offset，防止编辑前缀导致区间漂移
+              if (mentions && onMentionsChange && mentions.length > 0) {
+                const reconciled = reconcileMentions(value, next, mentions);
+                if (reconciled !== mentions) onMentionsChange(reconciled);
+              }
+              tryDetectTrigger(next, event.target.selectionStart ?? next.length);
             }
-            tryDetectTrigger(next, event.target.selectionStart ?? next.length);
-          }
-        }}
-        onSelect={(event) => {
-          if (!showMentions) return;
-          const ta = event.currentTarget;
-          tryDetectTrigger(ta.value, ta.selectionStart ?? ta.value.length);
-        }}
-        onCompositionStart={() => {
-          isComposingRef.current = true;
-          setPopoverOpen(false);
-        }}
-        onCompositionEnd={(event) => {
-          isComposingRef.current = false;
-          if (showMentions) {
+          }}
+          onSelect={(event) => {
+            if (!showMentions) return;
             const ta = event.currentTarget;
             tryDetectTrigger(ta.value, ta.selectionStart ?? ta.value.length);
-          }
-        }}
-        onKeyDown={(event) => {
-          // 弹层打开时，↑↓ Enter Tab Esc 由 MentionPopover 全局监听拦截，
-          // textarea 自身仅在 Enter 未被拦截（弹层关闭/无候选）时触发发送。
-          if (event.key === "Enter" && !event.shiftKey && !popoverOpen) {
-            event.preventDefault();
-            onSend();
-          }
-        }}
-        onBlur={(event) => {
-          // 仅当焦点离开 textarea + 不在 mention 弹层内部时关闭
-          // —— 点击 Popover Tab / 候选项不应关闭弹层。
-          const next = event.relatedTarget as HTMLElement | null;
-          if (next && next.closest('[data-testid="mention-popover"]')) {
-            return;
-          }
-          setTimeout(() => setPopoverOpen(false), 150);
-        }}
-      />
+          }}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+            setPopoverOpen(false);
+          }}
+          onCompositionEnd={(event) => {
+            isComposingRef.current = false;
+            if (showMentions) {
+              const ta = event.currentTarget;
+              tryDetectTrigger(ta.value, ta.selectionStart ?? ta.value.length);
+            }
+          }}
+          onKeyDown={(event) => {
+            // 弹层打开时，↑↓ Enter Tab Esc 由 MentionPopover 全局监听拦截，
+            // textarea 自身仅在 Enter 未被拦截（弹层关闭/无候选）时触发发送。
+            if (event.key === "Enter" && !event.shiftKey && !popoverOpen) {
+              event.preventDefault();
+              onSend();
+            }
+          }}
+          onBlur={(event) => {
+            // 仅当焦点离开 textarea + 不在 mention 弹层内部时关闭
+            // —— 点击 Popover Tab / 候选项不应关闭弹层。
+            const next = event.relatedTarget as HTMLElement | null;
+            if (next && next.closest('[data-testid="mention-popover"]')) {
+              return;
+            }
+            setTimeout(() => setPopoverOpen(false), 150);
+          }}
+        />
+
+        {/* Send / Stop button */}
+        {showStop ? (
+          <button
+            type="button"
+            data-testid="composer-stop-button"
+            aria-label="Stop"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-all hover:bg-rose-700"
+            onClick={onCancel}
+          >
+            <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            data-testid="composer-send-button"
+            aria-label="Send"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:opacity-90 disabled:opacity-25 disabled:cursor-not-allowed"
+            onClick={onSend}
+            disabled={disabled || !value.trim() || !!isBlocked}
+          >
+            <ArrowUp className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
+      {/* Mention popover */}
       {showMentions && (
         <MentionPopover
           open={popoverOpen}
@@ -335,29 +413,37 @@ export function Composer({
           onClose={() => setPopoverOpen(false)}
         />
       )}
-      {showMentions && mentions && mentions.length > 0 && (
-        <div className="mt-2" data-testid="composer-mentions-wrapper">
-          <MentionChipList mentions={mentions} onRemove={handleMentionRemove} />
-        </div>
-      )}
-      {showAttachments && attachments && attachments.length > 0 && (
-        <div className="mt-2" data-testid="composer-attachments">
-          <AttachmentChipList
-            attachments={attachments}
-            onRemove={handleRemoveAttachment}
-          />
-        </div>
-      )}
-      {attachmentError && (
-        <div
-          className="mt-2 rounded-md bg-rose-50 px-3 py-1 text-xs text-rose-700 dark:bg-rose-950/40 dark:text-rose-200"
-          data-testid="composer-attachment-error"
-        >
-          {attachmentError}
-        </div>
-      )}
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 min-w-0">
+
+      {/* Toolbar row */}
+      <div className={`flex items-center justify-between gap-2 ${hasContent ? "mt-2" : "mt-1"}`}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {showAttachments && (
+            <>
+              <input
+                ref={fileInputRef}
+                data-testid="composer-file-input"
+                type="file"
+                accept={attachmentAccept}
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  handleAddFiles(e.target.files);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+              />
+              <button
+                type="button"
+                data-testid="composer-attach-button"
+                aria-label="添加附件"
+                title="添加附件（PDF / 图片 / 文本，≤ 20MB）"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-muted hover:text-foreground"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled && !isGenerating}
+              >
+                <Paperclip className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </>
+          )}
           {showModelSelect && (
             <LlmModelSelect
               models={models ?? []}
@@ -389,82 +475,20 @@ export function Composer({
                 if (!thinkingSupported) return;
                 onThinkingEnabledChange?.(!thinkingEnabled);
               }}
-              className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2 text-xs font-medium transition-colors ${
+              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors ${
                 thinkingSupported && thinkingEnabled
-                  ? "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
-                  : "border-border bg-input text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                  ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+                  : "border-transparent text-muted hover:text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
               }`}
             >
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 rounded-full ${
-                  thinkingSupported && thinkingEnabled
-                    ? "bg-amber-500"
-                    : "bg-zinc-400 dark:bg-zinc-600"
-                }`}
-              />
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Thinking
             </button>
           )}
-          {showAttachments && (
-            <>
-              <input
-                ref={fileInputRef}
-                data-testid="composer-file-input"
-                type="file"
-                accept={attachmentAccept}
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  handleAddFiles(e.target.files);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-              />
-              <button
-                type="button"
-                data-testid="composer-attach-button"
-                aria-label="添加附件"
-                title="添加附件（PDF / 图片 / 文本，≤ 20MB）"
-                className="rounded-md border border-border bg-input px-2 py-1 text-xs text-muted hover:text-foreground"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={disabled && !isGenerating}
-              >
-                + 附件
-              </button>
-            </>
-          )}
-          <p className="text-xs text-muted truncate">
-            Shift+Enter 换行{showMentions ? " · @ 选 Agent / 知识库" : ""}
-          </p>
         </div>
-        {showStop ? (
-          <button
-            type="button"
-            data-testid="composer-stop-button"
-            aria-label="中断当前任务"
-            className="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition-all flex items-center gap-2 hover:bg-rose-700"
-            onClick={onCancel}
-          >
-            <span className="inline-block h-2.5 w-2.5 rounded-sm bg-white" aria-hidden="true" />
-            Stop
-          </button>
-        ) : (
-          <button
-            type="button"
-            data-testid="composer-send-button"
-            className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background disabled:opacity-40 transition-all flex items-center gap-2"
-            onClick={onSend}
-            // disabled 与 home-body.doSend/sendInput 的 `!input.trim()` 守卫保持一致；
-            // MVP 阶段附件仅作为 metadata 透传，无文本时点 Send 会被守卫静默拒绝，故不允许仅附件触发发送。
-            // 完整 read_attachment 工具落地后（V1 增强），可同步放开守卫与 disabled 条件。
-            disabled={disabled || !value.trim()}
-          >
-            {isGenerating && (
-              <span className="h-2 w-2 rounded-full bg-background animate-pulse" />
-            )}
-            {isBlocked ? "Waiting..." : isGenerating ? "Generating..." : "Send"}
-          </button>
-        )}
+        <p className="text-[10px] text-text-muted/60 shrink-0 select-none">
+          {showMentions ? "@ 选 Agent · " : ""}Enter 发送 · Shift+Enter 换行
+        </p>
       </div>
     </form>
   );

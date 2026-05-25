@@ -117,10 +117,49 @@ def _extract_img_dimensions(img: Tag) -> Tuple[Optional[str], Optional[str]]:
     return (style_w or attr_w, style_h or attr_h)
 
 
+def _match_computed_size(
+    src_val: str, computed_image_sizes: Dict[str, Dict[str, int]]
+) -> Optional[Dict[str, int]]:
+    """尝试多种策略匹配 computed_image_sizes 中的尺寸。
+
+    匹配优先级：
+    1. 精确 URL 匹配
+    2. URL 路径末段匹配（处理 Next.js Image 等代理 URL）
+    """
+    # 1. 精确匹配
+    if src_val in computed_image_sizes:
+        return computed_image_sizes[src_val]
+
+    # 2. 从代理 URL 中提取原始 URL 进行匹配
+    #    例如 Next.js: /_next/image?url=<encoded_url>&w=3840&q=75
+    from urllib.parse import parse_qs, urlparse
+
+    src_path = urlparse(src_val).path
+    for key, dims in computed_image_sizes.items():
+        key_path = urlparse(key).path
+        # 检查 key 是否为代理 URL 且包含 src_val 的原始路径
+        if "/_next/image" in key_path:
+            qs = parse_qs(urlparse(key).query)
+            orig_url = qs.get("url", [None])[0]
+            if orig_url and orig_url == src_val:
+                return dims
+        # 路径末段匹配（如 xxx-1920x1080.gif）
+        if src_path and key_path and src_path.split("?")[0] == key_path.split("?")[0]:
+            return dims
+
+    return None
+
+
 def _register_img_placeholders(
-    soup: BeautifulSoup, registry: ImgDimensionRegistry
+    soup: BeautifulSoup,
+    registry: ImgDimensionRegistry,
+    computed_image_sizes: Optional[Dict[str, Dict[str, int]]] = None,
 ) -> None:
-    """遍历 ``<img>``：对带尺寸的图片登记 sentinel 并替换原节点。"""
+    """遍历 ``<img>``：对带尺寸的图片登记 sentinel 并替换原节点。
+
+    当 computed_image_sizes 可用时（来自 Selenium 浏览器渲染），优先使用
+    CSS 计算尺寸替代 HTML 属性固有尺寸，使输出更贴近原站实际布局。
+    """
     for img in list(soup.find_all("img")):
         src_val = img.get("src", "")
         if not isinstance(src_val, str) or not src_val.strip():
@@ -128,6 +167,16 @@ def _register_img_placeholders(
         if _is_placeholder_src(src_val):
             continue
         width, height = _extract_img_dimensions(img)
+        # 优先使用 Selenium 捕获的计算尺寸
+        if computed_image_sizes:
+            matched_dims = _match_computed_size(src_val, computed_image_sizes)
+            if matched_dims:
+                cw = matched_dims.get("width")
+                ch = matched_dims.get("height")
+                if cw and cw > 0:
+                    width = str(cw)
+                if ch and ch > 0:
+                    height = str(ch)
         if not width and not height:
             continue
         alt_val = img.get("alt", "")
@@ -147,6 +196,7 @@ def preprocess_html(
     base_url: Optional[str] = None,
     *,
     img_registry: Optional[ImgDimensionRegistry] = None,
+    computed_image_sizes: Optional[Dict[str, Dict[str, int]]] = None,
 ) -> str:
     """预处理 HTML 内容，为 MarkItDown 转换做准备。"""
     try:
@@ -172,7 +222,9 @@ def preprocess_html(
 
         # 登记带尺寸的 <img>
         if img_registry is not None:
-            _register_img_placeholders(soup, img_registry)
+            _register_img_placeholders(
+                soup, img_registry, computed_image_sizes=computed_image_sizes
+            )
 
         # Remove unwanted elements
         unwanted_tags = [

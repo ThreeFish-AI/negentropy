@@ -50,12 +50,13 @@ _INSTRUCTION = """
 """
 
 
-def create_contemplation_agent(*, output_key: str | None = None) -> LlmAgent:
+def create_contemplation_agent(*, output_key: str | None = None, mode: str | None = None) -> LlmAgent:
     """工厂：每次调用创建独立的 ContemplationFaculty 实例。
 
     Args:
         output_key: 若非 None，则最终响应文本将自动存入 session.state[output_key]，
                     供 SequentialAgent 下游步骤通过 {output_key} 模板引用。
+        mode: ADK 2.0 Collaborative Agents 协作模式。
     """
     return LlmAgent(
         name="ContemplationFaculty",
@@ -64,11 +65,12 @@ def create_contemplation_agent(*, output_key: str | None = None) -> LlmAgent:
         instruction=make_instruction_provider("ContemplationFaculty", _INSTRUCTION),
         tools=[log_activity, analyze_context, create_plan],
         output_key=output_key,
+        mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,
         disallow_transfer_to_peers=output_key is not None,
     )
 
 
-# 向后兼容单例，供 root_agent 直接委派使用（transfer_to_agent）
-contemplation_agent = create_contemplation_agent()
+# ADK 2.0: mode="single_turn" — 沉思系部为分析规划型，完成后自动返回 Root Agent
+contemplation_agent = create_contemplation_agent(mode="single_turn")

@@ -637,17 +637,27 @@ def merge_table_columns_and_rows(
         merged_rows.append(merged)
 
     # Merge continuation rows (leading cells empty = wrapped text)
+    # 区分两种场景：
+    #   a) 换行文本续行：首格为空，大部分格也为空（PDF 换行拆分）→ 合并到前一行
+    #   b) 多行表头续行：首格为空，但填充率高（>60%）→ 保留为独立行
     final_rows: List[List[str]] = []
     for row in merged_rows:  # type: ignore[assignment]
         if row[0].strip():  # type: ignore[union-attr]  # New data row
             # Clean hyphen-broken words in each cell
             final_rows.append([re.sub(r"(\w)- (\w)", r"\1\2", c) for c in row])  # type: ignore[arg-type]
         elif final_rows:  # Continuation row
-            for ci in range(len(row)):
-                if row[ci].strip():  # type: ignore[union-attr]
-                    text = re.sub(r"(\w)- (\w)", r"\1\2", row[ci])  # type: ignore[arg-type]
-                    sep = " " if final_rows[-1][ci] else ""
-                    final_rows[-1][ci] += sep + text
+            non_empty = sum(1 for c in row if c and c.strip())  # type: ignore[union-attr]
+            fill_rate = non_empty / len(row) if row else 0  # type: ignore[arg-type]
+            if fill_rate > 0.6:
+                # Likely a multi-row header — preserve as separate row
+                final_rows.append([re.sub(r"(\w)- (\w)", r"\1\2", c) for c in row])  # type: ignore[arg-type]
+            else:
+                # Wrapped text continuation — merge into previous row
+                for ci in range(len(row)):
+                    if row[ci].strip():  # type: ignore[union-attr]
+                        text = re.sub(r"(\w)- (\w)", r"\1\2", row[ci])  # type: ignore[arg-type]
+                        sep = " " if final_rows[-1][ci] else ""
+                        final_rows[-1][ci] += sep + text
 
     return final_rows
 

@@ -202,6 +202,10 @@ async def extract_images_from_pdf_page(
                 if pix.n - pix.alpha >= 4:
                     pix = fitz.Pixmap(fitz.csRGB, pix)
 
+                # 过滤小图片（装饰图标、内联符号等）
+                if pix.width < 50 or pix.height < 50 or pix.width * pix.height < 5000:
+                    continue
+
                 img_id = generate_asset_id("img", page_num, img_index)
                 filename = f"{img_id}.{image_format}"
                 local_path = output_dir / filename
@@ -371,6 +375,11 @@ async def extract_images_with_positions(
 
                 width, height = pix.width, pix.height
 
+                # 过滤小图片（装饰图标、内联符号等）
+                if width < 50 or height < 50 or width * height < 5000:
+                    pix = None
+                    continue
+
                 rect = xref_rects[best_xref]
                 caption = detect_image_caption(
                     text_only_blocks, rect.y1, rect.x0, rect.x1
@@ -450,6 +459,12 @@ async def extract_images_with_positions(
                     pix = fitz.Pixmap(fitz.csRGB, pix)
 
                 width, height = pix.width, pix.height
+
+                # 过滤小图片（装饰图标、内联符号等）
+                if width < 50 or height < 50 or width * height < 5000:
+                    pix = None
+                    continue
+
                 xref_name = img_info[7] if len(img_info) > 7 else ""
 
                 position = None

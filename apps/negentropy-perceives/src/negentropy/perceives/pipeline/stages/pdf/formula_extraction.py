@@ -76,6 +76,10 @@ class MinerUFormulaExtractor(PDFToolBase):
                         formula_type=f.formula_type,
                         page_number=(f.page_number if f.page_number is not None else 0),
                         original_text=f.original_text,
+                        # 透传 bbox（mineru engine Strategy 1 在 content_list.json
+                        # 解析阶段已直读 ``bbox`` 字段；缺失则保持默认 None
+                        # 由 assembly 走 orphan 文本匹配兜底）
+                        bbox=getattr(f, "bbox", None),
                     )
                 )
 

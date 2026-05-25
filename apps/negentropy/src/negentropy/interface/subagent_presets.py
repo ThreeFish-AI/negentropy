@@ -125,6 +125,8 @@ def serialize_adk_config(agent: BaseAgent) -> dict[str, Any]:
                 "after_tool_callback": _callable_name(getattr(agent, "after_tool_callback", None)),
                 "on_model_error_callback": _callable_name(getattr(agent, "on_model_error_callback", None)),
                 "on_tool_error_callback": _callable_name(getattr(agent, "on_tool_error_callback", None)),
+                # ADK 2.0 Collaborative Agents: mode (chat | task | single_turn)
+                "mode": getattr(agent, "mode", None),
             }
         )
     elif isinstance(agent, LoopAgent):

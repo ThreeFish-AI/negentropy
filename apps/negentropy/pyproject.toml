@@ -23,7 +23,7 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.46",  # SQL Toolkit and ORM
     "alembic>=1.18.3",              # Database migration tool
     # Core Infrastructure
-    "google-adk>=1.28.1",           # GHSA-rg7c-g689-fr3x: code injection + missing auth on adk web/api_server eval endpoints
+    "google-adk>=2.0.0",            # ADK 2.0 GA: Workflow Runtime, Collaborative Agents, Task API
     "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration

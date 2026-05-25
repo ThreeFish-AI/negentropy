@@ -188,7 +188,7 @@ WHERE user_id = 'alice' GROUP BY 1, 2, 3;
 ```bash
 # 应用层调度
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8000/api/memory/automation/logs?limit=10"
+  "http://localhost:3292/api/memory/automation/logs?limit=10"
 
 # pg_cron 端
 SELECT * FROM cron.job WHERE jobname LIKE 'memory_%';
@@ -307,7 +307,7 @@ uv run python -m spacy download en_core_web_sm
 **健康检查**（无需登录）：
 
 ```bash
-curl http://localhost:8000/memory/health
+curl http://localhost:3292/memory/health
 ```
 
 返回示例：
@@ -325,7 +325,7 @@ curl http://localhost:8000/memory/health
 **聚合指标**（需 admin）：
 
 ```bash
-curl -H "Cookie: dev_token=..." http://localhost:8000/memory/metrics
+curl -H "Cookie: dev_token=..." http://localhost:3292/memory/metrics
 ```
 
 返回搜索 24h 统计、巩固成功率、Retention 分布、PII 检测率等。

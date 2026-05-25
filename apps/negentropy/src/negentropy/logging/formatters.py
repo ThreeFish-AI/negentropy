@@ -51,6 +51,7 @@ class ConsoleFormatter:
     LEVEL_WIDTH = 8
     LOGGER_WIDTH = 32
     SEPARATOR = " | "
+    SERVICE_NAME: str = "backend"
 
     @classmethod
     def configure(
@@ -60,6 +61,7 @@ class ConsoleFormatter:
         level_width: int | None = None,
         logger_width: int | None = None,
         separator: str | None = None,
+        service_name: str | None = None,
     ) -> None:
         """Configure alignment and rendering parameters."""
         if timestamp_format:
@@ -71,6 +73,8 @@ class ConsoleFormatter:
             cls.LOGGER_WIDTH = logger_width
         if separator is not None:
             cls.SEPARATOR = separator
+        if service_name is not None:
+            cls.SERVICE_NAME = service_name
 
     @staticmethod
     def _fit_right(text: str, width: int) -> str:
@@ -156,6 +160,9 @@ class ConsoleFormatter:
             else:
                 short_source = ".".join(source_parts[-2:])
             display_logger = f"{logger_name}:{short_source}"
+
+        if not display_logger.startswith(cls.SERVICE_NAME):
+            display_logger = f"{cls.SERVICE_NAME}:{display_logger}"
 
         timestamp = ConsoleFormatter._format_timestamp(event_dict.get("timestamp"))
 

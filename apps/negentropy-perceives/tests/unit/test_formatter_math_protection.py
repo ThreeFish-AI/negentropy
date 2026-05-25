@@ -60,3 +60,66 @@ class TestFormatterMathProtection:
         result = self.formatter.format(md)
         assert "$\\alpha \\in \\mathbb{R}$" in result
         assert "$$f(x) = \\sum_{i=1}^{n} x_i^2$$" in result
+
+    def test_adjacent_similar_math_blocks_all_preserved(self) -> None:
+        """同章节相邻的多条公式（共享大量变量与运算符令牌）必须全部保留，
+        不得被 ``_deduplicate_approximate_paragraphs`` 的 Jaccard 相似度
+        误判为重复段落而剔除。
+
+        回归来源：Context Engineering 2.0 论文 5.3 节 ``M_s = f_short(...)``
+        与 ``M_l = f_long(...)`` 共享 ``M``、``f``、``c``、``\\theta`` 等令牌，
+        历史版本 Jaccard > 0.6 → 后者被剔；本用例锁定 math-block 豁免。
+        """
+        md = (
+            "Definition 5.1.\n\n"
+            "$$\n"
+            r"M _ { s } = f _ { s h o r t } \left( c \in C : w _ { t e m p o r a l } ( c ) > \theta _ { s } \right)\tag{5}"
+            "\n$$\n\n"
+            "where short-term memory captures recent context.\n\n"
+            "Definition 5.2.\n\n"
+            "$$\n"
+            r"M _ { l } = f _ { l o n g } \left( c \in C : w _ { i m p o r t a n c e } ( c ) > \theta _ { l } \wedge w _ { t e m p o r a l } ( c ) \le \theta _ { s } \right)\tag{6}"
+            "\n$$\n\n"
+            "where long-term memory retains important context.\n"
+        )
+        result = self.formatter._deduplicate_approximate_paragraphs(md)
+        # 两条公式都必须保留
+        assert "\\tag{5}" in result
+        assert "\\tag{6}" in result
+        # 文本段落（共享词汇较少）应保持不被误删
+        assert "short-term memory" in result
+        assert "long-term memory" in result
+
+    def test_dedup_still_removes_duplicated_prose(self) -> None:
+        """math-block 豁免不应弱化文本段落的跨引擎近似去重。"""
+        md = (
+            "The quick brown fox jumps over the lazy dog and runs through "
+            "the verdant meadow chasing butterflies in the warm sunlight "
+            "while children watch in delight from the wooden fence post.\n\n"
+            "The quick brown fox jumps over the lazy dog and runs through "
+            "the verdant meadow chasing butterflies in the warm sunlight "
+            "while children watch in delight from the wooden fence post.\n"
+        )
+        result = self.formatter._deduplicate_approximate_paragraphs(md)
+        # 同样的段落出现两次时，仍应去重为一次
+        assert result.count("quick brown fox") == 1
+
+    def test_currency_not_treated_as_math(self) -> None:
+        """美元货币符号（$200 to $125）不应被视作 inline math 而保护起来。
+
+        Regression: 早期 _MATH_DELIMITERS 把 "$200 to $125" 整段当作 math，
+        导致区间内的断字（gener- ator / con- struct）逃过 typography 修复。
+        """
+        md = "Cost from $200 to $125 while gener- ating output."
+        result = self.formatter._apply_typography_fixes(md)
+        # 修复后断字应当被合并
+        assert "generating" in result
+        # 货币符号保留
+        assert "$200" in result and "$125" in result
+
+    def test_currency_with_real_math_alongside(self) -> None:
+        """同段落里同时存在货币与真实 LaTeX 时，两者各司其职。"""
+        md = "Price $50 and formula $\\alpha + \\beta$ used."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "$50" in result
+        assert "$\\alpha + \\beta$" in result

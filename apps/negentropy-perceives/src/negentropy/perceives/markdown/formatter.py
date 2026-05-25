@@ -125,6 +125,12 @@ class MarkdownFormatter:
         try:
             # 保护代码块内容不被格式化 pass 修改
             markdown_content, protected = self._protect_code_blocks(markdown_content)
+            # 保护块级数学公式 ``$$..$$`` 不被任何排版 / 段落 / 去重 pass 修改。
+            # 必须紧邻 ``_protect_code_blocks`` 之后执行，确保管线全程仅处理
+            # 占位符而非真实 LaTeX 内容。
+            markdown_content, math_protected = self._protect_math_blocks(
+                markdown_content
+            )
 
             if self.options.get("format_tables", True):
                 markdown_content = self._format_tables(markdown_content)
@@ -151,7 +157,15 @@ class MarkdownFormatter:
             if self.options.get("fix_spacing", True):
                 markdown_content = self._normalize_paragraph_breaks(markdown_content)
 
+            # 近似段落去重（跨引擎内容重复）
+            markdown_content = self._deduplicate_approximate_paragraphs(
+                markdown_content
+            )
+
             markdown_content = self._basic_cleanup(markdown_content)
+
+            # 清洗损坏的数学公式块：截断重复模式、移除空公式
+            markdown_content = self._cleanup_math_blocks(markdown_content)
 
             # 还原带尺寸的图片：必须在 _basic_cleanup 之后执行，否则其中的
             # `style="..."` 会被 cleanup 第二段 re.sub 误清除。
@@ -163,6 +177,12 @@ class MarkdownFormatter:
                 markdown_content = self._restore_image_placeholders(
                     markdown_content, img_registry
                 )
+
+            # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
+            # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
+            markdown_content = self._restore_math_blocks(
+                markdown_content, math_protected
+            )
 
             # 还原被保护的代码块
             markdown_content = self._restore_code_blocks(markdown_content, protected)
@@ -199,6 +219,47 @@ class MarkdownFormatter:
         self, markdown_content: str, protected: Dict[str, str]
     ) -> str:
         """将占位符还原为原始代码块内容。"""
+        for placeholder, original in protected.items():
+            markdown_content = markdown_content.replace(placeholder, original)
+        return markdown_content
+
+    def _protect_math_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
+        """提取块级数学公式 ``$$..$$`` 并替换为占位符，防止格式化管线
+        在公式内部插入空行 / 跨段去重 / 排版替换破坏 LaTeX 完整性。
+
+        典型回归（Context Engineering 2.0 论文 5.3 节）：
+          1. ``_normalize_paragraph_breaks`` 把 ``$$``/``<latex>``/``$$``
+             三个相邻 PLAIN_TEXT 行之间各插入空行，把单一公式拆为 3 段；
+          2. ``_deduplicate_approximate_paragraphs`` 然后按段 Jaccard 比对，
+             因公式正文段（已脱离 ``$$`` 包裹）与上一公式正文 token 高度
+             重叠（``M``/``f``/``c``/``\\theta`` 等共享），整段被误删。
+
+        保护策略：在 format() 入口把每个完整的 ``$$\\n..$$`` 块替换为
+        ``%%MATHBLOCK_<uuid>%%`` 占位符，整个管线视其为不可破坏的原子单元；
+        管线末尾再统一还原。同步避免 ``_apply_typography_fixes`` 等步骤
+        破坏 LaTeX 内部空格 / em-dash / smart quotes。
+        """
+        protected: Dict[str, str] = {}
+
+        def _replacer(match: re.Match) -> str:
+            placeholder = f"%%MATHBLOCK_{uuid.uuid4().hex[:12]}%%"
+            protected[placeholder] = match.group(0)
+            return placeholder
+
+        # 匹配独占两行的 ``$$`` 定界符之间的块级公式
+        # （行首到行尾的 ``$$``，中间允许 ``\s*``，含多行 LaTeX）
+        result = re.sub(
+            r"^\$\$[^\S\n]*\n[\s\S]*?\n^\$\$[^\S\n]*$",
+            _replacer,
+            markdown_content,
+            flags=re.MULTILINE,
+        )
+        return result, protected
+
+    def _restore_math_blocks(
+        self, markdown_content: str, protected: Dict[str, str]
+    ) -> str:
+        """将占位符还原为原始 ``$$..$$`` 数学块内容。"""
         for placeholder, original in protected.items():
             markdown_content = markdown_content.replace(placeholder, original)
         return markdown_content
@@ -292,6 +353,38 @@ class MarkdownFormatter:
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection."""
         try:
+            # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
+            markdown_content = re.sub(
+                r"^```(\w*)\n```[ \t]*(\S.*?)$",
+                r"```\n\2",
+                markdown_content,
+                flags=re.MULTILINE,
+            )
+
+            # 将 FORTRAN 标签中非 FORTRAN 代码的内容改为纯代码块
+            # （Docling 常将伪代码/配置文件误标为 FORTRAN）
+            def _fix_fortran_label(m: re.Match) -> str:
+                content = m.group(1)
+                # 真正的 FORTRAN 特征：PROGRAM/FORTRAN/SUBROUTINE/COMMON
+                fortran_signals = [
+                    "PROGRAM ",
+                    "FORTRAN",
+                    "SUBROUTINE ",
+                    "COMMON ",
+                    "DIMENSION ",
+                    "IMPLICIT ",
+                ]
+                if any(s in content.upper() for s in fortran_signals):
+                    return m.group(0)
+                return f"```\n{content}\n```"
+
+            markdown_content = re.sub(
+                r"^```FORTRAN\n(.*?)^```",
+                _fix_fortran_label,
+                markdown_content,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+
             code_patterns = {
                 r"(?m)^(\s*)```\s*\n((?:(?!```).)*?def\s+\w+(?:(?!```).)*?)^\1```": r"\1```python\n\2\1```",
                 r"(?m)^(\s*)```\s*\n((?:(?!```).)*?function\s+\w+(?:(?!```).)*?)^\1```": r"\1```javascript\n\2\1```",
@@ -395,6 +488,15 @@ class MarkdownFormatter:
             def _typography_inner(text: str) -> str:
                 text = re.sub(r"(?<!\-)\-\-(?!\-)", "\u2014", text)
 
+                # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
+                text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
+
+                # \u8de8\u884c\u65ad\u5b57\u5408\u5e76\uff1aPyMuPDF \u6587\u672c\u63d0\u53d6\u5e38\u6b8b\u7559 `word-\nword`\uff0cassembly \u9636\u6bb5
+                # \u628a `\n` \u6298\u53e0\u4e3a\u7a7a\u683c\u540e\u53d8\u6210 `word- word`\u3002\u4ec5\u5339\u914d\u4e24\u4fa7\u5747\u4e3a ASCII \u5c0f\u5199
+                # \u5b57\u6bcd + \u4e2d\u95f4\u7a7a\u683c\u7684\u5f62\u6001\uff0c\u907f\u5f00\u590d\u5408\u8bcd (state-of-the-art \u65e0\u7a7a\u683c)\u3001
+                # \u6570\u5b57\u8303\u56f4 (20- 30)\u3001\u4e13\u6709\u7f29\u5199\u8fb9\u754c (X- Ray \u5927\u5199) \u7b49\u3002
+                text = re.sub(r"([a-z])- ([a-z])", r"\1\2", text)
+
                 lines = text.split("\n")
                 fixed_lines = []
                 for line in lines:
@@ -486,6 +588,74 @@ class MarkdownFormatter:
 
         return "\n".join(result)
 
+    def _deduplicate_approximate_paragraphs(self, markdown_content: str) -> str:
+        """移除跨引擎的近似重复段落。
+
+        当文本提取引擎和 Docling 引擎同时提取同一段内容时，
+        可能产生格式不同但语义相同的重复段落。
+        策略：对每个段落提取纯文字指纹（去空白/标点/Markdown 标记），
+        若两个段落指纹的 Jaccard 相似度 > 0.6 且长度相近，移除后者。
+
+        **排除项**：块级数学公式 ``$$..$$`` 不参与近似去重比较。同章节的多条
+        相邻公式（如 ``M_s = f_short(...)`` 与 ``M_l = f_long(...)``）共享大量
+        同名变量与运算符令牌（``M``、``f``、``c``、``\\theta``、``\\in`` …），
+        清洗 Markdown 标记后 Jaccard 极易越过 0.6 阈值致后者被误判为重复。
+        正文段落的跨引擎重复仍照常去重。
+        """
+        paragraphs = re.split(r"\n{2,}", markdown_content)
+        if len(paragraphs) < 2:
+            return markdown_content
+
+        _math_block_re = re.compile(r"^\s*\$\$[\s\S]+\$\$\s*$")
+
+        def _is_math_block(text: str) -> bool:
+            """识别完全由 ``$$..$$`` 包裹的块级公式段落。"""
+            return bool(_math_block_re.match(text))
+
+        def _fingerprint(text: str) -> set[str]:
+            """提取段落的词级指纹集合。"""
+            clean = re.sub(r"[#*`\[\]()!|>{}\\]", " ", text)
+            clean = re.sub(r"\s+", " ", clean).lower()
+            words = clean.split()
+            return set(words)
+
+        kept: List[str] = []
+        seen_fingerprints: List[set[str]] = []
+
+        for para in paragraphs:
+            # 块级公式段落始终保留，不参与 Jaccard 相似度比较，
+            # 也不污染后续段落的对比基线。
+            if _is_math_block(para):
+                kept.append(para)
+                continue
+            fp = _fingerprint(para)
+            if len(fp) < 15:
+                kept.append(para)
+                seen_fingerprints.append(fp)
+                continue
+            is_dup = False
+            for existing_fp in seen_fingerprints:
+                if not existing_fp:
+                    continue
+                intersection = len(fp & existing_fp)
+                union = len(fp | existing_fp)
+                if union == 0:
+                    continue
+                jaccard = intersection / union
+                if jaccard > 0.6:
+                    len_ratio = min(len(fp), len(existing_fp)) / max(
+                        len(fp), len(existing_fp), 1
+                    )
+                    if len_ratio > 0.5:
+                        is_dup = True
+                        break
+            if is_dup:
+                continue
+            kept.append(para)
+            seen_fingerprints.append(fp)
+
+        return "\n\n".join(kept)
+
     def _basic_cleanup(self, markdown_content: str) -> str:
         """Apply basic cleanup operations."""
         try:
@@ -517,6 +687,52 @@ class MarkdownFormatter:
 
         except Exception as e:
             logger.warning(f"Error in basic cleanup: {str(e)}")
+            return markdown_content
+
+    def _cleanup_math_blocks(self, markdown_content: str) -> str:
+        """清洗损坏的数学公式块。
+
+        处理残留问题：
+        - 空公式块 ``$$\\n$$`` 移除
+        - 单行过长的公式行截断（超过 2000 字符的行可能是重复模式残留）
+        - ``\\quad`` 连续出现超过 4 次截断
+        """
+        try:
+            # 移除空公式块
+            markdown_content = re.sub(r"\$\$\s*\$\$", "", markdown_content)
+
+            # 处理块级公式中的超长行
+            def _truncate_long_formula_line(match: re.Match) -> str:
+                content = match.group(1)
+                if len(content) > 2000:
+                    # 截断到 1500 字符，在最近的 , 或 } 处断开
+                    truncated = content[:1500]
+                    last_sep = max(
+                        truncated.rfind(","),
+                        truncated.rfind("}"),
+                        truncated.rfind("]"),
+                    )
+                    if last_sep > 500:
+                        truncated = truncated[: last_sep + 1]
+                    logger.debug(
+                        "公式块超长截断: %d → %d 字符",
+                        len(content),
+                        len(truncated),
+                    )
+                    return f"$${truncated}\n$$"
+                return match.group(0)
+
+            markdown_content = re.sub(
+                r"\$\$\n(.*?)\n\$\$",
+                _truncate_long_formula_line,
+                markdown_content,
+                flags=re.DOTALL,
+            )
+
+            return markdown_content
+
+        except Exception as e:
+            logger.warning(f"Error cleaning up math blocks: {str(e)}")
             return markdown_content
 
     def _restore_image_placeholders(

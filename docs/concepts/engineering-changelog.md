@@ -95,7 +95,7 @@ cd apps/negentropy && uv run ruff check .  # All checks passed!
 
 ### 相关链接
 
-- 流水线文档：[docs/qa-delivery-pipeline.md](./design/qa-delivery-pipeline.md)
+- 流水线文档：[QA Delivery Pipeline](./design/qa-delivery-pipeline.md)
 - 发布工作流：[.github/workflows/negentropy-release.yml](../../.github/workflows/negentropy-release.yml)
 - 依赖审查：[.github/workflows/negentropy-dependency-review.yml](../../.github/workflows/negentropy-dependency-review.yml)
 - 后端复用 QA：[.github/workflows/reusable-negentropy-backend-quality.yml](../../.github/workflows/reusable-negentropy-backend-quality.yml)

@@ -92,6 +92,17 @@ function extractFilename(src: string): string {
   return src.split("/").pop() || src;
 }
 
+/**
+ * 将 HTML img 标签的 width/height 属性解析为像素整数值。
+ * perceives MCP 输出的 <img width="1000" /> 经过 rehype 后会以 string 传入。
+ */
+function parsePixelValue(value: number | string | undefined): number | null {
+  if (value == null) return null;
+  const str = String(value).replace(/px$/i, "").trim();
+  const num = Number(str);
+  return Number.isFinite(num) && num > 0 ? Math.round(num) : null;
+}
+
 type ImageState = "loading" | "loaded" | "error";
 
 function DocumentImage({
@@ -116,6 +127,8 @@ function DocumentImage({
   const resolvedSrc = isAbsoluteUrl(src)
     ? src
     : buildAssetProxyUrl(extractFilename(src), corpusId, documentId, appName);
+
+  const maxWidthPx = parsePixelValue(width);
 
   return (
     <figure className="my-3">
@@ -155,8 +168,10 @@ function DocumentImage({
         alt={alt || ""}
         width={width}
         height={height}
+        style={maxWidthPx ? { maxWidth: `min(${maxWidthPx}px, 100%)` } : undefined}
         className={cn(
-          "h-auto max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700",
+          "h-auto rounded-lg border border-zinc-200 dark:border-zinc-700 mx-auto",
+          !maxWidthPx && "max-w-full",
           imgState === "loaded" ? "block" : "hidden",
         )}
         onLoad={() => setImgState("loaded")}
@@ -207,9 +222,8 @@ export function DocumentMarkdownRenderer({
         "[&_tbody_tr:nth-child(even)]:bg-zinc-50 [&_tbody_tr:nth-child(even)]:dark:bg-zinc-900/30",
         "[&_th]:border [&_th]:border-zinc-200 [&_th]:dark:border-zinc-700 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
         "[&_td]:border [&_td]:border-zinc-200 [&_td]:dark:border-zinc-700 [&_td]:px-3 [&_td]:py-2",
-        // 图片：max-w-full 限制宽度，h-auto 保证按 width/height 比例缩放
-        // （防止 perceives 输出 <img width="X" height="Y" /> 在窄屏被拉伸变形）
-        "[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-3",
+        // 图片：DocumentImage 已根据 width 属性设置 max-width；h-auto 保证响应式缩放
+        "[&_img]:h-auto [&_img]:rounded-lg [&_img]:my-3",
         // 引用块
         "[&_blockquote]:border-l-4 [&_blockquote]:border-zinc-300 [&_blockquote]:dark:border-zinc-600 [&_blockquote]:pl-4 [&_blockquote]:my-3 [&_blockquote]:text-zinc-600 [&_blockquote]:dark:text-zinc-400",
         // 分隔线
@@ -227,6 +241,28 @@ export function DocumentMarkdownRenderer({
           rehypeHighlight,
         ]}
         components={{
+          // 当段落仅含图片时，去掉 <p> 包裹避免 <p><figure> 嵌套违反 HTML 规范。
+          // react-markdown 将独立行的 ![alt](src) 包在 <p> 内，但自定义 img
+          // 组件渲染 <figure>（块级元素），导致浏览器自动修正 DOM、
+          // React 事件委托断裂、图片 onLoad/onError 失效。
+          p({ children, node }) {
+            // 使用 hast AST 节点判断：段落仅含 img 子节点时去掉 <p> 包裹，
+            // 避免 <p><figure> 嵌套违反 HTML 规范。
+            // 不能依赖 React 元素的 child.type === "img" 比较，
+            // 因为 React Compiler 优化会破坏该严格相等判断。
+            const astChildren = node?.children;
+            const isImageOnly =
+              astChildren != null
+              && astChildren.length > 0
+              && astChildren.every(
+                (child: { type: string; tagName?: string }) =>
+                  child.type === "element" && child.tagName === "img",
+              );
+            if (isImageOnly) {
+              return <>{children}</>;
+            }
+            return <p>{children}</p>;
+          },
           img({ src, alt, width, height }) {
             if (!src || typeof src !== "string") return null;
             return (

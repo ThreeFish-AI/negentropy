@@ -127,9 +127,13 @@ def detect_algorithm_regions(text: str) -> List[AlgorithmBlock]:
                     break
                 if re.match(r"^#{1,6}\s", next_para):
                     break
+                # 章节编号标题停止（扩展支持大小写开头）
                 if re.match(
-                    r"^\d+(\.\d+)*\s+[A-Z]", next_para
+                    r"^\d+(\.\d+)*\s+[A-Za-z]", next_para
                 ) and not NUMBERED_LINE_RE.match(next_para):
+                    break
+                # Figure/Table 引用停止
+                if re.match(r"^(?:Figure|Fig\.?|Table)\s*\d", next_para, re.IGNORECASE):
                     break
 
                 # 结构化头部段落（Require/Ensure/Input/Output）直接收集，
@@ -142,7 +146,7 @@ def detect_algorithm_regions(text: str) -> List[AlgorithmBlock]:
 
                 # 检查后续段落是否看起来像算法内容
                 para_score = _compute_algorithm_score(next_para)
-                if para_score >= 3:
+                if para_score >= 5:
                     collected.append(next_para)
                     j += 1
                 else:
@@ -253,6 +257,6 @@ def _compute_algorithm_score(text: str) -> int:
         or len(special_chars) >= 2
     )
     if not has_structural_signal:
-        score -= 2
+        score -= 4
 
     return score

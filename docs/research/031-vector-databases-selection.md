@@ -62,7 +62,7 @@ tags:
   - **代价:** 精度损失。通常需要配合 **重排序 (Re-ranking)** 机制：先用 PQ 快速召回 Top-N，再从磁盘读取原始向量做精确排序。
 - **DiskANN (Vamana Graph):**
   - **原理:** 微软研发的基于磁盘的图算法。它设计了一种特殊的图结构（Vamana），使得在图遍历时，访问的节点虽然物理上分散在磁盘的不同 Page 中，但其邻居节点的布局被优化以减少 I/O 次数。它仅在内存中保留少量高层导航点，绝大多数数据存储在廉价的 NVMe SSD 上<sup>[[6]](#ref6)</sup>。
-  - **意义:** 打破了“向量搜索必须全内存”的魔咒，将成本降低了一个数量级，是实现单机百亿级检索的关键技术。
+  - **意义:** 打破了”向量搜索必须全内存”的魔咒，将成本降低了一个数量级，是实现单机十亿级（Billion-scale）检索的关键技术。
 
 ### **1.3 市场格局：多元流派“百家争鸣”**
 
@@ -138,11 +138,11 @@ tags:
   - **Integrated Inference (内置推理):** 支持直接发送原始文本，Pinecone 自动调用内置 Embedding 模型生成向量，简化开发流程。
   - **Dense + Sparse 向量:** 同时支持稠密向量（语义搜索）和稀疏向量（关键词匹配），实现原生 Hybrid Search。
   - **内置重排序 (Reranking):** 支持在搜索中直接调用重排序模型，提升检索精度。
-    | 重排序模型 | 最大 Token | 最大文档数 | 特点 |
+    | 重排序模型 | 最大 Token (上下文窗口) | 最大文档数 | 特点 |
     |------------|------------|------------|------|
-    | `cohere-rerank-3.5` | 40,000 | 200 | 高精度、多字段支持 |
-    | `bge-reranker-v2-m3` | 1,024 | 100 | 平衡性能与精度 |
-    | `pinecone-rerank-v0` | 512 | 100 | Pinecone 自研、低延迟 |
+    | `cohere-rerank-3.5` | 4,096 | 1,000（上限 10,000） | 高精度、多字段支持 |
+    | `bge-reranker-v2-m3` | 8,192（微调长度 1,024） | - | 平衡性能与精度 |
+    | `pinecone-rerank-v0` | 512 | - | Pinecone 自研、低延迟 |
   - **弹性与成本:** Serverless 模式对初创公司极度友好（按读写单位 WU/RU 付费），大大降低了 POC 阶段的成本风险，且不需要预估容量。
 - **劣势:**
   - **数据主权与合规:** 作为一个纯 SaaS 服务，数据必须离开企业内网存储在 Pinecone 的云端（通常是 AWS/GCP 的美东/欧西区域）。对于金融、医疗、政府或对数据隐私极其敏感的国内企业，这通常是一票否决项。
@@ -244,7 +244,7 @@ tags:
   - **资源争抢 (Noisy Neighbor):** 向量搜索是计算密集型（大量的距离计算）和内存密集型（访问大量随机 Page）操作。特别是 HNSW 索引构建和查询时，大量的随机读写会频繁置换 PostgreSQL 的 **Shared Buffers**，导致核心业务表（如订单表、用户表）的热数据被挤出内存，从而引发整体数据库的延迟抖动。**建议:** 在生产环境中使用只读副本（Read Replica）专门处理向量搜索流量，以物理隔离对主库 OLTP 业务的影响。
     - **TOAST 表机制:** PG 会将大字段（如高维向量）存储在 TOAST 表中（超过一定大小的数据会被压缩并存储在 TOAST 表中）。每次查询都需要从 TOAST 表解压数据，这增加了 I/O 开销。因此，PGVector 在处理超高维向量（如 4096 维）时性能下降明显。
   - **构建速度与膨胀:** HNSW 索引在 PG 中构建速度较慢，且占用空间较大。在频繁更新向量的场景下，PG 的 VACUUM 机制可能成为瓶颈，导致表膨胀（Bloat），需要更频繁的维护。
-  - **维度限制:** 最大支持 16,000 维向量。
+  - **维度限制:** 最大支持 16,000 维向量（存储）；HNSW 索引上限为 2,000 维（FP32）/ 4,000 维（halfvec）。
 - **生产环境实践 (Production Reality):**
   - **SQL 示例:**  
     CREATE EXTENSION vector;  
@@ -659,7 +659,7 @@ $$
 
 <a id="ref3"></a>[3] A. Vaswani, N. Shazeer, N. Parmar, et al., "Attention is all you need," _Adv. Neural Inf. Process. Syst._, vol. 30, pp. 5998–6008, 2017.
 
-<a id="ref4"></a>[4] Y. A. Malkov and D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 42, no. 4, pp. 824–836, 2018.
+<a id="ref4"></a>[4] Y. A. Malkov and D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 42, no. 4, pp. 824–836, Apr. 2020.
 
 <a id="ref5"></a>[5] H. Jégou, M. Douze, and C. Schmid, "Product quantization for nearest neighbor search," _IEEE Trans. Pattern Anal. Mach. Intell._, vol. 33, no. 1, pp. 117–128, 2011.
 
