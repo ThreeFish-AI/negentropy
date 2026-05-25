@@ -10,6 +10,7 @@
  */
 
 import { ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export interface BaseModalProps {
   /** 是否打开。`false` 时 BaseModal 完全 unmount，避免后台 effect 残留。 */
@@ -72,7 +73,7 @@ export function BaseModal({
 
   const sizeClass = SIZE_CLASS[size];
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -95,6 +96,7 @@ export function BaseModal({
           <div className="flex items-center justify-end gap-2 mt-4">{footer}</div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
