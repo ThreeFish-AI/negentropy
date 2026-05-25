@@ -13,27 +13,37 @@
 }
 
 [data-color-scheme="dark"] {
-  --wiki-bg: #1a1a1a;
-  --wiki-bg-secondary: #242424;
-  --wiki-text: #e5e5e5;
-  --wiki-text-secondary: #999999;
-  --wiki-border: #333333;
-  --wiki-sidebar-bg: #1f1f1f;
+  --wiki-bg: #2D2D2D;
+  --wiki-bg-secondary: #333333;
+  --wiki-text: #ffffff;
+  --wiki-text-secondary: #aaaaaa;
+  --wiki-border: #3a3a3a;
+  --wiki-sidebar-bg: #1E1E1E;
+  --wiki-sidebar-width: 240px;
+  --wiki-accent: #4ade80;
+  --wiki-accent-hover: #22c55e;
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   --wiki-success-bg: #1b3a1e;
   --wiki-success-text: #66bb6a;
+  --wiki-header-bg: #1E1E1E;
+  --wiki-input-bg: #333333;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) {
-    --wiki-bg: #1a1a1a;
-    --wiki-bg-secondary: #242424;
-    --wiki-text: #e5e5e5;
-    --wiki-text-secondary: #999999;
-    --wiki-border: #333333;
-    --wiki-sidebar-bg: #1f1f1f;
+    --wiki-bg: #2D2D2D;
+    --wiki-bg-secondary: #333333;
+    --wiki-text: #ffffff;
+    --wiki-text-secondary: #aaaaaa;
+    --wiki-border: #3a3a3a;
+    --wiki-sidebar-bg: #1E1E1E;
+    --wiki-sidebar-width: 240px;
+    --wiki-accent: #4ade80;
+    --wiki-accent-hover: #22c55e;
     --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     --wiki-success-bg: #1b3a1e;
     --wiki-success-text: #66bb6a;
+    --wiki-header-bg: #1E1E1E;
+    --wiki-input-bg: #333333;
   }
 }

@@ -3,7 +3,7 @@
   top: 0;
   z-index: 30;
   height: var(--wiki-header-height);
-  background: var(--wiki-bg);
+  background: var(--wiki-header-bg);
   border-bottom: 1px solid var(--wiki-border);
 }
 
@@ -87,5 +87,70 @@
 }
 
 .wiki-header-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex-shrink: 0;
+}
+
+/* 搜索框 */
+.wiki-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  height: 32px;
+  background: var(--wiki-input-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  color: var(--wiki-text-secondary);
+  font-size: 0.88em;
+  cursor: text;
+  transition: border-color 0.15s ease;
+}
+.wiki-search-box:focus-within {
+  border-color: var(--wiki-accent);
+}
+.wiki-search-box input {
+  border: none;
+  background: transparent;
+  color: var(--wiki-text);
+  font-size: inherit;
+  outline: none;
+  width: 140px;
+  font-family: var(--wiki-body-font);
+}
+.wiki-search-box input::placeholder {
+  color: var(--wiki-text-secondary);
+}
+
+/* 操作区 */
+.wiki-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.wiki-header-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-header-action-btn:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+
+@media (max-width: 768px) {
+  .wiki-search-box {
+    display: none;
+  }
 }

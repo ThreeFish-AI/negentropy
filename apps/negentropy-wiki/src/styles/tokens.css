@@ -22,4 +22,9 @@
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   --wiki-success-bg: #e8f5e9;
   --wiki-success-text: #2e7d32;
+
+  /* Header & 交互 */
+  --wiki-header-bg: var(--wiki-bg);
+  --wiki-accent-green: #4CAF50;
+  --wiki-input-bg: var(--wiki-bg-secondary);
 }

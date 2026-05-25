@@ -351,6 +351,32 @@ export function countLeafEntries(items: WikiNavTreeItem[]): number {
 }
 
 /**
+ * DFS 搜索导航树，构建从根到目标 slug 的面包屑路径。
+ *
+ * 返回 `{ label, slug | null }[]`，CONTAINER 节点 slug 为 null（不可点击）。
+ */
+export function buildBreadcrumbPath(
+  items: WikiNavTreeItem[],
+  activeSlug: string,
+): { label: string; slug: string | null }[] {
+  for (const item of items) {
+    if (item.entry_slug === activeSlug) {
+      return [{ label: item.entry_title || item.entry_slug, slug: item.entry_slug }];
+    }
+    if (item.children && item.children.length > 0) {
+      const nested = buildBreadcrumbPath(item.children, activeSlug);
+      if (nested.length > 0) {
+        return [
+          { label: item.entry_title || item.entry_slug, slug: isContainerItem(item) ? null : item.entry_slug },
+          ...nested,
+        ];
+      }
+    }
+  }
+  return [];
+}
+
+/**
  * 将 catch-all 路由参数合并为完整 entry slug。
  *
  * entry_slug 使用 Materialized Path（可能包含 `/`），

@@ -71,13 +71,14 @@ export function WikiLayoutShell({
   header,
   storageKey = TOC_STORAGE_KEY,
 }: WikiLayoutShellProps) {
-  const [collapsed, setCollapsedState] = useState(false);
+  const [collapsed, setCollapsedState] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(storageKey);
-      if (raw === "1") setCollapsedState(true);
+      // 有记录则尊重用户选择；无记录则保持默认 collapsed
+      if (raw === "0") setCollapsedState(false);
     } catch {
       // 隐私模式或被禁用时忽略
     }

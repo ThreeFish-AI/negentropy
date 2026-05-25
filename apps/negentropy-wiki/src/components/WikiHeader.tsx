@@ -31,6 +31,10 @@ interface WikiHeaderProps {
   headerSlot?: React.ReactNode;
   /** 可选：在原 tabs 末尾追加"知识图谱"入口 */
   graphTab?: WikiHeaderGraphTab;
+  /** 搜索框组件 */
+  searchBox?: React.ReactNode;
+  /** 右侧操作区（登录/GitHub/设置等） */
+  actions?: React.ReactNode;
 }
 
 export function WikiHeader({
@@ -39,6 +43,8 @@ export function WikiHeader({
   activeTopSlug,
   headerSlot,
   graphTab,
+  searchBox,
+  actions,
 }: WikiHeaderProps) {
   if (!items.length && !(graphTab?.show)) return null;
 
@@ -75,7 +81,11 @@ export function WikiHeader({
             </Link>
           )}
         </nav>
-        <div className="wiki-header-slot">{headerSlot}</div>
+        <div className="wiki-header-slot">
+          {searchBox}
+          {actions}
+          {headerSlot}
+        </div>
       </div>
     </header>
   );
