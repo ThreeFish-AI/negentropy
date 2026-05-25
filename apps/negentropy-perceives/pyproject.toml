@@ -183,10 +183,11 @@ ignore_missing_imports = true
 # lxml>=6.1.0：修复 CVE-2026-41066（间接依赖）
 # urllib3>=2.7.0：修复 CVE-2026-44431, CVE-2026-44432（间接依赖）
 # idna>=3.15：修复 CVE-2026-45409（间接依赖，requests/urllib3 传递依赖）
+# authlib>=1.7.1：修复 GHSA-r95x-qfjj-fjj2（OIDC Implicit/Hybrid Open Redirect，medium）
 # openai>=2.20.0：litellm>=1.83.7 要求 openai>=2.20.0（覆盖 marker-pdf<2.0.0 约束）
 # transformers 锁定 4.x：marker-pdf(^4.45.2) 与 docling[vlm](>=4.42.0) 兼容交集
 # Trainer CVE: 任意代码执行仅影响 Trainer 类调用路径，项目未使用 Trainer，风险可接受
-override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0"]
+override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "authlib>=1.7.1", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0"]
 
 [dependency-groups]
 dev = [
