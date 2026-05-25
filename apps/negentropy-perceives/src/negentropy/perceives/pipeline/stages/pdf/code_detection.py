@@ -159,6 +159,14 @@ class DoclingCodeDetector(PDFToolBase):
                 metadata={"engine": "docling"},
             )
 
+            # 空结果时降级到 algorithm_detector：学术论文的伪代码
+            # 无缩进/等宽字体特征，Docling 通常检测不到
+            if not code_blocks:
+                return StageResult(
+                    success=False,
+                    error="Docling 未检测到代码块，降级至 algorithm_detector",
+                )
+
             return StageResult(
                 success=True,
                 output=output,
@@ -222,6 +230,12 @@ class MarkerCodeDetector(PDFToolBase):
                 total_count=len(code_blocks),
                 metadata={"engine": "marker"},
             )
+
+            if not code_blocks:
+                return StageResult(
+                    success=False,
+                    error="Marker 未检测到代码块，降级至 algorithm_detector",
+                )
 
             return StageResult(
                 success=True,

@@ -351,6 +351,112 @@ class BuiltinAssembler(PDFToolBase):
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
 
+            # 2.1.1 算法/伪代码检测与去重
+            #   若 code_detection 阶段已检测到算法块（is_algorithm），移除重叠文本块；
+            #   否则按页拼接文本块后扫描算法模式，避免 PyMuPDF 将 Algorithm 拆分为
+            #   多个短块导致单独检测时评分不足。
+            _algo_code_elems = [
+                e
+                for e in elements
+                if e.element_type == "code"
+                and e.code_block
+                and getattr(e.code_block, "is_algorithm", False)
+            ]
+            _algo_remove: set[int] = set()
+
+            if _algo_code_elems:
+                # code_detection 阶段已输出算法块：去重同页文本块
+                for algo in _algo_code_elems:
+                    algo_words = set(re.findall(r"[a-zA-Z_]{3,}", algo.content.lower()))
+                    if not algo_words:
+                        continue
+                    for idx, elem in enumerate(elements):
+                        if (
+                            elem.element_type != "text"
+                            or not elem.block
+                            or elem.page_number != algo.page_number
+                            or idx in _algo_remove
+                        ):
+                            continue
+                        block_words = set(
+                            re.findall(
+                                r"[a-zA-Z_]{3,}",
+                                elem.block.text.lower(),
+                            )
+                        )
+                        if not block_words:
+                            continue
+                        overlap = len(algo_words & block_words)
+                        ratio = overlap / max(len(algo_words), 1)
+                        if ratio > 0.5 and overlap > 15:
+                            _algo_remove.add(idx)
+            else:
+                # 无外部算法块：按页拼接文本后扫描算法模式
+                try:
+                    from ....markdown.algorithm_detector import (
+                        detect_algorithm_regions,
+                    )
+
+                    # 按页分组：page_number -> [(index, text)]
+                    _page_texts: Dict[int, List[Tuple[int, str]]] = {}
+                    for idx, elem in enumerate(elements):
+                        if elem.element_type != "text" or not elem.block:
+                            continue
+                        text = elem.block.text.strip()
+                        if not text:
+                            continue
+                        _page_texts.setdefault(elem.page_number, []).append((idx, text))
+
+                    for page_num, items in _page_texts.items():
+                        # 拼接同页文本块（双换行分隔，模拟段落边界）
+                        page_text = "\n\n".join(t for _, t in items)
+                        for region in detect_algorithm_regions(page_text):
+                            if region.confidence < 0.5:
+                                continue
+                            # 找到算法区域中的关键文本，匹配回原始文本块
+                            algo_words = set(
+                                re.findall(
+                                    r"[a-zA-Z_]{3,}",
+                                    region.content.lower(),
+                                )
+                            )
+                            if not algo_words:
+                                continue
+                            for item_idx, text in items:
+                                if item_idx in _algo_remove:
+                                    continue
+                                block_words = set(
+                                    re.findall(r"[a-zA-Z_]{3,}", text.lower())
+                                )
+                                if not block_words:
+                                    continue
+                                overlap = len(algo_words & block_words)
+                                ratio = overlap / max(len(algo_words), 1)
+                                if ratio > 0.3 and overlap > 5:
+                                    _algo_remove.add(item_idx)
+                            if any(i in _algo_remove for i, _ in items):
+                                # 用首个被移除块的位置信息创建代码元素
+                                first_removed = next(
+                                    e
+                                    for i, e in enumerate(elements)
+                                    if i in _algo_remove and e.page_number == page_num
+                                )
+                                elements.append(
+                                    _ContentElement(
+                                        reading_order=first_removed.reading_order,
+                                        page_number=page_num,
+                                        element_type="code",
+                                        content=f"```algorithm\n{region.content}\n```",
+                                    )
+                                )
+                except ImportError:
+                    pass
+
+            if _algo_remove:
+                elements = [e for i, e in enumerate(elements) if i not in _algo_remove]
+                # 新增的算法代码块需要在排序后的位置插入，重新排序
+                elements.sort(key=_sort_key)
+
             # 2.2 无 bbox 块级公式：通过公式编号或数学符号在文本块中定位并替换
             #    策略 1：通过公式编号（如 LaTeX 末尾的 \quad (N)）匹配
             #    策略 2：通过数学符号 + 公式特征匹配

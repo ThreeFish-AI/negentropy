@@ -162,6 +162,20 @@ async def _render_figure_regions(
                     if x1 <= x0 or y1 <= y0:
                         continue
 
+                    # 过滤装饰性小图标：PDF 坐标下宽或高 < 20pt 的区域通常是
+                    # 项目符号、装饰线条、小型 icon 等，不是有意义的 figure
+                    region_w = x1 - x0
+                    region_h = y1 - y0
+                    if region_w < 20 or region_h < 20:
+                        logger.debug(
+                            "跳过小区域 figure p%d region %d: %.1fx%.1f pt",
+                            page_idx,
+                            region_idx,
+                            region_w,
+                            region_h,
+                        )
+                        continue
+
                     # 去重：检查与同页光栅图的空间重叠
                     raster_bboxes = raster_by_page.get(page_idx, [])
                     skip = False

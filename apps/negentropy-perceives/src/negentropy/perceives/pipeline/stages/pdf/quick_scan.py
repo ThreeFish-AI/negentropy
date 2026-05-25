@@ -71,6 +71,7 @@ class FitzQuickScanner(PDFToolBase):
             native_table_count = 0
             code_indicator_count = 0
             code_font_count = 0
+            algorithm_indicator_count = 0
             inline_math_hits = 0
 
             # 仅扫描前 10 页（或指定范围内的前 10 页）
@@ -153,6 +154,21 @@ class FitzQuickScanner(PDFToolBase):
                 inline_math_hits += len(re.findall(r"\$[^\$\n]{1,80}\$", page_text))
                 inline_math_hits += len(re.findall(r"\\\([^)]{1,80}\\\)", page_text))
 
+                # 算法/伪代码检测：学术论文中的 Algorithm 1 等伪代码块没有代码缩进
+                # 或等宽字体特征，不会被 code_indicator 捕获，需专用模式匹配
+                if re.search(r"\bAlgorithm\s+\d+", page_text, re.IGNORECASE):
+                    algorithm_indicator_count += 1
+                algorithm_indicator_count += len(
+                    re.findall(
+                        r"^\s*(?:Require|Ensure|Input|Output)\s*:",
+                        page_text,
+                        re.MULTILINE,
+                    )
+                )
+                algorithm_indicator_count += len(
+                    re.findall(r"^\s*\d+:\s+\S", page_text)
+                )
+
             doc.close()
 
             # 综合判断 (PR #164: 启发式从 OR 多源降低漏报):
@@ -162,7 +178,11 @@ class FitzQuickScanner(PDFToolBase):
             chars.has_images = image_count > 0
             chars.has_formulas = math_font_count >= 3 or inline_math_hits >= 3
             chars.has_tables = native_table_count >= 1 or table_indicator_count > 2
-            chars.has_code_blocks = code_indicator_count > 5 or code_font_count >= 30
+            chars.has_code_blocks = (
+                code_indicator_count > 5
+                or code_font_count >= 30
+                or algorithm_indicator_count >= 3
+            )
             chars.sample_text = "\n".join(sample_texts)[:500]
 
             # 文本密度
