@@ -128,8 +128,10 @@ export function LlmModelSelect({
       const rect = trigger.getBoundingClientRect();
       const dropdownH = dropdown.offsetHeight;
       const availableAbove = rect.top - 8;
-      setMeasuredTop(rect.top - dropdownH - 4);
-      setDropdownMaxH(Math.min(320, availableAbove));
+      const maxAllowedH = Math.min(320, availableAbove);
+      const effectiveH = Math.min(dropdownH, maxAllowedH);
+      setMeasuredTop(rect.top - effectiveH - 4);
+      setDropdownMaxH(maxAllowedH);
       setDropdownLeft(rect.left);
     });
     return () => cancelAnimationFrame(raf);
