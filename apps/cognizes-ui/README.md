@@ -16,26 +16,16 @@ By leveraging the latest features of **Next.js 14** and key functionalities like
 
 ## Installation
 
-1. Download/fork/clone the repo and Once you're in the correct directory, it's time to install all the necessary dependencies. You can do this by typing the following command:
+1. 本项目使用 [pnpm](https://pnpm.io/) 作为包管理器（monorepo 统一约定）。从仓库根目录安装依赖即可：
 
 ```
-npm install
-```
-If you're using **Yarn** as your package manager, the command will be:
-
-```
-yarn install
+pnpm install
 ```
 
-2. Okay, you're almost there. Now all you need to do is start the development server. If you're using **npm**, the command is:
+2. 启动开发服务器：
 
 ```
-npm run dev
-```
-And if you're using **Yarn**, it's:
-
-```
-yarn dev
+pnpm --filter @negentropy/cognizes-ui dev
 ```
 
 And voila! You're now ready to start developing. **Happy coding**!
