@@ -76,17 +76,21 @@ class BuiltinAssembler(PDFToolBase):
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
 
-            # 1b. 预扫描：收集文本块中的表格与公式指纹，用于跨 Stage 去重
-            text_table_fingerprints: set[str] = set()
+            # 1b. 预扫描：收集 table_extraction 阶段的表格指纹与文本块公式指纹
+            #     表格指纹用于反向去重：当文本块表格与 table_extraction 输出重复时，
+            #     优先保留 table_extraction 的高保真版本，跳过文本块的原始版本。
+            table_extraction_fingerprints: set[str] = set()
             text_formula_fingerprints: set[str] = set()
+            if input_data.tables:
+                for table in input_data.tables.tables:
+                    md = table.markdown.strip() if table.markdown else ""
+                    if md.startswith("|"):
+                        fp = _extract_table_fingerprint(md)
+                        if fp:
+                            table_extraction_fingerprints.add(fp)
             if input_data.text and input_data.text.blocks:
                 for block in input_data.text.blocks:
                     text = block.text.strip()
-                    # 表格指纹：首行非空单元格的拼接（跳过 separator 行）
-                    if text.startswith("|"):
-                        first_data_row = _extract_table_fingerprint(text)
-                        if first_data_row:
-                            text_table_fingerprints.add(first_data_row)
                     # 公式指纹：LaTeX 核心内容（去除空白）
                     if "$$" in text:
                         for m in re.finditer(r"\$\$(.*?)\$\$", text, re.DOTALL):
@@ -104,6 +108,12 @@ class BuiltinAssembler(PDFToolBase):
                     # 跳过学术论文页眉/页脚残留文本
                     if _is_running_header_footer(block.text):
                         continue
+                    # 跳过文本块中的表格：当 table_extraction 已提供高保真版本时，
+                    # 不再使用文本块的原始表格（避免重复且质量更差）
+                    if block.text.strip().startswith("|"):
+                        fp = _extract_table_fingerprint(block.text.strip())
+                        if fp and fp in table_extraction_fingerprints:
+                            continue
                     # 跳过作者署名行（短标题含 ∗†‡ 或邮箱标记）
                     if _is_author_byline(block):
                         continue
@@ -120,13 +130,10 @@ class BuiltinAssembler(PDFToolBase):
                         )
                     )
 
-            # 表格（正向去重：跳过文本块中已存在的表格）
+            # 表格 — 直接插入 table_extraction 阶段的高保真输出
+            # （重复的文本块表格已在上方文本块收集阶段被过滤）
             if input_data.tables:
                 for table in input_data.tables.tables:
-                    md = table.markdown.strip() if table.markdown else ""
-                    fp = _extract_table_fingerprint(md) if md.startswith("|") else ""
-                    if fp and fp in text_table_fingerprints:
-                        continue
                     elements.append(
                         _ContentElement(
                             reading_order=table.reading_order,
@@ -350,6 +357,37 @@ class BuiltinAssembler(PDFToolBase):
                     new_level = min(level + 1, 5)
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
+
+            # 2.1b 标题质量过滤：S3 text_extraction 常将双栏正文段落
+            #     误判为 H3/H4 标题。识别特征：
+            #     a) 超长（> 100 字符）且含句号/问号等段落标点
+            #     b) 以小写字母开头（真正标题首字母大写）
+            #     c) 以 bullet（•）开头（列表项而非标题）
+            for elem in elements:
+                if elem.element_type != "text" or not elem.block:
+                    continue
+                if elem.block.block_type != "heading":
+                    continue
+                content = elem.content.strip()
+                if not content.startswith("#"):
+                    continue
+                level = len(content) - len(content.lstrip("#"))
+                heading_text = content[level:].strip()
+                is_bad = False
+                # 超长 + 段落标点 → 误判段落
+                if len(heading_text) > 100 and (
+                    "." in heading_text or "?" in heading_text
+                ):
+                    is_bad = True
+                # 小写字母开头 → 句子片段
+                elif heading_text and heading_text[0].islower():
+                    is_bad = True
+                # bullet 开头 → 列表项
+                elif heading_text.startswith("• ") or heading_text.startswith("- "):
+                    is_bad = True
+                if is_bad:
+                    elem.element_type = "text"
+                    elem.content = heading_text
 
             # 2.2 无 bbox 块级公式：通过公式编号或数学符号在文本块中定位并替换
             #    策略 1：通过公式编号（如 LaTeX 末尾的 \quad (N)）匹配
@@ -784,6 +822,7 @@ def _is_paper_metadata_heading(block: TextBlock) -> bool:
     metadata_headings = [
         r"^CCS\s+Concepts",
         r"^Categories\s+and\s+Subject\s+Descriptors",
+        r"^Received\s+\d+.*(?:revised|accepted)",
     ]
     for pattern in metadata_headings:
         if re.match(pattern, text, re.IGNORECASE):
