@@ -70,6 +70,30 @@ class TestExtractMarkdownImageRefs:
         # 这是有意的简化，不影响实际提取工具生成的 Markdown
         assert _extract_markdown_image_refs(md) == []
 
+    def test_extracts_html_img_src(self):
+        """HTML <img> 形式（perceives PDF 管线保留宽高时的输出）也应被识别。"""
+        md = (
+            '<img src="./images/figure_1.png" alt="Figure 1" '
+            'width="640" height="360" style="max-width:100%;height:auto;" />'
+        )
+        assert _extract_markdown_image_refs(md) == ["figure_1.png"]
+
+    def test_html_img_single_quotes_and_no_self_close(self):
+        md = "<img src='photo.png' alt='p'>"
+        assert _extract_markdown_image_refs(md) == ["photo.png"]
+
+    def test_mixed_markdown_and_html_preserves_doc_order(self):
+        md = '![first](a.png)\n<img src="./images/b.jpg" alt="second" width="320" />\n![third](c.webp)'
+        assert _extract_markdown_image_refs(md) == ["a.png", "b.jpg", "c.webp"]
+
+    def test_html_img_skips_absolute_urls(self):
+        md = (
+            '<img src="https://cdn.example.com/x.png" />\n'
+            '<img src="data:image/png;base64,abc" />\n'
+            '<img src="local.png" />'
+        )
+        assert _extract_markdown_image_refs(md) == ["local.png"]
+
 
 # ---------------------------------------------------------------------------
 # _mime_to_extension

@@ -2202,3 +2202,46 @@
 - **同类问题影响**：
   - 其他模块（Skills、Knowledge Documents、Wiki Publications 等）若已有"软删/归档"语义而后续要新增"永久清理"入口，应直接复用本案范式：独立 Service 方法 + 独立 HTTP 动词路由 + UI 二次确认 + 同测试范式；
   - 全仓库 `setState((prev) => { 闭包赋值 })` 范式可借此机会做一轮 review（grep `let \w+: .*?\| null = null;\s*setSessions`），按需重构。
+
+---
+
+## ISSUE-094 PDF → Markdown 学术论文 1:1 还原：图片宽高丢失 / 公式静默丢弃 / 首页双栏误判（2026-05-25）
+
+- **表因**：Knowledge Base → "Harness Engineering" Corpus → Documents View 渲染学术论文（Context Engineering 2.0 PDF）时三类失真：
+  1. ASI / GAIR 小 logo 被放大到接近全宽，Figure 1 也呈现压扁，所有图均无显示尺寸；
+  2. 论文「Theoretical Framework」章节有 7 条编号块公式，最终 Markdown 仅含 2 条 `$$..$$`；
+  3. 首页 `## Abstract` 标题被错排到 Abstract 正文与 Figure 1 之后，作者署名 / Github / SII Context badges 也散乱于其间。
+- **根因**（三处独立根因，碰巧叠加于同一回归现场）：
+  1. **图片宽高链路断裂**：`apps/negentropy-perceives/src/.../pipeline/stages/pdf/assembly.py` 的 `_image_to_markdown()` 历史实现只发 `![alt](path)`，丢弃 `ExtractedImage.width`/`height`；`MarkdownFormatter._restore_image_placeholders()` 又仅服务于 HTML→Markdown 链路（依赖 sentinel registry），PDF 链路完全旁路。即使加上宽高，下游 negentropy 主应用 `apps/negentropy/src/.../knowledge/ingestion/extraction.py:_rewrite_markdown_image_links` 又只匹配 Markdown `![]()` 形式，把 HTML `<img>` 的相对路径漏改写，致前端 404。
+  2. **MinerU v3.x content_list.json schema 错位**：`apps/negentropy-perceives/src/.../pdf/engines/mineru.py::_extract_formulas` 用 `item.get("latex")` / `page_no` / `format` 取字段，而 MinerU v3.x 实际写入 `text`（已含 `$$..$$` 包裹）/ `text_format`（"latex"）/ `page_idx` / `bbox`。Strategy 1 因此返回空，仅靠 Strategy 2（markdown 正则）兜底；后者无 bbox/page_number，公式被丢给 `_orphan_block_formulas` 做文本匹配，命中率低至 2/7。同时 `formula_extraction.py` 中 MinerU 工具的 `ExtractedFormula(...)` 构造也漏传 `bbox=`，结构化公式失去定位锚点。
+  3. **首页双栏误判**：`assembly.py` 几何 gap 检测把页 0 的 18 个元素（两侧装饰 logo + 居中正文）判为双栏：max_gap=94.88pt 略超 max(x_range*0.25, 80)=91pt，split_x≈215。所有 ≥255pt 的正文段落走"全宽"判定到 col 0，而 affiliation / badges / Abstract heading（width 45） / Figure 1 Y 轴标签等**装饰性短元素**被分到 col 1。排序 `(page, col, y0, x0, reading_order)` 把 col 1 整批挪到 col 0 之后，Abstract H2 因此与其 body 段被拆散，错排到 Figure 1 下方。
+- **处理方式**：
+  1. **图片宽高（Fix #1）**：`assembly.py::_image_to_markdown` 改输出 HTML `<img src alt width height style="max-width:100%;height:auto;" />`，宽高优先取 `image.bbox`（PDF 点坐标，即原版视觉显示尺寸），bbox 缺失时退化到 `image.width/height` 像素分辨率，全空降级 Markdown；同时把 `_dd` 去重逻辑里的 alt 文本提取扩展为同时支持 `![]()` 与 `<img alt="...">`。`extraction.py` 增 `_HTML_IMG_SRC_RE` 与 `_iter_image_src_matches()`，让 `_extract_markdown_image_refs` 与 `_rewrite_markdown_image_links` 两侧同时覆盖两种语法，避免 HTML img 的相对路径漏改写。新增 `tests/unit/test_assembly_helpers.py::TestImageToMarkdown`（6 用例）锁定 bbox 优先 / 像素退化 / 极端降级 / HTML 转义 / 异常 bbox / caption-as-alt 契约；`tests/unit_tests/knowledge/test_extraction_image_assets.py` 增 4 用例覆盖 HTML img 提取与重写。
+  2. **MinerU v3.x 公式（Fix #2）**：`mineru.py` 给 `MinerUFormula` 加 `bbox` 字段；`_extract_formulas` Strategy 1 改读 `text` / `text_format` / `page_idx` / `bbox`，并剥离 `text` 字段开头的 `$$..$$` 或 `$..$` 包裹得到纯 LaTeX；同时把剥离后的纯 LaTeX 写入 `seen_latex`，与 Strategy 2 的 markdown 正则提取（同样是纯 LaTeX）实现互通去重。`formula_extraction.py` 的 MinerU wrapper 补 `bbox=getattr(f, "bbox", None)` 透传到 `ExtractedFormula`。`tests/unit/test_mineru_engine.py::TestMinerUStructuredExtraction` 增 2 用例：v3.x text/text_format/page_idx/bbox schema 全字段断言、以及 Strategy 1 与 Strategy 2 互通去重断言。
+  3. **首页双栏误判（Fix #3）**：`assembly.py` 双栏检测在原"max_gap > max(0.25*x_range, 80)"几何阈值之上增加稳健性二次校验——要求每列至少含 **3 个宽度 ≥100pt 且非跨栏（width ≤ 0.7*x_range）** 的"实质性元素"，否则强制降级单列。该校验对真正双栏 ACM/IEEE 论文（每列 10+ 段正文）零影响，但能让"首页 / 报告封面"这类"装饰性元素散落 + 中央单栏正文"场景正确归一。
+- **可观测验证**：连续 5 次浏览器实机回归（chrome_devtools 接入用户主 Chrome），三次 refresh_markdown：
+  - **v3（image fix）**：37/37 张图 HTML `<img>` + width/height；图片显示尺寸符合 PDF 视觉比例（ASI logo 35×27 px、Figure 1 406×199 px）。
+  - **v4（column fix）**：开启临时 `NE_DEBUG_ASSEMBLY_P0=1` env 调试日志，确认页 0 全部 18 个元素归到 col=0；markdown 顺序：logos → Title → Authors → Affiliation → Badges → Quote → **Abstract H2 → Abstract body** → Figure 1 → labels → caption → footnote，与 PDF 视觉一致。调试日志在诊断结束后已从代码中移除。
+  - **v5（formula fix）**：block formulas 从 2 → 6（与 content_list.json 的 7 条相比 86% 完整，剩 1 条 165 char 长式因 `_sanitize_latex` 或 fingerprint dedup 未入栈，待后续二次抛光）；KaTeX 在 UI 端正常渲染 `Char: E → P(F)\tag{1}` 等公式。
+- **后续防范**：
+  1. **工具版本 schema 漂移监测**：MinerU / Docling / Marker 等深度学习引擎升大版本时（如 v2.x → v3.x）极可能悄然改 content list 字段名。新增"全字段断言"型单测（同时校验 `text`/`text_format`/`page_idx`/`bbox` 四字段被正确读取），比"length ≥ N"型断言更早暴露字段名错位类回归。
+  2. **跨语法重写覆盖**：当一端切换图片输出形式（Markdown ↔ HTML），所有依赖该形式做正则匹配的下游链路（rewriter / dedup / ref extractor）必须同步扩展，并通过"混合语法 doc order 保序"型单测锁定。
+  3. **几何启发式必须配上"含义校验"**：纯几何 gap / IoU / 比例阈值在装饰性元素与正文混杂的页面极易误判。增加"列含义校验"（substantial element count）这类语义层兜底，能在不影响真双栏召回的前提下显著降低首页/封面误判。
+  4. **临时调试日志的纪律**：env-gated debug 块（如 `NE_DEBUG_ASSEMBLY_P0`）适合一次性根因定位，但**修复落地后必须移除**，避免在生产代码中长期留存"诊断脚手架"；同时把诊断中得到的核心数据（bbox + content preview）转化为回归用例的 fixture，让今后的同类问题不必再依赖临时探针。
+  5. **`uv run pytest` 跨包验证**：本次同时改了 `apps/negentropy-perceives/` 与 `apps/negentropy/` 两个包，必须分别在两个包目录下 `uv run pytest` 验证，避免单包验证遗漏。
+- **同类问题影响**：
+  - 其他 PDF 元素提取（Tables / Code blocks / Footnotes / Captions）若也读取 MinerU content_list 字段，需同步审视 v3.x schema 兼容；
+  - `_rewrite_markdown_image_links` / `_extract_markdown_image_refs` 的双语法覆盖思路可推广到任何"前后端约定的 Markdown 扩展语法"（如 footnote、KaTeX block、Mermaid block）的转换链路；
+  - 几何分栏判断模式在长报告、产品 deck 类 PDF 上将持续出现误判，substantial-element 校验应作为通用启发式入库。
+
+### 第二轮迭代（2026-05-25 补强）
+
+继续对比 PDF 与 Markdown 后定位 3 处额外根因，承接 ISSUE-094 主条目继续抛光：
+
+- **长公式被 `_deduplicate_approximate_paragraphs` 误删（commit `61f2cf26`）**：``M_l = f_long(c ∈ C : w_importance > θ_l ∧ w_temporal ≤ θ_s)`` 长公式与同章节 ``M_s = f_short(...)`` 共享 ``M``/``f``/``c``/``\theta``/``\in`` 等大量令牌，``_normalize_paragraph_breaks`` 在 ``$$`` 与 LaTeX 之间插入空行后把数学块拆为 3 段，Jaccard 相似度比对致整段被误删。修复：``MarkdownFormatter`` 新增 ``_protect_math_blocks`` / ``_restore_math_blocks`` 范式（与 ``_protect_code_blocks`` 对称），format() 入口把 ``$$\n..\n$$`` 块替换为 ``%%MATHBLOCK_<uuid>%%`` 占位符，整个管线视其为原子单元，末尾 ``_cleanup_math_blocks`` 后统一还原；同步给 ``_deduplicate_approximate_paragraphs`` 内嵌 ``_is_math_block`` 防御性兜底。回归：公式 6/7 → 7/7。
+- **公式视觉区"字符流文本"漏过滤（commit `d8c1d2a7`）**：``_block_overlaps_special`` 的几何检测（含 8pt bbox 膨胀）对"公式视觉区垂直之上 / 之下几十 pt 的字符流文本"覆盖不足；同时 ``_formula_eq_nums`` 仅识别 ``(N)`` 形式编号，遗漏 MinerU 输出的 ``\tag{N}`` 大括号形式。修复：``assembly`` 新增 ``_formula_text_signature`` 字符级扁平签名归一化（剥 LaTeX 命令 / 大括号 / 标点 / 空白 / Unicode 数学符号，仅留 ASCII 字母数字小写），以及 ``_text_block_matches_formula`` 语义层兜底；``_formula_eq_nums`` 同时收集 ``\tag{N}`` 编号。回归：``M l = f long (...)`` / ``M l = f short (...)`` / ``f transfer ...`` / ``e ∈E rel Char ( e ) (2)`` 等 4/5 字符流碎片清零，仅余 1 处极短 ``C = [``（5 字符，无 ``(N)``/无 Unicode 数学符号，无明确过滤信号）。
+- **二轮防范要点补充**：
+  1. **多层防御**：纯几何（bbox 膨胀）+ 字符级签名（跨形式等价）+ 符号锚定（``(N)`` / ``\tag{N}``）三层组合才能高召回过滤公式冗余文本，单一手段都有死角；
+  2. **占位符保护范式可复用**：``_protect_*_blocks`` / ``_restore_*_blocks`` 模式可推广到任何"内部内容不应被任何 formatter 步骤修改"的块级元素（数学块、Mermaid 块、ASCII art 等）；
+  3. **跨形式签名的最小启用长度**：字符级扁平签名 ≥20 字符是经验阈值，更低易在短公式（如 ``\alpha = 0``）上产生假阳性匹配，更高漏过中等长度公式；
+  4. **临时调试 env-gated 探针**：``NE_DEBUG_FORMULA=1`` 可在二轮根因定位中快速暴露 7 公式如何在 ``add → join → format → final`` 各环节流转，确认是 ``format()`` 内部某步骤丢弃，比再加 print 高效得多。该探针修复落地后已移除。

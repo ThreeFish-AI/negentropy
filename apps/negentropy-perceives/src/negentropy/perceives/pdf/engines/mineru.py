@@ -70,6 +70,8 @@ class MinerUFormula:
     formula_type: str = "block"  # "inline" or "block"
     page_number: Optional[int] = None
     original_text: str = ""
+    bbox: Optional[Tuple[float, float, float, float]] = None
+    """PDF 坐标系下的边界框（TopLeft 原点；MinerU content_list.json 的 ``bbox`` 字段直读）。"""
 
 
 @dataclass
@@ -879,29 +881,83 @@ class MinerUEngine:
         formulas: List[MinerUFormula] = []
         seen_latex: set = set()  # 去重
 
-        # 策略 1：从 content_list 提取
+        # 策略 1：从 content_list 提取（含 bbox、page_idx、text_format）
+        #
+        # MinerU v3.x content_list.json equation 条目实际 schema：
+        #   {
+        #     "type": "equation",
+        #     "text": "$$\n<LaTeX>\n$$",   # ← 实际 LaTeX 内容（含 $$ 包裹）
+        #     "text_format": "latex",       # ← 标识 text 字段为 latex
+        #     "page_idx": <int>,            # ← 页码（0-based）
+        #     "bbox": [x0, y0, x1, y1],     # ← TopLeft bbox
+        #     "img_path": "...",            # ← 渲染图（可选）
+        #   }
+        #
+        # 历史代码读 ``item.get("latex")`` / ``page_no`` / ``format`` 三处皆错位，
+        # 致使所有结构化公式被静默丢弃，仅靠 Strategy 2（正则）兜底，导致
+        # 公式入栈时缺失 bbox、page_number，无法被 assembly 正确排序与定位。
+        _BLOCK_DELIMS = ("$$", "\\[")
         for item in content_list:
             if item.get("type") != "equation":
                 continue
-            latex = item.get("latex", "")
-            if not latex or latex in seen_latex:
-                continue
-            seen_latex.add(latex)
 
-            # 判断公式类型
-            formula_type = item.get("format", "block")
-            if formula_type not in ("inline", "block"):
+            raw = (item.get("text") or item.get("latex") or "").strip()
+            if not raw:
+                continue
+
+            # 剥离 ``$$ ... $$`` 包裹（content 已含定界符时）
+            # 行内公式同时支持 ``$ ... $`` 单字符包裹
+            stripped = raw
+            if stripped.startswith("$$") and stripped.endswith("$$"):
+                stripped = stripped[2:-2].strip("\n").strip()
+            elif (
+                stripped.startswith("$")
+                and stripped.endswith("$")
+                and len(stripped) > 2
+            ):
+                stripped = stripped[1:-1].strip()
+
+            if not stripped or stripped in seen_latex:
+                continue
+            seen_latex.add(stripped)
+
+            # 判定公式类型：优先看 text_format / format；其次兜底依据原始定界符
+            ft_raw = (item.get("text_format") or item.get("format") or "").lower()
+            if ft_raw in ("inline", "block"):
+                formula_type = ft_raw
+            elif any(raw.startswith(d) for d in _BLOCK_DELIMS):
+                formula_type = "block"
+            elif raw.startswith("$") and raw.endswith("$"):
+                formula_type = "inline"
+            else:
                 formula_type = "block"
 
-            page_no = item.get("page_no", None)
-            original_text = item.get("text", "")
+            # 页码：MinerU 实际用 ``page_idx``（0-based），保留 ``page_no`` 兜底
+            page_no = item.get("page_idx")
+            if page_no is None:
+                page_no = item.get("page_no")
+
+            # bbox：MinerU v3.x 在 content_list 中直接给出 ``[x0,y0,x1,y1]``
+            bbox_raw = item.get("bbox")
+            bbox: Optional[Tuple[float, float, float, float]] = None
+            if isinstance(bbox_raw, (list, tuple)) and len(bbox_raw) == 4:
+                try:
+                    bbox = (
+                        float(bbox_raw[0]),
+                        float(bbox_raw[1]),
+                        float(bbox_raw[2]),
+                        float(bbox_raw[3]),
+                    )
+                except (TypeError, ValueError):
+                    bbox = None
 
             formulas.append(
                 MinerUFormula(
-                    latex=latex,
+                    latex=stripped,
                     formula_type=formula_type,
                     page_number=page_no,
-                    original_text=original_text,
+                    original_text=raw,
+                    bbox=bbox,
                 )
             )
 

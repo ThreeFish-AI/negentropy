@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 from typing import Dict, List, Optional, Tuple
@@ -63,12 +64,25 @@ class BuiltinAssembler(PDFToolBase):
             # 1a. 构建专用 Stage 的空间占用索引（page → bbox 列表），
             #     用于在添加文本块时进行反向去重：当文本块落入公式/表格/图片
             #     区域时，优先保留专用 Stage 的高保真输出，跳过文本块的冗余版本。
+            #
+            # 公式 bbox 膨胀：PyMuPDF 把公式视觉区域内的下标 / 上标 / 极限项
+            # （如 ``\bigcup _ {e \in E_{rel}}``）按字符行拆为多个独立文本块，
+            # 其 bbox 中心常落在 MinerU 报告的公式 bbox 之外 ~5-10pt，
+            # 致使 ``_block_overlaps_special`` 的中心点包含 / IoU 双策略均判空。
+            # 给公式 bbox 加 8pt 各向余量，使形如 ``C = [`` 这类碎片中心点
+            # 进入扩展区域被识别为冗余而过滤，不影响 KaTeX 渲染主公式。
+            _FORMULA_BBOX_MARGIN_PT = 8.0
             special_regions: Dict[int, List[Tuple[float, float, float, float]]] = {}
             for formula in input_data.formulas.formulas if input_data.formulas else []:
                 if formula.bbox:
-                    special_regions.setdefault(formula.page_number, []).append(
-                        formula.bbox
+                    fx0, fy0, fx1, fy1 = formula.bbox
+                    expanded = (
+                        fx0 - _FORMULA_BBOX_MARGIN_PT,
+                        fy0 - _FORMULA_BBOX_MARGIN_PT,
+                        fx1 + _FORMULA_BBOX_MARGIN_PT,
+                        fy1 + _FORMULA_BBOX_MARGIN_PT,
                     )
+                    special_regions.setdefault(formula.page_number, []).append(expanded)
             for table in input_data.tables.tables if input_data.tables else []:
                 if table.bbox:
                     special_regions.setdefault(table.page_number, []).append(table.bbox)
@@ -81,6 +95,25 @@ class BuiltinAssembler(PDFToolBase):
             #     优先保留 table_extraction 的高保真版本，跳过文本块的原始版本。
             table_extraction_fingerprints: set[str] = set()
             text_formula_fingerprints: set[str] = set()
+            # 公式字符级扁平签名（按页索引）：用于过滤 PyMuPDF 把 LaTeX 视觉
+            # 渲染区抽成"字符流文本"产生的冗余文本块。例如长式
+            # ``M _ { l } = f _ { l o n g } \\left( c \\in C : w _ { i m p o r t a n c e }
+            # ( c ) > \\theta _ { l } \\wedge w _ { t e m p o r a l } ( c )
+            # \\le \\theta _ { s } \\right)\\tag{6}`` 与 PyMuPDF 抽出的
+            # ``M l = f long ( c ∈ C : w importance ( c ) > θ l ∧ w temporal
+            # ( c ) ≤ θ s ) ( 6 )`` 经签名归一化后几乎完全相同，可由
+            # ``_text_block_matches_formula`` 在文本块入栈前剔除冗余版本。
+            # 仅当公式签名 ≥20 字符时启用，避免短公式（如 ``\\alpha = 0``）
+            # 与正文段产生假阳性匹配。
+            formula_text_signatures: Dict[int, List[str]] = {}
+            if input_data.formulas:
+                for formula in input_data.formulas.formulas:
+                    if formula.latex and formula.page_number is not None:
+                        sig = _formula_text_signature(formula.latex)
+                        if len(sig) >= 20:
+                            formula_text_signatures.setdefault(
+                                formula.page_number, []
+                            ).append(sig)
             if input_data.tables:
                 for table in input_data.tables.tables:
                     md = table.markdown.strip() if table.markdown else ""
@@ -104,6 +137,11 @@ class BuiltinAssembler(PDFToolBase):
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
+                        continue
+                    # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
+                    # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
+                    # 的 PyMuPDF 字符序列与 MinerU LaTeX 经签名归一化后等价）
+                    if _text_block_matches_formula(block, formula_text_signatures):
                         continue
                     # 跳过学术论文页眉/页脚残留文本
                     if _is_running_header_footer(block.text):
@@ -357,6 +395,38 @@ class BuiltinAssembler(PDFToolBase):
 
                 x_range = x_centers[-1] - x_centers[0]
                 is_two_col = max_gap > max(x_range * 0.25, 80)
+
+                # 稳健性二次校验：避免「首页装饰性元素散布两侧」被误判双栏。
+                #
+                # 典型反例（论文首页 / 报告封面）：
+                #   - 顶部双 logo 一左一右
+                #   - 中部 affiliation 编号、badges、社交链接散落于中央偏右
+                #   - 主体为单列 H1 / 作者 / 摘要 / 图表
+                # 上一步几何 gap 检测会因右侧装饰元素的 x 中心抬高 max_gap 略过阈值，
+                # 而真正的双栏正文（ACM/IEEE）每列必有数个宽度 ≥100pt 的实质性段落。
+                #
+                # 因此要求：每列均含 ≥3 个 "实质性元素"（宽度 ≥100pt 且非跨栏），
+                # 才认定为真双栏；否则强制降级为单列以保证阅读顺序自然。
+                if is_two_col:
+                    _SUBSTANTIAL_W_PT = 100.0
+                    _MIN_SUBSTANTIAL_PER_COL = 3
+                    full_width_thr = x_range * 0.7
+                    col0_substantial = 0
+                    col1_substantial = 0
+                    for _, bx in items:
+                        w = bx[2] - bx[0]
+                        if w < _SUBSTANTIAL_W_PT or w > full_width_thr:
+                            continue
+                        xc = (bx[0] + bx[2]) / 2
+                        if xc < split_x:
+                            col0_substantial += 1
+                        else:
+                            col1_substantial += 1
+                    if (
+                        col0_substantial < _MIN_SUBSTANTIAL_PER_COL
+                        or col1_substantial < _MIN_SUBSTANTIAL_PER_COL
+                    ):
+                        is_two_col = False
 
                 for elem, bbox in items:
                     if is_two_col:
@@ -626,8 +696,16 @@ class BuiltinAssembler(PDFToolBase):
                 if elem.element_type == "formula" and elem.content.strip().startswith(
                     "$$"
                 ):
-                    # 匹配 LaTeX 中的编号: (N) 或 ( N )
+                    # 匹配 LaTeX 中的编号：
+                    # - ``(N)`` / ``( N )``（纯 LaTeX 源 OR 部分引擎渲染）
+                    # - ``\\tag{N}``（MinerU / 学术论文标准形式）
+                    # 两种形式均落入 ``_formula_eq_nums``，配合下方"文本块含
+                    # ``(N)`` + 数学符号 + 短长度 → 视为公式字符流冗余"规则，
+                    # 兜底 ``_text_block_matches_formula`` 对短公式签名
+                    # （<20 字符）无法启用的场景。
                     for m in re.finditer(r"\(\s*(\d+)\s*\)", elem.content):
+                        _formula_eq_nums.add(m.group(1))
+                    for m in re.finditer(r"\\tag\s*\{\s*(\d+)\s*\}", elem.content):
                         _formula_eq_nums.add(m.group(1))
             if _formula_eq_nums:
                 _math_chars = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨")
@@ -710,14 +788,22 @@ class BuiltinAssembler(PDFToolBase):
                     # 场景 c: 重复 Figure/Table 注释去重
                     # 仅提取 "Table/Figure N: ..." 注释文本部分进行指纹比较，
                     # 而非整个元素内容（表格元素包含完整 Markdown 表格）
-                    # 对于图片元素 (![Figure N: ...](path))，需要截断到
-                    # Markdown 图片语法结束符之前，避免 path 污染指纹。
+                    # 对于图片元素，需要截断到图片标签语法结束符之前，
+                    # 避免 path / 尺寸属性污染指纹。支持两种语法：
+                    # 1) 标准 Markdown ``![alt](path)``
+                    # 2) 内嵌 HTML ``<img src="..." alt="...">``（保留尺寸时）
                     cap_source = content
                     if elem.element_type == "image":
-                        # 从 ![alt](path) 中仅取 alt 部分
-                        alt_m = re.match(r"!\[([^\]]*)\]\([^)]*\)", content)
-                        if alt_m:
-                            cap_source = alt_m.group(1)
+                        alt_md = re.match(r"!\[([^\]]*)\]\([^)]*\)", content)
+                        if alt_md:
+                            cap_source = alt_md.group(1)
+                        else:
+                            alt_html = re.search(
+                                r'<img\b[^>]*\balt="([^"]*)"',
+                                content,
+                            )
+                            if alt_html:
+                                cap_source = html.unescape(alt_html.group(1))
                     cap_match = re.search(
                         r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
                         cap_source,
@@ -911,6 +997,64 @@ def _block_overlaps_special(
             return True
         # 策略 2: IoU 检测 — 面积重叠
         if _compute_iou(block.bbox, (rx0, ry0, rx1, ry1)) >= iou_threshold:
+            return True
+    return False
+
+
+def _formula_text_signature(s: str) -> str:
+    """提取字符级扁平签名（仅保留字母数字，全部小写）。
+
+    用于跨形式公式去重：
+      - LaTeX 命令 ``\\xxx`` 全部剥除（``\\theta``、``\\in``、``\\wedge`` 等
+        无文本字符等价，丢弃即可）；
+      - 大括号 / 下标符号 / 标点 / 空白 / Unicode 数学符号 全部丢弃；
+      - 仅保留 ASCII 字母数字。
+
+    PyMuPDF 把 LaTeX 视觉渲染区抽成"字符流文本"时，对每个字形（含上下标）
+    保留为独立字符，与 MinerU 提取的 LaTeX 字符序列（同样把 ``M _ { l }``
+    拆为 ``M l`` 等）经归一化后几乎完全相同。该签名作为跨形式等价锚点。
+    """
+    # 剥离 \xxx LaTeX 命令
+    s = re.sub(r"\\[a-zA-Z]+\*?", "", s)
+    # 仅保留 ASCII 字母数字
+    return re.sub(r"[^a-zA-Z0-9]+", "", s).lower()
+
+
+def _text_block_matches_formula(
+    block: TextBlock,
+    formula_signatures: Dict[int, List[str]],
+) -> bool:
+    """检测文本块是否为相邻公式 LaTeX 的字符级文本表示。
+
+    ``_block_overlaps_special`` 的几何检测对"公式视觉区垂直之上 / 之下
+    几十 pt 的字符流文本"覆盖不足；当 PyMuPDF 把公式视觉渲染区抽成
+    独立文本字符串时，签名归一化后与公式 LaTeX 几乎完全一致，可由本
+    函数作为语义层兜底拦截。
+
+    匹配判据（两项同时满足时认为是冗余，过滤该文本块）：
+      1. 前置条件：公式签名是文本块签名的子串（``fsig in text_sig``）；
+      2. 长度比例：``len_ratio = len(fsig) / len(text_sig) ≥ 0.85``，
+         即文本块签名几乎完全等于公式签名（典型 PyMuPDF 字符流抽取产物）。
+
+    若仅满足前置条件但 ``len_ratio < 0.85``，认为公式只是被嵌入更长正文段，
+    属于"公式埋在长正文段"假阳性，保守保留文本块不予过滤。
+
+    仅在公式签名 ≥20 字符且文本块归一化后 ≥20 字符时启用，
+    避免短公式 / 短文本互相假阳性。
+    """
+    page = block.page_number
+    sigs = formula_signatures.get(page)
+    if not sigs:
+        return False
+    text_sig = _formula_text_signature(block.text or "")
+    if len(text_sig) < 20:
+        return False
+    for fsig in sigs:
+        if fsig not in text_sig:
+            continue
+        # 子串匹配 → 进一步判定长度比例，过滤"公式埋在长正文段"假阳性
+        len_ratio = len(fsig) / max(len(text_sig), 1)
+        if len_ratio >= 0.85:
             return True
     return False
 
@@ -1117,9 +1261,57 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
 
 
 def _image_to_markdown(image: ExtractedImage) -> str:
-    """将图片转换为 Markdown 图片引用。"""
-    alt = image.caption or image.filename or "image"
-    return f"![{alt}](./images/{image.filename})"
+    """将图片转换为 Markdown 图片引用，保留 PDF 原版显示尺寸。
+
+    输出 **内嵌 HTML ``<img>``** 形式，并按以下优先级决定 ``width``/``height``：
+
+    1. **优先使用 ``bbox``**（PDF 点坐标计算的显示宽高，与 PDF 原版视觉一致）：
+       - PDF 点（72pt = 1in）经验性按 1:1 映射为 CSS 像素；
+       - 这是 UI 中 ``DocumentImage`` 期望的「展示尺寸」语义，与 PDF 中视觉布局保持比例；
+       - 同时配合响应式样式 ``max-width:100%;height:auto;`` 适配窄屏；
+    2. 退化路径：当 ``bbox`` 缺失时回退到 ``image.width``/``image.height``
+       （引擎报告的栅格像素分辨率，可能远大于 PDF 显示尺寸）；
+    3. 极端兜底：无任何尺寸信息时输出标准 ``![alt](src)`` Markdown 形式。
+
+    高分辨率原图始终由 ``src`` 指向的资源端点提供（不丢失清晰度），
+    属性中的 ``width``/``height`` 仅约束 UI 展示尺寸，避免小图被放大、大图被拉伸。
+
+    UI 端契约对齐：``apps/negentropy-ui/features/knowledge/components/
+    DocumentMarkdownRenderer.tsx`` 中 ``DocumentImage`` 通过 ``parsePixelValue()``
+    读取 ``width``/``height`` 像素值约束 ``max-width``。
+    """
+    alt_text = image.caption or image.filename or "image"
+    src = f"./images/{image.filename}"
+
+    display_w: Optional[int] = None
+    display_h: Optional[int] = None
+    if image.bbox is not None:
+        try:
+            x0, y0, x1, y1 = (float(v) for v in image.bbox)
+            bw, bh = x1 - x0, y1 - y0
+            if bw > 0 and bh > 0:
+                display_w = int(round(bw))
+                display_h = int(round(bh))
+        except (TypeError, ValueError):
+            display_w = display_h = None
+
+    if display_w is None and image.width:
+        display_w = int(image.width)
+    if display_h is None and image.height:
+        display_h = int(image.height)
+
+    if display_w or display_h:
+        parts: List[str] = [
+            f'<img src="{html.escape(src, quote=True)}"',
+            f'alt="{html.escape(alt_text, quote=True)}"',
+        ]
+        if display_w:
+            parts.append(f'width="{display_w}"')
+        if display_h:
+            parts.append(f'height="{display_h}"')
+        parts.append('style="max-width:100%;height:auto;" />')
+        return " ".join(parts)
+    return f"![{alt_text}]({src})"
 
 
 # ---------------------------------------------------------------------------
