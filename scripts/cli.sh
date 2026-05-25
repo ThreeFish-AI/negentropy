@@ -120,7 +120,7 @@ start_service() {
   cmd="$(svc_start_cmd "$name")"
 
   if is_running "$name"; then
-    log_warn "${name} 已在运行 (PID $(cat "$(pid_file "$name")"))"
+    log_info "${name} 已在运行 (PID $(cat "$(pid_file "$name")"))"
     return 0
   fi
 
