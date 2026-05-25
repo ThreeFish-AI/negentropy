@@ -82,6 +82,9 @@ export function MentionPopover({
     setActiveIdx(0);
   }, []);
   const listRef = useRef<HTMLUListElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  // 向上定位：先渲染测量实际高度，再向上偏移
+  const [measuredTop, setMeasuredTop] = useState<number | null>(null);
 
   const items = useMemo(() => {
     if (!open) return [] as MentionCandidate[];
@@ -95,6 +98,19 @@ export function MentionPopover({
   // 触发额外渲染（react-hooks/set-state-in-effect）。
   const safeActiveIdx =
     items.length === 0 ? 0 : Math.min(activeIdx, items.length - 1);
+
+  // 测量弹层实际高度，向上偏移以避免超出视口底部
+  // open=false 时组件直接 return null，无需重置 measuredTop
+  useEffect(() => {
+    if (!open) return;
+    // 等待 DOM 渲染后测量高度（rAF 回调内 setState 是异步的，符合 lint 要求）
+    const raf = requestAnimationFrame(() => {
+      const el = popoverRef.current;
+      if (!el) return;
+      setMeasuredTop(position.top - el.offsetHeight - 4);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open, position.top, tab, items.length]);
 
   // 全局 keydown：弹层打开时拦截 ↑↓ Enter Esc Tab
   useEffect(() => {
@@ -156,11 +172,16 @@ export function MentionPopover({
 
   return createPortal(
     <div
+      ref={popoverRef}
       data-testid="mention-popover"
       role="dialog"
       aria-label="Mention 候选项"
       className="fixed z-50 w-80 rounded-xl border border-border bg-card text-foreground shadow-xl"
-      style={{ top: position.top, left: position.left }}
+      style={{
+        top: measuredTop ?? position.top,
+        left: position.left,
+        visibility: measuredTop === null && open ? "hidden" : undefined,
+      }}
       onMouseDown={(e) => {
         // 阻止 mousedown 抢走 textarea 焦点（点击候选项时仍要保留输入态）
         e.preventDefault();

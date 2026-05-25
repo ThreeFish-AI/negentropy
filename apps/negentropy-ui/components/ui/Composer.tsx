@@ -102,8 +102,9 @@ export function Composer({
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   // --------------------------------------------------------------------
-  // @ Mention 弹层状态：trigger 由 onChange / onSelect 检测，position 锁定
-  // textarea 左下角（不依赖光标具体像素，避免 caret 测量复杂度）。
+  // @ Mention 弹层状态：trigger 由 onChange / onSelect 检测，position 锚定
+  // textarea 上边缘 + @ 符号水平位置（通过 canvas measureText 测量）。
+  // 弹层在 MentionPopover 内部通过 ref 测量高度后向上偏移。
   // --------------------------------------------------------------------
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [popoverQuery, setPopoverQuery] = useState("");
@@ -128,7 +129,40 @@ export function Composer({
     const ta = textareaRef.current;
     if (!ta) return;
     const rect = ta.getBoundingClientRect();
-    setPopoverPos({ top: rect.bottom + 4, left: rect.left });
+    // 水平：通过镜像 div 测量 @ 符号的像素位置（正确处理 textarea 折行）
+    let left = rect.left;
+    const trig = triggerRangeRef.current;
+    if (trig && trig.start > 0) {
+      const style = getComputedStyle(ta);
+      const mirror = document.createElement("div");
+      const ms = mirror.style;
+      ms.position = "absolute";
+      ms.top = "0";
+      ms.left = "0";
+      ms.visibility = "hidden";
+      ms.pointerEvents = "none";
+      ms.whiteSpace = "pre-wrap";
+      ms.wordWrap = "break-word";
+      ms.width = ta.clientWidth + "px";
+      ms.font = style.font;
+      ms.letterSpacing = style.letterSpacing;
+      ms.lineHeight = style.lineHeight;
+      ms.padding = style.padding;
+      ms.boxSizing = "border-box";
+
+      mirror.textContent = ta.value.substring(0, trig.start);
+      const marker = document.createElement("span");
+      marker.textContent = "​";
+      mirror.appendChild(marker);
+
+      document.body.appendChild(mirror);
+      const mirrorRect = mirror.getBoundingClientRect();
+      const markerRect = marker.getBoundingClientRect();
+      left = rect.left + (markerRect.left - mirrorRect.left);
+      document.body.removeChild(mirror);
+    }
+    // 垂直：锚定 textarea 上边缘，MentionPopover 内部测量高度后向上偏移
+    setPopoverPos({ top: rect.top, left });
   }, []);
 
   const tryDetectTrigger = useCallback(
