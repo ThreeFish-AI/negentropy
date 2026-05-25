@@ -73,9 +73,9 @@ export function WikiHeader({
         <nav className="wiki-header-tabs" aria-label="主导航">
           {homeLinks
             ? homeLinks.map((link) => (
-                <a key={link.href} href={link.href} className="wiki-header-tab">
+                <Link key={link.href} href={link.href} className="wiki-header-tab">
                   {link.label}
-                </a>
+                </Link>
               ))
             : items.map((item) => (
                 <WikiHeaderTab
