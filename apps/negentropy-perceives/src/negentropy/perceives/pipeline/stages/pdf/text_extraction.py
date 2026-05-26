@@ -272,6 +272,14 @@ class FitzTextExtractor(PDFToolBase):
                     text = " ".join(s["text"] for s in block_spans)
                     text = re.sub(r"\s+", " ", text).strip()
 
+                    # 重组复合编号断裂：PyMuPDF 经常把章节编号 ``3.1.1`` 拆为
+                    # 多个 span（``3.`` + ``1.1``），span 之间被 ``" ".join``
+                    # 强行插入空格，输出 ``3. 1.1 Technological Landscape``，
+                    # 进而被 markdown 解析为有序列表项而非 heading。
+                    # 模式 ``\d+\. \d+\.\d+(?:\.\d+)?`` 在学术正文中极罕见（自
+                    # 然语言不会出现 ``某数. 某数.某数`` 的结构），可安全合并。
+                    text = re.sub(r"\b(\d+)\.\s+(\d+\.\d+(?:\.\d+)?)\b", r"\1.\2", text)
+
                     # 重组 Small Caps 字间距碎片：PDF 使用 small caps + letter spacing 时，
                     # PyMuPDF 提取为 "O PEN D EV" 这样的碎片化文本。
                     # 检测模式：单字母间用空格分隔（如 "A B C"），重组为连续词。

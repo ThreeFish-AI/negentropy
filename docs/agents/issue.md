@@ -2289,3 +2289,43 @@
   - `quick_scan` 三段采样、formatter 货币号防误识、TOC 表抑制三个改动**正交独立**，可按需 cherry-pick；
   - `extractor_routes.targets[].timeout_ms` 在 corpus config 中需要为学术论文体量调到 600s+（默认 300s 在 71 页 + mineru 公式抽取下偶发超时）—— 本期已 UPDATE 该 corpus，新建 corpus 时需同步把 `parse_pdf_to_markdown` timeout 默认值上调或暴露 UI 配置项；
   - 端到端实机验证范式：a) 独立工作区起 perceives MCP（不同 port），b) 临时更新 `corpus.config->extractor_routes->file_pdf->targets[].server_id/url` 指到新 MCP，c) `POST .../refresh_markdown` 触发重提取，d) 验证完后回滚 corpus config。
+
+### 第四轮迭代（2026-05-26 unseen 样本 Context Engineering 2.0 驱动）
+
+第三轮收尾后切到 28 页混合双栏 + 大量图表 + 多语言作者名（中文 / 葡萄牙文 / 德文）的 unseen sample `Context Engineering 2.0: The Context of Context Engineering.pdf` 做端到端 1:1 还原验证，再次定位 6 类独立根因（与前三轮正交、可单独 cherry-pick），全部修复后字符数从 131369 → 113979（-13.2%），图片引用从 93 → 11（孤儿重复 + 装饰小图全部清空，仅保留 8 张真实 figure + 3 张真孤儿）：
+
+- **表因**：以 Context Engineering 2.0 论文为驱动样本端到端实测发现 6 类高发缺陷：``\`\`\`algorithm`` 代码块误判（Section 2.1 / 5.3 正文被整段包装为算法代码块，引入数百行重复 PDF 文本）；装饰性小图（SII 章节图标、脚注上标，bbox 20×22 pt）逃过渲染像素 50px 过滤被当作正常图片输出；文档末尾整段重复追加 56 张孤儿图（与正文已渲染的 HTML img 1:1 重叠）；章节复合编号 `3.1.1` → `3. 1.1` 拆裂被 markdown 误识为有序列表；多语言作者名变音字符断裂 `Pok ´ emon` / `Baltru ˇ saitis` / `Westh ¨ außer` / `Perdig ˜ ao`；list formatter 把已合并的复合编号在管线末端再次拆开。
+- **根因**：
+  1. **algorithm 误判**：`markdown/algorithm_detector.py::detect_algorithm_regions` standalone 路径仅评分 ≥ 7 不够。学术 PDF 段落含 `if/for/then` 英文高频词命中关键字 +5（封顶）、`∈/≤/∧` 数学 Unicode 字符命中特殊字符 +2，恰好凑齐 standalone 阈值 7 分，整段被误包装为 ```algorithm``` 代码块；
+  2. **装饰小图过滤穿透**：`pdf/extraction/image.py::extract_images_from_pdf_page` 按渲染像素 `< 50px` 过滤，对原图 ≥ 50px 而 PDF 显示尺寸仅 20×22 pt 的装饰图标无能为力（典型 SII 章节图标在 fitz 中原图分辨率正好 50px 起步）；
+  3. **孤儿图重复追加**：`markdown/image_ref_normalizer.py::_append_orphan_images` 仅扫描 markdown 语法 `![alt](path)` 判定引用关系，但 `assembly._image_to_markdown` 为承载 PDF 原始显示尺寸把所有图渲染为 HTML `<img src="..." width="..." height="..." />` 形式，导致主体已用 HTML 引用的 56 张图全部判为孤儿，在末尾整段重复追加；
+  4. **复合编号 span 断裂**：PyMuPDF `page.get_text("dict")` 经常把章节编号 `3.1.1` 拆为多个 span（`3.` + `1.1`），`FitzTextExtractor` 块拼接采用 `" ".join` 后输出 `3. 1.1 Foo` 形态；
+  5. **变音字符 PDF 拆解**：PyMuPDF 把 `Pokémon` / `Baltrušaitis` 等含组合变音字符（acute / caron / diaeresis / tilde / grave / circumflex）的词在 PDF 中拆为 `base + 独立间隔符号 + 后续字母`，`" ".join` 拼回 `Pok ´ emon` 形态，破坏非英语作者名 / 专有名词 / 参考文献可检索性；
+  6. **list formatter 二次拆裂**：`MarkdownFormatter._format_lists` 正则 `^(\d+)[\.\)]\s*(.+)$` 把 `3.1.1 Foo` 解析为 `\1='3', \3='1.1 Foo'`，强行输出 `3. 1.1 Foo`，撕裂 FitzTextExtractor 已合并的复合编号（与根因 #4 是同一缺陷的两个独立触发点）。
+- **处理方式**：
+  1. **`markdown/algorithm_detector.py`** 新增 `_has_pseudocode_skeleton` 守卫：standalone 路径除评分 ≥ 7 外还要求出现 `Require/Ensure/Input/Output` 结构化头部或 ≥ 3 行 `N: step` 编号步骤。+ 3 个新测试覆盖正负样本；
+  2. **`pipeline/stages/pdf/image_extraction.py`** 在 raster 路径上对 `bbox` 维度 ≤ 24pt 的光栅图做二次拦截，与矢量 figure 渲染分支（< 20pt）形成梯度防御。阈值 24pt 而非 20pt 留 ±2pt 栅格化抖动余量。+ 2 个新测试；
+  3. **`markdown/image_ref_normalizer.py`** 扩展 `_append_orphan_images` 引用集识别：新增 `_HTML_IMG_SRC_RE` 同时扫描 `<img src="...">` 标签，按 basename 匹配；同时支持 `/api/documents/<id>/assets/<basename>` 后端重写路径。+ 3 个新测试；
+  4. **`pipeline/stages/pdf/text_extraction.py`** 在 `_extract_chunk` 块拼接后加入 `re.sub(r"\b(\d+)\.\s+(\d+\.\d+(?:\.\d+)?)\b", r"\1.\2", text)` — 模式在自然语言中极罕见，不会误伤普通有序列表、年份句号、小数表达。+ 11 个新测试；
+  5. **`markdown/formatter.py`** 在 `_typography_inner` 前置 `_rejoin_split_diacritics`：识别 `<letter><space>?<spacing-diacritic><space>?<letter>` 模式，把组合字符贴到 **后续字母**（PDF 视觉语义），经 `unicodedata.normalize("NFC", ...)` 收敛为预组合 codepoint。覆盖 6 类常见变音符号（acute / grave / circumflex / diaeresis / tilde / caron）。+ 16 个新测试；
+  6. **`markdown/formatter.py::_format_lists`** 在 list-item 识别正则中追加 negative lookahead `(?!\d+\.\d)`，仅当数字 + 点后接的内容**不以** `\d+\.\d` 起手时才视为列表项。+ 8 个新测试。
+- **量化效果**（28 页 unseen 论文）：
+  - `code_blocks` 误判 2 → 0（algorithm 误判块消失，节省 ~14k 字符的重复文本）；
+  - 图片总数 93 → 11（其中 8 张 HTML img 全部是真实 Figure 1-7 + 论文 banner，3 张 markdown img 是真孤儿）— `images.html_img_tag` 37 → 8（装饰小图过滤），`images.markdown_img` 56 → 3（HTML img 已引用识别）；
+  - `Pok ´ emon` / `Baltru ˇ saitis` / `Westh ¨ außer` / `Perdig ˜ ao` / `Hervé J ´ egou` 等 8+ 处变音断裂全部还原为预组合形式；
+  - `3. 1.1` / `3. 1.2` / `3. 1.3` / `5. 3.1` / `5. 3.2` 等 5 处子章节复合编号还原为紧凑 `3.1.1` 形态；
+  - char_count 131369 → 113979（-13.2%），word_count 17484 → 16276；
+  - hyphen_residue 持续保持 0；
+  - 既有单测 1400 例无回归（仅 `test_config.py` 因用户配置 `concurrent_requests=32` 覆盖默认 16 而失败，与本期修复无关）。
+- **四轮防范要点补充**：
+  1. **算法块 standalone 路径必须要求真伪代码结构骨架**：仅靠数学符号 + 英文高频词凑分会大量误判学术正文。要求 Require/Ensure 头部或 ≥ 3 行 `N:` 编号步骤是低成本高 ROI 守卫；
+  2. **图片过滤必须双层防御**（像素 + bbox 维度）：渲染像素阈值只能挡到原图低分辨率的装饰图，对原图分辨率正好达标但 PDF 显示尺寸极小的装饰图无能为力；要在 ExtractedImage 落入 assembly 前再按 bbox 维度做一次拦截；
+  3. **图片引用集判定必须同时识别 markdown 与 HTML 两种语法**：assembly 阶段为承载尺寸优先输出 HTML img，仅扫描 `![alt](path)` 会把全部图判为孤儿，引入数倍重复；
+  4. **复合编号 / 多语言变音字符是 PDF span 拆解的两大典型表象**：PyMuPDF 的 `" ".join` span 拼接对所有 PDF 都会触发；用稳定的正则后处理（数字模式 / Unicode combining 字符）可一次性覆盖学术 PDF 整体；
+  5. **同一缺陷可能有多个独立触发点**：根因 #4 在上游 `FitzTextExtractor` 修好后又被下游 `MarkdownFormatter._format_lists` 二次撕裂 — 需要管线全程审视每一处 `^\d+\.` 起手的正则修改是否会撕裂复合编号；
+  6. **unseen sample 是发现新失真维度的最高 ROI 验证策略**：基线 PDF 跑 1:1 后切换到新 sample（不同领域 / 不同排版 / 不同语言）端到端跑一轮，能在 1-2 小时内暴露 5-10 类独立根因，远超基线 PDF 的二次抛光收益。
+- **四轮同类问题影响补充**：
+  - 任何包含多语言作者 / 章节复合编号 / Figure 装饰元素的学术 PDF 都会受益本期 6 个修复；
+  - 修复全部以独立 commit 串接在 `ThreeFish-AI/pdf-to-markdown-parity` 分支：`a7c97130` (algorithm) / `85beb20d` (image filter) / `60bb4ad6` (orphan dedup) / `67110907` (compound number FitzTextExtractor) / `d48b1baa` (diacritic) / `d198413d` (compound number formatter)，可按需 cherry-pick；
+  - **inline 数学公式 `$...$` 包裹缺失** 是已知未修问题（`CE : (C, T) → f_context (3)` 等行内公式在 assembly 阶段被静默丢弃），需要单独的 inline formula 重定位架构改造，留待第五轮；
+  - **PDF-specific 噪声文本**（`§ Github` / `SII Context` 等）暂未规则化，建议依靠未来 layout-aware logo 区域识别而非通用正则。

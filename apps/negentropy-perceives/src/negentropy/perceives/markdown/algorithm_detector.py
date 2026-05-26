@@ -163,9 +163,14 @@ def detect_algorithm_regions(text: str) -> List[AlgorithmBlock]:
                 )
             )
             i = j
-        elif _compute_algorithm_score(para) >= _STANDALONE_SCORE_THRESHOLD:
+        elif _compute_algorithm_score(
+            para
+        ) >= _STANDALONE_SCORE_THRESHOLD and _has_pseudocode_skeleton(para):
             # 独立的算法块（无显式标题但有足够信号）
-            # 使用更高阈值，因为缺少标题的算法块需要更强的内部信号
+            # 阈值之外还要求 **真伪代码骨架**：Require/Ensure/Input/Output 结构化
+            # 头部，或 ≥3 行 ``N: step`` 编号步骤。仅靠英文高频关键字（if/for/then）
+            # 叠加 Unicode 数学符号（∈/≤/∧）触发的 standalone 误判（学术 PDF 段落
+            # 中常见）会被这层守卫拦下，防止 Section 2.1 等正文被误标 ```algorithm```。
             title_line = para.split("\n")[0].strip()
             regions.append(
                 AlgorithmBlock(
@@ -202,6 +207,23 @@ def wrap_as_code_fence(content: str, label: str = "algorithm") -> str:
 # ---------------------------------------------------------------------------
 # 内部评分逻辑
 # ---------------------------------------------------------------------------
+
+
+def _has_pseudocode_skeleton(text: str) -> bool:
+    """判定独立段落（无 ``Algorithm N`` 标题）是否具备真伪代码结构骨架。
+
+    standalone 路径仅评分 ≥ 7 不够：学术 PDF 段落中 if/for/then 等英文高频词
+    叠加 ``∈ / ≤ / ∧`` 等数学 Unicode 字符（特殊字符 +2）足以凑到 7 分，
+    导致 Section 2.1 正文被整体误包装为 `````algorithm`` 代码块。
+    本守卫要求至少满足一项真伪代码骨架信号：
+      - ``Require/Ensure/Input/Output:`` 结构化头部
+      - ≥ 3 行 ``N: step`` 编号步骤（``NUMBERED_LINE_RE``）
+    """
+    if STRUCTURED_HEADER_RE.search(text):
+        return True
+    lines = [line for line in text.split("\n") if line.strip()]
+    numbered = sum(1 for line in lines if NUMBERED_LINE_RE.match(line.strip()))
+    return numbered >= 3
 
 
 def _compute_algorithm_score(text: str) -> int:
