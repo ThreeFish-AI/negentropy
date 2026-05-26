@@ -223,7 +223,7 @@ async def list_wiki_publications(
         items = []
         for pub in pubs:
             resp = _WikiPubResp.model_validate(pub)
-            resp.entries_count = len(pub.entries) if pub.entries else 0
+            resp.entries_count = sum(1 for e in (pub.entries or []) if e.entry_kind == "DOCUMENT")
             items.append(resp)
 
     return _WikiPubListResp(items=items, total=total)
@@ -304,7 +304,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
 
-        entries = await wiki_svc.get_entries(db, pub_id)
+        doc_count = await wiki_svc.count_document_entries(db, pub_id)
         await db.commit()
 
     logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version)
@@ -314,7 +314,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         status=pub.status,
         version=pub.version,
         published_at=pub.published_at,
-        entries_count=len(entries),
+        entries_count=doc_count,
         message=f"Published successfully (v{pub.version})",
         revalidation=revalidation_status,
     )
@@ -329,7 +329,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         pub, revalidation_status = await wiki_svc.unpublish(db, pub_id)
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
-        entries = await wiki_svc.get_entries(db, pub_id)
+        doc_count = await wiki_svc.count_document_entries(db, pub_id)
         await db.commit()
 
     return WikiPublishActionResponse(
@@ -337,7 +337,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         status=pub.status,
         version=pub.version,
         published_at=pub.published_at,
-        entries_count=len(entries),
+        entries_count=doc_count,
         message="Unpublished successfully",
         revalidation=revalidation_status,
     )
