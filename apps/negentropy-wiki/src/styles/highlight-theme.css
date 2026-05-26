@@ -1,0 +1,146 @@
+/*
+ * highlight.js 主题 — 亮色基于 github.css，暗色基于 github-dark.css
+ * 配合 wiki 的 [data-color-scheme="dark"] 切换。
+ */
+@import "highlight.js/styles/github.css";
+
+/* ---- Dark mode overrides (github-dark.css colors) ---- */
+[data-color-scheme="dark"] .hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+[data-color-scheme="dark"] .hljs-doctag,
+[data-color-scheme="dark"] .hljs-keyword,
+[data-color-scheme="dark"] .hljs-meta .hljs-keyword,
+[data-color-scheme="dark"] .hljs-template-tag,
+[data-color-scheme="dark"] .hljs-template-variable,
+[data-color-scheme="dark"] .hljs-type,
+[data-color-scheme="dark"] .hljs-variable.language_ {
+  color: #ff7b72;
+}
+[data-color-scheme="dark"] .hljs-title,
+[data-color-scheme="dark"] .hljs-title.class_,
+[data-color-scheme="dark"] .hljs-title.class_.inherited__,
+[data-color-scheme="dark"] .hljs-title.function_ {
+  color: #d2a8ff;
+}
+[data-color-scheme="dark"] .hljs-attr,
+[data-color-scheme="dark"] .hljs-attribute,
+[data-color-scheme="dark"] .hljs-literal,
+[data-color-scheme="dark"] .hljs-meta,
+[data-color-scheme="dark"] .hljs-number,
+[data-color-scheme="dark"] .hljs-operator,
+[data-color-scheme="dark"] .hljs-variable,
+[data-color-scheme="dark"] .hljs-selector-attr,
+[data-color-scheme="dark"] .hljs-selector-class,
+[data-color-scheme="dark"] .hljs-selector-id {
+  color: #79c0ff;
+}
+[data-color-scheme="dark"] .hljs-regexp,
+[data-color-scheme="dark"] .hljs-string,
+[data-color-scheme="dark"] .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+[data-color-scheme="dark"] .hljs-built_in,
+[data-color-scheme="dark"] .hljs-symbol {
+  color: #ffa657;
+}
+[data-color-scheme="dark"] .hljs-comment,
+[data-color-scheme="dark"] .hljs-code,
+[data-color-scheme="dark"] .hljs-formula {
+  color: #8b949e;
+}
+[data-color-scheme="dark"] .hljs-name,
+[data-color-scheme="dark"] .hljs-quote,
+[data-color-scheme="dark"] .hljs-selector-tag,
+[data-color-scheme="dark"] .hljs-selector-pseudo {
+  color: #7ee787;
+}
+[data-color-scheme="dark"] .hljs-subst {
+  color: #c9d1d9;
+}
+[data-color-scheme="dark"] .hljs-section {
+  color: #1f6feb;
+}
+[data-color-scheme="dark"] .hljs-bullet {
+  color: #f2cc60;
+}
+[data-color-scheme="dark"] .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+[data-color-scheme="dark"] .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs {
+    color: #c9d1d9;
+    background: transparent;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-doctag,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-keyword,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-meta .hljs-keyword,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-template-tag,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-template-variable,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-type,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-variable.language_ {
+    color: #ff7b72;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-title,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-title.class_,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-title.class_.inherited__,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-title.function_ {
+    color: #d2a8ff;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-attr,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-attribute,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-literal,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-meta,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-number,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-operator,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-variable,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-selector-attr,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-selector-class,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-selector-id {
+    color: #79c0ff;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-regexp,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-string,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-meta .hljs-string {
+    color: #a5d6ff;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-built_in,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-symbol {
+    color: #ffa657;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-comment,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-code,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-formula {
+    color: #8b949e;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-name,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-quote,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-selector-tag,
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-selector-pseudo {
+    color: #7ee787;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-subst {
+    color: #c9d1d9;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-section {
+    color: #1f6feb;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-bullet {
+    color: #f2cc60;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-addition {
+    color: #aff5b4;
+    background-color: #033a16;
+  }
+  :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) .hljs-deletion {
+    color: #ffdcd7;
+    background-color: #67060c;
+  }
+}

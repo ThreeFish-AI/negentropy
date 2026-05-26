@@ -1,37 +1,100 @@
 .wiki-markdown-body {
-  font-size: 1.02em;
-  line-height: 1.8;
+  font-size: 1em;
+  line-height: 1.7;
+  overflow-wrap: break-word;
 }
 
 .wiki-markdown-body :is(h1, h2, h3, h4, h5, h6) {
   scroll-margin-top: 4.5rem;
 }
 
-.wiki-markdown-body ul,
+/* 段落 */
+.wiki-markdown-body p {
+  margin: 0.25rem 0;
+  line-height: 1.75;
+}
+.wiki-markdown-body p + * {
+  margin-top: 0.75rem;
+}
+
+/* 列表 */
+.wiki-markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
 .wiki-markdown-body ol {
-  padding-left: 1.5rem;
-  margin: 0.6em 0 1em;
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
 }
 .wiki-markdown-body li {
-  margin-bottom: 0.25em;
+  margin-bottom: 0.25rem;
+  line-height: 1.625;
 }
 .wiki-markdown-body li > p {
-  margin-bottom: 0.4em;
+  margin-bottom: 0.25rem;
 }
 .wiki-markdown-body input[type="checkbox"] {
   margin-right: 0.4em;
   vertical-align: middle;
 }
-.wiki-markdown-body table {
-  margin: 1em 0;
+
+/* 链接 */
+.wiki-markdown-body a {
+  color: var(--wiki-link-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
 }
-.wiki-markdown-body img {
-  border-radius: var(--wiki-radius);
+.wiki-markdown-body a:hover {
+  color: var(--wiki-link-hover-color);
 }
 
-/* Responsive table zebra stripe */
-.wiki-responsive-table tbody tr:nth-child(even) {
+/* 表格 */
+.wiki-markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.92em;
+}
+.wiki-markdown-body thead {
   background: var(--wiki-bg-secondary);
+}
+.wiki-markdown-body tbody tr:nth-child(even) {
+  background: var(--wiki-bg-secondary);
+}
+.wiki-markdown-body th,
+.wiki-markdown-body td {
+  border: 1px solid var(--wiki-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.wiki-markdown-body th {
+  font-weight: 600;
+}
+
+/* 图片 */
+.wiki-markdown-body img {
+  border-radius: var(--wiki-radius);
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem 0;
+}
+
+/* 引用块 */
+.wiki-markdown-body blockquote {
+  border-left: 4px solid var(--wiki-border);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--wiki-text-secondary);
+}
+
+/* 分隔线 */
+.wiki-markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--wiki-border);
+  margin: 1rem 0;
 }
 
 /* Callout / Admonition */
@@ -104,4 +167,42 @@
 }
 .wiki-anchor-heading:hover .wiki-anchor-link {
   opacity: 1;
+}
+
+/* Mermaid diagram */
+.wiki-mermaid-diagram {
+  position: relative;
+  margin: 1rem 0;
+}
+.wiki-mermaid-diagram > div {
+  overflow-x: auto;
+  background: var(--wiki-bg);
+  padding: 1rem;
+  border-radius: var(--wiki-radius);
+  border: 1px solid var(--wiki-border);
+}
+.wiki-mermaid-error {
+  padding: 1rem;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: rgba(220, 38, 38, 0.06);
+  border-radius: var(--wiki-radius);
+  margin: 1rem 0;
+}
+.wiki-mermaid-error-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #dc2626;
+}
+.wiki-mermaid-error-code {
+  white-space: pre-wrap;
+  font-size: 0.85em;
+  font-family: var(--wiki-code-font);
+}
+
+/* Responsive table container */
+.wiki-responsive-table {
+  margin: 1rem 0;
+  overflow-x: auto;
+  border-radius: var(--wiki-radius);
+  border: 1px solid var(--wiki-border);
 }

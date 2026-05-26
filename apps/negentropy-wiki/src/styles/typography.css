@@ -7,9 +7,9 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0.6em;
 }
 
-h1 { font-size: 2em; }
-h2 { font-size: 1.6em; border-bottom: 1px solid var(--wiki-border); padding-bottom: 0.3em; }
-h3 { font-size: 1.3em; }
+h1 { font-size: 2.25em; }
+h2 { font-size: 1.75em; border-bottom: 1px solid var(--wiki-border); padding-bottom: 0.3em; }
+h3 { font-size: 1.25em; }
 h4 { font-size: 1.1em; }
 
 p { margin-bottom: 1em; }
@@ -19,11 +19,11 @@ code {
   background: var(--wiki-bg-secondary);
   padding: 0.15em 0.35em;
   border-radius: 4px;
-  font-size: 0.88em;
+  font-size: 0.9em;
 }
 
 pre {
-  background: var(--wiki-bg-secondary);
+  background: var(--wiki-code-bg, var(--wiki-bg-secondary));
   border: 1px solid var(--wiki-border);
   border-radius: var(--wiki-radius);
   padding: 1em;

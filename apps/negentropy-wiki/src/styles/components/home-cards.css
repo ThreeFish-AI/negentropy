@@ -7,7 +7,7 @@
 
 .home-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
 }
 
@@ -22,11 +22,30 @@
   box-shadow: var(--wiki-card-shadow);
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.home-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  background: radial-gradient(
+    400px circle at 50% 0%,
+    var(--wiki-primary-light),
+    transparent 60%
+  );
 }
 .home-card:hover {
   box-shadow: var(--wiki-card-shadow), 0 8px 24px rgba(0, 0, 0, 0.1);
   transform: translateY(-3px);
+}
+.home-card:hover::before {
+  opacity: 1;
 }
 
 .home-card--disabled {
@@ -37,16 +56,19 @@
   box-shadow: var(--wiki-card-shadow);
   transform: none;
 }
+.home-card--disabled:hover::before {
+  opacity: 0;
+}
 
 .home-card-icon {
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   margin-bottom: 1rem;
-  color: var(--wiki-text-secondary);
+  color: var(--wiki-accent);
 }
 
 .home-card-title {
-  font-size: 1.2em;
+  font-size: 1.15em;
   font-weight: 700;
   margin-bottom: 0.5rem;
   color: var(--wiki-text);
@@ -60,7 +82,15 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .home-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .home-cards-grid {
+    grid-template-columns: 1fr;
+  }
   .home-cards-section {
     padding: 2rem 1.25rem;
   }

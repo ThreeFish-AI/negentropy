@@ -4,10 +4,11 @@
 @import "typography.css";
 @import "layout.css";
 @import "utilities.css";
+@import "katex/dist/katex.min.css";
+@import "highlight-theme.css";
 @import "components/header.css";
 @import "components/sidebar.css";
 @import "components/nav-tree.css";
-@import "components/card.css";
 @import "components/toc.css";
 @import "components/markdown.css";
 @import "components/doc.css";

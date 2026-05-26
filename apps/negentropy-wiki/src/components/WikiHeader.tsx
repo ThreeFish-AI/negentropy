@@ -8,19 +8,15 @@ import {
 /**
  * Wiki 顶部 Header 导航 — 把 catalog 第一层提升为 tabs
  *
- * 设计参考：GitHub Docs / Stripe Docs / Docusaurus —— 顶部 tabs + 左侧 sidebar 子树。
- *
  * - Server Component（仅 `<Link>`，零客户端状态）；保持 SSG 友好。
  * - tab 跳转目标：DOCUMENT 直链；CONTAINER → DFS 找首个后代 DOCUMENT；无文档则禁用。
+ * - 有 children 的 CONTAINER 项渲染为 CSS-only 下拉菜单。
  * - `items` 为空时早返回 `null`，避免渲染空壳。
  */
 
 interface WikiHeaderGraphTab {
-  /** 是否在 tabs 区域渲染"知识图谱"入口（按 `entries_count > 0` 决定） */
   show: boolean;
-  /** 当前是否处于 graph 页 → 标记为选中态 */
   active: boolean;
-  /** 自定义 label，默认为"知识图谱" */
   label?: string;
 }
 
@@ -34,13 +30,9 @@ interface WikiHeaderProps {
   items?: WikiNavTreeItem[];
   activeTopSlug?: string;
   headerSlot?: React.ReactNode;
-  /** 可选：在原 tabs 末尾追加"知识图谱"入口 */
   graphTab?: WikiHeaderGraphTab;
-  /** 搜索框组件 */
   searchBox?: React.ReactNode;
-  /** 右侧操作区（登录/GitHub/设置等） */
   actions?: React.ReactNode;
-  /** 首页模式：直接传入 publication 链接 */
   homeLinks?: HomeLink[];
 }
 
@@ -60,7 +52,7 @@ export function WikiHeader({
     <header className="wiki-header">
       <div className="wiki-header-inner">
         <Link href="/" className="wiki-header-brand" aria-label="返回 Wiki 首页">
-          {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized */}
           <img
             src="/logo.png"
             alt="Negentropy"
@@ -113,13 +105,13 @@ interface WikiHeaderTabProps {
 
 function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
   const targetSlug = pickTabTargetSlug(item);
-  const className = `wiki-header-tab${isActive ? " active" : ""}`;
   const label = item.entry_title || item.entry_slug;
+  const hasChildren = isContainerItem(item) && item.children && item.children.length > 0;
 
   if (!targetSlug) {
     return (
       <span
-        className={`${className} disabled`}
+        className="wiki-header-tab disabled"
         aria-disabled="true"
         tabIndex={-1}
         title="该分组暂无可用文档"
@@ -129,10 +121,42 @@ function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
     );
   }
 
+  // Container with children → render dropdown
+  if (hasChildren) {
+    return (
+      <div className={`wiki-header-dropdown${isActive ? " active" : ""}`}>
+        <Link
+          href={`/${pubSlug}/${targetSlug}`}
+          className="wiki-header-dropdown-trigger"
+          aria-current={isActive ? "page" : undefined}
+        >
+          {label}
+          <span className="wiki-header-dropdown-arrow">▼</span>
+        </Link>
+        <div className="wiki-header-dropdown-panel">
+          {item.children!.map((child) => {
+            const childTarget = pickTabTargetSlug(child);
+            const childLabel = child.entry_title || child.entry_slug;
+            if (!childTarget) return null;
+            return (
+              <Link
+                key={`${child.entry_id ?? "c"}:${child.entry_slug}`}
+                href={`/${pubSlug}/${childTarget}`}
+                className="wiki-header-dropdown-item"
+              >
+                {childLabel}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Link
       href={`/${pubSlug}/${targetSlug}`}
-      className={className}
+      className={`wiki-header-tab${isActive ? " active" : ""}`}
       aria-current={isActive ? "page" : undefined}
     >
       {label}
