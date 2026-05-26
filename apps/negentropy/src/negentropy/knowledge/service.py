@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import re
 import uuid
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import unquote, urlparse
 from uuid import UUID
 
 from negentropy.logging import get_logger
@@ -50,6 +53,68 @@ CHUNK_ROLE_LEAF = "leaf"
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
+
+# ---------------------------------------------------------------------------
+# Run ID 语义化：从 input_data 提取人类可读的源标签
+# ---------------------------------------------------------------------------
+
+_LABEL_MAX_LENGTH = 50
+
+
+def _sanitize_label(name: str, *, max_length: int = _LABEL_MAX_LENGTH) -> str:
+    """清理标签：非字母数字替换为 `_`，合并连续下划线，截断过长名称。"""
+    sanitized = re.sub(r"[^\w\-.]", "_", name)
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    return sanitized[:max_length]
+
+
+def _extract_source_label(input_data: dict[str, Any]) -> str:
+    """从 input_data 中提取人类可读的源标识。
+
+    优先级：filename > url > source_uri。
+    """
+    # 1. filename → 去掉扩展名
+    if filename := input_data.get("filename"):
+        name = Path(filename).stem
+        if label := _sanitize_label(name):
+            return label
+
+    # 2. url → 取最后路径段
+    if url := input_data.get("url"):
+        parsed = urlparse(url)
+        path = unquote(parsed.path).rstrip("/")
+        if path:
+            segment = path.split("/")[-1]
+            if label := _sanitize_label(segment):
+                return label
+        # URL 无路径时使用 domain
+        if label := _sanitize_label(parsed.netloc):
+            return label
+
+    # 3. source_uri → 区分 GCS / HTTP / 通用
+    if source_uri := input_data.get("source_uri"):
+        if source_uri.startswith("gs://"):
+            name = source_uri.split("/")[-1]
+            if "." in name:
+                name = Path(name).stem
+            if label := _sanitize_label(name):
+                return label
+        if source_uri.startswith(("http://", "https://")):
+            parsed = urlparse(source_uri)
+            path = unquote(parsed.path).rstrip("/")
+            if path:
+                segment = path.split("/")[-1]
+                if label := _sanitize_label(segment):
+                    return label
+            if label := _sanitize_label(parsed.netloc):
+                return label
+        # 通用回退：取最后路径段
+        name = source_uri.split("/")[-1]
+        if label := _sanitize_label(name):
+            return label
+
+    return ""
+
 
 # Pipeline 操作类型
 PipelineOperation = str  # "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source"
@@ -718,10 +783,14 @@ class KnowledgeService:
         if not self._pipeline_dao:
             raise ValueError("pipeline_dao is required for async pipeline operations")
 
+        label = _extract_source_label(input_data)
+        run_id = f"{operation}-{label}-{uuid.uuid4().hex[:4]}" if label else f"{operation}-{uuid.uuid4().hex[:8]}"
+
         tracker = PipelineTracker(
             dao=self._pipeline_dao,
             app_name=app_name,
             operation=operation,
+            run_id=run_id,
         )
         await tracker.start(input_data)
 

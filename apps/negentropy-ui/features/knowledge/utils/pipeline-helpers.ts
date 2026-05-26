@@ -460,14 +460,16 @@ export const formatRelativeTime = (dateStr?: string): string => {
 };
 
 /**
- * 截断 Run ID 显示
- * @param runId - 完整的 Run ID
- * @param length - 保留的字符长度，默认 8
- * @returns 截断后的 Run ID
+ * 截断 Run ID 显示。
+ * 新格式 run_id 为 `{operation}-{label}-{4hex}`，优先保留 operation + label 部分，
+ * 省略末尾 short-uuid 后缀；旧格式（纯 8 位 hex）按固定长度截断。
  */
-export const truncateRunId = (runId: string, length = 8): string => {
+export const truncateRunId = (runId: string, length = 24): string => {
   if (!runId) return "-";
-  return runId.length > length ? `${runId.slice(0, length)}...` : runId;
+  // 尝试去掉末尾的 short-uuid 后缀 (4 hex chars + '-')
+  const withoutSuffix = runId.replace(/-[0-9a-f]{4}$/, "");
+  if (withoutSuffix.length <= length) return withoutSuffix;
+  return `${withoutSuffix.slice(0, length)}...`;
 };
 
 export interface FailedStageDetail {
