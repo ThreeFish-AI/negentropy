@@ -98,6 +98,9 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     # 文件标识
     file_hash: Mapped[str] = mapped_column(String(64), nullable=False)  # SHA-256
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Wiki 站点上显示的名称。``None`` 时由展示侧按
+    # ``metadata_.title -> original_filename`` 回退；详见 0040 迁移设计动机。
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # 存储信息
     gcs_uri: Mapped[str] = mapped_column(Text, nullable=False)

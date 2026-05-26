@@ -1239,6 +1239,11 @@ export interface KnowledgeDocument {
   app_name: string;
   file_hash: string;
   original_filename: string;
+  /**
+   * Wiki 站点上显示的名称（用户手填覆盖）。
+   * 为空 / null 时，Wiki 站点回退到 `metadata.title -> original_filename`。
+   */
+  display_name?: string | null;
   gcs_uri: string;
   content_type: string | null;
   file_size: number;
@@ -1415,6 +1420,30 @@ export async function fetchDocumentDetail(
     `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
     { cache: "no-store" },
   );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 更新文档元信息（目前仅支持 `display_name`）。
+ *
+ * - 传入 `null` 或仅空白字符串 → 清除覆盖；Wiki 站点回退到
+ *   `metadata.title -> original_filename`。
+ * - 长度上限 255；超过由后端返回 422。
+ */
+export async function updateDocument(
+  corpusId: string,
+  documentId: string,
+  patch: { display_name?: string | null },
+  params?: { appName?: string },
+): Promise<KnowledgeDocument> {
+  const body: Record<string, unknown> = { ...patch };
+  if (params?.appName) body.app_name = params.appName;
+
+  const res = await fetch(`/api/knowledge/base/${corpusId}/documents/${documentId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   return handleKnowledgeError(res);
 }
 
