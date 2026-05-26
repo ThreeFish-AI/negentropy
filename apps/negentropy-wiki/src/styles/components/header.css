@@ -50,7 +50,10 @@
   min-width: 0;
   height: 100%;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+.wiki-header-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .wiki-header-tab {
