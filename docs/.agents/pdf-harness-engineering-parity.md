@@ -41,6 +41,14 @@ R7 增量改动（2026-05-26，layout figure region 整图渲染 + PDF pt → CS
 | [`pipeline/stages/pdf/image_extraction.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/image_extraction.py) | (a) `_OVERLAP_THRESHOLD = 0.5` 改名为 `_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8` 并**反转去重方向**：从「figure 让位 raster」改为「figure 整图渲染替代被包含的 raster」；(b) `_render_figure_regions` 返回签名变为 `Tuple[List[ExtractedImage], Set[int]]`，新增 `raster_drop_indices`；(c) stage 主流程消费 `drop_indices` 剔除被替代的 raster；(d) `region_type` 接受范围从 `"figure"` 扩展到 `("figure", "picture")` | layout figure region 整图渲染分支早已存在但被"figure 让位 raster"去重逻辑屏蔽，导致 Figure 矢量绘图层信息（4 列 Context 标题 / 分类标签等）全部丢失，仅剩中间嵌入位图 |
 | [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) | 新增 `_PDF_PT_TO_CSS_PX = 96.0 / 72.0` 常量，`_image_to_markdown` 中 bbox 宽高按 4/3 系数换算后输出，与 web 默认 96 DPI 渲染对齐 | PDF 点（72pt = 1in）直接当作 CSS 像素（96px = 1in）输出致 figure 显示宽度仅占阅读容器 ~75%（A4 全宽 595pt 显示为 595px 而非 793px） |
 
+R8 增量改动（2026-05-26，Docling 公式 bbox 透传 + 残片清理）：
+
+| 文件 | 改动 | 修复缺陷 |
+|---|---|---|
+| [`pdf/engines/docling.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pdf/engines/docling.py) | (a) `DoclingFormula` 加 `bbox` 字段；(b) `_extract_formulas` 优先 `doc.iterate_items()` 拿 `label='formula'` 的 item，从 `prov[0].bbox` 提取 TopLeft 坐标系 bbox，剥离 `$$...$$` / `$...$` 包裹，同 latex 去重；(c) iterate_items 不可用 / 空时降级 markdown 正则匹配（保持向后兼容）| Docling 公式适配器历史实现仅从 markdown 文本 regex 抽公式（无 bbox），assembly 五级排序键 y0 维度退化致 Section 2.1 Eq(1) Eq(2) 顺序倒置 |
+| [`pipeline/stages/pdf/formula_extraction.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/formula_extraction.py) | `DoclingFormulaExtractor._run` 透传 `bbox` 字段到 `ExtractedFormula`，与 mineru 适配器契约对齐 | docling stage 与 mineru stage 元信息透传不一致 |
+| [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) | 新增 2.5.5 段公式残片清理：`_FORMULA_FRAGMENT_RE = re.compile(r"^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$")` 匹配「Identifier = Open-Bracket」短公式残片（≤ 15 字符），紧邻下一个 element 是公式时剔除 | PyMuPDF 在长公式视觉区抽出 `C = [` / `M_l = \{` 等残片绕过 `_formula_text_signature` ≥ 20 字符最小阈值兜底，与公式主体并存 |
+
 ## 3. 量化效果（71 页学术 PDF 全本）
 
 | 维度 | 修复前 | 修复后 | 目标 | 状态 |
@@ -64,6 +72,11 @@ R7 增量改动（2026-05-26，layout figure region 整图渲染 + PDF pt → CS
 | **R7 PDF pt → CSS px 比例**（Figure 1 显示宽度） | 373px（容器 ~1/3）| **497px**（容器 ~50-60%，A4 全宽 figure 接近 ~793px） | 与 PDF 1:1 | ✅ |
 | **R7 char_count**（同文档） | 113806 | **113108**（-698，被 figure 整图替代的孤儿 raster 引用清零） | 整体 -13.9% vs R3 | ✅ |
 | **R7 新增单元测试** | — | 10 新 = 1587 | 0 退化 | ✅ |
+| **R8 Section 2.1 公式顺序**（28 页 Context Engineering 2.0） | Eq(1) Eq(2) 顺序倒置 | **按视觉顺序**（Definition 1 → Eq(1) → ... → Eq(2)） | 与 PDF 1:1 | ✅ |
+| **R8 PyMuPDF 公式残片** | `C = [` 单独成段 | **消失**（2.5.5 段剔除） | 0 残片 | ✅ |
+| **R8 Definition 1 段落保留** | 被 R7 误删 | **完整保留**（docling bbox 透传后五级排序正确） | 与 PDF 1:1 | ✅ |
+| **R8 char_count**（同文档） | 113108 | **114815**（+1707，恢复 Definition 1 + Eq 5/6/7 latex 主体） | 与 R3 baseline -12.6% | ✅ |
+| **R8 新增单元测试** | — | 17 新 = 1604 | 0 退化 | ✅ |
 
 ## 4. 端到端实机验证
 
@@ -98,6 +111,9 @@ R7 增量改动（2026-05-26，layout figure region 整图渲染 + PDF pt → CS
 - ~~Figure 矢量 overlay 标签散落~~ — **R6 已修复**（assembly `special_regions` 消费 layout `figure` region + caption 例外保留）；
 - ~~PDF 矢量绘图层的 figure 内部分类标签丢失~~ — **R7 已修复**（image_extraction 反转去重方向，layout figure region 整图渲染替代散落的嵌入位图，完整保留 PDF 原版视觉信息）；
 - ~~Figure 显示宽度仅占容器 ~75%~~ — **R7 已修复**（assembly `_image_to_markdown` 应用 PDF pt → CSS px 4/3 比例换算，与 web 96 DPI 渲染对齐）；
+- ~~Section 2.1 Eq(1) Eq(2) 顺序倒置~~ — **R8 已修复**（docling 公式适配器透传 bbox + assembly 五级排序的 y0 维度生效）；
+- ~~PyMuPDF 公式视觉区残片 `C = [` / `M_l = \{`~~ — **R8 已修复**（assembly 2.5.5 段 `_FORMULA_FRAGMENT_RE` 残片清理）；
+- **R8 已知限制**：docling 公式 latex 在 `iterate_items` 路径下输出原始字符流（如 `CE: (C, T) → f_context`）不带 `\tag{N}` 或 `\quad (N)` 编号，markdown view 中 Eq(3) Eq(4) 等的编号缺失。R5 的 inline promotion 因 docling 公式已被识别为公式元素（非 text element）不再处理。可未来在 docling 公式后置阶段从 markdown 上下文回填 `\quad (N)` 编号。
 - **R5 浮现但不在本期范围**的小 gap（见 `.context/r5-defects.md`）：References `[2]` 跳号（根因在 PDF 抽取上游，R4 与 R5 均存在）；文档末尾孤儿图块视觉占满（R3 设计的兜底，避免图片丢失）；PDF 元数据残留 `§ Github` / `SII Context`（layout-aware 识别难度高）。
 
 ## 7. 端到端验证 Runbook

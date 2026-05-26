@@ -906,6 +906,39 @@ class BuiltinAssembler(PDFToolBase):
                     core[:80],
                 )
 
+            # 2.5.5 公式残片清理：PyMuPDF 在公式视觉区抽取 text block 时，对长
+            # 公式（含 ``\bigcup`` / ``\sum`` / 矩阵等多行结构）常仅抽出公式起手
+            # 残片（典型如 ``C = [``、``M_l =``、``x = \{``），与公式 stage 的 LaTeX
+            # 主体重复出现却互相不命中签名兜底（残片字符不足 20 触发 ``_formula_text_signature``
+            # 的最小长度阈值）。清理判据：text element 内容 ≤ 15 字符 + 形如
+            # ``<Identifier> = <Open-Bracket>`` 模式 + 紧邻下一个 element 是公式
+            # → 视为公式残片剔除，避免视图中"残片 + 公式"并存（ISSUE-094 R8）。
+            _FORMULA_FRAGMENT_RE = re.compile(r"^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$")
+            _fragment_remove: set[int] = set()
+            for i, elem in enumerate(elements):
+                if elem.element_type != "text" or elem.block is None:
+                    continue
+                content = elem.content.strip()
+                if not content or len(content) > 15:
+                    continue
+                if not _FORMULA_FRAGMENT_RE.match(content):
+                    continue
+                # 必须紧邻下一个公式元素才视为残片（否则可能是合法的赋值起手）
+                next_idx = i + 1
+                while next_idx < len(elements):
+                    nxt = elements[next_idx]
+                    if nxt.element_type == "formula":
+                        _fragment_remove.add(i)
+                        break
+                    # 允许中间有 1 个非空 text 元素隔开（PyMuPDF 偶尔拆段）
+                    if nxt.element_type == "text" and (nxt.content or "").strip():
+                        break
+                    next_idx += 1
+            if _fragment_remove:
+                elements = [
+                    e for i, e in enumerate(elements) if i not in _fragment_remove
+                ]
+
             # 2.6 图片 caption 与纯文本去重：
             #    当图片元素以 `![caption](path)` 形式输出后，
             #    若紧接着一个纯文本元素的内容与该 caption 高度相似

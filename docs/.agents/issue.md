@@ -2437,3 +2437,36 @@ R6 合入后双 Tab 实测发现两类正交缺陷：
   4. **stage 输出契约变更需双向兼容**：`_render_figure_regions` 返回值从 `List` → `Tuple[List, Set]` 是 breaking change，必须同步修改所有调用方（仅 1 处：`FitzImageExtractor._run`）。新增 stage tool 时务必锁定签名；
   5. **R7 修改面**：`image_extraction.py`（去重反转 + 阈值更名 + 返回签名变更）+ `assembly.py`（pt→px 换算常量与应用）+ 测试加固。所有改动语义独立，可单文件 cherry-pick；
   6. **R6 与 R7 是同一缺陷的两层修复**：R6 用 `_block_overlaps_special` 把 figure overlay 文本抑制掉（避免散落），但牺牲了 figure 视觉信息；R7 用 `page.get_pixmap(clip=figure_region)` 把 overlay 文本重新成像入 figure（恢复视觉），并通过反向去重剔除 raster 避免双轨。两轮结合后 R6 抑制的 caption 例外保留逻辑依然生效（独立段落 caption + alt 同时保留）。
+
+### 第八轮迭代（2026-05-26 Docling 公式 bbox 透传 + PyMuPDF 公式残片清理）
+
+R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
+1. **公式顺序错乱**：Definition 3 后 PDF 中先 `Char: E → P(F) (1)` 再 `C = ⋃ Char(e) (2)`，markdown 输出却是 (2) 在 (1) 上方；
+2. **`C = [` 残片单独成段**：PyMuPDF 在 Definition 3 后跟的公式视觉区抽出 `C = [` 起手残片，与公式 stage 主体共存却互相不命中签名兜底（残片长度 < 20 触发 `_formula_text_signature` 最小长度阈值）。
+
+- **表因**：mineru 公式 stage 在 28 页学术论文 600s 超时降级 docling 后，docling `_extract_formulas` 仅从 markdown 文本里 regex 抽取公式（无 bbox 字段），assembly 五级稳定排序键 `(page, col, y0, x0, reading_order)` 中 y0 维度无信息可用，公式按 enumerate 顺序兜底（≠ 视觉顺序），出现 Section 2.1 中 Eq(1) Eq(2) 顺序倒置等回归。同时 PyMuPDF 在公式视觉区抽取的 `C = [` 残片绕过签名兜底，与公式主体并存。
+
+- **根因**：
+  1. **Docling 公式适配器从未输出 bbox**：[`pdf/engines/docling.py::_extract_formulas`](../../apps/negentropy-perceives/src/negentropy/perceives/pdf/engines/docling.py) 历史实现只用 markdown `$$...$$` / `$...$` 正则匹配，完全忽略 `doc.iterate_items()` 中 `label='formula'` 的 item 自带的 `prov[0].bbox`。这是 docling stage 与 mineru/marker 适配器的契约不一致 —— mineru 已通过 `content_list.json::bbox` 字段透传 bbox。
+  2. **公式残片签名兜底盲区**：[`assembly.py::_text_block_matches_formula`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 与 `_formula_text_signature` 的 ≥ 20 字符最小阈值是为避免短 LaTeX 与正文假阳性匹配。但 PyMuPDF 把长公式视觉区拆为「短残片 + 后续字符流」时，残片字符 ≤ 6 完全绕过签名匹配，遗留在 markdown 中。
+
+- **处理方式**：
+  1. **`DoclingFormula` 加 `bbox: Optional[Tuple[float, float, float, float]]` 字段**；`_extract_formulas` 优先路径：遍历 `doc.iterate_items()` 拿 `label == "formula"` 的 item，从 `item.text` 抽 latex（剥离 `$$...$$` / `$...$` 包裹），从 `prov[0].bbox` 经 `_to_topleft_bbox` 拿 TopLeft 坐标系 bbox；同 latex 字符串去重；当 iterate_items 为空或不可用时降级到 markdown 正则匹配（保持向后兼容，无 bbox）。
+  2. **`formula_extraction.py::DoclingFormulaExtractor`** 透传 `bbox` 字段到 `ExtractedFormula`，与 mineru extractor 适配器对齐。
+  3. **`assembly.py` 新增 2.5.5 段公式残片清理**：`_FORMULA_FRAGMENT_RE = re.compile(r"^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$")` 匹配「Identifier = Open-Bracket」短公式残片（≤ 15 字符），且紧邻下一个 element 是公式时剔除（避免误删合法的赋值起手）。
+
+- **量化效果**（28 页 Context Engineering 2.0）：
+  - **Section 2.1 阅读顺序**：Definition 1 → Eq(1) → Definition 2 → Definition 3 → Eq(2) → Definition 4 → Eq(3) → Eq(4) → ... 全部按视觉顺序，与 PDF 原版 1:1 等价；
+  - **`C = [` 残片**：消失（被 2.5.5 段命中剔除）；
+  - **Definition 1 段落**：完整保留（R7 时因 docling 公式无 bbox 导致 element 排序错乱被 dedup 误删；R8 后 docling 给的公式带 bbox，五级排序正确，Definition 1 段落保留）；
+  - **block math `$$...$$`**：7 个（Eq 1, 2, 3, 4, 5, 6, 7 全部）；
+  - **char_count**：113108 → 114815（+1707，恢复了之前丢失的 Definition 1 + Eq 5/6/7 的 latex 主体）；
+  - **既有单测**：本期新增 6 例 `test_docling_formula_bbox.py`（iterate_items 优先路径 + 降级路径 + 去重 + dollar wrapping 剥离 + label 过滤）+ 11 例 `test_assembly_formula_fragment.py`（残片正则边界），既有 1587 例无回归。
+
+- **八轮防范要点补充**：
+  1. **stage 适配器必须透传所有可用元信息**：docling adaption 缺 bbox 是历史遗漏，引擎本身在 `iterate_items` 中已有 prov.bbox 字段。任何 stage 引擎切换链路上必须保证「能透传则透传」，缺失元信息会让下游 assembly 排序退化；
+  2. **`_extract_*` 优先 doc 结构，降级 markdown 正则**：docling、marker、mineru 等都通过 markdown export 输出公式 / 表格，但 markdown 是「丢失元信息」的扁平表示。优先用 `doc.iterate_items()` 拿结构化项，markdown 正则仅作为降级路径；
+  3. **签名兜底必须双向**：公式 LaTeX 字符流签名 + 公式残片正则两层兜底缺一不可。前者拦截"完整公式视觉区字符流"，后者拦截"残片 + 公式主体"组合；
+  4. **assembly 五级排序的 y0 维度依赖上游 bbox 完整性**：上游 stage 任何一个公式无 bbox 都会落到同页末尾，破坏视觉顺序。新增 stage tool 必须强制 bbox 透传 + 单测锁定；
+  5. **`C = [` / `M_l =` 类残片正则模式**：`^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$` 兼容多字符 identifier（CE、Var）、下标 (`M_l`)、各种 open bracket（`[ ( {`）；起手限定为字母（避免误命中 `1 = ` 行号）；
+  6. **R8 修改面**：`pdf/engines/docling.py` + `pipeline/stages/pdf/formula_extraction.py` + `pipeline/stages/pdf/assembly.py` 三文件 + 2 新增单测文件。改动语义独立，可单文件 cherry-pick。
