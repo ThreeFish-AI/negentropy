@@ -100,6 +100,187 @@ def _compute_overlap_ratio(
 
 
 # ---------------------------------------------------------------------------
+# figure region bbox 视觉扩展（ISSUE-094 R8）
+# ---------------------------------------------------------------------------
+
+
+def _expand_figure_bbox(
+    seed_bbox: Tuple[float, float, float, float],
+    *,
+    drawings: List[Dict[str, Any]],
+    text_dict: Dict[str, Any],
+    vertical_search_pt: float = 60.0,
+    text_proximity_pt: float = 30.0,
+    max_expand_factor: float = 4.0,
+    min_drawing_h_overlap_ratio: float = 0.3,
+    short_text_max_chars: int = 80,
+    short_text_max_height_pt: float = 50.0,
+) -> Tuple[float, float, float, float]:
+    """以 seed_bbox 为种子，吸纳邻近矢量 drawings 与短文本标签，得到扩展 bbox。
+
+    设计动机（ISSUE-094 R8）：
+    Docling / MinerU 给出的 figure region bbox 通常仅覆盖嵌入光栅图本体，
+    未包含 figure 的视觉上下文（列标题 / 子标签 / 轴说明 / 装饰线 / caption）。
+    R7 修复了 pt → px 比例（96/72），但若种子 bbox 仅占正文栏 50%，最终
+    markdown 的 <img width="..."> 仍远小于 PDF 视觉占用（Context Engineering
+    2.0 Figure 1 为典型：种子 ~299pt vs 视觉 ~515pt）。本函数在不修改 layout
+    工具契约的前提下后处理 bbox，从种子出发吸纳邻近矢量绘制与短文本块，
+    得到与 PDF 原版视觉对齐的扩展 bbox。
+
+    算法（基于 PDFFigures 2.0 [Clark & Divvala, JCDL'16] 的"光栅本体 + 矢量
+    叠加 + caption 三层合并"思路）：
+
+    1. **矢量吸纳**：搜索种子 ±vertical_search_pt 垂直范围内、与种子水平
+       重叠 ≥ min_drawing_h_overlap_ratio 的矢量 drawings，与种子取 union；
+    2. **文本吸纳**：搜索 step1 结果 ±text_proximity_pt 范围内、与之水平
+       有重叠、且符合"短文本"特征（< short_text_max_chars 字符 或 块高 <
+       short_text_max_height_pt 且宽高比 > 1.5）的文本块，再次取 union；
+    3. **横向截断**：用 text_dict 中宽度 > 50pt 的文本块的 x0/x1 极值估算
+       正文栏边界，扩展结果横向不超过该范围（防止吞入页眉页脚装饰）；
+    4. **退化保护**：扩展面积 / 种子面积 > max_expand_factor 视为异常，
+       回退到原种子。
+
+    与 _render_figure_regions 集成时，drawings 与 text_dict 在页级缓存，
+    同页多个 figure 复用，避免重复 IO（``page.get_drawings()`` 在长 PDF
+    上每次调用 ~10ms）。
+
+    Args:
+        seed_bbox: 种子 bbox (x0, y0, x1, y1)，TopLeft 坐标，单位 pt。
+        drawings: ``page.get_drawings()`` 返回的矢量绘制列表（每项含 ``rect``
+            字段为 ``fitz.Rect`` 对象，需有 x0/y0/x1/y1 属性）。
+        text_dict: ``page.get_text("dict")`` 返回的文本结构（含 ``blocks``
+            列表，每个 block 有 ``type``、``bbox``、``lines.spans.text``）。
+        vertical_search_pt: 矢量吸纳的垂直搜索半径（pt）。
+        text_proximity_pt: 文本吸纳的垂直邻近半径（pt）。
+        max_expand_factor: 退化保护阈值（扩展后面积上限相对种子的倍数）。
+        min_drawing_h_overlap_ratio: 单个矢量被吸纳的最小水平重叠比例
+            （以 drawing 自身宽度为分母），过滤"恰巧水平相邻但不属于 figure"
+            的装饰矢量（如页眉横线）。
+        short_text_max_chars: 短文本判定上限（字符数）。
+        short_text_max_height_pt: 短文本判定的块高上限。
+
+    Returns:
+        扩展后的 bbox ``(x0, y0, x1, y1)``。若退化保护触发或扩展无效则返回
+        ``seed_bbox`` 不变。
+    """
+    sx0, sy0, sx1, sy1 = (float(v) for v in seed_bbox)
+    seed_w = sx1 - sx0
+    seed_h = sy1 - sy0
+    if seed_w <= 0 or seed_h <= 0:
+        return seed_bbox
+    seed_area = seed_w * seed_h
+
+    # ── Step 1: 矢量吸纳 ────────────────────────────────────────────
+    search_y_top = sy0 - vertical_search_pt
+    search_y_bot = sy1 + vertical_search_pt
+    ex0, ey0, ex1, ey1 = sx0, sy0, sx1, sy1
+    for d in drawings or []:
+        rect = d.get("rect") if isinstance(d, dict) else None
+        if rect is None:
+            continue
+        try:
+            dx0 = float(rect.x0)
+            dy0 = float(rect.y0)
+            dx1 = float(rect.x1)
+            dy1 = float(rect.y1)
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if dx1 <= dx0 or dy1 <= dy0:
+            continue
+        # 垂直窗：drawing 必须与搜索窗有交集
+        if dy1 < search_y_top or dy0 > search_y_bot:
+            continue
+        # 水平重叠（与种子）
+        overlap_x0 = max(sx0, dx0)
+        overlap_x1 = min(sx1, dx1)
+        if overlap_x1 <= overlap_x0:
+            continue
+        h_overlap = overlap_x1 - overlap_x0
+        drawing_w = dx1 - dx0
+        # 以 drawing 自身宽度为分母的重叠比，过滤"擦边但不相关"的横向装饰线
+        if h_overlap / max(drawing_w, 1e-6) < min_drawing_h_overlap_ratio:
+            continue
+        ex0 = min(ex0, dx0)
+        ey0 = min(ey0, dy0)
+        ex1 = max(ex1, dx1)
+        ey1 = max(ey1, dy1)
+
+    # ── Step 2: 文本吸纳（短文本标签 / caption / 列标题）─────────
+    text_y_top = ey0 - text_proximity_pt
+    text_y_bot = ey1 + text_proximity_pt
+    blocks = text_dict.get("blocks", []) if isinstance(text_dict, dict) else []
+    for block in blocks:
+        # block["type"] == 0 是文本 block；图像块走 raster 路径，跳过
+        if not isinstance(block, dict) or block.get("type", 0) != 0:
+            continue
+        bb = block.get("bbox")
+        if not bb or len(bb) < 4:
+            continue
+        try:
+            bx0, by0, bx1, by1 = (float(v) for v in bb[:4])
+        except (TypeError, ValueError):
+            continue
+        if bx1 <= bx0 or by1 <= by0:
+            continue
+        # 垂直邻接窗
+        if by1 < text_y_top or by0 > text_y_bot:
+            continue
+        # 必须与当前扩展区水平有重叠（否则是邻列文本）
+        if bx1 <= ex0 or bx0 >= ex1:
+            continue
+        # 短文本判定：字符总数 < 阈值 或 扁平短文本（块高 < 阈值且宽高比 > 1.5）
+        block_text_len = 0
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                block_text_len += len(span.get("text", ""))
+        block_h = by1 - by0
+        block_w = bx1 - bx0
+        is_short_text = block_text_len < short_text_max_chars
+        is_flat_short = block_h < short_text_max_height_pt and block_w > block_h * 1.5
+        if not (is_short_text or is_flat_short):
+            continue
+        ex0 = min(ex0, bx0)
+        ey0 = min(ey0, by0)
+        ex1 = max(ex1, bx1)
+        ey1 = max(ey1, by1)
+
+    # ── Step 3: 横向截断到正文栏边界 ───────────────────────────────
+    col_x0_candidates: List[float] = []
+    col_x1_candidates: List[float] = []
+    for block in blocks:
+        if not isinstance(block, dict) or block.get("type", 0) != 0:
+            continue
+        bb = block.get("bbox")
+        if not bb or len(bb) < 4:
+            continue
+        try:
+            bx0, _, bx1, _ = (float(v) for v in bb[:4])
+        except (TypeError, ValueError):
+            continue
+        # 仅用宽文本块（疑似正文行）估算正文栏边界
+        if bx1 - bx0 < 50:
+            continue
+        col_x0_candidates.append(bx0)
+        col_x1_candidates.append(bx1)
+    if col_x0_candidates and col_x1_candidates:
+        col_x0 = min(col_x0_candidates)
+        col_x1 = max(col_x1_candidates)
+        ex0 = max(ex0, col_x0)
+        ex1 = min(ex1, col_x1)
+
+    # 安全保护：bbox 反向时回退
+    if ex1 <= ex0 or ey1 <= ey0:
+        return seed_bbox
+
+    # ── Step 4: 退化保护 ───────────────────────────────────────────
+    expand_area = (ex1 - ex0) * (ey1 - ey0)
+    if expand_area / max(seed_area, 1e-6) > max_expand_factor:
+        return seed_bbox
+
+    return (ex0, ey0, ex1, ey1)
+
+
+# ---------------------------------------------------------------------------
 # 矢量图形区域渲染
 # ---------------------------------------------------------------------------
 
@@ -170,6 +351,10 @@ async def _render_figure_regions(
             doc = fitz.open(pdf_path)
             try:
                 page = doc[page_idx]
+                # 页级缓存：drawings / text_dict 由同页所有 figure 共享，避免
+                # 每个 region 重复扫描整页（PyMuPDF 实测每次 get_drawings 约 5-15ms）
+                page_drawings: Optional[List[Dict[str, Any]]] = None
+                page_text_dict: Optional[Dict[str, Any]] = None
                 for region_idx, region in enumerate(regions):
                     bbox = region.bbox
                     # 跳过退化 bbox
@@ -193,7 +378,54 @@ async def _render_figure_regions(
                         )
                         continue
 
-                    # 反向去重：标记被该 figure region 完整包含的同页光栅图
+                    # ── ISSUE-094 R8: figure bbox 视觉扩展 ────────────────
+                    # Docling/MinerU 给出的 figure region bbox 通常仅覆盖嵌入
+                    # 光栅图本体，未含 figure 完整视觉范围（列标题/子标签/
+                    # 装饰线/caption）。R7 修复了 pt → px 比例换算，但若种子
+                    # bbox 仅占正文栏 ~50%，markdown 中的 <img width> 仍远小于
+                    # PDF 原版视觉占用。此处后处理 bbox：从种子出发吸纳邻近
+                    # 矢量绘制与短文本块，使扩展后 bbox 与 PDF 视觉对齐
+                    # （详见 _expand_figure_bbox 注释）。
+                    if page_drawings is None:
+                        try:
+                            page_drawings = list(page.get_drawings())
+                        except Exception as e:
+                            logger.debug("get_drawings 失败 p%d: %s", page_idx, e)
+                            page_drawings = []
+                    if page_text_dict is None:
+                        try:
+                            page_text_dict = page.get_text("dict")
+                        except Exception as e:
+                            logger.debug("get_text(dict) 失败 p%d: %s", page_idx, e)
+                            page_text_dict = {"blocks": []}
+
+                    expanded_bbox = _expand_figure_bbox(
+                        (x0, y0, x1, y1),
+                        drawings=page_drawings,
+                        text_dict=page_text_dict,
+                    )
+                    if expanded_bbox != (x0, y0, x1, y1):
+                        new_w = expanded_bbox[2] - expanded_bbox[0]
+                        new_h = expanded_bbox[3] - expanded_bbox[1]
+                        # 显著扩展时记录（横向变宽 ≥ 5%）
+                        if new_w > region_w * 1.05:
+                            logger.info(
+                                "figure bbox 扩展 p%d region %d: "
+                                "%.1fx%.1f -> %.1fx%.1f pt",
+                                page_idx,
+                                region_idx,
+                                region_w,
+                                region_h,
+                                new_w,
+                                new_h,
+                            )
+                        x0, y0, x1, y1 = expanded_bbox
+                    # ─────────────────────────────────────────────────────
+
+                    # 反向去重：基于"扩展后"的 figure region 计算覆盖率（更
+                    # 准确，因扩展后视觉范围可能新覆盖到此前未达 0.8 阈值的
+                    # raster 子组件，例如 Context Engineering 2.0 Figure 1 的
+                    # 4 张机器人嵌入图）
                     raster_entries = raster_by_page.get(page_idx, [])
                     contained_raster_idx: List[int] = []
                     for r_idx, rbox in raster_entries:

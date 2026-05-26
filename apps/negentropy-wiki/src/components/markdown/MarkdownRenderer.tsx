@@ -26,6 +26,11 @@ const wikiSanitizeSchema: typeof defaultSchema = {
       "height",
       "loading",
       "decoding",
+      // ISSUE-094 R8：后端 _image_to_markdown 输出形如
+      // <img ... style="max-width:100%;height:auto;" />，确保前端渲染时
+      // 图片在窄屏下自适应不超出容器。rehype-sanitize 内置 CSS 白名单
+      // 已防 expression() / url(javascript:) 等 XSS。
+      "style",
     ],
     figure: [],
     figcaption: [],
@@ -71,16 +76,32 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             return <pre>{children}</pre>;
           },
           table: ({ children }) => <ResponsiveTable>{children}</ResponsiveTable>,
-          img: ({ src, alt }) => (
+          img: ({ src, alt, width, height, style }) => {
+            // ISSUE-094 R8：透传后端 _image_to_markdown 输出的 width / height /
+            // style，避免图片自然宽度（PNG 像素）造成 PDF→Markdown 视觉缩放失真。
+            // 与 apps/negentropy-ui/.../DocumentMarkdownRenderer.tsx (DocumentImage)
+            // 语义对齐：让 <img> 在容器内按 PDF pt × (96/72) CSS 像素显示，同时
+            // 通过 max-width:100%; height:auto 在窄屏下自适应缩放。
+            //
+            // style 合并优先级：后端 inline style（含 max-width / height）位于
+            // 用户视觉契约的源头，本组件追加 borderRadius 作为站点视觉规范。
+            const mergedStyle: React.CSSProperties = {
+              ...(style && typeof style === "object" ? style : {}),
+              borderRadius: "var(--wiki-radius)",
+            };
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt={alt ?? ""}
-              loading="lazy"
-              decoding="async"
-              style={{ borderRadius: "var(--wiki-radius)" }}
-            />
-          ),
+            return (
+              <img
+                src={src}
+                alt={alt ?? ""}
+                width={width}
+                height={height}
+                loading="lazy"
+                decoding="async"
+                style={mergedStyle}
+              />
+            );
+          },
         }}
       >
         {content}
