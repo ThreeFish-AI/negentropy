@@ -79,14 +79,17 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           img: ({ src, alt, width, height, style }) => {
             // ISSUE-094 R8：透传后端 _image_to_markdown 输出的 width / height /
             // style，避免图片自然宽度（PNG 像素）造成 PDF→Markdown 视觉缩放失真。
-            // 与 apps/negentropy-ui/.../DocumentMarkdownRenderer.tsx (DocumentImage)
-            // 语义对齐：让 <img> 在容器内按 PDF pt × (96/72) CSS 像素显示，同时
-            // 通过 max-width:100%; height:auto 在窄屏下自适应缩放。
             //
-            // style 合并优先级：后端 inline style（含 max-width / height）位于
-            // 用户视觉契约的源头，本组件追加 borderRadius 作为站点视觉规范。
+            // 大图（width ≥ 400px，PDF figure region 渲染产物）使用 width:100%
+            // 填满容器，与 PDF 原版 figure 占满正文栏全宽的视觉等价。
+            // 小图（inline icon 等）保持 max-width:100% 不主动撑开。
+            const pxWidth = width ? parseInt(String(width), 10) : 0;
+            const isLargeFigure = pxWidth >= 400;
             const mergedStyle: React.CSSProperties = {
               ...(style && typeof style === "object" ? style : {}),
+              ...(isLargeFigure
+                ? { width: "100%", maxWidth: "100%", height: "auto" }
+                : {}),
               borderRadius: "var(--wiki-radius)",
             };
             // eslint-disable-next-line @next/next/no-img-element

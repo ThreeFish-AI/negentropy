@@ -47,4 +47,28 @@ describe("MarkdownRenderer", () => {
     expect(style?.height).toBe("auto");
     expect(style?.borderRadius).toMatch(/var\(--wiki-radius\)/);
   });
+
+  it("大图（width ≥ 400）使用 width:100% 填满容器", () => {
+    const md = `<img src="./images/fig.png" width="602" height="332" style="max-width:100%;height:auto;" />`;
+    const { container } = render(<MarkdownRenderer content={md} />);
+    const img = container.querySelector("img");
+
+    expect(img).not.toBeNull();
+    const style = img?.style;
+    expect(style?.width).toBe("100%");
+    expect(style?.maxWidth).toBe("100%");
+    expect(style?.height).toBe("auto");
+  });
+
+  it("小图（width < 400）不添加 width:100% 撑开样式", () => {
+    const md = `<img src="./images/icon.png" width="46" height="32" style="max-width:100%;height:auto;" />`;
+    const { container } = render(<MarkdownRenderer content={md} />);
+    const img = container.querySelector("img");
+
+    expect(img).not.toBeNull();
+    const style = img?.style;
+    // 小图不应有 width:100%，保持后端 max-width:100% 原样
+    expect(style?.width).not.toBe("100%");
+    expect(style?.maxWidth).toBe("100%");
+  });
 });

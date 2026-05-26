@@ -160,6 +160,27 @@ DEFAULT_FORMATTING_OPTIONS: Dict[str, bool] = {
 _IMG_RESPONSIVE_STYLE = "max-width:100%;height:auto;"
 
 
+def _strip_orphan_styles(markdown_content: str) -> str:
+    """清除孤立的 ``style="..."`` 属性，但保留 ``<img>`` 标签内的 style。
+
+    ``_image_to_markdown`` 输出的 ``style="max-width:100%;height:auto;"`` 是
+    PDF→Markdown 图片响应式的核心契约，不可被防御性 cleanup 误删。
+    实现方式：先将 ``<img ...>`` 替换为占位符，执行清除，再还原。
+    """
+    _IMG_TAG_RE = re.compile(r"<img\b[^>]*/?>")
+    img_tags: list[str] = []
+
+    def _protect(match: re.Match) -> str:
+        img_tags.append(match.group(0))
+        return f"%%_IMGTAG_{len(img_tags) - 1}%%"
+
+    text = _IMG_TAG_RE.sub(_protect, markdown_content)
+    text = re.sub(r'\s+style="[^"]*"', "", text)
+    for i, tag in enumerate(img_tags):
+        text = text.replace(f"%%_IMGTAG_{i}%%", tag)
+    return text
+
+
 class MarkdownFormatter:
     """Markdown formatting pipeline for enhancing raw Markdown output."""
 
@@ -766,9 +787,10 @@ class MarkdownFormatter:
                 "",
                 markdown_content,
             )
-            # 清除孤立的 HTML 属性
+            # 清除孤立的 HTML 属性（但保留 <img> 标签内的 style，
+            # 因其承载 _image_to_markdown 输出的响应式样式）
             markdown_content = re.sub(r'\s+class="[^"]*"', "", markdown_content)
-            markdown_content = re.sub(r'\s+style="[^"]*"', "", markdown_content)
+            markdown_content = _strip_orphan_styles(markdown_content)
             markdown_content = re.sub(r'\s+aria-\w+="[^"]*"', "", markdown_content)
 
             markdown_content = markdown_content.strip()
