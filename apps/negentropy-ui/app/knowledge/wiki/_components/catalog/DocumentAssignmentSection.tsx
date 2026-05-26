@@ -23,9 +23,14 @@ interface DocumentAssignmentSectionProps {
   catalogId: string;
 }
 
-/** 决定 Wiki 站点上显示的标题（优先级与后端 _resolve_doc_display_title 一致）。 */
+/** 决定 Wiki 站点上显示的标题（优先级与后端 _resolve_doc_display_title 一致）。
+ *  display_name（用户手填）→ metadata.title（PDF/抓取自动抽取）→ original_filename（兜底）。 */
 function effectiveDisplayName(doc: KnowledgeDocument): string {
-  return (doc.display_name || "").trim() || doc.original_filename;
+  const displayName = (doc.display_name || "").trim();
+  if (displayName) return displayName;
+  const metaTitle = typeof doc.metadata?.title === "string" ? doc.metadata.title.trim() : "";
+  if (metaTitle) return metaTitle;
+  return doc.original_filename;
 }
 
 export function DocumentAssignmentSection({
