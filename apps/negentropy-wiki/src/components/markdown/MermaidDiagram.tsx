@@ -6,7 +6,7 @@ import mermaid from "mermaid";
 mermaid.initialize({
   startOnLoad: false,
   theme: "default",
-  securityLevel: "loose",
+  securityLevel: "strict",
   fontFamily: "inherit",
   flowchart: { htmlLabels: true },
 });
