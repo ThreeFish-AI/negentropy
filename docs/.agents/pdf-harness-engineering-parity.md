@@ -22,6 +22,12 @@
 | [`markdown/formatter.py`](../../apps/negentropy-perceives/src/negentropy/perceives/markdown/formatter.py) | `_typography_inner` 加 `[a-z]- [a-z]` 合并 | 跨行断字残留 |
 | [`markdown/image_ref_normalizer.py`](../../apps/negentropy-perceives/src/negentropy/perceives/markdown/image_ref_normalizer.py) | 新增 Phase 3 `_append_orphan_images` | 落盘图未被 markdown 引用 |
 
+R5 增量改动（2026-05-26，本期单文件聚焦）：
+
+| 文件 | 改动 | 修复缺陷 |
+|---|---|---|
+| [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) | (a) `_orphan_block_formulas` → `_orphan_formulas` 共池兜底；(b) 新增 `_extract_formula_eq_number` 三模式编号识别；(c) 2.4 段 `_formula_eq_nums` 集合扩容支持 inline；(d) 新增 2.4.5 "邻接文本段编号借入"；(e) 新增 2.5 "inline 公式 promotion"（`$<core> \quad (N)$` 包裹）；(f) `\tag → \quad` KaTeX 兼容写法 | inline `$...$` 公式被 assembly 静默丢弃、等式编号借入失败致重复 plain text、KaTeX `tag works only in display equations` ParseError |
+
 ## 3. 量化效果（71 页学术 PDF 全本）
 
 | 维度 | 修复前 | 修复后 | 目标 | 状态 |
@@ -34,6 +40,10 @@
 | 切片前 5 页耗时 | 24s | 24s | ≤30s | ✅ |
 | 全本耗时 | 60s（formula 漏检） | 180–300s | ≤320s | ✅（mineru 是固有开销） |
 | 既有单元测试 | 525 | 525 + 61 新 = 586 | 0 退化 | ✅ |
+| **R5 inline `$...$` 公式包裹**（28 页 Context Engineering 2.0 论文） | 0 | **2**（eq 3 + eq 4） | ≥2 | ✅ |
+| **R5 KaTeX 渲染**（浏览器实机） | 1 ParseError（`\tag` 不兼容 inline） | **0 ParseError**（5 display + 2 inline） | 0 | ✅ |
+| **R5 等式编号借入**（eq 6 重复 plain text 剔除） | 存在 | **消失** | 0 | ✅ |
+| **R5 新增单元测试** | — | 29 新 = 1567 | 0 退化 | ✅ |
 
 ## 4. 端到端实机验证
 
@@ -61,9 +71,11 @@
 
 ## 6. 已知边界 / 后续工作
 
-- 学术 PDF 的 mineru 公式提取是性能主瓶颈（200s+），无法在保留公式质量的前提下显著降低；
+- 学术 PDF 的 mineru 公式提取是性能主瓶颈（200s+，28 页 Context Engineering 2.0 实测 600s 超时降级 docling），无法在保留公式质量的前提下显著降低；R5 通过 assembly 末段 markdown 层 inline promotion 把"短文本型公式"恢复为 KaTeX 可渲染形态，绕过对 `formula_extraction` stage 的强依赖；
 - TOC 表识别用启发式（点 leader + 章节编号 + 页码列），极少数 PDF 的非常规 TOC 可能漏识别（fallback：仍输出 docling 提取的原 TOC 表，不影响整体阅读）；
-- 双栏全宽元素的 y 分层（assembly 双栏检测后的二阶排序）本期未启用 — 当前算法 `column → y0 → x0` 五级稳定排序在该 PDF 上已无可察的段落交错，未触发重写动力。
+- 双栏全宽元素的 y 分层（assembly 双栏检测后的二阶排序）本期未启用 — 当前算法 `column → y0 → x0` 五级稳定排序在该 PDF 上已无可察的段落交错，未触发重写动力；
+- ~~inline `$...$` 公式包裹缺失~~ — **R5 已修复**（assembly 2.5 段 promotion + 2.4.5 段编号借入 + KaTeX `\quad` 语法兼容）；
+- **R5 浮现但不在本期范围**的小 gap（见 `.context/r5-defects.md`）：References `[2]` 跳号（根因在 PDF 抽取上游，R4 与 R5 均存在）；文档末尾孤儿图块视觉占满（R3 设计的兜底，避免图片丢失）；PDF 元数据残留 `§ Github` / `SII Context`（layout-aware 识别难度高）。
 
 ## 7. 端到端验证 Runbook
 

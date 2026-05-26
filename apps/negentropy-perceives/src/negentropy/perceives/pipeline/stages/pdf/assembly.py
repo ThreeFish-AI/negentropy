@@ -59,7 +59,11 @@ class BuiltinAssembler(PDFToolBase):
 
             # 1. 收集所有内容元素
             elements: List[_ContentElement] = []
-            _orphan_block_formulas: List[ExtractedFormula] = []
+            # 无 bbox 公式（块级 + 行内）：通过文本块匹配回正文位置后升级为 LaTeX
+            # （此前仅承接 ``formula_type == "block"`` 的孤儿，``inline`` 公式被静默丢弃，
+            # 详见 issue.md ISSUE-094 R5）。inline 与 block 共池统一兜底，
+            # ``_formula_to_markdown`` 内按 ``formula_type`` 决定 ``$...$`` 或 ``$$...$$`` 包裹。
+            _orphan_formulas: List[ExtractedFormula] = []
 
             # 1a. 构建专用 Stage 的空间占用索引（page → bbox 列表），
             #     用于在添加文本块时进行反向去重：当文本块落入公式/表格/图片
@@ -238,10 +242,11 @@ class BuiltinAssembler(PDFToolBase):
                                 formula=formula,
                             )
                         )
-                    elif formula.latex and formula.formula_type == "block":
-                        # 无 bbox 的块级公式：尝试在文本块中定位并标记替换
-                        # 收集到临时列表，排序后通过文本匹配定位
-                        _orphan_block_formulas.append(formula)
+                    elif formula.latex:
+                        # 无 bbox 公式：块级与行内统一兜底
+                        # （MinerU 对短公式如 ``CE: ( C, T ) → f_context (3)`` 常分类为 inline，
+                        # 此分支前曾仅承接 block，inline 公式被静默丢弃，参见 ISSUE-094 R5）
+                        _orphan_formulas.append(formula)
 
             # 代码块（去重：对 Docling 提取的代码块，检查同页文本块中
             #   是否存在高度相似的内容，避免 Docling 和 text_extraction
@@ -652,10 +657,13 @@ class BuiltinAssembler(PDFToolBase):
                 # 新增的算法代码块需要在排序后的位置插入，重新排序
                 elements.sort(key=_sort_key)
 
-            # 2.2 无 bbox 块级公式：通过公式编号或数学符号在文本块中定位并替换
-            #    策略 1：通过公式编号（如 LaTeX 末尾的 \quad (N)）匹配
-            #    策略 2：通过数学符号 + 公式特征匹配
-            if _orphan_block_formulas:
+            # 2.2 无 bbox 公式：通过公式编号或数学符号在文本块中定位并替换
+            #    策略 1：通过公式编号（``\quad (N)`` / ``\tag{N}`` / LaTeX 末尾 ``(N)``）匹配
+            #    策略 2：通过数学符号 + 公式特征匹配（兜底，block 形式专用）
+            #    inline 公式（短公式如 ``CE: (C, T) → f_context (3)``）走策略 1 为主，
+            #    匹配后整段文本被 ``$...$`` 包裹（``_formula_to_markdown`` 按
+            #    ``formula_type`` 自动选择 ``$`` 或 ``$$`` 包裹）。
+            if _orphan_formulas:
                 _used_formula_indices: set[int] = set()
                 for elem in elements:
                     if elem.element_type != "text" or not elem.block:
@@ -663,18 +671,18 @@ class BuiltinAssembler(PDFToolBase):
                     text = elem.block.text.strip()
                     if not text or text.startswith("#") or len(text) < 10:
                         continue
-                    for fi, formula in enumerate(_orphan_block_formulas):
+                    for fi, formula in enumerate(_orphan_formulas):
                         if fi in _used_formula_indices or not formula.latex:
                             continue
                         matched = False
-                        # 策略 1：公式编号匹配（最可靠）
-                        eq_num = re.search(r"\\quad\s*\(\s*(\d+)\s*\)", formula.latex)
-                        if eq_num:
-                            num_str = f"({eq_num.group(1)})"
-                            if num_str in text:
+                        # 策略 1：公式编号匹配（最可靠）— 兼容 LaTeX 多种编号写法
+                        eq_num = _extract_formula_eq_number(formula.latex)
+                        if eq_num is not None:
+                            # 编号模式："(N)" / "( N )" 都接受
+                            if re.search(r"\(\s*" + re.escape(eq_num) + r"\s*\)", text):
                                 matched = True
-                        # 策略 2：数学符号 + LaTeX 关键词匹配
-                        if not matched:
+                        # 策略 2：数学符号 + LaTeX 关键词匹配（短公式或无编号场景）
+                        if not matched and formula.formula_type == "block":
                             _math_symbols = [
                                 "→",
                                 "∑",
@@ -702,6 +710,7 @@ class BuiltinAssembler(PDFToolBase):
                                     "\\right",
                                     "\\dots",
                                     "\\text",
+                                    "\\tag",
                                 )
                             ]
                             _name_match = any(
@@ -723,20 +732,61 @@ class BuiltinAssembler(PDFToolBase):
             #    如果文本元素含相同编号且包含数学符号，视为重复并移除。
             _formula_eq_nums: set[str] = set()
             for elem in elements:
-                if elem.element_type == "formula" and elem.content.strip().startswith(
-                    "$$"
+                if elem.element_type != "formula":
+                    continue
+                content = elem.content.strip()
+                # 块级 ``$$...$$`` 与 inline ``$...$`` 公式均纳入编号采集，
+                # 兼容 ISSUE-094 R5 中 inline 公式（如 ``$CE: (C,T) \\to f_{context} (3)$``）
+                # 与同页 PyMuPDF 字符流文本（``CE: ( C, T ) → f context (3)``）的去重。
+                if not (content.startswith("$$") or content.startswith("$")):
+                    continue
+                # 匹配 LaTeX 中的编号：
+                # - ``(N)`` / ``( N )``（纯 LaTeX 源 OR 部分引擎渲染）
+                # - ``\\tag{N}``（MinerU / 学术论文标准形式）
+                # 两种形式均落入 ``_formula_eq_nums``，配合下方"文本块含
+                # ``(N)`` + 数学符号 + 短长度 → 视为公式字符流冗余"规则，
+                # 兜底 ``_text_block_matches_formula`` 对短公式签名
+                # （<20 字符）无法启用的场景。
+                for m in re.finditer(r"\(\s*(\d+)\s*\)", content):
+                    _formula_eq_nums.add(m.group(1))
+                for m in re.finditer(r"\\tag\s*\{\s*(\d+)\s*\}", content):
+                    _formula_eq_nums.add(m.group(1))
+
+            # 2.4.5 借入相邻文本段的编号：当公式 LaTeX 缺失 ``\\tag{N}`` /
+            # ``\\quad (N)``（典型如 docling 抽取学术论文公式时仅出公式主体，
+            # 编号 ``(N)`` 留在下方紧邻的 PyMuPDF 字符流文本段），扫描每个公式
+            # 元素其后一个文本元素：若该文本段以编号 ``(N)`` 收尾、含数学符号、
+            # 且长度短小，则把编号 ``N`` 借入 ``_formula_eq_nums`` —— 让 2.4
+            # 段的"公式-文本去重"规则能命中此文本段并剔除。同一缺陷既保留
+            # LaTeX 公式渲染，又清空 OCR 错字版本的 PyMuPDF 字符流副本。
+            _math_chars_borrow = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨∪⊆")
+            _BORROW_TRAILING_NUM_RE = re.compile(r"\(\s*(\d+)\s*\)\s*$")
+            for i, elem in enumerate(elements):
+                if elem.element_type != "formula":
+                    continue
+                fc = elem.content.strip()
+                if not (fc.startswith("$$") or fc.startswith("$")):
+                    continue
+                # 已有编号则跳过
+                if re.search(r"\(\s*\d+\s*\)", fc) or re.search(
+                    r"\\tag\s*\{\s*\d+\s*\}", fc
                 ):
-                    # 匹配 LaTeX 中的编号：
-                    # - ``(N)`` / ``( N )``（纯 LaTeX 源 OR 部分引擎渲染）
-                    # - ``\\tag{N}``（MinerU / 学术论文标准形式）
-                    # 两种形式均落入 ``_formula_eq_nums``，配合下方"文本块含
-                    # ``(N)`` + 数学符号 + 短长度 → 视为公式字符流冗余"规则，
-                    # 兜底 ``_text_block_matches_formula`` 对短公式签名
-                    # （<20 字符）无法启用的场景。
-                    for m in re.finditer(r"\(\s*(\d+)\s*\)", elem.content):
-                        _formula_eq_nums.add(m.group(1))
-                    for m in re.finditer(r"\\tag\s*\{\s*(\d+)\s*\}", elem.content):
-                        _formula_eq_nums.add(m.group(1))
+                    continue
+                # 公式后紧邻的文本元素
+                if i + 1 >= len(elements):
+                    continue
+                nxt = elements[i + 1]
+                if nxt.element_type != "text" or nxt.block is None:
+                    continue
+                nxt_text = nxt.content.strip()
+                if not nxt_text or nxt_text.startswith("#") or len(nxt_text) >= 200:
+                    continue
+                borrow_match = _BORROW_TRAILING_NUM_RE.search(nxt_text)
+                if not borrow_match:
+                    continue
+                if not any(c in nxt_text for c in _math_chars_borrow):
+                    continue
+                _formula_eq_nums.add(borrow_match.group(1))
             if _formula_eq_nums:
                 _math_chars = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨")
                 elements = [
@@ -756,6 +806,67 @@ class BuiltinAssembler(PDFToolBase):
                         and not elem.content.strip().startswith("#")
                     )
                 ]
+
+            # 2.5 inline 公式提升：当 mineru / docling 漏抽某些短公式（典型如
+            # ``CE: (C, T) → f_context (3)``、``f_context(C) = F(\phi_1, ...)(C) (4)``）
+            # 且文本元素整段即由数学符号 + 编号构成时，把整段包裹为 ``$...$``，
+            # 让 UI 端 ``remark-math + rehype-katex`` 渲染为 KaTeX 公式。
+            # 严苛守卫避免误吞普通段落：
+            #   a) 段落起始 / 结尾各含 ≥ 1 个数学符号（``→ ∈ ⊆ ≤ ≥ ∧ ∨`` 等）；
+            #   b) 段尾紧邻 ``(N)`` 形式编号（去除编号后剩余 < 100 字符）；
+            #   c) 整段不含句号、问号、感叹号等"自然语言结束符"；
+            #   d) 不以 markdown 元字符（``# > * - |``）起手。
+            # 修复细节：把段尾 ``(N)`` 抽出作为 ``\\tag{N}`` 嵌入 LaTeX，公式正文
+            # 保留 PyMuPDF 字符流形态（KaTeX 容忍小语法瑕疵；不改写主体避免引入
+            # 二阶失真）。
+            _INLINE_PROMOTE_END_RE = re.compile(r"\s*\(\s*(\d+)\s*\)\s*$")
+            # 数学符号集：覆盖关系、量词、小写希腊字母（含小 phi 变体）、集合论符号
+            # 拓展自第 2.4 段去重所用集合，增加 ``ϕ φ θ Φ Θ`` 多形态防止 PDF 字体
+            # 渲染差异下漏判（``ϕ`` U+03D5 与 ``φ`` U+03C6 在不同 PDF 字体里都常见）。
+            _math_chars_inline = set("∈∀∃∑∏∫→←↔≤≥≠≈θφϕψωαβγδ∧∨∪⊆ΦΘΨΩΓΔ")
+            for elem in elements:
+                if elem.element_type != "text" or elem.block is None:
+                    continue
+                content = elem.content.strip()
+                if not content:
+                    continue
+                # 已经是公式 / 标题 / 代码块 / 引用 / 列表 / 表格 → 跳过
+                if content.startswith(("#", ">", "*", "-", "|", "$", "```", "<")):
+                    continue
+                promote_match = _INLINE_PROMOTE_END_RE.search(content)
+                if not promote_match:
+                    continue
+                eq_num = promote_match.group(1)
+                core = content[: promote_match.start()].rstrip()
+                # 去除编号后长度限制（避免吞下整段引用文献）
+                if not (5 <= len(core) <= 120):
+                    continue
+                # 含至少一个数学符号
+                if not any(c in core for c in _math_chars_inline):
+                    continue
+                # 不应含自然语言句尾标点（避免误吞带 (N) 引用的普通段落）。
+                # PDF 提取常把省略号拆为 ``. . .`` 三个独立点带空格，省略号、小数、
+                # 复合编号都不能命中。``。 ! ? ！ ？`` 直接拦截。
+                if any(ch in core for ch in ("。", "?", "!", "！", "？")):
+                    continue
+                # 真正的句号特征：``.`` 后紧邻空白 + 大写字母（句首），或行尾。
+                # 限定句首字母 ``[A-Z]`` 才视为句号，与省略号片段 ``. . `` / ``. ϕ`` 区分。
+                if re.search(r"\.\s+[A-Z]", core) or core.rstrip().endswith("."):
+                    continue
+                # 公式 LaTeX 主体保留 PyMuPDF 字符流，编号以 ``\\quad (N)`` 紧附
+                # （KaTeX 限制：``\\tag{}`` 仅支持 display equation，inline ``$...$``
+                # 使用 ``\\tag`` 会触发 ParseError "tag works only in display equations"。
+                # ``\\quad (N)`` 在 inline 与 display 模式都有效）。
+                latex = f"{core} \\quad ({eq_num})"
+                elem.content = f"${latex}$"
+                elem.element_type = "formula"
+                elem.block = None
+                logger.debug(
+                    "[assembly:promote_inline_formula] eq=%s core_len=%d core_preview=%r",
+                    eq_num,
+                    len(core),
+                    core[:80],
+                )
 
             # 2.6 图片 caption 与纯文本去重：
             #    当图片元素以 `![caption](path)` 形式输出后，
@@ -1341,6 +1452,33 @@ def _sanitize_latex(latex: str) -> str:
         )
 
     return latex
+
+
+_FORMULA_EQ_NUMBER_PATTERNS: Tuple[re.Pattern[str], ...] = (
+    # MinerU 标准：``... \tag{N}``
+    re.compile(r"\\tag\s*\{\s*(\d+)\s*\}"),
+    # Marker/Docling 标准：``... \quad (N)`` 或 ``... \quad ( N )``
+    re.compile(r"\\quad\s*\(\s*(\d+)\s*\)"),
+    # 短 inline 公式：LaTeX 尾部直接 ``(N)``（如 ``CE: (C,T) \to f_{context} (3)``）
+    re.compile(r"\(\s*(\d+)\s*\)\s*$"),
+)
+
+
+def _extract_formula_eq_number(latex: str | None) -> str | None:
+    """提取 LaTeX 公式末尾的等式编号（如 ``(3)`` / ``\\tag{4}`` / ``\\quad (5)``）。
+
+    返回字符串形式的编号（无外围括号）。无编号时返回 ``None``。
+    """
+    if not latex:
+        return None
+    text = latex.strip()
+    if not text:
+        return None
+    for pat in _FORMULA_EQ_NUMBER_PATTERNS:
+        m = pat.search(text)
+        if m:
+            return m.group(1)
+    return None
 
 
 def _formula_to_markdown(formula: ExtractedFormula) -> str:

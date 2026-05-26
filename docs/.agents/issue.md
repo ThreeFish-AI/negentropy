@@ -2329,3 +2329,50 @@
   - 修复全部以独立 commit 串接在 `ThreeFish-AI/pdf-to-markdown-parity` 分支：`a7c97130` (algorithm) / `85beb20d` (image filter) / `60bb4ad6` (orphan dedup) / `67110907` (compound number FitzTextExtractor) / `d48b1baa` (diacritic) / `d198413d` (compound number formatter)，可按需 cherry-pick；
   - **inline 数学公式 `$...$` 包裹缺失** 是已知未修问题（`CE : (C, T) → f_context (3)` 等行内公式在 assembly 阶段被静默丢弃），需要单独的 inline formula 重定位架构改造，留待第五轮；
   - **PDF-specific 噪声文本**（`§ Github` / `SII Context` 等）暂未规则化，建议依靠未来 layout-aware logo 区域识别而非通用正则。
+
+### 第五轮迭代（2026-05-26 Context Engineering 2.0 inline 公式恢复 + 等式编号借入）
+
+第四轮收尾笔记把 **inline `$...$` 公式包裹缺失**作为唯一明确遗留问题留到第五轮。本期以 R4 收尾时的 Context Engineering 2.0 markdown（`013c5ebc-51b8-4a54-8e52-17241fdb67ed`，char_count=113973、inline `$...$` 计数=0）为起点端到端实测，最终在 UI Document View 上把等式 (3) (4) 全部恢复为 KaTeX 可渲染的 inline 公式，等式 (6) 重复 PyMuPDF 字符流文本段被剔除，字符数 113973 → 113917（-56，含两次微调），inline `$...$` 计数 0 → 2，block `$$...$$` 5 块保持稳定，单测 161 → 163 项无回归（test_assembly_inline_formula_orphan.py 新增 29 例），UI 端 7 个 KaTeX 实例零 ParseError：
+
+- **表因**：以 R4 收尾后的同份 PDF 为驱动样本端到端实测发现 3 类正交 + 1 类 KaTeX 语法限制（与前四轮缺陷正交，可独立 cherry-pick）：
+  1. **inline 公式被 assembly 静默丢弃**：`assembly.py` 第 241 行 `elif formula.latex and formula.formula_type == "block":` 仅承接块级孤儿，MinerU 对短公式（如 `CE: (C, T) → f_context (3)`）常分类为 `inline` 且缺失 bbox，直接落入丢弃分支；
+  2. **公式编号借入失败导致重复 plain text**：docling 抽取 eq (6) 时仅给出 `$$ M_l = f_{long}(...) $$` 主体，编号 `(6)` 留在下方紧邻的 PyMuPDF 字符流文本段（含 `M l = f long ( c ∈ C: w importance ...) (6)`）。`_formula_eq_nums` 集合从公式 LaTeX 末尾扫不到编号 → 该字符流文本未被剔除，公式 + 重复文本并存；
+  3. **PDF 抽取层漏抽 inline 公式整段**：MinerU 公式 stage 在 28 页学术论文上跑 ~600s 超时，降级 docling，docling 也不抽出 eq (3) / (4)（短文本型公式落进 paragraph stream）。需要在 assembly 末段对"含数学符号 + 尾部 `(N)` + 短小段"的孤立文本元素做后置识别 + 包裹；
+  4. **KaTeX 语法限制**：`\\tag{N}` 仅支持 display equation（`$$...$$`），inline `$...$` 使用 `\\tag` 触发 ParseError `"tag works only in display equations"`。需改用 `\\quad (N)` 编号写法。
+
+- **根因**：
+  1. **assembly 公式承接分支硬编码 `formula_type == "block"`**：上下文 [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 第 60-244 行的 `_orphan_block_formulas` 命名与 elif 守卫把 inline 公式排除在兜底链路之外，这是 R3 引入孤儿匹配时的设计遗留（彼时假设所有需兜底公式都是块级）；
+  2. **`_formula_eq_nums` 仅从 LaTeX 主体扫描**：`assembly.py` 2.4 段集合构造对应代码 `re.finditer(r"\\(\\s*(\\d+)\\s*\\)", elem.content)` 等只识别 ``elem.content`` 即公式自身的 LaTeX；当公式 LaTeX 缺编号、编号留在相邻 PyMuPDF 文本段时无可借入路径；
+  3. **公式 stage 是 best-effort、缺乏 markdown 末端 fallback**：现状管线把"公式抽取"局限在 `formula_extraction` stage（mineru/docling/pymupdf_heuristic），如某段落型短公式三引擎都漏抽，最终 markdown 永远是 plain text。assembly 末段需要补充"语义层"的 inline 公式识别（避免对 `formula_extraction` stage 过度依赖）；
+  4. **KaTeX 接入 R4 已锁定但未单测覆盖 inline 语法兼容**：UI 端 [`DocumentMarkdownRenderer.tsx`](../../apps/negentropy-ui/features/knowledge/components/DocumentMarkdownRenderer.tsx) 已挂 `remark-math + rehype-katex`，但 assembly 输出的 inline LaTeX 与 KaTeX 语法 ABI 在 R4 未建立强契约，导致本期使用 `\\tag` 渲染失败被推迟到 UI 实机验证才暴露。
+
+- **处理方式**（5 个独立修改点，集中在 [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 一个文件，单测覆盖均落在 [`tests/unit/test_assembly_inline_formula_orphan.py`](../../apps/negentropy-perceives/tests/unit/test_assembly_inline_formula_orphan.py)）：
+  1. **`_orphan_block_formulas` → `_orphan_formulas`**，把 elif 守卫从 `formula_type == "block"` 放宽为接收所有无 bbox 的公式（inline + block 共池兜底），`_formula_to_markdown` 内按 `formula_type` 决定 `$` 或 `$$` 包裹；
+  2. **新增 `_extract_formula_eq_number()` helper**：用 `_FORMULA_EQ_NUMBER_PATTERNS` 三模式覆盖 `\\tag{N}` / `\\quad (N)` / LaTeX 尾部 `(N)`；2.2 段 orphan 匹配把策略 1（编号匹配）作为第一优先；策略 2（数学符号 + LaTeX 关键词）退化为 block 公式专用；
+  3. **2.4.5 段"借入相邻文本段编号"**：扫描每个公式元素其后一个文本元素，若该文本段以编号 `(N)` 收尾、含数学符号、长度短小，则把编号 `N` 借入 `_formula_eq_nums` —— 让 2.4 公式-文本去重规则能命中此文本段并剔除（典型 eq (6) 重复字符流场景）；
+  4. **2.5 段"inline 公式 promotion"**：识别"含数学符号 + 尾部 `(N)` + 短小段（5-120 字符）"的孤立文本元素，整段包裹为 `$<core> \\quad (N)$` 并升级为 formula 元素。守卫包括：不以 markdown 元字符起手、不含自然语言句尾标点（限定 `\\.\\s+[A-Z]` 句首字母 + 行末点）、不含 `。? ! ！？`、数学符号集覆盖 `∈ → ⊆ ⊆ ϕ φ` 等多 Unicode 形态；
+  5. **`\\tag → \\quad` KaTeX 语法兼容**：inline `$...$` 包裹时编号写法用 `\\quad (N)` 而非 `\\tag{N}`，绕过 KaTeX `tag works only in display equations` ParseError；这把"公式识别"与"UI 渲染"两个端的契约固化在 promotion pass 注释中。
+
+- **量化效果**（28 页 Context Engineering 2.0 论文，DB doc=`013c5ebc-51b8-4a54-8e52-17241fdb67ed`）：
+  - **inline `$...$` 计数**：0 → 2（eq 3、eq 4 全部包裹）；
+  - **block `$$...$$` 块**：5 块（eq 1, 2, 5, 6, 7）保持不变；
+  - **等式 (6) 重复 PyMuPDF 字符流文本段**：消失（被 borrow + dedup 链路命中剔除）；
+  - **char_count**：113973 → 113917（-56 字符）；
+  - **algorithm 块**、**hyphen residue**、**HTML img (8)**、**markdown img (3)**：与 R4 收尾完全持平，无回归；
+  - **KaTeX 渲染**：浏览器实机 7 个 KaTeX 实例（5 display + 2 inline）零 ParseError；
+  - **单测**：本期新增 29 例（3 个 Test Class：`TestExtractFormulaEqNumber` 9 例、`TestFormulaToMarkdown` 4 例、`TestInlineFormulaPromotion` 12 例、`TestBorrowTrailingNumber` 4 例），与既有 1538 例无回归（仅 `test_config.py` 因本地用户配置 `concurrent_requests=32` / `llm_model='gpt-5.4-mini'` 覆盖默认值的 2 例预存在失败，与本期无关）。
+
+- **五轮防范要点补充**：
+  1. **assembly 兜底承接分支必须 inline + block 共池**：用 `formula_type` 进行细粒度处理（包裹符号选择），而非 elif 守卫直接丢弃。短公式在学术论文中的占比往往高于块级公式；
+  2. **公式编号识别必须三模式并行**（`\\tag{N}` / `\\quad (N)` / 尾部 `(N)`）：不同引擎（MinerU / docling / marker）的 LaTeX 编号写法差异巨大，硬编码任一模式都会漏；
+  3. **`_formula_eq_nums` 必须支持"邻接文本段借入"**：当公式 LaTeX 无编号但下方相邻文本段以 `(N)` 收尾时，把编号借入集合让公式-文本去重链路能命中。同一公式的"主体"与"编号"在 PDF 抽取层经常被拆到不同元素；
+  4. **assembly 必须保留 markdown 末端 inline 公式识别 pass**：当所有公式 stage（mineru / docling / pymupdf_heuristic）都漏抽某段落型短公式时，仅靠"含数学符号 + 尾部 `(N)` + 短小段"的语义守卫能恢复 KaTeX 渲染可能性，是低成本高 ROI 兜底；
+  5. **inline `$...$` 公式中严禁使用 `\\tag{}`**：KaTeX 接入面契约。任何 promotion / 升级路径使用 `\\quad (N)` 写法（display & inline 双兼容），并在单测中用 `katex_errors` 数组锁定此契约；
+  6. **省略号、复合编号、句号判定需精细化**：PDF 把省略号拆为 `. . .` 三个独立点带空格非常常见；句号特征严格限定为 `. ` 后接大写字母（句首）或行末点，避免误吞含 `. . .` 的公式段；同理小数 `3.14` / 复合编号 `3.1.1` 也通过"点后接数字"模式天然规避。
+
+- **五轮同类问题影响补充**：
+  - 任何含"短文本型 inline 公式"的学术论文（NLP / Economics / 偏理论的 CS survey）都会受益本期 5 个修复；
+  - 修复全部在一个 commit 内（本轮变化集中、解耦自然），可按需 cherry-pick：`apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py` + `apps/negentropy-perceives/tests/unit/test_assembly_inline_formula_orphan.py`；
+  - **inline 公式 KaTeX 渲染契约**（仅 `\\quad (N)`，禁 `\\tag{N}`）已在 promotion pass 注释中固化，未来扩展任何公式升级链路都应遵守此契约；
+  - **`_orphan_formulas` 统一命名**让"inline + block 共池"语义更显式，未来扩展 caption 类元素的相似处理（如 Figure caption 与 figure 分离的情况）也可参考此模式；
+  - **R5 浮现但不在本期范围**的 `[2]` 引用跳号问题已记录在 `.context/r5-defects.md`：根因在 PDF 提取上游（pymupdf text block 缺失），R4 与 R5 markdown 中均存在，非本期回归，留待后续单独立 issue。
