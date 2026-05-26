@@ -111,3 +111,89 @@
   text-align: center;
   padding: 1.5rem 0;
 }
+
+/* 登录提示 */
+.wiki-comment-login-prompt {
+  text-align: center;
+  padding: 1rem 0;
+}
+.wiki-comment-login-btn {
+  padding: 0.5rem 1.5rem;
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.wiki-comment-login-btn:hover {
+  background: var(--wiki-accent-green);
+  color: #fff;
+  border-color: var(--wiki-accent-green);
+}
+
+/* 评论卡片 */
+.wiki-comment-card {
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--wiki-border);
+  border-radius: var(--wiki-radius);
+  background: var(--wiki-bg-secondary);
+}
+.wiki-comment-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.wiki-comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.wiki-comment-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--wiki-accent-green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82em;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.wiki-comment-author {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.wiki-comment-time {
+  color: var(--wiki-text-secondary);
+  font-size: 0.82em;
+  margin-left: auto;
+}
+.wiki-comment-delete-btn {
+  background: none;
+  border: none;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  font-size: 1.1em;
+  padding: 0 0.3rem;
+  line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.wiki-comment-delete-btn:hover {
+  opacity: 1;
+  color: #e53e3e;
+}
+.wiki-comment-body {
+  margin: 0;
+  font-size: 0.92em;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

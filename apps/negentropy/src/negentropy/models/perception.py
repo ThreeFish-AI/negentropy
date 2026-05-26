@@ -348,6 +348,68 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
 
 
 # =============================================================================
+# Phase 4.1: Wiki 评论与注解
+# =============================================================================
+
+
+class WikiEntryComment(Base, UUIDMixin, TimestampMixin):
+    """Wiki 条目页面评论（文档底部）
+
+    通用评论系统，关联到 wiki_publication_entries，支持分页查询和软删除。
+    user_id 格式为 "google:<sub>"，对应 user_states.user_id。
+    """
+
+    __tablename__ = "wiki_entry_comments"
+
+    entry_id: Mapped[UUID] = mapped_column(fk("wiki_publication_entries", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="active", server_default="'active'"
+    )  # active | hidden | deleted
+    parent_comment_id: Mapped[UUID | None] = mapped_column(fk("wiki_entry_comments", ondelete="CASCADE"), nullable=True)
+
+    entry: Mapped["WikiPublicationEntry"] = relationship()
+
+    __table_args__ = (
+        Index("ix_wiki_comments_entry_id", "entry_id"),
+        Index("ix_wiki_comments_entry_status", "entry_id", "status"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class WikiEntryAnnotation(Base, UUIDMixin, TimestampMixin):
+    """Wiki 条目文本注解（选中片段 + 注解）
+
+    锚定到 wiki 文档中的具体文本片段，使用 W3C Web Annotation TextQuoteSelector
+    进行文本定位。锚定数据存储在 JSONB anchor 字段中。
+
+    常驻高亮：被注解的文本在 wiki 页面上以半透明背景色标记，hover 显示 Tooltip。
+    """
+
+    __tablename__ = "wiki_entry_annotations"
+
+    entry_id: Mapped[UUID] = mapped_column(fk("wiki_publication_entries", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    quoted_text: Mapped[str] = mapped_column(Text, nullable=False)
+    anchor: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    pub_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="active", server_default="'active'"
+    )  # active | hidden | deleted
+
+    entry: Mapped["WikiPublicationEntry"] = relationship()
+
+    __table_args__ = (
+        Index("ix_wiki_annotations_entry_id", "entry_id"),
+        Index("ix_wiki_annotations_entry_status", "entry_id", "status"),
+        Index("ix_wiki_annotations_user_id", "user_id"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+# =============================================================================
 # Phase 5: 知识图谱增强（一等公民实体/关系）
 # =============================================================================
 
