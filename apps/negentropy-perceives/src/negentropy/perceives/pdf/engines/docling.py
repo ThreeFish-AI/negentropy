@@ -82,6 +82,8 @@ class DoclingFormula:
     formula_type: str = "block"  # "inline" or "block"
     page_number: Optional[int] = None
     original_text: str = ""
+    bbox: Optional[Tuple[float, float, float, float]] = None
+    """边界框坐标 ``(x0, y0, x1, y1)``，TopLeft 坐标系，单位为 PDF 点。"""
 
 
 @dataclass
@@ -843,23 +845,77 @@ class DoclingEngine:
         return images
 
     def _extract_formulas(self, doc: Any, markdown: str) -> List[DoclingFormula]:
-        """从 Markdown 文本中提取公式。
+        """从 DoclingDocument 提取公式（含 bbox），降级到 Markdown 正则匹配。
 
-        Docling 将公式内嵌在 Markdown 输出中，通过正则匹配提取。
+        优先路径（``iterate_items`` + ``label='formula'``）：遍历 doc items，
+        提取每个公式项的 LaTeX 文本、页码与 bbox（TopLeft 坐标系）。这是
+        ISSUE-094 R8 修复"公式按视觉顺序排序"的关键 — assembly 阶段的五级
+        稳定排序依赖 ``(page, col, y0, x0, reading_order)``，缺失 bbox 会让
+        公式落到同页末尾按 reading_order 兜底，破坏阅读顺序（典型表象：
+        Context Engineering 2.0 中 Eq(1) 与 Eq(2) 顺序倒置）。
+
+        降级路径（markdown 正则）：当 doc 未暴露 iterate_items 或迭代为空时，
+        回退到原 markdown 文本中 ``$$...$$`` / ``$...$`` 正则抽取，无 bbox。
         """
         formulas: List[DoclingFormula] = []
+        seen_latex: set[str] = set()
 
-        # 块级公式: $$ ... $$
-        for match in re.finditer(r"\$\$([\s\S]+?)\$\$", markdown):
-            latex = match.group(1).strip()
-            if latex:
-                formulas.append(DoclingFormula(latex=latex, formula_type="block"))
+        # ── 优先路径：doc.iterate_items() 拿 label='formula' 项 + bbox ──
+        if hasattr(doc, "iterate_items"):
+            try:
+                for item, _level in doc.iterate_items():
+                    label = str(getattr(item, "label", "")).lower()
+                    if label != "formula":
+                        continue
+                    text = getattr(item, "text", None) or getattr(item, "orig", None)
+                    if not text:
+                        continue
+                    latex = str(text).strip()
+                    # 去除 docling 输出中可能附带的 ``$...$`` 包裹
+                    if latex.startswith("$$") and latex.endswith("$$"):
+                        latex = latex[2:-2].strip()
+                    elif (
+                        latex.startswith("$") and latex.endswith("$") and len(latex) > 2
+                    ):
+                        latex = latex[1:-1].strip()
+                    if not latex or latex in seen_latex:
+                        continue
+                    seen_latex.add(latex)
 
-        # 行内公式: $ ... $ (排除 $$)
-        for match in re.finditer(r"(?<!\$)\$(?!\$)([^$]+?)\$(?!\$)", markdown):
-            latex = match.group(1).strip()
-            if latex and len(latex) > 1:
-                formulas.append(DoclingFormula(latex=latex, formula_type="inline"))
+                    page_no = self._get_page_number(item)
+                    raw_page_no = self._get_raw_page_no(item)
+                    bbox = None
+                    prov = getattr(item, "prov", None)
+                    if prov and len(prov) > 0:
+                        bbox = self._to_topleft_bbox(
+                            getattr(prov[0], "bbox", None), doc, raw_page_no
+                        )
+
+                    formulas.append(
+                        DoclingFormula(
+                            latex=latex,
+                            formula_type="block",
+                            page_number=page_no,
+                            bbox=bbox,
+                        )
+                    )
+            except Exception as e:
+                logger.warning("从 DoclingDocument 提取公式失败: %s", e)
+
+        # ── 降级路径：markdown 正则匹配（无 bbox）─────────────────
+        # 仅当 iterate_items 没拿到任何公式时启用，避免重复输出
+        if not formulas:
+            for match in re.finditer(r"\$\$([\s\S]+?)\$\$", markdown):
+                latex = match.group(1).strip()
+                if latex and latex not in seen_latex:
+                    seen_latex.add(latex)
+                    formulas.append(DoclingFormula(latex=latex, formula_type="block"))
+
+            for match in re.finditer(r"(?<!\$)\$(?!\$)([^$]+?)\$(?!\$)", markdown):
+                latex = match.group(1).strip()
+                if latex and len(latex) > 1 and latex not in seen_latex:
+                    seen_latex.add(latex)
+                    formulas.append(DoclingFormula(latex=latex, formula_type="inline"))
 
         return formulas
 

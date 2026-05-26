@@ -2329,3 +2329,144 @@
   - 修复全部以独立 commit 串接在 `ThreeFish-AI/pdf-to-markdown-parity` 分支：`a7c97130` (algorithm) / `85beb20d` (image filter) / `60bb4ad6` (orphan dedup) / `67110907` (compound number FitzTextExtractor) / `d48b1baa` (diacritic) / `d198413d` (compound number formatter)，可按需 cherry-pick；
   - **inline 数学公式 `$...$` 包裹缺失** 是已知未修问题（`CE : (C, T) → f_context (3)` 等行内公式在 assembly 阶段被静默丢弃），需要单独的 inline formula 重定位架构改造，留待第五轮；
   - **PDF-specific 噪声文本**（`§ Github` / `SII Context` 等）暂未规则化，建议依靠未来 layout-aware logo 区域识别而非通用正则。
+
+### 第五轮迭代（2026-05-26 Context Engineering 2.0 inline 公式恢复 + 等式编号借入）
+
+第四轮收尾笔记把 **inline `$...$` 公式包裹缺失**作为唯一明确遗留问题留到第五轮。本期以 R4 收尾时的 Context Engineering 2.0 markdown（`013c5ebc-51b8-4a54-8e52-17241fdb67ed`，char_count=113973、inline `$...$` 计数=0）为起点端到端实测，最终在 UI Document View 上把等式 (3) (4) 全部恢复为 KaTeX 可渲染的 inline 公式，等式 (6) 重复 PyMuPDF 字符流文本段被剔除，字符数 113973 → 113917（-56，含两次微调），inline `$...$` 计数 0 → 2，block `$$...$$` 5 块保持稳定，单测 161 → 163 项无回归（test_assembly_inline_formula_orphan.py 新增 29 例），UI 端 7 个 KaTeX 实例零 ParseError：
+
+- **表因**：以 R4 收尾后的同份 PDF 为驱动样本端到端实测发现 3 类正交 + 1 类 KaTeX 语法限制（与前四轮缺陷正交，可独立 cherry-pick）：
+  1. **inline 公式被 assembly 静默丢弃**：`assembly.py` 第 241 行 `elif formula.latex and formula.formula_type == "block":` 仅承接块级孤儿，MinerU 对短公式（如 `CE: (C, T) → f_context (3)`）常分类为 `inline` 且缺失 bbox，直接落入丢弃分支；
+  2. **公式编号借入失败导致重复 plain text**：docling 抽取 eq (6) 时仅给出 `$$ M_l = f_{long}(...) $$` 主体，编号 `(6)` 留在下方紧邻的 PyMuPDF 字符流文本段（含 `M l = f long ( c ∈ C: w importance ...) (6)`）。`_formula_eq_nums` 集合从公式 LaTeX 末尾扫不到编号 → 该字符流文本未被剔除，公式 + 重复文本并存；
+  3. **PDF 抽取层漏抽 inline 公式整段**：MinerU 公式 stage 在 28 页学术论文上跑 ~600s 超时，降级 docling，docling 也不抽出 eq (3) / (4)（短文本型公式落进 paragraph stream）。需要在 assembly 末段对"含数学符号 + 尾部 `(N)` + 短小段"的孤立文本元素做后置识别 + 包裹；
+  4. **KaTeX 语法限制**：`\\tag{N}` 仅支持 display equation（`$$...$$`），inline `$...$` 使用 `\\tag` 触发 ParseError `"tag works only in display equations"`。需改用 `\\quad (N)` 编号写法。
+
+- **根因**：
+  1. **assembly 公式承接分支硬编码 `formula_type == "block"`**：上下文 [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 第 60-244 行的 `_orphan_block_formulas` 命名与 elif 守卫把 inline 公式排除在兜底链路之外，这是 R3 引入孤儿匹配时的设计遗留（彼时假设所有需兜底公式都是块级）；
+  2. **`_formula_eq_nums` 仅从 LaTeX 主体扫描**：`assembly.py` 2.4 段集合构造对应代码 `re.finditer(r"\\(\\s*(\\d+)\\s*\\)", elem.content)` 等只识别 ``elem.content`` 即公式自身的 LaTeX；当公式 LaTeX 缺编号、编号留在相邻 PyMuPDF 文本段时无可借入路径；
+  3. **公式 stage 是 best-effort、缺乏 markdown 末端 fallback**：现状管线把"公式抽取"局限在 `formula_extraction` stage（mineru/docling/pymupdf_heuristic），如某段落型短公式三引擎都漏抽，最终 markdown 永远是 plain text。assembly 末段需要补充"语义层"的 inline 公式识别（避免对 `formula_extraction` stage 过度依赖）；
+  4. **KaTeX 接入 R4 已锁定但未单测覆盖 inline 语法兼容**：UI 端 [`DocumentMarkdownRenderer.tsx`](../../apps/negentropy-ui/features/knowledge/components/DocumentMarkdownRenderer.tsx) 已挂 `remark-math + rehype-katex`，但 assembly 输出的 inline LaTeX 与 KaTeX 语法 ABI 在 R4 未建立强契约，导致本期使用 `\\tag` 渲染失败被推迟到 UI 实机验证才暴露。
+
+- **处理方式**（5 个独立修改点，集中在 [`pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 一个文件，单测覆盖均落在 [`tests/unit/test_assembly_inline_formula_orphan.py`](../../apps/negentropy-perceives/tests/unit/test_assembly_inline_formula_orphan.py)）：
+  1. **`_orphan_block_formulas` → `_orphan_formulas`**，把 elif 守卫从 `formula_type == "block"` 放宽为接收所有无 bbox 的公式（inline + block 共池兜底），`_formula_to_markdown` 内按 `formula_type` 决定 `$` 或 `$$` 包裹；
+  2. **新增 `_extract_formula_eq_number()` helper**：用 `_FORMULA_EQ_NUMBER_PATTERNS` 三模式覆盖 `\\tag{N}` / `\\quad (N)` / LaTeX 尾部 `(N)`；2.2 段 orphan 匹配把策略 1（编号匹配）作为第一优先；策略 2（数学符号 + LaTeX 关键词）退化为 block 公式专用；
+  3. **2.4.5 段"借入相邻文本段编号"**：扫描每个公式元素其后一个文本元素，若该文本段以编号 `(N)` 收尾、含数学符号、长度短小，则把编号 `N` 借入 `_formula_eq_nums` —— 让 2.4 公式-文本去重规则能命中此文本段并剔除（典型 eq (6) 重复字符流场景）；
+  4. **2.5 段"inline 公式 promotion"**：识别"含数学符号 + 尾部 `(N)` + 短小段（5-120 字符）"的孤立文本元素，整段包裹为 `$<core> \\quad (N)$` 并升级为 formula 元素。守卫包括：不以 markdown 元字符起手、不含自然语言句尾标点（限定 `\\.\\s+[A-Z]` 句首字母 + 行末点）、不含 `。? ! ！？`、数学符号集覆盖 `∈ → ⊆ ⊆ ϕ φ` 等多 Unicode 形态；
+  5. **`\\tag → \\quad` KaTeX 语法兼容**：inline `$...$` 包裹时编号写法用 `\\quad (N)` 而非 `\\tag{N}`，绕过 KaTeX `tag works only in display equations` ParseError；这把"公式识别"与"UI 渲染"两个端的契约固化在 promotion pass 注释中。
+
+- **量化效果**（28 页 Context Engineering 2.0 论文，DB doc=`013c5ebc-51b8-4a54-8e52-17241fdb67ed`）：
+  - **inline `$...$` 计数**：0 → 2（eq 3、eq 4 全部包裹）；
+  - **block `$$...$$` 块**：5 块（eq 1, 2, 5, 6, 7）保持不变；
+  - **等式 (6) 重复 PyMuPDF 字符流文本段**：消失（被 borrow + dedup 链路命中剔除）；
+  - **char_count**：113973 → 113917（-56 字符）；
+  - **algorithm 块**、**hyphen residue**、**HTML img (8)**、**markdown img (3)**：与 R4 收尾完全持平，无回归；
+  - **KaTeX 渲染**：浏览器实机 7 个 KaTeX 实例（5 display + 2 inline）零 ParseError；
+  - **单测**：本期新增 29 例（3 个 Test Class：`TestExtractFormulaEqNumber` 9 例、`TestFormulaToMarkdown` 4 例、`TestInlineFormulaPromotion` 12 例、`TestBorrowTrailingNumber` 4 例），与既有 1538 例无回归（仅 `test_config.py` 因本地用户配置 `concurrent_requests=32` / `llm_model='gpt-5.4-mini'` 覆盖默认值的 2 例预存在失败，与本期无关）。
+
+- **五轮防范要点补充**：
+  1. **assembly 兜底承接分支必须 inline + block 共池**：用 `formula_type` 进行细粒度处理（包裹符号选择），而非 elif 守卫直接丢弃。短公式在学术论文中的占比往往高于块级公式；
+  2. **公式编号识别必须三模式并行**（`\\tag{N}` / `\\quad (N)` / 尾部 `(N)`）：不同引擎（MinerU / docling / marker）的 LaTeX 编号写法差异巨大，硬编码任一模式都会漏；
+  3. **`_formula_eq_nums` 必须支持"邻接文本段借入"**：当公式 LaTeX 无编号但下方相邻文本段以 `(N)` 收尾时，把编号借入集合让公式-文本去重链路能命中。同一公式的"主体"与"编号"在 PDF 抽取层经常被拆到不同元素；
+  4. **assembly 必须保留 markdown 末端 inline 公式识别 pass**：当所有公式 stage（mineru / docling / pymupdf_heuristic）都漏抽某段落型短公式时，仅靠"含数学符号 + 尾部 `(N)` + 短小段"的语义守卫能恢复 KaTeX 渲染可能性，是低成本高 ROI 兜底；
+  5. **inline `$...$` 公式中严禁使用 `\\tag{}`**：KaTeX 接入面契约。任何 promotion / 升级路径使用 `\\quad (N)` 写法（display & inline 双兼容），并在单测中用 `katex_errors` 数组锁定此契约；
+  6. **省略号、复合编号、句号判定需精细化**：PDF 把省略号拆为 `. . .` 三个独立点带空格非常常见；句号特征严格限定为 `. ` 后接大写字母（句首）或行末点，避免误吞含 `. . .` 的公式段；同理小数 `3.14` / 复合编号 `3.1.1` 也通过"点后接数字"模式天然规避。
+
+- **五轮同类问题影响补充**：
+  - 任何含"短文本型 inline 公式"的学术论文（NLP / Economics / 偏理论的 CS survey）都会受益本期 5 个修复；
+  - 修复全部在一个 commit 内（本轮变化集中、解耦自然），可按需 cherry-pick：`apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py` + `apps/negentropy-perceives/tests/unit/test_assembly_inline_formula_orphan.py`；
+  - **inline 公式 KaTeX 渲染契约**（仅 `\\quad (N)`，禁 `\\tag{N}`）已在 promotion pass 注释中固化，未来扩展任何公式升级链路都应遵守此契约；
+  - **`_orphan_formulas` 统一命名**让"inline + block 共池"语义更显式，未来扩展 caption 类元素的相似处理（如 Figure caption 与 figure 分离的情况）也可参考此模式；
+  - **R5 浮现但不在本期范围**的 `[2]` 引用跳号问题已记录在 `.context/r5-defects.md`：根因在 PDF 提取上游（pymupdf text block 缺失），R4 与 R5 markdown 中均存在，非本期回归，留待后续单独立 issue。
+
+### 第六轮迭代（2026-05-26 Figure 矢量 overlay 标签抑制 + caption 例外保留）
+
+R5 commit `a97171ad` 合入后双 Tab 浏览器对比 R5 markdown 与原 PDF 再次浮现：**Figure 1 的矢量 overlay 标签作为独立段落散落到位图下方**，破坏正文阅读流。PDF 中 Figure 1 是一个矢量 + 位图复合图形（顶部 "More Intelligence. More Context-Processing Ability..."、4 列 "Context 1.0 / 2.0 / 3.0 / 4.0" 标题行、中间机器人位图、底部 "Context Input" 与 "Intelligence Level" 两行分类标签 + 4 个角色名 "Passive Executor / Initiative Agent / Reliable Collaborator / Considerate Master"），但 markdown 中只渲染中间位图，而矢量标签因落在位图 bbox 之外被 PyMuPDF 当作独立 `text block` 抽出并散落到图下方。
+
+- **表因**：[`assembly.py:1117 _block_overlaps_special`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 的"包含检测 + IoU 双策略"用的是 `image_extraction.ExtractedImage.bbox`（即 PyMuPDF 抽取出来的**位图自身 bbox**，约 width=299 / height=199），而**整个 Figure 视觉区域**（含矢量标签）远大于位图本身（layout 给出的 `figure` region 通常完整覆盖标签 + 位图），导致矢量标签 text block 几何上落不进 `special_regions`，作为独立段落被装入正文流。
+
+- **根因**：assembly **没有消费 `input_data.layout.regions`**（`AssemblyInput.layout` 字段早已存在并由 `layout_analysis` stage 填充）—— `special_regions` 仅由 `formula.bbox / table.bbox / image.bbox` 构造，没有用更精确的 `region_type="figure"` 几何信息。这是设计遗漏：layout stage 的核心价值（用 layout-aware bbox 覆盖完整 figure 区域）从未被 assembly 消费。
+
+- **处理方式**（[`apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 单文件聚焦修改）：
+  1. **assembly `special_regions` 构造扩展**：把 `input_data.layout.regions` 中 `region_type in ("figure", "picture")` 的 bbox 一并加入 `special_regions`。这样落入完整 figure 视觉框（含矢量标签）的 text block 会被 `_block_overlaps_special` 自然抑制；
+  2. **Figure / Table caption 例外保留**：新增 `_is_figure_or_table_caption_text` 守卫 + `_FIGURE_TABLE_CAPTION_RE` 正则（兼容 `Figure 1:` / `Fig. 2:` / `Table 3.` / `Tab 4 -` 等多种学术论文 caption 写法）。文本块即便落入 layout figure region，只要起手匹配 `Figure N:` / `Table N:` 模式即作为段落保留，确保图表语义描述不被一同抑制；
+  3. **新增 `_layout_figure_regions` 局部索引**：为后续可能的"按 figure 区域聚类相邻 text block"做铺垫，目前仅用于显式标注 layout 来源（与公式 / 表格 / 图片 bbox 区分）。
+
+- **量化效果**（28 页 Context Engineering 2.0 论文，DB doc=`013c5ebc-51b8-4a54-8e52-17241fdb67ed`）：
+  - **Figure 1 矢量 overlay 标签**（`Context Input` / `Intelligence Level` / `Passive Executor` / `Initiative Agent` / `Reliable Collaborator` / `Considerate Master` / `More Intelligence...` 等 7+ 处散落标签）：**全部消失**；
+  - **Figure 1 caption** "Figure 1: The Overview of context engineering 1.0 to context engineering 4.0..." **完整保留**（例外守卫生效）；
+  - **char_count**：113917 → 113806（-111 字符，等于被抑制的 overlay 标签合计长度）；
+  - **inline `$...$` 与 block `$$...$$`**：与 R5 完全持平（2 inline + 5 block），R6 改动不影响公式链路；
+  - **既有单测**：本期新增 10 例 `test_assembly_figure_overlay_text.py`（覆盖 7 种 caption 形态正样本 + 7 种 overlay 标签负样本），与 R5 后的 1567 例无回归；
+  - **浏览器实机对照**：Markdown view 中 Figure 1 区域显示为「位图 → caption → 1 Introduction」的清洁阅读流，与 PDF 原版阅读体感对齐；唯一权衡是 PDF 矢量绘图层的分类标签信息丢失（属于 PDF→Markdown 转换的**固有损失**：PyMuPDF 把矢量绘图层的标签作为 text 抽走，位图本身不含这些标签）。
+
+- **六轮防范要点补充**：
+  1. **assembly `special_regions` 必须消费 layout stage 输出**：image_extraction 给出的位图 bbox 不能等同于"完整 Figure 区域"。Layout-aware 的 `region_type="figure"` 才是 figure 视觉框的权威 bbox；
+  2. **Caption 例外保留必须显式守卫**：扩大 `special_regions` 必然把同区域的 caption 也命中。`Figure N:` / `Table N:` 起手的文本块是图表语义价值的核心载体，必须**例外保留为段落**而不是一同抑制；
+  3. **正则起手严格定位避免误伤**：`_FIGURE_TABLE_CAPTION_RE` 用 `^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]` 模式锚定起手 + 编号 + 分隔符，避免段落中部的 "Figure 1" 引用被误识为 caption；
+  4. **PDF 矢量绘图层标签的固有损失要承认**：当 PDF 用矢量绘图层（PDF vector painting ops）渲染 Figure 内部标签时，PyMuPDF 把它们作为独立 `text block` 抽出而非位图的一部分；位图本身不含这些标签。"还原矢量绘图层 + 位图为完整图像" 需要 `fitz.Page.get_pixmap(clip=figure_region)` 重渲染（属于 R7+ 工程），R6 选择"丢弃散落标签换阅读流畅"是合理 trade-off；
+  5. **R6 修改面**：仅 `assembly.py` 单文件 + 单一新增单测文件，与 R5 `_orphan_formulas` / `_extract_formula_eq_number` 等链路完全正交，可独立 cherry-pick。
+
+### 第七轮迭代（2026-05-26 layout figure region 整图渲染 + PDF pt → CSS px 比例修复）
+
+R6 合入后双 Tab 实测发现两类正交缺陷：
+1. **Figure 矢量信息丢失**：R6 抑制了 figure 内部矢量 overlay 标签（"Context 1.0..4.0" / "Context Input" / "Intelligence Level" 等）的散落，但位图本身只是中间小图（机器人），PDF 原版 Figure 1 顶部 4 列 Context 标题、底部分类标签等矢量内容彻底丢失，markdown 中只剩"光秃秃的中间位图"；
+2. **Figure 显示宽度仅占容器 1/3**：`_image_to_markdown` 把 PDF 点（pt）直接当作 CSS 像素（px）输出，导致 A4 全宽 figure（~595pt）在 markdown view 仅显示为 ~595px，而 web 默认 96 DPI 下 595pt 应换算为 ~793px。视觉感受是"图被压缩到容器 1/3 宽"。
+
+- **表因**：用户连续 2 次浏览器截图反馈 — Figure 1 markdown 视觉与 PDF 原版相比严重失真。R6 抑制 overlay 标签后阅读流畅，但 PDF 原版的「演进图视觉信息」（4 列 Context 1.0-4.0 标题 + 中间机器人 + 底部分类标签）在 markdown 中彻底丢失；同时 figure 显示宽度仅占阅读容器约 1/3，视觉与 PDF 严重不一致。
+
+- **根因**：
+  1. **`_render_figure_regions` 去重方向反了**：[`image_extraction.py:103`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/image_extraction.py) 早已实现 `page.get_pixmap(clip=region.bbox)` 整图渲染分支，但「figure region 与 raster 重叠 > 50% 时 **跳过 figure 渲染**」的去重逻辑反了。Figure region 通常完整包含 raster 位图，按当前逻辑 figure 整图渲染**总是被跳过**，结果只剩 raster 小位图。正确思路应反转为「figure region 完整包含 raster 时 **以 figure 整图替代 raster**」。`_OVERLAP_THRESHOLD = 0.5`（R7 前）与 `_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8`（R7 后）的语义完全反向。
+  2. **PDF 点 → CSS 像素换算缺失**：[`assembly.py:_image_to_markdown`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 把 PDF 点（72pt = 1in）直接当作 CSS 像素（96px = 1in）输出，缺失 4/3 比例换算。这是从 R3 起就存在的隐性 bug，但 R4 时机器人位图本身较小（299pt × 199pt）在 web 容器中显示不算太突兀；R7 整图渲染产物变大（373pt × 215pt 等接近 A4 全宽）后视觉变形被放大暴露。
+
+- **处理方式**（[`image_extraction.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/image_extraction.py) + [`assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 双文件聚焦修改）：
+  1. **`_render_figure_regions` 反转去重 + 返回签名变更**：`_OVERLAP_THRESHOLD = 0.5` 改为 `_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8`；计算「raster 被 figure region 包含的比例」（`_compute_overlap_ratio(raster, figure)`），≥ 80% 时把该 raster 列入 `drop_indices` 集合让上层主流程剔除；返回值从 `List[ExtractedImage]` 改为 `Tuple[List[ExtractedImage], Set[int]]`；stage 主流程消费 `raster_drop_indices` 在合并前剔除被替代的 raster；同时把 `region_type` 从 `"figure"` 扩展为 `("figure", "picture")` 以兼容多引擎命名差异。仅在 figure region 渲染成功后才剔除 raster，渲染失败时同时保留 raster 与 layout figure region 信息（双保险防双重信息损失）。
+  2. **`_image_to_markdown` 加 PDF pt → CSS px 换算**：新增 `_PDF_PT_TO_CSS_PX = 96.0 / 72.0` 常量，bbox 宽高乘以 4/3 因子后再 round 输出。`image.width` / `image.height` 退化路径（引擎报告的 px 单位）不应用此因子。
+
+- **量化效果**（28 页 Context Engineering 2.0 论文）：
+  - **Figure 1**：从 R6 的中间小机器人位图（299×199 pt）→ R7 的完整演进图（含 4 列 "Context 1.0..4.0" 标题 + 中间机器人 + 底部 "Context Input / Intelligence Level" 分类标签 + caption），与 PDF 原版 1:1 等价；
+  - **Figure 2-7**：全部从原始嵌入位图（仅部分内容）→ 完整 layout region 渲染产物（含全部矢量绘图层 + 标签 + caption）；
+  - **char_count**：113806 → 113108（-698 字符，被 figure region 替代的 raster 引用合计长度）；
+  - **markdown img refs**：3 张孤儿图全部消失（被 figure region 替代后不再触发 orphan fallback），仅保留 8 张 HTML `<img>` 引用（全部指向 `fig_p*_*.png` 整图渲染产物）；
+  - **图片显示宽度**：Figure 1 从 373px → 497px（PDF 点 373 × 4/3），Figure 5/6/7 接近 A4 全宽 ~588-595px，与 PDF 原版视觉宽度 1:1；
+  - **既有单测**：本期新增 8 例 `test_image_extraction_figure_clip.py`（覆盖 `_compute_overlap_ratio` 参数顺序 + `_FIGURE_CONTAINS_RASTER_THRESHOLD` 阈值），修改 1 例 `test_assembly_helpers.py::test_emits_html_img_with_bbox_display_size`（同步 4/3 换算），新增 2 例 full-width + 真实场景断言；与 R6 后的 1577 例无回归（仅 `test_config.py` 预存在的环境覆盖失败 2 例与本期无关）。
+  - **浏览器实机对照**：Markdown view 中 Figure 1 显示宽度从「容器 1/3」→ 「~50-60% 容器宽度」（与 PDF 原版比例接近），完整演进图清晰可见。
+
+- **七轮防范要点补充**：
+  1. **去重方向必须语义清晰**：`_compute_overlap_ratio(A, B)` 是「A 被 B 覆盖的比例」（非对称）。R7 前误把「figure 被 raster 包含」当作「raster 是 figure 的子组件」判定，是参数顺序导致的逻辑反转。应明确「谁应被替换」：layout figure region（含矢量绘图层）信息密度更高 → raster 应被替代；
+  2. **PDF pt 单位换算必须显式**：PDF 标准 72pt = 1in，HTML/CSS 默认 96px = 1in。任何把 PDF 几何信息转 CSS 渲染的代码路径都必须显式应用 `96/72 ≈ 1.333` 系数。R7 在 `_image_to_markdown` 集中应用，未来扩展 table / formula 等几何输出时需注意同理；
+  3. **`get_pixmap(clip=region)` 是 PDF 矢量信息保真的标准做法**：PyMuPDF `get_images()` 仅抽嵌入位图，对矢量绘图层无能为力；`page.get_pixmap(matrix=zoom, clip=rect)` 可对任意 layout region 重渲染完整视觉。Zoom 因子建议 ≥ 2.0（150 DPI）以保留高清；
+  4. **stage 输出契约变更需双向兼容**：`_render_figure_regions` 返回值从 `List` → `Tuple[List, Set]` 是 breaking change，必须同步修改所有调用方（仅 1 处：`FitzImageExtractor._run`）。新增 stage tool 时务必锁定签名；
+  5. **R7 修改面**：`image_extraction.py`（去重反转 + 阈值更名 + 返回签名变更）+ `assembly.py`（pt→px 换算常量与应用）+ 测试加固。所有改动语义独立，可单文件 cherry-pick；
+  6. **R6 与 R7 是同一缺陷的两层修复**：R6 用 `_block_overlaps_special` 把 figure overlay 文本抑制掉（避免散落），但牺牲了 figure 视觉信息；R7 用 `page.get_pixmap(clip=figure_region)` 把 overlay 文本重新成像入 figure（恢复视觉），并通过反向去重剔除 raster 避免双轨。两轮结合后 R6 抑制的 caption 例外保留逻辑依然生效（独立段落 caption + alt 同时保留）。
+
+### 第八轮迭代（2026-05-26 Docling 公式 bbox 透传 + PyMuPDF 公式残片清理）
+
+R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
+1. **公式顺序错乱**：Definition 3 后 PDF 中先 `Char: E → P(F) (1)` 再 `C = ⋃ Char(e) (2)`，markdown 输出却是 (2) 在 (1) 上方；
+2. **`C = [` 残片单独成段**：PyMuPDF 在 Definition 3 后跟的公式视觉区抽出 `C = [` 起手残片，与公式 stage 主体共存却互相不命中签名兜底（残片长度 < 20 触发 `_formula_text_signature` 最小长度阈值）。
+
+- **表因**：mineru 公式 stage 在 28 页学术论文 600s 超时降级 docling 后，docling `_extract_formulas` 仅从 markdown 文本里 regex 抽取公式（无 bbox 字段），assembly 五级稳定排序键 `(page, col, y0, x0, reading_order)` 中 y0 维度无信息可用，公式按 enumerate 顺序兜底（≠ 视觉顺序），出现 Section 2.1 中 Eq(1) Eq(2) 顺序倒置等回归。同时 PyMuPDF 在公式视觉区抽取的 `C = [` 残片绕过签名兜底，与公式主体并存。
+
+- **根因**：
+  1. **Docling 公式适配器从未输出 bbox**：[`pdf/engines/docling.py::_extract_formulas`](../../apps/negentropy-perceives/src/negentropy/perceives/pdf/engines/docling.py) 历史实现只用 markdown `$$...$$` / `$...$` 正则匹配，完全忽略 `doc.iterate_items()` 中 `label='formula'` 的 item 自带的 `prov[0].bbox`。这是 docling stage 与 mineru/marker 适配器的契约不一致 —— mineru 已通过 `content_list.json::bbox` 字段透传 bbox。
+  2. **公式残片签名兜底盲区**：[`assembly.py::_text_block_matches_formula`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 与 `_formula_text_signature` 的 ≥ 20 字符最小阈值是为避免短 LaTeX 与正文假阳性匹配。但 PyMuPDF 把长公式视觉区拆为「短残片 + 后续字符流」时，残片字符 ≤ 6 完全绕过签名匹配，遗留在 markdown 中。
+
+- **处理方式**：
+  1. **`DoclingFormula` 加 `bbox: Optional[Tuple[float, float, float, float]]` 字段**；`_extract_formulas` 优先路径：遍历 `doc.iterate_items()` 拿 `label == "formula"` 的 item，从 `item.text` 抽 latex（剥离 `$$...$$` / `$...$` 包裹），从 `prov[0].bbox` 经 `_to_topleft_bbox` 拿 TopLeft 坐标系 bbox；同 latex 字符串去重；当 iterate_items 为空或不可用时降级到 markdown 正则匹配（保持向后兼容，无 bbox）。
+  2. **`formula_extraction.py::DoclingFormulaExtractor`** 透传 `bbox` 字段到 `ExtractedFormula`，与 mineru extractor 适配器对齐。
+  3. **`assembly.py` 新增 2.5.5 段公式残片清理**：`_FORMULA_FRAGMENT_RE = re.compile(r"^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$")` 匹配「Identifier = Open-Bracket」短公式残片（≤ 15 字符），且紧邻下一个 element 是公式时剔除（避免误删合法的赋值起手）。
+
+- **量化效果**（28 页 Context Engineering 2.0）：
+  - **Section 2.1 阅读顺序**：Definition 1 → Eq(1) → Definition 2 → Definition 3 → Eq(2) → Definition 4 → Eq(3) → Eq(4) → ... 全部按视觉顺序，与 PDF 原版 1:1 等价；
+  - **`C = [` 残片**：消失（被 2.5.5 段命中剔除）；
+  - **Definition 1 段落**：完整保留（R7 时因 docling 公式无 bbox 导致 element 排序错乱被 dedup 误删；R8 后 docling 给的公式带 bbox，五级排序正确，Definition 1 段落保留）；
+  - **block math `$$...$$`**：7 个（Eq 1, 2, 3, 4, 5, 6, 7 全部）；
+  - **char_count**：113108 → 114815（+1707，恢复了之前丢失的 Definition 1 + Eq 5/6/7 的 latex 主体）；
+  - **既有单测**：本期新增 6 例 `test_docling_formula_bbox.py`（iterate_items 优先路径 + 降级路径 + 去重 + dollar wrapping 剥离 + label 过滤）+ 11 例 `test_assembly_formula_fragment.py`（残片正则边界），既有 1587 例无回归。
+
+- **八轮防范要点补充**：
+  1. **stage 适配器必须透传所有可用元信息**：docling adaption 缺 bbox 是历史遗漏，引擎本身在 `iterate_items` 中已有 prov.bbox 字段。任何 stage 引擎切换链路上必须保证「能透传则透传」，缺失元信息会让下游 assembly 排序退化；
+  2. **`_extract_*` 优先 doc 结构，降级 markdown 正则**：docling、marker、mineru 等都通过 markdown export 输出公式 / 表格，但 markdown 是「丢失元信息」的扁平表示。优先用 `doc.iterate_items()` 拿结构化项，markdown 正则仅作为降级路径；
+  3. **签名兜底必须双向**：公式 LaTeX 字符流签名 + 公式残片正则两层兜底缺一不可。前者拦截"完整公式视觉区字符流"，后者拦截"残片 + 公式主体"组合；
+  4. **assembly 五级排序的 y0 维度依赖上游 bbox 完整性**：上游 stage 任何一个公式无 bbox 都会落到同页末尾，破坏视觉顺序。新增 stage tool 必须强制 bbox 透传 + 单测锁定；
+  5. **`C = [` / `M_l =` 类残片正则模式**：`^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$` 兼容多字符 identifier（CE、Var）、下标 (`M_l`)、各种 open bracket（`[ ( {`）；起手限定为字母（避免误命中 `1 = ` 行号）；
+  6. **R8 修改面**：`pdf/engines/docling.py` + `pipeline/stages/pdf/formula_extraction.py` + `pipeline/stages/pdf/assembly.py` 三文件 + 2 新增单测文件。改动语义独立，可单文件 cherry-pick。

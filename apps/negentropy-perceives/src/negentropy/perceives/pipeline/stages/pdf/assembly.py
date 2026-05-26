@@ -59,7 +59,11 @@ class BuiltinAssembler(PDFToolBase):
 
             # 1. 收集所有内容元素
             elements: List[_ContentElement] = []
-            _orphan_block_formulas: List[ExtractedFormula] = []
+            # 无 bbox 公式（块级 + 行内）：通过文本块匹配回正文位置后升级为 LaTeX
+            # （此前仅承接 ``formula_type == "block"`` 的孤儿，``inline`` 公式被静默丢弃，
+            # 详见 issue.md ISSUE-094 R5）。inline 与 block 共池统一兜底，
+            # ``_formula_to_markdown`` 内按 ``formula_type`` 决定 ``$...$`` 或 ``$$...$$`` 包裹。
+            _orphan_formulas: List[ExtractedFormula] = []
 
             # 1a. 构建专用 Stage 的空间占用索引（page → bbox 列表），
             #     用于在添加文本块时进行反向去重：当文本块落入公式/表格/图片
@@ -89,6 +93,31 @@ class BuiltinAssembler(PDFToolBase):
             for img in input_data.images.images if input_data.images else []:
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
+
+            # layout_analysis 的 ``figure`` region 通常覆盖完整 figure 视觉框
+            # （含位图 + 矢量标签 + 标题）。image_extraction 仅给出位图位图本身的
+            # bbox，对"位图周围的矢量标签（如 Figure 1 的 'Context 1.0..4.0'、
+            # 'Context Input / Intelligence Level' 行）" 无法覆盖，导致这些标签
+            # 作为独立 text block 落到 figure 下方破坏阅读流（ISSUE-094 R6）。
+            # 把 layout figure region 也纳入 special_regions，让上述矢量标签
+            # 通过 ``_block_overlaps_special`` 自然抑制；Figure caption（``Figure
+            # N:`` / ``Table N:`` 起手）由后续 _is_figure_or_table_caption 守卫
+            # 保留为段落，不被此处抑制。
+            _layout_figure_regions: Dict[
+                int, List[Tuple[float, float, float, float]]
+            ] = {}
+            if input_data.layout and input_data.layout.regions:
+                for layout_region in input_data.layout.regions:
+                    if (
+                        layout_region.region_type in ("figure", "picture")
+                        and layout_region.bbox
+                    ):
+                        special_regions.setdefault(
+                            layout_region.page_number, []
+                        ).append(layout_region.bbox)
+                        _layout_figure_regions.setdefault(
+                            layout_region.page_number, []
+                        ).append(layout_region.bbox)
 
             # 1b. 预扫描：收集 table_extraction 阶段的表格指纹与文本块公式指纹
             #     表格指纹用于反向去重：当文本块表格与 table_extraction 输出重复时，
@@ -137,6 +166,19 @@ class BuiltinAssembler(PDFToolBase):
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
+                        # 例外：``Figure N:`` / ``Table N:`` 起手的 caption
+                        # 即便几何上落入 layout figure region 也必须保留为段落
+                        # （它们是图表的语义描述，正文阅读价值高）。
+                        if _is_figure_or_table_caption_text(block.text):
+                            elements.append(
+                                _ContentElement(
+                                    reading_order=block.reading_order,
+                                    page_number=block.page_number,
+                                    element_type="text",
+                                    content=_text_block_to_markdown(block),
+                                    block=block,
+                                )
+                            )
                         continue
                     # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
                     # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
@@ -238,10 +280,11 @@ class BuiltinAssembler(PDFToolBase):
                                 formula=formula,
                             )
                         )
-                    elif formula.latex and formula.formula_type == "block":
-                        # 无 bbox 的块级公式：尝试在文本块中定位并标记替换
-                        # 收集到临时列表，排序后通过文本匹配定位
-                        _orphan_block_formulas.append(formula)
+                    elif formula.latex:
+                        # 无 bbox 公式：块级与行内统一兜底
+                        # （MinerU 对短公式如 ``CE: ( C, T ) → f_context (3)`` 常分类为 inline，
+                        # 此分支前曾仅承接 block，inline 公式被静默丢弃，参见 ISSUE-094 R5）
+                        _orphan_formulas.append(formula)
 
             # 代码块（去重：对 Docling 提取的代码块，检查同页文本块中
             #   是否存在高度相似的内容，避免 Docling 和 text_extraction
@@ -652,10 +695,13 @@ class BuiltinAssembler(PDFToolBase):
                 # 新增的算法代码块需要在排序后的位置插入，重新排序
                 elements.sort(key=_sort_key)
 
-            # 2.2 无 bbox 块级公式：通过公式编号或数学符号在文本块中定位并替换
-            #    策略 1：通过公式编号（如 LaTeX 末尾的 \quad (N)）匹配
-            #    策略 2：通过数学符号 + 公式特征匹配
-            if _orphan_block_formulas:
+            # 2.2 无 bbox 公式：通过公式编号或数学符号在文本块中定位并替换
+            #    策略 1：通过公式编号（``\quad (N)`` / ``\tag{N}`` / LaTeX 末尾 ``(N)``）匹配
+            #    策略 2：通过数学符号 + 公式特征匹配（兜底，block 形式专用）
+            #    inline 公式（短公式如 ``CE: (C, T) → f_context (3)``）走策略 1 为主，
+            #    匹配后整段文本被 ``$...$`` 包裹（``_formula_to_markdown`` 按
+            #    ``formula_type`` 自动选择 ``$`` 或 ``$$`` 包裹）。
+            if _orphan_formulas:
                 _used_formula_indices: set[int] = set()
                 for elem in elements:
                     if elem.element_type != "text" or not elem.block:
@@ -663,18 +709,18 @@ class BuiltinAssembler(PDFToolBase):
                     text = elem.block.text.strip()
                     if not text or text.startswith("#") or len(text) < 10:
                         continue
-                    for fi, formula in enumerate(_orphan_block_formulas):
+                    for fi, formula in enumerate(_orphan_formulas):
                         if fi in _used_formula_indices or not formula.latex:
                             continue
                         matched = False
-                        # 策略 1：公式编号匹配（最可靠）
-                        eq_num = re.search(r"\\quad\s*\(\s*(\d+)\s*\)", formula.latex)
-                        if eq_num:
-                            num_str = f"({eq_num.group(1)})"
-                            if num_str in text:
+                        # 策略 1：公式编号匹配（最可靠）— 兼容 LaTeX 多种编号写法
+                        eq_num = _extract_formula_eq_number(formula.latex)
+                        if eq_num is not None:
+                            # 编号模式："(N)" / "( N )" 都接受
+                            if re.search(r"\(\s*" + re.escape(eq_num) + r"\s*\)", text):
                                 matched = True
-                        # 策略 2：数学符号 + LaTeX 关键词匹配
-                        if not matched:
+                        # 策略 2：数学符号 + LaTeX 关键词匹配（短公式或无编号场景）
+                        if not matched and formula.formula_type == "block":
                             _math_symbols = [
                                 "→",
                                 "∑",
@@ -702,6 +748,7 @@ class BuiltinAssembler(PDFToolBase):
                                     "\\right",
                                     "\\dots",
                                     "\\text",
+                                    "\\tag",
                                 )
                             ]
                             _name_match = any(
@@ -723,20 +770,61 @@ class BuiltinAssembler(PDFToolBase):
             #    如果文本元素含相同编号且包含数学符号，视为重复并移除。
             _formula_eq_nums: set[str] = set()
             for elem in elements:
-                if elem.element_type == "formula" and elem.content.strip().startswith(
-                    "$$"
+                if elem.element_type != "formula":
+                    continue
+                content = elem.content.strip()
+                # 块级 ``$$...$$`` 与 inline ``$...$`` 公式均纳入编号采集，
+                # 兼容 ISSUE-094 R5 中 inline 公式（如 ``$CE: (C,T) \\to f_{context} (3)$``）
+                # 与同页 PyMuPDF 字符流文本（``CE: ( C, T ) → f context (3)``）的去重。
+                if not (content.startswith("$$") or content.startswith("$")):
+                    continue
+                # 匹配 LaTeX 中的编号：
+                # - ``(N)`` / ``( N )``（纯 LaTeX 源 OR 部分引擎渲染）
+                # - ``\\tag{N}``（MinerU / 学术论文标准形式）
+                # 两种形式均落入 ``_formula_eq_nums``，配合下方"文本块含
+                # ``(N)`` + 数学符号 + 短长度 → 视为公式字符流冗余"规则，
+                # 兜底 ``_text_block_matches_formula`` 对短公式签名
+                # （<20 字符）无法启用的场景。
+                for m in re.finditer(r"\(\s*(\d+)\s*\)", content):
+                    _formula_eq_nums.add(m.group(1))
+                for m in re.finditer(r"\\tag\s*\{\s*(\d+)\s*\}", content):
+                    _formula_eq_nums.add(m.group(1))
+
+            # 2.4.5 借入相邻文本段的编号：当公式 LaTeX 缺失 ``\\tag{N}`` /
+            # ``\\quad (N)``（典型如 docling 抽取学术论文公式时仅出公式主体，
+            # 编号 ``(N)`` 留在下方紧邻的 PyMuPDF 字符流文本段），扫描每个公式
+            # 元素其后一个文本元素：若该文本段以编号 ``(N)`` 收尾、含数学符号、
+            # 且长度短小，则把编号 ``N`` 借入 ``_formula_eq_nums`` —— 让 2.4
+            # 段的"公式-文本去重"规则能命中此文本段并剔除。同一缺陷既保留
+            # LaTeX 公式渲染，又清空 OCR 错字版本的 PyMuPDF 字符流副本。
+            _math_chars_borrow = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨∪⊆")
+            _BORROW_TRAILING_NUM_RE = re.compile(r"\(\s*(\d+)\s*\)\s*$")
+            for i, elem in enumerate(elements):
+                if elem.element_type != "formula":
+                    continue
+                fc = elem.content.strip()
+                if not (fc.startswith("$$") or fc.startswith("$")):
+                    continue
+                # 已有编号则跳过
+                if re.search(r"\(\s*\d+\s*\)", fc) or re.search(
+                    r"\\tag\s*\{\s*\d+\s*\}", fc
                 ):
-                    # 匹配 LaTeX 中的编号：
-                    # - ``(N)`` / ``( N )``（纯 LaTeX 源 OR 部分引擎渲染）
-                    # - ``\\tag{N}``（MinerU / 学术论文标准形式）
-                    # 两种形式均落入 ``_formula_eq_nums``，配合下方"文本块含
-                    # ``(N)`` + 数学符号 + 短长度 → 视为公式字符流冗余"规则，
-                    # 兜底 ``_text_block_matches_formula`` 对短公式签名
-                    # （<20 字符）无法启用的场景。
-                    for m in re.finditer(r"\(\s*(\d+)\s*\)", elem.content):
-                        _formula_eq_nums.add(m.group(1))
-                    for m in re.finditer(r"\\tag\s*\{\s*(\d+)\s*\}", elem.content):
-                        _formula_eq_nums.add(m.group(1))
+                    continue
+                # 公式后紧邻的文本元素
+                if i + 1 >= len(elements):
+                    continue
+                nxt = elements[i + 1]
+                if nxt.element_type != "text" or nxt.block is None:
+                    continue
+                nxt_text = nxt.content.strip()
+                if not nxt_text or nxt_text.startswith("#") or len(nxt_text) >= 200:
+                    continue
+                borrow_match = _BORROW_TRAILING_NUM_RE.search(nxt_text)
+                if not borrow_match:
+                    continue
+                if not any(c in nxt_text for c in _math_chars_borrow):
+                    continue
+                _formula_eq_nums.add(borrow_match.group(1))
             if _formula_eq_nums:
                 _math_chars = set("∈∀∃∑∏∫→←↔≤≥≠≈θφψωαβγδ∧∨")
                 elements = [
@@ -755,6 +843,100 @@ class BuiltinAssembler(PDFToolBase):
                         and len(elem.content.strip()) < 200
                         and not elem.content.strip().startswith("#")
                     )
+                ]
+
+            # 2.5 inline 公式提升：当 mineru / docling 漏抽某些短公式（典型如
+            # ``CE: (C, T) → f_context (3)``、``f_context(C) = F(\phi_1, ...)(C) (4)``）
+            # 且文本元素整段即由数学符号 + 编号构成时，把整段包裹为 ``$...$``，
+            # 让 UI 端 ``remark-math + rehype-katex`` 渲染为 KaTeX 公式。
+            # 严苛守卫避免误吞普通段落：
+            #   a) 段落起始 / 结尾各含 ≥ 1 个数学符号（``→ ∈ ⊆ ≤ ≥ ∧ ∨`` 等）；
+            #   b) 段尾紧邻 ``(N)`` 形式编号（去除编号后剩余 < 100 字符）；
+            #   c) 整段不含句号、问号、感叹号等"自然语言结束符"；
+            #   d) 不以 markdown 元字符（``# > * - |``）起手。
+            # 修复细节：把段尾 ``(N)`` 抽出作为 ``\\tag{N}`` 嵌入 LaTeX，公式正文
+            # 保留 PyMuPDF 字符流形态（KaTeX 容忍小语法瑕疵；不改写主体避免引入
+            # 二阶失真）。
+            _INLINE_PROMOTE_END_RE = re.compile(r"\s*\(\s*(\d+)\s*\)\s*$")
+            # 数学符号集：覆盖关系、量词、小写希腊字母（含小 phi 变体）、集合论符号
+            # 拓展自第 2.4 段去重所用集合，增加 ``ϕ φ θ Φ Θ`` 多形态防止 PDF 字体
+            # 渲染差异下漏判（``ϕ`` U+03D5 与 ``φ`` U+03C6 在不同 PDF 字体里都常见）。
+            _math_chars_inline = set("∈∀∃∑∏∫→←↔≤≥≠≈θφϕψωαβγδ∧∨∪⊆ΦΘΨΩΓΔ")
+            for elem in elements:
+                if elem.element_type != "text" or elem.block is None:
+                    continue
+                content = elem.content.strip()
+                if not content:
+                    continue
+                # 已经是公式 / 标题 / 代码块 / 引用 / 列表 / 表格 → 跳过
+                if content.startswith(("#", ">", "*", "-", "|", "$", "```", "<")):
+                    continue
+                promote_match = _INLINE_PROMOTE_END_RE.search(content)
+                if not promote_match:
+                    continue
+                eq_num = promote_match.group(1)
+                core = content[: promote_match.start()].rstrip()
+                # 去除编号后长度限制（避免吞下整段引用文献）
+                if not (5 <= len(core) <= 120):
+                    continue
+                # 含至少一个数学符号
+                if not any(c in core for c in _math_chars_inline):
+                    continue
+                # 不应含自然语言句尾标点（避免误吞带 (N) 引用的普通段落）。
+                # PDF 提取常把省略号拆为 ``. . .`` 三个独立点带空格，省略号、小数、
+                # 复合编号都不能命中。``。 ! ? ！ ？`` 直接拦截。
+                if any(ch in core for ch in ("。", "?", "!", "！", "？")):
+                    continue
+                # 真正的句号特征：``.`` 后紧邻空白 + 大写字母（句首），或行尾。
+                # 限定句首字母 ``[A-Z]`` 才视为句号，与省略号片段 ``. . `` / ``. ϕ`` 区分。
+                if re.search(r"\.\s+[A-Z]", core) or core.rstrip().endswith("."):
+                    continue
+                # 公式 LaTeX 主体保留 PyMuPDF 字符流，编号以 ``\\quad (N)`` 紧附
+                # （KaTeX 限制：``\\tag{}`` 仅支持 display equation，inline ``$...$``
+                # 使用 ``\\tag`` 会触发 ParseError "tag works only in display equations"。
+                # ``\\quad (N)`` 在 inline 与 display 模式都有效）。
+                latex = f"{core} \\quad ({eq_num})"
+                elem.content = f"${latex}$"
+                elem.element_type = "formula"
+                elem.block = None
+                logger.debug(
+                    "[assembly:promote_inline_formula] eq=%s core_len=%d core_preview=%r",
+                    eq_num,
+                    len(core),
+                    core[:80],
+                )
+
+            # 2.5.5 公式残片清理：PyMuPDF 在公式视觉区抽取 text block 时，对长
+            # 公式（含 ``\bigcup`` / ``\sum`` / 矩阵等多行结构）常仅抽出公式起手
+            # 残片（典型如 ``C = [``、``M_l =``、``x = \{``），与公式 stage 的 LaTeX
+            # 主体重复出现却互相不命中签名兜底（残片字符不足 20 触发 ``_formula_text_signature``
+            # 的最小长度阈值）。清理判据：text element 内容 ≤ 15 字符 + 形如
+            # ``<Identifier> = <Open-Bracket>`` 模式 + 紧邻下一个 element 是公式
+            # → 视为公式残片剔除，避免视图中"残片 + 公式"并存（ISSUE-094 R8）。
+            _FORMULA_FRAGMENT_RE = re.compile(r"^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$")
+            _fragment_remove: set[int] = set()
+            for i, elem in enumerate(elements):
+                if elem.element_type != "text" or elem.block is None:
+                    continue
+                content = elem.content.strip()
+                if not content or len(content) > 15:
+                    continue
+                if not _FORMULA_FRAGMENT_RE.match(content):
+                    continue
+                # 必须紧邻下一个公式元素才视为残片（否则可能是合法的赋值起手）
+                next_idx = i + 1
+                while next_idx < len(elements):
+                    nxt = elements[next_idx]
+                    if nxt.element_type == "formula":
+                        _fragment_remove.add(i)
+                        break
+                    # 遇到非空 text 即停止搜索（中间仅允许空白元素通过）
+                    if nxt.element_type == "text" and (nxt.content or "").strip():
+                        break
+                    next_idx += 1
+            if _fragment_remove:
+                elements = [
+                    e for i, e in enumerate(elements) if i not in _fragment_remove
                 ]
 
             # 2.6 图片 caption 与纯文本去重：
@@ -1146,6 +1328,25 @@ def _is_caption_duplicate(text: str, caption_norm: str, all_captions: set[str]) 
     return False
 
 
+_FIGURE_TABLE_CAPTION_RE = re.compile(
+    r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+    re.IGNORECASE,
+)
+
+
+def _is_figure_or_table_caption_text(text: str) -> bool:
+    """判断文本块是否为 ``Figure N:`` / ``Table N:`` 起手的图表 caption。
+
+    用作 ``_block_overlaps_special`` 命中后的例外保留判定：
+    即使 caption 几何上落入 layout ``figure`` region，也必须保留为
+    段落（它是图表的语义描述，正文阅读价值高）。模式兼容 ``Figure
+    1:``、``Fig. 2:``、``Table 3.``、``Tab 4 -`` 等学术论文常见写法。
+    """
+    if not text:
+        return False
+    return bool(_FIGURE_TABLE_CAPTION_RE.match(text))
+
+
 def _is_running_header_footer(text: str) -> bool:
     """判断文本是否为学术论文的页眉/页脚残留。
 
@@ -1343,6 +1544,33 @@ def _sanitize_latex(latex: str) -> str:
     return latex
 
 
+_FORMULA_EQ_NUMBER_PATTERNS: Tuple[re.Pattern[str], ...] = (
+    # MinerU 标准：``... \tag{N}``
+    re.compile(r"\\tag\s*\{\s*(\d+)\s*\}"),
+    # Marker/Docling 标准：``... \quad (N)`` 或 ``... \quad ( N )``
+    re.compile(r"\\quad\s*\(\s*(\d+)\s*\)"),
+    # 短 inline 公式：LaTeX 尾部直接 ``(N)``（如 ``CE: (C,T) \to f_{context} (3)``）
+    re.compile(r"\(\s*(\d+)\s*\)\s*$"),
+)
+
+
+def _extract_formula_eq_number(latex: str | None) -> str | None:
+    """提取 LaTeX 公式末尾的等式编号（如 ``(3)`` / ``\\tag{4}`` / ``\\quad (5)``）。
+
+    返回字符串形式的编号（无外围括号）。无编号时返回 ``None``。
+    """
+    if not latex:
+        return None
+    text = latex.strip()
+    if not text:
+        return None
+    for pat in _FORMULA_EQ_NUMBER_PATTERNS:
+        m = pat.search(text)
+        if m:
+            return m.group(1)
+    return None
+
+
 def _formula_to_markdown(formula: ExtractedFormula) -> str:
     """将公式转换为 Markdown LaTeX（含清洗）。"""
     latex = _sanitize_latex(formula.latex or "")
@@ -1359,17 +1587,29 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
     return f"```{lang}\n{code_block.code}\n```"
 
 
+# PDF 点（pt）→ CSS 像素（px）转换因子：
+# PDF 标准 72pt = 1in；HTML/CSS 标准 96px = 1in；因此 1pt = 96/72 = 4/3 ≈ 1.333 px。
+# 之前 ``_image_to_markdown`` 直接把 bbox 宽（pt 单位）当作 px 输出，导致 figure
+# 在 markdown view 中显示为 PDF 原版尺寸的 75%（A4 595pt 全宽 figure 仅 ~595px
+# 而非 ~793px），用户视觉感受是"图被压缩到容器宽度的 1/3"。R7 修复后对 figure 按
+# 标准 DPI 比例放大，让显示宽度回到 PDF 原版尺寸（在 96 DPI 默认 web rendering
+# context 下视觉与 PDF 1:1 等价）。响应式样式 ``max-width:100%;height:auto;``
+# 在窄屏下仍能正确缩放，无副作用。
+_PDF_PT_TO_CSS_PX = 96.0 / 72.0
+
+
 def _image_to_markdown(image: ExtractedImage) -> str:
     """将图片转换为 Markdown 图片引用，保留 PDF 原版显示尺寸。
 
     输出 **内嵌 HTML ``<img>``** 形式，并按以下优先级决定 ``width``/``height``：
 
     1. **优先使用 ``bbox``**（PDF 点坐标计算的显示宽高，与 PDF 原版视觉一致）：
-       - PDF 点（72pt = 1in）经验性按 1:1 映射为 CSS 像素；
+       - PDF 点（72pt = 1in）按 96/72 = 4/3 ≈ 1.333 系数映射为 CSS 像素
+         （PDF 标准 DPI 72 vs HTML/CSS 默认 96，标准 web rendering 等价）；
        - 这是 UI 中 ``DocumentImage`` 期望的「展示尺寸」语义，与 PDF 中视觉布局保持比例；
        - 同时配合响应式样式 ``max-width:100%;height:auto;`` 适配窄屏；
     2. 退化路径：当 ``bbox`` 缺失时回退到 ``image.width``/``image.height``
-       （引擎报告的栅格像素分辨率，可能远大于 PDF 显示尺寸）；
+       （引擎报告的栅格像素分辨率，已是 px 单位无需再换算）；
     3. 极端兜底：无任何尺寸信息时输出标准 ``![alt](src)`` Markdown 形式。
 
     高分辨率原图始终由 ``src`` 指向的资源端点提供（不丢失清晰度），
@@ -1389,8 +1629,10 @@ def _image_to_markdown(image: ExtractedImage) -> str:
             x0, y0, x1, y1 = (float(v) for v in image.bbox)
             bw, bh = x1 - x0, y1 - y0
             if bw > 0 and bh > 0:
-                display_w = int(round(bw))
-                display_h = int(round(bh))
+                # PDF 点 → CSS 像素：标准 DPI 比例（96/72 ≈ 1.333），
+                # 与 PDF 原版视觉宽度 1:1 等价。
+                display_w = int(round(bw * _PDF_PT_TO_CSS_PX))
+                display_h = int(round(bh * _PDF_PT_TO_CSS_PX))
         except (TypeError, ValueError):
             display_w = display_h = None
 
