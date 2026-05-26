@@ -63,6 +63,7 @@ export {
   fetchDocumentDetail,
   fetchDocumentChunks,
   fetchDocumentChunkDetail,
+  updateDocument,
   updateDocumentChunk,
   regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,
