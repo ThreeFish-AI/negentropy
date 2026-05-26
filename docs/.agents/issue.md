@@ -2404,3 +2404,36 @@ R5 commit `a97171ad` 合入后双 Tab 浏览器对比 R5 markdown 与原 PDF 再
   3. **正则起手严格定位避免误伤**：`_FIGURE_TABLE_CAPTION_RE` 用 `^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]` 模式锚定起手 + 编号 + 分隔符，避免段落中部的 "Figure 1" 引用被误识为 caption；
   4. **PDF 矢量绘图层标签的固有损失要承认**：当 PDF 用矢量绘图层（PDF vector painting ops）渲染 Figure 内部标签时，PyMuPDF 把它们作为独立 `text block` 抽出而非位图的一部分；位图本身不含这些标签。"还原矢量绘图层 + 位图为完整图像" 需要 `fitz.Page.get_pixmap(clip=figure_region)` 重渲染（属于 R7+ 工程），R6 选择"丢弃散落标签换阅读流畅"是合理 trade-off；
   5. **R6 修改面**：仅 `assembly.py` 单文件 + 单一新增单测文件，与 R5 `_orphan_formulas` / `_extract_formula_eq_number` 等链路完全正交，可独立 cherry-pick。
+
+### 第七轮迭代（2026-05-26 layout figure region 整图渲染 + PDF pt → CSS px 比例修复）
+
+R6 合入后双 Tab 实测发现两类正交缺陷：
+1. **Figure 矢量信息丢失**：R6 抑制了 figure 内部矢量 overlay 标签（"Context 1.0..4.0" / "Context Input" / "Intelligence Level" 等）的散落，但位图本身只是中间小图（机器人），PDF 原版 Figure 1 顶部 4 列 Context 标题、底部分类标签等矢量内容彻底丢失，markdown 中只剩"光秃秃的中间位图"；
+2. **Figure 显示宽度仅占容器 1/3**：`_image_to_markdown` 把 PDF 点（pt）直接当作 CSS 像素（px）输出，导致 A4 全宽 figure（~595pt）在 markdown view 仅显示为 ~595px，而 web 默认 96 DPI 下 595pt 应换算为 ~793px。视觉感受是"图被压缩到容器 1/3 宽"。
+
+- **表因**：用户连续 2 次浏览器截图反馈 — Figure 1 markdown 视觉与 PDF 原版相比严重失真。R6 抑制 overlay 标签后阅读流畅，但 PDF 原版的「演进图视觉信息」（4 列 Context 1.0-4.0 标题 + 中间机器人 + 底部分类标签）在 markdown 中彻底丢失；同时 figure 显示宽度仅占阅读容器约 1/3，视觉与 PDF 严重不一致。
+
+- **根因**：
+  1. **`_render_figure_regions` 去重方向反了**：[`image_extraction.py:103`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/image_extraction.py) 早已实现 `page.get_pixmap(clip=region.bbox)` 整图渲染分支，但「figure region 与 raster 重叠 > 50% 时 **跳过 figure 渲染**」的去重逻辑反了。Figure region 通常完整包含 raster 位图，按当前逻辑 figure 整图渲染**总是被跳过**，结果只剩 raster 小位图。正确思路应反转为「figure region 完整包含 raster 时 **以 figure 整图替代 raster**」。`_OVERLAP_THRESHOLD = 0.5`（R7 前）与 `_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8`（R7 后）的语义完全反向。
+  2. **PDF 点 → CSS 像素换算缺失**：[`assembly.py:_image_to_markdown`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 把 PDF 点（72pt = 1in）直接当作 CSS 像素（96px = 1in）输出，缺失 4/3 比例换算。这是从 R3 起就存在的隐性 bug，但 R4 时机器人位图本身较小（299pt × 199pt）在 web 容器中显示不算太突兀；R7 整图渲染产物变大（373pt × 215pt 等接近 A4 全宽）后视觉变形被放大暴露。
+
+- **处理方式**（[`image_extraction.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/image_extraction.py) + [`assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 双文件聚焦修改）：
+  1. **`_render_figure_regions` 反转去重 + 返回签名变更**：`_OVERLAP_THRESHOLD = 0.5` 改为 `_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8`；计算「raster 被 figure region 包含的比例」（`_compute_overlap_ratio(raster, figure)`），≥ 80% 时把该 raster 列入 `drop_indices` 集合让上层主流程剔除；返回值从 `List[ExtractedImage]` 改为 `Tuple[List[ExtractedImage], Set[int]]`；stage 主流程消费 `raster_drop_indices` 在合并前剔除被替代的 raster；同时把 `region_type` 从 `"figure"` 扩展为 `("figure", "picture")` 以兼容多引擎命名差异。仅在 figure region 渲染成功后才剔除 raster，渲染失败时同时保留 raster 与 layout figure region 信息（双保险防双重信息损失）。
+  2. **`_image_to_markdown` 加 PDF pt → CSS px 换算**：新增 `_PDF_PT_TO_CSS_PX = 96.0 / 72.0` 常量，bbox 宽高乘以 4/3 因子后再 round 输出。`image.width` / `image.height` 退化路径（引擎报告的 px 单位）不应用此因子。
+
+- **量化效果**（28 页 Context Engineering 2.0 论文）：
+  - **Figure 1**：从 R6 的中间小机器人位图（299×199 pt）→ R7 的完整演进图（含 4 列 "Context 1.0..4.0" 标题 + 中间机器人 + 底部 "Context Input / Intelligence Level" 分类标签 + caption），与 PDF 原版 1:1 等价；
+  - **Figure 2-7**：全部从原始嵌入位图（仅部分内容）→ 完整 layout region 渲染产物（含全部矢量绘图层 + 标签 + caption）；
+  - **char_count**：113806 → 113108（-698 字符，被 figure region 替代的 raster 引用合计长度）；
+  - **markdown img refs**：3 张孤儿图全部消失（被 figure region 替代后不再触发 orphan fallback），仅保留 8 张 HTML `<img>` 引用（全部指向 `fig_p*_*.png` 整图渲染产物）；
+  - **图片显示宽度**：Figure 1 从 373px → 497px（PDF 点 373 × 4/3），Figure 5/6/7 接近 A4 全宽 ~588-595px，与 PDF 原版视觉宽度 1:1；
+  - **既有单测**：本期新增 8 例 `test_image_extraction_figure_clip.py`（覆盖 `_compute_overlap_ratio` 参数顺序 + `_FIGURE_CONTAINS_RASTER_THRESHOLD` 阈值），修改 1 例 `test_assembly_helpers.py::test_emits_html_img_with_bbox_display_size`（同步 4/3 换算），新增 2 例 full-width + 真实场景断言；与 R6 后的 1577 例无回归（仅 `test_config.py` 预存在的环境覆盖失败 2 例与本期无关）。
+  - **浏览器实机对照**：Markdown view 中 Figure 1 显示宽度从「容器 1/3」→ 「~50-60% 容器宽度」（与 PDF 原版比例接近），完整演进图清晰可见。
+
+- **七轮防范要点补充**：
+  1. **去重方向必须语义清晰**：`_compute_overlap_ratio(A, B)` 是「A 被 B 覆盖的比例」（非对称）。R7 前误把「figure 被 raster 包含」当作「raster 是 figure 的子组件」判定，是参数顺序导致的逻辑反转。应明确「谁应被替换」：layout figure region（含矢量绘图层）信息密度更高 → raster 应被替代；
+  2. **PDF pt 单位换算必须显式**：PDF 标准 72pt = 1in，HTML/CSS 默认 96px = 1in。任何把 PDF 几何信息转 CSS 渲染的代码路径都必须显式应用 `96/72 ≈ 1.333` 系数。R7 在 `_image_to_markdown` 集中应用，未来扩展 table / formula 等几何输出时需注意同理；
+  3. **`get_pixmap(clip=region)` 是 PDF 矢量信息保真的标准做法**：PyMuPDF `get_images()` 仅抽嵌入位图，对矢量绘图层无能为力；`page.get_pixmap(matrix=zoom, clip=rect)` 可对任意 layout region 重渲染完整视觉。Zoom 因子建议 ≥ 2.0（150 DPI）以保留高清；
+  4. **stage 输出契约变更需双向兼容**：`_render_figure_regions` 返回值从 `List` → `Tuple[List, Set]` 是 breaking change，必须同步修改所有调用方（仅 1 处：`FitzImageExtractor._run`）。新增 stage tool 时务必锁定签名；
+  5. **R7 修改面**：`image_extraction.py`（去重反转 + 阈值更名 + 返回签名变更）+ `assembly.py`（pt→px 换算常量与应用）+ 测试加固。所有改动语义独立，可单文件 cherry-pick；
+  6. **R6 与 R7 是同一缺陷的两层修复**：R6 用 `_block_overlaps_special` 把 figure overlay 文本抑制掉（避免散落），但牺牲了 figure 视觉信息；R7 用 `page.get_pixmap(clip=figure_region)` 把 overlay 文本重新成像入 figure（恢复视觉），并通过反向去重剔除 raster 避免双轨。两轮结合后 R6 抑制的 caption 例外保留逻辑依然生效（独立段落 caption + alt 同时保留）。

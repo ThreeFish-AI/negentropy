@@ -24,7 +24,7 @@ import base64
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ...base import Stage, StageResult
 from ...models import (
@@ -47,8 +47,12 @@ _IMAGE_EXTRACT_CONCURRENCY = 4
 # 矢量图渲染参数
 _RENDER_DPI = 150
 _RENDER_ZOOM = _RENDER_DPI / 72.0
-# 空间重叠去重阈值：渲染区域与已有光栅图重叠面积占比超过此值时跳过
-_OVERLAP_THRESHOLD = 0.5
+# 反向去重阈值：当一张光栅图 ≥ 该比例的面积被 figure region 包含时，
+# 视为该光栅图是 figure region 的子组件（矢量绘图层 + 嵌入位图 + caption
+# 等共同构成完整 Figure），改为渲染整个 figure region 并剔除该光栅图，
+# 避免视图中"光栅位图 + 散落矢量标签"双轨损耗。0.8 阈值保留 20% 边距
+# 余量以兼容 layout 与 raster bbox 的±几 pt 偏差。
+_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8
 
 
 def _resolve_concurrency() -> int:
@@ -108,32 +112,44 @@ async def _render_figure_regions(
     end_page: int,
     output_dir: Path,
     sem: asyncio.Semaphore,
-) -> List[ExtractedImage]:
-    """将 layout_analysis 检测到的矢量 figure 区域渲染为光栅图。
+) -> Tuple[List[ExtractedImage], Set[int]]:
+    """将 layout_analysis 检测到的 figure 区域整体渲染为光栅图。
 
-    仅渲染与已有光栅图无显著空间重叠的区域（去重）。
+    与 PyMuPDF 仅抽出 figure 内部嵌入位图不同，本函数对 layout 给出的
+    完整 figure region（含矢量绘图层标签 / 嵌入位图 / 注解等）一次性
+    渲染为单张 PNG，保留 PDF 原版视觉信息（如 ISSUE-094 R7 中 Context
+    Engineering 2.0 Figure 1 顶部 "Context 1.0..4.0" 标题行、底部
+    "Context Input / Intelligence Level" 分类标签）。
+
+    去重策略（反转 R6 之前的"figure 让位 raster"思路）：当一张光栅图
+    ≥ ``_FIGURE_CONTAINS_RASTER_THRESHOLD`` (80%) 的面积被 figure region
+    包含时，视为该 raster 是 figure 的子组件，**剔除 raster 并以 figure
+    整图替代**。函数返回额外的 ``raster_indices_to_drop`` 索引集合供
+    上层主流程剔除。
 
     Args:
         pdf_path: PDF 文件路径。
         figure_regions: layout_analysis 检测到的 figure 区域列表。
-        raster_images: 已提取的光栅图列表（用于去重）。
+        raster_images: 已提取的光栅图列表（与 ``raster_indices_to_drop`` 一一对应）。
         start_page: 起始页码。
         end_page: 结束页码（exclusive）。
         output_dir: 图片输出目录。
         sem: 并发信号量。
 
     Returns:
-        渲染后的 ``ExtractedImage`` 列表。
+        ``(rendered_images, raster_indices_to_drop)`` —— 渲染后的
+        ``ExtractedImage`` 列表 + 应被 figure region 替代而剔除的
+        ``raster_images`` 索引集合。
     """
     from ....pdf._imports import import_fitz
 
     fitz = import_fitz()
 
-    # 按页索引光栅图 bbox，加速去重判断
-    raster_by_page: Dict[int, List[Tuple[float, float, float, float]]] = {}
-    for img in raster_images:
+    # 按页索引光栅图（bbox + 原列表索引），加速去重判断
+    raster_by_page: Dict[int, List[Tuple[int, Tuple[float, float, float, float]]]] = {}
+    for idx, img in enumerate(raster_images):
         if img.bbox and img.page_number is not None:
-            raster_by_page.setdefault(img.page_number, []).append(img.bbox)
+            raster_by_page.setdefault(img.page_number, []).append((idx, img.bbox))
 
     # 按页分组 figure 区域
     regions_by_page: Dict[int, List[LayoutRegion]] = {}
@@ -142,14 +158,15 @@ async def _render_figure_regions(
             regions_by_page.setdefault(region.page_number, []).append(region)
 
     if not regions_by_page:
-        return []
+        return [], set()
 
     async def _render_page_figures(
         page_idx: int,
         regions: List[LayoutRegion],
-    ) -> List[ExtractedImage]:
+    ) -> Tuple[List[ExtractedImage], Set[int]]:
         async with sem:
             images: List[ExtractedImage] = []
+            drop_indices: Set[int] = set()
             doc = fitz.open(pdf_path)
             try:
                 page = doc[page_idx]
@@ -176,24 +193,20 @@ async def _render_figure_regions(
                         )
                         continue
 
-                    # 去重：检查与同页光栅图的空间重叠
-                    raster_bboxes = raster_by_page.get(page_idx, [])
-                    skip = False
-                    for rbox in raster_bboxes:
-                        overlap = _compute_overlap_ratio((x0, y0, x1, y1), rbox)
-                        if overlap > _OVERLAP_THRESHOLD:
-                            skip = True
-                            logger.debug(
-                                "跳过渲染 figure p%d region %d: 与光栅图重叠 %.0f%%",
-                                page_idx,
-                                region_idx,
-                                overlap * 100,
-                            )
-                            break
-                    if skip:
-                        continue
+                    # 反向去重：标记被该 figure region 完整包含的同页光栅图
+                    raster_entries = raster_by_page.get(page_idx, [])
+                    contained_raster_idx: List[int] = []
+                    for r_idx, rbox in raster_entries:
+                        # 注意参数顺序：``_compute_overlap_ratio(A, B)`` 返回的是
+                        # A 面积中被 B 覆盖的比例。这里要计算 raster 被 figure 包含
+                        # 的比例，因此 A=raster_bbox，B=figure_region_bbox。
+                        raster_in_figure = _compute_overlap_ratio(
+                            rbox, (x0, y0, x1, y1)
+                        )
+                        if raster_in_figure >= _FIGURE_CONTAINS_RASTER_THRESHOLD:
+                            contained_raster_idx.append(r_idx)
 
-                    # 渲染裁剪区域
+                    # 渲染裁剪区域（整个 layout figure region，含矢量标签）
                     try:
                         rect = fitz.Rect(x0, y0, x1, y1)
                         mat = fitz.Matrix(_RENDER_ZOOM, _RENDER_ZOOM)
@@ -238,13 +251,26 @@ async def _render_figure_regions(
                                 reading_order=0,  # 由调用方统一分配
                             )
                         )
-                        logger.info(
-                            "渲染矢量 figure %s (page %d, %dx%d px)",
-                            img_id,
-                            page_idx,
-                            pix.width,
-                            pix.height,
-                        )
+                        # 仅在渲染成功后才剔除被包含的 raster，避免渲染失败
+                        # 时同时丢失矢量标签与 raster 位图（双重信息损失）。
+                        drop_indices.update(contained_raster_idx)
+                        if contained_raster_idx:
+                            logger.info(
+                                "figure region 替代 %d 张 raster (page %d, region %d, %dx%d px)",
+                                len(contained_raster_idx),
+                                page_idx,
+                                region_idx,
+                                pix.width,
+                                pix.height,
+                            )
+                        else:
+                            logger.info(
+                                "渲染独立 figure %s (page %d, %dx%d px)",
+                                img_id,
+                                page_idx,
+                                pix.width,
+                                pix.height,
+                            )
                         pix = None
                     except Exception as e:
                         logger.warning(
@@ -255,13 +281,18 @@ async def _render_figure_regions(
                         )
             finally:
                 doc.close()
-            return images
+            return images, drop_indices
 
     # 并发渲染各页
     page_results = await asyncio.gather(
         *(_render_page_figures(p, regs) for p, regs in regions_by_page.items())
     )
-    return [img for page_imgs in page_results for img in page_imgs]
+    all_rendered: List[ExtractedImage] = []
+    all_drop: Set[int] = set()
+    for page_imgs, page_drop in page_results:
+        all_rendered.extend(page_imgs)
+        all_drop.update(page_drop)
+    return all_rendered, all_drop
 
 
 # ---------------------------------------------------------------------------
@@ -411,17 +442,18 @@ class FitzImageExtractor(PDFToolBase):
 
             # ── Phase 2: 矢量图形渲染（新增）─────────────────────────
             rendered_images: List[ExtractedImage] = []
+            raster_drop_indices: Set[int] = set()
             if layout is not None and isinstance(layout, LayoutAnalysisOutput):
                 figure_regions = [
                     r
                     for r in layout.regions
-                    if r.region_type == "figure"
+                    if r.region_type in ("figure", "picture")
                     and r.bbox != (0, 0, 0, 0)
                     and (r.bbox[2] - r.bbox[0]) > 0
                     and (r.bbox[3] - r.bbox[1]) > 0
                 ]
                 if figure_regions:
-                    rendered_images = await _render_figure_regions(
+                    rendered_images, raster_drop_indices = await _render_figure_regions(
                         pdf_path=pdf_path,
                         figure_regions=figure_regions,
                         raster_images=raster_images,
@@ -432,6 +464,13 @@ class FitzImageExtractor(PDFToolBase):
                     )
 
             # ── Phase 3: 合并 + 排序 + 分配 reading_order ──────────
+            # 剔除被 figure region 整体替代的 raster（避免双轨重复）
+            if raster_drop_indices:
+                raster_images = [
+                    img
+                    for idx, img in enumerate(raster_images)
+                    if idx not in raster_drop_indices
+                ]
             all_images = raster_images + rendered_images
             all_images.sort(
                 key=lambda img: (img.page_number or 0, img.bbox[1] if img.bbox else 0)

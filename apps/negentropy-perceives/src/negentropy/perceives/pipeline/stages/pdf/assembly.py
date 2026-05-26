@@ -1554,17 +1554,29 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
     return f"```{lang}\n{code_block.code}\n```"
 
 
+# PDF 点（pt）→ CSS 像素（px）转换因子：
+# PDF 标准 72pt = 1in；HTML/CSS 标准 96px = 1in；因此 1pt = 96/72 = 4/3 ≈ 1.333 px。
+# 之前 ``_image_to_markdown`` 直接把 bbox 宽（pt 单位）当作 px 输出，导致 figure
+# 在 markdown view 中显示为 PDF 原版尺寸的 75%（A4 595pt 全宽 figure 仅 ~595px
+# 而非 ~793px），用户视觉感受是"图被压缩到容器宽度的 1/3"。R7 修复后对 figure 按
+# 标准 DPI 比例放大，让显示宽度回到 PDF 原版尺寸（在 96 DPI 默认 web rendering
+# context 下视觉与 PDF 1:1 等价）。响应式样式 ``max-width:100%;height:auto;``
+# 在窄屏下仍能正确缩放，无副作用。
+_PDF_PT_TO_CSS_PX = 96.0 / 72.0
+
+
 def _image_to_markdown(image: ExtractedImage) -> str:
     """将图片转换为 Markdown 图片引用，保留 PDF 原版显示尺寸。
 
     输出 **内嵌 HTML ``<img>``** 形式，并按以下优先级决定 ``width``/``height``：
 
     1. **优先使用 ``bbox``**（PDF 点坐标计算的显示宽高，与 PDF 原版视觉一致）：
-       - PDF 点（72pt = 1in）经验性按 1:1 映射为 CSS 像素；
+       - PDF 点（72pt = 1in）按 96/72 = 4/3 ≈ 1.333 系数映射为 CSS 像素
+         （PDF 标准 DPI 72 vs HTML/CSS 默认 96，标准 web rendering 等价）；
        - 这是 UI 中 ``DocumentImage`` 期望的「展示尺寸」语义，与 PDF 中视觉布局保持比例；
        - 同时配合响应式样式 ``max-width:100%;height:auto;`` 适配窄屏；
     2. 退化路径：当 ``bbox`` 缺失时回退到 ``image.width``/``image.height``
-       （引擎报告的栅格像素分辨率，可能远大于 PDF 显示尺寸）；
+       （引擎报告的栅格像素分辨率，已是 px 单位无需再换算）；
     3. 极端兜底：无任何尺寸信息时输出标准 ``![alt](src)`` Markdown 形式。
 
     高分辨率原图始终由 ``src`` 指向的资源端点提供（不丢失清晰度），
@@ -1584,8 +1596,10 @@ def _image_to_markdown(image: ExtractedImage) -> str:
             x0, y0, x1, y1 = (float(v) for v in image.bbox)
             bw, bh = x1 - x0, y1 - y0
             if bw > 0 and bh > 0:
-                display_w = int(round(bw))
-                display_h = int(round(bh))
+                # PDF 点 → CSS 像素：标准 DPI 比例（96/72 ≈ 1.333），
+                # 与 PDF 原版视觉宽度 1:1 等价。
+                display_w = int(round(bw * _PDF_PT_TO_CSS_PX))
+                display_h = int(round(bh * _PDF_PT_TO_CSS_PX))
         except (TypeError, ValueError):
             display_w = display_h = None
 
