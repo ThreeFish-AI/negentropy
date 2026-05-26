@@ -29,13 +29,13 @@ export async function GET(request: Request) {
   }
 
   // Backend returns 302 with Set-Cookie header
-  const setCookie = upstreamResponse.headers.get("set-cookie");
+  const setCookies = upstreamResponse.headers.getSetCookie();
   const location = upstreamResponse.headers.get("location") || "/";
 
   const response = NextResponse.redirect(new URL(location, incomingUrl.origin));
 
-  if (setCookie) {
-    response.headers.set("set-cookie", setCookie);
+  for (const c of setCookies) {
+    response.headers.append("set-cookie", c);
   }
 
   return response;

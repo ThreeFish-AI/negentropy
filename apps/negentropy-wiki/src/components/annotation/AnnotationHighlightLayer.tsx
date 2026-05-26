@@ -132,10 +132,7 @@ export function AnnotationHighlightLayer({ containerRef, annotations }: Props) {
 
 function rangesOverlap(a: Range, b: Range): boolean {
   return (
-    a.compareBoundaryPoints(Range.START_TO_START, b) <= 0 &&
-    a.compareBoundaryPoints(Range.END_TO_END, b) >= 0
-  ) || (
-    a.compareBoundaryPoints(Range.START_TO_START, b) >= 0 &&
-    a.compareBoundaryPoints(Range.END_TO_END, b) <= 0
+    a.compareBoundaryPoints(Range.START_TO_END, b) > 0 &&
+    a.compareBoundaryPoints(Range.END_TO_START, b) < 0
   );
 }

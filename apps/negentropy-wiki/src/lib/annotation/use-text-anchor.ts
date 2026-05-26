@@ -33,7 +33,8 @@ export function computeAnchor(
   // 计算 prefix/suffix 上下文
   const fullText = container.textContent || "";
   const selectedText = range.toString();
-  const selStart = fullText.indexOf(selectedText);
+  // 通过 TreeWalker 精确定位选区起止在 fullText 中的偏移量
+  const selStart = computeTextOffset(range.startContainer, range.startOffset, container);
   const contextRadius = 32;
   const prefix = selStart >= 0 ? fullText.slice(Math.max(0, selStart - contextRadius), selStart) : "";
   const suffix = selStart >= 0 ? fullText.slice(selStart + selectedText.length, selStart + selectedText.length + contextRadius) : "";
@@ -101,6 +102,23 @@ function computeXPath(node: Node, container: HTMLElement): string {
   }
 
   return "/" + parts.join("/");
+}
+
+/**
+ * 计算 targetNode:targetOffset 在 container.textContent 中的字符偏移量。
+ * 通过 TreeWalker 遍历文本节点，累加长度直到命中目标节点。
+ */
+function computeTextOffset(targetNode: Node, targetOffset: number, container: HTMLElement): number {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let offset = 0;
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node === targetNode) {
+      return offset + targetOffset;
+    }
+    offset += (node.textContent?.length ?? 0);
+  }
+  return offset;
 }
 
 function tryXPath(anchor: TextAnchor, container: HTMLElement): Range | null {
