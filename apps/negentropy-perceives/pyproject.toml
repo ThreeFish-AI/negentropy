@@ -37,6 +37,12 @@ dependencies = [
     "beautifulsoup4>=4.14.0",
     "fake-useragent>=2.2.0",
     "requests>=2.33.1",
+    # --- 网页主内容提取（S4 三引擎竞争） ---
+    "trafilatura>=2.0.0",        # 主流博客/学术文章正文定位最优（rank=1）
+    "readability-lxml>=0.8.1",   # Mozilla Readability 算法 Python 实现（rank=2 fallback）
+    "lxml-html-clean>=0.4.0",    # lxml>=5 拆分子模块；justext/readability 依赖此清洗器
+    # --- HTML → Markdown 转换（S10 二引擎竞争） ---
+    "html2text>=2025.4.15",      # markitdown 的 fallback 引擎
     # --- 浏览器自动化 ---
     "playwright>=1.58.0",
     "selenium>=4.43.0",
