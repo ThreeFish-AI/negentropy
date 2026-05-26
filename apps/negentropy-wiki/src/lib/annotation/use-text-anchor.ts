@@ -92,7 +92,7 @@ function computeXPath(node: Node, container: HTMLElement): string {
         const textSiblings = Array.from(parent.childNodes).filter(
           (c) => c.nodeType === Node.TEXT_NODE,
         );
-        const idx = textSiblings.indexOf(current);
+        const idx = textSiblings.indexOf(current as ChildNode);
         if (idx > 0) {
           parts.unshift(`text()[${idx + 1}]`);
         }
