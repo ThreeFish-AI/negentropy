@@ -126,8 +126,8 @@ async def test_existing_user_preserves_admin_role_on_relogin(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_existing_user_preserves_user_role_despite_config_promotion(monkeypatch: pytest.MonkeyPatch) -> None:
-    """DB 中角色为 user、config 中为 admin → 保留 DB 的 user 角色（DB 是权威源）。"""
+async def test_config_admin_is_non_negotiable_over_db_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    """DB 中角色为 user、config 中为 admin → config 级 admin 不可被 DB 降级。"""
     db_state = _FakeUserState("google:alice", {"roles": ["user"], "profile": {}, "auth": {}})
     _patch_db(monkeypatch, db_state)
     monkeypatch.setattr(settings, "auth", AuthSettings(admin_emails=["alice@example.com"]))
@@ -136,7 +136,7 @@ async def test_existing_user_preserves_user_role_despite_config_promotion(monkey
     user = _make_user(roles=["admin"])
     result = await service._upsert_user_state(user, _claims())
 
-    assert result.roles == ["user"]
+    assert result.roles == ["admin"]
 
 
 # ============================================================================
@@ -168,3 +168,35 @@ async def test_same_roles_returns_same_instance(monkeypatch: pytest.MonkeyPatch)
     result = await service._upsert_user_state(user, _claims())
 
     assert result is user
+
+
+# ============================================================================
+# Config 级 Admin 不可降级保护
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_config_admin_protects_new_user_with_lost_db_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    """DB 记录丢失 + config admin → 新用户仍获得 admin（根因回归）。"""
+    _patch_db(monkeypatch, None)
+    monkeypatch.setattr(settings, "auth", AuthSettings(admin_emails=["admin@example.com"]))
+
+    service = AuthService()
+    user = _make_user(email="admin@example.com", roles=["admin"])
+    result = await service._upsert_user_state(user, _claims("admin@example.com"))
+
+    assert result.roles == ["admin"]
+
+
+@pytest.mark.asyncio
+async def test_config_admin_protects_against_corrupted_db_roles(monkeypatch: pytest.MonkeyPatch) -> None:
+    """DB roles 损坏（非列表）+ config admin → config 级 admin 仍生效。"""
+    db_state = _FakeUserState("google:alice", {"roles": "corrupted", "profile": {}, "auth": {}})
+    _patch_db(monkeypatch, db_state)
+    monkeypatch.setattr(settings, "auth", AuthSettings(admin_emails=["alice@example.com"]))
+
+    service = AuthService()
+    user = _make_user(roles=["admin"])
+    result = await service._upsert_user_state(user, _claims())
+
+    assert result.roles == ["admin"]

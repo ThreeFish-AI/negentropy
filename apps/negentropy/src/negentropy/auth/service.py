@@ -181,6 +181,11 @@ class AuthService:
                 if isinstance(db_roles, list):
                     effective_roles = db_roles
 
+            # Config-level admin is non-negotiable: DB state cannot demote users
+            # who are explicitly listed in admin_emails.
+            if "admin" in user.roles and "admin" not in effective_roles:
+                effective_roles = ["admin"]
+
             next_state = {
                 "profile": {
                     "email": user.email,
