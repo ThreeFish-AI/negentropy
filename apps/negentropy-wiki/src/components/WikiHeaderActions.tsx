@@ -104,6 +104,7 @@ function WikiUserMenu({
   logout: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -116,8 +117,15 @@ function WikiUserMenu({
         setOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open]);
 
   return (
@@ -128,14 +136,17 @@ function WikiUserMenu({
         onClick={() => setOpen(!open)}
         title={user.name || "User"}
         aria-label="用户菜单"
+        aria-expanded={open}
+        aria-haspopup="true"
       >
-        {user.picture ? (
+        {user.picture && !imgError ? (
           <img
             src={user.picture}
             alt=""
             width={22}
             height={22}
             style={{ borderRadius: "50%" }}
+            onError={() => setImgError(true)}
           />
         ) : (
           <span className="wiki-user-avatar-initial">
