@@ -631,3 +631,9 @@ def apply_adk_patches():
 
     logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
     logger.info(f"Using configured credential backend: {settings.credential_service_backend}")
+    logger.info(
+        "Auth config resolved: enabled=%s, mode=%s, admin_emails=%s",
+        settings.auth.enabled,
+        settings.auth.mode.value,
+        settings.auth.admin_emails,
+    )
