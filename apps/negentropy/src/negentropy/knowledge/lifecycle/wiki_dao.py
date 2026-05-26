@@ -374,6 +374,7 @@ class WikiDao:
             select(
                 WikiPublicationEntry.document_id,
                 KnowledgeDocument.original_filename,
+                KnowledgeDocument.display_name,
                 KnowledgeDocument.markdown_content,
                 KnowledgeDocument.metadata_,
             )
@@ -384,12 +385,22 @@ class WikiDao:
         if row is None:
             return None
 
-        doc_id, filename, markdown_content, metadata = row
+        doc_id, filename, display_name, markdown_content, metadata = row
+        # 与 wiki_service._resolve_doc_display_title 保持同源优先级：
+        # display_name (用户覆盖) -> metadata_.title -> original_filename。
+        resolved_title = (display_name or "").strip()
+        if not resolved_title:
+            meta_title = (metadata or {}).get("title")
+            if isinstance(meta_title, str) and meta_title.strip():
+                resolved_title = meta_title.strip()
+        if not resolved_title:
+            resolved_title = filename or "Untitled"
         return {
             "document_id": doc_id,
             "filename": filename,
+            "display_name": display_name,
             "markdown_content": markdown_content or "",
-            "title": (metadata or {}).get("title") or filename or "Untitled",
+            "title": resolved_title,
             "metadata": metadata or {},
         }
 
