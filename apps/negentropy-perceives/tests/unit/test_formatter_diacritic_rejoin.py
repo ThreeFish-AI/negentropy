@@ -55,10 +55,19 @@ class TestTilde:
 
 
 class TestGrave:
-    """U+0060 GRAVE → COMBINING GRAVE (è à)。"""
+    """U+02CB MODIFIER LETTER GRAVE → COMBINING GRAVE (è à)。
+
+    PDF 真实编码使用 U+02CB（``ˋ``）而非 ASCII U+0060；后者与 Markdown
+    inline code 定界符冲突，已故意从 ``_DIACRITIC_MAP`` 中排除。
+    """
 
     def test_a_grave(self) -> None:
-        assert _rejoin_split_diacritics("voil ` a") == "voilà"
+        assert _rejoin_split_diacritics("voil ˋ a") == "voilà"
+
+    def test_ascii_backtick_preserved_as_inline_code(self) -> None:
+        """ASCII U+0060 ``\\`code\\``` 形态不应被当作 grave-accent 拼合。"""
+        text = "Use the `getline` function"
+        assert _rejoin_split_diacritics(text) == text
 
 
 class TestCircumflex:

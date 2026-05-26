@@ -70,15 +70,21 @@ def _classify_line(line: str) -> _LineType:
 # PyMuPDF 把 ``Pokémon`` 这类含组合变音字符的词在 PDF 中拆为
 # ``base + 独立间隔符号 + 后续字母``，``" ".join`` 拼回 ``Pok ´ emon``
 # 形态。下表覆盖学术文献中最常见的几种组合：
-#   ´ (U+00B4 ACUTE)       → U+0301 COMBINING ACUTE        (é, á, í, ó, ú)
-#   ` (U+0060 GRAVE)       → U+0300 COMBINING GRAVE        (è, à)
-#   ˆ (U+02C6 CIRCUMFLEX)  → U+0302 COMBINING CIRCUMFLEX   (ê, â)
-#   ¨ (U+00A8 DIAERESIS)   → U+0308 COMBINING DIAERESIS    (ä, ö, ü)
-#   ˜ (U+02DC SMALL TILDE) → U+0303 COMBINING TILDE        (ã, õ, ñ)
-#   ˇ (U+02C7 CARON)       → U+030C COMBINING CARON        (š, č, ž)
+#   ´  (U+00B4 ACUTE)              → U+0301 COMBINING ACUTE        (é, á, í, ó, ú)
+#   ˋ  (U+02CB MODIFIER LETTER GRAVE) → U+0300 COMBINING GRAVE     (è, à)
+#   ˆ  (U+02C6 CIRCUMFLEX)         → U+0302 COMBINING CIRCUMFLEX   (ê, â)
+#   ¨  (U+00A8 DIAERESIS)          → U+0308 COMBINING DIAERESIS    (ä, ö, ü)
+#   ˜  (U+02DC SMALL TILDE)        → U+0303 COMBINING TILDE        (ã, õ, ñ)
+#   ˇ  (U+02C7 CARON)              → U+030C COMBINING CARON        (š, č, ž)
+#
+# **不收录** U+0060 ASCII BACKTICK：它与 Markdown inline code 定界符
+# ```code``` 冲突，```getline``` 在 typography 管线中会被错误拼合
+# 为 ``g̀etline`` 形态，破坏 webpage / PDF 流中常见的 inline-code 引用。
+# PDF 真实的 grave-accent 间隔符通常编码为 U+02CB（``ˋ``），与 ASCII backtick
+# 视觉相似但 codepoint 不同，可以安全收录。
 _DIACRITIC_MAP: Dict[str, str] = {
     "´": "́",
-    "`": "̀",
+    "ˋ": "̀",
     "ˆ": "̂",
     "¨": "̈",
     "˜": "̃",
@@ -494,12 +500,23 @@ class MarkdownFormatter:
 
             for line in lines:
                 line = re.sub(r"^(\s*)([-\*\+])\s*(.+)$", r"\1- \3", line)
-                # 仅当数字后**不是**复合编号（``3.1.1``）时才把行视为有序列表项
-                # 规范化。原始 ``^(\d+)[\.\)]\s*(.+)$`` 会把 ``3.1.1 Foo`` 解析为
-                # ``\1='3', \3='1.1 Foo'``，输出 ``3. 1.1 Foo`` 强行拆裂章节
-                # 编号，破坏 ``FitzTextExtractor`` 复合编号合并的成果。
+                # 仅当行不构成"章节编号 + 标题文本"模式时才视为有序列表项
+                # 规范化。原始 ``^(\d+)[\.\)]\s*(.+)$`` 会把 ``3.1.1 Foo`` /
+                # ``3.1 Foo`` 解析为 ``\1='3', \3='1.1 Foo'`` / ``\3='1 Foo'``，
+                # 输出 ``3. 1.1 Foo`` / ``3. 1 Foo`` 强行拆裂章节编号，破坏
+                # ``FitzTextExtractor`` 复合编号合并的成果。
+                # 守卫覆盖两种情形：
+                #   (a) ``\d+\.\d`` 起手 — 三段及以上复合编号（``3.1.1``）；
+                #   (b) ``\d+(?:\.\d+)*\s+[A-Z]`` — 两段编号 + 大写起始标题
+                #       （``3.1 Introduction``、``5.3 Memory``），自然语言列表项
+                #       内容不会以"数字 + 单空格 + 大写词"的形态紧贴在前缀后。
                 line = re.sub(
-                    r"^(\s*)(\d+)[\.\)]\s*(?!\d+\.\d)(.+)$", r"\1\2. \3", line
+                    r"^(\s*)(\d+)[\.\)]\s*"
+                    r"(?!\d+\.\d)"
+                    r"(?!\d+(?:\.\d+)*\s+[A-Z])"
+                    r"(.+)$",
+                    r"\1\2. \3",
+                    line,
                 )
                 formatted_lines.append(line)
 

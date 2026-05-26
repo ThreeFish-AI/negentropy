@@ -32,6 +32,19 @@ class TestCompoundSectionNumbersPreserved:
         assert "3.1.2 Theoretical Foundations" in result
         assert "3. 1.2" not in result
 
+    def test_two_segment_capitalized_heading_preserved(self) -> None:
+        """两段编号 + 大写起始标题（``3.1 Introduction``）不应退化为列表项。"""
+        md = "3.1 Introduction\n\nSome content."
+        result = MarkdownFormatter()._format_lists(md)
+        assert "3.1 Introduction" in result
+        assert "3. 1 Introduction" not in result
+
+    def test_two_segment_capitalized_heading_mid_doc_preserved(self) -> None:
+        md = "Heading\n\n5.3 Memory Layer\n\nMore text."
+        result = MarkdownFormatter()._format_lists(md)
+        assert "5.3 Memory Layer" in result
+        assert "5. 3 Memory" not in result
+
 
 class TestNormalOrderedListsStillFormatted:
     """普通有序列表项仍被规范化（数字后跟非数字内容）。"""
