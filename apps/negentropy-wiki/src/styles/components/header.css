@@ -239,6 +239,89 @@
   color: var(--wiki-text);
 }
 
+/* Auth: user avatar initial fallback */
+.wiki-user-avatar-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--wiki-accent);
+  color: #fff;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Auth: user dropdown panel */
+.wiki-user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: var(--wiki-radius);
+  box-shadow: var(--wiki-shadow), 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 0.5rem 0;
+  z-index: 50;
+}
+
+.wiki-user-dropdown-header {
+  padding: 0.4rem 0.75rem;
+}
+
+.wiki-user-dropdown-name {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--wiki-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-user-dropdown-email {
+  font-size: 0.78em;
+  color: var(--wiki-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-user-dropdown-divider {
+  height: 1px;
+  background: var(--wiki-border);
+  margin: 0.35rem 0;
+}
+
+.wiki-user-dropdown-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82em;
+  border: 0;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.wiki-user-dropdown-logout:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-accent);
+}
+
+/* Auth: loading pulse animation */
+@keyframes wiki-auth-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 @media (max-width: 768px) {
   .wiki-search-box {
     display: none;
