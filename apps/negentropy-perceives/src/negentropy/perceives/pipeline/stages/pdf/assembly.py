@@ -930,7 +930,7 @@ class BuiltinAssembler(PDFToolBase):
                     if nxt.element_type == "formula":
                         _fragment_remove.add(i)
                         break
-                    # 允许中间有 1 个非空 text 元素隔开（PyMuPDF 偶尔拆段）
+                    # 遇到非空 text 即停止搜索（中间仅允许空白元素通过）
                     if nxt.element_type == "text" and (nxt.content or "").strip():
                         break
                     next_idx += 1
