@@ -318,6 +318,98 @@ class SyncFromCatalogResponse(BaseModel):
 
 
 # =============================================================================
+# Phase 4.1: Wiki 评论与注解 Schemas
+# =============================================================================
+
+
+class WikiCommentCreateRequest(BaseModel):
+    """创建页面评论请求"""
+
+    body: str = Field(..., min_length=1, max_length=2000)
+
+
+class WikiCommentUpdateRequest(BaseModel):
+    """更新页面评论请求"""
+
+    body: str = Field(..., min_length=1, max_length=2000)
+
+
+class WikiCommentResponse(BaseModel):
+    """页面评论响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    entry_id: UUID
+    user_id: str
+    user_name: str | None = None
+    user_picture: str | None = None
+    body: str
+    status: str
+    parent_comment_id: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class WikiCommentListResponse(BaseModel):
+    """页面评论列表响应"""
+
+    items: list[WikiCommentResponse]
+    total: int
+
+
+class WikiAnnotationAnchor(BaseModel):
+    """文本注解锚定数据（W3C Web Annotation TextQuoteSelector）"""
+
+    xpath: str
+    exact: str
+    prefix: str | None = None
+    suffix: str | None = None
+    text_offset: int | None = None
+    text_length: int | None = None
+
+
+class WikiAnnotationCreateRequest(BaseModel):
+    """创建文本注解请求"""
+
+    body: str = Field(..., min_length=1, max_length=1000)
+    quoted_text: str = Field(..., min_length=1)
+    anchor: WikiAnnotationAnchor
+
+
+class WikiAnnotationUpdateRequest(BaseModel):
+    """更新文本注解请求"""
+
+    body: str = Field(..., min_length=1, max_length=1000)
+
+
+class WikiAnnotationResponse(BaseModel):
+    """文本注解响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    entry_id: UUID
+    user_id: str
+    user_name: str | None = None
+    user_picture: str | None = None
+    body: str
+    quoted_text: str
+    anchor: dict[str, Any]
+    pub_version: int
+    status: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class WikiAnnotationListResponse(BaseModel):
+    """文本注解列表响应"""
+
+    items: list[WikiAnnotationResponse]
+    total: int
+
+
+# =============================================================================
 # Phase 5: 统一检索 Schemas
 # =============================================================================
 
