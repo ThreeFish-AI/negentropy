@@ -6,20 +6,26 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchCatalogNodeDocuments,
   unassignDocumentFromNode,
+  updateDocument,
   KnowledgeDocument,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
-import { Plus, Trash2 } from "./icons";
+import { Plus, Trash2, Pencil, Check, X } from "./icons";
 import { AddDocumentsDialog } from "./AddDocumentsDialog";
 
 interface DocumentAssignmentSectionProps {
   nodeId: string;
   catalogId: string;
+}
+
+/** 决定 Wiki 站点上显示的标题（优先级与后端 _resolve_doc_display_title 一致）。 */
+function effectiveDisplayName(doc: KnowledgeDocument): string {
+  return (doc.display_name || "").trim() || doc.original_filename;
 }
 
 export function DocumentAssignmentSection({
@@ -30,6 +36,11 @@ export function DocumentAssignmentSection({
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  // 行内编辑态：正在编辑的文档 id
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -46,6 +57,14 @@ export function DocumentAssignmentSection({
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // 编辑态挂载后自动聚焦
+  useEffect(() => {
+    if (editingId) {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }
+  }, [editingId]);
 
   const handleRemove = useCallback(
     async (docId: string, filename: string) => {
@@ -71,6 +90,52 @@ export function DocumentAssignmentSection({
     void refresh();
   }, [refresh]);
 
+  const startEdit = useCallback((doc: KnowledgeDocument) => {
+    setEditingId(doc.id);
+    setEditDraft(doc.display_name ?? "");
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+    setEditDraft("");
+  }, []);
+
+  const commitEdit = useCallback(
+    async (doc: KnowledgeDocument) => {
+      const trimmed = editDraft.trim() || null;
+      // 无变化时静默退出
+      if (trimmed === (doc.display_name ?? null)) {
+        cancelEdit();
+        return;
+      }
+      setSaving(true);
+      try {
+        await updateDocument(doc.corpus_id, doc.id, { display_name: trimmed });
+        toast.success("保存成功，下次发布生效");
+        setEditingId(null);
+        setEditDraft("");
+        await refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "保存失败");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [cancelEdit, editDraft, refresh],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent, doc: KnowledgeDocument) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void commitEdit(doc);
+      } else if (e.key === "Escape") {
+        cancelEdit();
+      }
+    },
+    [cancelEdit, commitEdit],
+  );
+
   return (
     <div className="px-5 py-4 border-t border-border">
       <div className="flex items-center justify-between mb-3">
@@ -93,28 +158,86 @@ export function DocumentAssignmentSection({
         <p className="text-xs text-muted/60 italic">暂无归属文档</p>
       ) : (
         <ul className="space-y-1 max-h-[280px] overflow-y-auto">
-          {docs.map((doc) => (
-            <li
-              key={doc.id}
-              className="group flex items-center justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-muted/30 text-xs"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="truncate font-medium text-foreground">
-                  {doc.original_filename}
-                </p>
-                <p className="text-[10px] text-muted/70 font-mono">
-                  {doc.markdown_extract_status ?? "—"} · {doc.id.slice(0, 8)}…
-                </p>
-              </div>
-              <button
-                onClick={() => handleRemove(doc.id, doc.original_filename)}
-                title="从节点移除"
-                className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 transition-opacity"
+          {docs.map((doc) => {
+            const isEditing = editingId === doc.id;
+            const effectiveName = effectiveDisplayName(doc);
+
+            return (
+              <li
+                key={doc.id}
+                className="group flex items-center justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-muted/30 text-xs"
               >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          ))}
+                <div className="flex-1 min-w-0">
+                  {/* 主行：Wiki 站点显示名 或 编辑态 input */}
+                  {isEditing ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, doc)}
+                        placeholder="留空则使用源名称"
+                        maxLength={255}
+                        disabled={saving}
+                        aria-label="编辑 Wiki 显示名称"
+                        className="flex-1 min-w-0 h-6 px-1.5 text-xs rounded border border-primary/50 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <button
+                        onClick={() => void commitEdit(doc)}
+                        disabled={saving}
+                        title="保存"
+                        className="p-0.5 rounded text-muted hover:text-green-600 disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        disabled={saving}
+                        title="取消"
+                        className="p-0.5 rounded text-muted hover:text-red-500 disabled:opacity-50"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="truncate font-medium text-foreground">
+                      {effectiveName}
+                    </p>
+                  )}
+
+                  {/* 副行：源名称 · 状态 · ID */}
+                  <p className="text-[10px] text-muted/70 font-mono">
+                    源名称：{doc.original_filename}
+                    <span className="mx-1">·</span>
+                    {doc.markdown_extract_status ?? "—"}
+                    <span className="mx-1">·</span>
+                    {doc.id.slice(0, 8)}…
+                  </p>
+                </div>
+
+                {/* 操作按钮 */}
+                {!isEditing && (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={() => startEdit(doc)}
+                      title="编辑 Wiki 显示名称"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(doc.id, doc.original_filename)}
+                      title="从节点移除"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 transition-opacity"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
