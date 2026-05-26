@@ -20,7 +20,6 @@ export function WikiMobileNav({ children }: WikiMobileNavProps) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [open, close]);
 
-  // Lock body scroll when open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -36,19 +35,6 @@ export function WikiMobileNav({ children }: WikiMobileNavProps) {
         className="wiki-mobile-hamburger"
         onClick={() => setOpen(true)}
         aria-label="打开导航菜单"
-        style={{
-          display: "none",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 36,
-          height: 36,
-          border: "none",
-          background: "transparent",
-          color: "var(--wiki-text)",
-          cursor: "pointer",
-          padding: 4,
-          borderRadius: 6,
-        }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <line x1="3" y1="6" x2="21" y2="6" />
@@ -58,64 +44,25 @@ export function WikiMobileNav({ children }: WikiMobileNavProps) {
       </button>
 
       {open && (
-        <div
-          className="wiki-mobile-overlay"
-          onClick={close}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 40,
-          }}
-        />
+        <div className="wiki-mobile-overlay" onClick={close} />
       )}
 
       <aside
-        className="wiki-mobile-drawer"
+        className={`wiki-mobile-drawer${open ? " open" : ""}`}
         role="dialog"
         aria-label="导航菜单"
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: "85vw",
-          maxWidth: 320,
-          background: "var(--wiki-sidebar-bg)",
-          borderRight: "1px solid var(--wiki-border)",
-          zIndex: 45,
-          transform: open ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-          overflowY: "auto",
-          padding: "1rem",
-        }}
       >
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
+        <div className="wiki-mobile-drawer-header">
           <button
             onClick={close}
             aria-label="关闭导航菜单"
-            style={{
-              border: "none",
-              background: "transparent",
-              color: "var(--wiki-text-secondary)",
-              cursor: "pointer",
-              padding: "0.25rem",
-              borderRadius: 4,
-              fontSize: "1.2em",
-            }}
+            className="wiki-mobile-drawer-close"
           >
             ✕
           </button>
         </div>
         {children}
       </aside>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .wiki-mobile-hamburger { display: inline-flex !important; }
-          .wiki-sidebar { display: none !important; }
-        }
-      `}</style>
     </>
   );
 }

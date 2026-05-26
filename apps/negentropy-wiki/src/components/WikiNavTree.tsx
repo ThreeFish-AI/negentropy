@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
@@ -91,12 +91,19 @@ function WikiNavNode({
   expanded,
   onToggle,
 }: WikiNavNodeProps) {
+  const linkRef = useRef<HTMLAnchorElement>(null);
   const children = item.children ?? [];
   const hasChildren = children.length > 0;
   // 自 0011：容器节点判断改用 entry_kind（向后兼容旧响应：按 document_id 兜底）。
   const isContainer = isContainerItem(item);
   const isActive = !!activeSlug && item.entry_slug === activeSlug;
   const isOpen = expanded.has(item.entry_slug);
+
+  useEffect(() => {
+    if (isActive && linkRef.current) {
+      linkRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [isActive]);
 
   const handleToggleKey = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -131,6 +138,7 @@ function WikiNavNode({
           </button>
         ) : (
           <Link
+            ref={linkRef}
             href={`/${pubSlug}/${item.entry_slug}`}
             className={`wiki-nav-link${isActive ? " active" : ""}`}
             aria-current={isActive ? "page" : undefined}

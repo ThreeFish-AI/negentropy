@@ -20,6 +20,7 @@ import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
 import { WikiCommentSection } from "@/components/WikiCommentSection";
+import { WikiFooter } from "@/components/home/WikiFooter";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -167,6 +168,7 @@ export default async function WikiEntryPage({ params }: Props) {
       hasToc={hasToc}
       header={header || undefined}
       toc={hasToc ? <WikiToc headings={headings} /> : undefined}
+      footer={<WikiFooter />}
     >
       {status === "pending" ? (
         <>

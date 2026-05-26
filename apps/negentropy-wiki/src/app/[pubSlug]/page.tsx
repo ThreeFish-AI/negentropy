@@ -14,6 +14,7 @@ import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import Link from "next/link";
+import { WikiFooter } from "@/components/home/WikiFooter";
 
 export const revalidate = 300;
 
@@ -96,7 +97,7 @@ export default async function WikiPublicationPage({ params }: Props) {
   );
 
   return (
-    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined}>
+    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined} footer={<WikiFooter />}>
       <header className="wiki-doc-header">
         <h1 className="wiki-doc-title">
           {catalogName && catalogTargetSlug ? (

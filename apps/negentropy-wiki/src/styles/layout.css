@@ -49,18 +49,86 @@
   height: calc(100vh - var(--wiki-header-height));
 }
 
+/* ---- Mobile navigation ---- */
+.wiki-mobile-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--wiki-text);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+.wiki-mobile-hamburger:hover {
+  background: var(--wiki-bg-secondary);
+}
+
+.wiki-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+  animation: fade-in 0.15s ease;
+}
+
+.wiki-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 85vw;
+  max-width: 320px;
+  background: var(--wiki-sidebar-bg);
+  border-right: 1px solid var(--wiki-border);
+  z-index: 45;
+  transform: translateX(-100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  padding: 1rem;
+}
+.wiki-mobile-drawer.open {
+  transform: translateX(0);
+}
+
+.wiki-mobile-drawer-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+.wiki-mobile-drawer-close {
+  border: none;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  font-size: 1.2em;
+}
+.wiki-mobile-drawer-close:hover {
+  color: var(--wiki-text);
+  background: var(--wiki-bg-secondary);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 768px) {
   .wiki-layout,
   .wiki-layout[data-toc="collapsed"],
   .wiki-layout[data-toc="none"] {
     grid-template-columns: 1fr;
   }
+  .wiki-mobile-hamburger {
+    display: inline-flex;
+  }
   .wiki-sidebar {
-    position: relative;
-    height: auto;
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--wiki-border);
+    display: none;
   }
   .wiki-main {
     padding: 1.5rem 1.25rem;
@@ -70,7 +138,7 @@
   }
 }
 
-/* Home 变体：全宽单栏 */
+/* Home variant: full-width single column */
 .wiki-layout--home {
   display: block;
   min-height: calc(100vh - var(--wiki-header-height));

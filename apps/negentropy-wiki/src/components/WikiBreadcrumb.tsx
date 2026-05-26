@@ -15,7 +15,7 @@ export function WikiBreadcrumb({ items, pubSlug }: WikiBreadcrumbProps) {
     <nav className="wiki-doc-breadcrumb" aria-label="面包屑">
       {items.map((item, i) => (
         <span key={i}>
-          {i > 0 && <span className="wiki-doc-breadcrumb-sep">/</span>}
+          {i > 0 && <span className="wiki-doc-breadcrumb-sep">›</span>}
           {item.slug ? (
             <a href={`/${pubSlug}/${item.slug}`} className="wiki-doc-breadcrumb-link">
               {item.label}
