@@ -348,6 +348,19 @@ class WikiDao:
         return list(result.scalars().all())
 
     @staticmethod
+    async def count_document_entries(db: AsyncSession, publication_id: UUID) -> int:
+        """计算发布中 DOCUMENT 类型条目数量（排除 CONTAINER 文件夹节点）。"""
+        result = await db.execute(
+            select(func.count())
+            .select_from(WikiPublicationEntry)
+            .where(
+                WikiPublicationEntry.publication_id == publication_id,
+                WikiPublicationEntry.entry_kind == "DOCUMENT",
+            )
+        )
+        return result.scalar() or 0
+
+    @staticmethod
     async def get_entry_by_slug(
         db: AsyncSession,
         publication_id: UUID,

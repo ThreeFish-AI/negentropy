@@ -260,6 +260,10 @@ class WikiPublishingService:
         """获取发布的所有条目"""
         return await WikiDao.get_entries(db, publication_id)
 
+    async def count_document_entries(self, db: AsyncSession, publication_id: UUID) -> int:
+        """计算发布中 DOCUMENT 类型条目数量。"""
+        return await WikiDao.count_document_entries(db, publication_id)
+
     async def get_entry_content(
         self,
         db: AsyncSession,
