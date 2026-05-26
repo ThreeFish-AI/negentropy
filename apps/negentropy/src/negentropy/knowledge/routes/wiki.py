@@ -241,7 +241,7 @@ async def get_wiki_publication(pub_id: UUID) -> _WikiPubResp:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
 
         resp = _WikiPubResp.model_validate(pub)
-        resp.entries_count = len(pub.entries) if pub.entries else 0
+        resp.entries_count = sum(1 for e in (pub.entries or []) if e.entry_kind == "DOCUMENT")
 
     return resp
 
