@@ -576,6 +576,65 @@ class DocumentStorageService:
             await db.commit()
             return True
 
+    async def update_document_display_name(
+        self,
+        *,
+        document_id: UUID,
+        display_name: str | None,
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
+    ) -> KnowledgeDocument | None:
+        """更新文档的 Wiki 显示名称。
+
+        - 空白字符串 / 仅空白字符 归一化为 ``None``（与未填等价，由
+          展示侧回退到 ``metadata_.title -> original_filename``）。
+        - 长度上限 255；超过抛 ``ValueError``。
+        - 与 :meth:`get_document` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
+
+        Args:
+            document_id: 文档 UUID
+            display_name: 新的显示名（``None`` / 空白 表示清除覆盖）
+            corpus_id: 可选 corpus 校验
+            app_name: 可选 app 校验
+
+        Returns:
+            更新后的 ``KnowledgeDocument``；若文档不存在或权限不匹配返回 ``None``
+        """
+        normalized: str | None
+        if display_name is None:
+            normalized = None
+        else:
+            stripped = display_name.strip()
+            if not stripped:
+                normalized = None
+            elif len(stripped) > 255:
+                raise ValueError("display_name 长度不能超过 255 字符")
+            else:
+                normalized = stripped
+
+        async with AsyncSessionLocal() as db:
+            conditions = [KnowledgeDocument.id == document_id]
+            if corpus_id:
+                conditions.append(KnowledgeDocument.corpus_id == corpus_id)
+            if app_name:
+                conditions.append(KnowledgeDocument.app_name == app_name)
+
+            stmt = select(KnowledgeDocument).where(*conditions)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return None
+
+            doc.display_name = normalized
+            await db.commit()
+            await db.refresh(doc)
+            logger.info(
+                "document_display_name_updated",
+                doc_id=str(document_id),
+                cleared=normalized is None,
+            )
+            return doc
+
     async def delete_gcs_uri(self, *, gcs_uri: str) -> bool:
         """删除任意 GCS URI；失败时仅记录日志。"""
         try:
