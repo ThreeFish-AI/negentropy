@@ -2376,3 +2376,31 @@
   - **inline 公式 KaTeX 渲染契约**（仅 `\\quad (N)`，禁 `\\tag{N}`）已在 promotion pass 注释中固化，未来扩展任何公式升级链路都应遵守此契约；
   - **`_orphan_formulas` 统一命名**让"inline + block 共池"语义更显式，未来扩展 caption 类元素的相似处理（如 Figure caption 与 figure 分离的情况）也可参考此模式；
   - **R5 浮现但不在本期范围**的 `[2]` 引用跳号问题已记录在 `.context/r5-defects.md`：根因在 PDF 提取上游（pymupdf text block 缺失），R4 与 R5 markdown 中均存在，非本期回归，留待后续单独立 issue。
+
+### 第六轮迭代（2026-05-26 Figure 矢量 overlay 标签抑制 + caption 例外保留）
+
+R5 commit `a97171ad` 合入后双 Tab 浏览器对比 R5 markdown 与原 PDF 再次浮现：**Figure 1 的矢量 overlay 标签作为独立段落散落到位图下方**，破坏正文阅读流。PDF 中 Figure 1 是一个矢量 + 位图复合图形（顶部 "More Intelligence. More Context-Processing Ability..."、4 列 "Context 1.0 / 2.0 / 3.0 / 4.0" 标题行、中间机器人位图、底部 "Context Input" 与 "Intelligence Level" 两行分类标签 + 4 个角色名 "Passive Executor / Initiative Agent / Reliable Collaborator / Considerate Master"），但 markdown 中只渲染中间位图，而矢量标签因落在位图 bbox 之外被 PyMuPDF 当作独立 `text block` 抽出并散落到图下方。
+
+- **表因**：[`assembly.py:1117 _block_overlaps_special`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 的"包含检测 + IoU 双策略"用的是 `image_extraction.ExtractedImage.bbox`（即 PyMuPDF 抽取出来的**位图自身 bbox**，约 width=299 / height=199），而**整个 Figure 视觉区域**（含矢量标签）远大于位图本身（layout 给出的 `figure` region 通常完整覆盖标签 + 位图），导致矢量标签 text block 几何上落不进 `special_regions`，作为独立段落被装入正文流。
+
+- **根因**：assembly **没有消费 `input_data.layout.regions`**（`AssemblyInput.layout` 字段早已存在并由 `layout_analysis` stage 填充）—— `special_regions` 仅由 `formula.bbox / table.bbox / image.bbox` 构造，没有用更精确的 `region_type="figure"` 几何信息。这是设计遗漏：layout stage 的核心价值（用 layout-aware bbox 覆盖完整 figure 区域）从未被 assembly 消费。
+
+- **处理方式**（[`apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/assembly.py) 单文件聚焦修改）：
+  1. **assembly `special_regions` 构造扩展**：把 `input_data.layout.regions` 中 `region_type in ("figure", "picture")` 的 bbox 一并加入 `special_regions`。这样落入完整 figure 视觉框（含矢量标签）的 text block 会被 `_block_overlaps_special` 自然抑制；
+  2. **Figure / Table caption 例外保留**：新增 `_is_figure_or_table_caption_text` 守卫 + `_FIGURE_TABLE_CAPTION_RE` 正则（兼容 `Figure 1:` / `Fig. 2:` / `Table 3.` / `Tab 4 -` 等多种学术论文 caption 写法）。文本块即便落入 layout figure region，只要起手匹配 `Figure N:` / `Table N:` 模式即作为段落保留，确保图表语义描述不被一同抑制；
+  3. **新增 `_layout_figure_regions` 局部索引**：为后续可能的"按 figure 区域聚类相邻 text block"做铺垫，目前仅用于显式标注 layout 来源（与公式 / 表格 / 图片 bbox 区分）。
+
+- **量化效果**（28 页 Context Engineering 2.0 论文，DB doc=`013c5ebc-51b8-4a54-8e52-17241fdb67ed`）：
+  - **Figure 1 矢量 overlay 标签**（`Context Input` / `Intelligence Level` / `Passive Executor` / `Initiative Agent` / `Reliable Collaborator` / `Considerate Master` / `More Intelligence...` 等 7+ 处散落标签）：**全部消失**；
+  - **Figure 1 caption** "Figure 1: The Overview of context engineering 1.0 to context engineering 4.0..." **完整保留**（例外守卫生效）；
+  - **char_count**：113917 → 113806（-111 字符，等于被抑制的 overlay 标签合计长度）；
+  - **inline `$...$` 与 block `$$...$$`**：与 R5 完全持平（2 inline + 5 block），R6 改动不影响公式链路；
+  - **既有单测**：本期新增 10 例 `test_assembly_figure_overlay_text.py`（覆盖 7 种 caption 形态正样本 + 7 种 overlay 标签负样本），与 R5 后的 1567 例无回归；
+  - **浏览器实机对照**：Markdown view 中 Figure 1 区域显示为「位图 → caption → 1 Introduction」的清洁阅读流，与 PDF 原版阅读体感对齐；唯一权衡是 PDF 矢量绘图层的分类标签信息丢失（属于 PDF→Markdown 转换的**固有损失**：PyMuPDF 把矢量绘图层的标签作为 text 抽走，位图本身不含这些标签）。
+
+- **六轮防范要点补充**：
+  1. **assembly `special_regions` 必须消费 layout stage 输出**：image_extraction 给出的位图 bbox 不能等同于"完整 Figure 区域"。Layout-aware 的 `region_type="figure"` 才是 figure 视觉框的权威 bbox；
+  2. **Caption 例外保留必须显式守卫**：扩大 `special_regions` 必然把同区域的 caption 也命中。`Figure N:` / `Table N:` 起手的文本块是图表语义价值的核心载体，必须**例外保留为段落**而不是一同抑制；
+  3. **正则起手严格定位避免误伤**：`_FIGURE_TABLE_CAPTION_RE` 用 `^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]` 模式锚定起手 + 编号 + 分隔符，避免段落中部的 "Figure 1" 引用被误识为 caption；
+  4. **PDF 矢量绘图层标签的固有损失要承认**：当 PDF 用矢量绘图层（PDF vector painting ops）渲染 Figure 内部标签时，PyMuPDF 把它们作为独立 `text block` 抽出而非位图的一部分；位图本身不含这些标签。"还原矢量绘图层 + 位图为完整图像" 需要 `fitz.Page.get_pixmap(clip=figure_region)` 重渲染（属于 R7+ 工程），R6 选择"丢弃散落标签换阅读流畅"是合理 trade-off；
+  5. **R6 修改面**：仅 `assembly.py` 单文件 + 单一新增单测文件，与 R5 `_orphan_formulas` / `_extract_formula_eq_number` 等链路完全正交，可独立 cherry-pick。

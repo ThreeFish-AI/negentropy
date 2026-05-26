@@ -94,6 +94,31 @@ class BuiltinAssembler(PDFToolBase):
                 if img.bbox:
                     special_regions.setdefault(img.page_number, []).append(img.bbox)
 
+            # layout_analysis 的 ``figure`` region 通常覆盖完整 figure 视觉框
+            # （含位图 + 矢量标签 + 标题）。image_extraction 仅给出位图位图本身的
+            # bbox，对"位图周围的矢量标签（如 Figure 1 的 'Context 1.0..4.0'、
+            # 'Context Input / Intelligence Level' 行）" 无法覆盖，导致这些标签
+            # 作为独立 text block 落到 figure 下方破坏阅读流（ISSUE-094 R6）。
+            # 把 layout figure region 也纳入 special_regions，让上述矢量标签
+            # 通过 ``_block_overlaps_special`` 自然抑制；Figure caption（``Figure
+            # N:`` / ``Table N:`` 起手）由后续 _is_figure_or_table_caption 守卫
+            # 保留为段落，不被此处抑制。
+            _layout_figure_regions: Dict[
+                int, List[Tuple[float, float, float, float]]
+            ] = {}
+            if input_data.layout and input_data.layout.regions:
+                for layout_region in input_data.layout.regions:
+                    if (
+                        layout_region.region_type in ("figure", "picture")
+                        and layout_region.bbox
+                    ):
+                        special_regions.setdefault(
+                            layout_region.page_number, []
+                        ).append(layout_region.bbox)
+                        _layout_figure_regions.setdefault(
+                            layout_region.page_number, []
+                        ).append(layout_region.bbox)
+
             # 1b. 预扫描：收集 table_extraction 阶段的表格指纹与文本块公式指纹
             #     表格指纹用于反向去重：当文本块表格与 table_extraction 输出重复时，
             #     优先保留 table_extraction 的高保真版本，跳过文本块的原始版本。
@@ -141,6 +166,19 @@ class BuiltinAssembler(PDFToolBase):
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
+                        # 例外：``Figure N:`` / ``Table N:`` 起手的 caption
+                        # 即便几何上落入 layout figure region 也必须保留为段落
+                        # （它们是图表的语义描述，正文阅读价值高）。
+                        if _is_figure_or_table_caption_text(block.text):
+                            elements.append(
+                                _ContentElement(
+                                    reading_order=block.reading_order,
+                                    page_number=block.page_number,
+                                    element_type="text",
+                                    content=_text_block_to_markdown(block),
+                                    block=block,
+                                )
+                            )
                         continue
                     # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
                     # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
@@ -1255,6 +1293,25 @@ def _is_caption_duplicate(text: str, caption_norm: str, all_captions: set[str]) 
         if ratio > 0.7:
             return True
     return False
+
+
+_FIGURE_TABLE_CAPTION_RE = re.compile(
+    r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+    re.IGNORECASE,
+)
+
+
+def _is_figure_or_table_caption_text(text: str) -> bool:
+    """判断文本块是否为 ``Figure N:`` / ``Table N:`` 起手的图表 caption。
+
+    用作 ``_block_overlaps_special`` 命中后的例外保留判定：
+    即使 caption 几何上落入 layout ``figure`` region，也必须保留为
+    段落（它是图表的语义描述，正文阅读价值高）。模式兼容 ``Figure
+    1:``、``Fig. 2:``、``Table 3.``、``Tab 4 -`` 等学术论文常见写法。
+    """
+    if not text:
+        return False
+    return bool(_FIGURE_TABLE_CAPTION_RE.match(text))
 
 
 def _is_running_header_footer(text: str) -> bool:
