@@ -30,7 +30,10 @@ export function TextSelectionHandler({ containerSelector, onAnnotate }: Props) {
     }
 
     const range = selection.getRangeAt(0);
-    const container = (range.startContainer as HTMLElement).closest?.(containerSelector) as HTMLElement | null;
+    const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.startContainer as HTMLElement)
+      : range.startContainer.parentElement;
+    const container = startElement?.closest?.(containerSelector) as HTMLElement | null;
     if (!container || !container.contains(range.endContainer)) {
       setFabPosition(null);
       return;

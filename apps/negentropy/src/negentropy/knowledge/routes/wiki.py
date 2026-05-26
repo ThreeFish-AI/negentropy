@@ -697,12 +697,30 @@ async def create_entry_annotation(
         )
         await db.commit()
 
+        # 解析用户 profile（复用 wiki_dao 的 UserState 查询模式）
+        from negentropy.config import settings
+        from negentropy.models.state import UserState
+
+        user_name = None
+        user_picture = None
+        usr_result = await db.execute(
+            select(UserState).where(
+                UserState.user_id == user.user_id,
+                UserState.app_name == settings.app_name,
+            )
+        )
+        usr = usr_result.scalar_one_or_none()
+        if usr:
+            profile = (usr.state or {}).get("profile", {})
+            user_name = profile.get("name")
+            user_picture = profile.get("picture")
+
     return WikiAnnotationResponse(
         id=annotation.id,
         entry_id=annotation.entry_id,
         user_id=annotation.user_id,
-        user_name=None,
-        user_picture=None,
+        user_name=user_name,
+        user_picture=user_picture,
         body=annotation.body,
         quoted_text=annotation.quoted_text,
         anchor=annotation.anchor,
