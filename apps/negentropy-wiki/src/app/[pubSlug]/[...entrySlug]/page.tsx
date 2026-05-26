@@ -20,6 +20,7 @@ import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
 import { WikiCommentSection } from "@/components/WikiCommentSection";
+import { AnnotationLayer } from "@/components/annotation/AnnotationLayer";
 import { WikiFooter } from "@/components/home/WikiFooter";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -209,9 +210,15 @@ export default async function WikiEntryPage({ params }: Props) {
                   ` · 文档 ID: ${String(content.document_id).slice(0, 8)}...`}
               </div>
             </header>
-            <MarkdownRenderer content={md} />
-            {entryId && (
-              <WikiCommentSection entryId={entryId} />
+            {entryId ? (
+              <>
+                <AnnotationLayer entryId={entryId}>
+                  <MarkdownRenderer content={md} />
+                </AnnotationLayer>
+                <WikiCommentSection entryId={entryId} />
+              </>
+            ) : (
+              <MarkdownRenderer content={md} />
             )}
           </>
         )
