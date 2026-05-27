@@ -1,24 +1,23 @@
 /**
  * Home Composer @ Mention 类型定义。
  *
- * 四类 mention 共用同一数据结构，仅以 ``kind`` 字段区分：
+ * 两类 mention 共用同一数据结构，仅以 ``kind`` 字段区分：
  *
  * - ``agent`` —— 用户偏好委派的 SubAgent，refId = ``sub_agents.name``；
- * - ``corpus-retrieve`` —— 本轮 RAG 检索范围，refId = Corpus.id (UUID)；
- * - ``corpus-output`` —— 输出沉淀目标，refId = Corpus.id (UUID)；
- * - ``graph`` —— 强制启用图谱模式 / 跨 Corpus 桥接 / GraphRAG 全局摘要，
- *   refId = Corpus.id (UUID)。与 ``corpus-retrieve`` 互补：前者交给 Intent
- *   Classifier 自动决定是否触发图扩展，后者由用户显式强制。
+ * - ``corpus`` —— 用户选定的 Corpus，refId = Corpus.id (UUID)。
+ *   语义上表达「想用哪个 Corpus」而非「以什么方式使用」；后端在 turn 内
+ *   依据 prompt 与上下文自主判断（默认仅作为 KB+KG hybrid 的 retrieve 范围，
+ *   Ingest 走独立入口或后续 IntentClassifier）。
  *
  * `inputValue` 仍是 textarea 的唯一事实源（模型会读到 `@xxx` 自然文本），
  * `MentionToken[]` 仅承担：① UI 高亮（mirror overlay）② forwardedProps 派生。
  */
-export type MentionKind = "agent" | "corpus-retrieve" | "corpus-output" | "graph";
+export type MentionKind = "agent" | "corpus";
 
 export interface MentionToken {
   /** 前端 UUID，仅用于 React key。 */
   id: string;
-  /** 三类 mention 之一。 */
+  /** 两类 mention 之一。 */
   kind: MentionKind;
   /** Agent 时为 ``sub_agents.name``；Corpus 时为 UUID。 */
   refId: string;
@@ -40,6 +39,6 @@ export interface MentionCandidate {
   label: string;
   /** 副标 / 描述（可选）。 */
   description?: string;
-  /** 三类之一（区分弹层 Tab）。 */
+  /** 两类之一（区分弹层 Tab）。 */
   kind: MentionKind;
 }

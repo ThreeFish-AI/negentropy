@@ -30,34 +30,32 @@ describe("buildStateDeltaFromForwardedProps", () => {
     expect(out).toEqual({});
   });
 
-  it("scoped_corpus_ids 数组 → 过滤、去重、保持首现顺序", () => {
+  it("corpus_ids 数组 → 过滤、去重、保持首现顺序", () => {
     const out = buildStateDeltaFromForwardedProps({
-      scoped_corpus_ids: [VALID_UUID, "not-uuid", VALID_UUID],
+      corpus_ids: [VALID_UUID, "not-uuid", VALID_UUID],
     });
-    expect(out).toEqual({ scoped_corpus_ids: [VALID_UUID] });
+    expect(out).toEqual({ corpus_ids: [VALID_UUID] });
   });
 
-  it("scoped_corpus_ids 空数组 → 写入 []（显式清空）", () => {
-    const out = buildStateDeltaFromForwardedProps({ scoped_corpus_ids: [] });
-    expect(out).toEqual({ scoped_corpus_ids: [] });
+  it("corpus_ids 空数组 → 写入 []（显式清空）", () => {
+    const out = buildStateDeltaFromForwardedProps({ corpus_ids: [] });
+    expect(out).toEqual({ corpus_ids: [] });
   });
 
-  it("scoped_corpus_ids 非数组（字符串）→ 不写入", () => {
+  it("corpus_ids 非数组（字符串）→ 不写入", () => {
     const out = buildStateDeltaFromForwardedProps({
-      scoped_corpus_ids: "not-array",
+      corpus_ids: "not-array",
     });
     expect(out).toEqual({});
   });
 
-  it("graph_mode_corpus_ids 与 output_corpus_ids 共用相同 sanitize 路径", () => {
+  it("已废弃字段（scoped/output/graph_mode）→ 被忽略，不写入 state_delta", () => {
     const out = buildStateDeltaFromForwardedProps({
+      scoped_corpus_ids: [VALID_UUID],
+      output_corpus_ids: [VALID_UUID],
       graph_mode_corpus_ids: [VALID_UUID],
-      output_corpus_ids: [],
     });
-    expect(out).toEqual({
-      graph_mode_corpus_ids: [VALID_UUID],
-      output_corpus_ids: [],
-    });
+    expect(out).toEqual({});
   });
 
   it("selected_llm_model + thinking_enabled 复合写入", () => {

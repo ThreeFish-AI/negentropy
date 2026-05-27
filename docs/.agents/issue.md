@@ -2515,3 +2515,35 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   - 与 [ISSUE-089](#issue-089) 同属 `builtin_tool` 端点 500 家族但根因正交：089 是 ORM Enum ↔ Migration VARCHAR 类型漂移，095 是 Python 函数签名 ↔ 调用点参数数量漂移；两者共同提示「跨层契约一致性」是 `builtin_tool` 子系统的主要熵源（因 PR #511 引入时间紧、未对齐 mcp/skill/sub_agent 的成熟模板）。
   - 与 [ISSUE-010](#issue-010)（字段名漂移）、[ISSUE-017](#issue-017)（前后端 + SSG 三源漂移）、[ISSUE-018](#issue-018)（BFF JSON body 强制契约）共同构成「跨层契约漂移」问题谱系；
   - 推广价值：本 ISSUE 新增的「**`patch.object` 捕获 await_args，断言实参数 == N 且末位 == V**」契约测试模式，可推广到任何「必填位置参数 + 团队约定取值范围」的内部 API。比起断言运行时是否抛错，前者能在 IDE 跳转级粒度立刻定位缺陷。
+
+---
+
+## ISSUE-096 Composer @ 唤出框：四 Tab 决策负担过重 + 文字密度挤占视觉（2026-05-27）
+
+- **表因**：Home/Studio 输入框 `@` 唤出框暴露 4 个并列 Tab（Agents / 知识检索 / 输出沉淀 / 图谱模式），用户键入 `@` 后被迫先决策「以什么方式使用 Corpus」再选「用哪个 Corpus」；同一份 Corpus 被拆到 `corpus-retrieve` / `corpus-output` / `graph` 三个 MentionKind，弹层顶部图标 + 中文文字并排挤占宽度，视觉密度低。
+- **根因**：早期产品阶段把后端三个不同的语义动作（检索范围 / 输出沉淀 / 强制图谱）直接映射到三个用户可见 Tab。这违反了「用户只表达意图，由系统决定执行路径」的原则——后端 HybridPlanner 本身就能根据 query Intent + effective corpus 数量自主决策是否触发 graph expansion，无需前端额外强制信号；输出沉淀更适合走显式 UI 入口或后续 IntentClassifier，不应作为 mention 默认行为。
+- **处理方式**（前后端一并迁移）：
+  1. **类型层（packages/agents-chat-core）**：`MentionKind` 收敛为 `agent | corpus`（删除 `corpus-retrieve` / `corpus-output` / `graph`）；`DerivedMentionProps` 改为 `{ preferred_subagent, corpus_ids }`；`buildStateDeltaFromForwardedProps` 删除 `scoped_corpus_ids` / `output_corpus_ids` / `graph_mode_corpus_ids` 三块分支，新增 `corpus_ids` 分支（沿用 sanitize / 空数组显式清空语义）。
+  2. **UI 层（apps/negentropy-ui）**：引入 `@radix-ui/react-tooltip`；`MentionPopover` Tab 收敛为 2 项（Agents / Corpus），按钮仅图标 + `aria-label` + Radix Tooltip on hover；`MentionChipList` 颜色映射收敛为 sky（agent）+ emerald（corpus）；Composer 底部提示文案改为「@ 选对象」。
+  3. **接入层（home-body.tsx）**：`corpusCandidates.kind` 改为 `"corpus"`；forwardedProps 单字段 `corpus_ids`；移除 RUN_FINISHED 中 ingest 沉淀链路（含 `outputCorpusIdsByRunRef` / `userPromptByRunRef` / `conversationTreeRef` / `extractFinalAssistantText` / `ingestText` 等遗留资产）。
+  4. **后端层（apps/negentropy）**：`perception.py` 把 state key 由 `scoped_corpus_ids` / `graph_mode_corpus_ids` 收敛为 `corpus_ids`；`hybrid_planner.py` 移除 `force_graph_mode` 参数与 `_classify_intent(..., force_graph_mode)` 分支，graph expansion 仅由 Intent + effective corpus 数量自主决策。
+  5. **测试同步**：`MentionPopover.test.tsx` / `mention-parser.test.ts` / `state-delta.test.ts` / `agui-route-state.test.ts` / `test_hybrid_planner.py` / `test_search_knowledge_base_scope.py` 等 6 处用例同步新字段名与 2 Tab 契约。
+- **后续防范**：
+  1. **用户语义 vs 系统执行**：UI 入口只承载「想用什么对象」级语义，绝不把「以什么方式使用」的执行决策外溢成 N 个 Tab；任何「检索 vs 沉淀 vs 强制图谱」类二分决策应由后端 IntentClassifier 或独立 UI 入口承载。
+  2. **forwardedProps 字段单一事实源**：mention 派生字段命名要与后端 state key 保持 1:1 对齐（前端 `corpus_ids` ↔ ADK state.corpus_ids ↔ tool_context.state.corpus_ids），避免多语义字段并存导致跨 turn 状态污染。
+  3. **空数组清空语义**：跨 turn 残留是 BFF→ADK 链路的高频 bug 源。新增 mention 派生字段时，前端必须在每轮 turn 显式发送字段（含空数组），BFF 据空数组写入 state_delta 触发清空。
+  4. **Ingest 智能识别闭环（已落地）**：通过 `engine/utils/action_intent.py` 关键词分类器 + `agents/agent.py::_pick_root_model` 写 `state.action_intent_hint` + Root instruction「Ingest 意图分流」段 + `agents/tools/ingest.py::ingest_to_corpus` 工具 + InternalizationFaculty instruction「Ingest 触发协议」段五件套，把「沉淀」语义还给 LLM 自主决策，避免 UI 入口反弹。详见 [docs/concepts/037-federated-kg.md §5.5](../concepts/037-federated-kg.md#55-ingest-智能识别intentclassifier)。
+- **同类问题影响**：未来若需引入「@ Tool」「@ Memory」等新类别 mention，必须先评估能否合并到现有 `MentionKind`（如以「对象类别」而非「使用方式」为维度），避免再次发散为多 Tab。
+
+### 后续 PR：Ingest 智能识别（IntentClassifier）实机验证记录（2026-05-27）
+
+- **单测全过**：`test_action_intent.py` 17 例 + `test_ingest_to_corpus.py` 11 例 + `test_paper_tools.py` 既有 11 例 + 其他 25 例 = **64 例全通**（无回归）。
+- **浏览器实机（chrome_devtools，主 Chrome 已登录用户）**：
+  - 场景 1（retrieve）：用户 `@Harness Engineering` 后追问「查询 davao-v2 是什么项目」→ Root 派 KnowledgeAcquisitionPipeline → PerceptionFaculty 4 次 `search_knowledge_base` + 4 次 `search_web` → InternalizationFaculty 调 `save_to_memory` + `update_knowledge_graph` 收尾。**未触发 `ingest_to_corpus`，符合预期**。forwardedProps 透传 `corpus_ids: ["43bacd7e..."]` 正确。
+  - 场景 2（ingest 触发）：用户 `@Harness Engineering 把"HippoRAG ..."沉淀到这个 Corpus` → forwardedProps 含 `corpus_ids`，LLM 已被 `_ROOT_INSTRUCTION` 引导 transfer 到 InternalizationFaculty——但 ADK 框架抛 `'SequentialAgent' object has no attribute 'mode'` 后阻断了 ingest tool call 的实际落地。
+- **已知阻塞（独立于本次改动）**：ADK 框架 `SequentialAgent` 缺 `mode` 属性。在 KnowledgeAcquisitionPipeline 之类 SequentialAgent 与具备 `mode` 字段的 LlmAgent（如本次 InternalizationFaculty）混用时会触发 `event_generator` 错误。该错误**不是**本 PR 引入——但本 PR 提供的 `ingest_to_corpus` 端到端验证因此暂时被阻断。
+- **应对建议**：
+  1. 短期：把 InternalizationFaculty 的 `mode="single_turn"` 暂时改为 `mode=None`（恢复默认行为），让 ingest_to_corpus 链路实机验证完成；或单独使用 `transfer_to_agent("InternalizationFaculty")` 不经 Pipeline 时直跑。
+  2. 中期：升级 ADK 框架到修复版本，或为 `SequentialAgent` 注入 `mode` 默认属性的 monkey-patch。
+  3. 长期：在 ADK 仓库开 issue 跟踪。
+- **不影响合并**：单测覆盖了 ingest_to_corpus 的越权防御 / Approval / 失败降级 / metadata 注入等所有契约语义；前端 corpus_ids 透传、Root callback 写 hint、Faculty 注册、Approval 白名单等都已通过浏览器 NDJSON 流验证。生产侧只待 ADK 框架 fix 即可端到端跑通。

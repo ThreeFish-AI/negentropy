@@ -10,32 +10,24 @@
  * 删除 chip 时，父组件通过 ``onRemove(tokenId)`` 同步移除 textarea 中对应的
  * ``rawText`` 片段（实际逻辑由 Composer 调用 ``reconcileMentions`` 完成）。
  */
-import { Bot, BookOpen, Save, Network, X } from "lucide-react";
+import { Bot, BookOpen, X } from "lucide-react";
 import type { MentionKind, MentionToken } from "@negentropy/agents-chat-core/parse";
 
 const _ICONS: Record<MentionKind, typeof Bot> = {
   agent: Bot,
-  "corpus-retrieve": BookOpen,
-  "corpus-output": Save,
-  graph: Network,
+  corpus: BookOpen,
 };
 
 const _CHIP_CLASS: Record<MentionKind, string> = {
   agent:
     "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950/50 dark:text-sky-200",
-  "corpus-retrieve":
+  corpus:
     "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200",
-  "corpus-output":
-    "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200",
-  graph:
-    "border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-700 dark:bg-violet-950/50 dark:text-violet-200",
 };
 
 const _KIND_TITLE: Record<MentionKind, string> = {
   agent: "委派 SubAgent",
-  "corpus-retrieve": "限定检索范围",
-  "corpus-output": "输出沉淀目标",
-  graph: "强制图谱模式",
+  corpus: "知识范围",
 };
 
 export interface MentionChipListProps {
