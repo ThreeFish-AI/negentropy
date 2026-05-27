@@ -26,6 +26,7 @@ import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
 import { GraphCanvasFrame } from "./GraphCanvasFrame";
+import { NodeTooltip } from "./NodeTooltip";
 import type { GraphCanvasNode, GraphCanvasEdge, GraphCanvasProps } from "./types";
 
 // fCoSE 注册一次即可（重复 register 会被 cytoscape 内部 no-op 处理）
@@ -89,6 +90,7 @@ export function GraphCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
   const [expanding, setExpanding] = useState(false);
+  const [tooltip, setTooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
 
   // 事件处理器在挂载时一次性注册，闭包会冻结挂载时的 props；后续语料库切换 /
   // 时间穿梭 / 父组件 callback 重建会被丢弃。统一通过 propsRef 取最新值，避免
@@ -216,6 +218,14 @@ export function GraphCanvas({
       }
     });
 
+    // hover 节点 → 显示 tooltip
+    cy.on("mouseover", "node", (evt) => {
+      const node = evt.target as NodeSingular;
+      const pos = node.renderedPosition();
+      setTooltip({ nodeId: node.id(), x: pos.x, y: pos.y });
+    });
+    cy.on("mouseout", "node", () => setTooltip(null));
+
     // 容器尺寸变化时同步 cytoscape viewport
     const ro = new ResizeObserver(() => {
       cy.resize();
@@ -289,6 +299,10 @@ export function GraphCanvas({
       }
     >
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
+      {tooltip && (() => {
+        const hoveredNode = nodes.find((n) => n.id === tooltip.nodeId);
+        return hoveredNode ? <NodeTooltip node={hoveredNode} x={tooltip.x} y={tooltip.y} /> : null;
+      })()}
     </GraphCanvasFrame>
   );
 }

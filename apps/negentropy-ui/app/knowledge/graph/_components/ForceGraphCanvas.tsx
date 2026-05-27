@@ -19,6 +19,7 @@ import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
 import { GraphCanvasFrame } from "./GraphCanvasFrame";
+import { NodeTooltip } from "./NodeTooltip";
 import type { GraphCanvasNode, GraphCanvasEdge, GraphCanvasProps } from "./types";
 
 function nodeSize(importance?: number | null): number {
@@ -113,6 +114,7 @@ export function ForceGraphCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<unknown>(null);
   const [expanding, setExpanding] = useState(false);
+  const [tooltip, setTooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ForceGraph2D, setForceGraph2D] = useState<React.ComponentType<any> | null>(null);
@@ -187,6 +189,24 @@ export function ForceGraphCanvas({
     lastClickRef.current = null;
     propsRef.current.onNodeClick("");
   }, []);
+
+  // hover 节点 → tooltip（坐标转换通过 ref）
+  const handleNodeHover = useCallback(
+    (node: FGNode | null) => {
+      if (!node || node.x == null || node.y == null) {
+        setTooltip(null);
+        return;
+      }
+      const fg = graphRef.current as { graph2ScreenCoords?: (x: number, y: number) => { x: number; y: number } } | null;
+      const screen = fg?.graph2ScreenCoords?.(node.x, node.y);
+      if (screen) {
+        setTooltip({ nodeId: String(node.id), x: screen.x, y: screen.y });
+      } else {
+        setTooltip({ nodeId: String(node.id), x: node.x, y: node.y });
+      }
+    },
+    [],
+  );
 
   const graphData = useMemo(
     () => toForceGraphData(nodes, edges, selectedNodeId, isDark),
@@ -281,12 +301,17 @@ export function ForceGraphCanvas({
             linkDirectionalParticleWidth={2}
             linkDirectionalParticleColor="#a78bfa"
             onNodeClick={handleNodeClick}
+            onNodeHover={handleNodeHover}
             onBackgroundClick={handleBackgroundClick}
             enableNodeDrag={true}
             cooldownTicks={200}
             d3AlphaDecay={0.03}
           />
         )}
+        {tooltip && (() => {
+          const hoveredNode = nodes.find((n) => n.id === tooltip.nodeId);
+          return hoveredNode ? <NodeTooltip node={hoveredNode} x={tooltip.x} y={tooltip.y} /> : null;
+        })()}
       </div>
     </GraphCanvasFrame>
   );

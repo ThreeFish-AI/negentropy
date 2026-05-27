@@ -8,7 +8,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
@@ -33,18 +32,19 @@ import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
 import { EntityListPanel } from "./_components/EntityListPanel";
 import { EvidenceChainPanel } from "./_components/EvidenceChainPanel";
+import { FloatingPanel } from "./_components/FloatingPanel";
 import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
 import { GraphCanvas } from "./_components/GraphCanvas";
 import { GraphCanvasFrame } from "./_components/GraphCanvasFrame";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { ModelConfigPanel } from "./_components/ModelConfigPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
+import { PanelRail } from "./_components/PanelRail";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
 import { TimeTravelSlider } from "./_components/TimeTravelSlider";
+import { usePanelState } from "./_components/usePanelState";
 import { entityColor, communityColor } from "./_components/constants";
-
-const SIDEBAR_STATE_KEY = "kg.sidebarOpen";
 
 const SigmaGraphCanvas = dynamic(
   () =>
@@ -75,6 +75,18 @@ const GraphCanvas3D = dynamic(
 );
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+
+const PANEL_DEFS = [
+  { key: "model-config" as const, label: "模型设置" },
+  { key: "global-search" as const, label: "全局问答" },
+  { key: "evidence-chain" as const, label: "多跳推理" },
+  { key: "time-travel" as const, label: "时间穿梭" },
+  { key: "graph-stats" as const, label: "图谱统计" },
+  { key: "build-history" as const, label: "构建历史" },
+  { key: "path-explorer" as const, label: "路径探索" },
+  { key: "neighbor-explorer" as const, label: "邻居遍历" },
+  { key: "entity-detail" as const, label: "实体详情" },
+];
 
 type GraphNode = {
   id: string;
@@ -124,28 +136,9 @@ export default function KnowledgeGraphPage() {
   const [asOf, setAsOf] = useState<string | null>(null);
   // G2: 渲染引擎切换（默认 Sigma WebGL）— Sigma / 3D / d3-force / Force Graph / Cytoscape
   const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("sigma");
-  // 右侧抽屉收起状态；localStorage 持久化，SSR 安全（初值 true，挂载后读取覆盖）。
-  // 设计要点（修复挂载期闪烁 + storage 噪声）：
-  //   1) 用 hasHydratedRef 区分「初始挂载 read」与「用户交互 write」——挂载阶段
-  //      第二个 effect 不能把默认值 "1" 回写到 localStorage，否则会瞬间覆盖用户上次
-  //      持久化的 "0"，并向其他 tab 的 storage 监听者推送一段虚假的 open→close 序列。
-  //   2) 暴露 sidebarHydrated 给 JSX，用于条件性挂载 `transition-[width]` —— 让 read
-  //      effect 写入持久值之前不要播放动画，避免首屏可见的 200ms 开→收过场。
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
-  const [sidebarHydrated, setSidebarHydrated] = useState(false);
-  const hasHydratedRef = useRef(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const v = window.localStorage.getItem(SIDEBAR_STATE_KEY);
-    if (v !== null) setSidebarOpen(v === "1");
-    hasHydratedRef.current = true;
-    setSidebarHydrated(true);
-  }, []);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!hasHydratedRef.current) return; // 跳过挂载首跑，由 read effect 真实生效后再持久化用户交互
-    window.localStorage.setItem(SIDEBAR_STATE_KEY, sidebarOpen ? "1" : "0");
-  }, [sidebarOpen]);
+  const { openPanel, toggle: togglePanel, close: closePanel } = usePanelState();
+  // D3 inline 渲染器 tooltip
+  const [d3Tooltip, setD3Tooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -477,19 +470,16 @@ export default function KnowledgeGraphPage() {
     // 已被赋值，确保 drag 副作用在异步 simulation 构建完成之后才尝试附着。
   }, [layout, renderer]);
 
-  const selectedNode =
-    nodes.find((n) => n.id === selectedNodeId) || null;
-
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
         title="Knowledge Graph"
         description="实体关系视图与构建历史"
       />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 gap-2 px-6 pt-4 pb-4">
-          {/* Main content area */}
-          <div className="min-h-0 min-w-0 flex-[2.2] flex flex-col overflow-hidden">
+          {/* Main content area — relative for floating panel positioning */}
+          <div className="relative min-h-0 min-w-0 flex-1 flex flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col gap-4 pr-2">
               {/* Toolbar — 三段式：左 CorpusSelector / 中 SearchBar / 右 viewTab+渲染器+构建按钮+Pill */}
               <div className="flex items-center gap-3">
@@ -762,6 +752,11 @@ export default function KnowledgeGraphPage() {
                             <g
                               key={node.id}
                               onClick={() => setSelectedNodeId(node.id)}
+                              onMouseEnter={() => {
+                                const r = nodeRadius(node.importance);
+                                setD3Tooltip({ nodeId: node.id, x: node.x, y: node.y - r - 8 });
+                              }}
+                              onMouseLeave={() => setD3Tooltip(null)}
                               className="cursor-pointer"
                             >
                               <circle
@@ -805,6 +800,31 @@ export default function KnowledgeGraphPage() {
                         </>
                       )}
                     </g>
+                    {/* D3 SVG tooltip via foreignObject */}
+                    {d3Tooltip && (() => {
+                      const hovered = nodes.find((n) => n.id === d3Tooltip.nodeId);
+                      if (!hovered) return null;
+                      return (
+                        <foreignObject
+                          x={d3Tooltip.x - 90}
+                          y={d3Tooltip.y - 70}
+                          width={180}
+                          height={70}
+                          className="pointer-events-none"
+                        >
+                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[11px] shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: entityColor(hovered.type) }} />
+                              <span className="font-medium text-zinc-900 dark:text-zinc-100">{hovered.label || hovered.id.slice(0, 12)}</span>
+                            </div>
+                            <div className="mt-0.5 space-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                              <div className="flex gap-2"><span>ID</span><span className="font-mono">{hovered.id.slice(0, 16)}…</span></div>
+                              {hovered.type && <div className="flex gap-2"><span>类型</span><span>{hovered.type}</span></div>}
+                            </div>
+                          </div>
+                        </foreignObject>
+                      );
+                    })()}
                   </svg>
                 </GraphCanvasFrame>
               ) : viewTab === "graph" && renderer === "d3" ? (
@@ -851,190 +871,144 @@ export default function KnowledgeGraphPage() {
             </div>
           </div>
 
-          {/* 抽屉 Toggle 按钮 — 始终位于 main 与 aside 之间，方便收起/展开 */}
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((v) => !v)}
-            aria-label={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
-            title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
-            className="self-start mt-2 flex h-12 w-5 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:text-zinc-900 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+          {/* 竖排按钮轨道 — 每个按钮直接显示模块名称 */}
+          <PanelRail
+            panels={PANEL_DEFS.map((p) => ({
+              ...p,
+              visible:
+                p.key === "entity-detail"
+                  ? viewTab === "entities"
+                  : p.key === "build-history" || p.key === "neighbor-explorer"
+                    ? true
+                    : !!corpusId,
+            }))}
+            openPanel={openPanel}
+            onToggle={togglePanel}
+          />
+
+          {/* 浮动面板 — 从右侧滑入 */}
+          <FloatingPanel
+            open={openPanel === "model-config"}
+            title="模型设置"
+            onClose={closePanel}
           >
-            {sidebarOpen ? (
-              <ChevronRight className="h-3 w-3" />
-            ) : (
-              <ChevronLeft className="h-3 w-3" />
+            {corpusId && corpusRecord && (
+              <ModelConfigPanel
+                key={corpusId}
+                corpusId={corpusId}
+                corpusConfig={corpusRecord.config as Record<string, unknown> | undefined}
+                llmModels={llmModels}
+                onConfigSaved={() => {
+                  fetchCorpora(APP_NAME).then(setCorpora).catch(() => {});
+                }}
+              />
             )}
-          </button>
+          </FloatingPanel>
 
-          {/* Sidebar — 抽屉式收起：w-72 ↔ w-0 平滑过渡；收起时内容透明并禁用交互。
-              `transition-[width]` 在 hydration 完成后才挂上，避免首屏从默认 `w-72`
-              同步切到 localStorage 持久值 `w-0` 时播放可见的 200ms 关闭动画。 */}
-          <aside
-            className={`relative min-h-0 flex-shrink-0 overflow-y-auto overflow-x-hidden ${
-              sidebarHydrated ? "transition-[width] duration-200 ease-in-out" : ""
-            } ${sidebarOpen ? "w-72" : "w-0"}`}
-            aria-hidden={!sidebarOpen}
+          <FloatingPanel
+            open={openPanel === "global-search"}
+            title="全局问答（GraphRAG）"
+            onClose={closePanel}
           >
-            <div
-              className={`w-72 space-y-4 pb-4 pr-2 ${
-                sidebarHydrated ? "transition-opacity duration-150" : ""
-              } ${sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-            >
-              {/* Entity Detail */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  实体详情
-                </h3>
-                {viewTab === "graph" ? (
-                  selectedNode ? (
-                  <div className="mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-block h-3 w-3 rounded-full"
-                        style={{ backgroundColor: entityColor(selectedNode.type) }}
-                      />
-                      <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                        {selectedNode.label || selectedNode.id.slice(0, 8)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <span className="text-zinc-500">ID</span>
-                      <span className="font-mono text-[10px]">
-                        {selectedNode.id.slice(0, 12)}...
-                      </span>
-                      <span className="text-zinc-500">类型</span>
-                      <span>{selectedNode.type || "-"}</span>
-                    </div>
-                  </div>
-                  ) : (
-                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      点击节点查看详情
-                    </p>
-                  )
-                ) : corpusId ? (
-                  <div className="mt-2">
-                    <EntityDetailPanel
-                      corpusId={corpusId}
-                      entityId={entityDetailId}
-                    />
-                  </div>
-                ) : (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    选择语料库后查看实体
-                  </p>
-                )}
-              </div>
+            {corpusId && (
+              <>
+                <p className="mb-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                  基于社区摘要的 Map-Reduce 全局检索，适合「汇总性问题」
+                </p>
+                <GlobalSearchPanel corpusId={corpusId} />
+              </>
+            )}
+          </FloatingPanel>
 
-              {/* Model Settings */}
-              {corpusId && corpusRecord && (
-                <ModelConfigPanel
-                  key={corpusId}
+          <FloatingPanel
+            open={openPanel === "evidence-chain"}
+            title="多跳推理（PPR）"
+            onClose={closePanel}
+          >
+            {corpusId && (
+              <>
+                <p className="mb-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                  Personalized PageRank + 证据链（HippoRAG / NeurIPS&apos;24）
+                </p>
+                <EvidenceChainPanel corpusId={corpusId} />
+              </>
+            )}
+          </FloatingPanel>
+
+          <FloatingPanel
+            open={openPanel === "time-travel"}
+            title="时间穿梭检索"
+            onClose={closePanel}
+          >
+            {corpusId && (
+              <>
+                <p className="mb-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                  选定历史时刻后，图谱与邻居/路径/搜索均按 as_of 过滤
+                </p>
+                <TimeTravelSlider
                   corpusId={corpusId}
-                  corpusConfig={corpusRecord.config as Record<string, unknown> | undefined}
-                  llmModels={llmModels}
-                  onConfigSaved={() => {
-                    fetchCorpora(APP_NAME).then(setCorpora).catch(() => {});
-                  }}
+                  asOf={asOf}
+                  onChange={setAsOf}
                 />
-              )}
+              </>
+            )}
+          </FloatingPanel>
 
-              {/* G1: GraphRAG Global Search — 全局问答 */}
-              {corpusId && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    全局问答（GraphRAG）
-                  </h3>
-                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
-                    基于社区摘要的 Map-Reduce 全局检索，适合「汇总性问题」
-                  </p>
-                  <div className="mt-2">
-                    <GlobalSearchPanel corpusId={corpusId} />
-                  </div>
-                </div>
-              )}
+          <FloatingPanel
+            open={openPanel === "graph-stats"}
+            title="图谱统计"
+            onClose={closePanel}
+          >
+            {corpusId && <GraphStatsPanel corpusId={corpusId} />}
+          </FloatingPanel>
 
-              {/* G4: 多跳推理 + Provenance 证据链 */}
-              {corpusId && (
-                <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4 shadow-sm dark:border-violet-900 dark:bg-violet-950/20">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    多跳推理（PPR）
-                  </h3>
-                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
-                    Personalized PageRank + 证据链（HippoRAG / NeurIPS&apos;24）
-                  </p>
-                  <div className="mt-2">
-                    <EvidenceChainPanel corpusId={corpusId} />
-                  </div>
-                </div>
-              )}
+          <FloatingPanel
+            open={openPanel === "build-history"}
+            title="构建历史"
+            onClose={closePanel}
+          >
+            <BuildHistoryList runs={runs} corpusId={corpusId} onCancel={handleCancelBuildRun} />
+          </FloatingPanel>
 
-              {/* G3: 时间穿梭检索 — 放在 Stats 之前，作为全局时态视图开关 */}
-              {corpusId && (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    时间穿梭检索
-                  </h3>
-                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
-                    选定历史时刻后，图谱与邻居/路径/搜索均按 as_of 过滤
-                  </p>
-                  <div className="mt-2">
-                    <TimeTravelSlider
-                      corpusId={corpusId}
-                      asOf={asOf}
-                      onChange={setAsOf}
-                    />
-                  </div>
-                </div>
-              )}
+          <FloatingPanel
+            open={openPanel === "path-explorer"}
+            title="路径探索"
+            onClose={closePanel}
+          >
+            {corpusId && (
+              <PathExplorer
+                corpusId={corpusId}
+                onPathFound={() => {}}
+              />
+            )}
+          </FloatingPanel>
 
-              {/* Graph Stats */}
-              {corpusId && (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    图谱统计
-                  </h3>
-                  <div className="mt-2">
-                    <GraphStatsPanel corpusId={corpusId} />
-                  </div>
-                </div>
-              )}
+          <FloatingPanel
+            open={openPanel === "neighbor-explorer"}
+            title="邻居遍历"
+            onClose={closePanel}
+          >
+            <NeighborExplorer
+              entityId={viewTab === "graph" ? selectedNodeId : entityDetailId}
+            />
+          </FloatingPanel>
 
-              {/* Build History */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  构建历史
-                </h3>
-                <BuildHistoryList runs={runs} corpusId={corpusId} onCancel={handleCancelBuildRun} />
-              </div>
-
-              {/* Path Explorer */}
-              {corpusId && (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  路径探索
-                </h3>
-                <div className="mt-2">
-                  <PathExplorer
-                    corpusId={corpusId}
-                    onPathFound={() => {}}
-                  />
-                </div>
-              </div>
-              )}
-
-              {/* Neighbor Explorer */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  邻居遍历
-                </h3>
-                <div className="mt-2">
-                  <NeighborExplorer
-                    entityId={viewTab === "graph" ? selectedNodeId : entityDetailId}
-                  />
-                </div>
-              </div>
-            </div>
-          </aside>
+          <FloatingPanel
+            open={openPanel === "entity-detail"}
+            title="实体详情"
+            onClose={closePanel}
+          >
+            {corpusId ? (
+              <EntityDetailPanel
+                corpusId={corpusId}
+                entityId={entityDetailId}
+              />
+            ) : (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-8">
+                选择语料库后查看实体
+              </p>
+            )}
+          </FloatingPanel>
         </div>
       </div>
       {confirmDialog}
