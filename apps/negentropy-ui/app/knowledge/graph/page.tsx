@@ -476,7 +476,7 @@ export default function KnowledgeGraphPage() {
         title="Knowledge Graph"
         description="实体关系视图与构建历史"
       />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 gap-2 px-6 pt-4 pb-4">
           {/* Main content area — relative for floating panel positioning */}
           <div className="relative min-h-0 min-w-0 flex-1 flex flex-col overflow-hidden">
@@ -807,9 +807,9 @@ export default function KnowledgeGraphPage() {
                       return (
                         <foreignObject
                           x={d3Tooltip.x - 90}
-                          y={d3Tooltip.y - 60}
+                          y={d3Tooltip.y - 70}
                           width={180}
-                          height={60}
+                          height={70}
                           className="pointer-events-none"
                         >
                           <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[11px] shadow-lg dark:border-zinc-700 dark:bg-zinc-900">

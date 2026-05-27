@@ -45,7 +45,7 @@ export function FloatingPanel({ open, title, onClose, children }: FloatingPanelP
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">{children}</div>
+      <div className="flex-1 overflow-y-auto p-4">{open && children}</div>
     </div>
   );
 }
