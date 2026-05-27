@@ -19,6 +19,7 @@ import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
 import { GraphCanvasFrame } from "./GraphCanvasFrame";
+import { NodeTooltip } from "./NodeTooltip";
 import type { GraphCanvasNode, GraphCanvasEdge, GraphCanvasProps } from "./types";
 
 function nodeSize(importance?: number | null): number {
@@ -78,6 +79,7 @@ export function SigmaGraphCanvas({
   const graphRef = useRef<ReturnType<typeof buildGraph> | null>(null);
   const roRef = useRef<ResizeObserver | null>(null);
   const [expanding, setExpanding] = useState(false);
+  const [tooltip, setTooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -163,6 +165,16 @@ export function SigmaGraphCanvas({
       sigma.on("clickStage", () => {
         propsRef.current.onNodeClick("");
       });
+
+      // hover 节点 → tooltip
+      sigma.on("enterNode", ({ node }) => {
+        const graph = graphRef.current;
+        if (!graph) return;
+        const attrs = graph.getNodeAttributes(node);
+        const pos = sigma.graphToViewport({ x: attrs.x, y: attrs.y });
+        if (pos) setTooltip({ nodeId: node, x: pos.x, y: pos.y });
+      });
+      sigma.on("leaveNode", () => setTooltip(null));
 
       // 容器尺寸变化
       const ro = new ResizeObserver(() => {
@@ -292,6 +304,10 @@ export function SigmaGraphCanvas({
       }
     >
       <div ref={containerRef} className="h-full w-full" />
+      {tooltip && (() => {
+        const hoveredNode = nodes.find((n) => n.id === tooltip.nodeId);
+        return hoveredNode ? <NodeTooltip node={hoveredNode} x={tooltip.x} y={tooltip.y} /> : null;
+      })()}
     </GraphCanvasFrame>
   );
 }

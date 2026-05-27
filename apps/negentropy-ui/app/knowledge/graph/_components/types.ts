@@ -12,6 +12,12 @@ export interface GraphCanvasEdge {
   type?: string;
 }
 
+export interface NodeHoverInfo {
+  nodeId: string;
+  x: number;
+  y: number;
+}
+
 export interface GraphCanvasProps {
   corpusId: string;
   nodes: GraphCanvasNode[];
@@ -24,4 +30,5 @@ export interface GraphCanvasProps {
     edges: GraphCanvasEdge[],
   ) => void;
   truncateThreshold?: number;
+  onNodeHover?: (info: NodeHoverInfo | null) => void;
 }

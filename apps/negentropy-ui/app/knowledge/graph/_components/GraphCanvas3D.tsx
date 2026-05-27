@@ -9,6 +9,7 @@ import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
 import { GraphCanvasFrame } from "./GraphCanvasFrame";
+import { NodeTooltip } from "./NodeTooltip";
 
 // ForceGraph3D 仅在客户端加载，避免 three.js SSR 问题。
 // react-force-graph-3d 导出 ClassComponent，用 any 绕过 dynamic() 的 FC 约束。
@@ -76,6 +77,7 @@ export function GraphCanvas3D({
   const fgRef = useRef(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [expanding, setExpanding] = useState(false);
+  const [tooltip, setTooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const propsRef = useRef({ corpusId, asOf, onNodeClick, onSubgraphMerge });
   const { resolvedTheme } = useTheme();
@@ -133,6 +135,26 @@ export function GraphCanvas3D({
   const handleNodeClick = useCallback((node: { id: string | number }) => {
     propsRef.current.onNodeClick(String(node.id));
   }, []);
+
+  const handleNodeHover = useCallback(
+    (node: { id: string | number; x?: number; y?: number; z?: number } | null) => {
+      if (!node || node.x == null || node.y == null || node.z == null) {
+        setTooltip(null);
+        return;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fg = fgRef.current as any;
+      try {
+        const screen = fg?.graph2ScreenCoords?.(node.x, node.y, node.z);
+        if (screen) {
+          setTooltip({ nodeId: String(node.id), x: screen.x, y: screen.y });
+        }
+      } catch {
+        setTooltip(null);
+      }
+    },
+    [],
+  );
 
   const handleNodeRightClick = useCallback(async (node: { id: string | number }) => {
     const { corpusId: cid, asOf: ao } = propsRef.current;
@@ -245,6 +267,7 @@ export function GraphCanvas3D({
             linkDirectionalArrowRelPos={1}
             backgroundColor={bgColor}
             onNodeClick={handleNodeClick}
+            onNodeHover={handleNodeHover}
             onNodeRightClick={handleNodeRightClick}
             onBackgroundClick={() => propsRef.current.onNodeClick("")}
             cooldownTicks={150}
@@ -255,6 +278,10 @@ export function GraphCanvas3D({
             showNavInfo={false}
           />
         )}
+        {tooltip && (() => {
+          const hoveredNode = nodes.find((n) => n.id === tooltip.nodeId);
+          return hoveredNode ? <NodeTooltip node={hoveredNode} x={tooltip.x} y={tooltip.y} /> : null;
+        })()}
       </div>
     </GraphCanvasFrame>
   );
