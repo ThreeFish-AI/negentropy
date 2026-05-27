@@ -421,6 +421,30 @@ class FitzTextExtractor(PDFToolBase):
         if text_stripped in ("SII-GAIR", "SII - GAIR"):
             return True
 
+        # R10-D15：期刊运行头 / 页脚的常见模式 —— 位置无关，仅靠文本特征即可判定，
+        # 因为 PyMuPDF 抽取时这些块的 bbox 可能因双栏 / 旋转文本被记到正文区。
+        #
+        # 1. Springer Nature 期刊页脚：``11 Page 2 of 37`` / ``Page 3 of 37 11``
+        #    （issue number + "Page X of Y" 或反向）
+        if re.match(r"^\d{1,4}\s+Page\s+\d+\s+of\s+\d+\s*$", text_stripped):
+            return True
+        if re.match(r"^Page\s+\d+\s+of\s+\d+\s+\d{1,4}\s*$", text_stripped):
+            return True
+        # 2. 双数字运行页码（双栏期刊常见，如 ``1 3``）—— 仅短文本且两段都是 1-4 位
+        if re.match(r"^\d{1,4}\s+\d{1,4}\s*$", text_stripped):
+            return True
+        # 3. 作者运行头：``First Initial. Surname et al.`` / ``Surname and Surname et al.``
+        if re.match(
+            r"^[A-Z]\.\s+[A-Za-z'\-]+(?:\s+[A-Za-z'\-]+)?\s+et\s+al\.?\s*$",
+            text_stripped,
+        ):
+            return True
+        if re.match(
+            r"^[A-Z][A-Za-z'\-]+\s+and\s+[A-Z][A-Za-z'\-]+\s+et\s+al\.?\s*$",
+            text_stripped,
+        ):
+            return True
+
         # 位置启发式：页面顶部/底部 5% 区域内的短文本
         # 保护：要求文本长度 ≥ 20 以排除短标题（如 "Introduction"、"Results"）
         # 页眉/页脚通常是会议简称 + 日期等组合，长度一般 ≥ 20
@@ -512,6 +536,20 @@ class FitzTextExtractor(PDFToolBase):
             if re.search(r"(?:^|\s)\d+\.\s+[A-Z]", section_title):
                 return None
 
+            # R10-D16：编号开头但内含完整句子（学术 PDF 列表项常被 PyMuPDF
+            # 抽为单段，再因 ``^\d+\.`` 前缀被升级为 heading，破坏文档大纲）。
+            # 句子型正文的强信号：① 作者代词 ``We / I / Our`` 接动词；② 不定式
+            # 列表 ``To <verb>``（连续逗号分隔项）；③ 显著主谓 + 多逗号子句。
+            # 10. 含作者代词 + 后续小写（动词起首）的句子结构
+            if re.search(r"\b(We|I|Our)\s+[a-z]", section_title):
+                return None
+            # 11. 不定式列表起首（``To identify, classify, and ...``）
+            if re.match(r"^To\s+[a-z]+,\s+\w+,", section_title):
+                return None
+            # 12. 多逗号子句（≥ 2 个 ``, ``）且长度 > 60 —— 句子型正文
+            if section_title.count(", ") >= 2 and len(section_title) > 60:
+                return None
+
             depth = section_num.count(".") + 1
             if depth == 1:
                 return 1
@@ -540,6 +578,14 @@ class FitzTextExtractor(PDFToolBase):
 
         # 排除 footnote 标记行（如 "† Corresponding author"）
         if re.match(r"^[†‡*§¶]\s", text_stripped) and len(text_stripped) < 100:
+            return None
+
+        # R10-D16 续：非编号路径下也过滤句子型正文（章节 lead-in 句被字号守卫
+        # 误升级）。强信号：作者代词 ``We / I / Our`` + 后续 2 个以上小写词，
+        # 仅当文本长度 > 50 时启用，避免误删合法短标题如 ``Our Method``。
+        if len(text_stripped) > 50 and re.search(
+            r"\b(We|I|Our)\s+[a-z]+\s+[a-z]", text_stripped
+        ):
             return None
 
         # 特殊标题词（整个文本就是标题）
