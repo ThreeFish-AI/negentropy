@@ -327,6 +327,8 @@ export function useChatAgent(options: UseChatAgentOptions): UseChatAgentResult {
           setStatus("error");
           return;
         }
+        // 若 await 期间 reset() 已更新 threadIdRef，丢弃本次发送
+        if (threadId !== threadIdRef.current) return;
         doSend(trimmed, threadId, userId);
       };
 
