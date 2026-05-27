@@ -149,6 +149,26 @@ graph TD
 
 Agent instruction 在 `apps/negentropy/src/negentropy/agents/faculties/perception.py:52` 明确规则。
 
+## 5.5 Ingest 智能识别（IntentClassifier）
+
+ISSUE-095 把 Composer @ 唤出框收敛为 2 Tab、移除 RUN_FINISHED 强制沉淀链路之后，
+沉淀入口由 LLM 根据用户自然语言意图自主触发，形成下述四组件闭环：
+
+| 组件 | 角色 |
+| --- | --- |
+| `engine/utils/action_intent.py::classify` | 关键词二分类（retrieve / ingest / ambiguous），中英双语，O(N) 正则扫描 |
+| `agents/agent.py::_pick_root_model` | before_model_callback 中读 user query → 写入 `state.action_intent_hint` |
+| Root Agent instruction「Ingest 意图分流」段 | hint==ingest 且 corpus_ids 非空 → transfer 给 InternalizationFaculty |
+| `agents/tools/ingest.py::ingest_to_corpus` | 越权防御 + Approval Gate（HIGH_RISK_TOOLS）+ 失败降级 buffer，复用 `KnowledgeService.ingest_text` |
+
+设计哲学：**「用户只表达意图，系统决定执行路径」**——分类器仅写 hint 不强制路径，
+LLM 仍可基于上下文二次决策。多 Corpus 歧义场景由 InternalizationFaculty
+instruction 触发反问，避免误写入。Approval Gate 默认 per_tool 拦截写入，受顶部
+ApprovalPolicy 控制可切换至 always / never。
+
+参考文献：[Wang24 Self-RAG] / [Rebedea23 NeMo Guardrails] / [LangGraph24 Routing]
+（详见末尾参考文献）。
+
 ## 6. Citation 来源标注
 
 每条 result 携带：
@@ -209,6 +229,11 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 | 派生 forwardedProps     | `packages/agents-chat-core/src/parse/mention-parser.ts`（`corpus_ids`，graph 模式由 HybridPlanner 自主决策）                                              |
 | BFF state_delta         | `packages/agents-chat-core/src/server/state-delta.ts`                                                                                                     |
 | MentionPopover 双 Tab   | `apps/negentropy-ui/components/ui/MentionPopover.tsx`（Agents / Corpus；图标 + Radix Tooltip）                                                            |
+| Action Intent Classifier | `apps/negentropy/src/negentropy/engine/utils/action_intent.py`（retrieve / ingest / ambiguous 三态关键词分类） |
+| ingest_to_corpus 工具    | `apps/negentropy/src/negentropy/agents/tools/ingest.py`（越权防御 + Approval Gate + 失败降级） |
+| Approval 白名单          | `apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` 含 `ingest_to_corpus`） |
+| Root Callback Hint       | `apps/negentropy/src/negentropy/agents/agent.py`（`_pick_root_model` 写 `state.action_intent_hint`） |
+| Internalization 接线     | `apps/negentropy/src/negentropy/agents/faculties/internalization.py`（tools 注册 + instruction「Ingest 触发协议」段） |
 
 ## 11. 浏览器实机验证清单（P0 必跑）
 
@@ -221,6 +246,14 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 - [ ] feature flag off → 完全回退到 legacy `_legacy_search_knowledge_base`
 - [ ] Planner Stage 抛异常（mock embedding 失败）→ 降级到 legacy 不打断 SSE 流
 
+**Ingest 智能识别（ISSUE-095 后续）独立场景**：
+- [ ] retrieve（@CorpusA 查询 X）→ `state.action_intent_hint == "retrieve"`，PerceptionFaculty 检索
+- [ ] ingest 单 Corpus（沉淀这段到 @CorpusA）→ `hint=="ingest"`，InternalizationFaculty 调 `ingest_to_corpus`，DB `knowledge.metadata->>'captured_by' = 'ingest_intent'` 新行
+- [ ] ingest 多 Corpus 歧义（@CorpusA @CorpusB 记一下要点）→ LLM 反问「写到哪个 Corpus」
+- [ ] ambiguous（先查再沉淀）→ `hint=="retrieve"` 保守缺省；LLM 二次决策
+- [ ] 越权防御（伪造 corpus_id）→ `ingest_to_corpus` 返回 `failed`，error 含「越权」
+- [ ] 无 @ Corpus（普通问候）→ `state.action_intent_hint` 不写入，0 回归
+
 ## 12. 不在本次范围（明确排除）
 
 - ❌ 跨 app（workspace federation）canonical 合并（schema 已预留 `app_scope`，Phase 2 再开）
@@ -228,3 +261,17 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 - ❌ 中文 tsvector 分词（仍为英文）
 - ❌ 多模态 embedding（仅 1536d 文本）
 - ❌ PostgreSQL RLS（Phase 2 加固选项）
+
+## 参考文献（IEEE 格式）
+
+[Wang24] J. Wang, Z. Chen, R. Pasunuru et al., "Self-RAG: Learning to Retrieve,
+Generate, and Critique through Self-Reflection," in *Proc. International
+Conference on Learning Representations (ICLR)*, 2024.
+
+[Rebedea23] T. Rebedea, R. Dinu, M. Sreedhar, C. Parisien, and J. Cohen,
+"NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with
+Programmable Rails," in *Proc. EMNLP System Demos*, 2023, pp. 431-445.
+
+[LangGraph24] LangChain AI, "LangGraph: Conditional Routing and Stateful
+Multi-Actor Workflows," LangGraph Documentation, 2024-2025. [Online].
+Available: https://langchain-ai.github.io/langgraph/

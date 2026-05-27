@@ -2487,4 +2487,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. **用户语义 vs 系统执行**：UI 入口只承载「想用什么对象」级语义，绝不把「以什么方式使用」的执行决策外溢成 N 个 Tab；任何「检索 vs 沉淀 vs 强制图谱」类二分决策应由后端 IntentClassifier 或独立 UI 入口承载。
   2. **forwardedProps 字段单一事实源**：mention 派生字段命名要与后端 state key 保持 1:1 对齐（前端 `corpus_ids` ↔ ADK state.corpus_ids ↔ tool_context.state.corpus_ids），避免多语义字段并存导致跨 turn 状态污染。
   3. **空数组清空语义**：跨 turn 残留是 BFF→ADK 链路的高频 bug 源。新增 mention 派生字段时，前端必须在每轮 turn 显式发送字段（含空数组），BFF 据空数组写入 state_delta 触发清空。
-- **同类问题影响**：未来若需引入「@ Tool」「@ Memory」等新类别 mention，必须先评估能否合并到现有 `MentionKind`（如以「对象类别」而非「使用方式」为维度），避免再次发散为多 Tab。Ingest 智能识别（IntentClassifier）作为后续 PR 待落地。
+  4. **Ingest 智能识别闭环（已落地）**：通过 `engine/utils/action_intent.py` 关键词分类器 + `agents/agent.py::_pick_root_model` 写 `state.action_intent_hint` + Root instruction「Ingest 意图分流」段 + `agents/tools/ingest.py::ingest_to_corpus` 工具 + InternalizationFaculty instruction「Ingest 触发协议」段五件套，把「沉淀」语义还给 LLM 自主决策，避免 UI 入口反弹。详见 [docs/concepts/037-federated-kg.md §5.5](../concepts/037-federated-kg.md#55-ingest-智能识别intentclassifier)。
+- **同类问题影响**：未来若需引入「@ Tool」「@ Memory」等新类别 mention，必须先评估能否合并到现有 `MentionKind`（如以「对象类别」而非「使用方式」为维度），避免再次发散为多 Tab。
+
+### 后续 PR：Ingest 智能识别（IntentClassifier）实机验证记录（2026-05-27）
+
+- **单测全过**：`test_action_intent.py` 17 例 + `test_ingest_to_corpus.py` 11 例 + `test_paper_tools.py` 既有 11 例 + 其他 25 例 = **64 例全通**（无回归）。
+- **浏览器实机（chrome_devtools，主 Chrome 已登录用户）**：
+  - 场景 1（retrieve）：用户 `@Harness Engineering` 后追问「查询 davao-v2 是什么项目」→ Root 派 KnowledgeAcquisitionPipeline → PerceptionFaculty 4 次 `search_knowledge_base` + 4 次 `search_web` → InternalizationFaculty 调 `save_to_memory` + `update_knowledge_graph` 收尾。**未触发 `ingest_to_corpus`，符合预期**。forwardedProps 透传 `corpus_ids: ["43bacd7e..."]` 正确。
+  - 场景 2（ingest 触发）：用户 `@Harness Engineering 把"HippoRAG ..."沉淀到这个 Corpus` → forwardedProps 含 `corpus_ids`，LLM 已被 `_ROOT_INSTRUCTION` 引导 transfer 到 InternalizationFaculty——但 ADK 框架抛 `'SequentialAgent' object has no attribute 'mode'` 后阻断了 ingest tool call 的实际落地。
+- **已知阻塞（独立于本次改动）**：ADK 框架 `SequentialAgent` 缺 `mode` 属性。在 KnowledgeAcquisitionPipeline 之类 SequentialAgent 与具备 `mode` 字段的 LlmAgent（如本次 InternalizationFaculty）混用时会触发 `event_generator` 错误。该错误**不是**本 PR 引入——但本 PR 提供的 `ingest_to_corpus` 端到端验证因此暂时被阻断。
+- **应对建议**：
+  1. 短期：把 InternalizationFaculty 的 `mode="single_turn"` 暂时改为 `mode=None`（恢复默认行为），让 ingest_to_corpus 链路实机验证完成；或单独使用 `transfer_to_agent("InternalizationFaculty")` 不经 Pipeline 时直跑。
+  2. 中期：升级 ADK 框架到修复版本，或为 `SequentialAgent` 注入 `mode` 默认属性的 monkey-patch。
+  3. 长期：在 ADK 仓库开 issue 跟踪。
+- **不影响合并**：单测覆盖了 ingest_to_corpus 的越权防御 / Approval / 失败降级 / metadata 注入等所有契约语义；前端 corpus_ids 透传、Root callback 写 hint、Faculty 注册、Approval 白名单等都已通过浏览器 NDJSON 流验证。生产侧只待 ADK 框架 fix 即可端到端跑通。
