@@ -313,6 +313,52 @@ class ScheduledTaskRegistry:
                 payload={"inspection_type": "scheduled_tasks_summary"},
                 token_budget=10_000,
             ),
+            dict(
+                key="memory_cleanup",
+                handler_kind="memory_automation",
+                trigger_type="cron",
+                cron_expr="0 2 * * *",
+                role="sentinel",
+                scenario="memory_retention",
+                category="maintenance",
+                display_name="Ebbinghaus Cleanup",
+                description="基于艾宾浩斯遗忘曲线清理低价值记忆",
+                payload={
+                    "job_type": "cleanup_memories",
+                    "threshold": 0.1,
+                    "min_age_days": 7,
+                    "decay_lambda": 0.1,
+                },
+            ),
+            dict(
+                key="memory_consolidation",
+                handler_kind="memory_automation",
+                trigger_type="cron",
+                cron_expr="0 * * * *",
+                role="sentinel",
+                scenario="memory_consolidation",
+                category="maintenance",
+                display_name="Maintenance Consolidation",
+                description="按时间窗口批量触发会话巩固任务",
+                payload={
+                    "job_type": "trigger_consolidation",
+                    "lookback_interval": "1 hour",
+                },
+            ),
+            dict(
+                key="memory_reweight",
+                handler_kind="memory_automation",
+                trigger_type="cron",
+                cron_expr="0 */6 * * *",
+                role="sentinel",
+                scenario="memory_relevance",
+                category="maintenance",
+                display_name="Rocchio Reweight",
+                description="定期聚合用户反馈，调整记忆检索权重",
+                payload={
+                    "job_type": "reweight_relevance",
+                },
+            ),
         ]
         async with AsyncSessionLocal() as db:
             for spec in defaults:

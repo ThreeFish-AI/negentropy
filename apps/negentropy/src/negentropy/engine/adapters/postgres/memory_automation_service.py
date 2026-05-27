@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import Any, Literal
 
 from sqlalchemy import select, text
@@ -15,6 +14,23 @@ logger = get_logger("negentropy.engine.adapters.postgres.memory_automation_servi
 
 JobKey = Literal["cleanup_memories", "trigger_consolidation", "reweight_relevance"]
 
+TASK_KEY_MAP: dict[str, str] = {
+    "cleanup_memories": "memory_cleanup",
+    "trigger_consolidation": "memory_consolidation",
+    "reweight_relevance": "memory_reweight",
+}
+
+JOB_LABELS: dict[JobKey, str] = {
+    "cleanup_memories": "Ebbinghaus Cleanup",
+    "trigger_consolidation": "Maintenance Consolidation",
+    "reweight_relevance": "Rocchio Reweight",
+}
+
+JOB_FUNCTION_NAMES: dict[JobKey, str] = {
+    "cleanup_memories": "cleanup_low_value_memories",
+    "trigger_consolidation": "trigger_maintenance_consolidation",
+    "reweight_relevance": "reweight_all_users_relevance",
+}
 
 DEFAULT_AUTOMATION_CONFIG: dict[str, Any] = {
     "retention": {
@@ -39,10 +55,6 @@ DEFAULT_AUTOMATION_CONFIG: dict[str, Any] = {
         "schedule": "0 */6 * * *",
     },
 }
-
-
-class MemoryAutomationUnavailableError(RuntimeError):
-    """Raised when automation runtime capabilities are not available."""
 
 
 def _format_float(value: float) -> str:
@@ -196,7 +208,7 @@ BEGIN
         WHERE outcome_feedback IS NOT NULL
     LOOP
         -- The actual reweight logic is in Python (rocchio_reweighter.py)
-        -- This SQL function is a placeholder for pg_cron integration
+        -- This SQL function is a placeholder for the unified scheduler handler
         -- The real execution path goes through run_job() → Python
         updated_count := updated_count + 1;
     END LOOP;
@@ -207,57 +219,22 @@ $$ LANGUAGE plpgsql;
     }
 
 
-@dataclass(frozen=True)
-class JobTemplate:
-    key: JobKey
-    process_label: str
-    function_name: str
-
-
-JOB_TEMPLATES: dict[JobKey, JobTemplate] = {
-    "cleanup_memories": JobTemplate(
-        key="cleanup_memories",
-        process_label="Ebbinghaus Cleanup",
-        function_name="cleanup_low_value_memories",
-    ),
-    "trigger_consolidation": JobTemplate(
-        key="trigger_consolidation",
-        process_label="Maintenance Consolidation",
-        function_name="trigger_maintenance_consolidation",
-    ),
-    "reweight_relevance": JobTemplate(
-        key="reweight_relevance",
-        process_label="Rocchio Reweight",
-        function_name="reweight_all_users_relevance",
-    ),
-}
-
-
 class MemoryAutomationService:
     async def get_snapshot(self, *, app_name: str) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
-        capabilities = await self._get_capabilities()
         functions = await self._get_function_states(config=config)
-        jobs = await self._get_job_states(config=config, capabilities=capabilities)
+        jobs = await self._get_job_states()
         logs = await self.get_logs(limit=10)
 
         degraded_reasons: list[str] = []
-        if not capabilities["pg_cron_installed"]:
-            degraded_reasons.append("pg_cron_not_installed")
-        elif not capabilities["pg_cron_available"]:
-            degraded_reasons.append("pg_cron_unavailable")
-        if not capabilities.get("pg_cron_logs_accessible", True):
-            degraded_reasons.append("pg_cron_logs_unavailable")
         if any(item["status"] == "missing" for item in functions):
             degraded_reasons.append("function_missing")
         if any(item["status"] == "drifted" for item in functions):
             degraded_reasons.append("function_drifted")
-        if any(item["status"] in {"drifted", "missing", "degraded"} for item in jobs):
-            degraded_reasons.append("job_drifted")
 
         return {
             "capabilities": {
-                **capabilities,
+                "scheduler_type": "unified_registry",
                 "management_mode": "backend-managed",
                 "degraded_reasons": degraded_reasons,
             },
@@ -272,15 +249,15 @@ class MemoryAutomationService:
         }
 
     async def get_logs(self, *, limit: int = 20) -> list[dict[str, Any]]:
-        capabilities = await self._get_capabilities()
-        if not capabilities["pg_cron_installed"] or not capabilities.get("pg_cron_logs_accessible", False):
-            return []
-
         sql = text(
             """
-            SELECT jobid, runid, database, username, command, status, return_message, start_time, end_time
-            FROM cron.job_run_details
-            ORDER BY start_time DESC
+            SELECT te.id, te.task_id, st.key AS task_key, te.status,
+                   te.duration_ms, te.started_at, te.finished_at,
+                   te.output_summary, te.error, te.fire_reason
+            FROM task_executions te
+            JOIN scheduled_tasks st ON st.id = te.task_id
+            WHERE st.handler_kind = 'memory_automation'
+            ORDER BY te.started_at DESC
             LIMIT :limit
             """
         )
@@ -290,15 +267,15 @@ class MemoryAutomationService:
 
         return [
             {
-                "job_id": row["jobid"],
-                "run_id": row["runid"],
-                "database": row["database"],
-                "username": row["username"],
-                "command": row["command"],
+                "execution_id": str(row["id"]),
+                "task_id": str(row["task_id"]),
+                "task_key": row["task_key"],
                 "status": row["status"],
-                "return_message": row["return_message"],
-                "start_time": row["start_time"].isoformat() if row["start_time"] else None,
-                "end_time": row["end_time"].isoformat() if row["end_time"] else None,
+                "duration_ms": row["duration_ms"],
+                "started_at": row["started_at"].isoformat() if row["started_at"] else None,
+                "finished_at": row["finished_at"].isoformat() if row["finished_at"] else None,
+                "output_summary": row["output_summary"],
+                "error": row["error"],
             }
             for row in rows
         ]
@@ -323,6 +300,7 @@ class MemoryAutomationService:
             await db.commit()
 
         await self.reconcile_all(app_name=app_name, config=merged)
+        await self._sync_config_to_scheduled_tasks(config=merged)
         return merged
 
     async def enable_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
@@ -340,46 +318,55 @@ class MemoryAutomationService:
     async def reconcile_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
         await self._reconcile_functions(config=config)
-        await self._ensure_scheduler_available(job_key=job_key)
-        await self._reconcile_single_job(job_key=job_key, config=config)
         return await self.get_snapshot(app_name=app_name)
 
     async def reconcile_all(self, *, app_name: str, config: dict[str, Any] | None = None) -> None:
         effective_config = config or await self.get_effective_config(app_name=app_name)
         await self._reconcile_functions(config=effective_config)
-        capabilities = await self._get_capabilities()
-        if capabilities["pg_cron_available"]:
-            for job_key in JOB_TEMPLATES:
-                await self._reconcile_single_job(job_key=job_key, config=effective_config)
-        else:
-            # pg_cron 不可用时，启动应用层调度器回退
-            await self._start_async_scheduler_fallback(app_name=app_name, config=effective_config)
 
     async def run_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
         await self._reconcile_functions(config=config)
-        template = self._get_job_template(job_key)
+        process_label = JOB_LABELS.get(job_key, job_key)
 
         if job_key == "reweight_relevance":
             result_data = await self._run_reweight_relevance()
-        else:
-            await self._ensure_scheduler_available(job_key=job_key)
-            sql = self._build_manual_run_sql(job_key=job_key, config=config)
+        elif job_key == "cleanup_memories":
+            retention = config["retention"]
+            sql = text(
+                f"SELECT {NEGENTROPY_SCHEMA}.cleanup_low_value_memories(:threshold, :min_age_days, :decay_lambda)"
+            )
             async with AsyncSessionLocal() as db:
-                result = await db.execute(text(sql))
+                result = await db.execute(
+                    sql,
+                    {
+                        "threshold": retention["low_retention_threshold"],
+                        "min_age_days": retention["min_age_days"],
+                        "decay_lambda": retention["decay_lambda"],
+                    },
+                )
                 row = result.first()
                 await db.commit()
             result_data = row[0] if row else None
+        elif job_key == "trigger_consolidation":
+            consolidation = config["consolidation"]
+            sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(:lookback::interval)")
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(sql, {"lookback": consolidation["lookback_interval"]})
+                row = result.first()
+                await db.commit()
+            result_data = row[0] if row else None
+        else:
+            raise ValueError(f"Unsupported job key: {job_key}")
 
         return {
             "job_key": job_key,
-            "process_label": template.process_label,
+            "process_label": process_label,
             "result": result_data,
             "snapshot": await self.get_snapshot(app_name=app_name),
         }
 
     async def _run_reweight_relevance(self) -> dict[str, Any]:
-        """执行 Rocchio 相关性重加权：遍历所有有反馈的用户，调用 Python 重排。"""
         import sqlalchemy as sa
 
         from negentropy.engine.relevance.rocchio_reweighter import reweight_memories
@@ -414,8 +401,7 @@ class MemoryAutomationService:
 
     async def list_policy_summary(self, *, app_name: str) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
-        capabilities = await self._get_capabilities()
-        jobs = await self._get_job_states(config=config, capabilities=capabilities)
+        jobs = await self._get_job_states()
         return {
             "decay_lambda": config["retention"]["decay_lambda"],
             "low_retention_threshold": config["retention"]["low_retention_threshold"],
@@ -423,83 +409,62 @@ class MemoryAutomationService:
             "cleanup_cron": config["retention"]["cleanup_schedule"],
             "consolidation_enabled": config["consolidation"]["enabled"],
             "consolidation_cron": config["consolidation"]["schedule"],
-            "pg_cron_installed": capabilities["pg_cron_installed"],
             "managed_jobs": {job["job_key"]: job["status"] for job in jobs},
         }
 
-    async def _start_async_scheduler_fallback(self, *, app_name: str, config: dict[str, Any]) -> None:
-        """当 pg_cron 不可用时，启动应用层调度器回退
-
-        借鉴 Claude Code AutoDream 的门控策略：
-        - 时间门控：每个任务按配置的 cron 间隔换算为秒数
-        - 锁：通过 SQL 函数内部的逻辑保证（单次执行不并发）
-        """
-        from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
-
-        if not hasattr(self, "_async_scheduler"):
-            self._async_scheduler: AsyncScheduler | None = None
-
-        # 如果调度器已运行，先停止
-        if self._async_scheduler and self._async_scheduler.is_running:
-            self._async_scheduler.stop()
-
-        scheduler = AsyncScheduler(poll_interval=60)
-
+    async def _sync_config_to_scheduled_tasks(self, *, config: dict[str, Any]) -> None:
+        """Config 变更后同步 payload 和 cron_expr 到 scheduled_tasks。"""
         retention = config["retention"]
         consolidation = config["consolidation"]
+        reweight = config["reweight_relevance"]
 
-        # cleanup_memories: 默认每天执行一次
-        if retention.get("auto_cleanup_enabled"):
+        updates = [
+            (
+                TASK_KEY_MAP["cleanup_memories"],
+                retention["auto_cleanup_enabled"],
+                retention["cleanup_schedule"],
+                {
+                    "job_type": "cleanup_memories",
+                    "threshold": retention["low_retention_threshold"],
+                    "min_age_days": retention["min_age_days"],
+                    "decay_lambda": retention["decay_lambda"],
+                },
+            ),
+            (
+                TASK_KEY_MAP["trigger_consolidation"],
+                consolidation["enabled"],
+                consolidation["schedule"],
+                {
+                    "job_type": "trigger_consolidation",
+                    "lookback_interval": consolidation["lookback_interval"],
+                },
+            ),
+            (
+                TASK_KEY_MAP["reweight_relevance"],
+                reweight["enabled"],
+                reweight["schedule"],
+                {
+                    "job_type": "reweight_relevance",
+                },
+            ),
+        ]
 
-            async def _cleanup():
-                sql = f"SELECT {NEGENTROPY_SCHEMA}.cleanup_low_value_memories()"
-                async with AsyncSessionLocal() as db:
-                    await db.execute(text(sql))
-                    await db.commit()
-
-            scheduler.register(
-                key="cleanup_memories",
-                callback=_cleanup,
-                interval_seconds=86400,  # 24h
-            )
-
-        # trigger_consolidation: 默认每小时执行一次
-        if consolidation.get("enabled"):
-
-            async def _consolidate():
-                lookback = consolidation.get("lookback_interval", "1 hour")
-                sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(:lookback::interval)")
-                async with AsyncSessionLocal() as db:
-                    await db.execute(sql, {"lookback": lookback})
-                    await db.commit()
-
-            scheduler.register(
-                key="trigger_consolidation",
-                callback=_consolidate,
-                interval_seconds=3600,  # 1h
-            )
-
-        # reweight_relevance: 默认每 6 小时执行一次
-        reweight = config.get("reweight_relevance", {})
-        if reweight.get("enabled"):
-
-            async def _reweight():
-                await self._run_reweight_relevance()
-
-            scheduler.register(
-                key="reweight_relevance",
-                callback=_reweight,
-                interval_seconds=21600,  # 6h
-            )
-
-        if scheduler.registered_jobs:
-            scheduler.start()
-            self._async_scheduler = scheduler
-            logger.info(
-                "async_scheduler_started",
-                app_name=app_name,
-                jobs=scheduler.registered_jobs,
-            )
+        async with AsyncSessionLocal() as db:
+            for task_key, enabled, cron_expr, payload in updates:
+                await db.execute(
+                    text(
+                        "UPDATE scheduled_tasks SET enabled = :enabled, "
+                        "cron_expr = :cron_expr, payload = :payload ::jsonb "
+                        "WHERE key = :task_key"
+                    ),
+                    {
+                        "task_key": task_key,
+                        "enabled": enabled,
+                        "cron_expr": cron_expr,
+                        "payload": str(payload).replace("'", '"'),
+                    },
+                )
+            await db.commit()
 
     async def _load_stored_config(self, *, app_name: str) -> dict[str, Any]:
         async with AsyncSessionLocal() as db:
@@ -513,61 +478,6 @@ class MemoryAutomationService:
             for sql in function_definitions.values():
                 await db.execute(text(sql))
             await db.commit()
-
-    async def _reconcile_single_job(self, *, job_key: JobKey, config: dict[str, Any]) -> None:
-        template = self._get_job_template(job_key)
-        enabled, schedule, command = self._build_job_runtime(job_key=job_key, config=config)
-        async with AsyncSessionLocal() as db:
-            if not enabled:
-                await db.execute(
-                    text("SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = :job_name"),
-                    {"job_name": template.key},
-                )
-                await db.commit()
-                return
-
-            existing = await db.execute(
-                text(
-                    """
-                    SELECT jobid, schedule, command
-                    FROM cron.job
-                    WHERE jobname = :job_name
-                    LIMIT 1
-                    """
-                ),
-                {"job_name": template.key},
-            )
-            row = existing.mappings().first()
-            if row is None:
-                await db.execute(
-                    text("SELECT cron.schedule(:job_name, :schedule, :command)"),
-                    {"job_name": template.key, "schedule": schedule, "command": command},
-                )
-            elif row["schedule"] != schedule or row["command"] != command:
-                await db.execute(
-                    text("SELECT cron.unschedule(:job_id)"),
-                    {"job_id": row["jobid"]},
-                )
-                await db.execute(
-                    text("SELECT cron.schedule(:job_name, :schedule, :command)"),
-                    {"job_name": template.key, "schedule": schedule, "command": command},
-                )
-            await db.commit()
-
-    async def _get_capabilities(self) -> dict[str, Any]:
-        installed = await self._is_pg_cron_installed()
-        scheduler_accessible = False
-        logs_accessible = False
-
-        if installed:
-            scheduler_accessible = await self._probe_pg_cron_table("cron.job")
-            logs_accessible = await self._probe_pg_cron_table("cron.job_run_details")
-
-        return {
-            "pg_cron_installed": installed,
-            "pg_cron_available": installed and scheduler_accessible,
-            "pg_cron_logs_accessible": installed and logs_accessible,
-        }
 
     async def _get_function_states(self, *, config: dict[str, Any]) -> list[dict[str, Any]]:
         function_definitions = _build_function_definitions(config)
@@ -608,88 +518,52 @@ class MemoryAutomationService:
             )
         return states
 
-    async def _get_job_states(self, *, config: dict[str, Any], capabilities: dict[str, Any]) -> list[dict[str, Any]]:
-        cron_rows: dict[str, dict[str, Any]] = {}
-        if capabilities["pg_cron_installed"]:
-            if not capabilities["pg_cron_available"]:
-                return [
-                    {
-                        "job_key": job_key,
-                        "process_label": template.process_label,
-                        "function_name": template.function_name,
-                        "enabled": self._build_job_runtime(job_key=job_key, config=config)[0],
-                        "status": "degraded"
-                        if self._build_job_runtime(job_key=job_key, config=config)[0]
-                        else "disabled",
-                        "job_id": None,
-                        "schedule": self._build_job_runtime(job_key=job_key, config=config)[1],
-                        "command": self._build_job_runtime(job_key=job_key, config=config)[2],
-                        "active": False,
-                    }
-                    for job_key, template in JOB_TEMPLATES.items()
-                ]
-            async with AsyncSessionLocal() as db:
-                result = await db.execute(
-                    text(
-                        """
-                        SELECT jobid, jobname, schedule, command, active
-                        FROM cron.job
-                        """
-                    ),
-                )
-                cron_rows = {
-                    row["jobname"]: dict(row) for row in result.mappings().all() if row["jobname"] in JOB_TEMPLATES
-                }
+    async def _get_job_states(self) -> list[dict[str, Any]]:
+        """从 scheduled_tasks 表读取 memory_automation 作业状态。"""
+        sql = text(
+            """
+            SELECT id, key, enabled, cron_expr, last_status,
+                   last_fire_at, next_fire_at, consecutive_failures,
+                   payload, display_name
+            FROM scheduled_tasks
+            WHERE handler_kind = 'memory_automation'
+            ORDER BY key
+            """
+        )
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(sql)
+            rows = result.mappings().all()
 
+        reverse_map = {v: k for k, v in TASK_KEY_MAP.items()}
         jobs = []
-        for job_key, template in JOB_TEMPLATES.items():
-            enabled, schedule, command = self._build_job_runtime(job_key=job_key, config=config)
-            row = cron_rows.get(job_key)
-            status = "disabled"
-            if row:
+        for row in rows:
+            task_key = row["key"]
+            job_key = reverse_map.get(task_key, task_key)
+            last_status = row["last_status"]
+            if last_status is None:
+                status = "pending"
+            elif last_status == "ok":
                 status = "scheduled"
-                if row["schedule"] != schedule or row["command"] != command:
-                    status = "drifted"
-            elif enabled and not capabilities["pg_cron_installed"]:
-                status = "degraded"
-            elif enabled:
-                status = "missing"
+            elif last_status == "failed":
+                status = "failed"
+            else:
+                status = last_status
 
             jobs.append(
                 {
                     "job_key": job_key,
-                    "process_label": template.process_label,
-                    "function_name": template.function_name,
-                    "enabled": enabled,
+                    "process_label": row["display_name"] or JOB_LABELS.get(job_key, job_key),
+                    "function_name": JOB_FUNCTION_NAMES.get(job_key, ""),
+                    "enabled": row["enabled"],
                     "status": status,
-                    "job_id": row["jobid"] if row else None,
-                    "schedule": schedule,
-                    "command": command,
-                    "active": bool(row["active"]) if row and "active" in row else False,
+                    "task_id": str(row["id"]),
+                    "schedule": row["cron_expr"] or "",
+                    "last_status": last_status,
+                    "last_fire_at": row["last_fire_at"].isoformat() if row["last_fire_at"] else None,
+                    "next_fire_at": row["next_fire_at"].isoformat() if row["next_fire_at"] else None,
                 }
             )
         return jobs
-
-    async def _is_pg_cron_installed(self) -> bool:
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'pg_cron' LIMIT 1"))
-            return result.scalar() == 1
-
-    async def _probe_pg_cron_table(self, table_name: str) -> bool:
-        try:
-            async with AsyncSessionLocal() as db:
-                await db.execute(text(f"SELECT 1 FROM {table_name} LIMIT 1"))
-                return True
-        except Exception as exc:
-            logger.warning("memory_automation_pg_cron_probe_failed", table=table_name, error=str(exc))
-            return False
-
-    async def _ensure_scheduler_available(self, *, job_key: JobKey) -> None:
-        capabilities = await self._get_capabilities()
-        if not capabilities["pg_cron_available"]:
-            raise MemoryAutomationUnavailableError(
-                f"Scheduler job '{job_key}' is unavailable because pg_cron is not installed or not accessible"
-            )
 
     def _build_processes(
         self,
@@ -706,7 +580,7 @@ class MemoryAutomationService:
                 "label": "Retention Cleanup",
                 "description": "基于艾宾浩斯遗忘曲线清理低价值记忆。",
                 "config": config["retention"],
-                "job": job_map["cleanup_memories"],
+                "job": job_map.get("cleanup_memories"),
                 "functions": [
                     function_map["calculate_retention_score"],
                     function_map["cleanup_low_value_memories"],
@@ -725,7 +599,7 @@ class MemoryAutomationService:
                 "label": "Maintenance Consolidation",
                 "description": "按时间窗口批量触发会话巩固任务。",
                 "config": config["consolidation"],
-                "job": job_map["trigger_consolidation"],
+                "job": job_map.get("trigger_consolidation"),
                 "functions": [function_map["trigger_maintenance_consolidation"]],
             },
             {
@@ -733,7 +607,7 @@ class MemoryAutomationService:
                 "label": "Rocchio Relevance Reweight",
                 "description": "定期聚合用户反馈，调整记忆检索权重。",
                 "config": config["reweight_relevance"],
-                "job": job_map["reweight_relevance"],
+                "job": job_map.get("reweight_relevance"),
                 "functions": [function_map["reweight_all_users_relevance"]],
             },
         ]
@@ -775,43 +649,5 @@ class MemoryAutomationService:
             return
         raise ValueError(f"Unsupported job key: {job_key}")
 
-    def _build_job_runtime(self, *, job_key: JobKey, config: dict[str, Any]) -> tuple[bool, str, str]:
-        if job_key == "cleanup_memories":
-            retention = config["retention"]
-            return (
-                bool(retention["auto_cleanup_enabled"]),
-                retention["cleanup_schedule"],
-                "SELECT "
-                f"{NEGENTROPY_SCHEMA}.cleanup_low_value_memories("
-                f"{retention['low_retention_threshold']}, "
-                f"{retention['min_age_days']}, "
-                f"{retention['decay_lambda']}"
-                ")",
-            )
-        if job_key == "trigger_consolidation":
-            consolidation = config["consolidation"]
-            interval = str(consolidation["lookback_interval"]).replace("'", "''")
-            return (
-                bool(consolidation["enabled"]),
-                consolidation["schedule"],
-                f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{interval}'::interval)",
-            )
-        reweight = config["reweight_relevance"]
-        return (
-            bool(reweight["enabled"]),
-            reweight["schedule"],
-            f"SELECT {NEGENTROPY_SCHEMA}.reweight_all_users_relevance()",
-        )
-
-    def _build_manual_run_sql(self, *, job_key: JobKey, config: dict[str, Any]) -> str:
-        _, _, command = self._build_job_runtime(job_key=job_key, config=config)
-        return command
-
     def _normalize_sql(self, sql: str) -> str:
         return " ".join(sql.split()).strip().lower()
-
-    def _get_job_template(self, job_key: JobKey) -> JobTemplate:
-        template = JOB_TEMPLATES.get(job_key)
-        if template is None:
-            raise ValueError(f"Unsupported job key: {job_key}")
-        return template
