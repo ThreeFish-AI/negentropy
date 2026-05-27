@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import re
+from html import escape as html_escape
 from typing import Dict, Optional
 
 from ...base import StageResult
@@ -41,8 +42,7 @@ def _ensure_h1_title(html: str, title: str) -> str:
         return html
     if _H1_TAG_RE.search(html):
         return html
-    # 简单转义防止 title 含尖括号
-    safe = title.replace("<", "&lt;").replace(">", "&gt;")
+    safe = html_escape(title)
     h1_html = f"<h1>{safe}</h1>"
 
     # 优先注入到 <body> 开头
