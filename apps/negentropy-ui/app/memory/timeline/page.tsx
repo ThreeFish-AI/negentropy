@@ -153,16 +153,13 @@ export default function MemoryTimelinePage() {
                   {searchResult ? "Search Results" : "Memory Timeline"}
                 </h2>
                 <span className="text-xs text-muted">
+                  {displayItems.length} memories ·{" "}
                   {selectedUserId
                     ? users.find((u) => u.id === selectedUserId)?.name || selectedUserId
                     : "all users"}
                   {searchResult && ` · ${searchResult.count} result(s)`}
                 </span>
               </div>
-
-              <span className="text-xs text-muted">
-                {displayItems.length} memories
-              </span>
 
               {/* Search */}
               {selectedUserId && (
