@@ -18,6 +18,7 @@ import { DimensionCharts } from "./_components/DimensionCharts";
 import { ExecutionTimeline } from "./_components/ExecutionTimeline";
 import { FilterBar } from "./_components/FilterBar";
 import { MemoryDetailPanel } from "./_components/MemoryDetailPanel";
+import { RetrievalMetricsCard } from "./_components/RetrievalMetricsCard";
 import { TaskDetailDrawer } from "./_components/TaskDetailDrawer";
 import { TaskTable } from "./_components/TaskTable";
 import { useDashboardAgentOptions } from "./_hooks/useDashboardAgentOptions";
@@ -161,6 +162,8 @@ export default function DashboardPage() {
       />
 
       {/* Expandable Memory detail panel */}
+      <RetrievalMetricsCard appName={APP_NAME} />
+
       <MemoryDetailPanel
         dashboard={memoryDashboard}
         loading={memoryLoading}

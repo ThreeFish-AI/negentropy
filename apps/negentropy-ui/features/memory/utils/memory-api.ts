@@ -573,12 +573,12 @@ export async function submitRetrievalFeedback(
 }
 
 export async function fetchRetrievalMetrics(params: {
-  user_id: string;
+  user_id?: string;
   app_name?: string;
   days?: number;
 }): Promise<RetrievalMetrics> {
   const qs = new URLSearchParams();
-  qs.set("user_id", params.user_id);
+  if (params.user_id) qs.set("user_id", params.user_id);
   if (params.app_name) qs.set("app_name", params.app_name);
   if (params.days) qs.set("days", String(params.days));
 
