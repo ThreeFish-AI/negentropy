@@ -5,10 +5,8 @@ import { WikiForceGraphCanvas } from "@/components/WikiForceGraphCanvas";
 import { WikiGraphCanvas } from "@/components/WikiGraphCanvas";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
-import { WikiSidebar } from "@/components/WikiSidebar";
 import {
   countLeafEntries,
-  findIndexEntry,
   resolveSectionView,
   wikiApi,
   type WikiNavTreeItem,
@@ -27,8 +25,8 @@ import type { WikiGraphResponse } from "@/lib/wiki-graph-types";
  *   - 客户端组件 `WikiGraphCanvas` 自带 ``"use client"``，Sigma WebGL bundle
  *     会被 Next.js 自动拆分进本路由的客户端 chunk，SSR 阶段不引入。
  *
- * 与文档详情页对齐：复用 `WikiLayoutShell` 三栏壳（无 TOC）+ `WikiHeader`
- * tabs（带"知识图谱"入口，并标记为 active）+ `WikiSidebar` 导航子树。
+ * 图谱页使用全宽布局（variant="home"），无 sidebar / TOC，canvas 占满
+ * viewport 宽度以最大化图谱可视化空间。
  */
 
 export const revalidate = 300;
@@ -76,19 +74,8 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
     );
   }
 
-  const indexEntry = findIndexEntry(navItems);
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
-
-  const sidebar = (
-    <WikiSidebar
-      pubSlug={pubSlug}
-      publication={publication}
-      sidebarItems={sectionView.sidebarItems}
-      hasActiveItem={!!sectionView.activeItem}
-      indexEntry={indexEntry}
-    />
-  );
 
   const header = sectionView.headerItems.length > 0 && (
     <WikiHeader
@@ -101,31 +88,38 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
   );
 
   return (
-    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined}>
-      <header className="wiki-doc-header">
-        <h1 className="wiki-doc-title">知识图谱 · {publication.name}</h1>
-        <div className="wiki-doc-meta">
-          版本 v{publication.version}
-          {graph && graph.nodes.length > 0 && (
-            <>
-              {" · "}
-              {graph.nodes.length} 节点 · {graph.edges.length} 边
-              {graph.truncated && graph.total_entities > graph.nodes.length && (
-                <>
-                  {" · "}共 {graph.total_entities} 实体
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </header>
+    <WikiLayoutShell
+      sidebar={<></>}
+      hasToc={false}
+      header={header || undefined}
+      variant="home"
+    >
+      <div className="wiki-graph-page">
+        <header className="wiki-graph-page-header">
+          <h1 className="wiki-doc-title">知识图谱 · {publication.name}</h1>
+          <div className="wiki-doc-meta">
+            版本 v{publication.version}
+            {graph && graph.nodes.length > 0 && (
+              <>
+                {" · "}
+                {graph.nodes.length} 节点 · {graph.edges.length} 边
+                {graph.truncated && graph.total_entities > graph.nodes.length && (
+                  <>
+                    {" · "}共 {graph.total_entities} 实体
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </header>
 
-      <WikiGraphBody
-        pubSlug={pubSlug}
-        publication={publication}
-        graph={graph}
-        graphError={graphError}
-      />
+        <WikiGraphBody
+          pubSlug={pubSlug}
+          publication={publication}
+          graph={graph}
+          graphError={graphError}
+        />
+      </div>
     </WikiLayoutShell>
   );
 }

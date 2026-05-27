@@ -47,6 +47,7 @@ class KgEntityService:
         metadata: dict | None = None,
         corpus_id: UUID | None = None,
         app_name: str = "negentropy",
+        document_id: UUID | None = None,
     ) -> bool:
         """从 knowledge 记录同步实体到 kg_entities 表（双写）
 
@@ -69,7 +70,7 @@ class KgEntityService:
             调用方据此区分 ``created`` / ``updated``，避免误把幂等更新当新增计入指标
             （参 issue.md ISSUE-032）。
         """
-        from negentropy.models.perception import KgEntity
+        from negentropy.models.perception import KgEntity, KgEntityMention
 
         # 检查是否已存在（幂等），仅使用 (corpus_id, canonical_name) 匹配
         # 与 UNIQUE 约束 uq_kg_entity_corpus_name 对齐，避免同名称不同 entity_type 时
@@ -107,6 +108,25 @@ class KgEntityService:
                 merged = {**(existing_rec.properties or {}), **metadata}
                 existing_rec.properties = merged
             existing_rec.mention_count += 1
+            # 为当前 document 创建 mention（幂等：已存在则跳过）
+            if document_id is not None:
+                existing_mention = await db.execute(
+                    sa.select(KgEntityMention)
+                    .where(
+                        KgEntityMention.entity_id == existing_rec.id,
+                        KgEntityMention.document_id == document_id,
+                    )
+                    .limit(1)
+                )
+                if existing_mention.scalar_one_or_none() is None:
+                    extra_mention = KgEntityMention(
+                        entity_id=existing_rec.id,
+                        corpus_id=corpus_id,
+                        document_id=document_id,
+                        context_snippet=f"Entity '{name}' mentioned in document",
+                    )
+                    db.add(extra_mention)
+                    await db.flush()
             logger.debug(
                 "kg_entity_updated",
                 extra={
@@ -135,11 +155,11 @@ class KgEntityService:
         # 创建 mention 记录（此时 new_entity.id 已生成）
         # 注意：knowledge_chunk_id 不在此设置，因为 knowledge_id 在批量同步场景中
         # 可能指向不存在的 Knowledge 记录，会导致 FK 约束违规
-        from negentropy.models.perception import KgEntityMention
 
         mention = KgEntityMention(
             entity_id=new_entity.id,
             corpus_id=corpus_id,
+            document_id=document_id,
             context_snippet=f"Entity '{name}' extracted from chunk",
         )
         db.add(mention)
@@ -293,6 +313,9 @@ class KgEntityService:
 
         for node in nodes:
             try:
+                node_doc_ids = node.get("document_ids") or []
+                primary_doc_id = UUID(node_doc_ids[0]) if node_doc_ids else None
+
                 async with db.begin_nested():  # SAVEPOINT: 单条失败仅回滚此 savepoint
                     created = await self.sync_entity_from_knowledge(
                         db,
@@ -303,11 +326,20 @@ class KgEntityService:
                         metadata=node.get("metadata"),
                         corpus_id=corpus_id,
                         app_name=app_name,
+                        document_id=primary_doc_id,
                     )
                 if created:
                     entities_created += 1
                 else:
                     entities_updated += 1
+                # 为额外的 document 创建 mention（幂等）
+                if len(node_doc_ids) > 1:
+                    await self._ensure_extra_document_mentions(
+                        db,
+                        node=node,
+                        extra_doc_ids=node_doc_ids[1:],
+                        corpus_id=corpus_id,
+                    )
             except Exception as exc:
                 entities_failed += 1
                 logger.warning(
@@ -371,6 +403,62 @@ class KgEntityService:
             "relations_skipped": relations_skipped,
             "relations_failed": relations_failed,
         }
+
+    async def _ensure_extra_document_mentions(
+        self,
+        db: AsyncSession,
+        *,
+        node: dict,
+        extra_doc_ids: list[str],
+        corpus_id: UUID | None,
+    ) -> None:
+        """为多 document 实体的额外 document 创建 mention（幂等）。
+
+        当一个实体从多个 document 的 chunk 中被提取时，主 document 已在
+        sync_entity_from_knowledge 中创建 mention，此方法为剩余 document 补建。
+        """
+        from negentropy.models.perception import KgEntity, KgEntityMention
+
+        name = node.get("label") or node.get("id", "unknown")
+        canonical = name.strip().lower()
+        _corpus_filters = [KgEntity.corpus_id == corpus_id] if corpus_id else []
+
+        entity_result = await db.execute(
+            sa.select(KgEntity).where(KgEntity.canonical_name == canonical, *_corpus_filters).limit(1)
+        )
+        entity_rec = entity_result.scalar_one_or_none()
+        if entity_rec is None:
+            return
+
+        for doc_id_str in extra_doc_ids:
+            try:
+                doc_uuid = UUID(doc_id_str)
+                existing = await db.execute(
+                    sa.select(KgEntityMention)
+                    .where(
+                        KgEntityMention.entity_id == entity_rec.id,
+                        KgEntityMention.document_id == doc_uuid,
+                    )
+                    .limit(1)
+                )
+                if existing.scalar_one_or_none() is None:
+                    mention = KgEntityMention(
+                        entity_id=entity_rec.id,
+                        corpus_id=corpus_id,
+                        document_id=doc_uuid,
+                        context_snippet=f"Entity '{name}' extracted from document",
+                    )
+                    db.add(mention)
+                    await db.flush()
+            except Exception as exc:
+                logger.warning(
+                    "extra_document_mention_failed",
+                    extra={
+                        "entity": name,
+                        "document_id": doc_id_str,
+                        "error": str(exc),
+                    },
+                )
 
     async def get_top_entities(
         self,

@@ -427,6 +427,8 @@ class GraphService:
             # 分批处理
             all_entities: list[GraphNode] = []
             all_relations: list[GraphEdge] = []
+            # entity canonical_label → set of document_ids（用于 mention 创建时关联 document）
+            entity_to_documents: dict[str, set[str]] = {}
             chunks_processed = 0
             failed_chunk_count = 0
             chunks_fallback = 0
@@ -623,7 +625,7 @@ class GraphService:
             async def process_chunk(
                 chunk: dict[str, Any],
                 chunk_index: int,
-            ) -> tuple[list[GraphNode], list[GraphEdge]]:
+            ) -> tuple[list[GraphNode], list[GraphEdge], str | None]:
                 """处理单个知识块，LLM 提取失败时降级到 fallback 提取器。
 
                 Args:
@@ -668,7 +670,7 @@ class GraphService:
                     text = chunk.get("content", "")
                     if not text:
                         _log_chunk_done([], [], mode="empty")
-                        return [], []
+                        return [], [], None
 
                     logger.info(
                         "chunk_processing_started",
@@ -685,7 +687,7 @@ class GraphService:
                         chunks_fallback += 1
                         fb_entities, fb_relations = await _fallback_extract_chunk(text, chunk_id)
                         _log_chunk_done(fb_entities, fb_relations, mode="fallback_fast_path")
-                        return fb_entities, fb_relations
+                        return fb_entities, fb_relations, chunk.get("document_id")
 
                     # ── 正常 LLM 提取路径 ──
                     # 实体提取与关系提取拆分为独立 try/except，实现部分结果保留：
@@ -743,7 +745,7 @@ class GraphService:
                         chunks_fallback += 1
                         fb_entities, fb_relations = await _fallback_extract_chunk(text, chunk_id)
                         _log_chunk_done(fb_entities, fb_relations, mode="fallback_entity_timeout")
-                        return fb_entities, fb_relations
+                        return fb_entities, fb_relations, chunk.get("document_id")
 
                     # 实体提取成功 → 检查断路器再尝试关系提取
                     if llm_cancel.is_set():
@@ -767,7 +769,7 @@ class GraphService:
                                 error=str(fallback_exc),
                             )
                         _log_chunk_done(entities, relations, mode="entity_llm_relation_cooccurrence")
-                        return entities, relations
+                        return entities, relations, chunk.get("document_id")
 
                     try:
                         relations = await asyncio.wait_for(
@@ -783,7 +785,7 @@ class GraphService:
                         # LLM 全部成功 → 重置断路器
                         circuit_breaker.record_success()
                         _log_chunk_done(entities, relations, mode="llm_full")
-                        return entities, relations
+                        return entities, relations, chunk.get("document_id")
                     except (TimeoutError, Exception) as exc:
                         if isinstance(exc, PipelineCancelled):
                             raise
@@ -821,7 +823,7 @@ class GraphService:
                                 error=str(fallback_exc),
                             )
                         _log_chunk_done(entities, relations, mode="entity_llm_relation_fallback")
-                        return entities, relations
+                        return entities, relations, chunk.get("document_id")
 
             async def _fallback_extract_chunk(
                 text: str,
@@ -895,9 +897,15 @@ class GraphService:
                         failed_chunk_count += 1
                         continue
 
-                    entities, relations = result
+                    entities, relations, doc_id = result
                     all_entities.extend(entities)
                     all_relations.extend(relations)
+                    # 累积 entity → documents 映射（用于 mention 创建时关联 document）
+                    if doc_id:
+                        for e in entities:
+                            key = (e.label or "").strip().lower()
+                            if key:
+                                entity_to_documents.setdefault(key, set()).add(doc_id)
                     chunks_processed += 1
                     logger.info(
                         "chunk_processing_completed",
@@ -1180,16 +1188,21 @@ class GraphService:
                 from .entity_service import KgEntityService
 
                 kg_service = KgEntityService()
-                node_dicts = [
-                    {
+                node_dicts = []
+                for e in entities_to_save:
+                    nd = {
                         "id": e.id.replace("entity:", ""),
                         "label": e.label,
                         "node_type": e.node_type,
                         "confidence": e.metadata.get("confidence", 1.0),
                         "metadata": e.metadata,
                     }
-                    for e in entities_to_save
-                ]
+                    # 附上该实体被提及的 document_ids（用于 KgEntityMention.document_id 填充）
+                    canonical = (e.label or "").strip().lower()
+                    doc_ids = entity_to_documents.get(canonical)
+                    if doc_ids:
+                        nd["document_ids"] = list(doc_ids)
+                    node_dicts.append(nd)
                 edge_dicts = [
                     {
                         "source": id_to_label.get(

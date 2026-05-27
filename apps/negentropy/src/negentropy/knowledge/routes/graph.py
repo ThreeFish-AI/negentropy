@@ -168,12 +168,13 @@ async def build_knowledge_graph(
         if parent_items:
             knowledge_items = parent_items
 
-        # 准备知识块数据（含 id 用于增量构建跳过判断）
+        # 准备知识块数据（含 id 用于增量构建跳过判断、document_id 用于 mention 关联）
         chunks = [
             {
                 "id": str(item.id),
                 "content": item.content,
                 "metadata": item.metadata or {},
+                "document_id": item.metadata.get("document_id") if item.metadata else None,
             }
             for item in knowledge_items
         ]

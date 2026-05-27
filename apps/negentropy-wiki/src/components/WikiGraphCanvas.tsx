@@ -121,6 +121,18 @@ export function WikiGraphCanvas({
 
       if (killed || !containerRef.current) return;
 
+      // Detect dark mode for label/edge color adaptation
+      const rootEl = document.documentElement;
+      const colorScheme = rootEl.getAttribute("data-color-scheme");
+      const prefersDark =
+        colorScheme === "dark" ||
+        (!colorScheme &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches);
+      const labelColor = prefersDark ? "#e3e3e3" : "#1c1e21";
+      const edgeColor = prefersDark
+        ? "rgba(255, 255, 255, 0.12)"
+        : "#d4d4d8";
+
       const graph = new Graph({ multi: false, type: "directed" });
       const entrySlugMap = new Map<string, string[]>();
       for (const n of nodes) {
@@ -162,7 +174,8 @@ export function WikiGraphCanvas({
         labelFont: "system-ui, sans-serif",
         labelSize: 12,
         labelWeight: "500",
-        defaultEdgeColor: "#d4d4d8",
+        labelColor: { color: labelColor },
+        defaultEdgeColor: edgeColor,
         defaultNodeColor: "#6B7280",
         minCameraRatio: 0.1,
         maxCameraRatio: 10,
