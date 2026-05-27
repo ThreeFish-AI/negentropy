@@ -71,7 +71,7 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${
+      className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
         active
           ? "bg-foreground text-background"
           : "border border-border text-muted hover:text-foreground hover:border-foreground/30"
@@ -147,17 +147,42 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-2.5">
-        <div className="flex items-center gap-2">
+      {/* Header row with inline user pills */}
+      <div className="flex items-center justify-between mb-2.5 gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <h3 className="text-xs font-semibold text-foreground">
             Retrieval Metrics
           </h3>
           <span className="text-[10px] text-muted">检索效果指标</span>
         </div>
+        <div className="flex flex-1 items-center justify-center gap-1.5 overflow-x-auto">
+          <Pill active={activeUserId === null} onClick={() => setActiveUserId(null)}>
+            All Users
+          </Pill>
+          {usersLoading ? (
+            <span className="text-[10px] text-muted animate-pulse">Loading...</span>
+          ) : (
+            <>
+              {visibleUsers.map((u) => (
+                <Pill
+                  key={u.id}
+                  active={activeUserId === u.id}
+                  onClick={() => setActiveUserId(u.id)}
+                >
+                  {u.displayName}
+                </Pill>
+              ))}
+              {hiddenCount > 0 && (
+                <span className="rounded-full px-2 py-0.5 text-[10px] text-muted border border-dashed border-border">
+                  +{hiddenCount}
+                </span>
+              )}
+            </>
+          )}
+        </div>
         <select
           aria-label="Time window"
-          className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted cursor-pointer"
+          className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted cursor-pointer shrink-0"
           value={days}
           onChange={(e) => setDays(Number(e.target.value))}
         >
@@ -167,33 +192,6 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
             </option>
           ))}
         </select>
-      </div>
-
-      {/* User filter pills */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        <Pill active={activeUserId === null} onClick={() => setActiveUserId(null)}>
-          All Users
-        </Pill>
-        {usersLoading ? (
-          <span className="text-[10px] text-muted animate-pulse">Loading users...</span>
-        ) : (
-          <>
-            {visibleUsers.map((u) => (
-              <Pill
-                key={u.id}
-                active={activeUserId === u.id}
-                onClick={() => setActiveUserId(u.id)}
-              >
-                {u.displayName}
-              </Pill>
-            ))}
-            {hiddenCount > 0 && (
-              <span className="rounded-full px-3 py-1 text-xs text-muted border border-dashed border-border">
-                +{hiddenCount} more
-              </span>
-            )}
-          </>
-        )}
       </div>
 
       {/* Metrics grid */}
