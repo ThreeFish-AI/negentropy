@@ -634,18 +634,61 @@ async def _execute_slice_with_retry(
 # ---------------------------------------------------------------------------
 
 
-def _resolve_batch_state_dir(output_dir: Optional[str], pdf_source: str) -> Path:
-    """解析 checkpoint 目录：``<output_dir>/.batch_state/`` 或 cwd 兜底。
+def _stable_checkpoint_id(pdf_source: str) -> str:
+    """计算 PDF 的稳定 checkpoint id（内容 SHA-1 前 12 字符）。
 
-    与 :func:`pipeline.convenience._resolve_images_dir` 同语义，避免多源头同名
-    污染。
+    必要性：backend 每次调用 MCP 都会把 GCS 字节写到新的临时路径，导致
+    ``pdf_source.stem`` 每次都不同；若按 stem 派生 checkpoint 目录，跨调用
+    resume 永远命中不到旧 checkpoint。
+    解法：基于 PDF 文件**内容**的 SHA-1（前 12 字符 = 48 bit ≈ 280 万亿
+    分之一碰撞）作为目录键，同内容 PDF 总是命中同一个 checkpoint 目录。
+
+    Args:
+        pdf_source: PDF 本地路径或 URL。
+
+    Returns:
+        12 字符稳定 id；读不到 PDF 时回退到路径 stem（向后兼容单次场景）。
+    """
+    import hashlib
+
+    if pdf_source.startswith(("http://", "https://")):
+        return "url-" + hashlib.sha1(pdf_source.encode("utf-8")).hexdigest()[:8]
+    try:
+        p = Path(pdf_source)
+        if not p.exists():
+            return p.stem or "document"
+        h = hashlib.sha1()
+        with open(p, "rb") as fh:
+            while True:
+                chunk = fh.read(1024 * 1024)
+                if not chunk:
+                    break
+                h.update(chunk)
+        return h.hexdigest()[:12]
+    except OSError as exc:
+        logger.warning(
+            "_stable_checkpoint_id 读取失败 source=%s err=%s", pdf_source, exc
+        )
+        return Path(pdf_source).stem if pdf_source else "document"
+
+
+def _resolve_batch_state_dir(output_dir: Optional[str], pdf_source: str) -> Path:
+    """解析 checkpoint 目录。
+
+    优先级：
+        1. 用户显式指定的 ``output_dir`` → ``<output_dir>/.batch_state/``；
+        2. 否则用 PDF 内容 SHA-1 前 12 字符派生稳定路径，
+           ``<cwd>/output/.batch_state/{sha1[:12]}/``，跨调用 resume 总是命中。
+
+    与 :func:`pipeline.convenience._resolve_images_dir` 字符串 stem 路径不同；
+    本目录专门给 checkpoint 用，必须跨 MCP 调用稳定。
     """
     if output_dir:
         base = Path(output_dir)
+        state = base / ".batch_state"
     else:
-        stem = Path(pdf_source).stem if pdf_source else "document"
-        base = Path.cwd() / "output" / stem
-    state = base / ".batch_state"
+        cid = _stable_checkpoint_id(pdf_source)
+        state = Path.cwd() / "output" / ".batch_state" / cid
     state.mkdir(parents=True, exist_ok=True)
     return state
 
@@ -677,15 +720,20 @@ def _load_or_init_manifest(
     if resume and manifest_path.exists():
         try:
             data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            # 故意不比 pdf_source：checkpoint_dir 已基于 PDF 内容 SHA-1 keyed，
+            # 同内容 PDF 必在同一目录；backend 每次调用临时文件名会变，但
+            # 内容不变，所以 pdf_source 字符串比对会导致误清除有效 checkpoint。
+            # total_pages + batch_size 双键足以判定 manifest 与本次配置一致。
             same = (
-                data.get("pdf_source") == expected["pdf_source"]
-                and data.get("total_pages") == expected["total_pages"]
+                data.get("total_pages") == expected["total_pages"]
                 and data.get("batch_size") == expected["batch_size"]
             )
             if same:
                 logger.info("auto_batch resume manifest 命中 dir=%s", checkpoint_dir)
                 return data
-            logger.info("auto_batch manifest 配置不匹配，清理旧 checkpoint")
+            logger.info(
+                "auto_batch manifest 配置不匹配 (total/batch_size 漂移)，清理旧 checkpoint"
+            )
         except (OSError, ValueError) as exc:
             logger.warning("manifest 读取失败 %s: %s", manifest_path, exc)
 
