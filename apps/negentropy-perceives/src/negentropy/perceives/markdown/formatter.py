@@ -708,6 +708,29 @@ class MarkdownFormatter:
                 # \u9632\u5fa1\u515c\u5e95\uff1a\u6e05\u9664\u4efb\u4f55\u6b8b\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u7b26\u4e0d\u5e94\u8fdb\u5165 markdown\uff09
                 text = text.replace("\u00ad", "")
 
+                # R10-D17\uff1a\u96f6\u5bbd\u7a7a\u683c U+200B \u6e05\u9664\u3002Springer Nature \u7b49\u671f\u520a\u5728\u5f15\u7528 URL
+                # \u6bcf\u5b57\u7b26\u4e4b\u95f4\u6ce8\u5165 U+200B \u4f5c\u4e3a\u8f6f\u6362\u884c hint\uff0c\u7834\u574f\u6587\u672c\u62f7\u8d1d / \u5168\u6587\u68c0\u7d22 /
+                # URL \u53ef\u70b9\u51fb\u6027\u3002U+200B \u5728 markdown \u4e2d\u65e0\u610f\u4e49\u4e14\u4e0d\u53ef\u89c1\uff0c\u5168\u5c40\u6e05\u9664\u3002
+                # \u4ec5\u6e05\u9664 U+200B \u5355\u4e00\u5b57\u7b26\uff1b\u4fdd\u7559 U+200D ZWJ\uff08emoji / \u5370\u5ea6\u8bed\u8fde\u5199\uff09\u3002
+                text = text.replace("\u200b", "")
+
+                # R10-D18\uff1aUTF-8 \u2192 CP1252 \u53cc\u7f16\u7801 mojibake \u8fd8\u539f\u3002PDF \u4e2d em-dash
+                # ``\u2014`` (U+2014, UTF-8 ``E2 80 94``) \u5728\u67d0\u4e9b PyMuPDF \u62bd\u53d6\u8def\u5f84\u4e0a
+                # \u4f1a\u88ab CP1252 \u89e3\u7801\u4e3a ``\u00e2 \u20ac "`` (U+00E2 U+20AC U+201D) \u4e09\u5b57\u7b26\u5e8f\u5217
+                # \u518d\u4ee5 UTF-8 \u91cd\u65b0\u7f16\u7801\uff0c\u6700\u7ec8\u5728 markdown \u4e2d\u663e\u793a\u4e3a ``\u00e2\u20ac"``\u3002\u540c\u7c7b
+                # \u5931\u771f\u8986\u76d6 en-dash / \u5355 / \u53cc\u5f15\u53f7 / \u7701\u7565\u53f7\u3002\u56fa\u5b9a 6 \u6a21\u5f0f\u66ff\u6362\uff0c
+                # \u4e0d\u4f9d\u8d56\u5916\u90e8\u5e93\uff08ftfy \u5f53\u524d\u4ec5\u4e3a docling \u4f20\u9012\u4f9d\u8d56\uff0c\u907f\u514d\u786c\u7ed1\u5b9a\uff09\u3002
+                _mojibake_map = (
+                    ("\u00e2\u20ac\u201d", "\u2014"),  # \u2014 em-dash
+                    ("\u00e2\u20ac\u201c", "\u2013"),  # \u2013 en-dash
+                    ("\u00e2\u20ac\u2122", "\u2019"),  # \u2019 right single quote
+                    ("\u00e2\u20ac\u0153", "\u201c"),  # \u201c left double quote
+                    ("\u00e2\u20ac\u009d", "\u201d"),  # \u201d right double quote
+                    ("\u00e2\u20ac\u00a6", "\u2026"),  # \u2026 ellipsis
+                )
+                for moji, fixed in _mojibake_map:
+                    text = text.replace(moji, fixed)
+
                 lines = text.split("\n")
                 fixed_lines = []
                 for line in lines:
