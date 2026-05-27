@@ -8,7 +8,10 @@ import {
   RetryableErrorBanner,
   useMemoryTimeline,
   MemoryTimelineCard,
-  MemoryUserSelect,
+  MemoryUserPillFilter,
+  MemorySidebarLayout,
+  RetentionPolicyCard,
+  LegendCard,
 } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -88,7 +91,6 @@ export default function MemoryTimelinePage() {
     return timeline.filter((item) => item.user_id === selectedUserId);
   }, [timeline, selectedUserId]);
 
-  // D2: 搜索处理
   const handleSearch = () => {
     if (searchQuery.trim() && selectedUserId) {
       search(selectedUserId, searchQuery.trim());
@@ -100,7 +102,6 @@ export default function MemoryTimelinePage() {
     clearSearch();
   };
 
-  // D2: 当有搜索结果时，将 searchResult.items 映射为 timeline 兼容格式
   const displayItems = searchResult
     ? searchResult.items.map((item) => ({
         id: item.id,
@@ -119,197 +120,111 @@ export default function MemoryTimelinePage() {
   const groupedTimeline = useMemo(() => groupByDate(displayItems), [displayItems]);
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-background">
       <MemoryNav title="Timeline" description="用户记忆时间线" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col px-6 py-6">
           <RetryableErrorBanner error={error} onRetry={reload} />
 
-          <div className="flex min-h-0 flex-1 gap-6">
-            {/* Timeline */}
-            <main className="min-h-0 min-w-0 flex-[3] overflow-y-auto">
-              <div className="pb-4 pr-2">
-                <div className="mb-4 flex items-center gap-3">
-                  <MemoryUserSelect
-                    users={users}
-                    selectedUserId={selectedUserId}
-                    onSelect={(id) => {
-                      setSelectedUserId(id);
-                      handleClearSearch();
-                    }}
-                    loading={isLoading}
+          <MemorySidebarLayout
+            sidebar={
+              <>
+                <RetentionPolicyCard policies={policies} />
+                <LegendCard />
+              </>
+            }
+          >
+            {/* User filter */}
+            <div className="mb-4">
+              <MemoryUserPillFilter
+                users={users}
+                activeUserId={selectedUserId}
+                onSelect={(id) => {
+                  setSelectedUserId(id);
+                  handleClearSearch();
+                }}
+                loading={isLoading}
+              />
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-foreground">
+                  {searchResult ? "Search Results" : "Memory Timeline"}
+                </h2>
+                <span className="text-xs text-muted">
+                  {displayItems.length} memories ·{" "}
+                  {selectedUserId
+                    ? users.find((u) => u.id === selectedUserId)?.name || selectedUserId
+                    : "all users"}
+                  {searchResult && ` · ${searchResult.count} result(s)`}
+                </span>
+              </div>
+
+              {/* Search */}
+              {selectedUserId && (
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                    placeholder="Search memories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   />
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {displayItems.length} memories
-                  </span>
-                </div>
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {searchResult ? "Search Results" : "Memory Timeline"}
-                    </h2>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {selectedUserId
-                        ? users.find((u) => u.id === selectedUserId)?.name || selectedUserId
-                        : "all users"}
-                      {searchResult && ` · ${searchResult.count} result(s)`}
-                    </span>
-                  </div>
-
-                  {/* D2: 搜索框 */}
-                  {selectedUserId && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <input
-                        className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-800"
-                        placeholder="Search memories..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                      />
-                      <button
-                        className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                        onClick={handleSearch}
-                        disabled={!searchQuery.trim()}
-                      >
-                        Search
-                      </button>
-                      {searchResult && (
-                        <button
-                          className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                          onClick={handleClearSearch}
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
+                  <button
+                    className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+                    onClick={handleSearch}
+                    disabled={!searchQuery.trim()}
+                  >
+                    Search
+                  </button>
+                  {searchResult && (
+                    <button
+                      className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+                      onClick={handleClearSearch}
+                    >
+                      Clear
+                    </button>
                   )}
-
-                  <div className="mt-4 space-y-3">
-                    {displayItems.length ? (
-                      searchResult ? (
-                        // Flat list for search results
-                        displayItems.map((item) => (
-                          <MemoryTimelineCard
-                            key={item.id}
-                            item={item}
-                            isSearchResult
-                          />
-                        ))
-                      ) : (
-                        // Time-grouped list for timeline
-                        groupedTimeline.map((group) => (
-                          <div key={group.date}>
-                            <div className="sticky top-0 z-10 bg-white pb-1 pt-2 text-[11px] font-semibold text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
-                              {group.label}
-                            </div>
-                            <div className="space-y-2">
-                              {group.items.map((item) => (
-                                <MemoryTimelineCard key={item.id} item={item} />
-                              ))}
-                            </div>
-                          </div>
-                        ))
-                      )
-                    ) : (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {isLoading
-                          ? "Loading memories..."
-                          : searchResult
-                            ? "No matching memories found"
-                            : "No memories found"}
-                      </p>
-                    )}
-                  </div>
                 </div>
+              )}
+
+              <div className="mt-4 space-y-3">
+                {displayItems.length ? (
+                  searchResult ? (
+                    displayItems.map((item) => (
+                      <MemoryTimelineCard
+                        key={item.id}
+                        item={item}
+                        isSearchResult
+                      />
+                    ))
+                  ) : (
+                    groupedTimeline.map((group) => (
+                      <div key={group.date}>
+                        <div className="sticky top-0 z-10 bg-card pb-1 pt-2 text-[11px] font-semibold text-muted">
+                          {group.label}
+                        </div>
+                        <div className="space-y-2">
+                          {group.items.map((item) => (
+                            <MemoryTimelineCard key={item.id} item={item} />
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  <p className="text-xs text-muted">
+                    {isLoading
+                      ? "Loading memories..."
+                      : searchResult
+                        ? "No matching memories found"
+                        : "No memories found"}
+                  </p>
+                )}
               </div>
-            </main>
-
-            {/* Policies & Legend sidebar */}
-            <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-              <div className="space-y-4 pb-4 pr-2">
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    Retention Policy
-                  </h2>
-                  <pre className="mt-3 max-h-48 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                    {JSON.stringify(policies, null, 2)}
-                  </pre>
-                </div>
-
-                {/* Legend */}
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Legend</h2>
-
-                  {/* Retention scores */}
-                  <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                    Retention
-                  </p>
-                  <div className="mt-1.5 space-y-1.5 text-[11px] text-zinc-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      High retention (&ge; 50%)
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      Medium retention (10-50%)
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-rose-500" />
-                      Low retention (&lt; 10%)
-                    </div>
-                  </div>
-
-                  {/* Importance scores */}
-                  <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                    Importance
-                  </p>
-                  <div className="mt-1.5 space-y-1.5 text-[11px] text-zinc-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-blue-500" />
-                      High importance (&ge; 70%)
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-cyan-500" />
-                      Medium importance (40-70%)
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-slate-400" />
-                      Low importance (&lt; 40%)
-                    </div>
-                  </div>
-
-                  {/* Memory types */}
-                  <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                    Memory Types
-                  </p>
-                  <div className="mt-1.5 space-y-1 text-[11px] text-zinc-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-violet-500" /> Core
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-blue-500" /> Semantic
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" /> Episodic
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" /> Procedural
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-pink-500" /> Preference
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-cyan-500" /> Fact
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-                  Status: {payload ? "loaded" : "loading"}
-                </div>
-              </div>
-            </aside>
-          </div>
+            </div>
+          </MemorySidebarLayout>
         </div>
       </div>
     </div>
