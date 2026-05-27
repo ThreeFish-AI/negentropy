@@ -27,7 +27,7 @@ Negentropy 知识库的现状（Phase 5/6 后）：
 
 - **单 Corpus 混合检索**完备：pgvector HNSW + tsvector BM25 + DB 原生 `kb_hybrid_search()` / `kb_rrf_search()` + LocalReranker（bge-reranker-v2-m3）。
 - **单 Corpus 知识图谱**完备：KgEntity / KgRelation / KgEntityMention + EntityResolver（Fellegi-Sunter 三阶段）+ Leiden 社区 + Community Summarizer。
-- **Home Studio `@Corpus` 链路**完备：mention → forwardedProps → state_delta → `search_knowledge_base` 读 `scoped_corpus_ids`。
+- **Home Studio `@Corpus` 链路**完备：mention → `forwardedProps.corpus_ids` → state_delta → `search_knowledge_base` 读 `tool_context.state.corpus_ids`。
 
 三大缺口：
 
@@ -101,7 +101,7 @@ graph LR
 
 ```mermaid
 graph TD
-  Q[用户 @ N 个 Corpus + 可选 @graph]
+  Q[用户 @ N 个 Corpus（单一 corpus mention）]
   Q --> S1[Stage 1: Intent Classification]
   S1 --> |fact / explore / multi_hop / relation / global_summary| S2[Stage 2: Seed Retrieval]
   S2 --> |asyncio.gather 多 Corpus 并行 hybrid search| POOL[Candidates Pool]
@@ -130,12 +130,14 @@ graph TD
 
 ### 触发条件
 
-| 用户操作           | 触发 HybridPlanner？                       | force_graph_mode？ |
-| ------------------ | ------------------------------------------ | ------------------ |
-| 不 @ 任何 Corpus   | 否（走 legacy 全 Corpus 聚合）             | —                  |
-| @ 单 Corpus        | 是（仅本 Corpus hybrid，无 graph）         | False              |
-| @ 多 Corpus        | 是（多 Corpus + 可能触发 graph expansion） | False              |
-| @graph + ≥1 Corpus | 是（强制启用 graph expansion）             | True               |
+| 用户操作         | 触发 HybridPlanner？                                | Graph Expansion？                    |
+| ---------------- | --------------------------------------------------- | ------------------------------------ |
+| 不 @ 任何 Corpus | 否（走 legacy 全 Corpus 聚合）                      | —                                    |
+| @ 单 Corpus      | 是（仅本 Corpus hybrid）                            | 否                                   |
+| @ 多 Corpus      | 是（多 Corpus 并行 hybrid + 自主图扩展决策）        | Intent ∈ {relation, multi_hop,…} 时是 |
+
+> Graph expansion 由 Planner 内部 Intent Classifier + effective corpus 数量自主决策，
+> 不再接受前端强制信号；用户只表达「想用哪些 Corpus」。
 
 ## 5. 三工具协作
 
@@ -203,10 +205,10 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 | Agent Instruction       | `apps/negentropy/src/negentropy/agents/faculties/perception.py`                                                                                           |
 | 权限注入入口            | `apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py`                                                                                    |
 | Feature Flag            | `apps/negentropy/src/negentropy/config/knowledge.py`（`KnowledgeFeatureFlags`）                                                                           |
-| Mention 类型扩展        | `apps/negentropy-ui/types/mention.ts`                                                                                                                     |
-| 派生 forwardedProps     | `apps/negentropy-ui/utils/mention-parser.ts`（`graph_mode_corpus_ids`）                                                                                   |
-| BFF state_delta         | `apps/negentropy-ui/app/api/agui/_state-delta.ts`                                                                                                         |
-| MentionPopover 第四 Tab | `apps/negentropy-ui/components/ui/MentionPopover.tsx`                                                                                                     |
+| Mention 类型契约        | `packages/agents-chat-core/src/parse/mention-types.ts`（`MentionKind = "agent" \| "corpus"`）                                                            |
+| 派生 forwardedProps     | `packages/agents-chat-core/src/parse/mention-parser.ts`（`corpus_ids`，graph 模式由 HybridPlanner 自主决策）                                              |
+| BFF state_delta         | `packages/agents-chat-core/src/server/state-delta.ts`                                                                                                     |
+| MentionPopover 双 Tab   | `apps/negentropy-ui/components/ui/MentionPopover.tsx`（Agents / Corpus；图标 + Radix Tooltip）                                                            |
 
 ## 11. 浏览器实机验证清单（P0 必跑）
 
@@ -215,8 +217,7 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 - [ ] 单 @Corpus → Planner 启用但无 bridges
 - [ ] 多 @Corpus + intent=fact → Planner 启用，bridges 可能为空
 - [ ] 多 @Corpus + intent=multi_hop → bridges 非空，IEEE citation 含 `(from Corpus: X)`
-- [ ] @graph + 单 Corpus → 强制走 graph_expansion 或 global_summary
-- [ ] @graph + 多 Corpus + "总体趋势" 关键词 → `search_knowledge_graph_global` 调用
+- [ ] 多 @Corpus + "总体趋势" 关键词 → `global_summary` 意图触发 `search_knowledge_graph_global`
 - [ ] feature flag off → 完全回退到 legacy `_legacy_search_knowledge_base`
 - [ ] Planner Stage 抛异常（mock embedding 失败）→ 降级到 legacy 不打断 SSE 流
 

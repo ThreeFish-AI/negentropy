@@ -2470,3 +2470,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   4. **assembly 五级排序的 y0 维度依赖上游 bbox 完整性**：上游 stage 任何一个公式无 bbox 都会落到同页末尾，破坏视觉顺序。新增 stage tool 必须强制 bbox 透传 + 单测锁定；
   5. **`C = [` / `M_l =` 类残片正则模式**：`^\s*[A-Za-z]\w*\s*=\s*[\[\(\{]\s*$` 兼容多字符 identifier（CE、Var）、下标 (`M_l`)、各种 open bracket（`[ ( {`）；起手限定为字母（避免误命中 `1 = ` 行号）；
   6. **R8 修改面**：`pdf/engines/docling.py` + `pipeline/stages/pdf/formula_extraction.py` + `pipeline/stages/pdf/assembly.py` 三文件 + 2 新增单测文件。改动语义独立，可单文件 cherry-pick。
+
+---
+
+## ISSUE-095 Composer @ 唤出框：四 Tab 决策负担过重 + 文字密度挤占视觉（2026-05-27）
+
+- **表因**：Home/Studio 输入框 `@` 唤出框暴露 4 个并列 Tab（Agents / 知识检索 / 输出沉淀 / 图谱模式），用户键入 `@` 后被迫先决策「以什么方式使用 Corpus」再选「用哪个 Corpus」；同一份 Corpus 被拆到 `corpus-retrieve` / `corpus-output` / `graph` 三个 MentionKind，弹层顶部图标 + 中文文字并排挤占宽度，视觉密度低。
+- **根因**：早期产品阶段把后端三个不同的语义动作（检索范围 / 输出沉淀 / 强制图谱）直接映射到三个用户可见 Tab。这违反了「用户只表达意图，由系统决定执行路径」的原则——后端 HybridPlanner 本身就能根据 query Intent + effective corpus 数量自主决策是否触发 graph expansion，无需前端额外强制信号；输出沉淀更适合走显式 UI 入口或后续 IntentClassifier，不应作为 mention 默认行为。
+- **处理方式**（前后端一并迁移）：
+  1. **类型层（packages/agents-chat-core）**：`MentionKind` 收敛为 `agent | corpus`（删除 `corpus-retrieve` / `corpus-output` / `graph`）；`DerivedMentionProps` 改为 `{ preferred_subagent, corpus_ids }`；`buildStateDeltaFromForwardedProps` 删除 `scoped_corpus_ids` / `output_corpus_ids` / `graph_mode_corpus_ids` 三块分支，新增 `corpus_ids` 分支（沿用 sanitize / 空数组显式清空语义）。
+  2. **UI 层（apps/negentropy-ui）**：引入 `@radix-ui/react-tooltip`；`MentionPopover` Tab 收敛为 2 项（Agents / Corpus），按钮仅图标 + `aria-label` + Radix Tooltip on hover；`MentionChipList` 颜色映射收敛为 sky（agent）+ emerald（corpus）；Composer 底部提示文案改为「@ 选对象」。
+  3. **接入层（home-body.tsx）**：`corpusCandidates.kind` 改为 `"corpus"`；forwardedProps 单字段 `corpus_ids`；移除 RUN_FINISHED 中 ingest 沉淀链路（含 `outputCorpusIdsByRunRef` / `userPromptByRunRef` / `conversationTreeRef` / `extractFinalAssistantText` / `ingestText` 等遗留资产）。
+  4. **后端层（apps/negentropy）**：`perception.py` 把 state key 由 `scoped_corpus_ids` / `graph_mode_corpus_ids` 收敛为 `corpus_ids`；`hybrid_planner.py` 移除 `force_graph_mode` 参数与 `_classify_intent(..., force_graph_mode)` 分支，graph expansion 仅由 Intent + effective corpus 数量自主决策。
+  5. **测试同步**：`MentionPopover.test.tsx` / `mention-parser.test.ts` / `state-delta.test.ts` / `agui-route-state.test.ts` / `test_hybrid_planner.py` / `test_search_knowledge_base_scope.py` 等 6 处用例同步新字段名与 2 Tab 契约。
+- **后续防范**：
+  1. **用户语义 vs 系统执行**：UI 入口只承载「想用什么对象」级语义，绝不把「以什么方式使用」的执行决策外溢成 N 个 Tab；任何「检索 vs 沉淀 vs 强制图谱」类二分决策应由后端 IntentClassifier 或独立 UI 入口承载。
+  2. **forwardedProps 字段单一事实源**：mention 派生字段命名要与后端 state key 保持 1:1 对齐（前端 `corpus_ids` ↔ ADK state.corpus_ids ↔ tool_context.state.corpus_ids），避免多语义字段并存导致跨 turn 状态污染。
+  3. **空数组清空语义**：跨 turn 残留是 BFF→ADK 链路的高频 bug 源。新增 mention 派生字段时，前端必须在每轮 turn 显式发送字段（含空数组），BFF 据空数组写入 state_delta 触发清空。
+- **同类问题影响**：未来若需引入「@ Tool」「@ Memory」等新类别 mention，必须先评估能否合并到现有 `MentionKind`（如以「对象类别」而非「使用方式」为维度），避免再次发散为多 Tab。Ingest 智能识别（IntentClassifier）作为后续 PR 待落地。
