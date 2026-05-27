@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   fetchMemories,
@@ -95,6 +95,8 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchSeq = useRef(0);
+
   // Fetch user list on mount
   useEffect(() => {
     async function loadUsers() {
@@ -116,6 +118,7 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
 
   // Fetch metrics when filter changes
   const loadMetrics = useCallback(async () => {
+    const seq = ++fetchSeq.current;
     setMetricsLoading(true);
     setError(null);
     try {
@@ -124,10 +127,13 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
         app_name: appName,
         days,
       });
+      if (seq !== fetchSeq.current) return;
       setMetrics(data);
     } catch (err) {
+      if (seq !== fetchSeq.current) return;
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      if (seq !== fetchSeq.current) return;
       setMetricsLoading(false);
     }
   }, [activeUserId, appName, days]);
