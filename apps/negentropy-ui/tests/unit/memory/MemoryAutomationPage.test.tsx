@@ -21,8 +21,6 @@ vi.mock("@/features/memory", () => ({
   fetchMemoryAutomation: (...args: unknown[]) => fetchMemoryAutomation(...args),
   fetchMemoryAutomationLogs: (...args: unknown[]) => fetchMemoryAutomationLogs(...args),
   updateMemoryAutomationConfig: vi.fn(),
-  triggerMemoryAutomationJobAction: vi.fn(),
-  runMemoryAutomationJob: vi.fn(),
 }));
 
 describe("MemoryAutomationPage", () => {
@@ -30,11 +28,9 @@ describe("MemoryAutomationPage", () => {
     vi.resetAllMocks();
     fetchMemoryAutomation.mockResolvedValue({
       capabilities: {
-        pg_cron_installed: true,
-        pg_cron_available: false,
-        pg_cron_logs_accessible: false,
+        scheduler_type: "unified_registry",
         management_mode: "backend-managed",
-        degraded_reasons: ["pg_cron_unavailable"],
+        degraded_reasons: ["function_drifted"],
       },
       config: {
         retention: {
@@ -54,8 +50,21 @@ describe("MemoryAutomationPage", () => {
           memory_ratio: 0.3,
           history_ratio: 0.5,
         },
+        reweight_relevance: {
+          enabled: false,
+          schedule: "0 */6 * * *",
+        },
       },
-      processes: [],
+      processes: [
+        {
+          key: "retention_cleanup",
+          label: "Retention Cleanup",
+          description: "基于艾宾浩斯遗忘曲线清理低价值记忆。",
+          config: {},
+          job: { status: "scheduled" },
+          functions: [],
+        },
+      ],
       functions: [
         {
           name: "get_context_window",
@@ -70,11 +79,12 @@ describe("MemoryAutomationPage", () => {
           process_label: "Ebbinghaus Cleanup",
           function_name: "cleanup_low_value_memories",
           enabled: true,
-          status: "degraded",
-          job_id: null,
+          status: "scheduled",
+          task_id: "task-cleanup",
           schedule: "0 2 * * *",
-          command: "SELECT 1",
-          active: false,
+          last_status: "ok",
+          last_fire_at: null,
+          next_fire_at: null,
         },
       ],
       health: {
@@ -85,17 +95,17 @@ describe("MemoryAutomationPage", () => {
     fetchMemoryAutomationLogs.mockResolvedValue({ count: 0, items: [] });
   });
 
-  it("pg_cron 不可用时将调度动作降级为只读", async () => {
+  it("渲染统一调度器系统能力面板并提示作业已迁移至 Scheduler", async () => {
     render(<MemoryAutomationPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/pg_cron_unavailable/)).toBeInTheDocument();
+      expect(screen.getByText(/unified_registry/)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/调度相关操作已降级为只读/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "停用" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "重建" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "手动触发" })).toBeDisabled();
+    expect(screen.getByText(/function_drifted/)).toBeInTheDocument();
+    expect(screen.getByText(/记忆自动化作业已迁移至统一调度系统/)).toBeInTheDocument();
+    const schedulerLink = screen.getByRole("link", { name: /打开 Scheduler/ });
+    expect(schedulerLink).toHaveAttribute("href", "/interface/scheduler");
   });
 
   it("桌面端使用固定比例三栏布局，长函数定义仅在卡片内滚动", async () => {
