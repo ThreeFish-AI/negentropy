@@ -939,6 +939,89 @@ class BuiltinAssembler(PDFToolBase):
                     e for i, e in enumerate(elements) if i not in _fragment_remove
                 ]
 
+            # 2.5.6 公式序号 gap-consistency 推断回填（ISSUE-094 R9 D-2/D-3/D-4）：
+            # Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
+            # ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。
+            # 利用学术论文连续编号习惯，按相邻有编号公式之间的 gap 是否
+            # 与未编号公式数一致来保守填补（不一致则放弃，避免误编号）。
+            _formula_block_elements: List[Tuple[int, _ContentElement]] = [
+                (i, e)
+                for i, e in enumerate(elements)
+                if e.element_type == "formula"
+                and e.formula is not None
+                and e.content.strip().startswith("$$")
+            ]
+            if len(_formula_block_elements) >= 2:
+                _ext_nums: List[Optional[int]] = []
+                for _, fe in _formula_block_elements:
+                    eq_str = _extract_formula_eq_number(
+                        (fe.formula.latex or "") if fe.formula else ""
+                    )
+                    if eq_str is None and fe.formula:
+                        # 兼容 latex 主体末尾裸 ``(N)`` 但不带 ``\\quad`` 前缀
+                        # （R9 D-5 剥离 ``&`` 后的 Eq (2) 即此形态）
+                        tail_match = re.search(
+                            r"\(\s*(\d+)\s*\)\s*$",
+                            (fe.formula.latex or "").rstrip(),
+                        )
+                        if tail_match:
+                            eq_str = tail_match.group(1)
+                    _ext_nums.append(int(eq_str) if eq_str is not None else None)
+                _inferred = _infer_missing_formula_numbers(_ext_nums)
+                for idx_in_list, inferred_num in _inferred.items():
+                    _, target_elem = _formula_block_elements[idx_in_list]
+                    if target_elem.formula is None:
+                        continue
+                    old_latex = target_elem.formula.latex or ""
+                    new_latex = f"{old_latex.rstrip()} \\quad ({inferred_num})"
+                    target_elem.formula.latex = new_latex
+                    target_elem.content = _formula_to_markdown(target_elem.formula)
+                    logger.debug(
+                        "[assembly:infer_formula_number] pos=%d inferred=%d "
+                        "latex_preview=%r",
+                        idx_in_list,
+                        inferred_num,
+                        old_latex[:80],
+                    )
+
+            # 2.5.7 图片 caption 邻接段注入（ISSUE-094 R9 D-6）：
+            # 当 image_extraction 阶段未能从 PyMuPDF / Docling 关联到图片
+            # caption（``image.caption`` 为空）、UI 显示 ``alt="<filename>"``
+            # 退化为文件名，且文档顺序下一个 text element 是 ``Figure N:`` /
+            # ``Fig. N:`` / ``Table N:`` 起手的 caption 段落时，把邻接段
+            # 文本注入到 image，复用 2.6 段的 caption-vs-text 去重移除
+            # 独立 caption 段落，恢复 PDF 中"图旁有 caption"视觉。
+            for i, img_elem in enumerate(elements):
+                if img_elem.element_type != "image" or img_elem.image is None:
+                    continue
+                existing_cap = (img_elem.image.caption or "").strip()
+                # 搜索紧邻下一个非空 text element（跳过空白）
+                next_text_content: Optional[str] = None
+                for j in range(i + 1, len(elements)):
+                    nxt = elements[j]
+                    if nxt.element_type != "text" or nxt.block is None:
+                        # 遇到非 text 元素（image / formula / table / code）→
+                        # 邻接关系中断，不再继续搜索
+                        break
+                    candidate = (nxt.content or "").strip()
+                    if not candidate:
+                        continue
+                    next_text_content = candidate
+                    break
+                injected = _figure_caption_to_inject(
+                    image_has_caption=bool(existing_cap),
+                    next_text_block_text=next_text_content,
+                )
+                if injected is None:
+                    continue
+                img_elem.image.caption = injected
+                img_elem.content = _image_to_markdown(img_elem.image)
+                logger.debug(
+                    "[assembly:rescue_image_caption] image_id=%s injected=%r",
+                    img_elem.image.image_id,
+                    injected[:80],
+                )
+
             # 2.6 图片 caption 与纯文本去重：
             #    当图片元素以 `![caption](path)` 形式输出后，
             #    若紧接着一个纯文本元素的内容与该 caption 高度相似
@@ -1366,6 +1449,41 @@ def _is_figure_or_table_caption_text(text: str) -> bool:
     return bool(_FIGURE_TABLE_CAPTION_RE.match(text))
 
 
+def _figure_caption_to_inject(
+    image_has_caption: bool,
+    next_text_block_text: Optional[str],
+) -> Optional[str]:
+    """判断 image 是否应从邻接文本接收 caption（ISSUE-094 R9 D-6）。
+
+    image_extraction 偶尔未能从 PyMuPDF / Docling 正确关联图片下方的
+    caption 文本，导致 Markdown ``<img alt="...">`` 退化为文件名（如
+    ``alt="fig_p4_2.png"``），同时下方独立段落 ``Figure 3: ...`` 仍以
+    纯文本形式存在。本函数判定是否应从 ``next_text_block_text`` 注入。
+
+    返回应注入的 caption 文本（已 strip），若不应注入则返回 ``None``。
+
+    Args:
+        image_has_caption: image 是否已有非空 caption（image_extraction 阶段结果）。
+        next_text_block_text: image 元素紧邻下一个 text element 的内容。
+
+    决策：
+    - image 已有 caption → 不覆盖（保持上游结果优先）；
+    - next_text 为空 / None → 不注入；
+    - next_text 不匹配 ``Figure N:`` / ``Fig. N:`` / ``Table N:`` /
+      ``Tab N -`` 模式 → 不注入（避免误识别普通段落含 "Figure" 关键字）。
+    """
+    if image_has_caption:
+        return None
+    if not next_text_block_text:
+        return None
+    text = next_text_block_text.strip()
+    if not text:
+        return None
+    if not _is_figure_or_table_caption_text(text):
+        return None
+    return text
+
+
 def _is_running_header_footer(text: str) -> bool:
     """判断文本是否为学术论文的页眉/页脚残留。
 
@@ -1670,6 +1788,51 @@ def _extract_formula_eq_number(latex: str | None) -> str | None:
         if m:
             return m.group(1)
     return None
+
+
+def _infer_missing_formula_numbers(
+    extracted_numbers: List[Optional[int]],
+) -> Dict[int, int]:
+    """按公式 gap-consistency 推断缺失编号（ISSUE-094 R9 D-2/D-3/D-4）。
+
+    Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
+    ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。利用
+    学术论文连续编号习惯，按相邻两个有编号公式 A、B 之间的 gap
+    与未编号公式数是否一致来保守填补，避免误编号。
+
+    策略：
+    1. 收集所有 ``extracted_numbers[i] is not None`` 的位置作为锚点；
+    2. 对相邻两个锚点 ``(i_a, num_a)`` / ``(i_b, num_b)``，若
+       ``num_b - num_a - 1 == i_b - i_a - 1``（"gap 一致"），则把
+       ``i_a + 1..i_b - 1`` 位置依次填入 ``num_a + 1, num_a + 2, ...``；
+    3. 仅在锚点之间填补，不外推（首段 / 末段未编号公式不做推断，
+       避免与下文 / 上文真实编号冲突）。
+
+    Args:
+        extracted_numbers: 公式编号列表（按文档顺序），有编号为 int，
+            无编号为 ``None``。
+
+    Returns:
+        ``{index: inferred_number}`` 字典，仅含能可靠推断的位置。
+    """
+    inferred: Dict[int, int] = {}
+    anchors: List[Tuple[int, int]] = [
+        (i, n) for i, n in enumerate(extracted_numbers) if n is not None
+    ]
+    if len(anchors) < 2:
+        return inferred
+    for k in range(len(anchors) - 1):
+        i_a, num_a = anchors[k]
+        i_b, num_b = anchors[k + 1]
+        between_count = i_b - i_a - 1
+        if between_count == 0:
+            continue
+        expected_gap = num_b - num_a - 1
+        if between_count != expected_gap:
+            continue
+        for offset in range(1, between_count + 1):
+            inferred[i_a + offset] = num_a + offset
+    return inferred
 
 
 def _formula_to_markdown(formula: ExtractedFormula) -> str:
