@@ -160,7 +160,9 @@ def _apply_common_post_processing(
                 deduped_parts.append(str(child))
             hero_html = "\n".join(deduped_parts) if deduped_parts else None
         except Exception:
-            pass
+            logger.debug(
+                "Hero deduplication failed, keeping original hero_html", exc_info=True
+            )
         if hero_html:
             main_html = _inject_after_h1(main_html, hero_html)
 
