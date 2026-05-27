@@ -458,9 +458,15 @@ class GlobalSearchService:
 
         try:
             # 优先尝试 task-aware 解析（支持 UI 任务级模型配置）
+            # resolve_llm_config_for_task 内部链路:
+            #   corpus task → global task → fallback_config_id → 全局默认
+            # 将 llm_config_id 作为 fallback_config_id 传入，确保 task 配置未命中时
+            # 回退到语料库绑定的专属配置，而非直接跳到全局默认
             if self._corpus_id is not None:
                 resolved_model, extra_kwargs = await resolve_llm_config_for_task(
-                    _GLOBAL_SEARCH_TASK_KEY, corpus_id=self._corpus_id
+                    _GLOBAL_SEARCH_TASK_KEY,
+                    corpus_id=self._corpus_id,
+                    fallback_config_id=self._llm_config_id,
                 )
             elif self._llm_config_id is not None:
                 resolved_model, extra_kwargs = await resolve_llm_config_by_id(self._llm_config_id)
@@ -477,24 +483,24 @@ class GlobalSearchService:
         else:
             model = resolved_model
 
-        # 捕获诊断上下文
+        # 捕获诊断上下文（在 LLM 调用前记录，确保异常路径也可用）
         api_base_masked = _mask_url(extra_kwargs.get("api_base"))
+        diag_entry = {"model": model, "api_base_masked": api_base_masked}
 
-        result = await call_llm_with_retry(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=max_tokens,
-            context_label="global_search",
-            extra_kwargs=extra_kwargs,
-        )
+        try:
+            result = await call_llm_with_retry(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=max_tokens,
+                context_label="global_search",
+                extra_kwargs=extra_kwargs,
+            )
+        except Exception:
+            self._map_diagnostics.append(diag_entry)
+            raise
 
         text = result.strip()
         if not text:
-            self._map_diagnostics.append(
-                {
-                    "model": model,
-                    "api_base_masked": api_base_masked,
-                }
-            )
+            self._map_diagnostics.append(diag_entry)
         return text
