@@ -118,3 +118,36 @@ class TestFormatterHyphenation:
         result = self.formatter._apply_typography_fixes(md)
         assert "neuro-symbolic" in result
         assert "state-of-the-art" in result
+
+    # ---- R10-D19: word - word（两侧均空格）模式合并 ----
+
+    def test_bothside_space_hyphen_merged(self) -> None:
+        """表格 / 长正文中两侧均空格的断字 ``per - formance`` 应合并为
+        ``performance``。该模式在 Springer 期刊表格内尤其常见。
+        """
+        md = "| feature | No per - formance metrics |\n| feature | Scalabil - ity not addressed |"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "performance" in result
+        assert "Scalability" in result
+        assert "per - formance" not in result
+        assert "Scalabil - ity" not in result
+
+    def test_bothside_space_proper_noun_merged(self) -> None:
+        """专有名词跨行断字 ``Mo - zolevskyi`` 也应合并。"""
+        md = "(2025), Mo - zolevskyi and AlShikh (2024)"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Mozolevskyi" in result
+
+    def test_bothside_space_em_dash_with_capital_preserved(self) -> None:
+        """两侧均空格但右侧大写起首（em-dash 风格 ``A - B``）不应合并。"""
+        md = "Section A - Section B contains the analysis."
+        result = self.formatter._apply_typography_fixes(md)
+        # Section B 不应被并入 Section
+        assert "SectionB" not in result
+        # 形如 "A - Section" 至少 A 后保留断行
+
+    def test_bothside_space_single_letter_preserved(self) -> None:
+        """单字母两侧（``a - b``）不应合并 —— 多为数学 / 公式 / 列表项。"""
+        md = "Compute a - b as the simple difference."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "ab" not in result.replace("a - b", "").replace("simple", "")

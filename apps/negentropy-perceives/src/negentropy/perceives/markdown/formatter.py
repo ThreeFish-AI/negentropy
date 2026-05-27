@@ -705,6 +705,14 @@ class MarkdownFormatter:
                 # \u4e0e em-dash \u98ce\u683c ``A - B``\uff08\u4e24\u4fa7\u5747\u7a7a\u683c\uff09\u3001\u590d\u5408\u8bcd ``X-Y`` \u4e92\u65a5\u3002
                 text = re.sub(r"(?<=[a-zA-Z]) -(?=[a-z])", "", text)
 
+                # R10-D19\uff1a\u4e24\u4fa7\u5747\u7a7a\u683c\u7684\u65ad\u5b57 ``per - formance`` \u2014\u2014 \u8868\u683c cell \u5185
+                # \u62bd\u53d6\u8def\u5f84\u7684\u6700\u5e38\u89c1 hyphenation \u6b8b\u7559\u3002\u4e24\u4fa7\u5747\u8981\u6c42 2+ \u5b57\u6bcd\uff08\u907f\u514d
+                # \u8bef\u541e\u6570\u5b66 ``a - b`` \u5355\u5b57\u6bcd\uff09\uff0c\u53f3\u4fa7\u8981\u6c42\u5c0f\u5199\u8d77\u9996\uff08\u907f\u514d\u8bef\u541e em-dash
+                # \u98ce\u683c ``Section A - Section B``\uff09\u3002Springer \u671f\u520a References /
+                # Table cells \u9ad8\u9891\u51fa\u73b0 ``Scalabil - ity`` / ``gov - ernance`` /
+                # ``sym - bolic`` / ``Mo - zolevskyi`` \u7b49\u6a21\u5f0f\u3002
+                text = re.sub(r"(?<=[a-zA-Z]{2}) - (?=[a-z]{2})", "", text)
+
                 # \u9632\u5fa1\u515c\u5e95\uff1a\u6e05\u9664\u4efb\u4f55\u6b8b\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u7b26\u4e0d\u5e94\u8fdb\u5165 markdown\uff09
                 text = text.replace("\u00ad", "")
 
@@ -856,11 +864,29 @@ class MarkdownFormatter:
         kept: List[str] = []
         seen_fingerprints: List[set[str]] = []
 
+        # R10-D20：caption 行（``Table N ...`` / ``Figure N ...`` / ``Fig. N ...``
+        # / ``Algorithm N ...``）的精确相邻去重。PyMuPDF 把 caption 抽为正文段、
+        # table_extraction 又把同样 caption 内嵌为表头部，二者经 assembly 写入
+        # markdown 后形成「caption / caption / table」三段结构。caption 通常少于
+        # 15 词，会被下方主体 Jaccard 去重的长度守卫绕过，故在主流程前插入紧邻
+        # 重复 caption 检查 —— 仅对相邻位置（kept 末尾即上一保留段）做精确相等比对，
+        # 不影响跨段落非相邻的合法重复（如 ``Table 5 (continued)``）。
+        _caption_re = re.compile(
+            r"^(?:Table|Figure|Fig\.|Tab\.|Algorithm|Algo\.)\s+\d+\b",
+            re.IGNORECASE,
+        )
+
+        def _is_caption(text: str) -> bool:
+            return bool(_caption_re.match(text.strip()))
+
         for para in paragraphs:
             # 块级公式段落始终保留，不参与 Jaccard 相似度比较，
             # 也不污染后续段落的对比基线。
             if _is_math_block(para):
                 kept.append(para)
+                continue
+            # caption 精确相邻去重：仅当上一保留段为相同 caption 时跳过
+            if _is_caption(para) and kept and kept[-1].strip() == para.strip():
                 continue
             fp = _fingerprint(para)
             if len(fp) < 15:
