@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useChatAgent } from "@/lib/agent-chat/use-chat-agent";
 import { useSubAgents } from "@/lib/agent-chat/use-subagents";
 import { useWikiPageContext } from "@/lib/agent-chat/page-context";
+import { useWikiAuth } from "@/lib/auth/wiki-auth";
 import { ChatComposer } from "./ChatComposer";
 import { ChatMessageView } from "./ChatMessage";
 
@@ -21,6 +22,7 @@ interface ChatDrawerProps {
 export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
   const pageContext = useWikiPageContext();
   const { rootAgent, faculties, error: subAgentError } = useSubAgents();
+  const { user } = useWikiAuth();
   const [preferredAgentName, setPreferredAgentName] = useState<string | null>(
     null,
   );
@@ -28,6 +30,7 @@ export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
     defaultAgentName: rootAgent?.name ?? null,
     preferredAgentName,
     pageContext,
+    userId: user?.userId ?? null,
   });
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
