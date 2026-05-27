@@ -64,3 +64,57 @@ class TestFormatterHyphenation:
         assert "survey" in result
         assert "harness" in result
         assert "engineering" in result
+
+    # ---- R10-D13/D14: 软连字符 U+00AD 与反向 `word -word` 模式合并 ----
+
+    def test_soft_hyphen_with_space_merged(self) -> None:
+        """PyMuPDF 在跨行断字处保留 U+00AD，``\" \".join(spans)`` 后形成
+        ``advance\\xad ment``。需识别该模式并合并为完整词。
+        """
+        md = "Its rapid advance­ ment has led to a frame­ work."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "advancement" in result
+        assert "framework" in result
+        assert "­" not in result
+
+    def test_isolated_soft_hyphen_stripped(self) -> None:
+        """单独残留 U+00AD（无 trailing 空格 / 无 follow-up 小写）也应清除。"""
+        md = "fragment­ ends here­."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "­" not in result
+
+    def test_reverse_pattern_space_hyphen_merged(self) -> None:
+        """反向模式 ``word -word``（即 ``-`` 前空格、后无空格）也是跨行断字
+        的产物，应合并。常见于 image caption / 表格标题（一种 caption 抽取路径
+        把 U+00AD 转为 ASCII 连字符）。
+        """
+        md = (
+            "Conceptual framework resolves conceptual retrofit -ting by distinguishing "
+            "the prompt-driven or -chestration of funda -mentally incompatible systems."
+        )
+        result = self.formatter._apply_typography_fixes(md)
+        assert "retrofitting" in result
+        assert "orchestration" in result
+        assert "fundamentally" in result
+        assert "retrofit -ting" not in result
+
+    def test_reverse_pattern_uppercase_preserved(self) -> None:
+        """``word -Word``（连字符后为大写）不应合并 — 多见于专有名词或缩写边界。"""
+        md = "Smith -John (2024) discussed X -Ray imaging."
+        result = self.formatter._apply_typography_fixes(md)
+        # 不应合并为 SmithJohn / XRay
+        assert "SmithJohn" not in result
+        assert "XRay" not in result
+
+    def test_reverse_pattern_em_dash_preserved(self) -> None:
+        """两侧都有空格（``a - b``）是 em-dash 风格，不应合并。"""
+        md = "Section A - Section B contains the analysis."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Section A - Section B" in result or "A — Section" in result
+
+    def test_reverse_pattern_compound_no_space_preserved(self) -> None:
+        """正常复合词（无空格）保持不变。"""
+        md = "neuro-symbolic systems combine state-of-the-art models."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "neuro-symbolic" in result
+        assert "state-of-the-art" in result

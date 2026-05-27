@@ -689,6 +689,25 @@ class MarkdownFormatter:
                 # \u6570\u5b57\u8303\u56f4 (20- 30)\u3001\u4e13\u6709\u7f29\u5199\u8fb9\u754c (X- Ray \u5927\u5199) \u7b49\u3002
                 text = re.sub(r"([a-z])- ([a-z])", r"\1\2", text)
 
+                # R10-D13\uff1a\u8f6f\u8fde\u5b57\u7b26 U+00AD \u8de8\u884c\u65ad\u5b57\u5408\u5e76\u3002PyMuPDF \u5728\u6392\u7248\u65ad\u5b57\u5904
+                # \u4fdd\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u95f4\u63d0\u793a\u7b26\uff09\uff0cspan \u62fc\u63a5\u540e\u5f62\u6210
+                # ``advance\u00ad ment``\uff08U+00AD + \u53ef\u9009\u7a7a\u767d + \u540e\u7eed\u5c0f\u5199\u8bcd\uff09\u3002
+                # \u8be5\u6a21\u5f0f\u5728 PDF \u89c6\u89c9\u5c42\u5e76\u975e\u771f\u5b9e\u8fde\u5b57\u7b26\uff0c\u9700\u5c06 U+00AD \u4e0e\u5176\u540e\u7a7a\u767d
+                # \u4e00\u5e76\u5220\u9664\uff0c\u6062\u590d\u5b8c\u6574\u8bcd\uff1b\u540c\u6837\u9650\u5b9a\u540e\u7eed\u4e3a ASCII \u5c0f\u5199\u4ee5\u907f\u514d\u8bef\u541e
+                # \u5927\u5199\u4e13\u6709\u540d\u8bcd\u8fb9\u754c\u4e0e\u6570\u5b57\u3002
+                text = re.sub(r"\u00ad[ \t]*(?=[a-z])", "", text)
+
+                # R10-D14\uff1a\u53cd\u5411 ``word -word`` \u6a21\u5f0f\uff08\u524d\u7a7a\u683c + ASCII \u8fde\u5b57\u7b26 + \u5c0f\u5199\uff09\u3002
+                # \u8be5\u6a21\u5f0f\u51fa\u73b0\u5728 figure caption / \u8868\u683c\u6807\u9898\u7b49\u62bd\u53d6\u8def\u5f84\u4e0a \u2014\u2014 \u90e8\u5206
+                # caption \u6536\u96c6\u5668\u628a U+00AD \u5f52\u4e00\u5316\u4e3a ASCII ``-`` \u4f46\u672a\u540c\u65f6\u5408\u5e76\u65ad\u5b57\uff0c
+                # \u5f62\u6210 ``retrofit -ting`` / ``or -chestration``\u3002\u5224\u5b9a\u6761\u4ef6\u4e0e\u524d
+                # \u4e00\u89c4\u5219\u540c\u6e90\uff08\u8981\u6c42\u524d ASCII \u5b57\u6bcd + \u5355\u7a7a\u683c + \u5355 ``-`` + ASCII \u5c0f\u5199\uff09\uff0c
+                # \u4e0e em-dash \u98ce\u683c ``A - B``\uff08\u4e24\u4fa7\u5747\u7a7a\u683c\uff09\u3001\u590d\u5408\u8bcd ``X-Y`` \u4e92\u65a5\u3002
+                text = re.sub(r"(?<=[a-zA-Z]) -(?=[a-z])", "", text)
+
+                # \u9632\u5fa1\u515c\u5e95\uff1a\u6e05\u9664\u4efb\u4f55\u6b8b\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u7b26\u4e0d\u5e94\u8fdb\u5165 markdown\uff09
+                text = text.replace("\u00ad", "")
+
                 lines = text.split("\n")
                 fixed_lines = []
                 for line in lines:
