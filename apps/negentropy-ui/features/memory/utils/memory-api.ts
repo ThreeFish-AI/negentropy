@@ -108,10 +108,11 @@ export interface MemoryAutomationJob {
   function_name: string;
   enabled: boolean;
   status: string;
-  job_id?: number | null;
+  task_id?: string | null;
   schedule: string;
-  command: string;
-  active: boolean;
+  last_status?: string | null;
+  last_fire_at?: string | null;
+  next_fire_at?: string | null;
 }
 
 export interface MemoryAutomationProcess {
@@ -125,9 +126,7 @@ export interface MemoryAutomationProcess {
 
 export interface MemoryAutomationSnapshot {
   capabilities: {
-    pg_cron_installed: boolean;
-    pg_cron_available: boolean;
-    pg_cron_logs_accessible?: boolean;
+    scheduler_type: string;
     management_mode: string;
     degraded_reasons: string[];
   };
@@ -160,15 +159,15 @@ export interface MemoryAutomationSnapshot {
 }
 
 export interface MemoryAutomationLog {
-  job_id?: number | null;
-  run_id?: number | null;
-  database?: string | null;
-  username?: string | null;
-  command?: string | null;
+  execution_id?: string | null;
+  task_id?: string | null;
+  task_key?: string | null;
   status?: string | null;
-  return_message?: string | null;
-  start_time?: string | null;
-  end_time?: string | null;
+  duration_ms?: number | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  output_summary?: string | null;
+  error?: string | null;
 }
 
 export interface MemoryAutomationLogsPayload {
