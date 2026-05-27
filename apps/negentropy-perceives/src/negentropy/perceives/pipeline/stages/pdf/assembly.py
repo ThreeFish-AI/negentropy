@@ -1290,7 +1290,7 @@ def _get_elem_bbox(
 
 # 页眉/页脚匹配模式（预编译，避免在循环中反复编译）
 _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
-    # ACM 会议论文页眉/页脚：含模板占位符 "Conference acronym" 的短文本
+    # ACM 会议论文页眉/页脚:含模板占位符 "Conference acronym" 的短文本
     # （函数已有 len>500 保护，误匹配正文风险极低）
     re.compile(r"\bConference\s+acronym\b", re.IGNORECASE),
     # DOI URL 行
@@ -1299,6 +1299,25 @@ _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
     re.compile(r"^Permission\s+to\s+make\s+digital", re.IGNORECASE),
     # ACM Reference Format 行
     re.compile(r"^ACM\s+Reference\s+Format:", re.IGNORECASE),
+    # ISSUE-094 R9 D-1b: 封面 GitHub 链接锚 ``§ Github`` / ``§ Code`` /
+    # ``§ Project`` / ``§ Repository`` / ``§ Site`` / ``§ Demo`` / ``§ Website``
+    # —— PDF 中 GitHub 图标下方的锚文本，``§`` 是装饰符而非章节号；
+    # 限定第二段为单个英文单词（``§ 2.1`` 章节引用因含数字被排除）。
+    re.compile(
+        r"^\s*§\s+(?:Github|GitHub|Code|Project|Repository|Site|Demo|"
+        r"Website|Page|Homepage|Source|Repo|Docs|Documentation)\s*$",
+        re.IGNORECASE,
+    ),
+    # ISSUE-094 R9 D-1b: 项目 banner ``<ACRONYM> <ProjectDescriptor>`` ——
+    # 论文封面页项目名/机构 banner（典型如 ``SII Context``、``MIT Lab``、
+    # ``CSE Engineering``、``SII GenAI``）；限定首词为 2-5 ALL-CAPS 字母
+    # （``Federated``、``Quantum`` 等正常英文词不会命中），第二词为已知项目
+    # 描述词白名单（避免 ``MIT Press`` / ``LLM Reasoning`` 这类正常组合被误吞）。
+    re.compile(
+        r"^\s*[A-Z]{2,5}\s+"
+        r"(?:Context|Lab|Project|Research|Group|Center|Initiative|Institute|"
+        r"Engineering|GenAI|AI|ML|NLP|Studio|Labs)\s*$"
+    ),
 ]
 
 
@@ -1540,6 +1559,88 @@ def _sanitize_latex(latex: str) -> str:
             original_len,
             len(latex),
         )
+
+    # 策略 4: 非对齐环境裸 ``&`` 分隔符剥离（ISSUE-094 R9 D-5）
+    # Docling / MinerU 在抽取 PDF 公式时偶尔把右对齐编号或竖排分列保留为
+    # 裸 ``&``，但未包裹在 ``\begin{align}``/``aligned``/``array``/``matrix``/
+    # ``cases``/``pmatrix``/``bmatrix`` 等对齐环境内。KaTeX 在普通 ``$$...$$``
+    # 块见到此类裸 ``&`` 会直接 ``ParseError: Misplaced &``，整公式拒渲染。
+    # 本策略只剥离对齐环境**外**的裸 ``&``（``\&`` 转义符与环境内对齐符不动）。
+    # 实现思路：分段扫描，遇到 ``\begin{ENV}`` 标记进入保留区，``\end{ENV}``
+    # 出区；区外字符若是不带反斜杠的 ``&``，替换为单空格（保留 token 间距）。
+    if "&" in latex:
+        _ALIGN_ENVS = (
+            "align",
+            "align*",
+            "aligned",
+            "alignat",
+            "alignat*",
+            "array",
+            "matrix",
+            "pmatrix",
+            "bmatrix",
+            "Bmatrix",
+            "vmatrix",
+            "Vmatrix",
+            "smallmatrix",
+            "cases",
+            "split",
+            "gather",
+            "gather*",
+            "gathered",
+            "eqnarray",
+            "eqnarray*",
+            "subarray",
+        )
+        _begin_re = re.compile(r"\\begin\{([A-Za-z*]+)\}")
+        _end_re = re.compile(r"\\end\{([A-Za-z*]+)\}")
+        out_chars: List[str] = []
+        i = 0
+        env_stack: List[str] = []
+        stripped_bare = 0
+        while i < len(latex):
+            ch = latex[i]
+            # 检测 \begin{ENV}
+            if ch == "\\":
+                m_begin = _begin_re.match(latex, i)
+                if m_begin and m_begin.group(1) in _ALIGN_ENVS:
+                    env_stack.append(m_begin.group(1))
+                    out_chars.append(m_begin.group(0))
+                    i = m_begin.end()
+                    continue
+                m_end = _end_re.match(latex, i)
+                if m_end and env_stack and m_end.group(1) == env_stack[-1]:
+                    env_stack.pop()
+                    out_chars.append(m_end.group(0))
+                    i = m_end.end()
+                    continue
+                # 转义符 \& 等：原样保留 2 字符
+                if i + 1 < len(latex):
+                    out_chars.append(latex[i : i + 2])
+                    i += 2
+                    continue
+                out_chars.append(ch)
+                i += 1
+                continue
+            # 裸 & 且不在对齐环境内：替换为单空格（保留 token 间距）
+            if ch == "&" and not env_stack:
+                out_chars.append(" ")
+                stripped_bare += 1
+                i += 1
+                continue
+            out_chars.append(ch)
+            i += 1
+        if stripped_bare:
+            new_latex = "".join(out_chars)
+            # 合并多余空白：连续 ≥2 个空白塌缩为 1 个
+            new_latex = re.sub(r"[ \t]{2,}", " ", new_latex)
+            logger.debug(
+                "公式 LaTeX 裸 & 剥离: %d 个；%d → %d 字符",
+                stripped_bare,
+                original_len,
+                len(new_latex),
+            )
+            latex = new_latex.strip()
 
     return latex
 
