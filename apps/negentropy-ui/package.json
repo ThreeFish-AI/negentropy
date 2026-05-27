@@ -30,6 +30,7 @@
     "@ag-ui/encoder": "0.0.47",
     "@copilotkitnext/react": "1.51.3",
     "@negentropy/agents-chat-core": "workspace:*",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "cytoscape": "^3.33.3",
     "cytoscape-fcose": "^2.2.0",
     "d3-drag": "^3.0.0",
