@@ -22,10 +22,9 @@ async function mockAuthAs(
 
 const SNAPSHOT_DEGRADED = {
   capabilities: {
-    pg_cron_installed: false,
-    pg_cron_available: false,
+    scheduler_type: "unified_registry",
     management_mode: "backend-managed",
-    degraded_reasons: ["pg_cron_not_installed", "function_drifted"],
+    degraded_reasons: ["function_drifted"],
   },
   config: {
     retention: {
@@ -62,10 +61,11 @@ const SNAPSHOT_DEGRADED = {
         function_name: "cleanup_low_value_memories",
         enabled: false,
         status: "disabled",
-        job_id: null,
+        task_id: "task-cleanup",
         schedule: "0 2 * * *",
-        command: "SELECT negentropy.cleanup_low_value_memories(0.1, 7, 0.1)",
-        active: false,
+        last_status: null,
+        last_fire_at: null,
+        next_fire_at: null,
       },
       functions: [],
     },
@@ -78,10 +78,11 @@ const SNAPSHOT_DEGRADED = {
       function_name: "cleanup_low_value_memories",
       enabled: false,
       status: "disabled",
-      job_id: null,
+      task_id: "task-cleanup",
       schedule: "0 2 * * *",
-      command: "SELECT negentropy.cleanup_low_value_memories(0.1, 7, 0.1)",
-      active: false,
+      last_status: null,
+      last_fire_at: null,
+      next_fire_at: null,
     },
   ],
   health: { status: "degraded" },
@@ -119,7 +120,7 @@ test("Automation 非 admin 角色显示仅管理员提示", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "仅管理员可访问" })).toBeVisible();
 });
 
-test("Automation admin 视图展示 capabilities + degraded + jobs readonly", async ({ page }) => {
+test("Automation admin 视图展示 capabilities + degraded reasons + Scheduler 跳转入口", async ({ page }) => {
   await mockAuthAs(page, ["admin"]);
   await mockAutomationSnapshot(page);
 
@@ -127,19 +128,16 @@ test("Automation admin 视图展示 capabilities + degraded + jobs readonly", as
   await expect(page.getByRole("heading", { name: "系统能力" })).toBeVisible();
   // 等到 snapshot 加载完成（management_mode 由 "-" → "backend-managed"）
   await expect(page.getByText("backend-managed")).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText("missing", { exact: true })).toBeVisible();
+  await expect(page.getByText("unified_registry")).toBeVisible();
   await expect(page.getByText("degraded", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("function_drifted")).toBeVisible();
   await expect(
-    page.getByText("pg_cron_not_installed / function_drifted"),
+    page.getByText("记忆自动化作业已迁移至统一调度系统，可在 Scheduler 页面中查看和管理。"),
   ).toBeVisible();
-  await expect(
-    page.getByText("当前 `pg_cron` 不可用，调度相关操作已降级为只读；配置和函数状态仍可查看与保存。"),
-  ).toBeVisible();
-
-  // pg_cron 不可用时，cleanup job 的写按钮应禁用（启用/重建/手动触发）
-  await expect(page.getByRole("button", { name: "启用" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "重建" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "手动触发" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: /打开 Scheduler/ })).toHaveAttribute(
+    "href",
+    "/interface/scheduler",
+  );
 });
 
 test("Automation 保存配置触发 POST /api/memory/automation/config", async ({ page }) => {
