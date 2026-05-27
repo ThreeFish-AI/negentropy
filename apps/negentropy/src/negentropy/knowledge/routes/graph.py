@@ -1032,6 +1032,7 @@ async def global_search_knowledge_graph(
         service = GlobalSearchService(
             max_communities=payload.max_communities,
             llm_config_id=llm_config_id,
+            corpus_id=corpus_id,
         )
 
         result = await service.search(
