@@ -186,7 +186,7 @@ class BuiltinAssembler(PDFToolBase):
                     if _text_block_matches_formula(block, formula_text_signatures):
                         continue
                     # 跳过学术论文页眉/页脚残留文本
-                    if _is_running_header_footer(block.text):
+                    if _is_running_header_footer(block.text, block.page_number):
                         continue
                     # 跳过文本块中的表格：当 table_extraction 已提供高保真版本时，
                     # 不再使用文本块的原始表格（避免重复且质量更差）
@@ -939,6 +939,83 @@ class BuiltinAssembler(PDFToolBase):
                     e for i, e in enumerate(elements) if i not in _fragment_remove
                 ]
 
+            # 2.5.6 公式序号 gap-consistency 推断回填（ISSUE-094 R9 D-2/D-3/D-4）：
+            # Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
+            # ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。
+            # 利用学术论文连续编号习惯，按相邻有编号公式之间的 gap 是否
+            # 与未编号公式数一致来保守填补（不一致则放弃，避免误编号）。
+            _formula_block_elements: List[Tuple[int, _ContentElement]] = [
+                (i, e)
+                for i, e in enumerate(elements)
+                if e.element_type == "formula"
+                and e.formula is not None
+                and e.content.strip().startswith("$$")
+            ]
+            if len(_formula_block_elements) >= 2:
+                _ext_nums: List[Optional[int]] = []
+                for _, fe in _formula_block_elements:
+                    # 注：``_extract_formula_eq_number`` 已涵盖 ``\\tag{N}`` /
+                    # ``\\quad (N)`` 与裸尾部 ``(N)\\s*$`` 三种形态（含 R9 D-5
+                    # 剥离 ``&`` 后的 Eq (2) 形态），无需再叠加 tail 兜底正则。
+                    eq_str = _extract_formula_eq_number(
+                        (fe.formula.latex or "") if fe.formula else ""
+                    )
+                    _ext_nums.append(int(eq_str) if eq_str is not None else None)
+                _inferred = _infer_missing_formula_numbers(_ext_nums)
+                for idx_in_list, inferred_num in _inferred.items():
+                    _, target_elem = _formula_block_elements[idx_in_list]
+                    if target_elem.formula is None:
+                        continue
+                    old_latex = target_elem.formula.latex or ""
+                    new_latex = f"{old_latex.rstrip()} \\quad ({inferred_num})"
+                    target_elem.formula.latex = new_latex
+                    target_elem.content = _formula_to_markdown(target_elem.formula)
+                    logger.debug(
+                        "[assembly:infer_formula_number] pos=%d inferred=%d "
+                        "latex_preview=%r",
+                        idx_in_list,
+                        inferred_num,
+                        old_latex[:80],
+                    )
+
+            # 2.5.7 图片 caption 邻接段注入（ISSUE-094 R9 D-6）：
+            # 当 image_extraction 阶段未能从 PyMuPDF / Docling 关联到图片
+            # caption（``image.caption`` 为空）、UI 显示 ``alt="<filename>"``
+            # 退化为文件名，且文档顺序下一个 text element 是 ``Figure N:`` /
+            # ``Fig. N:`` / ``Table N:`` 起手的 caption 段落时，把邻接段
+            # 文本注入到 image，复用 2.6 段的 caption-vs-text 去重移除
+            # 独立 caption 段落，恢复 PDF 中"图旁有 caption"视觉。
+            for i, img_elem in enumerate(elements):
+                if img_elem.element_type != "image" or img_elem.image is None:
+                    continue
+                existing_cap = (img_elem.image.caption or "").strip()
+                # 搜索紧邻下一个非空 text element（跳过空白）
+                next_text_content: Optional[str] = None
+                for j in range(i + 1, len(elements)):
+                    nxt = elements[j]
+                    if nxt.element_type != "text" or nxt.block is None:
+                        # 遇到非 text 元素（image / formula / table / code）→
+                        # 邻接关系中断，不再继续搜索
+                        break
+                    candidate = (nxt.content or "").strip()
+                    if not candidate:
+                        continue
+                    next_text_content = candidate
+                    break
+                injected = _figure_caption_to_inject(
+                    image_has_caption=bool(existing_cap),
+                    next_text_block_text=next_text_content,
+                )
+                if injected is None:
+                    continue
+                img_elem.image.caption = injected
+                img_elem.content = _image_to_markdown(img_elem.image)
+                logger.debug(
+                    "[assembly:rescue_image_caption] image_id=%s injected=%r",
+                    img_elem.image.image_id,
+                    injected[:80],
+                )
+
             # 2.6 图片 caption 与纯文本去重：
             #    当图片元素以 `![caption](path)` 形式输出后，
             #    若紧接着一个纯文本元素的内容与该 caption 高度相似
@@ -1290,7 +1367,7 @@ def _get_elem_bbox(
 
 # 页眉/页脚匹配模式（预编译，避免在循环中反复编译）
 _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
-    # ACM 会议论文页眉/页脚：含模板占位符 "Conference acronym" 的短文本
+    # ACM 会议论文页眉/页脚:含模板占位符 "Conference acronym" 的短文本
     # （函数已有 len>500 保护，误匹配正文风险极低）
     re.compile(r"\bConference\s+acronym\b", re.IGNORECASE),
     # DOI URL 行
@@ -1299,6 +1376,36 @@ _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
     re.compile(r"^Permission\s+to\s+make\s+digital", re.IGNORECASE),
     # ACM Reference Format 行
     re.compile(r"^ACM\s+Reference\s+Format:", re.IGNORECASE),
+    # ISSUE-094 R9 D-1b: 封面 GitHub 链接锚 ``§ Github`` / ``§ Code`` /
+    # ``§ Project`` / ``§ Repository`` / ``§ Site`` / ``§ Demo`` / ``§ Website``
+    # —— PDF 中 GitHub 图标下方的锚文本，``§`` 是装饰符而非章节号；
+    # 限定第二段为单个英文单词（``§ 2.1`` 章节引用因含数字被排除）。
+    re.compile(
+        r"^\s*§\s+(?:Github|GitHub|Code|Project|Repository|Site|Demo|"
+        r"Website|Page|Homepage|Source|Repo|Docs|Documentation)\s*$",
+        re.IGNORECASE,
+    ),
+]
+
+
+# 封面专属（page_number == 0）banner 模式 —— 仅在 PDF 封面页应用：
+#
+# ISSUE-094 R9 D-1b：论文封面常出现 ``<ACRONYM> <ProjectDescriptor>``
+# 项目/机构 banner（典型如 ``SII Context``、``MIT Lab``、``SII GenAI``）；
+# 限定首词为 2-5 ALL-CAPS 字母（``Federated``、``Quantum`` 等正常英文词
+# 不会命中），第二词收紧为项目专用描述词白名单。
+#
+# R9 round 4 收紧（基于代码评审反馈）：从描述词白名单中**剔除**
+# ``Research / Group / Center / Engineering / AI / ML / NLP`` 等过宽通用词，
+# 避免正文短句 ``AI Research`` / ``ML Engineering`` / ``MIT Research``
+# / ``LLM Research`` 在跨页内容中被静默吞掉；并通过 ``page_number == 0``
+# 门控将该模式仅施加于封面页，body page 上 ``NLP Lab`` / ``GPT Lab``
+# / ``ETH Institute`` 等合法段落不再受影响。
+_COVER_BANNER_PATTERNS: List[re.Pattern] = [
+    re.compile(
+        r"^\s*[A-Z]{2,5}\s+"
+        r"(?:Context|Lab|Project|Initiative|Institute|GenAI|Studio|Labs)\s*$"
+    ),
 ]
 
 
@@ -1347,11 +1454,53 @@ def _is_figure_or_table_caption_text(text: str) -> bool:
     return bool(_FIGURE_TABLE_CAPTION_RE.match(text))
 
 
-def _is_running_header_footer(text: str) -> bool:
+def _figure_caption_to_inject(
+    image_has_caption: bool,
+    next_text_block_text: Optional[str],
+) -> Optional[str]:
+    """判断 image 是否应从邻接文本接收 caption（ISSUE-094 R9 D-6）。
+
+    image_extraction 偶尔未能从 PyMuPDF / Docling 正确关联图片下方的
+    caption 文本，导致 Markdown ``<img alt="...">`` 退化为文件名（如
+    ``alt="fig_p4_2.png"``），同时下方独立段落 ``Figure 3: ...`` 仍以
+    纯文本形式存在。本函数判定是否应从 ``next_text_block_text`` 注入。
+
+    返回应注入的 caption 文本（已 strip），若不应注入则返回 ``None``。
+
+    Args:
+        image_has_caption: image 是否已有非空 caption（image_extraction 阶段结果）。
+        next_text_block_text: image 元素紧邻下一个 text element 的内容。
+
+    决策：
+    - image 已有 caption → 不覆盖（保持上游结果优先）；
+    - next_text 为空 / None → 不注入；
+    - next_text 不匹配 ``Figure N:`` / ``Fig. N:`` / ``Table N:`` /
+      ``Tab N -`` 模式 → 不注入（避免误识别普通段落含 "Figure" 关键字）。
+    """
+    if image_has_caption:
+        return None
+    if not next_text_block_text:
+        return None
+    text = next_text_block_text.strip()
+    if not text:
+        return None
+    if not _is_figure_or_table_caption_text(text):
+        return None
+    return text
+
+
+def _is_running_header_footer(text: str, page_number: Optional[int] = None) -> bool:
     """判断文本是否为学术论文的页眉/页脚残留。
 
     检测常见的跨页重复模式：会议简称 + 日期 + 作者名列表、
     论文标题 + 会议简称、ACM 版权/DOI 行等。
+
+    Args:
+        text: 待判定的文本块内容。
+        page_number: 该文本块所在的 0-indexed 页码。**仅当 ``page_number == 0``
+            （封面页）时**才会额外匹配 ``_COVER_BANNER_PATTERNS``（项目/机构
+            banner），避免正文页面短句被误判为残留 banner。``None`` 时跳过
+            封面专属模式（向后兼容调用方）。
     """
     stripped = text.strip()
     if not stripped or len(stripped) > 500:
@@ -1359,6 +1508,10 @@ def _is_running_header_footer(text: str) -> bool:
     for pattern in _RUNNING_HEADER_FOOTER_PATTERNS:
         if pattern.search(stripped):
             return True
+    if page_number == 0:
+        for pattern in _COVER_BANNER_PATTERNS:
+            if pattern.search(stripped):
+                return True
     return False
 
 
@@ -1541,6 +1694,88 @@ def _sanitize_latex(latex: str) -> str:
             len(latex),
         )
 
+    # 策略 4: 非对齐环境裸 ``&`` 分隔符剥离（ISSUE-094 R9 D-5）
+    # Docling / MinerU 在抽取 PDF 公式时偶尔把右对齐编号或竖排分列保留为
+    # 裸 ``&``，但未包裹在 ``\begin{align}``/``aligned``/``array``/``matrix``/
+    # ``cases``/``pmatrix``/``bmatrix`` 等对齐环境内。KaTeX 在普通 ``$$...$$``
+    # 块见到此类裸 ``&`` 会直接 ``ParseError: Misplaced &``，整公式拒渲染。
+    # 本策略只剥离对齐环境**外**的裸 ``&``（``\&`` 转义符与环境内对齐符不动）。
+    # 实现思路：分段扫描，遇到 ``\begin{ENV}`` 标记进入保留区，``\end{ENV}``
+    # 出区；区外字符若是不带反斜杠的 ``&``，替换为单空格（保留 token 间距）。
+    if "&" in latex:
+        _ALIGN_ENVS = (
+            "align",
+            "align*",
+            "aligned",
+            "alignat",
+            "alignat*",
+            "array",
+            "matrix",
+            "pmatrix",
+            "bmatrix",
+            "Bmatrix",
+            "vmatrix",
+            "Vmatrix",
+            "smallmatrix",
+            "cases",
+            "split",
+            "gather",
+            "gather*",
+            "gathered",
+            "eqnarray",
+            "eqnarray*",
+            "subarray",
+        )
+        _begin_re = re.compile(r"\\begin\{([A-Za-z*]+)\}")
+        _end_re = re.compile(r"\\end\{([A-Za-z*]+)\}")
+        out_chars: List[str] = []
+        i = 0
+        env_stack: List[str] = []
+        stripped_bare = 0
+        while i < len(latex):
+            ch = latex[i]
+            # 检测 \begin{ENV}
+            if ch == "\\":
+                m_begin = _begin_re.match(latex, i)
+                if m_begin and m_begin.group(1) in _ALIGN_ENVS:
+                    env_stack.append(m_begin.group(1))
+                    out_chars.append(m_begin.group(0))
+                    i = m_begin.end()
+                    continue
+                m_end = _end_re.match(latex, i)
+                if m_end and env_stack and m_end.group(1) == env_stack[-1]:
+                    env_stack.pop()
+                    out_chars.append(m_end.group(0))
+                    i = m_end.end()
+                    continue
+                # 转义符 \& 等：原样保留 2 字符
+                if i + 1 < len(latex):
+                    out_chars.append(latex[i : i + 2])
+                    i += 2
+                    continue
+                out_chars.append(ch)
+                i += 1
+                continue
+            # 裸 & 且不在对齐环境内：替换为单空格（保留 token 间距）
+            if ch == "&" and not env_stack:
+                out_chars.append(" ")
+                stripped_bare += 1
+                i += 1
+                continue
+            out_chars.append(ch)
+            i += 1
+        if stripped_bare:
+            new_latex = "".join(out_chars)
+            # 合并多余空白：连续 ≥2 个空白塌缩为 1 个
+            new_latex = re.sub(r"[ \t]{2,}", " ", new_latex)
+            logger.debug(
+                "公式 LaTeX 裸 & 剥离: %d 个；%d → %d 字符",
+                stripped_bare,
+                original_len,
+                len(new_latex),
+            )
+            latex = new_latex.strip()
+
     return latex
 
 
@@ -1569,6 +1804,51 @@ def _extract_formula_eq_number(latex: str | None) -> str | None:
         if m:
             return m.group(1)
     return None
+
+
+def _infer_missing_formula_numbers(
+    extracted_numbers: List[Optional[int]],
+) -> Dict[int, int]:
+    """按公式 gap-consistency 推断缺失编号（ISSUE-094 R9 D-2/D-3/D-4）。
+
+    Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
+    ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。利用
+    学术论文连续编号习惯，按相邻两个有编号公式 A、B 之间的 gap
+    与未编号公式数是否一致来保守填补，避免误编号。
+
+    策略：
+    1. 收集所有 ``extracted_numbers[i] is not None`` 的位置作为锚点；
+    2. 对相邻两个锚点 ``(i_a, num_a)`` / ``(i_b, num_b)``，若
+       ``num_b - num_a - 1 == i_b - i_a - 1``（"gap 一致"），则把
+       ``i_a + 1..i_b - 1`` 位置依次填入 ``num_a + 1, num_a + 2, ...``；
+    3. 仅在锚点之间填补，不外推（首段 / 末段未编号公式不做推断，
+       避免与下文 / 上文真实编号冲突）。
+
+    Args:
+        extracted_numbers: 公式编号列表（按文档顺序），有编号为 int，
+            无编号为 ``None``。
+
+    Returns:
+        ``{index: inferred_number}`` 字典，仅含能可靠推断的位置。
+    """
+    inferred: Dict[int, int] = {}
+    anchors: List[Tuple[int, int]] = [
+        (i, n) for i, n in enumerate(extracted_numbers) if n is not None
+    ]
+    if len(anchors) < 2:
+        return inferred
+    for k in range(len(anchors) - 1):
+        i_a, num_a = anchors[k]
+        i_b, num_b = anchors[k + 1]
+        between_count = i_b - i_a - 1
+        if between_count == 0:
+            continue
+        expected_gap = num_b - num_a - 1
+        if between_count != expected_gap:
+            continue
+        for offset in range(1, between_count + 1):
+            inferred[i_a + offset] = num_a + offset
+    return inferred
 
 
 def _formula_to_markdown(formula: ExtractedFormula) -> str:
@@ -1624,13 +1904,20 @@ def _image_to_markdown(image: ExtractedImage) -> str:
 
     display_w: Optional[int] = None
     display_h: Optional[int] = None
+    # R9 D-7: 判断是否为"大图"（bbox 宽占 A4 页面宽度 > 50%），
+    # 大图使用 width="100%" 自适应容器而非固定 px，避免在 max-w-5xl
+    # 容器（~1024px）中仅占 ~60% 宽度。A4 Letter 内容区宽约 453pt
+    # （612pt 页宽 - 左右各 ~80pt 边距）；跨栏全宽 figure bbox ≥ 300pt
+    # 视为大图。小图（icon / emblem / inline 装饰）仍用固定 px。
+    _LARGE_FIGURE_WIDTH_PT = 300.0
+    is_large_figure = False
     if image.bbox is not None:
         try:
             x0, y0, x1, y1 = (float(v) for v in image.bbox)
             bw, bh = x1 - x0, y1 - y0
             if bw > 0 and bh > 0:
-                # PDF 点 → CSS 像素：标准 DPI 比例（96/72 ≈ 1.333），
-                # 与 PDF 原版视觉宽度 1:1 等价。
+                if bw >= _LARGE_FIGURE_WIDTH_PT:
+                    is_large_figure = True
                 display_w = int(round(bw * _PDF_PT_TO_CSS_PX))
                 display_h = int(round(bh * _PDF_PT_TO_CSS_PX))
         except (TypeError, ValueError):
@@ -1646,10 +1933,13 @@ def _image_to_markdown(image: ExtractedImage) -> str:
             f'<img src="{html.escape(src, quote=True)}"',
             f'alt="{html.escape(alt_text, quote=True)}"',
         ]
-        if display_w:
-            parts.append(f'width="{display_w}"')
-        if display_h:
-            parts.append(f'height="{display_h}"')
+        if is_large_figure:
+            parts.append('width="100%"')
+        else:
+            if display_w:
+                parts.append(f'width="{display_w}"')
+            if display_h:
+                parts.append(f'height="{display_h}"')
         parts.append('style="max-width:100%;height:auto;" />')
         return " ".join(parts)
     return f"![{alt_text}]({src})"

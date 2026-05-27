@@ -71,12 +71,12 @@ class TestImageToMarkdown:
         # 仍是 HTML 形式，便于 UI 端 parsePixelValue 读取
         assert out.startswith("<img ")
 
-    def test_full_width_figure_region_scales_to_css_px(self) -> None:
-        """整图渲染 figure region（A4 全宽 595pt × 730pt）应显示为 ~793×973px。
+    def test_full_width_figure_region_uses_100_percent(self) -> None:
+        """整图渲染 figure region（A4 全宽 595pt × 730pt，bbox ≥ 300pt）应
+        输出 ``width="100%"`` 自适应容器。
 
-        ISSUE-094 R7：用户截图反馈 Figure 1 在 markdown view 仅占容器宽度 1/3，
-        根因是 bbox pt 直接当 px 输出（373pt → 373px，远小于 A4 等宽容器 ~800px）。
-        修复后 373pt → round(373*4/3) = 497px，A4 全宽 figure 接近 ~793px。
+        ISSUE-094 R9 D-7：大图（bbox 宽 ≥ 300pt）在 max-w-5xl 容器中用固定
+        px 仅占 ~60% 宽度，PDF 原版跨栏全宽 figure 应占满容器。
         """
         img = ExtractedImage(
             image_id="rendered_0_0",
@@ -84,23 +84,23 @@ class TestImageToMarkdown:
             bbox=(0.0, 0.0, 595.0, 730.0),  # A4 全宽 figure
         )
         out = _image_to_markdown(img)
-        m_w = re.search(r'width="(\d+)"', out)
-        m_h = re.search(r'height="(\d+)"', out)
-        assert m_w is not None and int(m_w.group(1)) == 793  # 595 * 4/3
-        assert m_h is not None and int(m_h.group(1)) == 973  # 730 * 4/3
+        assert 'width="100%"' in out
+        # 不输出固定 height（100% 宽 + height:auto 让浏览器按比例缩放）
+        assert 'height="' not in out
 
-    def test_context_engineering_figure1_real_dims(self) -> None:
-        """Context Engineering 2.0 Figure 1 实测：373pt × 215pt → 497×287px。"""
+    def test_context_engineering_figure1_real_dims_uses_100_percent(self) -> None:
+        """Context Engineering 2.0 Figure 1 实测：373pt × 215pt，bbox ≥ 300pt
+        视为大图 → ``width="100%"``。
+
+        ISSUE-094 R9 D-7：373pt > 300pt 阈值命中大图规则。
+        """
         img = ExtractedImage(
             image_id="rendered_0_5",
             filename="fig_p1_5.png",
             bbox=(0.0, 0.0, 373.0, 215.0),
         )
         out = _image_to_markdown(img)
-        m_w = re.search(r'width="(\d+)"', out)
-        m_h = re.search(r'height="(\d+)"', out)
-        assert m_w is not None and int(m_w.group(1)) == 497  # round(373*4/3)
-        assert m_h is not None and int(m_h.group(1)) == 287  # round(215*4/3)
+        assert 'width="100%"' in out
 
     def test_degrades_to_markdown_syntax_when_no_dims(self) -> None:
         """既无 bbox 又无 width/height 时降级为标准 Markdown ``![alt](src)``。"""
