@@ -6,9 +6,9 @@ import pytest
 
 from negentropy.engine.adapters.postgres.memory_automation_service import (
     DEFAULT_AUTOMATION_CONFIG,
-    JOB_TEMPLATES,
+    JOB_FUNCTION_NAMES,
+    JOB_LABELS,
     MemoryAutomationService,
-    MemoryAutomationUnavailableError,
     _build_function_definitions,
 )
 
@@ -48,18 +48,6 @@ def test_validate_config_rejects_invalid_ratios(service: MemoryAutomationService
         service._validate_config(invalid)  # noqa: SLF001
 
 
-def test_build_cleanup_job_runtime_uses_managed_sql(service: MemoryAutomationService):
-    enabled, schedule, command = service._build_job_runtime(  # noqa: SLF001
-        job_key="cleanup_memories",
-        config=DEFAULT_AUTOMATION_CONFIG,
-    )
-
-    assert enabled is False
-    assert schedule == "0 2 * * *"
-    assert "cleanup_low_value_memories" in command
-    assert "negentropy.cleanup_low_value_memories" in command
-
-
 def test_context_assembler_config_updates_managed_function_defaults():
     config = {
         **DEFAULT_AUTOMATION_CONFIG,
@@ -77,28 +65,21 @@ def test_context_assembler_config_updates_managed_function_defaults():
     assert "p_history_ratio FLOAT DEFAULT 0.4" in function_sql
 
 
-@pytest.mark.asyncio
-async def test_scheduler_actions_raise_when_pg_cron_unavailable(
-    service: MemoryAutomationService, monkeypatch: pytest.MonkeyPatch
-):
-    async def fake_capabilities():
-        return {
-            "pg_cron_installed": True,
-            "pg_cron_available": False,
-            "pg_cron_logs_accessible": False,
-        }
-
-    monkeypatch.setattr(service, "_get_capabilities", fake_capabilities)
-
-    with pytest.raises(MemoryAutomationUnavailableError):
-        await service._ensure_scheduler_available(job_key="cleanup_memories")  # noqa: SLF001
+def test_reweight_relevance_label_and_function_registered():
+    assert "reweight_relevance" in JOB_LABELS
+    assert JOB_LABELS["reweight_relevance"] == "Rocchio Reweight"
+    assert "reweight_relevance" in JOB_FUNCTION_NAMES
+    assert JOB_FUNCTION_NAMES["reweight_relevance"] == "reweight_all_users_relevance"
 
 
-def test_reweight_relevance_in_job_templates():
-    assert "reweight_relevance" in JOB_TEMPLATES
-    template = JOB_TEMPLATES["reweight_relevance"]
-    assert template.process_label == "Rocchio Reweight"
-    assert template.function_name == "reweight_all_users_relevance"
+def test_cleanup_label_and_function_registered():
+    assert JOB_LABELS["cleanup_memories"] == "Ebbinghaus Cleanup"
+    assert JOB_FUNCTION_NAMES["cleanup_memories"] == "cleanup_low_value_memories"
+
+
+def test_trigger_consolidation_label_and_function_registered():
+    assert JOB_LABELS["trigger_consolidation"] == "Maintenance Consolidation"
+    assert JOB_FUNCTION_NAMES["trigger_consolidation"] == "trigger_maintenance_consolidation"
 
 
 def test_reweight_relevance_default_config():
@@ -118,16 +99,6 @@ def test_set_job_enabled_reweight_relevance(service: MemoryAutomationService):
 
     service._set_job_enabled(config, "reweight_relevance", False)  # noqa: SLF001
     assert config["reweight_relevance"]["enabled"] is False
-
-
-def test_build_job_runtime_reweight_relevance(service: MemoryAutomationService):
-    enabled, schedule, command = service._build_job_runtime(  # noqa: SLF001
-        job_key="reweight_relevance",
-        config=DEFAULT_AUTOMATION_CONFIG,
-    )
-    assert enabled is False
-    assert schedule == "0 */6 * * *"
-    assert "reweight_all_users_relevance" in command
 
 
 def test_build_function_definitions_includes_reweight():

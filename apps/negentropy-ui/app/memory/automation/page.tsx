@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { MemoryNav } from "@/components/ui/MemoryNav";
@@ -8,8 +9,6 @@ import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   fetchMemoryAutomation,
   fetchMemoryAutomationLogs,
-  runMemoryAutomationJob,
-  triggerMemoryAutomationJobAction,
   updateMemoryAutomationConfig,
   type MemoryAutomationLog,
   type MemoryAutomationSnapshot,
@@ -27,7 +26,6 @@ export default function MemoryAutomationPage() {
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = Boolean(user?.roles?.includes("admin"));
-  const isSchedulerReadonly = snapshot ? !snapshot.capabilities.pg_cron_available : false;
 
   const fetchAutomationData = async () => {
     const [nextSnapshot, nextLogs] = await Promise.all([
@@ -107,36 +105,6 @@ export default function MemoryAutomationPage() {
     });
   };
 
-  const handleJobAction = (jobKey: string, action: "enable" | "disable" | "reconcile") => {
-    startTransition(async () => {
-      try {
-        const nextSnapshot = await triggerMemoryAutomationJobAction(jobKey, action, APP_NAME);
-        setSnapshot(nextSnapshot);
-        setForm(nextSnapshot.config);
-        setStatusText(`任务 ${jobKey} 已执行 ${action}。`);
-        const nextLogs = await fetchMemoryAutomationLogs(APP_NAME, 10);
-        setLogs(nextLogs.items);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      }
-    });
-  };
-
-  const handleRun = (jobKey: string) => {
-    startTransition(async () => {
-      try {
-        const result = await runMemoryAutomationJob(jobKey, APP_NAME);
-        setSnapshot(result.snapshot);
-        setForm(result.snapshot.config);
-        setStatusText(`任务 ${jobKey} 已手动触发，返回结果：${result.result ?? "-"}`);
-        const nextLogs = await fetchMemoryAutomationLogs(APP_NAME, 10);
-        setLogs(nextLogs.items);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      }
-    });
-  };
-
   if (status === "loading") {
     return (
       <div className="flex h-full items-center justify-center bg-background">
@@ -172,8 +140,8 @@ export default function MemoryAutomationPage() {
                 <h2 className="text-sm font-semibold text-foreground">系统能力</h2>
                 <div className="mt-4 space-y-3 text-xs text-muted">
                   <div className="flex items-center justify-between">
-                    <span>pg_cron</span>
-                    <span>{snapshot?.capabilities.pg_cron_installed ? "installed" : "missing"}</span>
+                    <span>调度器</span>
+                    <span>{snapshot?.capabilities.scheduler_type || "-"}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>管理模式</span>
@@ -187,11 +155,6 @@ export default function MemoryAutomationPage() {
                 {snapshot?.capabilities.degraded_reasons?.length ? (
                   <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                     {snapshot.capabilities.degraded_reasons.join(" / ")}
-                  </div>
-                ) : null}
-                {isSchedulerReadonly ? (
-                  <div className="mt-4 rounded-2xl border border-border bg-muted/40 p-3 text-[11px] text-muted">
-                    当前 `pg_cron` 不可用，调度相关操作已降级为只读；配置和函数状态仍可查看与保存。
                   </div>
                 ) : null}
               </div>
@@ -304,7 +267,7 @@ export default function MemoryAutomationPage() {
                               updateField("retention", "auto_cleanup_enabled", e.target.checked)
                             }
                           />
-                          启用 cleanup cron
+                          启用 cleanup 任务
                         </label>
                       </div>
                     </section>
@@ -334,7 +297,7 @@ export default function MemoryAutomationPage() {
                             checked={form.consolidation.enabled}
                             onChange={(e) => updateField("consolidation", "enabled", e.target.checked)}
                           />
-                          启用 consolidation cron
+                          启用 consolidation 任务
                         </label>
                       </div>
                     </section>
@@ -387,48 +350,16 @@ export default function MemoryAutomationPage() {
               </div>
 
               <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-sm font-semibold text-foreground">Managed Jobs</h2>
-                <div className="mt-4 space-y-3">
-                  {snapshot?.jobs.map((job) => (
-                    <div key={job.job_key} className="rounded-2xl border border-border p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold text-foreground">{job.process_label}</p>
-                          <p className="mt-1 text-[11px] text-muted">{job.schedule}</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-border px-2 py-1 text-[11px] text-muted">
-                            {job.status}
-                          </span>
-                          <button
-                            className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                            onClick={() => handleJobAction(job.job_key, job.enabled ? "disable" : "enable")}
-                            disabled={isPending || isSchedulerReadonly}
-                          >
-                            {job.enabled ? "停用" : "启用"}
-                          </button>
-                          <button
-                            className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                            onClick={() => handleJobAction(job.job_key, "reconcile")}
-                            disabled={isPending || isSchedulerReadonly}
-                          >
-                            重建
-                          </button>
-                          <button
-                            className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                            onClick={() => handleRun(job.job_key)}
-                            disabled={isPending || isSchedulerReadonly}
-                          >
-                            手动触发
-                          </button>
-                        </div>
-                      </div>
-                      <pre className="mt-3 overflow-x-auto rounded-xl bg-muted/40 p-3 text-[11px] text-muted">
-                        {job.command}
-                      </pre>
-                    </div>
-                  ))}
-                </div>
+                <h2 className="text-sm font-semibold text-foreground">Scheduled Jobs</h2>
+                <p className="mt-2 text-xs text-muted">
+                  记忆自动化作业已迁移至统一调度系统，可在 Scheduler 页面中查看和管理。
+                </p>
+                <Link
+                  href="/interface/scheduler"
+                  className="mt-3 inline-flex items-center gap-1 rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background transition-opacity hover:opacity-80"
+                >
+                  打开 Scheduler →
+                </Link>
               </div>
             </div>
           </main>
@@ -455,16 +386,21 @@ export default function MemoryAutomationPage() {
                 <h2 className="text-sm font-semibold text-foreground">Recent Logs</h2>
                 <div className="mt-4 space-y-3">
                   {logs.length ? (
-                    logs.map((item) => (
-                      <div key={`${item.run_id}-${item.job_id}`} className="rounded-2xl border border-border p-3">
+                    logs.map((item, i) => (
+                      <div key={`${item.execution_id ?? i}`} className="rounded-2xl border border-border p-3">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-[11px] font-semibold text-foreground">
-                            job #{item.job_id ?? "-"} / run #{item.run_id ?? "-"}
+                            {item.task_key ?? `exec ${item.execution_id ?? i}`}
                           </span>
                           <span className="text-[11px] text-muted">{item.status || "-"}</span>
                         </div>
-                        <p className="mt-2 text-[11px] text-muted">{item.start_time || "-"}</p>
-                        <p className="mt-2 break-all text-[11px] text-muted">{item.return_message || item.command}</p>
+                        <p className="mt-2 text-[11px] text-muted">{item.started_at || "-"}</p>
+                        {item.output_summary ? (
+                          <p className="mt-2 break-all text-[11px] text-muted">{item.output_summary}</p>
+                        ) : null}
+                        {item.error ? (
+                          <p className="mt-2 break-all text-[11px] text-rose-600">{item.error}</p>
+                        ) : null}
                       </div>
                     ))
                   ) : (
