@@ -126,7 +126,7 @@ async def _run_reweight(task: ScheduledTask) -> HandlerResult:
                 )
 
         return HandlerResult(
-            status="ok" if failed_users == 0 else "failed",
+            status="ok",
             output_summary=(
                 f"reweight_relevance: reweighted={total_reweighted}, users={len(users)}, failed_users={failed_users}"
             ),

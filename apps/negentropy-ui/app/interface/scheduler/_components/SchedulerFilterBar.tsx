@@ -2,13 +2,27 @@
 
 import { useMemo } from "react";
 
-import type { DashboardFilters, StatsWindow } from "@/features/scheduler";
+import type { DashboardFilters, ScheduledTaskDTO, StatsWindow } from "@/features/scheduler";
 import type { FilterOption } from "@/features/scheduler/hooks/filter-option";
 import { useDashboardAgentOptions } from "@/app/(home)/dashboard/_hooks/useDashboardAgentOptions";
 import { useDashboardOwnerOptions } from "@/app/(home)/dashboard/_hooks/useDashboardOwnerOptions";
 
+function uniqueOptions(tasks: ScheduledTaskDTO[], field: keyof ScheduledTaskDTO): FilterOption[] {
+  const seen = new Set<string>();
+  const opts: FilterOption[] = [];
+  for (const t of tasks) {
+    const v = t[field];
+    if (typeof v === "string" && v && !seen.has(v)) {
+      seen.add(v);
+      opts.push({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) });
+    }
+  }
+  return opts;
+}
+
 interface SchedulerFilterBarProps {
   filters: DashboardFilters;
+  tasks: ScheduledTaskDTO[];
   onFiltersChange: (f: DashboardFilters) => void;
 }
 
@@ -44,35 +58,13 @@ function SelectFilter({ label, value, options, loading, onChange }: SelectFilter
   );
 }
 
-export function SchedulerFilterBar({ filters, onFiltersChange }: SchedulerFilterBarProps) {
+export function SchedulerFilterBar({ filters, tasks, onFiltersChange }: SchedulerFilterBarProps) {
   const { options: agentOptions, loading: agentsLoading } = useDashboardAgentOptions();
   const { options: ownerOptions, loading: ownersLoading } = useDashboardOwnerOptions();
 
-  const roleOptions = useMemo<FilterOption[]>(() => {
-    // Roles are derived from tasks data; provide common presets
-    return [
-      { value: "agent", label: "Agent" },
-      { value: "system", label: "System" },
-      { value: "pipeline", label: "Pipeline" },
-    ];
-  }, []);
-
-  const scenarioOptions = useMemo<FilterOption[]>(() => {
-    return [
-      { value: "scheduled", label: "Scheduled" },
-      { value: "recurring", label: "Recurring" },
-      { value: "oneshot", label: "One-shot" },
-    ];
-  }, []);
-
-  const categoryOptions = useMemo<FilterOption[]>(() => {
-    return [
-      { value: "maintenance", label: "Maintenance" },
-      { value: "monitoring", label: "Monitoring" },
-      { value: "notification", label: "Notification" },
-      { value: "ingestion", label: "Ingestion" },
-    ];
-  }, []);
+  const roleOptions = useMemo<FilterOption[]>(() => uniqueOptions(tasks, "role"), [tasks]);
+  const scenarioOptions = useMemo<FilterOption[]>(() => uniqueOptions(tasks, "scenario"), [tasks]);
+  const categoryOptions = useMemo<FilterOption[]>(() => uniqueOptions(tasks, "category"), [tasks]);
 
   const patch = (partial: Partial<DashboardFilters>) => {
     onFiltersChange({ ...filters, ...partial });

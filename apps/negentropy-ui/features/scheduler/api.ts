@@ -45,6 +45,7 @@ function buildFilterQuery(filters: Partial<DashboardFilters>): string {
   if (filters.scenario) sp.set("scenario", filters.scenario);
   if (filters.agent) sp.set("agent", filters.agent);
   if (filters.owner) sp.set("owner", filters.owner);
+  if (filters.category) sp.set("category", filters.category);
   return sp.toString();
 }
 

@@ -235,7 +235,7 @@ class MemoryAutomationConfigUpdateRequest(BaseModel):
 class MemoryAutomationRunResponse(BaseModel):
     job_key: str
     process_label: str
-    result: int | None = None
+    result: int | dict[str, Any] | None = None
     snapshot: MemoryAutomationSnapshotResponse
 
 

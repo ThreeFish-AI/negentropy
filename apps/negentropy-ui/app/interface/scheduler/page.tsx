@@ -52,6 +52,7 @@ export default function SchedulerPage() {
       const result = await runTaskNow(id);
       if (result.ok) {
         toast.success("Task triggered successfully");
+        refresh();
       } else {
         toast.error("Failed to trigger task");
       }
@@ -94,7 +95,7 @@ export default function SchedulerPage() {
           )}
 
           <SchedulerKpiStrip kpis={kpis} loading={loading} />
-          <SchedulerFilterBar filters={filters} onFiltersChange={setFilters} />
+          <SchedulerFilterBar filters={filters} tasks={tasks} onFiltersChange={setFilters} />
 
           {activeTab === "tasks" && (
             <SchedulerTaskTable

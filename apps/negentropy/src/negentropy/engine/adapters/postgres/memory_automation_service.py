@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from typing import Any, Literal
 
@@ -250,12 +251,12 @@ class MemoryAutomationService:
 
     async def get_logs(self, *, limit: int = 20) -> list[dict[str, Any]]:
         sql = text(
-            """
+            f"""
             SELECT te.id, te.task_id, st.key AS task_key, te.status,
                    te.duration_ms, te.started_at, te.finished_at,
                    te.output_summary, te.error, te.fire_reason
-            FROM task_executions te
-            JOIN scheduled_tasks st ON st.id = te.task_id
+            FROM {NEGENTROPY_SCHEMA}.task_executions te
+            JOIN {NEGENTROPY_SCHEMA}.scheduled_tasks st ON st.id = te.task_id
             WHERE st.handler_kind = 'memory_automation'
             ORDER BY te.started_at DESC
             LIMIT :limit
@@ -461,7 +462,7 @@ class MemoryAutomationService:
                         "task_key": task_key,
                         "enabled": enabled,
                         "cron_expr": cron_expr,
-                        "payload": str(payload).replace("'", '"'),
+                        "payload": json.dumps(payload),
                     },
                 )
             await db.commit()
@@ -521,11 +522,11 @@ class MemoryAutomationService:
     async def _get_job_states(self) -> list[dict[str, Any]]:
         """从 scheduled_tasks 表读取 memory_automation 作业状态。"""
         sql = text(
-            """
+            f"""
             SELECT id, key, enabled, cron_expr, last_status,
                    last_fire_at, next_fire_at, consecutive_failures,
                    payload, display_name
-            FROM scheduled_tasks
+            FROM {NEGENTROPY_SCHEMA}.scheduled_tasks
             WHERE handler_kind = 'memory_automation'
             ORDER BY key
             """
