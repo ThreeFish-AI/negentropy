@@ -151,3 +151,26 @@ class TestFormatterHyphenation:
         md = "Compute a - b as the simple difference."
         result = self.formatter._apply_typography_fixes(md)
         assert "ab" not in result.replace("a - b", "").replace("simple", "")
+
+    # ---- R10-D21: 复合链断字（``X-Y-\nZ`` → ``X-Y- Z``）保留所有 hyphen ----
+
+    def test_compound_chain_wrapped_preserves_hyphen(self) -> None:
+        """复合词链 ``Reasoning-acting-`` 跨行断到 ``interacting``，应保留所有 hyphen
+        而非把后半并入 ``acting`` —— 避免 ``actinginteracting`` 这类视觉破坏。
+        """
+        md = "Reasoning-acting- interacting taxonomy"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Reasoning-acting-interacting" in result
+        assert "actinginteracting" not in result
+
+    def test_compound_chain_three_segments(self) -> None:
+        """三段复合 / 多次断字混合保留 hyphen 链，不影响已有 hyphen 串。"""
+        md = "the perceive-plan-act-reflect (PPAR) and the read- write- merge loop"
+        result = self.formatter._apply_typography_fixes(md)
+        # 已有 hyphen 链 perceive-plan-act-reflect 必须保留
+        assert "perceive-plan-act-reflect" in result
+        # 两次断字合并：第一次 read- write 合并（无前置 hyphen），第二次 write- merge
+        # 进入复合链 wrap 收尾逻辑，可得 readwrite-merge / read-write-merge / readwritemerge
+        # 三种都是可接受还原 —— 关键是不能出现裸残 "- " 或视觉破坏。
+        assert "- " not in result.replace("(PPAR) and the", "")
+        assert "merge" in result and "write" in result

@@ -687,7 +687,20 @@ class MarkdownFormatter:
                 # \u628a `\n` \u6298\u53e0\u4e3a\u7a7a\u683c\u540e\u53d8\u6210 `word- word`\u3002\u4ec5\u5339\u914d\u4e24\u4fa7\u5747\u4e3a ASCII \u5c0f\u5199
                 # \u5b57\u6bcd + \u4e2d\u95f4\u7a7a\u683c\u7684\u5f62\u6001\uff0c\u907f\u5f00\u590d\u5408\u8bcd (state-of-the-art \u65e0\u7a7a\u683c)\u3001
                 # \u6570\u5b57\u8303\u56f4 (20- 30)\u3001\u4e13\u6709\u7f29\u5199\u8fb9\u754c (X- Ray \u5927\u5199) \u7b49\u3002
-                text = re.sub(r"([a-z])- ([a-z])", r"\1\2", text)
+                #
+                # R10-D21 \u590d\u5408\u94fe\u5b88\u62a4\uff1a``Reasoning-acting-\ninteracting`` \u7c7b\u590d\u5408\u94fe
+                # \u5728 PyMuPDF \u884c\u6298\u53e0\u540e\u53d8\u6210 ``Reasoning-acting- interacting``\uff0c
+                # \u82e5\u76f4\u63a5\u547d\u4e2d ``g- i`` \u5408\u5e76\u89c4\u5219\u4f1a\u5f97\u5230 ``actinginteracting`` \u89c6\u89c9\u7834\u574f\u3002
+                # \u901a\u8fc7 ``(?<![a-zA-Z]-)`` \u5b88\u62a4\uff1a\u5339\u914d\u524d\u7f00 ``[a-z]+`` \u8d77\u59cb\u4f4d\u7f6e\u7684\u524d
+                # 2 \u5b57\u7b26\u82e5\u5df2\u662f ``<letter>-``\uff08\u5373\u4f4d\u4e8e\u65e2\u6709 hyphen \u94fe\u4e2d\uff09\uff0c\u8df3\u8fc7\u5408\u5e76\uff1b
+                # \u4ec5\u5bf9\u72ec\u7acb\u5355\u8bcd\u7684 wrap-hyphen \u5b9e\u65bd\u5408\u5e76\u3002
+                text = re.sub(r"\b(?<![a-zA-Z]-)([a-z]+)- ([a-z]+)\b", r"\1\2", text)
+                # R10-D21 \u7eed\uff1a\u590d\u5408\u94fe wrap \u7a7a\u683c\u6536\u5c3e\u3002\u547d\u4e2d\u5b88\u62a4\u540e\u4fdd\u7559\u7684 ``acting- interacting``
+                # \u4ecd\u542b\u4e00\u4e2a\u591a\u4f59\u7a7a\u683c\uff0c\u9700\u628a ``<lowercase>-<space>+<lowercase>`` \u4e2d\u7684\u7a7a\u683c
+                # \u6536\u7d27\u4e3a\u96f6\uff0c\u628a ``acting- interacting`` \u53d8\u6210 ``acting-interacting``\u3002
+                # \u4e0e\u5355\u5b57\u6bcd ``a - b``\uff08\u524d\u5bfc\u7a7a\u683c\u975e lowercase\uff09\u3001 ``LLM-based`` \u5927\u5199\u8fb9\u754c
+                # \uff08\u524d\u5bfc M \u5927\u5199\uff09\u3001 ``30-50`` \u6570\u5b57\uff08\u524d\u5bfc\u975e lowercase\uff09\u5747\u4e92\u65a5\u3002
+                text = re.sub(r"(?<=[a-z])-\s+(?=[a-z]{2})", "-", text)
 
                 # R10-D13\uff1a\u8f6f\u8fde\u5b57\u7b26 U+00AD \u8de8\u884c\u65ad\u5b57\u5408\u5e76\u3002PyMuPDF \u5728\u6392\u7248\u65ad\u5b57\u5904
                 # \u4fdd\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u95f4\u63d0\u793a\u7b26\uff09\uff0cspan \u62fc\u63a5\u540e\u5f62\u6210
