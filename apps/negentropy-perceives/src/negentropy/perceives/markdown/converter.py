@@ -18,6 +18,7 @@ import requests
 from .formatter import MarkdownFormatter, markdown_to_text
 from .html_preprocessor import (
     ImgDimensionRegistry,
+    VideoRegistry,
     preprocess_html,
     extract_content_area,
     fallback_html_conversion,
@@ -201,11 +202,16 @@ class MarkdownConverter:
             )
             img_registry = ImgDimensionRegistry() if preserve_dims else None
 
+            # 视频占位符登记簿：MarkItDown 在 HTML→Markdown 时会静默丢弃
+            # <video> 标签；用 sentinel 越过该阶段，postprocess 还原为内嵌 HTML。
+            video_registry = VideoRegistry()
+
             # Preprocess HTML if needed
             processed_html = preprocess_html(
                 html_content,
                 base_url,
                 img_registry=img_registry,
+                video_registry=video_registry,
                 computed_image_sizes=computed_image_sizes,
             )
 
@@ -223,7 +229,9 @@ class MarkdownConverter:
 
                 # Post-process the markdown for better formatting
                 markdown_content = self.postprocess_markdown(
-                    markdown_content, img_registry=img_registry
+                    markdown_content,
+                    img_registry=img_registry,
+                    video_registry=video_registry,
                 )
 
                 return markdown_content
@@ -245,6 +253,7 @@ class MarkdownConverter:
         markdown_content: str,
         *,
         img_registry: Optional[ImgDimensionRegistry] = None,
+        video_registry: Optional[VideoRegistry] = None,
     ) -> str:
         """
         Post-process Markdown content with advanced formatting features.
@@ -253,11 +262,17 @@ class MarkdownConverter:
             markdown_content: Raw Markdown content
             img_registry: 可选的图片尺寸登记簿（由 html_to_markdown 注入），
                 PDF/纯文本等非 HTML 路径无需传递。
+            video_registry: 可选的视频占位符登记簿（由 html_to_markdown 注入），
+                用于把 sentinel 还原为内嵌 HTML ``<video>``。
 
         Returns:
             Enhanced and cleaned up Markdown content
         """
-        return self._formatter.format(markdown_content, img_registry=img_registry)
+        return self._formatter.format(
+            markdown_content,
+            img_registry=img_registry,
+            video_registry=video_registry,
+        )
 
     # Delegate sub-module functions as methods for backward compatibility
     def preprocess_html(self, html_content: str, base_url: Optional[str] = None) -> str:

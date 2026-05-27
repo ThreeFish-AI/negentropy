@@ -31,6 +31,57 @@ def _parse_int(value: Any) -> Optional[int]:
         return None
 
 
+def _resolve_src_with_fallback(img_tag: Any, base_url: Optional[str]) -> Optional[str]:
+    """解析 ``<img>`` 的 src：原始 src → srcset 兜底 → Next.js 代理 URL 展开。
+
+    复用 ``_media_conversion`` 中现成的 ``pick_best_srcset_url`` 与
+    ``resolve_nextjs_image_url``，避免重复造轮子。
+    """
+    from ....markdown._media_conversion import (
+        is_placeholder_src,
+        pick_best_srcset_url,
+        resolve_nextjs_image_url,
+    )
+
+    src_raw = img_tag.get("src", "")
+    src: Optional[str] = (
+        src_raw if isinstance(src_raw, str) and src_raw.strip() else None
+    )
+
+    if not src or is_placeholder_src(src):
+        # 依次尝试懒加载与 srcset/srcSet
+        for attr in (
+            "data-src",
+            "data-original",
+            "data-lazy-src",
+            "data-url",
+            "data-srcset",
+            "data-srcSet",
+            "srcset",
+            "srcSet",
+        ):
+            val = img_tag.get(attr)
+            if not isinstance(val, str) or not val.strip():
+                continue
+            if attr in {"data-srcset", "data-srcSet", "srcset", "srcSet"}:
+                picked = pick_best_srcset_url(val)
+                if picked:
+                    src = picked
+                    break
+            else:
+                src = val.strip()
+                break
+
+    if not src:
+        return None
+
+    # Next.js 代理 URL 展开为真实 CDN URL
+    if "/_next/image" in src:
+        src = resolve_nextjs_image_url(src, base_url)
+
+    return src
+
+
 # ---------------------------------------------------------------------------
 # S9: 图片提取
 # ---------------------------------------------------------------------------
@@ -50,7 +101,7 @@ async def _extract_images(ctx: StageContext) -> List[ImageInfo]:
         soup = BeautifulSoup(html, "html.parser")
 
         for img_tag in soup.find_all("img"):
-            src = img_tag.get("src", "")
+            src = _resolve_src_with_fallback(img_tag, ctx.url)
             if not src:
                 continue
 

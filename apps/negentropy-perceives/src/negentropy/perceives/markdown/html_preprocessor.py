@@ -24,6 +24,9 @@ from ._math_preservation import (  # noqa: F401
     preserve_math_elements as _preserve_math_elements,
     extract_latex_from_annotation as _extract_latex_from_annotation,
 )
+from ._tab_normalization import (  # noqa: F401
+    normalize_tab_containers as _normalize_tab_containers,
+)
 from ._html_builder import (  # noqa: F401
     extract_content_area,
     fallback_html_conversion,
@@ -43,6 +46,13 @@ logger = logging.getLogger(__name__)
 SENTINEL_PREFIX = "XIMGPLACEHOLDER"
 SENTINEL_SUFFIX = "ENDX"
 SENTINEL_RE = re.compile(rf"{SENTINEL_PREFIX}[0-9a-f]{{32}}{SENTINEL_SUFFIX}")
+
+# Video sentinel：与 IMG 同一族但前缀不同，便于在 formatter 中分别还原
+VIDEO_SENTINEL_PREFIX = "XVIDEOPLACEHOLDER"
+VIDEO_SENTINEL_SUFFIX = "ENDX"
+VIDEO_SENTINEL_RE = re.compile(
+    rf"{VIDEO_SENTINEL_PREFIX}[0-9a-f]{{32}}{VIDEO_SENTINEL_SUFFIX}"
+)
 
 
 @dataclass
@@ -69,6 +79,26 @@ class ImgDimensionRegistry:
             "height": height,
             "title": title,
         }
+        return sentinel
+
+
+@dataclass
+class VideoRegistry:
+    """视频占位符登记簿：sentinel → 内嵌 HTML <video> 标签字符串。
+
+    MarkItDown 在 HTML→Markdown 转换时会静默丢弃 ``<video>`` 标签。
+    本登记簿在 preprocess 阶段把 ``<video>`` 标签替换为 sentinel 文本节点，
+    让 MarkItDown 当成普通文字保留下来；postprocess 阶段再把 sentinel 还原
+    为内嵌 HTML 字符串，由前端 ``rehype-raw + rehype-sanitize`` 解析为
+    可播放的 ``<video>`` 节点。
+    """
+
+    placeholders: Dict[str, str] = field(default_factory=dict)
+
+    def issue(self, html_str: str) -> str:
+        """登记一段 <video> HTML 并返回 sentinel 字符串。"""
+        sentinel = f"{VIDEO_SENTINEL_PREFIX}{uuid.uuid4().hex}{VIDEO_SENTINEL_SUFFIX}"
+        self.placeholders[sentinel] = html_str
         return sentinel
 
 
@@ -196,6 +226,7 @@ def preprocess_html(
     base_url: Optional[str] = None,
     *,
     img_registry: Optional[ImgDimensionRegistry] = None,
+    video_registry: Optional[VideoRegistry] = None,
     computed_image_sizes: Optional[Dict[str, Dict[str, int]]] = None,
 ) -> str:
     """预处理 HTML 内容，为 MarkItDown 转换做准备。"""
@@ -218,7 +249,14 @@ def preprocess_html(
         _preserve_math_elements(soup)
 
         # 将非 Markdown 友好的媒体元素转换为可转换形式
-        _convert_media_elements(soup, base_url)
+        _convert_media_elements(soup, base_url, video_registry=video_registry)
+
+        # 规范化 ARIA Tabs 子树为 figure 序列（必须在 unwanted_patterns
+        # 删除前执行，否则外层 media-carousel 容器会被一并剔除）
+        try:
+            _normalize_tab_containers(soup)
+        except Exception as e:  # noqa: BLE001
+            logger.debug("Tabs 规范化跳过: %s", e)
 
         # 登记带尺寸的 <img>
         if img_registry is not None:

@@ -105,6 +105,42 @@ function parsePixelValue(value: number | string | undefined): number | null {
 
 type ImageState = "loading" | "loaded" | "error";
 
+function DocumentVideo({
+  src,
+  poster,
+  width,
+  height,
+  controls = true,
+}: {
+  src: string;
+  poster?: string;
+  width?: number | string;
+  height?: number | string;
+  controls?: boolean;
+}) {
+  const maxWidthPx = parsePixelValue(width);
+  return (
+    <figure className="my-3">
+      <video
+        src={src}
+        poster={poster}
+        controls={controls}
+        preload="metadata"
+        playsInline
+        width={width}
+        height={height}
+        style={maxWidthPx ? { maxWidth: `min(${maxWidthPx}px, 100%)` } : undefined}
+        className={cn(
+          "h-auto rounded-lg border border-zinc-200 dark:border-zinc-700 mx-auto block",
+          !maxWidthPx && "max-w-full",
+        )}
+      >
+        Your browser does not support the video tag.
+      </video>
+    </figure>
+  );
+}
+
 function DocumentImage({
   src,
   alt,
@@ -246,19 +282,18 @@ export function DocumentMarkdownRenderer({
           // 组件渲染 <figure>（块级元素），导致浏览器自动修正 DOM、
           // React 事件委托断裂、图片 onLoad/onError 失效。
           p({ children, node }) {
-            // 使用 hast AST 节点判断：段落仅含 img 子节点时去掉 <p> 包裹，
-            // 避免 <p><figure> 嵌套违反 HTML 规范。
-            // 不能依赖 React 元素的 child.type === "img" 比较，
-            // 因为 React Compiler 优化会破坏该严格相等判断。
+            // 段落仅含媒体节点（img / video）时去掉 <p> 包裹，避免
+            // <p><figure> 嵌套违反 HTML 规范并导致 React 事件委托断裂。
             const astChildren = node?.children;
-            const isImageOnly =
+            const isMediaOnly =
               astChildren != null
               && astChildren.length > 0
               && astChildren.every(
                 (child: { type: string; tagName?: string }) =>
-                  child.type === "element" && child.tagName === "img",
+                  child.type === "element"
+                  && (child.tagName === "img" || child.tagName === "video"),
               );
-            if (isImageOnly) {
+            if (isMediaOnly) {
               return <>{children}</>;
             }
             return <p>{children}</p>;
@@ -276,6 +311,20 @@ export function DocumentMarkdownRenderer({
                 appName={appName}
                 // pass through any remaining props via key to suppress warning
                 key={`${src}-${alt}`}
+              />
+            );
+          },
+          video({ src, poster, width, height, controls }) {
+            if (!src || typeof src !== "string") return null;
+            const posterStr = typeof poster === "string" ? poster : undefined;
+            return (
+              <DocumentVideo
+                src={src}
+                poster={posterStr}
+                width={width}
+                height={height}
+                controls={controls !== false}
+                key={`${src}-${posterStr ?? ""}`}
               />
             );
           },
