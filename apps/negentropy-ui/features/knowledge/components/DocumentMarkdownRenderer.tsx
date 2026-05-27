@@ -111,12 +111,20 @@ function DocumentVideo({
   width,
   height,
   controls = true,
+  muted,
+  autoPlay,
+  loop,
+  playsInline = true,
 }: {
   src: string;
   poster?: string;
   width?: number | string;
   height?: number | string;
   controls?: boolean;
+  muted?: boolean;
+  autoPlay?: boolean;
+  loop?: boolean;
+  playsInline?: boolean;
 }) {
   const maxWidthPx = parsePixelValue(width);
   return (
@@ -126,7 +134,10 @@ function DocumentVideo({
         poster={poster}
         controls={controls}
         preload="metadata"
-        playsInline
+        playsInline={playsInline}
+        muted={muted}
+        autoPlay={autoPlay}
+        loop={loop}
         width={width}
         height={height}
         style={maxWidthPx ? { maxWidth: `min(${maxWidthPx}px, 100%)` } : undefined}
@@ -314,7 +325,17 @@ export function DocumentMarkdownRenderer({
               />
             );
           },
-          video({ src, poster, width, height, controls }) {
+          video({
+            src,
+            poster,
+            width,
+            height,
+            controls,
+            muted,
+            autoplay,
+            loop,
+            playsinline,
+          }) {
             if (!src || typeof src !== "string") return null;
             const posterStr = typeof poster === "string" ? poster : undefined;
             return (
@@ -324,6 +345,10 @@ export function DocumentMarkdownRenderer({
                 width={width}
                 height={height}
                 controls={controls !== false}
+                muted={muted === "" || muted === "true" || muted === true}
+                autoPlay={autoplay === "" || autoplay === "true" || autoplay === true}
+                loop={loop === "" || loop === "true" || loop === true}
+                playsInline={playsinline !== false}
                 key={`${src}-${posterStr ?? ""}`}
               />
             );

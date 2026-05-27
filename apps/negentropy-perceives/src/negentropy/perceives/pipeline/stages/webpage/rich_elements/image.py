@@ -38,6 +38,8 @@ def _resolve_src_with_fallback(img_tag: Any, base_url: Optional[str]) -> Optiona
     ``resolve_nextjs_image_url``，避免重复造轮子。
     """
     from ....markdown._media_conversion import (
+        _LAZY_SRC_ATTRS,
+        _SRCSET_ATTRS,
         is_placeholder_src,
         pick_best_srcset_url,
         resolve_nextjs_image_url,
@@ -49,21 +51,11 @@ def _resolve_src_with_fallback(img_tag: Any, base_url: Optional[str]) -> Optiona
     )
 
     if not src or is_placeholder_src(src):
-        # 依次尝试懒加载与 srcset/srcSet
-        for attr in (
-            "data-src",
-            "data-original",
-            "data-lazy-src",
-            "data-url",
-            "data-srcset",
-            "data-srcSet",
-            "srcset",
-            "srcSet",
-        ):
+        for attr in _LAZY_SRC_ATTRS:
             val = img_tag.get(attr)
             if not isinstance(val, str) or not val.strip():
                 continue
-            if attr in {"data-srcset", "data-srcSet", "srcset", "srcSet"}:
+            if attr in _SRCSET_ATTRS:
                 picked = pick_best_srcset_url(val)
                 if picked:
                     src = picked
