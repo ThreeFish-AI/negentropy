@@ -1888,13 +1888,20 @@ def _image_to_markdown(image: ExtractedImage) -> str:
 
     display_w: Optional[int] = None
     display_h: Optional[int] = None
+    # R9 D-7: 判断是否为"大图"（bbox 宽占 A4 页面宽度 > 50%），
+    # 大图使用 width="100%" 自适应容器而非固定 px，避免在 max-w-5xl
+    # 容器（~1024px）中仅占 ~60% 宽度。A4 Letter 内容区宽约 453pt
+    # （612pt 页宽 - 左右各 ~80pt 边距）；跨栏全宽 figure bbox ≥ 300pt
+    # 视为大图。小图（icon / emblem / inline 装饰）仍用固定 px。
+    _LARGE_FIGURE_WIDTH_PT = 300.0
+    is_large_figure = False
     if image.bbox is not None:
         try:
             x0, y0, x1, y1 = (float(v) for v in image.bbox)
             bw, bh = x1 - x0, y1 - y0
             if bw > 0 and bh > 0:
-                # PDF 点 → CSS 像素：标准 DPI 比例（96/72 ≈ 1.333），
-                # 与 PDF 原版视觉宽度 1:1 等价。
+                if bw >= _LARGE_FIGURE_WIDTH_PT:
+                    is_large_figure = True
                 display_w = int(round(bw * _PDF_PT_TO_CSS_PX))
                 display_h = int(round(bh * _PDF_PT_TO_CSS_PX))
         except (TypeError, ValueError):
@@ -1910,10 +1917,13 @@ def _image_to_markdown(image: ExtractedImage) -> str:
             f'<img src="{html.escape(src, quote=True)}"',
             f'alt="{html.escape(alt_text, quote=True)}"',
         ]
-        if display_w:
-            parts.append(f'width="{display_w}"')
-        if display_h:
-            parts.append(f'height="{display_h}"')
+        if is_large_figure:
+            parts.append('width="100%"')
+        else:
+            if display_w:
+                parts.append(f'width="{display_w}"')
+            if display_h:
+                parts.append(f'height="{display_h}"')
         parts.append('style="max-width:100%;height:auto;" />')
         return " ".join(parts)
     return f"![{alt_text}]({src})"
