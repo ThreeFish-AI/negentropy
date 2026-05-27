@@ -186,7 +186,7 @@ class BuiltinAssembler(PDFToolBase):
                     if _text_block_matches_formula(block, formula_text_signatures):
                         continue
                     # 跳过学术论文页眉/页脚残留文本
-                    if _is_running_header_footer(block.text):
+                    if _is_running_header_footer(block.text, block.page_number):
                         continue
                     # 跳过文本块中的表格：当 table_extraction 已提供高保真版本时，
                     # 不再使用文本块的原始表格（避免重复且质量更差）
@@ -954,18 +954,12 @@ class BuiltinAssembler(PDFToolBase):
             if len(_formula_block_elements) >= 2:
                 _ext_nums: List[Optional[int]] = []
                 for _, fe in _formula_block_elements:
+                    # 注：``_extract_formula_eq_number`` 已涵盖 ``\\tag{N}`` /
+                    # ``\\quad (N)`` 与裸尾部 ``(N)\\s*$`` 三种形态（含 R9 D-5
+                    # 剥离 ``&`` 后的 Eq (2) 形态），无需再叠加 tail 兜底正则。
                     eq_str = _extract_formula_eq_number(
                         (fe.formula.latex or "") if fe.formula else ""
                     )
-                    if eq_str is None and fe.formula:
-                        # 兼容 latex 主体末尾裸 ``(N)`` 但不带 ``\\quad`` 前缀
-                        # （R9 D-5 剥离 ``&`` 后的 Eq (2) 即此形态）
-                        tail_match = re.search(
-                            r"\(\s*(\d+)\s*\)\s*$",
-                            (fe.formula.latex or "").rstrip(),
-                        )
-                        if tail_match:
-                            eq_str = tail_match.group(1)
                     _ext_nums.append(int(eq_str) if eq_str is not None else None)
                 _inferred = _infer_missing_formula_numbers(_ext_nums)
                 for idx_in_list, inferred_num in _inferred.items():
@@ -1391,15 +1385,26 @@ _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
         r"Website|Page|Homepage|Source|Repo|Docs|Documentation)\s*$",
         re.IGNORECASE,
     ),
-    # ISSUE-094 R9 D-1b: 项目 banner ``<ACRONYM> <ProjectDescriptor>`` ——
-    # 论文封面页项目名/机构 banner（典型如 ``SII Context``、``MIT Lab``、
-    # ``CSE Engineering``、``SII GenAI``）；限定首词为 2-5 ALL-CAPS 字母
-    # （``Federated``、``Quantum`` 等正常英文词不会命中），第二词为已知项目
-    # 描述词白名单（避免 ``MIT Press`` / ``LLM Reasoning`` 这类正常组合被误吞）。
+]
+
+
+# 封面专属（page_number == 0）banner 模式 —— 仅在 PDF 封面页应用：
+#
+# ISSUE-094 R9 D-1b：论文封面常出现 ``<ACRONYM> <ProjectDescriptor>``
+# 项目/机构 banner（典型如 ``SII Context``、``MIT Lab``、``SII GenAI``）；
+# 限定首词为 2-5 ALL-CAPS 字母（``Federated``、``Quantum`` 等正常英文词
+# 不会命中），第二词收紧为项目专用描述词白名单。
+#
+# R9 round 4 收紧（基于代码评审反馈）：从描述词白名单中**剔除**
+# ``Research / Group / Center / Engineering / AI / ML / NLP`` 等过宽通用词，
+# 避免正文短句 ``AI Research`` / ``ML Engineering`` / ``MIT Research``
+# / ``LLM Research`` 在跨页内容中被静默吞掉；并通过 ``page_number == 0``
+# 门控将该模式仅施加于封面页，body page 上 ``NLP Lab`` / ``GPT Lab``
+# / ``ETH Institute`` 等合法段落不再受影响。
+_COVER_BANNER_PATTERNS: List[re.Pattern] = [
     re.compile(
         r"^\s*[A-Z]{2,5}\s+"
-        r"(?:Context|Lab|Project|Research|Group|Center|Initiative|Institute|"
-        r"Engineering|GenAI|AI|ML|NLP|Studio|Labs)\s*$"
+        r"(?:Context|Lab|Project|Initiative|Institute|GenAI|Studio|Labs)\s*$"
     ),
 ]
 
@@ -1484,11 +1489,18 @@ def _figure_caption_to_inject(
     return text
 
 
-def _is_running_header_footer(text: str) -> bool:
+def _is_running_header_footer(text: str, page_number: Optional[int] = None) -> bool:
     """判断文本是否为学术论文的页眉/页脚残留。
 
     检测常见的跨页重复模式：会议简称 + 日期 + 作者名列表、
     论文标题 + 会议简称、ACM 版权/DOI 行等。
+
+    Args:
+        text: 待判定的文本块内容。
+        page_number: 该文本块所在的 0-indexed 页码。**仅当 ``page_number == 0``
+            （封面页）时**才会额外匹配 ``_COVER_BANNER_PATTERNS``（项目/机构
+            banner），避免正文页面短句被误判为残留 banner。``None`` 时跳过
+            封面专属模式（向后兼容调用方）。
     """
     stripped = text.strip()
     if not stripped or len(stripped) > 500:
@@ -1496,6 +1508,10 @@ def _is_running_header_footer(text: str) -> bool:
     for pattern in _RUNNING_HEADER_FOOTER_PATTERNS:
         if pattern.search(stripped):
             return True
+    if page_number == 0:
+        for pattern in _COVER_BANNER_PATTERNS:
+            if pattern.search(stripped):
+                return True
     return False
 
 
