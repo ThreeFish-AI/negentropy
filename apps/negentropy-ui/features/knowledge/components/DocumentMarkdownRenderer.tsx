@@ -332,9 +332,9 @@ export function DocumentMarkdownRenderer({
             height,
             controls,
             muted,
-            autoplay,
+            autoPlay,
             loop,
-            playsinline,
+            playsInline,
           }) {
             if (!src || typeof src !== "string") return null;
             const posterStr = typeof poster === "string" ? poster : undefined;
@@ -345,10 +345,10 @@ export function DocumentMarkdownRenderer({
                 width={width}
                 height={height}
                 controls={controls !== false}
-                muted={muted === "" || muted === "true" || muted === true}
-                autoPlay={autoplay === "" || autoplay === "true" || autoplay === true}
-                loop={loop === "" || loop === "true" || loop === true}
-                playsInline={playsinline !== false}
+                muted={!!muted}
+                autoPlay={!!autoPlay}
+                loop={!!loop}
+                playsInline={playsInline !== false}
                 key={`${src}-${posterStr ?? ""}`}
               />
             );
