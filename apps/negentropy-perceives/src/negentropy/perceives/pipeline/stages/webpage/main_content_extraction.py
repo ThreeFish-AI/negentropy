@@ -141,16 +141,21 @@ def _apply_common_post_processing(
 
     # 5. 去重后注入 hero 片段
     if hero_html:
-        # 简单去重：检查 main_html 是否已包含 hero 中的纯文本段落
         try:
             from bs4 import BeautifulSoup
 
+            main_soup = BeautifulSoup(main_html, "html.parser")
+            existing_texts = {
+                p.get_text(strip=True)
+                for p in main_soup.find_all("p")
+                if p.get_text(strip=True)
+            }
             hero_soup = BeautifulSoup(hero_html, "html.parser")
             deduped_parts = []
             for child in hero_soup.children:
                 if hasattr(child, "name") and child.name == "p":
                     text = child.get_text(strip=True)
-                    if text and text in main_html:
+                    if text and text in existing_texts:
                         continue
                 deduped_parts.append(str(child))
             hero_html = "\n".join(deduped_parts) if deduped_parts else None
@@ -327,7 +332,11 @@ def _clean_title(raw_title: str, og_title: Optional[str] = None) -> str:
     for sep in (" | ", " — ", " – ", " - ", " ‣ ", " • ", " :: "):
         if sep in raw_title:
             parts = [p.strip() for p in raw_title.split(sep)]
-            # 取最长的段作为标题（站点名通常较短）
+            if len(parts) == 2:
+                # 两段式：长度相近时优先取第一段（CMS 通常 Title | Site 格式）
+                shorter, longer = sorted(parts, key=len)
+                if len(shorter) * 2 >= len(longer):
+                    return parts[0]
             return max(parts, key=len)
     return raw_title
 
