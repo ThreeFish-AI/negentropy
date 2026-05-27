@@ -2,6 +2,9 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.llm_request import LlmRequest
 
+from negentropy.engine.utils.action_intent import classify as classify_action_intent
+from negentropy.logging import get_logger
+
 from ._dynamic_instruction import make_instruction_provider
 from ._dynamic_model import set_root_thinking_enabled, set_selected_root_llm
 from ._model import create_root_model
@@ -17,15 +20,57 @@ from .pipelines.standard import (
 )
 from .tools.common import log_activity
 
+logger = get_logger("negentropy.agents.agent")
+
+_ACTION_INTENT_CONFIDENCE_THRESHOLD = 0.7
+
+
+def _extract_latest_user_text(callback_context: CallbackContext) -> str | None:
+    """从 callback_context 抽取最新一条用户消息的文本。
+
+    ADK 不同版本可能把用户输入挂在不同字段；本函数尝试若干常见路径，
+    任一失败都返回 None 以触发分类器保守缺省。
+    """
+    try:
+        invocation = getattr(callback_context, "invocation_context", None)
+        if invocation is not None:
+            user_content = getattr(invocation, "user_content", None)
+            if user_content is not None:
+                parts = getattr(user_content, "parts", None) or []
+                for part in parts:
+                    text = getattr(part, "text", None)
+                    if text:
+                        return str(text)
+        # 兜底：尝试通过 messages 列表取最新 user role
+        messages = getattr(callback_context, "messages", None) or []
+        for msg in reversed(messages):
+            if getattr(msg, "role", None) == "user":
+                content = getattr(msg, "content", None) or getattr(msg, "text", None)
+                if content:
+                    return str(content)
+    except Exception:  # noqa: BLE001 — hint 抽取失败不阻塞主链路
+        return None
+    return None
+
 
 def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest) -> None:
-    """将 Home 选择的 `selected_llm_model` 从 session.state 注入 ContextVar。
+    """将 Home 选择的 `selected_llm_model` 从 session.state 注入 ContextVar，
+    并在 ``corpus_ids`` 非空时计算 Ingest 意图 hint。
 
-    ADK `/run_sse` 将前端传入的 `state_delta.selected_llm_model` 合并进
-    `Thread.state`，随后 `callback_context.state` 暴露同步视图；此回调读取后置入
-    `ContextVar`，供 `DynamicRootLiteLlm.generate_content_async` 在单轮内按此覆盖模型。
+    ADK ``/run_sse`` 将前端传入的 ``state_delta.selected_llm_model`` 合并进
+    ``Thread.state``，随后 ``callback_context.state`` 暴露同步视图；此回调读取后
+    置入 ``ContextVar``，供 ``DynamicRootLiteLlm.generate_content_async`` 在单
+    轮内按此覆盖模型。
+
+    Ingest 意图 hint（ISSUE-095 后续）：
+        - 仅在 ``state.corpus_ids`` 非空时调用 ``action_intent.classify`` 计算 hint，
+          避免无 @ Corpus 场景下污染 state。
+        - hint=="ingest" 且 confidence ≥ 0.7 → ``state['action_intent_hint'] = 'ingest'``；
+          其余 → 显式置位 ``'retrieve'`` 避免跨 turn 残留。
+        - 任何异常 fail-soft：hint 缺席不影响主链路。
     """
     _ = llm_request  # 未直接使用 llm_request；以参数位接入 ADK 规范
+    state = None
     try:
         state = callback_context.state
         selected = state.get("selected_llm_model") if state is not None else None
@@ -35,6 +80,29 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
         thinking_enabled = None
     set_selected_root_llm(selected if isinstance(selected, str) else None)
     set_root_thinking_enabled(thinking_enabled if isinstance(thinking_enabled, bool) else None)
+
+    # ---- ISSUE-095 后续 · Ingest 智能识别 hint ----
+    if state is None:
+        return
+    try:
+        corpus_ids = state.get("corpus_ids")
+        if not isinstance(corpus_ids, list) or not corpus_ids:
+            return
+        user_text = _extract_latest_user_text(callback_context)
+        intent = classify_action_intent(user_text)
+        if intent.label == "ingest" and intent.confidence >= _ACTION_INTENT_CONFIDENCE_THRESHOLD:
+            state["action_intent_hint"] = "ingest"
+        else:
+            # 显式置位 retrieve（避免上一轮 ingest hint 跨 turn 残留）
+            state["action_intent_hint"] = "retrieve"
+        logger.debug(
+            "action_intent_hint_set",
+            label=intent.label,
+            confidence=intent.confidence,
+            matched=intent.matched_keywords,
+        )
+    except Exception as exc:  # noqa: BLE001 — hint 失败一律不阻塞主链路
+        logger.debug("action_intent_hint_skipped", error=str(exc))
 
 
 _ROOT_INSTRUCTION = """
@@ -111,6 +179,19 @@ _ROOT_INSTRUCTION = """
    - 复杂特殊 → 自定义序列
 3. **循证执行 (Evidence-Based Execution)**：基于实际结果动态调整，引用来源，拒绝凭空捏造。
 4. **主动导航 (Proactive Navigation)**：完成任务后，建议下一步最佳行动。
+
+## Ingest 意图分流 (Intent-Driven Ingest)
+当**同时满足**以下两个条件时，**必须**优先把任务委派给 InternalizationFaculty
+调用其 `ingest_to_corpus` 工具，而不是默认调度 PerceptionFaculty 检索：
+
+1. `state.action_intent_hint == "ingest"`（系统已识别用户表达「沉淀/入库/写入」语义）
+2. `state.corpus_ids` 非空（用户已在 Composer @ 选中目标 Corpus）
+
+执行：`transfer_to_agent(agent_name="InternalizationFaculty", request="将
+{用户原始文本} 沉淀到 corpus_ids 列表中的 Corpus")`
+
+若 `state.action_intent_hint != "ingest"` 或 `corpus_ids` 为空 →
+保持默认调度（PerceptionFaculty 检索 / 其他系部）。
 
 ## 主动导航 (Proactive Navigation)
 完成任何任务后，你必须：
