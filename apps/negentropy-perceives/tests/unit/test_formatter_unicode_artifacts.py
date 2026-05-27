@@ -82,3 +82,73 @@ class TestMojibakeFix:
         result = self.formatter._apply_typography_fixes(md)
         # 末尾可能因其他规则影响，但 mojibake / ZWSP 维度应无变化
         assert "Plain ASCII text without artifacts." in result
+
+
+class TestLatin1MojibakeFix:
+    """Latin-1 重音字符（á / é / í / ó / ú / ñ / ü 等）的 UTF-8 → CP1252 双编码
+    mojibake 还原。原 ``í`` UTF-8 ``\\xc3\\xad`` 被 CP1252 解为 ``Ã`` + ``­``，
+    再以 UTF-8 编码成 4 字节序列；当下游 U+00AD 兜底剥离生效后，残留为 ``RodrÃguez``
+    （丢失 ``í`` 的尾字节信息）。需在 ZWSP / U+00AD 兜底**之前**识别完整 mojibake
+    序列并还原。
+    """
+
+    def setup_method(self) -> None:
+        self.formatter = MarkdownFormatter()
+
+    def test_i_acute_mojibake_restored(self) -> None:
+        """``í`` 的 mojibake ``Ã­`` (Ã + U+00AD soft hyphen) 应还原为 ``í``。"""
+        md = "Author RodrÃ­guez A. (2024) and MartÃ­nez B."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Rodríguez" in result
+        assert "Martínez" in result
+        assert "Ã" not in result
+
+    def test_n_tilde_mojibake_restored(self) -> None:
+        """``ñ`` 的 mojibake ``Ã±`` 应还原。"""
+        md = "MuÃ±oz et al. and PerÃ±ez (2024)"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Muñoz" in result
+        assert "Perñez" in result
+
+    def test_e_acute_mojibake_restored(self) -> None:
+        """``é`` 的 mojibake ``Ã©`` 应还原。"""
+        md = "PÃ©rez and SÃ¡nchez (2024)"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Pérez" in result
+        assert "Sánchez" in result
+
+
+class TestSpaceBeforeCloseParen:
+    """学术 PDF 经常在年份 / 引用编号后留 ``(2025 )`` 形式的空格，应正规化为
+    ``(2025)``。Springer Nature 期刊在 References / Table cells 中尤其多。
+    """
+
+    def setup_method(self) -> None:
+        self.formatter = MarkdownFormatter()
+
+    def test_year_close_paren_normalized(self) -> None:
+        """``(2025 )`` → ``(2025)``。"""
+        md = "See Plaat et al. (2025 ) and Schneider (2025 ) for details."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "(2025)" in result
+        assert "(2025 )" not in result
+
+    def test_word_close_paren_normalized(self) -> None:
+        """``(single-agent system )`` → ``(single-agent system)``。"""
+        md = "An AI Agent (or a single-agent system ) is a unit."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "(or a single-agent system)" in result
+        assert "system )" not in result
+
+    def test_balanced_paren_preserved(self) -> None:
+        """``(content)`` 形式无空格应不变。"""
+        md = "Reference (2025) and (single system) preserved."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "(2025)" in result
+        assert "(single system)" in result
+
+    def test_paren_inside_quotes_not_broken(self) -> None:
+        """带括号的引用如 ``"AI"`` 不应受影响。"""
+        md = 'The article "(quoted text)" is unchanged.'
+        result = self.formatter._apply_typography_fixes(md)
+        assert '"(quoted text)"' in result

@@ -702,6 +702,30 @@ class MarkdownFormatter:
                 # \uff08\u524d\u5bfc M \u5927\u5199\uff09\u3001 ``30-50`` \u6570\u5b57\uff08\u524d\u5bfc\u975e lowercase\uff09\u5747\u4e92\u65a5\u3002
                 text = re.sub(r"(?<=[a-z])-\s+(?=[a-z]{2})", "-", text)
 
+                # R10-D22\uff1aLatin-1 \u91cd\u97f3\u5b57\u7b26\u7684 UTF-8 \u2192 CP1252 \u53cc\u7f16\u7801 mojibake \u8fd8\u539f\u3002
+                # \u539f ``\u00ed`` UTF-8 ``\\xc3\\xad`` \u88ab CP1252 \u89e3\u4e3a ``\u00c3 + U+00AD``\uff0c
+                # \u518d\u4ee5 UTF-8 \u7f16\u7801\u4e3a 4 \u5b57\u8282\u5e8f\u5217\uff1b\u7c7b\u4f3c\u8986\u76d6 \u00e1/\u00e9/\u00f3/\u00fa/\u00f1/\u00fc/\u00f6/\u00e4/\u00e7 \u7b49
+                # \u897f\u3001\u8461\u3001\u6cd5\u3001\u5fb7\u8bed\u91cd\u97f3\u5b57\u7b26\u3002\u5fc5\u987b\u5728\u4e0b\u65b9 D13 U+00AD \u5904\u7406**\u4e4b\u524d**
+                # \u5b8c\u6210\u8bc6\u522b \u2014\u2014 D13 \u4f1a\u628a ``\u00c3 + \u00ad + guez`` \u7684 U+00AD \u4e0e\u540e\u7a7a\u767d\u4e00\u5e76
+                # \u5265\u79bb\uff08``\u00ad`` \u540e\u662f\u5c0f\u5199 ``g`` \u89e6\u53d1\uff09\uff0c\u5bfc\u81f4 ``Rodr\u00c3guez`` \u5b64\u7acb \u00c3 \u6b8b\u7559\u3002
+                _latin1_mojibake_map = (
+                    (
+                        "\u00c3\u00ad",
+                        "\u00ed",
+                    ),  # \u00c3 + U+00AD \u2192 \u00ed (Rodr\u00edguez)
+                    ("\u00c3\u00a9", "\u00e9"),  # \u2192 \u00e9 (P\u00e9rez)
+                    ("\u00c3\u00a1", "\u00e1"),  # \u2192 \u00e1 (S\u00e1nchez)
+                    ("\u00c3\u00b3", "\u00f3"),  # \u2192 \u00f3
+                    ("\u00c3\u00ba", "\u00fa"),  # \u2192 \u00fa
+                    ("\u00c3\u00b1", "\u00f1"),  # \u2192 \u00f1 (Mu\u00f1oz)
+                    ("\u00c3\u00bc", "\u00fc"),  # \u2192 \u00fc
+                    ("\u00c3\u00b6", "\u00f6"),  # \u2192 \u00f6
+                    ("\u00c3\u00a4", "\u00e4"),  # \u2192 \u00e4
+                    ("\u00c3\u00a7", "\u00e7"),  # \u2192 \u00e7
+                )
+                for moji, fixed in _latin1_mojibake_map:
+                    text = text.replace(moji, fixed)
+
                 # R10-D13\uff1a\u8f6f\u8fde\u5b57\u7b26 U+00AD \u8de8\u884c\u65ad\u5b57\u5408\u5e76\u3002PyMuPDF \u5728\u6392\u7248\u65ad\u5b57\u5904
                 # \u4fdd\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u95f4\u63d0\u793a\u7b26\uff09\uff0cspan \u62fc\u63a5\u540e\u5f62\u6210
                 # ``advance\u00ad ment``\uff08U+00AD + \u53ef\u9009\u7a7a\u767d + \u540e\u7eed\u5c0f\u5199\u8bcd\uff09\u3002
@@ -751,6 +775,13 @@ class MarkdownFormatter:
                 )
                 for moji, fixed in _mojibake_map:
                     text = text.replace(moji, fixed)
+
+                # R10-D23：闭括号前空格归一 ``(2025 )`` → ``(2025)``。
+                # PyMuPDF 抽取 ``(2025\n)`` 后 ``\n`` 折叠为空格形成 ``(2025 )``，
+                # Agentic AI Survey 表格 / References / 正文累计 112 处。仅去除
+                # ``)`` 紧前的单空格，且要求 ``)`` 紧前是非空白字符（避免 ``(  )``
+                # 空括号被破坏 —— 这类极少见且本身就是噪声）。
+                text = re.sub(r"(\S) \)", r"\1)", text)
 
                 lines = text.split("\n")
                 fixed_lines = []
