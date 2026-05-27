@@ -152,3 +152,19 @@ class TestSpaceBeforeCloseParen:
         md = 'The article "(quoted text)" is unchanged.'
         result = self.formatter._apply_typography_fixes(md)
         assert '"(quoted text)"' in result
+
+    def test_open_paren_space_normalized(self) -> None:
+        """``( 2008)`` → ``(2008)``。学术 PDF 中 ``(\\n2008)`` 经 PyMuPDF 折叠
+        形成 ``( 2008)``，与 D23 闭括号空格对称。
+        """
+        md = "Adopted by Thomas and Harden ( 2008), per Kaelbling et al. ( 1998)."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "(2008)" in result
+        assert "(1998)" in result
+        assert "( 2008)" not in result
+
+    def test_open_paren_no_space_preserved(self) -> None:
+        """正常 ``(2008)`` 不变。"""
+        md = "Reference (2008) is normal."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "(2008)" in result

@@ -783,6 +783,12 @@ class MarkdownFormatter:
                 # 空括号被破坏 —— 这类极少见且本身就是噪声）。
                 text = re.sub(r"(\S) \)", r"\1)", text)
 
+                # R10-D24：开括号后空格归一 ``( 2008)`` → ``(2008)``。
+                # 与 D23 对称的镜像 case：``Harden (\n2008)`` 折叠后形成
+                # ``Harden ( 2008)``，Agentic AI Survey 累计 3 处。要求 ``(``
+                # 紧后是非空白，避免破坏空括号噪声。
+                text = re.sub(r"\( (\S)", r"(\1", text)
+
                 lines = text.split("\n")
                 fixed_lines = []
                 for line in lines:
