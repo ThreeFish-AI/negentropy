@@ -208,6 +208,12 @@ class MarkdownFormatter:
             Enhanced and cleaned up Markdown content
         """
         try:
+            # Code block language detection and structural fixes must run
+            # BEFORE protection, because they operate on actual ``` fence
+            # markers.  After protection all fences become %%CODEBLOCK_…%%
+            # placeholders and none of the regex patterns can match.
+            markdown_content = self._format_code_blocks(markdown_content)
+
             # 保护代码块内容不被格式化 pass 修改
             markdown_content, protected = self._protect_code_blocks(markdown_content)
             # 保护块级数学公式 ``$$..$$`` 不被任何排版 / 段落 / 去重 pass 修改。
@@ -232,8 +238,6 @@ class MarkdownFormatter:
             if self.options.get("format_headings", True):
                 markdown_content = self._format_headings(markdown_content)
 
-            # Code block and quote formatting always applied
-            markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._format_quotes(markdown_content)
 
             if self.options.get("apply_typography", True):
@@ -497,7 +501,15 @@ class MarkdownFormatter:
             return markdown_content
 
     def _format_code_blocks(self, markdown_content: str) -> str:
-        """Enhance code block formatting with language detection."""
+        """Enhance code block formatting with language detection.
+
+        IMPORTANT: Must be called BEFORE ``_protect_code_blocks`` in the
+        ``format()`` pipeline.  All operations (consecutive-fence fix,
+        FORTRAN label correction, language detection, blank-line padding)
+        require actual ````` fence markers to be present in the text.
+        After protection all fences become ``%%CODEBLOCK_…%%`` placeholders
+        and none of the regex patterns here can match.
+        """
         try:
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(
