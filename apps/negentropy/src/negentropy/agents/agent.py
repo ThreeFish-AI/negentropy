@@ -62,7 +62,7 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
     置入 ``ContextVar``，供 ``DynamicRootLiteLlm.generate_content_async`` 在单
     轮内按此覆盖模型。
 
-    Ingest 意图 hint（ISSUE-095 后续）：
+    Ingest 意图 hint（ISSUE-096 后续）：
         - 仅在 ``state.corpus_ids`` 非空时调用 ``action_intent.classify`` 计算 hint，
           避免无 @ Corpus 场景下污染 state。
         - hint=="ingest" 且 confidence ≥ 0.7 → ``state['action_intent_hint'] = 'ingest'``；
@@ -81,7 +81,7 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
     set_selected_root_llm(selected if isinstance(selected, str) else None)
     set_root_thinking_enabled(thinking_enabled if isinstance(thinking_enabled, bool) else None)
 
-    # ---- ISSUE-095 后续 · Ingest 智能识别 hint ----
+    # ---- ISSUE-096 后续 · Ingest 智能识别 hint ----
     if state is None:
         return
     try:

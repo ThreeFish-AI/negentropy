@@ -873,7 +873,7 @@ async def submit_retrieval_feedback(
 
 @router.get("/retrieval/metrics", response_model=RetrievalMetricsResponse)
 async def get_retrieval_metrics(
-    user_id: str = Query(..., description="用户 ID"),
+    user_id: str | None = Query(default=None, description="用户 ID（null=聚合全部用户）"),
     app_name: str | None = Query(default=None, description="应用名称"),
     days: int = Query(default=30, ge=1, le=365, description="统计时间窗口（天）"),
     user: AuthUser = Depends(get_current_user),

@@ -2473,7 +2473,52 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ---
 
-## ISSUE-095 Composer @ 唤出框：四 Tab 决策负担过重 + 文字密度挤占视觉（2026-05-27）
+## ISSUE-095 Interface / Tools `Test Connection` 与 Tool 详情读取 500 — `check_plugin_access` 调用缺第 5 参数（2026-05-27）
+
+- **表因**：用户在 [Interface / Tools](http://localhost:3192/interface/tools) 页打开任一 Tool（如 `google_search`）后点击 **Test Connection** 按钮，UI 立即抛出：
+  ```json
+  { "error": { "code": "PLUGINS_UPSTREAM_ERROR", "message": "Internal Server Error" } }
+  ```
+  导致用户在保存配置前无法验证 API Key / CX ID 等凭证可用性，「测试连接」前置兜底闭环完全失效。同一类缺陷还命中 `GET /interface/tools/{id}` 详情读取端点。
+- **根因**（单点故障 → 三层错误传递链）：
+  1. **后端调用方契约漂移**：[`apps/negentropy/src/negentropy/interface/api.py`](../../apps/negentropy/src/negentropy/interface/api.py) 在 `get_builtin_tool` (旧 L1463) 与 `test_builtin_tool` (旧 L1540) 中以 4 参数调用 [`permissions.check_plugin_access`](../../apps/negentropy/src/negentropy/interface/permissions.py)：
+     ```python
+     has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user)
+     ```
+     而函数签名 `async def check_plugin_access(db, plugin_type, plugin_id, user, required_permission: str)` 第 5 参数 `required_permission` 无默认值 → Python 抛 `TypeError: check_plugin_access() missing 1 required positional argument: 'required_permission'`。同 PR (#511) 共 17 处 `check_plugin_access` 调用，**仅 `builtin_tool` 这两处漏传**，`mcp_server / skill / sub_agent` 全部正确，形成「绿叶丛中两片黄」型遗漏。Blame 锁定 commit `39938525`（PR #511, 2026-05-11 «feat(tools): 新增 Tools 管理系统»），缺陷自该 PR 落地起潜伏 16 天。
+  2. **Starlette ServerErrorMiddleware 兜底为裸文本 500**：未被 FastAPI 异常处理器捕获的 `TypeError` 由 Starlette 默认 `ServerErrorMiddleware._unexpected_exc` 返回 `PlainTextResponse("Internal Server Error", status_code=500)`，**不是** FastAPI 习用的 `{"detail": "..."}` JSON。
+  3. **Next.js UI 代理包装为 PLUGINS_UPSTREAM_ERROR**：[`apps/negentropy-ui/app/api/interface/_proxy.ts`](../../apps/negentropy-ui/app/api/interface/_proxy.ts) 的 `upstreamErrorResponse` 对非 OK 响应尝试 `JSON.parse(text)`，裸文本 `"Internal Server Error"` 解析失败 → fallthrough 到 `errorResponse("PLUGINS_UPSTREAM_ERROR", text, status)` —— 即用户最终看到的题面 JSON。
+- **漏网原因**：
+  - 项目 CI 未强制 mypy strict-mode（4-arg 调用属于「静态类型可发现」缺陷）；
+  - 该端点缺乏对应单元测试，CI 跳过即 OK；
+  - `_proxy.ts` 错误包装把上游 500 「升格」为带专用 code 的结构化响应，**反而掩盖了**原始服务端 stacktrace 暴露给观察者的可能性。
+- **处理方式**：
+  1. **补齐第 5 参数**（最小干预）：[`api.py:1466`](../../apps/negentropy/src/negentropy/interface/api.py) 与 [`api.py:1546`](../../apps/negentropy/src/negentropy/interface/api.py) 改为 `await check_plugin_access(db, "builtin_tool", tool_id, user, "view")`。选 `"view"` 而非 `"edit"` 的依据：
+     - 系统内置 `google_search`（`is_system=True`）走 [`permissions._is_plugin_builtin`](../../apps/negentropy/src/negentropy/interface/permissions.py) 分支：`view` 全员通过、`edit` 仅 admin。改 `"edit"` 会让非 admin 用户无法测试系统内置工具，违背设计语义；
+     - 测试连通性不写库，与 MCP 同类只读端点（[`list_mcp_tool_runs` 在 api.py:1318](../../apps/negentropy/src/negentropy/interface/api.py)）用 `"view"` 对齐；
+     - 用户自有 Tool 经 owner 分支短路通过，与 `view/edit` 取值无关。
+  2. **契约测试**（核心防回归）：新增 [`tests/unit_tests/interface/test_builtin_tool_api.py`](../../apps/negentropy/tests/unit_tests/interface/test_builtin_tool_api.py) 12 用例，三层覆盖：
+     - **签名锁定**：`inspect.signature(check_plugin_access)` 断言 5 参 + `required_permission` 无默认值。若 `permissions.py` 签名再变更，单测立即失败，强制同步全部调用点；
+     - **调用点契约**：`patch.object(api, "check_plugin_access")` 捕获实际 `await_args`，断言 `get_builtin_tool` 与 `test_builtin_tool` 都传 5 个位置参数且末尾 == `"view"`。**这是真正阻断本类回归的关键 —— 不依赖运行时是否 raise**；
+     - **业务路径**：mock `httpx.AsyncClient` 覆盖 Google Search 200 / 403 / 缺凭证 / 不支持 tool_type / 404 等 5 条正交分支；额外验证 inline payload 优先于 DB 存储（「未保存即可测试」契约）。
+  3. **浏览器实机回归**（chrome_devtools 接入用户主 Chrome 真实登录态）：连续 3 个正交 case 全绿、截图存档 [`docs/.agents/screenshots/issue-095-case-c-invalid-key.png`](./screenshots/issue-095-case-c-invalid-key.png)：
+     - **Case B 凭证为空** → HTTP 200 + `{"success":false,"message":"API Key or CX ID is not configured","latency_ms":null}`（不发外网请求）；
+     - **Case C 凭证错误** → HTTP 200 + `{"success":false,"message":"API error: API key not valid...","latency_ms":278.1}`（穿透 → Google API → 业务文案）；
+     - **Case D 详情读取** → HTTP 200 + 完整 `BuiltinToolResponse`（L1463 同步生效）。
+     - 后端日志 `tail` 确认 0 次 `TypeError` / `Exception in ASGI` / 5xx 复现。
+- **后续防范**：
+  1. **静态防护**：在 [`apps/negentropy/pyproject.toml`](../../apps/negentropy/pyproject.toml) 评估对 `negentropy.interface` 子包 enable mypy strict 模式，或至少加入 `.pre-commit-config.yaml` 的 mypy hook scope；本类「调用方实参数 < 形参数」缺陷属典型 mypy 可发现项；
+  2. **Review 红线**：任何 `check_plugin_access` / 同类权限 API 调用必须显式传 `required_permission` —— 新增 plugin 端点时按 [`test_builtin_tool_api.py`](../../apps/negentropy/tests/unit_tests/interface/test_builtin_tool_api.py) 「契约测试模板」复制 2 条断言（5 参 + 末位值）；
+  3. **错误包装层的可观测性补强**：`_proxy.ts:upstreamErrorResponse` 当前会把上游 plain-text 500 完全隐藏 stack。考虑在该路径上把 `response.status` 体现在 error.code（如 `PLUGINS_UPSTREAM_500` / `PLUGINS_UPSTREAM_502`），便于运维 / 用户一眼分辨「真正的上游 5xx」与「连接拒绝 / 超时」，但这是后续抛光项，不在本次最小修复范围；
+  4. **「签名 + 调用点」对称约束**：本 ISSUE 沿用 [ISSUE-089](#issue-089) 「ORM ↔ 迁移漂移」的思路扩展到 Python 函数签名层。任何 `def f(..., required_*: str)`（必填、无默认值）型参数引入时，必须在 PR review 时 grep 出全部调用点同步更新。
+- **同类问题影响**：
+  - 与 [ISSUE-089](#issue-089) 同属 `builtin_tool` 端点 500 家族但根因正交：089 是 ORM Enum ↔ Migration VARCHAR 类型漂移，095 是 Python 函数签名 ↔ 调用点参数数量漂移；两者共同提示「跨层契约一致性」是 `builtin_tool` 子系统的主要熵源（因 PR #511 引入时间紧、未对齐 mcp/skill/sub_agent 的成熟模板）。
+  - 与 [ISSUE-010](#issue-010)（字段名漂移）、[ISSUE-017](#issue-017)（前后端 + SSG 三源漂移）、[ISSUE-018](#issue-018)（BFF JSON body 强制契约）共同构成「跨层契约漂移」问题谱系；
+  - 推广价值：本 ISSUE 新增的「**`patch.object` 捕获 await_args，断言实参数 == N 且末位 == V**」契约测试模式，可推广到任何「必填位置参数 + 团队约定取值范围」的内部 API。比起断言运行时是否抛错，前者能在 IDE 跳转级粒度立刻定位缺陷。
+
+---
+
+## ISSUE-096 Composer @ 唤出框：四 Tab 决策负担过重 + 文字密度挤占视觉（2026-05-27）
 
 - **表因**：Home/Studio 输入框 `@` 唤出框暴露 4 个并列 Tab（Agents / 知识检索 / 输出沉淀 / 图谱模式），用户键入 `@` 后被迫先决策「以什么方式使用 Corpus」再选「用哪个 Corpus」；同一份 Corpus 被拆到 `corpus-retrieve` / `corpus-output` / `graph` 三个 MentionKind，弹层顶部图标 + 中文文字并排挤占宽度，视觉密度低。
 - **根因**：早期产品阶段把后端三个不同的语义动作（检索范围 / 输出沉淀 / 强制图谱）直接映射到三个用户可见 Tab。这违反了「用户只表达意图，由系统决定执行路径」的原则——后端 HybridPlanner 本身就能根据 query Intent + effective corpus 数量自主决策是否触发 graph expansion，无需前端额外强制信号；输出沉淀更适合走显式 UI 入口或后续 IntentClassifier，不应作为 mention 默认行为。

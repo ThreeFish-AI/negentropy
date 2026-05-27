@@ -151,7 +151,7 @@ Agent instruction 在 `apps/negentropy/src/negentropy/agents/faculties/perceptio
 
 ## 5.5 Ingest 智能识别（IntentClassifier）
 
-ISSUE-095 把 Composer @ 唤出框收敛为 2 Tab、移除 RUN_FINISHED 强制沉淀链路之后，
+ISSUE-096 把 Composer @ 唤出框收敛为 2 Tab、移除 RUN_FINISHED 强制沉淀链路之后，
 沉淀入口由 LLM 根据用户自然语言意图自主触发，形成下述四组件闭环：
 
 | 组件 | 角色 |
@@ -246,7 +246,7 @@ Feature flag：`NE_KNOWLEDGE_FEATURE_FLAGS__ENABLE_CROSS_CORPUS_KG`
 - [ ] feature flag off → 完全回退到 legacy `_legacy_search_knowledge_base`
 - [ ] Planner Stage 抛异常（mock embedding 失败）→ 降级到 legacy 不打断 SSE 流
 
-**Ingest 智能识别（ISSUE-095 后续）独立场景**：
+**Ingest 智能识别（ISSUE-096 后续）独立场景**：
 - [ ] retrieve（@CorpusA 查询 X）→ `state.action_intent_hint == "retrieve"`，PerceptionFaculty 检索
 - [ ] ingest 单 Corpus（沉淀这段到 @CorpusA）→ `hint=="ingest"`，InternalizationFaculty 调 `ingest_to_corpus`，DB `knowledge.metadata->>'captured_by' = 'ingest_intent'` 新行
 - [ ] ingest 多 Corpus 歧义（@CorpusA @CorpusB 记一下要点）→ LLM 反问「写到哪个 Corpus」

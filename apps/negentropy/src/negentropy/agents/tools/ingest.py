@@ -1,6 +1,6 @@
 """ingest_to_corpus — 用户 @ Corpus 场景下的「主动沉淀」工具。
 
-设计动机（ISSUE-095 后续）：
+设计动机（ISSUE-096 后续）：
     Composer @ 唤出框收敛为 2 Tab 后，沉淀入口由 UI 显式按钮迁移至 LLM 自主
     判断：用户在自然语言中表达「沉淀/入库/保存到 X」时，root LLM 依据
     ``state.action_intent_hint == "ingest"`` + ``state.corpus_ids`` 非空，

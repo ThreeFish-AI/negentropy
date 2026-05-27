@@ -1,7 +1,7 @@
 """ActionIntentClassifier — Ingest vs Retrieve 二分类（轻量启发式）。
 
 设计动机：
-    ISSUE-095 移除 Composer「输出沉淀」Tab 后，沉淀入口由前端 UI 收敛为后端
+    ISSUE-096 移除 Composer「输出沉淀」Tab 后，沉淀入口由前端 UI 收敛为后端
     LLM 主动决策。本分类器在 root LLM 调用前对用户 prompt 做关键词扫描，把
     高置信度 hint 写入 ``session.state['action_intent_hint']``，供 Root
     instruction 与 InternalizationFaculty transfer 路径选择参考。

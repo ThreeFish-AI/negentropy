@@ -372,6 +372,39 @@ def _normalize_redirect_urls(html: str) -> str:
         return html
 
 
+def _preprocess_raw_for_extraction(raw_html: str) -> str:
+    """对 raw_html 做提取前预处理：剥 ``aria-hidden`` + 展平 ARIA Tabs。
+
+    现代站点（Anthropic、shadcn 等）常用 ARIA Tabs 模式承载并列内容；
+    其中 inactive tabpanel 通常 ``aria-hidden="true"``，会被 trafilatura
+    / readability 判定为辅助内容剔除。在工具调用前统一展平为 figure
+    序列，确保三个引擎都看到完整的并列内容。
+
+    本预处理是幂等的、纯结构变换，不下载任何资源、不修改 src/srcset。
+    """
+    if not raw_html:
+        return raw_html
+    try:
+        from bs4 import BeautifulSoup
+
+        from ....markdown._tab_normalization import normalize_tab_containers
+
+        soup = BeautifulSoup(raw_html, "html.parser")
+
+        # 全局剥除 aria-hidden（不破坏其他 ARIA 语义）
+        for el in list(soup.find_all(attrs={"aria-hidden": True})):
+            if "aria-hidden" in el.attrs:
+                del el.attrs["aria-hidden"]
+
+        # 展平 ARIA Tabs 子树为 figure 序列
+        normalize_tab_containers(soup)
+
+        return str(soup)
+    except Exception:
+        logger.debug("raw_html 预处理失败，保持原样", exc_info=True)
+        return raw_html
+
+
 def _rehydrate_trafilatura_graphics(html: str) -> str:
     """将 trafilatura 输出的 ``<graphic>`` (TEI) 还原为标准 ``<img>``。
 
@@ -428,6 +461,10 @@ class TrafilaturaTool(WebToolBase):
                 error="raw_html 为空，无法提取主内容",
                 engine_used=self.tool_name,
             )
+
+        # 在喂入提取器之前，先剥 aria-hidden 并展平 ARIA Tabs，
+        # 否则 inactive panel 会被识别为辅助内容剔除。
+        raw_html = _preprocess_raw_for_extraction(raw_html)
 
         try:
             # trafilatura 支持直接返回 HTML 格式的主内容
@@ -565,6 +602,9 @@ class ReadabilityTool(WebToolBase):
                 engine_used=self.tool_name,
             )
 
+        # 与 trafilatura 同步预处理：剥 aria-hidden + 展平 ARIA Tabs
+        raw_html = _preprocess_raw_for_extraction(raw_html)
+
         try:
             doc = Document(raw_html, url=ctx.url)
             main_html = doc.summary()
@@ -634,6 +674,9 @@ class BeautifulSoupHeuristicTool(WebToolBase):
                 error="raw_html 为空，无法提取主内容",
                 engine_used=self.tool_name,
             )
+
+        # 与上述工具同步预处理：剥 aria-hidden + 展平 ARIA Tabs
+        raw_html = _preprocess_raw_for_extraction(raw_html)
 
         try:
             main_html = extract_content_area(raw_html)

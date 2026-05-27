@@ -55,6 +55,46 @@ _RENDER_ZOOM = _RENDER_DPI / 72.0
 _FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8
 
 
+def _is_decorative_raster_bbox(
+    bbox: Tuple[float, float, float, float],
+    page_idx: int,
+    *,
+    short_side_max_pt: float = 24.0,
+) -> bool:
+    """识别装饰光栅图（项目符号 / 装饰线 / 脚注上标 / 极小 icon 等）。
+
+    判定策略：**短边阈值（R8 既有）** —— ``bw ≤ short_side_max_pt`` 或
+    ``bh ≤ short_side_max_pt`` 时判装饰。覆盖：项目符号、装饰横线、
+    脚注上标等无信息密度元素。阈值取 24pt（留 ±2pt 栅格化抖动余量）。
+
+    设计权衡（R9 D-1a 修订决策，2026-05-27）：
+    曾尝试增加「cover header zone 小图标」规则（``page_idx == 0`` + ``y0 < 200pt``
+    + 短边 ≤ 50pt）作为更激进的封面装饰过滤策略；实机验证发现这会**误删
+    PDF 原版的机构 / 项目徽章**（如 Context Engineering 2.0 PDF 封面顶部
+    的 ASI + SII-GAIR 双徽章），与用户「1:1 还原 PDF 所有内容（含高清原图、
+    图片显示尺寸）」的目标冲突。徽章虽视觉为装饰，但确属 PDF 原版视觉元素
+    应保留。回滚该激进规则，仅保留 R8 短边阈值作为最小必要过滤。
+
+    Args:
+        bbox: 图片 PDF 坐标 bbox ``(x0, y0, x1, y1)``，单位 pt（TopLeft 坐标）。
+        page_idx: 0-based 页码（保留参数以便未来扩展，当前规则不使用）。
+        short_side_max_pt: R8 短边阈值（默认 24pt）。
+
+    Returns:
+        ``True`` 判定为装饰图（应过滤），``False`` 应保留。
+    """
+    _ = page_idx  # 保留接口签名，便于未来 layout-aware 扩展
+    x0, y0, x1, y1 = bbox
+    bw = x1 - x0
+    bh = y1 - y0
+    if bw <= 0 or bh <= 0:
+        return False
+    # R8 既有：短边阈值
+    if bw <= short_side_max_pt or bh <= short_side_max_pt:
+        return True
+    return False
+
+
 def _resolve_concurrency() -> int:
     """从配置读取页级并发上限，失败回退到 ``_IMAGE_EXTRACT_CONCURRENCY``。
 
@@ -624,18 +664,12 @@ class FitzImageExtractor(PDFToolBase):
                                 pos.get("x1", 0),
                                 pos.get("y1", 0),
                             )
-                            # 装饰性小图标二次过滤：PDF 点坐标维度 ≤ 24pt 的
-                            # 光栅图通常是项目符号、章节图标、脚注上标等装饰元素。
-                            # 上游 ``extract_images_from_pdf_page`` 已按渲染像素
-                            # （< 50px）过滤，但当原图分辨率正好 ≥ 50px 而 PDF
-                            # 显示尺寸 ≤ 24pt 时，会绕过该层防线（实测学术 PDF
-                            # 中 20×22pt 的 SII 装饰图标即如此，``ExtractedImage.bbox``
-                            # 维度算出 ``20.0×22.0`` pt）。阈值取 24pt 而非 20pt 是
-                            # 为留出 ±2pt 的栅格化抖动余量，同时与矢量 figure 渲染
-                            # 分支（< 20pt 严格剔除）形成梯度。
-                            bw = bbox[2] - bbox[0]
-                            bh = bbox[3] - bbox[1]
-                            if bw > 0 and bh > 0 and (bw <= 24 or bh <= 24):
+                            # 装饰光栅图过滤：委托 ``_is_decorative_raster_bbox``
+                            # 统一判定（R8 短边 ≤ 24pt + R9 D-1a cover header
+                            # 区域小图标双策略），避免散落判据漂移失同。
+                            if _is_decorative_raster_bbox(bbox, page_idx):
+                                bw = bbox[2] - bbox[0]
+                                bh = bbox[3] - bbox[1]
                                 logger.debug(
                                     "跳过装饰光栅图 p%d %s: %.1fx%.1f pt",
                                     page_idx,

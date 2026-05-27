@@ -46,7 +46,7 @@ HIGH_RISK_TOOLS: tuple[str, ...] = (
     # 副作用：写入 KG / 知识库
     "update_knowledge_graph",
     "ingest_paper",  # 会下载 PDF + 写入知识库
-    "ingest_to_corpus",  # ISSUE-095 后续：用户 @ Corpus 主动沉淀（默认 per_tool 拦截）
+    "ingest_to_corpus",  # ISSUE-096 后续：用户 @ Corpus 主动沉淀（默认 per_tool 拦截）
     # 副作用：执行代码 / 文件系统
     "execute_code",
     "write_file",

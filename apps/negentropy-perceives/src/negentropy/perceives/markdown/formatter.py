@@ -12,7 +12,7 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
-    from .html_preprocessor import ImgDimensionRegistry
+    from .html_preprocessor import ImgDimensionRegistry, VideoRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +194,7 @@ class MarkdownFormatter:
         markdown_content: str,
         *,
         img_registry: Optional["ImgDimensionRegistry"] = None,
+        video_registry: Optional["VideoRegistry"] = None,
     ) -> str:
         """
         Apply the full formatting pipeline to Markdown content.
@@ -265,6 +266,13 @@ class MarkdownFormatter:
             ):
                 markdown_content = self._restore_image_placeholders(
                     markdown_content, img_registry
+                )
+
+            # 还原 <video> 占位符为内嵌 HTML：必须在 _basic_cleanup 之后，
+            # 否则 sentinel 文本可能被 cleanup pass 误转义。
+            if video_registry is not None and video_registry.placeholders:
+                markdown_content = self._restore_video_placeholders(
+                    markdown_content, video_registry
                 )
 
             # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
@@ -974,6 +982,41 @@ class MarkdownFormatter:
             return markdown_content
         except Exception as e:
             logger.warning(f"Error restoring image placeholders: {str(e)}")
+            return markdown_content
+
+    def _restore_video_placeholders(
+        self,
+        markdown_content: str,
+        registry: "VideoRegistry",
+    ) -> str:
+        """将 ``preprocess_html`` 注入的 video sentinel 还原为内嵌 HTML ``<video>``。
+
+        sentinel 在 MarkdownConverter 进入 MarkItDown 之前替换 ``<video>`` 标签，
+        以避免 MarkItDown 把 HTML5 video 静默丢弃。此处将 sentinel 一一替换回
+        登记簿中保存的原始 HTML 字符串；前端 ``rehype-raw + rehype-sanitize``
+        会把它解析为可播放的 ``<video>`` 节点。
+        """
+        if not registry.placeholders:
+            return markdown_content
+
+        try:
+            for sentinel, html_str in registry.placeholders.items():
+                markdown_content = markdown_content.replace(sentinel, html_str)
+
+            # 防御：登记簿与输出失配时清理孤儿 sentinel
+            from .html_preprocessor import VIDEO_SENTINEL_RE
+
+            orphans = VIDEO_SENTINEL_RE.findall(markdown_content)
+            if orphans:
+                logger.warning(
+                    "Detected %d orphan video sentinel(s) after restore; stripping.",
+                    len(orphans),
+                )
+                markdown_content = VIDEO_SENTINEL_RE.sub("", markdown_content)
+
+            return markdown_content
+        except Exception as e:
+            logger.warning(f"Error restoring video placeholders: {str(e)}")
             return markdown_content
 
 

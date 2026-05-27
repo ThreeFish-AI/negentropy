@@ -1,6 +1,6 @@
 """ingest_to_corpus 工具单测。
 
-覆盖点（ISSUE-095 后续 / Ingest 智能识别闭环）：
+覆盖点（ISSUE-096 后续 / Ingest 智能识别闭环）：
 - 入参校验（corpus_id 空 / text 空 / UUID 非法）
 - 越权防御 fail-close（corpus_id 不在 state.corpus_ids）
 - Approval Gate（always 拦截 / denied / timeout / never 直通）
