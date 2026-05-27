@@ -92,7 +92,7 @@ describe("applyMention", () => {
 
   it("插入后保留 @ 之后被替换之外的尾部文本", () => {
     const result = applyMention("@p tail", { start: 0, end: 2, queryText: "p" }, {
-      kind: "corpus-retrieve",
+      kind: "corpus",
       refId: "uuid-a",
       label: "Corpus-A",
     });
@@ -169,9 +169,7 @@ describe("deriveForwardedPropsFromMentions", () => {
   it("空数组 → 全部空", () => {
     expect(deriveForwardedPropsFromMentions([])).toEqual({
       preferred_subagent: null,
-      scoped_corpus_ids: [],
-      output_corpus_ids: [],
-      graph_mode_corpus_ids: [],
+      corpus_ids: [],
     });
   });
 
@@ -183,14 +181,13 @@ describe("deriveForwardedPropsFromMentions", () => {
     expect(r.preferred_subagent).toBe("B2");
   });
 
-  it("scoped + output 各自去重", () => {
+  it("多个 corpus → 去重保持首现顺序", () => {
     const r = deriveForwardedPropsFromMentions([
-      _mkToken("@x", 0, { kind: "corpus-retrieve", refId: "u1" }),
-      _mkToken("@y", 0, { kind: "corpus-retrieve", refId: "u1" }),
-      _mkToken("@z", 0, { kind: "corpus-output", refId: "o1" }),
+      _mkToken("@x", 0, { kind: "corpus", refId: "u1" }),
+      _mkToken("@y", 0, { kind: "corpus", refId: "u2" }),
+      _mkToken("@z", 0, { kind: "corpus", refId: "u1" }),
     ]);
-    expect(r.scoped_corpus_ids).toEqual(["u1"]);
-    expect(r.output_corpus_ids).toEqual(["o1"]);
+    expect(r.corpus_ids).toEqual(["u1", "u2"]);
   });
 
   it("validRefIds 过滤孤儿 token", () => {
@@ -198,8 +195,8 @@ describe("deriveForwardedPropsFromMentions", () => {
       [
         _mkToken("@a", 0, { kind: "agent", refId: "Alive" }),
         _mkToken("@b", 0, { kind: "agent", refId: "Dead" }),
-        _mkToken("@c", 0, { kind: "corpus-retrieve", refId: "stale-uuid" }),
-        _mkToken("@d", 0, { kind: "corpus-output", refId: "valid-uuid" }),
+        _mkToken("@c", 0, { kind: "corpus", refId: "stale-uuid" }),
+        _mkToken("@d", 0, { kind: "corpus", refId: "valid-uuid" }),
       ],
       {
         agents: new Set(["Alive"]),
@@ -207,47 +204,18 @@ describe("deriveForwardedPropsFromMentions", () => {
       },
     );
     expect(r.preferred_subagent).toBe("Alive");
-    expect(r.scoped_corpus_ids).toEqual([]);
-    expect(r.output_corpus_ids).toEqual(["valid-uuid"]);
+    expect(r.corpus_ids).toEqual(["valid-uuid"]);
   });
 
-  it("agent + retrieve + output 三类共存", () => {
+  it("agent + corpus 共存", () => {
     const r = deriveForwardedPropsFromMentions([
       _mkToken("@a", 0, { kind: "agent", refId: "Pipeline-A" }),
-      _mkToken("@b", 0, { kind: "corpus-retrieve", refId: "kb-1" }),
-      _mkToken("@c", 0, { kind: "corpus-output", refId: "out-1" }),
+      _mkToken("@b", 0, { kind: "corpus", refId: "kb-1" }),
+      _mkToken("@c", 0, { kind: "corpus", refId: "kb-2" }),
     ]);
     expect(r).toEqual({
       preferred_subagent: "Pipeline-A",
-      scoped_corpus_ids: ["kb-1"],
-      output_corpus_ids: ["out-1"],
-      graph_mode_corpus_ids: [],
+      corpus_ids: ["kb-1", "kb-2"],
     });
-  });
-
-  it("@graph → 派生 graph_mode_corpus_ids", () => {
-    const r = deriveForwardedPropsFromMentions([
-      _mkToken("@k", 0, { kind: "graph", refId: "kb-1" }),
-      _mkToken("@k2", 0, { kind: "graph", refId: "kb-2" }),
-      _mkToken("@k3", 0, { kind: "graph", refId: "kb-1" }), // 去重
-    ]);
-    expect(r.graph_mode_corpus_ids).toEqual(["kb-1", "kb-2"]);
-  });
-
-  it("@graph 与 @corpus-retrieve 共存（两路独立）", () => {
-    const r = deriveForwardedPropsFromMentions([
-      _mkToken("@k", 0, { kind: "corpus-retrieve", refId: "kb-1" }),
-      _mkToken("@k2", 0, { kind: "graph", refId: "kb-2" }),
-    ]);
-    expect(r.scoped_corpus_ids).toEqual(["kb-1"]);
-    expect(r.graph_mode_corpus_ids).toEqual(["kb-2"]);
-  });
-
-  it("@graph 也被 validRefIds.corpora 过滤", () => {
-    const r = deriveForwardedPropsFromMentions(
-      [_mkToken("@k", 0, { kind: "graph", refId: "stale-uuid" })],
-      { corpora: new Set(["valid-uuid"]) },
-    );
-    expect(r.graph_mode_corpus_ids).toEqual([]);
   });
 });

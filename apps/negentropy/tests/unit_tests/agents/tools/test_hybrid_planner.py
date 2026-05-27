@@ -1,7 +1,7 @@
 """HybridPlanner 单元测试
 
 覆盖 Phase 2 关键路径：
-  - Intent classification（5 类边界 query + force_graph_mode + global_summary 关键词）
+  - Intent classification（5 类边界 query + global_summary 关键词）
   - 图扩展深度上限（5-hop 输入只走 2-hop）
   - per_corpus_limit / pool_cap 截断
   - 权限过滤：accessible_corpus_ids 强制取交集
@@ -67,31 +67,27 @@ def _candidate(
 class TestIntentClassification:
     def test_default_falls_back_to_fact(self) -> None:
         p = HybridPlanner(classifier=None)
-        assert p._classify_intent("hello", force_graph_mode=False) == "fact"
+        assert p._classify_intent("hello") == "fact"
 
     def test_classifier_mapping_exploration(self) -> None:
         p = HybridPlanner(classifier=_stub_classifier("exploration"))
-        assert p._classify_intent("讲讲 LLM Agent", force_graph_mode=False) == "explore"
+        assert p._classify_intent("讲讲 LLM Agent") == "explore"
 
     def test_classifier_mapping_comparison(self) -> None:
         p = HybridPlanner(classifier=_stub_classifier("comparison"))
-        assert p._classify_intent("A vs B", force_graph_mode=False) == "multi_hop"
+        assert p._classify_intent("A vs B") == "multi_hop"
 
     def test_classifier_mapping_graph_query(self) -> None:
         p = HybridPlanner(classifier=_stub_classifier("graph_query"))
-        assert p._classify_intent("Reflexion 和谁有关系", force_graph_mode=False) == "relation"
+        assert p._classify_intent("Reflexion 和谁有关系") == "relation"
 
     def test_global_summary_keyword_wins_over_classifier(self) -> None:
         p = HybridPlanner(classifier=_stub_classifier("fact"))
-        assert p._classify_intent("帮我总结这两个语料库的核心主题", force_graph_mode=False) == "global_summary"
+        assert p._classify_intent("帮我总结这两个语料库的核心主题") == "global_summary"
 
-    def test_force_graph_with_global_keywords(self) -> None:
+    def test_global_summary_keyword_with_overall_trend(self) -> None:
         p = HybridPlanner(classifier=_stub_classifier("fact"))
-        assert p._classify_intent("整体趋势如何", force_graph_mode=True) == "global_summary"
-
-    def test_force_graph_without_global_keywords_returns_relation(self) -> None:
-        p = HybridPlanner(classifier=_stub_classifier("fact"))
-        assert p._classify_intent("just a fact question", force_graph_mode=True) == "relation"
+        assert p._classify_intent("整体趋势如何") == "global_summary"
 
 
 # =============================================================================
