@@ -208,6 +208,12 @@ class MarkdownFormatter:
             Enhanced and cleaned up Markdown content
         """
         try:
+            # Code block language detection and structural fixes must run
+            # BEFORE protection, because they operate on actual ``` fence
+            # markers.  After protection all fences become %%CODEBLOCK_…%%
+            # placeholders and none of the regex patterns can match.
+            markdown_content = self._format_code_blocks(markdown_content)
+
             # 保护代码块内容不被格式化 pass 修改
             markdown_content, protected = self._protect_code_blocks(markdown_content)
             # 保护块级数学公式 ``$$..$$`` 不被任何排版 / 段落 / 去重 pass 修改。
@@ -232,8 +238,6 @@ class MarkdownFormatter:
             if self.options.get("format_headings", True):
                 markdown_content = self._format_headings(markdown_content)
 
-            # Code block and quote formatting always applied
-            markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._format_quotes(markdown_content)
 
             if self.options.get("apply_typography", True):
@@ -279,10 +283,16 @@ class MarkdownFormatter:
             return markdown_content
 
     def _protect_code_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
-        """提取已标注语言的代码块并替换为占位符，防止格式化管线修改其内容。
+        """提取所有 fenced 代码块并替换为占位符，防止格式化管线修改其内容。
 
-        仅保护已有语言标签的代码块（如 ```python, ```algorithm），
-        未标注语言的代码块留给 _format_code_blocks 进行语言检测。
+        包括两类：
+        1. 带语言标签的代码块（```python, ```algorithm）— 保留原始 fence
+        2. 未标注语言的纯 fence 代码块（``` ... ```）— 同样保护其内容，
+           避免 ``_apply_typography_fixes`` 把 ``--`` 误改为 em-dash、
+           智能引号替换等典型 typography 操作破坏代码语义。
+
+        ``_format_code_blocks`` 自身处理"未标注语言的语言检测"工作，但保护
+        机制要确保在 typography 之前所有 fenced block 都成为占位符。
         """
         protected: Dict[str, str] = {}
 
@@ -291,9 +301,10 @@ class MarkdownFormatter:
             protected[placeholder] = match.group(0)
             return placeholder
 
-        # 仅匹配带语言标签的代码块（```后紧跟字母）
+        # 匹配所有 fenced 代码块：```<可选语言>\n...\n```
+        # 已标注语言 (```python) 与未标注 (```\n) 都纳入保护
         result = re.sub(
-            r"^```[a-zA-Z][^\n]*\n.*?^```\s*$",
+            r"^```[^\n]*\n.*?^```\s*$",
             _replacer,
             markdown_content,
             flags=re.MULTILINE | re.DOTALL,
@@ -414,10 +425,64 @@ class MarkdownFormatter:
             # Add proper spacing around images
             markdown_content = re.sub(r"(!\[.*?\]\(.*?\))", r"\n\1\n", markdown_content)
 
+            # Caption 去重：当 ``![alt](url)`` 紧跟一个内容与 alt 文本相同的
+            # 段落（HTML <figcaption> 经 MarkItDown 输出为独立段落），
+            # 删除该重复段落避免 UI 渲染时 figcaption 与正文段同时出现。
+            markdown_content = self._dedupe_image_caption(markdown_content)
+
             return markdown_content
         except Exception as e:
             logger.warning(f"Error formatting images: {str(e)}")
             return markdown_content
+
+    @staticmethod
+    def _dedupe_image_caption(markdown_content: str) -> str:
+        """删除紧跟在 ``![alt](url)`` 后内容与 alt 完全相同的段落。
+
+        匹配模式（按行）：
+            ![<alt>](<url>)\n\n<text>\n
+        当 ``<text>`` 去前后空格后与 ``<alt>`` 去前后空格后相同，则删除
+        ``<text>`` 行（保留图片行与其后空行）。UI 渲染时 ``DocumentImage``
+        会用 alt 作为 figcaption；若 markdown 里又写一遍同样的段落，
+        figcaption 会重复出现。
+
+        注意：仅匹配紧邻图片行的下一非空段落，并要求严格相等（去空格 +
+        casefold），避免误删与 alt 局部相似的正文段。
+        """
+        lines = markdown_content.split("\n")
+        img_re = re.compile(r"^\s*!\[(.*?)\]\(.*?\)\s*$")
+        result: List[str] = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            m = img_re.match(line)
+            if not m:
+                result.append(line)
+                i += 1
+                continue
+            alt = m.group(1).strip()
+            result.append(line)
+            i += 1
+            # 跳过紧随其后的空行
+            blanks_start = i
+            while i < len(lines) and lines[i].strip() == "":
+                i += 1
+            if i < len(lines) and alt:
+                next_text = lines[i].strip()
+                if next_text and next_text.casefold() == alt.casefold():
+                    # 跳过该重复段（不写入 result），同时把前置空行也只保留一个
+                    if blanks_start < len(lines):
+                        # 保留单个空行作为段落分隔
+                        result.append("")
+                    i += 1
+                    # 跳过段落后的空行（保留一个）
+                    while i < len(lines) and lines[i].strip() == "":
+                        i += 1
+                    continue
+            # 普通情况：把空行原样追加
+            for k in range(blanks_start, i):
+                result.append(lines[k])
+        return "\n".join(result)
 
     def _format_links(self, markdown_content: str) -> str:
         """Optimize link formatting."""
@@ -436,7 +501,15 @@ class MarkdownFormatter:
             return markdown_content
 
     def _format_code_blocks(self, markdown_content: str) -> str:
-        """Enhance code block formatting with language detection."""
+        """Enhance code block formatting with language detection.
+
+        IMPORTANT: Must be called BEFORE ``_protect_code_blocks`` in the
+        ``format()`` pipeline.  All operations (consecutive-fence fix,
+        FORTRAN label correction, language detection, blank-line padding)
+        require actual ````` fence markers to be present in the text.
+        After protection all fences become ``%%CODEBLOCK_…%%`` placeholders
+        and none of the regex patterns here can match.
+        """
         try:
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(

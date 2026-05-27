@@ -6,6 +6,9 @@
 工具降级链：
 1. ``playwright_stealth`` — Playwright 隐身模式
 2. ``undetected_chromedriver`` — undetected-chromedriver + Selenium
+
+短路语义：若 S2 已成功填充 ``ctx.raw_html``（非空），则 S3 直接 short-circuit
+返回 success(skip)，避免无谓地启动浏览器并因驱动错误终止整条管线。
 """
 
 from __future__ import annotations
@@ -19,6 +22,17 @@ from ...registry import register_tool
 from .._base import WebToolBase
 
 logger = logging.getLogger(__name__)
+
+
+# raw_html 长度低于此阈值时视为 S2 未实际拿到内容，仍需走反检测降级。
+# 主流博客最小 HTML 也在 4KB+，1KB 设为保守阈值。
+_MIN_RAW_HTML_FOR_SKIP = 1024
+
+
+def _should_skip_anti_detection(ctx: StageContext) -> bool:
+    """S2 已成功获取 raw_html 时，S3 反检测应被短路跳过。"""
+    raw_html = getattr(ctx, "raw_html", None) or ""
+    return len(raw_html) >= _MIN_RAW_HTML_FOR_SKIP
 
 
 @register_tool("playwright_stealth")
@@ -39,7 +53,22 @@ class PlaywrightStealthTool(WebToolBase):
             return False
 
     async def _run(self, ctx: StageContext) -> StageResult[StageContext]:
-        """使用 Playwright 隐身模式获取网页 HTML。"""
+        """使用 Playwright 隐身模式获取网页 HTML。
+
+        若 S2 已成功填充 raw_html，则直接 short-circuit 返回 success。
+        """
+        if _should_skip_anti_detection(ctx):
+            logger.info(
+                "S3 anti_detection 短路跳过 (S2 已获取 raw_html len=%d)",
+                len(ctx.raw_html),
+            )
+            return StageResult(
+                success=True,
+                output=ctx,
+                engine_used=f"{self.tool_name}:skipped_s2_ok",
+                metadata={"skipped": True, "reason": "s2_already_succeeded"},
+            )
+
         from ....scraping.anti_detection import AntiDetectionScraper
 
         url = ctx.url
@@ -101,7 +130,22 @@ class UndetectedChromeDriverTool(WebToolBase):
             return False
 
     async def _run(self, ctx: StageContext) -> StageResult[StageContext]:
-        """使用 undetected-chromedriver 获取网页 HTML。"""
+        """使用 undetected-chromedriver 获取网页 HTML。
+
+        若 S2 已成功填充 raw_html，则直接 short-circuit 返回 success。
+        """
+        if _should_skip_anti_detection(ctx):
+            logger.info(
+                "S3 anti_detection 短路跳过 (S2 已获取 raw_html len=%d)",
+                len(ctx.raw_html),
+            )
+            return StageResult(
+                success=True,
+                output=ctx,
+                engine_used=f"{self.tool_name}:skipped_s2_ok",
+                metadata={"skipped": True, "reason": "s2_already_succeeded"},
+            )
+
         from ....scraping.anti_detection import AntiDetectionScraper
 
         url = ctx.url
