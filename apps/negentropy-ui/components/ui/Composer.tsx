@@ -521,7 +521,7 @@ export function Composer({
           )}
         </div>
         <p className="text-[10px] text-text-muted/60 shrink-0 select-none">
-          {showMentions ? "@ 选 Agent · " : ""}Enter 发送 · Shift+Enter 换行
+          {showMentions ? "@ 选对象 · " : ""}Enter 发送 · Shift+Enter 换行
         </p>
       </div>
     </form>

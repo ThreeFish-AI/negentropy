@@ -6,11 +6,11 @@
  * 因此将共享常量与纯函数下沉到本模块，由 ui 与 wiki 两个 BFF 直接复用单一事实源。
  */
 
-// 共享 UUID 校验 —— 既给路由 sessionId 用，也给 forwardedProps.{scoped,output}_corpus_ids 用。
+// 共享 UUID 校验 —— 既给路由 sessionId 用，也给 forwardedProps.corpus_ids 用。
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // 路由偏好 Agent 名长度上限（与后端 _PREFERENCE_NAME_RE 同步：标识符 1-128 字符）。
 export const PREFERRED_SUBAGENT_MAX_LEN = 128;
-// Mention 列表上限（每类 @ token 数），避免畸形 forwardedProps 撑大 state。
+// Mention 列表上限（corpus token 数），避免畸形 forwardedProps 撑大 state。
 export const CORPUS_IDS_MAX_LEN = 32;
 
 /**
@@ -72,34 +72,15 @@ export function buildStateDeltaFromForwardedProps(
       stateDelta.preferred_subagent = null;
     }
   }
-  // Home Composer 的 @ Corpus（检索）—— 限定本轮 RAG 检索范围；
-  // 由 ``perception.search_knowledge_base`` 消费 ``tool_context.state``。
+  // Home Composer 的 @ Corpus —— 用户选定的 Corpus 集合；
+  // 后端 ``perception.search_knowledge_base`` 消费 ``tool_context.state.corpus_ids``，
+  // 作为 KB+KG hybrid 的 retrieve 范围（HybridPlanner 自身决定是否进入 graph expansion）。
   // 数组（含 ``[]``）→ 写入 state_delta；非数组 → 不写入。空数组表示「显式清空」，
-  // 覆盖上一轮可能残留的 ``scoped_corpus_ids``。
-  if ("scoped_corpus_ids" in forwardedProps) {
-    const scoped = sanitizeUuidList(forwardedProps.scoped_corpus_ids, CORPUS_IDS_MAX_LEN);
-    if (scoped !== null) {
-      stateDelta.scoped_corpus_ids = scoped;
-    }
-  }
-  // Home Composer 的 @ Corpus（输出）—— 输出沉淀目标 Corpus 列表；
-  // 仅 round-trip 留痕，前端在 RUN_FINISHED 后据此调用 ingestText。
-  // 空数组同样写入以触发清空语义，避免 session.state 中残留孤儿值。
-  if ("output_corpus_ids" in forwardedProps) {
-    const output = sanitizeUuidList(forwardedProps.output_corpus_ids, CORPUS_IDS_MAX_LEN);
-    if (output !== null) {
-      stateDelta.output_corpus_ids = output;
-    }
-  }
-  // Home Composer 的 @graph —— 强制启用图谱/跨 Corpus 桥接/GraphRAG 全局摘要模式。
-  // 由 ``perception.search_knowledge_base`` 消费 ``tool_context.state``：
-  // 命中非空数组时强制走 HybridPlanner 的 graph expansion 路径，
-  // 同时关键词命中「主题/概览/总体/核心」会进一步切换到 search_knowledge_graph_global。
-  // 空数组同样写入以触发清空语义。
-  if ("graph_mode_corpus_ids" in forwardedProps) {
-    const graphIds = sanitizeUuidList(forwardedProps.graph_mode_corpus_ids, CORPUS_IDS_MAX_LEN);
-    if (graphIds !== null) {
-      stateDelta.graph_mode_corpus_ids = graphIds;
+  // 覆盖上一轮可能残留的 ``corpus_ids``，避免 session.state 中孤儿值长期污染。
+  if ("corpus_ids" in forwardedProps) {
+    const ids = sanitizeUuidList(forwardedProps.corpus_ids, CORPUS_IDS_MAX_LEN);
+    if (ids !== null) {
+      stateDelta.corpus_ids = ids;
     }
   }
   return stateDelta;

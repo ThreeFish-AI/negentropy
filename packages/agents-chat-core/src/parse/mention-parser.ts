@@ -137,21 +137,18 @@ function _nearestIndexOf(s: string, needle: string, anchor: number): number {
 }
 
 /**
- * 从 mention 列表派生 forwardedProps 的四个字段。
+ * 从 mention 列表派生 forwardedProps 的两个字段。
  *
  * - ``preferred_subagent``：取最后一个 ``agent`` mention（多选时后者覆盖）；
- * - ``scoped_corpus_ids``：所有 ``corpus-retrieve`` mention 的 refId，去重；
- * - ``output_corpus_ids``：所有 ``corpus-output`` mention 的 refId，去重；
- * - ``graph_mode_corpus_ids``：所有 ``graph`` mention 的 refId，去重。后端见到此字段
- *   非空时会强制 HybridPlanner 进入 graph expansion 路径。
+ * - ``corpus_ids``：所有 ``corpus`` mention 的 refId，去重保持首现顺序。
+ *   后端默认将其作为 KB+KG hybrid 的 retrieve 范围；Ingest 走独立入口
+ *   或后续 IntentClassifier，不在本字段语义内。
  *
  * 调用方可选地传 ``validRefIds`` 用于过滤孤儿 token（如 Corpus 已被删除）。
  */
 export interface DerivedMentionProps {
   preferred_subagent: string | null;
-  scoped_corpus_ids: string[];
-  output_corpus_ids: string[];
-  graph_mode_corpus_ids: string[];
+  corpus_ids: string[];
 }
 
 export function deriveForwardedPropsFromMentions(
@@ -162,28 +159,18 @@ export function deriveForwardedPropsFromMentions(
   },
 ): DerivedMentionProps {
   let preferred: string | null = null;
-  const scoped: string[] = [];
-  const output: string[] = [];
-  const graph: string[] = [];
+  const corpusIds: string[] = [];
   for (const m of mentions) {
     if (m.kind === "agent") {
       if (validRefIds?.agents && !validRefIds.agents.has(m.refId)) continue;
       preferred = m.refId;
-    } else if (m.kind === "corpus-retrieve") {
+    } else if (m.kind === "corpus") {
       if (validRefIds?.corpora && !validRefIds.corpora.has(m.refId)) continue;
-      scoped.push(m.refId);
-    } else if (m.kind === "corpus-output") {
-      if (validRefIds?.corpora && !validRefIds.corpora.has(m.refId)) continue;
-      output.push(m.refId);
-    } else if (m.kind === "graph") {
-      if (validRefIds?.corpora && !validRefIds.corpora.has(m.refId)) continue;
-      graph.push(m.refId);
+      corpusIds.push(m.refId);
     }
   }
   return {
     preferred_subagent: preferred,
-    scoped_corpus_ids: Array.from(new Set(scoped)),
-    output_corpus_ids: Array.from(new Set(output)),
-    graph_mode_corpus_ids: Array.from(new Set(graph)),
+    corpus_ids: Array.from(new Set(corpusIds)),
   };
 }
