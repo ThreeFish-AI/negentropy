@@ -550,6 +550,21 @@ class FitzTextExtractor(PDFToolBase):
             if section_title.count(", ") >= 2 and len(section_title) > 60:
                 return None
 
+            # R10-D25：list-item label + 句子型 body 折叠到同一文本块的剩余信号。
+            # 典型产物 ``Paradigm specialization by domain High-stakes, regulated``
+            # 中包含 ``[a-z]+\s+[A-Z][\w-]+,`` —— 小写词 + 空格 + Capital 起首词
+            # （可含 hyphen）+ 逗号；学术 heading 内 Capital 词后接逗号几乎不出现
+            # （合法 heading 的 Capital 复合词 ``Reinforcement Learning`` 后无逗号），
+            # 该组合是 PyMuPDF 折叠 PDF list-item ``\d+. **Label** Body sentence,...``
+            # 的特征指纹。守护：长度 > 50 + 不含 ``:``（合法 heading subtitle 分隔符
+            # 后续可能触发同样模式，但语义合法，需放行）。
+            if (
+                len(section_title) > 50
+                and ":" not in section_title
+                and re.search(r"\b[a-z]+\s+[A-Z][\w-]+,", section_title)
+            ):
+                return None
+
             depth = section_num.count(".") + 1
             if depth == 1:
                 return 1

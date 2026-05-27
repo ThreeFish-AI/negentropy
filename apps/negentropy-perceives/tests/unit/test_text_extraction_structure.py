@@ -133,3 +133,54 @@ class TestHeadingClassification:
             # 短的 pronoun 起首 noun phrase 应被字号守卫接受为 heading
             # （非编号路径，依赖 size_ratio 推断级别）
             assert r is not None, f"short pronoun heading {short!r} dropped"
+
+    # ---- R10-D25：编号 list-item label + 句子型 body 边界 ----
+
+    def test_label_body_with_capital_hyphen_comma_not_heading(self) -> None:
+        """编号 list-item label + 句子型 body 折叠到同一文本块的产物
+        ``1. Paradigm specialization by domain High-stakes, regulated domains``
+        包含 ``[a-z]+\\s+[A-Z][\\w-]+,`` 信号（lowercase + Capital-hyphen + 逗号），
+        在学术 heading 中几乎不出现，应识别为列表项而非 heading。
+        """
+        text = (
+            "1. Paradigm specialization by domain High-stakes, regulated domains "
+            "like Healthcare"
+        )
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result is None, f"label+body list-item misclassified as h{result}"
+
+    def test_legitimate_heading_with_capital_compound_preserved(self) -> None:
+        """合法 heading 含 Capital 复合词但无逗号（``Deep Learning Models for
+        Reinforcement Learning Applications``）应保留为 heading。"""
+        text = "5 Deep Learning Models for Reinforcement Learning Applications"
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result == 1, f"legitimate heading dropped: got {result!r}"
+
+    def test_legitimate_heading_with_colon_subtitle_preserved(self) -> None:
+        """合法 heading 含 colon subtitle（D25 length/colon 守卫）应保留。"""
+        text = "4 Findings: a paradigm-aware analysis of the Agentic AI landscape"
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result == 1
+
+    def test_short_numbered_heading_with_one_capital_preserved(self) -> None:
+        """长度 < 50 的短编号 heading 即使含 Capital 词也不应触发 D25。"""
+        text = "2 Theoretical framework for Agentic AI"
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result == 1
+
+    def test_legitimate_compound_no_comma_preserved(self) -> None:
+        """含 hyphen 的 Capital 复合词但无逗号（``Cross-functional analysis``）
+        应保留为合法 heading。"""
+        text = "3 Cross-functional analysis of LLM systems and frameworks"
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result == 1
