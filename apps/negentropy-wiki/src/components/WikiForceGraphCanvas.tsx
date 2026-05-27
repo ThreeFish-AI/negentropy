@@ -96,6 +96,7 @@ interface FGLink {
 function toForceGraphData(
   nodes: WikiGraphNode[],
   edges: WikiGraphEdge[],
+  isDark: boolean,
 ): { nodes: FGNode[]; links: FGLink[] } {
   const validIds = new Set(nodes.map((n) => n.id));
   return {
@@ -113,7 +114,7 @@ function toForceGraphData(
         source: e.source,
         target: e.target,
         label: e.label ?? e.type ?? "",
-        color: "#52525b",
+        color: isDark ? "rgba(255,255,255,0.12)" : "#52525b",
       })),
   };
 }
@@ -193,7 +194,18 @@ export function WikiForceGraphCanvas({
     [entrySlugMap, pubSlug, router],
   );
 
-  const graphData = useMemo(() => toForceGraphData(nodes, edges), [nodes, edges]);
+  const isDark = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const rootEl = document.documentElement;
+    const colorScheme = rootEl.getAttribute("data-color-scheme");
+    return (
+      colorScheme === "dark" ||
+      (!colorScheme &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches)
+    );
+  }, []);
+
+  const graphData = useMemo(() => toForceGraphData(nodes, edges, isDark), [nodes, edges, isDark]);
 
   // 自定义节点渲染：圆形 + 标签（缩小时隐藏）
   const nodeCanvasObject = useCallback(
@@ -209,12 +221,12 @@ export function WikiForceGraphCanvas({
       if (globalScale > 0.3) {
         const fontSize = Math.max(12 / globalScale, 3.5);
         ctx.font = `${fontSize}px system-ui, sans-serif`;
-        ctx.fillStyle = "#d4d4d8";
+        ctx.fillStyle = isDark ? "#e3e3e3" : "#1c1e21";
         ctx.textAlign = "center";
         ctx.fillText(node.name, node.x!, node.y! + size + fontSize + 1);
       }
     },
-    [],
+    [isDark],
   );
 
   const nodePointerAreaPaint = useCallback(
@@ -248,7 +260,7 @@ export function WikiForceGraphCanvas({
             linkWidth={1}
             linkDirectionalArrowLength={4}
             linkDirectionalArrowRelPos={0.8}
-            linkDirectionalArrowColor="#71717a"
+            linkDirectionalArrowColor={isDark ? "rgba(255,255,255,0.25)" : "#71717a"}
             onNodeClick={handleNodeClick}
             enableNodeDrag={true}
             cooldownTicks={200}
