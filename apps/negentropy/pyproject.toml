@@ -23,8 +23,9 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.46",  # SQL Toolkit and ORM
     "alembic>=1.18.3",              # Database migration tool
     # Core Infrastructure
-    "google-adk>=2.0.0",            # ADK 2.0 GA: Workflow Runtime, Collaborative Agents, Task API
+    "google-adk>=2.1.0",            # ADK 2.1: Workflow Runtime + native OTel agentic metrics + event compaction tracing
     "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
+    "opentelemetry-exporter-otlp-proto-http>=1.37.0,<2.0.0",  # OTLP HTTP/protobuf span exporter — TracingManager / LiteLLM otel callback / ADK _get_otel_span_exporter 均依赖此包
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
     "pydantic-settings[yaml]>=2.12.0",  # Configuration management with YAML support
