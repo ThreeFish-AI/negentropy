@@ -500,7 +500,7 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
 @router.get("/facts", response_model=FactListResponse)
 async def list_facts(
     app_name: str | None = Query(default=None),
-    user_id: str = Query(...),
+    user_id: str | None = Query(default=None),
     fact_type: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> FactListResponse:
