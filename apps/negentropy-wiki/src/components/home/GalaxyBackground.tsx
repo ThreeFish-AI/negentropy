@@ -164,13 +164,6 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
     if (!ctnDom.current) return;
     const ctn = ctnDom.current;
 
-    // 主题检测
-    const rootEl = document.documentElement;
-    const colorScheme = rootEl.getAttribute("data-color-scheme");
-    const prefersDark =
-      colorScheme === "dark" ||
-      (!colorScheme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
     // 无障碍：减弱动画
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -195,7 +188,11 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
     const targetMouseActive = { value: 0.0 };
     const smoothMouseActive = { value: 0.0 };
 
-    const renderer = new Renderer({ alpha: transparent, premultipliedAlpha: false });
+    const renderer = new Renderer({
+      alpha: transparent,
+      premultipliedAlpha: false,
+      dpr: Math.min(window.devicePixelRatio, 2),
+    });
     const gl = renderer.gl;
 
     if (transparent) {
@@ -294,6 +291,11 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
     ctn.addEventListener("mousemove", handleMouseMove);
     ctn.addEventListener("mouseleave", handleMouseLeave);
     ctn.addEventListener("touchmove", handleTouchMove, { passive: true });
+    function handleTouchEnd() {
+      targetMouseActive.value = 0.0;
+    }
+    ctn.addEventListener("touchend", handleTouchEnd);
+    ctn.addEventListener("touchcancel", handleTouchEnd);
 
     return () => {
       cancelAnimationFrame(animateId);
@@ -301,6 +303,8 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
       ctn.removeEventListener("mousemove", handleMouseMove);
       ctn.removeEventListener("mouseleave", handleMouseLeave);
       ctn.removeEventListener("touchmove", handleTouchMove);
+      ctn.removeEventListener("touchend", handleTouchEnd);
+      ctn.removeEventListener("touchcancel", handleTouchEnd);
       if (ctn.contains(gl.canvas)) {
         ctn.removeChild(gl.canvas);
       }
