@@ -135,7 +135,7 @@ export default async function WikiEntryPage({ params }: Props) {
 
   const catalogItem = sectionView.activeItem;
   const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
-  const catalogName = catalogTargetSlug && catalogItem
+  const catalogName = catalogItem
     ? (catalogItem.entry_title || catalogItem.entry_slug)
     : null;
 

@@ -51,11 +51,26 @@ export function WikiSidebar({
     <>
       <div className="wiki-sidebar-header">
         {isEntryPage ? (
-          catalogName && catalogTargetSlug ? (
-            renderBrand(
-              `/${pubSlug}/${catalogTargetSlug}`,
-              `← ${catalogName}`,
-              "wiki-sidebar-back wiki-sidebar-brand",
+          catalogName ? (
+            catalogTargetSlug ? (
+              renderBrand(
+                `/${pubSlug}/${catalogTargetSlug}`,
+                `← ${catalogName}`,
+                "wiki-sidebar-back wiki-sidebar-brand",
+              )
+            ) : (
+              <Link
+                href={`/${pubSlug}`}
+                className="wiki-sidebar-back wiki-sidebar-brand"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+                <img
+                  src="/logo.png"
+                  alt="Negentropy"
+                  className="wiki-sidebar-logo"
+                />
+                <span className="wiki-sidebar-title">← {catalogName}</span>
+              </Link>
             )
           ) : (
             <Link
@@ -72,11 +87,23 @@ export function WikiSidebar({
             </Link>
           )
         ) : (
-          catalogName && catalogTargetSlug ? (
-            renderBrand(
-              `/${pubSlug}/${catalogTargetSlug}`,
-              catalogName,
-              "wiki-sidebar-brand",
+          catalogName ? (
+            catalogTargetSlug ? (
+              renderBrand(
+                `/${pubSlug}/${catalogTargetSlug}`,
+                catalogName,
+                "wiki-sidebar-brand",
+              )
+            ) : (
+              <div className="wiki-sidebar-brand">
+                {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+                <img
+                  src="/logo.png"
+                  alt="Negentropy"
+                  className="wiki-sidebar-logo"
+                />
+                <span className="wiki-sidebar-title">{catalogName}</span>
+              </div>
             )
           ) : (
             <div className="wiki-sidebar-brand">
