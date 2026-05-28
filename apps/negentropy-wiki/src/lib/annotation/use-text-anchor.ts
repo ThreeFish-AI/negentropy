@@ -446,7 +446,7 @@ function tryXPath(anchor: TextAnchor, container: HTMLElement): Range | null {
     for (const candidate of candidates) {
       const text = candidate.textContent || "";
       if (text.includes(anchor.exact)) {
-        return findTextAcrossNodes(anchor.exact, candidate as HTMLElement);
+        return findTextInSingleNode(anchor.exact, candidate as HTMLElement);
       }
     }
   } catch {
@@ -463,11 +463,11 @@ function tryTextSearch(anchor: TextAnchor, container: HTMLElement): Range | null
   if (startIdx === -1) {
     startIdx = fullText.indexOf(anchor.exact);
     if (startIdx === -1) return null;
-    return findTextAcrossNodes(anchor.exact, container);
+    return findTextInSingleNode(anchor.exact, container);
   }
 
   const exactStart = startIdx + (anchor.prefix?.length || 0);
-  return findTextAcrossNodes(anchor.exact, container, exactStart);
+  return findTextInSingleNode(anchor.exact, container, exactStart);
 }
 
 /**
@@ -514,6 +514,39 @@ function resolveBlockFallback(anchor: TextAnchor, container: HTMLElement): Range
   } catch {
     return null;
   }
+}
+
+/**
+ * 单节点文本搜索：在 root 下逐个 Text 节点内查找 text，
+ * 返回始终在单个 Text 节点内的 DOM Range。
+ *
+ * 用于 Stage 2（tryXPath / tryTextSearch），保证返回的 Range 不跨越元素边界，
+ * 从而与 MarkWrapRenderer 的 surroundContents() 兼容。
+ */
+function findTextInSingleNode(
+  text: string,
+  root: HTMLElement,
+  hintOffset?: number,
+): Range | null {
+  if (!text) return null;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let currentOffset = 0;
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const nodeText = node.textContent || "";
+    const localIdx = nodeText.indexOf(
+      text,
+      hintOffset !== undefined ? Math.max(0, hintOffset - currentOffset) : 0,
+    );
+    if (localIdx !== -1) {
+      const range = document.createRange();
+      range.setStart(node, localIdx);
+      range.setEnd(node, localIdx + text.length);
+      return range;
+    }
+    currentOffset += nodeText.length;
+  }
+  return null;
 }
 
 interface TextSegment {
