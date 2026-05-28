@@ -1048,10 +1048,10 @@
   - 4 条 memory（episodic/semantic/preference 混合，metadata.source="browser_e2e_test"）
   - 4 条 fact（key=api_design/role/editor/preferred_language）
   - 5+ 条 audit history
-  - 0 条 conflict（巩固管线 disabled + pg_cron 不可用，本轮无法触发 fact 冲突）
+  - 0 条 conflict（巩固管线 disabled + Unified Scheduler 任务未启用，本轮无法触发 fact 冲突）
 - **本轮浏览器验证局限**：
   - Conflicts 页：仅验证 empty state + filter 控件；resolve 操作回归交给 mock E2E 覆盖
-  - Automation 页：在 pg_cron 不可用环境下验证了 degraded readonly 模式；admin API config save / job action 流程实机未触发，交给 mock E2E
+  - Automation 页：在 Unified Scheduler 环境下验证了 degraded readonly 模式；admin API config save / job action 流程实机未触发，交给 mock E2E
 - **后续清理建议**：开发结束后 `localStorage.removeItem("negentropy:activity-log")` 清理 Activity 测试 entries；如需重置 dev seed，可手动清除上述 ID 对应的 Memory/Fact/Audit 行（**严禁** TRUNCATE）
 
 ---

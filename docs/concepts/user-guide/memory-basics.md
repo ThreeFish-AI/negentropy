@@ -103,7 +103,7 @@ cd apps/negentropy && uv sync --extra pii-presidio
 | Facts      | `/memory/facts`      | 结构化事实表，支持 History 版本链查看 + 搜索                                           |
 | Audit      | `/memory/audit`      | 审计历史 + retain/delete/anonymize 决策                                                |
 | Conflicts  | `/memory/conflicts`  | 事实冲突检视与手动解决（pending → supersede/keep_old/keep_new/merge）                  |
-| Automation | `/memory/automation` | pg_cron 任务管理（需 admin 角色）                                                      |
+| Automation | `/memory/automation` | Unified Scheduler 任务管理（需 admin 角色）                                                      |
 
 > 所有页面源自 `apps/negentropy-ui/app/memory/`。
 > Activity（平台 Toast 通知历史）已迁移至 Home / Dashboard 底部，作为 localStorage 日志面板与后端 Execution Timeline 正交并列；详见 [`/dashboard`](../../../apps/negentropy-ui/app/(home)/dashboard/page.tsx)。

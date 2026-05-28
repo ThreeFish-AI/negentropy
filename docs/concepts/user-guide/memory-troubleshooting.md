@@ -190,7 +190,7 @@ WHERE user_id = 'alice' GROUP BY 1, 2, 3;
 curl -H "Authorization: Bearer $TOKEN" \
   "http://localhost:3292/api/memory/automation/logs?limit=10"
 
-# pg_cron 端
+# Unified Scheduler 端
 SELECT * FROM cron.job WHERE jobname LIKE 'memory_%';
 SELECT * FROM cron.job_run_details WHERE jobid IN (
   SELECT jobid FROM cron.job WHERE jobname LIKE 'memory_%'
@@ -199,7 +199,7 @@ SELECT * FROM cron.job_run_details WHERE jobid IN (
 
 **可能原因**：
 - `AsyncScheduler` 未启动（应用进程未跑或线程死锁）
-- pg_cron 扩展未启用
+- Unified Scheduler 任务未启用
 - cron 表达式错误（用 `* * * * *` 测试是否真触发）
 
 ---

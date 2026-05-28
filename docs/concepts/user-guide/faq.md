@@ -59,7 +59,7 @@
 
 **Q: 自动化任务未执行？**
 
-确认 Automation 页面中 pg_cron 状态为正常，相关 Job 已启用（`enabled = true`），且 `schedule` 配置正确。
+确认 `/interface/scheduler` 页面中相关任务状态为正常，相关 Job 已启用（`enabled = true`），且 `schedule` 配置正确。
 
 ### 9.4 管理后台相关
 

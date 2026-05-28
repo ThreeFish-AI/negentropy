@@ -49,7 +49,7 @@
 | 文档                                                        | 说明                     |
 | :---------------------------------------------------------- | :----------------------- |
 | [记忆基础](./concepts/user-guide/memory-basics.md)          | 5 分钟入门、UI 导航      |
-| [记忆自动化](./concepts/user-guide/memory-automation.md)    | pg_cron 配置、调度策略   |
+| [记忆自动化](./concepts/user-guide/memory-automation.md)    | Unified Scheduler 任务管理、调度策略   |
 | [记忆集成](./concepts/user-guide/memory-integration.md)     | API 集成、开发者指南     |
 | [记忆排查](./concepts/user-guide/memory-troubleshooting.md) | 10 大常见问题 + SQL 诊断 |
 

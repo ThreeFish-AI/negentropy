@@ -554,7 +554,7 @@ Memory 运行时能力分为两层：
 为避免文档双源，Memory Automation 的设计、接口、降级矩阵与实施记录统一以 [`025-the-memory-system.md`](025-the-memory-system.md) 为准；本文件仅保留 Knowledge 与 Memory 的边界说明。
 
 > [!NOTE]
-> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [`025-the-memory-system.md`](025-the-memory-system.md)。
+> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力通过 Unified Scheduler 管理，详见 [`025-the-memory-system.md`](025-the-memory-system.md)。
 
 ## 13. Catalog / Wiki Publication 三层正交架构
 
