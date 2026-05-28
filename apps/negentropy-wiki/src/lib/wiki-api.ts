@@ -335,14 +335,14 @@ export function findIndexEntry(items: WikiNavTreeItem[]): WikiNavTreeItem | null
 }
 
 /**
- * 递归统计导航树中所有有效条目（`entry_id` 非空）的数量。
+ * 递归统计导航树中 DOCUMENT 类型条目的数量。
  *
- * 排除合成容器节点（`entry_id=null`），仅计可路由的叶子。
+ * 通过 `isContainerItem()` 排除 CONTAINER 节点，仅计实际文档。
  */
 export function countLeafEntries(items: WikiNavTreeItem[]): number {
   let total = 0;
   for (const item of items) {
-    if (item.entry_id) total += 1;
+    if (!isContainerItem(item) && item.entry_id) total += 1;
     if (item.children && item.children.length > 0) {
       total += countLeafEntries(item.children);
     }
