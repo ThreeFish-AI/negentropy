@@ -594,9 +594,37 @@ class MarkdownFormatter:
             logger.warning(f"Error formatting quotes: {str(e)}")
             return markdown_content
 
+    # PDF 中常见的 Unicode 项目符号 → markdown 列表前缀。覆盖 R9 教材
+    # 实测出现的 ●（实心圆）/ ○（空心圆）/ ■（实心方）/ □（空心方）/ ▪（小实心方）/
+    # ▫（小空心方）/ ◦（小空心圆）/ ▶ ›（箭头型分隔）/ ☐（todo）等。
+    _UNICODE_BULLET_RE = re.compile(
+        r"^([ \t]*)"
+        # bullet 符号本身，允许跟随 ZWJ/ZWSP/non-break space 等零宽与不可见空白
+        r"([●○■□▪▫◦▶▷›▸▹·•‣])[​‌‍ ⁠﻿]*"
+        # 至少一个常规空白或 tab 分隔（防误吃合法字符序列起首的 ●）
+        r"[ \t]+"
+        r"(.+)$",
+        re.MULTILINE,
+    )
+
+    def _normalize_unicode_bullets(self, markdown_content: str) -> str:
+        """把 PDF 抽取出的 Unicode 项目符号统一为 markdown ``- `` 列表前缀。
+
+        覆盖 R9 教材中常见的 ``●​`` 等组合（实心圆 + 零宽 joiner）。修复后下游
+        :meth:`_format_lists` 的 ``[-\\*\\+]`` 规则会进一步统一为 ``- ``。
+        """
+        return self._UNICODE_BULLET_RE.sub(r"\1- \3", markdown_content)
+
     def _format_lists(self, markdown_content: str) -> str:
         """Improve list formatting and nesting."""
         try:
+            # R9 修复：把 PDF 中常见的 Unicode 项目符号（``● ■ ▪ ◦ ▶ ›`` 等）
+            # 归一化为标准 markdown ``- ``，并清理 zero-width joiner / space
+            # 残留。PDF 教材常用 ``●​`` 作为子项符号（U+25CF + U+200B），
+            # 如果不规范化，下游 react-markdown 不会把它当作 list item 渲染，
+            # 而是塞到段落里造成视觉破坏（R9 量化签名 list_bullet_residue=877）。
+            markdown_content = self._normalize_unicode_bullets(markdown_content)
+
             lines = markdown_content.split("\n")
             formatted_lines = []
 
