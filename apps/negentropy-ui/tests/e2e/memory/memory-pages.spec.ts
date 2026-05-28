@@ -312,7 +312,7 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
 // Navigation
 // ============================================================================
 
-test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
+test("Memory 导航栏包含所有 4 个页面标签", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   await page.route("**/api/memory**", async (route) => {
