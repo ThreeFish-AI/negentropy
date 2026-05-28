@@ -145,16 +145,22 @@ export function AnnotationHighlightLayer({
     };
   }, [applyHighlights, containerRef]);
 
-  // CSS Highlight 模式下，事件不挂在元素上 —— 用 document mousemove 命中检测
+  // CSS Highlight 模式下事件不挂在元素上，需要 document mousemove 命中检测。
+  // 始终注册监听器：MarkWrapRenderer 的 hitTestFn 返回 () => null，无额外开销；
+  // 渲染器可能因 MutationObserver 触发的 applyHighlights 在运行时切换（如用户
+  // 在页面加载后手动触发翻译），若在 effect 注册时判断 rendererRef 类型则
+  // 不会因翻译事件重新注册，导致 CSS Highlight 注解失去 hover tooltip。
   useEffect(() => {
-    if (rendererRef.current?.supportsElementEvents !== false) return;
     let hovered: HighlightGroupInput | null = null;
     const onMove = (e: MouseEvent) => {
+      if (rendererRef.current?.supportsElementEvents !== false) {
+        if (hovered) { hovered = null; handleHoverEnd(); }
+        return;
+      }
       const hit = hitTestRef.current?.(e.clientX, e.clientY) ?? null;
       if (hit === hovered) return;
       hovered = hit;
       if (hit) {
-        // 在光标位置下方 16px 显示 tooltip（避开光标）
         handleHoverStart(hit, new DOMRect(e.clientX, e.clientY - 8, 0, 16));
       } else {
         handleHoverEnd();
@@ -162,7 +168,7 @@ export function AnnotationHighlightLayer({
     };
     document.addEventListener("mousemove", onMove);
     return () => document.removeEventListener("mousemove", onMove);
-  }, [annotations, handleHoverStart, handleHoverEnd]);
+  }, [handleHoverStart, handleHoverEnd]);
 
   if (!tooltip) return null;
   return <AnnotationTooltip position={tooltip} />;

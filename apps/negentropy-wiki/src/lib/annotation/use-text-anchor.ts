@@ -13,6 +13,7 @@
  */
 
 import type { AnnotationSnapshot } from "./use-snapshot";
+import { BLOCK_TAGS, simpleHash } from "./annotation-shared";
 
 /** 锚定算法版本：用于未来演进时的兼容性切换。 */
 export const CURRENT_ANCHOR_VERSION = 2;
@@ -112,7 +113,7 @@ function computeFromSnapshot(
   const curHash = snapshot.textHash; // 容器当前 hash 与 snapshot 比较
 
   // 路径 A：当前 DOM == snapshot（未被翻译/修改），直接用偏移
-  if (simpleHashOfStr(curText) === curHash) {
+  if (simpleHash(curText) === curHash) {
     const exact = snapshot.textContent.slice(curStart, curEnd);
     const prefix = snapshot.textContent.slice(Math.max(0, curStart - 32), curStart);
     const suffix = snapshot.textContent.slice(curEnd, Math.min(snapshot.textContent.length, curEnd + 32));
@@ -225,12 +226,6 @@ function findCurrentBlockByOffset(
   }
   return null;
 }
-
-const BLOCK_TAGS = new Set([
-  "P", "LI", "BLOCKQUOTE", "PRE", "TABLE", "TR", "TD", "TH",
-  "H1", "H2", "H3", "H4", "H5", "H6",
-  "DIV", "ARTICLE", "SECTION", "FIGURE", "FIGCAPTION",
-]);
 
 function findNearestBlock(node: Node, container: HTMLElement): HTMLElement | null {
   let cur: Node | null = node.parentElement;
@@ -524,16 +519,6 @@ function findTextInRange(
     currentOffset += nodeText.length;
   }
   return null;
-}
-
-/** 字符串轻量哈希（与 use-snapshot.ts 中 simpleHash 算法一致）。 */
-function simpleHashOfStr(input: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 /** 极简语言检测：含 CJK 字符 → "zh"，否则 "en"。仅用于诊断，不参与匹配。 */

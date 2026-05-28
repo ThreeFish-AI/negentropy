@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { BLOCK_TAGS, simpleHash } from "./annotation-shared";
 
 /** 单个块级元素在 snapshot 中的记录。XPath 是用于跨翻译保持稳定的"位置坐标"。 */
 export interface SnapshotBlock {
@@ -43,12 +44,6 @@ export interface AnnotationSnapshot {
   /** textContent 的轻量哈希，用于跨次访问的版本校验 */
   textHash: string;
 }
-
-const BLOCK_TAGS = new Set([
-  "P", "LI", "BLOCKQUOTE", "PRE", "TABLE", "TR", "TD", "TH",
-  "H1", "H2", "H3", "H4", "H5", "H6",
-  "DIV", "ARTICLE", "SECTION", "FIGURE", "FIGCAPTION",
-]);
 
 /**
  * 抓取容器在当前时刻的 snapshot。可重入：每次调用产出独立 snapshot 对象。
@@ -136,16 +131,6 @@ function computeRelativeXPath(node: Element, container: HTMLElement): string {
     current = parent;
   }
   return "/" + parts.join("/");
-}
-
-/** 轻量级 32-bit FNV-1a 哈希，避免引入 crypto 依赖。 */
-function simpleHash(input: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 /**
