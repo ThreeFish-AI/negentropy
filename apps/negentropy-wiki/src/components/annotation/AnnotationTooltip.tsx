@@ -8,18 +8,43 @@ interface Props {
     y: number;
     annotations: AnnotationItem[];
   };
+  currentUserId?: string;
+  onDelete?: (annotationId: string) => Promise<void>;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function AnnotationTooltip({ position }: Props) {
+export function AnnotationTooltip({
+  position,
+  currentUserId,
+  onDelete,
+  onMouseEnter,
+  onMouseLeave,
+}: Props) {
   const { x, y, annotations } = position;
 
   return (
     <div
       className="wiki-annotation-tooltip"
       style={{ left: `${x}px`, top: `${y}px` }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {annotations.map((annotation) => (
         <div key={annotation.id} className="wiki-annotation-tooltip-item">
+          {onDelete && currentUserId && annotation.user_id === currentUserId && (
+            <button
+              type="button"
+              className="wiki-annotation-tooltip-delete"
+              title="删除注解"
+              onClick={(e) => {
+                e.stopPropagation();
+                void onDelete(annotation.id);
+              }}
+            >
+              ×
+            </button>
+          )}
           <p className="wiki-annotation-tooltip-body">{annotation.body}</p>
           <div className="wiki-annotation-tooltip-meta">
             {annotation.user_picture ? (

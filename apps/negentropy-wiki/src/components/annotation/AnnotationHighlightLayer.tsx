@@ -22,6 +22,10 @@ interface Props {
   annotations: AnnotationItem[];
   /** 稳定快照 ref。提供时启用 source-anchored 路径；否则走兼容路径（与 v1 anchor 行为一致）。 */
   snapshotRef?: React.MutableRefObject<AnnotationSnapshot | null>;
+  /** 删除注解回调 */
+  onDeleteAnnotation?: (annotationId: string) => Promise<boolean>;
+  /** 当前用户 ID，用于判断注解所有权 */
+  currentUserId?: string;
 }
 
 interface TooltipState {
@@ -34,14 +38,22 @@ export function AnnotationHighlightLayer({
   containerRef,
   annotations,
   snapshotRef,
+  onDeleteAnnotation,
+  currentUserId,
 }: Props) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const observerRef = useRef<MutationObserver | null>(null);
   const rendererRef = useRef<HighlightRenderer | null>(null);
   const hitTestRef = useRef<HitTestFn | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleHoverStart = useCallback(
     (group: HighlightGroupInput, rect: DOMRect) => {
+      // 取消待执行的隐藏延时
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
       setTooltip({
         x: rect.left,
         y: rect.bottom + 6,
@@ -52,8 +64,33 @@ export function AnnotationHighlightLayer({
   );
 
   const handleHoverEnd = useCallback(() => {
+    // 延时隐藏：给用户留出将鼠标移到 Tooltip 上（点击删除按钮等）的时间
+    hideTimerRef.current = setTimeout(() => {
+      hideTimerRef.current = null;
+      setTooltip(null);
+    }, 200);
+  }, []);
+
+  const handleTooltipEnter = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const handleTooltipLeave = useCallback(() => {
     setTooltip(null);
   }, []);
+
+  const handleDeleteAnnotation = useCallback(
+    async (annotationId: string) => {
+      if (!onDeleteAnnotation) return;
+      if (!window.confirm("确定删除此注解？")) return;
+      const ok = await onDeleteAnnotation(annotationId);
+      if (ok) setTooltip(null);
+    },
+    [onDeleteAnnotation],
+  );
 
   const applyHighlights = useCallback(() => {
     const container = containerRef.current;
@@ -78,7 +115,7 @@ export function AnnotationHighlightLayer({
       const groups: HighlightGroupInput[] = [];
       for (const annotation of annotations) {
         const anchor = annotation.anchor as unknown as TextAnchor;
-        const range = resolveAnchor(anchor, container, snapshotRef?.current);
+        const range = resolveAnchor(anchor, container, snapshotRef?.current, annotation.quoted_text);
         if (!range) continue;
 
         const existing = groups.find((g) => rangesOverlap(g.range, range));
@@ -171,7 +208,15 @@ export function AnnotationHighlightLayer({
   }, [handleHoverStart, handleHoverEnd]);
 
   if (!tooltip) return null;
-  return <AnnotationTooltip position={tooltip} />;
+  return (
+    <AnnotationTooltip
+      position={tooltip}
+      currentUserId={currentUserId}
+      onDelete={onDeleteAnnotation ? handleDeleteAnnotation : undefined}
+      onMouseEnter={handleTooltipEnter}
+      onMouseLeave={handleTooltipLeave}
+    />
+  );
 }
 
 function rangesOverlap(a: Range, b: Range): boolean {
