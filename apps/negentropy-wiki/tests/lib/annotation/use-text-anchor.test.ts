@@ -139,4 +139,75 @@ describe("resolveAnchor - 三段式解析", () => {
     expect(range).not.toBeNull();
     expect(range!.toString()).toBe("Second");
   });
+
+  describe("跨节点文本搜索（Chrome 翻译 <font> 拆分场景）", () => {
+    it("Stage 2.5：quotedText 跨 <font> 节点时仍可命中", () => {
+      // 模拟 Chrome 翻译后的 DOM：<p><font>你好</font><font>世界</font></p>
+      container.innerHTML = "<p><font>你好</font><font>世界</font></p>";
+
+      // anchor.exact 是原文（英文），quotedText 是中文显示文本
+      const anchor: TextAnchor = {
+        xpath: "/p[1]",
+        exact: "Hello world",
+        prefix: "",
+        suffix: "",
+        text_offset: 0,
+        text_length: 11,
+      };
+      const quotedText = "你好世界";
+      // Stage 2 找不到英文 → Stage 2.5 用中文搜索
+      const range = resolveAnchor(anchor, container, null, quotedText);
+      expect(range).not.toBeNull();
+      expect(range!.toString()).toBe("你好世界");
+    });
+
+    it("单节点匹配仍正常工作", () => {
+      container.innerHTML = "<p>单节点文本</p>";
+      const anchor: TextAnchor = {
+        xpath: "/p[1]",
+        exact: "单节点文本",
+        prefix: "",
+        suffix: "",
+        text_offset: 0,
+        text_length: 5,
+      };
+      const range = resolveAnchor(anchor, container);
+      expect(range).not.toBeNull();
+      expect(range!.toString()).toBe("单节点文本");
+    });
+
+    it("跨 <font> 节点的多段落匹配", () => {
+      container.innerHTML =
+        "<p><font>第一段</font><font>内容</font></p>" +
+        "<p><font>第二段</font><font>内容</font></p>";
+      const anchor: TextAnchor = {
+        xpath: "/p[2]",
+        exact: "第二段内容",
+        prefix: "",
+        suffix: "",
+        text_offset: 8,
+        text_length: 5,
+      };
+      const range = resolveAnchor(anchor, container);
+      expect(range).not.toBeNull();
+      expect(range!.toString()).toBe("第二段内容");
+    });
+
+    it("Stage 2.5：quotedText 不存在时降级到 Stage 3 块级回退", () => {
+      container.innerHTML = "<p><font>你好</font><font>世界</font></p>";
+      const anchor: TextAnchor = {
+        xpath: "/p[1]",
+        exact: "nonexistent",
+        prefix: "",
+        suffix: "",
+        text_offset: 0,
+        text_length: 11,
+      };
+      const quotedText = "不存在的文本";
+      const range = resolveAnchor(anchor, container, null, quotedText);
+      // Stage 2 + 2.5 全部失败 → Stage 3 块级回退选中整个 <p>
+      expect(range).not.toBeNull();
+      expect(range!.toString()).toBe("你好世界");
+    });
+  });
 });
