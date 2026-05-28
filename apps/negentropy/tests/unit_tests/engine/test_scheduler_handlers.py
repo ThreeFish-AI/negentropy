@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from uuid import uuid4
 
 import pytest
@@ -30,6 +31,7 @@ from negentropy.engine.schedulers.handlers.agent_inspection import (
     _compute_backoff_seconds,
     _scheduled_tasks_summary,
 )
+from negentropy.engine.schedulers.handlers.memory_automation import _parse_interval
 
 
 @pytest.fixture(autouse=True)
@@ -405,3 +407,82 @@ class TestSkillInvokeHandler:
         result = await handler(task)
         assert result.status == "failed"
         assert "invalid skill_schedule_id" in (result.error or "")
+
+
+class TestParseInterval:
+    def test_single_hour(self):
+        assert _parse_interval("1 hour") == timedelta(hours=1)
+
+    def test_plural_hours(self):
+        assert _parse_interval("5 hours") == timedelta(hours=5)
+
+    def test_minutes(self):
+        assert _parse_interval("30 minutes") == timedelta(minutes=30)
+
+    def test_seconds(self):
+        assert _parse_interval("1 second") == timedelta(seconds=1)
+
+    def test_days(self):
+        assert _parse_interval("7 days") == timedelta(days=7)
+
+    def test_whitespace_tolerant(self):
+        assert _parse_interval("  2  hours  ") == timedelta(hours=2)
+
+    def test_unsupported_format_raises(self):
+        with pytest.raises(ValueError, match="Unsupported interval format"):
+            _parse_interval("1hour")
+
+    def test_unsupported_unit_raises(self):
+        with pytest.raises(ValueError, match="Unsupported interval unit"):
+            _parse_interval("1 week")
+
+    def test_non_numeric_value_raises(self):
+        with pytest.raises(ValueError):
+            _parse_interval("abc hours")
+
+
+class TestConsolidationHandler:
+    """覆盖 _run_consolidation：验证 timedelta 被正确传递给 SQL 执行。"""
+
+    @pytest.mark.asyncio
+    async def test_consolidation_passes_timedelta(self, monkeypatch):
+        """_run_consolidation 应将 payload 中的 interval 字符串转为 timedelta 后传给 SQL。"""
+        from negentropy.engine.schedulers.handlers.memory_automation import _run_consolidation
+
+        captured_params: dict = {}
+
+        class _Row:
+            def __getitem__(self, idx):
+                return 0
+
+        class _Result:
+            def first(self):
+                return _Row()
+
+        class _SpySession:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            async def execute(self, stmt, params=None):
+                captured_params.update(params or {})
+                return _Result()
+
+            async def commit(self):
+                pass
+
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.memory_automation.AsyncSessionLocal",
+            lambda: _SpySession(),
+        )
+
+        task = _make_task(
+            "memory_automation", payload={"job_type": "trigger_consolidation", "lookback_interval": "1 hour"}
+        )
+        result = await _run_consolidation(task)
+
+        assert result.status == "ok"
+        assert isinstance(captured_params["lookback"], timedelta)
+        assert captured_params["lookback"] == timedelta(hours=1)
