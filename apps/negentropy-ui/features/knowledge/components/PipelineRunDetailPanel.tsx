@@ -25,18 +25,19 @@ import {
 function extractDocumentRef(
   run: PipelineRunRecord,
 ): { corpusId: string; documentId: string } | null {
-  const candidates: Array<Record<string, unknown> | undefined> = [
-    run.input,
-    run.output,
-  ];
-  for (const obj of candidates) {
+  // markdown refresh 类 run 经常把 document_id 留在 input、corpus_id 留在
+  // output；先 union 两侧再判定，避免因「同一对象必须同时含两个字段」的
+  // 旧实现把合法可恢复场景误判为无法定位 → 隐藏 Resume 入口。
+  let docId: string | null = null;
+  let corpusId: string | null = null;
+  for (const obj of [run.input, run.output]) {
     if (!obj) continue;
-    const docId = typeof obj.document_id === "string" ? obj.document_id : null;
-    const corpusId =
-      typeof obj.corpus_id === "string" ? obj.corpus_id : null;
-    if (docId && corpusId) return { corpusId, documentId: docId };
+    if (!docId && typeof obj.document_id === "string") docId = obj.document_id;
+    if (!corpusId && typeof obj.corpus_id === "string")
+      corpusId = obj.corpus_id;
+    if (docId && corpusId) break;
   }
-  return null;
+  return docId && corpusId ? { corpusId, documentId: docId } : null;
 }
 
 /**
