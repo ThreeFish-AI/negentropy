@@ -84,9 +84,10 @@ export function computeAnchor(
     suffix,
     text_offset: selStart >= 0 ? selStart : 0,
     text_length: selectedText.length,
-    source_text_hash: snapshot?.textHash,
+    // snapshot-based 计算失败，偏移量在当前 DOM 空间，不应声称 v2 元数据
+    source_text_hash: undefined,
     source_lang: detectLang(displayExact),
-    anchor_version: snapshot ? CURRENT_ANCHOR_VERSION : 1,
+    anchor_version: 1,
   };
 }
 
@@ -287,7 +288,7 @@ export function resolveAnchor(
   // 段 2.5：quoted_text 跨语言匹配。用注解创建时的显示文本在当前 DOM 中搜索，
   // 解决 anchor.exact（原文）与翻译后 DOM 不匹配的问题。
   if (quotedText && quotedText !== anchor.exact) {
-    const quotedRange = findTextInRange(quotedText, container);
+    const quotedRange = findTextAcrossNodes(quotedText, container);
     if (quotedRange) return quotedRange;
   }
 
@@ -445,7 +446,7 @@ function tryXPath(anchor: TextAnchor, container: HTMLElement): Range | null {
     for (const candidate of candidates) {
       const text = candidate.textContent || "";
       if (text.includes(anchor.exact)) {
-        return findTextInRange(anchor.exact, candidate as HTMLElement);
+        return findTextAcrossNodes(anchor.exact, candidate as HTMLElement);
       }
     }
   } catch {
@@ -462,11 +463,11 @@ function tryTextSearch(anchor: TextAnchor, container: HTMLElement): Range | null
   if (startIdx === -1) {
     startIdx = fullText.indexOf(anchor.exact);
     if (startIdx === -1) return null;
-    return findTextInRange(anchor.exact, container);
+    return findTextAcrossNodes(anchor.exact, container);
   }
 
   const exactStart = startIdx + (anchor.prefix?.length || 0);
-  return findTextInRange(anchor.exact, container, exactStart);
+  return findTextAcrossNodes(anchor.exact, container, exactStart);
 }
 
 /**
@@ -515,29 +516,84 @@ function resolveBlockFallback(anchor: TextAnchor, container: HTMLElement): Range
   }
 }
 
-function findTextInRange(
+interface TextSegment {
+  node: Text;
+  /** 该节点文本在拼接字符串中的起始位置。 */
+  start: number;
+  /** 该节点文本在拼接字符串中的结束位置（不含）。 */
+  end: number;
+}
+
+/**
+ * 跨节点文本搜索：在 root 下所有 Text 节点的拼接内容中查找 text，
+ * 返回可能跨越多个文本节点的 DOM Range。
+ *
+ * Chrome 翻译会将文本拆分到多个 <font> 元素内（各自含独立 Text 节点），
+ * 导致旧版 findTextInRange（单节点 indexOf）无法命中跨节点文本。
+ * 此函数通过拼接全部文本节点内容后统一搜索解决该问题。
+ */
+function findTextAcrossNodes(
   text: string,
   root: HTMLElement,
   hintOffset?: number,
 ): Range | null {
+  if (!text) return null;
+
+  // Phase 1：遍历所有 Text 节点，构建拼接内容 + 段映射
+  const segments: TextSegment[] = [];
+  let concatenated = "";
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let currentOffset = 0;
+  let n: Node | null;
+  while ((n = walker.nextNode())) {
+    const textNode = n as Text;
+    const value = textNode.nodeValue ?? "";
+    if (value.length === 0) continue;
+    const start = concatenated.length;
+    concatenated += value;
+    segments.push({ node: textNode, start, end: concatenated.length });
+  }
 
-  while (walker.nextNode()) {
-    const node = walker.currentNode as Text;
-    const nodeText = node.textContent || "";
-    const localIdx = nodeText.indexOf(
-      text,
-      hintOffset !== undefined ? Math.max(0, hintOffset - currentOffset) : 0,
-    );
+  if (segments.length === 0 || concatenated.length < text.length) return null;
 
-    if (localIdx !== -1) {
-      const range = document.createRange();
-      range.setStart(node, localIdx);
-      range.setEnd(node, localIdx + text.length);
-      return range;
+  // Phase 2：在拼接字符串中搜索目标文本
+  const searchStart = hintOffset !== undefined ? Math.max(0, hintOffset) : 0;
+  const matchIndex = concatenated.indexOf(text, searchStart);
+  if (matchIndex === -1) return null;
+
+  // Phase 3：将匹配边界映射回 Text 节点 + 偏移
+  const matchEnd = matchIndex + text.length;
+  const startLoc = locateSegment(segments, matchIndex);
+  const endLoc = locateSegment(segments, matchEnd - 1);
+
+  if (!startLoc || !endLoc) return null;
+
+  try {
+    const range = document.createRange();
+    range.setStart(startLoc.node, matchIndex - startLoc.start);
+    range.setEnd(endLoc.node, matchEnd - endLoc.start);
+    return range;
+  } catch {
+    return null;
+  }
+}
+
+/** 二分查找包含指定字符位置的段。position 必须在 [seg.start, seg.end) 范围内。 */
+function locateSegment(
+  segments: TextSegment[],
+  position: number,
+): TextSegment | null {
+  let lo = 0;
+  let hi = segments.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1;
+    const seg = segments[mid];
+    if (position < seg.start) {
+      hi = mid - 1;
+    } else if (position >= seg.end) {
+      lo = mid + 1;
+    } else {
+      return seg;
     }
-    currentOffset += nodeText.length;
   }
   return null;
 }
