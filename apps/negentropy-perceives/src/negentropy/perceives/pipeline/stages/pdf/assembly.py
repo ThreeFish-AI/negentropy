@@ -1861,10 +1861,110 @@ def _formula_to_markdown(formula: ExtractedFormula) -> str:
     return f"$$\n{latex}\n$$"
 
 
+_CODE_LANG_HEADER_MAP = {
+    "python": "python",
+    "py": "python",
+    "java": "java",
+    "javascript": "javascript",
+    "js": "javascript",
+    "typescript": "typescript",
+    "ts": "typescript",
+    "c": "c",
+    "c++": "cpp",
+    "cpp": "cpp",
+    "cs": "csharp",
+    "csharp": "csharp",
+    "rust": "rust",
+    "rs": "rust",
+    "go": "go",
+    "golang": "go",
+    "ruby": "ruby",
+    "rb": "ruby",
+    "php": "php",
+    "swift": "swift",
+    "kotlin": "kotlin",
+    "scala": "scala",
+    "r": "r",
+    "perl": "perl",
+    "lua": "lua",
+    "bash": "bash",
+    "sh": "bash",
+    "shell": "bash",
+    "zsh": "bash",
+    "fish": "bash",
+    "powershell": "powershell",
+    "ps1": "powershell",
+    "sql": "sql",
+    "yaml": "yaml",
+    "yml": "yaml",
+    "json": "json",
+    "xml": "xml",
+    "html": "html",
+    "css": "css",
+    "scss": "scss",
+    "markdown": "markdown",
+    "md": "markdown",
+    "toml": "toml",
+    "ini": "ini",
+    "dockerfile": "dockerfile",
+    "makefile": "makefile",
+    "graphql": "graphql",
+    "protobuf": "protobuf",
+    "proto": "protobuf",
+}
+"""常见编程语言关键词归一化表 → markdown fence highlight 名称。
+
+来源：docling 在某些 PDF 上把代码块首行 ``Python`` / ``Javascript`` 字面字符
+当作 ``text`` 输出（label='code' 但 code_language=None），导致 fence info string
+缺失且首行 lang 字面被错误塞进代码本体。本表覆盖 R9 实测出现的所有 lang 名，
+统一归一化到 ``highlight.js`` 识别的标准 alias（如 ``js → javascript``、
+``c++ → cpp``）。
+"""
+
+
 def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
-    """将代码块转换为 Markdown 代码围栏。"""
-    lang = code_block.language or ""
-    return f"```{lang}\n{code_block.code}\n```"
+    """将代码块转换为 Markdown 代码围栏。
+
+    R9 修复：docling 部分 PDF 上把代码块首行 lang 名字（如 ``Python``）当作
+    ``text`` 字段输出，导致 fence info string 丢失且 lang 字面塞入 code body。
+    此函数兼容两种来源：
+
+    - ``code_block.language`` 已显式提供 → 用作 fence info string；同时清理
+      code body 首行可能残留的同名 lang 字面；
+    - ``code_block.language`` 为空但 code 首行单独是 lang 关键词（不区分大小写，
+      允许尾随空白）→ 提升为 fence info string，从 body 移除首行。
+
+    不在 :data:`_CODE_LANG_HEADER_MAP` 中的首行不会被吞掉，避免误删合法代码。
+    """
+    code = code_block.code or ""
+    lang = (code_block.language or "").strip().lower()
+
+    # 拆首行用于 lang 头识别
+    stripped = code.lstrip("\n")
+    first_newline = stripped.find("\n")
+    first_line = stripped[:first_newline] if first_newline >= 0 else stripped
+    rest = stripped[first_newline + 1 :] if first_newline >= 0 else ""
+
+    first_line_token = first_line.strip().lower()
+    inferred_lang = _CODE_LANG_HEADER_MAP.get(first_line_token)
+
+    # 决策表：
+    # 1. 有显式 lang → 用 lang，body 首行若同语言（如 "Python\n..."）则剔除；
+    # 2. 无显式 lang 但首行命中 lang 表 → 用推断 lang，body 移除首行；
+    # 3. 否则 → 保留原 body，fence 用 lang（可能为空）。
+    if lang:
+        normalized = _CODE_LANG_HEADER_MAP.get(lang, lang)
+        # 若 body 首行单独是同语言名（含同义词），剔除
+        if inferred_lang and inferred_lang == normalized:
+            body = rest
+        else:
+            body = code
+        return f"```{normalized}\n{body}\n```"
+
+    if inferred_lang is not None:
+        return f"```{inferred_lang}\n{rest}\n```"
+
+    return f"```\n{code}\n```"
 
 
 # PDF 点（pt）→ CSS 像素（px）转换因子：
@@ -1904,20 +2004,11 @@ def _image_to_markdown(image: ExtractedImage) -> str:
 
     display_w: Optional[int] = None
     display_h: Optional[int] = None
-    # R9 D-7: 判断是否为"大图"（bbox 宽占 A4 页面宽度 > 50%），
-    # 大图使用 width="100%" 自适应容器而非固定 px，避免在 max-w-5xl
-    # 容器（~1024px）中仅占 ~60% 宽度。A4 Letter 内容区宽约 453pt
-    # （612pt 页宽 - 左右各 ~80pt 边距）；跨栏全宽 figure bbox ≥ 300pt
-    # 视为大图。小图（icon / emblem / inline 装饰）仍用固定 px。
-    _LARGE_FIGURE_WIDTH_PT = 300.0
-    is_large_figure = False
     if image.bbox is not None:
         try:
             x0, y0, x1, y1 = (float(v) for v in image.bbox)
             bw, bh = x1 - x0, y1 - y0
             if bw > 0 and bh > 0:
-                if bw >= _LARGE_FIGURE_WIDTH_PT:
-                    is_large_figure = True
                 display_w = int(round(bw * _PDF_PT_TO_CSS_PX))
                 display_h = int(round(bh * _PDF_PT_TO_CSS_PX))
         except (TypeError, ValueError):
@@ -1928,18 +2019,21 @@ def _image_to_markdown(image: ExtractedImage) -> str:
     if display_h is None and image.height:
         display_h = int(image.height)
 
+    # R9 修复：始终输出 CSS px 像素值（PDF pt × 4/3）作为 width / height 属性，
+    # 配合 ``style="max-width:100%;height:auto"`` 实现「PDF 原版尺寸 + 窄屏
+    # 自适应」双赢。此前的 ``is_large_figure → width="100%"`` 分支会把所有
+    # 全宽 figure 拍扁到容器宽度，丢失 PDF 中半宽 / 全宽 figure 的相对比例
+    # 信息，导致 R9 477 页教材中 32 张 md_img + 61 张 html_img 几乎全是
+    # ``width="100%"``，与 PDF 原版视觉差距大。
     if display_w or display_h:
         parts: List[str] = [
             f'<img src="{html.escape(src, quote=True)}"',
             f'alt="{html.escape(alt_text, quote=True)}"',
         ]
-        if is_large_figure:
-            parts.append('width="100%"')
-        else:
-            if display_w:
-                parts.append(f'width="{display_w}"')
-            if display_h:
-                parts.append(f'height="{display_h}"')
+        if display_w:
+            parts.append(f'width="{display_w}"')
+        if display_h:
+            parts.append(f'height="{display_h}"')
         parts.append('style="max-width:100%;height:auto;" />')
         return " ".join(parts)
     return f"![{alt_text}]({src})"

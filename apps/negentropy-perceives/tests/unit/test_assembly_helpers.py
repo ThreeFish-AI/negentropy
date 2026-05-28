@@ -71,12 +71,13 @@ class TestImageToMarkdown:
         # 仍是 HTML 形式，便于 UI 端 parsePixelValue 读取
         assert out.startswith("<img ")
 
-    def test_full_width_figure_region_uses_100_percent(self) -> None:
-        """整图渲染 figure region（A4 全宽 595pt × 730pt，bbox ≥ 300pt）应
-        输出 ``width="100%"`` 自适应容器。
+    def test_full_width_figure_region_outputs_pixel_width(self) -> None:
+        """A4 全宽 figure region（595pt × 730pt）→ PDF pt × 4/3 输出 793 × 973 CSS px。
 
-        ISSUE-094 R9 D-7：大图（bbox 宽 ≥ 300pt）在 max-w-5xl 容器中用固定
-        px 仅占 ~60% 宽度，PDF 原版跨栏全宽 figure 应占满容器。
+        ISSUE-094 R9 D-3 修复：之前 ``is_large_figure → width="100%"`` 分支让
+        所有全宽 figure 拍扁到容器宽度，丢失 PDF 中半宽 / 全宽 figure 的相对比例
+        信息。修复后始终输出 CSS px，配合 ``style="max-width:100%;height:auto"``
+        在窄屏自适应，等价于 R7 设计意图。
         """
         img = ExtractedImage(
             image_id="rendered_0_0",
@@ -84,15 +85,17 @@ class TestImageToMarkdown:
             bbox=(0.0, 0.0, 595.0, 730.0),  # A4 全宽 figure
         )
         out = _image_to_markdown(img)
-        assert 'width="100%"' in out
-        # 不输出固定 height（100% 宽 + height:auto 让浏览器按比例缩放）
-        assert 'height="' not in out
+        # 595 * 4/3 = 793.33 → 793；730 * 4/3 = 973.33 → 973
+        assert 'width="793"' in out
+        assert 'height="973"' in out
+        assert 'width="100%"' not in out
+        # 响应式 style 兜底窄屏
+        assert 'style="max-width:100%;height:auto;"' in out
 
-    def test_context_engineering_figure1_real_dims_uses_100_percent(self) -> None:
-        """Context Engineering 2.0 Figure 1 实测：373pt × 215pt，bbox ≥ 300pt
-        视为大图 → ``width="100%"``。
+    def test_context_engineering_figure1_real_dims_outputs_pixel_width(self) -> None:
+        """Context Engineering 2.0 Figure 1 实测尺寸 373pt × 215pt → 497 × 287 CSS px。
 
-        ISSUE-094 R9 D-7：373pt > 300pt 阈值命中大图规则。
+        ISSUE-094 R9 D-3 修复：取消 ``is_large_figure`` 阈值判定，统一输出 px。
         """
         img = ExtractedImage(
             image_id="rendered_0_5",
@@ -100,7 +103,10 @@ class TestImageToMarkdown:
             bbox=(0.0, 0.0, 373.0, 215.0),
         )
         out = _image_to_markdown(img)
-        assert 'width="100%"' in out
+        # 373 * 4/3 = 497.33 → 497；215 * 4/3 = 286.67 → 287
+        assert 'width="497"' in out
+        assert 'height="287"' in out
+        assert 'width="100%"' not in out
 
     def test_degrades_to_markdown_syntax_when_no_dims(self) -> None:
         """既无 bbox 又无 width/height 时降级为标准 Markdown ``![alt](src)``。"""
