@@ -675,19 +675,21 @@ def _stable_checkpoint_id(pdf_source: str) -> str:
 def _resolve_batch_state_dir(output_dir: Optional[str], pdf_source: str) -> Path:
     """解析 checkpoint 目录。
 
-    优先级：
-        1. 用户显式指定的 ``output_dir`` → ``<output_dir>/.batch_state/``；
-        2. 否则用 PDF 内容 SHA-1 前 12 字符派生稳定路径，
-           ``<cwd>/output/.batch_state/{sha1[:12]}/``，跨调用 resume 总是命中。
+    无论是否提供 ``output_dir``，最终目录都以 PDF 内容 SHA-1 前 12 字符派生
+    的稳定 id 作为最后一级子目录，确保同 ``output_dir`` 下不同 PDF 的
+    checkpoint 天然隔离（防止跨 PDF 误用旧 slice 资产 / markdown）：
+
+        - 提供 ``output_dir`` → ``<output_dir>/.batch_state/{sha1[:12]}/``；
+        - 否则                 → ``<cwd>/output/.batch_state/{sha1[:12]}/``。
 
     与 :func:`pipeline.convenience._resolve_images_dir` 字符串 stem 路径不同；
-    本目录专门给 checkpoint 用，必须跨 MCP 调用稳定。
+    本目录专门给 checkpoint 用，必须跨 MCP 调用稳定且与 PDF 内容一一对应。
     """
+    cid = _stable_checkpoint_id(pdf_source)
     if output_dir:
         base = Path(output_dir)
-        state = base / ".batch_state"
+        state = base / ".batch_state" / cid
     else:
-        cid = _stable_checkpoint_id(pdf_source)
         state = Path.cwd() / "output" / ".batch_state" / cid
     state.mkdir(parents=True, exist_ok=True)
     return state
@@ -720,9 +722,10 @@ def _load_or_init_manifest(
     if resume and manifest_path.exists():
         try:
             data = json.loads(manifest_path.read_text(encoding="utf-8"))
-            # 故意不比 pdf_source：checkpoint_dir 已基于 PDF 内容 SHA-1 keyed，
-            # 同内容 PDF 必在同一目录；backend 每次调用临时文件名会变，但
-            # 内容不变，所以 pdf_source 字符串比对会导致误清除有效 checkpoint。
+            # 不比 pdf_source 字符串：checkpoint_dir 的最后一级始终是 PDF 内容
+            # SHA-1 前 12 字符（见 _resolve_batch_state_dir），同内容 PDF 必落在
+            # 同一目录；不同内容 PDF 各自独立目录、互不影响。backend 每次调用
+            # 临时文件名会变但内容不变，按字符串比对会导致误清除有效 checkpoint。
             # total_pages + batch_size 双键足以判定 manifest 与本次配置一致。
             same = (
                 data.get("total_pages") == expected["total_pages"]

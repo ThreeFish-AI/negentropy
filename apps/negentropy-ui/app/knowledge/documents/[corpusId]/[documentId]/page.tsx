@@ -89,7 +89,7 @@ function truncateHash(hash: string | null): string {
   return `${hash.slice(0, 8)}...${hash.slice(-4)}`;
 }
 
-// 根据当前 markdown_extract_status 与错误内容判定按钮语义。
+// 根据当前 markdown_extract_status 与错误内容判定按钮语义并直接返回应展示文案。
 // 失败 / partial 状态下，后端 + perceives 已为每切片落 checkpoint；
 // 再次调用 refresh_markdown 会自动从最后一个完成的切片继续（resume=True）。
 // 因此 UI 在这些状态下把按钮文案改为 "Continue"，更准确表达「断点续传」语义。
@@ -97,15 +97,21 @@ function getMarkdownActionLabel(
   status: string,
   isWorking: boolean,
   error: string | null | undefined,
-): { idle: string; busy: string } {
+): { label: string; isResumable: boolean } {
   const normalized = (status || "").toLowerCase();
   const errStr = (error || "").toLowerCase();
   const isResumable =
     normalized === "failed" || errStr.includes("partial");
   if (isResumable) {
-    return { idle: "Continue (resume)", busy: "Resuming..." };
+    return {
+      label: isWorking ? "Resuming..." : "Continue (resume)",
+      isResumable: true,
+    };
   }
-  return { idle: "Re-Parse from GCS", busy: "Re-Parsing..." };
+  return {
+    label: isWorking ? "Re-Parsing..." : "Re-Parse from GCS",
+    isResumable: false,
+  };
 }
 
 function displayUser(createdBy: string | null, displayName?: string | null): string {
@@ -217,6 +223,11 @@ export default function DocumentDetailPage() {
   const markdownStatus =
     detail?.markdown_extract_status || "pending";
   const markdownBadge = getMarkdownStatusBadge(markdownStatus);
+  const markdownAction = getMarkdownActionLabel(
+    markdownStatus,
+    isRefreshingMarkdown,
+    detail?.markdown_extract_error,
+  );
 
   // ---- Render ----
 
@@ -251,11 +262,7 @@ export default function DocumentDetailPage() {
             "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm",
           )}
           title={
-            getMarkdownActionLabel(
-              markdownStatus,
-              isRefreshingMarkdown,
-              detail?.markdown_extract_error,
-            ).idle === "Continue (resume)"
+            markdownAction.isResumable
               ? "从最后一个完成的切片继续解析（perceives auto_batch checkpoint）"
               : "从源文档（GCS）重新解析 Markdown"
           }
@@ -263,14 +270,7 @@ export default function DocumentDetailPage() {
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.636 18.364A9 9 0 103.22 9.88" />
           </svg>
-          {(() => {
-            const labels = getMarkdownActionLabel(
-              markdownStatus,
-              isRefreshingMarkdown,
-              detail?.markdown_extract_error,
-            );
-            return isRefreshingMarkdown ? labels.busy : labels.idle;
-          })()}
+          {markdownAction.label}
         </button>
         <button
           onClick={handleDownload}

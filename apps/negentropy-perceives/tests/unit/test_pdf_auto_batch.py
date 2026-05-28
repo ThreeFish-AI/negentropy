@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import pytest
@@ -30,6 +31,17 @@ from negentropy.perceives.pipeline.models import ImageAsset, PipelineResult
 # ---------------------------------------------------------------------------
 # 测试基础设施
 # ---------------------------------------------------------------------------
+
+
+def _state_dir_for(tmp_path: Path, pdf_source: str = "/tmp/fake.pdf") -> Path:
+    """计算预期 checkpoint state_dir，与 ``_resolve_batch_state_dir`` 保持同步。
+
+    ``_resolve_batch_state_dir`` 始终以 PDF 内容 SHA-1 前 12 字符（不存在的文件
+    回退到 ``Path(pdf_source).stem``）作为最后一级子目录，从而保证同 ``output_dir``
+    下不同 PDF 之间天然隔离。
+    """
+    cid = pdf_ops._stable_checkpoint_id(pdf_source)
+    return tmp_path / ".batch_state" / cid
 
 
 def _ok_pipeline_result(
@@ -435,7 +447,7 @@ class TestCheckpointResume:
                 resume=True,
             )
         )
-        state_dir = tmp_path / ".batch_state"
+        state_dir = _state_dir_for(tmp_path)
         assert (state_dir / "manifest.json").exists()
         assert (state_dir / "slice_0.json").exists()
         assert (state_dir / "slice_0.markdown.txt").exists()
@@ -448,9 +460,9 @@ class TestCheckpointResume:
 
     def test_resume_skips_completed_slice(self, monkeypatch, tmp_path) -> None:
         """resume=True 时已有 slice_0 checkpoint → 仅调用 1 次（slice_1）。"""
-        # 先伪造 slice_0 checkpoint
-        state_dir = tmp_path / ".batch_state"
-        state_dir.mkdir()
+        # 先伪造 slice_0 checkpoint（落到 PDF-content-keyed 子目录）
+        state_dir = _state_dir_for(tmp_path)
+        state_dir.mkdir(parents=True)
         (state_dir / "manifest.json").write_text(
             json.dumps(
                 {
@@ -520,8 +532,8 @@ class TestCheckpointResume:
         self, monkeypatch, tmp_path
     ) -> None:
         """旧 manifest 的 batch_size 不匹配 → 清除 checkpoint，全切片重跑。"""
-        state_dir = tmp_path / ".batch_state"
-        state_dir.mkdir()
+        state_dir = _state_dir_for(tmp_path)
+        state_dir.mkdir(parents=True)
         (state_dir / "manifest.json").write_text(
             json.dumps(
                 {
@@ -586,8 +598,8 @@ class TestCheckpointResume:
 
     def test_resume_disabled_reruns_all_slices(self, monkeypatch, tmp_path) -> None:
         """resume=False → 即便 checkpoint 存在也不复用。"""
-        state_dir = tmp_path / ".batch_state"
-        state_dir.mkdir()
+        state_dir = _state_dir_for(tmp_path)
+        state_dir.mkdir(parents=True)
         (state_dir / "slice_0.markdown.txt").write_text("old", encoding="utf-8")
         (state_dir / "slice_0.json").write_text(
             json.dumps({"status": "ok"}), encoding="utf-8"
@@ -618,6 +630,95 @@ class TestCheckpointResume:
         assert "fresh" in (resp.content or "")
         # 必然有真实调用（不复用 checkpoint）
         assert len(log.calls) == 1
+
+    def test_different_pdfs_keep_separate_checkpoints(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        """同 ``output_dir`` 下不同 PDF 的 checkpoint 必须天然隔离。
+
+        回归保护：早期实现中 ``_resolve_batch_state_dir`` 在显式提供
+        ``output_dir`` 时不带 PDF 标识，使得相同 ``total_pages + batch_size``
+        的不同 PDF 互相误用 checkpoint，merge 后返回与请求 PDF 不一致的内容。
+        修复后 ``_resolve_batch_state_dir`` 始终以 PDF 内容 SHA-1 前缀作为
+        最后一级子目录；本用例锁定该行为。
+        """
+        # 落两份不同内容的 PDF 字节，使 _stable_checkpoint_id 走真实哈希路径
+        pdf_a = tmp_path / "doc_a.pdf"
+        pdf_b = tmp_path / "doc_b.pdf"
+        pdf_a.write_bytes(b"%PDF-1.4 alpha-content")
+        pdf_b.write_bytes(b"%PDF-1.4 beta-content")
+        shared_output = tmp_path / "shared"
+        shared_output.mkdir()
+
+        # PDF A：写入两片，落 checkpoint
+        log_a = _PipelineCallLog()
+        monkeypatch.setattr(
+            "negentropy.perceives.pipeline.run_pdf_pipeline",
+            log_a.make_stub(
+                [
+                    _ok_pipeline_result(markdown="alpha-0"),
+                    _ok_pipeline_result(markdown="alpha-1"),
+                ]
+            ),
+        )
+        resp_a = asyncio.run(
+            pdf_ops._run_batched_pipeline(
+                pdf_source=str(pdf_a),
+                output_format="markdown",
+                total_pages=60,
+                batch_size=40,
+                extract_images=False,
+                extract_tables=False,
+                extract_formulas=False,
+                embed_images=False,
+                output_dir=str(shared_output),
+                start_time=0.0,
+                resume=True,
+            )
+        )
+        assert resp_a.success is True
+        assert "alpha-0" in (resp_a.content or "")
+
+        # PDF B：相同 total_pages + batch_size + output_dir，但 PDF 内容不同
+        log_b = _PipelineCallLog()
+        monkeypatch.setattr(
+            "negentropy.perceives.pipeline.run_pdf_pipeline",
+            log_b.make_stub(
+                [
+                    _ok_pipeline_result(markdown="beta-0"),
+                    _ok_pipeline_result(markdown="beta-1"),
+                ]
+            ),
+        )
+        resp_b = asyncio.run(
+            pdf_ops._run_batched_pipeline(
+                pdf_source=str(pdf_b),
+                output_format="markdown",
+                total_pages=60,
+                batch_size=40,
+                extract_images=False,
+                extract_tables=False,
+                extract_formulas=False,
+                embed_images=False,
+                output_dir=str(shared_output),
+                start_time=0.0,
+                resume=True,
+            )
+        )
+        assert resp_b.success is True
+        # B 必须独立跑、独立返回，不应被 A 的 checkpoint 污染
+        assert "beta-0" in (resp_b.content or "")
+        assert "beta-1" in (resp_b.content or "")
+        assert "alpha-0" not in (resp_b.content or "")
+        assert "alpha-1" not in (resp_b.content or "")
+        assert len(log_b.calls) == 2
+
+        # checkpoint 目录应分别落在两个 cid 子目录下
+        cid_a = pdf_ops._stable_checkpoint_id(str(pdf_a))
+        cid_b = pdf_ops._stable_checkpoint_id(str(pdf_b))
+        assert cid_a != cid_b
+        assert (shared_output / ".batch_state" / cid_a / "manifest.json").exists()
+        assert (shared_output / ".batch_state" / cid_b / "manifest.json").exists()
 
 
 # ---------------------------------------------------------------------------
