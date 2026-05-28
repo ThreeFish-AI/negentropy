@@ -11,7 +11,59 @@
 .wiki-nav-row {
   display: flex;
   align-items: center;
+  gap: 0.25rem;
   min-width: 0;
+}
+
+/* ---- Toggle chevron ---- */
+.wiki-nav-toggle {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 4px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.12s ease,
+              color 0.12s ease;
+}
+.wiki-nav-toggle:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+.wiki-nav-toggle.open {
+  transform: rotate(90deg);
+}
+
+/* ---- Leaf dot indicator ---- */
+.wiki-nav-leaf-dot {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.wiki-nav-leaf-dot::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--wiki-border);
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.wiki-nav-item:hover > .wiki-nav-row > .wiki-nav-leaf-dot::after {
+  background: var(--wiki-text-secondary);
+}
+.wiki-nav-item:has(.wiki-nav-link.active) > .wiki-nav-row > .wiki-nav-leaf-dot::after {
+  background: var(--wiki-accent);
+  transform: scale(1.25);
 }
 
 /* ---- Document link (leaf item) ---- */
@@ -93,6 +145,9 @@
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .wiki-nav-children {
+    transition: none;
+  }
+  .wiki-nav-toggle {
     transition: none;
   }
   .wiki-nav-link {
