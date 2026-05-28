@@ -1515,7 +1515,7 @@ async def update_builtin_tool(
         if "visibility" in update_data:
             update_data["visibility"] = PluginVisibility(update_data["visibility"])
         # 前端可能回传 GET 响应中的脱敏凭证，替换为 DB 真实值后再写入
-        if "credentials" in update_data:
+        if "credentials" in update_data and update_data["credentials"] is not None:
             update_data["credentials"] = _merge_masked_credentials(
                 update_data["credentials"], ensure_dict(tool.credentials)
             )
