@@ -69,16 +69,27 @@ const SAMPLE_FACTS = {
   ],
 };
 
-test("Facts 初始展示用户选择提示", async ({ page }) => {
+test("Facts 初始展示 All Users 视图直接加载事实", async ({ page }) => {
   await mockAuthenticatedUser(page);
   await mockMemoryUsers(page);
+  await page.route("**/api/memory/facts**", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(SAMPLE_FACTS),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
   await page.goto("/memory/facts");
   // "All Users" pill is visible by default
   await expect(page.getByRole("button", { name: "All Users" })).toBeVisible();
-  // Prompt to select a user is shown
-  await expect(
-    page.getByText("Select a user from the filter above or sidebar to view their semantic facts."),
-  ).toBeVisible();
+  // Facts grid is shown with user labels
+  await expect(page.getByText("preferred_language")).toBeVisible();
+  await expect(page.getByText("Test User 1")).toBeVisible();
 });
 
 test("Facts 加载列表展示 Key/Type/Confidence", async ({ page }) => {
