@@ -94,7 +94,6 @@ function WikiNavNode({
   const linkRef = useRef<HTMLAnchorElement>(null);
   const children = item.children ?? [];
   const hasChildren = children.length > 0;
-  // 自 0011：容器节点判断改用 entry_kind（向后兼容旧响应：按 document_id 兜底）。
   const isContainer = isContainerItem(item);
   const isActive = !!activeSlug && item.entry_slug === activeSlug;
   const isOpen = expanded.has(item.entry_slug);
@@ -115,7 +114,7 @@ function WikiNavNode({
   return (
     <li className="wiki-nav-item" role="treeitem">
       <div className="wiki-nav-row">
-        {hasChildren && (
+        {hasChildren ? (
           <button
             type="button"
             className={`wiki-nav-toggle${isOpen ? " open" : ""}`}
@@ -126,12 +125,14 @@ function WikiNavNode({
           >
             <ChevronIcon />
           </button>
+        ) : (
+          <span className="wiki-nav-leaf-dot" aria-hidden="true" />
         )}
-        {!hasChildren && <span className="wiki-nav-toggle wiki-nav-toggle-spacer" aria-hidden="true" />}
         {isContainer ? (
           <button
             type="button"
             className="wiki-nav-group"
+            aria-expanded={hasChildren ? isOpen : undefined}
             onClick={() => hasChildren && onToggle(item.entry_slug)}
           >
             {item.entry_title}
@@ -148,19 +149,21 @@ function WikiNavNode({
           </Link>
         )}
       </div>
-      {hasChildren && isOpen && (
-        <ul className="wiki-nav-list wiki-nav-sublist" role="group">
-          {children.map((child, idx) => (
-            <WikiNavNode
-              key={`${child.entry_id ?? "c"}:${child.entry_slug}:${idx}`}
-              item={child}
-              pubSlug={pubSlug}
-              activeSlug={activeSlug}
-              expanded={expanded}
-              onToggle={onToggle}
-            />
-          ))}
-        </ul>
+      {hasChildren && (
+        <div className={`wiki-nav-children${isOpen ? " open" : ""}`}>
+          <ul className="wiki-nav-list wiki-nav-sublist" role="group">
+            {children.map((child, idx) => (
+              <WikiNavNode
+                key={`${child.entry_id ?? "c"}:${child.entry_slug}:${idx}`}
+                item={child}
+                pubSlug={pubSlug}
+                activeSlug={activeSlug}
+                expanded={expanded}
+                onToggle={onToggle}
+              />
+            ))}
+          </ul>
+        </div>
       )}
     </li>
   );

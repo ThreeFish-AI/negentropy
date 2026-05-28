@@ -15,6 +15,7 @@
   min-width: 0;
 }
 
+/* ---- Toggle chevron ---- */
 .wiki-nav-toggle {
   flex-shrink: 0;
   width: 18px;
@@ -28,7 +29,9 @@
   cursor: pointer;
   padding: 0;
   border-radius: 4px;
-  transition: transform 0.15s ease, background 0.12s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.12s ease,
+              color 0.12s ease;
 }
 .wiki-nav-toggle:hover {
   background: var(--wiki-bg-secondary);
@@ -37,11 +40,33 @@
 .wiki-nav-toggle.open {
   transform: rotate(90deg);
 }
-.wiki-nav-toggle-spacer {
-  cursor: default;
-  pointer-events: none;
+
+/* ---- Leaf dot indicator ---- */
+.wiki-nav-leaf-dot {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.wiki-nav-leaf-dot::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--wiki-border);
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.wiki-nav-item:hover > .wiki-nav-row > .wiki-nav-leaf-dot::after {
+  background: var(--wiki-text-secondary);
+}
+.wiki-nav-item:has(.wiki-nav-link.active) > .wiki-nav-row > .wiki-nav-leaf-dot::after {
+  background: var(--wiki-accent);
+  transform: scale(1.25);
 }
 
+/* ---- Document link (leaf item) ---- */
 .wiki-nav-link {
   display: block;
   flex: 1;
@@ -50,7 +75,7 @@
   border-radius: 6px;
   color: var(--wiki-text-secondary);
   font-size: 0.92em;
-  transition: all 0.12s ease;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -64,18 +89,21 @@
   background: var(--wiki-primary-light);
   color: var(--wiki-accent);
   font-weight: 500;
-  border-left: 2px solid var(--wiki-accent);
-  padding-left: calc(0.55rem - 2px);
+  box-shadow: inset 3px 0 0 0 var(--wiki-accent);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
 }
 
+/* ---- Container group (section header) ---- */
 .wiki-nav-group {
   flex: 1;
   min-width: 0;
   display: block;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.82em;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   color: var(--wiki-text-secondary);
   background: transparent;
   border: 0;
@@ -85,15 +113,44 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease;
 }
 .wiki-nav-group:hover {
   background: var(--wiki-bg-secondary);
   color: var(--wiki-text);
 }
 
+/* ---- Sublist indentation ---- */
 .wiki-nav-sublist {
-  margin-left: 0.55rem;
-  padding-left: 0.55rem;
+  margin-left: 0.6rem;
+  padding-left: 0.75rem;
   border-left: 1px solid var(--wiki-border);
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
+}
+
+/* ---- Expand/collapse animation (grid-template-rows) ---- */
+.wiki-nav-children {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wiki-nav-children.open {
+  grid-template-rows: 1fr;
+}
+.wiki-nav-children > ul {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .wiki-nav-children {
+    transition: none;
+  }
+  .wiki-nav-toggle {
+    transition: none;
+  }
+  .wiki-nav-link {
+    transition: none;
+  }
 }
