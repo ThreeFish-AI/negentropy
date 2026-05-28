@@ -17,6 +17,10 @@ export interface AnnotationItem {
     suffix?: string;
     text_offset?: number;
     text_length?: number;
+    // v2 锚定字段（向前兼容，缺省视为 v1 anchor）
+    source_text_hash?: string;
+    source_lang?: string;
+    anchor_version?: number;
   };
   pub_version: number;
   status: string;

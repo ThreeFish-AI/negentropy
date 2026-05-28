@@ -1,6 +1,6 @@
 /* Wiki 文本注解样式 */
 
-/* 高亮标记（常驻） */
+/* 高亮标记（常驻） —— MarkWrapRenderer 路径 */
 .wiki-annotation-highlight {
   background: rgba(255, 212, 59, 0.25);
   border-left: 3px solid rgba(255, 180, 0, 0.6);
@@ -11,6 +11,15 @@
 }
 .wiki-annotation-highlight:hover {
   background: rgba(255, 212, 59, 0.45);
+}
+
+/* CSS Custom Highlight API 路径 —— 浏览器翻译态下使用，
+   不修改 DOM 因而免疫 <font> 包裹破坏。
+   参考：https://drafts.csswg.org/css-highlight-api/ */
+::highlight(wiki-annotation) {
+  background-color: rgba(255, 212, 59, 0.32);
+  text-decoration: underline wavy rgba(255, 180, 0, 0.7);
+  text-decoration-skip-ink: none;
 }
 
 /* 浮动注解按钮 */

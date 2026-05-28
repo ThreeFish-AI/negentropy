@@ -359,7 +359,18 @@ class WikiCommentListResponse(BaseModel):
 
 
 class WikiAnnotationAnchor(BaseModel):
-    """文本注解锚定数据（W3C Web Annotation TextQuoteSelector）"""
+    """文本注解锚定数据（W3C Web Annotation TextQuoteSelector）
+
+    v2 锚定（source-anchored selectors）新增字段：
+      - source_text_hash：创建时容器 textContent 快照的 FNV-1a 哈希，
+        用于运行时校验 snapshot 是否仍可信（解决浏览器翻译/DOM 重渲染导致的
+        锚定漂移问题）。
+      - source_lang：创建时检测到的内容主语言。仅用于诊断与调试。
+      - anchor_version：锚定算法版本。缺省视为 v1（旧 anchor，不含上述字段）。
+
+    所有 v2 字段均为可选，向前兼容旧 anchor。底层 anchor JSONB 字段，
+    无需数据库 migration。
+    """
 
     xpath: str
     exact: str
@@ -367,6 +378,9 @@ class WikiAnnotationAnchor(BaseModel):
     suffix: str | None = None
     text_offset: int | None = None
     text_length: int | None = None
+    source_text_hash: str | None = None
+    source_lang: str | None = None
+    anchor_version: int | None = None
 
 
 class WikiAnnotationCreateRequest(BaseModel):

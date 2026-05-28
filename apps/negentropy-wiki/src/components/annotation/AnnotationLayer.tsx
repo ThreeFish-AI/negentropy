@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { useAnnotations } from "@/lib/annotation/use-annotations";
 import { useWikiAuth } from "@/lib/auth/wiki-auth";
 import { type TextAnchor } from "@/lib/annotation/use-text-anchor";
+import { useSnapshot } from "@/lib/annotation/use-snapshot";
 import { TextSelectionHandler } from "./TextSelectionHandler";
 import { AnnotationComposer } from "./AnnotationComposer";
 import { AnnotationHighlightLayer } from "./AnnotationHighlightLayer";
@@ -15,8 +16,12 @@ interface Props {
 
 export function AnnotationLayer({ entryId, children }: Props) {
   const { annotations, createAnnotation, loading } = useAnnotations(entryId);
-  const { status } = useWikiAuth();
+  // status from useWikiAuth is read by child components; no direct use here
+  useWikiAuth();
   const contentRef = useRef<HTMLDivElement>(null);
+  // 稳定快照：mount 后立即抓取，作为注解锚定的唯一权威坐标系。
+  // entryId 变化时重抓（切换不同文章）。详见 use-snapshot.ts。
+  const snapshotRef = useSnapshot(contentRef, [entryId]);
 
   const [composer, setComposer] = useState<{
     anchor: TextAnchor;
@@ -62,11 +67,13 @@ export function AnnotationLayer({ entryId, children }: Props) {
         <AnnotationHighlightLayer
           containerRef={contentRef}
           annotations={annotations}
+          snapshotRef={snapshotRef}
         />
       )}
       <TextSelectionHandler
         containerSelector=".wiki-markdown-body"
         onAnnotate={handleAnnotate}
+        snapshotRef={snapshotRef}
       />
       {composer && (
         <AnnotationComposer

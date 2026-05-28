@@ -3,13 +3,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useWikiAuth } from "@/lib/auth/wiki-auth";
 import { computeAnchor, type TextAnchor } from "@/lib/annotation/use-text-anchor";
+import type { AnnotationSnapshot } from "@/lib/annotation/use-snapshot";
 
 interface Props {
   containerSelector: string;
   onAnnotate: (anchor: TextAnchor, quotedText: string, rect: DOMRect) => void;
+  /** 稳定快照 ref。提供时基于 snapshot 计算锚（跨翻译稳定）；否则按当前 DOM 计算（兼容路径）。 */
+  snapshotRef?: React.MutableRefObject<AnnotationSnapshot | null>;
 }
 
-export function TextSelectionHandler({ containerSelector, onAnnotate }: Props) {
+export function TextSelectionHandler({ containerSelector, onAnnotate, snapshotRef }: Props) {
   const { status } = useWikiAuth();
   const [fabPosition, setFabPosition] = useState<{ x: number; y: number } | null>(null);
   const [currentAnchor, setCurrentAnchor] = useState<TextAnchor | null>(null);
@@ -45,7 +48,8 @@ export function TextSelectionHandler({ containerSelector, onAnnotate }: Props) {
       return;
     }
 
-    const anchor = computeAnchor(selection, container);
+    // 优先使用 snapshot 计算锚定（跨翻译稳定）；未注入时回退到旧路径。
+    const anchor = computeAnchor(selection, container, snapshotRef?.current);
     if (!anchor) return;
 
     const rect = range.getBoundingClientRect();
@@ -57,7 +61,7 @@ export function TextSelectionHandler({ containerSelector, onAnnotate }: Props) {
     const x = rect.left + rect.width / 2;
     const y = rect.top - 8;
     setFabPosition({ x, y });
-  }, [containerSelector, isAuthenticated]);
+  }, [containerSelector, isAuthenticated, snapshotRef]);
 
   useEffect(() => {
     document.addEventListener("selectionchange", handleSelectionChange);
