@@ -351,7 +351,8 @@ class MemoryAutomationService:
             result_data = row[0] if row else None
         elif job_key == "trigger_consolidation":
             consolidation = config["consolidation"]
-            sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(:lookback::interval)")
+            # CAST(:lookback AS interval) —— 避免 :lookback::interval 命名参数边界识别异常
+            sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(CAST(:lookback AS interval))")
             async with AsyncSessionLocal() as db:
                 result = await db.execute(sql, {"lookback": consolidation["lookback_interval"]})
                 row = result.first()
@@ -455,7 +456,7 @@ class MemoryAutomationService:
                 await db.execute(
                     text(
                         "UPDATE scheduled_tasks SET enabled = :enabled, "
-                        "cron_expr = :cron_expr, payload = :payload ::jsonb "
+                        "cron_expr = :cron_expr, payload = CAST(:payload AS jsonb) "
                         "WHERE key = :task_key"
                     ),
                     {

@@ -74,7 +74,10 @@ async def _run_consolidation(task: ScheduledTask) -> HandlerResult:
     payload = task.payload or {}
     lookback_interval = payload.get("lookback_interval", "1 hour")
 
-    sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(:lookback::interval)")
+    # CAST(:lookback AS interval) 而非 :lookback::interval —— 命名参数紧邻 PostgreSQL ::
+    # cast 会破坏 SQLAlchemy 参数边界识别，asyncpg 报 syntax error。同口径修复参见
+    # knowledge/graph/repository.py:515-519、knowledge/retrieval/repository.py:832-834。
+    sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(CAST(:lookback AS interval))")
     try:
         async with AsyncSessionLocal() as db:
             result = await db.execute(sql, {"lookback": lookback_interval})
