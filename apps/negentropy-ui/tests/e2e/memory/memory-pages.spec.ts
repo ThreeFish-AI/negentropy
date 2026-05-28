@@ -146,7 +146,6 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
     if (route.request().url().includes("/api/memory/audit")) return;
     if (route.request().url().includes("/api/memory/conflicts")) return;
     if (route.request().url().includes("/api/memory/retrieval")) return;
-    if (route.request().url().includes("/api/memory/automation")) return;
 
     await route.fulfill({
       status: 200,
@@ -323,7 +322,6 @@ test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
     if (route.request().url().includes("/api/memory/audit")) return;
     if (route.request().url().includes("/api/memory/conflicts")) return;
     if (route.request().url().includes("/api/memory/retrieval")) return;
-    if (route.request().url().includes("/api/memory/automation")) return;
 
     await route.fulfill({
       status: 200,
@@ -342,5 +340,4 @@ test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Facts" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conflicts" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Automation" })).toBeVisible();
 });
