@@ -148,7 +148,7 @@ class ClaudeCodeService:
             proc = await asyncio.create_subprocess_exec(
                 *args,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
                 cwd=config.cwd,
             )
         except FileNotFoundError:
@@ -195,13 +195,29 @@ class ClaudeCodeService:
                 proc.terminate()
                 await proc.wait()
 
+        # 进程已退出，读取 stderr
+        stderr_text = ""
+        if proc.stderr:
+            stderr_bytes = await proc.stderr.read()
+            stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
+
         status = "success" if proc.returncode == 0 else "error"
+        error_msg = None
+        if proc.returncode != 0:
+            parts = [f"CLI exited with code {proc.returncode}"]
+            if stderr_text:
+                parts.append(f"stderr: {stderr_text[:500]}")
+            if not result_text and not stderr_text:
+                parts.append("no output captured")
+            error_msg = "; ".join(parts)
+
         return ClaudeCodeResult(
             status=status,
             summary=result_text[:_SUMMARY_MAX_LEN],
             session_id=session_id,
             cost_usd=cost,
             turn_count=turns,
+            error=error_msg,
         )
 
     @staticmethod
@@ -212,6 +228,7 @@ class ClaudeCodeService:
             prompt,
             "--output-format",
             "stream-json",
+            "--verbose",
             "--max-turns",
             str(config.max_turns),
             "--permission-mode",
@@ -276,8 +293,9 @@ class ClaudeCodeService:
                 "version": version_out,
                 "latency_ms": latency,
             }
+        error_detail = test_result.error or "unknown error (no error output captured)"
         return {
             "success": False,
-            "message": f"Claude Code prompt test failed: {test_result.error}",
+            "message": f"Claude Code prompt test failed: {error_detail}",
             "version": version_out,
         }

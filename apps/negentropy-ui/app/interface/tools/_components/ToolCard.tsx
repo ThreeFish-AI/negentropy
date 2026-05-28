@@ -26,6 +26,28 @@ interface ToolCardProps {
   toggling?: boolean;
 }
 
+const TOOL_TYPE_DISPLAY: Record<string, { label: string; className: string }> = {
+  claude_code: {
+    label: "Agent",
+    className: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  },
+  search: {
+    label: "Search",
+    className: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  },
+  retrieval: {
+    label: "Retrieval",
+    className: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  },
+  custom: {
+    label: "Custom",
+    className: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  },
+};
+
+const DEFAULT_TOOL_TYPE_STYLE =
+  "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400";
+
 export function ToolCard({
   tool,
   onEdit,
@@ -114,9 +136,16 @@ export function ToolCard({
               Disabled
             </span>
           )}
-          <span className="inline-flex shrink-0 items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-400">
-            {tool.tool_type}
-          </span>
+          {(() => {
+            const display = TOOL_TYPE_DISPLAY[tool.tool_type];
+            return (
+              <span
+                className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${display ? display.className : DEFAULT_TOOL_TYPE_STYLE}`}
+              >
+                {display ? display.label : tool.tool_type}
+              </span>
+            );
+          })()}
           {tool.is_system && (
             <span
               className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
