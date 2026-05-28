@@ -60,6 +60,13 @@ describe("MarkdownRenderer", () => {
     expect(style?.height).toBe("auto");
   });
 
+  it("容器不设 translate 属性，允许浏览器翻译", () => {
+    const { container } = render(<MarkdownRenderer content="Hello world" />);
+    const body = container.querySelector(".wiki-markdown-body");
+    expect(body).not.toBeNull();
+    expect(body?.getAttribute("translate")).toBeNull();
+  });
+
   it("小图（width < 400）不添加 width:100% 撑开样式", () => {
     const md = `<img src="./images/icon.png" width="46" height="32" style="max-width:100%;height:auto;" />`;
     const { container } = render(<MarkdownRenderer content={md} />);
