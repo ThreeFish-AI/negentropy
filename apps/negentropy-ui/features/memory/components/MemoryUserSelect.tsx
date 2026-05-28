@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
+/** @deprecated Use MemoryUserPillFilter instead */
 interface MemoryUserSelectProps {
   users: Array<{ id: string; label?: string; name?: string }>;
   selectedUserId: string | null;

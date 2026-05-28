@@ -116,7 +116,93 @@ R8 增量改动（2026-05-26，Docling 公式 bbox 透传 + 残片清理）：
 - **R8 已知限制**：docling 公式 latex 在 `iterate_items` 路径下输出原始字符流（如 `CE: (C, T) → f_context`）不带 `\tag{N}` 或 `\quad (N)` 编号，markdown view 中 Eq(3) Eq(4) 等的编号缺失。R5 的 inline promotion 因 docling 公式已被识别为公式元素（非 text element）不再处理。可未来在 docling 公式后置阶段从 markdown 上下文回填 `\quad (N)` 编号。
 - **R5 浮现但不在本期范围**的小 gap（见 `.context/r5-defects.md`）：References `[2]` 跳号（根因在 PDF 抽取上游，R4 与 R5 均存在）；文档末尾孤儿图块视觉占满（R3 设计的兜底，避免图片丢失）；PDF 元数据残留 `§ Github` / `SII Context`（layout-aware 识别难度高）。
 
-## 7. 端到端验证 Runbook
+## 7. R9 增量：大型教材 PDF（Agentic Design Patterns，482 页 / 19.9 MB）
+
+### 7.1 引发背景
+
+R5-R8 修复都基于 28-71 页学术论文样本，R9 选取 *Agentic Design Patterns* 教材
+（19.9 MB / 482 页 / 含大量 Python 代码示例 / 单栏排版 / Bullet list 体）作为
+全新维度的回归基线，暴露三类新失真模式与一项核心基础设施缺失。
+
+### 7.2 R9 基础设施：auto_batch + checkpoint/resume
+
+R8 之前的 MCP 工具 `parse_pdf_to_markdown` 单次只能处理一份 PDF 全本，
+backend HTTP 调用 15 min 超时窗口对 482 页教材完全不够（实测全本耗时 ~30 min）。
+R9 新增两条链路（commit [`530ee730`](#) + [`cb0d1000`](#)）：
+
+| 模块 | 改动 | 设计要点 |
+|---|---|---|
+| [`tools/pdf.py`](../../apps/negentropy-perceives/src/negentropy/perceives/tools/pdf.py) | MCP 工具签名加 `auto_batch` / `batch_page_size` / `batch_threshold_pages` / `resume` 四参数 | 对调用方透明（默认全启），既有调用站点零改动 |
+| [`ops/pdf.py`](../../apps/negentropy-perceives/src/negentropy/perceives/ops/pdf.py) | `_run_batched_pipeline` 分批串行调度 + 单切片重试 1 次 + `error_partial` 标记 | 保留原单次路径作为默认回退；超阈值（默认 60 页）才启用 |
+| [`pipeline/batch_merge.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/batch_merge.py) **新增 555 行** | `split_page_ranges` / `dedupe_image_assets` / `rewrite_image_refs_in_markdown` / `boundary_figure_caption_rescue` / `merge_slice_markdowns` | 跨切片资产 `(filename, sha256)` 双键去重 + 同名异内容重命名 `b{i}_{原名}` + boundary marker HTML 注释 |
+| `ops/pdf.py` checkpoint | 切片完成立即落 `<output_dir>/.batch_state/{sha1[:12]}/slice_{i}.{json,markdown.txt}` | **基于 PDF 内容 SHA-1 keyed 目录**（不用文件名 stem），跨调用 resume 真正工作 |
+| [`DocumentDetailPage`](../../apps/negentropy-ui/app/knowledge/documents/[corpusId]/[documentId]/page.tsx) + [`PipelineRunDetailPanel`](../../apps/negentropy-ui/features/knowledge/components/PipelineRunDetailPanel.tsx) | 失败 / partial 状态下按钮文案动态切换为 "Continue (resume)"，Pipelines Runs 详情面板增加 "Continue →" 跳转链接 | refresh_markdown 接口天然幂等，按钮调用同端点即触发 perceives auto_batch 的 resume 路径 |
+
+**实测效果**：482 页 PDF 切 13 batch × 40 页串行；首次跑 + 3 次中途崩溃 + 4
+次 Continue resume 累计 25 min 完成；commit `cb0d1000` 后（perceives 启动改
+用 Python `subprocess.start_new_session` 与 shell wrapper 解耦）连续 14 min 单
+次跑完全本 13 batch 无 SIGTERM 抢占。
+
+### 7.3 R9 三类失真修复（commit [`c1733bb8`](#)）
+
+| 失真 | 责任 stage | 修复手段 | 单测 |
+|---|---|---|---|
+| **D1: 代码块 lang 标记错位** | `assembly._code_block_to_markdown` | 识别 code 首行单一 lang 关键词（python/javascript/bash/...）并提升为 fence info string，剔除 body 首行；同义词归一（js → javascript、c++ → cpp） | [`test_assembly_code_lang_header.py`](../../apps/negentropy-perceives/tests/unit/test_assembly_code_lang_header.py)（12） |
+| **D2: Unicode bullet 残留**（●​ U+25CF + ZWJ） | `markdown.formatter._normalize_unicode_bullets` | `_format_lists` 前置归一化 ●○■□▪▫◦▶▷›▸▹·•‣ + ZWJ → markdown `- ` | [`test_formatter_unicode_bullets.py`](../../apps/negentropy-perceives/tests/unit/test_formatter_unicode_bullets.py)（13） |
+| **D3: 图片像素尺寸退化**（全部 `width="100%"`） | `assembly._image_to_markdown` | 取消 R9 D-7 引入的 `is_large_figure → width="100%"` 分支，回到 R7 设计：始终输出 PDF pt × 4/3 CSS px + `style="max-width:100%;height:auto"` 兜底窄屏 | [`test_assembly_image_pixel_size.py`](../../apps/negentropy-perceives/tests/unit/test_assembly_image_pixel_size.py)（7）+ 更新 [`test_assembly_helpers.py`](../../apps/negentropy-perceives/tests/unit/test_assembly_helpers.py)（2 stale 断言） |
+
+### 7.4 R9 量化签名（[`r9-signature.json`](../../.temp/r9-signature.json)）
+
+| 维度 | R9 D-7 旧实现 | R9 D1+D2+D3 修复后 | 变化 |
+|---|---|---|---|
+| `char_count` | 803722 | 804513 | +791 (合理增量) |
+| `word_count` | 111326 | 111400 | +74 |
+| `h1_count` / `h2_count` / `h3_count` | 23 / 170 / 33 | 23 / 170 / 33 | 一致 ✅ |
+| `md_img_count` + `html_img_count` | 32 + 61 = 93 | 32 + 61 = 93 | 一致 ✅ |
+| `fenced_code_count` (开/闭) | 78 (39 个块) | 78 (39 个块) | 一致；**但 lang fence 49/78 而非全空** |
+| `hyphenation_residue` | 0 | 0 | ✅ |
+| `batch_boundary_count` | 12 | 12 | ✅（13 切片 / 12 marker） |
+| `must_contain_pass` | true | true | ✅ |
+| `h_misclassified_byline` | 0 | 0 | ✅（R5 修复保持） |
+| **`list_bullet_residue`** | **877** | **672** | **-205**（行首 bullet 全部归一；剩余 672 在段落中部） |
+
+### 7.5 浏览器双 tab 实机对照（chrome_devtools，13 张截图）
+
+落盘到 [`docs/.agents/screenshots/agentic-design-patterns/`](./screenshots/agentic-design-patterns/)：
+
+| T# | 抽样位置 | 修复前 | 修复后 | 状态 |
+|---|---|---|---|---|
+| T1 | 封面 | `T1-cover-md.png` (TOC 挤一段) | `T1-cover-md-v2.png` | ⚠️ 待 D4 |
+| T1 | PDF 对照 | `T1-cover-pdf.png` |  | 参照 |
+| T3 | Chapter 1 起首 | `T3-chapter1-md.png` | `T3-chapter1-md-v2.png` | ✅ H2 正确 |
+| T4 | Figure (royalties 水滴) | `T4-figure-md.png` (W=100%) | `T4-figure-md-v2.png` (W=635px) | ✅ D3 |
+| T5 | 表格页 |  | `T5-table-md-v2.png` | ✅ 6×3 表格列对齐 |
+| T6 | 代码块页 | `T6-code-md.png` (无高亮) | `T6-code-md-v2.png` (hljs 高亮激活) | ✅ D1 |
+| T11 | Appendix |  | `T11-appendix-md-v2.png` | ✅ 章节结构 |
+| T12 | References / Conclusion |  | `T12-references-md-v2.png` | ✅ 全段落 |
+
+**13 张截图 ≥ 8 对样本目标达成**。
+
+### 7.6 已知边界 / 后续工作
+
+- **D4: 封面 TOC 表挤一段**（剩余 P1 失真）：PDF 封面"Table of Contents"列表
+  在 text extraction 阶段被合并成单段。assembly 现有 `_is_toc_table_text`
+  启发式（点 leader + 章节编号 + 页码列）不识别本 PDF 的 inline-style TOC
+  （`Chapter N: <title>, M pages [final, last read done, code ok]`）。修复
+  方案：扩展 TOC 识别规则匹配"半角逗号 + 编号"模式并分行。R10 处理。
+- **代码块 lang 字面在 body 内（13 个 case）**：fence 内 `\n\njavascript\n\n`
+  形态。根因是 text extraction 把 PDF "Javascript:" 标签 + 代码段合并到同
+  一个文本块，**没经过 docling code_detection 路径** → 不走 `_code_block_to_markdown`。
+  修复需 `_format_code_blocks` formatter 后置识别 fence 内偏移行的 lang 字面。
+- **段落中部 Unicode bullet 672 个**：text extraction 把多 bullet 列表
+  合并成单段并段落化（`Use Case: ... ●​ Tools: ... ●​ Agent Flow: ...`）。
+  修复需 text extraction 阶段保留 PDF list-item 边界（PyMuPDF block 切分），
+  或 assembly 阶段对"段落中部 ●​ 后跟英文短句"做反向分行。
+- **本期已修复**（不再追踪）：~~D1 代码块 lang fence 缺失~~、~~D2 行首
+  Unicode bullet 残留~~、~~D3 图片全 `width=100%`~~、~~auto_batch 缺失~~、
+  ~~MCP 调用 15 min 超时~~、~~大文档无 checkpoint/resume~~。
+
+## 8. 端到端验证 Runbook（R9 简化版）
 
 ```bash
 # 1. accra-v1 启 perceives MCP

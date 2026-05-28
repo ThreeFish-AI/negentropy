@@ -421,6 +421,30 @@ class FitzTextExtractor(PDFToolBase):
         if text_stripped in ("SII-GAIR", "SII - GAIR"):
             return True
 
+        # R10-D15：期刊运行头 / 页脚的常见模式 —— 位置无关，仅靠文本特征即可判定，
+        # 因为 PyMuPDF 抽取时这些块的 bbox 可能因双栏 / 旋转文本被记到正文区。
+        #
+        # 1. Springer Nature 期刊页脚：``11 Page 2 of 37`` / ``Page 3 of 37 11``
+        #    （issue number + "Page X of Y" 或反向）
+        if re.match(r"^\d{1,4}\s+Page\s+\d+\s+of\s+\d+\s*$", text_stripped):
+            return True
+        if re.match(r"^Page\s+\d+\s+of\s+\d+\s+\d{1,4}\s*$", text_stripped):
+            return True
+        # 2. 双数字运行页码（双栏期刊常见，如 ``1 3``）—— 仅短文本且两段都是 1-4 位
+        if re.match(r"^\d{1,4}\s+\d{1,4}\s*$", text_stripped):
+            return True
+        # 3. 作者运行头：``First Initial. Surname et al.`` / ``Surname and Surname et al.``
+        if re.match(
+            r"^[A-Z]\.\s+[A-Za-z'\-]+(?:\s+[A-Za-z'\-]+)?\s+et\s+al\.?\s*$",
+            text_stripped,
+        ):
+            return True
+        if re.match(
+            r"^[A-Z][A-Za-z'\-]+\s+and\s+[A-Z][A-Za-z'\-]+\s+et\s+al\.?\s*$",
+            text_stripped,
+        ):
+            return True
+
         # 位置启发式：页面顶部/底部 5% 区域内的短文本
         # 保护：要求文本长度 ≥ 20 以排除短标题（如 "Introduction"、"Results"）
         # 页眉/页脚通常是会议简称 + 日期等组合，长度一般 ≥ 20
@@ -512,6 +536,47 @@ class FitzTextExtractor(PDFToolBase):
             if re.search(r"(?:^|\s)\d+\.\s+[A-Z]", section_title):
                 return None
 
+            # R10-D16：编号开头但内含完整句子（学术 PDF 列表项常被 PyMuPDF
+            # 抽为单段，再因 ``^\d+\.`` 前缀被升级为 heading，破坏文档大纲）。
+            # 句子型正文的强信号：① 作者代词 ``We / Our`` 接小写动词；
+            # ② 不定式列表 ``To <verb>``（连续逗号分隔项）；③ 显著主谓 + 多逗号
+            # 子句；④ 第一人称 ``I`` 接学术叙述动词（``I propose / introduce / ...``）。
+            # 10a. ``We`` / ``Our`` + 后续小写（动词起首）的句子结构
+            if re.search(r"\b(We|Our)\s+[a-z]", section_title):
+                return None
+            # 10b. 单字母 ``I`` 单独识别 —— 避免误伤 ``Phase I improvements`` /
+            # ``Type I errors`` 这类含罗马数字 I 的合法 heading。仅当 I 后紧跟
+            # 常见学术叙述动词时才视为句子型正文。
+            if re.search(
+                r"\bI\s+(?:propose|introduce|present|argue|show|find|study|"
+                r"explore|describe|analyze|investigate|examine|believe|think|"
+                r"claim|note|observe|demonstrate|prove|assume|hypothesize|"
+                r"conclude|discuss|review|survey|provide|develop|design)\b",
+                section_title,
+            ):
+                return None
+            # 11. 不定式列表起首（``To identify, classify, and ...``）
+            if re.match(r"^To\s+[a-z]+,\s+\w+,", section_title):
+                return None
+            # 12. 多逗号子句（≥ 2 个 ``, ``）且长度 > 60 —— 句子型正文
+            if section_title.count(", ") >= 2 and len(section_title) > 60:
+                return None
+
+            # R10-D25：list-item label + 句子型 body 折叠到同一文本块的剩余信号。
+            # 典型产物 ``Paradigm specialization by domain High-stakes, regulated``
+            # 中包含 ``[a-z]+\s+[A-Z][\w-]+,`` —— 小写词 + 空格 + Capital 起首词
+            # （可含 hyphen）+ 逗号；学术 heading 内 Capital 词后接逗号几乎不出现
+            # （合法 heading 的 Capital 复合词 ``Reinforcement Learning`` 后无逗号），
+            # 该组合是 PyMuPDF 折叠 PDF list-item ``\d+. **Label** Body sentence,...``
+            # 的特征指纹。守护：长度 > 50 + 不含 ``:``（合法 heading subtitle 分隔符
+            # 后续可能触发同样模式，但语义合法，需放行）。
+            if (
+                len(section_title) > 50
+                and ":" not in section_title
+                and re.search(r"\b[a-z]+\s+[A-Z][\w-]+,", section_title)
+            ):
+                return None
+
             depth = section_num.count(".") + 1
             if depth == 1:
                 return 1
@@ -540,6 +605,24 @@ class FitzTextExtractor(PDFToolBase):
 
         # 排除 footnote 标记行（如 "† Corresponding author"）
         if re.match(r"^[†‡*§¶]\s", text_stripped) and len(text_stripped) < 100:
+            return None
+
+        # R10-D16 续：非编号路径下也过滤句子型正文（章节 lead-in 句被字号守卫
+        # 误升级）。强信号：作者代词 ``We / Our`` + 后续 2 个以上小写词，
+        # 仅当文本长度 > 50 时启用，避免误删合法短标题如 ``Our Method``。
+        # ``I`` 单字母不在通用守护范围（罗马数字 I 与代词 I 难以区分），
+        # 仅当 I 后紧跟学术叙述动词时才视为句子型正文。
+        if len(text_stripped) > 50 and re.search(
+            r"\b(We|Our)\s+[a-z]+\s+[a-z]", text_stripped
+        ):
+            return None
+        if len(text_stripped) > 50 and re.search(
+            r"\bI\s+(?:propose|introduce|present|argue|show|find|study|"
+            r"explore|describe|analyze|investigate|examine|believe|think|"
+            r"claim|note|observe|demonstrate|prove|assume|hypothesize|"
+            r"conclude|discuss|review|survey|provide|develop|design)\b",
+            text_stripped,
+        ):
             return None
 
         # 特殊标题词（整个文本就是标题）

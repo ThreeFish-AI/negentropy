@@ -11,7 +11,6 @@ type NavItem = { href: string; label: string; adminOnly?: boolean };
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/interface/models", label: "Models", adminOnly: true },
-  { href: "/interface/task-models", label: "Task Models", adminOnly: true },
   { href: "/interface/subagents", label: "SubAgents" },
   { href: "/interface/mcp", label: MCP_HUB_LABEL },
   { href: "/interface/skills", label: "Skills" },

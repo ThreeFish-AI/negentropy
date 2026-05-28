@@ -73,9 +73,11 @@ test("Facts 初始展示用户选择提示", async ({ page }) => {
   await mockAuthenticatedUser(page);
   await mockMemoryUsers(page);
   await page.goto("/memory/facts");
-  await expect(page.locator("select")).toBeVisible();
+  // "All Users" pill is visible by default
+  await expect(page.getByRole("button", { name: "All Users" })).toBeVisible();
+  // Prompt to select a user is shown
   await expect(
-    page.getByText("选择一个用户以查看其语义记忆 (Facts)。"),
+    page.getByText("Select a user from the filter above or sidebar to view their semantic facts."),
   ).toBeVisible();
 });
 
@@ -95,7 +97,8 @@ test("Facts 加载列表展示 Key/Type/Confidence", async ({ page }) => {
   });
 
   await page.goto("/memory/facts");
-  await page.locator("select").selectOption("user-1");
+  // Pill filter always appears before sidebar user list
+  await page.getByRole("button", { name: "Test User 1" }).first().click();
 
   await expect(page.getByText("preferred_language")).toBeVisible();
   await expect(page.getByText("api_design")).toBeVisible();
@@ -130,7 +133,8 @@ test("Facts 搜索框过滤结果", async ({ page }) => {
   });
 
   await page.goto("/memory/facts");
-  await page.locator("select").selectOption("user-1");
+  // Scope to main area to avoid sidebar user list buttons
+  await page.getByRole("button", { name: "Test User 1" }).first().click();
   await expect(page.getByText("api_design")).toBeVisible();
 
   await page.getByPlaceholder("Search facts...").fill("language");
@@ -182,7 +186,8 @@ test("Facts History 模态展示 dialog ARIA + Esc 关闭", async ({ page }) => 
   });
 
   await page.goto("/memory/facts");
-  await page.locator("select").selectOption("user-1");
+  // Scope to main area to avoid sidebar user list buttons
+  await page.getByRole("button", { name: "Test User 1" }).first().click();
   await expect(page.getByText("preferred_language")).toBeVisible();
 
   await page.getByRole("button", { name: "History" }).first().click();
@@ -211,7 +216,7 @@ test("Facts 空结果展示 No facts found", async ({ page }) => {
   });
 
   await page.goto("/memory/facts");
-  await page.locator("select").selectOption("user-x");
+  await page.getByRole("button", { name: "Empty User" }).first().click();
 
   await expect(page.getByText("No facts found for this user.")).toBeVisible();
 });
