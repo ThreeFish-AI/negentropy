@@ -57,22 +57,21 @@ export default async function WikiHomePage() {
   const homeCards: { title: string; href: string; description: string; Icon: ComponentType }[] = [];
 
   for (const { pub, items } of navTrees) {
-    for (const item of items) {
-      const title = item.entry_title || item.entry_slug;
-      const href = buildEntryHref(pub.slug, item);
-      homeLinks.push({ label: title, href });
-      homeCards.push({
-        title,
-        href,
-        description: "暂无描述",
-        Icon: getPublicationIcon(title),
-      });
-    }
-  }
-
-  // fallback: 如果 nav tree 没有一级节点，用 publication 自身作为兜底
-  if (homeLinks.length === 0) {
-    for (const pub of publications) {
+    if (items.length > 0) {
+      // 有 nav tree 一级节点时，从中构建导航项
+      for (const item of items) {
+        const title = item.entry_title || item.entry_slug;
+        const href = buildEntryHref(pub.slug, item);
+        homeLinks.push({ label: title, href });
+        homeCards.push({
+          title,
+          href,
+          description: pub.description || "暂无描述",
+          Icon: getPublicationIcon(pub.name),
+        });
+      }
+    } else {
+      // nav tree 为空或 API 失败时，用 publication 自身作为兜底
       homeLinks.push({ label: pub.name, href: `/${pub.slug}` });
       homeCards.push({
         title: pub.name,
