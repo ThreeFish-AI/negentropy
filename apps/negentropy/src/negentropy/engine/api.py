@@ -33,7 +33,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, union
 
 from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
@@ -355,11 +355,18 @@ async def list_memories(
     resolved_app = _resolve_app_name(app_name)
 
     async with AsyncSessionLocal() as db:
-        # 获取用户列表
+        # 获取用户列表（UNION memories + facts，确保仅有 Facts 的用户也出现）
+        mem_user_ids = select(Memory.user_id).where(Memory.app_name == resolved_app)
+        fact_user_ids = select(Fact.user_id).where(Fact.app_name == resolved_app)
+        all_user_ids = union(mem_user_ids, fact_user_ids).subquery()
+
         user_stmt = (
-            select(Memory.user_id, func.count(Memory.id).label("count"))
-            .where(Memory.app_name == resolved_app)
-            .group_by(Memory.user_id)
+            select(all_user_ids.c.user_id, func.count(Memory.id).label("count"))
+            .outerjoin(
+                Memory,
+                (Memory.user_id == all_user_ids.c.user_id) & (Memory.app_name == resolved_app),
+            )
+            .group_by(all_user_ids.c.user_id)
             .order_by(func.count(Memory.id).desc())
         )
         user_result = await db.execute(user_stmt)
@@ -388,7 +395,7 @@ async def list_memories(
         users.append(
             {
                 "id": entry["id"],
-                "label": f"{display_name} ({entry['count']})",
+                "label": display_name,
                 "name": p.get("name"),
                 "picture": p.get("picture"),
                 "email": p.get("email"),
