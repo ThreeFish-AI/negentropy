@@ -43,11 +43,9 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
-    // translate="no"：声明此容器为「注解锚定的稳定坐标系」，提示浏览器
-    // 默认不自动翻译（解决 R5）。用户主动右键翻译仍可生效；此时配合
-    // AnnotationHighlightLayer 的 MutationObserver（解决 R3）实现高亮重应用，
-    // 并由后续 Phase B 的 source-anchored selectors 实现跨语言注解持久化。
-    <div className="wiki-markdown-body" translate="no">
+    // 不设 translate="no"，允许浏览器翻译。翻译态下注解由 Pillar 1-5 保护：
+    // Snapshot 锚定 + MutationObserver 自动重应用 + CSS Highlight API 渲染。
+    <div className="wiki-markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
