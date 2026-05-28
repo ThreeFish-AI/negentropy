@@ -82,6 +82,7 @@ def _bootstrap_default_handlers() -> None:
         "cache_warm",
         "pgvector_check",
         "agent_inspection",
+        "memory_automation",
         "claude_code",
     ):
         try:

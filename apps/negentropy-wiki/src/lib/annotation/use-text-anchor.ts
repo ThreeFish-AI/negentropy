@@ -1,9 +1,22 @@
 /**
- * 文本锚定工具 — 基于 W3C Web Annotation TextQuoteSelector 模式
+ * 文本锚定工具 — Source-Anchored Text Selectors（基于 W3C Web Annotation TextQuoteSelector）
  *
- * computeAnchor: 从 Selection API 计算锚定数据
- * resolveAnchor: 给定锚定数据，在 DOM 中定位目标文本
+ * 核心设计：把「注解的锚」与「用户看到的视图」解耦。
+ *   - 锚定权威源 = mount 时抓取的 snapshot（见 use-snapshot.ts）
+ *   - 用户视图 = 当前 DOM（可能被浏览器翻译、字体/CSS 切换、动态加载改造）
+ *
+ * computeAnchor: 在用户选区上计算锚定数据。若提供 snapshot 则基于 snapshot 计算
+ *                exact/prefix/suffix（跨翻译稳定）；否则按当前 DOM 计算（兼容旧路径）。
+ *
+ * resolveAnchor: 三段式解析。snapshot 精确 → currentDOM 文本搜索 → 块级粗粒度回退。
+ *                即使精确文本无法匹配（如翻译态），仍能保证「注解不消失」。
  */
+
+import type { AnnotationSnapshot } from "./use-snapshot";
+import { BLOCK_TAGS, simpleHash } from "./annotation-shared";
+
+/** 锚定算法版本：用于未来演进时的兼容性切换。 */
+export const CURRENT_ANCHOR_VERSION = 2;
 
 export interface TextAnchor {
   xpath: string;
@@ -12,62 +25,344 @@ export interface TextAnchor {
   suffix: string;
   text_offset: number;
   text_length: number;
+  /**
+   * 创建时的 snapshot.textHash。用于 resolveAnchor 段 1 决定是否可以
+   * "信任 anchor.text_offset 直接在 snapshot.textNodes 上定位"。
+   */
+  source_text_hash?: string;
+  /** 创建时检测到的内容主语言（"en" / "zh" / 等）。仅用于诊断，不参与算法。 */
+  source_lang?: string;
+  /** 锚定算法版本。缺省视为 v1（旧版，无 snapshot 字段）。 */
+  anchor_version?: number;
 }
 
 /**
- * 从 Selection 计算锚定数据
+ * 从 Selection 计算锚定数据。
+ *
+ * @param selection - 当前选区
+ * @param container - 注解容器（如 .wiki-markdown-body）
+ * @param snapshot  - 可选的稳定快照。提供时锚定到 snapshot 坐标系；否则按旧路径。
  */
 export function computeAnchor(
   selection: Selection,
   container: HTMLElement,
+  snapshot?: AnnotationSnapshot | null,
 ): TextAnchor | null {
   const range = selection.getRangeAt(0);
   if (!range) return null;
 
-  const exact = selection.toString().trim();
-  if (!exact) return null;
+  const displayExact = selection.toString().trim();
+  if (!displayExact) return null;
 
-  // 计算 XPath 到最近块级元素
   const xpath = computeXPath(range.startContainer, container);
 
-  // 计算 prefix/suffix 上下文
+  // 优先尝试基于 snapshot 计算（source-anchored）
+  if (snapshot) {
+    const fromSnapshot = computeFromSnapshot(range, container, snapshot, xpath);
+    if (fromSnapshot) return fromSnapshot;
+  }
+
+  // 回退：按当前 DOM 计算（兼容路径，与旧版 v1 行为一致）
   const fullText = container.textContent || "";
   const selectedText = range.toString();
-  // 通过 TreeWalker 精确定位选区起止在 fullText 中的偏移量
   const selStart = computeTextOffset(range.startContainer, range.startOffset, container);
   const contextRadius = 32;
-  const prefix = selStart >= 0 ? fullText.slice(Math.max(0, selStart - contextRadius), selStart) : "";
-  const suffix = selStart >= 0 ? fullText.slice(selStart + selectedText.length, selStart + selectedText.length + contextRadius) : "";
+  const prefix = selStart >= 0
+    ? fullText.slice(Math.max(0, selStart - contextRadius), selStart)
+    : "";
+  const suffix = selStart >= 0
+    ? fullText.slice(
+        selStart + selectedText.length,
+        selStart + selectedText.length + contextRadius,
+      )
+    : "";
 
-  // 计算 text_offset（相对于完整文本）
-  const textOffset = selStart >= 0 ? selStart : 0;
+  return {
+    xpath,
+    exact: displayExact,
+    prefix,
+    suffix,
+    text_offset: selStart >= 0 ? selStart : 0,
+    text_length: selectedText.length,
+    source_text_hash: snapshot?.textHash,
+    source_lang: detectLang(displayExact),
+    anchor_version: snapshot ? CURRENT_ANCHOR_VERSION : 1,
+  };
+}
 
+/**
+ * 尝试用 snapshot 计算锚定。
+ *
+ * 算法：
+ *   1. 计算 selection 在当前 DOM 中的字符偏移（curStart, curEnd）
+ *   2. 当前 textContent == snapshot.textContent（hash 一致）→ 直接用偏移
+ *   3. 否则（翻译态等）→ 找到 selection 落在的块级元素 → 按字符比例映射回 snapshot
+ *      该块级元素对应位置 → 在 snapshot 中切片得到 anchor.exact/prefix/suffix
+ */
+function computeFromSnapshot(
+  range: Range,
+  container: HTMLElement,
+  snapshot: AnnotationSnapshot,
+  xpath: string,
+): TextAnchor | null {
+  const curStart = computeTextOffset(range.startContainer, range.startOffset, container);
+  const curEnd = computeTextOffset(range.endContainer, range.endOffset, container);
+  if (curStart < 0 || curEnd < 0 || curEnd <= curStart) return null;
+
+  const curText = container.textContent || "";
+  const curHash = snapshot.textHash; // 容器当前 hash 与 snapshot 比较
+
+  // 路径 A：当前 DOM == snapshot（未被翻译/修改），直接用偏移
+  if (simpleHash(curText) === curHash) {
+    const exact = snapshot.textContent.slice(curStart, curEnd);
+    const prefix = snapshot.textContent.slice(Math.max(0, curStart - 32), curStart);
+    const suffix = snapshot.textContent.slice(curEnd, Math.min(snapshot.textContent.length, curEnd + 32));
+    return {
+      xpath,
+      exact,
+      prefix,
+      suffix,
+      text_offset: curStart,
+      text_length: exact.length,
+      source_text_hash: snapshot.textHash,
+      source_lang: detectLang(exact),
+      anchor_version: CURRENT_ANCHOR_VERSION,
+    };
+  }
+
+  // 路径 B：当前 DOM ≠ snapshot（如翻译态），按块级元素字符比例映射回 snapshot
+  const projected = projectRangeToSnapshot(curStart, curEnd, container, snapshot);
+  if (!projected) return null;
+  const { snapStart, snapEnd } = projected;
+  const exact = snapshot.textContent.slice(snapStart, snapEnd);
+  const prefix = snapshot.textContent.slice(Math.max(0, snapStart - 32), snapStart);
+  const suffix = snapshot.textContent.slice(snapEnd, Math.min(snapshot.textContent.length, snapEnd + 32));
   return {
     xpath,
     exact,
     prefix,
     suffix,
-    text_offset: textOffset,
-    text_length: selectedText.length,
+    text_offset: snapStart,
+    text_length: exact.length,
+    source_text_hash: snapshot.textHash,
+    source_lang: detectLang(exact),
+    anchor_version: CURRENT_ANCHOR_VERSION,
   };
 }
 
 /**
- * 给定锚定数据，在 container 中定位目标文本，返回 DOM Range
+ * 跨翻译态投影：把"当前 DOM 的字符偏移 [curStart, curEnd)"
+ * 按块级元素字符比例映射回 snapshot 中的字符偏移。
+ *
+ * 这是近似映射（中英文字符数不等比），但能将注解锚到正确的块级范围内。
+ */
+function projectRangeToSnapshot(
+  curStart: number,
+  curEnd: number,
+  container: HTMLElement,
+  snapshot: AnnotationSnapshot,
+): { snapStart: number; snapEnd: number } | null {
+  // 找到当前 DOM 中 curStart 所在的块级元素
+  const blockAtStart = findCurrentBlockByOffset(container, curStart);
+  const blockAtEnd = findCurrentBlockByOffset(container, curEnd);
+  if (!blockAtStart || !blockAtEnd) return null;
+
+  const snapStartBlock = snapshot.blockElements.find(
+    (b) => b.element === blockAtStart.element,
+  );
+  const snapEndBlock = snapshot.blockElements.find(
+    (b) => b.element === blockAtEnd.element,
+  );
+  if (!snapStartBlock || !snapEndBlock) return null;
+
+  const ratioStart =
+    blockAtStart.length > 0
+      ? (curStart - blockAtStart.offset) / blockAtStart.length
+      : 0;
+  const ratioEnd =
+    blockAtEnd.length > 0
+      ? (curEnd - blockAtEnd.offset) / blockAtEnd.length
+      : 1;
+
+  const snapStart = Math.round(
+    snapStartBlock.offset + ratioStart * snapStartBlock.text.length,
+  );
+  const snapEnd = Math.round(
+    snapEndBlock.offset + ratioEnd * snapEndBlock.text.length,
+  );
+  if (snapEnd <= snapStart) return null;
+  return { snapStart, snapEnd };
+}
+
+interface CurrentBlock {
+  element: HTMLElement;
+  offset: number; // 在容器 textContent 中的起始偏移
+  length: number; // 当前 textContent 长度
+}
+
+/** 找到当前 DOM 中、容器全局字符 offset 所在的最内层块级元素。 */
+function findCurrentBlockByOffset(
+  container: HTMLElement,
+  offset: number,
+): CurrentBlock | null {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let cursor = 0;
+  let node = walker.nextNode();
+  while (node) {
+    const textNode = node as Text;
+    const len = textNode.nodeValue?.length ?? 0;
+    if (cursor + len >= offset) {
+      // 这个 text node 包含目标 offset
+      const block = findNearestBlock(textNode, container);
+      if (!block) return null;
+      return {
+        element: block,
+        offset: computeBlockOffset(block, container),
+        length: block.textContent?.length ?? 0,
+      };
+    }
+    cursor += len;
+    node = walker.nextNode();
+  }
+  return null;
+}
+
+function findNearestBlock(node: Node, container: HTMLElement): HTMLElement | null {
+  let cur: Node | null = node.parentElement;
+  while (cur && cur !== container) {
+    if (cur.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS.has((cur as HTMLElement).tagName)) {
+      return cur as HTMLElement;
+    }
+    cur = cur.parentElement;
+  }
+  return null;
+}
+
+function computeBlockOffset(block: HTMLElement, container: HTMLElement): number {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let offset = 0;
+  let node = walker.nextNode();
+  while (node) {
+    const t = node as Text;
+    if (block.contains(t)) return offset;
+    offset += t.nodeValue?.length ?? 0;
+    node = walker.nextNode();
+  }
+  return 0;
+}
+
+/**
+ * 给定锚定数据，在 container 中定位目标文本，返回 DOM Range。
+ *
+ * 三段式解析（每段独立失败 → 进入下一段，保证「注解不消失」）：
+ *   段 1：snapshot 精确匹配（仅在 anchor_version >= 2 且 hash 一致时）
+ *   段 2：当前 DOM 的 prefix+exact+suffix 全文搜索（兼容 v1 anchor 与同语言场景）
+ *   段 3：块级元素粗粒度回退（用 xpath 找块级元素，整体选中）
  */
 export function resolveAnchor(
   anchor: TextAnchor,
   container: HTMLElement,
+  snapshot?: AnnotationSnapshot | null,
 ): Range | null {
-  // 策略 1：XPath + exact 文本验证
+  // 段 1：snapshot 精确（仅 v2+ anchor 且 hash 一致）
+  if (
+    snapshot &&
+    (anchor.anchor_version ?? 1) >= 2 &&
+    anchor.source_text_hash &&
+    anchor.source_text_hash === snapshot.textHash
+  ) {
+    // 此分支表示 snapshot 仍可信，可以用 anchor.text_offset 直接在 snapshot.textNodes 上定位
+    const fromSnapshot = resolveBySnapshotOffset(anchor, snapshot);
+    if (fromSnapshot) return fromSnapshot;
+  }
+
+  // 段 2：XPath 提示的 + 当前 DOM 文本搜索（兼容 v1 / 旧数据 / 同语言场景）
   const xpathRange = tryXPath(anchor, container);
   if (xpathRange) return xpathRange;
-
-  // 策略 2：TextQuoteSelector 全文搜索（prefix + exact + suffix）
   const textRange = tryTextSearch(anchor, container);
   if (textRange) return textRange;
 
-  return null;
+  // 段 3：块级粗粒度回退 —— 保证用户至少看到"这段被注解过"
+  return resolveBlockFallback(anchor, container);
+}
+
+/**
+ * 段 1 的具体实现：用 anchor.text_offset/text_length 在 snapshot.textNodes 上定位。
+ *
+ * 翻译态下 snapshot.textNodes 仍是同一物理引用（Chrome 翻译就地修改 nodeValue），
+ * 但每个 node 的 nodeValue 长度变了 —— 不能直接 setStart(node, offsetWithinNode)，
+ * 因为 offset 是 snapshot 时的字符位置，可能超出当前 nodeValue 长度。
+ *
+ * 策略：用 snapshot.originalNodeValues 反推每个 text node 的原始长度，定位到
+ *      snapshot 坐标系中的 text node + offsetWithinNode；然后按当前 nodeValue
+ *      长度比例映射到当前 offset（同语言下比例 = 1 即精确）。
+ */
+function resolveBySnapshotOffset(
+  anchor: TextAnchor,
+  snapshot: AnnotationSnapshot,
+): Range | null {
+  const target = anchor.text_offset;
+  const targetEnd = target + (anchor.text_length || anchor.exact.length);
+
+  const startLoc = locateNodeByOriginalOffset(target, snapshot);
+  const endLoc = locateNodeByOriginalOffset(targetEnd, snapshot);
+  if (!startLoc || !endLoc) return null;
+
+  // 确认 text node 仍在 DOM 中（如果被翻译扩展替换，引用会脱离 DOM）
+  if (!startLoc.node.isConnected || !endLoc.node.isConnected) return null;
+
+  // 按当前 nodeValue 长度比例映射 offset
+  const startOffset = mapOffsetWithinNode(startLoc.node, startLoc.offsetWithin, snapshot);
+  const endOffset = mapOffsetWithinNode(endLoc.node, endLoc.offsetWithin, snapshot);
+  if (startOffset === null || endOffset === null) return null;
+
+  try {
+    const range = document.createRange();
+    range.setStart(startLoc.node, startOffset);
+    range.setEnd(endLoc.node, endOffset);
+    return range;
+  } catch {
+    return null;
+  }
+}
+
+interface NodeLocation {
+  node: Text;
+  offsetWithin: number; // 在 snapshot 中该 text node 内的字符偏移
+}
+
+function locateNodeByOriginalOffset(
+  offset: number,
+  snapshot: AnnotationSnapshot,
+): NodeLocation | null {
+  let cursor = 0;
+  for (const node of snapshot.textNodes) {
+    const orig = snapshot.originalNodeValues.get(node) ?? "";
+    if (cursor + orig.length >= offset) {
+      return { node, offsetWithin: offset - cursor };
+    }
+    cursor += orig.length;
+  }
+  // 若 offset 超出（罕见），返回最后一个 node 的末尾
+  const last = snapshot.textNodes[snapshot.textNodes.length - 1];
+  if (!last) return null;
+  const orig = snapshot.originalNodeValues.get(last) ?? "";
+  return { node: last, offsetWithin: orig.length };
+}
+
+function mapOffsetWithinNode(
+  node: Text,
+  snapshotOffset: number,
+  snapshot: AnnotationSnapshot,
+): number | null {
+  const orig = snapshot.originalNodeValues.get(node) ?? "";
+  const cur = node.nodeValue ?? "";
+  if (orig.length === 0) return Math.min(snapshotOffset, cur.length);
+  // 同语言（未翻译）情况下 cur 与 orig 相同，比例 = 1
+  if (cur === orig) return Math.min(snapshotOffset, cur.length);
+  // 跨语言情况：按字符比例映射（粗粒度但稳定）
+  const ratio = snapshotOffset / orig.length;
+  return Math.max(0, Math.min(cur.length, Math.round(ratio * cur.length)));
 }
 
 function computeXPath(node: Node, container: HTMLElement): string {
@@ -106,7 +401,6 @@ function computeXPath(node: Node, container: HTMLElement): string {
 
 /**
  * 计算 targetNode:targetOffset 在 container.textContent 中的字符偏移量。
- * 通过 TreeWalker 遍历文本节点，累加长度直到命中目标节点。
  */
 function computeTextOffset(targetNode: Node, targetOffset: number, container: HTMLElement): number {
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
@@ -116,6 +410,10 @@ function computeTextOffset(targetNode: Node, targetOffset: number, container: HT
     if (node === targetNode) {
       return offset + targetOffset;
     }
+    if (node.parentNode === targetNode && targetNode.nodeType === Node.ELEMENT_NODE) {
+      // selection 落在元素节点上（罕见，浏览器多落在 text node）
+      return offset;
+    }
     offset += (node.textContent?.length ?? 0);
   }
   return offset;
@@ -123,11 +421,9 @@ function computeTextOffset(targetNode: Node, targetOffset: number, container: HT
 
 function tryXPath(anchor: TextAnchor, container: HTMLElement): Range | null {
   try {
-    // 只使用 XPath 中块级元素部分定位到粗粒度节点
     const blockParts = anchor.xpath.split("/").filter((p) => p && !p.startsWith("text()"));
     if (blockParts.length === 0) return null;
 
-    // 在 container 内查找匹配元素
     const candidates = container.querySelectorAll(
       blockParts[blockParts.length - 1].replace(/\[\d+\]/, ""),
     );
@@ -135,7 +431,6 @@ function tryXPath(anchor: TextAnchor, container: HTMLElement): Range | null {
     for (const candidate of candidates) {
       const text = candidate.textContent || "";
       if (text.includes(anchor.exact)) {
-        // 在候选元素内查找精确位置
         return findTextInRange(anchor.exact, candidate as HTMLElement);
       }
     }
@@ -147,18 +442,56 @@ function tryXPath(anchor: TextAnchor, container: HTMLElement): Range | null {
 
 function tryTextSearch(anchor: TextAnchor, container: HTMLElement): Range | null {
   const fullText = container.textContent || "";
-  const searchText = anchor.prefix + anchor.exact + anchor.suffix;
+  const searchText = (anchor.prefix || "") + anchor.exact + (anchor.suffix || "");
 
   let startIdx = fullText.indexOf(searchText);
   if (startIdx === -1) {
-    // 降级：仅搜索 exact
     startIdx = fullText.indexOf(anchor.exact);
     if (startIdx === -1) return null;
     return findTextInRange(anchor.exact, container);
   }
 
-  const exactStart = startIdx + anchor.prefix.length;
+  const exactStart = startIdx + (anchor.prefix?.length || 0);
   return findTextInRange(anchor.exact, container, exactStart);
+}
+
+/**
+ * 段 3：块级粗粒度回退。
+ *
+ * 即使精确文本无法匹配（如跨语言翻译），仍能通过 anchor.xpath 找到块级元素的
+ * DOM 引用，整体选中该元素作为粗粒度高亮。用户至少看到「这段被注解过」，
+ * hover 仍能弹出注解内容。
+ *
+ * 这是「注解不消失」承诺的最后防线。
+ */
+function resolveBlockFallback(anchor: TextAnchor, container: HTMLElement): Range | null {
+  try {
+    const parts = anchor.xpath.split("/").filter((p) => p && !p.startsWith("text()"));
+    if (parts.length === 0) return null;
+
+    // 解析 XPath 风格的路径（如 "/p[2]/strong[1]"）逐级定位
+    let cur: Element = container;
+    for (const part of parts) {
+      const match = /^([a-zA-Z0-9]+)(?:\[(\d+)\])?$/.exec(part);
+      if (!match) return null;
+      const [, tag, idxStr] = match;
+      const siblings = Array.from(cur.children).filter(
+        (c) => c.tagName.toLowerCase() === tag.toLowerCase(),
+      );
+      const idx = idxStr ? parseInt(idxStr, 10) - 1 : 0;
+      const next = siblings[idx];
+      if (!next) return null;
+      cur = next;
+    }
+
+    // 整体选中该块级元素的内容
+    if (!cur.firstChild) return null;
+    const range = document.createRange();
+    range.selectNodeContents(cur);
+    return range;
+  } catch {
+    return null;
+  }
 }
 
 function findTextInRange(
@@ -172,7 +505,10 @@ function findTextInRange(
   while (walker.nextNode()) {
     const node = walker.currentNode as Text;
     const nodeText = node.textContent || "";
-    const localIdx = nodeText.indexOf(text, hintOffset !== undefined ? Math.max(0, hintOffset - currentOffset) : 0);
+    const localIdx = nodeText.indexOf(
+      text,
+      hintOffset !== undefined ? Math.max(0, hintOffset - currentOffset) : 0,
+    );
 
     if (localIdx !== -1) {
       const range = document.createRange();
@@ -183,4 +519,9 @@ function findTextInRange(
     currentOffset += nodeText.length;
   }
   return null;
+}
+
+/** 极简语言检测：含 CJK 字符 → "zh"，否则 "en"。仅用于诊断，不参与匹配。 */
+function detectLang(text: string): string {
+  return /[一-鿿]/.test(text) ? "zh" : "en";
 }
