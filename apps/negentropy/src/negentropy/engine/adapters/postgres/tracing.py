@@ -235,59 +235,60 @@ class TracingManager:
             processors.append(BatchSpanProcessor(PostgresSpanExporter()))
 
             # OTLP: 实时可视化 (Langfuse)
+            langfuse = settings.observability
+
             if self.otlp_exporter:
                 # 优先使用注入的 Exporter (测试用)
                 processors.append(BatchSpanProcessor(self.otlp_exporter))
             else:
-                # 优先使用 ObservabilitySettings 配置
-                langfuse = settings.observability
+                # 使用传入的 endpoint 或配置中的 Langfuse OTLP 端点
+                endpoint = self.otlp_endpoint or langfuse.langfuse_otlp_endpoint
 
-            # 使用传入的 endpoint 或配置中的 Langfuse OTLP 端点
-            endpoint = self.otlp_endpoint or langfuse.langfuse_otlp_endpoint
+                should_enable_otlp = (
+                    # 显式传入了 endpoint
+                    self.otlp_endpoint is not None
+                    # 或者配置了 Langfuse 且启用了 export
+                    or (langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langfuse_secret_key)
+                )
 
-            should_enable_otlp = (
-                # 显式传入了 endpoint
-                self.otlp_endpoint is not None
-                # 或者配置了 Langfuse 且启用了 export
-                or (langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langfuse_secret_key)
-            )
+                if should_enable_otlp:
+                    if OTLPSpanExporter:
+                        logger.info(f"OTLP Export enabled: endpoint={endpoint}")
+                        headers = {}
+                        # 如果有 Langfuse 凭证，添加 Basic Auth Header
+                        if langfuse.langfuse_public_key and langfuse.langfuse_secret_key:
+                            import base64
 
-            if should_enable_otlp:
-                if OTLPSpanExporter:
-                    logger.info(f"OTLP Export enabled: endpoint={endpoint}")
-                    headers = {}
-                    # 如果有 Langfuse 凭证，添加 Basic Auth Header
-                    if langfuse.langfuse_public_key and langfuse.langfuse_secret_key:
-                        import base64
+                            # Langfuse 使用 Basic Auth (User=Public Key, Pass=Secret Key)
+                            credentials = (
+                                f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
+                            )
+                            basic_auth = base64.b64encode(credentials.encode()).decode()
+                            headers["Authorization"] = f"Basic {basic_auth}"
+                            # Log masked credentials for debugging
+                            pk_preview = (
+                                langfuse.langfuse_public_key[:8] + "..."
+                                if len(langfuse.langfuse_public_key) > 8
+                                else "***"
+                            )
+                            logger.info(f"Using Langfuse credentials: {pk_preview}")
 
-                        # Langfuse 使用 Basic Auth (User=Public Key, Pass=Secret Key)
-                        credentials = (
-                            f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
-                        )
-                        basic_auth = base64.b64encode(credentials.encode()).decode()
-                        headers["Authorization"] = f"Basic {basic_auth}"
-                        # Log masked credentials for debugging
-                        pk_preview = (
-                            langfuse.langfuse_public_key[:8] + "..." if len(langfuse.langfuse_public_key) > 8 else "***"
-                        )
-                        logger.info(f"Using Langfuse credentials: {pk_preview}")
-
-                    try:
-                        otlp_exporter = OTLPSpanExporter(endpoint=endpoint, headers=headers)
-                        processors.append(BatchSpanProcessor(otlp_exporter))
-                        logger.info(f"OTLP Exporter created and added: {type(otlp_exporter).__name__}")
-                    except Exception as e:
-                        logger.error(f"Failed to create OTLP Exporter: {e}")
+                        try:
+                            otlp_exporter = OTLPSpanExporter(endpoint=endpoint, headers=headers)
+                            processors.append(BatchSpanProcessor(otlp_exporter))
+                            logger.info(f"OTLP Exporter created and added: {type(otlp_exporter).__name__}")
+                        except Exception as e:
+                            logger.error(f"Failed to create OTLP Exporter: {e}")
+                    else:
+                        logger.warning("OTLP Exporter requested but opentelemetry-exporter-otlp not installed.")
                 else:
-                    logger.warning("OTLP Exporter requested but opentelemetry-exporter-otlp not installed.")
-            else:
-                # OTLP not enabled - log diagnostic information
-                logger.warning("OTLP Export NOT enabled - checking conditions...")
-                logger.warning(f"  otlp_endpoint: {self.otlp_endpoint}")
-                logger.warning(f"  langfuse_enabled: {langfuse.langfuse_enabled}")
-                logger.warning(f"  langfuse_public_key: {bool(langfuse.langfuse_public_key)}")
-                logger.warning(f"  langfuse_secret_key: {bool(langfuse.langfuse_secret_key)}")
-                logger.warning(f"  OTLPSpanExporter available: {OTLPSpanExporter is not None}")
+                    # OTLP not enabled - log diagnostic information
+                    logger.warning("OTLP Export NOT enabled - checking conditions...")
+                    logger.warning(f"  otlp_endpoint: {self.otlp_endpoint}")
+                    logger.warning(f"  langfuse_enabled: {langfuse.langfuse_enabled}")
+                    logger.warning(f"  langfuse_public_key: {bool(langfuse.langfuse_public_key)}")
+                    logger.warning(f"  langfuse_secret_key: {bool(langfuse.langfuse_secret_key)}")
+                    logger.warning(f"  OTLPSpanExporter available: {OTLPSpanExporter is not None}")
 
         if self.console_export:
             processors.append(BatchSpanProcessor(ConsoleSpanExporter()))
