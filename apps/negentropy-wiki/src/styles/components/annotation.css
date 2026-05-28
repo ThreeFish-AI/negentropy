@@ -13,14 +13,8 @@
   background: rgba(255, 212, 59, 0.45);
 }
 
-/* CSS Custom Highlight API 路径 —— 浏览器翻译态下使用，
-   不修改 DOM 因而免疫 <font> 包裹破坏。
-   参考：https://drafts.csswg.org/css-highlight-api/ */
-::highlight(wiki-annotation) {
-  background-color: rgba(255, 212, 59, 0.32);
-  text-decoration: underline wavy rgba(255, 180, 0, 0.7);
-  text-decoration-skip-ink: none;
-}
+/* CSS Custom Highlight API 路径的样式通过 JS 运行时注入（use-highlight-renderer.ts），
+   绕过 LightningCSS 不识别 ::highlight() 伪元素的构建限制 */
 
 /* 浮动注解按钮 */
 .wiki-annotation-fab {

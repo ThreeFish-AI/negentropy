@@ -31,6 +31,20 @@ import type { AnnotationItem } from "./use-annotations";
 
 const CSS_HIGHLIGHT_NAME = "wiki-annotation";
 
+/** 运行时注入 ::highlight() 样式（绕过 LightningCSS 不识别该伪元素的构建限制） */
+const HIGHLIGHT_STYLE_ID = "wiki-annotation-highlight-style";
+function injectHighlightStyle(): void {
+  if (document.getElementById(HIGHLIGHT_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = HIGHLIGHT_STYLE_ID;
+  style.textContent = `::highlight(${CSS_HIGHLIGHT_NAME}) {
+  background-color: rgba(255, 212, 59, 0.32);
+  text-decoration: underline wavy rgba(255, 180, 0, 0.7);
+  text-decoration-skip-ink: none;
+}`;
+  document.head.appendChild(style);
+}
+
 export interface HighlightGroupInput {
   /** 注解 ID 列表（重叠的多条注解会合并为一个 group） */
   annotationIds: string[];
@@ -156,6 +170,7 @@ export function createCSSHighlightRenderer(): HighlightRenderer {
     apply(groups) {
       currentGroups = groups;
       try {
+        injectHighlightStyle();
         const HighlightCtor = (window as unknown as {
           Highlight: new (...ranges: Range[]) => HighlightWithRanges;
         }).Highlight;
