@@ -254,15 +254,17 @@ function computeBlockOffset(block: HTMLElement, container: HTMLElement): number 
 /**
  * 给定锚定数据，在 container 中定位目标文本，返回 DOM Range。
  *
- * 三段式解析（每段独立失败 → 进入下一段，保证「注解不消失」）：
+ * 四段式解析（每段独立失败 → 进入下一段，保证「注解不消失」）：
  *   段 1：snapshot 精确匹配（仅在 anchor_version >= 2 且 hash 一致时）
  *   段 2：当前 DOM 的 prefix+exact+suffix 全文搜索（兼容 v1 anchor 与同语言场景）
+ *   段 2.5：用 quoted_text（创建时用户看到的显示文本）搜索当前 DOM（跨语言匹配）
  *   段 3：块级元素粗粒度回退（用 xpath 找块级元素，整体选中）
  */
 export function resolveAnchor(
   anchor: TextAnchor,
   container: HTMLElement,
   snapshot?: AnnotationSnapshot | null,
+  quotedText?: string,
 ): Range | null {
   // 段 1：snapshot 精确（仅 v2+ anchor 且 hash 一致）
   if (
@@ -281,6 +283,13 @@ export function resolveAnchor(
   if (xpathRange) return xpathRange;
   const textRange = tryTextSearch(anchor, container);
   if (textRange) return textRange;
+
+  // 段 2.5：quoted_text 跨语言匹配。用注解创建时的显示文本在当前 DOM 中搜索，
+  // 解决 anchor.exact（原文）与翻译后 DOM 不匹配的问题。
+  if (quotedText && quotedText !== anchor.exact) {
+    const quotedRange = findTextInRange(quotedText, container);
+    if (quotedRange) return quotedRange;
+  }
 
   // 段 3：块级粗粒度回退 —— 保证用户至少看到"这段被注解过"
   return resolveBlockFallback(anchor, container);
@@ -372,6 +381,11 @@ function computeXPath(node: Node, container: HTMLElement): string {
   while (current && current !== container) {
     if (current.nodeType === Node.ELEMENT_NODE) {
       const el = current as HTMLElement;
+      // 跳过浏览器翻译产物（如 <font>），确保 XPath 跨翻译态一致
+      if (TRANSLATION_SKIP_TAGS.has(el.tagName)) {
+        current = current.parentNode as Node;
+        continue;
+      }
       const parent = el.parentElement;
       if (parent) {
         const siblings = Array.from(parent.children).filter(
@@ -466,7 +480,14 @@ function tryTextSearch(anchor: TextAnchor, container: HTMLElement): Range | null
  */
 function resolveBlockFallback(anchor: TextAnchor, container: HTMLElement): Range | null {
   try {
-    const parts = anchor.xpath.split("/").filter((p) => p && !p.startsWith("text()"));
+    // 过滤 text() 和翻译产物元素（如 font），确保 XPath 跨翻译态一致
+    const parts = anchor.xpath
+      .split("/")
+      .filter((p) => p && !p.startsWith("text()"))
+      .filter((p) => {
+        const match = /^([a-zA-Z0-9]+)/.exec(p);
+        return match && !TRANSLATION_SKIP_TAGS.has(match[1].toUpperCase());
+      });
     if (parts.length === 0) return null;
 
     // 解析 XPath 风格的路径（如 "/p[2]/strong[1]"）逐级定位
@@ -525,3 +546,6 @@ function findTextInRange(
 function detectLang(text: string): string {
   return /[一-鿿]/.test(text) ? "zh" : "en";
 }
+
+/** 浏览器翻译产物元素 —— computeXPath / resolveBlockFallback 跳过此类标签，确保 XPath 跨翻译态一致。 */
+const TRANSLATION_SKIP_TAGS = new Set(["FONT"]);

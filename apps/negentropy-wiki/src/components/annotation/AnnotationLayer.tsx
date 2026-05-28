@@ -15,9 +15,8 @@ interface Props {
 }
 
 export function AnnotationLayer({ entryId, children }: Props) {
-  const { annotations, createAnnotation, loading } = useAnnotations(entryId);
-  // status from useWikiAuth is read by child components; no direct use here
-  useWikiAuth();
+  const { annotations, createAnnotation, deleteAnnotation, loading } = useAnnotations(entryId);
+  const { user } = useWikiAuth();
   const contentRef = useRef<HTMLDivElement>(null);
   // 稳定快照：mount 后立即抓取，作为注解锚定的唯一权威坐标系。
   // entryId 变化时重抓（切换不同文章）。详见 use-snapshot.ts。
@@ -68,6 +67,8 @@ export function AnnotationLayer({ entryId, children }: Props) {
           containerRef={contentRef}
           annotations={annotations}
           snapshotRef={snapshotRef}
+          onDeleteAnnotation={deleteAnnotation}
+          currentUserId={user?.userId}
         />
       )}
       <TextSelectionHandler
