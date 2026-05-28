@@ -56,7 +56,6 @@ async function setupAuditRoutes(page: import("@playwright/test").Page) {
     if (url.includes("/api/memory/dashboard")) return route.continue();
     if (url.includes("/api/memory/conflicts")) return route.continue();
     if (url.includes("/api/memory/facts")) return route.continue();
-    if (url.includes("/api/memory/automation")) return route.continue();
     if (url.includes("/api/memory/retrieval")) return route.continue();
     if (url.includes("/api/memory/search")) return route.continue();
     await route.fulfill({

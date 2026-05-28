@@ -32,14 +32,15 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, select
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select, text
 
 from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 from negentropy.models.state import UserState
 
@@ -47,7 +48,6 @@ from .factories.memory import (
     get_association_service,
     get_conflict_resolver,
     get_fact_service,
-    get_memory_automation_service,
     get_memory_governance_service,
     get_memory_service,
     get_proactive_recall_service,
@@ -156,87 +156,6 @@ class MemoryDashboardResponse(BaseModel):
     low_retention_count: int
     high_importance_count: int = 0
     recent_audit_count: int
-
-
-class MemoryAutomationFunctionResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    name: str
-    schema_name: str = Field(alias="schema", serialization_alias="schema")
-    status: str
-    definition: str
-    managed: bool = True
-
-
-class MemoryAutomationJobResponse(BaseModel):
-    job_key: str
-    process_label: str
-    function_name: str
-    enabled: bool
-    status: str
-    task_id: str | None = None
-    schedule: str
-    last_status: str | None = None
-    last_fire_at: str | None = None
-    next_fire_at: str | None = None
-
-
-class MemoryAutomationProcessResponse(BaseModel):
-    key: str
-    label: str
-    description: str
-    config: dict[str, Any] = Field(default_factory=dict)
-    job: MemoryAutomationJobResponse | None = None
-    functions: list[MemoryAutomationFunctionResponse] = Field(default_factory=list)
-
-
-class MemoryAutomationCapabilitiesResponse(BaseModel):
-    scheduler_type: str = "unified_registry"
-    management_mode: str
-    degraded_reasons: list[str] = Field(default_factory=list)
-
-
-class MemoryAutomationHealthResponse(BaseModel):
-    status: str
-    recent_log_count: int
-
-
-class MemoryAutomationSnapshotResponse(BaseModel):
-    capabilities: MemoryAutomationCapabilitiesResponse
-    config: dict[str, Any]
-    processes: list[MemoryAutomationProcessResponse]
-    functions: list[MemoryAutomationFunctionResponse]
-    jobs: list[MemoryAutomationJobResponse]
-    health: MemoryAutomationHealthResponse
-
-
-class MemoryAutomationLogItemResponse(BaseModel):
-    execution_id: str | None = None
-    task_id: str | None = None
-    task_key: str | None = None
-    status: str | None = None
-    duration_ms: int | None = None
-    started_at: str | None = None
-    finished_at: str | None = None
-    output_summary: str | None = None
-    error: str | None = None
-
-
-class MemoryAutomationLogsResponse(BaseModel):
-    count: int
-    items: list[MemoryAutomationLogItemResponse] = Field(default_factory=list)
-
-
-class MemoryAutomationConfigUpdateRequest(BaseModel):
-    app_name: str | None = None
-    config: dict[str, Any]
-
-
-class MemoryAutomationRunResponse(BaseModel):
-    job_key: str
-    process_label: str
-    result: int | dict[str, Any] | None = None
-    snapshot: MemoryAutomationSnapshotResponse
 
 
 # ============================================================================
@@ -434,7 +353,6 @@ async def list_memories(
     返回用户列表、记忆时间线和当前治理策略。
     """
     resolved_app = _resolve_app_name(app_name)
-    automation = get_memory_automation_service()
 
     async with AsyncSessionLocal() as db:
         # 获取用户列表
@@ -495,7 +413,18 @@ async def list_memories(
         for m in memories
     ]
 
-    policies = await automation.list_policy_summary(app_name=resolved_app)
+    async with AsyncSessionLocal() as db:
+        pol_result = await db.execute(
+            text(
+                f"SELECT key, enabled, cron_expr, last_status "
+                f"FROM {NEGENTROPY_SCHEMA}.scheduled_tasks "
+                f"WHERE handler_kind = 'memory_automation' ORDER BY key"
+            )
+        )
+        pol_rows = pol_result.mappings().all()
+    policies = {
+        "managed_jobs": {r["key"]: ("enabled" if r["enabled"] else "disabled") for r in pol_rows},
+    }
 
     return MemoryListResponse(
         users=users,
@@ -703,111 +632,6 @@ async def get_audit_history(
             for r in records
         ],
     }
-
-
-@router.get("/automation", response_model=MemoryAutomationSnapshotResponse)
-async def get_memory_automation_snapshot(
-    app_name: str | None = Query(default=None),
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationSnapshotResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    snapshot = await service.get_snapshot(app_name=_resolve_app_name(app_name))
-    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
-
-
-@router.get("/automation/logs", response_model=MemoryAutomationLogsResponse)
-async def get_memory_automation_logs(
-    app_name: str | None = Query(default=None),
-    limit: int = Query(default=20, ge=1, le=100),
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationLogsResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    _ = _resolve_app_name(app_name)
-    items = await service.get_logs(limit=limit)
-    return MemoryAutomationLogsResponse(count=len(items), items=items)
-
-
-@router.post("/automation/config", response_model=MemoryAutomationSnapshotResponse)
-async def update_memory_automation_config(
-    payload: MemoryAutomationConfigUpdateRequest,
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationSnapshotResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    resolved_app = _resolve_app_name(payload.app_name)
-    try:
-        await service.update_config(
-            app_name=resolved_app,
-            config=payload.config,
-            updated_by=user.user_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    snapshot = await service.get_snapshot(app_name=resolved_app)
-    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
-
-
-@router.post("/automation/jobs/{job_key}/enable", response_model=MemoryAutomationSnapshotResponse)
-async def enable_memory_automation_job(
-    job_key: str,
-    app_name: str | None = Query(default=None),
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationSnapshotResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    try:
-        snapshot = await service.enable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
-
-
-@router.post("/automation/jobs/{job_key}/disable", response_model=MemoryAutomationSnapshotResponse)
-async def disable_memory_automation_job(
-    job_key: str,
-    app_name: str | None = Query(default=None),
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationSnapshotResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    try:
-        snapshot = await service.disable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
-
-
-@router.post("/automation/jobs/{job_key}/reconcile", response_model=MemoryAutomationSnapshotResponse)
-async def reconcile_memory_automation_job(
-    job_key: str,
-    app_name: str | None = Query(default=None),
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationSnapshotResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    try:
-        snapshot = await service.reconcile_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
-
-
-@router.post("/automation/jobs/{job_key}/run", response_model=MemoryAutomationRunResponse)
-async def run_memory_automation_job(
-    job_key: str,
-    app_name: str | None = Query(default=None),
-    user: AuthUser = Depends(get_current_user),
-) -> MemoryAutomationRunResponse:
-    user = await _require_admin(user)
-    service = get_memory_automation_service()
-    try:
-        result = await service.run_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    result["snapshot"] = MemoryAutomationSnapshotResponse.model_validate(result["snapshot"])
-    return MemoryAutomationRunResponse.model_validate(result)
 
 
 # ============================================================================
