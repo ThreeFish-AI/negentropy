@@ -87,9 +87,10 @@ test("Facts 初始展示 All Users 视图直接加载事实", async ({ page }) =
   await page.goto("/memory/facts");
   // "All Users" pill is visible by default
   await expect(page.getByRole("button", { name: "All Users" })).toBeVisible();
-  // Facts grid is shown with user labels
+  // Facts grid is shown with user labels on cards
   await expect(page.getByText("preferred_language")).toBeVisible();
-  await expect(page.getByText("Test User 1")).toBeVisible();
+  // User label badge appears on FactCard (scoped to article to avoid filter/sidebar matches)
+  await expect(page.locator("article").getByText("Test User 1").first()).toBeVisible();
 });
 
 test("Facts 加载列表展示 Key/Type/Confidence", async ({ page }) => {
