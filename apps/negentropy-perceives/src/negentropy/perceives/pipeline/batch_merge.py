@@ -526,9 +526,9 @@ def merge_pipeline_results(
                 seen_engines.add(eng)
 
     stage_results: dict = {}
-    for i, r in enumerate(results):
+    for r, (page_start, page_end) in zip(results, slice_ranges):
         for stage_name, stage_data in (r.stage_results or {}).items():
-            stage_results[f"slice_{i}.{stage_name}"] = stage_data
+            stage_results[f"pages_{page_start}-{page_end}.{stage_name}"] = stage_data
 
     return MergedBatchResult(
         markdown=merged_markdown,
