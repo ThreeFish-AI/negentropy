@@ -13,6 +13,7 @@ import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { HomeCard } from "@/components/home/HomeCard";
+import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
 import { WikiFooter } from "@/components/home/WikiFooter";
 import { getPublicationIcon } from "@/components/home/CardIcons";
 
@@ -111,7 +112,7 @@ export default async function WikiHomePage() {
       footer={<WikiFooter />}
     >
       <section className="home-hero">
-        <div className="home-hero-bg" aria-hidden="true" />
+        <GalaxyHeroMount />
         <div className="home-hero-content">
           <p className="home-hero-text">
             关注 AI Infra、Agent 工程化、信息论等领域前沿动态
