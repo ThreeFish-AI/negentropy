@@ -174,3 +174,68 @@ class TestFormatterHyphenation:
         # 三种都是可接受还原 —— 关键是不能出现裸残 "- " 或视觉破坏。
         assert "- " not in result.replace("(PPAR) and the", "")
         assert "merge" in result and "write" in result
+
+    # ---- R10-D19 守护：em-dash 风格连接词不应被误吞 ----
+
+    def test_em_dash_with_lowercase_connector_or_preserved(self) -> None:
+        """``data - or what was left - was deleted`` 这类含 lowercase 连接词的
+        em-dash 风格句不应被合并 —— 右侧 ``or`` 在 connector denylist 内，
+        保留 ` - ` 分隔符。
+        """
+        md = "data - or what was left of it - was deleted by the cleanup script."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "dataor" not in result
+        assert "data - or" in result
+
+    def test_em_dash_with_lowercase_connector_and_preserved(self) -> None:
+        """``X - and indeed Y`` em-dash 风格应保留分隔符。"""
+        md = "the model - and indeed all its variants - achieves high accuracy."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "modeland" not in result
+        assert "model - and" in result
+
+    def test_em_dash_with_lowercase_connector_which_preserved(self) -> None:
+        """``X - which is Y`` 关系代词 em-dash 风格应保留。"""
+        md = "the framework - which is general purpose - covers the use cases."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "frameworkwhich" not in result
+        assert "framework - which" in result
+
+    def test_em_dash_with_latin_abbr_ie_preserved(self) -> None:
+        """``X - i.e., Y`` 拉丁缩写 em-dash 风格应保留。"""
+        md = "the approach - i.e., the gradient method - converges quickly."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "approachi.e." not in result
+        assert "approach - i.e." in result
+
+    def test_em_dash_with_pronoun_it_preserved(self) -> None:
+        """``X - it Y`` 人称代词 em-dash 风格应保留。"""
+        md = "the system - it was tested extensively - performed well."
+        result = self.formatter._apply_typography_fixes(md)
+        assert "systemit" not in result
+        assert "system - it" in result
+
+    def test_hyphenation_with_short_suffix_still_merged(self) -> None:
+        """守护清单仅含完整连接词，syllable 后缀（``ity`` / ``ing``）应继续合并。
+
+        ``it`` 与 ``in`` 虽在 denylist 中，但 ``it`` 在 ``Scalabil - ity`` 里
+        是 ``ity`` 的前缀，不满足 ``\\b`` 词边界，故不命中守护，正常合并。
+        """
+        md = "table cell shows Scalabil - ity and gov - ernance metrics"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "Scalability" in result
+        assert "governance" in result
+
+    # ---- R10-D21 守护：` - ` wrap 收尾不可跨段落 ----
+
+    def test_d21_wrap_does_not_cross_paragraph_break(self) -> None:
+        """段尾 ``word-`` + 段首 lowercase 不应跨段合并 —— ``\\s+`` 收窄为
+        ``[ \\t]+`` 后，``\\n\\n`` 不参与 wrap 收尾。
+        """
+        md = "The author Mary-\n\nsometimes she was called Maria.\n"
+        result = self.formatter._apply_typography_fixes(md)
+        # 段落分隔符必须保留
+        assert "\n\n" in result
+        # 不应跨段合并为单段
+        assert "Marysometimes" not in result
+        assert "Mary-sometimes" not in result

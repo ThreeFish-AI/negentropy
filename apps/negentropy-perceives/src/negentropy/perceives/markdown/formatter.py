@@ -58,6 +58,130 @@ _HOMOGENEOUS_PAIRS = frozenset(
 )
 
 
+# R10-D19 守护词表：em-dash 风格 ``word - connector ...`` 中的常见 RHS 连接词。
+# Why: D19 的 ``word - word`` 合并对学术 PDF 表格 cell / Reference 内的跨行断字
+# （``Scalabil - ity`` → ``Scalability``）有效，但对正文中的 em-dash 风格
+# （``data - or what was left - was deleted``）会误吞分隔符。RHS 词若命中此表，
+# 视为 em-dash 连接词，保留 ``  - `` 原貌；否则按断字处理合并。
+# 涵盖：连词 / 冠词 / 关系代词 / be-have-do 助动词 / 情态动词 / 介词 / 人称代词 /
+# 物主代词 / 常见副词 / 从属连词 / 否定词 / 转折词 / 拉丁缩写 (i.e. / e.g.)。
+_EM_DASH_RHS_CONNECTORS = frozenset(
+    {
+        # 连词
+        "or",
+        "and",
+        "but",
+        "so",
+        "if",
+        "as",
+        "yet",
+        "nor",
+        # 冠词
+        "a",
+        "an",
+        "the",
+        # 关系代词 / 疑问词
+        "that",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "where",
+        "when",
+        "why",
+        "how",
+        # be / have / do
+        "is",
+        "was",
+        "are",
+        "were",
+        "be",
+        "been",
+        "being",
+        "has",
+        "have",
+        "had",
+        "having",
+        "do",
+        "does",
+        "did",
+        "doing",
+        # 情态动词
+        "will",
+        "would",
+        "shall",
+        "should",
+        "can",
+        "could",
+        "may",
+        "might",
+        "must",
+        # 介词
+        "to",
+        "in",
+        "on",
+        "at",
+        "by",
+        "of",
+        "for",
+        "with",
+        "from",
+        "into",
+        "onto",
+        "about",
+        "after",
+        "before",
+        "between",
+        "through",
+        # 人称代词 / 物主代词
+        "i",
+        "it",
+        "he",
+        "she",
+        "we",
+        "they",
+        "you",
+        "its",
+        "his",
+        "her",
+        "our",
+        "their",
+        "your",
+        # 副词
+        "just",
+        "only",
+        "even",
+        "also",
+        "still",
+        "rather",
+        "perhaps",
+        # 从属连词 / 转折
+        "like",
+        "than",
+        "then",
+        "since",
+        "while",
+        "until",
+        "unless",
+        "though",
+        "because",
+        "although",
+        "despite",
+        "except",
+        "namely",
+        "however",
+        "moreover",
+        "furthermore",
+        "instead",
+        # 否定
+        "not",
+        "no",
+    }
+)
+# 拉丁缩写需带尾点匹配，单独保存
+_EM_DASH_RHS_LATIN_ABBR = frozenset({"i.e.", "e.g.", "cf.", "viz."})
+
+
 def _classify_line(line: str) -> _LineType:
     """将 Markdown 行分类为对应的块级元素类型。"""
     for pattern, line_type in _LINE_PATTERNS:
@@ -700,7 +824,11 @@ class MarkdownFormatter:
                 # \u6536\u7d27\u4e3a\u96f6\uff0c\u628a ``acting- interacting`` \u53d8\u6210 ``acting-interacting``\u3002
                 # \u4e0e\u5355\u5b57\u6bcd ``a - b``\uff08\u524d\u5bfc\u7a7a\u683c\u975e lowercase\uff09\u3001 ``LLM-based`` \u5927\u5199\u8fb9\u754c
                 # \uff08\u524d\u5bfc M \u5927\u5199\uff09\u3001 ``30-50`` \u6570\u5b57\uff08\u524d\u5bfc\u975e lowercase\uff09\u5747\u4e92\u65a5\u3002
-                text = re.sub(r"(?<=[a-z])-\s+(?=[a-z]{2})", "-", text)
+                #
+                # \u6536\u7a84\u7a7a\u767d\u96c6\u4e3a ``[ \t]+``\uff1a\u907f\u514d ``\s+`` \u547d\u4e2d ``\n`` \u4ece\u800c\u628a\u884c/\u6bb5\u843d
+                # \u8fb9\u754c\u541e\u6389\uff08\u5982\u6bb5\u5c3e ``word-`` + \u6bb5\u9996 lowercase \u8de8\u6bb5\u5408\u5e76\uff09\uff0c\u7834\u574f
+                # markdown \u6bb5\u843d\u7ed3\u6784\u3002
+                text = re.sub(r"(?<=[a-z])-[ \t]+(?=[a-z]{2})", "-", text)
 
                 # R10-D22\uff1aLatin-1 \u91cd\u97f3\u5b57\u7b26\u7684 UTF-8 \u2192 CP1252 \u53cc\u7f16\u7801 mojibake \u8fd8\u539f\u3002
                 # \u539f ``\u00ed`` UTF-8 ``\\xc3\\xad`` \u88ab CP1252 \u89e3\u4e3a ``\u00c3 + U+00AD``\uff0c
@@ -748,7 +876,25 @@ class MarkdownFormatter:
                 # \u98ce\u683c ``Section A - Section B``\uff09\u3002Springer \u671f\u520a References /
                 # Table cells \u9ad8\u9891\u51fa\u73b0 ``Scalabil - ity`` / ``gov - ernance`` /
                 # ``sym - bolic`` / ``Mo - zolevskyi`` \u7b49\u6a21\u5f0f\u3002
-                text = re.sub(r"(?<=[a-zA-Z]{2}) - (?=[a-z]{2})", "", text)
+                #
+                # \u5b88\u62a4\uff1a\u53f3\u4fa7\u82e5\u662f\u5e38\u89c1 em-dash \u8fde\u63a5\u8bcd\uff08``or`` / ``and`` / ``the`` /
+                # ``which`` / ``i.e.`` \u7b49\uff0c\u8be6\u89c1 ``_EM_DASH_RHS_CONNECTORS`` \u4e0e
+                # ``_EM_DASH_RHS_LATIN_ABBR``\uff09\uff0c\u4fdd\u7559 ` - ` \u539f\u8c8c\u4ee5\u907f\u514d\u8bef\u541e\u6b63\u6587
+                # em-dash\uff08``data - or what was left - was deleted``\uff09\u3002
+                def _collapse_bothside_wrap(match: re.Match) -> str:
+                    rhs = match.group(1).lower()
+                    if rhs in _EM_DASH_RHS_CONNECTORS or rhs in _EM_DASH_RHS_LATIN_ABBR:
+                        return match.group(0)
+                    return match.group(1)
+
+                # 拉丁缩写以 ``.`` 结尾且后续常跟 ``,`` / ``;``，``\b`` 无法在
+                # 双非字符位置成立，故拉丁缩写分支不带 ``\b``；普通词分支带 ``\b``
+                # 以严格限定单词边界。
+                text = re.sub(
+                    r"(?<=[a-zA-Z]{2}) - ((?:i\.e|e\.g|cf|viz)\.|[a-z]+\b)",
+                    _collapse_bothside_wrap,
+                    text,
+                )
 
                 # \u9632\u5fa1\u515c\u5e95\uff1a\u6e05\u9664\u4efb\u4f55\u6b8b\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u7b26\u4e0d\u5e94\u8fdb\u5165 markdown\uff09
                 text = text.replace("\u00ad", "")

@@ -538,10 +538,22 @@ class FitzTextExtractor(PDFToolBase):
 
             # R10-D16：编号开头但内含完整句子（学术 PDF 列表项常被 PyMuPDF
             # 抽为单段，再因 ``^\d+\.`` 前缀被升级为 heading，破坏文档大纲）。
-            # 句子型正文的强信号：① 作者代词 ``We / I / Our`` 接动词；② 不定式
-            # 列表 ``To <verb>``（连续逗号分隔项）；③ 显著主谓 + 多逗号子句。
-            # 10. 含作者代词 + 后续小写（动词起首）的句子结构
-            if re.search(r"\b(We|I|Our)\s+[a-z]", section_title):
+            # 句子型正文的强信号：① 作者代词 ``We / Our`` 接小写动词；
+            # ② 不定式列表 ``To <verb>``（连续逗号分隔项）；③ 显著主谓 + 多逗号
+            # 子句；④ 第一人称 ``I`` 接学术叙述动词（``I propose / introduce / ...``）。
+            # 10a. ``We`` / ``Our`` + 后续小写（动词起首）的句子结构
+            if re.search(r"\b(We|Our)\s+[a-z]", section_title):
+                return None
+            # 10b. 单字母 ``I`` 单独识别 —— 避免误伤 ``Phase I improvements`` /
+            # ``Type I errors`` 这类含罗马数字 I 的合法 heading。仅当 I 后紧跟
+            # 常见学术叙述动词时才视为句子型正文。
+            if re.search(
+                r"\bI\s+(?:propose|introduce|present|argue|show|find|study|"
+                r"explore|describe|analyze|investigate|examine|believe|think|"
+                r"claim|note|observe|demonstrate|prove|assume|hypothesize|"
+                r"conclude|discuss|review|survey|provide|develop|design)\b",
+                section_title,
+            ):
                 return None
             # 11. 不定式列表起首（``To identify, classify, and ...``）
             if re.match(r"^To\s+[a-z]+,\s+\w+,", section_title):
@@ -596,10 +608,20 @@ class FitzTextExtractor(PDFToolBase):
             return None
 
         # R10-D16 续：非编号路径下也过滤句子型正文（章节 lead-in 句被字号守卫
-        # 误升级）。强信号：作者代词 ``We / I / Our`` + 后续 2 个以上小写词，
+        # 误升级）。强信号：作者代词 ``We / Our`` + 后续 2 个以上小写词，
         # 仅当文本长度 > 50 时启用，避免误删合法短标题如 ``Our Method``。
+        # ``I`` 单字母不在通用守护范围（罗马数字 I 与代词 I 难以区分），
+        # 仅当 I 后紧跟学术叙述动词时才视为句子型正文。
         if len(text_stripped) > 50 and re.search(
-            r"\b(We|I|Our)\s+[a-z]+\s+[a-z]", text_stripped
+            r"\b(We|Our)\s+[a-z]+\s+[a-z]", text_stripped
+        ):
+            return None
+        if len(text_stripped) > 50 and re.search(
+            r"\bI\s+(?:propose|introduce|present|argue|show|find|study|"
+            r"explore|describe|analyze|investigate|examine|believe|think|"
+            r"claim|note|observe|demonstrate|prove|assume|hypothesize|"
+            r"conclude|discuss|review|survey|provide|develop|design)\b",
+            text_stripped,
         ):
             return None
 

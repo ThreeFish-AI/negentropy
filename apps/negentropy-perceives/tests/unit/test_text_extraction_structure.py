@@ -184,3 +184,58 @@ class TestHeadingClassification:
             text, self.HEADING_FONT, self.BODY_FONT
         )
         assert result == 1
+
+    # ---- R10-D16 守护：罗马数字 I 与代词 I 区分 ----
+
+    @pytest.mark.parametrize(
+        "text,expected_level",
+        [
+            # 罗马数字 I 后跟 lowercase 词的合法 heading（``Phase I improvements`` /
+            # ``Type I errors`` / ``Class I features``）。旧版 ``\\b(We|I|Our)\\s+[a-z]``
+            # 会误吞这些，需走 verb-anchored 守护避开。
+            ("1 Phase I improvements over baseline systems", 1),
+            ("2 Type I errors in evaluation methodology", 1),
+            ("3 Class I features of the proposed model", 1),
+            ("4 Period I results from the analysis", 1),
+        ],
+    )
+    def test_roman_numeral_I_heading_preserved(
+        self, text: str, expected_level: int
+    ) -> None:
+        """编号 heading 含罗马数字 I + lowercase 词不应被句子型过滤命中。"""
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result == expected_level, (
+            f"expected h{expected_level} for {text!r}, got {result}"
+        )
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            # 学术第一人称 ``I`` + 叙述动词：应识别为句子型正文。
+            "1. I propose a novel framework for agent coordination",
+            "2. I introduce a new taxonomy spanning agentic paradigms",
+            "3. I argue that existing approaches fail to address scalability",
+            "4. I demonstrate the effectiveness of the proposed model",
+        ],
+    )
+    def test_first_person_I_with_academic_verb_filtered(self, text: str) -> None:
+        """``I`` 后紧跟学术叙述动词（propose / introduce / argue / demonstrate
+        等）的句子型正文应过滤。"""
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        assert result is None, f"first-person sentence misclassified as h{result}"
+
+    def test_roman_numeral_I_non_numbered_preserved(self) -> None:
+        """非编号路径下，``Phase I introduction`` 这类长 heading 含罗马数字 I 不应被
+        过滤（``introduction`` 是名词非叙述动词，且 ``I`` 后接它构不成学术第一人称句）。
+        长度 > 50 触发字号守卫但 verb-anchored 守护不命中。
+        """
+        text = "Phase I introduction of new reasoning capabilities for agents"
+        result = FitzTextExtractor._detect_heading(
+            text, self.HEADING_FONT, self.BODY_FONT
+        )
+        # 字号守卫接受为 heading（size_ratio 决定级别）
+        assert result is not None, f"Roman-numeral I heading dropped: got {result!r}"
