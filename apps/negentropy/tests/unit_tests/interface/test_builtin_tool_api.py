@@ -426,3 +426,161 @@ class TestTestBuiltinToolGeneric:
                 await interface_api.test_builtin_tool(tool_id=tool_id, payload=None, user=_user)
 
         assert exc.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# 5) 凭证脱敏回传：_merge_masked_credentials 辅助函数 + 端点集成
+# ---------------------------------------------------------------------------
+
+
+class TestIsMaskedValue:
+    """_is_masked_value 脱敏占位检测。"""
+
+    def test_masked_long_value(self) -> None:
+        assert interface_api._is_masked_value("AIza****1234") is True
+
+    def test_masked_short_value(self) -> None:
+        assert interface_api._is_masked_value("****") is True
+
+    def test_normal_string_not_masked(self) -> None:
+        assert interface_api._is_masked_value("AIzaSyB-abc123") is False
+
+    def test_empty_string_not_masked(self) -> None:
+        assert interface_api._is_masked_value("") is False
+
+    def test_non_string_not_masked(self) -> None:
+        assert interface_api._is_masked_value(42) is False
+        assert interface_api._is_masked_value(None) is False
+        assert interface_api._is_masked_value({}) is False
+
+    def test_single_star_not_masked(self) -> None:
+        assert interface_api._is_masked_value("AIza*1234") is False
+
+    def test_three_stars_not_masked(self) -> None:
+        assert interface_api._is_masked_value("AIza***1234") is False
+
+
+class TestMergeMaskedCredentials:
+    """_merge_masked_credentials 脱敏值替换为 DB 真实值。"""
+
+    def test_masked_replaced_with_stored(self) -> None:
+        result = interface_api._merge_masked_credentials(
+            {"api_key": "AIza****1234"},
+            {"api_key": "AIzaSyB-real-key"},
+        )
+        assert result == {"api_key": "AIzaSyB-real-key"}
+
+    def test_new_value_preserved(self) -> None:
+        result = interface_api._merge_masked_credentials(
+            {"api_key": "brand-new-key"},
+            {"api_key": "old-key"},
+        )
+        assert result == {"api_key": "brand-new-key"}
+
+    def test_mixed_masked_and_new(self) -> None:
+        result = interface_api._merge_masked_credentials(
+            {"api_key": "AIza****1234", "secret": "new-secret"},
+            {"api_key": "real-key", "secret": "old-secret"},
+        )
+        assert result == {"api_key": "real-key", "secret": "new-secret"}
+
+    def test_masked_without_stored_kept_as_is(self) -> None:
+        result = interface_api._merge_masked_credentials(
+            {"api_key": "****"},
+            {},
+        )
+        assert result == {"api_key": "****"}
+
+    def test_empty_incoming_returns_empty(self) -> None:
+        result = interface_api._merge_masked_credentials({}, {"api_key": "real"})
+        assert result == {}
+
+    def test_empty_stored_masked_preserved(self) -> None:
+        result = interface_api._merge_masked_credentials({"k": "****"}, {})
+        assert result == {"k": "****"}
+
+
+class TestTestBuiltinToolMaskedCredentials:
+    """前端回传脱敏凭证时，test 端点用 DB 真实值调用 Google API。"""
+
+    @pytest.mark.asyncio
+    async def test_masked_api_key_replaced_with_stored(self, _user) -> None:
+        """前端回传脱敏 api_key，test 端点用 DB 真实 key 调 Google API。"""
+        tool_id = uuid4()
+        tool = _make_tool(
+            tool_id=tool_id,
+            config={"cx_id": "real-cx"},
+            credentials={"api_key": "AIzaSyB-real-api-key-12345"},
+        )
+
+        fake_db = MagicMock()
+        fake_db.get = AsyncMock(return_value=tool)
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_client = MagicMock()
+        fake_client.get = AsyncMock(return_value=fake_response)
+        fake_client.__aenter__ = AsyncMock(return_value=fake_client)
+        fake_client.__aexit__ = AsyncMock(return_value=False)
+
+        # 模拟前端：cx_id 未脱敏，api_key 是 GET 返回的脱敏值
+        payload = interface_api.BuiltinToolTestRequest(
+            config={"cx_id": "real-cx"},
+            credentials={"api_key": "AIza****2345"},
+        )
+
+        with (
+            patch.object(interface_api, "AsyncSessionLocal", _mock_async_session(fake_db)),
+            patch.object(
+                interface_api,
+                "check_plugin_access",
+                new=AsyncMock(return_value=(True, None)),
+            ),
+            patch("httpx.AsyncClient", return_value=fake_client),
+        ):
+            resp = await interface_api.test_builtin_tool(tool_id=tool_id, payload=payload, user=_user)
+
+        assert resp.success is True
+        call_kwargs = fake_client.get.await_args.kwargs
+        assert call_kwargs["params"]["key"] == "AIzaSyB-real-api-key-12345"
+        assert call_kwargs["params"]["cx"] == "real-cx"
+
+    @pytest.mark.asyncio
+    async def test_new_api_key_not_replaced(self, _user) -> None:
+        """用户输入全新 API Key（非脱敏），test 端点使用新值。"""
+        tool_id = uuid4()
+        tool = _make_tool(
+            tool_id=tool_id,
+            config={"cx_id": "my-cx"},
+            credentials={"api_key": "old-key"},
+        )
+
+        fake_db = MagicMock()
+        fake_db.get = AsyncMock(return_value=tool)
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_client = MagicMock()
+        fake_client.get = AsyncMock(return_value=fake_response)
+        fake_client.__aenter__ = AsyncMock(return_value=fake_client)
+        fake_client.__aexit__ = AsyncMock(return_value=False)
+
+        payload = interface_api.BuiltinToolTestRequest(
+            config={"cx_id": "my-cx"},
+            credentials={"api_key": "brand-new-key"},
+        )
+
+        with (
+            patch.object(interface_api, "AsyncSessionLocal", _mock_async_session(fake_db)),
+            patch.object(
+                interface_api,
+                "check_plugin_access",
+                new=AsyncMock(return_value=(True, None)),
+            ),
+            patch("httpx.AsyncClient", return_value=fake_client),
+        ):
+            resp = await interface_api.test_builtin_tool(tool_id=tool_id, payload=payload, user=_user)
+
+        assert resp.success is True
+        call_kwargs = fake_client.get.await_args.kwargs
+        assert call_kwargs["params"]["key"] == "brand-new-key"
