@@ -68,7 +68,7 @@ export default async function WikiPublicationPage({ params }: Props) {
 
   const catalogItem = sectionView.activeItem;
   const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
-  const catalogName = catalogTargetSlug && catalogItem
+  const catalogName = catalogItem
     ? (catalogItem.entry_title || catalogItem.entry_slug)
     : null;
 
@@ -100,8 +100,12 @@ export default async function WikiPublicationPage({ params }: Props) {
     <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined} footer={<WikiFooter />}>
       <header className="wiki-doc-header">
         <h1 className="wiki-doc-title">
-          {catalogName && catalogTargetSlug ? (
-            <Link href={`/${pubSlug}/${catalogTargetSlug}`}>{catalogName}</Link>
+          {catalogName ? (
+            catalogTargetSlug ? (
+              <Link href={`/${pubSlug}/${catalogTargetSlug}`}>{catalogName}</Link>
+            ) : (
+              catalogName
+            )
           ) : (
             publication.name
           )}
