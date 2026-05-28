@@ -86,8 +86,8 @@ export function AnnotationHighlightLayer({
     async (annotationId: string) => {
       if (!onDeleteAnnotation) return;
       if (!window.confirm("确定删除此注解？")) return;
-      await onDeleteAnnotation(annotationId);
-      setTooltip(null);
+      const ok = await onDeleteAnnotation(annotationId);
+      if (ok) setTooltip(null);
     },
     [onDeleteAnnotation],
   );
