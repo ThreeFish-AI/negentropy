@@ -49,45 +49,9 @@ export function WikiSidebar({
 
   return (
     <>
-      <div className="wiki-sidebar-header">
-        {isEntryPage ? (
-          catalogName ? (
-            catalogTargetSlug ? (
-              renderBrand(
-                `/${pubSlug}/${catalogTargetSlug}`,
-                `← ${catalogName}`,
-                "wiki-sidebar-back wiki-sidebar-brand",
-              )
-            ) : (
-              <Link
-                href={`/${pubSlug}`}
-                className="wiki-sidebar-back wiki-sidebar-brand"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
-                <img
-                  src="/logo.png"
-                  alt="Negentropy"
-                  className="wiki-sidebar-logo"
-                />
-                <span className="wiki-sidebar-title">← {catalogName}</span>
-              </Link>
-            )
-          ) : (
-            <Link
-              href={`/${pubSlug}`}
-              className="wiki-sidebar-back wiki-sidebar-brand"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
-              <img
-                src="/logo.png"
-                alt="Negentropy"
-                className="wiki-sidebar-logo"
-              />
-              <span className="wiki-sidebar-title">← {publication.name}</span>
-            </Link>
-          )
-        ) : (
-          catalogName ? (
+      {!isEntryPage && (
+        <div className="wiki-sidebar-header">
+          {catalogName ? (
             catalogTargetSlug ? (
               renderBrand(
                 `/${pubSlug}/${catalogTargetSlug}`,
@@ -115,9 +79,9 @@ export function WikiSidebar({
               />
               <span className="wiki-sidebar-title">{publication.name}</span>
             </div>
-          )
-        )}
-      </div>
+          )}
+        </div>
+      )}
       {!isEntryPage && publication.description && (
         <p className="wiki-sidebar-desc">{publication.description}</p>
       )}

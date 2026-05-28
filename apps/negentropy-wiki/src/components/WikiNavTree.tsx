@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
@@ -104,30 +104,9 @@ function WikiNavNode({
     }
   }, [isActive]);
 
-  const handleToggleKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onToggle(item.entry_slug);
-    }
-  };
-
   return (
     <li className="wiki-nav-item" role="treeitem">
       <div className="wiki-nav-row">
-        {hasChildren ? (
-          <button
-            type="button"
-            className={`wiki-nav-toggle${isOpen ? " open" : ""}`}
-            aria-label={isOpen ? "折叠" : "展开"}
-            aria-expanded={isOpen}
-            onClick={() => onToggle(item.entry_slug)}
-            onKeyDown={handleToggleKey}
-          >
-            <ChevronIcon />
-          </button>
-        ) : (
-          <span className="wiki-nav-leaf-dot" aria-hidden="true" />
-        )}
         {isContainer ? (
           <button
             type="button"
@@ -166,23 +145,5 @@ function WikiNavNode({
         </div>
       )}
     </li>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="12"
-      height="12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="5 3 11 8 5 13" />
-    </svg>
   );
 }

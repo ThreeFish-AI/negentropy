@@ -235,18 +235,19 @@ function buildMemoryRetryableError(
 // ============================================================================
 
 export async function fetchFacts(
-  userId: string,
+  userId?: string,
   appName?: string,
   factType?: string,
   limit?: number,
 ): Promise<FactListPayload> {
   const params = new URLSearchParams();
-  params.set("user_id", userId);
+  if (userId) params.set("user_id", userId);
   if (appName) params.set("app_name", appName);
   if (factType) params.set("fact_type", factType);
   if (limit) params.set("limit", String(limit));
+  const qs = params.toString() ? `?${params.toString()}` : "";
 
-  const res = await fetch(`/api/memory/facts?${params.toString()}`, {
+  const res = await fetch(`/api/memory/facts${qs}`, {
     cache: "no-store",
   });
   if (!res.ok) {

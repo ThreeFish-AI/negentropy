@@ -331,15 +331,15 @@ class FactService:
     async def list_facts(
         self,
         *,
-        user_id: str,
+        user_id: str | None = None,
         app_name: str,
         fact_type: str | None = None,
         limit: int = 100,
     ) -> list[Fact]:
-        """列出用户的所有有效 Fact
+        """列出有效 Fact
 
         Args:
-            user_id: 用户 ID
+            user_id: 用户 ID，为 None 时返回所有用户的 Facts
             app_name: 应用名称
             fact_type: 可选的事实类型过滤
             limit: 返回数量限制
@@ -350,12 +350,15 @@ class FactService:
         now = datetime.now(UTC)
 
         async with db_session.AsyncSessionLocal() as db:
-            stmt = select(Fact).where(
-                Fact.user_id == user_id,
+            conditions = [
                 Fact.app_name == app_name,
                 Fact.status == "active",
                 (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
-            )
+            ]
+            if user_id is not None:
+                conditions.append(Fact.user_id == user_id)
+
+            stmt = select(Fact).where(*conditions)
 
             if fact_type:
                 stmt = stmt.where(Fact.fact_type == fact_type)

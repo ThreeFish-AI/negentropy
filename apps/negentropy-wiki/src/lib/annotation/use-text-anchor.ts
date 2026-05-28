@@ -84,9 +84,10 @@ export function computeAnchor(
     suffix,
     text_offset: selStart >= 0 ? selStart : 0,
     text_length: selectedText.length,
-    source_text_hash: snapshot?.textHash,
+    // snapshot-based 计算失败，偏移量在当前 DOM 空间，不应声称 v2 元数据
+    source_text_hash: undefined,
     source_lang: detectLang(displayExact),
-    anchor_version: snapshot ? CURRENT_ANCHOR_VERSION : 1,
+    anchor_version: 1,
   };
 }
 

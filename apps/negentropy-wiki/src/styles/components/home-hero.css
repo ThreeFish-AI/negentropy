@@ -1,4 +1,4 @@
-/* 首页 Hero Banner — 液态流动渐变动画 */
+/* 首页 Hero Banner — Galaxy 星空背景 */
 .home-hero {
   position: relative;
   overflow: hidden;
@@ -8,31 +8,17 @@
   padding: 5rem 2rem 4rem;
 }
 
-.home-hero-bg {
+/* Galaxy WebGL 容器 */
+.home-hero-galaxy {
   position: absolute;
-  inset: -50%;
+  inset: 0;
   z-index: 0;
-  filter: blur(60px);
-  opacity: 0.85;
-  background:
-    radial-gradient(circle at 30% 40%, var(--wiki-hero-blob-1) 0%, transparent 70%),
-    radial-gradient(circle at 70% 60%, var(--wiki-hero-blob-2) 0%, transparent 70%);
-  animation: hero-drift-1 14s ease-in-out infinite alternate;
+  pointer-events: auto;
 }
-.home-hero-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 80%, var(--wiki-hero-blob-3) 0%, transparent 70%);
-  animation: hero-drift-2 18s ease-in-out infinite alternate;
-}
-.home-hero-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 20% 20%, var(--wiki-hero-blob-4) 0%, transparent 60%);
-  opacity: 0.5;
-  animation: hero-drift-3 22s ease-in-out infinite alternate;
+.home-hero-galaxy canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .home-hero-content {
@@ -73,29 +59,10 @@
   color: var(--wiki-home-accent);
 }
 
-@keyframes hero-drift-1 {
-  0%   { transform: translate(-20%, -15%) scale(1.1); }
-  33%  { transform: translate(10%, 25%) scale(0.95); }
-  66%  { transform: translate(25%, -10%) scale(1.05); }
-  100% { transform: translate(-10%, 20%) scale(1); }
-}
-@keyframes hero-drift-2 {
-  0%   { transform: translate(15%, 20%) scale(0.95); }
-  33%  { transform: translate(-25%, -5%) scale(1.1); }
-  66%  { transform: translate(5%, -20%) scale(1); }
-  100% { transform: translate(-15%, 15%) scale(1.05); }
-}
-@keyframes hero-drift-3 {
-  0%   { transform: translate(-10%, 10%) scale(1.05); }
-  50%  { transform: translate(20%, -25%) scale(0.9); }
-  100% { transform: translate(10%, 15%) scale(1.1); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .home-hero-bg,
-  .home-hero-bg::before,
-  .home-hero-bg::after {
-    animation: none;
+  /* Galaxy 组件内部读取 prefers-reduced-motion 设置 disableAnimation */
+  .home-hero-galaxy {
+    pointer-events: none;
   }
 }
 
@@ -105,10 +72,6 @@
   }
   .home-hero-text {
     font-size: 1.25em;
-  }
-  .home-hero-bg {
-    filter: blur(40px);
-    inset: -30%;
   }
 }
 

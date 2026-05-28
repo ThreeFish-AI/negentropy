@@ -201,22 +201,20 @@ describe("countLeafEntries", () => {
     expect(countLeafEntries(items)).toBe(3);
   });
 
-  it("混合容器与文档（容器自身有 entry_id 也计入）", () => {
+  it("混合容器与文档（容器不计入）", () => {
     const items = [
       container("cat", [doc("cat/p1"), doc("cat/p2")]),
       doc("standalone"),
     ];
-    // container "cat" 自身 entry_id 非空也计入（自 0011 起容器条目持久化）
-    expect(countLeafEntries(items)).toBe(4);
+    expect(countLeafEntries(items)).toBe(3);
   });
 
-  it("空容器有 entry_id 时也计入", () => {
+  it("空容器不计入", () => {
     const items = [
       container("empty", []),
       doc("real"),
     ];
-    // container "empty" 自身 entry_id 非空也计入
-    expect(countLeafEntries(items)).toBe(2);
+    expect(countLeafEntries(items)).toBe(1);
   });
 
   it("entry_id=null 的节点不计入（合成容器）", () => {

@@ -43,11 +43,10 @@ export default function MemoryFactsPage() {
   const [historyError, setHistoryError] = useState<string | null>(null);
 
   const loadFacts = useCallback(async () => {
-    if (!activeUserId) return;
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchFacts(activeUserId, APP_NAME);
+      const data = await fetchFacts(activeUserId ?? undefined, APP_NAME);
       setPayload(data);
     } catch (err) {
       setError(err as Error);
@@ -69,6 +68,7 @@ export default function MemoryFactsPage() {
   }, [loadFacts]);
 
   const facts = payload?.items || [];
+  const userLabelMap = new Map(users.map((u) => [u.id, u.label || u.id]));
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !activeUserId) return;
@@ -137,7 +137,7 @@ export default function MemoryFactsPage() {
                   <p className="mt-2 text-[11px] text-muted">
                     {activeUserId
                       ? `${facts.length} facts for selected user`
-                      : `${users.length} users with facts`}
+                      : `${facts.length} facts across ${users.length} users`}
                   </p>
                   {!activeUserId && users.length > 0 && (
                     <div className="mt-3 space-y-1.5">
@@ -173,56 +173,51 @@ export default function MemoryFactsPage() {
               </div>
             )}
 
-            {!activeUserId ? (
-              /* All Users summary: prompt to select a user */
+            {/* Search bar -- only when a specific user is selected */}
+            {activeUserId && (
+              <div className="mb-4 flex items-center gap-2">
+                <input
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                  placeholder="Search facts..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                />
+                <button
+                  className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+                  onClick={handleSearch}
+                >
+                  Search
+                </button>
+                <button
+                  className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+                  onClick={handleClearSearch}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
+            {/* Facts grid -- always shown */}
+            {isLoading ? (
+              <p className="text-xs text-muted">Loading facts...</p>
+            ) : facts.length === 0 ? (
               <div className="rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
                 <p className="text-sm text-muted">
-                  Select a user from the filter above or sidebar to view their semantic facts.
+                  {activeUserId ? "No facts found for this user." : "No facts found."}
                 </p>
               </div>
             ) : (
-              <>
-                {/* Search bar */}
-                <div className="mb-4 flex items-center gap-2">
-                  <input
-                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs"
-                    placeholder="Search facts..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {facts.map((fact) => (
+                  <FactCard
+                    key={fact.id}
+                    fact={fact}
+                    userLabel={activeUserId ? undefined : userLabelMap.get(fact.user_id)}
+                    onShowHistory={handleShowHistory}
                   />
-                  <button
-                    className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                    onClick={handleSearch}
-                  >
-                    Search
-                  </button>
-                  <button
-                    className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                    onClick={handleClearSearch}
-                  >
-                    Clear
-                  </button>
-                </div>
-
-                {isLoading ? (
-                  <p className="text-xs text-muted">Loading facts...</p>
-                ) : facts.length === 0 ? (
-                  <div className="rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
-                    <p className="text-sm text-muted">No facts found for this user.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {facts.map((fact) => (
-                      <FactCard
-                        key={fact.id}
-                        fact={fact}
-                        onShowHistory={handleShowHistory}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
+                ))}
+              </div>
             )}
           </MemorySidebarLayout>
         </div>
