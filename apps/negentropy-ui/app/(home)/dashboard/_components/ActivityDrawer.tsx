@@ -69,14 +69,14 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
               <span className="text-sm font-semibold text-foreground">
                 Activity
               </span>
-              <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] font-semibold text-muted">
+              <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                 {totalCount}
               </span>
             </div>
             <button
               type="button"
               onClick={handleClose}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-muted/50 hover:text-foreground"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
               aria-label="Close"
             >
               <X className="h-3.5 w-3.5" />
@@ -91,7 +91,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                 className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
                   levelFilter === opt.value
                     ? "bg-foreground text-background shadow-sm"
-                    : "text-muted hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => handleLevelChange(opt.value)}
               >
@@ -102,7 +102,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
 
           {/* Actions */}
           <div className="mt-2 flex items-center justify-end gap-2">
-            <span className="text-[11px] text-muted">
+            <span className="text-[11px] text-muted-foreground">
               {entries.length}
               {levelFilter ? ` / ${totalCount}` : ""} entries
             </span>
@@ -146,7 +146,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                       >
                         {entry.level}
                       </span>
-                      <span className="text-[11px] text-muted">
+                      <span className="text-[11px] text-muted-foreground">
                         {formatTimestamp(entry.timestamp)}
                       </span>
                     </div>
@@ -154,7 +154,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                       {entry.message}
                     </p>
                     {entry.description ? (
-                      <p className="mt-0.5 text-[11px] text-muted">
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
                         {entry.description}
                       </p>
                     ) : null}
@@ -163,7 +163,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
               ))}
             </ul>
           ) : (
-            <div className="px-3 py-6 text-center text-xs text-muted">
+            <div className="px-3 py-6 text-center text-xs text-muted-foreground">
               No activity recorded yet. Toast notifications will appear here as
               they occur across the platform.
             </div>
@@ -180,11 +180,11 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                 setCurrentPage(Math.max(1, safePage - 1))
               }
               aria-label="Previous page"
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <span className="text-[10px] font-medium text-muted">
+            <span className="text-[10px] font-medium text-muted-foreground">
               {safePage} / {totalPages}
             </span>
             <button
@@ -194,7 +194,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                 setCurrentPage(Math.min(totalPages, safePage + 1))
               }
               aria-label="Next page"
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>

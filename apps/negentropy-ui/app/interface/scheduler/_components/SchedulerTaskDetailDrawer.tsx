@@ -14,7 +14,7 @@ interface SchedulerTaskDetailDrawerProps {
 function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between py-1.5 text-xs">
-      <span className="text-muted shrink-0">{label}</span>
+      <span className="text-muted-foreground shrink-0">{label}</span>
       <span className="text-foreground text-right ml-4 break-all">{children}</span>
     </div>
   );
@@ -95,11 +95,11 @@ export function SchedulerTaskDetailDrawer({
             <h2 className="text-sm font-bold text-foreground">
               {task.display_name || task.key}
             </h2>
-            <p className="text-[10px] text-muted mt-0.5">{task.key}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{task.key}</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-muted hover:text-foreground hover:bg-muted/50 transition-colors"
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -111,7 +111,7 @@ export function SchedulerTaskDetailDrawer({
         <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
           {/* Status */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-wider text-muted mb-2">Status</h3>
+            <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Status</h3>
             <div className="rounded-lg border border-border p-3 space-y-0.5">
               <DetailField label="Enabled">
                 <Badge variant={task.enabled ? "enabled" : "disabled"}>
@@ -137,7 +137,7 @@ export function SchedulerTaskDetailDrawer({
               )}
               {task.last_error && (
                 <div className="pt-1.5">
-                  <div className="text-[10px] text-muted mb-0.5">Last Error</div>
+                  <div className="text-[10px] text-muted-foreground mb-0.5">Last Error</div>
                   <pre className="text-[10px] text-red-600 dark:text-red-400 bg-red-500/5 rounded p-2 whitespace-pre-wrap break-all">
                     {task.last_error}
                   </pre>
@@ -148,7 +148,7 @@ export function SchedulerTaskDetailDrawer({
 
           {/* Schedule */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-wider text-muted mb-2">Schedule</h3>
+            <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Schedule</h3>
             <div className="rounded-lg border border-border p-3 space-y-0.5">
               <DetailField label="Trigger Type">{task.trigger_type}</DetailField>
               <DetailField label="Expression">{triggerDisplay}</DetailField>
@@ -167,7 +167,7 @@ export function SchedulerTaskDetailDrawer({
 
           {/* Metadata */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-wider text-muted mb-2">Metadata</h3>
+            <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Metadata</h3>
             <div className="rounded-lg border border-border p-3 space-y-0.5">
               <DetailField label="Handler">{task.handler_kind}</DetailField>
               {task.role && <DetailField label="Role">{task.role}</DetailField>}
@@ -183,7 +183,7 @@ export function SchedulerTaskDetailDrawer({
           {/* Payload */}
           {Object.keys(task.payload).length > 0 && (
             <section>
-              <h3 className="text-[10px] uppercase tracking-wider text-muted mb-2">Payload</h3>
+              <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Payload</h3>
               <div className="rounded-lg border border-border p-3">
                 <pre className="text-[10px] text-foreground whitespace-pre-wrap break-all max-h-[200px] overflow-auto">
                   {JSON.stringify(task.payload, null, 2)}

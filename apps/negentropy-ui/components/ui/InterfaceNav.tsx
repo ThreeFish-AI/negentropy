@@ -51,7 +51,7 @@ export function InterfaceNav({
               className={`px-4 py-1 rounded-full text-xs font-semibold transition-colors ${
                 isActive(item.href)
                   ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                  : "text-muted hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {item.label}

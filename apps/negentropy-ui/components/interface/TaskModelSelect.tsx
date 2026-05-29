@@ -68,7 +68,7 @@ export function TaskModelSelect({
     >
       <option value="">{placeholder}</option>
       {showUnknown && (
-        <option value={value} className="text-muted">
+        <option value={value} className="text-muted-foreground">
           {value}（未知或已禁用）
         </option>
       )}

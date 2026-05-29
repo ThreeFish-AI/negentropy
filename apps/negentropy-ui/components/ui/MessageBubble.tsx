@@ -74,7 +74,7 @@ function MessageActions({ content }: { content: string }) {
     <div className="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
         onClick={handleCopy}
-        className="p-1 text-muted hover:text-foreground rounded transition-colors"
+        className="p-1 text-text-muted hover:text-foreground rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         title="Copy"
       >
         {copied ? (
@@ -119,7 +119,7 @@ function MessageActions({ content }: { content: string }) {
           "p-1 rounded transition-colors",
           feedback === "like"
             ? "text-success bg-success/10"
-            : "text-muted hover:text-text-secondary",
+            : "text-text-muted hover:text-text-secondary",
         )}
         title="Good response"
       >
@@ -146,7 +146,7 @@ function MessageActions({ content }: { content: string }) {
           "p-1 rounded transition-colors",
           feedback === "dislike"
             ? "text-error bg-error/10"
-            : "text-muted hover:text-text-secondary",
+            : "text-text-muted hover:text-text-secondary",
         )}
         title="Bad response"
       >
@@ -185,7 +185,7 @@ function CopyButton({ code }: { code: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-muted/50 text-muted hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-border-muted text-text-muted hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
       title="Copy Code"
     >
       {copied ? (
@@ -268,7 +268,7 @@ function CitationFootnotes({ citations }: { citations: Citation[] }) {
   return (
     <section
       data-testid="citation-footnotes"
-      className="mt-4 border-t border-border/50 pt-3 text-xs text-muted-foreground"
+      className="mt-4 border-t border-border/50 pt-3 text-xs text-text-muted"
     >
       <div className="font-semibold mb-1">参考文献</div>
       <ol className="space-y-1 list-none pl-0">
@@ -381,7 +381,7 @@ export function MarkdownContent({
         ) : (
           <div
             key={`${segment.kind}-${index}`}
-            className="whitespace-pre-wrap break-words rounded-lg border border-dashed border-amber-300/70 bg-amber-50/60 px-3 py-2 text-sm leading-6 text-zinc-700 dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-zinc-200"
+            className="whitespace-pre-wrap break-words rounded-lg border border-dashed border-border bg-border-muted/50 px-3 py-2 text-sm leading-6 text-text-secondary"
           >
             {segment.content}
           </div>
@@ -419,7 +419,7 @@ export function MessageBubble({
   if (isSystem) {
     return (
       <div className="flex justify-center py-4">
-        <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+        <span className="text-xs text-text-muted bg-border-muted px-3 py-1 rounded-full">
           System: {content}
         </span>
       </div>
@@ -435,7 +435,8 @@ export function MessageBubble({
       className={cn(
         "group relative flex w-full cursor-pointer rounded-[2rem] px-2 py-1 transition-colors duration-200",
         isUser ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-[linear-gradient(90deg,rgba(245,158,11,0.10),transparent_75%)]",
+        isSelected &&
+          "bg-[linear-gradient(90deg,rgba(99,102,241,0.10),transparent_75%)]",
       )}
       onClick={() => onSelect?.(message.id)}
     >
@@ -473,10 +474,8 @@ export function MessageBubble({
             "rounded-[1.6rem] px-5 py-3.5 text-sm shadow-sm transition-all duration-300",
             isUser
               ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
-              : "w-full max-w-full rounded-tl-md border border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.9))] text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)] dark:border-zinc-800 dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(9,9,11,0.9))]",
-            isStreaming &&
-              hasContent &&
-              "ring-1 ring-amber-300/70 shadow-[0_16px_46px_rgba(245,158,11,0.12)] dark:ring-amber-700/60",
+              : "w-full max-w-full rounded-tl-md border border-border bg-card text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)]",
+            isStreaming && hasContent && "ring-1 ring-primary/50",
           )}
         >
           <div
@@ -494,7 +493,7 @@ export function MessageBubble({
               "[&_br]:leading-6",
               "[&_code]:font-mono [&_code]:text-[0.9em]",
               !isUser &&
-                "[&_code]:bg-muted [&_code]:text-accent-foreground [&_code]:px-1 [&_code]:rounded",
+                "[&_code]:bg-border-muted [&_code]:text-foreground [&_code]:px-1 [&_code]:rounded",
               isUser &&
                 "[&_code]:bg-background/20 [&_code]:text-background [&_code]:px-1 [&_code]:rounded",
               "[&_pre]:bg-background/50 [&_pre]:text-foreground [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2",
@@ -504,12 +503,12 @@ export function MessageBubble({
               isUser && "[&_a]:text-background hover:[&_a]:text-background/80",
               // Table styles
               "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm",
-              "[&_thead]:bg-muted/40",
-              "[&_tbody_tr:nth-child(even)]:bg-muted/15",
+              "[&_thead]:bg-border-muted/40",
+              "[&_tbody_tr:nth-child(even)]:bg-border-muted/30",
               "[&_th]:border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
               "[&_td]:border [&_td]:px-3 [&_td]:py-2",
               !isUser &&
-                "[&_th]:border-border [&_th]:bg-muted/50 [&_td]:border-border",
+                "[&_th]:border-border [&_th]:bg-border-muted/60 [&_td]:border-border",
               isUser &&
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
@@ -526,7 +525,7 @@ export function MessageBubble({
               <ChatTypingIndicator variant="inline" ariaLabel="Agent 正在思考" />
             ) : null}
             {showStreamingIndicator ? (
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-success">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
                 <span>Streaming</span>
               </div>
@@ -538,17 +537,17 @@ export function MessageBubble({
         {!isUser && (message.author || message.timestamp || isStreaming) && (
           <div className="mt-2 flex items-center gap-2 px-1">
             {message.author && (
-              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
+              <span className="rounded-full bg-border-muted px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-text-muted">
                 {message.author}
               </span>
             )}
             {message.timestamp && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] tabular-nums text-text-muted">
                 {formatTimestamp(message.timestamp)}
               </span>
             )}
             {isStreaming ? (
-              <span className="text-[10px] font-medium text-amber-600 dark:text-amber-300">
+              <span className="text-[10px] font-medium text-success">
                 实时生成中
               </span>
             ) : null}

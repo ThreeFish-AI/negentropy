@@ -100,7 +100,7 @@ export function IngestPanel({
             className={`pb-1 font-medium ${
               mode === "text"
                 ? "border-b-2 border-primary text-primary"
-                : "text-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Raw Text
@@ -110,7 +110,7 @@ export function IngestPanel({
             className={`pb-1 font-medium ${
               mode === "url"
                 ? "border-b-2 border-primary text-primary"
-                : "text-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             From URL

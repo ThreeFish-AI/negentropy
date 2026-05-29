@@ -23,7 +23,7 @@ function Pill({
         "rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
         active
           ? "bg-foreground text-background"
-          : "border border-border text-muted hover:text-foreground hover:border-foreground/30",
+          : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
       )}
     >
       {children}
@@ -85,7 +85,7 @@ export function MemoryUserPillFilter({
         </Pill>
       ))}
       {hiddenCount > 0 && (
-        <span className="rounded-full px-3 py-1 text-xs text-muted border border-dashed border-border">
+        <span className="rounded-full px-3 py-1 text-xs text-muted-foreground border border-dashed border-border">
           +{hiddenCount} more
         </span>
       )}

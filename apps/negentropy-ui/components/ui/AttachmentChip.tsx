@@ -48,7 +48,7 @@ export function AttachmentChip({
       data-testid="attachment-chip"
       data-attachment-name={attachment.name}
       data-attachment-mime={attachment.mime}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5 py-1 text-[11px] text-zinc-600 dark:text-zinc-300 max-w-[14rem] transition-colors hover:bg-muted"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-border-muted/60 px-2.5 py-1 text-[11px] text-text-secondary max-w-[14rem] transition-colors hover:bg-border-muted"
       title={`${attachment.name} (${formatBytes(attachment.size)})`}
     >
       <PickIcon mime={attachment.mime} />

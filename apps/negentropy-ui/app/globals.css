@@ -42,6 +42,25 @@
   --error: #ef4444; /* red-500 */
   --info: #3b82f6; /* blue-500 */
 
+  /* 主强调色 (Primary Accent) — 主操作与激活态专用；indigo 与上述状态色正交 */
+  --primary: #4f46e5; /* indigo-600 */
+  --primary-hover: #4338ca; /* indigo-700 */
+  --primary-foreground: #ffffff;
+  --ring: var(--primary); /* 焦点环 = 主强调色 */
+
+  /* shadcn 习惯命名的兼容别名 —— 全部指向上述既有调色板，避免双套取值源。
+   * 语义约定：*（无 -foreground）= 表面色（用于 bg-*）；
+   * *-foreground = 该表面上的可读文本色（用于 text-*-foreground）。
+   * 故弱化文本一律用 text-muted-foreground，bg-muted 仅作浅色表面，二者不再冲突。
+   * 引用 var() 会随 .dark 重定义的源变量自动翻转，无需在 .dark 重复声明。 */
+  --muted-foreground: var(--text-muted);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --destructive: var(--error);
+  --destructive-foreground: #ffffff;
+
   /* 兼容旧变量 */
   --input-text: var(--input-foreground);
 }
@@ -65,6 +84,18 @@
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-info: var(--info);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -90,11 +121,15 @@
   --warning: #fbbf24;
   --error: #f87171;
   --info: #60a5fa;
+  --primary: #6366f1; /* indigo-500，暗色下对比更佳 */
+  --primary-hover: #4f46e5; /* indigo-600 */
+  --primary-foreground: #ffffff;
 }
 
 body {
+  /* 环境光改用主强调色 indigo（amber 已专用于警告），保持极淡的氛围感 */
   background:
-    radial-gradient(circle at top, rgba(245, 158, 11, 0.10), transparent 28%),
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.06), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.94));
   color: var(--foreground);
   font-family: var(--font-sans);
@@ -102,7 +137,7 @@ body {
 
 .dark body {
   background:
-    radial-gradient(circle at top, rgba(245, 158, 11, 0.08), transparent 26%),
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.07), transparent 26%),
     linear-gradient(180deg, rgba(9, 9, 11, 1), rgba(24, 24, 27, 0.96));
 }
 
@@ -178,4 +213,20 @@ body {
 
 .dark .katex .sqrt > .root {
   color: currentColor;
+}
+
+/*
+ * 动效降级 (Reduced Motion)
+ * 尊重 prefers-reduced-motion，收敛过渡与动画（面板滑入、状态 pulse、平滑滚动等），
+ * 避免对前庭敏感用户造成不适。符合 WCAG 2.3.3 / Apple Reduced Motion。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

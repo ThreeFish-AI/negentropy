@@ -83,6 +83,9 @@ _IGNORED_INDEXES = frozenset(
         "ix_negentropy_knowledge_search_vector",  # GIN 索引 (TSVECTOR)
         "ix_knowledge_documents_file_hash",  # 命名与 ORM 自动生成的不一致
         "ix_kg_entities_embedding",  # HNSW 索引 (需 ALTER COLUMN 后手动创建)
+        "idx_consolidation_jobs_status",  # consolidation_jobs 索引由迁移 0044 持有
+        "idx_consolidation_jobs_thread",  # 同上
+        "idx_consolidation_jobs_pending",  # 部分索引 (WHERE status = 'pending')，同上
     }
 )
 

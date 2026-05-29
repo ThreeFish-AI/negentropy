@@ -46,7 +46,7 @@ export function InterfaceOverviewSection() {
         <h2 className="text-lg font-semibold text-foreground">
           Interface Overview
         </h2>
-        <span className="text-xs text-muted">
+        <span className="text-xs text-muted-foreground">
           {isAdmin
             ? "Manage Models, Agents, MCP servers, Skills, and Tools"
             : "Manage Agents, MCP servers, Skills, and Tools"}
@@ -54,7 +54,7 @@ export function InterfaceOverviewSection() {
       </div>
 
       {loading ? (
-        <div className="text-sm text-muted">Loading...</div>
+        <div className="text-sm text-muted-foreground">Loading...</div>
       ) : error ? (
         <div className="text-sm text-red-500">{error}</div>
       ) : (
@@ -161,8 +161,8 @@ function StatCard({
       href={href}
       className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20"
     >
-      <div className="mb-1 text-sm font-medium text-muted">{title}</div>
-      <div className="mb-3 text-xs text-muted/70">{description}</div>
+      <div className="mb-1 text-sm font-medium text-muted-foreground">{title}</div>
+      <div className="mb-3 text-xs text-muted-foreground/70">{description}</div>
       <div className="text-3xl font-bold text-foreground">{total}</div>
       <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
         {enabled} enabled
@@ -187,10 +187,10 @@ function QuickLink({
     >
       <div className="flex-1">
         <div className="text-sm font-medium text-foreground">{title}</div>
-        <div className="text-xs text-muted">{description}</div>
+        <div className="text-xs text-muted-foreground">{description}</div>
       </div>
       <svg
-        className="h-4 w-4 text-muted"
+        className="h-4 w-4 text-muted-foreground"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

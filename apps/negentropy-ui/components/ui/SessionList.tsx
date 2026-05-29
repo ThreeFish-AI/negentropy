@@ -1,9 +1,16 @@
 /* eslint-disable react-hooks/set-state-in-effect -- useEffect 内调用 setCurrentPage 重置分页 */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { SessionListView } from "@/utils/session";
 
@@ -50,14 +57,24 @@ export function SessionList({
   const [draftTitle, setDraftTitle] = useState("");
   const ignoreBlurRef = useRef(false);
 
-  // 分页：sessions.length 或 view 变化时重置到第 1 页
+  // 会话搜索：按标题客户端过滤（大小写不敏感），在当前视图（active/archived）内生效
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredSessions = normalizedQuery
+    ? sessions.filter((s) => s.label.toLowerCase().includes(normalizedQuery))
+    : sessions;
+
+  // 分页：过滤结果数量 / view / 查询变化时重置到第 1 页
   const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     setCurrentPage(1);
-  }, [sessions.length, view]);
-  const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
+  }, [filteredSessions.length, view, normalizedQuery]);
+  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
-  const pagedSessions = sessions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pagedSessions = filteredSessions.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   // 确认弹窗状态：归档 / 解档 / 删除共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
   const [confirmTarget, setConfirmTarget] = useState<
@@ -147,55 +164,77 @@ export function SessionList({
       onCancel={() => setConfirmTarget(null)}
     />
     <aside className="col-span-2 h-full border-r border-border bg-card p-4 flex flex-col overflow-hidden">
-      <div className="mb-3 flex items-center justify-between shrink-0">
-        <div>
-          <p className="text-xs font-semibold uppercase text-muted">
-            {view === "archived" ? "Archived Sessions" : "Sessions"}
-          </p>
+      <div className="mb-3 flex items-center justify-between gap-2 shrink-0">
+        {/* 视图分段控件：进行中 / 已归档 */}
+        <div
+          role="tablist"
+          aria-label="会话视图"
+          className="inline-flex items-center rounded-lg border border-border bg-border-muted/50 p-0.5 text-[11px] font-medium"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "active"}
+            onClick={() => onSwitchView("active")}
+            className={cn(
+              "rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              view === "active"
+                ? "bg-card text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-primary",
+            )}
+          >
+            进行中
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "archived"}
+            onClick={() => onSwitchView("archived")}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              view === "archived"
+                ? "bg-card text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-primary",
+            )}
+          >
+            <Archive className="h-3 w-3" />
+            已归档
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          {view === "active" ? (
-            <>
-              <button
-                className={outlineButtonClassName(
-                  "neutral",
-                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
-                )}
-                onClick={() => onSwitchView("archived")}
-                type="button"
-              >
-                <Archive className="h-3 w-3" />
-                Archived
-              </button>
-              {onNewSession && (
-                <button
-                  className="rounded-full bg-foreground px-3 py-1 text-[10px] font-semibold text-background hover:bg-zinc-800 transition-transform active:scale-95 dark:hover:bg-zinc-200"
-                  onClick={onNewSession}
-                  type="button"
-                >
-                  + New
-                </button>
-              )}
-            </>
-          ) : (
-            <button
-              className={outlineButtonClassName(
-                "neutral",
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
-              )}
-              onClick={() => onSwitchView("active")}
-              type="button"
-            >
-              <ChevronLeft className="h-3 w-3" />
-              Back
-            </button>
-          )}
-        </div>
+        {view === "active" && onNewSession && (
+          <button
+            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground transition-all hover:bg-primary-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={onNewSession}
+            type="button"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            New
+          </button>
+        )}
       </div>
-      <div className="space-y-2 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+      {/* 会话搜索框 */}
+      <div className="relative mb-3 shrink-0">
+        <Search
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="搜索会话…"
+          aria-label="搜索会话"
+          className="w-full rounded-lg border border-border bg-input py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-input-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+      <div className="space-y-1 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
         {pagedSessions.length === 0 ? (
-          <p className="text-xs text-muted">
-            {view === "archived" ? "暂无已归档会话" : "暂无会话"}
+          <p className="px-1 py-2 text-xs text-text-muted">
+            {normalizedQuery
+              ? "未找到匹配会话"
+              : view === "archived"
+                ? "暂无已归档会话"
+                : "暂无会话"}
           </p>
         ) : (
           pagedSessions.map((session) => (
@@ -233,9 +272,12 @@ export function SessionList({
                 />
               ) : (
                 <div
+                  aria-current={session.id === activeId ? "true" : undefined}
                   className={cn(
-                    "group flex items-center gap-1 rounded-lg pr-2 transition-colors",
-                    session.id === activeId ? "bg-foreground text-background" : "bg-muted text-text-secondary hover:bg-accent",
+                    "group relative flex items-center gap-1 rounded-lg pr-2 transition-colors",
+                    session.id === activeId
+                      ? "bg-primary/10 text-primary before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary"
+                      : "text-text-secondary hover:bg-border-muted",
                   )}
                 >
                   <button
@@ -245,7 +287,7 @@ export function SessionList({
                         startEdit(session);
                       }
                     }}
-                    className="min-w-0 flex-1 px-3 py-2 text-left text-xs font-medium"
+                    className="min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     type="button"
                     aria-label={session.label}
                     title={view === "active" && onRename ? "双击编辑标题" : undefined}
@@ -254,7 +296,7 @@ export function SessionList({
                     {session.timeLabel && (
                       <span className={cn(
                         "block text-[10px] font-normal mt-0.5 truncate",
-                        session.id === activeId ? "text-background/60" : "text-muted-foreground",
+                        session.id === activeId ? "text-primary/70" : "text-text-muted",
                       )}>
                         {session.timeLabel}
                       </span>
@@ -269,10 +311,7 @@ export function SessionList({
                         event.stopPropagation();
                         setConfirmTarget({ kind: "archive", session });
                       }}
-                      className={cn(
-                        "inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
-                        session.id === activeId ? "hover:bg-white/10" : "hover:bg-black/5 dark:hover:bg-white/10",
-                      )}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted opacity-0 transition-all hover:bg-border-muted hover:text-text-primary group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Archive className="h-3.5 w-3.5" />
                     </button>
@@ -286,10 +325,7 @@ export function SessionList({
                         event.stopPropagation();
                         setConfirmTarget({ kind: "unarchive", session });
                       }}
-                      className={cn(
-                        "inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
-                        session.id === activeId ? "hover:bg-white/10" : "hover:bg-black/5 dark:hover:bg-white/10",
-                      )}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted opacity-0 transition-all hover:bg-border-muted hover:text-text-primary group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ArchiveRestore className="h-3.5 w-3.5" />
                     </button>
@@ -303,12 +339,7 @@ export function SessionList({
                         event.stopPropagation();
                         setConfirmTarget({ kind: "delete", session });
                       }}
-                      className={cn(
-                        "inline-flex h-7 w-7 items-center justify-center rounded-md opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
-                        session.id === activeId
-                          ? "text-red-300 hover:bg-white/10 hover:text-red-200"
-                          : "text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10",
-                      )}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-error/70 opacity-0 transition-all hover:bg-error/10 hover:text-error group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -319,18 +350,18 @@ export function SessionList({
           ))
         )}
       </div>
-      {sessions.length > PAGE_SIZE && (
+      {filteredSessions.length > PAGE_SIZE && (
         <div className="flex items-center justify-between px-3 py-1.5 border-t border-border shrink-0">
           <button
             type="button"
             disabled={safePage <= 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             aria-label="上一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-[10px] font-medium text-muted">
+          <span className="text-[10px] font-medium tabular-nums text-text-muted">
             {safePage} / {totalPages}
           </span>
           <button
@@ -338,7 +369,7 @@ export function SessionList({
             disabled={safePage >= totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             aria-label="下一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>

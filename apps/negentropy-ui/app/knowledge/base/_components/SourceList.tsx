@@ -51,7 +51,7 @@ export function SourceList({
         className={`w-full rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
           selectedUri === undefined
             ? "bg-foreground text-background shadow-sm"
-            : "text-muted hover:bg-muted/50 hover:text-foreground"
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
         }`}
         onClick={() => onSelect(undefined)}
       >
@@ -93,7 +93,7 @@ export function SourceList({
               className={`min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
                 selectedUri === uri
                   ? "bg-foreground text-background shadow-sm"
-                  : "text-muted hover:bg-muted/50 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               }`}
               onClick={() => onSelect(uri)}
               title={displayName}
@@ -170,7 +170,7 @@ function SourceMenu({
     <div className="relative shrink-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="rounded p-1 text-muted transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
         title="Source actions"
       >
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -190,7 +190,7 @@ function SourceMenu({
             {onReplace && !isFile && (
               <button
                 onClick={() => closeAndRun(onReplace)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted transition-colors hover:bg-muted hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.232-6.232a2.5 2.5 0 113.536 3.536L12.536 16.536a4 4 0 01-1.79 1.024L7 18l.44-3.746A4 4 0 018.464 12.464z" />
@@ -201,7 +201,7 @@ function SourceMenu({
             {onSync && isUrl && (
               <button
                 onClick={() => closeAndRun(onSync)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted transition-colors hover:bg-muted hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -212,7 +212,7 @@ function SourceMenu({
             {onRebuild && isFile && (
               <button
                 onClick={() => closeAndRun(onRebuild)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted transition-colors hover:bg-muted hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -234,7 +234,7 @@ function SourceMenu({
             {!archived && onArchive && (
               <button
                 onClick={() => closeAndRun(onArchive)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted transition-colors hover:bg-muted hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8l1 11h12l1-11M9 8V5a3 3 0 016 0v3" />
@@ -245,7 +245,7 @@ function SourceMenu({
             {archived && onUnarchive && (
               <button
                 onClick={() => closeAndRun(onUnarchive)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted transition-colors hover:bg-muted hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m-7-7v14" />

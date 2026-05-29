@@ -29,7 +29,7 @@ export function MetricCell({
         href ? "transition-colors hover:bg-muted/70" : ""
       }`}
     >
-      <span className="text-xs text-muted whitespace-nowrap">{label}</span>
+      <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
       {loading ? (
         <span className="inline-block h-3.5 w-8 animate-pulse rounded bg-muted/60" />
       ) : (
@@ -42,7 +42,7 @@ export function MetricCell({
         </span>
       )}
       {hint && !loading ? (
-        <span className="text-[10px] text-muted whitespace-nowrap">
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
           ({hint})
         </span>
       ) : null}
