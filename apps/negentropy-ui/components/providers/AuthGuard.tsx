@@ -12,7 +12,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (status === "loading") {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+      <div className="flex h-screen items-center justify-center bg-background text-sm text-text-muted">
         正在验证登录状态...
       </div>
     );
@@ -20,20 +20,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (status === "unauthenticated" || !user) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center dark:bg-zinc-950">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background text-center">
         <div className="max-w-md space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
             Negentropy UI
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-2xl font-semibold text-foreground">
             需要登录以继续
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-text-muted">
             使用 Google OAuth 进行单点登录。
           </p>
         </div>
         <button
-          className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          className="rounded-full bg-foreground px-6 py-2 text-xs font-semibold text-background hover:opacity-90 transition-transform active:scale-95"
           onClick={login}
           type="button"
         >

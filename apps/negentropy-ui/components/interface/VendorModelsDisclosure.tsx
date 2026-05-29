@@ -49,7 +49,7 @@ export function VendorModelsDisclosure({
     : "已启用模型";
 
   return (
-    <div className="mt-3 border-t border-zinc-200/70 pt-2 dark:border-zinc-800">
+    <div className="mt-3 border-t border-border pt-2">
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
@@ -58,21 +58,21 @@ export function VendorModelsDisclosure({
         aria-label={ariaLabel}
         className={cn(
           "group flex w-full items-center justify-between gap-2 rounded-md px-1.5 py-1",
-          "text-[11px] font-medium text-zinc-600 transition-colors",
-          "hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800/60",
+          "text-[11px] font-medium text-text-secondary transition-colors",
+          "hover:bg-muted",
         )}
       >
         <span className="inline-flex items-center gap-1.5">
           <ChevronDown
             aria-hidden="true"
             className={cn(
-              "h-3.5 w-3.5 text-zinc-400 transition-transform duration-150",
+              "h-3.5 w-3.5 text-text-muted transition-transform duration-150",
               expanded && "rotate-180",
             )}
           />
           <span>{expanded ? "收起" : "查看已启用模型"}</span>
         </span>
-        <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-text-secondary">
           {total}
         </span>
       </button>
@@ -85,10 +85,10 @@ export function VendorModelsDisclosure({
             return (
               <section key={mk.value} className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     {mk.label}
                   </div>
-                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                  <div className="text-[10px] text-text-muted">
                     {items.length}
                   </div>
                 </div>
@@ -96,16 +96,16 @@ export function VendorModelsDisclosure({
                   {items.map((mc) => (
                     <li
                       key={mc.id}
-                      className="flex items-center gap-2 rounded border border-zinc-100 bg-white px-2 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                      className="flex items-center gap-2 rounded border border-border bg-card px-2 py-1.5 text-xs"
                     >
-                      <span className="flex-1 min-w-0 truncate font-medium text-zinc-800 dark:text-zinc-200">
+                      <span className="flex-1 min-w-0 truncate font-medium text-foreground">
                         {mc.display_name}
-                        <span className="ml-1 font-normal text-zinc-400">
+                        <span className="ml-1 font-normal text-text-muted">
                           {mc.model_name}
                         </span>
                       </span>
                       {mk.value === "embedding" && mc.config?.dimensions != null ? (
-                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                           {String(mc.config.dimensions)} dims
                         </span>
                       ) : null}

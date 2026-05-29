@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function InterfaceLayout({
   children,
@@ -22,7 +23,7 @@ export default function InterfaceLayout({
   if (status === "loading") {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</div>
+        <Spinner size="lg" label="Loading" className="text-text-muted" />
       </div>
     );
   }

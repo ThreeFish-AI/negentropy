@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { Button } from "@/components/ui/Button";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskDetailDrawerProps {
@@ -33,7 +34,7 @@ function Badge({
     variant === "enabled"
       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
       : variant === "disabled"
-        ? "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+        ? "bg-muted text-text-secondary"
         : "bg-muted/50 text-foreground";
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
@@ -83,7 +84,7 @@ export function SchedulerTaskDetailDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/30"
+        className="fixed inset-0 z-40 bg-overlay"
         onClick={onClose}
       />
 
@@ -110,7 +111,8 @@ export function SchedulerTaskDetailDrawer({
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            aria-label="Close task details"
+            className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -206,15 +208,12 @@ export function SchedulerTaskDetailDrawer({
 
         {/* Footer */}
         <div className="border-t border-border px-5 py-3 flex items-center gap-2">
-          <button
-            onClick={() => onRun(task.id)}
-            className="rounded-md px-3 py-1.5 text-xs font-medium bg-foreground text-background hover:opacity-80 transition-opacity"
-          >
+          <Button variant="neutral" size="sm" onClick={() => onRun(task.id)}>
             Run Now
-          </button>
+          </Button>
           <button
             onClick={() => onToggle(task.id, !task.enabled)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium border border-border transition-colors ${
+            className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium border border-border transition-colors ${
               task.enabled
                 ? "text-foreground hover:bg-muted/50"
                 : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
@@ -230,17 +229,14 @@ export function SchedulerTaskDetailDrawer({
             className={`rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
               task.is_system
                 ? "text-muted-foreground/40 border-muted/30 cursor-not-allowed"
-                : "text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-500/10"
+                : "cursor-pointer text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-500/10"
             }`}
           >
             Delete
           </button>
-          <button
-            onClick={() => onEdit(task)}
-            className="rounded-md px-3 py-1.5 text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
-          >
+          <Button variant="neutral" size="sm" onClick={() => onEdit(task)}>
             Edit
-          </button>
+          </Button>
         </div>
       </div>
     </>

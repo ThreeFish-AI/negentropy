@@ -63,6 +63,28 @@
 
   /* 兼容旧变量 */
   --input-text: var(--input-foreground);
+
+  /* ───────── 精致升级令牌：层次 / 动效时长 / 遮罩 ─────────
+   * 圆角、缓动、入场动画为模式无关常量，直接定义于 @theme inline。
+   * 层次阴影与遮罩需随明暗切换，故在此声明原始值并于 .dark 重定义。 */
+
+  /* 层次阴影（软层叠，营造 Linear/Vercel 级克制纵深；.dark 见下方重定义） */
+  --elevation-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --elevation-md:
+    0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.05);
+  --elevation-lg:
+    0 12px 32px -8px rgba(0, 0, 0, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
+  --elevation-xl:
+    0 24px 56px -16px rgba(0, 0, 0, 0.18), 0 8px 20px -8px rgba(0, 0, 0, 0.08);
+
+  /* 动效时长（供 keyframes 与组件复用，配合 ease-out 标度） */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* 遮罩 / scrim（配合 backdrop-blur-sm，scrim 强度 40–60% 符合 HIG/MD） */
+  --overlay: rgba(9, 9, 11, 0.5);
 }
 
 /* Tailwind v4 主题配置 */
@@ -96,6 +118,32 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
+  /* 精致升级：遮罩色（bg-overlay） */
+  --color-overlay: var(--overlay);
+
+  /* 层次阴影（覆盖 Tailwind 默认，统一为软层叠标度；shadow-xs…xl） */
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+  --shadow-xl: var(--elevation-xl);
+
+  /* 语义圆角（新增，不覆盖 Tailwind 默认 rounded-md 等；rounded-control/card/modal） */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+
+  /* 缓动（覆盖默认 ease-*：expo-out 入场更具高级感，对称 ease-in 退场） */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 入场动画（animate-enter / animate-fade-in / animate-slide-in-right） */
+  --animate-enter: enter var(--duration-base) var(--ease-out) both;
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-out) both;
+  --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-out) both;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -124,6 +172,17 @@
   --primary: #6366f1; /* indigo-500，暗色下对比更佳 */
   --primary-hover: #4f46e5; /* indigo-600 */
   --primary-foreground: #ffffff;
+
+  /* 暗色层次：提高黑色 alpha，与 hairline 边框协同托起表面（暗色阴影本身偏弱） */
+  --elevation-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elevation-md:
+    0 4px 14px -2px rgba(0, 0, 0, 0.55), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --elevation-lg:
+    0 12px 34px -8px rgba(0, 0, 0, 0.6), 0 4px 12px -4px rgba(0, 0, 0, 0.45);
+  --elevation-xl:
+    0 24px 60px -16px rgba(0, 0, 0, 0.7), 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
 }
 
 body {
@@ -139,6 +198,43 @@ body {
   background:
     radial-gradient(circle at top, rgba(99, 102, 241, 0.07), transparent 26%),
     linear-gradient(180deg, rgba(9, 9, 11, 1), rgba(24, 24, 27, 0.96));
+}
+
+/*
+ * 精致升级：入场动画关键帧
+ * 供 Tailwind animate-enter / animate-fade-in / animate-slide-in-right 工具类引用。
+ * enter = fade + scale（模态由触发源浮现）；slide-in-right 供右侧抽屉。
+ * 已被上文 prefers-reduced-motion 规则统一降级，前庭敏感用户自动收敛。
+ */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .mermaid-diagram svg {

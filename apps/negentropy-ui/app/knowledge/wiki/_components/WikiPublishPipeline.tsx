@@ -121,7 +121,7 @@ function StepDot({ status }: { status: StepStatus }) {
   const variants: Record<StepStatus, string> = {
     completed: `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300`,
     active: `${base} bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 animate-pulse`,
-    pending: `${base} bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500`,
+    pending: `${base} bg-muted text-text-muted`,
   };
   return (
     <span className={variants[status]}>

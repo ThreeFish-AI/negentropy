@@ -7,8 +7,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/Button";
+import { ErrorBanner } from "@/components/ui/ErrorState";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { LlmModelSelect } from "@/components/ui/LlmModelSelect";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { fetchModelConfigs, type ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
@@ -280,15 +281,14 @@ export function AgentFormDialog({
       open={open}
       onClose={onClose}
       busy={loading}
-      backdropClassName="bg-black/55"
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
     >
-          <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <div className="border-b border-border px-5 py-4 sm:px-6">
+            <h2 className="text-lg font-semibold text-foreground">
               {agent ? "Edit Agent" : "Add Agent"}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-text-muted">
               Keep fields consistent with ADK while optimizing readability for longer configurations.
             </p>
           </div>
@@ -296,15 +296,15 @@ export function AgentFormDialog({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
               {!agent && templates.length > 0 && (
-                <section className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-                  <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <section className="rounded-lg border border-border bg-muted/50 p-4">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Negentropy Built-in Templates
                   </label>
                   <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                     <select
                       value={selectedTemplateName}
                       onChange={(e) => setSelectedTemplateName(e.target.value)}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       <option value="">Select template</option>
                       {templates.map((template) => (
@@ -313,68 +313,61 @@ export function AgentFormDialog({
                         </option>
                       ))}
                     </select>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       disabled={!selectedTemplateName}
                       onClick={() => {
                         const target = templates.find((item) => item.name === selectedTemplateName);
                         if (target) applyTemplate(target);
                       }}
-                      className={outlineButtonClassName(
-                        "neutral",
-                        "rounded-md px-3 py-2 text-sm font-medium",
-                      )}
                     >
                       Apply
-                    </button>
+                    </Button>
                   </div>
                 </section>
               )}
 
-              {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                  {error}
-                </div>
-              )}
+              {error && <ErrorBanner message={error} />}
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Basic Information
                 </h3>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Name *
                     </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="my-agent"
                       required
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Display Name
                     </label>
                     <input
                       type="text"
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="My Agent"
                     />
                   </div>
                   <div className="lg:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Description
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       rows={2}
                       placeholder="Description of this agent"
                     />
@@ -383,18 +376,18 @@ export function AgentFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Runtime Setup
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Agent Type *
                     </label>
                     <select
                       value={formData.agent_type}
                       onChange={(e) => setFormData({ ...formData, agent_type: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       <option value="llm_agent">LLM Agent</option>
                       <option value="sequential_agent">Sequential Agent</option>
@@ -404,7 +397,7 @@ export function AgentFormDialog({
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Model
                     </label>
                     <LlmModelSelect
@@ -414,17 +407,17 @@ export function AgentFormDialog({
                       allowClear
                       placeholder="Default"
                       ariaLabel="Agent 使用的 LLM"
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Visibility
                     </label>
                     <select
                       value={formData.visibility}
                       onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       <option value="private">Private</option>
                       <option value="shared">Shared</option>
@@ -432,12 +425,12 @@ export function AgentFormDialog({
                     </select>
                   </div>
                   <div className="flex items-end">
-                    <label className="flex items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+                    <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
                       <input
                         type="checkbox"
                         checked={formData.is_enabled}
                         onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-                        className="rounded border-zinc-300 dark:border-zinc-600"
+                        className="rounded border-border"
                       />
                       Enabled
                     </label>
@@ -445,13 +438,13 @@ export function AgentFormDialog({
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label className="mb-1 block text-sm font-medium text-text-secondary">
                     System Prompt
                   </label>
                   <textarea
                     value={formData.system_prompt}
                     onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                     rows={5}
                     placeholder="You are a specialized agent for..."
                   />
@@ -459,19 +452,19 @@ export function AgentFormDialog({
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Skills (one per line)
                     </label>
                     <textarea
                       value={formData.skills}
                       onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                       rows={4}
                       placeholder="code-review&#10;document-analysis"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Tools
                     </label>
                     {availableTools.length > 0 && (
@@ -491,10 +484,10 @@ export function AgentFormDialog({
                                 setFormData({ ...formData, tools: next.join("\n") });
                               }}
                               className={
-                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors " +
+                                "inline-flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                                 (isSelected
                                   ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
-                                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700")
+                                  : "bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border")
                               }
                             >
                               <span className="text-[10px] opacity-60">{t.source === "builtin" ? "●" : "◆"}</span>
@@ -507,7 +500,7 @@ export function AgentFormDialog({
                     <textarea
                       value={formData.tools}
                       onChange={(e) => setFormData({ ...formData, tools: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                       rows={3}
                       placeholder="Select from above or type tool names (one per line)"
                     />
@@ -516,34 +509,34 @@ export function AgentFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   JSON Configuration
                 </h3>
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Config (JSON)
                     </label>
                     <textarea
                       value={formData.config}
                       onChange={(e) => setFormData({ ...formData, config: e.target.value })}
-                      className="min-h-[220px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="min-h-[220px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                       rows={8}
                       placeholder='{"temperature": 0.7}'
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       ADK Config (JSON, full-fidelity)
                     </label>
                     <textarea
                       value={formData.adk_config}
                       onChange={(e) => setFormData({ ...formData, adk_config: e.target.value })}
-                      className="min-h-[220px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="min-h-[220px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                       rows={8}
                       placeholder='{"agent_class":"LlmAgent","output_key":"perception_output","disallow_transfer_to_parent":true}'
                     />
-                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-1 text-xs text-text-muted">
                       Use this field to capture all ADK agent capabilities. Empty value will auto-generate a minimal ADK config.
                     </p>
                   </div>
@@ -551,21 +544,13 @@ export function AgentFormDialog({
               </section>
             </div>
 
-            <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              >
+            <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4 sm:px-6">
+              <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
+              </Button>
+              <Button type="submit" variant="neutral" disabled={loading}>
                 {loading ? "Saving..." : agent ? "Update" : "Create"}
-              </button>
+              </Button>
             </div>
           </form>
       </OverlayDismissLayer>

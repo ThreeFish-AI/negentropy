@@ -8,7 +8,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "./_components/ConfirmDialog";
 import { SkillCard } from "./_components/SkillCard";
 import { SkillFormDialog } from "./_components/SkillFormDialog";
@@ -186,44 +191,44 @@ export default function SkillsPage() {
   const categories = [...new Set(skills.map((s) => s.category))];
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Skills" />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                <h1 className="text-2xl font-bold text-foreground">
                   Skills
                 </h1>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="text-sm text-text-muted">
                   Define reusable skill modules with prompt templates.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setTemplatePickerOpen(true)}
                   data-testid="skills-from-template"
-                  className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
                   From Template…
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="neutral"
                   onClick={handleCreate}
-                  className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   Add Skill
-                </button>
+                </Button>
               </div>
             </div>
 
             {categories.length > 0 && (
               <div className="mb-4 flex items-center gap-2">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Filter:</span>
+                <span className="text-sm text-text-muted">Filter:</span>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground"
                 >
                   <option value="">All categories</option>
                   {categories.map((cat) => (
@@ -243,34 +248,34 @@ export default function SkillsPage() {
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-[196px] animate-pulse rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
+                    className="h-[196px] rounded-xl border border-border bg-card p-4"
                   >
-                    <div className="mb-3 h-5 w-1/3 rounded bg-zinc-200 dark:bg-zinc-700" />
+                    <Skeleton className="mb-3 h-5 w-1/3" />
                     <div className="mb-2 flex gap-2">
-                      <div className="h-4 w-16 rounded-full bg-zinc-200 dark:bg-zinc-700" />
-                      <div className="h-4 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                      <Skeleton className="h-4 w-16 rounded-full" />
+                      <Skeleton className="h-4 w-12 rounded-full" />
                     </div>
-                    <div className="mb-1 h-4 w-full rounded bg-zinc-200 dark:bg-zinc-700" />
-                    <div className="h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-700" />
+                    <Skeleton className="mb-1 h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
                   </div>
                 ))}
               </div>
             ) : error ? (
-              <div role="alert" className="text-sm text-red-500">
-                {error}
-              </div>
+              <ErrorState
+                title="Failed to load skills"
+                description={error}
+                onRetry={fetchSkills}
+              />
             ) : skills.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-zinc-400 dark:text-zinc-500 mb-4">
-                  No skills defined yet.
-                </div>
-                <button
-                  onClick={handleCreate}
-                  className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                >
-                  Create your first skill →
-                </button>
-              </div>
+              <EmptyState
+                icon={Sparkles}
+                title="No skills defined yet"
+                action={
+                  <Button variant="link" size="sm" onClick={handleCreate}>
+                    Create your first skill →
+                  </Button>
+                }
+              />
             ) : (
               <div
                 data-testid="skills-grid"

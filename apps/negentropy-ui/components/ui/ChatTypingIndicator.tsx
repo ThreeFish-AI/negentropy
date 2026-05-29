@@ -36,7 +36,7 @@ export function ChatTypingIndicator({
       aria-label={ariaLabel}
       data-testid={TEST_IDS[variant]}
       className={cn(
-        "flex items-center gap-1.5 py-1 text-zinc-400 dark:text-zinc-500",
+        "flex items-center gap-1.5 py-1 text-text-muted",
         variant === "standalone" && "px-1",
         className,
       )}

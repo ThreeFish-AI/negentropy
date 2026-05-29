@@ -2,6 +2,8 @@
 
 import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { useKnowledgeSearch, type SearchMode } from "@/features/knowledge";
+import { cn } from "@/lib/utils";
+import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 
 interface SearchWorkspaceProps {
   corpusId: string;
@@ -71,15 +73,11 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
             {isSearching ? "Searching..." : "Search"}
           </button>
         </div>
-        <div className="mt-2 flex w-fit items-center gap-1 rounded-full bg-zinc-100/50 p-1 dark:bg-zinc-800/50">
+        <div className={cn("mt-2 w-fit", navRailContainerClassName)}>
           {(["semantic", "keyword", "hybrid"] as const).map((option) => (
             <button
               key={option}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                mode === option
-                  ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={navPillClassName(mode === option)}
               onClick={() => setMode(option)}
             >
               {option}

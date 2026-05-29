@@ -55,7 +55,7 @@ export function GlobalSearchPanel({ corpusId }: GlobalSearchPanelProps) {
 
   if (!corpusId) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-text-muted">
         选择语料库后启用全局问答
       </p>
     );
@@ -70,7 +70,7 @@ export function GlobalSearchPanel({ corpusId }: GlobalSearchPanelProps) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="例如：该语料库的核心主题是什么？"
-          className="flex-1 rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="flex-1 rounded border border-input bg-background px-2 py-1 text-xs"
         />
         <button
           onClick={handleSubmit}
@@ -86,8 +86,8 @@ export function GlobalSearchPanel({ corpusId }: GlobalSearchPanelProps) {
       )}
 
       {result && (
-        <div className="space-y-2 rounded bg-zinc-50 p-3 dark:bg-zinc-900/40">
-          <div className="flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+        <div className="space-y-2 rounded bg-muted p-3">
+          <div className="flex items-center justify-between text-[10px] text-text-muted">
             <span>
               {result.evidence.length} / {result.candidates_total} 社区贡献证据
             </span>
@@ -98,34 +98,34 @@ export function GlobalSearchPanel({ corpusId }: GlobalSearchPanelProps) {
               提示：实体已更新但社区摘要未刷新，建议重跑 Louvain + 摘要流程
             </p>
           )}
-          <div className="rounded bg-white p-2 text-xs leading-relaxed text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100">
+          <div className="rounded bg-card p-2 text-xs leading-relaxed text-foreground">
             {result.answer}
           </div>
 
           {result.evidence.length > 0 && (
             <details className="text-[10px]">
-              <summary className="cursor-pointer text-zinc-600 dark:text-zinc-400">
+              <summary className="cursor-pointer text-text-secondary">
                 查看证据链（{result.evidence.length} 个社区）
               </summary>
               <div className="mt-1 max-h-64 space-y-1 overflow-y-auto">
                 {result.evidence.map((e) => (
                   <div
                     key={e.community_id}
-                    className="rounded border border-zinc-200 p-2 dark:border-zinc-700"
+                    className="rounded border border-border p-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                      <span className="font-medium text-text-secondary">
                         Community #{e.community_id}
                       </span>
-                      <span className="text-zinc-400">
+                      <span className="text-text-muted">
                         sim={e.similarity.toFixed(3)}
                       </span>
                     </div>
-                    <p className="mt-1 text-zinc-600 dark:text-zinc-300">
+                    <p className="mt-1 text-text-secondary">
                       {e.partial_answer}
                     </p>
                     {e.top_entities.length > 0 && (
-                      <p className="mt-1 truncate text-zinc-400 dark:text-zinc-500">
+                      <p className="mt-1 truncate text-text-muted">
                         核心实体：{e.top_entities.slice(0, 5).join(" · ")}
                       </p>
                     )}

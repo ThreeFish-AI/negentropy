@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { CorpusRecord } from "@/features/knowledge";
 
 interface CorpusListProps {
@@ -59,10 +60,7 @@ export function CorpusList({
     return (
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-10 w-full animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-800"
-          />
+          <Skeleton key={i} className="h-10 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -70,7 +68,7 @@ export function CorpusList({
 
   if (corpora.length === 0) {
     return (
-      <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
+      <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-border text-xs text-text-muted">
         No corpora found
       </div>
     );
@@ -124,11 +122,11 @@ export function CorpusList({
           {menuOpenId === corpus.id && (
             <div
               ref={menuRef}
-              className="absolute right-0 top-8 z-50 w-32 origin-top-right rounded-md border border-border bg-white py-1 shadow-lg focus:outline-none dark:bg-zinc-900"
+              className="absolute right-0 top-8 z-50 w-32 origin-top-right rounded-md border border-border bg-card py-1 shadow-lg focus:outline-none"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="block w-full px-4 py-2 text-left text-xs text-zinc-900 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                className="block w-full px-4 py-2 text-left text-xs text-foreground hover:bg-muted"
                 onClick={(e) => handleAction(e, "edit", corpus)}
               >
                 Settings

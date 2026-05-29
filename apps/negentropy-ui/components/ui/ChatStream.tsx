@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Sparkles } from "lucide-react";
 import { AssistantReplyBubble } from "./AssistantReplyBubble";
 import { ChatTypingIndicator } from "./ChatTypingIndicator";
+import { EmptyState } from "./EmptyState";
 import { MessageBubble } from "./MessageBubble";
 import { ToolExecutionGroup } from "./ToolExecutionGroup";
 import { CHAT_CONTENT_RAIL_CLASS } from "./chat-layout";
@@ -142,17 +143,13 @@ export function ChatStream({
           pending ? (
             <ChatTypingIndicator variant="standalone" />
           ) : (
-            <div className="flex min-h-[55vh] flex-col items-center justify-center px-6 text-center">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Sparkles className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <h2 className="text-sm font-semibold text-text-primary">
-                开始一段对话
-              </h2>
-              <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-text-muted">
-                发送指令即可开始。消息按正文顺序展示，工具调用过程会穿插在对应位置。
-              </p>
-            </div>
+            <EmptyState
+                icon={Sparkles}
+                title="开始一段对话"
+                description="发送指令即可开始。消息按正文顺序展示，工具调用过程会穿插在对应位置。"
+                tone="accent"
+                className="min-h-[55vh]"
+              />
           )
         ) : (
           displayBlocks.map((block) => {

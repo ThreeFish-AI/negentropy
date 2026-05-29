@@ -96,7 +96,7 @@ export function ApprovalDialog({ pending, onRespond }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="approval-dialog-title"
@@ -112,7 +112,7 @@ export function ApprovalDialog({ pending, onRespond }: Props) {
                 ? "rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-700 dark:bg-red-950/70 dark:text-red-200"
                 : tier === "medium"
                   ? "rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:bg-amber-950/70 dark:text-amber-200"
-                  : "rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-200"
+                  : "rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary"
             }
           >
             {RISK_TIER_LABEL[tier]}

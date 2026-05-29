@@ -45,7 +45,7 @@ export function DeleteSourceDialog({
       onClose={onClose}
       busy={isDeleting}
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentClassName="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200"
       contentProps={{
         role: "dialog",
         "aria-modal": true,
@@ -55,14 +55,14 @@ export function DeleteSourceDialog({
         <div className="mb-4 flex items-center justify-between">
           <h2
             id="delete-source-dialog-title"
-            className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+            className="text-lg font-semibold text-foreground"
           >
             {title}
           </h2>
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="text-zinc-400 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:text-zinc-300"
+            className="text-text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg
               className="h-5 w-5"
@@ -96,7 +96,7 @@ export function DeleteSourceDialog({
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>

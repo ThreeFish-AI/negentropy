@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { Button } from "@/components/ui/Button";
 
 interface McpServer {
   id: string;
@@ -142,15 +143,15 @@ export function McpServerFormDialog({
       open={open}
       onClose={onClose}
       busy={loading}
-      backdropClassName="bg-black/55"
+
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
     >
-          <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <div className="border-b border-border px-5 py-4 sm:px-6">
+            <h2 className="text-lg font-semibold text-foreground">
               {server ? "Edit MCP Server" : "Add MCP Server"}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-text-muted">
               Configure transport and runtime options with a consistent, scannable interface form layout.
             </p>
           </div>
@@ -164,43 +165,43 @@ export function McpServerFormDialog({
               )}
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Basic Information
                 </h3>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Name *
                     </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="my-mcp-server"
                       required
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Display Name
                     </label>
                     <input
                       type="text"
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="My MCP Server"
                     />
                   </div>
                   <div className="lg:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Description
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       rows={2}
                       placeholder="Description of this MCP server"
                     />
@@ -209,18 +210,18 @@ export function McpServerFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Runtime Setup
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Transport Type *
                     </label>
                     <select
                       value={formData.transport_type}
                       onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       <option value="stdio">STDIO</option>
                       <option value="http">HTTP (Streamable)</option>
@@ -228,13 +229,13 @@ export function McpServerFormDialog({
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Visibility
                     </label>
                     <select
                       value={formData.visibility}
                       onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       <option value="private">Private</option>
                       <option value="shared">Shared</option>
@@ -242,23 +243,23 @@ export function McpServerFormDialog({
                     </select>
                   </div>
                   <div className="flex items-end">
-                    <label className="flex w-full items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+                    <label className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
                       <input
                         type="checkbox"
                         checked={formData.is_enabled}
                         onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-                        className="rounded border-zinc-300 dark:border-zinc-600"
+                        className="rounded border-border"
                       />
                       Enabled
                     </label>
                   </div>
                   <div className="flex items-end">
-                    <label className="flex w-full items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+                    <label className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
                       <input
                         type="checkbox"
                         checked={formData.auto_start}
                         onChange={(e) => setFormData({ ...formData, auto_start: e.target.checked })}
-                        className="rounded border-zinc-300 dark:border-zinc-600"
+                        className="rounded border-border"
                       />
                       Auto-start
                     </label>
@@ -267,44 +268,44 @@ export function McpServerFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Connection Details
                 </h3>
 
                 {formData.transport_type === "stdio" ? (
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div className="lg:col-span-2">
-                      <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <label className="mb-1 block text-sm font-medium text-text-secondary">
                         Command *
                       </label>
                       <input
                         type="text"
                         value={formData.command}
                         onChange={(e) => setFormData({ ...formData, command: e.target.value })}
-                        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                         placeholder="npx"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <label className="mb-1 block text-sm font-medium text-text-secondary">
                         Arguments (one per line)
                       </label>
                       <textarea
                         value={formData.args}
                         onChange={(e) => setFormData({ ...formData, args: e.target.value })}
-                        className="min-h-[200px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="min-h-[200px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                         rows={7}
                         placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;/path/to/allowed/dir"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <label className="mb-1 block text-sm font-medium text-text-secondary">
                         Environment Variables (JSON)
                       </label>
                       <textarea
                         value={formData.env}
                         onChange={(e) => setFormData({ ...formData, env: e.target.value })}
-                        className="min-h-[200px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="min-h-[200px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                         rows={7}
                         placeholder='{"API_KEY": "xxx"}'
                       />
@@ -313,27 +314,27 @@ export function McpServerFormDialog({
                 ) : (
                   <div className="grid gap-4 lg:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <label className="mb-1 block text-sm font-medium text-text-secondary">
                         URL *
                       </label>
                       <input
                         type="url"
                         value={formData.url}
                         onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                         placeholder={formData.transport_type === "http"
                           ? "http://localhost:8080/mcp"
                           : "http://localhost:8080/sse"}
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      <label className="mb-1 block text-sm font-medium text-text-secondary">
                         Headers (JSON)
                       </label>
                       <textarea
                         value={formData.headers}
                         onChange={(e) => setFormData({ ...formData, headers: e.target.value })}
-                        className="min-h-[200px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="min-h-[200px] w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                         rows={7}
                         placeholder='{"Authorization": "Bearer xxx"}'
                       />
@@ -343,21 +344,20 @@ export function McpServerFormDialog({
               </section>
             </div>
 
-            <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <button
-                type="button"
+            <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4 sm:px-6">
+              <Button
+                variant="ghost"
                 onClick={onClose}
-                className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="neutral"
                 type="submit"
                 disabled={loading}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {loading ? "Saving..." : server ? "Update" : "Create"}
-              </button>
+              </Button>
             </div>
           </form>
     </OverlayDismissLayer>

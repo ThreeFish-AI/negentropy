@@ -97,21 +97,21 @@ export function SkillPreviewDialog({
       open={open}
       onClose={onClose}
       busy={loading}
-      backdropClassName="bg-black/55"
+
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-4 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
     >
-      <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="border-b border-border px-5 py-4">
+        <h2 className="text-lg font-semibold text-foreground">
           Preview · {displayName}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-text-muted">
           Render the skill&apos;s prompt_template (Jinja2 sandbox) with custom variables. The backend does NOT call any LLM — it returns the rendered text only.
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4">
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1 block text-sm font-medium text-text-secondary">
             Variables (JSON)
           </label>
           <textarea
@@ -119,7 +119,7 @@ export function SkillPreviewDialog({
             value={variablesText}
             onChange={(e) => setVariablesText(e.target.value)}
             rows={5}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
           />
         </div>
         <div className="mb-3">
@@ -128,25 +128,25 @@ export function SkillPreviewDialog({
             data-testid="skills-preview-render"
             onClick={handleRender}
             disabled={loading || !skillId}
-            className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "Rendering…" : "Render"}
           </button>
         </div>
         {error && (
-          <div role="alert" className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+          <div role="alert" className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
         {response && (
           <div className="space-y-3">
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
                 Rendered prompt
               </h3>
               <pre
                 data-testid="skills-preview-rendered"
-                className="max-h-72 overflow-auto rounded-md bg-zinc-50 p-3 text-xs leading-5 dark:bg-zinc-800 dark:text-zinc-100"
+                className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-xs leading-5 text-foreground"
               >
                 {response.rendered_prompt}
               </pre>
@@ -164,13 +164,13 @@ export function SkillPreviewDialog({
             )}
             {response.resources.length > 0 && (
               <div>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Resources
                 </h3>
-                <ul className="space-y-1 text-xs text-zinc-700 dark:text-zinc-200">
+                <ul className="space-y-1 text-xs text-text-secondary">
                   {response.resources.map((r, i) => (
                     <li key={i}>
-                      <code>{r.type}</code> · {r.title || r.ref} · <span className="text-zinc-500">{r.ref}</span>
+                      <code>{r.type}</code> · {r.title || r.ref} · <span className="text-text-muted">{r.ref}</span>
                     </li>
                   ))}
                 </ul>
@@ -179,12 +179,12 @@ export function SkillPreviewDialog({
           </div>
         )}
       </div>
-      <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4">
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="rounded-md px-4 py-2 text-sm font-medium text-text-secondary hover:bg-muted disabled:opacity-50"
         >
           Close
         </button>

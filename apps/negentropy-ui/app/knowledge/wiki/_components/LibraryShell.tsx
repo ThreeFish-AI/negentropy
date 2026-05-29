@@ -198,7 +198,7 @@ export function LibraryShell() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-background">
       <KnowledgeNav title="Wiki" />
 
       <WikiPublishToolbar

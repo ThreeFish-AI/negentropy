@@ -45,7 +45,7 @@ export function RetrievedChunkDetailDialog({
           type="button"
           aria-label="Close chunk detail"
           onClick={onClose}
-          className="rounded-full border border-border p-1.5 text-zinc-400 hover:text-foreground"
+          className="rounded-full border border-border p-1.5 text-text-muted hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
@@ -54,7 +54,7 @@ export function RetrievedChunkDetailDialog({
       <div className="min-h-0 flex-1 px-4 pb-4">
         <div className={`grid h-full min-h-0 gap-4 ${isHierarchical ? "lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)]" : "grid-cols-1"}`}>
           <section className="min-h-0 rounded-2xl bg-card px-1">
-            <div className="mb-3 flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-zinc-400">
+            <div className="mb-3 flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-text-muted">
               <span className="inline-flex items-center gap-1.5">
                 <Grip className="h-[11px] w-[11px]" />
                 {chunk.title}
@@ -65,7 +65,7 @@ export function RetrievedChunkDetailDialog({
               </span>
             </div>
             <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              <div className="text-[11px] text-text-muted">
                 {chunk.characterCount} characters
               </div>
               <span className="rounded bg-blue-600 px-1.5 py-[3px] text-[9px] font-semibold text-white">

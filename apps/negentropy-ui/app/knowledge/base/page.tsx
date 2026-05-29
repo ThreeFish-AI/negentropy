@@ -43,7 +43,9 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { Button } from "@/components/ui/Button";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { CorpusSettingsPanel } from "./_components/CorpusSettingsPanel";
@@ -623,12 +625,12 @@ export default function KnowledgeBasePage() {
               收起结果
             </button>
           )}
-          <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1 text-xs">
+          <div className={navRailContainerClassName}>
             {(["semantic", "keyword", "hybrid"] as const).map((item) => (
               <button
                 key={item}
                 onClick={() => setMode(item)}
-                className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                className={navPillClassName(mode === item)}
               >
                 {item}
               </button>
@@ -700,12 +702,9 @@ export default function KnowledgeBasePage() {
     <div className={embedded ? "rounded-2xl border border-border bg-card p-4" : "rounded-2xl border border-border bg-card p-4 shadow-sm"}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Corpus</h2>
-        <button
-          onClick={handleCreateCorpus}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white"
-        >
+        <Button variant="neutral" size="sm" onClick={handleCreateCorpus}>
           Add Corpus
-        </button>
+        </Button>
       </div>
       {corpora.length === 0 ? (
         <p className="text-xs text-muted-foreground">暂无 Corpus</p>
@@ -1062,15 +1061,15 @@ export default function KnowledgeBasePage() {
                               }
                               badges={(
                                 <>
-                                  <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
-                                  <span className="shrink-0 text-zinc-600 dark:text-zinc-400">
+                                  <span className="shrink-0 text-text-muted">·</span>
+                                  <span className="shrink-0 text-text-secondary">
                                     Retrieval Count {chunk.display_retrieval_count}
                                   </span>
                                   <span
                                     className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                                       chunk.is_enabled
                                         ? "bg-emerald-500/15 text-emerald-500"
-                                        : "bg-zinc-500/15 text-zinc-500"
+                                        : "bg-muted text-text-muted"
                                     }`}
                                   >
                                     {chunk.is_enabled ? "Enabled" : "Disabled"}

@@ -103,7 +103,7 @@ export function FilterBar({
       </div>
       <div className="ml-auto flex items-center gap-2">
         <span
-          className={`inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-zinc-400"}`}
+          className={`inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-border"}`}
           title={connected ? "SSE connected" : "SSE disconnected"}
         />
         <span className="text-[11px] text-muted-foreground">{connected ? "Live" : "Reconnecting…"}</span>

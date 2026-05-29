@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { JsonViewer } from "@/components/ui/JsonViewer";
+import { Button } from "@/components/ui/Button";
 
 interface McpServer {
   id: string;
@@ -279,11 +280,11 @@ export function McpServerTrialDialog({
     if (name === "pdf_source") {
       return (
         <div key={name} className="space-y-2">
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</label>
+          <label className="block text-xs font-medium text-text-secondary">{label}</label>
           <input
             value={String(formValues[name] || "")}
             onChange={(event) => setFormValues((prev) => ({ ...prev, [name]: event.target.value }))}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
             placeholder="PDF URL，或改用下方文件上传"
           />
           <input type="file" accept="application/pdf" onChange={(event) => setSinglePdfFile(event.target.files?.[0] || null)} />
@@ -293,7 +294,7 @@ export function McpServerTrialDialog({
     if (name === "pdf_sources") {
       return (
         <div key={name} className="space-y-2">
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</label>
+          <label className="block text-xs font-medium text-text-secondary">{label}</label>
           <textarea
             value={Array.isArray(formValues[name]) ? (formValues[name] as string[]).join("\n") : ""}
             onChange={(event) =>
@@ -306,7 +307,7 @@ export function McpServerTrialDialog({
               }))
             }
             rows={4}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
             placeholder="每行一个 PDF URL，或改用下方多文件上传"
           />
           <input
@@ -322,7 +323,7 @@ export function McpServerTrialDialog({
     const fieldType = schema.type;
     if (fieldType === "boolean") {
       return (
-        <label key={name} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+        <label key={name} className="flex items-center gap-2 text-sm text-text-secondary">
           <input
             type="checkbox"
             checked={Boolean(formValues[name])}
@@ -335,7 +336,7 @@ export function McpServerTrialDialog({
     if (fieldType === "array") {
       return (
         <div key={name} className="space-y-2">
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</label>
+          <label className="block text-xs font-medium text-text-secondary">{label}</label>
           <textarea
             value={Array.isArray(formValues[name]) ? (formValues[name] as string[]).join("\n") : ""}
             onChange={(event) =>
@@ -348,7 +349,7 @@ export function McpServerTrialDialog({
               }))
             }
             rows={4}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
           />
         </div>
       );
@@ -356,7 +357,7 @@ export function McpServerTrialDialog({
     if (fieldType === "object" || schema.additionalProperties || schema.anyOf) {
       return (
         <div key={name} className="space-y-2">
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</label>
+          <label className="block text-xs font-medium text-text-secondary">{label}</label>
           <textarea
             value={
               typeof formValues[name] === "string"
@@ -374,14 +375,14 @@ export function McpServerTrialDialog({
               });
             }}
             rows={6}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+            className="w-full rounded-lg border border-border bg-input px-3 py-2 font-mono text-xs text-foreground"
           />
         </div>
       );
     }
     return (
       <div key={name} className="space-y-2">
-        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</label>
+        <label className="block text-xs font-medium text-text-secondary">{label}</label>
         <input
           type={fieldType === "integer" || fieldType === "number" ? "number" : "text"}
           value={String(formValues[name] ?? "")}
@@ -394,7 +395,7 @@ export function McpServerTrialDialog({
                   : event.target.value,
             }))
           }
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
         />
       </div>
     );
@@ -407,29 +408,29 @@ export function McpServerTrialDialog({
       open={isOpen}
       onClose={onClose}
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="flex h-[90vh] w-full max-w-[1400px] flex-col rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900"
+      contentClassName="flex h-[90vh] w-full max-w-[1400px] flex-col rounded-modal bg-card p-6 shadow-xl"
     >
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-xl font-semibold text-foreground">
             试用 MCP Server: {server.display_name || server.name}
           </h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-text-muted">
             白盒查看参数、执行阶段、结果与历史审计。
           </p>
         </div>
-        <button onClick={onClose} className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        <Button variant="ghost" onClick={onClose}>
           关闭
-        </button>
+        </Button>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-12 gap-4">
-        <div className="col-span-3 flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
-          <div className="shrink-0 mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tools</div>
+        <div className="col-span-3 flex min-h-0 flex-col rounded-xl border border-border p-3">
+          <div className="shrink-0 mb-3 text-sm font-semibold text-foreground">Tools</div>
           <div className="min-h-0 flex-1 overflow-y-auto space-y-4">
             {groupedTools.map(([group, items]) => (
               <div key={group}>
-                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">{group}</div>
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">{group}</div>
                 <div className="space-y-1">
                   {items.map((tool) => (
                     <button
@@ -438,11 +439,11 @@ export function McpServerTrialDialog({
                       className={`w-full rounded-lg border px-3 py-2 text-left ${
                         selectedToolName === tool.name
                           ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300"
+                          : "border-border bg-muted/50 text-text-secondary"
                       }`}
                     >
                       <div className="font-mono text-xs">{tool.display_name || tool.title || tool.name}</div>
-                      <div className="mt-1 text-[11px] text-zinc-500">{tool.call_count} calls</div>
+                      <div className="mt-1 text-[11px] tabular-nums text-text-muted">{tool.call_count} calls</div>
                     </button>
                   ))}
                 </div>
@@ -451,27 +452,29 @@ export function McpServerTrialDialog({
           </div>
         </div>
 
-        <div className="col-span-4 flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+        <div className="col-span-4 flex min-h-0 flex-col rounded-xl border border-border p-3">
           <div className="shrink-0 mb-3 flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <div className="text-sm font-semibold text-foreground">
                 {selectedTool?.display_name || selectedTool?.title || selectedTool?.name || "选择 Tool"}
               </div>
-              <div className="line-clamp-3 text-xs text-zinc-500">{selectedTool?.description || "暂无描述"}</div>
+              <div className="line-clamp-3 text-xs text-text-muted">{selectedTool?.description || "暂无描述"}</div>
             </div>
             <div className="flex shrink-0 gap-2 text-xs">
-              <button
-                className={`rounded px-2 py-1 ${formMode === "guided" ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800"}`}
+              <Button
+                variant={formMode === "guided" ? "neutral" : "ghost"}
+                size="sm"
                 onClick={() => setFormMode("guided")}
               >
                 表单
-              </button>
-              <button
-                className={`rounded px-2 py-1 ${formMode === "raw" ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800"}`}
+              </Button>
+              <Button
+                variant={formMode === "raw" ? "neutral" : "ghost"}
+                size="sm"
                 onClick={() => setFormMode("raw")}
               >
                 Raw JSON
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -480,7 +483,7 @@ export function McpServerTrialDialog({
               <textarea
                 value={rawJson}
                 onChange={(event) => setRawJson(event.target.value)}
-                className="h-72 w-full rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+                className="h-72 w-full rounded-lg border border-border bg-muted/50 p-3 font-mono text-xs text-foreground"
               />
             ) : (
               Object.entries(((selectedTool?.input_schema.properties as Record<string, Record<string, unknown>>) || {})).map(
@@ -488,32 +491,33 @@ export function McpServerTrialDialog({
               )
             )}
 
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-950">
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">Input Schema</div>
+            <div className="rounded-lg border border-border bg-muted/50 p-3">
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">Input Schema</div>
               <JsonViewer data={selectedTool?.input_schema || {}} />
             </div>
           </div>
 
           <div className="shrink-0 mt-3 flex items-center justify-between">
             <div className="text-xs text-red-500">{error}</div>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleExecute}
               disabled={!selectedTool || executing}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {executing ? "执行中..." : "试用该 Tool"}
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="col-span-5 grid min-h-0 grid-rows-[220px_minmax(0,1fr)] gap-4">
-          <div className="flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
-            <div className="shrink-0 mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">执行历史</div>
+          <div className="flex min-h-0 flex-col rounded-xl border border-border p-3">
+            <div className="shrink-0 mb-3 text-sm font-semibold text-foreground">执行历史</div>
             <div className="min-h-0 flex-1 overflow-y-auto space-y-2">
               {historyLoading ? (
-                <div className="text-sm text-zinc-500">加载中...</div>
+                <div className="text-sm text-text-muted">加载中...</div>
               ) : history.length === 0 ? (
-                <div className="text-sm text-zinc-500">暂无执行历史</div>
+                <div className="text-sm text-text-muted">暂无执行历史</div>
               ) : (
                 history.map((run) => (
                   <button
@@ -522,14 +526,14 @@ export function McpServerTrialDialog({
                     className={`w-full rounded-lg border px-3 py-2 text-left ${
                       activeRun?.id === run.id
                         ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/30"
-                        : "border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950"
+                        : "border-border bg-muted/50"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs">{run.tool_name}</span>
-                      <span className="text-[11px] text-zinc-500">{run.status}</span>
+                      <span className="text-[11px] text-text-muted">{run.status}</span>
                     </div>
-                    <div className="mt-1 text-[11px] text-zinc-500">
+                    <div className="mt-1 text-[11px] tabular-nums text-text-muted">
                       {run.origin} · {run.duration_ms} ms · {formatTime(run.started_at)}
                     </div>
                   </button>
@@ -538,48 +542,48 @@ export function McpServerTrialDialog({
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+          <div className="flex min-h-0 flex-col rounded-xl border border-border p-3">
             <div className="shrink-0 mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">白盒详情</div>
-              <div className="text-xs text-zinc-500">{activeRun ? `${activeRun.status} · ${activeRun.duration_ms} ms` : "-"}</div>
+              <div className="text-sm font-semibold text-foreground">白盒详情</div>
+              <div className="text-xs tabular-nums text-text-muted">{activeRun ? `${activeRun.status} · ${activeRun.duration_ms} ms` : "-"}</div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto space-y-4">
               {!activeRun ? (
-                <div className="text-sm text-zinc-500">选择一条执行记录查看详情</div>
+                <div className="text-sm text-text-muted">选择一条执行记录查看详情</div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-                      <div className="mb-1 font-medium text-zinc-600 dark:text-zinc-300">原始参数</div>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <div className="mb-1 font-medium text-text-secondary">原始参数</div>
                       <JsonViewer data={activeRun.request_payload} />
                     </div>
-                    <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-                      <div className="mb-1 font-medium text-zinc-600 dark:text-zinc-300">归一化参数</div>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <div className="mb-1 font-medium text-text-secondary">归一化参数</div>
                       <JsonViewer data={activeRun.normalized_request_payload} />
                     </div>
                   </div>
 
-                  <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-                    <div className="mb-1 text-xs font-medium text-zinc-600 dark:text-zinc-300">结果</div>
+                  <div className="rounded-lg bg-muted/50 p-3">
+                    <div className="mb-1 text-xs font-medium text-text-secondary">结果</div>
                     <JsonViewer data={activeRun.result_payload} />
                   </div>
 
-                  <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-                    <div className="mb-2 text-xs font-medium text-zinc-600 dark:text-zinc-300">阶段时间线</div>
+                  <div className="rounded-lg bg-muted/50 p-3">
+                    <div className="mb-2 text-xs font-medium text-text-secondary">阶段时间线</div>
                     <div className="space-y-2">
                       {(activeRun.events || []).map((event) => (
-                        <div key={event.id} className="rounded border border-zinc-200 p-2 dark:border-zinc-700">
+                        <div key={event.id} className="rounded border border-border p-2">
                           <div className="flex items-center justify-between">
-                            <div className="text-xs font-medium text-zinc-800 dark:text-zinc-100">
+                            <div className="text-xs font-medium text-foreground">
                               {event.sequence_num}. {event.title}
                             </div>
-                            <div className="text-[11px] text-zinc-500">
+                            <div className="text-[11px] text-text-muted">
                               {event.stage} · {event.status}
                             </div>
                           </div>
-                          {event.detail ? <div className="mt-1 text-xs text-zinc-500">{event.detail}</div> : null}
+                          {event.detail ? <div className="mt-1 text-xs text-text-muted">{event.detail}</div> : null}
                           {Object.keys(event.payload || {}).length > 0 ? (
-                            <div className="mt-2 rounded bg-zinc-100 p-2 dark:bg-zinc-950">
+                            <div className="mt-2 rounded bg-muted p-2">
                               <JsonViewer data={event.payload} />
                             </div>
                           ) : null}
@@ -588,7 +592,7 @@ export function McpServerTrialDialog({
                     </div>
                   </div>
 
-                  <div className="text-xs text-zinc-500">
+                  <div className="text-xs text-text-muted">
                     开始时间：{formatTime(activeRun.started_at)} | 结束时间：{formatTime(activeRun.ended_at)}
                   </div>
                 </>

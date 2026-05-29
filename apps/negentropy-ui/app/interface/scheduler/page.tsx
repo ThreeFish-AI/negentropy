@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import type { DashboardFilters, ScheduledTaskDTO, TaskWritePayload } from "@/features/scheduler";
 import { runTaskNow, toggleTaskEnabled, createTask, updateTask, deleteTask } from "@/features/scheduler/api";
+import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
@@ -104,7 +105,7 @@ export default function SchedulerPage() {
       message: (
         <>
           Are you sure you want to delete{" "}
-          <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs font-mono dark:bg-zinc-800">
+          <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">
             {task.display_name || task.key}
           </code>
           ? This action cannot be undone. All execution history will be permanently removed.
@@ -144,7 +145,7 @@ export default function SchedulerPage() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Scheduler" />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6 space-y-5">
@@ -157,11 +158,7 @@ export default function SchedulerPage() {
             onCreateTask={handleCreate}
           />
 
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900 dark:bg-red-950/50 dark:text-red-400">
-              {error}
-            </div>
-          )}
+          {error && <ErrorBanner message={error} />}
 
           <SchedulerKpiStrip kpis={kpis} loading={loading} />
           <SchedulerFilterBar filters={filters} tasks={tasks} onFiltersChange={setFilters} />

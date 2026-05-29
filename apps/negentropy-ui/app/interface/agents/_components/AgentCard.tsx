@@ -33,10 +33,10 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
   const isAdmin = user?.roles?.includes("admin") ?? false;
   const canEdit = isAdmin || !agent.is_builtin;
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
-          <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="truncate text-lg font-semibold text-foreground">
             {agent.display_name || agent.name}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
@@ -46,7 +46,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
                   onClick={onEdit}
                   title="Edit Agent"
                   aria-label={`Edit ${agent.display_name || agent.name}`}
-                  className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                  className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -56,7 +56,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
                   onClick={onDelete}
                   title="Delete Agent"
                   aria-label={`Delete ${agent.display_name || agent.name}`}
-                  className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-red-900/20 dark:hover:text-red-400"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -72,7 +72,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
               Enabled
             </span>
           ) : (
-            <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-text-secondary">
               Disabled
             </span>
           )}
@@ -100,12 +100,12 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
           )}
         </div>
         <p
-          className="mb-1 h-[60px] min-w-0 w-full overflow-hidden leading-5 line-clamp-3 text-sm text-zinc-500 dark:text-zinc-400"
+          className="mb-1 h-[60px] min-w-0 w-full overflow-hidden leading-5 line-clamp-3 text-sm text-text-muted"
           title={agent.description || "No description"}
         >
           {agent.description || "No description"}
         </p>
-        <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
           {agent.model && (
             <span className="inline-flex min-w-0 items-center gap-1 truncate" title={agent.model}>
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

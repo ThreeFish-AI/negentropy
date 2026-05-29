@@ -15,8 +15,8 @@ interface ManifestFieldProps {
  */
 export function ManifestField({ field, value, onChange, disabled }: ManifestFieldProps) {
   const inputCls =
-    "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-500";
-  const labelCls = "mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300";
+    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+  const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
 
   const handleChange = (v: unknown) => onChange(field.name, v);
 
@@ -28,7 +28,7 @@ export function ManifestField({ field, value, onChange, disabled }: ManifestFiel
           checked={!!value}
           onChange={(e) => handleChange(e.target.checked)}
           disabled={disabled}
-          className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
+          className="h-4 w-4 rounded border-border text-foreground focus:ring-ring"
         />
         <span className={labelCls}>
           {field.label}
@@ -59,7 +59,7 @@ export function ManifestField({ field, value, onChange, disabled }: ManifestFiel
           ))}
         </select>
         {field.help_text && (
-          <p className="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">{field.help_text}</p>
+          <p className="mt-0.5 text-[10px] text-text-muted">{field.help_text}</p>
         )}
       </div>
     );

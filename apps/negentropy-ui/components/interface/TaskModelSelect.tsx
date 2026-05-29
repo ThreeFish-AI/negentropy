@@ -63,7 +63,7 @@ export function TaskModelSelect({
       onChange={(event) => onChange(event.target.value)}
       className={
         className ??
-        "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+        "rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
       }
     >
       <option value="">{placeholder}</option>

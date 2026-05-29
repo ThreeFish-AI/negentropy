@@ -100,20 +100,20 @@ export function ReplaceDocumentDialog({
       onClose={handleClose}
       busy={submitting}
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="flex h-[86vh] w-full max-w-6xl flex-col rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900"
+      contentClassName="flex h-[86vh] w-full max-w-6xl flex-col rounded-2xl bg-card p-6 shadow-xl"
     >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="truncate text-lg font-semibold text-foreground">
               Replace Document
             </h2>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-xs text-text-muted">
               {document.original_filename} · {sourceType}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="text-text-muted hover:text-foreground"
             disabled={submitting}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,26 +133,26 @@ export function ReplaceDocumentDialog({
         )}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
-          <section className="flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-            <div className="mb-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">Markdown Editor</div>
+          <section className="flex min-h-0 flex-col rounded-xl border border-border p-3">
+            <div className="mb-2 text-xs font-semibold text-text-secondary">Markdown Editor</div>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="h-full min-h-0 w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs outline-none focus:border-black dark:border-zinc-700 dark:bg-zinc-950 dark:focus:border-zinc-400"
+              className="h-full min-h-0 w-full resize-none rounded-lg border border-border bg-muted p-3 font-mono text-xs outline-none focus:border-foreground"
               placeholder={loading ? "Loading markdown..." : "请输入用于替换的新 Markdown 内容"}
               disabled={loading || submitting}
             />
           </section>
 
-          <section className="flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-            <div className="mb-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">Markdown Preview</div>
-            <div className="h-full min-h-0 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-950">
+          <section className="flex min-h-0 flex-col rounded-xl border border-border p-3">
+            <div className="mb-2 text-xs font-semibold text-text-secondary">Markdown Preview</div>
+            <div className="h-full min-h-0 overflow-auto rounded-lg bg-muted p-3 text-xs">
               {text.trim() ? (
                 <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:text-xs prose-code:text-xs">
                   <ReactMarkdown remarkPlugins={defaultRemarkPlugins} rehypePlugins={defaultRehypePlugins}>{text}</ReactMarkdown>
                 </div>
               ) : (
-                <p className="text-zinc-500 dark:text-zinc-400">暂无可预览内容</p>
+                <p className="text-text-muted">暂无可预览内容</p>
               )}
             </div>
           </section>
@@ -161,7 +161,7 @@ export function ReplaceDocumentDialog({
         <div className="mt-4 flex justify-end gap-3">
           <button
             onClick={handleClose}
-            className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-muted disabled:opacity-50"
             disabled={submitting}
           >
             Cancel

@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminNav } from "@/components/ui/AdminNav";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { Button } from "@/components/ui/Button";
 
 type RoleMap = Record<string, string[]>;
 type PermissionMap = Record<string, string>;
@@ -119,7 +119,7 @@ function PermissionToggle({
       disabled={disabled}
       aria-pressed={active}
       className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-        active ? TOGGLE_STYLES[tone] : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500"
+        active ? TOGGLE_STYLES[tone] : "bg-muted text-text-muted"
       } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:opacity-80"}`}
     >
       {label}
@@ -252,7 +252,7 @@ export default function RoleManagementPage() {
   );
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-muted">
       <AdminNav
         title="Role Management"
         description="Bind roles to page-level read/write permissions"
@@ -266,30 +266,32 @@ export default function RoleManagementPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={load}
-              className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
               disabled={loading}
             >
               {loading ? "Refreshing..." : "Refresh"}
-            </button>
+            </Button>
             {hasDirty && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={resetAll}
-                className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
               >
                 Reset All
-              </button>
+              </Button>
             )}
-            <div className="ml-auto text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="ml-auto text-xs tabular-nums text-text-muted">
               {roleNames.length} roles · {permissionKeys.length} permissions
             </div>
           </div>
 
           {loading ? (
-            <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-text-muted">
               Loading role bindings...
             </div>
           ) : error ? (
@@ -298,7 +300,7 @@ export default function RoleManagementPage() {
               <div className="mt-2">{error}</div>
             </div>
           ) : roleNames.length === 0 ? (
-            <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-text-muted">
               No roles available.
             </div>
           ) : (
@@ -312,20 +314,20 @@ export default function RoleManagementPage() {
                 return (
                   <div
                     key={role}
-                    className="rounded-xl border border-zinc-200 bg-white overflow-hidden dark:border-zinc-700 dark:bg-zinc-900"
+                    className="rounded-xl border border-border bg-card overflow-hidden"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted px-4 py-3">
                       <div>
-                        <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        <div className="text-sm font-semibold text-foreground">
                           {role}
                         </div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <div className="text-xs text-text-muted">
                           {patterns.length > 0
                             ? patterns.join(" · ")
                             : "No permission patterns"}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="flex items-center gap-3 text-xs tabular-nums text-text-muted">
                         <span>
                           {enabledCount}/{totalCount} enabled
                         </span>
@@ -334,17 +336,19 @@ export default function RoleManagementPage() {
                             Draft
                           </span>
                         )}
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
                           onClick={() => resetRole(role)}
-                          className={outlineButtonClassName("neutral", "rounded-full px-3 py-1")}
                           disabled={!dirty}
                         >
                           Reset
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                    <div className="divide-y divide-zinc-100 dark:divide-zinc-700">
+                    <div className="divide-y divide-border">
                       {areas.map((area) => {
                         const readKey = `${area.key}:read`;
                         const writeKey = `${area.key}:write`;
@@ -362,7 +366,7 @@ export default function RoleManagementPage() {
                             className="grid grid-cols-[minmax(180px,1fr)_auto_auto] items-center gap-4 px-4 py-3"
                           >
                             <div>
-                              <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                              <div className="text-xs font-semibold text-foreground">
                                 {area.href ? (
                                   <Link
                                     href={area.href}
@@ -375,7 +379,7 @@ export default function RoleManagementPage() {
                                 )}
                               </div>
                               {area.description && (
-                                <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                <div className="text-[11px] text-text-muted">
                                   {area.description}
                                 </div>
                               )}
@@ -392,7 +396,7 @@ export default function RoleManagementPage() {
                                 }
                               />
                             ) : (
-                              <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
+                              <span className="text-xs text-text-muted">—</span>
                             )}
                             {hasWrite ? (
                               <PermissionToggle
@@ -406,7 +410,7 @@ export default function RoleManagementPage() {
                                 }
                               />
                             ) : (
-                              <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
+                              <span className="text-xs text-text-muted">—</span>
                             )}
                           </div>
                         );
@@ -418,11 +422,11 @@ export default function RoleManagementPage() {
             </div>
           )}
 
-          <details className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-            <summary className="cursor-pointer text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <details className="rounded-xl border border-border bg-card p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
               Export Draft Snapshot
             </summary>
-            <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 overflow-auto dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+            <div className="mt-3 rounded-lg border border-border bg-muted p-3 text-xs text-text-secondary overflow-auto">
               <pre>{exportSnapshot}</pre>
             </div>
           </details>

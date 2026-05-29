@@ -41,7 +41,7 @@ export function JsonInput({ field, value, onChange }: JsonInputProps) {
 
   return (
     <div>
-      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+      <label className="block text-xs font-medium text-text-secondary">
         {field.label}{" "}
         {field.required && <span className="text-rose-500">*</span>}
       </label>
@@ -50,17 +50,17 @@ export function JsonInput({ field, value, onChange }: JsonInputProps) {
         onChange={handleChange}
         placeholder={field.placeholder || '{"key": "value"}'}
         rows={3}
-        className={`mt-1 w-full rounded-lg border bg-white px-3 py-2 text-xs font-mono text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 ${
+        className={`mt-1 w-full rounded-lg border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-1 ${
           error
             ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500 dark:border-rose-700"
-            : "border-zinc-200 focus:border-blue-500 focus:ring-blue-500 dark:border-zinc-700"
+            : "border-input focus:border-blue-500 focus:ring-blue-500"
         }`}
       />
       {error && (
         <p className="mt-1 text-[10px] text-rose-500">{error}</p>
       )}
       {field.description && !error && (
-        <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-[10px] text-text-muted">
           {field.description}
         </p>
       )}

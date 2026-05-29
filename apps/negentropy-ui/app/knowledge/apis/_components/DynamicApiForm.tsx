@@ -121,11 +121,11 @@ export function DynamicApiForm({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-foreground">
           交互式调用
         </h3>
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-xs text-text-muted">
           填写参数后点击执行，直接调用 {endpoint.summary} API
         </p>
 
@@ -146,7 +146,7 @@ export function DynamicApiForm({
               <button
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="flex items-center text-xs font-medium text-text-muted hover:text-foreground"
               >
                 <span>高级配置</span>
                 <ChevronRight
@@ -157,7 +157,7 @@ export function DynamicApiForm({
               </button>
 
               {showAdvanced && (
-                <div className="mt-3 space-y-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800/50">
+                <div className="mt-3 space-y-3 rounded-lg bg-muted p-3">
                   {advancedFields.map((field) => (
                     <FormFieldRenderer
                       key={field.name}
@@ -199,18 +199,18 @@ export function DynamicApiForm({
           onClose={handleCancelConfirm}
           busy={loading}
           containerClassName="flex min-h-full items-center justify-center p-4"
-          contentClassName="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+          contentClassName="w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200"
         >
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 className="text-lg font-semibold text-foreground">
               {config.confirmDialog.title}
             </h3>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-sm text-text-secondary">
               {config.confirmDialog.message}
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={handleCancelConfirm}
-                className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-muted"
               >
                 取消
               </button>

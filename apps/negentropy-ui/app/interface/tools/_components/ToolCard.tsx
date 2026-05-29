@@ -68,10 +68,10 @@ export function ToolCard({
     Object.keys(tool.credentials).length > 0;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
-          <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="truncate text-lg font-semibold text-foreground">
             {displayLabel}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
@@ -86,7 +86,7 @@ export function ToolCard({
                   "rounded-md p-2 disabled:opacity-50 " +
                   (tool.is_enabled
                     ? "text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
-                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300")
+                    : "text-text-muted hover:bg-muted hover:text-text-secondary")
                 }
               >
                 {tool.is_enabled ? (
@@ -105,7 +105,7 @@ export function ToolCard({
                 onClick={onEdit}
                 title="Edit Tool"
                 aria-label={`Edit ${displayLabel}`}
-                className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                className="rounded-md p-2 text-text-muted hover:bg-muted hover:text-text-secondary"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -117,7 +117,7 @@ export function ToolCard({
                 onClick={onDelete}
                 title="Delete Tool"
                 aria-label={`Delete ${displayLabel}`}
-                className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                className="rounded-md p-2 text-text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -132,7 +132,7 @@ export function ToolCard({
               Enabled
             </span>
           ) : (
-            <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-text-secondary">
               Disabled
             </span>
           )}
@@ -164,12 +164,12 @@ export function ToolCard({
           )}
         </div>
         <p
-          className="mb-1 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
+          className="mb-1 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-text-muted line-clamp-4"
           title={tool.description || "No description"}
         >
           {tool.description || "No description"}
         </p>
-        <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
           <span className="inline-flex shrink-0 items-center gap-1">
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />

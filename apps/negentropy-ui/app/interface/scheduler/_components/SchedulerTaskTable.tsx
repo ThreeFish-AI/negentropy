@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
@@ -42,7 +43,7 @@ function StatusDots({ statuses }: { statuses: string[] }) {
                 ? "bg-red-500"
                 : s === "running"
                   ? "bg-sky-500"
-                  : "bg-zinc-300 dark:bg-zinc-700"
+                  : "bg-border"
           }`}
           title={s ?? "—"}
         />
@@ -56,7 +57,7 @@ function SkeletonRow() {
     <tr className="border-b border-border last:border-b-0">
       {Array.from({ length: 8 }).map((_, i) => (
         <td key={i} className="px-3 py-2">
-          <div className="h-4 rounded bg-muted/40 animate-pulse" style={{ width: `${50 + (i * 13) % 40}%` }} />
+          <Skeleton className="h-4" style={{ width: `${50 + (i * 13) % 40}%` }} />
         </td>
       ))}
     </tr>
@@ -133,7 +134,7 @@ export function SchedulerTaskTable({
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         t.enabled
                           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+                          : "bg-muted text-text-secondary"
                       }`}
                     >
                       {t.enabled ? "Enabled" : "Disabled"}

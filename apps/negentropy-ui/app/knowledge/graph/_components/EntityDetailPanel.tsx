@@ -50,7 +50,7 @@ export function EntityDetailPanel({
 
   if (!entityId) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400 py-4 text-center">
+      <p className="text-xs text-text-muted py-4 text-center">
         选择实体查看详情
       </p>
     );
@@ -58,7 +58,7 @@ export function EntityDetailPanel({
 
   if (loading) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400 py-4 text-center">
+      <p className="text-xs text-text-muted py-4 text-center">
         加载中...
       </p>
     );
@@ -66,7 +66,7 @@ export function EntityDetailPanel({
 
   if (!currentDetail) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400 py-4 text-center">
+      <p className="text-xs text-text-muted py-4 text-center">
         未找到实体
       </p>
     );
@@ -87,46 +87,46 @@ export function EntityDetailPanel({
               ENTITY_TYPE_COLORS[currentDetail.entity_type] ?? ENTITY_TYPE_COLORS.other,
           }}
         />
-        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+        <span className="text-sm font-semibold text-foreground">
           {currentDetail.name}
         </span>
       </div>
 
       {/* Properties */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-        <span className="text-zinc-500 dark:text-zinc-400">类型</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">类型</span>
+        <span className="text-foreground">
           {currentDetail.entity_type}
         </span>
-        <span className="text-zinc-500 dark:text-zinc-400">置信度</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">置信度</span>
+        <span className="text-foreground">
           {currentDetail.confidence.toFixed(2)}
         </span>
-        <span className="text-zinc-500 dark:text-zinc-400">提及次数</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">提及次数</span>
+        <span className="text-foreground">
           {currentDetail.mention_count}
         </span>
-        <span className="text-zinc-500 dark:text-zinc-400">状态</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">状态</span>
+        <span className="text-foreground">
           {currentDetail.is_active ? "活跃" : "不活跃"}
         </span>
       </div>
 
       {currentDetail.description && (
-        <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800 p-2 text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="rounded-lg bg-muted p-2 text-xs text-text-secondary">
           {currentDetail.description}
         </div>
       )}
 
       {/* Relations */}
       <div>
-        <div className="flex border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex border-b border-border">
           <button
             onClick={() => setActiveTab("outgoing")}
             className={`flex-1 px-3 py-1.5 text-xs font-medium ${
               activeTab === "outgoing"
                 ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                : "text-zinc-500 dark:text-zinc-400"
+                : "text-text-muted"
             }`}
           >
             出边 ({outgoing.length})
@@ -136,7 +136,7 @@ export function EntityDetailPanel({
             className={`flex-1 px-3 py-1.5 text-xs font-medium ${
               activeTab === "incoming"
                 ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                : "text-zinc-500 dark:text-zinc-400"
+                : "text-text-muted"
             }`}
           >
             入边 ({incoming.length})
@@ -144,7 +144,7 @@ export function EntityDetailPanel({
         </div>
 
         {activeRelations.length === 0 ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 py-3 text-center">
+          <p className="text-xs text-text-muted py-3 text-center">
             暂无{activeTab === "outgoing" ? "出边" : "入边"}关系
           </p>
         ) : (
@@ -152,13 +152,13 @@ export function EntityDetailPanel({
             {activeRelations.map((rel) => (
               <div
                 key={rel.id}
-                className="rounded-lg border border-zinc-100 dark:border-zinc-800 p-2"
+                className="rounded-lg border border-border p-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  <span className="text-xs font-medium text-text-secondary">
                     {rel.relation_type}
                   </span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                  <span className="text-[10px] text-text-muted">
                     {rel.confidence.toFixed(2)}
                   </span>
                 </div>
@@ -171,12 +171,12 @@ export function EntityDetailPanel({
                         ENTITY_TYPE_COLORS.other,
                     }}
                   />
-                  <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="text-xs text-text-secondary">
                     {rel.peer_entity_name}
                   </span>
                 </div>
                 {rel.evidence_text && (
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2">
+                  <p className="text-[10px] text-text-muted mt-1 line-clamp-2">
                     {rel.evidence_text}
                   </p>
                 )}
