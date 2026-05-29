@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
 
 interface SchedulerExecutionPanelProps {
@@ -10,6 +12,8 @@ interface SchedulerExecutionPanelProps {
 }
 
 type StatusFilter = "all" | ExecutionStatus;
+
+const PAGE_SIZE = 10;
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All" },
@@ -67,24 +71,59 @@ export function SchedulerExecutionPanel({
   loading,
 }: SchedulerExecutionPanelProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  // 历史浏览快照：用户翻到第 2 页及以后时锁定当前数据集，使 SSE 实时插入 / 轮询刷新
+  // 不再重排行序、造成翻页抖动；停留或返回第 1 页时为 null，始终呈现最新数据。
+  const [frozen, setFrozen] = useState<TaskExecutionDTO[] | null>(null);
 
+  // 按状态过滤 + 防御性时间倒序（后端已倒序，此处确保契约稳健；null 视为最旧排末位）
   const filtered = useMemo(() => {
-    if (statusFilter === "all") return executions;
-    return executions.filter((e) => e.status === statusFilter);
+    const base =
+      statusFilter === "all"
+        ? executions
+        : executions.filter((e) => e.status === statusFilter);
+    return [...base].sort((a, b) => {
+      const ta = a.started_at ? Date.parse(a.started_at) : -Infinity;
+      const tb = b.started_at ? Date.parse(b.started_at) : -Infinity;
+      return tb - ta;
+    });
   }, [executions, statusFilter]);
+
+  // 有效视图：冻结态渲染历史快照，否则跟随最新过滤结果。计数 / 分页 / 空态统一以此为准。
+  const view = frozen ?? filtered;
+
+  // 客户端切片分页（默认每页 10 条）
+  const totalPages = Math.max(1, Math.ceil(view.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paged = view.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // 翻页：离开第 1 页时冻结当前快照，回到第 1 页时解冻并重新同步实时数据。
+  const goToPage = (target: number) => {
+    const next = Math.min(totalPages, Math.max(1, target));
+    if (next === 1) {
+      setFrozen(null);
+    } else if (safePage === 1) {
+      setFrozen(filtered);
+    }
+    setCurrentPage(next);
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm">
       {/* Status filter pills */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-          Executions ({filtered.length})
+          Executions ({view.length})
         </span>
         <div className="flex items-center bg-muted/50 p-0.5 rounded-full">
           {STATUS_FILTERS.map((sf) => (
             <button
               key={sf.key}
-              onClick={() => setStatusFilter(sf.key)}
+              onClick={() => {
+                setStatusFilter(sf.key);
+                setCurrentPage(1);
+                setFrozen(null);
+              }}
               className={`px-3 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
                 statusFilter === sf.key
                   ? "bg-foreground text-background shadow-sm ring-1 ring-border"
@@ -112,14 +151,14 @@ export function SchedulerExecutionPanel({
           <tbody>
             {loading && executions.length === 0 ? (
               Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
-            ) : filtered.length === 0 ? (
+            ) : view.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
                   No executions match the current filter.
                 </td>
               </tr>
             ) : (
-              filtered.map((e) => (
+              paged.map((e) => (
                 <tr
                   key={e.id}
                   className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
@@ -154,6 +193,33 @@ export function SchedulerExecutionPanel({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {view.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between border-t border-border px-3 py-1.5">
+          <button
+            type="button"
+            disabled={safePage <= 1}
+            onClick={() => goToPage(safePage - 1)}
+            aria-label="Previous page"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-[10px] font-medium text-muted-foreground">
+            {safePage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= totalPages}
+            onClick={() => goToPage(safePage + 1)}
+            aria-label="Next page"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
