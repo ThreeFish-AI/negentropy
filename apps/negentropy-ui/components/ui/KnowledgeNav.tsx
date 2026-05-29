@@ -30,15 +30,14 @@ export function KnowledgeNav({
     };
   }, [title, setNavigationInfo]);
 
-  const isActive = (href: string, aliases?: string[]) =>
-    pathname.startsWith(href) || (aliases?.some((a) => pathname.startsWith(a)) ?? false);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <div className="border-b border-border bg-card px-6 py-1">
       <div className="flex flex-wrap items-center justify-center gap-4">
         <nav className="flex items-center gap-1 bg-muted/50 p-1 rounded-full">
           {NAV_ITEMS.map((item) => {
-            const active = isActive(item.href, item.aliases);
+            const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
