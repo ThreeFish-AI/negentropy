@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { SessionListView } from "@/utils/session";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 type SessionItem = {
   id: string;
