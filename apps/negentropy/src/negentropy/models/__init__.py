@@ -1,7 +1,7 @@
 from .action import Tool, ToolExecution
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .builtin_tool import BuiltinTool
-from .internalization import Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
+from .internalization import ConsolidationJob, Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpResourceTemplate, McpServer, McpTool
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
@@ -52,6 +52,7 @@ __all__ = [
     "Fact",
     "MemoryAuditLog",
     "MemoryAutomationConfig",
+    "ConsolidationJob",
     # Action
     "Tool",
     "ToolExecution",

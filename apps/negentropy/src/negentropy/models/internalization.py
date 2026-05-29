@@ -274,3 +274,33 @@ class MemoryCoreBlock(Base, UUIDMixin):
         ),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+class ConsolidationJob(Base, UUIDMixin):
+    """会话巩固任务队列（Consolidation Job Queue）
+
+    SQL 函数 ``trigger_maintenance_consolidation`` 按时间窗口为活跃 thread 入队
+    ``full_consolidation`` 待处理任务；消费侧负责取出 ``pending`` 任务执行巩固。
+
+    模型与迁移 0044 的 ``negentropy.consolidation_jobs`` 建表语句逐列对齐，
+    作为该表的单一事实源，避免 autogenerate 将其视为孤儿表而误删。索引由迁移持有。
+
+    参考文献:
+    [1] S. J. Sara, "Reconsolidation and the stability of memory traces,"
+        Current Opinion in Neurobiology, vol. 35, pp. 110-115, 2015.
+    """
+
+    __tablename__ = "consolidation_jobs"
+
+    thread_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
+    job_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+    error: Mapped[str | None] = mapped_column(Text)
+    started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
