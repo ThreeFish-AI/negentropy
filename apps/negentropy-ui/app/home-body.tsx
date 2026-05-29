@@ -7,6 +7,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PanelLeft, PanelRight } from "lucide-react";
 
 import { randomUUID } from "@ag-ui/client";
 import { EventType, Message, type BaseEvent } from "@ag-ui/core";
@@ -639,6 +640,25 @@ export function HomeBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.isOpen, search.open]);
 
+  // 面板开合快捷键：⌘/Ctrl+B 左栏（会话）、⌘/Ctrl+J 右栏（State）。
+  // 对齐 VS Code「侧栏开合」直觉；preventDefault 抑制浏览器默认行为（如 Cmd+J 下载）。
+  // 快捷键如需调整，改此处 key 即可。
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "b") {
+        e.preventDefault();
+        setShowLeftPanel((v) => !v);
+      } else if (key === "j") {
+        e.preventDefault();
+        setShowRightPanel((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const doSend = useCallback(
     async (input: string) => {
       if (!agent || !sessionId || !input.trim()) {
@@ -1090,14 +1110,14 @@ export function HomeBody({
   }, [logEntries, nodeTimestampIndex, selectedNodeId]);
 
   return (
-    <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="h-full flex flex-col bg-background text-text-primary overflow-hidden">
       {agent && (
         <ConfirmationToolRegistrar onFollowup={handleConfirmationFollowup} />
       )}
       <div className="flex h-full overflow-hidden relative">
         {/* Left Sidebar: Session List */}
         <div
-          className={`shrink-0 h-full border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden dark:border-zinc-800 dark:bg-zinc-900 ${
+          className={`shrink-0 h-full border-r border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
             showLeftPanel
               ? "w-64 translate-x-0 opacity-100"
               : "w-0 -translate-x-10 opacity-0"
@@ -1120,33 +1140,21 @@ export function HomeBody({
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col h-full min-w-0 bg-zinc-50 relative overflow-hidden transition-all duration-300 dark:bg-zinc-950">
+        <main className="flex-1 flex flex-col h-full min-w-0 bg-background relative overflow-hidden transition-all duration-300">
           {/* Internal Toolbar for Toggles */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-200/50 bg-white/50 backdrop-blur-sm z-10 w-full dark:border-zinc-700/50 dark:bg-zinc-900/50">
+          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border bg-card/60 backdrop-blur-sm z-10 w-full">
             <button
+              type="button"
               onClick={() => setShowLeftPanel(!showLeftPanel)}
-              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-700/80"
-              title={showLeftPanel ? "Close Sidebar" : "Open Sidebar"}
+              className="p-1.5 rounded-md text-text-muted hover:bg-border-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={showLeftPanel ? "收起会话栏 (⌘/Ctrl+B)" : "展开会话栏 (⌘/Ctrl+B)"}
+              aria-pressed={showLeftPanel}
+              title={showLeftPanel ? "收起会话栏 (⌘/Ctrl+B)" : "展开会话栏 (⌘/Ctrl+B)"}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
-                />
-                {/* Replaced with a simple Sidebar Icon */}
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-              </svg>
+              <PanelLeft className="w-4 h-4" aria-hidden="true" />
             </button>
 
-            <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4 dark:text-zinc-500">
+            <div className="text-xs font-medium text-text-secondary max-w-md truncate mx-4">
               {activeSession
                 ? `${activeSession.label}${latestRunState?.status === "blocked" ? " · 等待确认" : ""}`
                 : "Negentropy"}
@@ -1166,22 +1174,17 @@ export function HomeBody({
             )}
 
             {/* G3 审批策略选择器 */}
-            <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" />
+            <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[10px] text-text-muted" />
 
             <button
+              type="button"
               onClick={() => setShowRightPanel(!showRightPanel)}
-              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-700/80"
-              title={showRightPanel ? "Close Panel" : "Open Panel"}
+              className="p-1.5 rounded-md text-text-muted hover:bg-border-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={showRightPanel ? "收起 State 栏 (⌘/Ctrl+J)" : "展开 State 栏 (⌘/Ctrl+J)"}
+              aria-pressed={showRightPanel}
+              title={showRightPanel ? "收起 State 栏 (⌘/Ctrl+J)" : "展开 State 栏 (⌘/Ctrl+J)"}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="15" y1="3" x2="15" y2="21" />
-              </svg>
+              <PanelRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -1250,7 +1253,7 @@ export function HomeBody({
 
         {/* Right Sidebar: Timeline & Logs */}
         <div
-          className={`shrink-0 h-full border-l border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden dark:border-zinc-800 dark:bg-zinc-900 ${
+          className={`shrink-0 h-full border-l border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
             showRightPanel
               ? "w-80 translate-x-0 opacity-100"
               : "w-0 translate-x-10 opacity-0"
@@ -1259,32 +1262,33 @@ export function HomeBody({
           <div className="w-80 h-full overflow-y-auto p-6">
             {/* View mode indicator + minimal interaction hint */}
             {selectedNodeId ? (
-              <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:border-amber-800 dark:bg-amber-950/50">
+              <div className="mb-4 p-3 rounded-lg border border-amber-300/60 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-200">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
                     历史视图
                   </span>
                   <button
+                    type="button"
                     onClick={() => {
                       setSelectedNodeId(null);
                     }}
-                    className="text-xs text-amber-600 hover:text-amber-800 underline dark:text-amber-400 dark:hover:text-amber-300"
+                    className="rounded text-xs font-medium text-amber-700 underline-offset-2 hover:underline dark:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     返回实时
                   </button>
                 </div>
-                <p className="text-[10px] text-amber-700 mt-1 dark:text-amber-300">
+                <p className="mt-1 text-[10px] text-amber-700/80 dark:text-amber-300/80">
                   显示选定消息的观察数据
                 </p>
               </div>
             ) : (
-              <div className="mb-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                    实时视图
-                  </span>
-                </div>
-                <p className="text-[10px] text-zinc-500 mt-1 dark:text-zinc-400">
+              <div className="mb-4 p-3 rounded-lg border border-border bg-border-muted/50">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-text-muted" aria-hidden="true" />
+                  实时视图
+                </span>
+                <p className="mt-1 text-[10px] text-text-muted">
                   点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
                 </p>
               </div>

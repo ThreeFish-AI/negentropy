@@ -139,7 +139,7 @@ function CorpusSettingsPanel({
       {/* Models Settings */}
       <div className="rounded-2xl border border-border bg-background p-4">
         <h3 className="text-sm font-semibold">Models Settings</h3>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs text-muted-foreground">
           Embedding Model 影响 Embedding Indexing / Vector Search；LLM Model 影响 URL 与 PDF 文档抽取调用 MCP 时的 Plan LLM。
         </p>
 
@@ -234,10 +234,10 @@ function CorpusSettingsPanel({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold">Document Extraction Settings</h3>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-muted-foreground">
               通过 MCP Tools 为当前 Corpus 注入 URL、PDF 等源文档解释器。
             </p>
-            <p className="mt-2 text-[11px] leading-5 text-muted">
+            <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
               可用于此处的 Tool 需提供可发现的 input/output schema，并能返回正文 Markdown 或文本；当前兼容单文档扁平协议，以及单个
               sources 数组的 batch 协议，系统会自动把单个 URL/PDF 请求包装为对应格式。
             </p>
@@ -253,7 +253,7 @@ function CorpusSettingsPanel({
             <div key={routeKey} className="mt-4 rounded-xl border border-border p-3">
               <div className="mb-3">
                 <div className="text-xs font-semibold">{title}</div>
-                <div className="text-[11px] text-muted">{description}</div>
+                <div className="text-[11px] text-muted-foreground">{description}</div>
               </div>
               <div className="space-y-3">
                 {[0, 1].map((index) => {
@@ -324,7 +324,7 @@ function CorpusSettingsPanel({
                         {index === 0 ? "主用" : "备用"}
                       </div>
                       <label className="text-xs">
-                        <div className="mb-1 text-muted">MCP Server</div>
+                        <div className="mb-1 text-muted-foreground">MCP Server</div>
                         <select
                           value={selectedServerId}
                           onChange={(e) =>
@@ -341,7 +341,7 @@ function CorpusSettingsPanel({
                         </select>
                       </label>
                       <label className="text-xs">
-                        <div className="mb-1 text-muted">Tool</div>
+                        <div className="mb-1 text-muted-foreground">Tool</div>
                         <select
                           value={target?.tool_name || ""}
                           onChange={(e) => setTarget({ tool_name: e.target.value })}

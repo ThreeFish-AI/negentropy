@@ -4,7 +4,8 @@
  * 这些代码功能正确，仅是新规则严格度提升导致的告警；
  * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
  */
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, Sparkles } from "lucide-react";
 import { AssistantReplyBubble } from "./AssistantReplyBubble";
 import { ChatTypingIndicator } from "./ChatTypingIndicator";
 import { MessageBubble } from "./MessageBubble";
@@ -54,6 +55,8 @@ export function ChatStream({
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
+  // 「回到底部」浮钮可见性：用户上滑超过阈值时显示。
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
   const visibleNodes = nodes.filter((node) => node.visibility !== "debug-only");
   // useMemo 避免每个 SSE chunk 触发时都重建 display blocks（buildChatDisplayBlocks
   // 涉及 6 层去重计算），减少不必要的子组件重渲与闪烁。
@@ -82,6 +85,14 @@ export function ChatStream({
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
     const distanceToBottom = scrollHeight - scrollTop - clientHeight;
     isUserAtBottomRef.current = distanceToBottom < 50;
+    setShowJumpToBottom(distanceToBottom > 200);
+  };
+
+  const scrollToBottom = () => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    isUserAtBottomRef.current = true;
+    setShowJumpToBottom(false);
   };
 
   useEffect(() => {
@@ -116,6 +127,7 @@ export function ChatStream({
     pending && (!lastBlock || lastBlock.kind !== "assistant-reply");
 
   return (
+    <div className="relative flex-1 flex flex-col overflow-hidden">
     <div
       ref={scrollRef}
       onScroll={onScroll}
@@ -130,8 +142,16 @@ export function ChatStream({
           pending ? (
             <ChatTypingIndicator variant="standalone" />
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
-              发送指令开始对话。主区会按正文顺序展示消息，并把工具过程穿插在对应位置。
+            <div className="flex min-h-[55vh] flex-col items-center justify-center px-6 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Sparkles className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <h2 className="text-sm font-semibold text-text-primary">
+                开始一段对话
+              </h2>
+              <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-text-muted">
+                发送指令即可开始。消息按正文顺序展示，工具调用过程会穿插在对应位置。
+              </p>
             </div>
           )
         ) : (
@@ -186,8 +206,7 @@ export function ChatStream({
                 data-node-id={block.nodeId}
                 className={cn(
                   "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200",
-                  selectedNodeId === block.nodeId &&
-                    "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  selectedNodeId === block.nodeId && "ring-2 ring-ring",
                   highlightCls,
                 )}
                 onClick={() => onNodeSelect?.(block.nodeId)}
@@ -200,9 +219,8 @@ export function ChatStream({
                 key={block.id}
                 data-node-id={block.nodeId}
                 className={cn(
-                  "rounded-2xl border border-dashed border-zinc-200/80 bg-zinc-100/55 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/35 dark:text-zinc-300",
-                  selectedNodeId === block.nodeId &&
-                    "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  "rounded-2xl border border-dashed border-border bg-border-muted/40 px-4 py-3 text-sm text-text-secondary",
+                  selectedNodeId === block.nodeId && "ring-2 ring-ring",
                   highlightCls,
                 )}
                 onClick={() => onNodeSelect?.(block.nodeId)}
@@ -217,23 +235,19 @@ export function ChatStream({
                 key={block.id}
                 data-node-id={block.nodeId}
                 className={cn(
-                  "rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900",
-                  selectedNodeId === block.nodeId &&
-                    "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  "rounded-2xl border border-border bg-card px-4 py-3 text-sm shadow-sm",
+                  selectedNodeId === block.nodeId && "ring-2 ring-ring",
                   highlightCls,
                 )}
                 onClick={() => onNodeSelect?.(block.nodeId)}
               >
-                <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                <div className="font-semibold text-text-primary">
                   {block.title}
                 </div>
                 {block.lines.length > 0 ? (
                   <div className="mt-2 space-y-1">
                     {block.lines.map((line) => (
-                      <div
-                        key={line}
-                        className="text-xs text-zinc-600 dark:text-zinc-400"
-                      >
+                      <div key={line} className="text-xs text-text-muted">
                         {line}
                       </div>
                     ))}
@@ -247,6 +261,18 @@ export function ChatStream({
           <ChatTypingIndicator variant="standalone" />
         ) : null}
       </div>
+    </div>
+      {showJumpToBottom ? (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          aria-label="回到底部"
+          className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs font-medium text-text-secondary shadow-md backdrop-blur transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+          回到底部
+        </button>
+      ) : null}
     </div>
   );
 }

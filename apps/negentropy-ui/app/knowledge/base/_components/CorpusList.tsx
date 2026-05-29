@@ -85,7 +85,7 @@ export function CorpusList({
           className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-all ${
             selectedId === corpus.id
               ? "bg-foreground text-background shadow-md font-medium"
-              : "text-muted hover:bg-muted/50 hover:text-foreground"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           }`}
           onClick={() => onSelect(corpus.id)}
         >
@@ -95,7 +95,7 @@ export function CorpusList({
               className={`ml-2 text-xs ${
                 selectedId === corpus.id
                   ? "text-background/70"
-                  : "text-muted/70"
+                  : "text-muted-foreground/70"
               }`}
             >
               {corpus.knowledge_count} chunks
@@ -109,7 +109,7 @@ export function CorpusList({
             className={`invisible p-1 opacity-0 group-hover:visible group-hover:opacity-100 ${
               selectedId === corpus.id
                 ? "visible opacity-100 text-background/80 hover:text-background"
-                : "text-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={(e) => {
               e.stopPropagation();

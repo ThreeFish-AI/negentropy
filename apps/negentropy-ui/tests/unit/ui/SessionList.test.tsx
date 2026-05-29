@@ -61,7 +61,7 @@ describe("SessionList", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await user.click(screen.getByRole("tab", { name: "进行中" }));
     await user.click(screen.getByRole("button", { name: "Unarchive Archived Session" }));
     await user.click(screen.getByTestId("confirm-dialog-confirm"));
 

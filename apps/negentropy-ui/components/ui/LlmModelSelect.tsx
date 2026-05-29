@@ -219,7 +219,7 @@ export function LlmModelSelect({
         aria-haspopup="listbox"
         disabled={disabled}
         onClick={handleTriggerClick}
-        className="h-7 rounded-md border border-border/50 bg-transparent pl-2 pr-6 text-xs text-foreground outline-none transition-colors hover:border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        className="h-7 rounded-md border border-border/50 bg-transparent pl-2 pr-6 text-xs text-foreground outline-none transition-colors hover:border-border hover:bg-border-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="truncate max-w-48 inline-block align-middle">{displayLabel}</span>
         <ChevronDown
@@ -278,7 +278,7 @@ export function LlmModelSelect({
               }
               return (
                 <div key={vendor} role="group" aria-label={vendor}>
-                  <div className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-muted select-none">
+                  <div className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-text-muted select-none">
                     {vendor}
                   </div>
                   {items.map((item, i) => {
@@ -334,7 +334,7 @@ function ModelOption({
       data-active={active ? "true" : undefined}
       className={`cursor-pointer px-3 py-1.5 text-xs ${
         active ? "bg-input" : "hover:bg-input/60"
-      } ${isMuted ? "text-muted" : "text-foreground"} ${selected ? "font-medium" : ""}`}
+      } ${isMuted ? "text-text-muted" : "text-foreground"} ${selected ? "font-medium" : ""}`}
       onMouseEnter={onHover}
       onClick={onPick}
     >

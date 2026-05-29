@@ -292,8 +292,8 @@ export function Composer({
       data-testid="composer-form"
       className={`group/composer rounded-2xl border bg-card p-3 transition-all duration-200 ${
         dragOver
-          ? "border-amber-400/80 shadow-[0_0_0_2px_rgba(251,191,36,0.25)]"
-          : "border-border/60 shadow-sm focus-within:shadow-md focus-within:border-text-secondary/30"
+          ? "border-primary/70 shadow-[0_0_0_2px_rgba(99,102,241,0.25)]"
+          : "border-border/60 shadow-sm focus-within:shadow-md focus-within:border-primary/40"
       }`}
       autoComplete="off"
       onSubmit={(e) => e.preventDefault()}
@@ -412,7 +412,7 @@ export function Composer({
             type="button"
             data-testid="composer-stop-button"
             aria-label="Stop"
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-all hover:bg-rose-700"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-all hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
             onClick={onCancel}
           >
             <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
@@ -422,7 +422,7 @@ export function Composer({
             type="button"
             data-testid="composer-send-button"
             aria-label="Send"
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-all hover:opacity-90 disabled:opacity-25 disabled:cursor-not-allowed"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:bg-primary-hover disabled:opacity-25 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             onClick={onSend}
             disabled={disabled || !value.trim() || !!isBlocked}
           >
@@ -470,7 +470,7 @@ export function Composer({
                 data-testid="composer-attach-button"
                 aria-label="添加附件"
                 title="添加附件（PDF / 图片 / 文本，≤ 20MB）"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-muted hover:text-foreground"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-border-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled && !isGenerating}
               >
@@ -509,10 +509,10 @@ export function Composer({
                 if (!thinkingSupported) return;
                 onThinkingEnabledChange?.(!thinkingEnabled);
               }}
-              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors ${
+              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 thinkingSupported && thinkingEnabled
-                  ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
-                  : "border-transparent text-muted hover:text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-transparent text-text-muted hover:text-foreground hover:bg-border-muted disabled:cursor-not-allowed disabled:opacity-40"
               }`}
             >
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />

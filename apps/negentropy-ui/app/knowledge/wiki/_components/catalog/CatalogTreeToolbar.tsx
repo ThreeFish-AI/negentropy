@@ -21,12 +21,12 @@ export function CatalogTreeToolbar({
     <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border bg-card rounded-t-lg">
       {/* Search */}
       <div className="relative flex-1 min-w-0">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         <input
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="搜索节点..."
-          className="w-full rounded-md border border-border bg-background pl-7 pr-2 py-1 text-xs text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
+          className="w-full rounded-md border border-border bg-background pl-7 pr-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
         />
       </div>
 
@@ -34,7 +34,7 @@ export function CatalogTreeToolbar({
       <button
         onClick={onCollapseAll}
         title="全部折叠"
-        className="shrink-0 p-1.5 rounded-md text-muted hover:text-foreground hover:bg-muted/50 transition-colors"
+        className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
       >
         <ChevronsDownUp className="h-3.5 w-3.5" />
       </button>
@@ -51,7 +51,7 @@ export function CatalogTreeToolbar({
 
       {/* Node count */}
       {nodeCount > 0 && (
-        <span className="shrink-0 text-[10px] text-muted tabular-nums">
+        <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
           {nodeCount}
         </span>
       )}

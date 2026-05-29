@@ -568,8 +568,8 @@ describe("HomeBody integration", () => {
       await screen.findByText((content) => content.includes("world")),
     ).toBeInTheDocument();
 
-    // 点击 "+ New" 创建新 session
-    await user.click(screen.getByRole("button", { name: "+ New" }));
+    // 点击 "New" 创建新 session
+    await user.click(screen.getByRole("button", { name: "New" }));
 
     // 验证创建了新 session
     await waitFor(() => {

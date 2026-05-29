@@ -159,8 +159,7 @@ export function AssistantReplyBubble({
                 key={segment.id}
                 className={cn(
                   "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200",
-                  isSelected &&
-                    "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  isSelected && "ring-2 ring-ring",
                 )}
                 onClick={() => onSelect?.(segment.nodeId)}
               >

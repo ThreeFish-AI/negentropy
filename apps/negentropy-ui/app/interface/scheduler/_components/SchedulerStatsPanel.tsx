@@ -17,11 +17,11 @@ interface StatsSectionProps {
 function StatsSection({ title, stats }: StatsSectionProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
+      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">
         {title}
       </h3>
       {!stats || stats.buckets.length === 0 ? (
-        <div className="text-xs text-muted text-center py-4">No data</div>
+        <div className="text-xs text-muted-foreground text-center py-4">No data</div>
       ) : (
         <div className="space-y-0.5">
           {stats.buckets.map((b) => (
@@ -33,7 +33,7 @@ function StatsSection({ title, stats }: StatsSectionProps) {
                 {b.label}
               </span>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-muted">{b.runs} runs</span>
+                <span className="text-muted-foreground">{b.runs} runs</span>
                 <span
                   className={`font-medium tabular-nums ${
                     b.success_rate >= 0.95

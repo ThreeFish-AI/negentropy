@@ -84,7 +84,7 @@ export function CreateWikiPublicationDialog({
         <>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-sm rounded-md border border-border text-muted hover:bg-muted"
+            className="px-4 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted"
           >
             取消
           </button>
@@ -100,7 +100,7 @@ export function CreateWikiPublicationDialog({
     >
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-muted mb-1">名称 *</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">名称 *</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -109,7 +109,7 @@ export function CreateWikiPublicationDialog({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted mb-1">Slug *</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Slug *</label>
           <input
             value={slug}
             onChange={(e) => {
@@ -119,12 +119,12 @@ export function CreateWikiPublicationDialog({
             placeholder="engineering"
             className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             作为站点 URL 前缀，例如 /{slug || "engineering"}/...
           </p>
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted mb-1">描述</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">描述</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -134,7 +134,7 @@ export function CreateWikiPublicationDialog({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted mb-1">主题</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">主题</label>
           <select
             value={theme}
             onChange={(e) => setTheme(e.target.value as WikiTheme)}
