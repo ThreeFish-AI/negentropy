@@ -43,16 +43,17 @@
 }
 
 /* ---- Container group (section header) ---- */
+/* SquareDocs 风格：分组标题用正常大小写、半粗、克制留白，而非全大写小字 */
 .wiki-nav-group {
   flex: 1;
   min-width: 0;
   display: block;
   padding: 0.4rem 0.55rem;
-  font-size: 0.78em;
+  margin-top: 1.1rem;
+  font-size: 0.86em;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--wiki-text-secondary);
+  letter-spacing: 0;
+  color: var(--wiki-text);
   background: transparent;
   border: 0;
   text-align: left;
@@ -62,6 +63,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   transition: color 0.12s ease, background 0.12s ease;
+}
+/* 顶部首个分组无需额外上间距（搜索框已提供留白） */
+.wiki-nav-list > .wiki-nav-item:first-child > .wiki-nav-row > .wiki-nav-group {
+  margin-top: 0;
 }
 .wiki-nav-group:hover {
   background: var(--wiki-bg-secondary);

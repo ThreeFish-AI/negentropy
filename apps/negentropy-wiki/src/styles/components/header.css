@@ -5,6 +5,10 @@
   height: var(--wiki-header-height);
   background: var(--wiki-header-bg);
   box-shadow: var(--wiki-header-shadow);
+  /* 半透明毛玻璃 + 发丝底边，露出顶部紫光（参照 SquareDocs） */
+  border-bottom: 1px solid var(--wiki-border);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
 }
 
 .wiki-header-inner {
@@ -59,25 +63,25 @@
 .wiki-header-tab {
   display: inline-flex;
   align-items: center;
-  padding: 0 0.85rem;
-  height: 100%;
+  align-self: center;
+  padding: 0.4rem 0.85rem;
   font-size: 0.92em;
   font-weight: 500;
   color: var(--wiki-text-secondary);
   text-decoration: none;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.12s ease;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.12s ease;
   white-space: nowrap;
-  border-radius: 0;
 }
 .wiki-header-tab:hover {
   color: var(--wiki-text);
   text-decoration: none;
   background: var(--wiki-bg-secondary);
 }
+/* SquareDocs 风格：激活态为圆角药丸高亮，而非底部下划线 */
 .wiki-header-tab.active {
   color: var(--wiki-accent);
-  border-bottom-color: var(--wiki-accent);
+  background: var(--wiki-primary-light);
   font-weight: 600;
 }
 .wiki-header-tab.disabled {
@@ -101,19 +105,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  padding: 0 0.85rem;
-  height: 100%;
+  padding: 0.4rem 0.85rem;
   font-size: 0.92em;
   font-weight: 500;
   color: var(--wiki-text-secondary);
   text-decoration: none;
-  border-bottom: 2px solid transparent;
+  border: none;
+  border-radius: 8px;
   background: transparent;
-  border-top: none;
-  border-left: none;
-  border-right: none;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.12s ease;
+  transition: color 0.15s ease, background 0.12s ease;
   white-space: nowrap;
   font-family: inherit;
 }
@@ -124,7 +125,7 @@
 }
 .wiki-header-dropdown.active > .wiki-header-dropdown-trigger {
   color: var(--wiki-accent);
-  border-bottom-color: var(--wiki-accent);
+  background: var(--wiki-primary-light);
   font-weight: 600;
 }
 
@@ -183,23 +184,24 @@
   flex-shrink: 0;
 }
 
-/* Search box — pill shape */
+/* Search box — 圆角矩形 + ⌘K 提示（参照 SquareDocs） */
 .wiki-search-box {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0 0.75rem;
-  height: 32px;
+  padding: 0 0.6rem;
+  height: 34px;
   background: var(--wiki-input-bg);
   border: 1px solid var(--wiki-border);
-  border-radius: 20px;
+  border-radius: 8px;
   color: var(--wiki-text-secondary);
   font-size: 0.88em;
   cursor: text;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .wiki-search-box:focus-within {
   border-color: var(--wiki-accent);
+  box-shadow: 0 0 0 3px var(--wiki-primary-light);
 }
 .wiki-search-box input {
   border: none;
@@ -207,11 +209,28 @@
   color: var(--wiki-text);
   font-size: inherit;
   outline: none;
-  width: 140px;
+  width: 150px;
   font-family: var(--wiki-body-font);
 }
 .wiki-search-box input::placeholder {
   color: var(--wiki-text-secondary);
+}
+
+/* ⌘K 键位提示徽标 */
+.wiki-search-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1em;
+  flex-shrink: 0;
+  padding: 0.1em 0.4em;
+  font-family: var(--wiki-body-font);
+  font-size: 0.82em;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--wiki-text-secondary);
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 5px;
 }
 
 /* Action buttons */
@@ -240,7 +259,8 @@
 }
 
 @media (max-width: 768px) {
-  .wiki-search-box {
+  /* 仅隐藏顶栏内的搜索框；侧栏/移动抽屉中的搜索框保持可见 */
+  .wiki-header .wiki-search-box {
     display: none;
   }
   .wiki-header-dropdown-panel {

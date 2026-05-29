@@ -1,15 +1,17 @@
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--wiki-heading-font);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
+  letter-spacing: -0.014em;
   color: var(--wiki-text);
   margin-top: 1.5em;
   margin-bottom: 0.6em;
 }
 
-h1 { font-size: 2.25em; }
-h2 { font-size: 1.75em; border-bottom: 1px solid var(--wiki-border); padding-bottom: 0.3em; }
-h3 { font-size: 1.25em; }
+/* SquareDocs 风格：大而克制的标题，无分割线 */
+h1 { font-size: 2.5em; letter-spacing: -0.02em; }
+h2 { font-size: 1.75em; }
+h3 { font-size: 1.3em; }
 h4 { font-size: 1.1em; }
 
 p { margin-bottom: 1em; }

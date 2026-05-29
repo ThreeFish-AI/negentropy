@@ -15,7 +15,11 @@ html {
 body.wiki-body {
   font-family: var(--wiki-body-font);
   color: var(--wiki-text);
+  /* 基色 + 右上角径向紫光（作为 body 背景层，恒在内容之下，无 stacking 风险） */
   background-color: var(--wiki-bg);
+  background-image: var(--wiki-page-glow, none);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   line-height: 1.7;
   min-height: 100vh;
 }

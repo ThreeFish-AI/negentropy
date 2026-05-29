@@ -1,61 +1,85 @@
 :root {
-  /* Default 主题 (Docusaurus 绿调) */
+  /* ===== SquareDocs Violet · 浅色（默认） ===== */
   --wiki-bg: #ffffff;
-  --wiki-bg-secondary: #f7f7f5;
-  --wiki-text: #1c1e21;
-  --wiki-text-secondary: #606770;
-  --wiki-border: #dadde1;
-  --wiki-accent: #2e8555;
-  --wiki-accent-hover: #27734a;
-  --wiki-sidebar-bg: #fbfbfa;
+  --wiki-bg-secondary: #f6f7f9;
+  --wiki-text: #16161a;
+  --wiki-text-secondary: #5b616e;
+  --wiki-border: #e6e8eb;
+  --wiki-accent: #7c3aed;
+  --wiki-accent-hover: #6d28d9;
+  --wiki-sidebar-bg: #fbfbfc;
   --wiki-sidebar-width: 300px;
   --wiki-toc-width: 298px;
   --wiki-toc-rail-width: 40px;
   --wiki-header-height: 60px;
   --wiki-content-max-width: 820px;
-  --wiki-heading-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Noto Sans SC", sans-serif;
-  --wiki-body-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Noto Sans SC", sans-serif;
-  --wiki-code-font: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+
+  /* 字体：Inter（next/font 注入 --font-inter）+ CJK 系统回退 */
+  --wiki-heading-font: var(--font-inter), "PingFang SC", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --wiki-body-font: var(--font-inter), "PingFang SC", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --wiki-code-font: "SF Mono", "Fira Code", "Cascadia Code", ui-monospace,
+    "JetBrains Mono", monospace;
+
   --wiki-radius: 8px;
-  --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --wiki-header-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  --wiki-shadow: 0 1px 3px rgba(20, 16, 40, 0.06);
+  --wiki-header-shadow: none;
   --wiki-success-bg: #e8f5e9;
   --wiki-success-text: #2e7d32;
 
-  /* Header */
-  --wiki-header-bg: var(--wiki-bg);
-  --wiki-accent-green: #4CAF50;
+  /* Header — 半透明 + 毛玻璃，露出顶部紫光 */
+  --wiki-header-bg: rgba(255, 255, 255, 0.8);
+  --wiki-accent-green: #4caf50;
   --wiki-input-bg: var(--wiki-bg-secondary);
 
   /* Code */
   --wiki-code-bg: #f6f8fa;
 
-  /* Links */
-  --wiki-link-color: #2563eb;
-  --wiki-link-hover-color: #1d4ed8;
+  /* Links — 统一为强调色（紫罗兰） */
+  --wiki-link-color: var(--wiki-accent);
+  --wiki-link-hover-color: var(--wiki-accent-hover);
+
+  /* 抬升面（卡片/弹层）：浅色为白，深色覆写为 #161618 */
+  --wiki-surface: #ffffff;
 
   /* Card */
   --wiki-card-radius: 12px;
-  --wiki-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --wiki-card-shadow: 0 1px 2px rgba(20, 16, 40, 0.04),
+    0 2px 8px rgba(20, 16, 40, 0.06);
 
   /* 首页品牌强调色 */
-  --wiki-home-accent: #2e8555;
+  --wiki-home-accent: var(--wiki-accent);
 
-  /* 首页 Hero 液态渐变色彩 */
-  --wiki-hero-base: #2e8555;
-  --wiki-hero-blob-1: #32996e;
-  --wiki-hero-blob-2: #4fae82;
-  --wiki-hero-blob-3: #255a3f;
-  --wiki-hero-blob-4: #32996e;
+  /* 签名级：页面右上角径向紫光（参照 SquareDocs） */
+  --wiki-page-glow: radial-gradient(
+    62% 52% at 100% 0%,
+    rgba(124, 58, 237, 0.07),
+    transparent 70%
+  );
 
-  /* Footer */
-  --wiki-footer-bg: #30384a;
+  /* 首页 Hero — 深紫罗兰夜空（Galaxy 之下的基色，两套主题一致） */
+  --wiki-hero-base: #140d24;
+  --wiki-hero-blob-1: #3b1d6e;
+  --wiki-hero-blob-2: #6d28d9;
+  --wiki-hero-blob-3: #1e1140;
+  --wiki-hero-blob-4: #4c1d95;
+
+  /* Footer — 全站深色 */
+  --wiki-footer-bg: #0f0f12;
   --wiki-footer-text: #ffffff;
-  --wiki-footer-text-secondary: rgba(255, 255, 255, 0.7);
+  --wiki-footer-text-secondary: rgba(255, 255, 255, 0.66);
   --wiki-footer-border: rgba(255, 255, 255, 0.1);
 
-  /* Primary light (for active backgrounds) */
-  --wiki-primary-light: rgba(46, 133, 85, 0.1);
+  /* Primary light（active 背景叠色） */
+  --wiki-primary-light: rgba(124, 58, 237, 0.1);
+
+  /* Callout / Admonition（令牌化，确保深色模式正确） */
+  --wiki-note-bg: rgba(124, 58, 237, 0.07);
+  --wiki-warn-text: #b45309;
+  --wiki-warn-bg: #fffbeb;
+  --wiki-warn-border: #d97706;
+  --wiki-danger-text: #dc2626;
+  --wiki-danger-bg: #fef2f2;
+  --wiki-danger-border: #dc2626;
 }
