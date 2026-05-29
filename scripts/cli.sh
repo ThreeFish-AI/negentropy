@@ -5,7 +5,9 @@
 set -euo pipefail
 
 # ── 路径 ────────────────────────────────────────────────────────────────────────
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# 使用 ${BASH_SOURCE[0]} 而非 $0 解析自身路径：被执行时二者等价，被 source（测试）
+# 时 $0 为调用方 shell，唯有 BASH_SOURCE[0] 始终指向 cli.sh，保证 REPO_ROOT 正确。
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 RUN_DIR="$REPO_ROOT/.temp/run"
 
 # ── 颜色 ────────────────────────────────────────────────────────────────────────
@@ -68,13 +70,58 @@ run_dir_init() { mkdir -p "$RUN_DIR"; }
 pid_file() { echo "$RUN_DIR/$1.pid"; }
 log_file() { echo "$RUN_DIR/$1.log"; }
 
-# ── 日志时间戳管道（为 Node.js 服务输出添加统一格式时间戳）──────────────────────────
-_ts_pipe() {
-  local service="$1"
-  while IFS= read -r line; do
-    printf '%s | %8s | %32s | %s\n' \
-      "$(date '+%Y-%m-%d %H:%M:%S')" "INFO" "$service" "$line"
+# ── 日志滚动配置 ─────────────────────────────────────────────────────────────────
+# 单个日志达到阈值即滚动（重命名为 .1/.2…，新建空 .log 续写），避免无限增长导致无法打开。
+# 可经环境变量覆盖：NEGENTROPY_LOG_MAX_BYTES（默认 3MB）、NEGENTROPY_LOG_BACKUPS（默认 5）。
+LOG_MAX_BYTES="${NEGENTROPY_LOG_MAX_BYTES:-$((3 * 1024 * 1024))}"
+LOG_BACKUPS="${NEGENTROPY_LOG_BACKUPS:-5}"
+
+# 跨平台文件字节大小：BSD(stat -f%z) → GNU(stat -c%s) → POSIX(wc -c) 三级兜底，缺文件返回 0。
+_file_size() {
+  [ -f "$1" ] || { echo 0; return; }
+  stat -f%z "$1" 2>/dev/null || stat -c%s "$1" 2>/dev/null || wc -c < "$1" 2>/dev/null || echo 0
+}
+
+# 滚动 <logf>：删最旧 .N → 依次 .k→.k+1 右移 → .log→.1（logrotate 风格命名）。
+# 末行 `|| true` 保证函数恒返回 0，避免在 set -e 下误杀调用方（_log_sink 长驻循环）。
+_rotate_log() {
+  local base="$1" i
+  rm -f "${base}.${LOG_BACKUPS}" 2>/dev/null || true
+  i=$(( LOG_BACKUPS - 1 ))
+  while [ "$i" -ge 1 ]; do
+    [ -f "${base}.${i}" ] && mv -f "${base}.${i}" "${base}.$(( i + 1 ))"
+    i=$(( i - 1 ))
   done
+  [ -f "$base" ] && mv -f "$base" "${base}.1" || true
+}
+
+# ── 日志滚动写入管道（统一承接所有服务的 stdout/stderr）──────────────────────────────
+# 从 stdin 逐行读取，按行 `>>` 追加写入 <name>.log，累计字节达 LOG_MAX_BYTES 即滚动。
+# 逐行 `>>`（每行按文件名重开）使滚动后下一行自动写入新建的 <name>.log，无需重启服务。
+# add_ts=1：为 Node(ui/wiki) 注入与原 _ts_pipe 完全一致的时间戳列；add_ts=0：原样透传
+# （Python 服务自带时间戳）。函数体置于子 shell：set +e 隔离 errexit，避免单行写入抖动
+# 中断长驻日志泵；export LC_ALL=C 使 ${#out} 按字节计长（中文日志阈值判断准确），均不外泄。
+_log_sink() {
+  local name="$1" add_ts="${2:-0}" logf
+  logf="$(log_file "$name")"
+  (
+    set +e
+    export LC_ALL=C
+    size="$(_file_size "$logf")"
+    while IFS= read -r line || [ -n "$line" ]; do
+      if [ "$add_ts" = "1" ]; then
+        out="$(printf '%s | %8s | %32s | %s' "$(date '+%Y-%m-%d %H:%M:%S')" "INFO" "$name" "$line")"
+      else
+        out="$line"
+      fi
+      printf '%s\n' "$out" >> "$logf"
+      size=$(( size + ${#out} + 1 ))
+      if [ "$size" -ge "$LOG_MAX_BYTES" ]; then
+        _rotate_log "$logf"
+        size=0
+      fi
+    done
+  )
 }
 
 # ── 日志生命周期 Banner ──────────────────────────────────────────────────────────
@@ -133,18 +180,17 @@ start_service() {
   log_info "启动 ${name} (port ${port})..."
   _log_banner "$(log_file "$name")" "$name" "STARTING" "port $port"
 
-  if [[ "$name" == "ui" || "$name" == "wiki" ]]; then
-    # Node.js 服务：通过 FIFO 管道添加时间戳，同时保持 PID 追踪
-    local fifo="/tmp/.negentropy_${name}_log_fifo"
-    rm -f "$fifo"; mkfifo "$fifo"
-    _ts_pipe "$name" < "$fifo" >> "$(log_file "$name")" &
-    (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$fifo" 2>&1 &
-    rm -f "$fifo"
-  else
-    # Python 服务：自带格式化，直接重定向
-    (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$(log_file "$name")" 2>&1 &
-  fi
-  echo $! > "$(pid_file "$name")"
+  # 所有服务统一经 FIFO → _log_sink 落盘，由 sink 负责 3MB 滚动：
+  #   Node(ui/wiki) 注入时间戳前缀(add_ts=1)；Python(backend/perceives) 自带时间戳原样透传(add_ts=0)。
+  # 服务被杀 → FIFO 写端关闭 → sink 读到 EOF 自然退出（无新增孤儿）。
+  local add_ts=0
+  case "$name" in ui|wiki) add_ts=1 ;; esac
+  local fifo="/tmp/.negentropy_${name}_log_fifo"
+  rm -f "$fifo"; mkfifo "$fifo"
+  _log_sink "$name" "$add_ts" < "$fifo" &
+  (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$fifo" 2>&1 &
+  echo $! > "$(pid_file "$name")"   # $! = 服务进程（紧跟服务启动捕获），PID/停止语义不变
+  rm -f "$fifo"
 
   if wait_for_health "$name" "$port"; then
     log_ok "${name} 已就绪 (PID $(cat "$(pid_file "$name")"))"
@@ -351,14 +397,15 @@ cmd_logs() {
       exit 1
     fi
   fi
+  # tail -F（大写）按文件名跟随：日志滚动/截断后自动重开新建的 <name>.log，跨滚动不中断。
   if [[ "$target" == "all" ]]; then
-    tail -f "$(log_file backend)" "$(log_file ui)" "$(log_file wiki)" "$(log_file perceives)" 2>/dev/null \
+    tail -F "$(log_file backend)" "$(log_file ui)" "$(log_file wiki)" "$(log_file perceives)" 2>/dev/null \
       || log_error "无日志文件，请先启动服务"
   else
     local lf
     lf="$(log_file "$target")"
     if [[ -f "$lf" ]]; then
-      tail -f "$lf"
+      tail -F "$lf"
     else
       log_error "无 ${target} 日志文件，请先启动服务"
       exit 1
@@ -419,12 +466,15 @@ EOF
 }
 
 # ── 主入口 ────────────────────────────────────────────────────────────────────────
-case "${1:-help}" in
-  start)   shift; cmd_start "$@" ;;
-  stop)    cmd_stop ;;
-  restart) shift; cmd_restart "$@" ;;
-  status)  cmd_status ;;
-  logs)    shift; cmd_logs "${1:-all}" ;;
-  build)   cmd_build ;;
-  help|*)  cmd_help ;;
-esac
+# 仅在「直接执行」时分发命令；被 source（如测试调用内部函数）时跳过，避免副作用。
+if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]]; then
+  case "${1:-help}" in
+    start)   shift; cmd_start "$@" ;;
+    stop)    cmd_stop ;;
+    restart) shift; cmd_restart "$@" ;;
+    status)  cmd_status ;;
+    logs)    shift; cmd_logs "${1:-all}" ;;
+    build)   cmd_build ;;
+    help|*)  cmd_help ;;
+  esac
+fi
