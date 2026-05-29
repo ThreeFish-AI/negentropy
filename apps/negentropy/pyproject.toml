@@ -185,6 +185,6 @@ constraint-dependencies = [
     "filelock>=3.20.3",     # TOCTOU symlink 竞争 (medium)
     "orjson>=3.11.6",       # 无限递归 DoS (high)
     "google-cloud-aiplatform>=1.133.0", # 可预测 bucket 命名 (high)
-    "mako>=1.3.11",         # GHSA-v92g-xgxw-vvmm: TemplateLookup 双斜杠路径穿越 (medium, alembic 传递)
-    "python-multipart>=0.0.26", # GHSA-mj87-hwqh-73pj: 大型 preamble/epilogue DoS (medium, starlette 传递)
+    "mako>=1.3.12",         # GHSA-2h4p-vjrc-8xpq / CVE-2026-44307: Windows 反斜杠 URI TemplateLookup 路径穿越 (high, alembic 传递; 兼容 GHSA-v92g-xgxw-vvmm)
+    "python-multipart>=0.0.27", # GHSA-pp6c-gr5w-3c5g / CVE-2026-42561: MultipartParser 无界 part headers DoS (high, mcp/starlette 传递; 兼容 GHSA-mj87-hwqh-73pj)
 ]
