@@ -224,7 +224,6 @@ def upgrade() -> None:
             sa.bindparam("token_budget", value=spec.get("token_budget")),
             sa.bindparam("enabled", value=True),
             sa.bindparam("is_system", value=True),
-            sa.bindparam("next_fire_at", value=sa.text("NOW()")),
         ]
         op.execute(
             sa.text(
@@ -236,7 +235,7 @@ def upgrade() -> None:
                 VALUES
                     (:key, :handler_kind, :trigger_type, :interval_seconds, :cron_expr,
                      :role, :scenario, :category, :display_name, :description,
-                     :payload, :max_concurrency, :token_budget, :enabled, :is_system, :next_fire_at)
+                     :payload, :max_concurrency, :token_budget, :enabled, :is_system, NOW())
                 ON CONFLICT (key) DO NOTHING
                 """
             ).bindparams(*bindparams)
