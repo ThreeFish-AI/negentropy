@@ -259,13 +259,14 @@ cmd_start() {
   (( _rc )) && { log_error "backend/perceives 依赖安装失败"; exit 1; }
   log_ok "backend + perceives 依赖已安装"
 
-  log_info "安装 ui + wiki 依赖 (并行)..."
-  (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm install) &
-  local ui_pid=$!
-  (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm install) &
-  local wiki_pid=$!
-  local _rc=0; wait "$ui_pid" || _rc=$?; wait "$wiki_pid" || _rc=$?
-  (( _rc )) && { log_error "前端依赖安装失败"; exit 1; }
+  # pnpm workspace 为单一 lockfile + 单一 store：在任一成员目录执行 pnpm install
+  # 都会触发全工作区安装（日志 Scope: all N projects）。原先并行的两个 member-dir
+  # install（ui + wiki）实为对同一 workspace 的重复全量安装，且会并发向共享成员
+  # （cognizes-ui / travel-agent-ui）的 node_modules/.bin 写同名 bin（vitest/eslint），
+  # 引发 "Failed to create bin ... ENOENT chmod" 进程间竞态告警。改为根目录单次安装：
+  # 覆盖面不变（仍是全部成员），消除竞态告警，且免去一次重复全量安装。
+  log_info "安装前端依赖 (pnpm workspace)..."
+  (cd "$REPO_ROOT" && pnpm install) || { log_error "前端依赖安装失败"; exit 1; }
   log_ok "前端依赖已安装"
 
   # Phase 3 — 数据库迁移
