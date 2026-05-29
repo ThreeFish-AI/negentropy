@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
 
 interface SchedulerExecutionPanelProps {
@@ -10,6 +12,8 @@ interface SchedulerExecutionPanelProps {
 }
 
 type StatusFilter = "all" | ExecutionStatus;
+
+const PAGE_SIZE = 10;
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All" },
@@ -67,11 +71,25 @@ export function SchedulerExecutionPanel({
   loading,
 }: SchedulerExecutionPanelProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
+  // 按状态过滤 + 防御性时间倒序（后端已倒序，此处确保契约稳健；null 视为最旧排末位）
   const filtered = useMemo(() => {
-    if (statusFilter === "all") return executions;
-    return executions.filter((e) => e.status === statusFilter);
+    const base =
+      statusFilter === "all"
+        ? executions
+        : executions.filter((e) => e.status === statusFilter);
+    return [...base].sort((a, b) => {
+      const ta = a.started_at ? Date.parse(a.started_at) : -Infinity;
+      const tb = b.started_at ? Date.parse(b.started_at) : -Infinity;
+      return tb - ta;
+    });
   }, [executions, statusFilter]);
+
+  // 客户端切片分页（默认每页 10 条）
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm">
@@ -84,7 +102,10 @@ export function SchedulerExecutionPanel({
           {STATUS_FILTERS.map((sf) => (
             <button
               key={sf.key}
-              onClick={() => setStatusFilter(sf.key)}
+              onClick={() => {
+                setStatusFilter(sf.key);
+                setCurrentPage(1);
+              }}
               className={`px-3 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
                 statusFilter === sf.key
                   ? "bg-foreground text-background shadow-sm ring-1 ring-border"
@@ -119,7 +140,7 @@ export function SchedulerExecutionPanel({
                 </td>
               </tr>
             ) : (
-              filtered.map((e) => (
+              paged.map((e) => (
                 <tr
                   key={e.id}
                   className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
@@ -154,6 +175,33 @@ export function SchedulerExecutionPanel({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between border-t border-border px-3 py-1.5">
+          <button
+            type="button"
+            disabled={safePage <= 1}
+            onClick={() => setCurrentPage(Math.max(1, safePage - 1))}
+            aria-label="上一页"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-[10px] font-medium text-muted-foreground">
+            {safePage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= totalPages}
+            onClick={() => setCurrentPage(Math.min(totalPages, safePage + 1))}
+            aria-label="下一页"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
