@@ -1,8 +1,8 @@
 """SubAgent 概念彻底更名为 Agent：表 sub_agents -> agents、约束/索引、
 plugin_permissions.plugin_type 取值、以及 config.adk_config.kind 取值。
 
-Revision ID: 0044
-Revises: 0043
+Revision ID: 0045
+Revises: 0044
 Create Date: 2026-05-29 00:00:00.000000+00:00
 
 设计动机：
@@ -33,8 +33,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0044"
-down_revision: str | None = "0043"
+revision: str = "0045"
+down_revision: str | None = "0044"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
