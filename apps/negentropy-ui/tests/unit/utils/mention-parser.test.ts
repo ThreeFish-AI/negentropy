@@ -168,7 +168,7 @@ describe("reconcileMentions", () => {
 describe("deriveForwardedPropsFromMentions", () => {
   it("空数组 → 全部空", () => {
     expect(deriveForwardedPropsFromMentions([])).toEqual({
-      preferred_subagent: null,
+      preferred_agent: null,
       corpus_ids: [],
     });
   });
@@ -178,7 +178,7 @@ describe("deriveForwardedPropsFromMentions", () => {
       _mkToken("@A", 0, { kind: "agent", refId: "A1" }),
       _mkToken("@B", 0, { kind: "agent", refId: "B2" }),
     ]);
-    expect(r.preferred_subagent).toBe("B2");
+    expect(r.preferred_agent).toBe("B2");
   });
 
   it("多个 corpus → 去重保持首现顺序", () => {
@@ -203,7 +203,7 @@ describe("deriveForwardedPropsFromMentions", () => {
         corpora: new Set(["valid-uuid"]),
       },
     );
-    expect(r.preferred_subagent).toBe("Alive");
+    expect(r.preferred_agent).toBe("Alive");
     expect(r.corpus_ids).toEqual(["valid-uuid"]);
   });
 
@@ -214,7 +214,7 @@ describe("deriveForwardedPropsFromMentions", () => {
       _mkToken("@c", 0, { kind: "corpus", refId: "kb-2" }),
     ]);
     expect(r).toEqual({
-      preferred_subagent: "Pipeline-A",
+      preferred_agent: "Pipeline-A",
       corpus_ids: ["kb-1", "kb-2"],
     });
   });

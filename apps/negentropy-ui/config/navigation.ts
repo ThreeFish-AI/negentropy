@@ -28,7 +28,7 @@ export const mainNavConfig: MainNavItem[] = [
   },
   {
     title: "Interface",
-    href: "/interface/subagents",
+    href: "/interface/agents",
     activePaths: ["/interface"],
   },
   {

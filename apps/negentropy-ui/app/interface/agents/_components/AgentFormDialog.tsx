@@ -13,7 +13,7 @@ import { LlmModelSelect } from "@/components/ui/LlmModelSelect";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { fetchModelConfigs, type ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
 
-interface SubAgent {
+interface Agent {
   id: string;
   name: string;
   display_name: string | null;
@@ -30,11 +30,11 @@ interface SubAgent {
   is_builtin?: boolean;
 }
 
-interface SubAgentFormDialogProps {
+interface AgentFormDialogProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
-  agent: SubAgent | null;
+  agent: Agent | null;
 }
 
 interface NegentropyTemplate {
@@ -48,12 +48,12 @@ interface NegentropyTemplate {
   tools: string[];
 }
 
-export function SubAgentFormDialog({
+export function AgentFormDialog({
   open,
   onClose,
   onSubmit,
   agent,
-}: SubAgentFormDialogProps) {
+}: AgentFormDialogProps) {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [formData, setFormData] = useState({
     name: "",
@@ -174,7 +174,7 @@ export function SubAgentFormDialog({
     let mounted = true;
     const fetchTemplates = async () => {
       try {
-        const response = await fetch("/api/interface/subagents/templates/negentropy");
+        const response = await fetch("/api/interface/agents/templates/negentropy");
         if (!response.ok) return;
         const data = (await response.json()) as NegentropyTemplate[];
         if (mounted) {
@@ -196,9 +196,9 @@ export function SubAgentFormDialog({
     let confirmBuiltinRename = false;
     if (agent?.is_builtin && formData.name !== agent.name) {
       const confirmed = await confirm({
-        title: "Rename Built-in SubAgent",
+        title: "Rename Built-in Agent",
         message:
-          "Renaming a Negentropy built-in SubAgent may cause future sync to create a duplicate. Continue?",
+          "Renaming a Negentropy built-in Agent may cause future sync to create a duplicate. Continue?",
         confirmLabel: "Continue",
         destructive: true,
       });
@@ -286,7 +286,7 @@ export function SubAgentFormDialog({
     >
           <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              {agent ? "Edit SubAgent" : "Add SubAgent"}
+              {agent ? "Edit Agent" : "Add Agent"}
             </h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               Keep fields consistent with ADK while optimizing readability for longer configurations.
@@ -351,7 +351,7 @@ export function SubAgentFormDialog({
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      placeholder="my-subagent"
+                      placeholder="my-agent"
                       required
                     />
                   </div>
@@ -364,7 +364,7 @@ export function SubAgentFormDialog({
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      placeholder="My SubAgent"
+                      placeholder="My Agent"
                     />
                   </div>
                   <div className="lg:col-span-2">
@@ -376,7 +376,7 @@ export function SubAgentFormDialog({
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       rows={2}
-                      placeholder="Description of this subagent"
+                      placeholder="Description of this agent"
                     />
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export function SubAgentFormDialog({
                       onChange={(v) => setFormData({ ...formData, model: v })}
                       allowClear
                       placeholder="Default"
-                      ariaLabel="SubAgent 使用的 LLM"
+                      ariaLabel="Agent 使用的 LLM"
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
@@ -544,7 +544,7 @@ export function SubAgentFormDialog({
                       placeholder='{"agent_class":"LlmAgent","output_key":"perception_output","disallow_transfer_to_parent":true}'
                     />
                     <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      Use this field to capture all ADK sub-agent capabilities. Empty value will auto-generate a minimal ADK config.
+                      Use this field to capture all ADK agent capabilities. Empty value will auto-generate a minimal ADK config.
                     </p>
                   </div>
                 </div>

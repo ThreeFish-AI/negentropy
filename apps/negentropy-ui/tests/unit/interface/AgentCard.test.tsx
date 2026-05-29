@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SubAgentCard } from "@/app/interface/subagents/_components/SubAgentCard";
+import { AgentCard } from "@/app/interface/agents/_components/AgentCard";
 
 vi.mock("@/components/providers/AuthProvider", () => ({
   useAuth: () => ({
@@ -28,11 +28,11 @@ const baseAgent = {
   is_enabled: true,
 };
 
-describe("SubAgentCard", () => {
+describe("AgentCard", () => {
   it("calls edit and delete handlers", async () => {
     const onEdit = vi.fn();
     const onDelete = vi.fn();
-    render(<SubAgentCard agent={baseAgent} onEdit={onEdit} onDelete={onDelete} />);
+    render(<AgentCard agent={baseAgent} onEdit={onEdit} onDelete={onDelete} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Edit PerceptionFaculty" }));
     await userEvent.click(screen.getByRole("button", { name: "Delete PerceptionFaculty" }));
@@ -43,7 +43,7 @@ describe("SubAgentCard", () => {
 
   it("keeps fixed-height layout classes and title tooltip for description", () => {
     const { container } = render(
-      <SubAgentCard agent={baseAgent} onEdit={vi.fn()} onDelete={vi.fn()} />
+      <AgentCard agent={baseAgent} onEdit={vi.fn()} onDelete={vi.fn()} />
     );
 
     const root = container.firstElementChild;

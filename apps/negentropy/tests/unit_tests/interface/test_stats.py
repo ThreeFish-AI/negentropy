@@ -123,13 +123,13 @@ class TestSafePluginStats:
     async def test_happy_path_returns_int(self, _non_admin_user) -> None:
         """正常路径：total = len(visible_ids), enabled = scalar(count) 转 int。
 
-        用真实 ORM 模型（SubAgent）让 ``select().where()`` 表达式可构造；
+        用真实 ORM 模型（Agent）让 ``select().where()`` 表达式可构造；
         db.scalar 直接 mock 返回 enabled count，避免依赖真实 DB。
         """
         from uuid import uuid4
 
         from negentropy.interface import api as interface_api
-        from negentropy.models.plugin import SubAgent
+        from negentropy.models.plugin import Agent
 
         db = MagicMock()
         db.scalar = AsyncMock(return_value=3)
@@ -139,7 +139,7 @@ class TestSafePluginStats:
             return ids
 
         with patch.object(interface_api, "get_visible_plugin_ids", side_effect=_ids):
-            result = await interface_api._safe_plugin_stats(db, "sub_agent", SubAgent, _non_admin_user)
+            result = await interface_api._safe_plugin_stats(db, "agent", Agent, _non_admin_user)
 
         assert result == {"total": 4, "enabled": 3}, (
             f"expected happy-path counts, got {result}; "
@@ -186,7 +186,7 @@ class TestStatsResponseShape:
         resp = StatsResponse(
             mcp_servers={"total": 1, "enabled": 1},
             skills={"total": 3, "enabled": 3},
-            subagents={"total": 6, "enabled": 6},
+            agents={"total": 6, "enabled": 6},
             models={"total": 15, "enabled": 13, "vendors": 3},
             tools={"total": 1, "enabled": 1},
         )
@@ -201,12 +201,12 @@ class TestStatsResponseShape:
         resp = StatsResponse(
             mcp_servers={"total": 0, "enabled": 0},
             skills={"total": 0, "enabled": 0},
-            subagents={"total": 0, "enabled": 0},
+            agents={"total": 0, "enabled": 0},
             models={"total": 0, "enabled": 0, "vendors": 0},
             tools={"total": 0, "enabled": 0},
         )
         # 所有值必须是 int
-        for field in ("mcp_servers", "skills", "subagents", "models", "tools"):
+        for field in ("mcp_servers", "skills", "agents", "models", "tools"):
             assert all(isinstance(v, int) for v in getattr(resp, field).values())
 
 

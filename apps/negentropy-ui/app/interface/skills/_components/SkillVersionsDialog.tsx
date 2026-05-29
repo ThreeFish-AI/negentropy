@@ -23,7 +23,7 @@ interface Props {
  *
  * - 来自 GET /api/interface/skills/{id}/versions 的全部历史版本（最新在前）；
  * - 每条展开 snapshot 的 prompt_template / required_tools / resources 字段，便于
- *   diff 与 SubAgent.skills 锁定 ``name@1.0.0`` 时确认对应版本内容；
+ *   diff 与 Agent.skills 锁定 ``name@1.0.0`` 时确认对应版本内容；
  * - 不在此处提供回滚操作（可通过手工 PATCH version + 拉历史完成；后续 Phase 4 再做）。
  */
 export function SkillVersionsDialog({ open, onClose, skillId, displayName }: Props) {
@@ -74,7 +74,7 @@ export function SkillVersionsDialog({ open, onClose, skillId, displayName }: Pro
           Versions · {displayName}
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          每次 PATCH version 字段会自动 freeze 一条快照；SubAgent 可用 <code>name@1.0.0</code> /
+          每次 PATCH version 字段会自动 freeze 一条快照；Agent 可用 <code>name@1.0.0</code> /
           {" "}<code>name@~1.0</code> / <code>name@*</code> 锁定特定版本。
         </p>
       </div>

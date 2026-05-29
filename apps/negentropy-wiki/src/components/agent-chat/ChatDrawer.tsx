@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useChatAgent } from "@/lib/agent-chat/use-chat-agent";
-import { useSubAgents } from "@/lib/agent-chat/use-subagents";
+import { useAgents } from "@/lib/agent-chat/use-agents";
 import { useWikiPageContext } from "@/lib/agent-chat/page-context";
 import { useWikiAuth } from "@/lib/auth/wiki-auth";
 import { ChatComposer } from "./ChatComposer";
@@ -21,7 +21,7 @@ interface ChatDrawerProps {
 
 export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
   const pageContext = useWikiPageContext();
-  const { rootAgent, faculties, error: subAgentError } = useSubAgents();
+  const { rootAgent, faculties, error: agentError } = useAgents();
   const { user } = useWikiAuth();
   const [preferredAgentName, setPreferredAgentName] = useState<string | null>(
     null,
@@ -114,9 +114,9 @@ export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
             {chat.error}
           </div>
         ) : null}
-        {subAgentError ? (
+        {agentError ? (
           <div className="wiki-agent-chat-drawer__error" role="alert">
-            无法加载 Agent 列表：{subAgentError}
+            无法加载 Agent 列表：{agentError}
           </div>
         ) : null}
         <div ref={listEndRef} />

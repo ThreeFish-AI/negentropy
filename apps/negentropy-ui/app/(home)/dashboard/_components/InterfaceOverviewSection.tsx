@@ -8,7 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 interface Stats {
   mcp_servers: { total: number; enabled: number };
   skills: { total: number; enabled: number };
-  subagents: { total: number; enabled: number };
+  agents: { total: number; enabled: number };
   models: { total: number; enabled: number; vendors: number };
   tools: { total: number; enabled: number };
 }
@@ -48,8 +48,8 @@ export function InterfaceOverviewSection() {
         </h2>
         <span className="text-xs text-muted-foreground">
           {isAdmin
-            ? "Manage Models, SubAgents, MCP servers, Skills, and Tools"
-            : "Manage SubAgents, MCP servers, Skills, and Tools"}
+            ? "Manage Models, Agents, MCP servers, Skills, and Tools"
+            : "Manage Agents, MCP servers, Skills, and Tools"}
         </span>
       </div>
 
@@ -72,11 +72,11 @@ export function InterfaceOverviewSection() {
               />
             )}
             <StatCard
-              title="SubAgents"
-              total={stats?.subagents.total || 0}
-              enabled={stats?.subagents.enabled || 0}
-              href="/interface/subagents"
-              description="Sub-agent configurations"
+              title="Agents"
+              total={stats?.agents.total || 0}
+              enabled={stats?.agents.enabled || 0}
+              href="/interface/agents"
+              description="Agent configurations"
             />
             <StatCard
               title={MCP_HUB_LABEL}
@@ -116,9 +116,9 @@ export function InterfaceOverviewSection() {
                 />
               )}
               <QuickLink
-                href="/interface/subagents"
-                title="Configure SubAgent"
-                description="Set up specialized sub-agents"
+                href="/interface/agents"
+                title="Configure Agent"
+                description="Set up specialized agents"
               />
               <QuickLink
                 href="/interface/mcp"

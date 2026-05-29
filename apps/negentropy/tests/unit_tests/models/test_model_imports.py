@@ -28,6 +28,7 @@ class TestBackwardCompatPluginImports:
 
     def test_all_plugin_symbols_via_compat_layer(self):
         from negentropy.models.plugin import (
+            Agent,
             McpServer,
             McpTool,
             McpToolRun,
@@ -37,7 +38,6 @@ class TestBackwardCompatPluginImports:
             PluginPermissionType,
             PluginVisibility,
             Skill,
-            SubAgent,
         )
 
         # 验证所有符号均为 class 或 enum
@@ -51,7 +51,7 @@ class TestBackwardCompatPluginImports:
                 McpTrialAsset,
                 PluginPermission,
                 Skill,
-                SubAgent,
+                Agent,
             ]
         )
         assert PluginVisibility.PRIVATE.value == "private"
@@ -59,11 +59,11 @@ class TestBackwardCompatPluginImports:
 
     def test_direct_submodule_imports(self):
         """新子模块的直接导入路径可用。"""
+        from negentropy.models.agent import Agent
         from negentropy.models.mcp import McpServer, McpTool
         from negentropy.models.mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
         from negentropy.models.plugin_common import PluginPermission
         from negentropy.models.skill import Skill
-        from negentropy.models.sub_agent import SubAgent
 
         assert McpServer.__tablename__ == "mcp_servers"
         assert McpTool.__tablename__ == "mcp_tools"
@@ -72,7 +72,7 @@ class TestBackwardCompatPluginImports:
         assert McpTrialAsset.__tablename__ == "mcp_trial_assets"
         assert PluginPermission.__tablename__ == "plugin_permissions"
         assert Skill.__tablename__ == "skills"
-        assert SubAgent.__tablename__ == "sub_agents"
+        assert Agent.__tablename__ == "agents"
 
     def test_compat_layer_identity(self):
         """兼容层 re-export 和直接子模块导入必须是同一个类对象。"""

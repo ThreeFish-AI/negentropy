@@ -33,9 +33,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.agent import Agent
 from negentropy.models.scheduled_task import ScheduledTask, TaskExecution
 from negentropy.models.state import UserState
-from negentropy.models.sub_agent import SubAgent
 
 logger = get_logger("negentropy.interface.scheduler_api")
 
@@ -441,8 +441,8 @@ async def get_stats(
                 if agent_ids:
                     agent_rows = (
                         await db.execute(
-                            select(SubAgent.id, SubAgent.display_name, SubAgent.name).where(
-                                SubAgent.id.in_(agent_ids),
+                            select(Agent.id, Agent.display_name, Agent.name).where(
+                                Agent.id.in_(agent_ids),
                             )
                         )
                     ).all()

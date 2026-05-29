@@ -30,7 +30,7 @@ class PluginPermission(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "plugin_permissions"
 
-    plugin_type: Mapped[str] = mapped_column(String(50), nullable=False)  # mcp_server, skill, sub_agent
+    plugin_type: Mapped[str] = mapped_column(String(50), nullable=False)  # mcp_server, skill, agent
     plugin_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     permission: Mapped[PluginPermissionType] = mapped_column(

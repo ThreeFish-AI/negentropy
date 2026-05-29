@@ -17,7 +17,7 @@ import { Composer } from "../components/ui/Composer";
 import type { ComposerAttachment } from "../components/ui/AttachmentChip";
 import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
 import { deriveForwardedPropsFromMentions } from "@negentropy/agents-chat-core/parse";
-import { useSubAgentsList } from "@/hooks/useSubAgentsList";
+import { useAgentsList } from "@/hooks/useAgentsList";
 import { useCorporaList } from "@/app/knowledge/apis/_components/hooks/useCorporaList";
 import { EventTimeline } from "../components/ui/EventTimeline";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
@@ -228,18 +228,18 @@ export function HomeBody({
   // 与 inputValue 平行存在，仅承担 ① UI 高亮 ② forwardedProps 派生。
   const [mentions, setMentions] = useState<MentionToken[]>([]);
   // @ 弹层候选项数据源
-  const { subagents, loading: subagentsLoading, error: subagentsError } =
-    useSubAgentsList();
+  const { agents, loading: agentsLoading, error: agentsError } =
+    useAgentsList();
   const { corpora, loading: corporaLoading, error: corporaError } = useCorporaList();
   const agentCandidates = useMemo<MentionCandidate[]>(
     () => {
-      const mapped = subagents.map((a) => ({
+      const mapped = agents.map((a) => ({
         kind: "agent" as const,
         refId: a.name,
         label: a.display_name || a.name,
         description: a.description || undefined,
       }));
-      const hasBuiltinClaudeCode = subagents.some((a) => a.name === "claude_code");
+      const hasBuiltinClaudeCode = agents.some((a) => a.name === "claude_code");
       if (!hasBuiltinClaudeCode) {
         mapped.push({
           kind: "agent" as const,
@@ -251,7 +251,7 @@ export function HomeBody({
       }
       return mapped;
     },
-    [subagents],
+    [agents],
   );
   const corpusCandidates = useMemo<MentionCandidate[]>(
     () =>
@@ -264,8 +264,8 @@ export function HomeBody({
     [corpora],
   );
   const validAgentRefIds = useMemo(
-    () => new Set([...subagents.map((a) => a.name), "claude_code"]),
-    [subagents],
+    () => new Set([...agents.map((a) => a.name), "claude_code"]),
+    [agents],
   );
   const validCorpusRefIds = useMemo(
     () => new Set(corpora.map((c) => c.id)),
@@ -716,7 +716,7 @@ export function HomeBody({
         // 实例属性 ``agent.forwardedProps = ...`` 不会被读取——必须把字段透传到
         // ``runAgent({forwardedProps, runId})``。下面合并实例属性兜底以兼容历史调用方。
         //
-        // 关键修复：``preferred_subagent`` / ``corpus_ids`` 必须始终显式写入，
+        // 关键修复：``preferred_agent`` / ``corpus_ids`` 必须始终显式写入，
         // 让本轮派生值（可能为 ``null`` / ``[]``）覆盖实例属性上残留的上一轮值。
         // BFF ``buildStateDeltaFromForwardedProps`` 据此把 ``null`` / ``[]`` 视作
         // 清空指令，避免 ADK ``session.state`` 中孤儿值被后端继续消费。
@@ -734,7 +734,7 @@ export function HomeBody({
             : false,
           ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
           // mention 字段无条件覆盖，确保跨 turn 不残留。
-          preferred_subagent: derivedMention.preferred_subagent,
+          preferred_agent: derivedMention.preferred_agent,
           corpus_ids: derivedMention.corpus_ids,
         };
         agent.forwardedProps = forwardedProps; // 留作 backward-compat（其他读 ref 的逻辑）
@@ -1242,8 +1242,8 @@ export function HomeBody({
                 onMentionsChange={setMentions}
                 agentCandidates={agentCandidates}
                 corpusCandidates={corpusCandidates}
-                agentsLoading={subagentsLoading}
-                agentsError={subagentsError}
+                agentsLoading={agentsLoading}
+                agentsError={agentsError}
                 corporaLoading={corporaLoading}
                 corporaError={corporaError}
               />

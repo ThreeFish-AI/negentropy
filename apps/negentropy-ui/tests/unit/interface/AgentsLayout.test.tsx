@@ -1,21 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import SubAgentsPage from "@/app/interface/subagents/page";
+import AgentsPage from "@/app/interface/agents/page";
 
 vi.mock("@/components/ui/InterfaceNav", () => ({
   InterfaceNav: ({ title }: { title: string }) => <div data-testid="interface-nav">{title}</div>,
 }));
 
-vi.mock("@/app/interface/subagents/_components/SubAgentFormDialog", () => ({
-  SubAgentFormDialog: () => null,
+vi.mock("@/app/interface/agents/_components/AgentFormDialog", () => ({
+  AgentFormDialog: () => null,
 }));
 
-vi.mock("@/app/interface/subagents/_components/SubAgentCard", () => ({
-  SubAgentCard: ({ agent }: { agent: { name: string } }) => (
-    <div data-testid="subagent-card">{agent.name}</div>
+vi.mock("@/app/interface/agents/_components/AgentCard", () => ({
+  AgentCard: ({ agent }: { agent: { name: string } }) => (
+    <div data-testid="agent-card">{agent.name}</div>
   ),
 }));
 
-describe("SubAgentsPage layout", () => {
+describe("AgentsPage layout", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -45,18 +45,18 @@ describe("SubAgentsPage layout", () => {
       ],
     } as Response);
 
-    render(<SubAgentsPage />);
+    render(<AgentsPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("subagent-card")).toBeInTheDocument();
+      expect(screen.getByTestId("agent-card")).toBeInTheDocument();
     });
 
-    const grid = screen.getByTestId("subagents-grid");
+    const grid = screen.getByTestId("agents-grid");
     expect(grid).toHaveClass("grid-cols-1");
     expect(grid).toHaveClass("md:grid-cols-2");
     expect(grid).toHaveClass("xl:grid-cols-3");
 
-    const item = screen.getByTestId("subagent-grid-item");
+    const item = screen.getByTestId("agent-grid-item");
     expect(item).toHaveClass("h-[176px]");
   });
 });

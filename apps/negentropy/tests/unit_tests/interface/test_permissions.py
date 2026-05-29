@@ -17,10 +17,10 @@ from negentropy.interface.permissions import (
     _is_plugin_builtin,
 )
 from negentropy.models.plugin import (
+    Agent,
     BuiltinTool,
     McpServer,
     Skill,
-    SubAgent,
 )
 
 
@@ -42,11 +42,11 @@ class TestPluginTypeModelMap:
     def test_full_coverage(self) -> None:
         assert PLUGIN_TYPE_MODEL_MAP["mcp_server"] is McpServer
         assert PLUGIN_TYPE_MODEL_MAP["skill"] is Skill
-        assert PLUGIN_TYPE_MODEL_MAP["sub_agent"] is SubAgent
+        assert PLUGIN_TYPE_MODEL_MAP["agent"] is Agent
         assert set(PLUGIN_TYPE_MODEL_MAP.keys()) == {
             "mcp_server",
             "skill",
-            "sub_agent",
+            "agent",
             "builtin_tool",
         }
 
@@ -79,6 +79,6 @@ class TestIsPluginBuiltin:
 class TestModelHasIsSystem:
     """5 类 plugin 模型都已绑定 is_system 列（迁移 0033 + builtin_tool 历史已有）。"""
 
-    @pytest.mark.parametrize("model", [McpServer, Skill, SubAgent, BuiltinTool])
+    @pytest.mark.parametrize("model", [McpServer, Skill, Agent, BuiltinTool])
     def test_column_exists(self, model) -> None:
         assert hasattr(model, "is_system"), f"{model.__name__} missing is_system column"

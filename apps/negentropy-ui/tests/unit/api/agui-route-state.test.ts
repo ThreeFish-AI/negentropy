@@ -27,27 +27,27 @@ describe("buildStateDeltaFromForwardedProps", () => {
   });
 
   // ----------------------------------------------------------------------
-  // @ Agent —— preferred_subagent
+  // @ Agent —— preferred_agent
   // ----------------------------------------------------------------------
 
-  it("透传非空 preferred_subagent 字符串", () => {
+  it("透传非空 preferred_agent 字符串", () => {
     expect(
-      buildStateDeltaFromForwardedProps({ preferred_subagent: "PerceptionFaculty" }),
-    ).toEqual({ preferred_subagent: "PerceptionFaculty" });
+      buildStateDeltaFromForwardedProps({ preferred_agent: "PerceptionFaculty" }),
+    ).toEqual({ preferred_agent: "PerceptionFaculty" });
   });
 
-  it("preferred_subagent 显式为 null 时透传 null（用于清空）", () => {
-    expect(buildStateDeltaFromForwardedProps({ preferred_subagent: null })).toEqual({
-      preferred_subagent: null,
+  it("preferred_agent 显式为 null 时透传 null（用于清空）", () => {
+    expect(buildStateDeltaFromForwardedProps({ preferred_agent: null })).toEqual({
+      preferred_agent: null,
     });
   });
 
-  it("preferred_subagent 空串 / 超长 / 非字符串一律忽略", () => {
-    expect(buildStateDeltaFromForwardedProps({ preferred_subagent: "" })).toEqual({});
+  it("preferred_agent 空串 / 超长 / 非字符串一律忽略", () => {
+    expect(buildStateDeltaFromForwardedProps({ preferred_agent: "" })).toEqual({});
     expect(
-      buildStateDeltaFromForwardedProps({ preferred_subagent: "X".repeat(129) }),
+      buildStateDeltaFromForwardedProps({ preferred_agent: "X".repeat(129) }),
     ).toEqual({});
-    expect(buildStateDeltaFromForwardedProps({ preferred_subagent: 123 })).toEqual({});
+    expect(buildStateDeltaFromForwardedProps({ preferred_agent: 123 })).toEqual({});
   });
 
   // ----------------------------------------------------------------------
@@ -135,13 +135,13 @@ describe("buildStateDeltaFromForwardedProps", () => {
       buildStateDeltaFromForwardedProps({
         selected_llm_model: "anthropic/claude-opus-4-7",
         thinking_enabled: true,
-        preferred_subagent: "ActionFaculty",
+        preferred_agent: "ActionFaculty",
         corpus_ids: [UUID_A, UUID_B],
       }),
     ).toEqual({
       selected_llm_model: "anthropic/claude-opus-4-7",
       thinking_enabled: true,
-      preferred_subagent: "ActionFaculty",
+      preferred_agent: "ActionFaculty",
       corpus_ids: [UUID_A, UUID_B],
     });
   });

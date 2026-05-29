@@ -61,7 +61,7 @@ describe("@negentropy/agents-chat-core/server", () => {
   it("暴露 state-delta 派生工具", () => {
     expect(typeof server.buildStateDeltaFromForwardedProps).toBe("function");
     expect(server.UUID_RE).toBeInstanceOf(RegExp);
-    expect(server.PREFERRED_SUBAGENT_MAX_LEN).toBe(128);
+    expect(server.PREFERRED_AGENT_MAX_LEN).toBe(128);
     expect(server.CORPUS_IDS_MAX_LEN).toBe(32);
   });
 });

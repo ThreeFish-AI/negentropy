@@ -4,7 +4,7 @@
  * TaskModelSelect — task_model_settings 专用的 model 下拉。
  *
  * 与 components/ui/LlmModelSelect.tsx 的差异：
- *   - LlmModelSelect 的 value 是 ``vendor/model_name`` 字符串（Home/SubAgent 在 state 中存这个）
+ *   - LlmModelSelect 的 value 是 ``vendor/model_name`` 字符串（Home/Agent 在 state 中存这个）
  *   - TaskModelSelect 的 value 是 model_configs.id（task_model_settings.model_config_id）
  *
  * 这里通过 useMemo 在内部做双向映射，对外暴露 id↔id 的契约，避免对公用 LlmModelSelect 做破坏性修改。
