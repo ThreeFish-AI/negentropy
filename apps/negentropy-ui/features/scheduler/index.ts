@@ -11,6 +11,7 @@ export type {
   FireReason,
   StatsGroupBy,
   StatsWindow,
+  PayloadFieldType,
 } from "./types";
 export type {
   ScheduledTaskDTO,
@@ -22,6 +23,10 @@ export type {
   ExecutionListResponse,
   TaskDetailResponse,
   DashboardFilters,
+  PayloadFieldSchema,
+  HandlerDescriptor,
+  HandlerListResponse,
+  TaskWritePayload,
 } from "./types";
 
 // API
@@ -33,6 +38,10 @@ export {
   fetchStats,
   runTaskNow,
   toggleTaskEnabled,
+  fetchHandlers,
+  createTask,
+  updateTask,
+  deleteTask,
 } from "./api";
 
 // Filter type

@@ -1,6 +1,7 @@
 """/scheduler/* API 端点级单测
 
-聚焦工具函数（_window_to_delta、_serialize_task）与路由 metadata，
+聚焦工具函数（_window_to_delta、_serialize_task、_validate_task_spec）
+与路由 metadata、handler descriptor 序列化，
 DB 相关分支留给 integration_tests 在真实 Postgres 上覆盖。
 """
 
@@ -26,7 +27,7 @@ def test_window_to_delta_unknown_falls_back_to_24h():
     assert _window_to_delta("xyz") == timedelta(hours=24)
 
 
-def test_router_exposes_eight_endpoints():
+def test_router_exposes_all_endpoints():
     from negentropy.interface.scheduler_api import router
 
     paths = {r.path for r in router.routes}
@@ -39,11 +40,12 @@ def test_router_exposes_eight_endpoints():
         "/scheduler/tasks/{task_id}/run",
         "/scheduler/tasks/{task_id}/toggle",
         "/scheduler/stream",
+        "/scheduler/handlers",
     }
     assert expected <= paths
 
 
-def test_serialize_task_minimal():
+def test_serialize_task_includes_is_system():
     from negentropy.interface.scheduler_api import _serialize_task
 
     class _Fake:
@@ -78,12 +80,97 @@ def test_serialize_task_minimal():
     t.created_at = now
     t.updated_at = now
     t.payload = {"inspection_type": "self_check"}
+    t.is_system = False
 
     data = _serialize_task(t, recent=["ok", "ok"])
     assert data["key"] == "demo"
     assert data["handler_kind"] == "agent_inspection"
     assert data["recent"] == ["ok", "ok"]
     assert data["payload"]["inspection_type"] == "self_check"
+    assert data["is_system"] is False
+
+
+def test_serialize_descriptor():
+    from negentropy.engine.schedulers.handlers import (
+        _bootstrap_default_handlers,
+        get_descriptor,
+    )
+    from negentropy.interface.scheduler_api import _serialize_descriptor
+
+    _bootstrap_default_handlers()
+    desc = get_descriptor("memory_automation")
+    assert desc is not None
+
+    data = _serialize_descriptor(desc)
+    assert data["handler_kind"] == "memory_automation"
+    assert data["discriminator_field"] == "job_type"
+    assert len(data["payload_fields"]) == 5
+    # 验证 applies_when 正确序列化
+    threshold_field = next(f for f in data["payload_fields"] if f["name"] == "threshold")
+    assert threshold_field["applies_when"] == ["cleanup_memories"]
+
+
+class TestValidateTaskSpec:
+    """覆盖 _validate_task_spec 的各分支。"""
+
+    def _validate(self, **overrides):
+        from negentropy.interface.scheduler_api import _validate_task_spec
+
+        spec = {
+            "handler_kind": "pipeline_watchdog",
+            "trigger_type": "interval",
+            "interval_seconds": 60.0,
+            "cron_expr": None,
+            "payload": {},
+        }
+        spec.update(overrides)
+        _validate_task_spec(
+            spec["handler_kind"],
+            spec["trigger_type"],
+            spec["interval_seconds"],
+            spec["cron_expr"],
+            spec["payload"],
+        )
+
+    def test_valid_interval_task(self):
+        self._validate()  # 不抛异常即通过
+
+    def test_unknown_handler_rejected(self):
+        with pytest.raises(Exception, match="unknown handler_kind"):
+            self._validate(handler_kind="nonexistent_handler")
+
+    def test_interval_without_seconds_rejected(self):
+        with pytest.raises(Exception, match="interval_seconds > 0"):
+            self._validate(interval_seconds=None)
+
+    def test_interval_with_cron_rejected(self):
+        with pytest.raises(Exception, match="must not have cron_expr"):
+            self._validate(cron_expr="0 * * * *")
+
+    def test_cron_without_expr_rejected(self):
+        with pytest.raises(Exception, match="cron trigger requires cron_expr"):
+            self._validate(trigger_type="cron", interval_seconds=None, cron_expr=None)
+
+    def test_invalid_cron_rejected(self):
+        with pytest.raises(Exception, match="invalid cron"):
+            self._validate(trigger_type="cron", interval_seconds=None, cron_expr="not-valid-cron")
+
+    def test_oneshot_with_interval_rejected(self):
+        with pytest.raises(Exception, match="must not have interval_seconds"):
+            self._validate(trigger_type="oneshot", interval_seconds=60.0, cron_expr=None)
+
+    def test_unsupported_trigger_type_for_handler(self):
+        with pytest.raises(Exception, match="does not support trigger_type"):
+            self._validate(handler_kind="cache_warm", trigger_type="interval", interval_seconds=60.0)
+
+    def test_valid_cron_task(self):
+        self._validate(
+            handler_kind="memory_automation",
+            trigger_type="cron",
+            interval_seconds=None,
+            cron_expr="0 * * * *",
+            payload={"job_type": "cleanup_memories"},
+        )
 
 
 @pytest.mark.asyncio

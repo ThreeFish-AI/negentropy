@@ -12,9 +12,28 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.skill_invoke")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="skill_invoke",
+        label="Skill Invoke",
+        description="根据 skill_schedule_id 触发一次 Skill 执行",
+        supported_trigger_types=("cron", "interval"),
+        default_trigger_type="cron",
+        payload_fields=(
+            PayloadField(
+                name="skill_schedule_id",
+                label="Skill Schedule ID",
+                type="string",
+                required=True,
+                help_text="关联的 skill_schedule 行 UUID",
+            ),
+        ),
+    ),
+)
 
 
 @register_handler("skill_invoke")

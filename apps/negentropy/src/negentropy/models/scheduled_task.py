@@ -68,6 +68,14 @@ class ScheduledTask(Base, UUIDMixin, TimestampMixin):
     token_budget: Mapped[int | None] = mapped_column(Integer, nullable=True)
     backoff_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    is_system: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="系统种子任务标记：由迁移种子写入，不可通过 UI 删除",
+    )
+
     executions: Mapped[list[TaskExecution]] = relationship(
         back_populates="task",
         cascade="all, delete-orphan",
