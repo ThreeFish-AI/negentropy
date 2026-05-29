@@ -116,7 +116,7 @@
   --muted: #27272a; /* zinc-800 */
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --text-muted: #a1a1aa; /* zinc-400，暗色模式对比度 ~5.5:1 */
   --success: #34d399;
   --warning: #fbbf24;
   --error: #f87171;

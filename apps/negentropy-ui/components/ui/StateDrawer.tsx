@@ -73,7 +73,7 @@ export function StateDrawer({
         inert={!open ? true : undefined}
         className={cn(
           // 宽度 2.5×（320 → 800）：窄屏全宽、≥sm 固定 800、永不超 90vw。
-          "pointer-events-auto flex h-full w-full max-w-[90vw] flex-col border-l border-border bg-card shadow-2xl sm:w-[800px]",
+          "pointer-events-auto relative flex h-full w-full max-w-[90vw] flex-col border-l border-border bg-card shadow-2xl sm:w-[800px]",
           // transform+opacity 动画（非 width，规避属性能反模式）。
           "transition-[transform,opacity] duration-200 will-change-transform",
           open
@@ -81,6 +81,18 @@ export function StateDrawer({
             : "translate-x-full opacity-0 ease-in",
         )}
       >
+        {/* 左边缘收起指示条：hover 展开 + 点击关闭。 */}
+        {open && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="收起 State 栏"
+            className="group/edge absolute inset-y-0 -left-0 z-10 flex w-1.5 cursor-pointer items-center justify-center rounded-none transition-[width,background-color] duration-200 hover:w-3 hover:bg-primary/30"
+          >
+            <span className="pointer-events-none h-8 rounded-full bg-text-muted/30 transition-[height,background-color] duration-200 group-hover/edge:h-12 group-hover/edge:bg-primary/60" />
+          </button>
+        )}
+
         {/* 头部：标题 + 关闭 X（呼应 ActivityDrawer 的头部节奏） */}
         <header className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
           <span className="flex items-center gap-2 text-sm font-semibold text-text-primary">
@@ -92,7 +104,7 @@ export function StateDrawer({
             onClick={onClose}
             aria-label="收起 State 栏 (⌘/Ctrl+J)"
             title="收起 State 栏 (⌘/Ctrl+J)"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-border-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-border-muted/60 text-text-secondary transition-[background-color,color,transform] duration-150 hover:bg-border-muted hover:text-text-primary active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
