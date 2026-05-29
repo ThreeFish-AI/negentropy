@@ -17,7 +17,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
-import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
+import { useIsDark } from "@/lib/wiki-color-scheme";
+import { nodeColor } from "@/lib/wiki-graph-visual";
 
 // 模拟节点：在 WikiGraphNode 字段子集上叠加 d3 物理引擎所需的位置 / 速度。
 type D3Node = {
@@ -69,8 +70,8 @@ export function WikiD3ForceCanvas({
   const [layout, setLayout] = useState<D3Node[]>([]);
   const router = useRouter();
 
-  // isDark 仅作用于客户端 layout 落定后渲染的元素，无 SSR 着色不一致风险。
-  const isDark = useMemo(() => detectDark(), []);
+  // 响应式暗色态：主题切换时随 React 重渲染，SVG 文字 / 边 fill 即时更新（零重排）。
+  const isDark = useIsDark();
   const labelColor = isDark ? "#e3e3e3" : "#52525b";
   const edgeColor = isDark ? "rgba(255,255,255,0.15)" : "#d4d4d8";
   const edgeLabelColor = isDark ? "rgba(255,255,255,0.45)" : "#a1a1aa";

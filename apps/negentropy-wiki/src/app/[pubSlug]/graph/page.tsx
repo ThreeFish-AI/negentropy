@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiGraphRenderer } from "@/components/WikiGraphRenderer";
 import { WikiHeader } from "@/components/WikiHeader";
+import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
   countLeafEntries,
@@ -82,6 +83,7 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      actions={<WikiHeaderActions />}
       graphTab={{ active: true, show: entriesTotal > 0 }}
     />
   );
