@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 type ColorScheme = "light" | "dark" | "system";
 
@@ -27,18 +27,12 @@ function subscribeSystemDark(cb: () => void) {
 }
 
 export function ThemePreference() {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const colorScheme = useSyncExternalStore(
     subscribe,
     () => getStoredValue(COLOR_SCHEME_KEY, "system") as ColorScheme,
     () => "system" as ColorScheme,
   );
 
-  // 系统深色偏好经 external store 订阅：SSR/水合快照恒为 false（与服务端一致），
-  // 水合后再切换到真实值——既规避「服务端无 window、客户端有」的水合不一致，
-  // 又免于 setState-in-effect 的 mounted 标志写法。
   const systemDark = useSyncExternalStore(
     subscribeSystemDark,
     () =>
@@ -52,110 +46,42 @@ export function ThemePreference() {
     applyColorScheme(getStoredValue(COLOR_SCHEME_KEY, "system") as ColorScheme);
   }, []);
 
-  const setColorScheme = useCallback((cs: ColorScheme) => {
-    localStorage.setItem(COLOR_SCHEME_KEY, cs);
-    applyColorScheme(cs);
-    window.dispatchEvent(new StorageEvent("storage", { key: COLOR_SCHEME_KEY }));
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const handlePointerDown = (e: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [open]);
-
   const resolvedDark =
     colorScheme === "dark" || (colorScheme === "system" && systemDark);
 
-  return (
-    <div ref={containerRef} className="wiki-theme-pref" style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="wiki-theme-toggle"
-        aria-label="外观设置"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 32,
-          height: 32,
-          border: "1px solid var(--wiki-border)",
-          borderRadius: 6,
-          background: "transparent",
-          color: "var(--wiki-text-secondary)",
-          cursor: "pointer",
-          transition: "background 0.12s ease, color 0.12s ease",
-        }}
-      >
-        {resolvedDark ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-        )}
-      </button>
+  const handleToggle = useCallback(() => {
+    const current = getStoredValue(COLOR_SCHEME_KEY, "system") as ColorScheme;
+    const isDark = current === "dark" || (current === "system" && systemDark);
+    const next: "light" | "dark" = isDark ? "light" : "dark";
+    localStorage.setItem(COLOR_SCHEME_KEY, next);
+    applyColorScheme(next);
+    window.dispatchEvent(new StorageEvent("storage", { key: COLOR_SCHEME_KEY }));
+  }, [systemDark]);
 
-      {open && (
-        <div
-          className="wiki-theme-dropdown"
-          role="menu"
-          style={{
-            position: "absolute",
-            top: "100%",
-            right: 0,
-            marginTop: 4,
-            background: "var(--wiki-bg)",
-            border: "1px solid var(--wiki-border)",
-            borderRadius: "var(--wiki-radius)",
-            boxShadow: "var(--wiki-shadow), 0 4px 16px rgba(0,0,0,0.08)",
-            padding: "0.5rem 0",
-            minWidth: 160,
-            zIndex: 50,
-          }}
-        >
-          <div style={{ padding: "0.35rem 0.75rem", fontSize: "0.72em", fontWeight: 600, color: "var(--wiki-text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            外观
-          </div>
-          {(["light", "dark", "system"] as ColorScheme[]).map((cs) => (
-            <button
-              key={cs}
-              role="menuitem"
-              onClick={() => setColorScheme(cs)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "0.4rem 0.75rem",
-                fontSize: "0.88em",
-                border: 0,
-                background: colorScheme === cs ? "var(--wiki-bg-secondary)" : "transparent",
-                color: colorScheme === cs ? "var(--wiki-accent)" : "var(--wiki-text)",
-                fontWeight: colorScheme === cs ? 600 : 400,
-                cursor: "pointer",
-              }}
-            >
-              {cs === "light" ? "浅色" : cs === "dark" ? "深色" : "跟随系统"}
-            </button>
-          ))}
-        </div>
+  return (
+    <button
+      onClick={handleToggle}
+      className="wiki-header-action-btn"
+      aria-label={resolvedDark ? "切换浅色模式" : "切换深色模式"}
+    >
+      {resolvedDark ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
       )}
-    </div>
+    </button>
   );
 }
 
