@@ -165,10 +165,10 @@ export function SessionList({
     />
     <aside className="h-full border-r border-border bg-card px-3 py-3 flex flex-col overflow-hidden">
       <div className="mb-3 flex items-center justify-between gap-2 shrink-0">
-        {/* 视图分段控件：进行中 / 已归档 */}
+        {/* View segmented control: Active / Archived */}
         <div
           role="tablist"
-          aria-label="会话视图"
+          aria-label="Session view"
           className="inline-flex h-7 items-center rounded-lg border border-border bg-border-muted/50 p-0.5 text-[11px] font-medium"
         >
           <button
@@ -177,13 +177,13 @@ export function SessionList({
             aria-selected={view === "active"}
             onClick={() => onSwitchView("active")}
             className={cn(
-              "rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "whitespace-nowrap rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               view === "active"
                 ? "bg-card text-text-primary shadow-sm"
                 : "text-text-muted hover:text-text-primary",
             )}
           >
-            进行中
+            Active
           </button>
           <button
             type="button"
@@ -191,14 +191,14 @@ export function SessionList({
             aria-selected={view === "archived"}
             onClick={() => onSwitchView("archived")}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               view === "archived"
                 ? "bg-card text-text-primary shadow-sm"
                 : "text-text-muted hover:text-text-primary",
             )}
           >
             <Archive className="h-3 w-3" />
-            已归档
+            Archived
           </button>
         </div>
         {view === "active" && onNewSession && (
