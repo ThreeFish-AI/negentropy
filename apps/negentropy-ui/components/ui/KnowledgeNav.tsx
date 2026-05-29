@@ -8,9 +8,9 @@ import { useNavigation } from "@/components/providers/NavigationProvider";
 const NAV_ITEMS = [
   { href: "/knowledge/base", label: "Knowledge Base" },
   { href: "/knowledge/graph", label: "Knowledge Graph" },
-  { href: "/knowledge/wiki", label: "Wiki", aliases: ["/knowledge/catalog"] },
   { href: "/knowledge/documents", label: "Documents" },
   { href: "/knowledge/apis", label: "APIs" },
+  { href: "/knowledge/wiki", label: "Wiki" },
   { href: "/knowledge/pipelines", label: "Pipelines" },
 ];
 
