@@ -100,9 +100,9 @@ export function StateDrawer({
 
         {/* 主体：宽屏内容重排（800px 充分利用）。padding/overflow 对齐原右栏。 */}
         <div className="min-h-0 flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-6">
             {/* 视图模式提示（满宽） */}
-            <div className="lg:col-span-2">
+            <div>
               {selectedNodeId ? (
                 <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
                   <div className="flex items-center justify-between">
@@ -150,7 +150,7 @@ export function StateDrawer({
             </div>
 
             {/* Event Timeline 满宽（时间轴天然高、不宜减半） */}
-            <div className="min-w-0 lg:col-span-2">
+            <div className="min-w-0">
               <EventTimeline events={timelineItems} />
             </div>
           </div>
