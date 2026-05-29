@@ -18,6 +18,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
+import { useIsDark } from "@/lib/wiki-color-scheme";
 import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +30,14 @@ function nodeSize(importance: number | null | undefined): number {
   if (importance == null) return 10;
   const clamped = Math.min(Math.max(importance, 0), 1);
   return 6 + 14 * clamped;
+}
+
+// 暗色态 → 标签 / 边配色（init 与主题同步 effect 共用，单一来源）。
+function schemeColors(isDark: boolean): { labelColor: string; edgeColor: string } {
+  return {
+    labelColor: isDark ? "#e3e3e3" : "#1c1e21",
+    edgeColor: isDark ? "rgba(255, 255, 255, 0.12)" : "#d4d4d8",
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -65,9 +74,12 @@ export function WikiGraphCanvas({
     kill: () => void;
     refresh: () => void;
     resize: () => void;
+    setSetting: (key: string, value: unknown) => void;
   } | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const router = useRouter();
+  // 响应式暗色态：驱动下方「主题同步」effect 在切换时就地重设 Sigma 配色。
+  const isDark = useIsDark();
 
   // 单次挂载初始化 + 数据/路由变化时整图重建（Wiki 场景图谱体量有限，无需增量同步）
   useEffect(() => {
@@ -83,12 +95,8 @@ export function WikiGraphCanvas({
 
       if (killed || !containerRef.current) return;
 
-      // Detect dark mode for label/edge color adaptation
-      const prefersDark = detectDark();
-      const labelColor = prefersDark ? "#e3e3e3" : "#1c1e21";
-      const edgeColor = prefersDark
-        ? "rgba(255, 255, 255, 0.12)"
-        : "#d4d4d8";
+      // 首屏按当前主题着色（避免闪烁）；后续主题切换由下方同步 effect 接管。
+      const { labelColor, edgeColor } = schemeColors(detectDark());
 
       const graph = new Graph({ multi: false, type: "directed" });
       const entrySlugMap = new Map<string, string[]>();
@@ -142,6 +150,7 @@ export function WikiGraphCanvas({
         kill: () => void;
         refresh: () => void;
         resize: () => void;
+        setSetting: (key: string, value: unknown) => void;
       };
 
       // 节点点击 → 跳转到首个相关 entry；无 entry 时不跳转
@@ -180,6 +189,16 @@ export function WikiGraphCanvas({
       sigmaRef.current = null;
     };
   }, [nodes, edges, pubSlug, router]);
+
+  // 主题同步：切换 light/dark 时就地重设标签 / 边色并 refresh（不重建实例、不重排）。
+  useEffect(() => {
+    const sigma = sigmaRef.current;
+    if (!sigma) return;
+    const { labelColor, edgeColor } = schemeColors(isDark);
+    sigma.setSetting("labelColor", { color: labelColor });
+    sigma.setSetting("defaultEdgeColor", edgeColor);
+    sigma.refresh();
+  }, [isDark]);
 
   const exceedsThreshold = nodes.length >= truncateThreshold;
   const showTruncatedBanner = truncated || exceedsThreshold;

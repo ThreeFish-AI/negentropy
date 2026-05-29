@@ -14,19 +14,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import SpriteText from "three-spritetext";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
-import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
-
-// react-force-graph-3d 导出 ClassComponent，用 any 绕过 dynamic() 的 FC 约束。
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ForceGraph3D: any = dynamic(
-  () => import("react-force-graph-3d").then((m) => m.default),
-  { ssr: false },
-);
+import { useIsDark } from "@/lib/wiki-color-scheme";
+import { nodeColor } from "@/lib/wiki-graph-visual";
 
 // react-force-graph-3d 的 nodeVal 解释为"体积量"：渲染半径 = cbrt(val) * nodeRelSize。
 const NODE_REL_SIZE = 2.67;
@@ -59,8 +52,32 @@ export function WikiGraph3DCanvas({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const router = useRouter();
 
-  const isDark = useMemo(() => detectDark(), []);
+  // react-force-graph-3d 为 ClassComponent：改用 useState + 动态 import 直接渲染
+  // （而非 next/dynamic 包裹），使 ref 直达实例 —— 主题切换时调用 refresh() 就地
+  // 重建标签 / 连线配色（位置由力模拟保留，不重排）。code-split 行为与 2D 同源。
+  // 实例 / 组件均以 any 承载（库默认导出为无精确类型的 ClassComponent）。
+  const [ForceGraph3D, setForceGraph3D] = useState<any>(null);
+  const fgRef = useRef<any>(null);
+
+  // 响应式暗色态：驱动标签 / 连线 / 背景取色与下方 refresh 同步。
+  const isDark = useIsDark();
   const bgColor = isDark ? "#0a0a0a" : "#ffffff";
+
+  useEffect(() => {
+    let cancelled = false;
+    import("react-force-graph-3d").then((mod) => {
+      if (!cancelled) setForceGraph3D(() => mod.default);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 主题同步：light/dark 切换后让实例重绘（重跑 nodeThreeObject 生成新色 SpriteText、
+  // 重设 linkColor），不重建实例、不重排。
+  useEffect(() => {
+    fgRef.current?.refresh?.();
+  }, [isDark]);
 
   // 节点 id → entry_slugs 映射，供点击跳转
   const entrySlugMap = useMemo(() => {
@@ -151,8 +168,9 @@ export function WikiGraph3DCanvas({
   return (
     <div className="wiki-graph-canvas-root">
       <div ref={containerRef} className="wiki-graph-canvas-stage">
-        {dimensions.width > 0 && dimensions.height > 0 && (
+        {ForceGraph3D && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph3D
+            ref={fgRef}
             width={dimensions.width}
             height={dimensions.height}
             graphData={graphData}

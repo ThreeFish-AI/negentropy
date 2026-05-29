@@ -1173,11 +1173,11 @@ export function HomeBody({
         <div
           className={`shrink-0 h-full border-r border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
             showLeftPanel
-              ? "w-64 translate-x-0 opacity-100"
+              ? "w-56 translate-x-0 opacity-100"
               : "w-0 -translate-x-10 opacity-0"
           }`}
         >
-          <div className="w-64 h-full overflow-hidden flex flex-col">
+          <div className="w-56 h-full overflow-hidden flex flex-col">
             <SessionList
               sessions={sessions}
               activeId={sessionId}

@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 
-type ColorScheme = "light" | "dark" | "system";
+import { COLOR_SCHEME_KEY } from "@/lib/wiki-color-scheme";
 
-const COLOR_SCHEME_KEY = "wiki:color-scheme";
+type ColorScheme = "light" | "dark" | "system";
 
 function getStoredValue(key: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;

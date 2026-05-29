@@ -21,7 +21,16 @@ import type { ComponentType } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
-import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
+import { useIsDark } from "@/lib/wiki-color-scheme";
+import { nodeColor } from "@/lib/wiki-graph-visual";
+
+// 边 / 箭头配色（随响应式 isDark 实时取值，经函数式 prop 下传，避免重建 graphData）。
+function edgeColor(isDark: boolean): string {
+  return isDark ? "rgba(255,255,255,0.12)" : "#52525b";
+}
+function arrowColor(isDark: boolean): string {
+  return isDark ? "rgba(255,255,255,0.25)" : "#71717a";
+}
 
 // ---------------------------------------------------------------------------
 // 视觉常量：配色 / 取色逻辑见 `@/lib/wiki-graph-visual`（跨渲染器单一事实源）。
@@ -53,13 +62,13 @@ interface FGLink {
   source: string;
   target: string;
   label: string;
-  color: string;
 }
 
+// 注：link 颜色不再固化进数据（否则主题切换需重建 graphData → 触发整图重排），
+// 改由 ForceGraph2D 的 linkColor 函数式 prop 实时读取响应式 isDark。
 function toForceGraphData(
   nodes: WikiGraphNode[],
   edges: WikiGraphEdge[],
-  isDark: boolean,
 ): { nodes: FGNode[]; links: FGLink[] } {
   const validIds = new Set(nodes.map((n) => n.id));
   return {
@@ -77,7 +86,6 @@ function toForceGraphData(
         source: e.source,
         target: e.target,
         label: e.label ?? e.type ?? "",
-        color: isDark ? "rgba(255,255,255,0.12)" : "#52525b",
       })),
   };
 }
@@ -157,9 +165,10 @@ export function WikiForceGraphCanvas({
     [entrySlugMap, pubSlug, router],
   );
 
-  const isDark = useMemo(() => detectDark(), []);
+  // 响应式暗色态：仅驱动标签 / 边 / 箭头取色，不参与 graphData（保持布局稳定）。
+  const isDark = useIsDark();
 
-  const graphData = useMemo(() => toForceGraphData(nodes, edges, isDark), [nodes, edges, isDark]);
+  const graphData = useMemo(() => toForceGraphData(nodes, edges), [nodes, edges]);
 
   // 自定义节点渲染：圆形 + 标签（缩小时隐藏）
   const nodeCanvasObject = useCallback(
@@ -210,11 +219,11 @@ export function WikiForceGraphCanvas({
             nodeCanvasObject={nodeCanvasObject}
             nodeCanvasObjectMode={() => "replace"}
             nodePointerAreaPaint={nodePointerAreaPaint}
-            linkColor="color"
+            linkColor={() => edgeColor(isDark)}
             linkWidth={1}
             linkDirectionalArrowLength={4}
             linkDirectionalArrowRelPos={0.8}
-            linkDirectionalArrowColor={isDark ? "rgba(255,255,255,0.25)" : "#71717a"}
+            linkDirectionalArrowColor={() => arrowColor(isDark)}
             onNodeClick={handleNodeClick}
             enableNodeDrag={true}
             cooldownTicks={200}

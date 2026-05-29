@@ -28,7 +28,7 @@ describe("MessageBubble", () => {
     const avatarRail = avatar.parentElement?.parentElement;
     expect(avatarRail?.className).toContain("absolute");
     expect(avatarRail?.className).toContain("right-0");
-    expect(avatarRail?.className).toContain("translate-x-[calc(100%+0.75rem)]");
+    expect(avatarRail?.className).toContain("translate-x-[calc(100%-0.5rem)]");
   });
 
   it("智能体头像去掉边框与 ring 并定位在消息外侧", () => {
@@ -47,7 +47,7 @@ describe("MessageBubble", () => {
     const avatarRail = avatar?.parentElement;
     expect(avatarRail?.className).toContain("absolute");
     expect(avatarRail?.className).toContain("left-0");
-    expect(avatarRail?.className).toContain("-translate-x-[calc(100%+0.75rem)]");
+    expect(avatarRail?.className).toContain("-translate-x-[calc(100%-0.5rem)]");
   });
 
   it("流式回复在结束前按 Markdown 语义渲染并显示状态", () => {
