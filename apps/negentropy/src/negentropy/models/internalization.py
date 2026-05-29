@@ -283,7 +283,9 @@ class ConsolidationJob(Base, UUIDMixin):
     ``full_consolidation`` 待处理任务；消费侧负责取出 ``pending`` 任务执行巩固。
 
     模型与迁移 0044 的 ``negentropy.consolidation_jobs`` 建表语句逐列对齐，
-    作为该表的单一事实源，避免 autogenerate 将其视为孤儿表而误删。索引由迁移持有。
+    作为该表的单一事实源，避免 autogenerate 将其视为孤儿表而误删。索引由迁移 0044
+    持有（含 ``idx_consolidation_jobs_pending`` 部分索引），并已在 ``migrations/env.py``
+    的 ``_IGNORED_INDEXES`` 登记，以免 autogenerate 反向发出 ``drop_index``。
 
     参考文献:
     [1] S. J. Sara, "Reconsolidation and the stability of memory traces,"
