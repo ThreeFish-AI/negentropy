@@ -16,7 +16,10 @@
   align-items: center;
   gap: 1.5rem;
   height: 100%;
-  padding: 0 clamp(1rem, 2vw, 1.5rem);
+  /* 与 .wiki-layout 同宽居中：Logo/操作区对齐三栏容器边界，header 背景条仍全幅 */
+  max-width: var(--wiki-layout-max-width);
+  margin-inline: auto;
+  padding: 0 1rem;
 }
 
 .wiki-header-brand {
