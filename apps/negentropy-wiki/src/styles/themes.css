@@ -8,7 +8,8 @@
   --wiki-text: #eaeef6;
   --wiki-text-secondary: rgba(234, 238, 246, 0.56);
   --wiki-border: rgba(234, 244, 250, 0.1);
-  --wiki-sidebar-bg: #0d0d0e;
+  --wiki-scrollbar-thumb: rgba(234, 238, 246, 0.18);
+  --wiki-scrollbar-thumb-hover: rgba(234, 238, 246, 0.36);
   --wiki-accent: #d2a8ff;
   --wiki-accent-hover: #e2c4ff;
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -52,7 +53,8 @@
     --wiki-text: #eaeef6;
     --wiki-text-secondary: rgba(234, 238, 246, 0.56);
     --wiki-border: rgba(234, 244, 250, 0.1);
-    --wiki-sidebar-bg: #0d0d0e;
+    --wiki-scrollbar-thumb: rgba(234, 238, 246, 0.18);
+    --wiki-scrollbar-thumb-hover: rgba(234, 238, 246, 0.36);
     --wiki-accent: #d2a8ff;
     --wiki-accent-hover: #e2c4ff;
     --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);

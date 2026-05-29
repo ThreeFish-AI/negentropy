@@ -7,7 +7,11 @@
   --wiki-border: #e6e8eb;
   --wiki-accent: #7c3aed;
   --wiki-accent-hover: #6d28d9;
-  --wiki-sidebar-bg: #fbfbfc;
+  /* 侧栏背景 = 页面背景，与正文无缝衔接（对齐 SquareDocs，无分隔色/竖线） */
+  --wiki-sidebar-bg: var(--wiki-bg);
+  /* 自定义滚动条（细、半透明、悬停加深；轨道透明） */
+  --wiki-scrollbar-thumb: rgba(15, 16, 26, 0.18);
+  --wiki-scrollbar-thumb-hover: rgba(15, 16, 26, 0.34);
   /* 三栏宽度严格对齐 SquareDocs：sidebar 240 / content 800 / toc 224，
      整体 ~1404px 居中容器，宽屏下两侧留白（而非紧贴浏览器边缘） */
   --wiki-layout-max-width: 1404px;

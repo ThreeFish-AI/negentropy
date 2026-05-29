@@ -16,8 +16,8 @@
 }
 
 .wiki-sidebar {
+  /* 与正文同底色、无竖线分隔（对齐 SquareDocs 无缝三栏） */
   background: var(--wiki-sidebar-bg);
-  border-right: 1px solid var(--wiki-border);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -44,7 +44,6 @@
   align-self: start;
   height: 100vh;
   overflow-y: auto;
-  border-left: 1px solid var(--wiki-border);
   background: var(--wiki-bg);
 }
 .wiki-layout[data-header] .wiki-toc-aside {
