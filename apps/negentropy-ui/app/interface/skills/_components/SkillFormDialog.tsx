@@ -217,9 +217,9 @@ export function SkillFormDialog({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
               {error && (
-                <ErrorBanner
-                  message={error}
-                />
+                <div data-testid="skills-form-error">
+                  <ErrorBanner message={error} />
+                </div>
               )}
 
               <section className="space-y-4">
