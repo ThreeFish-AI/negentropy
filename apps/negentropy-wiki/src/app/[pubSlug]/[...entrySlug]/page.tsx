@@ -148,6 +148,7 @@ export default async function WikiEntryPage({ params }: Props) {
       activeSlug={slug}
       catalogTargetSlug={catalogTargetSlug}
       catalogName={catalogName}
+      searchSlot={<WikiSearchBox />}
     />
   );
 
@@ -157,7 +158,6 @@ export default async function WikiEntryPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
-      searchBox={<WikiSearchBox />}
       actions={<WikiHeaderActions />}
       graphTab={{ active: false, show: hasAnyEntry }}
     />

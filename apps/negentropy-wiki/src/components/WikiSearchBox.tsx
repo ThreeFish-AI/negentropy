@@ -39,6 +39,9 @@ export function WikiSearchBox() {
         placeholder="搜索文档..."
         aria-label="搜索文档"
       />
+      <kbd className="wiki-search-kbd" aria-hidden="true">
+        ⌘K
+      </kbd>
     </form>
   );
 }

@@ -91,6 +91,7 @@ export function ChatStream({
   const scrollToBottom = () => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    isUserAtBottomRef.current = true;
     setShowJumpToBottom(false);
   };
 
@@ -266,7 +267,7 @@ export function ChatStream({
           type="button"
           onClick={scrollToBottom}
           aria-label="回到底部"
-          className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs font-medium text-text-secondary shadow-md backdrop-blur transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs font-medium text-text-secondary shadow-md backdrop-blur transition-[color,transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:text-text-primary hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
           回到底部

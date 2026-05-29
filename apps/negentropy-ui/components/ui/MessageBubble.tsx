@@ -412,9 +412,13 @@ export function MessageBubble({
   const isStreaming = message.streaming === true && !isUser;
   const showStreamingIndicator = isStreaming && hasContent;
   const showWaitingPlaceholder = isStreaming && !hasContent && !body;
+  // 头像悬挑落点：横向位移收敛到 calc(100% - 0.5rem)（自身 32px − 8px = 24px 悬挑），
+  // 使头像外缘始终落在对话轨道的左右留白内（px-6=24px / sm:px-8=32px 均不溢出），
+  // 从根因消除中栏横向滚动条（轨道滚动容器 overflow-y-auto 按 CSS 规范连带 overflow-x:auto）；
+  // 8px 角部交叠落在气泡 2rem 圆角空白处，不遮挡正文（气泡 px-5 内边距留有余量）。
   const avatarPositionClass = isUser
-    ? "absolute right-0 top-2 translate-x-[calc(100%+0.75rem)]"
-    : "absolute left-0 top-2 -translate-x-[calc(100%+0.75rem)]";
+    ? "absolute right-0 top-2 translate-x-[calc(100%-0.5rem)]"
+    : "absolute left-0 top-2 -translate-x-[calc(100%-0.5rem)]";
 
   if (isSystem) {
     return (
@@ -475,7 +479,7 @@ export function MessageBubble({
             isUser
               ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
               : "w-full max-w-full rounded-tl-md border border-border bg-card text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)]",
-            isStreaming && hasContent && "ring-1 ring-success/50",
+            isStreaming && hasContent && "ring-1 ring-primary/50",
           )}
         >
           <div

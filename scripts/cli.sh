@@ -259,13 +259,14 @@ cmd_start() {
   (( _rc )) && { log_error "backend/perceives 依赖安装失败"; exit 1; }
   log_ok "backend + perceives 依赖已安装"
 
-  log_info "安装 ui + wiki 依赖 (并行)..."
-  (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm install) &
-  local ui_pid=$!
-  (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm install) &
-  local wiki_pid=$!
-  local _rc=0; wait "$ui_pid" || _rc=$?; wait "$wiki_pid" || _rc=$?
-  (( _rc )) && { log_error "前端依赖安装失败"; exit 1; }
+  # pnpm workspace 为单一 lockfile + 单一 store：在任一成员目录执行 pnpm install
+  # 都会触发全工作区安装（日志 Scope: all N projects）。原先并行的两个 member-dir
+  # install（ui + wiki）实为对同一 workspace 的重复全量安装，且会并发向共享成员
+  # （cognizes-ui / travel-agent-ui）的 node_modules/.bin 写同名 bin（vitest/eslint），
+  # 引发 "Failed to create bin ... ENOENT chmod" 进程间竞态告警。改为根目录单次安装：
+  # 覆盖面不变（仍是全部成员），消除竞态告警，且免去一次重复全量安装。
+  log_info "安装前端依赖 (pnpm workspace)..."
+  (cd "$REPO_ROOT" && pnpm install) || { log_error "前端依赖安装失败"; exit 1; }
   log_ok "前端依赖已安装"
 
   # Phase 3 — 数据库迁移
@@ -286,10 +287,20 @@ cmd_start() {
     # backend 在 MCP 工具调用链上依赖 perceives，必须先就绪。
     start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
     start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
+
+    # agents-chat-core 是 ui/wiki 共享的工作区依赖，且 tsup 配置 clean:true
+    # （每次构建先清空 dist）。若任由下方并行的两个 pnpm build 各自触发 prebuild
+    # 重建，会并发清空/写入同一 dist 而偶发构建失败。故在此显式顺序重建一次，
+    # 并通过 NEGENTROPY_CORE_PREBUILT 让并行子进程的 prebuild 跳过重建。
+    log_info "构建 agents-chat-core..."
+    (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
+      || { log_error "agents-chat-core 构建失败"; cmd_stop; exit 1; }
+
+    # NEGENTROPY_CORE_PREBUILT=1：core 已在上方构建，跳过子进程 prebuild 的并发重建。
     log_info "构建 ui + wiki (并行)..."
-    (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
+    (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_ui_pid=$!
-    (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
+    (cd "$REPO_ROOT/apps/negentropy-wiki" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_wiki_pid=$!
     local _rc=0; wait "$build_ui_pid" || _rc=$?; wait "$build_wiki_pid" || _rc=$?
     (( _rc )) && { log_error "前端构建失败"; cmd_stop; exit 1; }

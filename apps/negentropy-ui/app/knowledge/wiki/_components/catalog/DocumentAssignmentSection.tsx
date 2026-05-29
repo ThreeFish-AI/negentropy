@@ -144,13 +144,13 @@ export function DocumentAssignmentSection({
   return (
     <div className="px-5 py-4 border-t border-border">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           归属文档 ({docs.length})
         </h3>
         <button
           onClick={() => setAdding(true)}
           disabled={!catalogId}
-          className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border text-muted hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="h-3 w-3" />
           添加文档
@@ -158,9 +158,9 @@ export function DocumentAssignmentSection({
       </div>
 
       {loading ? (
-        <p className="text-xs text-muted">加载中...</p>
+        <p className="text-xs text-muted-foreground">加载中...</p>
       ) : docs.length === 0 ? (
-        <p className="text-xs text-muted/60 italic">暂无归属文档</p>
+        <p className="text-xs text-muted-foreground/60 italic">暂无归属文档</p>
       ) : (
         <ul className="space-y-1 max-h-[280px] overflow-y-auto">
           {docs.map((doc) => {
@@ -192,7 +192,7 @@ export function DocumentAssignmentSection({
                         onClick={() => void commitEdit(doc)}
                         disabled={saving}
                         title="保存"
-                        className="p-0.5 rounded text-muted hover:text-green-600 disabled:opacity-50"
+                        className="p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>
@@ -200,7 +200,7 @@ export function DocumentAssignmentSection({
                         onClick={cancelEdit}
                         disabled={saving}
                         title="取消"
-                        className="p-0.5 rounded text-muted hover:text-red-500 disabled:opacity-50"
+                        className="p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -212,7 +212,7 @@ export function DocumentAssignmentSection({
                   )}
 
                   {/* 副行：源名称 · 状态 · ID */}
-                  <p className="text-[10px] text-muted/70 font-mono">
+                  <p className="text-[10px] text-muted-foreground/70 font-mono">
                     源名称：{doc.original_filename}
                     <span className="mx-1">·</span>
                     {doc.markdown_extract_status ?? "—"}
@@ -227,14 +227,14 @@ export function DocumentAssignmentSection({
                     <button
                       onClick={() => startEdit(doc)}
                       title="编辑 Wiki 显示名称"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     <button
                       onClick={() => handleRemove(doc.id, doc.original_filename)}
                       title="从节点移除"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted hover:text-red-600 hover:bg-red-50 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-opacity"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

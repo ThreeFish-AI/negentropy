@@ -1,7 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AgentChatMount } from "@/components/agent-chat/AgentChatMount";
 import { WikiAuthProvider } from "@/lib/auth/wiki-auth";
+
+/**
+ * 自托管 Inter（对齐 SquareDocs 字形观感）。
+ * 仅加载 latin 子集，CJK 中文由 --wiki-*-font 令牌的系统字体回退兜底。
+ */
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Negentropy Wiki — 知识库发布站点",
@@ -12,16 +23,18 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f10" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
 
+/* 主题统一为 SquareDocs 紫罗兰单一主题，仅保留外观（浅/深/系统）的 FOUC 防闪脚本 */
 const THEME_INIT = `
 (function(){
   try {
-    var t = localStorage.getItem('wiki:theme');
-    if (t) document.documentElement.setAttribute('data-theme', t);
     var c = localStorage.getItem('wiki:color-scheme');
     if (c && c !== 'system') document.documentElement.setAttribute('data-color-scheme', c);
   } catch(e) {}
@@ -34,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" data-theme="default" suppressHydrationWarning>
+    <html lang="zh-CN" className={inter.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>

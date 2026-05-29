@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { DashboardFilters, ScheduledTaskDTO } from "@/features/scheduler";
-import { runTaskNow, toggleTaskEnabled } from "@/features/scheduler/api";
+import type { DashboardFilters, ScheduledTaskDTO, TaskWritePayload } from "@/features/scheduler";
+import { runTaskNow, toggleTaskEnabled, createTask, updateTask, deleteTask } from "@/features/scheduler/api";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 import { useSchedulerData } from "@/app/(home)/dashboard/_hooks/useSchedulerData";
 import { useSchedulerStream } from "@/app/(home)/dashboard/_hooks/useSchedulerStream";
@@ -17,6 +18,7 @@ import { SchedulerTaskTable } from "./_components/SchedulerTaskTable";
 import { SchedulerExecutionPanel } from "./_components/SchedulerExecutionPanel";
 import { SchedulerStatsPanel } from "./_components/SchedulerStatsPanel";
 import { SchedulerTaskDetailDrawer } from "./_components/SchedulerTaskDetailDrawer";
+import { SchedulerTaskFormDialog } from "./_components/SchedulerTaskFormDialog";
 
 const DEFAULT_FILTERS: DashboardFilters = {
   role: null,
@@ -32,6 +34,13 @@ export default function SchedulerPage() {
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
   const [selectedTask, setSelectedTask] = useState<ScheduledTaskDTO | null>(null);
 
+  // Form dialog state
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<ScheduledTaskDTO | null>(null);
+
+  // Delete confirmation
+  const { confirm, confirmDialog } = useConfirmDialog();
+
   const {
     kpis,
     tasks,
@@ -46,6 +55,8 @@ export default function SchedulerPage() {
   } = useSchedulerData(filters);
 
   const { connected } = useSchedulerStream({ onExecution: pushExecution });
+
+  // ---- Existing handlers ----
 
   const handleRun = async (id: string) => {
     try {
@@ -75,6 +86,63 @@ export default function SchedulerPage() {
     }
   };
 
+  // ---- CRUD handlers ----
+
+  const handleCreate = () => {
+    setEditingTask(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (task: ScheduledTaskDTO) => {
+    setEditingTask(task);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async (task: ScheduledTaskDTO) => {
+    const confirmed = await confirm({
+      title: "Delete Task",
+      message: (
+        <>
+          Are you sure you want to delete{" "}
+          <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs font-mono dark:bg-zinc-800">
+            {task.display_name || task.key}
+          </code>
+          ? This action cannot be undone. All execution history will be permanently removed.
+        </>
+      ),
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteTask(task.id);
+      toast.success("Task deleted");
+      setSelectedTask(null);
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete task");
+    }
+  };
+
+  const handleFormSubmit = async (mode: "create" | "edit", id: string | null, body: TaskWritePayload) => {
+    if (mode === "create") {
+      const created = await createTask(body);
+      toast.success("Task created");
+      setFormOpen(false);
+      refresh();
+      // Auto-select the new task
+      setSelectedTask(created);
+    } else if (mode === "edit" && id) {
+      const updated = await updateTask(id, body);
+      toast.success("Task updated");
+      setFormOpen(false);
+      refresh();
+      // Update selected task in drawer
+      setSelectedTask(updated);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <InterfaceNav title="Scheduler" />
@@ -86,6 +154,7 @@ export default function SchedulerPage() {
             onTabChange={setActiveTab}
             onRefresh={refresh}
             loading={loading}
+            onCreateTask={handleCreate}
           />
 
           {error && (
@@ -126,10 +195,23 @@ export default function SchedulerPage() {
               onClose={() => setSelectedTask(null)}
               onRun={handleRun}
               onToggle={handleToggle}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           )}
         </div>
       </div>
+
+      {/* Task Create/Edit Dialog */}
+      <SchedulerTaskFormDialog
+        open={formOpen}
+        task={editingTask}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleFormSubmit}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      {confirmDialog}
     </div>
   );
 }

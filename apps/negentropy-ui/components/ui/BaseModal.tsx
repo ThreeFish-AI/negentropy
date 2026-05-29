@@ -88,7 +88,7 @@ export function BaseModal({
         <div className="mb-3">
           <h3 className="text-base font-semibold">{title}</h3>
           {subtitle ? (
-            <div className="mt-1 text-[11px] text-muted">{subtitle}</div>
+            <div className="mt-1 text-[11px] text-muted-foreground">{subtitle}</div>
           ) : null}
         </div>
         <div className="flex-1 overflow-y-auto">{children}</div>

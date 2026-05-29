@@ -165,7 +165,7 @@ function CollapseIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <polyline points="11 3 5 8 11 13" />
+      <polyline points="5 3 11 8 5 13" />
     </svg>
   );
 }

@@ -281,12 +281,6 @@ export function Composer({
 
   const showStop = Boolean(isGenerating && onCancel);
 
-  const hasContent = Boolean(
-    (showMentions && mentions && mentions.length > 0) ||
-    (showAttachments && attachments && attachments.length > 0) ||
-    attachmentError,
-  );
-
   return (
     <form
       data-testid="composer-form"
@@ -412,7 +406,7 @@ export function Composer({
             type="button"
             data-testid="composer-stop-button"
             aria-label="Stop"
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-all hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-[background-color,transform] hover:bg-rose-700 active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
             onClick={onCancel}
           >
             <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
@@ -422,7 +416,7 @@ export function Composer({
             type="button"
             data-testid="composer-send-button"
             aria-label="Send"
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:bg-primary-hover disabled:opacity-25 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-[background-color,transform] hover:bg-primary-hover active:scale-[0.94] disabled:opacity-25 disabled:cursor-not-allowed disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             onClick={onSend}
             disabled={disabled || !value.trim() || !!isBlocked}
           >
@@ -449,8 +443,8 @@ export function Composer({
       )}
 
       {/* Toolbar row */}
-      <div className={`flex items-center justify-between gap-2 ${hasContent ? "mt-2" : "mt-1"}`}>
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 min-w-0">
           {showAttachments && (
             <>
               <input
@@ -477,6 +471,12 @@ export function Composer({
                 <Paperclip className="h-4 w-4" aria-hidden="true" />
               </button>
             </>
+          )}
+          {showAttachments && (showModelSelect || showThinkingToggle) && (
+            <span
+              className="mx-0.5 h-4 w-px shrink-0 bg-border"
+              aria-hidden="true"
+            />
           )}
           {showModelSelect && (
             <LlmModelSelect
@@ -509,9 +509,9 @@ export function Composer({
                 if (!thinkingSupported) return;
                 onThinkingEnabledChange?.(!thinkingEnabled);
               }}
-              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 thinkingSupported && thinkingEnabled
-                  ? "border-primary/40 bg-primary/10 text-primary"
+                  ? "border-primary/50 bg-primary/10 text-primary"
                   : "border-transparent text-text-muted hover:text-foreground hover:bg-border-muted disabled:cursor-not-allowed disabled:opacity-40"
               }`}
             >
@@ -520,7 +520,7 @@ export function Composer({
             </button>
           )}
         </div>
-        <p className="text-[10px] text-text-muted/60 shrink-0 select-none">
+        <p className="text-[10px] text-text-muted shrink-0 select-none">
           {showMentions ? "@ 选对象 · " : ""}Enter 发送 · Shift+Enter 换行
         </p>
       </div>

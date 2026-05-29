@@ -57,7 +57,7 @@ export function ToolCard({
 }: ToolCardProps) {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin") ?? false;
-  // 系统内置工具仅 admin 可编辑（与 MCP / Skill / SubAgent 卡片语义对齐）。
+  // 系统内置工具仅 admin 可编辑（与 MCP / Skill / Agent 卡片语义对齐）。
   const canEdit = isAdmin || !tool.is_system;
 
   const displayLabel = tool.display_name || tool.name;

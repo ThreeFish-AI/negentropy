@@ -1,13 +1,13 @@
 """
-动态 LiteLlm 实现 — 运行时按上下文/SubAgent 名切换模型。
+动态 LiteLlm 实现 — 运行时按上下文/Agent 名切换模型。
 
 设计目标：
 - Root Agent（主 Negentropy Agent）支持按 Thread/Session 粒度切换 LLM：
   Home 端选择的 `vendor/model_name` 经 `forwardedProps.selected_llm_model`
   → `state_delta.selected_llm_model` → ADK session.state → `before_model_callback`
   → `ContextVar` → `DynamicRootLiteLlm.generate_content_async()` 中生效。
-- 每个 SubAgent（五大 Faculty）支持按 `sub_agents.name` 读取用户在
-  `/interface/subagents` 页 UI 配置的 `model` 字段；命中用其 LLM，未命中回退默认。
+- 每个 Agent（五大 Faculty）支持按 `agents.name` 读取用户在
+  `/interface/agents` 页 UI 配置的 `model` 字段；命中用其 LLM，未命中回退默认。
 
 架构要点：
 - 复用 `LiteLlm` 基座（pydantic BaseModel）；通过 `object.__setattr__` 规避字段校验；
@@ -185,7 +185,7 @@ class DynamicRootLiteLlm(_DynamicLiteLlm):
 
 
 class DynamicSubagentLiteLlm(_DynamicLiteLlm):
-    """SubAgent 使用的动态 LiteLlm：按 agent_name 查 `sub_agents.model`。"""
+    """Agent 使用的动态 LiteLlm：按 agent_name 查 `agents.model`。"""
 
     def __init__(self, model: str, *, agent_name: str, **kwargs: Any) -> None:
         super().__init__(model, **kwargs)
@@ -211,5 +211,5 @@ class DynamicSubagentLiteLlm(_DynamicLiteLlm):
                 requested_model=model_id,
             )
 
-        # SubAgent 未配置 model 或 model 解析失败 — 从 DB 解析默认模型凭证。
+        # Agent 未配置 model 或 model 解析失败 — 从 DB 解析默认模型凭证。
         return await resolve_llm_config()

@@ -235,135 +235,15 @@ class ScheduledTaskRegistry:
             logger.info("unified_scheduler_stopped")
 
     # ------------------------------------------------------------------
-    # 默认任务幂等注入
+    # 默认任务幂等注入（已迁入 0046 migration）
     # ------------------------------------------------------------------
 
     async def ensure_defaults(self) -> None:
-        """把 Plan 第 5.1 节列出的 5 个非 skill 默认任务幂等插入 DB。
+        """系统种子任务已迁入 Alembic 迁移 0046 幂等 seed（DB 驱动）。
 
-        skill_invoke 任务已通过 0034 migration 从 skill_schedules 回填；
-        本函数只关心非 skill 任务的首次注入。
+        保留空壳函数作为 ``start()`` 调用链的挂载点，未来可用于
+        runtime self-heal（如检测到 0 个系统任务时告警）。
         """
-        defaults: list[dict[str, Any]] = [
-            dict(
-                key="pipeline_watchdog",
-                handler_kind="pipeline_watchdog",
-                trigger_type="interval",
-                interval_seconds=60.0,
-                role="sentinel",
-                scenario="kg_kb_maintenance",
-                category="maintenance",
-                display_name="KB/KG Pipeline Watchdog",
-                description="收敛 cancelling/running 长尾状态的 KB/KG runs",
-            ),
-            dict(
-                key="session_title_inspect",
-                handler_kind="session_title_inspect",
-                trigger_type="interval",
-                interval_seconds=300.0,
-                role="sentinel",
-                scenario="session_quality",
-                category="maintenance",
-                display_name="Session Title Inspector",
-                description="周期巡检 Session 标题，补齐与刷新",
-            ),
-            dict(
-                key="cache_warm",
-                handler_kind="cache_warm",
-                trigger_type="oneshot",
-                role="system",
-                scenario="bootstrap",
-                category="maintenance",
-                display_name="Model Config Cache Warm",
-                description="启动时预热 LLM/Embedding 配置缓存",
-            ),
-            dict(
-                key="pgvector_check",
-                handler_kind="pgvector_check",
-                trigger_type="oneshot",
-                role="system",
-                scenario="bootstrap",
-                category="maintenance",
-                display_name="pgvector Extension Check",
-                description="启动时检查 pgvector 扩展可用性",
-            ),
-            dict(
-                key="agent_inspection_demo",
-                handler_kind="agent_inspection",
-                trigger_type="interval",
-                interval_seconds=300.0,
-                role="supervisor",
-                scenario="agent_health",
-                category="cognitive",
-                display_name="Faculty Health Inspector",
-                description="每 5min 检查 Faculties 五系部模块可用性",
-                payload={"inspection_type": "faculty_health"},
-                token_budget=100_000,
-            ),
-            dict(
-                key="scheduled_tasks_summary_demo",
-                handler_kind="agent_inspection",
-                trigger_type="interval",
-                interval_seconds=600.0,
-                role="supervisor",
-                scenario="scheduler_health",
-                category="cognitive",
-                display_name="Scheduled Tasks Summary",
-                description="每 10min 巡检调度框架自身 last_status 分布（系统级告警）",
-                payload={"inspection_type": "scheduled_tasks_summary"},
-                token_budget=10_000,
-            ),
-            dict(
-                key="memory_cleanup",
-                handler_kind="memory_automation",
-                trigger_type="cron",
-                cron_expr="0 2 * * *",
-                role="sentinel",
-                scenario="memory_retention",
-                category="maintenance",
-                display_name="Ebbinghaus Cleanup",
-                description="基于艾宾浩斯遗忘曲线清理低价值记忆",
-                payload={
-                    "job_type": "cleanup_memories",
-                    "threshold": 0.1,
-                    "min_age_days": 7,
-                    "decay_lambda": 0.1,
-                },
-            ),
-            dict(
-                key="memory_consolidation",
-                handler_kind="memory_automation",
-                trigger_type="cron",
-                cron_expr="0 * * * *",
-                role="sentinel",
-                scenario="memory_consolidation",
-                category="maintenance",
-                display_name="Maintenance Consolidation",
-                description="按时间窗口批量触发会话巩固任务",
-                payload={
-                    "job_type": "trigger_consolidation",
-                    "lookback_interval": "1 hour",
-                },
-            ),
-            dict(
-                key="memory_reweight",
-                handler_kind="memory_automation",
-                trigger_type="cron",
-                cron_expr="0 */6 * * *",
-                role="sentinel",
-                scenario="memory_relevance",
-                category="maintenance",
-                display_name="Rocchio Reweight",
-                description="定期聚合用户反馈，调整记忆检索权重",
-                payload={
-                    "job_type": "reweight_relevance",
-                },
-            ),
-        ]
-        async with AsyncSessionLocal() as db:
-            for spec in defaults:
-                await _upsert_default_task(db, spec, lease_seconds=self._lease_seconds)
-            await db.commit()
 
     # ------------------------------------------------------------------
     # 心跳 tick：扫表 → 派发

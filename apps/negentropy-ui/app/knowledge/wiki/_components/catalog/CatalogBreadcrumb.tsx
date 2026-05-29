@@ -30,7 +30,7 @@ export function CatalogBreadcrumb({
   }
 
   return (
-    <nav className="flex items-center gap-1 text-sm text-muted">
+    <nav className="flex items-center gap-1 text-sm text-muted-foreground">
       {breadcrumbs.map((node, idx) => (
         <span key={node.id} className="flex items-center gap-1">
           {idx > 0 && <span className="text-border">/</span>}

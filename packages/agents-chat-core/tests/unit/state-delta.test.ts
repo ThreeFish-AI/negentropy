@@ -13,20 +13,20 @@ describe("buildStateDeltaFromForwardedProps", () => {
     expect(buildStateDeltaFromForwardedProps(null)).toEqual({});
   });
 
-  it("preferred_subagent 字符串 → 写入", () => {
+  it("preferred_agent 字符串 → 写入", () => {
     const out = buildStateDeltaFromForwardedProps({
-      preferred_subagent: "PerceptionFaculty",
+      preferred_agent: "PerceptionFaculty",
     });
-    expect(out).toEqual({ preferred_subagent: "PerceptionFaculty" });
+    expect(out).toEqual({ preferred_agent: "PerceptionFaculty" });
   });
 
-  it("preferred_subagent = null → 写入 null（显式清空）", () => {
-    const out = buildStateDeltaFromForwardedProps({ preferred_subagent: null });
-    expect(out).toEqual({ preferred_subagent: null });
+  it("preferred_agent = null → 写入 null（显式清空）", () => {
+    const out = buildStateDeltaFromForwardedProps({ preferred_agent: null });
+    expect(out).toEqual({ preferred_agent: null });
   });
 
-  it("preferred_subagent 空串 → 不写入（保守不影响 session.state）", () => {
-    const out = buildStateDeltaFromForwardedProps({ preferred_subagent: "" });
+  it("preferred_agent 空串 → 不写入（保守不影响 session.state）", () => {
+    const out = buildStateDeltaFromForwardedProps({ preferred_agent: "" });
     expect(out).toEqual({});
   });
 

@@ -8,7 +8,7 @@
     500（见 docs/agents/issue.md ISSUE-089，与 ISSUE-012 同源）。
 
 本测试用真实 PG round-trip 守护：
-    1. 4 类 plugin（builtin_tool / mcp_server / skill / sub_agent）的 visibility
+    1. 4 类 plugin（builtin_tool / mcp_server / skill / agent）的 visibility
        列类型与 ORM 声明一致，``= PluginVisibility.PUBLIC`` 查询不报错；
     2. 并集语义：own + PUBLIC + 授权（PluginPermission） + is_system 全部纳入；
        其他用户的 PRIVATE 行不可见。
@@ -29,13 +29,13 @@ import negentropy.db.session as db_session
 from negentropy.auth.service import AuthUser
 from negentropy.interface.permissions import get_visible_plugin_ids
 from negentropy.models.plugin import (
+    Agent,
     BuiltinTool,
     McpServer,
     PluginPermission,
     PluginPermissionType,
     PluginVisibility,
     Skill,
-    SubAgent,
 )
 
 
@@ -94,8 +94,8 @@ def _skill_factory(*, owner_id: str, visibility: PluginVisibility, name: str, is
     )
 
 
-def _sub_agent_factory(*, owner_id: str, visibility: PluginVisibility, name: str, is_system: bool = False) -> SubAgent:
-    return SubAgent(
+def _agent_factory(*, owner_id: str, visibility: PluginVisibility, name: str, is_system: bool = False) -> Agent:
+    return Agent(
         owner_id=owner_id,
         visibility=visibility,
         name=name,
@@ -108,7 +108,7 @@ PLUGIN_CASES: list[_PluginCase] = [
     _PluginCase("builtin_tool", BuiltinTool, _builtin_tool_factory),
     _PluginCase("mcp_server", McpServer, _mcp_server_factory),
     _PluginCase("skill", Skill, _skill_factory),
-    _PluginCase("sub_agent", SubAgent, _sub_agent_factory),
+    _PluginCase("agent", Agent, _agent_factory),
 ]
 
 

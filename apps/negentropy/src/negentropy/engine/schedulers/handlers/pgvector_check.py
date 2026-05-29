@@ -7,9 +7,19 @@ from __future__ import annotations
 
 from negentropy.logging import get_logger
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.pgvector_check")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="pgvector_check",
+        label="pgvector Extension Check",
+        description="启动时检查 pgvector 扩展可用性",
+        supported_trigger_types=("oneshot",),
+        default_trigger_type="oneshot",
+    ),
+)
 
 
 @register_handler("pgvector_check")

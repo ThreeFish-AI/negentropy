@@ -206,9 +206,9 @@ export function CatalogTreeNode({
             className="cursor-pointer shrink-0"
           >
             {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 text-muted" />
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-muted" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             )}
           </span>
         ) : (
@@ -236,7 +236,7 @@ export function CatalogTreeNode({
 
         {/* Type badge — 中文标签（自 PR-4 起替换 enum 值原文显示） */}
         {!isEditing && (
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted shrink-0">
+          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground shrink-0">
             {NODE_TYPE_LABELS[node.node_type] ?? "目录"}
           </span>
         )}
@@ -251,7 +251,7 @@ export function CatalogTreeNode({
             }}
             aria-label={`操作「${node.name}」`}
             title="更多操作"
-            className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity rounded-sm p-0.5 hover:bg-primary/10 text-muted hover:text-primary"
+            className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity rounded-sm p-0.5 hover:bg-primary/10 text-muted-foreground hover:text-primary"
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
           </button>

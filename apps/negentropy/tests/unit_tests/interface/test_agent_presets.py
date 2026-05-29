@@ -1,4 +1,4 @@
-"""SubAgent 预设测试：确保 UI 同步源与代码定义一致。"""
+"""Agent 预设测试：确保 UI 同步源与代码定义一致。"""
 
 from negentropy.agents.agent import root_agent
 from negentropy.agents.faculties import (
@@ -8,11 +8,11 @@ from negentropy.agents.faculties import (
     internalization_agent,
     perception_agent,
 )
-from negentropy.interface.subagent_presets import (
+from negentropy.interface.agent_presets import (
+    KIND_AGENT,
     KIND_ROOT,
-    KIND_SUBAGENT,
-    NEGENTROPY_SUBAGENT_NAMES,
-    build_negentropy_subagent_payloads,
+    NEGENTROPY_AGENT_NAMES,
+    build_negentropy_agent_payloads,
 )
 from negentropy.model_names import canonicalize_model_name
 
@@ -26,20 +26,20 @@ def _tool_names(agent) -> list[str]:
 
 
 def test_builtin_payload_count_and_order():
-    payloads = build_negentropy_subagent_payloads()
-    # root + 5 subagents
+    payloads = build_negentropy_agent_payloads()
+    # root + 5 agents
     assert len(payloads) == 6
-    assert [payload["name"] for payload in payloads] == NEGENTROPY_SUBAGENT_NAMES
+    assert [payload["name"] for payload in payloads] == NEGENTROPY_AGENT_NAMES
     # root 在首项
     assert payloads[0]["name"] == "NegentropyEngine"
     assert payloads[0]["adk_config"]["kind"] == KIND_ROOT
-    # 子 Agent 均为 subagent
+    # 子 Agent 均为 agent
     for p in payloads[1:]:
-        assert p["adk_config"]["kind"] == KIND_SUBAGENT
+        assert p["adk_config"]["kind"] == KIND_AGENT
 
 
 def test_root_agent_payload():
-    payloads = {p["name"]: p for p in build_negentropy_subagent_payloads()}
+    payloads = {p["name"]: p for p in build_negentropy_agent_payloads()}
     root_payload = payloads["NegentropyEngine"]
     assert root_payload["description"] == root_agent.description
     assert root_payload["agent_type"] == "llm_agent"
@@ -50,7 +50,7 @@ def test_root_agent_payload():
 
 
 def test_builtin_payload_matches_faculty_definition():
-    payloads = {payload["name"]: payload for payload in build_negentropy_subagent_payloads()}
+    payloads = {payload["name"]: payload for payload in build_negentropy_agent_payloads()}
     for faculty in [perception_agent, internalization_agent, contemplation_agent, action_agent, influence_agent]:
         payload = payloads[faculty.name]
         adk_config = payload["adk_config"]
@@ -71,11 +71,11 @@ def test_builtin_payload_matches_faculty_definition():
         assert "generate_content_config" in adk_config
         assert "planner" in adk_config
         # kind 字段
-        assert adk_config["kind"] == KIND_SUBAGENT
+        assert adk_config["kind"] == KIND_AGENT
 
 
 def test_builtin_payloads_are_serialized_without_name_error_regression():
-    payloads = build_negentropy_subagent_payloads()
+    payloads = build_negentropy_agent_payloads()
 
     assert payloads
     for payload in payloads:

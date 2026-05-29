@@ -21,7 +21,7 @@ export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
             ? "bg-error"
             : "bg-text-muted";
   return (
-    <div className="mb-6 flex flex-col">
+    <div className="flex flex-col">
       <div className="shrink-0 mb-3 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase text-text-muted tracking-wider">
           State Snapshot
@@ -42,7 +42,7 @@ export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
       <div
         className={cn(
           "min-h-[100px] overflow-y-auto overflow-x-hidden rounded-xl border border-border bg-card p-3 shadow-sm relative custom-scrollbar group/snapshot",
-          !snapshot ? "h-[85px]" : "h-[170px] resize-y",
+          !snapshot ? "h-[85px]" : "h-[220px] resize-y",
         )}
       >
         {!snapshot ? (

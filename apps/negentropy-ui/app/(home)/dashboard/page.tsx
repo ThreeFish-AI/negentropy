@@ -40,7 +40,7 @@ const INITIAL_FILTERS: DashboardFilters = {
 interface InterfaceStats {
   mcp_servers: { total: number; enabled: number };
   skills: { total: number; enabled: number };
-  subagents: { total: number; enabled: number };
+  agents: { total: number; enabled: number };
   models: { total: number; enabled: number; vendors: number };
   tools: { total: number; enabled: number };
 }
@@ -75,7 +75,7 @@ export default function DashboardPage() {
     pushExecution,
   } = useSchedulerData(filters);
 
-  // Agent / Owner 下拉选项是「全局枚举」（SubAgent 注册表、用户表），
+  // Agent / Owner 下拉选项是「全局枚举」（Agent 注册表、用户表），
   // 不应从 useSchedulerData 返回的 tasks（已被 filters 过滤）推导，
   // 否则下拉选项会随过滤动态塌缩。改由独立 hook 提供 SSOT。
   const { options: agentOptions } = useDashboardAgentOptions();

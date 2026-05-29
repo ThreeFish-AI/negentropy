@@ -1,10 +1,10 @@
 """
-SubAgent 预设与 ADK 配置序列化。
+Agent 预设与 ADK 配置序列化。
 
 遵循 AGENTS.md「单一事实源」原则：
-- Negentropy 内置主 Agent (NegentropyEngine) 与 5 个 Faculty SubAgent 的定义直接来源于代码中的 Agent 实例；
-- Plugins/SubAgents 页面通过该模块读取可序列化配置，避免手工复制导致漂移；
-- 主 / 子区分通过 ``adk_config["kind"]`` (``"root"`` / ``"subagent"``) 写入 JSONB，避免 schema 迁移。
+- Negentropy 内置主 Agent (NegentropyEngine) 与 5 个 Faculty Agent 的定义直接来源于代码中的 Agent 实例；
+- Plugins/Agents 页面通过该模块读取可序列化配置，避免手工复制导致漂移；
+- 主 / 子区分通过 ``adk_config["kind"]`` (``"root"`` / ``"agent"``) 写入 JSONB，避免 schema 迁移。
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from negentropy.serialization import to_json_compatible
 NEGENTROPY_ROOT_AGENT = root_agent
 
 # 子 Agent 顺序（不含 root）。
-NEGENTROPY_SUBAGENT_ORDER = [
+NEGENTROPY_AGENT_ORDER = [
     perception_agent,
     internalization_agent,
     contemplation_agent,
@@ -37,14 +37,14 @@ NEGENTROPY_SUBAGENT_ORDER = [
 ]
 
 # 主 + 子 Agent 名字列表，供路由/缓存按 name 索引使用。
-NEGENTROPY_SUBAGENT_NAMES = [
+NEGENTROPY_AGENT_NAMES = [
     NEGENTROPY_ROOT_AGENT.name,
-    *[agent.name for agent in NEGENTROPY_SUBAGENT_ORDER],
+    *[agent.name for agent in NEGENTROPY_AGENT_ORDER],
 ]
 
-# `config.adk_config.kind` 取值：root | subagent
+# `config.adk_config.kind` 取值：root | agent
 KIND_ROOT = "root"
-KIND_SUBAGENT = "subagent"
+KIND_AGENT = "agent"
 
 
 def _callable_name(callback: Any) -> str | None:
@@ -136,7 +136,7 @@ def serialize_adk_config(agent: BaseAgent) -> dict[str, Any]:
 
 
 def _build_payload(agent: BaseAgent, *, kind: str) -> dict[str, Any]:
-    """统一的 Agent 序列化路径：写入 ``adk_config.kind`` 区分 root / subagent。
+    """统一的 Agent 序列化路径：写入 ``adk_config.kind`` 区分 root / agent。
 
     ``instruction`` 字段在 ADK 中可为 ``str`` 或 ``InstructionProvider``（见
     ``LlmAgent.instruction``）。当 Agent 接入 InstructionProvider 时，``adk_config["instruction"]``
@@ -174,19 +174,19 @@ def _build_payload(agent: BaseAgent, *, kind: str) -> dict[str, Any]:
 def build_negentropy_root_agent_payload() -> dict[str, Any]:
     """构建 Negentropy 主 Agent (``NegentropyEngine``) 的标准 payload。
 
-    `adk_config.kind="root"`；其余字段与子 Agent 同构，便于复用 SubAgent CRUD/UI。
+    `adk_config.kind="root"`；其余字段与子 Agent 同构，便于复用 Agent CRUD/UI。
     """
     return _build_payload(NEGENTROPY_ROOT_AGENT, kind=KIND_ROOT)
 
 
-def build_negentropy_subagent_payloads() -> list[dict[str, Any]]:
-    """构建 Negentropy 内置 **主 Agent + 5 个 Faculty SubAgent** 的标准 payload 列表。
+def build_negentropy_agent_payloads() -> list[dict[str, Any]]:
+    """构建 Negentropy 内置 **主 Agent + 5 个 Faculty Agent** 的标准 payload 列表。
 
     顺序：root 在首项，便于 UI 列表保持「Root 置顶」语义。
     """
     payloads: list[dict[str, Any]] = [build_negentropy_root_agent_payload()]
-    for agent in NEGENTROPY_SUBAGENT_ORDER:
-        payloads.append(_build_payload(agent, kind=KIND_SUBAGENT))
+    for agent in NEGENTROPY_AGENT_ORDER:
+        payloads.append(_build_payload(agent, kind=KIND_AGENT))
     return payloads
 
 

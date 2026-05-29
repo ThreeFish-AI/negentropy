@@ -7,12 +7,15 @@
 import type {
   DashboardFilters,
   ExecutionListResponse,
+  HandlerListResponse,
   KpiResponse,
+  ScheduledTaskDTO,
   StatsGroupBy,
   StatsResponse,
   StatsWindow,
   TaskDetailResponse,
   TaskListResponse,
+  TaskWritePayload,
 } from "./types";
 
 const API_ROOT = "/api/scheduler";
@@ -95,5 +98,37 @@ export async function toggleTaskEnabled(
   return jsonFetch(`/tasks/${encodeURIComponent(taskId)}/toggle`, {
     method: "POST",
     body: JSON.stringify({ enabled }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Handler Manifest
+// ---------------------------------------------------------------------------
+
+export async function fetchHandlers(): Promise<HandlerListResponse> {
+  return jsonFetch("/handlers");
+}
+
+// ---------------------------------------------------------------------------
+// CRUD
+// ---------------------------------------------------------------------------
+
+export async function createTask(body: TaskWritePayload): Promise<ScheduledTaskDTO> {
+  return jsonFetch("/tasks", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateTask(taskId: string, body: Partial<TaskWritePayload>): Promise<ScheduledTaskDTO> {
+  return jsonFetch(`/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteTask(taskId: string): Promise<{ ok: boolean; deleted_task_id: string }> {
+  return jsonFetch(`/tasks/${encodeURIComponent(taskId)}`, {
+    method: "DELETE",
   });
 }

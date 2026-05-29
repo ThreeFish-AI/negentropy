@@ -61,7 +61,7 @@ describe("SessionList", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: "进行中" }));
+    await user.click(screen.getByRole("tab", { name: "Active" }));
     await user.click(screen.getByRole("button", { name: "Unarchive Archived Session" }));
     await user.click(screen.getByTestId("confirm-dialog-confirm"));
 
@@ -160,7 +160,7 @@ describe("SessionList", () => {
 });
 
 describe("SessionList 分页", () => {
-  it("超过 12 个 session 时仅显示 12 个，分页栏显示正确页码", () => {
+  it("超过 10 个 session 时仅显示 10 个，分页栏显示正确页码", () => {
     const sessions = makeSessions(15);
     render(
       <SessionList
@@ -171,9 +171,9 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    // 应该恰好渲染 12 个 session（第 1 页）
+    // 应该恰好渲染 10 个 session（第 1 页）
     const sessionItems = document.querySelectorAll("[data-session-id]");
-    expect(sessionItems).toHaveLength(12);
+    expect(sessionItems).toHaveLength(10);
 
     // 分页栏应显示 "1 / 2"
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
@@ -193,9 +193,9 @@ describe("SessionList 分页", () => {
 
     await user.click(screen.getByRole("button", { name: "下一页" }));
 
-    // 第 2 页应显示 3 个 session（13-15）
+    // 第 2 页应显示 5 个 session（11-15）
     const sessionItems = document.querySelectorAll("[data-session-id]");
-    expect(sessionItems).toHaveLength(3);
+    expect(sessionItems).toHaveLength(5);
     expect(screen.getByText("2 / 2")).toBeInTheDocument();
   });
 
@@ -222,8 +222,8 @@ describe("SessionList 分页", () => {
     expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled();
   });
 
-  it("12 个或更少 session 时不显示分页栏", () => {
-    const sessions = makeSessions(12);
+  it("10 个或更少 session 时不显示分页栏", () => {
+    const sessions = makeSessions(10);
     render(
       <SessionList
         {...defaultProps}
@@ -249,7 +249,7 @@ describe("SessionList 分页", () => {
     );
 
     // 模拟删除后 sessions 减少
-    const reduced = makeSessions(11);
+    const reduced = makeSessions(10);
     rerender(
       <SessionList
         {...defaultProps}
@@ -259,7 +259,7 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    // 分页栏应消失（11 <= 12）
+    // 分页栏应消失（10 <= 10）
     expect(screen.queryByRole("button", { name: "上一页" })).not.toBeInTheDocument();
   });
 

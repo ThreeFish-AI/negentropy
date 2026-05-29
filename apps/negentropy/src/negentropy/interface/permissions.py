@@ -11,13 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.auth.service import AuthUser
 from negentropy.models.plugin import (
+    Agent,
     BuiltinTool,
     McpServer,
     PluginPermission,
     PluginPermissionType,
     PluginVisibility,
     Skill,
-    SubAgent,
 )
 
 # 「系统内置」单一事实源：5 类 plugin 表统一通过显式 ``is_system`` 列识别。
@@ -27,7 +27,7 @@ from negentropy.models.plugin import (
 PLUGIN_TYPE_MODEL_MAP = {
     "mcp_server": McpServer,
     "skill": Skill,
-    "sub_agent": SubAgent,
+    "agent": Agent,
     "builtin_tool": BuiltinTool,
 }
 
@@ -57,7 +57,7 @@ async def check_plugin_access(
 
     Args:
         db: 数据库会话
-        plugin_type: 插件类型 ("mcp_server", "skill", "sub_agent", "builtin_tool")
+        plugin_type: 插件类型 ("mcp_server", "skill", "agent", "builtin_tool")
         plugin_id: 插件 UUID
         user: 当前用户
         required_permission: 需要的权限 ("view" or "edit")

@@ -44,6 +44,7 @@ export interface ScheduledTaskDTO {
   updated_at: string | null;
   payload: Record<string, unknown>;
   recent: string[];
+  is_system: boolean;
 }
 
 export interface TaskExecutionDTO {
@@ -118,4 +119,60 @@ export interface DashboardFilters {
   owner: string | null;
   category: string | null;
   window: StatsWindow;
+}
+
+// ---------------------------------------------------------------------------
+// Handler Manifest — 统一定义协议
+// ---------------------------------------------------------------------------
+
+export type PayloadFieldType = "string" | "number" | "integer" | "boolean" | "enum";
+
+export interface PayloadFieldSchema {
+  name: string;
+  label: string;
+  type: PayloadFieldType;
+  required?: boolean;
+  default?: unknown;
+  enum_options?: string[];
+  help_text?: string;
+  applies_when?: string[];
+}
+
+export interface HandlerDescriptor {
+  handler_kind: string;
+  label: string;
+  description: string;
+  trigger_types: TriggerType[];
+  payload_fields: PayloadFieldSchema[];
+  discriminator_field: string | null;
+  default_trigger_type: string | null;
+  supports_token_budget: boolean;
+}
+
+export interface HandlerListResponse {
+  items: HandlerDescriptor[];
+}
+
+// ---------------------------------------------------------------------------
+// CRUD 请求载荷
+// ---------------------------------------------------------------------------
+
+export interface TaskWritePayload {
+  key?: string; // 仅 create 时必填
+  handler_kind: string;
+  trigger_type: TriggerType;
+  interval_seconds: number | null;
+  cron_expr: string | null;
+  enabled?: boolean;
+  owner_id?: string | null;
+  participant_id?: string | null;
+  agent_id?: string | null;
+  role?: string | null;
+  scenario?: string | null;
+  category?: string | null;
+  display_name?: string | null;
+  description?: string | null;
+  payload?: Record<string, unknown>;
+  max_concurrency?: number;
+  token_budget?: number | null;
 }
