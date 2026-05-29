@@ -10,7 +10,6 @@ import {
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
-import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { HomeCard } from "@/components/home/HomeCard";
 import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
@@ -85,12 +84,19 @@ export default async function WikiHomePage() {
 
   const firstHref = homeCards.length > 0 ? homeCards[0].href : undefined;
 
+  const firstPubSlug = publications.length > 0 ? publications[0].slug : undefined;
+
   const header = (
     <WikiHeader
       homeLinks={homeLinks}
       headerSlot={<ThemePreference />}
-      searchBox={<WikiSearchBox />}
       actions={<WikiHeaderActions />}
+      pubSlug={firstPubSlug}
+      graphTab={
+        firstPubSlug
+          ? { show: true, active: false, label: "Knowledge Graph" }
+          : undefined
+      }
     />
   );
 

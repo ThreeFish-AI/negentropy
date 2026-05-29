@@ -83,7 +83,7 @@ export function WikiHeader({
               className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
               aria-current={graphTab.active ? "page" : undefined}
             >
-              {graphTab.label ?? "知识图谱"}
+              {graphTab.label ?? "Knowledge Graph"}
             </Link>
           )}
         </nav>
