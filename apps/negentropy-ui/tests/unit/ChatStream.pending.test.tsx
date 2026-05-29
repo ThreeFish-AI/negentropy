@@ -9,7 +9,7 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 }));
 
 const EMPTY_PROMPT_TEXT =
-  "发送指令开始对话。主区会按正文顺序展示消息，并把工具过程穿插在对应位置。";
+  "发送指令即可开始。消息按正文顺序展示，工具调用过程会穿插在对应位置。";
 
 describe("ChatStream — stream-level pending typing indicator", () => {
   it("空树 + pending=true：显示 standalone indicator，且不再显示「发送指令开始对话」", () => {

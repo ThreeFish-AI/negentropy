@@ -10,8 +10,9 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 describe("ChatStream", () => {
   it("在空树时渲染占位文案", () => {
     render(<ChatStream nodes={[]} />);
+    expect(screen.getByText("开始一段对话")).toBeInTheDocument();
     expect(
-      screen.getByText("发送指令开始对话。主区会按正文顺序展示消息，并把工具过程穿插在对应位置。"),
+      screen.getByText("发送指令即可开始。消息按正文顺序展示，工具调用过程会穿插在对应位置。"),
     ).toBeInTheDocument();
   });
 

@@ -2547,3 +2547,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   2. 中期：升级 ADK 框架到修复版本，或为 `SequentialAgent` 注入 `mode` 默认属性的 monkey-patch。
   3. 长期：在 ADK 仓库开 issue 跟踪。
 - **不影响合并**：单测覆盖了 ingest_to_corpus 的越权防御 / Approval / 失败降级 / metadata 注入等所有契约语义；前端 corpus_ids 透传、Root callback 写 hint、Faculty 注册、Approval 白名单等都已通过浏览器 NDJSON 流验证。生产侧只待 ADK 框架 fix 即可端到端跑通。
+
+---
+
+## ISSUE-097 negentropy-ui 语义 token 工具类半失效（Tailwind v4 `@theme inline` 映射不全）
+
+- **表因**：`globals.css` 已声明 `--muted` 等 CSS 变量，但组件大量使用的 `text-muted` / `bg-muted` / `text-primary` / `bg-primary` / `bg-accent` / `text-accent-foreground` / `text-muted-foreground` / `text-destructive` / `ring-ring` 等工具类在页面上「静默失效」——颜色回退到继承值或透明，明暗与层级一致性下降。
+- **根因**：Tailwind v4 下工具类仅在 `@theme inline` 映射了对应 `--color-*` 时才会生成。`globals.css` 只映射了 `--color-text-*`（产出 `text-text-muted` 等），但**未映射** `--color-muted/-primary/-accent/-secondary/-destructive/-ring/-*-foreground`，因此 shadcn 习惯写法 `text-muted` 等并不存在。全站约 **638 处 / 96 文件** 命中此问题。
+- **关键约束（不可调和的重载）**：`text-muted`（弱化**文本**，期望 `#71717a`，**374 处/78 文件**）与 `bg-muted`（浅色**表面**，期望 `#f4f4f5`，**118 处/56 文件**）共用同一 `--color-muted`，取任一值都会让另一方出错。故「全局补全」**必然附带**一次约 500 处类名、跨 ~90 文件的 codemod（如 shadcn 标准：`muted`=surface + 全量 `text-muted`→`text-muted-foreground`），并需全站明暗双主题回归。
+- **本次处理（Studio 范围，PR：Home/Studio UI 精修）**：仅在 Studio 涉及文件内把失效类收敛到**已定义等价物**（`text-muted`→`text-text-muted`、`bg-muted`→`bg-border-muted`、`text-accent-foreground`→`text-foreground` 等），并**新增** `--color-primary/-foreground/-hover` 与 `--color-ring`（净增、零值冲突，统一主强调色 indigo）。未触碰其它页面渲染。
+- **后续防范 / 待办（独立专项 PR）**：对全站执行 token 规范化 codemod——在 `@theme inline` 补齐 `--color-muted/-foreground`、`--color-accent/-foreground`、`--color-secondary/-foreground`、`--color-destructive/-foreground` 等，并按 shadcn 语义统一改写重载用法；提交前对 Studio / Dashboard / Knowledge / Memory 主路由做明暗双主题回归。
+- **同类问题影响**：所有沿用 shadcn 命名（`muted/primary/accent/secondary/destructive`）的组件均受影响；新增组件应优先使用本仓已定义的 `text-text-*` / `bg-card` / `border-border` / `bg-border-muted` / `text-success|warning|error|info` / `bg-primary` 等，避免再次引入未映射工具类。

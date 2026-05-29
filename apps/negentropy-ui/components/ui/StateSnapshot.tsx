@@ -9,28 +9,32 @@ type StateSnapshotProps = {
 };
 
 export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
+  // 状态点配色（F3 统一映射）：色彩仅作辅助，文本始终高对比中性色，徽标含 aria-label。
+  const dotClass =
+    connection === "streaming"
+      ? "bg-success animate-pulse"
+      : connection === "connecting"
+        ? "bg-info animate-pulse"
+        : connection === "blocked"
+          ? "bg-warning"
+          : connection === "error"
+            ? "bg-error"
+            : "bg-text-muted";
   return (
     <div className="mb-6 flex flex-col">
       <div className="shrink-0 mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase text-muted tracking-wider">
+        <p className="text-xs font-semibold uppercase text-text-muted tracking-wider">
           State Snapshot
         </p>
         {connection && (
           <span
-            className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
-              connection === "idle"
-                ? "bg-muted text-muted"
-                : connection === "streaming"
-                  ? "bg-emerald-100 text-emerald-600 animate-pulse border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
-                  : connection === "blocked"
-                    ? "bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
-                  : connection === "error"
-                    ? "bg-red-100 text-red-600 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-                    : connection === "connecting"
-                      ? "bg-amber-100 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
-                      : "text-muted"
-            }`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-border-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-secondary"
+            aria-label={`连接状态：${connection}`}
           >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${dotClass}`}
+              aria-hidden="true"
+            />
             {connection}
           </span>
         )}
