@@ -16,8 +16,6 @@
   border: 1px solid var(--wiki-border);
   background: var(--wiki-accent);
   color: #fff;
-  font-size: 24px;
-  line-height: 1;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   transition: transform 120ms ease, background 120ms ease;
@@ -35,7 +33,9 @@
 }
 
 .wiki-agent-chat-fab__icon {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ---------- Drawer ---------- */

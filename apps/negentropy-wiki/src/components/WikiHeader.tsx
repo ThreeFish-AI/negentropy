@@ -106,7 +106,11 @@ interface WikiHeaderTabProps {
 function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
   const targetSlug = pickTabTargetSlug(item);
   const label = item.entry_title || item.entry_slug;
-  const hasChildren = isContainerItem(item) && item.children && item.children.length > 0;
+  const hasChildren =
+    isContainerItem(item) &&
+    item.children &&
+    item.children.length > 0 &&
+    item.children.some((child) => pickTabTargetSlug(child) !== null);
 
   if (!targetSlug) {
     return (

@@ -110,11 +110,11 @@ export function StateDrawer({
           </button>
         </header>
 
-        {/* 主体：宽屏内容重排（800px 充分利用）。padding/overflow 对齐原右栏。 */}
+        {/* 主体：纵向叠放布局（#739 审定，State Snapshot / Runtime Logs / Event Timeline 各占满宽）。 */}
         <div className="min-h-0 flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* 视图模式提示（满宽） */}
-            <div className="lg:col-span-2">
+          <div className="flex flex-col gap-6">
+            {/* 视图模式提示 */}
+            <div>
               {selectedNodeId ? (
                 <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
                   <div className="flex items-center justify-between">
@@ -147,24 +147,15 @@ export function StateDrawer({
                     实时视图
                   </span>
                   <p className="mt-1 text-[10px] text-text-muted">
-                    点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
+                    点击任意消息进入历史视图，再次点击或点「返回实时」回到实时
                   </p>
                 </div>
               )}
             </div>
 
-            {/* State Snapshot 与 Runtime Logs 并排（皆近方形检视面） */}
-            <div className="min-w-0">
-              <StateSnapshot snapshot={snapshot} connection={connection} />
-            </div>
-            <div className="min-w-0">
-              <LogBufferPanel entries={logEntries} onExport={onExportLogs} />
-            </div>
-
-            {/* Event Timeline 满宽（时间轴天然高、不宜减半） */}
-            <div className="min-w-0 lg:col-span-2">
-              <EventTimeline events={timelineItems} />
-            </div>
+            <StateSnapshot snapshot={snapshot} connection={connection} />
+            <LogBufferPanel entries={logEntries} onExport={onExportLogs} />
+            <EventTimeline events={timelineItems} />
           </div>
         </div>
       </aside>
