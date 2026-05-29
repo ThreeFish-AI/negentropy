@@ -19,7 +19,7 @@ export interface MentionToken {
   id: string;
   /** 两类 mention 之一。 */
   kind: MentionKind;
-  /** Agent 时为 ``sub_agents.name``；Corpus 时为 UUID。 */
+  /** Agent 时为 ``agents.name``；Corpus 时为 UUID。 */
   refId: string;
   /** 显示标签（用于弹层与高亮 chip），来自 display_name || name 或 corpus.name。 */
   label: string;
@@ -33,7 +33,7 @@ export interface MentionToken {
 
 /** 候选项（弹层条目）—— Agent 与 Corpus 通用结构。 */
 export interface MentionCandidate {
-  /** Agent 时为 ``sub_agents.name``；Corpus 时为 UUID。 */
+  /** Agent 时为 ``agents.name``；Corpus 时为 UUID。 */
   refId: string;
   /** 显示标签。 */
   label: string;

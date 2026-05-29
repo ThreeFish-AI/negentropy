@@ -185,7 +185,7 @@ class DynamicRootLiteLlm(_DynamicLiteLlm):
 
 
 class DynamicSubagentLiteLlm(_DynamicLiteLlm):
-    """SubAgent 使用的动态 LiteLlm：按 agent_name 查 `sub_agents.model`。"""
+    """Agent 使用的动态 LiteLlm：按 agent_name 查 `agents.model`。"""
 
     def __init__(self, model: str, *, agent_name: str, **kwargs: Any) -> None:
         super().__init__(model, **kwargs)
@@ -211,5 +211,5 @@ class DynamicSubagentLiteLlm(_DynamicLiteLlm):
                 requested_model=model_id,
             )
 
-        # SubAgent 未配置 model 或 model 解析失败 — 从 DB 解析默认模型凭证。
+        # Agent 未配置 model 或 model 解析失败 — 从 DB 解析默认模型凭证。
         return await resolve_llm_config()
