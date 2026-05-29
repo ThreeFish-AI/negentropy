@@ -81,6 +81,7 @@ export default async function WikiPublicationPage({ params }: Props) {
       indexEntry={indexEntry}
       catalogTargetSlug={catalogTargetSlug}
       catalogName={catalogName}
+      searchSlot={<WikiSearchBox />}
     />
   );
 
@@ -90,7 +91,6 @@ export default async function WikiPublicationPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
-      searchBox={<WikiSearchBox />}
       actions={<WikiHeaderActions />}
       graphTab={{ active: false, show: entriesTotal > 0 }}
     />

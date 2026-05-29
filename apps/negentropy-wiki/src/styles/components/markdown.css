@@ -110,10 +110,10 @@
   font-weight: 600;
   margin-bottom: 0.25em;
 }
-.wiki-callout-note { border-left-color: var(--wiki-accent); background: rgba(35, 131, 226, 0.06); }
+.wiki-callout-note { border-left-color: var(--wiki-accent); background: var(--wiki-note-bg); }
 .wiki-callout-tip { border-left-color: var(--wiki-success-text); background: var(--wiki-success-bg); }
-.wiki-callout-warn { border-left-color: #d97706; background: #fffbeb; }
-.wiki-callout-danger { border-left-color: #dc2626; background: #fef2f2; }
+.wiki-callout-warn { border-left-color: var(--wiki-warn-border); background: var(--wiki-warn-bg); }
+.wiki-callout-danger { border-left-color: var(--wiki-danger-border); background: var(--wiki-danger-bg); }
 
 /* Code block enhancements */
 .wiki-code-block {
@@ -183,15 +183,15 @@
 }
 .wiki-mermaid-error {
   padding: 1rem;
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid var(--wiki-danger-border);
+  background: var(--wiki-danger-bg);
   border-radius: var(--wiki-radius);
   margin: 1rem 0;
 }
 .wiki-mermaid-error-title {
   font-weight: 700;
   margin-bottom: 0.25rem;
-  color: #dc2626;
+  color: var(--wiki-danger-text);
 }
 .wiki-mermaid-error-code {
   white-space: pre-wrap;

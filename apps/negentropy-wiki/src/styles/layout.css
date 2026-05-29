@@ -2,6 +2,9 @@
   display: grid;
   grid-template-columns: var(--wiki-sidebar-width) minmax(0, 1fr) var(--wiki-toc-width);
   min-height: 100vh;
+  /* 居中的最大宽度容器：宽屏下两侧留白，对齐 SquareDocs（内容不紧贴浏览器边缘） */
+  max-width: var(--wiki-layout-max-width);
+  margin-inline: auto;
 }
 
 .wiki-layout[data-toc="collapsed"] {
@@ -13,6 +16,7 @@
 }
 
 .wiki-sidebar {
+  /* 与正文同底色（无底色差异），仅以一条细竖线分隔左栏与中栏（对齐 SquareDocs） */
   background: var(--wiki-sidebar-bg);
   border-right: 1px solid var(--wiki-border);
   position: sticky;
@@ -31,7 +35,7 @@
   max-width: var(--wiki-content-max-width);
   width: 100%;
   margin: 0 auto;
-  padding: 2rem clamp(1.25rem, 4vw, 3rem);
+  padding: 2rem 1rem;
   min-width: 0;
 }
 
@@ -41,7 +45,6 @@
   align-self: start;
   height: 100vh;
   overflow-y: auto;
-  border-left: 1px solid var(--wiki-border);
   background: var(--wiki-bg);
 }
 .wiki-layout[data-header] .wiki-toc-aside {
@@ -138,9 +141,10 @@
   }
 }
 
-/* Home variant: full-width single column */
+/* Home variant: full-width single column（Hero 需全幅出血，不受容器约束） */
 .wiki-layout--home {
   display: block;
+  max-width: 100%;
   min-height: calc(100vh - var(--wiki-header-height));
 }
 .wiki-main--home {

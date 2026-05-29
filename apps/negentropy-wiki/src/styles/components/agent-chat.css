@@ -235,7 +235,7 @@
 .wiki-agent-chat-composer__textarea:focus {
   outline: none;
   border-color: var(--wiki-accent);
-  box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.15);
+  box-shadow: 0 0 0 3px var(--wiki-primary-light);
 }
 
 .wiki-agent-chat-composer__actions {

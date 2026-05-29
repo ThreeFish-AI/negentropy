@@ -169,11 +169,12 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    // 主题预设 — 对齐 reactbits Galaxy Preview 效果
+    // 主题预设 — 紫罗兰夜空，对齐 SquareDocs 深色主题
+    // 低饱和 → 以银白星点为主、紫罗兰为底，克制而非彩虹色
     const transparent = false;
     const glowIntensity = 0.5;
-    const hueShift = 140;
-    const saturation = 0.5;
+    const hueShift = 280;
+    const saturation = 0.28;
     const disableAnimation = prefersReducedMotion;
     const starSpeed = 0.5;
     const density = 1.2;

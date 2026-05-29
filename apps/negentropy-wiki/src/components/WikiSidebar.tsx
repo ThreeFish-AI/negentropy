@@ -21,6 +21,8 @@ interface WikiSidebarProps {
   catalogTargetSlug?: string | null;
   /** 当前激活的一级 Catalog 显示名 */
   catalogName?: string | null;
+  /** 侧栏顶部搜索框插槽（对齐 SquareDocs：搜索位于左栏顶部而非顶栏） */
+  searchSlot?: React.ReactNode;
 }
 
 export function WikiSidebar({
@@ -32,6 +34,7 @@ export function WikiSidebar({
   indexEntry,
   catalogTargetSlug,
   catalogName,
+  searchSlot,
 }: WikiSidebarProps) {
   const isEntryPage = activeSlug !== undefined;
 
@@ -49,6 +52,7 @@ export function WikiSidebar({
 
   return (
     <>
+      {searchSlot && <div className="wiki-sidebar-search">{searchSlot}</div>}
       {!isEntryPage && (
         <div className="wiki-sidebar-header">
           {catalogName ? (
