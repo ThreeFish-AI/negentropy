@@ -21,54 +21,17 @@ import type { ComponentType } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
+import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
 
 // ---------------------------------------------------------------------------
-// 视觉常量（与 Sigma 版本同源；独立拷贝以避免跨工程依赖）
+// 视觉常量：配色 / 取色逻辑见 `@/lib/wiki-graph-visual`（跨渲染器单一事实源）。
+// nodeSize 系数随渲染器而异（Canvas 圆点偏小），保留本地定义。
 // ---------------------------------------------------------------------------
-
-const ENTITY_TYPE_COLORS: Record<string, string> = {
-  person: "#3B82F6",
-  organization: "#10B981",
-  location: "#F59E0B",
-  event: "#EF4444",
-  concept: "#8B5CF6",
-  product: "#EC4899",
-  document: "#6366F1",
-  other: "#6B7280",
-};
-
-const COMMUNITY_COLORS = [
-  "#4E79A7",
-  "#F28E2B",
-  "#E15759",
-  "#76B7B2",
-  "#59A14F",
-  "#EDC948",
-  "#B07AA1",
-  "#FF9DA7",
-  "#9C755F",
-  "#BAB0AC",
-];
-
-function entityColor(type?: string): string {
-  const key = (type ?? "other").toLowerCase();
-  return ENTITY_TYPE_COLORS[key] ?? ENTITY_TYPE_COLORS.other;
-}
-
-function communityColor(communityId: number | null | undefined): string {
-  if (communityId == null) return "#6B7280";
-  return COMMUNITY_COLORS[communityId % COMMUNITY_COLORS.length];
-}
 
 function nodeSize(importance: number | null | undefined): number {
   if (importance == null) return 6;
   const clamped = Math.min(Math.max(importance, 0), 1);
   return 4 + 8 * clamped;
-}
-
-function nodeColor(node: Pick<WikiGraphNode, "type" | "community_id">): string {
-  if (node.community_id != null) return communityColor(node.community_id);
-  return entityColor(node.type);
 }
 
 // ---------------------------------------------------------------------------
@@ -194,16 +157,7 @@ export function WikiForceGraphCanvas({
     [entrySlugMap, pubSlug, router],
   );
 
-  const isDark = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const rootEl = document.documentElement;
-    const colorScheme = rootEl.getAttribute("data-color-scheme");
-    return (
-      colorScheme === "dark" ||
-      (!colorScheme &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches)
-    );
-  }, []);
+  const isDark = useMemo(() => detectDark(), []);
 
   const graphData = useMemo(() => toForceGraphData(nodes, edges, isDark), [nodes, edges, isDark]);
 
