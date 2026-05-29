@@ -163,13 +163,13 @@ export function SessionList({
       onConfirm={handleConfirm}
       onCancel={() => setConfirmTarget(null)}
     />
-    <aside className="col-span-2 h-full border-r border-border bg-card p-4 flex flex-col overflow-hidden">
+    <aside className="h-full border-r border-border bg-card px-3 py-3 flex flex-col overflow-hidden">
       <div className="mb-3 flex items-center justify-between gap-2 shrink-0">
         {/* 视图分段控件：进行中 / 已归档 */}
         <div
           role="tablist"
           aria-label="会话视图"
-          className="inline-flex items-center rounded-lg border border-border bg-border-muted/50 p-0.5 text-[11px] font-medium"
+          className="inline-flex h-7 items-center rounded-lg border border-border bg-border-muted/50 p-0.5 text-[11px] font-medium"
         >
           <button
             type="button"
@@ -203,7 +203,7 @@ export function SessionList({
         </div>
         {view === "active" && onNewSession && (
           <button
-            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground transition-all hover:bg-primary-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-7 items-center gap-1 rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-[background-color,transform] duration-150 ease-out hover:bg-primary-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={onNewSession}
             type="button"
           >
@@ -229,13 +229,29 @@ export function SessionList({
       </div>
       <div className="space-y-1 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
         {pagedSessions.length === 0 ? (
-          <p className="px-1 py-2 text-xs text-text-muted">
-            {normalizedQuery
-              ? "未找到匹配会话"
-              : view === "archived"
-                ? "暂无已归档会话"
-                : "暂无会话"}
-          </p>
+          <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-border-muted/70 text-text-muted">
+              {normalizedQuery ? (
+                <Search className="h-4 w-4" aria-hidden="true" />
+              ) : view === "archived" ? (
+                <Archive className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              )}
+            </span>
+            <p className="text-xs text-text-muted">
+              {normalizedQuery
+                ? "未找到匹配会话"
+                : view === "archived"
+                  ? "暂无已归档会话"
+                  : "暂无会话"}
+            </p>
+            {!normalizedQuery && view === "active" && onNewSession ? (
+              <p className="text-[10px] text-text-muted/80">
+                点击右上角 New 开始新会话
+              </p>
+            ) : null}
+          </div>
         ) : (
           pagedSessions.map((session) => (
             <div
@@ -274,10 +290,10 @@ export function SessionList({
                 <div
                   aria-current={session.id === activeId ? "true" : undefined}
                   className={cn(
-                    "group relative flex items-center gap-1 rounded-lg pr-2 transition-colors",
+                    "group relative flex items-center gap-0.5 rounded-lg pr-1.5 transition-colors",
                     session.id === activeId
                       ? "bg-primary/10 text-primary before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary"
-                      : "text-text-secondary hover:bg-border-muted",
+                      : "text-text-secondary hover:bg-border-muted/70 hover:text-text-primary",
                   )}
                 >
                   <button
@@ -311,7 +327,7 @@ export function SessionList({
                         event.stopPropagation();
                         setConfirmTarget({ kind: "archive", session });
                       }}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted opacity-0 transition-all hover:bg-border-muted hover:text-text-primary group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-text-muted opacity-0 transition-colors hover:bg-border-muted hover:text-text-primary group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Archive className="h-3.5 w-3.5" />
                     </button>
@@ -325,7 +341,7 @@ export function SessionList({
                         event.stopPropagation();
                         setConfirmTarget({ kind: "unarchive", session });
                       }}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted opacity-0 transition-all hover:bg-border-muted hover:text-text-primary group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-text-muted opacity-0 transition-colors hover:bg-border-muted hover:text-text-primary group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ArchiveRestore className="h-3.5 w-3.5" />
                     </button>
@@ -339,7 +355,7 @@ export function SessionList({
                         event.stopPropagation();
                         setConfirmTarget({ kind: "delete", session });
                       }}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-error/70 opacity-0 transition-all hover:bg-error/10 hover:text-error group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-error/70 opacity-0 transition-colors hover:bg-error/10 hover:text-error group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

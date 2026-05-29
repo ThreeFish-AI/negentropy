@@ -23,7 +23,7 @@ function levelDotClass(level: string): string {
 
 export function LogBufferPanel({ entries, onExport }: LogBufferPanelProps) {
   return (
-    <div className="mt-6">
+    <div>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <p className="text-xs font-semibold uppercase text-text-muted">
@@ -41,7 +41,7 @@ export function LogBufferPanel({ entries, onExport }: LogBufferPanelProps) {
           Export
         </button>
       </div>
-      <div className="max-h-52 space-y-2 overflow-auto rounded-xl border border-border bg-card p-3 text-[11px] text-text-secondary custom-scrollbar">
+      <div className="max-h-72 space-y-2 overflow-auto rounded-xl border border-border bg-card p-3 text-[11px] text-text-secondary custom-scrollbar">
         {entries.length === 0 ? (
           <p className="text-text-muted">暂无日志</p>
         ) : (

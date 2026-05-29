@@ -19,10 +19,8 @@ import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-cor
 import { deriveForwardedPropsFromMentions } from "@negentropy/agents-chat-core/parse";
 import { useAgentsList } from "@/hooks/useAgentsList";
 import { useCorporaList } from "@/app/knowledge/apis/_components/hooks/useCorporaList";
-import { EventTimeline } from "../components/ui/EventTimeline";
-import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
-import { StateSnapshot } from "../components/ui/StateSnapshot";
+import { StateDrawer } from "../components/ui/StateDrawer";
 import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
 import { useSessionListService } from "@/features/session/hooks/useSessionListService";
 import { useSessionService } from "@/features/session/hooks/useSessionService";
@@ -119,6 +117,43 @@ function writePersistedThinking(
   try {
     window.localStorage.setItem(
       `${LOCAL_THINKING_KEY_PREFIX}${sessionId}`,
+      value ? "1" : "0",
+    );
+  } catch {
+    // localStorage 不可用时静默降级到内存态。
+  }
+}
+
+/**
+ * 右栏 State 抽屉开合状态的本地持久化键（按 sessionId 命名空间隔离）。
+ *
+ * 与 LLM/Thinking 不同，抽屉开合纯属浏览器侧布局偏好，不与后端 session.state 镜像，
+ * 故仅需「切会话时读取 + 状态变化时写回」两个 Effect，无需 pending/per-thread/snapshot 链路。
+ */
+const LOCAL_RIGHT_PANEL_KEY_PREFIX = "negentropy:home:right-panel:";
+
+function readPersistedRightPanel(sessionId: string | null): boolean | null {
+  if (!sessionId || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(
+      `${LOCAL_RIGHT_PANEL_KEY_PREFIX}${sessionId}`,
+    );
+    if (raw === "1") return true;
+    if (raw === "0") return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedRightPanel(
+  sessionId: string | null,
+  value: boolean,
+): void {
+  if (!sessionId || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      `${LOCAL_RIGHT_PANEL_KEY_PREFIX}${sessionId}`,
       value ? "1" : "0",
     );
   } catch {
@@ -613,17 +648,20 @@ export function HomeBody({
     ],
   );
 
-  // Escape key to return to live view
+  // Escape 分层：① 历史视图下先返回实时（抽屉不关）；② 否则关闭抽屉。
+  // 对齐嵌套可关闭 UI 的逐层退出直觉（参考 OverlayDismissLayer 的 escape 栈语义）。
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedNodeId) {
+      if (e.key !== "Escape") return;
+      if (selectedNodeId) {
         setSelectedNodeId(null);
+      } else if (showRightPanel) {
         setShowRightPanel(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId]);
+  }, [selectedNodeId, showRightPanel]);
 
   // G2 对话搜索：Cmd/Ctrl+F 拦截浏览器默认查找，打开搜索栏。
   useEffect(() => {
@@ -658,6 +696,22 @@ export function HomeBody({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // 右栏抽屉开合按 session 记忆：切会话时按记录恢复（无记录默认收起）。
+  // 与既有 thinking/llm seeding 效应同源——切换会话时按本地偏好同步一次 UI 状态，
+  // 单次切换仅触发一次额外渲染，可接受；故就地豁免 set-state-in-effect。
+  useEffect(() => {
+    if (!sessionId) return;
+    const persisted = readPersistedRightPanel(sessionId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowRightPanel(persisted ?? false);
+  }, [sessionId]);
+
+  // 状态变化时写回当前 session 的记录（toggle / X / ESC / 快捷键统一经此落盘）。
+  useEffect(() => {
+    if (!sessionId) return;
+    writePersistedRightPanel(sessionId, showRightPanel);
+  }, [sessionId, showRightPanel]);
 
   const doSend = useCallback(
     async (input: string) => {
@@ -1141,12 +1195,17 @@ export function HomeBody({
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col h-full min-w-0 bg-background relative overflow-hidden transition-all duration-300">
-          {/* Internal Toolbar for Toggles */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border bg-card/60 backdrop-blur-sm z-10 w-full">
+          {/* Internal Toolbar：三区布局（左 toggle / 中 标题·搜索 / 右 策略·toggle） */}
+          <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border bg-card/60 backdrop-blur-sm z-10 w-full">
+            {/* 左区：会话栏开合 */}
             <button
               type="button"
               onClick={() => setShowLeftPanel(!showLeftPanel)}
-              className="p-1.5 rounded-md text-text-muted hover:bg-border-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={`shrink-0 p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                showLeftPanel
+                  ? "bg-border-muted/70 text-text-primary"
+                  : "text-text-muted hover:bg-border-muted hover:text-text-primary"
+              }`}
               aria-label={showLeftPanel ? "收起会话栏 (⌘/Ctrl+B)" : "展开会话栏 (⌘/Ctrl+B)"}
               aria-pressed={showLeftPanel}
               title={showLeftPanel ? "收起会话栏 (⌘/Ctrl+B)" : "展开会话栏 (⌘/Ctrl+B)"}
@@ -1154,38 +1213,45 @@ export function HomeBody({
               <PanelLeft className="w-4 h-4" aria-hidden="true" />
             </button>
 
-            <div className="text-xs font-medium text-text-secondary max-w-md truncate mx-4">
-              {activeSession
-                ? `${activeSession.label}${latestRunState?.status === "blocked" ? " · 等待确认" : ""}`
-                : "Negentropy"}
+            {/* 中区：标题 / 对话搜索（二选一，搜索打开时占据中区） */}
+            <div className="flex min-w-0 flex-1 items-center justify-center px-2">
+              {search.isOpen ? (
+                <ConversationSearchBar
+                  query={search.query}
+                  onQueryChange={search.setQuery}
+                  matchCount={search.matchCount}
+                  currentIndex={search.currentIndex}
+                  onNavigateNext={search.navigateNext}
+                  onNavigatePrev={search.navigatePrev}
+                  onClose={search.close}
+                />
+              ) : (
+                <div className="max-w-md truncate text-center text-[13px] font-semibold text-text-primary">
+                  {activeSession
+                    ? `${activeSession.label}${latestRunState?.status === "blocked" ? " · 等待确认" : ""}`
+                    : "Negentropy"}
+                </div>
+              )}
             </div>
 
-            {/* G2 对话搜索栏 */}
-            {search.isOpen && (
-              <ConversationSearchBar
-                query={search.query}
-                onQueryChange={search.setQuery}
-                matchCount={search.matchCount}
-                currentIndex={search.currentIndex}
-                onNavigateNext={search.navigateNext}
-                onNavigatePrev={search.navigatePrev}
-                onClose={search.close}
-              />
-            )}
-
-            {/* G3 审批策略选择器 */}
-            <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[10px] text-text-muted" />
-
-            <button
-              type="button"
-              onClick={() => setShowRightPanel(!showRightPanel)}
-              className="p-1.5 rounded-md text-text-muted hover:bg-border-muted hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={showRightPanel ? "收起 State 栏 (⌘/Ctrl+J)" : "展开 State 栏 (⌘/Ctrl+J)"}
-              aria-pressed={showRightPanel}
-              title={showRightPanel ? "收起 State 栏 (⌘/Ctrl+J)" : "展开 State 栏 (⌘/Ctrl+J)"}
-            >
-              <PanelRight className="w-4 h-4" aria-hidden="true" />
-            </button>
+            {/* 右区：审批策略 + State 栏开合 */}
+            <div className="flex shrink-0 items-center gap-2">
+              <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[11px] text-text-muted" />
+              <button
+                type="button"
+                onClick={() => setShowRightPanel(!showRightPanel)}
+                className={`p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  showRightPanel
+                    ? "bg-border-muted/70 text-text-primary"
+                    : "text-text-muted hover:bg-border-muted hover:text-text-primary"
+                }`}
+                aria-label={showRightPanel ? "收起 State 栏 (⌘/Ctrl+J)" : "展开 State 栏 (⌘/Ctrl+J)"}
+                aria-pressed={showRightPanel}
+                title={showRightPanel ? "收起 State 栏 (⌘/Ctrl+J)" : "展开 State 栏 (⌘/Ctrl+J)"}
+              >
+                <PanelRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           {/* Chat Stream Area */}
@@ -1250,65 +1316,24 @@ export function HomeBody({
             </div>
           </div>
         </main>
-
-        {/* Right Sidebar: Timeline & Logs */}
-        <div
-          className={`shrink-0 h-full border-l border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
-            showRightPanel
-              ? "w-80 translate-x-0 opacity-100"
-              : "w-0 translate-x-10 opacity-0"
-          }`}
-        >
-          <div className="w-80 h-full overflow-y-auto p-6">
-            {/* View mode indicator + minimal interaction hint */}
-            {selectedNodeId ? (
-              <div className="mb-4 p-3 rounded-lg border border-amber-300/60 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-200">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-                    历史视图
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedNodeId(null);
-                    }}
-                    className="rounded text-xs font-medium text-amber-700 underline-offset-2 hover:underline dark:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    返回实时
-                  </button>
-                </div>
-                <p className="mt-1 text-[10px] text-amber-700/80 dark:text-amber-300/80">
-                  显示选定消息的观察数据
-                </p>
-              </div>
-            ) : (
-              <div className="mb-4 p-3 rounded-lg border border-border bg-border-muted/50">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-text-muted" aria-hidden="true" />
-                  实时视图
-                </span>
-                <p className="mt-1 text-[10px] text-text-muted">
-                  点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
-                </p>
-              </div>
-            )}
-
-            <StateSnapshot
-              snapshot={snapshotForDisplay}
-              connection={selectedNodeId ? "idle" : effectiveConnection}
-            />
-            <EventTimeline events={timelineItems} />
-            <LogBufferPanel
-              entries={filteredLogEntries}
-              onExport={() => {
-                const payload = JSON.stringify(filteredLogEntries, null, 2);
-                void navigator.clipboard?.writeText(payload);
-              }}
-            />
-          </div>
-        </div>
       </div>
+
+      {/* 右栏 State 观测：非模态浮层抽屉，悬浮于对话之上、不挤占中栏。
+          中栏对话仍可点击 → 保留「点消息看历史」；开合由 showRightPanel 驱动。 */}
+      <StateDrawer
+        open={showRightPanel}
+        onClose={() => setShowRightPanel(false)}
+        selectedNodeId={selectedNodeId}
+        onReturnToLive={() => setSelectedNodeId(null)}
+        snapshot={snapshotForDisplay}
+        connection={selectedNodeId ? "idle" : effectiveConnection}
+        timelineItems={timelineItems}
+        logEntries={filteredLogEntries}
+        onExportLogs={() => {
+          const payload = JSON.stringify(filteredLogEntries, null, 2);
+          void navigator.clipboard?.writeText(payload);
+        }}
+      />
 
       {/* G3 审批门：pending_approvals → modal → approval_responses 闭环 */}
       <ApprovalDialog
