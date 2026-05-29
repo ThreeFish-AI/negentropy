@@ -817,7 +817,6 @@ async def update_task(task_id: UUID, body: TaskUpdateRequest) -> dict[str, Any]:
             )
 
         # 收集 exclude_unset 字段（区分"未传"与"显式传 null"）
-        # 收集 exclude_unset 字段（区分"未传"与"显式传 null"）
         update_data = body.model_dump(exclude_unset=True)
         if not update_data:
             return _serialize_task(task)

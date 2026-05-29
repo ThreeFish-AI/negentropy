@@ -95,17 +95,19 @@ export function SchedulerTaskDetailDrawer({
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-foreground">
-              {task.display_name || task.key}
-            </h2>
-            {task.is_system && (
-              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
-                System
-              </span>
-            )}
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground">
+                {task.display_name || task.key}
+              </h2>
+              {task.is_system && (
+                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
+                  System
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{task.key}</p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{task.key}</p>
           <button
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
