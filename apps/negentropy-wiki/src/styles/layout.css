@@ -16,8 +16,9 @@
 }
 
 .wiki-sidebar {
-  /* 与正文同底色、无竖线分隔（对齐 SquareDocs 无缝三栏） */
+  /* 与正文同底色（无底色差异），仅以一条细竖线分隔左栏与中栏（对齐 SquareDocs） */
   background: var(--wiki-sidebar-bg);
+  border-right: 1px solid var(--wiki-border);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -34,7 +35,7 @@
   max-width: var(--wiki-content-max-width);
   width: 100%;
   margin: 0 auto;
-  padding: 2rem clamp(1.25rem, 4vw, 3rem);
+  padding: 2rem 1rem;
   min-width: 0;
 }
 

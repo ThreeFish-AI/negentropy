@@ -19,7 +19,8 @@
   --wiki-toc-width: 224px;
   --wiki-toc-rail-width: 40px;
   --wiki-header-height: 60px;
-  --wiki-content-max-width: 800px;
+  /* 832 外宽 - 2×16px 内边距 = 800px 正文文本宽，与 SquareDocs 文本列严格一致 */
+  --wiki-content-max-width: 832px;
 
   /* 字体：Inter（next/font 注入 --font-inter）+ CJK 系统回退 */
   --wiki-heading-font: var(--font-inter), "PingFang SC", "Microsoft YaHei",
