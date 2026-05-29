@@ -287,17 +287,19 @@ cmd_start() {
     start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
     start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
 
-    # agents-chat-core 的 prebuild hook 仅做 test -d 存在性检查，
-    # 无法检测 dist 产物与源码是否同步（如全栈更名后 dist 仍含旧类型名）。
-    # 显式重建确保 dist 始终最新；tsup clean:true 保证无残留。
+    # agents-chat-core 是 ui/wiki 共享的工作区依赖，且 tsup 配置 clean:true
+    # （每次构建先清空 dist）。若任由下方并行的两个 pnpm build 各自触发 prebuild
+    # 重建，会并发清空/写入同一 dist 而偶发构建失败。故在此显式顺序重建一次，
+    # 并通过 NEGENTROPY_CORE_PREBUILT 让并行子进程的 prebuild 跳过重建。
     log_info "构建 agents-chat-core..."
     (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
       || { log_error "agents-chat-core 构建失败"; cmd_stop; exit 1; }
 
+    # NEGENTROPY_CORE_PREBUILT=1：core 已在上方构建，跳过子进程 prebuild 的并发重建。
     log_info "构建 ui + wiki (并行)..."
-    (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
+    (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_ui_pid=$!
-    (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
+    (cd "$REPO_ROOT/apps/negentropy-wiki" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_wiki_pid=$!
     local _rc=0; wait "$build_ui_pid" || _rc=$?; wait "$build_wiki_pid" || _rc=$?
     (( _rc )) && { log_error "前端构建失败"; cmd_stop; exit 1; }

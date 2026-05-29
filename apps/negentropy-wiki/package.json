@@ -5,7 +5,7 @@
   "scripts": {
     "predev": "pnpm --filter @negentropy/agents-chat-core build",
     "dev": "next dev --port 3092",
-    "prebuild": "pnpm --filter @negentropy/agents-chat-core build",
+    "prebuild": "test -n \"$NEGENTROPY_CORE_PREBUILT\" || pnpm --filter @negentropy/agents-chat-core build",
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
     "prelint": "pnpm --filter @negentropy/agents-chat-core build",
