@@ -96,6 +96,43 @@ async def parse_pdf_to_markdown(
             description="任务级超时秒数。为空则使用配置 task_timeout_seconds（默认 300s / 5 min），超时后优雅返回错误并取消子任务。",
         ),
     ] = None,
+    auto_batch: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="""大文档自动分批开关。
+                method="auto" 且 page_range 未显式指定且 PDF 总页数 > batch_threshold_pages 时，
+                自动按 batch_page_size 切片串行处理后跨切片合并。
+                小文档 / 显式 page_range 时此选项无效（走原单次路径，零退化）。""",
+        ),
+    ] = True,
+    batch_page_size: Annotated[
+        int,
+        Field(
+            default=40,
+            ge=1,
+            le=200,
+            description="auto_batch 单切片最大页数。默认 40（≈ 100-200s 单切片为甜蜜区）。",
+        ),
+    ] = 40,
+    batch_threshold_pages: Annotated[
+        int,
+        Field(
+            default=60,
+            ge=1,
+            description="auto_batch 启用的最小总页数阈值。<= 阈值的小 PDF 走原单次路径。",
+        ),
+    ] = 60,
+    resume: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="""auto_batch 断点续传开关。
+                每切片完成立即落盘 checkpoint 到 <output_dir>/.batch_state/；
+                resume=True 时跳过已完成切片（用于人工或调度层重试场景）。
+                配置不匹配（不同 PDF / 不同 batch_size）时自动清除旧 checkpoint。""",
+        ),
+    ] = True,
 ) -> PDFResponse:
     """
     Parse a PDF document into structured Markdown.
@@ -109,6 +146,12 @@ async def parse_pdf_to_markdown(
     - Page range selection for partial extraction
     - LLM-orchestrated multi-engine fusion (smart mode)
     - Task-level timeout with graceful cancellation
+    - **auto_batch**: large PDFs (> batch_threshold_pages) automatically
+      sliced into batch_page_size-page chunks, processed serially,
+      and merged across slices with image dedup + boundary figure
+      caption rescue.
+    - **resume**: per-slice checkpoints to filesystem; interrupted
+      runs can be resumed idempotently by re-invoking with same args.
 
     Returns:
         PDFResponse with parsed content, metadata, and asset statistics.
@@ -125,6 +168,10 @@ async def parse_pdf_to_markdown(
         embed_images=embed_images,
         enhanced_options=enhanced_options,
         timeout=timeout,
+        auto_batch=auto_batch,
+        batch_page_size=batch_page_size,
+        batch_threshold_pages=batch_threshold_pages,
+        resume=resume,
     )
     return register_pdf_response_images(response)
 

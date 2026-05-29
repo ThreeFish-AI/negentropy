@@ -293,6 +293,59 @@ class TestDetectAlgorithmRegions:
         regions = detect_algorithm_regions(text)
         assert len(regions) == 0
 
+    def test_standalone_requires_pseudocode_skeleton(self):
+        """standalone 路径不再吞掉学术正文（regression: Context Engineering 2.0）。
+
+        论文 Section 2.1 的正文段落含 ``if/for/then`` 英文高频词、``∈/≤/∧`` 数学
+        Unicode 字符与 ``Definition 2`` 编号定义，凑齐 standalone 阈值 7 分；但
+        全段没有 ``Require/Ensure/Input/Output`` 头部，也没有 ≥3 行 ``N: step``
+        编号步骤。修复后此段不应被包装为 ```algorithm``` 代码块。
+        """
+        text = (
+            "2.1 Formal Definition\n\n"
+            "Definition 2 (Interaction). An interaction refers to any observable engagement "
+            "between a user and an application, encompassing both explicit actions "
+            "(e.g., clicks, commands) and implicit behaviors that may influence the system.\n"
+            "Definition 3 (Context). For a given interaction, Context C is defined as the "
+            "set of entity characterizations, where for all e ∈ E we have Char(e) ⊆ F, and "
+            "if w_temporal(c) > θ then c is admitted to short-term memory M_s.\n"
+            "Definition 4 (Context engineering). It is the systematic process of designing "
+            "and optimizing context collection, storage, management, and usage to enhance "
+            "machine understanding and task performance for each agent and tool invocation."
+        )
+        regions = detect_algorithm_regions(text)
+        assert regions == [], (
+            "standalone 段落缺乏 Require/Ensure 或 ≥3 行 N: 步骤时不应误判为算法块"
+        )
+
+    def test_standalone_with_pseudocode_skeleton_still_detected(self):
+        """standalone 路径仍能识别真伪代码（含 ≥3 行 ``N: step``）。"""
+        text = (
+            "if condition then\n"
+            "  for each item ∈ items do\n"
+            "1: x ← 0\n"
+            "2: while x < n do\n"
+            "3:   x ← x + 1\n"
+            "4: end while\n"
+            "5: return x"
+        )
+        regions = detect_algorithm_regions(text)
+        assert len(regions) == 1
+
+    def test_standalone_with_require_header_still_detected(self):
+        """standalone 路径仍能识别含 Require/Ensure 头部的真伪代码。"""
+        text = (
+            "Require: input array A of n elements\n"
+            "Ensure: array A sorted in non-decreasing order\n"
+            "for i = 1 to n do\n"
+            "  if A[i] < A[i-1] then\n"
+            "    swap A[i], A[i-1]\n"
+            "  end if\n"
+            "end for"
+        )
+        regions = detect_algorithm_regions(text)
+        assert len(regions) == 1
+
 
 # ---------------------------------------------------------------------------
 # 6. Formatter 代码块保护

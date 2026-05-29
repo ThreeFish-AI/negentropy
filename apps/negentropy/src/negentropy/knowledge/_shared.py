@@ -674,6 +674,7 @@ def _build_document_response(
         app_name=doc.app_name,
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
+        display_name=getattr(doc, "display_name", None),
         gcs_uri=doc.gcs_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,

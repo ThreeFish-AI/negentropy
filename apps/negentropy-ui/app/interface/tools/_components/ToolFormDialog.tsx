@@ -242,6 +242,7 @@ export function ToolFormDialog({
                   <option value="search">Search</option>
                   <option value="retrieval">Retrieval</option>
                   <option value="custom">Custom</option>
+                  <option value="claude_code">Agent</option>
                 </select>
               </div>
             </div>

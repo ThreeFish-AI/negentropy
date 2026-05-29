@@ -6,12 +6,13 @@ import html
 import logging
 import os
 import re
+import unicodedata
 import uuid
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
-    from .html_preprocessor import ImgDimensionRegistry
+    from .html_preprocessor import ImgDimensionRegistry, VideoRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +58,199 @@ _HOMOGENEOUS_PAIRS = frozenset(
 )
 
 
+# R10-D19 守护词表：em-dash 风格 ``word - connector ...`` 中的常见 RHS 连接词。
+# Why: D19 的 ``word - word`` 合并对学术 PDF 表格 cell / Reference 内的跨行断字
+# （``Scalabil - ity`` → ``Scalability``）有效，但对正文中的 em-dash 风格
+# （``data - or what was left - was deleted``）会误吞分隔符。RHS 词若命中此表，
+# 视为 em-dash 连接词，保留 ``  - `` 原貌；否则按断字处理合并。
+# 涵盖：连词 / 冠词 / 关系代词 / be-have-do 助动词 / 情态动词 / 介词 / 人称代词 /
+# 物主代词 / 常见副词 / 从属连词 / 否定词 / 转折词 / 拉丁缩写 (i.e. / e.g.)。
+_EM_DASH_RHS_CONNECTORS = frozenset(
+    {
+        # 连词
+        "or",
+        "and",
+        "but",
+        "so",
+        "if",
+        "as",
+        "yet",
+        "nor",
+        # 冠词
+        "a",
+        "an",
+        "the",
+        # 关系代词 / 疑问词
+        "that",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "where",
+        "when",
+        "why",
+        "how",
+        # be / have / do
+        "is",
+        "was",
+        "are",
+        "were",
+        "be",
+        "been",
+        "being",
+        "has",
+        "have",
+        "had",
+        "having",
+        "do",
+        "does",
+        "did",
+        "doing",
+        # 情态动词
+        "will",
+        "would",
+        "shall",
+        "should",
+        "can",
+        "could",
+        "may",
+        "might",
+        "must",
+        # 介词
+        "to",
+        "in",
+        "on",
+        "at",
+        "by",
+        "of",
+        "for",
+        "with",
+        "from",
+        "into",
+        "onto",
+        "about",
+        "after",
+        "before",
+        "between",
+        "through",
+        # 人称代词 / 物主代词
+        "i",
+        "it",
+        "he",
+        "she",
+        "we",
+        "they",
+        "you",
+        "its",
+        "his",
+        "her",
+        "our",
+        "their",
+        "your",
+        # 副词
+        "just",
+        "only",
+        "even",
+        "also",
+        "still",
+        "rather",
+        "perhaps",
+        # 从属连词 / 转折
+        "like",
+        "than",
+        "then",
+        "since",
+        "while",
+        "until",
+        "unless",
+        "though",
+        "because",
+        "although",
+        "despite",
+        "except",
+        "namely",
+        "however",
+        "moreover",
+        "furthermore",
+        "instead",
+        # 否定
+        "not",
+        "no",
+    }
+)
+# 拉丁缩写需带尾点匹配，单独保存
+_EM_DASH_RHS_LATIN_ABBR = frozenset({"i.e.", "e.g.", "cf.", "viz."})
+
+
 def _classify_line(line: str) -> _LineType:
     """将 Markdown 行分类为对应的块级元素类型。"""
     for pattern, line_type in _LINE_PATTERNS:
         if pattern.match(line):
             return line_type
     return _LineType.PLAIN_TEXT
+
+
+# 间隔修饰符号 → 对应的组合变音字符（U+0300 系列）映射。
+# PyMuPDF 把 ``Pokémon`` 这类含组合变音字符的词在 PDF 中拆为
+# ``base + 独立间隔符号 + 后续字母``，``" ".join`` 拼回 ``Pok ´ emon``
+# 形态。下表覆盖学术文献中最常见的几种组合：
+#   ´  (U+00B4 ACUTE)              → U+0301 COMBINING ACUTE        (é, á, í, ó, ú)
+#   ˋ  (U+02CB MODIFIER LETTER GRAVE) → U+0300 COMBINING GRAVE     (è, à)
+#   ˆ  (U+02C6 CIRCUMFLEX)         → U+0302 COMBINING CIRCUMFLEX   (ê, â)
+#   ¨  (U+00A8 DIAERESIS)          → U+0308 COMBINING DIAERESIS    (ä, ö, ü)
+#   ˜  (U+02DC SMALL TILDE)        → U+0303 COMBINING TILDE        (ã, õ, ñ)
+#   ˇ  (U+02C7 CARON)              → U+030C COMBINING CARON        (š, č, ž)
+#
+# **不收录** U+0060 ASCII BACKTICK：它与 Markdown inline code 定界符
+# ```code``` 冲突，```getline``` 在 typography 管线中会被错误拼合
+# 为 ``g̀etline`` 形态，破坏 webpage / PDF 流中常见的 inline-code 引用。
+# PDF 真实的 grave-accent 间隔符通常编码为 U+02CB（``ˋ``），与 ASCII backtick
+# 视觉相似但 codepoint 不同，可以安全收录。
+_DIACRITIC_MAP: Dict[str, str] = {
+    "´": "́",
+    "ˋ": "̀",
+    "ˆ": "̂",
+    "¨": "̈",
+    "˜": "̃",
+    "ˇ": "̌",
+}
+
+_SPLIT_DIACRITIC_RE = re.compile(
+    r"([A-Za-z])\s*(["
+    + "".join(re.escape(c) for c in _DIACRITIC_MAP)
+    + r"])\s*([A-Za-z])"
+)
+
+
+def _rejoin_split_diacritics(text: str) -> str:
+    """组合 PDF 提取拆解的间隔变音符号回到预组合 Unicode 字符。
+
+    匹配 ``<letter><space>?<spacing-diacritic><space>?<letter>`` 形态，
+    在 PDF 中变音符号视觉上落在 **后续字母** 上（``Pok ´ emon`` =
+    ``Pok`` + ``é`` + ``mon``；``Westh ¨ außer`` = ``Westh`` + ``ä`` +
+    ``ußer``），因此把组合字符贴到 next_char，通过
+    ``unicodedata.normalize("NFC", ...)`` 收敛为预组合 codepoint。
+    """
+    if not text:
+        return text
+
+    def _replace(match: re.Match) -> str:
+        prev_char, diacritic, next_char = match.group(1), match.group(2), match.group(3)
+        combining = _DIACRITIC_MAP.get(diacritic)
+        if combining is None:
+            return match.group(0)
+        # 修饰符视觉上落在 **后续字母** 上：``Pok ´ emon`` = ``Pok`` + (e + ́)
+        # + ``mon``；``Westh ¨ außer`` = ``Westh`` + (a + ̈) + ``ußer``。
+        composed = unicodedata.normalize("NFC", f"{next_char}{combining}")
+        return f"{prev_char}{composed}"
+
+    # 用 while 循环处理形如 ``Pok ´ emo n`` 这种已被拆成多段的极端情况
+    # （罕见但成本极低）。每次替换可能合并相邻片段，进而暴露下一处匹配。
+    prev = None
+    while prev != text:
+        prev = text
+        text = _SPLIT_DIACRITIC_RE.sub(_replace, text)
+    return text
 
 
 def _is_list_continuation(line: str) -> bool:
@@ -96,6 +284,27 @@ DEFAULT_FORMATTING_OPTIONS: Dict[str, bool] = {
 _IMG_RESPONSIVE_STYLE = "max-width:100%;height:auto;"
 
 
+def _strip_orphan_styles(markdown_content: str) -> str:
+    """清除孤立的 ``style="..."`` 属性，但保留 ``<img>`` 标签内的 style。
+
+    ``_image_to_markdown`` 输出的 ``style="max-width:100%;height:auto;"`` 是
+    PDF→Markdown 图片响应式的核心契约，不可被防御性 cleanup 误删。
+    实现方式：先将 ``<img ...>`` 替换为占位符，执行清除，再还原。
+    """
+    _IMG_TAG_RE = re.compile(r"<img\b[^>]*/?>")
+    img_tags: list[str] = []
+
+    def _protect(match: re.Match) -> str:
+        img_tags.append(match.group(0))
+        return f"%%_IMGTAG_{len(img_tags) - 1}%%"
+
+    text = _IMG_TAG_RE.sub(_protect, markdown_content)
+    text = re.sub(r'\s+style="[^"]*"', "", text)
+    for i, tag in enumerate(img_tags):
+        text = text.replace(f"%%_IMGTAG_{i}%%", tag)
+    return text
+
+
 class MarkdownFormatter:
     """Markdown formatting pipeline for enhancing raw Markdown output."""
 
@@ -109,6 +318,7 @@ class MarkdownFormatter:
         markdown_content: str,
         *,
         img_registry: Optional["ImgDimensionRegistry"] = None,
+        video_registry: Optional["VideoRegistry"] = None,
     ) -> str:
         """
         Apply the full formatting pipeline to Markdown content.
@@ -123,6 +333,12 @@ class MarkdownFormatter:
             Enhanced and cleaned up Markdown content
         """
         try:
+            # Code block language detection and structural fixes must run
+            # BEFORE protection, because they operate on actual ``` fence
+            # markers.  After protection all fences become %%CODEBLOCK_…%%
+            # placeholders and none of the regex patterns can match.
+            markdown_content = self._format_code_blocks(markdown_content)
+
             # 保护代码块内容不被格式化 pass 修改
             markdown_content, protected = self._protect_code_blocks(markdown_content)
             # 保护块级数学公式 ``$$..$$`` 不被任何排版 / 段落 / 去重 pass 修改。
@@ -147,8 +363,6 @@ class MarkdownFormatter:
             if self.options.get("format_headings", True):
                 markdown_content = self._format_headings(markdown_content)
 
-            # Code block and quote formatting always applied
-            markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._format_quotes(markdown_content)
 
             if self.options.get("apply_typography", True):
@@ -178,6 +392,13 @@ class MarkdownFormatter:
                     markdown_content, img_registry
                 )
 
+            # 还原 <video> 占位符为内嵌 HTML：必须在 _basic_cleanup 之后，
+            # 否则 sentinel 文本可能被 cleanup pass 误转义。
+            if video_registry is not None and video_registry.placeholders:
+                markdown_content = self._restore_video_placeholders(
+                    markdown_content, video_registry
+                )
+
             # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
             # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
             markdown_content = self._restore_math_blocks(
@@ -194,10 +415,16 @@ class MarkdownFormatter:
             return markdown_content
 
     def _protect_code_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
-        """提取已标注语言的代码块并替换为占位符，防止格式化管线修改其内容。
+        """提取所有 fenced 代码块并替换为占位符，防止格式化管线修改其内容。
 
-        仅保护已有语言标签的代码块（如 ```python, ```algorithm），
-        未标注语言的代码块留给 _format_code_blocks 进行语言检测。
+        包括两类：
+        1. 带语言标签的代码块（```python, ```algorithm）— 保留原始 fence
+        2. 未标注语言的纯 fence 代码块（``` ... ```）— 同样保护其内容，
+           避免 ``_apply_typography_fixes`` 把 ``--`` 误改为 em-dash、
+           智能引号替换等典型 typography 操作破坏代码语义。
+
+        ``_format_code_blocks`` 自身处理"未标注语言的语言检测"工作，但保护
+        机制要确保在 typography 之前所有 fenced block 都成为占位符。
         """
         protected: Dict[str, str] = {}
 
@@ -206,9 +433,10 @@ class MarkdownFormatter:
             protected[placeholder] = match.group(0)
             return placeholder
 
-        # 仅匹配带语言标签的代码块（```后紧跟字母）
+        # 匹配所有 fenced 代码块：```<可选语言>\n...\n```
+        # 已标注语言 (```python) 与未标注 (```\n) 都纳入保护
         result = re.sub(
-            r"^```[a-zA-Z][^\n]*\n.*?^```\s*$",
+            r"^```[^\n]*\n.*?^```\s*$",
             _replacer,
             markdown_content,
             flags=re.MULTILINE | re.DOTALL,
@@ -329,10 +557,64 @@ class MarkdownFormatter:
             # Add proper spacing around images
             markdown_content = re.sub(r"(!\[.*?\]\(.*?\))", r"\n\1\n", markdown_content)
 
+            # Caption 去重：当 ``![alt](url)`` 紧跟一个内容与 alt 文本相同的
+            # 段落（HTML <figcaption> 经 MarkItDown 输出为独立段落），
+            # 删除该重复段落避免 UI 渲染时 figcaption 与正文段同时出现。
+            markdown_content = self._dedupe_image_caption(markdown_content)
+
             return markdown_content
         except Exception as e:
             logger.warning(f"Error formatting images: {str(e)}")
             return markdown_content
+
+    @staticmethod
+    def _dedupe_image_caption(markdown_content: str) -> str:
+        """删除紧跟在 ``![alt](url)`` 后内容与 alt 完全相同的段落。
+
+        匹配模式（按行）：
+            ![<alt>](<url>)\n\n<text>\n
+        当 ``<text>`` 去前后空格后与 ``<alt>`` 去前后空格后相同，则删除
+        ``<text>`` 行（保留图片行与其后空行）。UI 渲染时 ``DocumentImage``
+        会用 alt 作为 figcaption；若 markdown 里又写一遍同样的段落，
+        figcaption 会重复出现。
+
+        注意：仅匹配紧邻图片行的下一非空段落，并要求严格相等（去空格 +
+        casefold），避免误删与 alt 局部相似的正文段。
+        """
+        lines = markdown_content.split("\n")
+        img_re = re.compile(r"^\s*!\[(.*?)\]\(.*?\)\s*$")
+        result: List[str] = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            m = img_re.match(line)
+            if not m:
+                result.append(line)
+                i += 1
+                continue
+            alt = m.group(1).strip()
+            result.append(line)
+            i += 1
+            # 跳过紧随其后的空行
+            blanks_start = i
+            while i < len(lines) and lines[i].strip() == "":
+                i += 1
+            if i < len(lines) and alt:
+                next_text = lines[i].strip()
+                if next_text and next_text.casefold() == alt.casefold():
+                    # 跳过该重复段（不写入 result），同时把前置空行也只保留一个
+                    if blanks_start < len(lines):
+                        # 保留单个空行作为段落分隔
+                        result.append("")
+                    i += 1
+                    # 跳过段落后的空行（保留一个）
+                    while i < len(lines) and lines[i].strip() == "":
+                        i += 1
+                    continue
+            # 普通情况：把空行原样追加
+            for k in range(blanks_start, i):
+                result.append(lines[k])
+        return "\n".join(result)
 
     def _format_links(self, markdown_content: str) -> str:
         """Optimize link formatting."""
@@ -351,7 +633,15 @@ class MarkdownFormatter:
             return markdown_content
 
     def _format_code_blocks(self, markdown_content: str) -> str:
-        """Enhance code block formatting with language detection."""
+        """Enhance code block formatting with language detection.
+
+        IMPORTANT: Must be called BEFORE ``_protect_code_blocks`` in the
+        ``format()`` pipeline.  All operations (consecutive-fence fix,
+        FORTRAN label correction, language detection, blank-line padding)
+        require actual ````` fence markers to be present in the text.
+        After protection all fences become ``%%CODEBLOCK_…%%`` placeholders
+        and none of the regex patterns here can match.
+        """
         try:
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(
@@ -428,15 +718,60 @@ class MarkdownFormatter:
             logger.warning(f"Error formatting quotes: {str(e)}")
             return markdown_content
 
+    # PDF 中常见的 Unicode 项目符号 → markdown 列表前缀。覆盖 R9 教材
+    # 实测出现的 ●（实心圆）/ ○（空心圆）/ ■（实心方）/ □（空心方）/ ▪（小实心方）/
+    # ▫（小空心方）/ ◦（小空心圆）/ ▶ ›（箭头型分隔）/ ☐（todo）等。
+    _UNICODE_BULLET_RE = re.compile(
+        r"^([ \t]*)"
+        # bullet 符号本身，允许跟随 ZWJ/ZWSP/non-break space 等零宽与不可见空白
+        r"([●○■□▪▫◦▶▷›▸▹·•‣])[​‌‍ ⁠﻿]*"
+        # 至少一个常规空白或 tab 分隔（防误吃合法字符序列起首的 ●）
+        r"[ \t]+"
+        r"(.+)$",
+        re.MULTILINE,
+    )
+
+    def _normalize_unicode_bullets(self, markdown_content: str) -> str:
+        """把 PDF 抽取出的 Unicode 项目符号统一为 markdown ``- `` 列表前缀。
+
+        覆盖 R9 教材中常见的 ``●​`` 等组合（实心圆 + 零宽 joiner）。修复后下游
+        :meth:`_format_lists` 的 ``[-\\*\\+]`` 规则会进一步统一为 ``- ``。
+        """
+        return self._UNICODE_BULLET_RE.sub(r"\1- \3", markdown_content)
+
     def _format_lists(self, markdown_content: str) -> str:
         """Improve list formatting and nesting."""
         try:
+            # R9 修复：把 PDF 中常见的 Unicode 项目符号（``● ■ ▪ ◦ ▶ ›`` 等）
+            # 归一化为标准 markdown ``- ``，并清理 zero-width joiner / space
+            # 残留。PDF 教材常用 ``●​`` 作为子项符号（U+25CF + U+200B），
+            # 如果不规范化，下游 react-markdown 不会把它当作 list item 渲染，
+            # 而是塞到段落里造成视觉破坏（R9 量化签名 list_bullet_residue=877）。
+            markdown_content = self._normalize_unicode_bullets(markdown_content)
+
             lines = markdown_content.split("\n")
             formatted_lines = []
 
             for line in lines:
                 line = re.sub(r"^(\s*)([-\*\+])\s*(.+)$", r"\1- \3", line)
-                line = re.sub(r"^(\s*)(\d+)[\.\)]\s*(.+)$", r"\1\2. \3", line)
+                # 仅当行不构成"章节编号 + 标题文本"模式时才视为有序列表项
+                # 规范化。原始 ``^(\d+)[\.\)]\s*(.+)$`` 会把 ``3.1.1 Foo`` /
+                # ``3.1 Foo`` 解析为 ``\1='3', \3='1.1 Foo'`` / ``\3='1 Foo'``，
+                # 输出 ``3. 1.1 Foo`` / ``3. 1 Foo`` 强行拆裂章节编号，破坏
+                # ``FitzTextExtractor`` 复合编号合并的成果。
+                # 守卫覆盖两种情形：
+                #   (a) ``\d+\.\d`` 起手 — 三段及以上复合编号（``3.1.1``）；
+                #   (b) ``\d+(?:\.\d+)*\s+[A-Z]`` — 两段编号 + 大写起始标题
+                #       （``3.1 Introduction``、``5.3 Memory``），自然语言列表项
+                #       内容不会以"数字 + 单空格 + 大写词"的形态紧贴在前缀后。
+                line = re.sub(
+                    r"^(\s*)(\d+)[\.\)]\s*"
+                    r"(?!\d+\.\d)"
+                    r"(?!\d+(?:\.\d+)*\s+[A-Z])"
+                    r"(.+)$",
+                    r"\1\2. \3",
+                    line,
+                )
                 formatted_lines.append(line)
 
             markdown_content = "\n".join(formatted_lines)
@@ -491,11 +826,142 @@ class MarkdownFormatter:
                 # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
                 text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
 
+                # \u91cd\u7ec4 PDF \u62c6\u89e3\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff1a``Pok \u00b4 emon`` / ``Baltru \u02c7 saitis``
+                # / ``Westh \u00a8 au\u00dfer`` / ``Perdig \u02dc ao`` \u7b49\u3002PyMuPDF \u628a
+                # ``Pok\u00e9mon`` \u8fd9\u7c7b\u542b\u7ec4\u5408\u53d8\u97f3\u5b57\u7b26\u7684\u8bcd\u62c6\u4e3a ``base + \u72ec\u7acb\u95f4\u9694\u7b26\u53f7
+                # + \u540e\u7eed\u5b57\u6bcd``\uff0c``" ".join`` \u62fc\u63a5\u4e3a ``Pok \u00b4 emon``\u3002\u8fd9\u91cc\u8bc6\u522b
+                # ``<letter><space>?<diacritic><space>?<letter>`` \u6a21\u5f0f\uff0c
+                # \u7528\u5bf9\u5e94\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff08U+0300 \u7cfb\u5217\uff09\u62fc\u5408\uff0c\u5e76\u901a\u8fc7
+                # ``unicodedata.normalize("NFC", ...)`` \u6536\u655b\u4e3a\u9884\u7ec4\u5408 codepoint\u3002
+                text = _rejoin_split_diacritics(text)
+
                 # \u8de8\u884c\u65ad\u5b57\u5408\u5e76\uff1aPyMuPDF \u6587\u672c\u63d0\u53d6\u5e38\u6b8b\u7559 `word-\nword`\uff0cassembly \u9636\u6bb5
                 # \u628a `\n` \u6298\u53e0\u4e3a\u7a7a\u683c\u540e\u53d8\u6210 `word- word`\u3002\u4ec5\u5339\u914d\u4e24\u4fa7\u5747\u4e3a ASCII \u5c0f\u5199
                 # \u5b57\u6bcd + \u4e2d\u95f4\u7a7a\u683c\u7684\u5f62\u6001\uff0c\u907f\u5f00\u590d\u5408\u8bcd (state-of-the-art \u65e0\u7a7a\u683c)\u3001
                 # \u6570\u5b57\u8303\u56f4 (20- 30)\u3001\u4e13\u6709\u7f29\u5199\u8fb9\u754c (X- Ray \u5927\u5199) \u7b49\u3002
-                text = re.sub(r"([a-z])- ([a-z])", r"\1\2", text)
+                #
+                # R10-D21 \u590d\u5408\u94fe\u5b88\u62a4\uff1a``Reasoning-acting-\ninteracting`` \u7c7b\u590d\u5408\u94fe
+                # \u5728 PyMuPDF \u884c\u6298\u53e0\u540e\u53d8\u6210 ``Reasoning-acting- interacting``\uff0c
+                # \u82e5\u76f4\u63a5\u547d\u4e2d ``g- i`` \u5408\u5e76\u89c4\u5219\u4f1a\u5f97\u5230 ``actinginteracting`` \u89c6\u89c9\u7834\u574f\u3002
+                # \u901a\u8fc7 ``(?<![a-zA-Z]-)`` \u5b88\u62a4\uff1a\u5339\u914d\u524d\u7f00 ``[a-z]+`` \u8d77\u59cb\u4f4d\u7f6e\u7684\u524d
+                # 2 \u5b57\u7b26\u82e5\u5df2\u662f ``<letter>-``\uff08\u5373\u4f4d\u4e8e\u65e2\u6709 hyphen \u94fe\u4e2d\uff09\uff0c\u8df3\u8fc7\u5408\u5e76\uff1b
+                # \u4ec5\u5bf9\u72ec\u7acb\u5355\u8bcd\u7684 wrap-hyphen \u5b9e\u65bd\u5408\u5e76\u3002
+                text = re.sub(r"\b(?<![a-zA-Z]-)([a-z]+)- ([a-z]+)\b", r"\1\2", text)
+                # R10-D21 \u7eed\uff1a\u590d\u5408\u94fe wrap \u7a7a\u683c\u6536\u5c3e\u3002\u547d\u4e2d\u5b88\u62a4\u540e\u4fdd\u7559\u7684 ``acting- interacting``
+                # \u4ecd\u542b\u4e00\u4e2a\u591a\u4f59\u7a7a\u683c\uff0c\u9700\u628a ``<lowercase>-<space>+<lowercase>`` \u4e2d\u7684\u7a7a\u683c
+                # \u6536\u7d27\u4e3a\u96f6\uff0c\u628a ``acting- interacting`` \u53d8\u6210 ``acting-interacting``\u3002
+                # \u4e0e\u5355\u5b57\u6bcd ``a - b``\uff08\u524d\u5bfc\u7a7a\u683c\u975e lowercase\uff09\u3001 ``LLM-based`` \u5927\u5199\u8fb9\u754c
+                # \uff08\u524d\u5bfc M \u5927\u5199\uff09\u3001 ``30-50`` \u6570\u5b57\uff08\u524d\u5bfc\u975e lowercase\uff09\u5747\u4e92\u65a5\u3002
+                #
+                # \u6536\u7a84\u7a7a\u767d\u96c6\u4e3a ``[ \t]+``\uff1a\u907f\u514d ``\s+`` \u547d\u4e2d ``\n`` \u4ece\u800c\u628a\u884c/\u6bb5\u843d
+                # \u8fb9\u754c\u541e\u6389\uff08\u5982\u6bb5\u5c3e ``word-`` + \u6bb5\u9996 lowercase \u8de8\u6bb5\u5408\u5e76\uff09\uff0c\u7834\u574f
+                # markdown \u6bb5\u843d\u7ed3\u6784\u3002
+                text = re.sub(r"(?<=[a-z])-[ \t]+(?=[a-z]{2})", "-", text)
+
+                # R10-D22\uff1aLatin-1 \u91cd\u97f3\u5b57\u7b26\u7684 UTF-8 \u2192 CP1252 \u53cc\u7f16\u7801 mojibake \u8fd8\u539f\u3002
+                # \u539f ``\u00ed`` UTF-8 ``\\xc3\\xad`` \u88ab CP1252 \u89e3\u4e3a ``\u00c3 + U+00AD``\uff0c
+                # \u518d\u4ee5 UTF-8 \u7f16\u7801\u4e3a 4 \u5b57\u8282\u5e8f\u5217\uff1b\u7c7b\u4f3c\u8986\u76d6 \u00e1/\u00e9/\u00f3/\u00fa/\u00f1/\u00fc/\u00f6/\u00e4/\u00e7 \u7b49
+                # \u897f\u3001\u8461\u3001\u6cd5\u3001\u5fb7\u8bed\u91cd\u97f3\u5b57\u7b26\u3002\u5fc5\u987b\u5728\u4e0b\u65b9 D13 U+00AD \u5904\u7406**\u4e4b\u524d**
+                # \u5b8c\u6210\u8bc6\u522b \u2014\u2014 D13 \u4f1a\u628a ``\u00c3 + \u00ad + guez`` \u7684 U+00AD \u4e0e\u540e\u7a7a\u767d\u4e00\u5e76
+                # \u5265\u79bb\uff08``\u00ad`` \u540e\u662f\u5c0f\u5199 ``g`` \u89e6\u53d1\uff09\uff0c\u5bfc\u81f4 ``Rodr\u00c3guez`` \u5b64\u7acb \u00c3 \u6b8b\u7559\u3002
+                _latin1_mojibake_map = (
+                    (
+                        "\u00c3\u00ad",
+                        "\u00ed",
+                    ),  # \u00c3 + U+00AD \u2192 \u00ed (Rodr\u00edguez)
+                    ("\u00c3\u00a9", "\u00e9"),  # \u2192 \u00e9 (P\u00e9rez)
+                    ("\u00c3\u00a1", "\u00e1"),  # \u2192 \u00e1 (S\u00e1nchez)
+                    ("\u00c3\u00b3", "\u00f3"),  # \u2192 \u00f3
+                    ("\u00c3\u00ba", "\u00fa"),  # \u2192 \u00fa
+                    ("\u00c3\u00b1", "\u00f1"),  # \u2192 \u00f1 (Mu\u00f1oz)
+                    ("\u00c3\u00bc", "\u00fc"),  # \u2192 \u00fc
+                    ("\u00c3\u00b6", "\u00f6"),  # \u2192 \u00f6
+                    ("\u00c3\u00a4", "\u00e4"),  # \u2192 \u00e4
+                    ("\u00c3\u00a7", "\u00e7"),  # \u2192 \u00e7
+                )
+                for moji, fixed in _latin1_mojibake_map:
+                    text = text.replace(moji, fixed)
+
+                # R10-D13\uff1a\u8f6f\u8fde\u5b57\u7b26 U+00AD \u8de8\u884c\u65ad\u5b57\u5408\u5e76\u3002PyMuPDF \u5728\u6392\u7248\u65ad\u5b57\u5904
+                # \u4fdd\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u95f4\u63d0\u793a\u7b26\uff09\uff0cspan \u62fc\u63a5\u540e\u5f62\u6210
+                # ``advance\u00ad ment``\uff08U+00AD + \u53ef\u9009\u7a7a\u767d + \u540e\u7eed\u5c0f\u5199\u8bcd\uff09\u3002
+                # \u8be5\u6a21\u5f0f\u5728 PDF \u89c6\u89c9\u5c42\u5e76\u975e\u771f\u5b9e\u8fde\u5b57\u7b26\uff0c\u9700\u5c06 U+00AD \u4e0e\u5176\u540e\u7a7a\u767d
+                # \u4e00\u5e76\u5220\u9664\uff0c\u6062\u590d\u5b8c\u6574\u8bcd\uff1b\u540c\u6837\u9650\u5b9a\u540e\u7eed\u4e3a ASCII \u5c0f\u5199\u4ee5\u907f\u514d\u8bef\u541e
+                # \u5927\u5199\u4e13\u6709\u540d\u8bcd\u8fb9\u754c\u4e0e\u6570\u5b57\u3002
+                text = re.sub(r"\u00ad[ \t]*(?=[a-z])", "", text)
+
+                # R10-D14\uff1a\u53cd\u5411 ``word -word`` \u6a21\u5f0f\uff08\u524d\u7a7a\u683c + ASCII \u8fde\u5b57\u7b26 + \u5c0f\u5199\uff09\u3002
+                # \u8be5\u6a21\u5f0f\u51fa\u73b0\u5728 figure caption / \u8868\u683c\u6807\u9898\u7b49\u62bd\u53d6\u8def\u5f84\u4e0a \u2014\u2014 \u90e8\u5206
+                # caption \u6536\u96c6\u5668\u628a U+00AD \u5f52\u4e00\u5316\u4e3a ASCII ``-`` \u4f46\u672a\u540c\u65f6\u5408\u5e76\u65ad\u5b57\uff0c
+                # \u5f62\u6210 ``retrofit -ting`` / ``or -chestration``\u3002\u5224\u5b9a\u6761\u4ef6\u4e0e\u524d
+                # \u4e00\u89c4\u5219\u540c\u6e90\uff08\u8981\u6c42\u524d ASCII \u5b57\u6bcd + \u5355\u7a7a\u683c + \u5355 ``-`` + ASCII \u5c0f\u5199\uff09\uff0c
+                # \u4e0e em-dash \u98ce\u683c ``A - B``\uff08\u4e24\u4fa7\u5747\u7a7a\u683c\uff09\u3001\u590d\u5408\u8bcd ``X-Y`` \u4e92\u65a5\u3002
+                text = re.sub(r"(?<=[a-zA-Z]) -(?=[a-z])", "", text)
+
+                # R10-D19\uff1a\u4e24\u4fa7\u5747\u7a7a\u683c\u7684\u65ad\u5b57 ``per - formance`` \u2014\u2014 \u8868\u683c cell \u5185
+                # \u62bd\u53d6\u8def\u5f84\u7684\u6700\u5e38\u89c1 hyphenation \u6b8b\u7559\u3002\u4e24\u4fa7\u5747\u8981\u6c42 2+ \u5b57\u6bcd\uff08\u907f\u514d
+                # \u8bef\u541e\u6570\u5b66 ``a - b`` \u5355\u5b57\u6bcd\uff09\uff0c\u53f3\u4fa7\u8981\u6c42\u5c0f\u5199\u8d77\u9996\uff08\u907f\u514d\u8bef\u541e em-dash
+                # \u98ce\u683c ``Section A - Section B``\uff09\u3002Springer \u671f\u520a References /
+                # Table cells \u9ad8\u9891\u51fa\u73b0 ``Scalabil - ity`` / ``gov - ernance`` /
+                # ``sym - bolic`` / ``Mo - zolevskyi`` \u7b49\u6a21\u5f0f\u3002
+                #
+                # \u5b88\u62a4\uff1a\u53f3\u4fa7\u82e5\u662f\u5e38\u89c1 em-dash \u8fde\u63a5\u8bcd\uff08``or`` / ``and`` / ``the`` /
+                # ``which`` / ``i.e.`` \u7b49\uff0c\u8be6\u89c1 ``_EM_DASH_RHS_CONNECTORS`` \u4e0e
+                # ``_EM_DASH_RHS_LATIN_ABBR``\uff09\uff0c\u4fdd\u7559 ` - ` \u539f\u8c8c\u4ee5\u907f\u514d\u8bef\u541e\u6b63\u6587
+                # em-dash\uff08``data - or what was left - was deleted``\uff09\u3002
+                def _collapse_bothside_wrap(match: re.Match) -> str:
+                    rhs = match.group(1).lower()
+                    if rhs in _EM_DASH_RHS_CONNECTORS or rhs in _EM_DASH_RHS_LATIN_ABBR:
+                        return match.group(0)
+                    return match.group(1)
+
+                # 拉丁缩写以 ``.`` 结尾且后续常跟 ``,`` / ``;``，``\b`` 无法在
+                # 双非字符位置成立，故拉丁缩写分支不带 ``\b``；普通词分支带 ``\b``
+                # 以严格限定单词边界。
+                text = re.sub(
+                    r"(?<=[a-zA-Z]{2}) - ((?:i\.e|e\.g|cf|viz)\.|[a-z]+\b)",
+                    _collapse_bothside_wrap,
+                    text,
+                )
+
+                # \u9632\u5fa1\u515c\u5e95\uff1a\u6e05\u9664\u4efb\u4f55\u6b8b\u7559 U+00AD\uff08\u4e0d\u53ef\u89c1\u5b57\u7b26\u4e0d\u5e94\u8fdb\u5165 markdown\uff09
+                text = text.replace("\u00ad", "")
+
+                # R10-D17\uff1a\u96f6\u5bbd\u7a7a\u683c U+200B \u6e05\u9664\u3002Springer Nature \u7b49\u671f\u520a\u5728\u5f15\u7528 URL
+                # \u6bcf\u5b57\u7b26\u4e4b\u95f4\u6ce8\u5165 U+200B \u4f5c\u4e3a\u8f6f\u6362\u884c hint\uff0c\u7834\u574f\u6587\u672c\u62f7\u8d1d / \u5168\u6587\u68c0\u7d22 /
+                # URL \u53ef\u70b9\u51fb\u6027\u3002U+200B \u5728 markdown \u4e2d\u65e0\u610f\u4e49\u4e14\u4e0d\u53ef\u89c1\uff0c\u5168\u5c40\u6e05\u9664\u3002
+                # \u4ec5\u6e05\u9664 U+200B \u5355\u4e00\u5b57\u7b26\uff1b\u4fdd\u7559 U+200D ZWJ\uff08emoji / \u5370\u5ea6\u8bed\u8fde\u5199\uff09\u3002
+                text = text.replace("\u200b", "")
+
+                # R10-D18\uff1aUTF-8 \u2192 CP1252 \u53cc\u7f16\u7801 mojibake \u8fd8\u539f\u3002PDF \u4e2d em-dash
+                # ``\u2014`` (U+2014, UTF-8 ``E2 80 94``) \u5728\u67d0\u4e9b PyMuPDF \u62bd\u53d6\u8def\u5f84\u4e0a
+                # \u4f1a\u88ab CP1252 \u89e3\u7801\u4e3a ``\u00e2 \u20ac "`` (U+00E2 U+20AC U+201D) \u4e09\u5b57\u7b26\u5e8f\u5217
+                # \u518d\u4ee5 UTF-8 \u91cd\u65b0\u7f16\u7801\uff0c\u6700\u7ec8\u5728 markdown \u4e2d\u663e\u793a\u4e3a ``\u00e2\u20ac"``\u3002\u540c\u7c7b
+                # \u5931\u771f\u8986\u76d6 en-dash / \u5355 / \u53cc\u5f15\u53f7 / \u7701\u7565\u53f7\u3002\u56fa\u5b9a 6 \u6a21\u5f0f\u66ff\u6362\uff0c
+                # \u4e0d\u4f9d\u8d56\u5916\u90e8\u5e93\uff08ftfy \u5f53\u524d\u4ec5\u4e3a docling \u4f20\u9012\u4f9d\u8d56\uff0c\u907f\u514d\u786c\u7ed1\u5b9a\uff09\u3002
+                _mojibake_map = (
+                    ("\u00e2\u20ac\u201d", "\u2014"),  # \u2014 em-dash
+                    ("\u00e2\u20ac\u201c", "\u2013"),  # \u2013 en-dash
+                    ("\u00e2\u20ac\u2122", "\u2019"),  # \u2019 right single quote
+                    ("\u00e2\u20ac\u0153", "\u201c"),  # \u201c left double quote
+                    ("\u00e2\u20ac\u009d", "\u201d"),  # \u201d right double quote
+                    ("\u00e2\u20ac\u00a6", "\u2026"),  # \u2026 ellipsis
+                )
+                for moji, fixed in _mojibake_map:
+                    text = text.replace(moji, fixed)
+
+                # R10-D23：闭括号前空格归一 ``(2025 )`` → ``(2025)``。
+                # PyMuPDF 抽取 ``(2025\n)`` 后 ``\n`` 折叠为空格形成 ``(2025 )``，
+                # Agentic AI Survey 表格 / References / 正文累计 112 处。仅去除
+                # ``)`` 紧前的单空格，且要求 ``)`` 紧前是非空白字符（避免 ``(  )``
+                # 空括号被破坏 —— 这类极少见且本身就是噪声）。
+                text = re.sub(r"(\S) \)", r"\1)", text)
+
+                # R10-D24：开括号后空格归一 ``( 2008)`` → ``(2008)``。
+                # 与 D23 对称的镜像 case：``Harden (\n2008)`` 折叠后形成
+                # ``Harden ( 2008)``，Agentic AI Survey 累计 3 处。要求 ``(``
+                # 紧后是非空白，避免破坏空括号噪声。
+                text = re.sub(r"\( (\S)", r"(\1", text)
 
                 lines = text.split("\n")
                 fixed_lines = []
@@ -622,11 +1088,29 @@ class MarkdownFormatter:
         kept: List[str] = []
         seen_fingerprints: List[set[str]] = []
 
+        # R10-D20：caption 行（``Table N ...`` / ``Figure N ...`` / ``Fig. N ...``
+        # / ``Algorithm N ...``）的精确相邻去重。PyMuPDF 把 caption 抽为正文段、
+        # table_extraction 又把同样 caption 内嵌为表头部，二者经 assembly 写入
+        # markdown 后形成「caption / caption / table」三段结构。caption 通常少于
+        # 15 词，会被下方主体 Jaccard 去重的长度守卫绕过，故在主流程前插入紧邻
+        # 重复 caption 检查 —— 仅对相邻位置（kept 末尾即上一保留段）做精确相等比对，
+        # 不影响跨段落非相邻的合法重复（如 ``Table 5 (continued)``）。
+        _caption_re = re.compile(
+            r"^(?:Table|Figure|Fig\.|Tab\.|Algorithm|Algo\.)\s+\d+\b",
+            re.IGNORECASE,
+        )
+
+        def _is_caption(text: str) -> bool:
+            return bool(_caption_re.match(text.strip()))
+
         for para in paragraphs:
             # 块级公式段落始终保留，不参与 Jaccard 相似度比较，
             # 也不污染后续段落的对比基线。
             if _is_math_block(para):
                 kept.append(para)
+                continue
+            # caption 精确相邻去重：仅当上一保留段为相同 caption 时跳过
+            if _is_caption(para) and kept and kept[-1].strip() == para.strip():
                 continue
             fp = _fingerprint(para)
             if len(fp) < 15:
@@ -676,9 +1160,10 @@ class MarkdownFormatter:
                 "",
                 markdown_content,
             )
-            # 清除孤立的 HTML 属性
+            # 清除孤立的 HTML 属性（但保留 <img> 标签内的 style，
+            # 因其承载 _image_to_markdown 输出的响应式样式）
             markdown_content = re.sub(r'\s+class="[^"]*"', "", markdown_content)
-            markdown_content = re.sub(r'\s+style="[^"]*"', "", markdown_content)
+            markdown_content = _strip_orphan_styles(markdown_content)
             markdown_content = re.sub(r'\s+aria-\w+="[^"]*"', "", markdown_content)
 
             markdown_content = markdown_content.strip()
@@ -789,6 +1274,41 @@ class MarkdownFormatter:
             return markdown_content
         except Exception as e:
             logger.warning(f"Error restoring image placeholders: {str(e)}")
+            return markdown_content
+
+    def _restore_video_placeholders(
+        self,
+        markdown_content: str,
+        registry: "VideoRegistry",
+    ) -> str:
+        """将 ``preprocess_html`` 注入的 video sentinel 还原为内嵌 HTML ``<video>``。
+
+        sentinel 在 MarkdownConverter 进入 MarkItDown 之前替换 ``<video>`` 标签，
+        以避免 MarkItDown 把 HTML5 video 静默丢弃。此处将 sentinel 一一替换回
+        登记簿中保存的原始 HTML 字符串；前端 ``rehype-raw + rehype-sanitize``
+        会把它解析为可播放的 ``<video>`` 节点。
+        """
+        if not registry.placeholders:
+            return markdown_content
+
+        try:
+            for sentinel, html_str in registry.placeholders.items():
+                markdown_content = markdown_content.replace(sentinel, html_str)
+
+            # 防御：登记簿与输出失配时清理孤儿 sentinel
+            from .html_preprocessor import VIDEO_SENTINEL_RE
+
+            orphans = VIDEO_SENTINEL_RE.findall(markdown_content)
+            if orphans:
+                logger.warning(
+                    "Detected %d orphan video sentinel(s) after restore; stripping.",
+                    len(orphans),
+                )
+                markdown_content = VIDEO_SENTINEL_RE.sub("", markdown_content)
+
+            return markdown_content
+        except Exception as e:
+            logger.warning(f"Error restoring video placeholders: {str(e)}")
             return markdown_content
 
 

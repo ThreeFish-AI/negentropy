@@ -577,6 +577,7 @@ class DocumentResponse(BaseModel):
     app_name: str
     file_hash: str
     original_filename: str
+    display_name: str | None = None
     gcs_uri: str
     content_type: str | None = None
     file_size: int
@@ -592,6 +593,13 @@ class DocumentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DocumentUpdateRequest(BaseModel):
+    """文档元信息更新请求（目前仅支持 ``display_name``）。"""
+
+    display_name: str | None = Field(default=None, max_length=255)
+    app_name: str | None = None
 
 
 class DocumentDetailResponse(DocumentResponse):

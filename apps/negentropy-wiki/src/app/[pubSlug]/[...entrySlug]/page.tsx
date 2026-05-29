@@ -1,4 +1,5 @@
 import {
+  findFirstDocumentSlug,
   joinEntrySlug,
   resolveSectionView,
   wikiApi,
@@ -12,10 +13,15 @@ import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiToc } from "@/components/WikiToc";
+import { WikiSearchBox } from "@/components/WikiSearchBox";
+import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { extractHeadings } from "@/lib/markdown-headings";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeSlug from "rehype-slug";
+import { buildBreadcrumbPath } from "@/lib/wiki-api";
+import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
+import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
+import { WikiCommentSection } from "@/components/WikiCommentSection";
+import { AnnotationLayer } from "@/components/annotation/AnnotationLayer";
+import { WikiFooter } from "@/components/home/WikiFooter";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -56,6 +62,7 @@ export default async function WikiEntryPage({ params }: Props) {
   let navItems: WikiNavTreeItem[] = [];
   let content: WikiEntryContent | null = null;
   let status: LoadStatus = "missing";
+  let entryId: string | null = null;
 
   try {
     publication = await wikiApi.findPublicationBySlug(pubSlug);
@@ -70,6 +77,7 @@ export default async function WikiEntryPage({ params }: Props) {
         (e) => e.entry_slug === slug,
       );
       if (entry) {
+        entryId = entry.id;
         if (entry.status === "orphaned" || entry.document_id === null) {
           status = "orphaned";
         } else {
@@ -121,6 +129,15 @@ export default async function WikiEntryPage({ params }: Props) {
   const hasToc = headings.length >= 2;
   const sectionView = resolveSectionView(navItems, slug);
   const hasAnyEntry = sectionView.headerItems.length > 0;
+  const breadcrumbItems = status === "ok"
+    ? buildBreadcrumbPath(navItems, slug)
+    : [];
+
+  const catalogItem = sectionView.activeItem;
+  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
+  const catalogName = catalogItem
+    ? (catalogItem.entry_title || catalogItem.entry_slug)
+    : null;
 
   const sidebar = (
     <WikiSidebar
@@ -129,6 +146,8 @@ export default async function WikiEntryPage({ params }: Props) {
       sidebarItems={sectionView.sidebarItems}
       hasActiveItem={!!sectionView.activeItem}
       activeSlug={slug}
+      catalogTargetSlug={catalogTargetSlug}
+      catalogName={catalogName}
     />
   );
 
@@ -138,6 +157,8 @@ export default async function WikiEntryPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      searchBox={<WikiSearchBox />}
+      actions={<WikiHeaderActions />}
       graphTab={{ active: false, show: hasAnyEntry }}
     />
   );
@@ -148,6 +169,7 @@ export default async function WikiEntryPage({ params }: Props) {
       hasToc={hasToc}
       header={header || undefined}
       toc={hasToc ? <WikiToc headings={headings} /> : undefined}
+      footer={<WikiFooter />}
     >
       {status === "pending" ? (
         <>
@@ -175,6 +197,9 @@ export default async function WikiEntryPage({ params }: Props) {
       ) : (
         content && (
           <>
+            {breadcrumbItems.length > 1 && (
+              <WikiBreadcrumb items={breadcrumbItems} pubSlug={pubSlug} />
+            )}
             <header className="wiki-doc-header">
               <h1 className="wiki-doc-title">
                 {content.entry_title || slug}
@@ -185,14 +210,16 @@ export default async function WikiEntryPage({ params }: Props) {
                   ` · 文档 ID: ${String(content.document_id).slice(0, 8)}...`}
               </div>
             </header>
-            <article className="wiki-markdown-body">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeSlug]}
-              >
-                {md}
-              </ReactMarkdown>
-            </article>
+            {entryId ? (
+              <>
+                <AnnotationLayer entryId={entryId}>
+                  <MarkdownRenderer content={md} />
+                </AnnotationLayer>
+                <WikiCommentSection entryId={entryId} />
+              </>
+            ) : (
+              <MarkdownRenderer content={md} />
+            )}
           </>
         )
       )}

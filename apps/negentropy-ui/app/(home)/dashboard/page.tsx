@@ -17,7 +17,7 @@ import { DashboardHeaderStrip } from "./_components/DashboardHeaderStrip";
 import { DimensionCharts } from "./_components/DimensionCharts";
 import { ExecutionTimeline } from "./_components/ExecutionTimeline";
 import { FilterBar } from "./_components/FilterBar";
-import { MemoryDetailPanel } from "./_components/MemoryDetailPanel";
+import { RetrievalMetricsCard } from "./_components/RetrievalMetricsCard";
 import { TaskDetailDrawer } from "./_components/TaskDetailDrawer";
 import { TaskTable } from "./_components/TaskTable";
 import { useDashboardAgentOptions } from "./_hooks/useDashboardAgentOptions";
@@ -92,21 +92,18 @@ export default function DashboardPage() {
   const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
   const [memoryDashboard, setMemoryDashboard] = useState<MemoryDashboard | null>(null);
   const [memoryLoading, setMemoryLoading] = useState(false);
-  const [memoryError, setMemoryError] = useState<string | null>(null);
-  const [activeUserId, setActiveUserId] = useState<string | undefined>(undefined);
 
   const loadMemoryDashboard = useCallback(async () => {
     setMemoryLoading(true);
-    setMemoryError(null);
     try {
-      const data = await fetchMemoryDashboard(APP_NAME, activeUserId);
+      const data = await fetchMemoryDashboard(APP_NAME);
       setMemoryDashboard(data);
-    } catch (err) {
-      setMemoryError(err instanceof Error ? err.message : String(err));
+    } catch {
+      // Memory dashboard is non-critical
     } finally {
       setMemoryLoading(false);
     }
-  }, [APP_NAME, activeUserId]);
+  }, [APP_NAME]);
 
   useEffect(() => {
     loadMemoryDashboard();
@@ -161,15 +158,7 @@ export default function DashboardPage() {
       />
 
       {/* Expandable Memory detail panel */}
-      <MemoryDetailPanel
-        dashboard={memoryDashboard}
-        loading={memoryLoading}
-        error={memoryError}
-        onRefresh={loadMemoryDashboard}
-        activeUserId={activeUserId}
-        onFilterUser={(id) => setActiveUserId(id || undefined)}
-        onClearFilter={() => setActiveUserId(undefined)}
-      />
+      <RetrievalMetricsCard appName={APP_NAME} />
 
       <div className="mt-3">
         <FilterBar

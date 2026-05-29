@@ -21,13 +21,13 @@ const _AGENTS: MentionCandidate[] = [
 
 const _CORPORA: MentionCandidate[] = [
   {
-    kind: "corpus-retrieve",
+    kind: "corpus",
     refId: "uuid-a",
     label: "Corpus-A",
     description: "ML papers",
   },
   {
-    kind: "corpus-retrieve",
+    kind: "corpus",
     refId: "uuid-b",
     label: "Corpus-B",
     description: "Cooking recipes",
@@ -82,9 +82,21 @@ describe("MentionPopover", () => {
   it("点击 Tab 切换显示 corpus 候选", async () => {
     const user = userEvent.setup();
     _renderPopover();
-    await user.click(screen.getByTestId("mention-tab-corpus-retrieve"));
+    await user.click(screen.getByTestId("mention-tab-corpus"));
     expect(screen.getByText("Corpus-A")).toBeInTheDocument();
     expect(screen.queryByText("PerceptionFaculty")).toBeNull();
+  });
+
+  it("Tab 按钮使用 aria-label 暴露中文类别名（图标 only）", () => {
+    _renderPopover();
+    expect(screen.getByTestId("mention-tab-agent")).toHaveAttribute(
+      "aria-label",
+      "Agents",
+    );
+    expect(screen.getByTestId("mention-tab-corpus")).toHaveAttribute(
+      "aria-label",
+      "Corpus",
+    );
   });
 
   it("queryText 过滤候选项（不区分大小写）", () => {
@@ -138,13 +150,13 @@ describe("MentionPopover", () => {
     expect(screen.getByText(/网络超时/)).toBeInTheDocument();
   });
 
-  it("切换到 corpus-output Tab 后选中 → onPick.kind=corpus-output", async () => {
+  it("切换到 Corpus Tab 后选中 → onPick.kind=corpus", async () => {
     const user = userEvent.setup();
     const { onPick } = _renderPopover();
-    await user.click(screen.getByTestId("mention-tab-corpus-output"));
+    await user.click(screen.getByTestId("mention-tab-corpus"));
     fireEvent.keyDown(window, { key: "Enter" });
     expect(onPick.mock.calls[0][0]).toMatchObject({
-      kind: "corpus-output",
+      kind: "corpus",
       refId: "uuid-a",
     });
   });

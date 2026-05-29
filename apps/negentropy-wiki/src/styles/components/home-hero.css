@@ -1,0 +1,92 @@
+/* 首页 Hero Banner — Galaxy 星空背景 */
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--wiki-hero-base);
+  color: #ffffff;
+  text-align: center;
+  padding: 5rem 2rem 4rem;
+}
+
+/* Galaxy WebGL 容器 */
+.home-hero-galaxy {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+.home-hero-galaxy canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.home-hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.home-hero-text {
+  font-size: 1.6em;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0 auto 1rem;
+  opacity: 0.98;
+}
+
+.home-hero-subtext {
+  font-size: 1.1em;
+  line-height: 1.6;
+  opacity: 0.85;
+  margin: 0 auto 2.5rem;
+}
+
+.home-hero-cta {
+  display: inline-block;
+  padding: 0.7rem 1.8rem;
+  border: 2px solid #ffffff;
+  border-radius: 24px;
+  color: #ffffff;
+  font-size: 0.95em;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.home-hero-cta:hover {
+  background: #ffffff;
+  color: var(--wiki-home-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Galaxy 组件内部读取 prefers-reduced-motion 设置 disableAnimation */
+  .home-hero-galaxy {
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-hero {
+    padding: 3.5rem 1.25rem 2.5rem;
+  }
+  .home-hero-text {
+    font-size: 1.25em;
+  }
+}
+
+/* 首页移动端 sidebar（供 WikiMobileNav 抽屉使用） */
+.home-mobile-sidebar {
+  padding: 0.5rem 0;
+}
+.home-mobile-sidebar-link {
+  display: block;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95em;
+  color: var(--wiki-text);
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+.home-mobile-sidebar-link:hover {
+  background: var(--wiki-bg-secondary);
+}

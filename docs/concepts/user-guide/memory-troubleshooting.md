@@ -186,20 +186,28 @@ WHERE user_id = 'alice' GROUP BY 1, 2, 3;
 
 **诊断**：
 ```bash
-# 应用层调度
+# Scheduler 执行历史
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:3292/api/memory/automation/logs?limit=10"
+  "http://localhost:3292/api/scheduler/executions?handler_kind=memory_automation&limit=10"
 
-# pg_cron 端
-SELECT * FROM cron.job WHERE jobname LIKE 'memory_%';
-SELECT * FROM cron.job_run_details WHERE jobid IN (
-  SELECT jobid FROM cron.job WHERE jobname LIKE 'memory_%'
-) ORDER BY start_time DESC LIMIT 10;
+# 数据库端
+SELECT key, enabled, cron_expr, last_status
+FROM negentropy.scheduled_tasks
+WHERE handler_kind = 'memory_automation'
+ORDER BY key;
+
+SELECT task_key, status, started_at, finished_at, error
+FROM negentropy.scheduler_executions
+WHERE task_key IN (
+  SELECT key FROM negentropy.scheduled_tasks
+  WHERE handler_kind = 'memory_automation'
+)
+ORDER BY started_at DESC LIMIT 10;
 ```
 
 **可能原因**：
-- `AsyncScheduler` 未启动（应用进程未跑或线程死锁）
-- pg_cron 扩展未启用
+- Scheduler 心跳线程未启动（应用进程未跑或线程死锁）
+- 任务未启用（`enabled = false`）
 - cron 表达式错误（用 `* * * * *` 测试是否真触发）
 
 ---

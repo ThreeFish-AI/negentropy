@@ -31,6 +31,25 @@ VALID_THEMES = {"default", "book", "docs"}
 VALID_STATUSES = {"draft", "published", "archived"}
 
 
+def _resolve_doc_display_title(doc: Any) -> str:
+    """决定文档在 Wiki 站点上的展示标题（单一事实源）。
+
+    优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``
+    （PDF / 抓取自动抽取）→ ``original_filename``（兜底）。
+
+    用于 :meth:`WikiPublishingService.sync_publication` 与
+    ``routes.wiki.get_entry_content``，保证后端 entry_title 与前端
+    SSG 展示一致。
+    """
+    display_name = (getattr(doc, "display_name", None) or "").strip()
+    if display_name:
+        return display_name
+    meta_title = (doc.metadata_ or {}).get("title") if getattr(doc, "metadata_", None) else None
+    if isinstance(meta_title, str) and meta_title.strip():
+        return meta_title.strip()
+    return doc.original_filename
+
+
 class WikiPublishingService:
     """Wiki 发布服务"""
 
@@ -240,6 +259,10 @@ class WikiPublishingService:
     async def get_entries(self, db: AsyncSession, publication_id: UUID) -> list[WikiPublicationEntry]:
         """获取发布的所有条目"""
         return await WikiDao.get_entries(db, publication_id)
+
+    async def count_document_entries(self, db: AsyncSession, publication_id: UUID) -> int:
+        """计算发布中 DOCUMENT 类型条目数量。"""
+        return await WikiDao.count_document_entries(db, publication_id)
 
     async def get_entry_content(
         self,
@@ -541,7 +564,7 @@ class WikiPublishingService:
                 publication_id=publication_id,
                 document_id=doc.id,
                 entry_slug=final_slug,
-                entry_title=(doc.metadata_ or {}).get("title") or doc.original_filename,
+                entry_title=_resolve_doc_display_title(doc),
                 entry_path=entry_path,
             )
             synced_doc_ids.add(str(doc.id))

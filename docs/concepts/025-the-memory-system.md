@@ -62,7 +62,7 @@ tags:
 | 记忆存储     | [`engine/adapters/postgres/memory_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)                       | PostgresMemoryService — 混合检索 + 访问记录                     |
 | 事实存储     | [`engine/adapters/postgres/fact_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py)                           | FactService — Fact CRUD + upsert                                |
 | 记忆治理     | [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py)                                                     | MemoryGovernanceService — 遗忘曲线 + 审计决策                   |
-| 自动化服务   | [`engine/adapters/postgres/memory_automation_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py) | MemoryAutomationService — 配置持久化 + 函数 reconcile + pg_cron |
+| 自动化服务   | [`engine/schedulers/handlers/memory_automation.py`](../../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py) | Scheduler Handler — memory_automation handler (cleanup/consolidation/reweight) |
 | 服务工厂     | [`engine/factories/memory.py`](../../../../apps/negentropy/src/negentropy/engine/factories/memory.py)                                                       | Strategy + Factory — inmemory / postgres / vertexai             |
 | API 路由     | [`engine/api.py`](../../../../apps/negentropy/src/negentropy/engine/api.py)                                                                                 | Memory REST API + Retrieval Feedback API                        |
 | 摘要服务     | [`engine/adapters/postgres/summary_service.py`](../../../../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py)                     | SummaryService — 摘要 CRUD + upsert                             |
@@ -222,7 +222,7 @@ Negentropy 的 Memory 实现并非基于独立中间件，而是采用 **Postgre
 | **GDPR 合规** | Retain/Delete/Anonymize  | —                             | Permissions                     | —                                     | —                              |
 | **混合检索**  | Semantic + BM25 + ilike  | Vector + Graph                | Vector + Graph                  | Semantic + BM25 + Graph               | Vector                         |
 
-**Negentropy 的差异化定位**：不引入外部图数据库或独立记忆服务，而是在 PostgreSQL 16+ 上实现向量检索(pgvector)、图存储(Apache AGE)、全文检索(tsvector)、定时调度(pg_cron) 的统一方案，降低运维复杂度和数据一致性风险。
+**Negentropy 的差异化定位**：不引入外部图数据库或独立记忆服务，而是在 PostgreSQL 16+ 上实现向量检索(pgvector)、图存储(Apache AGE)、全文检索(tsvector)、定时调度(Unified Scheduler) 的统一方案，降低运维复杂度和数据一致性风险。
 
 ### 2.4 工业实践深度对标：Claude Code 记忆架构
 
@@ -305,7 +305,7 @@ Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes
 | **存储**     | 纯文件系统                   | 多后端（向量/图/内存） | PostgreSQL 单栈                      |
 | **遗忘**     | Prune 手动管理               | 无衰减 / 手动管理      | Ebbinghaus 仿生遗忘曲线              |
 | **治理**     | —                            | —                      | GDPR 审计（Retain/Delete/Anonymize） |
-| **调度**     | GrowthBook 远程配置 + PID 锁 | 应用层调度             | pg_cron + 应用层 AsyncScheduler 回退 |
+| **调度**     | GrowthBook 远程配置 + PID 锁 | 应用层调度             | Unified Scheduler (ScheduledTaskRegistry 心跳模式) |
 | **检索**     | Sonnet 侧查询筛选            | 向量 / 图 / 混合       | 四级回退（Hybrid→Vector→BM25→ILIKE） |
 | **事实提取** | LLM extractMemories          | LLM / 模式匹配         | 模式匹配（Phase 1）→ LLM 增强（P1）  |
 

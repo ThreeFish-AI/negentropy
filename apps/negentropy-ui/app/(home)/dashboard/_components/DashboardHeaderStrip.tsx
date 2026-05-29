@@ -83,6 +83,7 @@ export function DashboardHeaderStrip({
             value={kpis?.total_tasks ?? "—"}
             hint={kpis ? `${kpis.enabled_tasks} enabled` : undefined}
             loading={kpiLoading}
+            href="/interface/scheduler"
           />
           <MetricCell
             label={`Runs (${kpis?.window ?? "24h"})`}

@@ -8,12 +8,14 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from negentropy.auth.deps import get_current_user
+from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.knowledge._shared import (
     _get_wiki_service,
@@ -30,6 +32,14 @@ from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
     CatalogTreeResponse,
     CategorySuggestionResponse,
     DocumentProvenanceResponse,
+    WikiAnnotationCreateRequest,
+    WikiAnnotationListResponse,
+    WikiAnnotationResponse,
+    WikiAnnotationUpdateRequest,
+    WikiCommentCreateRequest,
+    WikiCommentListResponse,
+    WikiCommentResponse,
+    WikiCommentUpdateRequest,
     WikiEntryContentResponse,
     WikiNavTreeResponse,
     WikiPublishActionResponse,
@@ -213,7 +223,7 @@ async def list_wiki_publications(
         items = []
         for pub in pubs:
             resp = _WikiPubResp.model_validate(pub)
-            resp.entries_count = len(pub.entries) if pub.entries else 0
+            resp.entries_count = sum(1 for e in (pub.entries or []) if e.entry_kind == "DOCUMENT")
             items.append(resp)
 
     return _WikiPubListResp(items=items, total=total)
@@ -231,7 +241,7 @@ async def get_wiki_publication(pub_id: UUID) -> _WikiPubResp:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
 
         resp = _WikiPubResp.model_validate(pub)
-        resp.entries_count = len(pub.entries) if pub.entries else 0
+        resp.entries_count = sum(1 for e in (pub.entries or []) if e.entry_kind == "DOCUMENT")
 
     return resp
 
@@ -294,7 +304,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
 
-        entries = await wiki_svc.get_entries(db, pub_id)
+        doc_count = await wiki_svc.count_document_entries(db, pub_id)
         await db.commit()
 
     logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version)
@@ -304,7 +314,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         status=pub.status,
         version=pub.version,
         published_at=pub.published_at,
-        entries_count=len(entries),
+        entries_count=doc_count,
         message=f"Published successfully (v{pub.version})",
         revalidation=revalidation_status,
     )
@@ -319,7 +329,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         pub, revalidation_status = await wiki_svc.unpublish(db, pub_id)
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
-        entries = await wiki_svc.get_entries(db, pub_id)
+        doc_count = await wiki_svc.count_document_entries(db, pub_id)
         await db.commit()
 
     return WikiPublishActionResponse(
@@ -327,7 +337,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         status=pub.status,
         version=pub.version,
         published_at=pub.published_at,
-        entries_count=len(entries),
+        entries_count=doc_count,
         message="Unpublished successfully",
         revalidation=revalidation_status,
     )
@@ -525,3 +535,268 @@ async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
         markdown_content=content_data["markdown_content"],
         document_filename=content_data["filename"] or "",
     )
+
+
+# ---------------------------------------------------------------------------
+# 页面评论 (Page Comments)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/wiki/entries/{entry_id}/comments")
+async def list_entry_comments(
+    entry_id: UUID,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> WikiCommentListResponse:
+    """获取 Wiki 条目的页面评论列表（公开）"""
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        items, total = await WikiDao.list_comments(db, entry_id, offset=offset, limit=limit)
+
+    return WikiCommentListResponse(
+        items=[WikiCommentResponse(**item) for item in items],
+        total=total,
+    )
+
+
+@router.post("/wiki/entries/{entry_id}/comments", status_code=status.HTTP_201_CREATED)
+async def create_entry_comment(
+    entry_id: UUID,
+    body: WikiCommentCreateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> WikiCommentResponse:
+    """创建页面评论（需登录）"""
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        comment = await WikiDao.create_comment(
+            db,
+            entry_id=entry_id,
+            user_id=user.user_id,
+            body=body.body,
+        )
+        await db.commit()
+
+    return WikiCommentResponse(
+        id=comment.id,
+        entry_id=comment.entry_id,
+        user_id=comment.user_id,
+        user_name=None,
+        user_picture=None,
+        body=comment.body,
+        status=comment.status,
+        parent_comment_id=comment.parent_comment_id,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+    )
+
+
+@router.patch("/wiki/entries/{entry_id}/comments/{comment_id}")
+async def update_entry_comment(
+    entry_id: UUID,
+    comment_id: UUID,
+    body: WikiCommentUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> WikiCommentResponse:
+    """编辑页面评论（仅 owner）"""
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        comment = await WikiDao.update_comment(db, comment_id, user.user_id, body.body)
+        if comment is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found or not owned by you")
+        await db.commit()
+
+    return WikiCommentResponse(
+        id=comment.id,
+        entry_id=comment.entry_id,
+        user_id=comment.user_id,
+        user_name=None,
+        user_picture=None,
+        body=comment.body,
+        status=comment.status,
+        parent_comment_id=comment.parent_comment_id,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+    )
+
+
+@router.delete("/wiki/entries/{entry_id}/comments/{comment_id}")
+async def delete_entry_comment(
+    entry_id: UUID,
+    comment_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+):
+    """软删除页面评论（owner 或 admin）"""
+    is_admin = "admin" in (user.roles or [])
+
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        deleted = await WikiDao.delete_comment(db, comment_id, user.user_id, is_admin=is_admin)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+        await db.commit()
+
+    return {"detail": "Comment deleted"}
+
+
+# ---------------------------------------------------------------------------
+# 文本注解 (Text Annotations)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/wiki/entries/{entry_id}/annotations")
+async def list_entry_annotations(
+    entry_id: UUID,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=200, ge=1, le=500),
+) -> WikiAnnotationListResponse:
+    """获取 Wiki 条目的文本注解列表（公开）"""
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        items, total = await WikiDao.list_annotations(db, entry_id, offset=offset, limit=limit)
+
+    return WikiAnnotationListResponse(
+        items=[WikiAnnotationResponse(**item) for item in items],
+        total=total,
+    )
+
+
+@router.post("/wiki/entries/{entry_id}/annotations", status_code=status.HTTP_201_CREATED)
+async def create_entry_annotation(
+    entry_id: UUID,
+    body: WikiAnnotationCreateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> WikiAnnotationResponse:
+    """创建文本注解（需登录）"""
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        entry_result = await db.execute(select(WikiPublicationEntry).where(WikiPublicationEntry.id == entry_id))
+        entry = entry_result.scalar_one_or_none()
+        if entry is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
+
+        from negentropy.models.perception import WikiPublication
+
+        pub_result = await db.execute(select(WikiPublication.version).where(WikiPublication.id == entry.publication_id))
+        pub_version = pub_result.scalar() or 1
+
+        anchor_dict = body.anchor.model_dump()
+        annotation = await WikiDao.create_annotation(
+            db,
+            entry_id=entry_id,
+            user_id=user.user_id,
+            body=body.body,
+            quoted_text=body.quoted_text,
+            anchor=anchor_dict,
+            pub_version=pub_version,
+        )
+        await db.commit()
+
+        # 解析用户 profile（复用 wiki_dao 的 UserState 查询模式）
+        from negentropy.config import settings
+        from negentropy.models.state import UserState
+
+        user_name = None
+        user_picture = None
+        usr_result = await db.execute(
+            select(UserState).where(
+                UserState.user_id == user.user_id,
+                UserState.app_name == settings.app_name,
+            )
+        )
+        usr = usr_result.scalar_one_or_none()
+        if usr:
+            profile = (usr.state or {}).get("profile", {})
+            user_name = profile.get("name")
+            user_picture = profile.get("picture")
+
+    return WikiAnnotationResponse(
+        id=annotation.id,
+        entry_id=annotation.entry_id,
+        user_id=annotation.user_id,
+        user_name=user_name,
+        user_picture=user_picture,
+        body=annotation.body,
+        quoted_text=annotation.quoted_text,
+        anchor=annotation.anchor,
+        pub_version=annotation.pub_version,
+        status=annotation.status,
+        created_at=annotation.created_at,
+        updated_at=annotation.updated_at,
+    )
+
+
+@router.patch("/wiki/entries/{entry_id}/annotations/{annotation_id}")
+async def update_entry_annotation(
+    entry_id: UUID,
+    annotation_id: UUID,
+    body: WikiAnnotationUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> WikiAnnotationResponse:
+    """编辑文本注解（仅 owner）"""
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        annotation = await WikiDao.update_annotation(db, annotation_id, user.user_id, body.body)
+        if annotation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found or not owned by you"
+            )
+        await db.commit()
+
+        from negentropy.config import settings
+        from negentropy.models.state import UserState
+
+        user_name = None
+        user_picture = None
+        usr_result = await db.execute(
+            select(UserState).where(
+                UserState.user_id == user.user_id,
+                UserState.app_name == settings.app_name,
+            )
+        )
+        usr = usr_result.scalar_one_or_none()
+        if usr:
+            profile = (usr.state or {}).get("profile", {})
+            user_name = profile.get("name")
+            user_picture = profile.get("picture")
+
+    return WikiAnnotationResponse(
+        id=annotation.id,
+        entry_id=annotation.entry_id,
+        user_id=annotation.user_id,
+        user_name=user_name,
+        user_picture=user_picture,
+        body=annotation.body,
+        quoted_text=annotation.quoted_text,
+        anchor=annotation.anchor,
+        pub_version=annotation.pub_version,
+        status=annotation.status,
+        created_at=annotation.created_at,
+        updated_at=annotation.updated_at,
+    )
+
+
+@router.delete("/wiki/entries/{entry_id}/annotations/{annotation_id}")
+async def delete_entry_annotation(
+    entry_id: UUID,
+    annotation_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+):
+    """软删除文本注解（owner 或 admin）"""
+    is_admin = "admin" in (user.roles or [])
+
+    from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+
+    async with AsyncSessionLocal() as db:
+        deleted = await WikiDao.delete_annotation(db, annotation_id, user.user_id, is_admin=is_admin)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Annotation not found")
+        await db.commit()
+
+    return {"detail": "Annotation deleted"}

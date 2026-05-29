@@ -1,5 +1,6 @@
 import {
   countLeafEntries,
+  findFirstDocumentSlug,
   findIndexEntry,
   resolveSectionView,
   wikiApi,
@@ -10,7 +11,10 @@ import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
+import { WikiSearchBox } from "@/components/WikiSearchBox";
+import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import Link from "next/link";
+import { WikiFooter } from "@/components/home/WikiFooter";
 
 export const revalidate = 300;
 
@@ -62,6 +66,12 @@ export default async function WikiPublicationPage({ params }: Props) {
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
 
+  const catalogItem = sectionView.activeItem;
+  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
+  const catalogName = catalogItem
+    ? (catalogItem.entry_title || catalogItem.entry_slug)
+    : null;
+
   const sidebar = (
     <WikiSidebar
       pubSlug={pubSlug}
@@ -69,6 +79,8 @@ export default async function WikiPublicationPage({ params }: Props) {
       sidebarItems={sectionView.sidebarItems}
       hasActiveItem={!!sectionView.activeItem}
       indexEntry={indexEntry}
+      catalogTargetSlug={catalogTargetSlug}
+      catalogName={catalogName}
     />
   );
 
@@ -78,14 +90,26 @@ export default async function WikiPublicationPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      searchBox={<WikiSearchBox />}
+      actions={<WikiHeaderActions />}
       graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );
 
   return (
-    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined}>
+    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined} footer={<WikiFooter />}>
       <header className="wiki-doc-header">
-        <h1 className="wiki-doc-title">{publication.name}</h1>
+        <h1 className="wiki-doc-title">
+          {catalogName ? (
+            catalogTargetSlug ? (
+              <Link href={`/${pubSlug}/${catalogTargetSlug}`}>{catalogName}</Link>
+            ) : (
+              catalogName
+            )
+          ) : (
+            publication.name
+          )}
+        </h1>
         <div className="wiki-doc-meta">
           版本 v{publication.version} · {entriesTotal} 篇文档 ·{" "}
           {publication.published_at

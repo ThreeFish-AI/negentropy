@@ -58,7 +58,7 @@ test("Memory Dashboard 展示指标卡片", async ({ page }) => {
   await expect(page.getByText("2 low / 8 high")).toBeVisible();
 });
 
-test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
+test("Memory Dashboard Retrieval Metrics 独立卡片", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   await page.route("**/api/memory/dashboard**", async (route) => {
@@ -78,18 +78,58 @@ test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
     });
   });
 
+  // Mock user list + retrieval metrics
+  await page.route("**/api/memory**", async (route) => {
+    const url = route.request().url();
+    if (url.includes("/api/memory/dashboard")) return;
+    if (url.includes("/api/memory/retrieval/metrics")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          total_retrievals: 128,
+          precision_at_k: 0.72,
+          utilization_rate: 0.55,
+          noise_rate: 0.18,
+        }),
+      });
+      return;
+    }
+    // Default: user list for pill buttons
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        users: [
+          { id: "user-1", label: "Alice", count: 5 },
+          { id: "user-2", label: "Bob", count: 3 },
+        ],
+        timeline: [],
+        policies: {},
+      }),
+    });
+  });
+
   await page.goto("/dashboard");
 
   // Memory CellGroup label 应可见
   await expect(page.getByText("Memory", { exact: true }).first()).toBeVisible();
 
-  // 展开 Memory 详情面板
-  await page.getByText("Memory 详情").click();
+  // Retrieval Metrics 卡片标题始终可见
+  await expect(
+    page.getByRole("heading", { name: "Retrieval Metrics" }),
+  ).toBeVisible();
 
-  // 点击展开 Retrieval Metrics
-  await page.getByText("Retrieval Metrics").click();
-  // 未筛选用户时，显示提示
-  await expect(page.getByText("Filter by a User ID")).toBeVisible();
+  // "All Users" pill 默认选中
+  await expect(
+    page.getByRole("button", { name: "All Users" }),
+  ).toBeVisible();
+
+  // 指标网格加载后应显示
+  await expect(page.getByText("128")).toBeVisible();
+  await expect(page.getByText("72.0%")).toBeVisible();
+  await expect(page.getByText("55.0%")).toBeVisible();
+  await expect(page.getByText("18.0%")).toBeVisible();
 });
 
 // ============================================================================
@@ -106,7 +146,6 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
     if (route.request().url().includes("/api/memory/audit")) return;
     if (route.request().url().includes("/api/memory/conflicts")) return;
     if (route.request().url().includes("/api/memory/retrieval")) return;
-    if (route.request().url().includes("/api/memory/automation")) return;
 
     await route.fulfill({
       status: 200,
@@ -273,7 +312,7 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
 // Navigation
 // ============================================================================
 
-test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
+test("Memory 导航栏包含所有 4 个页面标签", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   await page.route("**/api/memory**", async (route) => {
@@ -283,7 +322,6 @@ test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
     if (route.request().url().includes("/api/memory/audit")) return;
     if (route.request().url().includes("/api/memory/conflicts")) return;
     if (route.request().url().includes("/api/memory/retrieval")) return;
-    if (route.request().url().includes("/api/memory/automation")) return;
 
     await route.fulfill({
       status: 200,
@@ -302,5 +340,4 @@ test("Memory 导航栏包含所有 5 个页面标签", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Facts" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conflicts" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Automation" })).toBeVisible();
 });

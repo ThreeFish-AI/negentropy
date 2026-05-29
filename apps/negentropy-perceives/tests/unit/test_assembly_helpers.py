@@ -28,27 +28,36 @@ class TestImageToMarkdown:
     """``_image_to_markdown`` —— 图片 Markdown 渲染契约。"""
 
     def test_emits_html_img_with_bbox_display_size(self) -> None:
-        """有 ``bbox`` 时应输出 HTML ``<img>``，width/height 取 bbox 尺寸。"""
+        """有 ``bbox`` 时应输出 HTML ``<img>``，width/height 由 bbox 尺寸 × 96/72 换算。
+
+        ISSUE-094 R7：PDF 点（72pt = 1in）→ CSS 像素（96px = 1in）换算因子 4/3。
+        bbox 宽 35pt → CSS 47px、bbox 高 27pt → CSS 36px。修复前直接把 pt 当
+        px 输出导致 figure 在 markdown view 中显示为 PDF 原版尺寸的 75%。
+        """
         img = ExtractedImage(
             image_id="img_p0_0",
             filename="img_p0_0.png",
             width=1536,
             height=1024,
-            bbox=(72.0, 35.0, 107.0, 62.0),  # PDF 点坐标 35x27 显示尺寸
+            bbox=(72.0, 35.0, 107.0, 62.0),  # PDF 点坐标 35x27 pt 显示尺寸
         )
         out = _image_to_markdown(img)
         assert out.startswith('<img src="./images/img_p0_0.png"')
         assert 'alt="img_p0_0.png"' in out
-        # bbox 优先：宽 35 / 高 27，而非原始像素 1536x1024
+        # bbox 优先 + 96/72 换算：宽 round(35*4/3)=47 / 高 round(27*4/3)=36
         m_w = re.search(r'width="(\d+)"', out)
         m_h = re.search(r'height="(\d+)"', out)
-        assert m_w is not None and int(m_w.group(1)) == 35
-        assert m_h is not None and int(m_h.group(1)) == 27
+        assert m_w is not None and int(m_w.group(1)) == 47
+        assert m_h is not None and int(m_h.group(1)) == 36
         assert 'style="max-width:100%;height:auto;"' in out
         assert out.endswith("/>")
 
     def test_falls_back_to_pixel_dims_when_no_bbox(self) -> None:
-        """``bbox`` 缺失时退化使用引擎报告的像素分辨率，避免完全丢弃尺寸。"""
+        """``bbox`` 缺失时退化使用引擎报告的像素分辨率，避免完全丢弃尺寸。
+
+        ``image.width`` / ``image.height`` 是引擎报告的 px 单位，不应再次乘以
+        96/72 系数（仅 bbox 的 pt 单位需换算）。
+        """
         img = ExtractedImage(
             image_id="img_x",
             filename="fig.png",
@@ -61,6 +70,43 @@ class TestImageToMarkdown:
         assert 'height="180"' in out
         # 仍是 HTML 形式，便于 UI 端 parsePixelValue 读取
         assert out.startswith("<img ")
+
+    def test_full_width_figure_region_outputs_pixel_width(self) -> None:
+        """A4 全宽 figure region（595pt × 730pt）→ PDF pt × 4/3 输出 793 × 973 CSS px。
+
+        ISSUE-094 R9 D-3 修复：之前 ``is_large_figure → width="100%"`` 分支让
+        所有全宽 figure 拍扁到容器宽度，丢失 PDF 中半宽 / 全宽 figure 的相对比例
+        信息。修复后始终输出 CSS px，配合 ``style="max-width:100%;height:auto"``
+        在窄屏自适应，等价于 R7 设计意图。
+        """
+        img = ExtractedImage(
+            image_id="rendered_0_0",
+            filename="fig_p1_1.png",
+            bbox=(0.0, 0.0, 595.0, 730.0),  # A4 全宽 figure
+        )
+        out = _image_to_markdown(img)
+        # 595 * 4/3 = 793.33 → 793；730 * 4/3 = 973.33 → 973
+        assert 'width="793"' in out
+        assert 'height="973"' in out
+        assert 'width="100%"' not in out
+        # 响应式 style 兜底窄屏
+        assert 'style="max-width:100%;height:auto;"' in out
+
+    def test_context_engineering_figure1_real_dims_outputs_pixel_width(self) -> None:
+        """Context Engineering 2.0 Figure 1 实测尺寸 373pt × 215pt → 497 × 287 CSS px。
+
+        ISSUE-094 R9 D-3 修复：取消 ``is_large_figure`` 阈值判定，统一输出 px。
+        """
+        img = ExtractedImage(
+            image_id="rendered_0_5",
+            filename="fig_p1_5.png",
+            bbox=(0.0, 0.0, 373.0, 215.0),
+        )
+        out = _image_to_markdown(img)
+        # 373 * 4/3 = 497.33 → 497；215 * 4/3 = 286.67 → 287
+        assert 'width="497"' in out
+        assert 'height="287"' in out
+        assert 'width="100%"' not in out
 
     def test_degrades_to_markdown_syntax_when_no_dims(self) -> None:
         """既无 bbox 又无 width/height 时降级为标准 Markdown ``![alt](src)``。"""

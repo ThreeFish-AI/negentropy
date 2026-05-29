@@ -106,7 +106,7 @@ auth:
   state_ttl_seconds: 600
   allowed_domains: []
   allowed_emails: []
-  admin_emails: ["threefish.ai@gmail.com"]
+  admin_emails: ["threefish.ai@gmail.com", "cm.huang@aftership.com"]
   user_id_strategy: sub                    # sub | email
   default_redirect_path: "/"
 

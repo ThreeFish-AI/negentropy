@@ -834,39 +834,43 @@ async def resolve_llm_config_for_task(
     task_key: str,
     *,
     corpus_id: UUID | str | None = None,
+    fallback_config_id: UUID | str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """按 task_key (+ 可选 corpus_id) 解析 LLM 配置。
 
     解析链:
         1. ``task_model_settings(scope_corpus_id=corpus_id, task_key)``
         2. ``task_model_settings(scope_corpus_id IS NULL, task_key)``
-        3. ``resolve_llm_config()``  — 全局默认
-        4. ``get_fallback_llm_config()`` — 硬编码 fallback（由前述链路自动兜底）
+        3. ``fallback_config_id`` — 调用方提供的兜底配置 ID（如语料库绑定）
+        4. ``resolve_llm_config()``  — 全局默认
+        5. ``get_fallback_llm_config()`` — 硬编码 fallback（由前述链路自动兜底）
 
     Returns:
         ``(full_model_name, litellm_kwargs)`` — 与 ``resolve_llm_config`` 同形签名，
         调用方无需关心是否命中 task 映射。
     """
-    return await _resolve_for_task("llm", task_key, corpus_id)
+    return await _resolve_for_task("llm", task_key, corpus_id, fallback_config_id)
 
 
 async def resolve_embedding_config_for_task(
     task_key: str,
     *,
     corpus_id: UUID | str | None = None,
+    fallback_config_id: UUID | str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """按 task_key (+ 可选 corpus_id) 解析 Embedding 配置。语义同 ``resolve_llm_config_for_task``。"""
-    return await _resolve_for_task("embedding", task_key, corpus_id)
+    return await _resolve_for_task("embedding", task_key, corpus_id, fallback_config_id)
 
 
 async def _resolve_for_task(
     model_type: str,
     task_key: str,
     corpus_id: UUID | str | None,
+    fallback_config_id: UUID | str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """统一的 task 槽位解析实现。
 
-    优先级：corpus_id 映射 → 全局映射 → 全局默认 → 硬编码 fallback。
+    优先级：corpus_id 映射 → 全局映射 → fallback_config_id → 全局默认 → 硬编码 fallback。
     每一层未命中时静默回退，错误（DB 不可达等）也降级为继续走下一层。
     """
     now = time.monotonic()
@@ -918,7 +922,26 @@ async def _resolve_for_task(
                 exc_info=True,
             )
 
-    # 3. 回退到全局默认（model_configs.is_default → vendor_configs → 硬编码 fallback）
+    # 3. 调用方提供的兜底配置 ID（如语料库绑定的 llm_config_id）
+    if fallback_config_id is not None:
+        try:
+            result = await _resolve_from_model_config_row(model_type, fallback_config_id)
+            if result is not None:
+                _cache[cache_key] = (result[0], result[1], now)
+                _log_task_resolved(task_key, corpus_id, model_type, result[0], "fallback_config")
+                return result[0], result[1].copy()
+        except Exception:
+            from negentropy.logging import get_logger
+
+            get_logger("negentropy.config.model_resolver").warning(
+                "task_model_resolve_fallback_failed",
+                task_key=task_key,
+                fallback_config_id=str(fallback_config_id),
+                model_type=model_type,
+                exc_info=True,
+            )
+
+    # 4. 回退到全局默认（model_configs.is_default → vendor_configs → 硬编码 fallback）
     if model_type == "embedding":
         name, kwargs = await resolve_embedding_config()
     else:

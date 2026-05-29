@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
@@ -91,46 +91,34 @@ function WikiNavNode({
   expanded,
   onToggle,
 }: WikiNavNodeProps) {
+  const linkRef = useRef<HTMLAnchorElement>(null);
   const children = item.children ?? [];
   const hasChildren = children.length > 0;
-  // 自 0011：容器节点判断改用 entry_kind（向后兼容旧响应：按 document_id 兜底）。
   const isContainer = isContainerItem(item);
   const isActive = !!activeSlug && item.entry_slug === activeSlug;
   const isOpen = expanded.has(item.entry_slug);
 
-  const handleToggleKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onToggle(item.entry_slug);
+  useEffect(() => {
+    if (isActive && linkRef.current) {
+      linkRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
-  };
+  }, [isActive]);
 
   return (
     <li className="wiki-nav-item" role="treeitem">
       <div className="wiki-nav-row">
-        {hasChildren && (
-          <button
-            type="button"
-            className={`wiki-nav-toggle${isOpen ? " open" : ""}`}
-            aria-label={isOpen ? "折叠" : "展开"}
-            aria-expanded={isOpen}
-            onClick={() => onToggle(item.entry_slug)}
-            onKeyDown={handleToggleKey}
-          >
-            <ChevronIcon />
-          </button>
-        )}
-        {!hasChildren && <span className="wiki-nav-toggle wiki-nav-toggle-spacer" aria-hidden="true" />}
         {isContainer ? (
           <button
             type="button"
             className="wiki-nav-group"
+            aria-expanded={hasChildren ? isOpen : undefined}
             onClick={() => hasChildren && onToggle(item.entry_slug)}
           >
             {item.entry_title}
           </button>
         ) : (
           <Link
+            ref={linkRef}
             href={`/${pubSlug}/${item.entry_slug}`}
             className={`wiki-nav-link${isActive ? " active" : ""}`}
             aria-current={isActive ? "page" : undefined}
@@ -140,38 +128,22 @@ function WikiNavNode({
           </Link>
         )}
       </div>
-      {hasChildren && isOpen && (
-        <ul className="wiki-nav-list wiki-nav-sublist" role="group">
-          {children.map((child, idx) => (
-            <WikiNavNode
-              key={`${child.entry_id ?? "c"}:${child.entry_slug}:${idx}`}
-              item={child}
-              pubSlug={pubSlug}
-              activeSlug={activeSlug}
-              expanded={expanded}
-              onToggle={onToggle}
-            />
-          ))}
-        </ul>
+      {hasChildren && (
+        <div className={`wiki-nav-children${isOpen ? " open" : ""}`}>
+          <ul className="wiki-nav-list wiki-nav-sublist" role="group">
+            {children.map((child, idx) => (
+              <WikiNavNode
+                key={`${child.entry_id ?? "c"}:${child.entry_slug}:${idx}`}
+                item={child}
+                pubSlug={pubSlug}
+                activeSlug={activeSlug}
+                expanded={expanded}
+                onToggle={onToggle}
+              />
+            ))}
+          </ul>
+        </div>
       )}
     </li>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="12"
-      height="12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="5 3 11 8 5 13" />
-    </svg>
   );
 }

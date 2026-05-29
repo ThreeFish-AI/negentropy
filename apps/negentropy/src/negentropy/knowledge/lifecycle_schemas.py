@@ -318,6 +318,112 @@ class SyncFromCatalogResponse(BaseModel):
 
 
 # =============================================================================
+# Phase 4.1: Wiki 评论与注解 Schemas
+# =============================================================================
+
+
+class WikiCommentCreateRequest(BaseModel):
+    """创建页面评论请求"""
+
+    body: str = Field(..., min_length=1, max_length=2000)
+
+
+class WikiCommentUpdateRequest(BaseModel):
+    """更新页面评论请求"""
+
+    body: str = Field(..., min_length=1, max_length=2000)
+
+
+class WikiCommentResponse(BaseModel):
+    """页面评论响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    entry_id: UUID
+    user_id: str
+    user_name: str | None = None
+    user_picture: str | None = None
+    body: str
+    status: str
+    parent_comment_id: UUID | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class WikiCommentListResponse(BaseModel):
+    """页面评论列表响应"""
+
+    items: list[WikiCommentResponse]
+    total: int
+
+
+class WikiAnnotationAnchor(BaseModel):
+    """文本注解锚定数据（W3C Web Annotation TextQuoteSelector）
+
+    v2 锚定（source-anchored selectors）新增字段：
+      - source_text_hash：创建时容器 textContent 快照的 FNV-1a 哈希，
+        用于运行时校验 snapshot 是否仍可信（解决浏览器翻译/DOM 重渲染导致的
+        锚定漂移问题）。
+      - source_lang：创建时检测到的内容主语言。仅用于诊断与调试。
+      - anchor_version：锚定算法版本。缺省视为 v1（旧 anchor，不含上述字段）。
+
+    所有 v2 字段均为可选，向前兼容旧 anchor。底层 anchor JSONB 字段，
+    无需数据库 migration。
+    """
+
+    xpath: str
+    exact: str
+    prefix: str | None = None
+    suffix: str | None = None
+    text_offset: int | None = None
+    text_length: int | None = None
+    source_text_hash: str | None = None
+    source_lang: str | None = None
+    anchor_version: int | None = None
+
+
+class WikiAnnotationCreateRequest(BaseModel):
+    """创建文本注解请求"""
+
+    body: str = Field(..., min_length=1, max_length=1000)
+    quoted_text: str = Field(..., min_length=1)
+    anchor: WikiAnnotationAnchor
+
+
+class WikiAnnotationUpdateRequest(BaseModel):
+    """更新文本注解请求"""
+
+    body: str = Field(..., min_length=1, max_length=1000)
+
+
+class WikiAnnotationResponse(BaseModel):
+    """文本注解响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    entry_id: UUID
+    user_id: str
+    user_name: str | None = None
+    user_picture: str | None = None
+    body: str
+    quoted_text: str
+    anchor: dict[str, Any]
+    pub_version: int
+    status: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class WikiAnnotationListResponse(BaseModel):
+    """文本注解列表响应"""
+
+    items: list[WikiAnnotationResponse]
+    total: int
+
+
+# =============================================================================
 # Phase 5: 统一检索 Schemas
 # =============================================================================
 

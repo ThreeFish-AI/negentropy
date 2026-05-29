@@ -156,7 +156,7 @@ function CorpusSettingsPanel({
               <option value="">(使用全局默认)</option>
               {embeddingModels.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.display_name} · {m.vendor}/{m.model_name}
+                  {m.display_name?.trim() || `${m.vendor}/${m.model_name}`}
                 </option>
               ))}
             </select>
@@ -183,7 +183,7 @@ function CorpusSettingsPanel({
               <option value="">(使用全局默认)</option>
               {llmModels.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.display_name} · {m.vendor}/{m.model_name}
+                  {m.display_name?.trim() || `${m.vendor}/${m.model_name}`}
                 </option>
               ))}
             </select>

@@ -1,9 +1,10 @@
-"""单测：``search_knowledge_base`` 按 ``tool_context.state.scoped_corpus_ids`` 限定检索范围。
+"""单测：``search_knowledge_base`` 按 ``tool_context.state.corpus_ids`` 限定检索范围。
 
 业务背景：Home Composer 通过 ``@Corpus`` 选中若干语料库后，前端将其 UUID 列表
-经 ``forwardedProps.scoped_corpus_ids`` → BFF ``state_delta`` → ADK session.state
+经 ``forwardedProps.corpus_ids`` → BFF ``state_delta`` → ADK session.state
 透传到 perception tool。命中时，``Corpus`` 查询追加 ``id IN (...)`` 过滤，仅在
-指定语料库内检索；未命中时保持原"全 Corpus 聚合"行为。
+指定语料库内检索（KB+KG hybrid 由 HybridPlanner 自主决策图扩展）；未命中时
+保持原"全 Corpus 聚合"行为。
 
 不连真实 DB / 不实际启动 KnowledgeService —— mock 边界即可。
 """
@@ -47,13 +48,13 @@ def _make_match(corpus_id: str) -> MagicMock:
 
 
 # ----------------------------------------------------------------------------
-# scoped_corpus_ids 命中：仅在 IN 子集内检索
+# corpus_ids 命中：仅在 IN 子集内检索
 # ----------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_scoped_corpus_ids_appends_in_clause_and_limits_search():
-    """state.scoped_corpus_ids = [uuid_a] → SQL 含 IN (uuid_a)，service.search 仅调用一次。"""
+async def test_corpus_ids_appends_in_clause_and_limits_search():
+    """state.corpus_ids = [uuid_a] → SQL 含 IN (uuid_a)，service.search 仅调用一次。"""
     from negentropy.agents.tools import perception as perception_module
 
     uuid_a, uuid_b = str(uuid4()), str(uuid4())
@@ -65,7 +66,7 @@ async def test_scoped_corpus_ids_appends_in_clause_and_limits_search():
     fake_service.search = AsyncMock(return_value=[_make_match(uuid_a)])
 
     ctx = MagicMock()
-    ctx.state = {"scoped_corpus_ids": [uuid_a]}
+    ctx.state = {"corpus_ids": [uuid_a]}
 
     with (
         patch.object(perception_module.db_session, "AsyncSessionLocal", return_value=cm),
@@ -89,13 +90,13 @@ async def test_scoped_corpus_ids_appends_in_clause_and_limits_search():
 
 
 # ----------------------------------------------------------------------------
-# scoped_corpus_ids 未命中：保持原"全 Corpus 聚合"行为
+# corpus_ids 未命中：保持原"全 Corpus 聚合"行为
 # ----------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
 async def test_no_scope_falls_back_to_aggregate_search_across_all_corpora():
-    """state 不含 scoped_corpus_ids → SQL 不含 IN 子句，service.search 对每个 corpus 各调一次。"""
+    """state 不含 corpus_ids → SQL 不含 IN 子句，service.search 对每个 corpus 各调一次。"""
     from negentropy.agents.tools import perception as perception_module
 
     uuid_a, uuid_b = str(uuid4()), str(uuid4())
@@ -106,7 +107,7 @@ async def test_no_scope_falls_back_to_aggregate_search_across_all_corpora():
     fake_service.search = AsyncMock(side_effect=lambda **kw: [_make_match(str(kw["corpus_id"]))])
 
     ctx = MagicMock()
-    ctx.state = {}  # 无 scoped_corpus_ids
+    ctx.state = {}  # 无 corpus_ids
 
     with (
         patch.object(perception_module.db_session, "AsyncSessionLocal", return_value=cm),
@@ -129,7 +130,7 @@ async def test_no_scope_falls_back_to_aggregate_search_across_all_corpora():
 
 @pytest.mark.asyncio
 async def test_empty_scope_list_treated_as_no_scope():
-    """state.scoped_corpus_ids = [] → 视作未指定，不追加 IN 子句。"""
+    """state.corpus_ids = [] → 视作未指定，不追加 IN 子句。"""
     from negentropy.agents.tools import perception as perception_module
 
     uuid_a = str(uuid4())
@@ -138,7 +139,7 @@ async def test_empty_scope_list_treated_as_no_scope():
     fake_service.search = AsyncMock(return_value=[_make_match(uuid_a)])
 
     ctx = MagicMock()
-    ctx.state = {"scoped_corpus_ids": []}
+    ctx.state = {"corpus_ids": []}
 
     with (
         patch.object(perception_module.db_session, "AsyncSessionLocal", return_value=cm),
@@ -152,7 +153,7 @@ async def test_empty_scope_list_treated_as_no_scope():
 
 @pytest.mark.asyncio
 async def test_scope_with_non_string_entries_filtered_out():
-    """state.scoped_corpus_ids 含 None/int 等异类条目 → 过滤后若仍非空仍走 IN。"""
+    """state.corpus_ids 含 None/int 等异类条目 → 过滤后若仍非空仍走 IN。"""
     from negentropy.agents.tools import perception as perception_module
 
     uuid_a = str(uuid4())
@@ -161,7 +162,7 @@ async def test_scope_with_non_string_entries_filtered_out():
     fake_service.search = AsyncMock(return_value=[_make_match(uuid_a)])
 
     ctx = MagicMock()
-    ctx.state = {"scoped_corpus_ids": [uuid_a, None, 123, ""]}
+    ctx.state = {"corpus_ids": [uuid_a, None, 123, ""]}
 
     with (
         patch.object(perception_module.db_session, "AsyncSessionLocal", return_value=cm),
@@ -181,7 +182,7 @@ async def test_scope_hits_nonexistent_corpus_returns_memory_fallback():
     cm, _ = _make_session_cm([])  # DB 过滤后为空
 
     ctx = MagicMock()
-    ctx.state = {"scoped_corpus_ids": [str(uuid4())]}
+    ctx.state = {"corpus_ids": [str(uuid4())]}
     # search_memory 缺席 → fallback 返回 count=0
     if hasattr(ctx, "search_memory"):
         del ctx.search_memory

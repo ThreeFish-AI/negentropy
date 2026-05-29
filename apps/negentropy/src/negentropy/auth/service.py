@@ -74,7 +74,7 @@ class AuthService:
         token_payload = await self._exchange_code(code)
         claims = await self._verify_id_token(token_payload.get("id_token"))
         user = self._build_user(claims)
-        await self._upsert_user_state(user, claims)
+        user = await self._upsert_user_state(user, claims)
         session_token = self._build_session_token(user)
         return AuthResult(user=user, token=session_token, redirect=redirect)
 
@@ -165,7 +165,8 @@ class AuthService:
             domain=domain,
         )
 
-    async def _upsert_user_state(self, user: AuthUser, claims: dict[str, Any]) -> None:
+    async def _upsert_user_state(self, user: AuthUser, claims: dict[str, Any]) -> AuthUser:
+        effective_roles: list[str] = user.roles
         async with AsyncSessionLocal() as db:
             result = await db.execute(
                 select(UserState).where(
@@ -174,6 +175,17 @@ class AuthService:
                 )
             )
             user_state = result.scalar_one_or_none()
+
+            if user_state:
+                db_roles = (user_state.state or {}).get("roles", user.roles)
+                if isinstance(db_roles, list):
+                    effective_roles = db_roles
+
+            # Config-level admin is non-negotiable: DB state cannot demote users
+            # who are explicitly listed in admin_emails.
+            if "admin" in user.roles and "admin" not in effective_roles:
+                effective_roles = ["admin"]
+
             next_state = {
                 "profile": {
                     "email": user.email,
@@ -190,7 +202,7 @@ class AuthService:
                     "domain": user.domain,
                     "last_login_at": int(time.time()),
                 },
-                "roles": user.roles,
+                "roles": effective_roles,
             }
 
             if user_state:
@@ -204,6 +216,19 @@ class AuthService:
                     )
                 )
             await db.commit()
+
+        if effective_roles == user.roles:
+            return user
+        return AuthUser(
+            user_id=user.user_id,
+            email=user.email,
+            name=user.name,
+            picture=user.picture,
+            roles=effective_roles,
+            provider=user.provider,
+            subject=user.subject,
+            domain=user.domain,
+        )
 
     def _build_session_token(self, user: AuthUser) -> str:
         now = int(time.time())

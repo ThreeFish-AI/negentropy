@@ -125,6 +125,14 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         category="Knowledge Graph",
         description="文档入库前的结构化抽取（标题、章节、要点）。",
     ),
+    TaskSlot(
+        task_key="knowledge.kg.global_search",
+        model_type="llm",
+        scope="corpus",
+        label="KG 全局问答",
+        category="Knowledge Graph",
+        description="基于社区摘要的 Map-Reduce 全局检索问答。",
+    ),
 )
 
 # 索引：避免每次线性扫描

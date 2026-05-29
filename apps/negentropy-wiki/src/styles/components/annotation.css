@@ -1,0 +1,208 @@
+/* Wiki 文本注解样式 */
+
+/* 高亮标记（常驻） —— MarkWrapRenderer 路径 */
+.wiki-annotation-highlight {
+  background: rgba(255, 212, 59, 0.25);
+  border-left: 3px solid rgba(255, 180, 0, 0.6);
+  padding: 1px 0;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.wiki-annotation-highlight:hover {
+  background: rgba(255, 212, 59, 0.45);
+}
+
+/* CSS Custom Highlight API 路径的样式通过 JS 运行时注入（use-highlight-renderer.ts），
+   绕过 LightningCSS 不识别 ::highlight() 伪元素的构建限制 */
+
+/* 浮动注解按钮 */
+.wiki-annotation-fab {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: var(--wiki-accent-green);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.wiki-annotation-fab:hover {
+  transform: translate(-50%, -100%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 注解输入浮层 */
+.wiki-annotation-composer {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 45;
+  min-width: 280px;
+  max-width: 360px;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+}
+
+.wiki-annotation-quote {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-left: 3px solid rgba(255, 180, 0, 0.5);
+  background: rgba(255, 212, 59, 0.1);
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: var(--wiki-text-secondary);
+  border-radius: 0 4px 4px 0;
+}
+
+.wiki-annotation-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.9em;
+  line-height: 1.5;
+  background: var(--wiki-input-bg);
+  color: var(--wiki-text);
+  resize: vertical;
+  outline: none;
+  font-family: var(--wiki-body-font);
+}
+.wiki-annotation-input:focus {
+  border-color: var(--wiki-accent-green);
+}
+
+.wiki-annotation-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.wiki-annotation-cancel-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--wiki-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  font-size: 0.85em;
+}
+.wiki-annotation-cancel-btn:hover {
+  background: var(--wiki-bg-secondary);
+}
+.wiki-annotation-submit-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--wiki-accent-green);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.wiki-annotation-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Tooltip */
+.wiki-annotation-tooltip {
+  position: fixed;
+  z-index: 50;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 10px 14px;
+  max-width: 320px;
+  min-width: 200px;
+  pointer-events: auto;
+  animation: wiki-tooltip-fadein 0.15s ease;
+}
+
+@keyframes wiki-tooltip-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wiki-annotation-tooltip-item + .wiki-annotation-tooltip-item {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--wiki-border);
+}
+.wiki-annotation-tooltip-item {
+  position: relative;
+}
+.wiki-annotation-tooltip-body {
+  margin: 0 0 6px;
+  font-size: 0.88em;
+  line-height: 1.5;
+  color: var(--wiki-text);
+}
+.wiki-annotation-tooltip-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wiki-annotation-tooltip-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.wiki-annotation-tooltip-avatar-placeholder {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--wiki-accent-green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.wiki-annotation-tooltip-author {
+  font-size: 0.82em;
+  font-weight: 600;
+}
+.wiki-annotation-tooltip-time {
+  font-size: 0.78em;
+  color: var(--wiki-text-secondary);
+  margin-left: auto;
+}
+
+/* 注解 Tooltip 删除按钮 */
+.wiki-annotation-tooltip-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  border: none;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.wiki-annotation-tooltip-item:hover .wiki-annotation-tooltip-delete {
+  opacity: 1;
+}
+.wiki-annotation-tooltip-delete:hover {
+  color: #e53e3e;
+  background: rgba(229, 62, 62, 0.08);
+}

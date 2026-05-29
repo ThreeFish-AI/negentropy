@@ -48,6 +48,11 @@ export {
 } from "./components/RetryableErrorBanner";
 export { MemoryTimelineCard } from "./components/MemoryTimelineCard";
 export { MemoryUserSelect } from "./components/MemoryUserSelect";
+export { MemoryUserPillFilter } from "./components/MemoryUserPillFilter";
+export { MemorySidebarLayout } from "./components/MemorySidebarLayout";
+export { SidebarCard } from "./components/SidebarCard";
+export { RetentionPolicyCard } from "./components/RetentionPolicyCard";
+export { LegendCard } from "./components/LegendCard";
 export type {
   RetryableError,
   RetryableErrorBannerProps,
@@ -65,11 +70,6 @@ export {
   searchFacts,
   submitAudit,
   fetchAuditHistory,
-  fetchMemoryAutomation,
-  fetchMemoryAutomationLogs,
-  updateMemoryAutomationConfig,
-  triggerMemoryAutomationJobAction,
-  runMemoryAutomationJob,
   fetchConflicts,
   resolveConflict,
   fetchFactHistory,
@@ -91,13 +91,6 @@ export type {
   AuditRecord,
   AuditResponse,
   AuditHistoryPayload,
-  MemoryAutomationFunction,
-  MemoryAutomationJob,
-  MemoryAutomationProcess,
-  MemoryAutomationSnapshot,
-  MemoryAutomationLog,
-  MemoryAutomationLogsPayload,
-  MemoryAutomationRunResponse,
   ConflictItem,
   ConflictListPayload,
   FactHistoryItem,

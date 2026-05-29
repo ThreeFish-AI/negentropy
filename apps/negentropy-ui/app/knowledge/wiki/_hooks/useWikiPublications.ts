@@ -30,7 +30,7 @@ export function useWikiPublications({ catalogId }: UseWikiPublicationsOptions) {
       const resp = await fetchWikiPublications({ catalogId });
       setPublications(resp.items);
       setSelectedId((prev) =>
-        prev && resp.items.some((p) => p.id === prev) ? prev : null,
+        prev && resp.items.some((p) => p.id === prev) ? prev : (resp.items[0]?.id ?? null),
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "加载发布列表失败");

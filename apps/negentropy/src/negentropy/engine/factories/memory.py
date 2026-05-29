@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from negentropy.engine.adapters.postgres.association_service import AssociationService
     from negentropy.engine.adapters.postgres.core_block_service import CoreBlockService
     from negentropy.engine.adapters.postgres.fact_service import FactService
-    from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
     from negentropy.engine.adapters.postgres.proactive_recall_service import ProactiveRecallService
     from negentropy.engine.adapters.postgres.summary_service import SummaryService
     from negentropy.engine.consolidation.memory_summarizer import MemorySummarizer
@@ -174,7 +173,6 @@ def reset_memory_governance_service() -> None:
 # ============================================================================
 
 _fact_service_instance: FactService | None = None
-_memory_automation_service_instance: MemoryAutomationService | None = None
 
 
 def get_fact_service(embedding_fn: EmbeddingFn | None = None) -> FactService:
@@ -204,22 +202,6 @@ def reset_fact_service() -> None:
     """重置 FactService 单例缓存 (用于测试)"""
     global _fact_service_instance
     _fact_service_instance = None
-
-
-def get_memory_automation_service() -> MemoryAutomationService:
-    global _memory_automation_service_instance
-
-    if _memory_automation_service_instance is None:
-        from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
-
-        _memory_automation_service_instance = MemoryAutomationService()
-
-    return _memory_automation_service_instance
-
-
-def reset_memory_automation_service() -> None:
-    global _memory_automation_service_instance
-    _memory_automation_service_instance = None
 
 
 # ============================================================================
@@ -374,8 +356,6 @@ __all__ = [
     # Fact Service
     "get_fact_service",
     "reset_fact_service",
-    "get_memory_automation_service",
-    "reset_memory_automation_service",
     # Summary Service
     "get_summary_service",
     "reset_summary_service",

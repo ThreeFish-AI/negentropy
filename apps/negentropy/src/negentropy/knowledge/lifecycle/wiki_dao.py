@@ -19,6 +19,8 @@ from sqlalchemy.orm import selectinload
 
 from negentropy.models.perception import (
     KnowledgeDocument,
+    WikiEntryAnnotation,
+    WikiEntryComment,
     WikiPublication,
     WikiPublicationEntry,
     WikiPublicationSnapshot,
@@ -346,6 +348,19 @@ class WikiDao:
         return list(result.scalars().all())
 
     @staticmethod
+    async def count_document_entries(db: AsyncSession, publication_id: UUID) -> int:
+        """计算发布中 DOCUMENT 类型条目数量（排除 CONTAINER 文件夹节点）。"""
+        result = await db.execute(
+            select(func.count())
+            .select_from(WikiPublicationEntry)
+            .where(
+                WikiPublicationEntry.publication_id == publication_id,
+                WikiPublicationEntry.entry_kind == "DOCUMENT",
+            )
+        )
+        return result.scalar() or 0
+
+    @staticmethod
     async def get_entry_by_slug(
         db: AsyncSession,
         publication_id: UUID,
@@ -374,6 +389,7 @@ class WikiDao:
             select(
                 WikiPublicationEntry.document_id,
                 KnowledgeDocument.original_filename,
+                KnowledgeDocument.display_name,
                 KnowledgeDocument.markdown_content,
                 KnowledgeDocument.metadata_,
             )
@@ -384,12 +400,22 @@ class WikiDao:
         if row is None:
             return None
 
-        doc_id, filename, markdown_content, metadata = row
+        doc_id, filename, display_name, markdown_content, metadata = row
+        # 与 wiki_service._resolve_doc_display_title 保持同源优先级：
+        # display_name (用户覆盖) -> metadata_.title -> original_filename。
+        resolved_title = (display_name or "").strip()
+        if not resolved_title:
+            meta_title = (metadata or {}).get("title")
+            if isinstance(meta_title, str) and meta_title.strip():
+                resolved_title = meta_title.strip()
+        if not resolved_title:
+            resolved_title = filename or "Untitled"
         return {
             "document_id": doc_id,
             "filename": filename,
+            "display_name": display_name,
             "markdown_content": markdown_content or "",
-            "title": (metadata or {}).get("title") or filename or "Untitled",
+            "title": resolved_title,
             "metadata": metadata or {},
         }
 
@@ -497,3 +523,250 @@ class WikiDao:
             pub.snapshot_version = version
             await db.flush()
         return snap
+
+    # ------------------------------------------------------------------
+    # Comment CRUD (页面评论)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def create_comment(
+        db: AsyncSession,
+        *,
+        entry_id: UUID,
+        user_id: str,
+        body: str,
+    ) -> WikiEntryComment:
+        comment = WikiEntryComment(
+            entry_id=entry_id,
+            user_id=user_id,
+            body=body,
+        )
+        db.add(comment)
+        await db.flush()
+        return comment
+
+    @staticmethod
+    async def list_comments(
+        db: AsyncSession,
+        entry_id: UUID,
+        *,
+        status: str = "active",
+        offset: int = 0,
+        limit: int = 50,
+    ) -> tuple[list[dict], int]:
+        """列出评论，JOIN user_states 解析用户 profile"""
+        from negentropy.config import settings
+        from negentropy.models.state import UserState
+
+        base = select(WikiEntryComment).where(
+            WikiEntryComment.entry_id == entry_id,
+            WikiEntryComment.status == status,
+        )
+        count_q = select(func.count()).select_from(base.subquery())
+        total = (await db.execute(count_q)).scalar() or 0
+
+        rows_q = base.order_by(WikiEntryComment.created_at.asc()).offset(offset).limit(limit)
+        result = await db.execute(rows_q)
+        comments = list(result.scalars().all())
+
+        # 批量解析用户 profile
+        user_ids = {c.user_id for c in comments}
+        user_map: dict[str, dict] = {}
+        if user_ids:
+            usr_result = await db.execute(
+                select(UserState).where(
+                    UserState.user_id.in_(user_ids),
+                    UserState.app_name == settings.app_name,
+                )
+            )
+            for usr in usr_result.scalars().all():
+                profile = (usr.state or {}).get("profile", {})
+                user_map[usr.user_id] = {
+                    "user_name": profile.get("name"),
+                    "user_picture": profile.get("picture"),
+                }
+
+        items = []
+        for c in comments:
+            info = user_map.get(c.user_id, {})
+            items.append(
+                {
+                    "id": c.id,
+                    "entry_id": c.entry_id,
+                    "user_id": c.user_id,
+                    "user_name": info.get("user_name"),
+                    "user_picture": info.get("user_picture"),
+                    "body": c.body,
+                    "status": c.status,
+                    "parent_comment_id": c.parent_comment_id,
+                    "created_at": c.created_at,
+                    "updated_at": c.updated_at,
+                }
+            )
+        return items, total
+
+    @staticmethod
+    async def update_comment(
+        db: AsyncSession,
+        comment_id: UUID,
+        user_id: str,
+        body: str,
+    ) -> WikiEntryComment | None:
+        result = await db.execute(
+            select(WikiEntryComment).where(
+                WikiEntryComment.id == comment_id,
+                WikiEntryComment.user_id == user_id,
+                WikiEntryComment.status == "active",
+            )
+        )
+        comment = result.scalar_one_or_none()
+        if comment is None:
+            return None
+        comment.body = body
+        await db.flush()
+        return comment
+
+    @staticmethod
+    async def delete_comment(
+        db: AsyncSession,
+        comment_id: UUID,
+        user_id: str,
+        is_admin: bool = False,
+    ) -> bool:
+        conditions = [WikiEntryComment.id == comment_id, WikiEntryComment.status == "active"]
+        if not is_admin:
+            conditions.append(WikiEntryComment.user_id == user_id)
+        result = await db.execute(select(WikiEntryComment).where(*conditions))
+        comment = result.scalar_one_or_none()
+        if comment is None:
+            return False
+        comment.status = "deleted"
+        await db.flush()
+        return True
+
+    # ------------------------------------------------------------------
+    # Annotation CRUD (文本注解)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def create_annotation(
+        db: AsyncSession,
+        *,
+        entry_id: UUID,
+        user_id: str,
+        body: str,
+        quoted_text: str,
+        anchor: dict[str, Any],
+        pub_version: int,
+    ) -> WikiEntryAnnotation:
+        annotation = WikiEntryAnnotation(
+            entry_id=entry_id,
+            user_id=user_id,
+            body=body,
+            quoted_text=quoted_text,
+            anchor=anchor,
+            pub_version=pub_version,
+        )
+        db.add(annotation)
+        await db.flush()
+        return annotation
+
+    @staticmethod
+    async def list_annotations(
+        db: AsyncSession,
+        entry_id: UUID,
+        *,
+        status: str = "active",
+        offset: int = 0,
+        limit: int = 200,
+    ) -> tuple[list[dict], int]:
+        """列出注解，JOIN user_states 解析用户 profile"""
+        from negentropy.config import settings
+        from negentropy.models.state import UserState
+
+        base = select(WikiEntryAnnotation).where(
+            WikiEntryAnnotation.entry_id == entry_id,
+            WikiEntryAnnotation.status == status,
+        )
+        count_q = select(func.count()).select_from(base.subquery())
+        total = (await db.execute(count_q)).scalar() or 0
+
+        rows_q = base.order_by(WikiEntryAnnotation.created_at.asc()).offset(offset).limit(limit)
+        result = await db.execute(rows_q)
+        annotations = list(result.scalars().all())
+
+        user_ids = {a.user_id for a in annotations}
+        user_map: dict[str, dict] = {}
+        if user_ids:
+            usr_result = await db.execute(
+                select(UserState).where(
+                    UserState.user_id.in_(user_ids),
+                    UserState.app_name == settings.app_name,
+                )
+            )
+            for usr in usr_result.scalars().all():
+                profile = (usr.state or {}).get("profile", {})
+                user_map[usr.user_id] = {
+                    "user_name": profile.get("name"),
+                    "user_picture": profile.get("picture"),
+                }
+
+        items = []
+        for a in annotations:
+            info = user_map.get(a.user_id, {})
+            items.append(
+                {
+                    "id": a.id,
+                    "entry_id": a.entry_id,
+                    "user_id": a.user_id,
+                    "user_name": info.get("user_name"),
+                    "user_picture": info.get("user_picture"),
+                    "body": a.body,
+                    "quoted_text": a.quoted_text,
+                    "anchor": a.anchor,
+                    "pub_version": a.pub_version,
+                    "status": a.status,
+                    "created_at": a.created_at,
+                    "updated_at": a.updated_at,
+                }
+            )
+        return items, total
+
+    @staticmethod
+    async def update_annotation(
+        db: AsyncSession,
+        annotation_id: UUID,
+        user_id: str,
+        body: str,
+    ) -> WikiEntryAnnotation | None:
+        result = await db.execute(
+            select(WikiEntryAnnotation).where(
+                WikiEntryAnnotation.id == annotation_id,
+                WikiEntryAnnotation.user_id == user_id,
+                WikiEntryAnnotation.status == "active",
+            )
+        )
+        annotation = result.scalar_one_or_none()
+        if annotation is None:
+            return None
+        annotation.body = body
+        await db.flush()
+        return annotation
+
+    @staticmethod
+    async def delete_annotation(
+        db: AsyncSession,
+        annotation_id: UUID,
+        user_id: str,
+        is_admin: bool = False,
+    ) -> bool:
+        conditions = [WikiEntryAnnotation.id == annotation_id, WikiEntryAnnotation.status == "active"]
+        if not is_admin:
+            conditions.append(WikiEntryAnnotation.user_id == user_id)
+        result = await db.execute(select(WikiEntryAnnotation).where(*conditions))
+        annotation = result.scalar_one_or_none()
+        if annotation is None:
+            return False
+        annotation.status = "deleted"
+        await db.flush()
+        return True

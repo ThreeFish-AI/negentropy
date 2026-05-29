@@ -172,6 +172,27 @@ def _mask_credentials(credentials: dict[str, Any]) -> dict[str, Any]:
     return masked
 
 
+def _is_masked_value(value: Any) -> bool:
+    """判断值是否为 _mask_credentials 产生的脱敏占位值。"""
+    return isinstance(value, str) and "****" in value
+
+
+def _merge_masked_credentials(incoming: dict[str, Any], stored: dict[str, Any]) -> dict[str, Any]:
+    """将 incoming 中的脱敏占位值替换为 stored 中的真实值。
+
+    前端回传 GET 响应中的脱敏值时，用 DB 真实凭证替换：
+    - incoming 中未被脱敏的字段（用户新输入）保持不变
+    - incoming 中被脱敏且 stored 中无对应值时保留原值（下游校验拦截）
+    """
+    merged = {}
+    for key, value in incoming.items():
+        if _is_masked_value(value) and key in stored:
+            merged[key] = stored[key]
+        else:
+            merged[key] = value
+    return merged
+
+
 def _builtin_tool_to_response(tool: BuiltinTool) -> BuiltinToolResponse:
     return BuiltinToolResponse(
         id=tool.id,
@@ -1460,7 +1481,10 @@ async def get_builtin_tool(
 ) -> BuiltinToolResponse:
     """获取工具详情"""
     async with AsyncSessionLocal() as db:
-        has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user)
+        # required_permission="view"：读取详情属只读语义，与同 module 其余 17 处
+        # check_plugin_access 调用对齐；系统内置 (is_system=True) 走 view 全员通过、
+        # edit 仅 admin 的分支（参见 permissions.py:_is_plugin_builtin）。
+        has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user, "view")
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
@@ -1490,6 +1514,11 @@ async def update_builtin_tool(
         update_data = payload.model_dump(exclude_unset=True)
         if "visibility" in update_data:
             update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        # 前端可能回传 GET 响应中的脱敏凭证，替换为 DB 真实值后再写入
+        if "credentials" in update_data and update_data["credentials"] is not None:
+            update_data["credentials"] = _merge_masked_credentials(
+                update_data["credentials"], ensure_dict(tool.credentials)
+            )
         for field, value in update_data.items():
             setattr(tool, field, value)
 
@@ -1537,7 +1566,10 @@ async def test_builtin_tool(
     import httpx
 
     async with AsyncSessionLocal() as db:
-        has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user)
+        # required_permission="view"：连通性测试不写库，与 MCP 同类只读端点
+        # (list_mcp_tool_runs 等) 对齐；若用 "edit" 将禁止非 admin 用户测试系统
+        # 内置工具（如 google_search），违背设计语义。
+        has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user, "view")
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
@@ -1549,6 +1581,8 @@ async def test_builtin_tool(
     inline = payload or BuiltinToolTestRequest()
     config = inline.config if inline.config is not None else ensure_dict(tool.config)
     credentials = inline.credentials if inline.credentials is not None else ensure_dict(tool.credentials)
+    # 前端可能回传 GET 响应中的脱敏凭证（含 ****），替换为 DB 真实值
+    credentials = _merge_masked_credentials(credentials, ensure_dict(tool.credentials))
 
     if tool.tool_type == "search" and tool.name == "google_search":
         api_key = credentials.get("api_key", "")

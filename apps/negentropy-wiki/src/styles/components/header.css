@@ -3,8 +3,8 @@
   top: 0;
   z-index: 30;
   height: var(--wiki-header-height);
-  background: var(--wiki-bg);
-  border-bottom: 1px solid var(--wiki-border);
+  background: var(--wiki-header-bg);
+  box-shadow: var(--wiki-header-shadow);
 }
 
 .wiki-header-inner {
@@ -23,7 +23,7 @@
   color: var(--wiki-text);
   text-decoration: none;
   font-weight: 700;
-  font-size: 0.98em;
+  font-size: 1em;
   white-space: nowrap;
 }
 .wiki-header-brand:hover {
@@ -50,7 +50,10 @@
   min-width: 0;
   height: 100%;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+.wiki-header-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .wiki-header-tab {
@@ -86,6 +89,161 @@
   background: transparent;
 }
 
+/* ---- Dropdown menu (CSS-only, hover/focus-within) ---- */
+.wiki-header-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.wiki-header-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0 0.85rem;
+  height: 100%;
+  font-size: 0.92em;
+  font-weight: 500;
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.12s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.wiki-header-dropdown-trigger:hover,
+.wiki-header-dropdown:focus-within > .wiki-header-dropdown-trigger {
+  color: var(--wiki-text);
+  background: var(--wiki-bg-secondary);
+}
+.wiki-header-dropdown.active > .wiki-header-dropdown-trigger {
+  color: var(--wiki-accent);
+  border-bottom-color: var(--wiki-accent);
+  font-weight: 600;
+}
+
+.wiki-header-dropdown-arrow {
+  font-size: 0.65em;
+  opacity: 0.6;
+  transition: transform 0.15s ease;
+}
+.wiki-header-dropdown:hover > .wiki-header-dropdown-trigger .wiki-header-dropdown-arrow,
+.wiki-header-dropdown:focus-within > .wiki-header-dropdown-trigger .wiki-header-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.wiki-header-dropdown-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 40;
+  min-width: 200px;
+  padding: 0.5rem 0;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 6px;
+  box-shadow: 0 5px 40px 0 rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
+}
+.wiki-header-dropdown:hover > .wiki-header-dropdown-panel,
+.wiki-header-dropdown:focus-within > .wiki-header-dropdown-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.wiki-header-dropdown-item {
+  display: block;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.88em;
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-header-dropdown-item:hover {
+  background: var(--wiki-primary-light);
+  color: var(--wiki-accent);
+  text-decoration: none;
+}
+
+/* Header slot (right side) */
 .wiki-header-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex-shrink: 0;
+}
+
+/* Search box — pill shape */
+.wiki-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  height: 32px;
+  background: var(--wiki-input-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 20px;
+  color: var(--wiki-text-secondary);
+  font-size: 0.88em;
+  cursor: text;
+  transition: border-color 0.15s ease;
+}
+.wiki-search-box:focus-within {
+  border-color: var(--wiki-accent);
+}
+.wiki-search-box input {
+  border: none;
+  background: transparent;
+  color: var(--wiki-text);
+  font-size: inherit;
+  outline: none;
+  width: 140px;
+  font-family: var(--wiki-body-font);
+}
+.wiki-search-box input::placeholder {
+  color: var(--wiki-text-secondary);
+}
+
+/* Action buttons */
+.wiki-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.wiki-header-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-header-action-btn:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+}
+
+@media (max-width: 768px) {
+  .wiki-search-box {
+    display: none;
+  }
+  .wiki-header-dropdown-panel {
+    display: none;
+  }
 }

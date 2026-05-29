@@ -11,9 +11,14 @@
 packages:
   - apps/*
   - packages/*
+  # E2E Travel Agent Demo 前端（Next.js + CopilotKit）
+  # 纳入工作区以继承根 overrides 安全补丁，避免脱离 monorepo 包管理统一约束
+  - apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui
 
 # 允许执行原生构建脚本（继承自 ui / wiki 旧 workspace 配置）
 allowBuilds:
+  # @scarf/scarf 为匿名使用统计上报工具（通过 postinstall 触发），出于隐私与安全考虑禁用其脚本
+  '@scarf/scarf': false
   esbuild: true
   msw: true
   sharp: true
@@ -44,3 +49,5 @@ overrides:
   follow-redirects: '>=1.16.0'
   postcss: '>=8.5.10'
   uuid: '>=14.0.0'
+  # GHSA-x7hr-w5r2-h6wg: prismjs < 1.30.0 DOM clobbering（refractor@3.6.0 锁死 1.27.0，强制覆盖）
+  prismjs: '>=1.30.0'

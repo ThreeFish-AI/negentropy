@@ -161,7 +161,7 @@ class RetrievalTracker:
     async def get_effectiveness_metrics(
         self,
         *,
-        user_id: str,
+        user_id: str | None,
         app_name: str,
         days: int = 30,
     ) -> dict[str, float | int]:
@@ -179,9 +179,9 @@ class RetrievalTracker:
                     "with_feedback"
                 ),
             ).where(
-                MemoryRetrievalLog.user_id == user_id,
                 MemoryRetrievalLog.app_name == app_name,
                 MemoryRetrievalLog.created_at >= since,
+                *([MemoryRetrievalLog.user_id == user_id] if user_id else []),
             )
             result = await db.execute(stmt)
             row = result.one()

@@ -1,0 +1,61 @@
+/* Wiki 页脚 — 全站深色 */
+.wiki-footer {
+  background: var(--wiki-footer-bg);
+  color: var(--wiki-footer-text);
+}
+
+.wiki-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem clamp(1rem, 3vw, 2rem) 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+.wiki-footer-col-title {
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--wiki-footer-text);
+  margin-bottom: 0.75rem;
+}
+
+.wiki-footer-col-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.wiki-footer-col-links li {
+  margin-bottom: 0.4rem;
+}
+
+.wiki-footer-link {
+  font-size: 0.88em;
+  color: var(--wiki-footer-text-secondary);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+.wiki-footer-link:hover {
+  color: var(--wiki-footer-text);
+}
+
+.wiki-footer-bottom {
+  grid-column: 1 / -1;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--wiki-footer-border);
+  font-size: 0.82em;
+  color: var(--wiki-footer-text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wiki-footer-inner {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+@media (max-width: 480px) {
+  .wiki-footer-inner {
+    grid-template-columns: 1fr;
+  }
+}

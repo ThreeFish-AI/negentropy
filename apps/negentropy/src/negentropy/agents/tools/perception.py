@@ -239,30 +239,25 @@ async def search_knowledge_base(
         return {"status": "failed", "error": "top_k must be positive"}
     limit = min(top_k, _MAX_RESULTS_LIMIT)
 
-    # 用户 @ Corpus 检索范围（来自 Home Composer 的 forwardedProps.scoped_corpus_ids
-    # → BFF state_delta → ADK session.state → tool_context.state）。命中时仅在指定
-    # 语料库内检索；未命中则保持原"全 Corpus 聚合"行为。
+    # 用户 @ Corpus 范围（来自 Home Composer 的 forwardedProps.corpus_ids
+    # → BFF state_delta → ADK session.state → tool_context.state）。命中时仅在
+    # 指定语料库内检索；未命中则保持原"全 Corpus 聚合"行为。是否进入 graph
+    # expansion 路径由 HybridPlanner 自主判定，不再受前端强制信号驱动。
     scoped_ids: list[str] | None = None
-    graph_mode_ids: list[str] | None = None
     if tool_context is not None and getattr(tool_context, "state", None):
-        raw_scope = tool_context.state.get("scoped_corpus_ids")
+        raw_scope = tool_context.state.get("corpus_ids")
         if isinstance(raw_scope, list) and raw_scope:
             scoped_ids = [s for s in raw_scope if isinstance(s, str) and s]
-        raw_graph = tool_context.state.get("graph_mode_corpus_ids")
-        if isinstance(raw_graph, list) and raw_graph:
-            graph_mode_ids = [s for s in raw_graph if isinstance(s, str) and s]
 
-    # Feature flag gate: 当 enable_cross_corpus_kg=True 且场景适配（scoped or @graph）
-    # 时走 HybridPlanner 四阶段管线；否则保持现有 legacy 路径，确保灰度回退安全。
+    # Feature flag gate: 当 enable_cross_corpus_kg=True 且 corpus_ids 非空时
+    # 走 HybridPlanner 四阶段管线；否则保持现有 legacy 路径，确保灰度回退安全。
     try:
         from negentropy.config.knowledge import KnowledgeSettings
 
         kb_settings = KnowledgeSettings()
         feature_flags = getattr(kb_settings, "feature_flags", None)
         use_planner = bool(
-            feature_flags is not None
-            and getattr(feature_flags, "enable_cross_corpus_kg", False)
-            and (scoped_ids or graph_mode_ids)
+            feature_flags is not None and getattr(feature_flags, "enable_cross_corpus_kg", False) and scoped_ids
         )
     except Exception:  # noqa: BLE001 — 任何配置异常都回退到 legacy
         use_planner = False
@@ -273,7 +268,6 @@ async def search_knowledge_base(
                 query=query,
                 top_k=limit,
                 scoped_ids=scoped_ids or [],
-                graph_mode_ids=graph_mode_ids or [],
                 tool_context=tool_context,
             )
         except Exception as exc:  # noqa: BLE001 — Stage 异常降级到 legacy
@@ -286,7 +280,7 @@ async def search_knowledge_base(
         limit=limit,
         semantic_weight=semantic_weight,
         keyword_weight=keyword_weight,
-        scoped_corpus_ids=scoped_ids,
+        corpus_ids=scoped_ids,
     )
 
     try:
@@ -302,7 +296,7 @@ async def search_knowledge_base(
             logger.warning(
                 "no_corpora_found",
                 app_name=settings.app_name,
-                scoped_corpus_ids=scoped_ids,
+                corpus_ids=scoped_ids,
             )
             return await _fallback_to_memory_search(query, limit, tool_context)
 
@@ -480,7 +474,6 @@ async def _planner_search_knowledge_base(
     query: str,
     top_k: int,
     scoped_ids: list[str],
-    graph_mode_ids: list[str],
     tool_context: ToolContext,  # noqa: ARG001  # 预留 RBAC user 上下文注入
 ) -> dict[str, Any]:
     """HybridPlanner 路径：四阶段管线 + bridges + Citation Corpus 来源徽章
@@ -491,6 +484,9 @@ async def _planner_search_knowledge_base(
       - intent / expansion_triggered / stage_latencies_ms（顶层）
       - results[i].corpus_label / evidence_type / bridge_path
       - bridges: list[EvidenceChain dict]（顶层）
+
+    设计取舍：scoped_ids 即用户 @ Corpus 的全集；是否进入 graph expansion
+    由 Planner.plan 内部 Intent Classifier 自主判定，不再受前端强制信号驱动。
     """
     from negentropy.agents.tools.hybrid_planner import (
         PlannerConfig,
@@ -509,13 +505,9 @@ async def _planner_search_knowledge_base(
         except Exception as exc:  # noqa: BLE001  reranker 加载失败不阻塞
             logger.warning("planner_reranker_init_failed", error=str(exc))
 
-    # @graph 与 @corpus-retrieve 并集而非择一：用户可能同时 @kb-A（retrieve）
-    # 与 @graph kb-B（强制 graph 模式），二者都应纳入有效检索域；任一非空即触发
-    # force_graph，让 Planner 在并集上做 graph expansion。
-    force_graph = bool(graph_mode_ids)
-    effective_scoped = list({*(scoped_ids or []), *(graph_mode_ids or [])})
+    effective_scoped = list(dict.fromkeys(scoped_ids or []))
     if not effective_scoped:
-        return {"status": "failed", "error": "no scoped or graph_mode corpus ids"}
+        return {"status": "failed", "error": "no scoped corpus ids"}
 
     # 解析 app_name 下的所有可访问 corpus（暂以 settings.app_name 为 accessible 集合
     # 兜底；Phase 2 后续可接入 user RBAC 视图）
@@ -531,7 +523,6 @@ async def _planner_search_knowledge_base(
         top_k=top_k,
         config=PlannerConfig(),
         app_name=settings.app_name,
-        force_graph_mode=force_graph,
     )
 
     # 映射到 legacy 返回结构 + 注入 corpus_label + citation
@@ -617,7 +608,7 @@ async def search_knowledge_graph_global(
 
     Args:
         query: 全局摘要级问题
-        tool_context: ADK 注入；读取 scoped_corpus_ids / graph_mode_corpus_ids
+        tool_context: ADK 注入；读取 corpus_ids
         max_communities: 每 Corpus 最多取多少社区摘要参与 Map 阶段
 
     Returns:
@@ -629,15 +620,14 @@ async def search_knowledge_graph_global(
 
     scoped_ids: list[str] = []
     if tool_context is not None and getattr(tool_context, "state", None):
-        for key in ("scoped_corpus_ids", "graph_mode_corpus_ids"):
-            raw = tool_context.state.get(key)
-            if isinstance(raw, list) and raw:
-                scoped_ids.extend(s for s in raw if isinstance(s, str) and s)
+        raw = tool_context.state.get("corpus_ids")
+        if isinstance(raw, list) and raw:
+            scoped_ids.extend(s for s in raw if isinstance(s, str) and s)
 
     if not scoped_ids:
         return {
             "status": "failed",
-            "error": "search_knowledge_graph_global requires @corpus or @graph mention",
+            "error": "search_knowledge_graph_global requires @corpus mention",
         }
 
     valid_ids = [UUID(c) for c in scoped_ids if _is_uuid(c)]

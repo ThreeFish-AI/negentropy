@@ -218,6 +218,56 @@ class TestOrphanImageAppend:
         result = normalize_image_references(md, images, append_orphans=False)
         assert "orphan.png" not in result
 
+    def test_html_img_tag_counts_as_reference(self) -> None:
+        """HTML ``<img src="...">`` 标签应视为已引用，不再作为孤儿重复追加。
+
+        regression: Context Engineering 2.0 论文 — assembly 阶段把所有图渲染为
+        ``<img src="./images/xxx.png" width="20" height="22" />`` 形式（承载
+        PDF 原始显示尺寸），仅扫描 ``![alt](path)`` markdown 语法会把全部 56
+        张图判为孤儿，在末尾整段重复追加，破坏 1:1 还原。
+        """
+        md = (
+            '<img src="./images/fig_a.png" alt="A" width="100" height="50" '
+            'style="max-width:100%;height:auto;" />\n\n'
+            "Some content.\n"
+        )
+        images = [FakeImage(filename="fig_a.png", caption="A")]
+        result = normalize_image_references(md, images)
+        # HTML img 已引用 → 不应作为孤儿再次追加
+        assert result.count("fig_a.png") == 1, "HTML img 已引用的图不应被重复追加"
+        assert "<!-- orphan images appended" not in result
+
+    def test_html_and_markdown_img_mixed_no_duplicate(self) -> None:
+        """同一张图同时以 HTML 和 markdown 形式出现时也不重复追加。"""
+        md = (
+            '<img src="./images/fig_a.png" alt="A" width="100" height="50" />\n\n'
+            "![b](./images/fig_b.png)\n"
+        )
+        images = [
+            FakeImage(filename="fig_a.png", caption="A"),
+            FakeImage(filename="fig_b.png", caption="B"),
+            FakeImage(filename="fig_c.png", caption="C (real orphan)"),
+        ]
+        result = normalize_image_references(md, images)
+        assert result.count("fig_a.png") == 1
+        assert result.count("fig_b.png") == 1
+        # 真正未引用的孤儿 fig_c 才追加
+        assert "![C (real orphan)](./images/fig_c.png)" in result
+
+    def test_html_img_with_api_path_counts_as_reference(self) -> None:
+        """HTML ``src`` 含 ``/api/...`` 绝对路径时按 basename 匹配。
+
+        backend 中可能把图片路径重写为 ``/api/documents/<id>/assets/<basename>``，
+        normalizer 必须能识别这类引用，避免在末尾追加重复孤儿引用。
+        """
+        md = (
+            '<img src="/api/documents/abc-123/assets/img_0_0_20260525.png" '
+            'alt="x" width="20" height="22" />\n'
+        )
+        images = [FakeImage(filename="img_0_0_20260525.png", caption="x")]
+        result = normalize_image_references(md, images)
+        assert "<!-- orphan images appended" not in result
+
 
 # ============================================================
 # 空输入与边界

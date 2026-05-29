@@ -13,6 +13,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { VendorModelsDisclosure } from "@/components/interface/VendorModelsDisclosure";
+import { TaskModelLinkSection } from "@/components/interface/TaskModelLinkSection";
 import {
   MODEL_KINDS,
   type ModelConfigRecord,
@@ -566,6 +567,9 @@ export default function ModelsPage() {
               </div>
             </div>
           )}
+
+          {/* Model Link — 后台任务模型映射 */}
+          <TaskModelLinkSection models={registeredModels} />
 
           {/* Vendor Setup Dialog */}
           <OverlayDismissLayer

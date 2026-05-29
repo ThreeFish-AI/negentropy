@@ -11,7 +11,7 @@ const _AGENTS: MentionCandidate[] = [
 ];
 
 const _CORPORA: MentionCandidate[] = [
-  { kind: "corpus-retrieve", refId: "uuid-a", label: "Corpus-A" },
+  { kind: "corpus", refId: "uuid-a", label: "Corpus-A" },
 ];
 
 /**

@@ -335,19 +335,45 @@ export function findIndexEntry(items: WikiNavTreeItem[]): WikiNavTreeItem | null
 }
 
 /**
- * 递归统计导航树中所有有效条目（`entry_id` 非空）的数量。
+ * 递归统计导航树中 DOCUMENT 类型条目的数量。
  *
- * 排除合成容器节点（`entry_id=null`），仅计可路由的叶子。
+ * 通过 `isContainerItem()` 排除 CONTAINER 节点，仅计实际文档。
  */
 export function countLeafEntries(items: WikiNavTreeItem[]): number {
   let total = 0;
   for (const item of items) {
-    if (item.entry_id) total += 1;
+    if (!isContainerItem(item) && item.entry_id) total += 1;
     if (item.children && item.children.length > 0) {
       total += countLeafEntries(item.children);
     }
   }
   return total;
+}
+
+/**
+ * DFS 搜索导航树，构建从根到目标 slug 的面包屑路径。
+ *
+ * 返回 `{ label, slug | null }[]`，CONTAINER 节点 slug 为 null（不可点击）。
+ */
+export function buildBreadcrumbPath(
+  items: WikiNavTreeItem[],
+  activeSlug: string,
+): { label: string; slug: string | null }[] {
+  for (const item of items) {
+    if (item.entry_slug === activeSlug) {
+      return [{ label: item.entry_title || item.entry_slug, slug: item.entry_slug }];
+    }
+    if (item.children && item.children.length > 0) {
+      const nested = buildBreadcrumbPath(item.children, activeSlug);
+      if (nested.length > 0) {
+        return [
+          { label: item.entry_title || item.entry_slug, slug: isContainerItem(item) ? null : item.entry_slug },
+          ...nested,
+        ];
+      }
+    }
+  }
+  return [];
 }
 
 /**

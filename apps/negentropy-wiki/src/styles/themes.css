@@ -13,27 +13,59 @@
 }
 
 [data-color-scheme="dark"] {
-  --wiki-bg: #1a1a1a;
-  --wiki-bg-secondary: #242424;
-  --wiki-text: #e5e5e5;
-  --wiki-text-secondary: #999999;
-  --wiki-border: #333333;
-  --wiki-sidebar-bg: #1f1f1f;
+  --wiki-bg: #1b1b1d;
+  --wiki-bg-secondary: #242526;
+  --wiki-text: #e3e3e3;
+  --wiki-text-secondary: #dadde1;
+  --wiki-border: #444952;
+  --wiki-sidebar-bg: #1b1b1d;
+  --wiki-accent: #25c2a0;
+  --wiki-accent-hover: #21af90;
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --wiki-header-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --wiki-header-bg: #242526;
+  --wiki-input-bg: #444952;
+  --wiki-code-bg: #282a36;
+  --wiki-link-color: #60a5fa;
+  --wiki-link-hover-color: #93bbfd;
   --wiki-success-bg: #1b3a1e;
   --wiki-success-text: #66bb6a;
+  --wiki-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --wiki-primary-light: rgba(37, 194, 160, 0.1);
+  --wiki-hero-base: #25c2a0;
+  --wiki-hero-blob-1: #21af90;
+  --wiki-hero-blob-2: #32d8b4;
+  --wiki-hero-blob-3: #1fa588;
+  --wiki-hero-blob-4: #21af90;
+  --wiki-home-accent: #25c2a0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-color-scheme="light"]):not([data-color-scheme="dark"]) {
-    --wiki-bg: #1a1a1a;
-    --wiki-bg-secondary: #242424;
-    --wiki-text: #e5e5e5;
-    --wiki-text-secondary: #999999;
-    --wiki-border: #333333;
-    --wiki-sidebar-bg: #1f1f1f;
+    --wiki-bg: #1b1b1d;
+    --wiki-bg-secondary: #242526;
+    --wiki-text: #e3e3e3;
+    --wiki-text-secondary: #dadde1;
+    --wiki-border: #444952;
+    --wiki-sidebar-bg: #1b1b1d;
+    --wiki-accent: #25c2a0;
+    --wiki-accent-hover: #21af90;
     --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --wiki-header-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --wiki-header-bg: #242526;
+    --wiki-input-bg: #444952;
+    --wiki-code-bg: #282a36;
+    --wiki-link-color: #60a5fa;
+    --wiki-link-hover-color: #93bbfd;
     --wiki-success-bg: #1b3a1e;
     --wiki-success-text: #66bb6a;
+    --wiki-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --wiki-primary-light: rgba(37, 194, 160, 0.1);
+    --wiki-hero-base: #25c2a0;
+    --wiki-hero-blob-1: #21af90;
+    --wiki-hero-blob-2: #32d8b4;
+    --wiki-hero-blob-3: #1fa588;
+    --wiki-hero-blob-4: #21af90;
+    --wiki-home-accent: #25c2a0;
   }
 }

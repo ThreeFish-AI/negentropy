@@ -1,21 +1,26 @@
 /* Wiki 知识图谱页样式 ------------------------------------------------------
  *
- * Sigma 渲染依赖容器有显式高度才能绘制；这里把 canvas 外层撑满主区域剩余
- * 高度（减去顶栏 header + 文档标题区域）。
- * 不依赖 JS 测量，纯 CSS 通过 viewport - header 解决，与 markdown 文档页
- * 风格一致。
+ * 图谱页使用全宽布局（variant="home"），canvas 占满 viewport 宽度。
+ * Sigma 渲染依赖容器有显式高度才能绘制；高度通过 viewport - header 解决。
  */
 
+.wiki-graph-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.wiki-graph-page-header {
+  padding: 1.5rem clamp(1.25rem, 4vw, 3rem) 0.5rem;
+}
+
 .wiki-graph-canvas-wrap {
-  /* 主区高度 = viewport - 顶部 header 高度（约 56px）- 文档标题块约 88px
-   * 实测保守值 200px 足以避开顶栏与下边距，剩余给 canvas。 */
   height: calc(100vh - 200px);
   min-height: 480px;
   width: 100%;
   position: relative;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--wiki-border);
   border-radius: 8px;
-  background: var(--surface-recessed, rgba(0, 0, 0, 0.12));
+  background: var(--wiki-bg-secondary);
   overflow: hidden;
 }
 
@@ -65,9 +70,9 @@
 .wiki-graph-error,
 .wiki-graph-loading {
   padding: 2rem;
-  border: 1px dashed var(--border-subtle, rgba(255, 255, 255, 0.12));
+  border: 1px dashed var(--wiki-border);
   border-radius: 8px;
-  background: var(--surface-recessed, rgba(0, 0, 0, 0.06));
+  background: var(--wiki-bg-secondary);
 }
 
 .wiki-error-detail {

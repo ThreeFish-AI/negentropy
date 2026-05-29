@@ -5,14 +5,37 @@
 }
 
 .wiki-doc-title {
-  font-size: 2em;
+  font-size: 2.25em;
   margin-top: 0;
   margin-bottom: 0.3em;
+  line-height: 1.3;
 }
 
 .wiki-doc-meta {
   font-size: 0.85em;
   color: var(--wiki-text-secondary);
+}
+
+/* 面包屑 */
+.wiki-doc-breadcrumb {
+  font-size: 0.88em;
+  color: var(--wiki-text-secondary);
+  margin-bottom: 0.75rem;
+}
+.wiki-doc-breadcrumb-link {
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+.wiki-doc-breadcrumb-link:hover {
+  color: var(--wiki-accent);
+}
+.wiki-doc-breadcrumb-sep {
+  margin: 0 0.35rem;
+  opacity: 0.5;
+}
+.wiki-doc-breadcrumb-text {
+  color: var(--wiki-text);
 }
 
 .wiki-doc-index {

@@ -72,58 +72,10 @@ def _get_knowledge_service() -> KnowledgeService:
     return _knowledge_service
 
 
-def _emit_tool_progress(
-    tool_context: ToolContext | None,
-    *,
-    tool_call_id: str,
-    percent: float,
-    stage: str | None = None,
-    eta: float | None = None,
-) -> None:
-    """通过 ADK state_delta 推送 Tool Progress（C3 旁路）。
-
-    设计要点：
-    - 写入 state.tool_progress[tool_call_id]，前端 home-body 提取后渲染进度条；
-    - 不参与 message-ledger 比对（仅文本内容参与），避开 ISSUE-031 时间窗回归；
-    - 单点写入语义：调用方按语义里程碑（5%/20%/60%/100%）触发，里程碑天然稀疏，
-      不需要时间维度 throttle；如未来增加细粒度推送，应在此处按 `tool_call_id`
-      维护上次推送时间戳实现真正的节流，并同步更新 docs/architecture/framework.md §9.7。
-    """
-    if tool_context is None or not hasattr(tool_context, "state"):
-        return
-    try:
-        state = tool_context.state
-        existing = state.get("tool_progress")
-        bucket: dict[str, Any] = existing if isinstance(existing, dict) else {}
-        snapshot: dict[str, Any] = {
-            "percent": max(0.0, min(100.0, float(percent))),
-        }
-        if stage:
-            snapshot["stage"] = stage
-        if eta is not None:
-            snapshot["eta"] = eta
-        bucket[tool_call_id] = snapshot
-        state["tool_progress"] = bucket
-    except Exception as exc:
-        logger.debug("tool_progress_emit_skipped", error=str(exc), tool_call_id=tool_call_id)
-
-
-def _clear_tool_progress(
-    tool_context: ToolContext | None,
-    *,
-    tool_call_id: str,
-) -> None:
-    """清理终态（completed/error）的 tool_progress 条目，避免 stale 进度长期残留。"""
-    if tool_context is None or not hasattr(tool_context, "state"):
-        return
-    try:
-        state = tool_context.state
-        existing = state.get("tool_progress")
-        if isinstance(existing, dict) and tool_call_id in existing:
-            del existing[tool_call_id]
-            state["tool_progress"] = existing
-    except Exception:
-        pass
+# Tool Progress 助手已抽出到 ``agents/tools/common.py`` 作为 SSOT；
+# 此处保留 module-level alias 以维持既有调用方 / 测试导入路径稳定（最小爆炸半径）。
+from .common import clear_tool_progress as _clear_tool_progress  # noqa: E402
+from .common import emit_tool_progress as _emit_tool_progress  # noqa: E402
 
 
 async def _ensure_paper_corpus() -> UUID:

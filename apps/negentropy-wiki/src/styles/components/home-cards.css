@@ -1,0 +1,97 @@
+/* 首页卡片网格 */
+.home-cards-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem clamp(1rem, 3vw, 2rem);
+}
+
+.home-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.75rem;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: var(--wiki-card-radius);
+  box-shadow: var(--wiki-card-shadow);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.home-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  background: radial-gradient(
+    400px circle at 50% 0%,
+    var(--wiki-primary-light),
+    transparent 60%
+  );
+}
+.home-card:hover {
+  box-shadow: var(--wiki-card-shadow), 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+.home-card:hover::before {
+  opacity: 1;
+}
+
+.home-card--disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.home-card--disabled:hover {
+  box-shadow: var(--wiki-card-shadow);
+  transform: none;
+}
+.home-card--disabled:hover::before {
+  opacity: 0;
+}
+
+.home-card-icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 1rem;
+  color: var(--wiki-accent);
+}
+
+.home-card-title {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--wiki-text);
+}
+
+.home-card-desc {
+  font-size: 0.88em;
+  line-height: 1.6;
+  color: var(--wiki-text-secondary);
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .home-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .home-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .home-cards-section {
+    padding: 2rem 1.25rem;
+  }
+}

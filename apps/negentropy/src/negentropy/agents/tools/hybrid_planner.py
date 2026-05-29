@@ -190,8 +190,11 @@ class HybridPlanner:
             top_k=10,
             config=PlannerConfig(),
             app_name=settings.app_name,
-            force_graph_mode=force_graph,
         )
+
+    设计取舍：是否进入 graph expansion 完全由内部 Intent Classifier 自主判定
+    （根据 query 意图与 effective corpus 数量），不再接受前端 force_graph_mode
+    强制信号——上层只表达「想用哪些 Corpus」，由 Planner 决定「以什么方式使用」。
     """
 
     def __init__(
@@ -221,7 +224,6 @@ class HybridPlanner:
         top_k: int,
         config: PlannerConfig,
         app_name: str,
-        force_graph_mode: bool = False,
     ) -> PlannerResult:
         """执行四阶段管线"""
 
@@ -243,7 +245,7 @@ class HybridPlanner:
 
         # Stage 1 — Intent
         t0 = time.monotonic()
-        intent = self._classify_intent(query, force_graph_mode=force_graph_mode)
+        intent = self._classify_intent(query)
         latencies["intent_ms"] = (time.monotonic() - t0) * 1000
 
         # Stage 2 — Seed Retrieval
@@ -261,12 +263,12 @@ class HybridPlanner:
                 seed_candidates.append(cand)
 
         # Stage 3 — Graph Expansion（条件触发）
+        # 由 Intent + effective corpus 数量自主决策；不再接受外部 force_graph_mode 强制开关。
         expanded_candidates: list[Candidate] = []
         bridges: list[EvidenceChain] = []
         expansion_triggered = False
         if config.enable_graph_expansion and (
-            force_graph_mode
-            or (intent in {"relation", "multi_hop", "explore", "global_summary"} and len(effective) >= 2)
+            intent in {"relation", "multi_hop", "explore", "global_summary"} and len(effective) >= 2
         ):
             t0 = time.monotonic()
             try:
@@ -299,15 +301,7 @@ class HybridPlanner:
     # ------------------------------------------------------------------
     # Stage 1: Intent
     # ------------------------------------------------------------------
-    def _classify_intent(self, query: str, *, force_graph_mode: bool) -> QueryIntent:
-        if force_graph_mode:
-            # @graph 强制模式：global_summary > relation 优先级
-            q_lower = query.lower()
-            for pat in _GLOBAL_SUMMARY_PATTERNS:
-                if pat.lower() in q_lower:
-                    return "global_summary"
-            return "relation"
-
+    def _classify_intent(self, query: str) -> QueryIntent:
         # global_summary 优先（在 classifier 之前判断）
         q_lower = query.lower()
         for pat in _GLOBAL_SUMMARY_PATTERNS:

@@ -27,6 +27,7 @@ from negentropy.knowledge.schemas import (
     DocumentMarkdownRefreshRequest,
     DocumentMarkdownRefreshResponse,
     DocumentResponse,
+    DocumentUpdateRequest,
 )
 from negentropy.logging import get_logger
 
@@ -180,6 +181,7 @@ async def get_document_detail(
         app_name=doc.app_name,
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
+        display_name=doc.display_name,
         gcs_uri=doc.gcs_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,
@@ -195,6 +197,62 @@ async def get_document_detail(
         markdown_content=markdown_content,
         markdown_gcs_uri=doc.markdown_gcs_uri,
     )
+
+
+@router.patch("/base/{corpus_id}/documents/{document_id}", response_model=DocumentResponse)
+async def update_document(
+    corpus_id: UUID,
+    document_id: UUID,
+    payload: DocumentUpdateRequest,
+) -> DocumentResponse:
+    """更新文档元信息（当前仅支持 ``display_name``）。
+
+    - ``display_name`` 为 ``None`` / 空白时清除覆盖，展示侧回退到
+      ``metadata_.title -> original_filename``；
+    - 与 :func:`get_document_detail` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+
+    try:
+        doc = await storage_service.update_document_display_name(
+            document_id=document_id,
+            display_name=payload.display_name,
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "DOCUMENT_UPDATE_INVALID", "message": str(exc)},
+        ) from exc
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    name_map = await _resolve_user_display_names([doc.created_by]) if doc.created_by else {}
+    source_uri = _resolve_document_source_uri(doc)
+    archived = False
+    if source_uri:
+        service = _get_service()
+        archived_set = await service.get_archived_source_uris(
+            pairs=[(doc.corpus_id, source_uri)],
+            app_name=resolved_app,
+        )
+        archived = (doc.corpus_id, source_uri) in archived_set
+
+    logger.info(
+        "api_update_document",
+        document_id=str(document_id),
+        cleared=doc.display_name is None,
+    )
+    return _build_document_response(doc, name_map, archived=archived)
 
 
 @router.post(

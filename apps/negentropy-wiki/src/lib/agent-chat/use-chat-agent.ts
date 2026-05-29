@@ -43,6 +43,8 @@ export interface UseChatAgentOptions {
   preferredAgentName: string | null;
   /** 当前 wiki 页面上下文，注入到 forwardedProps.wiki_context。 */
   pageContext: WikiPageContext;
+  /** 当前认证用户的 user_id，透传给 BFF 避免 user_id mismatch。 */
+  userId: string | null;
 }
 
 function safeUuid(): string {
@@ -68,6 +70,44 @@ function loadThreadId(): string {
     // ignore
   }
   return next;
+}
+
+const SESSION_CREATED_KEY = "wiki:agent-chat:session-created";
+
+/** 调用 BFF 创建后端 ADK session，返回后端分配的 session ID。 */
+async function ensureBackendSession(
+  userId: string,
+  clientThreadId: string,
+): Promise<string> {
+  // 同一 threadId 只创建一次，避免刷新后重复创建
+  try {
+    const created = window.sessionStorage.getItem(SESSION_CREATED_KEY);
+    if (created === clientThreadId) return clientThreadId;
+  } catch {
+    // ignore
+  }
+
+  const res = await fetch("/api/agui/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      app_name: "negentropy",
+      user_id: userId,
+      session_id: clientThreadId,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "unknown");
+    throw new Error(`Failed to create session: ${err}`);
+  }
+
+  try {
+    window.sessionStorage.setItem(SESSION_CREATED_KEY, clientThreadId);
+  } catch {
+    // ignore
+  }
+  return clientThreadId;
 }
 
 export interface UseChatAgentResult {
@@ -145,29 +185,25 @@ export function useChatAgent(options: UseChatAgentOptions): UseChatAgentResult {
         "wiki:agent-chat:thread-id",
         threadIdRef.current,
       );
+      window.sessionStorage.removeItem(SESSION_CREATED_KEY);
     } catch {
       // ignore
     }
   }, [abort]);
 
-  // ---- 发送 ----
-  const send = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-      setError(null);
-
+  // ---- 实际发送逻辑（由 send 调用） ----
+  const doSend = useCallback(
+    (text: string, threadId: string, userId: string | null) => {
       const userMsgId = safeUuid();
       const assistantMsgId = safeUuid();
       const runId = safeUuid();
-      const threadId = threadIdRef.current;
       const effectiveAgent =
         options.preferredAgentName ?? options.defaultAgentName ?? null;
 
       const userMsg: ChatMessage = {
         id: userMsgId,
         role: "user",
-        content: trimmed,
+        content: text,
         streaming: false,
         createdAt: Date.now(),
       };
@@ -191,7 +227,7 @@ export function useChatAgent(options: UseChatAgentOptions): UseChatAgentResult {
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setStatus("streaming");
 
-      const url = `/api/agui?session_id=${encodeURIComponent(threadId)}`;
+      const url = `/api/agui?session_id=${encodeURIComponent(threadId)}${userId ? `&user_id=${encodeURIComponent(userId)}` : ""}`;
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
@@ -266,6 +302,39 @@ export function useChatAgent(options: UseChatAgentOptions): UseChatAgentResult {
         });
     },
     [messages, options.defaultAgentName, options.preferredAgentName, options.pageContext, flushPending],
+  );
+
+  // ---- 发送（先确保后端 session 已创建） ----
+  const send = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      setError(null);
+
+      const userId = options.userId;
+      const threadId = threadIdRef.current;
+
+      // 异步创建后端 session（首次），成功后再发送消息
+      const ensureAndSend = async () => {
+        try {
+          if (userId) {
+            await ensureBackendSession(userId, threadId);
+          }
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : String(err),
+          );
+          setStatus("error");
+          return;
+        }
+        // 若 await 期间 reset() 已更新 threadIdRef，丢弃本次发送
+        if (threadId !== threadIdRef.current) return;
+        doSend(trimmed, threadId, userId);
+      };
+
+      void ensureAndSend();
+    },
+    [options.userId, doSend],
   );
 
   /** 单事件分发到 messages 状态。 */

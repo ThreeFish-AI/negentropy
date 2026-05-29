@@ -99,10 +99,11 @@ function TemporalBadge({ fact }: { fact: FactItem }) {
 
 interface FactCardProps {
   fact: FactItem;
+  userLabel?: string;
   onShowHistory: (factId: string) => void;
 }
 
-export function FactCard({ fact, onShowHistory }: FactCardProps) {
+export function FactCard({ fact, userLabel, onShowHistory }: FactCardProps) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <ConfidenceBar confidence={fact.confidence} />
@@ -123,6 +124,11 @@ export function FactCard({ fact, onShowHistory }: FactCardProps) {
           <TemporalBadge fact={fact} />
           {fact.created_at && (
             <span>{formatShortDate(fact.created_at)}</span>
+          )}
+          {userLabel && (
+            <span className="truncate rounded-full border border-border px-1.5 py-px text-[10px]">
+              {userLabel}
+            </span>
           )}
         </div>
         <button

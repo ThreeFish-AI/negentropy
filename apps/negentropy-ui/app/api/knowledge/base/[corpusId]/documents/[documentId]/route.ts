@@ -1,4 +1,4 @@
-import { proxyDelete, proxyGet } from "../../../../_proxy";
+import { proxyDelete, proxyGet, proxyPatch } from "../../../../_proxy";
 
 /**
  * GET /api/knowledge/base/{corpusId}/documents/{documentId}
@@ -10,6 +10,21 @@ export async function GET(
 ) {
   const { corpusId, documentId } = await context.params;
   return proxyGet(request, `/knowledge/base/${corpusId}/documents/${documentId}`);
+}
+
+/**
+ * PATCH /api/knowledge/base/{corpusId}/documents/{documentId}
+ * Update document metadata (e.g. display_name)
+ */
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ corpusId: string; documentId: string }> },
+) {
+  const { corpusId, documentId } = await context.params;
+  return proxyPatch(
+    request,
+    `/knowledge/base/${corpusId}/documents/${documentId}`,
+  );
 }
 
 /**

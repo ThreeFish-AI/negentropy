@@ -75,7 +75,7 @@ def _disable_adk_otel_logs_metrics_exporters() -> None:
             try:
                 span_processors.append(adk_otel_setup._get_otel_span_exporter())
             except (ImportError, ModuleNotFoundError):
-                pass  # ADK 2.0: OTLP HTTP exporter not installed; skip trace export
+                pass  # Defensive fallback — should not trigger after adding opentelemetry-exporter-otlp-proto-http dep
         return adk_otel_setup.OTelHooks(
             span_processors=span_processors,
             metric_readers=[],
@@ -631,3 +631,9 @@ def apply_adk_patches():
 
     logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
     logger.info(f"Using configured credential backend: {settings.credential_service_backend}")
+    logger.info(
+        "Auth config resolved: enabled=%s, mode=%s, admin_emails=%s",
+        settings.auth.enabled,
+        settings.auth.mode.value,
+        settings.auth.admin_emails,
+    )
