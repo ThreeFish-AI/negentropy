@@ -54,15 +54,15 @@ describe("InterfaceNav", () => {
     expect(screen.queryByRole("link", { name: "Models" })).toBeNull();
   });
 
-  it("按 Models → SubAgents → MCP → Skills → Tools 顺序渲染（admin）", () => {
+  it("按 Agents → Models → MCP → Skills → Tools 顺序渲染（admin）", () => {
     useAuthMock.mockReturnValue({ user: { roles: ["admin"] }, status: "authenticated" });
 
     render(<InterfaceNav title="Models" />);
 
     const links = screen.getAllByRole("link").map((node) => node.textContent);
     expect(links.slice(0, 5)).toEqual([
+      "Agents",
       "Models",
-      "SubAgents",
       "MCP",
       "Skills",
       "Tools",

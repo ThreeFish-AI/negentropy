@@ -10,10 +10,10 @@ import { useEffect, useMemo, useState } from "react";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { SubAgentCard } from "./_components/SubAgentCard";
-import { SubAgentFormDialog } from "./_components/SubAgentFormDialog";
+import { AgentCard } from "./_components/AgentCard";
+import { AgentFormDialog } from "./_components/AgentFormDialog";
 
-interface SubAgent {
+interface Agent {
   id: string;
   owner_id: string;
   visibility: string;
@@ -30,8 +30,8 @@ interface SubAgent {
   source: string;
   is_builtin: boolean;
   is_enabled: boolean;
-  // "root" = Negentropy 主 Agent；"subagent"（默认）= Faculty 或用户自定义子 Agent
-  kind?: "root" | "subagent";
+  // "root" = Negentropy 主 Agent；"agent"（默认）= Faculty 或用户自定义 Agent
+  kind?: "root" | "agent";
 }
 
 interface SyncResponse {
@@ -40,21 +40,21 @@ interface SyncResponse {
   skipped: number;
 }
 
-export default function SubAgentsPage() {
+export default function AgentsPage() {
   const { confirm, confirmDialog } = useConfirmDialog();
-  const [agents, setAgents] = useState<SubAgent[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<SubAgent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   const fetchAgents = async () => {
     try {
-      const response = await fetch("/api/interface/subagents");
+      const response = await fetch("/api/interface/agents");
       if (!response.ok) {
-        throw new Error("Failed to fetch subagents");
+        throw new Error("Failed to fetch agents");
       }
       const data = await response.json();
       setAgents(data);
@@ -78,14 +78,14 @@ export default function SubAgentsPage() {
     setSyncing(true);
     setSyncMessage(null);
     try {
-      const response = await fetch("/api/interface/subagents/sync/negentropy", {
+      const response = await fetch("/api/interface/agents/sync/negentropy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to sync Negentropy subagents");
+        throw new Error(errorData.detail || "Failed to sync Negentropy agents");
       }
       const data = (await response.json()) as SyncResponse;
       setSyncMessage(
@@ -99,15 +99,15 @@ export default function SubAgentsPage() {
     }
   };
 
-  const handleEdit = (agent: SubAgent) => {
+  const handleEdit = (agent: Agent) => {
     setEditingAgent(agent);
     setDialogOpen(true);
   };
 
   const handleDelete = async (agentId: string) => {
     const confirmed = await confirm({
-      title: "Delete SubAgent",
-      message: "Are you sure you want to delete this subagent?",
+      title: "Delete Agent",
+      message: "Are you sure you want to delete this agent?",
       confirmLabel: "Delete",
       destructive: true,
     });
@@ -115,11 +115,11 @@ export default function SubAgentsPage() {
       return;
     }
     try {
-      const response = await fetch(`/api/interface/subagents/${agentId}`, {
+      const response = await fetch(`/api/interface/agents/${agentId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
-        throw new Error("Failed to delete subagent");
+        throw new Error("Failed to delete agent");
       }
       fetchAgents();
     } catch (err) {
@@ -134,7 +134,7 @@ export default function SubAgentsPage() {
 
   // Root Agent 置顶；其余按 name 字典序保持稳定，避免 fetchAgents 顺序波动。
   const sortedAgents = useMemo(() => {
-    const rank = (agent: SubAgent) => (agent.kind === "root" ? 0 : 1);
+    const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
     return [...agents].sort((a, b) => {
       const diff = rank(a) - rank(b);
       if (diff !== 0) {
@@ -147,8 +147,8 @@ export default function SubAgentsPage() {
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     try {
       const url = editingAgent
-        ? `/api/interface/subagents/${editingAgent.id}`
-        : "/api/interface/subagents";
+        ? `/api/interface/agents/${editingAgent.id}`
+        : "/api/interface/agents";
       const method = editingAgent ? "PATCH" : "POST";
 
       const response = await fetch(url, {
@@ -159,7 +159,7 @@ export default function SubAgentsPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to save subagent");
+        throw new Error(errorData.detail || "Failed to save agent");
       }
 
       handleDialogClose();
@@ -171,17 +171,17 @@ export default function SubAgentsPage() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
-      <InterfaceNav title="SubAgents" />
+      <InterfaceNav title="Agents" />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                  SubAgents
+                  Agents
                 </h1>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Configure ADK-compatible sub-agents for complex tasks.
+                  Configure ADK-compatible agents for complex tasks.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export default function SubAgentsPage() {
                   onClick={handleCreate}
                   className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
-                  Add SubAgent
+                  Add Agent
                 </button>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function SubAgentsPage() {
             ) : agents.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-zinc-400 dark:text-zinc-500 mb-4">
-                  No subagents configured yet.
+                  No agents configured yet.
                 </div>
                 <div className="flex items-center justify-center gap-3">
                   <button
@@ -236,12 +236,12 @@ export default function SubAgentsPage() {
               </div>
             ) : (
               <div
-                data-testid="subagents-grid"
+                data-testid="agents-grid"
                 className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
                 {sortedAgents.map((agent) => (
-                  <div key={agent.id} className="h-[176px]" data-testid="subagent-grid-item">
-                    <SubAgentCard
+                  <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
+                    <AgentCard
                       agent={agent}
                       onEdit={() => handleEdit(agent)}
                       onDelete={() => handleDelete(agent.id)}
@@ -254,7 +254,7 @@ export default function SubAgentsPage() {
         </div>
       </div>
 
-      <SubAgentFormDialog
+      <AgentFormDialog
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}

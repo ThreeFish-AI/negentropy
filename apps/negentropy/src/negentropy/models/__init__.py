@@ -1,4 +1,5 @@
 from .action import Tool, ToolExecution
+from .agent import Agent
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .builtin_tool import BuiltinTool
 from .internalization import Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
@@ -29,7 +30,6 @@ from .scheduled_task import ScheduledTask, TaskExecution
 from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
-from .sub_agent import SubAgent
 from .task_model_setting import TaskModelSetting
 from .vendor_config import VendorConfig
 
@@ -92,9 +92,9 @@ __all__ = [
     "McpToolRun",
     "McpToolRunEvent",
     "McpTrialAsset",
-    # Skill & SubAgent
+    # Skill & Agent
     "Skill",
-    "SubAgent",
+    "Agent",
     # Scheduled Task (统一心跳调度)
     "ScheduledTask",
     "TaskExecution",

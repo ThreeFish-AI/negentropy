@@ -1,11 +1,11 @@
 import { proxyGet, proxyPatch, proxyDelete } from "@/app/api/interface/_proxy";
 
 /**
- * 单个 SubAgent API 代理端点
+ * 单个 Agent API 代理端点
  *
- * GET    /api/interface/subagents/{agentId} - 获取 SubAgent 详情
- * PATCH  /api/interface/subagents/{agentId} - 更新 SubAgent
- * DELETE /api/interface/subagents/{agentId} - 删除 SubAgent
+ * GET    /api/interface/agents/{agentId} - 获取 Agent 详情
+ * PATCH  /api/interface/agents/{agentId} - 更新 Agent
+ * DELETE /api/interface/agents/{agentId} - 删除 Agent
  */
 
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await params;
-  return proxyGet(request, `/interface/subagents/${agentId}`);
+  return proxyGet(request, `/interface/agents/${agentId}`);
 }
 
 export async function PATCH(
@@ -21,7 +21,7 @@ export async function PATCH(
   { params }: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await params;
-  return proxyPatch(request, `/interface/subagents/${agentId}`);
+  return proxyPatch(request, `/interface/agents/${agentId}`);
 }
 
 export async function DELETE(
@@ -29,5 +29,5 @@ export async function DELETE(
   { params }: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId } = await params;
-  return proxyDelete(request, `/interface/subagents/${agentId}`);
+  return proxyDelete(request, `/interface/agents/${agentId}`);
 }

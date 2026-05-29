@@ -3,7 +3,7 @@
  *
  * 两类 mention 共用同一数据结构，仅以 ``kind`` 字段区分：
  *
- * - ``agent`` —— 用户偏好委派的 SubAgent，refId = ``sub_agents.name``；
+ * - ``agent`` —— 用户偏好委派的 Agent，refId = ``agents.name``；
  * - ``corpus`` —— 用户选定的 Corpus，refId = Corpus.id (UUID)。
  *   语义上表达「想用哪个 Corpus」而非「以什么方式使用」；后端在 turn 内
  *   依据 prompt 与上下文自主判断（默认仅作为 KB+KG hybrid 的 retrieve 范围，

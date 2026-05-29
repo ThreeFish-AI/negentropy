@@ -41,9 +41,9 @@ export function FilterBar({
   // 与 filters 选中态正交，语义正确；
   // Role / Scenario 同样会被后端过滤（scheduler_api.py:228-231），与本 PR 修复的
   // Agent / Owner 同形——选中后 tasks 会塌缩到所选值，下拉随之收敛；但二者并无
-  // 独立的全局枚举注册表（不像 SubAgent 注册表 / 用户表）可供 SSOT 解耦，暂沿用
+  // 独立的全局枚举注册表（不像 Agent 注册表 / 用户表）可供 SSOT 解耦，暂沿用
   // tasks 推导，待后端补齐枚举全集接口后再迁移；
-  // Agent / Owner 是全局枚举（SubAgent 注册表、用户表），由独立 hook 提供选项源。
+  // Agent / Owner 是全局枚举（Agent 注册表、用户表），由独立 hook 提供选项源。
   const roles = useMemo(() => asOptions(uniqueValues(tasks.map((t) => t.role)).sort()), [tasks]);
   const scenarios = useMemo(
     () => asOptions(uniqueValues(tasks.map((t) => t.scenario)).sort()),

@@ -8,17 +8,17 @@
  * - 视觉上对齐 wiki 的 CSS Variable 主题（--wiki-* token）
  */
 import { useEffect, useMemo, useRef } from "react";
-import type { SubAgentSummary } from "@/lib/agent-chat/use-subagents";
+import type { AgentSummary } from "@/lib/agent-chat/use-agents";
 
 export interface AgentMentionPopoverProps {
   /** 候选 Agent 列表（含 root + faculties）。 */
-  candidates: SubAgentSummary[];
+  candidates: AgentSummary[];
   /** 当前 @ 后键入的过滤词（不含 @）。 */
   query: string;
   /** 选中索引（键盘导航高亮）。 */
   activeIndex: number;
   /** 选中时回调，传回 Agent 对象。 */
-  onSelect: (agent: SubAgentSummary) => void;
+  onSelect: (agent: AgentSummary) => void;
   /** 高亮位置变更（鼠标 hover 时同步）。 */
   onActiveIndexChange: (idx: number) => void;
   /** 锚定 textarea —— popover 跟随光标位置。 */
@@ -26,9 +26,9 @@ export interface AgentMentionPopoverProps {
 }
 
 function filterByQuery(
-  agents: SubAgentSummary[],
+  agents: AgentSummary[],
   query: string,
-): SubAgentSummary[] {
+): AgentSummary[] {
   const q = query.trim().toLowerCase();
   if (!q) return agents;
   return agents.filter(

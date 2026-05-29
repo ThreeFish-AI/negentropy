@@ -1,7 +1,7 @@
 """
 Interface API 模块。
 
-提供 MCP Server、Skill、SubAgent 的 CRUD 端点。
+提供 MCP Server、Skill、Agent 的 CRUD 端点。
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.model_config import ModelConfig
 from negentropy.models.plugin import (
+    Agent,
     BuiltinTool,
     McpResourceTemplate,
     McpServer,
@@ -39,7 +40,6 @@ from negentropy.models.plugin import (
     Skill,
     SkillSchedule,
     SkillVersion,
-    SubAgent,
     ensure_dict,
 )
 from negentropy.models.vendor_config import VendorConfig
@@ -66,7 +66,7 @@ class StatsResponse(BaseModel):
 
     mcp_servers: dict[str, int]
     skills: dict[str, int]
-    subagents: dict[str, int]
+    agents: dict[str, int]
     models: dict[str, int]
     tools: dict[str, int]
 
@@ -137,7 +137,7 @@ class BuiltinToolResponse(BaseModel):
 
 
 class BuiltinToolAvailableResponse(BaseModel):
-    """用于 SubAgent/Skill 工具挂载选择的简要信息"""
+    """用于 Agent/Skill 工具挂载选择的简要信息"""
 
     name: str
     display_name: str | None = None
@@ -452,7 +452,7 @@ class SkillResponse(BaseModel):
     priority: int
     enforcement_mode: str = "warning"
     resources: list[dict[str, Any]] = Field(default_factory=list)
-    # 「系统内置」统一对外字段，与 MCP/SubAgent/Tool 字段保持一致。
+    # 「系统内置」统一对外字段，与 MCP/Agent/Tool 字段保持一致。
     is_builtin: bool = False
 
     class Config:
@@ -529,11 +529,11 @@ class SkillScheduleResponse(BaseModel):
 
 
 # =============================================================================
-# SubAgent Models
+# Agent Models
 # =============================================================================
 
 
-class SubAgentCreateRequest(BaseModel):
+class AgentCreateRequest(BaseModel):
     name: str
     display_name: str | None = None
     description: str | None = None
@@ -548,7 +548,7 @@ class SubAgentCreateRequest(BaseModel):
     visibility: str = "private"
 
 
-class SubAgentUpdateRequest(BaseModel):
+class AgentUpdateRequest(BaseModel):
     name: str | None = None
     display_name: str | None = None
     description: str | None = None
@@ -564,7 +564,7 @@ class SubAgentUpdateRequest(BaseModel):
     confirm_builtin_rename: bool | None = False
 
 
-class SubAgentResponse(BaseModel):
+class AgentResponse(BaseModel):
     id: UUID
     owner_id: str
     visibility: str
@@ -582,14 +582,14 @@ class SubAgentResponse(BaseModel):
     is_builtin: bool = False
     is_enabled: bool
     # `kind` 来源于 ``config.adk_config.kind``：``"root"`` 标记 Negentropy 主 Agent，
-    # ``"subagent"``（默认）适用于 Faculty 与用户自定义子 Agent。前端按此置顶 + Root 徽章。
-    kind: str = "subagent"
+    # ``"agent"``（默认）适用于 Faculty 与用户自定义 Agent。前端按此置顶 + Root 徽章。
+    kind: str = "agent"
 
     class Config:
         from_attributes = True
 
 
-class NegentropySubAgentTemplateResponse(BaseModel):
+class NegentropyAgentTemplateResponse(BaseModel):
     name: str
     display_name: str | None = None
     description: str | None = None
@@ -600,11 +600,11 @@ class NegentropySubAgentTemplateResponse(BaseModel):
     tools: list[str] = Field(default_factory=list)
 
 
-class NegentropySubAgentSyncResponse(BaseModel):
+class NegentropyAgentSyncResponse(BaseModel):
     created: int
     updated: int
     skipped: int
-    agents: list[SubAgentResponse] = Field(default_factory=list)
+    agents: list[AgentResponse] = Field(default_factory=list)
 
 
 # =============================================================================
@@ -648,7 +648,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user_with_db_roles)) ->
     async with AsyncSessionLocal() as db:
         mcp = await _safe_plugin_stats(db, "mcp_server", McpServer, user)
         skills = await _safe_plugin_stats(db, "skill", Skill, user)
-        subagents = await _safe_plugin_stats(db, "sub_agent", SubAgent, user)
+        agents = await _safe_plugin_stats(db, "agent", Agent, user)
         tools = await _safe_plugin_stats(db, "builtin_tool", BuiltinTool, user)
 
         # Models / Vendor configs：仅 admin 可读，非 admin 以全 0 占位以便前端
@@ -671,7 +671,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user_with_db_roles)) ->
     return StatsResponse(
         mcp_servers=mcp,
         skills=skills,
-        subagents=subagents,
+        agents=agents,
         models={"total": int(model_total), "enabled": int(model_enabled), "vendors": int(vendor_total)},
         tools=tools,
     )
@@ -1381,7 +1381,7 @@ async def get_mcp_tool_run(
 async def list_available_tools(
     user: AuthUser = Depends(get_current_user),
 ) -> list[BuiltinToolAvailableResponse]:
-    """列出所有可用工具（builtin + MCP），供 SubAgent/Skill 工具挂载选择"""
+    """列出所有可用工具（builtin + MCP），供 Agent/Skill 工具挂载选择"""
     tools: list[BuiltinToolAvailableResponse] = []
 
     async with AsyncSessionLocal() as db:
@@ -1695,7 +1695,7 @@ async def create_skill(
         db.add(skill)
         await db.commit()
         await db.refresh(skill)
-        # Phase 3：新建时同步写入初始版本快照，让 SubAgent 引用 name@version 立即可用。
+        # Phase 3：新建时同步写入初始版本快照，让 Agent 引用 name@version 立即可用。
         try:
             db.add(_build_initial_version(skill))
             await db.commit()
@@ -2263,7 +2263,7 @@ async def invoke_skill(
 
 
 # =============================================================================
-# SubAgents Endpoints
+# Agents Endpoints
 # =============================================================================
 
 
@@ -2275,7 +2275,7 @@ def _build_adk_config_from_payload(
     payload: dict[str, Any],
     existing_adk_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """构建 SubAgent 的 ADK 配置（可回放）。"""
+    """构建 Agent 的 ADK 配置（可回放）。"""
     adk_config: dict[str, Any] = dict(existing_adk_config or {})
     incoming_adk = payload.get("adk_config")
     if isinstance(incoming_adk, dict):
@@ -2309,7 +2309,7 @@ def _build_adk_config_from_payload(
     return adk_config
 
 
-def _merge_subagent_config(
+def _merge_agent_config(
     *,
     current_config: dict[str, Any] | None,
     update_config: dict[str, Any] | None,
@@ -2324,8 +2324,8 @@ def _merge_subagent_config(
     return merged
 
 
-def _materialize_subagent_payload(
-    agent: SubAgent | None,
+def _materialize_agent_payload(
+    agent: Agent | None,
     incoming: dict[str, Any],
 ) -> dict[str, Any]:
     """将数据库对象与变更 payload 合并为完整视图，便于构建 adk_config。"""
@@ -2370,14 +2370,14 @@ def _materialize_subagent_payload(
     return base
 
 
-def _resolve_subagent_source(config: dict[str, Any]) -> str:
+def _resolve_agent_source(config: dict[str, Any]) -> str:
     source = config.get("source")
     if isinstance(source, str) and source:
         return source
     return "user_defined"
 
 
-def _extract_adk_config(agent: SubAgent) -> dict[str, Any]:
+def _extract_adk_config(agent: Agent) -> dict[str, Any]:
     config = _json_dict(agent.config)
     adk_config = config.get("adk_config")
     if isinstance(adk_config, dict):
@@ -2395,32 +2395,32 @@ def _extract_adk_config(agent: SubAgent) -> dict[str, Any]:
     return _build_adk_config_from_payload(fallback_payload)
 
 
-@router.get("/subagents", response_model=list[SubAgentResponse])
-async def list_subagents(user: AuthUser = Depends(get_current_user)) -> list[SubAgentResponse]:
-    """列出用户可见的 SubAgents"""
+@router.get("/agents", response_model=list[AgentResponse])
+async def list_agents(user: AuthUser = Depends(get_current_user)) -> list[AgentResponse]:
+    """列出用户可见的 Agents"""
     async with AsyncSessionLocal() as db:
-        visible_ids = await get_visible_plugin_ids(db, "sub_agent", user)
+        visible_ids = await get_visible_plugin_ids(db, "agent", user)
         if not visible_ids:
             return []
 
-        stmt = select(SubAgent).where(SubAgent.id.in_(visible_ids)).order_by(SubAgent.created_at.desc())
+        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.created_at.desc())
         result = await db.execute(stmt)
         agents = result.scalars().all()
 
-    return [_subagent_to_response(a) for a in agents]
+    return [_agent_to_response(a) for a in agents]
 
 
-@router.get("/subagents/templates/negentropy", response_model=list[NegentropySubAgentTemplateResponse])
-async def list_negentropy_subagent_templates(
+@router.get("/agents/templates/negentropy", response_model=list[NegentropyAgentTemplateResponse])
+async def list_negentropy_agent_templates(
     user: AuthUser = Depends(get_current_user),
-) -> list[NegentropySubAgentTemplateResponse]:
-    """返回 Negentropy 内置 5 个 Faculty SubAgent 模板（来自代码定义）。"""
+) -> list[NegentropyAgentTemplateResponse]:
+    """返回 Negentropy 内置 5 个 Faculty Agent 模板（来自代码定义）。"""
     _ = user  # 显式依赖鉴权
-    from .subagent_presets import build_negentropy_subagent_payloads
+    from .agent_presets import build_negentropy_agent_payloads
 
-    payloads = build_negentropy_subagent_payloads()
+    payloads = build_negentropy_agent_payloads()
     return [
-        NegentropySubAgentTemplateResponse(
+        NegentropyAgentTemplateResponse(
             name=payload["name"],
             display_name=payload.get("display_name"),
             description=payload.get("description"),
@@ -2434,12 +2434,12 @@ async def list_negentropy_subagent_templates(
     ]
 
 
-@router.post("/subagents/sync/negentropy", response_model=NegentropySubAgentSyncResponse)
-async def sync_negentropy_subagents(
+@router.post("/agents/sync/negentropy", response_model=NegentropyAgentSyncResponse)
+async def sync_negentropy_agents(
     user: AuthUser = Depends(get_current_user),
-) -> NegentropySubAgentSyncResponse:
+) -> NegentropyAgentSyncResponse:
     """
-    将代码中的 **主 Agent (NegentropyEngine) + 5 个 Faculty SubAgent** 同步到插件表。
+    将代码中的 **主 Agent (NegentropyEngine) + 5 个 Faculty Agent** 同步到插件表。
 
     幂等语义：
     - 已存在且归属当前用户：更新为最新代码定义；
@@ -2449,23 +2449,23 @@ async def sync_negentropy_subagents(
     Sync 完成后批量失效 ``subagent:`` 前缀缓存，使 ``DynamicRootLiteLlm`` /
     ``DynamicSubagentLiteLlm`` 与 ``InstructionProvider`` 立即看到 DB 最新值。
     """
-    from .subagent_presets import build_negentropy_subagent_payloads
+    from .agent_presets import build_negentropy_agent_payloads
 
-    payloads = build_negentropy_subagent_payloads()
+    payloads = build_negentropy_agent_payloads()
     created_count = 0
     updated_count = 0
     skipped_count = 0
-    touched_agents: list[SubAgent] = []
+    touched_agents: list[Agent] = []
 
     async with AsyncSessionLocal() as db:
         for payload in payloads:
-            existing = await db.scalar(select(SubAgent).where(SubAgent.name == payload["name"]))
-            materialized = _materialize_subagent_payload(existing, payload)
+            existing = await db.scalar(select(Agent).where(Agent.name == payload["name"]))
+            materialized = _materialize_agent_payload(existing, payload)
             adk_config = _build_adk_config_from_payload(
                 materialized,
                 existing_adk_config=_json_dict(materialized.get("adk_config")),
             )
-            merged_config = _merge_subagent_config(
+            merged_config = _merge_agent_config(
                 current_config=_json_dict(existing.config) if existing else None,
                 update_config=_json_dict(materialized.get("config")),
                 adk_config=adk_config,
@@ -2487,13 +2487,13 @@ async def sync_negentropy_subagents(
                 existing.tools = materialized.get("tools") or []
                 existing.is_enabled = bool(materialized.get("is_enabled", True))
                 existing.visibility = PluginVisibility(materialized.get("visibility", "private"))
-                # 与迁移 0033 的回填语义对齐：经 negentropy 内置同步的 SubAgent 都是系统内置。
+                # 与迁移 0033 的回填语义对齐：经 negentropy 内置同步的 Agent 都是系统内置。
                 existing.is_system = True
                 updated_count += 1
                 touched_agents.append(existing)
                 continue
 
-            new_agent = SubAgent(
+            new_agent = Agent(
                 owner_id=user.user_id,
                 visibility=PluginVisibility(materialized.get("visibility", "private")),
                 name=materialized["name"],
@@ -2516,48 +2516,50 @@ async def sync_negentropy_subagents(
             await db.commit()
         except IntegrityError as exc:
             await db.rollback()
-            raise HTTPException(status_code=409, detail=f"SubAgent sync conflict: {exc}") from exc
+            raise HTTPException(status_code=409, detail=f"Agent sync conflict: {exc}") from exc
 
         for agent in touched_agents:
             await db.refresh(agent)
 
     # 批量失效，让运行时 model + instruction 立即看到 Sync 后的 DB 值。
+    # NB: ``subagent:`` 是 model_resolver 内部缓存键前缀（运行时 ADK 模型/指令解析层），
+    # 与此处失效调用构成跨模块契约；二者须保持一致，故刻意保留旧前缀字面量。
     invalidate_model_cache(prefix="subagent:")
 
-    return NegentropySubAgentSyncResponse(
+    return NegentropyAgentSyncResponse(
         created=created_count,
         updated=updated_count,
         skipped=skipped_count,
-        agents=[_subagent_to_response(agent) for agent in touched_agents],
+        agents=[_agent_to_response(agent) for agent in touched_agents],
     )
 
 
-@router.post("/subagents", response_model=SubAgentResponse, status_code=status.HTTP_201_CREATED)
-async def create_subagent(
-    payload: SubAgentCreateRequest,
+@router.post("/agents", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
+async def create_agent(
+    payload: AgentCreateRequest,
     user: AuthUser = Depends(get_current_user),
-) -> SubAgentResponse:
-    """创建新的 SubAgent"""
+) -> AgentResponse:
+    """创建新的 Agent"""
     async with AsyncSessionLocal() as db:
-        existing = await db.scalar(select(SubAgent).where(SubAgent.name == payload.name))
+        existing = await db.scalar(select(Agent).where(Agent.name == payload.name))
         if existing:
-            raise HTTPException(status_code=400, detail="SubAgent name already exists")
+            raise HTTPException(status_code=400, detail="Agent name already exists")
 
         incoming = payload.model_dump()
-        materialized = _materialize_subagent_payload(None, incoming)
+        materialized = _materialize_agent_payload(None, incoming)
         adk_config = _build_adk_config_from_payload(
             materialized,
             existing_adk_config=_json_dict(materialized.get("adk_config")),
         )
-        source = _resolve_subagent_source(_json_dict(materialized.get("config")))
-        merged_config = _merge_subagent_config(
+        source = _resolve_agent_source(_json_dict(materialized.get("config")))
+        merged_config = _merge_agent_config(
             current_config=None,
             update_config=_json_dict(materialized.get("config")),
             adk_config=adk_config,
             source=source,
         )
 
-        agent = SubAgent(
+        agent = Agent(
             owner_id=user.user_id,
             visibility=PluginVisibility(payload.visibility),
             name=payload.name,
@@ -2576,44 +2578,44 @@ async def create_subagent(
             await db.commit()
         except IntegrityError as exc:
             await db.rollback()
-            raise HTTPException(status_code=409, detail=f"SubAgent create conflict: {exc}") from exc
+            raise HTTPException(status_code=409, detail=f"Agent create conflict: {exc}") from exc
         await db.refresh(agent)
 
-    return _subagent_to_response(agent)
+    return _agent_to_response(agent)
 
 
-@router.get("/subagents/{agent_id}", response_model=SubAgentResponse)
-async def get_subagent(
+@router.get("/agents/{agent_id}", response_model=AgentResponse)
+async def get_agent(
     agent_id: UUID,
     user: AuthUser = Depends(get_current_user),
-) -> SubAgentResponse:
-    """获取 SubAgent 详情"""
+) -> AgentResponse:
+    """获取 Agent 详情"""
     async with AsyncSessionLocal() as db:
-        has_access, error = await check_plugin_access(db, "sub_agent", agent_id, user, "view")
+        has_access, error = await check_plugin_access(db, "agent", agent_id, user, "view")
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
-        agent = await db.get(SubAgent, agent_id)
+        agent = await db.get(Agent, agent_id)
         if not agent:
-            raise HTTPException(status_code=404, detail="SubAgent not found")
-    return _subagent_to_response(agent)
+            raise HTTPException(status_code=404, detail="Agent not found")
+    return _agent_to_response(agent)
 
 
-@router.patch("/subagents/{agent_id}", response_model=SubAgentResponse)
-async def update_subagent(
+@router.patch("/agents/{agent_id}", response_model=AgentResponse)
+async def update_agent(
     agent_id: UUID,
-    payload: SubAgentUpdateRequest,
+    payload: AgentUpdateRequest,
     user: AuthUser = Depends(get_current_user),
-) -> SubAgentResponse:
-    """更新 SubAgent"""
+) -> AgentResponse:
+    """更新 Agent"""
     async with AsyncSessionLocal() as db:
-        has_access, error = await check_plugin_access(db, "sub_agent", agent_id, user, "edit")
+        has_access, error = await check_plugin_access(db, "agent", agent_id, user, "edit")
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
-        agent = await db.get(SubAgent, agent_id)
+        agent = await db.get(Agent, agent_id)
         if not agent:
-            raise HTTPException(status_code=404, detail="SubAgent not found")
+            raise HTTPException(status_code=404, detail="Agent not found")
 
         original_name = agent.name
         incoming = payload.model_dump(exclude_unset=True)
@@ -2622,31 +2624,29 @@ async def update_subagent(
         if "name" in incoming:
             new_name = str(incoming["name"] or "").strip()
             if not new_name:
-                raise HTTPException(status_code=400, detail="SubAgent name cannot be empty")
+                raise HTTPException(status_code=400, detail="Agent name cannot be empty")
             if new_name != agent.name:
-                current_source = _resolve_subagent_source(_json_dict(agent.config))
+                current_source = _resolve_agent_source(_json_dict(agent.config))
                 if current_source == "negentropy_builtin" and not confirm_builtin_rename:
                     raise HTTPException(
                         status_code=409,
                         detail=(
-                            "Renaming a Negentropy built-in SubAgent may cause sync to create "
+                            "Renaming a Negentropy built-in Agent may cause sync to create "
                             "a duplicate. Set confirm_builtin_rename=true to continue."
                         ),
                     )
-                existing = await db.scalar(
-                    select(SubAgent).where(and_(SubAgent.name == new_name, SubAgent.id != agent_id))
-                )
+                existing = await db.scalar(select(Agent).where(and_(Agent.name == new_name, Agent.id != agent_id)))
                 if existing:
-                    raise HTTPException(status_code=400, detail="SubAgent name already exists")
+                    raise HTTPException(status_code=400, detail="Agent name already exists")
             incoming["name"] = new_name
 
-        materialized = _materialize_subagent_payload(agent, incoming)
+        materialized = _materialize_agent_payload(agent, incoming)
         adk_config = _build_adk_config_from_payload(
             materialized,
             existing_adk_config=_json_dict(materialized.get("adk_config")),
         )
-        source = _resolve_subagent_source(_json_dict(materialized.get("config")))
-        merged_config = _merge_subagent_config(
+        source = _resolve_agent_source(_json_dict(materialized.get("config")))
+        merged_config = _merge_agent_config(
             current_config=_json_dict(agent.config),
             update_config=_json_dict(materialized.get("config")),
             adk_config=adk_config,
@@ -2679,29 +2679,29 @@ async def update_subagent(
             await db.commit()
         except IntegrityError as exc:
             await db.rollback()
-            raise HTTPException(status_code=409, detail=f"SubAgent update conflict: {exc}") from exc
+            raise HTTPException(status_code=409, detail=f"Agent update conflict: {exc}") from exc
         await db.refresh(agent)
 
     invalidate_model_cache(prefix=f"subagent:{original_name}")
     if agent.name != original_name:
         invalidate_model_cache(prefix=f"subagent:{agent.name}")
-    return _subagent_to_response(agent)
+    return _agent_to_response(agent)
 
 
-@router.delete("/subagents/{agent_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_subagent(
+@router.delete("/agents/{agent_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_agent(
     agent_id: UUID,
     user: AuthUser = Depends(get_current_user),
 ) -> None:
-    """删除 SubAgent（仅 owner 可删除）"""
+    """删除 Agent（仅 owner 可删除）"""
     async with AsyncSessionLocal() as db:
-        is_owner, error = await check_plugin_ownership(db, "sub_agent", agent_id, user)
+        is_owner, error = await check_plugin_ownership(db, "agent", agent_id, user)
         if not is_owner:
             raise HTTPException(status_code=403, detail=error)
 
-        agent = await db.get(SubAgent, agent_id)
+        agent = await db.get(Agent, agent_id)
         if not agent:
-            raise HTTPException(status_code=404, detail="SubAgent not found")
+            raise HTTPException(status_code=404, detail="Agent not found")
         deleted_name = agent.name
         await db.delete(agent)
         await db.commit()
@@ -2709,17 +2709,19 @@ async def delete_subagent(
     invalidate_model_cache(prefix=f"subagent:{deleted_name}")
 
 
-def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
+def _agent_to_response(agent: Agent) -> AgentResponse:
     config = _json_dict(agent.config)
-    source = _resolve_subagent_source(config)
+    source = _resolve_agent_source(config)
     adk_config = _extract_adk_config(agent)
     raw_kind = adk_config.get("kind") if isinstance(adk_config, dict) else None
-    kind = raw_kind if raw_kind in ("root", "subagent") else "subagent"
+    # 读时归一：root 行保持 "root"；其余（含历史值 "subagent"、新值 "agent" 及缺失）
+    # 一律归一为 "agent"，使未跑迁移 0044 的历史行也能安全对外暴露。
+    kind = "root" if raw_kind == "root" else "agent"
     # is_builtin OR 合并：显式 ``is_system`` 列（迁移 0033 起）+ 历史 config.source 标记。
     # 迁移 0033 已将 ``config.source == "negentropy_builtin"`` 行回填 is_system=TRUE，
     # 这里保留 OR 兼容仍未跑迁移的部署，下一个 release 周期可下线 config.source 判断。
     is_builtin = bool(getattr(agent, "is_system", False)) or source == "negentropy_builtin"
-    return SubAgentResponse(
+    return AgentResponse(
         id=agent.id,
         owner_id=agent.owner_id,
         visibility=agent.visibility.value,
@@ -2752,7 +2754,7 @@ async def list_permissions(
     user: AuthUser = Depends(get_current_user),
 ) -> list[PermissionResponse]:
     """获取插件的授权列表（仅 owner 可查看）"""
-    if plugin_type not in ["mcp_server", "skill", "sub_agent"]:
+    if plugin_type not in ["mcp_server", "skill", "agent"]:
         raise HTTPException(status_code=400, detail="Invalid plugin type")
 
     async with AsyncSessionLocal() as db:
@@ -2783,7 +2785,7 @@ async def grant_permission(
     user: AuthUser = Depends(get_current_user),
 ) -> PermissionResponse:
     """授权给指定用户（仅 owner 可操作）"""
-    if plugin_type not in ["mcp_server", "skill", "sub_agent"]:
+    if plugin_type not in ["mcp_server", "skill", "agent"]:
         raise HTTPException(status_code=400, detail="Invalid plugin type")
 
     if payload.permission not in ["view", "edit"]:
@@ -2833,7 +2835,7 @@ async def revoke_permission(
     user: AuthUser = Depends(get_current_user),
 ) -> None:
     """撤销用户授权（仅 owner 可操作）"""
-    if plugin_type not in ["mcp_server", "skill", "sub_agent"]:
+    if plugin_type not in ["mcp_server", "skill", "agent"]:
         raise HTTPException(status_code=400, detail="Invalid plugin type")
 
     async with AsyncSessionLocal() as db:

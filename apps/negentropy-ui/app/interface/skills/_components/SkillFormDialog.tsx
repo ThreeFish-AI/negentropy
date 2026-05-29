@@ -433,7 +433,7 @@ export function SkillFormDialog({
                         }
                       />
                       <span className="text-zinc-700 dark:text-zinc-200">
-                        strict <span className="text-xs text-rose-600 dark:text-rose-400">(block SubAgent if any required tool is missing)</span>
+                        strict <span className="text-xs text-rose-600 dark:text-rose-400">(block Agent if any required tool is missing)</span>
                       </span>
                     </label>
                   </div>

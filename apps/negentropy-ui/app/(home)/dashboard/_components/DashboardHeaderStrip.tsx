@@ -23,7 +23,7 @@ function formatMs(value: number) {
 interface Stats {
   mcp_servers: { total: number; enabled: number };
   skills: { total: number; enabled: number };
-  subagents: { total: number; enabled: number };
+  agents: { total: number; enabled: number };
   models: { total: number; enabled: number; vendors: number };
   tools: { total: number; enabled: number };
 }
@@ -189,15 +189,15 @@ export function DashboardHeaderStrip({
             />
           )}
           <MetricCell
-            label="SubAgents"
-            value={interfaceStats?.subagents.total ?? "—"}
+            label="Agents"
+            value={interfaceStats?.agents.total ?? "—"}
             hint={
               interfaceStats
-                ? `${interfaceStats.subagents.enabled} enabled`
+                ? `${interfaceStats.agents.enabled} enabled`
                 : undefined
             }
             loading={interfaceLoading}
-            href="/interface/subagents"
+            href="/interface/agents"
           />
           <MetricCell
             label={MCP_HUB_LABEL}

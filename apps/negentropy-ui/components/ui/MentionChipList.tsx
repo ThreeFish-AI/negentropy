@@ -26,7 +26,7 @@ const _CHIP_CLASS: Record<MentionKind, string> = {
 };
 
 const _KIND_TITLE: Record<MentionKind, string> = {
-  agent: "委派 SubAgent",
+  agent: "委派 Agent",
   corpus: "知识范围",
 };
 

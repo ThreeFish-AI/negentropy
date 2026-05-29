@@ -28,8 +28,8 @@ PERMISSIONS = {
     # Chat
     "chat:read": "View chat history",
     "chat:write": "Send messages",
-    # Interface (MCP, Skills, SubAgents, Models)
-    "interface:read": "View interface modules (MCP, Skills, SubAgents, Models)",
+    # Interface (MCP, Skills, Agents, Models)
+    "interface:read": "View interface modules (MCP, Skills, Agents, Models)",
     "interface:write": "Create and manage own interface modules",
 }
 
