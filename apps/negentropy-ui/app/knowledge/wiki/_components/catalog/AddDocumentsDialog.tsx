@@ -109,9 +109,9 @@ export function AddDocumentsDialog({
         />
         <div className="flex-1 overflow-y-auto border border-border rounded-md">
           {loading ? (
-            <p className="text-sm text-muted p-4 text-center">加载中...</p>
+            <p className="text-sm text-muted-foreground p-4 text-center">加载中...</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted/60 p-4 text-center">
+            <p className="text-sm text-muted-foreground/60 p-4 text-center">
               无可添加的文档
             </p>
           ) : (
@@ -139,7 +139,7 @@ export function AddDocumentsDialog({
                         <p className="truncate font-medium">
                           {doc.original_filename}
                         </p>
-                        <p className="text-[10px] text-muted/70 font-mono">
+                        <p className="text-[10px] text-muted-foreground/70 font-mono">
                           {doc.markdown_extract_status ?? "—"} ·{" "}
                           {already ? "已归属" : doc.id.slice(0, 8) + "…"}
                         </p>
@@ -152,13 +152,13 @@ export function AddDocumentsDialog({
           )}
         </div>
         <div className="flex justify-between items-center mt-4">
-          <span className="text-xs text-muted">
+          <span className="text-xs text-muted-foreground">
             已选择 {selected.size} 个
           </span>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-1.5 text-sm rounded-md border border-border text-muted hover:bg-muted"
+              className="px-4 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted"
             >
               取消
             </button>

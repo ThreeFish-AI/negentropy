@@ -40,10 +40,10 @@ function ChunkingStrategyPanel({
         <div>
           <h3 className="text-sm font-semibold">{title}</h3>
           {description && (
-            <p className="mt-1 text-xs text-muted">{description}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
           )}
         </div>
-        <div className="text-[11px] text-muted">大小单位: 字符近似值</div>
+        <div className="text-[11px] text-muted-foreground">大小单位: 字符近似值</div>
       </div>
 
       <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -62,7 +62,7 @@ function ChunkingStrategyPanel({
               <div className="text-xs font-semibold capitalize">{strategy}</div>
               <div
                 className={`mt-1 text-[11px] ${
-                  config.strategy === strategy ? "text-background/80" : "text-muted"
+                  config.strategy === strategy ? "text-background/80" : "text-muted-foreground"
                 }`}
               >
                 {strategyDescriptions[strategy]}
@@ -75,7 +75,7 @@ function ChunkingStrategyPanel({
       {config.strategy === "fixed" && (
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="text-xs">
-            <div className="mb-1 text-muted">Chunk Size</div>
+            <div className="mb-1 text-muted-foreground">Chunk Size</div>
             <input
               type="number"
               value={String(config.chunk_size)}
@@ -89,7 +89,7 @@ function ChunkingStrategyPanel({
             />
           </label>
           <label className="text-xs">
-            <div className="mb-1 text-muted">Overlap</div>
+            <div className="mb-1 text-muted-foreground">Overlap</div>
             <input
               type="number"
               value={String(config.overlap)}
@@ -122,7 +122,7 @@ function ChunkingStrategyPanel({
         <div className="mt-3 space-y-3">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <label className="text-xs">
-              <div className="mb-1 text-muted">Chunk Size</div>
+              <div className="mb-1 text-muted-foreground">Chunk Size</div>
               <input
                 type="number"
                 value={String(config.chunk_size)}
@@ -136,7 +136,7 @@ function ChunkingStrategyPanel({
               />
             </label>
             <label className="text-xs">
-              <div className="mb-1 text-muted">Overlap</div>
+              <div className="mb-1 text-muted-foreground">Overlap</div>
               <input
                 type="number"
                 value={String(config.overlap)}
@@ -150,7 +150,7 @@ function ChunkingStrategyPanel({
               />
             </label>
             <label className="text-xs md:col-span-2">
-              <div className="mb-1 text-muted">Separators（每行一个）</div>
+              <div className="mb-1 text-muted-foreground">Separators（每行一个）</div>
               <SeparatorsTextarea
                 value={config.separators}
                 onChange={(separators) =>
@@ -181,7 +181,7 @@ function ChunkingStrategyPanel({
       {config.strategy === "semantic" && (
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <label className="text-xs">
-            <div className="mb-1 text-muted">Similarity Threshold</div>
+            <div className="mb-1 text-muted-foreground">Similarity Threshold</div>
             <input
               type="number"
               step="0.05"
@@ -198,7 +198,7 @@ function ChunkingStrategyPanel({
             />
           </label>
           <label className="text-xs">
-            <div className="mb-1 text-muted">Buffer Size</div>
+            <div className="mb-1 text-muted-foreground">Buffer Size</div>
             <input
               type="number"
               value={String(config.semantic_buffer_size)}
@@ -212,7 +212,7 @@ function ChunkingStrategyPanel({
             />
           </label>
           <label className="text-xs">
-            <div className="mb-1 text-muted">Min Chunk Size</div>
+            <div className="mb-1 text-muted-foreground">Min Chunk Size</div>
             <input
               type="number"
               value={String(config.min_chunk_size)}
@@ -226,7 +226,7 @@ function ChunkingStrategyPanel({
             />
           </label>
           <label className="text-xs">
-            <div className="mb-1 text-muted">Max Chunk Size</div>
+            <div className="mb-1 text-muted-foreground">Max Chunk Size</div>
             <input
               type="number"
               value={String(config.max_chunk_size)}
@@ -246,7 +246,7 @@ function ChunkingStrategyPanel({
         <div className="mt-3 space-y-3">
           <div className="grid gap-3 md:grid-cols-3">
             <label className="text-xs">
-              <div className="mb-1 text-muted">Parent Size</div>
+              <div className="mb-1 text-muted-foreground">Parent Size</div>
               <input
                 type="number"
                 value={String(config.hierarchical_parent_chunk_size)}
@@ -260,7 +260,7 @@ function ChunkingStrategyPanel({
               />
             </label>
             <label className="text-xs">
-              <div className="mb-1 text-muted">Child Size</div>
+              <div className="mb-1 text-muted-foreground">Child Size</div>
               <input
                 type="number"
                 value={String(config.hierarchical_child_chunk_size)}
@@ -274,7 +274,7 @@ function ChunkingStrategyPanel({
               />
             </label>
             <label className="text-xs">
-              <div className="mb-1 text-muted">Child Overlap</div>
+              <div className="mb-1 text-muted-foreground">Child Overlap</div>
               <input
                 type="number"
                 value={String(config.hierarchical_child_overlap)}
@@ -289,7 +289,7 @@ function ChunkingStrategyPanel({
             </label>
           </div>
           <label className="text-xs">
-            <div className="mb-1 text-muted">Separators（每行一个）</div>
+            <div className="mb-1 text-muted-foreground">Separators（每行一个）</div>
             <SeparatorsTextarea
               value={config.separators}
               onChange={(separators) =>

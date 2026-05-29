@@ -109,12 +109,12 @@ export function MemoryOverviewSection() {
         <h2 className="text-lg font-semibold text-foreground">
           Memory Overview
         </h2>
-        <span className="text-xs text-muted">Memory 指标概览</span>
+        <span className="text-xs text-muted-foreground">Memory 指标概览</span>
       </div>
 
       <div className="mb-4 flex items-center gap-3">
         <input
-          className="w-64 rounded-lg border border-border bg-card px-3 py-2 text-xs placeholder:text-muted"
+          className="w-64 rounded-lg border border-border bg-card px-3 py-2 text-xs placeholder:text-muted-foreground"
           placeholder="Filter by User ID (optional)"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
@@ -149,7 +149,7 @@ export function MemoryOverviewSection() {
           {isLoading ? "Refreshing..." : "Refresh"}
         </button>
         {activeUserId && (
-          <span className="text-xs text-muted">
+          <span className="text-xs text-muted-foreground">
             Filtered: {activeUserId}
           </span>
         )}
@@ -160,7 +160,7 @@ export function MemoryOverviewSection() {
           {error}
         </div>
       ) : !dashboard ? (
-        <p className="text-xs text-muted">Loading...</p>
+        <p className="text-xs text-muted-foreground">Loading...</p>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -169,7 +169,7 @@ export function MemoryOverviewSection() {
                 key={card.label}
                 className="rounded-2xl border border-border bg-card p-5 shadow-sm"
               >
-                <p className="text-[11px] uppercase tracking-wide text-muted">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   {card.label}
                 </p>
                 <p className="mt-2 text-2xl font-bold text-foreground">
@@ -212,11 +212,11 @@ export function MemoryOverviewSection() {
             {showRetrieval && (
               <div className="mt-4">
                 {!activeUserId ? (
-                  <div className="rounded-2xl border border-border bg-card p-5 text-xs text-muted">
+                  <div className="rounded-2xl border border-border bg-card p-5 text-xs text-muted-foreground">
                     Filter by a User ID above to view retrieval quality metrics.
                   </div>
                 ) : retrievalLoading ? (
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted-foreground">
                     Loading retrieval metrics...
                   </p>
                 ) : retrievalError ? (
@@ -247,7 +247,7 @@ export function MemoryOverviewSection() {
                         key={m.label}
                         className="rounded-xl border border-border bg-card p-4 shadow-sm"
                       >
-                        <p className="text-[11px] uppercase tracking-wide text-muted">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                           {m.label}
                         </p>
                         <p className="mt-1 text-xl font-bold text-foreground">

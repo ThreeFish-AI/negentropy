@@ -475,7 +475,7 @@ export function MessageBubble({
             isUser
               ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
               : "w-full max-w-full rounded-tl-md border border-border bg-card text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)]",
-            isStreaming && hasContent && "ring-1 ring-success/50",
+            isStreaming && hasContent && "ring-1 ring-primary/50",
           )}
         >
           <div

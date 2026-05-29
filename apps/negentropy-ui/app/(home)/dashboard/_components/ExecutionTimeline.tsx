@@ -112,7 +112,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
       {/* Header */}
       <div className="border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted">
+          <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground">
             Execution Timeline
           </span>
           {/* Status filter pills */}
@@ -125,7 +125,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
                 className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
                   statusFilter === opt.value
                     ? "bg-foreground text-background"
-                    : "text-muted hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {opt.label}
@@ -134,16 +134,16 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
           </div>
           {/* Search input */}
           <div className="relative ml-auto min-w-0 max-w-[140px] flex-1">
-            <Search className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted" />
+            <Search className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
             <input
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search..."
-              className="w-full rounded-md border border-border bg-background py-0.5 pl-6 pr-2 text-[11px] text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-background py-0.5 pl-6 pr-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
           {/* Count */}
-          <span className="shrink-0 text-[10px] tabular-nums text-muted">
+          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
             {filteredCount === totalCount ? `${totalCount}` : `${filteredCount}/${totalCount}`}
           </span>
         </div>
@@ -152,7 +152,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
       {/* List */}
       <div ref={listRef}>
         {paged.length === 0 ? (
-          <div className="px-3 py-6 text-center text-xs text-muted">
+          <div className="px-3 py-6 text-center text-xs text-muted-foreground">
             {filteredCount === 0 && totalCount > 0
               ? "No executions match current filters."
               : "No executions yet."}
@@ -163,19 +163,19 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
               <li key={e.id} className="px-3 py-2 transition-shadow">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="font-mono text-[11px] text-muted">{formatTime(e.started_at)}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">{formatTime(e.started_at)}</span>
                     <StatusBadge status={e.status} />
                     <span className="truncate text-xs font-medium text-foreground">
                       {e.task_key ?? e.task_id}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted">
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                     {e.duration_ms !== null ? <span>{e.duration_ms}ms</span> : null}
                     <span className="rounded-full bg-muted/50 px-1.5 py-0.5">{e.fire_reason}</span>
                   </div>
                 </div>
                 {e.output_summary ? (
-                  <div className="mt-1 truncate text-[11px] text-muted">{e.output_summary}</div>
+                  <div className="mt-1 truncate text-[11px] text-muted-foreground">{e.output_summary}</div>
                 ) : null}
                 {e.error ? (
                   <div className="mt-1 text-[11px] text-red-600 dark:text-red-400">{e.error}</div>
@@ -194,11 +194,11 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
             disabled={safePage <= 1}
             onClick={() => setCurrentPage(Math.max(1, safePage - 1))}
             aria-label="上一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-[10px] font-medium text-muted">
+          <span className="text-[10px] font-medium text-muted-foreground">
             {safePage} / {totalPages}
           </span>
           <button
@@ -206,7 +206,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
             disabled={safePage >= totalPages}
             onClick={() => setCurrentPage(Math.min(totalPages, safePage + 1))}
             aria-label="下一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>

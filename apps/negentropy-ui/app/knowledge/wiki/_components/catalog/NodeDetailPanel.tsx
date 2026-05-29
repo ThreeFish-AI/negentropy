@@ -30,7 +30,7 @@ export function NodeDetailPanel({
 
   if (!node) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-muted">
+      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
         选择一个节点查看详情
       </div>
     );
@@ -74,7 +74,7 @@ export function NodeDetailPanel({
             <h2 className="text-lg font-semibold text-foreground">
               {node.name}
             </h2>
-            <p className="text-xs text-muted mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {node.node_type} · slug: {node.slug}
               {node.depth != null && ` · 深度: ${node.depth}`}
             </p>
@@ -85,14 +85,14 @@ export function NodeDetailPanel({
                 setDescValue(node.description ?? "");
                 setEditingDesc(true);
               }}
-              className="p-1.5 rounded text-muted hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="p-1.5 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
               title="编辑描述"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={handleDelete}
-              className="p-1.5 rounded text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+              className="p-1.5 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
               title="删除节点"
             >
               <Trash2 className="h-4 w-4" />
@@ -118,7 +118,7 @@ export function NodeDetailPanel({
                   setEditingDesc(false);
                   setDescValue("");
                 }}
-                className="px-3 py-1 text-xs rounded-md border border-border text-muted hover:bg-muted"
+                className="px-3 py-1 text-xs rounded-md border border-border text-muted-foreground hover:bg-muted"
               >
                 取消
               </button>
@@ -132,7 +132,7 @@ export function NodeDetailPanel({
           </div>
         ) : (
           <div>
-            <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
               描述
             </p>
             {node.description ? (
@@ -143,7 +143,7 @@ export function NodeDetailPanel({
                   setDescValue(node.description ?? "");
                   setEditingDesc(true);
                 }}
-                className="text-sm text-muted/60 italic hover:text-muted"
+                className="text-sm text-muted-foreground/60 italic hover:text-muted-foreground"
               >
                 点击添加描述...
               </button>
@@ -155,13 +155,13 @@ export function NodeDetailPanel({
       {/* Metadata info */}
       <div className="px-5 py-4 space-y-3 text-xs">
         <div className="flex justify-between">
-          <span className="text-muted">ID</span>
+          <span className="text-muted-foreground">ID</span>
           <span className="font-mono text-foreground/60">
             {node.id.slice(0, 8)}…
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted">父节点</span>
+          <span className="text-muted-foreground">父节点</span>
           <span>
             {node.parent_id
               ? `${node.parent_id.slice(0, 8)}…`
@@ -169,7 +169,7 @@ export function NodeDetailPanel({
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted">排序</span>
+          <span className="text-muted-foreground">排序</span>
           <span>{node.sort_order}</span>
         </div>
       </div>

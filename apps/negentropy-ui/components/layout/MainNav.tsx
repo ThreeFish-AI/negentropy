@@ -38,7 +38,7 @@ export function MainNav({ items }: MainNavProps) {
                   "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
                   isActive
                     ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                    : "text-muted hover:text-foreground",
+                    : "text-muted-foreground hover:text-foreground",
                   item.disabled && "cursor-not-allowed opacity-80",
                 )}
               >

@@ -55,7 +55,7 @@ export function WikiEntriesList({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <p className="text-sm text-muted">加载中...</p>
+        <p className="text-sm text-muted-foreground">加载中...</p>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export function WikiEntriesList({
   if (flat.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
-        <p className="text-sm text-muted">{emptyHint}</p>
+        <p className="text-sm text-muted-foreground">{emptyHint}</p>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export function WikiEntriesList({
           className="flex items-center gap-2 px-3 py-1.5 text-sm"
           style={{ paddingLeft: `${item.depth * 16 + 12}px` }}
         >
-          <span className="text-muted text-xs">
+          <span className="text-muted-foreground text-xs">
             {item.isContainer ? "📁" : "📄"}
           </span>
           <span
@@ -88,7 +88,7 @@ export function WikiEntriesList({
           >
             {item.title}
           </span>
-          <span className="ml-auto text-[10px] text-muted font-mono truncate max-w-[50%]">
+          <span className="ml-auto text-[10px] text-muted-foreground font-mono truncate max-w-[50%]">
             /{item.slug}
           </span>
         </div>

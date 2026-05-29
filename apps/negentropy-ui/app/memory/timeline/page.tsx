@@ -152,7 +152,7 @@ export default function MemoryTimelinePage() {
                 <h2 className="text-xs font-semibold text-foreground">
                   {searchResult ? "Search Results" : "Memory Timeline"}
                 </h2>
-                <span className="text-xs text-muted">
+                <span className="text-xs text-muted-foreground">
                   {displayItems.length} memories ·{" "}
                   {selectedUserId
                     ? users.find((u) => u.id === selectedUserId)?.name || selectedUserId
@@ -202,7 +202,7 @@ export default function MemoryTimelinePage() {
                   ) : (
                     groupedTimeline.map((group) => (
                       <div key={group.date}>
-                        <div className="sticky top-0 z-10 bg-card pb-1 pt-2 text-[11px] font-semibold text-muted">
+                        <div className="sticky top-0 z-10 bg-card pb-1 pt-2 text-[11px] font-semibold text-muted-foreground">
                           {group.label}
                         </div>
                         <div className="space-y-2">
@@ -214,7 +214,7 @@ export default function MemoryTimelinePage() {
                     ))
                   )
                 ) : (
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted-foreground">
                     {isLoading
                       ? "Loading memories..."
                       : searchResult

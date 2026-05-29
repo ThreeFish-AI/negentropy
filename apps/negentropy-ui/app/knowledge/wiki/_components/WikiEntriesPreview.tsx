@@ -84,16 +84,16 @@ export const WikiEntriesPreview = forwardRef<
           aria-expanded={open}
           aria-controls="wiki-entries-preview-body"
         >
-          <span className="text-xs text-muted">{open ? "▾" : "▸"}</span>
+          <span className="text-xs text-muted-foreground">{open ? "▾" : "▸"}</span>
           <span className="font-medium">该发布包含 {entryCount} 个条目</span>
-          <span className="text-xs text-muted">（展开查看导航结构）</span>
+          <span className="text-xs text-muted-foreground">（展开查看导航结构）</span>
         </button>
         {open && (
           <button
             type="button"
             onClick={() => void loadNavTree()}
             disabled={loading}
-            className="text-xs text-muted hover:text-foreground disabled:opacity-50"
+            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
             刷新
           </button>

@@ -628,7 +628,7 @@ export default function KnowledgeBasePage() {
               <button
                 key={item}
                 onClick={() => setMode(item)}
-                className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted hover:text-foreground"}`}
+                className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {item}
               </button>
@@ -658,7 +658,7 @@ export default function KnowledgeBasePage() {
 
       <div className="mt-3">
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-          <span className="text-muted">Target Corpus（可多选）</span>
+          <span className="text-muted-foreground">Target Corpus（可多选）</span>
           {selectedRetrievalCorpusIds.length === 0 && (
             <span className="text-[11px] text-amber-600">
               请至少选择一个 Corpus 后再执行 Retrieve
@@ -708,7 +708,7 @@ export default function KnowledgeBasePage() {
         </button>
       </div>
       {corpora.length === 0 ? (
-        <p className="text-xs text-muted">暂无 Corpus</p>
+        <p className="text-xs text-muted-foreground">暂无 Corpus</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {corpora.map((corpus) => (
@@ -723,7 +723,7 @@ export default function KnowledgeBasePage() {
                 <div className="flex shrink-0 items-center justify-end gap-2">
                   <span
                     data-testid={`corpus-chunks-${corpus.id}`}
-                    className="text-[11px] font-medium text-muted"
+                    className="text-[11px] font-medium text-muted-foreground"
                   >
                     {corpus.knowledge_count} chunks
                     {corpus.chunk_count_total != null &&
@@ -738,7 +738,7 @@ export default function KnowledgeBasePage() {
               </div>
               <p
                 data-testid={`corpus-description-${corpus.id}`}
-                className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-muted"
+                className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-muted-foreground"
                 title={corpus.description || "No description"}
               >
                 {corpus.description || "No description"}
@@ -750,7 +750,7 @@ export default function KnowledgeBasePage() {
               >
                 <div
                   data-testid={`corpus-summary-${corpus.id}`}
-                  className="min-w-0 flex-1 self-center truncate text-[11px] leading-5 text-muted"
+                  className="min-w-0 flex-1 self-center truncate text-[11px] leading-5 text-muted-foreground"
                   title={formatCorpusConfigSummary(corpus)}
                 >
                   {formatCorpusConfigSummary(corpus)}
@@ -910,9 +910,9 @@ export default function KnowledgeBasePage() {
                   </div>
 
                   {documentsLoading ? (
-                    <p className="text-xs text-muted">Loading...</p>
+                    <p className="text-xs text-muted-foreground">Loading...</p>
                   ) : documents.length === 0 ? (
-                    <p className="text-xs text-muted">No documents.</p>
+                    <p className="text-xs text-muted-foreground">No documents.</p>
                   ) : (
                     <div className="space-y-2">
                       {documents.map((doc) => {
@@ -928,7 +928,7 @@ export default function KnowledgeBasePage() {
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
                                 <p className="truncate text-sm font-medium">{doc.original_filename}</p>
-                                <div className="flex items-center gap-1.5 text-[11px] text-muted">
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                   <span>{sourceType} · {doc.file_size} bytes</span>
                                   <PipelineStatusBadge
                                     status={
@@ -1017,7 +1017,7 @@ export default function KnowledgeBasePage() {
                     <div className="flex items-center justify-between border-b border-border px-5 py-4">
                       <div>
                         <h2 className="text-lg font-semibold">Document Chunks</h2>
-                        <p className="mt-1 text-sm text-muted">{documentChunkCount} Chunks</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{documentChunkCount} Chunks</p>
                       </div>
                       <button
                         onClick={() =>
@@ -1034,9 +1034,9 @@ export default function KnowledgeBasePage() {
                       className="flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-4"
                     >
                       {chunksLoading ? (
-                        <p className="text-xs text-muted">Loading chunks...</p>
+                        <p className="text-xs text-muted-foreground">Loading chunks...</p>
                       ) : documentChunks.length === 0 ? (
-                        <p className="text-xs text-muted">No chunks.</p>
+                        <p className="text-xs text-muted-foreground">No chunks.</p>
                       ) : (
                         documentChunks.map((chunk) => {
                           const cardModel = toDocumentChunkCardViewModel(chunk);
@@ -1093,7 +1093,7 @@ export default function KnowledgeBasePage() {
                         >
                           Prev
                         </button>
-                        <span className="text-sm text-muted">
+                        <span className="text-sm text-muted-foreground">
                           {documentChunkPage}/{Math.max(1, Math.ceil(documentChunkCount / documentChunkPageSize))}
                         </span>
                         <button

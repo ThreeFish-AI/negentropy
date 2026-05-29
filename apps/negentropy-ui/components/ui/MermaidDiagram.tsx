@@ -139,7 +139,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-md bg-card/80 hover:bg-card border border-border shadow-sm text-muted hover:text-foreground backdrop-blur-sm transition-all"
+          className="p-1.5 rounded-md bg-card/80 hover:bg-card border border-border shadow-sm text-muted-foreground hover:text-foreground backdrop-blur-sm transition-all"
           title="Copy Mermaid Code"
         >
           <svg

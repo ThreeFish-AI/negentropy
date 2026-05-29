@@ -48,6 +48,19 @@
   --primary-foreground: #ffffff;
   --ring: var(--primary); /* 焦点环 = 主强调色 */
 
+  /* shadcn 习惯命名的兼容别名 —— 全部指向上述既有调色板，避免双套取值源。
+   * 语义约定：*（无 -foreground）= 表面色（用于 bg-*）；
+   * *-foreground = 该表面上的可读文本色（用于 text-*-foreground）。
+   * 故弱化文本一律用 text-muted-foreground，bg-muted 仅作浅色表面，二者不再冲突。
+   * 引用 var() 会随 .dark 重定义的源变量自动翻转，无需在 .dark 重复声明。 */
+  --muted-foreground: var(--text-muted);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --destructive: var(--error);
+  --destructive-foreground: #ffffff;
+
   /* 兼容旧变量 */
   --input-text: var(--input-foreground);
 }
@@ -75,6 +88,14 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-ring: var(--ring);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

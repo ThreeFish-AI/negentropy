@@ -52,10 +52,10 @@ function getFileIcon(contentType: string | null): React.ReactElement {
 }
 
 function truncateHash(hash: string | null): React.ReactElement {
-  if (!hash) return <span className="text-muted">-</span>;
+  if (!hash) return <span className="text-muted-foreground">-</span>;
   const truncated = `${hash.slice(0, 8)}...${hash.slice(-4)}`;
   return (
-    <span className="font-mono text-xs text-muted" title={hash}>
+    <span className="font-mono text-xs text-muted-foreground" title={hash}>
       {truncated}
     </span>
   );
@@ -172,7 +172,7 @@ export default function DocumentsPage() {
         <main className="flex min-h-0 flex-1 flex-col">
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted">
+            <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
               <div className="col-span-4 text-center border-r border-border">File Name</div>
               <div className="col-span-1 text-center border-r border-border">Size</div>
               <div className="col-span-1 text-center border-r border-border">File Hash</div>
@@ -185,13 +185,13 @@ export default function DocumentsPage() {
             {/* 内容 */}
             <div className="flex-1 overflow-y-auto">
               {loading ? (
-                <div className="p-6 text-center text-sm text-muted">
+                <div className="p-6 text-center text-sm text-muted-foreground">
                   Loading documents...
                 </div>
               ) : error ? (
                 <div className="p-6 text-center text-sm text-red-500">{error}</div>
               ) : documents.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted">
+                <div className="p-6 text-center text-sm text-muted-foreground">
                   No documents uploaded yet
                 </div>
               ) : (
@@ -208,14 +208,14 @@ export default function DocumentsPage() {
                           <p className="font-medium text-foreground truncate" title={doc.original_filename}>
                             {doc.original_filename}
                           </p>
-                          <p className="text-xs text-muted truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {doc.content_type || "Unknown"}
                           </p>
                         </div>
                       </div>
 
                       {/* 大小 - col-span-1 */}
-                      <div className="col-span-1 text-muted text-xs text-center">
+                      <div className="col-span-1 text-muted-foreground text-xs text-center">
                         {formatFileSize(doc.file_size)}
                       </div>
 
@@ -225,17 +225,17 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 所属语料库 - col-span-3 */}
-                      <div className="col-span-3 text-muted truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
+                      <div className="col-span-3 text-muted-foreground truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
                         {getCorpusName(doc.corpus_id)}
                       </div>
 
                       {/* Created By - col-span-1 */}
-                      <div className="col-span-1 text-muted truncate text-xs text-center" title={doc.created_by_name || doc.created_by || ""}>
+                      <div className="col-span-1 text-muted-foreground truncate text-xs text-center" title={doc.created_by_name || doc.created_by || ""}>
                         {displayUser(doc.created_by, doc.created_by_name)}
                       </div>
 
                       {/* Created At - col-span-1 */}
-                      <div className="col-span-1 text-muted text-xs text-center">
+                      <div className="col-span-1 text-muted-foreground text-xs text-center">
                         {formatRelativeTime(doc.created_at ?? undefined)}
                       </div>
 
@@ -243,7 +243,7 @@ export default function DocumentsPage() {
                       <div className="col-span-1 flex justify-center items-center gap-2">
                         {deleteConfirm === doc.id ? (
                           <div className="flex items-center gap-2">
-                            <label className="flex items-center gap-1 text-xs text-muted">
+                            <label className="flex items-center gap-1 text-xs text-muted-foreground">
                               <input
                                 type="checkbox"
                                 checked={deleteHard}
@@ -272,7 +272,7 @@ export default function DocumentsPage() {
                           <>
                             <button
                               onClick={() => router.push(`/knowledge/documents/${doc.corpus_id}/${doc.id}`)}
-                              className="rounded p-1.5 text-muted hover:text-green-600 hover:bg-green-50 transition-colors"
+                              className="rounded p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
                               title="View document content"
                             >
                               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -283,7 +283,7 @@ export default function DocumentsPage() {
                             <button
                               onClick={() => handleDownload(doc)}
                               disabled={downloadingIds.has(doc.id)}
-                              className="rounded p-1.5 text-muted hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                              className="rounded p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
                               title="Download document"
                             >
                               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -292,7 +292,7 @@ export default function DocumentsPage() {
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(doc.id)}
-                              className="rounded p-1.5 text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                              className="rounded p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
                               title="Delete document"
                             >
                               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -312,7 +312,7 @@ export default function DocumentsPage() {
             {total > 0 && (
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-t border-border">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-muted-foreground">
                     {/* 单字符串避免 JSX 文本节点相邻被 a11y 规范化为 "X document s" */}
                     {`${total} document${total !== 1 ? "s" : ""}`}
                   </span>
@@ -325,7 +325,7 @@ export default function DocumentsPage() {
                   >
                     Previous
                   </button>
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-muted-foreground">
                     Page {page} / {totalPages || 1}
                   </span>
                   <button

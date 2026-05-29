@@ -109,7 +109,7 @@ export default function MemoryAuditPage() {
             sidebar={
               <>
                 <SidebarCard title="Submit Audit">
-                  <p className="mt-2 text-[11px] text-muted">
+                  <p className="mt-2 text-[11px] text-muted-foreground">
                     {`${pendingCount} decision${pendingCount !== 1 ? "s" : ""} pending`}
                   </p>
                   <textarea
@@ -127,13 +127,13 @@ export default function MemoryAuditPage() {
                     Submit ({pendingCount})
                   </button>
                   {auditStatus && (
-                    <p className="mt-2 text-[11px] text-muted">{auditStatus}</p>
+                    <p className="mt-2 text-[11px] text-muted-foreground">{auditStatus}</p>
                   )}
                 </SidebarCard>
 
                 <SidebarCard title="Recent Audits">
                   {auditHistory.length ? (
-                    <div className="mt-3 space-y-2 text-xs text-muted">
+                    <div className="mt-3 space-y-2 text-xs text-muted-foreground">
                       {auditHistory.slice(0, 10).map((record, i) => (
                         <div
                           key={`${record.memory_id}-${i}`}
@@ -143,18 +143,18 @@ export default function MemoryAuditPage() {
                             {record.memory_id.slice(0, 8)}... → {record.decision}
                           </p>
                           {record.note && (
-                            <p className="mt-1 text-[11px] text-muted">
+                            <p className="mt-1 text-[11px] text-muted-foreground">
                               {record.note}
                             </p>
                           )}
-                          <p className="mt-1 text-[11px] text-muted">
+                          <p className="mt-1 text-[11px] text-muted-foreground">
                             v{record.version} · {record.created_at || "-"}
                           </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-3 text-xs text-muted">
+                    <p className="mt-3 text-xs text-muted-foreground">
                       {selectedUserId ? "No audits yet" : "Select a user to view audit history"}
                     </p>
                   )}
@@ -180,7 +180,7 @@ export default function MemoryAuditPage() {
                 <h2 className="text-xs font-semibold text-foreground">
                   Memory Audit
                 </h2>
-                <span className="text-xs text-muted">
+                <span className="text-xs text-muted-foreground">
                   {selectedUserId || "select a user"}
                 </span>
               </div>
@@ -201,7 +201,7 @@ export default function MemoryAuditPage() {
                                     : action === "anonymize"
                                       ? "border-amber-600 bg-amber-600 text-white"
                                       : "border-foreground bg-foreground text-background"
-                                  : "border-border text-muted hover:border-foreground/30 hover:text-foreground"
+                                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
                               }`}
                               onClick={() =>
                                 setAuditMap((prev) => ({
@@ -216,7 +216,7 @@ export default function MemoryAuditPage() {
                         )}
                         {auditMap[item.id] && (
                           <button
-                            className="rounded-full border border-border px-3 py-1 text-muted hover:text-foreground"
+                            className="rounded-full border border-border px-3 py-1 text-muted-foreground hover:text-foreground"
                             onClick={() =>
                               setAuditMap((prev) => {
                                 const next = { ...prev };
@@ -232,7 +232,7 @@ export default function MemoryAuditPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-muted-foreground">
                     {timelineLoading
                       ? "Loading memories..."
                       : "No memories found for this user"}

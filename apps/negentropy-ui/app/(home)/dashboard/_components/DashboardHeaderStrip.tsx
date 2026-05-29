@@ -47,7 +47,7 @@ interface DashboardHeaderStripProps {
 function CellGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex-1 min-w-0">
-      <div className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-2">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
         {label}
       </div>
       <div className="grid grid-cols-3 gap-1.5">{children}</div>

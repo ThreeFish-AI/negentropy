@@ -117,7 +117,7 @@ export function SchedulerFilterBar({ filters, tasks, onFiltersChange }: Schedule
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               filters.window === tw.key
                 ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                : "text-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tw.label}
