@@ -91,6 +91,7 @@ export function ChatStream({
   const scrollToBottom = () => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    isUserAtBottomRef.current = true;
     setShowJumpToBottom(false);
   };
 

@@ -19,7 +19,7 @@ export const JsonNode = ({
   const isArray = Array.isArray(value);
 
   const renderValue = (val: unknown) => {
-    if (val === null) return <span className="text-muted-foreground">null</span>;
+    if (val === null) return <span className="text-text-muted">null</span>;
     if (typeof val === "string")
       return (
         <span className="text-secondary-foreground break-all">
@@ -39,7 +39,7 @@ export const JsonNode = ({
 
   if (!isObject) {
     return (
-      <div className="font-mono text-[11px] leading-relaxed hover:bg-muted/50 rounded px-1 -mx-1">
+      <div className="font-mono text-[11px] leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
         <span
           className="text-zinc-400 select-none dark:text-zinc-500"
           style={{ paddingLeft: level * 12 }}
@@ -47,7 +47,7 @@ export const JsonNode = ({
           {name ? `"${name}": ` : ""}
         </span>
         {renderValue(value)}
-        {!isLast && <span className="text-muted-foreground select-none">,</span>}
+        {!isLast && <span className="text-text-muted select-none">,</span>}
       </div>
     );
   }
@@ -59,7 +59,7 @@ export const JsonNode = ({
 
   if (size === 0) {
     return (
-      <div className="font-mono text-[11px] leading-relaxed hover:bg-muted/50 rounded px-1 -mx-1">
+      <div className="font-mono text-[11px] leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
         <span
           className="text-zinc-400 select-none dark:text-zinc-500"
           style={{ paddingLeft: level * 12 }}
@@ -70,7 +70,7 @@ export const JsonNode = ({
           {openBracket}
           {closeBracket}
         </span>
-        {!isLast && <span className="text-muted-foreground select-none">,</span>}
+        {!isLast && <span className="text-text-muted select-none">,</span>}
       </div>
     );
   }
@@ -78,24 +78,24 @@ export const JsonNode = ({
   return (
     <div className="font-mono text-[11px] leading-relaxed">
       <div
-        className="flex items-center hover:bg-muted/50 rounded px-1 -mx-1 cursor-pointer select-none group"
+        className="flex items-center hover:bg-border-muted/50 rounded px-1 -mx-1 cursor-pointer select-none group"
         onClick={(e) => {
           e.stopPropagation();
           setExpanded(!expanded);
         }}
       >
-        <span className="text-muted-foreground" style={{ paddingLeft: level * 12 }}>
-          <span className="inline-block w-3 text-muted-foreground mr-0.5 transition-transform duration-200 group-hover:text-foreground">
+        <span className="text-text-muted" style={{ paddingLeft: level * 12 }}>
+          <span className="inline-block w-3 text-text-muted mr-0.5 transition-transform duration-200 group-hover:text-foreground">
             {expanded ? "▼" : "▶"}
           </span>
           {name ? `"${name}": ` : ""}
         </span>
         <span className="text-foreground">{openBracket}</span>
-        {!expanded && <span className="text-muted-foreground mx-1">...</span>}
+        {!expanded && <span className="text-text-muted mx-1">...</span>}
         {!expanded && <span className="text-foreground">{closeBracket}</span>}
-        {!expanded && !isLast && <span className="text-muted-foreground">,</span>}
+        {!expanded && !isLast && <span className="text-text-muted">,</span>}
         {!expanded && size > 0 && (
-          <span className="ml-2 text-[10px] text-muted-foreground bg-muted px-1 rounded">
+          <span className="ml-2 text-[10px] text-text-muted bg-border-muted px-1 rounded">
             {size} {isArray ? "items" : "keys"}
           </span>
         )}
@@ -112,14 +112,14 @@ export const JsonNode = ({
               level={level + 1}
             />
           ))}
-          <div className="hover:bg-muted/50 rounded px-1 -mx-1 select-none">
+          <div className="hover:bg-border-muted/50 rounded px-1 -mx-1 select-none">
             <span
               className="text-foreground"
               style={{ paddingLeft: level * 12 + 14 }}
             >
               {closeBracket}
             </span>
-            {!isLast && <span className="text-muted-foreground">,</span>}
+            {!isLast && <span className="text-text-muted">,</span>}
           </div>
         </div>
       )}
@@ -147,7 +147,7 @@ export const JsonViewer = ({ data }: { data: unknown }) => {
         {copied ? (
           <Check className="w-3.5 h-3.5 text-success" />
         ) : (
-          <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+          <Copy className="w-3.5 h-3.5 text-text-muted" />
         )}
       </button>
       <JsonNode value={data} isLast={true} />
