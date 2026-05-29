@@ -18,55 +18,17 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
+import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
 
 // ---------------------------------------------------------------------------
-// 视觉常量（与主站 constants.ts 对齐，独立拷贝以避免跨工程依赖）
+// 视觉常量：配色 / 取色逻辑见 `@/lib/wiki-graph-visual`（跨渲染器单一事实源）。
+// nodeSize 系数随渲染器而异（Sigma 球体偏大），保留本地定义。
 // ---------------------------------------------------------------------------
-
-const ENTITY_TYPE_COLORS: Record<string, string> = {
-  person: "#3B82F6",
-  organization: "#10B981",
-  location: "#F59E0B",
-  event: "#EF4444",
-  concept: "#8B5CF6",
-  product: "#EC4899",
-  document: "#6366F1",
-  other: "#6B7280",
-};
-
-// Tableau 10 — 色盲友好的社区配色
-const COMMUNITY_COLORS = [
-  "#4E79A7",
-  "#F28E2B",
-  "#E15759",
-  "#76B7B2",
-  "#59A14F",
-  "#EDC948",
-  "#B07AA1",
-  "#FF9DA7",
-  "#9C755F",
-  "#BAB0AC",
-];
-
-function entityColor(type?: string): string {
-  const key = (type ?? "other").toLowerCase();
-  return ENTITY_TYPE_COLORS[key] ?? ENTITY_TYPE_COLORS.other;
-}
-
-function communityColor(communityId: number | null | undefined): string {
-  if (communityId == null) return "#6B7280";
-  return COMMUNITY_COLORS[communityId % COMMUNITY_COLORS.length];
-}
 
 function nodeSize(importance: number | null | undefined): number {
   if (importance == null) return 10;
   const clamped = Math.min(Math.max(importance, 0), 1);
   return 6 + 14 * clamped;
-}
-
-function nodeColor(node: Pick<WikiGraphNode, "type" | "community_id">): string {
-  if (node.community_id != null) return communityColor(node.community_id);
-  return entityColor(node.type);
 }
 
 // ---------------------------------------------------------------------------
@@ -122,12 +84,7 @@ export function WikiGraphCanvas({
       if (killed || !containerRef.current) return;
 
       // Detect dark mode for label/edge color adaptation
-      const rootEl = document.documentElement;
-      const colorScheme = rootEl.getAttribute("data-color-scheme");
-      const prefersDark =
-        colorScheme === "dark" ||
-        (!colorScheme &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches);
+      const prefersDark = detectDark();
       const labelColor = prefersDark ? "#e3e3e3" : "#1c1e21";
       const edgeColor = prefersDark
         ? "rgba(255, 255, 255, 0.12)"
