@@ -69,7 +69,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycleTheme}
-      className="rounded-lg p-2 text-muted hover:bg-muted/20 hover:text-foreground"
+      className="rounded-lg p-2 text-muted-foreground hover:bg-muted/20 hover:text-foreground"
       aria-label={`当前: ${getLabel()}，点击切换`}
       title={getLabel()}
       suppressHydrationWarning

@@ -19,7 +19,7 @@ export const JsonNode = ({
   const isArray = Array.isArray(value);
 
   const renderValue = (val: unknown) => {
-    if (val === null) return <span className="text-muted">null</span>;
+    if (val === null) return <span className="text-muted-foreground">null</span>;
     if (typeof val === "string")
       return (
         <span className="text-secondary-foreground break-all">
@@ -47,7 +47,7 @@ export const JsonNode = ({
           {name ? `"${name}": ` : ""}
         </span>
         {renderValue(value)}
-        {!isLast && <span className="text-muted select-none">,</span>}
+        {!isLast && <span className="text-muted-foreground select-none">,</span>}
       </div>
     );
   }
@@ -70,7 +70,7 @@ export const JsonNode = ({
           {openBracket}
           {closeBracket}
         </span>
-        {!isLast && <span className="text-muted select-none">,</span>}
+        {!isLast && <span className="text-muted-foreground select-none">,</span>}
       </div>
     );
   }
@@ -84,18 +84,18 @@ export const JsonNode = ({
           setExpanded(!expanded);
         }}
       >
-        <span className="text-muted" style={{ paddingLeft: level * 12 }}>
-          <span className="inline-block w-3 text-muted mr-0.5 transition-transform duration-200 group-hover:text-foreground">
+        <span className="text-muted-foreground" style={{ paddingLeft: level * 12 }}>
+          <span className="inline-block w-3 text-muted-foreground mr-0.5 transition-transform duration-200 group-hover:text-foreground">
             {expanded ? "▼" : "▶"}
           </span>
           {name ? `"${name}": ` : ""}
         </span>
         <span className="text-foreground">{openBracket}</span>
-        {!expanded && <span className="text-muted mx-1">...</span>}
+        {!expanded && <span className="text-muted-foreground mx-1">...</span>}
         {!expanded && <span className="text-foreground">{closeBracket}</span>}
-        {!expanded && !isLast && <span className="text-muted">,</span>}
+        {!expanded && !isLast && <span className="text-muted-foreground">,</span>}
         {!expanded && size > 0 && (
-          <span className="ml-2 text-[10px] text-muted bg-muted px-1 rounded">
+          <span className="ml-2 text-[10px] text-muted-foreground bg-muted px-1 rounded">
             {size} {isArray ? "items" : "keys"}
           </span>
         )}
@@ -119,7 +119,7 @@ export const JsonNode = ({
             >
               {closeBracket}
             </span>
-            {!isLast && <span className="text-muted">,</span>}
+            {!isLast && <span className="text-muted-foreground">,</span>}
           </div>
         </div>
       )}
@@ -147,7 +147,7 @@ export const JsonViewer = ({ data }: { data: unknown }) => {
         {copied ? (
           <Check className="w-3.5 h-3.5 text-success" />
         ) : (
-          <Copy className="w-3.5 h-3.5 text-muted" />
+          <Copy className="w-3.5 h-3.5 text-muted-foreground" />
         )}
       </button>
       <JsonNode value={data} isLast={true} />

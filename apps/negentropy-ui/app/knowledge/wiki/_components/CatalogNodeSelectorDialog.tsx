@@ -113,11 +113,11 @@ export function CatalogNodeSelectorDialog({
       }
       footer={
         <div className="flex w-full items-center justify-between gap-2">
-          <p className="text-xs text-muted">已选 {selectedIds.size} 个节点</p>
+          <p className="text-xs text-muted-foreground">已选 {selectedIds.size} 个节点</p>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-1.5 text-sm rounded-md border border-border text-muted hover:bg-muted"
+              className="px-4 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted"
             >
               取消
             </button>
@@ -134,9 +134,9 @@ export function CatalogNodeSelectorDialog({
     >
       <div className="rounded-lg border border-border bg-background p-2">
         {loading ? (
-          <p className="py-8 text-center text-sm text-muted">加载中...</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
         ) : rootNodes.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             暂无目录节点，请先在 Catalog 页创建
           </p>
         ) : (
@@ -186,7 +186,7 @@ function TreeBranch({
                 className="rounded"
               />
               <span className="truncate">{node.name}</span>
-              <span className="ml-auto text-[10px] text-muted px-1.5 py-0.5 rounded-full bg-muted/40">
+              <span className="ml-auto text-[10px] text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/40">
                 {node.node_type}
               </span>
             </label>

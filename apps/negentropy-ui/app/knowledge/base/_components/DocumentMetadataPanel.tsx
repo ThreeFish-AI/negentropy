@@ -26,7 +26,7 @@ function DocumentMetadataPanel({
   ];
   const renderFieldGroup = (title: string, items: Array<[string, string | number]>) => (
     <div>
-      <h4 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">{title}</h4>
+      <h4 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{title}</h4>
       <dl className="mt-3 space-y-2.5">
         {items.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)] items-start gap-x-4 gap-y-1">
@@ -45,7 +45,7 @@ function DocumentMetadataPanel({
   return (
     <section className="h-full rounded-2xl border border-border bg-card p-5">
       <h3 className="text-base font-semibold">Document Metadata</h3>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Metadata serves as a critical filter that enhances the accuracy and relevance of information retrieval.
       </p>
       <div className="mt-6 space-y-6">

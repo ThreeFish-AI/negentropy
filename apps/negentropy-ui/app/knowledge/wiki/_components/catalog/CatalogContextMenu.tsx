@@ -159,7 +159,7 @@ export function CatalogContextMenu({
           disabled={item.disabled}
           className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:pointer-events-none"
         >
-          {item.icon && <span className="text-muted">{item.icon}</span>}
+          {item.icon && <span className="text-muted-foreground">{item.icon}</span>}
           {item.label}
         </button>
       ))}

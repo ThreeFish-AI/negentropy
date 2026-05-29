@@ -42,7 +42,7 @@ export function SchedulerHeader({
               className={`px-4 py-1 rounded-full text-xs font-semibold transition-colors ${
                 activeTab === tab.key
                   ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                  : "text-muted hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -51,7 +51,7 @@ export function SchedulerHeader({
         </div>
 
         {/* Live indicator */}
-        <div className="flex items-center gap-1.5 text-xs text-muted">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span
             className={`inline-block h-2 w-2 rounded-full ${
               connected ? "bg-emerald-500" : "bg-zinc-400 animate-pulse"

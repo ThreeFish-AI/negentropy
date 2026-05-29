@@ -52,7 +52,7 @@ export function EditChunkDialog({
           <h2 id={titleId} className="text-3xl font-semibold text-foreground">
             Edit Chunk
           </h2>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             {chunk.chunk_role === "parent" ? "Parent" : "Chunk"}-
             {String(chunk.chunk_index).padStart(2, "0")} ·{" "}
             {chunk.character_count} characters
@@ -71,7 +71,7 @@ export function EditChunkDialog({
 
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
         <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2">
-          <span className="text-sm text-muted">Enabled</span>
+          <span className="text-sm text-muted-foreground">Enabled</span>
           <button
             type="button"
             aria-pressed={draftEnabled}

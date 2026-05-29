@@ -74,7 +74,7 @@ function Pill({
       className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
         active
           ? "bg-foreground text-background"
-          : "border border-border text-muted hover:text-foreground hover:border-foreground/30"
+          : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
       }`}
     >
       {children}
@@ -153,14 +153,14 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
           <h3 className="text-xs font-semibold text-foreground">
             Retrieval Metrics
           </h3>
-          <span className="text-[10px] text-muted">检索效果指标</span>
+          <span className="text-[10px] text-muted-foreground">检索效果指标</span>
         </div>
         <div className="flex flex-1 items-center justify-center gap-1.5 overflow-x-auto">
           <Pill active={activeUserId === null} onClick={() => setActiveUserId(null)}>
             All Users
           </Pill>
           {usersLoading ? (
-            <span className="text-[10px] text-muted animate-pulse">Loading...</span>
+            <span className="text-[10px] text-muted-foreground animate-pulse">Loading...</span>
           ) : (
             <>
               {visibleUsers.map((u) => (
@@ -173,7 +173,7 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
                 </Pill>
               ))}
               {hiddenCount > 0 && (
-                <span className="rounded-full px-2 py-0.5 text-[10px] text-muted border border-dashed border-border">
+                <span className="rounded-full px-2 py-0.5 text-[10px] text-muted-foreground border border-dashed border-border">
                   +{hiddenCount}
                 </span>
               )}
@@ -182,7 +182,7 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
         </div>
         <select
           aria-label="Time window"
-          className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted cursor-pointer shrink-0"
+          className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground cursor-pointer shrink-0"
           value={days}
           onChange={(e) => setDays(Number(e.target.value))}
         >

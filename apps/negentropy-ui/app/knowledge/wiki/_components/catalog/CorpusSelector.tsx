@@ -19,7 +19,7 @@ export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs font-medium text-muted whitespace-nowrap">
+      <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
         语料库:
       </label>
       <select

@@ -63,12 +63,12 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
 
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted">
+      <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
         Tasks ({filtered.length})
       </div>
       <div className="max-h-[480px] overflow-auto">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-card text-muted">
+          <thead className="sticky top-0 bg-card text-muted-foreground">
             <tr className="border-b border-border">
               <th className="px-3 py-2 text-left font-medium">Task</th>
               <th className="px-3 py-2 text-left font-medium">Handler</th>
@@ -82,7 +82,7 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-muted">
+                <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
                   No tasks match current filters.
                 </td>
               </tr>
@@ -95,14 +95,14 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
                 >
                   <td className="px-3 py-2">
                     <div className="font-medium text-foreground">{t.display_name || t.key}</div>
-                    <div className="text-[10px] text-muted">{t.key}</div>
+                    <div className="text-[10px] text-muted-foreground">{t.key}</div>
                   </td>
-                  <td className="px-3 py-2 text-muted">{t.handler_kind}</td>
-                  <td className="px-3 py-2 text-muted">
+                  <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
+                  <td className="px-3 py-2 text-muted-foreground">
                     {t.trigger_type === "cron" ? t.cron_expr : t.trigger_type === "interval" ? `${t.interval_seconds}s` : "oneshot"}
                   </td>
-                  <td className="px-3 py-2 text-muted">{relativeFromNow(t.last_fire_at)}</td>
-                  <td className="px-3 py-2 text-muted">{relativeFromNow(t.next_fire_at)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{relativeFromNow(t.last_fire_at)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{relativeFromNow(t.next_fire_at)}</td>
                   <td className="px-3 py-2">
                     <StatusDots statuses={t.recent} />
                   </td>

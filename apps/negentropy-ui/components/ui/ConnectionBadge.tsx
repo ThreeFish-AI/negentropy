@@ -45,7 +45,7 @@ export function ConnectionBadge({
       {/* 左侧面板切换按钮 */}
       <button
         onClick={onToggleLeftPanel}
-        className="group p-1.5 rounded-md hover:bg-muted/80 text-muted transition-colors"
+        className="group p-1.5 rounded-md hover:bg-muted/80 text-muted-foreground transition-colors"
         title={showLeftPanel ? "Close Sidebar" : "Open Sidebar"}
       >
         <svg
@@ -66,14 +66,14 @@ export function ConnectionBadge({
       </button>
 
       {/* 当前会话标签 */}
-      <div className="text-xs font-medium text-muted max-w-md truncate mx-4">
+      <div className="text-xs font-medium text-muted-foreground max-w-md truncate mx-4">
         {activeSession ? activeSession.label : appName}
       </div>
 
       {/* 右侧面板切换按钮 */}
       <button
         onClick={onToggleRightPanel}
-        className="group p-1.5 rounded-md hover:bg-muted/80 text-muted transition-colors"
+        className="group p-1.5 rounded-md hover:bg-muted/80 text-muted-foreground transition-colors"
         title={showRightPanel ? "Close Panel" : "Open Panel"}
       >
         <svg

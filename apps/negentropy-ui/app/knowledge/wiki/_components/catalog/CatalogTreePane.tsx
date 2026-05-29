@@ -76,7 +76,7 @@ export function CatalogTreePane({
     <aside className="w-[300px] shrink-0 flex flex-col gap-2 overflow-hidden">
       {catalogLoading ? (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-muted">加载目录...</p>
+          <p className="text-sm text-muted-foreground">加载目录...</p>
         </div>
       ) : catalogError ? (
         <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-dashed border-destructive/50">
@@ -84,7 +84,7 @@ export function CatalogTreePane({
         </div>
       ) : treeLoading ? (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-muted">加载中...</p>
+          <p className="text-sm text-muted-foreground">加载中...</p>
         </div>
       ) : (
         <>
