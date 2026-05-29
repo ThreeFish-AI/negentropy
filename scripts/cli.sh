@@ -286,6 +286,14 @@ cmd_start() {
     # backend 在 MCP 工具调用链上依赖 perceives，必须先就绪。
     start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
     start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
+
+    # agents-chat-core 的 prebuild hook 仅做 test -d 存在性检查，
+    # 无法检测 dist 产物与源码是否同步（如全栈更名后 dist 仍含旧类型名）。
+    # 显式重建确保 dist 始终最新；tsup clean:true 保证无残留。
+    log_info "构建 agents-chat-core..."
+    (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
+      || { log_error "agents-chat-core 构建失败"; cmd_stop; exit 1; }
+
     log_info "构建 ui + wiki (并行)..."
     (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
     local build_ui_pid=$!

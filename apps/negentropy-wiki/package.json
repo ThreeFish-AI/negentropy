@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
+    "predev": "pnpm --filter @negentropy/agents-chat-core build",
     "dev": "next dev --port 3092",
-    "prebuild": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
+    "prebuild": "pnpm --filter @negentropy/agents-chat-core build",
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
-    "prelint": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
+    "prelint": "pnpm --filter @negentropy/agents-chat-core build",
     "lint": "eslint .",
-    "pretest": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
+    "pretest": "pnpm --filter @negentropy/agents-chat-core build",
     "test": "vitest run",
-    "pretest:watch": "test -d node_modules/@negentropy/agents-chat-core/dist || pnpm --filter @negentropy/agents-chat-core build",
+    "pretest:watch": "pnpm --filter @negentropy/agents-chat-core build",
     "test:watch": "vitest"
   },
   "dependencies": {
