@@ -106,11 +106,12 @@ interface WikiHeaderTabProps {
 function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
   const targetSlug = pickTabTargetSlug(item);
   const label = item.entry_title || item.entry_slug;
+  /* 仅当直接子项中存在 DOCUMENT（非纯 CONTAINER 分组）时渲染下拉；
+     纯 CONTAINER 子项是侧边栏层级结构，不应出现在头部下拉菜单 */
   const hasChildren =
     isContainerItem(item) &&
     item.children &&
-    item.children.length > 0 &&
-    item.children.some((child) => pickTabTargetSlug(child) !== null);
+    item.children.some((child) => !isContainerItem(child));
 
   if (!targetSlug) {
     return (
