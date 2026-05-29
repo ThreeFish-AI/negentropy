@@ -37,7 +37,7 @@ export interface ChatMessage {
 export type ChatStatus = "idle" | "streaming" | "error";
 
 export interface UseChatAgentOptions {
-  /** 默认主 Agent 名（来自 useSubAgents.rootAgent.name）。 */
+  /** 默认主 Agent 名（来自 useAgents.rootAgent.name）。 */
   defaultAgentName: string | null;
   /** 用户在 Composer 中以 @ 提及切换到的 Agent 名（实时同步）。 */
   preferredAgentName: string | null;
@@ -246,7 +246,7 @@ export function useChatAgent(options: UseChatAgentOptions): UseChatAgentResult {
       agentRef.current = agent;
 
       const forwardedProps: Record<string, unknown> = {
-        preferred_subagent: effectiveAgent,
+        preferred_agent: effectiveAgent,
         wiki_context: {
           pubSlug: options.pageContext.pubSlug,
           entrySlug: options.pageContext.entrySlug,

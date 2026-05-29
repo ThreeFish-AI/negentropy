@@ -139,9 +139,9 @@ export interface ReplyReasoningDisplaySegment {
   result?: unknown;
 }
 
-export interface SubAgentTransferDisplaySegment {
+export interface AgentTransferDisplaySegment {
   id: string;
-  kind: "subagent-transfer";
+  kind: "agent-transfer";
   nodeId: string;
   timestamp: number;
   sourceOrder: number;
@@ -156,7 +156,7 @@ export type AssistantReplyDisplaySegment =
   | ReplyToolGroupDisplaySegment
   | ReplyErrorDisplaySegment
   | ReplyReasoningDisplaySegment
-  | SubAgentTransferDisplaySegment;
+  | AgentTransferDisplaySegment;
 
 export interface AssistantReplyDisplayBlock {
   id: string;

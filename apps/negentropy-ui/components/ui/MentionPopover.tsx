@@ -209,7 +209,7 @@ export function MentionPopover({
                     className={`inline-flex h-7 w-9 items-center justify-center rounded-md transition-colors ${
                       active
                         ? "bg-input text-foreground"
-                        : "text-muted hover:text-foreground hover:bg-input/60"
+                        : "text-text-muted hover:text-foreground hover:bg-input/60"
                     }`}
                     onClick={() => setTab(t.kind)}
                   >
@@ -243,7 +243,7 @@ export function MentionPopover({
           data-testid="mention-listbox"
         >
           {loading && (
-            <li className="flex items-center justify-center gap-2 px-3 py-3 text-xs text-muted">
+            <li className="flex items-center justify-center gap-2 px-3 py-3 text-xs text-text-muted">
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> 加载中…
             </li>
           )}
@@ -254,7 +254,7 @@ export function MentionPopover({
           )}
           {!loading && !error && items.length === 0 && (
             <li
-              className="px-3 py-3 text-xs text-muted"
+              className="px-3 py-3 text-xs text-text-muted"
               data-testid="mention-empty"
             >
               {tab === "agent" ? "暂无匹配的 Agent" : "暂无匹配的语料库"}
@@ -284,7 +284,7 @@ export function MentionPopover({
                     <span className="truncate text-xs font-medium">{c.label}</span>
                   </div>
                   {c.description && (
-                    <p className="mt-0.5 line-clamp-1 text-[10px] text-muted">
+                    <p className="mt-0.5 line-clamp-1 text-[10px] text-text-muted">
                       {c.description}
                     </p>
                   )}
@@ -294,7 +294,7 @@ export function MentionPopover({
         </ul>
 
         {/* 底部提示 */}
-        <div className="border-t border-border px-3 py-1 text-[10px] text-muted">
+        <div className="border-t border-border px-3 py-1 text-[10px] text-text-muted">
           ↑↓ 选择 · Enter 确认 · Tab 切换分类 · Esc 关闭
         </div>
       </div>

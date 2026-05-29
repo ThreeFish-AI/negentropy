@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SubAgentTransferDisplaySegment } from "@/types/a2ui";
+import type { AgentTransferDisplaySegment } from "@/types/a2ui";
 import { cn } from "@/lib/utils";
 
 const AGENT_DISPLAY: Record<string, { name: string; emoji: string }> = {
@@ -20,10 +20,10 @@ function getAgentDisplay(agentName: string) {
   return AGENT_DISPLAY[agentName] || { name: agentName, emoji: "\u{1F916}" };
 }
 
-export function SubAgentTransferCard({
+export function AgentTransferCard({
   segment,
 }: {
-  segment: SubAgentTransferDisplaySegment;
+  segment: AgentTransferDisplaySegment;
 }) {
   const [expanded, setExpanded] = useState(false);
   const from = getAgentDisplay(segment.fromAgent);

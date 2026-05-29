@@ -1,7 +1,7 @@
-"""单测：``make_instruction_provider`` 注入 ``preferred_subagent`` prefix。
+"""单测：``make_instruction_provider`` 注入 ``preferred_agent`` prefix。
 
-业务背景：Home Composer 通过 ``@Agent`` 选中某 SubAgent 后，前端将其 ``name`` 经
-``forwardedProps.preferred_subagent`` → BFF ``state_delta`` → ADK session.state
+业务背景：Home Composer 通过 ``@Agent`` 选中某 Agent 后，前端将其 ``name`` 经
+``forwardedProps.preferred_agent`` → BFF ``state_delta`` → ADK session.state
 透传到根 Agent 的 ``ReadonlyContext``。本测试覆盖：
 
 - ``is_root=True`` + 命中 → instruction 头部 prepend「用户偏好」段落（Agent 名嵌入正文）；
@@ -33,13 +33,13 @@ def _ctx_with_state(state: dict | None) -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_preferred_subagent_prepends_prefix_when_db_returns_text():
+async def test_preferred_agent_prepends_prefix_when_db_returns_text():
     provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
     with patch(
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
         new=AsyncMock(return_value="DB_INSTRUCTION_BODY"),
     ):
-        result = await provider(_ctx_with_state({"preferred_subagent": "PerceptionFaculty"}))
+        result = await provider(_ctx_with_state({"preferred_agent": "PerceptionFaculty"}))
 
     assert result.startswith("## 用户偏好")
     assert "`PerceptionFaculty`" in result
@@ -49,14 +49,48 @@ async def test_preferred_subagent_prepends_prefix_when_db_returns_text():
 
 
 @pytest.mark.asyncio
-async def test_preferred_subagent_prepends_prefix_on_fallback_path():
+async def test_legacy_preferred_subagent_key_still_honored():
+    """向后兼容：迁移前已写入 ``preferred_subagent`` 的会话仍应被识别。
+
+    后端 reader 采用双键读取（``preferred_agent`` 优先、``preferred_subagent`` 回退），
+    使现存持久化会话零迁移、零丢失。"""
+    provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
+    with patch(
+        "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
+        new=AsyncMock(return_value="DB_INSTRUCTION_BODY"),
+    ):
+        result = await provider(_ctx_with_state({"preferred_subagent": "PerceptionFaculty"}))
+
+    assert result.startswith("## 用户偏好")
+    assert "`PerceptionFaculty`" in result
+    assert result.endswith("DB_INSTRUCTION_BODY")
+
+
+@pytest.mark.asyncio
+async def test_preferred_agent_takes_precedence_over_legacy_key():
+    """双键并存时新键 ``preferred_agent`` 优先于历史键 ``preferred_subagent``。"""
+    provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
+    with patch(
+        "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
+        new=AsyncMock(return_value="DB_BODY"),
+    ):
+        result = await provider(
+            _ctx_with_state({"preferred_agent": "ActionFaculty", "preferred_subagent": "PerceptionFaculty"})
+        )
+
+    assert "`ActionFaculty`" in result
+    assert "PerceptionFaculty" not in result
+
+
+@pytest.mark.asyncio
+async def test_preferred_agent_prepends_prefix_on_fallback_path():
     """DB 解析失败 → fallback；prefix 仍然注入（用户偏好高于 instruction 来源）。"""
     provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
     with patch(
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
         new=AsyncMock(side_effect=RuntimeError("db down")),
     ):
-        result = await provider(_ctx_with_state({"preferred_subagent": "ActionFaculty"}))
+        result = await provider(_ctx_with_state({"preferred_agent": "ActionFaculty"}))
 
     assert result.startswith("## 用户偏好")
     assert "`ActionFaculty`" in result
@@ -64,14 +98,14 @@ async def test_preferred_subagent_prepends_prefix_on_fallback_path():
 
 
 @pytest.mark.asyncio
-async def test_preferred_subagent_prepends_prefix_when_db_returns_empty():
+async def test_preferred_agent_prepends_prefix_when_db_returns_empty():
     """DB 返回空串 → 走 fallback；prefix 注入。"""
     provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
     with patch(
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
         new=AsyncMock(return_value=""),
     ):
-        result = await provider(_ctx_with_state({"preferred_subagent": "InfluenceFaculty"}))
+        result = await provider(_ctx_with_state({"preferred_agent": "InfluenceFaculty"}))
 
     assert result.startswith("## 用户偏好")
     assert result.endswith(_FALLBACK)
@@ -94,7 +128,7 @@ async def test_preferred_subagent_prepends_prefix_when_db_returns_empty():
 )
 @pytest.mark.asyncio
 async def test_non_root_faculty_never_injects_prefix(agent_name):
-    """faculty 共用同一 provider 工厂；is_root 默认为 False，``preferred_subagent``
+    """faculty 共用同一 provider 工厂；is_root 默认为 False，``preferred_agent``
     即使在 state 命中也不应污染 faculty instruction，避免：
     - 自指令（faculty 自己被命中 → ``transfer_to_agent(self)`` 死循环风险）；
     - 跨派系委派提示（其它 faculty 读到要求委派给另一 faculty 的指令）。
@@ -104,7 +138,7 @@ async def test_non_root_faculty_never_injects_prefix(agent_name):
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
         new=AsyncMock(return_value=f"{agent_name}_DB_BODY"),
     ):
-        result = await provider(_ctx_with_state({"preferred_subagent": "PerceptionFaculty"}))
+        result = await provider(_ctx_with_state({"preferred_agent": "PerceptionFaculty"}))
 
     assert result == f"{agent_name}_DB_BODY"
     assert "用户偏好" not in result
@@ -119,7 +153,7 @@ async def test_is_root_false_explicit_skips_prefix_even_with_root_name():
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
         new=AsyncMock(return_value="ROOT_DB_BODY"),
     ):
-        result = await provider(_ctx_with_state({"preferred_subagent": "ActionFaculty"}))
+        result = await provider(_ctx_with_state({"preferred_agent": "ActionFaculty"}))
 
     assert result == "ROOT_DB_BODY"
     assert "用户偏好" not in result
@@ -131,7 +165,7 @@ async def test_is_root_false_explicit_skips_prefix_even_with_root_name():
 
 
 @pytest.mark.asyncio
-async def test_no_preferred_subagent_returns_instruction_as_is():
+async def test_no_preferred_agent_returns_instruction_as_is():
     provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
     with patch(
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
@@ -179,13 +213,13 @@ async def test_state_is_none_returns_instruction_as_is():
     ],
 )
 @pytest.mark.asyncio
-async def test_invalid_preferred_subagent_ignored(preferred):
+async def test_invalid_preferred_agent_ignored(preferred):
     provider = make_instruction_provider("NegentropyEngine", _FALLBACK, is_root=True)
     with patch(
         "negentropy.agents._dynamic_instruction.resolve_subagent_instruction",
         new=AsyncMock(return_value="DB_BODY"),
     ):
-        result = await provider(_ctx_with_state({"preferred_subagent": preferred}))
+        result = await provider(_ctx_with_state({"preferred_agent": preferred}))
 
     assert result == "DB_BODY"
     assert "用户偏好" not in result

@@ -86,3 +86,61 @@
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* 渲染器切换 ----------------------------------------------------------------
+ *
+ * WikiGraphRenderer 的根容器撑满 .wiki-graph-canvas-wrap（其 > div 已置 100%
+ * 宽高），承载右上角分段切换器浮层与当前渲染器画布。切换器锚定右上角，与左上角
+ * 既有统计 overlay（.wiki-graph-canvas-overlay）分列两侧、互不遮挡。
+ */
+
+.wiki-graph-render-root {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* 分段切换器：对齐主站右上角渲染器切换器的位置与药丸分段风格 */
+.wiki-graph-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--wiki-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--wiki-bg);
+  box-shadow: var(--wiki-shadow);
+}
+
+.wiki-graph-render-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.3rem 0.62rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--wiki-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.12s ease;
+}
+
+.wiki-graph-render-btn + .wiki-graph-render-btn {
+  border-left: 1px solid var(--wiki-border);
+}
+
+.wiki-graph-render-btn:hover {
+  color: var(--wiki-text);
+  background: var(--wiki-bg-secondary);
+}
+
+/* SquareDocs 风格：激活态为 accent 药丸高亮，对齐 .wiki-header-tab.active */
+.wiki-graph-render-btn.active {
+  color: var(--wiki-accent);
+  background: var(--wiki-primary-light);
+  font-weight: 600;
+}

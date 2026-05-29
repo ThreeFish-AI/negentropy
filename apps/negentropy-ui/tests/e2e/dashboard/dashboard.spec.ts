@@ -228,8 +228,8 @@ async function mockSchedulerAPIs(page: PageHandle, opts?: { failedRuns?: number 
     await route.abort("connectionfailed");
   });
 
-  // FilterBar 的 Agent 下拉走 /api/interface/subagents 取一主五翼
-  await page.route("**/api/interface/subagents", async (route) => {
+  // FilterBar 的 Agent 下拉走 /api/interface/agents 取一主五翼
+  await page.route("**/api/interface/agents", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -264,13 +264,13 @@ async function mockSchedulerAPIs(page: PageHandle, opts?: { failedRuns?: number 
           system_prompt: null,
           model: null,
           config: {},
-          adk_config: { kind: "subagent" },
+          adk_config: { kind: "agent" },
           skills: [],
           tools: [],
           source: "negentropy_builtin",
           is_builtin: true,
           is_enabled: true,
-          kind: "subagent",
+          kind: "agent",
         },
       ]),
     });

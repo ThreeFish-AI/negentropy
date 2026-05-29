@@ -9,7 +9,7 @@
 // 共享 UUID 校验 —— 既给路由 sessionId 用，也给 forwardedProps.corpus_ids 用。
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // 路由偏好 Agent 名长度上限（与后端 _PREFERENCE_NAME_RE 同步：标识符 1-128 字符）。
-export const PREFERRED_SUBAGENT_MAX_LEN = 128;
+export const PREFERRED_AGENT_MAX_LEN = 128;
 // Mention 列表上限（corpus token 数），避免畸形 forwardedProps 撑大 state。
 export const CORPUS_IDS_MAX_LEN = 32;
 
@@ -56,20 +56,21 @@ export function buildStateDeltaFromForwardedProps(
       stateDelta.thinking_enabled = raw;
     }
   }
-  // Home Composer 的 @ Agent —— 用户偏好委派到指定 SubAgent（root_agent 软提示）。
+  // Home Composer 的 @ Agent —— 用户偏好委派到指定 Agent（root_agent 软提示）。
   // 合法字符串 → 写入；显式 ``null`` → 写入 ``null`` 以清空 session.state；
   // 其它（空串 / 超长 / 非字符串）→ 不写入。
-  // 配合前端始终显式发送 ``preferred_subagent`` 字段实现跨 turn 清空语义。
-  if ("preferred_subagent" in forwardedProps) {
-    const raw = forwardedProps.preferred_subagent;
+  // 配合前端始终显式发送 ``preferred_agent`` 字段实现跨 turn 清空语义。
+  // 注：后端按 preferred_agent 优先、preferred_subagent 回退读取，兼容历史会话。
+  if ("preferred_agent" in forwardedProps) {
+    const raw = forwardedProps.preferred_agent;
     if (
       typeof raw === "string" &&
       raw.length > 0 &&
-      raw.length <= PREFERRED_SUBAGENT_MAX_LEN
+      raw.length <= PREFERRED_AGENT_MAX_LEN
     ) {
-      stateDelta.preferred_subagent = raw;
+      stateDelta.preferred_agent = raw;
     } else if (raw === null) {
-      stateDelta.preferred_subagent = null;
+      stateDelta.preferred_agent = null;
     }
   }
   // Home Composer 的 @ Corpus —— 用户选定的 Corpus 集合；

@@ -18,45 +18,13 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
+import { useIsDark } from "@/lib/wiki-color-scheme";
+import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
 
 // ---------------------------------------------------------------------------
-// 视觉常量（与主站 constants.ts 对齐，独立拷贝以避免跨工程依赖）
+// 视觉常量：配色 / 取色逻辑见 `@/lib/wiki-graph-visual`（跨渲染器单一事实源）。
+// nodeSize 系数随渲染器而异（Sigma 球体偏大），保留本地定义。
 // ---------------------------------------------------------------------------
-
-const ENTITY_TYPE_COLORS: Record<string, string> = {
-  person: "#3B82F6",
-  organization: "#10B981",
-  location: "#F59E0B",
-  event: "#EF4444",
-  concept: "#8B5CF6",
-  product: "#EC4899",
-  document: "#6366F1",
-  other: "#6B7280",
-};
-
-// Tableau 10 — 色盲友好的社区配色
-const COMMUNITY_COLORS = [
-  "#4E79A7",
-  "#F28E2B",
-  "#E15759",
-  "#76B7B2",
-  "#59A14F",
-  "#EDC948",
-  "#B07AA1",
-  "#FF9DA7",
-  "#9C755F",
-  "#BAB0AC",
-];
-
-function entityColor(type?: string): string {
-  const key = (type ?? "other").toLowerCase();
-  return ENTITY_TYPE_COLORS[key] ?? ENTITY_TYPE_COLORS.other;
-}
-
-function communityColor(communityId: number | null | undefined): string {
-  if (communityId == null) return "#6B7280";
-  return COMMUNITY_COLORS[communityId % COMMUNITY_COLORS.length];
-}
 
 function nodeSize(importance: number | null | undefined): number {
   if (importance == null) return 10;
@@ -64,9 +32,12 @@ function nodeSize(importance: number | null | undefined): number {
   return 6 + 14 * clamped;
 }
 
-function nodeColor(node: Pick<WikiGraphNode, "type" | "community_id">): string {
-  if (node.community_id != null) return communityColor(node.community_id);
-  return entityColor(node.type);
+// 暗色态 → 标签 / 边配色（init 与主题同步 effect 共用，单一来源）。
+function schemeColors(isDark: boolean): { labelColor: string; edgeColor: string } {
+  return {
+    labelColor: isDark ? "#e3e3e3" : "#1c1e21",
+    edgeColor: isDark ? "rgba(255, 255, 255, 0.12)" : "#d4d4d8",
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -103,9 +74,12 @@ export function WikiGraphCanvas({
     kill: () => void;
     refresh: () => void;
     resize: () => void;
+    setSetting: (key: string, value: unknown) => void;
   } | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const router = useRouter();
+  // 响应式暗色态：驱动下方「主题同步」effect 在切换时就地重设 Sigma 配色。
+  const isDark = useIsDark();
 
   // 单次挂载初始化 + 数据/路由变化时整图重建（Wiki 场景图谱体量有限，无需增量同步）
   useEffect(() => {
@@ -121,17 +95,8 @@ export function WikiGraphCanvas({
 
       if (killed || !containerRef.current) return;
 
-      // Detect dark mode for label/edge color adaptation
-      const rootEl = document.documentElement;
-      const colorScheme = rootEl.getAttribute("data-color-scheme");
-      const prefersDark =
-        colorScheme === "dark" ||
-        (!colorScheme &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches);
-      const labelColor = prefersDark ? "#e3e3e3" : "#1c1e21";
-      const edgeColor = prefersDark
-        ? "rgba(255, 255, 255, 0.12)"
-        : "#d4d4d8";
+      // 首屏按当前主题着色（避免闪烁）；后续主题切换由下方同步 effect 接管。
+      const { labelColor, edgeColor } = schemeColors(detectDark());
 
       const graph = new Graph({ multi: false, type: "directed" });
       const entrySlugMap = new Map<string, string[]>();
@@ -185,6 +150,7 @@ export function WikiGraphCanvas({
         kill: () => void;
         refresh: () => void;
         resize: () => void;
+        setSetting: (key: string, value: unknown) => void;
       };
 
       // 节点点击 → 跳转到首个相关 entry；无 entry 时不跳转
@@ -223,6 +189,16 @@ export function WikiGraphCanvas({
       sigmaRef.current = null;
     };
   }, [nodes, edges, pubSlug, router]);
+
+  // 主题同步：切换 light/dark 时就地重设标签 / 边色并 refresh（不重建实例、不重排）。
+  useEffect(() => {
+    const sigma = sigmaRef.current;
+    if (!sigma) return;
+    const { labelColor, edgeColor } = schemeColors(isDark);
+    sigma.setSetting("labelColor", { color: labelColor });
+    sigma.setSetting("defaultEdgeColor", edgeColor);
+    sigma.refresh();
+  }, [isDark]);
 
   const exceedsThreshold = nodes.length >= truncateThreshold;
   const showTruncatedBanner = truncated || exceedsThreshold;

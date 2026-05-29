@@ -38,7 +38,7 @@ class Skill(Base, UUIDMixin, TimestampMixin):
 
     # 状态
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    # 「系统内置」标识：与 BuiltinTool.is_system / McpServer.is_system / SubAgent.is_system
+    # 「系统内置」标识：与 BuiltinTool.is_system / McpServer.is_system / Agent.is_system
     # 对齐，作为可见性与权限判断的单一事实源（参见 permissions._is_plugin_builtin）。
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
@@ -86,7 +86,7 @@ class SkillVersion(Base, UUIDMixin, TimestampMixin):
     把当时的 prompt_template / config_schema / default_config / required_tools /
     enforcement_mode / resources 全部 freeze 为 JSONB ``snapshot``。
 
-    SubAgent.skills 的字符串可写成 ``name@1.0.0`` / ``name@~1.0`` / ``name@*``，
+    Agent.skills 的字符串可写成 ``name@1.0.0`` / ``name@~1.0`` / ``name@*``，
     skills_injector 解析时按 SemVer 在此表中查精确或 range 匹配的快照。
 
     设计取舍：

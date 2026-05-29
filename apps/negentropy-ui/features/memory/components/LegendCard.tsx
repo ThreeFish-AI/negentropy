@@ -6,10 +6,10 @@ export function LegendCard() {
   return (
     <SidebarCard title="Legend">
       {/* Retention scores */}
-      <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted">
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         Retention
       </p>
-      <div className="mt-1.5 space-y-1.5 text-[11px] text-muted">
+      <div className="mt-1.5 space-y-1.5 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           High retention (&ge; 50%)
@@ -25,10 +25,10 @@ export function LegendCard() {
       </div>
 
       {/* Importance scores */}
-      <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted">
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         Importance
       </p>
-      <div className="mt-1.5 space-y-1.5 text-[11px] text-muted">
+      <div className="mt-1.5 space-y-1.5 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-blue-500" />
           High importance (&ge; 70%)
@@ -44,10 +44,10 @@ export function LegendCard() {
       </div>
 
       {/* Memory types */}
-      <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted">
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         Memory Types
       </p>
-      <div className="mt-1.5 space-y-1 text-[11px] text-muted">
+      <div className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-violet-500" /> Core
         </div>

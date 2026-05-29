@@ -31,7 +31,7 @@ interface SkillCardProps {
   onViewVersions?: () => void;
   onManageSchedule?: () => void;
   toggling?: boolean;
-  /** SubAgent 已配置的 tools（用于计算 missing_tools 红 badge）；缺省时不显示差异。 */
+  /** Agent 已配置的 tools（用于计算 missing_tools 红 badge）；缺省时不显示差异。 */
   agentTools?: string[];
 }
 
@@ -185,7 +185,7 @@ export function SkillCard({
           {enforcement === "strict" && (
             <span
               data-testid="skill-enforcement-strict"
-              title="Tool whitelist is strictly enforced — missing required tools will block SubAgent startup."
+              title="Tool whitelist is strictly enforced — missing required tools will block Agent startup."
               className="inline-flex shrink-0 items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
             >
               strict
@@ -202,7 +202,7 @@ export function SkillCard({
           {missingTools.length > 0 && (
             <span
               data-testid="skill-missing-tools"
-              title={`Missing tools on the bound SubAgent: ${missingTools.join(", ")}`}
+              title={`Missing tools on the bound Agent: ${missingTools.join(", ")}`}
               className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300"
             >
               {missingTools.length} missing

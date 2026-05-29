@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 import { ThemePreference } from "@/components/ThemePreference";
-import { WikiForceGraphCanvas } from "@/components/WikiForceGraphCanvas";
-import { WikiGraphCanvas } from "@/components/WikiGraphCanvas";
+import { WikiGraphRenderer } from "@/components/WikiGraphRenderer";
 import { WikiHeader } from "@/components/WikiHeader";
+import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
   countLeafEntries,
@@ -83,6 +83,7 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       items={sectionView.headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
+      actions={<WikiHeaderActions />}
       graphTab={{ active: true, show: entriesTotal > 0 }}
     />
   );
@@ -96,7 +97,6 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
     >
       <div className="wiki-graph-page">
         <header className="wiki-graph-page-header">
-          <h1 className="wiki-doc-title">知识图谱 · {publication.name}</h1>
           <div className="wiki-doc-meta">
             版本 v{publication.version}
             {graph && graph.nodes.length > 0 && (
@@ -172,30 +172,18 @@ function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
     );
   }
 
-  // 渲染器降级阈值：节点数 > 500 时切到 ForceGraph2D（Canvas 2D），避免 Sigma
-  // WebGL 在大图上的初始化卡顿与 OOM 风险。阈值与 plan 中的 truncateThreshold
-  // 保持一致；后端 max_nodes 上限 1000，组件层只在 500-1000 区间生效。
-  const useForceGraph = graph.nodes.length > 500;
-
+  // 与主站对齐：提供 Sigma / 3D / d3-force / Force Graph / Cytoscape 五种渲染器，
+  // 用户可自由切换（默认 Sigma WebGL）。大图场景由用户手动选择更稳健的引擎
+  // （如 Force Graph），不再隐式按节点数自动降级。
   return (
     <div className="wiki-graph-canvas-wrap">
-      {useForceGraph ? (
-        <WikiForceGraphCanvas
-          pubSlug={pubSlug}
-          nodes={graph.nodes}
-          edges={graph.edges}
-          truncated={graph.truncated}
-          totalEntities={graph.total_entities}
-        />
-      ) : (
-        <WikiGraphCanvas
-          pubSlug={pubSlug}
-          nodes={graph.nodes}
-          edges={graph.edges}
-          truncated={graph.truncated}
-          totalEntities={graph.total_entities}
-        />
-      )}
+      <WikiGraphRenderer
+        pubSlug={pubSlug}
+        nodes={graph.nodes}
+        edges={graph.edges}
+        truncated={graph.truncated}
+        totalEntities={graph.total_entities}
+      />
     </div>
   );
 }

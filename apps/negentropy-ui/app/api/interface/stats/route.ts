@@ -5,13 +5,13 @@ import { getAguiBaseUrl } from "@/lib/server/backend-url";
 /**
  * Interface Stats API 代理端点
  *
- * 代理到后端 /interface/stats API 获取 Interface 模块聚合统计数据（MCP/Skills/SubAgents/Models）。
+ * 代理到后端 /interface/stats API 获取 Interface 模块聚合统计数据（MCP/Skills/Agents/Models）。
  */
 
 interface InterfaceStatsResponse {
   mcp_servers: { total: number; enabled: number };
   skills: { total: number; enabled: number };
-  subagents: { total: number; enabled: number };
+  agents: { total: number; enabled: number };
   models: { total: number; enabled: number; vendors: number };
   tools: { total: number; enabled: number };
 }
@@ -42,7 +42,7 @@ function extractForwardHeaders(request: Request) {
 const defaultStats: InterfaceStatsResponse = {
   mcp_servers: { total: 0, enabled: 0 },
   skills: { total: 0, enabled: 0 },
-  subagents: { total: 0, enabled: 0 },
+  agents: { total: 0, enabled: 0 },
   models: { total: 0, enabled: 0, vendors: 0 },
   tools: { total: 0, enabled: 0 },
 };

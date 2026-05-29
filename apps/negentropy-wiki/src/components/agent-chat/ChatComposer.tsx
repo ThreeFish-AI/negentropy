@@ -23,7 +23,7 @@ import {
   reconcileMentions,
   type MentionToken,
 } from "@negentropy/agents-chat-core/parse";
-import type { SubAgentSummary } from "@/lib/agent-chat/use-subagents";
+import type { AgentSummary } from "@/lib/agent-chat/use-agents";
 import {
   AgentMentionPopover,
   clampActiveIndex,
@@ -31,7 +31,7 @@ import {
 
 export interface ChatComposerProps {
   /** Agent 候选列表（root + faculties）。 */
-  candidates: SubAgentSummary[];
+  candidates: AgentSummary[];
   /** 是否处于流式中（streaming 时禁用 send，启用 abort）。 */
   streaming: boolean;
   /** 发送：用户回车或点击 Send 触发。 */
@@ -63,8 +63,8 @@ export function ChatComposer({
 
   // 偏好 Agent 名变化时通知父组件
   useEffect(() => {
-    onPreferredAgentChange(derived.preferred_subagent);
-  }, [derived.preferred_subagent, onPreferredAgentChange]);
+    onPreferredAgentChange(derived.preferred_agent);
+  }, [derived.preferred_agent, onPreferredAgentChange]);
 
   const handleChange = useCallback(
     (next: string, caret: number) => {
@@ -79,7 +79,7 @@ export function ChatComposer({
   );
 
   const handleSelectAgent = useCallback(
-    (agent: SubAgentSummary) => {
+    (agent: AgentSummary) => {
       if (!trigger) return;
       const { value: nextValue, caret, token } = applyMention(value, trigger, {
         kind: "agent",
@@ -141,7 +141,7 @@ export function ChatComposer({
       if (streaming) return;
       const text = value.trim();
       if (!text) return;
-      onSend(text, derived.preferred_subagent);
+      onSend(text, derived.preferred_agent);
       setValue("");
       setMentions([]);
     }
@@ -154,7 +154,7 @@ export function ChatComposer({
     }
     const text = value.trim();
     if (!text) return;
-    onSend(text, derived.preferred_subagent);
+    onSend(text, derived.preferred_agent);
     setValue("");
     setMentions([]);
   };
@@ -193,8 +193,8 @@ export function ChatComposer({
       </div>
       <div className="wiki-agent-chat-composer__actions">
         <span className="wiki-agent-chat-composer__hint">
-          {derived.preferred_subagent
-            ? `→ ${derived.preferred_subagent}`
+          {derived.preferred_agent
+            ? `→ ${derived.preferred_agent}`
             : "默认主 Agent"}
         </span>
         <button

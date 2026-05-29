@@ -217,9 +217,9 @@ root_agent = LlmAgent(
     model=create_root_model(),
     before_model_callback=_pick_root_model,
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
-    # Instruction 由 sub_agents.system_prompt 经 InstructionProvider 在运行时解析；
+    # Instruction 由 agents.system_prompt 经 InstructionProvider 在运行时解析；
     # DB 未命中或失败时回退到 _ROOT_INSTRUCTION 常量，永不阻塞请求。
-    # is_root=True：仅根 Agent 消费 Home Composer 的 @Agent 偏好（preferred_subagent）。
+    # is_root=True：仅根 Agent 消费 Home Composer 的 @Agent 偏好（preferred_agent）。
     instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION, is_root=True),
     tools=[log_activity],
     sub_agents=[

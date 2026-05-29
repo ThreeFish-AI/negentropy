@@ -6,7 +6,7 @@ import type { ToolCallInfo, ToolProgressMap } from "@/types/common";
 import { MessageBubble, MarkdownContent } from "@/components/ui/MessageBubble";
 import { ChatTypingIndicator } from "@/components/ui/ChatTypingIndicator";
 import { ReasoningPanel, type ReasoningStepData } from "@/components/ui/ReasoningPanel";
-import { SubAgentTransferCard } from "@/components/ui/SubAgentTransferCard";
+import { AgentTransferCard } from "@/components/ui/AgentTransferCard";
 import { ToolExecutionGroup } from "@/components/ui/ToolExecutionGroup";
 import { extractCitationsFromToolCalls } from "@/utils/citation-parser";
 import { cn } from "@/lib/utils";
@@ -95,7 +95,7 @@ export function AssistantReplyBubble({
       return contentText.length > 0 || hasResult;
     }
     if (segment.kind === "error") return true;
-    if (segment.kind === "subagent-transfer") return true;
+    if (segment.kind === "agent-transfer") return true;
     return false;
   });
   const isReplyStreaming = block.segments.some(
@@ -149,9 +149,9 @@ export function AssistantReplyBubble({
               // 已在外置 ReasoningPanel 中渲染（P2-4），此处跳过避免双重显示
               return null;
             }
-            if (segment.kind === "subagent-transfer") {
+            if (segment.kind === "agent-transfer") {
               return (
-                <SubAgentTransferCard key={segment.id} segment={segment} />
+                <AgentTransferCard key={segment.id} segment={segment} />
               );
             }
             return (
@@ -159,8 +159,7 @@ export function AssistantReplyBubble({
                 key={segment.id}
                 className={cn(
                   "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200",
-                  isSelected &&
-                    "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  isSelected && "ring-2 ring-ring",
                 )}
                 onClick={() => onSelect?.(segment.nodeId)}
               >

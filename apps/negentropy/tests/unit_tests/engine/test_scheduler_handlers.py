@@ -19,6 +19,7 @@ from negentropy.engine.schedulers.handlers import (
     HANDLER_REGISTRY,
     HandlerResult,
     _bootstrap_default_handlers,
+    get_descriptor,
     get_handler,
     list_handlers,
 )
@@ -67,7 +68,7 @@ def _make_task(
 
 
 class TestRegistry:
-    def test_all_six_handlers_registered(self):
+    def test_all_eight_handlers_registered(self):
         expected = {
             "skill_invoke",
             "pipeline_watchdog",
@@ -75,6 +76,8 @@ class TestRegistry:
             "cache_warm",
             "pgvector_check",
             "agent_inspection",
+            "memory_automation",
+            "claude_code",
         }
         assert expected <= set(HANDLER_REGISTRY.keys())
 
@@ -84,6 +87,44 @@ class TestRegistry:
 
     def test_get_handler_missing_returns_none(self):
         assert get_handler("nonexistent_kind") is None
+
+
+class TestDescriptorRegistry:
+    """验证每个 handler 都有对应的 descriptor，且判别式 handler 结构正确。"""
+
+    def test_every_handler_has_descriptor(self):
+        for kind in HANDLER_REGISTRY:
+            desc = get_descriptor(kind)
+            assert desc is not None, f"handler '{kind}' has no descriptor"
+            assert desc.handler_kind == kind
+            assert desc.label  # label 非空
+            assert desc.supported_trigger_types  # 至少支持一种触发类型
+
+    def test_agent_inspection_descriptor(self):
+        desc = get_descriptor("agent_inspection")
+        assert desc is not None
+        assert desc.discriminator_field == "inspection_type"
+        assert desc.supports_token_budget is True
+        # 枚举字段存在
+        enum_fields = [f for f in desc.payload_fields if f.type == "enum"]
+        assert len(enum_fields) == 1
+        assert enum_fields[0].name == "inspection_type"
+        assert "faculty_health" in (enum_fields[0].enum_options or ())
+
+    def test_memory_automation_descriptor(self):
+        desc = get_descriptor("memory_automation")
+        assert desc is not None
+        assert desc.discriminator_field == "job_type"
+        # 从属字段带 applies_when
+        threshold = next(f for f in desc.payload_fields if f.name == "threshold")
+        assert threshold.applies_when == ("cleanup_memories",)
+        lookback = next(f for f in desc.payload_fields if f.name == "lookback_interval")
+        assert lookback.applies_when == ("trigger_consolidation",)
+
+    def test_oneshot_handlers_only_support_oneshot(self):
+        for kind in ("cache_warm", "pgvector_check"):
+            desc = get_descriptor(kind)
+            assert desc.supported_trigger_types == ("oneshot",)
 
 
 @pytest.fixture

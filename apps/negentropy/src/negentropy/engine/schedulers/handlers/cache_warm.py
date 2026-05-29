@@ -7,9 +7,19 @@ from __future__ import annotations
 
 from negentropy.logging import get_logger
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.cache_warm")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="cache_warm",
+        label="Model Config Cache Warm",
+        description="启动时预热 LLM/Embedding 配置缓存",
+        supported_trigger_types=("oneshot",),
+        default_trigger_type="oneshot",
+    ),
+)
 
 
 @register_handler("cache_warm")

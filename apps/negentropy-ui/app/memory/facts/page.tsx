@@ -134,7 +134,7 @@ export default function MemoryFactsPage() {
             sidebar={
               <>
                 <SidebarCard title="Facts Overview">
-                  <p className="mt-2 text-[11px] text-muted">
+                  <p className="mt-2 text-[11px] text-muted-foreground">
                     {activeUserId
                       ? `${facts.length} facts for selected user`
                       : `${facts.length} facts across ${users.length} users`}
@@ -144,7 +144,7 @@ export default function MemoryFactsPage() {
                       {users.slice(0, 8).map((u) => (
                         <button
                           key={u.id}
-                          className="flex w-full items-center justify-between rounded-lg border border-border px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:border-foreground/20 hover:text-foreground"
+                          className="flex w-full items-center justify-between rounded-lg border border-border px-2.5 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
                           onClick={() => setActiveUserId(u.id)}
                         >
                           <span className="truncate">{u.label || u.id}</span>
@@ -200,10 +200,10 @@ export default function MemoryFactsPage() {
 
             {/* Facts grid -- always shown */}
             {isLoading ? (
-              <p className="text-xs text-muted">Loading facts...</p>
+              <p className="text-xs text-muted-foreground">Loading facts...</p>
             ) : facts.length === 0 ? (
               <div className="rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
-                <p className="text-sm text-muted">
+                <p className="text-sm text-muted-foreground">
                   {activeUserId ? "No facts found for this user." : "No facts found."}
                 </p>
               </div>
@@ -242,22 +242,22 @@ export default function MemoryFactsPage() {
                 Fact Version History
               </h3>
               <button
-                className="text-xs text-muted hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground"
                 onClick={handleCloseHistory}
               >
                 Close
               </button>
             </div>
-            <p className="mt-1 text-[11px] font-mono text-muted">
+            <p className="mt-1 text-[11px] font-mono text-muted-foreground">
               {historyFactId}
             </p>
 
             {historyLoading ? (
-              <p className="mt-4 text-xs text-muted">Loading history...</p>
+              <p className="mt-4 text-xs text-muted-foreground">Loading history...</p>
             ) : historyError ? (
               <p className="mt-4 text-xs text-rose-600">{historyError}</p>
             ) : historyItems.length === 0 ? (
-              <p className="mt-4 text-xs text-muted">No history available.</p>
+              <p className="mt-4 text-xs text-muted-foreground">No history available.</p>
             ) : (
               <div className="mt-4 max-h-72 space-y-3 overflow-y-auto">
                 {historyItems.map((item, i) => (
@@ -275,16 +275,16 @@ export default function MemoryFactsPage() {
                         className={`rounded-full border px-2 py-0.5 text-[10px] ${
                           item.status === "active"
                             ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                            : "border-border bg-muted/30 text-muted"
+                            : "border-border bg-muted/30 text-muted-foreground"
                         }`}
                       >
                         {item.status}
                       </span>
                     </div>
-                    <pre className="mt-2 max-h-20 overflow-auto rounded-lg bg-muted/30 p-2 text-[11px] text-muted">
+                    <pre className="mt-2 max-h-20 overflow-auto rounded-lg bg-muted/30 p-2 text-[11px] text-muted-foreground">
                       {JSON.stringify(item.value, null, 2)}
                     </pre>
-                    <div className="mt-2 flex gap-3 text-[11px] text-muted">
+                    <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
                       <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
                       {item.superseded_by && (
                         <span>Superseded by: {item.superseded_by.slice(0, 8)}...</span>

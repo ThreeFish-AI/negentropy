@@ -21,7 +21,7 @@ export function CatalogSelector({ value, onChange }: CatalogSelectorProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs font-medium text-muted whitespace-nowrap">
+      <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
         目录:
       </label>
       <select

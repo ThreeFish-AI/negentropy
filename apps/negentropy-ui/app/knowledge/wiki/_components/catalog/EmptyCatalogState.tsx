@@ -10,9 +10,9 @@ interface EmptyCatalogStateProps {
 export function EmptyCatalogState({ onAddRoot }: EmptyCatalogStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center rounded-lg border border-dashed border-border bg-card/50">
-      <FolderOpen className="h-16 w-16 text-muted/20 mb-4" />
-      <p className="text-sm font-medium text-muted mb-1">此目录为空</p>
-      <p className="text-xs text-muted/50 mb-4">
+      <FolderOpen className="h-16 w-16 text-muted-foreground/20 mb-4" />
+      <p className="text-sm font-medium text-muted-foreground mb-1">此目录为空</p>
+      <p className="text-xs text-muted-foreground/50 mb-4">
         创建第一个节点以开始组织文档
       </p>
       <button
@@ -22,7 +22,7 @@ export function EmptyCatalogState({ onAddRoot }: EmptyCatalogStateProps) {
         <FolderPlus className="h-4 w-4" />
         创建根节点
       </button>
-      <p className="text-[10px] text-muted/40 mt-3">
+      <p className="text-[10px] text-muted-foreground/40 mt-3">
         右键节点可查看更多操作 · 拖拽节点可调整排序
       </p>
     </div>

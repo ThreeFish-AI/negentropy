@@ -98,19 +98,19 @@ const STATUS_MESSAGES: Record<
   not_configured: {
     idle: {
       text: "未配置主动 ISR，内容将通过 5 分钟窗口异步更新",
-      className: "text-muted",
+      className: "text-muted-foreground",
     },
     checking: {
       text: "未配置主动 ISR，内容将通过 5 分钟窗口异步更新",
-      className: "text-muted",
+      className: "text-muted-foreground",
     },
     confirmed: {
       text: "未配置主动 ISR，内容将通过 5 分钟窗口异步更新",
-      className: "text-muted",
+      className: "text-muted-foreground",
     },
     timeout: {
       text: "未配置主动 ISR，内容将通过 5 分钟窗口异步更新",
-      className: "text-muted",
+      className: "text-muted-foreground",
     },
   },
 };
@@ -193,7 +193,7 @@ export function WikiPublishPipeline({
           <div key={step.label} className="flex items-center gap-1.5">
             {i > 0 && <span className="h-px w-3 bg-border" />}
             <StepDot status={step.status} />
-            <span className="text-[11px] text-muted">{step.label}</span>
+            <span className="text-[11px] text-muted-foreground">{step.label}</span>
           </div>
         ))}
       </div>

@@ -95,7 +95,7 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
               <div className="truncate text-sm font-semibold text-foreground">
                 {task.display_name || task.key}
               </div>
-              <div className="truncate text-[11px] text-muted">{task.key}</div>
+              <div className="truncate text-[11px] text-muted-foreground">{task.key}</div>
             </div>
             <button
               type="button"
@@ -105,7 +105,7 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
               Close
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1 text-[10px] text-muted">
+          <div className="mt-2 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
             <span className="rounded-full bg-muted/50 px-1.5 py-0.5">{task.handler_kind}</span>
             {task.role ? <span className="rounded-full bg-muted/50 px-1.5 py-0.5">role: {task.role}</span> : null}
             {task.scenario ? <span className="rounded-full bg-muted/50 px-1.5 py-0.5">scenario: {task.scenario}</span> : null}
@@ -139,12 +139,12 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
           </Section>
           <Section title="Run history">
             {loading ? (
-              <div className="text-xs text-muted">Loading…</div>
+              <div className="text-xs text-muted-foreground">Loading…</div>
             ) : detail?.recent_executions.length ? (
               <ul className="space-y-2">
                 {detail.recent_executions.slice(0, 50).map((e) => (
                   <li key={e.id} className="rounded-md border border-border bg-muted/20 p-2">
-                    <div className="flex items-center justify-between text-[11px] text-muted">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                       <span className="font-mono">{e.started_at}</span>
                       <span>{e.status} · {e.duration_ms ?? "—"}ms · {e.fire_reason}</span>
                     </div>
@@ -158,7 +158,7 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
                 ))}
               </ul>
             ) : (
-              <div className="text-xs text-muted">No executions yet.</div>
+              <div className="text-xs text-muted-foreground">No executions yet.</div>
             )}
           </Section>
         </div>
@@ -170,7 +170,7 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-4">
-      <div className="mb-1 text-[10px] uppercase tracking-wider text-muted">{title}</div>
+      <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">{title}</div>
       {children}
     </section>
   );

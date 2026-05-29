@@ -9,7 +9,7 @@
  */
 
 export interface FilterOption {
-  /** 实际提交到 API 的过滤值（如 SubAgent UUID 或 user_id 字符串）。 */
+  /** 实际提交到 API 的过滤值（如 Agent UUID 或 user_id 字符串）。 */
   value: string;
   /** UI 展示文本（display_name / name / email 等可读字段）。 */
   label: string;

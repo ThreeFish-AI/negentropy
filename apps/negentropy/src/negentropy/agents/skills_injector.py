@@ -1,9 +1,9 @@
 """
-Skills → SubAgent system prompt injector — Progressive Disclosure 完整闭环。
+Skills → Agent system prompt injector — Progressive Disclosure 完整闭环。
 
 设计目标（对齐 Anthropic Claude Skills / Google ADK Skills / OpenAI Codex Skills）：
 
-- **Layer 1（描述常驻）**：把 SubAgent 关联的每个 Skill 的 ``name + description``（短）
+- **Layer 1（描述常驻）**：把 Agent 关联的每个 Skill 的 ``name + description``（短）
   注入到系统 prompt 顶部 ``<available_skills>`` 块，让 LLM 在所有调用中都能"看见"
   自己拥有哪些技能；如果有 ``resources``，仅展示数量提示，避免 prompt 膨胀。
 - **Layer 2（模板按需）**：``format_skill_invocation`` 用 Jinja2 沙箱环境渲染
@@ -72,7 +72,7 @@ _JINJA_ENV = SandboxedEnvironment(autoescape=False, undefined=StrictUndefined)
 class SkillToolMissingError(RuntimeError):
     """``enforcement_mode=strict`` 模式下缺失 ``required_tools`` 时抛出。
 
-    被 ``model_resolver._load_subagent_row`` 捕获，当前 SubAgent 退化为无 system prompt
+    被 ``model_resolver._load_subagent_row`` 捕获，当前 Agent 退化为无 system prompt
     启动并记录 error 级别日志，避免"看似启动但工具不全"的隐性故障。
     """
 

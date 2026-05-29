@@ -8,9 +8,28 @@ from __future__ import annotations
 
 from negentropy.logging import get_logger
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.session_title_inspect")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="session_title_inspect",
+        label="Session Title Inspector",
+        description="周期巡检 Session 标题，补齐与刷新",
+        supported_trigger_types=("interval",),
+        default_trigger_type="interval",
+        payload_fields=(
+            PayloadField(name="concurrency", label="Concurrency", type="integer", help_text="并行巡检数"),
+            PayloadField(name="batch_size", label="Batch Size", type="integer", help_text="每批处理 session 数"),
+            PayloadField(name="min_events", label="Min Events", type="integer", help_text="最小事件数阈值"),
+            PayloadField(
+                name="refresh_event_delta", label="Refresh Event Delta", type="integer", help_text="刷新事件增量阈值"
+            ),
+            PayloadField(name="max_attempts", label="Max Attempts", type="integer", help_text="最大尝试次数"),
+        ),
+    ),
+)
 
 
 @register_handler("session_title_inspect")

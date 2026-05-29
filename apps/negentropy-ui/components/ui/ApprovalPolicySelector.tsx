@@ -93,7 +93,7 @@ export function ApprovalPolicySelector({ className }: { className?: string }) {
     >
       <span className="font-medium">审批策略：</span>
       <select
-        className="rounded-md border border-border bg-background px-1.5 py-0.5 text-xs"
+        className="h-7 cursor-pointer rounded-md border border-border bg-background px-2 text-xs text-text-secondary transition-colors hover:border-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         value={mode}
         onChange={(e) => setMode(e.target.value as ApprovalPolicyMode)}
         aria-label="审批策略"

@@ -78,7 +78,7 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
               className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
                 mode === option
                   ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                  : "text-muted hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => setMode(option)}
             >
@@ -109,7 +109,7 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
                 className="rounded-lg border border-border bg-card p-3 text-xs"
               >
                 <p className="text-card-foreground">{item.content}</p>
-                <div className="mt-2 flex items-center gap-3 text-[11px] text-muted">
+                <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
                   <span>{item.source_uri || "-"}</span>
                   <span>score: {(item.combined_score ?? 0).toFixed(4)}</span>
                 </div>
@@ -117,7 +117,7 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-xs text-muted">
+          <p className="mt-3 text-xs text-muted-foreground">
             {results ? "无匹配结果" : "输入关键词开始搜索"}
           </p>
         )}

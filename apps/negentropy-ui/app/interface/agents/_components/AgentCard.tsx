@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/providers/AuthProvider";
 
-interface SubAgent {
+interface Agent {
   id: string;
   owner_id: string;
   visibility: string;
@@ -19,16 +19,16 @@ interface SubAgent {
   source: string;
   is_builtin: boolean;
   is_enabled: boolean;
-  kind?: "root" | "subagent";
+  kind?: "root" | "agent";
 }
 
-interface SubAgentCardProps {
-  agent: SubAgent;
+interface AgentCardProps {
+  agent: Agent;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin") ?? false;
   const canEdit = isAdmin || !agent.is_builtin;
@@ -44,7 +44,7 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
               <>
                 <button
                   onClick={onEdit}
-                  title="Edit SubAgent"
+                  title="Edit Agent"
                   aria-label={`Edit ${agent.display_name || agent.name}`}
                   className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 >
@@ -54,7 +54,7 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
                 </button>
                 <button
                   onClick={onDelete}
-                  title="Delete SubAgent"
+                  title="Delete Agent"
                   aria-label={`Delete ${agent.display_name || agent.name}`}
                   className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                 >

@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const API_BASE = process.env.WIKI_API_BASE || "http://localhost:3292";
 
 /**
- * ui 端 BFF 基础地址 —— Agents at Wiki 的对话流与 SubAgent 元数据
+ * ui 端 BFF 基础地址 —— Agents at Wiki 的对话流与 Agent 元数据
  * 统一代理到 ui 端 BFF（复用 ui 的 ADK normalizer / NDJSON 编码 / sso 头转发，
  * 避免在 wiki 端重复实现 ADK→AGUI 事件流转换）。
  *
@@ -30,15 +30,15 @@ const nextConfig: NextConfig = {
   // /api/:path* 兜底放最后，避免吞掉 /api/interface/* 与 /api/agui/* 等更具体路径。
   async rewrites() {
     return [
-      // SubAgent 元数据 —— Agents at Wiki 的「一主五翼」选择/提及候选源
+      // Agent 元数据 —— Agents at Wiki 的「一主五翼」选择/提及候选源
       // 复用 ui 端 BFF（ui 端已聚合鉴权与字段裁剪），避免 wiki 重复实现
       {
-        source: "/api/interface/subagents",
-        destination: `${UI_BFF_BASE}/api/interface/subagents`,
+        source: "/api/interface/agents",
+        destination: `${UI_BFF_BASE}/api/interface/agents`,
       },
       {
-        source: "/api/interface/subagents/:path*",
-        destination: `${UI_BFF_BASE}/api/interface/subagents/:path*`,
+        source: "/api/interface/agents/:path*",
+        destination: `${UI_BFF_BASE}/api/interface/agents/:path*`,
       },
       // AGUI 对话流（NDJSON / SSE，POST 与 resume GET 共用）
       // 透明代理到 ui 端 BFF —— 复用 ADK→AGUI normalizer 与 SSO 头转发
