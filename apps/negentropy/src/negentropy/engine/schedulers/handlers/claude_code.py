@@ -11,9 +11,29 @@ from __future__ import annotations
 
 from negentropy.logging import get_logger
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.claude_code")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="claude_code",
+        label="Claude Code",
+        description="通过 Scheduler 调度 Claude Code 执行任务",
+        supported_trigger_types=("cron", "interval"),
+        default_trigger_type="cron",
+        payload_fields=(
+            PayloadField(
+                name="prompt", label="Prompt", type="string", required=True, help_text="Claude Code 的任务描述"
+            ),
+            PayloadField(name="cwd", label="Working Directory", type="string", help_text="工作目录（覆盖全局配置）"),
+            PayloadField(name="max_turns", label="Max Turns", type="integer", help_text="最大迭代轮数（覆盖全局配置）"),
+            PayloadField(
+                name="resume", label="Resume Session", type="boolean", default=False, help_text="是否续接上次会话"
+            ),
+        ),
+    ),
+)
 
 
 @register_handler("claude_code")

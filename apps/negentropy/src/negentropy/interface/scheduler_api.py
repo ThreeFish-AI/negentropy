@@ -1,14 +1,18 @@
 """/scheduler/* 聚合 API — Phase 4 Dashboard 后端契约。
 
-端点清单（Plan 第 7 节）：
-- GET  /scheduler/kpis          KPI 卡片数据
-- GET  /scheduler/tasks         任务清单（多维筛选）
-- GET  /scheduler/tasks/{id}    单任务详情 + 最近执行
-- GET  /scheduler/executions    执行历史（分页 + 多维筛选）
-- GET  /scheduler/stats         分组聚合（角色/场景/Agent/Owner/Handler）
-- POST /scheduler/tasks/{id}/run     手动触发
-- POST /scheduler/tasks/{id}/toggle  启停
-- GET  /scheduler/stream        SSE 实时执行事件
+端点清单：
+- GET  /scheduler/kpis                KPI 卡片数据
+- GET  /scheduler/tasks               任务清单（多维筛选）
+- GET  /scheduler/tasks/{id}          单任务详情 + 最近执行
+- GET  /scheduler/executions          执行历史（分页 + 多维筛选）
+- GET  /scheduler/stats               分组聚合（角色/场景/Agent/Owner/Handler）
+- GET  /scheduler/handlers            Handler manifest（统一定义协议）
+- POST /scheduler/tasks               创建任务
+- PUT  /scheduler/tasks/{id}          更新任务
+- DELETE /scheduler/tasks/{id}        删除任务
+- POST /scheduler/tasks/{id}/run      手动触发
+- POST /scheduler/tasks/{id}/toggle   启停
+- GET  /scheduler/stream              SSE 实时执行事件
 
 参考文献：
 [1] FastAPI Docs, *Server-Sent Events with StreamingResponse*. SSE 实现模式。
@@ -26,9 +30,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Path, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import and_, case, func, select, update
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
@@ -127,6 +131,7 @@ def _serialize_task(t: ScheduledTask, recent: list[str] | None = None) -> dict[s
         "updated_at": t.updated_at.isoformat() if t.updated_at else None,
         "payload": t.payload or {},
         "recent": recent or [],
+        "is_system": t.is_system,
     }
 
 
@@ -526,6 +531,380 @@ async def toggle_task(task_id: UUID, body: ToggleBody) -> dict[str, Any]:
             raise HTTPException(status_code=500, detail=f"toggle failed: {exc}") from exc
     _STATS_CACHE.invalidate()
     return {"ok": True, "enabled": body.enabled}
+
+
+# ---------------------------------------------------------------------------
+# GET /scheduler/stream (SSE)
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Handler Manifest — 统一定义协议
+# ---------------------------------------------------------------------------
+
+
+def _serialize_descriptor(d: HandlerDescriptor) -> dict[str, Any]:  # noqa: F821
+    """将 HandlerDescriptor dataclass 序列化为 API 响应 dict。"""
+    from negentropy.engine.schedulers.handlers import PayloadField
+
+    def _field(f: PayloadField) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "name": f.name,
+            "label": f.label,
+            "type": f.type,
+            "required": f.required,
+        }
+        if f.default is not None:
+            result["default"] = f.default
+        if f.enum_options:
+            result["enum_options"] = list(f.enum_options)
+        if f.help_text:
+            result["help_text"] = f.help_text
+        if f.applies_when:
+            result["applies_when"] = list(f.applies_when)
+        return result
+
+    return {
+        "handler_kind": d.handler_kind,
+        "label": d.label,
+        "description": d.description,
+        "trigger_types": list(d.supported_trigger_types),
+        "payload_fields": [_field(f) for f in d.payload_fields],
+        "discriminator_field": d.discriminator_field,
+        "default_trigger_type": d.default_trigger_type,
+        "supports_token_budget": d.supports_token_budget,
+    }
+
+
+@router.get("/handlers")
+async def list_handler_descriptors() -> dict[str, Any]:
+    """返回所有已注册 Handler 的能力描述（驱动 UI 动态表单）。"""
+    from negentropy.engine.schedulers.handlers import _bootstrap_default_handlers, list_descriptors
+
+    _bootstrap_default_handlers()  # 幂等：确保 handler 模块已 import → 描述器已注册
+    return {"items": [_serialize_descriptor(d) for d in list_descriptors()]}
+
+
+# ---------------------------------------------------------------------------
+# CRUD — Pydantic 请求模型
+# ---------------------------------------------------------------------------
+
+
+class TaskCreateRequest(BaseModel):
+    key: str = Field(..., min_length=1, max_length=192, description="任务唯一标识，创建后不可变")
+    handler_kind: str = Field(..., min_length=1, max_length=64)
+    trigger_type: Literal["interval", "cron", "oneshot"]
+    interval_seconds: float | None = None
+    cron_expr: str | None = None
+    enabled: bool = True
+    owner_id: str | None = None
+    participant_id: str | None = None
+    agent_id: UUID | None = None
+    role: str | None = None
+    scenario: str | None = None
+    category: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    max_concurrency: int = Field(default=1, ge=1)
+    token_budget: int | None = Field(default=None, ge=0)
+
+
+class TaskUpdateRequest(BaseModel):
+    handler_kind: str | None = None
+    trigger_type: Literal["interval", "cron", "oneshot"] | None = None
+    interval_seconds: float | None = None
+    cron_expr: str | None = None
+    enabled: bool | None = None
+    owner_id: str | None = None
+    participant_id: str | None = None
+    agent_id: UUID | None = None
+    role: str | None = None
+    scenario: str | None = None
+    category: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    payload: dict[str, Any] | None = None
+    max_concurrency: int | None = Field(default=None, ge=1)
+    token_budget: int | None = Field(default=None, ge=0)
+
+
+# ---------------------------------------------------------------------------
+# CRUD — 共享校验
+# ---------------------------------------------------------------------------
+
+
+def _validate_task_spec(
+    handler_kind: str,
+    trigger_type: str,
+    interval_seconds: float | None,
+    cron_expr: str | None,
+    payload: dict[str, Any],
+) -> None:
+    """纯函数校验任务定义一致性。失败抛 HTTPException(400)。"""
+    from negentropy.engine.schedulers.handlers import (
+        HANDLER_REGISTRY,
+        _bootstrap_default_handlers,
+        get_descriptor,
+    )
+
+    _bootstrap_default_handlers()
+
+    # 1. handler_kind 合法性
+    if handler_kind not in HANDLER_REGISTRY:
+        raise HTTPException(status_code=400, detail=f"unknown handler_kind: {handler_kind}")
+
+    # 2. trigger 一致性
+    if trigger_type == "interval":
+        if not interval_seconds or interval_seconds <= 0:
+            raise HTTPException(status_code=400, detail="interval trigger requires interval_seconds > 0")
+        if cron_expr:
+            raise HTTPException(status_code=400, detail="interval trigger must not have cron_expr")
+    elif trigger_type == "cron":
+        if not cron_expr:
+            raise HTTPException(status_code=400, detail="cron trigger requires cron_expr")
+        if interval_seconds:
+            raise HTTPException(status_code=400, detail="cron trigger must not have interval_seconds")
+        # croniter 校验
+        try:
+            from croniter import croniter
+
+            croniter(cron_expr, _utcnow())
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"invalid cron expression: {exc}") from exc
+    elif trigger_type == "oneshot":
+        if interval_seconds or cron_expr:
+            raise HTTPException(status_code=400, detail="oneshot trigger must not have interval_seconds or cron_expr")
+    else:
+        raise HTTPException(status_code=400, detail=f"invalid trigger_type: {trigger_type}")
+
+    # 3. trigger_type ∈ descriptor.supported_trigger_types
+    descriptor = get_descriptor(handler_kind)
+    if descriptor and descriptor.supported_trigger_types and trigger_type not in descriptor.supported_trigger_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"handler {handler_kind} does not support trigger_type {trigger_type}, "
+            f"supported: {list(descriptor.supported_trigger_types)}",
+        )
+
+    # 4. payload 校验 against manifest
+    if descriptor and descriptor.payload_fields:
+        _validate_payload_against_manifest(payload, descriptor)
+
+
+def _validate_payload_against_manifest(
+    payload: dict[str, Any],
+    descriptor: HandlerDescriptor,  # noqa: F821
+) -> None:
+    """校验 payload 字段与 manifest 一致性。"""
+
+    # 判别式字段值
+    discriminator_value: str | None = None
+    if descriptor.discriminator_field:
+        discriminator_value = payload.get(descriptor.discriminator_field)
+        if discriminator_value is None:
+            # 判别式字段缺失 → 宽松放行（edit 可能只改了 trigger 等非 payload 字段）
+            return
+
+    known_names: set[str] = set()
+    for pf in descriptor.payload_fields:
+        known_names.add(pf.name)
+        # 判别式依赖过滤
+        if pf.applies_when and discriminator_value and discriminator_value not in pf.applies_when:
+            continue
+        # enum 校验
+        if pf.type == "enum" and pf.enum_options:
+            val = payload.get(pf.name)
+            if val is not None and val not in pf.enum_options:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"payload.{pf.name} invalid enum value '{val}', options: {list(pf.enum_options)}",
+                )
+        # required 校验（仅对可见字段）
+        if pf.required and pf.name not in payload:
+            raise HTTPException(status_code=400, detail=f"payload.{pf.name} is required")
+
+
+def _compute_next_fire_for_spec(
+    trigger_type: str, interval_seconds: float | None, cron_expr: str | None
+) -> datetime | None:
+    """根据 trigger 配置计算 next_fire_at（与 registry._compute_next_fire 对齐）。"""
+    now = _utcnow()
+    if trigger_type == "interval" and interval_seconds:
+        return now + timedelta(seconds=float(interval_seconds))
+    if trigger_type == "cron" and cron_expr:
+        try:
+            from croniter import croniter
+
+            return croniter(cron_expr, now).get_next(datetime)
+        except Exception:
+            return now + timedelta(minutes=5)
+    # oneshot: 首次设 now 让它立即被 claim
+    if trigger_type == "oneshot":
+        return now
+    return now
+
+
+# ---------------------------------------------------------------------------
+# CRUD — POST /scheduler/tasks
+# ---------------------------------------------------------------------------
+
+
+@router.post("/tasks", status_code=201)
+async def create_task(body: TaskCreateRequest) -> dict[str, Any]:
+    """创建新的调度任务。"""
+    _validate_task_spec(body.handler_kind, body.trigger_type, body.interval_seconds, body.cron_expr, body.payload)
+
+    async with AsyncSessionLocal() as db:
+        # key 唯一性
+        existing = (await db.execute(select(ScheduledTask).where(ScheduledTask.key == body.key))).scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=409, detail=f"task key '{body.key}' already exists")
+
+        next_fire = _compute_next_fire_for_spec(body.trigger_type, body.interval_seconds, body.cron_expr)
+        task = ScheduledTask(
+            key=body.key,
+            handler_kind=body.handler_kind,
+            trigger_type=body.trigger_type,
+            interval_seconds=body.interval_seconds,
+            cron_expr=body.cron_expr,
+            enabled=body.enabled,
+            owner_id=body.owner_id,
+            participant_id=body.participant_id,
+            agent_id=body.agent_id,
+            role=body.role,
+            scenario=body.scenario,
+            category=body.category,
+            display_name=body.display_name,
+            description=body.description,
+            payload=body.payload,
+            max_concurrency=body.max_concurrency,
+            token_budget=body.token_budget,
+            next_fire_at=next_fire,
+        )
+        db.add(task)
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail=f"conflict: {exc}") from exc
+        except SQLAlchemyError as exc:
+            await db.rollback()
+            logger.warning("create_task_failed", key=body.key, error=str(exc))
+            raise HTTPException(status_code=500, detail=f"create failed: {exc}") from exc
+        await db.refresh(task)
+
+    _STATS_CACHE.invalidate()
+    return _serialize_task(task)
+
+
+# ---------------------------------------------------------------------------
+# CRUD — PUT /scheduler/tasks/{id}
+# ---------------------------------------------------------------------------
+
+
+@router.put("/tasks/{task_id}")
+async def update_task(task_id: UUID, body: TaskUpdateRequest) -> dict[str, Any]:
+    """更新调度任务定义（key 不可变）。"""
+    async with AsyncSessionLocal() as db:
+        task = await db.get(ScheduledTask, task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="task not found")
+        if task.is_system:
+            raise HTTPException(
+                status_code=409,
+                detail="system task cannot be modified; disable it instead",
+            )
+
+        # 收集 exclude_unset 字段（区分"未传"与"显式传 null"）
+        # 收集 exclude_unset 字段（区分"未传"与"显式传 null"）
+        update_data = body.model_dump(exclude_unset=True)
+        if not update_data:
+            return _serialize_task(task)
+
+        # 合并现有值 + 新值，形成完整视图用于校验
+        merged_handler = update_data.get("handler_kind", task.handler_kind)
+        merged_trigger = update_data.get("trigger_type", task.trigger_type)
+        merged_interval = update_data.get("interval_seconds", task.interval_seconds)
+        merged_cron = update_data.get("cron_expr", task.cron_expr)
+        merged_payload = update_data.get("payload", task.payload or {})
+
+        # trigger 切换时清空旧字段
+        if "trigger_type" in update_data:
+            new_tt = update_data["trigger_type"]
+            if new_tt == "oneshot":
+                merged_interval = None
+                merged_cron = None
+                if "interval_seconds" not in update_data:
+                    update_data["interval_seconds"] = None
+                if "cron_expr" not in update_data:
+                    update_data["cron_expr"] = None
+            elif new_tt == "interval":
+                merged_cron = None
+                if "cron_expr" not in update_data:
+                    update_data["cron_expr"] = None
+            elif new_tt == "cron":
+                merged_interval = None
+                if "interval_seconds" not in update_data:
+                    update_data["interval_seconds"] = None
+
+        _validate_task_spec(merged_handler, merged_trigger, merged_interval, merged_cron, merged_payload)
+
+        # 检测 schedule 变更 → 重算 next_fire_at
+        schedule_changed = any(k in update_data for k in ("trigger_type", "interval_seconds", "cron_expr"))
+
+        # 应用更新
+        for field_name, value in update_data.items():
+            if field_name == "agent_id" and value is not None:
+                value = UUID(str(value))
+            setattr(task, field_name, value)
+
+        if schedule_changed:
+            task.next_fire_at = _compute_next_fire_for_spec(
+                task.trigger_type,
+                task.interval_seconds,
+                task.cron_expr,
+            )
+
+        try:
+            await db.commit()
+        except SQLAlchemyError as exc:
+            await db.rollback()
+            logger.warning("update_task_failed", task_id=str(task_id), error=str(exc))
+            raise HTTPException(status_code=500, detail=f"update failed: {exc}") from exc
+        await db.refresh(task)
+
+    _STATS_CACHE.invalidate()
+    return _serialize_task(task)
+
+
+# ---------------------------------------------------------------------------
+# CRUD — DELETE /scheduler/tasks/{id}
+# ---------------------------------------------------------------------------
+
+
+@router.delete("/tasks/{task_id}")
+async def delete_task(task_id: UUID) -> dict[str, Any]:
+    """删除调度任务（系统种子任务不可删除）。"""
+    async with AsyncSessionLocal() as db:
+        task = await db.get(ScheduledTask, task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="task not found")
+        if task.is_system:
+            raise HTTPException(
+                status_code=409,
+                detail=f"system task '{task.key}' cannot be deleted; use toggle to disable instead",
+            )
+        try:
+            await db.delete(task)
+            await db.commit()
+        except SQLAlchemyError as exc:
+            await db.rollback()
+            logger.warning("delete_task_failed", task_id=str(task_id), error=str(exc))
+            raise HTTPException(status_code=500, detail=f"delete failed: {exc}") from exc
+
+    _STATS_CACHE.invalidate()
+    return {"ok": True, "deleted_task_id": str(task_id)}
 
 
 # ---------------------------------------------------------------------------

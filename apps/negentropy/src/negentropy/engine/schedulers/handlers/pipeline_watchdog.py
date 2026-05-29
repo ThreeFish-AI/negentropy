@@ -8,9 +8,19 @@ from __future__ import annotations
 
 from negentropy.logging import get_logger
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.pipeline_watchdog")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="pipeline_watchdog",
+        label="Pipeline Watchdog",
+        description="收敛 KB/KG Pipeline 长尾状态的定时巡检",
+        supported_trigger_types=("interval",),
+        default_trigger_type="interval",
+    ),
+)
 
 
 @register_handler("pipeline_watchdog")

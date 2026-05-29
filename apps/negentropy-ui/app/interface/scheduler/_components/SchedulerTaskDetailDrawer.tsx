@@ -9,6 +9,8 @@ interface SchedulerTaskDetailDrawerProps {
   onClose: () => void;
   onRun: (id: string) => void;
   onToggle: (id: string, enabled: boolean) => void;
+  onEdit: (task: ScheduledTaskDTO) => void;
+  onDelete: (task: ScheduledTaskDTO) => void;
 }
 
 function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
@@ -45,6 +47,8 @@ export function SchedulerTaskDetailDrawer({
   onClose,
   onRun,
   onToggle,
+  onEdit,
+  onDelete,
 }: SchedulerTaskDetailDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -91,12 +95,17 @@ export function SchedulerTaskDetailDrawer({
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
+          <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-foreground">
               {task.display_name || task.key}
             </h2>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{task.key}</p>
+            {task.is_system && (
+              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
+                System
+              </span>
+            )}
           </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{task.key}</p>
           <button
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -210,6 +219,25 @@ export function SchedulerTaskDetailDrawer({
             }`}
           >
             {task.enabled ? "Disable" : "Enable"}
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => onDelete(task)}
+            disabled={task.is_system}
+            title={task.is_system ? "System tasks cannot be deleted" : undefined}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
+              task.is_system
+                ? "text-muted-foreground/40 border-muted/30 cursor-not-allowed"
+                : "text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-500/10"
+            }`}
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => onEdit(task)}
+            className="rounded-md px-3 py-1.5 text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+          >
+            Edit
           </button>
         </div>
       </div>

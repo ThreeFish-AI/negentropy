@@ -20,12 +20,68 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
 
 if TYPE_CHECKING:
     from negentropy.models.scheduled_task import ScheduledTask
 
 logger = get_logger("negentropy.engine.schedulers.handlers.memory_automation")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="memory_automation",
+        label="Memory Automation",
+        description="仿生记忆自动化：遗忘清理、会话巩固、相关性重加权",
+        supported_trigger_types=("cron", "interval"),
+        default_trigger_type="cron",
+        discriminator_field="job_type",
+        payload_fields=(
+            PayloadField(
+                name="job_type",
+                label="Job Type",
+                type="enum",
+                required=True,
+                enum_options=("cleanup_memories", "trigger_consolidation", "reweight_relevance"),
+                help_text=(
+                    "作业类型：cleanup_memories=遗忘清理;"
+                    " trigger_consolidation=会话巩固; reweight_relevance=相关性重加权"
+                ),
+            ),
+            PayloadField(
+                name="threshold",
+                label="Threshold",
+                type="number",
+                default=0.1,
+                help_text="低价值记忆阈值（仅 cleanup_memories）",
+                applies_when=("cleanup_memories",),
+            ),
+            PayloadField(
+                name="min_age_days",
+                label="Min Age (days)",
+                type="integer",
+                default=7,
+                help_text="最小记忆天数（仅 cleanup_memories）",
+                applies_when=("cleanup_memories",),
+            ),
+            PayloadField(
+                name="decay_lambda",
+                label="Decay Lambda",
+                type="number",
+                default=0.1,
+                help_text="艾宾浩斯衰减系数（仅 cleanup_memories）",
+                applies_when=("cleanup_memories",),
+            ),
+            PayloadField(
+                name="lookback_interval",
+                label="Lookback Interval",
+                type="string",
+                default="1 hour",
+                help_text="回溯时间窗口，如 '1 hour'（仅 trigger_consolidation）",
+                applies_when=("trigger_consolidation",),
+            ),
+        ),
+    ),
+)
 
 _INTERVAL_UNIT_MAP = {
     "second": "seconds",

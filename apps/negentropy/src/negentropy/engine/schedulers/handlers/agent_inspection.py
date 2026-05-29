@@ -44,9 +44,34 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.scheduled_task import ScheduledTask, TaskExecution
 
-from . import HandlerResult, register_handler
+from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
 
 logger = get_logger("negentropy.engine.schedulers.handlers.agent_inspection")
+
+register_descriptor(
+    HandlerDescriptor(
+        handler_kind="agent_inspection",
+        label="Agent Inspection",
+        description="自驱 Agent 巡检：探活、健康检查、调度框架自检",
+        supported_trigger_types=("interval", "cron"),
+        default_trigger_type="interval",
+        discriminator_field="inspection_type",
+        payload_fields=(
+            PayloadField(
+                name="inspection_type",
+                label="Inspection Type",
+                type="enum",
+                required=True,
+                enum_options=("self_check", "faculty_health", "faculty_deep_check", "scheduled_tasks_summary"),
+                help_text=(
+                    "巡检类型：self_check=回声; faculty_health=探活;"
+                    " faculty_deep_check=深度检查; scheduled_tasks_summary=调度自检"
+                ),
+            ),
+        ),
+        supports_token_budget=True,
+    ),
+)
 
 
 # ---------------------------------------------------------------------------
