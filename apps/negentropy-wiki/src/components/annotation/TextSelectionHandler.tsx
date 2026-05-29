@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useWikiAuth } from "@/lib/auth/wiki-auth";
 import { computeAnchor, type TextAnchor } from "@/lib/annotation/use-text-anchor";
+import { isContainerTranslated } from "@/lib/annotation/use-translation-detect";
 import type { AnnotationSnapshot } from "@/lib/annotation/use-snapshot";
 
 interface Props {
@@ -38,6 +39,12 @@ export function TextSelectionHandler({ containerSelector, onAnnotate, snapshotRe
       : range.startContainer.parentElement;
     const container = startElement?.closest?.(containerSelector) as HTMLElement | null;
     if (!container || !container.contains(range.endContainer)) {
+      setFabPosition(null);
+      return;
+    }
+
+    // 浏览器翻译态下禁用新建注解，避免锚定错乱
+    if (isContainerTranslated(container)) {
       setFabPosition(null);
       return;
     }
@@ -82,15 +89,18 @@ export function TextSelectionHandler({ containerSelector, onAnnotate, snapshotRe
     <button
       type="button"
       className="wiki-annotation-fab"
+      aria-label="添加注解"
       style={{
         left: `${fabPosition.x}px`,
         top: `${fabPosition.y}px`,
       }}
       onClick={handleClick}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M2 2h12v8H5l-3 3V2z" />
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11.5 2.5l2 2L6 12H4v-2z" />
+        <path d="M10 4l2 2" opacity="0.5" />
       </svg>
+      <span>注解</span>
     </button>
   );
 }
