@@ -16,7 +16,7 @@
 /* CSS Custom Highlight API 路径的样式通过 JS 运行时注入（use-highlight-renderer.ts），
    绕过 LightningCSS 不识别 ::highlight() 伪元素的构建限制 */
 
-/* 浮动注解按钮 */
+/* 浮动注解按钮 —— 药丸状紫罗兰 + 铅笔图标 + 文本标签 */
 .wiki-annotation-fab {
   position: fixed;
   transform: translate(-50%, -100%);
@@ -24,19 +24,47 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  gap: 5px;
   height: 32px;
+  padding: 0 12px;
   border: none;
-  border-radius: 6px;
-  background: var(--wiki-accent-green);
+  border-radius: var(--wiki-radius);
+  background: var(--wiki-accent);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+  font-size: 0.8em;
+  font-weight: 600;
+  font-family: var(--wiki-body-font);
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.18);
+  animation: wiki-annotation-fab-in 0.15s ease-out;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 .wiki-annotation-fab:hover {
-  transform: translate(-50%, -100%) scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: var(--wiki-accent-hover);
+  transform: translate(-50%, -100%) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+.wiki-annotation-fab:active {
+  transform: translate(-50%, -100%) scale(0.96);
+}
+.wiki-annotation-fab:focus-visible {
+  outline: 2px solid var(--wiki-accent);
+  outline-offset: 2px;
+}
+
+@keyframes wiki-annotation-fab-in {
+  from { opacity: 0; transform: translate(-50%, -100%) scale(0.85); }
+  to   { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+}
+
+/* 深色模式 FAB 阴影适配 */
+[data-color-scheme="dark"] .wiki-annotation-fab {
+  box-shadow: 0 2px 8px rgba(210, 168, 255, 0.12);
+}
+[data-color-scheme="dark"] .wiki-annotation-fab:hover {
+  box-shadow: 0 4px 12px rgba(210, 168, 255, 0.18);
 }
 
 /* 注解输入浮层 */
@@ -79,7 +107,7 @@
   font-family: var(--wiki-body-font);
 }
 .wiki-annotation-input:focus {
-  border-color: var(--wiki-accent-green);
+  border-color: var(--wiki-accent);
 }
 
 .wiki-annotation-composer-actions {
@@ -104,11 +132,15 @@
   padding: 4px 12px;
   border: none;
   border-radius: 4px;
-  background: var(--wiki-accent-green);
+  background: var(--wiki-accent);
   color: #fff;
   cursor: pointer;
   font-size: 0.85em;
   font-weight: 600;
+  transition: background 0.12s ease;
+}
+.wiki-annotation-submit-btn:hover:not(:disabled) {
+  background: var(--wiki-accent-hover);
 }
 .wiki-annotation-submit-btn:disabled {
   opacity: 0.4;
@@ -164,7 +196,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--wiki-accent-green);
+  background: var(--wiki-accent);
   color: #fff;
   display: flex;
   align-items: center;
