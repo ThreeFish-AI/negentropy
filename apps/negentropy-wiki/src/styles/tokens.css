@@ -12,11 +12,11 @@
   /* 自定义滚动条（细、半透明、悬停加深；轨道透明） */
   --wiki-scrollbar-thumb: rgba(15, 16, 26, 0.18);
   --wiki-scrollbar-thumb-hover: rgba(15, 16, 26, 0.34);
-  /* 三栏宽度严格对齐 SquareDocs：sidebar 240 / content 800 / toc 224，
-     整体 ~1404px 居中容器，宽屏下两侧留白（而非紧贴浏览器边缘） */
+  /* 三栏宽度严格对齐 SquareDocs：左栏导航内容 240 / 正文文本 800 / 右栏 TOC 224。
+     列宽 = 内容宽 + 2×16px 内边距 → sidebar 272、toc 256；居中容器宽屏两侧留白。 */
   --wiki-layout-max-width: 1404px;
-  --wiki-sidebar-width: 240px;
-  --wiki-toc-width: 224px;
+  --wiki-sidebar-width: 272px;
+  --wiki-toc-width: 256px;
   --wiki-toc-rail-width: 40px;
   --wiki-header-height: 60px;
   /* 832 外宽 - 2×16px 内边距 = 800px 正文文本宽，与 SquareDocs 文本列严格一致 */
@@ -37,7 +37,7 @@
   --wiki-success-text: #2e7d32;
 
   /* Header — 半透明 + 毛玻璃，露出顶部紫光 */
-  --wiki-header-bg: rgba(255, 255, 255, 0.8);
+  --wiki-header-bg: rgba(255, 255, 255, 0.94);
   --wiki-accent-green: #4caf50;
   --wiki-input-bg: var(--wiki-bg-secondary);
 

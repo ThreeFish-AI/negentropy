@@ -14,7 +14,7 @@
   --wiki-accent-hover: #e2c4ff;
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   --wiki-header-shadow: none;
-  --wiki-header-bg: rgba(15, 15, 16, 0.72);
+  --wiki-header-bg: rgba(15, 15, 16, 0.94);
   --wiki-input-bg: #161618;
   --wiki-code-bg: #161618;
   --wiki-surface: #161618;
@@ -59,7 +59,7 @@
     --wiki-accent-hover: #e2c4ff;
     --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     --wiki-header-shadow: none;
-    --wiki-header-bg: rgba(15, 15, 16, 0.72);
+    --wiki-header-bg: rgba(15, 15, 16, 0.94);
     --wiki-input-bg: #161618;
     --wiki-code-bg: #161618;
     --wiki-surface: #161618;

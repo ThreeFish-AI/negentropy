@@ -5,10 +5,10 @@
   height: var(--wiki-header-height);
   background: var(--wiki-header-bg);
   box-shadow: var(--wiki-header-shadow);
-  /* 半透明毛玻璃 + 发丝底边，露出顶部紫光（参照 SquareDocs） */
+  /* 近乎不透明 + 轻微毛玻璃 + 发丝底边（对齐 SquareDocs：0.94 不透明度 + blur 4px） */
   border-bottom: 1px solid var(--wiki-border);
-  backdrop-filter: saturate(180%) blur(12px);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .wiki-header-inner {
