@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import type { Core, ElementDefinition, LayoutOptions } from "cytoscape";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
+import { useIsDark } from "@/lib/wiki-color-scheme";
 import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
 
 // nodeSize 系数随渲染器而异（Cytoscape 节点宽高量纲偏大），保留本地定义。
@@ -24,6 +25,19 @@ function nodeSize(importance: number | null | undefined): number {
   if (importance == null) return 18;
   const clamped = Math.min(Math.max(importance, 0), 1);
   return 14 + 22 * clamped;
+}
+
+// 暗色态 → 标签 / 描边 / 边配色（init 样式表与主题同步 effect 共用，单一来源）。
+function schemeColors(isDark: boolean): {
+  labelColor: string;
+  outlineColor: string;
+  edgeColor: string;
+} {
+  return {
+    labelColor: isDark ? "#e3e3e3" : "#27272a",
+    outlineColor: isDark ? "#18181b" : "#ffffff",
+    edgeColor: isDark ? "rgba(255,255,255,0.18)" : "#a1a1aa",
+  };
 }
 
 function toElements(
@@ -88,6 +102,8 @@ export function WikiCytoscapeCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
   const router = useRouter();
+  // 响应式暗色态：驱动下方「主题同步」effect 在切换时就地重设节点 / 边配色。
+  const isDark = useIsDark();
 
   // 节点 id → entry_slugs 映射，供点击跳转兜底反查
   const entrySlugMap = useMemo(() => {
@@ -110,10 +126,8 @@ export function WikiCytoscapeCanvas({
 
       if (killed || !containerRef.current) return;
 
-      const isDark = detectDark();
-      const labelColor = isDark ? "#e3e3e3" : "#27272a";
-      const outlineColor = isDark ? "#18181b" : "#ffffff";
-      const edgeColor = isDark ? "rgba(255,255,255,0.18)" : "#a1a1aa";
+      // 首屏按当前主题着色；后续主题切换由下方同步 effect 就地重设。
+      const { labelColor, outlineColor, edgeColor } = schemeColors(detectDark());
 
       const cy = cytoscape({
         container: containerRef.current,
@@ -182,6 +196,23 @@ export function WikiCytoscapeCanvas({
       cyRef.current = null;
     };
   }, [elements, entrySlugMap, pubSlug, router]);
+
+  // 主题同步：切换 light/dark 时对现有节点 / 边下发 style bypass 就地重设配色
+  // （高于样式表优先级，立即重绘；不重建实例、不重排）。
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const { labelColor, outlineColor, edgeColor } = schemeColors(isDark);
+    cy.nodes().style({
+      color: labelColor,
+      "border-color": outlineColor,
+      "text-outline-color": outlineColor,
+    });
+    cy.edges().style({
+      "line-color": edgeColor,
+      "target-arrow-color": edgeColor,
+    });
+  }, [isDark]);
 
   return (
     <div className="wiki-graph-canvas-root">
