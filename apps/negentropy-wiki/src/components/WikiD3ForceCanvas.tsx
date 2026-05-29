@@ -17,11 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { WikiGraphEdge, WikiGraphNode } from "@/lib/wiki-graph-types";
-import {
-  communityColor,
-  detectDark,
-  entityColor,
-} from "@/lib/wiki-graph-visual";
+import { detectDark, nodeColor } from "@/lib/wiki-graph-visual";
 
 // 模拟节点：在 WikiGraphNode 字段子集上叠加 d3 物理引擎所需的位置 / 速度。
 type D3Node = {
@@ -48,11 +44,6 @@ function nodeRadius(importance: number | null | undefined): number {
   return 4 + 8 * clamped;
 }
 
-function fillColor(node: Pick<D3Node, "type" | "community_id">): string {
-  if (node.community_id != null) return communityColor(node.community_id);
-  return entityColor(node.type);
-}
-
 interface WikiD3ForceCanvasProps {
   pubSlug: string;
   nodes: WikiGraphNode[];
@@ -71,6 +62,10 @@ export function WikiD3ForceCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<D3Sim | null>(null);
+  // layoutReady：layout 首次非空时置 true，nodes 变化时重置。
+  // 用作 drag effect 的稳定依赖，避免每个 tick 都重新绑定 drag handler。
+  const layoutReadyRef = useRef(false);
+  const [layoutReady, setLayoutReady] = useState(false);
   const [layout, setLayout] = useState<D3Node[]>([]);
   const router = useRouter();
 
@@ -89,6 +84,8 @@ export function WikiD3ForceCanvas({
   useEffect(() => {
     let active = true;
     let cleanup: (() => void) | null = null;
+    layoutReadyRef.current = false;
+    setLayoutReady(false);
 
     const run = async () => {
       if (!nodes.length) {
@@ -171,6 +168,10 @@ export function WikiD3ForceCanvas({
       simulation.on("tick", () => {
         if (!active) return;
         setLayout([...nodesArr]);
+        if (!layoutReadyRef.current) {
+          layoutReadyRef.current = true;
+          setLayoutReady(true);
+        }
       });
 
       cleanup = () => {
@@ -186,9 +187,9 @@ export function WikiD3ForceCanvas({
     };
   }, [nodes, edges]);
 
-  // 2) layout 落定后为节点圆挂载 d3-drag（拖拽时临时钉住位置）。
+  // 2) layout 首次就绪后为节点圆挂载 d3-drag（拖拽时临时钉住位置）。
   useEffect(() => {
-    if (!svgRef.current || !simulationRef.current || !layout.length) return;
+    if (!layoutReady || !svgRef.current || !simulationRef.current) return;
     let active = true;
 
     const run = async () => {
@@ -229,7 +230,7 @@ export function WikiD3ForceCanvas({
     return () => {
       active = false;
     };
-  }, [layout]);
+  }, [layoutReady]);
 
   const layoutById = useMemo(() => {
     const m = new Map<string, D3Node>();
@@ -289,7 +290,7 @@ export function WikiD3ForceCanvas({
                       cx={node.x}
                       cy={node.y}
                       r={nodeRadius(node.importance)}
-                      fill={fillColor(node)}
+                      fill={nodeColor(node)}
                       fillOpacity={0.85}
                     />
                     <text
