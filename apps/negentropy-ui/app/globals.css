@@ -144,8 +144,37 @@
   --animate-fade-in: fade-in var(--duration-base) var(--ease-out) both;
   --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-out) both;
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Noto Sans SC", "Microsoft YaHei",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", "Fira Code", ui-monospace,
+    SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* 排版标度 — 字号（Minor Third ~1.2 ratio） */
+  --font-size-display: 2.25rem;    /* 36px */
+  --font-size-h1: 1.875rem;        /* 30px */
+  --font-size-h2: 1.5rem;          /* 24px */
+  --font-size-h3: 1.25rem;         /* 20px */
+  --font-size-h4: 1.125rem;        /* 18px */
+  --font-size-body-lg: 1rem;       /* 16px */
+  --font-size-body: 0.875rem;      /* 14px — UI 默认 */
+  --font-size-sm: 0.75rem;         /* 12px */
+
+  /* 排版标度 — 行高 */
+  --line-height-display: 2.5rem;   /* 40px */
+  --line-height-h1: 2.25rem;       /* 36px */
+  --line-height-h2: 2rem;          /* 32px */
+  --line-height-h3: 1.75rem;       /* 28px */
+  --line-height-h4: 1.625rem;      /* 26px */
+  --line-height-body-lg: 1.5rem;   /* 24px */
+  --line-height-body: 1.375rem;    /* 22px */
+  --line-height-sm: 1.125rem;      /* 18px */
+
+  /* 排版标度 — 字间距 */
+  --tracking-heading: -0.02em;
+  --tracking-body: -0.01em;
+  --tracking-default: 0em;
+  --tracking-caption: 0.01em;
+  --tracking-overline: 0.06em;
 }
 
 /* 暗色模式 - 类选择器 (通过 next-themes 控制，支持手动切换和系统偏好) */
@@ -192,6 +221,15 @@ body {
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.94));
   color: var(--foreground);
   font-family: var(--font-sans);
+
+  /* 字体渲染优化：macOS 抗锯齿 + OpenType 字距与连字 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1;
+  font-variant-ligatures: common-ligatures;
+  line-height: var(--line-height-body);
+  letter-spacing: var(--tracking-body);
 }
 
 .dark body {
@@ -261,6 +299,18 @@ body {
  * 符合 WCAG 2.1 AA 对比度标准 (≥4.5:1)
  */
 @layer base {
+  /* 标题基础：统一字重、字间距、平衡换行 */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: var(--tracking-heading);
+    text-wrap: balance;
+  }
+
+  /* 段落：避免末行孤词 */
+  p {
+    text-wrap: pretty;
+  }
+
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   textarea,
   select {

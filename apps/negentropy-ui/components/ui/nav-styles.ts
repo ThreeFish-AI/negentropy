@@ -15,7 +15,7 @@ export const navRailContainerClassName =
 /** 单个胶囊链接样式。`active` 为当前路由命中态。 */
 export function navPillClassName(active: boolean, className?: string): string {
   return cn(
-    "rounded-full px-4 py-1 text-xs font-semibold outline-none transition-[color,background-color,box-shadow,transform] duration-150 ease-out active:scale-[0.97]",
+    "rounded-full px-4 py-1 text-sm font-semibold outline-none transition-[color,background-color,box-shadow,transform] duration-150 ease-out active:scale-[0.97]",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card",
     active
       ? "bg-foreground text-background shadow-sm ring-1 ring-border"

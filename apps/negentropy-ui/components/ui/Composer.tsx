@@ -349,7 +349,7 @@ export function Composer({
           autoCapitalize="off"
           spellCheck={false}
           data-testid="composer-textarea"
-          className="min-h-[52px] max-h-[200px] w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-input-placeholder"
+          className="min-h-[52px] max-h-[200px] w-full resize-none bg-transparent text-body-lg leading-body-lg outline-none placeholder:text-input-placeholder"
           placeholder={dragOver ? "释放以添加附件..." : "输入指令..."}
           value={value}
           rows={1}
