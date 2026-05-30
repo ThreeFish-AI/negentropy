@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
+import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorState";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { cn } from "@/lib/utils";
 import type { ApprovalMode, RoutineCreatePayload, RoutineDTO, RoutineUpdatePayload } from "@/features/routine";
 
 interface RoutineFormDialogProps {
@@ -66,6 +69,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -91,13 +95,22 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
           description: routine.description ?? "",
         }
       : EMPTY;
+    // 编辑模式下，若高级字段有非空值则自动展开
+    const hasAdvanced =
+      !!(routine?.cwd) ||
+      !!(cfg.model) ||
+      cfg.max_turns != null ||
+      !!(cfg.permission_mode) ||
+      (Array.isArray(cfg.allowed_tools) && (cfg.allowed_tools as string[]).length > 0) ||
+      !!(routine?.verification_command);
     // 用 microtask 推迟，避免在 effect 体内同步 setState（对齐 SchedulerTaskFormDialog）
     queueMicrotask(() => {
       setForm(next);
       setError(null);
       setFieldErrors({});
+      setShowAdvanced(isEdit && hasAdvanced);
     });
-  }, [open, routine]);
+  }, [open, routine, isEdit]);
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -163,9 +176,8 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
   if (!open) return null;
 
   const inputCls =
-    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+    "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
   const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
-  const sectionTitleCls = "text-[10px] uppercase tracking-wider text-text-muted mb-2";
 
   return (
     <OverlayDismissLayer
@@ -173,23 +185,23 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
       onClose={onClose}
       busy={loading}
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
     >
+      {/* Header */}
       <div className="border-b border-border px-5 py-4">
         <h2 className="text-lg font-semibold text-foreground">{isEdit ? "Edit Routine" : "New Routine"}</h2>
         <p className="mt-1 text-sm text-text-muted">
-          {isEdit ? `Editing "${routine.display_name || routine.title}"` : "Define a long-horizon autonomous task"}
+          {isEdit ? `Editing "${routine.display_name || routine.title}"` : "定义一个长周期自主任务"}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {error && <ErrorBanner message={error} />}
 
-          {/* Basic */}
+          {/* Key + Title (双列) + Description */}
           <section>
-            <h3 className={sectionTitleCls}>Basic</h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               {isEdit ? (
                 <div>
                   <label className={labelCls}>Key</label>
@@ -205,7 +217,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                     value={form.key}
                     onChange={(e) => update("key", e.target.value)}
                     placeholder="unique_routine_key"
-                    className={`${inputCls} ${fieldErrors.key ? "border-red-400" : ""}`}
+                    className={cn(inputCls, fieldErrors.key && "border-red-400")}
                   />
                   {fieldErrors.key && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.key}</p>}
                 </div>
@@ -218,63 +230,59 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                   type="text"
                   value={form.title}
                   onChange={(e) => update("title", e.target.value)}
-                  className={`${inputCls} ${fieldErrors.title ? "border-red-400" : ""}`}
+                  className={cn(inputCls, fieldErrors.title && "border-red-400")}
                 />
                 {fieldErrors.title && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.title}</p>}
               </div>
-              <div>
-                <label className={labelCls}>Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                  rows={2}
-                  className={inputCls}
-                />
-              </div>
+            </div>
+            <div className="mt-3">
+              <label className={labelCls}>Description</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => update("description", e.target.value)}
+                rows={2}
+                className={inputCls}
+              />
             </div>
           </section>
 
-          {/* Goal */}
-          <section>
-            <h3 className={sectionTitleCls}>Goal &amp; Criteria</h3>
-            <div className="space-y-3">
-              <div>
-                <label className={labelCls}>
-                  Goal <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={form.goal}
-                  onChange={(e) => update("goal", e.target.value)}
-                  rows={4}
-                  placeholder="The long-horizon objective for Claude Code to accomplish"
-                  className={`${inputCls} ${fieldErrors.goal ? "border-red-400" : ""}`}
-                />
-                {fieldErrors.goal && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.goal}</p>}
-              </div>
-              <div>
-                <label className={labelCls}>
-                  Acceptance Criteria <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={form.acceptance_criteria}
-                  onChange={(e) => update("acceptance_criteria", e.target.value)}
-                  rows={3}
-                  placeholder="How the Evaluator judges success (the rubric)"
-                  className={`${inputCls} ${fieldErrors.acceptance_criteria ? "border-red-400" : ""}`}
-                />
-                {fieldErrors.acceptance_criteria && (
-                  <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.acceptance_criteria}</p>
-                )}
-              </div>
+          {/* Goal & Criteria */}
+          <section className="space-y-3">
+            <div>
+              <label className={labelCls}>
+                Goal <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={form.goal}
+                onChange={(e) => update("goal", e.target.value)}
+                rows={3}
+                placeholder="The long-horizon objective for Claude Code to accomplish"
+                className={cn(inputCls, fieldErrors.goal && "border-red-400")}
+              />
+              {fieldErrors.goal && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.goal}</p>}
+            </div>
+            <div>
+              <label className={labelCls}>
+                Acceptance Criteria <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={form.acceptance_criteria}
+                onChange={(e) => update("acceptance_criteria", e.target.value)}
+                rows={2}
+                placeholder="How the Evaluator judges success (the rubric)"
+                className={cn(inputCls, fieldErrors.acceptance_criteria && "border-red-400")}
+              />
+              {fieldErrors.acceptance_criteria && (
+                <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.acceptance_criteria}</p>
+              )}
             </div>
           </section>
 
-          {/* Budgets */}
-          <section>
-            <h3 className={sectionTitleCls}>Budgets &amp; Guardrails</h3>
-            <div className="grid grid-cols-2 gap-3">
+          {/* Budgets & Approval (子卡片) */}
+          <section className="rounded-card border border-border bg-muted/30 p-4">
+            <div className="grid grid-cols-4 gap-3">
               <div>
-                <label className={labelCls}>Max Iterations</label>
+                <label className={labelCls}>Max Iter.</label>
                 <input
                   type="number"
                   min={1}
@@ -284,7 +292,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 />
               </div>
               <div>
-                <label className={labelCls}>Max Cost (USD)</label>
+                <label className={labelCls}>Max Cost</label>
                 <input
                   type="number"
                   min={0}
@@ -295,7 +303,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 />
               </div>
               <div>
-                <label className={labelCls}>Success Threshold (0-100)</label>
+                <label className={labelCls}>Threshold</label>
                 <input
                   type="number"
                   min={0}
@@ -306,7 +314,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 />
               </div>
               <div>
-                <label className={labelCls}>No-Progress Patience</label>
+                <label className={labelCls}>Patience</label>
                 <input
                   type="number"
                   min={1}
@@ -316,93 +324,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 />
               </div>
             </div>
-          </section>
-
-          {/* Execution */}
-          <section>
-            <h3 className={sectionTitleCls}>Execution (Claude Code)</h3>
-            <div className="space-y-3">
-              <div>
-                <label className={labelCls}>Working Directory</label>
-                <input
-                  type="text"
-                  value={form.cwd}
-                  onChange={(e) => update("cwd", e.target.value)}
-                  placeholder="/path/to/project"
-                  className={inputCls}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Max Turns / Iteration</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.max_turns}
-                    onChange={(e) => update("max_turns", e.target.value)}
-                    placeholder="default"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Permission Mode</label>
-                  <select
-                    value={form.permission_mode}
-                    onChange={(e) => update("permission_mode", e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">default</option>
-                    <option value="auto">auto</option>
-                    <option value="ask">ask</option>
-                    <option value="plan">plan</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>Allowed Tools (comma-separated)</label>
-                <input
-                  type="text"
-                  value={form.allowed_tools}
-                  onChange={(e) => update("allowed_tools", e.target.value)}
-                  placeholder="Bash, Read, Write, Edit, Glob, Grep"
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Model (optional)</label>
-                <input
-                  type="text"
-                  value={form.model}
-                  onChange={(e) => update("model", e.target.value)}
-                  placeholder="inherit global config"
-                  className={inputCls}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Evaluation */}
-          <section>
-            <h3 className={sectionTitleCls}>Evaluation</h3>
-            <div>
-              <label className={labelCls}>Verification Command (optional gate)</label>
-              <input
-                type="text"
-                value={form.verification_command}
-                onChange={(e) => update("verification_command", e.target.value)}
-                placeholder="e.g. uv run pytest -q"
-                className={inputCls}
-              />
-              <p className="mt-0.5 text-[10px] text-text-muted">
-                测试驱动门控：退出码非 0 时评分封顶，作为客观锚点缓解 LLM 评审偏差
-              </p>
-            </div>
-          </section>
-
-          {/* Approval */}
-          <section>
-            <h3 className={sectionTitleCls}>Human-in-the-Loop</h3>
-            <div>
+            <div className="mt-3">
               <label className={labelCls}>Approval Mode</label>
               <select
                 value={form.approval_mode}
@@ -413,28 +335,112 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 <option value="first">First iteration approval</option>
                 <option value="every">Every iteration approval</option>
               </select>
-              <p className="mt-0.5 text-[10px] text-text-muted">{APPROVAL_HELP[form.approval_mode]}</p>
+              <p className="mt-1 text-caption text-text-muted">{APPROVAL_HELP[form.approval_mode]}</p>
             </div>
+          </section>
+
+          {/* Advanced Settings (折叠) */}
+          <section>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((prev) => !prev)}
+              className="group flex w-full items-center gap-2 rounded-control px-1.5 py-1.5 text-caption font-medium text-text-secondary transition-colors hover:bg-muted"
+              aria-expanded={showAdvanced}
+            >
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  "h-3.5 w-3.5 text-text-muted transition-transform duration-150",
+                  showAdvanced && "rotate-180",
+                )}
+              />
+              <span>{showAdvanced ? "收起高级设置" : "高级设置 (Working Directory, Model, Tools...)"}</span>
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-3 space-y-3 rounded-card border border-border bg-muted/30 p-4">
+                <div>
+                  <label className={labelCls}>Working Directory</label>
+                  <input
+                    type="text"
+                    value={form.cwd}
+                    onChange={(e) => update("cwd", e.target.value)}
+                    placeholder="/path/to/project"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Max Turns / Iteration</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.max_turns}
+                      onChange={(e) => update("max_turns", e.target.value)}
+                      placeholder="default"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Permission Mode</label>
+                    <select
+                      value={form.permission_mode}
+                      onChange={(e) => update("permission_mode", e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">default</option>
+                      <option value="auto">auto</option>
+                      <option value="ask">ask</option>
+                      <option value="plan">plan</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Allowed Tools (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={form.allowed_tools}
+                    onChange={(e) => update("allowed_tools", e.target.value)}
+                    placeholder="Bash, Read, Write, Edit, Glob, Grep"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Model (optional)</label>
+                  <input
+                    type="text"
+                    value={form.model}
+                    onChange={(e) => update("model", e.target.value)}
+                    placeholder="inherit global config"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Verification Command (optional gate)</label>
+                  <input
+                    type="text"
+                    value={form.verification_command}
+                    onChange={(e) => update("verification_command", e.target.value)}
+                    placeholder="e.g. uv run pytest -q"
+                    className={inputCls}
+                  />
+                  <p className="mt-1 text-caption text-text-muted">
+                    测试驱动门控：退出码非 0 时评分封顶，作为客观锚点缓解 LLM 评审偏差
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="cursor-pointer rounded-md border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={loading}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="cursor-pointer rounded-md bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Saving…" : isEdit ? "Save" : "Create"}
-          </button>
+          </Button>
+          <Button type="submit" variant="primary" size="sm" loading={loading}>
+            {isEdit ? "Save" : "Create Routine"}
+          </Button>
         </div>
       </form>
     </OverlayDismissLayer>
