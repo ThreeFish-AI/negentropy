@@ -244,28 +244,23 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 {fieldErrors.title && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.title}</p>}
               </div>
             </div>
-            <div className="mt-3">
-              <label className={vLabelCls}>Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                rows={2}
-                className={inputCls}
-              />
-            </div>
+            <textarea
+              className={cn(inputCls, "mt-3")}
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              rows={2}
+              placeholder="Description"
+            />
           </section>
 
           {/* ── Goal & Criteria (textarea → 垂直布局) ── */}
           <section className="space-y-3">
             <div>
-              <label className={vLabelCls}>
-                Goal <span className="text-red-500">*</span>
-              </label>
               <textarea
                 value={form.goal}
                 onChange={(e) => update("goal", e.target.value)}
                 rows={3}
-                placeholder="The long-horizon objective for Claude Code to accomplish"
+                placeholder="Goal: The long-horizon objective for Claude Code to accomplish"
                 className={cn(inputCls, fieldErrors.goal && "border-red-400")}
               />
               {fieldErrors.goal && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.goal}</p>}
