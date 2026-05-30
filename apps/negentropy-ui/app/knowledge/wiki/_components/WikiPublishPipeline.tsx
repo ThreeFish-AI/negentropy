@@ -117,7 +117,7 @@ const STATUS_MESSAGES: Record<
 
 function StepDot({ status }: { status: StepStatus }) {
   const base =
-    "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium shrink-0";
+    "inline-flex h-5 w-5 items-center justify-center rounded-full text-micro font-medium shrink-0";
   const variants: Record<StepStatus, string> = {
     completed: `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300`,
     active: `${base} bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 animate-pulse`,
@@ -193,12 +193,12 @@ export function WikiPublishPipeline({
           <div key={step.label} className="flex items-center gap-1.5">
             {i > 0 && <span className="h-px w-3 bg-border" />}
             <StepDot status={step.status} />
-            <span className="text-[11px] text-muted-foreground">{step.label}</span>
+            <span className="text-caption text-muted-foreground">{step.label}</span>
           </div>
         ))}
       </div>
       {msg && (
-        <p className={`text-[11px] ${msg.className}`}>{msg.text}</p>
+        <p className={`text-caption ${msg.className}`}>{msg.text}</p>
       )}
     </div>
   );

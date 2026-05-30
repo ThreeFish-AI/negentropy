@@ -542,11 +542,11 @@ export default function ModelsPage() {
                             {vc.label}
                           </h3>
                           {isConfigured ? (
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 mt-1">
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-micro font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 mt-1">
                               Configured
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-text-muted mt-1">
+                            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-micro font-semibold text-text-muted mt-1">
                               Not configured
                             </span>
                           )}
@@ -609,7 +609,7 @@ export default function ModelsPage() {
                         className="w-full max-w-2xl rounded-lg border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                       />
                       {isEditing && (
-                        <p className="mt-1 text-[10px] text-text-muted">
+                        <p className="mt-1 text-micro text-text-muted">
                           当前已配置 API Key，留空则保持不变
                         </p>
                       )}
@@ -641,7 +641,7 @@ export default function ModelsPage() {
                       >
                         {/* Ping 子组 */}
                         <div className="space-y-2">
-                          <div className="text-[10px] font-semibold text-text-muted">
+                          <div className="text-micro font-semibold text-text-muted">
                             Ping
                           </div>
                           <div className="flex items-center gap-2">
@@ -661,7 +661,7 @@ export default function ModelsPage() {
                               {vendorPinging ? "Pinging..." : "Ping"}
                             </button>
                           </div>
-                          <p className="text-[10px] text-text-muted">
+                          <p className="text-micro text-text-muted">
                             发送 &quot;Ping, give me a pong&quot; 验证模型连通性。常用模型示例：{vcInfo?.pingModelPlaceholder}
                           </p>
                           {vendorPingResult && (
@@ -686,7 +686,7 @@ export default function ModelsPage() {
                         {/* Test Embedding 子组（Anthropic 无原生 Embedding API，整组不渲染） */}
                         {vcInfo?.embeddingPingModelPlaceholder && (
                           <div className="space-y-2">
-                            <div className="text-[10px] font-semibold text-text-muted">
+                            <div className="text-micro font-semibold text-text-muted">
                               Test Embedding
                             </div>
                             <div className="flex items-center gap-2">
@@ -718,7 +718,7 @@ export default function ModelsPage() {
                               maxLength={2000}
                               className="w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground resize-none"
                             />
-                            <p className="text-[10px] text-text-muted">
+                            <p className="text-micro text-text-muted">
                               调用 Embedding API 对文本求向量，输出维度、延迟与前 4 维预览。常用模型示例：{vcInfo.embeddingPingModelPlaceholder}
                             </p>
                             {vendorEmbedResult && (
@@ -781,7 +781,7 @@ export default function ModelsPage() {
                       </div>
 
                       {registeredForVendor.length === 0 ? (
-                        <p className="text-[10px] text-text-muted">尚未登记模型，点击 &quot;+ Add Model&quot; 添加。</p>
+                        <p className="text-micro text-text-muted">尚未登记模型，点击 &quot;+ Add Model&quot; 添加。</p>
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {MODEL_KINDS.map((mk) => {
@@ -791,7 +791,7 @@ export default function ModelsPage() {
                             if (items.length === 0) return null;
                             return (
                               <div key={mk.value}>
-                                <div className="text-[10px] text-text-muted font-medium mb-1">
+                                <div className="text-micro text-text-muted font-medium mb-1">
                                   {mk.label}
                                 </div>
                                 <div className="space-y-1">
@@ -807,17 +807,17 @@ export default function ModelsPage() {
                                         </span>
                                       </span>
                                       {mc.config?.dimensions != null && (
-                                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium tabular-nums text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                                           {String(mc.config.dimensions)} dims
                                         </span>
                                       )}
                                       {mc.is_default && (
-                                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-micro font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                                           Default
                                         </span>
                                       )}
                                       {!mc.enabled && (
-                                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
+                                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-micro font-medium text-text-muted">
                                           Disabled
                                         </span>
                                       )}

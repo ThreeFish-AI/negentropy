@@ -51,7 +51,7 @@ export function PipelineStagesBar({
           <div
             className={joinClassNames(
               "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2",
-              "rounded-md bg-foreground px-2 py-1.5 text-[11px] text-background opacity-0 shadow-lg",
+              "rounded-md bg-foreground px-2 py-1.5 text-caption text-background opacity-0 shadow-lg",
               "transition-opacity duration-150 group-hover:opacity-100",
               "max-w-[180px] whitespace-normal break-words",
               tooltipClassName,

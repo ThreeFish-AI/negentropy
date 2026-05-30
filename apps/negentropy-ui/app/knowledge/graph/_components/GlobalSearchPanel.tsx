@@ -82,19 +82,19 @@ export function GlobalSearchPanel({ corpusId }: GlobalSearchPanelProps) {
       </div>
 
       {error && (
-        <p className="text-[10px] text-rose-600 dark:text-rose-400">{error}</p>
+        <p className="text-micro text-rose-600 dark:text-rose-400">{error}</p>
       )}
 
       {result && (
         <div className="space-y-2 rounded bg-muted p-3">
-          <div className="flex items-center justify-between text-[10px] text-text-muted">
+          <div className="flex items-center justify-between text-micro text-text-muted">
             <span>
               {result.evidence.length} / {result.candidates_total} 社区贡献证据
             </span>
             <span>{result.latency_ms.toFixed(0)} ms</span>
           </div>
           {result.summaries_dirty && (
-            <p className="rounded bg-amber-100 px-2 py-1 text-[10px] text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+            <p className="rounded bg-amber-100 px-2 py-1 text-micro text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
               提示：实体已更新但社区摘要未刷新，建议重跑 Louvain + 摘要流程
             </p>
           )}
@@ -103,7 +103,7 @@ export function GlobalSearchPanel({ corpusId }: GlobalSearchPanelProps) {
           </div>
 
           {result.evidence.length > 0 && (
-            <details className="text-[10px]">
+            <details className="text-micro">
               <summary className="cursor-pointer text-text-secondary">
                 查看证据链（{result.evidence.length} 个社区）
               </summary>

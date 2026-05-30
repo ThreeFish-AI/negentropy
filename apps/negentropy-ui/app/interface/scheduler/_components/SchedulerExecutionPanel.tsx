@@ -117,7 +117,7 @@ export function SchedulerExecutionPanel({
     <div className="rounded-xl border border-border bg-card shadow-sm">
       {/* Status filter pills */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+        <span className="text-caption uppercase tracking-overline text-muted-foreground">
           Executions ({view.length})
         </span>
         <div className={`${navRailContainerClassName} gap-0.5 p-0.5`}>
@@ -131,7 +131,7 @@ export function SchedulerExecutionPanel({
               }}
               className={navPillClassName(
                 statusFilter === sf.key,
-                "px-3 py-0.5 text-[10px] font-medium",
+                "px-3 py-0.5 text-micro font-medium",
               )}
             >
               {sf.label}
@@ -172,7 +172,7 @@ export function SchedulerExecutionPanel({
                   </td>
                   <td className="px-3 py-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLES[e.status]}`}
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${STATUS_STYLES[e.status]}`}
                     >
                       {e.status}
                     </span>
@@ -210,7 +210,7 @@ export function SchedulerExecutionPanel({
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-micro font-medium text-muted-foreground">
             {safePage} / {totalPages}
           </span>
           <button

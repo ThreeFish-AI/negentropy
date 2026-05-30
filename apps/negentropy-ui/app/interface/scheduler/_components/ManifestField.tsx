@@ -59,7 +59,7 @@ export function ManifestField({ field, value, onChange, disabled }: ManifestFiel
           ))}
         </select>
         {field.help_text && (
-          <p className="mt-0.5 text-[10px] text-text-muted">{field.help_text}</p>
+          <p className="mt-0.5 text-micro text-text-muted">{field.help_text}</p>
         )}
       </div>
     );

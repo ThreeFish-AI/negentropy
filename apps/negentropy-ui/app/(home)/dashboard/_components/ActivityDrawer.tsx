@@ -69,7 +69,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
               <span className="text-sm font-semibold text-foreground">
                 Activity
               </span>
-              <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              <span className="rounded-full bg-muted/50 px-2 py-0.5 text-micro font-semibold text-muted-foreground">
                 {totalCount}
               </span>
             </div>
@@ -88,7 +88,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
             {LEVEL_OPTIONS.map((opt) => (
               <button
                 key={opt.label}
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                className={`rounded-full px-2.5 py-0.5 text-caption font-semibold transition-colors ${
                   levelFilter === opt.value
                     ? "bg-foreground text-background shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -102,14 +102,14 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
 
           {/* Actions */}
           <div className="mt-2 flex items-center justify-end gap-2">
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-caption text-muted-foreground">
               {entries.length}
               {levelFilter ? ` / ${totalCount}` : ""} entries
             </span>
             <button
               className={outlineButtonClassName(
                 "neutral",
-                "rounded-md px-2 py-1 text-[11px] font-semibold",
+                "rounded-md px-2 py-1 text-caption font-semibold",
               )}
               onClick={reload}
             >
@@ -118,7 +118,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
             <button
               className={outlineButtonClassName(
                 "danger",
-                "rounded-md px-2 py-1 text-[11px] font-semibold",
+                "rounded-md px-2 py-1 text-caption font-semibold",
               )}
               onClick={clear}
             >
@@ -142,11 +142,11 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${LEVEL_BADGE[entry.level]}`}
+                        className={`rounded-full border px-2 py-0.5 text-micro font-semibold ${LEVEL_BADGE[entry.level]}`}
                       >
                         {entry.level}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-caption text-muted-foreground">
                         {formatTimestamp(entry.timestamp)}
                       </span>
                     </div>
@@ -154,7 +154,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
                       {entry.message}
                     </p>
                     {entry.description ? (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      <p className="mt-0.5 text-caption text-muted-foreground">
                         {entry.description}
                       </p>
                     ) : null}
@@ -184,7 +184,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <span className="text-[10px] font-medium text-muted-foreground">
+            <span className="text-micro font-medium text-muted-foreground">
               {safePage} / {totalPages}
             </span>
             <button

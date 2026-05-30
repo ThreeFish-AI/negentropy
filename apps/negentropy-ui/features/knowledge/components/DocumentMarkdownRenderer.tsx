@@ -203,7 +203,7 @@ function DocumentImage({
           <span className="max-w-xs truncate text-xs text-text-muted">
             {alt || extractFilename(src)}
           </span>
-          <span className="mt-1 text-[10px] text-text-muted">
+          <span className="mt-1 text-micro text-text-muted">
             Image failed to load
           </span>
         </div>

@@ -57,7 +57,7 @@ function NodeCard({
       )}
       onClick={onClick}
     >
-      <div className="mb-2 flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.16em] text-text-muted">
+      <div className="mb-2 flex items-center justify-between gap-4 text-micro uppercase tracking-[0.16em] text-text-muted">
         <span>{node.title}</span>
         <span>{formatTimestamp(node.timestamp)}</span>
       </div>
@@ -217,7 +217,7 @@ function TurnNode({
       onClick={() => onSelect?.(node.id)}
     >
       <div className="flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-text-muted">
+        <div className="flex min-w-0 items-center gap-2 text-caption text-text-muted">
           <span className="font-semibold uppercase tracking-[0.18em]">
             {node.title}
           </span>
@@ -234,7 +234,7 @@ function TurnNode({
           <span aria-hidden="true">·</span>
           <span>{childCount} 个子模块</span>
         </div>
-        <div className="shrink-0 text-[10px] text-text-muted">
+        <div className="shrink-0 text-micro text-text-muted">
           {formatTimestamp(node.timestamp)}
         </div>
       </div>

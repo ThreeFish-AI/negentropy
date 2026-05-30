@@ -43,7 +43,7 @@ function ChunkingStrategyPanel({
             <p className="mt-1 text-xs text-muted-foreground">{description}</p>
           )}
         </div>
-        <div className="text-[11px] text-muted-foreground">大小单位: 字符近似值</div>
+        <div className="text-caption text-muted-foreground">大小单位: 字符近似值</div>
       </div>
 
       <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -61,7 +61,7 @@ function ChunkingStrategyPanel({
             >
               <div className="text-xs font-semibold capitalize">{strategy}</div>
               <div
-                className={`mt-1 text-[11px] ${
+                className={`mt-1 text-caption ${
                   config.strategy === strategy ? "text-background/80" : "text-muted-foreground"
                 }`}
               >

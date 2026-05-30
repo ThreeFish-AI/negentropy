@@ -212,7 +212,7 @@ export function DocumentAssignmentSection({
                   )}
 
                   {/* 副行：源名称 · 状态 · ID */}
-                  <p className="text-[10px] text-muted-foreground/70 font-mono">
+                  <p className="text-micro text-muted-foreground/70 font-mono">
                     源名称：{doc.original_filename}
                     <span className="mx-1">·</span>
                     {doc.markdown_extract_status ?? "—"}

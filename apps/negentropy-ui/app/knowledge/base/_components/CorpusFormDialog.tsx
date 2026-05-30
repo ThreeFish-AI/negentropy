@@ -153,7 +153,7 @@ export function CorpusFormDialog({
               <div className="mt-3 space-y-3 rounded-lg bg-muted p-3">
                 {/* Strategy Selection */}
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                  <label className="mb-1 block text-micro font-medium text-text-muted">
                     Strategy
                   </label>
                   <select
@@ -181,7 +181,7 @@ export function CorpusFormDialog({
                 {config.strategy === "fixed" && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                      <label className="mb-1 block text-micro font-medium text-text-muted">
                         Chunk Size (Target)
                       </label>
                       <input
@@ -197,7 +197,7 @@ export function CorpusFormDialog({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                      <label className="mb-1 block text-micro font-medium text-text-muted">
                         Overlap (Chars)
                       </label>
                       <input
@@ -219,7 +219,7 @@ export function CorpusFormDialog({
                   <div className="space-y-3 border-t border-border pt-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Chunk Size (Target)
                         </label>
                         <input
@@ -235,7 +235,7 @@ export function CorpusFormDialog({
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Overlap (Chars)
                         </label>
                         <input
@@ -253,7 +253,7 @@ export function CorpusFormDialog({
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                      <label className="mb-1 block text-micro font-medium text-text-muted">
                         Separators (one per line)
                       </label>
                       <SeparatorsTextarea
@@ -272,12 +272,12 @@ export function CorpusFormDialog({
                 {config.strategy === "semantic" && (
                   <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                     <div className="col-span-2">
-                      <label className="mb-1 block text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                      <label className="mb-1 block text-micro font-medium text-blue-600 dark:text-blue-400">
                         Semantic Chunking Options
                       </label>
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                      <label className="mb-1 block text-micro font-medium text-text-muted">
                         Similarity Threshold (0-1)
                       </label>
                       <input
@@ -296,7 +296,7 @@ export function CorpusFormDialog({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                      <label className="mb-1 block text-micro font-medium text-text-muted">
                         Buffer Size
                       </label>
                       <input
@@ -313,7 +313,7 @@ export function CorpusFormDialog({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Max Size
                         </label>
                         <input
@@ -329,7 +329,7 @@ export function CorpusFormDialog({
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Min Size
                         </label>
                         <input
@@ -352,7 +352,7 @@ export function CorpusFormDialog({
                   <div className="space-y-3 border-t border-border pt-3">
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Parent Size
                         </label>
                         <input
@@ -369,7 +369,7 @@ export function CorpusFormDialog({
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Child Size
                         </label>
                         <input
@@ -386,7 +386,7 @@ export function CorpusFormDialog({
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                        <label className="mb-1 block text-micro font-medium text-text-muted">
                           Child Overlap
                         </label>
                         <input
@@ -404,7 +404,7 @@ export function CorpusFormDialog({
                       </div>
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-medium text-text-muted">
+                      <label className="mb-1 block text-micro font-medium text-text-muted">
                         Separators (one per line)
                       </label>
                       <SeparatorsTextarea
@@ -445,7 +445,7 @@ export function CorpusFormDialog({
                   </div>
                 )}
 
-                <div className="text-[10px] text-text-muted">
+                <div className="text-micro text-text-muted">
                   {config.strategy === "fixed" &&
                     "按固定字符数切分，简单高效但不感知语义。"}
                   {config.strategy === "recursive" &&

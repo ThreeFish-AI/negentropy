@@ -30,7 +30,7 @@ function FactTypeBadge({ type }: { type: string }) {
     "bg-muted text-text-secondary";
   return (
     <span
-      className={`inline-flex shrink-0 items-center px-2 py-0.5 text-[10px] font-medium rounded-full ${style}`}
+      className={`inline-flex shrink-0 items-center px-2 py-0.5 text-micro font-medium rounded-full ${style}`}
     >
       {type}
     </span>
@@ -65,7 +65,7 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="shrink-0 text-[10px] font-mono text-text-muted tabular-nums">
+      <span className="shrink-0 text-micro font-mono text-text-muted tabular-nums">
         {percent}%
         <span className="ml-0.5 text-text-muted">
           {levelLabel[level]}
@@ -119,14 +119,14 @@ export function FactCard({ fact, userLabel, onShowHistory }: FactCardProps) {
         <JsonViewer data={fact.value} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-[11px] text-text-muted">
+      <div className="mt-3 flex items-center justify-between text-caption text-text-muted">
         <div className="flex items-center gap-3">
           <TemporalBadge fact={fact} />
           {fact.created_at && (
             <span>{formatShortDate(fact.created_at)}</span>
           )}
           {userLabel && (
-            <span className="truncate rounded-full border border-border px-1.5 py-px text-[10px]">
+            <span className="truncate rounded-full border border-border px-1.5 py-px text-micro">
               {userLabel}
             </span>
           )}

@@ -18,14 +18,14 @@ interface MetricCellProps {
 function MetricCell({ label, value, sub, color }: MetricCellProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-3 flex-1 min-w-0">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+      <div className="text-micro uppercase tracking-overline text-muted-foreground mb-1">
         {label}
       </div>
       <div className={`text-lg font-bold tabular-nums ${color ?? "text-foreground"}`}>
         {value}
       </div>
       {sub && (
-        <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>
+        <div className="text-micro text-muted-foreground mt-0.5">{sub}</div>
       )}
     </div>
   );

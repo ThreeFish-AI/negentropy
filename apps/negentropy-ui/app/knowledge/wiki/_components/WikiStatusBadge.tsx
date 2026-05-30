@@ -18,7 +18,7 @@ export function WikiStatusBadge({ status }: { status: WikiPublicationStatus }) {
   const style = STATUS_STYLES[status] ?? STATUS_STYLES.draft;
   const label = STATUS_LABELS[status] ?? status;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full ${style}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 text-micro font-medium rounded-full ${style}`}>
       {label}
     </span>
   );

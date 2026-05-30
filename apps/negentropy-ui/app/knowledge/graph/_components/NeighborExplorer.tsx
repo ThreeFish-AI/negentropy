@@ -77,7 +77,7 @@ export function NeighborExplorer({
 
       {expanded && (
         <div className="space-y-1">
-          <p className="text-[10px] text-text-muted">
+          <p className="text-micro text-text-muted">
             {neighbors.length} 个邻居
           </p>
           {neighbors.length === 0 ? (
@@ -95,7 +95,7 @@ export function NeighborExplorer({
                     {n.label || n.id.slice(0, 8)}
                   </span>
                   {n.type && (
-                    <span className="text-[10px] text-text-muted">
+                    <span className="text-micro text-text-muted">
                       ({n.type})
                     </span>
                   )}

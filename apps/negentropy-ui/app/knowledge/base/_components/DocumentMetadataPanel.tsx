@@ -26,7 +26,7 @@ function DocumentMetadataPanel({
   ];
   const renderFieldGroup = (title: string, items: Array<[string, string | number]>) => (
     <div>
-      <h4 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{title}</h4>
+      <h4 className="text-caption font-semibold uppercase tracking-[0.24em] text-muted-foreground">{title}</h4>
       <dl className="mt-3 space-y-2.5">
         {items.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)] items-start gap-x-4 gap-y-1">

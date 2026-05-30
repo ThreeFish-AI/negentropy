@@ -362,15 +362,15 @@ function SchemaSection({
           {title}
         </span>
         {rows.length > 0 && (
-          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-text-secondary">
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-secondary">
             {rows.length} fields
           </span>
         )}
-        <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+        <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-caption text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
           {getSchemaDialectLabel(schema)}
         </span>
         {requiredCount > 0 && (
-          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-caption text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
             {requiredCount} required
           </span>
         )}
@@ -543,17 +543,17 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
               {getToolLabel(tool)}
             </h4>
             {(tool.title || annotations.title || tool.display_name) && (
-              <p className="mt-0.5 font-mono text-[11px] text-text-muted">
+              <p className="mt-0.5 font-mono text-caption text-text-muted">
                 {tool.name}
               </p>
             )}
             {(tool.title || annotations.title) && tool.display_name && (
-              <p className="mt-0.5 text-[11px] text-text-muted">
+              <p className="mt-0.5 text-caption text-text-muted">
                 Local display name: {tool.display_name}
               </p>
             )}
             {primaryIcon?.mimeType && (
-              <p className="mt-0.5 text-[11px] text-text-muted">
+              <p className="mt-0.5 text-caption text-text-muted">
                 Icon: {primaryIcon.mimeType}
               </p>
             )}
@@ -561,15 +561,15 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
         </div>
         <div className="flex items-center gap-2">
           {tool.is_enabled ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-caption font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
               Enabled
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-text-muted">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-muted">
               Disabled
             </span>
           )}
-          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-text-muted">
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption tabular-nums text-text-muted">
             {tool.call_count} calls
           </span>
         </div>
@@ -585,7 +585,7 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
             <span className="font-medium text-text-secondary">
               Tool Metadata
             </span>
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-text-secondary">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-secondary">
               Hints
             </span>
           </div>
@@ -594,7 +594,7 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
               {behaviorBadges.map((badge) => (
                 <span
                   key={badge.label}
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${badge.tone}`}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${badge.tone}`}
                 >
                   {badge.label}
                 </span>
@@ -606,7 +606,7 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
               <span className="font-medium text-text-secondary">
                 Task support
               </span>
-              <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[11px] text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+              <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-caption text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
                 {execution.taskSupport}
               </span>
             </div>
@@ -717,11 +717,11 @@ function ResourceDetailPanel({ template }: { template: McpResourceTemplate }) {
             <h4 className="font-mono text-sm font-semibold text-foreground">
               {getTemplateLabel(template)}
             </h4>
-            <p className="mt-0.5 font-mono text-[11px] text-text-muted">
+            <p className="mt-0.5 font-mono text-caption text-text-muted">
               {template.uri_template}
             </p>
             {template.mime_type && (
-              <p className="mt-0.5 text-[11px] text-text-muted">
+              <p className="mt-0.5 text-caption text-text-muted">
                 MIME: {template.mime_type}
               </p>
             )}
@@ -729,11 +729,11 @@ function ResourceDetailPanel({ template }: { template: McpResourceTemplate }) {
         </div>
         <div className="flex items-center gap-2">
           {template.is_enabled ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-caption font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
               Enabled
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-text-muted">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-muted">
               Disabled
             </span>
           )}

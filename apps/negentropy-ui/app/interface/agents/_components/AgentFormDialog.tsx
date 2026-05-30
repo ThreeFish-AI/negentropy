@@ -490,7 +490,7 @@ export function AgentFormDialog({
                                   : "bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border")
                               }
                             >
-                              <span className="text-[10px] opacity-60">{t.source === "builtin" ? "●" : "◆"}</span>
+                              <span className="text-micro opacity-60">{t.source === "builtin" ? "●" : "◆"}</span>
                               {t.display_name || t.name}
                             </button>
                           );

@@ -529,7 +529,7 @@ export function MessageBubble({
               <ChatTypingIndicator variant="inline" ariaLabel="Agent 正在思考" />
             ) : null}
             {showStreamingIndicator ? (
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-success">
+              <div className="mt-3 flex items-center gap-2 text-caption font-medium uppercase tracking-[0.18em] text-success">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
                 <span>Streaming</span>
               </div>
@@ -541,17 +541,17 @@ export function MessageBubble({
         {!isUser && (message.author || message.timestamp || isStreaming) && (
           <div className="mt-2 flex items-center gap-2 px-1">
             {message.author && (
-              <span className="rounded-full bg-border-muted px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-text-muted">
+              <span className="rounded-full bg-border-muted px-2 py-0.5 text-micro font-semibold tracking-[0.14em] text-text-muted">
                 {message.author}
               </span>
             )}
             {message.timestamp && (
-              <span className="text-[10px] tabular-nums text-text-muted">
+              <span className="text-micro tabular-nums text-text-muted">
                 {formatTimestamp(message.timestamp)}
               </span>
             )}
             {isStreaming ? (
-              <span className="text-[10px] font-medium text-success">
+              <span className="text-micro font-medium text-success">
                 实时生成中
               </span>
             ) : null}

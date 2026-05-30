@@ -27,7 +27,7 @@ export function SelectInput({ field, value, onChange }: SelectInputProps) {
         ))}
       </select>
       {field.description && (
-        <p className="mt-1 text-[10px] text-text-muted">
+        <p className="mt-1 text-micro text-text-muted">
           {field.description}
         </p>
       )}

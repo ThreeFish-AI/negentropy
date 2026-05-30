@@ -107,7 +107,7 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
                 className="rounded-lg border border-border bg-card p-3 text-xs"
               >
                 <p className="text-card-foreground">{item.content}</p>
-                <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <div className="mt-2 flex items-center gap-3 text-caption text-muted-foreground">
                   <span>{item.source_uri || "-"}</span>
                   <span>score: {(item.combined_score ?? 0).toFixed(4)}</span>
                 </div>

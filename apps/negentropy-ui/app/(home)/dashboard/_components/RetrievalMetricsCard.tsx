@@ -71,7 +71,7 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
+      className={`rounded-full px-2 py-0.5 text-micro font-medium transition-colors cursor-pointer whitespace-nowrap ${
         active
           ? "bg-foreground text-background"
           : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
@@ -153,14 +153,14 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
           <h3 className="text-xs font-semibold text-foreground">
             Retrieval Metrics
           </h3>
-          <span className="text-[10px] text-muted-foreground">检索效果指标</span>
+          <span className="text-micro text-muted-foreground">检索效果指标</span>
         </div>
         <div className="flex flex-1 items-center justify-center gap-1.5 overflow-x-auto">
           <Pill active={activeUserId === null} onClick={() => setActiveUserId(null)}>
             All Users
           </Pill>
           {usersLoading ? (
-            <span className="text-[10px] text-muted-foreground animate-pulse">Loading...</span>
+            <span className="text-micro text-muted-foreground animate-pulse">Loading...</span>
           ) : (
             <>
               {visibleUsers.map((u) => (
@@ -173,7 +173,7 @@ export function RetrievalMetricsCard({ appName }: RetrievalMetricsCardProps) {
                 </Pill>
               ))}
               {hiddenCount > 0 && (
-                <span className="rounded-full px-2 py-0.5 text-[10px] text-muted-foreground border border-dashed border-border">
+                <span className="rounded-full px-2 py-0.5 text-micro text-muted-foreground border border-dashed border-border">
                   +{hiddenCount}
                 </span>
               )}

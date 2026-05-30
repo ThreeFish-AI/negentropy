@@ -83,7 +83,7 @@ export function ReasoningStep({
       {trimmedContent ? (
         <div
           data-testid="reasoning-step-content"
-          className="mt-2 whitespace-pre-wrap break-words rounded-md bg-card/60 px-2 py-1.5 text-[11px] leading-relaxed text-text-secondary"
+          className="mt-2 whitespace-pre-wrap break-words rounded-md bg-card/60 px-2 py-1.5 text-caption leading-relaxed text-text-secondary"
         >
           {trimmedContent}
         </div>
@@ -91,7 +91,7 @@ export function ReasoningStep({
       {trimmedResult ? (
         <pre
           data-testid="reasoning-step-result"
-          className="mt-2 max-h-48 overflow-auto rounded-md bg-muted/80 px-2 py-1.5 text-[11px] leading-relaxed text-text-secondary"
+          className="mt-2 max-h-48 overflow-auto rounded-md bg-muted/80 px-2 py-1.5 text-caption leading-relaxed text-text-secondary"
         >
           {trimmedResult}
         </pre>

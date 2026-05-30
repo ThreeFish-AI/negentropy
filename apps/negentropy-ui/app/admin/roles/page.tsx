@@ -379,7 +379,7 @@ export default function RoleManagementPage() {
                                 )}
                               </div>
                               {area.description && (
-                                <div className="text-[11px] text-text-muted">
+                                <div className="text-caption text-text-muted">
                                   {area.description}
                                 </div>
                               )}

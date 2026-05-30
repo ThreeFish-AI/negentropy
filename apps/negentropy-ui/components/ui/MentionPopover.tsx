@@ -220,7 +220,7 @@ export function MentionPopover({
                   <Tooltip.Content
                     side="top"
                     sideOffset={6}
-                    className="z-[60] rounded-md bg-zinc-800 px-2 py-1 text-[11px] text-white shadow-lg dark:bg-zinc-700 dark:text-zinc-100"
+                    className="z-[60] rounded-md bg-zinc-800 px-2 py-1 text-caption text-white shadow-lg dark:bg-zinc-700 dark:text-zinc-100"
                   >
                     {t.label}
                   </Tooltip.Content>
@@ -284,7 +284,7 @@ export function MentionPopover({
                     <span className="truncate text-xs font-medium">{c.label}</span>
                   </div>
                   {c.description && (
-                    <p className="mt-0.5 line-clamp-1 text-[10px] text-text-muted">
+                    <p className="mt-0.5 line-clamp-1 text-micro text-text-muted">
                       {c.description}
                     </p>
                   )}
@@ -294,7 +294,7 @@ export function MentionPopover({
         </ul>
 
         {/* 底部提示 */}
-        <div className="border-t border-border px-3 py-1 text-[10px] text-text-muted">
+        <div className="border-t border-border px-3 py-1 text-micro text-text-muted">
           ↑↓ 选择 · Enter 确认 · Tab 切换分类 · Esc 关闭
         </div>
       </div>

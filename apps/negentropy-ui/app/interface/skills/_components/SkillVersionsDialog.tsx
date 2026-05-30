@@ -107,7 +107,7 @@ export function SkillVersionsDialog({ open, onClose, skillId, displayName }: Pro
                   {v.created_at ? new Date(v.created_at).toLocaleString() : "—"}
                 </span>
               </div>
-              <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-2 text-[11px] leading-4 text-foreground">
+              <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-2 text-caption leading-4 text-foreground">
                 {JSON.stringify(v.snapshot ?? {}, null, 2)}
               </pre>
             </li>

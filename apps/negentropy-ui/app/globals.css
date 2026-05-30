@@ -173,6 +173,12 @@
   --text-body-lg--line-height: 1.5rem; /* 24px */
   --text-body: 0.875rem;               /* 14px UI 默认正文 */
   --text-body--line-height: 1.375rem;  /* 22px */
+  /* caption 档 — 标签/徽标/时间戳/元信息等小字（替代散落的 text-[10/11px] 魔法值）。
+   * 故意不配对 --line-height：与裸 text-[Npx] 行为一致，仅输出 font-size，
+   * 行高沿用 body 的无单位 1.375 比值（caption→15.125px、micro→13.75px），
+   * 既保持像素零变化，又能在祖先覆写行高时随字号缩放。 */
+  --text-caption: 0.6875rem;           /* 11px 次级小字/说明文字 */
+  --text-micro: 0.625rem;              /* 10px 徽标/角标/极小元信息 */
 
   /* 排版标度 — 行高（Tailwind v4 命名空间 --leading-*，生成 leading-* 工具类） */
   --leading-body-lg: 1.5rem;       /* 24px */

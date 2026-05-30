@@ -283,7 +283,7 @@ export function SchedulerTaskFormDialog({
   const inputCls =
     "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
   const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
-  const sectionTitleCls = "text-[10px] uppercase tracking-wider text-text-muted mb-2";
+  const sectionTitleCls = "text-micro uppercase tracking-overline text-text-muted mb-2";
 
   return (
     <OverlayDismissLayer
@@ -316,7 +316,7 @@ export function SchedulerTaskFormDialog({
                 <div>
                   <label className={labelCls}>Key</label>
                   <input type="text" value={formData.key} disabled className={inputCls} />
-                  <p className="mt-0.5 text-[10px] text-text-muted">Key cannot be changed after creation</p>
+                  <p className="mt-0.5 text-micro text-text-muted">Key cannot be changed after creation</p>
                 </div>
               ) : (
                 <div>
@@ -330,7 +330,7 @@ export function SchedulerTaskFormDialog({
                     placeholder="unique_task_key"
                     className={`${inputCls} ${fieldErrors.key ? "border-red-400" : ""}`}
                   />
-                  {fieldErrors.key && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.key}</p>}
+                  {fieldErrors.key && <p className="mt-0.5 text-micro text-red-500">{fieldErrors.key}</p>}
                 </div>
               )}
 
@@ -352,7 +352,7 @@ export function SchedulerTaskFormDialog({
                   ))}
                 </select>
                 {fieldErrors.handler_kind && (
-                  <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.handler_kind}</p>
+                  <p className="mt-0.5 text-micro text-red-500">{fieldErrors.handler_kind}</p>
                 )}
               </div>
 
@@ -423,7 +423,7 @@ export function SchedulerTaskFormDialog({
                     className={`${inputCls} ${fieldErrors.interval_seconds ? "border-red-400" : ""}`}
                   />
                   {fieldErrors.interval_seconds && (
-                    <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.interval_seconds}</p>
+                    <p className="mt-0.5 text-micro text-red-500">{fieldErrors.interval_seconds}</p>
                   )}
                 </div>
               )}
@@ -440,9 +440,9 @@ export function SchedulerTaskFormDialog({
                     className={`${inputCls} font-mono ${fieldErrors.cron_expr ? "border-red-400" : ""}`}
                   />
                   {fieldErrors.cron_expr && (
-                    <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.cron_expr}</p>
+                    <p className="mt-0.5 text-micro text-red-500">{fieldErrors.cron_expr}</p>
                   )}
-                  <p className="mt-0.5 text-[10px] text-text-muted">
+                  <p className="mt-0.5 text-micro text-text-muted">
                     5-field POSIX cron: min hour day month weekday
                   </p>
                 </div>
@@ -521,7 +521,7 @@ export function SchedulerTaskFormDialog({
                   <button
                     type="button"
                     onClick={() => setPayloadMode("form")}
-                    className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={`cursor-pointer rounded px-2 py-0.5 text-micro font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       payloadMode === "form"
                         ? "bg-muted text-foreground"
                         : "text-text-muted hover:text-foreground"
@@ -532,7 +532,7 @@ export function SchedulerTaskFormDialog({
                   <button
                     type="button"
                     onClick={() => setPayloadMode("json")}
-                    className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={`cursor-pointer rounded px-2 py-0.5 text-micro font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       payloadMode === "json"
                         ? "bg-muted text-foreground"
                         : "text-text-muted hover:text-foreground"
@@ -559,7 +559,7 @@ export function SchedulerTaskFormDialog({
                           onChange={handlePayloadChange}
                         />
                         {fieldErrors[`payload_${f.name}`] && (
-                          <p className="mt-0.5 text-[10px] text-red-500">
+                          <p className="mt-0.5 text-micro text-red-500">
                             {fieldErrors[`payload_${f.name}`]}
                           </p>
                         )}
@@ -578,7 +578,7 @@ export function SchedulerTaskFormDialog({
                     }`}
                   />
                   {fieldErrors.payloadJson && (
-                    <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.payloadJson}</p>
+                    <p className="mt-0.5 text-micro text-red-500">{fieldErrors.payloadJson}</p>
                   )}
                 </div>
               )}

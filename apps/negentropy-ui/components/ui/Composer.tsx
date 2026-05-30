@@ -520,7 +520,7 @@ export function Composer({
             </button>
           )}
         </div>
-        <p className="text-[10px] text-text-muted shrink-0 select-none">
+        <p className="text-micro text-text-muted shrink-0 select-none">
           {showMentions ? "@ 选对象 · " : ""}Enter 发送 · Shift+Enter 换行
         </p>
       </div>

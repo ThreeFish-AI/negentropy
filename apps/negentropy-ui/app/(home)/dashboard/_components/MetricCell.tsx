@@ -42,7 +42,7 @@ export function MetricCell({
         </span>
       )}
       {hint && !loading ? (
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+        <span className="text-micro text-muted-foreground whitespace-nowrap">
           ({hint})
         </span>
       ) : null}

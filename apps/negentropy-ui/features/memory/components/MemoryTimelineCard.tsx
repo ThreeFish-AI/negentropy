@@ -113,7 +113,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
         {/* Type badge */}
         <span
           className={cn(
-            "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-[3px] text-[10px] font-semibold",
+            "inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-[3px] text-micro font-semibold",
             typeConfig.bg,
             typeConfig.accent,
           )}
@@ -123,7 +123,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
         </span>
 
         {/* Score indicators */}
-        <div className="flex shrink-0 items-center gap-3 text-[10px]">
+        <div className="flex shrink-0 items-center gap-3 text-micro">
           {/* Retention */}
           <div className="flex items-center gap-1.5">
             <span className="text-text-muted">Ret</span>
@@ -166,7 +166,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-text-muted hover:text-text-secondary"
+            className="mt-1 inline-flex items-center gap-1 text-micro font-semibold text-text-muted hover:text-text-secondary"
           >
             {isExpanded ? (
               <>
@@ -184,7 +184,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
       </div>
 
       {/* Metadata footer */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-border px-3 py-2 text-[10px] text-text-muted">
+      <div className="flex flex-wrap items-center gap-3 border-t border-border px-3 py-2 text-micro text-text-muted">
         {!isSearchResult && (
           <span className="inline-flex items-center gap-1">
             <Eye className="h-3 w-3" />

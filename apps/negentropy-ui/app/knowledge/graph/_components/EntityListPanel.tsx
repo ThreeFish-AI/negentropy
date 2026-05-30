@@ -200,7 +200,7 @@ export function EntityListPanel({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-[10px] text-text-muted">
+        <div className="flex items-center justify-between text-micro text-text-muted">
           <span>
             {page * limit + 1}-{Math.min((page + 1) * limit, total)} / {total}
           </span>

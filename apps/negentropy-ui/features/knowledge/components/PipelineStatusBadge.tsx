@@ -41,7 +41,7 @@ export function PipelineStatusBadge({
       />
       <span
         className={joinClassNames(
-          "text-[11px] font-medium uppercase",
+          "text-caption font-medium uppercase tracking-overline",
           getPipelineStatusTextColor(status),
         )}
       >

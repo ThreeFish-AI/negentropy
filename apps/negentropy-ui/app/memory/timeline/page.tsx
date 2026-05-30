@@ -202,7 +202,7 @@ export default function MemoryTimelinePage() {
                   ) : (
                     groupedTimeline.map((group) => (
                       <div key={group.date}>
-                        <div className="sticky top-0 z-10 bg-card pb-1 pt-2 text-[11px] font-semibold text-muted-foreground">
+                        <div className="sticky top-0 z-10 bg-card pb-1 pt-2 text-caption font-semibold text-muted-foreground">
                           {group.label}
                         </div>
                         <div className="space-y-2">

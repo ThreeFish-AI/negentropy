@@ -662,7 +662,7 @@ export default function KnowledgeBasePage() {
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span className="text-muted-foreground">Target Corpus（可多选）</span>
           {selectedRetrievalCorpusIds.length === 0 && (
-            <span className="text-[11px] text-amber-600">
+            <span className="text-caption text-amber-600">
               请至少选择一个 Corpus 后再执行 Retrieve
             </span>
           )}
@@ -722,7 +722,7 @@ export default function KnowledgeBasePage() {
                 <div className="flex shrink-0 items-center justify-end gap-2">
                   <span
                     data-testid={`corpus-chunks-${corpus.id}`}
-                    className="text-[11px] font-medium text-muted-foreground"
+                    className="text-caption font-medium text-muted-foreground"
                   >
                     {corpus.knowledge_count} chunks
                     {corpus.chunk_count_total != null &&
@@ -749,7 +749,7 @@ export default function KnowledgeBasePage() {
               >
                 <div
                   data-testid={`corpus-summary-${corpus.id}`}
-                  className="min-w-0 flex-1 self-center truncate text-[11px] leading-5 text-muted-foreground"
+                  className="min-w-0 flex-1 self-center truncate text-caption leading-5 text-muted-foreground"
                   title={formatCorpusConfigSummary(corpus)}
                 >
                   {formatCorpusConfigSummary(corpus)}
@@ -759,7 +759,7 @@ export default function KnowledgeBasePage() {
                     onClick={() => handleEditCorpus(corpus)}
                     className={outlineButtonClassName(
                       "neutral",
-                      "inline-flex h-7 items-center rounded px-2.5 text-[11px]",
+                      "inline-flex h-7 items-center rounded px-2.5 text-caption",
                     )}
                   >
                     Settings
@@ -768,7 +768,7 @@ export default function KnowledgeBasePage() {
                     onClick={() => handleDeleteCorpus(corpus)}
                     className={outlineButtonClassName(
                       "danger",
-                      "inline-flex h-7 items-center rounded px-2.5 text-[11px]",
+                      "inline-flex h-7 items-center rounded px-2.5 text-caption",
                     )}
                   >
                     Delete
@@ -927,7 +927,7 @@ export default function KnowledgeBasePage() {
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
                                 <p className="truncate text-sm font-medium">{doc.original_filename}</p>
-                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
                                   <span>{sourceType} · {doc.file_size} bytes</span>
                                   <PipelineStatusBadge
                                     status={
@@ -942,28 +942,28 @@ export default function KnowledgeBasePage() {
                                 <button
                                   onClick={() => runDocumentAction("view", doc)}
                                   title="在弹窗中预览文档解析后的 Markdown 正文"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   View
                                 </button>
                                 <button
                                   onClick={() => runDocumentAction("download", doc)}
                                   title="下载原始文件到本地"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   Download
                                 </button>
                                 <button
                                   onClick={() => runDocumentAction("replace", doc)}
                                   title="用新文本替换该文档并重建索引（保留文档元信息）"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   Replace
                                 </button>
                                 <button
                                   onClick={() => runDocumentAction("rebuild", doc)}
                                   title="重新分块并重建向量索引（不更换原始内容）"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   Rebuild
                                 </button>
@@ -971,7 +971,7 @@ export default function KnowledgeBasePage() {
                                   <button
                                     onClick={() => runDocumentAction("sync", doc)}
                                     title="重新抓取该 URL 源并刷新内容（仅 URL 类型）"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                   >
                                     Sync
                                   </button>
@@ -980,7 +980,7 @@ export default function KnowledgeBasePage() {
                                   <button
                                     onClick={() => runDocumentAction("archive", doc)}
                                     title="归档该文档，将其从默认检索中排除（可解档恢复）"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                   >
                                     Archive
                                   </button>
@@ -988,7 +988,7 @@ export default function KnowledgeBasePage() {
                                   <button
                                     onClick={() => runDocumentAction("unarchive", doc)}
                                     title="取消归档，恢复参与检索"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                   >
                                     Unarchive
                                   </button>
@@ -996,7 +996,7 @@ export default function KnowledgeBasePage() {
                                 <button
                                   onClick={() => runDocumentAction("delete", doc)}
                                   title="删除该文档及其全部 Chunks"
-                                  className={outlineButtonClassName("danger", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("danger", "rounded px-2 py-1 text-caption")}
                                 >
                                   Delete
                                 </button>
@@ -1066,7 +1066,7 @@ export default function KnowledgeBasePage() {
                                     Retrieval Count {chunk.display_retrieval_count}
                                   </span>
                                   <span
-                                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                    className={`shrink-0 rounded px-1.5 py-0.5 text-micro font-semibold uppercase tracking-overline ${
                                       chunk.is_enabled
                                         ? "bg-emerald-500/15 text-emerald-500"
                                         : "bg-muted text-text-muted"

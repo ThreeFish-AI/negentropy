@@ -99,7 +99,7 @@ export function ContentExplorer({ items, loading, error, offset = 0 }: ContentEx
                           />
                         )}
                       </div>
-                      <div className="mt-1 text-[11px] text-muted-foreground/80">
+                      <div className="mt-1 text-caption text-muted-foreground/80">
                         {isExpanded ? "Collapse" : "Expand"}
                       </div>
                     </button>

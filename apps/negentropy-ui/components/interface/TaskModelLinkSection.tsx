@@ -193,10 +193,10 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
                           <span className="text-sm font-medium text-foreground">
                             {task.label}
                           </span>
-                          <code className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-text-muted">
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-micro text-text-muted">
                             {task.task_key}
                           </code>
-                          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-text-muted">
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-micro uppercase tracking-overline text-text-muted">
                             {task.model_type}
                           </span>
                         </div>
@@ -213,12 +213,12 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
                           ariaLabel={`Model for ${task.task_key}`}
                         />
                         {savingKey === task.task_key && (
-                          <span className="text-[10px] text-text-muted">
+                          <span className="text-micro text-text-muted">
                             保存中…
                           </span>
                         )}
                         {savedKey === task.task_key && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                          <span className="text-micro text-emerald-600 dark:text-emerald-400">
                             已保存
                           </span>
                         )}

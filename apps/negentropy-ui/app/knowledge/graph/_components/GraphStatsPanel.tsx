@@ -58,13 +58,13 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
           <p className="text-lg font-semibold text-foreground">
             {stats.total_entities}
           </p>
-          <p className="text-[10px] text-text-muted">实体</p>
+          <p className="text-micro text-text-muted">实体</p>
         </div>
         <div className="rounded-lg bg-muted p-2 text-center">
           <p className="text-lg font-semibold text-foreground">
             {stats.edge_count}
           </p>
-          <p className="text-[10px] text-text-muted">关系</p>
+          <p className="text-micro text-text-muted">关系</p>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
       {/* Type Distribution */}
       {sortedTypes.length > 0 && (
         <div>
-          <p className="text-[10px] font-medium text-text-muted mb-1">
+          <p className="text-micro font-medium text-text-muted mb-1">
             类型分布
           </p>
           <div className="space-y-1">
@@ -107,7 +107,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-text-muted w-8 text-right">
+                  <span className="text-micro text-text-muted w-8 text-right">
                     {count}
                   </span>
                 </div>
@@ -122,18 +122,18 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
         Array.isArray(stats.top_entities) &&
         stats.top_entities.length > 0 && (
           <div>
-            <p className="text-[10px] font-medium text-text-muted mb-1">
+            <p className="text-micro font-medium text-text-muted mb-1">
               Top 实体 (PageRank)
             </p>
             <div className="space-y-1">
               {stats.top_entities.map(
                 (e: { name: string; entity_type: string; importance_score: number }, i: number) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-[10px] text-text-muted w-3">{i + 1}</span>
+                    <span className="text-micro text-text-muted w-3">{i + 1}</span>
                     <span className="text-xs text-foreground truncate flex-1">
                       {e.name}
                     </span>
-                    <span className="text-[10px] text-text-muted">
+                    <span className="text-micro text-text-muted">
                       {e.importance_score.toFixed(4)}
                     </span>
                   </div>
@@ -147,7 +147,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
       {"community_distribution" in stats &&
         Object.keys(stats.community_distribution).length > 0 && (
           <div>
-            <p className="text-[10px] font-medium text-text-muted mb-1">
+            <p className="text-micro font-medium text-text-muted mb-1">
               社区分布 (Louvain) — {stats.community_count} 个社区
             </p>
             <div className="space-y-1">
@@ -177,7 +177,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
                           }}
                         />
                       </div>
-                      <span className="text-[10px] text-text-muted w-8 text-right">
+                      <span className="text-micro text-text-muted w-8 text-right">
                         {count}
                       </span>
                     </div>

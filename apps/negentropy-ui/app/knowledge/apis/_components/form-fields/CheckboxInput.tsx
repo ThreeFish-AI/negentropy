@@ -26,7 +26,7 @@ export function CheckboxInput({ field, value, onChange }: CheckboxInputProps) {
         {field.required && <span className="text-rose-500 ml-1">*</span>}
       </label>
       {field.description && (
-        <span className="ml-2 text-[10px] text-text-muted">
+        <span className="ml-2 text-micro text-text-muted">
           {field.description}
         </span>
       )}

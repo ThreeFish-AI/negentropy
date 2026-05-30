@@ -73,7 +73,7 @@ export function SchedulerTaskTable({
 }: SchedulerTaskTableProps) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+      <div className="border-b border-border px-3 py-2 text-caption uppercase tracking-overline text-muted-foreground">
         Tasks ({tasks.length})
       </div>
       <div className="max-h-[540px] overflow-auto">
@@ -110,7 +110,7 @@ export function SchedulerTaskTable({
                     <div className="font-medium text-foreground">
                       {t.display_name || t.key}
                     </div>
-                    <div className="text-[10px] text-muted-foreground">{t.key}</div>
+                    <div className="text-micro text-muted-foreground">{t.key}</div>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
                   <td className="px-3 py-2 text-muted-foreground">
@@ -131,7 +131,7 @@ export function SchedulerTaskTable({
                   </td>
                   <td className="px-3 py-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${
                         t.enabled
                           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                           : "bg-muted text-text-secondary"
@@ -147,7 +147,7 @@ export function SchedulerTaskTable({
                     >
                       <button
                         onClick={() => onToggle(t.id, !t.enabled)}
-                        className={`rounded-md px-2 py-1 text-[10px] border border-border transition-colors ${
+                        className={`rounded-md px-2 py-1 text-micro border border-border transition-colors ${
                           t.enabled
                             ? "text-foreground hover:bg-muted/50"
                             : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
@@ -157,7 +157,7 @@ export function SchedulerTaskTable({
                       </button>
                       <button
                         onClick={() => onRun(t.id)}
-                        className="rounded-md px-2 py-1 text-[10px] bg-foreground text-background hover:opacity-80 transition-opacity"
+                        className="rounded-md px-2 py-1 text-micro bg-foreground text-background hover:opacity-80 transition-opacity"
                       >
                         Run Now
                       </button>

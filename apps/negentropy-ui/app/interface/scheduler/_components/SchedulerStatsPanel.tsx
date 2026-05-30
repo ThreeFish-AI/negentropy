@@ -18,7 +18,7 @@ interface StatsSectionProps {
 function StatsSection({ title, stats }: StatsSectionProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">
+      <h3 className="text-caption uppercase tracking-overline text-muted-foreground mb-3">
         {title}
       </h3>
       {!stats || stats.buckets.length === 0 ? (

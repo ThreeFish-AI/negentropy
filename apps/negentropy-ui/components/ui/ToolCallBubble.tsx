@@ -164,7 +164,7 @@ export function ToolCallBubble({ toolCall }: ToolCallBubbleProps) {
           {/* 参数 */}
           {toolCall.args && (
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+              <span className="text-micro uppercase tracking-overline text-muted-foreground font-medium">
                 Parameters
               </span>
               <div className="mt-1.5 rounded-md bg-background border border-border p-2 overflow-auto max-h-40 custom-scrollbar">
@@ -176,7 +176,7 @@ export function ToolCallBubble({ toolCall }: ToolCallBubbleProps) {
           {/* 结果 */}
           {toolCall.result && (
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+              <span className="text-micro uppercase tracking-overline text-muted-foreground font-medium">
                 Result
               </span>
               <div className="mt-1.5 rounded-md bg-background border border-border p-2 overflow-auto max-h-40 custom-scrollbar">
@@ -187,7 +187,7 @@ export function ToolCallBubble({ toolCall }: ToolCallBubbleProps) {
 
           {/* 无结果提示 */}
           {!toolCall.result && !isRunning && (
-            <p className="text-[11px] text-muted-foreground italic">
+            <p className="text-caption text-muted-foreground italic">
               No return value
             </p>
           )}
