@@ -1,0 +1,85 @@
+"""Routine 子系统配置 — 长周期自主任务迭代执行。
+
+承载 Routine 编排循环（Evaluator-Optimizer + Reflexion）的配置开关与默认预算。
+特性默认关闭（``enabled=False``），灰度开启后由 ``routine_inspector`` 心跳驱动。
+
+env 前缀 ``NE_ROUTINE_``；YAML 节点 ``routine:``。
+
+参考文献：
+[1] Anthropic, *Building Effective AI Agents*, 2024. Evaluator-Optimizer 工作流。
+[2] N. Shinn et al., "Reflexion: Language Agents with Verbal Reinforcement Learning,"
+    in *Proc. NeurIPS*, 2023. arXiv:2303.11366. 跨迭代自反思记忆。
+"""
+
+from __future__ import annotations
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+
+class RoutineSettings(BaseSettings):
+    """Routine 编排循环配置。
+
+    Inspector 心跳间隔、并发上限、崩溃恢复 lease、评估器重试、默认预算等。
+    所有运行期硬约束（守卫）均在代码层强制，配置仅提供默认值与调优旋钮。
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="NE_ROUTINE_",
+        env_nested_delimiter="__",
+        extra="ignore",
+        frozen=True,
+    )
+
+    enabled: bool = Field(
+        default=False,
+        description="是否启用 Routine 编排循环（默认关闭，灰度开启）。关闭时 inspector handler 直接 no-op。",
+    )
+    inspector_interval_seconds: int = Field(
+        default=25, ge=5, le=600, description="routine_inspector 心跳 tick 间隔（秒）"
+    )
+    max_concurrent_executions: int = Field(
+        default=2, ge=1, le=32, description="全局并发 Claude Code 执行上限（进程内信号量）"
+    )
+    lease_slack_seconds: int = Field(
+        default=60, ge=10, description="Runner lease 宽裕量：lease = 执行超时 + 此值，用于崩溃恢复 reaper 判定"
+    )
+    gate_timeout_seconds: int = Field(default=120, ge=10, description="verification_command 命令门控执行超时（秒）")
+    max_reflections_injected: int = Field(
+        default=5, ge=1, le=50, description="注入下一次迭代 prompt 的最近反思条数（Reflexion 窗口）"
+    )
+    eval_failure_patience: int = Field(
+        default=3, ge=1, description="评估器连续失败容忍次数，超过则终止 routine 为 unrecoverable_error"
+    )
+    default_max_iterations: int = Field(
+        default=20, ge=1, description="创建 routine 时 max_iterations 的默认值（硬上限守卫）"
+    )
+    default_max_cost_usd: float = Field(
+        default=5.0, ge=0.0, description="创建 routine 时 max_cost_usd 的默认值（成本熔断守卫）"
+    )
+    evaluator_model: str | None = Field(
+        default=None,
+        description="评估器 LLM-as-Judge 模型覆盖；为空时走 task_registry 的 routine.evaluate 解析",
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("routine")),
+            file_secret_settings,
+        )
+
+
+__all__ = ["RoutineSettings"]

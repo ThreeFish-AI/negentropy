@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/interface/skills", label: "Skills" },
   { href: "/interface/tools", label: "Tools" },
   { href: "/interface/scheduler", label: "Scheduler" },
+  { href: "/interface/routine", label: "Routine" },
 ];
 
 export function InterfaceNav({

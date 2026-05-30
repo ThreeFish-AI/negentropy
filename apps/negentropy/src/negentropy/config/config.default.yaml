@@ -185,6 +185,19 @@ memory:
     feedback_min_count: 3                    # 最低反馈条数门槛
     reweight_interval_seconds: 3600
 
+# --- Routine 配置（长周期自主任务迭代执行：Evaluator-Optimizer + Reflexion）---
+routine:
+  enabled: false                             # 灰度开关：关闭时 routine_inspector 心跳 no-op，不影响调度引擎
+  inspector_interval_seconds: 25             # 心跳 tick 间隔；与种子 routine_inspector ScheduledTask 一致
+  max_concurrent_executions: 2               # 全局并发 Claude Code 执行上限（进程内信号量）
+  lease_slack_seconds: 60                    # Runner lease 宽裕量；崩溃恢复 reaper 据此判定孤儿迭代
+  gate_timeout_seconds: 120                  # verification_command 命令门控执行超时
+  max_reflections_injected: 5                # 注入下一迭代 prompt 的最近反思条数（Reflexion 窗口）
+  eval_failure_patience: 3                   # 评估器连续失败容忍次数，超过终止为 unrecoverable_error
+  default_max_iterations: 20                 # 创建 routine 默认迭代硬上限
+  default_max_cost_usd: 5.0                  # 创建 routine 默认成本熔断（USD）
+  evaluator_model: null                      # LLM-as-Judge 模型覆盖；null 走 task_registry 的 routine.evaluate
+
 # --- Knowledge 配置 ---
 knowledge:
   # Wiki SSG ISR 主动 revalidate webhook：publish/unpublish 完成后向 SSG 通知立即重渲染。

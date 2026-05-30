@@ -1,0 +1,141 @@
+/**
+ * Routine 共享类型 — 与后端 ``routine_api.py`` 的序列化契约对齐。
+ */
+
+export type RoutineStatus =
+  | "pending"
+  | "running"
+  | "paused"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+
+export type ApprovalMode = "auto" | "first" | "every";
+
+export type IterationStatus =
+  | "pending_approval"
+  | "dispatched"
+  | "in_flight"
+  | "executed"
+  | "evaluated"
+  | "reaped"
+  | "aborted";
+
+export type Verdict = "pass" | "progressing" | "stalled" | "regressed" | "unrecoverable";
+
+export type ExecStatus = "success" | "error" | "timeout";
+
+export interface RoutineDTO {
+  id: string;
+  key: string;
+  title: string;
+  display_name: string | null;
+  description: string | null;
+  goal: string;
+  acceptance_criteria: string;
+  cwd: string | null;
+  verification_command: string | null;
+  status: RoutineStatus;
+  termination_reason: string | null;
+  max_iterations: number | null;
+  max_cost_usd: number | null;
+  deadline_at: string | null;
+  success_score_threshold: number;
+  no_progress_patience: number;
+  approval_mode: ApprovalMode;
+  iteration_count: number;
+  total_cost_usd: number;
+  best_score: number | null;
+  last_score: number | null;
+  claude_session_id: string | null;
+  reflections: string[];
+  config: Record<string, unknown>;
+  owner_id: string | null;
+  agent_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  // 仅 detail 端点返回
+  iterations?: RoutineIterationDTO[];
+}
+
+export interface RoutineIterationDTO {
+  id: string;
+  routine_id: string;
+  seq: number;
+  status: IterationStatus;
+  prompt: string | null;
+  resume_session_id: string | null;
+  exec_status: ExecStatus | null;
+  summary: string | null;
+  claude_session_id: string | null;
+  cost_usd: number;
+  turn_count: number;
+  exec_error: string | null;
+  score: number | null;
+  verdict: Verdict | null;
+  reflection: string | null;
+  eval_error: string | null;
+  gate_exit_code: number | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface RoutineKpis {
+  total: number;
+  running: number;
+  paused: number;
+  succeeded: number;
+  failed: number;
+  cancelled: number;
+  pending: number;
+  total_cost_usd: number;
+  avg_iterations: number;
+}
+
+export interface RoutineListResponse {
+  items: RoutineDTO[];
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
+export interface IterationListResponse {
+  items: RoutineIterationDTO[];
+  has_more: boolean;
+  next_before_seq: number | null;
+}
+
+export interface RoutineFilters {
+  status: RoutineStatus | null;
+  q: string;
+}
+
+/** 创建请求体 */
+export interface RoutineCreatePayload {
+  key: string;
+  title: string;
+  goal: string;
+  acceptance_criteria: string;
+  cwd?: string | null;
+  verification_command?: string | null;
+  max_iterations?: number | null;
+  max_cost_usd?: number | null;
+  deadline_at?: string | null;
+  success_score_threshold?: number;
+  no_progress_patience?: number;
+  approval_mode?: ApprovalMode;
+  config?: Record<string, unknown>;
+  display_name?: string | null;
+  description?: string | null;
+}
+
+/** 更新请求体（全部可选） */
+export type RoutineUpdatePayload = Partial<Omit<RoutineCreatePayload, "key">>;
+
+/** SSE 事件 */
+export interface RoutineStreamEvent {
+  type: "routine" | "iteration";
+  id: string;
+  routine_id?: string;
+  status?: string;
+  [key: string]: unknown;
+}
