@@ -234,7 +234,7 @@ test("Knowledge Pipelines 状态标签视觉一致性", async ({ page }) => {
     // 验证首个 Run 自动选中
     await expect(
       page.getByRole("button", { name: /run-running/i }),
-    ).toHaveClass(/bg-zinc-900/);
+    ).toHaveClass(/bg-foreground/);
 
     const pipelinesRunning = await getStatusBadgeSnapshot(page, "状态: running");
     const pipelinesCompleted = await getStatusBadgeSnapshot(page, "状态: completed");

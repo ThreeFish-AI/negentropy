@@ -269,7 +269,7 @@ export default function SkillsPage() {
             ) : skills.length === 0 ? (
               <EmptyState
                 icon={Sparkles}
-                title="No skills defined yet"
+                title="No skills defined yet."
                 action={
                   <Button variant="link" size="sm" onClick={handleCreate}>
                     Create your first skill →
