@@ -199,6 +199,49 @@
   font-family: var(--wiki-code-font);
 }
 
+/* === Mermaid 深色主题可读性修复（flowchart / graph）===
+   Mermaid 固定以浅色 default 主题渲染（MermaidDiagram.tsx 硬编码 theme:"default"），
+   深色背景下默认 #333 连线/箭头不可见、#ffffde 子图框突兀。此处仅在深色主题下
+   覆写「默认主题」的线条/表面色。作者通过 classDef/style/linkStyle 设定的配色被
+   Mermaid 以内联 `…!important` 输出，优先级高于此处外部 !important，故逐图自定义色
+   原样保留。浅色模式不受影响（规则仅限深色作用域）。 */
+
+/* (1) 显式深色 */
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg :is(.flowchart-link, .edgePath > .path) {
+  stroke: rgba(234, 238, 246, 0.62) !important;
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg :is(.marker, .marker path, .arrowheadPath, .arrowMarkerPath) {
+  fill: rgba(234, 238, 246, 0.62) !important;
+  stroke: rgba(234, 238, 246, 0.62) !important;
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg .cluster rect {
+  fill: var(--wiki-bg-secondary) !important; /* #161618 浅黄→深表面 */
+  stroke: rgba(234, 244, 250, 0.18) !important;
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg :is(.cluster-label, .cluster) :is(text, span) {
+  fill: var(--wiki-text) !important; /* 子图标题 #333→浅色 */
+  color: var(--wiki-text) !important;
+}
+
+/* (2) 跟随系统深色（无显式属性时） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg :is(.flowchart-link, .edgePath > .path) {
+    stroke: rgba(234, 238, 246, 0.62) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg :is(.marker, .marker path, .arrowheadPath, .arrowMarkerPath) {
+    fill: rgba(234, 238, 246, 0.62) !important;
+    stroke: rgba(234, 238, 246, 0.62) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg .cluster rect {
+    fill: var(--wiki-bg-secondary) !important;
+    stroke: rgba(234, 244, 250, 0.18) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg :is(.cluster-label, .cluster) :is(text, span) {
+    fill: var(--wiki-text) !important;
+    color: var(--wiki-text) !important;
+  }
+}
+
 /* Responsive table container */
 .wiki-responsive-table {
   margin: 1rem 0;
