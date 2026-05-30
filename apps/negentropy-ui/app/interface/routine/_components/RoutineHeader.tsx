@@ -27,7 +27,7 @@ export function RoutineHeader({ connected, onRefresh, loading, onCreate, onFromP
             size="sm"
             onClick={onFromPreset}
           >
-            Demo 预设...
+            Template
           </Button>
         )}
 
