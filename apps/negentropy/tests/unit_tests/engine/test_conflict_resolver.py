@@ -292,6 +292,28 @@ class TestManualResolve:
 
         assert mock_conflict.resolution == "merge"
 
+    @pytest.mark.asyncio
+    async def test_manual_resolve_invalidates_cache(self) -> None:
+        """manual_resolve 解决后应触发主动召回缓存失效（与 detect_and_resolve 对齐）。"""
+        resolver, mock_db = _make_resolver_with_mock_db()
+
+        mock_conflict = MagicMock()
+        mock_conflict.new_fact_id = uuid4()
+        mock_conflict.old_fact_id = uuid4()
+        mock_conflict.user_id = "user-42"
+        mock_conflict.app_name = "negentropy"
+
+        mock_db.get.return_value = mock_conflict
+        mock_db.refresh = AsyncMock()
+
+        # 在 helper 定义处 patch（manual_resolve 内部延迟 import 该符号）
+        with patch(
+            "negentropy.engine.adapters.postgres.proactive_recall_service.schedule_cache_invalidation"
+        ) as mock_invalidate:
+            await resolver.manual_resolve(conflict_id=uuid4(), resolution="keep_new")
+
+        mock_invalidate.assert_called_once_with(user_id="user-42", app_name="negentropy")
+
 
 class TestGetFactHistory:
     """get_fact_history() 版本链追踪。"""
