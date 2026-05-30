@@ -239,11 +239,11 @@ body {
   font-feature-settings: "kern" 1, "liga" 1;
   font-variant-ligatures: common-ligatures;
   /* 全局正文行高/字间距基线。
-   * 行高用字面值（1.375rem=22px，与 --text-body--line-height 同源）：
-   * @theme inline 的 --leading-* 仅用于生成 leading-* 工具类，不镜像到 :root，
-   * 故此处 var(--leading-body) 取不到值，必须用字面量。
-   * --tracking-body 因被本规则引用，Tailwind 会输出到 :root，可正常 var()。 */
-  line-height: 1.375rem;
+   * 行高用「无单位」比值：body 字号 16px 时解析为 22px（与原绝对值同效，保持排版节奏），
+   * 且后代元素按各自字号缩放，避免绝对 rem 被 text-[10px] 等任意小字号继承为固定 22px 行距
+   * （Tailwind 内置 text-sm/2xl 等自带行高，不受影响；受影响的仅是无配对行高的任意字号）。
+   * letter-spacing 的 --tracking-body 因被本规则 var() 引用，Tailwind 会输出到 :root，可正常解析。 */
+  line-height: 1.375;
   letter-spacing: var(--tracking-body);
 }
 
