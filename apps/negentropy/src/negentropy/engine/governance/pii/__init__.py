@@ -16,6 +16,7 @@ from .base import PIIDetectorBase, PIISpan, apply_policy
 from .factory import get_pii_detector, reset_pii_detector
 from .gatekeeper import PIIGatekeeper
 from .regex_detector import RegexPIIDetector
+from .storage_helper import detect_pii_for_storage
 
 __all__ = [
     "PIIDetectorBase",
@@ -25,4 +26,5 @@ __all__ = [
     "PIIGatekeeper",
     "get_pii_detector",
     "reset_pii_detector",
+    "detect_pii_for_storage",
 ]

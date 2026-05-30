@@ -1313,20 +1313,16 @@ dependencies = [
     { name = "opentelemetry-instrumentation-google-genai" },
     { name = "orjson" },
     { name = "packaging" },
+    { name = "presidio-analyzer" },
+    { name = "presidio-anonymizer" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings", extra = ["yaml"] },
     { name = "pyyaml" },
     { name = "scipy" },
+    { name = "spacy" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "structlog" },
     { name = "tiktoken" },
-]
-
-[package.optional-dependencies]
-pii-presidio = [
-    { name = "presidio-analyzer" },
-    { name = "presidio-anonymizer" },
-    { name = "spacy" },
 ]
 
 [package.dev-dependencies]
@@ -1361,18 +1357,17 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-google-genai", specifier = ">=0.6b0,<1.0.0" },
     { name = "orjson", specifier = ">=3.11.6" },
     { name = "packaging", specifier = ">=24.0" },
-    { name = "presidio-analyzer", marker = "extra == 'pii-presidio'", specifier = ">=2.2.0" },
-    { name = "presidio-anonymizer", marker = "extra == 'pii-presidio'", specifier = ">=2.2.0" },
+    { name = "presidio-analyzer", specifier = ">=2.2.0" },
+    { name = "presidio-anonymizer", specifier = ">=2.2.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
     { name = "pydantic-settings", extras = ["yaml"], specifier = ">=2.12.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "scipy", specifier = ">=1.12" },
-    { name = "spacy", marker = "extra == 'pii-presidio'", specifier = ">=3.7,<4.0" },
+    { name = "spacy", specifier = ">=3.7,<4.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.46" },
     { name = "structlog", specifier = ">=25.5.0" },
     { name = "tiktoken", specifier = ">=0.9.0" },
 ]
-provides-extras = ["pii-presidio"]
 
 [package.metadata.requires-dev]
 dev = [

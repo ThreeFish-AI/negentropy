@@ -35,7 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text, union
 
-from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
+from negentropy.auth.deps import get_current_user, get_optional_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
@@ -441,13 +441,32 @@ async def list_memories(
 
 
 @router.post("/search", response_model=MemorySearchResponse)
-async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
+async def search_memories(
+    payload: MemorySearchRequest,
+    user: AuthUser | None = Depends(get_optional_user),
+) -> MemorySearchResponse:
     """搜索用户记忆
 
     基于混合检索 (Semantic + BM25) 搜索相关记忆。
     支持按记忆类型、日期范围过滤，以及分页。
+
+    F4：viewer_role 取自鉴权用户（DB 权威 roles），传给 PIIGatekeeper 决定低权限
+    角色是否对含 PII 的 content 做脱敏。角色由服务端解析，绝不接受客户端自报，
+    避免越权绕过遮蔽。用 get_optional_user 而非 get_current_user：保持端点对无 token
+    调用可用（不引入 401 破坏既有访问），仅在已鉴权时据角色脱敏。
     """
     resolved_app = _resolve_app_name(payload.app_name)
+
+    # 解析鉴权用户的最高权限角色（DB 权威），供 PII 守门员判定遮蔽。
+    # 未鉴权（user=None）时 viewer_role=None → rank 0（最低），守门员启用时按低权限遮蔽。
+    viewer_role: str | None = None
+    if user is not None:
+        try:
+            resolved_user = await resolve_user_with_db_roles(user)
+            _RANK = {"viewer": 1, "user": 1, "editor": 2, "admin": 3}
+            viewer_role = max(resolved_user.roles, key=lambda r: _RANK.get(str(r).lower(), 0), default=None)
+        except Exception:
+            viewer_role = None
 
     # 解析日期参数
     date_from = None
@@ -479,6 +498,7 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
         memory_type=payload.memory_type,
         date_from=date_from,
         date_to=date_to,
+        viewer_role=viewer_role,
     )
 
     items = []
