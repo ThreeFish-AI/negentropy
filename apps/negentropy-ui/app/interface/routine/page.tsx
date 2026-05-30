@@ -30,6 +30,7 @@ import { RoutineFormDialog } from "./_components/RoutineFormDialog";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
+import { PresetPickerDialog } from "./_components/PresetPickerDialog";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
 
@@ -38,6 +39,7 @@ export default function RoutinePage() {
   const [selected, setSelected] = useState<RoutineDTO | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RoutineDTO | null>(null);
+  const [presetPickerOpen, setPresetPickerOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -173,7 +175,7 @@ export default function RoutinePage() {
       <InterfaceNav title="Routine" />
       <div className="flex-1 overflow-auto">
         <div className="space-y-5 px-6 py-6">
-          <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} />
+          <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => setPresetPickerOpen(true)} />
 
           {error && <ErrorBanner message={error} />}
 
@@ -197,6 +199,12 @@ export default function RoutinePage() {
       </div>
 
       <RoutineFormDialog open={formOpen} routine={editing} onClose={() => setFormOpen(false)} onSubmit={handleFormSubmit} />
+
+      <PresetPickerDialog
+        open={presetPickerOpen}
+        onClose={() => setPresetPickerOpen(false)}
+        onCreated={() => { refresh(); }}
+      />
 
       {confirmDialog}
     </div>

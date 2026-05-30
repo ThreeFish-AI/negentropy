@@ -1,0 +1,57 @@
+# ────────────────────────────────────────────────────────────
+# Routine Demo 3/3 — 文档完善（Documentation Enhancement）
+#
+# 审批模式: first（仅首次审批）
+# 命令门控: 无（纯 LLM-as-Judge 评估）
+# 重点展示: 首次审批门控（first 模式）、纯 LLM 评审无命令门控、
+#           Reflexion 跨迭代记忆、session 连续性
+# ────────────────────────────────────────────────────────────
+
+preset_id: documentation_enhancement
+display_name: "Demo: 文档完善"
+description: >
+  为目标模块生成或更新技术文档：Claude Code 分析代码并产出结构化文档，
+  仅首次执行前需人工确认方向，后续自动迭代。
+  演示 Routine 的 first-approval 模式——首轮审批确认方向正确性后进入全自动迭代，
+  由于文档质量难以用命令行工具客观验证，采用纯 LLM-as-Judge 评估，
+  依赖 Reflexion 反思记忆在迭代间逐步逼近高质量文档。
+category: documentation
+version: 1.0.0
+features_showcase:
+  - "审批模式: first — 仅首轮需人工确认方向"
+  - "纯 LLM-as-Judge — 无 Command Gate，完全依赖 AI 评审"
+  - "Reflexion — 跨迭代反思记忆持续改进文档质量"
+  - "Session 连续性 — Claude Code 保持会话上下文"
+  - "max_iterations 护栏 — 迭代次数硬上限"
+
+title: "Documentation Enhancement"
+goal: >
+  为目标代码模块生成或更新完整的技术文档。执行以下步骤：
+
+  1. 阅读目标模块的全部源代码，理解模块职责、公开 API 和内部架构；
+  2. 生成结构化文档，包含以下章节：
+     - 模块概述（职责定位、设计理念）
+     - 架构说明（核心组件、数据流、依赖关系）
+     - API 参考（公开函数/类的签名、参数、返回值、使用示例）
+     - 配置说明（环境变量、配置项及其默认值）
+     - 扩展指引（如何在该模块基础上扩展新功能）
+  3. 文档语言与模块内既有注释保持一致（中文或英文）；
+  4. 代码示例需可执行且与当前 API 签名一致；
+  5. 将文档写入模块目录或项目 docs/ 下的合适位置。
+
+  重要约束：文档内容需准确反映代码实际行为，不臆测或虚构不存在的功能。
+acceptance_criteria: >
+  1. 文档覆盖模块的全部公开 API（函数签名 + 参数说明 + 返回值 + 示例）；
+  2. 包含架构说明章节（组件关系、数据流、依赖）；
+  3. 代码示例可执行且与当前 API 签名一致；
+  4. 文档语言与模块既有注释一致；
+  5. 无虚构功能描述，所有描述均有代码对应；
+  6. Markdown 格式规范（标题层级、代码块语法、链接有效）。
+verification_command: null
+max_iterations: 8
+max_cost_usd: 2.0
+success_score_threshold: 85
+no_progress_patience: 4
+approval_mode: first
+config:
+  permission_mode: auto
