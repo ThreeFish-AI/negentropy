@@ -529,7 +529,7 @@ export function MessageBubble({
               <ChatTypingIndicator variant="inline" ariaLabel="Agent 正在思考" />
             ) : null}
             {showStreamingIndicator ? (
-              <div className="mt-3 flex items-center gap-2 text-caption font-medium uppercase tracking-[0.18em] text-success">
+              <div className="mt-3 flex items-center gap-2 text-caption font-medium uppercase tracking-label text-success">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
                 <span>Streaming</span>
               </div>

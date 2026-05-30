@@ -22,7 +22,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background text-center">
         <div className="max-w-md space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
+          <p className="text-xs uppercase tracking-label text-text-muted">
             Negentropy UI
           </p>
           <h1 className="text-2xl font-semibold text-foreground">

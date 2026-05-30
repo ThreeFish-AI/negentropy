@@ -190,7 +190,8 @@
   --tracking-body: -0.01em;
   --tracking-default: 0em;
   --tracking-caption: 0.01em;
-  --tracking-overline: 0.06em;
+  --tracking-overline: 0.06em;     /* 紧凑眼纹/小标签（uppercase 默认级） */
+  --tracking-label: 0.18em;        /* 宽间距 uppercase 标签眼纹（替代散落的 tracking-[0.14~0.24em] 魔法值，取其众数 0.18em） */
 }
 
 /* 暗色模式 - 类选择器 (通过 next-themes 控制，支持手动切换和系统偏好) */

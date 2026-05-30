@@ -57,7 +57,7 @@ function NodeCard({
       )}
       onClick={onClick}
     >
-      <div className="mb-2 flex items-center justify-between gap-4 text-micro uppercase tracking-[0.16em] text-text-muted">
+      <div className="mb-2 flex items-center justify-between gap-4 text-micro uppercase tracking-label text-text-muted">
         <span>{node.title}</span>
         <span>{formatTimestamp(node.timestamp)}</span>
       </div>
@@ -218,7 +218,7 @@ function TurnNode({
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2 text-caption text-text-muted">
-          <span className="font-semibold uppercase tracking-[0.18em]">
+          <span className="font-semibold uppercase tracking-label">
             {node.title}
           </span>
           <span aria-hidden="true">·</span>

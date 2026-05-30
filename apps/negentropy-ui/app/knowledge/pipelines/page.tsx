@@ -313,7 +313,7 @@ export default function KnowledgePipelinesPage() {
                     key={metric.label}
                     className="rounded-2xl border border-border bg-card p-4 shadow-sm"
                   >
-                    <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
+                    <p className="text-xs uppercase tracking-label text-text-muted">
                       {metric.label}
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">
