@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, type ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 /**
@@ -40,10 +40,10 @@ export function AnimatedList({
           },
         }}
       >
-        {Children.map(children, (child) =>
+        {Children.map(children, (child, i) =>
           child == null ? null : (
             <motion.div
-              key={child.key}
+              key={isValidElement(child) ? child.key : i}
               variants={{
                 hidden: { opacity: 0, y: 6 },
                 visible: {
