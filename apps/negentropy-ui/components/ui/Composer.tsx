@@ -483,8 +483,7 @@ export function Composer({
               models={models ?? []}
               value={selectedLlmModel ?? ""}
               onChange={(v) => onSelectedLlmModelChange?.(v === "" ? null : v)}
-              placeholder="Default"
-              allowClear
+              allowClear={false}
               ariaLabel="选择主 Agent 使用的 LLM"
             />
           )}

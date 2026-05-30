@@ -16,7 +16,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 import negentropy.db.session as db_session
 from negentropy.config.task_registry import ALL_TASKS
@@ -56,9 +56,10 @@ async def _seed_model_config():
         await db.commit()
         await db.refresh(mc)
     yield mc
+    # 用 DELETE 语句按 id 删除，避免 db.delete() 操作跨 session 的 detached 对象时静默失效，
+    # 导致测试数据泄漏到本地 dev DB（参见 docs/.agents/issue.md）。
     async with db_session.AsyncSessionLocal() as db:
-        await db.execute(select(ModelConfig).where(ModelConfig.id == mc.id))
-        await db.delete(mc)
+        await db.execute(delete(ModelConfig).where(ModelConfig.id == mc.id))
         await db.commit()
 
 
@@ -79,11 +80,9 @@ async def _seed_corpus_pair():
         await db.refresh(c1)
         await db.refresh(c2)
     yield (c1.id, c2.id)
+    # 同 _seed_model_config：用 DELETE 语句按 id 批量删除，规避 detached 对象删除失效。
     async with db_session.AsyncSessionLocal() as db:
-        for cid in (c1.id, c2.id):
-            await db.execute(select(Corpus).where(Corpus.id == cid))
-        await db.delete(c1)
-        await db.delete(c2)
+        await db.execute(delete(Corpus).where(Corpus.id.in_([c1.id, c2.id])))
         await db.commit()
 
 
