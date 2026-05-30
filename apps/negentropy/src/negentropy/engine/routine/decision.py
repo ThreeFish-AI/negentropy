@@ -152,9 +152,10 @@ def _consecutive_exec_failures(history: list[_IterationLike]) -> int:
 
 
 def _is_no_progress(routine: _RoutineLike, history: list[_IterationLike]) -> bool:
-    """最近 ``no_progress_patience`` 次评分均 ≤ 历史最优分则视为停滞。
+    """最近 ``no_progress_patience`` 次评分无一超过「窗口之前」的历史最优则视为停滞。
 
-    需至少累积 patience 次有效评分；不足时不触发（给探索留出空间）。
+    基线取最近窗口之前的迭代最优分（``routine.best_score`` 含窗口自身，直接比较会恒真）；
+    需窗口之前另有评分历史方可能触发，不足时不判停滞（给探索留出空间）。
     """
     patience = routine.no_progress_patience
     if patience <= 0:
@@ -162,12 +163,12 @@ def _is_no_progress(routine: _RoutineLike, history: list[_IterationLike]) -> boo
     scored = [it for it in history if it.score is not None]
     if len(scored) < patience:
         return False
-    best = routine.best_score
+    # 基线 = 最近窗口之前的迭代最优分；窗口内若创出新高即视为有进展。
+    best = max((it.score for it in scored[:-patience]), default=None)
     if best is None:
-        return False
+        return False  # 窗口前无评分历史 → 不判停滞
     recent = scored[-patience:]
-    # 最近 patience 次没有任何一次严格超过历史最优 → 停滞
-    return all(it.score < best or it.score == best for it in recent) and all(it.score <= best for it in recent)
+    return all(it.score <= best for it in recent)
 
 
 def _is_oscillating(history: list[_IterationLike]) -> bool:

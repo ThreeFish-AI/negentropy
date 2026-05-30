@@ -122,6 +122,21 @@ def test_decide_no_progress_plateau():
     assert res.is_terminate and res.reason == d.REASON_NO_PROGRESS
 
 
+def test_decide_no_progress_ignores_in_window_climb():
+    """回归（code review #1）：窗口内创出新高（超过「窗口之前」最优）应继续推进，
+    不应因 best_score 含窗口自身导致 _is_no_progress 恒真而误判停滞终止。
+
+    success_score_threshold=95 高于全部评分，确保不走「成功」分支、隔离 no_progress 判定。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=40, verdict="progressing"),  # 窗口之前最优 = 40
+        FakeIter(seq=2, score=60, verdict="progressing"),
+        FakeIter(seq=3, score=75, verdict="progressing"),
+        FakeIter(seq=4, score=90, verdict="progressing"),
+    ]
+    assert d.decide(r, hist[-1], hist).action == "continue"
+
+
 def test_decide_oscillation():
     r = FakeRoutine(best_score=60, no_progress_patience=10)  # patience 大以排除 no_progress 抢先
     hist = [

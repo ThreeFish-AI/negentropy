@@ -118,13 +118,18 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
       return;
     }
 
-    // 组装 Claude Code config 覆盖（仅非空字段）
-    const config: Record<string, unknown> = {};
+    // 组装 Claude Code config 覆盖：从既有 config 起步，仅增删本表单管理的 4 个键，
+    // 保留 system_prompt / timeout_seconds 等表单未暴露但引擎消费的键（编辑时不被整体覆盖丢弃）。
+    const config: Record<string, unknown> = { ...((routine?.config as Record<string, unknown>) ?? {}) };
     if (form.model.trim()) config.model = form.model.trim();
+    else delete config.model;
     if (form.max_turns.trim()) config.max_turns = parseInt(form.max_turns, 10);
+    else delete config.max_turns;
     if (form.permission_mode.trim()) config.permission_mode = form.permission_mode.trim();
+    else delete config.permission_mode;
     if (form.allowed_tools.trim())
       config.allowed_tools = form.allowed_tools.split(",").map((s) => s.trim()).filter(Boolean);
+    else delete config.allowed_tools;
 
     const base = {
       title: form.title.trim(),

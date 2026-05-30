@@ -76,7 +76,7 @@ export default function RoutinePage() {
     setActionBusy(true);
     try {
       const updated = await controlRoutine(selected.id, action);
-      toast.success(`Routine ${action}ed`);
+      toast.success(`Routine ${{ start: "started", pause: "paused", resume: "resumed", cancel: "cancelled" }[action]}`);
       await refreshSelected(updated.id);
       refresh();
     } catch (err) {
