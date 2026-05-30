@@ -54,7 +54,7 @@ flowchart LR
 | **F1 HippoRAG PPR 检索**  | `memory.hipporag.enabled`                       | `true`     | `min_kg_associations≥100` 数据闸：KG 稀疏时自休眠回退 Hybrid；120ms 超时降级；`gray_users` 白名单 | +50ms P95（含 120ms 超时）                       |
 | **F2 Reflexion 反思召回** | `memory.reflection.enabled`                     | `true`     | `max_inflight_tasks=8` 并发硬上限防风暴；日限 ≤10/用户；仅 `irrelevant`/`harmful` 触发 | LLM 调用按 dedup + 上限计费                       |
 | **F3 Memify 巩固管线**    | `memory.consolidation.steps`（6 步）            | 6 步全开   | `policy=fail_tolerant`：单步失败不中断全链；每步 30s 超时 | 2 步为 LLM（fact_extract / entity_normalization / summarize），写路径增量                       |
-| **F4 Presidio PII**       | `memory.pii.engine=presidio` + `gatekeeper_enabled` | `presidio` + 守门员开 | `allow_engine_fallback=true`：缺 spaCy 模型时降级 regex 并写 ERROR（`/memory/health` 可观测），不阻断启动 | 冷启 +200MB（spaCy 模型）；运行时 P99 < 5ms      |
+| **F4 Presidio PII**       | `memory.pii.engine=presidio` + `gatekeeper_enabled` | `presidio` + 守门员关 | `allow_engine_fallback=true`：缺 spaCy 模型时降级 regex 并写 ERROR（`/memory/health` 可观测），不阻断启动；`gatekeeper_enabled` 需手动开启（ADK tool 路径暂无法传递 viewer 角色） | 冷启 +200MB（spaCy 模型）；运行时 P99 < 5ms      |
 | **Rocchio 反馈闭环**      | `memory.relevance.enabled`                      | `true`     | 权重夹 `[0.5,2.0]`；<3 反馈返中性 1.0；写侧由 cron 周期重加权 | 读侧 dict 查表，近乎零成本                        |
 
 > **可观测性**（默认开）：`memory.observability.health_enabled` / `metrics_enabled` → `/memory/health`（暴露当前生效的 hipporag/reflection/consolidation_steps/**pii_engine**）与 `/memory/metrics`（需 admin）。
@@ -135,7 +135,7 @@ memory:
 ### PII 锁标
 - 🔒 表示 metadata.pii_flags / pii_spans 命中（默认 Presidio 引擎）
 - 命中类型：`email` / `phone` / `id_card` / `credit_card` / `person` / `location` 等（Presidio NER 识别人名、地名等 regex 无法覆盖的类别；中文手机号 / 身份证由 CN 自定义识别器补强）
-- 检索侧：`gatekeeper_enabled=true` 时，低于 `acl_role_threshold`（默认 editor）的角色看到 content 经 `retrieval_policy`（默认 anonymize）遮蔽的副本
+- 检索侧：`gatekeeper_enabled=true`（需手动开启）时，低于 `acl_role_threshold`（默认 editor）的角色看到 content 经 `retrieval_policy`（默认 anonymize）遮蔽的副本
 
 ---
 

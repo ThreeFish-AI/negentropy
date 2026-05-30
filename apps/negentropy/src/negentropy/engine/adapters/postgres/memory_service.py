@@ -204,6 +204,12 @@ class PostgresMemoryService(BaseMemoryService):
             segments_skipped=len(segments) - stored_count,
         )
 
+        # Fire-and-forget: 主动召回缓存失效，避免返回陈旧数据
+        if stored_count > 0:
+            from negentropy.engine.adapters.postgres.proactive_recall_service import schedule_cache_invalidation
+
+            schedule_cache_invalidation(user_id=session.user_id, app_name=session.app_name)
+
     # ------------------------------------------------------------------
     # 巩固管线辅助方法
     # ------------------------------------------------------------------

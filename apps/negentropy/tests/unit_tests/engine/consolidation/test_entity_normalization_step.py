@@ -116,7 +116,7 @@ class TestEntityNormalizationStep:
         assert len(ctx.entities) == 1
         assert ctx.entities[0]["canonical"] == "Rust"
 
-    async def test_llm_failure_returns_failed_status(self, _patch_model_config):
+    async def test_llm_failure_returns_degraded_status(self, _patch_model_config):
         fake_fact = MagicMock()
         fake_fact.fact_type = "preference"
         fake_fact.key = "lang"
@@ -129,9 +129,12 @@ class TestEntityNormalizationStep:
             step = EntityNormalizationStep(max_retries=1)
             result = await step.run(ctx)
 
-        assert result.status == "failed"
-        assert "entity_normalization llm failed" in result.error
-        assert "LLM unavailable" in result.error
+        # 优雅降级：LLM 不可用时返回 success + degraded 标记
+        assert result.status == "success"
+        assert result.output_count == 0
+        assert result.extra is not None
+        assert result.extra.get("degraded") is True
+        assert "llm_unavailable" in result.extra.get("reason", "")
 
     async def test_llm_returns_invalid_json_then_failure(self, _patch_model_config):
         fake_fact = MagicMock()
@@ -149,8 +152,11 @@ class TestEntityNormalizationStep:
             step = EntityNormalizationStep(max_retries=1)
             result = await step.run(ctx)
 
-        assert result.status == "failed"
+        # 无效 JSON 导致 LLM 调用失败 → 优雅降级
+        assert result.status == "success"
         assert result.output_count == 0
+        assert result.extra is not None
+        assert result.extra.get("degraded") is True
 
     async def test_entities_extend_existing_ctx_entities(self, _patch_model_config):
         fake_fact = MagicMock()

@@ -61,11 +61,18 @@ class EntityNormalizationStep:
         try:
             entities = await self._llm_normalize(facts_block)
         except Exception as exc:
+            # 优雅降级：LLM 不可用时返回 success + degraded 标记
+            # 在 fail_tolerant 策略下不中断管线，且下游可感知降级状态
+            logger.warning(
+                "entity_normalization_degraded",
+                error=str(exc)[:200],
+            )
             return StepResult(
                 step_name=self.name,
-                status="failed",
+                status="success",
                 duration_ms=int((time.perf_counter() - start) * 1000),
-                error=str(exc),
+                output_count=0,
+                extra={"degraded": True, "reason": "llm_unavailable"},
             )
 
         ctx.entities.extend(entities)

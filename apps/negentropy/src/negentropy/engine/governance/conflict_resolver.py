@@ -100,6 +100,11 @@ class ConflictResolver:
             user_id=user_id,
         )
 
+        # Fire-and-forget: 主动召回缓存失效，避免返回陈旧数据
+        from negentropy.engine.adapters.postgres.proactive_recall_service import schedule_cache_invalidation
+
+        schedule_cache_invalidation(user_id=user_id, app_name=app_name)
+
         return conflict
 
     def _classify_conflict(self, old_fact: Fact, new_fact: Fact) -> str:
@@ -304,5 +309,12 @@ class ConflictResolver:
 
             await db.commit()
             await db.refresh(conflict)
+
+        # Fire-and-forget: 主动召回缓存失效。manual_resolve 与 detect_and_resolve
+        # 同为冲突解决路径（mutate fact status/value），docstring 将冲突解决列为
+        # 失效触发器；不在此失效会导致 admin 手动解决后缓存陈旧至 TTL（1h）过期。
+        from negentropy.engine.adapters.postgres.proactive_recall_service import schedule_cache_invalidation
+
+        schedule_cache_invalidation(user_id=conflict.user_id, app_name=conflict.app_name)
 
         return conflict

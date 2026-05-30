@@ -160,6 +160,11 @@ class FactService:
         except Exception as exc:
             logger.debug("conflict_detection_failed", key=key, error=str(exc))
 
+        # Fire-and-forget: 主动召回缓存失效，避免返回陈旧数据
+        from negentropy.engine.adapters.postgres.proactive_recall_service import schedule_cache_invalidation
+
+        schedule_cache_invalidation(user_id=user_id, app_name=app_name)
+
         return fact
 
     async def get_fact(
