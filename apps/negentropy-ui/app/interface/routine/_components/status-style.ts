@@ -47,6 +47,22 @@ export function scoreColorClass(score: number | null | undefined): string {
   return "text-red-600 dark:text-red-400";
 }
 
+/** 预算/守卫逼近度（0-1）→ 进度条填充配色（<80% 绿，<95% 琥珀，≥95% 红）。 */
+export function limitFillClass(ratio: number | null | undefined): string {
+  if (ratio == null) return "bg-muted-foreground/40";
+  if (ratio >= 0.95) return "bg-red-500";
+  if (ratio >= 0.8) return "bg-amber-500";
+  return "bg-emerald-500";
+}
+
+/** 评分 → 温度条填充配色（≥阈值 绿，≥阈值·0.6 琥珀，否则 红）。 */
+export function scoreFillClass(score: number | null | undefined, threshold = 85): string {
+  if (score == null) return "bg-muted-foreground/40";
+  if (score >= threshold) return "bg-emerald-500";
+  if (score >= threshold * 0.6) return "bg-amber-500";
+  return "bg-red-500";
+}
+
 /** verdict → 徽章配色。 */
 export function verdictClass(verdict: Verdict | null | undefined): string {
   switch (verdict) {

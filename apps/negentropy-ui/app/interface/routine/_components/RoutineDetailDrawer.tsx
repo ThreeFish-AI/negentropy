@@ -3,17 +3,18 @@
 import { useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/Button";
-import type { RoutineDTO, RoutineStatus } from "@/features/routine";
+import type { RoutineDTO } from "@/features/routine";
 
 import { RoutineIterationTimeline } from "./RoutineIterationTimeline";
 import { RoutineScoreSparkline } from "./RoutineScoreSparkline";
+import { CONTROL_LABEL, controlsFor, type ControlAction } from "./routine-controls";
 import { routineStatusClass, scoreColorClass } from "./status-style";
-
-type ControlAction = "start" | "pause" | "resume" | "cancel";
 
 interface RoutineDetailDrawerProps {
   routine: RoutineDTO;
   onClose: () => void;
+  /** 打开全屏 Run 全过程页（深链路由）。 */
+  onOpenFull?: () => void;
   onControl: (action: ControlAction) => void;
   onEdit: (r: RoutineDTO) => void;
   onDelete: (r: RoutineDTO) => void;
@@ -31,23 +32,10 @@ function DetailField({ label, children }: { label: string; children: React.React
   );
 }
 
-/** 依状态计算可用控制动作。 */
-function controlsFor(status: RoutineStatus): ControlAction[] {
-  switch (status) {
-    case "pending":
-      return ["start"];
-    case "running":
-      return ["pause", "cancel"];
-    case "paused":
-      return ["resume", "cancel"];
-    default:
-      return [];
-  }
-}
-
 export function RoutineDetailDrawer({
   routine,
   onClose,
+  onOpenFull,
   onControl,
   onEdit,
   onDelete,
@@ -81,13 +69,6 @@ export function RoutineDetailDrawer({
   const controls = controlsFor(routine.status);
   const isTerminal = ["succeeded", "failed", "cancelled"].includes(routine.status);
 
-  const controlLabel: Record<ControlAction, string> = {
-    start: "Start",
-    pause: "Pause",
-    resume: "Resume",
-    cancel: "Cancel",
-  };
-
   return (
     <>
       <div className="fixed inset-0 z-40 bg-overlay" onClick={onClose} />
@@ -109,15 +90,25 @@ export function RoutineDetailDrawer({
             </div>
             <p className="mt-0.5 text-[10px] text-muted-foreground">{routine.key}</p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close routine details"
+          <div className="flex items-center gap-1">
+            {onOpenFull && (
+              <button
+                onClick={onOpenFull}
+                className="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline"
+              >
+                全过程 →
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="Close routine details"
             className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -209,7 +200,7 @@ export function RoutineDetailDrawer({
               disabled={busy}
               onClick={() => onControl(action)}
             >
-              {controlLabel[action]}
+              {CONTROL_LABEL[action]}
             </Button>
           ))}
           <div className="flex-1" />

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { ErrorBanner } from "@/components/ui/ErrorState";
@@ -14,7 +15,7 @@ import {
   fetchRoutineDetail,
   rejectIteration,
   updateRoutine,
-  useRoutineData,
+  useRoutineLive,
   useRoutineStream,
 } from "@/features/routine";
 import type {
@@ -24,17 +25,25 @@ import type {
   RoutineUpdatePayload,
 } from "@/features/routine";
 
+import { ClockProvider } from "./_components/ClockProvider";
 import { RoutineDetailDrawer } from "./_components/RoutineDetailDrawer";
 import { RoutineFilterBar } from "./_components/RoutineFilterBar";
+import { RoutineFleetView } from "./_components/RoutineFleetView";
 import { RoutineFormDialog } from "./_components/RoutineFormDialog";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
 import { PresetPickerDialog } from "./_components/PresetPickerDialog";
+import { RoutineViewToggle, type RoutineView } from "./_components/RoutineViewToggle";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
 
-export default function RoutinePage() {
+function RoutinePageInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const view: RoutineView = sp.get("view") === "fleet" ? "fleet" : "table";
+  const selId = sp.get("sel");
+
   const [filters, setFilters] = useState<Partial<RoutineFilters>>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<RoutineDTO | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -43,35 +52,97 @@ export default function RoutinePage() {
   const [actionBusy, setActionBusy] = useState(false);
 
   const { confirm, confirmDialog } = useConfirmDialog();
-  const { routines, kpis, loading, error, refresh } = useRoutineData(filters);
+  const {
+    routines,
+    kpis,
+    loading,
+    error,
+    refresh,
+    latestByRoutine,
+    seedLatest,
+    applyRoutineEvent,
+    applyIterationEvent,
+  } = useRoutineLive(filters);
 
-  // 刷新当前选中详情（含迭代）
+  // 时钟仅在有运行中任务时滴答（无在途零开销）。
+  const clockActive = useMemo(() => routines.some((r) => r.status === "running"), [routines]);
+
+  // 刷新当前选中详情（含迭代）。
   const refreshSelected = useCallback(async (id: string) => {
     try {
       const detail = await fetchRoutineDetail(id);
       setSelected(detail);
     } catch {
-      // ignore — drawer 可能已关闭
+      // ignore — 抽屉可能已关闭
     }
   }, []);
 
-  // SSE：路由 / 迭代事件到达时刷新列表与详情
+  // ?sel 派生选中态：URL 变化即加载/清空详情（使浏览器后退 / Esc / 遮罩点击一致关闭）。
+  useEffect(() => {
+    if (!selId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 由 URL ?sel 同步选中态（外部源）
+      setSelected(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const detail = await fetchRoutineDetail(selId);
+        if (!cancelled) setSelected(detail);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selId]);
+
+  // URL 导航助手（依赖 sp/router，仅在路由变化时重建 → 不破坏子组件 memo）。
+  const setView = useCallback(
+    (v: RoutineView) => {
+      const next = new URLSearchParams(sp.toString());
+      if (v === "fleet") next.set("view", "fleet");
+      else next.delete("view");
+      router.replace(`?${next.toString()}`, { scroll: false });
+    },
+    [router, sp],
+  );
+
+  const openDetail = useCallback(
+    (r: RoutineDTO) => {
+      setSelected(r); // 乐观即时打开（完整迭代由 ?sel effect 拉取）
+      const next = new URLSearchParams(sp.toString());
+      next.set("sel", r.id);
+      router.push(`?${next.toString()}`, { scroll: false });
+    },
+    [router, sp],
+  );
+
+  const closeDetail = useCallback(() => {
+    const next = new URLSearchParams(sp.toString());
+    next.delete("sel");
+    router.replace(`?${next.toString()}`, { scroll: false });
+  }, [router, sp]);
+
+  const openFull = useCallback(
+    (r: RoutineDTO) => {
+      router.push(`/interface/routine/${r.id}`);
+    },
+    [router],
+  );
+
+  // SSE：路由事件去抖动刷新列表；迭代事件即时驱动闭环阶段；选中详情按需刷新。
   const { connected } = useRoutineStream({
-    onRoutineEvent: () => {
-      void refresh();
-      if (selected) void refreshSelected(selected.id);
+    onRoutineEvent: (ev) => {
+      applyRoutineEvent();
+      if (selId && ev.id === selId) void refreshSelected(selId);
     },
     onIterationEvent: (ev) => {
-      if (selected && (ev.routine_id === selected.id || ev.id === selected.id)) {
-        void refreshSelected(selected.id);
-      }
+      applyIterationEvent(ev);
+      if (selId && (ev.routine_id === selId || ev.id === selId)) void refreshSelected(selId);
     },
   });
-
-  const openDetail = async (r: RoutineDTO) => {
-    setSelected(r);
-    void refreshSelected(r.id);
-  };
 
   const handleControl = async (action: "start" | "pause" | "resume" | "cancel") => {
     if (!selected) return;
@@ -143,7 +214,7 @@ export default function RoutinePage() {
     try {
       await deleteRoutine(r.id);
       toast.success("Routine deleted");
-      setSelected(null);
+      closeDetail();
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
@@ -160,7 +231,7 @@ export default function RoutinePage() {
       toast.success("Routine created");
       setFormOpen(false);
       refresh();
-      void openDetail(created);
+      openDetail(created);
     } else if (mode === "edit" && id) {
       const updated = await updateRoutine(id, body as RoutineUpdatePayload);
       toast.success("Routine updated");
@@ -174,28 +245,49 @@ export default function RoutinePage() {
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Routine" />
       <div className="flex-1 overflow-auto">
-        <div className="space-y-5 px-6 py-6">
-          <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => setPresetPickerOpen(true)} />
+        <ClockProvider active={clockActive}>
+          <div className="space-y-5 px-6 py-6">
+            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => setPresetPickerOpen(true)} />
 
-          {error && <ErrorBanner message={error} />}
+            {error && <ErrorBanner message={error} />}
 
-          <RoutineKpiStrip kpis={kpis} loading={loading} />
-          <RoutineFilterBar filters={filters} onChange={setFilters} />
-          <RoutineTable routines={routines} loading={loading} onSelect={openDetail} />
+            <RoutineKpiStrip kpis={kpis} loading={loading} />
 
-          {selected && (
-            <RoutineDetailDrawer
-              routine={selected}
-              onClose={() => setSelected(null)}
-              onControl={handleControl}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onApproveIteration={handleApprove}
-              onRejectIteration={handleReject}
-              busy={actionBusy}
-            />
-          )}
-        </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <RoutineViewToggle view={view} onChange={setView} />
+              <div className="min-w-[200px] flex-1">
+                <RoutineFilterBar filters={filters} onChange={setFilters} />
+              </div>
+            </div>
+
+            {view === "table" ? (
+              <RoutineTable routines={routines} loading={loading} onSelect={openDetail} />
+            ) : (
+              <RoutineFleetView
+                routines={routines}
+                latestByRoutine={latestByRoutine}
+                loading={loading}
+                seedLatest={seedLatest}
+                onOpenDetail={openDetail}
+                onOpenFull={openFull}
+              />
+            )}
+
+            {selected && (
+              <RoutineDetailDrawer
+                routine={selected}
+                onClose={closeDetail}
+                onOpenFull={() => openFull(selected)}
+                onControl={handleControl}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onApproveIteration={handleApprove}
+                onRejectIteration={handleReject}
+                busy={actionBusy}
+              />
+            )}
+          </div>
+        </ClockProvider>
       </div>
 
       <RoutineFormDialog open={formOpen} routine={editing} onClose={() => setFormOpen(false)} onSubmit={handleFormSubmit} />
@@ -208,5 +300,19 @@ export default function RoutinePage() {
 
       {confirmDialog}
     </div>
+  );
+}
+
+export default function RoutinePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full flex-col bg-muted">
+          <InterfaceNav title="Routine" />
+        </div>
+      }
+    >
+      <RoutinePageInner />
+    </Suspense>
   );
 }

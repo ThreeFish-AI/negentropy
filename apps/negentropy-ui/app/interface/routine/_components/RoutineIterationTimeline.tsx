@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import type { RoutineIterationDTO } from "@/features/routine";
 
+import { LiveElapsed, StaticDuration } from "./ElapsedClock";
+import { ACTIVE_TIMING } from "./routine-loop";
 import { iterationDotClass, scoreColorClass, verdictClass } from "./status-style";
 
 interface RoutineIterationTimelineProps {
@@ -45,9 +47,14 @@ function IterationCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const isPendingApproval = it.status === "pending_approval";
+  const isActive = !it.finished_at && ACTIVE_TIMING.has(it.status);
 
   return (
-    <li className="rounded-lg border border-border p-3">
+    <li
+      className={`rounded-lg border p-3 ${
+        isActive ? "border-sky-400/50 bg-sky-500/[0.03]" : "border-border"
+      }`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={`inline-block h-2 w-2 rounded-full ${iterationDotClass(it.status)}`} />
@@ -101,7 +108,16 @@ function IterationCard({
         <span>turns: {it.turn_count}</span>
         <span>cost: ${it.cost_usd.toFixed(4)}</span>
         {it.gate_exit_code != null && <span>gate exit: {it.gate_exit_code}</span>}
-        {it.started_at && <span>{new Date(it.started_at).toLocaleTimeString()}</span>}
+        {isActive ? (
+          <LiveElapsed startedAt={it.started_at} prefix="⏱ " />
+        ) : (
+          <StaticDuration startedAt={it.started_at} finishedAt={it.finished_at} prefix="⏱ " />
+        )}
+        {it.started_at && (
+          <span title={new Date(it.started_at).toLocaleString()}>
+            {new Date(it.started_at).toLocaleTimeString()}
+          </span>
+        )}
       </div>
 
       {/* 审批门控操作 */}

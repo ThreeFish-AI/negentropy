@@ -10,6 +10,7 @@ export type {
   ExecStatus,
   RoutineDTO,
   RoutineIterationDTO,
+  RoutineIterationLite,
   RoutineKpis,
   RoutineListResponse,
   IterationListResponse,
@@ -38,3 +39,5 @@ export {
 
 export { useRoutineData } from "./hooks/useRoutineData";
 export { useRoutineStream } from "./hooks/useRoutineStream";
+export { useRoutineLive, useFleetSeed, liteFromIteration } from "./hooks/useRoutineLive";
+export { useRoutineDetailLive } from "./hooks/useRoutineDetailLive";
