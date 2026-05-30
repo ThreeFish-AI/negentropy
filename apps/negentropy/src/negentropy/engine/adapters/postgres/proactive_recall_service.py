@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
@@ -35,6 +36,39 @@ from negentropy.models.internalization import Fact, Memory
 logger = get_logger("negentropy.engine.adapters.postgres.proactive_recall_service")
 
 _PRELOAD_CACHE_TTL_HOURS = 1
+
+# fire-and-forget 后台任务强引用集合：asyncio 仅持弱引用，
+# 不留强引用会导致任务在执行完成前被 GC（CPython asyncio 文档明示风险）。
+_BACKGROUND_TASKS: set[asyncio.Task] = set()
+
+
+def schedule_cache_invalidation(*, user_id: str, app_name: str) -> None:
+    """在写路径后以 fire-and-forget 方式失效主动召回缓存。
+
+    设计约束（正交收敛三个写路径的共享工具）：
+    - **事件循环安全**：仅在存在 running loop 时创建 coroutine，否则直接返回；
+      避免在同步上下文创建未被 await 的 coroutine 触发
+      ``RuntimeWarning: coroutine was never awaited``。
+    - **GC 安全**：持有 task 强引用直至完成，规避 asyncio 弱引用导致的提前回收。
+    - **非关键路径**：任何异常都被吞掉，绝不阻断主写入流程。
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # 无运行中的事件循环（同步上下文）：跳过，不创建悬空 coroutine
+        return
+
+    try:
+        from negentropy.engine.factories.memory import get_proactive_recall_service
+
+        svc = get_proactive_recall_service()
+        task = loop.create_task(svc.invalidate_cache(user_id=user_id, app_name=app_name))
+        _BACKGROUND_TASKS.add(task)
+        task.add_done_callback(_BACKGROUND_TASKS.discard)
+    except Exception:
+        pass  # 缓存失效非关键路径，不阻断主流程
+
+
 _DEFAULT_PROACTIVE_LIMIT = 10
 _DEFAULT_FACT_LIMIT = 5
 

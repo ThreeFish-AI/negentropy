@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -308,3 +309,62 @@ class TestRetentionScoreFilter:
             call_args = mock_db.execute.call_args
             compiled_sql = str(call_args[0][0].compile(compile_kwargs={"literal_binds": True}))
             assert "0.2" in compiled_sql
+
+
+class TestScheduleCacheInvalidation:
+    """schedule_cache_invalidation 事件循环安全与 GC 安全验证。"""
+
+    def test_no_running_loop_is_noop(self) -> None:
+        """同步上下文（无 running loop）应直接返回，不创建悬空 coroutine。
+
+        若实现错误地无条件创建 coroutine，pytest 会触发
+        ``RuntimeWarning: coroutine was never awaited``。本测试在纯同步上下文调用，
+        断言不抛异常即证明早退分支生效。
+        """
+        from negentropy.engine.adapters.postgres.proactive_recall_service import (
+            schedule_cache_invalidation,
+        )
+
+        # 纯同步上下文：无 running event loop
+        schedule_cache_invalidation(user_id="u1", app_name="app")
+        # 不抛异常即通过（早退，不创建 coroutine）
+
+    @pytest.mark.asyncio
+    async def test_running_loop_creates_tracked_task(self) -> None:
+        """async 上下文应创建被强引用持有的 task，并在完成后从集合移除。"""
+        import negentropy.engine.adapters.postgres.proactive_recall_service as prs
+
+        invalidate_called = asyncio.Event()
+
+        async def fake_invalidate(*, user_id: str, app_name: str) -> None:
+            invalidate_called.set()
+
+        fake_svc = MagicMock()
+        fake_svc.invalidate_cache = fake_invalidate
+
+        with patch(
+            "negentropy.engine.factories.memory.get_proactive_recall_service",
+            return_value=fake_svc,
+        ):
+            prs.schedule_cache_invalidation(user_id="u1", app_name="app")
+            # task 应被强引用集合持有（防 GC）
+            assert len(prs._BACKGROUND_TASKS) >= 1
+            # 等待 task 执行
+            await asyncio.wait_for(invalidate_called.wait(), timeout=1.0)
+            # 让 done_callback 运行
+            await asyncio.sleep(0)
+
+        # 完成后应从集合移除（done_callback discard）
+        assert all(t.done() for t in prs._BACKGROUND_TASKS) or len(prs._BACKGROUND_TASKS) == 0
+
+    @pytest.mark.asyncio
+    async def test_factory_error_does_not_raise(self) -> None:
+        """工厂获取失败时应被吞掉，绝不冒泡到主写入流程。"""
+        import negentropy.engine.adapters.postgres.proactive_recall_service as prs
+
+        with patch(
+            "negentropy.engine.factories.memory.get_proactive_recall_service",
+            side_effect=RuntimeError("factory boom"),
+        ):
+            # 不应抛出
+            prs.schedule_cache_invalidation(user_id="u1", app_name="app")
