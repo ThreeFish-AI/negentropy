@@ -122,6 +122,18 @@ export function SchedulerTaskDetailDrawer({
 
         {/* Body */}
         <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
+          {/* Description */}
+          {task.description && (
+            <section>
+              <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">
+                Description
+              </h3>
+              <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                {task.description}
+              </p>
+            </section>
+          )}
+
           {/* Status */}
           <section>
             <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">Status</h3>

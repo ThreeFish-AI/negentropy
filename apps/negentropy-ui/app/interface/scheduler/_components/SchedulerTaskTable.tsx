@@ -55,7 +55,7 @@ function StatusDots({ statuses }: { statuses: string[] }) {
 function SkeletonRow() {
   return (
     <tr className="border-b border-border last:border-b-0">
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 9 }).map((_, i) => (
         <td key={i} className="px-3 py-2">
           <Skeleton className="h-4" style={{ width: `${50 + (i * 13) % 40}%` }} />
         </td>
@@ -81,6 +81,7 @@ export function SchedulerTaskTable({
           <thead className="sticky top-0 bg-card text-muted-foreground z-10">
             <tr className="border-b border-border">
               <th className="px-3 py-2 text-left font-medium">Task</th>
+              <th className="px-3 py-2 text-left font-medium">Description</th>
               <th className="px-3 py-2 text-left font-medium">Handler</th>
               <th className="px-3 py-2 text-left font-medium">Trigger</th>
               <th className="px-3 py-2 text-left font-medium">Last</th>
@@ -95,7 +96,7 @@ export function SchedulerTaskTable({
               Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
             ) : tasks.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
                   No tasks match current filters.
                 </td>
               </tr>
@@ -111,6 +112,15 @@ export function SchedulerTaskTable({
                       {t.display_name || t.key}
                     </div>
                     <div className="text-micro text-muted-foreground">{t.key}</div>
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {t.description ? (
+                      <div className="max-w-[240px] truncate" title={t.description}>
+                        {t.description}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
                   <td className="px-3 py-2 text-muted-foreground">
