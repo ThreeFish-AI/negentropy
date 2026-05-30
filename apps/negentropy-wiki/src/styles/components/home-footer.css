@@ -8,9 +8,10 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2.5rem clamp(1rem, 3vw, 2rem) 1.5rem;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem clamp(2.5rem, 6vw, 5rem);
 }
 
 .wiki-footer-col-title {
@@ -40,22 +41,17 @@
 }
 
 .wiki-footer-bottom {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
   padding-top: 1.5rem;
   border-top: 1px solid var(--wiki-footer-border);
   font-size: 0.82em;
   color: var(--wiki-footer-text-secondary);
+  text-align: center;
 }
 
-/* Responsive */
+/* Responsive — flex 的 wrap + 居中已天然处理窄屏换行与居中堆叠，仅需收紧间距 */
 @media (max-width: 768px) {
   .wiki-footer-inner {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-  }
-}
-@media (max-width: 480px) {
-  .wiki-footer-inner {
-    grid-template-columns: 1fr;
+    gap: 1.5rem clamp(1.5rem, 5vw, 3rem);
   }
 }
