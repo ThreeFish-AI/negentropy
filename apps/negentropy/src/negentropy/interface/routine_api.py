@@ -3,6 +3,8 @@
 端点清单：
 - GET    /routines                          路由清单（status/owner/q 筛选 + 游标分页）
 - GET    /routines/kpis                      KPI 卡片数据
+- GET    /routines/presets                   内置 Demo 预设列表
+- POST   /routines/from-preset               从预设创建路由
 - GET    /routines/{id}                      单路由详情 + 最近迭代
 - GET    /routines/{id}/iterations           迭代历史（分页）
 - POST   /routines                           创建路由（status=pending）
@@ -134,6 +136,12 @@ class ControlBody(BaseModel):
     reason: str | None = None
 
 
+class RoutineFromPresetRequest(BaseModel):
+    preset_id: str = Field(..., min_length=1)
+    key: str = Field(..., min_length=1, max_length=192)
+    cwd: str = Field(..., min_length=1)
+
+
 # ---------------------------------------------------------------------------
 # 序列化
 # ---------------------------------------------------------------------------
@@ -231,6 +239,63 @@ async def get_kpis() -> dict[str, Any]:
     }
     _KPI_CACHE.set("kpis", result)
     return result
+
+
+# ---------------------------------------------------------------------------
+# GET /routines/presets
+# POST /routines/from-preset
+# 声明在 /{routine_id} 之前，确保字面路径优先于路径参数匹配。
+# ---------------------------------------------------------------------------
+
+
+@router.get("/presets")
+async def list_routine_presets() -> list[dict[str, Any]]:
+    """内置 Demo 预设列表。"""
+    from negentropy.agents.routine_presets import load_all
+
+    presets = load_all()
+    return [
+        {
+            "preset_id": p.preset_id,
+            "display_name": p.display_name,
+            "description": p.description,
+            "category": p.category,
+            "version": p.version,
+            "features_showcase": p.features_showcase,
+            "approval_mode": p.approval_mode,
+            "has_verification_command": p.verification_command is not None,
+        }
+        for p in presets
+    ]
+
+
+@router.post("/from-preset", status_code=201)
+async def create_routine_from_preset(body: RoutineFromPresetRequest) -> dict[str, Any]:
+    """从内置预设创建 Routine。用户提供 key + cwd，其余字段由预设填充。"""
+    from negentropy.agents.routine_presets import load_all
+
+    presets = {p.preset_id: p for p in load_all()}
+    preset = presets.get(body.preset_id)
+    if preset is None:
+        raise HTTPException(status_code=404, detail=f"Preset '{body.preset_id}' not found")
+
+    create_req = RoutineCreateRequest(
+        key=body.key,
+        title=preset.title,
+        goal=preset.goal,
+        acceptance_criteria=preset.acceptance_criteria,
+        cwd=body.cwd,
+        verification_command=preset.verification_command,
+        max_iterations=preset.max_iterations,
+        max_cost_usd=preset.max_cost_usd,
+        success_score_threshold=preset.success_score_threshold,
+        no_progress_patience=preset.no_progress_patience,
+        approval_mode=preset.approval_mode,
+        config=preset.config or {},
+        display_name=preset.display_name,
+        description=preset.description,
+    )
+    return await create_routine(create_req)
 
 
 # ---------------------------------------------------------------------------

@@ -139,3 +139,22 @@ export interface RoutineStreamEvent {
   status?: string;
   [key: string]: unknown;
 }
+
+/** GET /routines/presets 返回的预设摘要 */
+export interface RoutinePresetSummary {
+  preset_id: string;
+  display_name: string;
+  description: string;
+  category: string;
+  version: string;
+  features_showcase: string[];
+  approval_mode: ApprovalMode;
+  has_verification_command: boolean;
+}
+
+/** POST /routines/from-preset 请求体 */
+export interface RoutineFromPresetPayload {
+  preset_id: string;
+  key: string;
+  cwd: string;
+}

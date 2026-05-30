@@ -7,9 +7,10 @@ interface RoutineHeaderProps {
   onRefresh: () => void;
   loading: boolean;
   onCreate: () => void;
+  onFromPreset?: () => void;
 }
 
-export function RoutineHeader({ connected, onRefresh, loading, onCreate }: RoutineHeaderProps) {
+export function RoutineHeader({ connected, onRefresh, loading, onCreate, onFromPreset }: RoutineHeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -20,6 +21,16 @@ export function RoutineHeader({ connected, onRefresh, loading, onCreate }: Routi
       </div>
 
       <div className="flex items-center gap-3">
+        {onFromPreset && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onFromPreset}
+          >
+            Demo 预设...
+          </Button>
+        )}
+
         <Button
           variant="neutral"
           size="sm"
