@@ -261,6 +261,7 @@ describe("fetchCorpus", () => {
         }),
         createEmptyExtractorDraftTarget(1),
       ],
+      file_md: [createEmptyExtractorDraftTarget(0), createEmptyExtractorDraftTarget(1)],
     });
 
     expect(routes).toEqual({
@@ -284,6 +285,7 @@ describe("fetchCorpus", () => {
           }),
         ],
       },
+      file_md: { targets: [] },
     });
   });
 
@@ -317,6 +319,7 @@ describe("fetchCorpus", () => {
         knowledgeApiExtractorRouteFixtures.dualPdfPrimaryTarget,
         knowledgeApiExtractorRouteFixtures.dualPdfBackupTarget,
       ],
+      file_md: [createEmptyExtractorDraftTarget(0), createEmptyExtractorDraftTarget(1)],
     });
 
     expect(routes).toEqual({
@@ -352,6 +355,7 @@ describe("fetchCorpus", () => {
           }),
         ],
       },
+      file_md: { targets: [] },
     });
   });
 });

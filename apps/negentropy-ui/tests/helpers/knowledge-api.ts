@@ -92,6 +92,7 @@ export function createKnowledgeApiExtractorRoutes(
     extractor_routes: {
       url: { targets: urlTargets },
       file_pdf: { targets: filePdfTargets },
+      file_md: { targets: [] },
     },
   };
 }
