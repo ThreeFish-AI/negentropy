@@ -1,0 +1,47 @@
+# ────────────────────────────────────────────────────────────
+# Routine Preset — 项目架构清减（Preening Substrate）
+#
+# 审批模式: first（首轮需人工审批 plan）
+# 命令门控: ruff check（客观锚点）
+# 重点展示: 正交分解 + 语义规范化 + 代码清减的 Evaluator-Optimizer 自主迭代，
+#           首轮 plan 审批确保方向正确，后续迭代全自动推进
+# ────────────────────────────────────────────────────────────
+
+preset_id: preening_substrate
+display_name: "项目架构清减"
+description: >
+  对目标项目执行正交分解与工程熵减：调用 /preening-substrate 技能，
+  按功能维度正交分解目标模块、精简冗余代码、规范化命名。
+  首轮需要人工审批 plan，后续由 LLM-as-Judge + Command Gate 驱动自动迭代。
+category: architecture
+version: 1.0.0
+features_showcase:
+  - "审批模式: first — 首轮 plan 需人工确认方向"
+  - "Command Gate — ruff check 作为客观验证锚点"
+  - "Reflexion — 跨迭代反思记忆驱动自改进"
+  - "LLM-as-Judge — 结构化评分 + verdict 判定"
+
+title: "Preening Substrate"
+goal: >
+  对目标项目执行 /preening-substrate 命令，进行全面的正交分解与工程熵减。
+  请使用 Skill 工具调用 preening-substrate 技能，对项目各代码模块执行：
+  1. 正交分解 — 按功能维度对对象、模型、函数、文件进行解耦，确保单一职责与清晰边界；
+  2. 代码清减 — 精简冗余逻辑、死代码和过度抽象，量化汇报变更前后行数差异；
+  3. 语义规范化 — 审视所有命名使其精确反映实际功能与业务语义。
+
+  约束：不得破坏现有功能特性，不得引入新缺陷。
+acceptance_criteria: >
+  1. 所有变更通过现有测试套件（uv run pytest，无回归）；
+  2. 变更前后代码行数减少 ≥5%，且无功能性回归；
+  3. 至少 3 个模块完成正交分解（职责单一、边界清晰）；
+  4. 所有公共 API 签名和核心运行时行为不变；
+  5. Ruff lint 零新增违规（uv run ruff check）。
+verification_command: "uv run ruff check"
+max_iterations: 20
+max_cost_usd: 15.0
+success_score_threshold: 85
+no_progress_patience: 3
+approval_mode: first
+config:
+  permission_mode: plan
+  max_turns: 30
