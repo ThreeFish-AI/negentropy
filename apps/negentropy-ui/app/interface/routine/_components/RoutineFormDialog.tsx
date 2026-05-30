@@ -175,9 +175,14 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
 
   if (!open) return null;
 
+  /* ── 样式常量 ── */
+  // 通用 input 基础样式；水平布局时叠加 min-w-0 flex-1 覆盖 w-full
   const inputCls =
     "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
-  const labelCls = "mb-1 block text-xs font-medium text-text-secondary";
+  // 水平 Label（shrink-0 不收缩，whitespace-nowrap 不换行）
+  const labelCls = "shrink-0 whitespace-nowrap text-xs font-medium text-text-secondary";
+  // 垂直 Label（用于 textarea 上方的 label）
+  const vLabelCls = "mb-1 block text-xs font-medium text-text-secondary";
 
   return (
     <OverlayDismissLayer
@@ -199,44 +204,48 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {error && <ErrorBanner message={error} />}
 
-          {/* Key + Title (双列) + Description */}
+          {/* ── Key + Title (双列水平) + Description (垂直) ── */}
           <section>
             <div className="grid grid-cols-2 gap-3">
               {isEdit ? (
-                <div>
+                <div className="flex items-center gap-2">
                   <label className={labelCls}>Key</label>
-                  <input type="text" value={form.key} disabled className={inputCls} />
+                  <input type="text" value={form.key} disabled className={cn(inputCls, "min-w-0 flex-1")} />
                 </div>
               ) : (
                 <div>
-                  <label className={labelCls}>
-                    Key <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.key}
-                    onChange={(e) => update("key", e.target.value)}
-                    placeholder="unique_routine_key"
-                    className={cn(inputCls, fieldErrors.key && "border-red-400")}
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className={labelCls}>
+                      Key <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.key}
+                      onChange={(e) => update("key", e.target.value)}
+                      placeholder="unique_routine_key"
+                      className={cn(inputCls, "min-w-0 flex-1", fieldErrors.key && "border-red-400")}
+                    />
+                  </div>
                   {fieldErrors.key && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.key}</p>}
                 </div>
               )}
               <div>
-                <label className={labelCls}>
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => update("title", e.target.value)}
-                  className={cn(inputCls, fieldErrors.title && "border-red-400")}
-                />
+                <div className="flex items-center gap-2">
+                  <label className={labelCls}>
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.title}
+                    onChange={(e) => update("title", e.target.value)}
+                    className={cn(inputCls, "min-w-0 flex-1", fieldErrors.title && "border-red-400")}
+                  />
+                </div>
                 {fieldErrors.title && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.title}</p>}
               </div>
             </div>
             <div className="mt-3">
-              <label className={labelCls}>Description</label>
+              <label className={vLabelCls}>Description</label>
               <textarea
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
@@ -246,10 +255,10 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
             </div>
           </section>
 
-          {/* Goal & Criteria */}
+          {/* ── Goal & Criteria (textarea → 垂直布局) ── */}
           <section className="space-y-3">
             <div>
-              <label className={labelCls}>
+              <label className={vLabelCls}>
                 Goal <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -262,7 +271,7 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
               {fieldErrors.goal && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.goal}</p>}
             </div>
             <div>
-              <label className={labelCls}>
+              <label className={vLabelCls}>
                 Acceptance Criteria <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -278,68 +287,70 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
             </div>
           </section>
 
-          {/* Budgets & Approval (子卡片) */}
+          {/* ── Budgets & Approval (子卡片，2 列水平) ── */}
           <section className="rounded-card border border-border bg-muted/30 p-4">
-            <div className="grid grid-cols-4 gap-3">
-              <div>
-                <label className={labelCls}>Max Iter.</label>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <div className="flex items-center gap-2">
+                <label className={labelCls}>Max Iterations</label>
                 <input
                   type="number"
                   min={1}
                   value={form.max_iterations}
                   onChange={(e) => update("max_iterations", e.target.value)}
-                  className={inputCls}
+                  className={cn(inputCls, "min-w-0 flex-1")}
                 />
               </div>
-              <div>
-                <label className={labelCls}>Max Cost</label>
+              <div className="flex items-center gap-2">
+                <label className={labelCls}>Max Cost (USD)</label>
                 <input
                   type="number"
                   min={0}
                   step="0.5"
                   value={form.max_cost_usd}
                   onChange={(e) => update("max_cost_usd", e.target.value)}
-                  className={inputCls}
+                  className={cn(inputCls, "min-w-0 flex-1")}
                 />
               </div>
-              <div>
-                <label className={labelCls}>Threshold</label>
+              <div className="flex items-center gap-2">
+                <label className={labelCls}>Score Threshold</label>
                 <input
                   type="number"
                   min={0}
                   max={100}
                   value={form.success_score_threshold}
                   onChange={(e) => update("success_score_threshold", e.target.value)}
-                  className={inputCls}
+                  className={cn(inputCls, "min-w-0 flex-1")}
                 />
               </div>
-              <div>
-                <label className={labelCls}>Patience</label>
+              <div className="flex items-center gap-2">
+                <label className={labelCls}>No-Progress Limit</label>
                 <input
                   type="number"
                   min={1}
                   value={form.no_progress_patience}
                   onChange={(e) => update("no_progress_patience", e.target.value)}
-                  className={inputCls}
+                  className={cn(inputCls, "min-w-0 flex-1")}
                 />
               </div>
             </div>
-            <div className="mt-3">
-              <label className={labelCls}>Approval Mode</label>
-              <select
-                value={form.approval_mode}
-                onChange={(e) => update("approval_mode", e.target.value as ApprovalMode)}
-                className={inputCls}
-              >
-                <option value="auto">Auto (fully autonomous)</option>
-                <option value="first">First iteration approval</option>
-                <option value="every">Every iteration approval</option>
-              </select>
-              <p className="mt-1 text-caption text-text-muted">{APPROVAL_HELP[form.approval_mode]}</p>
+            <div className="mt-3 flex items-start gap-2">
+              <label className={cn(labelCls, "pt-2")}>Approval Mode</label>
+              <div className="min-w-0 flex-1">
+                <select
+                  value={form.approval_mode}
+                  onChange={(e) => update("approval_mode", e.target.value as ApprovalMode)}
+                  className={inputCls}
+                >
+                  <option value="auto">Auto (fully autonomous)</option>
+                  <option value="first">First iteration approval</option>
+                  <option value="every">Every iteration approval</option>
+                </select>
+                <p className="mt-1 text-caption text-text-muted">{APPROVAL_HELP[form.approval_mode]}</p>
+              </div>
             </div>
           </section>
 
-          {/* Advanced Settings (折叠) */}
+          {/* ── Advanced Settings (折叠，全部水平) ── */}
           <section>
             <button
               type="button"
@@ -358,35 +369,35 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
             </button>
 
             {showAdvanced && (
-              <div className="mt-3 space-y-3 rounded-card border border-border bg-muted/30 p-4">
-                <div>
+              <div className="mt-3 space-y-2 rounded-card border border-border bg-muted/30 p-4">
+                <div className="flex items-center gap-2">
                   <label className={labelCls}>Working Directory</label>
                   <input
                     type="text"
                     value={form.cwd}
                     onChange={(e) => update("cwd", e.target.value)}
                     placeholder="/path/to/project"
-                    className={inputCls}
+                    className={cn(inputCls, "min-w-0 flex-1")}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelCls}>Max Turns / Iteration</label>
+                  <div className="flex items-center gap-2">
+                    <label className={labelCls}>Max Turns / Iter.</label>
                     <input
                       type="number"
                       min={1}
                       value={form.max_turns}
                       onChange={(e) => update("max_turns", e.target.value)}
                       placeholder="default"
-                      className={inputCls}
+                      className={cn(inputCls, "min-w-0 flex-1")}
                     />
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2">
                     <label className={labelCls}>Permission Mode</label>
                     <select
                       value={form.permission_mode}
                       onChange={(e) => update("permission_mode", e.target.value)}
-                      className={inputCls}
+                      className={cn(inputCls, "min-w-0 flex-1")}
                     >
                       <option value="">default</option>
                       <option value="auto">auto</option>
@@ -395,35 +406,37 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className={labelCls}>Allowed Tools (comma-separated)</label>
+                <div className="flex items-center gap-2">
+                  <label className={labelCls}>Allowed Tools</label>
                   <input
                     type="text"
                     value={form.allowed_tools}
                     onChange={(e) => update("allowed_tools", e.target.value)}
                     placeholder="Bash, Read, Write, Edit, Glob, Grep"
-                    className={inputCls}
+                    className={cn(inputCls, "min-w-0 flex-1")}
                   />
                 </div>
-                <div>
-                  <label className={labelCls}>Model (optional)</label>
+                <div className="flex items-center gap-2">
+                  <label className={labelCls}>Model</label>
                   <input
                     type="text"
                     value={form.model}
                     onChange={(e) => update("model", e.target.value)}
                     placeholder="inherit global config"
-                    className={inputCls}
+                    className={cn(inputCls, "min-w-0 flex-1")}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Verification Command (optional gate)</label>
-                  <input
-                    type="text"
-                    value={form.verification_command}
-                    onChange={(e) => update("verification_command", e.target.value)}
-                    placeholder="e.g. uv run pytest -q"
-                    className={inputCls}
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className={labelCls}>Verification Command</label>
+                    <input
+                      type="text"
+                      value={form.verification_command}
+                      onChange={(e) => update("verification_command", e.target.value)}
+                      placeholder="e.g. uv run pytest -q"
+                      className={cn(inputCls, "min-w-0 flex-1")}
+                    />
+                  </div>
                   <p className="mt-1 text-caption text-text-muted">
                     测试驱动门控：退出码非 0 时评分封顶，作为客观锚点缓解 LLM 评审偏差
                   </p>
