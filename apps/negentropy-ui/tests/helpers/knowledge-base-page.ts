@@ -184,6 +184,7 @@ export function createKnowledgeBaseExtractorRoutes(
       targets: urlTargets,
     },
     file_pdf: { targets: [] },
+    file_md: { targets: [] },
   };
 }
 

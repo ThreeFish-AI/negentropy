@@ -28,11 +28,12 @@ from .content import (
 
 logger = get_logger("negentropy.knowledge.extraction")
 
-SourceKind = Literal["url", "file_pdf", "file_generic"]
+SourceKind = Literal["url", "file_pdf", "file_md", "file_generic"]
 
 EXTRACTOR_ROUTES_KEY = "extractor_routes"
 ROUTE_URL = "url"
 ROUTE_FILE_PDF = "file_pdf"
+ROUTE_FILE_MD = "file_md"
 ROUTE_FILE_GENERIC = "file_generic"
 MAX_LLM_PLANNING_PAYLOAD_CHARS = 16_000
 MAX_LLM_VALIDATION_ERROR_CHARS = 1_500
@@ -166,6 +167,9 @@ class ExtractorExecutionError(ValueError):
         self.attempts = attempts
 
 
+_MD_EXTENSIONS = {".md", ".markdown", ".txt"}
+
+
 def resolve_source_kind(
     *,
     source_uri: str | None = None,
@@ -179,6 +183,15 @@ def resolve_source_kind(
     lower_content_type = (content_type or "").lower()
     if lower_filename.endswith(".pdf") or "application/pdf" in lower_content_type:
         return ROUTE_FILE_PDF
+
+    # Markdown 文件：按扩展名或 MIME type 检测，优先于 file_generic 回退
+    ext = ""
+    if lower_filename:
+        dot = lower_filename.rfind(".")
+        if dot >= 0:
+            ext = lower_filename[dot:]
+    if ext in _MD_EXTENSIONS or lower_content_type in {"text/markdown", "text/plain"}:
+        return ROUTE_FILE_MD
 
     return ROUTE_FILE_GENERIC
 
@@ -255,6 +268,7 @@ def resolve_targets(raw: dict[str, Any] | None, source_kind: SourceKind) -> list
 _DEFAULT_EXTRACTION_TIMEOUT_MS: dict[str, int] = {
     ROUTE_URL: 60_000,  # 1 分钟
     ROUTE_FILE_PDF: 300_000,  # 5 分钟
+    ROUTE_FILE_MD: 30_000,  # 30 秒（本地读取，无需 MCP）
     ROUTE_FILE_GENERIC: 120_000,  # 2 分钟
 }
 _FALLBACK_EXTRACTION_TIMEOUT_MS = 120_000
