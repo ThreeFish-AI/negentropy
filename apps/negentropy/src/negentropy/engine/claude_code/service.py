@@ -240,8 +240,8 @@ class ClaudeCodeService:
             args += ["--model", config.model]
         if config.system_prompt:
             args += ["--system-prompt", config.system_prompt]
-        if config.cwd:
-            args += ["--cwd", config.cwd]
+        # NOTE: cwd 通过 create_subprocess_exec(..., cwd=) 设置，不传 CLI 参数
+        # （claude CLI 不支持 --cwd 选项，传了会报 unknown option 错误）
         if config.allowed_tools:
             args += ["--allowed-tools", ",".join(config.allowed_tools)]
         return args
