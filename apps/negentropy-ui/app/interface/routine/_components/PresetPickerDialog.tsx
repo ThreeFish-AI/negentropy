@@ -214,7 +214,7 @@ export function PresetPickerDialog({ open, onClose, onCreated }: PresetPickerDia
                         value={key}
                         onChange={(e) => setKey(e.target.value)}
                         placeholder="unique_routine_key"
-                        className={inputCls}
+                        className={`${inputCls} ${fieldError && !key.trim() ? "border-red-400" : ""}`}
                       />
                     </div>
                     <div>
@@ -228,7 +228,7 @@ export function PresetPickerDialog({ open, onClose, onCreated }: PresetPickerDia
                         placeholder="/path/to/project"
                         className={`${inputCls} ${fieldError && !cwd.trim() ? "border-red-400" : ""}`}
                       />
-                      {fieldError && !cwd.trim() && (
+                      {fieldError && (
                         <p className="mt-0.5 text-[10px] text-red-500">{fieldError}</p>
                       )}
                       <p className="mt-0.5 text-[10px] text-text-muted">

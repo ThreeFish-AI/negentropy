@@ -28,7 +28,7 @@ _logger = get_logger("negentropy.agents.routine_presets")
 
 _PRESETS_DIR = Path(__file__).parent
 
-_REQUIRED_FIELDS = ("preset_id", "display_name", "description", "category", "version")
+_REQUIRED_FIELDS = ("preset_id", "display_name", "description", "category", "version", "goal", "acceptance_criteria")
 
 _VALID_APPROVAL_MODES: frozenset[str] = frozenset({"auto", "first", "every"})
 
