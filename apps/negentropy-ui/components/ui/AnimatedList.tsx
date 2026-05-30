@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 /**
@@ -40,21 +40,23 @@ export function AnimatedList({
           },
         }}
       >
-        {children.map((child, i) => (
-          <motion.div
-            key={i}
-            variants={{
-              hidden: { opacity: 0, y: 6 },
-              visible: {
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-              },
-            }}
-          >
-            {child}
-          </motion.div>
-        ))}
+        {Children.map(children, (child) =>
+          child == null ? null : (
+            <motion.div
+              key={child.key}
+              variants={{
+                hidden: { opacity: 0, y: 6 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+                },
+              }}
+            >
+              {child}
+            </motion.div>
+          ),
+        )}
       </motion.div>
     </AnimatePresence>
   );
