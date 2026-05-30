@@ -11,9 +11,9 @@
 packages:
   - apps/*
   - packages/*
-  # E2E Travel Agent Demo 前端（Next.js + CopilotKit）
-  # 纳入工作区以继承根 overrides 安全补丁，避免脱离 monorepo 包管理统一约束
-  - apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui
+  # E2E Travel Agent Demo 前端已从 workspace 解耦（独立 pnpm install），
+  # 以消除 @copilotkit/runtime → @ai-sdk/provider-utils@3.0.25 受 CVE-2026-8769 影响的传递依赖链。
+  # 如需运行示例：cd apps/cognizes/src/cognizes/examples/e2e_travel_agent/frontend/travel-agent-ui && pnpm install && pnpm dev
 
 # 允许执行原生构建脚本（继承自 ui / wiki 旧 workspace 配置）
 allowBuilds:
