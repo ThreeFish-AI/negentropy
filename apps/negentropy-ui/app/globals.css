@@ -139,10 +139,11 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* 入场动画（animate-enter / animate-fade-in / animate-slide-in-right） */
+  /* 入场动画（animate-enter / animate-fade-in / animate-slide-in-right / animate-shimmer） */
   --animate-enter: enter var(--duration-base) var(--ease-out) both;
   --animate-fade-in: fade-in var(--duration-base) var(--ease-out) both;
   --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-out) both;
+  --animate-shimmer: shimmer 1.5s ease-in-out infinite;
 
   --font-sans: var(--font-geist-sans), "PingFang SC", "Noto Sans SC", "Microsoft YaHei",
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -295,6 +296,59 @@ body {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/*
+ * 骨架扫光（Shimmer）— Linear/Vercel 级加载占位
+ * 一条半透明高亮带从左到右滑过骨架表面，比 pulse 更精致。
+ * 已被 prefers-reduced-motion 规则统一降级。
+ */
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/*
+ * 主按钮光泽扫过（参考 ReactBits ShinyButton）。
+ * 仅在 hover 时触发一次 ::before 伪元素扫光，运行一次即消失。
+ * 已被 prefers-reduced-motion 规则统一降级。
+ */
+@keyframes btn-shine {
+  from {
+    left: -100%;
+  }
+  to {
+    left: 200%;
+  }
+}
+
+.shiny-btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.shiny-btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.shiny-btn-primary:hover::before {
+  animation: btn-shine 0.5s ease-out forwards;
 }
 
 .mermaid-diagram svg {

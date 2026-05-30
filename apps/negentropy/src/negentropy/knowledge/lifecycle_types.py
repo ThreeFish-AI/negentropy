@@ -23,6 +23,7 @@ class SourceKind(Enum):
 
     URL = "url"
     FILE_PDF = "file_pdf"
+    FILE_MD = "file_md"
     FILE_GENERIC = "file_generic"
     TEXT_INPUT = "text_input"
 

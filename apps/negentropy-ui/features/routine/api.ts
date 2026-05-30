@@ -9,9 +9,11 @@ import type {
   RoutineCreatePayload,
   RoutineDTO,
   RoutineFilters,
+  RoutineFromPresetPayload,
   RoutineKpis,
   RoutineListResponse,
   RoutineIterationDTO,
+  RoutinePresetSummary,
   RoutineUpdatePayload,
 } from "./types";
 
@@ -115,4 +117,18 @@ export async function rejectIteration(
     `/${encodeURIComponent(routineId)}/iterations/${encodeURIComponent(iterationId)}/reject`,
     { method: "POST" },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Presets
+// ---------------------------------------------------------------------------
+
+export async function fetchPresets(): Promise<RoutinePresetSummary[]> {
+  return jsonFetch("/presets");
+}
+
+export async function createRoutineFromPreset(
+  body: RoutineFromPresetPayload,
+): Promise<RoutineDTO> {
+  return jsonFetch("/from-preset", { method: "POST", body: JSON.stringify(body) });
 }

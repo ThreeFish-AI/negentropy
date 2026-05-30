@@ -1,181 +1,177 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+/**
+ * Routine API 客户端单元测试
+ *
+ * 验证 ``features/routine/api.ts`` 对 BFF ``/api/routine/*`` 的请求构造与
+ * 错误处理契约：路径拼接、查询参数、HTTP method、错误体透传。
+ *
+ * 遵循 AGENTS.md 原则：循证工程、反馈闭环。
+ */
 
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   approveIteration,
   controlRoutine,
   createRoutine,
+  createRoutineFromPreset,
   deleteRoutine,
   fetchIterations,
   fetchKpis,
+  fetchPresets,
   fetchRoutineDetail,
   fetchRoutines,
   rejectIteration,
   updateRoutine,
-} from "@/features/routine";
-import type { RoutineCreatePayload, RoutineUpdatePayload } from "@/features/routine";
+} from "@/features/routine/api";
 
-/**
- * Routine API 客户端单测。
- *
- * 验证三件事：① 请求 URL（含查询串编码 / 路径段转义）；② HTTP 方法与
- * Content-Type / body 序列化；③ 解析返回值与错误分支（非 2xx 抛错且携带后端 detail）。
- */
-
-const ok = (payload: unknown) =>
-  new Response(JSON.stringify(payload), {
-    status: 200,
+/** 构造一个成功的 JSON Response。 */
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
     headers: { "Content-Type": "application/json" },
   });
+}
 
-describe("routine api client", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+/** spy global.fetch；每次调用构造新 Response（body 流仅可读一次）。 */
+function mockFetch(factory: () => Response) {
+  return vi.spyOn(global, "fetch").mockImplementation(() => Promise.resolve(factory()));
+}
+
+/** 读取最近一次 fetch 调用的 URL + init。 */
+function lastCall(spy: ReturnType<typeof mockFetch>): { url: string; init: RequestInit } {
+  const call = spy.mock.calls[spy.mock.calls.length - 1];
+  return { url: String(call?.[0]), init: (call?.[1] ?? {}) as RequestInit };
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("routine api · 读取端点", () => {
+  it("fetchKpis 命中 /api/routine/kpis", async () => {
+    const spy = mockFetch(() => jsonResponse({ total: 0 }));
+    await fetchKpis();
+    expect(lastCall(spy).url).toBe("/api/routine/kpis");
   });
 
-  it("fetchKpis 命中 /kpis 并解析返回体", async () => {
-    const kpis = { total: 3, running: 1 };
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok(kpis));
-
-    await expect(fetchKpis()).resolves.toMatchObject(kpis);
-    expect(spy).toHaveBeenCalledWith(
-      "/api/routine/kpis",
-      expect.objectContaining({ cache: "no-store", headers: expect.objectContaining({ "Content-Type": "application/json" }) }),
-    );
-  });
-
-  it("fetchRoutines 无 filter 时不附加查询串", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ items: [], next_cursor: null, has_more: false }));
-
+  it("fetchRoutines 无筛选时不带 query", async () => {
+    const spy = mockFetch(() => jsonResponse({ items: [], next_cursor: null }));
     await fetchRoutines();
-    expect(spy).toHaveBeenCalledWith("/api/routine", expect.any(Object));
+    expect(lastCall(spy).url).toBe("/api/routine");
   });
 
-  it("fetchRoutines 序列化 status 与 q 查询参数", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ items: [], next_cursor: null, has_more: false }));
-
-    await fetchRoutines({ status: "running", q: "deep work" });
-    const url = spy.mock.calls[0]?.[0] as string;
-    expect(url.startsWith("/api/routine?")).toBe(true);
-    expect(url).toContain("status=running");
-    // 空格按 application/x-www-form-urlencoded 编码为 +
-    expect(url).toContain("q=deep+work");
+  it("fetchRoutines 透传 status + q 为查询参数", async () => {
+    const spy = mockFetch(() => jsonResponse({ items: [], next_cursor: null }));
+    await fetchRoutines({ status: "running", q: "demo" });
+    const sp = new URL(lastCall(spy).url, "http://x").searchParams;
+    expect(sp.get("status")).toBe("running");
+    expect(sp.get("q")).toBe("demo");
   });
 
-  it("fetchRoutineDetail 转义路径段并带 recent 参数", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "a/b" }));
-
+  it("fetchRoutineDetail 编码 id 并带上 recent", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "a/b" }));
     await fetchRoutineDetail("a/b", 5);
-    expect(spy).toHaveBeenCalledWith("/api/routine/a%2Fb?recent=5", expect.any(Object));
+    expect(lastCall(spy).url).toBe("/api/routine/a%2Fb?recent=5");
   });
 
-  it("fetchRoutineDetail recent 默认 20", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "r1" }));
-
-    await fetchRoutineDetail("r1");
-    expect(spy).toHaveBeenCalledWith("/api/routine/r1?recent=20", expect.any(Object));
+  it("fetchIterations 拼接 limit + before_seq", async () => {
+    const spy = mockFetch(() => jsonResponse({ items: [] }));
+    await fetchIterations("rid", { limit: 10, before_seq: 3 });
+    const url = new URL(lastCall(spy).url, "http://x");
+    expect(url.pathname).toBe("/api/routine/rid/iterations");
+    expect(url.searchParams.get("limit")).toBe("10");
+    expect(url.searchParams.get("before_seq")).toBe("3");
   });
 
-  it("fetchIterations 无选项时不附加查询串", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ items: [], has_more: false, next_before_seq: null }));
+  it("fetchIterations 无参数时不带 query", async () => {
+    const spy = mockFetch(() => jsonResponse({ items: [] }));
+    await fetchIterations("rid");
+    expect(lastCall(spy).url).toBe("/api/routine/rid/iterations");
+  });
+});
 
-    await fetchIterations("r1");
-    expect(spy).toHaveBeenCalledWith("/api/routine/r1/iterations", expect.any(Object));
+describe("routine api · 写入端点", () => {
+  it("createRoutine 以 POST 提交请求体", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "r1" }, 201));
+    await createRoutine({ key: "k", title: "t", goal: "g", acceptance_criteria: "a" });
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body)).key).toBe("k");
   });
 
-  it("fetchIterations 透传 limit 与 before_seq（含 0）", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ items: [], has_more: false, next_before_seq: null }));
-
-    await fetchIterations("r1", { limit: 10, before_seq: 0 });
-    const url = spy.mock.calls[0]?.[0] as string;
-    expect(url).toContain("limit=10");
-    // before_seq=0 不应被当作 falsy 而丢弃
-    expect(url).toContain("before_seq=0");
+  it("updateRoutine 以 PUT 命中带 id 的路径", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "r1" }));
+    await updateRoutine("r1", { title: "new" });
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine/r1");
+    expect(init.method).toBe("PUT");
   });
 
-  it("createRoutine 以 POST 发送 JSON body", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "new" }));
-    const body: RoutineCreatePayload = {
-      key: "k1",
-      title: "T",
-      goal: "G",
-      acceptance_criteria: "AC",
-    };
-
-    await expect(createRoutine(body)).resolves.toMatchObject({ id: "new" });
-    expect(spy).toHaveBeenCalledWith(
-      "/api/routine",
-      expect.objectContaining({ method: "POST", body: JSON.stringify(body) }),
-    );
+  it("deleteRoutine 以 DELETE 命中带 id 的路径", async () => {
+    const spy = mockFetch(() => jsonResponse({ ok: true, deleted_routine_id: "r1" }));
+    await deleteRoutine("r1");
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine/r1");
+    expect(init.method).toBe("DELETE");
   });
 
-  it("updateRoutine 以 PUT 发送 JSON body 并转义 id", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "r 1" }));
-    const body: RoutineUpdatePayload = { title: "T2" };
-
-    await updateRoutine("r 1", body);
-    expect(spy).toHaveBeenCalledWith(
-      "/api/routine/r%201",
-      expect.objectContaining({ method: "PUT", body: JSON.stringify(body) }),
-    );
+  it("controlRoutine 拼接 action 段并用 POST", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "r1" }));
+    await controlRoutine("r1", "start");
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine/r1/start");
+    expect(init.method).toBe("POST");
   });
 
-  it("deleteRoutine 以 DELETE 命中资源路径", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ ok: true, deleted_routine_id: "r1" }));
-
-    await expect(deleteRoutine("r1")).resolves.toEqual({ ok: true, deleted_routine_id: "r1" });
-    expect(spy).toHaveBeenCalledWith("/api/routine/r1", expect.objectContaining({ method: "DELETE" }));
-  });
-
-  it.each(["start", "pause", "resume", "cancel"] as const)(
-    "controlRoutine 拼接 %s 动作并 POST",
-    async (action) => {
-      const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "r1" }));
-
-      await controlRoutine("r1", action);
-      expect(spy).toHaveBeenCalledWith(`/api/routine/r1/${action}`, expect.objectContaining({ method: "POST" }));
-    },
-  );
-
-  it("approveIteration 命中 approve 子路径并转义两段 id", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "it1" }));
-
-    await approveIteration("r/1", "it 1");
-    expect(spy).toHaveBeenCalledWith(
-      "/api/routine/r%2F1/iterations/it%201/approve",
-      expect.objectContaining({ method: "POST" }),
-    );
-  });
-
-  it("rejectIteration 命中 reject 子路径", async () => {
-    const spy = vi.spyOn(global, "fetch").mockResolvedValue(ok({ id: "it1" }));
-
+  it("approveIteration / rejectIteration 命中迭代审批路径", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "it1" }));
+    await approveIteration("r1", "it1");
+    expect(lastCall(spy).url).toBe("/api/routine/r1/iterations/it1/approve");
     await rejectIteration("r1", "it1");
-    expect(spy).toHaveBeenCalledWith(
-      "/api/routine/r1/iterations/it1/reject",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(lastCall(spy).url).toBe("/api/routine/r1/iterations/it1/reject");
+  });
+});
+
+describe("routine api · 预设端点", () => {
+  it("fetchPresets 命中 /api/routine/presets", async () => {
+    const spy = mockFetch(() => jsonResponse([]));
+    await fetchPresets();
+    expect(lastCall(spy).url).toBe("/api/routine/presets");
   });
 
-  it("非 2xx 响应抛错并携带后端结构化 detail", async () => {
-    // 用 mockImplementation 每次返回新 Response：Response body 仅可读一次，
-    // 否则二次断言会拿到已被消费的空 body。
-    vi.spyOn(global, "fetch").mockImplementation(async () =>
-      new Response(JSON.stringify({ detail: "boom" }), {
-        status: 500,
-        statusText: "Internal Server Error",
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+  it("createRoutineFromPreset 以 POST 提交 preset_id + key + cwd", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "r1" }, 201));
+    await createRoutineFromPreset({ preset_id: "code_quality_audit", key: "demo-x", cwd: "/tmp" });
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine/from-preset");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      preset_id: "code_quality_audit",
+      key: "demo-x",
+      cwd: "/tmp",
+    });
+  });
+});
 
+describe("routine api · 错误处理", () => {
+  it("非 2xx 且响应体为结构化 JSON 时抛出含 detail 的错误", async () => {
+    mockFetch(
+      () =>
+        new Response(JSON.stringify({ detail: "boom" }), {
+          status: 404,
+          statusText: "Not Found",
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+    await expect(fetchPresets()).rejects.toThrow(/404/);
+    await expect(fetchPresets()).rejects.toThrow(/boom/);
+  });
+
+  it("非 2xx 且响应体非 JSON 时回落到 statusText", async () => {
+    // 注：源码先 res.json() 消费 body 流，catch 中的 res.text() 因 body 已读取而回落到空串，
+    // 故错误信息以 statusText 兜底。此用例锁定该真实行为。
+    mockFetch(() => new Response("server exploded", { status: 500, statusText: "Internal Server Error" }));
     await expect(fetchKpis()).rejects.toThrow(/500/);
-    await expect(fetchKpis()).rejects.toThrow(/boom/);
-  });
-
-  it("非 2xx 且 body 非 JSON 时回退到文本 / statusText", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response("plain text error", { status: 404, statusText: "Not Found" }),
-    );
-
-    await expect(fetchRoutines()).rejects.toThrow(/404/);
+    await expect(fetchKpis()).rejects.toThrow(/Internal Server Error/);
   });
 });

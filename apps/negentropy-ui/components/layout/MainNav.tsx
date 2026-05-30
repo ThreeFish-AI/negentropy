@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { type MainNavItem } from "@/config/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
@@ -16,6 +17,7 @@ interface MainNavProps {
 export function MainNav({ items }: MainNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const prefersReduced = useReducedMotion();
 
   // Filter items based on user roles
   const visibleItems = items?.filter((item) => {
@@ -33,7 +35,7 @@ export function MainNav({ items }: MainNavProps) {
               p === "/" ? pathname === "/" : pathname?.startsWith(p),
             );
 
-            return (
+            const link = (
               <Link
                 key={index}
                 href={item.disabled ? "#" : item.href}
@@ -44,6 +46,23 @@ export function MainNav({ items }: MainNavProps) {
               >
                 {item.title}
               </Link>
+            );
+
+            if (prefersReduced) return link;
+
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.25,
+                  delay: index * 0.05,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                {link}
+              </motion.div>
             );
           })}
         </nav>
