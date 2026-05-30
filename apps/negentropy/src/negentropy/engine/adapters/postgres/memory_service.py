@@ -41,8 +41,7 @@ from negentropy.engine.governance.memory import (
     VALID_MEMORY_TYPES,
     MemoryGovernanceService,
 )
-from negentropy.engine.governance.pii_detector import detect as detect_pii
-from negentropy.engine.governance.pii_detector import summarize_flags as summarize_pii_flags
+from negentropy.engine.governance.pii import detect_pii_for_storage
 from negentropy.engine.utils.query_intent import classify as classify_intent
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
@@ -154,9 +153,8 @@ class PostgresMemoryService(BaseMemoryService):
                 importance = self._calculate_initial_importance(
                     memory_type="episodic",
                 )
-                # Phase 4: PII 检测占位（regex 级，命中后 metadata.pii_flags 标记）
-                pii_matches = detect_pii(content)
-                pii_flags = summarize_pii_flags(pii_matches) if pii_matches else {}
+                # F4: PII 检测经工厂引擎（regex/presidio），落 flags + spans（供检索遮蔽）
+                pii_flags, pii_spans = detect_pii_for_storage(content)
                 async with db.begin_nested():
                     memory = Memory(
                         thread_id=thread_id,
@@ -174,6 +172,7 @@ class PostgresMemoryService(BaseMemoryService):
                             "total_segments": len(segments),
                             "turn_count": len(segments[seg_idx] if seg_idx < len(segments) else []),
                             **({"pii_flags": pii_flags} if pii_flags else {}),
+                            **({"pii_spans": pii_spans} if pii_spans else {}),
                         },
                     )
                     db.add(memory)
@@ -631,6 +630,7 @@ class PostgresMemoryService(BaseMemoryService):
         memory_type: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
+        viewer_role: str | None = None,
     ) -> SearchMemoryResponse:
         """基于 Query 检索相关记忆
 
@@ -695,7 +695,7 @@ class PostgresMemoryService(BaseMemoryService):
                     memories_data = self._apply_relevance_weights(memories_data)
                     await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
-                    return self._build_search_response(memories_data)
+                    return self._build_search_response(memories_data, viewer_role=viewer_role)
             except Exception as exc:
                 self._log_fallback_event("hybrid", "vector", str(exc), user_id, app_name, query)
 
@@ -719,7 +719,7 @@ class PostgresMemoryService(BaseMemoryService):
             memories_data = self._apply_relevance_weights(memories_data)
             await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
             self._log_search_event("vector", len(memories_data), user_id, app_name, query)
-            return self._build_search_response(memories_data)
+            return self._build_search_response(memories_data, viewer_role=viewer_role)
 
         # 策略 3: BM25 全文检索
         try:
@@ -740,7 +740,7 @@ class PostgresMemoryService(BaseMemoryService):
                 memories_data = self._apply_relevance_weights(memories_data)
                 await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
-                return self._build_search_response(memories_data)
+                return self._build_search_response(memories_data, viewer_role=viewer_role)
         except Exception as exc:
             self._log_fallback_event("keyword", "ilike", str(exc), user_id, app_name, query)
 
@@ -761,7 +761,7 @@ class PostgresMemoryService(BaseMemoryService):
         memories_data = self._apply_relevance_weights(memories_data)
         await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
         self._log_search_event("ilike", len(memories_data), user_id, app_name, query)
-        return self._build_search_response(memories_data)
+        return self._build_search_response(memories_data, viewer_role=viewer_role)
 
     # ------------------------------------------------------------------
     # Phase 5 F1 — HippoRAG PPR-Boosted Hybrid 检索
@@ -1027,12 +1027,18 @@ class PostgresMemoryService(BaseMemoryService):
             SELECT h.id, h.content, h.semantic_score, h.keyword_score, h.combined_score,
                    h.metadata, m.memory_type
             FROM {NEGENTROPY_SCHEMA}.hybrid_search(
-                :user_id, :app_name, :query, :embedding::vector(1536),
+                :user_id, :app_name, :query, CAST(:embedding AS vector(1536)),
                 :limit, :semantic_weight, :keyword_weight
             ) AS h
             JOIN {NEGENTROPY_SCHEMA}.memories AS m ON m.id = h.id
             WHERE COALESCE(h.metadata->>'deleted', 'false') <> 'true'
         """)
+        # 注意：用 CAST(:embedding AS vector(1536)) 而非 :embedding::vector(1536)。
+        # SQLAlchemy text() 会把 ``::`` 误判为绑定名分隔符，导致 :embedding 不绑定、
+        # 渲染出裸 ``:`` 触发 PostgresSyntaxError，使 Hybrid 检索静默回退纯向量
+        # （并连带架空仅在 Hybrid 分支融合的 F1 PPR）。CAST(...) 形式无此歧义。
+        # pgvector 经 CAST 时需字符串字面量 '[...]'，故此处显式序列化 embedding。
+        embedding_literal = "[" + ",".join(f"{x:.7g}" for x in query_embedding) + "]"
 
         async with db_session.AsyncSessionLocal() as db:
             result = await db.execute(
@@ -1041,7 +1047,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "user_id": user_id,
                     "app_name": app_name,
                     "query": query,
-                    "embedding": query_embedding,
+                    "embedding": embedding_literal,
                     "limit": oversample_limit,
                     "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
                     "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
@@ -1418,8 +1424,24 @@ class PostgresMemoryService(BaseMemoryService):
                 error=str(exc),
             )
 
-    def _build_search_response(self, memories_data: list[dict[str, Any]]) -> SearchMemoryResponse:
-        """构建 ADK SearchMemoryResponse（携带 search_level 元数据）"""
+    def _build_search_response(
+        self, memories_data: list[dict[str, Any]], *, viewer_role: str | None = None
+    ) -> SearchMemoryResponse:
+        """构建 ADK SearchMemoryResponse（携带 search_level 元数据）
+
+        F4：出口处经 PIIGatekeeper 按 viewer_role 决定是否遮蔽含 PII 的 content
+        （依赖写入期落库的 ``metadata.pii_spans``）。未启用 / 高权限时原样透传。
+        """
+        # PII 检索守门员（受 settings.memory.pii.gatekeeper_enabled 控）
+        try:
+            from negentropy.engine.governance.pii import PIIGatekeeper
+
+            gatekeeper = PIIGatekeeper.from_settings()
+            if gatekeeper.should_redact(role=viewer_role):
+                memories_data = gatekeeper.filter_records(memories_data, role=viewer_role)
+        except Exception as exc:
+            logger.debug("pii_gatekeeper_skip", error=str(exc))
+
         memories = []
         for m in memories_data:
             content_val = {"parts": [{"text": m["content"]}]}
@@ -1484,12 +1506,13 @@ class PostgresMemoryService(BaseMemoryService):
 
         retention = self._calculate_initial_retention(content, memory_type=memory_type)
         importance = self._calculate_initial_importance(memory_type=memory_type)
-        # Phase 4: PII 占位
-        pii_matches = detect_pii(content)
-        pii_flags = summarize_pii_flags(pii_matches) if pii_matches else {}
+        # F4: PII 检测经工厂引擎，落 flags + spans（供检索遮蔽）
+        pii_flags, pii_spans = detect_pii_for_storage(content)
         merged_metadata = dict(metadata or {"source": "self_edit"})
         if pii_flags:
             merged_metadata["pii_flags"] = pii_flags
+        if pii_spans:
+            merged_metadata["pii_spans"] = pii_spans
 
         async with db_session.AsyncSessionLocal() as db:
             memory = Memory(

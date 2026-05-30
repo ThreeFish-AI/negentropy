@@ -53,6 +53,41 @@ def _cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+# F4 Presidio 默认引擎所需 spaCy NER 模型（独立下载产物，非 pip 依赖）。
+# en_core_web_lg 是 Presidio 英文默认模型；zh_core_web_sm 支撑中文 NER + CN 自定义识别器。
+_PII_SPACY_MODELS = ("en_core_web_lg", "zh_core_web_sm")
+
+
+def _cmd_bootstrap_pii_models(args: argparse.Namespace) -> int:
+    """下载 Presidio PII 引擎所需的 spaCy NER 模型。
+
+    模型是独立下载产物（非 pip 依赖），故单独提供 bootstrap 命令。缺失时
+    PII 引擎按 ``memory.pii.allow_engine_fallback`` 降级回 regex，不阻断启动。
+    """
+    import importlib.util
+    import subprocess
+
+    models = _PII_SPACY_MODELS
+    failed: list[str] = []
+    for model in models:
+        if importlib.util.find_spec(model) is not None and not args.force:
+            print(f"✔ {model} 已安装，跳过（--force 可强制重装）")
+            continue
+        print(f"↓ 下载 spaCy 模型 {model} …")
+        ret = subprocess.call([sys.executable, "-m", "spacy", "download", model])
+        if ret != 0:
+            print(f"✘ {model} 下载失败（exit={ret}）")
+            failed.append(model)
+        else:
+            print(f"✔ {model} 安装成功")
+    if failed:
+        print(f"\n以下模型未能安装: {', '.join(failed)}。")
+        print("PII 引擎将按 memory.pii.allow_engine_fallback 降级回 regex；可经 /memory/health 观测实际引擎。")
+        return 1
+    print("\n全部 PII 模型就绪，可将 memory.pii.engine 设为 presidio。")
+    return 0
+
+
 _UVICORN_PATCH_INSTALLED = False
 _DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 25
 
@@ -199,10 +234,16 @@ def main() -> None:
     serve_parser.add_argument("--host", default="0.0.0.0", help="绑定地址 (默认: 0.0.0.0)")
     serve_parser.add_argument("--no-reload", action="store_true", help="禁用热重载")
 
+    # bootstrap-pii-models subcommand（F4 Presidio spaCy NER 模型）
+    pii_parser = subparsers.add_parser("bootstrap-pii-models", help="下载 Presidio PII 引擎所需 spaCy NER 模型")
+    pii_parser.add_argument("--force", action="store_true", help="即使已安装也强制重新下载")
+
     args = parser.parse_args()
 
     if args.command == "init":
         sys.exit(_cmd_init(args))
+    elif args.command == "bootstrap-pii-models":
+        sys.exit(_cmd_bootstrap_pii_models(args))
     else:
         # Default: serve
         sys.exit(_cmd_serve(args))

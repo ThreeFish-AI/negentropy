@@ -74,15 +74,65 @@ class PresidioPIIDetector(PIIDetectorBase):
             )
         )
 
+        # 构建多语言 NLP 引擎：为每种语言显式映射 spaCy 模型，否则 AnalyzerEngine
+        # 默认只配 en，分析 zh 文本会抛 KeyError('zh') 使中文 NER + CN 自定义识别器
+        # （CN_MOBILE / CN_ID_CARD）全部失效。只保留模型确实存在的语言，做优雅降级。
+        usable_languages, nlp_engine = self._build_nlp_engine(self._languages)
+        self._languages = usable_languages or ["en"]
+
         try:
-            self._engine = AnalyzerEngine(supported_languages=self._languages)
+            engine_kwargs: dict[str, Any] = {"supported_languages": self._languages}
+            if nlp_engine is not None:
+                engine_kwargs["nlp_engine"] = nlp_engine
+            self._engine = AnalyzerEngine(**engine_kwargs)
             for r in recognizers:
+                # 仅注册其 supported_language 在可用语言集合内的识别器
+                if getattr(r, "supported_language", None) and r.supported_language not in self._languages:
+                    continue
                 try:
                     self._engine.registry.add_recognizer(r)
                 except Exception as exc:
                     logger.debug("presidio_recognizer_skip", name=r.name, error=str(exc))
         except Exception as exc:
             raise PresidioImportError(f"Presidio AnalyzerEngine init failed: {exc}") from exc
+
+    @staticmethod
+    def _build_nlp_engine(languages: list[str]) -> tuple[list[str], Any]:
+        """按语言映射 spaCy 模型构建 NlpEngine；缺模型的语言被剔除。
+
+        Returns: (可用语言列表, NlpEngine 或 None)。当 provider 不可用时回退
+        (原语言列表, None)，由 AnalyzerEngine 走默认配置（仅 en 可靠）。
+        """
+        import importlib.util
+
+        # 语言 → 候选 spaCy 模型（按优先级）；en 优先 lg（Presidio 默认），缺则 sm
+        candidates = {
+            "en": ["en_core_web_lg", "en_core_web_sm"],
+            "zh": ["zh_core_web_sm", "zh_core_web_lg"],
+        }
+        models: list[dict[str, str]] = []
+        usable: list[str] = []
+        for lang in languages:
+            model_name = next(
+                (m for m in candidates.get(lang, []) if importlib.util.find_spec(m) is not None),
+                None,
+            )
+            if model_name is None:
+                logger.warning("presidio_lang_model_missing_skip", lang=lang)
+                continue
+            models.append({"lang_code": lang, "model_name": model_name})
+            usable.append(lang)
+
+        if not models:
+            return languages, None
+        try:
+            from presidio_analyzer.nlp_engine import NlpEngineProvider
+
+            provider = NlpEngineProvider(nlp_configuration={"nlp_engine_name": "spacy", "models": models})
+            return usable, provider.create_engine()
+        except Exception as exc:
+            logger.warning("presidio_nlp_engine_build_failed_use_default", error=str(exc))
+            return languages, None
 
     def detect(self, text: str, *, languages: list[str] | None = None) -> list[PIISpan]:
         if not text:
