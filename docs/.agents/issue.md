@@ -2558,3 +2558,66 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **本次处理（Studio 范围，PR：Home/Studio UI 精修）**：仅在 Studio 涉及文件内把失效类收敛到**已定义等价物**（`text-muted`→`text-text-muted`、`bg-muted`→`bg-border-muted`、`text-accent-foreground`→`text-foreground` 等），并**新增** `--color-primary/-foreground/-hover` 与 `--color-ring`（净增、零值冲突，统一主强调色 indigo）。未触碰其它页面渲染。
 - **后续防范 / 待办（独立专项 PR）**：对全站执行 token 规范化 codemod——在 `@theme inline` 补齐 `--color-muted/-foreground`、`--color-accent/-foreground`、`--color-secondary/-foreground`、`--color-destructive/-foreground` 等，并按 shadcn 语义统一改写重载用法；提交前对 Studio / Dashboard / Knowledge / Memory 主路由做明暗双主题回归。
 - **同类问题影响**：所有沿用 shadcn 命名（`muted/primary/accent/secondary/destructive`）的组件均受影响；新增组件应优先使用本仓已定义的 `text-text-*` / `bg-card` / `border-border` / `bg-border-muted` / `text-success|warning|error|info` / `bg-primary` 等，避免再次引入未映射工具类。
+
+---
+
+## ISSUE-098 Memory Hybrid 检索长期静默失效（双层缺陷：缺 DB 函数 + SQLAlchemy `::` 绑定 bug）
+
+- **表因**：`PostgresMemoryService.search_memory` 的 Hybrid 策略从未真正生效——每次检索都从 `hybrid` 静默回退到纯向量（`vector`）检索，且因 F1 HippoRAG PPR 仅在 Hybrid 分支做 RRF 融合，PPR 通道被连带架空（即便 `hipporag.enabled=true` + KG 关联越过数据闸也不融合）。
+- **根因（两层独立缺陷）**：
+  1. **缺 DB 函数**：`_hybrid_search_native` 调用 `negentropy.hybrid_search()`，但该函数仅存在于 `docs/reference/cognizes/engine/schema/perception_schema.sql` 与 cognizes app 的 schema 文件中，**从未移植成 negentropy alembic 迁移**；`memories` 表也缺 `search_vector tsvector` 列与 GIN 索引。线上 `pg_proc` 查无此函数 → `UndefinedFunctionError`。
+  2. **SQLAlchemy 绑定 bug**：SQL 用 `:embedding::vector(1536)`。`text()` 把 `::` 误解析为绑定名分隔符，导致 `:embedding` 不被绑定、渲染出裸 `:` 触发 `PostgresSyntaxError: syntax error at or near ":"`。即便函数存在也会失败。
+- **处理方式**：
+  1. 新增迁移 `0047_memory_hybrid_search_function.py`：为 `memories` 增 `search_vector` 列 + BEFORE INSERT/UPDATE OF content 触发器（`to_tsvector('english', content)`）+ 回填存量行 + GIN 索引；以 perception_schema.sql 权威定义创建 schema 限定的 `negentropy.hybrid_search()`（语义 + BM25 FULL OUTER JOIN 加权融合）。纯新增、不改写既有数据。
+  2. 修 `memory_service.py::_hybrid_search_native`：`:embedding::vector(1536)` → `CAST(:embedding AS vector(1536))`，并把 embedding 序列化为 pgvector 字面量 `'[...]'` 后绑定。
+- **验证**：新增 `tests/integration_tests/engine/test_ppr_fusion.py`（种入 Corpus + KgEntity×2 + KgRelation + ≥100 entity 关联，断言 PPR 实跑并融合；稀疏 KG 下数据闸自休眠回退 Hybrid）；`test_memory_service.py` 6 例 + RRF/PPR 单测 34 例全绿。日志由 `search_fallback ... to_level=vector` 变为 `hybrid_search_completed`。
+- **后续防范**：
+  1. **运行时依赖的 DB 函数必须有迁移**：任何 `_native` 路径调用的 SQL 函数都要在 alembic 迁移中 `CREATE OR REPLACE`，并配单测在真实库断言函数存在 + 端到端跑通；`.sql` schema 文件只是参考，不是生效源。
+  2. **`text()` 内禁用 `:param::type`**：一律用 `CAST(:param AS type)`，避免 `::` 与绑定名歧义。仓内可加 lint/grep 守卫扫描 `:%w+::`。
+  3. **降级要可观测**：Hybrid→vector 这类「静默回退」必须升级日志级别或暴露指标（如 `/memory/metrics` 增 hybrid_fallback_count），否则核心特性失效数月无感。
+- **同类问题影响**：`kb_hybrid_search()`（Knowledge 侧）与任何引用 perception_schema.sql 但未迁移的 SQL 函数都应排查是否存在同样「schema 文件有、迁移没有」的断裂；所有 `text()` 拼 `::vector` 的检索/向量路径都应改 `CAST`。
+
+---
+
+## ISSUE-099 F4 Presidio PII 在热路径上是死代码（写侧绕过工厂 + 检索守门员从未接线）
+
+- **表因**：把 `memory.pii.engine` 改成 `presidio` 对生产行为零影响；检索路径对低权限角色也从不脱敏含 PII 的记忆。F4「生产级 PII 治理」实质未生效。
+- **根因（两处接线断裂）**：
+  1. **写侧绕过工厂**：`memory_service` 的 `_simple_consolidate`（`:157`）与 `add_memory_typed`（`:1493`）硬编码调用 legacy `pii_detector.detect`（固定 `RegexPIIDetector`），从不读 `settings.memory.pii.engine`、从不经 `get_pii_detector()`，使 `PresidioPIIDetector` 成为热路径死代码；且只落 `metadata.pii_flags`（计数），不落 `pii_spans`。
+  2. **检索守门员未接线**：`PIIGatekeeper` 定义并导出，但 engine 内**零调用点**（grep `PIIGatekeeper`/`from_settings` 仅命中定义处）。即便启用也因写侧不落 `pii_spans` 而无数据可遮蔽。
+- **处理方式**：
+  1. 新增 `engine/governance/pii/storage_helper.py::detect_pii_for_storage(content)`：经 `get_pii_detector()`（工厂引擎）检测，返回 `(flags, spans_json)`；异常降级空结果不阻断写入。两处写侧改用之，落 `pii_flags` + `pii_spans`。
+  2. 检索侧：`_build_search_response` 增 `viewer_role` 形参，出口处经 `PIIGatekeeper.from_settings()` 按角色 mask/anonymize（受 `gatekeeper_enabled` 控）；`search_memory` 透传 `viewer_role`。
+  3. `PIISettings` 增声明字段 `retrieval_policy`（独立于写入 `policy`）。
+  4. 依赖默认化：`pyproject.toml` 把 presidio/spacy 从 optional extra 提升为主依赖；新增 CLI `negentropy bootstrap-pii-models` 下载 spaCy NER 模型（`en_core_web_lg` / `zh_core_web_sm`，独立下载产物非 pip 依赖）。
+  5. `config.default.yaml` 翻转：`engine: presidio` + `gatekeeper_enabled: true` + `allow_engine_fallback: true`（缺模型降级 regex 并写 ERROR，经 `/memory/health` 可观测，不阻断启动）+ `retrieval_policy: anonymize`。
+- **验证**：新增 `tests/integration_tests/engine/test_pii_writepath.py` 7 例（写侧 flags+spans / 低权限 anonymize / 高权限透传 / 守门员关闭透传 / presidio PERSON NER / 缺模型降级 regex / fallback=false 抛错）；既有 `test_pii_phase5.py` 24 例无回归。
+- **后续防范**：
+  1. **工厂是唯一入口**：凡「可切换引擎」的能力（PII / Memory backend / 检索）都必须经工厂解析，禁止业务代码硬编码具体实现，否则 settings 形同虚设。可加单测断言写路径经 `get_pii_detector()`（如 monkeypatch 工厂验证被调用）。
+  2. **定义即接线**：新增 governance 组件（如 Gatekeeper）须同时提供调用点 + 端到端测试，避免「定义了但没人用」的僵尸代码；可用 grep 守卫扫描导出符号的调用点数。
+  3. **重模型依赖要可观测 + 可降级**：默认引擎依赖大模型下载时，必须提供 bootstrap 命令 + 缺失降级 + health 暴露实际引擎，兼顾开箱即用与保密性优先。
+- **同类问题影响**：Memory backend 工厂（InMemory/VertexAI/Postgres）、检索引擎切换等所有「可插拔」点都应核对业务代码是否真的经工厂；任何 `settings.*.engine` 类开关都要有「翻转后行为确实改变」的测试佐证。
+
+---
+
+## ISSUE-100 测试隔离：test_runner_artifacts 永久污染 sys.modules 致下游测试拿到 MagicMock
+
+- **表因**：全量跑 engine 测试时，`test_full_pipeline` / `test_ppr_fusion` 等真实集成测试报 `object MagicMock can't be used in 'await' expression`（`get_association_service` / `get_fact_service` / `upsert_fact` 等返回 MagicMock）。单独跑各文件均通过，仅在与某些文件同会话时复发。
+- **根因**：`tests/integration_tests/engine/test_runner_artifacts.py` 在**模块导入期**调用 `mock_modules()`，用 `sys.modules["negentropy.engine.factories.memory"] = MagicMock()`（及 session 工厂、agents、google.adk.runners）永久替换真实模块且**从不还原**。pytest 单会话内 `sys.modules` 全局共享，导致此文件被收集后，后续任何 `from negentropy.engine.factories.memory import get_*` 都拿到 MagicMock 属性。
+- **处理方式**：改为「临时替换 + 立即还原」——`_install_temp_mocks()` 保存原始引用、装上 mock 仅为让 `runner` 工厂可导入；`try/finally` 中 import 完成后 `_restore_modules()` 还原 `sys.modules`（原本不存在的键 pop 掉，存在的还原）。测试自身行为不变（其在用例体内用 `patch` 注入 Runner / artifact_service）。另在受影响集成测试加 autouse `reset_*_service()` 防御性兜底。
+- **后续防范**：
+  1. **禁止模块级永久改 sys.modules**：测试如需 mock 模块以绕过重导入，必须用 fixture + finalizer 或 `try/finally` 还原；模块级副作用会跨文件泄漏。
+  2. **真实集成测试防御工厂污染**：依赖工厂单例的集成测试可在 fixture 里 `reset_*` 兜底。
+  3. **CI 应跑全量同会话**：`uv run pytest tests/`（不分目录）才能暴露此类跨文件污染；分目录跑会掩盖。
+- **同类问题影响**：任何 `sys.modules[...] =` 或模块级 `patch.dict("sys.modules", ...)` 不还原的测试都应排查；优先 grep `sys.modules\[` 审计。
+
+---
+
+## ISSUE-101 Presidio 中文分析失效：AnalyzerEngine 未装配 zh NLP 引擎致 CN 识别器全失效
+
+- **表因**：实机巩固日志反复出现 `presidio_analyze_failed lang=zh error="'zh'"`；中文文本里的手机号 / 身份证（CN_MOBILE / CN_ID_CARD 自定义识别器，supported_language='zh'）完全不命中，身份证还被英文模型误标成 `date_time`。
+- **根因**：`PresidioPIIDetector` 用 `AnalyzerEngine(supported_languages=["en","zh"])` 但**未提供 nlp_engine**。Presidio 默认 NLP 引擎只配了 en（`en_core_web_lg`）；分析 zh 文本时按 `nlp_engine.process_text(text, "zh")` 查不到 zh 模型抛 `KeyError('zh')`，该语言整条分析链（含挂在 zh 上的自定义 PatternRecognizer）被跳过。
+- **处理方式**：新增 `PresidioPIIDetector._build_nlp_engine(languages)`：按语言→spaCy 模型候选表（en→lg/sm、zh→`zh_core_web_sm`）探测已安装模型，用 `NlpEngineProvider(nlp_configuration={"nlp_engine_name":"spacy","models":[{lang_code,model_name},...]})` 显式构建多语 NlpEngine 注入 AnalyzerEngine；缺模型的语言被剔除（优雅降级），并只注册 supported_language 在可用集合内的识别器。
+- **验证**：新增 `test_presidio_detects_cn_mobile_via_zh_nlp_engine`——`13912345678` 经 CN_MOBILE 命中 `phone`；EN PERSON/email 仍正常；既有 31 例 PII 测试无回归。实机日志 `presidio_analyze_failed lang=zh` 消除。
+- **后续防范**：多语 NLP/检索引擎必须显式声明每语言的模型/资源映射，不能依赖库默认（默认通常单语）；新增语言时同步扩 `_build_nlp_engine` 候选表 + bootstrap 模型清单（`_PII_SPACY_MODELS`）。
+- **同类问题影响**：任何按 `supported_languages` 跑多语的组件（NER、翻译、检索）都要核对底层引擎是否真的为每种语言装配了资源。
