@@ -91,7 +91,7 @@ export function FilterBar({
             key={w}
             type="button"
             onClick={() => onChange({ ...filters, window: w })}
-            className={`px-2 py-0.5 text-[11px] font-semibold rounded-full transition-colors ${
+            className={`px-2 py-0.5 text-caption font-semibold rounded-full transition-colors ${
               filters.window === w
                 ? "bg-foreground text-background"
                 : "text-muted-foreground hover:text-foreground"
@@ -106,11 +106,11 @@ export function FilterBar({
           className={`inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-border"}`}
           title={connected ? "SSE connected" : "SSE disconnected"}
         />
-        <span className="text-[11px] text-muted-foreground">{connected ? "Live" : "Reconnecting…"}</span>
+        <span className="text-caption text-muted-foreground">{connected ? "Live" : "Reconnecting…"}</span>
         <button
           type="button"
           onClick={onRefresh}
-          className="rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted/50"
+          className="rounded-md border border-border px-2 py-1 text-caption font-medium hover:bg-muted/50"
         >
           Refresh
         </button>
@@ -128,7 +128,7 @@ interface FilterSelectProps {
 
 function FilterSelect({ label, value, options, onSelect }: FilterSelectProps) {
   return (
-    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+    <label className="flex items-center gap-1 text-caption text-muted-foreground">
       <span>{label}</span>
       <select
         value={value ?? ""}

@@ -164,7 +164,7 @@ function CorpusSettingsPanel({
               const sel = embeddingModels.find((m) => m.id === embeddingConfigId);
               const dims = typeof sel?.config?.dimensions === "number" ? sel.config.dimensions : null;
               return dims != null ? (
-                <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                   {dims} dims
                 </span>
               ) : null;
@@ -237,7 +237,7 @@ function CorpusSettingsPanel({
             <p className="mt-1 text-xs text-muted-foreground">
               通过 MCP Tools 为当前 Corpus 注入 URL、PDF 等源文档解释器。
             </p>
-            <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+            <p className="mt-2 text-caption leading-5 text-muted-foreground">
               可用于此处的 Tool 需提供可发现的 input/output schema，并能返回正文 Markdown 或文本；当前兼容单文档扁平协议，以及单个
               sources 数组的 batch 协议，系统会自动把单个 URL/PDF 请求包装为对应格式。
             </p>
@@ -253,7 +253,7 @@ function CorpusSettingsPanel({
             <div key={routeKey} className="mt-4 rounded-xl border border-border p-3">
               <div className="mb-3">
                 <div className="text-xs font-semibold">{title}</div>
-                <div className="text-[11px] text-muted-foreground">{description}</div>
+                <div className="text-caption text-muted-foreground">{description}</div>
               </div>
               <div className="space-y-3">
                 {[0, 1].map((index) => {
@@ -360,7 +360,7 @@ function CorpusSettingsPanel({
                         <button
                           type="button"
                           onClick={clearTarget}
-                          className={outlineButtonClassName("neutral", "rounded px-3 py-2 text-[11px]")}
+                          className={outlineButtonClassName("neutral", "rounded px-3 py-2 text-caption")}
                         >
                           清空
                         </button>

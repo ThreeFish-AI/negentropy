@@ -268,7 +268,7 @@ export function SkillScheduleDialog({
                     type="button"
                     onClick={() => handleRunNow(s.id)}
                     disabled={busyId === s.id}
-                    className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                    className="rounded-md border border-border px-2 py-1 text-caption hover:bg-muted"
                     data-testid={`schedule-row-${s.id}-run`}
                   >
                     Run now
@@ -277,7 +277,7 @@ export function SkillScheduleDialog({
                     type="button"
                     onClick={() => handleDelete(s.id)}
                     disabled={busyId === s.id}
-                    className="rounded-md border border-red-300 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
+                    className="rounded-md border border-red-300 px-2 py-1 text-caption text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
                     data-testid={`schedule-row-${s.id}-delete`}
                   >
                     Delete

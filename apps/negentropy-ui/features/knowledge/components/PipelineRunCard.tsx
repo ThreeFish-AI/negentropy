@@ -174,7 +174,7 @@ function PipelineRunCardContent({
               title={cancelDisabled ? "正在取消..." : "取消运行"}
               disabled={cancelDisabled}
               onClick={handleCancelClick}
-              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] transition-colors ${
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-caption transition-colors ${
                 cancelDisabled
                   ? "cursor-not-allowed opacity-60"
                   : isSelectable
@@ -208,7 +208,7 @@ function PipelineRunCardContent({
       </div>
 
       {/* 第二行：操作类型 + 触发方式/KG 统计 + 时长 + 版本 */}
-      <div className={`mt-1.5 flex min-w-0 items-center justify-between text-[11px] ${
+      <div className={`mt-1.5 flex min-w-0 items-center justify-between text-caption ${
         isSelectable ? "opacity-70" : "text-text-muted"
       }`}>
         <div className="flex items-center gap-1.5">
@@ -277,7 +277,7 @@ function PipelineRunCardContent({
         // KG: 直接展示 error_message
         if (isKg && error_message) {
           return (
-            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+            <p className="mt-1 truncate text-caption text-rose-500 dark:text-rose-400">
               {error_message}
             </p>
           );
@@ -287,14 +287,14 @@ function PipelineRunCardContent({
         if (failedStageList.length > 0) {
           const first = failedStageList[0];
           return (
-            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+            <p className="mt-1 truncate text-caption text-rose-500 dark:text-rose-400">
               {first.label} · {first.message}
             </p>
           );
         }
         if (error && typeof error === "object") {
           return (
-            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+            <p className="mt-1 truncate text-caption text-rose-500 dark:text-rose-400">
               {getStageErrorSummary(error)}
             </p>
           );

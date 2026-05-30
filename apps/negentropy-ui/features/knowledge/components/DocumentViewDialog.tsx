@@ -220,10 +220,10 @@ export function DocumentViewDialog({
                 <h2 className="truncate text-lg font-semibold text-foreground" title={viewedDoc.original_filename}>
                   {viewedDoc.original_filename}
                 </h2>
-                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge.bg} ${statusBadge.text}`}>
+                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-micro font-medium ${statusBadge.bg} ${statusBadge.text}`}>
                   {statusBadge.label}
                 </span>
-                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${markdownBadge.bg} ${markdownBadge.text}`}>
+                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-micro font-medium ${markdownBadge.bg} ${markdownBadge.text}`}>
                   {markdownBadge.label}
                 </span>
               </div>

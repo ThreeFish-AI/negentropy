@@ -24,14 +24,14 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
               height={24}
               className="h-6 w-12 object-contain"
             />
-            <span className="text-sm font-bold tracking-[0.1em] text-foreground">
+            <span className="text-sm font-bold tracking-overline text-foreground">
               Negentropy
             </span>
           </Link>
 
           {/* Location breadcrumb from secondary nav */}
           {navigationInfo && (
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
               <span className="text-text-muted">{navigationInfo.moduleLabel}</span>
               <span className="text-text-muted/50">/</span>
               <span className="font-semibold text-foreground">

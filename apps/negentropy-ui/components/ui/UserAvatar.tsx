@@ -53,7 +53,7 @@ export function UserAvatar({
     <div
       aria-label={avatarAlt}
       className={cn(
-        "flex items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary",
+        "flex items-center justify-center rounded-full bg-primary/10 text-micro font-bold text-primary",
         className,
         fallbackClassName,
       )}

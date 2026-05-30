@@ -59,9 +59,9 @@ function isRunResumable(run: PipelineRunRecord): boolean {
 }
 
 const detailJsonClassName =
-  "mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 text-[11px]";
+  "mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 text-caption";
 const errorJsonClassName =
-  "mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-rose-50 p-3 text-[11px] text-rose-700 dark:bg-rose-900/20 dark:text-rose-400";
+  "mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-rose-50 p-3 text-caption text-rose-700 dark:bg-rose-900/20 dark:text-rose-400";
 
 /**
  * Pipeline Run 详情面板
@@ -81,17 +81,17 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+              <p className="text-caption font-semibold text-amber-700 dark:text-amber-300">
                 Resume from checkpoint
               </p>
-              <p className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400">
+              <p className="mt-0.5 text-micro text-amber-600 dark:text-amber-400">
                 perceives auto_batch 已为每个完成的切片落 checkpoint；点击 Continue
                 跳转到文档详情页触发断点续传（从最后一个完成的切片继续）。
               </p>
             </div>
             <Link
               href={`/knowledge/documents/${docRef.corpusId}/${docRef.documentId}`}
-              className="shrink-0 rounded-md bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400"
+              className="shrink-0 rounded-md bg-amber-600 px-2.5 py-1 text-caption font-semibold text-white shadow-sm hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400"
             >
               Continue →
             </Link>
@@ -101,15 +101,15 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
 
       {/* 基本信息 */}
       <div className="rounded-lg border border-border bg-muted p-3">
-        <p className="text-[11px] uppercase text-text-muted">Info</p>
+        <p className="text-caption uppercase tracking-overline text-text-muted">Info</p>
         {run.operation && (
-          <p className="mt-2 text-[11px] text-text-secondary">
+          <p className="mt-2 text-caption text-text-secondary">
             Operation: {OPERATION_LABELS[run.operation] || run.operation}
           </p>
         )}
-        <p className="text-[11px] text-text-secondary">开始 {run.started_at || "-"}</p>
-        <p className="text-[11px] text-text-secondary">结束 {run.completed_at || "-"}</p>
-        <p className="text-[11px] text-text-secondary">
+        <p className="text-caption text-text-secondary">开始 {run.started_at || "-"}</p>
+        <p className="text-caption text-text-secondary">结束 {run.completed_at || "-"}</p>
+        <p className="text-caption text-text-secondary">
           Duration: {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
         </p>
       </div>
@@ -117,11 +117,11 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
       {/* 阶段详情 */}
       {run.stages && Object.keys(run.stages).length > 0 && (
         <div className="rounded-lg border border-border bg-muted p-3">
-          <p className="text-[11px] uppercase text-text-muted">Stages</p>
+          <p className="text-caption uppercase tracking-overline text-text-muted">Stages</p>
           <div className="mt-2 space-y-2">
             {getSortedStages(run.stages).map(([stageName, stage]) => (
               <div key={stageName}>
-                <div className="flex min-w-0 items-center gap-2 text-[11px]">
+                <div className="flex min-w-0 items-center gap-2 text-caption">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${getStageColor(stageName, stage.status)}`} />
                   <span className="min-w-0 truncate font-medium text-text-secondary">
                     {STAGE_LABELS[stageName] || stageName}
@@ -155,7 +155,7 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
                     {stage.mcp_events
                       .filter((evt) => evt.stage !== "stderr")
                       .map((evt, i) => (
-                        <div key={i} className="flex items-center gap-1.5 text-[10px] text-text-muted">
+                        <div key={i} className="flex items-center gap-1.5 text-micro text-text-muted">
                           <span
                             className={`h-1.5 w-1.5 shrink-0 rounded-full ${
                               evt.status === "completed"
@@ -181,7 +181,7 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
 
       {/* Input */}
       <div className="min-w-0">
-        <p className="text-[11px] uppercase text-text-muted">Input</p>
+        <p className="text-caption uppercase tracking-overline text-text-muted">Input</p>
         <pre className={detailJsonClassName}>
           {JSON.stringify(run.input ?? {}, null, 2)}
         </pre>
@@ -189,7 +189,7 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
 
       {/* Output */}
       <div className="min-w-0">
-        <p className="text-[11px] uppercase text-text-muted">Output</p>
+        <p className="text-caption uppercase tracking-overline text-text-muted">Output</p>
         <pre className={detailJsonClassName}>
           {JSON.stringify(run.output ?? {}, null, 2)}
         </pre>
@@ -198,7 +198,7 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
       {/* Errors */}
       {errorDetails.length > 0 && (
         <div className="min-w-0">
-          <p className="text-[11px] uppercase text-text-muted">Errors</p>
+          <p className="text-caption uppercase tracking-overline text-text-muted">Errors</p>
           <div className="mt-2 space-y-3">
             {errorDetails.map((detail) => (
               <div
@@ -207,27 +207,27 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                    <p className="text-caption font-semibold text-rose-700 dark:text-rose-300">
                       {detail.title}
                     </p>
                     {detail.failureLabel && (
-                      <p className="mt-0.5 truncate text-[10px] text-rose-500 dark:text-rose-400">
+                      <p className="mt-0.5 truncate text-micro text-rose-500 dark:text-rose-400">
                         {detail.failureLabel}
                       </p>
                     )}
                     {detail.diagnosticSummary && (
-                      <p className="mt-0.5 line-clamp-2 text-[10px] text-rose-600 dark:text-rose-300">
+                      <p className="mt-0.5 line-clamp-2 text-micro text-rose-600 dark:text-rose-300">
                         {detail.diagnosticSummary}
                       </p>
                     )}
                   </div>
-                  <span className="text-[10px] text-rose-500 dark:text-rose-400">
+                  <span className="text-micro text-rose-500 dark:text-rose-400">
                     {detail.scope === "stage"
                       ? `${detail.status || "failed"}${detail.durationMs ? ` · ${formatDuration(detail.durationMs)}` : ""}`
                       : "failed"}
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-rose-700 dark:text-rose-300">
+                <p className="mt-1 text-caption text-rose-700 dark:text-rose-300">
                   {detail.message}
                 </p>
                 <pre className={errorJsonClassName}>

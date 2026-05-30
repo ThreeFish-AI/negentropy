@@ -47,7 +47,7 @@ function StatusBadge({ status }: { status: string }) {
     timeout: "⏱",
   };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${map[status] ?? "bg-border/50"}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-micro font-semibold ${map[status] ?? "bg-border/50"}`}>
       <span>{icon[status] ?? "·"}</span>
       <span>{status}</span>
     </span>
@@ -112,7 +112,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
       {/* Header */}
       <div className="border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className="shrink-0 text-caption uppercase tracking-overline text-muted-foreground">
             Execution Timeline
           </span>
           {/* Status filter pills */}
@@ -122,7 +122,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
                 key={opt.value}
                 type="button"
                 onClick={() => { setStatusFilter(opt.value); setCurrentPage(1); }}
-                className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                className={`shrink-0 rounded-full px-1.5 py-0.5 text-micro font-semibold transition-colors ${
                   statusFilter === opt.value
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground"
@@ -139,11 +139,11 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search..."
-              className="w-full rounded-md border border-border bg-background py-0.5 pl-6 pr-2 text-[11px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full rounded-md border border-border bg-background py-0.5 pl-6 pr-2 text-caption text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
           {/* Count */}
-          <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-micro tabular-nums text-muted-foreground">
             {filteredCount === totalCount ? `${totalCount}` : `${filteredCount}/${totalCount}`}
           </span>
         </div>
@@ -163,22 +163,22 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
               <li key={e.id} className="px-3 py-2 transition-shadow">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="font-mono text-[11px] text-muted-foreground">{formatTime(e.started_at)}</span>
+                    <span className="font-mono text-caption text-muted-foreground">{formatTime(e.started_at)}</span>
                     <StatusBadge status={e.status} />
                     <span className="truncate text-xs font-medium text-foreground">
                       {e.task_key ?? e.task_id}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-2 text-caption text-muted-foreground">
                     {e.duration_ms !== null ? <span>{e.duration_ms}ms</span> : null}
                     <span className="rounded-full bg-muted/50 px-1.5 py-0.5">{e.fire_reason}</span>
                   </div>
                 </div>
                 {e.output_summary ? (
-                  <div className="mt-1 truncate text-[11px] text-muted-foreground">{e.output_summary}</div>
+                  <div className="mt-1 truncate text-caption text-muted-foreground">{e.output_summary}</div>
                 ) : null}
                 {e.error ? (
-                  <div className="mt-1 text-[11px] text-red-600 dark:text-red-400">{e.error}</div>
+                  <div className="mt-1 text-caption text-red-600 dark:text-red-400">{e.error}</div>
                 ) : null}
               </li>
             ))}
@@ -198,7 +198,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-micro font-medium text-muted-foreground">
             {safePage} / {totalPages}
           </span>
           <button

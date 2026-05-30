@@ -506,7 +506,7 @@ export default function KnowledgeGraphPage() {
                               <span className="text-xs text-text-secondary">
                                 {item.entity.label || item.entity.id.slice(0, 8)}
                               </span>
-                              <span className="text-[10px] text-text-muted">
+                              <span className="text-micro text-text-muted">
                                 {item.combined_score.toFixed(3)}
                               </span>
                             </div>
@@ -542,7 +542,7 @@ export default function KnowledgeGraphPage() {
                     </button>
                   </div>
                   {viewTab === "graph" && (
-                    <div className="flex rounded-lg border border-border text-[10px]">
+                    <div className="flex rounded-lg border border-border text-micro">
                       <button
                         onClick={() => setRenderer("sigma")}
                         title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
@@ -812,12 +812,12 @@ export default function KnowledgeGraphPage() {
                           height={70}
                           className="pointer-events-none"
                         >
-                          <div className="rounded-lg border border-border bg-card px-3 py-2 text-[11px] shadow-lg">
+                          <div className="rounded-lg border border-border bg-card px-3 py-2 text-caption shadow-lg">
                             <div className="flex items-center gap-1.5">
                               <span className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: entityColor(hovered.type) }} />
                               <span className="font-medium text-foreground">{hovered.label || hovered.id.slice(0, 12)}</span>
                             </div>
-                            <div className="mt-0.5 space-y-0.5 text-[10px] text-text-muted">
+                            <div className="mt-0.5 space-y-0.5 text-micro text-text-muted">
                               <div className="flex gap-2"><span>ID</span><span className="font-mono">{hovered.id.slice(0, 16)}…</span></div>
                               {hovered.type && <div className="flex gap-2"><span>类型</span><span>{hovered.type}</span></div>}
                             </div>
@@ -912,7 +912,7 @@ export default function KnowledgeGraphPage() {
           >
             {corpusId && (
               <>
-                <p className="mb-3 text-[10px] text-text-muted">
+                <p className="mb-3 text-micro text-text-muted">
                   基于社区摘要的 Map-Reduce 全局检索，适合「汇总性问题」
                 </p>
                 <GlobalSearchPanel corpusId={corpusId} />
@@ -927,7 +927,7 @@ export default function KnowledgeGraphPage() {
           >
             {corpusId && (
               <>
-                <p className="mb-3 text-[10px] text-text-muted">
+                <p className="mb-3 text-micro text-text-muted">
                   Personalized PageRank + 证据链（HippoRAG / NeurIPS&apos;24）
                 </p>
                 <EvidenceChainPanel corpusId={corpusId} />
@@ -942,7 +942,7 @@ export default function KnowledgeGraphPage() {
           >
             {corpusId && (
               <>
-                <p className="mb-3 text-[10px] text-text-muted">
+                <p className="mb-3 text-micro text-text-muted">
                   选定历史时刻后，图谱与邻居/路径/搜索均按 as_of 过滤
                 </p>
                 <TimeTravelSlider

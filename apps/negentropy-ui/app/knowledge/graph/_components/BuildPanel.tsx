@@ -89,18 +89,18 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
         >
           <div className="flex items-center justify-between">
             <span
-              className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColor(run.status)}`}
+              className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${statusColor(run.status)}`}
             >
               {run.status}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-text-muted">
+              <span className="text-micro text-text-muted">
                 {formatDuration(run)}
               </span>
               {CANCELLABLE_STATUSES.has(run.status) && onCancel && corpusId && (
                 <button
                   type="button"
-                  className="text-[10px] text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+                  className="text-micro text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
                   onClick={() => onCancel(run)}
                   disabled={run.status === "cancelling"}
                   title={run.status === "cancelling" ? "正在取消..." : "取消此构建"}
@@ -110,25 +110,25 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
               )}
             </div>
           </div>
-          <div className="mt-1.5 flex gap-3 text-[11px] text-text-secondary">
+          <div className="mt-1.5 flex gap-3 text-caption text-text-secondary">
             <span>实体 {run.entity_count}</span>
             <span>关系 {run.relation_count}</span>
             {run.model_name && <span>模型 {run.model_name}</span>}
           </div>
           {run.error_message && (
-            <p className="mt-1 text-[10px] text-red-600 dark:text-red-400 line-clamp-2">
+            <p className="mt-1 text-micro text-red-600 dark:text-red-400 line-clamp-2">
               {run.error_message}
             </p>
           )}
           {run.started_at && (
-            <p className="mt-1 text-[10px] text-text-muted">
+            <p className="mt-1 text-micro text-text-muted">
               {new Date(run.started_at).toLocaleString()}
             </p>
           )}
         </div>
       ))}
       {showPager && (
-        <div className="mt-2 flex items-center justify-between text-[10px] text-text-muted">
+        <div className="mt-2 flex items-center justify-between text-micro text-text-muted">
           <button
             type="button"
             disabled={currentPage === 0}
@@ -171,13 +171,13 @@ export function BuildPanel({
           {building ? "构建中..." : "构建图谱"}
         </button>
         {!corpusId && (
-          <span className="text-[10px] text-text-muted">
+          <span className="text-micro text-text-muted">
             请先选择语料库
           </span>
         )}
       </div>
       {lastBuildError && (
-        <p className="text-[11px] text-red-600 dark:text-red-400">
+        <p className="text-caption text-red-600 dark:text-red-400">
           {lastBuildError}
         </p>
       )}

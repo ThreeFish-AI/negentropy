@@ -278,7 +278,7 @@ export function LlmModelSelect({
               }
               return (
                 <div key={vendor} role="group" aria-label={vendor}>
-                  <div className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-text-muted select-none">
+                  <div className="px-3 py-1 text-micro font-medium uppercase tracking-overline text-text-muted select-none">
                     {vendor}
                   </div>
                   {items.map((item, i) => {

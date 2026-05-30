@@ -53,11 +53,11 @@ export function SectionHeader({
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h2 className="text-base font-semibold tracking-tight text-foreground">
+        <h2 className="text-h4 font-semibold tracking-heading text-foreground">
           {title}
         </h2>
         {description ? (
-          <p className="text-xs leading-relaxed text-text-muted">
+          <p className="text-sm leading-caption text-text-muted">
             {description}
           </p>
         ) : null}

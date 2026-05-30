@@ -112,7 +112,7 @@ export default function MemoryAuditPage() {
             sidebar={
               <>
                 <SidebarCard title="Submit Audit">
-                  <p className="mt-2 text-[11px] tabular-nums text-muted-foreground">
+                  <p className="mt-2 text-caption tabular-nums text-muted-foreground">
                     {`${pendingCount} decision${pendingCount !== 1 ? "s" : ""} pending`}
                   </p>
                   <textarea
@@ -133,7 +133,7 @@ export default function MemoryAuditPage() {
                     Submit ({pendingCount})
                   </Button>
                   {auditStatus && (
-                    <p className="mt-2 text-[11px] text-muted-foreground">{auditStatus}</p>
+                    <p className="mt-2 text-caption text-muted-foreground">{auditStatus}</p>
                   )}
                 </SidebarCard>
 
@@ -149,11 +149,11 @@ export default function MemoryAuditPage() {
                             {record.memory_id.slice(0, 8)}... → {record.decision}
                           </p>
                           {record.note && (
-                            <p className="mt-1 text-[11px] text-muted-foreground">
+                            <p className="mt-1 text-caption text-muted-foreground">
                               {record.note}
                             </p>
                           )}
-                          <p className="mt-1 text-[11px] text-muted-foreground">
+                          <p className="mt-1 text-caption text-muted-foreground">
                             v{record.version} · {record.created_at || "-"}
                           </p>
                         </div>
@@ -195,7 +195,7 @@ export default function MemoryAuditPage() {
                   filteredTimeline.map((item) => (
                     <div key={item.id}>
                       <MemoryTimelineCard item={item} />
-                      <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg bg-muted/30 px-2.5 py-2 text-[11px]">
+                      <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg bg-muted/30 px-2.5 py-2 text-caption">
                         {(["retain", "delete", "anonymize"] as AuditAction[]).map(
                           (action) => (
                             <button

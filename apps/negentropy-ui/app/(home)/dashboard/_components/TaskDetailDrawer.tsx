@@ -95,17 +95,17 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
               <div className="truncate text-sm font-semibold text-foreground">
                 {task.display_name || task.key}
               </div>
-              <div className="truncate text-[11px] text-muted-foreground">{task.key}</div>
+              <div className="truncate text-caption text-muted-foreground">{task.key}</div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted/50"
+              className="rounded-md border border-border px-2 py-1 text-caption hover:bg-muted/50"
             >
               Close
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+          <div className="mt-2 flex flex-wrap gap-1 text-micro text-muted-foreground">
             <span className="rounded-full bg-muted/50 px-1.5 py-0.5">{task.handler_kind}</span>
             {task.role ? <span className="rounded-full bg-muted/50 px-1.5 py-0.5">role: {task.role}</span> : null}
             {task.scenario ? <span className="rounded-full bg-muted/50 px-1.5 py-0.5">scenario: {task.scenario}</span> : null}
@@ -129,11 +129,11 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
               {actionPending === "toggle" ? "…" : task.enabled ? "Disable" : "Enable"}
             </button>
           </div>
-          {error ? <div className="mt-2 text-[11px] text-red-600 dark:text-red-400">{error}</div> : null}
+          {error ? <div className="mt-2 text-caption text-red-600 dark:text-red-400">{error}</div> : null}
         </header>
         <div className="flex-1 overflow-auto px-4 py-3">
           <Section title="Payload">
-            <pre className="overflow-auto rounded-md border border-border bg-muted/30 p-2 text-[11px]">
+            <pre className="overflow-auto rounded-md border border-border bg-muted/30 p-2 text-caption">
               {JSON.stringify(task.payload, null, 2)}
             </pre>
           </Section>
@@ -144,15 +144,15 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
               <ul className="space-y-2">
                 {detail.recent_executions.slice(0, 50).map((e) => (
                   <li key={e.id} className="rounded-md border border-border bg-muted/20 p-2">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="flex items-center justify-between text-caption text-muted-foreground">
                       <span className="font-mono">{e.started_at}</span>
                       <span>{e.status} · {e.duration_ms ?? "—"}ms · {e.fire_reason}</span>
                     </div>
                     {e.output_summary ? (
-                      <div className="mt-1 text-[11px] text-foreground">{e.output_summary}</div>
+                      <div className="mt-1 text-caption text-foreground">{e.output_summary}</div>
                     ) : null}
                     {e.error ? (
-                      <div className="mt-1 text-[11px] text-red-600 dark:text-red-400">{e.error}</div>
+                      <div className="mt-1 text-caption text-red-600 dark:text-red-400">{e.error}</div>
                     ) : null}
                   </li>
                 ))}
@@ -170,7 +170,7 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-4">
-      <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="mb-1 text-micro uppercase tracking-overline text-muted-foreground">{title}</div>
       {children}
     </section>
   );

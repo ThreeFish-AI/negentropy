@@ -136,7 +136,7 @@ export function TimeTravelSlider({
           <span className="text-text-secondary">时间穿梭</span>
         </label>
         {enabled && asOf && (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-micro font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
             as_of: {formatBucketLabel(asOf)}
           </span>
         )}
@@ -145,17 +145,17 @@ export function TimeTravelSlider({
       {enabled && (
         <div className={`rounded p-2 ${ROW_BG}`}>
           {loading && (
-            <p className="text-[10px] text-text-muted">
+            <p className="text-micro text-text-muted">
               加载时间轴...
             </p>
           )}
           {error && (
-            <p className="text-[10px] text-rose-600 dark:text-rose-400">
+            <p className="text-micro text-rose-600 dark:text-rose-400">
               {error}
             </p>
           )}
           {!loading && !error && points.length === 0 && (
-            <p className="text-[10px] text-text-muted">
+            <p className="text-micro text-text-muted">
               该语料库尚无时态关系数据，请构建图谱后重试
             </p>
           )}
@@ -190,7 +190,7 @@ export function TimeTravelSlider({
                 onChange={(e) => handleSliderChange(Number(e.target.value))}
                 className="mt-2 w-full"
               />
-              <div className="mt-1 flex items-center justify-between text-[10px] text-text-muted">
+              <div className="mt-1 flex items-center justify-between text-micro text-text-muted">
                 <span>{formatBucketLabel(points[0]?.date ?? "")}</span>
                 <span>
                   {formatBucketLabel(points[points.length - 1]?.date ?? "")}

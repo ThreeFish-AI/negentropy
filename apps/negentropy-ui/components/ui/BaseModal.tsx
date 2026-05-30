@@ -102,11 +102,11 @@ export function BaseModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3">
-          <h3 id={titleId} className="text-base font-semibold">
+          <h3 id={titleId} className="text-h4 font-semibold tracking-heading">
             {title}
           </h3>
           {subtitle ? (
-            <div className="mt-1 text-[11px] text-muted-foreground">
+            <div className="mt-1 text-sm text-muted-foreground">
               {subtitle}
             </div>
           ) : null}

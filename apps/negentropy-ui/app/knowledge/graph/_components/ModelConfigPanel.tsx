@@ -210,7 +210,7 @@ export function ModelConfigPanel({
       <h3 className="text-sm font-semibold text-foreground">
         Model Settings
       </h3>
-      <p className="mt-1 text-[10px] text-text-muted">
+      <p className="mt-1 text-micro text-text-muted">
         LLM 用于图谱实体/关系抽取与社区摘要；Embedding 用于向量化与检索
       </p>
 
@@ -250,7 +250,7 @@ export function ModelConfigPanel({
             ))}
           </select>
           {dims != null && (
-            <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {dims} dims
             </span>
           )}
@@ -266,7 +266,7 @@ export function ModelConfigPanel({
         {saving ? "保存中..." : saved ? "已保存" : "保存"}
       </button>
       {saveError && (
-        <p className="mt-1 text-[10px] text-red-600 dark:text-red-400">{saveError}</p>
+        <p className="mt-1 text-micro text-red-600 dark:text-red-400">{saveError}</p>
       )}
 
       {taskSlotsByType.length > 0 && (
@@ -274,7 +274,7 @@ export function ModelConfigPanel({
           <h4 className="text-xs font-semibold text-foreground">
             Task Models（per-task overrides）
           </h4>
-          <p className="mt-1 text-[10px] text-text-muted">
+          <p className="mt-1 text-micro text-text-muted">
             为该 Corpus 的子任务（实体/关系抽取、文档抽取）单独指定模型；留空 =
             回退到上方 LLM Model 与全局默认。
           </p>
@@ -298,19 +298,19 @@ export function ModelConfigPanel({
                       ariaLabel={`Task model for ${slot.task_key}`}
                     />
                     {taskSavingKey === slot.task_key && (
-                      <span className="text-[10px] text-text-muted">
+                      <span className="text-micro text-text-muted">
                         保存中…
                       </span>
                     )}
                     {taskSavedKey === slot.task_key && (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <span className="text-micro text-emerald-600 dark:text-emerald-400">
                         已保存
                       </span>
                     )}
                   </div>
                 </div>
                 {slot.description && (
-                  <p className="text-[10px] text-text-muted">
+                  <p className="text-micro text-text-muted">
                     {slot.description}
                   </p>
                 )}

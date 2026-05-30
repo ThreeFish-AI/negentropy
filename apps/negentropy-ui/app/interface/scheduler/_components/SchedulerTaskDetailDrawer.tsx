@@ -37,7 +37,7 @@ function Badge({
         ? "bg-muted text-text-secondary"
         : "bg-muted/50 text-foreground";
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${cls}`}>
       {children}
     </span>
   );
@@ -102,12 +102,12 @@ export function SchedulerTaskDetailDrawer({
                 {task.display_name || task.key}
               </h2>
               {task.is_system && (
-                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
+                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-micro font-semibold text-blue-700 dark:text-blue-300">
                   System
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{task.key}</p>
+            <p className="text-micro text-muted-foreground mt-0.5">{task.key}</p>
           </div>
           <button
             onClick={onClose}
@@ -124,7 +124,7 @@ export function SchedulerTaskDetailDrawer({
         <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
           {/* Status */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Status</h3>
+            <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">Status</h3>
             <div className="rounded-lg border border-border p-3 space-y-0.5">
               <DetailField label="Enabled">
                 <Badge variant={task.enabled ? "enabled" : "disabled"}>
@@ -150,8 +150,8 @@ export function SchedulerTaskDetailDrawer({
               )}
               {task.last_error && (
                 <div className="pt-1.5">
-                  <div className="text-[10px] text-muted-foreground mb-0.5">Last Error</div>
-                  <pre className="text-[10px] text-red-600 dark:text-red-400 bg-red-500/5 rounded p-2 whitespace-pre-wrap break-all">
+                  <div className="text-micro text-muted-foreground mb-0.5">Last Error</div>
+                  <pre className="text-micro text-red-600 dark:text-red-400 bg-red-500/5 rounded p-2 whitespace-pre-wrap break-all">
                     {task.last_error}
                   </pre>
                 </div>
@@ -161,7 +161,7 @@ export function SchedulerTaskDetailDrawer({
 
           {/* Schedule */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Schedule</h3>
+            <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">Schedule</h3>
             <div className="rounded-lg border border-border p-3 space-y-0.5">
               <DetailField label="Trigger Type">{task.trigger_type}</DetailField>
               <DetailField label="Expression">{triggerDisplay}</DetailField>
@@ -180,7 +180,7 @@ export function SchedulerTaskDetailDrawer({
 
           {/* Metadata */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Metadata</h3>
+            <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">Metadata</h3>
             <div className="rounded-lg border border-border p-3 space-y-0.5">
               <DetailField label="Handler">{task.handler_kind}</DetailField>
               {task.role && <DetailField label="Role">{task.role}</DetailField>}
@@ -196,9 +196,9 @@ export function SchedulerTaskDetailDrawer({
           {/* Payload */}
           {Object.keys(task.payload).length > 0 && (
             <section>
-              <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Payload</h3>
+              <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">Payload</h3>
               <div className="rounded-lg border border-border p-3">
-                <pre className="text-[10px] text-foreground whitespace-pre-wrap break-all max-h-[200px] overflow-auto">
+                <pre className="text-micro text-foreground whitespace-pre-wrap break-all max-h-[200px] overflow-auto">
                   {JSON.stringify(task.payload, null, 2)}
                 </pre>
               </div>

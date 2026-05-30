@@ -92,12 +92,12 @@ export function BaseDrawer({
           <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
             <div className="min-w-0 space-y-1">
               {title ? (
-                <h3 id={titleId} className="text-base font-semibold text-foreground">
+                <h3 id={titleId} className="text-h4 font-semibold tracking-heading text-foreground">
                   {title}
                 </h3>
               ) : null}
               {subtitle ? (
-                <p className="text-xs leading-relaxed text-text-muted">{subtitle}</p>
+                <p className="text-sm leading-caption text-text-muted">{subtitle}</p>
               ) : null}
             </div>
             {showClose ? (

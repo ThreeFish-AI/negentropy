@@ -60,7 +60,7 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
     <div className="space-y-3">
       <div className="space-y-2">
         <div>
-          <label className="block text-[10px] font-medium text-text-muted mb-0.5">
+          <label className="block text-micro font-medium text-text-muted mb-0.5">
             起始实体
           </label>
           <select
@@ -77,7 +77,7 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
           </select>
         </div>
         <div>
-          <label className="block text-[10px] font-medium text-text-muted mb-0.5">
+          <label className="block text-micro font-medium text-text-muted mb-0.5">
             目标实体
           </label>
           <select

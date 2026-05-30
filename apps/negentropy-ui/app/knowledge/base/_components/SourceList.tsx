@@ -56,7 +56,7 @@ export function SourceList({
         onClick={() => onSelect(undefined)}
       >
         <span className="font-medium">All Sources</span>
-        <span className="ml-1.5 text-[10px] opacity-70">({totalCount})</span>
+        <span className="ml-1.5 text-micro opacity-70">({totalCount})</span>
       </button>
 
       {onAddSource && (
@@ -99,7 +99,7 @@ export function SourceList({
               title={displayName}
             >
               <span className="block truncate">{displayName}</span>
-              <span className="text-[10px] opacity-70">
+              <span className="text-micro opacity-70">
                 {source.count} chunk{source.count > 1 ? "s" : ""}
                 {source.archived ? " · Archived" : ""}
               </span>

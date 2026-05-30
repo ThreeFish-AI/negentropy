@@ -186,7 +186,7 @@ function TreeBranch({
                 className="rounded"
               />
               <span className="truncate">{node.name}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/40">
+              <span className="ml-auto text-micro text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/40">
                 {node.node_type}
               </span>
             </label>

@@ -75,7 +75,7 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
         value={seedHint}
         onChange={(e) => setSeedHint(e.target.value)}
         placeholder="可选：种子实体（用逗号分隔；留空则自动从查询提取）"
-        className="w-full rounded border border-input bg-background px-2 py-1 text-[10px]"
+        className="w-full rounded border border-input bg-background px-2 py-1 text-micro"
       />
       <button
         onClick={handleSubmit}
@@ -86,17 +86,17 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
       </button>
 
       {error && (
-        <p className="text-[10px] text-rose-600 dark:text-rose-400">{error}</p>
+        <p className="text-micro text-rose-600 dark:text-rose-400">{error}</p>
       )}
 
       {result && (
         <div className="space-y-2 rounded bg-muted p-2">
-          <div className="flex items-center justify-between text-[10px] text-text-muted">
+          <div className="flex items-center justify-between text-micro text-text-muted">
             <span>seeds: {result.seeds.join(", ") || "（未找到）"}</span>
             <span>{result.latency_ms.toFixed(0)} ms</span>
           </div>
           {result.evidence_chain.length === 0 ? (
-            <p className="text-[10px] text-text-muted">
+            <p className="text-micro text-text-muted">
               {result.seeds.length === 0
                 ? "未能从查询中提取种子实体；请显式提供种子。"
                 : "未发现可达的多跳推理路径。"}
@@ -112,7 +112,7 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
                     <span className="font-medium text-text-secondary">
                       {c.target_label}
                     </span>
-                    <span className="ml-2 text-[10px] text-text-muted">
+                    <span className="ml-2 text-micro text-text-muted">
                       score={c.score.toFixed(4)} · {c.path.length - 1} 跳
                     </span>
                   </summary>
@@ -121,7 +121,7 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
                       {c.edges.map((e, i) => (
                         <li
                           key={`${e.source_id}-${e.target_id}-${i}`}
-                          className="text-[10px] text-text-secondary"
+                          className="text-micro text-text-secondary"
                         >
                           <span className="font-mono text-text-muted">
                             {e.source_label || e.source_id.slice(0, 8) + "…"}{" "}
@@ -137,7 +137,7 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
                       ))}
                       </ol>
                     ) : (
-                      <p className="mt-1 text-[10px] text-text-muted">
+                      <p className="mt-1 text-micro text-text-muted">
                         （无完整证据链 — 可能是孤立 / 跨子图节点）
                       </p>
                     )}

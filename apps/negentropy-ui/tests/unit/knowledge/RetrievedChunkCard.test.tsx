@@ -76,9 +76,9 @@ describe("RetrievedChunkCard", () => {
 
     render(<RetrievedChunkCard chunk={createChunk()} onOpen={onOpen} density="compact" />);
 
-    expect(screen.getByText("parent chunk preview").className).toContain("text-[11px]");
-    expect(screen.getByText("SCORE 0.91").className).toContain("text-[8px]");
-    expect(screen.getByText("Open").closest("button")?.className).toContain("text-[10px]");
+    expect(screen.getByText("parent chunk preview").className).toContain("text-caption");
+    expect(screen.getByText("SCORE 0.91").className).toContain("text-micro");
+    expect(screen.getByText("Open").closest("button")?.className).toContain("text-micro");
 
     await user.click(screen.getByText("Open"));
 

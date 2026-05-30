@@ -79,7 +79,7 @@ function DefaultErrorFallback({
             <summary className="text-xs font-medium text-text-secondary cursor-pointer mb-2">
               错误详情（开发模式）
             </summary>
-            <pre className="text-[10px] bg-muted p-2 rounded overflow-auto max-h-40">
+            <pre className="text-micro bg-muted p-2 rounded overflow-auto max-h-40">
               {error.stack}
             </pre>
           </details>

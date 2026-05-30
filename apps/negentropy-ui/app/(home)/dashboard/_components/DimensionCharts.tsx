@@ -35,7 +35,7 @@ const DONUT_COLORS = [
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
-      <div className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="mb-2 text-caption uppercase tracking-overline text-muted-foreground">{title}</div>
       {/* 显式 min-h 让 ResponsiveContainer 即便在 SSR / Flex 折叠时仍有非负尺寸，
           避免 recharts "width(-1) and height(-1)" 警告。 */}
       <div className="h-56 min-h-[14rem] w-full" style={{ minWidth: 1 }}>

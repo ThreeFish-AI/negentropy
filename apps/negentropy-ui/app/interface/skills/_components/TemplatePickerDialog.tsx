@@ -140,17 +140,17 @@ export function TemplatePickerDialog({ open, onClose, onInstalled }: TemplatePic
                   <h3 className="truncate text-sm font-semibold text-foreground">
                     {tpl.display_name || tpl.name}
                   </h3>
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-text-secondary">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-micro text-text-secondary">
                     v{tpl.version}
                   </span>
-                  <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                  <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-micro text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                     {tpl.category}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-text-muted line-clamp-3 text-text-muted">
                   {tpl.description || "No description"}
                 </p>
-                <p className="mt-1 text-[11px] text-text-muted">{tpl.template_id}</p>
+                <p className="mt-1 text-caption text-text-muted">{tpl.template_id}</p>
               </div>
               <button
                 type="button"

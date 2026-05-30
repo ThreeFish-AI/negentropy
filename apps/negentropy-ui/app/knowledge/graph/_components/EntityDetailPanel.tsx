@@ -158,7 +158,7 @@ export function EntityDetailPanel({
                   <span className="text-xs font-medium text-text-secondary">
                     {rel.relation_type}
                   </span>
-                  <span className="text-[10px] text-text-muted">
+                  <span className="text-micro text-text-muted">
                     {rel.confidence.toFixed(2)}
                   </span>
                 </div>
@@ -176,7 +176,7 @@ export function EntityDetailPanel({
                   </span>
                 </div>
                 {rel.evidence_text && (
-                  <p className="text-[10px] text-text-muted mt-1 line-clamp-2">
+                  <p className="text-micro text-text-muted mt-1 line-clamp-2">
                     {rel.evidence_text}
                   </p>
                 )}

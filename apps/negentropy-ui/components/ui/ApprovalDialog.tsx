@@ -109,10 +109,10 @@ export function ApprovalDialog({ pending, onRespond }: Props) {
           <span
             className={
               tier === "high"
-                ? "rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red-700 dark:bg-red-950/70 dark:text-red-200"
+                ? "rounded-full bg-red-100 px-2 py-0.5 text-micro font-semibold uppercase tracking-overline text-red-700 dark:bg-red-950/70 dark:text-red-200"
                 : tier === "medium"
-                  ? "rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:bg-amber-950/70 dark:text-amber-200"
-                  : "rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary"
+                  ? "rounded-full bg-amber-100 px-2 py-0.5 text-micro font-semibold uppercase tracking-overline text-amber-700 dark:bg-amber-950/70 dark:text-amber-200"
+                  : "rounded-full bg-muted px-2 py-0.5 text-micro font-semibold uppercase tracking-overline text-text-secondary"
             }
           >
             {RISK_TIER_LABEL[tier]}

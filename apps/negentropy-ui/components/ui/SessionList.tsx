@@ -169,7 +169,7 @@ export function SessionList({
         <div
           role="tablist"
           aria-label="Session view"
-          className="inline-flex h-7 items-center rounded-lg border border-border bg-border-muted/50 p-0.5 text-[11px] font-medium"
+          className="inline-flex h-7 items-center rounded-lg border border-border bg-border-muted/50 p-0.5 text-caption font-medium"
         >
           <button
             type="button"
@@ -203,7 +203,7 @@ export function SessionList({
         </div>
         {view === "active" && onNewSession && (
           <button
-            className="inline-flex h-6 items-center gap-1 rounded-full bg-primary px-2 text-[10px] font-semibold text-primary-foreground transition-[background-color,transform] duration-150 ease-out hover:bg-primary-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-6 items-center gap-1 rounded-full bg-primary px-2 text-micro font-semibold text-primary-foreground transition-[background-color,transform] duration-150 ease-out hover:bg-primary-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={onNewSession}
             type="button"
           >
@@ -247,7 +247,7 @@ export function SessionList({
                   : "暂无会话"}
             </p>
             {!normalizedQuery && view === "active" && onNewSession ? (
-              <p className="text-[10px] text-text-muted/80">
+              <p className="text-micro text-text-muted/80">
                 点击右上角 New 开始新会话
               </p>
             ) : null}
@@ -311,7 +311,7 @@ export function SessionList({
                     <span className="block truncate">{session.label}</span>
                     {session.timeLabel && (
                       <span className={cn(
-                        "block text-[10px] font-normal mt-0.5 truncate",
+                        "block text-micro font-normal mt-0.5 truncate",
                         session.id === activeId ? "text-primary/70" : "text-text-muted",
                       )}>
                         {session.timeLabel}
@@ -377,7 +377,7 @@ export function SessionList({
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-[10px] font-medium tabular-nums text-text-muted">
+          <span className="text-micro font-medium tabular-nums text-text-muted">
             {safePage} / {totalPages}
           </span>
           <button

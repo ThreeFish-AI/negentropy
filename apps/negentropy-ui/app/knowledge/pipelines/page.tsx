@@ -313,7 +313,7 @@ export default function KnowledgePipelinesPage() {
                     key={metric.label}
                     className="rounded-2xl border border-border bg-card p-4 shadow-sm"
                   >
-                    <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
+                    <p className="text-xs uppercase tracking-label text-text-muted">
                       {metric.label}
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">
@@ -332,7 +332,7 @@ export default function KnowledgePipelinesPage() {
                     <span>{lastUpdatedAt || "最近 24h"}</span>
                     {selectedKbRun && (
                       <button
-                        className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-[11px]")}
+                        className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-caption")}
                         onClick={async () => {
                           if (!selectedKbRun) return;
                           setSaveStatus("saving");
@@ -412,7 +412,7 @@ export default function KnowledgePipelinesPage() {
                       <button
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                       >
                         Previous
                       </button>
@@ -422,7 +422,7 @@ export default function KnowledgePipelinesPage() {
                       <button
                         onClick={() => setPage((p) => Math.min(Math.ceil(total / PAGE_SIZE), p + 1))}
                         disabled={page >= Math.ceil(total / PAGE_SIZE)}
-                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                       >
                         Next
                       </button>
@@ -474,7 +474,7 @@ export default function KnowledgePipelinesPage() {
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
                   <p className="font-semibold">待重试写回：{retryQueue.length}</p>
                   <button
-                    className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
+                    className="mt-3 rounded bg-amber-600 px-3 py-2 text-caption font-semibold text-white"
                     onClick={async () => {
                       const next = retryQueue[0];
                       if (!next || next.source !== "kb") return;

@@ -2621,3 +2621,20 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **验证**：新增 `test_presidio_detects_cn_mobile_via_zh_nlp_engine`——`13912345678` 经 CN_MOBILE 命中 `phone`；EN PERSON/email 仍正常；既有 31 例 PII 测试无回归。实机日志 `presidio_analyze_failed lang=zh` 消除。
 - **后续防范**：多语 NLP/检索引擎必须显式声明每语言的模型/资源映射，不能依赖库默认（默认通常单语）；新增语言时同步扩 `_build_nlp_engine` 候选表 + bootstrap 模型清单（`_PII_SPACY_MODELS`）。
 - **同类问题影响**：任何按 `supported_languages` 跑多语的组件（NER、翻译、检索）都要核对底层引擎是否真的为每种语言装配了资源。
+
+---
+
+## ISSUE-102 裸 `text-[Npx]` 魔法字号全站规范化为语义令牌
+
+- **表因**：`negentropy-ui` 全站约 450+ 处裸 `text-[10px]/[11px]` 等任意小字号散落 113 文件，无语义、无单一事实源、档位混用（8/9/10/11/12/13px）；上一处 `body` 行高改无单位修复（`d3883bdc`）后它们虽能正确缩放，但仍是难维护的魔法数字。
+- **根因**：设计令牌标度（`apps/negentropy-ui/app/globals.css` 的 `@theme inline`）止于 `--text-body`(14px)，缺 caption 档语义令牌，开发者只能就地写任意 px。
+- **处理方式**：
+  1. 新增 `--text-caption`(0.6875rem/11px)、`--text-micro`(0.625rem/10px)，**故意不配对 `--line-height`**——Tailwind v4 仅输出 `font-size`，与裸 `text-[Npx]` 行为逐字节一致，行高沿用 body 无单位 1.375 比值；对 10/11px 主流站点实现像素零变化（含祖先覆写行高），低于 micro 两档下限的原 8/9px 站点随之上调至 10px（见验证项与 review 收口补充）；
+  2. 机械替换 `text-[11px]→text-caption`、`text-[10/9/8px]→text-micro`（脚本前置核验：**零** `text-[Npx]` 出现在 `[&_]:`/`sm:` 变体前缀中 → 安全）；
+  3. overline 模式（`uppercase`+小字号）：39 个 `tracking-wide/wider`(0.025/0.05em) + 19 个无字距统一为既有 `tracking-overline`(0.06em)，**保留** 13 个故意更宽的 `tracking-widest`(0.1em)/`tracking-[0.16~0.24em]`（折叠会可见收窄，违背最小干预）；
+  4. `text-[12/13px]`(3 处) 介于 caption 与 body 之间、两档模型无对应，保持原值豁免。
+- **验证**：残留 `text-[8/9/10/11px]`=0；`text-caption`=198、`text-micro`=267、`tracking-overline`=55 与基线精确对账；编译 CSS 确认仅 `font-size`；chrome_devtools computed-style 探针证 **10/11px→caption/micro 逐像素一致**；原 **8/9px(15 处:评分徽标/角标/眼纹标签)上调至 10px micro 下限**(+1~2px、已知可见可接受——10px 较 8px 更易读，与下述 tracking 位移同口径)、overline 字距 +0.1px 子像素；tsc/eslint(`--max-warnings=0`)/727 单测全绿；明暗双模实机抽检 knowledge/base 与 scheduler 渲染正常。
+- **后续防范**：①Tailwind v4 字号令牌**仅当被源码用到才生成**工具类/`:root` 变量（tree-shaking），验证须先迁移真实使用点再 grep 编译产物，不能抽象空验；②`@theme` 字号令牌按需决定是否配对 `--line-height`——不配对=继承祖先比值（适合需随上下文缩放的小字），配对=固定（适合标题）；③大规模 className 机械替换前必须确认目标 token 不在变体前缀内（`[&_]:`/响应式/伪类），且替换按 token 字符串而非 `className=` 锚定（因大量 token 散在 `cn()` 片段与抽出的 `const xCls` 中）；④折叠 ad-hoc 间距/字号前先核验目标值与现值差异是否子像素，可见差异（如 0.1em→0.06em）应保留而非强行归一。
+- **同类问题影响**：其余 ad-hoc 任意值（`leading-[...]`、`gap-[...]`、`rounded-[...]` 等魔法数字）若后续规范化，可复用本条的「前置安全核验 + token 字符串替换 + 编译/computed-style 双重实证 + 子像素差异保留」范式。
+- **后续补充（tracking-[...] 宽标签语义化）**：复用上述范式处理剩余 14 处 `tracking-[0.14~0.24em]`。实测其中 **13 处为 `uppercase` 宽间距标签眼纹**（一致设计模式，众数 0.18em），新增 `--tracking-label: 0.18em` 语义令牌收敛；**剔除** 1 处非 uppercase 的作者名 pill（`MessageBubble.tsx` 的 `tracking-[0.14em]`，语义不符且非该模式）。computed-style 量化收口：众数 0.18em→0.18em 渲染零变化、0.16em→0.18em +1.6px、极端 0.24em→0.18em 短标题 −5.3px（已知可见、可接受，因属短 section 标题且更趋一致）。`rounded-[1.5~2rem]`(6) 与 `gap-[2px]`(1) 为定制一次性值、无对应令牌且 ROI 低，**不纳入**。教训补充：⑤ad-hoc 值语义化前必须先按「是否同一设计模式」分类（此处以 `uppercase` 判别 label vs pill），勿因值相近就盲并；⑥单令牌吸收一段值域时，用 computed-style 量化**最坏值**的累计宽度位移（非单 gap 差），据此判定可接受性而非仅看 em 差。
+- **后续补充（review 收口：sub-10px 下限与冗余清理）**：评审指出原 `text-[8/9px]` 并入 `text-micro` 后，`RetrievedChunkCard` 评分徽标 `isCompact` 分支残留冗余 `text-micro`（base 已是 micro），致紧凑态字号不再随密度收缩、仅 padding 收紧。**确认 10px 为 micro 档下限**（8px 近不可读，10px 更佳且与「可接受可见位移」口径自洽），删除该 3 处冗余类（`text-micro` 计数 267→264，渲染零变化）；标准缩档 base `text-caption`→compact `text-micro`(11→10px) 保持不动。教训⑦：单令牌设最小档后，原低于该档的散值会被**静默上调**——机械替换须对「低于令牌最小档」的来源值单独标注，勿令「残留=0」的计数对账掩盖真实像素位移。

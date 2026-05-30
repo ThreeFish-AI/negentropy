@@ -20,7 +20,7 @@ export function EndpointCard({ endpoint, isSelected, onClick }: EndpointCardProp
     >
       <div className="flex items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${getMethodColor(
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-micro font-semibold uppercase tracking-overline ${getMethodColor(
             endpoint.method
           )}`}
         >
@@ -30,7 +30,7 @@ export function EndpointCard({ endpoint, isSelected, onClick }: EndpointCardProp
           {endpoint.summary}
         </span>
       </div>
-      <p className="mt-1.5 truncate text-[11px] font-mono text-text-muted">
+      <p className="mt-1.5 truncate text-caption font-mono text-text-muted">
         {endpoint.path}
       </p>
     </button>

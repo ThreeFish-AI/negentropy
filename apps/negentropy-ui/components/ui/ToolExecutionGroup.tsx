@@ -106,11 +106,11 @@ function ToolProgressBar({ progress }: { progress: ToolProgressSnapshot }) {
           aria-hidden="true"
         />
       </div>
-      <span className="shrink-0 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 tabular-nums">
+      <span className="shrink-0 text-micro font-mono text-zinc-500 dark:text-zinc-400 tabular-nums">
         {percent}%
       </span>
       {(progress.stage || etaText) && (
-        <span className="shrink-0 text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[10rem]">
+        <span className="shrink-0 text-micro text-zinc-500 dark:text-zinc-400 truncate max-w-[10rem]">
           {[progress.stage, etaText].filter(Boolean).join(" · ")}
         </span>
       )}
@@ -191,7 +191,7 @@ function ToolExecutionCard({
             return sub ? <KgBuildProgressPill corpusId={sub.corpusId} enqueued={sub.enqueued} /> : null;
           })()}
         </div>
-        <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+        <span className="shrink-0 text-micro uppercase tracking-label text-zinc-400">
           {expanded ? "收起" : "展开"}
         </span>
       </button>
@@ -199,7 +199,7 @@ function ToolExecutionCard({
       {expanded ? (
         <div className="mt-3 space-y-3 border-t border-zinc-200/70 pt-3 dark:border-zinc-800">
           <div className="space-y-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+            <div className="text-micro font-semibold uppercase tracking-label text-zinc-500 dark:text-zinc-400">
               Parameters
             </div>
             <div className="max-h-52 overflow-auto rounded-xl border border-zinc-200/70 bg-zinc-50 p-2 text-xs dark:border-zinc-800 dark:bg-zinc-950/70">
@@ -208,7 +208,7 @@ function ToolExecutionCard({
           </div>
           {tool.result ? (
             <div className="space-y-1">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              <div className="text-micro font-semibold uppercase tracking-label text-zinc-500 dark:text-zinc-400">
                 Result
               </div>
               <div className="max-h-52 overflow-auto rounded-xl border border-zinc-200/70 bg-zinc-50 p-2 text-xs dark:border-zinc-800 dark:bg-zinc-950/70">
@@ -268,14 +268,14 @@ function ToolExecutionGroupBody({
       >
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-50 dark:bg-zinc-100 dark:text-zinc-950">
+            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-micro font-semibold uppercase tracking-label text-zinc-50 dark:bg-zinc-100 dark:text-zinc-950">
               {block.parallel ? "Parallel" : "Tool"}
             </span>
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               {block.title}
             </span>
             {block.status === "error" ? (
-              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-700 dark:bg-red-950/70 dark:text-red-200">
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-micro font-semibold uppercase tracking-label text-red-700 dark:bg-red-950/70 dark:text-red-200">
                 Error
               </span>
             ) : null}
@@ -284,7 +284,7 @@ function ToolExecutionGroupBody({
             {block.summary}
           </div>
         </div>
-        <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+        <span className="shrink-0 text-micro uppercase tracking-label text-zinc-400">
           {expanded ? "收起过程" : "展开过程"}
         </span>
       </button>

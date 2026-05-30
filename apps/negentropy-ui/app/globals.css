@@ -144,8 +144,54 @@
   --animate-fade-in: fade-in var(--duration-base) var(--ease-out) both;
   --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-out) both;
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Noto Sans SC", "Microsoft YaHei",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", "Fira Code", ui-monospace,
+    SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* 排版标度 — 字号（Minor Third ~1.2 ratio）
+   * 关键：Tailwind v4 字号命名空间是 --text-*（生成 text-* 工具类），
+   * 配对行高用 --text-{name}--line-height 后缀语法（字号自带默认行高）。
+   * 仅新增不与内置冲突的语义名（display/h1-h4/body-lg/body）；
+   * 内置 text-sm(14px)/text-xs(12px)/text-2xl(24px) 等保持原样，避免回归。 */
+  --text-display: 2.25rem;             /* 36px 页面巨标题/英雄区 */
+  --text-display--line-height: 2.5rem; /* 40px */
+  --text-display--letter-spacing: -0.03em;
+  --text-h1: 1.875rem;                 /* 30px */
+  --text-h1--line-height: 2.25rem;     /* 36px */
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: 1.5rem;                   /* 24px */
+  --text-h2--line-height: 2rem;        /* 32px */
+  --text-h2--letter-spacing: -0.02em;
+  --text-h3: 1.25rem;                  /* 20px */
+  --text-h3--line-height: 1.75rem;     /* 28px */
+  --text-h3--letter-spacing: -0.02em;
+  --text-h4: 1.125rem;                 /* 18px */
+  --text-h4--line-height: 1.625rem;    /* 26px */
+  --text-h4--letter-spacing: -0.02em;
+  --text-body-lg: 1rem;                /* 16px UI 舒适正文 */
+  --text-body-lg--line-height: 1.5rem; /* 24px */
+  --text-body: 0.875rem;               /* 14px UI 默认正文 */
+  --text-body--line-height: 1.375rem;  /* 22px */
+  /* caption 档 — 标签/徽标/时间戳/元信息等小字（替代散落的 text-[10/11px] 魔法值）。
+   * 故意不配对 --line-height：与裸 text-[Npx] 行为一致，仅输出 font-size，
+   * 行高沿用 body 的无单位 1.375 比值（caption→15.125px、micro→13.75px），
+   * 既保持像素零变化，又能在祖先覆写行高时随字号缩放。 */
+  --text-caption: 0.6875rem;           /* 11px 次级小字/说明文字 */
+  --text-micro: 0.625rem;              /* 10px 徽标/角标/极小元信息 */
+
+  /* 排版标度 — 行高（Tailwind v4 命名空间 --leading-*，生成 leading-* 工具类） */
+  --leading-body-lg: 1.5rem;       /* 24px */
+  --leading-body: 1.375rem;        /* 22px */
+  --leading-caption: 1.125rem;     /* 18px 小字/说明文字 */
+
+  /* 排版标度 — 字间距（Tailwind v4 命名空间 --tracking-*，已正确生效） */
+  --tracking-heading: -0.02em;
+  --tracking-body: -0.01em;
+  --tracking-default: 0em;
+  --tracking-caption: 0.01em;
+  --tracking-overline: 0.06em;     /* 紧凑眼纹/小标签（uppercase 默认级） */
+  --tracking-label: 0.18em;        /* 宽间距 uppercase 标签眼纹（替代散落的 tracking-[0.14~0.24em] 魔法值，取其众数 0.18em） */
 }
 
 /* 暗色模式 - 类选择器 (通过 next-themes 控制，支持手动切换和系统偏好) */
@@ -192,6 +238,20 @@ body {
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.94));
   color: var(--foreground);
   font-family: var(--font-sans);
+
+  /* 字体渲染优化：macOS 抗锯齿 + OpenType 字距与连字 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1;
+  font-variant-ligatures: common-ligatures;
+  /* 全局正文行高/字间距基线。
+   * 行高用「无单位」比值：body 字号 16px 时解析为 22px（与原绝对值同效，保持排版节奏），
+   * 且后代元素按各自字号缩放，避免绝对 rem 被 text-[10px] 等任意小字号继承为固定 22px 行距
+   * （Tailwind 内置 text-sm/2xl 等自带行高，不受影响；受影响的仅是无配对行高的任意字号）。
+   * letter-spacing 的 --tracking-body 因被本规则 var() 引用，Tailwind 会输出到 :root，可正常解析。 */
+  line-height: 1.375;
+  letter-spacing: var(--tracking-body);
 }
 
 .dark body {
@@ -261,6 +321,18 @@ body {
  * 符合 WCAG 2.1 AA 对比度标准 (≥4.5:1)
  */
 @layer base {
+  /* 标题基础：统一字重、字间距、平衡换行 */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: var(--tracking-heading);
+    text-wrap: balance;
+  }
+
+  /* 段落：避免末行孤词 */
+  p {
+    text-wrap: pretty;
+  }
+
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   textarea,
   select {

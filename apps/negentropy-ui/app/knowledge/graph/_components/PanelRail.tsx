@@ -32,7 +32,7 @@ export function PanelRail({ panels, openPanel, onToggle }: PanelRailProps) {
             onClick={() => onToggle(panel.key)}
             aria-label={isActive ? `关闭${panel.label}` : `打开${panel.label}`}
             aria-expanded={isActive}
-            className={`flex flex-col items-center justify-center rounded-l-md border border-r-0 px-0 py-2 text-[11px] tracking-wide transition-colors ${
+            className={`flex flex-col items-center justify-center rounded-l-md border border-r-0 px-0 py-2 text-caption tracking-wide transition-colors ${
               isActive
                 ? "border-l-2 border-l-blue-500 border-border bg-blue-50 font-medium text-blue-600 dark:border-l-blue-400 dark:bg-blue-950/30 dark:text-blue-400"
                 : "border-border bg-card text-text-muted hover:bg-muted hover:text-foreground"

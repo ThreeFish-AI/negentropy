@@ -1236,7 +1236,7 @@ export function HomeBody({
 
             {/* 右区：审批策略 + State 栏开合 */}
             <div className="flex shrink-0 items-center gap-2">
-              <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[11px] text-text-muted" />
+              <ApprovalPolicySelector className="inline-flex items-center gap-1 text-caption text-text-muted" />
               <button
                 type="button"
                 onClick={() => setShowRightPanel(!showRightPanel)}

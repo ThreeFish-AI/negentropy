@@ -106,7 +106,7 @@ export function GraphCanvasFrame({
       className={className ? `${baseClass} ${className}` : baseClass}
     >
       {children}
-      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-[10px]">
+      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-micro">
         {stats && (
           <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
             {stats.nodes} 节点 · {stats.edges} 边

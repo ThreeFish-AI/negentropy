@@ -57,10 +57,10 @@ export function JsonInput({ field, value, onChange }: JsonInputProps) {
         }`}
       />
       {error && (
-        <p className="mt-1 text-[10px] text-rose-500">{error}</p>
+        <p className="mt-1 text-micro text-rose-500">{error}</p>
       )}
       {field.description && !error && (
-        <p className="mt-1 text-[10px] text-text-muted">
+        <p className="mt-1 text-micro text-text-muted">
           {field.description}
         </p>
       )}

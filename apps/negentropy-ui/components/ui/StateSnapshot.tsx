@@ -28,7 +28,7 @@ export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
         </p>
         {connection && (
           <span
-            className="inline-flex items-center gap-1.5 rounded-full bg-border-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-secondary"
+            className="inline-flex items-center gap-1.5 rounded-full bg-border-muted px-2 py-0.5 text-micro font-semibold uppercase tracking-overline text-text-secondary"
             aria-label={`连接状态：${connection}`}
           >
             <span

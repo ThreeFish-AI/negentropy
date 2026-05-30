@@ -40,15 +40,15 @@ export function CorpusSelect({ field, value, onChange }: CorpusSelectProps) {
         )}
       </div>
       {error && (
-        <p className="mt-1 text-[10px] text-rose-500">{error}</p>
+        <p className="mt-1 text-micro text-rose-500">{error}</p>
       )}
       {!loading && corpora.length === 0 && !error && (
-        <p className="mt-1 text-[10px] text-amber-500">
+        <p className="mt-1 text-micro text-amber-500">
           暂无语料库，请先创建一个
         </p>
       )}
       {field.description && (
-        <p className="mt-1 text-[10px] text-text-muted">
+        <p className="mt-1 text-micro text-text-muted">
           {field.description}
         </p>
       )}

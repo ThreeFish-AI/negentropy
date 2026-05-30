@@ -38,7 +38,7 @@ export function NumberInput({ field, value, onChange }: NumberInputProps) {
         className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground tabular-nums focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       />
       {field.description && (
-        <p className="mt-1 text-[10px] text-text-muted">
+        <p className="mt-1 text-micro text-text-muted">
           {field.description}
         </p>
       )}

@@ -236,7 +236,7 @@ export function CatalogTreeNode({
 
         {/* Type badge — 中文标签（自 PR-4 起替换 enum 值原文显示） */}
         {!isEditing && (
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground shrink-0">
+          <span className="ml-auto text-micro px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground shrink-0">
             {NODE_TYPE_LABELS[node.node_type] ?? "目录"}
           </span>
         )}

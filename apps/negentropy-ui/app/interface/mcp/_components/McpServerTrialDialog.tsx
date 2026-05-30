@@ -443,7 +443,7 @@ export function McpServerTrialDialog({
                       }`}
                     >
                       <div className="font-mono text-xs">{tool.display_name || tool.title || tool.name}</div>
-                      <div className="mt-1 text-[11px] tabular-nums text-text-muted">{tool.call_count} calls</div>
+                      <div className="mt-1 text-caption tabular-nums text-text-muted">{tool.call_count} calls</div>
                     </button>
                   ))}
                 </div>
@@ -531,9 +531,9 @@ export function McpServerTrialDialog({
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs">{run.tool_name}</span>
-                      <span className="text-[11px] text-text-muted">{run.status}</span>
+                      <span className="text-caption text-text-muted">{run.status}</span>
                     </div>
-                    <div className="mt-1 text-[11px] tabular-nums text-text-muted">
+                    <div className="mt-1 text-caption tabular-nums text-text-muted">
                       {run.origin} · {run.duration_ms} ms · {formatTime(run.started_at)}
                     </div>
                   </button>
@@ -577,7 +577,7 @@ export function McpServerTrialDialog({
                             <div className="text-xs font-medium text-foreground">
                               {event.sequence_num}. {event.title}
                             </div>
-                            <div className="text-[11px] text-text-muted">
+                            <div className="text-caption text-text-muted">
                               {event.stage} · {event.status}
                             </div>
                           </div>
