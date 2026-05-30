@@ -18,6 +18,8 @@ export type {
   RoutineCreatePayload,
   RoutineUpdatePayload,
   RoutineStreamEvent,
+  RoutinePresetSummary,
+  RoutineFromPresetPayload,
 } from "./types";
 
 export {
@@ -31,6 +33,8 @@ export {
   controlRoutine,
   approveIteration,
   rejectIteration,
+  fetchPresets,
+  createRoutineFromPreset,
 } from "./api";
 
 export { useRoutineData } from "./hooks/useRoutineData";
