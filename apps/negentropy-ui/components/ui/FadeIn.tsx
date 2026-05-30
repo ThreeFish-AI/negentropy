@@ -4,6 +4,15 @@ import { type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+/** 模块级预创建 motion 元素，避免渲染期间调用 motion.create() 创建新组件。 */
+const motionElements = {
+  div: motion.div,
+  section: motion.section,
+  span: motion.span,
+} as const;
+
+type ElementType = "div" | "section" | "span";
+
 /**
  * 视口入场淡入包装器（参考 ReactBits FadeContent / AnimatedContent）。
  *
@@ -23,7 +32,7 @@ export function FadeIn({
   delay?: number;
   className?: string;
   /** 容器元素，默认 div。 */
-  as?: "div" | "section" | "span";
+  as?: ElementType;
 }) {
   const prefersReduced = useReducedMotion();
 
@@ -32,7 +41,7 @@ export function FadeIn({
     return <Tag className={className}>{children}</Tag>;
   }
 
-  const Tag = motion.create(as);
+  const Tag = motionElements[as];
 
   return (
     <Tag

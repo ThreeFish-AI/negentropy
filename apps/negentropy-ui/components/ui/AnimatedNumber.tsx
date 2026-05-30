@@ -20,24 +20,32 @@ export function AnimatedNumber({
   duration?: number;
   className?: string;
 }) {
-  const [display, setDisplay] = useState(0);
   const prefersReduced = useReducedMotion();
+
+  if (prefersReduced) {
+    return <span className={className}>{value.toLocaleString()}</span>;
+  }
+
+  return (
+    <AnimatedNumberAnim value={value} duration={duration} className={className} />
+  );
+}
+
+function AnimatedNumberAnim({
+  value,
+  duration = 500,
+  className,
+}: {
+  value: number;
+  duration?: number;
+  className?: string;
+}) {
+  const [display, setDisplay] = useState(0);
   const rafRef = useRef<number>(0);
   const startRef = useRef<number>(0);
 
   useEffect(() => {
-    if (prefersReduced) {
-      setDisplay(value);
-      return;
-    }
-
-    const from = 0;
     const to = value;
-
-    if (from === to) {
-      setDisplay(to);
-      return;
-    }
 
     const animate = (timestamp: number) => {
       if (!startRef.current) startRef.current = timestamp;
@@ -46,7 +54,7 @@ export function AnimatedNumber({
 
       // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from + (to - from) * eased));
+      setDisplay(Math.round(to * eased));
 
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(animate);
@@ -59,7 +67,7 @@ export function AnimatedNumber({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [value, duration, prefersReduced]);
+  }, [value, duration]);
 
   return (
     <span className={className}>
