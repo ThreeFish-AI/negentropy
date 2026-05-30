@@ -132,7 +132,7 @@ export function PresetPickerDialog({ open, onClose, onCreated }: PresetPickerDia
       contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-3xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
     >
       <div className="border-b border-border px-5 py-4">
-        <h2 className="text-lg font-semibold text-foreground">Demo 预设</h2>
+        <h2 className="text-lg font-semibold text-foreground">Template</h2>
         <p className="mt-1 text-sm text-text-muted">
           选择一个内置 Demo 场景，快速体验 Routine 的全部核心能力
         </p>
