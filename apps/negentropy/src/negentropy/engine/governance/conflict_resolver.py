@@ -100,6 +100,17 @@ class ConflictResolver:
             user_id=user_id,
         )
 
+        # Fire-and-forget: 主动召回缓存失效，避免返回陈旧数据
+        try:
+            import asyncio
+
+            from negentropy.engine.factories.memory import get_proactive_recall_service
+
+            svc = get_proactive_recall_service()
+            asyncio.create_task(svc.invalidate_cache(user_id=user_id, app_name=app_name))
+        except Exception:
+            pass  # 缓存失效非关键路径，不阻断主流程
+
         return conflict
 
     def _classify_conflict(self, old_fact: Fact, new_fact: Fact) -> str:

@@ -241,6 +241,14 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 <a id="ref24"></a>[24] B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, *Site Reliability Engineering: How Google Runs Production Systems*. O'Reilly, 2016.
 
+<a id="ref25"></a>[25] D. Jiang, Y. Li, G. Li, and B. Li, "MAGMA: A multi-graph based agentic memory architecture for AI agents," arXiv:2601.03236, Jan. 2026.
+
+<a id="ref26"></a>[26] B. J. Gutierrez, Y. Shu, W. Qi, S. Zhou, and Y. Su, "From RAG to memory: Non-parametric continual learning for large language models," in *Proc. ICML*, 2025. (HippoRAG 2)
+
+<a id="ref27"></a>[27] T. Chhikara, D. Khant, S. Aryan, T. Singh, and D. Yadav, "Mem0: Building production-ready AI agents with scalable long-term memory," arXiv:2504.19413, 2025.
+
+<a id="ref28"></a>[28] X. Chen *et al.*, "Learning to forget: Sleep-inspired memory consolidation for resolving proactive interference in LLMs," arXiv:2603.14517, 2026. (SleepGate)
+
 ---
 
 ## 6. 附录：Phase 4 评测基线快照

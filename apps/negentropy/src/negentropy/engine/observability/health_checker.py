@@ -45,7 +45,18 @@ async def check_memory_health() -> dict[str, Any]:
             "consolidation_policy": mem_cfg.consolidation.policy,
             "consolidation_steps": mem_cfg.consolidation.steps,
             "pii_engine": mem_cfg.pii.engine,
+            "relevance_enabled": mem_cfg.relevance.enabled,
+            "gatekeeper_enabled": mem_cfg.pii.gatekeeper_enabled,
         }
+
+        # 检测 PII 引擎实际运行状态（可能因 fallback 与配置不同）
+        try:
+            from negentropy.engine.governance.pii.factory import get_detector
+
+            detector = get_detector()
+            checks["features"]["pii_engine_actual"] = type(detector).__name__
+        except Exception:
+            checks["features"]["pii_engine_actual"] = "unknown"
     except Exception as exc:
         checks["features"] = {"status": "error", "detail": str(exc)[:200]}
         status = "degraded"

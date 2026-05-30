@@ -2,7 +2,13 @@
 
 在新会话创建时主动注入高相关性记忆，基于复合评分策略排序：
 
-复合评分 = importance_score * 0.40 + recency * 0.30 + frequency * 0.20 + fact_density * 0.10
+复合评分 = importance_score * 0.40 + recency_score * 0.30 + frequency_score * 0.20 + 0.10
+
+其中：
+- importance_score: 来自 ACT-R 五因子重要性评分
+- recency_score: max(0, 1 - days_since_access / 30)，30 天窗口的线性衰减
+- frequency_score: min(1, log2(1 + access_count) / log2(101))，对数归一化
+- 0.10: 常量基线，确保所有记忆都有非零得分（非 per-memory 指标）
 
 缓存策略：TTL 1小时，巩固/事实插入/冲突解决时失效。
 
@@ -143,9 +149,12 @@ class ProactiveRecallService:
         limit: int,
         now: datetime,
     ) -> list[Memory]:
-        """获取复合评分最高的记忆"""
+        """获取复合评分最高的记忆
+
+        评分公式: importance * 0.40 + recency * 0.30 + frequency * 0.20 + 0.10（常量基线）
+        """
         async with db_session.AsyncSessionLocal() as db:
-            # 复合评分: importance * 0.4 + recency * 0.3 + frequency * 0.2 + fact_density * 0.1
+            # 复合评分: importance * 0.40 + recency * 0.30 + frequency * 0.20 + 0.10（常量基线）
             days_since_access = func.extract("epoch", now - Memory.last_accessed_at) / 86400
             recency_score = func.greatest(0.0, 1.0 - days_since_access / 30.0)
             frequency_score = func.least(1.0, func.log(2, 1 + Memory.access_count) / func.log(2, 101))

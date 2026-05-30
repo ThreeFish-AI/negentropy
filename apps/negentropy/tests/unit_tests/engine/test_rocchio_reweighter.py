@@ -12,6 +12,11 @@ Rocchio 相关性权重计算器 单元测试
 
 from __future__ import annotations
 
+import uuid as uuid_mod
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 # ---------------------------------------------------------------------------
 # 内联实现（G1 阶段将提取到 RocchioReweighter 类中）
 # ---------------------------------------------------------------------------
@@ -203,3 +208,122 @@ class TestMinFeedbackThreshold:
         # total=10 >= min_count=10 → compute
         weight = compute_relevance_weight(10, 0, 10, min_count=10)
         assert weight > 1.0
+
+
+# ---------------------------------------------------------------------------
+# reweight_memories 异步路径测试（mock DB）
+# ---------------------------------------------------------------------------
+
+
+class TestReweightMemoriesAsync:
+    """reweight_memories() 异步 DB 写入路径测试。"""
+
+    @pytest.mark.asyncio
+    async def test_no_feedback_returns_zero(self) -> None:
+        """无反馈数据时不应触发任何 DB 写入。"""
+        from negentropy.engine.relevance.rocchio_reweighter import reweight_memories
+
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+
+        mock_db = AsyncMock()
+        mock_db.execute.return_value = mock_result
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("negentropy.engine.relevance.rocchio_reweighter.db_session") as mock_db_mod:
+            mock_db_mod.AsyncSessionLocal.return_value = mock_db
+            updated = await reweight_memories(user_id="u1", app_name="app")
+
+        assert updated == 0
+
+    @pytest.mark.asyncio
+    async def test_weight_equals_one_skips_write(self) -> None:
+        """权重 == 1.0 的记忆应跳过 DB 写入（无必要操作）。
+
+        场景：3 次反馈（min_count=3），2 helpful + 1 irrelevant →
+        weight = 1.0 + 0.75*(2/3) - 0.15*(1/3) ≈ 1.45 ≠ 1.0，所以不会被跳过。
+        要让 weight == 1.0，需要 total < min_count。
+        """
+        from negentropy.engine.relevance.rocchio_reweighter import reweight_memories
+
+        mid = str(uuid_mod.uuid4())
+
+        # 构造反馈行：total=2 < min_count=3，weight 应为 1.0
+        mock_row = MagicMock()
+        mock_row.retrieved_memory_ids = [uuid_mod.UUID(mid)]
+        mock_row.outcome_feedback = "helpful"
+
+        mock_result = MagicMock()
+        mock_result.all.return_value = [mock_row]
+
+        mock_db = AsyncMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock(return_value=False)
+
+        call_count = 0
+
+        def mock_execute(stmt):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return mock_result  # 第一次调用返回反馈数据
+            return MagicMock(rowcount=0)
+
+        mock_db.execute.side_effect = mock_execute
+
+        with patch("negentropy.engine.relevance.rocchio_reweighter.db_session") as mock_db_mod:
+            mock_db_mod.AsyncSessionLocal.return_value = mock_db
+            updated = await reweight_memories(user_id="u1", app_name="app")
+
+        # weight == 1.0 → 跳过写入 → updated = 0
+        assert updated == 0
+
+    @pytest.mark.asyncio
+    async def test_aggregation_multiple_feedback(self) -> None:
+        """多条反馈应聚合为 per-memory 计数后计算权重。
+
+        同一 memory_id 收到 3 helpful + 1 irrelevant = total 4，
+        权重 = 1.0 + 0.75*(3/4) - 0.15*(1/4) = 1.0 + 0.5625 - 0.0375 = 1.525
+        """
+        from negentropy.engine.relevance.rocchio_reweighter import reweight_memories
+
+        mid = uuid_mod.uuid4()
+
+        rows = []
+        for _ in range(3):
+            row = MagicMock()
+            row.retrieved_memory_ids = [mid]
+            row.outcome_feedback = "helpful"
+            rows.append(row)
+        row_irr = MagicMock()
+        row_irr.retrieved_memory_ids = [mid]
+        row_irr.outcome_feedback = "irrelevant"
+        rows.append(row_irr)
+
+        mock_result = MagicMock()
+        mock_result.all.return_value = rows
+
+        mock_db = AsyncMock()
+        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_db.__aexit__ = AsyncMock(return_value=False)
+
+        call_count = 0
+
+        def mock_execute(stmt):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return mock_result
+            # 第二次调用是 UPDATE
+            update_result = MagicMock(rowcount=1)
+            return update_result
+
+        mock_db.execute.side_effect = mock_execute
+
+        with patch("negentropy.engine.relevance.rocchio_reweighter.db_session") as mock_db_mod:
+            mock_db_mod.AsyncSessionLocal.return_value = mock_db
+            updated = await reweight_memories(user_id="u1", app_name="app")
+
+        # 应更新 1 条记忆
+        assert updated == 1

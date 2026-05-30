@@ -811,7 +811,7 @@ flowchart LR
 proactive_rank = importance_score * 0.40
                + recency_score * 0.30
                + frequency_score * 0.20
-               + fact_density * 0.10
+               + 0.10  （常量基线）
 ```
 
 | 因子             | 计算                                         | 权重 | 含义                 |
@@ -819,7 +819,7 @@ proactive_rank = importance_score * 0.40
 | importance_score | 五因子重要性评分                             | 0.40 | 最重要的排序信号     |
 | recency_score    | `max(0, 1 - days_since_access / 30)`         | 0.30 | 近期访问的记忆更相关 |
 | frequency_score  | `min(1, log2(1 + access_count) / log2(101))` | 0.20 | 高频访问的记忆更稳定 |
-| fact_density     | 固定 0.10                                    | 0.10 | 基础密度因子         |
+| 常量基线         | 固定 0.10                                    | 0.10 | 确保所有记忆非零得分 |
 
 **缓存策略**：
 - TTL 1 小时：`memory_preload_cache` 表按 `(user_id, app_name)` 缓存
