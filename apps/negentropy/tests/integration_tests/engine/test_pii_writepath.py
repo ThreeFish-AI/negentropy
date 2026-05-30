@@ -102,9 +102,11 @@ async def test_write_path_produces_pii_flags_and_spans():
     assert spans and len(spans) >= 2, "应落 pii_spans（供检索遮蔽）"
     types = {s["type"] for s in spans}
     assert {"email", "phone"} <= types
-    # spans 字段完整性（PIIGatekeeper 依赖 start/end/text）
+    # spans 字段完整性（PIIGatekeeper 按 start/end + type 偏移量遮蔽）；
+    # 刻意不落命中原文 text —— metadata 会随检索结果回传，存原文等于旁路泄露 PII。
     for s in spans:
-        assert {"type", "start", "end", "text"} <= set(s.keys())
+        assert {"type", "start", "end"} <= set(s.keys())
+        assert "text" not in s, "pii_spans 不应持久化命中原文（防 metadata 旁路泄露 PII）"
 
     await _cleanup(user_id, app_name)
 
@@ -140,6 +142,14 @@ async def test_gatekeeper_anonymizes_for_low_priv_role():
     assert "<EMAIL>" in joined or "<PHONE>" in joined, "应出现 anonymize 占位符"
     # metadata 标记 pii_redacted
     assert any((getattr(m, "custom_metadata", None) or {}).get("pii_redacted") for m in resp.memories)
+    # 回归（修复 PII 旁路泄露）：脱敏后 metadata 不得经 pii_spans 等字段回传 PII 原文
+    for m in resp.memories:
+        meta = getattr(m, "custom_metadata", None) or {}
+        for s in meta.get("pii_spans") or []:
+            assert "text" not in s, "检索回传的 pii_spans 不应含命中原文"
+        meta_blob = str(meta)
+        assert "john.doe@example.com" not in meta_blob, "email 原文不应经 metadata 泄露"
+        assert "13800138000" not in meta_blob, "phone 原文不应经 metadata 泄露"
 
     await _cleanup(user_id, app_name)
 

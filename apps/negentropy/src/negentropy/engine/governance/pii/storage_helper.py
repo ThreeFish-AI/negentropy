@@ -9,7 +9,8 @@
 
     本助手统一经 ``get_pii_detector()`` 检测，同时产出：
     - ``flags``: ``{pii_type: count}``（兼容既有 metadata.pii_flags 语义）
-    - ``spans``: ``[{type,start,end,score,text}]``（供 PIIGatekeeper 检索遮蔽）
+    - ``spans``: ``[{type,start,end,score}]``（供 PIIGatekeeper 按偏移量检索遮蔽；
+      刻意不落命中原文，避免 metadata 旁路泄露 PII，详见 ``_spans_to_json``）
 
 容错：检测器初始化或运行抛错时返回空结果而非中断写入主链路（保密性降级有日志，
 不阻断记忆持久化）。``allow_engine_fallback`` 语义由工厂层面负责。
@@ -28,15 +29,20 @@ logger = get_logger("negentropy.engine.governance.pii.storage_helper")
 
 
 def _spans_to_json(spans: list[PIISpan]) -> list[dict[str, Any]]:
-    """把 PIISpan 序列化为可落 JSONB 的 dict 列表（PIIGatekeeper 可逆读取）。"""
+    """把 PIISpan 序列化为可落 JSONB 的 dict 列表（PIIGatekeeper 可逆读取）。
+
+    刻意不持久化命中原文（``PIISpan.text``）：``metadata`` 会随检索结果
+    （``custom_metadata``）与 ``/memories`` 时间线原样回传客户端，存原文等于把
+    本应被脱敏的 PII 从 metadata 旁路泄露给低权限角色。脱敏仅依赖 ``start``/``end``
+    + ``type``（见 ``base.apply_policy``），``PIIGatekeeper`` 在缺 ``text`` 时按
+    ``content[start:end]`` 重建片段，偏移量已自足，无需落原文。
+    """
     return [
         {
             "type": s.pii_type,
             "start": s.start,
             "end": s.end,
             "score": round(float(s.score), 4),
-            # 仅保留命中片段用于检索侧遮蔽；不额外存储其它上下文，控制 PII 暴露面。
-            "text": s.text,
         }
         for s in spans
     ]
