@@ -167,7 +167,7 @@ class ExtractorExecutionError(ValueError):
         self.attempts = attempts
 
 
-_MD_EXTENSIONS = {".md", ".markdown"}
+_MD_EXTENSIONS = {".md", ".markdown", ".txt"}
 
 
 def resolve_source_kind(
@@ -190,7 +190,7 @@ def resolve_source_kind(
         dot = lower_filename.rfind(".")
         if dot >= 0:
             ext = lower_filename[dot:]
-    if ext in _MD_EXTENSIONS or "text/markdown" in lower_content_type:
+    if ext in _MD_EXTENSIONS or lower_content_type in {"text/markdown", "text/plain"}:
         return ROUTE_FILE_MD
 
     return ROUTE_FILE_GENERIC

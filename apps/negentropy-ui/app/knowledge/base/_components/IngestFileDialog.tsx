@@ -116,12 +116,6 @@ export function IngestFileDialog({
       const detected = detectTab(file.name);
       if (detected && detected !== tab) {
         setTab(detected);
-        // 切换后重新用目标 tab 的配置验证
-        const targetConfig = TAB_CONFIG[detected];
-        if (!targetConfig.extensions.includes(ext)) {
-          setError(`不支持的文件类型: ${ext}。支持的格式: ${targetConfig.extensions.join(", ")}`);
-          return;
-        }
       } else if (!ALL_EXTENSIONS.includes(ext)) {
         setError(`不支持的文件类型: ${ext}。支持的格式: ${ALL_EXTENSIONS.join(", ")}`);
         return;
