@@ -149,27 +149,37 @@
   --font-mono: var(--font-geist-mono), "JetBrains Mono", "Fira Code", ui-monospace,
     SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* 排版标度 — 字号（Minor Third ~1.2 ratio） */
-  --font-size-display: 2.25rem;    /* 36px */
-  --font-size-h1: 1.875rem;        /* 30px */
-  --font-size-h2: 1.5rem;          /* 24px */
-  --font-size-h3: 1.25rem;         /* 20px */
-  --font-size-h4: 1.125rem;        /* 18px */
-  --font-size-body-lg: 1rem;       /* 16px */
-  --font-size-body: 0.875rem;      /* 14px — UI 默认 */
-  --font-size-sm: 0.75rem;         /* 12px */
+  /* 排版标度 — 字号（Minor Third ~1.2 ratio）
+   * 关键：Tailwind v4 字号命名空间是 --text-*（生成 text-* 工具类），
+   * 配对行高用 --text-{name}--line-height 后缀语法（字号自带默认行高）。
+   * 仅新增不与内置冲突的语义名（display/h1-h4/body-lg/body）；
+   * 内置 text-sm(14px)/text-xs(12px)/text-2xl(24px) 等保持原样，避免回归。 */
+  --text-display: 2.25rem;             /* 36px 页面巨标题/英雄区 */
+  --text-display--line-height: 2.5rem; /* 40px */
+  --text-display--letter-spacing: -0.03em;
+  --text-h1: 1.875rem;                 /* 30px */
+  --text-h1--line-height: 2.25rem;     /* 36px */
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: 1.5rem;                   /* 24px */
+  --text-h2--line-height: 2rem;        /* 32px */
+  --text-h2--letter-spacing: -0.02em;
+  --text-h3: 1.25rem;                  /* 20px */
+  --text-h3--line-height: 1.75rem;     /* 28px */
+  --text-h3--letter-spacing: -0.02em;
+  --text-h4: 1.125rem;                 /* 18px */
+  --text-h4--line-height: 1.625rem;    /* 26px */
+  --text-h4--letter-spacing: -0.02em;
+  --text-body-lg: 1rem;                /* 16px UI 舒适正文 */
+  --text-body-lg--line-height: 1.5rem; /* 24px */
+  --text-body: 0.875rem;               /* 14px UI 默认正文 */
+  --text-body--line-height: 1.375rem;  /* 22px */
 
-  /* 排版标度 — 行高 */
-  --line-height-display: 2.5rem;   /* 40px */
-  --line-height-h1: 2.25rem;       /* 36px */
-  --line-height-h2: 2rem;          /* 32px */
-  --line-height-h3: 1.75rem;       /* 28px */
-  --line-height-h4: 1.625rem;      /* 26px */
-  --line-height-body-lg: 1.5rem;   /* 24px */
-  --line-height-body: 1.375rem;    /* 22px */
-  --line-height-sm: 1.125rem;      /* 18px */
+  /* 排版标度 — 行高（Tailwind v4 命名空间 --leading-*，生成 leading-* 工具类） */
+  --leading-body-lg: 1.5rem;       /* 24px */
+  --leading-body: 1.375rem;        /* 22px */
+  --leading-caption: 1.125rem;     /* 18px 小字/说明文字 */
 
-  /* 排版标度 — 字间距 */
+  /* 排版标度 — 字间距（Tailwind v4 命名空间 --tracking-*，已正确生效） */
   --tracking-heading: -0.02em;
   --tracking-body: -0.01em;
   --tracking-default: 0em;
@@ -228,7 +238,12 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1, "liga" 1;
   font-variant-ligatures: common-ligatures;
-  line-height: var(--line-height-body);
+  /* 全局正文行高/字间距基线。
+   * 行高用字面值（1.375rem=22px，与 --text-body--line-height 同源）：
+   * @theme inline 的 --leading-* 仅用于生成 leading-* 工具类，不镜像到 :root，
+   * 故此处 var(--leading-body) 取不到值，必须用字面量。
+   * --tracking-body 因被本规则引用，Tailwind 会输出到 :root，可正常 var()。 */
+  line-height: 1.375rem;
   letter-spacing: var(--tracking-body);
 }
 

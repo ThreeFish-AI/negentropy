@@ -54,7 +54,7 @@ export function EmptyState({
       <div className="space-y-1">
         <p className="text-body-lg font-semibold tracking-default text-foreground">{title}</p>
         {description ? (
-          <p className="mx-auto max-w-sm text-sm leading-sm text-text-muted">
+          <p className="mx-auto max-w-sm text-sm leading-caption text-text-muted">
             {description}
           </p>
         ) : null}

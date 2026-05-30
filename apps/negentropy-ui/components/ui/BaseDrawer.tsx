@@ -97,7 +97,7 @@ export function BaseDrawer({
                 </h3>
               ) : null}
               {subtitle ? (
-                <p className="text-sm leading-sm text-text-muted">{subtitle}</p>
+                <p className="text-sm leading-caption text-text-muted">{subtitle}</p>
               ) : null}
             </div>
             {showClose ? (

@@ -57,7 +57,7 @@ export function SectionHeader({
           {title}
         </h2>
         {description ? (
-          <p className="text-sm leading-sm text-text-muted">
+          <p className="text-sm leading-caption text-text-muted">
             {description}
           </p>
         ) : null}
