@@ -33,7 +33,6 @@ import { RoutineFormDialog } from "./_components/RoutineFormDialog";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
-import { PresetPickerDialog } from "./_components/PresetPickerDialog";
 import { RoutineViewToggle, type RoutineView } from "./_components/RoutineViewToggle";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
@@ -48,7 +47,6 @@ function RoutinePageInner() {
   const [selected, setSelected] = useState<RoutineDTO | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RoutineDTO | null>(null);
-  const [presetPickerOpen, setPresetPickerOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -247,7 +245,7 @@ function RoutinePageInner() {
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => setPresetPickerOpen(true)} />
+            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => router.push("/interface/routine/templates")} />
 
             {error && <ErrorBanner message={error} />}
 
@@ -291,12 +289,6 @@ function RoutinePageInner() {
       </div>
 
       <RoutineFormDialog open={formOpen} routine={editing} onClose={() => setFormOpen(false)} onSubmit={handleFormSubmit} />
-
-      <PresetPickerDialog
-        open={presetPickerOpen}
-        onClose={() => setPresetPickerOpen(false)}
-        onCreated={() => { refresh(); }}
-      />
 
       {confirmDialog}
     </div>
