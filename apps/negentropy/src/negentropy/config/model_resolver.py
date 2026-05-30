@@ -32,7 +32,7 @@ from uuid import UUID
 _CACHE_TTL = 60.0
 
 # 硬编码默认值 — DB 不可达时的回退配置
-_DEFAULT_LLM_MODEL = "openai/gpt-5-mini"
+_DEFAULT_LLM_MODEL = "openai/gpt-5-nano"
 _DEFAULT_LLM_KWARGS: dict[str, Any] = {
     "temperature": 0.7,
     "drop_params": True,
