@@ -42,23 +42,58 @@ export function CatalogTree({
   onDrop,
   onDragEnd,
 }: CatalogTreeProps) {
+  // Reorder flat list into DFS (depth-first) traversal order.
+  // Backend CTE returns nodes grouped by depth level (all depth-0 first,
+  // then all depth-1, etc.), which breaks visual parent-child grouping
+  // in a flat-list renderer. DFS order ensures children appear right
+  // after their parent with correct sibling ordering by sort_order.
+  const dfsOrderedNodes = useMemo(() => {
+    const childrenMap = new Map<string, CatalogNode[]>();
+    const roots: CatalogNode[] = [];
+
+    for (const node of nodes) {
+      if (node.parent_id) {
+        const siblings = childrenMap.get(node.parent_id) ?? [];
+        siblings.push(node);
+        childrenMap.set(node.parent_id, siblings);
+      } else {
+        roots.push(node);
+      }
+    }
+
+    const sortByOrder = (a: CatalogNode, b: CatalogNode) =>
+      a.sort_order - b.sort_order;
+    roots.sort(sortByOrder);
+    for (const siblings of childrenMap.values()) {
+      siblings.sort(sortByOrder);
+    }
+
+    const result: CatalogNode[] = [];
+    const visit = (node: CatalogNode) => {
+      result.push(node);
+      for (const child of childrenMap.get(node.id) ?? []) visit(child);
+    };
+    for (const root of roots) visit(root);
+    return result;
+  }, [nodes]);
+
   // Build children count map
   const childrenCountMap = useMemo(() => {
     const map = new Map<string, number>();
-    for (const node of nodes) {
+    for (const node of dfsOrderedNodes) {
       if (node.parent_id) {
         map.set(node.parent_id, (map.get(node.parent_id) || 0) + 1);
       }
     }
     return map;
-  }, [nodes]);
+  }, [dfsOrderedNodes]);
 
   // Search filtering: match nodes + their ancestors
   const filteredNodeIds = useMemo(() => {
     if (!searchQuery.trim()) return null;
     const q = searchQuery.toLowerCase();
     const matched = new Set<string>();
-    for (const node of nodes) {
+    for (const node of dfsOrderedNodes) {
       if (node.name.toLowerCase().includes(q)) {
         matched.add(node.id);
         // Include ancestors
@@ -68,7 +103,7 @@ export function CatalogTree({
       }
     }
     return matched;
-  }, [nodes, searchQuery]);
+  }, [dfsOrderedNodes, searchQuery]);
 
   // Visibility filter: show root nodes + children whose parent is expanded
   // When searching, auto-expand matched ancestors
@@ -76,20 +111,20 @@ export function CatalogTree({
     const effectiveExpanded = new Set(expandedIds);
     // Auto-expand ancestors of search matches
     if (filteredNodeIds) {
-      for (const node of nodes) {
+      for (const node of dfsOrderedNodes) {
         if (filteredNodeIds.has(node.id) && node.parent_id) {
           effectiveExpanded.add(node.parent_id);
         }
       }
     }
 
-    return nodes.filter((node) => {
+    return dfsOrderedNodes.filter((node) => {
       // Apply search filter
       if (filteredNodeIds && !filteredNodeIds.has(node.id)) return false;
       if (node.parent_id === null) return true;
       return effectiveExpanded.has(node.parent_id);
     });
-  }, [nodes, expandedIds, filteredNodeIds]);
+  }, [dfsOrderedNodes, expandedIds, filteredNodeIds]);
 
   // Highlight matching text
   const highlightMatch = (text: string) => {
