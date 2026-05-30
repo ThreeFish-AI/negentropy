@@ -66,7 +66,7 @@ export function ReasoningStep({
         "rounded-xl border px-3 py-2 text-xs",
         isRunning
           ? "border-violet-200/80 bg-violet-50/60 text-violet-700 dark:border-violet-800/60 dark:bg-violet-950/20 dark:text-violet-300"
-          : "border-zinc-200/60 bg-zinc-50/50 text-zinc-600 dark:border-zinc-800/50 dark:bg-zinc-900/30 dark:text-zinc-300",
+          : "border-border/60 bg-muted/50 text-text-secondary",
       )}
     >
       <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export function ReasoningStep({
             "inline-flex h-2 w-2 shrink-0 rounded-full",
             isRunning
               ? "animate-pulse bg-violet-500"
-              : "bg-zinc-400 dark:bg-zinc-600",
+              : "bg-text-muted",
           )}
         />
         <span className="font-medium truncate">{label}</span>
@@ -83,7 +83,7 @@ export function ReasoningStep({
       {trimmedContent ? (
         <div
           data-testid="reasoning-step-content"
-          className="mt-2 whitespace-pre-wrap break-words rounded-md bg-white/60 px-2 py-1.5 text-[11px] leading-relaxed text-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200"
+          className="mt-2 whitespace-pre-wrap break-words rounded-md bg-card/60 px-2 py-1.5 text-[11px] leading-relaxed text-text-secondary"
         >
           {trimmedContent}
         </div>
@@ -91,7 +91,7 @@ export function ReasoningStep({
       {trimmedResult ? (
         <pre
           data-testid="reasoning-step-result"
-          className="mt-2 max-h-48 overflow-auto rounded-md bg-zinc-100/80 px-2 py-1.5 text-[11px] leading-relaxed text-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200"
+          className="mt-2 max-h-48 overflow-auto rounded-md bg-muted/80 px-2 py-1.5 text-[11px] leading-relaxed text-text-secondary"
         >
           {trimmedResult}
         </pre>

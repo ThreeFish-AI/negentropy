@@ -74,12 +74,12 @@ export function ConfirmationCard({
       {args?.title ? <p className="mt-1 text-xs">{args.title}</p> : null}
       {args?.detail ? <p className="mt-1 text-xs">{args.detail}</p> : null}
       {payloadText !== "{}" ? (
-        <pre className="mt-2 max-h-24 overflow-auto rounded bg-white/80 p-2 text-[10px] dark:bg-black/20">
+        <pre className="mt-2 max-h-24 overflow-auto rounded bg-card/80 p-2 text-[10px] dark:bg-background/20">
           {payloadText}
         </pre>
       ) : null}
       <textarea
-        className="mt-2 w-full rounded border border-amber-200 bg-white p-2 text-[11px] dark:border-amber-800 dark:bg-slate-900 dark:text-slate-100"
+        className="mt-2 w-full rounded border border-amber-200 bg-card p-2 text-[11px] dark:border-amber-800 dark:bg-slate-900 dark:text-slate-100"
         rows={2}
         placeholder="补充说明（可选）"
         value={note}

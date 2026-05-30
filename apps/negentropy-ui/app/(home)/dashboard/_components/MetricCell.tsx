@@ -34,7 +34,7 @@ export function MetricCell({
         <span className="inline-block h-3.5 w-8 animate-pulse rounded bg-muted/60" />
       ) : (
         <span
-          className={`text-sm font-semibold whitespace-nowrap ${
+          className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
             toneClass[tone] ?? toneClass.neutral
           }`}
         >

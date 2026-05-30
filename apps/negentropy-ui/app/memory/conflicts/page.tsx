@@ -9,7 +9,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 import {
   ConflictItem,
   fetchConflicts,
@@ -206,13 +208,14 @@ export default function MemoryConflictsPage() {
                 ))}
               </select>
               <div className="flex-1" />
-              <button
-                className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={loadConflicts}
                 disabled={isLoading}
               >
                 {isLoading ? "Loading..." : "Refresh"}
-              </button>
+              </Button>
             </div>
 
             {error && (
@@ -228,11 +231,15 @@ export default function MemoryConflictsPage() {
             )}
 
             {isLoading ? (
-              <p className="text-xs text-muted-foreground">Loading conflicts...</p>
+              <p className="text-xs text-muted-foreground">
+                <Spinner size="sm" className="mr-1.5 inline-block align-text-bottom" />
+                Loading conflicts...
+              </p>
             ) : conflicts.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
-                <p className="text-sm text-muted-foreground">No conflicts found.</p>
-              </div>
+              <EmptyState
+                size="sm"
+                title="No conflicts found."
+              />
             ) : (
               <div className="space-y-3">
                 {conflicts.map((c) => (

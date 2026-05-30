@@ -59,7 +59,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
         type="button"
         onClick={handleClose}
         aria-label="Close drawer"
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
       />
       <aside className="relative z-10 flex h-full w-full max-w-[480px] flex-col border-l border-border bg-card shadow-xl">
         {/* Header */}

@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: string }) {
     ok: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
     failed: "bg-red-500/10 text-red-700 dark:text-red-300",
     running: "bg-sky-500/10 text-sky-700 dark:text-sky-300 animate-pulse",
-    cancelled: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
+    cancelled: "bg-border/50 text-text-muted",
     timeout: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   };
   const icon: Record<string, string> = {
@@ -47,7 +47,7 @@ function StatusBadge({ status }: { status: string }) {
     timeout: "⏱",
   };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${map[status] ?? "bg-zinc-500/10"}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${map[status] ?? "bg-border/50"}`}>
       <span>{icon[status] ?? "·"}</span>
       <span>{status}</span>
     </span>

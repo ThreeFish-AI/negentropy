@@ -7,7 +7,7 @@ function CorpusStatusBadge({ corpus }: { corpus: CorpusRecord }) {
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
         hasKnowledge
           ? "bg-emerald-100 text-emerald-700"
-          : "bg-zinc-100 text-zinc-600"
+          : "bg-muted text-text-secondary"
       }`}
     >
       {hasKnowledge ? "Ready" : "Empty"}

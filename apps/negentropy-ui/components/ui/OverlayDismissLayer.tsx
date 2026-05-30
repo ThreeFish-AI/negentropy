@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { ComponentPropsWithoutRef, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 // Only the topmost mounted layer should respond to Escape: prevents nested
 // dialogs from closing the outer form (and losing unsaved input) on a single
@@ -49,6 +50,9 @@ export function OverlayDismissLayer({
   const { className: contentPropsClassName, onClick, ...restContentProps } =
     contentProps ?? {};
 
+  // 焦点陷阱 + 焦点回归（无障碍）：自动惠及所有基于本壳层的对话框。
+  useFocusTrap(contentRef, open);
+
   useEffect(() => {
     if (!open || !closeOnEscape || !dismissible || busy) return undefined;
     const id = layerIdRef.current!;
@@ -87,7 +91,10 @@ export function OverlayDismissLayer({
     <div className={cn("fixed inset-0 z-50", wrapperClassName)} onClick={handleWrapperClick}>
       <div
         data-testid={backdropTestId ?? "overlay-backdrop"}
-        className={cn("absolute inset-0 bg-black/50 backdrop-blur-sm", backdropClassName)}
+        className={cn(
+          "absolute inset-0 bg-overlay backdrop-blur-sm animate-fade-in",
+          backdropClassName,
+        )}
       />
       <div
         className={cn(
@@ -98,8 +105,13 @@ export function OverlayDismissLayer({
         <div
           ref={contentRef}
           data-testid={contentTestId}
+          tabIndex={-1}
           {...restContentProps}
-          className={cn(contentClassName, contentPropsClassName)}
+          className={cn(
+            "outline-none animate-enter",
+            contentClassName,
+            contentPropsClassName,
+          )}
           onClick={handleContentClick}
         >
           {children}

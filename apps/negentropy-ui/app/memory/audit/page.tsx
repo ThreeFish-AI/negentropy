@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 import {
   MemoryTimelineCard,
   RetryableErrorBanner,
@@ -109,7 +112,7 @@ export default function MemoryAuditPage() {
             sidebar={
               <>
                 <SidebarCard title="Submit Audit">
-                  <p className="mt-2 text-[11px] text-muted-foreground">
+                  <p className="mt-2 text-[11px] tabular-nums text-muted-foreground">
                     {`${pendingCount} decision${pendingCount !== 1 ? "s" : ""} pending`}
                   </p>
                   <textarea
@@ -119,13 +122,16 @@ export default function MemoryAuditPage() {
                     value={auditNote}
                     onChange={(e) => setAuditNote(e.target.value)}
                   />
-                  <button
-                    className="mt-3 w-full rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background disabled:opacity-40"
+                  <Button
+                    variant="neutral"
+                    size="sm"
+                    fullWidth
+                    className="mt-3"
                     disabled={!selectedUserId || pendingCount === 0}
                     onClick={handleSubmitAudit}
                   >
                     Submit ({pendingCount})
-                  </button>
+                  </Button>
                   {auditStatus && (
                     <p className="mt-2 text-[11px] text-muted-foreground">{auditStatus}</p>
                   )}
@@ -180,7 +186,7 @@ export default function MemoryAuditPage() {
                 <h2 className="text-xs font-semibold text-foreground">
                   Memory Audit
                 </h2>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {selectedUserId || "select a user"}
                 </span>
               </div>
@@ -231,12 +237,16 @@ export default function MemoryAuditPage() {
                       </div>
                     </div>
                   ))
-                ) : (
+                ) : timelineLoading ? (
                   <p className="text-xs text-muted-foreground">
-                    {timelineLoading
-                      ? "Loading memories..."
-                      : "No memories found for this user"}
+                    <Spinner size="sm" className="mr-1.5 inline-block align-text-bottom" />
+                    Loading memories...
                   </p>
+                ) : (
+                  <EmptyState
+                    size="sm"
+                    title="No memories found for this user"
+                  />
                 )}
               </div>
             </div>

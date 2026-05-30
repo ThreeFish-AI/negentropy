@@ -44,9 +44,9 @@ export function ConversationSearchBar({
   }, [onClose, onNavigateNext, onNavigatePrev]);
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 shadow-sm ">
       <svg
-        className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500"
+        className="h-4 w-4 shrink-0 text-text-muted"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}
@@ -64,16 +64,16 @@ export function ConversationSearchBar({
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
         placeholder="搜索对话内容..."
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400 min-w-[120px] dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        className="flex-1 bg-transparent text-sm outline-none placeholder:text-text-muted min-w-[120px]"
       />
-      <span className="whitespace-nowrap text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
+      <span className="whitespace-nowrap text-xs tabular-nums text-text-muted">
         {matchCount > 0 ? `${currentIndex}/${matchCount}` : "无结果"}
       </span>
       <button
         type="button"
         onClick={onNavigatePrev}
         disabled={matchCount === 0}
-        className="rounded p-0.5 transition-colors hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-700"
+        className="rounded p-0.5 transition-colors hover:bg-muted disabled:opacity-30"
         title="上一个 (Shift+Enter)"
       >
         <svg
@@ -94,7 +94,7 @@ export function ConversationSearchBar({
         type="button"
         onClick={onNavigateNext}
         disabled={matchCount === 0}
-        className="rounded p-0.5 transition-colors hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-700"
+        className="rounded p-0.5 transition-colors hover:bg-muted disabled:opacity-30"
         title="下一个 (Enter)"
       >
         <svg
@@ -114,7 +114,7 @@ export function ConversationSearchBar({
       <button
         type="button"
         onClick={onClose}
-        className="rounded p-0.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700"
+        className="rounded p-0.5 transition-colors hover:bg-muted"
         title="关闭 (Escape)"
       >
         <svg

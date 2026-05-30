@@ -25,14 +25,14 @@ export function UserNav() {
 
   if (status === "loading") {
     return (
-      <div className="text-xs text-zinc-400 dark:text-zinc-500">Loading...</div>
+      <div className="text-xs text-text-muted">Loading...</div>
     );
   }
 
   if (!user) {
     return (
       <button
-        className="rounded-full bg-black px-4 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        className="rounded-full bg-foreground px-4 py-1.5 text-xs font-semibold text-background hover:opacity-90 transition-transform active:scale-95"
         onClick={login}
       >
         Sign in

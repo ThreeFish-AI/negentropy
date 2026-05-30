@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 import {
   RetryableErrorBanner,
   useMemoryTimeline,
@@ -152,7 +154,7 @@ export default function MemoryTimelinePage() {
                 <h2 className="text-xs font-semibold text-foreground">
                   {searchResult ? "Search Results" : "Memory Timeline"}
                 </h2>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {displayItems.length} memories ·{" "}
                   {selectedUserId
                     ? users.find((u) => u.id === selectedUserId)?.name || selectedUserId
@@ -171,20 +173,18 @@ export default function MemoryTimelinePage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   />
-                  <button
-                    className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleSearch}
                     disabled={!searchQuery.trim()}
                   >
                     Search
-                  </button>
+                  </Button>
                   {searchResult && (
-                    <button
-                      className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                      onClick={handleClearSearch}
-                    >
+                    <Button variant="outline" size="sm" onClick={handleClearSearch}>
                       Clear
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -213,14 +213,16 @@ export default function MemoryTimelinePage() {
                       </div>
                     ))
                   )
-                ) : (
+                ) : isLoading ? (
                   <p className="text-xs text-muted-foreground">
-                    {isLoading
-                      ? "Loading memories..."
-                      : searchResult
-                        ? "No matching memories found"
-                        : "No memories found"}
+                    <Spinner size="sm" className="mr-1.5 inline-block align-text-bottom" />
+                    Loading memories...
                   </p>
+                ) : (
+                  <EmptyState
+                    size="sm"
+                    title={searchResult ? "No matching memories found" : "No memories found"}
+                  />
                 )}
               </div>
             </div>

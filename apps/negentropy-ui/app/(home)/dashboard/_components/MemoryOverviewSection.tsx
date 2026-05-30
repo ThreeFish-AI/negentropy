@@ -172,7 +172,7 @@ export function MemoryOverviewSection() {
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                   {card.label}
                 </p>
-                <p className="mt-2 text-2xl font-bold text-foreground">
+                <p className="mt-2 text-2xl font-bold text-foreground tabular-nums">
                   {card.value}
                 </p>
               </div>
@@ -250,7 +250,7 @@ export function MemoryOverviewSection() {
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                           {m.label}
                         </p>
-                        <p className="mt-1 text-xl font-bold text-foreground">
+                        <p className="mt-1 text-xl font-bold text-foreground tabular-nums">
                           {m.value}
                         </p>
                       </div>

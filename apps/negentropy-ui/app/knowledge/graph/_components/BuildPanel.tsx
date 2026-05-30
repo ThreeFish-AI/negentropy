@@ -25,9 +25,9 @@ function statusColor(status: string) {
     case "failed":
       return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
     case "cancelled":
-      return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+      return "bg-muted text-text-secondary";
     default:
-      return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+      return "bg-muted text-text-secondary";
   }
 }
 
@@ -68,7 +68,7 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
 
   if (!runs.length) {
     return (
-      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="mt-2 text-xs text-text-muted">
         暂无构建记录
       </p>
     );
@@ -85,7 +85,7 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
       {pageRuns.map((run) => (
         <div
           key={run.run_id}
-          className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"
+          className="rounded-lg border border-border p-3"
         >
           <div className="flex items-center justify-between">
             <span
@@ -94,7 +94,7 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
               {run.status}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+              <span className="text-[10px] text-text-muted">
                 {formatDuration(run)}
               </span>
               {CANCELLABLE_STATUSES.has(run.status) && onCancel && corpusId && (
@@ -110,7 +110,7 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
               )}
             </div>
           </div>
-          <div className="mt-1.5 flex gap-3 text-[11px] text-zinc-600 dark:text-zinc-400">
+          <div className="mt-1.5 flex gap-3 text-[11px] text-text-secondary">
             <span>实体 {run.entity_count}</span>
             <span>关系 {run.relation_count}</span>
             {run.model_name && <span>模型 {run.model_name}</span>}
@@ -121,19 +121,19 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
             </p>
           )}
           {run.started_at && (
-            <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+            <p className="mt-1 text-[10px] text-text-muted">
               {new Date(run.started_at).toLocaleString()}
             </p>
           )}
         </div>
       ))}
       {showPager && (
-        <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+        <div className="mt-2 flex items-center justify-between text-[10px] text-text-muted">
           <button
             type="button"
             disabled={currentPage === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="rounded border border-zinc-200 px-2 py-0.5 hover:bg-zinc-50 disabled:opacity-30 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className="rounded border border-border px-2 py-0.5 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
           >
             上一页
           </button>
@@ -144,7 +144,7 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
             type="button"
             disabled={currentPage >= totalPages - 1}
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            className="rounded border border-zinc-200 px-2 py-0.5 hover:bg-zinc-50 disabled:opacity-30 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className="rounded border border-border px-2 py-0.5 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
           >
             下一页
           </button>
@@ -171,7 +171,7 @@ export function BuildPanel({
           {building ? "构建中..." : "构建图谱"}
         </button>
         {!corpusId && (
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+          <span className="text-[10px] text-text-muted">
             请先选择语料库
           </span>
         )}

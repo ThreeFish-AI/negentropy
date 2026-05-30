@@ -9,7 +9,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 import {
   FactListPayload,
   FactHistoryItem,
@@ -183,30 +185,26 @@ export default function MemoryFactsPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
-                <button
-                  className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                  onClick={handleSearch}
-                >
+                <Button variant="outline" size="sm" onClick={handleSearch}>
                   Search
-                </button>
-                <button
-                  className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                  onClick={handleClearSearch}
-                >
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleClearSearch}>
                   Clear
-                </button>
+                </Button>
               </div>
             )}
 
             {/* Facts grid -- always shown */}
             {isLoading ? (
-              <p className="text-xs text-muted-foreground">Loading facts...</p>
+              <p className="text-xs text-muted-foreground">
+                <Spinner size="sm" className="mr-1.5 inline-block align-text-bottom" />
+                Loading facts...
+              </p>
             ) : facts.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
-                <p className="text-sm text-muted-foreground">
-                  {activeUserId ? "No facts found for this user." : "No facts found."}
-                </p>
-              </div>
+              <EmptyState
+                size="sm"
+                title={activeUserId ? "No facts found for this user." : "No facts found."}
+              />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {facts.map((fact) => (
@@ -226,7 +224,7 @@ export default function MemoryFactsPage() {
       {/* Fact History Modal */}
       {historyFactId && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={handleCloseHistory}
           role="presentation"
         >
@@ -241,12 +239,9 @@ export default function MemoryFactsPage() {
               <h3 id="fact-history-title" className="text-sm font-semibold text-foreground">
                 Fact Version History
               </h3>
-              <button
-                className="text-xs text-muted-foreground hover:text-foreground"
-                onClick={handleCloseHistory}
-              >
+              <Button variant="ghost" size="sm" onClick={handleCloseHistory}>
                 Close
-              </button>
+              </Button>
             </div>
             <p className="mt-1 text-[11px] font-mono text-muted-foreground">
               {historyFactId}

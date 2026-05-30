@@ -38,8 +38,8 @@ const MEMORY_TYPE_CONFIG: Record<
 const DEFAULT_TYPE_CONFIG = {
   icon: Hash,
   label: "Unknown",
-  accent: "text-zinc-600 dark:text-zinc-400",
-  bg: "bg-zinc-100 dark:bg-zinc-800/40",
+  accent: "text-text-secondary",
+  bg: "bg-muted",
 };
 
 // ---------------------------------------------------------------------------
@@ -104,8 +104,8 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
   return (
     <article
       className={cn(
-        "rounded-xl border border-zinc-200 bg-white shadow-sm transition",
-        "hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600",
+        "rounded-xl border border-border bg-card shadow-sm transition",
+        "hover:border-foreground/20",
       )}
     >
       {/* Header: type badge + score bars */}
@@ -126,28 +126,28 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
         <div className="flex shrink-0 items-center gap-3 text-[10px]">
           {/* Retention */}
           <div className="flex items-center gap-1.5">
-            <span className="text-zinc-500 dark:text-zinc-400">Ret</span>
-            <div className="h-1.5 w-12 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <span className="text-text-muted">Ret</span>
+            <div className="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
               <div
                 className={cn("h-full rounded-full transition-all", retentionBarColor(item.retention_score))}
                 style={{ width: `${Math.max(item.retention_score * 100, 2)}%` }}
               />
             </div>
-            <span className="w-7 text-right tabular-nums text-zinc-600 dark:text-zinc-300">
+            <span className="w-7 text-right tabular-nums text-text-secondary">
               {(item.retention_score * 100).toFixed(0)}%
             </span>
           </div>
           {/* Importance */}
           {!isSearchResult && (
             <div className="flex items-center gap-1.5">
-              <span className="text-zinc-500 dark:text-zinc-400">Imp</span>
-              <div className="h-1.5 w-12 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <span className="text-text-muted">Imp</span>
+              <div className="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn("h-full rounded-full transition-all", importanceBarColor(item.importance_score))}
                   style={{ width: `${Math.max(item.importance_score * 100, 2)}%` }}
                 />
               </div>
-              <span className="w-7 text-right tabular-nums text-zinc-600 dark:text-zinc-300">
+              <span className="w-7 text-right tabular-nums text-text-secondary">
                 {(item.importance_score * 100).toFixed(0)}%
               </span>
             </div>
@@ -157,7 +157,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
 
       {/* Content */}
       <div className="px-3 pb-2 pt-2">
-        <p className="whitespace-pre-wrap text-xs font-medium leading-relaxed text-zinc-900 dark:text-zinc-100">
+        <p className="whitespace-pre-wrap text-xs font-medium leading-relaxed text-foreground">
           {canExpand && !isExpanded
             ? [...item.content].slice(0, CONTENT_PREVIEW_LENGTH).join("")
             : item.content}
@@ -166,7 +166,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-text-muted hover:text-text-secondary"
           >
             {isExpanded ? (
               <>
@@ -184,7 +184,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
       </div>
 
       {/* Metadata footer */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-zinc-100 px-3 py-2 text-[10px] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+      <div className="flex flex-wrap items-center gap-3 border-t border-border px-3 py-2 text-[10px] text-text-muted">
         {!isSearchResult && (
           <span className="inline-flex items-center gap-1">
             <Eye className="h-3 w-3" />

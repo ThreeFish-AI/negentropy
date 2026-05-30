@@ -60,13 +60,13 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
     <div className="space-y-3">
       <div className="space-y-2">
         <div>
-          <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">
+          <label className="block text-[10px] font-medium text-text-muted mb-0.5">
             起始实体
           </label>
           <select
             value={sourceId}
             onChange={(e) => setSourceId(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground"
           >
             <option value="">选择起始实体...</option>
             {entities.map((e) => (
@@ -77,13 +77,13 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
           </select>
         </div>
         <div>
-          <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-0.5">
+          <label className="block text-[10px] font-medium text-text-muted mb-0.5">
             目标实体
           </label>
           <select
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground"
           >
             <option value="">选择目标实体...</option>
             {entities.map((e) => (
@@ -98,7 +98,7 @@ export function PathExplorer({ corpusId, onPathFound }: PathExplorerProps) {
       <button
         onClick={handleFindPath}
         disabled={!sourceId || !targetId || searching}
-        className="w-full rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="w-full rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 disabled:opacity-40"
       >
         {searching ? "查找中..." : "查找路径"}
       </button>

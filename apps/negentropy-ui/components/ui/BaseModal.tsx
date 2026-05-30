@@ -5,12 +5,17 @@
  *
  * 设计动机（Reuse-Driven / Orthogonal Decomposition）：
  * 收敛 Wiki Publication 创建对话框、Catalog 节点选择对话框等多处重复实现的
- * 模态壳。BaseModal 仅承担"壳层 + 关闭交互"，业务对话框关注于自身字段、
- * 提交按钮等差异化部分；规避空 prop 默认值导致 useEffect 重跑等同型陷阱。
+ * 模态壳。BaseModal 仅承担"壳层 + 关闭交互 + 焦点管理"，业务对话框关注于自身
+ * 字段、提交按钮等差异化部分；规避空 prop 默认值导致 useEffect 重跑等同型陷阱。
+ *
+ * 精致升级：令牌化遮罩（bg-overlay + backdrop-blur）、入场动画（fade + scale）、
+ * 焦点陷阱与焦点回归（useFocusTrap）、aria-labelledby 关联标题，rounded-modal 圆角。
  */
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 export interface BaseModalProps {
   /** 是否打开。`false` 时 BaseModal 完全 unmount，避免后台 effect 残留。 */
@@ -59,6 +64,12 @@ export function BaseModal({
   closeOnBackdrop = true,
   closeOnEscape = true,
 }: BaseModalProps) {
+  const titleId = useId();
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // 焦点陷阱 + 焦点回归（无障碍）。
+  useFocusTrap(cardRef, open);
+
   // Escape 关闭：仅在 open=true 时挂载监听器，自动清理。
   useEffect(() => {
     if (!open || !closeOnEscape) return;
@@ -77,23 +88,32 @@ export function BaseModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      aria-labelledby={titleId}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4 backdrop-blur-sm animate-fade-in"
       onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div
-        className={`bg-card rounded-xl shadow-xl border border-border p-6 w-full ${sizeClass} max-h-[80vh] flex flex-col`}
+        ref={cardRef}
+        tabIndex={-1}
+        className={cn(
+          "flex max-h-[80vh] w-full flex-col rounded-modal border border-border bg-card p-6 shadow-xl outline-none animate-enter",
+          sizeClass,
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3">
-          <h3 className="text-base font-semibold">{title}</h3>
+          <h3 id={titleId} className="text-base font-semibold">
+            {title}
+          </h3>
           {subtitle ? (
-            <div className="mt-1 text-[11px] text-muted-foreground">{subtitle}</div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              {subtitle}
+            </div>
           ) : null}
         </div>
         <div className="flex-1 overflow-y-auto">{children}</div>
         {footer ? (
-          <div className="flex items-center justify-end gap-2 mt-4">{footer}</div>
+          <div className="mt-4 flex items-center justify-end gap-2">{footer}</div>
         ) : null}
       </div>
     </div>,

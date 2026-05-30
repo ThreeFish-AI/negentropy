@@ -164,12 +164,12 @@ export function ToolFormDialog({
 
     return (
       <div key={key}>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label className="block text-sm font-medium text-text-secondary mb-1">
           {schema.title || key}
           {schema.required && <span className="text-red-500 ml-1">*</span>}
         </label>
         {schema.description && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{schema.description}</p>
+          <p className="text-xs text-text-muted mb-1">{schema.description}</p>
         )}
         <input
           type={inputType}
@@ -184,7 +184,7 @@ export function ToolFormDialog({
             }
             onChange(key, val);
           }}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
         />
       </div>
     );
@@ -193,8 +193,8 @@ export function ToolFormDialog({
   return (
     <OverlayDismissLayer open={open} onClose={onClose}>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-lg border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+        <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-lg border border-border bg-card p-6 shadow-xl">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             {tool ? `Edit Tool: ${tool.display_name || tool.name}` : "Add Tool"}
           </h2>
 
@@ -202,14 +202,14 @@ export function ToolFormDialog({
             {/* 基本信息 */}
             {!tool && (
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                   placeholder="e.g. google_search"
                   required
                 />
@@ -218,25 +218,25 @@ export function ToolFormDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Display Name
                 </label>
                 <input
                   type="text"
                   value={formData.display_name}
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                   placeholder="e.g. Google Search"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Tool Type
                 </label>
                 <select
                   value={formData.tool_type}
                   onChange={(e) => setFormData({ ...formData, tool_type: e.target.value })}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                   disabled={!!tool}
                 >
                   <option value="search">Search</option>
@@ -248,13 +248,13 @@ export function ToolFormDialog({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-text-secondary mb-1">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                 rows={2}
                 placeholder="Tool description"
               />
@@ -263,10 +263,10 @@ export function ToolFormDialog({
             {/* 凭证字段 */}
             {Object.keys(credentialFieldDefs).length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-2">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
                   Credentials
                 </h3>
-                <div className="space-y-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
+                <div className="space-y-3 rounded-md border border-border p-3">
                   {Object.entries(credentialFieldDefs).map(([key, schema]) =>
                     renderDynamicField(key, schema, credentialFields[key], (k, v) =>
                       setCredentialFields((prev) => ({ ...prev, [k]: v })),
@@ -279,10 +279,10 @@ export function ToolFormDialog({
             {/* 配置字段 */}
             {Object.keys(configFieldDefs).length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-2">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
                   Configuration
                 </h3>
-                <div className="space-y-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
+                <div className="space-y-3 rounded-md border border-border p-3">
                   {Object.entries(configFieldDefs).map(([key, schema]) =>
                     renderDynamicField(key, schema, configFields[key], (k, v) =>
                       setConfigFields((prev) => ({ ...prev, [k]: v })),
@@ -316,7 +316,7 @@ export function ToolFormDialog({
                     type="button"
                     onClick={handleTest}
                     disabled={testing || submitting}
-                    className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-muted disabled:opacity-50"
                   >
                     {testing ? "Testing..." : "Test Connection"}
                   </button>
@@ -326,14 +326,14 @@ export function ToolFormDialog({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-muted"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
                 >
                   {submitting ? "Saving..." : tool ? "Update" : "Create"}
                 </button>

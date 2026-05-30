@@ -271,7 +271,7 @@ describe("KnowledgePipelinesPage polling", () => {
     const selectedRunButton = Array.from(container.querySelectorAll("button")).find((element) =>
       element.textContent?.includes("run-running")
     );
-    expect(selectedRunButton?.className).toContain("bg-zinc-900");
+    expect(selectedRunButton?.className).toContain("bg-foreground");
   });
 
   it("Runs 阶段条复用共享 tooltip 内容，且不再被按钮容器裁剪", async () => {

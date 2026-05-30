@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { KpiResponse } from "@/features/scheduler";
 
 interface SchedulerKpiStripProps {
@@ -20,7 +21,7 @@ function MetricCell({ label, value, sub, color }: MetricCellProps) {
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
         {label}
       </div>
-      <div className={`text-lg font-bold ${color ?? "text-foreground"}`}>
+      <div className={`text-lg font-bold tabular-nums ${color ?? "text-foreground"}`}>
         {value}
       </div>
       {sub && (
@@ -32,9 +33,9 @@ function MetricCell({ label, value, sub, color }: MetricCellProps) {
 
 function SkeletonCell() {
   return (
-    <div className="rounded-xl border border-border bg-card p-3 flex-1 min-w-0 animate-pulse">
-      <div className="h-3 w-12 rounded bg-muted/50 mb-2" />
-      <div className="h-5 w-16 rounded bg-muted/50" />
+    <div className="rounded-xl border border-border bg-card p-3 flex-1 min-w-0">
+      <Skeleton className="h-3 w-12 mb-2" />
+      <Skeleton className="h-5 w-16" />
     </div>
   );
 }

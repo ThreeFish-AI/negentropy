@@ -780,7 +780,7 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Document Metadata")).toBeInTheDocument();
     expect(screen.getByText("1 Chunks")).toBeInTheDocument();
     expect(screen.getByText("Retrieval Count 0")).toBeInTheDocument();
-    expect(screen.getByText("Retrieval Count 0").className).toContain("text-zinc-600");
+    expect(screen.getByText("Retrieval Count 0").className).toContain("text-text-secondary");
     expect(screen.getByText("Retrieval Count 0").className).not.toContain("rounded");
     expect(screen.getByText("Original filename").tagName).toBe("DT");
     expect(screen.getByText("Original filename").className).toContain("text-sm");

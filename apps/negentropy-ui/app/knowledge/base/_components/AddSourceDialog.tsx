@@ -184,7 +184,7 @@ export function AddSourceDialog({
       open={isOpen}
       onClose={handleClose}
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentClassName="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200"
       contentProps={{
         role: "dialog",
         "aria-modal": true,
@@ -197,13 +197,13 @@ export function AddSourceDialog({
         <div className="mb-4 flex items-center justify-between">
           <h2
             id="add-source-dialog-title"
-            className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+            className="text-lg font-semibold text-foreground"
           >
             {title}
           </h2>
           <button
             onClick={handleClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="text-text-muted hover:text-foreground"
           >
             <svg
               className="h-5 w-5"
@@ -228,8 +228,8 @@ export function AddSourceDialog({
               onClick={() => handleModeChange("url")}
               className={`pb-1 font-medium ${
                 mode === "url"
-                  ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  ? "border-b-2 border-foreground text-foreground"
+                  : "text-text-muted hover:text-foreground"
               }`}
             >
               From URL
@@ -238,8 +238,8 @@ export function AddSourceDialog({
               onClick={() => handleModeChange("file")}
               className={`pb-1 font-medium ${
                 mode === "file"
-                  ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  ? "border-b-2 border-foreground text-foreground"
+                  : "text-text-muted hover:text-foreground"
               }`}
             >
               From File
@@ -252,13 +252,13 @@ export function AddSourceDialog({
           <div>
             <label
               htmlFor="add-source-url-input"
-              className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              className="mb-1 block text-xs font-medium text-text-secondary"
             >
               URL <span className="text-red-500">*</span>
             </label>
             <input
               id="add-source-url-input"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
               placeholder="https://example.com/article"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
@@ -272,7 +272,7 @@ export function AddSourceDialog({
                 border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
                 ${dragActive
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-600 dark:hover:border-zinc-500"
+                  : "border-border hover:border-foreground/30"
                 }
               `}
               onDragEnter={handleDrag}
@@ -292,13 +292,13 @@ export function AddSourceDialog({
               {selectedFile ? (
                 <div className="flex items-center justify-center gap-2">
                   {/* File Icon */}
-                  <svg className="h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <span className="text-sm font-medium text-text-secondary">
                     {selectedFile.name}
                   </span>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-text-muted">
                     ({formatFileSize(selectedFile.size)})
                   </span>
                   <button
@@ -306,7 +306,7 @@ export function AddSourceDialog({
                       e.stopPropagation();
                       clearFile();
                     }}
-                    className="text-zinc-400 hover:text-red-500 ml-1"
+                    className="text-text-muted hover:text-red-500 ml-1"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -316,13 +316,13 @@ export function AddSourceDialog({
               ) : (
                 <div>
                   {/* Upload Icon */}
-                  <svg className="mx-auto h-8 w-8 text-zinc-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="mx-auto h-8 w-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-300">
+                  <p className="text-sm text-text-secondary">
                     拖拽文件到此处，或 <span className="text-blue-500">点击选择</span>
                   </p>
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-text-muted mt-1">
                     支持 .txt, .md, .pdf (最大 {formatFileSize(MAX_FILE_SIZE)})
                   </p>
                 </div>
@@ -334,13 +334,13 @@ export function AddSourceDialog({
               <div className="mt-3">
                 <label
                   htmlFor="add-source-uri-input"
-                  className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+                  className="mb-1 block text-xs font-medium text-text-secondary"
                 >
                   Source URI
                 </label>
                 <input
                   id="add-source-uri-input"
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
                   placeholder="e.g., document.pdf"
                   value={sourceUri}
                   onChange={(e) => setSourceUri(e.target.value)}
@@ -361,13 +361,13 @@ export function AddSourceDialog({
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={handleClose}
-            className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-muted"
           >
             Cancel
           </button>
           <button
             onClick={handleIngest}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+            className="rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-sm hover:opacity-90 disabled:opacity-50"
             disabled={
               !corpusId ||
               (mode === "url" && !url.trim()) ||

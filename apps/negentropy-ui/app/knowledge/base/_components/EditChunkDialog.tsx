@@ -63,7 +63,7 @@ export function EditChunkDialog({
           aria-label="Close edit chunk"
           onClick={onClose}
           disabled={pending}
-          className="rounded-full border border-border p-2 text-zinc-400 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-border p-2 text-text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           <X className="h-5 w-5" />
         </button>
@@ -80,7 +80,7 @@ export function EditChunkDialog({
             className={`rounded-full px-3 py-1 text-xs font-medium ${
               draftEnabled
                 ? "bg-emerald-500 text-white"
-                : "bg-zinc-700 text-zinc-200"
+                : "bg-foreground text-background"
             }`}
           >
             {draftEnabled ? "Enabled" : "Disabled"}

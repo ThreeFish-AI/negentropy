@@ -67,14 +67,14 @@ export function RetrievedChunkCard({
       <div className={cn("flex items-start justify-between gap-3 px-3 pt-3", isCompact && "gap-2.5")}>
         <div
           className={cn(
-            "flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400",
+            "flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-medium text-text-muted",
             isCompact && "text-[10px]",
           )}
         >
           <Grip className={cn("h-[11px] w-[11px] shrink-0", isCompact && "h-2.5 w-2.5")} />
-          <span className="truncate text-zinc-600 dark:text-zinc-400">{chunk.title}</span>
-          <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
-          <span className="shrink-0 text-zinc-600 dark:text-zinc-400">{chunk.characterCount} characters</span>
+          <span className="truncate text-text-secondary">{chunk.title}</span>
+          <span className="shrink-0 text-text-muted">·</span>
+          <span className="shrink-0 text-text-secondary">{chunk.characterCount} characters</span>
           {badges}
         </div>
         {!hideScores && (
@@ -111,7 +111,7 @@ export function RetrievedChunkCard({
               setIsExpanded((prev) => !prev);
             }}
             className={cn(
-              "flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-zinc-700 dark:text-zinc-300",
+              "flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-text-secondary",
               isCompact && "text-[10px]",
             )}
           >
@@ -200,7 +200,7 @@ export function RetrievedChunkCard({
             isCompact && "text-[10px]",
           )}
         >
-          <div className="flex min-w-0 items-center gap-1.5 text-zinc-700 dark:text-zinc-200">
+          <div className="flex min-w-0 items-center gap-1.5 text-text-secondary">
             <FileText className={cn("h-3.5 w-3.5 shrink-0 text-red-500", isCompact && "h-3 w-3")} />
             <span className="truncate" title={chunk.sourceTitle}>
               {chunk.sourceLabel}
@@ -213,7 +213,7 @@ export function RetrievedChunkCard({
               handleOpen();
             }}
             className={cn(
-              "inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+              "inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-text-muted hover:text-foreground",
               isCompact && "text-[10px]",
             )}
           >

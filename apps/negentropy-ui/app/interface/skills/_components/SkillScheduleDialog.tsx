@@ -159,26 +159,26 @@ export function SkillScheduleDialog({
     <OverlayDismissLayer
       open={open}
       onClose={onClose}
-      backdropClassName="bg-black/55"
+
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-4 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="my-3 flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl"
     >
-      <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="border-b border-border px-5 py-4">
+        <h2 className="text-lg font-semibold text-foreground">
           Schedules · {displayName}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-text-muted">
           POSIX cron 表达式（5 字段：minute hour dom month dow）。AsyncScheduler 60s tick 在 backend 进程内
           扫表执行；多 worker 通过 <code>FOR UPDATE SKIP LOCKED</code> 保证不重复触发。
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4">
-        <section className="mb-4 rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <section className="mb-4 rounded-md border border-border p-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
             New schedule
           </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label className="text-xs text-zinc-600 dark:text-zinc-300">
+            <label className="text-xs text-text-secondary">
               cron_expr
               <input
                 data-testid="schedule-form-cron"
@@ -186,10 +186,10 @@ export function SkillScheduleDialog({
                 value={cronExpr}
                 onChange={(e) => setCronExpr(e.target.value)}
                 placeholder="0 9 * * 1"
-                className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-sm font-mono text-foreground"
               />
             </label>
-            <label className="text-xs text-zinc-600 dark:text-zinc-300">
+            <label className="text-xs text-text-secondary">
               enabled
               <div className="mt-1 inline-flex items-center gap-2">
                 <input
@@ -200,14 +200,14 @@ export function SkillScheduleDialog({
                 <span>{enabled ? "true" : "false"}</span>
               </div>
             </label>
-            <label className="text-xs text-zinc-600 sm:col-span-2 dark:text-zinc-300">
+            <label className="text-xs text-text-secondary sm:col-span-2">
               vars (JSON)
               <textarea
                 data-testid="schedule-form-vars"
                 rows={4}
                 value={varsText}
                 onChange={(e) => setVarsText(e.target.value)}
-                className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1 text-xs font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                className="mt-1 w-full rounded-md border border-border bg-input px-2 py-1 text-xs font-mono text-foreground"
               />
             </label>
           </div>
@@ -217,7 +217,7 @@ export function SkillScheduleDialog({
               data-testid="schedule-form-submit"
               onClick={handleCreate}
               disabled={submitting}
-              className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? "Creating…" : "Create"}
             </button>
@@ -225,39 +225,39 @@ export function SkillScheduleDialog({
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
             Existing schedules
           </h3>
-          {loading && <div className="text-sm text-zinc-500">Loading…</div>}
+          {loading && <div className="text-sm text-text-muted">Loading…</div>}
           {error && (
-            <div role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
           {!loading && !error && schedules.length === 0 && (
-            <div className="text-sm text-zinc-500">No schedules yet.</div>
+            <div className="text-sm text-text-muted">No schedules yet.</div>
           )}
           <ul className="space-y-2">
             {schedules.map((s) => (
               <li
                 key={s.id}
                 data-testid={`schedule-row-${s.id}`}
-                className="rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-700"
+                className="rounded-md border border-border p-3 text-xs"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <code className="font-mono text-zinc-800 dark:text-zinc-200">{s.cron_expr}</code>
+                  <code className="font-mono text-foreground">{s.cron_expr}</code>
                   <span
                     className={
                       "rounded-full px-2 py-0.5 " +
                       (s.enabled
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300")
+                        : "bg-muted text-text-secondary")
                     }
                   >
                     {s.enabled ? "enabled" : "disabled"}
                   </span>
                 </div>
-                <div className="mt-1 text-zinc-500">
+                <div className="mt-1 text-text-muted">
                   next: {s.next_run_at || "—"} · last: {s.last_run_at || "—"}
                 </div>
                 {s.last_error && (
@@ -268,7 +268,7 @@ export function SkillScheduleDialog({
                     type="button"
                     onClick={() => handleRunNow(s.id)}
                     disabled={busyId === s.id}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
+                    className="rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
                     data-testid={`schedule-row-${s.id}-run`}
                   >
                     Run now
@@ -288,11 +288,11 @@ export function SkillScheduleDialog({
           </ul>
         </section>
       </div>
-      <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="rounded-md px-4 py-2 text-sm font-medium text-text-secondary hover:bg-muted"
         >
           Close
         </button>

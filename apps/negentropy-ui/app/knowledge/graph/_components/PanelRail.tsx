@@ -34,8 +34,8 @@ export function PanelRail({ panels, openPanel, onToggle }: PanelRailProps) {
             aria-expanded={isActive}
             className={`flex flex-col items-center justify-center rounded-l-md border border-r-0 px-0 py-2 text-[11px] tracking-wide transition-colors ${
               isActive
-                ? "border-l-2 border-l-blue-500 border-zinc-200 bg-blue-50 font-medium text-blue-600 dark:border-l-blue-400 dark:border-zinc-800 dark:bg-blue-950/30 dark:text-blue-400"
-                : "border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                ? "border-l-2 border-l-blue-500 border-border bg-blue-50 font-medium text-blue-600 dark:border-l-blue-400 dark:bg-blue-950/30 dark:text-blue-400"
+                : "border-border bg-card text-text-muted hover:bg-muted hover:text-foreground"
             }`}
             style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
           >

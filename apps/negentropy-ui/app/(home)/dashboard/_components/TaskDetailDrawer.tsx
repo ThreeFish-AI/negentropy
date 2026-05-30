@@ -86,7 +86,7 @@ export function TaskDetailDrawer({ task, onClose, onTaskChanged }: TaskDetailDra
         type="button"
         onClick={onClose}
         aria-label="Close drawer"
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
       />
       <aside className="relative z-10 flex h-full w-full max-w-[480px] flex-col border-l border-border bg-card shadow-xl">
         <header className="border-b border-border px-4 py-3">

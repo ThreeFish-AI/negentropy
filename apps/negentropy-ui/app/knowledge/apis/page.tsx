@@ -65,7 +65,7 @@ export default function KnowledgeApisPage() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
         title="Knowledge APIs"
         description="API 调用统计与交互式文档"
@@ -80,8 +80,8 @@ export default function KnowledgeApisPage() {
               {statsLoading ? <ApiStatsSkeleton /> : stats && <ApiStats stats={stats} />}
 
               {/* Documentation Panel */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <h2 className="text-sm font-semibold text-foreground">
                   API 文档
                 </h2>
                 <div className="mt-4">
@@ -95,8 +95,8 @@ export default function KnowledgeApisPage() {
           <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
               {/* Endpoint List */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <h2 className="text-sm font-semibold text-foreground">
                   端点列表
                 </h2>
                 <div className="mt-3 space-y-2">

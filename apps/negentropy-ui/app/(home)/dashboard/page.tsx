@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner } from "@/components/ui/ErrorState";
 import { fetchMemoryDashboard, type MemoryDashboard } from "@/features/memory";
 import { useActivityLog } from "@/hooks/useActivityLog";
 
@@ -139,9 +140,7 @@ export default function DashboardPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto px-4 py-3">
       {error ? (
-        <div className="mb-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200">
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       ) : null}
 
       {/* Unified dashboard header strip */}

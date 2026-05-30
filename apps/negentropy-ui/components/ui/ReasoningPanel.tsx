@@ -161,7 +161,7 @@ export function ReasoningPanel({ steps }: { steps: ReasoningStepData[] }) {
         "rounded-xl border text-xs transition-colors",
         runningCount > 0
           ? "border-violet-200/80 bg-violet-50/40 dark:border-violet-800/60 dark:bg-violet-950/20"
-          : "border-zinc-200/60 bg-zinc-50/40 dark:border-zinc-800/50 dark:bg-zinc-900/20",
+          : "border-border/60 bg-muted/40",
       )}
     >
       <button
@@ -174,7 +174,7 @@ export function ReasoningPanel({ steps }: { steps: ReasoningStepData[] }) {
           <span
             className={cn(
               "inline-flex h-2 w-2 shrink-0 rounded-full",
-              runningCount > 0 ? "animate-pulse bg-violet-500" : "bg-zinc-400 dark:bg-zinc-600",
+              runningCount > 0 ? "animate-pulse bg-violet-500" : "bg-text-muted",
             )}
           />
           <span className="font-medium">{summaryLabel}</span>

@@ -41,7 +41,7 @@ export const JsonNode = ({
     return (
       <div className="font-mono text-[11px] leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
         <span
-          className="text-zinc-400 select-none dark:text-zinc-500"
+          className="text-text-muted select-none"
           style={{ paddingLeft: level * 12 }}
         >
           {name ? `"${name}": ` : ""}
@@ -61,7 +61,7 @@ export const JsonNode = ({
     return (
       <div className="font-mono text-[11px] leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
         <span
-          className="text-zinc-400 select-none dark:text-zinc-500"
+          className="text-text-muted select-none"
           style={{ paddingLeft: level * 12 }}
         >
           {name ? `"${name}": ` : ""}

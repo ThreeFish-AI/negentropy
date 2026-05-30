@@ -2,6 +2,7 @@
 
 import { useId, type ReactNode } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { Button } from "@/components/ui/Button";
 
 /**
  * 项目通用 ConfirmDialog — 替代浏览器原生确认/告警/输入弹窗（违反 AGENTS.md 视觉规范）。
@@ -39,9 +40,8 @@ export function ConfirmDialog({
       open={open}
       onClose={onCancel}
       busy={busy}
-      backdropClassName="bg-black/55"
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="w-full max-w-md rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="w-full max-w-md rounded-modal border border-border bg-card shadow-xl"
       contentProps={{
         role: "dialog",
         "aria-modal": true,
@@ -49,40 +49,32 @@ export function ConfirmDialog({
       }}
     >
       <div className="px-5 py-4 sm:px-6" data-testid="confirm-dialog">
-        <h2
-          id={titleId}
-          className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-        >
+        <h2 id={titleId} className="text-lg font-semibold text-foreground">
           {title}
         </h2>
-        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{message}</div>
+        <div className="mt-2 text-sm text-text-secondary">{message}</div>
       </div>
-      <div className="flex justify-end gap-3 border-t border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
-        <button
+      <div className="flex justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
+        <Button
           type="button"
           data-testid="confirm-dialog-cancel"
+          variant="ghost"
           onClick={onCancel}
           disabled={busy}
           autoFocus={destructive}
-          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >
           {cancelLabel}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           data-testid="confirm-dialog-confirm"
+          variant={destructive ? "danger" : "neutral"}
           onClick={onConfirm}
-          disabled={busy}
+          loading={busy}
           autoFocus={!destructive}
-          className={
-            "rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50 " +
-            (destructive
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200")
-          }
         >
-          {busy ? "Working..." : confirmLabel}
-        </button>
+          {confirmLabel}
+        </Button>
       </div>
     </OverlayDismissLayer>
   );

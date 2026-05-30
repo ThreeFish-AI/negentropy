@@ -51,7 +51,7 @@ export function BuildButton({
       {lastBuildError && (
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-zinc-900"
+          className="pointer-events-none absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-card"
         />
       )}
     </div>

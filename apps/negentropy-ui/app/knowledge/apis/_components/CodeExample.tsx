@@ -34,15 +34,15 @@ export function CodeExample({ examples }: CodeExampleProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
+        <div className="flex items-center gap-1 rounded-full bg-muted p-1">
           {(Object.keys(LANGUAGE_LABELS) as Language[]).map((lang) => (
             <button
               key={lang}
               onClick={() => setLanguage(lang)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 language === lang
-                  ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-text-secondary hover:text-foreground"
               }`}
             >
               {LANGUAGE_LABELS[lang]}
@@ -51,7 +51,7 @@ export function CodeExample({ examples }: CodeExampleProps) {
         </div>
         <button
           onClick={copyToClipboard}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs text-text-muted hover:text-foreground transition-colors"
           title="复制代码"
         >
           {copied ? (
@@ -67,7 +67,7 @@ export function CodeExample({ examples }: CodeExampleProps) {
           )}
         </button>
       </div>
-      <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900 dark:border-zinc-700 dark:bg-zinc-950">
+      <div className="relative overflow-hidden rounded-lg border border-border bg-zinc-900 dark:bg-zinc-950">
         <pre className="overflow-x-auto p-4 text-xs leading-relaxed">
           <code className="text-zinc-100">{code}</code>
         </pre>
