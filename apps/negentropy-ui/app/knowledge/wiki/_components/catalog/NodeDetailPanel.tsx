@@ -14,6 +14,8 @@ import { DocumentAssignmentSection } from "./DocumentAssignmentSection";
 interface NodeDetailPanelProps {
   node: CatalogNode | null;
   catalogId: string;
+  /** Full node list for resolving parent name and computing sibling position */
+  nodes: CatalogNode[];
   onUpdate: () => void;
   onDelete: () => void;
 }
@@ -21,6 +23,7 @@ interface NodeDetailPanelProps {
 export function NodeDetailPanel({
   node,
   catalogId,
+  nodes,
   onUpdate,
   onDelete,
 }: NodeDetailPanelProps) {
@@ -154,23 +157,51 @@ export function NodeDetailPanel({
 
       {/* Metadata info */}
       <div className="px-5 py-4 space-y-3 text-xs">
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <span className="text-muted-foreground">ID</span>
-          <span className="font-mono text-foreground/60">
-            {node.id.slice(0, 8)}…
-          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(node.id);
+                toast.success("ID 已复制");
+              } catch {
+                toast.error("复制失败");
+              }
+            }}
+            className="font-mono text-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center gap-1"
+            title="点击复制完整 ID"
+          >
+            <span className="text-[11px]">{node.id}</span>
+            <svg className="h-3 w-3 shrink-0 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">父节点</span>
-          <span>
+          <span className="text-foreground/80">
             {node.parent_id
-              ? `${node.parent_id.slice(0, 8)}…`
+              ? (() => {
+                  const parent = nodes.find((n) => n.id === node.parent_id);
+                  return parent ? parent.name : node.parent_id;
+                })()
               : "（根节点）"}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">排序</span>
-          <span>{node.sort_order}</span>
+          <span className="text-foreground/80">
+            {(() => {
+              const siblings = nodes
+                .filter((n) => n.parent_id === node.parent_id)
+                .sort((a, b) => a.sort_order - b.sort_order);
+              const idx = siblings.findIndex((n) => n.id === node.id);
+              return idx >= 0
+                ? `第 ${idx + 1} / ${siblings.length}`
+                : "-";
+            })()}
+          </span>
         </div>
       </div>
 

@@ -251,6 +251,7 @@ export function LibraryShell() {
             <NodeDetailPanel
               node={treeApi.selectedNode}
               catalogId={catalogId ?? ""}
+              nodes={treeApi.nodes}
               onUpdate={treeApi.refresh}
               onDelete={handleDeleted}
             />
