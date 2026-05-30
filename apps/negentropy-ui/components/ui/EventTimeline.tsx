@@ -83,7 +83,7 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
 
     return (
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
-        <div className="flex items-center justify-between text-[10px] uppercase text-text-muted mb-2">
+        <div className="flex items-center justify-between text-micro uppercase tracking-overline text-text-muted mb-2">
           <div className="flex items-center gap-1.5">
             <span
               className={`w-1.5 h-1.5 rounded-full ${
@@ -98,8 +98,8 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
           {item.name}
         </div>
         {item.args ? (
-          <div className="mt-2 text-[10px]">
-            <span className="uppercase tracking-wider text-[9px] text-text-muted block mb-1">
+          <div className="mt-2 text-micro">
+            <span className="uppercase tracking-overline text-micro text-text-muted block mb-1">
               Args
             </span>
             <div className="rounded bg-border-muted/50 p-2 border border-border-muted max-h-64 overflow-auto custom-scrollbar">
@@ -107,12 +107,12 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-[10px] text-text-muted italic">No arguments</p>
+          <p className="mt-2 text-micro text-text-muted italic">No arguments</p>
         )}
 
         {item.result && (
-          <div className="mt-2 text-[10px]">
-            <span className="uppercase tracking-wider text-[9px] text-text-muted block mb-1">
+          <div className="mt-2 text-micro">
+            <span className="uppercase tracking-overline text-micro text-text-muted block mb-1">
               Result
             </span>
             <div className="rounded bg-success/10 p-2 border border-success/20 max-h-64 overflow-auto custom-scrollbar">
@@ -121,11 +121,11 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
           </div>
         )}
         {!item.result && item.status !== "running" && (
-          <p className="mt-2 text-[10px] text-text-muted italic">No return value</p>
+          <p className="mt-2 text-micro text-text-muted italic">No return value</p>
         )}
         <div className="mt-2 flex justify-end">
           <span
-            className={`text-[9px] uppercase font-medium px-1.5 py-0.5 rounded ${
+            className={`text-micro uppercase tracking-overline font-medium px-1.5 py-0.5 rounded ${
               item.status === "running"
                 ? "bg-info/15 text-info"
                 : "bg-success/15 text-success"
@@ -141,7 +141,7 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
   if (item.kind === "artifact") {
     return (
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-3 shadow-sm group dark:border-indigo-800 dark:bg-indigo-950/30">
-        <div className="flex items-center justify-between text-[10px] uppercase text-indigo-400 mb-2 dark:text-indigo-400">
+        <div className="flex items-center justify-between text-micro uppercase tracking-overline text-indigo-400 mb-2 dark:text-indigo-400">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
             <span>{item.title}</span>
@@ -173,7 +173,7 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
             </button>
           </div>
         </div>
-        <pre className="mt-2 max-h-40 overflow-auto rounded bg-card/80 p-2 text-[10px] text-indigo-800 border border-indigo-100 font-mono dark:text-indigo-200 dark:border-indigo-800">
+        <pre className="mt-2 max-h-40 overflow-auto rounded bg-card/80 p-2 text-micro text-indigo-800 border border-indigo-100 font-mono dark:text-indigo-200 dark:border-indigo-800">
           {JSON.stringify(item.content, null, 2)}
         </pre>
       </div>
@@ -183,14 +183,14 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
   if (item.kind === "state") {
     return (
       <div className="rounded-xl border border-sky-200 bg-sky-50/30 p-3 shadow-sm dark:border-sky-800 dark:bg-sky-950/30">
-        <div className="flex items-center justify-between text-[10px] uppercase text-sky-400 mb-2 dark:text-sky-400">
+        <div className="flex items-center justify-between text-micro uppercase tracking-overline text-sky-400 mb-2 dark:text-sky-400">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
             <span>{item.title}</span>
           </div>
           <span>{formatTimestamp(item.timestamp)}</span>
         </div>
-        <pre className="mt-2 max-h-32 overflow-auto rounded bg-card/80 p-2 text-[10px] text-sky-800 border border-sky-100 font-mono dark:text-sky-200 dark:border-sky-800">
+        <pre className="mt-2 max-h-32 overflow-auto rounded bg-card/80 p-2 text-micro text-sky-800 border border-sky-100 font-mono dark:text-sky-200 dark:border-sky-800">
           {JSON.stringify(item.content, null, 2)}
         </pre>
       </div>
@@ -199,12 +199,12 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
 
   return (
     <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-      <div className="flex items-center justify-between text-[10px] uppercase text-text-muted mb-2">
+      <div className="flex items-center justify-between text-micro uppercase tracking-overline text-text-muted mb-2">
         <span>{item.title}</span>
         <span className="tabular-nums">{formatTimestamp(item.timestamp)}</span>
       </div>
 
-      <div className="mt-1 text-[11px] text-text-secondary break-words">
+      <div className="mt-1 text-caption text-text-secondary break-words">
         {typeof item.content === "string"
           ? item.content
           : JSON.stringify(item.content)}
@@ -236,11 +236,11 @@ function TimelineGroup({
         className="mb-3 flex items-center gap-2 select-none"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-text-secondary cursor-pointer transition-colors">
+        <span className="text-micro font-bold uppercase tracking-overline text-text-muted hover:text-text-secondary cursor-pointer transition-colors">
           {runId ? `Run ${runId.slice(0, 8)}` : "System Events"}
         </span>
-        <span className="text-[10px] text-border-muted">•</span>
-        <span className="text-[10px] tabular-nums text-text-muted">
+        <span className="text-micro text-border-muted">•</span>
+        <span className="text-micro tabular-nums text-text-muted">
           {formatTimestamp(items[0].timestamp)}
         </span>
       </div>
@@ -254,7 +254,7 @@ function TimelineGroup({
       )}
       {isCollapsed && (
         <div
-          className="text-[10px] text-text-muted italic pl-1 cursor-pointer hover:text-text-secondary"
+          className="text-micro text-text-muted italic pl-1 cursor-pointer hover:text-text-secondary"
           onClick={() => setIsCollapsed(false)}
         >
           {items.length} events hidden...
@@ -310,10 +310,10 @@ export function EventTimeline({ events }: EventTimelineProps) {
             />
           </svg>
         </div>
-        <p className="text-[11px] font-medium text-text-secondary">
+        <p className="text-caption font-medium text-text-secondary">
           No events yet
         </p>
-        <p className="text-[9px] text-text-muted max-w-[10rem] mt-0.5">
+        <p className="text-micro text-text-muted max-w-[10rem] mt-0.5">
           Reference events will appear here during execution.
         </p>
       </div>
@@ -326,7 +326,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
         <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           Event Timeline
         </p>
-        <span className="rounded-full bg-border-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-text-muted">
+        <span className="rounded-full bg-border-muted px-1.5 py-0.5 text-micro font-medium tabular-nums text-text-muted">
           {events.length}
         </span>
       </div>

@@ -298,7 +298,7 @@ export default function KnowledgePipelinesPage() {
     selected?.source === "kb" ? selected : undefined;
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
         title="Pipelines"
         description="Knowledge 指标、构建与管线概览"
@@ -311,28 +311,28 @@ export default function KnowledgePipelinesPage() {
                 {metrics.map((metric) => (
                   <div
                     key={metric.label}
-                    className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                    className="rounded-2xl border border-border bg-card p-4 shadow-sm"
                   >
-                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs uppercase tracking-label text-text-muted">
                       {metric.label}
                     </p>
-                    <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+                    <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">
                       {metric.value}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h2 className="text-sm font-semibold text-foreground">
                     Pipeline Runs
                   </h2>
-                  <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="flex items-center gap-3 text-xs text-text-muted">
                     <span>{lastUpdatedAt || "最近 24h"}</span>
                     {selectedKbRun && (
                       <button
-                        className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-[11px]")}
+                        className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-caption")}
                         onClick={async () => {
                           if (!selectedKbRun) return;
                           setSaveStatus("saving");
@@ -367,7 +367,7 @@ export default function KnowledgePipelinesPage() {
                   </div>
                 </div>
                 {allRuns.length ? (
-                  <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                  <div className="mt-4 space-y-3 text-xs text-text-secondary">
                     {allRuns.map((run) => (
                       <PipelineRunCard
                         key={run.id}
@@ -401,28 +401,28 @@ export default function KnowledgePipelinesPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无作业</p>
+                  <p className="mt-3 text-xs text-text-muted">暂无作业</p>
                 )}
                 {total > 0 && (
-                  <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                    <span className="text-xs text-text-muted">
                       {`${total} run${total !== 1 ? "s" : ""}`}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                       >
                         Previous
                       </button>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="text-xs text-text-muted">
                         Page {page} / {Math.ceil(total / PAGE_SIZE) || 1}
                       </span>
                       <button
                         onClick={() => setPage((p) => Math.min(Math.ceil(total / PAGE_SIZE), p + 1))}
                         disabled={page >= Math.ceil(total / PAGE_SIZE)}
-                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                       >
                         Next
                       </button>
@@ -435,10 +435,10 @@ export default function KnowledgePipelinesPage() {
 
           <aside className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alerts</h2>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <h2 className="text-sm font-semibold text-foreground">Alerts</h2>
                 {pipelinesData?.alerts?.length ? (
-                  <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                  <div className="mt-3 space-y-3 text-xs text-text-secondary">
                     {pipelinesData.alerts.map((item, index) => (
                       <div
                         key={index}
@@ -449,19 +449,19 @@ export default function KnowledgePipelinesPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无告警</p>
+                  <p className="mt-3 text-xs text-text-muted">暂无告警</p>
                 )}
               </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+              <div className="rounded-2xl border border-border bg-card p-5 text-xs text-text-muted shadow-sm">
                 {error
                   ? `加载失败：${error}`
                   : `状态源：${allRuns.length ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
               </div>
 
               {selected && (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                  <h2 className="text-sm font-semibold text-foreground">Run Detail</h2>
                   {selected.source === "kb" ? (
                     <PipelineRunDetailPanel run={selected} />
                   ) : (
@@ -474,7 +474,7 @@ export default function KnowledgePipelinesPage() {
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
                   <p className="font-semibold">待重试写回：{retryQueue.length}</p>
                   <button
-                    className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
+                    className="mt-3 rounded bg-amber-600 px-3 py-2 text-caption font-semibold text-white"
                     onClick={async () => {
                       const next = retryQueue[0];
                       if (!next || next.source !== "kb") return;

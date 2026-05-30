@@ -9,6 +9,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { Button } from "@/components/ui/Button";
 
 interface BuiltinTool {
   id: string;
@@ -148,8 +149,6 @@ export function ToolFormDialog({
     }
   };
 
-  if (!open) return null;
-
   const renderDynamicField = (
     key: string,
     schema: FieldSchema,
@@ -164,12 +163,12 @@ export function ToolFormDialog({
 
     return (
       <div key={key}>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label className="block text-sm font-medium text-text-secondary mb-1">
           {schema.title || key}
           {schema.required && <span className="text-red-500 ml-1">*</span>}
         </label>
         {schema.description && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{schema.description}</p>
+          <p className="text-xs text-text-muted mb-1">{schema.description}</p>
         )}
         <input
           type={inputType}
@@ -184,59 +183,74 @@ export function ToolFormDialog({
             }
             onChange(key, val);
           }}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
         />
       </div>
     );
   };
 
   return (
-    <OverlayDismissLayer open={open} onClose={onClose}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-lg border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-            {tool ? `Edit Tool: ${tool.display_name || tool.name}` : "Add Tool"}
-          </h2>
+    <OverlayDismissLayer
+      open={open}
+      onClose={onClose}
+      busy={submitting}
+      containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
+    >
+      {/* ── Header ── */}
+      <div className="border-b border-border px-5 py-4 sm:px-6">
+        <h2 className="text-lg font-semibold text-foreground">
+          {tool ? `Edit Tool: ${tool.display_name || tool.name}` : "Add Tool"}
+        </h2>
+        <p className="mt-1 text-sm text-text-muted">
+          Configure tool credentials and runtime parameters.
+        </p>
+      </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 基本信息 */}
-            {!tool && (
+      {/* ── Body ── */}
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+          {/* 基本信息 */}
+          <section className="space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+              Basic Information
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {!tool && (
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-text-secondary mb-1">
+                    Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
+                    placeholder="e.g. google_search"
+                    required
+                  />
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                  placeholder="e.g. google_search"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Display Name
                 </label>
                 <input
                   type="text"
                   value={formData.display_name}
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                   placeholder="e.g. Google Search"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Tool Type
                 </label>
                 <select
                   value={formData.tool_type}
                   onChange={(e) => setFormData({ ...formData, tool_type: e.target.value })}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                   disabled={!!tool}
                 >
                   <option value="search">Search</option>
@@ -245,103 +259,95 @@ export function ToolFormDialog({
                   <option value="claude_code">Agent</option>
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                rows={2}
-                placeholder="Tool description"
-              />
-            </div>
-
-            {/* 凭证字段 */}
-            {Object.keys(credentialFieldDefs).length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-2">
-                  Credentials
-                </h3>
-                <div className="space-y-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
-                  {Object.entries(credentialFieldDefs).map(([key, schema]) =>
-                    renderDynamicField(key, schema, credentialFields[key], (k, v) =>
-                      setCredentialFields((prev) => ({ ...prev, [k]: v })),
-                    ),
-                  )}
-                </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
+                  rows={2}
+                  placeholder="Tool description"
+                />
               </div>
-            )}
+            </div>
+          </section>
 
-            {/* 配置字段 */}
-            {Object.keys(configFieldDefs).length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-2">
-                  Configuration
-                </h3>
-                <div className="space-y-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
-                  {Object.entries(configFieldDefs).map(([key, schema]) =>
-                    renderDynamicField(key, schema, configFields[key], (k, v) =>
-                      setConfigFields((prev) => ({ ...prev, [k]: v })),
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 测试结果 */}
-            {testResult && (
-              <div
-                className={`rounded-md p-3 text-sm ${
-                  testResult.success
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                    : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                }`}
-              >
-                {testResult.message}
-                {testResult.success && testResult.latency_ms !== undefined && (
-                  <span className="ml-2 text-xs opacity-70">({testResult.latency_ms}ms)</span>
+          {/* 凭证字段 */}
+          {Object.keys(credentialFieldDefs).length > 0 && (
+            <section className="space-y-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Credentials
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Object.entries(credentialFieldDefs).map(([key, schema]) =>
+                  renderDynamicField(key, schema, credentialFields[key], (k, v) =>
+                    setCredentialFields((prev) => ({ ...prev, [k]: v })),
+                  ),
                 )}
               </div>
-            )}
+            </section>
+          )}
 
-            {/* 操作按钮 */}
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                {tool && (
-                  <button
-                    type="button"
-                    onClick={handleTest}
-                    disabled={testing || submitting}
-                    className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                  >
-                    {testing ? "Testing..." : "Test Connection"}
-                  </button>
+          {/* 配置字段 */}
+          {Object.keys(configFieldDefs).length > 0 && (
+            <section className="space-y-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Configuration
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Object.entries(configFieldDefs).map(([key, schema]) =>
+                  renderDynamicField(key, schema, configFields[key], (k, v) =>
+                    setConfigFields((prev) => ({ ...prev, [k]: v })),
+                  ),
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                >
-                  {submitting ? "Saving..." : tool ? "Update" : "Create"}
-                </button>
-              </div>
+            </section>
+          )}
+
+          {/* 测试结果 */}
+          {testResult && (
+            <div
+              className={`rounded-md p-3 text-sm ${
+                testResult.success
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                  : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+              }`}
+            >
+              {testResult.message}
+              {testResult.success && testResult.latency_ms !== undefined && (
+                <span className="ml-2 text-xs opacity-70">({testResult.latency_ms}ms)</span>
+              )}
             </div>
-          </form>
+          )}
         </div>
-      </div>
+
+        {/* ── Footer ── */}
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card px-5 py-4 sm:px-6">
+          <div>
+            {tool && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTest}
+                disabled={testing || submitting}
+                loading={testing}
+              >
+                Test Connection
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="neutral" disabled={submitting}>
+              {submitting ? "Saving..." : tool ? "Update" : "Create"}
+            </Button>
+          </div>
+        </div>
+      </form>
     </OverlayDismissLayer>
   );
 }

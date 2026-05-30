@@ -61,16 +61,16 @@ export function ReplaceSourceDialog({
       open={isOpen}
       onClose={handleClose}
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentClassName="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200"
     >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-lg font-semibold text-foreground">
             Replace Source
           </h2>
           <button
             onClick={handleClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="text-text-muted hover:text-foreground"
           >
             <svg
               className="h-5 w-5"
@@ -115,11 +115,11 @@ export function ReplaceSourceDialog({
 
         {/* Content Input */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1 block text-xs font-medium text-text-secondary">
             New Content <span className="text-red-500">*</span>
           </label>
           <textarea
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-1 focus:ring-foreground"
             rows={8}
             placeholder="Paste new content to replace the existing one..."
             value={text}
@@ -138,7 +138,7 @@ export function ReplaceSourceDialog({
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={handleClose}
-            className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-muted"
           >
             Cancel
           </button>

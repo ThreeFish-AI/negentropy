@@ -206,23 +206,23 @@ export function ModelConfigPanel({
       : null;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground">
         Model Settings
       </h3>
-      <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+      <p className="mt-1 text-micro text-text-muted">
         LLM 用于图谱实体/关系抽取与社区摘要；Embedding 用于向量化与检索
       </p>
 
       <div className="mt-3 space-y-3">
         <div>
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+          <label className="block text-xs font-medium text-text-secondary mb-1">
             LLM Model
           </label>
           <select
             value={llmConfigId}
             onChange={(e) => setLlmConfigId(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs"
           >
             <option value="">(使用全局默认)</option>
             {llmModels.map((m) => (
@@ -234,13 +234,13 @@ export function ModelConfigPanel({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+          <label className="block text-xs font-medium text-text-secondary mb-1">
             Embedding Model
           </label>
           <select
             value={embeddingConfigId}
             onChange={(e) => setEmbeddingConfigId(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs"
           >
             <option value="">(使用全局默认)</option>
             {embeddingModels.map((m) => (
@@ -250,7 +250,7 @@ export function ModelConfigPanel({
             ))}
           </select>
           {dims != null && (
-            <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {dims} dims
             </span>
           )}
@@ -261,20 +261,20 @@ export function ModelConfigPanel({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="mt-3 w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+        className="mt-3 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-muted disabled:opacity-50"
       >
         {saving ? "保存中..." : saved ? "已保存" : "保存"}
       </button>
       {saveError && (
-        <p className="mt-1 text-[10px] text-red-600 dark:text-red-400">{saveError}</p>
+        <p className="mt-1 text-micro text-red-600 dark:text-red-400">{saveError}</p>
       )}
 
       {taskSlotsByType.length > 0 && (
-        <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-          <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+        <div className="mt-4 border-t border-border pt-3">
+          <h4 className="text-xs font-semibold text-foreground">
             Task Models（per-task overrides）
           </h4>
-          <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-micro text-text-muted">
             为该 Corpus 的子任务（实体/关系抽取、文档抽取）单独指定模型；留空 =
             回退到上方 LLM Model 与全局默认。
           </p>
@@ -282,10 +282,10 @@ export function ModelConfigPanel({
             {taskSlotsByType.map(({ slot, candidates }) => (
               <div
                 key={slot.task_key}
-                className="flex flex-col gap-1.5 rounded-lg border border-zinc-100 px-2 py-2 dark:border-zinc-800"
+                className="flex flex-col gap-1.5 rounded-lg border border-border px-2 py-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  <span className="text-xs font-medium text-text-secondary">
                     {slot.label}
                   </span>
                   <div className="flex items-center gap-2">
@@ -298,19 +298,19 @@ export function ModelConfigPanel({
                       ariaLabel={`Task model for ${slot.task_key}`}
                     />
                     {taskSavingKey === slot.task_key && (
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      <span className="text-micro text-text-muted">
                         保存中…
                       </span>
                     )}
                     {taskSavedKey === slot.task_key && (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <span className="text-micro text-emerald-600 dark:text-emerald-400">
                         已保存
                       </span>
                     )}
                   </div>
                 </div>
                 {slot.description && (
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                  <p className="text-micro text-text-muted">
                     {slot.description}
                   </p>
                 )}

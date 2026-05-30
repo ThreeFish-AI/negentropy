@@ -124,12 +124,16 @@ search:
   base_backoff_seconds: 1.0
   max_results: 10
 
-# --- Memory 子系统 Phase 5 高级特性配置 ---
-# 全部默认关闭，按需通过 NE_MEMORY_<SECTION>__<KEY> 环境变量灰度启用。
-# 详细契约见 docs/reference/cognizes/engine/025-the-memory-system.md §10.5、docs/reference/cognizes/engine/026-memory-whitepaper.md §4。
+# --- Memory 子系统高级特性配置（默认开箱即用）---
+# F1 HippoRAG / F2 Reflexion / F3 Memify 6-step / F4 Presidio / Rocchio 反馈闭环均默认启用。
+# 各特性自带运行时安全闸（如 HippoRAG 的 min_kg_associations 数据闸、Reflexion 的
+# max_inflight_tasks 并发上限、Presidio 的 allow_engine_fallback 降级），可经
+# NE_MEMORY_<SECTION>__<KEY> 环境变量按需关闭/调参。
+# 详细契约见 docs/reference/cognizes/engine/025-the-memory-system.md §10.5、docs/reference/cognizes/engine/026-memory-whitepaper.md §4；
+# 上手指引见 docs/concepts/user-guide/memory-basics.md。
 memory:
   hipporag:                                  # F1 HippoRAG PPR-Boosted Hybrid
-    enabled: false
+    enabled: true                             # 默认开箱；min_kg_associations 数据闸使其在 KG 稀疏时自休眠回退 Hybrid
     depth: 2
     alpha: 0.5
     rrf_k: 60
@@ -138,8 +142,8 @@ memory:
     seed_threshold: 0.75
     min_kg_associations: 100
     gray_users: []
-  reflection:                                # F2 Reflexion Episodic Replay
-    enabled: false
+  reflection:                                # F2 Reflexion Episodic Replay（默认开箱）
+    enabled: true                            # 失败检索（irrelevant/harmful）触发反思生成 + Few-Shot 召回；并发硬上限防风暴
     dedup_window_days: 7
     dedup_cosine: 0.92
     daily_limit_per_user: 10
@@ -149,19 +153,50 @@ memory:
     max_inflight_tasks: 8                    # 后台反思任务硬上限（防反馈风暴）
   consolidation:                             # F3 Memify Consolidation Pipeline
     legacy: false
-    policy: serial                           # serial | parallel | fail_tolerant
+    policy: fail_tolerant                     # serial | parallel | fail_tolerant；单步失败不中断全链
     timeout_per_step_ms: 30000
-    steps:                                   # 默认与 Phase 4 行为一致
-      - fact_extract
-      - auto_link
-  pii:                                       # F4 Presidio 生产级 PII
-    engine: regex                            # regex | presidio
-    policy: mark                             # mark | mask | anonymize
+    steps:                                   # 6-step Memify 默认开箱（步骤间有数据依赖，禁 parallel）
+      - fact_extract                         # LLM 事实提取（失败降级 PatternFactExtractor）
+      - entity_normalization                 # 实体规范化（LLM，失败容忍）
+      - topic_cluster                        # 主题聚类（纯向量计算）
+      - dedup_merge                          # 近重复合并 + AGM 冲突消解
+      - summarize                            # 用户画像摘要刷新（LLM，TTL 缓存）
+      - auto_link                            # 关联网络自动建边
+    cluster_eps: 0.15                        # TopicCluster 聚类余弦距离阈值
+    merge_threshold: 0.90                    # DedupMerge 近重复 cosine 阈值
+  pii:                                       # F4 Presidio 生产级 PII（默认开箱）
+    engine: presidio                         # regex | presidio；presidio 提供 PERSON/LOCATION NER + 多语言
+    policy: mark                             # mark | mask | anonymize（写入策略）
     languages: [en, zh]
     score_threshold: 0.6
-    gatekeeper_enabled: false
-    acl_role_threshold: editor
-    allow_engine_fallback: false             # presidio 初始化失败时禁止悄悄退回 regex
+    # gatekeeper 默认关闭：检索遮蔽需 viewer_role 角色，而 ADK tool_context.search_memory /
+    # 内部 agent 路径暂无法透传角色（拿不到角色→按低权限被遮蔽）。能力已接线并测试，
+    # 待 REST/工具链全量补齐角色透传后再默认开。需要时显式置 true（REST 路径已据鉴权用户生效）。
+    gatekeeper_enabled: false                # 检索路径按角色对低权限用户脱敏含 PII 记忆
+    acl_role_threshold: editor               # 低于 editor 的角色看到脱敏副本
+    allow_engine_fallback: true              # 开箱优先：spaCy 模型缺失时降级回 regex 并写 ERROR（经 /memory/health 可观测），不阻断启动
+    retrieval_policy: anonymize              # 检索遮蔽策略（低权限角色）：mask | anonymize
+  relevance:                                 # Phase 6 G1 Rocchio 相关性反馈闭环
+    enabled: true                            # 读侧应用预计算 relevance_weight；写侧由 cron 重加权（默认开箱）
+    rocchio_beta: 0.75                       # 正反馈系数 β
+    rocchio_gamma: 0.15                      # 负反馈系数 γ
+    prf_top_k: 3
+    prf_alpha: 0.7
+    feedback_min_count: 3                    # 最低反馈条数门槛
+    reweight_interval_seconds: 3600
+
+# --- Routine 配置（长周期自主任务迭代执行：Evaluator-Optimizer + Reflexion）---
+routine:
+  enabled: false                             # 灰度开关：关闭时 routine_inspector 心跳 no-op，不影响调度引擎
+  inspector_interval_seconds: 25             # 心跳 tick 间隔；与种子 routine_inspector ScheduledTask 一致
+  max_concurrent_executions: 2               # 全局并发 Claude Code 执行上限（进程内信号量）
+  lease_slack_seconds: 60                    # Runner lease 宽裕量；崩溃恢复 reaper 据此判定孤儿迭代
+  gate_timeout_seconds: 120                  # verification_command 命令门控执行超时
+  max_reflections_injected: 5                # 注入下一迭代 prompt 的最近反思条数（Reflexion 窗口）
+  eval_failure_patience: 3                   # 评估器连续失败容忍次数，超过终止为 unrecoverable_error
+  default_max_iterations: 20                 # 创建 routine 默认迭代硬上限
+  default_max_cost_usd: 5.0                  # 创建 routine 默认成本熔断（USD）
+  evaluator_model: null                      # LLM-as-Judge 模型覆盖；null 走 task_registry 的 routine.evaluate
 
 # --- Knowledge 配置 ---
 knowledge:

@@ -17,7 +17,7 @@ from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.summarization")
 
-# Title 生成对长度的硬约束在响应后处理阶段完成（汉字截 12 / 英文截 24，见
+# Title 生成对长度的硬约束在响应后处理阶段完成（汉字截 18 / 英文截 36，见
 # ``generate_title`` 末尾），这里的 ``max_tokens`` 只用于保护 LLM 总输出预算。
 #
 # 历史值 20 在面向 reasoning 模型（gpt-5-mini / o1 / o3 等默认配置）时会被
@@ -82,7 +82,7 @@ class SessionSummarizer:
 
     async def generate_title(self, history: list[types.Content]) -> str | None:
         """
-        Generates a short title (roughly 12 Chinese character width) for the given conversation history.
+        Generates a short title (~18 Chinese chars / ~36 English chars) for the given conversation history.
         """
         if not history:
             return None
@@ -90,8 +90,8 @@ class SessionSummarizer:
         logger.info("generating_title", event_count=len(history))
 
         prompt = (
-            "请根据以下对话生成一个简短标题，长度约 10-12 个汉字（不超过 12 个汉字）。\n"
-            "若为英文，尽量简短（不超过 24 个字符）。\n"
+            "请根据以下对话生成一个简短标题，长度约 15-18 个汉字（不超过 18 个汉字）。\n"
+            "若为英文，尽量简短（不超过 36 个字符）。\n"
             "仅输出标题文本，不要引号、前缀、冒号或任何解释。\n"
             "格式要求：直接输出标题，不要有 'Title:' 等前缀。\n\n"
             "Summarize the conversation into a short title. "
@@ -151,12 +151,12 @@ class SessionSummarizer:
                 # Normalize whitespace/newlines
                 title = re.sub(r"\s+", " ", title).strip()
 
-                # Enforce length for UI width (~12 Chinese chars)
+                # Enforce length for UI width (~18 Chinese chars / ~36 English chars)
                 if re.search(r"[\u4e00-\u9fff]", title):
-                    title = title[:12].strip()
+                    title = title[:18].strip()
                 else:
-                    if len(title) > 24:
-                        title = title[:24].strip()
+                    if len(title) > 36:
+                        title = title[:36].strip()
 
                 if len(title) > 100:
                     logger.error("title_still_too_long_after_processing")

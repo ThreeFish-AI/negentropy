@@ -47,3 +47,30 @@ class TestSummarizeStep:
 
         assert result.status == "success"
         assert result.output_count == 0
+
+    async def test_failed_when_summarizer_factory_raises(self):
+        """获取 summarizer 失败 → status=failed。"""
+        with patch(
+            "negentropy.engine.factories.memory.get_memory_summarizer",
+            side_effect=RuntimeError("factory boom"),
+        ):
+            step = SummarizeStep()
+            result = await step.run(_new_ctx())
+
+        assert result.status == "failed"
+        assert result.error
+
+    async def test_failed_when_generation_raises(self):
+        """摘要生成抛错（非 TypeError）→ status=failed。"""
+        fake_summarizer = MagicMock()
+        fake_summarizer.get_or_generate_summary = AsyncMock(side_effect=RuntimeError("llm down"))
+
+        with patch(
+            "negentropy.engine.factories.memory.get_memory_summarizer",
+            return_value=fake_summarizer,
+        ):
+            step = SummarizeStep()
+            result = await step.run(_new_ctx())
+
+        assert result.status == "failed"
+        assert result.error

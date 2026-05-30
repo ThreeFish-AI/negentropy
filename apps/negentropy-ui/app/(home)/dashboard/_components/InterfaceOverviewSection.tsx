@@ -163,7 +163,7 @@ function StatCard({
     >
       <div className="mb-1 text-sm font-medium text-muted-foreground">{title}</div>
       <div className="mb-3 text-xs text-muted-foreground/70">{description}</div>
-      <div className="text-3xl font-bold text-foreground">{total}</div>
+      <div className="text-3xl font-bold text-foreground tabular-nums">{total}</div>
       <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
         {enabled} enabled
       </div>

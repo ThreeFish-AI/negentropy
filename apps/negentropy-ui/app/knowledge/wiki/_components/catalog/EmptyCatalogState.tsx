@@ -22,7 +22,7 @@ export function EmptyCatalogState({ onAddRoot }: EmptyCatalogStateProps) {
         <FolderPlus className="h-4 w-4" />
         创建根节点
       </button>
-      <p className="text-[10px] text-muted-foreground/40 mt-3">
+      <p className="text-micro text-muted-foreground/40 mt-3">
         右键节点可查看更多操作 · 拖拽节点可调整排序
       </p>
     </div>

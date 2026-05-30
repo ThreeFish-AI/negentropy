@@ -475,7 +475,7 @@ export function MessageBubble({
       >
         <div
           className={cn(
-            "rounded-[1.6rem] px-5 py-3.5 text-sm shadow-sm transition-all duration-300",
+            "rounded-[1.6rem] px-5 py-3.5 text-body-lg shadow-sm transition-all duration-300",
             isUser
               ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
               : "w-full max-w-full rounded-tl-md border border-border bg-card text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)]",
@@ -485,17 +485,17 @@ export function MessageBubble({
           <div
             className={cn(
               "overflow-hidden break-words whitespace-normal",
-              "[&_p]:leading-6 [&_p]:my-0",
+              "[&_p]:leading-body-lg [&_p]:my-0",
               "[&_p+*]:mt-3",
               "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1",
               "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1",
               "[&_li]:leading-snug",
-              "[&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2",
-              "[&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-2",
-              "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-2",
+              "[&_h1]:text-h3 [&_h1]:font-bold [&_h1]:tracking-heading [&_h1]:mb-2",
+              "[&_h2]:text-h4 [&_h2]:font-bold [&_h2]:tracking-heading [&_h2]:mb-2",
+              "[&_h3]:text-body-lg [&_h3]:font-semibold [&_h3]:tracking-heading [&_h3]:mb-2",
               "[&_h1+*]:mt-2 [&_h2+*]:mt-2 [&_h3+*]:mt-2",
               "[&_br]:leading-6",
-              "[&_code]:font-mono [&_code]:text-[0.9em]",
+              "[&_code]:font-mono [&_code]:text-[0.875em] [&_code]:tracking-default",
               !isUser &&
                 "[&_code]:bg-border-muted [&_code]:text-foreground [&_code]:px-1 [&_code]:rounded",
               isUser &&
@@ -529,7 +529,7 @@ export function MessageBubble({
               <ChatTypingIndicator variant="inline" ariaLabel="Agent 正在思考" />
             ) : null}
             {showStreamingIndicator ? (
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-success">
+              <div className="mt-3 flex items-center gap-2 text-caption font-medium uppercase tracking-label text-success">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
                 <span>Streaming</span>
               </div>
@@ -541,17 +541,17 @@ export function MessageBubble({
         {!isUser && (message.author || message.timestamp || isStreaming) && (
           <div className="mt-2 flex items-center gap-2 px-1">
             {message.author && (
-              <span className="rounded-full bg-border-muted px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-text-muted">
+              <span className="rounded-full bg-border-muted px-2 py-0.5 text-micro font-semibold tracking-[0.14em] text-text-muted">
                 {message.author}
               </span>
             )}
             {message.timestamp && (
-              <span className="text-[10px] tabular-nums text-text-muted">
+              <span className="text-micro tabular-nums text-text-muted">
                 {formatTimestamp(message.timestamp)}
               </span>
             )}
             {isStreaming ? (
-              <span className="text-[10px] font-medium text-success">
+              <span className="text-micro font-medium text-success">
                 实时生成中
               </span>
             ) : null}

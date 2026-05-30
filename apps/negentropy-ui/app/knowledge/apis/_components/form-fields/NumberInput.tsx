@@ -23,7 +23,7 @@ export function NumberInput({ field, value, onChange }: NumberInputProps) {
 
   return (
     <div>
-      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+      <label className="block text-xs font-medium text-text-secondary">
         {field.label}{" "}
         {field.required && <span className="text-rose-500">*</span>}
       </label>
@@ -35,10 +35,10 @@ export function NumberInput({ field, value, onChange }: NumberInputProps) {
         max={field.max}
         step={field.max && field.max < 10 ? 0.01 : 1}
         placeholder={field.placeholder}
-        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground tabular-nums focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       />
       {field.description && (
-        <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-micro text-text-muted">
           {field.description}
         </p>
       )}

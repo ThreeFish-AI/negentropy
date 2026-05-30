@@ -92,7 +92,7 @@ export function AddDocumentsDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
       onClick={onClose}
     >
       <div
@@ -139,7 +139,7 @@ export function AddDocumentsDialog({
                         <p className="truncate font-medium">
                           {doc.original_filename}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/70 font-mono">
+                        <p className="text-micro text-muted-foreground/70 font-mono">
                           {doc.markdown_extract_status ?? "—"} ·{" "}
                           {already ? "已归属" : doc.id.slice(0, 8) + "…"}
                         </p>

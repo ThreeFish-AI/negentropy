@@ -20,14 +20,14 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
           >
             {endpoint.method}
           </span>
-          <code className="text-sm font-mono text-zinc-900 dark:text-zinc-100">
+          <code className="text-sm font-mono text-foreground">
             {endpoint.path}
           </code>
         </div>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h3 className="text-lg font-semibold text-foreground">
           {endpoint.summary}
         </h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-text-secondary">
           {endpoint.description}
         </p>
       </div>
@@ -35,46 +35,46 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
       {/* Parameters */}
       {endpoint.parameters.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <h4 className="text-sm font-semibold text-foreground">
             参数
           </h4>
-          <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="overflow-hidden rounded-lg border border-border">
             <table className="w-full text-xs">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
                     名称
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
                     位置
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
                     类型
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
                     必填
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                  <th className="px-3 py-2 text-left font-medium text-text-secondary">
                     描述
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              <tbody className="divide-y divide-border">
                 {endpoint.parameters.map((param) => (
                   <tr
                     key={param.name}
-                    className="bg-white dark:bg-zinc-900"
+                    className="bg-card"
                   >
-                    <td className="px-3 py-2 font-mono text-zinc-900 dark:text-zinc-100">
+                    <td className="px-3 py-2 font-mono text-foreground">
                       {param.name}
                     </td>
-                    <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-3 py-2 text-text-secondary">
                       {param.in}
                     </td>
-                    <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-3 py-2 text-text-secondary">
                       {param.type}
                       {param.enum && (
-                        <span className="ml-1 text-zinc-400">
+                        <span className="ml-1 text-text-muted">
                           ({param.enum.join(", ")})
                         </span>
                       )}
@@ -83,13 +83,13 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
                       {param.required ? (
                         <span className="text-rose-500">是</span>
                       ) : (
-                        <span className="text-zinc-400">否</span>
+                        <span className="text-text-muted">否</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-3 py-2 text-text-secondary">
                       {param.description}
                       {param.default !== undefined && (
-                        <span className="ml-1 text-zinc-400">
+                        <span className="ml-1 text-text-muted">
                           (默认: {String(param.default)})
                         </span>
                       )}
@@ -105,15 +105,15 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
       {/* Request Body */}
       {endpoint.requestBody && (
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <h4 className="text-sm font-semibold text-foreground">
             请求体
           </h4>
           <div className="space-y-2">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-text-muted">
               Content-Type: {endpoint.requestBody.contentType}
             </p>
-            <div className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
-              <pre className="text-xs text-zinc-700 dark:text-zinc-300">
+            <div className="overflow-hidden rounded-lg border border-border bg-muted p-3">
+              <pre className="text-xs text-text-secondary">
                 {JSON.stringify(endpoint.requestBody.example, null, 2)}
               </pre>
             </div>
@@ -123,14 +123,14 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
 
       {/* Responses */}
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+        <h4 className="text-sm font-semibold text-foreground">
           响应
         </h4>
         <div className="space-y-2">
           {endpoint.responses.map((response) => (
             <div
               key={response.status}
-              className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
             >
               <span
                 className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
@@ -143,7 +143,7 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
               >
                 {response.status}
               </span>
-              <span className="text-xs text-zinc-600 dark:text-zinc-400">
+              <span className="text-xs text-text-secondary">
                 {response.description}
               </span>
             </div>
@@ -153,7 +153,7 @@ export function ApiDocPanel({ endpoint }: ApiDocPanelProps) {
 
       {/* Code Examples */}
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+        <h4 className="text-sm font-semibold text-foreground">
           代码示例
         </h4>
         <CodeExample examples={endpoint.examples} />

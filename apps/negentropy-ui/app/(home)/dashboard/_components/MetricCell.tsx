@@ -1,5 +1,7 @@
 "use client";
 
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+
 interface MetricCellProps {
   label: string;
   value: string | number;
@@ -23,6 +25,8 @@ export function MetricCell({
   loading,
   href,
 }: MetricCellProps) {
+  const isNumeric = typeof value === "number";
+
   const cell = (
     <div
       className={`flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 ${
@@ -31,10 +35,18 @@ export function MetricCell({
     >
       <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
       {loading ? (
-        <span className="inline-block h-3.5 w-8 animate-pulse rounded bg-muted/60" />
+        <span className="inline-block h-3.5 w-8 animate-shimmer rounded bg-gradient-to-r from-muted via-muted/40 to-muted bg-[length:200%_100%]" />
+      ) : isNumeric ? (
+        <AnimatedNumber
+          value={value}
+          duration={500}
+          className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
+            toneClass[tone] ?? toneClass.neutral
+          }`}
+        />
       ) : (
         <span
-          className={`text-sm font-semibold whitespace-nowrap ${
+          className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
             toneClass[tone] ?? toneClass.neutral
           }`}
         >
@@ -42,7 +54,7 @@ export function MetricCell({
         </span>
       )}
       {hint && !loading ? (
-        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+        <span className="text-micro text-muted-foreground whitespace-nowrap">
           ({hint})
         </span>
       ) : null}

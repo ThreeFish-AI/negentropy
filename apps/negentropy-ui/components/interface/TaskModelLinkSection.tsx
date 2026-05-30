@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TaskModelSelect } from "@/components/interface/TaskModelSelect";
+import { Button } from "@/components/ui/Button";
 import type { ModelConfigRecord } from "@/types/interface-models";
 
 interface TaskSlot {
@@ -143,10 +144,10 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="text-sm font-semibold text-foreground">
             Model Link
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-text-muted mt-0.5">
             为 Memory Consolidation / Session 等后台任务绑定模型，留空使用全局默认。
           </p>
         </div>
@@ -155,28 +156,29 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
       {error && (
         <div className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200">
           {error}
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setError(null)}
-            className="ml-2 font-medium underline"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
       {loading ? (
-        <div className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</div>
+        <div className="text-sm text-text-muted">Loading...</div>
       ) : (
         <div className="space-y-4">
           {grouped.map(([category, items]) => (
             <section
               key={category}
-              className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+              className="rounded-xl border border-border bg-card"
             >
-              <div className="border-b border-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:text-zinc-100">
+              <div className="border-b border-border px-4 py-2 text-sm font-semibold text-foreground">
                 {category}
               </div>
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+              <div className="divide-y divide-border">
                 {items.map((task) => {
                   const filtered = models.filter(
                     (m) => m.model_type === task.model_type,
@@ -188,18 +190,18 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          <span className="text-sm font-medium text-foreground">
                             {task.label}
                           </span>
-                          <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-micro text-text-muted">
                             {task.task_key}
                           </code>
-                          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] uppercase text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-micro uppercase tracking-overline text-text-muted">
                             {task.model_type}
                           </span>
                         </div>
                         {task.description && (
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400">{task.description}</p>
+                          <p className="text-xs text-text-muted">{task.description}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -211,12 +213,12 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
                           ariaLabel={`Model for ${task.task_key}`}
                         />
                         {savingKey === task.task_key && (
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                          <span className="text-micro text-text-muted">
                             保存中…
                           </span>
                         )}
                         {savedKey === task.task_key && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                          <span className="text-micro text-emerald-600 dark:text-emerald-400">
                             已保存
                           </span>
                         )}
@@ -228,7 +230,7 @@ export function TaskModelLinkSection({ models }: TaskModelLinkSectionProps) {
             </section>
           ))}
           {grouped.length === 0 && (
-            <div className="text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="text-sm text-text-muted">
               暂无可配置的全局任务槽位。
             </div>
           )}

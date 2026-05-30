@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { motion, useReducedMotion } from "framer-motion";
 import { type MainNavItem } from "@/config/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  navPillClassName,
+  navRailContainerClassName,
+} from "@/components/ui/nav-styles";
 
 interface MainNavProps {
   items?: MainNavItem[];
@@ -13,6 +17,7 @@ interface MainNavProps {
 export function MainNav({ items }: MainNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const prefersReduced = useReducedMotion();
 
   // Filter items based on user roles
   const visibleItems = items?.filter((item) => {
@@ -23,27 +28,41 @@ export function MainNav({ items }: MainNavProps) {
   return (
     <div className="flex gap-6 md:gap-10">
       {visibleItems?.length ? (
-        <nav className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full dark:bg-zinc-800/50">
+        <nav className={navRailContainerClassName}>
           {visibleItems.map((item, index) => {
             const matchPaths = item.activePaths ?? [item.href];
-            const isActive = matchPaths.some(
-              (p) => (p === "/" ? pathname === "/" : pathname?.startsWith(p))
+            const active = matchPaths.some((p) =>
+              p === "/" ? pathname === "/" : pathname?.startsWith(p),
             );
 
-            return (
+            const link = (
               <Link
                 key={index}
                 href={item.disabled ? "#" : item.href}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
-                  isActive
-                    ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                    : "text-muted-foreground hover:text-foreground",
-                  item.disabled && "cursor-not-allowed opacity-80",
+                className={navPillClassName(
+                  active,
+                  item.disabled ? "cursor-not-allowed opacity-80" : undefined,
                 )}
               >
                 {item.title}
               </Link>
+            );
+
+            if (prefersReduced) return link;
+
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.25,
+                  delay: index * 0.05,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                {link}
+              </motion.div>
             );
           })}
         </nav>

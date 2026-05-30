@@ -74,12 +74,12 @@ export function ConfirmationToolCard({
       {args?.title ? <p className="mt-1 text-xs">{args.title}</p> : null}
       {args?.detail ? <p className="mt-1 text-xs">{args.detail}</p> : null}
       {payloadText !== "{}" ? (
-        <pre className="mt-2 max-h-24 overflow-auto rounded bg-card/80 p-2 text-[10px]">
+        <pre className="mt-2 max-h-24 overflow-auto rounded bg-card/80 p-2 text-micro">
           {payloadText}
         </pre>
       ) : null}
       <textarea
-        className="mt-2 w-full rounded border border-input-border bg-input p-2 text-[11px] text-foreground placeholder:text-muted-foreground"
+        className="mt-2 w-full rounded border border-input-border bg-input p-2 text-caption text-foreground placeholder:text-muted-foreground"
         rows={2}
         placeholder="补充说明（可选）"
         value={note}
@@ -87,7 +87,7 @@ export function ConfirmationToolCard({
       />
       <div className="mt-2 flex flex-wrap gap-2">
         <button
-          className="rounded-full bg-success px-3 py-1 text-[11px] text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-success px-3 py-1 text-caption text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={async () => {
             if (!respond) return;
             await respond({ action: "confirm", note });
@@ -97,7 +97,7 @@ export function ConfirmationToolCard({
           确认
         </button>
         <button
-          className="rounded-full bg-secondary px-3 py-1 text-[11px] text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-secondary px-3 py-1 text-caption text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={async () => {
             if (!respond) return;
             await respond({ action: "correct", note });
@@ -107,7 +107,7 @@ export function ConfirmationToolCard({
           修正
         </button>
         <button
-          className="rounded-full bg-primary px-3 py-1 text-[11px] text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-primary px-3 py-1 text-caption text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={async () => {
             if (!respond) return;
             await respond({ action: "supplement", note });

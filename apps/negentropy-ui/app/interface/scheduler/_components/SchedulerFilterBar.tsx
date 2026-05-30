@@ -2,6 +2,10 @@
 
 import { useMemo } from "react";
 
+import {
+  navPillClassName,
+  navRailContainerClassName,
+} from "@/components/ui/nav-styles";
 import type { DashboardFilters, ScheduledTaskDTO, StatsWindow } from "@/features/scheduler";
 import type { FilterOption } from "@/features/scheduler/hooks/filter-option";
 import { useDashboardAgentOptions } from "@/app/(home)/dashboard/_hooks/useDashboardAgentOptions";
@@ -109,16 +113,15 @@ export function SchedulerFilterBar({ filters, tasks, onFiltersChange }: Schedule
       />
 
       {/* Time window pills */}
-      <div className="flex items-center bg-muted/50 p-1 rounded-full ml-2">
+      <div className={`${navRailContainerClassName} ml-2`}>
         {TIME_WINDOWS.map((tw) => (
           <button
             key={tw.key}
             onClick={() => patch({ window: tw.key })}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              filters.window === tw.key
-                ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={navPillClassName(
+              filters.window === tw.key,
+              "px-3 font-medium",
+            )}
           >
             {tw.label}
           </button>

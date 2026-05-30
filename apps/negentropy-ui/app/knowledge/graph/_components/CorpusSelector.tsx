@@ -40,7 +40,7 @@ export function CorpusSelector({ value, onChange, onCorporaLoaded }: CorpusSelec
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+      <label className="text-xs font-medium text-text-secondary whitespace-nowrap">
         语料库
       </label>
       <select
@@ -49,7 +49,7 @@ export function CorpusSelector({ value, onChange, onCorporaLoaded }: CorpusSelec
         onChange={(e) => onChange(e.target.value)}
         autoComplete="off"
         disabled={loading}
-        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
       >
         <option value="" disabled>{loading ? "加载中..." : "选择语料库..."}</option>
         {corpora.map((c) => (

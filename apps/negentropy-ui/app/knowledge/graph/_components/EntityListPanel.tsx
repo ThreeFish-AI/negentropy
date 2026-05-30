@@ -81,7 +81,7 @@ export function EntityListPanel({
             setPage(0);
           }}
           placeholder="搜索实体..."
-          className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-blue-500 focus:outline-none"
         />
         <select
           value={entityType}
@@ -89,7 +89,7 @@ export function EntityListPanel({
             setEntityType(e.target.value);
             setPage(0);
           }}
-          className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground"
         >
           <option value="">全部类型</option>
           {ENTITY_TYPES.map((t) => (
@@ -104,7 +104,7 @@ export function EntityListPanel({
             setSortBy(e.target.value);
             setPage(0);
           }}
-          className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground"
         >
           <option value="">按提及数</option>
           <option value="importance">按重要性</option>
@@ -113,31 +113,31 @@ export function EntityListPanel({
 
       {/* Table */}
       {loading ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-8">
+        <p className="text-xs text-text-muted text-center py-8">
           加载中...
         </p>
       ) : entities.length === 0 ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-8">
+        <p className="text-xs text-text-muted text-center py-8">
           暂无实体数据
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
+              <tr className="border-b border-border">
+                <th className="py-2 px-2 text-left font-medium text-text-muted">
                   名称
                 </th>
-                <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
+                <th className="py-2 px-2 text-left font-medium text-text-muted">
                   类型
                 </th>
-                <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
+                <th className="py-2 px-2 text-left font-medium text-text-muted">
                   社区
                 </th>
-                <th className="py-2 px-2 text-right font-medium text-zinc-500 dark:text-zinc-400">
+                <th className="py-2 px-2 text-right font-medium text-text-muted">
                   置信度
                 </th>
-                <th className="py-2 px-2 text-right font-medium text-zinc-500 dark:text-zinc-400">
+                <th className="py-2 px-2 text-right font-medium text-text-muted">
                   提及
                 </th>
               </tr>
@@ -147,13 +147,13 @@ export function EntityListPanel({
                 <tr
                   key={entity.id}
                   onClick={() => onSelectEntity(entity.id)}
-                  className={`cursor-pointer border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${
+                  className={`cursor-pointer border-b border-border hover:bg-muted ${
                     selectedEntityId === entity.id
                       ? "bg-blue-50 dark:bg-blue-900/20"
                       : ""
                   }`}
                 >
-                  <td className="py-2 px-2 text-zinc-900 dark:text-zinc-100 font-medium">
+                  <td className="py-2 px-2 text-foreground font-medium">
                     {entity.name}
                   </td>
                   <td className="py-2 px-2">
@@ -165,7 +165,7 @@ export function EntityListPanel({
                             ENTITY_TYPE_COLORS[entity.entity_type] ?? ENTITY_TYPE_COLORS.other,
                         }}
                       />
-                      <span className="text-zinc-600 dark:text-zinc-400">
+                      <span className="text-text-secondary">
                         {entity.entity_type}
                       </span>
                     </span>
@@ -177,18 +177,18 @@ export function EntityListPanel({
                           className="inline-block h-2 w-2 rounded-full"
                           style={{ backgroundColor: communityColor(entity.community_id) }}
                         />
-                        <span className="text-zinc-600 dark:text-zinc-400">
+                        <span className="text-text-secondary">
                           C-{entity.community_id}
                         </span>
                       </span>
                     ) : (
-                      <span className="text-zinc-400">-</span>
+                      <span className="text-text-muted">-</span>
                     )}
                   </td>
-                  <td className="py-2 px-2 text-right text-zinc-600 dark:text-zinc-400">
+                  <td className="py-2 px-2 text-right text-text-secondary">
                     {entity.confidence.toFixed(2)}
                   </td>
-                  <td className="py-2 px-2 text-right text-zinc-600 dark:text-zinc-400">
+                  <td className="py-2 px-2 text-right text-text-secondary">
                     {entity.mention_count}
                   </td>
                 </tr>
@@ -200,7 +200,7 @@ export function EntityListPanel({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center justify-between text-micro text-text-muted">
           <span>
             {page * limit + 1}-{Math.min((page + 1) * limit, total)} / {total}
           </span>
@@ -208,14 +208,14 @@ export function EntityListPanel({
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className="rounded px-2 py-1 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="rounded px-2 py-1 disabled:opacity-30 hover:bg-muted"
             >
               上一页
             </button>
             <button
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}
-              className="rounded px-2 py-1 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="rounded px-2 py-1 disabled:opacity-30 hover:bg-muted"
             >
               下一页
             </button>

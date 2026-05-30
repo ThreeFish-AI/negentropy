@@ -1,0 +1,51 @@
+# ────────────────────────────────────────────────────────────
+# Routine Demo 2/3 — 测试用例增强（Test Enhancement）
+#
+# 审批模式: every（每轮人工审批）
+# 命令门控: pytest（测试驱动验证）
+# 重点展示: Human-in-the-Loop 审批门控（every 模式）、Command Gate（pytest）、
+#           Session 连续性、max_cost 成本护栏
+# ────────────────────────────────────────────────────────────
+
+preset_id: test_enhancement
+display_name: "Demo: 测试用例增强"
+description: >
+  为目标模块补充测试用例：Claude Code 分析模块代码并生成单元测试，
+  每轮执行前需要人工审批确认安全性。演示 Routine 的 Human-in-the-Loop 能力——
+  每次迭代进入 pending_approval 状态等待用户批准后才执行，
+  pytest 作为 Command Gate 客观验证测试正确性，
+  Claude Code Session 在迭代间保持连续以积累测试策略上下文。
+category: testing
+version: 1.0.0
+features_showcase:
+  - "审批模式: every — 每轮迭代均需人工确认"
+  - "Command Gate — pytest 作为测试正确性验证"
+  - "Session 连续性 — Claude Code 跨迭代保持会话上下文"
+  - "max_cost 成本护栏 — 累计费用超限时终止"
+  - "Reflexion — 评估反馈驱动测试策略自改进"
+
+title: "Test Enhancement"
+goal: >
+  为目标代码模块补充高质量单元测试。执行以下步骤：
+
+  1. 分析目标模块的公开函数、类和方法；
+  2. 识别未被测试覆盖的关键路径（正常路径、边界条件、异常路径）；
+  3. 按优先级生成测试用例：核心逻辑 → 边界条件 → 异常处理；
+  4. 确保所有新增测试独立、可重复、无副作用；
+  5. 测试文件放置在项目的 tests/ 目录下，遵循项目既有的测试组织规范。
+
+  重要约束：测试不应 mock 内部私有方法，应通过公开接口验证行为。
+acceptance_criteria: >
+  1. `uv run pytest` 退出码为 0（所有测试通过，含新增和既有）；
+  2. 新增测试覆盖至少 3 个核心函数/方法的关键路径；
+  3. 包含至少 1 个边界条件测试和 1 个异常处理测试；
+  4. 测试代码清晰、有 docstring 说明测试意图；
+  5. 不修改目标模块的源代码。
+verification_command: "uv run pytest -x -q"
+max_iterations: 10
+max_cost_usd: 5.0
+success_score_threshold: 85
+no_progress_patience: 3
+approval_mode: every
+config:
+  permission_mode: auto

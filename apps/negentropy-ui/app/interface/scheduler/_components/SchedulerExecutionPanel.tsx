@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import {
+  navPillClassName,
+  navRailContainerClassName,
+} from "@/components/ui/nav-styles";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
 
 interface SchedulerExecutionPanelProps {
@@ -26,7 +31,7 @@ const STATUS_STYLES: Record<ExecutionStatus, string> = {
   ok: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   failed: "bg-red-500/10 text-red-700 dark:text-red-300",
   running: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
-  cancelled: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",
+  cancelled: "bg-muted text-text-secondary",
   timeout: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 };
 
@@ -56,8 +61,8 @@ function SkeletonRow() {
     <tr className="border-b border-border last:border-b-0">
       {Array.from({ length: 6 }).map((_, i) => (
         <td key={i} className="px-3 py-2">
-          <div
-            className="h-4 rounded bg-muted/40 animate-pulse"
+          <Skeleton
+            className="h-4"
             style={{ width: `${50 + (i * 17) % 40}%` }}
           />
         </td>
@@ -112,10 +117,10 @@ export function SchedulerExecutionPanel({
     <div className="rounded-xl border border-border bg-card shadow-sm">
       {/* Status filter pills */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+        <span className="text-caption uppercase tracking-overline text-muted-foreground">
           Executions ({view.length})
         </span>
-        <div className="flex items-center bg-muted/50 p-0.5 rounded-full">
+        <div className={`${navRailContainerClassName} gap-0.5 p-0.5`}>
           {STATUS_FILTERS.map((sf) => (
             <button
               key={sf.key}
@@ -124,11 +129,10 @@ export function SchedulerExecutionPanel({
                 setCurrentPage(1);
                 setFrozen(null);
               }}
-              className={`px-3 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
-                statusFilter === sf.key
-                  ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={navPillClassName(
+                statusFilter === sf.key,
+                "px-3 py-0.5 text-micro font-medium",
+              )}
             >
               {sf.label}
             </button>
@@ -168,7 +172,7 @@ export function SchedulerExecutionPanel({
                   </td>
                   <td className="px-3 py-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLES[e.status]}`}
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${STATUS_STYLES[e.status]}`}
                     >
                       {e.status}
                     </span>
@@ -206,7 +210,7 @@ export function SchedulerExecutionPanel({
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-micro font-medium text-muted-foreground">
             {safePage} / {totalPages}
           </span>
           <button

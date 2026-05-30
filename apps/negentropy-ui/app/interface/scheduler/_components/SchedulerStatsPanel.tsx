@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { StatsResponse } from "@/features/scheduler";
 
 interface SchedulerStatsPanelProps {
@@ -17,7 +18,7 @@ interface StatsSectionProps {
 function StatsSection({ title, stats }: StatsSectionProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">
+      <h3 className="text-caption uppercase tracking-overline text-muted-foreground mb-3">
         {title}
       </h3>
       {!stats || stats.buckets.length === 0 ? (
@@ -33,7 +34,7 @@ function StatsSection({ title, stats }: StatsSectionProps) {
                 {b.label}
               </span>
               <div className="flex items-center gap-3 shrink-0">
-                <span className="text-muted-foreground">{b.runs} runs</span>
+                <span className="text-muted-foreground tabular-nums">{b.runs} runs</span>
                 <span
                   className={`font-medium tabular-nums ${
                     b.success_rate >= 0.95
@@ -56,12 +57,12 @@ function StatsSection({ title, stats }: StatsSectionProps) {
 
 function SkeletonSection() {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 animate-pulse">
-      <div className="h-3 w-20 rounded bg-muted/40 mb-4" />
+    <div className="rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-3 w-20 mb-4" />
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="flex justify-between items-center py-1.5">
-          <div className="h-3 w-24 rounded bg-muted/40" />
-          <div className="h-3 w-16 rounded bg-muted/40" />
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-3 w-16" />
         </div>
       ))}
     </div>

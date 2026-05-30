@@ -45,7 +45,21 @@ async def check_memory_health() -> dict[str, Any]:
             "consolidation_policy": mem_cfg.consolidation.policy,
             "consolidation_steps": mem_cfg.consolidation.steps,
             "pii_engine": mem_cfg.pii.engine,
+            "relevance_enabled": mem_cfg.relevance.enabled,
+            "gatekeeper_enabled": mem_cfg.pii.gatekeeper_enabled,
         }
+
+        # 检测 PII 引擎实际运行状态（可能因 fallback 与配置不同）：
+        # detector.name 返回 "presidio" / "regex"，与 pii_engine 配置项对比
+        # 即可发现 Presidio 依赖缺失触发的静默降级（allow_engine_fallback=true 时）。
+        try:
+            from negentropy.engine.governance.pii.factory import get_pii_detector
+
+            detector = get_pii_detector()
+            checks["features"]["pii_engine_actual"] = detector.name
+        except Exception as exc:
+            checks["features"]["pii_engine_actual"] = "unavailable"
+            logger.warning("pii_engine_probe_failed", error=str(exc)[:200])
     except Exception as exc:
         checks["features"] = {"status": "error", "detail": str(exc)[:200]}
         status = "degraded"

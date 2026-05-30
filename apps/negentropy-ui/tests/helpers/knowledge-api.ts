@@ -87,11 +87,13 @@ export function createKnowledgeApiExtractorRouteTarget(
 export function createKnowledgeApiExtractorRoutes(
   urlTargets: McpExtractorTargetConfig[] = [],
   filePdfTargets: McpExtractorTargetConfig[] = [],
+  fileMdTargets: McpExtractorTargetConfig[] = [],
 ): { extractor_routes: CorpusExtractorRoutes } {
   return {
     extractor_routes: {
       url: { targets: urlTargets },
       file_pdf: { targets: filePdfTargets },
+      file_md: { targets: fileMdTargets },
     },
   };
 }
@@ -124,6 +126,15 @@ export const knowledgeApiExtractorRouteFixtures = {
     priority: 1,
     timeout_ms: 25000,
     tool_options: { ocr: true },
+  }),
+  defaultMdTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-md",
+    tool_name: "parse_markdown",
+  }),
+  dualMdPrimaryTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-md-primary",
+    tool_name: "parse_md",
+    timeout_ms: 10000,
   }),
 } as const;
 

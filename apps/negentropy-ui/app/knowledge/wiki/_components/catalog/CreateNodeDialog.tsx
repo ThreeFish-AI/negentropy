@@ -89,7 +89,7 @@ export function CreateNodeDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
       onClick={onClose}
     >
       <div
@@ -97,7 +97,7 @@ export function CreateNodeDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-semibold mb-1">创建目录节点</h3>
-        <p className="text-[11px] text-muted-foreground mb-4">
+        <p className="text-caption text-muted-foreground mb-4">
           目录节点用于组织子目录与文档。文档需通过节点详情页「挂载文档」入口添加，无需在此选择类型。
         </p>
         <div className="space-y-3">
@@ -127,7 +127,7 @@ export function CreateNodeDialog({
               placeholder="node-slug"
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-caption text-muted-foreground">
               仅支持小写字母、数字与短横线；将作为 URL 片段与 Wiki 层级标识。
             </p>
           </div>

@@ -97,7 +97,7 @@ export function GraphCanvasFrame({
   }, []);
 
   const baseClass =
-    "relative min-h-0 flex-1 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 data-[fullscreen=true]:bg-white data-[fullscreen=true]:dark:bg-zinc-900";
+    "relative min-h-0 flex-1 w-full overflow-hidden rounded-2xl border border-border bg-card shadow-sm";
 
   return (
     <div
@@ -106,7 +106,7 @@ export function GraphCanvasFrame({
       className={className ? `${baseClass} ${className}` : baseClass}
     >
       {children}
-      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-[10px]">
+      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-micro">
         {stats && (
           <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
             {stats.nodes} 节点 · {stats.edges} 边

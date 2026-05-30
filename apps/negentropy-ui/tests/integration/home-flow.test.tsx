@@ -249,7 +249,8 @@ describe("HomeBody integration", () => {
       expect(mockAgent.runAgent).toHaveBeenCalled();
     });
     expect(mockAgent.forwardedProps).toMatchObject({
-      selected_llm_model: null,
+      // 未手动选择时回退默认模型（移除 Default 占位后不再为 null）。
+      selected_llm_model: "openai/gpt-5-nano",
       thinking_enabled: true,
     });
   }, 10000);

@@ -4,6 +4,10 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useNavigation } from "@/components/providers/NavigationProvider";
+import {
+  navPillClassName,
+  navRailContainerClassName,
+} from "@/components/ui/nav-styles";
 
 const NAV_ITEMS = [
   { key: "studio", href: "/studio", label: "Studio" },
@@ -41,18 +45,14 @@ export function HomeNav() {
   return (
     <div className="border-b border-border bg-card px-6 py-1">
       <div className="flex flex-wrap items-center justify-center gap-4">
-        <nav className="flex items-center gap-1 bg-muted/50 p-1 rounded-full">
+        <nav className={navRailContainerClassName}>
           {NAV_ITEMS.map((item) => {
             const href = item.key === "studio" ? studioHref : item.href;
             return (
               <Link
                 key={item.key}
                 href={href}
-                className={`px-4 py-1 rounded-full text-xs font-semibold transition-colors ${
-                  isActive(item.href)
-                    ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={navPillClassName(isActive(item.href))}
               >
                 {item.label}
               </Link>

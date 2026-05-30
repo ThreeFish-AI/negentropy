@@ -24,7 +24,7 @@ interface TimeTravelSliderProps {
   onChange: (asOf: string | null) => void;
 }
 
-const ROW_BG = "bg-zinc-50 dark:bg-zinc-900/40";
+const ROW_BG = "bg-muted/40";
 
 function formatBucketLabel(iso: string): string {
   // 尽量短：YYYY-MM-DD
@@ -117,7 +117,7 @@ export function TimeTravelSlider({
 
   if (!corpusId) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-text-muted">
         选择语料库后启用时间穿梭
       </p>
     );
@@ -133,10 +133,10 @@ export function TimeTravelSlider({
             onChange={handleToggle}
             className="h-3 w-3"
           />
-          <span className="text-zinc-700 dark:text-zinc-300">时间穿梭</span>
+          <span className="text-text-secondary">时间穿梭</span>
         </label>
         {enabled && asOf && (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-micro font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
             as_of: {formatBucketLabel(asOf)}
           </span>
         )}
@@ -145,17 +145,17 @@ export function TimeTravelSlider({
       {enabled && (
         <div className={`rounded p-2 ${ROW_BG}`}>
           {loading && (
-            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+            <p className="text-micro text-text-muted">
               加载时间轴...
             </p>
           )}
           {error && (
-            <p className="text-[10px] text-rose-600 dark:text-rose-400">
+            <p className="text-micro text-rose-600 dark:text-rose-400">
               {error}
             </p>
           )}
           {!loading && !error && points.length === 0 && (
-            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+            <p className="text-micro text-text-muted">
               该语料库尚无时态关系数据，请构建图谱后重试
             </p>
           )}
@@ -168,7 +168,7 @@ export function TimeTravelSlider({
                     className={`flex-1 rounded-sm ${
                       i === bucketIdx
                         ? "bg-amber-500"
-                        : "bg-zinc-300 dark:bg-zinc-700"
+                        : "bg-border"
                     }`}
                     style={{
                       height: `${Math.max(
@@ -190,7 +190,7 @@ export function TimeTravelSlider({
                 onChange={(e) => handleSliderChange(Number(e.target.value))}
                 className="mt-2 w-full"
               />
-              <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+              <div className="mt-1 flex items-center justify-between text-micro text-text-muted">
                 <span>{formatBucketLabel(points[0]?.date ?? "")}</span>
                 <span>
                   {formatBucketLabel(points[points.length - 1]?.date ?? "")}

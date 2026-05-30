@@ -25,7 +25,7 @@ const NODE_TYPE_ICONS: Record<CatalogNodeType, typeof Folder> = {
 
 const NODE_TYPE_COLORS: Record<CatalogNodeType, string> = {
   folder: "text-amber-500",
-  document_ref: "text-zinc-400",
+  document_ref: "text-text-muted",
   category: "text-amber-500",
   collection: "text-amber-500",
 };
@@ -82,7 +82,7 @@ export function CatalogTreeNode({
   onDragEnd,
 }: CatalogTreeNodeProps) {
   const Icon = NODE_TYPE_ICONS[node.node_type] || Folder;
-  const color = NODE_TYPE_COLORS[node.node_type] || "text-zinc-400";
+  const color = NODE_TYPE_COLORS[node.node_type] || "text-text-muted";
   const padding = depth * 20;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -236,7 +236,7 @@ export function CatalogTreeNode({
 
         {/* Type badge — 中文标签（自 PR-4 起替换 enum 值原文显示） */}
         {!isEditing && (
-          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground shrink-0">
+          <span className="ml-auto text-micro px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground shrink-0">
             {NODE_TYPE_LABELS[node.node_type] ?? "目录"}
           </span>
         )}

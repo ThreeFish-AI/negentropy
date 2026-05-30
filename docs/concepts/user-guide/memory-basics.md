@@ -45,52 +45,56 @@ flowchart LR
 
 ---
 
-## 2.5 高级特性开关（Phase 5）
+## 2.5 高级特性（默认开箱即用）
 
-Phase 5 引入 4 个高级特性，**全部默认关闭**，按需通过环境变量或配置文件灰度启用。详细工程契约见 [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md) §10 与 [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md) §4。
+5 个高级特性现已**默认全部启用**（开箱即用），并各自带运行时安全闸，必要时可一键关闭。详细工程契约见 [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md) §10 与 [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md) §4。
 
-| 特性                      | 配置项                              | 默认                       | 何时启用                                                 | 性能成本                                         |
-| ------------------------- | ----------------------------------- | -------------------------- | -------------------------------------------------------- | ------------------------------------------------ |
-| **F1 HippoRAG PPR 检索**  | `MEMORY_HIPPORAG_ENABLED`           | `false`                    | KG 实体关联 ≥ 100 条且需要长尾召回 / 多跳一致性          | +50ms P95（含 120ms 超时）                       |
-| **F2 Reflexion 反思召回** | `MEMORY_REFLECTION_ENABLED`         | `false`                    | 用户/Agent 提供 `irrelevant`/`harmful` 反馈较多          | LLM 调用按 dedup + 上限计费，默认 ≤10 次/用户·日 |
-| **F3 Memify 巩固管线**    | `memory.consolidation.legacy=false` | `false`（即开启 Pipeline） | 默认即用，重构无新功能；自定义 step 时配置 `steps:` 列表 | 与 Phase 4 baseline 一致；新增 step 才有增量成本 |
-| **F4 Presidio PII**       | `memory.pii.engine=presidio`        | `regex`                    | 生产环境合规要求（GDPR / NIST 800-122）                  | 冷启 +200MB（spaCy 模型）；运行时 P99 < 5ms      |
+| 特性                      | 配置项（YAML / 环境变量）                       | 默认       | 运行时安全闸                                              | 性能成本                                         |
+| ------------------------- | ----------------------------------------------- | ---------- | -------------------------------------------------------- | ------------------------------------------------ |
+| **F1 HippoRAG PPR 检索**  | `memory.hipporag.enabled`                       | `true`     | `min_kg_associations≥100` 数据闸：KG 稀疏时自休眠回退 Hybrid；120ms 超时降级；`gray_users` 白名单 | +50ms P95（含 120ms 超时）                       |
+| **F2 Reflexion 反思召回** | `memory.reflection.enabled`                     | `true`     | `max_inflight_tasks=8` 并发硬上限防风暴；日限 ≤10/用户；仅 `irrelevant`/`harmful` 触发 | LLM 调用按 dedup + 上限计费                       |
+| **F3 Memify 巩固管线**    | `memory.consolidation.steps`（6 步）            | 6 步全开   | `policy=fail_tolerant`：单步失败不中断全链；每步 30s 超时 | 2 步为 LLM（fact_extract / entity_normalization / summarize），写路径增量                       |
+| **F4 Presidio PII**       | `memory.pii.engine=presidio` + `gatekeeper_enabled` | `presidio` + 守门员关 | `allow_engine_fallback=true`：缺 spaCy 模型时降级 regex 并写 ERROR（`/memory/health` 可观测），不阻断启动；`gatekeeper_enabled` 需手动开启（ADK tool 路径暂无法传递 viewer 角色） | 冷启 +200MB（spaCy 模型）；运行时 P99 < 5ms      |
+| **Rocchio 反馈闭环**      | `memory.relevance.enabled`                      | `true`     | 权重夹 `[0.5,2.0]`；<3 反馈返中性 1.0；写侧由 cron 周期重加权 | 读侧 dict 查表，近乎零成本                        |
 
-### Phase 6 新增开关
+> **可观测性**（默认开）：`memory.observability.health_enabled` / `metrics_enabled` → `/memory/health`（暴露当前生效的 hipporag/reflection/consolidation_steps/**pii_engine**）与 `/memory/metrics`（需 admin）。
 
-| 开关             | 环境变量                                   | 默认    | 说明                               |
-| ---------------- | ------------------------------------------ | ------- | ---------------------------------- |
-| Rocchio 反馈闭环 | `NE_MEMORY_RELEVANCE__ENABLED`             | `false` | 启用后累积反馈影响搜索排序         |
-| 健康检查         | `NE_MEMORY_OBSERVABILITY__HEALTH_ENABLED`  | `true`  | `/memory/health` 端点              |
-| 聚合指标         | `NE_MEMORY_OBSERVABILITY__METRICS_ENABLED` | `true`  | `/memory/metrics` 端点（需 admin） |
+### 首次部署：安装 PII NER 模型
 
-### 启用示例
+F4 Presidio 默认引擎依赖 spaCy NER 模型（独立下载产物，非 pip 依赖）。一键安装：
 
 ```bash
-# F1 + F2 灰度启用（环境变量优先）
-export MEMORY_HIPPORAG_ENABLED=true
-export MEMORY_HIPPORAG_GRAY_USERS="alice,bob"
-export MEMORY_REFLECTION_ENABLED=true
-
-# F4 切到 Presidio（需先安装可选依赖）
-cd apps/negentropy && uv sync --extra pii-presidio
-# 配置文件中：
-# memory:
-#   pii:
-#     engine: presidio
-#     policy: mark           # mark | mask | anonymize
+cd apps/negentropy && uv run negentropy bootstrap-pii-models   # 下载 en_core_web_lg + zh_core_web_sm
 ```
 
-### 一键回退
+未安装时不阻断启动：PII 引擎按 `allow_engine_fallback=true` 自动降级回 regex（4 类正则），实际生效引擎可在 `/memory/health` 的 `features.pii_engine` 查看。
 
-| 特性 | 回退方式                                                                |
-| ---- | ----------------------------------------------------------------------- |
-| F1   | `MEMORY_HIPPORAG_ENABLED=false`（即时生效）                             |
-| F2   | `MEMORY_REFLECTION_ENABLED=false`（已有反思记忆保留，但不再生成新的）   |
-| F3   | `memory.consolidation.legacy=true`（回到 Phase 4 硬编码两步）           |
-| F4   | `memory.pii.engine=regex`（已有 `pii_spans` 字段保留，gatekeeper 跳过） |
+### 逐特性验证清单（开箱即用走查）
 
-> 4 个特性的故障排除见 [`memory-troubleshooting.md`](./memory-troubleshooting.md) §11~§14。
+| 特性 | 如何确认已生效 |
+| ---- | -------------- |
+| F1 HippoRAG | `curl /memory/health` → `features.hipporag=true`；KG 实体关联累积 ≥100 后，`search_memory` 结果 `custom_metadata.search_level` 出现 `ppr` / `ppr+hybrid` |
+| F2 Reflexion | 对一次检索提交 `irrelevant` 反馈（`POST /memory/retrieval/feedback`）→ Timeline 出现一条 `episodic` 且 `metadata.subtype=reflection` 的记忆 |
+| F3 Memify | 触发一次会话巩固 → 后端日志 `consolidation_pipeline_completed steps=[6 步] statuses=[success×6]`；Facts/Timeline/关联同时产出 |
+| F4 Presidio | 写入含人名/邮箱的记忆 → `metadata.pii_spans` 含 `person`/`email`（regex 无法识别 person）；低权限角色检索该记忆 content 被 `<EMAIL>` 等占位符遮蔽 |
+| Rocchio | 对记忆累积 helpful 反馈 → cron `reweight_relevance`（每 6h）写入 `metadata.relevance_weight`；后续检索该记忆排序上移 |
+
+### 一键关闭 / 回退
+
+在 `config.default.yaml`（或用户配置 / 环境变量）将对应 `enabled` 置 `false`：
+
+```yaml
+memory:
+  hipporag: { enabled: false }       # 即时回退纯 Hybrid
+  reflection: { enabled: false }     # 已有反思记忆保留，不再生成新的
+  relevance: { enabled: false }      # 读侧不再应用 relevance_weight
+  consolidation: { legacy: true }    # 回到 Phase 4 硬编码两步（fact_extract + auto_link）
+  pii: { engine: regex }             # 已有 pii_spans 保留；gatekeeper 仍按角色遮蔽
+```
+
+环境变量等价（优先级最高）：`NE_MEMORY_HIPPORAG__ENABLED=false`、`NE_MEMORY_REFLECTION__ENABLED=false` 等。
+
+> 5 个特性的故障排除见 [`memory-troubleshooting.md`](./memory-troubleshooting.md) §11~§14。
 
 ---
 
@@ -129,8 +133,9 @@ cd apps/negentropy && uv sync --extra pii-presidio
 > 参考文献：Park et al. (2023) importance/recency/relevance 三维评分；Zep (2025) 时间分组与双时间戳；Hu et al. (2026) factual/experiential/working 记忆分类法。
 
 ### PII 锁标
-- 🔒 表示 metadata.pii_flags 命中（regex 级，仅提示，不阻断）
-- 命中类型：`email` / `phone` / `id_card` / `credit_card`
+- 🔒 表示 metadata.pii_flags / pii_spans 命中（默认 Presidio 引擎）
+- 命中类型：`email` / `phone` / `id_card` / `credit_card` / `person` / `location` 等（Presidio NER 识别人名、地名等 regex 无法覆盖的类别；中文手机号 / 身份证由 CN 自定义识别器补强）
+- 检索侧：`gatekeeper_enabled=true`（需手动开启）时，低于 `acl_role_threshold`（默认 editor）的角色看到 content 经 `retrieval_policy`（默认 anonymize）遮蔽的副本
 
 ---
 

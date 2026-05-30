@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
@@ -42,7 +43,7 @@ function StatusDots({ statuses }: { statuses: string[] }) {
                 ? "bg-red-500"
                 : s === "running"
                   ? "bg-sky-500"
-                  : "bg-zinc-300 dark:bg-zinc-700"
+                  : "bg-border"
           }`}
           title={s ?? "—"}
         />
@@ -54,9 +55,9 @@ function StatusDots({ statuses }: { statuses: string[] }) {
 function SkeletonRow() {
   return (
     <tr className="border-b border-border last:border-b-0">
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 9 }).map((_, i) => (
         <td key={i} className="px-3 py-2">
-          <div className="h-4 rounded bg-muted/40 animate-pulse" style={{ width: `${50 + (i * 13) % 40}%` }} />
+          <Skeleton className="h-4" style={{ width: `${50 + (i * 13) % 40}%` }} />
         </td>
       ))}
     </tr>
@@ -72,7 +73,7 @@ export function SchedulerTaskTable({
 }: SchedulerTaskTableProps) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+      <div className="border-b border-border px-3 py-2 text-caption uppercase tracking-overline text-muted-foreground">
         Tasks ({tasks.length})
       </div>
       <div className="max-h-[540px] overflow-auto">
@@ -80,6 +81,7 @@ export function SchedulerTaskTable({
           <thead className="sticky top-0 bg-card text-muted-foreground z-10">
             <tr className="border-b border-border">
               <th className="px-3 py-2 text-left font-medium">Task</th>
+              <th className="px-3 py-2 text-left font-medium">Description</th>
               <th className="px-3 py-2 text-left font-medium">Handler</th>
               <th className="px-3 py-2 text-left font-medium">Trigger</th>
               <th className="px-3 py-2 text-left font-medium">Last</th>
@@ -94,7 +96,7 @@ export function SchedulerTaskTable({
               Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
             ) : tasks.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
+                <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
                   No tasks match current filters.
                 </td>
               </tr>
@@ -109,7 +111,16 @@ export function SchedulerTaskTable({
                     <div className="font-medium text-foreground">
                       {t.display_name || t.key}
                     </div>
-                    <div className="text-[10px] text-muted-foreground">{t.key}</div>
+                    <div className="text-micro text-muted-foreground">{t.key}</div>
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {t.description ? (
+                      <div className="max-w-[240px] truncate" title={t.description}>
+                        {t.description}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
                   <td className="px-3 py-2 text-muted-foreground">
@@ -130,10 +141,10 @@ export function SchedulerTaskTable({
                   </td>
                   <td className="px-3 py-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${
                         t.enabled
                           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+                          : "bg-muted text-text-secondary"
                       }`}
                     >
                       {t.enabled ? "Enabled" : "Disabled"}
@@ -146,7 +157,7 @@ export function SchedulerTaskTable({
                     >
                       <button
                         onClick={() => onToggle(t.id, !t.enabled)}
-                        className={`rounded-md px-2 py-1 text-[10px] border border-border transition-colors ${
+                        className={`rounded-md px-2 py-1 text-micro border border-border transition-colors ${
                           t.enabled
                             ? "text-foreground hover:bg-muted/50"
                             : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
@@ -156,7 +167,7 @@ export function SchedulerTaskTable({
                       </button>
                       <button
                         onClick={() => onRun(t.id)}
-                        className="rounded-md px-2 py-1 text-[10px] bg-foreground text-background hover:opacity-80 transition-opacity"
+                        className="rounded-md px-2 py-1 text-micro bg-foreground text-background hover:opacity-80 transition-opacity"
                       >
                         Run Now
                       </button>

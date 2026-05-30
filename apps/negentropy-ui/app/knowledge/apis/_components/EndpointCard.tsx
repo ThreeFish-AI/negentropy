@@ -15,22 +15,22 @@ export function EndpointCard({ endpoint, isSelected, onClick }: EndpointCardProp
       className={`w-full text-left rounded-xl border p-3 transition-all ${
         isSelected
           ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-          : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50"
+          : "border-border bg-card hover:border-foreground/20 hover:bg-muted"
       }`}
     >
       <div className="flex items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${getMethodColor(
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-micro font-semibold uppercase tracking-overline ${getMethodColor(
             endpoint.method
           )}`}
         >
           {endpoint.method}
         </span>
-        <span className="flex-1 truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
+        <span className="flex-1 truncate text-xs font-medium text-foreground">
           {endpoint.summary}
         </span>
       </div>
-      <p className="mt-1.5 truncate text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+      <p className="mt-1.5 truncate text-caption font-mono text-text-muted">
         {endpoint.path}
       </p>
     </button>

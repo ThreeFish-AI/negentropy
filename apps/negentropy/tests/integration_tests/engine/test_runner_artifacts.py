@@ -1,29 +1,50 @@
 import sys
 from unittest.mock import MagicMock, patch
 
-
-# Helper to mock modules before they are imported
-def mock_modules():
-    # Mock the agent module to prevent it from importing ADK agents and LLMs
-    if "negentropy.agents.agent" not in sys.modules:
-        agent_mock = MagicMock()
-        agent_mock.root_agent = MagicMock()
-        sys.modules["negentropy.agents.agent"] = agent_mock
-
-    if "negentropy.agents" not in sys.modules:
-        sys.modules["negentropy.agents"] = MagicMock()
-
-    # Also mock session/memory factories to allow simple import
-    sys.modules["negentropy.engine.factories.memory"] = MagicMock()
-    sys.modules["negentropy.engine.factories.session"] = MagicMock()
-
-    # Mock ADK dependencies that might be hit
-    sys.modules["google.adk.runners"] = MagicMock()
+# 需要临时 mock 的模块；仅为让 runner 工厂能在不拉起 ADK/LLM 的情况下导入。
+# 关键修复（测试隔离）：原实现用 ``sys.modules[...] = MagicMock()`` 在 import 期
+# 永久替换 ``negentropy.engine.factories.memory`` 等模块且从不还原，导致后续任何
+# 测试 ``from ...factories.memory import get_association_service`` 拿到 MagicMock
+# 属性（表现为 "object MagicMock can't be used in 'await' expression"）。
+# 现改为：导入完成后立即还原被临时替换的真实模块，杜绝跨文件污染。
+_MOCKED_MODULE_NAMES = (
+    "negentropy.agents.agent",
+    "negentropy.agents",
+    "negentropy.engine.factories.memory",
+    "negentropy.engine.factories.session",
+    "google.adk.runners",
+)
 
 
-mock_modules()
+def _install_temp_mocks() -> dict[str, object]:
+    """临时把若干模块替换为 MagicMock，返回被替换前的原始引用（可能不存在）。"""
+    saved: dict[str, object] = {}
+    for name in _MOCKED_MODULE_NAMES:
+        saved[name] = sys.modules.get(name, None)
+        if name == "negentropy.agents.agent":
+            agent_mock = MagicMock()
+            agent_mock.root_agent = MagicMock()
+            sys.modules[name] = agent_mock
+        else:
+            sys.modules[name] = MagicMock()
+    return saved
 
-from negentropy.engine.factories.runner import get_runner, reset_runner  # noqa: E402
+
+def _restore_modules(saved: dict[str, object]) -> None:
+    """还原 ``_install_temp_mocks`` 替换前的 sys.modules 状态。"""
+    for name, original in saved.items():
+        if original is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = original
+
+
+# 在临时 mock 环境下导入 runner 工厂，然后立即还原，避免污染全局 sys.modules。
+_saved_modules = _install_temp_mocks()
+try:
+    from negentropy.engine.factories.runner import get_runner, reset_runner  # noqa: E402
+finally:
+    _restore_modules(_saved_modules)
 
 # negentropy.engine.artifacts_factory is real
 

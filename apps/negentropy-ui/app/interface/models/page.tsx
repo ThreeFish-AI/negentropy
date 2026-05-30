@@ -11,6 +11,7 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { Button } from "@/components/ui/Button";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { VendorModelsDisclosure } from "@/components/interface/VendorModelsDisclosure";
 import { TaskModelLinkSection } from "@/components/interface/TaskModelLinkSection";
@@ -483,7 +484,7 @@ export default function ModelsPage() {
   if (status === "loading") {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</div>
+        <div className="text-sm text-text-muted">Loading...</div>
       </div>
     );
   }
@@ -493,34 +494,35 @@ export default function ModelsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Models" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
           {error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
               {error}
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() => setError(null)}
-                className="ml-2 font-medium underline"
               >
                 Dismiss
-              </button>
+              </Button>
             </div>
           )}
 
           {loading ? (
-            <div className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="p-8 text-center text-sm text-text-muted">
               Loading vendor configurations...
             </div>
           ) : (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h2 className="text-sm font-semibold text-foreground">
                     Vendor Credentials
                   </h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  <p className="text-xs text-text-muted mt-0.5">
                     Configure API keys for model vendors. All models share vendor credentials.
                   </p>
                 </div>
@@ -532,29 +534,30 @@ export default function ModelsPage() {
                   return (
                     <div
                       key={vc.value}
-                      className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
+                      className="rounded-xl border border-border bg-card p-4"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                          <h3 className="text-sm font-semibold text-foreground">
                             {vc.label}
                           </h3>
                           {isConfigured ? (
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 mt-1">
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-micro font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 mt-1">
                               Configured
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500 mt-1">
+                            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-micro font-semibold text-text-muted mt-1">
                               Not configured
                             </span>
                           )}
                         </div>
-                        <button
+                        <Button
+                          variant="neutral"
+                          size="sm"
                           onClick={() => openVendorSetup(vc.value)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
                         >
                           {isConfigured ? "Edit" : "Setup"}
-                        </button>
+                        </Button>
                       </div>
                       <VendorModelsDisclosure
                         vendor={vc.value}
@@ -577,7 +580,7 @@ export default function ModelsPage() {
             onClose={closeVendorDialog}
             busy={vendorSaving}
             containerClassName="p-4"
-            contentClassName="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+            contentClassName="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-modal border border-border bg-card p-6 shadow-xl"
             contentProps={{ role: "dialog", "aria-modal": true }}
           >
             {vendorDialogVendor && (() => {
@@ -586,13 +589,13 @@ export default function ModelsPage() {
               const isEditing = existing?.configured ?? false;
               return (
                 <>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                  <h3 className="text-base font-semibold text-foreground mb-4">
                     Setup {vcInfo?.label ?? vendorDialogVendor}
                   </h3>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
                         API Key <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -603,17 +606,17 @@ export default function ModelsPage() {
                           setVendorApiKeyChanged(true);
                         }}
                         placeholder={isEditing ? "留空则保持不变" : ""}
-                        className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="w-full max-w-2xl rounded-lg border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                       />
                       {isEditing && (
-                        <p className="mt-1 text-[10px] text-zinc-400">
+                        <p className="mt-1 text-micro text-text-muted">
                           当前已配置 API Key，留空则保持不变
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                      <label className="block text-xs font-medium text-text-secondary mb-1">
                         Base URL (optional)
                       </label>
                       <input
@@ -621,12 +624,12 @@ export default function ModelsPage() {
                         value={vendorApiBase}
                         onChange={(e) => setVendorApiBase(e.target.value)}
                         placeholder={vcInfo?.baseUrlPlaceholder}
-                        className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="w-full max-w-2xl rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
                       />
                     </div>
 
-                    <div className="rounded-lg border border-zinc-100 p-3 dark:border-zinc-700 space-y-3">
-                      <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <div className="text-xs font-medium text-text-muted uppercase tracking-wider">
                         Test Connectivity
                       </div>
                       <div
@@ -638,7 +641,7 @@ export default function ModelsPage() {
                       >
                         {/* Ping 子组 */}
                         <div className="space-y-2">
-                          <div className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                          <div className="text-micro font-semibold text-text-muted">
                             Ping
                           </div>
                           <div className="flex items-center gap-2">
@@ -647,7 +650,7 @@ export default function ModelsPage() {
                               value={vendorPingModel}
                               onChange={(e) => setVendorPingModel(e.target.value)}
                               placeholder={vcInfo?.pingModelPlaceholder}
-                              className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                              className="flex-1 min-w-0 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground"
                             />
                             <button
                               type="button"
@@ -658,7 +661,7 @@ export default function ModelsPage() {
                               {vendorPinging ? "Pinging..." : "Ping"}
                             </button>
                           </div>
-                          <p className="text-[10px] text-zinc-400">
+                          <p className="text-micro text-text-muted">
                             发送 &quot;Ping, give me a pong&quot; 验证模型连通性。常用模型示例：{vcInfo?.pingModelPlaceholder}
                           </p>
                           {vendorPingResult && (
@@ -672,7 +675,7 @@ export default function ModelsPage() {
                               {vendorPingResult.message}
                               {vendorPingResult.latency_ms != null &&
                                 vendorPingResult.latency_ms > 0 && (
-                                  <span className="ml-1 opacity-60">
+                                  <span className="ml-1 tabular-nums opacity-60">
                                     ({vendorPingResult.latency_ms}ms)
                                   </span>
                                 )}
@@ -683,7 +686,7 @@ export default function ModelsPage() {
                         {/* Test Embedding 子组（Anthropic 无原生 Embedding API，整组不渲染） */}
                         {vcInfo?.embeddingPingModelPlaceholder && (
                           <div className="space-y-2">
-                            <div className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                            <div className="text-micro font-semibold text-text-muted">
                               Test Embedding
                             </div>
                             <div className="flex items-center gap-2">
@@ -692,7 +695,7 @@ export default function ModelsPage() {
                                 value={vendorEmbedModel}
                                 onChange={(e) => setVendorEmbedModel(e.target.value)}
                                 placeholder={vcInfo.embeddingPingModelPlaceholder}
-                                className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                                className="flex-1 min-w-0 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground"
                               />
                               <button
                                 type="button"
@@ -713,9 +716,9 @@ export default function ModelsPage() {
                               placeholder="请输入测试文本（如：天气真好）"
                               rows={2}
                               maxLength={2000}
-                              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none"
+                              className="w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground resize-none"
                             />
-                            <p className="text-[10px] text-zinc-400">
+                            <p className="text-micro text-text-muted">
                               调用 Embedding API 对文本求向量，输出维度、延迟与前 4 维预览。常用模型示例：{vcInfo.embeddingPingModelPlaceholder}
                             </p>
                             {vendorEmbedResult && (
@@ -735,7 +738,7 @@ export default function ModelsPage() {
                                       )}
                                       {vendorEmbedResult.latency_ms != null &&
                                         vendorEmbedResult.latency_ms > 0 && (
-                                          <span className="ml-1 opacity-60">· {vendorEmbedResult.latency_ms}ms</span>
+                                          <span className="ml-1 tabular-nums opacity-60">· {vendorEmbedResult.latency_ms}ms</span>
                                         )}
                                     </div>
                                     {vendorEmbedResult.preview && vendorEmbedResult.preview.length > 0 && (
@@ -749,7 +752,7 @@ export default function ModelsPage() {
                                     {vendorEmbedResult.message}
                                     {vendorEmbedResult.latency_ms != null &&
                                       vendorEmbedResult.latency_ms > 0 && (
-                                        <span className="ml-1 opacity-60">
+                                        <span className="ml-1 tabular-nums opacity-60">
                                           ({vendorEmbedResult.latency_ms}ms)
                                         </span>
                                       )}
@@ -763,22 +766,22 @@ export default function ModelsPage() {
                     </div>
 
                     {/* Registered Models — 按 model_type 分组 */}
-                    <div className="rounded-lg border border-zinc-100 p-3 dark:border-zinc-700 space-y-3">
+                    <div className="rounded-lg border border-border p-3 space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        <div className="text-xs font-medium text-text-muted uppercase tracking-wider">
                           Registered Models
                         </div>
-                        <button
-                          type="button"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={openAddModelDialog}
-                          className="px-2 py-1 rounded text-[10px] font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
                         >
                           + Add Model
-                        </button>
+                        </Button>
                       </div>
 
                       {registeredForVendor.length === 0 ? (
-                        <p className="text-[10px] text-zinc-400">尚未登记模型，点击 &quot;+ Add Model&quot; 添加。</p>
+                        <p className="text-micro text-text-muted">尚未登记模型，点击 &quot;+ Add Model&quot; 添加。</p>
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {MODEL_KINDS.map((mk) => {
@@ -788,52 +791,57 @@ export default function ModelsPage() {
                             if (items.length === 0) return null;
                             return (
                               <div key={mk.value}>
-                                <div className="text-[10px] text-zinc-400 font-medium mb-1">
+                                <div className="text-micro text-text-muted font-medium mb-1">
                                   {mk.label}
                                 </div>
                                 <div className="space-y-1">
                                   {items.map((mc) => (
                                     <div
                                       key={mc.id}
-                                      className="flex items-center gap-2 rounded border border-zinc-100 bg-white px-2 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                                      className="flex items-center gap-2 rounded border border-border bg-card px-2 py-1.5 text-xs"
                                     >
-                                      <span className="flex-1 min-w-0 truncate font-medium text-zinc-800 dark:text-zinc-200">
+                                      <span className="flex-1 min-w-0 truncate font-medium text-foreground">
                                         {mc.display_name}
-                                        <span className="text-zinc-400 font-normal ml-1">
+                                        <span className="text-text-muted font-normal ml-1">
                                           {mc.model_name}
                                         </span>
                                       </span>
                                       {mc.config?.dimensions != null && (
-                                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                        <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium tabular-nums text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                                           {String(mc.config.dimensions)} dims
                                         </span>
                                       )}
                                       {mc.is_default && (
-                                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                        <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-micro font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                                           Default
                                         </span>
                                       )}
                                       {!mc.enabled && (
-                                        <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-micro font-medium text-text-muted">
                                           Disabled
                                         </span>
                                       )}
-                                      <button
-                                        type="button"
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        iconOnly
                                         onClick={() => openEditModelDialog(mc)}
-                                        className="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                        aria-label={`Edit ${mc.display_name}`}
                                         title="Edit"
                                       >
                                         &#9998;
-                                      </button>
-                                      <button
-                                        type="button"
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        iconOnly
                                         onClick={() => handleModelDelete(mc)}
-                                        className="shrink-0 text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
+                                        aria-label={`Delete ${mc.display_name}`}
                                         title="Delete"
+                                        className="text-text-muted hover:text-red-500 dark:hover:text-red-400"
                                       >
                                         &#10005;
-                                      </button>
+                                      </Button>
                                     </div>
                                   ))}
                                 </div>
@@ -858,28 +866,32 @@ export default function ModelsPage() {
 
                   <div className="mt-6 flex items-center justify-end gap-2">
                     {isEditing && (
-                      <button
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={handleVendorRemove}
                         disabled={vendorSaving}
-                        className="mr-auto px-4 py-2 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-500 dark:bg-red-600 dark:hover:bg-red-500 transition-colors disabled:opacity-50"
+                        className="mr-auto"
                       >
                         Remove
-                      </button>
+                      </Button>
                     )}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={closeVendorDialog}
                       disabled={vendorSaving}
-                      className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="neutral"
+                      size="sm"
                       onClick={handleVendorSave}
                       disabled={vendorSaving || (!isEditing && !vendorApiKey.trim())}
-                      className="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
                     >
                       {vendorSaving ? "Saving..." : "Save"}
-                    </button>
+                    </Button>
                   </div>
                 </>
               );
@@ -892,10 +904,10 @@ export default function ModelsPage() {
             onClose={closeModelDialog}
             busy={modelDialogSaving}
             containerClassName="p-4"
-            contentClassName="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+            contentClassName="w-full max-w-md rounded-modal border border-border bg-card p-6 shadow-xl"
             contentProps={{ role: "dialog", "aria-modal": true }}
           >
-            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+            <h3 className="text-base font-semibold text-foreground mb-4">
               {modelDialogMode === "create" ? "Add Model" : "Edit Model"}
             </h3>
 
@@ -909,13 +921,13 @@ export default function ModelsPage() {
               {modelDialogMode === "create" && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
                       Model Type <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={modelFormType}
                       onChange={(e) => setModelFormType(e.target.value as ModelKind)}
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       {MODEL_KINDS.map((mk) => (
                         <option key={mk.value} value={mk.value}>
@@ -925,7 +937,7 @@ export default function ModelsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                    <label className="block text-xs font-medium text-text-secondary mb-1">
                       Model Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -933,14 +945,14 @@ export default function ModelsPage() {
                       value={modelFormModelName}
                       onChange={(e) => setModelFormModelName(e.target.value)}
                       placeholder="e.g. gpt-4o-mini / text-embedding-3-small"
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
                   Display Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -948,13 +960,13 @@ export default function ModelsPage() {
                   value={modelFormDisplayName}
                   onChange={(e) => setModelFormDisplayName(e.target.value)}
                   placeholder="e.g. GPT-4o Mini"
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
                 />
               </div>
 
               {modelFormType === "embedding" && (
                 <div>
-                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                  <label className="block text-xs font-medium text-text-secondary mb-1">
                     Dimensions <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -962,13 +974,13 @@ export default function ModelsPage() {
                     value={modelFormDimensions}
                     onChange={(e) => setModelFormDimensions(e.target.value)}
                     placeholder="e.g. 1536"
-                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                <label className="block text-xs font-medium text-text-secondary mb-1">
                   Extra Config (JSON, optional)
                 </label>
                 <textarea
@@ -976,12 +988,12 @@ export default function ModelsPage() {
                   onChange={(e) => setModelFormConfigJson(e.target.value)}
                   placeholder='{"thinking": {"type": "enabled", "budget_tokens": 5000}}'
                   rows={3}
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-border bg-input px-3 py-2 text-xs font-mono text-foreground"
                 />
               </div>
 
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                <label className="flex items-center gap-1.5 text-xs text-text-secondary">
                   <input
                     type="checkbox"
                     checked={modelFormIsDefault}
@@ -990,7 +1002,7 @@ export default function ModelsPage() {
                   />
                   Set as default
                 </label>
-                <label className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                <label className="flex items-center gap-1.5 text-xs text-text-secondary">
                   <input
                     type="checkbox"
                     checked={modelFormEnabled}
@@ -1003,20 +1015,22 @@ export default function ModelsPage() {
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-2">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={closeModelDialog}
                 disabled={modelDialogSaving}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="neutral"
+                size="sm"
                 onClick={handleModelSave}
                 disabled={modelDialogSaving || !modelFormDisplayName.trim() || (modelDialogMode === "create" && !modelFormModelName.trim())}
-                className="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
               >
                 {modelDialogSaving ? "Saving..." : "Save"}
-              </button>
+              </Button>
             </div>
           </OverlayDismissLayer>
         </div>

@@ -2558,3 +2558,98 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **本次处理（Studio 范围，PR：Home/Studio UI 精修）**：仅在 Studio 涉及文件内把失效类收敛到**已定义等价物**（`text-muted`→`text-text-muted`、`bg-muted`→`bg-border-muted`、`text-accent-foreground`→`text-foreground` 等），并**新增** `--color-primary/-foreground/-hover` 与 `--color-ring`（净增、零值冲突，统一主强调色 indigo）。未触碰其它页面渲染。
 - **后续防范 / 待办（独立专项 PR）**：对全站执行 token 规范化 codemod——在 `@theme inline` 补齐 `--color-muted/-foreground`、`--color-accent/-foreground`、`--color-secondary/-foreground`、`--color-destructive/-foreground` 等，并按 shadcn 语义统一改写重载用法；提交前对 Studio / Dashboard / Knowledge / Memory 主路由做明暗双主题回归。
 - **同类问题影响**：所有沿用 shadcn 命名（`muted/primary/accent/secondary/destructive`）的组件均受影响；新增组件应优先使用本仓已定义的 `text-text-*` / `bg-card` / `border-border` / `bg-border-muted` / `text-success|warning|error|info` / `bg-primary` 等，避免再次引入未映射工具类。
+
+---
+
+## ISSUE-098 Memory Hybrid 检索长期静默失效（双层缺陷：缺 DB 函数 + SQLAlchemy `::` 绑定 bug）
+
+- **表因**：`PostgresMemoryService.search_memory` 的 Hybrid 策略从未真正生效——每次检索都从 `hybrid` 静默回退到纯向量（`vector`）检索，且因 F1 HippoRAG PPR 仅在 Hybrid 分支做 RRF 融合，PPR 通道被连带架空（即便 `hipporag.enabled=true` + KG 关联越过数据闸也不融合）。
+- **根因（两层独立缺陷）**：
+  1. **缺 DB 函数**：`_hybrid_search_native` 调用 `negentropy.hybrid_search()`，但该函数仅存在于 `docs/reference/cognizes/engine/schema/perception_schema.sql` 与 cognizes app 的 schema 文件中，**从未移植成 negentropy alembic 迁移**；`memories` 表也缺 `search_vector tsvector` 列与 GIN 索引。线上 `pg_proc` 查无此函数 → `UndefinedFunctionError`。
+  2. **SQLAlchemy 绑定 bug**：SQL 用 `:embedding::vector(1536)`。`text()` 把 `::` 误解析为绑定名分隔符，导致 `:embedding` 不被绑定、渲染出裸 `:` 触发 `PostgresSyntaxError: syntax error at or near ":"`。即便函数存在也会失败。
+- **处理方式**：
+  1. 新增迁移 `0047_memory_hybrid_search_function.py`：为 `memories` 增 `search_vector` 列 + BEFORE INSERT/UPDATE OF content 触发器（`to_tsvector('english', content)`）+ 回填存量行 + GIN 索引；以 perception_schema.sql 权威定义创建 schema 限定的 `negentropy.hybrid_search()`（语义 + BM25 FULL OUTER JOIN 加权融合）。纯新增、不改写既有数据。
+  2. 修 `memory_service.py::_hybrid_search_native`：`:embedding::vector(1536)` → `CAST(:embedding AS vector(1536))`，并把 embedding 序列化为 pgvector 字面量 `'[...]'` 后绑定。
+- **验证**：新增 `tests/integration_tests/engine/test_ppr_fusion.py`（种入 Corpus + KgEntity×2 + KgRelation + ≥100 entity 关联，断言 PPR 实跑并融合；稀疏 KG 下数据闸自休眠回退 Hybrid）；`test_memory_service.py` 6 例 + RRF/PPR 单测 34 例全绿。日志由 `search_fallback ... to_level=vector` 变为 `hybrid_search_completed`。
+- **后续防范**：
+  1. **运行时依赖的 DB 函数必须有迁移**：任何 `_native` 路径调用的 SQL 函数都要在 alembic 迁移中 `CREATE OR REPLACE`，并配单测在真实库断言函数存在 + 端到端跑通；`.sql` schema 文件只是参考，不是生效源。
+  2. **`text()` 内禁用 `:param::type`**：一律用 `CAST(:param AS type)`，避免 `::` 与绑定名歧义。仓内可加 lint/grep 守卫扫描 `:%w+::`。
+  3. **降级要可观测**：Hybrid→vector 这类「静默回退」必须升级日志级别或暴露指标（如 `/memory/metrics` 增 hybrid_fallback_count），否则核心特性失效数月无感。
+- **同类问题影响**：`kb_hybrid_search()`（Knowledge 侧）与任何引用 perception_schema.sql 但未迁移的 SQL 函数都应排查是否存在同样「schema 文件有、迁移没有」的断裂；所有 `text()` 拼 `::vector` 的检索/向量路径都应改 `CAST`。
+
+---
+
+## ISSUE-099 F4 Presidio PII 在热路径上是死代码（写侧绕过工厂 + 检索守门员从未接线）
+
+- **表因**：把 `memory.pii.engine` 改成 `presidio` 对生产行为零影响；检索路径对低权限角色也从不脱敏含 PII 的记忆。F4「生产级 PII 治理」实质未生效。
+- **根因（两处接线断裂）**：
+  1. **写侧绕过工厂**：`memory_service` 的 `_simple_consolidate`（`:157`）与 `add_memory_typed`（`:1493`）硬编码调用 legacy `pii_detector.detect`（固定 `RegexPIIDetector`），从不读 `settings.memory.pii.engine`、从不经 `get_pii_detector()`，使 `PresidioPIIDetector` 成为热路径死代码；且只落 `metadata.pii_flags`（计数），不落 `pii_spans`。
+  2. **检索守门员未接线**：`PIIGatekeeper` 定义并导出，但 engine 内**零调用点**（grep `PIIGatekeeper`/`from_settings` 仅命中定义处）。即便启用也因写侧不落 `pii_spans` 而无数据可遮蔽。
+- **处理方式**：
+  1. 新增 `engine/governance/pii/storage_helper.py::detect_pii_for_storage(content)`：经 `get_pii_detector()`（工厂引擎）检测，返回 `(flags, spans_json)`；异常降级空结果不阻断写入。两处写侧改用之，落 `pii_flags` + `pii_spans`。
+  2. 检索侧：`_build_search_response` 增 `viewer_role` 形参，出口处经 `PIIGatekeeper.from_settings()` 按角色 mask/anonymize（受 `gatekeeper_enabled` 控）；`search_memory` 透传 `viewer_role`。
+  3. `PIISettings` 增声明字段 `retrieval_policy`（独立于写入 `policy`）。
+  4. 依赖默认化：`pyproject.toml` 把 presidio/spacy 从 optional extra 提升为主依赖；新增 CLI `negentropy bootstrap-pii-models` 下载 spaCy NER 模型（`en_core_web_lg` / `zh_core_web_sm`，独立下载产物非 pip 依赖）。
+  5. `config.default.yaml` 翻转：`engine: presidio` + `gatekeeper_enabled: true` + `allow_engine_fallback: true`（缺模型降级 regex 并写 ERROR，经 `/memory/health` 可观测，不阻断启动）+ `retrieval_policy: anonymize`。
+- **验证**：新增 `tests/integration_tests/engine/test_pii_writepath.py` 7 例（写侧 flags+spans / 低权限 anonymize / 高权限透传 / 守门员关闭透传 / presidio PERSON NER / 缺模型降级 regex / fallback=false 抛错）；既有 `test_pii_phase5.py` 24 例无回归。
+- **后续防范**：
+  1. **工厂是唯一入口**：凡「可切换引擎」的能力（PII / Memory backend / 检索）都必须经工厂解析，禁止业务代码硬编码具体实现，否则 settings 形同虚设。可加单测断言写路径经 `get_pii_detector()`（如 monkeypatch 工厂验证被调用）。
+  2. **定义即接线**：新增 governance 组件（如 Gatekeeper）须同时提供调用点 + 端到端测试，避免「定义了但没人用」的僵尸代码；可用 grep 守卫扫描导出符号的调用点数。
+  3. **重模型依赖要可观测 + 可降级**：默认引擎依赖大模型下载时，必须提供 bootstrap 命令 + 缺失降级 + health 暴露实际引擎，兼顾开箱即用与保密性优先。
+- **同类问题影响**：Memory backend 工厂（InMemory/VertexAI/Postgres）、检索引擎切换等所有「可插拔」点都应核对业务代码是否真的经工厂；任何 `settings.*.engine` 类开关都要有「翻转后行为确实改变」的测试佐证。
+
+---
+
+## ISSUE-100 测试隔离：test_runner_artifacts 永久污染 sys.modules 致下游测试拿到 MagicMock
+
+- **表因**：全量跑 engine 测试时，`test_full_pipeline` / `test_ppr_fusion` 等真实集成测试报 `object MagicMock can't be used in 'await' expression`（`get_association_service` / `get_fact_service` / `upsert_fact` 等返回 MagicMock）。单独跑各文件均通过，仅在与某些文件同会话时复发。
+- **根因**：`tests/integration_tests/engine/test_runner_artifacts.py` 在**模块导入期**调用 `mock_modules()`，用 `sys.modules["negentropy.engine.factories.memory"] = MagicMock()`（及 session 工厂、agents、google.adk.runners）永久替换真实模块且**从不还原**。pytest 单会话内 `sys.modules` 全局共享，导致此文件被收集后，后续任何 `from negentropy.engine.factories.memory import get_*` 都拿到 MagicMock 属性。
+- **处理方式**：改为「临时替换 + 立即还原」——`_install_temp_mocks()` 保存原始引用、装上 mock 仅为让 `runner` 工厂可导入；`try/finally` 中 import 完成后 `_restore_modules()` 还原 `sys.modules`（原本不存在的键 pop 掉，存在的还原）。测试自身行为不变（其在用例体内用 `patch` 注入 Runner / artifact_service）。另在受影响集成测试加 autouse `reset_*_service()` 防御性兜底。
+- **后续防范**：
+  1. **禁止模块级永久改 sys.modules**：测试如需 mock 模块以绕过重导入，必须用 fixture + finalizer 或 `try/finally` 还原；模块级副作用会跨文件泄漏。
+  2. **真实集成测试防御工厂污染**：依赖工厂单例的集成测试可在 fixture 里 `reset_*` 兜底。
+  3. **CI 应跑全量同会话**：`uv run pytest tests/`（不分目录）才能暴露此类跨文件污染；分目录跑会掩盖。
+- **同类问题影响**：任何 `sys.modules[...] =` 或模块级 `patch.dict("sys.modules", ...)` 不还原的测试都应排查；优先 grep `sys.modules\[` 审计。
+
+---
+
+## ISSUE-101 Presidio 中文分析失效：AnalyzerEngine 未装配 zh NLP 引擎致 CN 识别器全失效
+
+- **表因**：实机巩固日志反复出现 `presidio_analyze_failed lang=zh error="'zh'"`；中文文本里的手机号 / 身份证（CN_MOBILE / CN_ID_CARD 自定义识别器，supported_language='zh'）完全不命中，身份证还被英文模型误标成 `date_time`。
+- **根因**：`PresidioPIIDetector` 用 `AnalyzerEngine(supported_languages=["en","zh"])` 但**未提供 nlp_engine**。Presidio 默认 NLP 引擎只配了 en（`en_core_web_lg`）；分析 zh 文本时按 `nlp_engine.process_text(text, "zh")` 查不到 zh 模型抛 `KeyError('zh')`，该语言整条分析链（含挂在 zh 上的自定义 PatternRecognizer）被跳过。
+- **处理方式**：新增 `PresidioPIIDetector._build_nlp_engine(languages)`：按语言→spaCy 模型候选表（en→lg/sm、zh→`zh_core_web_sm`）探测已安装模型，用 `NlpEngineProvider(nlp_configuration={"nlp_engine_name":"spacy","models":[{lang_code,model_name},...]})` 显式构建多语 NlpEngine 注入 AnalyzerEngine；缺模型的语言被剔除（优雅降级），并只注册 supported_language 在可用集合内的识别器。
+- **验证**：新增 `test_presidio_detects_cn_mobile_via_zh_nlp_engine`——`13912345678` 经 CN_MOBILE 命中 `phone`；EN PERSON/email 仍正常；既有 31 例 PII 测试无回归。实机日志 `presidio_analyze_failed lang=zh` 消除。
+- **后续防范**：多语 NLP/检索引擎必须显式声明每语言的模型/资源映射，不能依赖库默认（默认通常单语）；新增语言时同步扩 `_build_nlp_engine` 候选表 + bootstrap 模型清单（`_PII_SPACY_MODELS`）。
+- **同类问题影响**：任何按 `supported_languages` 跑多语的组件（NER、翻译、检索）都要核对底层引擎是否真的为每种语言装配了资源。
+
+---
+
+## ISSUE-102 裸 `text-[Npx]` 魔法字号全站规范化为语义令牌
+
+- **表因**：`negentropy-ui` 全站约 450+ 处裸 `text-[10px]/[11px]` 等任意小字号散落 113 文件，无语义、无单一事实源、档位混用（8/9/10/11/12/13px）；上一处 `body` 行高改无单位修复（`d3883bdc`）后它们虽能正确缩放，但仍是难维护的魔法数字。
+- **根因**：设计令牌标度（`apps/negentropy-ui/app/globals.css` 的 `@theme inline`）止于 `--text-body`(14px)，缺 caption 档语义令牌，开发者只能就地写任意 px。
+- **处理方式**：
+  1. 新增 `--text-caption`(0.6875rem/11px)、`--text-micro`(0.625rem/10px)，**故意不配对 `--line-height`**——Tailwind v4 仅输出 `font-size`，与裸 `text-[Npx]` 行为逐字节一致，行高沿用 body 无单位 1.375 比值；对 10/11px 主流站点实现像素零变化（含祖先覆写行高），低于 micro 两档下限的原 8/9px 站点随之上调至 10px（见验证项与 review 收口补充）；
+  2. 机械替换 `text-[11px]→text-caption`、`text-[10/9/8px]→text-micro`（脚本前置核验：**零** `text-[Npx]` 出现在 `[&_]:`/`sm:` 变体前缀中 → 安全）；
+  3. overline 模式（`uppercase`+小字号）：39 个 `tracking-wide/wider`(0.025/0.05em) + 19 个无字距统一为既有 `tracking-overline`(0.06em)，**保留** 13 个故意更宽的 `tracking-widest`(0.1em)/`tracking-[0.16~0.24em]`（折叠会可见收窄，违背最小干预）；
+  4. `text-[12/13px]`(3 处) 介于 caption 与 body 之间、两档模型无对应，保持原值豁免。
+- **验证**：残留 `text-[8/9/10/11px]`=0；`text-caption`=198、`text-micro`=267、`tracking-overline`=55 与基线精确对账；编译 CSS 确认仅 `font-size`；chrome_devtools computed-style 探针证 **10/11px→caption/micro 逐像素一致**；原 **8/9px(15 处:评分徽标/角标/眼纹标签)上调至 10px micro 下限**(+1~2px、已知可见可接受——10px 较 8px 更易读，与下述 tracking 位移同口径)、overline 字距 +0.1px 子像素；tsc/eslint(`--max-warnings=0`)/727 单测全绿；明暗双模实机抽检 knowledge/base 与 scheduler 渲染正常。
+- **后续防范**：①Tailwind v4 字号令牌**仅当被源码用到才生成**工具类/`:root` 变量（tree-shaking），验证须先迁移真实使用点再 grep 编译产物，不能抽象空验；②`@theme` 字号令牌按需决定是否配对 `--line-height`——不配对=继承祖先比值（适合需随上下文缩放的小字），配对=固定（适合标题）；③大规模 className 机械替换前必须确认目标 token 不在变体前缀内（`[&_]:`/响应式/伪类），且替换按 token 字符串而非 `className=` 锚定（因大量 token 散在 `cn()` 片段与抽出的 `const xCls` 中）；④折叠 ad-hoc 间距/字号前先核验目标值与现值差异是否子像素，可见差异（如 0.1em→0.06em）应保留而非强行归一。
+- **同类问题影响**：其余 ad-hoc 任意值（`leading-[...]`、`gap-[...]`、`rounded-[...]` 等魔法数字）若后续规范化，可复用本条的「前置安全核验 + token 字符串替换 + 编译/computed-style 双重实证 + 子像素差异保留」范式。
+- **后续补充（tracking-[...] 宽标签语义化）**：复用上述范式处理剩余 14 处 `tracking-[0.14~0.24em]`。实测其中 **13 处为 `uppercase` 宽间距标签眼纹**（一致设计模式，众数 0.18em），新增 `--tracking-label: 0.18em` 语义令牌收敛；**剔除** 1 处非 uppercase 的作者名 pill（`MessageBubble.tsx` 的 `tracking-[0.14em]`，语义不符且非该模式）。computed-style 量化收口：众数 0.18em→0.18em 渲染零变化、0.16em→0.18em +1.6px、极端 0.24em→0.18em 短标题 −5.3px（已知可见、可接受，因属短 section 标题且更趋一致）。`rounded-[1.5~2rem]`(6) 与 `gap-[2px]`(1) 为定制一次性值、无对应令牌且 ROI 低，**不纳入**。教训补充：⑤ad-hoc 值语义化前必须先按「是否同一设计模式」分类（此处以 `uppercase` 判别 label vs pill），勿因值相近就盲并；⑥单令牌吸收一段值域时，用 computed-style 量化**最坏值**的累计宽度位移（非单 gap 差），据此判定可接受性而非仅看 em 差。
+- **后续补充（review 收口：sub-10px 下限与冗余清理）**：评审指出原 `text-[8/9px]` 并入 `text-micro` 后，`RetrievedChunkCard` 评分徽标 `isCompact` 分支残留冗余 `text-micro`（base 已是 micro），致紧凑态字号不再随密度收缩、仅 padding 收紧。**确认 10px 为 micro 档下限**（8px 近不可读，10px 更佳且与「可接受可见位移」口径自洽），删除该 3 处冗余类（`text-micro` 计数 267→264，渲染零变化）；标准缩档 base `text-caption`→compact `text-micro`(11→10px) 保持不动。教训⑦：单令牌设最小档后，原低于该档的散值会被**静默上调**——机械替换须对「低于令牌最小档」的来源值单独标注，勿令「残留=0」的计数对账掩盖真实像素位移。
+
+## ISSUE-103 模型下拉 Default 占位移除 + 默认 gpt-5-nano + test-vendor 残留清理与 fixture 清理加固（2026-05-30）
+
+- **需求触因**：Home/Studio 中栏 Composer 的 LLM 下拉首项为可清除的 "Default" 占位（`value=""` = 不指定模型，后端回退硬编码默认），且下拉里出现一个 `TEST-VENDOR` 分组的 `Test Model`。用户要求：①移除 Default 占位、默认显式选中 `openai/gpt-5-nano`；②清除 TEST-VENDOR。
+- **表因**：`Composer.tsx` 给 [`LlmModelSelect`](../apps/negentropy-ui/components/ui/LlmModelSelect.tsx) 传 `allowClear`（默认即 `true`）+ `placeholder="Default"`，渲染出可清空占位；`home-body.tsx` 多处 session 初始化分支在「无选择」时回退 `null`（= Default）。
+- **现象（test-vendor 泄漏）**：DB 中残留一行 `vendor=test-vendor / model_name=test-model-9b7f642a / display_name=Test Model`（**随机后缀** = 集成测试 fixture 历史版本生成；当前 `_seed_model_config` 已用固定 `model_name`），并被 `task_model_settings` 2 行（同测试孤儿，FK=RESTRICT）引用。源头为 [`test_task_model_settings_db.py`](../apps/negentropy/tests/integration_tests/interface/test_task_model_settings_db.py) 的 seed-yield-teardown fixture。
+- **根因订正（循证复核，⚠️ 初判已证伪）**：初判「teardown 用 `db.delete(mc)` 删跨 session detached 对象 → SQLAlchemy 2.0 async 静默失效（不报错不生效）」**经实测推翻**——用本仓库 `AsyncSessionLocal` 对 `ModelConfig`（无 relationship）与含 `cascade=all,delete-orphan` 的 `Corpus` 各复刻「add→commit→refresh→关闭 session→新 session 内 `db.delete(detached)`→commit」，**两者均无异常且行被真实删除（查回 0 行）**：`session.delete()` 会按 identity key 把 detached 对象重挂当前 session 并于 flush 发 DELETE。逻辑反证亦支持：若每跑必静默失效，随机 `model_name` 后缀将令**每跑泄漏一行**（应见多行），而实际仅残留**一行**，更符合**一次性 teardown 未跑完**（测试中途报错/被中断，或彼时某测试遗留 orphan `task_model_settings` 致 `model_config` 删除触 FK=RESTRICT 而未删成）。历史 granular commit 已被 release squash（`dda324d8`）吞并、旧 fixture 原貌不可回溯，真实触发点无法精确钉死，但可确定**不是 detached-delete 静默失效**。
+- **处理方式**（四部分，正交解耦）：
+  1. **前端去占位**：`Composer.tsx` 改 `allowClear={false}` 并移除 `placeholder="Default"`，下拉不再出现可清空首项；
+  2. **前端默认值**：`home-body.tsx` 新增 `DEFAULT_LLM_MODEL = "openai/gpt-5-nano"` 常量，将 5 处「无选择回退 null」点（`useState` 初值、离开 session、已知 session、pending 转移、首入既有 session 无 persisted）+ **Effect 2 后端 snapshot 未命中点**全部回退默认；`selectedLlmModel` 类型仍 `string|null`（契约不变）但运行时不再为 null；
+  3. **后端 fallback 对齐**：[`model_resolver.py`](../apps/negentropy/src/negentropy/config/model_resolver.py) `_DEFAULT_LLM_MODEL` 由 `openai/gpt-5-mini` 改为 `openai/gpt-5-nano`，前后端默认一致；
+  4. **清理加固（防复发）**：两处 fixture teardown 改用 `delete(Model).where(id==...)` DELETE 语句替代 `db.delete(detached_obj)`——幂等、不依赖对象/session 状态、不触发 ORM cascade/lazy-load，并顺带删去原 teardown 中**结果被丢弃的 `select()` 死代码**；属稳健性改进，**非**「修复静默失效」（见上「根因订正」）；
+  5. **DB 清理（数据非代码）**：单事务按 FK 依赖顺序先删 2 行 `task_model_settings`、再删 test-vendor `model_config` 行（精确按 id + 二次校验 vendor）。
+- **验证**：DB 删前后只读计数对照（test-vendor 1→0、引用行 2→0、全表 14 行真实 vendor 无误删）；fixture 清理语义经独立临时脚本证「seed→DELETE teardown→查无残留」（同脚本实测旧 `db.delete(detached)` 在此**亦正常删除**、非泄漏，详见「根因订正」）；后端 grep 确认 fallback；tsc + eslint(`--max-warnings=0`) 双绿；alt-port(3193) dev server + chrome_devtools 复用真实登录态实机：下拉 8 项/3 真实组、`hasDefault:false`、`hasTestVendor:false`、默认 `gpt-5-nano`、双向切换 + localStorage 持久化(`openai/gpt-5-nano`↔`anthropic/claude-opus-4-6`)均正常。
+- **同类问题影响 / 跨上下文注意**：①**detached 对象的 `db.delete()` 在 async 下可正常删除**（按 identity key 重挂 session + flush 发 DELETE，已实测），**勿**据此把跨 session detached delete 误判为「静默泄漏」而盲目审计——`test_global_setting_insert_and_read`（line 114-116）即同型写法、实测清理正常。async ORM 下真正危险的是**对 detached 对象触发 lazy-load**（访问未加载的属性/关系 → `DetachedInstanceError`/`MissingGreenlet`，与 312-313 行谱系同源）；seed-yield-teardown 清理仍**推荐** `delete().where()`，理由是幂等、不依赖对象状态、不触发 cascade/lazy-load，而非 `db.delete()` 会失效。②前端「占位/默认」语义变更须穷举**所有** state 初始化分支（本例 home-body 含 6 处，易漏 Effect 2 后端 snapshot 回退点），否则「打开历史会话」等冷路径仍回退旧 null。③`is_default` 字段（DB 层全局唯一默认）与前端默认选中（代码常量）是**两套独立机制**，本期前端默认不读 `is_default`，勿混淆。

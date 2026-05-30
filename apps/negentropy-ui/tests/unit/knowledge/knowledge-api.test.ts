@@ -172,7 +172,11 @@ describe("fetchCorpus", () => {
 
   it("normalizeCorpusExtractorRoutes 与 buildCorpusConfig 会稳定保留 extractor routes 结构", () => {
     const normalized = normalizeCorpusExtractorRoutes(
-      createKnowledgeApiExtractorRoutes([knowledgeApiExtractorRouteFixtures.defaultUrlTarget]),
+      createKnowledgeApiExtractorRoutes(
+        [knowledgeApiExtractorRouteFixtures.defaultUrlTarget],
+        [],
+        [knowledgeApiExtractorRouteFixtures.defaultMdTarget],
+      ),
     );
 
     expect(normalized.url.targets).toEqual([
@@ -184,6 +188,14 @@ describe("fetchCorpus", () => {
       }),
     ]);
     expect(normalized.file_pdf.targets).toEqual([]);
+    expect(normalized.file_md.targets).toEqual([
+      expect.objectContaining({
+        server_id: "server-md",
+        tool_name: "parse_markdown",
+        priority: 0,
+        enabled: true,
+      }),
+    ]);
 
     expect(
       buildCorpusConfig(createDefaultChunkingConfig(), normalized),
@@ -198,13 +210,25 @@ describe("fetchCorpus", () => {
           ],
         },
         file_pdf: { targets: [] },
+        file_md: {
+          targets: [
+            expect.objectContaining({
+              server_id: "server-md",
+              tool_name: "parse_markdown",
+            }),
+          ],
+        },
       },
     });
   });
 
   it("normalizeExtractorDraftRoutes 会为每个 route 生成固定双槽位 draft", () => {
     const draft = normalizeExtractorDraftRoutes(
-      createKnowledgeApiExtractorRoutes([knowledgeApiExtractorRouteFixtures.defaultUrlTarget]),
+      createKnowledgeApiExtractorRoutes(
+        [knowledgeApiExtractorRouteFixtures.defaultUrlTarget],
+        [],
+        [knowledgeApiExtractorRouteFixtures.defaultMdTarget],
+      ),
     );
 
     expect(draft.url).toEqual([
@@ -225,6 +249,20 @@ describe("fetchCorpus", () => {
       expect.objectContaining({
         server_id: "",
         tool_name: "",
+        priority: 0,
+        enabled: true,
+      }),
+      expect.objectContaining({
+        server_id: "",
+        tool_name: "",
+        priority: 1,
+        enabled: true,
+      }),
+    ]);
+    expect(draft.file_md).toEqual([
+      expect.objectContaining({
+        server_id: "server-md",
+        tool_name: "parse_markdown",
         priority: 0,
         enabled: true,
       }),
@@ -261,6 +299,13 @@ describe("fetchCorpus", () => {
         }),
         createEmptyExtractorDraftTarget(1),
       ],
+      file_md: [
+        createKnowledgeApiExtractorRouteTarget({
+          server_id: "server-md-1",
+          tool_name: "parse_markdown",
+        }),
+        createEmptyExtractorDraftTarget(1),
+      ],
     });
 
     expect(routes).toEqual({
@@ -279,6 +324,16 @@ describe("fetchCorpus", () => {
           expect.objectContaining({
             server_id: "server-3",
             tool_name: "extract_pdf",
+            priority: 0,
+            enabled: true,
+          }),
+        ],
+      },
+      file_md: {
+        targets: [
+          expect.objectContaining({
+            server_id: "server-md-1",
+            tool_name: "parse_markdown",
             priority: 0,
             enabled: true,
           }),
@@ -317,6 +372,7 @@ describe("fetchCorpus", () => {
         knowledgeApiExtractorRouteFixtures.dualPdfPrimaryTarget,
         knowledgeApiExtractorRouteFixtures.dualPdfBackupTarget,
       ],
+      file_md: [createEmptyExtractorDraftTarget(0), createEmptyExtractorDraftTarget(1)],
     });
 
     expect(routes).toEqual({
@@ -352,6 +408,7 @@ describe("fetchCorpus", () => {
           }),
         ],
       },
+      file_md: { targets: [] },
     });
   });
 });

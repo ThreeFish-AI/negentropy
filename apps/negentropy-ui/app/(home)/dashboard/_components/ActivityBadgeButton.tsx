@@ -17,7 +17,7 @@ export function ActivityBadgeButton({ count, onClick }: ActivityBadgeButtonProps
     >
       <Activity className="h-4 w-4 text-muted-foreground" />
       {count > 0 ? (
-        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-foreground px-1 text-[9px] font-bold text-background">
+        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-foreground px-1 text-micro font-bold text-background">
           {count > 99 ? "99+" : count}
         </span>
       ) : null}

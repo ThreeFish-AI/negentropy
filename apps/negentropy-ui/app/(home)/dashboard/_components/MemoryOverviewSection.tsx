@@ -169,10 +169,10 @@ export function MemoryOverviewSection() {
                 key={card.label}
                 className="rounded-2xl border border-border bg-card p-5 shadow-sm"
               >
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                <p className="text-caption uppercase tracking-overline text-muted-foreground">
                   {card.label}
                 </p>
-                <p className="mt-2 text-2xl font-bold text-foreground">
+                <p className="mt-2 text-2xl font-bold text-foreground tabular-nums">
                   {card.value}
                 </p>
               </div>
@@ -247,10 +247,10 @@ export function MemoryOverviewSection() {
                         key={m.label}
                         className="rounded-xl border border-border bg-card p-4 shadow-sm"
                       >
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <p className="text-caption uppercase tracking-overline text-muted-foreground">
                           {m.label}
                         </p>
-                        <p className="mt-1 text-xl font-bold text-foreground">
+                        <p className="mt-1 text-xl font-bold text-foreground tabular-nums">
                           {m.value}
                         </p>
                       </div>

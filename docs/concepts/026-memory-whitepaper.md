@@ -81,7 +81,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ## 4. Phase 5 四方向落地记录（2026-05 启动）
 
-> Phase 5 聚焦白皮书既定的四个高/中优先级缺口。所有特性默认关闭、向后兼容、灰度启用，工程契约见 [`025-the-memory-system.md`](./025-the-memory-system.md) §10 与 [`memory-basics`](./user-guide/memory-basics.md) "高级特性开关"。
+> Phase 5 聚焦白皮书既定的四个高/中优先级缺口。这些特性自 Phase 8（§4.10）起**默认启用、开箱即用**（各带运行时安全闸，可一键关闭），工程契约见 [`025-the-memory-system.md`](./025-the-memory-system.md) §10 与 [`memory-basics`](./user-guide/memory-basics.md) "高级特性（默认开箱即用）"。
 
 ### 4.1 F1 — HippoRAG 神经符号检索（PPR-Boosted Hybrid）
 
@@ -170,6 +170,34 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 | G3  | Rocchio 重加权自动化调度：新增 `reweight_relevance` Job，每 6h 聚合反馈并更新 `metadata_.relevance_weight`        | Rocchio (1971)<sup>[[22]](#ref22)</sup> 反馈闭环                  |
 | G4  | 端到端集成测试：全 Pipeline 巩固、去重、Rocchio 反馈、审计追踪                                                    | "Verification Before Done" 工程准则                               |
 
+### 4.10 Phase 8: 开箱即用化 + 接线缺陷修复（2026-05）
+
+承接 Phase 5-7「实现完成但默认关闭」的现状，本轮把全部高级特性翻为**默认启用**（开箱即用），并修复验证中暴露的多处「实现完成但未真正生效」缺陷。运行时事实源是 `config.default.yaml`（YAML 优先级高于 Python field 默认，见 `config/_base.py`）——这正是此前 6-step Memify「代码就绪却被 YAML 锁在 2 步」的根因。
+
+**默认状态翻转**（`config.default.yaml`）：F1 HippoRAG / F2 Reflexion / F4 Presidio / Rocchio 读侧 + Memify 6-step 全部 `enabled: true`；各自保留运行时安全闸（HippoRAG `min_kg_associations` 数据闸、Reflexion `max_inflight_tasks` 并发上限、Presidio `allow_engine_fallback` 缺模型降级），既开箱即用又自保护。
+
+**接线缺陷修复**（详见 [`issue.md`](../.agents/issue.md) ISSUE-098~101）：
+
+| 缺陷 | 根因 | 修复 |
+| --- | --- | --- |
+| Hybrid 检索长期静默回退纯向量 | `hybrid_search()` SQL 函数从未迁移（仅在 schema 文件）+ `:embedding::vector` 被 SQLAlchemy 误解析报语法错 | 迁移 `0047` 创建函数 + `search_vector`/GIN；改 `CAST(:embedding AS vector(1536))` |
+| F4 Presidio 在热路径是死代码 | 写侧硬编码 legacy regex `detect_pii`，绕过 `engine` 工厂；`PIIGatekeeper` 零调用点 | 写侧改 `detect_pii_for_storage`（工厂引擎，落 `pii_spans`）；检索出口接 `PIIGatekeeper` |
+| Presidio 中文分析失效 | `AnalyzerEngine` 未装配 zh NLP 引擎，CN 识别器全失效 | `_build_nlp_engine` 按语言显式映射 spaCy 模型（en→lg、zh→sm）+ 优雅降级 |
+| 测试隔离污染 | `test_runner_artifacts` 模块级永久替换 `sys.modules` 工厂 | 改「临时 mock + try/finally 还原」 |
+
+**依赖默认化**：presidio-analyzer/anonymizer + spaCy 从可选 extra 提升为主依赖；新增 `negentropy bootstrap-pii-models` CLI 下载 NER 模型（独立下载产物，缺失时按 fallback 降级 regex，`/memory/health` 可观测实际引擎）。
+
+**验证**：全 Memory 测试套件（unit + integration，单会话）667+ 例绿；实机经 `add_session_to_memory` 跑通 6-step Memify（`statuses=[success×6]`，真实 LLM）+ Presidio 检出 person/email/CN-mobile + Hybrid 检索生效；浏览器逐页核对 Timeline/Facts/Conflicts/Audit/Scheduler。
+
+### 4.11 未来工作：业界前沿的演进方向
+
+本项目当前架构（PostgreSQL 单栈 + 类型分层 Ebbinghaus 衰减 + 6-step Memify + HippoRAG PPR）已覆盖生产记忆系统的核心能力。结合 2025–2026 年最新文献，以下方向可作为后续迭代的循证参考（均为前瞻性 inspiration，非当前实现）：
+
+- **多图正交检索**：MAGMA<sup>[[25]](#ref25)</sup>将记忆跨语义/时序/因果/实体四张正交图表征，把检索建模为意图感知的策略化遍历，解耦表征与检索逻辑。本项目的关联网络（`memory_associations`）与 KG 已具雏形，可演进为显式多图视图选择。
+- **段落级 PPR 整合**：HippoRAG 2<sup>[[26]](#ref26)</sup>在原 HippoRAG 基础上引入更深的 passage 整合与在线 LLM 相关性校验，关联记忆任务提升 7%。本项目 F1 当前为实体级 seeding，可借鉴其 passage 整合提升 RRF 融合质量。
+- **检索期时序推理**：mem0<sup>[[27]](#ref27)</sup>在检索排序中显式引入时序信号（区分"当前状态 vs 历史事件 vs 未来计划"）。本项目当前依赖 `created_at` 排序，可在评分公式中补充时序维度。
+- **睡眠启发的巩固遗忘**：SleepGate<sup>[[28]](#ref28)</sup>以"睡眠微周期"对 KV cache 做冲突感知标记、选择性遗忘与摘要合并，缓解 proactive interference。本项目的 `cleanup_low_value_memories` 当前为纯阈值删除，可借鉴 LLM 引导的融合决策替代硬删除。
+
 ---
 
 ## 5. 引文清单（IEEE）
@@ -221,6 +249,14 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 <a id="ref23"></a>[23] Y. Lv and C. Zhai, "A comparative study of methods for estimating query language models," in *Proc. 32nd Int. ACM SIGIR Conf.*, 2009, pp. 289-296.
 
 <a id="ref24"></a>[24] B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, *Site Reliability Engineering: How Google Runs Production Systems*. O'Reilly, 2016.
+
+<a id="ref25"></a>[25] D. Jiang *et al.*, "MAGMA: A multi-graph based agentic memory architecture for AI agents," in *Proc. ACL*, 2026. (arXiv:2601.03236)
+
+<a id="ref26"></a>[26] B. J. Gutiérrez, Y. Shu, W. Qi, S. Zhou, and Y. Su, "From RAG to memory: Non-parametric continual learning for large language models," in *Proc. 42nd Int. Conf. Machine Learning (ICML)*, PMLR 267:21497–21515, 2025. (HippoRAG 2)
+
+<a id="ref27"></a>[27] P. Chhikara, D. Khant, S. Aryan, T. Singh, and D. Yadav, "Mem0: Building production-ready AI agents with scalable long-term memory," in *Proc. ECAI*, 2025. (arXiv:2504.19413)
+
+<a id="ref28"></a>[28] Y. Xie, "Learning to forget: Sleep-inspired memory consolidation for resolving proactive interference in large language models," arXiv:2603.14517, Mar. 2026. (SleepGate)
 
 ---
 

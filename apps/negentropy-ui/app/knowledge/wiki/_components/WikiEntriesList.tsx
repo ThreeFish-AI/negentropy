@@ -88,7 +88,7 @@ export function WikiEntriesList({
           >
             {item.title}
           </span>
-          <span className="ml-auto text-[10px] text-muted-foreground font-mono truncate max-w-[50%]">
+          <span className="ml-auto text-micro text-muted-foreground font-mono truncate max-w-[50%]">
             /{item.slug}
           </span>
         </div>

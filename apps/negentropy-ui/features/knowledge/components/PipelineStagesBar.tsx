@@ -51,15 +51,15 @@ export function PipelineStagesBar({
           <div
             className={joinClassNames(
               "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2",
-              "rounded-md bg-zinc-800 px-2 py-1.5 text-[11px] text-white opacity-0 shadow-lg",
-              "transition-opacity duration-150 group-hover:opacity-100 dark:bg-zinc-700 dark:text-zinc-100",
+              "rounded-md bg-foreground px-2 py-1.5 text-caption text-background opacity-0 shadow-lg",
+              "transition-opacity duration-150 group-hover:opacity-100",
               "max-w-[180px] whitespace-normal break-words",
               tooltipClassName,
             )}
             role="tooltip"
           >
             <div className="font-medium">{STAGE_LABELS[stageName] || stageName}</div>
-            <div className="text-zinc-300 dark:text-zinc-400">
+            <div className="text-background/70">
               {stage.status || "unknown"}
               {stage.duration_ms ? ` · ${formatDuration(stage.duration_ms)}` : ""}
             </div>
@@ -67,7 +67,7 @@ export function PipelineStagesBar({
               <div className="mt-0.5 text-rose-400">{getStageErrorSummary(stage.error)}</div>
             )}
             {stage.status === "skipped" && stage.reason && (
-              <div className="mt-0.5 italic text-zinc-400">{stage.reason}</div>
+              <div className="mt-0.5 italic text-background/60">{stage.reason}</div>
             )}
             {stage.mcp_events && stage.mcp_events.length > 0 && (() => {
               const lastEvent = stage.mcp_events.filter((e) => e.stage !== "stderr").at(-1);

@@ -51,7 +51,7 @@ export function MentionChipList({ mentions, onRemove }: MentionChipListProps) {
             data-testid="composer-mention-chip"
             data-mention-kind={m.kind}
             title={`${_KIND_TITLE[m.kind]} · ${m.label}`}
-            className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[11px] ${_CHIP_CLASS[m.kind]}`}
+            className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 text-caption ${_CHIP_CLASS[m.kind]}`}
           >
             <Icon className="h-3 w-3" aria-hidden />
             <span className="max-w-[160px] truncate">{m.label}</span>

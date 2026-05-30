@@ -1,0 +1,50 @@
+# ────────────────────────────────────────────────────────────
+# Routine Demo 1/3 — 代码质量审计（Code Quality Audit）
+#
+# 审批模式: auto（全自主）
+# 命令门控: ruff check（客观锚点）
+# 重点展示: Evaluator-Optimizer 全自动闭环、Reflexion 跨迭代反思记忆、
+#           LLM-as-Judge + Command Gate 双重评估、no_progress 停滞检测
+# ────────────────────────────────────────────────────────────
+
+preset_id: code_quality_audit
+display_name: "Demo: 代码质量审计"
+description: >
+  全自动代码质量审计：使用 ruff 扫描目标模块的代码异味、潜在缺陷和违反最佳实践的问题，
+  然后逐类修复。演示 Routine 的全自主迭代能力——Engine 自行调度多轮 Claude Code 执行，
+  每轮由 LLM-as-Judge 评分并注入 Reflexion 反思记忆驱动下一轮改进，
+  同时以 ruff exit code 作为客观 Command Gate 防止评估偏差。
+category: quality
+version: 1.0.0
+features_showcase:
+  - "审批模式: auto — 全自主，无人干预"
+  - "Command Gate — ruff check 作为客观验证锚点"
+  - "Reflexion — 跨迭代反思记忆驱动自改进"
+  - "LLM-as-Judge — 结构化评分 + verdict 判定"
+  - "no_progress 停滞检测 — 连续 N 轮无进展时终止"
+  - "max_iterations 护栏 — 迭代次数硬上限"
+
+title: "Code Quality Audit"
+goal: >
+  对目标代码模块执行全面的代码质量审计。执行以下步骤：
+
+  1. 运行 ruff check 扫描所有违规项（`ruff check --select ALL`）；
+  2. 按严重程度分类：error → warning → refactor → convention；
+  3. 从最高严重级别开始逐类修复，每次修复后确认未引入新违规；
+  4. 对于需要 noqa 注释而非修复的情况，添加规范化的 noqa 标注；
+  5. 所有修复必须保持模块的公共 API 和核心运行时行为不变。
+
+  重要约束：遵循最小干预原则，每处修复仅做必要的最小变更。
+acceptance_criteria: >
+  1. `ruff check --select ALL` 退出码为 0（零违规，或仅剩合理 noqa 注释）；
+  2. 所有现有测试仍然通过（无回归）；
+  3. 每处修复为最小变更，不改变模块公共 API 和核心运行时行为；
+  4. 新增代码符合项目 Ruff 规则集（不引入新 lint 违规）。
+verification_command: "uv run ruff check --select ALL"
+max_iterations: 15
+max_cost_usd: 3.0
+success_score_threshold: 90
+no_progress_patience: 3
+approval_mode: auto
+config:
+  permission_mode: auto

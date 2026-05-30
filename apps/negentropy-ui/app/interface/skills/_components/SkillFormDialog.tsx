@@ -7,6 +7,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/Button";
+import { ErrorBanner } from "@/components/ui/ErrorState";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 interface Skill {
@@ -199,15 +201,15 @@ export function SkillFormDialog({
       open={open}
       onClose={onClose}
       busy={loading}
-      backdropClassName="bg-black/55"
+
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
     >
-          <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          <div className="border-b border-border px-5 py-4 sm:px-6">
+            <h2 className="text-lg font-semibold text-foreground">
               {skill ? "Edit Skill" : "Add Skill"}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-text-muted">
               Organize skill metadata and JSON payloads with a readable, high-density form layout.
             </p>
           </div>
@@ -215,53 +217,49 @@ export function SkillFormDialog({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
               {error && (
-                <div
-                  role="alert"
-                  data-testid="skills-form-error"
-                  className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                >
-                  {error}
+                <div data-testid="skills-form-error">
+                  <ErrorBanner message={error} />
                 </div>
               )}
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Basic Information
                 </h3>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Name *
                     </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="my-skill"
                       required
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Display Name
                     </label>
                     <input
                       type="text"
                       value={formData.display_name}
                       onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="My Skill"
                     />
                   </div>
                   <div className="lg:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Description
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       rows={2}
                       placeholder="Description of this skill"
                     />
@@ -270,42 +268,42 @@ export function SkillFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Runtime Setup
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Category
                     </label>
                     <input
                       type="text"
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="general"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Version
                     </label>
                     <input
                       type="text"
                       value={formData.version}
                       onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                       placeholder="1.0.0"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Visibility
                     </label>
                     <select
                       value={formData.visibility}
                       onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     >
                       <option value="private">Private</option>
                       <option value="shared">Shared</option>
@@ -313,48 +311,48 @@ export function SkillFormDialog({
                     </select>
                   </div>
                   <div className="flex items-end">
-                    <label className="flex w-full items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+                    <label className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary">
                       <input
                         type="checkbox"
                         checked={formData.is_enabled}
                         onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-                        className="rounded border-zinc-300 dark:border-zinc-600"
+                        className="rounded border-border"
                       />
                       Enabled
                     </label>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Priority
                     </label>
                     <input
                       type="number"
                       value={formData.priority}
                       onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground"
                     />
                   </div>
                 </div>
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Prompt & Requirements
                 </h3>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label className="mb-1 block text-sm font-medium text-text-secondary">
                     Prompt Template
                   </label>
                   <textarea
                     value={formData.prompt_template}
                     onChange={(e) => setFormData({ ...formData, prompt_template: e.target.value })}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                     rows={5}
                     placeholder="Enter the skill's prompt template..."
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <label className="mb-1 block text-sm font-medium text-text-secondary">
                     Required Tools
                   </label>
                   {availableTools.length > 0 && (
@@ -377,10 +375,10 @@ export function SkillFormDialog({
                               "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors " +
                               (isSelected
                                 ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
-                                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700")
+                                : "bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border")
                             }
                           >
-                            <span className="text-[10px] opacity-60">{t.source === "builtin" ? "●" : "◆"}</span>
+                            <span className="text-micro opacity-60">{t.source === "builtin" ? "●" : "◆"}</span>
                             {t.display_name || t.name}
                           </button>
                         );
@@ -390,7 +388,7 @@ export function SkillFormDialog({
                   <textarea
                     value={formData.required_tools}
                     onChange={(e) => setFormData({ ...formData, required_tools: e.target.value })}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono text-foreground"
                     rows={3}
                     placeholder="Select from above or type tool names (one per line)"
                   />
@@ -398,11 +396,11 @@ export function SkillFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   Tool Enforcement
                 </h3>
-                <fieldset className="rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-700">
-                  <legend className="px-1 text-xs text-zinc-500 dark:text-zinc-400">
+                <fieldset className="rounded-md border border-border p-3 text-sm">
+                  <legend className="px-1 text-xs text-text-muted">
                     Required tools enforcement
                   </legend>
                   <div className="flex flex-wrap items-center gap-4">
@@ -417,8 +415,8 @@ export function SkillFormDialog({
                           setFormData({ ...formData, enforcement_mode: "warning" })
                         }
                       />
-                      <span className="text-zinc-700 dark:text-zinc-200">
-                        warning <span className="text-xs text-zinc-500">(log missing tools, keep running)</span>
+                      <span className="text-foreground">
+                        warning <span className="text-xs text-text-muted">(log missing tools, keep running)</span>
                       </span>
                     </label>
                     <label className="inline-flex items-center gap-2">
@@ -432,7 +430,7 @@ export function SkillFormDialog({
                           setFormData({ ...formData, enforcement_mode: "strict" })
                         }
                       />
-                      <span className="text-zinc-700 dark:text-zinc-200">
+                      <span className="text-foreground">
                         strict <span className="text-xs text-rose-600 dark:text-rose-400">(block Agent if any required tool is missing)</span>
                       </span>
                     </label>
@@ -442,7 +440,7 @@ export function SkillFormDialog({
 
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                     Resources
                   </h3>
                   <button
@@ -454,13 +452,13 @@ export function SkillFormDialog({
                         { type: "url", ref: "", title: "", lazy: true },
                       ])
                     }
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
+                    className="rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
                   >
                     + Add
                   </button>
                 </div>
                 {resourceRows.length === 0 ? (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-text-muted">
                     No resources attached. Use Resources to point to KG nodes, Memory items, Knowledge corpora, or external URLs that the skill can reference on demand.
                   </p>
                 ) : (
@@ -469,7 +467,7 @@ export function SkillFormDialog({
                       <li
                         key={idx}
                         data-testid={`skills-form-resource-${idx}`}
-                        className="grid grid-cols-1 gap-2 rounded-md border border-zinc-200 p-2 sm:grid-cols-12 dark:border-zinc-700"
+                        className="grid grid-cols-1 gap-2 rounded-md border border-border p-2 sm:grid-cols-12"
                       >
                         <select
                           aria-label={`Resource ${idx + 1} type`}
@@ -479,7 +477,7 @@ export function SkillFormDialog({
                               prev.map((r, i) => (i === idx ? { ...r, type: e.target.value } : r)),
                             )
                           }
-                          className="rounded-md border border-zinc-300 px-2 py-1 text-sm sm:col-span-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                          className="rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground sm:col-span-2"
                         >
                           <option value="url">url</option>
                           <option value="kg_node">kg_node</option>
@@ -497,7 +495,7 @@ export function SkillFormDialog({
                             )
                           }
                           placeholder="ref (URL / corpus name / kg node label / memory uuid)"
-                          className="rounded-md border border-zinc-300 px-2 py-1 text-sm sm:col-span-5 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                          className="rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground sm:col-span-5"
                         />
                         <input
                           type="text"
@@ -509,9 +507,9 @@ export function SkillFormDialog({
                             )
                           }
                           placeholder="title (optional)"
-                          className="rounded-md border border-zinc-300 px-2 py-1 text-sm sm:col-span-3 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                          className="rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground sm:col-span-3"
                         />
-                        <label className="flex items-center gap-1 text-xs text-zinc-600 sm:col-span-1 dark:text-zinc-300">
+                        <label className="flex items-center gap-1 text-xs text-text-secondary sm:col-span-1">
                           <input
                             type="checkbox"
                             checked={row.lazy !== false}
@@ -541,12 +539,12 @@ export function SkillFormDialog({
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
                   JSON Configuration
                 </h3>
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Config Schema (JSON)
                     </label>
                     <textarea
@@ -560,10 +558,10 @@ export function SkillFormDialog({
                       aria-invalid={fieldErrors.config_schema ? "true" : undefined}
                       data-testid="skills-form-config-schema"
                       className={
-                        "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono dark:bg-zinc-800 dark:text-zinc-100 " +
+                        "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono bg-input text-foreground " +
                         (fieldErrors.config_schema
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500"
-                          : "border-zinc-300 dark:border-zinc-600")
+                          : "border-border")
                       }
                       rows={8}
                       placeholder='{"type": "object"}'
@@ -579,7 +577,7 @@ export function SkillFormDialog({
                     )}
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label className="mb-1 block text-sm font-medium text-text-secondary">
                       Default Config (JSON)
                     </label>
                     <textarea
@@ -593,10 +591,10 @@ export function SkillFormDialog({
                       aria-invalid={fieldErrors.default_config ? "true" : undefined}
                       data-testid="skills-form-default-config"
                       className={
-                        "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono dark:bg-zinc-800 dark:text-zinc-100 " +
+                        "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono bg-input text-foreground " +
                         (fieldErrors.default_config
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500"
-                          : "border-zinc-300 dark:border-zinc-600")
+                          : "border-border")
                       }
                       rows={8}
                       placeholder="{}"
@@ -615,22 +613,22 @@ export function SkillFormDialog({
               </section>
             </div>
 
-            <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
-              <button
+            <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4 sm:px-6">
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={onClose}
                 disabled={loading}
-                className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="neutral"
                 disabled={loading}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {loading ? "Saving..." : skill ? "Update" : "Create"}
-              </button>
+              </Button>
             </div>
           </form>
     </OverlayDismissLayer>

@@ -30,6 +30,7 @@
 - [Knowledge Base（知识库设计）](../concepts/035-the-knowledge-base.md)
 - [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
 - [Claude Code 集成（BuiltinTool）](../concepts/038-claude-code-integration.md) — Claude Code CLI 作为 ADK Agent 工具的接入方案
+- [Routine（长周期自主任务）](../concepts/039-the-routine-system.md) — Engine 编排 + Claude Code 执行的 Evaluator-Optimizer 自迭代闭环（含 Reflexion 反思记忆、LLM-as-Judge 评估、审批门控、停止护栏） · [Demo 预设](../concepts/user-guide/routine-presets.md) — 3 个开箱即用的示例场景（代码审计 / 测试增强 / 文档完善），覆盖全部核心功能
 - [Skills](../concepts/design/skills.md)
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
 - [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
@@ -53,6 +54,7 @@
 
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
 - [ADK 2.0 升级调研](../research/020b-adk-2.0-upgrade.md) — Google ADK 2.0 核心新特性、Breaking Changes、本项目影响评估与渐进式升级路径
+- [Routine Agent 迭代模式调研](../research/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）
 
 ## 用户文档与运维
 

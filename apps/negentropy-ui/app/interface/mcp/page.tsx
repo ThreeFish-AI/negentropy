@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Cable } from "lucide-react";
 import { MCP_HUB_LABEL } from "@/app/interface/copy";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
+import { Spinner } from "@/components/ui/Spinner";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
 import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
@@ -289,44 +294,46 @@ export default function McpServersPage() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title={MCP_HUB_LABEL} />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                <h1 className="text-2xl font-bold text-foreground">
                   {MCP_HUB_LABEL}
                 </h1>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                <p className="text-sm text-text-muted">
                   Manage Model Context Protocol servers for external tool integration.
                 </p>
               </div>
-              <button
-                onClick={handleCreate}
-                className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
+              <Button variant="neutral" onClick={handleCreate}>
                 Add Server
-              </button>
+              </Button>
             </div>
 
             {loading ? (
-              <div className="text-sm text-zinc-500">Loading...</div>
-            ) : error ? (
-              <div className="text-sm text-red-500">{error}</div>
-            ) : servers.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-zinc-400 dark:text-zinc-500 mb-4">
-                  No MCP servers registered yet.
-                </div>
-                <button
-                  onClick={handleCreate}
-                  className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                >
-                  Add your first server →
-                </button>
+              <div className="flex items-center justify-center py-12">
+                <Spinner size="lg" label="Loading" className="text-text-muted" />
               </div>
+            ) : error ? (
+              <ErrorState
+                title="Failed to load MCP servers"
+                description={error}
+                onRetry={fetchServers}
+              />
+            ) : servers.length === 0 ? (
+              <EmptyState
+                icon={Cable}
+                title="No MCP servers registered yet"
+                description="Connect your first MCP server to enable tool integration."
+                action={
+                  <Button variant="neutral" size="sm" onClick={handleCreate}>
+                    Add your first server
+                  </Button>
+                }
+              />
             ) : (
               <div
                 data-testid="mcp-grid"

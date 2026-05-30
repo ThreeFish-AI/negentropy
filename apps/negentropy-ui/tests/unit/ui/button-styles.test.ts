@@ -11,13 +11,13 @@ describe("outlineButtonClassName", () => {
     expect(className).toContain("rounded-lg px-3");
   });
 
-  it("为危险描边按钮保留红色语义与交互状态类", () => {
+  it("为危险描边按钮使用语义化 destructive 令牌", () => {
     const className = outlineButtonClassName("danger");
 
-    expect(className).toContain("border-red-300");
-    expect(className).toContain("hover:bg-red-50");
-    expect(className).toContain("hover:text-red-700");
-    expect(className).toContain("dark:hover:bg-red-950/40");
-    expect(className).toContain("focus-visible:ring-red-200");
+    expect(className).toContain("border-destructive/40");
+    expect(className).toContain("text-destructive");
+    expect(className).toContain("hover:border-destructive/60");
+    expect(className).toContain("hover:bg-destructive/10");
+    expect(className).toContain("focus-visible:ring-destructive/30");
   });
 });

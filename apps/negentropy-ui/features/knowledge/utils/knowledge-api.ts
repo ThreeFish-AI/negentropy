@@ -523,7 +523,7 @@ export interface CorpusRecord {
   rebuild_triggered?: { count: number; run_ids: string[] } | null;
 }
 
-export type ExtractorSourceKind = "url" | "file_pdf";
+export type ExtractorSourceKind = "url" | "file_pdf" | "file_md";
 
 export interface McpExtractorTargetConfig {
   server_id: string;
@@ -538,7 +538,7 @@ export interface CorpusExtractorRouteConfig {
   targets: McpExtractorTargetConfig[];
 }
 
-export type CorpusExtractorRouteKey = "url" | "file_pdf";
+export type CorpusExtractorRouteKey = "url" | "file_pdf" | "file_md";
 export type CorpusExtractorTargets = McpExtractorTargetConfig[];
 export type ExtractorDraftTarget = McpExtractorTargetConfig;
 export type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
@@ -563,6 +563,7 @@ export interface CorpusModelsConfig {
 export interface CorpusExtractorRoutes {
   url?: CorpusExtractorRouteConfig;
   file_pdf?: CorpusExtractorRouteConfig;
+  file_md?: CorpusExtractorRouteConfig;
 }
 
 export type NormalizedCorpusExtractorRoutes = Record<
@@ -642,6 +643,7 @@ export function normalizeCorpusExtractorRoutes(
   return {
     url: normalizeRoute(raw.url),
     file_pdf: normalizeRoute(raw.file_pdf),
+    file_md: normalizeRoute(raw.file_md),
   };
 }
 
@@ -652,14 +654,15 @@ export function normalizeExtractorDraftRoutes(
   return {
     url: createExtractorDraftRoute(normalized.url.targets),
     file_pdf: createExtractorDraftRoute(normalized.file_pdf.targets),
+    file_md: createExtractorDraftRoute(normalized.file_md?.targets || []),
   };
 }
 
 export function buildExtractorRoutesFromDraft(
   draft: ExtractorDraftRoutes,
 ): NormalizedCorpusExtractorRoutes {
-  const buildTargets = (targets: ExtractorDraftRoute) =>
-    targets
+  const buildTargets = (targets: ExtractorDraftRoute | undefined) =>
+    (targets || [])
       .filter((item) => item.server_id && item.tool_name)
       .map((item, priority) => ({
         ...item,
@@ -670,6 +673,7 @@ export function buildExtractorRoutesFromDraft(
   return {
     url: { targets: buildTargets(draft.url) },
     file_pdf: { targets: buildTargets(draft.file_pdf) },
+    file_md: { targets: buildTargets(draft.file_md) },
   };
 }
 
@@ -683,6 +687,7 @@ export function buildCorpusConfig(
     extractor_routes: {
       url: { targets: extractorRoutes?.url?.targets || [] },
       file_pdf: { targets: extractorRoutes?.file_pdf?.targets || [] },
+      file_md: { targets: extractorRoutes?.file_md?.targets || [] },
     },
   };
   if (models) {

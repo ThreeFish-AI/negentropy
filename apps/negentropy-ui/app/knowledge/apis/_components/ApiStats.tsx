@@ -1,6 +1,7 @@
 "use client";
 
 import { Activity, CheckCircle, Zap } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface ApiStatsData {
   total_calls: number;
@@ -45,15 +46,15 @@ export function ApiStats({ stats }: ApiStatsProps) {
       {metrics.map((metric) => (
         <div
           key={metric.label}
-          className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+          className="rounded-2xl border border-border bg-card p-4 shadow-sm"
         >
           <div className="flex items-center gap-2">
             <metric.icon className={`h-4 w-4 ${metric.iconColor}`} />
-            <p className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs uppercase tracking-wider text-text-muted">
               {metric.label}
             </p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">
             {metric.value}
           </p>
         </div>
@@ -68,10 +69,10 @@ export function ApiStatsSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+          className="rounded-2xl border border-border bg-card p-4 shadow-sm"
         >
-          <div className="h-4 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-          <div className="mt-2 h-8 w-24 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          <Skeleton className="h-4 w-16 rounded" />
+          <Skeleton className="mt-2 h-8 w-24 rounded" />
         </div>
       ))}
     </div>

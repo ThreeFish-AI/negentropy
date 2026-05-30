@@ -274,6 +274,15 @@ async def _negentropy_lifespan(app):
                 logger.info("unified_scheduler_stopped_via_lifespan")
             except Exception as exc:
                 logger.warning("unified_scheduler_stop_failed", error=str(exc))
+        # Routine 编排：中止在途 Claude Code 执行并收敛后台 Runner（仅启用时存在单例）
+        try:
+            from negentropy.engine.routine.orchestrator import _GLOBAL_ORCHESTRATOR
+
+            if _GLOBAL_ORCHESTRATOR is not None:
+                await _GLOBAL_ORCHESTRATOR.aclose(timeout=_NEGENTROPY_LIFESPAN_TIMEOUT_REGISTRY)
+                logger.info("routine_orchestrator_stopped_via_lifespan")
+        except Exception as exc:
+            logger.warning("routine_orchestrator_stop_failed", error=str(exc))
         try:
             from negentropy.engine.lifecycle import dispose_all
 
@@ -408,6 +417,7 @@ def apply_adk_patches():
         from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.interface.api import router as interface_router
         from negentropy.interface.models_api import router as interface_models_router
+        from negentropy.interface.routine_api import router as interface_routine_router
         from negentropy.interface.scheduler_api import router as interface_scheduler_router
         from negentropy.interface.task_models_api import corpus_router as interface_task_models_corpus_router
         from negentropy.interface.task_models_api import router as interface_task_models_router
@@ -551,6 +561,9 @@ def apply_adk_patches():
         if not any(route.path.startswith("/scheduler") for route in app.router.routes):
             app.include_router(interface_scheduler_router)
             logger.info("Scheduler API router mounted under /scheduler")
+        if not any(route.path.startswith("/routines") for route in app.router.routes):
+            app.include_router(interface_routine_router)
+            logger.info("Routine API router mounted under /routines")
         # Corpus 级 task-models 路由独立挂载（prefix=/knowledge/corpus/...），
         # 不与 /interface 共享 prefix，需判定挂载唯一性。
         if not any(

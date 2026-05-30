@@ -39,7 +39,8 @@ def test_fallback_llm_config():
     from negentropy.config.model_resolver import get_fallback_llm_config
 
     name, kwargs = get_fallback_llm_config()
-    assert name == "openai/gpt-5-mini"
+    # 与 model_resolver._DEFAULT_LLM_MODEL 对齐（DB 不可达时的回退模型）。
+    assert name == "openai/gpt-5-nano"
     assert kwargs["temperature"] == 0.7
     assert kwargs["drop_params"] is True
     assert "extra_body" not in kwargs

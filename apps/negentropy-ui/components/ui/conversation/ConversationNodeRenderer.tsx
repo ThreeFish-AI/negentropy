@@ -30,7 +30,7 @@ function formatTimestamp(timestamp?: number): string {
 
 function JsonBlock({ value }: { value: unknown }) {
   return (
-    <div className="max-h-64 overflow-auto rounded-xl border border-zinc-200/70 bg-zinc-50 p-2 text-xs dark:border-zinc-800 dark:bg-zinc-950/70">
+    <div className="max-h-64 overflow-auto rounded-xl border border-border/70 bg-muted p-2 text-xs">
       <JsonViewer data={value} />
     </div>
   );
@@ -53,11 +53,11 @@ function NodeCard({
         "rounded-2xl border p-3 shadow-sm transition-colors",
         selected
           ? "border-amber-300 bg-amber-50/80 dark:border-amber-700 dark:bg-amber-950/30"
-          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900",
+          : "border-border bg-card",
       )}
       onClick={onClick}
     >
-      <div className="mb-2 flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+      <div className="mb-2 flex items-center justify-between gap-4 text-micro uppercase tracking-label text-text-muted">
         <span>{node.title}</span>
         <span>{formatTimestamp(node.timestamp)}</span>
       </div>
@@ -69,7 +69,7 @@ function NodeCard({
 function SummaryLines({ lines }: { lines: string[] }) {
   if (lines.length === 0) {
     return (
-      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+      <div className="text-sm text-text-muted">
         暂无可展示摘要
       </div>
     );
@@ -77,7 +77,7 @@ function SummaryLines({ lines }: { lines: string[] }) {
   return (
     <div className="space-y-1">
       {lines.map((line) => (
-        <div key={line} className="text-sm text-zinc-700 dark:text-zinc-300">
+        <div key={line} className="text-sm text-text-secondary">
           {line}
         </div>
       ))}
@@ -98,7 +98,7 @@ function ExpandableDetails({
     <div className="mt-3 space-y-2">
       <button
         type="button"
-        className="text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+        className="text-xs font-medium text-text-muted underline-offset-2 hover:text-foreground hover:underline"
         onClick={(event) => {
           event.stopPropagation();
           setExpanded((current) => !current);
@@ -212,13 +212,13 @@ function TurnNode({
         "rounded-2xl border border-dashed px-4 py-2.5",
         selected
           ? "border-amber-300 bg-amber-50/70 dark:border-amber-700 dark:bg-amber-950/20"
-          : "border-zinc-200/80 bg-zinc-100/55 dark:border-zinc-800 dark:bg-zinc-900/35",
+          : "border-border/80 bg-muted/55",
       )}
       onClick={() => onSelect?.(node.id)}
     >
       <div className="flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-          <span className="font-semibold uppercase tracking-[0.18em]">
+        <div className="flex min-w-0 items-center gap-2 text-caption text-text-muted">
+          <span className="font-semibold uppercase tracking-label">
             {node.title}
           </span>
           <span aria-hidden="true">·</span>
@@ -234,12 +234,12 @@ function TurnNode({
           <span aria-hidden="true">·</span>
           <span>{childCount} 个子模块</span>
         </div>
-        <div className="shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">
+        <div className="shrink-0 text-micro text-text-muted">
           {formatTimestamp(node.timestamp)}
         </div>
       </div>
       {statusHint ? (
-        <div className="mt-2 rounded-xl border border-zinc-200/80 bg-white/75 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
+        <div className="mt-2 rounded-xl border border-border/80 bg-card/75 px-3 py-2 text-sm text-text-muted">
           {statusHint}
         </div>
       ) : null}
@@ -291,7 +291,7 @@ function TechnicalNode({
         <ExpandableDetails label="详情" value={detailValue} />
       )}
       {node.children.length > 0 ? (
-        <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="mt-3 text-xs text-text-muted">
           {node.children.filter((child) => child.visibility !== "debug-only").length} 个子模块
         </div>
       ) : null}

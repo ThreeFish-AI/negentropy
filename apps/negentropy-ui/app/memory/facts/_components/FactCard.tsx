@@ -27,10 +27,10 @@ const FACT_TYPE_STYLES: Record<string, string> = {
 function FactTypeBadge({ type }: { type: string }) {
   const style =
     FACT_TYPE_STYLES[type] ??
-    "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+    "bg-muted text-text-secondary";
   return (
     <span
-      className={`inline-flex shrink-0 items-center px-2 py-0.5 text-[10px] font-medium rounded-full ${style}`}
+      className={`inline-flex shrink-0 items-center px-2 py-0.5 text-micro font-medium rounded-full ${style}`}
     >
       {type}
     </span>
@@ -53,7 +53,7 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
   return (
     <div className="flex items-center gap-2">
       <div
-        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700"
+        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
@@ -65,9 +65,9 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="shrink-0 text-[10px] font-mono text-zinc-500 tabular-nums dark:text-zinc-400">
+      <span className="shrink-0 text-micro font-mono text-text-muted tabular-nums">
         {percent}%
-        <span className="ml-0.5 text-zinc-400 dark:text-zinc-500">
+        <span className="ml-0.5 text-text-muted">
           {levelLabel[level]}
         </span>
       </span>
@@ -85,7 +85,7 @@ function TemporalBadge({ fact }: { fact: FactItem }) {
       className={
         expired
           ? "text-rose-500 dark:text-rose-400"
-          : "text-zinc-400 dark:text-zinc-500"
+          : "text-text-muted"
       }
     >
       {label}
@@ -105,34 +105,34 @@ interface FactCardProps {
 
 export function FactCard({ fact, userLabel, onShowHistory }: FactCardProps) {
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <ConfidenceBar confidence={fact.confidence} />
 
       <div className="mt-3 flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
+        <p className="text-sm font-semibold text-foreground leading-tight">
           {fact.key}
         </p>
         <FactTypeBadge type={fact.fact_type} />
       </div>
 
-      <div className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+      <div className="mt-3 rounded-lg border border-border bg-muted/50 p-3">
         <JsonViewer data={fact.value} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500">
+      <div className="mt-3 flex items-center justify-between text-caption text-text-muted">
         <div className="flex items-center gap-3">
           <TemporalBadge fact={fact} />
           {fact.created_at && (
             <span>{formatShortDate(fact.created_at)}</span>
           )}
           {userLabel && (
-            <span className="truncate rounded-full border border-border px-1.5 py-px text-[10px]">
+            <span className="truncate rounded-full border border-border px-1.5 py-px text-micro">
               {userLabel}
             </span>
           )}
         </div>
         <button
-          className="text-zinc-400 underline hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+          className="text-text-muted underline hover:text-text-secondary"
           onClick={() => onShowHistory(fact.id)}
         >
           History

@@ -327,6 +327,7 @@ test.describe("Interface / Scheduler 页面", () => {
 
     // Table header
     await expect(page.getByText("Task").first()).toBeVisible();
+    await expect(page.getByText("Description").first()).toBeVisible();
     await expect(page.getByText("Handler").first()).toBeVisible();
     await expect(page.getByText("Trigger").first()).toBeVisible();
     await expect(page.getByText("Actions").first()).toBeVisible();
@@ -334,6 +335,11 @@ test.describe("Interface / Scheduler 页面", () => {
     // Task rows
     await expect(page.getByText("KB/KG Pipeline Watchdog")).toBeVisible();
     await expect(page.getByText("Ebbinghaus Cleanup")).toBeVisible();
+
+    // Description column value
+    await expect(
+      page.getByText("收敛 cancelling/running 长尾状态的 KB/KG runs").first(),
+    ).toBeVisible();
 
     // Trigger type display: interval → "60s", cron → "0 2 * * *"
     await expect(page.getByText("60s").first()).toBeVisible();

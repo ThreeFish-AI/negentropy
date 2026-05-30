@@ -133,7 +133,7 @@ export function StateDrawer({
                       返回实时
                     </button>
                   </div>
-                  <p className="mt-1 text-[10px] text-amber-700/80 dark:text-amber-300/80">
+                  <p className="mt-1 text-micro text-amber-700/80 dark:text-amber-300/80">
                     显示选定消息的观察数据
                   </p>
                 </div>
@@ -146,7 +146,7 @@ export function StateDrawer({
                     />
                     实时视图
                   </span>
-                  <p className="mt-1 text-[10px] text-text-muted">
+                  <p className="mt-1 text-micro text-text-muted">
                     点击任意消息进入历史视图，再次点击或点「返回实时」回到实时
                   </p>
                 </div>

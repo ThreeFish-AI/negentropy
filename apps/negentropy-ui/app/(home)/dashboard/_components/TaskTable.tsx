@@ -49,7 +49,7 @@ function StatusDots({ statuses }: { statuses: string[] }) {
                 ? "bg-red-500"
                 : s === "running"
                   ? "bg-sky-500"
-                  : "bg-zinc-300 dark:bg-zinc-700"
+                  : "bg-border"
           }`}
           title={s ?? "—"}
         />
@@ -63,7 +63,7 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
 
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+      <div className="border-b border-border px-3 py-2 text-caption uppercase tracking-overline text-muted-foreground">
         Tasks ({filtered.length})
       </div>
       <div className="max-h-[480px] overflow-auto">
@@ -95,7 +95,7 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
                 >
                   <td className="px-3 py-2">
                     <div className="font-medium text-foreground">{t.display_name || t.key}</div>
-                    <div className="text-[10px] text-muted-foreground">{t.key}</div>
+                    <div className="text-micro text-muted-foreground">{t.key}</div>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{t.handler_kind}</td>
                   <td className="px-3 py-2 text-muted-foreground">
@@ -108,10 +108,10 @@ export function TaskTable({ tasks, filters, onSelect }: TaskTableProps) {
                   </td>
                   <td className="px-3 py-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${
                         t.enabled
                           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                          : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
+                          : "bg-border/50 text-text-muted"
                       }`}
                     >
                       {t.enabled ? "Enabled" : "Disabled"}

@@ -86,6 +86,10 @@ class PIISettings(BaseSettings):
     score_threshold: float = Field(default=0.6, ge=0.0, le=1.0, description="Presidio 置信度阈值")
     gatekeeper_enabled: bool = Field(default=False, description="检索路径是否启用 PIIGatekeeper")
     acl_role_threshold: str = Field(default="editor", description="低于此角色看到 anonymized 副本")
+    retrieval_policy: str = Field(
+        default="anonymize",
+        description="检索侧低权限角色遮蔽策略：mask | anonymize（独立于写入 policy；mark 等于不遮蔽）",
+    )
     allow_engine_fallback: bool = Field(
         default=False,
         description=(

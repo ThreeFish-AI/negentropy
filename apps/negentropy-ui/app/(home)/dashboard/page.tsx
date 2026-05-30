@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import { ErrorBanner } from "@/components/ui/ErrorState";
+import { FadeIn } from "@/components/ui/FadeIn";
 import { fetchMemoryDashboard, type MemoryDashboard } from "@/features/memory";
 import { useActivityLog } from "@/hooks/useActivityLog";
 
@@ -139,28 +141,30 @@ export default function DashboardPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto px-4 py-3">
       {error ? (
-        <div className="mb-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200">
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       ) : null}
 
       {/* Unified dashboard header strip */}
-      <DashboardHeaderStrip
-        kpis={kpis}
-        kpiLoading={loading}
-        memoryDashboard={memoryDashboard}
-        memoryLoading={memoryLoading}
-        interfaceStats={interfaceStats}
-        interfaceLoading={interfaceLoading}
-        isAdmin={isAdmin}
-        activityCount={activityCount}
-        onOpenActivity={() => setActivityOpen(true)}
-      />
+      <FadeIn>
+        <DashboardHeaderStrip
+          kpis={kpis}
+          kpiLoading={loading}
+          memoryDashboard={memoryDashboard}
+          memoryLoading={memoryLoading}
+          interfaceStats={interfaceStats}
+          interfaceLoading={interfaceLoading}
+          isAdmin={isAdmin}
+          activityCount={activityCount}
+          onOpenActivity={() => setActivityOpen(true)}
+        />
+      </FadeIn>
 
       {/* Expandable Memory detail panel */}
-      <RetrievalMetricsCard appName={APP_NAME} />
+      <FadeIn delay={60}>
+        <RetrievalMetricsCard appName={APP_NAME} />
+      </FadeIn>
 
-      <div className="mt-3">
+      <FadeIn delay={120} className="mt-3">
         <FilterBar
           filters={filters}
           tasks={tasks}
@@ -170,18 +174,18 @@ export default function DashboardPage() {
           onRefresh={refresh}
           connected={connected}
         />
-      </div>
-      <div className="mt-3">
+      </FadeIn>
+      <FadeIn delay={180} className="mt-3">
         <DimensionCharts byRole={statsByRole} byScenario={statsByScenario} byOwner={statsByOwner} />
-      </div>
-      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
+      </FadeIn>
+      <FadeIn delay={240} className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-12">
         <div className="lg:col-span-7">
           <TaskTable tasks={tasks} filters={filters} onSelect={handleSelect} />
         </div>
         <div className="lg:col-span-5">
           <ExecutionTimeline executions={executions} />
         </div>
-      </div>
+      </FadeIn>
       <TaskDetailDrawer task={selectedTask} onClose={handleClose} onTaskChanged={refresh} />
       <ActivityDrawer open={activityOpen} onClose={() => setActivityOpen(false)} />
     </div>

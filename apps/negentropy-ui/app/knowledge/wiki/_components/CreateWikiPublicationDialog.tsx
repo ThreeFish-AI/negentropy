@@ -119,7 +119,7 @@ export function CreateWikiPublicationDialog({
             placeholder="engineering"
             className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <p className="mt-1 text-[11px] text-muted-foreground">
+          <p className="mt-1 text-caption text-muted-foreground">
             作为站点 URL 前缀，例如 /{slug || "engineering"}/...
           </p>
         </div>

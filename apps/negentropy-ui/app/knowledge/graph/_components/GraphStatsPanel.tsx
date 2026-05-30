@@ -42,7 +42,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
 
   if (!stats) {
     return (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">加载中...</p>
+      <p className="text-xs text-text-muted">加载中...</p>
     );
   }
 
@@ -54,32 +54,32 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
     <div className="space-y-3">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800 p-2 text-center">
-          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <div className="rounded-lg bg-muted p-2 text-center">
+          <p className="text-lg font-semibold text-foreground">
             {stats.total_entities}
           </p>
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-400">实体</p>
+          <p className="text-micro text-text-muted">实体</p>
         </div>
-        <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800 p-2 text-center">
-          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <div className="rounded-lg bg-muted p-2 text-center">
+          <p className="text-lg font-semibold text-foreground">
             {stats.edge_count}
           </p>
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-400">关系</p>
+          <p className="text-micro text-text-muted">关系</p>
         </div>
       </div>
 
       {/* Metrics */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-        <span className="text-zinc-500 dark:text-zinc-400">平均置信度</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">平均置信度</span>
+        <span className="text-foreground">
           {stats.avg_confidence.toFixed(3)}
         </span>
-        <span className="text-zinc-500 dark:text-zinc-400">图密度</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">图密度</span>
+        <span className="text-foreground">
           {stats.density.toFixed(4)}
         </span>
-        <span className="text-zinc-500 dark:text-zinc-400">平均度数</span>
-        <span className="text-zinc-900 dark:text-zinc-100">
+        <span className="text-text-muted">平均度数</span>
+        <span className="text-foreground">
           {stats.avg_degree.toFixed(1)}
         </span>
       </div>
@@ -87,7 +87,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
       {/* Type Distribution */}
       {sortedTypes.length > 0 && (
         <div>
-          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+          <p className="text-micro font-medium text-text-muted mb-1">
             类型分布
           </p>
           <div className="space-y-1">
@@ -98,16 +98,16 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
                   : 0;
               return (
                 <div key={type} className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-600 dark:text-zinc-400 w-20 truncate">
+                  <span className="text-xs text-text-secondary w-20 truncate">
                     {type}
                   </span>
-                  <div className="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700">
+                  <div className="flex-1 h-2 rounded-full bg-border">
                     <div
                       className="h-2 rounded-full bg-blue-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-8 text-right">
+                  <span className="text-micro text-text-muted w-8 text-right">
                     {count}
                   </span>
                 </div>
@@ -122,18 +122,18 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
         Array.isArray(stats.top_entities) &&
         stats.top_entities.length > 0 && (
           <div>
-            <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+            <p className="text-micro font-medium text-text-muted mb-1">
               Top 实体 (PageRank)
             </p>
             <div className="space-y-1">
               {stats.top_entities.map(
                 (e: { name: string; entity_type: string; importance_score: number }, i: number) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-[10px] text-zinc-400 w-3">{i + 1}</span>
-                    <span className="text-xs text-zinc-900 dark:text-zinc-100 truncate flex-1">
+                    <span className="text-micro text-text-muted w-3">{i + 1}</span>
+                    <span className="text-xs text-foreground truncate flex-1">
                       {e.name}
                     </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                    <span className="text-micro text-text-muted">
                       {e.importance_score.toFixed(4)}
                     </span>
                   </div>
@@ -147,7 +147,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
       {"community_distribution" in stats &&
         Object.keys(stats.community_distribution).length > 0 && (
           <div>
-            <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+            <p className="text-micro font-medium text-text-muted mb-1">
               社区分布 (Louvain) — {stats.community_count} 个社区
             </p>
             <div className="space-y-1">
@@ -165,10 +165,10 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
                         className="inline-block h-2 w-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: communityColor(Number(cid)) }}
                       />
-                      <span className="text-xs text-zinc-600 dark:text-zinc-400 w-10">
+                      <span className="text-xs text-text-secondary w-10">
                         C-{cid}
                       </span>
-                      <div className="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700">
+                      <div className="flex-1 h-2 rounded-full bg-border">
                         <div
                           className="h-2 rounded-full"
                           style={{
@@ -177,7 +177,7 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
                           }}
                         />
                       </div>
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-8 text-right">
+                      <span className="text-micro text-text-muted w-8 text-right">
                         {count}
                       </span>
                     </div>

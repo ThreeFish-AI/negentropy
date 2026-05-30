@@ -29,19 +29,19 @@ export function LogBufferPanel({ entries, onExport }: LogBufferPanelProps) {
           <p className="text-xs font-semibold uppercase text-text-muted">
             Runtime Logs
           </p>
-          <span className="rounded-full bg-border-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-text-muted">
+          <span className="rounded-full bg-border-muted px-1.5 py-0.5 text-micro font-medium tabular-nums text-text-muted">
             {entries.length}
           </span>
         </div>
         <button
-          className="rounded-full border border-border px-3 py-1 text-[11px] text-text-secondary transition-colors hover:bg-border-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-full border border-border px-3 py-1 text-caption text-text-secondary transition-colors hover:bg-border-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={onExport}
           type="button"
         >
           Export
         </button>
       </div>
-      <div className="max-h-72 space-y-2 overflow-auto rounded-xl border border-border bg-card p-3 text-[11px] text-text-secondary custom-scrollbar">
+      <div className="max-h-72 space-y-2 overflow-auto rounded-xl border border-border bg-card p-3 text-caption text-text-secondary custom-scrollbar">
         {entries.length === 0 ? (
           <p className="text-text-muted">暂无日志</p>
         ) : (
@@ -50,7 +50,7 @@ export function LogBufferPanel({ entries, onExport }: LogBufferPanelProps) {
               key={entry.id ?? `${entry.timestamp}-${index}`}
               className="rounded-lg border border-border-muted bg-border-muted/50 p-2"
             >
-              <div className="flex items-center justify-between text-[10px] uppercase">
+              <div className="flex items-center justify-between text-micro uppercase tracking-overline">
                 <span className="flex items-center gap-1.5 font-semibold text-text-secondary">
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${levelDotClass(entry.level)}`}
@@ -64,7 +64,7 @@ export function LogBufferPanel({ entries, onExport }: LogBufferPanelProps) {
               </div>
               <div className="mt-1 text-foreground">{entry.message}</div>
               {entry.payload ? (
-                <pre className="mt-1 whitespace-pre-wrap text-[10px] text-text-muted">
+                <pre className="mt-1 whitespace-pre-wrap text-micro text-text-muted">
                   {JSON.stringify(entry.payload, null, 2)}
                 </pre>
               ) : null}

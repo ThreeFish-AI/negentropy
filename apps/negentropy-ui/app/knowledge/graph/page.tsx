@@ -67,7 +67,7 @@ const GraphCanvas3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex flex-1 min-h-0 items-center justify-center text-xs text-zinc-500">
+      <div className="flex flex-1 min-h-0 items-center justify-center text-xs text-text-muted">
         Loading 3D...
       </div>
     ),
@@ -471,7 +471,7 @@ export default function KnowledgeGraphPage() {
   }, [layout, renderer]);
 
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
         title="Knowledge Graph"
         description="实体关系视图与构建历史"
@@ -496,17 +496,17 @@ export default function KnowledgeGraphPage() {
                         onClear={() => setSearchResults(null)}
                       />
                       {searchResults && searchResults.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-60 overflow-y-auto space-y-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                        <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-60 overflow-y-auto space-y-1 rounded-lg border border-border bg-card p-1 shadow-lg">
                           {searchResults.map((item, idx) => (
                             <div
                               key={idx}
                               onClick={() => setSelectedNodeId(item.entity.id)}
-                              className="flex items-center justify-between rounded border border-zinc-100 px-2 py-1 cursor-pointer hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                              className="flex items-center justify-between rounded border border-border px-2 py-1 cursor-pointer hover:bg-muted"
                             >
-                              <span className="text-xs text-zinc-700 dark:text-zinc-300">
+                              <span className="text-xs text-text-secondary">
                                 {item.entity.label || item.entity.id.slice(0, 8)}
                               </span>
-                              <span className="text-[10px] text-zinc-400">
+                              <span className="text-micro text-text-muted">
                                 {item.combined_score.toFixed(3)}
                               </span>
                             </div>
@@ -519,13 +519,13 @@ export default function KnowledgeGraphPage() {
 
                 {/* 右 */}
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  <div className="flex rounded-lg border border-border">
                     <button
                       onClick={() => setViewTab("graph")}
                       className={`px-3 py-1 text-xs font-medium outline-hidden transition-colors ${
                         viewTab === "graph"
-                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                          ? "bg-foreground text-background"
+                          : "text-text-muted hover:text-foreground"
                       } rounded-l-lg`}
                     >
                       可视化
@@ -534,22 +534,22 @@ export default function KnowledgeGraphPage() {
                       onClick={() => setViewTab("entities")}
                       className={`px-3 py-1 text-xs font-medium outline-hidden transition-colors ${
                         viewTab === "entities"
-                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                          ? "bg-foreground text-background"
+                          : "text-text-muted hover:text-foreground"
                       } rounded-r-lg`}
                     >
                       实体列表
                     </button>
                   </div>
                   {viewTab === "graph" && (
-                    <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 text-[10px]">
+                    <div className="flex rounded-lg border border-border text-micro">
                       <button
                         onClick={() => setRenderer("sigma")}
                         title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
                         className={`px-2 py-1 font-medium outline-hidden transition-colors ${
                           renderer === "sigma"
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                            ? "bg-foreground text-background"
+                            : "text-text-muted hover:text-foreground"
                         } rounded-l-lg`}
                       >
                         Sigma
@@ -557,10 +557,10 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("3d")}
                         title="3D WebGL（three.js + d3-force-3d，支持三维旋转）"
-                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-zinc-200 dark:border-zinc-700 ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-border ${
                           renderer === "3d"
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                            ? "bg-foreground text-background"
+                            : "text-text-muted hover:text-foreground"
                         }`}
                       >
                         3D
@@ -568,10 +568,10 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("d3")}
                         title="d3-force（Phase 1 兼容回退）"
-                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-zinc-200 dark:border-zinc-700 ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-border ${
                           renderer === "d3"
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                            ? "bg-foreground text-background"
+                            : "text-text-muted hover:text-foreground"
                         }`}
                       >
                         d3-force
@@ -579,10 +579,10 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("force-graph")}
                         title="react-force-graph-2d（粒子流动效果，视觉表现力强）"
-                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-zinc-200 dark:border-zinc-700 ${
+                        className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-border ${
                           renderer === "force-graph"
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                            ? "bg-foreground text-background"
+                            : "text-text-muted hover:text-foreground"
                         }`}
                       >
                         Force Graph
@@ -592,8 +592,8 @@ export default function KnowledgeGraphPage() {
                         title="Cytoscape.js + fCoSE 布局（Phase 4 历史默认）"
                         className={`px-2 py-1 font-medium outline-hidden transition-colors ${
                           renderer === "cytoscape"
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                            ? "bg-foreground text-background"
+                            : "text-text-muted hover:text-foreground"
                         } rounded-r-lg`}
                       >
                         Cytoscape
@@ -641,7 +641,7 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "3d" ? (
-                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-xs text-text-muted">
                   {!corpusId
                     ? "请选择语料库"
                     : error
@@ -659,7 +659,7 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "cytoscape" ? (
-                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-xs text-text-muted">
                   {!corpusId
                     ? "请选择语料库"
                     : error
@@ -677,7 +677,7 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "sigma" ? (
-                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-xs text-text-muted">
                   {!corpusId
                     ? "请选择语料库"
                     : error
@@ -695,7 +695,7 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "force-graph" ? (
-                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-xs text-text-muted">
                   {!corpusId
                     ? "请选择语料库"
                     : error
@@ -812,12 +812,12 @@ export default function KnowledgeGraphPage() {
                           height={70}
                           className="pointer-events-none"
                         >
-                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[11px] shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+                          <div className="rounded-lg border border-border bg-card px-3 py-2 text-caption shadow-lg">
                             <div className="flex items-center gap-1.5">
                               <span className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: entityColor(hovered.type) }} />
-                              <span className="font-medium text-zinc-900 dark:text-zinc-100">{hovered.label || hovered.id.slice(0, 12)}</span>
+                              <span className="font-medium text-foreground">{hovered.label || hovered.id.slice(0, 12)}</span>
                             </div>
-                            <div className="mt-0.5 space-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                            <div className="mt-0.5 space-y-0.5 text-micro text-text-muted">
                               <div className="flex gap-2"><span>ID</span><span className="font-mono">{hovered.id.slice(0, 16)}…</span></div>
                               {hovered.type && <div className="flex gap-2"><span>类型</span><span>{hovered.type}</span></div>}
                             </div>
@@ -828,7 +828,7 @@ export default function KnowledgeGraphPage() {
                   </svg>
                 </GraphCanvasFrame>
               ) : viewTab === "graph" && renderer === "d3" ? (
-                <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-muted text-xs text-text-muted">
                   <p>
                     {!corpusId
                       ? "请选择语料库"
@@ -846,13 +846,13 @@ export default function KnowledgeGraphPage() {
                   )}
                 </div>
               ) : viewTab === "graph" ? (
-                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-xs text-text-muted">
                   请选择渲染器
                 </div>
               ) : (
               /* Entity List View */
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <h2 className="text-sm font-semibold text-foreground mb-3">
                   实体列表
                 </h2>
                 {corpusId ? (
@@ -862,7 +862,7 @@ export default function KnowledgeGraphPage() {
                     selectedEntityId={entityDetailId}
                   />
                 ) : (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-8">
+                  <p className="text-xs text-text-muted text-center py-8">
                     请选择语料库
                   </p>
                 )}
@@ -912,7 +912,7 @@ export default function KnowledgeGraphPage() {
           >
             {corpusId && (
               <>
-                <p className="mb-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                <p className="mb-3 text-micro text-text-muted">
                   基于社区摘要的 Map-Reduce 全局检索，适合「汇总性问题」
                 </p>
                 <GlobalSearchPanel corpusId={corpusId} />
@@ -927,7 +927,7 @@ export default function KnowledgeGraphPage() {
           >
             {corpusId && (
               <>
-                <p className="mb-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                <p className="mb-3 text-micro text-text-muted">
                   Personalized PageRank + 证据链（HippoRAG / NeurIPS&apos;24）
                 </p>
                 <EvidenceChainPanel corpusId={corpusId} />
@@ -942,7 +942,7 @@ export default function KnowledgeGraphPage() {
           >
             {corpusId && (
               <>
-                <p className="mb-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                <p className="mb-3 text-micro text-text-muted">
                   选定历史时刻后，图谱与邻居/路径/搜索均按 as_of 过滤
                 </p>
                 <TimeTravelSlider
@@ -1004,7 +1004,7 @@ export default function KnowledgeGraphPage() {
                 entityId={entityDetailId}
               />
             ) : (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-8">
+              <p className="text-xs text-text-muted text-center py-8">
                 选择语料库后查看实体
               </p>
             )}

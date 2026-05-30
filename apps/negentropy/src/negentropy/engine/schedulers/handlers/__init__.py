@@ -164,6 +164,7 @@ def _bootstrap_default_handlers() -> None:
         "agent_inspection",
         "memory_automation",
         "claude_code",
+        "routine_inspector",
     ):
         try:
             __import__(f"negentropy.engine.schedulers.handlers.{module_name}")

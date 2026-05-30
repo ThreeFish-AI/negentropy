@@ -112,8 +112,10 @@ class ClaudeCodeService:
                 result_text = msg.result
             if hasattr(msg, "session_id") and msg.session_id:
                 session_id = msg.session_id
-            if hasattr(msg, "cost_usd") and msg.cost_usd:
-                cost = msg.cost_usd
+            # claude-code-sdk ResultMessage 暴露 ``total_cost_usd``；兼容旧字段 ``cost_usd``。
+            cost_val = getattr(msg, "total_cost_usd", None) or getattr(msg, "cost_usd", None)
+            if cost_val:
+                cost = cost_val
             if hasattr(msg, "num_turns") and msg.num_turns:
                 turns = msg.num_turns
             if hasattr(msg, "is_error") and msg.is_error:
@@ -180,7 +182,8 @@ class ClaudeCodeService:
                 if evt_type == _EVT_RESULT:
                     result_text = event.get("result", "")
                     session_id = event.get("session_id")
-                    cost = event.get("cost_usd", 0.0)
+                    # claude CLI 的 result 事件字段为 ``total_cost_usd``；兼容旧字段 ``cost_usd``。
+                    cost = event.get("total_cost_usd") or event.get("cost_usd") or 0.0
                     turns = event.get("num_turns", 0)
                 elif evt_type == _EVT_ASSISTANT:
                     content = event.get("content", "")
@@ -240,8 +243,8 @@ class ClaudeCodeService:
             args += ["--model", config.model]
         if config.system_prompt:
             args += ["--system-prompt", config.system_prompt]
-        if config.cwd:
-            args += ["--cwd", config.cwd]
+        # NOTE: cwd 通过 create_subprocess_exec(..., cwd=) 设置，不传 CLI 参数
+        # （claude CLI 不支持 --cwd 选项，传了会报 unknown option 错误）
         if config.allowed_tools:
             args += ["--allowed-tools", ",".join(config.allowed_tools)]
         return args

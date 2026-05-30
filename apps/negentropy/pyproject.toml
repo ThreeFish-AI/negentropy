@@ -51,13 +51,12 @@ dependencies = [
     "jinja2>=3.1.4",                # Sandboxed template rendering for Skills Layer 2 prompt_template
     "packaging>=24.0",              # SemVer parsing for Skill template version validation
     "croniter>=2.0",                # POSIX cron expression parsing for Skill schedules (Phase 3)
-]
-
-[project.optional-dependencies]
-# Phase 5 F4 — Microsoft Presidio 生产级 PII 治理（默认不安装）。
-# 启用方法：`uv sync --extra pii-presidio`，再把 memory.pii.engine 切成 presidio。
-# spaCy 模型需手动 `uv run python -m spacy download zh_core_web_sm` 等。
-pii-presidio = [
+    # F4 Presidio 生产级 PII 治理（默认安装；engine=presidio 开箱即用）。
+    # 注意：spaCy NER 模型（en_core_web_lg / zh_core_web_sm）是独立下载产物而非 pip
+    # 依赖，需经 bootstrap 安装：`uv run negentropy bootstrap-pii-models`（或手动
+    # `uv run python -m spacy download ...`）。模型缺失时 PII 引擎按
+    # memory.pii.allow_engine_fallback 降级回 regex（默认 true，开箱不阻断启动），
+    # 实际生效引擎可经 /memory/health 观测。
     "presidio-analyzer>=2.2.0",
     "presidio-anonymizer>=2.2.0",
     "spacy>=3.7,<4.0",

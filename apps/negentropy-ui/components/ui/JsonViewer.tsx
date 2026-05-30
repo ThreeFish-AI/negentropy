@@ -39,9 +39,9 @@ export const JsonNode = ({
 
   if (!isObject) {
     return (
-      <div className="font-mono text-[11px] leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
+      <div className="font-mono text-caption leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
         <span
-          className="text-zinc-400 select-none dark:text-zinc-500"
+          className="text-text-muted select-none"
           style={{ paddingLeft: level * 12 }}
         >
           {name ? `"${name}": ` : ""}
@@ -59,9 +59,9 @@ export const JsonNode = ({
 
   if (size === 0) {
     return (
-      <div className="font-mono text-[11px] leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
+      <div className="font-mono text-caption leading-relaxed hover:bg-border-muted/50 rounded px-1 -mx-1">
         <span
-          className="text-zinc-400 select-none dark:text-zinc-500"
+          className="text-text-muted select-none"
           style={{ paddingLeft: level * 12 }}
         >
           {name ? `"${name}": ` : ""}
@@ -76,7 +76,7 @@ export const JsonNode = ({
   }
 
   return (
-    <div className="font-mono text-[11px] leading-relaxed">
+    <div className="font-mono text-caption leading-relaxed">
       <div
         className="flex items-center hover:bg-border-muted/50 rounded px-1 -mx-1 cursor-pointer select-none group"
         onClick={(e) => {
@@ -95,7 +95,7 @@ export const JsonNode = ({
         {!expanded && <span className="text-foreground">{closeBracket}</span>}
         {!expanded && !isLast && <span className="text-text-muted">,</span>}
         {!expanded && size > 0 && (
-          <span className="ml-2 text-[10px] text-text-muted bg-border-muted px-1 rounded">
+          <span className="ml-2 text-micro text-text-muted bg-border-muted px-1 rounded">
             {size} {isArray ? "items" : "keys"}
           </span>
         )}

@@ -66,6 +66,10 @@ export const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const LOCAL_LLM_MODEL_KEY_PREFIX = "negentropy:home:llm-model:";
 const LOCAL_THINKING_KEY_PREFIX = "negentropy:home:thinking:";
 
+// 默认主 Agent LLM — 与后端 model_resolver._DEFAULT_LLM_MODEL 对齐。
+// 下拉移除「Default」占位项后，无明确选择时一律回退至此模型而非 null。
+const DEFAULT_LLM_MODEL = "openai/gpt-5-nano";
+
 function readPersistedLlmModel(sessionId: string | null): string | null {
   if (!sessionId || typeof window === "undefined") return null;
   try {
@@ -309,7 +313,9 @@ export function HomeBody({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
-  const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(null);
+  const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(
+    DEFAULT_LLM_MODEL,
+  );
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   // 中断门 — 用户主动 cancel 后短暂屏蔽 onRunFailed/onRunErrorEvent 引发的 error 状态，
   // 避免被显示成"运行错误"。100ms 窗口足以覆盖 abort 信号 round-trip。
@@ -981,12 +987,15 @@ export function HomeBody({
 
   useEffect(() => {
     if (!sessionId) {
-      // 离开 session：保留 pending 选择，避免「无 session 选模型」的瞬时回退。
-      setSelectedLlmModel(pendingLlmRef.current ?? null);
+      // 离开 session：保留 pending 选择，避免「无 session 选模型」的瞬时回退；
+      // 无 pending 时回退默认模型（移除 Default 占位后不再出现 null）。
+      setSelectedLlmModel(pendingLlmRef.current ?? DEFAULT_LLM_MODEL);
       return;
     }
     if (sessionId in perThreadLlmRef.current) {
-      setSelectedLlmModel(perThreadLlmRef.current[sessionId] ?? null);
+      setSelectedLlmModel(
+        perThreadLlmRef.current[sessionId] ?? DEFAULT_LLM_MODEL,
+      );
       // 进入已知 session：丢弃 pending，避免后续被错误消费。
       pendingLlmRef.current = undefined;
       pendingLlmTargetIdRef.current = null;
@@ -997,10 +1006,11 @@ export function HomeBody({
       pendingLlmTargetIdRef.current === sessionId
     ) {
       // startNewSession 创建的新 id：转移 pending，让 Effect 2 跳过 snapshot 覆盖。
-      const carried = pendingLlmRef.current;
+      // 归一化为非空值（移除 Default 占位后 selectedLlmModel 运行时不再出现 null）。
+      const carried = pendingLlmRef.current ?? DEFAULT_LLM_MODEL;
       perThreadLlmRef.current[sessionId] = carried;
-      setSelectedLlmModel(carried ?? null);
-      writePersistedLlmModel(sessionId, carried ?? null);
+      setSelectedLlmModel(carried);
+      writePersistedLlmModel(sessionId, carried);
       pendingLlmRef.current = undefined;
       pendingLlmTargetIdRef.current = null;
       return;
@@ -1014,7 +1024,8 @@ export function HomeBody({
       perThreadLlmRef.current[sessionId] = persisted;
       setSelectedLlmModel(persisted);
     } else {
-      setSelectedLlmModel(null);
+      // 无 persisted：回退默认模型，让 Effect 2 的后端 snapshot 仍可覆盖。
+      setSelectedLlmModel(DEFAULT_LLM_MODEL);
     }
   }, [sessionId]);
 
@@ -1060,7 +1071,8 @@ export function HomeBody({
       return;
     }
     const raw = snapshotForDisplay?.["selected_llm_model"];
-    const initial = typeof raw === "string" && raw ? raw : null;
+    // 后端 snapshot 未命中时回退默认模型（移除 Default 占位后不再出现 null）。
+    const initial = typeof raw === "string" && raw ? raw : DEFAULT_LLM_MODEL;
     perThreadLlmRef.current[sessionId] = initial;
     setSelectedLlmModel(initial);
     // 后端 snapshot 与 localStorage 互为镜像：snapshot 命中即把值同步回 localStorage，
@@ -1236,7 +1248,7 @@ export function HomeBody({
 
             {/* 右区：审批策略 + State 栏开合 */}
             <div className="flex shrink-0 items-center gap-2">
-              <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[11px] text-text-muted" />
+              <ApprovalPolicySelector className="inline-flex items-center gap-1 text-caption text-text-muted" />
               <button
                 type="button"
                 onClick={() => setShowRightPanel(!showRightPanel)}

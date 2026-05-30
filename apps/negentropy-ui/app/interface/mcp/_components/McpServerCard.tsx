@@ -16,14 +16,12 @@ const MARKDOWN_CONTENT_CLASS = [
   "[&_h1]:text-base [&_h1]:font-semibold [&_h1]:mb-2",
   "[&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mb-2",
   "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1",
-  "[&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs dark:[&_code]:bg-zinc-800",
+  "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs",
   "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-zinc-950 [&_pre]:p-3 [&_pre]:text-zinc-100 dark:[&_pre]:bg-zinc-900",
   "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
   "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs",
-  "[&_th]:border [&_th]:border-zinc-200 [&_th]:bg-zinc-100 [&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-medium [&_th]:text-zinc-700",
-  "[&_td]:border [&_td]:border-zinc-200 [&_td]:px-2 [&_td]:py-1.5 [&_td]:align-top [&_td]:text-zinc-600",
-  "dark:[&_th]:border-zinc-700 dark:[&_th]:bg-zinc-800 dark:[&_th]:text-zinc-200",
-  "dark:[&_td]:border-zinc-700 dark:[&_td]:text-zinc-300",
+  "[&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-medium [&_th]:text-text-secondary",
+  "[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_td]:align-top [&_td]:text-text-secondary",
 ].join(" ");
 
 type ParsedContent =
@@ -313,20 +311,20 @@ function RichTextContent({
 
   if (parsed.kind === "empty") {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">{emptyText}</p>
+      <p className="text-sm text-text-muted">{emptyText}</p>
     );
   }
 
   if (parsed.kind === "json") {
     return (
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/70">
+      <div className="rounded-lg border border-border bg-muted/50 p-3">
         <JsonViewer data={parsed.value} />
       </div>
     );
   }
 
   return (
-    <div className={`${MARKDOWN_CONTENT_CLASS} text-zinc-600 dark:text-zinc-300`}>
+    <div className={`${MARKDOWN_CONTENT_CLASS} text-text-secondary`}>
       <ReactMarkdown remarkPlugins={defaultRemarkPlugins} rehypePlugins={defaultRehypePlugins}>{parsed.value}</ReactMarkdown>
     </div>
   );
@@ -358,68 +356,68 @@ function SchemaSection({
   const requiredCount = rows.filter((row) => row.required).length;
 
   return (
-    <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+    <div className="mt-3 rounded-lg border border-border bg-muted/50 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+        <span className="font-medium text-text-secondary">
           {title}
         </span>
         {rows.length > 0 && (
-          <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-secondary">
             {rows.length} fields
           </span>
         )}
-        <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+        <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-caption text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
           {getSchemaDialectLabel(schema)}
         </span>
         {requiredCount > 0 && (
-          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-caption text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
             {requiredCount} required
           </span>
         )}
       </div>
 
       {rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-700">
+        <div className="overflow-x-auto rounded-md border border-border">
           <table className="min-w-[640px] w-full text-left text-xs">
-            <thead className="bg-zinc-100 dark:bg-zinc-800/70">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300">
+                <th className="px-3 py-2 font-medium text-text-secondary">
                   Field
                 </th>
-                <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300">
+                <th className="px-3 py-2 font-medium text-text-secondary">
                   Type
                 </th>
-                <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300">
+                <th className="px-3 py-2 font-medium text-text-secondary">
                   Required
                 </th>
-                <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300">
+                <th className="px-3 py-2 font-medium text-text-secondary">
                   Description
                 </th>
-                <th className="px-3 py-2 font-medium text-zinc-600 dark:text-zinc-300">
+                <th className="px-3 py-2 font-medium text-text-secondary">
                   Constraints
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-700 dark:bg-zinc-900">
+            <tbody className="divide-y divide-border bg-card">
               {rows.map((row) => (
                 <tr key={row.path}>
-                  <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-200">
+                  <td className="px-3 py-2 font-mono text-foreground">
                     {row.path}
                   </td>
-                  <td className="px-3 py-2 text-zinc-600 dark:text-zinc-300">
+                  <td className="px-3 py-2 text-text-secondary">
                     {row.type}
                   </td>
                   <td className="px-3 py-2">
                     {row.required ? (
                       <span className="text-rose-600 dark:text-rose-400">Yes</span>
                     ) : (
-                      <span className="text-zinc-400">No</span>
+                      <span className="text-text-muted">No</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-zinc-600 dark:text-zinc-300">
+                  <td className="px-3 py-2 text-text-secondary">
                     {row.description || "-"}
                   </td>
-                  <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400">
+                  <td className="px-3 py-2 text-text-muted">
                     {row.constraints || "-"}
                   </td>
                 </tr>
@@ -428,16 +426,16 @@ function SchemaSection({
           </table>
         </div>
       ) : (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs text-text-muted">
           Schema structure cannot be flattened. Use raw JSON view below.
         </p>
       )}
 
       <details className="mt-3">
-        <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
+        <summary className="cursor-pointer text-xs text-text-muted hover:text-text-secondary">
           Raw JSON
         </summary>
-        <div className="mt-2 rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="mt-2 rounded-md border border-border bg-card p-2">
           <JsonViewer data={schema} />
         </div>
       </details>
@@ -522,7 +520,7 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
   const execution = getToolExecution(tool);
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-start gap-3">
           {primaryIcon ? (
@@ -532,30 +530,30 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
               src={primaryIcon.src}
               alt=""
               aria-hidden="true"
-              className="mt-0.5 h-9 w-9 rounded-lg border border-zinc-200 bg-white object-contain p-1 dark:border-zinc-700 dark:bg-zinc-950"
+              className="mt-0.5 h-9 w-9 rounded-lg border border-border bg-card object-contain p-1"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+            <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-xs font-semibold text-text-muted">
               {getToolLabel(tool).slice(0, 1).toUpperCase()}
             </div>
           )}
           <div>
-            <h4 className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <h4 className="font-mono text-sm font-semibold text-foreground">
               {getToolLabel(tool)}
             </h4>
             {(tool.title || annotations.title || tool.display_name) && (
-              <p className="mt-0.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              <p className="mt-0.5 font-mono text-caption text-text-muted">
                 {tool.name}
               </p>
             )}
             {(tool.title || annotations.title) && tool.display_name && (
-              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <p className="mt-0.5 text-caption text-text-muted">
                 Local display name: {tool.display_name}
               </p>
             )}
             {primaryIcon?.mimeType && (
-              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <p className="mt-0.5 text-caption text-text-muted">
                 Icon: {primaryIcon.mimeType}
               </p>
             )}
@@ -563,31 +561,31 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
         </div>
         <div className="flex items-center gap-2">
           {tool.is_enabled ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-caption font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
               Enabled
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-muted">
               Disabled
             </span>
           )}
-          <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption tabular-nums text-text-muted">
             {tool.call_count} calls
           </span>
         </div>
       </div>
 
-      <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/60">
+      <div className="mt-2 rounded-lg border border-border bg-muted/50 p-3">
         <RichTextContent content={tool.description} emptyText="No description" />
       </div>
 
       {(behaviorBadges.length > 0 || execution.taskSupport) && (
-        <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+        <div className="mt-3 rounded-lg border border-border bg-muted/50 p-3">
           <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="font-medium text-text-secondary">
               Tool Metadata
             </span>
-            <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-secondary">
               Hints
             </span>
           </div>
@@ -596,7 +594,7 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
               {behaviorBadges.map((badge) => (
                 <span
                   key={badge.label}
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${badge.tone}`}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${badge.tone}`}
                 >
                   {badge.label}
                 </span>
@@ -604,11 +602,11 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
             </div>
           )}
           {execution.taskSupport && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+              <span className="font-medium text-text-secondary">
                 Task support
               </span>
-              <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[11px] text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+              <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-caption text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
                 {execution.taskSupport}
               </span>
             </div>
@@ -620,11 +618,11 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
       <SchemaSection title="Output Schema" schema={tool.output_schema} />
 
       {Object.keys(tool.meta).length > 0 && (
-        <details className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
-          <summary className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100">
+        <details className="mt-3 rounded-lg border border-border bg-muted/50 p-3">
+          <summary className="cursor-pointer text-xs font-medium text-text-secondary hover:text-foreground">
             Advanced Metadata
           </summary>
-          <div className="mt-2 rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="mt-2 rounded-md border border-border bg-card p-2">
             <JsonViewer data={tool.meta} />
           </div>
         </details>
@@ -709,21 +707,21 @@ function getTemplateTooltipText(template: McpResourceTemplate): string {
 
 function ResourceDetailPanel({ template }: { template: McpResourceTemplate }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-xs font-semibold text-text-muted">
             R
           </div>
           <div>
-            <h4 className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <h4 className="font-mono text-sm font-semibold text-foreground">
               {getTemplateLabel(template)}
             </h4>
-            <p className="mt-0.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+            <p className="mt-0.5 font-mono text-caption text-text-muted">
               {template.uri_template}
             </p>
             {template.mime_type && (
-              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              <p className="mt-0.5 text-caption text-text-muted">
                 MIME: {template.mime_type}
               </p>
             )}
@@ -731,27 +729,27 @@ function ResourceDetailPanel({ template }: { template: McpResourceTemplate }) {
         </div>
         <div className="flex items-center gap-2">
           {template.is_enabled ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-caption font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
               Enabled
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-caption text-text-muted">
               Disabled
             </span>
           )}
         </div>
       </div>
 
-      <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/60">
+      <div className="mt-2 rounded-lg border border-border bg-muted/50 p-3">
         <RichTextContent content={template.description} emptyText="No description" />
       </div>
 
       {Object.keys(template.meta || {}).length > 0 && (
-        <details className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
-          <summary className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100">
+        <details className="mt-3 rounded-lg border border-border bg-muted/50 p-3">
+          <summary className="cursor-pointer text-xs font-medium text-text-secondary hover:text-foreground">
             Advanced Metadata
           </summary>
-          <div className="mt-2 rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="mt-2 rounded-md border border-border bg-card p-2">
             <JsonViewer data={template.meta} />
           </div>
         </details>
@@ -848,16 +846,16 @@ export function McpServerCard({
 
   return (
     <div className="space-y-2">
-      <div className="flex h-[176px] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="flex h-[176px] flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
-            <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 className="truncate text-lg font-semibold text-foreground">
               {server.display_name || server.name}
             </h3>
             <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={onTry}
-                className="rounded-md p-2 text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
+                className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
                 title="Try MCP Server"
                 aria-label={`Try ${server.display_name || server.name}`}
               >
@@ -869,7 +867,7 @@ export function McpServerCard({
               <button
                 onClick={onLoad}
                 disabled={loadingTools}
-                className="rounded-md p-2 text-zinc-400 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
                 title="Load Tools from Server"
                 aria-label={`Load tools for ${server.display_name || server.name}`}
               >
@@ -890,7 +888,7 @@ export function McpServerCard({
                     onClick={onEdit}
                     title="Edit Server"
                     aria-label={`Edit ${server.display_name || server.name}`}
-                    className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -900,7 +898,7 @@ export function McpServerCard({
                     onClick={onDelete}
                     title="Delete Server"
                     aria-label={`Delete ${server.display_name || server.name}`}
-                    className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                    className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-red-900/20 dark:hover:text-red-400"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -917,7 +915,7 @@ export function McpServerCard({
                 Enabled
               </span>
             ) : (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+              <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-text-secondary">
                 Disabled
               </span>
             )}
@@ -946,18 +944,18 @@ export function McpServerCard({
           </div>
 
           <p
-            className="mb-1 h-[60px] min-w-0 w-full overflow-hidden text-sm leading-5 text-zinc-500 line-clamp-3 dark:text-zinc-400"
+            className="mb-1 h-[60px] min-w-0 w-full overflow-hidden text-sm leading-5 text-text-muted line-clamp-3"
             title={summaryDescription}
           >
             {summaryDescription}
           </p>
 
-          <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-zinc-400 dark:text-zinc-500">
+          <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
             {showToolToggle && (
               <button
                 type="button"
                 onClick={handleToggleTools}
-                className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-expanded={showTools}
                 aria-label={`Toggle tools list for ${server.display_name || server.name}`}
                 title="Toggle tools list"
@@ -997,7 +995,7 @@ export function McpServerCard({
               <button
                 type="button"
                 onClick={handleToggleResources}
-                className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-expanded={showResources}
                 aria-label={`Toggle resource templates list for ${server.display_name || server.name}`}
                 title="Toggle resource templates list"
@@ -1028,16 +1026,16 @@ export function McpServerCard({
       </div>
 
       {loadError && (
-        <div className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive" role="alert">
           {loadError}
         </div>
       )}
 
       {showTools && tools.length > 0 && (
-        <div className="border-t border-zinc-200 pt-2 dark:border-zinc-700">
+        <div className="border-t border-border pt-2">
           <div className="space-y-3">
-            <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+              <p className="mb-2 text-xs text-text-muted">
                 Hover to preview description. Click a tool to expand details.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -1056,13 +1054,13 @@ export function McpServerCard({
                         className={`inline-flex items-center rounded-lg border px-3 py-1.5 font-mono text-sm transition-colors ${
                           isExpanded
                             ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                            : "border-zinc-200 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                            : "border-border bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border"
                         }`}
                       >
                         {getToolLabel(tool)}
                       </button>
 
-                      <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-zinc-200 bg-white/95 p-2 text-xs text-zinc-600 shadow-lg backdrop-blur group-hover:block group-focus-within:block dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
+                      <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-border bg-card/95 p-2 text-xs text-text-secondary shadow-lg backdrop-blur group-hover:block group-focus-within:block">
                         <p className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
                           {getToolTooltipText(tool)}
                         </p>
@@ -1074,7 +1072,7 @@ export function McpServerCard({
             </div>
 
             {expandedTool && (
-              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2 dark:border-zinc-700/70 dark:bg-zinc-900/40">
+              <div className="rounded-xl border border-border/70 bg-muted/40 p-2">
                 <ToolDetailPanel tool={expandedTool} />
               </div>
             )}
@@ -1083,10 +1081,10 @@ export function McpServerCard({
       )}
 
       {showResources && resourceTemplates.length > 0 && (
-        <div className="border-t border-zinc-200 pt-2 dark:border-zinc-700">
+        <div className="border-t border-border pt-2">
           <div className="space-y-3">
-            <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-              <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+              <p className="mb-2 text-xs text-text-muted">
                 Resource Templates 描述该 Server 提供的资源类别。具体实例（如{" "}
                 <code className="font-mono">perceives://pdf/&lt;job_id&gt;/&lt;filename&gt;</code>）在工具调用时动态生成。
               </p>
@@ -1108,13 +1106,13 @@ export function McpServerCard({
                         className={`inline-flex items-center rounded-lg border px-3 py-1.5 font-mono text-sm transition-colors ${
                           isExpanded
                             ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/20 dark:text-violet-300"
-                            : "border-zinc-200 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                            : "border-border bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border"
                         }`}
                       >
                         {getTemplateLabel(tpl)}
                       </button>
 
-                      <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-zinc-200 bg-white/95 p-2 text-xs text-zinc-600 shadow-lg backdrop-blur group-hover:block group-focus-within:block dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
+                      <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-border bg-card/95 p-2 text-xs text-text-secondary shadow-lg backdrop-blur group-hover:block group-focus-within:block">
                         <p className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
                           {getTemplateTooltipText(tpl)}
                         </p>
@@ -1126,7 +1124,7 @@ export function McpServerCard({
             </div>
 
             {expandedTemplate && (
-              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2 dark:border-zinc-700/70 dark:bg-zinc-900/40">
+              <div className="rounded-xl border border-border/70 bg-muted/40 p-2">
                 <ResourceDetailPanel template={expandedTemplate} />
               </div>
             )}

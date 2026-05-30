@@ -159,7 +159,7 @@ function PipelineRunCardContent({
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className={`truncate text-xs font-semibold ${
-            isSelectable ? "" : "font-mono text-zinc-700 dark:text-zinc-300"
+            isSelectable ? "" : "font-mono text-text-secondary"
           }`}>
             {isSelectable ? run_id : truncateRunId(run_id)}
           </span>
@@ -174,12 +174,12 @@ function PipelineRunCardContent({
               title={cancelDisabled ? "正在取消..." : "取消运行"}
               disabled={cancelDisabled}
               onClick={handleCancelClick}
-              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] transition-colors ${
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-caption transition-colors ${
                 cancelDisabled
                   ? "cursor-not-allowed opacity-60"
                   : isSelectable
-                    ? "hover:bg-white/20"
-                    : "text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:text-zinc-500 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
+                    ? "hover:bg-background/20"
+                    : "text-text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
               }`}
             >
               {cancelDisabled ? (
@@ -208,23 +208,23 @@ function PipelineRunCardContent({
       </div>
 
       {/* 第二行：操作类型 + 触发方式/KG 统计 + 时长 + 版本 */}
-      <div className={`mt-1.5 flex min-w-0 items-center justify-between text-[11px] ${
-        isSelectable ? "opacity-70" : "text-zinc-500 dark:text-zinc-400"
+      <div className={`mt-1.5 flex min-w-0 items-center justify-between text-caption ${
+        isSelectable ? "opacity-70" : "text-text-muted"
       }`}>
         <div className="flex items-center gap-1.5">
           {operationLabel && (
             <>
-              <span className={isSelectable ? "font-medium" : "font-medium text-zinc-600 dark:text-zinc-300"}>
+              <span className={isSelectable ? "font-medium" : "font-medium text-text-secondary"}>
                 {operationLabel}
               </span>
               {isKg && entity_count != null && relation_count != null && (
                 <>
-                  <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+                  <span className={isSelectable ? "" : "text-text-muted"}>·</span>
                   <span>{entity_count} 实体 / {relation_count} 关系</span>
                 </>
               )}
               {!isKg && triggerLabel && (
-                <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+                <span className={isSelectable ? "" : "text-text-muted"}>·</span>
               )}
             </>
           )}
@@ -236,20 +236,20 @@ function PipelineRunCardContent({
           )}
           {duration !== "-" && (
             <>
-              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+              <span className={isSelectable ? "" : "text-text-muted"}>·</span>
               <span>{duration}</span>
             </>
           )}
           {isKg && model_name && (
             <>
-              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+              <span className={isSelectable ? "" : "text-text-muted"}>·</span>
               <span className="truncate max-w-[100px]">{model_name}</span>
             </>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {hasTimeline && (
-            <span className={isSelectable ? "opacity-60" : "text-zinc-400 dark:text-zinc-500"}>
+            <span className={isSelectable ? "opacity-60" : "text-text-muted"}>
               {startLabel ?? "-"} → {endLabel ?? "-"}
             </span>
           )}
@@ -277,7 +277,7 @@ function PipelineRunCardContent({
         // KG: 直接展示 error_message
         if (isKg && error_message) {
           return (
-            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+            <p className="mt-1 truncate text-caption text-rose-500 dark:text-rose-400">
               {error_message}
             </p>
           );
@@ -287,14 +287,14 @@ function PipelineRunCardContent({
         if (failedStageList.length > 0) {
           const first = failedStageList[0];
           return (
-            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+            <p className="mt-1 truncate text-caption text-rose-500 dark:text-rose-400">
               {first.label} · {first.message}
             </p>
           );
         }
         if (error && typeof error === "object") {
           return (
-            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+            <p className="mt-1 truncate text-caption text-rose-500 dark:text-rose-400">
               {getStageErrorSummary(error)}
             </p>
           );
@@ -320,8 +320,8 @@ export function PipelineRunCard(props: PipelineRunCardProps) {
       <button
         className={`w-full min-w-0 rounded-lg border px-3 py-2.5 text-left ${
           selected
-            ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
+            ? "border-foreground bg-foreground text-background"
+            : "border-border text-text-secondary hover:border-foreground/30"
         }`}
         onClick={onSelect}
       >
@@ -332,8 +332,8 @@ export function PipelineRunCard(props: PipelineRunCardProps) {
 
   return (
     <div
-      className="block rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5
-                 text-left dark:border-zinc-700 dark:bg-zinc-800/50"
+      className="block rounded-lg border border-border bg-muted px-3 py-2.5
+                 text-left"
     >
       <PipelineRunCardContent {...props} isSelectable={false} />
     </div>
@@ -349,7 +349,7 @@ export function PipelineRunCard(props: PipelineRunCardProps) {
 export function PipelineRunList({ runs }: { runs: PipelineRunCardProps[] }) {
   if (!runs.length) {
     return (
-      <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="mt-4 text-xs text-text-muted">
         暂无作业记录
       </p>
     );

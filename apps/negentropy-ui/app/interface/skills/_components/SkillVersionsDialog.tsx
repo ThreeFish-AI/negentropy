@@ -65,60 +65,60 @@ export function SkillVersionsDialog({ open, onClose, skillId, displayName }: Pro
     <OverlayDismissLayer
       open={open}
       onClose={onClose}
-      backdropClassName="bg-black/55"
+
       containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-4 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+      contentClassName="my-3 flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl"
     >
-      <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="border-b border-border px-5 py-4">
+        <h2 className="text-lg font-semibold text-foreground">
           Versions · {displayName}
         </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-text-muted">
           每次 PATCH version 字段会自动 freeze 一条快照；Agent 可用 <code>name@1.0.0</code> /
           {" "}<code>name@~1.0</code> / <code>name@*</code> 锁定特定版本。
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4">
         {loading && (
-          <div data-testid="skills-versions-loading" className="text-sm text-zinc-500">
+          <div data-testid="skills-versions-loading" className="text-sm text-text-muted">
             Loading…
           </div>
         )}
         {error && (
-          <div role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+          <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
         {!loading && !error && versions.length === 0 && (
-          <div className="text-sm text-zinc-500">No version snapshot yet.</div>
+          <div className="text-sm text-text-muted">No version snapshot yet.</div>
         )}
         <ul className="space-y-3">
           {versions.map((v) => (
             <li
               key={v.id}
               data-testid={`skill-version-${v.version}`}
-              className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"
+              className="rounded-lg border border-border p-3"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-mono text-text-secondary">
                   v{v.version}
                 </span>
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-text-muted">
                   {v.created_at ? new Date(v.created_at).toLocaleString() : "—"}
                 </span>
               </div>
-              <pre className="mt-2 max-h-48 overflow-auto rounded bg-zinc-50 p-2 text-[11px] leading-4 dark:bg-zinc-800 dark:text-zinc-100">
+              <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-2 text-caption leading-4 text-foreground">
                 {JSON.stringify(v.snapshot ?? {}, null, 2)}
               </pre>
             </li>
           ))}
         </ul>
       </div>
-      <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="rounded-md px-4 py-2 text-sm font-medium text-text-secondary hover:bg-muted"
         >
           Close
         </button>

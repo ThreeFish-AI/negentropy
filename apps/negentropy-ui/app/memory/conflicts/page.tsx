@@ -9,7 +9,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 import {
   ConflictItem,
   fetchConflicts,
@@ -108,7 +110,7 @@ export default function MemoryConflictsPage() {
                 {selected ? (
                   <div className="mt-4 space-y-3 text-xs">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <p className="text-caption uppercase tracking-overline text-muted-foreground">
                         Type
                       </p>
                       <p className="mt-1 font-medium text-foreground">
@@ -116,7 +118,7 @@ export default function MemoryConflictsPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <p className="text-caption uppercase tracking-overline text-muted-foreground">
                         Detected By
                       </p>
                       <p className="mt-1 text-foreground">
@@ -124,11 +126,11 @@ export default function MemoryConflictsPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <p className="text-caption uppercase tracking-overline text-muted-foreground">
                         Current Resolution
                       </p>
                       <span
-                        className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] ${
+                        className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-micro ${
                           RESOLUTION_COLORS[selected.resolution] || RESOLUTION_COLORS.pending
                         }`}
                       >
@@ -137,20 +139,20 @@ export default function MemoryConflictsPage() {
                     </div>
                     {selected.old_fact_id && (
                       <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <p className="text-caption uppercase tracking-overline text-muted-foreground">
                           Old Fact
                         </p>
-                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                        <p className="mt-1 font-mono text-caption text-muted-foreground">
                           {selected.old_fact_id}
                         </p>
                       </div>
                     )}
                     {selected.new_fact_id && (
                       <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <p className="text-caption uppercase tracking-overline text-muted-foreground">
                           New Fact
                         </p>
-                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                        <p className="mt-1 font-mono text-caption text-muted-foreground">
                           {selected.new_fact_id}
                         </p>
                       </div>
@@ -158,14 +160,14 @@ export default function MemoryConflictsPage() {
 
                     {selected.resolution === "pending" && (
                       <div className="mt-4 space-y-2">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <p className="text-caption uppercase tracking-overline text-muted-foreground">
                           Resolve
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {["supersede", "keep_old", "keep_new", "merge"].map((action) => (
                             <button
                               key={action}
-                              className="rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full border border-border px-3 py-1 text-caption text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                               disabled={resolveStatus === "resolving"}
                               onClick={() => handleResolve(selected.id, action)}
                             >
@@ -206,13 +208,14 @@ export default function MemoryConflictsPage() {
                 ))}
               </select>
               <div className="flex-1" />
-              <button
-                className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={loadConflicts}
                 disabled={isLoading}
               >
                 {isLoading ? "Loading..." : "Refresh"}
-              </button>
+              </Button>
             </div>
 
             {error && (
@@ -228,11 +231,15 @@ export default function MemoryConflictsPage() {
             )}
 
             {isLoading ? (
-              <p className="text-xs text-muted-foreground">Loading conflicts...</p>
+              <p className="text-xs text-muted-foreground">
+                <Spinner size="sm" className="mr-1.5 inline-block align-text-bottom" />
+                Loading conflicts...
+              </p>
             ) : conflicts.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
-                <p className="text-sm text-muted-foreground">No conflicts found.</p>
-              </div>
+              <EmptyState
+                size="sm"
+                title="No conflicts found."
+              />
             ) : (
               <div className="space-y-3">
                 {conflicts.map((c) => (
@@ -250,19 +257,19 @@ export default function MemoryConflictsPage() {
                         <p className="font-medium text-foreground">
                           {c.conflict_type}
                         </p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-caption text-muted-foreground">
                           by {c.detected_by} · user {c.user_id.slice(0, 8)}...
                         </p>
                       </div>
                       <span
-                        className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                        className={`rounded-full border px-2 py-0.5 text-micro ${
                           RESOLUTION_COLORS[c.resolution] || RESOLUTION_COLORS.pending
                         }`}
                       >
                         {c.resolution}
                       </span>
                     </div>
-                    <div className="mt-2 flex gap-3 text-[11px] text-muted-foreground">
+                    <div className="mt-2 flex gap-3 text-caption text-muted-foreground">
                       {c.old_fact_id && <span>Old: {c.old_fact_id.slice(0, 8)}...</span>}
                       {c.new_fact_id && <span>New: {c.new_fact_id.slice(0, 8)}...</span>}
                       <span>{c.created_at || "-"}</span>

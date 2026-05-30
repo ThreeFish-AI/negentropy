@@ -26,7 +26,7 @@ export function MemoryUserSelect({
     <select
       aria-label="Filter by user"
       className={cn(
-        "rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800",
+        "rounded-lg border border-border bg-background px-3 py-2 text-xs w-64",
         className,
       )}
       value={selectedUserId ?? ""}

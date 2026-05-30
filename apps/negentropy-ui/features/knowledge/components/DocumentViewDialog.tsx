@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { Button } from "@/components/ui/Button";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 
@@ -54,7 +55,7 @@ function getFileIcon(contentType: string | null): React.ReactElement {
     );
   }
   return (
-    <svg className="h-8 w-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-8 w-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
     </svg>
   );
@@ -67,7 +68,7 @@ function getStatusBadge(status: string): { bg: string; text: string; label: stri
     case "deleted":
       return { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", label: "Deleted" };
     default:
-      return { bg: "bg-zinc-100 dark:bg-zinc-800", text: "text-zinc-700 dark:text-zinc-400", label: status };
+      return { bg: "bg-muted", text: "text-text-secondary", label: status };
   }
 }
 
@@ -80,7 +81,7 @@ function getMarkdownStatusBadge(status: string): { bg: string; text: string; lab
     case "failed":
       return { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", label: "Extraction Failed" };
     default:
-      return { bg: "bg-zinc-100 dark:bg-zinc-800", text: "text-zinc-700 dark:text-zinc-400", label: "Pending" };
+      return { bg: "bg-muted", text: "text-text-secondary", label: "Pending" };
   }
 }
 
@@ -208,7 +209,7 @@ export function DocumentViewDialog({
       open={isOpen && document !== null}
       onClose={onClose}
       containerClassName="flex min-h-full items-center justify-center p-4"
-      contentClassName="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentClassName="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200"
     >
         {/* Header: Title + badges + close */}
         <div className="mb-3 flex items-start justify-between gap-3">
@@ -216,17 +217,17 @@ export function DocumentViewDialog({
             {getFileIcon(viewedDoc.content_type)}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100" title={viewedDoc.original_filename}>
+                <h2 className="truncate text-lg font-semibold text-foreground" title={viewedDoc.original_filename}>
                   {viewedDoc.original_filename}
                 </h2>
-                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge.bg} ${statusBadge.text}`}>
+                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-micro font-medium ${statusBadge.bg} ${statusBadge.text}`}>
                   {statusBadge.label}
                 </span>
-                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${markdownBadge.bg} ${markdownBadge.text}`}>
+                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-micro font-medium ${markdownBadge.bg} ${markdownBadge.text}`}>
                   {markdownBadge.label}
                 </span>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-text-muted">
                 {viewedDoc.content_type || "Unknown type"}
               </p>
             </div>
@@ -234,7 +235,7 @@ export function DocumentViewDialog({
           <button
             onClick={onClose}
             aria-label="Close document view"
-            className="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="shrink-0 text-text-muted hover:text-foreground"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -243,61 +244,61 @@ export function DocumentViewDialog({
         </div>
 
         {/* Metadata strip */}
-        <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-3">
+        <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg border border-border bg-muted px-4 py-2.5 text-xs sm:grid-cols-3">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Size</span>
-            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+            <span className="shrink-0 text-text-muted">Size</span>
+            <span className="truncate font-medium text-foreground">
               {formatFileSize(viewedDoc.file_size)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Hash</span>
-            <span className="truncate font-mono font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.file_hash}>
+            <span className="shrink-0 text-text-muted">Hash</span>
+            <span className="truncate font-mono font-medium text-foreground" title={viewedDoc.file_hash}>
               {truncateHash(viewedDoc.file_hash)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Corpus</span>
-            <span className="truncate font-mono font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.corpus_id}>
+            <span className="shrink-0 text-text-muted">Corpus</span>
+            <span className="truncate font-mono font-medium text-foreground" title={viewedDoc.corpus_id}>
               {truncateHash(viewedDoc.corpus_id)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Storage</span>
-            <span className="truncate font-mono font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.gcs_uri}>
+            <span className="shrink-0 text-text-muted">Storage</span>
+            <span className="truncate font-mono font-medium text-foreground" title={viewedDoc.gcs_uri}>
               {viewedDoc.gcs_uri ? `...${viewedDoc.gcs_uri.slice(-24)}` : "-"}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Created By</span>
-            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_by_name || viewedDoc.created_by || ""}>
+            <span className="shrink-0 text-text-muted">Created By</span>
+            <span className="truncate font-medium text-foreground" title={viewedDoc.created_by_name || viewedDoc.created_by || ""}>
               {displayUser(viewedDoc.created_by, viewedDoc.created_by_name)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Created</span>
-            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_at || ""}>
+            <span className="shrink-0 text-text-muted">Created</span>
+            <span className="truncate font-medium text-foreground" title={viewedDoc.created_at || ""}>
               {formatRelativeTime(viewedDoc.created_at ?? undefined)}
             </span>
           </div>
         </div>
 
         {/* Markdown Content - full width */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-border p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Markdown Content</h3>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <h3 className="text-sm font-semibold text-foreground">Markdown Content</h3>
+            <span className="text-xs text-text-muted">
               {detail?.markdown_extracted_at ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}` : ""}
             </span>
           </div>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-auto rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
+          <div className="min-h-0 min-w-0 flex-1 overflow-auto rounded-lg bg-muted p-4">
             {loadingDetail ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading markdown content...</p>
+              <p className="text-sm text-text-muted">Loading markdown content...</p>
             ) : detailError ? (
               <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
             ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-text-muted">
                 Markdown extraction is running in background. Please refresh in a moment.
               </p>
             ) : markdownStatus === "failed" ? (
@@ -320,12 +321,9 @@ export function DocumentViewDialog({
         </div>
 
         <div className="mt-4 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          >
+          <Button variant="ghost" onClick={onClose}>
             Close
-          </button>
+          </Button>
           <button
             onClick={handleRefreshMarkdown}
             disabled={isRefreshingMarkdown || !document}
@@ -339,16 +337,18 @@ export function DocumentViewDialog({
             </svg>
             {isRefreshingMarkdown ? "Re-Parsing..." : "Re-Parse from GCS"}
           </button>
-          <button
+          <Button
+            variant="neutral"
             onClick={handleDownload}
             disabled={isDownloading}
-            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+            leftIcon={
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            }
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
             {isDownloading ? "Downloading..." : "Download"}
-          </button>
+          </Button>
         </div>
     </OverlayDismissLayer>
   );

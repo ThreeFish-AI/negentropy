@@ -10,7 +10,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -43,8 +42,11 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { Button } from "@/components/ui/Button";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
+import { IngestFileDialog } from "./_components/IngestFileDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { CorpusSettingsPanel } from "./_components/CorpusSettingsPanel";
 import { CorpusStatusBadge } from "./_components/CorpusStatusBadge";
@@ -115,6 +117,7 @@ export default function KnowledgeBasePage() {
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
   const [isDeleteCorpusDialogOpen, setIsDeleteCorpusDialogOpen] = useState(false);
   const [isIngestUrlDialogOpen, setIsIngestUrlDialogOpen] = useState(false);
+  const [isIngestFileDialogOpen, setIsIngestFileDialogOpen] = useState(false);
   const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
   const [isDeleteDocumentDialogOpen, setIsDeleteDocumentDialogOpen] = useState(false);
@@ -123,8 +126,6 @@ export default function KnowledgeBasePage() {
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedCorpus = useMemo(
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
@@ -465,36 +466,6 @@ export default function KnowledgeBasePage() {
     });
   };
 
-  const handleIngestFile = ({
-    file,
-    source_uri,
-    chunkingConfig,
-  }: {
-    file: File;
-    source_uri?: string;
-    chunkingConfig?: ChunkingConfig;
-  }) => {
-    if (!selectedCorpusId) {
-      toast.error("请先选择 Corpus");
-      return;
-    }
-
-    // 立即显示 Toast 提示
-    toast.success("已开始从文件摄入知识源", {
-      description: "可在 Pipeline 页面查看构建进度",
-    });
-
-    // Fire-and-forget: 不等待 API 完成
-    ingestFile({
-      file,
-      source_uri: source_uri || file.name,
-      chunkingConfig: chunkingConfig ?? corpusChunkingConfig,
-    })
-      .then(() => loadDocuments())
-      .catch((err) => {
-        toast.error(err instanceof Error ? err.message : "文件摄入失败");
-      });
-  };
 
   const runDocumentAction = async (
     action: "sync" | "rebuild" | "replace" | "archive" | "unarchive" | "download" | "view" | "delete",
@@ -623,12 +594,12 @@ export default function KnowledgeBasePage() {
               收起结果
             </button>
           )}
-          <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1 text-xs">
+          <div className={navRailContainerClassName}>
             {(["semantic", "keyword", "hybrid"] as const).map((item) => (
               <button
                 key={item}
                 onClick={() => setMode(item)}
-                className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                className={navPillClassName(mode === item)}
               >
                 {item}
               </button>
@@ -660,7 +631,7 @@ export default function KnowledgeBasePage() {
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span className="text-muted-foreground">Target Corpus（可多选）</span>
           {selectedRetrievalCorpusIds.length === 0 && (
-            <span className="text-[11px] text-amber-600">
+            <span className="text-caption text-amber-600">
               请至少选择一个 Corpus 后再执行 Retrieve
             </span>
           )}
@@ -700,12 +671,9 @@ export default function KnowledgeBasePage() {
     <div className={embedded ? "rounded-2xl border border-border bg-card p-4" : "rounded-2xl border border-border bg-card p-4 shadow-sm"}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Corpus</h2>
-        <button
-          onClick={handleCreateCorpus}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white"
-        >
+        <Button variant="neutral" size="sm" onClick={handleCreateCorpus}>
           Add Corpus
-        </button>
+        </Button>
       </div>
       {corpora.length === 0 ? (
         <p className="text-xs text-muted-foreground">暂无 Corpus</p>
@@ -723,7 +691,7 @@ export default function KnowledgeBasePage() {
                 <div className="flex shrink-0 items-center justify-end gap-2">
                   <span
                     data-testid={`corpus-chunks-${corpus.id}`}
-                    className="text-[11px] font-medium text-muted-foreground"
+                    className="text-caption font-medium text-muted-foreground"
                   >
                     {corpus.knowledge_count} chunks
                     {corpus.chunk_count_total != null &&
@@ -750,7 +718,7 @@ export default function KnowledgeBasePage() {
               >
                 <div
                   data-testid={`corpus-summary-${corpus.id}`}
-                  className="min-w-0 flex-1 self-center truncate text-[11px] leading-5 text-muted-foreground"
+                  className="min-w-0 flex-1 self-center truncate text-caption leading-5 text-muted-foreground"
                   title={formatCorpusConfigSummary(corpus)}
                 >
                   {formatCorpusConfigSummary(corpus)}
@@ -760,7 +728,7 @@ export default function KnowledgeBasePage() {
                     onClick={() => handleEditCorpus(corpus)}
                     className={outlineButtonClassName(
                       "neutral",
-                      "inline-flex h-7 items-center rounded px-2.5 text-[11px]",
+                      "inline-flex h-7 items-center rounded px-2.5 text-caption",
                     )}
                   >
                     Settings
@@ -769,7 +737,7 @@ export default function KnowledgeBasePage() {
                     onClick={() => handleDeleteCorpus(corpus)}
                     className={outlineButtonClassName(
                       "danger",
-                      "inline-flex h-7 items-center rounded px-2.5 text-[11px]",
+                      "inline-flex h-7 items-center rounded px-2.5 text-caption",
                     )}
                   >
                     Delete
@@ -889,23 +857,11 @@ export default function KnowledgeBasePage() {
                         Ingest From URL
                       </button>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setIsIngestFileDialogOpen(true)}
                         className={outlineButtonClassName("neutral", "rounded px-3 py-1.5 text-xs")}
                       >
                         Ingest From File
                       </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            void handleIngestFile({ file, source_uri: file.name });
-                            e.currentTarget.value = "";
-                          }
-                        }}
-                      />
                     </div>
                   </div>
 
@@ -928,7 +884,7 @@ export default function KnowledgeBasePage() {
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
                                 <p className="truncate text-sm font-medium">{doc.original_filename}</p>
-                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
                                   <span>{sourceType} · {doc.file_size} bytes</span>
                                   <PipelineStatusBadge
                                     status={
@@ -943,28 +899,28 @@ export default function KnowledgeBasePage() {
                                 <button
                                   onClick={() => runDocumentAction("view", doc)}
                                   title="在弹窗中预览文档解析后的 Markdown 正文"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   View
                                 </button>
                                 <button
                                   onClick={() => runDocumentAction("download", doc)}
                                   title="下载原始文件到本地"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   Download
                                 </button>
                                 <button
                                   onClick={() => runDocumentAction("replace", doc)}
                                   title="用新文本替换该文档并重建索引（保留文档元信息）"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   Replace
                                 </button>
                                 <button
                                   onClick={() => runDocumentAction("rebuild", doc)}
                                   title="重新分块并重建向量索引（不更换原始内容）"
-                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   Rebuild
                                 </button>
@@ -972,7 +928,7 @@ export default function KnowledgeBasePage() {
                                   <button
                                     onClick={() => runDocumentAction("sync", doc)}
                                     title="重新抓取该 URL 源并刷新内容（仅 URL 类型）"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                   >
                                     Sync
                                   </button>
@@ -981,7 +937,7 @@ export default function KnowledgeBasePage() {
                                   <button
                                     onClick={() => runDocumentAction("archive", doc)}
                                     title="归档该文档，将其从默认检索中排除（可解档恢复）"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                   >
                                     Archive
                                   </button>
@@ -989,7 +945,7 @@ export default function KnowledgeBasePage() {
                                   <button
                                     onClick={() => runDocumentAction("unarchive", doc)}
                                     title="取消归档，恢复参与检索"
-                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                   >
                                     Unarchive
                                   </button>
@@ -997,7 +953,7 @@ export default function KnowledgeBasePage() {
                                 <button
                                   onClick={() => runDocumentAction("delete", doc)}
                                   title="删除该文档及其全部 Chunks"
-                                  className={outlineButtonClassName("danger", "rounded px-2 py-1 text-[11px]")}
+                                  className={outlineButtonClassName("danger", "rounded px-2 py-1 text-caption")}
                                 >
                                   Delete
                                 </button>
@@ -1062,15 +1018,15 @@ export default function KnowledgeBasePage() {
                               }
                               badges={(
                                 <>
-                                  <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
-                                  <span className="shrink-0 text-zinc-600 dark:text-zinc-400">
+                                  <span className="shrink-0 text-text-muted">·</span>
+                                  <span className="shrink-0 text-text-secondary">
                                     Retrieval Count {chunk.display_retrieval_count}
                                   </span>
                                   <span
-                                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                    className={`shrink-0 rounded px-1.5 py-0.5 text-micro font-semibold uppercase tracking-overline ${
                                       chunk.is_enabled
                                         ? "bg-emerald-500/15 text-emerald-500"
-                                        : "bg-zinc-500/15 text-zinc-500"
+                                        : "bg-muted text-text-muted"
                                     }`}
                                   >
                                     {chunk.is_enabled ? "Enabled" : "Disabled"}
@@ -1168,6 +1124,21 @@ export default function KnowledgeBasePage() {
         initialMode="url"
         allowedModes={["url"]}
         title="Ingest From URL"
+      />
+
+      <IngestFileDialog
+        isOpen={isIngestFileDialogOpen}
+        corpusId={selectedCorpusId}
+        onClose={() => setIsIngestFileDialogOpen(false)}
+        onIngestFile={(params) =>
+          ingestFile(params).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        chunkingConfig={corpusChunkingConfig}
+        onSuccess={() => setIsIngestFileDialogOpen(false)}
+        title="Ingest From File"
       />
 
       <CorpusFormDialog

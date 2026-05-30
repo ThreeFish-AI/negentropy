@@ -145,13 +145,13 @@ function CorpusSettingsPanel({
 
         <div className="mt-3 grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-text-secondary mb-1">
               Embedding Model
             </label>
             <select
               value={embeddingConfigId}
               onChange={(e) => setEmbeddingConfigId(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">(使用全局默认)</option>
               {embeddingModels.map((m) => (
@@ -164,7 +164,7 @@ function CorpusSettingsPanel({
               const sel = embeddingModels.find((m) => m.id === embeddingConfigId);
               const dims = typeof sel?.config?.dimensions === "number" ? sel.config.dimensions : null;
               return dims != null ? (
-                <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-micro font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                   {dims} dims
                 </span>
               ) : null;
@@ -172,13 +172,13 @@ function CorpusSettingsPanel({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-text-secondary mb-1">
               LLM Model
             </label>
             <select
               value={llmConfigId}
               onChange={(e) => setLlmConfigId(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">(使用全局默认)</option>
               {llmModels.map((m) => (
@@ -197,13 +197,13 @@ function CorpusSettingsPanel({
           open
           onClose={() => setConfirmDimensionDialog(null)}
           containerClassName="p-4"
-          contentClassName="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+          contentClassName="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl"
           contentProps={{ role: "dialog", "aria-modal": true }}
         >
           <h3 className="text-base font-semibold text-red-600 dark:text-red-400 mb-2">
             Embedding 维度变更确认
           </h3>
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm text-text-secondary">
             切换 Embedding Model 会导致现有{" "}
             <strong>{corpus.knowledge_count}</strong> 个 Knowledge 块的向量维度不匹配
             （{confirmDimensionDialog.oldDims} → {confirmDimensionDialog.newDims} dims），
@@ -212,7 +212,7 @@ function CorpusSettingsPanel({
           <div className="mt-4 flex justify-end gap-2">
             <button
               onClick={() => setConfirmDimensionDialog(null)}
-              className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              className="px-4 py-2 rounded-lg text-xs font-medium text-text-secondary hover:bg-muted"
             >
               取消
             </button>
@@ -237,7 +237,7 @@ function CorpusSettingsPanel({
             <p className="mt-1 text-xs text-muted-foreground">
               通过 MCP Tools 为当前 Corpus 注入 URL、PDF 等源文档解释器。
             </p>
-            <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+            <p className="mt-2 text-caption leading-5 text-muted-foreground">
               可用于此处的 Tool 需提供可发现的 input/output schema，并能返回正文 Markdown 或文本；当前兼容单文档扁平协议，以及单个
               sources 数组的 batch 协议，系统会自动把单个 URL/PDF 请求包装为对应格式。
             </p>
@@ -253,7 +253,7 @@ function CorpusSettingsPanel({
             <div key={routeKey} className="mt-4 rounded-xl border border-border p-3">
               <div className="mb-3">
                 <div className="text-xs font-semibold">{title}</div>
-                <div className="text-[11px] text-muted-foreground">{description}</div>
+                <div className="text-caption text-muted-foreground">{description}</div>
               </div>
               <div className="space-y-3">
                 {[0, 1].map((index) => {
@@ -320,7 +320,7 @@ function CorpusSettingsPanel({
 
                   return (
                     <div key={`${routeKey}-${index}`} className="grid gap-3 rounded-lg border border-border bg-card p-3 md:grid-cols-[120px_1fr_1fr_auto]">
-                      <div className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                      <div className="text-xs font-semibold text-text-secondary">
                         {index === 0 ? "主用" : "备用"}
                       </div>
                       <label className="text-xs">
@@ -360,7 +360,7 @@ function CorpusSettingsPanel({
                         <button
                           type="button"
                           onClick={clearTarget}
-                          className={outlineButtonClassName("neutral", "rounded px-3 py-2 text-[11px]")}
+                          className={outlineButtonClassName("neutral", "rounded px-3 py-2 text-caption")}
                         >
                           清空
                         </button>
@@ -377,7 +377,7 @@ function CorpusSettingsPanel({
       <div className="flex justify-end">
         <button
           onClick={handleSubmit}
-          className="rounded bg-zinc-900 px-3 py-2 text-xs font-semibold text-white"
+          className="rounded bg-foreground px-3 py-2 text-xs font-semibold text-background"
         >
           Save Settings
         </button>
