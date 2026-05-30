@@ -18,9 +18,10 @@ import { proxyDelete, proxyGet, proxyPost, proxyPut } from "@/app/api/interface/
  *   POST   /api/routine/{id}/iterations/{iid}/{approve|reject}
  */
 
-type Ctx = { params: Promise<{ path: string[] }> };
+type Ctx = { params: Promise<{ path?: string[] }> };
 
-function buildBackendPath(segments: string[]): string {
+function buildBackendPath(segments: string[] | undefined): string {
+  if (!segments || segments.length === 0) return "/routines";
   return "/routines/" + segments.map((s) => encodeURIComponent(s)).join("/");
 }
 
