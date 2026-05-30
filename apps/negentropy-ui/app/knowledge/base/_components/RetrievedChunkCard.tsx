@@ -81,7 +81,7 @@ export function RetrievedChunkCard({
           <span
             className={cn(
               "shrink-0 rounded bg-blue-600 px-1.5 py-[3px] text-micro font-semibold text-white",
-              isCompact && "px-1 py-[2px] text-micro",
+              isCompact && "px-1 py-[2px]",
             )}
           >
             SCORE {formatScore(chunk.score)}
@@ -131,7 +131,7 @@ export function RetrievedChunkCard({
                     <span
                       className={cn(
                         "rounded bg-blue-600 px-1.5 py-[3px] text-micro font-semibold text-white",
-                        isCompact && "px-1 py-[2px] text-micro",
+                        isCompact && "px-1 py-[2px]",
                       )}
                     >
                       {childChunk.label}
@@ -140,7 +140,7 @@ export function RetrievedChunkCard({
                       <span
                         className={cn(
                           "rounded bg-blue-600/85 px-1.5 py-[3px] text-micro font-semibold text-white",
-                          isCompact && "px-1 py-[2px] text-micro",
+                          isCompact && "px-1 py-[2px]",
                         )}
                       >
                         SCORE {formatScore(childChunk.score)}
