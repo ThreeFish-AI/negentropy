@@ -41,7 +41,7 @@ export function EmptyState({
       {Icon ? (
         <div
           className={cn(
-            "flex items-center justify-center rounded-2xl",
+            "flex items-center justify-center rounded-2xl animate-fade-in",
             tone === "accent"
               ? "bg-primary/10 text-primary"
               : "bg-muted text-text-muted",
@@ -51,7 +51,7 @@ export function EmptyState({
           <Icon className={size === "md" ? "h-6 w-6" : "h-5 w-5"} aria-hidden />
         </div>
       ) : null}
-      <div className="space-y-1">
+      <div className="space-y-1 animate-fade-in" style={{ animationDelay: "60ms" }}>
         <p className="text-body-lg font-semibold tracking-default text-foreground">{title}</p>
         {description ? (
           <p className="mx-auto max-w-sm text-sm leading-caption text-text-muted">
