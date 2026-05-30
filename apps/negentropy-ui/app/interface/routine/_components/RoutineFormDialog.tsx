@@ -181,8 +181,6 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
     "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
   // 水平 Label（shrink-0 不收缩，whitespace-nowrap 不换行）
   const labelCls = "shrink-0 whitespace-nowrap text-xs font-medium text-text-secondary";
-  // 垂直 Label（用于 textarea 上方的 label）
-  const vLabelCls = "mb-1 block text-xs font-medium text-text-secondary";
 
   return (
     <OverlayDismissLayer
@@ -260,20 +258,17 @@ export function RoutineFormDialog({ open, routine, onClose, onSubmit }: RoutineF
                 value={form.goal}
                 onChange={(e) => update("goal", e.target.value)}
                 rows={3}
-                placeholder="Goal: The long-horizon objective for Claude Code to accomplish"
+                placeholder="Goal *: The long-horizon objective for Claude Code to accomplish"
                 className={cn(inputCls, fieldErrors.goal && "border-red-400")}
               />
               {fieldErrors.goal && <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.goal}</p>}
             </div>
             <div>
-              <label className={vLabelCls}>
-                Acceptance Criteria <span className="text-red-500">*</span>
-              </label>
               <textarea
                 value={form.acceptance_criteria}
                 onChange={(e) => update("acceptance_criteria", e.target.value)}
                 rows={2}
-                placeholder="How the Evaluator judges success (the rubric)"
+                placeholder="Acceptance Criteria *: How the Evaluator judges success (the rubric)"
                 className={cn(inputCls, fieldErrors.acceptance_criteria && "border-red-400")}
               />
               {fieldErrors.acceptance_criteria && (
