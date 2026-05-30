@@ -203,6 +203,21 @@ async def _seed_thread(thread_id: uuid.UUID, app_name: str, user_id: str) -> Non
         await db.commit()
 
 
+async def _cleanup(user_id: str, app_name: str) -> None:
+    """清理本用例写入的记忆/事实/关联，避免跨运行在真实库累积。"""
+    from sqlalchemy import delete
+
+    async with db_session.AsyncSessionLocal() as db:
+        await db.execute(
+            delete(MemoryAssociation).where(
+                MemoryAssociation.user_id == user_id, MemoryAssociation.app_name == app_name
+            )
+        )
+        await db.execute(delete(Fact).where(Fact.user_id == user_id, Fact.app_name == app_name))
+        await db.execute(delete(Memory).where(Memory.user_id == user_id, Memory.app_name == app_name))
+        await db.commit()
+
+
 def _make_session(session_id: str, app_name: str, user_id: str) -> ADKSession:
     """构造一个会产出 ≥2 个「同主题但非近重复」段落的会话。
 
@@ -254,38 +269,41 @@ async def test_memify_full_pipeline_produces_all_artifacts(_six_step_yaml, _patc
     service = PostgresMemoryService(embedding_fn=_embedding_fn)
     session = _make_session(session_id, app_name, user_id)
 
-    # 真实入库 + 6 步管线
-    await service.add_session_to_memory(session)
+    try:
+        # 真实入库 + 6 步管线
+        await service.add_session_to_memory(session)
 
-    async with db_session.AsyncSessionLocal() as db:
-        # 1) memories：episodic 记忆写入（≥2 段，近重复在写入期已被 _is_duplicate 拦截）
-        mem_rows = (
-            (await db.execute(select(Memory).where(Memory.user_id == user_id, Memory.app_name == app_name)))
-            .scalars()
-            .all()
-        )
-        assert len(mem_rows) >= 2, f"应至少写入 2 段记忆，实际 {len(mem_rows)}"
-
-        # 2) facts：fact_extract 入库
-        fact_count = (
-            await db.execute(select(func.count(Fact.id)).where(Fact.user_id == user_id, Fact.app_name == app_name))
-        ).scalar_one()
-        assert fact_count >= 1, "fact_extract 应至少写入 1 条事实"
-
-        # 3) topics：topic_cluster 在 metadata_.topics 标注（语义相近段成簇）
-        topic_tagged = [m for m in mem_rows if (m.metadata_ or {}).get("topics")]
-        assert topic_tagged, "topic_cluster 应至少给一段记忆打上 topics 标签"
-
-        # 6) associations：auto_link 建立关联边
-        assoc_count = (
-            await db.execute(
-                select(func.count(MemoryAssociation.id)).where(
-                    MemoryAssociation.user_id == user_id,
-                    MemoryAssociation.app_name == app_name,
-                )
+        async with db_session.AsyncSessionLocal() as db:
+            # 1) memories：episodic 记忆写入（≥2 段，近重复在写入期已被 _is_duplicate 拦截）
+            mem_rows = (
+                (await db.execute(select(Memory).where(Memory.user_id == user_id, Memory.app_name == app_name)))
+                .scalars()
+                .all()
             )
-        ).scalar_one()
-        assert assoc_count >= 1, "auto_link 应至少建立 1 条关联"
+            assert len(mem_rows) >= 2, f"应至少写入 2 段记忆，实际 {len(mem_rows)}"
+
+            # 2) facts：fact_extract 入库
+            fact_count = (
+                await db.execute(select(func.count(Fact.id)).where(Fact.user_id == user_id, Fact.app_name == app_name))
+            ).scalar_one()
+            assert fact_count >= 1, "fact_extract 应至少写入 1 条事实"
+
+            # 3) topics：topic_cluster 在 metadata_.topics 标注（语义相近段成簇）
+            topic_tagged = [m for m in mem_rows if (m.metadata_ or {}).get("topics")]
+            assert topic_tagged, "topic_cluster 应至少给一段记忆打上 topics 标签"
+
+            # 6) associations：auto_link 建立关联边
+            assoc_count = (
+                await db.execute(
+                    select(func.count(MemoryAssociation.id)).where(
+                        MemoryAssociation.user_id == user_id,
+                        MemoryAssociation.app_name == app_name,
+                    )
+                )
+            ).scalar_one()
+            assert assoc_count >= 1, "auto_link 应至少建立 1 条关联"
+    finally:
+        await _cleanup(user_id, app_name)
 
 
 @pytest.mark.asyncio
@@ -332,34 +350,37 @@ async def test_memify_pipeline_step_statuses_not_failed(_six_step_yaml, _patch_l
         {"author": "user", "text": "On weekend I enjoy hiking camping mountains nature trails"},
     ]
 
-    pipeline = build_pipeline(
-        ["fact_extract", "entity_normalization", "topic_cluster", "dedup_merge", "summarize", "auto_link"],
-        policy="fail_tolerant",
-        timeout_per_step_ms=30000,
-        strict=False,
-    )
-    ctx = PipelineContext(
-        user_id=user_id,
-        app_name=app_name,
-        thread_id=thread_id,
-        turns=turns,
-        new_memory_ids=list(new_ids),
-        embedding_fn=_embedding_fn,
-    )
-    results = await pipeline.run(ctx)
+    try:
+        pipeline = build_pipeline(
+            ["fact_extract", "entity_normalization", "topic_cluster", "dedup_merge", "summarize", "auto_link"],
+            policy="fail_tolerant",
+            timeout_per_step_ms=30000,
+            strict=False,
+        )
+        ctx = PipelineContext(
+            user_id=user_id,
+            app_name=app_name,
+            thread_id=thread_id,
+            turns=turns,
+            new_memory_ids=list(new_ids),
+            embedding_fn=_embedding_fn,
+        )
+        results = await pipeline.run(ctx)
 
-    assert {r.step_name for r in results} == {
-        "fact_extract",
-        "entity_normalization",
-        "topic_cluster",
-        "dedup_merge",
-        "summarize",
-        "auto_link",
-    }
-    failed = [r.step_name for r in results if r.status == "failed"]
-    assert not failed, f"以下 step 失败：{failed}（详情：{[(r.step_name, r.error) for r in results]}）"
+        assert {r.step_name for r in results} == {
+            "fact_extract",
+            "entity_normalization",
+            "topic_cluster",
+            "dedup_merge",
+            "summarize",
+            "auto_link",
+        }
+        failed = [r.step_name for r in results if r.status == "failed"]
+        assert not failed, f"以下 step 失败：{failed}（详情：{[(r.step_name, r.error) for r in results]}）"
 
-    # entity_normalization 应产出实体（桩）
-    assert ctx.entities, "entity_normalization 应写回 ctx.entities"
-    # topic_cluster 应产出 topics
-    assert ctx.topics, "topic_cluster 应写回 ctx.topics"
+        # entity_normalization 应产出实体（桩）
+        assert ctx.entities, "entity_normalization 应写回 ctx.entities"
+        # topic_cluster 应产出 topics
+        assert ctx.topics, "topic_cluster 应写回 ctx.topics"
+    finally:
+        await _cleanup(user_id, app_name)
