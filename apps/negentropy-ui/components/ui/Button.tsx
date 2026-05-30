@@ -38,7 +38,7 @@ const BASE =
   "disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-primary-foreground shadow-xs hover:bg-primary-hover",
+  primary: "bg-primary text-primary-foreground shadow-xs hover:bg-primary-hover hover:shadow-md hover:ring-1 hover:ring-primary/15 shiny-btn-primary",
   neutral: "bg-foreground text-background shadow-xs hover:opacity-90",
   secondary: "bg-muted text-foreground hover:bg-border/60 dark:hover:bg-border",
   outline:

@@ -10,7 +10,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -47,6 +46,7 @@ import { Button } from "@/components/ui/Button";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
+import { IngestFileDialog } from "./_components/IngestFileDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { CorpusSettingsPanel } from "./_components/CorpusSettingsPanel";
 import { CorpusStatusBadge } from "./_components/CorpusStatusBadge";
@@ -117,6 +117,7 @@ export default function KnowledgeBasePage() {
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
   const [isDeleteCorpusDialogOpen, setIsDeleteCorpusDialogOpen] = useState(false);
   const [isIngestUrlDialogOpen, setIsIngestUrlDialogOpen] = useState(false);
+  const [isIngestFileDialogOpen, setIsIngestFileDialogOpen] = useState(false);
   const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
   const [isDeleteDocumentDialogOpen, setIsDeleteDocumentDialogOpen] = useState(false);
@@ -125,8 +126,6 @@ export default function KnowledgeBasePage() {
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedCorpus = useMemo(
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
@@ -467,36 +466,6 @@ export default function KnowledgeBasePage() {
     });
   };
 
-  const handleIngestFile = ({
-    file,
-    source_uri,
-    chunkingConfig,
-  }: {
-    file: File;
-    source_uri?: string;
-    chunkingConfig?: ChunkingConfig;
-  }) => {
-    if (!selectedCorpusId) {
-      toast.error("请先选择 Corpus");
-      return;
-    }
-
-    // 立即显示 Toast 提示
-    toast.success("已开始从文件摄入知识源", {
-      description: "可在 Pipeline 页面查看构建进度",
-    });
-
-    // Fire-and-forget: 不等待 API 完成
-    ingestFile({
-      file,
-      source_uri: source_uri || file.name,
-      chunkingConfig: chunkingConfig ?? corpusChunkingConfig,
-    })
-      .then(() => loadDocuments())
-      .catch((err) => {
-        toast.error(err instanceof Error ? err.message : "文件摄入失败");
-      });
-  };
 
   const runDocumentAction = async (
     action: "sync" | "rebuild" | "replace" | "archive" | "unarchive" | "download" | "view" | "delete",
@@ -888,23 +857,11 @@ export default function KnowledgeBasePage() {
                         Ingest From URL
                       </button>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setIsIngestFileDialogOpen(true)}
                         className={outlineButtonClassName("neutral", "rounded px-3 py-1.5 text-xs")}
                       >
                         Ingest From File
                       </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            void handleIngestFile({ file, source_uri: file.name });
-                            e.currentTarget.value = "";
-                          }
-                        }}
-                      />
                     </div>
                   </div>
 
@@ -1167,6 +1124,21 @@ export default function KnowledgeBasePage() {
         initialMode="url"
         allowedModes={["url"]}
         title="Ingest From URL"
+      />
+
+      <IngestFileDialog
+        isOpen={isIngestFileDialogOpen}
+        corpusId={selectedCorpusId}
+        onClose={() => setIsIngestFileDialogOpen(false)}
+        onIngestFile={(params) =>
+          ingestFile(params).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        chunkingConfig={corpusChunkingConfig}
+        onSuccess={() => setIsIngestFileDialogOpen(false)}
+        title="Ingest From File"
       />
 
       <CorpusFormDialog

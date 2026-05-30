@@ -23,7 +23,7 @@ from .ingestion.chunking import chunk_text, semantic_chunk_async
 if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
 from .constants import TEXT_PREVIEW_MAX_LENGTH
-from .ingestion.extraction import ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
+from .ingestion.extraction import ROUTE_FILE_MD, ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
 from .ingestion.source_tracking import SourceTrackingService, TrackingContext
 from .retrieval.repository import KnowledgeRepository
 from .retrieval.reranking import NoopReranker, Reranker
@@ -709,13 +709,30 @@ class KnowledgeService:
         content_type: str | None,
         tracker: PipelineTracker | None = None,
     ) -> ExtractedDocumentResult:
+        source_kind = resolve_source_kind(filename=filename, content_type=content_type)
+
+        # Markdown 文件：跳过 MCP 提取，直接读取文件内容
+        if source_kind == ROUTE_FILE_MD:
+            from .ingestion.content import optimize_markdown_content
+
+            raw_text = content.decode("utf-8", errors="replace")
+            markdown = optimize_markdown_content(raw_text)
+            return ExtractedDocumentResult(
+                plain_text=raw_text,
+                markdown_content=markdown,
+                metadata={"source_kind": source_kind, "extraction_method": "passthrough"},
+                assets=[],
+                trace={"provider": "passthrough", "source_kind": source_kind},
+            )
+
+        # 非 Markdown 文件：通过 MCP 提取
         cancel_event = get_cancel_event(tracker.run_id) if tracker else None
         try:
             result = await extract_source(
                 app_name=app_name,
                 corpus_id=corpus_id,
                 corpus_config=await self._get_corpus_config(corpus_id),
-                source_kind=resolve_source_kind(filename=filename, content_type=content_type),
+                source_kind=source_kind,
                 content=content,
                 filename=filename,
                 content_type=content_type,

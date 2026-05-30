@@ -1,19 +1,20 @@
 "use client";
 
 /**
- * 通用模态对话框基类（背景遮罩 + 居中卡片 + Escape 关闭 + click-outside 关闭）。
+ * 通用模态对话框基类（背景遮罩 + 弹性缩放居中卡片 + Escape 关闭 + click-outside 关闭）。
  *
  * 设计动机（Reuse-Driven / Orthogonal Decomposition）：
  * 收敛 Wiki Publication 创建对话框、Catalog 节点选择对话框等多处重复实现的
  * 模态壳。BaseModal 仅承担"壳层 + 关闭交互 + 焦点管理"，业务对话框关注于自身
  * 字段、提交按钮等差异化部分；规避空 prop 默认值导致 useEffect 重跑等同型陷阱。
  *
- * 精致升级：令牌化遮罩（bg-overlay + backdrop-blur）、入场动画（fade + scale）、
+ * 精致升级：令牌化遮罩（bg-overlay + backdrop-blur）、弹性物理缩放入场（framer-motion spring）、
  * 焦点陷阱与焦点回归（useFocusTrap）、aria-labelledby 关联标题，rounded-modal 圆角。
  */
 
 import { ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 
@@ -53,6 +54,8 @@ const SIZE_CLASS: Record<NonNullable<BaseModalProps["size"]>, string> = {
   lg: "max-w-lg",
 };
 
+const SPRING_TRANSITION = { type: "spring" as const, damping: 28, stiffness: 320 };
+
 export function BaseModal({
   open,
   title,
@@ -80,43 +83,55 @@ export function BaseModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, closeOnEscape, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (typeof document === "undefined") return null;
 
   const sizeClass = SIZE_CLASS[size];
 
   return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4 backdrop-blur-sm animate-fade-in"
-      onClick={closeOnBackdrop ? onClose : undefined}
-    >
-      <div
-        ref={cardRef}
-        tabIndex={-1}
-        className={cn(
-          "flex max-h-[80vh] w-full flex-col rounded-modal border border-border bg-card p-6 shadow-xl outline-none animate-enter",
-          sizeClass,
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3">
-          <h3 id={titleId} className="text-h4 font-semibold tracking-heading">
-            {title}
-          </h3>
-          {subtitle ? (
-            <div className="mt-1 text-sm text-muted-foreground">
-              {subtitle}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4 backdrop-blur-sm"
+          onClick={closeOnBackdrop ? onClose : undefined}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <motion.div
+            ref={cardRef}
+            tabIndex={-1}
+            className={cn(
+              "flex max-h-[80vh] w-full flex-col rounded-modal border border-border bg-card p-6 shadow-xl outline-none",
+              sizeClass,
+            )}
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={SPRING_TRANSITION}
+          >
+            <div className="mb-3">
+              <h3 id={titleId} className="text-h4 font-semibold tracking-heading">
+                {title}
+              </h3>
+              {subtitle ? (
+                <div className="mt-1 text-sm text-muted-foreground">
+                  {subtitle}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
-        <div className="flex-1 overflow-y-auto">{children}</div>
-        {footer ? (
-          <div className="mt-4 flex items-center justify-end gap-2">{footer}</div>
-        ) : null}
-      </div>
-    </div>,
+            <div className="flex-1 overflow-y-auto">{children}</div>
+            {footer ? (
+              <div className="mt-4 flex items-center justify-end gap-2">{footer}</div>
+            ) : null}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
     document.body,
   );
 }
