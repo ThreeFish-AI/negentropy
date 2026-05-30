@@ -80,6 +80,24 @@ export interface RoutineIterationDTO {
   finished_at: string | null;
 }
 
+/**
+ * 迭代的精简快照 —— 由 SSE ``iteration`` 事件或 ``recent=1`` 探测填充，
+ * 供 Fleet 卡片在不拉取完整详情的前提下推导当前闭环阶段与实时耗时。
+ * 字段为 ``RoutineIterationDTO`` 的子集（全部可选，SSE 载荷可能不完整）。
+ */
+export interface RoutineIterationLite {
+  /** 迭代 ID —— 用于辨识「换了一个新迭代」（SSE 事件恒带 id）。 */
+  id?: string;
+  seq?: number;
+  status: IterationStatus;
+  score?: number | null;
+  verdict?: Verdict | null;
+  turn_count?: number;
+  cost_usd?: number;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
 export interface RoutineKpis {
   total: number;
   running: number;
