@@ -100,6 +100,15 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         category="Session",
         description="为新会话生成简短的标题。",
     ),
+    # --- Routine (global) ---
+    TaskSlot(
+        task_key="routine.evaluate",
+        model_type="llm",
+        scope="global",
+        label="Routine 结果评估",
+        category="Routine",
+        description="LLM-as-Judge 按验收标准为 Routine 迭代结果评分并生成反思反馈。",
+    ),
     # --- Knowledge Graph (corpus) ---
     TaskSlot(
         task_key="knowledge.kg.extraction.entity",

@@ -35,6 +35,7 @@ from .knowledge import KnowledgeSettings
 from .logging import LoggingSettings
 from .memory import MemorySettings
 from .observability import ObservabilitySettings
+from .routine import RoutineSettings
 from .search import SearchSettings
 from .services import ServicesSettings
 
@@ -74,6 +75,7 @@ class Settings(BaseSettings):
             "observability",
             "knowledge",
             "memory",
+            "routine",
         ):
             set_yaml_section(section, yaml_config.get(section, {}))
 
@@ -133,6 +135,11 @@ class Settings(BaseSettings):
     def memory(self) -> MemorySettings:
         """Memory Phase 5 高级特性配置（HippoRAG / Reflexion / Memify / PII）。"""
         return MemorySettings()
+
+    @cached_property
+    def routine(self) -> RoutineSettings:
+        """Routine 长周期自主任务编排配置（Evaluator-Optimizer + Reflexion）。"""
+        return RoutineSettings()
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -249,6 +256,7 @@ __all__ = [
     "KnowledgeSettings",
     "LoggingSettings",
     "MemorySettings",
+    "RoutineSettings",
     "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",
