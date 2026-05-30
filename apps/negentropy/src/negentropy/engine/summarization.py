@@ -82,7 +82,7 @@ class SessionSummarizer:
 
     async def generate_title(self, history: list[types.Content]) -> str | None:
         """
-        Generates a short title (roughly 12 Chinese character width) for the given conversation history.
+        Generates a short title (~18 Chinese chars / ~36 English chars) for the given conversation history.
         """
         if not history:
             return None
