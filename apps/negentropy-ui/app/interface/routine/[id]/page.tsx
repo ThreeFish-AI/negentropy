@@ -16,34 +16,11 @@ import {
   rejectIteration,
   useRoutineDetailLive,
 } from "@/features/routine";
-import type { RoutineStatus } from "@/features/routine";
 
 import { ClockProvider } from "../_components/ClockProvider";
 import { RoutineRunView } from "../_components/RoutineRunView";
+import { CONTROL_LABEL, controlsFor, type ControlAction } from "../_components/routine-controls";
 import { routineStatusClass } from "../_components/status-style";
-
-type ControlAction = "start" | "pause" | "resume" | "cancel";
-
-const CONTROL_LABEL: Record<ControlAction, string> = {
-  start: "Start",
-  pause: "Pause",
-  resume: "Resume",
-  cancel: "Cancel",
-};
-
-/** 依状态计算可用控制动作（与抽屉一致）。 */
-function controlsFor(status: RoutineStatus): ControlAction[] {
-  switch (status) {
-    case "pending":
-      return ["start"];
-    case "running":
-      return ["pause", "cancel"];
-    case "paused":
-      return ["resume", "cancel"];
-    default:
-      return [];
-  }
-}
 
 export default function RoutineRunPage() {
   const params = useParams<{ id: string }>();

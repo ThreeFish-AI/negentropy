@@ -8,7 +8,7 @@ import type { RoutineDTO, RoutineIterationLite } from "@/features/routine";
 import { LiveElapsed } from "./ElapsedClock";
 import { RoutineLoopBar } from "./RoutineLoopBar";
 import { RoutineMeter } from "./RoutineMeter";
-import { LOOP_STAGE_META, loopStageOf } from "./routine-loop";
+import { ACTIVE_TIMING, LOOP_STAGE_META, loopStageOf } from "./routine-loop";
 import { limitFillClass, routineStatusClass, scoreColorClass, scoreFillClass } from "./status-style";
 
 interface RoutineFleetCardProps {
@@ -20,8 +20,6 @@ interface RoutineFleetCardProps {
   onOpenFull: (r: RoutineDTO) => void;
 }
 
-const ACTIVE_TIMING: ReadonlySet<string> = new Set(["dispatched", "in_flight", "executed"]);
-
 export const RoutineFleetCard = memo(function RoutineFleetCard({
   routine,
   latest,
@@ -30,7 +28,8 @@ export const RoutineFleetCard = memo(function RoutineFleetCard({
 }: RoutineFleetCardProps) {
   const snapshot = loopStageOf(latest, routine);
   const needsApproval = latest?.status === "pending_approval";
-  const timing = !!latest && ACTIVE_TIMING.has(latest.status) && !!latest.started_at;
+  const timing =
+    snapshot.mode === "looping" && !!latest && ACTIVE_TIMING.has(latest.status) && !!latest.started_at;
 
   const iterRatio = routine.max_iterations
     ? routine.iteration_count / routine.max_iterations

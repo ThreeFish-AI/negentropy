@@ -28,11 +28,6 @@ import { useRoutineData } from "./useRoutineData";
  */
 
 const REFRESH_DEBOUNCE_MS = 500;
-const ACTIVE_ITER: ReadonlySet<IterationStatus> = new Set([
-  "dispatched",
-  "in_flight",
-  "executed",
-]);
 
 type LatestMap = Record<string, RoutineIterationLite>;
 
@@ -69,7 +64,7 @@ export function useRoutineLive(filters: Partial<RoutineFilters>) {
   const seedLatest = useCallback((routineId: string, lite: RoutineIterationLite) => {
     setLatest((prev) => {
       const cur = prev[routineId];
-      // 已有同一迭代且带 started_at（客户端已戳）时，保留更精确的客户端起始时刻。
+      // 同一迭代时优先采用 lite 的 authoritative started_at，缺失才回退已有客户端近似戳。
       if (cur && cur.id && lite.id && cur.id === lite.id) {
         return { ...prev, [routineId]: { ...lite, started_at: lite.started_at ?? cur.started_at } };
       }
@@ -207,7 +202,8 @@ export function useFleetSeed(
         try {
           const detail = await fetchRoutineDetail(id, 1);
           const it = detail.iterations?.[0];
-          if (!cancelled && it) seedRef.current(id, liteFromIteration(it));
+          if (cancelled) return seededRef.current.delete(id);
+          if (it) seedRef.current(id, liteFromIteration(it));
         } catch {
           // 探测失败不致命：SSE 后续仍会驱动阶段（仅缺 authoritative started_at）。
           seededRef.current.delete(id);
@@ -220,5 +216,3 @@ export function useFleetSeed(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 以稳定的 candKey 触发
   }, [candKey]);
 }
-
-export { ACTIVE_ITER };

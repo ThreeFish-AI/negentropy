@@ -6,10 +6,8 @@ import type { RoutineDTO, RoutineIterationDTO } from "@/features/routine";
 
 import { LiveElapsed } from "./ElapsedClock";
 import { RoutineLoopBar } from "./RoutineLoopBar";
-import { LOOP_STAGE_META, type LoopSnapshot } from "./routine-loop";
+import { ACTIVE_TIMING, LOOP_STAGE_META, type LoopSnapshot } from "./routine-loop";
 import { verdictClass } from "./status-style";
-
-const ACTIVE_TIMING: ReadonlySet<string> = new Set(["dispatched", "in_flight", "executed"]);
 
 /**
  * Evaluator-Optimizer 闭环图 —— 4 阶段步进器 + 实时状态行 + Reflexion 反馈说明。
@@ -24,7 +22,8 @@ export function RoutineLoopDiagram({
   latest: RoutineIterationDTO | undefined;
   routine: RoutineDTO;
 }) {
-  const timing = !!latest && ACTIVE_TIMING.has(latest.status) && !latest.finished_at;
+  const timing =
+    snapshot.mode === "looping" && !!latest && ACTIVE_TIMING.has(latest.status) && !latest.finished_at;
 
   return (
     <section className="rounded-card border border-border bg-card p-4 shadow-sm">

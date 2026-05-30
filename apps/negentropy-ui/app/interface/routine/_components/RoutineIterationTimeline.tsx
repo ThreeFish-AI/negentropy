@@ -5,9 +5,8 @@ import { useState } from "react";
 import type { RoutineIterationDTO } from "@/features/routine";
 
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
+import { ACTIVE_TIMING } from "./routine-loop";
 import { iterationDotClass, scoreColorClass, verdictClass } from "./status-style";
-
-const ACTIVE_TIMING: ReadonlySet<string> = new Set(["dispatched", "in_flight", "executed"]);
 
 interface RoutineIterationTimelineProps {
   iterations: RoutineIterationDTO[];

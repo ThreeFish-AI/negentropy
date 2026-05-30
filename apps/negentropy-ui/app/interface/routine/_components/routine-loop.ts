@@ -14,6 +14,16 @@ import type {
   Verdict,
 } from "@/features/routine";
 
+/**
+ * 「在途计时」迭代状态集 —— 迭代正在派发/执行/待评估，UI 据此判定是否渲染实时耗时。
+ * 单一事实源：Fleet 卡片、迭代时间线、闭环图、甘特图共用，杜绝多处重复声明。
+ */
+export const ACTIVE_TIMING: ReadonlySet<IterationStatus> = new Set([
+  "dispatched",
+  "in_flight",
+  "executed",
+]);
+
 /** 4 个规范闭环阶段（按时序）。 */
 export type LoopStage = "dispatch" | "execute" | "evaluate" | "decide";
 

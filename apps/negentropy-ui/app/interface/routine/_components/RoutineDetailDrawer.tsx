@@ -3,13 +3,12 @@
 import { useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/Button";
-import type { RoutineDTO, RoutineStatus } from "@/features/routine";
+import type { RoutineDTO } from "@/features/routine";
 
 import { RoutineIterationTimeline } from "./RoutineIterationTimeline";
 import { RoutineScoreSparkline } from "./RoutineScoreSparkline";
+import { CONTROL_LABEL, controlsFor, type ControlAction } from "./routine-controls";
 import { routineStatusClass, scoreColorClass } from "./status-style";
-
-type ControlAction = "start" | "pause" | "resume" | "cancel";
 
 interface RoutineDetailDrawerProps {
   routine: RoutineDTO;
@@ -31,20 +30,6 @@ function DetailField({ label, children }: { label: string; children: React.React
       <span className="ml-4 break-all text-right text-foreground">{children}</span>
     </div>
   );
-}
-
-/** 依状态计算可用控制动作。 */
-function controlsFor(status: RoutineStatus): ControlAction[] {
-  switch (status) {
-    case "pending":
-      return ["start"];
-    case "running":
-      return ["pause", "cancel"];
-    case "paused":
-      return ["resume", "cancel"];
-    default:
-      return [];
-  }
 }
 
 export function RoutineDetailDrawer({
@@ -83,13 +68,6 @@ export function RoutineDetailDrawer({
   const scores = ascending.map((it) => it.score);
   const controls = controlsFor(routine.status);
   const isTerminal = ["succeeded", "failed", "cancelled"].includes(routine.status);
-
-  const controlLabel: Record<ControlAction, string> = {
-    start: "Start",
-    pause: "Pause",
-    resume: "Resume",
-    cancel: "Cancel",
-  };
 
   return (
     <>
@@ -222,7 +200,7 @@ export function RoutineDetailDrawer({
               disabled={busy}
               onClick={() => onControl(action)}
             >
-              {controlLabel[action]}
+              {CONTROL_LABEL[action]}
             </Button>
           ))}
           <div className="flex-1" />

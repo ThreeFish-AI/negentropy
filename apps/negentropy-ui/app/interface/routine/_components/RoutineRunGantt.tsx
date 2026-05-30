@@ -8,8 +8,7 @@ import type { ExecStatus, IterationStatus, RoutineIterationDTO, Verdict } from "
 import { useClock } from "./ClockProvider";
 import { NULL_HEX, VERDICT_HEX } from "./chart-colors";
 import { formatDuration } from "./routine-format";
-
-const ACTIVE_TIMING: ReadonlySet<IterationStatus> = new Set(["dispatched", "in_flight", "executed"]);
+import { ACTIVE_TIMING } from "./routine-loop";
 
 interface GanttRow {
   label: string;
