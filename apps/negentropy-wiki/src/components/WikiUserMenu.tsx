@@ -39,7 +39,6 @@ export function WikiUserMenu() {
   }, [open]);
 
   const handleToggle = useCallback(() => setOpen((prev) => !prev), []);
-  const handleClose = useCallback(() => setOpen(false), []);
 
   const handleLogout = useCallback(async () => {
     setOpen(false);
