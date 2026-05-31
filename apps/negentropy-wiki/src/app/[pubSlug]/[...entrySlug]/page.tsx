@@ -15,6 +15,7 @@ import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiToc } from "@/components/WikiToc";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { extractHeadings } from "@/lib/markdown-headings";
 import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
@@ -159,6 +160,7 @@ export default async function WikiEntryPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
+      userMenu={<WikiUserMenu />}
       graphTab={{ active: false, show: hasAnyEntry }}
     />
   );

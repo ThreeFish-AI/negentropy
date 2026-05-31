@@ -13,6 +13,7 @@ import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiUserMenu } from "@/components/WikiUserMenu";
 import Link from "next/link";
 import { WikiFooter } from "@/components/home/WikiFooter";
 
@@ -92,6 +93,7 @@ export default async function WikiPublicationPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
+      userMenu={<WikiUserMenu />}
       graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );

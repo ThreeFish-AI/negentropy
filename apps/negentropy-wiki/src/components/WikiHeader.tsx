@@ -33,6 +33,7 @@ interface WikiHeaderProps {
   graphTab?: WikiHeaderGraphTab;
   searchBox?: React.ReactNode;
   actions?: React.ReactNode;
+  userMenu?: React.ReactNode;
   homeLinks?: HomeLink[];
 }
 
@@ -44,6 +45,7 @@ export function WikiHeader({
   graphTab,
   searchBox,
   actions,
+  userMenu,
   homeLinks,
 }: WikiHeaderProps) {
   if (!items.length && !homeLinks?.length && !(graphTab?.show)) return null;
@@ -98,6 +100,7 @@ export function WikiHeader({
           {searchBox}
           {actions}
           {headerSlot}
+          {userMenu}
         </div>
       </div>
     </header>
