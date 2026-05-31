@@ -12,11 +12,9 @@ import {
   approveIteration,
   controlRoutine,
   createRoutine,
-  createRoutineFromPreset,
   deleteRoutine,
   fetchIterations,
   fetchKpis,
-  fetchPresets,
   fetchRoutineDetail,
   fetchRoutines,
   rejectIteration,
@@ -132,27 +130,6 @@ describe("routine api · 写入端点", () => {
   });
 });
 
-describe("routine api · 预设端点", () => {
-  it("fetchPresets 命中 /api/routine/presets", async () => {
-    const spy = mockFetch(() => jsonResponse([]));
-    await fetchPresets();
-    expect(lastCall(spy).url).toBe("/api/routine/presets");
-  });
-
-  it("createRoutineFromPreset 以 POST 提交 preset_id + key + cwd", async () => {
-    const spy = mockFetch(() => jsonResponse({ id: "r1" }, 201));
-    await createRoutineFromPreset({ preset_id: "code_quality_audit", key: "demo-x", cwd: "/tmp" });
-    const { url, init } = lastCall(spy);
-    expect(url).toBe("/api/routine/from-preset");
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toMatchObject({
-      preset_id: "code_quality_audit",
-      key: "demo-x",
-      cwd: "/tmp",
-    });
-  });
-});
-
 describe("routine api · 错误处理", () => {
   it("非 2xx 且响应体为结构化 JSON 时抛出含 detail 的错误", async () => {
     mockFetch(
@@ -163,8 +140,8 @@ describe("routine api · 错误处理", () => {
           headers: { "Content-Type": "application/json" },
         }),
     );
-    await expect(fetchPresets()).rejects.toThrow(/404/);
-    await expect(fetchPresets()).rejects.toThrow(/boom/);
+    await expect(fetchKpis()).rejects.toThrow(/404/);
+    await expect(fetchKpis()).rejects.toThrow(/boom/);
   });
 
   it("非 2xx 且响应体非 JSON 时回落到 statusText", async () => {
