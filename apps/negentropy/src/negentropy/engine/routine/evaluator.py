@@ -30,6 +30,8 @@ logger = get_logger("negentropy.engine.routine.evaluator")
 _TASK_KEY = "routine.evaluate"
 _VALID_VERDICTS = {"pass", "progressing", "stalled", "regressed", "unrecoverable"}
 _SUMMARY_MAX_CHARS = 4000
+# 门控完整输出审计上限（供「全过程」审计事件；给 LLM 的仍是 _format_gate 的 [-1000:] 切片）。
+_GATE_OUTPUT_AUDIT_CAP = 16 * 1024
 
 _JUDGE_PROMPT = """你是一名严格、客观的任务评审员。请根据「目标」与「验收标准」，评估执行者本轮产出的质量。
 
@@ -83,6 +85,10 @@ class EvaluationResult:
     reflection: str | None = None
     gate_exit_code: int | None = None
     error: str | None = None
+    # 「全过程」审计：Judge 实际 prompt、Judge 原始回复、Gate 命令完整输出（≤16KB）。
+    judge_prompt: str | None = None
+    judge_raw: str | None = None
+    gate_output: str | None = None
 
 
 class RoutineEvaluator:
@@ -121,14 +127,26 @@ class RoutineEvaluator:
         summary = summary[:_SUMMARY_MAX_CHARS] or "(执行者未产出任何摘要)"
 
         gate_section = self._format_gate(routine.verification_command, gate_exit_code, gate_output)
+        # 在此构造 prompt（而非 _judge 内部），使失败路径也能回带 judge_prompt 供审计。
+        judge_prompt = _JUDGE_PROMPT.format(
+            goal=routine.goal,
+            acceptance_criteria=routine.acceptance_criteria,
+            summary=summary,
+            gate_section=gate_section,
+        )
+        audit_gate = gate_output or None  # 门控完整输出（≤16KB）供审计；None 表示未配置门控
 
         try:
-            score, verdict, reflection = await self._judge(
-                routine.goal, routine.acceptance_criteria, summary, gate_section
-            )
+            score, verdict, reflection, judge_raw = await self._judge(judge_prompt)
         except Exception as exc:
             logger.warning("routine_evaluate_judge_failed", error=str(exc))
-            return EvaluationResult(ok=False, gate_exit_code=gate_exit_code, error=str(exc))
+            return EvaluationResult(
+                ok=False,
+                gate_exit_code=gate_exit_code,
+                error=str(exc),
+                judge_prompt=judge_prompt,
+                gate_output=audit_gate,
+            )
 
         return EvaluationResult(
             ok=True,
@@ -136,6 +154,9 @@ class RoutineEvaluator:
             verdict=verdict,
             reflection=reflection,
             gate_exit_code=gate_exit_code,
+            judge_prompt=judge_prompt,
+            judge_raw=judge_raw,
+            gate_output=audit_gate,
         )
 
     async def _run_gate(self, command: str, cwd: str | None) -> tuple[int | None, str]:
@@ -160,7 +181,8 @@ class RoutineEvaluator:
                     await proc.communicate()
                 logger.warning("routine_gate_timeout", command=command[:120])
                 return None, f"(命令执行超时 {self._gate_timeout_seconds}s)"
-            output = (stdout or b"").decode("utf-8", errors="replace")[-2000:]
+            # 审计保留尾部 16KB（给 LLM 的仍由 _format_gate 切到 [-1000:]，行为不变）。
+            output = (stdout or b"").decode("utf-8", errors="replace")[-_GATE_OUTPUT_AUDIT_CAP:]
             return proc.returncode, output
         except Exception as exc:
             logger.warning("routine_gate_failed", command=command[:120], error=str(exc))
@@ -186,17 +208,13 @@ class RoutineEvaluator:
         tail = output.strip()[-1000:]
         return f"命令 `{command}` 执行结果：{status}\n输出尾部：\n{tail}"
 
-    async def _judge(
-        self, goal: str, acceptance_criteria: str, summary: str, gate_section: str
-    ) -> tuple[int, str, str]:
-        """调用 LLM 评审，解析结构化 JSON；含指数退避重试。"""
+    async def _judge(self, prompt: str) -> tuple[int, str, str, str]:
+        """调用 LLM 评审，解析结构化 JSON；含指数退避重试。
+
+        prompt 由调用方（``evaluate``）构造并传入，使评估失败路径也能回带 judge_prompt 供审计。
+        返回 ``(score, verdict, reflection, raw_content)``。
+        """
         model, model_kwargs = await resolve_model_config_async(_TASK_KEY, explicit_model=self._explicit_model)
-        prompt = _JUDGE_PROMPT.format(
-            goal=goal,
-            acceptance_criteria=acceptance_criteria,
-            summary=summary,
-            gate_section=gate_section,
-        )
         safe_kwargs = {
             k: v for k, v in model_kwargs.items() if k not in ("model", "messages", "temperature", "response_format")
         }
@@ -212,7 +230,8 @@ class RoutineEvaluator:
                     **safe_kwargs,
                 )
                 content = response.choices[0].message.content
-                return self._parse(content)
+                score, verdict, reflection = self._parse(content)
+                return score, verdict, reflection, content or ""
             except Exception as exc:
                 last_error = exc
                 logger.warning("routine_judge_retry", attempt=attempt + 1, error=str(exc))

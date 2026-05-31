@@ -19,16 +19,20 @@ B 进程的 reaper 可能误判 A 进程仍在执行的迭代为孤儿——``is
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 import negentropy.db.session as db_session
+from negentropy.config import settings
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
 from negentropy.engine.claude_code.service import ClaudeCodeService
 from negentropy.logging import get_logger
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from .bus import get_bus
 
@@ -126,7 +130,9 @@ class RoutineRunner:
             )
 
             # 2) 执行 Claude Code（长耗时，受 config.timeout_seconds 约束）
-            result = await ClaudeCodeService.invoke(prompt, config, abort_event=abort)
+            #    capture_events 开启时附 on_event sink：每个动作经非阻塞总线实时发布（边跑边看）。
+            sink = self._make_action_sink(iteration_id, routine_id) if settings.routine.capture_events else None
+            result = await ClaudeCodeService.invoke(prompt, config, abort_event=abort, on_event=sink)
 
             # 3) 写回结果（abort 命中则标记 aborted，否则 executed）
             if abort.is_set():
@@ -148,6 +154,22 @@ class RoutineRunner:
                     "turn_count": result.turn_count,
                 }
             )
+
+    @staticmethod
+    def _make_action_sink(iteration_id: UUID, routine_id: UUID):
+        """构造「全过程」动作实时发布回调：每个归一化动作经非阻塞总线广播为 ``action`` 事件。
+
+        best-effort：``RoutineBus.publish`` 为 ``put_nowait`` + 丢旧，绝不阻塞 CC 执行；
+        异常一律 suppress（实时是增强，持久化端点才是事实源）。事件携带 ``seq``（服务定格，
+        与写回持久化一致），前端据 ``(iteration_id, seq)`` 去重合并实时与历史动作。
+        """
+        rid, iid = str(routine_id), str(iteration_id)
+
+        async def _sink(evt: dict[str, Any]) -> None:
+            with suppress(Exception):
+                await get_bus().publish({"type": "action", "routine_id": rid, "iteration_id": iid, **evt})
+
+        return _sink
 
     async def _mark_in_flight(self, iteration_id: UUID, lease: datetime) -> None:
         async with db_session.AsyncSessionLocal() as db:
@@ -202,7 +224,41 @@ class RoutineRunner:
                     routine.iteration_count = (routine.iteration_count or 0) + 1
                     if result.session_id:
                         routine.claude_session_id = result.session_id
+                # 「全过程」动作事件持久化：仅当本次写回确实把迭代由 in_flight 翻转 executed
+                # （rowcount==1，与计数同条件）时落库，与状态翻转同事务，绝不为 reaped/aborted 留孤儿行。
+                if settings.routine.capture_events and result.events:
+                    await self._persist_events(db, iteration_id, routine_id, result.events)
             await db.commit()
+
+    @staticmethod
+    async def _persist_events(db, iteration_id: UUID, routine_id: UUID, events: list[dict[str, Any]]) -> None:
+        """批量落库执行动作事件（seq 由服务按到达顺序定格 0..N-1）。
+
+        ``ON CONFLICT (iteration_id, seq) DO NOTHING`` 兜底 reaper / abort / 重复写回竞态，
+        使任何二次写入为 no-op。字段做长度收口（防 String 列溢出）。
+        """
+        rows: list[dict[str, Any]] = []
+        for i, evt in enumerate(events):
+            title = evt.get("title")
+            tool_name = evt.get("tool_name")
+            rows.append(
+                {
+                    "iteration_id": iteration_id,
+                    "routine_id": routine_id,
+                    "seq": int(evt.get("seq", i)),
+                    "event_type": str(evt.get("event_type") or "unknown")[:24],
+                    "tool_name": str(tool_name)[:128] if tool_name is not None else None,
+                    "title": str(title)[:255] if title is not None else None,
+                    "payload": evt.get("payload") or {},
+                    "cost_usd": evt.get("cost_usd"),
+                }
+            )
+        if not rows:
+            return
+        stmt = (
+            pg_insert(RoutineIterationEvent).values(rows).on_conflict_do_nothing(index_elements=["iteration_id", "seq"])
+        )
+        await db.execute(stmt)
 
 
 # 进程内单例

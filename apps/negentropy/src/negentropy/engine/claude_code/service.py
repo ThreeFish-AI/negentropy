@@ -6,6 +6,8 @@ import asyncio
 import json
 import shutil
 import time
+from collections.abc import Awaitable, Callable
+from contextlib import suppress
 from typing import Any
 
 from negentropy.logging import get_logger
@@ -20,8 +22,231 @@ _EVT_TOOL_USE = "tool_use"
 _EVT_TOOL_RESULT = "tool_result"
 _EVT_RESULT = "result"
 _EVT_SYSTEM = "system"
+_EVT_USER = "user"
 
 _SUMMARY_MAX_LEN = 2000
+
+# 「全过程」动作级审计：单字段截断上限 + 单迭代事件条数上限（防 DB / SSE 膨胀）。
+_EVENT_FIELD_CAP = 16 * 1024  # 16 KiB / 字段
+_MAX_EVENTS_PER_ITER = 1000  # 单迭代至多捕获的动作事件数
+
+# on_event sink：服务逐条把归一化动作回调给调用方（Runner）用于实时发布。best-effort。
+EventSink = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+def _cap(value: Any, limit: int = _EVENT_FIELD_CAP) -> Any:
+    """字符串超长则截断并加可见标记；非字符串原样返回。
+
+    输出长度严格 ``≤ limit``（标记预算从 head 中扣除），使返回值可安全写入定长列
+    （如 String(255) 的 title），避免溢出。
+    """
+    if isinstance(value, str) and len(value) > limit:
+        marker = f"…[truncated {len(value) - limit} chars]"
+        head = max(0, limit - len(marker))
+        return value[:head] + marker
+    return value
+
+
+def _coerce_content(content: Any) -> str:
+    """把 tool_result / assistant 的 content 归一为字符串。
+
+    真实 CLI 的 ``content`` 可能是字符串，或 ``[{type:"text",text:...}, ...]`` 块列表；
+    后者提取并拼接 text，其它块降级为 JSON，确保审计完整不丢信息。
+    """
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict):
+                text = block.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+                else:
+                    parts.append(json.dumps(block, ensure_ascii=False, default=str))
+            else:
+                parts.append(str(block))
+        return "\n".join(parts)
+    return str(content)
+
+
+def _cap_json(obj: Any, limit: int = _EVENT_FIELD_CAP) -> Any:
+    """对放入 payload 的任意对象做体积保护：序列化超 limit 时降级为截断预览。"""
+    try:
+        s = json.dumps(obj, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        s = str(obj)
+    if len(s) > limit:
+        return {"_truncated": True, "preview": s[:limit] + f"…[truncated {len(s) - limit} chars]"}
+    return obj
+
+
+def _tool_title(name: str | None, tool_input: Any) -> str | None:
+    """为 tool_use 生成简短人读标题，如 ``Read src/app.py`` / ``Bash: pytest -q``。"""
+    if not name:
+        return None
+    if not isinstance(tool_input, dict):
+        return name
+    for key in ("file_path", "path", "notebook_path", "command", "pattern", "query", "url"):
+        val = tool_input.get(key)
+        if isinstance(val, str) and val:
+            short = val if len(val) <= 80 else val[:80] + "…"
+            sep = ": " if key in ("command", "pattern", "query") else " "
+            return f"{name}{sep}{short}"
+    return name
+
+
+def _evt(
+    event_type: str,
+    payload: dict[str, Any],
+    *,
+    tool_name: str | None = None,
+    title: str | None = None,
+    cost_usd: float | None = None,
+) -> dict[str, Any]:
+    """构造一条归一化动作记录（不含 seq —— seq 由调用方按到达顺序定格）。"""
+    return {"event_type": event_type, "tool_name": tool_name, "title": title, "payload": payload, "cost_usd": cost_usd}
+
+
+def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    """把单条 Claude Code stream-json 事件归一化为 0..N 条「动作」审计记录。
+
+    防御式解析真实 CLI 形态（assistant / user 的 ``message.content`` 块列表），对未知或
+    缺失结构一律降级保留，**绝不抛错或静默丢弃**。返回的 dict 含 event_type / tool_name /
+    title / payload / cost_usd（不含 seq —— seq 由调用方按到达顺序定格）。
+    """
+    if not isinstance(raw, dict):
+        return [_evt("unknown", {"raw": _cap_json(raw)})]
+
+    etype = raw.get("type")
+
+    # system/init：模型、cwd、可用工具、permission_mode、session_id
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "init":
+        return [
+            _evt(
+                "system",
+                {
+                    "model": raw.get("model"),
+                    "cwd": raw.get("cwd"),
+                    "tools": raw.get("tools"),
+                    "permission_mode": raw.get("permissionMode") or raw.get("permission_mode"),
+                    "session_id": raw.get("session_id"),
+                },
+                title="init",
+            )
+        ]
+
+    # assistant：message.content 块列表 → text / tool_use / thinking；兼容旧扁平 content
+    if etype == _EVT_ASSISTANT:
+        content = (raw.get("message") or {}).get("content", raw.get("content"))
+        out: list[dict[str, Any]] = []
+        if isinstance(content, list):
+            for block in content:
+                if not isinstance(block, dict):
+                    out.append(_evt("assistant", {"text": _cap(str(block))}))
+                    continue
+                btype = block.get("type")
+                if btype == "tool_use":
+                    name = block.get("name")
+                    out.append(
+                        _evt(
+                            "tool_use",
+                            {"tool_id": block.get("id"), "input": _cap_json(block.get("input"))},
+                            tool_name=name,
+                            title=_tool_title(name, block.get("input")),
+                        )
+                    )
+                elif btype == "text":
+                    out.append(_evt("assistant", {"text": _cap(block.get("text", ""))}))
+                elif btype == "thinking":
+                    out.append(
+                        _evt(
+                            "assistant",
+                            {"text": _cap(block.get("thinking") or block.get("text", ""))},
+                            title="thinking",
+                        )
+                    )
+                else:
+                    out.append(_evt("assistant", {"raw": _cap_json(block)}))
+        elif isinstance(content, str) and content.strip():
+            out.append(_evt("assistant", {"text": _cap(content)}))
+        return out
+
+    # user：tool_result 块（工具结果回流）
+    if etype == _EVT_USER:
+        content = (raw.get("message") or {}).get("content", raw.get("content"))
+        out = []
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == _EVT_TOOL_RESULT:
+                    out.append(
+                        _evt(
+                            "tool_result",
+                            {
+                                "tool_use_id": block.get("tool_use_id"),
+                                "output": _cap(_coerce_content(block.get("content"))),
+                                "is_error": bool(block.get("is_error", False)),
+                            },
+                        )
+                    )
+        return out
+
+    # result：最终产出 + 成本 / 轮数 / usage
+    if etype == _EVT_RESULT:
+        res = raw.get("result")
+        res_str = res if isinstance(res, str) else json.dumps(res, ensure_ascii=False, default=str)
+        return [
+            _evt(
+                "result",
+                {
+                    "result": _cap(res_str),
+                    "num_turns": raw.get("num_turns"),
+                    "usage": raw.get("usage"),
+                    "is_error": bool(raw.get("is_error", False)),
+                },
+                title=raw.get("subtype"),
+                cost_usd=raw.get("total_cost_usd") or raw.get("cost_usd"),
+            )
+        ]
+
+    # 未知 / 其它 type → 保留原始（截断），绝不丢弃
+    return [_evt(str(etype or "unknown"), {"raw": _cap_json(raw)})]
+
+
+async def _emit_events(
+    raw: dict[str, Any],
+    events_holder: list[dict[str, Any]] | None,
+    on_event: EventSink | None,
+) -> None:
+    """归一化单条 raw 事件 → 定格 seq 累积进 events_holder（封顶）→ best-effort 实时回调。
+
+    seq 在单迭代内单调递增（= 入 holder 时的下标），既供写回持久化，也随实时事件外溢，
+    保证「实时 seq == 持久化 seq」，前端据此去重合并。
+    """
+    if events_holder is None:
+        return
+    for evt in _normalize_stream_event(raw):
+        if len(events_holder) >= _MAX_EVENTS_PER_ITER:
+            if events_holder and events_holder[-1].get("event_type") != "_truncated":
+                events_holder.append(
+                    {
+                        "seq": len(events_holder),
+                        "event_type": "_truncated",
+                        "tool_name": None,
+                        "title": f"动作数超过 {_MAX_EVENTS_PER_ITER} 上限，后续动作未记录",
+                        "payload": {},
+                        "cost_usd": None,
+                    }
+                )
+            return
+        evt["seq"] = len(events_holder)
+        events_holder.append(evt)
+        if on_event is not None:
+            with suppress(Exception):
+                await on_event(evt)
+
 
 # 子进程 stdout 读取：手动分块 + 抬高 StreamReader 缓冲上限，规避 asyncio readline() 默认
 # 64KiB 上限导致的 LimitOverrunError（stream-json 单行可达数 MiB，如大 tool_result）。
@@ -51,21 +276,33 @@ class ClaudeCodeService:
         prompt: str,
         config: ClaudeCodeConfig,
         abort_event: asyncio.Event | None = None,
+        on_event: EventSink | None = None,
     ) -> ClaudeCodeResult:
         """调用 Claude Code 并等待完整结果。
 
         用于 ADK Tool（tool call 内等待）和 Scheduler Handler。
+
+        ``on_event``：可选「全过程」动作回调，服务每解析出一个归一化动作即 best-effort
+        回调一次（供 Runner 实时发布 SSE）。无论成功 / 超时 / 取消 / 出错，已捕获的动作
+        都会回带到 ``ClaudeCodeResult.events``（含 seq），供写回持久化。
         """
         t0 = time.monotonic()
         # 可变容器：内部协程一旦从 stream 起始 init 事件解析出 session_id 即写入，
         # 使超时/取消（wait_for 丢弃内部局部结果）路径仍能回带 session_id，让下一迭代续接。
         session_holder: dict[str, str | None] = {"session_id": None}
+        # 同理：动作事件外溢容器，超时/取消/出错路径回带已捕获的部分事件流。
+        events_holder: list[dict[str, Any]] = []
         try:
             if ClaudeCodeService._check_sdk():
-                coro = ClaudeCodeService._invoke_sdk(prompt, config, abort_event, session_holder)
+                coro = ClaudeCodeService._invoke_sdk(
+                    prompt, config, abort_event, session_holder, events_holder, on_event
+                )
             else:
-                coro = ClaudeCodeService._invoke_cli(prompt, config, abort_event, session_holder)
+                coro = ClaudeCodeService._invoke_cli(
+                    prompt, config, abort_event, session_holder, events_holder, on_event
+                )
             result = await asyncio.wait_for(coro, timeout=config.timeout_seconds)
+            result.events = events_holder
             elapsed = time.monotonic() - t0
             logger.info(
                 "claude_code_invoke_done",
@@ -73,23 +310,36 @@ class ClaudeCodeService:
                 elapsed_s=round(elapsed, 2),
                 turns=result.turn_count,
                 cost=result.cost_usd,
+                events=len(events_holder),
                 sdk=ClaudeCodeService._sdk_available,
             )
             return result
         except asyncio.CancelledError:
             return ClaudeCodeResult(
-                status="error", summary="", session_id=session_holder.get("session_id"), error="cancelled"
+                status="error",
+                summary="",
+                session_id=session_holder.get("session_id"),
+                error="cancelled",
+                events=list(events_holder),
             )
         except TimeoutError:
             sid = session_holder.get("session_id")
             logger.warning("claude_code_invoke_timeout", timeout=config.timeout_seconds, session_id=sid)
             return ClaudeCodeResult(
-                status="timeout", summary="", session_id=sid, error=f"exceeded timeout ({config.timeout_seconds}s)"
+                status="timeout",
+                summary="",
+                session_id=sid,
+                error=f"exceeded timeout ({config.timeout_seconds}s)",
+                events=list(events_holder),
             )
         except Exception as exc:
             logger.warning("claude_code_invoke_failed", error=str(exc))
             return ClaudeCodeResult(
-                status="error", summary="", session_id=session_holder.get("session_id"), error=str(exc)
+                status="error",
+                summary="",
+                session_id=session_holder.get("session_id"),
+                error=str(exc),
+                events=list(events_holder),
             )
 
     # ------------------------------------------------------------------
@@ -102,6 +352,8 @@ class ClaudeCodeService:
         config: ClaudeCodeConfig,
         abort_event: asyncio.Event | None,
         session_holder: dict[str, str | None] | None = None,
+        events_holder: list[dict[str, Any]] | None = None,
+        on_event: EventSink | None = None,
     ) -> ClaudeCodeResult:
         import claude_code_sdk
 
@@ -143,6 +395,20 @@ class ClaudeCodeService:
             if abort_event and abort_event.is_set():
                 break
 
+        # SDK 路径仅捕获最终 result 作为审计事件——中间动作的 SDK 消息结构与 stream-json
+        # 差异较大，不做逐块归一化；CLI 路径才是「全过程」动作捕获的权威实现（当前未装 SDK）。
+        await _emit_events(
+            {
+                "type": _EVT_RESULT,
+                "result": result_text,
+                "total_cost_usd": cost,
+                "num_turns": turns,
+                "is_error": bool(error_text),
+            },
+            events_holder,
+            on_event,
+        )
+
         status = "error" if error_text else "success"
         return ClaudeCodeResult(
             status=status,
@@ -163,6 +429,8 @@ class ClaudeCodeService:
         config: ClaudeCodeConfig,
         abort_event: asyncio.Event | None,
         session_holder: dict[str, str | None] | None = None,
+        events_holder: list[dict[str, Any]] | None = None,
+        on_event: EventSink | None = None,
     ) -> ClaudeCodeResult:
         args = ClaudeCodeService._build_cli_args(prompt, config)
 
@@ -198,7 +466,7 @@ class ClaudeCodeService:
                         if session_holder is not None:
                             session_holder["session_id"] = sid
                 elif evt_type == _EVT_RESULT:
-                    result_text = event.get("result", "")
+                    result_text = event.get("result", "") or result_text
                     if event.get("session_id"):
                         session_id = event.get("session_id")
                         if session_holder is not None:
@@ -206,10 +474,24 @@ class ClaudeCodeService:
                     # claude CLI 的 result 事件字段为 ``total_cost_usd``；兼容旧字段 ``cost_usd``。
                     cost = event.get("total_cost_usd") or event.get("cost_usd") or 0.0
                     turns = event.get("num_turns", 0)
-                elif evt_type == _EVT_ASSISTANT:
-                    content = event.get("content", "")
-                    if content and not result_text:
-                        result_text = content
+                elif evt_type == _EVT_ASSISTANT and not result_text:
+                    # 回退：result 事件缺席时，从 assistant 的 message.content **文本块**兜底取摘要。
+                    # （历史实现误读扁平 event["content"]，对真实 CLI 恒为空——此处修复为读 message.content。）
+                    blocks = (event.get("message") or {}).get("content")
+                    if isinstance(blocks, list):
+                        text = "\n".join(
+                            b.get("text", "") for b in blocks if isinstance(b, dict) and b.get("type") == "text"
+                        ).strip()
+                    elif isinstance(blocks, str):
+                        text = blocks.strip()
+                    else:
+                        text = ""
+                    if text:
+                        result_text = text
+
+                # 「全过程」动作级捕获 + 实时回调（best-effort；suppress 异常，绝不影响主执行）
+                await _emit_events(event, events_holder, on_event)
+
                 if abort_event and abort_event.is_set():
                     proc.terminate()
                     break

@@ -27,3 +27,11 @@ export function controlsFor(status: RoutineStatus): ControlAction[] {
       return [];
   }
 }
+
+/**
+ * 是否可「重新启动」——仅非成功终态（failed / cancelled）。
+ * Restart 不走即时控制（controlsFor），需对话框门控（反思选择 + 代价确认），故单列判定。
+ */
+export function canRestart(status: RoutineStatus): boolean {
+  return status === "failed" || status === "cancelled";
+}

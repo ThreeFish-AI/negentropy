@@ -13,6 +13,7 @@
 - POST   /routines/{id}/pause                暂停（running → paused，中止在途迭代）
 - POST   /routines/{id}/resume               恢复（paused → running）
 - POST   /routines/{id}/cancel               取消（→ cancelled）
+- POST   /routines/{id}/restart              重启（failed/cancelled → running，复位运行态 + 抬高决策水位线）
 - POST   /routines/{id}/iterations/{iid}/approve   审批通过待执行迭代
 - POST   /routines/{id}/iterations/{iid}/reject    驳回待执行迭代
 - GET    /routines/stream                    SSE 实时事件（routine + iteration）
@@ -43,7 +44,7 @@ import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.routine import phase as phase_mod
 from negentropy.logging import get_logger
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 logger = get_logger("negentropy.interface.routine_api")
 
@@ -137,6 +138,10 @@ class ControlBody(BaseModel):
     reason: str | None = None
 
 
+class RestartBody(BaseModel):
+    keep_reflections: bool = True  # True=携带既往反思（Reflexion 跨尝试学习）；False=清空重来
+
+
 # ---------------------------------------------------------------------------
 # 序列化
 # ---------------------------------------------------------------------------
@@ -203,6 +208,22 @@ def _serialize_iteration(it: RoutineIteration) -> dict[str, Any]:
         "gate_exit_code": it.gate_exit_code,
         "started_at": it.started_at.isoformat() if it.started_at else None,
         "finished_at": it.finished_at.isoformat() if it.finished_at else None,
+    }
+
+
+def _serialize_event(ev: RoutineIterationEvent) -> dict[str, Any]:
+    """序列化单条「全过程」动作审计事件（与前端 ``RoutineIterationEventDTO`` 对齐）。"""
+    return {
+        "id": str(ev.id),
+        "iteration_id": str(ev.iteration_id),
+        "routine_id": str(ev.routine_id),
+        "seq": ev.seq,
+        "event_type": ev.event_type,
+        "tool_name": ev.tool_name,
+        "title": ev.title,
+        "payload": ev.payload or {},
+        "cost_usd": ev.cost_usd,
+        "created_at": ev.created_at.isoformat() if ev.created_at else None,
     }
 
 
@@ -495,6 +516,39 @@ async def list_iterations(
 
 
 # ---------------------------------------------------------------------------
+# GET /routines/{id}/iterations/{iid}/events
+# 「全过程」动作级审计事件流（懒加载；不内联进迭代详情，保持列表/详情载荷小）。
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{routine_id}/iterations/{iteration_id}/events")
+async def list_iteration_events(
+    routine_id: UUID,
+    iteration_id: UUID,
+    limit: int = Query(200, ge=1, le=1000),
+    after_seq: int | None = Query(None, description="分页：返回 seq 大于此值的事件（升序）"),
+) -> dict[str, Any]:
+    """单次迭代的「全过程」动作级审计事件流（工具调用/结果/中间消息/结果/门控/评估，按 seq 升序）。"""
+    async with db_session.AsyncSessionLocal() as db:
+        it = await db.get(RoutineIteration, iteration_id)
+        if it is None or it.routine_id != routine_id:
+            raise HTTPException(status_code=404, detail="iteration not found")
+        stmt = select(RoutineIterationEvent).where(RoutineIterationEvent.iteration_id == iteration_id)
+        if after_seq is not None:
+            stmt = stmt.where(RoutineIterationEvent.seq > after_seq)
+        stmt = stmt.order_by(RoutineIterationEvent.seq.asc()).limit(limit + 1)
+        rows = (await db.execute(stmt)).scalars().all()
+
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    return {
+        "items": [_serialize_event(ev) for ev in rows],
+        "has_more": has_more,
+        "next_after_seq": rows[-1].seq if has_more and rows else None,
+    }
+
+
+# ---------------------------------------------------------------------------
 # POST /routines
 # ---------------------------------------------------------------------------
 
@@ -675,6 +729,68 @@ async def cancel_routine(routine_id: UUID, body: ControlBody | None = None) -> d
     return _serialize_routine(r)
 
 
+@router.post("/{routine_id}/restart")
+async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> dict[str, Any]:
+    """重新启动失败 / 取消的 routine：非成功终态 → running，复位运行态并开启新一轮尝试。
+
+    复位运行期计数器（迭代数 / 成本 / 评分 / session / 相位 / PR）使预算守卫从零重新计；
+    抬高 ``eval_floor_seq`` 至当前 ``MAX(seq)`` 使新一轮的停滞 / 振荡 / 审批判定不被既往迭代污染
+    （旧迭代行**保留**供审计，seq 唯一性由 ``_next_seq`` 取 ``MAX(seq)+1`` 保证）。
+    ``deadline`` 为绝对时间，无法靠归零复活——已过期则拒绝并引导用户先更新截止时间。
+    """
+    keep_reflections = body.keep_reflections if body is not None else True
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id, with_for_update=True)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if r.status not in ("failed", "cancelled"):
+            raise HTTPException(
+                status_code=409,
+                detail=f"cannot restart from status '{r.status}'; only failed/cancelled routines can be restarted",
+            )
+        if r.deadline_at is not None:
+            deadline = r.deadline_at if r.deadline_at.tzinfo else r.deadline_at.replace(tzinfo=UTC)
+            if _utcnow() >= deadline:
+                raise HTTPException(
+                    status_code=409,
+                    detail="deadline has passed; update or clear the deadline before restarting",
+                )
+
+        # 闭合上一轮遗留的全部非终态迭代（含 executed）。终态 routine 理论上不应有在途迭代，
+        # 但 cancel 会保留 executed 迭代、且崩溃/reaper 竞态可能遗留孤儿；若不闭合，重启后
+        # 这些旧迭代会被 _find_routines_pending_eval / _has_active_iteration 拾取，污染新尝试
+        # 评分/反思、阻塞派发甚至即刻误终止。须在抬高 eval_floor_seq 前完成（同一事务内）。
+        await _abort_active_iterations(db, routine_id, include_executed=True)
+
+        max_seq = (
+            await db.execute(
+                select(func.coalesce(func.max(RoutineIteration.seq), 0)).where(
+                    RoutineIteration.routine_id == routine_id
+                )
+            )
+        ).scalar_one()
+
+        # 复位运行态（保留任务定义 / 预算策略 / 既往迭代行）
+        r.status = "running"
+        r.termination_reason = None
+        r.iteration_count = 0
+        r.total_cost_usd = 0.0
+        r.best_score = None
+        r.last_score = None
+        r.claude_session_id = None
+        r.current_phase = phase_mod.initial_phase(r.config)
+        r.pr_url = None
+        r.eval_floor_seq = int(max_seq)
+        if not keep_reflections:
+            r.reflections = {}
+
+        await db.commit()
+        await db.refresh(r)
+    _KPI_CACHE.invalidate()
+    await _publish_routine(r)
+    return _serialize_routine(r)
+
+
 # ---------------------------------------------------------------------------
 # 审批门控：approve / reject
 # ---------------------------------------------------------------------------
@@ -716,8 +832,13 @@ async def reject_iteration(routine_id: UUID, iteration_id: UUID) -> dict[str, An
 # ---------------------------------------------------------------------------
 
 
-async def _abort_active_iterations(db, routine_id: UUID) -> None:
-    """中止该 routine 当前在途/待执行迭代：请求 runner abort + 标记 aborted。"""
+async def _abort_active_iterations(db, routine_id: UUID, *, include_executed: bool = False) -> None:
+    """中止该 routine 当前在途/待执行迭代：请求 runner abort + 标记 aborted。
+
+    默认（pause/cancel）保留 ``executed`` 迭代（结果已产出，待评估）。``include_executed=True``
+    时（restart）连同 ``executed`` 一并闭合为 aborted——重启开启全新尝试，上一轮遗留的未评估
+    结果不应被新一轮的评估/派发链路拾取（否则会污染新尝试评分/反思甚至即刻误终止）。
+    """
     from negentropy.engine.routine.runner import get_runner
 
     runner = get_runner()
@@ -733,11 +854,12 @@ async def _abort_active_iterations(db, routine_id: UUID) -> None:
         .scalars()
         .all()
     )
+    abortable = _NON_TERMINAL_ITER if include_executed else ("pending_approval", "dispatched", "in_flight")
     now = _utcnow()
     for it in rows:
         runner.request_abort(it.id)
-        # executed 等待评估的不强行中止（结果已产出）；其余标记 aborted
-        if it.status in ("pending_approval", "dispatched", "in_flight"):
+        # executed 等待评估的默认不强行中止（结果已产出）；其余（含 restart 的 executed）标记 aborted
+        if it.status in abortable:
             it.status = "aborted"
             it.finished_at = now
             it.lease_expires_at = None

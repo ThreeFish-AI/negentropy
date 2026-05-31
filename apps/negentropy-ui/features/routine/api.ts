@@ -5,6 +5,7 @@
  */
 
 import type {
+  IterationEventsResponse,
   IterationListResponse,
   RoutineCreatePayload,
   RoutineDTO,
@@ -67,6 +68,21 @@ export async function fetchIterations(
   return jsonFetch(`/${encodeURIComponent(routineId)}/iterations${q ? `?${q}` : ""}`);
 }
 
+/** 拉取单次迭代的「全过程」动作级审计事件流（按 seq 升序，懒加载于审计抽屉打开时）。 */
+export async function fetchIterationEvents(
+  routineId: string,
+  iterationId: string,
+  opts: { limit?: number; after_seq?: number } = {},
+): Promise<IterationEventsResponse> {
+  const sp = new URLSearchParams();
+  if (opts.limit) sp.set("limit", String(opts.limit));
+  if (opts.after_seq != null) sp.set("after_seq", String(opts.after_seq));
+  const q = sp.toString();
+  return jsonFetch(
+    `/${encodeURIComponent(routineId)}/iterations/${encodeURIComponent(iterationId)}/events${q ? `?${q}` : ""}`,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // CRUD
 // ---------------------------------------------------------------------------
@@ -96,6 +112,20 @@ type ControlAction = "start" | "pause" | "resume" | "cancel";
 
 export async function controlRoutine(routineId: string, action: ControlAction): Promise<RoutineDTO> {
   return jsonFetch(`/${encodeURIComponent(routineId)}/${action}`, { method: "POST" });
+}
+
+/**
+ * 重启失败 / 取消的 routine：复位运行态并重跑。`keep_reflections` 决定是否携带既往反思记忆。
+ * 仅对 failed/cancelled 终态有效（后端守卫，否则 409）。
+ */
+export async function restartRoutine(
+  routineId: string,
+  body: { keep_reflections: boolean },
+): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/restart`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function approveIteration(

@@ -35,6 +35,10 @@ class RoutineSettings(BaseSettings):
         default=False,
         description="是否启用 Routine 编排循环（默认关闭，灰度开启）。关闭时 inspector handler 直接 no-op。",
     )
+    capture_events: bool = Field(
+        default=True,
+        description="是否捕获并持久化迭代「全过程」动作级审计事件（工具调用/结果/评估），并经 SSE 实时推送。",
+    )
     inspector_interval_seconds: int = Field(
         default=25, ge=5, le=600, description="routine_inspector 心跳 tick 间隔（秒）"
     )

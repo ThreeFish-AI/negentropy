@@ -18,8 +18,10 @@ import {
   fetchRoutineDetail,
   fetchRoutines,
   rejectIteration,
+  restartRoutine,
   updateRoutine,
 } from "@/features/routine/api";
+import { canRestart } from "@/app/interface/routine/_components/routine-controls";
 
 /** 构造一个成功的 JSON Response。 */
 function jsonResponse(body: unknown, status = 200): Response {
@@ -121,12 +123,34 @@ describe("routine api · 写入端点", () => {
     expect(init.method).toBe("POST");
   });
 
+  it("restartRoutine 命中 /restart 并 POST keep_reflections", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "r1", status: "running" }));
+    await restartRoutine("r1", { keep_reflections: false });
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine/r1/restart");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ keep_reflections: false });
+  });
+
   it("approveIteration / rejectIteration 命中迭代审批路径", async () => {
     const spy = mockFetch(() => jsonResponse({ id: "it1" }));
     await approveIteration("r1", "it1");
     expect(lastCall(spy).url).toBe("/api/routine/r1/iterations/it1/approve");
     await rejectIteration("r1", "it1");
     expect(lastCall(spy).url).toBe("/api/routine/r1/iterations/it1/reject");
+  });
+});
+
+describe("routine controls · canRestart", () => {
+  it("仅对非成功终态（failed / cancelled）为真", () => {
+    expect(canRestart("failed")).toBe(true);
+    expect(canRestart("cancelled")).toBe(true);
+  });
+
+  it("对其余状态为假（含 succeeded / running / paused / pending）", () => {
+    for (const s of ["pending", "running", "paused", "succeeded"] as const) {
+      expect(canRestart(s)).toBe(false);
+    }
   });
 });
 
