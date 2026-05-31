@@ -2674,3 +2674,24 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   5. **DB 清理（数据非代码）**：单事务按 FK 依赖顺序先删 2 行 `task_model_settings`、再删 test-vendor `model_config` 行（精确按 id + 二次校验 vendor）。
 - **验证**：DB 删前后只读计数对照（test-vendor 1→0、引用行 2→0、全表 14 行真实 vendor 无误删）；fixture 清理语义经独立临时脚本证「seed→DELETE teardown→查无残留」（同脚本实测旧 `db.delete(detached)` 在此**亦正常删除**、非泄漏，详见「根因订正」）；后端 grep 确认 fallback；tsc + eslint(`--max-warnings=0`) 双绿；alt-port(3193) dev server + chrome_devtools 复用真实登录态实机：下拉 8 项/3 真实组、`hasDefault:false`、`hasTestVendor:false`、默认 `gpt-5-nano`、双向切换 + localStorage 持久化(`openai/gpt-5-nano`↔`anthropic/claude-opus-4-6`)均正常。
 - **同类问题影响 / 跨上下文注意**：①**detached 对象的 `db.delete()` 在 async 下可正常删除**（按 identity key 重挂 session + flush 发 DELETE，已实测），**勿**据此把跨 session detached delete 误判为「静默泄漏」而盲目审计——`test_global_setting_insert_and_read`（line 114-116）即同型写法、实测清理正常。async ORM 下真正危险的是**对 detached 对象触发 lazy-load**（访问未加载的属性/关系 → `DetachedInstanceError`/`MissingGreenlet`，与 312-313 行谱系同源）；seed-yield-teardown 清理仍**推荐** `delete().where()`，理由是幂等、不依赖对象状态、不触发 cascade/lazy-load，而非 `db.delete()` 会失效。②前端「占位/默认」语义变更须穷举**所有** state 初始化分支（本例 home-body 含 6 处，易漏 Effect 2 后端 snapshot 回退点），否则「打开历史会话」等冷路径仍回退旧 null。③`is_default` 字段（DB 层全局唯一默认）与前端默认选中（代码常量）是**两套独立机制**，本期前端默认不读 `is_default`，勿混淆。
+
+## ISSUE-105 Routine 编辑/查看面板五屏割裂统一为单一「Edit Routine」抽屉 + 模板「使用」内联展开被遮挡（2026-05-31）
+
+- **需求触因**：Interface / Routine 模块存在 5 个职责重叠、文案中英混杂的编辑/查看面板（只读详情抽屉 `RoutineDetailDrawer` + 编辑模态 `RoutineFormDialog` + 模板详情抽屉 `TemplateDetailDrawer` + 模板三步向导 `TemplateFormDialog` + 内联创建 `InlineCreateFromTemplate`），体验割裂、字段定义重复。用户要求收敛为单一可直接编辑的「Edit Routine」通用抽屉、宽度 1.5×、文案全英文一致。
+- **表因（图 4 遮挡 bug）**：模板库点击「使用此模板」展开的内联填写区被下一行卡片遮住、无法操作。
+- **根因（图 4）**：`templates/page.tsx` 把 `TemplateCard` 与 `InlineCreateFromTemplate` 放进同一 grid cell（`<div key={t.id}>`），grid cell 无 `overflow`/定位上下文，卡片 `h-full` + 内联块在 cell 内堆叠 → 内联块底部被相邻 grid item 的卡片视觉覆盖。属「把展开态塞进等高网格单元」的布局误用。
+- **处理方式（正交分解：单组件判别式驱动）**：
+  1. 新增 `RoutineEditDrawer.tsx`，以判别式联合 `mode`（`routine-create`/`routine-edit`/`template-create`/`template-edit`/`use-template`）驱动 5 种形态——`entity ∈ {routine,template} × op ∈ {create,edit}` + 一个实例化态。页面是「打开哪个 mode」的单一事实源，抽屉只自持表单草稿态；
+  2. 图 4 根治：模板「Use」改为**打开抽屉**（非内联展开），删去 grid cell 内联分支，回归「一个卡片一个 grid cell」；
+  3. 图 1+2 合并：行点击直接进可编辑抽屉，底部 Edit→**Save**（不再二次弹模态）；图 3：模板卡片进同一抽屉，内置只读仅 Use、用户模板 Save+Use+Delete；
+  4. 提交统一走 `createRoutine`/`updateRoutine`（模板 `is_template:true` + 元数据并入 config）；模板「Use」忠实提交用户编辑过的完整字段（`from-preset` 快捷通道与 6 个旧组件 + 死代码 `PresetCard`/`CreateFromTemplateDialog` 一并删除，净减 ~1824 行）；
+  5. 宽度 `w-[460px]`→`w-[690px]`（实测 690px）保留 `max-w-[92vw]` 窄屏兜底。
+- **UX 加固（ui-ux-pro-max skill 循证）**：①可见 label 替代原 placeholder-only（Goal/Acceptance 等，修原 High-severity a11y 缺陷）；②read-only ≠ disabled——运行中/内置模板只读态附**恢复路径**说明（"Pause to edit"/"Click Use"）；③弃改二次确认（dirty close → "Discard changes?"）防误丢编辑；④字段错误 icon+文案（非仅红框）+ `aria-live`。
+- **关键易错点 / 二阶风险**：
+  1. **SSE 刷新勿重置草稿**：抽屉表单**仅挂载时** seed 初值，外层按 `key={kind}:{id}` 强制重挂以切实体；同一 routine 的 `selected` prop 更新（SSE 状态翻转）只流向 header 状态徽标/`readOnly`/footer 控制（读实时 prop），不回灌 `form` 草稿；
+  2. **脏基线 seed 同源**：`baseline = useState(form)` 复用 `form` 的 `useState(() => buildInitial(mode))` 初值——`use-template` 的 `crypto.randomUUID()` key 只生成一次，避免 form/baseline 双生随机致**恒脏**（误判 + 每次关闭都弹弃改确认）；
+  3. **运行中锁定不静默**：SSE 将状态翻 running 时若用户有未保存编辑，字段会即时 disabled + 隐藏 Save——加 `wasRunningRef` 边沿检测 + `toast.warning` 显式告警，避免「字段变灰 + Save 消失」成为无声数据丢失陷阱；
+  4. **判别式收窄取 id 勿用 `as` 强转**：`mode.kind === "routine-edit" ? mode.routine.id : mode.template.id`（按 kind 穷尽），保留联合穷尽性，未来新增 mode 由编译器兜底（`as {template}` 强转会让缺 `.template` 的新 mode 编译通过、运行时 throw）；
+  5. **React Compiler 规则**：`isDirty` 比较基线用 **state**（非 render 期读 `ref.current`，触 `react-hooks/refs`）；字段错误渲染用普通函数 `renderFieldError()`（非 render 期创建组件，触 `react-hooks/static-components`）。
+- **验证**：`pnpm typecheck`（pretypecheck 重建 `@negentropy/agents-chat-core` 消除 stale-dist 噪声）+ eslint(`--max-warnings=0`) 双绿；alt-port 3193 `next dev` + chrome_devtools 复用真实登录态实机走查 **5 条 mode 全链路**：图 4「Use」弹抽屉不再被遮挡、cwd 必填校验 + 实际创建并跳转详情；图 1+2 行点击直接可编辑 + Save（PUT 200 + 列表/详情刷新）；paused 显 Resume/Cancel + Save、failed 显 Delete；内置模板全字段 disabled 仅 Use；New Routine 空表单 + Advanced 折叠；弃改确认；抽屉实测 690px；明暗双主题；console 仅余 font-preload 框架噪声 0 报错。
+- **同类问题影响 / 跨上下文注意**：①**展开态/内联块勿塞进等高网格单元**（`h-full` + `grid` cell）——会被相邻 item 遮挡；展开交互优先用抽屉/弹层（脱离文档流 + z-index 分层），或把展开块移出 grid 容器；②多形态面板优先**判别式联合单组件 + keyed remount** 而非 N 个并存组件（消重复字段定义 + 单一事实源）；③React 19 + eslint-plugin-react-hooks v7 的 React Compiler 规则禁止 render 期读 ref / 创建组件，dirty-baseline 用 state、字段助手用普通函数；④抽屉宽度等"任意值"改动后须 computed-style/`getBoundingClientRect` 量化实证（本期实测 690px / 0.54 视口），勿凭截图目测。

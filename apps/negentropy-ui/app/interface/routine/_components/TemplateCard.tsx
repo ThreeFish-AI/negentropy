@@ -134,7 +134,7 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
             onUse(template);
           }}
         >
-          使用此模板
+          Use
         </Button>
       </div>
     </div>

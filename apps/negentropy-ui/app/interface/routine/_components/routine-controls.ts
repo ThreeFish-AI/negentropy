@@ -1,7 +1,7 @@
 import type { RoutineStatus } from "@/features/routine";
 
 /**
- * Routine 控制动作 —— 抽屉（RoutineDetailDrawer）与 Run 全过程页（[id]/page）共享的单一事实源，
+ * Routine 控制动作 —— 抽屉（RoutineEditDrawer）与 Run 全过程页（[id]/page）共享的单一事实源，
  * 避免「允许的状态转换 / 文案」在两处手工同步而静默分叉。
  */
 export type ControlAction = "start" | "pause" | "resume" | "cancel";
