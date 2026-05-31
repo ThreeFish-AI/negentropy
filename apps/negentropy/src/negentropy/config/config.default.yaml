@@ -188,6 +188,7 @@ memory:
 # --- Routine 配置（长周期自主任务迭代执行：Evaluator-Optimizer + Reflexion）---
 routine:
   enabled: true                              # Routine 编排循环已启用：routine_inspector 心跳驱动 Evaluate-Dispatch 闭环
+  capture_events: true                       # 捕获并持久化迭代「全过程」动作级审计事件（工具调用/结果/评估）+ SSE 实时推送
   inspector_interval_seconds: 25             # 心跳 tick 间隔；与种子 routine_inspector ScheduledTask 一致
   max_concurrent_executions: 2               # 全局并发 Claude Code 执行上限（进程内信号量）
   lease_slack_seconds: 60                    # Runner lease 宽裕量；崩溃恢复 reaper 据此判定孤儿迭代

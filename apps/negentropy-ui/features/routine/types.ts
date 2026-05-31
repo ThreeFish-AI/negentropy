@@ -89,6 +89,61 @@ export interface RoutineIterationDTO {
 }
 
 /**
+ * 「全过程」动作级审计事件类型：
+ * - 执行阶段：system（init）/ assistant（中间消息）/ tool_use（工具调用）/ tool_result（工具结果）/ result（最终产出）
+ * - 评估阶段：gate（命令门控）/ evaluation（LLM-as-Judge）
+ * - _truncated：动作数超上限的哨兵
+ */
+export type RoutineEventType =
+  | "system"
+  | "assistant"
+  | "tool_use"
+  | "tool_result"
+  | "result"
+  | "gate"
+  | "evaluation"
+  | "_truncated"
+  | "unknown";
+
+/** 单条「全过程」动作审计事件（与后端 ``_serialize_event`` 对齐）。 */
+export interface RoutineIterationEventDTO {
+  id: string;
+  iteration_id: string;
+  routine_id: string;
+  /** 单迭代内单调递增序号；实时事件与持久化一致，据 (iteration_id, seq) 去重。 */
+  seq: number;
+  event_type: RoutineEventType;
+  tool_name: string | null;
+  title: string | null;
+  /** 归一化结构化载荷（input/output/text/context/meta；字段截断到 ~16KB）。 */
+  payload: Record<string, unknown>;
+  cost_usd: number | null;
+  created_at: string | null;
+}
+
+export interface IterationEventsResponse {
+  items: RoutineIterationEventDTO[];
+  has_more: boolean;
+  next_after_seq: number | null;
+}
+
+/**
+ * 实时 ``action`` 事件载荷 —— SSE 推送的动作事件（携带 routine_id/iteration_id/seq + 归一化字段）。
+ * 无 ``id``（尚未落库），无 ``created_at``；前端据 ``(iteration_id, seq)`` 与持久化事件去重合并。
+ */
+export interface RoutineActionStreamEvent {
+  type: "action";
+  routine_id: string;
+  iteration_id: string;
+  seq: number;
+  event_type: RoutineEventType;
+  tool_name?: string | null;
+  title?: string | null;
+  payload?: Record<string, unknown>;
+  cost_usd?: number | null;
+}
+
+/**
  * 迭代的精简快照 —— 由 SSE ``iteration`` 事件或 ``recent=1`` 探测填充，
  * 供 Fleet 卡片在不拉取完整详情的前提下推导当前闭环阶段与实时耗时。
  * 字段为 ``RoutineIterationDTO`` 的子集（全部可选，SSE 载荷可能不完整）。
@@ -159,12 +214,15 @@ export interface RoutineCreatePayload {
 /** 更新请求体（全部可选） */
 export type RoutineUpdatePayload = Partial<Omit<RoutineCreatePayload, "key">>;
 
-/** SSE 事件 */
+/** SSE 事件（routine 状态 / iteration 生命周期 / action 动作级实时） */
 export interface RoutineStreamEvent {
-  type: "routine" | "iteration";
-  id: string;
+  type: "routine" | "iteration" | "action";
+  id?: string;
   routine_id?: string;
+  iteration_id?: string;
   status?: string;
+  seq?: number;
+  event_type?: RoutineEventType;
   [key: string]: unknown;
 }
 

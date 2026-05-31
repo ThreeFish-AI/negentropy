@@ -19,6 +19,10 @@ export type {
   RoutineCreatePayload,
   RoutineUpdatePayload,
   RoutineStreamEvent,
+  RoutineActionStreamEvent,
+  RoutineEventType,
+  RoutineIterationEventDTO,
+  IterationEventsResponse,
   TemplateSource,
   RoutineTemplateItem,
 } from "./types";
@@ -28,6 +32,7 @@ export {
   fetchRoutines,
   fetchRoutineDetail,
   fetchIterations,
+  fetchIterationEvents,
   createRoutine,
   updateRoutine,
   deleteRoutine,
@@ -42,3 +47,4 @@ export { useRoutineData } from "./hooks/useRoutineData";
 export { useRoutineStream } from "./hooks/useRoutineStream";
 export { useRoutineLive, useFleetSeed, liteFromIteration } from "./hooks/useRoutineLive";
 export { useRoutineDetailLive } from "./hooks/useRoutineDetailLive";
+export type { LiveActionsByIteration } from "./hooks/useRoutineDetailLive";

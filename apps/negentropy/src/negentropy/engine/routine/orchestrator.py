@@ -27,12 +27,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.logging import get_logger
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from . import decision as decision_mod
 from . import phase as phase_mod
@@ -47,10 +48,24 @@ logger = get_logger("negentropy.engine.routine.orchestrator")
 _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed")
 # 每 tick 评估/派发的 routine 批量上限，避免单 tick 过载
 _BATCH_LIMIT = 10
+# 「全过程」审计事件单字段截断上限（与 claude_code.service 一致），防 DB 膨胀。
+_EVENT_FIELD_CAP = 16 * 1024
 
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def _cap(value: str | None, limit: int = _EVENT_FIELD_CAP) -> str | None:
+    """字符串超长则截断并加可见标记（审计事件入库前的体积保护）。
+
+    输出长度严格 ``≤ limit``（标记预算从 head 中扣除），使 title 等可安全写入定长列。
+    """
+    if value is not None and len(value) > limit:
+        marker = f"…[truncated {len(value) - limit} chars]"
+        head = max(0, limit - len(marker))
+        return value[:head] + marker
+    return value
 
 
 def _lease_extension() -> timedelta:
@@ -172,12 +187,16 @@ class RoutineOrchestrator:
                 attempts = int((latest.metrics or {}).get("eval_attempts", 0)) + 1
                 latest.eval_error = result.error
                 latest.metrics = {**(latest.metrics or {}), "eval_attempts": attempts}
+                eval_events: list[dict] = []
                 if attempts >= settings.routine.eval_failure_patience:
                     self._terminate(routine, decision_mod.REASON_UNRECOVERABLE)
                     latest.status = "evaluated"
                     latest.verdict = "unrecoverable"
+                    # 仅在确实翻转 evaluated（终止）时落审计事件，避免重试期间每 tick 重复追加。
+                    eval_events = await self._persist_eval_events(db, routine, latest, result)
                 await db.commit()
                 await self._publish_routine(routine)
+                await self._publish_action_events(routine_id, latest.id, eval_events)
                 return False
 
             # 写入评估结果
@@ -210,6 +229,9 @@ class RoutineOrchestrator:
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
 
+            # 「全过程」审计：在迭代翻转 evaluated 时追加 gate / evaluation 事件（seq=MAX+1）。
+            eval_events = await self._persist_eval_events(db, routine, latest, result)
+
             await db.commit()
             await self._publish_routine(routine)
             await get_bus().publish(
@@ -223,6 +245,7 @@ class RoutineOrchestrator:
                     "verdict": result.verdict,
                 }
             )
+            await self._publish_action_events(routine_id, latest.id, eval_events)
             return True
 
     # ------------------------------------------------------------------
@@ -550,6 +573,92 @@ class RoutineOrchestrator:
                 "phase": iteration.phase,
             }
         )
+
+    @staticmethod
+    async def _persist_eval_events(
+        db: AsyncSession, routine: Routine, iteration: RoutineIteration, result
+    ) -> list[dict]:
+        """迭代翻转 ``evaluated`` 时追加 ``gate`` / ``evaluation`` 审计事件并落库。
+
+        seq 由 DB 侧 ``MAX(seq)+1`` 派生（接在 execution 事件之后），**仅在 →evaluated 转换调用**
+        以避免 ok=False 重试期间每 tick 重复追加；``ON CONFLICT(iteration_id,seq) DO NOTHING``
+        兜底竞态。返回构造的事件 dict（含 seq）供调用方实时发布。
+        """
+        if not settings.routine.capture_events:
+            return []
+        start = (
+            await db.execute(
+                select(func.coalesce(func.max(RoutineIterationEvent.seq), -1) + 1).where(
+                    RoutineIterationEvent.iteration_id == iteration.id
+                )
+            )
+        ).scalar_one()
+        seq = int(start)
+        events: list[dict] = []
+        if routine.verification_command:
+            events.append(
+                {
+                    "seq": seq,
+                    "event_type": "gate",
+                    "tool_name": None,
+                    "title": _cap(f"Gate: {routine.verification_command}", 255),
+                    "payload": {
+                        "command": _cap(routine.verification_command),
+                        "exit_code": result.gate_exit_code,
+                        "output": _cap(result.gate_output or ""),
+                    },
+                    "cost_usd": None,
+                }
+            )
+            seq += 1
+        score_suffix = f" · {result.score}" if result.score is not None else ""
+        events.append(
+            {
+                "seq": seq,
+                "event_type": "evaluation",
+                "tool_name": None,
+                "title": _cap(f"Judge: {result.verdict or 'eval'}{score_suffix}", 255),
+                "payload": {
+                    "score": result.score,
+                    "verdict": result.verdict,
+                    "reflection": result.reflection,
+                    "prompt": _cap(result.judge_prompt or ""),
+                    "raw": _cap(result.judge_raw or ""),
+                    "error": result.error,
+                },
+                "cost_usd": None,
+            }
+        )
+        rows = [
+            {
+                "iteration_id": iteration.id,
+                "routine_id": routine.id,
+                "seq": e["seq"],
+                "event_type": e["event_type"][:24],
+                "tool_name": e["tool_name"],
+                # 定长列防御性收口（与 runner._persist_events 一致），即便 _cap 漏网也不致 insert 溢出。
+                "title": e["title"][:255] if e["title"] else None,
+                "payload": e["payload"],
+                "cost_usd": e["cost_usd"],
+            }
+            for e in events
+        ]
+        stmt = (
+            pg_insert(RoutineIterationEvent).values(rows).on_conflict_do_nothing(index_elements=["iteration_id", "seq"])
+        )
+        await db.execute(stmt)
+        return events
+
+    @staticmethod
+    async def _publish_action_events(routine_id: UUID, iteration_id: UUID, events: list[dict]) -> None:
+        """把 gate / evaluation 审计事件经非阻塞总线广播为 ``action`` 实时事件（best-effort）。"""
+        if not events:
+            return
+        bus = get_bus()
+        rid, iid = str(routine_id), str(iteration_id)
+        for e in events:
+            with suppress(Exception):
+                await bus.publish({"type": "action", "routine_id": rid, "iteration_id": iid, **e})
 
     # ------------------------------------------------------------------
     # 关停

@@ -14,16 +14,19 @@ export function useRoutineStream(opts?: {
   routineId?: string;
   onRoutineEvent?: (e: RoutineStreamEvent) => void;
   onIterationEvent?: (e: RoutineStreamEvent) => void;
+  onActionEvent?: (e: RoutineStreamEvent) => void;
 }) {
-  const { routineId, onRoutineEvent, onIterationEvent } = opts ?? {};
+  const { routineId, onRoutineEvent, onIterationEvent, onActionEvent } = opts ?? {};
   const [connected, setConnected] = useState(false);
 
   const routineCbRef = useRef(onRoutineEvent);
   const iterationCbRef = useRef(onIterationEvent);
+  const actionCbRef = useRef(onActionEvent);
   useEffect(() => {
     routineCbRef.current = onRoutineEvent;
     iterationCbRef.current = onIterationEvent;
-  }, [onRoutineEvent, onIterationEvent]);
+    actionCbRef.current = onActionEvent;
+  }, [onRoutineEvent, onIterationEvent, onActionEvent]);
 
   useEffect(() => {
     let es: EventSource | null = null;
@@ -62,6 +65,12 @@ export function useRoutineStream(opts?: {
         if (disposed) return;
         const data = parse(ev);
         if (data) iterationCbRef.current?.(data);
+      });
+
+      es.addEventListener("action", (ev) => {
+        if (disposed) return;
+        const data = parse(ev);
+        if (data) actionCbRef.current?.(data);
       });
 
       es.onerror = () => {

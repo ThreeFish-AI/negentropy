@@ -24,7 +24,7 @@ from sqlalchemy import delete, func, select
 
 import negentropy.db.session as db_session
 from negentropy.interface.routine_api import router
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 pytestmark = pytest.mark.asyncio
 
@@ -156,6 +156,63 @@ async def test_iteration_approve_reject():
             # reject → aborted
             rj = await c.post(f"/routines/{rid}/iterations/{iid2}/reject")
             assert rj.status_code == 200 and rj.json()["status"] == "aborted"
+    finally:
+        await _cleanup("itest_api_")
+
+
+async def test_iteration_events_endpoint_pagination_and_404():
+    """GET /routines/{id}/iterations/{iid}/events：升序分页 + 404 校验。"""
+    app = _app()
+    key = _key()
+    try:
+        async with _client(app) as c:
+            r = await c.post(
+                "/routines",
+                json={"key": key, "title": "Events Test", "goal": "g", "acceptance_criteria": "a"},
+            )
+            rid = r.json()["id"]
+
+        # DB 造一个迭代 + 5 条动作事件（seq 0..4）
+        async with db_session.AsyncSessionLocal() as db:
+            it = RoutineIteration(routine_id=uuid.UUID(rid), seq=1, status="executed", summary="done")
+            db.add(it)
+            await db.flush()
+            iid = str(it.id)
+            for i, et in enumerate(["system", "tool_use", "tool_result", "result", "evaluation"]):
+                db.add(
+                    RoutineIterationEvent(
+                        iteration_id=it.id,
+                        routine_id=uuid.UUID(rid),
+                        seq=i,
+                        event_type=et,
+                        title=f"e{i}",
+                        payload={"i": i},
+                    )
+                )
+            await db.commit()
+
+        async with _client(app) as c:
+            # 全量升序
+            full = await c.get(f"/routines/{rid}/iterations/{iid}/events")
+            assert full.status_code == 200
+            body = full.json()
+            assert [e["seq"] for e in body["items"]] == [0, 1, 2, 3, 4]
+            assert body["items"][1]["event_type"] == "tool_use"
+            assert body["has_more"] is False
+
+            # 分页：limit=2 → has_more + next_after_seq
+            page = await c.get(f"/routines/{rid}/iterations/{iid}/events", params={"limit": 2})
+            pb = page.json()
+            assert [e["seq"] for e in pb["items"]] == [0, 1]
+            assert pb["has_more"] is True and pb["next_after_seq"] == 1
+
+            # after_seq 翻页
+            nxt = await c.get(f"/routines/{rid}/iterations/{iid}/events", params={"limit": 2, "after_seq": 1})
+            assert [e["seq"] for e in nxt.json()["items"]] == [2, 3]
+
+            # 未知 iteration → 404
+            bad = await c.get(f"/routines/{rid}/iterations/{uuid.uuid4()}/events")
+            assert bad.status_code == 404
     finally:
         await _cleanup("itest_api_")
 

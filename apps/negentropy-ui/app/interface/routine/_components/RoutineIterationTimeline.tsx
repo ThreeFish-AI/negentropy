@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ListTree } from "lucide-react";
 
 import type { RoutineIterationDTO } from "@/features/routine";
 
@@ -12,6 +13,8 @@ interface RoutineIterationTimelineProps {
   iterations: RoutineIterationDTO[];
   onApprove: (iterationId: string) => void;
   onReject: (iterationId: string) => void;
+  /** 打开某迭代的「全过程」审计抽屉。 */
+  onAudit?: (iteration: RoutineIterationDTO) => void;
   busy?: boolean;
 }
 
@@ -19,6 +22,7 @@ export function RoutineIterationTimeline({
   iterations,
   onApprove,
   onReject,
+  onAudit,
   busy,
 }: RoutineIterationTimelineProps) {
   if (iterations.length === 0) {
@@ -28,7 +32,7 @@ export function RoutineIterationTimeline({
   return (
     <ol className="space-y-2">
       {iterations.map((it) => (
-        <IterationCard key={it.id} it={it} onApprove={onApprove} onReject={onReject} busy={busy} />
+        <IterationCard key={it.id} it={it} onApprove={onApprove} onReject={onReject} onAudit={onAudit} busy={busy} />
       ))}
     </ol>
   );
@@ -38,11 +42,13 @@ function IterationCard({
   it,
   onApprove,
   onReject,
+  onAudit,
   busy,
 }: {
   it: RoutineIterationDTO;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onAudit?: (iteration: RoutineIterationDTO) => void;
   busy?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -76,6 +82,18 @@ function IterationCard({
           )}
           {it.score != null && (
             <span className={`text-sm font-bold tabular-nums ${scoreColorClass(it.score)}`}>{it.score}</span>
+          )}
+          {onAudit && (
+            <button
+              type="button"
+              onClick={() => onAudit(it)}
+              aria-label={`查看迭代 #${it.seq} 全过程`}
+              title="查看全过程（所有动作的输入/输出/上下文）"
+              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <ListTree className="h-3 w-3" aria-hidden />
+              全过程
+            </button>
           )}
         </div>
       </div>

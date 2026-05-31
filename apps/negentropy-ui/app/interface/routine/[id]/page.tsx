@@ -26,7 +26,7 @@ import { useRestartRoutine } from "../_components/useRestartRoutine";
 export default function RoutineRunPage() {
   const params = useParams<{ id: string }>();
   const id = typeof params?.id === "string" ? params.id : null;
-  const { routine, loading, error, reload, connected } = useRoutineDetailLive(id);
+  const { routine, loading, error, reload, connected, liveActionsByIteration } = useRoutineDetailLive(id);
   const [busy, setBusy] = useState(false);
 
   const handleControl = useCallback(
@@ -163,6 +163,7 @@ export default function RoutineRunPage() {
                 routine={routine}
                 onApproveIteration={handleApprove}
                 onRejectIteration={handleReject}
+                liveActionsByIteration={liveActionsByIteration}
                 busy={busy}
               />
             ) : loading ? (
