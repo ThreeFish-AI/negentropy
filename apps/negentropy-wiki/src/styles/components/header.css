@@ -53,11 +53,20 @@
   display: flex;
   align-items: stretch;
   gap: 0.25rem;
-  flex: 1;
   min-width: 0;
   height: 100%;
   overflow-x: auto;
   scrollbar-width: none;
+}
+/* 左栏导航：仅 Knowledge Graph，内容宽度不伸缩 */
+.wiki-header-tabs--left {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+/* 右栏导航：内容 tabs，flex-grow 填充间隔 + 右对齐 */
+.wiki-header-tabs--right {
+  flex: 1 1 0;
+  justify-content: flex-end;
 }
 .wiki-header-tabs::-webkit-scrollbar {
   display: none;
@@ -261,12 +270,42 @@
   color: var(--wiki-text);
 }
 
+/* User avatar */
+.wiki-header-avatar {
+  padding: 0;
+  overflow: hidden;
+}
+.wiki-header-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.wiki-header-avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--wiki-primary-light);
+  color: var(--wiki-accent);
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1;
+}
+
 @media (max-width: 768px) {
   /* 仅隐藏顶栏内的搜索框；侧栏/移动抽屉中的搜索框保持可见 */
   .wiki-header .wiki-search-box {
     display: none;
   }
   .wiki-header-dropdown-panel {
+    display: none;
+  }
+  /* 移动端隐藏右侧内容导航，由 sidebar/drawer 承载 */
+  .wiki-header-tabs--right {
     display: none;
   }
 }
