@@ -3,7 +3,7 @@
 端点清单：
 - GET    /routines                          路由清单（status/owner/q 筛选 + 游标分页）
 - GET    /routines/kpis                      KPI 卡片数据
-- GET    /routines/presets                   内置 Demo 预设列表
+- GET    /routines/presets                   内置 Routine 预设模版列表
 - POST   /routines/from-preset               从预设创建路由
 - GET    /routines/{id}                      单路由详情 + 最近迭代
 - GET    /routines/{id}/iterations           迭代历史（分页）
@@ -250,7 +250,7 @@ async def get_kpis() -> dict[str, Any]:
 
 @router.get("/presets")
 async def list_routine_presets() -> list[dict[str, Any]]:
-    """内置 Demo 预设列表。"""
+    """内置 Routine 预设模版列表。"""
     from negentropy.agents.routine_presets import load_all
 
     presets = load_all()

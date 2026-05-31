@@ -1,28 +1,29 @@
 # ────────────────────────────────────────────────────────────
-# Routine Demo 2/3 — 测试用例增强（Test Enhancement）
+# Routine 预设模版 — 测试覆盖增强（Test Enhancement）
 #
 # 审批模式: every（每轮人工审批）
 # 命令门控: pytest（测试驱动验证）
-# 重点展示: Human-in-the-Loop 审批门控（every 模式）、Command Gate（pytest）、
+# 工程范式: Human-in-the-Loop 审批门控（every 模式）、Command Gate（pytest）、
 #           Session 连续性、max_cost 成本护栏
 # ────────────────────────────────────────────────────────────
 
 preset_id: test_enhancement
-display_name: "Demo: 测试用例增强"
+display_name: "测试覆盖增强"
 description: >
-  为目标模块补充测试用例：Claude Code 分析模块代码并生成单元测试，
-  每轮执行前需要人工审批确认安全性。演示 Routine 的 Human-in-the-Loop 能力——
-  每次迭代进入 pending_approval 状态等待用户批准后才执行，
-  pytest 作为 Command Gate 客观验证测试正确性，
-  Claude Code Session 在迭代间保持连续以积累测试策略上下文。
+  面向目标模块的人审驱动测试增强：分析公开 API 的未覆盖路径（正常 / 边界 / 异常），
+  按优先级补充独立、可重复、无副作用的单元测试。
+  采用 every 审批模式——每轮迭代进入 pending_approval 待人工确认后才执行，
+  适用于对变更安全性要求高的场景；以 pytest 退出码作为 Command Gate 客观验证测试正确性，
+  Claude Code 会话跨迭代连续以累积测试策略上下文，
+  Reflexion 反思记忆与 max_cost 成本护栏共同保障质量与可控性。
 category: testing
 version: 1.0.0
 features_showcase:
-  - "审批模式: every — 每轮迭代均需人工确认"
-  - "Command Gate — pytest 作为测试正确性验证"
-  - "Session 连续性 — Claude Code 跨迭代保持会话上下文"
-  - "max_cost 成本护栏 — 累计费用超限时终止"
+  - "Human-in-the-Loop — every 审批，每轮迭代需人工确认"
+  - "Command Gate — pytest 退出码验证测试正确性"
+  - "会话连续性 — Claude Code 跨迭代累积测试策略上下文"
   - "Reflexion — 评估反馈驱动测试策略自改进"
+  - "成本护栏 — max_cost 累计费用超限即终止"
 
 title: "Test Enhancement"
 goal: >

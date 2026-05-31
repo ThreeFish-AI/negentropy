@@ -1,25 +1,28 @@
 # ────────────────────────────────────────────────────────────
-# Routine Preset — 项目架构清减（Preening Substrate）
+# Routine 预设模版 — 项目架构清减（Preening Substrate）
 #
 # 审批模式: first（首轮需人工审批 plan）
 # 命令门控: ruff check（客观锚点）
-# 重点展示: 正交分解 + 语义规范化 + 代码清减的 Evaluator-Optimizer 自主迭代，
+# 工程范式: 正交分解 + 语义规范化 + 代码清减的 Evaluator-Optimizer 自主迭代，
 #           首轮 plan 审批确保方向正确，后续迭代全自动推进
 # ────────────────────────────────────────────────────────────
 
 preset_id: preening_substrate
 display_name: "项目架构清减"
 description: >
-  对目标项目执行正交分解与工程熵减：调用 /preening-substrate 技能，
-  按功能维度正交分解目标模块、精简冗余代码、规范化命名。
-  首轮需要人工审批 plan，后续由 LLM-as-Judge + Command Gate 驱动自动迭代。
+  面向目标项目的结构性熵减：调用 /preening-substrate 技能，沿功能维度对模块进行
+  正交分解、精简冗余与死代码、规范化命名以精确反映业务语义。
+  采用 first 审批模式——首轮以 plan 形式确认重构方向，之后由 LLM-as-Judge + Command Gate
+  （Ruff）驱动的 Evaluator-Optimizer 闭环全自动推进；以现有测试无回归与行数净减 ≥5%
+  为客观验收，较高的迭代与成本护栏匹配架构级重构的复杂度。
 category: architecture
 version: 1.0.0
 features_showcase:
-  - "审批模式: first — 首轮 plan 需人工确认方向"
-  - "Command Gate — ruff check 作为客观验证锚点"
-  - "Reflexion — 跨迭代反思记忆驱动自改进"
+  - "Plan 审批 — first 模式，首轮以 plan 确认重构方向"
+  - "Command Gate — Ruff 退出码作为客观验证锚点"
+  - "Reflexion — 跨迭代反思记忆驱动结构演进"
   - "LLM-as-Judge — 结构化评分 + verdict 判定"
+  - "高预算护栏 — 匹配架构级重构（20 轮 / $15 上限）"
 
 title: "Preening Substrate"
 goal: >
