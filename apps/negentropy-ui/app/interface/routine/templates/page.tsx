@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { TemplateCard } from "../_components/TemplateCard";
 import { TemplateFormDialog } from "../_components/TemplateFormDialog";
 import { CreateFromTemplateDialog } from "../_components/CreateFromTemplateDialog";
+import { TemplateDetailDrawer } from "../_components/TemplateDetailDrawer";
 
 const GRID_CLS = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
 
@@ -36,7 +37,7 @@ const GRID_CLS = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
  * 合并展示内置 YAML 预设（source=builtin，只读）与用户自建模板（source=user，可 CRUD）。
  * 交互流：
  * - "New Template" → TemplateFormDialog(create)
- * - 卡片点击 → 查看详情（预留 drawer 扩展点）
+ * - 卡片点击 → TemplateDetailDrawer 查看详情
  * - "使用模板" → CreateFromTemplateDialog（填 key+cwd → 创建 Routine）
  * - "Edit" → TemplateFormDialog(edit)
  * - "Delete" → useConfirmDialog → deleteRoutine → toast + refresh
@@ -51,6 +52,14 @@ export default function RoutineTemplatesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RoutineTemplateItem | null>(null);
   const [selectedForUse, setSelectedForUse] = useState<RoutineTemplateItem | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<RoutineTemplateItem | null>(null);
+  // 保留最后一次查看的模板，供 Drawer 关闭动画期间使用
+  const [lastViewedTemplate, setLastViewedTemplate] = useState<RoutineTemplateItem | null>(null);
+
+  const openDetail = (t: RoutineTemplateItem) => {
+    setSelectedDetail(t);
+    setLastViewedTemplate(t);
+  };
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -89,6 +98,7 @@ export default function RoutineTemplatesPage() {
   };
 
   const handleDelete = async (template: RoutineTemplateItem) => {
+    if (template.source !== "user") return; // 内置模板不可删除
     const ok = await confirm({
       title: "删除模板",
       message: `确定要删除「${template.display_name}」吗？此操作不可撤销。`,
@@ -172,6 +182,7 @@ export default function RoutineTemplatesPage() {
                         key={t.id}
                         template={t}
                         onUse={setSelectedForUse}
+                        onClick={openDetail}
                       />
                     ))}
                   </div>
@@ -190,6 +201,7 @@ export default function RoutineTemplatesPage() {
                         key={t.id}
                         template={t}
                         onUse={setSelectedForUse}
+                        onClick={openDetail}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                       />
@@ -222,6 +234,25 @@ export default function RoutineTemplatesPage() {
       )}
 
       {confirmDialog}
+
+      {/* Detail Drawer（始终挂载以保留 BaseDrawer exit 动画） */}
+      <TemplateDetailDrawer
+        open={!!selectedDetail}
+        template={selectedDetail ?? lastViewedTemplate}
+        onClose={() => setSelectedDetail(null)}
+        onEdit={(t) => {
+          setSelectedDetail(null);
+          handleEdit(t);
+        }}
+        onDelete={(t) => {
+          setSelectedDetail(null);
+          handleDelete(t);
+        }}
+        onUse={(t) => {
+          setSelectedDetail(null);
+          setSelectedForUse(t);
+        }}
+      />
     </div>
   );
 }
