@@ -324,10 +324,8 @@ async def list_templates(
         stmt = select(Routine).where(Routine.is_template.is_(True)).order_by(Routine.created_at.desc())
         rows = (await db.execute(stmt)).scalars().all()
         for r in rows:
-            if category and (r.description or "") != category:
-                # category 存储在 description 字段的 category 信息中不直接可用
-                # Routine 模型没有 category 字段，通过 config.category 或直接不过滤
-                pass
+            if category and (r.config or {}).get("category", "general") != category:
+                continue
             user_templates.append(
                 {
                     "id": str(r.id),

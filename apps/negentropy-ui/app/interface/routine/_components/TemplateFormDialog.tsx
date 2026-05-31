@@ -17,7 +17,7 @@ interface TemplateFormDialogProps {
   template: RoutineTemplateItem | null;
   onClose: () => void;
   /** 提交成功回调 */
-  onSaved: (saved: RoutineDTO) => void;
+  onSaved: () => void;
 }
 
 interface FormState {
@@ -151,8 +151,8 @@ export function TemplateFormDialog({ open, template, onClose, onSaved }: Templat
       verification_command: form.verification_command.trim() || null,
       max_iterations: form.max_iterations.trim() ? parseInt(form.max_iterations, 10) : null,
       max_cost_usd: form.max_cost_usd.trim() ? parseFloat(form.max_cost_usd) : null,
-      success_score_threshold: parseInt(form.success_score_threshold, 10) || 85,
-      no_progress_patience: parseInt(form.no_progress_patience, 10) || 3,
+      success_score_threshold: parseInt(form.success_score_threshold, 10) ?? 85,
+      no_progress_patience: parseInt(form.no_progress_patience, 10) ?? 3,
       approval_mode: form.approval_mode,
       config,
       display_name: form.display_name.trim() || null,
