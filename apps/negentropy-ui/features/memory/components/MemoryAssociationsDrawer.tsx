@@ -67,7 +67,7 @@ export function MemoryAssociationsDrawer({
       title="Associations"
       subtitle={memorySnippet}
       side="right"
-      widthClassName="w-[420px]"
+      widthClassName="max-w-[420px]"
     >
       <div className="space-y-3 px-5 py-4">
         {loading ? (
