@@ -9,6 +9,7 @@ import { RoutineConvergenceChart } from "./RoutineConvergenceChart";
 import { RoutineGuardPanel } from "./RoutineGuardPanel";
 import { RoutineIterationTimeline } from "./RoutineIterationTimeline";
 import { RoutineLoopDiagram } from "./RoutineLoopDiagram";
+import { RoutinePrCard } from "./RoutinePrCard";
 import { RoutineRunGantt } from "./RoutineRunGantt";
 import { loopStageOf } from "./routine-loop";
 
@@ -50,6 +51,14 @@ export function RoutineRunView({
           </p>
         </section>
       </div>
+
+      {/* Pull Request（FINALIZE 产出，等待人工 Merge）*/}
+      {routine.pr_url && (
+        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
+          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Pull Request</h3>
+          <RoutinePrCard prUrl={routine.pr_url} />
+        </section>
+      )}
 
       {/* 闭环过程 */}
       <RoutineLoopDiagram snapshot={snapshot} latest={latest} routine={routine} />

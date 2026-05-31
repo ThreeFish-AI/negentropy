@@ -1,28 +1,29 @@
 # ────────────────────────────────────────────────────────────
-# Routine Demo 1/3 — 代码质量审计（Code Quality Audit）
+# Routine 预设模版 — 代码质量审计（Code Quality Audit）
 #
 # 审批模式: auto（全自主）
 # 命令门控: ruff check（客观锚点）
-# 重点展示: Evaluator-Optimizer 全自动闭环、Reflexion 跨迭代反思记忆、
+# 工程范式: Evaluator-Optimizer 全自动闭环、Reflexion 跨迭代反思记忆、
 #           LLM-as-Judge + Command Gate 双重评估、no_progress 停滞检测
 # ────────────────────────────────────────────────────────────
 
 preset_id: code_quality_audit
-display_name: "Demo: 代码质量审计"
+display_name: "代码质量审计"
 description: >
-  全自动代码质量审计：使用 ruff 扫描目标模块的代码异味、潜在缺陷和违反最佳实践的问题，
-  然后逐类修复。演示 Routine 的全自主迭代能力——Engine 自行调度多轮 Claude Code 执行，
-  每轮由 LLM-as-Judge 评分并注入 Reflexion 反思记忆驱动下一轮改进，
-  同时以 ruff exit code 作为客观 Command Gate 防止评估偏差。
+  面向目标模块的全自主代码质量治理：以 Ruff 全规则集（--select ALL）扫描代码异味、
+  潜在缺陷与最佳实践违背，按严重级别分类后逐类最小化修复。
+  采用 Evaluator-Optimizer 闭环——Engine 自主编排多轮 Claude Code 执行，
+  每轮由 LLM-as-Judge 结构化评分并注入 Reflexion 反思记忆驱动针对性改进，
+  同时以 Ruff 退出码作为 Command Gate 客观锚点抑制评估偏差；
+  no_progress 停滞检测与迭代 / 成本护栏共同保障收敛可控。
 category: quality
 version: 1.0.0
 features_showcase:
-  - "审批模式: auto — 全自主，无人干预"
-  - "Command Gate — ruff check 作为客观验证锚点"
-  - "Reflexion — 跨迭代反思记忆驱动自改进"
+  - "全自主闭环 — auto 审批，Engine 自主编排多轮迭代"
+  - "Command Gate — Ruff 退出码作为客观验证锚点"
+  - "Reflexion — 跨迭代反思记忆驱动针对性修复"
   - "LLM-as-Judge — 结构化评分 + verdict 判定"
-  - "no_progress 停滞检测 — 连续 N 轮无进展时终止"
-  - "max_iterations 护栏 — 迭代次数硬上限"
+  - "停止护栏 — no_progress 停滞检测 + max_iterations 硬上限"
 
 title: "Code Quality Audit"
 goal: >

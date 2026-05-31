@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button";
 import type { RoutineDTO } from "@/features/routine";
 
 import { RoutineIterationTimeline } from "./RoutineIterationTimeline";
+import { RoutinePrCard } from "./RoutinePrCard";
 import { RoutineScoreSparkline } from "./RoutineScoreSparkline";
 import { CONTROL_LABEL, controlsFor, type ControlAction } from "./routine-controls";
-import { routineStatusClass, scoreColorClass } from "./status-style";
+import { phaseClass, phaseLabel, routineStatusClass, scoreColorClass } from "./status-style";
 
 interface RoutineDetailDrawerProps {
   routine: RoutineDTO;
@@ -87,6 +88,13 @@ export function RoutineDetailDrawer({
               >
                 {routine.status}
               </span>
+              {routine.current_phase && routine.status === "running" && (
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${phaseClass(routine.current_phase)}`}
+                >
+                  {phaseLabel(routine.current_phase)}
+                </span>
+              )}
             </div>
             <p className="mt-0.5 text-[10px] text-muted-foreground">{routine.key}</p>
           </div>
@@ -175,6 +183,14 @@ export function RoutineDetailDrawer({
               )}
             </div>
           </section>
+
+          {/* Pull Request（FINALIZE 产出，等待人工 Merge）*/}
+          {routine.pr_url && (
+            <section>
+              <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Pull Request</h3>
+              <RoutinePrCard prUrl={routine.pr_url} />
+            </section>
+          )}
 
           {/* Iteration timeline */}
           <section>

@@ -5,6 +5,25 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+# 内部 permission_mode 别名 → claude CLI 合法取值的映射。
+# claude CLI v2.x 合法值：default | acceptEdits | bypassPermissions | plan。
+# 历史 schema（迁移 0039）沿用 auto/ask 语义别名，需归一，否则 `--permission-mode auto`
+# 在严格版本的 CLI 上会直接报错。归一规则：auto/ask → default（语义等价「默认放行/逐项询问」）。
+_PERMISSION_MODE_MAP = {
+    "auto": "default",
+    "ask": "default",
+    "default": "default",
+    "acceptEdits": "acceptEdits",
+    "acceptedits": "acceptEdits",
+    "accept_edits": "acceptEdits",
+    "plan": "plan",
+    "bypassPermissions": "bypassPermissions",
+    "bypasspermissions": "bypassPermissions",
+    "bypass_permissions": "bypassPermissions",
+    "dontAsk": "dontAsk",
+    "dontask": "dontAsk",
+}
+
 
 @dataclass
 class ClaudeCodeConfig:
@@ -20,8 +39,8 @@ class ClaudeCodeConfig:
     disallowed_tools: list[str] | None = None
     cwd: str | None = None
     max_turns: int = 20
-    timeout_seconds: float = 300.0
-    permission_mode: str = "auto"  # auto | ask | plan
+    timeout_seconds: float = 900.0
+    permission_mode: str = "auto"  # auto | ask | plan | acceptEdits | bypassPermissions
     mcp_config: dict[str, Any] | None = None
     resume_session_id: str | None = None
 
@@ -34,6 +53,11 @@ class ClaudeCodeConfig:
 
     def get_effective_allowed_tools(self) -> list[str]:
         return self.allowed_tools or self._DEFAULT_TOOLS
+
+    def effective_permission_mode(self) -> str:
+        """归一为 claude CLI/SDK 合法的 permission_mode（未知值兜底 default）。"""
+        key = (self.permission_mode or "").strip()
+        return _PERMISSION_MODE_MAP.get(key, _PERMISSION_MODE_MAP.get(key.lower(), "default"))
 
 
 @dataclass

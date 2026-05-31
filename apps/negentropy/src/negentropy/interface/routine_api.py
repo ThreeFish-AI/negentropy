@@ -3,7 +3,7 @@
 端点清单：
 - GET    /routines                          路由清单（status/owner/q 筛选 + 游标分页）
 - GET    /routines/kpis                      KPI 卡片数据
-- GET    /routines/presets                   内置 Demo 预设列表
+- GET    /routines/presets                   内置 Routine 预设模版列表
 - POST   /routines/from-preset               从预设创建路由
 - GET    /routines/{id}                      单路由详情 + 最近迭代
 - GET    /routines/{id}/iterations           迭代历史（分页）
@@ -42,6 +42,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
+from negentropy.engine.routine import phase as phase_mod
 from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration
 
@@ -160,6 +161,8 @@ def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None 
         "verification_command": r.verification_command,
         "status": r.status,
         "termination_reason": r.termination_reason,
+        "current_phase": r.current_phase,
+        "pr_url": r.pr_url,
         "max_iterations": r.max_iterations,
         "max_cost_usd": r.max_cost_usd,
         "deadline_at": r.deadline_at.isoformat() if r.deadline_at else None,
@@ -189,6 +192,7 @@ def _serialize_iteration(it: RoutineIteration) -> dict[str, Any]:
         "routine_id": str(it.routine_id),
         "seq": it.seq,
         "status": it.status,
+        "phase": it.phase,
         "prompt": it.prompt,
         "resume_session_id": it.resume_session_id,
         "exec_status": it.exec_status,
@@ -250,7 +254,7 @@ async def get_kpis() -> dict[str, Any]:
 
 @router.get("/presets")
 async def list_routine_presets() -> list[dict[str, Any]]:
-    """内置 Demo 预设列表。"""
+    """内置 Routine 预设模版列表。"""
     from negentropy.agents.routine_presets import load_all
 
     presets = load_all()
@@ -480,6 +484,7 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             no_progress_patience=body.no_progress_patience,
             approval_mode=body.approval_mode,
             config=body.config or {},
+            current_phase=phase_mod.initial_phase(body.config or {}),
             reflections={},
             owner_id=body.owner_id,
             agent_id=body.agent_id,
@@ -716,6 +721,8 @@ async def _publish_routine(r: Routine) -> None:
             "last_score": r.last_score,
             "iteration_count": r.iteration_count,
             "total_cost_usd": r.total_cost_usd,
+            "current_phase": r.current_phase,
+            "pr_url": r.pr_url,
         }
     )
 

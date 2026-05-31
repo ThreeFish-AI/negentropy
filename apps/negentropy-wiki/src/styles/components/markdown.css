@@ -199,6 +199,69 @@
   font-family: var(--wiki-code-font);
 }
 
+/* === Mermaid 深色主题可读性修复（全图类型）===
+   Mermaid 固定以浅色 default 主题渲染（MermaidDiagram.tsx 硬编码 theme:"default"），
+   深色背景下默认 #333 连线/箭头/关系连接符、以及浮于画布的文字（时序消息）几乎不可见，
+   #ffffde 子图框突兀。此处仅在深色主题下覆写「默认主题」的线条/箭头/表面/浮动文字色。
+   作者通过 classDef/style/linkStyle 设定的配色被 Mermaid 以内联 `…!important` 输出，
+   优先级高于此处外部 !important，故逐图自定义色原样保留；浅色模式不受影响。
+   注：节点/实体/参与者/便签等「浅底盒子」内的文字本就可读，刻意不予改动（避免浅底浅字）。
+   选择器均为实测确认：flowchart/ER/state/sequence 四类已实机覆盖。 */
+
+/* (1) 显式深色 */
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg
+  :is(.flowchart-link, .edgePath > .path, .relationshipLine, .transition, .messageLine0, .messageLine1) {
+  stroke: rgba(234, 238, 246, 0.62) !important; /* flowchart/ER/state/sequence 连线 */
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg :is(.marker, .arrowheadPath, .arrowMarkerPath),
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg marker :is(path, circle, polygon, line) {
+  fill: rgba(234, 238, 246, 0.62) !important; /* 各类箭头 / 关系端点标记 */
+  stroke: rgba(234, 238, 246, 0.62) !important;
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg .cluster rect {
+  fill: var(--wiki-bg-secondary) !important; /* 子图框 #ffffde→深表面 */
+  stroke: rgba(234, 244, 250, 0.18) !important;
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg :is(.cluster-label, .cluster) :is(text, span) {
+  fill: var(--wiki-text) !important; /* 子图标题 #333→浅色 */
+  color: var(--wiki-text) !important;
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg .messageText {
+  fill: var(--wiki-text) !important; /* 时序消息文字（浮于透明画布） */
+}
+[data-color-scheme="dark"] .wiki-mermaid-diagram svg[aria-roledescription="stateDiagram"] circle {
+  fill: var(--wiki-text) !important; /* 状态图 起止节点实心点 */
+  stroke: var(--wiki-text) !important;
+}
+
+/* (2) 跟随系统深色（无显式属性时） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg
+    :is(.flowchart-link, .edgePath > .path, .relationshipLine, .transition, .messageLine0, .messageLine1) {
+    stroke: rgba(234, 238, 246, 0.62) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg :is(.marker, .arrowheadPath, .arrowMarkerPath),
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg marker :is(path, circle, polygon, line) {
+    fill: rgba(234, 238, 246, 0.62) !important;
+    stroke: rgba(234, 238, 246, 0.62) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg .cluster rect {
+    fill: var(--wiki-bg-secondary) !important;
+    stroke: rgba(234, 244, 250, 0.18) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg :is(.cluster-label, .cluster) :is(text, span) {
+    fill: var(--wiki-text) !important;
+    color: var(--wiki-text) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg .messageText {
+    fill: var(--wiki-text) !important;
+  }
+  :root:not([data-color-scheme="light"]) .wiki-mermaid-diagram svg[aria-roledescription="stateDiagram"] circle {
+    fill: var(--wiki-text) !important;
+    stroke: var(--wiki-text) !important;
+  }
+}
+
 /* Responsive table container */
 .wiki-responsive-table {
   margin: 1rem 0;
