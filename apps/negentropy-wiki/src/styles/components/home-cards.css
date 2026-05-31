@@ -2,7 +2,7 @@
 .home-cards-section {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 3rem clamp(1rem, 3vw, 2rem);
+  padding: 3rem clamp(1rem, 3vw, 2rem) 0.75rem;
 }
 
 .home-cards-grid {
@@ -92,6 +92,6 @@
     grid-template-columns: 1fr;
   }
   .home-cards-section {
-    padding: 2rem 1.25rem;
+    padding: 2rem 1.25rem 0.5rem;
   }
 }

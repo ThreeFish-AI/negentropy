@@ -7,7 +7,7 @@
 .wiki-footer-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2.5rem clamp(1rem, 3vw, 2rem) 1.5rem;
+  padding: 0.625rem clamp(1rem, 3vw, 2rem) 1.5rem;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
