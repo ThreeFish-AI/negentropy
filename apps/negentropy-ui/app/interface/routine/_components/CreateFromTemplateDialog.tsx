@@ -4,27 +4,27 @@ import { useState } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { Button } from "@/components/ui/Button";
 import { createRoutineFromPreset } from "@/features/routine";
-import type { RoutineDTO, RoutinePresetSummary } from "@/features/routine";
+import type { RoutineDTO, RoutineTemplateItem } from "@/features/routine";
 import { toast } from "sonner";
 
 interface CreateFromTemplateDialogProps {
-  /** 仅在选中某个模版时渲染本对话框。 */
-  preset: RoutinePresetSummary;
+  /** 选中的模板（内置或用户） */
+  template: RoutineTemplateItem;
   onClose: () => void;
-  /** 创建成功回调，回传后端返回的 RoutineDTO（含 id）供父组件导航。 */
+  /** 创建成功回调 */
   onCreated: (created: RoutineDTO) => void;
 }
 
 /**
- * 从预设模版创建 Routine 的轻量对话框。
+ * 从模板创建 Routine 的轻量对话框。
  *
- * 设计：
- * - 用户仅需提供 key（自动生成、可编辑）+ cwd（必填）；其余字段由后端预设填充；
- * - 创建走 BFF POST /api/routine/from-preset；
- * - 使用 useState 懒初始化生成 key，无 useEffect 取数，故无需 react-compiler 豁免。
+ * 用户仅需提供 key + cwd，其余字段由模板预填。
+ * 按 source 分支发送 preset_id 或 template_id。
  */
-export function CreateFromTemplateDialog({ preset, onClose, onCreated }: CreateFromTemplateDialogProps) {
-  const [key, setKey] = useState(() => `${preset.preset_id}-${crypto.randomUUID().slice(0, 4)}`);
+export function CreateFromTemplateDialog({ template, onClose, onCreated }: CreateFromTemplateDialogProps) {
+  const [key, setKey] = useState(
+    () => `${template.key}-${crypto.randomUUID().slice(0, 4)}`,
+  );
   const [cwd, setCwd] = useState("");
   const [creating, setCreating] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -45,8 +45,12 @@ export function CreateFromTemplateDialog({ preset, onClose, onCreated }: CreateF
     setCreating(true);
     setFieldError(null);
     try {
-      const created = await createRoutineFromPreset({ preset_id: preset.preset_id, key: key.trim(), cwd: cwd.trim() });
-      toast.success(`Routine created from "${preset.display_name}"`);
+      const payload =
+        template.source === "builtin"
+          ? { preset_id: template.key, key: key.trim(), cwd: cwd.trim() }
+          : { template_id: template.id, key: key.trim(), cwd: cwd.trim() };
+      const created = await createRoutineFromPreset(payload);
+      toast.success(`Routine created from "${template.display_name}"`);
       onCreated(created);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An error occurred");
@@ -64,8 +68,12 @@ export function CreateFromTemplateDialog({ preset, onClose, onCreated }: CreateF
       contentClassName="my-3 flex w-full max-w-md flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl"
     >
       <div className="border-b border-border px-5 py-4">
-        <h2 className="text-lg font-semibold text-foreground">使用模板：{preset.display_name}</h2>
-        <p className="mt-1 text-sm text-text-muted">提供 Key 与工作目录即可创建，其余配置由模板预填</p>
+        <h2 className="text-lg font-semibold text-foreground">
+          使用模板：{template.display_name}
+        </h2>
+        <p className="mt-1 text-sm text-text-muted">
+          提供 Key 与工作目录即可创建，其余配置由模板预填
+        </p>
       </div>
 
       <div className="space-y-3 px-5 py-4">

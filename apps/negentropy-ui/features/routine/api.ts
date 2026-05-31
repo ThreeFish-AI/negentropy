@@ -14,6 +14,7 @@ import type {
   RoutineListResponse,
   RoutineIterationDTO,
   RoutinePresetSummary,
+  RoutineTemplateItem,
   RoutineUpdatePayload,
 } from "./types";
 
@@ -131,4 +132,15 @@ export async function createRoutineFromPreset(
   body: RoutineFromPresetPayload,
 ): Promise<RoutineDTO> {
   return jsonFetch("/from-preset", { method: "POST", body: JSON.stringify(body) });
+}
+
+// ---------------------------------------------------------------------------
+// Templates（合并模板列表）
+// ---------------------------------------------------------------------------
+
+export async function fetchTemplates(category?: string): Promise<RoutineTemplateItem[]> {
+  const sp = new URLSearchParams();
+  if (category) sp.set("category", category);
+  const q = sp.toString();
+  return jsonFetch(`/templates${q ? `?${q}` : ""}`);
 }
