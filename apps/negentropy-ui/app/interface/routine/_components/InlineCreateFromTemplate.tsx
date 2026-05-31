@@ -29,7 +29,7 @@ export function InlineCreateFromTemplate({
   const [creating, setCreating] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  const key = `${template.key}-${crypto.randomUUID().slice(0, 4)}`;
+  const [key] = useState(() => `${template.key}-${crypto.randomUUID().slice(0, 4)}`);
 
   const inputCls =
     "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
