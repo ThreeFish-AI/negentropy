@@ -270,7 +270,7 @@
   color: var(--wiki-text);
 }
 
-/* User avatar */
+/* User avatar — shared by WikiHeaderActions & WikiUserMenu */
 .wiki-header-avatar {
   padding: 0;
   overflow: hidden;
@@ -294,6 +294,92 @@
   font-size: 0.75em;
   font-weight: 600;
   line-height: 1;
+}
+
+/* ---- User menu (click-based dropdown) ---- */
+.wiki-user-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.wiki-user-menu-trigger {
+  padding: 0;
+  overflow: hidden;
+}
+
+.wiki-user-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 180px;
+  padding: 0.5rem 0;
+  background: var(--wiki-bg);
+  border: 1px solid var(--wiki-border);
+  border-radius: 8px;
+  box-shadow: 0 5px 40px 0 rgba(0, 0, 0, 0.15);
+  animation: wiki-user-menu-in 0.15s ease;
+}
+
+@keyframes wiki-user-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wiki-user-menu-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.85rem;
+}
+
+.wiki-user-menu-name {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--wiki-text);
+  line-height: 1.3;
+}
+
+.wiki-user-menu-email {
+  font-size: 0.78em;
+  color: var(--wiki-text-secondary);
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+.wiki-user-menu-separator {
+  height: 1px;
+  margin: 0.35rem 0;
+  background: var(--wiki-border);
+}
+
+.wiki-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.88em;
+  color: var(--wiki-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.wiki-user-menu-item:hover {
+  background: var(--wiki-primary-light);
+  color: var(--wiki-accent);
 }
 
 @media (max-width: 768px) {
