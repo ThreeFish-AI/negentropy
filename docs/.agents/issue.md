@@ -2641,7 +2641,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ---
 
-## ISSUE-103 Wiki 节点描述未同步至站点首页卡片（条目层缺列 + 前端取值错源）
+## ISSUE-104 Wiki 节点描述未同步至站点首页卡片（条目层缺列 + 前端取值错源）
 
 - **表因**：主站点 Knowledge / Wiki 为根节点 Harness Engineering（描述「智能体工程化综述」）、Negentropy（描述「熵减引擎设计概念与使用指引」）填了 `DocCatalogEntry.description`，但 wiki 站点首页「内容主题」卡片只显示标题、描述缺失。
 - **根因（两处独立断裂）**：
