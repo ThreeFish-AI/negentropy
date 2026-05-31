@@ -6,7 +6,7 @@ import type { RoutineIterationDTO } from "@/features/routine";
 
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
 import { ACTIVE_TIMING } from "./routine-loop";
-import { iterationDotClass, scoreColorClass, verdictClass } from "./status-style";
+import { iterationDotClass, phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-style";
 
 interface RoutineIterationTimelineProps {
   iterations: RoutineIterationDTO[];
@@ -59,6 +59,13 @@ function IterationCard({
         <div className="flex items-center gap-2">
           <span className={`inline-block h-2 w-2 rounded-full ${iterationDotClass(it.status)}`} />
           <span className="text-xs font-semibold text-foreground">#{it.seq}</span>
+          {it.phase && (
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${phaseClass(it.phase)}`}
+            >
+              {phaseLabel(it.phase)}
+            </span>
+          )}
           <span className="text-[10px] text-text-muted">{it.status}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -73,9 +80,18 @@ function IterationCard({
         </div>
       </div>
 
+      {/* PLAN 阶段：摘要即「执行计划」，加标签以便人工审批前定位 */}
+      {it.phase === "plan" && it.summary && (
+        <div className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+          📋 执行计划 (Plan)
+        </div>
+      )}
+
       {/* 执行摘要 */}
       {it.summary && (
-        <p className="mt-2 whitespace-pre-wrap break-words text-[11px] text-text-secondary">
+        <p
+          className={`${it.phase === "plan" ? "mt-1" : "mt-2"} whitespace-pre-wrap break-words text-[11px] text-text-secondary`}
+        >
           {expanded || it.summary.length <= 280 ? it.summary : `${it.summary.slice(0, 280)}…`}
           {it.summary.length > 280 && (
             <button
@@ -123,7 +139,13 @@ function IterationCard({
       {/* 审批门控操作 */}
       {isPendingApproval && (
         <div className="mt-2 flex items-center gap-2 rounded-md bg-amber-500/5 p-2">
-          <span className="text-[10px] text-amber-700 dark:text-amber-300">等待审批后执行</span>
+          <span className="text-[10px] text-amber-700 dark:text-amber-300">
+            {it.phase === "implement"
+              ? "审批后开始实现（请先确认上方 PLAN 方案）"
+              : it.phase === "plan"
+                ? "审批后开始执行规划"
+                : "等待审批后执行"}
+          </span>
           <div className="flex-1" />
           <button
             onClick={() => onApprove(it.id)}

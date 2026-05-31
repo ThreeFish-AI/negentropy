@@ -107,6 +107,20 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         comment="auto|first|every — 迭代执行前的人工审批级别",
     )
 
+    # --- 相位状态机（仅 config.workflow='phased' 推进三相位；扁平工作流恒为 implement）---
+    current_phase: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="implement",
+        server_default="implement",
+        comment="plan|implement|finalize — 相位状态机指针",
+    )
+    pr_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        comment="FINALIZE 阶段创建的 PR 链接；非空 + succeeded 表示等待人工 Merge",
+    )
+
     # --- 运行期状态（反规范化，加速守卫判定）---
     iteration_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default="0")
@@ -164,6 +178,11 @@ class RoutineIteration(Base, UUIDMixin):
         default="dispatched",
         server_default="dispatched",
         comment="pending_approval|dispatched|in_flight|executed|evaluated|reaped|aborted",
+    )
+    phase: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="plan|implement|finalize — 本迭代所属相位（派发时定格）",
     )
 
     # --- 执行输入 ---

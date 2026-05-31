@@ -13,20 +13,28 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from .phase import PHASE_FINALIZE, PHASE_IMPLEMENT, PHASE_PLAN
+
 
 class _RoutineLike(Protocol):
     goal: str
     acceptance_criteria: str
     reflections: dict[str, Any]
     claude_session_id: str | None
+    current_phase: str
 
 
 def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
-    """构建发送给 Claude Code 的迭代 prompt。
+    """构建发送给 Claude Code 的迭代 prompt（按相位分支）。
 
-    首次执行（无 session）注入目标 + 验收标准；续接执行额外注入最近 N 条反思
-    与「继续推进」指令。反思来自 ``routine.reflections["items"]``（追加顺序）。
+    通用部分：目标 + 验收标准 + 最近 N 条反思（Reflexion 注入，来自
+    ``routine.reflections["items"]``）。尾部指令依相位而定：
+
+    - PLAN     仅产出方案、禁写盘（plan 模式），待人工审批；
+    - FINALIZE 自检 ruff/pytest、修复、建 PR 并回带 ``PR_URL=`` sentinel；
+    - IMPLEMENT（含扁平工作流）首轮「开始」/续接「继续」—— 与相位化前一致。
     """
+    phase = getattr(routine, "current_phase", PHASE_IMPLEMENT) or PHASE_IMPLEMENT
     is_resume = bool(routine.claude_session_id)
 
     parts: list[str] = [
@@ -42,7 +50,23 @@ def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
             "以下是对你此前尝试的评估反馈，请逐条针对性改进：\n" + bullet
         )
 
-    if is_resume:
+    if phase == PHASE_PLAN:
+        parts.append(
+            "# 规划 (Plan ONLY)\n本轮**仅产出实现方案，禁止写入或修改任何文件**（plan 模式）：\n"
+            "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n"
+            "方案将提交人工审批，通过后再进入实现阶段。"
+        )
+    elif phase == PHASE_FINALIZE:
+        parts.append(
+            "# 收尾 (Finalize)\n验收标准已达标，现进行收尾交付：\n"
+            "1. 运行 `uv run ruff check` 与 `uv run pytest`，修复全部失败；\n"
+            "2. `git add -A` 后按仓库规范 `git commit`（切勿推送 master/main 等主分支）；\n"
+            "3. 若当前分支已存在 PR 则复用，否则用 `gh pr create` 基于工作分支创建 PR"
+            "（标题+正文概述变更，base 为基础分支）；\n"
+            "4. **在最终回复的第一行单独输出 `PR_URL=<完整链接>`**（务必置顶，以便系统捕获）；\n"
+            "5. 不要自行合并 PR —— 合并由人工完成。"
+        )
+    elif is_resume:
         parts.append("# 继续 (Continue)\n请在既有会话上下文基础上继续推进，聚焦上述反馈中尚未满足的验收标准项。")
     else:
         parts.append("# 开始 (Start)\n请着手完成上述目标，确保产出可被验收标准客观检验。")

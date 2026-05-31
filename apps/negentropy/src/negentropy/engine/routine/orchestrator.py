@@ -35,6 +35,7 @@ from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration
 
 from . import decision as decision_mod
+from . import phase as phase_mod
 from .bus import get_bus
 from .evaluator import RoutineEvaluator
 from .prompt_builder import append_reflection, build_prompt
@@ -195,10 +196,17 @@ class RoutineOrchestrator:
             if result.reflection:
                 routine.reflections = append_reflection(routine.reflections, result.reflection)
 
-            # 决策
+            # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）
+            if phase_mod.is_phased(routine.config) and routine.current_phase == phase_mod.PHASE_FINALIZE:
+                if not routine.pr_url:
+                    routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+
+            # 决策（decision.py 保持纯守卫；相位化 routine 由 orchestrator 解释 SUCCESS）
             history = await self._evaluated_history(db, routine_id)
             verdict = decision_mod.decide(routine, latest, history)
-            if verdict.is_terminate:
+            if phase_mod.is_phased(routine.config):
+                self._advance_phase_or_terminate(routine, verdict)
+            elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
 
             await db.commit()
@@ -209,6 +217,7 @@ class RoutineOrchestrator:
                     "id": str(latest.id),
                     "routine_id": str(routine_id),
                     "status": "evaluated",
+                    "phase": latest.phase,
                     "score": result.score,
                     "verdict": result.verdict,
                 }
@@ -269,11 +278,24 @@ class RoutineOrchestrator:
                 # 占用的 seq 与新迭代冲突触发 uq_routine_iterations_seq。
                 seq = await self._next_seq(db, routine.id)
                 prompt = build_prompt(routine, max_reflections=settings.routine.max_reflections_injected)
-                needs_approval = self._needs_approval(routine.approval_mode, seq)
+                phased = phase_mod.is_phased(routine.config)
+                has_prior_impl = (
+                    await self._has_prior_phase_iteration(db, routine.id, phase_mod.PHASE_IMPLEMENT)
+                    if phased
+                    else False
+                )
+                needs_approval = self._needs_approval(
+                    routine.approval_mode,
+                    phased=phased,
+                    phase=routine.current_phase,
+                    has_prior_implement=has_prior_impl,
+                    seq=seq,
+                )
                 iteration = RoutineIteration(
                     routine_id=routine.id,
                     seq=seq,
                     status="pending_approval" if needs_approval else "dispatched",
+                    phase=routine.current_phase,
                     prompt=prompt,
                     resume_session_id=routine.claude_session_id,
                 )
@@ -338,12 +360,55 @@ class RoutineOrchestrator:
     # 辅助
     # ------------------------------------------------------------------
     @staticmethod
-    def _needs_approval(approval_mode: str, seq: int) -> bool:
+    def _needs_approval(
+        approval_mode: str,
+        *,
+        phased: bool,
+        phase: str,
+        has_prior_implement: bool,
+        seq: int,
+    ) -> bool:
+        """是否需人工审批后才派发执行。
+
+        - ``every``：每轮迭代均门控。
+        - ``first``：相位化工作流门控**首个 implement 迭代**（人工据已生成的 PLAN 评审后
+          放行实施）；扁平工作流沿用「首轮（seq==1）」语义。
+        - ``auto``：从不门控。
+        """
         if approval_mode == "every":
             return True
         if approval_mode == "first":
+            if phased:
+                return phase == phase_mod.PHASE_IMPLEMENT and not has_prior_implement
             return seq == 1
         return False  # auto
+
+    def _advance_phase_or_terminate(self, routine: Routine, verdict: decision_mod.Decision) -> None:
+        """相位化工作流：按相位解释 decision 的 SUCCESS，否则照常终止。
+
+        - PLAN：非成功守卫（如不可恢复）照常终止；否则（成功或继续）推进到 IMPLEMENT；
+        - IMPLEMENT：SUCCESS → 推进到 FINALIZE（不终止）；其它终止守卫 → failed；
+        - FINALIZE：一旦捕获 ``pr_url`` 即 succeeded（交人工 Merge）；否则非成功守卫 → failed，
+          其余留在 FINALIZE 重试建 PR。
+        """
+        phase = routine.current_phase
+        is_success = verdict.is_terminate and verdict.reason == decision_mod.REASON_SUCCESS
+        if phase == phase_mod.PHASE_PLAN:
+            if verdict.is_terminate and not is_success:
+                self._terminate(routine, verdict.reason or decision_mod.REASON_UNRECOVERABLE)
+            else:
+                routine.current_phase = phase_mod.PHASE_IMPLEMENT
+        elif phase == phase_mod.PHASE_FINALIZE:
+            if routine.pr_url:
+                self._terminate(routine, decision_mod.REASON_SUCCESS)
+            elif verdict.is_terminate and not is_success:
+                self._terminate(routine, verdict.reason or decision_mod.REASON_UNRECOVERABLE)
+            # 否则留在 FINALIZE，下一 tick 重试建 PR
+        else:  # IMPLEMENT
+            if is_success:
+                routine.current_phase = phase_mod.PHASE_FINALIZE
+            elif verdict.is_terminate:
+                self._terminate(routine, verdict.reason or decision_mod.REASON_MAX_ITERATIONS)
 
     @staticmethod
     def _terminate(routine: Routine, reason: str) -> None:
@@ -366,7 +431,11 @@ class RoutineOrchestrator:
             config.system_prompt = overrides["system_prompt"]
         if overrides.get("allowed_tools"):
             config.allowed_tools = overrides["allowed_tools"]
-        if overrides.get("permission_mode"):
+        # 相位化工作流：permission_mode 由相位决定（覆盖 preset 静态值），使 PLAN 仅规划、
+        # IMPLEMENT/FINALIZE 落盘；扁平工作流沿用 preset 覆盖或全局默认。
+        if phase_mod.is_phased(routine.config):
+            config.permission_mode = phase_mod.permission_mode_for(routine.current_phase)
+        elif overrides.get("permission_mode"):
             config.permission_mode = overrides["permission_mode"]
         if overrides.get("timeout_seconds"):
             config.timeout_seconds = float(overrides["timeout_seconds"])
@@ -414,6 +483,22 @@ class RoutineOrchestrator:
         )
 
     @staticmethod
+    async def _has_prior_phase_iteration(db: AsyncSession, routine_id: UUID, phase: str) -> bool:
+        """该 routine 是否已存在指定相位的非废弃迭代（用于「首个 implement 迭代」审批判定）。"""
+        row = (
+            await db.execute(
+                select(RoutineIteration.id)
+                .where(
+                    RoutineIteration.routine_id == routine_id,
+                    RoutineIteration.phase == phase,
+                    RoutineIteration.status.not_in(("aborted", "reaped")),
+                )
+                .limit(1)
+            )
+        ).first()
+        return row is not None
+
+    @staticmethod
     async def _has_active_iteration(db: AsyncSession, routine_id: UUID) -> bool:
         row = (
             await db.execute(
@@ -439,6 +524,8 @@ class RoutineOrchestrator:
                 "last_score": routine.last_score,
                 "iteration_count": routine.iteration_count,
                 "total_cost_usd": routine.total_cost_usd,
+                "current_phase": routine.current_phase,
+                "pr_url": routine.pr_url,
             }
         )
 
@@ -451,6 +538,7 @@ class RoutineOrchestrator:
                 "routine_id": str(routine_id),
                 "status": iteration.status,
                 "seq": iteration.seq,
+                "phase": iteration.phase,
             }
         )
 

@@ -25,6 +25,9 @@ export type Verdict = "pass" | "progressing" | "stalled" | "regressed" | "unreco
 
 export type ExecStatus = "success" | "error" | "timeout";
 
+/** 相位状态机：仅 phased 工作流推进三相位；扁平工作流恒为 implement。 */
+export type RoutinePhase = "plan" | "implement" | "finalize";
+
 export interface RoutineDTO {
   id: string;
   key: string;
@@ -37,6 +40,8 @@ export interface RoutineDTO {
   verification_command: string | null;
   status: RoutineStatus;
   termination_reason: string | null;
+  current_phase: RoutinePhase | null;
+  pr_url: string | null;
   max_iterations: number | null;
   max_cost_usd: number | null;
   deadline_at: string | null;
@@ -63,6 +68,7 @@ export interface RoutineIterationDTO {
   routine_id: string;
   seq: number;
   status: IterationStatus;
+  phase: RoutinePhase | null;
   prompt: string | null;
   resume_session_id: string | null;
   exec_status: ExecStatus | null;
@@ -90,6 +96,7 @@ export interface RoutineIterationLite {
   id?: string;
   seq?: number;
   status: IterationStatus;
+  phase?: RoutinePhase | null;
   score?: number | null;
   verdict?: Verdict | null;
   turn_count?: number;

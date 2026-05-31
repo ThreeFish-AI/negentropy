@@ -43,5 +43,7 @@ success_score_threshold: 85
 no_progress_patience: 3
 approval_mode: first
 config:
-  permission_mode: plan
+  workflow: phased        # 启用三相位：PLAN(产出计划)→IMPLEMENT(落地)→FINALIZE(自检+建 PR)→人工 Merge
+  permission_mode: plan   # PLAN 相位初值；orchestrator 按相位推进切到 acceptEdits（IMPLEMENT/FINALIZE）
   max_turns: 30
+  timeout_seconds: 1800   # 单轮 30min 上限，远超旧 300s 默认，杜绝深度任务超时空转
