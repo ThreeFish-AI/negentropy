@@ -7,6 +7,7 @@ Interface API 模块。
 from __future__ import annotations
 
 import json
+import shutil
 import time as _mcp_time
 from asyncio import Lock as _AsyncLock
 from datetime import UTC, datetime
@@ -1519,6 +1520,18 @@ async def update_builtin_tool(
             update_data["credentials"] = _merge_masked_credentials(
                 update_data["credentials"], ensure_dict(tool.credentials)
             )
+        # 校验 claude_code 类型工具的 cli_path 合法性
+        if tool.tool_type == "claude_code" and "config" in update_data:
+            new_config = update_data["config"]
+            if isinstance(new_config, dict) and "cli_path" in new_config:
+                cli_val = new_config["cli_path"]
+                if isinstance(cli_val, str) and cli_val.strip():
+                    if not shutil.which(cli_val):
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"cli_path '{cli_val}' not found in PATH — "
+                            f"ensure Claude Code CLI is installed and the path is correct",
+                        )
         for field, value in update_data.items():
             setattr(tool, field, value)
 
