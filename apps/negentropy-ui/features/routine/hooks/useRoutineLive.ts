@@ -8,6 +8,7 @@ import type {
   RoutineDTO,
   RoutineFilters,
   RoutineIterationLite,
+  RoutinePhase,
   RoutineStreamEvent,
   Verdict,
 } from "../types";
@@ -94,6 +95,7 @@ export function useRoutineLive(filters: Partial<RoutineFilters>) {
           id: evId ?? cur?.id,
           seq: asNumber(ev.seq) ?? (isNewIteration ? undefined : cur?.seq),
           status,
+          phase: "phase" in ev ? ((ev.phase as RoutinePhase | null) ?? null) : isNewIteration ? null : cur?.phase,
           score: "score" in ev ? (asNumber(ev.score) ?? null) : isNewIteration ? null : cur?.score,
           verdict:
             "verdict" in ev
@@ -137,6 +139,7 @@ export function liteFromIteration(it: {
   id: string;
   seq: number;
   status: IterationStatus;
+  phase?: RoutinePhase | null;
   score: number | null;
   verdict: Verdict | null;
   turn_count: number;
@@ -148,6 +151,7 @@ export function liteFromIteration(it: {
     id: it.id,
     seq: it.seq,
     status: it.status,
+    phase: it.phase ?? null,
     score: it.score,
     verdict: it.verdict,
     turn_count: it.turn_count,

@@ -37,6 +37,8 @@ function makeRoutine(id: string): RoutineDTO {
     verification_command: null,
     status: "running",
     termination_reason: null,
+    current_phase: null,
+    pr_url: null,
     max_iterations: 20,
     max_cost_usd: 5,
     deadline_at: null,

@@ -20,7 +20,7 @@ import {
 import { ClockProvider } from "../_components/ClockProvider";
 import { RoutineRunView } from "../_components/RoutineRunView";
 import { CONTROL_LABEL, controlsFor, type ControlAction } from "../_components/routine-controls";
-import { routineStatusClass } from "../_components/status-style";
+import { phaseClass, phaseLabel, routineStatusClass } from "../_components/status-style";
 
 export default function RoutineRunPage() {
   const params = useParams<{ id: string }>();
@@ -111,6 +111,13 @@ export default function RoutineRunPage() {
                     className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${routineStatusClass(routine.status)}`}
                   >
                     {routine.status}
+                  </span>
+                )}
+                {routine?.current_phase && routine.status === "running" && (
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${phaseClass(routine.current_phase)}`}
+                  >
+                    {phaseLabel(routine.current_phase)}
                   </span>
                 )}
               </div>

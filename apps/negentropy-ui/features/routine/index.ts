@@ -8,6 +8,7 @@ export type {
   IterationStatus,
   Verdict,
   ExecStatus,
+  RoutinePhase,
   RoutineDTO,
   RoutineIterationDTO,
   RoutineIterationLite,

@@ -245,8 +245,9 @@ async def test_routine_inspector_noop_when_disabled(monkeypatch):
     from negentropy.engine.schedulers.handlers.routine_inspector import routine_inspector_handler
 
     # settings.routine 是 cached_property；构造一个 disabled 实例覆盖缓存值。
-    # RoutineSettings frozen，但 enabled 默认即 False，直接用默认实例。
-    disabled = RoutineSettings()
+    # 注意：自 #770 起 routine.enabled 默认放开为 True，故此处显式构造 enabled=False 实例
+    # 以验证「禁用即 no-op」路径（不可再依赖默认值为 False）。
+    disabled = RoutineSettings(enabled=False)
     assert disabled.enabled is False
     monkeypatch.setattr(type(settings), "routine", property(lambda self: disabled))
 

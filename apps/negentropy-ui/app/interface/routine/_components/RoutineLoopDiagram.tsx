@@ -1,6 +1,6 @@
 "use client";
 
-import { Repeat } from "lucide-react";
+import { GitPullRequest, Repeat } from "lucide-react";
 
 import type { RoutineDTO, RoutineIterationDTO } from "@/features/routine";
 
@@ -40,6 +40,14 @@ export function RoutineLoopDiagram({
       </div>
 
       <RoutineLoopBar snapshot={snapshot} size="md" showLabels />
+
+      {/* 收尾阶段指示（独立于 4 段闭环，FINALIZE 时点亮）*/}
+      {routine.current_phase === "finalize" && routine.status === "running" && (
+        <div className="mt-2 flex items-center gap-2 rounded-md bg-violet-500/5 p-2 text-[11px] text-violet-700 dark:text-violet-300">
+          <GitPullRequest className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          收尾阶段 · 运行 ruff + pytest，修复后创建 PR（待人工 Merge）
+        </div>
+      )}
 
       {/* 实时 / 终态状态行 */}
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-secondary">

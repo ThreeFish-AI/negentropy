@@ -1,4 +1,32 @@
-import type { IterationStatus, RoutineStatus, Verdict } from "@/features/routine";
+import type { IterationStatus, RoutinePhase, RoutineStatus, Verdict } from "@/features/routine";
+
+/** 相位 → 徽章配色（规划=琥珀/实现=天蓝/收尾=紫，深色模式安全对比）。 */
+export function phaseClass(phase: RoutinePhase | null | undefined): string {
+  switch (phase) {
+    case "plan":
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    case "implement":
+      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+    case "finalize":
+      return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
+    default:
+      return "bg-muted/60 text-text-secondary";
+  }
+}
+
+/** 相位 → 中文标签。 */
+export function phaseLabel(phase: RoutinePhase | null | undefined): string {
+  switch (phase) {
+    case "plan":
+      return "规划";
+    case "implement":
+      return "实现";
+    case "finalize":
+      return "收尾";
+    default:
+      return "—";
+  }
+}
 
 /** Routine 状态 → 徽章配色。 */
 export function routineStatusClass(status: RoutineStatus): string {
