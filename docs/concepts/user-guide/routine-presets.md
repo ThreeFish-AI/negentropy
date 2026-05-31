@@ -112,21 +112,27 @@ Routine 预设模版是一组内置的预配置 Routine 模板，让用户以最
 
 ### 获取模版列表
 
+合并端点，一次返回内置 YAML 预设（`source: "builtin"`，只读）与用户自建模板（`source: "user"`，可 CRUD）；可选 `?category=<类别>` 按类别过滤。
+
 ```bash
-curl http://localhost:3192/routines/presets
+curl http://localhost:3192/routines/templates
 ```
 
-响应示例：
+响应示例（内置预设条目）：
 
 ```json
 [
   {
-    "preset_id": "code_quality_audit",
+    "id": "builtin:code_quality_audit",
+    "source": "builtin",
+    "key": "code_quality_audit",
     "display_name": "代码质量审计",
     "description": "面向目标模块的全自主代码质量治理...",
     "category": "quality",
     "version": "1.0.0",
     "features_showcase": ["全自主闭环 — auto 审批，Engine 自主编排多轮迭代", "..."],
+    "goal": "...",
+    "acceptance_criteria": "...",
     "approval_mode": "auto",
     "has_verification_command": true
   }
@@ -135,10 +141,12 @@ curl http://localhost:3192/routines/presets
 
 ### 从模版创建 Routine
 
+模版实例化统一走标准创建端点 `POST /routines`——前端 **Routine Templates** 页「使用模板 → Create Routine」即提交此请求：用户在抽屉中补齐 `cwd` 等必填字段，模版的 `goal`、`acceptance_criteria`、`approval_mode`、`config` 等经确认后整体提交。
+
 ```bash
-curl -X POST http://localhost:3192/routines/from-preset \
+curl -X POST http://localhost:3192/routines \
   -H "Content-Type: application/json" \
-  -d '{"preset_id": "code_quality_audit", "key": "code_quality_audit-001", "cwd": "/path/to/project"}'
+  -d '{"key": "code_quality_audit-001", "title": "代码质量审计", "goal": "...", "acceptance_criteria": "...", "cwd": "/path/to/project", "approval_mode": "auto"}'
 ```
 
 成功响应：`201` + 完整 Routine DTO（`status: "pending"`）。

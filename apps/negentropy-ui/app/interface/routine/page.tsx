@@ -8,27 +8,20 @@ import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
-  approveIteration,
   controlRoutine,
-  createRoutine,
   deleteRoutine,
   fetchRoutineDetail,
-  rejectIteration,
-  updateRoutine,
   useRoutineLive,
   useRoutineStream,
 } from "@/features/routine";
 import type {
-  RoutineCreatePayload,
   RoutineDTO,
   RoutineFilters,
-  RoutineUpdatePayload,
 } from "@/features/routine";
 
 import { ClockProvider } from "./_components/ClockProvider";
-import { RoutineDetailDrawer } from "./_components/RoutineDetailDrawer";
+import { RoutineEditDrawer, drawerKey, type DrawerMode } from "./_components/RoutineEditDrawer";
 import { RoutineFilterBar } from "./_components/RoutineFilterBar";
-import { RoutineFormDialog } from "./_components/RoutineFormDialog";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
@@ -42,8 +35,8 @@ function RoutinePageInner() {
 
   const [filters, setFilters] = useState<Partial<RoutineFilters>>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<RoutineDTO | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<RoutineDTO | null>(null);
+  // null = 抽屉关闭；"create" = 新建；否则由 ?sel 派生的 routine-edit。
+  const [createOpen, setCreateOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -141,44 +134,6 @@ function RoutinePageInner() {
     }
   };
 
-  const handleApprove = async (iterationId: string) => {
-    if (!selected) return;
-    setActionBusy(true);
-    try {
-      await approveIteration(selected.id, iterationId);
-      toast.success("Iteration approved");
-      await refreshSelected(selected.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to approve");
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  const handleReject = async (iterationId: string) => {
-    if (!selected) return;
-    setActionBusy(true);
-    try {
-      await rejectIteration(selected.id, iterationId);
-      toast.success("Iteration rejected");
-      await refreshSelected(selected.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to reject");
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  const handleCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-
-  const handleEdit = (r: RoutineDTO) => {
-    setEditing(r);
-    setFormOpen(true);
-  };
-
   const handleDelete = async (r: RoutineDTO) => {
     const ok = await confirm({
       title: "Delete Routine",
@@ -203,23 +158,23 @@ function RoutinePageInner() {
     }
   };
 
-  const handleFormSubmit = async (
-    mode: "create" | "edit",
-    id: string | null,
-    body: RoutineCreatePayload | RoutineUpdatePayload,
-  ) => {
-    if (mode === "create") {
-      const created = await createRoutine(body as RoutineCreatePayload);
-      toast.success("Routine created");
-      setFormOpen(false);
+  // 统一抽屉 mode：新建优先；否则由 ?sel 派生的选中态进入 routine-edit。
+  const drawerMode: DrawerMode | null = createOpen
+    ? { kind: "routine-create" }
+    : selected
+      ? { kind: "routine-edit", routine: selected }
+      : null;
+
+  // 创建成功 → 关新建抽屉、刷新列表、打开新建任务详情（routine-edit）。
+  // 编辑保存 → 仅刷新列表与选中详情，抽屉保持打开（草稿基线由抽屉自身重置）。
+  const handleSaved = (result: RoutineDTO, kind: DrawerMode["kind"]) => {
+    if (kind === "routine-create") {
+      setCreateOpen(false);
       refresh();
-      openDetail(created);
-    } else if (mode === "edit" && id) {
-      const updated = await updateRoutine(id, body as RoutineUpdatePayload);
-      toast.success("Routine updated");
-      setFormOpen(false);
+      openDetail(result);
+    } else {
       refresh();
-      await refreshSelected(updated.id);
+      void refreshSelected(result.id);
     }
   };
 
@@ -229,7 +184,7 @@ function RoutinePageInner() {
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => router.push("/interface/routine/templates")} />
+            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} />
 
             {error && <ErrorBanner message={error} />}
 
@@ -240,25 +195,22 @@ function RoutinePageInner() {
             </div>
 
             <RoutineTable routines={routines} loading={loading} onSelect={openDetail} onOpenFull={openFull} />
-
-            {selected && (
-              <RoutineDetailDrawer
-                routine={selected}
-                onClose={closeDetail}
-                onOpenFull={() => openFull(selected)}
-                onControl={handleControl}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onApproveIteration={handleApprove}
-                onRejectIteration={handleReject}
-                busy={actionBusy}
-              />
-            )}
           </div>
         </ClockProvider>
       </div>
 
-      <RoutineFormDialog open={formOpen} routine={editing} onClose={() => setFormOpen(false)} onSubmit={handleFormSubmit} />
+      {drawerMode && (
+        <RoutineEditDrawer
+          key={drawerKey(drawerMode)}
+          mode={drawerMode}
+          onClose={() => (createOpen ? setCreateOpen(false) : closeDetail())}
+          onSaved={handleSaved}
+          onControl={handleControl}
+          onDelete={(target) => handleDelete(target as RoutineDTO)}
+          onOpenFull={openFull}
+          busy={actionBusy}
+        />
+      )}
 
       {confirmDialog}
     </div>

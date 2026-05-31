@@ -1,8 +1,8 @@
 /**
  * Routine 预设模版的共享样式映射（Reuse-Driven / Single Source of Truth）。
  *
- * 收敛 approval_mode → 中文标签 + 明暗感知配色，供 PresetCard / 创建对话框等
- * 多处复用，避免重复声明同一套 dark: 变体色表。
+ * 收敛 approval_mode → 中文标签 + 明暗感知配色，供 TemplateCard 等多处复用，
+ * 避免重复声明同一套 dark: 变体色表。
  * 约定对齐同目录的 `status-style.ts`（纯样式模块，无 "use client"）。
  */
 

@@ -26,9 +26,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { TemplateCard } from "../_components/TemplateCard";
-import { TemplateFormDialog } from "../_components/TemplateFormDialog";
-import { TemplateDetailDrawer } from "../_components/TemplateDetailDrawer";
-import { InlineCreateFromTemplate } from "../_components/InlineCreateFromTemplate";
+import { RoutineEditDrawer, drawerKey, type DrawerMode } from "../_components/RoutineEditDrawer";
 
 const GRID_CLS = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
 
@@ -38,12 +36,11 @@ type SourceFilter = "all" | "builtin" | "user";
  * Routine Templates CRUD 页面。
  *
  * 合并展示内置 YAML 预设（source=builtin，只读）与用户自建模板（source=user，可 CRUD）。
- * 提供搜索、分类筛选、来源切换；点击卡片打开详情抽屉。
- * 交互流：
- * - "新建模板" → TemplateFormDialog(create)
- * - 卡片点击 → TemplateDetailDrawer（详情抽屉）
- * - "使用此模板" → 内联创建栏（填 cwd → 创建 Routine → 跳转）
- * - "编辑" → TemplateFormDialog(edit)
+ * 提供搜索、分类筛选、来源切换；统一收敛至 RoutineEditDrawer。
+ * 交互流（全部走统一「Edit Routine」抽屉）：
+ * - "新建模板" → drawerMode=template-create
+ * - 卡片点击 / "编辑" → drawerMode=template-edit（内置只读，仅可 Use）
+ * - 卡片 "Use" / 抽屉内 Use → drawerMode=use-template（改必要信息 → Create Routine → 跳转）
  * - "删除" → useConfirmDialog → deleteRoutine → toast + refresh
  */
 export default function RoutineTemplatesPage() {
@@ -57,11 +54,8 @@ export default function RoutineTemplatesPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
-  // Dialog / Drawer 状态
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<RoutineTemplateItem | null>(null);
-  const [activeUseTemplateId, setActiveUseTemplateId] = useState<string | null>(null);
-  const [selectedForDetail, setSelectedForDetail] = useState<RoutineTemplateItem | null>(null);
+  // 统一抽屉状态：单一 mode 驱动 新建模板 / 编辑模板 / 从模板创建 Routine（Use）。
+  const [drawerMode, setDrawerMode] = useState<DrawerMode | null>(null);
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -107,21 +101,21 @@ export default function RoutineTemplatesPage() {
   }, [templates, sourceFilter, activeCategory, searchQuery]);
 
   // ── Handlers ──
-  const handleFormSaved = () => {
-    setFormOpen(false);
-    setEditing(null);
-    load();
-  };
-
-  const handleUseCreated = (created: RoutineDTO) => {
-    setActiveUseTemplateId(null);
-    router.push(`/interface/routine/${created.id}`);
-  };
-
-  const handleEdit = (template: RoutineTemplateItem) => {
-    setSelectedForDetail(null);
-    setEditing(template);
-    setFormOpen(true);
+  // 抽屉保存回调：
+  // - template-create → 关闭抽屉 + 刷新（与 routine-create 对齐）；
+  // - template-edit   → 仅刷新列表，抽屉保持打开（与 routine 页 routine-edit 对齐，统一两页 Save 体验）；
+  // - use-template    → 创建 Routine 后关闭抽屉并跳转详情。
+  const handleSaved = (result: RoutineDTO, kind: DrawerMode["kind"]) => {
+    if (kind === "use-template") {
+      setDrawerMode(null);
+      router.push(`/interface/routine/${result.id}`);
+    } else if (kind === "template-edit") {
+      // 编辑保存 → 抽屉保持打开；草稿脏基线由 RoutineEditDrawer 内部 setBaseline(form) 重置。
+      load();
+    } else {
+      setDrawerMode(null);
+      load();
+    }
   };
 
   const handleDelete = async (template: RoutineTemplateItem) => {
@@ -136,7 +130,7 @@ export default function RoutineTemplatesPage() {
     try {
       await deleteRoutine(template.id);
       toast.success(`模板「${template.display_name}」已删除`);
-      setSelectedForDetail(null);
+      setDrawerMode(null);
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "删除失败");
@@ -171,10 +165,7 @@ export default function RoutineTemplatesPage() {
             <Button
               variant="primary"
               size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
+              onClick={() => setDrawerMode({ kind: "template-create" })}
             >
               <Plus className="mr-1 h-4 w-4" />
               新建模板
@@ -275,52 +266,31 @@ export default function RoutineTemplatesPage() {
           ) : (
             <div className={GRID_CLS}>
               {filtered.map((t) => (
-                <div key={t.id}>
-                  <TemplateCard
-                    template={t}
-                    onDetail={setSelectedForDetail}
-                    onUse={(tmpl) => setActiveUseTemplateId(tmpl.id)}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                  {activeUseTemplateId === t.id && (
-                    <InlineCreateFromTemplate
-                      template={t}
-                      onClose={() => setActiveUseTemplateId(null)}
-                      onCreated={handleUseCreated}
-                    />
-                  )}
-                </div>
+                <TemplateCard
+                  key={t.id}
+                  template={t}
+                  onDetail={(tmpl) => setDrawerMode({ kind: "template-edit", template: tmpl })}
+                  onUse={(tmpl) => setDrawerMode({ kind: "use-template", template: tmpl })}
+                  onEdit={(tmpl) => setDrawerMode({ kind: "template-edit", template: tmpl })}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* 详情抽屉 */}
-      {selectedForDetail && (
-        <TemplateDetailDrawer
-          template={selectedForDetail}
-          onClose={() => setSelectedForDetail(null)}
-          onUse={(t) => {
-            setSelectedForDetail(null);
-            setActiveUseTemplateId(t.id);
-          }}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+      {/* 统一「Edit Routine」抽屉：模板查看/编辑 + 从模板创建 Routine（Use） */}
+      {drawerMode && (
+        <RoutineEditDrawer
+          key={drawerKey(drawerMode)}
+          mode={drawerMode}
+          onClose={() => setDrawerMode(null)}
+          onSaved={handleSaved}
+          onUse={(template) => setDrawerMode({ kind: "use-template", template })}
+          onDelete={(target) => handleDelete(target as RoutineTemplateItem)}
         />
       )}
-
-      {/* 表单对话框 */}
-      <TemplateFormDialog
-        open={formOpen}
-        template={editing}
-        onClose={() => {
-          setFormOpen(false);
-          setEditing(null);
-        }}
-        onSaved={handleFormSaved}
-      />
 
       {confirmDialog}
     </div>

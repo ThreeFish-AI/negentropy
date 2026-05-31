@@ -3,8 +3,7 @@
 端点清单：
 - GET    /routines                          路由清单（status/owner/q 筛选 + 游标分页）
 - GET    /routines/kpis                      KPI 卡片数据
-- GET    /routines/presets                   内置 Routine 预设模版列表
-- POST   /routines/from-preset               从预设创建路由
+- GET    /routines/templates                 合并模板列表（内置预设 + 用户模板）
 - GET    /routines/{id}                      单路由详情 + 最近迭代
 - GET    /routines/{id}/iterations           迭代历史（分页）
 - POST   /routines                           创建路由（status=pending）
@@ -138,13 +137,6 @@ class ControlBody(BaseModel):
     reason: str | None = None
 
 
-class RoutineFromPresetRequest(BaseModel):
-    preset_id: str | None = Field(default=None, min_length=1, description="内置预设 ID")
-    template_id: UUID | None = Field(default=None, description="用户模板 Routine UUID")
-    key: str = Field(..., min_length=1, max_length=192)
-    cwd: str = Field(..., min_length=1)
-
-
 # ---------------------------------------------------------------------------
 # 序列化
 # ---------------------------------------------------------------------------
@@ -249,31 +241,9 @@ async def get_kpis() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# GET /routines/presets
-# POST /routines/from-preset
+# GET /routines/templates
 # 声明在 /{routine_id} 之前，确保字面路径优先于路径参数匹配。
 # ---------------------------------------------------------------------------
-
-
-@router.get("/presets")
-async def list_routine_presets() -> list[dict[str, Any]]:
-    """内置 Routine 预设模版列表。"""
-    from negentropy.agents.routine_presets import load_all
-
-    presets = load_all()
-    return [
-        {
-            "preset_id": p.preset_id,
-            "display_name": p.display_name,
-            "description": p.description,
-            "category": p.category,
-            "version": p.version,
-            "features_showcase": p.features_showcase,
-            "approval_mode": p.approval_mode,
-            "has_verification_command": p.verification_command is not None,
-        }
-        for p in presets
-    ]
 
 
 @router.get("/templates")
@@ -362,71 +332,6 @@ async def list_templates(
         merged = [t for t in merged if t.get("category") == category]
 
     return merged
-
-
-@router.post("/from-preset", status_code=201)
-async def create_routine_from_preset(body: RoutineFromPresetRequest) -> dict[str, Any]:
-    """从内置预设或用户模板创建 Routine。用户提供 key + cwd，其余字段由来源填充。
-
-    支持两种来源（互斥）：
-    - preset_id：从内置 YAML 预设创建
-    - template_id：从用户自建模板（is_template=true 的 Routine 行）创建
-    """
-    if body.preset_id and body.template_id:
-        raise HTTPException(status_code=400, detail="preset_id and template_id are mutually exclusive")
-    if not body.preset_id and not body.template_id:
-        raise HTTPException(status_code=400, detail="either preset_id or template_id is required")
-
-    # ── 来源 1：内置 YAML 预设 ──
-    if body.preset_id:
-        from negentropy.agents.routine_presets import load_all
-
-        presets = {p.preset_id: p for p in load_all()}
-        preset = presets.get(body.preset_id)
-        if preset is None:
-            raise HTTPException(status_code=404, detail=f"Preset '{body.preset_id}' not found")
-
-        create_req = RoutineCreateRequest(
-            key=body.key,
-            title=preset.title,
-            goal=preset.goal,
-            acceptance_criteria=preset.acceptance_criteria,
-            cwd=body.cwd,
-            verification_command=preset.verification_command,
-            max_iterations=preset.max_iterations,
-            max_cost_usd=preset.max_cost_usd,
-            success_score_threshold=preset.success_score_threshold,
-            no_progress_patience=preset.no_progress_patience,
-            approval_mode=preset.approval_mode,
-            config=preset.config or {},
-            display_name=preset.display_name,
-            description=preset.description,
-        )
-        return await create_routine(create_req)
-
-    # ── 来源 2：用户模板 Routine ──
-    async with db_session.AsyncSessionLocal() as db:
-        tmpl = await db.get(Routine, body.template_id)
-        if tmpl is None or not tmpl.is_template:
-            raise HTTPException(status_code=404, detail=f"Template '{body.template_id}' not found")
-
-    create_req = RoutineCreateRequest(
-        key=body.key,
-        title=tmpl.title,
-        goal=tmpl.goal,
-        acceptance_criteria=tmpl.acceptance_criteria,
-        cwd=body.cwd,
-        verification_command=tmpl.verification_command,
-        max_iterations=tmpl.max_iterations,
-        max_cost_usd=tmpl.max_cost_usd,
-        success_score_threshold=tmpl.success_score_threshold,
-        no_progress_patience=tmpl.no_progress_patience,
-        approval_mode=tmpl.approval_mode,
-        config=(tmpl.config or {}),
-        display_name=tmpl.display_name,
-        description=tmpl.description,
-    )
-    return await create_routine(create_req)
 
 
 # ---------------------------------------------------------------------------

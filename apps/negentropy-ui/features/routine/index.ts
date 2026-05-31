@@ -19,8 +19,6 @@ export type {
   RoutineCreatePayload,
   RoutineUpdatePayload,
   RoutineStreamEvent,
-  RoutinePresetSummary,
-  RoutineFromPresetPayload,
   TemplateSource,
   RoutineTemplateItem,
 } from "./types";
@@ -36,8 +34,6 @@ export {
   controlRoutine,
   approveIteration,
   rejectIteration,
-  fetchPresets,
-  createRoutineFromPreset,
   fetchTemplates,
 } from "./api";
 
