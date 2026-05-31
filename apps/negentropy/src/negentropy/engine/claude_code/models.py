@@ -70,3 +70,6 @@ class ClaudeCodeResult:
     cost_usd: float = 0.0
     turn_count: int = 0
     error: str | None = None
+    # 「全过程」动作级审计事件（归一化后的 stream-json 动作；含 seq，按到达顺序定格）。
+    # 由 ClaudeCodeService 捕获，超时/取消/出错路径亦回带已捕获的部分事件。
+    events: list[dict] = field(default_factory=list)

@@ -2696,3 +2696,27 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **验证**：`pnpm typecheck`（pretypecheck 重建 `@negentropy/agents-chat-core` 消除 stale-dist 噪声）+ eslint(`--max-warnings=0`) 双绿；alt-port 3193 `next dev` + chrome_devtools 复用真实登录态实机走查 **5 条 mode 全链路**：图 4「Use」弹抽屉不再被遮挡、cwd 必填校验 + 实际创建并跳转详情；图 1+2 行点击直接可编辑 + Save（PUT 200 + 列表/详情刷新）；paused 显 Resume/Cancel + Save、failed 显 Delete；内置模板全字段 disabled 仅 Use；New Routine 空表单 + Advanced 折叠；弃改确认；抽屉实测 690px；明暗双主题；console 仅余 font-preload 框架噪声 0 报错。
 - **同类问题影响 / 跨上下文注意**：①**展开态/内联块勿塞进等高网格单元**（`h-full` + `grid` cell）——会被相邻 item 遮挡；展开交互优先用抽屉/弹层（脱离文档流 + z-index 分层），或把展开块移出 grid 容器；②多形态面板优先**判别式联合单组件 + keyed remount** 而非 N 个并存组件（消重复字段定义 + 单一事实源）；③React 19 + eslint-plugin-react-hooks v7 的 React Compiler 规则禁止 render 期读 ref / 创建组件，dirty-baseline 用 state、字段助手用普通函数；④抽屉宽度等"任意值"改动后须 computed-style/`getBoundingClientRect` 量化实证（本期实测 690px / 0.54 视口），勿凭截图目测。
 - **收尾 chore（2026-05-31）**：ISSUE-105 删 UI 组件时遗留 `from-preset` API 管线孤岛——前端 client（`fetchPresets`/`createRoutineFromPreset`）+ 类型（`RoutinePresetSummary`/`RoutineFromPresetPayload`）+ `index.ts` re-export + 对应单测，及后端 `GET /routines/presets`、`POST /routines/from-preset` + `RoutineFromPresetRequest`（均**无调用方、无测试**，已被 `/templates` + `createRoutine` 取代）。本 chore 一并清除，使上文「`from-preset` 快捷通道…一并删除」端到端为真（彻底熵减）；`agents/routine_presets/`（`load_all` + 4 个 YAML）**保留**——仍由合并端点 `GET /routines/templates` 加载内置预设。同步：user-guide [routine-presets.md](../concepts/user-guide/routine-presets.md)「API 参考」改指 `/templates` 与 `POST /routines`；404 错误处理单测载体改用 `fetchKpis`。另统一两页 Save 体验——`templates` 页 `template-edit` 保存后抽屉保持打开（对齐 `routine` 页 `routine-edit`，草稿基线由抽屉自身 `setBaseline` 重置）。
+
+---
+
+## ISSUE-106 Routine 执行「全过程」动作级审计 + 实时流（事后审计 + 边跑边看）
+
+- **表因**：Routine 单任务页虽名为「全过程」视图，但仅到迭代粒度——每轮只持久化最终摘要（`summary` 截断 2000 字符）+ 成本/轮数/评分。Claude Code 在一轮内真正执行的**所有动作**（读/改/跑命令、中间推理）以及评估阶段的 Judge prompt/原始回复、Gate 完整输出全部被丢弃，无法事后审计与 Review。
+- **根因**：
+  1. `engine/claude_code/service.py` `_invoke_cli` 逐条解析 stream-json 但只取最终 `result`，丢弃每个 `tool_use`/`tool_result`/中间 `assistant`；且 assistant 分支误读扁平 `event.get("content")`（真实 CLI 嵌套在 `message.content` 块列表）——**实为死代码**；
+  2. `engine/routine/evaluator.py` 的 Judge prompt、原始回复、Gate 完整输出本地算出后即弃，只留 score/verdict/reflection/gate_exit_code。
+- **处理方式**（全链路，新表 + 捕获 + 持久化 + 实时 + 审计 UI）：
+  1. **新表** `routine_iteration_events`（模型 `RoutineIterationEvent` + 迁移 `0052`，schema `negentropy`，双 FK CASCADE + `UniqueConstraint(iteration_id,seq)` + 两索引）——append-only 动作事实流；
+  2. **归一化捕获** `service.py::_normalize_stream_event`（防御式解析 system/init、assistant 块列表→text/tool_use/thinking、user tool_result 字符串/块列表、result、未知 type **绝不丢弃**）+ `_cap`/`_coerce_content`/`_cap_json`（16KB/字段）+ `_MAX_EVENTS_PER_ITER=1000` 封顶 + `_truncated` 哨兵；顺手修复 assistant 摘要回退读 `message.content`；
+  3. **`invoke(on_event=...)` sink + `events_holder`** 可变容器（仿 `session_holder`），超时/取消/出错路径亦回带已捕获部分事件；
+  4. **Runner 持久化**：`_do_write_back` 在 `rowcount==1`（与计数同条件）+ `capture_events` 开关下，`pg_insert(...).on_conflict_do_nothing(["iteration_id","seq"])` 批量插 seq 0..N-1，与状态翻转同事务；`_make_action_sink` 经非阻塞总线（`put_nowait`+丢旧）实时广播 `action` 事件（`suppress` 异常，绝不阻塞 CC 执行）；
+  5. **Orchestrator 评估事件**：`_persist_eval_events` 仅在迭代翻转 `evaluated` 时以 DB 侧 `MAX(seq)+1` 追加 gate+evaluation 行（`on_conflict_do_nothing`），**评估失败重试期间 status 停留 executed 不追加**（防每 tick 重复）；`EvaluationResult` 新增 judge_prompt/judge_raw/gate_output；
+  6. **API** `GET /routines/{id}/iterations/{iid}/events`（升序 seq 分页，catch-all 代理自动转发，**无需新前端路由**）；events 不内联进迭代详情（保持列表/详情载荷小，抽屉懒加载）；
+  7. **审计 UI**：`IterationAuditDrawer`（复用 `BaseDrawer`，宽 ~720px，懒加载 + 实时缓冲按 seq 去重合并 + 终态回查）+ `IterationEventTimeline`（纵向 trace，类型图标**颜色+图标双编码**，分组 执行→结果→门控→评估，折叠展开 input/output/context 用 `JsonViewer`/`pre`，skeleton/空态/LIVE 脉冲/`role=alert`）；`useRoutineDetailLive` 增 `liveActionsByIteration`（仅在途迭代缓冲，**action 事件不触发整 routine 重拉**）。
+- **后续防范**：
+  1. **签名变更的 cascade**：`invoke`/`_invoke_cli` 新增 kwargs 后，既有用 4-arg mock 替换 `_invoke_cli` 的单测会以「takes 4 args but 6 given」失败被吞为 `error`——替换内部协程的 mock 必须同步新签名（`test_claude_code_service.py::test_invoke_timeout_returns_partial_session_id`）；
+  2. **`_cap` 输出须 ≤ limit**：截断标记若**追加在 limit 之外**会使返回值超长，写入定长列（`title` String(255)）触发 `StringDataRightTruncation` 中断评估事务——`_cap` 必须从 head 预扣标记预算；定长列入库再做 `[:255]` 防御性收口（runner 与 orchestrator 两处一致）；
+  3. seq 双写者（runner 0..N-1 / orchestrator MAX+1）全程 `ON CONFLICT DO NOTHING` 兜底 reaper/abort/重试竞态；
+  4. 实时为 best-effort，**持久化端点为事实源**（队列满丢弃的事件经 refetch 补齐）。
+- **验证**：unit（归一化各形态/截断边界/seq 单调/tool_use↔tool_result 配对/sink 异常吞噬）+ integration（写回 seq 幂等/capture 关闭仍翻转/gate+eval 追加于 MAX+1/失败重试零事件/超长 verification_command 不溢出）+ API（升序分页 + 404）共 **66+ 用例全绿**；迁移 `0052` 在隔离库 upgrade/downgrade 往返干净；alt-port 3194 dev server + 路由级 router-only verify 后端（3393，无心跳）+ 13 条种子事件，Playwright 明暗双主题实机走查：4 分组正确、人读标题（`Read src/...`、`Bash: pytest -q`、`Judge: progressing · 72`）、error 徽章、cost、折叠 JsonViewer 展开 `command`/`tool_id`——全部如设计；验证后**删种子事件+手建表恢复 live DB 原状**。
+- **同类问题影响 / 跨上下文注意**：**跨工作区 alembic `0052` 冲突**——本分支 `0052_routine_iteration_events`（revises `0051`，相对 PR 基线 `origin/feature/1.x.x` 头部 `0051` 正确、唯一），但 sibling 工作区（`tel-aviv-v1`/`routine-failed-restart`）定义了**另一个** `0052_routine_eval_floor_seq`（同 revises `0051`）。这些分支合并入同一基线时将出现 alembic **multiple-heads**，需合并方协调（其一改 revises 前者形成线性链，或 `alembic merge`）。共享引擎 DB 已被 sibling 的 `0052` stamp，本分支迁移在该 DB 不会自动跑——部署合并代码时须确认本表由某条已应用迁移真正建出。

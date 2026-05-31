@@ -72,7 +72,7 @@ async def test_iter_json_events_skips_blank_and_malformed():
 async def test_invoke_timeout_returns_partial_session_id(monkeypatch):
     """CLI 协程已从 init 捕获 session 后超时 → invoke 仍回带 session_id（防死亡螺旋）。"""
 
-    async def _slow_cli(prompt, config, abort_event, session_holder=None):
+    async def _slow_cli(prompt, config, abort_event, session_holder=None, events_holder=None, on_event=None):
         if session_holder is not None:
             session_holder["session_id"] = "sess-from-init"
         await asyncio.sleep(5)  # 永不在超时窗口内返回

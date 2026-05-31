@@ -43,7 +43,7 @@ import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.routine import phase as phase_mod
 from negentropy.logging import get_logger
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 logger = get_logger("negentropy.interface.routine_api")
 
@@ -203,6 +203,22 @@ def _serialize_iteration(it: RoutineIteration) -> dict[str, Any]:
         "gate_exit_code": it.gate_exit_code,
         "started_at": it.started_at.isoformat() if it.started_at else None,
         "finished_at": it.finished_at.isoformat() if it.finished_at else None,
+    }
+
+
+def _serialize_event(ev: RoutineIterationEvent) -> dict[str, Any]:
+    """序列化单条「全过程」动作审计事件（与前端 ``RoutineIterationEventDTO`` 对齐）。"""
+    return {
+        "id": str(ev.id),
+        "iteration_id": str(ev.iteration_id),
+        "routine_id": str(ev.routine_id),
+        "seq": ev.seq,
+        "event_type": ev.event_type,
+        "tool_name": ev.tool_name,
+        "title": ev.title,
+        "payload": ev.payload or {},
+        "cost_usd": ev.cost_usd,
+        "created_at": ev.created_at.isoformat() if ev.created_at else None,
     }
 
 
@@ -491,6 +507,39 @@ async def list_iterations(
         "items": [_serialize_iteration(it) for it in rows],
         "has_more": has_more,
         "next_before_seq": rows[-1].seq if has_more and rows else None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /routines/{id}/iterations/{iid}/events
+# 「全过程」动作级审计事件流（懒加载；不内联进迭代详情，保持列表/详情载荷小）。
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{routine_id}/iterations/{iteration_id}/events")
+async def list_iteration_events(
+    routine_id: UUID,
+    iteration_id: UUID,
+    limit: int = Query(200, ge=1, le=1000),
+    after_seq: int | None = Query(None, description="分页：返回 seq 大于此值的事件（升序）"),
+) -> dict[str, Any]:
+    """单次迭代的「全过程」动作级审计事件流（工具调用/结果/中间消息/结果/门控/评估，按 seq 升序）。"""
+    async with db_session.AsyncSessionLocal() as db:
+        it = await db.get(RoutineIteration, iteration_id)
+        if it is None or it.routine_id != routine_id:
+            raise HTTPException(status_code=404, detail="iteration not found")
+        stmt = select(RoutineIterationEvent).where(RoutineIterationEvent.iteration_id == iteration_id)
+        if after_seq is not None:
+            stmt = stmt.where(RoutineIterationEvent.seq > after_seq)
+        stmt = stmt.order_by(RoutineIterationEvent.seq.asc()).limit(limit + 1)
+        rows = (await db.execute(stmt)).scalars().all()
+
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    return {
+        "items": [_serialize_event(ev) for ev in rows],
+        "has_more": has_more,
+        "next_after_seq": rows[-1].seq if has_more and rows else None,
     }
 
 
