@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect --
  * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
  * 在挂载取数模式（useEffect 内触发 fetcher → 异步回调 setState）下命中告警。
- * 该模式功能正确，与同目录 PresetPickerDialog / RoutineFleetView 一致；
+ * 该模式功能正确，与同目录 RoutineFleetView 一致；
  * TODO(react-compiler): 按 React Compiler 范式 / SWR / useSyncExternalStore 重构。
  */
 "use client";
