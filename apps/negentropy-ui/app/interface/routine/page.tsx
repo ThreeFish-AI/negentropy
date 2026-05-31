@@ -28,19 +28,16 @@ import type {
 import { ClockProvider } from "./_components/ClockProvider";
 import { RoutineDetailDrawer } from "./_components/RoutineDetailDrawer";
 import { RoutineFilterBar } from "./_components/RoutineFilterBar";
-import { RoutineFleetView } from "./_components/RoutineFleetView";
 import { RoutineFormDialog } from "./_components/RoutineFormDialog";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
-import { RoutineViewToggle, type RoutineView } from "./_components/RoutineViewToggle";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
 
 function RoutinePageInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const view: RoutineView = sp.get("view") === "fleet" ? "fleet" : "table";
   const selId = sp.get("sel");
 
   const [filters, setFilters] = useState<Partial<RoutineFilters>>(DEFAULT_FILTERS);
@@ -56,8 +53,6 @@ function RoutinePageInner() {
     loading,
     error,
     refresh,
-    latestByRoutine,
-    seedLatest,
     applyRoutineEvent,
     applyIterationEvent,
   } = useRoutineLive(filters);
@@ -95,17 +90,6 @@ function RoutinePageInner() {
       cancelled = true;
     };
   }, [selId]);
-
-  // URL 导航助手（依赖 sp/router，仅在路由变化时重建 → 不破坏子组件 memo）。
-  const setView = useCallback(
-    (v: RoutineView) => {
-      const next = new URLSearchParams(sp.toString());
-      if (v === "fleet") next.set("view", "fleet");
-      else next.delete("view");
-      router.replace(`?${next.toString()}`, { scroll: false });
-    },
-    [router, sp],
-  );
 
   const openDetail = useCallback(
     (r: RoutineDTO) => {
@@ -251,25 +235,11 @@ function RoutinePageInner() {
 
             <RoutineKpiStrip kpis={kpis} loading={loading} />
 
-            <div className="flex flex-wrap items-center gap-3">
-              <RoutineViewToggle view={view} onChange={setView} />
-              <div className="min-w-[200px] flex-1">
-                <RoutineFilterBar filters={filters} onChange={setFilters} />
-              </div>
+            <div className="min-w-[200px]">
+              <RoutineFilterBar filters={filters} onChange={setFilters} />
             </div>
 
-            {view === "table" ? (
-              <RoutineTable routines={routines} loading={loading} onSelect={openDetail} />
-            ) : (
-              <RoutineFleetView
-                routines={routines}
-                latestByRoutine={latestByRoutine}
-                loading={loading}
-                seedLatest={seedLatest}
-                onOpenDetail={openDetail}
-                onOpenFull={openFull}
-              />
-            )}
+            <RoutineTable routines={routines} loading={loading} onSelect={openDetail} onOpenFull={openFull} />
 
             {selected && (
               <RoutineDetailDrawer
