@@ -220,8 +220,9 @@ class RoutineOrchestrator:
                 if not routine.pr_url:
                     routine.pr_url = phase_mod.extract_pr_url(latest.summary)
 
-            # 决策（decision.py 保持纯守卫；相位化 routine 由 orchestrator 解释 SUCCESS）
-            history = await self._evaluated_history(db, routine_id)
+            # 决策（decision.py 保持纯守卫；相位化 routine 由 orchestrator 解释 SUCCESS）。
+            # 仅取「本次尝试」窗口（seq > eval_floor_seq）：重启后旧迭代不污染停滞/振荡判定。
+            history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
             verdict = decision_mod.decide(routine, latest, history)
             if phase_mod.is_phased(routine.config):
                 self._advance_phase_or_terminate(routine, verdict)
@@ -303,7 +304,9 @@ class RoutineOrchestrator:
                 prompt = build_prompt(routine, max_reflections=settings.routine.max_reflections_injected)
                 phased = phase_mod.is_phased(routine.config)
                 has_prior_impl = (
-                    await self._has_prior_phase_iteration(db, routine.id, phase_mod.PHASE_IMPLEMENT)
+                    await self._has_prior_phase_iteration(
+                        db, routine.id, phase_mod.PHASE_IMPLEMENT, floor=routine.eval_floor_seq
+                    )
                     if phased
                     else False
                 )
@@ -489,7 +492,8 @@ class RoutineOrchestrator:
         ).scalar_one_or_none()
 
     @staticmethod
-    async def _evaluated_history(db: AsyncSession, routine_id: UUID) -> list[RoutineIteration]:
+    async def _evaluated_history(db: AsyncSession, routine_id: UUID, *, floor: int = 0) -> list[RoutineIteration]:
+        """本次尝试的已评估迭代历史（seq > floor）。floor=eval_floor_seq 隔离重启前的旧迭代。"""
         return list(
             (
                 await db.execute(
@@ -497,6 +501,7 @@ class RoutineOrchestrator:
                     .where(
                         RoutineIteration.routine_id == routine_id,
                         RoutineIteration.status == "evaluated",
+                        RoutineIteration.seq > floor,
                     )
                     .order_by(RoutineIteration.seq.asc())
                 )
@@ -506,8 +511,11 @@ class RoutineOrchestrator:
         )
 
     @staticmethod
-    async def _has_prior_phase_iteration(db: AsyncSession, routine_id: UUID, phase: str) -> bool:
-        """该 routine 是否已存在指定相位的非废弃迭代（用于「首个 implement 迭代」审批判定）。"""
+    async def _has_prior_phase_iteration(db: AsyncSession, routine_id: UUID, phase: str, *, floor: int = 0) -> bool:
+        """本次尝试是否已存在指定相位的非废弃迭代（用于「首个 implement 迭代」审批判定）。
+
+        仅看 seq > floor 的迭代：重启（eval_floor_seq 抬高）后会**重新门控**首个 implement 迭代。
+        """
         row = (
             await db.execute(
                 select(RoutineIteration.id)
@@ -515,6 +523,7 @@ class RoutineOrchestrator:
                     RoutineIteration.routine_id == routine_id,
                     RoutineIteration.phase == phase,
                     RoutineIteration.status.not_in(("aborted", "reaped")),
+                    RoutineIteration.seq > floor,
                 )
                 .limit(1)
             )

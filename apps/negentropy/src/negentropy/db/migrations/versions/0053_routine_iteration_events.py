@@ -1,7 +1,7 @@
 """创建 routine_iteration_events 表 — 迭代「全过程」动作级审计事实流。
 
-Revision ID: 0052
-Revises: 0051
+Revision ID: 0053
+Revises: 0052
 Create Date: 2026-05-31 00:00:00.000000+00:00
 
 设计动机：
@@ -31,8 +31,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0052"
-down_revision: str | None = "0051"
+revision: str = "0053"
+down_revision: str | None = "0052"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -278,6 +278,46 @@ async def test_redispatch_after_aborted_iteration_uses_next_seq():
         await _cleanup(rid)
 
 
+# 重启决策窗口隔离的 A/B 对照：两用例数据完全相同（seq1-5），仅 eval_floor_seq 不同（4 vs 0），
+# 结果相反——证明 eval_floor_seq 确实将停滞判定收敛到「本次尝试」，而非由旧迭代评分驱动。
+# 旧尝试设高基线（seq1=90）+ 多条低分（seq2-4=40），使 no_progress 的「窗口前最优」基线为 90。
+async def _seed_restart_pollution_case(eval_floor_seq: int, iteration_count: int) -> uuid.UUID:
+    rid = await _make_routine(
+        no_progress_patience=3, eval_floor_seq=eval_floor_seq, iteration_count=iteration_count, max_iterations=50
+    )
+    await _add_iteration(rid, seq=1, status="evaluated", score=90, verdict="progressing")
+    await _add_iteration(rid, seq=2, status="evaluated", score=40, verdict="progressing")
+    await _add_iteration(rid, seq=3, status="evaluated", score=40, verdict="progressing")
+    await _add_iteration(rid, seq=4, status="evaluated", score=40, verdict="progressing")
+    await _add_iteration(rid, seq=5, status="executed", exec_status="success", summary="wip")
+    return rid
+
+
+async def test_evaluate_floor_isolates_restarted_attempt():
+    """重启回归：eval_floor_seq=4 把旧 seq1-4 排除在决策窗口外，新一轮不被旧历史误判 no_progress。"""
+    rid = await _seed_restart_pollution_case(eval_floor_seq=4, iteration_count=1)
+    try:
+        await _evaluate_phased(rid, score=40, verdict="progressing")
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "running"  # 新窗口几无历史 → 不判停滞
+    finally:
+        await _cleanup(rid)
+
+
+async def test_evaluate_without_floor_pre_history_triggers_no_progress():
+    """对照：floor=0（未隔离）时旧高基线历史使新低分迭代被 no_progress 终止——证明 floor 的必要性。"""
+    rid = await _seed_restart_pollution_case(eval_floor_seq=0, iteration_count=5)
+    try:
+        await _evaluate_phased(rid, score=40, verdict="progressing")
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "failed"
+            assert r.termination_reason == "no_progress"
+    finally:
+        await _cleanup(rid)
+
+
 async def test_write_back_no_double_count_when_reaped_midflight():
     """回归（code review #5）：迭代在执行中被 reaper 标记 reaped 后，
     runner 的 write-back 不应把它复活为 executed、也不应重复累加 iteration_count/cost。"""

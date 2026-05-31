@@ -129,6 +129,9 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     best_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     claude_session_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # 决策窗口水位线：仅 seq > 此值的迭代参与 decide/审批判定。重启失败 routine 时置为当前
+    # MAX(seq)，使新一轮尝试的停滞/振荡/审批判定不被既往迭代「污染」（旧迭代仍保留供审计）。
+    eval_floor_seq: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     # --- Reflexion 反思记忆 + Claude Code 配置覆盖 ---
     reflections: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")

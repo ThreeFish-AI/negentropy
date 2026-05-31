@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -19,8 +19,9 @@ import {
 
 import { ClockProvider } from "../_components/ClockProvider";
 import { RoutineRunView } from "../_components/RoutineRunView";
-import { CONTROL_LABEL, controlsFor, type ControlAction } from "../_components/routine-controls";
+import { canRestart, CONTROL_LABEL, controlsFor, type ControlAction } from "../_components/routine-controls";
 import { phaseClass, phaseLabel, routineStatusClass } from "../_components/status-style";
+import { useRestartRoutine } from "../_components/useRestartRoutine";
 
 export default function RoutineRunPage() {
   const params = useParams<{ id: string }>();
@@ -81,6 +82,8 @@ export default function RoutineRunPage() {
     [id, reload],
   );
 
+  const { requestRestart, restartDialog } = useRestartRoutine(() => void reload());
+
   const clockActive = routine?.status === "running";
   const controls = routine ? controlsFor(routine.status) : [];
 
@@ -139,6 +142,17 @@ export default function RoutineRunPage() {
                     {CONTROL_LABEL[action]}
                   </Button>
                 ))}
+                {routine && canRestart(routine.status) && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={busy}
+                    leftIcon={<RotateCcw className="h-4 w-4" />}
+                    onClick={() => requestRestart(routine)}
+                  >
+                    Restart
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -166,6 +180,7 @@ export default function RoutineRunPage() {
           </div>
         </ClockProvider>
       </div>
+      {restartDialog}
     </div>
   );
 }
