@@ -13,11 +13,14 @@ _PERMISSION_MODE_MAP = {
     "auto": "default",
     "ask": "default",
     "default": "default",
+    "acceptEdits": "acceptEdits",
     "acceptedits": "acceptEdits",
     "accept_edits": "acceptEdits",
     "plan": "plan",
+    "bypassPermissions": "bypassPermissions",
     "bypasspermissions": "bypassPermissions",
     "bypass_permissions": "bypassPermissions",
+    "dontAsk": "dontAsk",
     "dontask": "dontAsk",
 }
 

@@ -27,6 +27,7 @@ _SUMMARY_MAX_LEN = 2000
 # 64KiB 上限导致的 LimitOverrunError（stream-json 单行可达数 MiB，如大 tool_result）。
 _STREAM_READER_LIMIT = 16 * 1024 * 1024  # 16 MiB
 _READ_CHUNK = 64 * 1024  # 每次读取块大小
+_BUF_CAP = 32 * 1024 * 1024  # buf 上界（32 MiB），超出 warn 并清空防内存膨胀
 
 
 class ClaudeCodeService:
@@ -262,6 +263,9 @@ class ClaudeCodeService:
             if not chunk:  # EOF
                 break
             buf.extend(chunk)
+            if len(buf) > _BUF_CAP:
+                logger.warning("claude_code_stream_buf_overflow", buf_len=len(buf), cap=_BUF_CAP)
+                buf.clear()
             while True:
                 nl = buf.find(b"\n")
                 if nl < 0:

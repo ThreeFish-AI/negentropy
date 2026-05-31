@@ -29,6 +29,8 @@ def test_extract_pr_url_sentinel_and_fallback():
     assert phase_mod.extract_pr_url("opened https://github.com/o/r/pull/12 ✅") == "https://github.com/o/r/pull/12"
     assert phase_mod.extract_pr_url("no link") is None
     assert phase_mod.extract_pr_url(None) is None
+    # 非 URL 值（缺少 https://）不应被 sentinel 捕获
+    assert phase_mod.extract_pr_url("PR_URL=not-a-url") is None
 
 
 def _routine(**kw):

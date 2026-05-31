@@ -31,7 +31,8 @@ _PERM_BY_PHASE = {
 }
 
 # PR 链接捕获：优先约定 sentinel ``PR_URL=<链接>``，兜底裸 GitHub PR URL。
-_PR_URL_RE = re.compile(r"PR_URL=(\S+)")
+# sentinel 要求 ``https://`` 前缀（防御畸形/非 URL 值被当作成功信号）。
+_PR_URL_RE = re.compile(r"PR_URL=(https?://\S+)")
 _PR_URL_FALLBACK_RE = re.compile(r"https://github\.com/[^\s)\]]+/pull/\d+")
 
 
