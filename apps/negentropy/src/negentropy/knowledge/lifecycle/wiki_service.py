@@ -198,9 +198,9 @@ class WikiPublishingService:
     ) -> None:
         """SNAPSHOT 模式：冻结当前 entries 到 wiki_publication_snapshots。
 
-        frozen_entries 仅冻结条目映射元数据（id/slug/title/path/is_index_page/
-        document_id），不冗余 markdown 内容——SSG 仍从 ``KnowledgeDocument``
-        按 document_id 拉取，避免快照表膨胀。
+        frozen_entries 仅冻结条目映射元数据（id/slug/title/description/path/
+        is_index_page/document_id），不冗余 markdown 内容——SSG 仍从
+        ``KnowledgeDocument`` 按 document_id 拉取，避免快照表膨胀。
         """
         entries = await WikiDao.get_entries(db, pub.id)
         frozen = [
@@ -208,6 +208,7 @@ class WikiPublishingService:
                 "entry_id": str(e.id),
                 "entry_slug": e.entry_slug,
                 "entry_title": e.entry_title,
+                "entry_description": e.entry_description,
                 "entry_path": e.entry_path,
                 "is_index_page": bool(e.is_index_page),
                 "document_id": str(e.document_id),
@@ -505,6 +506,7 @@ class WikiPublishingService:
                 catalog_node_id=node["id"],
                 entry_slug=final_slug,
                 entry_title=node.get("name") or path_slugs[-1],
+                entry_description=node.get("description"),
                 entry_path=entry_path,
             )
             synced_node_ids.add(str(node["id"]))

@@ -280,6 +280,7 @@ class WikiDao:
         catalog_node_id: UUID,
         entry_slug: str,
         entry_title: str | None,
+        entry_description: str | None = None,
         entry_path: str | None,
     ) -> WikiPublicationEntry:
         """创建或更新 CONTAINER 类型条目（幂等：同一 publication+catalog_node 组合只保留一条）。
@@ -301,6 +302,7 @@ class WikiDao:
         if rec is not None:
             rec.entry_slug = entry_slug
             rec.entry_title = entry_title
+            rec.entry_description = entry_description
             rec.entry_path = entry_path
         else:
             rec = WikiPublicationEntry(
@@ -309,6 +311,7 @@ class WikiDao:
                 catalog_node_id=catalog_node_id,
                 entry_slug=entry_slug,
                 entry_title=entry_title,
+                entry_description=entry_description,
                 entry_path=entry_path,
                 is_index_page=False,
                 entry_kind="CONTAINER",

@@ -66,8 +66,9 @@ export default async function WikiHomePage() {
         homeLinks.push({ label: title, href });
         homeCards.push({
           title,
+          // 优先节点级描述（Catalog 节点 description）→ 回退 Publication 级描述 → 占位
+          description: item.entry_description || pub.description || "暂无描述",
           href,
-          description: pub.description || "暂无描述",
           Icon: getPublicationIcon(pub.name),
         });
       }
