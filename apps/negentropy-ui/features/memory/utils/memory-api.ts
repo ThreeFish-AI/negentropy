@@ -141,6 +141,117 @@ export interface RetrievalMetrics {
 }
 
 // ============================================================================
+// Observability — Health
+// ============================================================================
+
+/** `/memory/health` 的 feature flag 实时快照（含 PII 引擎实际运行态探测）。 */
+export interface MemoryHealthFeatures {
+  hipporag: boolean;
+  reflection: boolean;
+  consolidation_legacy: boolean;
+  consolidation_policy: string;
+  consolidation_steps: string[];
+  pii_engine: string;
+  /** 探测到的实际 PII 检测器（"presidio" / "regex" / "unavailable"）；与 pii_engine 不一致即静默降级。 */
+  pii_engine_actual?: string;
+  relevance_enabled: boolean;
+  gatekeeper_enabled: boolean;
+  // 探测异常时后端返回 {status, detail} 而非上述字段
+  status?: string;
+  detail?: string;
+}
+
+export interface MemoryHealth {
+  status: "healthy" | "degraded";
+  checks: {
+    db: { status: string; detail?: string };
+    features: MemoryHealthFeatures;
+    tables: { memories?: number; facts?: number; status?: string; detail?: string };
+  };
+}
+
+// ============================================================================
+// Observability — Aggregate Metrics (admin)
+// ============================================================================
+
+/** `/memory/metrics` 聚合指标（SRE 黄金信号 + USE 方法），仅 admin 可读。 */
+export interface MemorySystemMetrics {
+  // 搜索（24h）
+  search_total_24h: number;
+  search_reference_rate: number;
+  search_helpful_rate: number;
+  // 巩固（24h）
+  consolidation_total_24h: number;
+  consolidation_retain_rate: number;
+  // Retention 分布
+  retention_score_avg: number;
+  retention_score_p10: number;
+  retention_score_p90: number;
+  low_retention_count: number;
+  memory_total: number;
+  // PII
+  pii_detection_rate: number;
+  pii_detected_count: number;
+  // Facts & 图谱
+  fact_count: number;
+  association_count: number;
+  kg_entity_count: number;
+}
+
+// ============================================================================
+// Core Blocks（身份记忆块：persona/human，λ=0.0 永久 always-injected）
+// ============================================================================
+
+export interface CoreBlockItem {
+  id: string;
+  user_id: string;
+  app_name: string;
+  scope: "user" | "app" | "thread";
+  thread_id?: string | null;
+  label: string;
+  content: string;
+  token_count: number;
+  version: number;
+  updated_by?: string | null;
+  metadata: Record<string, unknown>;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface CoreBlockListPayload {
+  count: number;
+  items: CoreBlockItem[];
+}
+
+export interface CoreBlockUpsertResult {
+  id: string;
+  version: number;
+  scope: string;
+  label: string;
+  token_count: number;
+  truncated: boolean;
+}
+
+// ============================================================================
+// Associations（记忆/事实关联图，per-memory）
+// ============================================================================
+
+export interface MemoryAssociation {
+  id: string;
+  source_id: string;
+  source_type: string;
+  target_id: string;
+  target_type: string;
+  association_type: string;
+  weight: number;
+}
+
+export interface AssociationListPayload {
+  count: number;
+  items: MemoryAssociation[];
+}
+
+// ============================================================================
 // Dashboard
 // ============================================================================
 
@@ -408,6 +519,137 @@ export async function fetchRetrievalMetrics(params: {
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch retrieval metrics: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Observability — Health & Metrics
+// ============================================================================
+
+/** 拉取 Memory 系统健康快照（无鉴权；端点被禁用时后端返回 404，由调用方吞掉降级）。 */
+export async function fetchMemoryHealth(): Promise<MemoryHealth> {
+  const res = await fetch("/api/memory/health", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch memory health: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/**
+ * 拉取 Memory 系统聚合指标（admin only）。
+ *
+ * 非 admin 触达时后端 `_require_admin` 返回 403；端点被禁用返回 404。两者均由调用方
+ * （Overview / Insights）吞掉并降级为 null，绝不冒泡为整页错误。
+ */
+export async function fetchMemoryMetrics(params?: {
+  user_id?: string;
+  app_name?: string;
+}): Promise<MemorySystemMetrics> {
+  const qs = new URLSearchParams();
+  if (params?.user_id) qs.set("user_id", params.user_id);
+  if (params?.app_name) qs.set("app_name", params.app_name);
+  const search = qs.toString() ? `?${qs.toString()}` : "";
+
+  const res = await fetch(`/api/memory/metrics${search}`, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch memory metrics: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Core Blocks
+// ============================================================================
+
+export async function fetchCoreBlocks(params: {
+  user_id: string;
+  app_name?: string;
+  thread_id?: string;
+}): Promise<CoreBlockListPayload> {
+  const qs = new URLSearchParams();
+  qs.set("user_id", params.user_id);
+  if (params.app_name) qs.set("app_name", params.app_name);
+  if (params.thread_id) qs.set("thread_id", params.thread_id);
+
+  const res = await fetch(`/api/memory/core-blocks?${qs.toString()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch core blocks: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function upsertCoreBlock(payload: {
+  user_id: string;
+  app_name?: string;
+  scope?: "user" | "app" | "thread";
+  thread_id?: string | null;
+  label: string;
+  content: string;
+  updated_by?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<CoreBlockUpsertResult> {
+  const res = await fetch("/api/memory/core-blocks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to upsert core block: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/** 删除 Core Block —— 标识参数走 query string（与后端 Query(...) 契约一致），无 body。 */
+export async function deleteCoreBlock(params: {
+  user_id: string;
+  app_name?: string;
+  scope?: string;
+  thread_id?: string;
+  label: string;
+}): Promise<{ status: string }> {
+  const qs = new URLSearchParams();
+  qs.set("user_id", params.user_id);
+  if (params.app_name) qs.set("app_name", params.app_name);
+  if (params.scope) qs.set("scope", params.scope);
+  if (params.thread_id) qs.set("thread_id", params.thread_id);
+  qs.set("label", params.label);
+
+  const res = await fetch(`/api/memory/core-blocks?${qs.toString()}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to delete core block: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Associations
+// ============================================================================
+
+export async function fetchMemoryAssociations(
+  memoryId: string,
+  params?: {
+    association_type?: string;
+    direction?: "in" | "out" | "both";
+    limit?: number;
+  },
+): Promise<AssociationListPayload> {
+  const qs = new URLSearchParams();
+  if (params?.association_type) qs.set("association_type", params.association_type);
+  if (params?.direction) qs.set("direction", params.direction);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const search = qs.toString() ? `?${qs.toString()}` : "";
+
+  const res = await fetch(
+    `/api/memory/${encodeURIComponent(memoryId)}/associations${search}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch associations: ${res.statusText}`);
   }
   return res.json();
 }

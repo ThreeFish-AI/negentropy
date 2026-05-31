@@ -9,11 +9,16 @@ import {
   navRailContainerClassName,
 } from "@/components/ui/nav-styles";
 
+// 标签顺序编码记忆生命周期叙事：Overview（地图）→ Formation → Evolution → Retrieval/可观测。
+// Insights 对所有登录用户可见（健康 + 检索质量），其中系统聚合指标面板在页面内做 admin 渲染门控。
 const NAV_ITEMS = [
+  { href: "/memory/overview", label: "Overview" },
   { href: "/memory/timeline", label: "Timeline" },
   { href: "/memory/facts", label: "Facts" },
-  { href: "/memory/audit", label: "Audit" },
   { href: "/memory/conflicts", label: "Conflicts" },
+  { href: "/memory/core-blocks", label: "Core Memory" },
+  { href: "/memory/audit", label: "Audit" },
+  { href: "/memory/insights", label: "Insights" },
 ];
 
 export function MemoryNav({
