@@ -4,7 +4,7 @@
  * WikiGraphRenderer — Wiki 知识图谱渲染器切换容器
  *
  * 与主站 `apps/negentropy-ui/.../knowledge/graph/page.tsx` 的右上角分段切换器
- * 对齐：提供 Sigma / 3D / d3-force / Force Graph / Cytoscape 五种引擎，用户可
+ * 对齐：提供 d3-force / 3D / Sigma / Force Graph / Cytoscape 五种引擎，用户可
  * 自由切换，默认 Sigma WebGL。
  *
  * 数据由服务端页面（`/:pubSlug/graph`）一次性 fetch 后下传，本组件仅消费 props
