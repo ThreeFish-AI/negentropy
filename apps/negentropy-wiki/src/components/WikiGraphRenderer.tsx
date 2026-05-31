@@ -4,7 +4,7 @@
  * WikiGraphRenderer — Wiki 知识图谱渲染器切换容器
  *
  * 与主站 `apps/negentropy-ui/.../knowledge/graph/page.tsx` 的右上角分段切换器
- * 对齐：提供 Sigma / 3D / d3-force / Force Graph / Cytoscape 五种引擎，用户可
+ * 对齐：提供 d3-force / 3D / Sigma / Force Graph / Cytoscape 五种引擎，用户可
  * 自由切换，默认 Sigma WebGL。
  *
  * 数据由服务端页面（`/:pubSlug/graph`）一次性 fetch 后下传，本组件仅消费 props
@@ -44,17 +44,17 @@ type RendererId = "sigma" | "3d" | "d3" | "force-graph" | "cytoscape";
 // 切换器配置（label / title 与主站 page.tsx 切换器对齐）。后续主站渲染器增减时，
 // 在此数组同步增删即可。
 const RENDERERS: { id: RendererId; label: string; title: string }[] = [
-  {
-    id: "sigma",
-    label: "Sigma",
-    title: "Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）",
-  },
+  { id: "d3", label: "d3-force", title: "d3-force 力导向 + SVG 渲染" },
   {
     id: "3d",
     label: "3D",
     title: "3D WebGL（three.js + d3-force-3d，支持三维旋转）",
   },
-  { id: "d3", label: "d3-force", title: "d3-force 力导向 + SVG 渲染" },
+  {
+    id: "sigma",
+    label: "Sigma",
+    title: "Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）",
+  },
   {
     id: "force-graph",
     label: "Force Graph",

@@ -544,15 +544,15 @@ export default function KnowledgeGraphPage() {
                   {viewTab === "graph" && (
                     <div className="flex rounded-lg border border-border text-micro">
                       <button
-                        onClick={() => setRenderer("sigma")}
-                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
+                        onClick={() => setRenderer("d3")}
+                        title="d3-force（Phase 1 兼容回退）"
                         className={`px-2 py-1 font-medium outline-hidden transition-colors ${
-                          renderer === "sigma"
+                          renderer === "d3"
                             ? "bg-foreground text-background"
                             : "text-text-muted hover:text-foreground"
                         } rounded-l-lg`}
                       >
-                        Sigma
+                        d3-force
                       </button>
                       <button
                         onClick={() => setRenderer("3d")}
@@ -566,15 +566,15 @@ export default function KnowledgeGraphPage() {
                         3D
                       </button>
                       <button
-                        onClick={() => setRenderer("d3")}
-                        title="d3-force（Phase 1 兼容回退）"
+                        onClick={() => setRenderer("sigma")}
+                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
                         className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-border ${
-                          renderer === "d3"
+                          renderer === "sigma"
                             ? "bg-foreground text-background"
                             : "text-text-muted hover:text-foreground"
                         }`}
                       >
-                        d3-force
+                        Sigma
                       </button>
                       <button
                         onClick={() => setRenderer("force-graph")}
