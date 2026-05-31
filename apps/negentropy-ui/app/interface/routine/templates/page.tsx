@@ -6,10 +6,10 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Search, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -23,24 +23,28 @@ import {
 } from "@/features/routine";
 import type { RoutineDTO, RoutineTemplateItem } from "@/features/routine";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import { TemplateCard } from "../_components/TemplateCard";
 import { TemplateFormDialog } from "../_components/TemplateFormDialog";
-import { CreateFromTemplateDialog } from "../_components/CreateFromTemplateDialog";
 import { TemplateDetailDrawer } from "../_components/TemplateDetailDrawer";
+import { InlineCreateFromTemplate } from "../_components/InlineCreateFromTemplate";
 
 const GRID_CLS = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3";
+
+type SourceFilter = "all" | "builtin" | "user";
 
 /**
  * Routine Templates CRUD 页面。
  *
  * 合并展示内置 YAML 预设（source=builtin，只读）与用户自建模板（source=user，可 CRUD）。
+ * 提供搜索、分类筛选、来源切换；点击卡片打开详情抽屉。
  * 交互流：
- * - "New Template" → TemplateFormDialog(create)
- * - 卡片点击 → TemplateDetailDrawer 查看详情
- * - "使用模板" → CreateFromTemplateDialog（填 key+cwd → 创建 Routine）
- * - "Edit" → TemplateFormDialog(edit)
- * - "Delete" → useConfirmDialog → deleteRoutine → toast + refresh
+ * - "新建模板" → TemplateFormDialog(create)
+ * - 卡片点击 → TemplateDetailDrawer（详情抽屉）
+ * - "使用此模板" → 内联创建栏（填 cwd → 创建 Routine → 跳转）
+ * - "编辑" → TemplateFormDialog(edit)
+ * - "删除" → useConfirmDialog → deleteRoutine → toast + refresh
  */
 export default function RoutineTemplatesPage() {
   const router = useRouter();
@@ -48,18 +52,16 @@ export default function RoutineTemplatesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Dialog states
+  // 筛选状态
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+
+  // Dialog / Drawer 状态
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RoutineTemplateItem | null>(null);
-  const [selectedForUse, setSelectedForUse] = useState<RoutineTemplateItem | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<RoutineTemplateItem | null>(null);
-  // 保留最后一次查看的模板，供 Drawer 关闭动画期间使用
-  const [lastViewedTemplate, setLastViewedTemplate] = useState<RoutineTemplateItem | null>(null);
-
-  const openDetail = (t: RoutineTemplateItem) => {
-    setSelectedDetail(t);
-    setLastViewedTemplate(t);
-  };
+  const [activeUseTemplateId, setActiveUseTemplateId] = useState<string | null>(null);
+  const [selectedForDetail, setSelectedForDetail] = useState<RoutineTemplateItem | null>(null);
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -76,9 +78,33 @@ export default function RoutineTemplatesPage() {
     load();
   }, [load]);
 
-  // ── 分组 ──
-  const builtin = templates.filter((t) => t.source === "builtin");
-  const user = templates.filter((t) => t.source === "user");
+  // ── 动态分类列表 ──
+  const categories = useMemo(() => {
+    const cats = new Set(templates.map((t) => t.category));
+    return ["全部", ...Array.from(cats).sort()];
+  }, [templates]);
+
+  // ── 客户端过滤 ──
+  const filtered = useMemo(() => {
+    return templates.filter((t) => {
+      // 来源过滤
+      if (sourceFilter === "builtin" && t.source !== "builtin") return false;
+      if (sourceFilter === "user" && t.source !== "user") return false;
+      // 分类过滤
+      if (activeCategory && activeCategory !== "全部" && t.category !== activeCategory) return false;
+      // 搜索过滤
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matches =
+          t.display_name.toLowerCase().includes(q) ||
+          t.key.toLowerCase().includes(q) ||
+          (t.description ?? "").toLowerCase().includes(q) ||
+          t.category.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [templates, sourceFilter, activeCategory, searchQuery]);
 
   // ── Handlers ──
   const handleFormSaved = () => {
@@ -88,11 +114,12 @@ export default function RoutineTemplatesPage() {
   };
 
   const handleUseCreated = (created: RoutineDTO) => {
-    setSelectedForUse(null);
+    setActiveUseTemplateId(null);
     router.push(`/interface/routine/${created.id}`);
   };
 
   const handleEdit = (template: RoutineTemplateItem) => {
+    setSelectedForDetail(null);
     setEditing(template);
     setFormOpen(true);
   };
@@ -109,17 +136,21 @@ export default function RoutineTemplatesPage() {
     try {
       await deleteRoutine(template.id);
       toast.success(`模板「${template.display_name}」已删除`);
+      setSelectedForDetail(null);
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "删除失败");
     }
   };
 
+  const inputCls =
+    "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:border-border focus:outline-none focus:ring-1 focus:ring-ring";
+
   return (
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Routine" />
       <div className="flex-1 overflow-auto">
-        <div className="space-y-6 px-6 py-6">
+        <div className="space-y-5 px-6 py-6">
           {/* Header */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -131,7 +162,7 @@ export default function RoutineTemplatesPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Routine Templates</h1>
+                <h1 className="text-2xl font-bold text-foreground">模板库</h1>
                 <p className="text-sm text-text-muted">
                   从内置预设或自定义模板快速创建 Routine
                 </p>
@@ -146,75 +177,141 @@ export default function RoutineTemplatesPage() {
               }}
             >
               <Plus className="mr-1 h-4 w-4" />
-              New Template
+              新建模板
             </Button>
           </div>
 
+          {/* 命令栏：搜索 + 分类 + 来源切换 */}
+          {!error && templates.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {/* 搜索框 */}
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索模板名称、描述、分类…"
+                  className={cn(inputCls, "pl-9")}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* 分类标签栏 */}
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat === "全部" ? null : cat)}
+                      className={cn(
+                        "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                        (cat === "全部" && !activeCategory) || cat === activeCategory
+                          ? "bg-primary/10 text-primary"
+                          : "bg-card text-text-secondary hover:bg-border/60",
+                      )}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 来源切换 */}
+                <div className="flex items-center rounded-control border border-border bg-card p-0.5">
+                  {([
+                    { value: "all" as const, label: "全部" },
+                    { value: "builtin" as const, label: "内置" },
+                    { value: "user" as const, label: "我的" },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSourceFilter(opt.value)}
+                      className={cn(
+                        "rounded-control px-3 py-1 text-xs font-medium transition-colors",
+                        sourceFilter === opt.value
+                          ? "bg-muted text-foreground shadow-xs"
+                          : "text-text-muted hover:text-foreground",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 内容区 */}
           {loading ? (
             <div className={GRID_CLS}>
               {[0, 1, 2].map((i) => (
                 <div key={i} className="rounded-card border border-border bg-card p-4">
-                  <Skeleton className="mb-3 h-5 w-1/3" />
-                  <div className="mb-2 flex gap-2">
-                    <Skeleton className="h-4 w-16 rounded-full" />
-                    <Skeleton className="h-4 w-12 rounded-full" />
-                  </div>
+                  <Skeleton className="mb-2 h-3 w-16" />
+                  <Skeleton className="mb-2 h-5 w-1/2" />
                   <Skeleton className="mb-1 h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
               ))}
             </div>
           ) : error ? (
-            <ErrorState title="Failed to load templates" description={error} onRetry={load} />
+            <ErrorState title="加载模板失败" description={error} onRetry={load} />
           ) : templates.length === 0 ? (
-            <EmptyState icon={Sparkles} title="No templates available." />
+            <EmptyState icon={Sparkles} title="暂无模板" />
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm text-text-muted">没有匹配的模板</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory(null);
+                  setSourceFilter("all");
+                }}
+              >
+                清除筛选
+              </Button>
+            </div>
           ) : (
-            <>
-              {/* Built-in section */}
-              {builtin.length > 0 && (
-                <section>
-                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
-                    内置模板
-                  </h2>
-                  <div className={GRID_CLS}>
-                    {builtin.map((t) => (
-                      <TemplateCard
-                        key={t.id}
-                        template={t}
-                        onUse={setSelectedForUse}
-                        onClick={openDetail}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* User templates section */}
-              {user.length > 0 && (
-                <section>
-                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
-                    我的模板
-                  </h2>
-                  <div className={GRID_CLS}>
-                    {user.map((t) => (
-                      <TemplateCard
-                        key={t.id}
-                        template={t}
-                        onUse={setSelectedForUse}
-                        onClick={openDetail}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
+            <div className={GRID_CLS}>
+              {filtered.map((t) => (
+                <div key={t.id}>
+                  <TemplateCard
+                    template={t}
+                    onDetail={setSelectedForDetail}
+                    onUse={(tmpl) => setActiveUseTemplateId(tmpl.id)}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                  {activeUseTemplateId === t.id && (
+                    <InlineCreateFromTemplate
+                      template={t}
+                      onClose={() => setActiveUseTemplateId(null)}
+                      onCreated={handleUseCreated}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Dialogs */}
+      {/* 详情抽屉 */}
+      {selectedForDetail && (
+        <TemplateDetailDrawer
+          template={selectedForDetail}
+          onClose={() => setSelectedForDetail(null)}
+          onUse={(t) => {
+            setSelectedForDetail(null);
+            setActiveUseTemplateId(t.id);
+          }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {/* 表单对话框 */}
       <TemplateFormDialog
         open={formOpen}
         template={editing}
@@ -225,34 +322,7 @@ export default function RoutineTemplatesPage() {
         onSaved={handleFormSaved}
       />
 
-      {selectedForUse && (
-        <CreateFromTemplateDialog
-          template={selectedForUse}
-          onClose={() => setSelectedForUse(null)}
-          onCreated={handleUseCreated}
-        />
-      )}
-
       {confirmDialog}
-
-      {/* Detail Drawer（始终挂载以保留 BaseDrawer exit 动画） */}
-      <TemplateDetailDrawer
-        open={!!selectedDetail}
-        template={selectedDetail ?? lastViewedTemplate}
-        onClose={() => setSelectedDetail(null)}
-        onEdit={(t) => {
-          setSelectedDetail(null);
-          handleEdit(t);
-        }}
-        onDelete={(t) => {
-          setSelectedDetail(null);
-          handleDelete(t);
-        }}
-        onUse={(t) => {
-          setSelectedDetail(null);
-          setSelectedForUse(t);
-        }}
-      />
     </div>
   );
 }
