@@ -135,7 +135,7 @@ export default function KnowledgeGraphPage() {
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
   // G2: 渲染引擎切换（默认 Sigma WebGL）— Sigma / 3D / d3-force / Force Graph / Cytoscape
-  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("sigma");
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("d3");
   const { openPanel, toggle: togglePanel, close: closePanel } = usePanelState();
   // D3 inline 渲染器 tooltip
   const [d3Tooltip, setD3Tooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
