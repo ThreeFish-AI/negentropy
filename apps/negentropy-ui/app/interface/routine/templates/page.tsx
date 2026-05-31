@@ -125,6 +125,7 @@ export default function RoutineTemplatesPage() {
   };
 
   const handleDelete = async (template: RoutineTemplateItem) => {
+    if (template.source !== "user") return; // 内置模板不可删除
     const ok = await confirm({
       title: "删除模板",
       message: `确定要删除「${template.display_name}」吗？此操作不可撤销。`,

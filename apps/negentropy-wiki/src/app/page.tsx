@@ -11,6 +11,7 @@ import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { HomeCard } from "@/components/home/HomeCard";
 import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
 import { WikiFooter } from "@/components/home/WikiFooter";
@@ -91,6 +92,7 @@ export default async function WikiHomePage() {
       homeLinks={homeLinks}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
+      userMenu={<WikiUserMenu />}
       pubSlug={firstPubSlug}
       graphTab={
         firstPubSlug
