@@ -23,6 +23,11 @@ _EVT_SYSTEM = "system"
 
 _SUMMARY_MAX_LEN = 2000
 
+# 子进程 stdout 读取：手动分块 + 抬高 StreamReader 缓冲上限，规避 asyncio readline() 默认
+# 64KiB 上限导致的 LimitOverrunError（stream-json 单行可达数 MiB，如大 tool_result）。
+_STREAM_READER_LIMIT = 16 * 1024 * 1024  # 16 MiB
+_READ_CHUNK = 64 * 1024  # 每次读取块大小
+
 
 class ClaudeCodeService:
     """封装 Claude Code CLI 调用。优先 claude-code-sdk，降级 CLI 子进程。"""
@@ -51,11 +56,14 @@ class ClaudeCodeService:
         用于 ADK Tool（tool call 内等待）和 Scheduler Handler。
         """
         t0 = time.monotonic()
+        # 可变容器：内部协程一旦从 stream 起始 init 事件解析出 session_id 即写入，
+        # 使超时/取消（wait_for 丢弃内部局部结果）路径仍能回带 session_id，让下一迭代续接。
+        session_holder: dict[str, str | None] = {"session_id": None}
         try:
             if ClaudeCodeService._check_sdk():
-                coro = ClaudeCodeService._invoke_sdk(prompt, config, abort_event)
+                coro = ClaudeCodeService._invoke_sdk(prompt, config, abort_event, session_holder)
             else:
-                coro = ClaudeCodeService._invoke_cli(prompt, config, abort_event)
+                coro = ClaudeCodeService._invoke_cli(prompt, config, abort_event, session_holder)
             result = await asyncio.wait_for(coro, timeout=config.timeout_seconds)
             elapsed = time.monotonic() - t0
             logger.info(
@@ -68,13 +76,20 @@ class ClaudeCodeService:
             )
             return result
         except asyncio.CancelledError:
-            return ClaudeCodeResult(status="error", summary="", error="cancelled")
+            return ClaudeCodeResult(
+                status="error", summary="", session_id=session_holder.get("session_id"), error="cancelled"
+            )
         except TimeoutError:
-            logger.warning("claude_code_invoke_timeout", timeout=config.timeout_seconds)
-            return ClaudeCodeResult(status="timeout", summary="", error=f"exceeded timeout ({config.timeout_seconds}s)")
+            sid = session_holder.get("session_id")
+            logger.warning("claude_code_invoke_timeout", timeout=config.timeout_seconds, session_id=sid)
+            return ClaudeCodeResult(
+                status="timeout", summary="", session_id=sid, error=f"exceeded timeout ({config.timeout_seconds}s)"
+            )
         except Exception as exc:
             logger.warning("claude_code_invoke_failed", error=str(exc))
-            return ClaudeCodeResult(status="error", summary="", error=str(exc))
+            return ClaudeCodeResult(
+                status="error", summary="", session_id=session_holder.get("session_id"), error=str(exc)
+            )
 
     # ------------------------------------------------------------------
     # SDK 路径
@@ -85,6 +100,7 @@ class ClaudeCodeService:
         prompt: str,
         config: ClaudeCodeConfig,
         abort_event: asyncio.Event | None,
+        session_holder: dict[str, str | None] | None = None,
     ) -> ClaudeCodeResult:
         import claude_code_sdk
 
@@ -92,7 +108,7 @@ class ClaudeCodeService:
             system_prompt=config.system_prompt,
             allowed_tools=config.get_effective_allowed_tools(),
             max_turns=config.max_turns,
-            permission_mode=config.permission_mode,
+            permission_mode=config.effective_permission_mode(),
             cwd=config.cwd,
         )
         if config.resume_session_id:
@@ -112,6 +128,8 @@ class ClaudeCodeService:
                 result_text = msg.result
             if hasattr(msg, "session_id") and msg.session_id:
                 session_id = msg.session_id
+                if session_holder is not None:
+                    session_holder["session_id"] = session_id
             # claude-code-sdk ResultMessage 暴露 ``total_cost_usd``；兼容旧字段 ``cost_usd``。
             cost_val = getattr(msg, "total_cost_usd", None) or getattr(msg, "cost_usd", None)
             if cost_val:
@@ -143,6 +161,7 @@ class ClaudeCodeService:
         prompt: str,
         config: ClaudeCodeConfig,
         abort_event: asyncio.Event | None,
+        session_holder: dict[str, str | None] | None = None,
     ) -> ClaudeCodeResult:
         args = ClaudeCodeService._build_cli_args(prompt, config)
 
@@ -152,6 +171,7 @@ class ClaudeCodeService:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=config.cwd,
+                limit=_STREAM_READER_LIMIT,  # 抬高 StreamReader 缓冲（兜底；主防线为手动分块读取）
             )
         except FileNotFoundError:
             return ClaudeCodeResult(
@@ -166,22 +186,22 @@ class ClaudeCodeService:
         turns = 0
 
         try:
-            async for line in proc.stdout:
-                if abort_event and abort_event.is_set():
-                    proc.terminate()
-                    break
-                decoded = line.decode("utf-8", errors="replace").strip()
-                if not decoded:
-                    continue
-                try:
-                    event = json.loads(decoded)
-                except json.JSONDecodeError:
-                    continue
-
+            async for event in ClaudeCodeService._iter_json_events(proc.stdout, abort_event):
                 evt_type = event.get("type")
-                if evt_type == _EVT_RESULT:
+                if evt_type == _EVT_SYSTEM and event.get("subtype") == "init":
+                    # stream 起始事件即携带 session_id：尽早捕获并外溢到 holder，
+                    # 使超时/取消路径仍能回带 session_id（打断死亡螺旋）。
+                    sid = event.get("session_id")
+                    if sid:
+                        session_id = sid
+                        if session_holder is not None:
+                            session_holder["session_id"] = sid
+                elif evt_type == _EVT_RESULT:
                     result_text = event.get("result", "")
-                    session_id = event.get("session_id")
+                    if event.get("session_id"):
+                        session_id = event.get("session_id")
+                        if session_holder is not None:
+                            session_holder["session_id"] = session_id
                     # claude CLI 的 result 事件字段为 ``total_cost_usd``；兼容旧字段 ``cost_usd``。
                     cost = event.get("total_cost_usd") or event.get("cost_usd") or 0.0
                     turns = event.get("num_turns", 0)
@@ -189,6 +209,9 @@ class ClaudeCodeService:
                     content = event.get("content", "")
                     if content and not result_text:
                         result_text = content
+                if abort_event and abort_event.is_set():
+                    proc.terminate()
+                    break
         except asyncio.CancelledError:
             proc.terminate()
             await proc.wait()
@@ -224,6 +247,43 @@ class ClaudeCodeService:
         )
 
     @staticmethod
+    async def _iter_json_events(stdout, abort_event: asyncio.Event | None):
+        """按块读取 stdout 并自行按 ``\\n`` 切分，逐条 yield 解析后的 stream-json 事件。
+
+        刻意**不使用** ``readline()`` / ``async for line``：超长单行（stream-json 的大
+        tool_result 可达数 MiB）只会累积进本地缓冲，绝不触发 asyncio 的 ``LimitOverrunError``
+        （即历史故障「Separator is found, but chunk is longer than limit」的根因）。
+        """
+        buf = bytearray()
+        while True:
+            if abort_event and abort_event.is_set():
+                return
+            chunk = await stdout.read(_READ_CHUNK)
+            if not chunk:  # EOF
+                break
+            buf.extend(chunk)
+            while True:
+                nl = buf.find(b"\n")
+                if nl < 0:
+                    break
+                raw = bytes(buf[:nl])
+                del buf[: nl + 1]
+                line = raw.decode("utf-8", errors="replace").strip()
+                if not line:
+                    continue
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+        # 冲洗无换行结尾的残余
+        tail = bytes(buf).decode("utf-8", errors="replace").strip()
+        if tail:
+            try:
+                yield json.loads(tail)
+            except json.JSONDecodeError:
+                pass
+
+    @staticmethod
     def _build_cli_args(prompt: str, config: ClaudeCodeConfig) -> list[str]:
         args = [
             config.cli_path,
@@ -235,7 +295,7 @@ class ClaudeCodeService:
             "--max-turns",
             str(config.max_turns),
             "--permission-mode",
-            config.permission_mode,
+            config.effective_permission_mode(),
         ]
         if config.resume_session_id:
             args += ["--resume", config.resume_session_id]
