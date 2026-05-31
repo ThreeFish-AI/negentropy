@@ -78,7 +78,7 @@ export function WikiGraphRenderer({
   truncated,
   totalEntities,
 }: WikiGraphRendererProps) {
-  const [renderer, setRenderer] = useState<RendererId>("sigma");
+  const [renderer, setRenderer] = useState<RendererId>("d3");
   const common = { pubSlug, nodes, edges, truncated, totalEntities };
 
   return (

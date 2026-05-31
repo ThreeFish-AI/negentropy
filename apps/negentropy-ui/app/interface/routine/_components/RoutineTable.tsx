@@ -9,9 +9,10 @@ interface RoutineTableProps {
   routines: RoutineDTO[];
   loading: boolean;
   onSelect: (r: RoutineDTO) => void;
+  onOpenFull: (r: RoutineDTO) => void;
 }
 
-export function RoutineTable({ routines, loading, onSelect }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -41,6 +42,7 @@ export function RoutineTable({ routines, loading, onSelect }: RoutineTableProps)
             <th className="px-4 py-2.5 font-medium">Best Score</th>
             <th className="px-4 py-2.5 font-medium">Cost</th>
             <th className="px-4 py-2.5 font-medium">Updated</th>
+            <th className="px-4 py-2.5 font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -77,6 +79,18 @@ export function RoutineTable({ routines, loading, onSelect }: RoutineTableProps)
               </td>
               <td className="px-4 py-3 text-[11px] text-text-muted">
                 {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenFull(r);
+                  }}
+                  className="cursor-pointer rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  全过程 →
+                </button>
               </td>
             </tr>
           ))}
