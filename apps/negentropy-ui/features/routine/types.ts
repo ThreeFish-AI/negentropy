@@ -59,6 +59,8 @@ export interface RoutineDTO {
   agent_id: string | null;
   created_at: string | null;
   updated_at: string | null;
+  /** true 时本行为 Routine Template */
+  is_template: boolean;
   // 仅 detail 端点返回
   iterations?: RoutineIterationDTO[];
 }
@@ -151,6 +153,7 @@ export interface RoutineCreatePayload {
   config?: Record<string, unknown>;
   display_name?: string | null;
   description?: string | null;
+  is_template?: boolean;
 }
 
 /** 更新请求体（全部可选） */
@@ -179,7 +182,41 @@ export interface RoutinePresetSummary {
 
 /** POST /routines/from-preset 请求体 */
 export interface RoutineFromPresetPayload {
-  preset_id: string;
+  preset_id?: string;
+  template_id?: string;
   key: string;
   cwd: string;
+}
+
+// ---------------------------------------------------------------------------
+// Template（合并模板列表）
+// ---------------------------------------------------------------------------
+
+/** 模板来源判别器 */
+export type TemplateSource = "builtin" | "user";
+
+/** GET /routines/templates 返回的统一模板条目（内置 + 用户合并） */
+export interface RoutineTemplateItem {
+  id: string;
+  source: TemplateSource;
+  key: string;
+  display_name: string;
+  description: string;
+  category: string;
+  version: string;
+  features_showcase: string[];
+  title: string;
+  goal: string;
+  acceptance_criteria: string;
+  verification_command: string | null;
+  max_iterations: number | null;
+  max_cost_usd: number | null;
+  success_score_threshold: number;
+  no_progress_patience: number;
+  approval_mode: ApprovalMode;
+  config: Record<string, unknown>;
+  has_verification_command: boolean;
+  owner_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }

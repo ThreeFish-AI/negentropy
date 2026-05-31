@@ -27,6 +27,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
@@ -132,6 +133,15 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     reflections: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
 
+    # --- 模板标记 ---
+    is_template: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="true 时本行为 Routine Template，可作为创建 Routine 的模板来源",
+    )
+
     iterations: Mapped[list[RoutineIteration]] = relationship(
         back_populates="routine",
         cascade="all, delete-orphan",
@@ -141,6 +151,7 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     __table_args__ = (
         Index("ix_routines_status", "status"),
         Index("ix_routines_owner", "owner_id"),
+        Index("ix_routines_is_template", "is_template"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

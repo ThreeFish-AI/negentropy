@@ -114,6 +114,7 @@ class RoutineCreateRequest(BaseModel):
     agent_id: UUID | None = None
     display_name: str | None = None
     description: str | None = None
+    is_template: bool = False
 
 
 class RoutineUpdateRequest(BaseModel):
@@ -138,7 +139,8 @@ class ControlBody(BaseModel):
 
 
 class RoutineFromPresetRequest(BaseModel):
-    preset_id: str = Field(..., min_length=1)
+    preset_id: str | None = Field(default=None, min_length=1, description="内置预设 ID")
+    template_id: UUID | None = Field(default=None, description="用户模板 Routine UUID")
     key: str = Field(..., min_length=1, max_length=192)
     cwd: str = Field(..., min_length=1)
 
@@ -180,6 +182,7 @@ def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None 
         "agent_id": str(r.agent_id) if r.agent_id else None,
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+        "is_template": r.is_template,
     }
     if iterations is not None:
         data["iterations"] = [_serialize_iteration(it) for it in iterations]
@@ -273,31 +276,155 @@ async def list_routine_presets() -> list[dict[str, Any]]:
     ]
 
 
-@router.post("/from-preset", status_code=201)
-async def create_routine_from_preset(body: RoutineFromPresetRequest) -> dict[str, Any]:
-    """从内置预设创建 Routine。用户提供 key + cwd，其余字段由预设填充。"""
+@router.get("/templates")
+async def list_templates(
+    category: str | None = Query(None, description="按 category 筛选"),
+) -> list[dict[str, Any]]:
+    """合并模板列表：内置 YAML 预设（source=builtin）+ 用户自建模板（source=user）。
+
+    返回统一结构，前端区分 source 决定是否允许编辑/删除。
+    """
+    # ── 1. 内置 YAML 预设 → 统一结构 ──
     from negentropy.agents.routine_presets import load_all
 
-    presets = {p.preset_id: p for p in load_all()}
-    preset = presets.get(body.preset_id)
-    if preset is None:
-        raise HTTPException(status_code=404, detail=f"Preset '{body.preset_id}' not found")
+    builtin: list[dict[str, Any]] = []
+    for p in load_all():
+        if category and p.category != category:
+            continue
+        builtin.append(
+            {
+                "id": f"builtin:{p.preset_id}",
+                "source": "builtin",
+                "key": p.preset_id,
+                "display_name": p.display_name,
+                "description": p.description,
+                "category": p.category,
+                "version": p.version,
+                "features_showcase": p.features_showcase,
+                "title": p.title,
+                "goal": p.goal,
+                "acceptance_criteria": p.acceptance_criteria,
+                "verification_command": p.verification_command,
+                "max_iterations": p.max_iterations,
+                "max_cost_usd": p.max_cost_usd,
+                "success_score_threshold": p.success_score_threshold,
+                "no_progress_patience": p.no_progress_patience,
+                "approval_mode": p.approval_mode,
+                "config": p.config or {},
+                "has_verification_command": p.verification_command is not None,
+                "owner_id": None,
+                "created_at": None,
+                "updated_at": None,
+            }
+        )
+
+    # ── 2. 用户模板（is_template=true 的 Routine 行）→ 统一结构 ──
+    user_templates: list[dict[str, Any]] = []
+    async with db_session.AsyncSessionLocal() as db:
+        stmt = select(Routine).where(Routine.is_template.is_(True)).order_by(Routine.created_at.desc())
+        rows = (await db.execute(stmt)).scalars().all()
+        for r in rows:
+            if category and (r.config or {}).get("category", "general") != category:
+                continue
+            user_templates.append(
+                {
+                    "id": str(r.id),
+                    "source": "user",
+                    "key": r.key,
+                    "display_name": r.display_name or r.title,
+                    "description": r.description or "",
+                    "category": (r.config or {}).get("category", "general"),
+                    "version": (r.config or {}).get("version", "1.0.0"),
+                    "features_showcase": (r.config or {}).get("features_showcase", []),
+                    "title": r.title,
+                    "goal": r.goal,
+                    "acceptance_criteria": r.acceptance_criteria,
+                    "verification_command": r.verification_command,
+                    "max_iterations": r.max_iterations,
+                    "max_cost_usd": r.max_cost_usd,
+                    "success_score_threshold": r.success_score_threshold,
+                    "no_progress_patience": r.no_progress_patience,
+                    "approval_mode": r.approval_mode,
+                    "config": r.config or {},
+                    "has_verification_command": r.verification_command is not None,
+                    "owner_id": r.owner_id,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+                }
+            )
+
+    # ── 3. 合并 + 排序 ──
+    merged = builtin + user_templates
+    merged.sort(key=lambda t: (t.get("category", ""), t.get("display_name", "")))
+
+    # 后置 category 过滤（已在内置和用户分别过滤的基础上统一再筛一次）
+    if category:
+        merged = [t for t in merged if t.get("category") == category]
+
+    return merged
+
+
+@router.post("/from-preset", status_code=201)
+async def create_routine_from_preset(body: RoutineFromPresetRequest) -> dict[str, Any]:
+    """从内置预设或用户模板创建 Routine。用户提供 key + cwd，其余字段由来源填充。
+
+    支持两种来源（互斥）：
+    - preset_id：从内置 YAML 预设创建
+    - template_id：从用户自建模板（is_template=true 的 Routine 行）创建
+    """
+    if body.preset_id and body.template_id:
+        raise HTTPException(status_code=400, detail="preset_id and template_id are mutually exclusive")
+    if not body.preset_id and not body.template_id:
+        raise HTTPException(status_code=400, detail="either preset_id or template_id is required")
+
+    # ── 来源 1：内置 YAML 预设 ──
+    if body.preset_id:
+        from negentropy.agents.routine_presets import load_all
+
+        presets = {p.preset_id: p for p in load_all()}
+        preset = presets.get(body.preset_id)
+        if preset is None:
+            raise HTTPException(status_code=404, detail=f"Preset '{body.preset_id}' not found")
+
+        create_req = RoutineCreateRequest(
+            key=body.key,
+            title=preset.title,
+            goal=preset.goal,
+            acceptance_criteria=preset.acceptance_criteria,
+            cwd=body.cwd,
+            verification_command=preset.verification_command,
+            max_iterations=preset.max_iterations,
+            max_cost_usd=preset.max_cost_usd,
+            success_score_threshold=preset.success_score_threshold,
+            no_progress_patience=preset.no_progress_patience,
+            approval_mode=preset.approval_mode,
+            config=preset.config or {},
+            display_name=preset.display_name,
+            description=preset.description,
+        )
+        return await create_routine(create_req)
+
+    # ── 来源 2：用户模板 Routine ──
+    async with db_session.AsyncSessionLocal() as db:
+        tmpl = await db.get(Routine, body.template_id)
+        if tmpl is None or not tmpl.is_template:
+            raise HTTPException(status_code=404, detail=f"Template '{body.template_id}' not found")
 
     create_req = RoutineCreateRequest(
         key=body.key,
-        title=preset.title,
-        goal=preset.goal,
-        acceptance_criteria=preset.acceptance_criteria,
+        title=tmpl.title,
+        goal=tmpl.goal,
+        acceptance_criteria=tmpl.acceptance_criteria,
         cwd=body.cwd,
-        verification_command=preset.verification_command,
-        max_iterations=preset.max_iterations,
-        max_cost_usd=preset.max_cost_usd,
-        success_score_threshold=preset.success_score_threshold,
-        no_progress_patience=preset.no_progress_patience,
-        approval_mode=preset.approval_mode,
-        config=preset.config or {},
-        display_name=preset.display_name,
-        description=preset.description,
+        verification_command=tmpl.verification_command,
+        max_iterations=tmpl.max_iterations,
+        max_cost_usd=tmpl.max_cost_usd,
+        success_score_threshold=tmpl.success_score_threshold,
+        no_progress_patience=tmpl.no_progress_patience,
+        approval_mode=tmpl.approval_mode,
+        config=(tmpl.config or {}),
+        display_name=tmpl.display_name,
+        description=tmpl.description,
     )
     return await create_routine(create_req)
 
@@ -369,6 +496,7 @@ async def list_routines(
     status: str | None = Query(None),
     owner_id: str | None = Query(None),
     q: str | None = Query(None, description="按 key / title 模糊搜索"),
+    is_template: bool | None = Query(None, description="过滤模板行"),
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串"),
 ) -> dict[str, Any]:
@@ -379,6 +507,8 @@ async def list_routines(
             stmt = stmt.where(Routine.status == status)
         if owner_id:
             stmt = stmt.where(Routine.owner_id == owner_id)
+        if is_template is not None:
+            stmt = stmt.where(Routine.is_template == is_template)
         if q:
             like = f"%{q}%"
             stmt = stmt.where((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
@@ -490,6 +620,7 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             agent_id=body.agent_id,
             display_name=body.display_name,
             description=body.description,
+            is_template=body.is_template,
         )
         db.add(routine)
         try:

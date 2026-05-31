@@ -21,6 +21,8 @@ export type {
   RoutineStreamEvent,
   RoutinePresetSummary,
   RoutineFromPresetPayload,
+  TemplateSource,
+  RoutineTemplateItem,
 } from "./types";
 
 export {
@@ -36,6 +38,7 @@ export {
   rejectIteration,
   fetchPresets,
   createRoutineFromPreset,
+  fetchTemplates,
 } from "./api";
 
 export { useRoutineData } from "./hooks/useRoutineData";
