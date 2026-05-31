@@ -101,11 +101,17 @@ export default function RoutineTemplatesPage() {
   }, [templates, sourceFilter, activeCategory, searchQuery]);
 
   // ── Handlers ──
-  // 抽屉保存回调：模板 create/edit → 刷新列表；use-template 创建 Routine → 跳转详情。
+  // 抽屉保存回调：
+  // - template-create → 关闭抽屉 + 刷新（与 routine-create 对齐）；
+  // - template-edit   → 仅刷新列表，抽屉保持打开（与 routine 页 routine-edit 对齐，统一两页 Save 体验）；
+  // - use-template    → 创建 Routine 后关闭抽屉并跳转详情。
   const handleSaved = (result: RoutineDTO, kind: DrawerMode["kind"]) => {
     if (kind === "use-template") {
       setDrawerMode(null);
       router.push(`/interface/routine/${result.id}`);
+    } else if (kind === "template-edit") {
+      // 编辑保存 → 抽屉保持打开；草稿脏基线由 RoutineEditDrawer 内部 setBaseline(form) 重置。
+      load();
     } else {
       setDrawerMode(null);
       load();
