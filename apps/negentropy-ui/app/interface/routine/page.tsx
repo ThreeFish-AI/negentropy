@@ -25,6 +25,7 @@ import { RoutineFilterBar } from "./_components/RoutineFilterBar";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
+import { useRestartRoutine } from "./_components/useRestartRoutine";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
 
@@ -62,6 +63,12 @@ function RoutinePageInner() {
       // ignore — 抽屉可能已关闭
     }
   }, []);
+
+  // 重启失败 / 取消的 routine（列表行内 + 抽屉共用单一逻辑源）。
+  const { requestRestart, restartDialog } = useRestartRoutine((updated) => {
+    refresh();
+    if (selId === updated.id) void refreshSelected(updated.id);
+  });
 
   // ?sel 派生选中态：URL 变化即加载/清空详情（使浏览器后退 / Esc / 遮罩点击一致关闭）。
   useEffect(() => {
@@ -194,7 +201,13 @@ function RoutinePageInner() {
               <RoutineFilterBar filters={filters} onChange={setFilters} />
             </div>
 
-            <RoutineTable routines={routines} loading={loading} onSelect={openDetail} onOpenFull={openFull} />
+            <RoutineTable
+              routines={routines}
+              loading={loading}
+              onSelect={openDetail}
+              onOpenFull={openFull}
+              onRestart={requestRestart}
+            />
           </div>
         </ClockProvider>
       </div>
@@ -206,6 +219,7 @@ function RoutinePageInner() {
           onClose={() => (createOpen ? setCreateOpen(false) : closeDetail())}
           onSaved={handleSaved}
           onControl={handleControl}
+          onRestart={requestRestart}
           onDelete={(target) => handleDelete(target as RoutineDTO)}
           onOpenFull={openFull}
           busy={actionBusy}
@@ -213,6 +227,7 @@ function RoutinePageInner() {
       )}
 
       {confirmDialog}
+      {restartDialog}
     </div>
   );
 }

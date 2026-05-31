@@ -32,6 +32,7 @@ export {
   updateRoutine,
   deleteRoutine,
   controlRoutine,
+  restartRoutine,
   approveIteration,
   rejectIteration,
   fetchTemplates,

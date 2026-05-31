@@ -1,8 +1,11 @@
 "use client";
 
+import { RotateCcw } from "lucide-react";
+
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
 
+import { canRestart } from "./routine-controls";
 import { routineStatusClass, scoreColorClass } from "./status-style";
 
 interface RoutineTableProps {
@@ -10,9 +13,11 @@ interface RoutineTableProps {
   loading: boolean;
   onSelect: (r: RoutineDTO) => void;
   onOpenFull: (r: RoutineDTO) => void;
+  /** 失败 / 取消行内一键重启（打开确认对话框）。 */
+  onRestart?: (r: RoutineDTO) => void;
 }
 
-export function RoutineTable({ routines, loading, onSelect, onOpenFull }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -81,16 +86,31 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull }: Routin
                 {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
               </td>
               <td className="px-4 py-3 text-right">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenFull(r);
-                  }}
-                  className="cursor-pointer rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  全过程 →
-                </button>
+                <div className="flex items-center justify-end gap-3">
+                  {onRestart && canRestart(r.status) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRestart(r);
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Restart
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenFull(r);
+                    }}
+                    className="cursor-pointer rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    全过程 →
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

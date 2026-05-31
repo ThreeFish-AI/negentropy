@@ -98,6 +98,20 @@ export async function controlRoutine(routineId: string, action: ControlAction): 
   return jsonFetch(`/${encodeURIComponent(routineId)}/${action}`, { method: "POST" });
 }
 
+/**
+ * 重启失败 / 取消的 routine：复位运行态并重跑。`keep_reflections` 决定是否携带既往反思记忆。
+ * 仅对 failed/cancelled 终态有效（后端守卫，否则 409）。
+ */
+export async function restartRoutine(
+  routineId: string,
+  body: { keep_reflections: boolean },
+): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/restart`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function approveIteration(
   routineId: string,
   iterationId: string,
