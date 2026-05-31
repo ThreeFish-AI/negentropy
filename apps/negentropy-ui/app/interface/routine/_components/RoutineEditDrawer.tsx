@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ChevronDown, ExternalLink, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -18,7 +18,7 @@ import type {
   RoutineUpdatePayload,
 } from "@/features/routine";
 
-import { CONTROL_LABEL, controlsFor, type ControlAction } from "./routine-controls";
+import { canRestart, CONTROL_LABEL, controlsFor, type ControlAction } from "./routine-controls";
 import { phaseClass, phaseLabel, routineStatusClass } from "./status-style";
 
 /**
@@ -59,6 +59,8 @@ interface RoutineEditDrawerProps {
   onUse?: (template: RoutineTemplateItem) => void;
   /** routine-edit 生命周期控制（start/pause/resume/cancel）。 */
   onControl?: (action: ControlAction) => void;
+  /** routine-edit 终态（failed/cancelled）重新启动重跑（打开确认对话框）。 */
+  onRestart?: (routine: RoutineDTO) => void;
   /** 删除（routine-edit 终态 / template-edit 用户模板）。 */
   onDelete?: (target: RoutineDTO | RoutineTemplateItem) => void;
   /** routine-edit「Full View →」深链到 /interface/routine/[id]。 */
@@ -227,6 +229,7 @@ export function RoutineEditDrawer({
   onSaved,
   onUse,
   onControl,
+  onRestart,
   onDelete,
   onOpenFull,
   busy,
@@ -851,6 +854,18 @@ export function RoutineEditDrawer({
                   {CONTROL_LABEL[action]}
                 </Button>
               ))}
+            {mode.kind === "routine-edit" && onRestart && canRestart(mode.routine.status) && (
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                disabled={busy}
+                leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
+                onClick={() => onRestart(mode.routine)}
+              >
+                Restart
+              </Button>
+            )}
             {mode.kind === "template-edit" && !isBuiltinTemplate && onDelete && (
               <button
                 type="button"
