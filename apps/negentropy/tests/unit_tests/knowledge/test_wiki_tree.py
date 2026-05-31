@@ -24,6 +24,7 @@ def _entry(
     is_index_page: bool = False,
     entry_kind: str = "DOCUMENT",
     catalog_node_id: object | None = None,
+    entry_description: str | None = None,
 ) -> SimpleNamespace:
     """生成测试用 entry-like 对象（DOCUMENT 默认；指定 entry_kind=CONTAINER 时切换语义）。"""
     return SimpleNamespace(
@@ -34,6 +35,7 @@ def _entry(
         else (None if entry_kind == "DOCUMENT" else uuid4()),
         entry_slug=entry_slug,
         entry_title=entry_title or entry_slug,
+        entry_description=entry_description,
         is_index_page=is_index_page,
         entry_path=entry_path,
         entry_kind=entry_kind,
@@ -218,3 +220,47 @@ class TestBuildNavTreeContainerEntries:
                 _walk(it.get("children", []))
 
         _walk(tree)
+
+
+class TestBuildNavTreeEntryDescription:
+    """节点描述（entry_description）经导航树原样透传 —— 首页「内容主题」卡片描述同步链路。"""
+
+    def test_container_entry_description_flows_into_item(self):
+        """CONTAINER 条目的 entry_description 应原样进入导航 item，供 SSG 首页卡片展示。"""
+        container = _entry(
+            entry_slug="harness-engineering",
+            entry_path=["harness-engineering"],
+            entry_kind="CONTAINER",
+            entry_title="Harness Engineering",
+            entry_description="智能体工程化综述",
+        )
+        tree = build_nav_tree([container])
+        assert tree[0]["entry_description"] == "智能体工程化综述"
+
+    def test_entry_description_defaults_to_none(self):
+        """未设置 entry_description 时 item 字段为 None。"""
+        e = _entry(entry_slug="overview", entry_path=["overview"])
+        tree = build_nav_tree([e])
+        assert tree[0]["entry_description"] is None
+
+    def test_missing_attr_falls_back_to_none(self):
+        """entry 对象缺 entry_description 属性时（旧 duck 对象）应经 getattr 安全回退 None。"""
+        bare = SimpleNamespace(
+            id=uuid4(),
+            document_id=uuid4(),
+            catalog_node_id=None,
+            entry_slug="solo",
+            entry_title="Solo",
+            is_index_page=False,
+            entry_path=["solo"],
+            entry_kind="DOCUMENT",
+        )  # 故意不含 entry_description 属性
+        tree = build_nav_tree([bare])
+        assert tree[0]["entry_description"] is None
+
+    def test_synthetic_container_has_none_description(self):
+        """缺 CONTAINER 时合成的容器节点 entry_description 应为 None（保持 item 形状统一）。"""
+        leaf = _entry(entry_slug="legacy/doc", entry_path=["legacy", "doc"])
+        tree = build_nav_tree([leaf])
+        assert tree[0]["entry_id"] is None  # 合成容器
+        assert tree[0]["entry_description"] is None

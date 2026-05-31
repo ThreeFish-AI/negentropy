@@ -302,6 +302,7 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
 
     其它字段：
       - ``entry_slug`` / ``entry_title``：URL 段与标题（CONTAINER 取 Catalog 节点 name）。
+      - ``entry_description``：CONTAINER 取 Catalog 节点 description，供 SSG 首页卡片展示。
       - ``is_index_page``：标记是否为该 Publication 首页（仅 DOCUMENT 有意义）。
       - ``entry_path``：导航树层级路径（Materialized Path，list[str] JSON 串）。
     """
@@ -329,6 +330,9 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     )
     entry_slug: Mapped[str] = mapped_column(String(255), nullable=False)
     entry_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # CONTAINER 条目从 Catalog 节点 description 拷入（entry_title 的同生命周期姊妹字段），
+    # 供 SSG 首页「内容主题」卡片展示；DOCUMENT 条目通常为 NULL。
+    entry_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Materialized Path：list[str] 以 JSON 字符串形式存储；历史列名 entry_order。
     entry_path: Mapped[str | None] = mapped_column("entry_path", JSONB)
     is_index_page: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

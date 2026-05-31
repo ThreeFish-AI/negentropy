@@ -2639,6 +2639,27 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续补充（tracking-[...] 宽标签语义化）**：复用上述范式处理剩余 14 处 `tracking-[0.14~0.24em]`。实测其中 **13 处为 `uppercase` 宽间距标签眼纹**（一致设计模式，众数 0.18em），新增 `--tracking-label: 0.18em` 语义令牌收敛；**剔除** 1 处非 uppercase 的作者名 pill（`MessageBubble.tsx` 的 `tracking-[0.14em]`，语义不符且非该模式）。computed-style 量化收口：众数 0.18em→0.18em 渲染零变化、0.16em→0.18em +1.6px、极端 0.24em→0.18em 短标题 −5.3px（已知可见、可接受，因属短 section 标题且更趋一致）。`rounded-[1.5~2rem]`(6) 与 `gap-[2px]`(1) 为定制一次性值、无对应令牌且 ROI 低，**不纳入**。教训补充：⑤ad-hoc 值语义化前必须先按「是否同一设计模式」分类（此处以 `uppercase` 判别 label vs pill），勿因值相近就盲并；⑥单令牌吸收一段值域时，用 computed-style 量化**最坏值**的累计宽度位移（非单 gap 差），据此判定可接受性而非仅看 em 差。
 - **后续补充（review 收口：sub-10px 下限与冗余清理）**：评审指出原 `text-[8/9px]` 并入 `text-micro` 后，`RetrievedChunkCard` 评分徽标 `isCompact` 分支残留冗余 `text-micro`（base 已是 micro），致紧凑态字号不再随密度收缩、仅 padding 收紧。**确认 10px 为 micro 档下限**（8px 近不可读，10px 更佳且与「可接受可见位移」口径自洽），删除该 3 处冗余类（`text-micro` 计数 267→264，渲染零变化）；标准缩档 base `text-caption`→compact `text-micro`(11→10px) 保持不动。教训⑦：单令牌设最小档后，原低于该档的散值会被**静默上调**——机械替换须对「低于令牌最小档」的来源值单独标注，勿令「残留=0」的计数对账掩盖真实像素位移。
 
+---
+
+## ISSUE-104 Wiki 节点描述未同步至站点首页卡片（条目层缺列 + 前端取值错源）
+
+- **表因**：主站点 Knowledge / Wiki 为根节点 Harness Engineering（描述「智能体工程化综述」）、Negentropy（描述「熵减引擎设计概念与使用指引」）填了 `DocCatalogEntry.description`，但 wiki 站点首页「内容主题」卡片只显示标题、描述缺失。
+- **根因（两处独立断裂）**：
+  1. **后端条目层丢字段**：`CatalogDao.get_subtree` 返回的 node dict 含 `description`，但 `wiki_service._apply_container_mappings` 调 `WikiDao.upsert_container_entry(...)` 时只传 `entry_title` 未传描述；且 `WikiPublicationEntry` 根本无 description 列——描述自同步落库即丢失，导航树（`wiki_tree._entry_to_item`）/ nav-tree API / 前端类型一路皆无该字段。`upsert_container_entry` docstring 早已声明容器条目应承载「title、description、entry_id」，属"文档承诺、实现缺失"。
+  2. **前端取值错源**：`apps/negentropy-wiki/src/app/page.tsx` 首页卡片按 nav tree 一级节点逐个生成，却用 Publication 级 `pub.description` 给所有卡片赋值（对同一 Publication 恒相同，且该 Publication 描述为空 → 回退「暂无描述」），而非节点级描述。
+- **处理方式**（反规范化，与 `entry_title` 同生命周期）：
+  1. 迁移 `0051`：`wiki_publication_entries` 加可空列 `entry_description TEXT`（`ADD COLUMN IF NOT EXISTS`，不回填）；
+  2. 模型 `WikiPublicationEntry` 加 `entry_description`；DAO `upsert_container_entry` 加 `entry_description` 参数并写入更新/创建两分支；
+  3. Service `_apply_container_mappings` 传 `entry_description=node.get("description")`；`_freeze_snapshot` frozen dict 同步冻结该字段；
+  4. `wiki_tree._entry_to_item` 经 `getattr(entry, "entry_description", None)` 输出，合成容器补 `None` 保形；
+  5. 前端 `WikiNavTreeItem` 加可选 `entry_description`；`page.tsx` 改为 `item.entry_description || pub.description || "暂无描述"`（节点级优先 → Publication 级回退 → 占位）。
+- **后续防范**：
+  1. **denormalize 字段须全链同改**：`WikiPublicationEntry` 这类"发布快照"表新增展示字段，必须同步覆盖「DAO upsert 参数 + sync 服务写入 + 快照冻结 + nav tree 输出 + 前端类型 + 渲染取值」六层，漏任一层即断链；
+  2. **docstring 承诺即契约**：`upsert_container_entry` docstring 写了 description 却从未实现，属危险的"虚假完备"——新增/审阅时须核对 docstring 声明字段与签名/落库是否一致；
+  3. **逐节点卡片禁用聚合级字段兜底**：前端按节点渲染的卡片，描述/图标等须取节点自身字段，`pub.*` 仅作回退，勿对所有同级卡片赋同一聚合级值。
+- **生效注意**：与 `entry_title`/`display_name`（ISSUE-040）一致，新列对**既有已发布数据**需用户主动点一次「同步并发布」回填后首页卡片才显示描述（迁移不隐式回填）。
+- **同类问题影响**：与 ISSUE-002（`sync_entries_from_catalog` 死代码 + 契约缺口）同域——凡 Catalog → Wiki Publication 的字段映射（未来 icon / cover / order 等节点元数据）都须按"六层全链"核对；其它经 `getattr` 读 ORM 的 duck 调用点新增字段时记得给安全默认。
+
 ## ISSUE-103 模型下拉 Default 占位移除 + 默认 gpt-5-nano + test-vendor 残留清理与 fixture 清理加固（2026-05-30）
 
 - **需求触因**：Home/Studio 中栏 Composer 的 LLM 下拉首项为可清除的 "Default" 占位（`value=""` = 不指定模型，后端回退硬编码默认），且下拉里出现一个 `TEST-VENDOR` 分组的 `Test Model`。用户要求：①移除 Default 占位、默认显式选中 `openai/gpt-5-nano`；②清除 TEST-VENDOR。

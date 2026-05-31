@@ -22,8 +22,8 @@ JSON 数组）合成嵌套的导航树。
 
 输出约定：
   - 返回 ``list[NavTreeItem]``，每个节点形如
-    ``{entry_id, entry_slug, entry_title, is_index_page, document_id,
-       catalog_node_id, entry_kind, children}``；
+    ``{entry_id, entry_slug, entry_title, entry_description, is_index_page,
+       document_id, catalog_node_id, entry_kind, children}``；
   - 合成型容器节点（仅在缺 CONTAINER 时回退）``entry_id`` / ``document_id`` /
     ``catalog_node_id`` 为 ``None``，``entry_kind=CONTAINER``。
 """
@@ -63,6 +63,7 @@ def _entry_to_item(entry: Any) -> dict:
         "entry_id": str(entry_id) if entry_id else None,
         "entry_slug": entry.entry_slug,
         "entry_title": entry.entry_title or entry.entry_slug,
+        "entry_description": getattr(entry, "entry_description", None),
         "is_index_page": bool(getattr(entry, "is_index_page", False)),
         "document_id": str(document_id) if document_id else None,
         "catalog_node_id": str(catalog_node_id) if catalog_node_id else None,
@@ -77,6 +78,7 @@ def _make_synthetic_container(slug_path: str, title_segment: str) -> dict:
         "entry_id": None,
         "entry_slug": slug_path,
         "entry_title": title_segment,
+        "entry_description": None,
         "is_index_page": False,
         "document_id": None,
         "catalog_node_id": None,
