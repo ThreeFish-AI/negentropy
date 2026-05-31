@@ -8,7 +8,7 @@ import { ErrorBanner } from "@/components/ui/ErrorState";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { cn } from "@/lib/utils";
 import { createRoutine, updateRoutine } from "@/features/routine";
-import type { ApprovalMode, RoutineDTO, RoutineTemplateItem } from "@/features/routine";
+import type { ApprovalMode, RoutineTemplateItem } from "@/features/routine";
 import { toast } from "sonner";
 
 interface TemplateFormDialogProps {
@@ -161,16 +161,15 @@ export function TemplateFormDialog({ open, template, onClose, onSaved }: Templat
     };
 
     try {
-      let saved: RoutineDTO;
       if (isEdit && template) {
         // 用户模板的 id 是 UUID（非 builtin:xxx）
-        saved = await updateRoutine(template.id, base);
+        await updateRoutine(template.id, base);
         toast.success("模板已更新");
       } else {
-        saved = await createRoutine({ ...base, key: form.key.trim() });
+        await createRoutine({ ...base, key: form.key.trim() });
         toast.success("模板已创建");
       }
-      onSaved(saved);
+      onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
     } finally {
