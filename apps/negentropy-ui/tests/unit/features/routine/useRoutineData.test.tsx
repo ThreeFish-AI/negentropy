@@ -56,6 +56,7 @@ function makeRoutine(id: string): RoutineDTO {
     agent_id: null,
     created_at: null,
     updated_at: null,
+    is_template: false,
   };
 }
 

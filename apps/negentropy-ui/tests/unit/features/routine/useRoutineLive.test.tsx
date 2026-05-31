@@ -64,6 +64,7 @@ function makeRoutine(id: string, status: RoutineDTO["status"] = "running"): Rout
     agent_id: null,
     created_at: null,
     updated_at: null,
+    is_template: false,
   };
 }
 
