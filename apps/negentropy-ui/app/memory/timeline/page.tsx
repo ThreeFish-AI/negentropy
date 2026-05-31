@@ -14,6 +14,7 @@ import {
   MemorySidebarLayout,
   RetentionPolicyCard,
   LegendCard,
+  MemoryAssociationsDrawer,
 } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -83,6 +84,7 @@ export default function MemoryTimelinePage() {
   } = useMemoryTimeline({ appName: APP_NAME });
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [assocMemoryId, setAssocMemoryId] = useState<string | null>(null);
 
   const users = payload?.users || [];
   const timeline = useMemo(() => payload?.timeline || [], [payload?.timeline]);
@@ -207,7 +209,11 @@ export default function MemoryTimelinePage() {
                         </div>
                         <div className="space-y-2">
                           {group.items.map((item) => (
-                            <MemoryTimelineCard key={item.id} item={item} />
+                            <MemoryTimelineCard
+                              key={item.id}
+                              item={item}
+                              onShowAssociations={setAssocMemoryId}
+                            />
                           ))}
                         </div>
                       </div>
@@ -229,6 +235,19 @@ export default function MemoryTimelinePage() {
           </MemorySidebarLayout>
         </div>
       </div>
+
+      <MemoryAssociationsDrawer
+        open={assocMemoryId !== null}
+        memoryId={assocMemoryId}
+        memorySnippet={
+          assocMemoryId
+            ? timeline
+                .find((m) => m.id === assocMemoryId)
+                ?.content.slice(0, 80)
+            : undefined
+        }
+        onClose={() => setAssocMemoryId(null)}
+      />
     </div>
   );
 }

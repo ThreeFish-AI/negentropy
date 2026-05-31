@@ -71,6 +71,42 @@ export async function proxyGet(request: Request, path: string) {
   }
 }
 
+export async function proxyDelete(request: Request, path: string) {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    return errorResponse("MEMORY_INTERNAL_ERROR", "MEMORY_BASE_URL is not configured", 500);
+  }
+
+  // DELETE 端点（如 /memory/core-blocks）的标识参数走 query string（与后端 Query(...)
+  // 契约一致），因此与 proxyGet 一样转发 search、不带 body。
+  const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: "DELETE",
+      headers: extractForwardHeaders(request),
+      cache: "no-store",
+    });
+  } catch (error) {
+    return errorResponse("MEMORY_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+  }
+
+  const text = await upstreamResponse.text();
+  if (!upstreamResponse.ok) {
+    return errorResponse("MEMORY_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
+  }
+
+  try {
+    return NextResponse.json(JSON.parse(text));
+  } catch {
+    // 后端返回空或非 JSON 时，安全降级
+    return NextResponse.json({ data: text || null });
+  }
+}
+
 export async function proxyPost(request: Request, path: string) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {

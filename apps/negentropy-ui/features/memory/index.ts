@@ -38,6 +38,18 @@ export type {
   UseMemoryAuditReturnValue,
 } from "./hooks/useMemoryAudit";
 
+export { useMemoryOverview } from "./hooks/useMemoryOverview";
+export type {
+  UseMemoryOverviewOptions,
+  UseMemoryOverviewReturnValue,
+} from "./hooks/useMemoryOverview";
+
+export { useCoreBlocks } from "./hooks/useCoreBlocks";
+export type {
+  UseCoreBlocksOptions,
+  UseCoreBlocksReturnValue,
+} from "./hooks/useCoreBlocks";
+
 // ============================================================================
 // Components
 // ============================================================================
@@ -53,6 +65,8 @@ export { MemorySidebarLayout } from "./components/MemorySidebarLayout";
 export { SidebarCard } from "./components/SidebarCard";
 export { RetentionPolicyCard } from "./components/RetentionPolicyCard";
 export { LegendCard } from "./components/LegendCard";
+export { MemoryAssociationsDrawer } from "./components/MemoryAssociationsDrawer";
+export { AssociationRow } from "./components/AssociationRow";
 export type {
   RetryableError,
   RetryableErrorBannerProps,
@@ -75,6 +89,12 @@ export {
   fetchFactHistory,
   submitRetrievalFeedback,
   fetchRetrievalMetrics,
+  fetchMemoryHealth,
+  fetchMemoryMetrics,
+  fetchCoreBlocks,
+  upsertCoreBlock,
+  deleteCoreBlock,
+  fetchMemoryAssociations,
 } from "./utils/memory-api";
 
 // ============================================================================
@@ -95,4 +115,12 @@ export type {
   ConflictListPayload,
   FactHistoryItem,
   RetrievalMetrics,
+  MemoryHealth,
+  MemoryHealthFeatures,
+  MemorySystemMetrics,
+  CoreBlockItem,
+  CoreBlockListPayload,
+  CoreBlockUpsertResult,
+  MemoryAssociation,
+  AssociationListPayload,
 } from "./utils/memory-api";

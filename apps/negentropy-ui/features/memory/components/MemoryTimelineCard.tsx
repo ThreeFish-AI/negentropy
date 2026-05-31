@@ -10,6 +10,7 @@ import {
   Eye,
   Hash,
   Heart,
+  Link2,
   Search,
   Shield,
   Wrench,
@@ -93,9 +94,15 @@ const CONTENT_PREVIEW_LENGTH = 150;
 interface MemoryTimelineCardProps {
   item: MemoryItem;
   isSearchResult?: boolean;
+  /** 提供时在脚注渲染「Links」按钮，点击展示该记忆的关联抽屉。缺省则不渲染（向后兼容）。 */
+  onShowAssociations?: (id: string) => void;
 }
 
-export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardProps) {
+export function MemoryTimelineCard({
+  item,
+  isSearchResult,
+  onShowAssociations,
+}: MemoryTimelineCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const typeConfig = MEMORY_TYPE_CONFIG[item.memory_type] ?? DEFAULT_TYPE_CONFIG;
   const TypeIcon = typeConfig.icon;
@@ -201,6 +208,17 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
           <Calendar className="h-3 w-3" />
           {formatDate(item.created_at)}
         </span>
+        {onShowAssociations && !isSearchResult && (
+          <button
+            type="button"
+            onClick={() => onShowAssociations(item.id)}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-text-muted transition-colors hover:bg-foreground/5 hover:text-foreground"
+            title="查看关联"
+          >
+            <Link2 className="h-3 w-3" />
+            Links
+          </button>
+        )}
       </div>
     </article>
   );
