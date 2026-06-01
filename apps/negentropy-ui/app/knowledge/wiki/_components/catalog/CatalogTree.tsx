@@ -43,7 +43,6 @@ interface CatalogTreeProps {
   onDndDragMove: (event: DragMoveEvent) => void;
   onDndDragEnd: (event: DragEndEvent) => void;
   onDndDragCancel: () => void;
-  activeId: import("@dnd-kit/core").UniqueIdentifier | null;
   activeNode: CatalogNode | null;
   dropTarget: DropTarget | null;
   isMoving: boolean;
@@ -102,7 +101,6 @@ export function CatalogTree({
   onDndDragMove,
   onDndDragEnd,
   onDndDragCancel,
-  activeId,
   activeNode,
   dropTarget,
   isMoving,

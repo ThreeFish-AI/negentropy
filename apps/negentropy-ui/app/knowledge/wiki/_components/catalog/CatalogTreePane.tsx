@@ -4,7 +4,6 @@ import {
   type DragStartEvent,
   type DragMoveEvent,
   type DragEndEvent,
-  type UniqueIdentifier,
 } from "@dnd-kit/core";
 import { CatalogNode } from "@/features/knowledge";
 import { CatalogTree } from "./CatalogTree";
@@ -42,7 +41,6 @@ interface CatalogTreePaneProps {
   onDndDragMove: (event: DragMoveEvent) => void;
   onDndDragEnd: (event: DragEndEvent) => void;
   onDndDragCancel: () => void;
-  activeId: UniqueIdentifier | null;
   activeNode: CatalogNode | null;
   dropTarget: DropTarget | null;
   isMoving: boolean;
@@ -81,7 +79,6 @@ export function CatalogTreePane({
   onDndDragMove,
   onDndDragEnd,
   onDndDragCancel,
-  activeId,
   activeNode,
   dropTarget,
   isMoving,
@@ -133,7 +130,6 @@ export function CatalogTreePane({
             onDndDragMove={onDndDragMove}
             onDndDragEnd={onDndDragEnd}
             onDndDragCancel={onDndDragCancel}
-            activeId={activeId}
             activeNode={activeNode}
             dropTarget={dropTarget}
             isMoving={isMoving}

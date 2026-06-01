@@ -299,7 +299,7 @@ export function useCatalogTreeDnd({
   );
 
   const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
+    async () => {
       clearAutoExpandTimer();
 
       const draggedId = activeIdRef.current as string | null;

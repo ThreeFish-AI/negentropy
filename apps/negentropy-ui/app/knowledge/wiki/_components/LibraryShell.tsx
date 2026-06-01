@@ -163,7 +163,6 @@ export function LibraryShell() {
           onDndDragMove={dnd.onDragMove}
           onDndDragEnd={dnd.onDragEnd}
           onDndDragCancel={dnd.onDragCancel}
-          activeId={dnd.activeId}
           activeNode={dnd.activeNode}
           dropTarget={dnd.dropTarget}
           isMoving={dnd.isMoving}
