@@ -67,6 +67,13 @@ class RoutineSettings(BaseSettings):
         default=None,
         description="评估器 LLM-as-Judge 模型覆盖；为空时走 task_registry 的 routine.evaluate 解析",
     )
+    event_streaming_flush_seconds: int = Field(
+        default=30,
+        ge=5,
+        le=300,
+        description="StreamingEventPersister 增量 flush 间隔（秒）；"
+        "迭代执行期间每隔此时间将已捕获事件增量落库，使页面 reload 后仍可见审计步骤",
+    )
 
     # --- 隔离 worktree（基于基线分支的隔离工作区 + 自动 PR 回基线）---
     worktree_root: str | None = Field(
