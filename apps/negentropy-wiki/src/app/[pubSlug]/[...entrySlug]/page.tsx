@@ -21,6 +21,7 @@ import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
 import { WikiCommentSection } from "@/components/WikiCommentSection";
+import { WikiArticleMeta } from "@/components/WikiArticleMeta";
 import { AnnotationLayer } from "@/components/annotation/AnnotationLayer";
 import { WikiFooter } from "@/components/home/WikiFooter";
 import Link from "next/link";
@@ -206,11 +207,13 @@ export default async function WikiEntryPage({ params }: Props) {
               <h1 className="wiki-doc-title">
                 {content.entry_title || slug}
               </h1>
-              <div className="wiki-doc-meta">
-                来源: {content.document_filename || "未知"}
-                {content.document_id &&
-                  ` · 文档 ID: ${String(content.document_id).slice(0, 8)}...`}
-              </div>
+              <WikiArticleMeta
+                entryId={entryId!}
+                authorName={content.author_name}
+                authorUrl={content.author_url}
+                publishedAt={content.published_at}
+                sourceUrl={content.source_url}
+              />
             </header>
             {entryId ? (
               <>

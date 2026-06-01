@@ -16,6 +16,85 @@
   color: var(--wiki-text-secondary);
 }
 
+/* 文章元数据栏 */
+.wiki-article-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.85em;
+  color: var(--wiki-text-secondary);
+}
+
+.wiki-meta-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wiki-meta-author-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--wiki-accent);
+  object-fit: cover;
+}
+
+.wiki-meta-author-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--wiki-accent);
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--wiki-accent);
+  background: var(--wiki-primary-light);
+}
+
+.wiki-meta-author-name {
+  font-weight: 500;
+  color: var(--wiki-text);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+
+a.wiki-meta-author-name:hover {
+  color: var(--wiki-accent);
+}
+
+.wiki-meta-sep {
+  opacity: 0.3;
+  user-select: none;
+}
+
+.wiki-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.wiki-meta-icon {
+  width: 15px;
+  height: 15px;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.wiki-meta-source-link {
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+
+.wiki-meta-source-link:hover {
+  color: var(--wiki-accent);
+}
+
 /* 面包屑 */
 .wiki-doc-breadcrumb {
   font-size: 0.88em;
