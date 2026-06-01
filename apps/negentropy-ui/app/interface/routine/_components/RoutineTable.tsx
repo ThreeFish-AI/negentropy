@@ -108,7 +108,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                     }}
                     className="cursor-pointer rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    全过程 →
+                    Full View →
                   </button>
                 </div>
               </td>

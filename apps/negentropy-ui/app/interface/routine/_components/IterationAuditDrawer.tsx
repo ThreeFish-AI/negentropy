@@ -91,7 +91,7 @@ export function IterationAuditDrawer({
   // 合并持久化 + 实时（持久化优先），按 seq 去重升序。
   const merged = useMemo(() => mergeEvents(persisted, isInFlight ? (liveActions ?? []) : []), [persisted, liveActions, isInFlight]);
 
-  const title = iteration ? `迭代 #${iteration.seq} · 全过程审计` : "全过程审计";
+  const title = iteration ? `Iteration #${iteration.seq} · Full View` : "Full View";
 
   return (
     <BaseDrawer
