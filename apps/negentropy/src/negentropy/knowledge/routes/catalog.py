@@ -56,6 +56,7 @@ def _to_catalog_node_resp(row: dict, *, children_count: int = 0, document_count:
         description=row.get("description"),
         sort_order=row["sort_order"],
         config=row.get("config") or {},
+        document_id=row.get("document_id"),
         depth=row.get("depth", 0),
         children_count=children_count,
         document_count=document_count,

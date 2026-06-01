@@ -68,6 +68,7 @@ def _entry_to_item(entry: Any) -> dict:
         "document_id": str(document_id) if document_id else None,
         "catalog_node_id": str(catalog_node_id) if catalog_node_id else None,
         "entry_kind": entry_kind,
+        "entry_position": getattr(entry, "entry_position", 0) or 0,
         "children": [],
     }
 
@@ -105,14 +106,16 @@ def build_nav_tree(entries: Iterable[Any]) -> list[dict]:
     roots: list[dict] = []
     container_index: dict[str, dict] = {}
 
-    # 按 (path_len, entry_kind 优先级) 排序：CONTAINER < DOCUMENT 同级时容器先注册。
-    def _sort_key(entry: Any) -> tuple[int, int, str]:
+    # 按 (path_len, entry_kind 优先级, entry_position, slug) 排序：
+    # 同深度下 CONTAINER 先注册；同级同 kind 按 entry_position 排序（0 = 回退字母序）。
+    def _sort_key(entry: Any) -> tuple[int, int, int, str]:
         path = _parse_path(getattr(entry, "entry_path", None), getattr(entry, "entry_slug", ""))
         kind = getattr(entry, "entry_kind", None) or (
             "DOCUMENT" if getattr(entry, "document_id", None) else "CONTAINER"
         )
         kind_order = 0 if kind == "CONTAINER" else 1
-        return (len(path), kind_order, getattr(entry, "entry_slug", ""))
+        pos = getattr(entry, "entry_position", 0) or 0
+        return (len(path), kind_order, pos, getattr(entry, "entry_slug", ""))
 
     sorted_entries = sorted(entries, key=_sort_key)
 

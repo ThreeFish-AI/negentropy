@@ -69,7 +69,7 @@ def _patch_catalog_dao(
     subtrees: dict[str, list[dict]],
     docs_by_node: dict[str, list] | None = None,
 ) -> None:
-    """打桩 ``CatalogDao.get_subtree`` 与 ``get_node_documents``。
+    """打桩 ``CatalogDao.get_subtree`` + ``CatalogAssignmentDao.get_node_document_refs``。
 
     ``subtrees`` 以根节点 ID 为键，返回该子树的扁平节点列表（包含根自身及其后代）。
     ``docs_by_node`` 以节点 ID 为键，返回该节点下文档列表；缺省为空。
@@ -84,9 +84,19 @@ def _patch_catalog_dao(
         _ = (db, limit)
         return list(docs_by_node.get(str(catalog_node_id), [])), len(docs_by_node.get(str(catalog_node_id), []))
 
+    async def fake_get_node_document_refs(db, catalog_entry_id):
+        _ = db
+        # 返回 (doc, position) 元组列表；本测试集不涉及文档，统一返回空
+        _ = catalog_entry_id
+        return []
+
     monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
     monkeypatch.setattr(
         "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
+        fake_get_node_document_refs,
     )
 
 

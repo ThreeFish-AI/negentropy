@@ -124,6 +124,8 @@ class CatalogNodeResponse(BaseModel):
     description: str | None = None
     sort_order: int
     config: dict[str, Any] = Field(default_factory=dict)
+    # DOCUMENT_REF 叶子节点携带的文档 ID（FOLDER / CATEGORY / COLLECTION 为 None）
+    document_id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     # 展开字段

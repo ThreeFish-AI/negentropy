@@ -335,6 +335,8 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     entry_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Materialized Path：list[str] 以 JSON 字符串形式存储；历史列名 entry_order。
     entry_path: Mapped[str | None] = mapped_column("entry_path", JSONB)
+    # Catalog 排序权重：源自 DocCatalogEntry.position，0 表示未显式排序（回退 slug 字母序）。
+    entry_position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     is_index_page: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     publication: Mapped["WikiPublication"] = relationship(back_populates="entries")
