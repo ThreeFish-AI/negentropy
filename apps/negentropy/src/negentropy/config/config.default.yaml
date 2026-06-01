@@ -198,6 +198,12 @@ routine:
   default_max_iterations: 20                 # 创建 routine 默认迭代硬上限
   default_max_cost_usd: 5.0                  # 创建 routine 默认成本熔断（USD）
   evaluator_model: null                      # LLM-as-Judge 模型覆盖；null 走 task_registry 的 routine.evaluate
+  # 隔离 worktree（基于基线分支的隔离工作区 + 自动 PR 回基线）
+  worktree_root: null                        # worktree 根目录；null → 运行期解析为仓库同级 <project_parent>/.negentropy-worktrees
+  worktree_cleanup: on_success               # 终态回收策略：on_success（成功即清、失败保留）| always | never
+  git_remote: origin                         # fetch / PR base 归一所用 git 远端名
+  git_fetch_before_worktree: true            # 建 worktree 前 best-effort git fetch（带超时，失败不阻断）
+  git_timeout_seconds: 120                   # 单条 git 子命令执行超时（秒）
 
 # --- Knowledge 配置 ---
 knowledge:

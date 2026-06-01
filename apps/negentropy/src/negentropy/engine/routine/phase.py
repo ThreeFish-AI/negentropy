@@ -37,8 +37,23 @@ _PR_URL_FALLBACK_RE = re.compile(r"https://github\.com/[^\s)\]]+/pull/\d+")
 
 
 def is_phased(config: dict[str, Any] | None) -> bool:
-    """该 routine 是否启用三相位（plan→implement→finalize）工作流。"""
+    """该 routine 是否启用 PLAN 前置相位（plan→implement→finalize 三相位）。
+
+    注意：PLAN 前置相位仍是 opt-in（``config.workflow=='phased'``）。FINALIZE（push+PR）终止步
+    则由 ``is_worktree_routine`` 决定是否通用——见其文档。
+    """
     return bool(config) and config.get("workflow") == "phased"
+
+
+def is_worktree_routine(routine: Any) -> bool:
+    """该 routine 是否启用隔离 worktree + 通用 FINALIZE/PR（判定式 = ``baseline_branch`` 非空）。
+
+    worktree routine：引擎基于 ``baseline_branch`` 建隔离 worktree，CC 在其中工作，收尾以 PR 回基线。
+    其相位机始终启用——IMPLEMENT 命中成功推进 FINALIZE（不再直接 succeeded），FINALIZE 捕获 PR 才
+    succeeded；PLAN 前置相位是否启用仍取决于 ``is_phased``。``baseline_branch`` 为空者（未回填的旧行）
+    退回旧扁平终止语义，并会被 API 的 start 守卫拦截，安全过渡。
+    """
+    return bool(getattr(routine, "baseline_branch", None))
 
 
 def initial_phase(config: dict[str, Any] | None) -> str:
@@ -67,6 +82,7 @@ __all__ = [
     "PHASE_IMPLEMENT",
     "PHASE_FINALIZE",
     "is_phased",
+    "is_worktree_routine",
     "initial_phase",
     "permission_mode_for",
     "extract_pr_url",

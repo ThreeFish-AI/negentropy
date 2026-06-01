@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import uuid
 from datetime import UTC, datetime
 
@@ -49,18 +50,33 @@ async def _cleanup(key_prefix: str) -> None:
         await db.commit()
 
 
+@pytest.fixture(scope="module")
+def git_repo(tmp_path_factory) -> str:
+    """模块级临时 git 仓库（含 main 分支与初始提交），供可执行 routine 的 cwd + baseline 校验。"""
+    repo = tmp_path_factory.mktemp("api_repo")
+    p = str(repo)
+    subprocess.run(["git", "init", "-q", p], check=True)
+    subprocess.run(["git", "-C", p, "config", "user.email", "t@t.io"], check=True)
+    subprocess.run(["git", "-C", p, "config", "user.name", "t"], check=True)
+    (repo / "README.md").write_text("# repo\n")
+    subprocess.run(["git", "-C", p, "add", "-A"], check=True)
+    subprocess.run(["git", "-C", p, "commit", "-q", "-m", "init"], check=True)
+    subprocess.run(["git", "-C", p, "branch", "-M", "main"], check=True)
+    return p
+
+
 async def test_stream_route_declared_before_id():
     """/routines/stream 必须在 /routines/{routine_id} 之前声明，否则被路径参数吞掉。"""
     paths = [r.path for r in router.routes]
     assert paths.index("/routines/stream") < paths.index("/routines/{routine_id}")
 
 
-async def test_full_crud_and_control_lifecycle():
+async def test_full_crud_and_control_lifecycle(git_repo):
     app = _app()
     key = _key()
     try:
         async with _client(app) as c:
-            # CREATE
+            # CREATE（可执行 routine：cwd=git 仓库根 + baseline 必备，方可 start）
             r = await c.post(
                 "/routines",
                 json={
@@ -68,6 +84,8 @@ async def test_full_crud_and_control_lifecycle():
                     "title": "API Test",
                     "goal": "实现功能 X",
                     "acceptance_criteria": "测试通过",
+                    "cwd": git_repo,
+                    "baseline_branch": "main",
                     "max_iterations": 5,
                     "approval_mode": "first",
                     "verification_command": "echo ok",
@@ -328,7 +346,7 @@ async def test_restart_closes_leftover_nonterminal_iterations():
         await _cleanup("itest_api_")
 
 
-async def test_restart_guards_and_reflection_reset():
+async def test_restart_guards_and_reflection_reset(git_repo):
     """重启守卫：仅 failed/cancelled 可重启；keep_reflections=False 清空反思；过期 deadline → 409。"""
     app = _app()
     key = _key()
@@ -336,13 +354,20 @@ async def test_restart_guards_and_reflection_reset():
         async with _client(app) as c:
             r = await c.post(
                 "/routines",
-                json={"key": key, "title": "Restart Guard", "goal": "g", "acceptance_criteria": "a"},
+                json={
+                    "key": key,
+                    "title": "Restart Guard",
+                    "goal": "g",
+                    "acceptance_criteria": "a",
+                    "cwd": git_repo,
+                    "baseline_branch": "main",
+                },
             )
             rid = r.json()["id"]
             # pending → 409
             assert (await c.post(f"/routines/{rid}/restart")).status_code == 409
             # running → 409
-            await c.post(f"/routines/{rid}/start")
+            assert (await c.post(f"/routines/{rid}/start")).status_code == 200
             assert (await c.post(f"/routines/{rid}/restart")).status_code == 409
 
         # cancelled + 既往反思
@@ -370,5 +395,76 @@ async def test_restart_guards_and_reflection_reset():
             past = await c.post(f"/routines/{rid}/restart")
             assert past.status_code == 409
             assert "deadline" in past.json()["detail"]
+    finally:
+        await _cleanup("itest_api_")
+
+
+# ---------------------------------------------------------------------------
+# 隔离 worktree：baseline 校验 / 序列化 / start 守卫
+# ---------------------------------------------------------------------------
+
+
+async def test_create_persists_and_serializes_worktree_fields(git_repo):
+    """create 带合法 cwd + baseline → 序列化回带 baseline_branch；运行期句柄初始为 null。"""
+    app = _app()
+    key = _key()
+    try:
+        async with _client(app) as c:
+            r = await c.post(
+                "/routines",
+                json={
+                    "key": key,
+                    "title": "WT",
+                    "goal": "g",
+                    "acceptance_criteria": "a",
+                    "cwd": git_repo,
+                    "baseline_branch": "main",
+                },
+            )
+            assert r.status_code == 200, r.text
+            body = r.json()
+            assert body["baseline_branch"] == "main"
+            assert body["work_branch"] is None
+            assert body["worktree_path"] is None
+    finally:
+        await _cleanup("itest_api_")
+
+
+async def test_create_invalid_baseline_returns_422(git_repo):
+    """create 提供 cwd + 不可解析 baseline → 422（早反馈）。"""
+    app = _app()
+    key = _key()
+    try:
+        async with _client(app) as c:
+            r = await c.post(
+                "/routines",
+                json={
+                    "key": key,
+                    "title": "WT bad",
+                    "goal": "g",
+                    "acceptance_criteria": "a",
+                    "cwd": git_repo,
+                    "baseline_branch": "nope/does-not-exist",
+                },
+            )
+            assert r.status_code == 422
+    finally:
+        await _cleanup("itest_api_")
+
+
+async def test_start_requires_worktree_fields_409():
+    """create 不带 cwd/baseline（草稿，200）→ start 被 worktree 守卫拒（409）。"""
+    app = _app()
+    key = _key()
+    try:
+        async with _client(app) as c:
+            r = await c.post(
+                "/routines",
+                json={"key": key, "title": "Draft", "goal": "g", "acceptance_criteria": "a"},
+            )
+            assert r.status_code == 200  # 草稿创建宽松
+            rid = r.json()["id"]
+            st = await c.post(f"/routines/{rid}/start")
+            assert st.status_code == 409  # 执行前提缺失 → 拒绝启动
     finally:
         await _cleanup("itest_api_")

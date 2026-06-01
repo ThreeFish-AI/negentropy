@@ -22,8 +22,11 @@ from sqlalchemy import delete, select
 
 import negentropy.db.session as db_session
 from negentropy.engine.claude_code.models import ClaudeCodeResult
+from negentropy.engine.routine import decision as decision_mod
+from negentropy.engine.routine import workspace
 from negentropy.engine.routine.evaluator import EvaluationResult
 from negentropy.engine.routine.orchestrator import RoutineOrchestrator
+from negentropy.engine.routine.workspace import WorkspaceInfo
 from negentropy.models.routine import Routine, RoutineIteration
 
 pytestmark = pytest.mark.asyncio
@@ -344,5 +347,102 @@ async def test_write_back_no_double_count_when_reaped_midflight():
             r = await db.get(Routine, rid)
             assert r.iteration_count == 0  # 未被累加
             assert r.total_cost_usd == pytest.approx(0.0)  # 成本未被累加
+    finally:
+        await _cleanup(rid)
+
+
+# ---------------------------------------------------------------------------
+# 隔离 worktree（基于基线分支 + 通用 FINALIZE/PR）
+# ---------------------------------------------------------------------------
+
+
+async def test_worktree_implement_success_advances_to_finalize():
+    """worktree routine（非 phased）：IMPLEMENT 命中成功 → 推进 FINALIZE（FINALIZE/PR 对 worktree 通用）。"""
+    rid = await _make_routine(baseline_branch="origin/feature/1.x.x", current_phase="implement", iteration_count=2)
+    await _add_iteration(rid, seq=1, phase="implement")
+    try:
+        await _evaluate_phased(rid, score=92, verdict="pass")
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "running"  # 未直接 succeeded
+            assert r.current_phase == "finalize"  # 进入收尾建 PR
+    finally:
+        await _cleanup(rid)
+
+
+async def test_worktree_finalize_with_pr_succeeds():
+    """worktree routine：FINALIZE 捕获 PR 链接 → succeeded（即便非 phased）。"""
+    rid = await _make_routine(baseline_branch="origin/feature/1.x.x", current_phase="finalize", iteration_count=3)
+    await _add_iteration(rid, seq=1, phase="finalize", summary="PR_URL=https://github.com/o/r/pull/88\n done")
+    try:
+        await _evaluate_phased(rid, score=95, verdict="pass")
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "succeeded"
+            assert r.termination_reason == "success"
+            assert r.pr_url == "https://github.com/o/r/pull/88"
+    finally:
+        await _cleanup(rid)
+
+
+async def test_ensure_workspace_targets_worktree_in_build_config():
+    """_ensure_workspace 写回 worktree 句柄；_build_config 将 CC cwd 指向 worktree + 相位 permission。"""
+    rid = await _make_routine(baseline_branch="origin/feature/1.x.x", cwd="/repo/root", current_phase="implement")
+    try:
+        orch = RoutineOrchestrator()
+        info = WorkspaceInfo(path="/tmp/wt/demo-x", branch="routine/demo-x")
+        with patch("negentropy.engine.routine.workspace.ensure_worktree", new=AsyncMock(return_value=info)):
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid, with_for_update=True)
+                assert await orch._ensure_workspace(r) is True
+                assert r.worktree_path == "/tmp/wt/demo-x"
+                assert r.work_branch == "routine/demo-x"
+                await db.commit()
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid)
+                config = await orch._build_config(r)
+                assert config.cwd == "/tmp/wt/demo-x"  # CC 实际 cwd = worktree
+                assert config.permission_mode == "acceptEdits"  # implement 相位
+    finally:
+        await _cleanup(rid)
+
+
+async def test_ensure_workspace_failure_terminates_unrecoverable():
+    """worktree 创建失败 → _ensure_workspace False 且 routine 终止 unrecoverable。"""
+    rid = await _make_routine(baseline_branch="origin/feature/1.x.x", cwd="/repo/root")
+    try:
+        orch = RoutineOrchestrator()
+        with patch(
+            "negentropy.engine.routine.workspace.ensure_worktree",
+            new=AsyncMock(side_effect=workspace.WorkspaceError("boom")),
+        ):
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid, with_for_update=True)
+                assert await orch._ensure_workspace(r) is False
+                assert r.status == "failed"
+                assert r.termination_reason == decision_mod.REASON_UNRECOVERABLE
+                await db.commit()
+    finally:
+        await _cleanup(rid)
+
+
+async def test_reap_workspaces_cleans_succeeded_routine():
+    """终态清扫：succeeded routine 的 worktree 被回收（remove_worktree 调用 + worktree_path 置空）。"""
+    rid = await _make_routine(
+        baseline_branch="origin/feature/1.x.x",
+        cwd="/repo/root",
+        status="succeeded",
+        worktree_path="/tmp/wt/demo",
+        work_branch="routine/demo",
+    )
+    try:
+        orch = RoutineOrchestrator()
+        with patch("negentropy.engine.routine.workspace.remove_worktree", new=AsyncMock()) as rm:
+            cleaned = await orch._reap_workspaces()
+            assert cleaned >= 1
+            rm.assert_awaited()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.worktree_path is None  # 句柄已清
     finally:
         await _cleanup(rid)

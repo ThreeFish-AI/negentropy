@@ -66,6 +66,25 @@ export function RoutineRunView({
         </section>
       </div>
 
+      {/* 隔离工作区（worktree routine：基线 → 工作分支）*/}
+      {routine.baseline_branch && (
+        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
+          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Isolated Workspace</h3>
+          <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-[auto_1fr]">
+            <dt className="text-text-muted">Baseline</dt>
+            <dd className="break-all font-mono text-text-secondary">{routine.baseline_branch}</dd>
+            <dt className="text-text-muted">Work branch</dt>
+            <dd className="break-all font-mono text-text-secondary">{routine.work_branch ?? "—"}</dd>
+            {routine.worktree_path && (
+              <>
+                <dt className="text-text-muted">Worktree</dt>
+                <dd className="break-all font-mono text-text-secondary">{routine.worktree_path}</dd>
+              </>
+            )}
+          </dl>
+        </section>
+      )}
+
       {/* Pull Request（FINALIZE 产出，等待人工 Merge）*/}
       {routine.pr_url && (
         <section className="rounded-card border border-border bg-card p-4 shadow-sm">
