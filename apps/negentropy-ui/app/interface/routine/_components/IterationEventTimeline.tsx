@@ -129,7 +129,7 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
   return (
     <li className="relative -ml-px pl-4">
       {/* 时间线节点圆点 */}
-      <span className="absolute left-0 top-2.5 -translate-x-1/2">
+      <span className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <span
           className={`flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-card ${eventTypeClass(ev.event_type, isError)}`}
         >
