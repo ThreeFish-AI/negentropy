@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import shutil
+
 from negentropy.logging import get_logger
 
 from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
@@ -108,8 +110,11 @@ async def _load_claude_code_defaults():
 
     if tool:
         cfg = tool.config or {}
+        raw_cli = cfg.get("cli_path", "claude")
+        # 将裸名解析为绝对路径，消除子进程对 PATH 的依赖
+        resolved_cli = shutil.which(raw_cli) or raw_cli
         return ClaudeCodeConfig(
-            cli_path=cfg.get("cli_path", "claude"),
+            cli_path=resolved_cli,
             model=cfg.get("model"),
             system_prompt=cfg.get("system_prompt"),
             allowed_tools=cfg.get("allowed_tools"),
@@ -119,4 +124,6 @@ async def _load_claude_code_defaults():
             permission_mode=cfg.get("permission_mode", "auto"),
             mcp_config=cfg.get("mcp_config"),
         )
-    return ClaudeCodeConfig()
+    # 无 DB 配置时，尝试解析默认 "claude" 为绝对路径
+    default_cli = shutil.which("claude") or "claude"
+    return ClaudeCodeConfig(cli_path=default_cli)

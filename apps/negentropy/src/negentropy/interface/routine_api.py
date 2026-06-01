@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import time as _time
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -555,6 +556,8 @@ async def list_iteration_events(
 
 @router.post("")
 async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
+    if body.cwd and not os.path.isdir(body.cwd):
+        raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
     async with db_session.AsyncSessionLocal() as db:
         routine = Routine(
             key=body.key,
@@ -604,6 +607,8 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
 
 @router.put("/{routine_id}")
 async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[str, Any]:
+    if body.cwd and not os.path.isdir(body.cwd):
+        raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
 import time
 from collections.abc import Awaitable, Callable
@@ -432,6 +433,44 @@ class ClaudeCodeService:
         events_holder: list[dict[str, Any]] | None = None,
         on_event: EventSink | None = None,
     ) -> ClaudeCodeResult:
+        # ---- 预检：cwd 目录必须存在 ----
+        if config.cwd and not os.path.isdir(config.cwd):
+            return ClaudeCodeResult(
+                status="error",
+                summary="",
+                error=f"working directory does not exist: '{config.cwd}'",
+            )
+
+        # ---- 预检：CLI 二进制必须可达 ----
+        cli_resolved = shutil.which(config.cli_path)
+        if not cli_resolved:
+            hint = (
+                f"resolved via PATH — ensure '{config.cli_path}' is on PATH "
+                f"or set an absolute path in Interface / Tools / Claude Code config"
+                if "/" not in config.cli_path
+                else f"file does not exist: '{config.cli_path}'"
+            )
+            return ClaudeCodeResult(
+                status="error",
+                summary="",
+                error=f"claude CLI not found: {hint}",
+            )
+
+        # 用 resolved 绝对路径替代裸名，消除 PATH 依赖
+        config = ClaudeCodeConfig(
+            cli_path=cli_resolved,
+            model=config.model,
+            system_prompt=config.system_prompt,
+            allowed_tools=config.allowed_tools,
+            disallowed_tools=config.disallowed_tools,
+            cwd=config.cwd,
+            max_turns=config.max_turns,
+            timeout_seconds=config.timeout_seconds,
+            permission_mode=config.permission_mode,
+            mcp_config=config.mcp_config,
+            resume_session_id=config.resume_session_id,
+        )
+
         args = ClaudeCodeService._build_cli_args(prompt, config)
 
         try:
@@ -446,7 +485,7 @@ class ClaudeCodeService:
             return ClaudeCodeResult(
                 status="error",
                 summary="",
-                error=f"claude CLI not found at '{config.cli_path}'",
+                error=f"claude CLI not found at '{config.cli_path}' (resolved: '{cli_resolved}')",
             )
 
         result_text = ""
