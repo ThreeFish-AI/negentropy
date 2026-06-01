@@ -115,6 +115,7 @@ class FactItem(BaseModel):
 
 class FactListResponse(BaseModel):
     count: int
+    total: int = 0
     items: list[FactItem] = Field(default_factory=list)
 
 
@@ -123,6 +124,7 @@ class FactSearchRequest(BaseModel):
     user_id: str
     query: str
     limit: int = 10
+    offset: int = 0
 
 
 class AuditRequest(BaseModel):
@@ -523,16 +525,24 @@ async def list_facts(
     user_id: str | None = Query(default=None),
     fact_type: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
 ) -> FactListResponse:
-    """获取用户的 Facts (语义记忆)"""
+    """获取用户的 Facts (语义记忆)，支持分页"""
     resolved_app = _resolve_app_name(app_name)
     fact_service = get_fact_service()
+
+    total = await fact_service.count_facts(
+        user_id=user_id,
+        app_name=resolved_app,
+        fact_type=fact_type,
+    )
 
     facts = await fact_service.list_facts(
         user_id=user_id,
         app_name=resolved_app,
         fact_type=fact_type,
         limit=limit,
+        offset=offset,
     )
 
     items = [
@@ -552,7 +562,7 @@ async def list_facts(
         for f in facts
     ]
 
-    return FactListResponse(count=len(items), items=items)
+    return FactListResponse(count=len(items), total=total, items=items)
 
 
 @router.post("/facts/search", response_model=FactListResponse)
@@ -564,11 +574,18 @@ async def search_facts(payload: FactSearchRequest) -> FactListResponse:
     resolved_app = _resolve_app_name(payload.app_name)
     fact_service = get_fact_service()
 
+    total = await fact_service.count_search_facts(
+        user_id=payload.user_id,
+        app_name=resolved_app,
+        query=payload.query,
+    )
+
     facts = await fact_service.search_facts(
         user_id=payload.user_id,
         app_name=resolved_app,
         query=payload.query,
         limit=payload.limit,
+        offset=payload.offset,
     )
 
     items = [
@@ -588,7 +605,7 @@ async def search_facts(payload: FactSearchRequest) -> FactListResponse:
         for f in facts
     ]
 
-    return FactListResponse(count=len(items), items=items)
+    return FactListResponse(count=len(items), total=total, items=items)
 
 
 @router.post("/audit", response_model=AuditResponse)
