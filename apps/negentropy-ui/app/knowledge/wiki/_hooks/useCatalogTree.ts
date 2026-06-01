@@ -43,11 +43,17 @@ export function useCatalogTree({ catalogId }: UseCatalogTreeOptions) {
     try {
       const data = await fetchCatalogTree(catalogId);
       setNodes(data);
-      // Auto-expand first level
-      const rootIds = data
-        .filter((n) => (n.depth ?? 0) === 0)
-        .map((n) => n.id);
-      setExpandedIds(new Set(rootIds));
+      // Preserve existing expanded state; only auto-expand root on first load.
+      // Also handles catalogId switch: stale IDs are pruned against the new node set.
+      setExpandedIds((prev) => {
+        const validIds = new Set(data.map((n) => n.id));
+        const filtered = new Set([...prev].filter((id) => validIds.has(id)));
+        if (filtered.size > 0) return filtered;
+        const rootIds = data
+          .filter((n) => (n.depth ?? 0) === 0)
+          .map((n) => n.id);
+        return new Set(rootIds);
+      });
     } catch (err) {
       console.error("Failed to load catalog tree:", err);
       setNodes([]);
@@ -140,18 +146,63 @@ export function useCatalogTree({ catalogId }: UseCatalogTreeOptions) {
       newSortOrder: number,
     ) => {
       if (!catalogId) return;
+
+      // Capture snapshots inside setState callbacks for atomicity
+      let snapNodes: CatalogNode[] | null = null;
+      let snapExpanded: Set<string> | null = null;
+
+      // Optimistic update: immediately reflect the move in local state,
+      // including path/depth recalculation for cross-folder moves.
+      setNodes((prev) => {
+        snapNodes = prev.map((n) => ({ ...n })); // defensive shallow copy
+        return prev.map((n) => {
+          if (n.id !== nodeId) return n;
+          const targetParent = newParentId
+            ? prev.find((p) => p.id === newParentId)
+            : null;
+          const newPath = targetParent
+            ? [...(targetParent.path ?? []), targetParent.id]
+            : [];
+          const newDepth = targetParent
+            ? (targetParent.depth ?? 0) + 1
+            : 0;
+          return {
+            ...n,
+            parent_id: newParentId,
+            sort_order: newSortOrder,
+            path: newPath,
+            depth: newDepth,
+          };
+        });
+      });
+
+      // Auto-expand the target folder when moving into a new parent
+      setExpandedIds((prev) => {
+        snapExpanded = new Set(prev);
+        if (newParentId && !prev.has(newParentId)) {
+          const next = new Set(prev);
+          next.add(newParentId);
+          return next;
+        }
+        return prev;
+      });
+
       try {
         await updateCatalogNode(catalogId, nodeId, {
           parent_id: newParentId,
           sort_order: newSortOrder,
         });
-        await refresh();
+        // Success — no full refresh needed; reindexSiblings will refresh
+        // when necessary and it now preserves expandedIds.
       } catch (err) {
+        // Rollback to pre-move snapshot
+        if (snapNodes) setNodes(snapNodes);
+        if (snapExpanded) setExpandedIds(snapExpanded);
         toast.error(err instanceof Error ? err.message : "移动失败");
         throw err;
       }
     },
-    [catalogId, refresh],
+    [catalogId],
   );
 
   return {
