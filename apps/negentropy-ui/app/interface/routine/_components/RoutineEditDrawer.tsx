@@ -244,7 +244,8 @@ export function RoutineEditDrawer({
   const liveRoutine = mode.kind === "routine-edit" ? mode.routine : null;
   const isRunning = liveRoutine?.status === "running";
   const isBuiltinTemplate = mode.kind === "template-edit" && mode.template.source === "builtin";
-  const readOnly = isRunning || isBuiltinTemplate; // 运行中锁定 / 内置模板只读
+  // 仅运行中锁定；内置模板改为「可编辑 → 另存为我的模板」(copy-on-write)，以 create 语义提交一份用户副本。
+  const readOnly = isRunning;
   const requireCwd = mode.kind === "use-template";
 
   // ── 表单草稿态（仅挂载时 seed 一次）──
@@ -327,7 +328,8 @@ export function RoutineEditDrawer({
     if (readOnly) return;
 
     const errs: Record<string, string> = {};
-    if (op === "create" && !form.key.trim()) errs.key = "Key is required";
+    // 内置模板另存为副本走 create 语义，同样需要唯一 Key（op 仍为 edit，故单列判断）。
+    if ((op === "create" || isBuiltinTemplate) && !form.key.trim()) errs.key = "Key is required";
     if (!form.title.trim()) errs.title = "Title is required";
     if (!form.goal.trim()) errs.goal = "Goal is required";
     if (!form.acceptance_criteria.trim()) errs.acceptance_criteria = "Acceptance criteria is required";
@@ -394,25 +396,37 @@ export function RoutineEditDrawer({
 
     try {
       let result: RoutineDTO;
-      if (mode.kind === "routine-edit" || mode.kind === "template-edit") {
+      // 内置模板（builtin）无可改写的后端实体，编辑保存=另存为新的用户模板，故走 create 分支。
+      if ((mode.kind === "routine-edit" || mode.kind === "template-edit") && !isBuiltinTemplate) {
         // 用判别式收窄取 id（不用 as 强转，保持联合的穷尽性，未来新增 mode 时由编译器兜底）。
         const id = mode.kind === "routine-edit" ? mode.routine.id : mode.template.id;
         result = await updateRoutine(id, base as RoutineUpdatePayload);
         toast.success(entity === "template" ? "Template updated" : "Routine updated");
         setBaseline(form); // 重置脏基线（edit 类抽屉保持打开）
       } else {
+        // 含：routine-create / template-create / use-template / 内置模板「另存为我的模板」(copy-on-write)
         result = await createRoutine({ ...base, key: form.key.trim() } as RoutineCreatePayload);
         toast.success(
-          mode.kind === "template-create"
-            ? "Template created"
-            : mode.kind === "use-template"
-              ? `Routine created from "${mode.template.display_name}"`
-              : "Routine created",
+          isBuiltinTemplate
+            ? `Saved "${form.display_name.trim() || form.title.trim()}" as your template`
+            : mode.kind === "template-create"
+              ? "Template created"
+              : mode.kind === "use-template"
+                ? `Routine created from "${mode.template.display_name}"`
+                : "Routine created",
         );
       }
       onSaved(result, mode.kind);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const msg = err instanceof Error ? err.message : "An error occurred";
+      // 内置模板另存时 Key 撞库（后端 409 "key already exists"）→ 定位到 Key 字段并给出修复指引
+      // （error-placement / error-clarity / aria-live-errors），而非仅顶部一条泛化报错。
+      if (isBuiltinTemplate && /already exists/i.test(msg)) {
+        setFieldErrors((e) => ({ ...e, key: "This key already exists — choose a different one." }));
+        setError("A template with this key already exists. Edit the Key field and try again.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -451,7 +465,11 @@ export function RoutineEditDrawer({
 
   // 字段级错误渲染助手（普通函数，非组件 —— 避免 render 期创建组件丢失状态）。
   const renderFieldError = (name: string) =>
-    fieldErrors[name] ? <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors[name]}</p> : null;
+    fieldErrors[name] ? (
+      <p role="alert" className="mt-0.5 text-[10px] text-red-500">
+        {fieldErrors[name]}
+      </p>
+    ) : null;
 
   return (
     <>
@@ -515,12 +533,23 @@ export function RoutineEditDrawer({
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-            {/* 只读态说明（运行中 / 内置模板）—— 含恢复路径 */}
+            {/* 运行中锁定（只读，中性条）—— 含恢复路径 */}
             {readOnly && (
               <div className="rounded-card border border-border bg-muted/40 px-4 py-2.5 text-xs text-text-secondary">
-                {isRunning
-                  ? "This Routine is running. Pause it to edit its configuration."
-                  : "Built-in template — fields are read-only. Click Use to create a Routine from it."}
+                This Routine is running. Pause it to edit its configuration.
+              </div>
+            )}
+
+            {/* 内置模板：copy-on-write 信息条（非锁定语义；主色调以与禁用/只读态视觉区分） */}
+            {isBuiltinTemplate && (
+              <div
+                role="note"
+                className="rounded-card border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs text-text-secondary"
+              >
+                Built-in preset. Editing and saving creates{" "}
+                <strong className="font-medium text-foreground">your own editable copy</strong>; the built-in preset
+                stays unchanged. You can also click <strong className="font-medium text-foreground">Use</strong> to
+                create a Routine directly.
               </div>
             )}
 
@@ -529,16 +558,19 @@ export function RoutineEditDrawer({
             {/* Key + Title */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Key{op === "create" && reqMark}</label>
+                <label className={labelCls}>Key{(op === "create" || isBuiltinTemplate) && reqMark}</label>
                 <input
                   type="text"
                   value={form.key}
                   onChange={(e) => update("key", e.target.value)}
-                  disabled={op === "edit" || readOnly}
+                  disabled={readOnly || (op === "edit" && !isBuiltinTemplate)}
                   placeholder="unique_key"
                   className={cn(inputCls, fieldErrors.key && "border-red-400")}
                 />
                 {renderFieldError("key")}
+                {isBuiltinTemplate && !fieldErrors.key && (
+                  <p className="mt-0.5 text-[10px] text-text-muted">Saved as a new template — pick a unique key.</p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Title{reqMark}</label>
@@ -889,7 +921,7 @@ export function RoutineEditDrawer({
             {mode.kind === "template-edit" && onUse && (
               <Button
                 type="button"
-                variant={isBuiltinTemplate ? "primary" : "outline"}
+                variant="outline"
                 size="sm"
                 disabled={loading}
                 onClick={() => onUse(mode.template)}
@@ -899,7 +931,13 @@ export function RoutineEditDrawer({
             )}
             {!readOnly && (
               <Button type="submit" variant="primary" size="sm" loading={loading}>
-                {op === "edit" ? "Save" : entity === "template" ? "Create Template" : "Create Routine"}
+                {isBuiltinTemplate
+                  ? "Save as my copy"
+                  : op === "edit"
+                    ? "Save"
+                    : entity === "template"
+                      ? "Create Template"
+                      : "Create Routine"}
               </Button>
             )}
             {mode.kind === "routine-edit" &&
