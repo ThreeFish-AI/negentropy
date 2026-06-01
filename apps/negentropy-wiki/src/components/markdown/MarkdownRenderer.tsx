@@ -70,8 +70,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 return <MermaidDiagram code={codeChild.value} />;
               }
               return (
-                <CodeBlock className={codeChild.className}>
-                  {codeChild.value}
+                <CodeBlock className={codeChild.className} codeText={codeChild.value}>
+                  {codeChild.reactChildren}
                 </CodeBlock>
               );
             }
@@ -115,17 +115,37 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   );
 }
 
-function extractCodeChild(children: React.ReactNode): { value: string; className?: string } | null {
+/**
+ * 从 React 元素树中递归提取纯文本（叶子字符串拼接）。
+ * rehype-highlight 将 code children 转为 <span class="hljs-*"> 元素树，
+ * 此函数遍历该树提取纯文本，供「复制」按钮和 Mermaid 使用。
+ */
+function extractTextContent(node: React.ReactNode): string {
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (!node || typeof node !== "object") return "";
+  if (Array.isArray(node)) return node.map(extractTextContent).join("");
+  if ("props" in node) {
+    const el = node as { props?: { children?: React.ReactNode } };
+    return extractTextContent(el.props?.children);
+  }
+  return "";
+}
+
+function extractCodeChild(
+  children: React.ReactNode,
+): { value: string; className?: string; reactChildren: React.ReactNode } | null {
   if (!children) return null;
   const reactChildren = Array.isArray(children) ? children : [children];
   for (const child of reactChildren) {
     if (child && typeof child === "object" && "props" in child) {
       const codeEl = child as { props?: { children?: React.ReactNode; className?: string } };
       if (codeEl.props?.children != null) {
-        const value = typeof codeEl.props.children === "string"
-          ? codeEl.props.children
-          : String(codeEl.props.children);
-        return { value, className: codeEl.props.className };
+        const codeChildren = codeEl.props.children;
+        const value = typeof codeChildren === "string"
+          ? codeChildren
+          : extractTextContent(codeChildren);
+        return { value, className: codeEl.props.className, reactChildren: codeChildren };
       }
     }
   }
