@@ -46,7 +46,7 @@ export function BaseDrawer({
   subtitle,
   footer,
   side = "right",
-  widthClassName = "max-w-md",
+  widthClassName = "w-full max-w-md",
   closeOnBackdrop = true,
   closeOnEscape = true,
   showClose = true,
@@ -92,7 +92,7 @@ export function BaseDrawer({
             aria-labelledby={title ? titleId : undefined}
             tabIndex={-1}
             className={cn(
-              "relative flex h-full w-full flex-col bg-card shadow-xl outline-none",
+              "relative flex h-full flex-col bg-card shadow-xl outline-none",
               side === "right"
                 ? "border-l border-border"
                 : "border-r border-border",
