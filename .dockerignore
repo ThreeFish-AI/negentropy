@@ -1,0 +1,71 @@
+# =============================================================================
+# Docker Build Context Exclusions
+# =============================================================================
+
+# Version control
+.git
+.gitignore
+
+# CI/CD
+.github
+
+# IDE & Editor
+.claude
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary & build artifacts
+.temp
+.next
+.turbo
+*.egg-info
+dist
+build
+htmlcov
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+coverage.xml
+
+# Virtual environments
+.venv
+
+# Node.js caches
+node_modules
+*.tsbuildinfo
+
+# Documentation (not needed at runtime)
+docs
+*.md
+!apps/*/README.md
+!packages/*/README.md
+
+# Docker files (avoid recursive context)
+docker
+
+# Environment files (secrets must not be baked into images)
+.env
+.env.*
+!.env.docker
+
+# Test files
+**/tests
+**/__tests__
+**/*.test.*
+**/*.spec.*
+
+# Config overrides (per-deployment, not for image)
+config.local.yaml
