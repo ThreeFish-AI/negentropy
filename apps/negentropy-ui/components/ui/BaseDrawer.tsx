@@ -28,7 +28,7 @@ export interface BaseDrawerProps {
   footer?: ReactNode;
   /** 滑出方向。默认 right。 */
   side?: "right" | "left";
-  /** 面板宽度类（如 "max-w-md" / "w-[480px]"）。默认 max-w-md。 */
+  /** 面板宽度类。默认 [width:clamp(480px,66.67%,1100px)]（最小 480px / 理想视口 2/3 / 最大 1100px）。 */
   widthClassName?: string;
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
@@ -46,7 +46,7 @@ export function BaseDrawer({
   subtitle,
   footer,
   side = "right",
-  widthClassName = "w-full max-w-md",
+  widthClassName = "[width:clamp(480px,66.67%,1100px)]",
   closeOnBackdrop = true,
   closeOnEscape = true,
   showClose = true,

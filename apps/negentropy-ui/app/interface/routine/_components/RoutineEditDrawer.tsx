@@ -485,7 +485,7 @@ export function RoutineEditDrawer({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="fixed inset-y-0 right-0 z-50 flex w-[690px] max-w-[92vw] flex-col border-l border-border bg-card shadow-xl outline-none"
+        className="fixed inset-y-0 right-0 z-50 flex [width:clamp(480px,66.67%,1100px)] flex-col border-l border-border bg-card shadow-xl outline-none"
         style={{ transform: "translateX(100%)" }}
       >
         {/* Header */}

@@ -61,7 +61,7 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
         aria-label="Close drawer"
         className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
       />
-      <aside className="relative z-10 flex h-full w-full max-w-[480px] flex-col border-l border-border bg-card shadow-xl">
+      <aside className="relative z-10 flex h-full [width:clamp(480px,66.67%,1100px)] flex-col border-l border-border bg-card shadow-xl">
         {/* Header */}
         <header className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between">

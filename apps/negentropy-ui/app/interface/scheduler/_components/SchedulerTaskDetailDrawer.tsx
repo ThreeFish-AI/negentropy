@@ -91,7 +91,7 @@ export function SchedulerTaskDetailDrawer({
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed inset-y-0 right-0 z-50 w-[420px] max-w-[90vw] bg-card border-l border-border shadow-xl flex flex-col"
+        className="fixed inset-y-0 right-0 z-50 [width:clamp(480px,66.67%,1100px)] bg-card border-l border-border shadow-xl flex flex-col"
         style={{ transform: "translateX(100%)" }}
       >
         {/* Header */}
