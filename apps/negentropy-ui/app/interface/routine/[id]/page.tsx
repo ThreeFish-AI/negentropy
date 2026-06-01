@@ -22,6 +22,7 @@ import { RoutineRunView } from "../_components/RoutineRunView";
 import { canRestart, CONTROL_LABEL, controlsFor, type ControlAction } from "../_components/routine-controls";
 import { phaseClass, phaseLabel, routineStatusClass } from "../_components/status-style";
 import { useRestartRoutine } from "../_components/useRestartRoutine";
+import { useTerminateRoutine } from "../_components/useTerminateRoutine";
 
 export default function RoutineRunPage() {
   const params = useParams<{ id: string }>();
@@ -29,14 +30,22 @@ export default function RoutineRunPage() {
   const { routine, loading, error, reload, connected, liveActionsByIteration } = useRoutineDetailLive(id);
   const [busy, setBusy] = useState(false);
 
+  // 终止 routine（需确认对话框门控）。
+  const { requestTerminate, terminateDialog } = useTerminateRoutine(() => void reload());
+
+  // 生命周期控制：cancel 路由到确认对话框；其余直接执行。
   const handleControl = useCallback(
     async (action: ControlAction) => {
       if (!id) return;
+      if (action === "cancel") {
+        if (routine) requestTerminate(routine);
+        return;
+      }
       setBusy(true);
       try {
         await controlRoutine(id, action);
         toast.success(
-          `Routine ${{ start: "started", pause: "paused", resume: "resumed", cancel: "cancelled" }[action]}`,
+          `Routine ${{ start: "started", pause: "paused", resume: "resumed" }[action]}`,
         );
         await reload();
       } catch (err) {
@@ -45,7 +54,7 @@ export default function RoutineRunPage() {
         setBusy(false);
       }
     },
-    [id, reload],
+    [id, reload, routine, requestTerminate],
   );
 
   const handleApprove = useCallback(
@@ -134,7 +143,7 @@ export default function RoutineRunPage() {
                 {controls.map((action) => (
                   <Button
                     key={action}
-                    variant={action === "cancel" ? "outline" : "neutral"}
+                    variant={action === "cancel" ? "danger" : "neutral"}
                     size="sm"
                     disabled={busy}
                     onClick={() => handleControl(action)}
@@ -181,6 +190,7 @@ export default function RoutineRunPage() {
         </ClockProvider>
       </div>
       {restartDialog}
+      {terminateDialog}
     </div>
   );
 }

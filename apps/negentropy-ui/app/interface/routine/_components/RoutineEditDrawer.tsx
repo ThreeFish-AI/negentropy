@@ -91,6 +91,7 @@ interface FormState {
   max_turns: string;
   permission_mode: string;
   allowed_tools: string;
+  timeout_seconds: string;
   // 模板元数据（template entity）
   category: string;
   version: string;
@@ -116,6 +117,7 @@ const DEFAULTS: FormState = {
   max_turns: "",
   permission_mode: "",
   allowed_tools: "",
+  timeout_seconds: "",
   category: "general",
   version: "1.0.0",
   features_showcase: "",
@@ -142,12 +144,13 @@ const CATEGORY_OPTIONS = [
 ];
 
 /** 从 config 提取 Claude Code 覆盖键 → 表单字符串。 */
-function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "permission_mode" | "allowed_tools"> {
+function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "permission_mode" | "allowed_tools" | "timeout_seconds"> {
   return {
     model: (cfg.model as string) ?? "",
     max_turns: cfg.max_turns != null ? String(cfg.max_turns) : "",
     permission_mode: (cfg.permission_mode as string) ?? "",
     allowed_tools: Array.isArray(cfg.allowed_tools) ? (cfg.allowed_tools as string[]).join(", ") : "",
+    timeout_seconds: cfg.timeout_seconds != null ? String(cfg.timeout_seconds) : "",
   };
 }
 
@@ -258,7 +261,7 @@ export function RoutineEditDrawer({
   // 用 form 的初值同源 seed（initializer 仅挂载时取值），避免 use-template 的随机 key 双生致恒脏。
   const [baseline, setBaseline] = useState<FormState>(form);
   const [showAdvanced, setShowAdvanced] = useState(
-    () => entity === "routine" && !!(form.model || form.max_turns || form.permission_mode || form.allowed_tools),
+    () => entity === "routine" && !!(form.model || form.max_turns || form.permission_mode || form.allowed_tools || form.timeout_seconds),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -383,6 +386,8 @@ export function RoutineEditDrawer({
       if (form.allowed_tools.trim())
         config.allowed_tools = form.allowed_tools.split(",").map((s) => s.trim()).filter(Boolean);
       else delete config.allowed_tools;
+      if (form.timeout_seconds.trim()) config.timeout_seconds = parseInt(form.timeout_seconds, 10);
+      else delete config.timeout_seconds;
       extra = { cwd: form.cwd.trim() || null, baseline_branch: form.baseline_branch.trim() || null };
     } else {
       // 模板元数据收敛进 config（与列表 API 的读取契约对齐）
@@ -645,7 +650,7 @@ export function RoutineEditDrawer({
             {/* Budget & Approval */}
             <section className="rounded-card border border-border bg-muted/30 p-4">
               <h3 className="mb-3 text-xs font-medium text-text-secondary">Budget &amp; Approval</h3>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <div className="grid grid-cols-3 gap-x-6 gap-y-2">
                 <div className="flex items-center gap-2">
                   <label className={labelInlineCls}>Max Iterations</label>
                   <input
@@ -691,6 +696,20 @@ export function RoutineEditDrawer({
                     disabled={readOnly}
                     className={cn(inputCls, "min-w-0 flex-1")}
                   />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <label className={labelInlineCls}>Iteration Timeout</label>
+                  <input
+                    type="number"
+                    min={300}
+                    max={86400}
+                    value={form.timeout_seconds}
+                    onChange={(e) => update("timeout_seconds", e.target.value)}
+                    disabled={readOnly}
+                    placeholder="10800"
+                    className={cn(inputCls, "min-w-0 w-32")}
+                  />
+                  <span className="text-[11px] text-text-muted">seconds (default 3h)</span>
                 </div>
               </div>
               <div className="mt-3 flex items-start gap-2">
@@ -899,7 +918,7 @@ export function RoutineEditDrawer({
                 <Button
                   key={action}
                   type="button"
-                  variant={action === "cancel" ? "outline" : "neutral"}
+                  variant={action === "cancel" ? "danger" : "neutral"}
                   size="sm"
                   disabled={busy}
                   onClick={() => onControl(action)}

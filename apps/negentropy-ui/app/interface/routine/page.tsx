@@ -26,6 +26,7 @@ import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
 import { useRestartRoutine } from "./_components/useRestartRoutine";
+import { useTerminateRoutine } from "./_components/useTerminateRoutine";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
 
@@ -66,6 +67,12 @@ function RoutinePageInner() {
 
   // 重启失败 / 取消的 routine（列表行内 + 抽屉共用单一逻辑源）。
   const { requestRestart, restartDialog } = useRestartRoutine((updated) => {
+    refresh();
+    if (selId === updated.id) void refreshSelected(updated.id);
+  });
+
+  // 终止运行中 / 暂停的 routine（列表行内 + 抽屉共用单一逻辑源）。
+  const { requestTerminate, terminateDialog } = useTerminateRoutine((updated) => {
     refresh();
     if (selId === updated.id) void refreshSelected(updated.id);
   });
@@ -126,12 +133,17 @@ function RoutinePageInner() {
     },
   });
 
+  // 生命周期控制：cancel 路由到确认对话框；其余直接执行。
   const handleControl = async (action: "start" | "pause" | "resume" | "cancel") => {
     if (!selected) return;
+    if (action === "cancel") {
+      requestTerminate(selected);
+      return;
+    }
     setActionBusy(true);
     try {
       const updated = await controlRoutine(selected.id, action);
-      toast.success(`Routine ${{ start: "started", pause: "paused", resume: "resumed", cancel: "cancelled" }[action]}`);
+      toast.success(`Routine ${{ start: "started", pause: "paused", resume: "resumed" }[action]}`);
       await refreshSelected(updated.id);
       refresh();
     } catch (err) {
@@ -207,6 +219,7 @@ function RoutinePageInner() {
               onSelect={openDetail}
               onOpenFull={openFull}
               onRestart={requestRestart}
+              onTerminate={requestTerminate}
             />
           </div>
         </ClockProvider>
@@ -228,6 +241,7 @@ function RoutinePageInner() {
 
       {confirmDialog}
       {restartDialog}
+      {terminateDialog}
     </div>
   );
 }

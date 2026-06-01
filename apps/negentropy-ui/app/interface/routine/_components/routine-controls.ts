@@ -11,7 +11,7 @@ export const CONTROL_LABEL: Record<ControlAction, string> = {
   start: "Start",
   pause: "Pause",
   resume: "Resume",
-  cancel: "Cancel",
+  cancel: "Terminate",
 };
 
 /** 依 Routine 状态计算可用控制动作。 */
@@ -26,6 +26,14 @@ export function controlsFor(status: RoutineStatus): ControlAction[] {
     default:
       return [];
   }
+}
+
+/**
+ * 是否可「终止」——非终态（pending / running / paused）均可。
+ * 供列表页行内 Terminate 按钮 + 确认对话框门控。
+ */
+export function canCancel(status: RoutineStatus): boolean {
+  return status === "pending" || status === "running" || status === "paused";
 }
 
 /**
