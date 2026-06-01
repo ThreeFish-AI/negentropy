@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { ExternalLink, RotateCcw } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
@@ -106,9 +106,10 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                       e.stopPropagation();
                       onOpenFull(r);
                     }}
-                    className="cursor-pointer rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    Full View →
+                    Full View
+                    <ExternalLink className="h-3 w-3" />
                   </button>
                 </div>
               </td>
