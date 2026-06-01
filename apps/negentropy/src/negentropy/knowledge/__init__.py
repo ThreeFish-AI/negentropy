@@ -4,7 +4,6 @@ from .graph import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
     EntityExtractionResult,
-    EntityRecord,
     GraphBuildResult,
     GraphQueryResult,
     GraphRepository,
@@ -14,7 +13,6 @@ from .graph import (
     LLMEntityExtractor,
     LLMRelationExtractor,
     RelationExtractionResult,
-    RelationRecord,
     get_graph_repository,
     get_graph_service,
 )
@@ -86,8 +84,6 @@ __all__ = [
     "GraphRepository",
     "AgeGraphRepository",
     "get_graph_repository",
-    "EntityRecord",
-    "RelationRecord",
     "GraphSearchResult",
     "BuildRunRecord",
     # Graph service

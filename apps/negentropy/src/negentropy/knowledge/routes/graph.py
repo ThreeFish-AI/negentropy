@@ -513,7 +513,7 @@ async def find_entity_neighbors(
     )
 
     graph_service = _get_graph_service()
-    neighbors = await graph_service.find_neighbors(
+    neighbors = await graph_service._repository.find_neighbors(
         entity_id=payload.entity_id,
         max_depth=payload.max_depth,
         limit=payload.limit,
@@ -555,7 +555,7 @@ async def find_entity_path(
     )
 
     graph_service = _get_graph_service()
-    path = await graph_service.find_path(
+    path = await graph_service._repository.find_path(
         source_id=payload.source_id,
         target_id=payload.target_id,
         max_depth=payload.max_depth,
@@ -619,7 +619,7 @@ async def get_graph_build_history(
     resolved_app = _resolve_app_name(app_name)
 
     graph_service = _get_graph_service()
-    runs = await graph_service.get_build_history(
+    runs = await graph_service._repository.get_build_runs(
         corpus_id=corpus_id,
         app_name=resolved_app,
         limit=limit,
@@ -1148,7 +1148,7 @@ async def get_graph_timeline(
     )
 
     graph_service = _get_graph_service()
-    points = await graph_service.get_relation_timeline(
+    points = await graph_service._repository.get_relation_timeline(
         corpus_id=corpus_id,
         bucket=bucket,
     )

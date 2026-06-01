@@ -204,6 +204,23 @@ async def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
         )
 
 
+def _fact_to_item(f: Fact) -> FactItem:
+    """将 Fact ORM 对象转换为 FactItem 响应模型。"""
+    return FactItem(
+        id=str(f.id),
+        user_id=f.user_id,
+        app_name=f.app_name,
+        fact_type=f.fact_type,
+        key=f.key,
+        value=f.value,
+        confidence=f.confidence,
+        importance_score=f.importance_score,
+        valid_from=_iso(f.valid_from),
+        valid_until=_iso(f.valid_until),
+        created_at=_iso(f.created_at),
+    )
+
+
 def _memory_entry_content_text(entry: Any) -> str:
     content = getattr(entry, "content", None)
     if isinstance(content, dict) and "parts" in content:
@@ -535,22 +552,7 @@ async def list_facts(
         limit=limit,
     )
 
-    items = [
-        FactItem(
-            id=str(f.id),
-            user_id=f.user_id,
-            app_name=f.app_name,
-            fact_type=f.fact_type,
-            key=f.key,
-            value=f.value,
-            confidence=f.confidence,
-            importance_score=f.importance_score,
-            valid_from=_iso(f.valid_from),
-            valid_until=_iso(f.valid_until),
-            created_at=_iso(f.created_at),
-        )
-        for f in facts
-    ]
+    items = [_fact_to_item(f) for f in facts]
 
     return FactListResponse(count=len(items), items=items)
 
@@ -571,22 +573,7 @@ async def search_facts(payload: FactSearchRequest) -> FactListResponse:
         limit=payload.limit,
     )
 
-    items = [
-        FactItem(
-            id=str(f.id),
-            user_id=f.user_id,
-            app_name=f.app_name,
-            fact_type=f.fact_type,
-            key=f.key,
-            value=f.value,
-            confidence=f.confidence,
-            importance_score=f.importance_score,
-            valid_from=_iso(f.valid_from),
-            valid_until=_iso(f.valid_until),
-            created_at=_iso(f.created_at),
-        )
-        for f in facts
-    ]
+    items = [_fact_to_item(f) for f in facts]
 
     return FactListResponse(count=len(items), items=items)
 
@@ -807,12 +794,10 @@ async def manual_resolve_conflict(
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, str]:
     """手动解决冲突"""
-    from uuid import UUID as UUIDType
-
     resolver = get_conflict_resolver()
 
     try:
-        conflict_uuid = UUIDType(conflict_id)
+        conflict_uuid = UUID(conflict_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid conflict ID") from None
 
@@ -833,10 +818,8 @@ async def get_fact_history(
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """获取事实的版本历史链"""
-    from uuid import UUID as UUIDType
-
     try:
-        fact_uuid = UUIDType(fact_id)
+        fact_uuid = UUID(fact_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid fact ID") from None
 
@@ -954,10 +937,8 @@ async def get_memory_associations(
     Review fix：非 admin 用户只能读取归属自己 (user_id, app_name) 的关联，
     admin 旁路（None 表示不下推过滤）。
     """
-    from uuid import UUID as UUIDType
-
     try:
-        item_uuid = UUIDType(memory_id)
+        item_uuid = UUID(memory_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID") from None
 
@@ -994,8 +975,6 @@ async def create_association(
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, str]:
     """手动创建关联"""
-    from uuid import UUID as UUIDType
-
     service = get_association_service()
 
     # Phase 4 — Review fix：使用 user.user_id（与 self-edit / core-block 等
@@ -1006,8 +985,8 @@ async def create_association(
 
     try:
         assoc = await service.create_manual_association(
-            source_id=UUIDType(payload.source_id),
-            target_id=UUIDType(payload.target_id),
+            source_id=UUID(payload.source_id),
+            target_id=UUID(payload.target_id),
             association_type=payload.association_type,
             weight=payload.weight,
             user_id=auth_user_id,
@@ -1032,12 +1011,10 @@ async def delete_association(
     Review fix：非 admin 用户只能删除归属自己 (user_id, app_name) 的关联；
     跨租户的 ID 在 service 层 WHERE 匹配失败、统一以 404 兜底（避免侧信道泄露存在性）。
     """
-    from uuid import UUID as UUIDType
-
     service = get_association_service()
 
     try:
-        assoc_uuid = UUIDType(association_id)
+        assoc_uuid = UUID(association_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid association ID") from None
 

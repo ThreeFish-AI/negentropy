@@ -68,6 +68,16 @@ def invalidate_cache(model_type: str | None = None, *, prefix: str | None = None
         _cache.clear()
 
 
+def _get_cached_value(key: str) -> tuple[str, dict[str, Any]] | None:
+    """通用同步缓存读取 — 检查 TTL 并返回 kwargs 浅拷贝。"""
+    entry = _cache.get(key)
+    if entry is not None:
+        name, kwargs, ts = entry
+        if time.monotonic() - ts < _CACHE_TTL:
+            return name, kwargs.copy()
+    return None
+
+
 def get_cached_llm_config() -> tuple[str, dict[str, Any]] | None:
     """同步缓存读取 — 用于 create_model() 等无法 await 的上下文。
 
@@ -76,22 +86,7 @@ def get_cached_llm_config() -> tuple[str, dict[str, Any]] | None:
     Returns:
         (full_model_name, litellm_kwargs) 或 None (缓存未命中/过期)。
     """
-    entry = _cache.get("llm")
-    if entry is not None:
-        name, kwargs, ts = entry
-        if time.monotonic() - ts < _CACHE_TTL:
-            return name, kwargs.copy()
-    return None
-
-
-def get_cached_embedding_config() -> tuple[str, dict[str, Any]] | None:
-    """同步缓存读取 — Embedding 模型。返回 kwargs 浅拷贝。"""
-    entry = _cache.get("embedding")
-    if entry is not None:
-        name, kwargs, ts = entry
-        if time.monotonic() - ts < _CACHE_TTL:
-            return name, kwargs.copy()
-    return None
+    return _get_cached_value("llm")
 
 
 def get_fallback_llm_config() -> tuple[str, dict[str, Any]]:
@@ -425,8 +420,6 @@ async def _resolve_by_id(model_type: str, config_id: UUID | str) -> tuple[str, d
 
 async def _resolve_from_model_config_row(model_type: str, config_id: UUID | str) -> tuple[str, dict[str, Any]] | None:
     """从 model_configs 表读取指定行并构建 kwargs；行不存在 / 已禁用 / 类型不匹配返回 None。"""
-    from uuid import UUID as _UUID
-
     from sqlalchemy import select
 
     from negentropy.db.session import AsyncSessionLocal
@@ -437,7 +430,7 @@ async def _resolve_from_model_config_row(model_type: str, config_id: UUID | str)
         return None
 
     try:
-        config_uuid = config_id if isinstance(config_id, _UUID) else _UUID(str(config_id))
+        config_uuid = config_id if isinstance(config_id, UUID) else UUID(str(config_id))
     except (ValueError, TypeError):
         return None
 
@@ -720,6 +713,25 @@ def apply_llm_thinking_override(
     return next_kwargs
 
 
+def _apply_api_credentials(
+    kwargs: dict[str, Any],
+    config: dict[str, Any],
+    vendor_config: dict[str, str] | None,
+    model_name: str,
+) -> None:
+    """将 API 凭证写入 kwargs（就地修改）。
+
+    解析链: model config > vendor config > LiteLLM 环境变量回退。
+    """
+    effective_api_key = config.get("api_key") or (vendor_config or {}).get("api_key")
+    effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
+    if effective_api_key:
+        kwargs["api_key"] = effective_api_key
+    normalized_api_base = normalize_api_base_for_litellm(model_name, effective_api_base)
+    if normalized_api_base:
+        kwargs["api_base"] = normalized_api_base
+
+
 def _build_llm_kwargs(
     vendor: str, model_name: str, config: dict[str, Any], vendor_config: dict[str, str] | None = None
 ) -> dict[str, Any]:
@@ -750,14 +762,7 @@ def _build_llm_kwargs(
     if "drop_params" in config and "drop_params" not in kwargs:
         kwargs["drop_params"] = config["drop_params"]
 
-    # 透传 API 凭证: model config > vendor config > LiteLLM 环境变量回退
-    effective_api_key = config.get("api_key") or (vendor_config or {}).get("api_key")
-    effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
-    if effective_api_key:
-        kwargs["api_key"] = effective_api_key
-    normalized_api_base = normalize_api_base_for_litellm(full_model, effective_api_base)
-    if normalized_api_base:
-        kwargs["api_base"] = normalized_api_base
+    _apply_api_credentials(kwargs, config, vendor_config, full_model)
 
     return kwargs
 
@@ -774,14 +779,7 @@ def _build_embedding_kwargs(
     if "input_type" in config and config["input_type"]:
         kwargs["input_type"] = config["input_type"]
 
-    # 透传 API 凭证: model config > vendor config > LiteLLM 环境变量回退
-    effective_api_key = config.get("api_key") or (vendor_config or {}).get("api_key")
-    effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
-    if effective_api_key:
-        kwargs["api_key"] = effective_api_key
-    normalized_api_base = normalize_api_base_for_litellm(full_model_name or "", effective_api_base)
-    if normalized_api_base:
-        kwargs["api_base"] = normalized_api_base
+    _apply_api_credentials(kwargs, config, vendor_config, full_model_name or "")
 
     return kwargs
 
@@ -809,25 +807,7 @@ def get_cached_llm_config_for_task(
     corpus_id: UUID | str | None = None,
 ) -> tuple[str, dict[str, Any]] | None:
     """同步缓存读取 — task 槽位 LLM 配置（用于无法 await 的上下文）。"""
-    entry = _cache.get(_task_cache_key("llm", task_key, corpus_id))
-    if entry is not None:
-        name, kwargs, ts = entry
-        if time.monotonic() - ts < _CACHE_TTL:
-            return name, kwargs.copy()
-    return None
-
-
-def get_cached_embedding_config_for_task(
-    task_key: str,
-    corpus_id: UUID | str | None = None,
-) -> tuple[str, dict[str, Any]] | None:
-    """同步缓存读取 — task 槽位 Embedding 配置。"""
-    entry = _cache.get(_task_cache_key("embedding", task_key, corpus_id))
-    if entry is not None:
-        name, kwargs, ts = entry
-        if time.monotonic() - ts < _CACHE_TTL:
-            return name, kwargs.copy()
-    return None
+    return _get_cached_value(_task_cache_key("llm", task_key, corpus_id))
 
 
 async def resolve_llm_config_for_task(
@@ -961,8 +941,6 @@ async def _lookup_task_model_config_id(
     不能用 = NULL（永远为 false）。
     """
     try:
-        from uuid import UUID as _UUID
-
         from sqlalchemy import and_, select
 
         from negentropy.db.session import AsyncSessionLocal
@@ -977,7 +955,7 @@ async def _lookup_task_model_config_id(
                     )
                 )
             else:
-                corpus_uuid = corpus_id if isinstance(corpus_id, _UUID) else _UUID(str(corpus_id))
+                corpus_uuid = corpus_id if isinstance(corpus_id, UUID) else UUID(str(corpus_id))
                 stmt = select(TaskModelSetting.model_config_id).where(
                     and_(
                         TaskModelSetting.scope_corpus_id == corpus_uuid,

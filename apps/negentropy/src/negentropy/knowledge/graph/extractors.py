@@ -511,11 +511,6 @@ def _truncate_to_token_limit(text: str, max_tokens: int = 3500) -> str:
     return encoding.decode(tokens[:max_tokens])
 
 
-# Backward compatibility aliases (deprecated: use KgEntityType/KgRelationType from types.py)
-EntityType = KgEntityType
-RelationType = KgRelationType
-
-
 # ============================================================================
 # Extraction Result Types
 # ============================================================================
@@ -553,11 +548,192 @@ class RelationExtractionResult:
 
 
 # ============================================================================
+# LLM Extractor Base Class
+# ============================================================================
+
+# litellm.acompletion 中由子类显式管理的受保护参数键；
+# safe_kwargs 过滤时排除这些键，避免覆盖显式管理的字段。
+_PROTECTED_LLM_KWARGS = frozenset(
+    {
+        "model",
+        "messages",
+        "temperature",
+        "response_format",
+        "timeout",
+        "num_retries",
+        "max_retries",
+    }
+)
+
+
+class _BaseLLMExtractor:
+    """LLM 提取器基类，封装实体/关系提取器的共享模型配置与 LLM 调用逻辑。
+
+    子类需定义：
+        - ``_TASK_KEY: str`` — task_registry 中登记的任务键
+        - ``extract(...)`` — 公共提取方法（签名各异，不在基类中定义）
+
+    模板方法：
+        - ``_call_llm_with_retry(prompt, retry_log_label)`` — 带重试的 LLM 调用，
+          返回 LLM 响应 content 字符串。子类的 ``_extract_with_llm`` 构造 prompt 后
+          调用此方法获取原始响应，再由各自的响应解析逻辑处理。
+    """
+
+    _TASK_KEY: str  # 子类必须覆写
+
+    def _init_base_llm_fields(
+        self,
+        *,
+        model: str | None,
+        temperature: float,
+        max_retries: int,
+        schema: Any | None,
+        llm_timeout: float,
+    ) -> None:
+        """初始化 LLM 提取器共享字段。
+
+        由子类 ``__init__`` 在设置自身特有字段后调用，
+        避免在基类 ``__init__`` 中强制统一参数签名。
+        """
+        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
+        # 因为 __init__ 是同步的，无法调用异步 DB 查询
+        self._explicit_model = model
+        self._model: str | None = None
+        self._model_kwargs: dict[str, Any] = {}
+        self._model_config_resolved = False
+        self._resolved_corpus_id: UUID | None = None
+        self._model_config_lock: asyncio.Lock | None = None
+        self._temperature = temperature
+        self._max_retries = max_retries
+        self._schema = schema
+        self._llm_timeout = llm_timeout
+
+    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
+        """异步解析模型配置（含 api_key）。
+
+        解析链：
+            1. explicit_model → ``resolve_llm_config_by_model_name``（用户显式指定）
+            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)`` —
+               按 task → corpus_id 映射 → 全局映射 → ``is_default`` → 硬编码 fallback。
+
+        Args:
+            corpus_id: 当前提取批次所属 Corpus；若与上次解析的 corpus_id 不同
+                则强制重新解析，以便 Corpus 级 task_model_settings 即时生效。
+
+        使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
+        """
+        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
+            return
+
+        if self._model_config_lock is None:
+            self._model_config_lock = asyncio.Lock()
+
+        async with self._model_config_lock:
+            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
+                return
+
+            model_name: str | None = None
+            model_kwargs: dict[str, Any] = {}
+
+            try:
+                if self._explicit_model:
+                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
+
+                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
+                    if resolved is not None:
+                        model_name, model_kwargs = resolved
+                if model_name is None:
+                    from negentropy.config.model_resolver import resolve_llm_config_for_task
+
+                    model_name, model_kwargs = await resolve_llm_config_for_task(
+                        self._TASK_KEY,
+                        corpus_id=corpus_id,
+                    )
+            except Exception:
+                logger.warning(
+                    "model_config_async_resolve_failed",
+                    explicit_model=self._explicit_model,
+                    task_key=self._TASK_KEY,
+                    corpus_id=str(corpus_id) if corpus_id else None,
+                    exc_info=True,
+                )
+
+            if model_name is None:
+                from negentropy.config.model_resolver import get_fallback_llm_config
+
+                model_name, model_kwargs = get_fallback_llm_config()
+
+            self._model = model_name
+            self._model_kwargs = model_kwargs
+            self._resolved_corpus_id = corpus_id
+            self._model_config_resolved = True
+
+    async def _call_llm_with_retry(
+        self,
+        prompt: str,
+        retry_log_label: str,
+    ) -> str:
+        """带重试的 LLM 调用（模板方法）。
+
+        全链路唯一重试层；SDK 层 ``num_retries=0`` 已禁用隐形重试，
+        由本方法统一管控重试策略（上限 ``self._max_retries``）。
+
+        Args:
+            prompt: 完整的 user prompt。
+            retry_log_label: 重试日志标签（如 ``"llm_extraction_retry"``），
+                用于区分实体/关系提取的日志。
+
+        Returns:
+            LLM 响应的 content 字符串。
+
+        Raises:
+            RuntimeError: 所有重试耗尽后抛出。
+        """
+        import litellm
+
+        last_error: Exception | None = None
+        for attempt in range(self._max_retries):
+            try:
+                # 过滤掉与显式参数冲突的 kwargs 键
+                safe_kwargs = {k: v for k, v in self._model_kwargs.items() if k not in _PROTECTED_LLM_KWARGS}
+                # num_retries=0 + max_retries=0：禁用 litellm/OpenAI SDK 内部隐形重试，
+                # 全链路重试由本 for 循环统一管控（上限 KG_LLM_MAX_RETRIES）。
+                response = await litellm.acompletion(
+                    model=self._model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=self._temperature,
+                    response_format={"type": "json_object"},
+                    timeout=self._llm_timeout,
+                    num_retries=0,
+                    max_retries=0,
+                    **safe_kwargs,
+                )
+
+                return response.choices[0].message.content or ""
+
+            except Exception as exc:
+                last_error = exc
+                backoff = _compute_retry_backoff(str(exc), attempt)
+                logger.warning(
+                    retry_log_label,
+                    attempt=attempt + 1,
+                    max_retries=self._max_retries,
+                    backoff_seconds=round(backoff, 1),
+                    error=str(exc),
+                    timeout_seconds=self._llm_timeout,
+                )
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
+
+        raise RuntimeError(f"LLM extraction failed after {self._max_retries} retries: {last_error}")
+
+
+# ============================================================================
 # LLM Entity Extractor
 # ============================================================================
 
 
-class LLMEntityExtractor:
+class LLMEntityExtractor(_BaseLLMExtractor):
     """基于 LLM 的实体提取器
 
     使用 LLM 结构化输出提取命名实体，支持中英文。
@@ -656,79 +832,14 @@ Output as JSON with the following structure:
                 service 层 ``chunk_extract_timeout`` = max_retries × llm_timeout + backoff，确保外层
                 预算覆盖内层重试。
         """
-        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
-        # 因为 __init__ 是同步的，无法调用异步 DB 查询
-        self._explicit_model = model
-        self._model: str | None = None
-        self._model_kwargs: dict[str, Any] = {}
-        self._model_config_resolved = False
-        self._resolved_corpus_id: UUID | None = None
-        self._model_config_lock: asyncio.Lock | None = None
-        self._temperature = temperature
-        self._max_retries = max_retries
         self._fallback_to_regex = fallback_to_regex
-        self._schema = schema
-        self._llm_timeout = llm_timeout
-
-    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
-        """异步解析模型配置（含 api_key）。
-
-        解析链：
-            1. explicit_model → ``resolve_llm_config_by_model_name``（用户显式指定）
-            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)`` —
-               按 task → corpus_id 映射 → 全局映射 → ``is_default`` → 硬编码 fallback。
-
-        Args:
-            corpus_id: 当前提取批次所属 Corpus；若与上次解析的 corpus_id 不同
-                则强制重新解析，以便 Corpus 级 task_model_settings 即时生效。
-
-        使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
-        """
-        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
-            return
-
-        if self._model_config_lock is None:
-            self._model_config_lock = asyncio.Lock()
-
-        async with self._model_config_lock:
-            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
-                return
-
-            model_name: str | None = None
-            model_kwargs: dict[str, Any] = {}
-
-            try:
-                if self._explicit_model:
-                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
-
-                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
-                    if resolved is not None:
-                        model_name, model_kwargs = resolved
-                if model_name is None:
-                    from negentropy.config.model_resolver import resolve_llm_config_for_task
-
-                    model_name, model_kwargs = await resolve_llm_config_for_task(
-                        self._TASK_KEY,
-                        corpus_id=corpus_id,
-                    )
-            except Exception:
-                logger.warning(
-                    "model_config_async_resolve_failed",
-                    explicit_model=self._explicit_model,
-                    task_key=self._TASK_KEY,
-                    corpus_id=str(corpus_id) if corpus_id else None,
-                    exc_info=True,
-                )
-
-            if model_name is None:
-                from negentropy.config.model_resolver import get_fallback_llm_config
-
-                model_name, model_kwargs = get_fallback_llm_config()
-
-            self._model = model_name
-            self._model_kwargs = model_kwargs
-            self._resolved_corpus_id = corpus_id
-            self._model_config_resolved = True
+        self._init_base_llm_fields(
+            model=model,
+            temperature=temperature,
+            max_retries=max_retries,
+            schema=schema,
+            llm_timeout=llm_timeout,
+        )
 
     async def extract(
         self,
@@ -829,8 +940,6 @@ Output as JSON with the following structure:
         Returns:
             实体提取结果列表
         """
-        import litellm
-
         # Token 感知截断：英文 4000 chars ≈ 1000 token（浪费），CJK 4000 chars ≈ 2000 token（风险）
         truncated_text = _truncate_to_token_limit(text, max_tokens=3500)
         chunk_len = len(truncated_text)
@@ -857,56 +966,8 @@ Output as JSON with the following structure:
                 f'"description": "...", "confidence": 0.9}}]}}'
             )
 
-        # 重试逻辑（全链路唯一重试层；SDK 层 num_retries=0 已禁用隐形重试）
-        last_error = None
-        for attempt in range(self._max_retries):
-            try:
-                # 过滤掉与显式参数冲突的 kwargs 键
-                safe_kwargs = {
-                    k: v
-                    for k, v in self._model_kwargs.items()
-                    if k
-                    not in (
-                        "model",
-                        "messages",
-                        "temperature",
-                        "response_format",
-                        "timeout",
-                        "num_retries",
-                        "max_retries",
-                    )
-                }
-                # num_retries=0 + max_retries=0：禁用 litellm/OpenAI SDK 内部隐形重试，
-                # 全链路重试由本 for 循环统一管控（上限 KG_LLM_MAX_RETRIES）。
-                response = await litellm.acompletion(
-                    model=self._model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self._temperature,
-                    response_format={"type": "json_object"},
-                    timeout=self._llm_timeout,
-                    num_retries=0,
-                    max_retries=0,
-                    **safe_kwargs,
-                )
-
-                content = response.choices[0].message.content
-                return self._parse_entity_response(content, chunk_len=chunk_len, stats=stats)
-
-            except Exception as exc:
-                last_error = exc
-                backoff = _compute_retry_backoff(str(exc), attempt)
-                logger.warning(
-                    "llm_extraction_retry",
-                    attempt=attempt + 1,
-                    max_retries=self._max_retries,
-                    backoff_seconds=round(backoff, 1),
-                    error=str(exc),
-                    timeout_seconds=self._llm_timeout,
-                )
-                if attempt < self._max_retries - 1:
-                    await asyncio.sleep(backoff)
-
-        raise RuntimeError(f"LLM entity extraction failed after {self._max_retries} retries: {last_error}")
+        content = await self._call_llm_with_retry(prompt, "llm_extraction_retry")
+        return self._parse_entity_response(content, chunk_len=chunk_len, stats=stats)
 
     def _parse_entity_response(
         self,
@@ -1051,7 +1112,7 @@ Output as JSON with the following structure:
 # ============================================================================
 
 
-class LLMRelationExtractor:
+class LLMRelationExtractor(_BaseLLMExtractor):
     """基于 LLM 的关系提取器
 
     使用 LLM 结构化输出提取实体间关系。
@@ -1126,73 +1187,14 @@ Output as JSON with the following structure:
             schema: ExtractionSchema 实例，用于约束关系类型
             llm_timeout: 单次 ``litellm.acompletion`` 超时（秒，默认 ``KG_LLM_TIMEOUT_SECONDS``）。
         """
-        # 惰性解析模型配置（含 api_key），延迟到首次 extract 调用
-        self._explicit_model = model
-        self._model: str | None = None
-        self._model_kwargs: dict[str, Any] = {}
-        self._model_config_resolved = False
-        self._resolved_corpus_id: UUID | None = None
-        self._model_config_lock: asyncio.Lock | None = None
-        self._temperature = temperature
-        self._max_retries = max_retries
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
-        self._schema = schema
-        self._llm_timeout = llm_timeout
-
-    async def _ensure_model_config(self, corpus_id: UUID | None = None) -> None:
-        """异步解析模型配置（含 api_key）。
-
-        解析链：
-            1. explicit_model → ``resolve_llm_config_by_model_name``
-            2. ``resolve_llm_config_for_task(_TASK_KEY, corpus_id=...)``
-
-        corpus_id 变化时强制重新解析，确保 Corpus 级映射即时生效。
-        """
-        if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
-            return
-
-        if self._model_config_lock is None:
-            self._model_config_lock = asyncio.Lock()
-
-        async with self._model_config_lock:
-            if self._model_config_resolved and self._resolved_corpus_id == corpus_id:
-                return
-
-            model_name: str | None = None
-            model_kwargs: dict[str, Any] = {}
-
-            try:
-                if self._explicit_model:
-                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
-
-                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
-                    if resolved is not None:
-                        model_name, model_kwargs = resolved
-                if model_name is None:
-                    from negentropy.config.model_resolver import resolve_llm_config_for_task
-
-                    model_name, model_kwargs = await resolve_llm_config_for_task(
-                        self._TASK_KEY,
-                        corpus_id=corpus_id,
-                    )
-            except Exception:
-                logger.warning(
-                    "model_config_async_resolve_failed",
-                    explicit_model=self._explicit_model,
-                    task_key=self._TASK_KEY,
-                    corpus_id=str(corpus_id) if corpus_id else None,
-                    exc_info=True,
-                )
-
-            if model_name is None:
-                from negentropy.config.model_resolver import get_fallback_llm_config
-
-                model_name, model_kwargs = get_fallback_llm_config()
-
-            self._model = model_name
-            self._model_kwargs = model_kwargs
-            self._resolved_corpus_id = corpus_id
-            self._model_config_resolved = True
+        self._init_base_llm_fields(
+            model=model,
+            temperature=temperature,
+            max_retries=max_retries,
+            schema=schema,
+            llm_timeout=llm_timeout,
+        )
 
     async def extract(
         self,
@@ -1299,8 +1301,6 @@ Output as JSON with the following structure:
         Returns:
             关系提取结果列表
         """
-        import litellm
-
         # 提取实体名称
         entity_names = [e.label for e in entities if e.label]
         if len(entity_names) < 2:
@@ -1342,54 +1342,8 @@ Output as JSON with the following structure:
                 f'"description": "...", "evidence": "...", "confidence": 0.9}}]}}'
             )
 
-        # 重试逻辑（全链路唯一重试层；SDK 层 num_retries=0 已禁用隐形重试）
-        last_error = None
-        for attempt in range(self._max_retries):
-            try:
-                # 过滤掉与显式参数冲突的 kwargs 键
-                safe_kwargs = {
-                    k: v
-                    for k, v in self._model_kwargs.items()
-                    if k
-                    not in (
-                        "model",
-                        "messages",
-                        "temperature",
-                        "response_format",
-                        "timeout",
-                        "num_retries",
-                        "max_retries",
-                    )
-                }
-                response = await litellm.acompletion(
-                    model=self._model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self._temperature,
-                    response_format={"type": "json_object"},
-                    timeout=self._llm_timeout,
-                    num_retries=0,
-                    max_retries=0,
-                    **safe_kwargs,
-                )
-
-                content = response.choices[0].message.content
-                return self._parse_relation_response(content)
-
-            except Exception as exc:
-                last_error = exc
-                backoff = _compute_retry_backoff(str(exc), attempt)
-                logger.warning(
-                    "llm_relation_extraction_retry",
-                    attempt=attempt + 1,
-                    max_retries=self._max_retries,
-                    backoff_seconds=round(backoff, 1),
-                    error=str(exc),
-                    timeout_seconds=self._llm_timeout,
-                )
-                if attempt < self._max_retries - 1:
-                    await asyncio.sleep(backoff)
-
-        raise RuntimeError(f"LLM relation extraction failed after {self._max_retries} retries: {last_error}")
+        content = await self._call_llm_with_retry(prompt, "llm_relation_extraction_retry")
+        return self._parse_relation_response(content)
 
     def _parse_relation_response(self, content: str) -> list[RelationExtractionResult]:
         """解析 LLM 响应为关系列表

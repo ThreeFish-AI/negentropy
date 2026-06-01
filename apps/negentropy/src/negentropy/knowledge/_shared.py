@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from fastapi import BackgroundTasks, HTTPException, status
-from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import select
 
 from negentropy.config import settings
@@ -27,77 +26,7 @@ from .ingestion.extraction import (
     resolve_source_kind,
     store_extracted_document_artifacts,
 )
-
-# Phase 2-4: 生命周期管理 Schemas
-from .lifecycle_schemas import (  # noqa: F401
-    AssignDocumentRequest,
-    CatalogTreeResponse,
-    CategorySuggestionResponse,
-    DocumentProvenanceResponse,
-    WikiEntryContentResponse,
-    WikiNavTreeResponse,
-    WikiPublishActionResponse,
-)
-from .schemas import (  # noqa: F401
-    ApiStatsResponse,
-    ArchiveSourceRequest,
-    ArchiveSourceResponse,
-    AsyncPipelineResponse,
-    CorpusCreateRequest,
-    CorpusResponse,
-    CorpusUpdateRequest,
-    DeleteSourceRequest,
-    DeleteSourceResponse,
-    DocumentActionRequest,
-    DocumentChunkDetailResponse,
-    DocumentChunksResponse,
-    DocumentChunkUpdateRequest,
-    DocumentDetailResponse,
-    DocumentListResponse,
-    DocumentMarkdownRefreshRequest,
-    DocumentMarkdownRefreshResponse,
-    DocumentReplaceRequest,
-    DocumentResponse,
-    GlobalSearchEvidenceItem,
-    GlobalSearchRequest,
-    GlobalSearchResponse,
-    GraphBuildRequest,
-    GraphBuildResponse,
-    GraphEntityDetailResponse,
-    GraphEntityItem,
-    GraphEntityListResponse,
-    GraphMetricsResponse,
-    GraphNeighborsRequest,
-    GraphPathRequest,
-    GraphPayload,
-    GraphQualityResponse,
-    GraphSearchRequest,
-    GraphSearchResponse,
-    GraphStatsResponse,
-    GraphTimelineBucket,
-    GraphTimelineResponse,
-    GraphUpsertRequest,
-    IngestRequest,
-    IngestUrlRequest,
-    KnowledgePipelinesResponse,
-    MultiHopEvidenceChainItem,
-    MultiHopEvidenceEdgeItem,
-    MultiHopReasonRequest,
-    MultiHopReasonResponse,
-    PipelineCancelRequest,
-    PipelineCancelResponse,
-    PipelineRunRecordResponse,
-    PipelinesResponse,
-    PipelineStageResultResponse,
-    PipelinesUpsertRequest,
-    PipelineUpsertRecordResponse,
-    PipelineUpsertResponse,
-    RebuildSourceRequest,
-    ReplaceSourceRequest,
-    SearchRequest,
-    SyncSourceRequest,
-    _LegacyChunkingRequest,
-)
+from .schemas import DocumentActionRequest, DocumentResponse, _LegacyChunkingRequest
 from .service import KnowledgeService
 from .types import (
     ChunkingConfig,
@@ -172,24 +101,6 @@ def _get_dao() -> KnowledgeRunDao:
     if _dao is None:
         _dao = KnowledgeRunDao()
     return _dao
-
-
-def _build_chunking_config(
-    payload: dict[str, Any] | None,
-) -> ChunkingConfig | None:
-    if not payload:
-        return None
-    return normalize_chunking_config(payload)
-
-
-def _resolve_chunking_option(
-    request_value: Any,
-    corpus_config: dict[str, Any],
-    key: str,
-) -> Any:
-    if request_value is not None:
-        return request_value
-    return corpus_config.get(key)
 
 
 def _extract_legacy_chunking_payload(payload: _LegacyChunkingRequest) -> dict[str, Any]:

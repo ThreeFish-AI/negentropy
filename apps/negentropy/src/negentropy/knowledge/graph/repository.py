@@ -17,6 +17,7 @@ Knowledge Graph Repository
 
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -76,40 +77,6 @@ def _temporal_where_clause(rel_alias: str = "r") -> str:
 # ============================================================================
 # Data Types
 # ============================================================================
-
-
-@dataclass(frozen=True)
-class EntityRecord:
-    """实体记录
-
-    从数据库读取的实体完整信息。
-    """
-
-    id: str
-    label: str
-    entity_type: str
-    confidence: float
-    corpus_id: UUID
-    metadata: dict[str, Any] = field(default_factory=dict)
-    embedding: list[float] | None = None
-    created_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class RelationRecord:
-    """关系记录
-
-    从数据库读取的关系完整信息。
-    """
-
-    source_id: str
-    target_id: str
-    relation_type: str
-    label: str | None = None
-    confidence: float = 1.0
-    weight: float = 1.0
-    evidence: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -480,6 +447,33 @@ class AgeGraphRepository(GraphRepository):
         self._session = session
         self._schema = NEGENTROPY_SCHEMA
 
+    @staticmethod
+    def _row_to_build_run(row: Any) -> BuildRunRecord:
+        """将 DB 行映射为 BuildRunRecord（统一 get_build_runs / get_latest_build_run /
+        get_build_run_by_run_id 的构造逻辑）。
+
+        Args:
+            row: SQLAlchemy ResultRow，须包含与 BuildRunRecord 同名的字段。
+        """
+        return BuildRunRecord(
+            id=row.id,
+            app_name=row.app_name,
+            corpus_id=row.corpus_id,
+            run_id=row.run_id,
+            status=row.status,
+            entity_count=row.entity_count,
+            relation_count=row.relation_count,
+            extractor_config=row.extractor_config or {},
+            model_name=row.model_name,
+            error_message=row.error_message,
+            started_at=row.started_at,
+            completed_at=row.completed_at,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+            progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+            warnings=row.warnings if row.warnings else None,
+        )
+
     @asynccontextmanager
     async def _session_scope(self) -> AsyncIterator[AsyncSession]:
         """获取数据库会话（上下文管理器形式，确保连接归还到池）。
@@ -518,8 +512,6 @@ class AgeGraphRepository(GraphRepository):
             修复：改用 ``CAST(:metadata AS jsonb)`` —— CAST 函数边界清晰，与项目
             ``update_build_run`` 等既有写法保持一致（参见 1804 行 ``CAST(:warnings AS json)``）。
         """
-        import json as _json
-
         # 更新 knowledge 表的实体字段
         confidence = entity.metadata.get("confidence", 1.0)
 
@@ -538,7 +530,7 @@ class AgeGraphRepository(GraphRepository):
                     "entity_id": entity.id.replace("entity:", ""),
                     "entity_type": entity.node_type,
                     "confidence": confidence,
-                    "metadata": _json.dumps({"graph_label": entity.label}),
+                    "metadata": json.dumps({"graph_label": entity.label}),
                 },
             )
             await session.commit()
@@ -567,8 +559,6 @@ class AgeGraphRepository(GraphRepository):
         if not entities:
             return []
 
-        import json as _json
-
         query = text(f"""
             UPDATE {self._schema}.knowledge
             SET entity_type = :entity_type,
@@ -586,7 +576,7 @@ class AgeGraphRepository(GraphRepository):
                     "entity_id": entity.id.replace("entity:", ""),
                     "entity_type": entity.node_type,
                     "confidence": confidence,
-                    "metadata": _json.dumps({"graph_label": entity.label}),
+                    "metadata": json.dumps({"graph_label": entity.label}),
                 }
             )
             ids.append(entity.id)
@@ -633,8 +623,6 @@ class AgeGraphRepository(GraphRepository):
         DO NOTHING，evidence 变更后 INSERT 会被静默丢弃，叠加 TemporalResolver
         的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
         """
-        import json as _json
-
         clean_source = source_id.replace("entity:", "")
         clean_target = target_id.replace("entity:", "")
         confidence = relation.metadata.get("confidence", 1.0)
@@ -685,7 +673,7 @@ class AgeGraphRepository(GraphRepository):
                 "weight": relation.weight or 1.0,
                 "confidence": confidence,
                 "evidence": evidence,
-                "metadata": _json.dumps(relation.metadata or {}),
+                "metadata": json.dumps(relation.metadata or {}),
             },
         )
 
@@ -702,7 +690,7 @@ class AgeGraphRepository(GraphRepository):
 
         related_entities = []
         if row and row.related:
-            related_entities = _json.loads(row.related) if isinstance(row.related, str) else row.related
+            related_entities = json.loads(row.related) if isinstance(row.related, str) else row.related
 
         related_entities.append(relation_data)
 
@@ -710,7 +698,7 @@ class AgeGraphRepository(GraphRepository):
             update_query,
             {
                 "source_id": clean_source,
-                "related": _json.dumps(related_entities),
+                "related": json.dumps(related_entities),
             },
         )
 
@@ -1075,8 +1063,6 @@ class AgeGraphRepository(GraphRepository):
         ``as_of`` 提供时通过 EXISTS 子查询将实体集限制为"在该时刻仍至少有一条
         有效关系"的实体，与图谱时态语义对齐。
         """
-        import json as _json
-
         schema = self._schema
 
         # 时态过滤：as_of 时通过 EXISTS 子查询排除"在该时刻无任何有效关系"的实体
@@ -1145,7 +1131,7 @@ class AgeGraphRepository(GraphRepository):
 
             sem_params: dict[str, Any] = {
                 "corpus_id": str(corpus_id),
-                "embedding": _json.dumps(query_embedding),
+                "embedding": json.dumps(query_embedding),
                 "limit": limit,
             }
             if as_of:
@@ -1249,8 +1235,6 @@ class AgeGraphRepository(GraphRepository):
         graph_weight: float,
     ) -> list[GraphSearchResult]:
         """线性加权混合检索（向后兼容）"""
-        import json as _json
-
         if query_embedding is None:
             # embedding 不可用时，退化为纯图结构排序
             query = text(f"""
@@ -1308,7 +1292,7 @@ class AgeGraphRepository(GraphRepository):
                 "corpus_id": str(corpus_id),
                 "app_name": app_name,
                 "query": query_text,
-                "embedding": _json.dumps(query_embedding),
+                "embedding": json.dumps(query_embedding),
                 "limit": limit,
                 "graph_depth": graph_depth,
                 "semantic_weight": semantic_weight,
@@ -1367,7 +1351,7 @@ class AgeGraphRepository(GraphRepository):
             # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
             if not nodes:
                 # JSONB 回退路径不支持时态过滤（旧数据无 valid_from/valid_to）
-                nodes, edges = await self._load_graph_from_jsonb(
+                nodes, edges = await self._load_graph_fromjsonb(
                     session,
                     corpus_id,
                     app_name,
@@ -1472,7 +1456,7 @@ class AgeGraphRepository(GraphRepository):
 
         return nodes, edges
 
-    async def _load_graph_from_jsonb(
+    async def _load_graph_fromjsonb(
         self,
         session: AsyncSession,
         corpus_id: UUID,
@@ -1533,8 +1517,6 @@ class AgeGraphRepository(GraphRepository):
         Returns:
             [(entity_id, entity_name, similarity_score)]
         """
-        import json as _json
-
         query = text(f"""
             SELECT id, name, 1 - (embedding <=> :emb::vector) AS similarity
             FROM {self._schema}.kg_entities
@@ -1550,7 +1532,7 @@ class AgeGraphRepository(GraphRepository):
             result = await session.execute(
                 query,
                 {
-                    "emb": _json.dumps(embedding),
+                    "emb": json.dumps(embedding),
                     "cid": str(corpus_id),
                     "type": entity_type,
                     "limit": limit,
@@ -1764,7 +1746,6 @@ class AgeGraphRepository(GraphRepository):
         model_name: str | None = None,
     ) -> UUID:
         """创建构建运行记录"""
-        import json
         import uuid
 
         run_uuid = uuid.uuid4()
@@ -1838,8 +1819,6 @@ class AgeGraphRepository(GraphRepository):
                 ``run_id`` 双字段，串联 service.py 层的人类可读 run_id 与 repository
                 层的 DB PK，便于跨日志与跨 worker 排障。
         """
-        import json as _json
-
         # WHERE 子句守卫状态机：
         # - 终态写入（含 cancel 异常处理路径）无条件允许；
         # - 非终态写入要求 DB 当前不在终态/cancelling，否则零行 UPDATE 静默忽略。
@@ -1876,8 +1855,8 @@ class AgeGraphRepository(GraphRepository):
                     "relation_count": relation_count,
                     "error_message": error_message,
                     "progress": progress_percent,
-                    "warnings": _json.dumps(warnings) if warnings else None,
-                    "chunk_ids": _json.dumps(processed_chunk_ids) if processed_chunk_ids else None,
+                    "warnings": json.dumps(warnings) if warnings else None,
+                    "chunk_ids": json.dumps(processed_chunk_ids) if processed_chunk_ids else None,
                 },
             )
             await session.commit()
@@ -1969,23 +1948,7 @@ class AgeGraphRepository(GraphRepository):
 
         if row is None:
             return None
-        return BuildRunRecord(
-            id=row.id,
-            app_name=row.app_name,
-            corpus_id=row.corpus_id,
-            run_id=row.run_id,
-            status=row.status,
-            entity_count=row.entity_count,
-            relation_count=row.relation_count,
-            extractor_config=row.extractor_config or {},
-            model_name=row.model_name,
-            error_message=row.error_message,
-            started_at=row.started_at,
-            completed_at=row.completed_at,
-            created_at=row.created_at,
-            progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
-            warnings=row.warnings if row.warnings else None,
-        )
+        return self._row_to_build_run(row)
 
     async def get_build_runs(
         self,
@@ -2018,25 +1981,7 @@ class AgeGraphRepository(GraphRepository):
 
         runs = []
         for row in rows:
-            run = BuildRunRecord(
-                id=row.id,
-                app_name=row.app_name,
-                corpus_id=row.corpus_id,
-                run_id=row.run_id,
-                status=row.status,
-                entity_count=row.entity_count,
-                relation_count=row.relation_count,
-                extractor_config=row.extractor_config or {},
-                model_name=row.model_name,
-                error_message=row.error_message,
-                started_at=row.started_at,
-                completed_at=row.completed_at,
-                created_at=row.created_at,
-                updated_at=row.updated_at,
-                progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
-                warnings=row.warnings if row.warnings else None,
-            )
-            runs.append(run)
+            runs.append(self._row_to_build_run(row))
 
         return runs
 
@@ -2067,24 +2012,7 @@ class AgeGraphRepository(GraphRepository):
             row = result.fetchone()
         if row is None:
             return None
-        return BuildRunRecord(
-            id=row.id,
-            app_name=row.app_name,
-            corpus_id=row.corpus_id,
-            run_id=row.run_id,
-            status=row.status,
-            entity_count=row.entity_count,
-            relation_count=row.relation_count,
-            extractor_config=row.extractor_config or {},
-            model_name=row.model_name,
-            error_message=row.error_message,
-            started_at=row.started_at,
-            completed_at=row.completed_at,
-            created_at=row.created_at,
-            updated_at=row.updated_at,
-            progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
-            warnings=row.warnings if row.warnings else None,
-        )
+        return self._row_to_build_run(row)
 
     async def request_build_run_cancel(
         self,
@@ -2111,8 +2039,6 @@ class AgeGraphRepository(GraphRepository):
             - `("cancelled", record)`：pending → cancelled
             - `("cancelling", record)`：running → cancelling
         """
-        import json as _json
-
         async with self._session_scope() as session:
             select_stmt = text(f"""
                 SELECT id, status, warnings, app_name, corpus_id, run_id,
@@ -2169,7 +2095,7 @@ class AgeGraphRepository(GraphRepository):
                 update_stmt,
                 {
                     "status": new_status,
-                    "warnings": _json.dumps(new_warnings),
+                    "warnings": json.dumps(new_warnings),
                     "id": str(row.id),
                 },
             )

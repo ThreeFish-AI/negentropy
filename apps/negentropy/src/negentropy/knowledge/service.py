@@ -49,7 +49,6 @@ logger = get_logger("negentropy.knowledge.service")
 
 CHUNK_ROLE_PARENT = "parent"
 CHUNK_ROLE_CHILD = "child"
-CHUNK_ROLE_LEAF = "leaf"
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
@@ -118,9 +117,6 @@ def _extract_source_label(input_data: dict[str, Any]) -> str:
 
 # Pipeline 操作类型
 PipelineOperation = str  # "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source"
-
-# Pipeline 阶段状态
-PipelineStageStatus = str  # "pending" | "running" | "completed" | "failed" | "skipped"
 
 
 class PipelineTracker:
@@ -678,26 +674,6 @@ class KnowledgeService:
             self._raise_if_mcp_cancelled(exc, tracker)
             raise
         return result.plain_text, result
-
-    async def _extract_file_content(
-        self,
-        *,
-        corpus_id: UUID,
-        app_name: str,
-        content: bytes,
-        filename: str,
-        content_type: str | None,
-        tracker: PipelineTracker | None = None,
-    ) -> str:
-        result = await self._extract_file_document(
-            corpus_id=corpus_id,
-            app_name=app_name,
-            content=content,
-            filename=filename,
-            content_type=content_type,
-            tracker=tracker,
-        )
-        return result.plain_text
 
     async def _extract_file_document(
         self,
@@ -2722,13 +2698,7 @@ class KnowledgeService:
             source_uri=current.source_uri,
         )
         family_enabled = is_enabled if is_enabled is not None else all(item.is_enabled for item in family_records)
-        parent_record = next(
-            (item for item in family_records if item.metadata.get("chunk_role") == CHUNK_ROLE_PARENT),
-            None,
-        )
-        base_text = content if current.metadata.get("chunk_role") == CHUNK_ROLE_CHILD else content
-        if current.metadata.get("chunk_role") != CHUNK_ROLE_CHILD and parent_record is not None:
-            base_text = content
+        base_text = content
 
         corpus = await self._repository.get_corpus_by_id(corpus_id)
         config = default_chunking_config()
@@ -3033,7 +3003,7 @@ class KnowledgeService:
             )
 
         # Hybrid 模式
-        results = self._merge_matches(
+        results = merge_search_results(
             semantic_matches,
             keyword_matches,
             semantic_weight=config.semantic_weight,
@@ -3488,28 +3458,6 @@ class KnowledgeService:
         await storage_service.update_document_metadata(
             document_id=document.id,
             metadata_patch=metadata_patch,
-        )
-
-    def _merge_matches(
-        self,
-        semantic_matches: Iterable[KnowledgeMatch],
-        keyword_matches: Iterable[KnowledgeMatch],
-        *,
-        semantic_weight: float,
-        keyword_weight: float,
-        limit: int,
-    ) -> list[KnowledgeMatch]:
-        """融合语义和关键词检索结果
-
-        委托给 types.merge_search_results() 共享实现，
-        消除与 KnowledgeRepository._fallback_hybrid_search() 的重复逻辑。
-        """
-        return merge_search_results(
-            semantic_matches,
-            keyword_matches,
-            semantic_weight=semantic_weight,
-            keyword_weight=keyword_weight,
-            limit=limit,
         )
 
 

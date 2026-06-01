@@ -12,7 +12,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 import litellm
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.interface.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
@@ -1080,15 +1080,12 @@ def _build_source_item(
     return {key: value for key, value in payload.items() if value is not None}
 
 
-def _build_inline_source_payload(request: CanonicalExtractionRequest) -> dict[str, Any]:
-    return _build_source_item(request=request, item_schema=None)
-
-
 def _select_string_source_candidate(
     *,
     source_candidates: list[SourceCandidate],
     preferred_kind: str | None = None,
-) -> str | None:
+) -> tuple[str | None, str | None]:
+    """返回 ``(kind, value)`` 元组；无可用候选时返回 ``(None, None)``。"""
     ordered_candidates = sorted(
         source_candidates,
         key=lambda item: (0 if item.preferred else 1, item.kind),
@@ -1096,30 +1093,11 @@ def _select_string_source_candidate(
     if preferred_kind:
         preferred = next((item for item in ordered_candidates if item.kind == preferred_kind), None)
         if preferred and isinstance(preferred.value, str):
-            return preferred.value
+            return preferred.kind, preferred.value
     for candidate in ordered_candidates:
         if isinstance(candidate.value, str):
-            return candidate.value
-    return None
-
-
-def _select_string_source_candidate_kind(
-    *,
-    source_candidates: list[SourceCandidate],
-    preferred_kind: str | None = None,
-) -> str | None:
-    ordered_candidates = sorted(
-        source_candidates,
-        key=lambda item: (0 if item.preferred else 1, item.kind),
-    )
-    if preferred_kind:
-        preferred = next((item for item in ordered_candidates if item.kind == preferred_kind), None)
-        if preferred and isinstance(preferred.value, str):
-            return preferred.kind
-    for candidate in ordered_candidates:
-        if isinstance(candidate.value, str):
-            return candidate.kind
-    return None
+            return candidate.kind, candidate.value
+    return None, None
 
 
 def _build_arguments_from_contract(
@@ -1135,7 +1113,7 @@ def _build_arguments_from_contract(
     top_properties = _schema_properties(contract.object_schema)
     if contract.mode == "batch" and contract.batch_property:
         if contract.source_value_type == "string":
-            source_value = _select_string_source_candidate(
+            _kind, source_value = _select_string_source_candidate(
                 source_candidates=source_candidates,
                 preferred_kind=selected_source_kind,
             )
@@ -1146,7 +1124,7 @@ def _build_arguments_from_contract(
             }
     elif contract.mode == "nested_single" and contract.source_property:
         if contract.source_value_type == "string":
-            source_value = _select_string_source_candidate(
+            _kind, source_value = _select_string_source_candidate(
                 source_candidates=source_candidates,
                 preferred_kind=selected_source_kind,
             )
@@ -1223,12 +1201,12 @@ def _build_plan_from_contract(
             preferred_kind = "base64_string"
         else:
             preferred_kind = "local_path"
-        selected_source_kind = _select_string_source_candidate_kind(
+        selected_source_kind, _value = _select_string_source_candidate(
             source_candidates=candidates,
             preferred_kind=preferred_kind,
         )
         if selected_source_kind is None:
-            selected_source_kind = _select_string_source_candidate_kind(source_candidates=candidates)
+            selected_source_kind, _value = _select_string_source_candidate(source_candidates=candidates)
 
     arguments = _build_arguments_from_contract(
         contract=contract,
@@ -1341,7 +1319,7 @@ def _prepare_source_candidates(
         )
         return candidates, cleanup_paths
 
-    inline_payload = _build_inline_source_payload(request)
+    inline_payload = _build_source_item(request=request, item_schema=None)
     if inline_payload:
         candidates.append(
             SourceCandidate(
@@ -1884,16 +1862,6 @@ def _payload_text_fields(payload: dict[str, Any]) -> tuple[str, str]:
     return markdown, plain_text
 
 
-async def _increment_tool_call_count(*, server_id: UUID, tool_name: str) -> None:
-    async with AsyncSessionLocal() as db:
-        await db.execute(
-            update(McpTool)
-            .where(McpTool.server_id == server_id, McpTool.name == tool_name)
-            .values(call_count=McpTool.call_count + 1)
-        )
-        await db.commit()
-
-
 def _tool_has_usable_schema(tool: McpTool | None) -> bool:
     return bool(tool and isinstance(tool.input_schema, dict) and tool.input_schema)
 
@@ -2193,7 +2161,7 @@ class DataExtractorProvider:
                         break
 
                 if plan.reasoning_source != "llm" and contract.source_value_type == "string":
-                    selected_string_source = _select_string_source_candidate(source_candidates=source_candidates)
+                    _kind, selected_string_source = _select_string_source_candidate(source_candidates=source_candidates)
                     if not selected_string_source:
                         return {
                             "success": False,
@@ -2702,9 +2670,3 @@ def build_url_document_filename(url: str) -> str:
     if "." not in raw_name:
         raw_name = f"{raw_name}.md"
     return raw_name
-
-
-def build_asset_filename(source_name: str, fallback_suffix: str) -> str:
-    stem = Path(source_name).stem or "document"
-    safe_stem = sanitize_filename(stem)
-    return f"{safe_stem}-{fallback_suffix}"

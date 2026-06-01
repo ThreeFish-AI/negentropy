@@ -21,7 +21,6 @@ from sqlalchemy.exc import IntegrityError
 
 from negentropy.auth.deps import get_current_user, get_current_user_with_db_roles
 from negentropy.auth.service import AuthUser
-from negentropy.config import settings
 from negentropy.config.model_resolver import invalidate_cache as invalidate_model_cache
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -53,8 +52,26 @@ logger = get_logger("negentropy.interface.api")
 router = APIRouter(prefix="/interface", tags=["interface"])
 
 
-def _resolve_app_name(app_name: str | None) -> str:
-    return app_name or settings.app_name
+def _is_builtin_entity(x: Any) -> bool:
+    """判断实体是否为系统内置：显式 is_system 列 + owner_id 前缀兜底。"""
+    return bool(getattr(x, "is_system", False)) or (x.owner_id or "").startswith("system")
+
+
+def _build_skill_snapshot(skill: Skill) -> dict[str, Any]:
+    """构造 Skill 版本快照字典，用于 SkillVersion.snapshot 字段。"""
+    return {
+        "name": skill.name,
+        "display_name": skill.display_name,
+        "description": skill.description,
+        "category": skill.category,
+        "prompt_template": skill.prompt_template,
+        "config_schema": skill.config_schema,
+        "default_config": skill.default_config,
+        "required_tools": skill.required_tools,
+        "priority": skill.priority,
+        "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+        "resources": skill.resources,
+    }
 
 
 # =============================================================================
@@ -905,7 +922,7 @@ def _mcp_server_to_response(
         tool_count=tool_count or 0,
         resource_template_count=resource_template_count or 0,
         # 显式列优先；旧库未迁移到 0033 时回退 owner_id 前缀，与 permissions 模块保持一致。
-        is_builtin=bool(getattr(server, "is_system", False)) or (server.owner_id or "").startswith("system"),
+        is_builtin=_is_builtin_entity(server),
     )
 
 
@@ -1574,7 +1591,6 @@ async def test_builtin_tool(
     user: AuthUser = Depends(get_current_user),
 ) -> BuiltinToolTestResponse:
     """测试工具配置连通性。支持通过请求体内联传入 config/credentials，无需先保存即可测试。"""
-    import time
 
     import httpx
 
@@ -1603,14 +1619,14 @@ async def test_builtin_tool(
         if not api_key or not cx_id:
             return BuiltinToolTestResponse(success=False, message="API Key or CX ID is not configured")
 
-        start = time.monotonic()
+        start = _mcp_time.monotonic()
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     "https://www.googleapis.com/customsearch/v1",
                     params={"key": api_key, "cx": cx_id, "q": "test"},
                 )
-            latency = (time.monotonic() - start) * 1000
+            latency = (_mcp_time.monotonic() - start) * 1000
 
             if response.status_code == 200:
                 return BuiltinToolTestResponse(
@@ -1723,19 +1739,7 @@ def _build_initial_version(skill: Skill) -> SkillVersion:
     return SkillVersion(
         skill_id=skill.id,
         version=skill.version or "1.0.0",
-        snapshot={
-            "name": skill.name,
-            "display_name": skill.display_name,
-            "description": skill.description,
-            "category": skill.category,
-            "prompt_template": skill.prompt_template,
-            "config_schema": skill.config_schema,
-            "default_config": skill.default_config,
-            "required_tools": skill.required_tools,
-            "priority": skill.priority,
-            "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
-            "resources": skill.resources,
-        },
+        snapshot=_build_skill_snapshot(skill),
     )
 
 
@@ -1893,19 +1897,7 @@ async def update_skill(
 
         if version_changed:
             try:
-                snapshot_payload = {
-                    "name": skill.name,
-                    "display_name": skill.display_name,
-                    "description": skill.description,
-                    "category": skill.category,
-                    "prompt_template": skill.prompt_template,
-                    "config_schema": skill.config_schema,
-                    "default_config": skill.default_config,
-                    "required_tools": skill.required_tools,
-                    "priority": skill.priority,
-                    "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
-                    "resources": skill.resources,
-                }
+                snapshot_payload = _build_skill_snapshot(skill)
                 existing = await db.scalar(
                     select(SkillVersion).where(
                         SkillVersion.skill_id == skill.id,
@@ -2003,19 +1995,7 @@ async def create_skill_version(
         if existing is not None:
             raise HTTPException(status_code=409, detail=f"Version '{version}' already exists for this skill")
 
-        snapshot_payload = {
-            "name": skill.name,
-            "display_name": skill.display_name,
-            "description": skill.description,
-            "category": skill.category,
-            "prompt_template": skill.prompt_template,
-            "config_schema": skill.config_schema,
-            "default_config": skill.default_config,
-            "required_tools": skill.required_tools,
-            "priority": skill.priority,
-            "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
-            "resources": skill.resources,
-        }
+        snapshot_payload = _build_skill_snapshot(skill)
         row = SkillVersion(skill_id=skill_id, version=version, snapshot=snapshot_payload)
         db.add(row)
         await db.commit()
@@ -2207,7 +2187,7 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         priority=skill.priority,
         enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
         resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
-        is_builtin=bool(getattr(skill, "is_system", False)) or (skill.owner_id or "").startswith("system"),
+        is_builtin=_is_builtin_entity(skill),
     )
 
 

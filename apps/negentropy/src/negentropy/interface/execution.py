@@ -24,7 +24,6 @@ logger = get_logger("negentropy.interface.execution")
 
 RUN_ORIGIN_TRIAL_UI = "trial_ui"
 RUN_ORIGIN_KNOWLEDGE_EXTRACTION = "knowledge_extraction"
-RUN_ORIGIN_SYSTEM = "system"
 
 
 @dataclass

@@ -36,12 +36,6 @@ NEGENTROPY_AGENT_ORDER = [
     influence_agent,
 ]
 
-# 主 + 子 Agent 名字列表，供路由/缓存按 name 索引使用。
-NEGENTROPY_AGENT_NAMES = [
-    NEGENTROPY_ROOT_AGENT.name,
-    *[agent.name for agent in NEGENTROPY_AGENT_ORDER],
-]
-
 # `config.adk_config.kind` 取值：root | agent
 KIND_ROOT = "root"
 KIND_AGENT = "agent"

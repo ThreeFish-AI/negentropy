@@ -49,7 +49,6 @@ from .extractors import (
     CompositeRelationExtractor,
 )
 from .repository import (
-    BuildRunRecord,
     GraphRepository,
     GraphSearchResult,
     get_graph_repository,
@@ -1787,94 +1786,6 @@ class GraphService:
         _graph_cache.set(cache_key, graph)
         return graph
 
-    async def find_neighbors(
-        self,
-        entity_id: str,
-        max_depth: int = 2,
-        limit: int = 100,
-        as_of: datetime | None = None,
-    ) -> list[GraphNode]:
-        """查询实体邻居
-
-        Args:
-            entity_id: 起始实体 ID
-            max_depth: 最大遍历深度
-            limit: 结果数量限制
-            as_of: 可选时态快照时刻；提供时仅遍历在该时刻有效的关系
-
-        Returns:
-            邻居节点列表
-        """
-        logger.debug(
-            "find_neighbors_started",
-            entity_id=entity_id,
-            max_depth=max_depth,
-            as_of=as_of.isoformat() if as_of else None,
-        )
-
-        neighbors = await self._repository.find_neighbors(
-            entity_id=entity_id,
-            max_depth=max_depth,
-            limit=limit,
-            as_of=as_of,
-        )
-
-        logger.debug(
-            "find_neighbors_completed",
-            entity_id=entity_id,
-            neighbor_count=len(neighbors),
-        )
-
-        return neighbors
-
-    async def find_path(
-        self,
-        source_id: str,
-        target_id: str,
-        max_depth: int = 5,
-        as_of: datetime | None = None,
-    ) -> list[str] | None:
-        """查询两点间最短路径
-
-        Args:
-            source_id: 起始实体 ID
-            target_id: 目标实体 ID
-            max_depth: 最大路径深度
-            as_of: 可选时态快照时刻；提供时仅遍历在该时刻有效的关系
-
-        Returns:
-            路径节点 ID 列表，或 None
-        """
-        logger.debug(
-            "find_path_started",
-            source_id=source_id,
-            target_id=target_id,
-            as_of=as_of.isoformat() if as_of else None,
-        )
-
-        path = await self._repository.find_path(
-            source_id=source_id,
-            target_id=target_id,
-            max_depth=max_depth,
-            as_of=as_of,
-        )
-
-        if path:
-            logger.debug(
-                "find_path_completed",
-                source_id=source_id,
-                target_id=target_id,
-                path_length=len(path),
-            )
-        else:
-            logger.debug(
-                "find_path_no_path",
-                source_id=source_id,
-                target_id=target_id,
-            )
-
-        return path
-
     async def get_subgraph(
         self,
         corpus_id: UUID,
@@ -1960,47 +1871,6 @@ class GraphService:
         )
 
         return KnowledgeGraphPayload(nodes=sub_nodes, edges=sub_edges)
-
-    async def get_relation_timeline(
-        self,
-        corpus_id: UUID,
-        bucket: str = "day",
-    ) -> list[dict[str, Any]]:
-        """获取关系生效/失效事件时间轴密度直方图（G3 时间穿梭检索）。
-
-        Args:
-            corpus_id: 语料库 ID
-            bucket: ``day`` / ``week`` / ``month``
-
-        Returns:
-            ``[{"date", "active_count", "expired_count"}]`` 列表（按时间升序）
-        """
-        return await self._repository.get_relation_timeline(
-            corpus_id=corpus_id,
-            bucket=bucket,
-        )
-
-    async def get_build_history(
-        self,
-        corpus_id: UUID,
-        app_name: str,
-        limit: int = 20,
-    ) -> list[BuildRunRecord]:
-        """获取构建历史
-
-        Args:
-            corpus_id: 语料库 ID
-            app_name: 应用名称
-            limit: 结果数量限制
-
-        Returns:
-            构建运行记录列表
-        """
-        return await self._repository.get_build_runs(
-            corpus_id=corpus_id,
-            app_name=app_name,
-            limit=limit,
-        )
 
     async def get_stats(
         self,

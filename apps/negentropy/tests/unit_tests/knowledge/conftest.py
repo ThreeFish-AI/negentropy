@@ -427,11 +427,6 @@ class FakeLogger:
 # ---------------------------------------------------------------------------
 
 
-async def noop_increment_tool_call_count(**_):
-    """Drop-in replacement for ``_increment_tool_call_count``."""
-    return None
-
-
 async def noop_llm_plan(**_):
     """Drop-in replacement for ``_build_llm_invocation_plan``."""
     return None
@@ -708,10 +703,6 @@ def patch_extraction_deps(
     monkeypatch.setattr(
         "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: session or FakeMcpSession(server_id=server_id),
-    )
-    monkeypatch.setattr(
-        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
-        noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
         "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",

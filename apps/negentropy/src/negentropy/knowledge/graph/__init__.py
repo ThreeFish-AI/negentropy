@@ -29,10 +29,8 @@ from .quality import GraphQualityReport, validate_graph_quality
 from .repository import (
     AgeGraphRepository,
     BuildRunRecord,
-    EntityRecord,
     GraphRepository,
     GraphSearchResult,
-    RelationRecord,
     get_graph_repository,
 )
 from .service import (
@@ -63,8 +61,6 @@ __all__ = [
     "GraphRepository",
     "AgeGraphRepository",
     "get_graph_repository",
-    "EntityRecord",
-    "RelationRecord",
     "GraphSearchResult",
     "BuildRunRecord",
     # Extractors
