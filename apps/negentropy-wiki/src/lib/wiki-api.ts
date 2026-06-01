@@ -90,6 +90,10 @@ export interface WikiEntryContent {
   entry_title: string | null;
   markdown_content: string | null;
   document_filename: string;
+  author_name?: string | null;
+  author_url?: string | null;
+  source_url?: string | null;
+  published_at?: string | null;
 }
 
 // ---------------------------------------------------------------------------

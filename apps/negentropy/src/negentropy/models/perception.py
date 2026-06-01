@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     Float,
@@ -413,6 +414,25 @@ class WikiEntryAnnotation(Base, UUIDMixin, TimestampMixin):
         Index("ix_wiki_annotations_user_id", "user_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+class WikiEntryViews(Base):
+    """Wiki 条目浏览计数
+
+    轻量级 per-entry 计数器，每次页面加载通过 POST /view 原子递增。
+    不做用户去重，使用 PostgreSQL INSERT ... ON CONFLICT DO UPDATE 实现原子 upsert。
+    """
+
+    __tablename__ = "wiki_entry_views"
+
+    entry_id: Mapped[UUID] = mapped_column(
+        fk("wiki_publication_entries", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    view_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
 
 
 # =============================================================================

@@ -8,10 +8,11 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError  # noqa: F401
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.auth.deps import get_current_user
@@ -21,7 +22,7 @@ from negentropy.knowledge._shared import (
     _get_wiki_service,
 )
 from negentropy.logging import get_logger
-from negentropy.models.perception import KnowledgeDocument, WikiPublicationEntry
+from negentropy.models.perception import KnowledgeDocument, WikiEntryAnnotation, WikiEntryComment, WikiPublicationEntry
 
 if TYPE_CHECKING:
     pass
@@ -550,6 +551,39 @@ async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
 
     logger.info("api_wiki_entry_content", entry_id=str(entry_id))
 
+    # 解析作者信息：metadata 手动覆盖 > DocSource.author
+    metadata = content_data.get("metadata", {})
+    author_raw = metadata.get("author") or content_data.get("author")
+    author_name: str | None = None
+    author_url: str | None = None
+
+    if author_raw:
+        author_str = str(author_raw).strip()
+        # metadata 中手动指定的 author_url 优先
+        explicit_url = metadata.get("author_url")
+        if explicit_url and isinstance(explicit_url, str):
+            author_url = explicit_url
+            if not author_name:
+                if author_str.startswith("http"):
+                    author_name = author_str.rstrip("/").rsplit("/", 1)[-1]
+                else:
+                    author_name = author_str
+        elif author_str.startswith("http"):
+            # author 字段本身是 URL（如 GitHub profile），提取显示名
+            author_url = author_str
+            author_name = author_str.rstrip("/").rsplit("/", 1)[-1]
+        else:
+            author_name = author_str
+
+    # 来源 URL
+    source_url = content_data.get("source_url")
+
+    # 发布时间
+    published_at = None
+    entry_created_at = content_data.get("entry_created_at")
+    if entry_created_at:
+        published_at = entry_created_at.isoformat() if hasattr(entry_created_at, "isoformat") else str(entry_created_at)
+
     return WikiEntryContentResponse(
         entry_id=entry_id,
         document_id=content_data["document_id"],
@@ -557,6 +591,10 @@ async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
         entry_title=content_data["title"],
         markdown_content=content_data["markdown_content"],
         document_filename=content_data["filename"] or "",
+        author_name=author_name,
+        author_url=author_url,
+        source_url=source_url,
+        published_at=published_at,
     )
 
 
@@ -823,3 +861,74 @@ async def delete_entry_annotation(
         await db.commit()
 
     return {"detail": "Annotation deleted"}
+
+
+# ---------------------------------------------------------------------------
+# 文章元数据：浏览计数 + 动态统计
+# ---------------------------------------------------------------------------
+
+
+@router.post("/wiki/entries/{entry_id}/view")
+async def record_entry_view(entry_id: UUID):
+    """记录一次页面浏览（公开，无需鉴权）
+
+    使用 PostgreSQL INSERT ... ON CONFLICT DO UPDATE 原子递增 view_count。
+    """
+    from negentropy.models.perception import WikiEntryViews
+
+    async with AsyncSessionLocal() as db:
+        # 原子 upsert：不存在则插入(1)，已存在则 +1
+        stmt = sa.text(f"""
+            INSERT INTO {WikiEntryViews.__table__.schema}.{WikiEntryViews.__tablename__}
+                (entry_id, view_count, last_viewed_at)
+            VALUES (:eid, 1, now())
+            ON CONFLICT (entry_id) DO UPDATE SET
+                view_count = {WikiEntryViews.__table__.schema}.{WikiEntryViews.__tablename__}.view_count + 1,
+                last_viewed_at = now()
+            RETURNING view_count
+        """)
+        result = await db.execute(stmt, {"eid": str(entry_id)})
+        new_count = result.scalar_one()
+        await db.commit()
+
+    return {"view_count": new_count}
+
+
+@router.get("/wiki/entries/{entry_id}/stats")
+async def get_entry_stats(entry_id: UUID):
+    """获取条目的动态统计数据（公开）
+
+    一次请求返回浏览次数、评论数、注解数，供前端元数据栏展示。
+    """
+    from negentropy.models.perception import WikiEntryViews
+
+    async with AsyncSessionLocal() as db:
+        # 浏览计数
+        view_result = await db.execute(select(WikiEntryViews.view_count).where(WikiEntryViews.entry_id == entry_id))
+        view_count = view_result.scalar() or 0
+
+        # 评论计数
+        comment_count = await db.scalar(
+            select(func.count())
+            .select_from(WikiEntryComment)
+            .where(
+                WikiEntryComment.entry_id == entry_id,
+                WikiEntryComment.status == "active",
+            )
+        )
+
+        # 注解计数
+        annotation_count = await db.scalar(
+            select(func.count())
+            .select_from(WikiEntryAnnotation)
+            .where(
+                WikiEntryAnnotation.entry_id == entry_id,
+                WikiEntryAnnotation.status == "active",
+            )
+        )
+
+    return {
+        "view_count": view_count,
+        "comment_count": comment_count or 0,
+        "annotation_count": annotation_count or 0,
+    }
