@@ -198,6 +198,18 @@ class TestWikiCatalogSync:
             )
             return [doc], 1
 
+        async def fake_get_node_document_refs(db, catalog_entry_id):
+            _ = db
+            assert catalog_entry_id == root_node_id
+            doc = SimpleNamespace(
+                id=doc_id,
+                original_filename="System Design.pdf",
+                markdown_extract_status="completed",
+                markdown_content="# System Design",
+                metadata_={},
+            )
+            return [(doc, 0)]
+
         async def fake_upsert_entry(db, **kwargs):
             _ = db
             captured.update(kwargs)
@@ -212,6 +224,10 @@ class TestWikiCatalogSync:
         monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.CatalogAssignmentDao.get_node_document_refs",
+            fake_get_node_document_refs,
         )
         monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
         monkeypatch.setattr(
@@ -273,6 +289,19 @@ class TestWikiCatalogSync:
                 return [doc], 1
             return [], 0
 
+        async def fake_get_node_document_refs(db, catalog_entry_id):
+            _ = db
+            if catalog_entry_id == parent_id:
+                doc = SimpleNamespace(
+                    id=doc_id,
+                    original_filename="eng",
+                    markdown_extract_status="completed",
+                    markdown_content="# Eng",
+                    metadata_={},
+                )
+                return [(doc, 0)]
+            return []
+
         async def fake_upsert_entry(db, **kwargs):
             _ = db
             document_writes.append(kwargs)
@@ -288,6 +317,10 @@ class TestWikiCatalogSync:
         monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.CatalogAssignmentDao.get_node_document_refs",
+            fake_get_node_document_refs,
         )
         monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
         monkeypatch.setattr(
@@ -347,6 +380,10 @@ class TestWikiCatalogSync:
             _ = (db, catalog_node_id, limit)
             return [], 0
 
+        async def fake_get_node_document_refs(db, catalog_entry_id):
+            _ = (db, catalog_entry_id)
+            return []
+
         async def fake_upsert_container_entry(db, **kwargs):
             _ = db
             container_writes.append(kwargs)
@@ -358,6 +395,10 @@ class TestWikiCatalogSync:
         monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.CatalogAssignmentDao.get_node_document_refs",
+            fake_get_node_document_refs,
         )
         monkeypatch.setattr(
             "negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
