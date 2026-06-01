@@ -543,6 +543,8 @@ class RoutineOrchestrator:
             config.permission_mode = phase_mod.permission_mode_for(routine.current_phase)
         elif overrides.get("permission_mode"):
             config.permission_mode = overrides["permission_mode"]
+        # Routine 级默认覆盖全局 CC 默认（3h vs 5min）；per-routine config 可再覆盖。
+        config.timeout_seconds = float(settings.routine.default_iteration_timeout_seconds)
         if overrides.get("timeout_seconds"):
             config.timeout_seconds = float(overrides["timeout_seconds"])
         config.resume_session_id = routine.claude_session_id

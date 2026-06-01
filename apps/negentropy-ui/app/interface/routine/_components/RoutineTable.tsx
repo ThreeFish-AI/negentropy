@@ -1,11 +1,11 @@
 "use client";
 
-import { ExternalLink, RotateCcw } from "lucide-react";
+import { ExternalLink, OctagonX, RotateCcw } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
 
-import { canRestart } from "./routine-controls";
+import { canCancel, canRestart } from "./routine-controls";
 import { routineStatusClass, scoreColorClass } from "./status-style";
 
 interface RoutineTableProps {
@@ -15,9 +15,11 @@ interface RoutineTableProps {
   onOpenFull: (r: RoutineDTO) => void;
   /** 失败 / 取消行内一键重启（打开确认对话框）。 */
   onRestart?: (r: RoutineDTO) => void;
+  /** 运行中 / 暂停行内终止（打开确认对话框）。 */
+  onTerminate?: (r: RoutineDTO) => void;
 }
 
-export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -98,6 +100,19 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                     >
                       <RotateCcw className="h-3 w-3" />
                       Restart
+                    </button>
+                  )}
+                  {onTerminate && canCancel(r.status) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTerminate(r);
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-red-400"
+                    >
+                      <OctagonX className="h-3 w-3" />
+                      Terminate
                     </button>
                   )}
                   <button

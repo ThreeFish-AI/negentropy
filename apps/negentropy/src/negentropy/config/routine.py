@@ -63,6 +63,12 @@ class RoutineSettings(BaseSettings):
     default_max_cost_usd: float = Field(
         default=5.0, ge=0.0, description="创建 routine 时 max_cost_usd 的默认值（成本熔断守卫）"
     )
+    default_iteration_timeout_seconds: int = Field(
+        default=10800,
+        ge=300,
+        le=86400,
+        description="Routine 单次迭代的默认执行超时（秒）；被 routine.config.timeout_seconds 覆盖。默认 3h。",
+    )
     evaluator_model: str | None = Field(
         default=None,
         description="评估器 LLM-as-Judge 模型覆盖；为空时走 task_registry 的 routine.evaluate 解析",
