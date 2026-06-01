@@ -1770,7 +1770,7 @@ class AgeGraphRepository(GraphRepository):
         query = text(f"""
             SELECT id, app_name, corpus_id, run_id, status,
                    entity_count, relation_count, extractor_config, model_name,
-                   error_message, started_at, completed_at, created_at,
+                   error_message, started_at, completed_at, created_at, updated_at,
                    progress_percent, warnings
             FROM {self._schema}.kg_build_runs
             WHERE corpus_id = :corpus_id AND app_name = :app_name

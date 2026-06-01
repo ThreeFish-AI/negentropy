@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from negentropy.knowledge.service import _extract_source_label, _sanitize_label
+from negentropy.knowledge.pipeline_tracker import _extract_source_label, _sanitize_label
 
 # ---------------------------------------------------------------------------
 # _sanitize_label

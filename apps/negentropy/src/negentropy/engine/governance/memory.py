@@ -44,6 +44,16 @@ _MEMORY_TYPE_DECAY_RATES: dict[str, float] = {
     "episodic": 0.10,
 }
 
+_DEFAULT_DECAY_RATE = 0.10
+
+_MEMORY_TYPE_MULTIPLIER: dict[str, float] = {
+    "core": 1.5,
+    "semantic": 1.4,
+    "preference": 1.3,
+    "procedural": 1.2,
+    "fact": 1.15,
+    "episodic": 1.0,
+}
 
 # 重要性评分类型权重（ACT-R 基础水平激活<sup>[[45]](#ref45)</sup>）
 _MEMORY_TYPE_IMPORTANCE_WEIGHT: dict[str, float] = {

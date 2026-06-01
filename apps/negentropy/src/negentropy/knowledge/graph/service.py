@@ -2140,6 +2140,79 @@ class GraphService:
 
         return count
 
+    # ------------------------------------------------------------------
+    # Repository Passthrough（封装层：路由层通过这些公开方法访问 Repo，
+    # 避免 _repository 私有属性穿透）
+    # ------------------------------------------------------------------
+
+    async def find_neighbors(
+        self,
+        entity_id: str,
+        max_depth: int = 1,
+        limit: int = 100,
+        as_of: datetime | None = None,
+    ) -> list:
+        """查询邻居节点（委托 repository.find_neighbors）。"""
+        return await self._repository.find_neighbors(
+            entity_id=entity_id,
+            max_depth=max_depth,
+            limit=limit,
+            as_of=as_of,
+        )
+
+    async def find_path(
+        self,
+        source_id: str,
+        target_id: str,
+        max_depth: int = 5,
+        as_of: datetime | None = None,
+    ) -> list[str] | None:
+        """查询两点间最短路径（委托 repository.find_path）。"""
+        return await self._repository.find_path(
+            source_id=source_id,
+            target_id=target_id,
+            max_depth=max_depth,
+            as_of=as_of,
+        )
+
+    async def get_build_runs(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+        limit: int = 20,
+    ) -> list:
+        """获取构建运行历史（委托 repository.get_build_runs）。"""
+        return await self._repository.get_build_runs(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            limit=limit,
+        )
+
+    async def get_relation_timeline(
+        self,
+        corpus_id: UUID,
+        bucket: str = "day",
+    ) -> list[dict[str, Any]]:
+        """聚合关系时间轴密度直方图（委托 repository.get_relation_timeline）。"""
+        return await self._repository.get_relation_timeline(
+            corpus_id=corpus_id,
+            bucket=bucket,
+        )
+
+    async def cancel_build_run(
+        self,
+        run_id: str,
+        app_name: str,
+        *,
+        cancellation_meta: dict[str, Any],
+    ) -> tuple[str, Any]:
+        """对 KG Build Run 发起取消（委托 repository.request_build_run_cancel）。"""
+        return await self._repository.request_build_run_cancel(
+            run_id=run_id,
+            app_name=app_name,
+            cancellation_meta=cancellation_meta,
+        )
+
 
 # ============================================================================
 # Factory Function

@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.ingestion.extraction import (
+from negentropy.knowledge.ingestion.assets import (
     ExtractionAsset,
     _extract_base64_from_asset,
     _extract_enhanced_image_assets,
@@ -22,6 +22,8 @@ from negentropy.knowledge.ingestion.extraction import (
     _merge_extraction_assets,
     _mime_to_extension,
     _normalize_assets,
+)
+from negentropy.knowledge.ingestion.extraction import (
     persist_extracted_assets,
 )
 

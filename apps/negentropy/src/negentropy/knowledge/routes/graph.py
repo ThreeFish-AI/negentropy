@@ -283,8 +283,7 @@ async def cancel_kg_build_run(
 
     # Reuse default GraphService 的 repository（避免新建 connection pool）
     graph_service = _get_graph_service()
-    repository = graph_service._repository  # 内部 Repo 引用，私有但稳定（同 build_graph 共用）
-    new_status, record = await repository.request_build_run_cancel(
+    new_status, record = await graph_service.cancel_build_run(
         run_id=run_id,
         app_name=resolved_app,
         cancellation_meta=cancellation_meta,
@@ -513,7 +512,7 @@ async def find_entity_neighbors(
     )
 
     graph_service = _get_graph_service()
-    neighbors = await graph_service._repository.find_neighbors(
+    neighbors = await graph_service.find_neighbors(
         entity_id=payload.entity_id,
         max_depth=payload.max_depth,
         limit=payload.limit,
@@ -555,7 +554,7 @@ async def find_entity_path(
     )
 
     graph_service = _get_graph_service()
-    path = await graph_service._repository.find_path(
+    path = await graph_service.find_path(
         source_id=payload.source_id,
         target_id=payload.target_id,
         max_depth=payload.max_depth,
@@ -619,7 +618,7 @@ async def get_graph_build_history(
     resolved_app = _resolve_app_name(app_name)
 
     graph_service = _get_graph_service()
-    runs = await graph_service._repository.get_build_runs(
+    runs = await graph_service.get_build_runs(
         corpus_id=corpus_id,
         app_name=resolved_app,
         limit=limit,
@@ -1148,7 +1147,7 @@ async def get_graph_timeline(
     )
 
     graph_service = _get_graph_service()
-    points = await graph_service._repository.get_relation_timeline(
+    points = await graph_service.get_relation_timeline(
         corpus_id=corpus_id,
         bucket=bucket,
     )
