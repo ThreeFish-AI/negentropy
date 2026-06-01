@@ -57,7 +57,10 @@ function IterationCard({
 
   return (
     <li
-      className={`rounded-lg border p-3 ${
+      onClick={() => onAudit?.(it)}
+      className={`rounded-lg border p-3 transition-colors ${
+        onAudit ? "cursor-pointer hover:border-primary/40 hover:bg-muted/30" : ""
+      } ${
         isActive ? "border-sky-400/50 bg-sky-500/[0.03]" : "border-border"
       }`}
     >
@@ -86,13 +89,16 @@ function IterationCard({
           {onAudit && (
             <button
               type="button"
-              onClick={() => onAudit(it)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAudit(it);
+              }}
               aria-label={`Iteration #${it.seq} Full View`}
               title="Full View (all actions I/O & context)"
               className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <ListTree className="h-3 w-3" aria-hidden />
-              Full View
+              View Details
             </button>
           )}
         </div>
@@ -113,7 +119,7 @@ function IterationCard({
           {expanded || it.summary.length <= 280 ? it.summary : `${it.summary.slice(0, 280)}…`}
           {it.summary.length > 280 && (
             <button
-              onClick={() => setExpanded((v) => !v)}
+              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
               className="ml-1 cursor-pointer text-sky-600 hover:underline dark:text-sky-400"
             >
               {expanded ? "收起" : "展开"}
@@ -166,14 +172,14 @@ function IterationCard({
           </span>
           <div className="flex-1" />
           <button
-            onClick={() => onApprove(it.id)}
+            onClick={(e) => { e.stopPropagation(); onApprove(it.id); }}
             disabled={busy}
             className="cursor-pointer rounded-md border border-emerald-200 px-2.5 py-1 text-[11px] font-medium text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50 dark:border-emerald-800 dark:text-emerald-400"
           >
             Approve
           </button>
           <button
-            onClick={() => onReject(it.id)}
+            onClick={(e) => { e.stopPropagation(); onReject(it.id); }}
             disabled={busy}
             className="cursor-pointer rounded-md border border-red-200 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
           >
