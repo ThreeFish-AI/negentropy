@@ -803,8 +803,13 @@ async def _ping_embedding(
     import asyncio
 
     import litellm
+    from opentelemetry.sdk.trace import Status, StatusCode
 
     from negentropy.config.model_resolver import normalize_api_base_for_litellm
+    from negentropy.knowledge.ingestion.embedding import (
+        _annotate_embedding_response,
+        _start_embedding_span,
+    )
 
     kwargs: dict[str, Any] = {
         "drop_params": True,
@@ -816,10 +821,18 @@ async def _ping_embedding(
     if normalized_api_base:
         kwargs["api_base"] = normalized_api_base
 
-    response = await asyncio.wait_for(
-        litellm.aembedding(model=model, input=[text], **kwargs),
-        timeout=60.0,
-    )
+    span = _start_embedding_span(model)
+    try:
+        response = await asyncio.wait_for(
+            litellm.aembedding(model=model, input=[text], **kwargs),
+            timeout=60.0,
+        )
+        _annotate_embedding_response(span, response, model)
+    except Exception as exc:
+        span.set_status(Status(StatusCode.ERROR, str(exc)))
+        raise
+    finally:
+        span.end()
 
     # 兼容 dict / 对象访问（与 knowledge/ingestion/embedding.py 的 _extract_* 同模式）
     data = getattr(response, "data", None)
