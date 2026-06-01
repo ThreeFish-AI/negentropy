@@ -248,6 +248,7 @@ export function LlmModelSelect({
               visibility: measuredTop === null ? "hidden" : undefined,
             }}
             onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
           >
             {allowClear && (
               <ModelOption
