@@ -110,7 +110,11 @@ export default function RoutineTemplatesPage() {
       setDrawerMode(null);
       router.push(`/interface/routine/${result.id}`);
     } else if (kind === "template-edit") {
-      // 编辑保存 → 抽屉保持打开；草稿脏基线由 RoutineEditDrawer 内部 setBaseline(form) 重置。
+      // 内置模板「另存为我的模板」实为新建用户副本 → 关闭抽屉（新副本随 load 落到「我的」）；
+      // 用户模板就地保存 → 抽屉保持打开，草稿脏基线由 RoutineEditDrawer 内部 setBaseline(form) 重置。
+      if (drawerMode?.kind === "template-edit" && drawerMode.template.source === "builtin") {
+        setDrawerMode(null);
+      }
       load();
     } else {
       setDrawerMode(null);
