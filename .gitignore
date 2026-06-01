@@ -236,6 +236,7 @@ yarn-error.log*
 
 .env*
 !.env.example
+!.env.docker
 .vercel
 *.tsbuildinfo
 next-env.d.ts
