@@ -93,7 +93,7 @@ export function CoreBlockEditorDrawer({
       subtitle={
         isEdit ? `${editing?.scope} · ${editing?.label}` : "常驻记忆块（always-injected）"
       }
-      widthClassName="w-full max-w-[480px]"
+      widthClassName="[width:clamp(480px,66.67%,1100px)]"
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" size="sm" onClick={onClose}>
