@@ -92,6 +92,33 @@ function payloadIsError(payload: Record<string, unknown>): boolean {
   return payload?.is_error === true;
 }
 
+/**
+ * 路径感知的单行标题拆分：以最后一个 ``/`` 切出末段（文件名）。
+ * 仅当末段非空且不含空白才钉尾（规避对含空格命令/正则的误拆），否则整串走纯 truncate。
+ */
+function splitPathLikeTitle(title: string): { head: string; tail: string } {
+  const i = title.lastIndexOf("/");
+  if (i < 0) return { head: title, tail: "" };
+  const tail = title.slice(i + 1);
+  if (!tail || /\s/.test(tail)) return { head: title, tail: "" };
+  return { head: title.slice(0, i + 1), tail };
+}
+
+/**
+ * 单行「路径感知」标题：前缀走 truncate（空间紧张时在头尾之间出省略号），文件名末段 ``shrink-0``
+ * 永不裁剪 —— 即 ``/Users/.../foo.py`` 效果，宽度自适应。非路径标题退化为整串单行 truncate。
+ * ``truncate`` 自带 ``overflow:hidden`` 使该 flex 子项 auto 最小尺寸归零，无需额外 ``min-w-0``。
+ */
+function EventTitle({ title }: { title: string }) {
+  const { head, tail } = splitPathLikeTitle(title);
+  return (
+    <span className="flex min-w-0 flex-1 items-baseline text-xs text-foreground" title={title}>
+      <span className="truncate">{head}</span>
+      {tail && <span className="shrink-0">{tail}</span>}
+    </span>
+  );
+}
+
 function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
   const [open, setOpen] = useState(false);
   const isError = payloadIsError(ev.payload);
@@ -124,9 +151,7 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
             aria-hidden
           />
         )}
-        <span className="min-w-0 flex-1 truncate text-xs text-foreground" title={title}>
-          {title}
-        </span>
+        <EventTitle title={title} />
         {isError && (
           <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
             error
@@ -134,6 +159,14 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
         )}
         {ev.cost_usd != null && ev.cost_usd > 0 && (
           <span className="shrink-0 text-[10px] tabular-nums text-text-muted">${ev.cost_usd.toFixed(4)}</span>
+        )}
+        {ev.created_at && (
+          <span
+            className="shrink-0 text-[10px] tabular-nums text-text-muted"
+            title={new Date(ev.created_at).toLocaleString()}
+          >
+            {new Date(ev.created_at).toLocaleTimeString()}
+          </span>
         )}
         <span className="shrink-0 text-[10px] tabular-nums text-text-muted">#{ev.seq}</span>
       </button>

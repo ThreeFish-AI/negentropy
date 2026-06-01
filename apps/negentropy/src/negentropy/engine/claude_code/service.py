@@ -93,7 +93,10 @@ def _tool_title(name: str | None, tool_input: Any) -> str | None:
     for key in ("file_path", "path", "notebook_path", "command", "pattern", "query", "url"):
         val = tool_input.get(key)
         if isinstance(val, str) and val:
-            short = val if len(val) <= 80 else val[:80] + "…"
+            # 上限 200：容纳绝大多数真实 workspace 路径/命令（"Read " + 200 < 255 DB 标题列上限）；
+            # 仍保留头部截断——command/pattern/query 的头部即主信息，路径则交由前端「路径感知」单行
+            # 截断保留文件名尾部。
+            short = val if len(val) <= 200 else val[:200] + "…"
             sep = ": " if key in ("command", "pattern", "query") else " "
             return f"{name}{sep}{short}"
     return name
