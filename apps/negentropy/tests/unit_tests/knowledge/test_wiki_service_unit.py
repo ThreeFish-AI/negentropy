@@ -226,7 +226,7 @@ class TestWikiCatalogSync:
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
         )
         monkeypatch.setattr(
-            "negentropy.knowledge.lifecycle.wiki_service.CatalogAssignmentDao.get_node_document_refs",
+            "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
             fake_get_node_document_refs,
         )
         monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
@@ -319,7 +319,7 @@ class TestWikiCatalogSync:
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
         )
         monkeypatch.setattr(
-            "negentropy.knowledge.lifecycle.wiki_service.CatalogAssignmentDao.get_node_document_refs",
+            "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
             fake_get_node_document_refs,
         )
         monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
@@ -397,7 +397,7 @@ class TestWikiCatalogSync:
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
         )
         monkeypatch.setattr(
-            "negentropy.knowledge.lifecycle.wiki_service.CatalogAssignmentDao.get_node_document_refs",
+            "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
             fake_get_node_document_refs,
         )
         monkeypatch.setattr(
