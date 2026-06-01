@@ -271,8 +271,14 @@ class TestWikiCatalogSync:
             _ = db
             assert node_id == parent_id
             return [
-                {"id": parent_id, "parent_id": None, "slug": "parent", "name": "Parent"},
-                {"id": eng_folder_id, "parent_id": parent_id, "slug": "eng", "name": "Engineering"},
+                {"id": parent_id, "parent_id": None, "slug": "parent", "name": "Parent", "node_type": "folder"},
+                {
+                    "id": eng_folder_id,
+                    "parent_id": parent_id,
+                    "slug": "eng",
+                    "name": "Engineering",
+                    "node_type": "folder",
+                },
             ]
 
         async def fake_get_node_documents(db, catalog_node_id, limit=500):
@@ -373,6 +379,7 @@ class TestWikiCatalogSync:
                     "slug": "harness-engineering",
                     "name": "Harness Engineering",
                     "description": "智能体工程化综述",
+                    "node_type": "folder",
                 }
             ]
 

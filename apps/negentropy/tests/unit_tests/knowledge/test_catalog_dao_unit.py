@@ -410,6 +410,8 @@ class TestCatalogMembership:
                 _FakeResult(scalar_value=parent_entry),
                 # 3. KnowledgeDocument 查询
                 _FakeResult(scalar_value=doc),
+                # 4. MAX(position) 查询 → 兄弟节点中无现有记录，返回 0
+                _FakeResult(scalar_value=0),
             ]
         )
 
@@ -426,6 +428,7 @@ class TestCatalogMembership:
         assert created.document_id == document_id
         assert created.node_type == "DOCUMENT_REF"
         assert created.source_corpus_id == corpus_id
+        assert created.position == 1000  # max_pos(0) + SORT_GAP(1000)
         assert result is created
 
     @pytest.mark.asyncio
