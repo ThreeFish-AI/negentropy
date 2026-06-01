@@ -425,9 +425,15 @@ class WikiPublishingService:
                     errors.append(f"node:{cycle_node_id}:cycle_detected")
                     continue
 
-                container_plans.append((path_slugs, node))
+                # 仅 FOLDER（含历史 CATEGORY / COLLECTION）成为 CONTAINER
+                # Wiki 条目；DOCUMENT_REF 是文档引用叶子节点，不是结构容器，
+                # 不应创建 CONTAINER 条目（否则其 slug 可能与已有 DOCUMENT 条目
+                # 冲突触发 uq_wiki_entry_pub_slug 唯一约束违反）。
+                if node.get("node_type") == "folder":
+                    container_plans.append((path_slugs, node))
 
-                # 使用 get_node_document_refs 获取文档 + position 排序值
+                # 使用 get_node_document_refs 获取文档 + position 排序值；
+                # 对 DOCUMENT_REF 节点调用返回空集（无 DOCUMENT_REF 子节点），无副作用。
                 doc_refs = await CatalogAssignmentDao.get_node_document_refs(db, node["id"])
                 for doc, pos in doc_refs:
                     document_plans.append((path_slugs, doc, pos))

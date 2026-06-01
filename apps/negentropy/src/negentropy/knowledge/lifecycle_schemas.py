@@ -315,6 +315,7 @@ class SyncFromCatalogResponse(BaseModel):
     """从目录同步到 Wiki 的响应"""
 
     synced_count: int = 0
+    container_count: int = 0
     errors: list[str] = Field(default_factory=list)
     removed_count: int = 0
 

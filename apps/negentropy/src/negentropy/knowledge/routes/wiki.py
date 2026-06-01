@@ -393,12 +393,35 @@ async def sync_wiki_from_catalog(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Wiki publication not found",
             )
-        result = await wiki_svc.sync_entries_from_catalog(
-            db,
-            publication_id=pub_id,
-            catalog_node_ids=body.catalog_node_ids,
-        )
-        await db.commit()
+        try:
+            result = await wiki_svc.sync_entries_from_catalog(
+                db,
+                publication_id=pub_id,
+                catalog_node_ids=body.catalog_node_ids,
+            )
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            logger.error(
+                "wiki_sync_integrity_error",
+                pub_id=str(pub_id),
+                orig=str(exc.orig),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"同步数据冲突，请重试：{exc.orig}",
+            ) from exc
+        except Exception as exc:
+            await db.rollback()
+            logger.error(
+                "wiki_sync_error",
+                pub_id=str(pub_id),
+                error=str(exc),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"同步失败：{exc}",
+            ) from exc
 
     logger.info(
         "api_wiki_sync_from_catalog",
