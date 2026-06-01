@@ -35,6 +35,7 @@ from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from .bus import get_bus
+from .streaming_persister import StreamingEventPersister
 
 logger = get_logger("negentropy.engine.routine.runner")
 
@@ -131,8 +132,21 @@ class RoutineRunner:
 
             # 2) 执行 Claude Code（长耗时，受 config.timeout_seconds 约束）
             #    capture_events 开启时附 on_event sink：每个动作经非阻塞总线实时发布（边跑边看）。
-            sink = self._make_action_sink(iteration_id, routine_id) if settings.routine.capture_events else None
-            result = await ClaudeCodeService.invoke(prompt, config, abort_event=abort, on_event=sink)
+            #    StreamingEventPersister 增量 flush：使页面 reload 后仍可见已完成的审计步骤。
+            persister: StreamingEventPersister | None = None
+            if settings.routine.capture_events:
+                persister = StreamingEventPersister(
+                    iteration_id, routine_id, flush_interval_seconds=settings.routine.event_streaming_flush_seconds
+                )
+                persister.start()
+            sink = (
+                self._make_action_sink(iteration_id, routine_id, persister) if settings.routine.capture_events else None
+            )
+            try:
+                result = await ClaudeCodeService.invoke(prompt, config, abort_event=abort, on_event=sink)
+            finally:
+                if persister is not None:
+                    await persister.finalize()
 
             # 3) 写回结果（abort 命中则标记 aborted，否则 executed）
             if abort.is_set():
@@ -156,12 +170,13 @@ class RoutineRunner:
             )
 
     @staticmethod
-    def _make_action_sink(iteration_id: UUID, routine_id: UUID):
+    def _make_action_sink(iteration_id: UUID, routine_id: UUID, persister: StreamingEventPersister | None = None):
         """构造「全过程」动作实时发布回调：每个归一化动作经非阻塞总线广播为 ``action`` 事件。
 
         best-effort：``RoutineBus.publish`` 为 ``put_nowait`` + 丢旧，绝不阻塞 CC 执行；
         异常一律 suppress（实时是增强，持久化端点才是事实源）。事件携带 ``seq``（服务定格，
         与写回持久化一致），前端据 ``(iteration_id, seq)`` 去重合并实时与历史动作。
+        当 ``persister`` 非空时同步追加到缓冲，由后台定时器增量刷入 DB。
         """
         rid, iid = str(routine_id), str(iteration_id)
 
@@ -172,6 +187,8 @@ class RoutineRunner:
                 await get_bus().publish(
                     {"type": "action", "routine_id": rid, "iteration_id": iid, "ts": _utcnow().isoformat(), **evt}
                 )
+            if persister is not None:
+                persister.buffer(evt)
 
         return _sink
 
@@ -228,10 +245,12 @@ class RoutineRunner:
                     routine.iteration_count = (routine.iteration_count or 0) + 1
                     if result.session_id:
                         routine.claude_session_id = result.session_id
-                # 「全过程」动作事件持久化：仅当本次写回确实把迭代由 in_flight 翻转 executed
-                # （rowcount==1，与计数同条件）时落库，与状态翻转同事务，绝不为 reaped/aborted 留孤儿行。
-                if settings.routine.capture_events and result.events:
-                    await self._persist_events(db, iteration_id, routine_id, result.events)
+            # 「全过程」动作事件持久化（reconciliation backstop）：
+            # 不再受 rowcount==1 门控——即使迭代已被 reaper 标记 reaped，仍确保事件落库
+            # （StreamingEventPersister 已增量刷入部分事件，此处补齐尾部 + 终态事件）。
+            # ON CONFLICT DO NOTHING 使其与增量 flush 完全幂等。
+            if settings.routine.capture_events and result.events:
+                await self._persist_events(db, iteration_id, routine_id, result.events)
             await db.commit()
 
     @staticmethod
