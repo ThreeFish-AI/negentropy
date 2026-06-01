@@ -87,12 +87,12 @@ function IterationCard({
             <button
               type="button"
               onClick={() => onAudit(it)}
-              aria-label={`查看迭代 #${it.seq} 全过程`}
-              title="查看全过程（所有动作的输入/输出/上下文）"
+              aria-label={`Iteration #${it.seq} Full View`}
+              title="Full View (all actions I/O & context)"
               className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <ListTree className="h-3 w-3" aria-hidden />
-              全过程
+              Full View
             </button>
           )}
         </div>
