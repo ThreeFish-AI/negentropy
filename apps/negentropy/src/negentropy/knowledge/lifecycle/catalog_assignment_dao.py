@@ -149,3 +149,26 @@ class CatalogAssignmentDao:
             .order_by(DocCatalogEntry.position, DocCatalogEntry.name)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def get_node_document_refs(
+        db: AsyncSession,
+        catalog_entry_id: UUID,
+    ) -> list[tuple[KnowledgeDocument, int]]:
+        """获取目录条目下的文档及其 DOCUMENT_REF position 排序值。
+
+        Returns:
+            ``[(KnowledgeDocument, position), ...]`` 按 ``position, created_at DESC`` 排序。
+            用于 Wiki 同步链路传递 Catalog 侧排序到 Wiki 条目。
+        """
+        result = await db.execute(
+            select(KnowledgeDocument, DocCatalogEntry.position)
+            .join(DocCatalogEntry, KnowledgeDocument.id == DocCatalogEntry.document_id)
+            .where(
+                DocCatalogEntry.parent_entry_id == catalog_entry_id,
+                DocCatalogEntry.node_type == "DOCUMENT_REF",
+                DocCatalogEntry.document_id.is_not(None),
+            )
+            .order_by(DocCatalogEntry.position, DocCatalogEntry.created_at.desc())
+        )
+        return list(result.all())

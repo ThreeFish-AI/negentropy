@@ -2626,6 +2626,8 @@ export interface CatalogNode {
   description: string | null;
   sort_order: number;
   config: Record<string, unknown>;
+  /** DOCUMENT_REF 叶子节点关联的文档 ID（FOLDER 等结构节点为 null） */
+  document_id?: string | null;
   /** CTE 计算字段：层级深度（根节点为 0） */
   depth?: number;
   /** CTE 计算字段：从根到当前节点的 ID 路径数组 */

@@ -51,8 +51,8 @@ _ENUM_TO_NODE_TYPE = {
     "COLLECTION": "folder",
 }
 
-# 树查询的合法结构节点类型（DOCUMENT_REF 作叶子单独经 assignment DAO 访问）
-_TREE_NODE_TYPES = ("FOLDER", "CATEGORY", "COLLECTION")
+# 树查询的合法节点类型：结构节点（FOLDER 等）+ DOCUMENT_REF 叶子节点
+_TREE_NODE_TYPES = ("FOLDER", "CATEGORY", "COLLECTION", "DOCUMENT_REF")
 
 __all__ = [
     "CatalogNodeDao",
@@ -192,9 +192,9 @@ class CatalogNodeDao:
     ) -> list[dict]:
         """获取 Catalog 完整目录树（扁平化列表，含 depth / path）
 
-        仅返回 FOLDER 结构节点（跳过 DOCUMENT_REF 叶节点）。历史 CATEGORY /
+        返回 FOLDER 结构节点与 DOCUMENT_REF 叶子节点。历史 CATEGORY /
         COLLECTION 在 0010 迁移后已收敛为 FOLDER；保留对历史值的兼容查询，
-        防止迁移中断时读路径崩溃。
+        防止迁移中断时读路径崩溃。DOCUMENT_REF 叶子节点携带 ``document_id``。
         """
         return await _query_tree(db, catalog_id=catalog_id, entry_id=None, max_depth=max_depth)
 
@@ -204,7 +204,7 @@ class CatalogNodeDao:
         entry_id: UUID,
         max_depth: int = MAX_TREE_DEPTH,
     ) -> list[dict]:
-        """获取以指定条目为根的子树（仅 FOLDER / 历史 CATEGORY / COLLECTION 节点）"""
+        """获取以指定条目为根的子树（含 FOLDER / 历史 CATEGORY / COLLECTION + DOCUMENT_REF 叶子节点）"""
         return await _query_tree(db, catalog_id=None, entry_id=entry_id, max_depth=max_depth)
 
 
@@ -236,6 +236,7 @@ async def _query_tree(
             SELECT
                 id, parent_entry_id AS parent_id, name, slug_override, node_type,
                 description, position AS sort_order, config, catalog_id,
+                document_id,
                 0 AS depth, ARRAY[id] AS path
             FROM {table}
             {anchor}
@@ -246,13 +247,14 @@ async def _query_tree(
             SELECT
                 n.id, n.parent_entry_id, n.name, n.slug_override, n.node_type,
                 n.description, n.position, n.config, n.catalog_id,
+                n.document_id,
                 t.depth + 1, t.path || n.id
             FROM {table} n
             JOIN tree t ON n.parent_entry_id = t.id
             WHERE n.node_type IN ({types_in})
         )
         SELECT id, parent_id, name, slug_override, node_type,
-               description, sort_order, config, catalog_id, depth, path
+               description, sort_order, config, catalog_id, document_id, depth, path
         FROM tree
         WHERE depth <= :max_depth
         ORDER BY depth, sort_order, name
@@ -272,8 +274,9 @@ async def _query_tree(
             "sort_order": row[6],
             "config": row[7],
             "catalog_id": row[8],
-            "depth": row[9],
-            "path": list(row[10]) if row[10] else [],
+            "document_id": row[9],
+            "depth": row[10],
+            "path": list(row[11]) if row[11] else [],
         }
         for row in rows
     ]
