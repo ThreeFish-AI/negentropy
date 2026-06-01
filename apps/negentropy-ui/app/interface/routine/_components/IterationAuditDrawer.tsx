@@ -189,7 +189,7 @@ function mergeEvents(
       title: a.title ?? null,
       payload: a.payload ?? {},
       cost_usd: a.cost_usd ?? null,
-      created_at: null,
+      created_at: a.ts ?? null, // 服务端 emit 时刻：在途行据此显示时间戳（持久化后由 DB created_at 覆盖）
     });
   }
   for (const e of persisted) {

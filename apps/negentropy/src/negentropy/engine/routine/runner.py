@@ -167,7 +167,11 @@ class RoutineRunner:
 
         async def _sink(evt: dict[str, Any]) -> None:
             with suppress(Exception):
-                await get_bus().publish({"type": "action", "routine_id": rid, "iteration_id": iid, **evt})
+                # ts：服务端 emit 时刻（与持久化 created_at 同为服务端时间），供前端为在途行渲染时间戳；
+                # 仅注入发布载荷，不污染用于写回持久化的 result.events（其时间走 DB server_default）。
+                await get_bus().publish(
+                    {"type": "action", "routine_id": rid, "iteration_id": iid, "ts": _utcnow().isoformat(), **evt}
+                )
 
         return _sink
 

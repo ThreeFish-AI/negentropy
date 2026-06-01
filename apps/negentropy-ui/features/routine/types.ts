@@ -129,7 +129,8 @@ export interface IterationEventsResponse {
 
 /**
  * 实时 ``action`` 事件载荷 —— SSE 推送的动作事件（携带 routine_id/iteration_id/seq + 归一化字段）。
- * 无 ``id``（尚未落库），无 ``created_at``；前端据 ``(iteration_id, seq)`` 与持久化事件去重合并。
+ * 无 ``id``（尚未落库）；``ts`` 为服务端 emit 时刻（ISO 串），合并时回填为在途行的 ``created_at``。
+ * 前端据 ``(iteration_id, seq)`` 与持久化事件去重合并。
  */
 export interface RoutineActionStreamEvent {
   type: "action";
@@ -141,6 +142,8 @@ export interface RoutineActionStreamEvent {
   title?: string | null;
   payload?: Record<string, unknown>;
   cost_usd?: number | null;
+  /** 服务端 emit 时刻（ISO 8601）；持久化前的实时行据此显示时间戳。 */
+  ts?: string | null;
 }
 
 /**

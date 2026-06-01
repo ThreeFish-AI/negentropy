@@ -14,6 +14,7 @@ from negentropy.engine.claude_code.service import (
     _coerce_content,
     _emit_events,
     _normalize_stream_event,
+    _tool_title,
 )
 
 
@@ -75,6 +76,20 @@ def test_tool_use_bash_title_uses_command():
         }
     )
     assert out[0]["title"] == "Bash: pytest -q"
+
+
+def test_tool_title_truncation_cap_is_200():
+    """标题截断上限 200：≤200 全保留（含文件名尾部不丢失），>200 才头部截断 + 省略号。"""
+    # ≤200 的深层路径：完整保留，文件名尾部可见（旧 80 上限下会被砍掉）
+    deep = "/repo/" + "seg/" * 40 + "target.py"  # 6 + 160 + 9 = 175
+    assert len(deep) <= 200
+    assert _tool_title("Read", {"file_path": deep}) == f"Read {deep}"
+    assert _tool_title("Read", {"file_path": deep}).endswith("target.py")
+
+    # >200 的超长路径：参数部分截到 200 + 省略号
+    long_path = "/repo/" + "seg/" * 60 + "target.py"  # 6 + 240 + 9 = 255 > 200
+    assert len(long_path) > 200
+    assert _tool_title("Read", {"file_path": long_path}) == f"Read {long_path[:200]}…"
 
 
 def test_assistant_thinking_block():
