@@ -9,7 +9,6 @@ LLM 模型工厂 — 单一事实源 (Single Source of Truth)
 - ``create_subagent_model(agent_name=...)``：SubAgent 专用；传入 ``agent_name``
   时返回 ``DynamicSubagentLiteLlm``，运行时按 ``sub_agents.model`` 切换；
   不传则回退静态 ``LiteLlm`` 以兼容其它调用方。
-- ``create_model()``：历史工厂，保留为静态 ``LiteLlm``（向后兼容）。
 
 遵循 AGENTS.md 的「复用驱动」与「单一事实源」原则。
 """
@@ -31,16 +30,6 @@ def _get_default_llm_spec() -> tuple[str, dict[str, Any]]:
     if cached:
         return cached
     return get_fallback_llm_config()
-
-
-def create_model() -> LiteLlm:
-    """创建静态 LiteLlm 实例（向后兼容）。
-
-    优先使用缓存的 DB 默认配置，回退到硬编码默认值。
-    缓存由 engine/bootstrap.py 的 startup 事件预热。
-    """
-    name, kwargs = _get_default_llm_spec()
-    return LiteLlm(name, **kwargs)
 
 
 def create_root_model() -> DynamicRootLiteLlm:

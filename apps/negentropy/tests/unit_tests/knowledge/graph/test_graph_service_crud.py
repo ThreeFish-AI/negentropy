@@ -38,9 +38,7 @@ class TestGraphService:
     @pytest.fixture
     def mock_repository(self):
         repo = MagicMock()
-        repo.create_entity = AsyncMock(return_value="entity:id")
         repo.create_entities = AsyncMock(return_value=["entity:1", "entity:2"])
-        repo.create_relation = AsyncMock(return_value="relation:id")
         repo.find_neighbors = AsyncMock(return_value=[])
         repo.find_path = AsyncMock(return_value=None)
         repo.get_graph = AsyncMock()

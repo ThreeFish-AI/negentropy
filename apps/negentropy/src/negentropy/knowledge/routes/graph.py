@@ -160,7 +160,7 @@ async def build_knowledge_graph(
         # Hierarchical 语料库：仅使用 parent chunk 构建 KG，
         # 避免 child chunk 参与实体/关系抽取造成冗余。
         # 非 hierarchical 语料库无 parent chunk，保持全量使用。
-        from negentropy.knowledge.service import CHUNK_ROLE_PARENT
+        from negentropy.knowledge.pipeline_tracker import CHUNK_ROLE_PARENT
 
         parent_items = [
             item for item in knowledge_items if (item.metadata or {}).get("chunk_role") == CHUNK_ROLE_PARENT

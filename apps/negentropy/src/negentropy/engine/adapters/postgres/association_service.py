@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 
 import negentropy.db.session as db_session
@@ -195,63 +195,6 @@ class AssociationService:
             await db.commit()
             return result.rowcount > 0
 
-    async def expand_multi_hop(
-        self,
-        *,
-        item_ids: list[UUID],
-        max_hops: int = 3,
-        min_weight: float = 0.6,
-        limit: int = 10,
-    ) -> list[UUID]:
-        """多跳扩展：从给定项目出发，沿关联扩展到相关项目。
-
-        优化（性能次优修复）：原实现在 ``for _ in range(max_hops)`` 内反复
-        ``async with db_session.AsyncSessionLocal()``，每跳都从池中取新 session +
-        setup/teardown 开销。改为整段共享同一 session，语义不变（仅读 + 多跳遍历，
-        无写入，事务隔离不构成风险），节省 N-1 次连接 setup。
-        """
-        visited: set[UUID] = set(item_ids)
-        frontier: set[UUID] = set(item_ids)
-        result_ids: list[UUID] = []
-
-        async with db_session.AsyncSessionLocal() as db:
-            for _ in range(max_hops):
-                if not frontier or len(result_ids) >= limit:
-                    break
-
-                next_frontier: set[UUID] = set()
-                stmt = (
-                    select(MemoryAssociation)
-                    .where(
-                        or_(
-                            MemoryAssociation.source_id.in_(frontier),
-                            MemoryAssociation.target_id.in_(frontier),
-                        ),
-                        MemoryAssociation.weight >= min_weight,
-                        MemoryAssociation.association_type.in_(["semantic", "temporal"]),
-                    )
-                    .limit(limit * 2)
-                )
-                res = await db.execute(stmt)
-                assocs = res.scalars().all()
-
-                for a in assocs:
-                    neighbors = []
-                    if a.source_id in frontier and a.target_id not in visited:
-                        neighbors.append(a.target_id)
-                    if a.target_id in frontier and a.source_id not in visited:
-                        neighbors.append(a.source_id)
-                    for neighbor_id in neighbors:
-                        visited.add(neighbor_id)
-                        result_ids.append(neighbor_id)
-                        next_frontier.add(neighbor_id)
-                        if len(result_ids) >= limit:
-                            break
-
-                frontier = next_frontier
-
-        return result_ids[:limit]
-
     # ------------------------------------------------------------------
     # 内部方法
     # ------------------------------------------------------------------
@@ -352,80 +295,6 @@ class AssociationService:
 
             await db.commit()
         return count
-
-    # ------------------------------------------------------------------
-    # Phase 4 — KG 双向同步（接通 association.target_type='entity' 与 KG 真实节点）
-    # ------------------------------------------------------------------
-
-    async def link_to_kg_entity(
-        self,
-        *,
-        memory_id: UUID,
-        entity_id: UUID,
-        user_id: str,
-        app_name: str,
-        weight: float = 0.7,
-    ) -> MemoryAssociation | None:
-        """建立 Memory → KG entity 的实体关联（target_type='entity'）。
-
-        幂等：唯一键 (source_id, target_id, association_type='entity') 已建。
-        """
-        try:
-            async with db_session.AsyncSessionLocal() as db:
-                async with db.begin_nested():
-                    assoc = MemoryAssociation(
-                        source_id=memory_id,
-                        source_type="memory",
-                        target_id=entity_id,
-                        target_type="entity",
-                        association_type="entity",
-                        weight=max(0.0, min(1.0, weight)),
-                        user_id=user_id,
-                        app_name=app_name,
-                    )
-                    db.add(assoc)
-                    await db.flush()
-                    assoc_id = assoc.id
-                await db.commit()
-                # 重新查询返回（避免 detached instance 问题）
-                stmt = select(MemoryAssociation).where(MemoryAssociation.id == assoc_id)
-                result = await db.execute(stmt)
-                return result.scalar_one_or_none()
-        except IntegrityError:
-            logger.debug("kg_entity_link_already_exists", memory_id=str(memory_id), entity_id=str(entity_id))
-            return None
-
-    async def get_kg_entities_for_memory(
-        self,
-        memory_id: UUID,
-        limit: int = 20,
-    ) -> list[dict]:
-        """反查 Memory 关联的 KG entity 列表。
-
-        返回 [{"entity_id", "weight", "metadata"}, ...]，KG 表读取在调用方处理。
-        """
-        async with db_session.AsyncSessionLocal() as db:
-            stmt = (
-                select(MemoryAssociation)
-                .where(
-                    MemoryAssociation.source_id == memory_id,
-                    MemoryAssociation.target_type == "entity",
-                    MemoryAssociation.association_type == "entity",
-                )
-                .limit(limit)
-            )
-            result = await db.execute(stmt)
-            assocs = result.scalars().all()
-
-        return [
-            {
-                "entity_id": str(a.target_id),
-                "weight": float(a.weight),
-                "metadata": a.metadata_ or {},
-                "created_at": a.created_at.isoformat() if a.created_at else None,
-            }
-            for a in assocs
-        ]
 
     # ------------------------------------------------------------------
     # Phase 5 F1 — HippoRAG Personalized PageRank 加权扩散
@@ -595,34 +464,6 @@ class AssociationService:
             )
             result = await db.execute(stmt)
             return int(result.scalar_one() or 0)
-
-    async def get_memories_for_kg_entity(
-        self,
-        entity_id: UUID,
-        limit: int = 50,
-    ) -> list[dict]:
-        """反查 KG entity 被哪些 Memory 引用。"""
-        async with db_session.AsyncSessionLocal() as db:
-            stmt = (
-                select(MemoryAssociation)
-                .where(
-                    MemoryAssociation.target_id == entity_id,
-                    MemoryAssociation.target_type == "entity",
-                    MemoryAssociation.association_type == "entity",
-                )
-                .limit(limit)
-            )
-            result = await db.execute(stmt)
-            assocs = result.scalars().all()
-        return [
-            {
-                "memory_id": str(a.source_id),
-                "weight": float(a.weight),
-                "user_id": a.user_id,
-                "app_name": a.app_name,
-            }
-            for a in assocs
-        ]
 
     async def _create_semantic_links(
         self,

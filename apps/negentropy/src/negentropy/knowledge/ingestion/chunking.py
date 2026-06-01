@@ -25,7 +25,6 @@ from negentropy.logging import get_logger
 from ..types import (
     ChunkingConfig,
     ChunkingStrategy,
-    FixedChunkingConfig,
     HierarchicalChunkingConfig,
     RecursiveChunkingConfig,
     SemanticChunkingConfig,
@@ -753,8 +752,3 @@ async def _split_large_chunks(
             result.append(current.strip())
 
     return result
-    if not isinstance(config, FixedChunkingConfig):
-        raise TypeError("fixed chunking requires FixedChunkingConfig")
-
-    if not isinstance(config, RecursiveChunkingConfig):
-        raise TypeError("recursive chunking requires RecursiveChunkingConfig")

@@ -43,16 +43,7 @@ _MEMORY_TYPE_DECAY_RATES: dict[str, float] = {
     "fact": 0.08,
     "episodic": 0.10,
 }
-_DEFAULT_DECAY_RATE = 0.10
 
-_MEMORY_TYPE_MULTIPLIER: dict[str, float] = {
-    "core": 1.5,
-    "semantic": 1.4,
-    "preference": 1.3,
-    "procedural": 1.2,
-    "fact": 1.15,
-    "episodic": 1.0,
-}
 
 # 重要性评分类型权重（ACT-R 基础水平激活<sup>[[45]](#ref45)</sup>）
 _MEMORY_TYPE_IMPORTANCE_WEIGHT: dict[str, float] = {
@@ -421,91 +412,6 @@ class MemoryGovernanceService:
 
         return max(0.0, importance)
 
-    async def calculate_retention_score(
-        self,
-        *,
-        memory_id: str,
-        access_count: int,
-        last_accessed_at: datetime,
-        created_at: datetime,
-        memory_type: str = "episodic",
-        related_count: int | None = None,
-        lambda_: float | None = None,
-    ) -> float:
-        """多因子自适应保留评分
-
-        五因子公式:
-            retention = min(1.0, time_decay × frequency_boost × type_multiplier
-                            × semantic_importance / 5.0 + recency_bonus)
-
-        因子：
-        1. 时间衰减（Ebbinghaus 指数衰减 + 类型特定 λ）
-        2. 频率增强（对数饱和）
-        3. 类型乘子（偏好 > 流程 > 事实 > 情景）
-        4. 语义重要性（关联记忆/事实数量加成）
-        5. 时效性加成（近期创建的记忆额外加分）
-
-        参考文献:
-        [1] Ebbinghaus, "Memory," 1885.
-        [2] Anderson et al., "An Integrated Theory of the Mind,"
-            *Psychological Review*, vol. 111, no. 4, pp. 1036-1060, 2004.
-        [3] FadeMem, arXiv:2601.18642, 2026.
-
-        Args:
-            memory_id: 记忆 ID
-            access_count: 访问次数
-            last_accessed_at: 最后访问时间
-            created_at: 创建时间
-            memory_type: 记忆类型（影响衰减率）
-            related_count: 关联记忆/事实数量（None 时自动查询 DB）
-            lambda_: 自定义衰减常数（覆盖类型默认值）
-
-        Returns:
-            保留分数 (0.0 - 1.0)
-        """
-        now = datetime.now()
-
-        # Factor 1: 时间衰减（类型特定 λ）
-        days_since_access = max(0, (now - last_accessed_at).total_seconds() / 86400)
-        effective_lambda = (
-            lambda_ if lambda_ is not None else _MEMORY_TYPE_DECAY_RATES.get(memory_type, _DEFAULT_DECAY_RATE)
-        )
-        time_decay = math.exp(-effective_lambda * days_since_access)
-
-        # Factor 2: 频率增强（对数饱和）
-        frequency_boost = 1.0 + math.log(1.0 + access_count)
-
-        # Factor 3: 类型乘子
-        type_multiplier = _MEMORY_TYPE_MULTIPLIER.get(memory_type, 1.0)
-
-        # Factor 4: 语义重要性（网络效应 — 关联越多越重要）
-        effective_related_count = (
-            related_count if related_count is not None else await self._get_related_count(memory_id)
-        )
-        semantic_importance = 1.0 + min(0.5, effective_related_count * 0.1)
-
-        # Factor 5: 时效性加成（1 年内创建的记忆获得额外加分）
-        days_since_creation = max(0, (now - created_at).total_seconds() / 86400)
-        recency_bonus = max(0, 1.0 - days_since_creation / 365.0) * 0.1
-
-        # 综合评分
-        retention_score = time_decay * frequency_boost * type_multiplier * semantic_importance / 5.0 + recency_bonus
-
-        logger.debug(
-            "calculate_retention_score",
-            memory_id=memory_id,
-            retention_score=retention_score,
-            time_decay=time_decay,
-            frequency_boost=frequency_boost,
-            type_multiplier=type_multiplier,
-            semantic_importance=semantic_importance,
-            recency_bonus=recency_bonus,
-            memory_type=memory_type,
-            effective_lambda=effective_lambda,
-        )
-
-        return max(0.0, min(1.0, retention_score))
-
     def _validate_decisions(self, decisions: dict[str, str]) -> None:
         """验证审计决策
 
@@ -522,33 +428,6 @@ class MemoryGovernanceService:
                 raise ValueError(
                     f"Invalid decision '{decision}' for memory '{memory_id}'. Must be one of {valid_actions}"
                 )
-
-    async def _get_related_count(self, memory_id: str) -> int:
-        """查询记忆的关联数量（同 thread 的事实 + 其他记忆）
-
-        用于多因子评分的语义重要性因子。
-        """
-        async with self._session_factory() as db:
-            memory_stmt = select(Memory.thread_id).where(Memory.id == memory_id)
-            result = await db.execute(memory_stmt)
-            thread_id = result.scalar_one_or_none()
-            if thread_id is None:
-                return 0
-
-            fact_count_stmt = select(func.count()).select_from(Fact).where(Fact.thread_id == thread_id)
-            fact_count = (await db.execute(fact_count_stmt)).scalar() or 0
-
-            mem_count_stmt = (
-                select(func.count())
-                .select_from(Memory)
-                .where(
-                    Memory.thread_id == thread_id,
-                    Memory.id != memory_id,
-                )
-            )
-            mem_count = (await db.execute(mem_count_stmt)).scalar() or 0
-
-            return fact_count + mem_count
 
     async def _get_current_version(
         self,

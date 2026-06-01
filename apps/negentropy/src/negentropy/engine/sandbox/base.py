@@ -104,15 +104,3 @@ class BaseSandboxRunner(ABC):
                     execution_time_ms=0,
                 )
         return await self.execute(code)
-
-    async def health_check(self) -> bool:
-        """检查沙箱服务是否可用"""
-        try:
-            result = await self.execute("print('health')")
-            return result.success and "health" in result.stdout
-        except Exception:
-            return False
-
-    async def cleanup(self) -> None:  # noqa: B027
-        """清理资源 (子类可覆写)"""
-        pass

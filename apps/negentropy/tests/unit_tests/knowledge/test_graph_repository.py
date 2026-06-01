@@ -77,22 +77,6 @@ class TestAgeGraphRepository:
         )
 
     @pytest.mark.asyncio
-    async def test_create_entity_updates_knowledge_table(self, repository, mock_session, sample_entity):
-        """create_entity 应更新 knowledge 表"""
-        # Mock execute result
-        mock_result = MagicMock()
-        mock_session.execute.return_value = mock_result
-
-        entity_id = await repository.create_entity(sample_entity, _CORPUS_ID)
-
-        # Verify session.execute was called
-        mock_session.execute.assert_called_once()
-        mock_session.commit.assert_called_once()
-
-        # Verify entity ID is returned
-        assert entity_id == sample_entity.id
-
-    @pytest.mark.asyncio
     async def test_create_entities_batch(self, repository, mock_session, sample_entity):
         """create_entities 应批量创建实体（单 Session 批量提交）"""
         entities = [
@@ -108,27 +92,6 @@ class TestAgeGraphRepository:
         # 批量提交：每个 entity 一次 execute，最后一次 commit
         assert mock_session.execute.call_count == 2
         mock_session.commit.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_create_relation_stores_in_metadata(self, repository, mock_session, sample_edge):
-        """create_relation 应存储关系信息"""
-        # Mock first query result (get current related_entities)
-        mock_result = MagicMock()
-        mock_result.fetchone.return_value = MagicMock(related=None)
-        mock_session.execute.return_value = mock_result
-
-        relation_id = await repository.create_relation(
-            sample_edge.source,
-            sample_edge.target,
-            sample_edge,
-        )
-
-        # Verify session methods called
-        assert mock_session.execute.call_count >= 2  # SELECT + UPDATE
-        mock_session.commit.assert_called()
-
-        # Verify relation ID format
-        assert relation_id.startswith("relation:")
 
     @pytest.mark.asyncio
     async def test_find_neighbors_returns_related_entities(self, repository, mock_session):
@@ -193,29 +156,53 @@ class TestAgeGraphRepository:
 
     @pytest.mark.asyncio
     async def test_get_graph_returns_nodes_and_edges(self, repository, mock_session):
-        """get_graph 应从一等公民表优先读取，回退到 JSONB"""
-        # 第一阶段：一等公民表返回空（触发回退）
-        empty_result = MagicMock()
-        empty_result.__iter__ = lambda self: iter([])
+        """get_graph 应从一等公民表读取实体和关系"""
+        # 实体查询阶段：需要两个实体（关系的两端）
+        entity_row_1 = MagicMock()
+        entity_row_1.id = "entity-id"
+        entity_row_1.name = "Test Entity"
+        entity_row_1.canonical_name = "test_entity"
+        entity_row_1.entity_type = "person"
+        entity_row_1.confidence = 0.9
+        entity_row_1.mention_count = 5
+        entity_row_1.description = "A test entity"
+        entity_row_1.properties = {}
+        entity_row_1.importance_score = 0.8
+        entity_row_1.community_id = None
 
-        # 第二阶段：JSONB 回退路径返回数据
-        mock_row = MagicMock()
-        mock_row.id = "entity-id"
-        mock_row.content = "Entity content"
-        mock_row.entity_type = "person"
-        mock_row.metadata = {"related_entities": [{"target_id": "other-id", "relation_type": "WORKS_FOR"}]}
-        mock_row.entity_confidence = 0.9
+        entity_row_2 = MagicMock()
+        entity_row_2.id = "other-id"
+        entity_row_2.name = "Other Entity"
+        entity_row_2.canonical_name = "other_entity"
+        entity_row_2.entity_type = "organization"
+        entity_row_2.confidence = 0.7
+        entity_row_2.mention_count = 3
+        entity_row_2.description = "Another entity"
+        entity_row_2.properties = {}
+        entity_row_2.importance_score = 0.6
+        entity_row_2.community_id = None
 
-        jsonb_result = MagicMock()
-        jsonb_result.__iter__ = lambda self: iter([mock_row])
+        entity_result = MagicMock()
+        entity_result.__iter__ = lambda self: iter([entity_row_1, entity_row_2])
 
-        mock_session.execute.side_effect = [empty_result, jsonb_result]
+        # 关系查询阶段
+        relation_row = MagicMock()
+        relation_row.source_id = "entity-id"
+        relation_row.target_id = "other-id"
+        relation_row.relation_type = "WORKS_FOR"
+        relation_row.weight = 0.9
+        relation_row.confidence = 0.85
+        relation_row.evidence_text = "works at"
+
+        relation_result = MagicMock()
+        relation_result.__iter__ = lambda self: iter([relation_row])
+
+        mock_session.execute.side_effect = [entity_result, relation_result]
 
         graph = await repository.get_graph(_CORPUS_ID, "test_app")
 
-        assert len(graph.nodes) == 1
+        assert len(graph.nodes) == 2
         assert len(graph.edges) == 1
-        assert graph.nodes[0].id == "entity:entity-id"
         assert graph.edges[0].edge_type == "WORKS_FOR"
 
 
@@ -329,10 +316,10 @@ class TestSessionScope:
                 metadata={"confidence": 0.9},
             )
             for _ in range(10):
-                await repo.create_entity(entity, _CORPUS_ID)
+                await repo.create_entities([entity], _CORPUS_ID)
 
-        assert enter_count == 10, "每次 create_entity 应触发一次 __aenter__"
-        assert exit_count == 10, "每次 create_entity 应触发一次 __aexit__（连接归还）"
+        assert enter_count == 10, "每次 create_entities 应触发一次 __aenter__"
+        assert exit_count == 10, "每次 create_entities 应触发一次 __aexit__（连接归还）"
         assert mock_session.commit.await_count == 10
 
     @pytest.mark.asyncio
@@ -386,7 +373,7 @@ class TestSessionScope:
             side_effect=lambda: fake_session_local(),
         ):
             with pytest.raises(RuntimeError, match="simulated db error"):
-                await repo.create_entity(entity, _CORPUS_ID)
+                await repo.create_entities([entity], _CORPUS_ID)
 
         assert enter_count == 1
         assert exit_count == 1, "异常路径下 __aexit__ 仍必须触发以归还连接"

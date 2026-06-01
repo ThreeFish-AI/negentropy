@@ -36,9 +36,6 @@ from negentropy.models.internalization import Fact, MemoryConflict
 
 logger = get_logger("negentropy.engine.governance.conflict_resolver")
 
-# 冲突检测阈值
-_EMBEDDING_CONFLICT_SIMILARITY = 0.85  # 超过此值才可能冲突
-
 
 class ConflictResolver:
     """记忆冲突检测与解决服务"""

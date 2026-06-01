@@ -40,6 +40,9 @@ NEGENTROPY_AGENT_ORDER = [
 KIND_ROOT = "root"
 KIND_AGENT = "agent"
 
+# 内置 Agent 名称列表（root 在首项）。
+NEGENTROPY_AGENT_NAMES = [NEGENTROPY_ROOT_AGENT.name] + [a.name for a in NEGENTROPY_AGENT_ORDER]
+
 
 def _callable_name(callback: Any) -> str | None:
     if callback is None:

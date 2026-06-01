@@ -280,16 +280,6 @@ class McpResourceContent:
 
 
 @dataclass
-class McpResourceReadResult:
-    """MCP resources/read 调用结果"""
-
-    success: bool
-    contents: list[McpResourceContent] = field(default_factory=list)
-    error: str | None = None
-    duration_ms: int = 0
-
-
-@dataclass
 class McpToolCallWithResourcesResult:
     """工具调用 + 同会话内动态资源解析结果。
 
@@ -863,99 +853,6 @@ class McpClientService:
                     error=self._extract_error_message(exc),
                     duration_ms=int((time.time() - start_time) * 1000),
                 ),
-            )
-
-    # ── 资源读取（resources/read） ──────────────────────────────────
-
-    async def _read_resource_on_transport(
-        self,
-        *,
-        transport_type: str,
-        uri: str,
-        timeout_seconds: float,
-        command: str | None = None,
-        args: list[str] | None = None,
-        env: dict[str, str] | None = None,
-        url: str | None = None,
-        headers: dict[str, str] | None = None,
-    ) -> McpResourceReadResult:
-        """统一的资源读取方法（resources/read）。
-
-        注意：每次新建 ClientSession——Perceives 等 server 的动态 FileResource
-        URI 通常依赖工具调用同一会话上下文。本方法适用于"短期独立会话内拉取
-        已知静态 URI"的场景；动态实例的拉取应通过
-        ``call_tool_and_resolve_resources`` 在工具会话内一次性完成。
-        """
-        async with asyncio.timeout(timeout_seconds):
-            async with self._open_transport(
-                transport_type=transport_type,
-                command=command,
-                args=args,
-                env=env,
-                url=url,
-                headers=headers,
-            ) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.read_resource(uri)
-                    return McpResourceReadResult(
-                        success=True,
-                        contents=_parse_resource_contents(result.contents),
-                    )
-
-    async def read_resource(
-        self,
-        *,
-        transport_type: str,
-        uri: str,
-        command: str | None = None,
-        args: list[str] | None = None,
-        env: dict[str, str] | None = None,
-        url: str | None = None,
-        headers: dict[str, str] | None = None,
-        timeout_seconds: float | None = None,
-    ) -> McpResourceReadResult:
-        """连接 MCP Server 并按 URI 读取单个资源。"""
-        start_time = time.time()
-        effective_timeout = timeout_seconds if timeout_seconds is not None else DEFAULT_OPERATION_TIMEOUT_SECONDS
-
-        if transport_type == "stdio" and not command:
-            return McpResourceReadResult(success=False, error="Command is required for stdio transport")
-        if transport_type in ("sse", "http") and not url:
-            return McpResourceReadResult(success=False, error=f"URL is required for {transport_type} transport")
-        if transport_type not in ("stdio", "sse", "http"):
-            return McpResourceReadResult(success=False, error=f"Unsupported transport type: {transport_type}")
-
-        try:
-            result = await self._read_resource_on_transport(
-                transport_type=transport_type,
-                uri=uri,
-                timeout_seconds=effective_timeout,
-                command=command,
-                args=args,
-                env=env,
-                url=url,
-                headers=headers,
-            )
-            result.duration_ms = int((time.time() - start_time) * 1000)
-            return result
-        except TimeoutError:
-            return McpResourceReadResult(
-                success=False,
-                error=f"Resource read timeout after {effective_timeout}s",
-                duration_ms=int((time.time() - start_time) * 1000),
-            )
-        except ExceptionGroup as exc:
-            return McpResourceReadResult(
-                success=False,
-                error=self._extract_exception_group_error(exc),
-                duration_ms=int((time.time() - start_time) * 1000),
-            )
-        except Exception as exc:
-            return McpResourceReadResult(
-                success=False,
-                error=self._extract_error_message(exc),
-                duration_ms=int((time.time() - start_time) * 1000),
             )
 
     # ── 辅助方法 ────────────────────────────────────────────────────

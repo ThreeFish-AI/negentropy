@@ -88,23 +88,6 @@ class WikiDao:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_publication_by_slug(db: AsyncSession, catalog_id: UUID, slug: str) -> WikiPublication | None:
-        """按 catalog + slug 获取发布记录（eager-load entries 以兼容 async 序列化）
-
-        当前虽无调用方，但与 ``get_publication`` / ``list_publications`` 同构，
-        预先满足类级 async 懒加载契约，避免未来 handler 调用时复现 ISSUE-010 三阶。
-        """
-        result = await db.execute(
-            select(WikiPublication)
-            .options(selectinload(WikiPublication.entries))
-            .where(
-                WikiPublication.catalog_id == catalog_id,
-                WikiPublication.slug == slug,
-            )
-        )
-        return result.scalar_one_or_none()
-
-    @staticmethod
     async def list_publications(
         db: AsyncSession,
         *,
@@ -362,21 +345,6 @@ class WikiDao:
             )
         )
         return result.scalar() or 0
-
-    @staticmethod
-    async def get_entry_by_slug(
-        db: AsyncSession,
-        publication_id: UUID,
-        entry_slug: str,
-    ) -> WikiPublicationEntry | None:
-        """按 slug 获取单条条目"""
-        result = await db.execute(
-            select(WikiPublicationEntry).where(
-                WikiPublicationEntry.publication_id == publication_id,
-                WikiPublicationEntry.entry_slug == entry_slug,
-            )
-        )
-        return result.scalar_one_or_none()
 
     @staticmethod
     async def get_entry_content(

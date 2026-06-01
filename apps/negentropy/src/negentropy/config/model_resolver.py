@@ -79,7 +79,7 @@ def _get_cached_value(key: str) -> tuple[str, dict[str, Any]] | None:
 
 
 def get_cached_llm_config() -> tuple[str, dict[str, Any]] | None:
-    """同步缓存读取 — 用于 create_model() 等无法 await 的上下文。
+    """同步缓存读取 — 用于 _get_default_llm_spec() 等无法 await 的上下文。
 
     返回 kwargs 的浅拷贝，防止调用方原地修改污染缓存。
 

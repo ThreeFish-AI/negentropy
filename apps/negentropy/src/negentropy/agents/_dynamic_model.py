@@ -46,19 +46,9 @@ def set_selected_root_llm(value: str | None) -> None:
     _selected_root_llm.set((value or None) if isinstance(value, str) else None)
 
 
-def get_selected_root_llm() -> str | None:
-    """读取当前 ContextVar；主要供调试/单测使用。"""
-    return _selected_root_llm.get()
-
-
 def set_root_thinking_enabled(value: bool | None) -> None:
     """设置 Home Composer 的 Thinking 开关；None 表示沿用模型配置。"""
     _root_thinking_enabled.set(value if isinstance(value, bool) else None)
-
-
-def get_root_thinking_enabled() -> bool | None:
-    """读取当前 Thinking override；主要供调试/单测使用。"""
-    return _root_thinking_enabled.get()
 
 
 class _DynamicLiteLlm(LiteLlm):

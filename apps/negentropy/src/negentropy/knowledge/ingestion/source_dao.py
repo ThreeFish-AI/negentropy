@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.models.perception import DocSource, KnowledgeDocument
@@ -113,17 +113,3 @@ class SourceDao:
         items = list(result.scalars().all())
 
         return items, total
-
-    @staticmethod
-    async def delete(db: AsyncSession, source_id: UUID) -> bool:
-        """删除来源记录（SET NULL 外键）"""
-        doc_source = await SourceDao.get_by_id(db, source_id)
-        if doc_source is None:
-            return False
-        # 先清除文档的外键引用
-        await db.execute(
-            update(KnowledgeDocument).where(KnowledgeDocument.source_id == source_id).values(source_id=None)
-        )
-        await db.delete(doc_source)
-        await db.flush()
-        return True

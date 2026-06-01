@@ -131,23 +131,6 @@ class GraphRepository(ABC):
     """
 
     @abstractmethod
-    async def create_entity(
-        self,
-        entity: GraphNode,
-        corpus_id: UUID,
-    ) -> str:
-        """创建实体节点
-
-        Args:
-            entity: 实体节点数据
-            corpus_id: 所属语料库 ID
-
-        Returns:
-            创建的实体 ID
-        """
-        pass
-
-    @abstractmethod
     async def create_entities(
         self,
         entities: list[GraphNode],
@@ -161,25 +144,6 @@ class GraphRepository(ABC):
 
         Returns:
             创建的实体 ID 列表
-        """
-        pass
-
-    @abstractmethod
-    async def create_relation(
-        self,
-        source_id: str,
-        target_id: str,
-        relation: GraphEdge,
-    ) -> str:
-        """创建关系边
-
-        Args:
-            source_id: 源实体 ID
-            target_id: 目标实体 ID
-            relation: 关系数据
-
-        Returns:
-            创建的关系 ID
         """
         pass
 
@@ -496,54 +460,6 @@ class AgeGraphRepository(GraphRepository):
         async with AsyncSessionLocal() as session:
             yield session
 
-    async def create_entity(
-        self,
-        entity: GraphNode,
-        corpus_id: UUID,
-    ) -> str:
-        """创建实体节点
-
-        将实体信息存储到 knowledge 表，并创建 Apache AGE 节点。
-
-        SQL 占位符注意事项：
-            ``:metadata::jsonb`` 这种「命名参数紧邻 PostgreSQL ``::`` cast 操作符」
-            的写法会破坏 SQLAlchemy 命名参数边界识别，导致 ``:metadata`` 未被翻译为
-            ``$N`` 而是原样发给 asyncpg，触发 ``syntax error at or near ":"``。
-            修复：改用 ``CAST(:metadata AS jsonb)`` —— CAST 函数边界清晰，与项目
-            ``update_build_run`` 等既有写法保持一致（参见 1804 行 ``CAST(:warnings AS json)``）。
-        """
-        # 更新 knowledge 表的实体字段
-        confidence = entity.metadata.get("confidence", 1.0)
-
-        query = text(f"""
-            UPDATE {self._schema}.knowledge
-            SET entity_type = :entity_type,
-                entity_confidence = :confidence,
-                metadata = COALESCE(metadata, '{{}}'::jsonb) || CAST(:metadata AS jsonb)
-            WHERE id = :entity_id
-        """)
-
-        async with self._session_scope() as session:
-            await session.execute(
-                query,
-                {
-                    "entity_id": entity.id.replace("entity:", ""),
-                    "entity_type": entity.node_type,
-                    "confidence": confidence,
-                    "metadata": json.dumps({"graph_label": entity.label}),
-                },
-            )
-            await session.commit()
-
-        logger.debug(
-            "entity_created",
-            entity_id=entity.id,
-            entity_type=entity.node_type,
-            corpus_id=str(corpus_id),
-        )
-
-        return entity.id
-
     async def create_entities(
         self,
         entities: list[GraphNode],
@@ -593,18 +509,6 @@ class AgeGraphRepository(GraphRepository):
         )
 
         return ids
-
-    async def create_relation(
-        self,
-        source_id: str,
-        target_id: str,
-        relation: GraphEdge,
-    ) -> str:
-        """创建单条关系边（委托给 _create_relation_with_session）"""
-        async with self._session_scope() as session:
-            rid = await self._create_relation_with_session(session, source_id, target_id, relation)
-            await session.commit()
-            return rid
 
     async def _create_relation_with_session(
         self,
@@ -1047,6 +951,55 @@ class AgeGraphRepository(GraphRepository):
 
         return results
 
+    async def _search_without_embedding(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        limit: int,
+        temporal_exists: str = "",
+        as_of: datetime | None = None,
+    ) -> list[GraphSearchResult]:
+        """embedding 不可用时退化为纯图结构排序（RRF / linear 共享）
+
+        按 importance_score 降序返回实体，semantic_score=0，
+        graph_score=combined_score=importance_score。
+        """
+        schema = self._schema
+        query = text(f"""
+            SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                   e.properties,
+                   COALESCE(e.importance_score, 0) AS importance_score
+            FROM {schema}.kg_entities e
+            WHERE e.corpus_id = :corpus_id AND e.is_active = true{temporal_exists}
+            ORDER BY e.importance_score DESC NULLS LAST
+            LIMIT :limit
+        """)
+        params: dict[str, Any] = {
+            "corpus_id": str(corpus_id),
+            "limit": limit,
+        }
+        if as_of:
+            params["as_of"] = as_of
+        result = await session.execute(query, params)
+        results: list[GraphSearchResult] = []
+        for row in result:
+            imp = float(row.importance_score or 0)
+            entity = GraphNode(
+                id=f"entity:{row.id}",
+                label=row.name,
+                node_type=row.entity_type,
+                metadata=row.properties or {},
+            )
+            results.append(
+                GraphSearchResult(
+                    entity=entity,
+                    semantic_score=0.0,
+                    graph_score=imp,
+                    combined_score=imp,
+                )
+            )
+        return results
+
     async def _rrf_search(
         self,
         session: AsyncSession,
@@ -1083,40 +1036,13 @@ class AgeGraphRepository(GraphRepository):
             # 直接按 importance_score 返回，避免把同一信号同时塞进 sem_rank 与
             # graph_rank 让 RRF 融合 1/(k+r)+1/(k+r) 退化为单信号 + 常数缩放、
             # 错误地暴露"双通道融合"指标。
-            fallback_query = text(f"""
-                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                       e.properties,
-                       COALESCE(e.importance_score, 0) AS importance_score
-                FROM {schema}.kg_entities e
-                WHERE e.corpus_id = :corpus_id AND e.is_active = true{temporal_exists}
-                ORDER BY e.importance_score DESC NULLS LAST
-                LIMIT :limit
-            """)
-            fb_params: dict[str, Any] = {
-                "corpus_id": str(corpus_id),
-                "limit": limit,
-            }
-            if as_of:
-                fb_params["as_of"] = as_of
-            fb_result = await session.execute(fallback_query, fb_params)
-            results: list[GraphSearchResult] = []
-            for row in fb_result:
-                imp = float(row.importance_score or 0)
-                entity = GraphNode(
-                    id=f"entity:{row.id}",
-                    label=row.name,
-                    node_type=row.entity_type,
-                    metadata=row.properties or {},
-                )
-                results.append(
-                    GraphSearchResult(
-                        entity=entity,
-                        semantic_score=0.0,
-                        graph_score=imp,
-                        combined_score=imp,
-                    )
-                )
-            return results
+            return await self._search_without_embedding(
+                session,
+                corpus_id,
+                limit,
+                temporal_exists=temporal_exists,
+                as_of=as_of,
+            )
         else:
             semantic_query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
@@ -1237,41 +1163,11 @@ class AgeGraphRepository(GraphRepository):
         """线性加权混合检索（向后兼容）"""
         if query_embedding is None:
             # embedding 不可用时，退化为纯图结构排序
-            query = text(f"""
-                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                       e.properties, e.importance_score,
-                       0.0 AS semantic_score,
-                       COALESCE(e.importance_score, 0) AS graph_score,
-                       COALESCE(e.importance_score, 0) AS combined_score
-                FROM {self._schema}.kg_entities e
-                WHERE e.corpus_id = :corpus_id AND e.is_active = true
-                ORDER BY e.importance_score DESC NULLS LAST
-                LIMIT :limit
-            """)
-            result = await session.execute(
-                query,
-                {
-                    "corpus_id": str(corpus_id),
-                    "limit": limit,
-                },
+            return await self._search_without_embedding(
+                session,
+                corpus_id,
+                limit,
             )
-            results = []
-            for row in result:
-                entity = GraphNode(
-                    id=f"entity:{row.id}",
-                    label=row.name,
-                    node_type=row.entity_type,
-                    metadata=row.properties or {},
-                )
-                results.append(
-                    GraphSearchResult(
-                        entity=entity,
-                        semantic_score=0.0,
-                        graph_score=float(row.importance_score or 0),
-                        combined_score=float(row.importance_score or 0),
-                    )
-                )
-            return results
 
         query = text(f"""
             SELECT * FROM {self._schema}.kg_hybrid_search(
@@ -1340,22 +1236,12 @@ class AgeGraphRepository(GraphRepository):
         保留两端实体在结果中的边）。
         """
         async with self._session_scope() as session:
-            # 尝试从一等公民表读取
             nodes, edges = await self._load_graph_from_first_class_tables(
                 session,
                 corpus_id,
                 app_name,
                 as_of=as_of,
             )
-
-            # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
-            if not nodes:
-                # JSONB 回退路径不支持时态过滤（旧数据无 valid_from/valid_to）
-                nodes, edges = await self._load_graph_fromjsonb(
-                    session,
-                    corpus_id,
-                    app_name,
-                )
 
         logger.info(
             "graph_loaded",
@@ -1453,52 +1339,6 @@ class AgeGraphRepository(GraphRepository):
                         },
                     )
                 )
-
-        return nodes, edges
-
-    async def _load_graph_fromjsonb(
-        self,
-        session: AsyncSession,
-        corpus_id: UUID,
-        app_name: str,
-    ) -> tuple[list[GraphNode], list[GraphEdge]]:
-        """从 knowledge.metadata JSONB 加载图谱（旧数据回退路径）"""
-        entities_query = text(f"""
-            SELECT id, content, entity_type, metadata, entity_confidence
-            FROM {self._schema}.knowledge
-            WHERE corpus_id = :corpus_id
-              AND app_name = :app_name
-              AND entity_type IS NOT NULL
-        """)
-
-        result = await session.execute(
-            entities_query,
-            {"corpus_id": str(corpus_id), "app_name": app_name},
-        )
-
-        nodes = []
-        edges = []
-
-        for row in result:
-            node = GraphNode(
-                id=f"entity:{row.id}",
-                label=row.content[:100] if row.content else None,
-                node_type=row.entity_type,
-                metadata=row.metadata or {},
-            )
-            nodes.append(node)
-
-            if row.metadata and "related_entities" in row.metadata:
-                for rel in row.metadata["related_entities"]:
-                    edges.append(
-                        GraphEdge(
-                            source=f"entity:{row.id}",
-                            target=rel.get("target_id", ""),
-                            edge_type=rel.get("relation_type", "RELATED_TO"),
-                            weight=rel.get("confidence", 1.0),
-                            metadata={"evidence": rel.get("evidence")},
-                        )
-                    )
 
         return nodes, edges
 

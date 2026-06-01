@@ -211,6 +211,36 @@ def _merge_masked_credentials(incoming: dict[str, Any], stored: dict[str, Any]) 
     return merged
 
 
+def _apply_update_visibility(update_data: dict[str, Any]) -> None:
+    """若 update_data 包含 visibility 字段，原地转为 PluginVisibility 枚举。"""
+    if "visibility" in update_data:
+        update_data["visibility"] = PluginVisibility(update_data["visibility"])
+
+
+async def _validate_update_name(
+    db: Any,
+    model: type,
+    update_data: dict[str, Any],
+    current_name: str,
+    entity_id: UUID,
+    entity_label: str,
+) -> None:
+    """校验 update_data 中的 name 字段：非空 + 唯一性。
+
+    通过后原地 strip 写回 update_data["name"]；不合法时 raise HTTPException。
+    """
+    if "name" not in update_data:
+        return
+    new_name = str(update_data["name"] or "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail=f"{entity_label} name cannot be empty")
+    if new_name != current_name:
+        existing = await db.scalar(select(model).where(and_(model.name == new_name, model.id != entity_id)))
+        if existing:
+            raise HTTPException(status_code=400, detail=f"{entity_label} name already exists")
+    update_data["name"] = new_name
+
+
 def _builtin_tool_to_response(tool: BuiltinTool) -> BuiltinToolResponse:
     return BuiltinToolResponse(
         id=tool.id,
@@ -857,19 +887,8 @@ async def update_mcp_server(
             raise HTTPException(status_code=404, detail="Server not found")
 
         update_data = payload.model_dump(exclude_unset=True)
-        if "name" in update_data:
-            new_name = str(update_data["name"] or "").strip()
-            if not new_name:
-                raise HTTPException(status_code=400, detail="Server name cannot be empty")
-            if new_name != server.name:
-                existing = await db.scalar(
-                    select(McpServer).where(and_(McpServer.name == new_name, McpServer.id != server_id))
-                )
-                if existing:
-                    raise HTTPException(status_code=400, detail="Server name already exists")
-            update_data["name"] = new_name
-        if "visibility" in update_data:
-            update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        await _validate_update_name(db, McpServer, update_data, server.name, server_id, "Server")
+        _apply_update_visibility(update_data)
 
         for key, value in update_data.items():
             setattr(server, key, value)
@@ -1530,8 +1549,7 @@ async def update_builtin_tool(
             raise HTTPException(status_code=404, detail="Tool not found")
 
         update_data = payload.model_dump(exclude_unset=True)
-        if "visibility" in update_data:
-            update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        _apply_update_visibility(update_data)
         # 前端可能回传 GET 响应中的脱敏凭证，替换为 DB 真实值后再写入
         if "credentials" in update_data and update_data["credentials"] is not None:
             update_data["credentials"] = _merge_masked_credentials(
@@ -1866,17 +1884,8 @@ async def update_skill(
             raise HTTPException(status_code=404, detail="Skill not found")
 
         update_data = payload.model_dump(exclude_unset=True)
-        if "name" in update_data:
-            new_name = str(update_data["name"] or "").strip()
-            if not new_name:
-                raise HTTPException(status_code=400, detail="Skill name cannot be empty")
-            if new_name != skill.name:
-                existing = await db.scalar(select(Skill).where(and_(Skill.name == new_name, Skill.id != skill_id)))
-                if existing:
-                    raise HTTPException(status_code=400, detail="Skill name already exists")
-            update_data["name"] = new_name
-        if "visibility" in update_data:
-            update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        await _validate_update_name(db, Skill, update_data, skill.name, skill_id, "Skill")
+        _apply_update_visibility(update_data)
         if "enforcement_mode" in update_data:
             mode = update_data.get("enforcement_mode")
             if mode not in ("warning", "strict"):

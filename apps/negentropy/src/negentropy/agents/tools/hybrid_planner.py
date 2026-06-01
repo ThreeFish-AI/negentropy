@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import UUID
@@ -141,38 +140,6 @@ class PlannerResult:
 
 
 # =============================================================================
-# LRU + TTL 缓存（轻量实现，避免依赖 cachetools）
-# =============================================================================
-
-
-class _TTLLRUCache:
-    """简单的 LRU + TTL 缓存（线程不安全，asyncio 单事件循环下足够）"""
-
-    def __init__(self, maxsize: int, ttl_seconds: float) -> None:
-        self._maxsize = maxsize
-        self._ttl = ttl_seconds
-        self._data: OrderedDict[Any, tuple[float, Any]] = OrderedDict()
-
-    def get(self, key: Any) -> Any | None:
-        entry = self._data.get(key)
-        if entry is None:
-            return None
-        ts, value = entry
-        if (time.monotonic() - ts) > self._ttl:
-            self._data.pop(key, None)
-            return None
-        self._data.move_to_end(key)
-        return value
-
-    def set(self, key: Any, value: Any) -> None:
-        if key in self._data:
-            self._data.move_to_end(key)
-        self._data[key] = (time.monotonic(), value)
-        while len(self._data) > self._maxsize:
-            self._data.popitem(last=False)
-
-
-# =============================================================================
 # HybridPlanner 主体
 # =============================================================================
 
@@ -209,8 +176,6 @@ class HybridPlanner:
         self._classifier = classifier
         self._reranker = reranker
         self._session_factory = session_factory
-        self._cache_canonical = _TTLLRUCache(maxsize=2048, ttl_seconds=300)
-        self._cache_provenance = _TTLLRUCache(maxsize=128, ttl_seconds=300)
 
     # ------------------------------------------------------------------
     # 主入口
@@ -851,7 +816,3 @@ __all__ = [
     "configure_planner",
     "get_planner",
 ]
-
-
-# 保留 defaultdict import 防止 lint 抹除
-_ = defaultdict  # noqa: B018

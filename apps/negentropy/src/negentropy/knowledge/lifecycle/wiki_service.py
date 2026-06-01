@@ -27,8 +27,6 @@ logger = get_logger(__name__.rsplit(".", 1)[0])
 
 # 合法主题列表
 VALID_THEMES = {"default", "book", "docs"}
-# 合法状态列表
-VALID_STATUSES = {"draft", "published", "archived"}
 
 
 def _resolve_doc_display_title(doc: Any) -> str:

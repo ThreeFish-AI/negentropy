@@ -18,11 +18,6 @@ from negentropy.knowledge._shared import (
 )
 from negentropy.knowledge.api_helpers import _map_exception_to_http, _resolve_app_name
 from negentropy.knowledge.exceptions import KnowledgeError
-from negentropy.knowledge.ingestion.extraction import (
-    extract_source,
-    resolve_source_kind,
-    store_extracted_document_artifacts,
-)
 from negentropy.knowledge.schemas import (
     AsyncPipelineResponse,
     IngestRequest,
@@ -247,85 +242,6 @@ async def ingest_url(
 
 # 文件大小限制 (50MB)
 MAX_FILE_SIZE = 50 * 1024 * 1024
-
-
-async def _extract_and_store_document_markdown_from_gcs(
-    *,
-    document_id: UUID,
-) -> None:
-    """从 GCS 重新加载原始文档，通过 MCP Tool 提取 Markdown 并刷新存储。
-
-    与 ingest pipeline 共用同一条 MCP Tool 提取路径（extract_source），
-    确保 Document View 的 Markdown 内容与 Chunk 内容质量一致。
-    """
-    from negentropy.storage.service import DocumentStorageService
-
-    storage_service = DocumentStorageService()
-    doc = await storage_service.get_document(document_id=document_id)
-    if not doc:
-        logger.warning(
-            "document_markdown_refresh_skipped_document_not_found",
-            document_id=str(document_id),
-        )
-        return
-
-    content = await storage_service.get_document_content(document_id=document_id)
-    if not content:
-        await storage_service.update_markdown_extraction_status(
-            document_id=document_id,
-            status="failed",
-            error="Source document content not found in GCS",
-        )
-        return
-
-    await storage_service.update_markdown_extraction_status(
-        document_id=document_id,
-        status="processing",
-        error=None,
-    )
-
-    try:
-        service = _get_service()
-        corpus_config = await service._get_corpus_config(doc.corpus_id)
-        source_kind = resolve_source_kind(
-            filename=doc.original_filename,
-            content_type=doc.content_type,
-        )
-        result = await extract_source(
-            app_name=doc.app_name,
-            corpus_id=doc.corpus_id,
-            corpus_config=corpus_config,
-            source_kind=source_kind,
-            content=content,
-            filename=doc.original_filename,
-            content_type=doc.content_type,
-        )
-
-        markdown_content = (result.markdown_content or "").strip()
-        if not markdown_content:
-            raise ValueError("Extractor returned empty markdown content")
-
-        markdown_gcs_uri, _ = await store_extracted_document_artifacts(
-            document_id=document_id,
-            extracted=result,
-        )
-        logger.info(
-            "document_markdown_extraction_completed",
-            document_id=str(document_id),
-            markdown_size=len(markdown_content),
-            markdown_gcs_uri=markdown_gcs_uri,
-        )
-    except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
-        logger.error(
-            "document_markdown_extraction_failed",
-            document_id=str(document_id),
-            error=str(exc),
-        )
-        await storage_service.update_markdown_extraction_status(
-            document_id=document_id,
-            status="failed",
-            error=str(exc),
-        )
 
 
 @router.post("/base/{corpus_id}/ingest_file", response_model=AsyncPipelineResponse)

@@ -10,7 +10,7 @@
 向后兼容：
   历史代码 ``from negentropy.knowledge.catalog_dao import CatalogDao``、
   ``CatalogDao.create_node(...)`` 与 ``CatalogDao.assign_document(...)`` 等仍
-  正常工作（多继承转发）；常量 ``_NODE_TYPE_TO_ENUM`` / ``_ENUM_TO_NODE_TYPE``
+  正常工作（多继承转发）；常量 ``_ENUM_TO_NODE_TYPE``
   / ``MAX_TREE_DEPTH`` / ``_compute_slug`` 仍从此处可导入（重导出）。
 """
 
@@ -28,7 +28,6 @@ from negentropy.models.perception import DocCatalog
 from .catalog_assignment_dao import CatalogAssignmentDao
 from .catalog_node_dao import (
     _ENUM_TO_NODE_TYPE,
-    _NODE_TYPE_TO_ENUM,
     MAX_TREE_DEPTH,
     CatalogNodeDao,
     _compute_slug,
@@ -41,7 +40,6 @@ __all__ = [
     "CatalogNodeDao",
     "CatalogAssignmentDao",
     "_ENUM_TO_NODE_TYPE",
-    "_NODE_TYPE_TO_ENUM",
     "_compute_slug",
     "MAX_TREE_DEPTH",
 ]

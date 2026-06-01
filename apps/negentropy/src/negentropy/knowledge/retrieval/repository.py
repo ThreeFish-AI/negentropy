@@ -79,13 +79,6 @@ class KnowledgeRepository:
                 return None
             return self._to_corpus_record(corpus)
 
-    async def list_corpora(self, *, app_name: str) -> list[CorpusRecord]:
-        async with self._get_session_factory()() as db:
-            stmt = select(Corpus).where(Corpus.app_name == app_name).order_by(Corpus.created_at.desc())
-            result = await db.execute(stmt)
-            corpora = result.scalars().all()
-            return [self._to_corpus_record(corpus) for corpus in corpora]
-
     async def list_corpora_with_counts(self, *, app_name: str) -> list[tuple[CorpusRecord, int, int]]:
         """语料库列表 + 双口径 chunks 计数。
 
@@ -184,16 +177,6 @@ class KnowledgeRepository:
             return await self.create_corpus(spec)
         except IntegrityError:
             return await self.get_corpus(app_name=spec.app_name, name=spec.name)
-
-    async def delete_corpus(self, corpus_id: UUID) -> None:
-        async with self._get_session_factory()() as db:
-            stmt = select(Corpus).where(Corpus.id == corpus_id)
-            result = await db.execute(stmt)
-            corpus = result.scalar_one_or_none()
-            if not corpus:
-                return
-            await db.delete(corpus)
-            await db.commit()
 
     @staticmethod
     def _chunks_to_insert_values(

@@ -128,7 +128,7 @@ async def enqueue_kg_build(
     try:
         # Hierarchical 语料库：仅使用 parent chunk 构建 KG，
         # 避免 child chunk 参与实体/关系抽取造成冗余。
-        from negentropy.knowledge.service import CHUNK_ROLE_PARENT
+        from negentropy.knowledge.pipeline_tracker import CHUNK_ROLE_PARENT
 
         parent_records = [
             r for r in records if (getattr(r, "metadata", None) or {}).get("chunk_role") == CHUNK_ROLE_PARENT

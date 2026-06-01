@@ -181,19 +181,6 @@ class GCSStorageClient:
             logger.error("gcs_delete_failed", gcs_uri=gcs_uri, error=str(exc))
             raise StorageError(f"Failed to delete file from GCS: {exc}") from exc
 
-    def exists(self, gcs_path: str) -> bool:
-        """Check if file exists in GCS.
-
-        Args:
-            gcs_path: GCS object path (without gs://bucket/ prefix)
-
-        Returns:
-            True if file exists, False otherwise
-        """
-        self._ensure_client()
-        blob = self._bucket.blob(gcs_path)
-        return blob.exists()
-
 
 class StorageError(Exception):
     """Exception raised for storage operation failures."""

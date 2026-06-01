@@ -24,15 +24,12 @@ import os
 import random
 import re
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import UUID
 
 import tiktoken
 
 from negentropy.logging import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 from .extraction_validator import (

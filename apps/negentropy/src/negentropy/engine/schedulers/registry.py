@@ -25,7 +25,6 @@ import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import suppress
-from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -543,47 +542,6 @@ async def _claim_due_tasks(db: AsyncSession, *, lease_seconds: float) -> list[Sc
     return list(rows)
 
 
-async def _upsert_default_task(db: AsyncSession, spec: dict[str, Any], *, lease_seconds: float) -> None:
-    """按 ``key`` 幂等 upsert 默认任务；已存在则只补缺失字段，不覆盖运行态。"""
-    key = spec["key"]
-    existing = (await db.execute(select(ScheduledTask).where(ScheduledTask.key == key))).scalar_one_or_none()
-    if existing is not None:
-        # 已存在 → 只补 display_name / description / role / scenario 等元数据，
-        # 不动 enabled / interval / cron / 触发态字段，尊重用户在 UI 上的修改。
-        for field_name in ("display_name", "description", "role", "scenario", "category"):
-            if not getattr(existing, field_name, None) and spec.get(field_name):
-                setattr(existing, field_name, spec[field_name])
-        # 补 payload 缺省字段（不覆盖已有 keys）
-        if spec.get("payload"):
-            merged = dict(existing.payload or {})
-            for k, v in spec["payload"].items():
-                merged.setdefault(k, v)
-            existing.payload = merged
-        return
-
-    # interval / cron / oneshot 默认首次都立即 due（oneshot 由 _claim_due_tasks 兜底
-    # 选中；interval / cron 首 tick 即跑一次，后续触发由 _compute_next_fire 推进）。
-    next_fire = _utcnow()
-    new = ScheduledTask(
-        key=key,
-        handler_kind=spec["handler_kind"],
-        trigger_type=spec["trigger_type"],
-        interval_seconds=spec.get("interval_seconds"),
-        cron_expr=spec.get("cron_expr"),
-        enabled=spec.get("enabled", True),
-        role=spec.get("role"),
-        scenario=spec.get("scenario"),
-        category=spec.get("category"),
-        display_name=spec.get("display_name"),
-        description=spec.get("description"),
-        payload=spec.get("payload") or {},
-        max_concurrency=spec.get("max_concurrency", 1),
-        token_budget=spec.get("token_budget"),
-        next_fire_at=next_fire,
-    )
-    db.add(new)
-
-
 def _compute_next_fire(task: ScheduledTask) -> datetime | None:
     """根据 trigger_type 计算下次触发时刻。"""
     now = _utcnow()
@@ -679,7 +637,3 @@ __all__ = [
     "get_registry",
     "reset_registry_for_tests",
 ]
-
-
-# 抑制未使用 warning（asdict 在 Phase 5 supervisor 模型中会用到）
-_ = asdict

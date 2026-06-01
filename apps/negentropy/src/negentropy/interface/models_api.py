@@ -295,7 +295,7 @@ async def list_model_configs(
     if not is_user_facing_listing:
         current_user = await _require_admin(current_user)
 
-    from negentropy.models.model_config import ModelConfig, ModelType
+    from negentropy.models.model_config import ModelConfig
 
     stmt = select(ModelConfig)
     if model_type:
@@ -322,7 +322,6 @@ async def list_model_configs(
 
     serializer = _model_config_to_dict if not is_user_facing_listing else _model_config_to_public_dict
     items = [serializer(mc) for mc in rows]
-    _ = ModelType
     return {"items": items, "count": len(items)}
 
 
