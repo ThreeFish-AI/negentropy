@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from negentropy.models.perception import (
+    DocSource,
     KnowledgeDocument,
     WikiEntryAnnotation,
     WikiEntryComment,
@@ -396,27 +397,46 @@ class WikiDao:
         db: AsyncSession,
         entry_id: UUID,
     ) -> dict | None:
-        """获取条目关联文档的 Markdown 内容
+        """获取条目关联文档的 Markdown 内容及来源元数据
 
         Returns:
-            包含 markdown_content, title, metadata 的字典；文档不存在则返回 None
+            包含 markdown_content, title, metadata, author, source_url 等的字典；
+            文档不存在则返回 None
         """
         result = await db.execute(
             select(
                 WikiPublicationEntry.document_id,
+                WikiPublicationEntry.created_at,
                 KnowledgeDocument.original_filename,
                 KnowledgeDocument.display_name,
                 KnowledgeDocument.markdown_content,
                 KnowledgeDocument.metadata_,
+                KnowledgeDocument.source_id,
+                DocSource.source_url,
+                DocSource.original_url,
+                DocSource.author,
             )
             .join(KnowledgeDocument, WikiPublicationEntry.document_id == KnowledgeDocument.id)
+            .outerjoin(DocSource, KnowledgeDocument.source_id == DocSource.id)
             .where(WikiPublicationEntry.id == entry_id)
         )
         row = result.one_or_none()
         if row is None:
             return None
 
-        doc_id, filename, display_name, markdown_content, metadata = row
+        (
+            doc_id,
+            entry_created_at,
+            filename,
+            display_name,
+            markdown_content,
+            metadata,
+            _source_id,
+            doc_source_url,
+            doc_original_url,
+            doc_author,
+        ) = row
+
         # 与 wiki_service._resolve_doc_display_title 保持同源优先级：
         # display_name (用户覆盖) -> metadata_.title -> original_filename。
         resolved_title = (display_name or "").strip()
@@ -426,6 +446,14 @@ class WikiDao:
                 resolved_title = meta_title.strip()
         if not resolved_title:
             resolved_title = filename or "Untitled"
+
+        # 来源 URL 解析：URL 文档取 origin_url / source_url；File 文档取 metadata 中的 source_uri
+        source_type = (metadata or {}).get("source_type")
+        if source_type == "url":
+            resolved_source_url = doc_original_url or doc_source_url
+        else:
+            resolved_source_url = (metadata or {}).get("source_uri")
+
         return {
             "document_id": doc_id,
             "filename": filename,
@@ -433,7 +461,22 @@ class WikiDao:
             "markdown_content": markdown_content or "",
             "title": resolved_title,
             "metadata": metadata or {},
+            "entry_created_at": entry_created_at,
+            "author": doc_author,
+            "source_url": resolved_source_url,
         }
+
+    # ------------------------------------------------------------------
+    # 浏览计数
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def get_view_count(db: AsyncSession, entry_id: UUID) -> int:
+        """获取条目的浏览次数"""
+        from negentropy.models.perception import WikiEntryViews
+
+        result = await db.execute(select(WikiEntryViews.view_count).where(WikiEntryViews.entry_id == entry_id))
+        return result.scalar() or 0
 
     # ------------------------------------------------------------------
     # 导航树（薄委托）

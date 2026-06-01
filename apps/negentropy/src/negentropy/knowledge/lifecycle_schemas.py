@@ -276,7 +276,7 @@ class WikiEntryResponse(BaseModel):
 
 
 class WikiEntryContentResponse(BaseModel):
-    """Wiki 条目内容响应（含 Markdown）"""
+    """Wiki 条目内容响应（含 Markdown + 文章元数据）"""
 
     entry_id: UUID
     document_id: UUID
@@ -284,6 +284,10 @@ class WikiEntryContentResponse(BaseModel):
     entry_title: str | None
     markdown_content: str | None = None
     document_filename: str = ""
+    author_name: str | None = None
+    author_url: str | None = None
+    source_url: str | None = None
+    published_at: str | None = None
 
 
 class WikiNavTreeResponse(BaseModel):
