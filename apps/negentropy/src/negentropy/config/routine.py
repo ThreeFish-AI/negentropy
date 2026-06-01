@@ -13,6 +13,8 @@ env 前缀 ``NE_ROUTINE_``；YAML 节点 ``routine:``。
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
@@ -65,6 +67,21 @@ class RoutineSettings(BaseSettings):
         default=None,
         description="评估器 LLM-as-Judge 模型覆盖；为空时走 task_registry 的 routine.evaluate 解析",
     )
+
+    # --- 隔离 worktree（基于基线分支的隔离工作区 + 自动 PR 回基线）---
+    worktree_root: str | None = Field(
+        default=None,
+        description="隔离 worktree 的根目录；为空时运行期解析为仓库同级目录 <project_parent>/.negentropy-worktrees",
+    )
+    worktree_cleanup: Literal["on_success", "always", "never"] = Field(
+        default="on_success",
+        description="终态 worktree 回收策略：on_success（成功即清、失败保留供调试）| always | never",
+    )
+    git_remote: str = Field(default="origin", description="fetch / PR base 归一所用的 git 远端名")
+    git_fetch_before_worktree: bool = Field(
+        default=True, description="建 worktree 前 best-effort `git fetch <remote> <baseline>`（带超时，失败不阻断）"
+    )
+    git_timeout_seconds: int = Field(default=120, ge=5, description="单条 git 子命令执行超时（秒）")
 
     @classmethod
     def settings_customise_sources(

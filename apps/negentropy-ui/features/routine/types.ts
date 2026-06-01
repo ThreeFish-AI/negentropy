@@ -36,12 +36,19 @@ export interface RoutineDTO {
   description: string | null;
   goal: string;
   acceptance_criteria: string;
+  /** worktree 模式下为 git 仓库根（Project Path）；引擎据此派生隔离 worktree。 */
   cwd: string | null;
+  /** 隔离 worktree 的基线分支 + PR base（如 origin/feature/1.x.x）。 */
+  baseline_branch: string | null;
   verification_command: string | null;
   status: RoutineStatus;
   termination_reason: string | null;
   current_phase: RoutinePhase | null;
   pr_url: string | null;
+  /** 引擎管理的运行期：本轮隔离工作分支（routine/<key>-<ts>）。 */
+  work_branch: string | null;
+  /** 引擎管理的运行期：隔离 worktree 文件系统路径（= CC 实际 cwd）。 */
+  worktree_path: string | null;
   max_iterations: number | null;
   max_cost_usd: number | null;
   deadline_at: string | null;
@@ -201,6 +208,7 @@ export interface RoutineCreatePayload {
   goal: string;
   acceptance_criteria: string;
   cwd?: string | null;
+  baseline_branch?: string | null;
   verification_command?: string | null;
   max_iterations?: number | null;
   max_cost_usd?: number | null;

@@ -79,6 +79,7 @@ interface FormState {
   goal: string;
   acceptance_criteria: string;
   cwd: string;
+  baseline_branch: string;
   verification_command: string;
   max_iterations: string;
   max_cost_usd: string;
@@ -104,6 +105,7 @@ const DEFAULTS: FormState = {
   goal: "",
   acceptance_criteria: "",
   cwd: "",
+  baseline_branch: "",
   verification_command: "",
   max_iterations: "20",
   max_cost_usd: "5",
@@ -167,6 +169,7 @@ function buildInitial(mode: DrawerMode): FormState {
         goal: r.goal,
         acceptance_criteria: r.acceptance_criteria,
         cwd: r.cwd ?? "",
+        baseline_branch: r.baseline_branch ?? "",
         verification_command: r.verification_command ?? "",
         max_iterations: r.max_iterations != null ? String(r.max_iterations) : "",
         max_cost_usd: r.max_cost_usd != null ? String(r.max_cost_usd) : "",
@@ -244,9 +247,10 @@ export function RoutineEditDrawer({
   const liveRoutine = mode.kind === "routine-edit" ? mode.routine : null;
   const isRunning = liveRoutine?.status === "running";
   const isBuiltinTemplate = mode.kind === "template-edit" && mode.template.source === "builtin";
-  // 仅运行中锁定；内置模板改为「可编辑 → 另存为我的模板」(copy-on-write)，以 create 语义提交一份用户副本。
+  // 仅运行中锁定；内置模板改为「可编辑 → 另存为我的模板」(copy-on-write, #794)，以 create 语义提交用户副本。
   const readOnly = isRunning;
-  const requireCwd = mode.kind === "use-template";
+  // 可执行 routine（非模板）必须提供 Project Path (cwd) + Baseline Branch（隔离 worktree 前提）。
+  const requireWorktree = entity === "routine";
 
   // ── 表单草稿态（仅挂载时 seed 一次）──
   const [form, setForm] = useState<FormState>(() => buildInitial(mode));
@@ -333,7 +337,8 @@ export function RoutineEditDrawer({
     if (!form.title.trim()) errs.title = "Title is required";
     if (!form.goal.trim()) errs.goal = "Goal is required";
     if (!form.acceptance_criteria.trim()) errs.acceptance_criteria = "Acceptance criteria is required";
-    if (requireCwd && !form.cwd.trim()) errs.cwd = "Working directory is required";
+    if (requireWorktree && !form.cwd.trim()) errs.cwd = "Project Path is required";
+    if (requireWorktree && !form.baseline_branch.trim()) errs.baseline_branch = "Baseline Branch is required";
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       setError("Fix the highlighted fields before saving.");
@@ -378,7 +383,7 @@ export function RoutineEditDrawer({
       if (form.allowed_tools.trim())
         config.allowed_tools = form.allowed_tools.split(",").map((s) => s.trim()).filter(Boolean);
       else delete config.allowed_tools;
-      extra = { cwd: form.cwd.trim() || null };
+      extra = { cwd: form.cwd.trim() || null, baseline_branch: form.baseline_branch.trim() || null };
     } else {
       // 模板元数据收敛进 config（与列表 API 的读取契约对齐）
       const inherited =
@@ -757,25 +762,41 @@ export function RoutineEditDrawer({
               </section>
             )}
 
-            {/* Working Directory（仅 routine entity；use-template 必填）*/}
+            {/* Project Path + Baseline Branch（仅 routine entity；隔离 worktree 前提，必填）*/}
             {entity === "routine" && (
-              <div>
-                <label className={labelCls}>Working Directory{requireCwd && reqMark}</label>
-                <input
-                  type="text"
-                  value={form.cwd}
-                  onChange={(e) => update("cwd", e.target.value)}
-                  disabled={readOnly}
-                  placeholder="/path/to/project"
-                  className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
-                />
-                {renderFieldError("cwd")}
-                {requireCwd && (
+              <>
+                <div>
+                  <label className={labelCls}>Project Path{requireWorktree && reqMark}</label>
+                  <input
+                    type="text"
+                    value={form.cwd}
+                    onChange={(e) => update("cwd", e.target.value)}
+                    disabled={readOnly}
+                    placeholder="/path/to/repo"
+                    className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
+                  />
+                  {renderFieldError("cwd")}
                   <p className="mt-1 text-caption text-text-muted">
-                    Working directory where this Routine runs — point it at your target project root.
+                    Git repository root. The engine creates an isolated worktree from the baseline below and
+                    runs Claude Code there — your checked-out branch is never touched.
                   </p>
-                )}
-              </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Baseline Branch{requireWorktree && reqMark}</label>
+                  <input
+                    type="text"
+                    value={form.baseline_branch}
+                    onChange={(e) => update("baseline_branch", e.target.value)}
+                    disabled={readOnly}
+                    placeholder="e.g. origin/feature/1.x.x"
+                    className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
+                  />
+                  {renderFieldError("baseline_branch")}
+                  <p className="mt-1 text-caption text-text-muted">
+                    The worktree is branched from here, and the finished work is opened as a PR back to it.
+                  </p>
+                </div>
+              </>
             )}
 
             {/* Verification Command（顶层，两端一致）*/}

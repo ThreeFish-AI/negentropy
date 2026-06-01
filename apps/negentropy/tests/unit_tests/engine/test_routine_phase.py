@@ -45,6 +45,54 @@ def _routine(**kw):
     return SimpleNamespace(**base)
 
 
+def _wt_routine(**kw):
+    """worktree routine 替身（含 baseline_branch / work_branch）。"""
+    base = dict(
+        goal="目标",
+        acceptance_criteria="验收",
+        reflections={},
+        claude_session_id=None,
+        current_phase="implement",
+        baseline_branch="origin/feature/1.x.x",
+        work_branch="routine/demo-20260601",
+    )
+    base.update(kw)
+    return SimpleNamespace(**base)
+
+
+def test_is_worktree_routine():
+    assert phase_mod.is_worktree_routine(_wt_routine()) is True
+    assert phase_mod.is_worktree_routine(_routine()) is False  # 无 baseline_branch 属性
+    assert phase_mod.is_worktree_routine(SimpleNamespace(baseline_branch=None)) is False
+    assert phase_mod.is_worktree_routine(SimpleNamespace(baseline_branch="")) is False
+
+
+def test_build_prompt_worktree_header_present_all_phases():
+    for ph in ("implement", "finalize"):
+        p = build_prompt(_wt_routine(current_phase=ph))
+        assert "隔离工作区" in p
+        assert "routine/demo-20260601" in p  # 工作分支
+        assert "绝不" in p  # 禁止污染基线/master 的红线
+
+
+def test_build_prompt_worktree_finalize_injects_concrete_branches():
+    p = build_prompt(_wt_routine(current_phase="finalize"))
+    # 引擎确定性注入：push 工作分支 + gh pr create --base <归一基线> --head <工作分支>
+    assert "git push -u origin routine/demo-20260601" in p
+    assert "--base feature/1.x.x" in p  # origin/ 前缀已剥离
+    assert "--head routine/demo-20260601" in p
+    assert "PR_URL=" in p
+    assert "合并" in p  # 提示人工合并
+
+
+def test_build_prompt_flat_finalize_unchanged_when_no_baseline():
+    """旧扁平 routine（无 baseline）保留泛化收尾文案，不注入具体 push/--head。"""
+    p = build_prompt(_routine(current_phase="finalize"))
+    assert "gh pr create" in p
+    assert "git push -u origin" not in p
+    assert "隔离工作区" not in p
+
+
 def test_build_prompt_plan_phase_forbids_writes():
     p = build_prompt(_routine(current_phase="plan"))
     assert "仅产出实现方案" in p or "Plan ONLY" in p

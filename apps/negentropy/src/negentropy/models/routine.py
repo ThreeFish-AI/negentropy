@@ -76,7 +76,13 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     # --- 任务定义 ---
     goal: Mapped[str] = mapped_column(Text, nullable=False)
     acceptance_criteria: Mapped[str] = mapped_column(Text, nullable=False)
+    # worktree 模式下 cwd 视为 git 仓库根（Project Path）；引擎据此派生隔离 worktree 作为 CC 实际工作目录。
     cwd: Mapped[str | None] = mapped_column(Text, nullable=True)
+    baseline_branch: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="worktree 基线分支 + PR base；非空即启用隔离工作区与通用 FINALIZE/PR",
+    )
     verification_command: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # --- 生命周期 ---
@@ -129,6 +135,10 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     best_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     claude_session_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # 隔离 worktree 运行期状态（引擎独占管理）：work_branch=本轮创建的工作分支，
+    # worktree_path=隔离 worktree 文件系统路径（= CC 实际 cwd）。终态回收后置空；restart 复位重建。
+    work_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    worktree_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 决策窗口水位线：仅 seq > 此值的迭代参与 decide/审批判定。重启失败 routine 时置为当前
     # MAX(seq)，使新一轮尝试的停滞/振荡/审批判定不被既往迭代「污染」（旧迭代仍保留供审计）。
     eval_floor_seq: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")

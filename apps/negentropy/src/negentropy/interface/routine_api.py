@@ -31,6 +31,7 @@ import asyncio
 import json
 import os
 import time as _time
+from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID
@@ -44,6 +45,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.routine import phase as phase_mod
+from negentropy.engine.routine import workspace
 from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
@@ -103,6 +105,7 @@ class RoutineCreateRequest(BaseModel):
     goal: str = Field(..., min_length=1)
     acceptance_criteria: str = Field(..., min_length=1)
     cwd: str | None = None
+    baseline_branch: str | None = Field(default=None, max_length=255)
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -123,6 +126,7 @@ class RoutineUpdateRequest(BaseModel):
     goal: str | None = None
     acceptance_criteria: str | None = None
     cwd: str | None = None
+    baseline_branch: str | None = Field(default=None, max_length=255)
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -158,11 +162,14 @@ def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None 
         "goal": r.goal,
         "acceptance_criteria": r.acceptance_criteria,
         "cwd": r.cwd,
+        "baseline_branch": r.baseline_branch,
         "verification_command": r.verification_command,
         "status": r.status,
         "termination_reason": r.termination_reason,
         "current_phase": r.current_phase,
         "pr_url": r.pr_url,
+        "work_branch": r.work_branch,
+        "worktree_path": r.worktree_path,
         "max_iterations": r.max_iterations,
         "max_cost_usd": r.max_cost_usd,
         "deadline_at": r.deadline_at.isoformat() if r.deadline_at else None,
@@ -558,6 +565,13 @@ async def list_iteration_events(
 async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
     if body.cwd and not os.path.isdir(body.cwd):
         raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
+    # 提供了 Project Path (cwd) + Baseline Branch 时即时校验仓库/基线（早反馈）。存在性的硬约束
+    # 由 start 守卫强制（执行前提），允许 API 侧先创建草稿；前端创建可执行 routine 时已强制二者。
+    if body.cwd and body.baseline_branch:
+        try:
+            await workspace.validate_repo(body.cwd, body.baseline_branch, settings.routine)
+        except workspace.WorkspaceError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     async with db_session.AsyncSessionLocal() as db:
         routine = Routine(
             key=body.key,
@@ -565,6 +579,7 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             goal=body.goal,
             acceptance_criteria=body.acceptance_criteria,
             cwd=body.cwd,
+            baseline_branch=body.baseline_branch,
             verification_command=body.verification_command,
             status="pending",
             max_iterations=body.max_iterations
@@ -620,6 +635,15 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
         for field_name, value in update_data.items():
             setattr(r, field_name, value)
 
+        # 校验合并后的仓库/基线（仅当二者皆有值时即时校验；强制性由 create + start 守卫保证，
+        # 允许增量编辑期间暂缺其一）。
+        if not r.is_template and r.cwd and r.baseline_branch:
+            try:
+                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
+            except workspace.WorkspaceError as exc:
+                await db.rollback()
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+
         try:
             await db.commit()
         except SQLAlchemyError as exc:
@@ -645,6 +669,10 @@ async def delete_routine(routine_id: UUID) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status in _ACTIVE:
             raise HTTPException(status_code=409, detail=f"cannot delete a {r.status} routine; cancel it first")
+        # 删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort）。
+        if r.worktree_path:
+            with suppress(Exception):
+                await workspace.remove_worktree(r, settings.routine)
         try:
             await db.delete(r)
             await db.commit()
@@ -671,6 +699,18 @@ async def start_routine(routine_id: UUID, body: ControlBody | None = None) -> di
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status not in ("pending", "paused"):
             raise HTTPException(status_code=409, detail=f"cannot start from status '{r.status}'")
+        # worktree 隔离守卫（执行硬前提）：可执行 routine 启动前须具备 Project Path (cwd) +
+        # Baseline Branch（保护未回填的旧行；模板不在此路径启动），并校验仓库/基线可用。
+        if not r.is_template:
+            if not (r.cwd and r.baseline_branch):
+                raise HTTPException(
+                    status_code=409,
+                    detail="启动前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
+                )
+            try:
+                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
+            except workspace.WorkspaceError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
         r.status = "running"
         r.termination_reason = None
         await db.commit()
@@ -785,6 +825,12 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
         r.claude_session_id = None
         r.current_phase = phase_mod.initial_phase(r.config)
         r.pr_url = None
+        # 隔离 worktree：移除旧工作区并清空运行期句柄，使新一轮尝试从基线重建（best-effort）。
+        if r.worktree_path:
+            with suppress(Exception):
+                await workspace.remove_worktree(r, settings.routine)
+        r.worktree_path = None
+        r.work_branch = None
         r.eval_floor_seq = int(max_seq)
         if not keep_reflections:
             r.reflections = {}

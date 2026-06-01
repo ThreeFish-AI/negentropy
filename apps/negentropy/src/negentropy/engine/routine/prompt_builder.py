@@ -13,7 +13,10 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from .phase import PHASE_FINALIZE, PHASE_IMPLEMENT, PHASE_PLAN
+from negentropy.config import settings
+
+from .phase import PHASE_FINALIZE, PHASE_IMPLEMENT, PHASE_PLAN, is_worktree_routine
+from .workspace import normalize_base_branch
 
 
 class _RoutineLike(Protocol):
@@ -22,6 +25,8 @@ class _RoutineLike(Protocol):
     reflections: dict[str, Any]
     claude_session_id: str | None
     current_phase: str
+    baseline_branch: str | None
+    work_branch: str | None
 
 
 def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
@@ -36,11 +41,24 @@ def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
     """
     phase = getattr(routine, "current_phase", PHASE_IMPLEMENT) or PHASE_IMPLEMENT
     is_resume = bool(routine.claude_session_id)
+    worktree = is_worktree_routine(routine)
 
     parts: list[str] = [
         f"# 目标 (Goal)\n{routine.goal.strip()}",
         f"# 验收标准 (Acceptance Criteria)\n{routine.acceptance_criteria.strip()}",
     ]
+
+    # 隔离工作区上下文（worktree routine 各相位通用）：约束 CC 仅在隔离 worktree 内改动，
+    # 严禁切换/推送基线或 master/main。work_branch 在首个 launch 前由引擎创建写入。
+    if worktree:
+        baseline = getattr(routine, "baseline_branch", None) or "(baseline)"
+        work_branch = getattr(routine, "work_branch", None)
+        parts.append(
+            "# 隔离工作区 (Isolated Worktree)\n你正在一个隔离 git worktree（当前工作目录）中工作：\n"
+            f"- 工作分支：`{work_branch or '（引擎将基于基线创建）'}`\n"
+            f"- 基线分支：`{baseline}`\n"
+            "请仅在当前工作目录内改动；**绝不**切换分支、推送或污染基线分支与 master/main。"
+        )
 
     reflections = _recent_reflections(routine, max_reflections)
     if reflections:
@@ -56,7 +74,22 @@ def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
             "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n"
             "方案将提交人工审批，通过后再进入实现阶段。"
         )
+    elif phase == PHASE_FINALIZE and worktree:
+        # worktree routine：注入引擎确定性计算的具体分支名（base / head），CC 执行 push + 建 PR。
+        base = normalize_base_branch(getattr(routine, "baseline_branch", "") or "", settings.routine.git_remote)
+        wb = getattr(routine, "work_branch", None) or "<work_branch>"
+        parts.append(
+            "# 收尾 (Finalize)\n验收标准已达标，现在隔离 worktree 内进行收尾交付：\n"
+            "1. 运行 `uv run ruff check` 与 `uv run pytest`，修复全部失败；\n"
+            "2. `git add -A` 后按仓库规范 `git commit`（**切勿**推送 master/main 等主分支）；\n"
+            f"3. 推送工作分支到远端：`git push -u origin {wb}`；\n"
+            f"4. 若该分支已存在 PR 则复用，否则创建："
+            f"`gh pr create --base {base} --head {wb} --title <简洁标题> --body <变更概述>`；\n"
+            "5. **在最终回复的第一行单独输出 `PR_URL=<完整链接>`**（务必置顶，以便系统捕获）；\n"
+            "6. 不要自行合并 PR —— 合并由人工完成。"
+        )
     elif phase == PHASE_FINALIZE:
+        # 旧扁平 routine（无 baseline）：保留泛化收尾文案。
         parts.append(
             "# 收尾 (Finalize)\n验收标准已达标，现进行收尾交付：\n"
             "1. 运行 `uv run ruff check` 与 `uv run pytest`，修复全部失败；\n"

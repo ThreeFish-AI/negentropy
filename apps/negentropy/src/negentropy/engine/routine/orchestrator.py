@@ -37,6 +37,7 @@ from negentropy.models.routine import Routine, RoutineIteration, RoutineIteratio
 
 from . import decision as decision_mod
 from . import phase as phase_mod
+from . import workspace
 from .bus import get_bus
 from .evaluator import RoutineEvaluator
 from .prompt_builder import append_reflection, build_prompt
@@ -86,11 +87,12 @@ class RoutineOrchestrator:
     # 主入口
     # ------------------------------------------------------------------
     async def inspect_once(self) -> dict[str, int]:
-        """单次巡检：reap → evaluate → dispatch。返回各阶段计数（供 handler 汇报）。"""
+        """单次巡检：reap(孤儿迭代 + worktree) → evaluate → dispatch。返回各阶段计数（供 handler 汇报）。"""
         reaped = await self._reap_orphans()
+        cleaned = await self._reap_workspaces()
         evaluated = await self._evaluate_and_decide()
         launched = await self._dispatch_due()
-        return {"reaped": reaped, "evaluated": evaluated, "launched": launched}
+        return {"reaped": reaped, "cleaned": cleaned, "evaluated": evaluated, "launched": launched}
 
     # ------------------------------------------------------------------
     # (a) REAP
@@ -131,6 +133,40 @@ class RoutineOrchestrator:
         if reaped:
             logger.info("routine_reaped_orphans", count=reaped)
         return reaped
+
+    async def _reap_workspaces(self) -> int:
+        """按策略回收终态 routine 的隔离 worktree（集中式清理，兜底各终止路径 + 崩溃遗留）。
+
+        策略 ``worktree_cleanup``：``never`` 不清；``on_success`` 仅清 succeeded（failed/cancelled
+        保留 worktree 供调试）；``always`` 清全部终态。回收 = best-effort 删 worktree + 置空
+        ``worktree_path``（``work_branch`` 保留供审计/PR head 溯源）。delete/restart 另有即时回收钩子。
+        """
+        policy = settings.routine.worktree_cleanup
+        if policy == "never":
+            return 0
+        statuses = ("succeeded",) if policy == "on_success" else ("succeeded", "failed", "cancelled")
+        cleaned = 0
+        async with db_session.AsyncSessionLocal() as db:
+            rows = (
+                (
+                    await db.execute(
+                        select(Routine)
+                        .where(Routine.status.in_(statuses), Routine.worktree_path.is_not(None))
+                        .limit(_BATCH_LIMIT)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for r in rows:
+                with suppress(Exception):
+                    await workspace.remove_worktree(r, settings.routine)
+                r.worktree_path = None
+                cleaned += 1
+            await db.commit()
+        if cleaned:
+            logger.info("routine_reaped_workspaces", count=cleaned, policy=policy)
+        return cleaned
 
     # ------------------------------------------------------------------
     # (b) EVALUATE + DECIDE
@@ -215,16 +251,17 @@ class RoutineOrchestrator:
             if result.reflection:
                 routine.reflections = append_reflection(routine.reflections, result.reflection)
 
-            # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）
-            if phase_mod.is_phased(routine.config) and routine.current_phase == phase_mod.PHASE_FINALIZE:
-                if not routine.pr_url:
-                    routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+            # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）。
+            # worktree routine 与 phased routine 均走相位机（FINALIZE/PR 对 worktree 通用）。
+            phased_flow = phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config)
+            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE and not routine.pr_url:
+                routine.pr_url = phase_mod.extract_pr_url(latest.summary)
 
             # 决策（decision.py 保持纯守卫；相位化 routine 由 orchestrator 解释 SUCCESS）。
             # 仅取「本次尝试」窗口（seq > eval_floor_seq）：重启后旧迭代不污染停滞/振荡判定。
             history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
             verdict = decision_mod.decide(routine, latest, history)
-            if phase_mod.is_phased(routine.config):
+            if phased_flow:
                 self._advance_phase_or_terminate(routine, verdict)
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
@@ -301,7 +338,6 @@ class RoutineOrchestrator:
                 # seq 从实际最大值派生（非 iteration_count），避免 aborted/reaped 迭代
                 # 占用的 seq 与新迭代冲突触发 uq_routine_iterations_seq。
                 seq = await self._next_seq(db, routine.id)
-                prompt = build_prompt(routine, max_reflections=settings.routine.max_reflections_injected)
                 phased = phase_mod.is_phased(routine.config)
                 has_prior_impl = (
                     await self._has_prior_phase_iteration(
@@ -317,6 +353,13 @@ class RoutineOrchestrator:
                     has_prior_implement=has_prior_impl,
                     seq=seq,
                 )
+                # 即将 launch 的迭代：先确保隔离 worktree 就绪（worktree routine）。失败 → 终止该
+                # routine 为 unrecoverable 并跳过（不创建迭代行）；待审批迭代延后到 launch 时确保。
+                if not needs_approval and not await self._ensure_workspace(routine):
+                    await self._publish_routine(routine)
+                    continue
+                # prompt 在 ensure 之后构建，使 FINALIZE 具体命令与工作区上下文可引用 work_branch。
+                prompt = build_prompt(routine, max_reflections=settings.routine.max_reflections_injected)
                 iteration = RoutineIteration(
                     routine_id=routine.id,
                     seq=seq,
@@ -365,6 +408,7 @@ class RoutineOrchestrator:
                 .all()
             )
             slots = runner.available_slots()
+            dirty = False
             for it in rows:
                 if slots <= 0:
                     break
@@ -373,10 +417,21 @@ class RoutineOrchestrator:
                 routine = await db.get(Routine, it.routine_id)
                 if routine is None:
                     continue
+                # 确保隔离 worktree 就绪（待审批迭代在此刻才创建工作区）。失败 → 终止 routine +
+                # 闭合该迭代为 aborted，跳过 launch。
+                if not await self._ensure_workspace(routine):
+                    it.status = "aborted"
+                    it.finished_at = _utcnow()
+                    dirty = True
+                    await self._publish_routine(routine)
+                    continue
                 config = await self._build_config(routine)
                 prompt = it.prompt or build_prompt(routine)
                 launch_specs.append((it.id, routine.id, prompt, config))
+                dirty = True  # _ensure_workspace 在 routine 上写入了 worktree_path/work_branch
                 slots -= 1
+            if dirty:
+                await db.commit()
 
         for iteration_id, routine_id, prompt, config in launch_specs:
             runner.launch(iteration_id=iteration_id, routine_id=routine_id, prompt=prompt, config=config)
@@ -441,14 +496,39 @@ class RoutineOrchestrator:
         routine.status = "succeeded" if reason == decision_mod.REASON_SUCCESS else "failed"
         routine.termination_reason = reason
 
+    async def _ensure_workspace(self, routine: Routine) -> bool:
+        """worktree routine：确保隔离 worktree 就绪并把 ``worktree_path``/``work_branch`` 写回
+        （已锁定的）``routine`` 对象，由调用方事务提交。
+
+        返回 ``True`` 表示可派发（非 worktree routine 恒 True）；返回 ``False`` 表示工作区创建失败
+        且已 ``_terminate(unrecoverable)``——precondition（仓库/基线合法）在 create/start 已校验，
+        此刻失败视为不可恢复（仓库被移除 / 基线消失），诚实终止优于静默挂起。
+        """
+        if not phase_mod.is_worktree_routine(routine):
+            return True
+        try:
+            info = await workspace.ensure_worktree(routine, settings.routine)
+        except workspace.WorkspaceError as exc:
+            logger.warning("routine_worktree_ensure_failed", routine_id=str(routine.id), error=str(exc))
+            self._terminate(routine, decision_mod.REASON_UNRECOVERABLE)
+            return False
+        routine.worktree_path = info.path
+        routine.work_branch = info.branch
+        return True
+
     async def _build_config(self, routine: Routine):
-        """构建本次执行的 ClaudeCodeConfig：全局默认 + routine 覆盖 + session 续接。"""
+        """构建本次执行的 ClaudeCodeConfig：全局默认 + routine 覆盖 + session 续接。
+
+        worktree routine：CC 实际 cwd 指向引擎备好的隔离 worktree（``worktree_path`` 由
+        ``_ensure_workspace`` 在 launch 前写入）；``cwd`` 仅作 worktree 派生源（仓库根）。
+        """
         from negentropy.engine.schedulers.handlers.claude_code import _load_claude_code_defaults
 
         config = await _load_claude_code_defaults()
         overrides = routine.config or {}
-        if routine.cwd:
-            config.cwd = routine.cwd
+        effective_cwd = routine.worktree_path if phase_mod.is_worktree_routine(routine) else routine.cwd
+        if effective_cwd:
+            config.cwd = effective_cwd
         if overrides.get("max_turns"):
             config.max_turns = int(overrides["max_turns"])
         if overrides.get("model"):
@@ -457,9 +537,9 @@ class RoutineOrchestrator:
             config.system_prompt = overrides["system_prompt"]
         if overrides.get("allowed_tools"):
             config.allowed_tools = overrides["allowed_tools"]
-        # 相位化工作流：permission_mode 由相位决定（覆盖 preset 静态值），使 PLAN 仅规划、
-        # IMPLEMENT/FINALIZE 落盘；扁平工作流沿用 preset 覆盖或全局默认。
-        if phase_mod.is_phased(routine.config):
+        # permission_mode 由相位决定（PLAN 仅规划、IMPLEMENT/FINALIZE 落盘）——对 worktree routine
+        # 与 phased routine 均生效（覆盖 preset 静态值）；旧扁平 routine 沿用 preset 覆盖或全局默认。
+        if phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
             config.permission_mode = phase_mod.permission_mode_for(routine.current_phase)
         elif overrides.get("permission_mode"):
             config.permission_mode = overrides["permission_mode"]
