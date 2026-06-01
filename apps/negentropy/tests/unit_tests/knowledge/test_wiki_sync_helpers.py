@@ -17,7 +17,7 @@ from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
 
 def _node(node_id: str, slug: str, parent_id: str | None) -> dict:
-    return {"id": node_id, "slug": slug, "parent_id": parent_id}
+    return {"id": node_id, "slug": slug, "parent_id": parent_id, "node_type": "folder"}
 
 
 class TestBuildPathSlugs:
