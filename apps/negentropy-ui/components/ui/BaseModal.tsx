@@ -37,7 +37,7 @@ export interface BaseModalProps {
    * 卡片宽度档位。`md` ≈ max-w-md（创建对话框等表单），`lg` ≈ max-w-lg
    * （节点选择树等更宽视图）。默认 `md`。
    */
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /**
    * 是否允许点击遮罩关闭。默认 `true`；正在执行不可中断的提交流时可关闭。
    */
@@ -52,6 +52,7 @@ const SIZE_CLASS: Record<NonNullable<BaseModalProps["size"]>, string> = {
   sm: "max-w-sm",
   md: "max-w-md",
   lg: "max-w-lg",
+  xl: "max-w-2xl",
 };
 
 const SPRING_TRANSITION = { type: "spring" as const, damping: 28, stiffness: 320 };
