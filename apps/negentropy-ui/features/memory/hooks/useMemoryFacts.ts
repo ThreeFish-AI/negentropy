@@ -23,6 +23,7 @@ export interface UseMemoryFactsOptions {
   userId: string;
   factType?: string;
   limit?: number;
+  offset?: number;
 }
 
 export interface UseMemoryFactsReturnValue {
@@ -37,7 +38,7 @@ export interface UseMemoryFactsReturnValue {
 export function useMemoryFacts(
   options: UseMemoryFactsOptions,
 ): UseMemoryFactsReturnValue {
-  const { appName, userId, factType, limit } = options;
+  const { appName, userId, factType, limit, offset } = options;
 
   const [payload, setPayload] = useState<FactListPayload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,14 +48,14 @@ export function useMemoryFacts(
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchFacts(userId, appName, factType, limit);
+      const data = await fetchFacts(userId, appName, factType, limit, offset);
       setPayload(data);
     } catch (err) {
       setError(err as Error);
     } finally {
       setIsLoading(false);
     }
-  }, [appName, userId, factType, limit]);
+  }, [appName, userId, factType, limit, offset]);
 
   const search = useCallback(
     async (query: string) => {
@@ -66,6 +67,7 @@ export function useMemoryFacts(
           user_id: userId,
           query,
           limit,
+          offset,
         });
         setPayload(result);
       } catch (err) {
@@ -74,7 +76,7 @@ export function useMemoryFacts(
         setIsLoading(false);
       }
     },
-    [appName, userId, limit],
+    [appName, userId, limit, offset],
   );
 
   const clearSearch = useCallback(() => {

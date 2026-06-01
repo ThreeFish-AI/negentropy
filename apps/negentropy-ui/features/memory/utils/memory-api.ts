@@ -75,6 +75,7 @@ export interface FactItem {
 
 export interface FactListPayload {
   count: number;
+  total: number;
   items: FactItem[];
 }
 
@@ -352,12 +353,14 @@ export async function fetchFacts(
   appName?: string,
   factType?: string,
   limit?: number,
+  offset?: number,
 ): Promise<FactListPayload> {
   const params = new URLSearchParams();
   if (userId) params.set("user_id", userId);
   if (appName) params.set("app_name", appName);
   if (factType) params.set("fact_type", factType);
   if (limit) params.set("limit", String(limit));
+  if (offset) params.set("offset", String(offset));
   const qs = params.toString() ? `?${params.toString()}` : "";
 
   const res = await fetch(`/api/memory/facts${qs}`, {
@@ -374,6 +377,7 @@ export async function searchFacts(params: {
   user_id: string;
   query: string;
   limit?: number;
+  offset?: number;
 }): Promise<FactListPayload> {
   const res = await fetch("/api/memory/facts/search", {
     method: "POST",
