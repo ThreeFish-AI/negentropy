@@ -8,6 +8,7 @@ import { toast } from "@/lib/activity-toast";
 
 import { useSingletonCatalog } from "../_hooks/useSingletonCatalog";
 import { useCatalogTree } from "../_hooks/useCatalogTree";
+import { useCatalogTreeDnd } from "../_hooks/useCatalogTreeDnd";
 import { useWikiPublications } from "../_hooks/useWikiPublications";
 
 import { CatalogTreePane } from "./catalog/CatalogTreePane";
@@ -25,12 +26,6 @@ interface ContextMenuState {
   node: CatalogNode | null;
 }
 
-interface DragState {
-  draggedId: string | null;
-  targetId: string | null;
-  position: "before" | "inside" | "after" | null;
-}
-
 export function LibraryShell() {
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -43,13 +38,18 @@ export function LibraryShell() {
   const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [dragState, setDragState] = useState<DragState>({
-    draggedId: null,
-    targetId: null,
-    position: null,
-  });
 
   const entriesPreviewRef = useRef<WikiEntriesPreviewHandle | null>(null);
+
+  // ---- @dnd-kit DnD ----
+  const dnd = useCatalogTreeDnd({
+    nodes: treeApi.nodes,
+    expandedIds: treeApi.expandedIds,
+    catalogId,
+    onMove: treeApi.moveNode,
+    onExpand: treeApi.toggleExpand,
+    onRefresh: treeApi.refresh,
+  });
 
   // --- Catalog handlers ---
   const handleAddChild = useCallback((parentId: string) => {
@@ -116,83 +116,6 @@ export function LibraryShell() {
     [treeApi],
   );
 
-  const handleDragStart = useCallback((nodeId: string) => {
-    setDragState({ draggedId: nodeId, targetId: null, position: null });
-  }, []);
-
-  const handleDragOver = useCallback(
-    (targetId: string, e: React.DragEvent) => {
-      if (!dragState.draggedId) return;
-      if (dragState.draggedId === targetId) return;
-      const draggedNode = treeApi.nodes.find((n) => n.id === dragState.draggedId);
-      if (draggedNode?.path?.includes(targetId)) return;
-
-      const rect = (e.target as HTMLElement).closest("[draggable]")?.getBoundingClientRect();
-      if (!rect) return;
-
-      const y = e.clientY - rect.top;
-      const height = rect.height;
-      let position: "before" | "inside" | "after";
-      if (y < height * 0.25) position = "before";
-      else if (y > height * 0.75) position = "after";
-      else position = "inside";
-
-      setDragState((prev) => ({ ...prev, targetId, position }));
-    },
-    [dragState.draggedId, treeApi],
-  );
-
-  const handleDrop = useCallback(
-    async (targetId: string) => {
-      if (!dragState.draggedId || !catalogId) {
-        setDragState({ draggedId: null, targetId: null, position: null });
-        return;
-      }
-      const draggedNodeId = dragState.draggedId;
-      const targetNode = treeApi.nodes.find((n) => n.id === targetId);
-      if (!targetNode) {
-        setDragState({ draggedId: null, targetId: null, position: null });
-        return;
-      }
-
-      let newParentId: string | null;
-      let newSortOrder: number;
-
-      if (dragState.position === "inside") {
-        newParentId = targetId;
-        const targetChildren = treeApi.nodes.filter((n) => n.parent_id === targetId);
-        const maxSort = targetChildren.length
-          ? Math.max(...targetChildren.map((n) => n.sort_order))
-          : 0;
-        newSortOrder = maxSort + 1000;
-      } else {
-        newParentId = targetNode.parent_id;
-        const siblings = treeApi.nodes
-          .filter((n) => n.parent_id === targetNode.parent_id)
-          .sort((a, b) => a.sort_order - b.sort_order);
-        const targetIdx = siblings.findIndex((s) => s.id === targetId);
-        if (dragState.position === "before") {
-          const prevSort = targetIdx > 0 ? siblings[targetIdx - 1].sort_order : 0;
-          newSortOrder = (prevSort + targetNode.sort_order) / 2;
-        } else {
-          const nextSort =
-            targetIdx < siblings.length - 1
-              ? siblings[targetIdx + 1].sort_order
-              : targetNode.sort_order + 2000;
-          newSortOrder = (targetNode.sort_order + nextSort) / 2;
-        }
-      }
-
-      setDragState({ draggedId: null, targetId: null, position: null });
-      await treeApi.moveNode(draggedNodeId, newParentId, newSortOrder);
-    },
-    [dragState.draggedId, dragState.position, catalogId, treeApi],
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDragState({ draggedId: null, targetId: null, position: null });
-  }, []);
-
   const handleAfterSync = useCallback(() => {
     entriesPreviewRef.current?.refresh();
   }, []);
@@ -224,7 +147,6 @@ export function LibraryShell() {
           expandedIds={treeApi.expandedIds}
           searchQuery={searchQuery}
           editingNodeId={editingNodeId}
-          dragState={dragState}
           contextMenu={contextMenu}
           onSearchChange={setSearchQuery}
           onSelectNode={treeApi.selectNode}
@@ -235,10 +157,15 @@ export function LibraryShell() {
           onContextMenu={handleContextMenu}
           onRename={handleRename}
           onCancelEdit={() => setEditingNodeId(null)}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onDragEnd={handleDragEnd}
+          dndSensors={dnd.sensors}
+          dndCollisionDetection={dnd.collisionDetection}
+          onDndDragStart={dnd.onDragStart}
+          onDndDragMove={dnd.onDragMove}
+          onDndDragEnd={dnd.onDragEnd}
+          onDndDragCancel={dnd.onDragCancel}
+          activeNode={dnd.activeNode}
+          dropTarget={dnd.dropTarget}
+          isMoving={dnd.isMoving}
           onContextAddChild={handleAddChild}
           onContextRename={handleContextRename}
           onContextCopyId={handleContextCopyId}

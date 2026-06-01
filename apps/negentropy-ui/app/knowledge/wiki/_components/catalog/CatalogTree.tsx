@@ -1,9 +1,27 @@
 "use client";
 
 import { useMemo } from "react";
-import { CatalogNode } from "@/features/knowledge";
+import {
+  DndContext,
+  DragOverlay,
+  type DragStartEvent,
+  type DragMoveEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CatalogNode, CatalogNodeType } from "@/features/knowledge";
 import { CatalogTreeNode } from "./CatalogTreeNode";
+import { DndTreeNode } from "./DndTreeNode";
 import { EmptyCatalogState } from "./EmptyCatalogState";
+import {
+  Folder,
+  FileText,
+} from "./icons";
+
+import type { DropTarget } from "../../_hooks/useCatalogTreeDnd";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface CatalogTreeProps {
   nodes: CatalogNode[];
@@ -17,12 +35,52 @@ interface CatalogTreeProps {
   onContextMenu: (node: CatalogNode | null, e: React.MouseEvent) => void;
   onRename: (nodeId: string, newName: string) => void;
   onCancelEdit: () => void;
-  dragState: { draggedId: string | null; targetId: string | null; position: "before" | "inside" | "after" | null } | null;
-  onDragStart: (nodeId: string) => void;
-  onDragOver: (nodeId: string, e: React.DragEvent) => void;
-  onDrop: (nodeId: string) => void;
-  onDragEnd: () => void;
+
+  /* @dnd-kit DnD */
+  dndSensors: ReturnType<typeof import("@dnd-kit/core").useSensors>;
+  dndCollisionDetection: typeof import("@dnd-kit/core").closestCenter;
+  onDndDragStart: (event: DragStartEvent) => void;
+  onDndDragMove: (event: DragMoveEvent) => void;
+  onDndDragEnd: (event: DragEndEvent) => void;
+  onDndDragCancel: () => void;
+  activeNode: CatalogNode | null;
+  dropTarget: DropTarget | null;
+  isMoving: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Drag overlay preview
+// ---------------------------------------------------------------------------
+
+const NODE_TYPE_OVERLAY_ICONS: Record<CatalogNodeType, typeof Folder> = {
+  folder: Folder,
+  document_ref: FileText,
+  category: Folder,
+  collection: Folder,
+};
+
+const NODE_TYPE_OVERLAY_COLORS: Record<CatalogNodeType, string> = {
+  folder: "text-amber-500",
+  document_ref: "text-text-muted",
+  category: "text-amber-500",
+  collection: "text-amber-500",
+};
+
+function DragOverlayPreview({ node }: { node: CatalogNode }) {
+  const Icon = NODE_TYPE_OVERLAY_ICONS[node.node_type] || Folder;
+  const color = NODE_TYPE_OVERLAY_COLORS[node.node_type] || "text-text-muted";
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-card border border-primary/20 shadow-lg px-3 py-1.5 text-sm opacity-90">
+      <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+      <span className="font-medium truncate max-w-[200px]">{node.name}</span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CatalogTree
+// ---------------------------------------------------------------------------
 
 export function CatalogTree({
   nodes,
@@ -36,17 +94,18 @@ export function CatalogTree({
   onContextMenu,
   onRename,
   onCancelEdit,
-  dragState,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
+
+  dndSensors,
+  dndCollisionDetection,
+  onDndDragStart,
+  onDndDragMove,
+  onDndDragEnd,
+  onDndDragCancel,
+  activeNode,
+  dropTarget,
+  isMoving,
 }: CatalogTreeProps) {
-  // Reorder flat list into DFS (depth-first) traversal order.
-  // Backend CTE returns nodes grouped by depth level (all depth-0 first,
-  // then all depth-1, etc.), which breaks visual parent-child grouping
-  // in a flat-list renderer. DFS order ensures children appear right
-  // after their parent with correct sibling ordering by sort_order.
+  // Reorder flat list into DFS traversal order (same as before)
   const dfsOrderedNodes = useMemo(() => {
     const childrenMap = new Map<string, CatalogNode[]>();
     const roots: CatalogNode[] = [];
@@ -96,7 +155,6 @@ export function CatalogTree({
     for (const node of dfsOrderedNodes) {
       if (node.name.toLowerCase().includes(q)) {
         matched.add(node.id);
-        // Include ancestors
         for (const ancestorId of node.path ?? []) {
           matched.add(ancestorId);
         }
@@ -105,11 +163,9 @@ export function CatalogTree({
     return matched;
   }, [dfsOrderedNodes, searchQuery]);
 
-  // Visibility filter: show root nodes + children whose parent is expanded
-  // When searching, auto-expand matched ancestors
+  // Visibility filter
   const visibleNodes = useMemo(() => {
     const effectiveExpanded = new Set(expandedIds);
-    // Auto-expand ancestors of search matches
     if (filteredNodeIds) {
       for (const node of dfsOrderedNodes) {
         if (filteredNodeIds.has(node.id) && node.parent_id) {
@@ -119,7 +175,6 @@ export function CatalogTree({
     }
 
     return dfsOrderedNodes.filter((node) => {
-      // Apply search filter
       if (filteredNodeIds && !filteredNodeIds.has(node.id)) return false;
       if (node.parent_id === null) return true;
       return effectiveExpanded.has(node.parent_id);
@@ -148,32 +203,51 @@ export function CatalogTree({
   }
 
   return (
-    <div className="overflow-y-auto rounded-lg border border-border bg-card flex-1 min-h-0">
-      {visibleNodes.map((node) => (
-        <CatalogTreeNode
-          key={node.id}
-          node={node}
-          depth={node.depth ?? 0}
-          isExpanded={expandedIds.has(node.id)}
-          hasChildren={(childrenCountMap.get(node.id) ?? 0) > 0}
-          isSelected={selectedNodeId === node.id}
-          isEditing={editingNodeId === node.id}
-          searchQuery={searchQuery}
-          onToggle={onToggleExpand}
-          onSelect={(n) => onSelectNode(n)}
-          onAddChild={onAddChild}
-          onContextMenu={onContextMenu}
-          onRename={onRename}
-          onCancelEdit={onCancelEdit}
-          highlightMatch={highlightMatch}
-          isDragging={dragState?.draggedId === node.id}
-          dropTarget={dragState?.targetId === node.id ? dragState.position : null}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-          onDragEnd={onDragEnd}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={dndSensors}
+      collisionDetection={dndCollisionDetection}
+      onDragStart={onDndDragStart}
+      onDragMove={onDndDragMove}
+      onDragEnd={onDndDragEnd}
+      onDragCancel={onDndDragCancel}
+    >
+      <div className="overflow-y-auto rounded-lg border border-border bg-card flex-1 min-h-0">
+        {visibleNodes.map((node) => {
+          const nodeDropTarget =
+            dropTarget?.overId === node.id ? dropTarget.position : null;
+
+          return (
+            <DndTreeNode
+              key={node.id}
+              node={node}
+              isEditing={editingNodeId === node.id}
+              isMoving={isMoving}
+            >
+              <CatalogTreeNode
+                node={node}
+                depth={node.depth ?? 0}
+                isExpanded={expandedIds.has(node.id)}
+                hasChildren={(childrenCountMap.get(node.id) ?? 0) > 0}
+                isSelected={selectedNodeId === node.id}
+                isEditing={editingNodeId === node.id}
+                searchQuery={searchQuery}
+                onToggle={onToggleExpand}
+                onSelect={(n) => onSelectNode(n)}
+                onAddChild={onAddChild}
+                onContextMenu={onContextMenu}
+                onRename={onRename}
+                onCancelEdit={onCancelEdit}
+                highlightMatch={highlightMatch}
+                dropTarget={nodeDropTarget}
+              />
+            </DndTreeNode>
+          );
+        })}
+      </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeNode ? <DragOverlayPreview node={activeNode} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
