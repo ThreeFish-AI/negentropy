@@ -52,12 +52,10 @@ interface CatalogTreeNodeProps {
   onRename: (nodeId: string, newName: string) => void;
   onCancelEdit: () => void;
   highlightMatch: (text: string) => React.ReactNode;
-  isDragging: boolean;
-  dropTarget: "before" | "inside" | "after" | null;
-  onDragStart: (nodeId: string) => void;
-  onDragOver: (nodeId: string, e: React.DragEvent) => void;
-  onDrop: (nodeId: string) => void;
-  onDragEnd: () => void;
+  /** Whether this node is currently being dragged */
+  isDragging?: boolean;
+  /** Current drop position relative to this node, null if not a target */
+  dropTarget?: "before" | "inside" | "after" | null;
 }
 
 export function CatalogTreeNode({
@@ -74,12 +72,7 @@ export function CatalogTreeNode({
   onRename,
   onCancelEdit,
   highlightMatch,
-  isDragging,
   dropTarget,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
 }: CatalogTreeNodeProps) {
   const Icon = NODE_TYPE_ICONS[node.node_type] || Folder;
   const color = NODE_TYPE_COLORS[node.node_type] || "text-text-muted";
@@ -115,53 +108,17 @@ export function CatalogTreeNode({
     [handleRenameConfirm, onCancelEdit],
   );
 
-  // Drag handlers
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.setData("text/plain", node.id);
-      e.dataTransfer.effectAllowed = "move";
-      onDragStart(node.id);
-    },
-    [node.id, onDragStart],
-  );
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onDragOver(node.id, e);
-    },
-    [node.id, onDragOver],
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onDrop(node.id);
-    },
-    [node.id, onDrop],
-  );
-
-  const handleDragEndChild = useCallback(() => {
-    onDragEnd();
-  }, [onDragEnd]);
-
   return (
-    <div
-      draggable={!isEditing}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-      onDragEnd={handleDragEndChild}
-      className={`relative ${isDragging ? "opacity-40" : ""}`}
-    >
-      {/* Drop indicator: before */}
+    <>
+      {/* ---- Drop indicator: before ---- */}
       {dropTarget === "before" && (
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded-full z-10" />
+        <div className="absolute top-0 left-3 right-0 h-[3px] z-10 flex items-center">
+          <div className="absolute left-0 w-2 h-2 rounded-full bg-primary" />
+          <div className="ml-1.5 flex-1 bg-primary rounded-full h-[3px]" />
+        </div>
       )}
 
-      {/* Drop indicator: inside (background highlight) */}
+      {/* ---- Node content row ---- */}
       <div
         role="button"
         tabIndex={isEditing ? -1 : 0}
@@ -175,7 +132,6 @@ export function CatalogTreeNode({
         }}
         onDoubleClick={() => {
           if (onAddChild) {
-            // Double-click on name triggers rename via context
             onContextMenu(node, {
               clientX: 0,
               clientY: 0,
@@ -234,14 +190,14 @@ export function CatalogTreeNode({
           </span>
         )}
 
-        {/* Type badge — 中文标签（自 PR-4 起替换 enum 值原文显示） */}
+        {/* Type badge */}
         {!isEditing && (
           <span className="ml-auto text-micro px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground shrink-0">
             {NODE_TYPE_LABELS[node.node_type] ?? "目录"}
           </span>
         )}
 
-        {/* More button (always visible, opens context menu) */}
+        {/* More button */}
         {!isEditing && (
           <button
             type="button"
@@ -258,10 +214,13 @@ export function CatalogTreeNode({
         )}
       </div>
 
-      {/* Drop indicator: after */}
+      {/* ---- Drop indicator: after ---- */}
       {dropTarget === "after" && (
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full z-10" />
+        <div className="absolute bottom-0 left-3 right-0 h-[3px] z-10 flex items-center">
+          <div className="absolute left-0 w-2 h-2 rounded-full bg-primary" />
+          <div className="ml-1.5 flex-1 bg-primary rounded-full h-[3px]" />
+        </div>
       )}
-    </div>
+    </>
   );
 }

@@ -1,15 +1,17 @@
 "use client";
 
+import {
+  type DragStartEvent,
+  type DragMoveEvent,
+  type DragEndEvent,
+  type UniqueIdentifier,
+} from "@dnd-kit/core";
+import { CatalogNode } from "@/features/knowledge";
 import { CatalogTree } from "./CatalogTree";
 import { CatalogTreeToolbar } from "./CatalogTreeToolbar";
 import { CatalogContextMenu } from "./CatalogContextMenu";
-import { CatalogNode } from "@/features/knowledge";
 
-interface DragState {
-  draggedId: string | null;
-  targetId: string | null;
-  position: "before" | "inside" | "after" | null;
-}
+import type { DropTarget } from "../../_hooks/useCatalogTreeDnd";
 
 interface CatalogTreePaneProps {
   catalogLoading: boolean;
@@ -20,8 +22,9 @@ interface CatalogTreePaneProps {
   expandedIds: Set<string>;
   searchQuery: string;
   editingNodeId: string | null;
-  dragState: DragState;
   contextMenu: { x: number; y: number; node: CatalogNode | null } | null;
+
+  /* Tree actions */
   onSearchChange: (q: string) => void;
   onSelectNode: (node: CatalogNode | null) => void;
   onToggleExpand: (id: string) => void;
@@ -31,10 +34,20 @@ interface CatalogTreePaneProps {
   onContextMenu: (node: CatalogNode | null, e: React.MouseEvent) => void;
   onRename: (nodeId: string, newName: string) => void;
   onCancelEdit: () => void;
-  onDragStart: (nodeId: string) => void;
-  onDragOver: (targetId: string, e: React.DragEvent) => void;
-  onDrop: (targetId: string) => void;
-  onDragEnd: () => void;
+
+  /* @dnd-kit DnD — consolidated API */
+  dndSensors: ReturnType<typeof import("@dnd-kit/core").useSensors>;
+  dndCollisionDetection: typeof import("@dnd-kit/core").closestCenter;
+  onDndDragStart: (event: DragStartEvent) => void;
+  onDndDragMove: (event: DragMoveEvent) => void;
+  onDndDragEnd: (event: DragEndEvent) => void;
+  onDndDragCancel: () => void;
+  activeId: UniqueIdentifier | null;
+  activeNode: CatalogNode | null;
+  dropTarget: DropTarget | null;
+  isMoving: boolean;
+
+  /* Context menu actions */
   onContextAddChild: (parentId: string) => void;
   onContextRename: (nodeId: string) => void;
   onContextCopyId: (nodeId: string) => void;
@@ -51,7 +64,6 @@ export function CatalogTreePane({
   expandedIds,
   searchQuery,
   editingNodeId,
-  dragState,
   contextMenu,
   onSearchChange,
   onSelectNode,
@@ -62,10 +74,18 @@ export function CatalogTreePane({
   onContextMenu,
   onRename,
   onCancelEdit,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
+
+  dndSensors,
+  dndCollisionDetection,
+  onDndDragStart,
+  onDndDragMove,
+  onDndDragEnd,
+  onDndDragCancel,
+  activeId,
+  activeNode,
+  dropTarget,
+  isMoving,
+
   onContextAddChild,
   onContextRename,
   onContextCopyId,
@@ -107,11 +127,16 @@ export function CatalogTreePane({
             onContextMenu={onContextMenu}
             onRename={onRename}
             onCancelEdit={onCancelEdit}
-            dragState={dragState}
-            onDragStart={onDragStart}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onDragEnd={onDragEnd}
+            dndSensors={dndSensors}
+            dndCollisionDetection={dndCollisionDetection}
+            onDndDragStart={onDndDragStart}
+            onDndDragMove={onDndDragMove}
+            onDndDragEnd={onDndDragEnd}
+            onDndDragCancel={onDndDragCancel}
+            activeId={activeId}
+            activeNode={activeNode}
+            dropTarget={dropTarget}
+            isMoving={isMoving}
           />
         </>
       )}
