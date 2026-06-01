@@ -81,7 +81,7 @@ async def test_pipeline_tracker_emits_run_and_stage_logs(monkeypatch) -> None:
         run_id="run-logs",
     )
     fake_logger = FakeLogger()
-    monkeypatch.setattr("negentropy.knowledge.service.logger", fake_logger)
+    monkeypatch.setattr("negentropy.knowledge.pipeline_tracker.logger", fake_logger)
 
     await tracker.start({"corpus_id": "corpus-1", "source_uri": "memory://doc"})
     await tracker.start_stage("chunk")

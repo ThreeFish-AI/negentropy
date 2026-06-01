@@ -1959,6 +1959,7 @@ class KnowledgeService:
                     metadata_filter=config.metadata_filter,
                 )
                 keyword_matches = await hydrate_match_metadata(
+                    self._repository,
                     corpus_id=corpus_id,
                     app_name=app_name,
                     matches=keyword_matches,
@@ -1970,12 +1971,14 @@ class KnowledgeService:
                     result_count=len(keyword_matches),
                 )
                 keyword_matches = await lift_hierarchical_matches(
+                    self._repository,
                     corpus_id=corpus_id,
                     app_name=app_name,
                     matches=keyword_matches,
                     limit=config.limit,
                 )
                 return await record_match_retrievals(
+                    self._repository,
                     corpus_id=corpus_id,
                     app_name=app_name,
                     matches=keyword_matches,

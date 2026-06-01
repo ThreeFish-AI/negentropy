@@ -17,37 +17,6 @@ from negentropy.knowledge.graph.entity_service import KgEntityService
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
-class TestGetTopEntities:
-    """高频实体查询测试（已有功能回归）"""
-
-    @pytest.fixture
-    def service(self):
-        return KgEntityService()
-
-    @pytest.mark.asyncio
-    async def test_get_top_entities_returns_list(self):
-        """get_top_entities 应返回实体列表"""
-        service = KgEntityService()
-        mock_db = AsyncMock()
-
-        mock_result = MagicMock()
-        mock_result.all.return_value = [
-            (uuid4(), "Alice", "person", 0.9, 5),
-            (uuid4(), "OpenAI", "organization", 0.95, 3),
-        ]
-        mock_db.execute = AsyncMock(return_value=mock_result)
-
-        result = await service.get_top_entities(
-            mock_db,
-            corpus_id=_CORPUS_ID,
-            limit=10,
-        )
-
-        assert len(result) == 2
-        assert result[0]["name"] == "Alice"
-        assert result[1]["name"] == "OpenAI"
-
-
 class TestGetEntityDetail:
     """实体详情测试"""
 

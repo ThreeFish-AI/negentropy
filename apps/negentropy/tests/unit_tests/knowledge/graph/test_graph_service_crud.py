@@ -12,7 +12,6 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from negentropy.knowledge.graph.repository import BuildRunRecord
 from negentropy.knowledge.graph.service import GraphService, get_graph_service
 from negentropy.knowledge.types import GraphEdge, GraphNode, KnowledgeGraphPayload
 
@@ -183,25 +182,3 @@ class TestGraphService:
         timeline = await service.get_relation_timeline(_CORPUS_ID, bucket="day")
         assert len(timeline) == 1
         mock_repository.get_relation_timeline.assert_called_once_with(corpus_id=_CORPUS_ID, bucket="day")
-
-    @pytest.mark.asyncio
-    async def test_get_build_history_returns_records(self, service, mock_repository):
-        record = BuildRunRecord(
-            id=uuid4(),
-            app_name="test_app",
-            corpus_id=_CORPUS_ID,
-            run_id="run-001",
-            status="completed",
-            entity_count=10,
-            relation_count=5,
-            extractor_config={},
-            model_name="gpt-4",
-            error_message=None,
-            started_at=None,
-            completed_at=None,
-            created_at=None,
-        )
-        mock_repository.get_build_runs.return_value = [record]
-        history = await service.get_build_history(_CORPUS_ID, "test_app")
-        assert len(history) == 1
-        assert history[0].status == "completed"

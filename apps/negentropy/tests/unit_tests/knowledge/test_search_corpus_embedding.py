@@ -44,6 +44,7 @@ class _StubRepository:
         self.rrf_search = AsyncMock(return_value=[_build_match(score=0.8)])
         self.hybrid_search = AsyncMock(return_value=[])
         self.get_corpus_by_id = AsyncMock(return_value=None)
+        self.get_search_match_metadata = AsyncMock(return_value={})
 
 
 def _make_service(
@@ -56,9 +57,13 @@ def _make_service(
         repository=repository,  # type: ignore[arg-type]
         embedding_fn=default_embedding_fn,
     )
-    svc._hydrate_match_metadata = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
-    svc._lift_hierarchical_matches = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
-    svc._record_match_retrievals = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
+    # hydrate_match_metadata / lift_hierarchical_matches / record_match_retrievals
+    # 已从 service 方法提取为模块级独立 async 函数；通过 patch 替换为 pass-through
+    # 以避免真实函数调用 repository 未实现的方法。
+    _pass_through = AsyncMock(side_effect=lambda *a, **kw: kw.get("matches", []))
+    patch("negentropy.knowledge.service.hydrate_match_metadata", _pass_through).start()
+    patch("negentropy.knowledge.service.lift_hierarchical_matches", _pass_through).start()
+    patch("negentropy.knowledge.service.record_match_retrievals", _pass_through).start()
     return svc
 
 

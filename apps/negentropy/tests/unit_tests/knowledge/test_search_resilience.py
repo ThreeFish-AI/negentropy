@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -41,6 +41,7 @@ class _StubRepository:
         self.semantic_search = AsyncMock(return_value=[])
         self.rrf_search = AsyncMock(return_value=[])
         self.hybrid_search = AsyncMock(return_value=[])
+        self.get_search_match_metadata = AsyncMock(return_value={})
 
 
 @pytest.fixture
@@ -63,12 +64,17 @@ def service(stub_repository: _StubRepository) -> KnowledgeService:
         repository=stub_repository,  # type: ignore[arg-type]
         embedding_fn=failing_embedding,
     )
-    # 桩掉与本测无关的私有 helper，避免触发 DB 调用
-    svc._hydrate_match_metadata = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
-    svc._lift_hierarchical_matches = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
-    svc._record_match_retrievals = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
     # search() 现按 corpus.config.embedding_config_id 选 fn；本测固定走 service 默认 fn。
     svc._get_corpus_config = AsyncMock(return_value={})  # type: ignore[method-assign]
+
+    # hydrate_match_metadata / lift_hierarchical_matches / record_match_retrievals
+    # 已从 service 方法提取为模块级独立 async 函数；通过 monkeypatch 替换为
+    # pass-through 以避免真实函数调用 repository 未实现的方法。
+    _pass_through = AsyncMock(side_effect=lambda *a, **kw: kw.get("matches", []))
+    patch("negentropy.knowledge.service.hydrate_match_metadata", _pass_through).start()
+    patch("negentropy.knowledge.service.lift_hierarchical_matches", _pass_through).start()
+    patch("negentropy.knowledge.service.record_match_retrievals", _pass_through).start()
+
     return svc
 
 
