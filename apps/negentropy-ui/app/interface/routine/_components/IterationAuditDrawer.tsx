@@ -99,7 +99,7 @@ export function IterationAuditDrawer({
       onClose={onClose}
       title={title}
       subtitle={iteration ? <IterationMetaBar iteration={iteration} /> : undefined}
-      widthClassName="w-2/3"
+      widthClassName="[width:66.67%]"
     >
       <div className="px-5 py-4">
         {error && <ErrorBanner message={error} onRetry={load} />}
