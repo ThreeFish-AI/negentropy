@@ -66,6 +66,8 @@ export interface FactItem {
   key: string;
   value: Record<string, unknown>;
   confidence: number;
+  /** 重要度评分 (0–1)，后端 `/api/memory/facts` 返回；缺省视为未知不渲染。 */
+  importance_score?: number;
   valid_from?: string;
   valid_until?: string;
   created_at?: string;

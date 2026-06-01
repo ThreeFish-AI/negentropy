@@ -31,6 +31,41 @@ export function formatConfidenceColor(confidence: number): string {
 }
 
 // ============================================================================
+// Importance
+// ============================================================================
+
+export type ImportanceLevel = "high" | "medium" | "low";
+
+// 阈值与配色对齐右侧共享 Legend（Importance：高≥70%、中40–70%、低<40%）。
+const IMPORTANCE_THRESHOLDS = { high: 0.7, medium: 0.4 } as const;
+
+export function getImportanceLevel(score: number): ImportanceLevel {
+  const s = Number.isFinite(score) ? score : 0;
+  if (s >= IMPORTANCE_THRESHOLDS.high) return "high";
+  if (s >= IMPORTANCE_THRESHOLDS.medium) return "medium";
+  return "low";
+}
+
+const IMPORTANCE_COLORS: Record<ImportanceLevel, string> = {
+  high: "bg-blue-500",
+  medium: "bg-cyan-500",
+  low: "bg-slate-400",
+};
+
+export function formatImportanceColor(score: number): string {
+  return IMPORTANCE_COLORS[getImportanceLevel(score)];
+}
+
+// ============================================================================
+// Percent
+// ============================================================================
+
+/** 将 0–1 评分格式化为整数百分比；非有限值归零，避免渲染 NaN%。 */
+export function formatPercent(value: number): number {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100);
+}
+
+// ============================================================================
 // Date Formatting
 // ============================================================================
 
