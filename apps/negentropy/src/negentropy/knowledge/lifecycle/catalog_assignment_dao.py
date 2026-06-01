@@ -58,6 +58,15 @@ class CatalogAssignmentDao:
         source_corpus_id = doc.corpus_id if doc else None
         doc_name = (doc.original_filename or str(document_id)) if doc else str(document_id)
 
+        # 查询兄弟节点中最大 position，确保新 DOCUMENT_REF 获得递增排序值
+        # （避免全部默认 0 导致前端拖拽排序分数索引坍缩）
+        max_pos_result = await db.execute(
+            select(func.coalesce(func.max(DocCatalogEntry.position), 0)).where(
+                DocCatalogEntry.parent_entry_id == catalog_entry_id,
+            )
+        )
+        max_pos = max_pos_result.scalar() or 0
+
         entry = DocCatalogEntry(
             catalog_id=catalog_id,
             parent_entry_id=catalog_entry_id,
@@ -66,6 +75,7 @@ class CatalogAssignmentDao:
             node_type="DOCUMENT_REF",
             name=doc_name,
             status="ACTIVE",
+            position=max_pos + 1000,
         )
         db.add(entry)
         await db.flush()

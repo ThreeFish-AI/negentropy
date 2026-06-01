@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type DragEndEvent,
   type DragMoveEvent,
@@ -94,6 +94,10 @@ export function useCatalogTreeDnd({
   const initialPointerRef = useRef({ x: 0, y: 0 });
   const autoExpandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMovingRef = useRef(false);
+  const nodesRef = useRef(nodes);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
 
   // ---- derived ----
   const activeNode = useMemo(
@@ -212,7 +216,17 @@ export function useCatalogTreeDnd({
           .sort((a, b) => a.sort_order - b.sort_order);
         const idx = siblings.findIndex((s) => s.id === targetNodeId);
 
-        if (position === "before") {
+        // Fallback: when all siblings share the same sort_order (e.g. all 0
+        // from assign_document's historical default), fractional indexing
+        // collapses to the same value and the no-op check skips the move.
+        // Use index-based gaps instead.
+        const allSame =
+          siblings.length > 1 &&
+          siblings.every((s) => s.sort_order === siblings[0].sort_order);
+
+        if (allSame) {
+          sortOrder = (idx + (position === "after" ? 2 : 1)) * SORT_GAP;
+        } else if (position === "before") {
           const prev = idx > 0 ? siblings[idx - 1].sort_order : 0;
           sortOrder = (prev + targetNode.sort_order) / 2;
         } else {
@@ -237,7 +251,10 @@ export function useCatalogTreeDnd({
     async (parentId: string | null) => {
       if (!catalogId) return;
 
-      const siblings = nodes
+      // Use the latest nodes from the ref instead of closure-captured stale
+      // data — onMove has already called refresh() which updates React state.
+      const currentNodes = nodesRef.current;
+      const siblings = currentNodes
         .filter((n) => n.parent_id === parentId)
         .sort((a, b) => a.sort_order - b.sort_order);
 
@@ -259,7 +276,7 @@ export function useCatalogTreeDnd({
       );
       await onRefresh();
     },
-    [catalogId, nodes, onRefresh],
+    [catalogId, onRefresh],
   );
 
   // ---------------------------------------------------------------------------
