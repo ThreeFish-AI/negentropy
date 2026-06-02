@@ -44,6 +44,13 @@ class ClaudeCodeConfig:
     mcp_config: dict[str, Any] | None = None
     resume_session_id: str | None = None
 
+    # 双向交互模式：启用 stdin PIPE + stream-json 输入，允许 Engine 自动应答
+    # Claude Code 的 AskUserQuestion 等交互式工具调用（Routine 执行场景）。
+    interactive: bool = False
+    # 自动应答上下文：Routine 的 goal / acceptance_criteria / prompt，
+    # 供 LLM 生成与任务目标一致的确定性回答。
+    auto_answer_context: dict[str, Any] | None = None
+
     # 注入子进程的真实 Anthropic 凭证（OAuth 长期令牌 / sk-ant- API Key）。
     # 由 credentials.resolve_claude_code_credential 解析，ClaudeCodeService 据此构建子进程 env。
     # repr=False / compare=False：secret 绝不入 repr（防日志、traceback 泄露），亦不参与相等比较。

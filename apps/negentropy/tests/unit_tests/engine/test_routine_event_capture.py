@@ -263,11 +263,12 @@ async def test_emit_events_sink_exception_suppressed():
 # ---------------------------------------------------------------------------
 
 
-def test_system_api_retry_preserves_subtype():
+def test_system_api_retry_uses_system_retry_event_type():
     ev = _one({"type": "system", "subtype": "api_retry", "error": "rate_limited", "attempt": 2, "retry_delay_ms": 500})
-    assert ev["event_type"] == "system"
-    assert ev["title"] == "api_retry"
-    assert "raw" in ev["payload"]
+    assert ev["event_type"] == "system_retry"
+    assert "api_retry" in ev["title"]
+    assert ev["payload"]["error"] == "rate_limited"
+    assert ev["payload"]["attempt"] == 2
 
 
 def test_system_task_started_preserves_subtype():

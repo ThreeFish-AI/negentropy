@@ -49,6 +49,12 @@ export interface RoutineDTO {
   work_branch: string | null;
   /** 引擎管理的运行期：隔离 worktree 文件系统路径（= CC 实际 cwd）。 */
   worktree_path: string | null;
+  /** 计算的 worktree 生命周期状态（仅 detail 端点返回）。 */
+  worktree_status?: "active" | "cleaned" | "orphaned" | "none" | null;
+  /** 人可读的 worktree 磁盘占用估算（如 "42.3M"）。 */
+  worktree_disk_usage?: string | null;
+  /** 当前 worktree 自动清理策略。 */
+  worktree_cleanup_policy?: "on_success" | "always" | "never" | null;
   max_iterations: number | null;
   max_cost_usd: number | null;
   deadline_at: string | null;
@@ -97,12 +103,13 @@ export interface RoutineIterationDTO {
 
 /**
  * 「全过程」动作级审计事件类型：
- * - 执行阶段：system（init）/ assistant（中间消息）/ tool_use（工具调用）/ tool_result（工具结果）/ result（最终产出）
+ * - 执行阶段：system（init）/ system_retry（API 重试，含 401/429）/ assistant（中间消息）/ tool_use（工具调用）/ tool_result（工具结果）/ result（最终产出）
  * - 评估阶段：gate（命令门控）/ evaluation（LLM-as-Judge）
  * - _truncated：动作数超上限的哨兵
  */
 export type RoutineEventType =
   | "system"
+  | "system_retry"
   | "assistant"
   | "tool_use"
   | "tool_result"

@@ -550,6 +550,13 @@ class RoutineOrchestrator:
         if overrides.get("timeout_seconds"):
             config.timeout_seconds = float(overrides["timeout_seconds"])
         config.resume_session_id = routine.claude_session_id
+        # 启用交互模式：Engine 自动应答 AskUserQuestion，使 CC 继续执行而非失败退出。
+        if settings.routine.auto_answer_questions:
+            config.interactive = True
+            config.auto_answer_context = {
+                "goal": routine.goal,
+                "acceptance_criteria": routine.acceptance_criteria,
+            }
         return config
 
     @staticmethod
