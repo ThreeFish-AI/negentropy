@@ -20,6 +20,42 @@ import {
 
 import type { IterationStatus, RoutineEventType, RoutinePhase, RoutineStatus, Verdict } from "@/features/routine";
 
+// ---------------------------------------------------------------------------
+// 事件标题翻译层
+// ---------------------------------------------------------------------------
+
+/** 已知事件 title → 中文标签映射（跨 event_type 共享）。
+ *
+ * 后端 _normalize_stream_event 将 subtype 存入 title 字段（如 "init"、"api_retry"），
+ * 前端据此翻译为用户友好的中文标签。不在映射表中的 title 值（如 tool_use 的描述性标题）
+ * 会被原样透传。 */
+export const EVENT_TITLE_LABELS: Record<string, string> = {
+  // system subtypes
+  init: "会话初始化",
+  api_retry: "API 重试",
+  task_started: "后台任务启动",
+  task_completed: "后台任务完成",
+  task_progress: "任务进度",
+  task_notification: "任务通知",
+  task_updated: "任务状态更新",
+  // assistant subtypes
+  thinking: "思考",
+  // result subtypes
+  success: "成功",
+  error: "执行错误",
+  timeout: "执行超时",
+};
+
+/** 解析事件行标题：翻译已知 title，未知 title 透传，无 title 走 eventTypeLabel 兜底。 */
+export function resolveEventTitle(
+  eventType: RoutineEventType,
+  title: string | null | undefined,
+  toolName: string | null | undefined,
+): string {
+  if (title && title in EVENT_TITLE_LABELS) return EVENT_TITLE_LABELS[title];
+  return title || toolName || eventTypeLabel(eventType);
+}
+
 /** 相位 → 徽章配色（规划=琥珀/实现=天蓝/收尾=紫，深色模式安全对比）。 */
 export function phaseClass(phase: RoutinePhase | null | undefined): string {
   switch (phase) {
@@ -208,7 +244,7 @@ export function eventTypeClass(eventType: RoutineEventType, isError?: boolean): 
 export function eventTypeLabel(eventType: RoutineEventType): string {
   switch (eventType) {
     case "system":
-      return "会话初始化";
+      return "系统事件";
     case "assistant":
       return "推理";
     case "tool_use":

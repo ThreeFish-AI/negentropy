@@ -142,6 +142,11 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
             )
         ]
 
+    # system/* 非 init（api_retry / task_started / task_completed / task_progress / task_notification / task_updated）
+    if etype == _EVT_SYSTEM:
+        subtype = raw.get("subtype") or "unknown"
+        return [_evt("system", {"raw": _cap_json(raw)}, title=subtype)]
+
     # assistant：message.content 块列表 → text / tool_use / thinking；兼容旧扁平 content
     if etype == _EVT_ASSISTANT:
         content = (raw.get("message") or {}).get("content", raw.get("content"))

@@ -256,3 +256,52 @@ async def test_emit_events_sink_exception_suppressed():
 
     await _emit_events({"type": "result", "result": "x"}, holder, bad_sink)
     assert len(holder) == 1  # 仍正常累积
+
+
+# ---------------------------------------------------------------------------
+# system 非 init 子类型归一化（api_retry / task_started / task_progress 等）
+# ---------------------------------------------------------------------------
+
+
+def test_system_api_retry_preserves_subtype():
+    ev = _one({"type": "system", "subtype": "api_retry", "error": "rate_limited", "attempt": 2, "retry_delay_ms": 500})
+    assert ev["event_type"] == "system"
+    assert ev["title"] == "api_retry"
+    assert "raw" in ev["payload"]
+
+
+def test_system_task_started_preserves_subtype():
+    ev = _one({"type": "system", "subtype": "task_started", "task_id": "t1", "description": "research"})
+    assert ev["event_type"] == "system"
+    assert ev["title"] == "task_started"
+
+
+def test_system_task_progress_preserves_subtype():
+    ev = _one({"type": "system", "subtype": "task_progress", "task_id": "t1"})
+    assert ev["event_type"] == "system"
+    assert ev["title"] == "task_progress"
+
+
+def test_system_no_subtype_defaults_to_unknown():
+    ev = _one({"type": "system"})
+    assert ev["event_type"] == "system"
+    assert ev["title"] == "unknown"
+
+
+def test_system_init_unchanged_by_new_branch():
+    """确保 system/init 走原有结构化路径（payload 含 model/cwd 等），不被新分支吞掉。"""
+    ev = _one(
+        {
+            "type": "system",
+            "subtype": "init",
+            "model": "claude-opus",
+            "cwd": "/repo",
+            "tools": ["Read"],
+            "permissionMode": "acceptEdits",
+            "session_id": "sess-1",
+        }
+    )
+    assert ev["event_type"] == "system"
+    assert ev["title"] == "init"
+    assert ev["payload"]["model"] == "claude-opus"
+    assert "raw" not in ev["payload"]  # init 走结构化路径，不含 raw
