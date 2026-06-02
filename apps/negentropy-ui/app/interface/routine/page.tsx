@@ -8,6 +8,7 @@ import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
+  cleanupWorktree,
   controlRoutine,
   deleteRoutine,
   fetchRoutineDetail,
@@ -177,6 +178,17 @@ function RoutinePageInner() {
     }
   };
 
+  const handleCleanupWorktree = async (r: RoutineDTO) => {
+    try {
+      await cleanupWorktree(r.id);
+      toast.success("Worktree cleaned up");
+      refresh();
+      if (selId === r.id) void refreshSelected(r.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clean up worktree");
+    }
+  };
+
   // 统一抽屉 mode：新建优先；否则由 ?sel 派生的选中态进入 routine-edit。
   const drawerMode: DrawerMode | null = createOpen
     ? { kind: "routine-create" }
@@ -220,6 +232,7 @@ function RoutinePageInner() {
               onOpenFull={openFull}
               onRestart={requestRestart}
               onTerminate={requestTerminate}
+              onCleanupWorktree={handleCleanupWorktree}
             />
           </div>
         </ClockProvider>
