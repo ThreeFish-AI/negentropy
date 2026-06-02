@@ -142,6 +142,22 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
             )
         ]
 
+    # system/api_retry：Claude Code 内部 API 重试（含认证失败 401、限流 429 等）
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "api_retry":
+        return [
+            _evt(
+                "system_retry",
+                {
+                    "error": raw.get("error"),
+                    "error_status": raw.get("error_status"),
+                    "attempt": raw.get("attempt"),
+                    "max_retries": raw.get("max_retries"),
+                    "retry_delay_ms": raw.get("retry_delay_ms"),
+                },
+                title=f"api_retry (HTTP {raw.get('error_status', '?')})",
+            )
+        ]
+
     # assistant：message.content 块列表 → text / tool_use / thinking；兼容旧扁平 content
     if etype == _EVT_ASSISTANT:
         content = (raw.get("message") or {}).get("content", raw.get("content"))
@@ -318,6 +334,52 @@ class ClaudeCodeService:
             else:
                 env[key] = value
         return env
+
+    # ------------------------------------------------------------------
+    # 凭证直连验证（绕过 coding-proxy，检出无效 Anthropic API Key）
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def _verify_anthropic_credential_direct(credential: str) -> dict[str, Any] | None:
+        """直连 ``api.anthropic.com`` 验证 ``sk-ant-`` API Key 有效性（绕过 coding-proxy）。
+
+        coding-proxy 主 tier (zhipu) 用自有 key 完全忽略客户端 ``x-api-key``——
+        Test Connection 经 proxy 的 prompt 测试永远无法检出无效/过期/吊销的 Anthropic 凭证。
+        本方法绕过 proxy 发送最小请求（haiku, max_tokens=1），仅验证 key 是否通过认证层。
+
+        Returns:
+            ``None`` = 验证通过（或非认证类错误）；``dict`` = 凭证无效，应立即返回给前端。
+        """
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": credential,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": "claude-haiku-4-5-20251001",
+                        "max_tokens": 1,
+                        "messages": [{"role": "user", "content": "ok"}],
+                    },
+                )
+                if resp.status_code == 401:
+                    body = resp.json()
+                    msg = body.get("error", {}).get("message", "invalid x-api-key")
+                    return {
+                        "success": False,
+                        "message": f"Anthropic API Key 无效：{msg}（直连 api.anthropic.com 验证）",
+                        "detail": "Key 被远程 API 拒绝，请检查是否过期/吊销/权限不足。",
+                    }
+                # 200 / 400 / 404 / 429 等都说明 key 通过了认证层（非 401 即视为有效）。
+                return None
+        except Exception as exc:
+            logger.warning("anthropic_credential_direct_verify_error", error=str(exc))
+            return None  # 网络问题不阻断后续 proxy 测试
 
     @staticmethod
     async def invoke(
@@ -722,7 +784,15 @@ class ClaudeCodeService:
         except Exception as exc:
             return {"success": False, "message": f"claude --version failed: {exc}"}
 
-        # 2. 简单 prompt 测试
+        # 1.5 直连验证 Anthropic API Key（仅 sk-ant- 类型）
+        #   coding-proxy 主 tier (zhipu) 用自有 key，不验证客户端凭证 → Test Connection 通过 ≠ 凭证有效。
+        #   此步绕过 proxy 直连 api.anthropic.com，检出无效/过期/吊销的 key。
+        if config.credential and config.credential.startswith("sk-ant-"):
+            cred_error = await ClaudeCodeService._verify_anthropic_credential_direct(config.credential)
+            if cred_error:
+                return cred_error
+
+        # 2. 简单 prompt 测试（经 coding-proxy）
         t0 = time.monotonic()
         test_result = await ClaudeCodeService.invoke(
             "respond with exactly: OK",
