@@ -13,7 +13,7 @@ import {
   eventGroup,
   eventTypeClass,
   eventTypeIcon,
-  eventTypeLabel,
+  resolveEventTitle,
 } from "./status-style";
 
 /** 渲染 Lucide 图标 —— 以 prop 传入组件引用，避免「render 期间创建组件」lint 误报。 */
@@ -106,6 +106,23 @@ function payloadIsError(payload: Record<string, unknown>): boolean {
   return payload?.is_error === true;
 }
 
+/** 从旧数据的 payload.raw 中 best-effort 提取 system subtype。
+ *  旧持久化数据 title=null，payload.raw 包含原始 JSON（含 subtype 字段）。 */
+function extractSubtitle(payload: Record<string, unknown> | null): string | null {
+  const raw = payload?.raw;
+  if (typeof raw === "object" && raw !== null)
+    return ((raw as Record<string, unknown>).subtype as string) ?? null;
+  if (typeof raw === "string") {
+    try {
+      const p = JSON.parse(raw);
+      return (p?.subtype as string) ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /**
  * 路径感知的单行标题拆分：以最后一个 ``/`` 切出末段（文件名）。
  * 仅当末段非空且不含空白才钉尾（规避对含空格命令/正则的误拆），否则整串走纯 truncate。
@@ -137,7 +154,7 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
   const [open, setOpen] = useState(false);
   const isError = payloadIsError(ev.payload);
   const icon = eventTypeIcon(ev.event_type, ev.tool_name);
-  const title = ev.title || ev.tool_name || eventTypeLabel(ev.event_type);
+  const title = resolveEventTitle(ev.event_type, ev.title || extractSubtitle(ev.payload), ev.tool_name);
   const hasDetail = ev.payload && Object.keys(ev.payload).length > 0;
 
   return (

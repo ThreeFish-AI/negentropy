@@ -50,3 +50,112 @@ describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳",
     expect(screen.getByText("Bash: pytest -q")).toBeInTheDocument();
   });
 });
+
+describe("IterationEventTimeline 事件标题翻译", () => {
+  it("system/init 显示「会话初始化」而非原始 'init'", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({ event_type: "system", title: "init", tool_name: null, payload: { model: "claude-opus" } }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("会话初始化")).toBeInTheDocument();
+    expect(screen.queryByText("init")).not.toBeInTheDocument();
+  });
+
+  it("system 非 init（有 title）显示翻译后的子类型标签", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "system", title: "api_retry", tool_name: null, payload: {} })]}
+      />,
+    );
+    expect(screen.getByText("API 重试")).toBeInTheDocument();
+    expect(screen.queryByText("api_retry")).not.toBeInTheDocument();
+  });
+
+  it("system/task_started 显示「后台任务启动」", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "system", title: "task_started", tool_name: null, payload: {} })]}
+      />,
+    );
+    expect(screen.getByText("后台任务启动")).toBeInTheDocument();
+  });
+
+  it("system/task_progress 显示「任务进度」", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "system", title: "task_progress", tool_name: null, payload: {} })]}
+      />,
+    );
+    expect(screen.getByText("任务进度")).toBeInTheDocument();
+  });
+
+  it("旧持久化 system 事件（title=null，payload.raw 中含 subtype）提取并翻译子类型", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "system",
+            title: null,
+            tool_name: null,
+            payload: { raw: { type: "system", subtype: "task_notification" } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("任务通知")).toBeInTheDocument();
+  });
+
+  it("未知 system 子类型回退显示「系统事件」", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "system", title: null, tool_name: null, payload: {} })]}
+      />,
+    );
+    expect(screen.getByText("系统事件")).toBeInTheDocument();
+  });
+
+  it("assistant/thinking 显示「思考」而非原始 'thinking'", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", title: "thinking", tool_name: null, payload: { text: "…" } })]}
+      />,
+    );
+    expect(screen.getByText("思考")).toBeInTheDocument();
+    expect(screen.queryByText("thinking")).not.toBeInTheDocument();
+  });
+
+  it("result/success 显示「成功」而非原始 'success'", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "result",
+            title: "success",
+            tool_name: null,
+            payload: { result: "done", is_error: false, num_turns: 3 },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("成功")).toBeInTheDocument();
+    expect(screen.queryByText("success")).not.toBeInTheDocument();
+  });
+
+  it("tool_use 描述性标题不受翻译影响（透传原始 title）", () => {
+    render(<IterationEventTimeline events={[makeEvent({ title: "Read /repo/app.py" })]} />);
+    expect(screen.getByText("app.py")).toBeInTheDocument(); // 路径拆分后文件名独立
+    expect(screen.queryByText("Read /repo/app.py")).not.toBeInTheDocument(); // 整串不在文本中
+  });
+
+  it("assistant 无 title 回退显示「推理」", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", title: null, tool_name: null, payload: { text: "…" } })]}
+      />,
+    );
+    expect(screen.getByText("推理")).toBeInTheDocument();
+  });
+});
