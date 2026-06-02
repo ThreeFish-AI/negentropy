@@ -93,6 +93,7 @@ async def _load_claude_code_defaults():
     from sqlalchemy import select
 
     from negentropy.db.session import AsyncSessionLocal
+    from negentropy.engine.claude_code.credentials import resolve_claude_code_credential
     from negentropy.engine.claude_code.models import ClaudeCodeConfig
     from negentropy.models.builtin_tool import BuiltinTool
 
@@ -107,6 +108,10 @@ async def _load_claude_code_defaults():
         )
         result = await db.execute(stmt)
         tool = result.scalar_one_or_none()
+
+    # 单一汇聚点：解析注入子进程的真实 Anthropic 凭证（UI credentials > 环境变量 > None）。
+    # 此处一改即覆盖 scheduler handler 与 orchestrator._build_config 两条派发路径。
+    credential = resolve_claude_code_credential(tool.credentials if tool else None)
 
     if tool:
         cfg = tool.config or {}
@@ -123,7 +128,8 @@ async def _load_claude_code_defaults():
             timeout_seconds=float(cfg.get("timeout_seconds", 300.0)),
             permission_mode=cfg.get("permission_mode", "auto"),
             mcp_config=cfg.get("mcp_config"),
+            credential=credential,
         )
     # 无 DB 配置时，尝试解析默认 "claude" 为绝对路径
     default_cli = shutil.which("claude") or "claude"
-    return ClaudeCodeConfig(cli_path=default_cli)
+    return ClaudeCodeConfig(cli_path=default_cli, credential=credential)

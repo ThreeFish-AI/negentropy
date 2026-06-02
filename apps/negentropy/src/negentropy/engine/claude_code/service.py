@@ -275,6 +275,50 @@ class ClaudeCodeService:
                 cls._sdk_available = False
         return cls._sdk_available
 
+    # ------------------------------------------------------------------
+    # 子进程凭证注入（根因修复：headless Routine 子进程须出示真实 Anthropic 凭证）
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _credential_env(credential: str | None) -> dict[str, str | None]:
+        """计算凭证对环境的「覆盖项」：值为 str → 设置；值为 None → 删除该键。
+
+        - ``sk-ant-`` 前缀 → 真实 Anthropic API Key，走 ``ANTHROPIC_API_KEY``（x-api-key）；
+        - 否则 → claude.ai 订阅 OAuth 长期令牌，走 ``ANTHROPIC_AUTH_TOKEN`` +
+          ``CLAUDE_CODE_OAUTH_TOKEN``（Bearer）。
+        - 删除「未选中」的另一类凭证键，消除 Claude Code 内 key/token 的优先级歧义。
+        - **绝不触碰 ``ANTHROPIC_BASE_URL``**（须保持指向 coding-proxy 根 ``/v1/messages``）。
+
+        ``credential`` 为空 → 返回空字典（不施加任何覆盖，等价继承父环境）。
+        """
+        if not credential:
+            return {}
+        if credential.startswith("sk-ant-"):
+            return {
+                "ANTHROPIC_API_KEY": credential,
+                "ANTHROPIC_AUTH_TOKEN": None,
+                "CLAUDE_CODE_OAUTH_TOKEN": None,
+            }
+        return {
+            "ANTHROPIC_AUTH_TOKEN": credential,
+            "CLAUDE_CODE_OAUTH_TOKEN": credential,
+            "ANTHROPIC_API_KEY": None,
+        }
+
+    @staticmethod
+    def _build_subprocess_env(credential: str | None) -> dict[str, str]:
+        """构建子进程环境：``os.environ`` 副本叠加凭证覆盖（不就地修改 ``os.environ``）。
+
+        无凭证时返回纯继承副本，功能等价于不传 ``env=``，故不破坏交互式 / 开发 / 终端场景。
+        """
+        env = os.environ.copy()
+        for key, value in ClaudeCodeService._credential_env(credential).items():
+            if value is None:
+                env.pop(key, None)
+            else:
+                env[key] = value
+        return env
+
     @staticmethod
     async def invoke(
         prompt: str,
@@ -372,6 +416,16 @@ class ClaudeCodeService:
             options.resume = config.resume_session_id
         if config.model:
             options.model = config.model
+        # 镜像 CLI 路径：注入真实 Anthropic 凭证。优先经 SDK 的 ``options.env``（避免全局 os.environ
+        # 突变带来的并发不安全）；旧版 SDK 无该字段时仅告警——CLI 才是当前已装且权威的执行路径。
+        if config.credential:
+            if hasattr(options, "env"):
+                options.env = ClaudeCodeService._build_subprocess_env(config.credential)
+            else:
+                logger.warning(
+                    "claude_code_sdk_credential_inject_unsupported",
+                    reason="ClaudeCodeOptions has no 'env' field; credential not injected on SDK path",
+                )
 
         result_text = ""
         session_id = None
@@ -472,6 +526,7 @@ class ClaudeCodeService:
             permission_mode=config.permission_mode,
             mcp_config=config.mcp_config,
             resume_session_id=config.resume_session_id,
+            credential=config.credential,  # 必须透传：否则注入凭证在此重建处被静默丢弃 → 退回 401
         )
 
         args = ClaudeCodeService._build_cli_args(prompt, config)
@@ -482,6 +537,8 @@ class ClaudeCodeService:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=config.cwd,
+                # 注入真实 Anthropic 凭证到子进程环境（根因修复）。无凭证时等价继承父环境。
+                env=ClaudeCodeService._build_subprocess_env(config.credential),
                 limit=_STREAM_READER_LIMIT,  # 抬高 StreamReader 缓冲（兜底；主防线为手动分块读取）
             )
         except FileNotFoundError:
@@ -673,6 +730,7 @@ class ClaudeCodeService:
                 cli_path=cli,
                 max_turns=1,
                 timeout_seconds=300.0,
+                credential=config.credential,  # 透传凭证：Test Connection 亦须出示真实凭证
             ),
         )
         latency = round((time.monotonic() - t0) * 1000)

@@ -1630,6 +1630,7 @@ async def test_builtin_tool(
             return BuiltinToolTestResponse(success=False, message=f"Connection failed: {exc}")
 
     if tool.tool_type == "claude_code":
+        from negentropy.engine.claude_code.credentials import resolve_claude_code_credential
         from negentropy.engine.claude_code.models import ClaudeCodeConfig
         from negentropy.engine.claude_code.service import ClaudeCodeService
 
@@ -1637,6 +1638,8 @@ async def test_builtin_tool(
             cli_path=config.get("cli_path", "claude"),
             model=config.get("model"),
             timeout_seconds=300.0,
+            # 注入真实 Anthropic 凭证（UI credentials > 环境变量），令未保存即测试也走真实凭证。
+            credential=resolve_claude_code_credential(credentials),
         )
         result = await ClaudeCodeService.test_connection(cc_config)
         latency = result.get("latency_ms")

@@ -98,3 +98,100 @@ async def test_effective_permission_mode_normalizes_aliases():
 async def test_default_timeout_is_routine_appropriate():
     # 默认超时已自 300s 抬高，避免深度任务空转超时。
     assert ClaudeCodeConfig().timeout_seconds >= 900.0
+
+
+# ---------------------------------------------------------------------------
+# 子进程凭证注入（修复 Routine 529→401 鉴权失败的回归锁定）
+# ---------------------------------------------------------------------------
+
+
+async def test_build_subprocess_env_oauth_token_uses_bearer(monkeypatch):
+    """非 sk-ant- 凭证（OAuth 长期令牌）→ Bearer 两键，且清除 x-api-key 键。"""
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "0f12ec02e91345bb82d14a91b9bea8ca")  # 网关 key，应被清除
+    env = ClaudeCodeService._build_subprocess_env("sk-ant-oat01-deadbeef-token")
+    # sk-ant- 前缀 → 走 API Key 分支
+    assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-deadbeef-token"
+    assert "ANTHROPIC_AUTH_TOKEN" not in env
+    assert "CLAUDE_CODE_OAUTH_TOKEN" not in env
+    # base_url 始终保留
+    assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
+
+
+async def test_build_subprocess_env_plain_oauth_token_uses_bearer(monkeypatch):
+    """普通（非 sk-ant-）OAuth 令牌 → ANTHROPIC_AUTH_TOKEN + CLAUDE_CODE_OAUTH_TOKEN，清 API Key。"""
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "0f12ec02e91345bb82d14a91b9bea8ca")
+    env = ClaudeCodeService._build_subprocess_env("oauth-subscription-token-xyz")
+    assert env["ANTHROPIC_AUTH_TOKEN"] == "oauth-subscription-token-xyz"
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "oauth-subscription-token-xyz"
+    assert "ANTHROPIC_API_KEY" not in env  # 网关 key 被清除，消除优先级歧义
+    assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
+
+
+async def test_build_subprocess_env_none_is_pure_inheritance(monkeypatch):
+    """无凭证 → 纯继承副本，不增删任何凭证键（等价不传 env=）。"""
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    env = ClaudeCodeService._build_subprocess_env(None)
+    assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
+    assert "ANTHROPIC_API_KEY" not in env
+    assert "ANTHROPIC_AUTH_TOKEN" not in env
+
+
+async def test_build_subprocess_env_does_not_mutate_os_environ(monkeypatch):
+    """构建环境绝不就地修改 os.environ（并发隔离安全）。"""
+    import os
+
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
+    ClaudeCodeService._build_subprocess_env("oauth-token-abc")
+    assert "ANTHROPIC_AUTH_TOKEN" not in os.environ
+    assert "CLAUDE_CODE_OAUTH_TOKEN" not in os.environ
+
+
+async def test_invoke_cli_passes_credential_env_and_survives_reconstruction(monkeypatch):
+    """端到端锁定：_invoke_cli 重建 config 后仍保留 credential，并把它注入子进程 env=。
+
+    回归点：service.py 在 463 行用 resolved CLI 路径重建 ClaudeCodeConfig；若漏传
+    credential，注入字段会被静默丢弃 → 退回 401。本测试 mock create_subprocess_exec 抓 env=。
+    """
+    captured: dict = {}
+
+    class _FakeProc:
+        def __init__(self) -> None:
+            self.stdout = _FakeStream(b"")  # 立即 EOF
+            self.stderr = _FakeStream(b"")
+            self.returncode = 0
+
+        def terminate(self) -> None:  # noqa: D401
+            pass
+
+        async def wait(self) -> int:
+            return 0
+
+    async def _fake_exec(*args, **kwargs):
+        captured["args"] = args
+        captured["env"] = kwargs.get("env")
+        return _FakeProc()
+
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(cli_path="claude", cwd=None, max_turns=1, credential="oauth-token-from-ui")
+    await ClaudeCodeService.invoke("ping", cfg)
+
+    env = captured["env"]
+    assert env is not None, "必须向子进程传入 env="
+    assert env["ANTHROPIC_AUTH_TOKEN"] == "oauth-token-from-ui"
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "oauth-token-from-ui"
+    assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
+
+
+async def test_config_repr_omits_credential_secret():
+    """secret 绝不出现在 repr（防日志 / traceback 泄露）。"""
+    cfg = ClaudeCodeConfig(credential="super-secret-oauth-token")
+    assert "super-secret-oauth-token" not in repr(cfg)

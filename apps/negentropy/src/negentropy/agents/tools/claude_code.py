@@ -11,6 +11,7 @@ from typing import Any
 
 from google.adk.tools import ToolContext
 
+from negentropy.engine.claude_code.credentials import resolve_claude_code_credential
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
 from negentropy.engine.claude_code.service import ClaudeCodeService
 
@@ -51,6 +52,8 @@ async def invoke_claude_code(
         permission_mode=cc_defaults.get("permission_mode", "auto"),
         timeout_seconds=float(cc_defaults.get("timeout_seconds", 300.0)),
         mcp_config=cc_defaults.get("mcp_config"),
+        # 注入真实 Anthropic 凭证（state 中的 credentials > 环境变量），与 Routine 路径一致。
+        credential=resolve_claude_code_credential(cc_defaults.get("credentials")),
     )
 
     # 3. 解析 allowed_tools
