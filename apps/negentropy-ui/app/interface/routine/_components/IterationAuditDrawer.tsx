@@ -14,6 +14,7 @@ import {
   type RoutineIterationDTO,
   type RoutineIterationEventDTO,
 } from "@/features/routine";
+import { AGENT_ROLE_META, countAgentRoles, deriveIterationDriver, type AgentRole } from "@/features/routine";
 
 import { IterationEventTimeline } from "./IterationEventTimeline";
 import { phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-style";
@@ -91,6 +92,9 @@ export function IterationAuditDrawer({
   // 合并持久化 + 实时（持久化优先），按 seq 去重升序。
   const merged = useMemo(() => mergeEvents(persisted, isInFlight ? (liveActions ?? []) : []), [persisted, liveActions, isInFlight]);
 
+  // 主导人统计：从已合并的事件中统计各主导人的事件数
+  const roleCounts = useMemo(() => countAgentRoles(merged), [merged]);
+
   const title = iteration ? `Iteration #${iteration.seq} · Full View` : "Full View";
 
   return (
@@ -98,7 +102,7 @@ export function IterationAuditDrawer({
       open={open}
       onClose={onClose}
       title={title}
-      subtitle={iteration ? <IterationMetaBar iteration={iteration} /> : undefined}
+      subtitle={iteration ? <IterationMetaBar iteration={iteration} roleCounts={roleCounts} /> : undefined}
       widthClassName="[width:clamp(480px,66.67%,1100px)]"
     >
       <div className="px-5 py-4">
@@ -116,8 +120,15 @@ export function IterationAuditDrawer({
   );
 }
 
-/** 抽屉副标题：相位 / 状态 / verdict / 评分 + 成本 / 轮数 / session 元信息。 */
-function IterationMetaBar({ iteration }: { iteration: RoutineIterationDTO }) {
+/** 抽屉副标题：相位 / 状态 / verdict / 评分 + 成本 / 轮数 / 主导人摘要。 */
+function IterationMetaBar({
+  iteration,
+  roleCounts,
+}: {
+  iteration: RoutineIterationDTO;
+  roleCounts: Array<[AgentRole, number]>;
+}) {
+  const driver = deriveIterationDriver(iteration.status);
   return (
     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
       {iteration.phase && (
@@ -137,10 +148,38 @@ function IterationMetaBar({ iteration }: { iteration: RoutineIterationDTO }) {
       <span className="text-text-muted">·</span>
       <span className="text-[11px] tabular-nums text-text-muted">turns {iteration.turn_count}</span>
       <span className="text-[11px] tabular-nums text-text-muted">${iteration.cost_usd.toFixed(4)}</span>
+      {/* 主导人摘要 pill 列表 */}
+      {roleCounts.length > 0 && (
+        <>
+          <span className="text-text-muted">·</span>
+          {roleCounts.map(([role, count]) => {
+            const meta = AGENT_ROLE_META[role];
+            const Icon = meta.icon;
+            return (
+              <span key={role} className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.badgeClass}`}>
+                <Icon className="h-2.5 w-2.5" aria-hidden />
+                {meta.label} ({count})
+              </span>
+            );
+          })}
+        </>
+      )}
+      {/* 当前阶段主导人指示（仅活跃迭代） */}
+      {driver && (
+        <>
+          <span className="text-text-muted">·</span>
+          <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${AGENT_ROLE_META[driver].badgeClass}`}>
+            ▸ {AGENT_ROLE_META[driver].label}
+          </span>
+        </>
+      )}
       {iteration.claude_session_id && (
-        <span className="truncate font-mono text-[10px] text-text-muted" title={iteration.claude_session_id}>
-          {iteration.claude_session_id.slice(0, 8)}
-        </span>
+        <>
+          <span className="text-text-muted">·</span>
+          <span className="truncate font-mono text-[10px] text-text-muted" title={iteration.claude_session_id}>
+            {iteration.claude_session_id.slice(0, 8)}
+          </span>
+        </>
       )}
     </span>
   );

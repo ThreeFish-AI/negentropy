@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 
 import { JsonViewer } from "@/components/ui/JsonViewer";
+import { AGENT_ROLE_META, deriveAgentRole, type AgentRole } from "@/features/routine";
 import type { RoutineIterationEventDTO } from "@/features/routine";
 
 import {
@@ -18,6 +19,18 @@ import {
 /** 渲染 Lucide 图标 —— 以 prop 传入组件引用，避免「render 期间创建组件」lint 误报。 */
 function EventIcon({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
   return <Icon className={className} aria-hidden />;
+}
+
+/** 主导人徽章 —— 分组标题右侧小 pill，显示步骤的执行者归属。 */
+function AgentRoleBadge({ role }: { role: AgentRole }) {
+  const meta = AGENT_ROLE_META[role];
+  const Icon = meta.icon;
+  return (
+    <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.badgeClass}`}>
+      <Icon className="h-3 w-3" aria-hidden />
+      {meta.label}
+    </span>
+  );
 }
 
 /**
@@ -55,8 +68,9 @@ export function IterationEventTimeline({
                 {EVENT_GROUP_LABEL[g]}
               </h4>
               <span className="text-[10px] tabular-nums text-text-muted">{list.length}</span>
+              <AgentRoleBadge role={deriveAgentRole(list[0].event_type)} />
               {live && g === "execution" && (
-                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-600 dark:text-sky-400">
                   <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
                   LIVE
                 </span>
