@@ -596,10 +596,21 @@ class DocumentResponse(BaseModel):
 
 
 class DocumentUpdateRequest(BaseModel):
-    """文档元信息更新请求（目前仅支持 ``display_name``）。"""
+    """文档元信息更新请求。
+
+    ``display_name`` 直接更新列字段；
+    ``author`` / ``author_url`` / ``source_url`` / ``published_at`` 合并写入
+    ``metadata_`` JSONB，供 Wiki 文章元数据栏读取。
+    传空字符串视为清除对应键。
+    """
 
     display_name: str | None = Field(default=None, max_length=255)
     app_name: str | None = None
+    # Wiki 文章元数据（合并写入 metadata_ JSONB）
+    author: str | None = None
+    author_url: str | None = None
+    source_url: str | None = None
+    published_at: str | None = None
 
 
 class DocumentDetailResponse(DocumentResponse):

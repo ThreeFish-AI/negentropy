@@ -21,6 +21,7 @@ import {
   downloadDocument,
   fetchDocumentDetail,
   refreshDocumentMarkdown,
+  updateDocument,
 } from "@/features/knowledge/utils/knowledge-api";
 import { formatRelativeTime } from "@/features/knowledge/utils/pipeline-helpers";
 import { DocumentMarkdownRenderer } from "@/features/knowledge/components/DocumentMarkdownRenderer";
@@ -139,6 +140,16 @@ export default function DocumentDetailPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isRefreshingMarkdown, setIsRefreshingMarkdown] = useState(false);
 
+  // Article Metadata editing state
+  const [isEditingMeta, setIsEditingMeta] = useState(false);
+  const [isSavingMeta, setIsSavingMeta] = useState(false);
+  const [metaDraft, setMetaDraft] = useState({
+    author: "",
+    author_url: "",
+    source_url: "",
+    published_at: "",
+  });
+
   const requestAppName = detail?.app_name || APP_NAME;
 
   // ---- Data fetching ----
@@ -218,6 +229,44 @@ export default function DocumentDetailPage() {
   };
 
   // ---- Derived state ----
+
+  const meta = detail?.metadata as Record<string, string> | undefined;
+
+  const startMetaEdit = useCallback(() => {
+    if (!detail) return;
+    const m = (detail.metadata as Record<string, string>) || {};
+    setMetaDraft({
+      author: m.author || "",
+      author_url: m.author_url || "",
+      source_url: m.source_url || m.source_uri || "",
+      published_at: m.published_at || "",
+    });
+    setIsEditingMeta(true);
+  }, [detail]);
+
+  const cancelMetaEdit = useCallback(() => {
+    setIsEditingMeta(false);
+  }, []);
+
+  const commitMetaEdit = useCallback(async () => {
+    if (!detail) return;
+    setIsSavingMeta(true);
+    try {
+      await updateDocument(detail.corpus_id, detail.id, {
+        author: metaDraft.author.trim() || null,
+        author_url: metaDraft.author_url.trim() || null,
+        source_url: metaDraft.source_url.trim() || null,
+        published_at: metaDraft.published_at.trim() || null,
+      });
+      toast.success("Article metadata saved — Wiki will update after next publish");
+      setIsEditingMeta(false);
+      await loadDetail();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save metadata");
+    } finally {
+      setIsSavingMeta(false);
+    }
+  }, [detail, metaDraft, loadDetail]);
 
   const statusBadge = getStatusBadge(detail?.status || "");
   const markdownStatus =
@@ -361,6 +410,132 @@ export default function DocumentDetailPage() {
                   {formatRelativeTime(detail.created_at ?? undefined)}
                 </span>
               </div>
+            </div>
+
+            {/* Article Metadata panel (Wiki 文章元数据编辑) */}
+            <div className="mb-4 rounded-lg border border-border bg-muted px-4 py-3 text-xs">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                  Article Metadata
+                </h3>
+                {!isEditingMeta ? (
+                  <button
+                    type="button"
+                    onClick={startMetaEdit}
+                    className="flex items-center gap-1 rounded px-1.5 py-0.5 text-text-muted hover:text-foreground hover:bg-border/40 transition-colors"
+                    title="Edit article metadata"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => void commitMetaEdit()}
+                      disabled={isSavingMeta}
+                      className="flex items-center gap-1 rounded px-2 py-0.5 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {isSavingMeta ? "..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelMetaEdit}
+                      disabled={isSavingMeta}
+                      className="flex items-center gap-1 rounded px-2 py-0.5 text-text-muted hover:bg-border/40 disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isEditingMeta ? (
+                <div className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-2 items-center">
+                  <label className="text-text-muted">Author</label>
+                  <input
+                    type="text"
+                    value={metaDraft.author}
+                    onChange={(e) => setMetaDraft((d) => ({ ...d, author: e.target.value }))}
+                    placeholder="e.g. Anthropic Engineering"
+                    className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                  />
+                  <label className="text-text-muted">Author URL</label>
+                  <input
+                    type="url"
+                    value={metaDraft.author_url}
+                    onChange={(e) => setMetaDraft((d) => ({ ...d, author_url: e.target.value }))}
+                    placeholder="e.g. https://github.com/username"
+                    className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                  />
+                  <label className="text-text-muted">Source URL</label>
+                  <input
+                    type="url"
+                    value={metaDraft.source_url}
+                    onChange={(e) => setMetaDraft((d) => ({ ...d, source_url: e.target.value }))}
+                    placeholder="e.g. https://example.com/article"
+                    className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                  />
+                  <label className="text-text-muted">Published At</label>
+                  <input
+                    type="date"
+                    value={metaDraft.published_at}
+                    onChange={(e) => setMetaDraft((d) => ({ ...d, published_at: e.target.value }))}
+                    className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0 text-text-muted">Author</span>
+                    <span className="truncate font-medium text-foreground">
+                      {meta?.author || <span className="text-text-muted/50">–</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0 text-text-muted">Source</span>
+                    {meta?.source_url || meta?.source_uri ? (
+                      <a
+                        href={(meta?.source_url || meta?.source_uri) as string}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate font-medium text-foreground underline decoration-text-muted/40 hover:text-blue-600 dark:hover:text-blue-400"
+                      >
+                        {(meta?.source_url || meta?.source_uri) as string}
+                      </a>
+                    ) : (
+                      <span className="text-text-muted/50">–</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0 text-text-muted">Published</span>
+                    <span className="truncate font-medium text-foreground">
+                      {meta?.published_at || <span className="text-text-muted/50">–</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0 text-text-muted">Author URL</span>
+                    {meta?.author_url ? (
+                      <a
+                        href={meta.author_url as string}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate font-medium text-foreground underline decoration-text-muted/40 hover:text-blue-600 dark:hover:text-blue-400"
+                      >
+                        {meta.author_url as string}
+                      </a>
+                    ) : (
+                      <span className="text-text-muted/50">–</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Markdown content card */}
