@@ -8,6 +8,10 @@ vi.mock("@/components/providers/AuthProvider", () => ({
   }),
 }));
 
+vi.mock("@/components/ui/TiltedCard", () => ({
+  TiltedCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 const baseAgent = {
   id: "a1",
   owner_id: "u1",
@@ -46,7 +50,8 @@ describe("AgentCard", () => {
       <AgentCard agent={baseAgent} onEdit={vi.fn()} onDelete={vi.fn()} />
     );
 
-    const root = container.firstElementChild;
+    // mock TiltedCard 包裹一层 div，实际卡片是其子元素
+    const root = container.firstElementChild?.firstElementChild;
     expect(root).toHaveClass("h-full");
 
     const description = screen.getByText((content) => content.includes("Handles long description"));
