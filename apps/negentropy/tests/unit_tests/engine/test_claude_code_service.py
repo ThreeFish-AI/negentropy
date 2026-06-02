@@ -105,16 +105,31 @@ async def test_default_timeout_is_routine_appropriate():
 # ---------------------------------------------------------------------------
 
 
-async def test_build_subprocess_env_oauth_token_uses_bearer(monkeypatch):
-    """非 sk-ant- 凭证（OAuth 长期令牌）→ Bearer 两键，且清除 x-api-key 键。"""
+async def test_build_subprocess_env_console_api_key_uses_x_api_key(monkeypatch):
+    """Console API Key（sk-ant-api…）→ ANTHROPIC_API_KEY（x-api-key），且清除 Bearer 两键。"""
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "0f12ec02e91345bb82d14a91b9bea8ca")  # 网关 key，应被清除
-    env = ClaudeCodeService._build_subprocess_env("sk-ant-oat01-deadbeef-token")
-    # sk-ant- 前缀 → 走 API Key 分支
-    assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-deadbeef-token"
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "stale-bearer")  # 应被清除
+    env = ClaudeCodeService._build_subprocess_env("sk-ant-api03-deadbeef-key")
+    # sk-ant-api 前缀 → 走 Console API Key 分支
+    assert env["ANTHROPIC_API_KEY"] == "sk-ant-api03-deadbeef-key"
     assert "ANTHROPIC_AUTH_TOKEN" not in env
     assert "CLAUDE_CODE_OAUTH_TOKEN" not in env
     # base_url 始终保留
+    assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
+
+
+async def test_build_subprocess_env_oauth_subscription_token_uses_bearer(monkeypatch):
+    """订阅 OAuth 令牌（sk-ant-oat…，setup-token 生成）→ Bearer 两键，清 x-api-key。
+
+    回归锁定：sk-ant-oat… 与 sk-ant-api… 同享 sk-ant- 前缀但认证头不同——
+    OAuth 令牌须走 ANTHROPIC_AUTH_TOKEN（Bearer），绝不可误判为 x-api-key。
+    """
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "0f12ec02e91345bb82d14a91b9bea8ca")  # 网关 key，应被清除
+    env = ClaudeCodeService._build_subprocess_env("sk-ant-oat01-deadbeef-token")
+    assert env["ANTHROPIC_AUTH_TOKEN"] == "sk-ant-oat01-deadbeef-token"
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "sk-ant-oat01-deadbeef-token"
+    assert "ANTHROPIC_API_KEY" not in env  # 网关 key 被清除，消除优先级歧义
     assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
 
 

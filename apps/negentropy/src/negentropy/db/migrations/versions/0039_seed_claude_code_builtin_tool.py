@@ -111,15 +111,16 @@ CLAUDE_CODE_CONFIG_SCHEMA = {
     },
     "credentials": {
         # Claude Code 子进程出示给 coding-proxy 的「真实 Anthropic 凭证」。
-        # 留空则回退环境变量（CLAUDE_CODE_OAUTH_TOKEN / sk-ant- ANTHROPIC_API_KEY）/ 交互式登录态。
+        # 留空则回退环境变量（CLAUDE_CODE_OAUTH_TOKEN / sk-ant-api ANTHROPIC_API_KEY）/ 交互式登录态。
         # 注意：这与 VendorConfig(anthropic) 的网关 key 是不同凭证命名空间——后者对根
-        # /v1/messages failover anthropic tier 无效（详见迁移 0058 与 engine/claude_code/credentials.py）。
+        # /v1/messages failover anthropic tier 无效（详见迁移 0058/0060 与 engine/claude_code/credentials.py）。
         "oauth_token": {
             "type": "password",
-            "title": "Claude Code OAuth Token",
+            "title": "Claude Code Credential",
             "description": (
-                "claude.ai 订阅长期令牌（`claude setup-token` 生成，注入为 Bearer）；"
-                "亦可填真实 `sk-ant-` API Key（注入为 x-api-key）。留空则回退环境变量 / 交互式登录态。"
+                "填 Console API Key（`sk-ant-api…`，console.anthropic.com 签发，注入为 x-api-key），"
+                "或 claude.ai 订阅令牌（`sk-ant-oat…`，`claude setup-token` 生成，注入为 Bearer）。"
+                "留空则回退环境变量 / 交互式登录态。"
             ),
         },
     },

@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import pytest
 
-from negentropy.engine.claude_code.credentials import resolve_claude_code_credential
+from negentropy.engine.claude_code.credentials import (
+    is_console_api_key,
+    resolve_claude_code_credential,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -64,3 +67,20 @@ def test_oauth_token_env_precedes_api_key_env(monkeypatch):
     monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "env-oauth")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-x")
     assert resolve_claude_code_credential(None) == "env-oauth"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("sk-ant-api03-realkey", True),  # Console API Key → x-api-key
+        ("sk-ant-api-anything", True),
+        ("sk-ant-oat01-subscription", False),  # OAuth 订阅令牌 → Bearer，非 API Key
+        ("sk-ant-something-else", False),  # 仅 sk-ant- 前缀不足以判为 API Key
+        ("0f12ec02e91345bb82d14a91b9bea8ca", False),  # AfterShip 网关 key
+        ("", False),
+        (None, False),
+    ],
+)
+def test_is_console_api_key_precise_prefix(value, expected):
+    """仅 sk-ant-api… 判为 Console API Key；sk-ant-oat… OAuth 令牌不得误判（关键回归）。"""
+    assert is_console_api_key(value) is expected
