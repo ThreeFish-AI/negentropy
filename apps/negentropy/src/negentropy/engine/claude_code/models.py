@@ -51,7 +51,7 @@ class ClaudeCodeConfig:
     # 供 LLM 生成与任务目标一致的确定性回答。
     auto_answer_context: dict[str, Any] | None = None
 
-    # 注入子进程的真实 Anthropic 凭证（OAuth 长期令牌 / sk-ant- API Key）。
+    # 注入子进程的真实 Anthropic 凭证（sk-ant-oat… 订阅 OAuth 令牌 / sk-ant-api… Console API Key）。
     # 由 credentials.resolve_claude_code_credential 解析，ClaudeCodeService 据此构建子进程 env。
     # repr=False / compare=False：secret 绝不入 repr（防日志、traceback 泄露），亦不参与相等比较。
     credential: str | None = field(default=None, repr=False, compare=False)
