@@ -21,7 +21,7 @@ async def invoke_claude_code(
     tool_context: ToolContext,
     working_directory: str | None = None,
     allowed_tools: str | None = None,
-    max_turns: int = 20,
+    max_turns: int = 500,
     system_prompt: str | None = None,
 ) -> dict[str, Any]:
     """调用 Claude Code 执行复杂的代码分析与修改任务。
@@ -36,7 +36,7 @@ async def invoke_claude_code(
         working_directory: 目标项目的工作目录（默认使用系统配置）
         allowed_tools: 允许使用的工具，逗号分隔
             （默认: "Bash,Read,Write,Edit,Glob,Grep"）
-        max_turns: 最大自主迭代轮数（默认 20）
+        max_turns: 最大自主迭代轮数（默认 500）
         system_prompt: 自定义系统指令
     """
     # 1. 从 session state 读取全局配置（由 BuiltinTool 系统注入）

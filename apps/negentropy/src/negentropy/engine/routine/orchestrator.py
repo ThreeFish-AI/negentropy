@@ -529,7 +529,7 @@ class RoutineOrchestrator:
         effective_cwd = routine.worktree_path if phase_mod.is_worktree_routine(routine) else routine.cwd
         if effective_cwd:
             config.cwd = effective_cwd
-        # Routine 级默认覆盖全局 CC 默认（1000 vs 20）；per-routine config 可再覆盖。
+        # Routine 级默认覆盖全局 CC 默认（1000 vs 500）；per-routine config 可再覆盖。
         config.max_turns = settings.routine.default_max_turns
         if overrides.get("max_turns"):
             config.max_turns = int(overrides["max_turns"])

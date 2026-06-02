@@ -38,7 +38,7 @@ class ClaudeCodeConfig:
     allowed_tools: list[str] | None = None
     disallowed_tools: list[str] | None = None
     cwd: str | None = None
-    max_turns: int = 20
+    max_turns: int = 500
     timeout_seconds: float = 900.0
     permission_mode: str = "auto"  # auto | ask | plan | acceptEdits | bypassPermissions
     mcp_config: dict[str, Any] | None = None
