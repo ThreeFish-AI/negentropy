@@ -1429,16 +1429,23 @@ export async function fetchDocumentDetail(
 }
 
 /**
- * 更新文档元信息（目前仅支持 `display_name`）。
+ * 更新文档元信息（display_name + Wiki 文章元数据）。
  *
- * - 传入 `null` 或仅空白字符串 → 清除覆盖；Wiki 站点回退到
- *   `metadata.title -> original_filename`。
- * - 长度上限 255；超过由后端返回 422。
+ * - `display_name`: 传入 `null` 或仅空白字符串 → 清除覆盖；Wiki 站点回退到
+ *   `metadata.title -> original_filename`。长度上限 255。
+ * - `author` / `author_url` / `source_url` / `published_at`: 合并写入
+ *   `metadata` JSONB；传空字符串清除对应键。
  */
 export async function updateDocument(
   corpusId: string,
   documentId: string,
-  patch: { display_name?: string | null },
+  patch: {
+    display_name?: string | null;
+    author?: string | null;
+    author_url?: string | null;
+    source_url?: string | null;
+    published_at?: string | null;
+  },
   params?: { appName?: string },
 ): Promise<KnowledgeDocument> {
   const body: Record<string, unknown> = { ...patch };
