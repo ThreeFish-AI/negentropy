@@ -43,3 +43,19 @@ export function canCancel(status: RoutineStatus): boolean {
 export function canRestart(status: RoutineStatus): boolean {
   return status === "failed" || status === "cancelled";
 }
+
+/**
+ * 是否可「清理 worktree」——终态 + worktree 仍活跃（active / orphaned）+ worktree_path 非空。
+ * 供列表页行内 Clean Up 按钮 + RoutineWorkspaceCard 共享的单一事实源。
+ */
+export function canCleanupWorktree(
+  status: RoutineStatus,
+  worktreeStatus?: string | null,
+  worktreePath?: string | null,
+): boolean {
+  return (
+    (status === "succeeded" || status === "failed" || status === "cancelled") &&
+    (worktreeStatus === "active" || worktreeStatus === "orphaned") &&
+    worktreePath != null
+  );
+}
