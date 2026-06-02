@@ -672,7 +672,7 @@ class ClaudeCodeService:
             ClaudeCodeConfig(
                 cli_path=cli,
                 max_turns=1,
-                timeout_seconds=15.0,
+                timeout_seconds=300.0,
             ),
         )
         latency = round((time.monotonic() - t0) * 1000)

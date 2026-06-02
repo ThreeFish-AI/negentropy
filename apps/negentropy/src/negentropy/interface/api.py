@@ -1636,7 +1636,7 @@ async def test_builtin_tool(
         cc_config = ClaudeCodeConfig(
             cli_path=config.get("cli_path", "claude"),
             model=config.get("model"),
-            timeout_seconds=15.0,
+            timeout_seconds=300.0,
         )
         result = await ClaudeCodeService.test_connection(cc_config)
         latency = result.get("latency_ms")
