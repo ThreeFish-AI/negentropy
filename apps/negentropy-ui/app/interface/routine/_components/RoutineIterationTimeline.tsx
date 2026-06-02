@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ListTree } from "lucide-react";
 
 import type { RoutineIterationDTO } from "@/features/routine";
+import { AGENT_ROLE_META, deriveIterationDriver } from "@/features/routine";
 
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
 import { ACTIVE_TIMING } from "./routine-loop";
@@ -144,6 +145,19 @@ function IterationCard({
 
       {/* 指标行 */}
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-muted">
+        {/* 当前阶段主导人指示 */}
+        {(() => {
+          const driver = deriveIterationDriver(it.status);
+          if (!driver) return null;
+          const meta = AGENT_ROLE_META[driver];
+          const Icon = meta.icon;
+          return (
+            <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium ${meta.badgeClass}`}>
+              <Icon className="h-2.5 w-2.5" aria-hidden />
+              {meta.label}
+            </span>
+          );
+        })()}
         {it.exec_status && <span>exec: {it.exec_status}</span>}
         <span>turns: {it.turn_count}</span>
         <span>cost: ${it.cost_usd.toFixed(4)}</span>

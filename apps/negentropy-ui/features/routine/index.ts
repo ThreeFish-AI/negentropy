@@ -27,6 +27,9 @@ export type {
   RoutineTemplateItem,
 } from "./types";
 
+export type { AgentRole, AgentRoleMeta } from "./agent-role";
+export { AGENT_ROLE_META, deriveAgentRole, deriveIterationDriver, countAgentRoles } from "./agent-role";
+
 export {
   fetchKpis,
   fetchRoutines,
