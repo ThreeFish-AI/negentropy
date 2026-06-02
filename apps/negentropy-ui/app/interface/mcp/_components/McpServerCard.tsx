@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
+import { TiltedCard } from "@/components/ui/TiltedCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 const MARKDOWN_CONTENT_CLASS = [
@@ -846,6 +847,7 @@ export function McpServerCard({
 
   return (
     <div className="space-y-2">
+      <TiltedCard>
       <div className="flex h-[176px] flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
@@ -1024,6 +1026,7 @@ export function McpServerCard({
           </div>
         </div>
       </div>
+      </TiltedCard>
 
       {loadError && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive" role="alert">

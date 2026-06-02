@@ -3,6 +3,7 @@
 import { Pencil, Trash2, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { TiltedCard } from "@/components/ui/TiltedCard";
 import type { RoutineTemplateItem } from "@/features/routine";
 import { APPROVAL_BADGE } from "./preset-style";
 
@@ -34,6 +35,7 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
   const badge = APPROVAL_BADGE[template.approval_mode];
 
   return (
+    <TiltedCard>
     <div className="group relative flex h-full flex-col rounded-card border border-border bg-card p-4 transition-all hover:border-foreground/15 hover:shadow-md">
       {/* 用户模板悬停操作（右上角叠加） */}
       {isUser && (
@@ -82,7 +84,8 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
             {template.category}
           </span>
           {isUser ? (
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-medium text-primary">
+            // 自建模板 hover 时右上角浮出编辑/删除图标，标识淡出让位避免重叠
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-medium text-primary transition-opacity group-hover:opacity-0">
               自建
             </span>
           ) : (
@@ -138,5 +141,6 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
         </Button>
       </div>
     </div>
+    </TiltedCard>
   );
 }

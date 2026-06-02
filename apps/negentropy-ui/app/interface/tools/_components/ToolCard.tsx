@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import { TiltedCard } from "@/components/ui/TiltedCard";
 
 interface BuiltinTool {
   id: string;
@@ -68,6 +69,7 @@ export function ToolCard({
     Object.keys(tool.credentials).length > 0;
 
   return (
+    <TiltedCard>
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
@@ -186,5 +188,6 @@ export function ToolCard({
         </div>
       </div>
     </div>
+    </TiltedCard>
   );
 }
