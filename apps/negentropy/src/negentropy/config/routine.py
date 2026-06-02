@@ -101,6 +101,29 @@ class RoutineSettings(BaseSettings):
     )
     git_timeout_seconds: int = Field(default=120, ge=5, description="单条 git 子命令执行超时（秒）")
 
+    # --- Claude Code 交互式工具自动应答（AskUserQuestion 拦截）---
+    auto_answer_questions: bool = Field(
+        default=True,
+        description="启用 Claude Code AskUserQuestion 自动应答：当 headless 执行中 CC 调用 AskUserQuestion "
+        "时，Engine LLM 基于 Routine 上下文生成回答并通过 stdin 回传，使 CC 继续执行而非失败退出。",
+    )
+    auto_answer_model: str | None = Field(
+        default=None,
+        description="自动应答 LLM 模型覆盖；为空时走 task_registry 的 routine.auto_answer 解析。",
+    )
+    auto_answer_timeout_seconds: int = Field(
+        default=30,
+        ge=5,
+        le=120,
+        description="单次自动应答 LLM 调用的超时（秒）；超时后 fallback 硬编码回答。",
+    )
+    auto_answer_max_per_iteration: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="单次迭代内自动应答次数上限；防止 runaway（CC 反复问同样问题）。",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,

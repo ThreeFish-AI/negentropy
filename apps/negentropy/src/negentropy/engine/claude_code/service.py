@@ -552,6 +552,17 @@ class ClaudeCodeService:
         events_holder: list[dict[str, Any]] | None = None,
         on_event: EventSink | None = None,
     ) -> ClaudeCodeResult:
+        # ---- 交互模式路由：启用时走双向 stdin/stdout 路径 ----
+        if config.interactive:
+            return await ClaudeCodeService._invoke_cli_interactive(
+                prompt,
+                config,
+                abort_event,
+                session_holder,
+                events_holder,
+                on_event,
+            )
+
         # ---- 预检：cwd 目录必须存在 ----
         if config.cwd and not os.path.isdir(config.cwd):
             return ClaudeCodeResult(
@@ -754,7 +765,351 @@ class ClaudeCodeService:
         # （claude CLI 不支持 --cwd 选项，传了会报 unknown option 错误）
         if config.allowed_tools:
             args += ["--allowed-tools", ",".join(config.allowed_tools)]
+        # 双向交互模式：允许通过 stdin 实时注入 tool_result 等结构化消息。
+        # 用于 Routine 执行中 Engine 自动应答 AskUserQuestion。
+        if config.interactive:
+            args += ["--input-format", "stream-json"]
         return args
+
+    # ------------------------------------------------------------------
+    # 交互式工具自动应答（AskUserQuestion 拦截）
+    # ------------------------------------------------------------------
+
+    _ASK_USER_TOOL = "AskUserQuestion"
+    _AUTO_ANSWER_TASK_KEY = "routine.auto_answer"
+    _FALLBACK_ANSWER = json.dumps(
+        {"answers": ["请基于任务目标和验收标准自行做出最佳判断，无需等待确认即可继续。"]},
+        ensure_ascii=False,
+    )
+
+    @staticmethod
+    def _build_stdin_tool_result(tool_use_id: str, content: str) -> str:
+        """构建写入 stdin 的 stream-json tool_result 消息行。
+
+        协议格式：``{"type":"user","message":{"role":"user","content":[tool_result block]}}`` + ``\\n``
+        """
+        msg = {
+            "type": "user",
+            "message": {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_use_id,
+                        "content": content,
+                    }
+                ],
+            },
+        }
+        return json.dumps(msg, ensure_ascii=False) + "\n"
+
+    @staticmethod
+    async def _auto_answer_question(
+        questions: list[dict],
+        context: dict[str, Any],
+        *,
+        model_override: str | None = None,
+        timeout: float = 30.0,
+    ) -> str:
+        """调用 Engine LLM 生成 AskUserQuestion 的自动应答。
+
+        基于 Routine 上下文（goal / acceptance_criteria）生成简洁确定性回答；
+        失败时返回 fallback 硬编码回答（鼓励 CC 继续执行而非停止）。
+        """
+        try:
+            import litellm
+
+            from negentropy.engine.utils.model_config import resolve_model_config_async
+
+            goal = context.get("goal", "（未提供）")
+            criteria = context.get("acceptance_criteria", "（未提供）")
+            prompt = context.get("prompt", "（未提供）")
+
+            q_text = "\n".join(f"  Q{i + 1}: {q.get('question', q)}" for i, q in enumerate(questions))
+
+            judge_prompt = (
+                "你是一个自动化助手，正在代表任务负责人回答执行者提出的澄清问题。\n"
+                "请基于下方任务上下文，给出简洁、确定性的回答。不要反问，不要模棱两可。\n\n"
+                f"# 任务目标\n{goal}\n\n"
+                f"# 验收标准\n{criteria}\n\n"
+                f"# 发送给执行者的原始 Prompt\n{prompt[:2000]}\n\n"
+                f"# 执行者提出的问题\n{q_text}\n\n"
+                '请以 JSON 格式回答：{"answers": ["answer1", "answer2", ...]}\n'
+                "每个问题对应一个回答，保持简洁（每个回答不超过 100 字）。"
+            )
+
+            model, model_kwargs = await resolve_model_config_async(
+                ClaudeCodeService._AUTO_ANSWER_TASK_KEY,
+                explicit_model=model_override,
+            )
+            safe_kwargs = {
+                k: v
+                for k, v in model_kwargs.items()
+                if k not in ("model", "messages", "temperature", "response_format")
+            }
+
+            response = await asyncio.wait_for(
+                litellm.acompletion(
+                    model=model,
+                    messages=[{"role": "user", "content": judge_prompt}],
+                    temperature=0.0,
+                    response_format={"type": "json_object"},
+                    **safe_kwargs,
+                ),
+                timeout=timeout,
+            )
+            content = response.choices[0].message.content or ""
+            # 验证 JSON 格式
+            parsed = json.loads(content)
+            if "answers" in parsed and isinstance(parsed["answers"], list):
+                return content
+            return content  # 非 answers 格式也返回，CC 会自行解析
+        except Exception as exc:
+            logger.warning(
+                "claude_code_auto_answer_failed",
+                error=str(exc),
+                fallback=True,
+            )
+            return ClaudeCodeService._FALLBACK_ANSWER
+
+    @staticmethod
+    async def _invoke_cli_interactive(
+        prompt: str,
+        config: ClaudeCodeConfig,
+        abort_event: asyncio.Event | None,
+        session_holder: dict[str, str | None] | None = None,
+        events_holder: list[dict[str, Any]] | None = None,
+        on_event: EventSink | None = None,
+    ) -> ClaudeCodeResult:
+        """交互式 CLI 调用：支持通过 stdin 自动应答 AskUserQuestion。
+
+        并发设计：
+        - Reader 协程：遍历 stdout 事件流，检测 AskUserQuestion tool_use → 自动应答 → 放入 Queue
+        - Writer 协程：从 Queue 取消息写入 stdin，收到 None sentinel 后关闭
+        - 死锁预防：Writer 仅在 tool_use 后写入（sparse），stdin buffer 不会满
+        """
+        # 复用预检逻辑
+        if config.cwd and not os.path.isdir(config.cwd):
+            return ClaudeCodeResult(
+                status="error", summary="", error=f"working directory does not exist: '{config.cwd}'"
+            )
+
+        cli_resolved = shutil.which(config.cli_path)
+        if not cli_resolved:
+            hint = (
+                f"resolved via PATH — ensure '{config.cli_path}' is on PATH"
+                if "/" not in config.cli_path
+                else f"file does not exist: '{config.cli_path}'"
+            )
+            return ClaudeCodeResult(status="error", summary="", error=f"claude CLI not found: {hint}")
+
+        config = ClaudeCodeConfig(
+            cli_path=cli_resolved,
+            model=config.model,
+            system_prompt=config.system_prompt,
+            allowed_tools=config.allowed_tools,
+            disallowed_tools=config.disallowed_tools,
+            cwd=config.cwd,
+            max_turns=config.max_turns,
+            timeout_seconds=config.timeout_seconds,
+            permission_mode=config.permission_mode,
+            mcp_config=config.mcp_config,
+            resume_session_id=config.resume_session_id,
+            credential=config.credential,
+            interactive=config.interactive,
+            auto_answer_context=config.auto_answer_context,
+        )
+
+        args = ClaudeCodeService._build_cli_args(prompt, config)
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *args,
+                stdin=asyncio.subprocess.PIPE,  # 双向通信核心
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=config.cwd,
+                env=ClaudeCodeService._build_subprocess_env(config.credential),
+                limit=_STREAM_READER_LIMIT,
+            )
+        except FileNotFoundError:
+            return ClaudeCodeResult(
+                status="error",
+                summary="",
+                error=f"claude CLI not found at '{config.cli_path}' (resolved: '{cli_resolved}')",
+            )
+
+        result_text = ""
+        session_id = None
+        cost = 0.0
+        turns = 0
+        write_queue: asyncio.Queue[str | None] = asyncio.Queue()
+        auto_answer_count = 0
+
+        # 从 config 或 settings 取上限；默认 5
+        max_auto_answers = 5
+        try:
+            from negentropy.config import settings
+
+            max_auto_answers = settings.routine.auto_answer_max_per_iteration
+        except Exception:
+            pass
+
+        async def _reader() -> None:
+            nonlocal result_text, session_id, cost, turns, auto_answer_count
+            try:
+                async for event in ClaudeCodeService._iter_json_events(proc.stdout, abort_event):
+                    evt_type = event.get("type")
+
+                    # 提取 session_id（尽早捕获，超时/取消路径仍可回带）
+                    if evt_type == _EVT_SYSTEM and event.get("subtype") == "init":
+                        sid = event.get("session_id")
+                        if sid:
+                            session_id = sid
+                            if session_holder is not None:
+                                session_holder["session_id"] = sid
+                    elif evt_type == _EVT_RESULT:
+                        result_text = event.get("result", "") or result_text
+                        if event.get("session_id"):
+                            session_id = event.get("session_id")
+                            if session_holder is not None:
+                                session_holder["session_id"] = session_id
+                        cost = event.get("total_cost_usd") or event.get("cost_usd") or 0.0
+                        turns = event.get("num_turns", 0)
+                    elif evt_type == _EVT_ASSISTANT and not result_text:
+                        blocks = (event.get("message") or {}).get("content")
+                        if isinstance(blocks, list):
+                            text = "\n".join(
+                                b.get("text", "") for b in blocks if isinstance(b, dict) and b.get("type") == "text"
+                            ).strip()
+                        elif isinstance(blocks, str):
+                            text = blocks.strip()
+                        else:
+                            text = ""
+                        if text:
+                            result_text = text
+
+                    # 核心新增：检测 AskUserQuestion tool_use → 自动应答
+                    if evt_type == _EVT_ASSISTANT and auto_answer_count < max_auto_answers and proc.stdin is not None:
+                        content_blocks = (event.get("message") or {}).get("content", [])
+                        if isinstance(content_blocks, list):
+                            for block in content_blocks:
+                                if (
+                                    isinstance(block, dict)
+                                    and block.get("type") == _EVT_TOOL_USE
+                                    and block.get("name") == ClaudeCodeService._ASK_USER_TOOL
+                                ):
+                                    tool_use_id = block.get("id")
+                                    tool_input = block.get("input", {})
+                                    questions = tool_input.get("questions", [])
+                                    if not questions:
+                                        # 无 questions 字段，尝试把整个 input 当问题
+                                        questions = [{"question": json.dumps(tool_input, ensure_ascii=False)}]
+
+                                    answer = await ClaudeCodeService._auto_answer_question(
+                                        questions,
+                                        config.auto_answer_context or {},
+                                        timeout=30.0,
+                                    )
+                                    auto_answer_count += 1
+
+                                    # 写入审计事件
+                                    await _emit_events(
+                                        {
+                                            "type": "system",
+                                            "subtype": "auto_answer",
+                                            "tool_use_id": tool_use_id,
+                                            "questions": _cap_json(questions),
+                                            "answer_preview": answer[:500],
+                                        },
+                                        events_holder,
+                                        on_event,
+                                    )
+
+                                    msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)
+                                    await write_queue.put(msg)
+                                    logger.info(
+                                        "claude_code_auto_answer",
+                                        tool_use_id=tool_use_id,
+                                        answer_preview=answer[:100],
+                                        count=auto_answer_count,
+                                    )
+
+                    # 审计事件捕获
+                    await _emit_events(event, events_holder, on_event)
+
+                    if abort_event and abort_event.is_set():
+                        proc.terminate()
+                        break
+            except asyncio.CancelledError:
+                proc.terminate()
+                raise
+            finally:
+                # 通知 Writer 关闭 stdin
+                await write_queue.put(None)
+
+        async def _writer() -> None:
+            """从 Queue 取消息写入 stdin；收到 None sentinel 后关闭。"""
+            try:
+                while True:
+                    msg = await write_queue.get()
+                    if msg is None:
+                        break
+                    if proc.stdin is None:
+                        break
+                    try:
+                        proc.stdin.write(msg.encode("utf-8"))
+                        await proc.stdin.drain()
+                    except (BrokenPipeError, ConnectionResetError, OSError) as exc:
+                        logger.warning("claude_code_stdin_write_failed", error=str(exc))
+                        break
+            finally:
+                if proc.stdin is not None:
+                    with suppress(Exception):
+                        proc.stdin.close()
+                        await proc.stdin.wait_closed()
+
+        try:
+            reader_task = asyncio.create_task(_reader(), name="cc-interactive-reader")
+            writer_task = asyncio.create_task(_writer(), name="cc-interactive-writer")
+
+            # 超时由外层 invoke() 的 asyncio.wait_for 统一管控，
+            # 与原 _invoke_cli 非交互路径一致，避免双重超时干扰。
+            await asyncio.gather(reader_task, writer_task)
+        except asyncio.CancelledError:
+            proc.terminate()
+            await proc.wait()
+            raise
+        finally:
+            if proc.returncode is None:
+                proc.terminate()
+                await proc.wait()
+
+        # 进程已退出，读取 stderr
+        stderr_text = ""
+        if proc.stderr:
+            stderr_bytes = await proc.stderr.read()
+            stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
+
+        status = "success" if proc.returncode == 0 else "error"
+        error_msg = None
+        if proc.returncode != 0:
+            parts = [f"CLI exited with code {proc.returncode}"]
+            if stderr_text:
+                parts.append(f"stderr: {stderr_text[:500]}")
+            if not result_text and not stderr_text:
+                parts.append("no output captured")
+            error_msg = "; ".join(parts)
+
+        return ClaudeCodeResult(
+            status=status,
+            summary=result_text[:2000] if result_text else "",
+            session_id=session_id,
+            cost_usd=cost,
+            turn_count=turns,
+            error=error_msg,
+            events=list(events_holder) if events_holder else [],
+        )
 
     # ------------------------------------------------------------------
     # 连通性测试
