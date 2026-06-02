@@ -104,7 +104,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                       Restart
                     </button>
                   )}
-                  {onCleanupWorktree && canCleanupWorktree(r.status, r.worktree_status, r.worktree_path) && (
+                  {onCleanupWorktree && canCleanupWorktree(r.status, r.worktree_path) && (
                     <button
                       type="button"
                       onClick={(e) => {

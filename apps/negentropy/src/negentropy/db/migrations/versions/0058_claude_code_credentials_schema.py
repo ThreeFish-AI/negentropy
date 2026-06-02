@@ -36,6 +36,8 @@ depends_on = None
 SCHEMA = "negentropy"
 
 # 与 0039 的 CLAUDE_CODE_CONFIG_SCHEMA["credentials"] 保持一致（单一事实源：UI 字段定义）。
+# 注：本迁移落库的 description 文案后由 0060 修正（sk-ant-oat/sk-ant-api 区分）；此处保留历史原值，
+# 由 0060 幂等覆盖既有行——勿改动已应用迁移的落库内容。
 _CREDENTIALS_SCHEMA = {
     "oauth_token": {
         "type": "password",

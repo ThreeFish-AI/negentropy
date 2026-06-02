@@ -45,17 +45,20 @@ export function canRestart(status: RoutineStatus): boolean {
 }
 
 /**
- * 是否可「清理 worktree」——终态 + worktree 仍活跃（active / orphaned）+ worktree_path 非空。
+ * 是否可「清理 worktree」——精确镜像后端 `cleanup-worktree` 端点守卫：终态 + `worktree_path` 非空。
+ *
+ * 不依赖 `worktree_status`：列表端点为避免 N+1 磁盘检查不计算该字段（恒为 null），而 `worktree_path`
+ * 由 DB 直出始终可用。依 `compute_worktree_status` 逻辑，`worktree_path != null` 严格等价于
+ * 状态 active / orphaned（cleaned / none 均要求 worktree_path 为空），故两者判定结果一致。
+ *
  * 供列表页行内 Clean Up 按钮 + RoutineWorkspaceCard 共享的单一事实源。
  */
 export function canCleanupWorktree(
   status: RoutineStatus,
-  worktreeStatus?: string | null,
   worktreePath?: string | null,
 ): boolean {
   return (
     (status === "succeeded" || status === "failed" || status === "cancelled") &&
-    (worktreeStatus === "active" || worktreeStatus === "orphaned") &&
     worktreePath != null
   );
 }

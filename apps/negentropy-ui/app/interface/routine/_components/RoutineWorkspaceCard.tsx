@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { RoutineDTO } from "@/features/routine";
 
+import { canCleanupWorktree } from "./routine-controls";
 import {
   worktreePolicyDescription,
   worktreeStatusClass,
@@ -13,8 +14,6 @@ import {
 } from "./status-style";
 
 type WorktreeStatus = "active" | "cleaned" | "orphaned" | "none";
-
-const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
 
 interface RoutineWorkspaceCardProps {
   routine: Pick<
@@ -46,9 +45,7 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
   if (!routine.baseline_branch) return null;
 
   const ws = (routine.worktree_status ?? "none") as WorktreeStatus;
-  const isTerminal = TERMINAL.has(routine.status);
-  const canCleanup =
-    isTerminal && (ws === "active" || ws === "orphaned") && routine.worktree_path != null;
+  const canCleanup = canCleanupWorktree(routine.status, routine.worktree_path);
 
   return (
     <section className="rounded-card border border-border bg-card p-4 shadow-sm">

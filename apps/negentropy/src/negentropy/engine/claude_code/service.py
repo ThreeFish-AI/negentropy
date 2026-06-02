@@ -13,6 +13,7 @@ from typing import Any
 
 from negentropy.logging import get_logger
 
+from .credentials import is_console_api_key
 from .models import ClaudeCodeConfig, ClaudeCodeResult
 
 logger = get_logger("negentropy.engine.claude_code.service")
@@ -158,7 +159,7 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
             )
         ]
 
-    # system/* 其余非 init（task_started / task_completed / task_progress / task_notification / task_updated）
+    # system/* 其余非 init/api_retry（task_started / task_completed 等）
     if etype == _EVT_SYSTEM:
         subtype = raw.get("subtype") or "unknown"
         return [_evt("system", {"raw": _cap_json(raw)}, title=subtype)]
@@ -304,17 +305,20 @@ class ClaudeCodeService:
     def _credential_env(credential: str | None) -> dict[str, str | None]:
         """计算凭证对环境的「覆盖项」：值为 str → 设置；值为 None → 删除该键。
 
-        - ``sk-ant-`` 前缀 → 真实 Anthropic API Key，走 ``ANTHROPIC_API_KEY``（x-api-key）；
-        - 否则 → claude.ai 订阅 OAuth 长期令牌，走 ``ANTHROPIC_AUTH_TOKEN`` +
+        - ``sk-ant-api…`` 前缀 → Console API Key，走 ``ANTHROPIC_API_KEY``（x-api-key）；
+        - 否则（含 ``sk-ant-oat…`` 订阅 OAuth 令牌、其它）→ 走 ``ANTHROPIC_AUTH_TOKEN`` +
           ``CLAUDE_CODE_OAUTH_TOKEN``（Bearer）。
         - 删除「未选中」的另一类凭证键，消除 Claude Code 内 key/token 的优先级歧义。
         - **绝不触碰 ``ANTHROPIC_BASE_URL``**（须保持指向 coding-proxy 根 ``/v1/messages``）。
+
+        注：``sk-ant-oat…`` OAuth 令牌与 ``sk-ant-api…`` Console Key 同享 ``sk-ant-`` 前缀但
+        认证头不同，故须用 ``is_console_api_key`` 精确判别，不能用 ``sk-ant-`` 笼统前缀。
 
         ``credential`` 为空 → 返回空字典（不施加任何覆盖，等价继承父环境）。
         """
         if not credential:
             return {}
-        if credential.startswith("sk-ant-"):
+        if is_console_api_key(credential):
             return {
                 "ANTHROPIC_API_KEY": credential,
                 "ANTHROPIC_AUTH_TOKEN": None,
@@ -346,11 +350,16 @@ class ClaudeCodeService:
 
     @staticmethod
     async def _verify_anthropic_credential_direct(credential: str) -> dict[str, Any] | None:
-        """直连 ``api.anthropic.com`` 验证 ``sk-ant-`` API Key 有效性（绕过 coding-proxy）。
+        """直连 ``api.anthropic.com`` 验证 Console API Key（``sk-ant-api…``）有效性（绕过 coding-proxy）。
 
         coding-proxy 主 tier (zhipu) 用自有 key 完全忽略客户端 ``x-api-key``——
-        Test Connection 经 proxy 的 prompt 测试永远无法检出无效/过期/吊销的 Anthropic 凭证。
+        Test Connection 经 proxy 的 prompt 测试永远无法检出无效/过期/吊销的 Console API Key。
         本方法绕过 proxy 发送最小请求（haiku, max_tokens=1），仅验证 key 是否通过认证层。
+
+        **仅适用于 Console API Key**：调用方须先以 ``is_console_api_key`` 过滤。
+        ``sk-ant-oat…`` 订阅 OAuth 令牌不能经此直连验证——Anthropic 已禁第三方 OAuth 直连
+        （x-api-key 报 invalid、Bearer 报 not supported），令牌仅在 Claude Code CLI 内部有效，
+        故对其跳过直连、降级走 coding-proxy 的 prompt 测试。
 
         Returns:
             ``None`` = 验证通过（或非认证类错误）；``dict`` = 凭证无效，应立即返回给前端。
@@ -788,6 +797,22 @@ class ClaudeCodeService:
     )
 
     @staticmethod
+    def _build_stdin_user_prompt(prompt: str) -> str:
+        """构建写入 stdin 的初始 user prompt 消息行（``--input-format stream-json``）。
+
+        关键：stream-json 输入模式下 CLI **忽略** ``-p <prompt>`` 命令行参数的取值，改从 stdin
+        读取首条 ``user`` 消息作为任务输入。若不经 stdin 投喂 prompt，CLI 会永久阻塞等待 stdin，
+        既不产出任何事件也不退出（直到外层超时或被 kill）——这是交互模式迭代「0 turns 挂起」的根因。
+
+        协议格式：``{"type":"user","message":{"role":"user","content":"<prompt>"}}`` + ``\\n``
+        """
+        msg = {
+            "type": "user",
+            "message": {"role": "user", "content": prompt},
+        }
+        return json.dumps(msg, ensure_ascii=False) + "\n"
+
+    @staticmethod
     def _build_stdin_tool_result(tool_use_id: str, content: str) -> str:
         """构建写入 stdin 的 stream-json tool_result 消息行。
 
@@ -981,6 +1006,13 @@ class ClaudeCodeService:
                                 session_holder["session_id"] = session_id
                         cost = event.get("total_cost_usd") or event.get("cost_usd") or 0.0
                         turns = event.get("num_turns", 0)
+                        # 关键：stream-json 输入模式下，CLI 产出 result 后**不会**自行退出，
+                        # 而是保持 stdin 打开等待更多输入。须主动闭合 stdin 触发其干净退出，
+                        # 否则进程挂起、stdout 无 EOF、reader 永不结束（三方循环死锁）。
+                        # 先持久化本条 result 审计事件，再通知 writer 关闭 stdin 并跳出循环。
+                        await _emit_events(event, events_holder, on_event)
+                        await write_queue.put(None)
+                        break
                     elif evt_type == _EVT_ASSISTANT and not result_text:
                         blocks = (event.get("message") or {}).get("content")
                         if isinstance(blocks, list):
@@ -1078,9 +1110,20 @@ class ClaudeCodeService:
             reader_task = asyncio.create_task(_reader(), name="cc-interactive-reader")
             writer_task = asyncio.create_task(_writer(), name="cc-interactive-writer")
 
+            # 关键：先经 stdin 投喂初始 user prompt——stream-json 输入模式下 CLI 忽略 -p 参数，
+            # 仅从 stdin 读取首条 user 消息作为任务输入。不投喂则 CLI 永久阻塞等待 stdin。
+            await write_queue.put(ClaudeCodeService._build_stdin_user_prompt(prompt))
+
             # 超时由外层 invoke() 的 asyncio.wait_for 统一管控，
             # 与原 _invoke_cli 非交互路径一致，避免双重超时干扰。
             await asyncio.gather(reader_task, writer_task)
+
+            # reader 收到 result 后已闭合 stdin，CLI 随即干净退出（rc=0）。给予短暂优雅窗口
+            # 等其自然收尾，避免 finally 抢先 terminate() 误判为 SIGTERM(143) 而把成功迭代标记为
+            # error。窗口内未退出（异常滞留）才落到 finally 的强制 terminate。
+            if proc.returncode is None:
+                with suppress(TimeoutError):
+                    await asyncio.wait_for(proc.wait(), timeout=10.0)
         except asyncio.CancelledError:
             proc.terminate()
             await proc.wait()
@@ -1144,10 +1187,12 @@ class ClaudeCodeService:
         except Exception as exc:
             return {"success": False, "message": f"claude --version failed: {exc}"}
 
-        # 1.5 直连验证 Anthropic API Key（仅 sk-ant- 类型）
+        # 1.5 直连验证 Console API Key（仅 sk-ant-api… 类型）
         #   coding-proxy 主 tier (zhipu) 用自有 key，不验证客户端凭证 → Test Connection 通过 ≠ 凭证有效。
-        #   此步绕过 proxy 直连 api.anthropic.com，检出无效/过期/吊销的 key。
-        if config.credential and config.credential.startswith("sk-ant-"):
+        #   此步绕过 proxy 直连 api.anthropic.com，检出无效/过期/吊销的 Console Key。
+        #   ``sk-ant-oat…`` 订阅 OAuth 令牌不走此路（Anthropic 已禁第三方 OAuth 直连，必误报）——
+        #   跳过直连、降级走下方经 proxy 的 prompt 测试（zhipu 主 tier 可正常应答）。
+        if is_console_api_key(config.credential):
             cred_error = await ClaudeCodeService._verify_anthropic_credential_direct(config.credential)
             if cred_error:
                 return cred_error

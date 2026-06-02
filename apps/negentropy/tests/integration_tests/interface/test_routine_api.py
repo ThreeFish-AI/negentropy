@@ -235,7 +235,7 @@ async def test_iteration_events_endpoint_pagination_and_404():
         await _cleanup("itest_api_")
 
 
-async def test_restart_failed_resets_run_state_and_sets_floor():
+async def test_restart_failed_resets_run_state_and_sets_floor(git_repo):
     """失败 routine 重启：复位运行态计数器，抬高 eval_floor_seq=MAX(seq)，保留既往迭代与反思。"""
     app = _app()
     key = _key()
@@ -249,6 +249,9 @@ async def test_restart_failed_resets_run_state_and_sets_floor():
                     "goal": "g",
                     "acceptance_criteria": "a",
                     "max_cost_usd": 10,
+                    # cwd + baseline 满足 #829 restart 端点的 worktree 隔离守卫。
+                    "cwd": git_repo,
+                    "baseline_branch": "main",
                 },
             )
             rid = r.json()["id"]
@@ -301,7 +304,7 @@ async def test_restart_failed_resets_run_state_and_sets_floor():
         await _cleanup("itest_api_")
 
 
-async def test_restart_closes_leftover_nonterminal_iterations():
+async def test_restart_closes_leftover_nonterminal_iterations(git_repo):
     """回归（code review）：cancel 保留 executed 迭代；restart 须闭合全部遗留非终态迭代，
 
     否则重启后 _find_routines_pending_eval/_has_active_iteration 会拾取旧迭代污染新尝试。
@@ -312,7 +315,15 @@ async def test_restart_closes_leftover_nonterminal_iterations():
         async with _client(app) as c:
             r = await c.post(
                 "/routines",
-                json={"key": key, "title": "Restart Leftover", "goal": "g", "acceptance_criteria": "a"},
+                json={
+                    "key": key,
+                    "title": "Restart Leftover",
+                    "goal": "g",
+                    "acceptance_criteria": "a",
+                    # cwd + baseline 满足 #829 restart 端点的 worktree 隔离守卫。
+                    "cwd": git_repo,
+                    "baseline_branch": "main",
+                },
             )
             rid = r.json()["id"]
 

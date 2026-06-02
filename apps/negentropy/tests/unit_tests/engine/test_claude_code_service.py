@@ -105,16 +105,31 @@ async def test_default_timeout_is_routine_appropriate():
 # ---------------------------------------------------------------------------
 
 
-async def test_build_subprocess_env_oauth_token_uses_bearer(monkeypatch):
-    """非 sk-ant- 凭证（OAuth 长期令牌）→ Bearer 两键，且清除 x-api-key 键。"""
+async def test_build_subprocess_env_console_api_key_uses_x_api_key(monkeypatch):
+    """Console API Key（sk-ant-api…）→ ANTHROPIC_API_KEY（x-api-key），且清除 Bearer 两键。"""
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "0f12ec02e91345bb82d14a91b9bea8ca")  # 网关 key，应被清除
-    env = ClaudeCodeService._build_subprocess_env("sk-ant-oat01-deadbeef-token")
-    # sk-ant- 前缀 → 走 API Key 分支
-    assert env["ANTHROPIC_API_KEY"] == "sk-ant-oat01-deadbeef-token"
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "stale-bearer")  # 应被清除
+    env = ClaudeCodeService._build_subprocess_env("sk-ant-api03-deadbeef-key")
+    # sk-ant-api 前缀 → 走 Console API Key 分支
+    assert env["ANTHROPIC_API_KEY"] == "sk-ant-api03-deadbeef-key"
     assert "ANTHROPIC_AUTH_TOKEN" not in env
     assert "CLAUDE_CODE_OAUTH_TOKEN" not in env
     # base_url 始终保留
+    assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
+
+
+async def test_build_subprocess_env_oauth_subscription_token_uses_bearer(monkeypatch):
+    """订阅 OAuth 令牌（sk-ant-oat…，setup-token 生成）→ Bearer 两键，清 x-api-key。
+
+    回归锁定：sk-ant-oat… 与 sk-ant-api… 同享 sk-ant- 前缀但认证头不同——
+    OAuth 令牌须走 ANTHROPIC_AUTH_TOKEN（Bearer），绝不可误判为 x-api-key。
+    """
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://127.0.0.1:3392")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "0f12ec02e91345bb82d14a91b9bea8ca")  # 网关 key，应被清除
+    env = ClaudeCodeService._build_subprocess_env("sk-ant-oat01-deadbeef-token")
+    assert env["ANTHROPIC_AUTH_TOKEN"] == "sk-ant-oat01-deadbeef-token"
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "sk-ant-oat01-deadbeef-token"
+    assert "ANTHROPIC_API_KEY" not in env  # 网关 key 被清除，消除优先级歧义
     assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:3392"
 
 
@@ -195,3 +210,151 @@ async def test_config_repr_omits_credential_secret():
     """secret 绝不出现在 repr（防日志 / traceback 泄露）。"""
     cfg = ClaudeCodeConfig(credential="super-secret-oauth-token")
     assert "super-secret-oauth-token" not in repr(cfg)
+
+
+# ---------------------------------------------------------------------------
+# 交互模式（--input-format stream-json）死锁回归锁定
+#
+# 根因（实测）：stream-json 输入模式下 CLI **忽略** -p <prompt> 命令行取值，改从 stdin 读
+# 首条 user 消息作为任务输入；且产出 result 后**不自行退出**，保持 stdin 打开等待更多输入。
+# 旧实现既不经 stdin 投喂 prompt、也不在 result 后闭合 stdin → CLI 永久阻塞（0 turns 挂起，
+# 占满并发槽位、阻塞所有后续 dispatch，直至外层超时或被 kill）。
+# 修复：① 启动后即经 stdin 投喂初始 user prompt；② reader 见 result 即 put(None) 闭合 stdin。
+# ---------------------------------------------------------------------------
+
+
+async def test_build_stdin_user_prompt_is_user_message_with_newline():
+    """初始 prompt 须封装为 stream-json ``user`` 消息且以换行结尾（CLI 按行解析 stdin）。"""
+    line = ClaudeCodeService._build_stdin_user_prompt("请创建 hello.py")
+    assert line.endswith("\n")
+    msg = json.loads(line)
+    assert msg["type"] == "user"
+    assert msg["message"]["role"] == "user"
+    assert msg["message"]["content"] == "请创建 hello.py"
+
+
+async def test_build_stdin_user_prompt_preserves_unicode():
+    """非 ASCII prompt 不转义（ensure_ascii=False），保证 CLI 收到原文。"""
+    line = ClaudeCodeService._build_stdin_user_prompt("中文目标 🚀")
+    assert "中文目标 🚀" in line
+
+
+class _DuplexFakeProc:
+    """模拟交互式 claude 子进程：record stdin 写入；stdout 在 stdin 收到首条 user 消息后吐事件。
+
+    复刻真实 CLI 关键行为：(1) prompt 经 stdin 抵达后才开始产出事件；(2) 产出 result 后不
+    自行退出（returncode 维持 None），直到 stdin 被关闭（close 调用）才置 returncode=0 + stdout EOF。
+    """
+
+    def __init__(self, events: list[dict]) -> None:
+        self._events = events
+        self.returncode: int | None = None
+        self._stdin_got_prompt = asyncio.Event()
+        self._stdin_closed = asyncio.Event()
+        self.stdin = self._Stdin(self)
+        self.stdout = self._Stdout(self)
+        self.stderr = _FakeStream(b"")
+        self.terminated = False
+
+    class _Stdin:
+        def __init__(self, proc: _DuplexFakeProc) -> None:
+            self._proc = proc
+            self.writes: list[str] = []
+
+        def write(self, data: bytes) -> None:
+            text = data.decode("utf-8")
+            self.writes.append(text)
+            # 首条 user 消息（初始 prompt）抵达 → 解锁 stdout 事件吐出
+            self._proc._stdin_got_prompt.set()
+
+        async def drain(self) -> None:
+            return None
+
+        def close(self) -> None:
+            self._proc._stdin_closed.set()
+            # stdin 关闭 → CLI 干净退出
+            self._proc.returncode = 0
+
+        async def wait_closed(self) -> None:
+            return None
+
+    class _Stdout:
+        def __init__(self, proc: _DuplexFakeProc) -> None:
+            self._proc = proc
+            self._idx = 0
+            self._buf = b""
+
+        async def read(self, n: int = -1) -> bytes:
+            # 阻塞直到初始 prompt 抵达（复刻「-p 被忽略、须经 stdin」语义）
+            if self._idx == 0 and not self._buf:
+                await self._proc._stdin_got_prompt.wait()
+            if self._buf:
+                out, self._buf = self._buf, b""
+                return out
+            if self._idx < len(self._proc._events):
+                line = (json.dumps(self._proc._events[self._idx]) + "\n").encode("utf-8")
+                self._idx += 1
+                size = len(line) if n is None or n < 0 else min(n, len(line))
+                out, self._buf = line[:size], line[size:]
+                return out
+            # 事件耗尽后：阻塞直到 stdin 关闭才 EOF（复刻 result 后不自退、等 stdin 闭合）
+            await self._proc._stdin_closed.wait()
+            return b""
+
+    def terminate(self) -> None:
+        self.terminated = True
+        if self.returncode is None:
+            self.returncode = 0
+
+    async def wait(self) -> int:
+        return self.returncode or 0
+
+
+async def test_interactive_feeds_prompt_via_stdin_and_closes_on_result(monkeypatch):
+    """端到端锁定交互模式死锁修复：
+
+    - 初始 prompt 经 stdin 投喂（writes[0] 为 user 消息且含 prompt 原文）；
+    - 收到 result 事件后主动闭合 stdin，进程干净退出（status=success，非超时/143）；
+    - session_id / cost / turns 正确回带。
+    """
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-int-1"},
+        {"type": "assistant", "message": {"content": [{"type": "text", "text": "已创建 hello.py"}]}},
+        {
+            "type": "result",
+            "subtype": "success",
+            "result": "done",
+            "session_id": "sess-int-1",
+            "num_turns": 2,
+            "total_cost_usd": 0.42,
+        },
+    ]
+    proc = _DuplexFakeProc(events)
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac"},
+    )
+    result = await ClaudeCodeService.invoke("请创建 hello.py 输出 Hello World", cfg)
+
+    # 初始 prompt 必经 stdin 投喂（首条写入为 user 消息且含 prompt 原文）
+    assert proc.stdin.writes, "必须经 stdin 投喂初始 prompt"
+    first = json.loads(proc.stdin.writes[0])
+    assert first["type"] == "user"
+    assert "请创建 hello.py" in first["message"]["content"]
+    # result 后闭合 stdin → 进程干净退出，非超时/SIGTERM
+    assert result.status == "success", f"应成功退出，实际 {result.status}（error={result.error}）"
+    assert result.session_id == "sess-int-1"
+    assert result.turn_count == 2
+    assert result.cost_usd == 0.42

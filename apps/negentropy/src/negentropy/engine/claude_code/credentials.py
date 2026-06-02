@@ -17,9 +17,12 @@ tier，把无效凭证原样转发给 ``api.anthropic.com`` → 401。
 
 1. **Interface / Tools UI**：``builtin_tools.claude_code.credentials`` 的 ``oauth_token`` /
    ``api_key`` 字段（入库、UI 脱敏、热轮换免重启）。脱敏占位值（含 ``****``）视为「未配置」。
-2. **环境变量兜底**：``CLAUDE_CODE_OAUTH_TOKEN``；或 ``ANTHROPIC_API_KEY``（仅当为真实
-   ``sk-ant-`` 前缀，避免误用 AfterShip 32 位网关 key）。
+2. **环境变量兜底**：``CLAUDE_CODE_OAUTH_TOKEN``；或 ``ANTHROPIC_API_KEY``（仅当为 Console API Key
+   ``sk-ant-api…`` 前缀，避免误用 AfterShip 32 位网关 key 或 ``sk-ant-oat…`` 订阅令牌）。
 3. 均无 → ``None``：不注入，保持既有行为（继承环境 / 交互式登录态），不破坏开发与终端场景。
+
+凭证类型与注入头（见 ``service._credential_env``）：``sk-ant-api…`` Console Key → ``x-api-key``；
+其它（``sk-ant-oat…`` 订阅 OAuth 令牌等）→ ``Authorization: Bearer``。
 
 凭证为敏感数据，**绝不写入日志**（调用方亦不得记录返回值）。
 """
@@ -32,9 +35,21 @@ import os
 # 脱敏值形如 "abcd****wxyz" 或 "****"，一律含此标记。
 _MASK_MARKER = "****"
 
-# 真实 Anthropic API Key 前缀。AfterShip 网关 key（32 位 hex，如 ``0f12ec0…``）不带此前缀，
-# 用作 ``x-api-key`` 会被根 ``/v1/messages`` failover anthropic tier 转发后 401，故须排除。
-_ANTHROPIC_API_KEY_PREFIX = "sk-ant-"
+# Anthropic Console API Key 前缀（``sk-ant-api…``，pay-per-token，console.anthropic.com 签发）。
+# 注意：``setup-token`` 生成的 claude.ai 订阅 OAuth 令牌前缀为 ``sk-ant-oat…``，二者认证机制不同——
+#   - Console API Key → ``x-api-key`` 头（``ANTHROPIC_API_KEY``）；
+#   - OAuth 订阅令牌  → ``Authorization: Bearer`` 头（``ANTHROPIC_AUTH_TOKEN``）。
+# 故判别须用 ``sk-ant-api`` 精确前缀，不能用 ``sk-ant-`` 笼统前缀（后者会把 OAuth 令牌误判为 API Key）。
+# AfterShip 网关 key（32 位 hex，如 ``0f12ec0…``）不带任何 ``sk-ant-`` 前缀，亦被排除。
+_ANTHROPIC_API_KEY_PREFIX = "sk-ant-api"
+
+
+def is_console_api_key(value: str | None) -> bool:
+    """判断凭证是否为 Anthropic Console API Key（``sk-ant-api…``，走 ``x-api-key``）。
+
+    非此前缀者（含 ``sk-ant-oat…`` OAuth 订阅令牌、网关 key 等）一律按 Bearer 令牌处理。
+    """
+    return bool(value) and value.startswith(_ANTHROPIC_API_KEY_PREFIX)
 
 
 def _is_masked(value: str) -> bool:
@@ -47,7 +62,9 @@ def resolve_claude_code_credential(credentials: dict | None) -> str | None:
 
     Args:
         credentials: ``builtin_tools.claude_code.credentials`` 字典（可为 ``None``）。
-            识别 ``oauth_token``（订阅长期令牌，Bearer）与 ``api_key``（``sk-ant-`` API Key）。
+            识别 ``oauth_token``（claude.ai 订阅令牌，``sk-ant-oat…``，注入为 Bearer）与
+            ``api_key``（Console API Key，``sk-ant-api…``，注入为 x-api-key）。注入头由
+            ``is_console_api_key`` 按前缀判别，与本函数读取的字段名无关。
 
     Returns:
         去除首尾空白的凭证字符串；无任何可用来源时返回 ``None``。脱敏占位值按「未配置」处理。
