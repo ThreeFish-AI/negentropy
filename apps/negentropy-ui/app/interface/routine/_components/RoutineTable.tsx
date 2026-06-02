@@ -1,11 +1,11 @@
 "use client";
 
-import { ExternalLink, OctagonX, RotateCcw } from "lucide-react";
+import { ExternalLink, OctagonX, RotateCcw, Trash2 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
 
-import { canCancel, canRestart } from "./routine-controls";
+import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
 import { routineStatusClass, scoreColorClass } from "./status-style";
 
 interface RoutineTableProps {
@@ -17,9 +17,11 @@ interface RoutineTableProps {
   onRestart?: (r: RoutineDTO) => void;
   /** 运行中 / 暂停行内终止（打开确认对话框）。 */
   onTerminate?: (r: RoutineDTO) => void;
+  /** 终态 + worktree 活跃时行内清理 worktree。 */
+  onCleanupWorktree?: (r: RoutineDTO) => void;
 }
 
-export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -100,6 +102,19 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                     >
                       <RotateCcw className="h-3 w-3" />
                       Restart
+                    </button>
+                  )}
+                  {onCleanupWorktree && canCleanupWorktree(r.status, r.worktree_status, r.worktree_path) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCleanupWorktree(r);
+                      }}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-amber-400"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Clean Up
                     </button>
                   )}
                   {onTerminate && canCancel(r.status) && (
