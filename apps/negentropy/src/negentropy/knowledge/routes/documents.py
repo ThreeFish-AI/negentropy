@@ -205,10 +205,12 @@ async def update_document(
     document_id: UUID,
     payload: DocumentUpdateRequest,
 ) -> DocumentResponse:
-    """更新文档元信息（当前仅支持 ``display_name``）。
+    """更新文档元信息（display_name + Wiki 文章元数据）。
 
     - ``display_name`` 为 ``None`` / 空白时清除覆盖，展示侧回退到
       ``metadata_.title -> original_filename``；
+    - ``author`` / ``author_url`` / ``source_url`` / ``published_at`` 合并写入
+      ``metadata_`` JSONB；传空字符串清除对应键；
     - 与 :func:`get_document_detail` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
     """
     resolved_app = _resolve_app_name(payload.app_name)
@@ -216,6 +218,21 @@ async def update_document(
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
+
+    # 合并 metadata_ JSONB 中的 Wiki 文章元数据字段
+    meta_keys = ("author", "author_url", "source_url", "published_at")
+    metadata_patch: dict[str, str | None] = {}
+    for key in meta_keys:
+        val = getattr(payload, key, None)
+        if val is not None:
+            # 空字符串视为清除，否则设置值
+            metadata_patch[key] = val.strip() or None
+
+    if metadata_patch:
+        await storage_service.update_document_metadata(
+            document_id=document_id,
+            metadata_patch=metadata_patch,
+        )
 
     try:
         doc = await storage_service.update_document_display_name(

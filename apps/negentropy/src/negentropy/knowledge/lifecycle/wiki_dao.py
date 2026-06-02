@@ -447,12 +447,12 @@ class WikiDao:
         if not resolved_title:
             resolved_title = filename or "Untitled"
 
-        # 来源 URL 解析：URL 文档取 origin_url / source_url；File 文档取 metadata 中的 source_uri
+        # 来源 URL 解析：URL 文档取 DocSource；File 文档取 metadata
         source_type = (metadata or {}).get("source_type")
         if source_type == "url":
             resolved_source_url = doc_original_url or doc_source_url
         else:
-            resolved_source_url = (metadata or {}).get("source_uri")
+            resolved_source_url = (metadata or {}).get("source_url") or (metadata or {}).get("source_uri")
 
         return {
             "document_id": doc_id,
