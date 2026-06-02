@@ -190,13 +190,21 @@ async def test_phased_finalize_with_pr_succeeds():
 
 
 async def test_dispatch_auto_launches_and_writes_back():
-    rid = await _make_routine(approval_mode="auto", iteration_count=0)
+    # baseline_branch + cwd 满足 #829 派发守卫（无 baseline 的非模板 routine 被纵深防御终止）；
+    # ensure_worktree 被 mock 回隔离句柄，避免真实 git worktree 操作。
+    rid = await _make_routine(
+        approval_mode="auto", iteration_count=0, baseline_branch="origin/feature/1.x.x", cwd="/repo/root"
+    )
     try:
         orch = RoutineOrchestrator()
         fake = ClaudeCodeResult(status="success", summary="ok", session_id="s1", cost_usd=0.05, turn_count=2)
-        with patch(
-            "negentropy.engine.claude_code.service.ClaudeCodeService.invoke",
-            new=AsyncMock(return_value=fake),
+        info = WorkspaceInfo(path="/tmp/wt/dispatch-auto", branch="routine/dispatch-auto")
+        with (
+            patch(
+                "negentropy.engine.claude_code.service.ClaudeCodeService.invoke",
+                new=AsyncMock(return_value=fake),
+            ),
+            patch("negentropy.engine.routine.workspace.ensure_worktree", new=AsyncMock(return_value=info)),
         ):
             launched = await orch._dispatch_due()
             assert launched == 1
@@ -215,7 +223,10 @@ async def test_dispatch_auto_launches_and_writes_back():
 
 
 async def test_dispatch_first_approval_creates_pending():
-    rid = await _make_routine(approval_mode="first", iteration_count=0)
+    # baseline_branch 满足 #829 派发守卫；first 模式首迭代 pending_approval 不触发 ensure_worktree。
+    rid = await _make_routine(
+        approval_mode="first", iteration_count=0, baseline_branch="origin/feature/1.x.x", cwd="/repo/root"
+    )
     try:
         orch = RoutineOrchestrator()
         with patch(
@@ -258,15 +269,21 @@ async def test_redispatch_after_aborted_iteration_uses_next_seq():
     复现 pause→resume 流：iteration_count=0，seq=1 迭代被 abort（计数未增），
     旧逻辑 seq=iteration_count+1=1 会与已存在的 seq=1 行冲突 → IntegrityError。
     """
-    rid = await _make_routine(approval_mode="auto", iteration_count=0)
+    rid = await _make_routine(
+        approval_mode="auto", iteration_count=0, baseline_branch="origin/feature/1.x.x", cwd="/repo/root"
+    )
     # 造一个已 aborted 的 seq=1 迭代（模拟 pause 中止）
     await _add_iteration(rid, seq=1, status="aborted", exec_status=None, summary=None)
     try:
         orch = RoutineOrchestrator()
         fake = ClaudeCodeResult(status="success", summary="ok", session_id="s2", cost_usd=0.01, turn_count=1)
-        with patch(
-            "negentropy.engine.claude_code.service.ClaudeCodeService.invoke",
-            new=AsyncMock(return_value=fake),
+        info = WorkspaceInfo(path="/tmp/wt/redispatch", branch="routine/redispatch")
+        with (
+            patch(
+                "negentropy.engine.claude_code.service.ClaudeCodeService.invoke",
+                new=AsyncMock(return_value=fake),
+            ),
+            patch("negentropy.engine.routine.workspace.ensure_worktree", new=AsyncMock(return_value=info)),
         ):
             launched = await orch._dispatch_due()  # 不应抛 IntegrityError
             assert launched == 1
