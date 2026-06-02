@@ -209,6 +209,8 @@ export function eventTypeLabel(eventType: RoutineEventType): string {
   switch (eventType) {
     case "system":
       return "会话初始化";
+    case "system_retry":
+      return "API 重试";
     case "assistant":
       return "推理";
     case "tool_use":

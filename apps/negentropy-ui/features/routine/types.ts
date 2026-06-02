@@ -97,12 +97,13 @@ export interface RoutineIterationDTO {
 
 /**
  * 「全过程」动作级审计事件类型：
- * - 执行阶段：system（init）/ assistant（中间消息）/ tool_use（工具调用）/ tool_result（工具结果）/ result（最终产出）
+ * - 执行阶段：system（init）/ system_retry（API 重试，含 401/429）/ assistant（中间消息）/ tool_use（工具调用）/ tool_result（工具结果）/ result（最终产出）
  * - 评估阶段：gate（命令门控）/ evaluation（LLM-as-Judge）
  * - _truncated：动作数超上限的哨兵
  */
 export type RoutineEventType =
   | "system"
+  | "system_retry"
   | "assistant"
   | "tool_use"
   | "tool_result"
