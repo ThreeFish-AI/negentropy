@@ -12,6 +12,7 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   approveIteration,
+  cleanupWorktree,
   controlRoutine,
   rejectIteration,
   useRoutineDetailLive,
@@ -90,6 +91,20 @@ export default function RoutineRunPage() {
     },
     [id, reload],
   );
+
+  const handleCleanupWorktree = useCallback(async () => {
+    if (!id) return;
+    setBusy(true);
+    try {
+      await cleanupWorktree(id);
+      toast.success("Worktree cleaned up");
+      await reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clean up worktree");
+    } finally {
+      setBusy(false);
+    }
+  }, [id, reload]);
 
   const { requestRestart, restartDialog } = useRestartRoutine(() => void reload());
 
@@ -172,6 +187,7 @@ export default function RoutineRunPage() {
                 routine={routine}
                 onApproveIteration={handleApprove}
                 onRejectIteration={handleReject}
+                onCleanupWorktree={handleCleanupWorktree}
                 liveActionsByIteration={liveActionsByIteration}
                 busy={busy}
               />

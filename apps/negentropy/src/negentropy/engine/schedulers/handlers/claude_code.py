@@ -124,7 +124,7 @@ async def _load_claude_code_defaults():
             system_prompt=cfg.get("system_prompt"),
             allowed_tools=cfg.get("allowed_tools"),
             cwd=cfg.get("cwd") or cfg.get("default_cwd"),
-            max_turns=cfg.get("max_turns", 20),
+            max_turns=cfg.get("max_turns", 500),
             timeout_seconds=float(cfg.get("timeout_seconds", 300.0)),
             permission_mode=cfg.get("permission_mode", "auto"),
             mcp_config=cfg.get("mcp_config"),

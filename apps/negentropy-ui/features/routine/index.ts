@@ -44,6 +44,7 @@ export {
   approveIteration,
   rejectIteration,
   fetchTemplates,
+  cleanupWorktree,
 } from "./api";
 
 export { useRoutineData } from "./hooks/useRoutineData";

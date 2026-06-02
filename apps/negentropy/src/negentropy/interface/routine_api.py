@@ -14,6 +14,7 @@
 - POST   /routines/{id}/resume               恢复（paused → running）
 - POST   /routines/{id}/cancel               取消（→ cancelled）
 - POST   /routines/{id}/restart              重启（failed/cancelled → running，复位运行态 + 抬高决策水位线）
+- POST   /routines/{id}/cleanup-worktree     手动回收终态 routine 的隔离 worktree
 - POST   /routines/{id}/iterations/{iid}/approve   审批通过待执行迭代
 - POST   /routines/{id}/iterations/{iid}/reject    驳回待执行迭代
 - GET    /routines/stream                    SSE 实时事件（routine + iteration）
@@ -152,7 +153,12 @@ class RestartBody(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None = None) -> dict[str, Any]:
+def _serialize_routine(
+    r: Routine,
+    *,
+    iterations: list[RoutineIteration] | None = None,
+    worktree_meta: dict[str, str | None] | None = None,
+) -> dict[str, Any]:
     data: dict[str, Any] = {
         "id": str(r.id),
         "key": r.key,
@@ -170,6 +176,9 @@ def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None 
         "pr_url": r.pr_url,
         "work_branch": r.work_branch,
         "worktree_path": r.worktree_path,
+        "worktree_status": worktree_meta.get("status") if worktree_meta else None,
+        "worktree_disk_usage": worktree_meta.get("disk_usage") if worktree_meta else None,
+        "worktree_cleanup_policy": worktree_meta.get("cleanup_policy") if worktree_meta else None,
         "max_iterations": r.max_iterations,
         "max_cost_usd": r.max_cost_usd,
         "deadline_at": r.deadline_at.isoformat() if r.deadline_at else None,
@@ -491,7 +500,9 @@ async def get_routine(
             .scalars()
             .all()
         )
-    return _serialize_routine(r, iterations=list(iterations))
+    # 按需计算 worktree 生命周期状态（仅 detail 端点，避免 list 端点 N+1 磁盘检查）。
+    worktree_meta = await workspace.compute_worktree_status(r, settings.routine)
+    return _serialize_routine(r, iterations=list(iterations), worktree_meta=worktree_meta)
 
 
 # ---------------------------------------------------------------------------
@@ -840,6 +851,37 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
     _KPI_CACHE.invalidate()
     await _publish_routine(r)
     return _serialize_routine(r)
+
+
+@router.post("/{routine_id}/cleanup-worktree")
+async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
+    """手动回收终态 routine 的隔离 worktree（best-effort，不改变 routine 状态）。
+
+    终态 routine（succeeded/failed/cancelled）在 worktree 仍活跃时可用于手动触发磁盘回收，
+    无需等待周期巡检器。``work_branch`` 保留供审计/PR 溯源。
+    """
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if r.status not in _TERMINAL:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"can only clean up worktrees for terminal routines"
+                    f" (succeeded/failed/cancelled), current: '{r.status}'"
+                ),
+            )
+        if not r.worktree_path:
+            raise HTTPException(status_code=409, detail="worktree already cleaned up or never created")
+        # best-effort 回收：异常仅日志，不阻断。
+        with suppress(Exception):
+            await workspace.remove_worktree(r, settings.routine)
+        r.worktree_path = None
+        await db.commit()
+        await db.refresh(r)
+    worktree_meta = await workspace.compute_worktree_status(r, settings.routine)
+    return _serialize_routine(r, worktree_meta=worktree_meta)
 
 
 # ---------------------------------------------------------------------------
