@@ -63,6 +63,11 @@ class RoutineSettings(BaseSettings):
     default_max_cost_usd: float = Field(
         default=5.0, ge=0.0, description="创建 routine 时 max_cost_usd 的默认值（成本熔断守卫）"
     )
+    default_max_turns: int = Field(
+        default=1000,
+        ge=1,
+        description="Routine 单次迭代 Claude Code 执行的默认最大交互轮次；被 routine.config.max_turns 覆盖。",
+    )
     default_iteration_timeout_seconds: int = Field(
         default=10800,
         ge=300,

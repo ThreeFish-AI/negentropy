@@ -114,7 +114,7 @@ const DEFAULTS: FormState = {
   no_progress_patience: "3",
   approval_mode: "auto",
   model: "",
-  max_turns: "",
+  max_turns: "1000",
   permission_mode: "",
   allowed_tools: "",
   timeout_seconds: "",
@@ -147,7 +147,7 @@ const CATEGORY_OPTIONS = [
 function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "permission_mode" | "allowed_tools" | "timeout_seconds"> {
   return {
     model: (cfg.model as string) ?? "",
-    max_turns: cfg.max_turns != null ? String(cfg.max_turns) : "",
+    max_turns: cfg.max_turns != null ? String(cfg.max_turns) : "1000",
     permission_mode: (cfg.permission_mode as string) ?? "",
     allowed_tools: Array.isArray(cfg.allowed_tools) ? (cfg.allowed_tools as string[]).join(", ") : "",
     timeout_seconds: cfg.timeout_seconds != null ? String(cfg.timeout_seconds) : "",
@@ -697,6 +697,17 @@ export function RoutineEditDrawer({
                     className={cn(inputCls, "min-w-0 flex-1")}
                   />
                 </div>
+                <div className="flex items-center gap-2">
+                  <label className={labelInlineCls}>Max Turns / Iter.</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.max_turns}
+                    onChange={(e) => update("max_turns", e.target.value)}
+                    disabled={readOnly}
+                    className={cn(inputCls, "min-w-0 flex-1")}
+                  />
+                </div>
                 <div className="col-span-2 flex items-center gap-2">
                   <label className={labelInlineCls}>Iteration Timeout</label>
                   <input
@@ -854,18 +865,6 @@ export function RoutineEditDrawer({
                 {showAdvanced && (
                   <div className="mt-3 space-y-2 rounded-card border border-border bg-muted/30 p-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2">
-                        <label className={labelInlineCls}>Max Turns / Iter.</label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={form.max_turns}
-                          onChange={(e) => update("max_turns", e.target.value)}
-                          disabled={readOnly}
-                          placeholder="default"
-                          className={cn(inputCls, "min-w-0 flex-1")}
-                        />
-                      </div>
                       <div className="flex items-center gap-2">
                         <label className={labelInlineCls}>Permission Mode</label>
                         <select
