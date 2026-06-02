@@ -335,6 +335,20 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
 
+                # 纵深防御：非模板 routine 必须有 baseline_branch 才能派发——
+                # 无隔离 worktree 的 routine 直接在项目根运行 Claude Code 是不安全的，
+                # 任何变更将直接影响主工作树且无法干净回滚。此守卫与 API 层 start/restart/resume
+                # 端点对齐，作为最后一道防线捕获 API 层遗漏的绕过路径。
+                if not routine.is_template and not routine.baseline_branch:
+                    logger.warning(
+                        "routine_dispatch_skipped_no_baseline",
+                        routine_id=str(routine.id),
+                        key=routine.key,
+                    )
+                    self._terminate(routine, "unrecoverable_error")
+                    await self._publish_routine(routine)
+                    continue
+
                 # seq 从实际最大值派生（非 iteration_count），避免 aborted/reaped 迭代
                 # 占用的 seq 与新迭代冲突触发 uq_routine_iterations_seq。
                 seq = await self._next_seq(db, routine.id)
