@@ -44,6 +44,11 @@ class ClaudeCodeConfig:
     mcp_config: dict[str, Any] | None = None
     resume_session_id: str | None = None
 
+    # 注入子进程的真实 Anthropic 凭证（OAuth 长期令牌 / sk-ant- API Key）。
+    # 由 credentials.resolve_claude_code_credential 解析，ClaudeCodeService 据此构建子进程 env。
+    # repr=False / compare=False：secret 绝不入 repr（防日志、traceback 泄露），亦不参与相等比较。
+    credential: str | None = field(default=None, repr=False, compare=False)
+
     # 默认允许的工具集
     _DEFAULT_TOOLS: list[str] = field(
         default_factory=lambda: ["Bash", "Read", "Write", "Edit", "Glob", "Grep"],
