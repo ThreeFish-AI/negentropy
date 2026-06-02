@@ -67,6 +67,8 @@ class _RoutineLike(Protocol):
     acceptance_criteria: str
     cwd: str | None
     verification_command: str | None
+    # worktree routine：CC 实际在隔离 worktree 内工作，门控须同处执行（见 _gate_cwd）。
+    worktree_path: str | None
 
 
 class _IterationLike(Protocol):
@@ -117,7 +119,7 @@ class RoutineEvaluator:
         gate_exit_code: int | None = None
         gate_output = ""
         if routine.verification_command:
-            gate_exit_code, gate_output = await self._run_gate(routine.verification_command, routine.cwd)
+            gate_exit_code, gate_output = await self._run_gate(routine.verification_command, self._gate_cwd(routine))
 
         # 2) LLM Judge
         summary = (iteration.summary or "").strip()
@@ -158,6 +160,17 @@ class RoutineEvaluator:
             judge_raw=judge_raw,
             gate_output=audit_gate,
         )
+
+    @staticmethod
+    def _gate_cwd(routine: _RoutineLike) -> str | None:
+        """门控命令的有效执行目录：优先隔离 worktree，回退 routine.cwd。
+
+        worktree routine 的 Claude Code 在引擎备好的隔离 worktree（``worktree_path``）内改代码，
+        故验收命令（如 ``python3 hello.py`` / ``uv run pytest``）必须同处执行，否则在原始 ``cwd``
+        根目录运行将找不到 CC 新建/修改的文件（exit 2 file-not-found）、永远无法通过门控——
+        与 ``orchestrator._build_config`` 的 ``effective_cwd`` 逻辑保持一致。
+        """
+        return getattr(routine, "worktree_path", None) or routine.cwd
 
     async def _run_gate(self, command: str, cwd: str | None) -> tuple[int | None, str]:
         """在 ``cwd`` 执行验证命令，返回 (exit_code, 截断输出)。超时/异常 → exit_code=None。

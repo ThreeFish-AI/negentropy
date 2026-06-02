@@ -797,6 +797,22 @@ class ClaudeCodeService:
     )
 
     @staticmethod
+    def _build_stdin_user_prompt(prompt: str) -> str:
+        """构建写入 stdin 的初始 user prompt 消息行（``--input-format stream-json``）。
+
+        关键：stream-json 输入模式下 CLI **忽略** ``-p <prompt>`` 命令行参数的取值，改从 stdin
+        读取首条 ``user`` 消息作为任务输入。若不经 stdin 投喂 prompt，CLI 会永久阻塞等待 stdin，
+        既不产出任何事件也不退出（直到外层超时或被 kill）——这是交互模式迭代「0 turns 挂起」的根因。
+
+        协议格式：``{"type":"user","message":{"role":"user","content":"<prompt>"}}`` + ``\\n``
+        """
+        msg = {
+            "type": "user",
+            "message": {"role": "user", "content": prompt},
+        }
+        return json.dumps(msg, ensure_ascii=False) + "\n"
+
+    @staticmethod
     def _build_stdin_tool_result(tool_use_id: str, content: str) -> str:
         """构建写入 stdin 的 stream-json tool_result 消息行。
 
@@ -990,6 +1006,13 @@ class ClaudeCodeService:
                                 session_holder["session_id"] = session_id
                         cost = event.get("total_cost_usd") or event.get("cost_usd") or 0.0
                         turns = event.get("num_turns", 0)
+                        # 关键：stream-json 输入模式下，CLI 产出 result 后**不会**自行退出，
+                        # 而是保持 stdin 打开等待更多输入。须主动闭合 stdin 触发其干净退出，
+                        # 否则进程挂起、stdout 无 EOF、reader 永不结束（三方循环死锁）。
+                        # 先持久化本条 result 审计事件，再通知 writer 关闭 stdin 并跳出循环。
+                        await _emit_events(event, events_holder, on_event)
+                        await write_queue.put(None)
+                        break
                     elif evt_type == _EVT_ASSISTANT and not result_text:
                         blocks = (event.get("message") or {}).get("content")
                         if isinstance(blocks, list):
@@ -1087,9 +1110,20 @@ class ClaudeCodeService:
             reader_task = asyncio.create_task(_reader(), name="cc-interactive-reader")
             writer_task = asyncio.create_task(_writer(), name="cc-interactive-writer")
 
+            # 关键：先经 stdin 投喂初始 user prompt——stream-json 输入模式下 CLI 忽略 -p 参数，
+            # 仅从 stdin 读取首条 user 消息作为任务输入。不投喂则 CLI 永久阻塞等待 stdin。
+            await write_queue.put(ClaudeCodeService._build_stdin_user_prompt(prompt))
+
             # 超时由外层 invoke() 的 asyncio.wait_for 统一管控，
             # 与原 _invoke_cli 非交互路径一致，避免双重超时干扰。
             await asyncio.gather(reader_task, writer_task)
+
+            # reader 收到 result 后已闭合 stdin，CLI 随即干净退出（rc=0）。给予短暂优雅窗口
+            # 等其自然收尾，避免 finally 抢先 terminate() 误判为 SIGTERM(143) 而把成功迭代标记为
+            # error。窗口内未退出（异常滞留）才落到 finally 的强制 terminate。
+            if proc.returncode is None:
+                with suppress(TimeoutError):
+                    await asyncio.wait_for(proc.wait(), timeout=10.0)
         except asyncio.CancelledError:
             proc.terminate()
             await proc.wait()

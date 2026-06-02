@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import { TiltedCard } from "@/components/ui/TiltedCard";
 
 interface Agent {
   id: string;
@@ -33,6 +34,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
   const isAdmin = user?.roles?.includes("admin") ?? false;
   const canEdit = isAdmin || !agent.is_builtin;
   return (
+    <TiltedCard>
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
@@ -144,5 +146,6 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
         </div>
       </div>
     </div>
+    </TiltedCard>
   );
 }

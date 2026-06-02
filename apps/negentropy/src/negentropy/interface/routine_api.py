@@ -758,6 +758,13 @@ async def resume_routine(routine_id: UUID, body: ControlBody | None = None) -> d
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status != "paused":
             raise HTTPException(status_code=409, detail=f"cannot resume from status '{r.status}'")
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 恢复前须具备 cwd + baseline_branch。
+        if not r.is_template:
+            if not (r.cwd and r.baseline_branch):
+                raise HTTPException(
+                    status_code=409,
+                    detail="恢复前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
+                )
         r.status = "running"
         await db.commit()
         await db.refresh(r)
@@ -810,6 +817,13 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
                 raise HTTPException(
                     status_code=409,
                     detail="deadline has passed; update or clear the deadline before restarting",
+                )
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 重启前须具备 cwd + baseline_branch。
+        if not r.is_template:
+            if not (r.cwd and r.baseline_branch):
+                raise HTTPException(
+                    status_code=409,
+                    detail="重启前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
                 )
 
         # 闭合上一轮遗留的全部非终态迭代（含 executed）。终态 routine 理论上不应有在途迭代，
