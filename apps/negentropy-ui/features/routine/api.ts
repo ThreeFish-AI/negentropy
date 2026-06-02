@@ -148,6 +148,14 @@ export async function rejectIteration(
   );
 }
 
+/**
+ * 手动回收终态 routine 的隔离 worktree（best-effort，不改变 routine 状态）。
+ * 仅对 succeeded/failed/cancelled 终态且 worktree 仍活跃的 routine 有效（后端守卫，否则 409）。
+ */
+export async function cleanupWorktree(routineId: string): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/cleanup-worktree`, { method: "POST" });
+}
+
 // ---------------------------------------------------------------------------
 // Templates（合并模板列表）
 // ---------------------------------------------------------------------------

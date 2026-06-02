@@ -103,6 +103,52 @@ export function limitFillClass(ratio: number | null | undefined): string {
   return "bg-emerald-500";
 }
 
+// ---------------------------------------------------------------------------
+// Worktree 生命周期状态
+// ---------------------------------------------------------------------------
+
+/** Worktree 生命周期状态 → 徽章配色。 */
+export function worktreeStatusClass(status: string | null | undefined): string {
+  switch (status) {
+    case "active":
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    case "cleaned":
+      return "bg-muted text-text-secondary";
+    case "orphaned":
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    default:
+      return "bg-muted/60 text-text-muted";
+  }
+}
+
+/** Worktree 生命周期状态 → 中文标签。 */
+export function worktreeStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case "active":
+      return "Active";
+    case "cleaned":
+      return "Cleaned";
+    case "orphaned":
+      return "Orphaned";
+    default:
+      return "—";
+  }
+}
+
+/** Worktree 清理策略 → 人可读说明文案。 */
+export function worktreePolicyDescription(policy: string | null | undefined): string {
+  switch (policy) {
+    case "on_success":
+      return "Auto-cleanup: on success (failed/cancelled worktrees preserved for debugging)";
+    case "always":
+      return "Auto-cleanup: all terminal routines";
+    case "never":
+      return "Auto-cleanup: disabled";
+    default:
+      return "";
+  }
+}
+
 /** 评分 → 温度条填充配色（≥阈值 绿，≥阈值·0.6 琥珀，否则 红）。 */
 export function scoreFillClass(score: number | null | undefined, threshold = 85): string {
   if (score == null) return "bg-muted-foreground/40";

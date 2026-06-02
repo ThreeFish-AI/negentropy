@@ -316,6 +316,71 @@ async def remove_worktree(routine: _RoutineLike, settings: RoutineSettings, *, f
     _LOCKS.pop(routine.id, None)
 
 
+# ---------------------------------------------------------------------------
+# 状态计算（供序列化层按需调用，无副作用）
+# ---------------------------------------------------------------------------
+
+_DISK_WALK_FILE_CAP = 10_000  # os.walk 文件数安全上限，防巨型 worktree 阻塞事件循环
+
+
+def _format_bytes(size: int) -> str:
+    """将字节数归一为人可读字符串（如 ``"42.3M"``）。"""
+    if size < 1024:
+        return f"{size}B"
+    if size < 1024**2:
+        return f"{size / 1024:.1f}K"
+    if size < 1024**3:
+        return f"{size / 1024**2:.1f}M"
+    return f"{size / 1024**3:.1f}G"
+
+
+async def compute_worktree_status(
+    routine: _RoutineLike,
+    settings: RoutineSettings,
+) -> dict[str, str | None]:
+    """计算 worktree 生命周期状态 + 磁盘占用估算 + 清理策略（只读，无副作用）。
+
+    供 API detail 端点按需调用后注入序列化结果；list/SSE 端点不调用以避免 N+1。
+
+    Returns:
+        dict 包含 ``status``, ``disk_usage``, ``cleanup_policy``。
+    """
+    if not routine.baseline_branch:
+        return {"status": "none", "disk_usage": None, "cleanup_policy": settings.worktree_cleanup}
+
+    if routine.worktree_path is None:
+        # work_branch 非空 → 曾经创建过并已清理；否则尚未创建（pending/未 dispatch）。
+        status = "cleaned" if routine.work_branch else "none"
+        return {"status": status, "disk_usage": None, "cleanup_policy": settings.worktree_cleanup}
+
+    if not os.path.isdir(routine.worktree_path):
+        return {"status": "orphaned", "disk_usage": None, "cleanup_policy": settings.worktree_cleanup}
+
+    # active — 估算磁盘占用（os.walk + 文件数安全上限）。
+    total = 0
+    file_count = 0
+    try:
+        for _dirpath, _dirnames, filenames in os.walk(routine.worktree_path):
+            for fn in filenames:
+                try:
+                    total += os.lstat(os.path.join(_dirpath, fn)).st_size
+                except OSError:
+                    pass
+                file_count += 1
+                if file_count >= _DISK_WALK_FILE_CAP:
+                    break
+            if file_count >= _DISK_WALK_FILE_CAP:
+                break
+    except OSError:
+        pass
+
+    return {
+        "status": "active",
+        "disk_usage": _format_bytes(total),
+        "cleanup_policy": settings.worktree_cleanup,
+    }
+
+
 __all__ = [
     "WorkspaceError",
     "WorkspaceInfo",
@@ -323,4 +388,5 @@ __all__ = [
     "ensure_worktree",
     "remove_worktree",
     "normalize_base_branch",
+    "compute_worktree_status",
 ]

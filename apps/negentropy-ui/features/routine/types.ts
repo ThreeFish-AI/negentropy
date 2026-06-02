@@ -49,6 +49,12 @@ export interface RoutineDTO {
   work_branch: string | null;
   /** 引擎管理的运行期：隔离 worktree 文件系统路径（= CC 实际 cwd）。 */
   worktree_path: string | null;
+  /** 计算的 worktree 生命周期状态（仅 detail 端点返回）。 */
+  worktree_status?: "active" | "cleaned" | "orphaned" | "none" | null;
+  /** 人可读的 worktree 磁盘占用估算（如 "42.3M"）。 */
+  worktree_disk_usage?: string | null;
+  /** 当前 worktree 自动清理策略。 */
+  worktree_cleanup_policy?: "on_success" | "always" | "never" | null;
   max_iterations: number | null;
   max_cost_usd: number | null;
   deadline_at: string | null;
