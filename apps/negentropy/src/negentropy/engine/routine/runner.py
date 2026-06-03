@@ -19,6 +19,8 @@ B 进程的 reaper 可能误判 A 进程仍在执行的迭代为孤儿——``is
 from __future__ import annotations
 
 import asyncio
+import copy
+import time
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -42,6 +44,50 @@ logger = get_logger("negentropy.engine.routine.runner")
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+# ---------------------------------------------------------------------------
+# 迭代内上下文压缩续接辅助函数
+# ---------------------------------------------------------------------------
+
+_COMPACT_RETRY_PROMPT_TEMPLATE = (
+    "# 上下文续接 (Context Continuation)\n\n"
+    "上一次 Claude Code 会话因上下文窗口耗尽被自动压缩重启。\n"
+    "以下是压缩前的执行摘要，请据此继续推进任务。\n\n"
+    "## 原始任务\n{original_prompt}\n\n"
+    "## 已完成的工作摘要\n{summary}\n\n"
+    "## 指令\n"
+    "请从上述摘要断点继续工作，聚焦尚未完成的验收标准项。"
+    "不要重复已完成的工作。所有文件变更已持久化在当前工作目录中。"
+)
+
+
+def _build_compact_retry_prompt(result, original_prompt: str) -> str:
+    """构建上下文耗尽后的迭代内续接 prompt。
+
+    将原始任务 prompt + CC 返回的执行摘要合成为续接 prompt，
+    使新 CC 会话能在无历史上下文的情况下从断点继续工作。
+    """
+    summary = (result.summary or "")[:2000]
+    return _COMPACT_RETRY_PROMPT_TEMPLATE.format(original_prompt=original_prompt, summary=summary)
+
+
+def _reset_config_for_retry(config: ClaudeCodeConfig) -> ClaudeCodeConfig:
+    """克隆配置但清空 session 续接，强制 CC 以新会话启动。
+
+    使用 ``copy.copy`` 浅拷贝：ClaudeCodeConfig 的字段均为不可变类型或
+    由调用方自行管理的容器（``allowed_tools`` 等），浅拷贝语义安全。
+    """
+    new = copy.copy(config)
+    new.resume_session_id = None  # 强制新会话
+    return new
+
+
+def _with_reduced_timeout(config: ClaudeCodeConfig, remaining_seconds: float) -> ClaudeCodeConfig:
+    """克隆配置并设置剩余超时时间（下限 60s 防无意义短命重试）。"""
+    new = copy.copy(config)
+    new.timeout_seconds = max(60.0, remaining_seconds)
+    return new
 
 
 class RoutineRunner:
@@ -133,6 +179,8 @@ class RoutineRunner:
             # 2) 执行 Claude Code（长耗时，受 config.timeout_seconds 约束）
             #    capture_events 开启时附 on_event sink：每个动作经非阻塞总线实时发布（边跑边看）。
             #    StreamingEventPersister 增量 flush：使页面 reload 后仍可见已完成的审计步骤。
+            #    迭代内上下文压缩重试：当 CC context 耗尽时，不清空迭代、在同迭代内以新 session 续接，
+            #    通过续接 prompt 传递已完成工作摘要，使任务在当前迭代内继续推进。
             persister: StreamingEventPersister | None = None
             if settings.routine.capture_events:
                 persister = StreamingEventPersister(
@@ -142,11 +190,64 @@ class RoutineRunner:
             sink = (
                 self._make_action_sink(iteration_id, routine_id, persister) if settings.routine.capture_events else None
             )
+
+            compact_max_retries = (
+                settings.routine.context_compact_max_retries if settings.routine.context_compact_enabled else 0
+            )
+            compact_retry_count = 0
+            cumulative_cost = 0.0
+            cumulative_turns = 0
+            overall_deadline = time.monotonic() + config.timeout_seconds
+            result = None
+
             try:
-                result = await ClaudeCodeService.invoke(prompt, config, abort_event=abort, on_event=sink)
+                while True:
+                    # 重试时检查剩余时间是否足够（至少 60s，防无意义短命重试）
+                    remaining = overall_deadline - time.monotonic()
+                    if remaining < 60 and compact_retry_count > 0:
+                        logger.warning("routine_compact_retry_timeout_exhausted", remaining_s=round(remaining, 1))
+                        break
+
+                    invoke_config = config if compact_retry_count == 0 else _with_reduced_timeout(config, remaining)
+                    result = await ClaudeCodeService.invoke(prompt, invoke_config, abort_event=abort, on_event=sink)
+                    cumulative_cost += result.cost_usd or 0.0
+                    cumulative_turns += result.turn_count or 0
+
+                    # 成功或非上下文耗尽错误：直接退出循环
+                    if (
+                        result.status == "success"
+                        or getattr(result, "error_kind", None) != ERROR_KIND_CONTEXT_EXHAUSTED
+                    ):
+                        break
+
+                    # 上下文耗尽但重试次数已用尽：退出循环（回退到 Layer 3 跨迭代冷启动）
+                    if compact_retry_count >= compact_max_retries:
+                        logger.info(
+                            "routine_compact_retries_exhausted",
+                            retries=compact_retry_count,
+                            max_retries=compact_max_retries,
+                        )
+                        break
+
+                    # 迭代内重试：清空 session（强制新会话）+ 构建续接 prompt
+                    compact_retry_count += 1
+                    logger.info(
+                        "routine_compact_retry",
+                        iteration_id=str(iteration_id),
+                        retry=compact_retry_count,
+                        max_retries=compact_max_retries,
+                        previous_session=result.session_id,
+                    )
+                    prompt = _build_compact_retry_prompt(result, prompt)
+                    config = _reset_config_for_retry(config)
             finally:
                 if persister is not None:
                     await persister.finalize()
+
+            # 累积 cost/turns 覆盖到最终 result（跨重试汇总）
+            if result is not None:
+                result.cost_usd = cumulative_cost
+                result.turn_count = cumulative_turns
 
             # 3) 写回结果（abort 命中则标记 aborted，否则 executed）
             if abort.is_set():
@@ -156,7 +257,7 @@ class RoutineRunner:
                 )
                 return
 
-            await self._write_back(iteration_id, routine_id, result)
+            await self._write_back(iteration_id, routine_id, result, compact_retry_count=compact_retry_count)
             await get_bus().publish(
                 {
                     "type": "iteration",
@@ -210,14 +311,31 @@ class RoutineRunner:
             )
             await db.commit()
 
-    async def _write_back(self, iteration_id: UUID, routine_id: UUID, result) -> None:
+    async def _write_back(
+        self,
+        iteration_id: UUID,
+        routine_id: UUID,
+        result,
+        *,
+        compact_retry_count: int = 0,
+    ) -> None:
         """原子写回执行结果 + 更新父 routine 反规范化累计。
 
         用 ``asyncio.shield`` 包裹，避免关停取消时丢失已完成的 Claude Code 结果。
+        ``compact_retry_count`` 记录迭代内上下文压缩重试次数，写入 iteration metrics。
         """
-        await asyncio.shield(self._do_write_back(iteration_id, routine_id, result))
+        await asyncio.shield(
+            self._do_write_back(iteration_id, routine_id, result, compact_retry_count=compact_retry_count)
+        )
 
-    async def _do_write_back(self, iteration_id: UUID, routine_id: UUID, result) -> None:
+    async def _do_write_back(
+        self,
+        iteration_id: UUID,
+        routine_id: UUID,
+        result,
+        *,
+        compact_retry_count: int = 0,
+    ) -> None:
         exec_status = "success" if result.status == "success" else result.status  # success|error|timeout
         async with db_session.AsyncSessionLocal() as db:
             # 仅当迭代仍处于 in_flight 时才翻转为 executed：若期间已被 reaper 标记 reaped
@@ -264,10 +382,16 @@ class RoutineRunner:
                         routine.claude_session_id = result.session_id
                 # 给 iteration 打 context_exhausted 标记：供 decision 将"可自愈失败"从连续失败计数剔除，
                 # 避免被误判为 unrecoverable（runaway 由 routine.reflections._context_resets 上限兜底）。
-                if is_ctx:
+                # 同时记录迭代内压缩重试次数（compact_retries > 0 表示迭代内发生了续接）。
+                if is_ctx or compact_retry_count > 0:
                     it = await db.get(RoutineIteration, iteration_id)
                     if it is not None:
-                        it.metrics = {**(it.metrics or {}), "context_exhausted": True}
+                        metrics = {**(it.metrics or {})}
+                        if is_ctx:
+                            metrics["context_exhausted"] = True
+                        if compact_retry_count > 0:
+                            metrics["compact_retries"] = compact_retry_count
+                        it.metrics = metrics
             # 「全过程」动作事件持久化（reconciliation backstop）：
             # 不再受 rowcount==1 门控——即使迭代已被 reaper 标记 reaped，仍确保事件落库
             # （StreamingEventPersister 已增量刷入部分事件，此处补齐尾部 + 终态事件）。

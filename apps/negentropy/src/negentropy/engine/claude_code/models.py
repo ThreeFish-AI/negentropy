@@ -52,6 +52,10 @@ class ClaudeCodeConfig:
     # 供 LLM 生成与任务目标一致的确定性回答。
     auto_answer_context: dict[str, Any] | None = None
 
+    # 上下文压缩：注入 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 环境变量，控制 CC auto-compact 触发阈值。
+    # None = 使用 CLI 默认值（~83%）；整数（如 70）= context 达该百分比时触发压缩。
+    compact_threshold_pct: int | None = None
+
     # 注入子进程的真实 Anthropic 凭证（sk-ant-oat… 订阅 OAuth 令牌 / sk-ant-api… Console API Key）。
     # 由 credentials.resolve_claude_code_credential 解析，ClaudeCodeService 据此构建子进程 env。
     # repr=False / compare=False：secret 绝不入 repr（防日志、traceback 泄露），亦不参与相等比较。

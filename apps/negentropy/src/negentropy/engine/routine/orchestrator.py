@@ -569,6 +569,9 @@ class RoutineOrchestrator:
         if overrides.get("timeout_seconds"):
             config.timeout_seconds = float(overrides["timeout_seconds"])
         config.resume_session_id = routine.claude_session_id
+        # 上下文压缩：注入 auto-compact 阈值，提前触发 CC 内置压缩，延长单次迭代寿命。
+        if settings.routine.context_compact_enabled:
+            config.compact_threshold_pct = settings.routine.context_compact_threshold_pct
         # 启用交互模式：Engine 自动应答 AskUserQuestion，使 CC 继续执行而非失败退出。
         if settings.routine.auto_answer_questions:
             config.interactive = True

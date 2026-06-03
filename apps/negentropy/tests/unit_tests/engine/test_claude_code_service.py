@@ -437,6 +437,90 @@ async def test_classify_non_string_result_payload():
     assert _classify_result_error(evt, 1) == ERROR_KIND_CONTEXT_EXHAUSTED
 
 
+# ---------------------------------------------------------------------------
+# 上下文压缩：CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 环境变量注入（Layer 1 — 预防）
+# ---------------------------------------------------------------------------
+
+
+async def test_build_subprocess_env_injects_autocompact_threshold(monkeypatch):
+    """compact_threshold_pct 非空时注入 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE。"""
+    monkeypatch.delenv("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", raising=False)
+    env = ClaudeCodeService._build_subprocess_env(None, compact_threshold_pct=70)
+    assert env.get("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE") == "70"
+
+
+async def test_build_subprocess_env_skips_autocompact_when_none(monkeypatch):
+    """compact_threshold_pct=None 时不注入环境变量（使用 CLI 默认值）。"""
+    monkeypatch.delenv("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", raising=False)
+    env = ClaudeCodeService._build_subprocess_env(None, compact_threshold_pct=None)
+    assert "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" not in env
+
+
+async def test_build_subprocess_env_autocompact_coexists_with_credential(monkeypatch):
+    """compact_threshold_pct 与凭证注入互不干扰。"""
+    monkeypatch.delenv("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", raising=False)
+    env = ClaudeCodeService._build_subprocess_env("sk-ant-api03-testkey", compact_threshold_pct=50)
+    assert env["ANTHROPIC_API_KEY"] == "sk-ant-api03-testkey"
+    assert env["CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"] == "50"
+
+
+# ---------------------------------------------------------------------------
+# compact_boundary 事件归一化（审计增强）
+# ---------------------------------------------------------------------------
+
+
+def _normalize(raw: dict) -> list[dict]:
+    """便利包装：调用 _normalize_stream_event 并返回结果。"""
+    from negentropy.engine.claude_code.service import _normalize_stream_event
+
+    return _normalize_stream_event(raw)
+
+
+def test_normalize_compact_boundary_event():
+    """CC auto-compact 触发时的 compact_boundary 事件被正确归一化为 system_compact。"""
+    raw = {
+        "type": "system",
+        "subtype": "compact_boundary",
+        "compact_metadata": {"trigger": "auto", "pre_tokens": 150000},
+    }
+    events = _normalize(raw)
+    assert len(events) == 1
+    evt = events[0]
+    assert evt["event_type"] == "system_compact"
+    assert evt["title"] == "context compact (auto)"
+    assert evt["payload"]["trigger"] == "auto"
+    assert evt["payload"]["pre_tokens"] == 150000
+
+
+def test_normalize_compact_boundary_manual_trigger():
+    """手动 /compact 触发的 compact_boundary 事件。"""
+    raw = {
+        "type": "system",
+        "subtype": "compact_boundary",
+        "compact_metadata": {"trigger": "manual"},
+    }
+    events = _normalize(raw)
+    assert events[0]["title"] == "context compact (manual)"
+
+
+def test_normalize_compact_boundary_without_metadata():
+    """compact_boundary 事件缺少 compact_metadata 时不报错。"""
+    raw = {"type": "system", "subtype": "compact_boundary"}
+    events = _normalize(raw)
+    assert len(events) == 1
+    assert events[0]["event_type"] == "system_compact"
+    assert events[0]["payload"]["trigger"] is None
+
+
+def test_normalize_system_other_not_affected_by_compact():
+    """非 compact_boundary 的 system/* 事件仍走原有 catch-all 路径。"""
+    raw = {"type": "system", "subtype": "task_started"}
+    events = _normalize(raw)
+    assert len(events) == 1
+    assert events[0]["event_type"] == "system"
+    assert events[0]["title"] == "task_started"
+
+
 class _FakeProcWithEvents:
     """模拟非交互 claude 子进程：吐预置 stream-json 事件后 EOF，returncode 可控。"""
 
