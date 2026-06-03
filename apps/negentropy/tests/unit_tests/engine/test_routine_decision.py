@@ -46,6 +46,7 @@ class FakeIter:
     score: int | None = None
     verdict: str | None = None
     gate_exit_code: int | None = None
+    metrics: dict | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +165,69 @@ def test_decide_budget_checked_after_eval():
     it = FakeIter(score=50, verdict="progressing")
     res = d.decide(r, it, [it])
     assert res.is_terminate and res.reason == d.REASON_MAX_COST
+
+
+# ---------------------------------------------------------------------------
+# 上下文耗尽自愈：可自愈失败不计入连续失败（max_context_resets > 0 时）
+# ---------------------------------------------------------------------------
+
+
+def _ctx_fail(seq: int) -> FakeIter:
+    """上下文耗尽失败迭代：exec error + metrics.context_exhausted 标记（已被 Runner 自愈）。"""
+    return FakeIter(seq=seq, exec_status="error", score=40, verdict="progressing", metrics={"context_exhausted": True})
+
+
+def test_decide_context_exhausted_failures_not_unrecoverable_when_self_heal_on():
+    """根因回归：连续 N 次上下文耗尽失败 + 自愈开启（reset_max>0）→ 不判 unrecoverable（放行冷启动）。
+
+    复刻 a83d9c94 死亡螺旋：seq2~5 全 exec error，原行为连续≥3 即 unrecoverable；
+    自愈开启后这些"可自愈失败"透明跳过连续计数，应继续而非终止。"""
+    r = FakeRoutine(best_score=50, no_progress_patience=10, success_score_threshold=99)
+    hist = [_ctx_fail(i) for i in range(2, 6)]  # 4 次连续上下文耗尽失败
+    assert d.decide(r, hist[-1], hist, max_context_resets=10).action == "continue"
+
+
+def test_decide_context_exhausted_falls_back_unrecoverable_when_self_heal_off():
+    """向后兼容：reset_max=0（默认）时不豁免，照原行为——连续≥3 仍判 unrecoverable。"""
+    r = FakeRoutine(best_score=50)
+    hist = [_ctx_fail(i) for i in range(2, 5)]  # 3 次
+    res = d.decide(r, hist[-1], hist, max_context_resets=0)
+    assert res.is_terminate and res.reason == d.REASON_UNRECOVERABLE
+
+
+def test_decide_plain_errors_still_unrecoverable_with_self_heal_on():
+    """回归锁：普通 exec error（无 context_exhausted 标记）即使自愈开启也照常计数 → unrecoverable。"""
+    r = FakeRoutine(best_score=50)
+    hist = [FakeIter(seq=i, exec_status="error", score=None) for i in range(1, 4)]  # 3 次普通 error
+    res = d.decide(r, hist[-1], hist, max_context_resets=10)
+    assert res.is_terminate and res.reason == d.REASON_UNRECOVERABLE
+
+
+def test_decide_context_exhausted_does_not_break_count_chain():
+    """语义验证：可自愈失败"透明跳过"（不计数也不中断扫描）——
+
+    尾部 [普通error, ctx_fail, 普通error, 普通error]：ctx 跳过后普通 error 计 3 → unrecoverable。
+    确认 continue 语义不会因夹一个可自愈失败而错误隔断真失败链。"""
+    r = FakeRoutine(best_score=50)
+    hist = [
+        FakeIter(seq=1, exec_status="error"),
+        _ctx_fail(2),
+        FakeIter(seq=3, exec_status="error"),
+        FakeIter(seq=4, exec_status="error"),
+    ]
+    res = d.decide(r, hist[-1], hist, max_context_resets=10)
+    assert res.is_terminate and res.reason == d.REASON_UNRECOVERABLE
+
+
+def test_decide_success_tail_resets_failure_count():
+    """成功迭代在尾部 → 连续失败计数归零（break），不受自愈逻辑影响。"""
+    r = FakeRoutine(best_score=50, no_progress_patience=10, success_score_threshold=99)
+    hist = [
+        _ctx_fail(1),
+        _ctx_fail(2),
+        FakeIter(seq=3, exec_status="success", score=55, verdict="progressing"),
+    ]
+    assert d.decide(r, hist[-1], hist, max_context_resets=10).action == "continue"
 
 
 # ---------------------------------------------------------------------------
