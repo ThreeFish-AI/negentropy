@@ -431,6 +431,7 @@ class MemoryGovernanceService:
         memory_type: str = "episodic",
         related_count: int | None = None,
         lambda_: float | None = None,
+        metadata: dict | None = None,
     ) -> float:
         """多因子自适应保留评分
 
@@ -444,6 +445,9 @@ class MemoryGovernanceService:
         3. 类型乘子（偏好 > 流程 > 事实 > 情景）
         4. 语义重要性（关联记忆/事实数量加成）
         5. 时效性加成（近期创建的记忆额外加分）
+
+        λ 优先级：显式 ``lambda_`` > ``metadata["decay_override"]`` > 类型默认。
+        ``metadata`` 参数用于 Routine 提取的记忆携带定制衰减率覆盖。
 
         参考文献:
         [1] Ebbinghaus, "Memory," 1885.
@@ -459,16 +463,22 @@ class MemoryGovernanceService:
             memory_type: 记忆类型（影响衰减率）
             related_count: 关联记忆/事实数量（None 时自动查询 DB）
             lambda_: 自定义衰减常数（覆盖类型默认值）
+            metadata: 记忆 metadata_ JSONB（含 ``decay_override`` 时覆盖衰减率）
 
         Returns:
             保留分数 (0.0 - 1.0)
         """
         now = datetime.now()
 
-        # Factor 1: 时间衰减（类型特定 λ）
+        # Factor 1: 时间衰减（λ 优先级：显式 > metadata.decay_override > 类型默认）
         days_since_access = max(0, (now - last_accessed_at).total_seconds() / 86400)
+        decay_override = (metadata or {}).get("decay_override") if isinstance(metadata, dict) else None
         effective_lambda = (
-            lambda_ if lambda_ is not None else _MEMORY_TYPE_DECAY_RATES.get(memory_type, _DEFAULT_DECAY_RATE)
+            lambda_
+            if lambda_ is not None
+            else decay_override
+            if decay_override is not None
+            else _MEMORY_TYPE_DECAY_RATES.get(memory_type, _DEFAULT_DECAY_RATE)
         )
         time_decay = math.exp(-effective_lambda * days_since_access)
 

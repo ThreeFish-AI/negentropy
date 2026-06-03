@@ -159,6 +159,46 @@ class RoutineSettings(BaseSettings):
         "每次重试在当前迭代内以新 session 续接。0=禁用迭代内重试，直接走跨迭代冷启动。",
     )
 
+    # --- 迭代记忆提取（Routine → Memory Module）---
+    # 参见 docs/concepts/039-the-routine-system.md §Memory Integration。
+    # 将迭代执行-评估闭环中的经验知识提炼为结构化记忆，由 Memory Module 统一维护。
+    memory_extraction_enabled: bool = Field(
+        default=False,
+        description="启用迭代记忆提取：评估完成后 LLM 分析迭代数据，提取有价值的经验记忆存入 Memory Module。",
+    )
+    memory_extraction_model: str | None = Field(
+        default=None,
+        description="记忆提取 LLM 模型覆盖；为空时走 task_registry 的 routine.memory_extract 解析",
+    )
+    memory_extraction_max_memories_per_iter: int = Field(
+        default=5,
+        ge=0,
+        le=20,
+        description="单次迭代至多提取的记忆条数；0=不限制。",
+    )
+    memory_extraction_on_termination: bool = Field(
+        default=True,
+        description="仅在 routine 终止时执行记忆提取（而非每次迭代后）。减少 LLM 调用成本，但延迟记忆可用性。",
+    )
+    memory_extraction_min_score: int = Field(
+        default=0,
+        ge=0,
+        le=100,
+        description="仅当迭代评分 >= 此阈值时提取记忆；0=始终提取（含失败迭代，从中提取错误恢复策略）。",
+    )
+
+    # --- 记忆注入（Memory → Routine Prompt）---
+    memory_injection_enabled: bool = Field(
+        default=False,
+        description="启用记忆注入：派发迭代时从 Memory Module 检索相关记忆注入 prompt。",
+    )
+    memory_injection_max_tokens: int = Field(
+        default=500,
+        ge=0,
+        le=2000,
+        description="注入 prompt 的记忆上下文最大 token 预算。",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,

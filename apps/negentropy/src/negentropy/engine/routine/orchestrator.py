@@ -40,6 +40,7 @@ from . import phase as phase_mod
 from . import workspace
 from .bus import get_bus
 from .evaluator import RoutineEvaluator
+from .memory_extractor import IterationMemoryExtractor, MemoryExtractionResult, compute_decay_override
 from .prompt_builder import append_reflection, build_prompt
 from .runner import get_runner
 
@@ -82,6 +83,17 @@ class RoutineOrchestrator:
             explicit_model=settings.routine.evaluator_model,
             gate_timeout_seconds=settings.routine.gate_timeout_seconds,
         )
+        self._memory_extractor: IterationMemoryExtractor | None = None
+
+    async def _ensure_memory_extractor(self) -> IterationMemoryExtractor | None:
+        """懒初始化记忆提取器（受 ``memory_extraction_enabled`` 门控）。"""
+        if not settings.routine.memory_extraction_enabled:
+            return None
+        if self._memory_extractor is None:
+            self._memory_extractor = IterationMemoryExtractor(
+                explicit_model=settings.routine.memory_extraction_model,
+            )
+        return self._memory_extractor
 
     # ------------------------------------------------------------------
     # 主入口
@@ -268,6 +280,11 @@ class RoutineOrchestrator:
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
 
+            # 记忆提取（best-effort，不阻塞评估主流程）。
+            # 提取在 commit 前执行以利用同一事务上下文；失败仅 warning 不回滚。
+            was_running = routine.status == "running"
+            await self._extract_and_store_memories(routine, latest, history, was_running)
+
             # 「全过程」审计：在迭代翻转 evaluated 时追加 gate / evaluation 事件（seq=MAX+1）。
             eval_events = await self._persist_eval_events(db, routine, latest, result)
 
@@ -375,7 +392,15 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 # prompt 在 ensure 之后构建，使 FINALIZE 具体命令与工作区上下文可引用 work_branch。
-                prompt = build_prompt(routine, max_reflections=settings.routine.max_reflections_injected)
+                # 记忆注入：从 Memory Module 检索相关经验记忆。
+                memory_ctx = (
+                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
+                )
+                prompt = build_prompt(
+                    routine,
+                    max_reflections=settings.routine.max_reflections_injected,
+                    memory_context=memory_ctx,
+                )
                 iteration = RoutineIteration(
                     routine_id=routine.id,
                     seq=seq,
@@ -442,7 +467,11 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 config = await self._build_config(routine)
-                prompt = it.prompt or build_prompt(routine)
+                # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
+                memory_ctx_approved = (
+                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
+                )
+                prompt = it.prompt or build_prompt(routine, memory_context=memory_ctx_approved)
                 launch_specs.append((it.id, routine.id, prompt, config))
                 dirty = True  # _ensure_workspace 在 routine 上写入了 worktree_path/work_branch
                 slots -= 1
@@ -511,6 +540,142 @@ class RoutineOrchestrator:
     def _terminate(routine: Routine, reason: str) -> None:
         routine.status = "succeeded" if reason == decision_mod.REASON_SUCCESS else "failed"
         routine.termination_reason = reason
+
+    # ------------------------------------------------------------------
+    # 记忆提取（Memory Extraction）
+    # ------------------------------------------------------------------
+
+    async def _extract_and_store_memories(
+        self,
+        routine: Routine,
+        iteration: RoutineIteration,
+        history: list[RoutineIteration],
+        was_running: bool,
+    ) -> None:
+        """best-effort 从已完成评估的迭代中提取经验记忆存入 Memory Module。
+
+        两条提取路径（互斥）：
+        - ``memory_extraction_on_termination=True``：仅 routine 刚变终态时批量提取。
+        - ``memory_extraction_on_termination=False``：每次评估后即时提取。
+
+        失败仅 warning，不回滚主事务。
+        """
+        extractor = await self._ensure_memory_extractor()
+        if extractor is None:
+            return
+
+        # 最低分数门槛
+        min_score = settings.routine.memory_extraction_min_score
+        if iteration.score is not None and iteration.score < min_score:
+            return
+
+        try:
+            if settings.routine.memory_extraction_on_termination:
+                # 仅终止时提取：routine 仍在运行则跳过
+                if was_running:
+                    return
+                # routine 刚变终态 → 批量合成提取
+                result = await extractor.extract_on_termination(routine, history)
+            else:
+                # 每次评估后即时提取
+                result = await extractor.extract(routine, iteration)
+
+            if not result.memories:
+                return
+
+            await self._write_memories(routine, iteration, result)
+
+            logger.info(
+                "routine_memories_extracted",
+                routine_id=str(routine.id),
+                count=len(result.memories),
+                cost_usd=result.cost_usd,
+            )
+        except Exception as exc:
+            logger.warning(
+                "routine_memory_extraction_failed",
+                routine_id=str(routine.id),
+                error=str(exc),
+            )
+
+    @staticmethod
+    async def _write_memories(
+        routine: Routine,
+        iteration: RoutineIteration,
+        result: MemoryExtractionResult,
+    ) -> None:
+        """将提取的记忆通过 PostgresMemoryService 写入 Memory Module。"""
+        from negentropy.engine.factories.memory import get_memory_service
+
+        mem_service = get_memory_service()
+        max_memories = settings.routine.memory_extraction_max_memories_per_iter
+        memories = result.memories if max_memories == 0 else result.memories[:max_memories]
+
+        for m in memories:
+            decay = compute_decay_override(iteration.verdict, m.memory_type)
+            metadata = {
+                "source": "routine_extraction",
+                "routine_id": str(routine.id),
+                "routine_key": routine.key or "",
+                "iteration_seq": iteration.seq,
+                "iteration_score": iteration.score,
+                "iteration_verdict": iteration.verdict,
+                "decay_override": decay,
+            }
+            await mem_service.add_memory_typed(
+                user_id=routine.owner_id or "system",
+                app_name=settings.app_name,
+                thread_id=None,
+                content=m.content,
+                memory_type=m.memory_type,
+                metadata=metadata,
+            )
+
+    # ------------------------------------------------------------------
+    # 记忆注入（Memory Injection）
+    # ------------------------------------------------------------------
+
+    async def _retrieve_memory_context(self, routine: Routine) -> str | None:
+        """从 Memory Module 检索与当前 routine 目标相关的经验记忆。
+
+        返回格式化的记忆文本（用于注入 prompt），或 None。
+        """
+        try:
+            from negentropy.engine.factories.memory import get_memory_service
+
+            mem_service = get_memory_service()
+            query = f"{routine.goal} {routine.acceptance_criteria}"
+            response = await mem_service.search_memory(
+                app_name=settings.app_name,
+                user_id=routine.owner_id or "system",
+                query=query,
+                limit=5,
+            )
+            if not response or not response.memories:
+                return None
+
+            lines: list[str] = []
+            for entry in response.memories[:5]:
+                meta = entry.custom_metadata or {}
+                type_label = meta.get("memory_type", "episodic") if isinstance(meta, dict) else "episodic"
+                # 从 metadata_ 提取来源信息
+                source = meta.get("source", "") if isinstance(meta, dict) else ""
+                prefix = f"[{type_label}]"
+                if source == "routine_extraction" and isinstance(meta, dict):
+                    key = meta.get("routine_key", "")
+                    if key:
+                        prefix += f" (来自 {key})"
+                content = (entry.content or "")[:200]
+                lines.append(f"- {prefix} {content}")
+
+            return "\n".join(lines) if lines else None
+        except Exception as exc:
+            logger.warning(
+                "routine_memory_injection_failed",
+                routine_id=str(routine.id),
+                error=str(exc),
+            )
+            return None
 
     async def _ensure_workspace(self, routine: Routine) -> bool:
         """worktree routine：确保隔离 worktree 就绪并把 ``worktree_path``/``work_branch`` 写回

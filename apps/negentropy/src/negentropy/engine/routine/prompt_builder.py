@@ -29,15 +29,25 @@ class _RoutineLike(Protocol):
     work_branch: str | None
 
 
-def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
+def build_prompt(
+    routine: _RoutineLike,
+    *,
+    max_reflections: int = 5,
+    memory_context: str | None = None,
+) -> str:
     """构建发送给 Claude Code 的迭代 prompt（按相位分支）。
 
-    通用部分：目标 + 验收标准 + 最近 N 条反思（Reflexion 注入，来自
+    通用部分：目标 + 验收标准 + [记忆上下文] + 最近 N 条反思（Reflexion 注入，来自
     ``routine.reflections["items"]``）。尾部指令依相位而定：
 
     - PLAN     仅产出方案、禁写盘（plan 模式），待人工审批；
     - FINALIZE 自检 ruff/pytest、修复、建 PR 并回带 ``PR_URL=`` sentinel；
     - IMPLEMENT（含扁平工作流）首轮「开始」/续接「继续」—— 与相位化前一致。
+
+    Args:
+        routine: Routine-like 对象
+        max_reflections: 注入的最近反思条数
+        memory_context: 可选的记忆上下文文本（来自 Memory Module 检索）
     """
     phase = getattr(routine, "current_phase", PHASE_IMPLEMENT) or PHASE_IMPLEMENT
     is_resume = bool(routine.claude_session_id)
@@ -47,6 +57,13 @@ def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
         f"# 目标 (Goal)\n{routine.goal.strip()}",
         f"# 验收标准 (Acceptance Criteria)\n{routine.acceptance_criteria.strip()}",
     ]
+
+    # 记忆注入：在验收标准之后插入经验知识上下文（由编排器在派发时检索）。
+    if memory_context:
+        parts.append(
+            "# 相关经验记忆 (Relevant Past Knowledge)\n"
+            "以下是你此前自主任务中积累的经验知识，请参考但不必盲从：\n" + memory_context
+        )
 
     # 隔离工作区上下文（worktree routine 各相位通用）：约束 CC 仅在隔离 worktree 内改动，
     # 严禁切换/推送基线或 master/main。work_branch 在首个 launch 前由引擎创建写入。

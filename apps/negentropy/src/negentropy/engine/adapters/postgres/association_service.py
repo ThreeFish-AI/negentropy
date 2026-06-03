@@ -47,8 +47,13 @@ class AssociationService:
         thread_id: UUID | None = None,
         embedding: list[float] | None = None,
         created_at: datetime | None = None,
+        metadata: dict | None = None,
     ) -> int:
         """为新记忆自动建立关联
+
+        Args:
+            metadata: 可选的记忆 metadata_ JSONB；含 ``source=routine_extraction``
+                时触发 Routine 同源关联（``routine_iteration`` 类型）。
 
         Returns:
             创建的关联数
@@ -82,6 +87,17 @@ class AssociationService:
                 user_id=user_id,
                 app_name=app_name,
             )
+
+        # 4. Routine 同源关联（同一 routine_id 的记忆互相关联）
+        if metadata and isinstance(metadata, dict) and metadata.get("source") == "routine_extraction":
+            routine_id = metadata.get("routine_id")
+            if routine_id:
+                count += await self._create_routine_links(
+                    memory_id=memory_id,
+                    routine_id=routine_id,
+                    user_id=user_id,
+                    app_name=app_name,
+                )
 
         if count:
             logger.info("auto_link_completed", memory_id=str(memory_id), links_created=count)
@@ -623,6 +639,58 @@ class AssociationService:
             }
             for a in assocs
         ]
+
+    async def _create_routine_links(
+        self,
+        *,
+        memory_id: UUID,
+        routine_id: str,
+        user_id: str,
+        app_name: str,
+    ) -> int:
+        """创建 routine_iteration 关联：同一 routine 的记忆互相关联。
+
+        权重按距离衰减：weight = 1.0 / max(1, seq_diff)，越近的迭代关联越强。
+        """
+        async with db_session.AsyncSessionLocal() as db:
+            # 查找同 routine_id 的其他记忆（通过 metadata_ JSONB 过滤）
+            stmt = (
+                select(Memory.id, Memory.metadata_)
+                .where(
+                    Memory.user_id == user_id,
+                    Memory.app_name == app_name,
+                    Memory.id != memory_id,
+                    Memory.metadata_["source"].astext == "routine_extraction",
+                    Memory.metadata_["routine_id"].astext == routine_id,
+                )
+                .limit(20)
+            )
+            result = await db.execute(stmt)
+            rows = result.fetchall()
+
+            if not rows:
+                return 0
+
+            count = 0
+            for row in rows:
+                try:
+                    async with db.begin_nested():
+                        assoc = MemoryAssociation(
+                            source_id=memory_id,
+                            target_id=row.id,
+                            association_type="routine_iteration",
+                            weight=0.7,
+                            user_id=user_id,
+                            app_name=app_name,
+                        )
+                        db.add(assoc)
+                        await db.flush()
+                        count += 1
+                except IntegrityError:
+                    continue
+
+            await db.commit()
+        return count
 
     async def _create_semantic_links(
         self,
