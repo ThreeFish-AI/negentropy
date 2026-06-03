@@ -40,6 +40,7 @@ from . import phase as phase_mod
 from . import workspace
 from .bus import get_bus
 from .evaluator import RoutineEvaluator
+from .memory_extractor import IterationMemoryExtractor, MemoryExtractionResult, compute_decay_override
 from .prompt_builder import append_reflection, build_prompt
 from .runner import get_runner
 
@@ -82,6 +83,19 @@ class RoutineOrchestrator:
             explicit_model=settings.routine.evaluator_model,
             gate_timeout_seconds=settings.routine.gate_timeout_seconds,
         )
+        self._memory_extractor: IterationMemoryExtractor | None = None
+        # 强引用集合：防止 fire-and-forget 的 extraction task 被 GC 回收。
+        self._bg_extraction_tasks: set[asyncio.Task] = set()
+
+    async def _ensure_memory_extractor(self) -> IterationMemoryExtractor | None:
+        """懒初始化记忆提取器（受 ``memory_extraction_enabled`` 门控）。"""
+        if not settings.routine.memory_extraction_enabled:
+            return None
+        if self._memory_extractor is None:
+            self._memory_extractor = IterationMemoryExtractor(
+                explicit_model=settings.routine.memory_extraction_model,
+            )
+        return self._memory_extractor
 
     # ------------------------------------------------------------------
     # 主入口
@@ -271,6 +285,34 @@ class RoutineOrchestrator:
             # 「全过程」审计：在迭代翻转 evaluated 时追加 gate / evaluation 事件（seq=MAX+1）。
             eval_events = await self._persist_eval_events(db, routine, latest, result)
 
+            # 记忆提取所需参数（commit 后读取 DB 对象会过期，提前提取纯数据）。
+            was_running_before_commit = routine.status == "running"
+            routine_id_str = str(routine_id)
+            routine_key = routine.key
+            owner_id = routine.owner_id
+            routine_goal = routine.goal
+            routine_criteria = routine.acceptance_criteria
+            iteration_snap = {
+                "seq": latest.seq,
+                "score": latest.score,
+                "verdict": latest.verdict,
+                "reflection": latest.reflection,
+                "summary": latest.summary,
+                "gate_exit_code": latest.gate_exit_code,
+                "prompt": latest.prompt,
+            }
+            history_snap = [
+                {
+                    "seq": it.seq,
+                    "score": it.score,
+                    "verdict": it.verdict,
+                    "reflection": it.reflection,
+                    "status": it.status,
+                    "summary": it.summary,
+                }
+                for it in history
+            ]
+
             await db.commit()
             await self._publish_routine(routine)
             await get_bus().publish(
@@ -285,6 +327,21 @@ class RoutineOrchestrator:
                 }
             )
             await self._publish_action_events(routine_id, latest.id, eval_events)
+
+            # 记忆提取（fire-and-forget，不阻塞 inspector handler）。
+            # 必须在 commit 后执行：避免 LLM 调用耗时触发 handler timeout
+            # 导致 db.commit() 被取消，评估结果丢失。
+            # 使用强引用集合防止 task 被 GC 回收。
+            self._fire_memory_extraction(
+                routine_id_str,
+                routine_key,
+                owner_id,
+                routine_goal,
+                routine_criteria,
+                iteration_snap,
+                history_snap,
+                was_running_before_commit,
+            )
             return True
 
     # ------------------------------------------------------------------
@@ -334,7 +391,12 @@ class RoutineOrchestrator:
                 budget = decision_mod.pre_dispatch_check(routine)
                 if budget.is_terminate:
                     self._terminate(routine, budget.reason or decision_mod.REASON_MAX_ITERATIONS)
+                    await db.commit()
                     await self._publish_routine(routine)
+                    # DISPATCH 阶段终止时的记忆提取（fire-and-forget）。
+                    # phased routine 的终态往往在此路径触发（max_iterations/budget 耗尽），
+                    # 而非 EVALUATE 阶段的 _advance_phase_or_terminate。
+                    self._fire_extraction_on_dispatch_terminate(routine)
                     continue
 
                 # 纵深防御：非模板 routine 必须有 baseline_branch 才能派发——
@@ -375,7 +437,15 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 # prompt 在 ensure 之后构建，使 FINALIZE 具体命令与工作区上下文可引用 work_branch。
-                prompt = build_prompt(routine, max_reflections=settings.routine.max_reflections_injected)
+                # 记忆注入：从 Memory Module 检索相关经验记忆。
+                memory_ctx = (
+                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
+                )
+                prompt = build_prompt(
+                    routine,
+                    max_reflections=settings.routine.max_reflections_injected,
+                    memory_context=memory_ctx,
+                )
                 iteration = RoutineIteration(
                     routine_id=routine.id,
                     seq=seq,
@@ -442,7 +512,11 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 config = await self._build_config(routine)
-                prompt = it.prompt or build_prompt(routine)
+                # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
+                memory_ctx_approved = (
+                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
+                )
+                prompt = it.prompt or build_prompt(routine, memory_context=memory_ctx_approved)
                 launch_specs.append((it.id, routine.id, prompt, config))
                 dirty = True  # _ensure_workspace 在 routine 上写入了 worktree_path/work_branch
                 slots -= 1
@@ -507,10 +581,285 @@ class RoutineOrchestrator:
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_MAX_ITERATIONS)
 
+    def _fire_extraction_on_dispatch_terminate(self, routine: Routine) -> None:
+        """DISPATCH 阶段终止时的记忆提取（fire-and-forget）。
+
+        phased routine 的终态往往由 DISPATCH 阶段的预算/迭代守卫触发
+        （max_iterations/budget 耗尽），此时 EVALUATE 阶段的提取钩子无法覆盖。
+        此方法从 DB 加载已评估历史，然后发起后台提取。
+        """
+        if not settings.routine.memory_extraction_enabled:
+            return
+        if not settings.routine.memory_extraction_on_termination:
+            return
+
+        async def _bg() -> None:
+            try:
+                async with db_session.AsyncSessionLocal() as db:
+                    history = await self._evaluated_history(db, routine.id)
+                if not history:
+                    return
+                history_snap = [
+                    {
+                        "seq": it.seq,
+                        "score": it.score,
+                        "verdict": it.verdict,
+                        "reflection": it.reflection,
+                        "status": it.status,
+                        "summary": it.summary,
+                    }
+                    for it in history
+                ]
+                extractor = await self._ensure_memory_extractor()
+                if extractor is None:
+                    return
+                from types import SimpleNamespace
+
+                routine_proxy = SimpleNamespace(
+                    id=str(routine.id),
+                    key=routine.key,
+                    goal=routine.goal or "",
+                    acceptance_criteria=routine.acceptance_criteria or "",
+                    owner_id=routine.owner_id,
+                )
+                result = await extractor.extract_on_termination(routine_proxy, history_snap)
+                if not result.memories:
+                    return
+                await self._write_memories_from_snap(
+                    routine_id=str(routine.id),
+                    routine_key=routine.key,
+                    owner_id=routine.owner_id,
+                    iteration_snap={
+                        "seq": history[-1].seq,
+                        "score": history[-1].score,
+                        "verdict": history[-1].verdict,
+                    },
+                    result=result,
+                )
+                logger.info(
+                    "routine_memories_extracted",
+                    routine_id=str(routine.id),
+                    count=len(result.memories),
+                    cost_usd=result.cost_usd,
+                    source="dispatch_terminate",
+                )
+            except Exception as exc:
+                logger.warning(
+                    "routine_memory_extraction_failed",
+                    routine_id=str(routine.id),
+                    error=str(exc),
+                )
+
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(_bg())
+        self._bg_extraction_tasks.add(task)
+        task.add_done_callback(self._bg_extraction_tasks.discard)
+
     @staticmethod
     def _terminate(routine: Routine, reason: str) -> None:
         routine.status = "succeeded" if reason == decision_mod.REASON_SUCCESS else "failed"
         routine.termination_reason = reason
+
+    # ------------------------------------------------------------------
+    # 记忆提取（Memory Extraction）
+    # ------------------------------------------------------------------
+
+    def _fire_memory_extraction(
+        self,
+        routine_id: str,
+        routine_key: str | None,
+        owner_id: str | None,
+        routine_goal: str | None,
+        routine_criteria: str | None,
+        iteration_snap: dict,
+        history_snap: list[dict],
+        was_running_before_commit: bool,
+    ) -> None:
+        """Fire-and-forget 记忆提取：在 commit 后发起，不阻塞 inspector handler。
+
+        使用 ``asyncio.create_task`` 将提取协程提交到事件循环，
+        通过 ``_bg_extraction_tasks`` 强引用集合防止 task 被 GC 回收。
+        提取完成后 task 自动从集合移除。
+        """
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(
+            self._extract_and_store_memories_bg(
+                routine_id=routine_id,
+                routine_key=routine_key,
+                owner_id=owner_id,
+                routine_goal=routine_goal,
+                routine_criteria=routine_criteria,
+                iteration_snap=iteration_snap,
+                history_snap=history_snap,
+                was_running_before_commit=was_running_before_commit,
+            )
+        )
+        self._bg_extraction_tasks.add(task)
+        task.add_done_callback(self._bg_extraction_tasks.discard)
+
+    async def _extract_and_store_memories_bg(
+        self,
+        *,
+        routine_id: str,
+        routine_key: str | None,
+        owner_id: str | None,
+        routine_goal: str | None,
+        routine_criteria: str | None,
+        iteration_snap: dict,
+        history_snap: list[dict],
+        was_running_before_commit: bool,
+    ) -> None:
+        """后台记忆提取协程（由 ``_fire_memory_extraction`` 调度）。
+
+        所有输入均为纯数据（非 ORM 对象），确保在 session 关闭后安全执行。
+        两条提取路径（互斥）：
+        - ``memory_extraction_on_termination=True``：仅 routine 刚变终态时批量提取。
+        - ``memory_extraction_on_termination=False``：每次评估后即时提取。
+
+        所有异常均被捕获并记录为 warning。
+        """
+        extractor = await self._ensure_memory_extractor()
+        if extractor is None:
+            return
+
+        # 最低分数门槛
+        score = iteration_snap.get("score")
+        if score is not None and score < settings.routine.memory_extraction_min_score:
+            return
+
+        try:
+            from types import SimpleNamespace
+
+            routine_proxy = SimpleNamespace(
+                id=routine_id,
+                key=routine_key,
+                goal=routine_goal or "",
+                acceptance_criteria=routine_criteria or "",
+                owner_id=owner_id,
+            )
+            iter_proxy = SimpleNamespace(
+                seq=iteration_snap.get("seq"),
+                score=iteration_snap.get("score"),
+                verdict=iteration_snap.get("verdict"),
+                reflection=iteration_snap.get("reflection"),
+                summary=iteration_snap.get("summary"),
+                gate_exit_code=iteration_snap.get("gate_exit_code"),
+            )
+
+            if settings.routine.memory_extraction_on_termination:
+                # 仅终止时提取：commit 前 routine 仍在运行则跳过
+                if was_running_before_commit:
+                    return
+                result = await extractor.extract_on_termination(routine_proxy, history_snap)
+            else:
+                result = await extractor.extract(routine_proxy, iter_proxy)
+
+            if not result.memories:
+                return
+
+            await self._write_memories_from_snap(
+                routine_id=routine_id,
+                routine_key=routine_key,
+                owner_id=owner_id,
+                iteration_snap=iteration_snap,
+                result=result,
+            )
+
+            logger.info(
+                "routine_memories_extracted",
+                routine_id=routine_id,
+                count=len(result.memories),
+                cost_usd=result.cost_usd,
+            )
+        except Exception as exc:
+            logger.warning(
+                "routine_memory_extraction_failed",
+                routine_id=routine_id,
+                error=str(exc),
+            )
+
+    @staticmethod
+    async def _write_memories_from_snap(
+        *,
+        routine_id: str,
+        routine_key: str | None,
+        owner_id: str | None,
+        iteration_snap: dict,
+        result: MemoryExtractionResult,
+    ) -> None:
+        """将提取的记忆通过 PostgresMemoryService 写入 Memory Module（纯数据参数版）。"""
+        from negentropy.engine.factories.memory import get_memory_service
+
+        mem_service = get_memory_service()
+        max_memories = settings.routine.memory_extraction_max_memories_per_iter
+        memories = result.memories if max_memories == 0 else result.memories[:max_memories]
+
+        verdict = iteration_snap.get("verdict")
+        for m in memories:
+            decay = compute_decay_override(verdict, m.memory_type)
+            metadata = {
+                "source": "routine_extraction",
+                "routine_id": routine_id,
+                "routine_key": routine_key or "",
+                "iteration_seq": iteration_snap.get("seq"),
+                "iteration_score": iteration_snap.get("score"),
+                "iteration_verdict": verdict,
+                "decay_override": decay,
+            }
+            await mem_service.add_memory_typed(
+                user_id=owner_id or "system",
+                app_name=settings.app_name,
+                thread_id=None,
+                content=m.content,
+                memory_type=m.memory_type,
+                metadata=metadata,
+            )
+
+    # ------------------------------------------------------------------
+    # 记忆注入（Memory Injection）
+    # ------------------------------------------------------------------
+
+    async def _retrieve_memory_context(self, routine: Routine) -> str | None:
+        """从 Memory Module 检索与当前 routine 目标相关的经验记忆。
+
+        返回格式化的记忆文本（用于注入 prompt），或 None。
+        """
+        try:
+            from negentropy.engine.factories.memory import get_memory_service
+
+            mem_service = get_memory_service()
+            query = f"{routine.goal} {routine.acceptance_criteria}"
+            response = await mem_service.search_memory(
+                app_name=settings.app_name,
+                user_id=routine.owner_id or "system",
+                query=query,
+                limit=5,
+            )
+            if not response or not response.memories:
+                return None
+
+            lines: list[str] = []
+            for entry in response.memories[:5]:
+                meta = entry.custom_metadata or {}
+                type_label = meta.get("memory_type", "episodic") if isinstance(meta, dict) else "episodic"
+                # 从 metadata_ 提取来源信息
+                source = meta.get("source", "") if isinstance(meta, dict) else ""
+                prefix = f"[{type_label}]"
+                if source == "routine_extraction" and isinstance(meta, dict):
+                    key = meta.get("routine_key", "")
+                    if key:
+                        prefix += f" (来自 {key})"
+                content = (entry.content or "")[:200]
+                lines.append(f"- {prefix} {content}")
+
+            return "\n".join(lines) if lines else None
+        except Exception as exc:
+            logger.warning(
+                "routine_memory_injection_failed",
+                routine_id=str(routine.id),
+                error=str(exc),
+            )
+            return None
 
     async def _ensure_workspace(self, routine: Routine) -> bool:
         """worktree routine：确保隔离 worktree 就绪并把 ``worktree_path``/``work_branch`` 写回
