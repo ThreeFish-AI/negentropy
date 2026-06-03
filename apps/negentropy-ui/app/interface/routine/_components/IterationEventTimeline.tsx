@@ -16,6 +16,92 @@ import {
   resolveEventTitle,
 } from "./status-style";
 
+// ---------------------------------------------------------------------------
+// Turn（轮次）聚合 —— 将执行阶段事件按 Claude Code 的 Turn 边界分组
+// ---------------------------------------------------------------------------
+
+/** 执行阶段事件按 Turn（轮次）聚合。 */
+interface EventTurn {
+  /** 1-based 显示序号。 */
+  turnNumber: number;
+  /** Turn 首事件（assistant 或 system）。 */
+  leadEvent: RoutineIterationEventDTO;
+  /** Turn 内所有事件，按 seq 升序。 */
+  events: RoutineIterationEventDTO[];
+  /** 是否包含 tool_result.is_error === true 的事件。 */
+  hasError: boolean;
+}
+
+/** 将 execution 组事件按 Turn 边界聚合：
+ * - 每个 `assistant` 事件开启新 Turn
+ * - 首个 `system` 事件（无既有 Turn 时）开启 Turn 1（init）
+ * - `tool_use` / `tool_result` / `system_retry` / `_truncated` / `unknown` 归入当前 Turn
+ * - 兜底：`current === null` 时任意事件开启 Turn 1
+ */
+function groupIntoTurns(events: RoutineIterationEventDTO[]): EventTurn[] {
+  const turns: EventTurn[] = [];
+  let current: EventTurn | null = null;
+
+  for (const ev of events) {
+    const isBoundary =
+      ev.event_type === "assistant" ||
+      (ev.event_type === "system" && current === null) ||
+      current === null; // 兜底：首条事件非 system/assistant
+
+    if (isBoundary) {
+      if (current) turns.push(current);
+      current = {
+        turnNumber: turns.length + 1,
+        leadEvent: ev,
+        events: [ev],
+        hasError: false,
+      };
+    } else {
+      // isBoundary === false → current 必然已初始化
+      current!.events.push(ev);
+    }
+
+    if (ev.event_type === "tool_result" && payloadIsError(ev.payload)) {
+      if (current) current.hasError = true;
+    }
+  }
+
+  if (current) turns.push(current);
+  return turns;
+}
+
+/** 从 Turn 的首事件及事件序列中推导人可读标题。
+ * 优先级：assistant payload.text（首行 80 字符）→ 首个 tool_use 标题 → assistant 标题翻译 → 兜底。
+ */
+function deriveTurnTitle(turn: EventTurn): string {
+  const ev = turn.leadEvent;
+  if (ev.event_type === "system") {
+    return resolveEventTitle(ev.event_type, ev.title || extractSubtitle(ev.payload), ev.tool_name);
+  }
+  if (ev.event_type === "assistant") {
+    // 尝试提取 assistant 的推理文本首行
+    const text = typeof ev.payload?.text === "string" ? (ev.payload.text as string).trim() : "";
+    if (text) {
+      const firstLine = text.split("\n")[0];
+      return firstLine.length > 80 ? firstLine.slice(0, 80) + "…" : firstLine;
+    }
+    // 无 text → 从首个 tool_use 事件提取标题
+    const firstTool = turn.events.find((e) => e.event_type === "tool_use");
+    if (firstTool) {
+      return resolveEventTitle(firstTool.event_type, firstTool.title, firstTool.tool_name);
+    }
+    return resolveEventTitle(ev.event_type, ev.title, ev.tool_name);
+  }
+  return `Turn ${turn.turnNumber}`;
+}
+
+/** 默认展开策略：最后一轮 + 含错轮次 → 展开；其余 → 折叠。 */
+function isTurnDefaultExpanded(turn: EventTurn, index: number, total: number): boolean {
+  if (index === total - 1) return true; // 最后一轮：展开（当前活跃）
+  if (turn.hasError) return true; // 含错轮次：展开（错误可见性）
+  return false;
+}
+
 /** 渲染 Lucide 图标 —— 以 prop 传入组件引用，避免「render 期间创建组件」lint 误报。 */
 function EventIcon({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
   return <Icon className={className} aria-hidden />;
@@ -39,6 +125,7 @@ function AgentRoleBadge({ role }: { role: AgentRole }) {
  * 每个动作：左侧类型图标（颜色 + 图标双编码）+ 单行标题 + 可点击展开输入/输出/上下文。
  * 结构化 payload 用 JsonViewer（折叠树 + 复制），长文本/命令输出用 <pre> 保留换行与截断标记。
  * 动作按 执行(execution) → 结果(result) → 门控(gate) → 评估(evaluation) 分组。
+ * 执行组内事件按 Turn（轮次）聚合，每个 Turn 可折叠展开。
  */
 export function IterationEventTimeline({
   events,
@@ -49,6 +136,7 @@ export function IterationEventTimeline({
   live?: boolean;
 }) {
   const groups = useMemo(() => groupEvents(events), [events]);
+  const execTurns = useMemo(() => groupIntoTurns(groups.execution), [groups.execution]);
 
   if (events.length === 0) {
     return null; // 空态由抽屉统一渲染（区分待审批/已中止/capture 关闭等上下文）
@@ -76,11 +164,23 @@ export function IterationEventTimeline({
                 </span>
               )}
             </div>
-            <ol className="relative space-y-1 border-l border-border pl-0">
-              {list.map((ev) => (
-                <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
-              ))}
-            </ol>
+            {g === "execution" && execTurns.length > 0 ? (
+              <ol className="relative space-y-1 border-l border-border pl-0">
+                {execTurns.map((turn, i) => (
+                  <TurnGroup
+                    key={turn.turnNumber}
+                    turn={turn}
+                    defaultExpanded={isTurnDefaultExpanded(turn, i, execTurns.length)}
+                  />
+                ))}
+              </ol>
+            ) : (
+              <ol className="relative space-y-1 border-l border-border pl-0">
+                {list.map((ev) => (
+                  <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
+                ))}
+              </ol>
+            )}
           </section>
         );
       })}
@@ -121,6 +221,59 @@ function extractSubtitle(payload: Record<string, unknown> | null): string | null
     }
   }
   return null;
+}
+
+/** Turn（轮次）折叠卡片 —— 将一个 Turn 内的事件聚合为可展开/折叠的区块。 */
+function TurnGroup({
+  turn,
+  defaultExpanded,
+}: {
+  turn: EventTurn;
+  defaultExpanded: boolean;
+}) {
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  const expanded = manualExpanded ?? defaultExpanded;
+  const title = deriveTurnTitle(turn);
+
+  return (
+    <li className="relative -ml-px pl-4">
+      {/* Turn header */}
+      <button
+        type="button"
+        onClick={() => setManualExpanded((v) => !(v ?? defaultExpanded))}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/50"
+      >
+        <ChevronRight
+          className={`h-3 w-3 shrink-0 text-text-muted transition-transform ${expanded ? "rotate-90" : ""}`}
+          aria-hidden
+        />
+        <span className="shrink-0 text-[10px] font-semibold tabular-nums text-text-muted">
+          Turn {turn.turnNumber}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-xs text-foreground" title={title}>
+          {title}
+        </span>
+        <span className="shrink-0 text-[10px] tabular-nums text-text-muted">
+          {turn.events.length} ev
+        </span>
+        {turn.hasError && (
+          <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
+            error
+          </span>
+        )}
+      </button>
+
+      {/* Turn body: 嵌套 timeline 渲染该 Turn 内的具体 events */}
+      {expanded && (
+        <ol className="relative ml-2 space-y-1 border-l border-border pl-0">
+          {turn.events.map((ev) => (
+            <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
+          ))}
+        </ol>
+      )}
+    </li>
+  );
 }
 
 /**
