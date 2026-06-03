@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from negentropy.engine.claude_code.service import (
     _EVENT_FIELD_CAP,
-    _MAX_EVENTS_PER_ITER,
     _cap,
     _coerce_content,
     _emit_events,
@@ -237,13 +236,17 @@ async def test_emit_events_assigns_monotonic_seq_and_pairs_tool_use_result():
 
 
 async def test_emit_events_caps_at_max_with_sentinel():
+    """事件数达到 max_events_per_iter 后追加 _truncated 哨兵并停止捕获。"""
+    from negentropy.config import settings
+
+    cap = settings.routine.max_events_per_iter
     holder: list[dict] = []
     # 灌入远超上限的 assistant 文本事件
-    for i in range(_MAX_EVENTS_PER_ITER + 50):
+    for i in range(cap + 50):
         await _emit_events(
             {"type": "assistant", "message": {"content": [{"type": "text", "text": f"t{i}"}]}}, holder, None
         )
-    assert len(holder) <= _MAX_EVENTS_PER_ITER + 1  # 含一条 _truncated 哨兵
+    assert len(holder) <= cap + 1  # 含一条 _truncated 哨兵
     assert holder[-1]["event_type"] == "_truncated"
 
 

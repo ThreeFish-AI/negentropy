@@ -68,9 +68,8 @@ def _classify_result_error(result_event: dict[str, Any] | None, returncode: int 
     return None
 
 
-# 「全过程」动作级审计：单字段截断上限 + 单迭代事件条数上限（防 DB / SSE 膨胀）。
+# 「全过程」动作级审计：单字段截断上限（防 DB / SSE 膨胀）。
 _EVENT_FIELD_CAP = 16 * 1024  # 16 KiB / 字段
-_MAX_EVENTS_PER_ITER = 1000  # 单迭代至多捕获的动作事件数
 
 # on_event sink：服务逐条把归一化动作回调给调用方（Runner）用于实时发布。best-effort。
 EventSink = Callable[[dict[str, Any]], Awaitable[None]]
@@ -293,15 +292,18 @@ async def _emit_events(
     """
     if events_holder is None:
         return
+    from negentropy.config import settings
+
+    max_events = settings.routine.max_events_per_iter
     for evt in _normalize_stream_event(raw):
-        if len(events_holder) >= _MAX_EVENTS_PER_ITER:
+        if len(events_holder) >= max_events:
             if events_holder and events_holder[-1].get("event_type") != "_truncated":
                 events_holder.append(
                     {
                         "seq": len(events_holder),
                         "event_type": "_truncated",
                         "tool_name": None,
-                        "title": f"动作数超过 {_MAX_EVENTS_PER_ITER} 上限，后续动作未记录",
+                        "title": f"动作数超过 {max_events} 上限，后续动作未记录",
                         "payload": {},
                         "cost_usd": None,
                     }

@@ -61,8 +61,8 @@ export function IterationAuditDrawer({
     setError(null);
     setPersisted([]);
     try {
-      // 单迭代动作数有上界（后端封顶 1000），一次性取全量（limit=1000）。
-      const res = await fetchIterationEvents(routineId, iterationId, { limit: 1000 });
+      // 单迭代动作数有上界（后端由 max_events_per_iter 配置，默认 5000），一次性取全量。
+      const res = await fetchIterationEvents(routineId, iterationId, { limit: 100000 });
       if (reqId !== reqIdRef.current) return;
       setPersisted(res.items);
     } catch (err) {

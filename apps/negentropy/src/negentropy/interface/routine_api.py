@@ -544,7 +544,7 @@ async def list_iterations(
 async def list_iteration_events(
     routine_id: UUID,
     iteration_id: UUID,
-    limit: int = Query(200, ge=1, le=1000),
+    limit: int = Query(200, ge=1, le=100000),
     after_seq: int | None = Query(None, description="分页：返回 seq 大于此值的事件（升序）"),
 ) -> dict[str, Any]:
     """单次迭代的「全过程」动作级审计事件流（工具调用/结果/中间消息/结果/门控/评估，按 seq 升序）。"""
