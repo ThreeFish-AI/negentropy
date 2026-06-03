@@ -138,6 +138,27 @@ class RoutineSettings(BaseSettings):
         description="单次迭代内自动应答次数上限；防止 runaway（CC 反复问同样问题）。",
     )
 
+    # --- 上下文压缩（迭代内：提前触发 auto-compact + 迭代内重试续接）---
+    context_compact_enabled: bool = Field(
+        default=True,
+        description="启用迭代内上下文压缩：提前触发 CC auto-compact + 迭代内重试续接，"
+        "延长单次迭代寿命，减少跨迭代冷启动。",
+    )
+    context_compact_threshold_pct: int = Field(
+        default=70,
+        ge=20,
+        le=90,
+        description="注入 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 的百分比阈值。"
+        "值越小压缩越早越频繁，但留出更多 headroom。默认 70（即 context 达 70% 时触发压缩）。",
+    )
+    context_compact_max_retries: int = Field(
+        default=2,
+        ge=0,
+        le=5,
+        description="单次迭代内遇到 context_exhausted 时的最大重试次数。"
+        "每次重试在当前迭代内以新 session 续接。0=禁用迭代内重试，直接走跨迭代冷启动。",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,

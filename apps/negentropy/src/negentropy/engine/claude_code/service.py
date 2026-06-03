@@ -198,7 +198,18 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
             )
         ]
 
-    # system/* 其余非 init/api_retry（task_started / task_completed 等）
+    # system/compact_boundary：CC auto-compact 触发（上下文压缩边界）
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "compact_boundary":
+        meta = raw.get("compact_metadata", {})
+        return [
+            _evt(
+                "system_compact",
+                {"trigger": meta.get("trigger"), "pre_tokens": meta.get("pre_tokens")},
+                title=f"context compact ({meta.get('trigger', 'unknown')})",
+            )
+        ]
+
+    # system/* 其余非 init/api_retry/compact_boundary（task_started / task_completed 等）
     if etype == _EVT_SYSTEM:
         subtype = raw.get("subtype") or "unknown"
         return [_evt("system", {"raw": _cap_json(raw)}, title=subtype)]
@@ -375,10 +386,16 @@ class ClaudeCodeService:
         }
 
     @staticmethod
-    def _build_subprocess_env(credential: str | None) -> dict[str, str]:
+    def _build_subprocess_env(
+        credential: str | None,
+        *,
+        compact_threshold_pct: int | None = None,
+    ) -> dict[str, str]:
         """构建子进程环境：``os.environ`` 副本叠加凭证覆盖（不就地修改 ``os.environ``）。
 
         无凭证时返回纯继承副本，功能等价于不传 ``env=``，故不破坏交互式 / 开发 / 终端场景。
+        ``compact_threshold_pct`` 注入 ``CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`` 控制 CC auto-compact
+        触发时机（值越小压缩越早，预留更多 headroom；None=使用 CLI 默认值）。
         """
         env = os.environ.copy()
         for key, value in ClaudeCodeService._credential_env(credential).items():
@@ -386,6 +403,8 @@ class ClaudeCodeService:
                 env.pop(key, None)
             else:
                 env[key] = value
+        if compact_threshold_pct is not None:
+            env["CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"] = str(compact_threshold_pct)
         return env
 
     # ------------------------------------------------------------------
@@ -662,6 +681,7 @@ class ClaudeCodeService:
             mcp_config=config.mcp_config,
             resume_session_id=config.resume_session_id,
             credential=config.credential,  # 必须透传：否则注入凭证在此重建处被静默丢弃 → 退回 401
+            compact_threshold_pct=config.compact_threshold_pct,
         )
 
         args = ClaudeCodeService._build_cli_args(prompt, config)
@@ -674,7 +694,9 @@ class ClaudeCodeService:
                 stderr=asyncio.subprocess.PIPE,
                 cwd=config.cwd,
                 # 注入真实 Anthropic 凭证到子进程环境（根因修复）。无凭证时等价继承父环境。
-                env=ClaudeCodeService._build_subprocess_env(config.credential),
+                env=ClaudeCodeService._build_subprocess_env(
+                    config.credential, compact_threshold_pct=config.compact_threshold_pct
+                ),
                 limit=_STREAM_READER_LIMIT,  # 抬高 StreamReader 缓冲（兜底；主防线为手动分块读取）
             )
         except FileNotFoundError:
@@ -1004,6 +1026,7 @@ class ClaudeCodeService:
             credential=config.credential,
             interactive=config.interactive,
             auto_answer_context=config.auto_answer_context,
+            compact_threshold_pct=config.compact_threshold_pct,
         )
 
         args = ClaudeCodeService._build_cli_args(prompt, config)
@@ -1015,7 +1038,9 @@ class ClaudeCodeService:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=config.cwd,
-                env=ClaudeCodeService._build_subprocess_env(config.credential),
+                env=ClaudeCodeService._build_subprocess_env(
+                    config.credential, compact_threshold_pct=config.compact_threshold_pct
+                ),
                 limit=_STREAM_READER_LIMIT,
             )
         except FileNotFoundError:
