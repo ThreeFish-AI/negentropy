@@ -163,7 +163,7 @@ class RoutineSettings(BaseSettings):
     # 参见 docs/concepts/039-the-routine-system.md §Memory Integration。
     # 将迭代执行-评估闭环中的经验知识提炼为结构化记忆，由 Memory Module 统一维护。
     memory_extraction_enabled: bool = Field(
-        default=False,
+        default=True,
         description="启用迭代记忆提取：评估完成后 LLM 分析迭代数据，提取有价值的经验记忆存入 Memory Module。",
     )
     memory_extraction_model: str | None = Field(
@@ -189,7 +189,7 @@ class RoutineSettings(BaseSettings):
 
     # --- 记忆注入（Memory → Routine Prompt）---
     memory_injection_enabled: bool = Field(
-        default=False,
+        default=True,
         description="启用记忆注入：派发迭代时从 Memory Module 检索相关记忆注入 prompt。",
     )
     memory_injection_max_tokens: int = Field(
