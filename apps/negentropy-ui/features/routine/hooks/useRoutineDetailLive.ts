@@ -10,8 +10,8 @@ import type { RoutineActionStreamEvent, RoutineDTO, RoutineStreamEvent } from ".
 import { useRoutineStream } from "./useRoutineStream";
 
 const REFRESH_DEBOUNCE_MS = 500;
-/** 单迭代实时动作缓冲上限（与后端 _MAX_EVENTS_PER_ITER 对齐，防内存膨胀）。 */
-const MAX_LIVE_ACTIONS = 1000;
+/** 单迭代实时动作缓冲上限（与后端 max_events_per_iter 对齐，防内存膨胀）。 */
+const MAX_LIVE_ACTIONS = 100000;
 
 /** 每迭代的实时动作缓冲：按 iteration_id 归集，按 seq 去重升序。 */
 export type LiveActionsByIteration = Record<string, RoutineActionStreamEvent[]>;

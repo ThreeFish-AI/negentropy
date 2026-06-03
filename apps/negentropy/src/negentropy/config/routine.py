@@ -75,6 +75,13 @@ class RoutineSettings(BaseSettings):
         ge=1,
         description="Routine 单次迭代 Claude Code 执行的默认最大交互轮次；被 routine.config.max_turns 覆盖。",
     )
+    max_events_per_iter: int = Field(
+        default=5000,
+        ge=100,
+        le=100000,
+        description="单迭代至多捕获的动作事件数（Full View 审计上限）；防 DB/SSE 膨胀。"
+        "超出后追加 _truncated 伪事件并停止捕获，Claude Code 进程本身不受影响。",
+    )
     default_iteration_timeout_seconds: int = Field(
         default=10800,
         ge=300,

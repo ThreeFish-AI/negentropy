@@ -198,6 +198,7 @@ routine:
   context_reset_max: 10                       # CC 会话上下文耗尽自动重置 session 冷启动上限；超过落回 unrecoverable（0=关闭自愈）
   default_max_iterations: 20                 # 创建 routine 默认迭代硬上限
   default_max_cost_usd: 5.0                  # 创建 routine 默认成本熔断（USD）
+  max_events_per_iter: 5000                  # 单迭代动作事件捕获上限（Full View 审计）
   evaluator_model: null                      # LLM-as-Judge 模型覆盖；null 走 task_registry 的 routine.evaluate
   # 隔离 worktree（基于基线分支的隔离工作区 + 自动 PR 回基线）
   worktree_root: null                        # worktree 根目录；null → 运行期解析为仓库同级 <project_parent>/.negentropy-worktrees
