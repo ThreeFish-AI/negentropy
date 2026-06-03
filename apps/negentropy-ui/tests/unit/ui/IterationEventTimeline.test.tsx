@@ -60,7 +60,8 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
-    expect(screen.getByText("会话初始化")).toBeInTheDocument();
+    // Turn 聚合后，标题同时出现在 TurnGroup header 和嵌套 EventRow，故用 getAllByText
+    expect(screen.getAllByText("会话初始化").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("init")).not.toBeInTheDocument();
   });
 
@@ -70,7 +71,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: "api_retry", tool_name: null, payload: {} })]}
       />,
     );
-    expect(screen.getByText("API 重试")).toBeInTheDocument();
+    expect(screen.getAllByText("API 重试").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("api_retry")).not.toBeInTheDocument();
   });
 
@@ -80,7 +81,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: "task_started", tool_name: null, payload: {} })]}
       />,
     );
-    expect(screen.getByText("后台任务启动")).toBeInTheDocument();
+    expect(screen.getAllByText("后台任务启动").length).toBeGreaterThanOrEqual(1);
   });
 
   it("system/task_progress 显示「任务进度」", () => {
@@ -89,7 +90,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: "task_progress", tool_name: null, payload: {} })]}
       />,
     );
-    expect(screen.getByText("任务进度")).toBeInTheDocument();
+    expect(screen.getAllByText("任务进度").length).toBeGreaterThanOrEqual(1);
   });
 
   it("旧持久化 system 事件（title=null，payload.raw 中含 subtype）提取并翻译子类型", () => {
@@ -105,7 +106,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
-    expect(screen.getByText("任务通知")).toBeInTheDocument();
+    expect(screen.getAllByText("任务通知").length).toBeGreaterThanOrEqual(1);
   });
 
   it("未知 system 子类型回退显示「系统事件」", () => {
@@ -114,7 +115,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: null, tool_name: null, payload: {} })]}
       />,
     );
-    expect(screen.getByText("系统事件")).toBeInTheDocument();
+    expect(screen.getAllByText("系统事件").length).toBeGreaterThanOrEqual(1);
   });
 
   it("assistant/thinking 显示「思考」而非原始 'thinking'", () => {
