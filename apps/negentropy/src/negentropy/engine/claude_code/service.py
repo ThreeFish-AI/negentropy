@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import shutil
 import time
 from collections.abc import Awaitable, Callable
@@ -27,6 +28,45 @@ _EVT_SYSTEM = "system"
 _EVT_USER = "user"
 
 _SUMMARY_MAX_LEN = 2000
+
+# --- 可恢复错误分类（机制层）：CC 会话上下文窗口耗尽 ---
+# 单一事实源：runner / decision 经此常量与 metrics 键比对，避免魔法字符串散落。
+ERROR_KIND_CONTEXT_EXHAUSTED = "context_exhausted"
+
+# 上下文耗尽的「文本信号」（主据）：大小写无关匹配 result 事件正文。实测 CLI 形态为
+# {is_error:true, subtype:"success", result:"API Error: The model has reached its
+# context window limit."}（subtype 误导，故不能依赖 subtype，须以 is_error + 文本为准）。
+# 多模式并列吸收未来 CC 措辞漂移，最大化召回；仅在 returncode!=0 时触发，不误伤成功路径。
+_CONTEXT_EXHAUSTION_RE = re.compile(
+    r"context window|context length|context limit|reached its context"
+    r"|maximum context|prompt is too long|exceeds the maximum",
+    re.IGNORECASE,
+)
+# 「结构信号」（辅据）：result 事件 subtype 若命中已知上下文类错误码亦判定（OR 文本信号）。
+_CONTEXT_SUBTYPES = frozenset({"error_max_context", "error_context_length", "error_context_window"})
+
+
+def _classify_result_error(result_event: dict[str, Any] | None, returncode: int | None) -> str | None:
+    """据 CLI 的 result 事件 + 退出码识别「可恢复错误类型」（纯函数，无 IO）。
+
+    仅在 ``returncode != 0`` 时考察；双信号 OR：
+    - 文本信号：result 正文命中 ``_CONTEXT_EXHAUSTION_RE``（主据，实测 subtype 不可靠）；
+    - 结构信号：``is_error is True`` 且 subtype ∈ ``_CONTEXT_SUBTYPES``（前瞻冗余）。
+    命中任一 → ``ERROR_KIND_CONTEXT_EXHAUSTED``；否则 ``None``（含成功路径、result 事件缺席）。
+    """
+    if returncode == 0 or not result_event:
+        return None
+    is_err = result_event.get("is_error") is True
+    subtype = result_event.get("subtype")
+    text = result_event.get("result")
+    if not isinstance(text, str):
+        text = json.dumps(text, ensure_ascii=False, default=str) if text is not None else ""
+    sig_text = bool(_CONTEXT_EXHAUSTION_RE.search(text))
+    sig_subtype = is_err and subtype in _CONTEXT_SUBTYPES
+    if sig_text or sig_subtype:
+        return ERROR_KIND_CONTEXT_EXHAUSTED
+    return None
+
 
 # 「全过程」动作级审计：单字段截断上限 + 单迭代事件条数上限（防 DB / SSE 膨胀）。
 _EVENT_FIELD_CAP = 16 * 1024  # 16 KiB / 字段
@@ -544,6 +584,8 @@ class ClaudeCodeService:
         )
 
         status = "error" if error_text else "success"
+        # 错误分类（机制层）：SDK 路径用 is_error + result 文本判定（returncode 以 1 代指错误）。
+        error_kind = _classify_result_error({"is_error": True, "result": result_text}, 1) if error_text else None
         return ClaudeCodeResult(
             status=status,
             error=error_text,
@@ -551,6 +593,7 @@ class ClaudeCodeService:
             session_id=session_id,
             cost_usd=cost,
             turn_count=turns,
+            error_kind=error_kind,
         )
 
     # ------------------------------------------------------------------
@@ -639,6 +682,7 @@ class ClaudeCodeService:
         session_id = None
         cost = 0.0
         turns = 0
+        last_result_event: dict[str, Any] | None = None
 
         try:
             async for event in ClaudeCodeService._iter_json_events(proc.stdout, abort_event):
@@ -652,6 +696,8 @@ class ClaudeCodeService:
                         if session_holder is not None:
                             session_holder["session_id"] = sid
                 elif evt_type == _EVT_RESULT:
+                    # 保留原始 result 事件（含 is_error/subtype/result）供退出后错误分类。
+                    last_result_event = event
                     result_text = event.get("result", "") or result_text
                     if event.get("session_id"):
                         session_id = event.get("session_id")
@@ -706,6 +752,9 @@ class ClaudeCodeService:
                 parts.append("no output captured")
             error_msg = "; ".join(parts)
 
+        # 错误分类（机制层）：识别"会话上下文耗尽"等可恢复错误，供策略层（Runner）据此自愈。
+        error_kind = _classify_result_error(last_result_event, proc.returncode)
+
         return ClaudeCodeResult(
             status=status,
             summary=result_text[:_SUMMARY_MAX_LEN],
@@ -713,6 +762,7 @@ class ClaudeCodeService:
             cost_usd=cost,
             turn_count=turns,
             error=error_msg,
+            error_kind=error_kind,
         )
 
     @staticmethod
@@ -973,6 +1023,7 @@ class ClaudeCodeService:
         session_id = None
         cost = 0.0
         turns = 0
+        last_result_event: dict[str, Any] | None = None
         write_queue: asyncio.Queue[str | None] = asyncio.Queue()
         auto_answer_count = 0
 
@@ -986,7 +1037,7 @@ class ClaudeCodeService:
             pass
 
         async def _reader() -> None:
-            nonlocal result_text, session_id, cost, turns, auto_answer_count
+            nonlocal result_text, session_id, cost, turns, auto_answer_count, last_result_event
             try:
                 async for event in ClaudeCodeService._iter_json_events(proc.stdout, abort_event):
                     evt_type = event.get("type")
@@ -999,6 +1050,8 @@ class ClaudeCodeService:
                             if session_holder is not None:
                                 session_holder["session_id"] = sid
                     elif evt_type == _EVT_RESULT:
+                        # 保留原始 result 事件（含 is_error/subtype/result）供退出后错误分类。
+                        last_result_event = event
                         result_text = event.get("result", "") or result_text
                         if event.get("session_id"):
                             session_id = event.get("session_id")
@@ -1149,6 +1202,9 @@ class ClaudeCodeService:
                 parts.append("no output captured")
             error_msg = "; ".join(parts)
 
+        # 错误分类（机制层）：与非交互路径共用同一纯函数，杜绝两路径逻辑漂移。
+        error_kind = _classify_result_error(last_result_event, proc.returncode)
+
         return ClaudeCodeResult(
             status=status,
             summary=result_text[:2000] if result_text else "",
@@ -1156,6 +1212,7 @@ class ClaudeCodeService:
             cost_usd=cost,
             turn_count=turns,
             error=error_msg,
+            error_kind=error_kind,
             events=list(events_holder) if events_holder else [],
         )
 

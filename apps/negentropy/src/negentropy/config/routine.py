@@ -57,6 +57,13 @@ class RoutineSettings(BaseSettings):
     eval_failure_patience: int = Field(
         default=3, ge=1, description="评估器连续失败容忍次数，超过则终止 routine 为 unrecoverable_error"
     )
+    context_reset_max: int = Field(
+        default=10,
+        ge=0,
+        le=50,
+        description="CC 会话上下文窗口耗尽时自动重置 session 冷启动（同 worktree 续干）的最大次数；"
+        "超过则不再重置、落回 unrecoverable_error 防 runaway。0=关闭自愈，退化为原行为。",
+    )
     default_max_iterations: int = Field(
         default=20, ge=1, description="创建 routine 时 max_iterations 的默认值（硬上限守卫）"
     )

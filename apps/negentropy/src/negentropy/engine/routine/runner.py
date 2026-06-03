@@ -30,7 +30,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
-from negentropy.engine.claude_code.service import ClaudeCodeService
+from negentropy.engine.claude_code.service import ERROR_KIND_CONTEXT_EXHAUSTED, ClaudeCodeService
 from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
@@ -238,13 +238,36 @@ class RoutineRunner:
                 )
             )
             if res.rowcount == 1:
-                # 父 routine 累计：成本累加、迭代计数 +1、会话续接（仅成功转换时）
+                # 上下文耗尽判定（根因：原实现无条件回写 session_id，把 routine 永久钉死在已耗尽
+                # 的会话，导致 resume 后每轮立即撞上下文上限的"死亡螺旋"）。提前到 routine 取用之前
+                # 计算，使 routine 缺失时下方 iteration 标记块仍能安全引用。
+                is_ctx = getattr(result, "error_kind", None) == ERROR_KIND_CONTEXT_EXHAUSTED
+                # 父 routine 累计：成本累加、迭代计数 +1、会话续接。
                 routine = await db.get(Routine, routine_id)
                 if routine is not None:
                     routine.total_cost_usd = (routine.total_cost_usd or 0.0) + (result.cost_usd or 0.0)
                     routine.iteration_count = (routine.iteration_count or 0) + 1
-                    if result.session_id:
+                    # 会话续接的三态决策：
+                    if is_ctx:
+                        resets = int((routine.reflections or {}).get("_context_resets", 0))
+                        if resets < settings.routine.context_reset_max:
+                            # (a) 上下文耗尽且未达上限 → 清空污染会话，使下轮在同 worktree 冷启动续干
+                            # （prompt_builder 每轮全量注入 goal/criteria/reflections + worktree 上下文，
+                            #  worktree 持久保留既往产出，故会话仅工作记忆而非正确性必需）。
+                            routine.claude_session_id = None
+                            routine.reflections = {**(routine.reflections or {}), "_context_resets": resets + 1}
+                        else:
+                            # (b) 达自动重置上限 → 不再清空，记标记，落回原 unrecoverable 自然路径（防 runaway）。
+                            routine.reflections = {**(routine.reflections or {}), "_context_reset_exhausted": True}
+                    elif result.session_id:
+                        # (c) 非上下文耗尽（含成功 / 普通 error / timeout）→ 维持原会话续接逻辑。
                         routine.claude_session_id = result.session_id
+                # 给 iteration 打 context_exhausted 标记：供 decision 将"可自愈失败"从连续失败计数剔除，
+                # 避免被误判为 unrecoverable（runaway 由 routine.reflections._context_resets 上限兜底）。
+                if is_ctx:
+                    it = await db.get(RoutineIteration, iteration_id)
+                    if it is not None:
+                        it.metrics = {**(it.metrics or {}), "context_exhausted": True}
             # 「全过程」动作事件持久化（reconciliation backstop）：
             # 不再受 rowcount==1 门控——即使迭代已被 reaper 标记 reaped，仍确保事件落库
             # （StreamingEventPersister 已增量刷入部分事件，此处补齐尾部 + 终态事件）。

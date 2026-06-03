@@ -82,6 +82,10 @@ class ClaudeCodeResult:
     cost_usd: float = 0.0
     turn_count: int = 0
     error: str | None = None
+    # 可恢复错误分类标签（机制层判定，供策略层正交消费）。None 表示无可识别的特定错误类型；
+    # 当前唯一取值 "context_exhausted"（CC 会话上下文窗口耗尽，可经"重置 session 冷启动"自愈）。
+    # 仅承载"是什么错"，不含"如何处置"——处置策略由 Routine Runner / decision 层据此决定。
+    error_kind: str | None = None
     # 「全过程」动作级审计事件（归一化后的 stream-json 动作；含 seq，按到达顺序定格）。
     # 由 ClaudeCodeService 捕获，超时/取消/出错路径亦回带已捕获的部分事件。
     events: list[dict] = field(default_factory=list)
