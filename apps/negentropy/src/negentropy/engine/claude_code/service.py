@@ -209,7 +209,29 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
             )
         ]
 
-    # system/* 其余非 init/api_retry/compact_boundary（task_started / task_completed 等）
+    # system/plan_review：NegentropyEngine Plan 自动审阅产出
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "plan_review":
+        # 从 raw 中提取结构化审阅数据；若 raw 是原始审计事件则从顶层取，否则从 payload 嵌套取
+        review_data = raw.get("review_result") or {}
+        return [
+            _evt(
+                "plan_review",
+                {
+                    "verdict": review_data.get("verdict", "unknown"),
+                    "score": review_data.get("score"),
+                    "module_reviews": review_data.get("module_reviews", []),
+                    "feedback": review_data.get("feedback", ""),
+                    "reflection": review_data.get("reflection", ""),
+                    "judge_prompt": review_data.get("judge_prompt"),
+                    "judge_raw": review_data.get("judge_raw"),
+                    # 兼容：保留原始数据供 fallback
+                    "raw": _cap_json(raw),
+                },
+                title=f"plan_review ({review_data.get('verdict', 'unknown')}, score={review_data.get('score', '?')})",
+            )
+        ]
+
+    # system/* 其余非 init/api_retry/compact_boundary/plan_review（task_started / task_completed 等）
     if etype == _EVT_SYSTEM:
         subtype = raw.get("subtype") or "unknown"
         return [_evt("system", {"raw": _cap_json(raw)}, title=subtype)]
@@ -981,6 +1003,99 @@ class ClaudeCodeService:
             return ClaudeCodeService._FALLBACK_ANSWER
 
     @staticmethod
+    async def _plan_review_answer(
+        questions: list[dict],
+        context: dict[str, Any],
+        *,
+        plan_text: str = "",
+        model_override: str | None = None,
+        timeout: float = 60.0,
+    ) -> tuple[str, dict[str, Any] | None]:
+        """PLAN 阶段专用自动应答：调用 PlanReviewer 进行方案审阅，返回审阅结果。
+
+        审阅结果作为 AskUserQuestion 的回答注入回 CC：
+        - approve → CC 收到批准，退出 Plan 模式开始实施
+        - refine → CC 收到完善要求，继续在 Plan 模式迭代
+
+        Returns:
+            (answer_json, review_result_dict) 元组。
+            review_result_dict 包含结构化审阅数据供审计事件使用；
+            审阅失败时为 None。
+        """
+        try:
+            from negentropy.engine.routine.plan_reviewer import PlanReviewer
+
+            reviewer = PlanReviewer(explicit_model=model_override, timeout_seconds=int(timeout))
+            result = await reviewer.review(
+                goal=context.get("goal", "（未提供）"),
+                acceptance_criteria=context.get("acceptance_criteria", "（未提供）"),
+                plan_text=plan_text,
+                reflections=context.get("reflections"),
+            )
+
+            if not result.ok:
+                logger.warning("plan_review_failed_fallback", error=result.error)
+                return (
+                    json.dumps(
+                        {"answers": ["审阅服务暂时不可用，请按你的最佳判断继续完善方案。"]},
+                        ensure_ascii=False,
+                    ),
+                    None,
+                )
+
+            # 构造结构化审阅数据供审计事件
+            review_data = {
+                "verdict": result.verdict,
+                "score": result.score,
+                "module_reviews": [
+                    {"module": m.module, "status": m.status, "comment": m.comment} for m in result.module_reviews
+                ],
+                "feedback": result.feedback,
+                "reflection": result.reflection,
+                "judge_prompt": result.judge_prompt,
+                "judge_raw": result.judge_raw,
+            }
+
+            # 审阅成功：构造回答
+            if result.verdict == "approve":
+                answer_text = f"Plan 已通过审阅（评分 {result.score}/100）。请退出 Plan 模式，开始实施。"
+            else:
+                module_feedback = ""
+                if result.module_reviews:
+                    items = []
+                    for m in result.module_reviews:
+                        icon = "✅" if m.status == "pass" else "⚠️" if m.status == "warn" else "❌"
+                        items.append(f"{icon} {m.module}: {m.comment}")
+                    module_feedback = "\n\n模块评审：\n" + "\n".join(items)
+
+                answer_text = (
+                    f"Plan 需要完善（评分 {result.score}/100）。\n\n"
+                    f"反馈：{result.feedback or '请进一步完善方案细节。'}"
+                    f"{module_feedback}"
+                )
+
+            logger.info(
+                "plan_review_completed",
+                verdict=result.verdict,
+                score=result.score,
+                modules=len(result.module_reviews),
+            )
+            return (
+                json.dumps({"answers": [answer_text]}, ensure_ascii=False),
+                review_data,
+            )
+
+        except Exception as exc:
+            logger.warning("plan_review_exception_fallback", error=str(exc))
+            return (
+                json.dumps(
+                    {"answers": ["审阅服务暂时不可用，请按你的最佳判断继续完善方案。"]},
+                    ensure_ascii=False,
+                ),
+                None,
+            )
+
+    @staticmethod
     async def _invoke_cli_interactive(
         prompt: str,
         config: ClaudeCodeConfig,
@@ -1129,26 +1244,59 @@ class ClaudeCodeService:
                                         # 无 questions 字段，尝试把整个 input 当问题
                                         questions = [{"question": json.dumps(tool_input, ensure_ascii=False)}]
 
-                                    answer = await ClaudeCodeService._auto_answer_question(
-                                        questions,
-                                        config.auto_answer_context or {},
-                                        timeout=30.0,
-                                    )
-                                    auto_answer_count += 1
+                                    # Plan Review 分支：PLAN 阶段 + plan_review_enabled
+                                    ctx = config.auto_answer_context or {}
+                                    is_plan_phase = ctx.get("phase") == "plan"
+                                    plan_review_enabled = ctx.get("plan_review_enabled", False)
+                                    plan_text = ctx.get("plan_summary") or result_text or ""
 
-                                    # 写入审计事件
-                                    await _emit_events(
-                                        {
+                                    if is_plan_phase and plan_review_enabled:
+                                        answer, review_data = await ClaudeCodeService._plan_review_answer(
+                                            questions,
+                                            ctx,
+                                            plan_text=plan_text,
+                                            model_override=ctx.get("plan_review_model"),
+                                            timeout=ctx.get("plan_review_timeout", 60.0),
+                                        )
+                                        auto_answer_count += 1
+
+                                        # 写入 plan_review 审计事件（含结构化审阅数据）
+                                        review_event: dict[str, Any] = {
                                             "type": "system",
-                                            "subtype": "auto_answer",
+                                            "subtype": "plan_review",
                                             "tool_use_id": tool_use_id,
                                             "questions": _cap_json(questions),
                                             "answer_preview": answer[:500],
-                                        },
-                                        events_holder,
-                                        on_event,
-                                        max_events=evt_max,
-                                    )
+                                        }
+                                        if review_data:
+                                            review_event["review_result"] = review_data
+                                        await _emit_events(
+                                            review_event,
+                                            events_holder,
+                                            on_event,
+                                            max_events=evt_max,
+                                        )
+                                    else:
+                                        answer = await ClaudeCodeService._auto_answer_question(
+                                            questions,
+                                            config.auto_answer_context or {},
+                                            timeout=30.0,
+                                        )
+                                        auto_answer_count += 1
+
+                                        # 写入审计事件
+                                        await _emit_events(
+                                            {
+                                                "type": "system",
+                                                "subtype": "auto_answer",
+                                                "tool_use_id": tool_use_id,
+                                                "questions": _cap_json(questions),
+                                                "answer_preview": answer[:500],
+                                            },
+                                            events_holder,
+                                            on_event,
+                                            max_events=evt_max,
+                                        )
 
                                     msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)
                                     await write_queue.put(msg)

@@ -71,8 +71,12 @@ def build_prompt(routine: _RoutineLike, *, max_reflections: int = 5) -> str:
     if phase == PHASE_PLAN:
         parts.append(
             "# 规划 (Plan ONLY)\n本轮**仅产出实现方案，禁止写入或修改任何文件**（plan 模式）：\n"
-            "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n"
-            "方案将提交人工审批，通过后再进入实现阶段。"
+            "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n\n"
+            "**重要**：当你完成实现方案后，请使用 AskUserQuestion 工具提交方案等待审阅，"
+            '询问："Plan 已完成，请审阅。"\n'
+            "审阅者（NegentropyEngine）将评审你的方案并给出反馈：\n"
+            "- 若方案通过审阅，你将收到批准指令，此时直接退出 Plan 模式即可；\n"
+            "- 若方案需要完善，你将收到具体的修改建议，请据此继续完善方案后再次提交审阅。"
         )
     elif phase == PHASE_FINALIZE and worktree:
         # worktree routine：注入引擎确定性计算的具体分支名（base / head），CC 执行 push + 建 PR。

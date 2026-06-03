@@ -104,6 +104,7 @@ export interface RoutineIterationDTO {
 /**
  * 「全过程」动作级审计事件类型：
  * - 执行阶段：system（init）/ system_retry（API 重试，含 401/429）/ assistant（中间消息）/ tool_use（工具调用）/ tool_result（工具结果）/ result（最终产出）
+ * - 审阅阶段：plan_review（NegentropyEngine 自动审阅 Plan）
  * - 评估阶段：gate（命令门控）/ evaluation（LLM-as-Judge）
  * - _truncated：动作数超上限的哨兵
  */
@@ -114,10 +115,33 @@ export type RoutineEventType =
   | "tool_use"
   | "tool_result"
   | "result"
+  | "plan_review"
   | "gate"
   | "evaluation"
   | "_truncated"
   | "unknown";
+
+/** Plan Review 事件的归一化载荷结构。 */
+export interface PlanReviewPayload {
+  /** Engine 审阅决策：approve（通过）/ refine（需完善）。 */
+  verdict: "approve" | "refine";
+  /** 审阅评分（0-100）。 */
+  score: number;
+  /** 各模块逐项评审结果。 */
+  module_reviews: Array<{
+    module: string;
+    status: "pass" | "warn" | "fail";
+    comment: string;
+  }>;
+  /** 给 Claude Code 的反馈文本（refine 时有效）。 */
+  feedback: string;
+  /** Engine 内部反思。 */
+  reflection: string;
+  /** 审阅 Prompt（审计用）。 */
+  judge_prompt?: string;
+  /** LLM 原始响应（审计用）。 */
+  judge_raw?: string;
+}
 
 /** 单条「全过程」动作审计事件（与后端 ``_serialize_event`` 对齐）。 */
 export interface RoutineIterationEventDTO {

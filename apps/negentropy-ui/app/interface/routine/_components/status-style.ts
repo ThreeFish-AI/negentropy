@@ -258,6 +258,8 @@ export function eventTypeIcon(eventType: RoutineEventType, toolName?: string | n
       return ShieldCheck;
     case "evaluation":
       return Scale;
+    case "plan_review":
+      return Scale;
     default:
       return CircleDot;
   }
@@ -279,6 +281,8 @@ export function eventTypeClass(eventType: RoutineEventType, isError?: boolean): 
       return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
     case "evaluation":
       return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    case "plan_review":
+      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
     case "system":
       return "bg-muted text-text-secondary";
     default:
@@ -305,6 +309,8 @@ export function eventTypeLabel(eventType: RoutineEventType): string {
       return "命令门控";
     case "evaluation":
       return "评估";
+    case "plan_review":
+      return "Plan 审阅";
     case "_truncated":
       return "已截断";
     default:
@@ -312,11 +318,13 @@ export function eventTypeLabel(eventType: RoutineEventType): string {
   }
 }
 
-/** 动作事件 → 时间线分组键（执行 / 结果 / 门控 / 评估）。 */
-export type EventGroup = "execution" | "result" | "gate" | "evaluation";
+/** 动作事件 → 时间线分组键（执行 / Plan 审阅 / 结果 / 门控 / 评估）。 */
+export type EventGroup = "execution" | "plan_review" | "result" | "gate" | "evaluation";
 
 export function eventGroup(eventType: RoutineEventType): EventGroup {
   switch (eventType) {
+    case "plan_review":
+      return "plan_review";
     case "result":
       return "result";
     case "gate":
@@ -330,6 +338,7 @@ export function eventGroup(eventType: RoutineEventType): EventGroup {
 
 export const EVENT_GROUP_LABEL: Record<EventGroup, string> = {
   execution: "执行 · Execution",
+  plan_review: "Plan 审阅 · Review",
   result: "结果 · Result",
   gate: "门控 · Gate",
   evaluation: "评估 · Evaluation",

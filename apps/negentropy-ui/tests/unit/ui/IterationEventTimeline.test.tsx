@@ -60,7 +60,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
-    // Turn 聚合后，标题同时出现在 TurnGroup header 和嵌套 EventRow，故用 getAllByText
+    // Turn 聚合后，标题同时出现在 ClaudeCodeTurnBubble header 和嵌套 EventRow，故用 getAllByText
     expect(screen.getAllByText("会话初始化").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("init")).not.toBeInTheDocument();
   });

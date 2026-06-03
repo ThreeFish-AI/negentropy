@@ -578,6 +578,15 @@ class RoutineOrchestrator:
             config.auto_answer_context = {
                 "goal": routine.goal,
                 "acceptance_criteria": routine.acceptance_criteria,
+                # Plan Review 上下文：当 phase=plan 且 plan_review_enabled 时，
+                # auto-answer 分支调用 PlanReviewer 而非通用 auto-answer。
+                "phase": routine.current_phase or "",
+                "plan_review_enabled": settings.routine.plan_review_enabled,
+                "plan_review_model": settings.routine.plan_review_model,
+                "plan_review_timeout": settings.routine.plan_review_timeout_seconds,
+                "reflections": (
+                    list(routine.reflections.get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
+                ),
             }
         return config
 

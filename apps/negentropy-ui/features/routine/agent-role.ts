@@ -98,6 +98,7 @@ export function deriveAgentRole(eventType: RoutineEventType): AgentRole {
   switch (eventType) {
     case "gate":
     case "evaluation":
+    case "plan_review":
       return "engine";
     default:
       return "claude_code";
