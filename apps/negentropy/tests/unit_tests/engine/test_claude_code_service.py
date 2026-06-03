@@ -16,7 +16,11 @@ import json
 import pytest
 
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
-from negentropy.engine.claude_code.service import ClaudeCodeService
+from negentropy.engine.claude_code.service import (
+    ERROR_KIND_CONTEXT_EXHAUSTED,
+    ClaudeCodeService,
+    _classify_result_error,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -358,3 +362,139 @@ async def test_interactive_feeds_prompt_via_stdin_and_closes_on_result(monkeypat
     assert result.session_id == "sess-int-1"
     assert result.turn_count == 2
     assert result.cost_usd == 0.42
+
+
+# ---------------------------------------------------------------------------
+# 上下文窗口耗尽错误识别（_classify_result_error）—— 死亡螺旋根因修复回归锁定
+#
+# 根因（实测 a83d9c94 seq=4）：CC resume 已满会话时输出 result 事件
+#   {type:result, subtype:"success", is_error:true,
+#    result:"API Error: The model has reached its context window limit."} + exit 1。
+# 注意 subtype 为误导性的 "success"，故识别**必须**以 is_error + 文本为准，不能依赖 subtype。
+# ---------------------------------------------------------------------------
+
+
+# 实测真实事件（seq=4）：subtype 误导为 "success"，凭 is_error + 文本识别。
+_REAL_CONTEXT_LIMIT_EVENT = {
+    "type": "result",
+    "subtype": "success",
+    "is_error": True,
+    "result": "API Error: The model has reached its context window limit.",
+    "num_turns": 1,
+}
+
+
+async def test_classify_real_context_limit_event_from_seq4():
+    """复刻 a83d9c94 seq=4 的真实失败 result 事件 → 识别为 context_exhausted（文本信号）。"""
+    assert _classify_result_error(_REAL_CONTEXT_LIMIT_EVENT, 1) == ERROR_KIND_CONTEXT_EXHAUSTED
+
+
+async def test_classify_text_markers_case_insensitive():
+    """覆盖各文本 marker 变体 + 大小写无关。"""
+    for text in [
+        "the model has reached its CONTEXT WINDOW limit",
+        "Prompt is too long",
+        "request exceeds the maximum context length",
+        "Context limit reached",
+        "maximum context exceeded",
+    ]:
+        evt = {"type": "result", "is_error": True, "result": text}
+        assert _classify_result_error(evt, 1) == ERROR_KIND_CONTEXT_EXHAUSTED, text
+
+
+async def test_classify_subtype_signal_independent_of_text():
+    """结构信号独立生效：subtype 命中已知上下文错误码，即便正文无 marker 亦判定。"""
+    evt = {"type": "result", "is_error": True, "subtype": "error_max_context", "result": "<opaque>"}
+    assert _classify_result_error(evt, 1) == ERROR_KIND_CONTEXT_EXHAUSTED
+
+
+async def test_classify_plain_error_is_not_context_exhausted():
+    """普通执行失败（无 marker、subtype 非上下文类）→ None（不误判）。"""
+    evt = {"type": "result", "is_error": True, "subtype": "error_during_execution", "result": "file not found"}
+    assert _classify_result_error(evt, 1) is None
+
+
+async def test_classify_returncode_zero_is_none():
+    """退出码 0（成功路径）→ 恒 None，绝不误伤——即便正文恰含 marker 字样。"""
+    evt = {"type": "result", "is_error": False, "result": "we tuned the context window size"}
+    assert _classify_result_error(evt, 0) is None
+
+
+async def test_classify_false_positive_guard_on_success_text():
+    """防误判：正文含 'context window limit' 但 returncode=0（任务产出提及）→ None。"""
+    evt = {"type": "result", "is_error": False, "result": "the context window limit is 1M tokens"}
+    assert _classify_result_error(evt, 0) is None
+
+
+async def test_classify_missing_result_event_is_none():
+    """result 事件缺席（仅 exit 非 0）→ None（不臆断错误类型）。"""
+    assert _classify_result_error(None, 1) is None
+
+
+async def test_classify_non_string_result_payload():
+    """result 为非字符串（对象）时序列化后匹配，不抛错。"""
+    evt = {"type": "result", "is_error": True, "result": {"error": "reached its context window limit"}}
+    assert _classify_result_error(evt, 1) == ERROR_KIND_CONTEXT_EXHAUSTED
+
+
+class _FakeProcWithEvents:
+    """模拟非交互 claude 子进程：吐预置 stream-json 事件后 EOF，returncode 可控。"""
+
+    def __init__(self, events: list[dict], returncode: int = 1) -> None:
+        raw = ("".join(json.dumps(e) + "\n" for e in events)).encode("utf-8")
+        self.stdout = _FakeStream(raw)
+        self.stderr = _FakeStream(b"")
+        self.returncode = returncode
+
+    def terminate(self) -> None:
+        pass
+
+    async def wait(self) -> int:
+        return self.returncode
+
+
+async def test_invoke_cli_tags_error_kind_on_context_limit(monkeypatch):
+    """端到端锁定：非交互 CLI 路径遇上下文耗尽 result 事件（exit 1）→ result.error_kind 被打上标签。
+
+    这是死亡螺旋根因修复的核心回归：原实现仅靠 exit code 判 error、丢弃 result 的 is_error，
+    无法区分"可自愈的上下文耗尽"与普通失败。"""
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-full"},
+        _REAL_CONTEXT_LIMIT_EVENT,
+    ]
+
+    async def _fake_exec(*args, **kwargs):
+        return _FakeProcWithEvents(events, returncode=1)
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(cli_path="claude", cwd=None, max_turns=1, timeout_seconds=10.0)
+    result = await ClaudeCodeService.invoke("继续推进", cfg)
+
+    assert result.status == "error"
+    assert result.error_kind == ERROR_KIND_CONTEXT_EXHAUSTED
+    # session_id 仍从 init 回带（供审计；策略层会据 error_kind 决定不续接）
+    assert result.session_id == "sess-full"
+
+
+async def test_invoke_cli_no_error_kind_on_success(monkeypatch):
+    """回归锁：正常成功（exit 0）→ error_kind 恒 None，不误标。"""
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-ok"},
+        {"type": "result", "subtype": "success", "result": "done", "num_turns": 3, "total_cost_usd": 0.5},
+    ]
+
+    async def _fake_exec(*args, **kwargs):
+        return _FakeProcWithEvents(events, returncode=0)
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(cli_path="claude", cwd=None, max_turns=1, timeout_seconds=10.0)
+    result = await ClaudeCodeService.invoke("ping", cfg)
+
+    assert result.status == "success"
+    assert result.error_kind is None

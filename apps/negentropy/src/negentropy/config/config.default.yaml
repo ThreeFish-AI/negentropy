@@ -195,6 +195,7 @@ routine:
   gate_timeout_seconds: 120                  # verification_command 命令门控执行超时
   max_reflections_injected: 5                # 注入下一迭代 prompt 的最近反思条数（Reflexion 窗口）
   eval_failure_patience: 3                   # 评估器连续失败容忍次数，超过终止为 unrecoverable_error
+  context_reset_max: 10                       # CC 会话上下文耗尽自动重置 session 冷启动上限；超过落回 unrecoverable（0=关闭自愈）
   default_max_iterations: 20                 # 创建 routine 默认迭代硬上限
   default_max_cost_usd: 5.0                  # 创建 routine 默认成本熔断（USD）
   evaluator_model: null                      # LLM-as-Judge 模型覆盖；null 走 task_registry 的 routine.evaluate

@@ -369,6 +369,109 @@ async def test_write_back_no_double_count_when_reaped_midflight():
 
 
 # ---------------------------------------------------------------------------
+# 上下文窗口耗尽自愈（死亡螺旋根因修复）—— runner write-back 会话三态决策
+# ---------------------------------------------------------------------------
+
+
+async def test_write_back_context_exhausted_clears_session_for_cold_start():
+    """根因 1+2 联合锁：上下文耗尽迭代写回 → 清空 routine.claude_session_id（下轮冷启动）、
+    记 reflections._context_resets、给 iteration.metrics 打 context_exhausted 标记。
+
+    复刻 a83d9c94：原实现无条件回写 session_id 把 routine 钉死在已满会话；修复后改为清空。"""
+    from negentropy.engine.claude_code.service import ERROR_KIND_CONTEXT_EXHAUSTED
+    from negentropy.engine.routine.runner import get_runner
+
+    rid = await _make_routine(approval_mode="auto", iteration_count=0, claude_session_id="full-session")
+    iid = await _add_iteration(rid, seq=1, status="in_flight", exec_status=None, summary=None)
+    try:
+        runner = get_runner()
+        # exec error + error_kind=context_exhausted，CC 仍回带（已满的）session_id
+        fake = ClaudeCodeResult(
+            status="error",
+            summary="API Error: The model has reached its context window limit.",
+            session_id="full-session",
+            cost_usd=0.0,
+            turn_count=1,
+            error="CLI exited with code 1",
+            error_kind=ERROR_KIND_CONTEXT_EXHAUSTED,
+        )
+        await runner._do_write_back(iid, rid, fake)  # noqa: SLF001
+
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.claude_session_id is None  # 污染会话被清空 → 下轮冷启动
+            assert int((r.reflections or {}).get("_context_resets", 0)) == 1
+            assert r.iteration_count == 1
+            it = await db.get(RoutineIteration, iid)
+            assert it.status == "executed"
+            assert (it.metrics or {}).get("context_exhausted") is True
+    finally:
+        await _cleanup(rid)
+
+
+async def test_write_back_success_preserves_session_resume():
+    """根因 2 反向回归锁：正常成功执行 → routine.claude_session_id 正常续接（自愈逻辑不误伤）。"""
+    from negentropy.engine.routine.runner import get_runner
+
+    rid = await _make_routine(approval_mode="auto", iteration_count=0, claude_session_id="old-session")
+    iid = await _add_iteration(rid, seq=1, status="in_flight", exec_status=None, summary=None)
+    try:
+        runner = get_runner()
+        fake = ClaudeCodeResult(status="success", summary="ok", session_id="new-session", cost_usd=1.0, turn_count=10)
+        await runner._do_write_back(iid, rid, fake)  # noqa: SLF001
+
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.claude_session_id == "new-session"  # 正常续接
+            it = await db.get(RoutineIteration, iid)
+            assert (it.metrics or {}).get("context_exhausted") is None  # 未误标
+    finally:
+        await _cleanup(rid)
+
+
+async def test_write_back_context_exhausted_at_reset_cap_keeps_session_and_marks_exhausted():
+    """上限封顶（防 runaway）：已达 context_reset_max 时不再清空 session、记 _context_reset_exhausted，
+    使 decision 不再豁免、落回 unrecoverable 自然路径。
+
+    用 monkeypatch 把 context_reset_max 压到 1，构造 resets 已达上限的现场。"""
+    from negentropy.config import settings
+    from negentropy.config.routine import RoutineSettings
+    from negentropy.engine.claude_code.service import ERROR_KIND_CONTEXT_EXHAUSTED
+    from negentropy.engine.routine.runner import get_runner
+
+    rid = await _make_routine(
+        approval_mode="auto",
+        iteration_count=2,
+        claude_session_id="full-session",
+        reflections={"_context_resets": 1},  # 已重置 1 次
+    )
+    iid = await _add_iteration(rid, seq=3, status="in_flight", exec_status=None, summary=None)
+    capped = RoutineSettings(context_reset_max=1)  # 上限=1，已达
+    import pytest as _pytest
+
+    with _pytest.MonkeyPatch.context() as mp:
+        mp.setattr(type(settings), "routine", property(lambda self: capped))
+        try:
+            runner = get_runner()
+            fake = ClaudeCodeResult(
+                status="error",
+                summary="context window limit",
+                session_id="full-session",
+                error_kind=ERROR_KIND_CONTEXT_EXHAUSTED,
+            )
+            await runner._do_write_back(iid, rid, fake)  # noqa: SLF001
+
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid)
+                # 达上限：不再清空（保持已满会话——但仍标记 context_exhausted 以触发 decision 判定）
+                assert r.claude_session_id == "full-session"
+                assert int((r.reflections or {}).get("_context_resets", 0)) == 1  # 未再 +1
+                assert (r.reflections or {}).get("_context_reset_exhausted") is True
+        finally:
+            await _cleanup(rid)
+
+
+# ---------------------------------------------------------------------------
 # 隔离 worktree（基于基线分支 + 通用 FINALIZE/PR）
 # ---------------------------------------------------------------------------
 
