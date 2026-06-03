@@ -84,6 +84,8 @@ class RoutineOrchestrator:
             gate_timeout_seconds=settings.routine.gate_timeout_seconds,
         )
         self._memory_extractor: IterationMemoryExtractor | None = None
+        # 强引用集合：防止 fire-and-forget 的 extraction task 被 GC 回收。
+        self._bg_extraction_tasks: set[asyncio.Task] = set()
 
     async def _ensure_memory_extractor(self) -> IterationMemoryExtractor | None:
         """懒初始化记忆提取器（受 ``memory_extraction_enabled`` 门控）。"""
@@ -280,13 +282,36 @@ class RoutineOrchestrator:
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
 
-            # 记忆提取（best-effort，不阻塞评估主流程）。
-            # 提取在 commit 前执行以利用同一事务上下文；失败仅 warning 不回滚。
-            was_running = routine.status == "running"
-            await self._extract_and_store_memories(routine, latest, history, was_running)
-
             # 「全过程」审计：在迭代翻转 evaluated 时追加 gate / evaluation 事件（seq=MAX+1）。
             eval_events = await self._persist_eval_events(db, routine, latest, result)
+
+            # 记忆提取所需参数（commit 后读取 DB 对象会过期，提前提取纯数据）。
+            was_running_before_commit = routine.status == "running"
+            routine_id_str = str(routine_id)
+            routine_key = routine.key
+            owner_id = routine.owner_id
+            routine_goal = routine.goal
+            routine_criteria = routine.acceptance_criteria
+            iteration_snap = {
+                "seq": latest.seq,
+                "score": latest.score,
+                "verdict": latest.verdict,
+                "reflection": latest.reflection,
+                "summary": latest.summary,
+                "gate_exit_code": latest.gate_exit_code,
+                "prompt": latest.prompt,
+            }
+            history_snap = [
+                {
+                    "seq": it.seq,
+                    "score": it.score,
+                    "verdict": it.verdict,
+                    "reflection": it.reflection,
+                    "status": it.status,
+                    "summary": it.summary,
+                }
+                for it in history
+            ]
 
             await db.commit()
             await self._publish_routine(routine)
@@ -302,6 +327,21 @@ class RoutineOrchestrator:
                 }
             )
             await self._publish_action_events(routine_id, latest.id, eval_events)
+
+            # 记忆提取（fire-and-forget，不阻塞 inspector handler）。
+            # 必须在 commit 后执行：避免 LLM 调用耗时触发 handler timeout
+            # 导致 db.commit() 被取消，评估结果丢失。
+            # 使用强引用集合防止 task 被 GC 回收。
+            self._fire_memory_extraction(
+                routine_id_str,
+                routine_key,
+                owner_id,
+                routine_goal,
+                routine_criteria,
+                iteration_snap,
+                history_snap,
+                was_running_before_commit,
+            )
             return True
 
     # ------------------------------------------------------------------
@@ -351,7 +391,12 @@ class RoutineOrchestrator:
                 budget = decision_mod.pre_dispatch_check(routine)
                 if budget.is_terminate:
                     self._terminate(routine, budget.reason or decision_mod.REASON_MAX_ITERATIONS)
+                    await db.commit()
                     await self._publish_routine(routine)
+                    # DISPATCH 阶段终止时的记忆提取（fire-and-forget）。
+                    # phased routine 的终态往往在此路径触发（max_iterations/budget 耗尽），
+                    # 而非 EVALUATE 阶段的 _advance_phase_or_terminate。
+                    self._fire_extraction_on_dispatch_terminate(routine)
                     continue
 
                 # 纵深防御：非模板 routine 必须有 baseline_branch 才能派发——
@@ -536,6 +581,80 @@ class RoutineOrchestrator:
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_MAX_ITERATIONS)
 
+    def _fire_extraction_on_dispatch_terminate(self, routine: Routine) -> None:
+        """DISPATCH 阶段终止时的记忆提取（fire-and-forget）。
+
+        phased routine 的终态往往由 DISPATCH 阶段的预算/迭代守卫触发
+        （max_iterations/budget 耗尽），此时 EVALUATE 阶段的提取钩子无法覆盖。
+        此方法从 DB 加载已评估历史，然后发起后台提取。
+        """
+        if not settings.routine.memory_extraction_enabled:
+            return
+        if not settings.routine.memory_extraction_on_termination:
+            return
+
+        async def _bg() -> None:
+            try:
+                async with db_session.AsyncSessionLocal() as db:
+                    history = await self._evaluated_history(db, routine.id)
+                if not history:
+                    return
+                history_snap = [
+                    {
+                        "seq": it.seq,
+                        "score": it.score,
+                        "verdict": it.verdict,
+                        "reflection": it.reflection,
+                        "status": it.status,
+                        "summary": it.summary,
+                    }
+                    for it in history
+                ]
+                extractor = await self._ensure_memory_extractor()
+                if extractor is None:
+                    return
+                from types import SimpleNamespace
+
+                routine_proxy = SimpleNamespace(
+                    id=str(routine.id),
+                    key=routine.key,
+                    goal=routine.goal or "",
+                    acceptance_criteria=routine.acceptance_criteria or "",
+                    owner_id=routine.owner_id,
+                )
+                result = await extractor.extract_on_termination(routine_proxy, history_snap)
+                if not result.memories:
+                    return
+                await self._write_memories_from_snap(
+                    routine_id=str(routine.id),
+                    routine_key=routine.key,
+                    owner_id=routine.owner_id,
+                    iteration_snap={
+                        "seq": history[-1].seq,
+                        "score": history[-1].score,
+                        "verdict": history[-1].verdict,
+                    },
+                    result=result,
+                )
+                logger.info(
+                    "routine_memories_extracted",
+                    routine_id=str(routine.id),
+                    count=len(result.memories),
+                    cost_usd=result.cost_usd,
+                    source="dispatch_terminate",
+                )
+            except Exception as exc:
+                logger.warning(
+                    "routine_memory_extraction_failed",
+                    routine_id=str(routine.id),
+                    error=str(exc),
+                )
+
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(_bg())
+        self._bg_extraction_tasks.add(task)
+        task.add_done_callback(self._bg_extraction_tasks.discard)
+
     @staticmethod
     def _terminate(routine: Routine, reason: str) -> None:
         routine.status = "succeeded" if reason == decision_mod.REASON_SUCCESS else "failed"
@@ -545,85 +664,150 @@ class RoutineOrchestrator:
     # 记忆提取（Memory Extraction）
     # ------------------------------------------------------------------
 
-    async def _extract_and_store_memories(
+    def _fire_memory_extraction(
         self,
-        routine: Routine,
-        iteration: RoutineIteration,
-        history: list[RoutineIteration],
-        was_running: bool,
+        routine_id: str,
+        routine_key: str | None,
+        owner_id: str | None,
+        routine_goal: str | None,
+        routine_criteria: str | None,
+        iteration_snap: dict,
+        history_snap: list[dict],
+        was_running_before_commit: bool,
     ) -> None:
-        """best-effort 从已完成评估的迭代中提取经验记忆存入 Memory Module。
+        """Fire-and-forget 记忆提取：在 commit 后发起，不阻塞 inspector handler。
 
+        使用 ``asyncio.create_task`` 将提取协程提交到事件循环，
+        通过 ``_bg_extraction_tasks`` 强引用集合防止 task 被 GC 回收。
+        提取完成后 task 自动从集合移除。
+        """
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(
+            self._extract_and_store_memories_bg(
+                routine_id=routine_id,
+                routine_key=routine_key,
+                owner_id=owner_id,
+                routine_goal=routine_goal,
+                routine_criteria=routine_criteria,
+                iteration_snap=iteration_snap,
+                history_snap=history_snap,
+                was_running_before_commit=was_running_before_commit,
+            )
+        )
+        self._bg_extraction_tasks.add(task)
+        task.add_done_callback(self._bg_extraction_tasks.discard)
+
+    async def _extract_and_store_memories_bg(
+        self,
+        *,
+        routine_id: str,
+        routine_key: str | None,
+        owner_id: str | None,
+        routine_goal: str | None,
+        routine_criteria: str | None,
+        iteration_snap: dict,
+        history_snap: list[dict],
+        was_running_before_commit: bool,
+    ) -> None:
+        """后台记忆提取协程（由 ``_fire_memory_extraction`` 调度）。
+
+        所有输入均为纯数据（非 ORM 对象），确保在 session 关闭后安全执行。
         两条提取路径（互斥）：
         - ``memory_extraction_on_termination=True``：仅 routine 刚变终态时批量提取。
         - ``memory_extraction_on_termination=False``：每次评估后即时提取。
 
-        失败仅 warning，不回滚主事务。
+        所有异常均被捕获并记录为 warning。
         """
         extractor = await self._ensure_memory_extractor()
         if extractor is None:
             return
 
         # 最低分数门槛
-        min_score = settings.routine.memory_extraction_min_score
-        if iteration.score is not None and iteration.score < min_score:
+        score = iteration_snap.get("score")
+        if score is not None and score < settings.routine.memory_extraction_min_score:
             return
 
         try:
+            from types import SimpleNamespace
+
+            routine_proxy = SimpleNamespace(
+                id=routine_id,
+                key=routine_key,
+                goal=routine_goal or "",
+                acceptance_criteria=routine_criteria or "",
+                owner_id=owner_id,
+            )
+            iter_proxy = SimpleNamespace(
+                seq=iteration_snap.get("seq"),
+                score=iteration_snap.get("score"),
+                verdict=iteration_snap.get("verdict"),
+                reflection=iteration_snap.get("reflection"),
+                summary=iteration_snap.get("summary"),
+                gate_exit_code=iteration_snap.get("gate_exit_code"),
+            )
+
             if settings.routine.memory_extraction_on_termination:
-                # 仅终止时提取：routine 仍在运行则跳过
-                if was_running:
+                # 仅终止时提取：commit 前 routine 仍在运行则跳过
+                if was_running_before_commit:
                     return
-                # routine 刚变终态 → 批量合成提取
-                result = await extractor.extract_on_termination(routine, history)
+                result = await extractor.extract_on_termination(routine_proxy, history_snap)
             else:
-                # 每次评估后即时提取
-                result = await extractor.extract(routine, iteration)
+                result = await extractor.extract(routine_proxy, iter_proxy)
 
             if not result.memories:
                 return
 
-            await self._write_memories(routine, iteration, result)
+            await self._write_memories_from_snap(
+                routine_id=routine_id,
+                routine_key=routine_key,
+                owner_id=owner_id,
+                iteration_snap=iteration_snap,
+                result=result,
+            )
 
             logger.info(
                 "routine_memories_extracted",
-                routine_id=str(routine.id),
+                routine_id=routine_id,
                 count=len(result.memories),
                 cost_usd=result.cost_usd,
             )
         except Exception as exc:
             logger.warning(
                 "routine_memory_extraction_failed",
-                routine_id=str(routine.id),
+                routine_id=routine_id,
                 error=str(exc),
             )
 
     @staticmethod
-    async def _write_memories(
-        routine: Routine,
-        iteration: RoutineIteration,
+    async def _write_memories_from_snap(
+        *,
+        routine_id: str,
+        routine_key: str | None,
+        owner_id: str | None,
+        iteration_snap: dict,
         result: MemoryExtractionResult,
     ) -> None:
-        """将提取的记忆通过 PostgresMemoryService 写入 Memory Module。"""
+        """将提取的记忆通过 PostgresMemoryService 写入 Memory Module（纯数据参数版）。"""
         from negentropy.engine.factories.memory import get_memory_service
 
         mem_service = get_memory_service()
         max_memories = settings.routine.memory_extraction_max_memories_per_iter
         memories = result.memories if max_memories == 0 else result.memories[:max_memories]
 
+        verdict = iteration_snap.get("verdict")
         for m in memories:
-            decay = compute_decay_override(iteration.verdict, m.memory_type)
+            decay = compute_decay_override(verdict, m.memory_type)
             metadata = {
                 "source": "routine_extraction",
-                "routine_id": str(routine.id),
-                "routine_key": routine.key or "",
-                "iteration_seq": iteration.seq,
-                "iteration_score": iteration.score,
-                "iteration_verdict": iteration.verdict,
+                "routine_id": routine_id,
+                "routine_key": routine_key or "",
+                "iteration_seq": iteration_snap.get("seq"),
+                "iteration_score": iteration_snap.get("score"),
+                "iteration_verdict": verdict,
                 "decay_override": decay,
             }
             await mem_service.add_memory_typed(
-                user_id=routine.owner_id or "system",
+                user_id=owner_id or "system",
                 app_name=settings.app_name,
                 thread_id=None,
                 content=m.content,
