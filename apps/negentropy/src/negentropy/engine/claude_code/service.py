@@ -284,6 +284,8 @@ async def _emit_events(
     raw: dict[str, Any],
     events_holder: list[dict[str, Any]] | None,
     on_event: EventSink | None,
+    *,
+    max_events: int | None = None,
 ) -> None:
     """归一化单条 raw 事件 → 定格 seq 累积进 events_holder（封顶）→ best-effort 实时回调。
 
@@ -294,16 +296,16 @@ async def _emit_events(
         return
     from negentropy.config import settings
 
-    max_events = settings.routine.max_events_per_iter
+    cap = max_events or settings.routine.max_events_per_iter
     for evt in _normalize_stream_event(raw):
-        if len(events_holder) >= max_events:
+        if len(events_holder) >= cap:
             if events_holder and events_holder[-1].get("event_type") != "_truncated":
                 events_holder.append(
                     {
                         "seq": len(events_holder),
                         "event_type": "_truncated",
                         "tool_name": None,
-                        "title": f"动作数超过 {max_events} 上限，后续动作未记录",
+                        "title": f"动作数超过 {cap} 上限，后续动作未记录",
                         "payload": {},
                         "cost_usd": None,
                     }
@@ -583,6 +585,7 @@ class ClaudeCodeService:
             },
             events_holder,
             on_event,
+            max_events=config.max_events_per_iter,
         )
 
         status = "error" if error_text else "success"
@@ -662,6 +665,7 @@ class ClaudeCodeService:
         )
 
         args = ClaudeCodeService._build_cli_args(prompt, config)
+        evt_max = config.max_events_per_iter  # per-routine 覆盖或 None（→ 全局默认）
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -724,7 +728,7 @@ class ClaudeCodeService:
                         result_text = text
 
                 # 「全过程」动作级捕获 + 实时回调（best-effort；suppress 异常，绝不影响主执行）
-                await _emit_events(event, events_holder, on_event)
+                await _emit_events(event, events_holder, on_event, max_events=evt_max)
 
                 if abort_event and abort_event.is_set():
                     proc.terminate()
@@ -1031,6 +1035,8 @@ class ClaudeCodeService:
 
         # 从 config 或 settings 取上限；默认 5
         max_auto_answers = 5
+        # per-routine 事件捕获上限或 None（→ _emit_events 读全局默认）
+        evt_max = config.max_events_per_iter
         try:
             from negentropy.config import settings
 
@@ -1065,7 +1071,7 @@ class ClaudeCodeService:
                         # 而是保持 stdin 打开等待更多输入。须主动闭合 stdin 触发其干净退出，
                         # 否则进程挂起、stdout 无 EOF、reader 永不结束（三方循环死锁）。
                         # 先持久化本条 result 审计事件，再通知 writer 关闭 stdin 并跳出循环。
-                        await _emit_events(event, events_holder, on_event)
+                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
                         await write_queue.put(None)
                         break
                     elif evt_type == _EVT_ASSISTANT and not result_text:
@@ -1116,6 +1122,7 @@ class ClaudeCodeService:
                                         },
                                         events_holder,
                                         on_event,
+                                        max_events=evt_max,
                                     )
 
                                     msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)
@@ -1128,7 +1135,7 @@ class ClaudeCodeService:
                                     )
 
                     # 审计事件捕获
-                    await _emit_events(event, events_holder, on_event)
+                    await _emit_events(event, events_holder, on_event, max_events=evt_max)
 
                     if abort_event and abort_event.is_set():
                         proc.terminate()

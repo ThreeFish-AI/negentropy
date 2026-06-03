@@ -89,6 +89,7 @@ interface FormState {
   // Claude Code config 覆盖（routine entity）
   model: string;
   max_turns: string;
+  max_events_per_iter: string;
   permission_mode: string;
   allowed_tools: string;
   timeout_seconds: string;
@@ -115,6 +116,7 @@ const DEFAULTS: FormState = {
   approval_mode: "auto",
   model: "",
   max_turns: "1000",
+  max_events_per_iter: "",
   permission_mode: "",
   allowed_tools: "",
   timeout_seconds: "",
@@ -144,10 +146,11 @@ const CATEGORY_OPTIONS = [
 ];
 
 /** 从 config 提取 Claude Code 覆盖键 → 表单字符串。 */
-function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "permission_mode" | "allowed_tools" | "timeout_seconds"> {
+function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "max_events_per_iter" | "permission_mode" | "allowed_tools" | "timeout_seconds"> {
   return {
     model: (cfg.model as string) ?? "",
     max_turns: cfg.max_turns != null ? String(cfg.max_turns) : "1000",
+    max_events_per_iter: cfg.max_events_per_iter != null ? String(cfg.max_events_per_iter) : "",
     permission_mode: (cfg.permission_mode as string) ?? "",
     allowed_tools: Array.isArray(cfg.allowed_tools) ? (cfg.allowed_tools as string[]).join(", ") : "",
     timeout_seconds: cfg.timeout_seconds != null ? String(cfg.timeout_seconds) : "",
@@ -275,6 +278,7 @@ export function RoutineEditDrawer({
         form.permission_mode ||
         form.allowed_tools ||
         form.timeout_seconds ||
+        form.max_events_per_iter ||
         form.verification_command.trim()
       ),
   );
@@ -408,6 +412,8 @@ export function RoutineEditDrawer({
       else delete config.model;
       if (form.max_turns.trim()) config.max_turns = parseInt(form.max_turns, 10);
       else delete config.max_turns;
+      if (form.max_events_per_iter.trim()) config.max_events_per_iter = parseInt(form.max_events_per_iter, 10);
+      else delete config.max_events_per_iter;
       if (form.permission_mode.trim()) config.permission_mode = form.permission_mode.trim();
       else delete config.permission_mode;
       if (form.allowed_tools.trim())
@@ -773,6 +779,19 @@ export function RoutineEditDrawer({
                           value={form.max_turns}
                           onChange={(e) => update("max_turns", e.target.value)}
                           disabled={readOnly}
+                          className={cn(inputCls, "min-w-0 flex-1")}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className={labelInlineCls}>Max Events / Iter.</label>
+                        <input
+                          type="number"
+                          min={100}
+                          max={100000}
+                          value={form.max_events_per_iter}
+                          onChange={(e) => update("max_events_per_iter", e.target.value)}
+                          disabled={readOnly}
+                          placeholder="5000"
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
