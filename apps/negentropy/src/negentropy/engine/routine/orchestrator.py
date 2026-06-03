@@ -549,6 +549,9 @@ class RoutineOrchestrator:
         config.max_turns = settings.routine.default_max_turns
         if overrides.get("max_turns"):
             config.max_turns = int(overrides["max_turns"])
+        # per-routine 可覆盖全局 max_events_per_iter（Full View 审计事件捕获上限）。
+        if overrides.get("max_events_per_iter"):
+            config.max_events_per_iter = int(overrides["max_events_per_iter"])
         if overrides.get("model"):
             config.model = overrides["model"]
         if overrides.get("system_prompt"):

@@ -39,6 +39,7 @@ class ClaudeCodeConfig:
     disallowed_tools: list[str] | None = None
     cwd: str | None = None
     max_turns: int = 500
+    max_events_per_iter: int | None = None  # None = 从 settings.routine.max_events_per_iter 读取
     timeout_seconds: float = 900.0
     permission_mode: str = "auto"  # auto | ask | plan | acceptEdits | bypassPermissions
     mcp_config: dict[str, Any] | None = None
