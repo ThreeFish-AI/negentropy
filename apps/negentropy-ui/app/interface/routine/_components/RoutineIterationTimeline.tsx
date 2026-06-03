@@ -13,7 +13,7 @@ import { iterationDotClass, phaseClass, phaseLabel, scoreColorClass, verdictClas
 interface RoutineIterationTimelineProps {
   iterations: RoutineIterationDTO[];
   onApprove: (iterationId: string) => void;
-  onReject: (iterationId: string) => void;
+  onReject?: (iterationId: string) => void;
   /** 打开某迭代的「全过程」审计抽屉。 */
   onAudit?: (iteration: RoutineIterationDTO) => void;
   busy?: boolean;
@@ -22,7 +22,6 @@ interface RoutineIterationTimelineProps {
 export function RoutineIterationTimeline({
   iterations,
   onApprove,
-  onReject,
   onAudit,
   busy,
 }: RoutineIterationTimelineProps) {
@@ -33,7 +32,7 @@ export function RoutineIterationTimeline({
   return (
     <ol className="space-y-2">
       {iterations.map((it) => (
-        <IterationCard key={it.id} it={it} onApprove={onApprove} onReject={onReject} onAudit={onAudit} busy={busy} />
+        <IterationCard key={it.id} it={it} onApprove={onApprove} onAudit={onAudit} busy={busy} />
       ))}
     </ol>
   );
@@ -42,13 +41,11 @@ export function RoutineIterationTimeline({
 function IterationCard({
   it,
   onApprove,
-  onReject,
   onAudit,
   busy,
 }: {
   it: RoutineIterationDTO;
   onApprove: (id: string) => void;
-  onReject: (id: string) => void;
   onAudit?: (iteration: RoutineIterationDTO) => void;
   busy?: boolean;
 }) {
@@ -174,30 +171,25 @@ function IterationCard({
         )}
       </div>
 
-      {/* 审批门控操作 */}
+      {/* 审批门控：NegentropyEngine 自动审阅中 */}
       {isPendingApproval && (
-        <div className="mt-2 flex items-center gap-2 rounded-md bg-amber-500/5 p-2">
-          <span className="text-[10px] text-amber-700 dark:text-amber-300">
-            {it.phase === "implement"
-              ? "审批后开始实现（请先确认上方 PLAN 方案）"
-              : it.phase === "plan"
-                ? "审批后开始执行规划"
-                : "等待审批后执行"}
+        <div className="mt-2 flex items-center gap-2 rounded-md bg-sky-500/5 p-2">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+          <span className="text-[10px] text-sky-700 dark:text-sky-300">
+            {it.phase === "plan"
+              ? "NegentropyEngine 正在审阅此 Plan…"
+              : it.phase === "implement"
+                ? "NegentropyEngine 正在审阅实现方案…"
+                : "等待 NegentropyEngine 审阅…"}
           </span>
           <div className="flex-1" />
+          {/* 手动审批按钮（fallback：当 Engine 未自动审阅时，人工仍可介入） */}
           <button
             onClick={(e) => { e.stopPropagation(); onApprove(it.id); }}
             disabled={busy}
-            className="cursor-pointer rounded-md border border-emerald-200 px-2.5 py-1 text-[11px] font-medium text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50 dark:border-emerald-800 dark:text-emerald-400"
+            className="cursor-pointer rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted hover:bg-muted/50 disabled:opacity-50"
           >
-            Approve
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onReject(it.id); }}
-            disabled={busy}
-            className="cursor-pointer rounded-md border border-red-200 px-2.5 py-1 text-[11px] font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
-          >
-            Reject
+            Manual Approve
           </button>
         </div>
       )}

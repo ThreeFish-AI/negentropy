@@ -25,6 +25,7 @@ export type {
   IterationEventsResponse,
   TemplateSource,
   RoutineTemplateItem,
+  PlanReviewPayload,
 } from "./types";
 
 export type { AgentRole, AgentRoleMeta } from "./agent-role";

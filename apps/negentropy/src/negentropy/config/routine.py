@@ -138,6 +138,24 @@ class RoutineSettings(BaseSettings):
         description="单次迭代内自动应答次数上限；防止 runaway（CC 反复问同样问题）。",
     )
 
+    # --- Plan Review（NegentropyEngine 自动审阅 Claude Code 的 Plan）---
+    plan_review_enabled: bool = Field(
+        default=True,
+        description="启用 Plan 自动审阅：当 Claude Code 在 PLAN 阶段提交方案并调用 AskUserQuestion "
+        "等待审阅时，NegentropyEngine 自动执行 Agent-as-Judge 审阅，产出 approve/refine 决策。"
+        "审阅结果通过 stdin 回传给 CC，实现迭代内闭环。",
+    )
+    plan_review_model: str | None = Field(
+        default=None,
+        description="Plan 审阅 LLM 模型覆盖；为空时走 task_registry 的 routine.plan_review 解析。",
+    )
+    plan_review_timeout_seconds: int = Field(
+        default=60,
+        ge=10,
+        le=300,
+        description="单次 Plan 审阅 LLM 调用的超时（秒）。",
+    )
+
     # --- 上下文压缩（迭代内：提前触发 auto-compact + 迭代内重试续接）---
     context_compact_enabled: bool = Field(
         default=True,

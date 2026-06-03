@@ -109,6 +109,14 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
         category="Routine",
         description="LLM-as-Judge 按验收标准为 Routine 迭代结果评分并生成反思反馈。",
     ),
+    TaskSlot(
+        task_key="routine.plan_review",
+        model_type="llm",
+        scope="global",
+        label="Routine Plan 审阅",
+        category="Routine",
+        description="NegentropyEngine 作为 Agent-as-Judge 审阅 Claude Code 的实现方案，评估完整性、可行性与风险。",
+    ),
     # --- Knowledge Graph (corpus) ---
     TaskSlot(
         task_key="knowledge.kg.extraction.entity",

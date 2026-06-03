@@ -1,11 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { Bot, ChevronRight, Cpu, type LucideIcon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { JsonViewer } from "@/components/ui/JsonViewer";
-import { AGENT_ROLE_META, deriveAgentRole, type AgentRole } from "@/features/routine";
-import type { RoutineIterationEventDTO } from "@/features/routine";
+import {
+  AGENT_ROLE_META,
+  deriveAgentRole,
+  type PlanReviewPayload,
+  type RoutineIterationEventDTO,
+} from "@/features/routine";
 
 import {
   EVENT_GROUP_LABEL,
@@ -107,25 +112,61 @@ function EventIcon({ icon: Icon, className }: { icon: LucideIcon; className?: st
   return <Icon className={className} aria-hidden />;
 }
 
-/** 主导人徽章 —— 分组标题右侧小 pill，显示步骤的执行者归属。 */
-function AgentRoleBadge({ role }: { role: AgentRole }) {
-  const meta = AGENT_ROLE_META[role];
-  const Icon = meta.icon;
-  return (
-    <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.badgeClass}`}>
-      <Icon className="h-3 w-3" aria-hidden />
-      {meta.label}
-    </span>
-  );
+// ---------------------------------------------------------------------------
+// 对话式布局：按 Agent 角色左右分列
+// ---------------------------------------------------------------------------
+
+/** 对话块：一个可独立渲染的对话单元，由 Agent 角色决定对齐方向。 */
+type ConversationBlock =
+  | { kind: "turn"; turn: EventTurn; defaultExpanded: boolean }
+  | { kind: "plan_review"; event: RoutineIterationEventDTO }
+  | { kind: "system_event"; event: RoutineIterationEventDTO; label: string };
+
+/** 将所有事件编排为对话块序列。 */
+function buildConversationBlocks(
+  groups: Record<EventGroup, RoutineIterationEventDTO[]>,
+  execTurns: EventTurn[],
+): ConversationBlock[] {
+  const blocks: ConversationBlock[] = [];
+  const order: EventGroup[] = ["execution", "plan_review", "result", "gate", "evaluation"];
+
+  for (const g of order) {
+    const list = groups[g];
+    if (!list || list.length === 0) continue;
+
+    if (g === "execution") {
+      for (let i = 0; i < execTurns.length; i++) {
+        const turn = execTurns[i];
+        blocks.push({
+          kind: "turn",
+          turn,
+          defaultExpanded: isTurnDefaultExpanded(turn, i, execTurns.length),
+        });
+      }
+    } else if (g === "plan_review") {
+      for (const ev of list) {
+        blocks.push({ kind: "plan_review", event: ev });
+      }
+    } else {
+      // result / gate / evaluation → 系统通知
+      for (const ev of list) {
+        blocks.push({ kind: "system_event", event: ev, label: EVENT_GROUP_LABEL[g] });
+      }
+    }
+  }
+
+  return blocks;
 }
 
+// ---------------------------------------------------------------------------
+// 主组件
+// ---------------------------------------------------------------------------
+
 /**
- * 单次迭代「全过程」动作时间线 —— 纵向、单列、可扫读（LangSmith / Langfuse run 视图范式）。
+ * 单次迭代「全过程」动作时间线 —— 对话式布局。
  *
- * 每个动作：左侧类型图标（颜色 + 图标双编码）+ 单行标题 + 可点击展开输入/输出/上下文。
- * 结构化 payload 用 JsonViewer（折叠树 + 复制），长文本/命令输出用 <pre> 保留换行与截断标记。
- * 动作按 执行(execution) → 结果(result) → 门控(gate) → 评估(evaluation) 分组。
- * 执行组内事件按 Turn（轮次）聚合，每个 Turn 可折叠展开。
+ * Claude Code 的 Turns 居左（被调用者），NegentropyEngine 的 Plan Review 居右（系统本我），
+ * 系统级事件（gate / evaluation / result）居中。
  */
 export function IterationEventTimeline({
   events,
@@ -137,60 +178,286 @@ export function IterationEventTimeline({
 }) {
   const groups = useMemo(() => groupEvents(events), [events]);
   const execTurns = useMemo(() => groupIntoTurns(groups.execution), [groups.execution]);
+  const blocks = useMemo(() => buildConversationBlocks(groups, execTurns), [groups, execTurns]);
 
   if (events.length === 0) {
-    return null; // 空态由抽屉统一渲染（区分待审批/已中止/capture 关闭等上下文）
+    return null; // 空态由抽屉统一渲染
   }
 
-  const order: EventGroup[] = ["execution", "result", "gate", "evaluation"];
-
   return (
-    <div className="space-y-5">
-      {order.map((g) => {
-        const list = groups[g];
-        if (!list || list.length === 0) return null;
-        return (
-          <section key={g}>
-            <div className="mb-2 flex items-center gap-2">
-              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {EVENT_GROUP_LABEL[g]}
-              </h4>
-              <span className="text-[10px] tabular-nums text-text-muted">{list.length}</span>
-              <AgentRoleBadge role={deriveAgentRole(list[0].event_type)} />
-              {live && g === "execution" && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-600 dark:text-sky-400">
-                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
-                  LIVE
-                </span>
-              )}
-            </div>
-            {g === "execution" && execTurns.length > 0 ? (
-              <ol className="relative space-y-1 border-l border-border pl-0">
-                {execTurns.map((turn, i) => (
-                  <TurnGroup
-                    key={turn.turnNumber}
-                    turn={turn}
-                    defaultExpanded={isTurnDefaultExpanded(turn, i, execTurns.length)}
-                  />
-                ))}
-              </ol>
-            ) : (
-              <ol className="relative space-y-1 border-l border-border pl-0">
-                {list.map((ev) => (
-                  <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
-                ))}
-              </ol>
-            )}
-          </section>
-        );
-      })}
+    <div className="space-y-3">
+      {/* 分组统计栏 */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(["execution", "plan_review", "result", "gate", "evaluation"] as const).map((g) => {
+          const list = groups[g];
+          if (!list || list.length === 0) return null;
+          const role = deriveAgentRole(list[0].event_type);
+          const meta = AGENT_ROLE_META[role];
+          const Icon = meta.icon;
+          return (
+            <span key={g} className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.badgeClass}`}>
+              <Icon className="h-3 w-3" aria-hidden />
+              {EVENT_GROUP_LABEL[g]} ({list.length})
+            </span>
+          );
+        })}
+        {live && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+            LIVE
+          </span>
+        )}
+      </div>
+
+      {/* 对话流 */}
+      <div className="space-y-2.5">
+        {blocks.map((block) => {
+          switch (block.kind) {
+            case "turn":
+              return (
+                <ClaudeCodeTurnBubble
+                  key={`turn-${block.turn.turnNumber}`}
+                  turn={block.turn}
+                  defaultExpanded={block.defaultExpanded}
+                />
+              );
+            case "plan_review":
+              return (
+                <EngineReviewBubble
+                  key={`review-${block.event.seq}`}
+                  ev={block.event}
+                />
+              );
+            case "system_event":
+              return (
+                <SystemEventPill
+                  key={`sys-${block.event.seq}`}
+                  ev={block.event}
+                  label={block.label}
+                />
+              );
+          }
+        })}
+      </div>
     </div>
   );
 }
 
+// ---------------------------------------------------------------------------
+// 对话气泡组件
+// ---------------------------------------------------------------------------
+
+/** Claude Code Turn 气泡（左侧）。 */
+function ClaudeCodeTurnBubble({
+  turn,
+  defaultExpanded,
+}: {
+  turn: EventTurn;
+  defaultExpanded: boolean;
+}) {
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  const expanded = manualExpanded ?? defaultExpanded;
+  const title = deriveTurnTitle(turn);
+
+  return (
+    <div className="flex gap-2.5 py-0.5">
+      {/* 左侧头像 */}
+      <div className="flex shrink-0 flex-col items-center pt-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10">
+          <Bot className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+        </div>
+      </div>
+      {/* 气泡内容 */}
+      <div
+        className={cn(
+          "min-w-0 max-w-[85%] rounded-2xl rounded-tl-sm border p-3 shadow-sm transition-colors",
+          turn.hasError
+            ? "border-red-500/30 bg-red-500/[0.03]"
+            : "border-border bg-card",
+        )}
+      >
+        {/* Header */}
+        <div className="mb-1.5 flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">
+            Claude Code
+          </span>
+          <span className="text-[10px] text-text-muted">Turn {turn.turnNumber}</span>
+          <span className="text-[10px] tabular-nums text-text-muted">{turn.events.length} events</span>
+          {turn.hasError && (
+            <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
+              error
+            </span>
+          )}
+        </div>
+        {/* Turn 标题（可折叠） */}
+        <button
+          type="button"
+          onClick={() => setManualExpanded((v) => !(v ?? defaultExpanded))}
+          aria-expanded={expanded}
+          className="flex w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/30"
+        >
+          <ChevronRight
+            className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", expanded && "rotate-90")}
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1 truncate text-xs text-foreground" title={title}>
+            {title}
+          </span>
+        </button>
+        {/* 展开后的事件列表 */}
+        {expanded && (
+          <ol className="mt-2 space-y-1 border-l border-border pl-3">
+            {turn.events.map((ev) => (
+              <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** NegentropyEngine Plan Review 气泡（右侧）。 */
+function EngineReviewBubble({ ev }: { ev: RoutineIterationEventDTO }) {
+  const [expanded, setExpanded] = useState(false);
+  const payload = ev.payload as unknown as PlanReviewPayload;
+  const verdict = payload?.verdict;
+  const score = payload?.score;
+  const moduleReviews = payload?.module_reviews;
+  const feedback = payload?.feedback;
+  const reflection = payload?.reflection;
+
+  const verdictConfig: Record<string, { label: string; cls: string }> = {
+    approve: { label: "✅ Approved", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+    refine: { label: "🔄 Refine", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
+  };
+  const vc = verdictConfig[verdict ?? ""] ?? { label: verdict ?? "Review", cls: "bg-muted/60 text-text-secondary" };
+
+  return (
+    <div className="flex flex-row-reverse gap-2.5 py-0.5">
+      {/* 右侧头像 */}
+      <div className="flex shrink-0 flex-col items-center pt-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10">
+          <Cpu className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+        </div>
+      </div>
+      {/* 气泡内容 */}
+      <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm border border-sky-500/20 bg-sky-500/[0.03] p-3">
+        {/* Header */}
+        <div className="mb-1.5 flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+            NegentropyEngine
+          </span>
+          <span className="text-[10px] text-text-muted">Plan Review</span>
+          <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", vc.cls)}>
+            {vc.label}
+          </span>
+          {score != null && (
+            <span className={cn("text-xs font-bold tabular-nums", score >= 80 ? "text-emerald-600 dark:text-emerald-400" : score >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400")}>
+              {score}
+            </span>
+          )}
+        </div>
+
+        {/* 模块评审列表 */}
+        {moduleReviews && moduleReviews.length > 0 && (
+          <div className="space-y-1">
+            {moduleReviews.map((m, i) => (
+              <div key={i} className="text-[11px] text-text-secondary">
+                {m.status === "pass" ? "✅" : m.status === "warn" ? "⚠️" : "❌"}{" "}
+                <span className="font-medium text-foreground">{m.module}</span>: {m.comment}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 反馈文本 */}
+        {feedback && (
+          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2 text-[11px] text-text-secondary">
+            {feedback}
+          </div>
+        )}
+
+        {/* 反思（折叠） */}
+        {reflection && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-2 flex items-center gap-1 text-[10px] text-text-muted hover:text-foreground"
+          >
+            <ChevronRight className={cn("h-3 w-3 transition-transform", expanded && "rotate-90")} />
+            Reflection
+          </button>
+        )}
+        {expanded && reflection && (
+          <p className="mt-1 text-[11px] italic text-text-muted">{reflection}</p>
+        )}
+
+        {/* 详情（raw payload） */}
+        {ev.created_at && (
+          <div className="mt-2 text-[10px] tabular-nums text-text-muted">
+            {new Date(ev.created_at).toLocaleTimeString()}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 系统级事件（gate / evaluation / result）—— 居中 pill 样式。 */
+function SystemEventPill({ ev, label }: { ev: RoutineIterationEventDTO; label: string }) {
+  const [open, setOpen] = useState(false);
+  const isError = payloadIsError(ev.payload);
+  const icon = eventTypeIcon(ev.event_type, ev.tool_name);
+  const title = resolveEventTitle(ev.event_type, ev.title || extractSubtitle(ev.payload), ev.tool_name);
+  const hasDetail = ev.payload && Object.keys(ev.payload).length > 0;
+
+  return (
+    <div className="flex justify-center py-1">
+      <div className="inline-flex max-w-[90%] flex-col items-center">
+        <button
+          type="button"
+          onClick={() => hasDetail && setOpen((v) => !v)}
+          className={cn(
+            "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors",
+            isError
+              ? "border-red-500/30 bg-red-500/[0.03] text-red-600 dark:text-red-400"
+              : "border-border bg-muted/30 text-text-secondary hover:bg-muted/50",
+            hasDetail && "cursor-pointer",
+          )}
+        >
+          <span className={`flex h-5 w-5 items-center justify-center rounded-full ${eventTypeClass(ev.event_type, isError)}`}>
+            <EventIcon icon={icon} className="h-3 w-3" />
+          </span>
+          <span className="text-[10px] text-text-muted">{label}</span>
+          <span className="truncate">{title}</span>
+          {isError && (
+            <span className="rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
+              error
+            </span>
+          )}
+          {ev.cost_usd != null && ev.cost_usd > 0 && (
+            <span className="text-[10px] tabular-nums text-text-muted">${ev.cost_usd.toFixed(4)}</span>
+          )}
+        </button>
+        {open && hasDetail && (
+          <div className="mt-2 w-full rounded-md border border-border bg-card p-3">
+            <EventDetail payload={ev.payload} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 辅助函数（保持原有逻辑不变）
+// ---------------------------------------------------------------------------
+
 function groupEvents(events: RoutineIterationEventDTO[]): Record<EventGroup, RoutineIterationEventDTO[]> {
   const out: Record<EventGroup, RoutineIterationEventDTO[]> = {
     execution: [],
+    plan_review: [],
     result: [],
     gate: [],
     evaluation: [],
@@ -223,58 +490,9 @@ function extractSubtitle(payload: Record<string, unknown> | null): string | null
   return null;
 }
 
-/** Turn（轮次）折叠卡片 —— 将一个 Turn 内的事件聚合为可展开/折叠的区块。 */
-function TurnGroup({
-  turn,
-  defaultExpanded,
-}: {
-  turn: EventTurn;
-  defaultExpanded: boolean;
-}) {
-  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
-  const expanded = manualExpanded ?? defaultExpanded;
-  const title = deriveTurnTitle(turn);
-
-  return (
-    <li className="relative -ml-px pl-4">
-      {/* Turn header */}
-      <button
-        type="button"
-        onClick={() => setManualExpanded((v) => !(v ?? defaultExpanded))}
-        aria-expanded={expanded}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/50"
-      >
-        <ChevronRight
-          className={`h-3 w-3 shrink-0 text-text-muted transition-transform ${expanded ? "rotate-90" : ""}`}
-          aria-hidden
-        />
-        <span className="shrink-0 text-[10px] font-semibold tabular-nums text-text-muted">
-          Turn {turn.turnNumber}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-xs text-foreground" title={title}>
-          {title}
-        </span>
-        <span className="shrink-0 text-[10px] tabular-nums text-text-muted">
-          {turn.events.length} ev
-        </span>
-        {turn.hasError && (
-          <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
-            error
-          </span>
-        )}
-      </button>
-
-      {/* Turn body: 嵌套 timeline 渲染该 Turn 内的具体 events */}
-      {expanded && (
-        <ol className="relative ml-2 space-y-1 border-l border-border pl-0">
-          {turn.events.map((ev) => (
-            <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
-          ))}
-        </ol>
-      )}
-    </li>
-  );
-}
+// ---------------------------------------------------------------------------
+// EventRow（对话气泡内的单行事件——保持时间线样式）
+// ---------------------------------------------------------------------------
 
 /**
  * 路径感知的单行标题拆分：以最后一个 ``/`` 切出末段（文件名）。
@@ -289,9 +507,7 @@ function splitPathLikeTitle(title: string): { head: string; tail: string } {
 }
 
 /**
- * 单行「路径感知」标题：前缀走 truncate（空间紧张时在头尾之间出省略号），文件名末段 ``shrink-0``
- * 永不裁剪 —— 即 ``/Users/.../foo.py`` 效果，宽度自适应。非路径标题退化为整串单行 truncate。
- * ``truncate`` 自带 ``overflow:hidden`` 使该 flex 子项 auto 最小尺寸归零，无需额外 ``min-w-0``。
+ * 单行「路径感知」标题。
  */
 function EventTitle({ title }: { title: string }) {
   const { head, tail } = splitPathLikeTitle(title);
@@ -325,13 +541,14 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
         type="button"
         onClick={() => hasDetail && setOpen((v) => !v)}
         aria-expanded={hasDetail ? open : undefined}
-        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
-          hasDetail ? "cursor-pointer hover:bg-muted/50" : "cursor-default"
-        }`}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors",
+          hasDetail ? "cursor-pointer hover:bg-muted/50" : "cursor-default",
+        )}
       >
         {hasDetail && (
           <ChevronRight
-            className={`h-3 w-3 shrink-0 text-text-muted transition-transform ${open ? "rotate-90" : ""}`}
+            className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", open && "rotate-90")}
             aria-hidden
           />
         )}
