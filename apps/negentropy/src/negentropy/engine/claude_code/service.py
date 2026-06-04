@@ -573,6 +573,12 @@ class ClaudeCodeService:
             permission_mode=config.effective_permission_mode(),
             cwd=config.cwd,
         )
+        # MCP 服务器配置：SDK 直接接受 dict 格式（{name: config}）。
+        if config.mcp_config:
+            options.mcp_servers = config.mcp_config
+        # 明确禁止的工具：即使 allowed_tools 包含也不可调用。
+        if config.disallowed_tools:
+            options.disallowed_tools = config.disallowed_tools
         if config.resume_session_id:
             options.resume = config.resume_session_id
         if config.model:
@@ -879,6 +885,13 @@ class ClaudeCodeService:
         # （claude CLI 不支持 --cwd 选项，传了会报 unknown option 错误）
         if config.allowed_tools:
             args += ["--allowed-tools", ",".join(config.allowed_tools)]
+        # 明确禁止的工具列表。
+        if config.disallowed_tools:
+            args += ["--disallowed-tools", ",".join(config.disallowed_tools)]
+        # MCP 服务器配置：CLI --mcp-config 接受 JSON string 或文件路径。
+        # 使用 {"mcpServers": {...}} 封装格式（与 .mcp.json 文件格式一致）。
+        if config.mcp_config:
+            args += ["--mcp-config", json.dumps({"mcpServers": config.mcp_config})]
         # 双向交互模式：允许通过 stdin 实时注入 tool_result 等结构化消息。
         # 用于 Routine 执行中 Engine 自动应答 AskUserQuestion。
         if config.interactive:

@@ -582,3 +582,44 @@ async def test_invoke_cli_no_error_kind_on_success(monkeypatch):
 
     assert result.status == "success"
     assert result.error_kind is None
+
+
+# ---------------------------------------------------------------------------
+# _build_cli_args：mcp_config / disallowed_tools 传递回归锁定
+# ---------------------------------------------------------------------------
+
+
+async def test_build_cli_args_includes_mcp_config():
+    """mcp_config 非 None 时注入 --mcp-config，封装为 {"mcpServers": {...}} JSON string。"""
+    mcp = {"my-server": {"type": "stdio", "command": "npx", "args": ["-y", "some-mcp"]}}
+    config = ClaudeCodeConfig(mcp_config=mcp)
+    args = ClaudeCodeService._build_cli_args("hello", config)
+    assert "--mcp-config" in args
+    idx = args.index("--mcp-config")
+    payload = json.loads(args[idx + 1])
+    assert "mcpServers" in payload
+    assert "my-server" in payload["mcpServers"]
+
+
+async def test_build_cli_args_omits_mcp_config_when_none():
+    """mcp_config 为 None 时不注入 --mcp-config。"""
+    config = ClaudeCodeConfig(mcp_config=None)
+    args = ClaudeCodeService._build_cli_args("hello", config)
+    assert "--mcp-config" not in args
+
+
+async def test_build_cli_args_includes_disallowed_tools():
+    """disallowed_tools 非 None 时注入 --disallowed-tools。"""
+    config = ClaudeCodeConfig(disallowed_tools=["Task", "WebSearch"])
+    args = ClaudeCodeService._build_cli_args("hello", config)
+    assert "--disallowed-tools" in args
+    idx = args.index("--disallowed-tools")
+    assert "Task" in args[idx + 1]
+    assert "WebSearch" in args[idx + 1]
+
+
+async def test_build_cli_args_omits_disallowed_tools_when_none():
+    """disallowed_tools 为 None 时不注入 --disallowed-tools。"""
+    config = ClaudeCodeConfig(disallowed_tools=None)
+    args = ClaudeCodeService._build_cli_args("hello", config)
+    assert "--disallowed-tools" not in args

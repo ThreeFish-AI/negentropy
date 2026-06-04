@@ -566,3 +566,66 @@ async def test_reap_workspaces_cleans_succeeded_routine():
             assert r.worktree_path is None  # 句柄已清
     finally:
         await _cleanup(rid)
+
+
+# ---------------------------------------------------------------------------
+# _build_config 工具白名单扩展（Routine 默认含 WebFetch/WebSearch）
+# ---------------------------------------------------------------------------
+
+
+async def test_build_config_uses_routine_default_tools():
+    """_build_config 默认使用 Routine 扩展工具集（含 WebFetch/WebSearch），而非全局 6 工具默认。"""
+    rid = await _make_routine(cwd="/tmp", config={})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r)
+            # 扩展默认包含 WebFetch + WebSearch
+            assert "WebFetch" in config.allowed_tools
+            assert "WebSearch" in config.allowed_tools
+            # 基础工具也在
+            assert "Bash" in config.allowed_tools
+            assert "Edit" in config.allowed_tools
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_per_routine_tools_override():
+    """per-routine config.allowed_tools 显式指定时，覆盖 Routine 扩展默认值。"""
+    rid = await _make_routine(cwd="/tmp", config={"allowed_tools": ["Bash", "Read"]})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r)
+            assert config.allowed_tools == ["Bash", "Read"]
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_disallowed_tools_passthrough():
+    """per-routine config.disallowed_tools 正确透传到 ClaudeCodeConfig。"""
+    rid = await _make_routine(cwd="/tmp", config={"disallowed_tools": ["Task"]})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r)
+            assert config.disallowed_tools == ["Task"]
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_mcp_config_passthrough():
+    """per-routine config.mcp_config 正确透传到 ClaudeCodeConfig。"""
+    mcp = {"test-server": {"type": "stdio", "command": "echo"}}
+    rid = await _make_routine(cwd="/tmp", config={"mcp_config": mcp})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r)
+            assert config.mcp_config == mcp
+    finally:
+        await _cleanup(rid)
