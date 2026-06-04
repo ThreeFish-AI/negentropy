@@ -231,6 +231,38 @@ def test_decide_success_tail_resets_failure_count():
 
 
 # ---------------------------------------------------------------------------
+# 运行时阈值调整：模拟 Running 状态下 API 修改 success_score_threshold 后决策变化
+# ---------------------------------------------------------------------------
+
+
+def test_runtime_threshold_lowering_triggers_success():
+    """运行中降低阈值：score=80 < 原阈值 85 → continue；改为 75 → terminate(SUCCESS)。"""
+    it = FakeIter(score=80, verdict="pass", gate_exit_code=0)
+
+    # 原阈值 85：score 未达标 → 继续
+    r = FakeRoutine(success_score_threshold=85, best_score=80)
+    assert d.decide(r, it, [it]).action == "continue"
+
+    # 模拟运行中 API 将阈值降至 75：score 达标 → 成功终止
+    r2 = FakeRoutine(success_score_threshold=75, best_score=80)
+    res = d.decide(r2, it, [it])
+    assert res.is_terminate and res.reason == d.REASON_SUCCESS
+
+
+def test_runtime_threshold_raising_prevents_premature_success():
+    """运行中提高阈值：score=90 >= 原阈值 85 → 成功；改为 95 → 继续。"""
+    it = FakeIter(score=90, verdict="pass", gate_exit_code=0)
+
+    # 原阈值 85：达标 → 成功
+    r = FakeRoutine(success_score_threshold=85, best_score=90)
+    assert d.decide(r, it, [it]).reason == d.REASON_SUCCESS
+
+    # 阈值提高到 95：未达标 → 继续
+    r2 = FakeRoutine(success_score_threshold=95, best_score=90)
+    assert d.decide(r2, it, [it]).action == "continue"
+
+
+# ---------------------------------------------------------------------------
 # prompt_builder
 # ---------------------------------------------------------------------------
 

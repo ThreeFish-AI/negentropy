@@ -123,8 +123,17 @@ async def test_full_crud_and_control_lifecycle(git_repo):
             st = await c.post(f"/routines/{rid}/start")
             assert st.status_code == 200 and st.json()["status"] == "running"
 
-            # 运行中不可编辑 → 409
+            # 运行中不可编辑 unsafe 字段 → 409
             assert (await c.put(f"/routines/{rid}", json={"goal": "x"})).status_code == 409
+
+            # 运行中可编辑 runtime-safe 字段（success_score_threshold）→ 200
+            safe_upd = await c.put(f"/routines/{rid}", json={"success_score_threshold": 70})
+            assert safe_upd.status_code == 200 and safe_upd.json()["success_score_threshold"] == 70
+
+            # 运行中混合 safe/unsafe → 409（整体被拒）
+            assert (
+                await c.put(f"/routines/{rid}", json={"success_score_threshold": 60, "goal": "y"})
+            ).status_code == 409
 
             # pause → resume
             assert (await c.post(f"/routines/{rid}/pause")).json()["status"] == "paused"
@@ -477,5 +486,77 @@ async def test_start_requires_worktree_fields_409():
             rid = r.json()["id"]
             st = await c.post(f"/routines/{rid}/start")
             assert st.status_code == 409  # 执行前提缺失 → 拒绝启动
+    finally:
+        await _cleanup("itest_api_")
+
+
+# ---------------------------------------------------------------------------
+# Running 状态运行时安全字段编辑
+# ---------------------------------------------------------------------------
+
+
+async def test_runtime_safe_fields_update_while_running(git_repo):
+    """Running 状态下允许调整运行时安全字段（阈值 / 预算 / 元数据），拒绝语义敏感字段。"""
+    app = _app()
+    key = _key()
+    try:
+        async with _client(app) as c:
+            r = await c.post(
+                "/routines",
+                json={
+                    "key": key,
+                    "title": "Runtime Safe",
+                    "goal": "实现功能 X",
+                    "acceptance_criteria": "测试通过",
+                    "cwd": git_repo,
+                    "baseline_branch": "main",
+                    "success_score_threshold": 90,
+                    "max_iterations": 10,
+                },
+            )
+            rid = r.json()["id"]
+            await c.post(f"/routines/{rid}/start")
+            assert r.json()["success_score_threshold"] == 90
+
+            # 1) 安全字段：success_score_threshold → 200
+            res = await c.put(f"/routines/{rid}", json={"success_score_threshold": 75})
+            assert res.status_code == 200
+            assert res.json()["success_score_threshold"] == 75
+
+            # 2) 多个安全字段同时更新 → 200
+            res = await c.put(
+                f"/routines/{rid}",
+                json={"success_score_threshold": 70, "max_iterations": 20, "title": "Updated Title"},
+            )
+            assert res.status_code == 200
+            body = res.json()
+            assert body["success_score_threshold"] == 70
+            assert body["max_iterations"] == 20
+            assert body["title"] == "Updated Title"
+
+            # 3) unsafe 字段：goal → 409
+            res = await c.put(f"/routines/{rid}", json={"goal": "new goal"})
+            assert res.status_code == 409
+            assert "goal" in res.json()["detail"]
+
+            # 4) unsafe 字段：cwd → 409
+            res = await c.put(f"/routines/{rid}", json={"cwd": "/tmp"})
+            assert res.status_code == 409
+            assert "cwd" in res.json()["detail"]
+
+            # 5) 混合 safe + unsafe → 409（整体被拒）
+            res = await c.put(f"/routines/{rid}", json={"success_score_threshold": 80, "acceptance_criteria": "x"})
+            assert res.status_code == 409
+            assert "acceptance_criteria" in res.json()["detail"]
+
+            # 6) 空 body → 200（无变更）
+            res = await c.put(f"/routines/{rid}", json={})
+            assert res.status_code == 200
+
+            # 7) 非 running 状态（pause 后）全字段可编辑（回归）
+            await c.post(f"/routines/{rid}/pause")
+            res = await c.put(f"/routines/{rid}", json={"goal": "paused goal", "success_score_threshold": 85})
+            assert res.status_code == 200
+            assert res.json()["goal"] == "paused goal"
     finally:
         await _cleanup("itest_api_")
