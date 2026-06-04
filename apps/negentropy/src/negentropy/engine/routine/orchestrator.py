@@ -46,6 +46,21 @@ from .runner import get_runner
 
 logger = get_logger("negentropy.engine.routine.orchestrator")
 
+# Routine 场景默认扩展工具集。
+# 全局 _DEFAULT_TOOLS（6 个基础工具）不含 WebSearch/WebFetch，
+# 但 Routine goal 常见"通过互联网深入调研"等需求，默认扩展。
+# per-routine config.allowed_tools 可显式覆盖此默认值。
+_ROUTINE_DEFAULT_TOOLS = [
+    "Bash",
+    "Read",
+    "Write",
+    "Edit",
+    "Glob",
+    "Grep",
+    "WebFetch",
+    "WebSearch",
+]
+
 # 非终态迭代状态（一个 routine 同时至多存在一个）
 _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed")
 # 每 tick 评估/派发的 routine 批量上限，避免单 tick 过载
@@ -905,8 +920,19 @@ class RoutineOrchestrator:
             config.model = overrides["model"]
         if overrides.get("system_prompt"):
             config.system_prompt = overrides["system_prompt"]
+        # 工具白名单优先级：per-routine config > Routine 扩展默认 > 全局默认。
         if overrides.get("allowed_tools"):
             config.allowed_tools = overrides["allowed_tools"]
+        else:
+            # 全局默认（6 个基础工具）不含 WebSearch/WebFetch；
+            # Routine 常见"互联网调研"需求，默认扩展。
+            config.allowed_tools = _ROUTINE_DEFAULT_TOOLS
+        # per-routine 可显式禁止特定工具（即使 allowed_tools 包含它们）。
+        if overrides.get("disallowed_tools"):
+            config.disallowed_tools = overrides["disallowed_tools"]
+        # per-routine 可覆盖/补充全局 mcp_config（MCP 服务器配置）。
+        if overrides.get("mcp_config"):
+            config.mcp_config = overrides["mcp_config"]
         # permission_mode 由相位决定（PLAN 仅规划、IMPLEMENT/FINALIZE 落盘）——对 worktree routine
         # 与 phased routine 均生效（覆盖 preset 静态值）；旧扁平 routine 沿用 preset 覆盖或全局默认。
         if phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
