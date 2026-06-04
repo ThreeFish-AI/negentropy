@@ -128,7 +128,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
     expect(screen.queryByText("thinking")).not.toBeInTheDocument();
   });
 
-  it("result/success 显示「成功」而非原始 'success'", () => {
+  it("result/success 渲染为 EngineEventBubble，显示 NegentropyEngine 标签和 Success badge", () => {
     render(
       <IterationEventTimeline
         events={[
@@ -141,7 +141,15 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
-    expect(screen.getByText("成功")).toBeInTheDocument();
+    // EngineEventBubble 显示 NegentropyEngine 标签
+    expect(screen.getByText("NegentropyEngine")).toBeInTheDocument();
+    // 显示「结果 · Result」分组标签
+    expect(screen.getByText("结果 · Result")).toBeInTheDocument();
+    // 成功时显示 ✅ Success badge
+    expect(screen.getByText("✅ Success")).toBeInTheDocument();
+    // 显示 turns 数（数字在 <span> 内，" turns" 在外层 div，用函数匹配器）
+    expect(screen.getByText((_content, el) => el?.textContent === "3 turns")).toBeInTheDocument();
+    // 不显示原始 'success' 文本
     expect(screen.queryByText("success")).not.toBeInTheDocument();
   });
 
