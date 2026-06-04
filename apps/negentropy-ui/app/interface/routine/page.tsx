@@ -29,7 +29,7 @@ import { RoutineTable } from "./_components/RoutineTable";
 import { useRestartRoutine } from "./_components/useRestartRoutine";
 import { useTerminateRoutine } from "./_components/useTerminateRoutine";
 
-const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
+const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "", is_template: false };
 
 function RoutinePageInner() {
   const router = useRouter();

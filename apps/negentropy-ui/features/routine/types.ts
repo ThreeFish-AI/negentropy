@@ -230,6 +230,7 @@ export interface IterationListResponse {
 export interface RoutineFilters {
   status: RoutineStatus | null;
   q: string;
+  is_template?: boolean | null;
 }
 
 /** 创建请求体 */
