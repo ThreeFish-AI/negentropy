@@ -57,6 +57,22 @@ router = APIRouter(prefix="/routines", tags=["routines"])
 # 终态：不可再启动 / 编辑调度
 _TERMINAL = ("succeeded", "failed", "cancelled")
 _ACTIVE = ("running", "paused")
+
+# Running 状态下允许在线调整的字段（不影响执行语义的安全字段）。
+# 其余字段（goal / cwd / baseline_branch / verification_command / approval_mode / config 等）
+# 仍需 pause 后方可修改。
+_RUNTIME_SAFE_FIELDS: frozenset[str] = frozenset(
+    {
+        "success_score_threshold",  # 成功判定阈值
+        "max_iterations",  # 迭代预算
+        "max_cost_usd",  # 成本预算
+        "deadline_at",  # 截止时间
+        "no_progress_patience",  # 停滞容忍度
+        "title",  # 纯展示元数据
+        "display_name",  # 纯展示元数据
+        "description",  # 纯展示元数据
+    }
+)
 _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed")
 _DEFAULT_RECENT_ITERATIONS = 20
 
@@ -633,16 +649,27 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
 
 @router.put("/{routine_id}")
 async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[str, Any]:
-    if body.cwd and not os.path.isdir(body.cwd):
-        raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
+    update_data = body.model_dump(exclude_unset=True)
+
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:
             raise HTTPException(status_code=404, detail="routine not found")
-        if r.status == "running":
-            raise HTTPException(status_code=409, detail="cannot edit a running routine; pause it first")
 
-        update_data = body.model_dump(exclude_unset=True)
+        # Running 状态下仅允许运行时安全字段；非安全字段需 pause 后修改。
+        if r.status == "running":
+            requested = set(update_data.keys())
+            unsafe = requested - _RUNTIME_SAFE_FIELDS
+            if unsafe:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"cannot edit {', '.join(sorted(unsafe))} while running; pause first",
+                )
+
+        # cwd 目录存在性校验（非 running 路径，unsafe 已被上方拦截）
+        if "cwd" in update_data and update_data["cwd"] and not os.path.isdir(update_data["cwd"]):
+            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{update_data['cwd']}'")
+
         for field_name, value in update_data.items():
             setattr(r, field_name, value)
 
@@ -654,6 +681,9 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
             except workspace.WorkspaceError as exc:
                 await db.rollback()
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        if r.status == "running" and update_data:
+            logger.info("routine_runtime_update", routine_id=str(routine_id), fields=sorted(update_data.keys()))
 
         try:
             await db.commit()

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { RoutineDTO, RoutineIterationDTO } from "@/features/routine";
+import { updateRoutine } from "@/features/routine/api";
 
 import { useClock } from "./ClockProvider";
 import { RoutineMeter } from "./RoutineMeter";
@@ -14,6 +15,9 @@ const TERMINAL: ReadonlySet<string> = new Set(["succeeded", "failed", "cancelled
 /**
  * 守卫 / 预算面板 —— 可视化「为何/何时会停」：迭代、成本、成功分、截止、无进展、震荡。
  * 最逼近极限者标注为「预计停因」；终态后以实际 termination_reason 替换预测。
+ *
+ * 非终态下 Success Score 阈值支持内联编辑（点击徽章 → 数字输入框 → Enter/Blur 确认），
+ * 让用户在 Running 状态下即可动态调整成功阈值。
  */
 export function RoutineGuardPanel({
   routine,
@@ -112,13 +116,7 @@ export function RoutineGuardPanel({
           ratio={costRatio}
           fillClass={costRatio == null ? "bg-sky-500/50" : limitFillClass(costRatio)}
         />
-        <RoutineMeter
-          label="Success Score"
-          valueText={`best ${routine.best_score ?? "—"} → 阈值 ${routine.success_score_threshold}`}
-          ratio={routine.best_score != null ? routine.best_score / 100 : null}
-          fillClass={scoreFillClass(routine.best_score, routine.success_score_threshold)}
-          notchPct={routine.success_score_threshold}
-        />
+        <SuccessScoreMeter routine={routine} />
         {deadline && (
           <RoutineMeter
             label="Deadline"
@@ -163,5 +161,113 @@ export function RoutineGuardPanel({
         </div>
       )}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Success Score 内联阈值编辑器
+// ---------------------------------------------------------------------------
+
+/** 非终态下可内联编辑阈值的 Success Score 行 */
+function SuccessScoreMeter({ routine }: { routine: RoutineDTO }) {
+  const isTerminal = TERMINAL.has(routine.status);
+  const threshold = routine.success_score_threshold;
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(threshold));
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const openEditor = useCallback(() => {
+    if (isTerminal) return;
+    setDraft(String(threshold));
+    setEditing(true);
+    // Focus after React renders the input
+    requestAnimationFrame(() => inputRef.current?.select());
+  }, [isTerminal, threshold]);
+
+  const commit = useCallback(async () => {
+    const next = Math.max(0, Math.min(100, Number.parseInt(draft, 10)));
+    if (Number.isNaN(next) || next === threshold) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateRoutine(routine.id, { success_score_threshold: next });
+      // SSE debounced refetch 或父组件刷新会自然更新 routine prop
+    } catch {
+      // revert on failure
+      setDraft(String(threshold));
+    } finally {
+      setSaving(false);
+      setEditing(false);
+    }
+  }, [draft, routine.id, threshold]);
+
+  const cancel = useCallback(() => {
+    setDraft(String(threshold));
+    setEditing(false);
+  }, [threshold]);
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commit();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      }
+    },
+    [commit, cancel],
+  );
+
+  // 阈值文字区：终态 → 纯文本；非终态 → 可点击徽章 / 编辑态
+  const thresholdElement = isTerminal ? (
+    <span className="tabular-nums">阈值 {threshold}</span>
+  ) : editing ? (
+    <input
+      ref={inputRef}
+      type="number"
+      min={0}
+      max={100}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={onKeyDown}
+      disabled={saving}
+      className="h-4 w-12 rounded border border-border bg-background px-1 text-right text-[10px] tabular-nums text-text-secondary focus:outline-none focus:ring-1 focus:ring-primary"
+      autoFocus
+    />
+  ) : (
+    <button
+      type="button"
+      onClick={openEditor}
+      className="inline-flex items-center gap-0.5 rounded px-1 text-[10px] tabular-nums text-text-secondary transition-colors hover:bg-muted hover:text-foreground"
+      title="点击调整 Success Score 阈值"
+    >
+      阈值 <span className="font-semibold">{threshold}</span>
+      <svg
+        className="h-2.5 w-2.5 opacity-40"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path d="M11.5 2.5l2 2L5.5 12.5H3.5v-2l8-8z" />
+      </svg>
+    </button>
+  );
+
+  return (
+    <RoutineMeter
+      label="Success Score"
+      valueText={`best ${routine.best_score ?? "—"}`}
+      ratio={routine.best_score != null ? routine.best_score / 100 : null}
+      fillClass={scoreFillClass(routine.best_score, routine.success_score_threshold)}
+      notchPct={routine.success_score_threshold}
+      rightElement={thresholdElement}
+    />
   );
 }
