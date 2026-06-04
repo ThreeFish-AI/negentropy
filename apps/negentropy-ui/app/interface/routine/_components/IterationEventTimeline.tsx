@@ -19,6 +19,7 @@ import {
   eventTypeClass,
   eventTypeIcon,
   resolveEventTitle,
+  scoreColorClass,
 } from "./status-style";
 
 // ---------------------------------------------------------------------------
@@ -120,7 +121,7 @@ function EventIcon({ icon: Icon, className }: { icon: LucideIcon; className?: st
 type ConversationBlock =
   | { kind: "turn"; turn: EventTurn; defaultExpanded: boolean }
   | { kind: "plan_review"; event: RoutineIterationEventDTO }
-  | { kind: "system_event"; event: RoutineIterationEventDTO; label: string };
+  | { kind: "engine_event"; event: RoutineIterationEventDTO; label: string };
 
 /** 将所有事件编排为对话块序列。 */
 function buildConversationBlocks(
@@ -148,9 +149,9 @@ function buildConversationBlocks(
         blocks.push({ kind: "plan_review", event: ev });
       }
     } else {
-      // result / gate / evaluation → 系统通知
+      // result / gate / evaluation → Engine 右侧气泡
       for (const ev of list) {
-        blocks.push({ kind: "system_event", event: ev, label: EVENT_GROUP_LABEL[g] });
+        blocks.push({ kind: "engine_event", event: ev, label: EVENT_GROUP_LABEL[g] });
       }
     }
   }
@@ -166,7 +167,7 @@ function buildConversationBlocks(
  * 单次迭代「全过程」动作时间线 —— 对话式布局。
  *
  * Claude Code 的 Turns 居左（被调用者），NegentropyEngine 的 Plan Review 居右（系统本我），
- * 系统级事件（gate / evaluation / result）居中。
+ * Engine 级事件（gate / evaluation / result）居右（系统本我）。
  */
 export function IterationEventTimeline({
   events,
@@ -228,10 +229,10 @@ export function IterationEventTimeline({
                   ev={block.event}
                 />
               );
-            case "system_event":
+            case "engine_event":
               return (
-                <SystemEventPill
-                  key={`sys-${block.event.seq}`}
+                <EngineEventBubble
+                  key={`engine-${block.event.seq}`}
                   ev={block.event}
                   label={block.label}
                 />
@@ -404,45 +405,190 @@ function EngineReviewBubble({ ev }: { ev: RoutineIterationEventDTO }) {
   );
 }
 
-/** 系统级事件（gate / evaluation / result）—— 居中 pill 样式。 */
-function SystemEventPill({ ev, label }: { ev: RoutineIterationEventDTO; label: string }) {
-  const [open, setOpen] = useState(false);
+/** Engine 级事件（result / gate / evaluation）—— 右侧气泡样式。 */
+function EngineEventBubble({ ev, label }: { ev: RoutineIterationEventDTO; label: string }) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
   const isError = payloadIsError(ev.payload);
-  const icon = eventTypeIcon(ev.event_type, ev.tool_name);
-  const title = resolveEventTitle(ev.event_type, ev.title || extractSubtitle(ev.payload), ev.tool_name);
   const hasDetail = ev.payload && Object.keys(ev.payload).length > 0;
+  const p = ev.payload ?? {};
+
+  // ---- event-type-specific content extraction ----
+  const et = ev.event_type;
+
+  // result
+  const resultText = typeof p.result === "string" ? p.result : null;
+  const numTurns = typeof p.num_turns === "number" ? p.num_turns : null;
+
+  // gate
+  const command = typeof p.command === "string" ? p.command : null;
+  const exitCode = p.exit_code as number | null | undefined;
+  const gateOutput = typeof p.output === "string" ? p.output : null;
+  const gateFailed = exitCode != null && exitCode !== 0;
+
+  // evaluation
+  const score = typeof p.score === "number" ? p.score : null;
+  const verdict = typeof p.verdict === "string" ? p.verdict : null;
+  const reflection = typeof p.reflection === "string" ? p.reflection : null;
+
+  // verdict badge config
+  const verdictBadge: Record<string, { label: string; cls: string }> = {
+    succeeded: { label: "✅ Succeeded", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+    progressing: { label: "🔄 Progressing", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
+    failed: { label: "❌ Failed", cls: "bg-red-500/10 text-red-700 dark:text-red-300" },
+  };
+  const vb = verdictBadge[verdict ?? ""] ?? { label: verdict ?? label, cls: "bg-muted/60 text-text-secondary" };
 
   return (
-    <div className="flex justify-center py-1">
-      <div className="inline-flex max-w-[90%] flex-col items-center">
-        <button
-          type="button"
-          onClick={() => hasDetail && setOpen((v) => !v)}
-          className={cn(
-            "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors",
-            isError
-              ? "border-red-500/30 bg-red-500/[0.03] text-red-600 dark:text-red-400"
-              : "border-border bg-muted/30 text-text-secondary hover:bg-muted/50",
-            hasDetail && "cursor-pointer",
-          )}
-        >
-          <span className={`flex h-5 w-5 items-center justify-center rounded-full ${eventTypeClass(ev.event_type, isError)}`}>
-            <EventIcon icon={icon} className="h-3 w-3" />
+    <div className="flex flex-row-reverse gap-2.5 py-0.5">
+      {/* 右侧头像 */}
+      <div className="flex shrink-0 flex-col items-center pt-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10">
+          <Cpu className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+        </div>
+      </div>
+      {/* 气泡 */}
+      <div
+        className={cn(
+          "min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm border p-3",
+          isError || gateFailed
+            ? "border-red-500/20 bg-red-500/[0.03]"
+            : "border-sky-500/20 bg-sky-500/[0.03]",
+        )}
+      >
+        {/* Header */}
+        <div className="mb-1.5 flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+            NegentropyEngine
           </span>
           <span className="text-[10px] text-text-muted">{label}</span>
-          <span className="truncate">{title}</span>
-          {isError && (
-            <span className="rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
-              error
+
+          {/* Result badge */}
+          {et === "result" && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                isError
+                  ? "bg-red-500/10 text-red-700 dark:text-red-300"
+                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+              )}
+            >
+              {isError ? "❌ Error" : "✅ Success"}
             </span>
           )}
+
+          {/* Gate badge */}
+          {et === "gate" && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                gateFailed
+                  ? "bg-red-500/10 text-red-700 dark:text-red-300"
+                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+              )}
+            >
+              {gateFailed ? `❌ Exit ${exitCode}` : "✅ Passed"}
+            </span>
+          )}
+
+          {/* Evaluation badge + score */}
+          {et === "evaluation" && (
+            <>
+              <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", vb.cls)}>
+                {vb.label}
+              </span>
+              {score != null && (
+                <span className={cn("text-xs font-bold tabular-nums", scoreColorClass(score))}>
+                  {score}
+                </span>
+              )}
+            </>
+          )}
+
+          {/* Cost (result) */}
           {ev.cost_usd != null && ev.cost_usd > 0 && (
             <span className="text-[10px] tabular-nums text-text-muted">${ev.cost_usd.toFixed(4)}</span>
           )}
-        </button>
-        {open && hasDetail && (
-          <div className="mt-2 w-full rounded-md border border-border bg-card p-3">
+        </div>
+
+        {/* ---- Content by event type ---- */}
+
+        {/* Result content */}
+        {et === "result" && (
+          <>
+            {numTurns != null && (
+              <div className="text-[11px] text-text-secondary">
+                <span className="font-medium text-foreground">{numTurns}</span> turns
+              </div>
+            )}
+            {resultText && (
+              <div className="mt-1 line-clamp-3 text-[11px] text-text-secondary">{resultText}</div>
+            )}
+          </>
+        )}
+
+        {/* Gate content */}
+        {et === "gate" && (
+          <>
+            {command && (
+              <div className="rounded-md border border-border bg-muted/30 p-2 font-mono text-[11px] text-text-secondary">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">$ </span>
+                {command}
+              </div>
+            )}
+            {gateOutput && (
+              <div className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/30 p-2 font-mono text-[11px] leading-relaxed text-text-secondary">
+                {gateOutput.length > 500 ? gateOutput.slice(0, 500) + "…" : gateOutput}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Evaluation content */}
+        {et === "evaluation" && (
+          <>
+            {typeof p.error === "string" && (
+              <div className="rounded-md border border-red-500/20 bg-red-500/[0.03] p-2 text-[11px] text-red-600 dark:text-red-400">
+                {p.error}
+              </div>
+            )}
+            {reflection && (
+              <button
+                type="button"
+                onClick={() => setReflectionOpen((v) => !v)}
+                className="mt-2 flex items-center gap-1 text-[10px] text-text-muted hover:text-foreground"
+              >
+                <ChevronRight className={cn("h-3 w-3 transition-transform", reflectionOpen && "rotate-90")} />
+                Reflection
+              </button>
+            )}
+            {reflectionOpen && reflection && (
+              <p className="mt-1 text-[11px] italic text-text-muted">{reflection}</p>
+            )}
+          </>
+        )}
+
+        {/* Expandable raw detail */}
+        {hasDetail && (
+          <button
+            type="button"
+            onClick={() => setDetailOpen((v) => !v)}
+            className="mt-2 flex items-center gap-1 text-[10px] text-text-muted hover:text-foreground"
+          >
+            <ChevronRight className={cn("h-3 w-3 transition-transform", detailOpen && "rotate-90")} />
+            Detail
+          </button>
+        )}
+        {detailOpen && hasDetail && (
+          <div className="mt-1 rounded-md border border-border bg-muted/30 p-2">
             <EventDetail payload={ev.payload} />
+          </div>
+        )}
+
+        {/* Timestamp */}
+        {ev.created_at && (
+          <div className="mt-2 text-[10px] tabular-nums text-text-muted">
+            {new Date(ev.created_at).toLocaleTimeString()}
           </div>
         )}
       </div>

@@ -1244,13 +1244,14 @@ class ClaudeCodeService:
                                         # 无 questions 字段，尝试把整个 input 当问题
                                         questions = [{"question": json.dumps(tool_input, ensure_ascii=False)}]
 
-                                    # Plan Review 分支：PLAN 阶段 + plan_review_enabled
+                                    # Plan Review 分支：plan_review_enabled 即触发
+                                    # 注：不再要求 is_plan_phase——非 phased routine 也会产出计划，
+                                    # PlanReviewer 使用 CC 累积输出作为 plan_text，可处理任意阶段。
                                     ctx = config.auto_answer_context or {}
-                                    is_plan_phase = ctx.get("phase") == "plan"
                                     plan_review_enabled = ctx.get("plan_review_enabled", False)
                                     plan_text = ctx.get("plan_summary") or result_text or ""
 
-                                    if is_plan_phase and plan_review_enabled:
+                                    if plan_review_enabled:
                                         answer, review_data = await ClaudeCodeService._plan_review_answer(
                                             questions,
                                             ctx,

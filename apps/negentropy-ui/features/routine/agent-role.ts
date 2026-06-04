@@ -91,14 +91,15 @@ export const AGENT_ROLE_META: Record<AgentRole, AgentRoleMeta> = {
 /**
  * 事件类型 → 主导人推导。
  *
- * - gate / evaluation → Engine（命令门控 / LLM-as-Judge）
- * - 其余（system / assistant / tool_use / tool_result / result）→ Claude Code（执行者）
+ * - gate / evaluation / plan_review / result → Engine（编排/评估/审阅/结果归档）
+ * - 其余（system / assistant / tool_use / tool_result）→ Claude Code（执行者）
  */
 export function deriveAgentRole(eventType: RoutineEventType): AgentRole {
   switch (eventType) {
     case "gate":
     case "evaluation":
     case "plan_review":
+    case "result":
       return "engine";
     default:
       return "claude_code";
