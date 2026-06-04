@@ -157,6 +157,25 @@ function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "
   };
 }
 
+/** 将表单 CC 配置字段写入 config 对象（原地修改，ccFromConfig 的逆操作）。 */
+function applyCCConfig(
+  config: Record<string, unknown>,
+  form: Pick<FormState, "model" | "max_turns" | "max_events_per_iter" | "permission_mode" | "allowed_tools" | "timeout_seconds">,
+): void {
+  if (form.model.trim()) config.model = form.model.trim();
+  else delete config.model;
+  if (form.max_turns.trim()) config.max_turns = parseInt(form.max_turns, 10);
+  else delete config.max_turns;
+  if (form.max_events_per_iter.trim()) config.max_events_per_iter = parseInt(form.max_events_per_iter, 10);
+  else delete config.max_events_per_iter;
+  if (form.permission_mode.trim()) config.permission_mode = form.permission_mode.trim();
+  else delete config.permission_mode;
+  if (form.allowed_tools.trim()) config.allowed_tools = form.allowed_tools.split(",").map((s) => s.trim()).filter(Boolean);
+  else delete config.allowed_tools;
+  if (form.timeout_seconds.trim()) config.timeout_seconds = parseInt(form.timeout_seconds, 10);
+  else delete config.timeout_seconds;
+}
+
 /** 依 mode 构造初始表单（仅在挂载时调用一次，避免 SSE 刷新回灌草稿）。 */
 function buildInitial(mode: DrawerMode): FormState {
   switch (mode.kind) {
@@ -400,7 +419,7 @@ export function RoutineEditDrawer({
     let config: Record<string, unknown>;
     let extra: Partial<RoutineCreatePayload> = {};
     if (entity === "routine") {
-      // 继承既有 config，仅增删本表单管理的 4 个 CC 键，保留 system_prompt 等未暴露键
+      // 继承既有 config，仅增删本表单管理的 CC 键，保留 system_prompt 等未暴露键
       const inherited =
         mode.kind === "routine-edit"
           ? ((mode.routine.config as Record<string, unknown>) ?? {})
@@ -408,19 +427,7 @@ export function RoutineEditDrawer({
             ? ((mode.template.config as Record<string, unknown>) ?? {})
             : {};
       config = { ...inherited };
-      if (form.model.trim()) config.model = form.model.trim();
-      else delete config.model;
-      if (form.max_turns.trim()) config.max_turns = parseInt(form.max_turns, 10);
-      else delete config.max_turns;
-      if (form.max_events_per_iter.trim()) config.max_events_per_iter = parseInt(form.max_events_per_iter, 10);
-      else delete config.max_events_per_iter;
-      if (form.permission_mode.trim()) config.permission_mode = form.permission_mode.trim();
-      else delete config.permission_mode;
-      if (form.allowed_tools.trim())
-        config.allowed_tools = form.allowed_tools.split(",").map((s) => s.trim()).filter(Boolean);
-      else delete config.allowed_tools;
-      if (form.timeout_seconds.trim()) config.timeout_seconds = parseInt(form.timeout_seconds, 10);
-      else delete config.timeout_seconds;
+      applyCCConfig(config, form);
       extra = { cwd: form.cwd.trim() || null, baseline_branch: form.baseline_branch.trim() || null };
     } else {
       // 模板元数据收敛进 config（与列表 API 的读取契约对齐）
@@ -432,6 +439,7 @@ export function RoutineEditDrawer({
         version: form.version.trim() || "1.0.0",
         features_showcase: form.features_showcase.split(",").map((s) => s.trim()).filter(Boolean),
       };
+      applyCCConfig(config, form);
       extra = { is_template: true };
     }
 
@@ -891,9 +899,8 @@ export function RoutineEditDrawer({
                     </div>
                   )}
 
-                  {/* Claude Code Config（仅 routine entity）*/}
-                  {entity === "routine" && (
-                    <div className="border-t border-border pt-3">
+                  {/* Claude Code Config */}
+                  <div className="border-t border-border pt-3">
                       <h4 className="mb-2 text-xs font-medium text-text-secondary">Claude Code Config</h4>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-center gap-2">
@@ -934,7 +941,6 @@ export function RoutineEditDrawer({
                         />
                       </div>
                     </div>
-                  )}
                 </div>
               )}
             </section>
