@@ -1268,6 +1268,7 @@ class ClaudeCodeService:
                             result_text = text
 
                     # 核心新增：检测 AskUserQuestion / ExitPlanMode tool_use → 自动应答
+                    _skip_emit = False  # handler 手动发射后置 True，跳过底部 fallthrough
                     if evt_type == _EVT_ASSISTANT and auto_answer_count < max_auto_answers and proc.stdin is not None:
                         content_blocks = (event.get("message") or {}).get("content", [])
                         if isinstance(content_blocks, list):
@@ -1302,6 +1303,7 @@ class ClaudeCodeService:
                                         tool_use_id=tool_use_id,
                                         count=auto_answer_count,
                                     )
+                                    _skip_emit = True
                                     continue  # 已手动发射原始事件，跳过末尾的统一发射
 
                                 # ---- AskUserQuestion：智能路由 plan_review vs generic ----
@@ -1370,10 +1372,12 @@ class ClaudeCodeService:
                                         count=auto_answer_count,
                                         is_plan_submit=is_plan_submit,
                                     )
+                                    _skip_emit = True
                                     continue  # 已手动发射原始事件，跳过末尾的统一发射
 
                     # 审计事件捕获（未被 auto-answer 拦截的普通事件走此路径）
-                    await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                    if not _skip_emit:
+                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
 
                     if abort_event and abort_event.is_set():
                         proc.terminate()

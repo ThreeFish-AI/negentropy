@@ -891,8 +891,6 @@ async def test_interactive_event_ordering_original_before_audit(monkeypatch):
     assert result.status == "success"
 
     # 查找原始 AskUserQuestion 事件和 auto_answer 审计事件
-    # 注意：for block ... continue 仅跳到下个 block，底部 _emit_events 仍会再发一次原始事件，
-    # 因此原始事件会出现两次（handler 内 + 底部 fallthrough），应取首次匹配。
     ask_user_idx = None
     audit_idx = None
     for i, ev in enumerate(emitted_events):
@@ -908,7 +906,76 @@ async def test_interactive_event_ordering_original_before_audit(monkeypatch):
 
     assert ask_user_idx is not None, "原始 AskUserQuestion 事件未找到"
     assert audit_idx is not None, "auto_answer 审计事件未找到"
-    assert ask_user_idx < audit_idx, f"事件排序错误：首次原始事件(idx={ask_user_idx})应在审计事件(idx={audit_idx})之前"
+    assert ask_user_idx < audit_idx, f"事件排序错误：原始事件(idx={ask_user_idx})应在审计事件(idx={audit_idx})之前"
+    # skip_emit 修复后原始事件不应重复发射
+    ask_user_count = sum(
+        1
+        for ev in emitted_events
+        if ev.get("type") == "assistant"
+        and any(
+            isinstance(b, dict) and b.get("name") == "AskUserQuestion"
+            for b in (ev.get("message") or {}).get("content", [])
+            if isinstance(b, dict)
+        )
+    )
+    assert ask_user_count == 1, f"原始 AskUserQuestion 事件应只发射 1 次，实际 {ask_user_count} 次（双重发射 bug）"
+
+
+async def test_interactive_exit_plan_no_duplicate_emission(monkeypatch):
+    """skip_emit 修复验证：ExitPlanMode 原始事件只发射 1 次（非 2 次）。"""
+    emitted_events: list[dict] = []
+
+    async def _capture_event(event, events_holder, on_event, max_events=None):
+        emitted_events.append(event)
+
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-dedup-1"},
+        _make_exit_plan_event("tu-dedup-001"),
+        {
+            "type": "result",
+            "subtype": "success",
+            "result": "done",
+            "session_id": "sess-dedup-1",
+            "num_turns": 2,
+            "total_cost_usd": 0.1,
+        },
+    ]
+    proc = _DuplexFakeProc(events)
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+    monkeypatch.setattr("negentropy.engine.claude_code.service._emit_events", _capture_event)
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac"},
+    )
+    result = await ClaudeCodeService.invoke("test", cfg)
+
+    assert result.status == "success"
+    # ExitPlanMode 原始 assistant 事件应只出现 1 次
+    exit_plan_count = sum(
+        1
+        for ev in emitted_events
+        if ev.get("type") == "assistant"
+        and any(
+            isinstance(b, dict) and b.get("name") == "ExitPlanMode"
+            for b in (ev.get("message") or {}).get("content", [])
+            if isinstance(b, dict)
+        )
+    )
+    assert exit_plan_count == 1, f"ExitPlanMode 原始事件应只发射 1 次，实际 {exit_plan_count} 次（双重发射 bug）"
+    # auto_answer 审计事件应恰好 1 次
+    audit_count = sum(1 for ev in emitted_events if ev.get("subtype") == "auto_answer")
+    assert audit_count == 1, f"auto_answer 审计事件应恰好 1 次，实际 {audit_count} 次"
 
 
 async def test_invoke_cli_no_error_kind_on_success(monkeypatch):
