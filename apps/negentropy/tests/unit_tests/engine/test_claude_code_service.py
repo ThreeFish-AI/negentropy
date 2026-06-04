@@ -563,6 +563,354 @@ async def test_invoke_cli_tags_error_kind_on_context_limit(monkeypatch):
     assert result.session_id == "sess-full"
 
 
+# ---------------------------------------------------------------------------
+# _is_plan_review_question 智能路由（Fix 1 — Plan Review vs Generic Auto-Answer）
+# ---------------------------------------------------------------------------
+
+
+def test_is_plan_review_open_ended_no_options():
+    """无 options 的开放式问题 → True（Plan 提交路径）。"""
+    questions = [{"question": "请审阅以下方案是否可行"}]
+    assert ClaudeCodeService._is_plan_review_question(questions) is True
+
+
+def test_is_plan_review_empty_questions():
+    """空 questions 列表 → True（默认走 plan review）。"""
+    assert ClaudeCodeService._is_plan_review_question([]) is True
+
+
+def test_is_plan_review_options_with_plan_keyword():
+    """带 options 但首个问题含 'review' 关键词 → True。"""
+    questions = [
+        {"question": "Should I review this plan?", "options": [{"label": "Yes"}, {"label": "No"}]},
+    ]
+    assert ClaudeCodeService._is_plan_review_question(questions) is True
+
+
+def test_is_plan_review_options_with_chinese_keyword():
+    """带 options 且首个问题含中文「审阅」关键词 → True。"""
+    questions = [
+        {"question": "请审阅我的方案", "options": [{"label": "批准"}, {"label": "拒绝"}]},
+    ]
+    assert ClaudeCodeService._is_plan_review_question(questions) is True
+
+
+def test_is_not_plan_review_structured_options():
+    """带 options 且无审阅关键词 → False（generic auto-answer）。"""
+    questions = [
+        {"question": "Which file should I modify?", "options": [{"label": "a.py"}, {"label": "b.py"}]},
+    ]
+    assert ClaudeCodeService._is_plan_review_question(questions) is False
+
+
+def test_is_not_plan_review_multiple_structured():
+    """多问多选项、无审阅关键词 → False。"""
+    questions = [
+        {"question": "Choose implementation", "options": [{"label": "React"}, {"label": "Vue"}]},
+        {"question": "Pick styling", "options": [{"label": "CSS"}, {"label": "Tailwind"}]},
+    ]
+    assert ClaudeCodeService._is_plan_review_question(questions) is False
+
+
+def test_is_plan_review_keyword_in_any_case():
+    """关键词匹配大小写无关：'Plan' / 'PLAN' / 'plan' 均命中。"""
+    for kw in ["Plan", "PLAN", "plan"]:
+        questions = [
+            {"question": f"Please check the {kw}", "options": [{"label": "OK"}]},
+        ]
+        assert ClaudeCodeService._is_plan_review_question(questions) is True, f"keyword={kw}"
+
+
+# ---------------------------------------------------------------------------
+# 纯文本应答格式（Fix 2 — 从 JSON 包裹改为纯文本）
+# ---------------------------------------------------------------------------
+
+
+def test_fallback_answer_is_plain_text():
+    """_FALLBACK_ANSWER 为纯文本字符串，非 JSON 包裹。"""
+
+    fb = ClaudeCodeService._FALLBACK_ANSWER
+    assert isinstance(fb, str)
+    # 不是 JSON 格式 — 不以 { 开头
+    assert not fb.strip().startswith("{")
+    # 原文可读
+    assert "最佳判断" in fb
+
+
+async def test_auto_answer_question_returns_plain_text_on_exception(monkeypatch):
+    """_auto_answer_question 异常路径 → 返回纯文本 fallback（非 JSON）。"""
+
+    # 让 litellm import 失败 → 走 except 分支
+    import importlib
+
+    real_import = importlib.import_module
+
+    def _block_litellm(name, *args, **kwargs):
+        if name == "litellm":
+            raise ImportError("mocked")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("importlib.import_module", _block_litellm)
+
+    answer = await ClaudeCodeService._auto_answer_question(
+        [{"question": "What to do?"}],
+        {"goal": "test", "acceptance_criteria": "none", "prompt": "test"},
+    )
+    # 回退到 _FALLBACK_ANSWER — 纯文本
+    assert answer == ClaudeCodeService._FALLBACK_ANSWER
+    assert not answer.strip().startswith("{")
+
+
+async def test_plan_review_answer_returns_plain_text_on_failure(monkeypatch):
+    """_plan_review_answer 审阅失败 → 返回纯文本 fallback（非 JSON）。"""
+    from unittest.mock import AsyncMock
+
+    # Mock PlanReviewer 类：实例化后 review() 抛异常 → 走 except fallback
+    mock_instance = AsyncMock()
+    mock_instance.review = AsyncMock(side_effect=Exception("review crashed"))
+    mock_cls = AsyncMock(return_value=mock_instance)
+
+    mock_mod = type("M", (), {"PlanReviewer": mock_cls})()
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "negentropy.engine.routine.plan_reviewer",
+        mock_mod,
+    )
+
+    answer, review_data = await ClaudeCodeService._plan_review_answer(
+        [{"question": "审阅方案"}],
+        {"goal": "g", "acceptance_criteria": "ac"},
+        plan_text="plan",
+    )
+    # 应返回纯文本 fallback（非 JSON 包裹）
+    assert isinstance(answer, str)
+    assert not answer.strip().startswith("{")
+    assert "不可用" in answer
+    assert review_data is None
+
+
+# ---------------------------------------------------------------------------
+# 交互式 AskUserQuestion / ExitPlanMode 端到端（Fix 1+2+3+4）
+#
+# 扩展 _DuplexFakeProc 模式，在事件流中注入 AskUserQuestion / ExitPlanMode
+# tool_use 事件，验证自动应答路由、纯文本格式、事件排序。
+# ---------------------------------------------------------------------------
+
+
+def _make_ask_user_event(tool_use_id: str, questions: list[dict]) -> dict:
+    """构造一个包含 AskUserQuestion tool_use 的 assistant 事件。"""
+    return {
+        "type": "assistant",
+        "message": {
+            "content": [
+                {"type": "text", "text": "I need to ask a question."},
+                {
+                    "type": "tool_use",
+                    "id": tool_use_id,
+                    "name": "AskUserQuestion",
+                    "input": {"questions": questions},
+                },
+            ]
+        },
+    }
+
+
+def _make_exit_plan_event(tool_use_id: str) -> dict:
+    """构造一个包含 ExitPlanMode tool_use 的 assistant 事件。"""
+    return {
+        "type": "assistant",
+        "message": {
+            "content": [
+                {"type": "text", "text": "Plan is ready."},
+                {
+                    "type": "tool_use",
+                    "id": tool_use_id,
+                    "name": "ExitPlanMode",
+                    "input": {},
+                },
+            ]
+        },
+    }
+
+
+async def test_interactive_ask_user_generic_auto_answer(monkeypatch):
+    """Fix 1+2：带 options 的结构化问题 → 走 generic auto-answer，应答为纯文本。"""
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-au-1"},
+        _make_ask_user_event(
+            "tu-001",
+            [
+                {"question": "Which file?", "options": [{"label": "a.py"}, {"label": "b.py"}]},
+            ],
+        ),
+        {
+            "type": "result",
+            "subtype": "success",
+            "result": "done",
+            "session_id": "sess-au-1",
+            "num_turns": 2,
+            "total_cost_usd": 0.1,
+        },
+    ]
+    proc = _DuplexFakeProc(events)
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    # mock _auto_answer_question → 返回纯文本
+    async def _mock_auto_answer(questions, context, *, model_override=None, timeout=30.0):
+        return "a.py"
+
+    monkeypatch.setattr(ClaudeCodeService, "_auto_answer_question", staticmethod(_mock_auto_answer))
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac", "plan_review_enabled": True},
+    )
+    result = await ClaudeCodeService.invoke("test", cfg)
+
+    assert result.status == "success"
+    # 验证 stdin 写入了 tool_result（第二个写入，第一个是初始 prompt）
+    tool_result_writes = [w for w in proc.stdin.writes if "tool_result" in w]
+    assert len(tool_result_writes) >= 1
+    # tool_result 内容为纯文本 a.py（非 JSON 包裹）
+    tr_msg = json.loads(tool_result_writes[0])
+    content_block = tr_msg["message"]["content"][0]
+    assert content_block["type"] == "tool_result"
+    # 纯文本应答 — 不是 {"answers": [...]} 格式
+    answer_text = content_block["content"]
+    assert answer_text == "a.py"
+    assert not answer_text.strip().startswith("{")
+
+
+async def test_interactive_exit_plan_mode_auto_approved(monkeypatch):
+    """Fix 3：ExitPlanMode tool_use → 自动批准，CC 不等待。"""
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-ep-1"},
+        _make_exit_plan_event("tu-ep-001"),
+        {
+            "type": "result",
+            "subtype": "success",
+            "result": "done",
+            "session_id": "sess-ep-1",
+            "num_turns": 3,
+            "total_cost_usd": 0.2,
+        },
+    ]
+    proc = _DuplexFakeProc(events)
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac"},
+    )
+    result = await ClaudeCodeService.invoke("test", cfg)
+
+    assert result.status == "success"
+    # 验证 stdin 写入了 ExitPlanMode 的 tool_result
+    tool_result_writes = [w for w in proc.stdin.writes if "tool_result" in w]
+    assert len(tool_result_writes) >= 1
+    tr_msg = json.loads(tool_result_writes[0])
+    content_block = tr_msg["message"]["content"][0]
+    assert content_block["tool_use_id"] == "tu-ep-001"
+    assert "Plan approved" in content_block["content"]
+
+
+async def test_interactive_event_ordering_original_before_audit(monkeypatch):
+    """Fix 4：审计事件（plan_review/auto_answer）排在原始 tool_use 事件之后。"""
+    emitted_events: list[dict] = []
+
+    async def _capture_event(event, events_holder, on_event, max_events=None):
+        emitted_events.append(event)
+
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "sess-ord-1"},
+        _make_ask_user_event(
+            "tu-ord-001",
+            [
+                {"question": "Which approach?", "options": [{"label": "A"}, {"label": "B"}]},
+            ],
+        ),
+        {
+            "type": "result",
+            "subtype": "success",
+            "result": "done",
+            "session_id": "sess-ord-1",
+            "num_turns": 2,
+            "total_cost_usd": 0.1,
+        },
+    ]
+    proc = _DuplexFakeProc(events)
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    # 用 _emit_events mock 捕获事件顺序
+    monkeypatch.setattr(
+        "negentropy.engine.claude_code.service._emit_events",
+        _capture_event,
+    )
+
+    async def _mock_auto_answer(questions, context, *, model_override=None, timeout=30.0):
+        return "A"
+
+    monkeypatch.setattr(ClaudeCodeService, "_auto_answer_question", staticmethod(_mock_auto_answer))
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac", "plan_review_enabled": True},
+    )
+    result = await ClaudeCodeService.invoke("test", cfg)
+
+    assert result.status == "success"
+
+    # 查找原始 AskUserQuestion 事件和 auto_answer 审计事件
+    # 注意：for block ... continue 仅跳到下个 block，底部 _emit_events 仍会再发一次原始事件，
+    # 因此原始事件会出现两次（handler 内 + 底部 fallthrough），应取首次匹配。
+    ask_user_idx = None
+    audit_idx = None
+    for i, ev in enumerate(emitted_events):
+        if ask_user_idx is None and ev.get("type") == "assistant":
+            # 原始 AskUserQuestion 事件
+            content = (ev.get("message") or {}).get("content", [])
+            for block in content if isinstance(content, list) else []:
+                if isinstance(block, dict) and block.get("name") == "AskUserQuestion":
+                    ask_user_idx = i
+                    break
+        if audit_idx is None and ev.get("subtype") == "auto_answer":
+            audit_idx = i
+
+    assert ask_user_idx is not None, "原始 AskUserQuestion 事件未找到"
+    assert audit_idx is not None, "auto_answer 审计事件未找到"
+    assert ask_user_idx < audit_idx, f"事件排序错误：首次原始事件(idx={ask_user_idx})应在审计事件(idx={audit_idx})之前"
+
+
 async def test_invoke_cli_no_error_kind_on_success(monkeypatch):
     """回归锁：正常成功（exit 0）→ error_kind 恒 None，不误标。"""
     events = [
