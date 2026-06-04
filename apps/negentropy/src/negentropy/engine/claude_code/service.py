@@ -903,11 +903,36 @@ class ClaudeCodeService:
     # ------------------------------------------------------------------
 
     _ASK_USER_TOOL = "AskUserQuestion"
+    _EXIT_PLAN_TOOL = "ExitPlanMode"
     _AUTO_ANSWER_TASK_KEY = "routine.auto_answer"
-    _FALLBACK_ANSWER = json.dumps(
-        {"answers": ["请基于任务目标和验收标准自行做出最佳判断，无需等待确认即可继续。"]},
-        ensure_ascii=False,
-    )
+    _FALLBACK_ANSWER = "请基于任务目标和验收标准自行做出最佳判断，无需等待确认即可继续。"
+
+    # Plan Review 问题识别关键词（用于区分「提交 Plan 等待审阅」vs「结构化选项问题」）
+    _PLAN_REVIEW_KEYWORDS = frozenset({"审阅", "review", "plan", "方案", "计划", "approve", "refine", "完善"})
+
+    @staticmethod
+    def _is_plan_review_question(questions: list[dict]) -> bool:
+        """判断 AskUserQuestion 是否属于「提交 Plan 等待审阅」。
+
+        判据：
+        1. 所有 question 都没有明确的 options → 开放式问答，视为 Plan 提交
+        2. 首个 question 的 question 文本命中 _PLAN_REVIEW_KEYWORDS → 明确的审阅请求
+        3. 否则 → 结构化选项问题，应走 generic auto-answer
+        """
+        if not questions:
+            return True  # 无问题内容，默认走 plan review
+        # 判据 1：没有任何 question 带 options
+        has_any_options = any(
+            isinstance(q.get("options"), list) and len(q["options"]) > 0 for q in questions if isinstance(q, dict)
+        )
+        if not has_any_options:
+            return True  # 开放式问题 → Plan 提交
+        # 判据 2：首个 question 文本命中审阅关键词
+        first_q = questions[0] if isinstance(questions[0], dict) else {}
+        q_text = (first_q.get("question", "") or "").lower()
+        if any(kw in q_text for kw in ClaudeCodeService._PLAN_REVIEW_KEYWORDS):
+            return True
+        return False
 
     @staticmethod
     def _build_stdin_user_prompt(prompt: str) -> str:
@@ -957,7 +982,10 @@ class ClaudeCodeService:
         """调用 Engine LLM 生成 AskUserQuestion 的自动应答。
 
         基于 Routine 上下文（goal / acceptance_criteria）生成简洁确定性回答；
-        失败时返回 fallback 硬编码回答（鼓励 CC 继续执行而非停止）。
+        当问题包含选项时，LLM 优先从选项中选择；失败时返回 fallback 硬编码回答。
+
+        Returns:
+            纯文本应答（非 JSON 包裹），CC 的 AskUserQuestion 工具可直接解析。
         """
         try:
             import litellm
@@ -968,17 +996,34 @@ class ClaudeCodeService:
             criteria = context.get("acceptance_criteria", "（未提供）")
             prompt = context.get("prompt", "（未提供）")
 
-            q_text = "\n".join(f"  Q{i + 1}: {q.get('question', q)}" for i, q in enumerate(questions))
+            # 构造问题文本（含选项信息）
+            q_lines: list[str] = []
+            for i, q in enumerate(questions):
+                q_text = q.get("question", str(q)) if isinstance(q, dict) else str(q)
+                line = f"  Q{i + 1}: {q_text}"
+                opts = q.get("options") if isinstance(q, dict) else None
+                if isinstance(opts, list) and opts:
+                    opt_labels = []
+                    for o in opts:
+                        if isinstance(o, dict):
+                            opt_labels.append(o.get("label", str(o)))
+                        else:
+                            opt_labels.append(str(o))
+                    line += f"\n    选项: {', '.join(opt_labels)}"
+                q_lines.append(line)
+            q_text = "\n".join(q_lines)
 
             judge_prompt = (
                 "你是一个自动化助手，正在代表任务负责人回答执行者提出的澄清问题。\n"
                 "请基于下方任务上下文，给出简洁、确定性的回答。不要反问，不要模棱两可。\n\n"
+                "**重要**：如果问题提供了选项，你必须从选项中选择最合适的（返回选项的 label 文本），不要自创答案。\n\n"
                 f"# 任务目标\n{goal}\n\n"
                 f"# 验收标准\n{criteria}\n\n"
                 f"# 发送给执行者的原始 Prompt\n{prompt[:2000]}\n\n"
                 f"# 执行者提出的问题\n{q_text}\n\n"
                 '请以 JSON 格式回答：{"answers": ["answer1", "answer2", ...]}\n'
                 "每个问题对应一个回答，保持简洁（每个回答不超过 100 字）。"
+                "如果问题有选项，回答必须是选项之一的 label 原文。"
             )
 
             model, model_kwargs = await resolve_model_config_async(
@@ -1002,11 +1047,11 @@ class ClaudeCodeService:
                 timeout=timeout,
             )
             content = response.choices[0].message.content or ""
-            # 验证 JSON 格式
+            # 解析 JSON 提取 answers 并返回纯文本
             parsed = json.loads(content)
             if "answers" in parsed and isinstance(parsed["answers"], list):
-                return content
-            return content  # 非 answers 格式也返回，CC 会自行解析
+                return "\n".join(str(a) for a in parsed["answers"])
+            return content  # 非 answers 格式也返回纯文本
         except Exception as exc:
             logger.warning(
                 "claude_code_auto_answer_failed",
@@ -1031,7 +1076,8 @@ class ClaudeCodeService:
         - refine → CC 收到完善要求，继续在 Plan 模式迭代
 
         Returns:
-            (answer_json, review_result_dict) 元组。
+            (answer_text, review_result_dict) 元组。
+            answer_text 为纯文本（非 JSON 包裹），CC 的 AskUserQuestion 工具可直接解析；
             review_result_dict 包含结构化审阅数据供审计事件使用；
             审阅失败时为 None。
         """
@@ -1049,10 +1095,7 @@ class ClaudeCodeService:
             if not result.ok:
                 logger.warning("plan_review_failed_fallback", error=result.error)
                 return (
-                    json.dumps(
-                        {"answers": ["审阅服务暂时不可用，请按你的最佳判断继续完善方案。"]},
-                        ensure_ascii=False,
-                    ),
+                    "审阅服务暂时不可用，请按你的最佳判断继续完善方案。",
                     None,
                 )
 
@@ -1094,17 +1137,14 @@ class ClaudeCodeService:
                 modules=len(result.module_reviews),
             )
             return (
-                json.dumps({"answers": [answer_text]}, ensure_ascii=False),
+                answer_text,
                 review_data,
             )
 
         except Exception as exc:
             logger.warning("plan_review_exception_fallback", error=str(exc))
             return (
-                json.dumps(
-                    {"answers": ["审阅服务暂时不可用，请按你的最佳判断继续完善方案。"]},
-                    ensure_ascii=False,
-                ),
+                "审阅服务暂时不可用，请按你的最佳判断继续完善方案。",
                 None,
             )
 
@@ -1240,31 +1280,64 @@ class ClaudeCodeService:
                         if text:
                             result_text = text
 
-                    # 核心新增：检测 AskUserQuestion tool_use → 自动应答
+                    # 核心新增：检测 AskUserQuestion / ExitPlanMode tool_use → 自动应答
+                    _skip_emit = False  # handler 手动发射后置 True，跳过底部 fallthrough
                     if evt_type == _EVT_ASSISTANT and auto_answer_count < max_auto_answers and proc.stdin is not None:
                         content_blocks = (event.get("message") or {}).get("content", [])
                         if isinstance(content_blocks, list):
                             for block in content_blocks:
-                                if (
-                                    isinstance(block, dict)
-                                    and block.get("type") == _EVT_TOOL_USE
-                                    and block.get("name") == ClaudeCodeService._ASK_USER_TOOL
-                                ):
-                                    tool_use_id = block.get("id")
+                                if not (isinstance(block, dict) and block.get("type") == _EVT_TOOL_USE):
+                                    continue
+                                tool_name = block.get("name")
+                                tool_use_id = block.get("id")
+
+                                # ---- ExitPlanMode：自动批准退出 Plan 模式 ----
+                                if tool_name == ClaudeCodeService._EXIT_PLAN_TOOL:
+                                    auto_answer_count += 1
+                                    answer = "Plan approved. You may exit plan mode now."
+                                    msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)
+                                    await write_queue.put(msg)
+                                    # 先发射原始事件，再发射审计事件（Fix 3：事件排序）
+                                    await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                                    await _emit_events(
+                                        {
+                                            "type": "system",
+                                            "subtype": "auto_answer",
+                                            "tool_use_id": tool_use_id,
+                                            "tool_name": tool_name,
+                                            "answer_preview": answer[:500],
+                                        },
+                                        events_holder,
+                                        on_event,
+                                        max_events=evt_max,
+                                    )
+                                    logger.info(
+                                        "claude_code_auto_answer_exit_plan",
+                                        tool_use_id=tool_use_id,
+                                        count=auto_answer_count,
+                                    )
+                                    _skip_emit = True
+                                    continue  # 已手动发射原始事件，跳过末尾的统一发射
+
+                                # ---- AskUserQuestion：智能路由 plan_review vs generic ----
+                                if tool_name == ClaudeCodeService._ASK_USER_TOOL:
                                     tool_input = block.get("input", {})
                                     questions = tool_input.get("questions", [])
                                     if not questions:
                                         # 无 questions 字段，尝试把整个 input 当问题
                                         questions = [{"question": json.dumps(tool_input, ensure_ascii=False)}]
 
-                                    # Plan Review 分支：plan_review_enabled 即触发
-                                    # 注：不再要求 is_plan_phase——非 phased routine 也会产出计划，
-                                    # PlanReviewer 使用 CC 累积输出作为 plan_text，可处理任意阶段。
                                     ctx = config.auto_answer_context or {}
                                     plan_review_enabled = ctx.get("plan_review_enabled", False)
                                     plan_text = ctx.get("plan_summary") or result_text or ""
 
-                                    if plan_review_enabled:
+                                    # Fix 1：区分「Plan 提交审阅」vs「结构化选项问题」
+                                    is_plan_submit = plan_review_enabled and ClaudeCodeService._is_plan_review_question(
+                                        questions
+                                    )
+                                    audit_event: dict[str, Any] | None = None
+
+                                    if is_plan_submit:
                                         answer, review_data = await ClaudeCodeService._plan_review_answer(
                                             questions,
                                             ctx,
@@ -1273,9 +1346,8 @@ class ClaudeCodeService:
                                             timeout=ctx.get("plan_review_timeout", 60.0),
                                         )
                                         auto_answer_count += 1
-
-                                        # 写入 plan_review 审计事件（含结构化审阅数据）
-                                        review_event: dict[str, Any] = {
+                                        # 构造 plan_review 审计事件（稍后发射，Fix 3）
+                                        audit_event = {
                                             "type": "system",
                                             "subtype": "plan_review",
                                             "tool_use_id": tool_use_id,
@@ -1283,13 +1355,7 @@ class ClaudeCodeService:
                                             "answer_preview": answer[:500],
                                         }
                                         if review_data:
-                                            review_event["review_result"] = review_data
-                                        await _emit_events(
-                                            review_event,
-                                            events_holder,
-                                            on_event,
-                                            max_events=evt_max,
-                                        )
+                                            audit_event["review_result"] = review_data
                                     else:
                                         answer = await ClaudeCodeService._auto_answer_question(
                                             questions,
@@ -1297,32 +1363,34 @@ class ClaudeCodeService:
                                             timeout=30.0,
                                         )
                                         auto_answer_count += 1
-
-                                        # 写入审计事件
-                                        await _emit_events(
-                                            {
-                                                "type": "system",
-                                                "subtype": "auto_answer",
-                                                "tool_use_id": tool_use_id,
-                                                "questions": _cap_json(questions),
-                                                "answer_preview": answer[:500],
-                                            },
-                                            events_holder,
-                                            on_event,
-                                            max_events=evt_max,
-                                        )
+                                        # 构造 auto_answer 审计事件（稍后发射，Fix 3）
+                                        audit_event = {
+                                            "type": "system",
+                                            "subtype": "auto_answer",
+                                            "tool_use_id": tool_use_id,
+                                            "questions": _cap_json(questions),
+                                            "answer_preview": answer[:500],
+                                        }
 
                                     msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)
                                     await write_queue.put(msg)
+                                    # Fix 3：先发射原始事件（AskUserQuestion tool_use），再发射审计事件
+                                    await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                                    if audit_event:
+                                        await _emit_events(audit_event, events_holder, on_event, max_events=evt_max)
                                     logger.info(
                                         "claude_code_auto_answer",
                                         tool_use_id=tool_use_id,
                                         answer_preview=answer[:100],
                                         count=auto_answer_count,
+                                        is_plan_submit=is_plan_submit,
                                     )
+                                    _skip_emit = True
+                                    continue  # 已手动发射原始事件，跳过末尾的统一发射
 
-                    # 审计事件捕获
-                    await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                    # 审计事件捕获（未被 auto-answer 拦截的普通事件走此路径）
+                    if not _skip_emit:
+                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
 
                     if abort_event and abort_event.is_set():
                         proc.terminate()
