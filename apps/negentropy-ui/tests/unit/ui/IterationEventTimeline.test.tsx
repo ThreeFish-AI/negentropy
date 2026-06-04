@@ -168,3 +168,109 @@ describe("IterationEventTimeline 事件标题翻译", () => {
     expect(screen.getByText("推理")).toBeInTheDocument();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 交织排序：Engine 事件按 seq 时序穿插在 Claude Code Turn 之间
+// ---------------------------------------------------------------------------
+
+describe("IterationEventTimeline 交织排序", () => {
+  /** 获取对话流容器的子元素列表，每个子元素即一个气泡行。 */
+  function getFlowChildren(container: HTMLElement): Element[] {
+    const flow = container.querySelector(".space-y-2\\.5");
+    if (!flow) return [];
+    return Array.from(flow.children);
+  }
+
+  /** 从气泡行列表中提取标签序列：Turn N / Plan Review / Result / Gate / Evaluation。 */
+  function getBubbleLabels(rows: Element[]): string[] {
+    return rows.map((el) => {
+      // 使用 querySelector 精确匹配 header 内的标签 span
+      // Claude Code Turn: header 含 "Claude Code" span
+      const ccSpan = el.querySelector("span.text-violet-600, span.text-violet-400");
+      if (ccSpan) {
+        // 找同级的 "Turn N" span
+        const turnSpan = el.querySelector("span.text-text-muted");
+        if (turnSpan) {
+          const m = turnSpan.textContent?.match(/^Turn (\d+)$/);
+          if (m) return `Turn ${m[1]}`;
+        }
+        return "Turn ?";
+      }
+      // Engine 气泡：查 "NegentropyEngine" span 后的 type label
+      const engineLabel = el.querySelector("span.text-sky-600, span.text-sky-400");
+      if (engineLabel) {
+        // 找同级的 label span
+        const spans = el.querySelectorAll("span");
+        for (const s of spans) {
+          const t = s.textContent?.trim() ?? "";
+          if (t === "Plan Review") return "Plan Review";
+          if (t.startsWith("结果")) return "Result";
+          if (t.startsWith("门控")) return "Gate";
+          if (t.startsWith("评估")) return "Evaluation";
+        }
+      }
+      return "Unknown";
+    });
+  }
+
+  it("plan_review 按 seq 穿插在 Turn 之间（单 Turn 刷新）", () => {
+    // seq=0 assistant → Turn 1 | seq=1 plan_review | seq=2 assistant → Turn 2
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "第一步" } }),
+      makeEvent({ seq: 1, event_type: "plan_review", title: "Plan Review", tool_name: null, payload: { verdict: "approve", score: 85, module_reviews: [], feedback: null, reflection: null } }),
+      makeEvent({ seq: 2, event_type: "assistant", title: null, tool_name: null, payload: { text: "第二步" } }),
+    ];
+
+    const { container } = render(<IterationEventTimeline events={events} />);
+    const labels = getBubbleLabels(getFlowChildren(container));
+
+    // 期望：Turn 1 → Plan Review → Turn 2（plan_review 按 seq 穿插在两个 Turn 之间）
+    expect(labels).toEqual(["Turn 1", "Plan Review", "Turn 2"]);
+  });
+
+  it("result/gate/evaluation 在最后一个 Turn 之后按 seq 排列", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "执行" } }),
+      makeEvent({ seq: 1, event_type: "result", title: "success", tool_name: null, payload: { result: "done", is_error: false } }),
+      makeEvent({ seq: 2, event_type: "gate", title: "gate", tool_name: null, payload: { command: "pytest", exit_code: 0, output: "OK" } }),
+      makeEvent({ seq: 3, event_type: "evaluation", title: "eval", tool_name: null, payload: { score: 90, verdict: "succeeded", reflection: "好" } }),
+    ];
+
+    const { container } = render(<IterationEventTimeline events={events} />);
+    const labels = getBubbleLabels(getFlowChildren(container));
+
+    // 期望：Turn 1 → Result → Gate → Evaluation
+    expect(labels).toEqual(["Turn 1", "Result", "Gate", "Evaluation"]);
+  });
+
+  it("多个 plan_review 穿插时全局 Turn 编号连续", () => {
+    // seq=0 assistant → Turn 1 | seq=1 plan_review | seq=2 assistant → Turn 2 | seq=3 plan_review | seq=4 assistant → Turn 3
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "第一步" } }),
+      makeEvent({ seq: 1, event_type: "plan_review", title: "Plan Review", tool_name: null, payload: { verdict: "approve", score: 80, module_reviews: [], feedback: null, reflection: null } }),
+      makeEvent({ seq: 2, event_type: "assistant", title: null, tool_name: null, payload: { text: "第二步" } }),
+      makeEvent({ seq: 3, event_type: "plan_review", title: "Plan Review", tool_name: null, payload: { verdict: "refine", score: 60, module_reviews: [], feedback: null, reflection: null } }),
+      makeEvent({ seq: 4, event_type: "assistant", title: null, tool_name: null, payload: { text: "第三步" } }),
+    ];
+
+    const { container } = render(<IterationEventTimeline events={events} />);
+    const labels = getBubbleLabels(getFlowChildren(container));
+
+    // 期望：Turn 1 → Plan Review → Turn 2 → Plan Review → Turn 3（编号连续不重置）
+    expect(labels).toEqual(["Turn 1", "Plan Review", "Turn 2", "Plan Review", "Turn 3"]);
+  });
+
+  it("纯 execution 事件无 Engine 事件时仍正常渲染", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "干活" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /x.py" }),
+    ];
+
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    // 单个 Turn，无 Engine 气泡
+    const labels = getBubbleLabels(getFlowChildren(container));
+    expect(labels).toEqual(["Turn 1"]);
+    expect(screen.queryByText("NegentropyEngine")).not.toBeInTheDocument();
+  });
+});
