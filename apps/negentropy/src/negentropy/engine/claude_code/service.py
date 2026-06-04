@@ -130,14 +130,25 @@ def _tool_title(name: str | None, tool_input: Any) -> str | None:
         return None
     if not isinstance(tool_input, dict):
         return name
-    for key in ("file_path", "path", "notebook_path", "command", "pattern", "query", "url"):
+    for key in (
+        "file_path",
+        "path",
+        "notebook_path",
+        "command",
+        "pattern",
+        "query",
+        "url",
+        # TaskCreate/TaskUpdate 等工具的语义字段：subject（短标题）优先于 description（长描述）
+        "subject",
+        "description",
+    ):
         val = tool_input.get(key)
         if isinstance(val, str) and val:
             # 上限 200：容纳绝大多数真实 workspace 路径/命令（"Read " + 200 < 255 DB 标题列上限）；
-            # 仍保留头部截断——command/pattern/query 的头部即主信息，路径则交由前端「路径感知」单行
+            # 仍保留头部截断——command/pattern/query/subject/description 的头部即主信息，路径则交由前端「路径感知」单行
             # 截断保留文件名尾部。
             short = val if len(val) <= 200 else val[:200] + "…"
-            sep = ": " if key in ("command", "pattern", "query") else " "
+            sep = ": " if key in ("command", "pattern", "query", "subject", "description") else " "
             return f"{name}{sep}{short}"
     return name
 

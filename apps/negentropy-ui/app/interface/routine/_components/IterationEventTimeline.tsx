@@ -20,6 +20,9 @@ import {
   eventTypeIcon,
   resolveEventTitle,
   scoreColorClass,
+  deriveTaskStatus,
+  taskStatusDotClass,
+  taskStatusLabel,
 } from "./status-style";
 
 // ---------------------------------------------------------------------------
@@ -693,6 +696,7 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
   const isError = payloadIsError(ev.payload);
   const icon = eventTypeIcon(ev.event_type, ev.tool_name);
   const title = resolveEventTitle(ev.event_type, ev.title || extractSubtitle(ev.payload), ev.tool_name);
+  const taskStatus = deriveTaskStatus(ev);
   const hasDetail = ev.payload && Object.keys(ev.payload).length > 0;
 
   return (
@@ -722,6 +726,14 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
           />
         )}
         <EventTitle title={title} />
+        {taskStatus && (
+          <span className="flex shrink-0 items-center gap-1">
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${taskStatusDotClass(taskStatus)}`}
+            />
+            <span className="text-[9px] font-medium text-text-muted">{taskStatusLabel(taskStatus)}</span>
+          </span>
+        )}
         {isError && (
           <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
             error

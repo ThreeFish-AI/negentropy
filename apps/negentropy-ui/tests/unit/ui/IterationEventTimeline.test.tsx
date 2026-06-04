@@ -274,3 +274,119 @@ describe("IterationEventTimeline 交织排序", () => {
     expect(screen.queryByText("NegentropyEngine")).not.toBeInTheDocument();
   });
 });
+
+// ---------------------------------------------------------------------------
+// TaskCreate / TaskUpdate：标题翻译 + 状态指示器
+// ---------------------------------------------------------------------------
+
+describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
+  it("旧 TaskUpdate 裸标题翻译为「更新任务」", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "TaskUpdate",
+            title: "TaskUpdate",
+            payload: { input: { status: "in_progress", taskId: "3" } },
+          }),
+        ]}
+      />,
+    );
+    // EVENT_TITLE_LABELS 中 TaskUpdate → "更新任务"
+    expect(screen.getAllByText("更新任务").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("TaskUpdate")).not.toBeInTheDocument();
+  });
+
+  it("旧 TaskCreate 裸标题翻译为「创建任务」", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "TaskCreate",
+            title: "TaskCreate",
+            payload: { input: { subject: "Fix auth" } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getAllByText("创建任务").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("TaskCreate")).not.toBeInTheDocument();
+  });
+
+  it("TaskUpdate 描述性标题（含 description）透传不翻译", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "TaskUpdate",
+            title: "TaskUpdate: 已完成行政区划迁移",
+            payload: { input: { status: "completed", taskId: "4", description: "已完成行政区划迁移" } },
+          }),
+        ]}
+      />,
+    );
+    // 描述性标题不在 EVENT_TITLE_LABELS 中，直接透传
+    expect(screen.getByText("TaskUpdate: 已完成行政区划迁移")).toBeInTheDocument();
+  });
+
+  it("TaskUpdate in_progress 事件渲染状态指示器（蓝点 + 标签）", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "TaskUpdate",
+            title: "TaskUpdate",
+            payload: { input: { status: "in_progress", taskId: "3" } },
+          }),
+        ]}
+      />,
+    );
+    // 状态标签文字
+    expect(screen.getByText("in progress")).toBeInTheDocument();
+    // 状态圆点（animate-pulse 类）
+    const dot = document.querySelector(".animate-pulse.inline-block");
+    expect(dot).not.toBeNull();
+    expect(dot?.className).toContain("bg-sky-500");
+  });
+
+  it("TaskUpdate completed 事件渲染绿色状态圆点", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "TaskUpdate",
+            title: "TaskUpdate",
+            payload: { input: { status: "completed", taskId: "3" } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("completed")).toBeInTheDocument();
+    const dot = document.querySelector(".bg-emerald-500.inline-block");
+    expect(dot).not.toBeNull();
+  });
+
+  it("TaskCreate 无显式 status 默认显示 pending 状态", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "TaskCreate",
+            title: "TaskCreate",
+            payload: { input: { subject: "Fix auth" } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("pending")).toBeInTheDocument();
+    const dot = document.querySelector(".bg-text-muted.inline-block");
+    expect(dot).not.toBeNull();
+  });
+
+  it("非 Task 工具事件不显示状态指示器", () => {
+    render(<IterationEventTimeline events={[makeEvent({ tool_name: "Read", title: "Read /x.py" })]} />);
+    expect(screen.queryByText("pending")).not.toBeInTheDocument();
+    expect(screen.queryByText("in progress")).not.toBeInTheDocument();
+    expect(screen.queryByText("completed")).not.toBeInTheDocument();
+  });
+});
