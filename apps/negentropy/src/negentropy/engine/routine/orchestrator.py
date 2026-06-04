@@ -85,6 +85,43 @@ def _cap(value: str | None, limit: int = _EVENT_FIELD_CAP) -> str | None:
     return value
 
 
+def _build_scope_system_prompt(routine: Routine) -> str:
+    """构建文件系统作用域限制的 system prompt 片段（对所有 routine 类型生效）。
+
+    system_prompt 层级的指令优先级高于用户 prompt 中的任务描述，
+    使作用域限制即使当 goal 文本引用了外部绝对路径时也能生效。
+
+    根因修复：worktree 存储在项目父目录的 ``.negentropy-worktrees/`` 下，
+    与兄弟项目（如 coding-proxy、attention）同级；Claude Code 自主探索
+    时可能误读这些不相关项目。本函数通过 system prompt 显式限定读取范围。
+    """
+    cwd = routine.cwd or ""
+    wt_path = getattr(routine, "worktree_path", None) or ""
+    is_wt = phase_mod.is_worktree_routine(routine)
+
+    if is_wt and wt_path:
+        source_line = f"\n  - The source project: `{cwd}` (read-only reference)." if cwd else ""
+        return (
+            "## File System Scope (文件系统作用域)\n"
+            f"Working directory: `{wt_path}` (isolated worktree).\n"
+            "READ scope — you may ONLY read files within:\n"
+            f"  1. The worktree directory and its subdirectories.{source_line}\n"
+            "  2. Absolute paths explicitly referenced in the task goal.\n"
+            "You MUST NOT read, list, or explore sibling directories of the worktree parent "
+            "or any other local projects outside the above scope.\n"
+            "Exceptions: WebSearch, WebFetch, and MCP tools are not restricted."
+        )
+    elif cwd:
+        return (
+            "## File System Scope (文件系统作用域)\n"
+            f"Project root: `{cwd}`.\n"
+            "You may ONLY read files within the project root and its subdirectories. "
+            "You MUST NOT read, list, or explore sibling directories or other local projects.\n"
+            "Exceptions: WebSearch, WebFetch, and MCP tools are not restricted."
+        )
+    return ""
+
+
 def _lease_extension() -> timedelta:
     """本进程仍在执行时的 lease 顺延量（= inspector 间隔 + slack）。"""
     return timedelta(seconds=settings.routine.inspector_interval_seconds + settings.routine.lease_slack_seconds)
@@ -918,7 +955,16 @@ class RoutineOrchestrator:
             config.max_events_per_iter = int(overrides["max_events_per_iter"])
         if overrides.get("model"):
             config.model = overrides["model"]
-        if overrides.get("system_prompt"):
+        # 注入作用域限制到 system_prompt（最高优先级指令层）。
+        # 即使 goal 文本引用了外部绝对路径，system prompt 层的作用域限制也能防止
+        # Claude Code 自主探索兄弟项目目录。
+        scope_instruction = _build_scope_system_prompt(routine)
+        if scope_instruction:
+            if overrides.get("system_prompt"):
+                config.system_prompt = scope_instruction + "\n\n" + overrides["system_prompt"]
+            else:
+                config.system_prompt = scope_instruction
+        elif overrides.get("system_prompt"):
             config.system_prompt = overrides["system_prompt"]
         # 工具白名单优先级：per-routine config > Routine 扩展默认 > 全局默认。
         if overrides.get("allowed_tools"):
