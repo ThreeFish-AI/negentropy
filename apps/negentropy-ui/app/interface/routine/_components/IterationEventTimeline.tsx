@@ -123,36 +123,58 @@ type ConversationBlock =
   | { kind: "plan_review"; event: RoutineIterationEventDTO }
   | { kind: "engine_event"; event: RoutineIterationEventDTO; label: string };
 
-/** 将所有事件编排为对话块序列。 */
+/** 将已累积的 execution 事件聚合为 Turn 块并追加到 blocks，同时维护全局 Turn 编号。 */
+function flushAccumulator(
+  acc: RoutineIterationEventDTO[],
+  blocks: ConversationBlock[],
+  turnOffset: { value: number },
+): void {
+  if (acc.length === 0) return;
+  const turns = groupIntoTurns(acc);
+  for (let i = 0; i < turns.length; i++) {
+    // 重编号以保持全局连续（groupIntoTurns 内部从 1 开始，需加上偏移）
+    turns[i].turnNumber = turnOffset.value + i + 1;
+    // defaultExpanded 暂设 false，由 buildConversationBlocks 后置统一设置
+    blocks.push({ kind: "turn", turn: turns[i], defaultExpanded: false });
+  }
+  turnOffset.value += turns.length;
+  acc.length = 0;
+}
+
+/** 将所有事件按 seq 时序编排为对话块序列（Claude Code Turn 与 Engine 事件交织排列）。 */
 function buildConversationBlocks(
-  groups: Record<EventGroup, RoutineIterationEventDTO[]>,
-  execTurns: EventTurn[],
+  sortedEvents: RoutineIterationEventDTO[],
 ): ConversationBlock[] {
   const blocks: ConversationBlock[] = [];
-  const order: EventGroup[] = ["execution", "plan_review", "result", "gate", "evaluation"];
+  const acc: RoutineIterationEventDTO[] = [];
+  const turnOffset = { value: 0 };
 
-  for (const g of order) {
-    const list = groups[g];
-    if (!list || list.length === 0) continue;
+  for (const ev of [...sortedEvents].sort((a, b) => a.seq - b.seq)) {
+    const g = eventGroup(ev.event_type);
 
     if (g === "execution") {
-      for (let i = 0; i < execTurns.length; i++) {
-        const turn = execTurns[i];
-        blocks.push({
-          kind: "turn",
-          turn,
-          defaultExpanded: isTurnDefaultExpanded(turn, i, execTurns.length),
-        });
-      }
-    } else if (g === "plan_review") {
-      for (const ev of list) {
-        blocks.push({ kind: "plan_review", event: ev });
-      }
+      acc.push(ev);
     } else {
-      // result / gate / evaluation → Engine 右侧气泡
-      for (const ev of list) {
+      // Engine 事件前先刷出已累积的 execution Turn
+      flushAccumulator(acc, blocks, turnOffset);
+
+      if (g === "plan_review") {
+        blocks.push({ kind: "plan_review", event: ev });
+      } else {
+        // result / gate / evaluation → Engine 右侧气泡
         blocks.push({ kind: "engine_event", event: ev, label: EVENT_GROUP_LABEL[g] });
       }
+    }
+  }
+
+  // 刷出尾部残留的 execution 事件
+  flushAccumulator(acc, blocks, turnOffset);
+
+  // 设置 defaultExpanded：最后一轮 + 含错轮次展开
+  const totalTurns = turnOffset.value;
+  for (const b of blocks) {
+    if (b.kind === "turn") {
+      b.defaultExpanded = isTurnDefaultExpanded(b.turn, b.turn.turnNumber - 1, totalTurns);
     }
   }
 
@@ -177,9 +199,10 @@ export function IterationEventTimeline({
   /** 是否处于在途实时态（显示 LIVE 脉冲）。 */
   live?: boolean;
 }) {
+  // 统计栏仍按分类计数
   const groups = useMemo(() => groupEvents(events), [events]);
-  const execTurns = useMemo(() => groupIntoTurns(groups.execution), [groups.execution]);
-  const blocks = useMemo(() => buildConversationBlocks(groups, execTurns), [groups, execTurns]);
+  // 对话块按 seq 时序交织排列（Turn 与 Engine 事件穿插）
+  const blocks = useMemo(() => buildConversationBlocks(events), [events]);
 
   if (events.length === 0) {
     return null; // 空态由抽屉统一渲染
