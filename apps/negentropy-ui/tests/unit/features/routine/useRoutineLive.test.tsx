@@ -93,6 +93,7 @@ function makeIteration(id: string): RoutineIterationDTO {
     gate_exit_code: null,
     started_at: "2026-01-01T00:00:00.000Z",
     finished_at: null,
+    metrics: {},
   };
 }
 
