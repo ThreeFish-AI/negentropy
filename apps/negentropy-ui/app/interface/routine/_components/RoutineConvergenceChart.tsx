@@ -13,6 +13,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+
 import type { RoutineIterationDTO, Verdict } from "@/features/routine";
 
 import { NULL_HEX, VERDICT_HEX } from "./chart-colors";
@@ -64,10 +66,7 @@ export function RoutineConvergenceChart({
   const hasScores = data.some((d) => d.score != null);
 
   return (
-    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-        评分收敛趋势 · Convergence
-      </h3>
+    <CollapsibleSection title="评分收敛趋势 · Convergence">
       {!hasScores ? (
         <p className="py-8 text-center text-[11px] text-text-muted">尚无评分数据</p>
       ) : (
@@ -114,6 +113,6 @@ export function RoutineConvergenceChart({
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }

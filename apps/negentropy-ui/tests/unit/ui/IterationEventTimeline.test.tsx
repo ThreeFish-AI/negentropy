@@ -1,9 +1,23 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { describe, expect, it } from "vitest";
 
 import { IterationEventTimeline } from "@/app/interface/routine/_components/IterationEventTimeline";
 import type { RoutineIterationEventDTO } from "@/features/routine";
+
+/** Turn 气泡默认折叠；点击 header 按钮展开后再检查 EventRow 内容。
+ *  注意：同一 button 内可能有多个 span 匹配 "Turn N"（序号标签+标题），需去重避免 double toggle。 */
+function expandAllTurns() {
+  const turnSpans = screen.getAllByText(/^Turn \d+$/);
+  const clicked = new Set<HTMLButtonElement>();
+  for (const span of turnSpans) {
+    const btn = span.closest("button");
+    if (btn && !clicked.has(btn)) {
+      fireEvent.click(btn);
+      clicked.add(btn);
+    }
+  }
+}
 
 /** 构造一条 tool_use 审计事件（归入「执行」分组，必渲染一行）。 */
 function makeEvent(overrides: Partial<RoutineIterationEventDTO> = {}): RoutineIterationEventDTO {
@@ -26,6 +40,7 @@ describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳",
   it("路径标题：文件名尾部成独立块永不裁剪，完整标题进 title 悬浮", () => {
     const title = "Read /repo/a/b/c/target_file.py";
     render(<IterationEventTimeline events={[makeEvent({ title })]} />);
+    expandAllTurns();
     // EventRow 使用 EventTitle 组件做路径拆分
     expect(screen.getByText("target_file.py")).toBeInTheDocument();
     // 完整标题可悬浮查看（拆分为头/尾两段，故整串只存在于 title 属性）
@@ -35,6 +50,7 @@ describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳",
   it("每行渲染本地化时间戳，悬浮显示完整日期时间", () => {
     const created = "2026-06-01T09:08:07+00:00";
     render(<IterationEventTimeline events={[makeEvent({ created_at: created })]} />);
+    expandAllTurns();
     // EventRow 直接可见，无需展开
     expect(screen.getByText(new Date(created).toLocaleTimeString())).toBeInTheDocument();
     expect(document.querySelector(`[title="${new Date(created).toLocaleString()}"]`)).not.toBeNull();
@@ -43,12 +59,14 @@ describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳",
   it("created_at 为空时不渲染时间戳（防御 null，覆盖在途未落库占位）", () => {
     const probe = new Date("2026-06-01T09:08:07+00:00").toLocaleTimeString();
     render(<IterationEventTimeline events={[makeEvent({ created_at: null })]} />);
+    expandAllTurns();
     // EventRow 直接可见，无时间戳
     expect(screen.queryByText(probe)).toBeNull();
   });
 
   it("非路径标题（无斜杠）整串渲染，不误拆尾段", () => {
     render(<IterationEventTimeline events={[makeEvent({ tool_name: "Bash", title: "Bash: pytest -q" })]} />);
+    expandAllTurns();
     expect(screen.getByText("Bash: pytest -q")).toBeInTheDocument();
   });
 });
@@ -62,6 +80,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
+    expandAllTurns();
     // EventRow 直接可见，显示翻译后的标题
     expect(screen.getAllByText("会话初始化").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("init")).not.toBeInTheDocument();
@@ -73,6 +92,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: "api_retry", tool_name: null, payload: {} })]}
       />,
     );
+    expandAllTurns();
     expect(screen.getAllByText("API 重试").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("api_retry")).not.toBeInTheDocument();
   });
@@ -83,6 +103,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: "task_started", tool_name: null, payload: {} })]}
       />,
     );
+    expandAllTurns();
     expect(screen.getAllByText("后台任务启动").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -92,6 +113,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: "task_progress", tool_name: null, payload: {} })]}
       />,
     );
+    expandAllTurns();
     expect(screen.getAllByText("任务进度").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -108,6 +130,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
+    expandAllTurns();
     expect(screen.getAllByText("任务通知").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -117,6 +140,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "system", title: null, tool_name: null, payload: {} })]}
       />,
     );
+    expandAllTurns();
     expect(screen.getAllByText("系统事件").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -126,6 +150,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "assistant", title: "thinking", tool_name: null, payload: { text: "…" } })]}
       />,
     );
+    expandAllTurns();
     // EventRow 直接渲染，显示翻译后的标题
     expect(screen.getAllByText("思考").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("thinking")).not.toBeInTheDocument();
@@ -158,6 +183,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
 
   it("tool_use 描述性标题不受翻译影响（透传原始 title）", () => {
     render(<IterationEventTimeline events={[makeEvent({ title: "Read /repo/app.py" })]} />);
+    expandAllTurns();
     expect(screen.getByText("app.py")).toBeInTheDocument(); // 路径拆分后文件名独立
     expect(screen.queryByText("Read /repo/app.py")).not.toBeInTheDocument(); // 整串不在文本中
   });
@@ -168,6 +194,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "assistant", title: null, tool_name: null, payload: { text: "…" } })]}
       />,
     );
+    expandAllTurns();
     // EventRow 直接可见，显示「推理」
     expect(screen.getAllByText("推理").length).toBeGreaterThanOrEqual(1);
   });
@@ -192,10 +219,10 @@ describe("IterationEventTimeline 交织排序", () => {
       // Claude Code Turn: header 含 "Claude Code" span
       const ccSpan = el.querySelector("span.text-violet-600, span.text-violet-400");
       if (ccSpan) {
-        // 找同级的 "Turn N" span
-        const turnSpan = el.querySelector("span.text-text-muted");
-        if (turnSpan) {
-          const m = turnSpan.textContent?.match(/^Turn (\d+)$/);
+        // 从所有 span 中找到文本匹配 "Turn N" 的那个
+        const spans = el.querySelectorAll("span");
+        for (const s of spans) {
+          const m = s.textContent?.match(/^Turn (\d+)$/);
           if (m) return `Turn ${m[1]}`;
         }
         return "Turn ?";
@@ -311,6 +338,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandAllTurns();
     // EVENT_TITLE_LABELS 中 TaskUpdate → "更新任务"
     expect(screen.getAllByText("更新任务").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("TaskUpdate")).not.toBeInTheDocument();
@@ -328,6 +356,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandAllTurns();
     expect(screen.getAllByText("创建任务").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("TaskCreate")).not.toBeInTheDocument();
   });
@@ -344,6 +373,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandAllTurns();
     // 描述性标题不在 EVENT_TITLE_LABELS 中，直接透传
     expect(screen.getByText("TaskUpdate: 已完成行政区划迁移")).toBeInTheDocument();
   });
@@ -360,6 +390,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandAllTurns();
     // EventRow 直接可见，无需展开
     expect(screen.getByText("in progress")).toBeInTheDocument();
     // 状态圆点（animate-pulse 类）
@@ -380,6 +411,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandAllTurns();
     expect(screen.getByText("completed")).toBeInTheDocument();
     const dot = document.querySelector(".bg-emerald-500.inline-block");
     expect(dot).not.toBeNull();
@@ -397,6 +429,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandAllTurns();
     expect(screen.getByText("pending")).toBeInTheDocument();
     const dot = document.querySelector(".bg-text-muted.inline-block");
     expect(dot).not.toBeNull();
@@ -414,8 +447,8 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
 // Turn → Event 直接渲染（无 ActionGroup 中间层）
 // ---------------------------------------------------------------------------
 
-describe("IterationEventTimeline Turn → Event 直接渲染", () => {
-  it("Turn 内所有事件直接渲染为 EventRow，无需展开", () => {
+describe("IterationEventTimeline Turn 折叠展开", () => {
+  it("Turn 展开后内部事件渲染为 EventRow", () => {
     const events: RoutineIterationEventDTO[] = [
       makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "动作" } }),
       makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /x.ts", created_at: "2026-06-01T09:08:07+00:00" }),
@@ -423,13 +456,19 @@ describe("IterationEventTimeline Turn → Event 直接渲染", () => {
     ];
     render(<IterationEventTimeline events={events} />);
 
-    // EventRow 的 seq 标记直接可见（无需展开）
+    // 折叠态：EventRow 不可见
+    expect(screen.queryByText("#0")).not.toBeInTheDocument();
+
+    // 展开 Turn
+    expandAllTurns();
+
+    // 展开后 EventRow 的 seq 标记可见
     expect(screen.getByText("#0")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
     expect(screen.getByText("#2")).toBeInTheDocument();
   });
 
-  it("多 Turn 时各 Turn 事件独立平铺", () => {
+  it("多 Turn 时各 Turn 独立折叠/展开", () => {
     const events: RoutineIterationEventDTO[] = [
       makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "第一步" } }),
       makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /a.ts" }),
@@ -439,6 +478,9 @@ describe("IterationEventTimeline Turn → Event 直接渲染", () => {
       makeEvent({ seq: 5, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
     ];
     render(<IterationEventTimeline events={events} />);
+
+    // 展开 Turn 1 和 Turn 2
+    expandAllTurns();
 
     // Turn 1 和 Turn 2 的 seq 标记均可见
     expect(screen.getByText("#0")).toBeInTheDocument();
