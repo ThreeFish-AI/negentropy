@@ -1,20 +1,23 @@
 "use client";
 
-import { useState, useCallback, type FormEvent } from "react";
+import { useCallback, type FormEvent } from "react";
+import { useWikiSearch } from "@/components/WikiSearchProvider";
 
 /**
- * Wiki Header 搜索框 — UI 壳，后续接入搜索 API。
+ * Wiki 搜索框 — 点击触发全站单例搜索 modal（⌘K 由 WikiSearchProvider 统一监听）。
+ *
+ * 放置于侧栏顶部（searchSlot）。本组件仅作触发器，不持有 modal 状态，
+ * 故桌面 aside 与移动抽屉两处复用时不会产生重复弹窗。
  */
 export function WikiSearchBox() {
-  const [value, setValue] = useState("");
+  const { openSearch } = useWikiSearch();
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
-      if (!value.trim()) return;
-      // TODO: 接入后端搜索 API 或跳转搜索结果页
+      openSearch();
     },
-    [value],
+    [openSearch],
   );
 
   return (
@@ -34,10 +37,13 @@ export function WikiSearchBox() {
       </svg>
       <input
         type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
         placeholder="搜索文档..."
         aria-label="搜索文档"
+        readOnly
+        onClick={() => openSearch()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") openSearch();
+        }}
       />
       <kbd className="wiki-search-kbd" aria-hidden="true">
         ⌘K
