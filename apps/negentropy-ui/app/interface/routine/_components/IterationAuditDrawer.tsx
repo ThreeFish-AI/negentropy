@@ -109,12 +109,12 @@ export function IterationAuditDrawer({
       <div className="px-5 py-4">
         {error && <ErrorBanner message={error} onRetry={load} />}
 
-        {/* MCP Server/Tool 快照面板（仅当迭代携带 mcp_servers 元数据时显示） */}
-        {iteration?.metrics?.mcp_servers?.length ? (
+        {/* MCP Server/Tool 面板 — 从系统 MCP API 实时获取已启用的 Server 及 Tools */}
+        {iteration && (
           <div className="mb-3">
-            <McpServersPanel servers={iteration.metrics.mcp_servers} />
+            <McpServersPanel />
           </div>
-        ) : null}
+        )}
 
         {loading && merged.length === 0 ? (
           <TimelineSkeleton />
@@ -172,15 +172,6 @@ function IterationMetaBar({
           })}
         </>
       )}
-      {/* MCP Server/Tool 摘要 */}
-      {iteration.metrics?.mcp_servers?.length ? (
-        <>
-          <span className="text-text-muted">·</span>
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:text-violet-300">
-            {iteration.metrics.mcp_servers.length} MCP · {iteration.metrics.mcp_servers.reduce((s, sv) => s + sv.tools.length, 0)} Tools
-          </span>
-        </>
-      ) : null}
       {/* 当前阶段主导人指示（仅活跃迭代） */}
       {driver && (
         <>
