@@ -8,6 +8,7 @@ import { JsonViewer } from "@/components/ui/JsonViewer";
 import {
   AGENT_ROLE_META,
   deriveAgentRole,
+  type AgentRole,
   type PlanReviewPayload,
   type RoutineIterationEventDTO,
 } from "@/features/routine";
@@ -218,6 +219,54 @@ type ConversationBlock =
   | { kind: "plan_review"; event: RoutineIterationEventDTO }
   | { kind: "engine_event"; event: RoutineIterationEventDTO; label: string };
 
+// ---------------------------------------------------------------------------
+// 同发言人聚合 —— 将连续同 role 的 ConversationBlock 合并为一组
+// ---------------------------------------------------------------------------
+
+/** 连续同发言人对话块聚合。 */
+interface SpeakerGroup {
+  /** 稳定唯一 key（用于 React 列表渲染）。 */
+  id: string;
+  /** 聚合后的 Agent 角色。 */
+  role: AgentRole;
+  /** 连续同 role 的对话块序列。 */
+  blocks: ConversationBlock[];
+}
+
+/** 从 ConversationBlock 推导发言人角色。 */
+function blockRole(block: ConversationBlock): AgentRole {
+  return block.kind === "turn" ? "claude_code" : "engine";
+}
+
+/** 将连续同发言人的 ConversationBlock 聚合为 SpeakerGroup 序列。 */
+function groupConsecutiveBlocks(blocks: ConversationBlock[]): SpeakerGroup[] {
+  if (blocks.length === 0) return [];
+
+  const groups: SpeakerGroup[] = [];
+  let current: SpeakerGroup | null = null;
+
+  for (const block of blocks) {
+    const role = blockRole(block);
+
+    if (current && current.role === role) {
+      current.blocks.push(block);
+    } else {
+      if (current) groups.push(current);
+      const firstSeq = block.kind === "turn"
+        ? block.turn.turnNumber
+        : block.event.seq;
+      current = {
+        id: `group-${role}-${firstSeq}`,
+        role,
+        blocks: [block],
+      };
+    }
+  }
+
+  if (current) groups.push(current);
+  return groups;
+}
+
 /** 将已累积的 execution 事件聚合为 Turn 块并追加到 blocks，同时维护全局 Turn 编号。 */
 function flushAccumulator(
   acc: RoutineIterationEventDTO[],
@@ -289,6 +338,8 @@ export function IterationEventTimeline({
   const groups = useMemo(() => groupEvents(events), [events]);
   // 对话块按 seq 时序交织排列（Turn 与 Engine 事件穿插）
   const blocks = useMemo(() => buildConversationBlocks(events), [events]);
+  // 连续同发言人聚合
+  const speakerGroups = useMemo(() => groupConsecutiveBlocks(blocks), [blocks]);
 
   if (events.length === 0) {
     return null; // 空态由抽屉统一渲染
@@ -319,34 +370,11 @@ export function IterationEventTimeline({
         )}
       </div>
 
-      {/* 对话流 */}
+      {/* 对话流（按同发言人聚合） */}
       <div className="space-y-2.5">
-        {blocks.map((block) => {
-          switch (block.kind) {
-            case "turn":
-              return (
-                <ClaudeCodeTurnBubble
-                  key={`turn-${block.turn.turnNumber}`}
-                  turn={block.turn}
-                />
-              );
-            case "plan_review":
-              return (
-                <EngineReviewBubble
-                  key={`review-${block.event.seq}`}
-                  ev={block.event}
-                />
-              );
-            case "engine_event":
-              return (
-                <EngineEventBubble
-                  key={`engine-${block.event.seq}`}
-                  ev={block.event}
-                  label={block.label}
-                />
-              );
-          }
-        })}
+        {speakerGroups.map((group) => (
+          <SpeakerGroupBubble key={group.id} group={group} />
+        ))}
       </div>
     </div>
   );
@@ -356,39 +384,122 @@ export function IterationEventTimeline({
 // 对话气泡组件
 // ---------------------------------------------------------------------------
 
+/** 按对话块类型分发渲染，透传 showHeader 控制头像/标签显隐。 */
+function renderBlock(block: ConversationBlock, showHeader: boolean) {
+  switch (block.kind) {
+    case "turn":
+      return (
+        <ClaudeCodeTurnBubble
+          key={`turn-${block.turn.turnNumber}`}
+          turn={block.turn}
+          showHeader={showHeader}
+        />
+      );
+    case "plan_review":
+      return (
+        <EngineReviewBubble
+          key={`review-${block.event.seq}`}
+          ev={block.event}
+          showHeader={showHeader}
+        />
+      );
+    case "engine_event":
+      return (
+        <EngineEventBubble
+          key={`engine-${block.event.seq}`}
+          ev={block.event}
+          label={block.label}
+          showHeader={showHeader}
+        />
+      );
+  }
+}
+
+/** 同发言人聚合气泡：单块组直接渲染，多块组共享头像+标签。 */
+function SpeakerGroupBubble({ group }: { group: SpeakerGroup }) {
+  const meta = AGENT_ROLE_META[group.role];
+  const Icon = meta.icon;
+  const isLeft = group.role === "claude_code";
+
+  // 单块组：直接渲染完整气泡（向后兼容，零视觉变化）
+  if (group.blocks.length === 1) {
+    return renderBlock(group.blocks[0], true);
+  }
+
+  // 多块组：头像+标签仅显示一次，子气泡紧凑堆叠
+  return (
+    <div className={cn("flex gap-2.5 py-0.5", !isLeft && "flex-row-reverse")}>
+      {/* 统一头像 */}
+      <div className="flex shrink-0 flex-col items-center pt-2">
+        <div className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-full",
+          isLeft ? "bg-violet-500/10" : "bg-sky-500/10",
+        )}>
+          <Icon className={cn(
+            "h-3.5 w-3.5",
+            isLeft ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400",
+          )} />
+        </div>
+      </div>
+      {/* 聚合内容区 */}
+      <div className="min-w-0 max-w-[85%] space-y-1.5">
+        {/* 统一发言人标签 */}
+        <div className="flex items-center gap-2 px-1">
+          <span className={cn(
+            "text-[10px] font-semibold",
+            isLeft ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400",
+          )}>
+            {meta.label}
+          </span>
+        </div>
+        {/* 子气泡（不含头像/发言人标签） */}
+        {group.blocks.map((block) => renderBlock(block, false))}
+      </div>
+    </div>
+  );
+}
+
 /** Claude Code Turn 气泡（左侧）。
  *  Turn 不再可折叠，ActionGroupRow 列表始终在 Header 下方直接展示，
  *  消除 Turn 标题与 ActionGroup 标题的重复文案问题。 */
 function ClaudeCodeTurnBubble({
   turn,
+  showHeader = true,
 }: {
   turn: EventTurn;
+  /** 是否显示头像列和发言人标签（聚合时子气泡设为 false）。 */
+  showHeader?: boolean;
 }) {
   const title = deriveTurnTitle(turn);
   const actionGroups = useMemo(() => groupIntoActions(turn.events), [turn.events]);
 
   return (
-    <div className="flex gap-2.5 py-0.5">
-      {/* 左侧头像 */}
-      <div className="flex shrink-0 flex-col items-center pt-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10">
-          <Bot className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+    <div className={cn("py-0.5", showHeader && "flex gap-2.5")}>
+      {/* 左侧头像（仅独立渲染时显示） */}
+      {showHeader && (
+        <div className="flex shrink-0 flex-col items-center pt-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10">
+            <Bot className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+          </div>
         </div>
-      </div>
+      )}
       {/* 气泡内容 */}
       <div
         className={cn(
-          "min-w-0 max-w-[85%] rounded-2xl rounded-tl-sm border p-3 shadow-sm transition-colors",
+          "min-w-0 rounded-2xl border p-3 shadow-sm transition-colors",
+          showHeader ? "max-w-[85%] rounded-tl-sm" : "w-full",
           turn.hasError
             ? "border-red-500/30 bg-red-500/[0.03]"
             : "border-border bg-card",
         )}
       >
-        {/* Header */}
+        {/* Header（仅独立渲染时显示发言人标签，Turn 序号始终显示） */}
         <div className="mb-1.5 flex items-center gap-2">
-          <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">
-            Claude Code
-          </span>
+          {showHeader && (
+            <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">
+              Claude Code
+            </span>
+          )}
           <span className="text-[10px] text-text-muted">Turn {turn.turnNumber}</span>
           <span className="text-[10px] tabular-nums text-text-muted">{turn.events.length} events</span>
           {turn.hasError && (
@@ -418,7 +529,7 @@ function ClaudeCodeTurnBubble({
 }
 
 /** NegentropyEngine Plan Review 气泡（右侧）。 */
-function EngineReviewBubble({ ev }: { ev: RoutineIterationEventDTO }) {
+function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEventDTO; showHeader?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const payload = ev.payload as unknown as PlanReviewPayload;
   const verdict = payload?.verdict;
@@ -434,21 +545,27 @@ function EngineReviewBubble({ ev }: { ev: RoutineIterationEventDTO }) {
   const vc = verdictConfig[verdict ?? ""] ?? { label: verdict ?? "Review", cls: "bg-muted/60 text-text-secondary" };
 
   return (
-    <div className="flex flex-row-reverse gap-2.5 py-0.5">
-      {/* 右侧头像 */}
-      <div className="flex shrink-0 flex-col items-center pt-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10">
-          <Cpu className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+    <div className={cn("py-0.5", showHeader && "flex flex-row-reverse gap-2.5")}>
+      {/* 右侧头像（仅独立渲染时显示） */}
+      {showHeader && (
+        <div className="flex shrink-0 flex-col items-center pt-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10">
+            <Cpu className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+          </div>
         </div>
-      </div>
+      )}
       {/* 气泡内容 */}
-      <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm border border-sky-500/20 bg-sky-500/[0.03] p-3">
-        {/* Header */}
+      <div className={cn("min-w-0 rounded-2xl border border-sky-500/20 bg-sky-500/[0.03] p-3", showHeader ? "max-w-[85%] rounded-tr-sm" : "w-full")}>
+        {/* Header（仅独立渲染时显示发言人标签，verdict/score 始终显示） */}
         <div className="mb-1.5 flex items-center gap-2">
-          <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
-            NegentropyEngine
-          </span>
-          <span className="text-[10px] text-text-muted">Plan Review</span>
+          {showHeader && (
+            <>
+              <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                NegentropyEngine
+              </span>
+              <span className="text-[10px] text-text-muted">Plan Review</span>
+            </>
+          )}
           <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", vc.cls)}>
             {vc.label}
           </span>
@@ -505,7 +622,7 @@ function EngineReviewBubble({ ev }: { ev: RoutineIterationEventDTO }) {
 }
 
 /** Engine 级事件（result / gate / evaluation）—— 右侧气泡样式。 */
-function EngineEventBubble({ ev, label }: { ev: RoutineIterationEventDTO; label: string }) {
+function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterationEventDTO; label: string; showHeader?: boolean }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const isError = payloadIsError(ev.payload);
@@ -539,28 +656,35 @@ function EngineEventBubble({ ev, label }: { ev: RoutineIterationEventDTO; label:
   const vb = verdictBadge[verdict ?? ""] ?? { label: verdict ?? label, cls: "bg-muted/60 text-text-secondary" };
 
   return (
-    <div className="flex flex-row-reverse gap-2.5 py-0.5">
-      {/* 右侧头像 */}
-      <div className="flex shrink-0 flex-col items-center pt-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10">
-          <Cpu className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+    <div className={cn("py-0.5", showHeader && "flex flex-row-reverse gap-2.5")}>
+      {/* 右侧头像（仅独立渲染时显示） */}
+      {showHeader && (
+        <div className="flex shrink-0 flex-col items-center pt-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10">
+            <Cpu className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+          </div>
         </div>
-      </div>
+      )}
       {/* 气泡 */}
       <div
         className={cn(
-          "min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm border p-3",
+          "min-w-0 rounded-2xl border p-3",
+          showHeader ? "max-w-[85%] rounded-tr-sm" : "w-full",
           isError || gateFailed
             ? "border-red-500/20 bg-red-500/[0.03]"
             : "border-sky-500/20 bg-sky-500/[0.03]",
         )}
       >
-        {/* Header */}
+        {/* Header（仅独立渲染时显示发言人标签） */}
         <div className="mb-1.5 flex items-center gap-2">
-          <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
-            NegentropyEngine
-          </span>
-          <span className="text-[10px] text-text-muted">{label}</span>
+          {showHeader && (
+            <>
+              <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                NegentropyEngine
+              </span>
+              <span className="text-[10px] text-text-muted">{label}</span>
+            </>
+          )}
 
           {/* Result badge */}
           {et === "result" && (
