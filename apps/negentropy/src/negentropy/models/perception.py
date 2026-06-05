@@ -793,7 +793,7 @@ class DocCatalogEntry(Base, UUIDMixin, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug_override: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    position: Mapped[float] = mapped_column(Float, nullable=False, default=0, server_default="0")
     status: Mapped[str] = mapped_column(
         SAEnum(
             "ACTIVE",

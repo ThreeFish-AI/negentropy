@@ -88,7 +88,7 @@ class CatalogNodeDao:
         parent_id: UUID | None = None,
         node_type: str = "folder",
         description: str | None = None,
-        sort_order: int = 0,
+        sort_order: float = 0,
         config: dict | None = None,
     ) -> DocCatalogEntry:
         """创建目录条目节点（FOLDER；DOCUMENT_REF 仅由 assign_document 自动创建）"""
@@ -144,7 +144,7 @@ class CatalogNodeDao:
         parent_id: UUID | None = None,
         node_type: str | None = None,
         description: str | None = None,
-        sort_order: int | None = None,
+        sort_order: float | None = None,
         config: dict | None = None,
     ) -> DocCatalogEntry | None:
         """更新目录条目节点（仅更新传入的非 None 字段）"""

@@ -141,7 +141,7 @@ class CatalogService:
         parent_id: UUID | None = None,
         node_type: str = "folder",
         description: str | None = None,
-        sort_order: int = 0,
+        sort_order: float = 0,
         config: dict | None = None,
     ) -> DocCatalogEntry:
         """创建目录节点（FOLDER 是唯一用户可创建类型）
