@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-import { CornerDownRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, CornerDownRight } from "lucide-react";
 
 import type { RoutineIterationDTO } from "@/features/routine";
 
+import { cn } from "@/lib/utils";
 import { verdictClass } from "./status-style";
 
 function head(text: string | null, n = 140): string {
@@ -18,6 +19,7 @@ function head(text: string | null, n = 140): string {
  * 是闭环之所以「自迭代」的关键。仅展示最近若干条以保持精炼。
  */
 export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO[] }) {
+  const [expanded, setExpanded] = useState(false);
   const asc = useMemo(() => [...iterations].sort((a, b) => a.seq - b.seq), [iterations]);
   const items = useMemo(() => {
     const out: { it: RoutineIterationDTO; next: RoutineIterationDTO | undefined }[] = [];
@@ -40,32 +42,46 @@ export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO
 
   return (
     <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <h3 className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">
-        反思记忆流 · Reflexion（reflection → 下轮 prompt）
-      </h3>
-      <ol className="space-y-3">
-        {items.map(({ it, next }) => (
-          <li key={it.id} className="rounded-lg border border-border p-2.5">
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="font-semibold text-foreground">#{it.seq}</span>
-              {it.verdict && (
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${verdictClass(it.verdict)}`}>
-                  {it.verdict}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-[11px] italic text-text-secondary">💡 {it.reflection}</p>
-            {next?.prompt && (
-              <div className="mt-2 flex items-start gap-1.5 rounded bg-muted/40 p-2 text-[10px] text-text-muted">
-                <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" aria-hidden />
-                <span className="min-w-0">
-                  注入 <span className="font-medium text-text-secondary">#{next.seq}</span> 提示：{head(next.prompt)}
-                </span>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="group flex w-full items-center justify-between gap-2 text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <span>反思记忆流 · Reflexion（reflection → 下轮 prompt）</span>
+        <ChevronDown
+          aria-hidden="true"
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 transition-transform duration-150",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
+      {expanded && (
+        <ol className="mt-3 space-y-3">
+          {items.map(({ it, next }) => (
+            <li key={it.id} className="rounded-lg border border-border p-2.5">
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="font-semibold text-foreground">#{it.seq}</span>
+                {it.verdict && (
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${verdictClass(it.verdict)}`}>
+                    {it.verdict}
+                  </span>
+                )}
               </div>
-            )}
-          </li>
-        ))}
-      </ol>
+              <p className="mt-1 text-[11px] italic text-text-secondary">💡 {it.reflection}</p>
+              {next?.prompt && (
+                <div className="mt-2 flex items-start gap-1.5 rounded bg-muted/40 p-2 text-[10px] text-text-muted">
+                  <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" aria-hidden />
+                  <span className="min-w-0">
+                    注入 <span className="font-medium text-text-secondary">#{next.seq}</span> 提示：{head(next.prompt)}
+                  </span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   );
 }
