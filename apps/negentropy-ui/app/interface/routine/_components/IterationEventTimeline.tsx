@@ -361,8 +361,8 @@ function SpeakerGroupBubble({ group }: { group: SpeakerGroup }) {
   );
 }
 
-/** Claude Code Turn 气泡（左侧）。
- *  Turn 内事件直接平铺为 EventRow 列表，无中间聚合层。 */
+/** Claude Code Turn 气泡（左侧）—— 可折叠，默认收起。
+ *  展开后 Turn 内事件平铺为 EventRow 列表。 */
 function ClaudeCodeTurnBubble({
   turn,
   showHeader = true,
@@ -371,6 +371,7 @@ function ClaudeCodeTurnBubble({
   /** 是否显示头像列和发言人标签（聚合时子气泡设为 false）。 */
   showHeader?: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(true);
   const title = deriveTurnTitle(turn);
 
   return (
@@ -393,33 +394,41 @@ function ClaudeCodeTurnBubble({
             : "border-border bg-card",
         )}
       >
-        {/* Header（仅独立渲染时显示发言人标签，Turn 序号始终显示） */}
-        <div className="mb-1.5 flex items-center gap-2">
+        {/* 可点击的折叠 Header */}
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          className="flex w-full items-center gap-2 text-left"
+        >
+          <ChevronRight
+            className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", !collapsed && "rotate-90")}
+            aria-hidden
+          />
           {showHeader && (
             <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">
               Claude Code
             </span>
           )}
-          <span className="text-[10px] text-text-muted">Turn {turn.turnNumber}</span>
+          <span className="text-[10px] font-medium text-foreground">Turn {turn.turnNumber}</span>
           <span className="text-[10px] tabular-nums text-text-muted">{turn.events.length} events</span>
           {turn.hasError && (
             <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
               error
             </span>
           )}
-          {/* 多事件时显示 Turn 摘要副标题 */}
-          {turn.events.length > 1 && (
-            <span className="min-w-0 flex-1 truncate text-[10px] text-text-muted" title={title}>
-              {title}
-            </span>
-          )}
-        </div>
-        {/* EventRow 列表——始终可见，直接平铺 */}
-        <ol className="space-y-1 border-l border-border pl-3">
-          {turn.events.map((ev) => (
-            <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
-          ))}
-        </ol>
+          {/* 摘要标题（始终显示，帮助折叠态下快速了解 Turn 内容） */}
+          <span className="min-w-0 flex-1 truncate text-[10px] text-text-muted" title={title}>
+            {title}
+          </span>
+        </button>
+        {/* EventRow 列表——展开态可见 */}
+        {!collapsed && (
+          <ol className="mt-1.5 space-y-1 border-l border-border pl-3">
+            {turn.events.map((ev) => (
+              <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
+            ))}
+          </ol>
+        )}
       </div>
     </div>
   );
