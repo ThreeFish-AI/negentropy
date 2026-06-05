@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.logging import get_logger
+from negentropy.models.mcp import McpServer, McpTool
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from . import decision as decision_mod
@@ -513,6 +514,10 @@ class RoutineOrchestrator:
 
                 if not needs_approval:
                     config = await self._build_config(routine)
+                    # 快照生效的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
+                    if config.mcp_config:
+                        mcp_meta = await self._resolve_mcp_meta(db, config.mcp_config)
+                        iteration.metrics = {**(iteration.metrics or {}), "mcp_servers": mcp_meta}
                     launch_specs.append((iteration.id, routine.id, prompt, config))
                     slots -= 1
 
@@ -564,6 +569,10 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 config = await self._build_config(routine)
+                # 快照生效的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
+                if config.mcp_config:
+                    mcp_meta = await self._resolve_mcp_meta(db, config.mcp_config)
+                    it.metrics = {**(it.metrics or {}), "mcp_servers": mcp_meta}
                 # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
                 memory_ctx_approved = (
                     await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
@@ -1010,6 +1019,71 @@ class RoutineOrchestrator:
                 ),
             }
         return config
+
+    @staticmethod
+    async def _resolve_mcp_meta(db: AsyncSession, mcp_config: dict) -> list[dict]:
+        """将生效的 mcp_config 解析为可展示的 server/tool 元数据快照。
+
+        mcp_config 格式为 ``{server_name: transport_config_dict}``，key 为 server 名称。
+        通过 ``mcp_servers.name`` 匹配 catalog 记录，收集已激活的 tool 列表；
+        未匹配 catalog 的 config key 保留为「仅配置」条目。
+
+        注意：仅保存公开元数据，不含 transport config 中的 env / headers 等敏感字段。
+        """
+        server_names = list(mcp_config.keys())
+        if not server_names:
+            return []
+
+        servers = (await db.execute(select(McpServer).where(McpServer.name.in_(server_names)))).scalars().all()
+
+        result: list[dict] = []
+        for server in servers:
+            tools = (
+                await db.execute(
+                    select(
+                        McpTool.name,
+                        McpTool.display_name,
+                        McpTool.title,
+                        McpTool.description,
+                    ).where(
+                        McpTool.server_id == server.id,
+                        McpTool.is_enabled.is_(True),
+                    )
+                )
+            ).all()
+            result.append(
+                {
+                    "name": server.name,
+                    "display_name": server.display_name,
+                    "description": server.description,
+                    "transport_type": server.transport_type,
+                    "tools": [
+                        {
+                            "name": t.name,
+                            "display_name": t.display_name,
+                            "title": t.title,
+                            "description": t.description,
+                        }
+                        for t in tools
+                    ],
+                }
+            )
+
+        # 未匹配 catalog 的 config key 保留为「仅配置」条目
+        matched_names = {s.name for s in servers}
+        for name in server_names:
+            if name not in matched_names:
+                result.append(
+                    {
+                        "name": name,
+                        "display_name": None,
+                        "description": None,
+                        "transport_type": "unknown",
+                        "tools": [],
+                    }
+                )
+
+        return result
 
     @staticmethod
     async def _next_seq(db: AsyncSession, routine_id: UUID) -> int:
