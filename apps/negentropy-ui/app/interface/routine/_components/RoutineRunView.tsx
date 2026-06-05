@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 
 import type { LiveActionsByIteration, RoutineDTO, RoutineIterationDTO } from "@/features/routine";
 
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+
 import { IterationAuditDrawer } from "./IterationAuditDrawer";
 import { ReflectionFlow } from "./ReflectionFlow";
 import { RoutineConvergenceChart } from "./RoutineConvergenceChart";
@@ -55,18 +57,14 @@ export function RoutineRunView({
     <div className="space-y-4">
       {/* 目标 / 验收标准 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Goal</h3>
+        <CollapsibleSection title="Goal">
           <p className="whitespace-pre-wrap break-words text-xs text-foreground">{routine.goal}</p>
-        </section>
-        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-            Acceptance Criteria
-          </h3>
+        </CollapsibleSection>
+        <CollapsibleSection title="Acceptance Criteria">
           <p className="whitespace-pre-wrap break-words text-xs text-text-secondary">
             {routine.acceptance_criteria}
           </p>
-        </section>
+        </CollapsibleSection>
       </div>
 
       {/* 隔离工作区（worktree 生命周期状态 + 手动清理）*/}

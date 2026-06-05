@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ListTree } from "lucide-react";
+import { ChevronLeft, ChevronRight, ListTree } from "lucide-react";
 
 import type { RoutineIterationDTO } from "@/features/routine";
 import { AGENT_ROLE_META, deriveIterationDriver } from "@/features/routine";
@@ -9,6 +9,8 @@ import { AGENT_ROLE_META, deriveIterationDriver } from "@/features/routine";
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
 import { ACTIVE_TIMING } from "./routine-loop";
 import { iterationDotClass, phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-style";
+
+const PAGE_SIZE = 10;
 
 interface RoutineIterationTimelineProps {
   iterations: RoutineIterationDTO[];
@@ -25,16 +27,48 @@ export function RoutineIterationTimeline({
   onAudit,
   busy,
 }: RoutineIterationTimelineProps) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(iterations.length / PAGE_SIZE);
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const pageItems = iterations.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
   if (iterations.length === 0) {
     return <p className="text-[11px] text-text-muted">No iterations yet.</p>;
   }
 
   return (
-    <ol className="space-y-2">
-      {iterations.map((it) => (
-        <IterationCard key={it.id} it={it} onApprove={onApprove} onAudit={onAudit} busy={busy} />
-      ))}
-    </ol>
+    <>
+      <ol className="space-y-2">
+        {pageItems.map((it) => (
+          <IterationCard key={it.id} it={it} onApprove={onApprove} onAudit={onAudit} busy={busy} />
+        ))}
+      </ol>
+      {totalPages > 1 && (
+        <div className="mt-3 flex items-center justify-center gap-2 border-t border-border pt-3 text-[11px] text-text-muted">
+          <button
+            type="button"
+            disabled={safePage <= 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            aria-label="上一页"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="font-medium tabular-nums">
+            {safePage + 1} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            aria-label="下一页"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 

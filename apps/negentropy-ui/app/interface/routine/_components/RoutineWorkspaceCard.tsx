@@ -3,6 +3,7 @@
 import { FolderTree, HardDrive, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { cn } from "@/lib/utils";
 import type { RoutineDTO } from "@/features/routine";
 
@@ -48,13 +49,14 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
   const canCleanup = canCleanupWorktree(routine.status, routine.worktree_path);
 
   return (
-    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      {/* 标题行 + 状态徽章 */}
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+    <CollapsibleSection
+      title={
+        <>
           <FolderTree className="h-3.5 w-3.5" />
           Isolated Workspace
-        </h3>
+        </>
+      }
+      headerExtra={
         <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold",
@@ -72,8 +74,8 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
           />
           {worktreeStatusLabel(ws)}
         </span>
-      </div>
-
+      }
+    >
       {/* 信息网格 */}
       <dl className="grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-[auto_1fr]">
         <dt className="text-text-muted">Baseline</dt>
@@ -123,6 +125,6 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
           )}
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
