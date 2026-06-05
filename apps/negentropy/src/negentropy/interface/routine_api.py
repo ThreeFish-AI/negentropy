@@ -241,6 +241,7 @@ def _serialize_iteration(it: RoutineIteration) -> dict[str, Any]:
         "gate_exit_code": it.gate_exit_code,
         "started_at": it.started_at.isoformat() if it.started_at else None,
         "finished_at": it.finished_at.isoformat() if it.finished_at else None,
+        "metrics": it.metrics or {},
     }
 
 

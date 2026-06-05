@@ -99,6 +99,29 @@ export interface RoutineIterationDTO {
   gate_exit_code: number | null;
   started_at: string | null;
   finished_at: string | null;
+  metrics: RoutineIterationMetrics;
+}
+
+/** 迭代级度量快照（JSONB），由后端在分发时写入。 */
+export interface RoutineIterationMetrics {
+  mcp_servers?: McpServerSnapshot[];
+}
+
+/** 分发时快照的 MCP Server 元数据（仅公开信息，不含敏感 transport 配置）。 */
+export interface McpServerSnapshot {
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  transport_type: string;
+  tools: McpToolSnapshot[];
+}
+
+/** MCP Server 下已激活的工具元数据。 */
+export interface McpToolSnapshot {
+  name: string;
+  display_name: string | null;
+  title: string | null;
+  description: string | null;
 }
 
 /**

@@ -17,6 +17,7 @@ import {
 import { AGENT_ROLE_META, countAgentRoles, deriveIterationDriver, type AgentRole } from "@/features/routine";
 
 import { IterationEventTimeline } from "./IterationEventTimeline";
+import { McpServersPanel } from "./McpServersPanel";
 import { phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-style";
 
 /** 在途（执行/评估流转中）的迭代状态：抽屉据此叠加实时动作并在终态时回查权威列表。 */
@@ -108,6 +109,13 @@ export function IterationAuditDrawer({
       <div className="px-5 py-4">
         {error && <ErrorBanner message={error} onRetry={load} />}
 
+        {/* MCP Server/Tool 快照面板（仅当迭代携带 mcp_servers 元数据时显示） */}
+        {iteration?.metrics?.mcp_servers?.length ? (
+          <div className="mb-3">
+            <McpServersPanel servers={iteration.metrics.mcp_servers} />
+          </div>
+        ) : null}
+
         {loading && merged.length === 0 ? (
           <TimelineSkeleton />
         ) : merged.length > 0 ? (
@@ -164,6 +172,15 @@ function IterationMetaBar({
           })}
         </>
       )}
+      {/* MCP Server/Tool 摘要 */}
+      {iteration.metrics?.mcp_servers?.length ? (
+        <>
+          <span className="text-text-muted">·</span>
+          <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:text-violet-300">
+            {iteration.metrics.mcp_servers.length} MCP · {iteration.metrics.mcp_servers.reduce((s, sv) => s + sv.tools.length, 0)} Tools
+          </span>
+        </>
+      ) : null}
       {/* 当前阶段主导人指示（仅活跃迭代） */}
       {driver && (
         <>
