@@ -79,7 +79,7 @@ class CatalogNodeCreateRequest(BaseModel):
     parent_id: UUID | None = None
     node_type: str = "folder"
     description: str | None = None
-    sort_order: int = 0
+    sort_order: float = 0
     config: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("node_type")
@@ -106,7 +106,7 @@ class CatalogNodeUpdateRequest(BaseModel):
     parent_id: UUID | None = None
     node_type: str | None = None
     description: str | None = None
-    sort_order: int | None = None
+    sort_order: float | None = None
     config: dict[str, Any] | None = None
 
 
@@ -122,7 +122,7 @@ class CatalogNodeResponse(BaseModel):
     slug: str
     node_type: str
     description: str | None = None
-    sort_order: int
+    sort_order: float
     config: dict[str, Any] = Field(default_factory=dict)
     # DOCUMENT_REF 叶子节点携带的文档 ID（FOLDER / CATEGORY / COLLECTION 为 None）
     document_id: UUID | None = None

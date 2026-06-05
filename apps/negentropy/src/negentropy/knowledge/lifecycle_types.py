@@ -81,7 +81,7 @@ class CatalogNodeRecord:
     slug: str
     node_type: str  # CatalogNodeType value
     description: str | None = None
-    sort_order: int = 0
+    sort_order: float = 0
     config: dict[str, Any] = field(default_factory=dict)
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -100,7 +100,7 @@ class CatalogTreeItem:
     name: str
     slug: str
     node_type: str
-    sort_order: int
+    sort_order: float
     depth: int
     path: str = ""  # 完整路径 /parent/child/current
     has_children: bool = False
