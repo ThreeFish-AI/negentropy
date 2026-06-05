@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+
 import type { ExecStatus, IterationStatus, RoutineIterationDTO, Verdict } from "@/features/routine";
 
 import { useClock } from "./ClockProvider";
@@ -92,10 +94,7 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
   }, [iterations, now]);
 
   return (
-    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-        迭代时间线 · Run Timeline（执行区间）
-      </h3>
+    <CollapsibleSection title="迭代时间线 · Run Timeline（执行区间）">
       {rows.length === 0 ? (
         <p className="py-8 text-center text-[11px] text-text-muted">尚无可视化的执行区间</p>
       ) : (
@@ -122,6 +121,6 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
