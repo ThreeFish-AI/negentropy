@@ -150,21 +150,21 @@ def test_build_prompt_worktree_has_scope_constraints():
     assert "兄弟目录" in p
 
 
-def test_build_prompt_worktree_scope_includes_source_cwd():
-    """有 cwd 时 worktree 作用域限制包含源项目路径。"""
+def test_build_prompt_worktree_scope_excludes_source_cwd():
+    """Worktree 作用域限制绝不包含源项目路径（worktree 包含完整检出）。"""
     p = build_prompt(_wt_routine(cwd="/path/to/my-source"))
-    assert "源项目目录" in p
-    assert "/path/to/my-source" in p
+    assert "/path/to/my-source" not in p
 
 
-def test_build_prompt_worktree_scope_without_cwd():
-    """无 cwd 时 worktree 作用域限制不含源项目行。"""
-    p = build_prompt(_wt_routine(cwd=""))
-    assert "源项目目录" not in p
+def test_build_prompt_worktree_scope_prohibits_source_project():
+    """Worktree prompt 明确禁止读取源项目目录。"""
+    p = build_prompt(_wt_routine(cwd="/path/to/my-source"))
+    assert "源项目目录" in p  # 出现在禁止列表中
+    assert "无需引用源项目" in p
 
 
 def test_build_scope_system_prompt_worktree():
-    """worktree routine 的 system prompt 作用域限制。"""
+    """Worktree routine system prompt 禁止读取源项目目录。"""
     r = _wt_routine(
         cwd="/Users/cm.huang/Documents/projects/aurelius/data-la-maps",
         worktree_path="/Users/cm.huang/Documents/projects/aurelius/.negentropy-worktrees/demo",
@@ -172,9 +172,20 @@ def test_build_scope_system_prompt_worktree():
     sp = _build_scope_system_prompt(r)
     assert "File System Scope" in sp
     assert "isolated worktree" in sp
-    assert "source project" in sp
-    assert "data-la-maps" in sp
+    assert "data-la-maps" not in sp  # 源项目路径绝不在 scope 指令中
     assert "MUST NOT" in sp
+    assert "original source project directory" in sp  # 明确禁止源项目
+    assert "Baseline branch" in sp  # 提及基线分支名
+
+
+def test_build_prompt_worktree_never_leaks_source_cwd():
+    """回归测试：worktree prompt 绝不泄露 routine.cwd 路径（隔离保证）。"""
+    r = _wt_routine(cwd="/secret/source/project")
+    p = build_prompt(r)
+    sp = _build_scope_system_prompt(r)
+    # 两个 prompt 层都不得泄露源项目路径
+    assert "/secret/source/project" not in p
+    assert "/secret/source/project" not in sp
 
 
 def test_build_scope_system_prompt_flat_routine():

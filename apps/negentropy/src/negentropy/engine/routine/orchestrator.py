@@ -92,24 +92,29 @@ def _build_scope_system_prompt(routine: Routine) -> str:
     system_prompt 层级的指令优先级高于用户 prompt 中的任务描述，
     使作用域限制即使当 goal 文本引用了外部绝对路径时也能生效。
 
-    根因修复：worktree 存储在项目父目录的 ``.negentropy-worktrees/`` 下，
-    与兄弟项目（如 coding-proxy、attention）同级；Claude Code 自主探索
-    时可能误读这些不相关项目。本函数通过 system prompt 显式限定读取范围。
+    隔离保证：worktree 存储在项目父目录的 ``.negentropy-worktrees/`` 下，
+    与兄弟项目同级；Claude Code 自主探索时可能误读这些不相关项目或源
+    项目目录（可能在不同分支）。本函数通过 system prompt 显式限定：仅
+    允许读取 worktree 目录内的文件，绝不授权访问源项目或兄弟目录。
+    worktree 已包含基线分支的完整检出，无需引用源项目。
     """
     cwd = routine.cwd or ""
     wt_path = getattr(routine, "worktree_path", None) or ""
     is_wt = phase_mod.is_worktree_routine(routine)
 
     if is_wt and wt_path:
-        source_line = f"\n  - The source project: `{cwd}` (read-only reference)." if cwd else ""
+        baseline = getattr(routine, "baseline_branch", None) or ""
+        baseline_note = f"\nBaseline branch: `{baseline}`." if baseline else ""
         return (
             "## File System Scope (文件系统作用域)\n"
-            f"Working directory: `{wt_path}` (isolated worktree).\n"
+            f"Working directory: `{wt_path}` (isolated worktree).{baseline_note}\n"
             "READ scope — you may ONLY read files within:\n"
-            f"  1. The worktree directory and its subdirectories.{source_line}\n"
+            "  1. The worktree directory and its subdirectories.\n"
             "  2. Absolute paths explicitly referenced in the task goal.\n"
-            "You MUST NOT read, list, or explore sibling directories of the worktree parent "
-            "or any other local projects outside the above scope.\n"
+            "You MUST NOT read from any directory outside the worktree, including the "
+            "original source project directory, sibling directories, or any other local path. "
+            "The worktree contains a complete checkout of the baseline branch — there is no "
+            "need to reference the source project.\n"
             "Exceptions: WebSearch, WebFetch, and MCP tools are not restricted."
         )
     elif cwd:
