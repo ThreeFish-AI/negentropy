@@ -463,7 +463,7 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
       {/* 气泡内容 */}
       <div className={cn("min-w-0 rounded-2xl border border-sky-500/20 bg-sky-500/[0.03] p-3", showHeader ? "max-w-[85%] rounded-tr-sm" : "w-full")}>
         {/* Header（仅独立渲染时显示发言人标签，verdict/score 始终显示） */}
-        <div className="mb-1.5 flex items-center gap-2">
+        <div className="mb-1.5 flex items-center justify-end gap-2">
           {showHeader && (
             <>
               <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
@@ -582,7 +582,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
         )}
       >
         {/* Header（仅独立渲染时显示发言人标签） */}
-        <div className="mb-1.5 flex items-center gap-2">
+        <div className="mb-1.5 flex items-center justify-end gap-2">
           {showHeader && (
             <>
               <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
