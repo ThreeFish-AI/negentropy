@@ -273,11 +273,23 @@ async def get_kpis() -> dict[str, Any]:
         return cached
 
     async with db_session.AsyncSessionLocal() as db:
-        status_counts_rows = (await db.execute(select(Routine.status, func.count()).group_by(Routine.status))).all()
+        status_counts_rows = (
+            await db.execute(
+                select(Routine.status, func.count()).where(Routine.is_template.is_(False)).group_by(Routine.status)
+            )
+        ).all()
         status_counts = {row[0]: row[1] for row in status_counts_rows}
         total = sum(status_counts.values())
-        total_cost = (await db.execute(select(func.coalesce(func.sum(Routine.total_cost_usd), 0.0)))).scalar() or 0.0
-        avg_iter = (await db.execute(select(func.coalesce(func.avg(Routine.iteration_count), 0.0)))).scalar() or 0.0
+        total_cost = (
+            await db.execute(
+                select(func.coalesce(func.sum(Routine.total_cost_usd), 0.0)).where(Routine.is_template.is_(False))
+            )
+        ).scalar() or 0.0
+        avg_iter = (
+            await db.execute(
+                select(func.coalesce(func.avg(Routine.iteration_count), 0.0)).where(Routine.is_template.is_(False))
+            )
+        ).scalar() or 0.0
 
     result = {
         "total": total,

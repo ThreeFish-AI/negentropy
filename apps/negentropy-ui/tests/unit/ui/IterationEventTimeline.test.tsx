@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { IterationEventTimeline } from "@/app/interface/routine/_components/IterationEventTimeline";
@@ -21,11 +21,21 @@ function makeEvent(overrides: Partial<RoutineIterationEventDTO> = {}): RoutineIt
   };
 }
 
+/** 找到 ActionGroupRow 的折叠按钮（含 ChevronRight 的 button）并点击展开。 */
+function expandFirstActionGroup() {
+  // ActionGroupRow 的 button 带有 aria-expanded="false"
+  const buttons = screen.getAllByRole("button");
+  const actionBtn = buttons.find(
+    (btn) => btn.getAttribute("aria-expanded") === "false" && btn.querySelector(".lucide-chevron-right"),
+  );
+  if (actionBtn) fireEvent.click(actionBtn);
+}
+
 describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳", () => {
   it("路径标题：文件名尾部成独立块永不裁剪，完整标题进 title 悬浮", () => {
     const title = "Read /repo/a/b/c/target_file.py";
     render(<IterationEventTimeline events={[makeEvent({ title })]} />);
-    // 文件名尾部单独成 span（前缀即便被 truncate 也不会丢失）
+    // ActionGroupRow 折叠态使用 EventTitle 组件，同样做路径拆分
     expect(screen.getByText("target_file.py")).toBeInTheDocument();
     // 完整标题可悬浮查看（拆分为头/尾两段，故整串只存在于 title 属性）
     expect(document.querySelector(`[title="${title}"]`)).not.toBeNull();
@@ -34,6 +44,8 @@ describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳",
   it("每行渲染本地化时间戳，悬浮显示完整日期时间", () => {
     const created = "2026-06-01T09:08:07+00:00";
     render(<IterationEventTimeline events={[makeEvent({ created_at: created })]} />);
+    // 时间戳在 ActionGroupRow 内部的 EventRow 中，需先展开
+    expandFirstActionGroup();
     // 与组件同口径计算，规避 CI 时区/locale 漂移
     expect(screen.getByText(new Date(created).toLocaleTimeString())).toBeInTheDocument();
     expect(document.querySelector(`[title="${new Date(created).toLocaleString()}"]`)).not.toBeNull();
@@ -42,6 +54,8 @@ describe("IterationEventTimeline 步骤行：路径完整度 + 每行时间戳",
   it("created_at 为空时不渲染时间戳（防御 null，覆盖在途未落库占位）", () => {
     const probe = new Date("2026-06-01T09:08:07+00:00").toLocaleTimeString();
     render(<IterationEventTimeline events={[makeEvent({ created_at: null })]} />);
+    // ActionGroupRow 折叠态不显示时间戳，展开后也不应有
+    expandFirstActionGroup();
     expect(screen.queryByText(probe)).toBeNull();
   });
 
@@ -60,7 +74,7 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         ]}
       />,
     );
-    // Turn 聚合后，标题同时出现在 ClaudeCodeTurnBubble header 和嵌套 EventRow，故用 getAllByText
+    // Turn 展开 → ActionGroupRow 折叠态标题 + Turn header 均显示翻译后的标题
     expect(screen.getAllByText("会话初始化").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("init")).not.toBeInTheDocument();
   });
@@ -124,7 +138,8 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "assistant", title: "thinking", tool_name: null, payload: { text: "…" } })]}
       />,
     );
-    expect(screen.getByText("思考")).toBeInTheDocument();
+    // "思考" 出现在 ActionGroupRow 折叠态标题（deriveActionGroupTitle 优先使用已知子类型翻译）
+    expect(screen.getAllByText("思考").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("thinking")).not.toBeInTheDocument();
   });
 
@@ -165,7 +180,9 @@ describe("IterationEventTimeline 事件标题翻译", () => {
         events={[makeEvent({ event_type: "assistant", title: null, tool_name: null, payload: { text: "…" } })]}
       />,
     );
-    expect(screen.getByText("推理")).toBeInTheDocument();
+    // payload.text "…" 被 ActionGroupRow 标题优先使用；展开后 EventRow 中显示「推理」
+    expandFirstActionGroup();
+    expect(screen.getAllByText("推理").length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -329,8 +346,18 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
     expect(screen.getByText("TaskUpdate: 已完成行政区划迁移")).toBeInTheDocument();
   });
 
+  /** 依次展开 Turn 和 ActionGroupRow 以暴露内部 EventRow（合并 ActionGroup 后双层折叠）。 */
+  function expandActionGroup(container: HTMLElement) {
+    // 第一层：展开 Turn
+    const turnBtns = container.querySelectorAll<HTMLButtonElement>("button[aria-expanded='false']");
+    turnBtns.forEach((btn) => fireEvent.click(btn));
+    // 第二层：展开 ActionGroupRow
+    const agBtns = container.querySelectorAll<HTMLButtonElement>("button[aria-expanded='false']");
+    agBtns.forEach((btn) => fireEvent.click(btn));
+  }
+
   it("TaskUpdate in_progress 事件渲染状态指示器（蓝点 + 标签）", () => {
-    render(
+    const { container } = render(
       <IterationEventTimeline
         events={[
           makeEvent({
@@ -341,6 +368,8 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    // ActionGroupRow 默认折叠，需先展开
+    expandActionGroup(container);
     // 状态标签文字
     expect(screen.getByText("in progress")).toBeInTheDocument();
     // 状态圆点（animate-pulse 类）
@@ -350,7 +379,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
   });
 
   it("TaskUpdate completed 事件渲染绿色状态圆点", () => {
-    render(
+    const { container } = render(
       <IterationEventTimeline
         events={[
           makeEvent({
@@ -361,13 +390,14 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandActionGroup(container);
     expect(screen.getByText("completed")).toBeInTheDocument();
     const dot = document.querySelector(".bg-emerald-500.inline-block");
     expect(dot).not.toBeNull();
   });
 
   it("TaskCreate 无显式 status 默认显示 pending 状态", () => {
-    render(
+    const { container } = render(
       <IterationEventTimeline
         events={[
           makeEvent({
@@ -378,6 +408,7 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
         ]}
       />,
     );
+    expandActionGroup(container);
     expect(screen.getByText("pending")).toBeInTheDocument();
     const dot = document.querySelector(".bg-text-muted.inline-block");
     expect(dot).not.toBeNull();
@@ -388,5 +419,137 @@ describe("IterationEventTimeline TaskCreate/TaskUpdate 增强", () => {
     expect(screen.queryByText("pending")).not.toBeInTheDocument();
     expect(screen.queryByText("in progress")).not.toBeInTheDocument();
     expect(screen.queryByText("completed")).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ActionGroup 分组测试
+// ---------------------------------------------------------------------------
+
+describe("IterationEventTimeline ActionGroup 分组", () => {
+  /** 获取 Turn 内所有 ActionGroupRow 的折叠按钮。
+   *  ActionGroupRow 渲染为 <li class="relative -ml-px pl-4">，内含 <button aria-expanded>。 */
+  function getActionGroupButtons(container: HTMLElement): HTMLButtonElement[] {
+    // ActionGroupRow 的 <li> 有 `relative -ml-px pl-4` class
+    const lis = container.querySelectorAll("li.relative.pl-4");
+    return Array.from(lis)
+      .map((li) => li.querySelector<HTMLButtonElement>("button[aria-expanded]"))
+      .filter((btn): btn is HTMLButtonElement => btn !== null);
+  }
+
+  /** 获取所有 ActionGroupRow 的标题（从 button 内的 [title] 属性提取）。 */
+  function getActionGroupTitles(container: HTMLElement): string[] {
+    return getActionGroupButtons(container).map((btn) => {
+      const titleEl = btn.querySelector("[title]");
+      return titleEl?.getAttribute("title") ?? "";
+    });
+  }
+
+  it("典型 [assistant, tool_use, tool_result] 序列聚合为 1 个动作组", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "让我读取文件" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /src/main.ts" }),
+      makeEvent({ seq: 2, event_type: "tool_result", tool_name: null, title: null, payload: { text: "file content" } }),
+    ];
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    // 应有 1 个 ActionGroupRow，标题为 tool_use 的标题
+    const titles = getActionGroupTitles(container);
+    expect(titles.length).toBe(1);
+    expect(titles).toContain("Read /src/main.ts");
+  });
+
+  it("多个 [assistant, tool_use, tool_result] 序列分为多个动作组", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "第一步" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /a.ts" }),
+      makeEvent({ seq: 2, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
+      makeEvent({ seq: 3, event_type: "assistant", title: null, tool_name: null, payload: { text: "第二步" } }),
+      makeEvent({ seq: 4, event_type: "tool_use", tool_name: "Edit", title: "Edit /a.ts" }),
+      makeEvent({ seq: 5, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
+      makeEvent({ seq: 6, event_type: "assistant", title: null, tool_name: null, payload: { text: "完成" } }),
+    ];
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    const titles = getActionGroupTitles(container);
+    // 3 个 ActionGroup: Read, Edit, "完成"
+    expect(titles.length).toBe(3);
+    expect(titles).toContain("Read /a.ts");
+    expect(titles).toContain("Edit /a.ts");
+  });
+
+  it("单个 system 事件形成独立动作组", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "system", title: "init", tool_name: null, payload: {} })]}
+      />,
+    );
+    // ActionGroupRow 标题为 "会话初始化"
+    expect(screen.getAllByText("会话初始化").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("并行 tool_use 事件归入同一动作组", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "并行读取" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /a.ts" }),
+      makeEvent({ seq: 2, event_type: "tool_use", tool_name: "Read", title: "Read /b.ts" }),
+      makeEvent({ seq: 3, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
+      makeEvent({ seq: 4, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
+    ];
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    // 只有 1 个 ActionGroupRow，标题为首个 tool_use 的标题
+    const titles = getActionGroupTitles(container);
+    expect(titles.length).toBe(1);
+    expect(titles).toContain("Read /a.ts");
+  });
+
+  it("ActionGroupRow count > 1 时渲染数量 badge", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "动作" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /x.ts" }),
+      makeEvent({ seq: 2, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
+    ];
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    // 数量 badge 在 ActionGroupRow 按钮内，显示 "3"
+    const btn = getActionGroupButtons(container)[0];
+    expect(btn?.textContent).toContain("3");
+  });
+
+  it("ActionGroupRow hasError 时渲染错误 badge", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "尝试" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Bash", title: "Bash: fail" }),
+      makeEvent({ seq: 2, event_type: "tool_result", tool_name: null, title: null, payload: { is_error: true, text: "error output" } }),
+    ];
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    // 错误 badge 在 ActionGroupRow 按钮内
+    const btn = getActionGroupButtons(container)[0];
+    const errorBadge = btn?.querySelector(".bg-red-500\\/10");
+    expect(errorBadge?.textContent).toContain("error");
+  });
+
+  it("点击 ActionGroupRow 展开后显示 EventRow 列表", () => {
+    const created = "2026-06-01T09:08:07+00:00";
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "动作" } }),
+      makeEvent({ seq: 1, event_type: "tool_use", tool_name: "Read", title: "Read /x.ts", created_at: created }),
+      makeEvent({ seq: 2, event_type: "tool_result", tool_name: null, title: null, payload: {} }),
+    ];
+    const { container } = render(<IterationEventTimeline events={events} />);
+
+    // 展开前：ActionGroupRow 折叠态，内部 EventRow 不在 DOM
+    const btn = getActionGroupButtons(container)[0];
+    expect(btn?.getAttribute("aria-expanded")).toBe("false");
+
+    // 点击展开
+    fireEvent.click(btn!);
+
+    // 展开后：EventRow 可见（通过 seq 标记确认）
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    // 时间戳也可见（可能多个 EventRow 有相同时间戳，用 getAllByText）
+    expect(screen.getAllByText(new Date(created).toLocaleTimeString()).length).toBeGreaterThanOrEqual(1);
   });
 });

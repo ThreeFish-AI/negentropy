@@ -49,6 +49,7 @@ export async function fetchRoutines(filters: Partial<RoutineFilters> = {}): Prom
   const sp = new URLSearchParams();
   if (filters.status) sp.set("status", filters.status);
   if (filters.q) sp.set("q", filters.q);
+  if (filters.is_template != null) sp.set("is_template", String(filters.is_template));
   const q = sp.toString();
   return jsonFetch(`${q ? `?${q}` : ""}`);
 }
