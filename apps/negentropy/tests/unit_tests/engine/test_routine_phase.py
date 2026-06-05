@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from negentropy.engine.routine import phase as phase_mod
-from negentropy.engine.routine.orchestrator import RoutineOrchestrator
+from negentropy.engine.routine.orchestrator import RoutineOrchestrator, _build_scope_system_prompt
 from negentropy.engine.routine.prompt_builder import build_prompt
 
 
@@ -40,6 +40,7 @@ def _routine(**kw):
         reflections={},
         claude_session_id=None,
         current_phase="implement",
+        cwd="/tmp/test-project",
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -55,6 +56,8 @@ def _wt_routine(**kw):
         current_phase="implement",
         baseline_branch="origin/feature/1.x.x",
         work_branch="routine/demo-20260601",
+        cwd="/path/to/source-project",
+        worktree_path="/path/to/.negentropy-worktrees/demo-20260601",
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -133,3 +136,58 @@ def test_needs_approval_flat_preserves_seq1_semantics():
     na = RoutineOrchestrator._needs_approval
     assert na("first", phased=False, phase="implement", has_prior_implement=False, seq=1) is True
     assert na("first", phased=False, phase="implement", has_prior_implement=False, seq=2) is False
+
+
+# ── 作用域限制 (Scope Constraints) 测试 ──
+
+
+def test_build_prompt_worktree_has_scope_constraints():
+    """Worktree routine prompt 包含读取范围限制。"""
+    p = build_prompt(_wt_routine())
+    assert "作用域限制" in p
+    assert "读取范围" in p
+    assert "绝不" in p
+    assert "兄弟目录" in p
+
+
+def test_build_prompt_worktree_scope_includes_source_cwd():
+    """有 cwd 时 worktree 作用域限制包含源项目路径。"""
+    p = build_prompt(_wt_routine(cwd="/path/to/my-source"))
+    assert "源项目目录" in p
+    assert "/path/to/my-source" in p
+
+
+def test_build_prompt_worktree_scope_without_cwd():
+    """无 cwd 时 worktree 作用域限制不含源项目行。"""
+    p = build_prompt(_wt_routine(cwd=""))
+    assert "源项目目录" not in p
+
+
+def test_build_scope_system_prompt_worktree():
+    """worktree routine 的 system prompt 作用域限制。"""
+    r = _wt_routine(
+        cwd="/Users/cm.huang/Documents/projects/aurelius/data-la-maps",
+        worktree_path="/Users/cm.huang/Documents/projects/aurelius/.negentropy-worktrees/demo",
+    )
+    sp = _build_scope_system_prompt(r)
+    assert "File System Scope" in sp
+    assert "isolated worktree" in sp
+    assert "source project" in sp
+    assert "data-la-maps" in sp
+    assert "MUST NOT" in sp
+
+
+def test_build_scope_system_prompt_flat_routine():
+    """非 worktree routine 的 system prompt 作用域限制。"""
+    r = _routine(cwd="/tmp/my-project")
+    sp = _build_scope_system_prompt(r)
+    assert "File System Scope" in sp
+    assert "my-project" in sp
+    assert "MUST NOT" in sp
+
+
+def test_build_scope_system_prompt_no_cwd():
+    """无 cwd 时不注入作用域限制（向后兼容）。"""
+    r = _routine(cwd=None)
+    sp = _build_scope_system_prompt(r)
+    assert sp == ""
