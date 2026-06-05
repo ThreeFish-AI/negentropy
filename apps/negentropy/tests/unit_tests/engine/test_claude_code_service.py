@@ -18,6 +18,7 @@ import pytest
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
 from negentropy.engine.claude_code.service import (
     ERROR_KIND_CONTEXT_EXHAUSTED,
+    ERROR_KIND_SESSION_NOT_FOUND,
     ClaudeCodeService,
     _classify_result_error,
 )
@@ -431,6 +432,33 @@ async def test_classify_missing_result_event_is_none():
     assert _classify_result_error(None, 1) is None
 
 
+async def test_classify_session_not_found_from_stderr():
+    """根因回归（会话续接死亡螺旋）：stderr 命中 "No conversation found with session ID"
+    → ERROR_KIND_SESSION_NOT_FOUND。会话失效时 CLI 在产出 result 事件前即退出（event 缺席），
+    故须从 stderr 识别。复刻模板 9e90c3c7 seq3-5 现场。"""
+    stderr = "No conversation found with session ID: e7b7755c-cfae-41bc-9a61-f36aa5c3dcb0"
+    assert _classify_result_error(None, 1, stderr_text=stderr) == ERROR_KIND_SESSION_NOT_FOUND
+
+
+async def test_classify_session_not_found_case_insensitive():
+    """会话失效信号大小写无关匹配。"""
+    stderr = "no CONVERSATION found with SESSION id: abc"
+    assert _classify_result_error(None, 1, stderr_text=stderr) == ERROR_KIND_SESSION_NOT_FOUND
+
+
+async def test_classify_session_not_found_takes_priority_over_context():
+    """会话失效优先于上下文耗尽判定（stderr 信号先于 result 事件考察）。"""
+    evt = {"type": "result", "is_error": True, "result": "reached its context window limit"}
+    stderr = "No conversation found with session ID: x"
+    assert _classify_result_error(evt, 1, stderr_text=stderr) == ERROR_KIND_SESSION_NOT_FOUND
+
+
+async def test_classify_session_not_found_only_when_returncode_nonzero():
+    """退出码 0 时不判会话失效（不误伤成功路径）。"""
+    stderr = "No conversation found with session ID: x"
+    assert _classify_result_error(None, 0, stderr_text=stderr) is None
+
+
 async def test_classify_non_string_result_payload():
     """result 为非字符串（对象）时序列化后匹配，不抛错。"""
     evt = {"type": "result", "is_error": True, "result": {"error": "reached its context window limit"}}
@@ -640,17 +668,32 @@ def test_fallback_answer_is_plain_text():
 async def test_auto_answer_question_returns_plain_text_on_exception(monkeypatch):
     """_auto_answer_question 异常路径 → 返回纯文本 fallback（非 JSON）。"""
 
-    # 让 litellm import 失败 → 走 except 分支
+    # 让 litellm import 失败 → 走 except 分支。
+    # 关键（测试隔离）：被测函数以 `import litellm` 语句导入；一旦 litellm 已在 sys.modules 缓存
+    # （任一先行测试导入过），import 语句直接从缓存绑定、不再触发 __import__，仅 mock importlib
+    # 无法拦截。故先从 sys.modules 逐出 litellm，并同时 mock builtins.__import__，使 import 语句
+    # 真正重走导入解析并被拦截。否则本用例的通过与否取决于测试执行顺序（pre-existing 隔离脆弱性）。
+    import builtins
     import importlib
+    import sys
+
+    monkeypatch.delitem(sys.modules, "litellm", raising=False)
 
     real_import = importlib.import_module
+    real_builtin_import = builtins.__import__
 
     def _block_litellm(name, *args, **kwargs):
         if name == "litellm":
             raise ImportError("mocked")
         return real_import(name, *args, **kwargs)
 
+    def _block_builtin_import(name, *args, **kwargs):
+        if name == "litellm" or name.startswith("litellm."):
+            raise ImportError("mocked")
+        return real_builtin_import(name, *args, **kwargs)
+
     monkeypatch.setattr("importlib.import_module", _block_litellm)
+    monkeypatch.setattr(builtins, "__import__", _block_builtin_import)
 
     answer = await ClaudeCodeService._auto_answer_question(
         [{"question": "What to do?"}],

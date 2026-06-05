@@ -40,7 +40,7 @@ from . import decision as decision_mod
 from . import phase as phase_mod
 from . import workspace
 from .bus import get_bus
-from .evaluator import RoutineEvaluator
+from .evaluator import EvaluationResult, RoutineEvaluator
 from .memory_extractor import IterationMemoryExtractor, MemoryExtractionResult, compute_decay_override
 from .prompt_builder import append_reflection, build_prompt
 from .runner import get_runner
@@ -62,8 +62,9 @@ _ROUTINE_DEFAULT_TOOLS = [
     "WebSearch",
 ]
 
-# 非终态迭代状态（一个 routine 同时至多存在一个）
-_NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed")
+# 非终态迭代状态（一个 routine 同时至多存在一个）。
+# 'evaluating' = 已执行完毕、后台评估在途；纳入「单在途」判定，避免评估期间误派发新迭代。
+_NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed", "evaluating")
 # 每 tick 评估/派发的 routine 批量上限，避免单 tick 过载
 _BATCH_LIMIT = 10
 # 「全过程」审计事件单字段截断上限（与 claude_code.service 一致），防 DB 膨胀。
@@ -140,10 +141,15 @@ class RoutineOrchestrator:
         self._evaluator = RoutineEvaluator(
             explicit_model=settings.routine.evaluator_model,
             gate_timeout_seconds=settings.routine.gate_timeout_seconds,
+            judge_timeout_seconds=settings.routine.evaluate_judge_timeout_seconds,
         )
         self._memory_extractor: IterationMemoryExtractor | None = None
         # 强引用集合：防止 fire-and-forget 的 extraction task 被 GC 回收。
         self._bg_extraction_tasks: set[asyncio.Task] = set()
+        # 后台评估任务注册表（每 routine 至多一个在途评估）：心跳只认领+触发，重活由后台任务承担，
+        # 使心跳 handler 恒轻量、彻底解耦其 60s 超时（与 Runner 执行下沉同构）。键为 routine_id。
+        self._eval_tasks: dict[UUID, asyncio.Task] = {}
+        self._eval_semaphore: asyncio.Semaphore | None = None
 
     async def _ensure_memory_extractor(self) -> IterationMemoryExtractor | None:
         """懒初始化记忆提取器（受 ``memory_extraction_enabled`` 门控）。"""
@@ -201,6 +207,32 @@ class RoutineOrchestrator:
                 it.lease_expires_at = None
                 it.exec_error = it.exec_error or "reaped: lease expired (process restart or hang)"
                 reaped += 1
+
+            # 评估在途孤儿：lease 过期且本进程评估注册表不再持有 → 回退 executed 供下轮重新认领评估。
+            # 评估幂等可重入，回退优于标记 reaped——避免已完成的有效执行产出被误废。
+            eval_rows = (
+                (
+                    await db.execute(
+                        select(RoutineIteration)
+                        .where(
+                            RoutineIteration.status == "evaluating",
+                            RoutineIteration.lease_expires_at.is_not(None),
+                            RoutineIteration.lease_expires_at < now,
+                        )
+                        .limit(_BATCH_LIMIT)
+                        .with_for_update(skip_locked=True)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for it in eval_rows:
+                if it.routine_id in self._eval_tasks:
+                    it.lease_expires_at = now + self._eval_lease()  # 本进程仍在评估 → 顺延 lease
+                    continue
+                it.status = "executed"
+                it.lease_expires_at = None
+                reaped += 1
             await db.commit()
         if reaped:
             logger.info("routine_reaped_orphans", count=reaped)
@@ -244,18 +276,275 @@ class RoutineOrchestrator:
     # (b) EVALUATE + DECIDE
     # ------------------------------------------------------------------
     async def _evaluate_and_decide(self) -> int:
-        """对最新迭代处于 executed 的 routine 评估 + 决策。"""
+        """认领最新迭代为 executed 的 routine 并触发后台评估（非阻塞）。
+
+        心跳仅做轻量认领（executed→evaluating + lease）+ 触发后台任务，绝不内联 await gate/judge——
+        与 Runner 执行下沉同构，使心跳 handler 恒远低于其 60s 超时。重活（gate 命令 + LLM Judge +
+        决策 + 写回 + 事件 + 记忆提取）由 ``_do_evaluate`` 后台任务承担，受 ``_eval_semaphore`` 限流。
+        返回本 tick 新触发的评估数（供 handler 汇报）。
+        """
         async with db_session.AsyncSessionLocal() as db:
             routine_ids = await self._find_routines_pending_eval(db)
 
-        evaluated = 0
+        launched = 0
         for routine_id in routine_ids[:_BATCH_LIMIT]:
+            if routine_id in self._eval_tasks:
+                continue  # 本进程已在评估该 routine
             try:
-                if await self._evaluate_one(routine_id):
-                    evaluated += 1
-            except Exception as exc:  # 单 routine 失败不阻断整体巡检
-                logger.warning("routine_evaluate_one_failed", routine_id=str(routine_id), error=str(exc))
-        return evaluated
+                iteration_id = await self._claim_for_eval(routine_id)
+            except Exception as exc:  # 单 routine 认领失败不阻断整体巡检
+                logger.warning("routine_eval_claim_failed", routine_id=str(routine_id), error=str(exc))
+                continue
+            if iteration_id is None:
+                continue
+            self._spawn_eval_task(routine_id, iteration_id)
+            launched += 1
+        return launched
+
+    def _get_eval_semaphore(self) -> asyncio.Semaphore:
+        if self._eval_semaphore is None:
+            self._eval_semaphore = asyncio.Semaphore(settings.routine.evaluate_max_concurrent)
+        return self._eval_semaphore
+
+    def _eval_lease(self) -> timedelta:
+        """评估在途迭代的崩溃恢复 lease：gate 超时 + judge 超时(×3 重试) + slack。"""
+        return timedelta(
+            seconds=(
+                settings.routine.gate_timeout_seconds
+                + settings.routine.evaluate_judge_timeout_seconds * 3
+                + settings.routine.evaluate_lease_slack_seconds
+            )
+        )
+
+    def _eval_guard_seconds(self) -> float:
+        """后台评估整体兜底超时（略小于 lease，避免与 reaper 抢占）。"""
+        return float(settings.routine.gate_timeout_seconds + settings.routine.evaluate_judge_timeout_seconds * 3 + 30)
+
+    async def _claim_for_eval(self, routine_id: UUID) -> UUID | None:
+        """认领待评估迭代：锁定事务内把最新 executed 迭代翻转 evaluating + 设 lease。
+
+        返回被认领迭代 id；若 routine 非 running 或最新迭代已非 executed（竞态）则返回 None。
+        """
+        lease = _utcnow() + self._eval_lease()
+        async with db_session.AsyncSessionLocal() as db:
+            routine = await db.get(Routine, routine_id, with_for_update=True)
+            if routine is None or routine.status != "running":
+                return None
+            latest = await self._latest_iteration(db, routine_id)
+            if latest is None or latest.status != "executed":
+                return None
+            latest.status = "evaluating"
+            latest.lease_expires_at = lease
+            iteration_id = latest.id
+            phase = latest.phase
+            await db.commit()
+        # 发布「评估中」状态，前端 Loop 图据此显示 Evaluate 进行中（不再静默卡顿）。
+        await get_bus().publish(
+            {
+                "type": "iteration",
+                "id": str(iteration_id),
+                "routine_id": str(routine_id),
+                "status": "evaluating",
+                "phase": phase,
+            }
+        )
+        return iteration_id
+
+    def _spawn_eval_task(self, routine_id: UUID, iteration_id: UUID) -> None:
+        """启动后台评估任务（强引用入 _eval_tasks 防 GC，完成自动移除）。"""
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(
+            self._evaluate_one_bg(routine_id, iteration_id),
+            name=f"routine-eval-{iteration_id}",
+        )
+        self._eval_tasks[routine_id] = task
+
+        def _cleanup(_t: asyncio.Task, _rid: UUID = routine_id) -> None:
+            self._eval_tasks.pop(_rid, None)
+
+        task.add_done_callback(_cleanup)
+
+    async def _evaluate_one_bg(self, routine_id: UUID, iteration_id: UUID) -> None:
+        """后台评估单元：受信号量限流；异常兜底把 evaluating 迭代回退 executed 供下轮重评。"""
+        async with self._get_eval_semaphore():
+            try:
+                await self._do_evaluate(routine_id, iteration_id)
+            except Exception as exc:
+                logger.warning(
+                    "routine_evaluate_bg_failed",
+                    routine_id=str(routine_id),
+                    iteration_id=str(iteration_id),
+                    error=str(exc),
+                )
+                await self._reset_evaluating_to_executed(routine_id, iteration_id)
+
+    async def _reset_evaluating_to_executed(self, routine_id: UUID, iteration_id: UUID) -> None:
+        """把仍处于 evaluating 的迭代回退为 executed（清 lease），供下一 tick 重新认领评估。"""
+        with suppress(Exception):
+            async with db_session.AsyncSessionLocal() as db:
+                it = await db.get(RoutineIteration, iteration_id)
+                if it is not None and it.status == "evaluating":
+                    it.status = "executed"
+                    it.lease_expires_at = None
+                    await db.commit()
+
+    async def _do_evaluate(self, routine_id: UUID, iteration_id: UUID) -> None:
+        """评估已认领（evaluating）迭代并据决策推进状态机（后台任务，不阻塞心跳）。
+
+        两段式以避免长 LLM 调用期间持锁：① 无锁读取只读快照跑 gate+judge；② 短事务锁定写回，
+        期间重新校验状态（routine 可能被 pause/cancel、迭代可能被 reaper 改写）。
+        """
+        from types import SimpleNamespace
+
+        # ① 读取评估所需只读快照（不持锁，规避 gate+judge 长耗时阻塞 routine 行）
+        async with db_session.AsyncSessionLocal() as db:
+            routine = await db.get(Routine, routine_id)
+            latest = await db.get(RoutineIteration, iteration_id)
+            if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
+                await self._reset_evaluating_to_executed(routine_id, iteration_id)
+                return
+            routine_eval_view = SimpleNamespace(
+                goal=routine.goal,
+                acceptance_criteria=routine.acceptance_criteria,
+                cwd=routine.cwd,
+                verification_command=routine.verification_command,
+                worktree_path=routine.worktree_path,
+            )
+            iter_eval_view = SimpleNamespace(
+                exec_status=latest.exec_status,
+                summary=latest.summary,
+                exec_error=latest.exec_error,
+            )
+
+        # ② 跑 gate + LLM Judge（带整体兜底超时；gate/judge 各自亦有独立超时）
+        try:
+            result = await asyncio.wait_for(
+                self._evaluator.evaluate(routine_eval_view, iter_eval_view),
+                timeout=self._eval_guard_seconds(),
+            )
+        except TimeoutError:
+            result = EvaluationResult(ok=False, error=f"evaluation guard timeout ({self._eval_guard_seconds()}s)")
+
+        # ③ 短事务锁定写回（重新校验状态）
+        async with db_session.AsyncSessionLocal() as db:
+            routine = await db.get(Routine, routine_id, with_for_update=True)
+            latest = await db.get(RoutineIteration, iteration_id)
+            if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
+                # 评估期间状态被改写（pause/cancel/reaped）→ 丢弃本次结果；仍 evaluating 则回退 executed
+                if latest is not None and latest.status == "evaluating":
+                    latest.status = "executed"
+                    latest.lease_expires_at = None
+                    await db.commit()
+                return
+
+            if not result.ok:
+                # 评估失败：记录 + 计数；超阈值终止，否则回退 executed 供下轮重评（保留 eval_attempts）
+                attempts = int((latest.metrics or {}).get("eval_attempts", 0)) + 1
+                latest.eval_error = result.error
+                latest.metrics = {**(latest.metrics or {}), "eval_attempts": attempts}
+                latest.lease_expires_at = None
+                eval_events: list[dict] = []
+                if attempts >= settings.routine.eval_failure_patience:
+                    self._terminate(routine, decision_mod.REASON_UNRECOVERABLE)
+                    latest.status = "evaluated"
+                    latest.verdict = "unrecoverable"
+                    eval_events = await self._persist_eval_events(db, routine, latest, result)
+                else:
+                    latest.status = "executed"
+                await db.commit()
+                await self._publish_routine(routine)
+                await self._publish_iteration_status(routine_id, latest)
+                await self._publish_action_events(routine_id, latest.id, eval_events)
+                return
+
+            # 写入评估结果
+            latest.score = result.score
+            latest.verdict = result.verdict
+            latest.reflection = result.reflection
+            latest.gate_exit_code = result.gate_exit_code
+            latest.status = "evaluated"
+            latest.lease_expires_at = None
+
+            # 更新 routine 反规范化评分 + 追加反思
+            routine.last_score = result.score
+            if result.score is not None:
+                routine.best_score = (
+                    result.score if routine.best_score is None else max(routine.best_score, result.score)
+                )
+            if result.reflection:
+                routine.reflections = append_reflection(routine.reflections, result.reflection)
+
+            # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）。
+            phased_flow = phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config)
+            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE and not routine.pr_url:
+                routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+
+            # 决策（仅取「本次尝试」窗口 seq > eval_floor_seq，重启后旧迭代不污染停滞/振荡判定）。
+            history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
+            verdict = decision_mod.decide(
+                routine, latest, history, max_context_resets=settings.routine.context_reset_max
+            )
+            if phased_flow:
+                self._advance_phase_or_terminate(routine, verdict)
+            elif verdict.is_terminate:
+                self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
+
+            eval_events = await self._persist_eval_events(db, routine, latest, result)
+
+            # 记忆提取所需参数（commit 后读取 DB 对象会过期，提前提取纯数据）。
+            was_running_before_commit = routine.status == "running"
+            routine_id_str = str(routine_id)
+            routine_key = routine.key
+            owner_id = routine.owner_id
+            routine_goal = routine.goal
+            routine_criteria = routine.acceptance_criteria
+            iteration_snap = {
+                "seq": latest.seq,
+                "score": latest.score,
+                "verdict": latest.verdict,
+                "reflection": latest.reflection,
+                "summary": latest.summary,
+                "gate_exit_code": latest.gate_exit_code,
+                "prompt": latest.prompt,
+            }
+            history_snap = [
+                {
+                    "seq": it.seq,
+                    "score": it.score,
+                    "verdict": it.verdict,
+                    "reflection": it.reflection,
+                    "status": it.status,
+                    "summary": it.summary,
+                }
+                for it in history
+            ]
+
+            await db.commit()
+            await self._publish_routine(routine)
+            await get_bus().publish(
+                {
+                    "type": "iteration",
+                    "id": str(latest.id),
+                    "routine_id": str(routine_id),
+                    "status": "evaluated",
+                    "phase": latest.phase,
+                    "score": result.score,
+                    "verdict": result.verdict,
+                }
+            )
+            await self._publish_action_events(routine_id, latest.id, eval_events)
+
+            # 记忆提取（fire-and-forget，commit 后执行，不阻塞）。
+            self._fire_memory_extraction(
+                routine_id_str,
+                routine_key,
+                owner_id,
+                routine_goal,
+                routine_criteria,
+                iteration_snap,
+                history_snap,
+                was_running_before_commit,
+            )
 
     async def _find_routines_pending_eval(self, db: AsyncSession) -> list[UUID]:
         """找出「最新迭代为 executed」的运行中 routine。"""
@@ -1203,6 +1492,21 @@ class RoutineOrchestrator:
                 "status": iteration.status,
                 "seq": iteration.seq,
                 "phase": iteration.phase,
+            }
+        )
+
+    @staticmethod
+    async def _publish_iteration_status(routine_id: UUID, iteration: RoutineIteration) -> None:
+        """发布迭代当前状态快照（用于评估失败回退 executed / 终止翻转 evaluated 的实时通知）。"""
+        await get_bus().publish(
+            {
+                "type": "iteration",
+                "id": str(iteration.id),
+                "routine_id": str(routine_id),
+                "status": iteration.status,
+                "phase": iteration.phase,
+                "score": iteration.score,
+                "verdict": iteration.verdict,
             }
         )
 

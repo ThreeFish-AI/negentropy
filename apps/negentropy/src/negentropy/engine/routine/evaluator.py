@@ -103,11 +103,15 @@ class RoutineEvaluator:
         temperature: float = 0.0,
         max_retries: int = 3,
         gate_timeout_seconds: int = 120,
+        judge_timeout_seconds: int = 60,
     ) -> None:
         self._explicit_model = explicit_model
         self._temperature = temperature
         self._max_retries = max_retries
         self._gate_timeout_seconds = gate_timeout_seconds
+        # LLM Judge 单次调用显式超时（与 PlanReviewer 对齐）。缺失时 litellm 默认无超时，
+        # 慢/挂起的推理模型调用会无界阻塞——历史上这是「卡在 Evaluate」的根因之一。
+        self._judge_timeout_seconds = judge_timeout_seconds
 
     async def evaluate(self, routine: _RoutineLike, iteration: _IterationLike) -> EvaluationResult:
         """评估一次迭代产出，返回 score / verdict / reflection / gate_exit_code。
@@ -240,6 +244,7 @@ class RoutineEvaluator:
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    timeout=self._judge_timeout_seconds,
                     **safe_kwargs,
                 )
                 content = response.choices[0].message.content

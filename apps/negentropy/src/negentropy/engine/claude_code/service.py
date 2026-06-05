@@ -33,6 +33,15 @@ _SUMMARY_MAX_LEN = 2000
 # 单一事实源：runner / decision 经此常量与 metrics 键比对，避免魔法字符串散落。
 ERROR_KIND_CONTEXT_EXHAUSTED = "context_exhausted"
 
+# 可恢复错误：``--resume <id>`` 指向的会话已不存在（CLI 以 rc=1 立即退出，
+# stderr: "No conversation found with session ID: <id>"）。根因：routine 跨迭代续接的
+# claude_session_id 在 worktree 重建 / 进程重启 / CC 会话存储清理后失效。若不自愈，
+# 每轮迭代立即失败（0 turns / $0）并连续累计为 unrecoverable —— 即「会话续接死亡螺旋」。
+# 处置（策略层 Runner）：清空 routine.claude_session_id 冷启动，并在迭代内以新会话重试。
+ERROR_KIND_SESSION_NOT_FOUND = "session_not_found"
+# 会话失效的 stderr 文本信号（大小写无关）；CC 各版本措辞稳定为此句式。
+_SESSION_NOT_FOUND_RE = re.compile(r"No conversation found with session ID", re.IGNORECASE)
+
 # 上下文耗尽的「文本信号」（主据）：大小写无关匹配 result 事件正文。实测 CLI 形态为
 # {is_error:true, subtype:"success", result:"API Error: The model has reached its
 # context window limit."}（subtype 误导，故不能依赖 subtype，须以 is_error + 文本为准）。
@@ -46,15 +55,29 @@ _CONTEXT_EXHAUSTION_RE = re.compile(
 _CONTEXT_SUBTYPES = frozenset({"error_max_context", "error_context_length", "error_context_window"})
 
 
-def _classify_result_error(result_event: dict[str, Any] | None, returncode: int | None) -> str | None:
-    """据 CLI 的 result 事件 + 退出码识别「可恢复错误类型」（纯函数，无 IO）。
+def _classify_result_error(
+    result_event: dict[str, Any] | None,
+    returncode: int | None,
+    *,
+    stderr_text: str | None = None,
+) -> str | None:
+    """据 CLI 的 result 事件 / stderr / 退出码识别「可恢复错误类型」（纯函数，无 IO）。
 
-    仅在 ``returncode != 0`` 时考察；双信号 OR：
-    - 文本信号：result 正文命中 ``_CONTEXT_EXHAUSTION_RE``（主据，实测 subtype 不可靠）；
-    - 结构信号：``is_error is True`` 且 subtype ∈ ``_CONTEXT_SUBTYPES``（前瞻冗余）。
-    命中任一 → ``ERROR_KIND_CONTEXT_EXHAUSTED``；否则 ``None``（含成功路径、result 事件缺席）。
+    仅在 ``returncode != 0`` 时考察，按优先级：
+    1. 会话失效（stderr 信号）：``stderr`` 命中 ``_SESSION_NOT_FOUND_RE`` → ``ERROR_KIND_SESSION_NOT_FOUND``。
+       须先于 result 事件判定——会话失效时 CLI 在产出任何 result 事件前即退出，``result_event`` 缺席。
+    2. 上下文耗尽（result 事件双信号 OR）：
+       - 文本信号：result 正文命中 ``_CONTEXT_EXHAUSTION_RE``（主据，实测 subtype 不可靠）；
+       - 结构信号：``is_error is True`` 且 subtype ∈ ``_CONTEXT_SUBTYPES``（前瞻冗余）。
+       命中任一 → ``ERROR_KIND_CONTEXT_EXHAUSTED``。
+    否则 ``None``（含成功路径、result 事件缺席且无 stderr 信号）。
     """
-    if returncode == 0 or not result_event:
+    if returncode == 0:
+        return None
+    # 1) 会话失效：stderr 文本信号优先（result 事件此时通常缺席）
+    if stderr_text and _SESSION_NOT_FOUND_RE.search(stderr_text):
+        return ERROR_KIND_SESSION_NOT_FOUND
+    if not result_event:
         return None
     is_err = result_event.get("is_error") is True
     subtype = result_event.get("subtype")
@@ -820,7 +843,7 @@ class ClaudeCodeService:
             error_msg = "; ".join(parts)
 
         # 错误分类（机制层）：识别"会话上下文耗尽"等可恢复错误，供策略层（Runner）据此自愈。
-        error_kind = _classify_result_error(last_result_event, proc.returncode)
+        error_kind = _classify_result_error(last_result_event, proc.returncode, stderr_text=stderr_text)
 
         return ClaudeCodeResult(
             status=status,
@@ -1478,7 +1501,7 @@ class ClaudeCodeService:
             error_msg = "; ".join(parts)
 
         # 错误分类（机制层）：与非交互路径共用同一纯函数，杜绝两路径逻辑漂移。
-        error_kind = _classify_result_error(last_result_event, proc.returncode)
+        error_kind = _classify_result_error(last_result_event, proc.returncode, stderr_text=stderr_text)
 
         return ClaudeCodeResult(
             status=status,
