@@ -268,6 +268,8 @@ class McpServerResponse(BaseModel):
     resource_template_count: int = 0
     # 「系统内置」统一对外字段，前端据此渲染 Built-In 徽标 + 隐藏 Edit/Delete。
     is_builtin: bool = False
+    # MCP 配置来源：db（系统 MCP 目录）、mcp_json（项目 .mcp.json 原生配置）、both（两者均有）。
+    source: str = "db"
 
     class Config:
         from_attributes = True
@@ -727,42 +729,65 @@ async def _mcp_load_throttle_or_snapshot(db, server_id: UUID) -> LoadToolsRespon
 
 
 @router.get("/mcp/servers", response_model=list[McpServerResponse])
-async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> list[McpServerResponse]:
-    """列出用户可见的 MCP 服务器"""
+async def list_mcp_servers(
+    user: AuthUser = Depends(get_current_user),
+    project_path: str | None = Query(None, alias="projectPath"),
+) -> list[McpServerResponse]:
+    """列出用户可见的 MCP 服务器，可选合并项目 ``.mcp.json`` 中定义的服务器。"""
+    # ---- 1. DB 注册服务器 ----
+    db_servers: list[McpServerResponse] = []
+    db_names: set[str] = set()
+
     async with AsyncSessionLocal() as db:
         visible_ids = await get_visible_plugin_ids(db, "mcp_server", user)
-        if not visible_ids:
-            return []
+        if visible_ids:
+            # tool_count 与 resource_template_count 分两段查询：避免单条 SQL 的
+            # JOIN 笛卡尔积导致两类计数互相膨胀。
+            tool_count_stmt = (
+                select(McpTool.server_id, func.count(McpTool.id))
+                .where(McpTool.server_id.in_(visible_ids))
+                .group_by(McpTool.server_id)
+            )
+            tool_count_rows = (await db.execute(tool_count_stmt)).all()
+            tool_count_map: dict[UUID, int] = {row[0]: row[1] for row in tool_count_rows}
 
-        # tool_count 与 resource_template_count 分两段查询：避免单条 SQL 的
-        # JOIN 笛卡尔积导致两类计数互相膨胀。
-        tool_count_stmt = (
-            select(McpTool.server_id, func.count(McpTool.id))
-            .where(McpTool.server_id.in_(visible_ids))
-            .group_by(McpTool.server_id)
-        )
-        tool_count_rows = (await db.execute(tool_count_stmt)).all()
-        tool_count_map: dict[UUID, int] = {row[0]: row[1] for row in tool_count_rows}
+            template_count_stmt = (
+                select(McpResourceTemplate.server_id, func.count(McpResourceTemplate.id))
+                .where(McpResourceTemplate.server_id.in_(visible_ids))
+                .group_by(McpResourceTemplate.server_id)
+            )
+            template_count_rows = (await db.execute(template_count_stmt)).all()
+            template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
 
-        template_count_stmt = (
-            select(McpResourceTemplate.server_id, func.count(McpResourceTemplate.id))
-            .where(McpResourceTemplate.server_id.in_(visible_ids))
-            .group_by(McpResourceTemplate.server_id)
-        )
-        template_count_rows = (await db.execute(template_count_stmt)).all()
-        template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
+            servers_stmt = select(McpServer).where(McpServer.id.in_(visible_ids)).order_by(McpServer.created_at.desc())
+            servers = (await db.execute(servers_stmt)).scalars().all()
 
-        servers_stmt = select(McpServer).where(McpServer.id.in_(visible_ids)).order_by(McpServer.created_at.desc())
-        servers = (await db.execute(servers_stmt)).scalars().all()
+            db_servers = [
+                _mcp_server_to_response(
+                    s,
+                    tool_count_map.get(s.id, 0),
+                    template_count_map.get(s.id, 0),
+                )
+                for s in servers
+            ]
+            db_names = {s.name for s in servers}
 
-    return [
-        _mcp_server_to_response(
-            server,
-            tool_count_map.get(server.id, 0),
-            template_count_map.get(server.id, 0),
-        )
-        for server in servers
+    # ---- 2. .mcp.json 原生配置（可选） ----
+    from negentropy.interface.mcp_config_resolver import read_mcp_json
+
+    mcp_json_servers = read_mcp_json(project_path)
+
+    # 标记 DB 服务器中同时存在于 .mcp.json 的为 "both"
+    for srv in db_servers:
+        if srv.name in mcp_json_servers:
+            srv.source = "both"
+
+    # 合并 .mcp.json 独有的服务器（DB 中不存在）
+    mcp_json_only = [
+        _mcp_json_server_to_response(name, config) for name, config in mcp_json_servers.items() if name not in db_names
     ]
+
+    return db_servers + mcp_json_only
 
 
 @router.post("/mcp/servers", response_model=McpServerResponse, status_code=status.HTTP_201_CREATED)
@@ -906,6 +931,36 @@ def _mcp_server_to_response(
         resource_template_count=resource_template_count or 0,
         # 显式列优先；旧库未迁移到 0033 时回退 owner_id 前缀，与 permissions 模块保持一致。
         is_builtin=bool(getattr(server, "is_system", False)) or (server.owner_id or "").startswith("system"),
+    )
+
+
+def _mcp_json_server_to_response(name: str, config: dict[str, Any]) -> McpServerResponse:
+    """将 ``.mcp.json`` 中的单条服务器配置转换为 ``McpServerResponse``。
+
+    使用 ``UUID(int=0)`` 哨兵值标记「无 DB 记录」，前端据此跳过 tools 获取。
+    """
+    from negentropy.interface.mcp_config_resolver import derive_transport_type
+
+    return McpServerResponse(
+        id=UUID(int=0),
+        owner_id="",
+        visibility="private",
+        name=name,
+        display_name=None,
+        description="Auto-discovered from .mcp.json",
+        transport_type=derive_transport_type(config),
+        command=config.get("command"),
+        args=config.get("args", []),
+        env={},
+        url=config.get("url"),
+        headers={},
+        is_enabled=True,
+        auto_start=False,
+        config={},
+        tool_count=0,
+        resource_template_count=0,
+        is_builtin=False,
+        source="mcp_json",
     )
 
 

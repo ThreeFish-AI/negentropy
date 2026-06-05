@@ -30,6 +30,8 @@ interface IterationAuditDrawerProps {
   iteration: RoutineIterationDTO | null;
   /** 该迭代的实时动作缓冲（来自 useRoutineDetailLive，仅在途迭代有值）。 */
   liveActions?: RoutineActionStreamEvent[];
+  /** 项目根路径（含 .mcp.json），用于 MCP Server 面板合并原生配置。 */
+  projectPath?: string | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export function IterationAuditDrawer({
   routineId,
   iteration,
   liveActions,
+  projectPath,
 }: IterationAuditDrawerProps) {
   const [persisted, setPersisted] = useState<RoutineIterationEventDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,10 +112,10 @@ export function IterationAuditDrawer({
       <div className="px-5 py-4">
         {error && <ErrorBanner message={error} onRetry={load} />}
 
-        {/* MCP Server/Tool 面板 — 从系统 MCP API 实时获取已启用的 Server 及 Tools */}
+        {/* MCP Server/Tool 面板 — 从系统 MCP API 实时获取已启用的 Server 及 Tools（含 .mcp.json 合并） */}
         {iteration && (
           <div className="mb-3">
-            <McpServersPanel />
+            <McpServersPanel projectPath={projectPath} />
           </div>
         )}
 

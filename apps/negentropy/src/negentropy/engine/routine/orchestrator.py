@@ -515,7 +515,7 @@ class RoutineOrchestrator:
                 if not needs_approval:
                     config = await self._build_config(routine)
                     # 快照系统中所有已启用的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
-                    mcp_meta = await self._resolve_mcp_meta(db)
+                    mcp_meta = await self._resolve_mcp_meta(db, cwd=routine.cwd)
                     if mcp_meta:
                         iteration.metrics = {**(iteration.metrics or {}), "mcp_servers": mcp_meta}
                     launch_specs.append((iteration.id, routine.id, prompt, config))
@@ -570,7 +570,7 @@ class RoutineOrchestrator:
                     continue
                 config = await self._build_config(routine)
                 # 快照系统中所有已启用的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
-                mcp_meta = await self._resolve_mcp_meta(db)
+                mcp_meta = await self._resolve_mcp_meta(db, cwd=routine.cwd)
                 if mcp_meta:
                     it.metrics = {**(it.metrics or {}), "mcp_servers": mcp_meta}
                 # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
@@ -1021,13 +1021,16 @@ class RoutineOrchestrator:
         return config
 
     @staticmethod
-    async def _resolve_mcp_meta(db: AsyncSession) -> list[dict]:
+    async def _resolve_mcp_meta(db: AsyncSession, cwd: str | None = None) -> list[dict]:
         """快照系统中所有已启用的 MCP server 及其 tool 元数据。
 
         直接查询 ``mcp_servers`` / ``mcp_tools`` 目录表，不依赖 Claude Code 传入的
         ``mcp_config``——因为 MCP Server 可通过多种途径配置（Claude Code 用户级配置、
         项目级 .mcp.json、Negentropy 系统 MCP 目录等），仅从 ``mcp_config`` 无法
         覆盖全部来源。目录表是系统已知的 Server 全集。
+
+        当 *cwd* 非空时，额外读取项目 ``.mcp.json`` 中的 MCP 配置并合并（按 name
+        去重），确保快照覆盖 Claude Code 原生发现的所有 MCP。
 
         注意：仅保存公开元数据，不含 transport config 中的 env / headers 等敏感字段。
         """
@@ -1037,11 +1040,10 @@ class RoutineOrchestrator:
             .all()
         )
 
-        if not servers:
-            return []
-
         result: list[dict] = []
+        db_names: set[str] = set()
         for server in servers:
+            db_names.add(server.name)
             tools = (
                 await db.execute(
                     select(
@@ -1072,6 +1074,24 @@ class RoutineOrchestrator:
                     ],
                 }
             )
+
+        # 合并 .mcp.json 中独有的服务器（DB 中不存在的）
+        if cwd:
+            from negentropy.interface.mcp_config_resolver import derive_transport_type, read_mcp_json
+
+            mcp_json_servers = read_mcp_json(cwd)
+            for name, config in mcp_json_servers.items():
+                if name not in db_names:
+                    result.append(
+                        {
+                            "name": name,
+                            "display_name": None,
+                            "description": "Auto-discovered from .mcp.json",
+                            "transport_type": derive_transport_type(config),
+                            "tools": [],
+                            "source": "mcp_json",
+                        }
+                    )
 
         return result
 
