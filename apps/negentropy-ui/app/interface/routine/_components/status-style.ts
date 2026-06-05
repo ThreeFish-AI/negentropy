@@ -9,6 +9,7 @@ import {
   FolderSearch,
   Globe,
   type LucideIcon,
+  ListChecks,
   MessageSquare,
   Scale,
   Search,
@@ -18,7 +19,14 @@ import {
   Wrench,
 } from "lucide-react";
 
-import type { IterationStatus, RoutineEventType, RoutinePhase, RoutineStatus, Verdict } from "@/features/routine";
+import type {
+  IterationStatus,
+  RoutineEventType,
+  RoutineIterationEventDTO,
+  RoutinePhase,
+  RoutineStatus,
+  Verdict,
+} from "@/features/routine";
 
 // ---------------------------------------------------------------------------
 // 事件标题翻译层
@@ -44,6 +52,9 @@ export const EVENT_TITLE_LABELS: Record<string, string> = {
   success: "成功",
   error: "执行错误",
   timeout: "执行超时",
+  // CC 内置 Task 工具（向后兼容：旧事件 title 为裸工具名时的中文兜底）
+  TaskCreate: "创建任务",
+  TaskUpdate: "更新任务",
 };
 
 /** 解析事件行标题：翻译已知 title，未知 title 透传，无 title 走 eventTypeLabel 兜底。 */
@@ -236,6 +247,10 @@ function toolIcon(toolName: string | null | undefined): LucideIcon {
     case "webfetch":
     case "websearch":
       return Globe;
+    // CC 内置 Task 管理工具（ListChecks：任务列表语义）
+    case "taskcreate":
+    case "taskupdate":
+      return ListChecks;
     default:
       return Wrench;
   }
@@ -346,3 +361,65 @@ export const EVENT_GROUP_LABEL: Record<EventGroup, string> = {
 
 /** 已完成图标（用于 result 成功态等）。 */
 export const SuccessIcon = CheckCircle2;
+
+// ---------------------------------------------------------------------------
+// CC Task 工具状态指示（TaskCreate / TaskUpdate 的动态状态追踪）
+// ---------------------------------------------------------------------------
+
+/** Claude Code Task 工具内置状态枚举。 */
+export type TaskStatus = "pending" | "in_progress" | "completed" | "deleted";
+
+const TASK_STATUS_SET = new Set<string>(["pending", "in_progress", "completed", "deleted"]);
+
+/** 任务状态 → 状态圆点 CSS（复用 iterationDotClass 色彩语言）。 */
+export function taskStatusDotClass(status: TaskStatus | null | undefined): string {
+  switch (status) {
+    case "pending":
+      return "bg-text-muted";
+    case "in_progress":
+      return "bg-sky-500 animate-pulse";
+    case "completed":
+      return "bg-emerald-500";
+    case "deleted":
+      return "bg-red-500";
+    default:
+      return "";
+  }
+}
+
+/** 任务状态 → 短标签。 */
+export function taskStatusLabel(status: TaskStatus | null | undefined): string {
+  switch (status) {
+    case "pending":
+      return "pending";
+    case "in_progress":
+      return "in progress";
+    case "completed":
+      return "completed";
+    case "deleted":
+      return "deleted";
+    default:
+      return "";
+  }
+}
+
+/** 从 tool_use 事件的 payload.input 派生任务状态。
+ *
+ * - TaskCreate：input.status（缺省时默认 "pending"）
+ * - TaskUpdate：input.status（必须显式提供） */
+export function deriveTaskStatus(ev: RoutineIterationEventDTO): TaskStatus | null {
+  if (ev.event_type !== "tool_use") return null;
+  const toolName = (ev.tool_name || "").toLowerCase();
+  if (toolName !== "taskcreate" && toolName !== "taskupdate") return null;
+
+  const input = ev.payload?.input;
+  if (typeof input === "object" && input !== null) {
+    const status = (input as Record<string, unknown>).status;
+    if (typeof status === "string" && TASK_STATUS_SET.has(status)) {
+      return status as TaskStatus;
+    }
+  }
+  // TaskCreate 无显式 status 时默认 pending
+  if (toolName === "taskcreate") return "pending";
+  return null;
+}
