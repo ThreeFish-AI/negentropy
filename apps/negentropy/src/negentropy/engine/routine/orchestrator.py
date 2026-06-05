@@ -514,9 +514,9 @@ class RoutineOrchestrator:
 
                 if not needs_approval:
                     config = await self._build_config(routine)
-                    # 快照生效的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
-                    if config.mcp_config:
-                        mcp_meta = await self._resolve_mcp_meta(db, config.mcp_config)
+                    # 快照系统中所有已启用的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
+                    mcp_meta = await self._resolve_mcp_meta(db)
+                    if mcp_meta:
                         iteration.metrics = {**(iteration.metrics or {}), "mcp_servers": mcp_meta}
                     launch_specs.append((iteration.id, routine.id, prompt, config))
                     slots -= 1
@@ -569,9 +569,9 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 config = await self._build_config(routine)
-                # 快照生效的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
-                if config.mcp_config:
-                    mcp_meta = await self._resolve_mcp_meta(db, config.mcp_config)
+                # 快照系统中所有已启用的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
+                mcp_meta = await self._resolve_mcp_meta(db)
+                if mcp_meta:
                     it.metrics = {**(it.metrics or {}), "mcp_servers": mcp_meta}
                 # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
                 memory_ctx_approved = (
@@ -1021,20 +1021,24 @@ class RoutineOrchestrator:
         return config
 
     @staticmethod
-    async def _resolve_mcp_meta(db: AsyncSession, mcp_config: dict) -> list[dict]:
-        """将生效的 mcp_config 解析为可展示的 server/tool 元数据快照。
+    async def _resolve_mcp_meta(db: AsyncSession) -> list[dict]:
+        """快照系统中所有已启用的 MCP server 及其 tool 元数据。
 
-        mcp_config 格式为 ``{server_name: transport_config_dict}``，key 为 server 名称。
-        通过 ``mcp_servers.name`` 匹配 catalog 记录，收集已激活的 tool 列表；
-        未匹配 catalog 的 config key 保留为「仅配置」条目。
+        直接查询 ``mcp_servers`` / ``mcp_tools`` 目录表，不依赖 Claude Code 传入的
+        ``mcp_config``——因为 MCP Server 可通过多种途径配置（Claude Code 用户级配置、
+        项目级 .mcp.json、Negentropy 系统 MCP 目录等），仅从 ``mcp_config`` 无法
+        覆盖全部来源。目录表是系统已知的 Server 全集。
 
         注意：仅保存公开元数据，不含 transport config 中的 env / headers 等敏感字段。
         """
-        server_names = list(mcp_config.keys())
-        if not server_names:
-            return []
+        servers = (
+            (await db.execute(select(McpServer).where(McpServer.is_enabled.is_(True)).order_by(McpServer.name)))
+            .scalars()
+            .all()
+        )
 
-        servers = (await db.execute(select(McpServer).where(McpServer.name.in_(server_names)))).scalars().all()
+        if not servers:
+            return []
 
         result: list[dict] = []
         for server in servers:
@@ -1068,20 +1072,6 @@ class RoutineOrchestrator:
                     ],
                 }
             )
-
-        # 未匹配 catalog 的 config key 保留为「仅配置」条目
-        matched_names = {s.name for s in servers}
-        for name in server_names:
-            if name not in matched_names:
-                result.append(
-                    {
-                        "name": name,
-                        "display_name": None,
-                        "description": None,
-                        "transport_type": "unknown",
-                        "tools": [],
-                    }
-                )
 
         return result
 
