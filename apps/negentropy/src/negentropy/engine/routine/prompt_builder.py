@@ -71,21 +71,17 @@ def build_prompt(
     if worktree:
         baseline = getattr(routine, "baseline_branch", None) or "(baseline)"
         work_branch = getattr(routine, "work_branch", None)
-        source_cwd = getattr(routine, "cwd", None) or ""
-        scope_note = ""
-        if source_cwd:
-            scope_note = f"\n   - 源项目目录 `{source_cwd}` 及其子目录（仅参考，不可修改）"
         parts.append(
             "# 隔离工作区 (Isolated Worktree)\n你正在一个隔离 git worktree（当前工作目录）中工作：\n"
             f"- 工作分支：`{work_branch or '（引擎将基于基线创建）'}`\n"
             f"- 基线分支：`{baseline}`\n\n"
             "## 作用域限制 (Scope Constraints)\n"
             "**读取范围**：仅允许读取以下目录中的文件：\n"
-            "   1. 当前工作目录（worktree）及其子目录"
-            f"{scope_note}\n"
+            "   1. 当前工作目录（worktree）及其子目录\n"
             "   2. Goal 中通过绝对路径明确引用的外部目录（仅限引用处）\n"
             "**绝不**浏览、列出或读取工作目录的兄弟目录、父目录的其他子项目、"
-            "或任何与任务无关的本地文件系统路径。\n\n"
+            "源项目目录、或任何与任务无关的本地文件系统路径。\n"
+            "worktree 包含基线分支的完整检出，无需引用源项目。\n\n"
             "**写入范围**：仅在当前工作目录内改动；"
             "**绝不**切换分支、推送或污染基线分支与 master/main。\n\n"
             "**例外**：WebSearch、WebFetch 等 internet 工具不受此限制。"
