@@ -19,7 +19,7 @@ import {
   eventGroup,
   eventTypeClass,
   eventTypeIcon,
-  eventTypeLabel,
+
   resolveEventTitle,
   scoreColorClass,
   deriveTaskStatus,
@@ -79,104 +79,6 @@ function groupIntoTurns(events: RoutineIterationEventDTO[]): EventTurn[] {
 
   if (current) turns.push(current);
   return turns;
-}
-
-// ---------------------------------------------------------------------------
-// ActionGroup（动作组）—— 将 Turn 内事件按 assistant 边界细分为逻辑动作
-// ---------------------------------------------------------------------------
-
-/** Turn 内的「动作组」—— 以 assistant 事件为分组边界。
- *  典型模式：assistant → tool_use → tool_result = 一个动作。
- *  纯思考（assistant 无后续 tool_use）也构成一个动作组。 */
-interface ActionGroup {
-  /** 组内事件，按 seq 升序。 */
-  events: RoutineIterationEventDTO[];
-  /** 组内是否包含 tool_use 事件（决定图标/标题策略）。 */
-  hasToolUse: boolean;
-  /** 组内是否包含 is_error === true 的 tool_result。 */
-  hasError: boolean;
-}
-
-/** 将 Turn 内事件按 assistant 边界细分为动作组。
- *  每个 `assistant` 事件是分组边界，两个 `assistant` 之间的所有事件（含首个）
- *  构成一个 ActionGroup。
- *  - `[assistant, tool_use, tool_result]` → 1 组（典型动作）
- *  - `[assistant]` → 1 组（纯思考/总结）
- *  - `[system]` → 1 组（初始化）
- *  - `[assistant, tool_use×N, tool_result×N]` → 1 组（并行调用）
- */
-function groupIntoActions(events: RoutineIterationEventDTO[]): ActionGroup[] {
-  if (events.length === 0) return [];
-
-  const groups: ActionGroup[] = [];
-  let current: ActionGroup = { events: [], hasToolUse: false, hasError: false };
-
-  for (const ev of events) {
-    const isBoundary =
-      ev.event_type === "assistant" && current.events.length > 0;
-
-    if (isBoundary) {
-      groups.push(current);
-      current = { events: [], hasToolUse: false, hasError: false };
-    }
-
-    current.events.push(ev);
-
-    if (ev.event_type === "tool_use") current.hasToolUse = true;
-    if (ev.event_type === "tool_result" && payloadIsError(ev.payload)) current.hasError = true;
-  }
-
-  groups.push(current);
-  return groups;
-}
-
-/** 从 ActionGroup 推导人可读标题。
- *  优先级：
- *  1. 若组内有 tool_use → resolveEventTitle(tool_use)
- *  2. 若 assistant title 是已知子类型 → 翻译标签（如 "thinking" → "思考"）
- *  3. 若 assistant 有 payload.text → 首行 80 字符截断
- *  4. 兜底 → resolveEventTitle() 通用标签
- */
-function deriveActionGroupTitle(group: ActionGroup): string {
-  // 优先使用 tool_use 的标题
-  const toolUse = group.events.find((e) => e.event_type === "tool_use");
-  if (toolUse) {
-    return resolveEventTitle(toolUse.event_type, toolUse.title, toolUse.tool_name);
-  }
-
-  // assistant 事件
-  const assistant = group.events.find((e) => e.event_type === "assistant");
-  if (assistant) {
-    // 若 title 是已知子类型（如 "thinking"），优先使用翻译标签
-    const resolved = resolveEventTitle(assistant.event_type, assistant.title, assistant.tool_name);
-    const genericLabel = eventTypeLabel("assistant"); // "推理"
-    if (resolved !== genericLabel) return resolved;
-
-    // 尝试从 payload.text 提取描述性标题
-    const text = typeof assistant.payload?.text === "string"
-      ? (assistant.payload.text as string).trim()
-      : "";
-    if (text) {
-      const firstLine = text.split("\n")[0];
-      return firstLine.length > 80 ? firstLine.slice(0, 80) + "…" : firstLine;
-    }
-    return resolved;
-  }
-
-  // 兜底：system 等其他事件
-  const first = group.events[0];
-  return resolveEventTitle(first.event_type, first.title || extractSubtitle(first.payload), first.tool_name);
-}
-
-/** 从 ActionGroup 推导图标。 */
-function deriveActionGroupIcon(group: ActionGroup): LucideIcon {
-  if (group.hasToolUse) {
-    const toolUse = group.events.find((e) => e.event_type === "tool_use")!;
-    return eventTypeIcon("tool_use", toolUse.tool_name);
-  }
-  const assistant = group.events.find((e) => e.event_type === "assistant");
-  if (assistant) return eventTypeIcon("assistant");
-  return eventTypeIcon(group.events[0].event_type);
 }
 
 /** 从 Turn 的首事件及事件序列中推导人可读标题。
@@ -460,8 +362,7 @@ function SpeakerGroupBubble({ group }: { group: SpeakerGroup }) {
 }
 
 /** Claude Code Turn 气泡（左侧）。
- *  Turn 不再可折叠，ActionGroupRow 列表始终在 Header 下方直接展示，
- *  消除 Turn 标题与 ActionGroup 标题的重复文案问题。 */
+ *  Turn 内事件直接平铺为 EventRow 列表，无中间聚合层。 */
 function ClaudeCodeTurnBubble({
   turn,
   showHeader = true,
@@ -471,7 +372,6 @@ function ClaudeCodeTurnBubble({
   showHeader?: boolean;
 }) {
   const title = deriveTurnTitle(turn);
-  const actionGroups = useMemo(() => groupIntoActions(turn.events), [turn.events]);
 
   return (
     <div className={cn("py-0.5", showHeader && "flex gap-2.5")}>
@@ -507,20 +407,17 @@ function ClaudeCodeTurnBubble({
               error
             </span>
           )}
-          {/* 多 ActionGroup 时显示 Turn 摘要副标题；单组时不显示以避免与 ActionGroup 标题重复 */}
-          {actionGroups.length > 1 && (
+          {/* 多事件时显示 Turn 摘要副标题 */}
+          {turn.events.length > 1 && (
             <span className="min-w-0 flex-1 truncate text-[10px] text-text-muted" title={title}>
               {title}
             </span>
           )}
         </div>
-        {/* ActionGroupRow 列表——始终可见，无折叠层 */}
+        {/* EventRow 列表——始终可见，直接平铺 */}
         <ol className="space-y-1 border-l border-border pl-3">
-          {actionGroups.map((group, gi) => (
-            <ActionGroupRow
-              key={`action-${gi}-${group.events[0]?.seq}`}
-              group={group}
-            />
+          {turn.events.map((ev) => (
+            <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
           ))}
         </ol>
       </div>
@@ -885,73 +782,6 @@ function EventTitle({ title }: { title: string }) {
       <span className="truncate">{head}</span>
       {tail && <span className="shrink-0">{tail}</span>}
     </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ActionGroupRow（Turn 内的可折叠动作组）
-// ---------------------------------------------------------------------------
-
-/** Turn 内的单个「动作组」—— 折叠态显示动作摘要，展开态显示 EventRow 列表。 */
-function ActionGroupRow({ group }: { group: ActionGroup }) {
-  const [expanded, setExpanded] = useState(false);
-  const icon = deriveActionGroupIcon(group);
-  const title = deriveActionGroupTitle(group);
-  const count = group.events.length;
-
-  return (
-    <li className="relative -ml-px pl-4">
-      {/* 时间线节点圆点 */}
-      <span className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <span
-          className={cn(
-            "flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-card",
-            group.hasError
-              ? "bg-red-500/10 text-red-600 dark:text-red-400"
-              : group.hasToolUse
-                ? "bg-sky-500/10 text-sky-700 dark:text-sky-300"
-                : "bg-violet-500/10 text-violet-700 dark:text-violet-300",
-          )}
-        >
-          <EventIcon icon={icon} className="h-3 w-3" />
-        </span>
-      </span>
-
-      {/* 可折叠标题 */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/50"
-      >
-        <ChevronRight
-          className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", expanded && "rotate-90")}
-          aria-hidden
-        />
-        <EventTitle title={title} />
-        {/* 事件数量 badge（仅 >1 时显示） */}
-        {count > 1 && (
-          <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium tabular-nums text-text-muted">
-            {count}
-          </span>
-        )}
-        {/* 错误 badge */}
-        {group.hasError && (
-          <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
-            error
-          </span>
-        )}
-      </button>
-
-      {/* 展开后：嵌套 EventRow 列表 */}
-      {expanded && (
-        <ol className="mt-1 space-y-0.5 border-l border-border pl-3">
-          {group.events.map((ev) => (
-            <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
-          ))}
-        </ol>
-      )}
-    </li>
   );
 }
 
