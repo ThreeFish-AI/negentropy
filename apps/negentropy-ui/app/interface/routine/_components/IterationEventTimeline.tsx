@@ -203,13 +203,6 @@ function deriveTurnTitle(turn: EventTurn): string {
   return `Turn ${turn.turnNumber}`;
 }
 
-/** 默认展开策略：所有 Turn 均展开。
- *  动作组提供紧凑摘要，展开所有 Turn 可一览完整执行流。 */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isTurnDefaultExpanded(_turn: EventTurn, _index: number, _total: number): boolean {
-  return true;
-}
-
 /** 渲染 Lucide 图标 —— 以 prop 传入组件引用，避免「render 期间创建组件」lint 误报。 */
 function EventIcon({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
   return <Icon className={className} aria-hidden />;
@@ -221,7 +214,7 @@ function EventIcon({ icon: Icon, className }: { icon: LucideIcon; className?: st
 
 /** 对话块：一个可独立渲染的对话单元，由 Agent 角色决定对齐方向。 */
 type ConversationBlock =
-  | { kind: "turn"; turn: EventTurn; defaultExpanded: boolean }
+  | { kind: "turn"; turn: EventTurn }
   | { kind: "plan_review"; event: RoutineIterationEventDTO }
   | { kind: "engine_event"; event: RoutineIterationEventDTO; label: string };
 
@@ -236,8 +229,7 @@ function flushAccumulator(
   for (let i = 0; i < turns.length; i++) {
     // 重编号以保持全局连续（groupIntoTurns 内部从 1 开始，需加上偏移）
     turns[i].turnNumber = turnOffset.value + i + 1;
-    // defaultExpanded 暂设 false，由 buildConversationBlocks 后置统一设置
-    blocks.push({ kind: "turn", turn: turns[i], defaultExpanded: false });
+    blocks.push({ kind: "turn", turn: turns[i] });
   }
   turnOffset.value += turns.length;
   acc.length = 0;
@@ -271,14 +263,6 @@ function buildConversationBlocks(
 
   // 刷出尾部残留的 execution 事件
   flushAccumulator(acc, blocks, turnOffset);
-
-  // 设置 defaultExpanded：最后一轮 + 含错轮次展开
-  const totalTurns = turnOffset.value;
-  for (const b of blocks) {
-    if (b.kind === "turn") {
-      b.defaultExpanded = isTurnDefaultExpanded(b.turn, b.turn.turnNumber - 1, totalTurns);
-    }
-  }
 
   return blocks;
 }
@@ -344,7 +328,6 @@ export function IterationEventTimeline({
                 <ClaudeCodeTurnBubble
                   key={`turn-${block.turn.turnNumber}`}
                   turn={block.turn}
-                  defaultExpanded={block.defaultExpanded}
                 />
               );
             case "plan_review":
@@ -373,16 +356,14 @@ export function IterationEventTimeline({
 // 对话气泡组件
 // ---------------------------------------------------------------------------
 
-/** Claude Code Turn 气泡（左侧）。 */
+/** Claude Code Turn 气泡（左侧）。
+ *  Turn 不再可折叠，ActionGroupRow 列表始终在 Header 下方直接展示，
+ *  消除 Turn 标题与 ActionGroup 标题的重复文案问题。 */
 function ClaudeCodeTurnBubble({
   turn,
-  defaultExpanded,
 }: {
   turn: EventTurn;
-  defaultExpanded: boolean;
 }) {
-  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
-  const expanded = manualExpanded ?? defaultExpanded;
   const title = deriveTurnTitle(turn);
   const actionGroups = useMemo(() => groupIntoActions(turn.events), [turn.events]);
 
@@ -415,33 +396,22 @@ function ClaudeCodeTurnBubble({
               error
             </span>
           )}
+          {/* 多 ActionGroup 时显示 Turn 摘要副标题；单组时不显示以避免与 ActionGroup 标题重复 */}
+          {actionGroups.length > 1 && (
+            <span className="min-w-0 flex-1 truncate text-[10px] text-text-muted" title={title}>
+              {title}
+            </span>
+          )}
         </div>
-        {/* Turn 标题（可折叠） */}
-        <button
-          type="button"
-          onClick={() => setManualExpanded((v) => !(v ?? defaultExpanded))}
-          aria-expanded={expanded}
-          className="flex w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/30"
-        >
-          <ChevronRight
-            className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", expanded && "rotate-90")}
-            aria-hidden
-          />
-          <span className="min-w-0 flex-1 truncate text-xs text-foreground" title={title}>
-            {title}
-          </span>
-        </button>
-        {/* 展开后的动作组列表 */}
-        {expanded && (
-          <ol className="mt-2 space-y-1 border-l border-border pl-3">
-            {actionGroups.map((group, gi) => (
-              <ActionGroupRow
-                key={`action-${gi}-${group.events[0]?.seq}`}
-                group={group}
-              />
-            ))}
-          </ol>
-        )}
+        {/* ActionGroupRow 列表——始终可见，无折叠层 */}
+        <ol className="space-y-1 border-l border-border pl-3">
+          {actionGroups.map((group, gi) => (
+            <ActionGroupRow
+              key={`action-${gi}-${group.events[0]?.seq}`}
+              group={group}
+            />
+          ))}
+        </ol>
       </div>
     </div>
   );
