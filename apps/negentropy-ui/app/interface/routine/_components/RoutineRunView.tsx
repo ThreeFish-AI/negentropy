@@ -122,6 +122,7 @@ export function RoutineRunView({
         routineId={routine.id}
         iteration={auditIteration}
         liveActions={auditId ? liveActionsByIteration?.[auditId] : undefined}
+        projectPath={routine.cwd}
       />
     </div>
   );

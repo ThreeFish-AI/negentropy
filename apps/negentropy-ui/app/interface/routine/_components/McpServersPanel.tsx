@@ -24,6 +24,8 @@ interface McpServerItem {
   transport_type: string;
   is_enabled: boolean;
   tool_count: number;
+  /** MCP 配置来源：db | mcp_json | both */
+  source?: "db" | "mcp_json" | "both";
 }
 
 interface McpToolItem {
@@ -34,6 +36,17 @@ interface McpToolItem {
   is_enabled: boolean;
 }
 
+/** UUID(int=0) 哨兵值，标记无 DB 记录的 .mcp.json 服务器。 */
+const MCP_JSON_SENTINEL_ID = "00000000-0000-0000-0000-000000000000";
+
+// ---------------------------------------------------------------------------
+// 组件 Props
+// ---------------------------------------------------------------------------
+export interface McpServersPanelProps {
+  /** 项目根路径（含 .mcp.json），用于合并原生 MCP 配置。 */
+  projectPath?: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // 组件
 // ---------------------------------------------------------------------------
@@ -41,11 +54,11 @@ interface McpToolItem {
 /**
  * Iteration 详情中的 MCP Server/Tool 面板。
  *
- * 直接从系统 MCP API（``/api/interface/mcp/servers``）实时获取所有已启用的
- * Server 及其 Tools，不依赖后端快照——确保所有迭代（含历史）均能展示当前
- * Claude Code 可用的 MCP 能力。
+ * 从系统 MCP API（``/api/interface/mcp/servers``）实时获取所有已启用的
+ * Server 及其 Tools。当传入 ``projectPath`` 时，API 会额外合并该项目
+ * ``.mcp.json`` 中定义的 MCP 服务器，展示 Claude Code 可用的完整 MCP 能力。
  */
-export function McpServersPanel() {
+export function McpServersPanel({ projectPath }: McpServersPanelProps) {
   const [servers, setServers] = useState<McpServerItem[]>([]);
   const [toolsMap, setToolsMap] = useState<Record<string, McpToolItem[]>>({});
   const [loading, setLoading] = useState(true);
@@ -55,16 +68,22 @@ export function McpServersPanel() {
     setLoading(true);
     setError(null);
     try {
-      // 1. 获取所有已启用的 MCP Server
-      const res = await fetch("/api/interface/mcp/servers", { cache: "no-store" });
+      // 1. 获取所有已启用的 MCP Server（含 .mcp.json 合并）
+      const params = new URLSearchParams();
+      if (projectPath) params.set("projectPath", projectPath);
+      const qs = params.toString();
+      const url = `/api/interface/mcp/servers${qs ? `?${qs}` : ""}`;
+
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`MCP servers API → ${res.status}`);
       const allServers: McpServerItem[] = await res.json();
       const enabled = allServers.filter((s) => s.is_enabled);
       setServers(enabled);
 
-      // 2. 并行获取各 Server 的已启用 Tools
+      // 2. 并行获取各 DB Server 的已启用 Tools（.mcp.json 服务器跳过）
+      const dbServers = enabled.filter((s) => s.id !== MCP_JSON_SENTINEL_ID);
       const entries = await Promise.all(
-        enabled.map(async (s) => {
+        dbServers.map(async (s) => {
           try {
             const tRes = await fetch(`/api/interface/mcp/servers/${s.id}/tools`, { cache: "no-store" });
             if (!tRes.ok) return [s.id, []] as const;
@@ -81,7 +100,7 @@ export function McpServersPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectPath]);
 
   useEffect(() => {
     void load();
@@ -121,8 +140,10 @@ export function McpServersPanel() {
       <div className="space-y-1.5">
         {servers.map((server) => {
           const tools = toolsMap[server.id] ?? [];
+          const source = server.source ?? "db";
+          const isMcpJson = source === "mcp_json";
           return (
-            <details key={server.id} className="group/details">
+            <details key={server.id + server.name} className="group/details">
               <summary className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-xs hover:bg-border/40 [&::-webkit-details-marker]:hidden">
                 {/* Chevron */}
                 <svg
@@ -145,6 +166,19 @@ export function McpServersPanel() {
                   {transportLabel(server.transport_type)}
                 </span>
 
+                {/* Source badge */}
+                <span
+                  className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium ${
+                    isMcpJson
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      : source === "both"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400"
+                  }`}
+                >
+                  {isMcpJson ? ".mcp.json" : source === "both" ? "DB + .mcp.json" : "DB"}
+                </span>
+
                 {/* Display name (if different from name) */}
                 {server.display_name && server.display_name !== server.name && (
                   <span className="truncate text-[10px] text-text-muted">— {server.display_name}</span>
@@ -152,12 +186,16 @@ export function McpServersPanel() {
 
                 {/* Tool count */}
                 <span className="ml-auto shrink-0 text-[10px] tabular-nums text-text-muted">
-                  {tools.length > 0 ? `${tools.length} tools` : `${server.tool_count} tools`}
+                  {isMcpJson ? "runtime" : tools.length > 0 ? `${tools.length} tools` : `${server.tool_count} tools`}
                 </span>
               </summary>
 
-              {/* Tool list */}
-              {tools.length > 0 ? (
+              {/* Tool list — .mcp.json 服务器显示提示，DB 服务器展示 tools */}
+              {isMcpJson ? (
+                <p className="ml-4.5 pb-1 text-[10px] text-text-muted">
+                  Tools discoverable at runtime by Claude Code (not registered in system catalog)
+                </p>
+              ) : tools.length > 0 ? (
                 <div className="ml-4.5 mt-1 flex flex-wrap gap-1.5 pb-1">
                   {tools.map((tool) => {
                     const label = tool.display_name || tool.title || tool.name;
