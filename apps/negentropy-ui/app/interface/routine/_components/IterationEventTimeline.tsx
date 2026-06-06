@@ -257,7 +257,7 @@ export function IterationEventTimeline({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {/* 分组统计栏 */}
       <div className="flex flex-wrap items-center gap-2">
         {(["execution", "plan_review", "result", "gate", "evaluation"] as const).map((g) => {
@@ -282,7 +282,7 @@ export function IterationEventTimeline({
       </div>
 
       {/* 对话流（按同发言人聚合） */}
-      <div className="space-y-2.5">
+      <div className="space-y-1">
         {speakerGroups.map((group) => (
           <SpeakerGroupBubble key={group.id} group={group} />
         ))}
@@ -353,7 +353,7 @@ function SpeakerGroupBubble({ group }: { group: SpeakerGroup }) {
         </div>
       </div>
       {/* 聚合内容区 */}
-      <div className="min-w-0 max-w-[85%] space-y-2">
+      <div className="min-w-0 max-w-[85%] space-y-[3px]">
         {/* 统一发言人标签 */}
         <div className="flex items-center gap-2 px-1">
           <span className={cn(
@@ -396,40 +396,37 @@ function ClaudeCodeTurnBubble({
       {/* 气泡内容 */}
       <div
         className={cn(
-          "min-w-0 rounded-2xl border p-3 shadow-sm transition-colors",
+          "min-w-0 rounded-2xl border p-1 shadow-sm transition-colors",
           showHeader ? "max-w-[85%] rounded-tl-sm" : "w-full",
           turn.hasError
             ? "border-red-500/30 bg-red-500/[0.03]"
             : "border-border bg-card",
         )}
       >
-        {/* 可点击的折叠 Header */}
+        {/* 可点击的折叠 Header（单行：箭头 · 发言人 · Turn N · 事件数 · error · 摘要标题） */}
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
-          className="-mx-1 flex w-full flex-col gap-1 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-muted/40"
+          className="-mx-1 flex w-full items-center gap-2 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-muted/40"
         >
-          {/* 元信息行：折叠箭头 · 发言人 · Turn N · 事件数 · error 徽章 */}
-          <span className="flex w-full items-center gap-2">
-            <ChevronRight
-              className={cn("h-3.5 w-3.5 shrink-0 text-text-muted transition-transform", !collapsed && "rotate-90")}
-              aria-hidden
-            />
-            {showHeader && (
-              <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
-                Claude Code
-              </span>
-            )}
-            <span className="text-sm font-semibold text-foreground">Turn {turn.turnNumber}</span>
-            <span className="text-caption tabular-nums text-text-secondary">{turn.events.length} events</span>
-            {turn.hasError && (
-              <span className={cn(BADGE_BASE, "shrink-0 bg-red-500/10 text-red-600 dark:text-red-400")}>
-                error
-              </span>
-            )}
-          </span>
-          {/* 摘要标题（独占整行，折叠态快速了解 Turn 内容；溢出截断 + 全文 tooltip） */}
-          <span className="block truncate pl-5 text-body font-medium text-text-secondary" title={title}>
+          <ChevronRight
+            className={cn("h-3.5 w-3.5 shrink-0 text-text-muted transition-transform", !collapsed && "rotate-90")}
+            aria-hidden
+          />
+          {showHeader && (
+            <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+              Claude Code
+            </span>
+          )}
+          <span className="text-sm font-semibold text-foreground">Turn {turn.turnNumber}</span>
+          <span className="text-caption tabular-nums text-text-secondary">{turn.events.length} events</span>
+          {turn.hasError && (
+            <span className={cn(BADGE_BASE, "shrink-0 bg-red-500/10 text-red-600 dark:text-red-400")}>
+              error
+            </span>
+          )}
+          {/* 摘要标题（占据剩余空间，溢出截断 + 全文 tooltip） */}
+          <span className="min-w-0 flex-1 truncate text-body font-medium text-text-secondary" title={title}>
             {title}
           </span>
         </button>
