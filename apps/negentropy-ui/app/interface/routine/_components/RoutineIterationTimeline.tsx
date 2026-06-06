@@ -7,6 +7,7 @@ import type { RoutineIterationDTO } from "@/features/routine";
 import { AGENT_ROLE_META, deriveIterationDriver } from "@/features/routine";
 
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
+import { MarkdownText } from "./MarkdownText";
 import { ACTIVE_TIMING } from "./routine-loop";
 import { iterationDotClass, phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-style";
 
@@ -143,12 +144,12 @@ function IterationCard({
         </div>
       )}
 
-      {/* 执行摘要 */}
+      {/* 执行摘要（Markdown 渲染） */}
       {it.summary && (
-        <p
-          className={`${it.phase === "plan" ? "mt-1" : "mt-2"} whitespace-pre-wrap break-words text-[11px] text-text-secondary`}
-        >
-          {expanded || it.summary.length <= 280 ? it.summary : `${it.summary.slice(0, 280)}…`}
+        <div className={it.phase === "plan" ? "mt-1" : "mt-2"}>
+          <MarkdownText
+            content={expanded || it.summary.length <= 280 ? it.summary : `${it.summary.slice(0, 280)}…`}
+          />
           {it.summary.length > 280 && (
             <button
               onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
@@ -157,7 +158,7 @@ function IterationCard({
               {expanded ? "收起" : "展开"}
             </button>
           )}
-        </p>
+        </div>
       )}
 
       {/* 执行失败信息 */}
@@ -167,11 +168,12 @@ function IterationCard({
         </pre>
       )}
 
-      {/* 评估反思 */}
+      {/* 评估反思（Markdown 渲染） */}
       {it.reflection && (
-        <p className="mt-2 rounded bg-muted/40 p-2 text-[11px] italic text-text-secondary">
-          💡 {it.reflection}
-        </p>
+        <div className="mt-2 rounded bg-muted/40 p-2">
+          <span className="mr-1">💡</span>
+          <MarkdownText content={it.reflection} className="[&_p]:inline" />
+        </div>
       )}
 
       {/* 指标行 */}

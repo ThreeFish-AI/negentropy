@@ -13,6 +13,7 @@ import {
   type RoutineIterationEventDTO,
 } from "@/features/routine";
 
+import { MarkdownText } from "./MarkdownText";
 import {
   EVENT_GROUP_LABEL,
   type EventGroup,
@@ -506,10 +507,10 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
           </div>
         )}
 
-        {/* 反馈文本 */}
+        {/* 反馈文本（Markdown 渲染） */}
         {feedback && (
-          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2 text-caption leading-caption text-text-secondary">
-            {feedback}
+          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2">
+            <MarkdownText content={feedback} />
           </div>
         )}
 
@@ -525,7 +526,7 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
           </button>
         )}
         {expanded && reflection && (
-          <p className="mt-1 text-caption italic leading-caption text-text-secondary">{reflection}</p>
+          <MarkdownText content={reflection} className="mt-1 italic" />
         )}
 
         {/* 详情（raw payload） */}
@@ -663,7 +664,9 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
               </div>
             )}
             {resultText && (
-              <div className="mt-1 line-clamp-3 text-caption leading-caption text-text-secondary">{resultText}</div>
+              <div className="mt-1 line-clamp-3">
+                <MarkdownText content={resultText} />
+              </div>
             )}
           </>
         )}
@@ -704,7 +707,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
               </button>
             )}
             {reflectionOpen && reflection && (
-              <p className="mt-1 text-caption italic leading-caption text-text-secondary">{reflection}</p>
+              <MarkdownText content={reflection} className="mt-1 italic" />
             )}
           </>
         )}
@@ -877,16 +880,27 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
   );
 }
 
-/** 长文本字段（直接渲染为可读 pre，而非 JSON 字符串字面量）。 */
-const TEXT_FIELDS = ["text", "output", "result", "prompt", "raw", "reflection", "command"] as const;
+/** 长文本字段 —— 以 Markdown 渲染（人类可读文本）。 */
+const MARKDOWN_FIELDS = new Set(["text", "reflection"]);
+
+/** 长文本字段 —— 以等宽 pre 渲染（代码/命令/原始输出）。 */
+const PREFORMATTED_FIELDS = new Set(["output", "result", "prompt", "raw", "command"]);
+
+/** 所有长文本字段（用于从 payload 中提取）。 */
+const ALL_TEXT_FIELDS = new Set([...MARKDOWN_FIELDS, ...PREFORMATTED_FIELDS]);
 
 function EventDetail({ payload }: { payload: Record<string, unknown> }) {
   // 拆出长文本字段单独渲染（可读性优于 JSON 字面量），其余结构化字段交给 JsonViewer。
-  const textBlocks: Array<{ key: string; value: string }> = [];
+  const markdownBlocks: Array<{ key: string; value: string }> = [];
+  const preformattedBlocks: Array<{ key: string; value: string }> = [];
   const rest: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(payload)) {
-    if ((TEXT_FIELDS as readonly string[]).includes(k) && typeof v === "string" && v.length > 0) {
-      textBlocks.push({ key: k, value: v });
+    if (ALL_TEXT_FIELDS.has(k) && typeof v === "string" && v.length > 0) {
+      if (MARKDOWN_FIELDS.has(k)) {
+        markdownBlocks.push({ key: k, value: v });
+      } else {
+        preformattedBlocks.push({ key: k, value: v });
+      }
     } else if (v !== null && v !== undefined && v !== "") {
       rest[k] = v;
     }
@@ -894,7 +908,15 @@ function EventDetail({ payload }: { payload: Record<string, unknown> }) {
 
   return (
     <>
-      {textBlocks.map(({ key, value }) => (
+      {markdownBlocks.map(({ key, value }) => (
+        <div key={key}>
+          <div className="mb-1 text-micro font-medium uppercase tracking-overline text-text-secondary">{key}</div>
+          <div className="max-h-72 overflow-auto rounded-md border border-border bg-muted/40 p-2">
+            <MarkdownText content={value} />
+          </div>
+        </div>
+      ))}
+      {preformattedBlocks.map(({ key, value }) => (
         <div key={key}>
           <div className="mb-1 text-micro font-medium uppercase tracking-overline text-text-secondary">{key}</div>
           <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-caption leading-relaxed text-text-secondary">
