@@ -32,7 +32,11 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
-from negentropy.engine.claude_code.service import ERROR_KIND_CONTEXT_EXHAUSTED, ClaudeCodeService
+from negentropy.engine.claude_code.service import (
+    ERROR_KIND_CONTEXT_EXHAUSTED,
+    ERROR_KIND_SESSION_NOT_FOUND,
+    ClaudeCodeService,
+)
 from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
@@ -195,6 +199,10 @@ class RoutineRunner:
                 settings.routine.context_compact_max_retries if settings.routine.context_compact_enabled else 0
             )
             compact_retry_count = 0
+            # 会话失效（session_not_found）迭代内冷启动重试：独立于上下文压缩开关，因为续接会话
+            # 已彻底不存在、再 resume 永不可能成功，必须清空 session 冷启动。预算固定为 2。
+            session_retry_count = 0
+            session_max_retries = 2
             cumulative_cost = 0.0
             cumulative_turns = 0
             overall_deadline = time.monotonic() + config.timeout_seconds
@@ -204,21 +212,38 @@ class RoutineRunner:
                 while True:
                     # 重试时检查剩余时间是否足够（至少 60s，防无意义短命重试）
                     remaining = overall_deadline - time.monotonic()
-                    if remaining < 60 and compact_retry_count > 0:
-                        logger.warning("routine_compact_retry_timeout_exhausted", remaining_s=round(remaining, 1))
+                    retried = compact_retry_count > 0 or session_retry_count > 0
+                    if remaining < 60 and retried:
+                        logger.warning("routine_retry_timeout_exhausted", remaining_s=round(remaining, 1))
                         break
 
-                    invoke_config = config if compact_retry_count == 0 else _with_reduced_timeout(config, remaining)
+                    invoke_config = config if not retried else _with_reduced_timeout(config, remaining)
                     result = await ClaudeCodeService.invoke(prompt, invoke_config, abort_event=abort, on_event=sink)
                     cumulative_cost += result.cost_usd or 0.0
                     cumulative_turns += result.turn_count or 0
 
-                    # 成功或非上下文耗尽错误：直接退出循环
-                    if (
-                        result.status == "success"
-                        or getattr(result, "error_kind", None) != ERROR_KIND_CONTEXT_EXHAUSTED
+                    kind = getattr(result, "error_kind", None)
+                    # 成功或非可恢复错误：直接退出循环
+                    if result.status == "success" or kind not in (
+                        ERROR_KIND_CONTEXT_EXHAUSTED,
+                        ERROR_KIND_SESSION_NOT_FOUND,
                     ):
                         break
+
+                    # 会话失效：清空 session 冷启动重试，沿用原始 prompt（无工作产出，无需续接摘要）。
+                    if kind == ERROR_KIND_SESSION_NOT_FOUND:
+                        if session_retry_count >= session_max_retries:
+                            logger.warning("routine_session_reset_retries_exhausted", retries=session_retry_count)
+                            break
+                        session_retry_count += 1
+                        logger.info(
+                            "routine_session_reset_retry",
+                            iteration_id=str(iteration_id),
+                            retry=session_retry_count,
+                            stale_session=invoke_config.resume_session_id,
+                        )
+                        config = _reset_config_for_retry(config)  # 清空 resume_session_id；prompt 保持原始
+                        continue
 
                     # 上下文耗尽但重试次数已用尽：退出循环（回退到 Layer 3 跨迭代冷启动）
                     if compact_retry_count >= compact_max_retries:
@@ -229,7 +254,7 @@ class RoutineRunner:
                         )
                         break
 
-                    # 迭代内重试：清空 session（强制新会话）+ 构建续接 prompt
+                    # 上下文耗尽迭代内重试：清空 session（强制新会话）+ 构建续接 prompt
                     compact_retry_count += 1
                     logger.info(
                         "routine_compact_retry",
@@ -257,7 +282,13 @@ class RoutineRunner:
                 )
                 return
 
-            await self._write_back(iteration_id, routine_id, result, compact_retry_count=compact_retry_count)
+            await self._write_back(
+                iteration_id,
+                routine_id,
+                result,
+                compact_retry_count=compact_retry_count,
+                session_retry_count=session_retry_count,
+            )
             await get_bus().publish(
                 {
                     "type": "iteration",
@@ -318,14 +349,22 @@ class RoutineRunner:
         result,
         *,
         compact_retry_count: int = 0,
+        session_retry_count: int = 0,
     ) -> None:
         """原子写回执行结果 + 更新父 routine 反规范化累计。
 
         用 ``asyncio.shield`` 包裹，避免关停取消时丢失已完成的 Claude Code 结果。
-        ``compact_retry_count`` 记录迭代内上下文压缩重试次数，写入 iteration metrics。
+        ``compact_retry_count`` 记录迭代内上下文压缩重试次数；``session_retry_count`` 记录会话失效
+        冷启动重试次数；均写入 iteration metrics。
         """
         await asyncio.shield(
-            self._do_write_back(iteration_id, routine_id, result, compact_retry_count=compact_retry_count)
+            self._do_write_back(
+                iteration_id,
+                routine_id,
+                result,
+                compact_retry_count=compact_retry_count,
+                session_retry_count=session_retry_count,
+            )
         )
 
     async def _do_write_back(
@@ -335,6 +374,7 @@ class RoutineRunner:
         result,
         *,
         compact_retry_count: int = 0,
+        session_retry_count: int = 0,
     ) -> None:
         exec_status = "success" if result.status == "success" else result.status  # success|error|timeout
         async with db_session.AsyncSessionLocal() as db:
@@ -359,14 +399,21 @@ class RoutineRunner:
                 # 上下文耗尽判定（根因：原实现无条件回写 session_id，把 routine 永久钉死在已耗尽
                 # 的会话，导致 resume 后每轮立即撞上下文上限的"死亡螺旋"）。提前到 routine 取用之前
                 # 计算，使 routine 缺失时下方 iteration 标记块仍能安全引用。
-                is_ctx = getattr(result, "error_kind", None) == ERROR_KIND_CONTEXT_EXHAUSTED
+                error_kind = getattr(result, "error_kind", None)
+                is_ctx = error_kind == ERROR_KIND_CONTEXT_EXHAUSTED
+                # 会话失效：迭代内冷启动重试发生过（session_retry_count>0），或最终结果仍为会话失效。
+                is_session_gone = error_kind == ERROR_KIND_SESSION_NOT_FOUND or session_retry_count > 0
                 # 父 routine 累计：成本累加、迭代计数 +1、会话续接。
                 routine = await db.get(Routine, routine_id)
                 if routine is not None:
                     routine.total_cost_usd = (routine.total_cost_usd or 0.0) + (result.cost_usd or 0.0)
                     routine.iteration_count = (routine.iteration_count or 0) + 1
-                    # 会话续接的三态决策：
-                    if is_ctx:
+                    # 会话续接决策（优先级：会话失效 > 上下文耗尽 > 正常续接）：
+                    if error_kind == ERROR_KIND_SESSION_NOT_FOUND:
+                        # (0) 续接会话已彻底失效 → 无条件清空冷启动（再 resume 永不可能成功，
+                        # 无 context_reset 上限语义；runaway 由 no_progress/max_iterations 守卫兜底）。
+                        routine.claude_session_id = None
+                    elif is_ctx:
                         resets = int((routine.reflections or {}).get("_context_resets", 0))
                         if resets < settings.routine.context_reset_max:
                             # (a) 上下文耗尽且未达上限 → 清空污染会话，使下轮在同 worktree 冷启动续干
@@ -378,19 +425,23 @@ class RoutineRunner:
                             # (b) 达自动重置上限 → 不再清空，记标记，落回原 unrecoverable 自然路径（防 runaway）。
                             routine.reflections = {**(routine.reflections or {}), "_context_reset_exhausted": True}
                     elif result.session_id:
-                        # (c) 非上下文耗尽（含成功 / 普通 error / timeout）→ 维持原会话续接逻辑。
+                        # (c) 非上述可恢复错误（含成功 / 普通 error / timeout）→ 维持原会话续接逻辑。
+                        # 注：会话失效冷启动重试成功后 result.session_id 为新会话，经此分支正确续接。
                         routine.claude_session_id = result.session_id
-                # 给 iteration 打 context_exhausted 标记：供 decision 将"可自愈失败"从连续失败计数剔除，
-                # 避免被误判为 unrecoverable（runaway 由 routine.reflections._context_resets 上限兜底）。
-                # 同时记录迭代内压缩重试次数（compact_retries > 0 表示迭代内发生了续接）。
-                if is_ctx or compact_retry_count > 0:
+                # 给 iteration 打可自愈标记：供 decision 将"可自愈失败"从连续失败计数剔除，避免被误判为
+                # unrecoverable。同时记录迭代内重试次数（compact_retries / session_resets > 0 表示发生续接/冷启动）。
+                if is_ctx or is_session_gone or compact_retry_count > 0:
                     it = await db.get(RoutineIteration, iteration_id)
                     if it is not None:
                         metrics = {**(it.metrics or {})}
                         if is_ctx:
                             metrics["context_exhausted"] = True
+                        if is_session_gone:
+                            metrics["session_reset"] = True
                         if compact_retry_count > 0:
                             metrics["compact_retries"] = compact_retry_count
+                        if session_retry_count > 0:
+                            metrics["session_retries"] = session_retry_count
                         it.metrics = metrics
             # 「全过程」动作事件持久化（reconciliation backstop）：
             # 不再受 rowcount==1 门控——即使迭代已被 reaper 标记 reaped，仍确保事件落库

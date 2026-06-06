@@ -36,6 +36,20 @@ def _key(prefix: str = "itest_routine") -> str:
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
 
+async def _evaluate_and_drain(orch: RoutineOrchestrator) -> int:
+    """触发评估并等待后台评估任务完成（评估已从心跳剥离为后台任务）。
+
+    ``_evaluate_and_decide`` 现仅认领 executed 迭代并 spawn 后台评估任务（非阻塞）。
+    集成测试需等待这些后台任务收尾后再断言终态，故 await ``orch._eval_tasks`` 全部完成。
+    返回本 tick 新触发的评估数（与认领数一致）。
+    """
+    launched = await orch._evaluate_and_decide()  # noqa: SLF001
+    tasks = list(orch._eval_tasks.values())  # noqa: SLF001
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    return launched
+
+
 async def _make_routine(**overrides) -> uuid.UUID:
     defaults = dict(
         key=_key(),
@@ -87,7 +101,7 @@ async def test_evaluate_high_score_terminates_succeeded():
                 return_value=EvaluationResult(ok=True, score=92, verdict="pass", reflection="很好", gate_exit_code=None)
             ),
         ):
-            count = await orch._evaluate_and_decide()
+            count = await _evaluate_and_drain(orch)
         assert count == 1
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
@@ -111,7 +125,7 @@ async def test_evaluate_progressing_continues():
                 return_value=EvaluationResult(ok=True, score=55, verdict="progressing", reflection="继续改进")
             ),
         ):
-            await orch._evaluate_and_decide()
+            await _evaluate_and_drain(orch)
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
             assert r.status == "running"  # 未终止
@@ -121,14 +135,14 @@ async def test_evaluate_progressing_continues():
 
 
 async def _evaluate_phased(rid, *, score, verdict):
-    """辅助：以 mock evaluator 跑一次评估-决策，返回评估计数。"""
+    """辅助：以 mock evaluator 跑一次评估-决策（含后台任务收尾），返回评估计数。"""
     orch = RoutineOrchestrator()
     with patch.object(
         orch._evaluator,
         "evaluate",
         new=AsyncMock(return_value=EvaluationResult(ok=True, score=score, verdict=verdict, reflection="r")),
     ):
-        return await orch._evaluate_and_decide()
+        return await _evaluate_and_drain(orch)
 
 
 async def test_phased_plan_advances_to_implement():
@@ -185,6 +199,121 @@ async def test_phased_finalize_with_pr_succeeds():
             assert r.status == "succeeded"
             assert r.termination_reason == "success"
             assert r.pr_url == "https://github.com/o/r/pull/77"
+    finally:
+        await _cleanup(rid)
+
+
+async def test_evaluate_slow_judge_does_not_block_heartbeat():
+    """根因回归（卡在 Evaluate）：评估已从心跳剥离为后台任务。
+
+    模拟一个耗时远超心跳 60s 超时的 Judge：``_evaluate_and_decide``（心跳认领阶段）必须近乎瞬时返回，
+    迭代被认领为 ``evaluating``；后台任务完成后才翻转 ``evaluated``。证明慢 Judge 不再阻塞心跳。
+    """
+    import time as _time
+
+    rid = await _make_routine(iteration_count=1)
+    iid = await _add_iteration(rid, seq=1)
+    try:
+        orch = RoutineOrchestrator()
+
+        async def _slow_eval(*_a, **_k):
+            await asyncio.sleep(0.4)  # 代表"远超 60s"的慢调用；测试用 0.4s 验证非阻塞语义
+            return EvaluationResult(ok=True, score=92, verdict="pass", reflection="ok")
+
+        with patch.object(orch._evaluator, "evaluate", new=AsyncMock(side_effect=_slow_eval)):
+            t0 = _time.monotonic()
+            launched = await orch._evaluate_and_decide()  # 心跳认领阶段：应近乎瞬时
+            claim_elapsed = _time.monotonic() - t0
+            assert launched == 1
+            assert claim_elapsed < 0.2, f"心跳认领不应阻塞在慢 Judge 上，实测 {claim_elapsed:.2f}s"
+
+            # 认领后迭代应为 evaluating（后台任务尚未完成）
+            async with db_session.AsyncSessionLocal() as db:
+                it = await db.get(RoutineIteration, iid)
+                assert it.status == "evaluating"
+
+            # 等待后台评估任务收尾
+            await asyncio.gather(*orch._eval_tasks.values(), return_exceptions=True)
+
+        async with db_session.AsyncSessionLocal() as db:
+            it = await db.get(RoutineIteration, iid)
+            assert it.status == "evaluated"
+            r = await db.get(Routine, rid)
+            assert r.status == "succeeded"
+            assert r.best_score == 92
+    finally:
+        await _cleanup(rid)
+
+
+async def test_evaluate_failure_below_patience_resets_to_executed():
+    """评估失败且未达容忍阈值 → 迭代回退 executed（清 lease）供下轮重评，eval_attempts 累加。
+
+    后台化前是「留在 executed」；后台化后认领时已置 evaluating，失败路径须显式回退 executed，
+    否则迭代被永久钉死在 evaluating（新版"卡死"风险），故此回归锁。
+    """
+    rid = await _make_routine(iteration_count=1)
+    iid = await _add_iteration(rid, seq=1)
+    try:
+        orch = RoutineOrchestrator()
+        with patch.object(
+            orch._evaluator,
+            "evaluate",
+            new=AsyncMock(return_value=EvaluationResult(ok=False, error="LLM unavailable")),
+        ):
+            await _evaluate_and_drain(orch)
+        async with db_session.AsyncSessionLocal() as db:
+            it = await db.get(RoutineIteration, iid)
+            assert it.status == "executed"  # 回退供重评（非永久 evaluating）
+            assert it.lease_expires_at is None
+            assert int((it.metrics or {}).get("eval_attempts", 0)) == 1
+            assert it.eval_error == "LLM unavailable"
+            r = await db.get(Routine, rid)
+            assert r.status == "running"  # 未终止
+    finally:
+        await _cleanup(rid)
+
+
+async def test_evaluate_failure_at_patience_terminates_unrecoverable():
+    """评估失败累计达 eval_failure_patience → 迭代翻转 evaluated(unrecoverable) 且 routine 终止。"""
+    from negentropy.config import settings
+
+    rid = await _make_routine(iteration_count=1)
+    # 预置 eval_attempts = patience-1，使本轮失败即触达阈值
+    iid = await _add_iteration(rid, seq=1, metrics={"eval_attempts": settings.routine.eval_failure_patience - 1})
+    try:
+        orch = RoutineOrchestrator()
+        with patch.object(
+            orch._evaluator,
+            "evaluate",
+            new=AsyncMock(return_value=EvaluationResult(ok=False, error="LLM down")),
+        ):
+            await _evaluate_and_drain(orch)
+        async with db_session.AsyncSessionLocal() as db:
+            it = await db.get(RoutineIteration, iid)
+            assert it.status == "evaluated"
+            assert it.verdict == "unrecoverable"
+            r = await db.get(Routine, rid)
+            assert r.status == "failed"
+            assert r.termination_reason == decision_mod.REASON_UNRECOVERABLE
+    finally:
+        await _cleanup(rid)
+
+
+async def test_reap_orphan_evaluating_resets_to_executed():
+    """崩溃恢复回归：lease 过期的 evaluating 孤儿迭代（本进程不再持有）→ 回退 executed 供重评。"""
+    from datetime import UTC, datetime, timedelta
+
+    rid = await _make_routine(iteration_count=1)
+    expired = datetime.now(UTC) - timedelta(seconds=10)
+    iid = await _add_iteration(rid, seq=1, status="evaluating", lease_expires_at=expired)
+    try:
+        orch = RoutineOrchestrator()  # _eval_tasks 空 → 不持有该迭代
+        reaped = await orch._reap_orphans()
+        assert reaped >= 1
+        async with db_session.AsyncSessionLocal() as db:
+            it = await db.get(RoutineIteration, iid)
+            assert it.status == "executed"
+            assert it.lease_expires_at is None
     finally:
         await _cleanup(rid)
 
@@ -469,6 +598,41 @@ async def test_write_back_context_exhausted_at_reset_cap_keeps_session_and_marks
                 assert (r.reflections or {}).get("_context_reset_exhausted") is True
         finally:
             await _cleanup(rid)
+
+
+async def test_write_back_session_not_found_clears_session_unconditionally():
+    """根因回归（会话续接死亡螺旋）：``--resume`` 会话失效（session_not_found）→ 无条件清空
+    routine.claude_session_id 冷启动，并给 iteration.metrics 打 session_reset 标记。
+
+    复刻模板 9e90c3c7 seq3-5 现场：陈旧 claude_session_id 使每轮 resume 立即失败
+    （0 turns/$0），原实现不自愈 → 连续 unrecoverable。修复后清空会话使下轮冷启动。"""
+    from negentropy.engine.claude_code.service import ERROR_KIND_SESSION_NOT_FOUND
+    from negentropy.engine.routine.runner import get_runner
+
+    rid = await _make_routine(approval_mode="auto", iteration_count=0, claude_session_id="stale-session")
+    iid = await _add_iteration(rid, seq=1, status="in_flight", exec_status=None, summary=None)
+    try:
+        runner = get_runner()
+        fake = ClaudeCodeResult(
+            status="error",
+            summary="",
+            session_id=None,
+            cost_usd=0.0,
+            turn_count=0,
+            error="CLI exited with code 1; stderr: No conversation found with session ID: stale-session",
+            error_kind=ERROR_KIND_SESSION_NOT_FOUND,
+        )
+        await runner._do_write_back(iid, rid, fake)  # noqa: SLF001
+
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.claude_session_id is None  # 失效会话被清空 → 下轮冷启动
+            assert r.iteration_count == 1
+            it = await db.get(RoutineIteration, iid)
+            assert it.status == "executed"
+            assert (it.metrics or {}).get("session_reset") is True
+    finally:
+        await _cleanup(rid)
 
 
 # ---------------------------------------------------------------------------

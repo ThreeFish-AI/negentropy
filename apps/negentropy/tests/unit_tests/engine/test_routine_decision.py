@@ -219,6 +219,23 @@ def test_decide_context_exhausted_does_not_break_count_chain():
     assert res.is_terminate and res.reason == d.REASON_UNRECOVERABLE
 
 
+def _session_reset_fail(seq: int) -> FakeIter:
+    """会话失效自愈迭代：exec error + metrics.session_reset 标记（Runner 已冷启动清空会话）。"""
+    return FakeIter(seq=seq, exec_status="error", score=40, verdict="progressing", metrics={"session_reset": True})
+
+
+def test_decide_session_reset_failures_not_unrecoverable():
+    """根因回归（会话续接死亡螺旋）：连续 session_reset 失败始终豁免连续失败计数（无 reset_max 门控）。
+
+    复刻模板 9e90c3c7 seq3-5：陈旧会话使每轮 resume 立即失败；Runner 已冷启动清空会话，
+    这些"可自愈失败"应透明跳过，不被误判 unrecoverable。与 context_exhausted 不同：会话失效
+    无 reset_max 上限语义（runaway 由 no_progress/max_iterations 兜底），故 reset_max=0 亦豁免。"""
+    r = FakeRoutine(best_score=50, no_progress_patience=10, success_score_threshold=99)
+    hist = [_session_reset_fail(i) for i in range(2, 6)]  # 4 次连续会话失效失败
+    assert d.decide(r, hist[-1], hist, max_context_resets=0).action == "continue"
+    assert d.decide(r, hist[-1], hist, max_context_resets=10).action == "continue"
+
+
 def test_decide_success_tail_resets_failure_count():
     """成功迭代在尾部 → 连续失败计数归零（break），不受自愈逻辑影响。"""
     r = FakeRoutine(best_score=50, no_progress_patience=10, success_score_threshold=99)

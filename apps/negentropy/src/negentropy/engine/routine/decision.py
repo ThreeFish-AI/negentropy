@@ -157,7 +157,12 @@ def _consecutive_exec_failures(history: list[_IterationLike], *, max_context_res
     count = 0
     for it in reversed(history):
         if it.exec_status in ("error", "timeout"):
-            if max_context_resets > 0 and (getattr(it, "metrics", None) or {}).get("context_exhausted"):
+            metrics = getattr(it, "metrics", None) or {}
+            # 会话失效（session_not_found）：Runner 已无条件清空续接会话冷启动自愈——下轮必不再 resume，
+            # 故此类失败透明跳过（无 context_reset 上限语义，runaway 由 no_progress/max_iterations 兜底）。
+            if metrics.get("session_reset"):
+                continue
+            if max_context_resets > 0 and metrics.get("context_exhausted"):
                 continue  # 可自愈失败：透明跳过，不计数也不 break
             count += 1
         else:

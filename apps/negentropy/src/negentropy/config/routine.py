@@ -57,6 +57,24 @@ class RoutineSettings(BaseSettings):
     eval_failure_patience: int = Field(
         default=3, ge=1, description="评估器连续失败容忍次数，超过则终止 routine 为 unrecoverable_error"
     )
+    evaluate_judge_timeout_seconds: int = Field(
+        default=60,
+        ge=10,
+        le=600,
+        description="LLM-as-Judge 单次调用显式超时（秒）。缺失时 litellm 默认无超时，慢/挂起的推理模型"
+        "调用会无界阻塞，曾是「卡在 Evaluate」的根因之一。",
+    )
+    evaluate_max_concurrent: int = Field(
+        default=4,
+        ge=1,
+        le=32,
+        description="后台评估并发上限（进程内信号量）。Evaluate 已从心跳剥离为后台任务，受此限流。",
+    )
+    evaluate_lease_slack_seconds: int = Field(
+        default=60,
+        ge=10,
+        description="后台评估迭代的 lease 宽裕量：lease = gate 超时 + judge 超时 + 此值，用于崩溃恢复 reaper 判定。",
+    )
     context_reset_max: int = Field(
         default=10,
         ge=0,
