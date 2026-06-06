@@ -32,9 +32,9 @@ import {
 // ---------------------------------------------------------------------------
 
 /** 统一徽章胶囊基类（error / verdict / result / gate / evaluation / 统计 pill 共用）。 */
-const BADGE_BASE = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-semibold";
-/** 三级元信息字样（时间戳 / seq# / cost / 计数）：caption 字号 + 次级对比度 + 等宽数字。 */
-const META_TEXT = "shrink-0 text-caption tabular-nums text-text-secondary";
+const BADGE_BASE = "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold";
+/** 三级元信息字样（时间戳 / seq# / cost / 计数）：xs 字号 + 次级对比度 + 等宽数字。 */
+const META_TEXT = "shrink-0 text-xs tabular-nums text-text-secondary";
 
 // ---------------------------------------------------------------------------
 // Turn（轮次）聚合 —— 将执行阶段事件按 Claude Code 的 Turn 边界分组
@@ -257,7 +257,7 @@ export function IterationEventTimeline({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {/* 分组统计栏 */}
       <div className="flex flex-wrap items-center gap-2">
         {(["execution", "plan_review", "result", "gate", "evaluation"] as const).map((g) => {
@@ -282,7 +282,7 @@ export function IterationEventTimeline({
       </div>
 
       {/* 对话流（按同发言人聚合） */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         {speakerGroups.map((group) => (
           <SpeakerGroupBubble key={group.id} group={group} />
         ))}
@@ -670,7 +670,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
           <>
             {command && (
               <div className="rounded-md border border-border bg-muted/30 p-2 font-mono text-caption text-text-secondary">
-                <span className="text-micro font-medium uppercase tracking-overline text-text-secondary">$ </span>
+                <span className="text-caption font-medium uppercase tracking-overline text-text-secondary">$ </span>
                 {command}
               </div>
             )}
@@ -843,7 +843,7 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
             <span
               className={`inline-block h-1.5 w-1.5 rounded-full ${taskStatusDotClass(taskStatus)}`}
             />
-            <span className="text-micro font-medium text-text-secondary">{taskStatusLabel(taskStatus)}</span>
+            <span className="text-caption font-medium text-text-secondary">{taskStatusLabel(taskStatus)}</span>
           </span>
         )}
         {isError && (
@@ -893,7 +893,7 @@ function EventDetail({ payload }: { payload: Record<string, unknown> }) {
     <>
       {textBlocks.map(({ key, value }) => (
         <div key={key}>
-          <div className="mb-1 text-micro font-medium uppercase tracking-overline text-text-secondary">{key}</div>
+          <div className="mb-1 text-caption font-medium uppercase tracking-overline text-text-secondary">{key}</div>
           <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-caption leading-relaxed text-text-secondary">
             {value}
           </pre>

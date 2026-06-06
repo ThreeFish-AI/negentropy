@@ -117,7 +117,7 @@ export function McpServersPanel({ projectPath }: McpServersPanelProps) {
       <div className="rounded-xl border border-border bg-muted/30 p-3">
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">MCP Servers</span>
-          <span className="text-[10px] text-text-muted animate-pulse">加载中…</span>
+          <span className="text-xs text-text-secondary animate-pulse">加载中…</span>
         </div>
       </div>
     );
@@ -131,7 +131,7 @@ export function McpServersPanel({ projectPath }: McpServersPanelProps) {
       {/* Header */}
       <div className="mb-2 flex items-center gap-1.5">
         <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">MCP Servers</span>
-        <span className="text-[10px] text-text-muted">
+        <span className="text-xs text-text-secondary">
           ({servers.length}) · {totalTools} Tools
         </span>
       </div>
@@ -162,13 +162,13 @@ export function McpServersPanel({ projectPath }: McpServersPanelProps) {
                 <span className="font-mono font-medium text-text-secondary">{server.name}</span>
 
                 {/* Transport type pill */}
-                <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-1.5 py-px text-[10px] font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2.5 py-px text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
                   {transportLabel(server.transport_type)}
                 </span>
 
                 {/* Source badge */}
                 <span
-                  className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[10px] font-medium ${
+                  className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-px text-xs font-medium ${
                     isMcpJson
                       ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                       : source === "both"
@@ -181,18 +181,18 @@ export function McpServersPanel({ projectPath }: McpServersPanelProps) {
 
                 {/* Display name (if different from name) */}
                 {server.display_name && server.display_name !== server.name && (
-                  <span className="truncate text-[10px] text-text-muted">— {server.display_name}</span>
+                  <span className="truncate text-xs text-text-secondary">— {server.display_name}</span>
                 )}
 
                 {/* Tool count */}
-                <span className="ml-auto shrink-0 text-[10px] tabular-nums text-text-muted">
+                <span className="ml-auto shrink-0 text-xs tabular-nums text-text-secondary">
                   {isMcpJson ? "runtime" : tools.length > 0 ? `${tools.length} tools` : `${server.tool_count} tools`}
                 </span>
               </summary>
 
               {/* Tool list — .mcp.json 服务器显示提示，DB 服务器展示 tools */}
               {isMcpJson ? (
-                <p className="ml-4.5 pb-1 text-[10px] text-text-muted">
+                <p className="ml-4.5 pb-1 text-xs text-text-secondary">
                   Tools discoverable at runtime by Claude Code (not registered in system catalog)
                 </p>
               ) : tools.length > 0 ? (
@@ -207,7 +207,7 @@ export function McpServersPanel({ projectPath }: McpServersPanelProps) {
                         {label}
                         {/* Hover tooltip for description */}
                         {tool.description && (
-                          <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden max-w-72 -translate-x-1/2 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-[10px] leading-relaxed text-text-secondary shadow-lg backdrop-blur group-hover/tool:block">
+                          <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden max-w-72 -translate-x-1/2 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-xs leading-relaxed text-text-secondary shadow-lg backdrop-blur group-hover/tool:block">
                             {tool.description}
                           </span>
                         )}
@@ -216,7 +216,7 @@ export function McpServersPanel({ projectPath }: McpServersPanelProps) {
                   })}
                 </div>
               ) : (
-                <p className="ml-4.5 pb-1 text-[10px] text-text-muted">
+                <p className="ml-4.5 pb-1 text-xs text-text-secondary">
                   {server.tool_count > 0
                     ? `${server.tool_count} 个工具已注册（点击展开加载详情）`
                     : "无已发现的工具"}

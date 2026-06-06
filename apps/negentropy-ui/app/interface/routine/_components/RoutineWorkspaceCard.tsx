@@ -59,7 +59,7 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
       headerExtra={
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
             worktreeStatusClass(ws),
           )}
         >
@@ -78,22 +78,22 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
     >
       {/* 信息网格 */}
       <dl className="grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-[auto_1fr]">
-        <dt className="text-text-muted">Baseline</dt>
+        <dt className="text-text-secondary">Baseline</dt>
         <dd className="break-all font-mono text-text-secondary">{routine.baseline_branch}</dd>
 
-        <dt className="text-text-muted">Work branch</dt>
+        <dt className="text-text-secondary">Work branch</dt>
         <dd className="break-all font-mono text-text-secondary">{routine.work_branch ?? "—"}</dd>
 
         {ws === "active" && routine.worktree_path && (
           <>
-            <dt className="text-text-muted">Worktree</dt>
+            <dt className="text-text-secondary">Worktree</dt>
             <dd className="break-all font-mono text-text-secondary">{routine.worktree_path}</dd>
           </>
         )}
 
         {routine.worktree_disk_usage && ws === "active" && (
           <>
-            <dt className="flex items-center gap-1 text-text-muted">
+            <dt className="flex items-center gap-1 text-text-secondary">
               <HardDrive className="h-3 w-3" />
               Disk usage
             </dt>
@@ -119,7 +119,7 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
             </Button>
           )}
           {routine.worktree_cleanup_policy && (
-            <span className="text-[10px] text-text-muted">
+            <span className="text-xs text-text-secondary">
               {worktreePolicyDescription(routine.worktree_cleanup_policy)}
             </span>
           )}

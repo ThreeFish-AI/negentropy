@@ -54,14 +54,14 @@ export function RoutineRunView({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* 目标 / 验收标准 */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <CollapsibleSection title="Goal">
-          <p className="whitespace-pre-wrap break-words text-xs text-foreground">{routine.goal}</p>
+          <p className="whitespace-pre-wrap break-words text-body text-foreground">{routine.goal}</p>
         </CollapsibleSection>
         <CollapsibleSection title="Acceptance Criteria">
-          <p className="whitespace-pre-wrap break-words text-xs text-text-secondary">
+          <p className="whitespace-pre-wrap break-words text-body text-text-secondary">
             {routine.acceptance_criteria}
           </p>
         </CollapsibleSection>
@@ -77,7 +77,7 @@ export function RoutineRunView({
       {/* Pull Request（FINALIZE 产出，等待人工 Merge）*/}
       {routine.pr_url && (
         <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Pull Request</h3>
+          <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">Pull Request</h3>
           <RoutinePrCard prUrl={routine.pr_url} />
         </section>
       )}
@@ -89,7 +89,7 @@ export function RoutineRunView({
       <RoutineGuardPanel routine={routine} iterations={asc} />
 
       {/* 收敛趋势 + 甘特 */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <RoutineConvergenceChart
           iterations={asc}
           threshold={routine.success_score_threshold}
@@ -103,7 +103,7 @@ export function RoutineRunView({
 
       {/* 迭代明细 */}
       <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-        <h3 className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <h3 className="mb-3 text-xs uppercase tracking-overline text-text-secondary">
           迭代明细 · Iterations ({iterations.length})
         </h3>
         <RoutineIterationTimeline

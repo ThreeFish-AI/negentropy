@@ -33,7 +33,7 @@ export function RoutineIterationTimeline({
   const pageItems = iterations.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
   if (iterations.length === 0) {
-    return <p className="text-[11px] text-text-muted">No iterations yet.</p>;
+    return <p className="text-sm text-text-secondary">No iterations yet.</p>;
   }
 
   return (
@@ -44,7 +44,7 @@ export function RoutineIterationTimeline({
         ))}
       </ol>
       {totalPages > 1 && (
-        <div className="mt-3 flex items-center justify-center gap-2 border-t border-border pt-3 text-[11px] text-text-muted">
+        <div className="mt-3 flex items-center justify-center gap-2 border-t border-border pt-3 text-xs text-text-secondary">
           <button
             type="button"
             disabled={safePage <= 0}
@@ -90,10 +90,10 @@ function IterationCard({
   return (
     <li
       onClick={() => onAudit?.(it)}
-      className={`rounded-lg border p-3 transition-colors ${
+      className={`rounded-lg border p-4 transition-colors ${
         onAudit ? "cursor-pointer hover:border-primary/40 hover:bg-muted/30" : ""
       } ${
-        isActive ? "border-sky-400/50 bg-sky-500/[0.03]" : "border-border"
+        isActive ? "border-sky-500/60 bg-sky-500/[0.05] ring-1 ring-sky-500/20" : "border-border"
       }`}
     >
       <div className="flex items-center justify-between">
@@ -102,16 +102,16 @@ function IterationCard({
           <span className="text-xs font-semibold text-foreground">#{it.seq}</span>
           {it.phase && (
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${phaseClass(it.phase)}`}
+              className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${phaseClass(it.phase)}`}
             >
               {phaseLabel(it.phase)}
             </span>
           )}
-          <span className="text-[10px] text-text-muted">{it.status}</span>
+          <span className="text-xs text-text-secondary">{it.status}</span>
         </div>
         <div className="flex items-center gap-2">
           {it.verdict && (
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${verdictClass(it.verdict)}`}>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${verdictClass(it.verdict)}`}>
               {it.verdict}
             </span>
           )}
@@ -127,7 +127,7 @@ function IterationCard({
               }}
               aria-label={`Iteration #${it.seq} Full View`}
               title="Full View (all actions I/O & context)"
-              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-foreground"
+              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-foreground"
             >
               <ListTree className="h-3 w-3" aria-hidden />
               View Details
@@ -138,7 +138,7 @@ function IterationCard({
 
       {/* PLAN 阶段：摘要即「执行计划」，加标签以便人工审批前定位 */}
       {it.phase === "plan" && it.summary && (
-        <div className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+        <div className="mt-2 text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
           📋 执行计划 (Plan)
         </div>
       )}
@@ -146,7 +146,7 @@ function IterationCard({
       {/* 执行摘要 */}
       {it.summary && (
         <p
-          className={`${it.phase === "plan" ? "mt-1" : "mt-2"} whitespace-pre-wrap break-words text-[11px] text-text-secondary`}
+          className={`${it.phase === "plan" ? "mt-1" : "mt-2"} whitespace-pre-wrap break-words text-body text-text-secondary`}
         >
           {expanded || it.summary.length <= 280 ? it.summary : `${it.summary.slice(0, 280)}…`}
           {it.summary.length > 280 && (
@@ -162,20 +162,20 @@ function IterationCard({
 
       {/* 执行失败信息 */}
       {it.exec_error && (
-        <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-all rounded bg-red-500/5 p-2 text-[10px] text-red-600 dark:text-red-400">
+        <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-all rounded bg-red-500/5 p-2 text-caption text-red-600 dark:text-red-400">
           {it.exec_error}
         </pre>
       )}
 
       {/* 评估反思 */}
       {it.reflection && (
-        <p className="mt-2 rounded bg-muted/40 p-2 text-[11px] italic text-text-secondary">
+        <p className="mt-2 rounded bg-muted/40 p-2 text-caption italic text-text-secondary">
           💡 {it.reflection}
         </p>
       )}
 
       {/* 指标行 */}
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-muted">
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-secondary">
         {/* 当前阶段主导人指示 */}
         {(() => {
           const driver = deriveIterationDriver(it.status);
@@ -209,7 +209,7 @@ function IterationCard({
       {isPendingApproval && (
         <div className="mt-2 flex items-center gap-2 rounded-md bg-sky-500/5 p-2">
           <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
-          <span className="text-[10px] text-sky-700 dark:text-sky-300">
+          <span className="text-xs text-sky-700 dark:text-sky-300">
             {it.phase === "plan"
               ? "NegentropyEngine 正在审阅此 Plan…"
               : it.phase === "implement"
@@ -221,7 +221,7 @@ function IterationCard({
           <button
             onClick={(e) => { e.stopPropagation(); onApprove(it.id); }}
             disabled={busy}
-            className="cursor-pointer rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted hover:bg-muted/50 disabled:opacity-50"
+            className="cursor-pointer rounded-md border border-border px-2 py-0.5 text-xs font-medium text-text-secondary hover:bg-muted/50 disabled:opacity-50"
           >
             Manual Approve
           </button>

@@ -32,12 +32,12 @@ export function CollapsibleSection({
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <section className={cn("rounded-card border border-border bg-card p-4 shadow-sm", className)}>
+    <section className={cn("rounded-card border border-border bg-card p-5 shadow-sm", className)}>
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="group flex w-full items-center justify-between gap-2 text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+        className="group flex w-full items-center justify-between gap-2 text-xs font-medium uppercase tracking-overline text-text-secondary transition-colors hover:text-foreground"
       >
         <span className="flex items-center gap-1.5">{title}</span>
         <div className="flex items-center gap-2">
@@ -45,7 +45,7 @@ export function CollapsibleSection({
           <ChevronDown
             aria-hidden="true"
             className={cn(
-              "h-3.5 w-3.5 shrink-0 transition-transform duration-150",
+              "h-4 w-4 shrink-0 transition-transform duration-150",
               expanded && "rotate-180",
             )}
           />

@@ -71,11 +71,11 @@ export function resolveEventTitle(
 export function phaseClass(phase: RoutinePhase | null | undefined): string {
   switch (phase) {
     case "plan":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      return "bg-amber-500/15 text-amber-800 dark:text-amber-200";
     case "implement":
-      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-200";
     case "finalize":
-      return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
+      return "bg-violet-500/15 text-violet-800 dark:text-violet-200";
     default:
       return "bg-muted/60 text-text-secondary";
   }
@@ -99,13 +99,13 @@ export function phaseLabel(phase: RoutinePhase | null | undefined): string {
 export function routineStatusClass(status: RoutineStatus): string {
   switch (status) {
     case "running":
-      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-200";
     case "paused":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      return "bg-amber-500/15 text-amber-800 dark:text-amber-200";
     case "succeeded":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
     case "failed":
-      return "bg-red-500/10 text-red-700 dark:text-red-300";
+      return "bg-red-500/15 text-red-800 dark:text-red-200";
     case "cancelled":
       return "bg-muted text-text-secondary line-through";
     default: // pending
@@ -158,13 +158,13 @@ export function limitFillClass(ratio: number | null | undefined): string {
 export function worktreeStatusClass(status: string | null | undefined): string {
   switch (status) {
     case "active":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
     case "cleaned":
       return "bg-muted text-text-secondary";
     case "orphaned":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      return "bg-amber-500/15 text-amber-800 dark:text-amber-200";
     default:
-      return "bg-muted/60 text-text-muted";
+      return "bg-muted/60 text-text-secondary";
   }
 }
 
@@ -208,15 +208,15 @@ export function scoreFillClass(score: number | null | undefined, threshold = 85)
 export function verdictClass(verdict: Verdict | null | undefined): string {
   switch (verdict) {
     case "pass":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
     case "progressing":
-      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-200";
     case "stalled":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      return "bg-amber-500/15 text-amber-800 dark:text-amber-200";
     case "regressed":
-      return "bg-orange-500/10 text-orange-700 dark:text-orange-300";
+      return "bg-orange-500/15 text-orange-800 dark:text-orange-200";
     case "unrecoverable":
-      return "bg-red-500/10 text-red-700 dark:text-red-300";
+      return "bg-red-500/15 text-red-800 dark:text-red-200";
     default:
       return "bg-muted/60 text-text-secondary";
   }
@@ -282,26 +282,26 @@ export function eventTypeIcon(eventType: RoutineEventType, toolName?: string | n
 
 /** 动作事件类型 → 图标容器配色（语义色，深色模式安全对比）。 */
 export function eventTypeClass(eventType: RoutineEventType, isError?: boolean): string {
-  if (isError) return "bg-red-500/10 text-red-600 dark:text-red-400";
+  if (isError) return "bg-red-500/15 text-red-800 dark:text-red-200";
   switch (eventType) {
     case "tool_use":
-      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-200";
     case "tool_result":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
     case "assistant":
-      return "bg-violet-500/10 text-violet-700 dark:text-violet-300";
+      return "bg-violet-500/15 text-violet-800 dark:text-violet-200";
     case "result":
-      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+      return "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200";
     case "gate":
-      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-200";
     case "evaluation":
-      return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      return "bg-amber-500/15 text-amber-800 dark:text-amber-200";
     case "plan_review":
-      return "bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "bg-sky-500/15 text-sky-800 dark:text-sky-200";
     case "system":
       return "bg-muted text-text-secondary";
     default:
-      return "bg-muted/60 text-text-muted";
+      return "bg-muted/60 text-text-secondary";
   }
 }
 

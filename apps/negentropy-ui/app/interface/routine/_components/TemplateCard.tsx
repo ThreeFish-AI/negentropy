@@ -80,16 +80,16 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
       >
         {/* 顶行：category + 来源标识 */}
         <div className="flex items-center justify-between">
-          <span className="text-micro font-medium uppercase tracking-wider text-text-muted">
+          <span className="text-xs font-medium uppercase tracking-overline text-text-secondary">
             {template.category}
           </span>
           {isUser ? (
             // 自建模板 hover 时右上角浮出编辑/删除图标，标识淡出让位避免重叠
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-medium text-primary transition-opacity group-hover:opacity-0">
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary transition-opacity group-hover:opacity-0">
               自建
             </span>
           ) : (
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-micro font-medium text-text-secondary">
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-text-secondary">
               内置
             </span>
           )}
@@ -99,14 +99,14 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
         <div>
           <h3 className="text-body-lg font-semibold text-foreground">
             {template.display_name}
-            <span className="ml-1.5 text-micro font-normal text-text-muted">
+            <span className="ml-1.5 text-caption font-normal text-text-secondary">
               v{template.version}
             </span>
           </h3>
         </div>
 
         {/* 描述 */}
-        <p className="text-xs leading-relaxed text-text-muted line-clamp-2">
+        <p className="text-xs leading-relaxed text-text-secondary line-clamp-2">
           {template.description}
         </p>
       </button>
@@ -116,12 +116,12 @@ export function TemplateCard({ template, onDetail, onUse, onEdit, onDelete }: Te
         {/* 元数据区 */}
         <div className="flex flex-1 flex-wrap items-center gap-1.5">
           {badge && (
-            <span className={`rounded-full px-1.5 py-0.5 text-micro ${badge.cls}`}>
+            <span className={`rounded-full px-1.5 py-0.5 text-xs ${badge.cls}`}>
               {badge.label}
             </span>
           )}
           {template.has_verification_command && (
-            <span className="flex items-center gap-0.5 text-micro text-emerald-600 dark:text-emerald-400">
+            <span className="flex items-center gap-0.5 text-xs text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="h-3 w-3" />
               验证门控
             </span>
