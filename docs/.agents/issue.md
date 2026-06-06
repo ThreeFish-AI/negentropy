@@ -2887,3 +2887,22 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **"全系统默认"声明须按入口逐一核验**：声称系统级默认时，须枚举所有消费入口分别验证，不能假定一处注入即全域生效。
 - **同类问题影响**：所有经 `invoke_claude_code` 触发 Claude Code 的 ADK Agent 行为（不止浏览器 MCP——此前 model/system_prompt/allowed_tools 全局默认对 Agent 入口同样未生效，本次一并修复）。
 - **验证**：单测 `test_invoke_claude_code_falls_back_to_global_defaults_when_state_empty`（空 state → 回退默认，携 playwright mcp_config 与 mcp__playwright allowed_tools，复用已解析凭证）+ `test_invoke_claude_code_prefers_session_state_when_present`（state 存在 → 不触发回退、沿用 state 配置）。相关：迁移 0062 端到端注入与 Routine `_build_config` 合并语义见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。
+
+---
+
+## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」
+
+- **表因**：Knowledge/Documents 页渲染 perceives 抽取的 PDF 时，无图注的图片（如论文 logo `fig_p1_1.png`）下方显示出无语义的 "fig_p1_1.png" 文本；另：把技能标记 `is_system` 仅令其在 Skills 卡片对全员可见，却未注入任何 Agent 的 Progressive Disclosure。
+- **根因**：
+  1. **渲染层**：`DocumentMarkdownRenderer.tsx::DocumentImage` 对 `alt` 真值即渲染 `<figcaption>`；而 perceives 对无图注图片输出占位 `alt=<文件名>`，致文件名被当图注。
+  2. **机制层**：`skills_injector.resolve_skills` 仅注入 `Agent.skills` 数组中显式列出的技能；6 个内置 Agent 经 `agent_presets._build_payload` 硬编码 `skills=[]` 且会被 "Sync Negentropy" 覆盖——故 `is_system`（可见性）与「被 Agent 调用」是两套正交语义。
+- **处理方式**：
+  1. 渲染层新增 `isMeaningfulCaption`：以「是否含空格」为关键判别——纯文件名 / 自动命名（`fig_p1_1` / `figure-2` / `image_4`）等无空格 token 不渲染图注，含空格的真实图注（`Figure 1: ...`）照常保留（含空格判别避免误伤 "Figure 1" 这类以图号开头的真实图注）。
+  2. 机制层新增正交字段 `Skill.is_global`（迁移 0063）+ `skills_injector.resolve_global_skills`（强制 `warning` 注入，永不阻塞 Agent 启动）+ 在 `model_resolver._load_subagent_row`（DB 路径，合并去重）与 `_dynamic_instruction`（fallback 路径，互斥追加）双路径并入；技能 `pdf-fidelity-restore` 以 `is_system+is_global+PUBLIC` 种子（迁移 0064）+ 模板 YAML + `.agent/skills/SKILL.md` 三处同源物化。
+- **后续防范**：
+  1. **占位 alt 不得当图注**：凡「文件名兜底 alt」均须在渲染层与真实图注区分；判别用「含空格」比「前缀正则」稳健（前缀正则会误伤 `Figure 1: ...`）。
+  2. **「可见」与「可用」分层**：技能/插件的 RBAC 可见性（`is_system`/`visibility`）与「被 Agent 实际调用」是两套正交开关，新增「全员可用」诉求须走注入热路径（`is_global`），而非仅改可见性。
+  3. **全局注入恒 warning**：注入到全体 Agent 的技能若 `enforcement_mode=strict` 且缺 `required_tools`，会令缺工具 Agent 退化为无 system prompt；`resolve_global_skills` 强制 `warning` 守住此安全不变量。
+- **同类问题影响**：所有走 `DocumentMarkdownRenderer` 的文档渲染（图注抑制对全体文档生效）；所有经 `_load_subagent_row`/`_dynamic_instruction` 装配指令的 Agent（一核五翼 + 未来新增，均自动获得全局技能）。
+- **附带发现（perceives auto_batch 图注归属差异）**：对 28 页（< 60 页阈值）PDF 强制分批（threshold=10）实测：分批 + 跨片合并保全全部内容（7 图 / 2 表 / 公式 / 全文，图片 src 零重复，dedup 正常），但 Figure 1 / Figure 4 的图注在分批路径落为**正文文本**而非 `img alt`（docling 单切片 vs 全本的图注归属差异）。结论：内容无丢失，仅图注「位置」差异；28 页默认走单次路径（图注归属更整齐）为正确选择，分批保留给真正大文档（> 60 页）以可靠性优先。
+- **验证**：前端 `DocumentMarkdownRenderer.test.tsx` 新增 2 用例（文件名抑制 / 图注保留），7/7 通过；后端 `test_skills_injector.py` 新增全局注入 + 安全不变量用例，34 passed；迁移 0063/0064 实测 `alembic upgrade head` 成功，`resolve_subagent_instruction` 对一核五翼 6 个 Agent 均注入 `pdf-fidelity-restore`（缺工具仅 warning，不阻断）。
