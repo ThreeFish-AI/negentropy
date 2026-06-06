@@ -193,6 +193,7 @@ class RoutineOrchestrator:
             explicit_model=settings.routine.evaluator_model,
             gate_timeout_seconds=settings.routine.gate_timeout_seconds,
             judge_timeout_seconds=settings.routine.evaluate_judge_timeout_seconds,
+            acceptance_unmet_score_cap=settings.routine.acceptance_unmet_score_cap,
         )
         self._memory_extractor: IterationMemoryExtractor | None = None
         # 强引用集合：防止 fire-and-forget 的 extraction task 被 GC 回收。
@@ -467,6 +468,8 @@ class RoutineOrchestrator:
                 worktree_path=routine.worktree_path,
                 # per-routine 门控超时覆盖（大型复刻测试套件可能超默认 120s）。
                 gate_timeout_seconds=(routine.config or {}).get("gate_timeout_seconds"),
+                # per-routine 验收未达成评分上限覆盖（None → 用评估器实例默认）。
+                acceptance_unmet_score_cap=(routine.config or {}).get("acceptance_unmet_score_cap"),
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,
