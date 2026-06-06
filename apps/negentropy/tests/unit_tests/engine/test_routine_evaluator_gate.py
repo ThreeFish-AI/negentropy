@@ -211,6 +211,31 @@ async def test_evaluator_model_override_flows_to_judge(monkeypatch):
     assert captured["explicit_model"] == "strong/judge-model", "per-routine evaluator_model 应覆盖实例默认"
 
 
+async def test_explicit_model_resolves_credentials_via_by_name(monkeypatch):
+    """resolve_model_config_async 的 explicit_model 须经 by_model_name 解析以携带代理凭证 kwargs。
+
+    端到端正确性根因（ISSUE-121 修复依赖）：裸 explicit_model + {} kwargs 会丢失 api_key/api_base
+    代理路由，致 Judge 的 litellm 调用因缺凭证失败。DB 命中时须返回带凭证的 kwargs。
+    """
+    import negentropy.config.model_resolver as mr
+    import negentropy.engine.utils.model_config as mc
+
+    async def _by_name(full_name):
+        if full_name == "anthropic/claude-sonnet-4-6":
+            return full_name, {"api_key": "k", "api_base": "https://proxy", "temperature": 0.0}
+        return None
+
+    monkeypatch.setattr(mr, "resolve_llm_config_by_model_name", _by_name)
+
+    name, kwargs = await mc.resolve_model_config_async("routine.evaluate", explicit_model="anthropic/claude-sonnet-4-6")
+    assert name == "anthropic/claude-sonnet-4-6"
+    assert kwargs.get("api_key") and kwargs.get("api_base"), "explicit_model 须携带代理凭证 kwargs"
+
+    # DB 未命中 → 回退 (name, {})（自带环境凭证的全限定模型）。
+    name2, kwargs2 = await mc.resolve_model_config_async(None, explicit_model="bogus/none")
+    assert name2 == "bogus/none" and kwargs2 == {}
+
+
 async def test_evaluator_model_falls_back_to_instance_default(monkeypatch):
     """未设 config.evaluator_model 时回退实例级 explicit_model（向后兼容）。"""
     captured: dict = {}

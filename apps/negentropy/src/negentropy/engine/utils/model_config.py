@@ -62,14 +62,27 @@ async def resolve_model_config_async(
         task_key: 任务标识符（见 ``negentropy.config.task_registry``）；None 表示
             调用方没有归属任务，等价于不走 task 路由直接进入全局默认链路。
         corpus_id: 可选 Corpus 范围。仅 ``scope=corpus`` 的任务槽位会消费它。
-        explicit_model: 显式覆盖。命中后短路所有 DB 查询，返回 ``(name, {})``。
+        explicit_model: 显式覆盖（如 ``vendor/model_name``）。优先按名解析 DB ``model_configs`` +
+            ``vendor_configs`` 以获取 ``api_key``/``api_base`` 等 litellm_kwargs（经代理路由必需）；
+            DB 无此模型时回退 ``(name, {})``（适用自带环境凭证的全限定模型）。
 
     Returns:
         ``(model_name, model_kwargs)``，与同步版本同形。
     """
+    from negentropy.config.model_resolver import (
+        resolve_llm_config,
+        resolve_llm_config_by_model_name,
+        resolve_llm_config_for_task,
+    )
+
     if explicit_model:
+        # 按名解析以携带凭证 kwargs（api_key/api_base）——否则裸 explicit_model + {} kwargs
+        # 会丢失代理路由，导致 Judge/Reviewer 的 litellm 调用因缺凭证失败（per-routine
+        # evaluator_model 覆盖即走此路，ISSUE-121 修复的端到端正确性依赖于此）。
+        resolved = await resolve_llm_config_by_model_name(explicit_model)
+        if resolved is not None:
+            return resolved
         return explicit_model, {}
-    from negentropy.config.model_resolver import resolve_llm_config, resolve_llm_config_for_task
 
     if task_key:
         return await resolve_llm_config_for_task(task_key, corpus_id=corpus_id)

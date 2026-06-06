@@ -2926,3 +2926,22 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **候选后续加固**：当 `acceptance_met=true` 且分 ≥ 阈值（即将触发不可逆成功）时，以更强模型做一次对抗式确认门（confirm-before-commit），未确认则降级继续迭代。
 - **同类问题影响**：所有以弱模型 Judge 裁决 acceptance 的高风险 routine；尤以「结构易搭、业务逻辑深」的复刻/迁移类。
 - **验证**：单测 `test_evaluator_model_override_flows_to_judge`（per-routine 模型覆盖流经 `_judge`）+ `test_evaluator_model_falls_back_to_instance_default`（未设回退实例默认）；evaluator_gate 17 例全绿。实机 before：seq3 judge raw `acceptance_met:true, score:92` 而 `geocodes/service.py` 为 45 行简化桩。
+- **修复补正（端到端正确性）**：ISSUE-121 的 per-routine `evaluator_model` 经 `explicit_model` 注入，而 `resolve_model_config_async` 原对 `explicit_model` **短路返回 `(name, {})`**——丢失 `model_configs`/`vendor_configs` 的 `api_key`/`api_base` 代理凭证，致 Judge 的 litellm 调用必因缺凭证失败（单测因 mock 了 resolver 未暴露）。改为优先 `resolve_llm_config_by_model_name(explicit_model)` 解析以携带凭证 kwargs，DB 未命中再回退 `(name, {})`。实机验证 `anthropic/claude-sonnet-4-6` → kwargs 含 api_base/api_key/temperature/thinking；新增单测 `test_explicit_model_resolves_credentials_via_by_name`。
+
+## ISSUE-122 `--skip-build` 重启时 start-production.mjs `linkRuntimeAsset` 非幂等 → UI 启动失败连锁中止全部服务（2026-06-07）
+
+- **表因**：以 `cli.sh restart --no-pull --skip-build` 做后端 only 快速重启时，UI 启动报 `Error: src and dest cannot be the same .../.next/standalone/apps/negentropy-ui/.next/static`（ERR_FS_CP_EINVAL）；cli.sh 见「ui 启动失败」遂**中止并停掉已起的 backend/perceives**，全栈宕。
+- **根因**：`start-production.mjs::linkRuntimeAsset` 先 `symlinkSync(relativeSource, targetPath)`，target 已存在（monorepo 下 Next standalone 自带 `.next/static` 软链，或上次启动已链接）则抛 EEXIST 落入 `catch` 的 `cpSync(source, target)`；而 target 软链回指 source → src/dest 同 inode → `ERR_FS_CP_EINVAL`。即该函数对「重复启动（--skip-build 不重建前端）」非幂等。次生：cli.sh 对单服务启动失败采取「中止 + 停全部」策略，放大为全栈宕。
+- **处理方式**：`linkRuntimeAsset` 增幂等保护——`existsSync(targetPath)` 即 return（Next 自带软链 / 上次已链接则跳过），不再走 symlink→cpSync 冲突路径。使 `--skip-build` 快速重启可用（后端 only 改动免全量前端构建）。
+- **后续防范**：① 启动期「链接/复制运行时资产」须幂等（重复启动不报错）；② cli.sh 单服务启动失败的「中止全部」策略放大故障半径，可考虑保留已健康服务或更精确的回滚边界。
+- **同类问题影响**：所有 `--skip-build` 重启；阻断后端 only 快速迭代（被迫每次全量前端构建）。
+- **验证**：修复后 `restart --no-pull --skip-build` UI 正常启动、四服务健康（见下次重启）。
+
+## ISSUE-119 升级 共享 DB 迁移版本超前致 cli.sh **启动期** alembic upgrade 失败（不止测试库）（2026-06-07）
+
+- **表因**：会话中段（数小时后）`cli.sh restart` 在 Phase 3 数据库迁移报 `Can't locate revision identified by '0064'` 而**中止启动**，全栈无法拉起。
+- **根因**：ISSUE-119 同源升级——共享 PostgreSQL 的**生产 `negentropy` 库**被另一更高分支 workspace 的 `alembic upgrade head` 迁到 0064，而 puebla-v3 本地 head 仅 0062（0063/0064 不在 `origin/feature/1.x.x`，属未合并分支）。cli.sh 启动无条件 `alembic upgrade head`，current=0064 本地不可解析 → 失败中止。生产 schema 0064 为 0062 的加列式超集，故 0062 代码运行无碍，唯启动迁移步骤踩雷。
+- **处理方式**（最小可逆缓解）：迁移前临时 `UPDATE alembic_version SET version_num='0062'`（仅指针、不动 schema）使 `upgrade head` 在 0062=head 处 no-op，迁移阶段过后立即恢复 `'0064'`（真实 schema 态，保护其它 workspace 不被 0063/0064 重放误伤）；窗口约 4s。
+- **后续防范**：① 见 ISSUE-119 根因修复（DB 按 workspace 唯一化，dev 库亦然）；② cli.sh 迁移步骤宜容忍「DB 版本超前本地 head」（视为 no-op + 告警）而非裸报错中止——超前是共享 DB 常态，不应阻断启动。
+- **同类问题影响**：共享 postgres 上多 workspace 并发开发的启动链路；环境性，非产品代码缺陷。
+- **验证**：stamp 0062→启动→恢复 0064 后四服务正常拉起。

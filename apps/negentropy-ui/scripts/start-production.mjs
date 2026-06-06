@@ -7,6 +7,13 @@ function linkRuntimeAsset(sourcePath, targetPath) {
     return;
   }
 
+  // 幂等保护：target 已存在（Next standalone 自带软链，或上一次启动已链接/复制）则跳过。
+  // 否则 --skip-build 重启时 symlinkSync 抛 EEXIST 落入 cpSync，而 target 软链回指 source →
+  // "src and dest cannot be the same"(ERR_FS_CP_EINVAL) 致 UI 启动失败、cli.sh 中止全部服务。
+  if (existsSync(targetPath)) {
+    return;
+  }
+
   mkdirSync(path.dirname(targetPath), { recursive: true });
 
   try {
