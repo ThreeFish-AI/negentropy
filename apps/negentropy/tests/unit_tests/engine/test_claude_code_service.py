@@ -366,6 +366,85 @@ async def test_interactive_feeds_prompt_via_stdin_and_closes_on_result(monkeypat
 
 
 # ---------------------------------------------------------------------------
+# 干净成功 result 优先于「拆解退出码」—— ISSUE-113 PLAN 迭代 SIGTERM(143) 误标 error 回归锁定
+#
+# 根因（实测）：stream-json 输入模式下 CLI 产出 result(success) 后不自退、等更多 stdin；我方主动
+# 闭合 stdin 后若 CLI 未在优雅窗口内退出，finally 会 SIGTERM 之（rc=143/-15）。该退出码是我方
+# 拆解产物，旧逻辑据 rc!=0 一律标 error，致已成功产出方案/实现的迭代被误判，连累 Judge 评分。
+# ---------------------------------------------------------------------------
+
+
+async def test_interactive_clean_result_success_survives_teardown_sigterm(monkeypatch):
+    """已捕获干净成功 result 时，拆解阶段的 SIGTERM(非零退出码)不应把迭代误标 error。"""
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "s1"},
+        {"type": "result", "subtype": "success", "result": "方案已产出", "session_id": "s1", "num_turns": 8},
+    ]
+    proc = _DuplexFakeProc(events)
+    # 模拟 CLI 闭合 stdin 后**不**干净退出（不设 rc=0），随后被 finally SIGTERM（rc=-15）
+    proc.stdin.close = lambda: proc._stdin_closed.set()  # type: ignore[method-assign]
+    proc.terminate = lambda: setattr(proc, "returncode", -15)  # type: ignore[method-assign,assignment]
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac"},
+    )
+    result = await ClaudeCodeService.invoke("请产出方案", cfg)
+    assert result.status == "success", f"干净成功 result 不应被 SIGTERM 误标 error（{result.error}）"
+    assert result.error is None
+    assert result.summary == "方案已产出"
+
+
+async def test_interactive_is_error_result_not_masked_as_success(monkeypatch):
+    """守卫：result 即便 subtype=success，但 is_error=True（如上下文耗尽事件）时绝不判 success——
+    否则会破坏会话/上下文死亡螺旋自愈（ISSUE-109/729bfe54）。"""
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "s2"},
+        # 上下文窗口耗尽：subtype 误导性为 success，但 is_error=True
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": True,
+            "result": "API Error: The model has reached its context window limit.",
+            "num_turns": 1,
+        },
+    ]
+    proc = _DuplexFakeProc(events)
+    proc.stdin.close = lambda: proc._stdin_closed.set()  # type: ignore[method-assign]
+    proc.terminate = lambda: setattr(proc, "returncode", 1)  # type: ignore[method-assign,assignment]
+
+    async def _fake_exec(*args, **kwargs):
+        return proc
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac"},
+    )
+    result = await ClaudeCodeService.invoke("继续", cfg)
+    assert result.status == "error", "is_error=True 的 result 必须仍标 error（不被 subtype=success 掩盖）"
+    assert result.error_kind == "context_exhausted", "应正确分类为可自愈的上下文耗尽"
+
+
+# ---------------------------------------------------------------------------
 # 上下文窗口耗尽错误识别（_classify_result_error）—— 死亡螺旋根因修复回归锁定
 #
 # 根因（实测 a83d9c94 seq=4）：CC resume 已满会话时输出 result 事件

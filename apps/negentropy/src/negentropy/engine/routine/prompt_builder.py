@@ -135,6 +135,19 @@ def build_prompt(
     else:
         parts.append("# 开始 (Start)\n请着手完成上述目标，确保产出可被验收标准客观检验。")
 
+    # worktree routine 的 IMPLEMENT 相位迭代检查点：每轮收尾提交，避免长任务进度仅以未提交工作树
+    # 形态滞留（worktree 若被重建/清理则丢失），并为后续 FINALIZE 建 PR / 人工审查留存 git 历史。
+    # 仅提交、不推送——推送与建 PR 是 FINALIZE 相位的职责。
+    if worktree and phase == PHASE_IMPLEMENT:
+        parts.append(
+            "# 迭代检查点 (Checkpoint Commit)\n"
+            "本轮改动完成后，在隔离 worktree 内执行 `git add -A && git commit`（按仓库规范写 message）"
+            "将进度提交到当前工作分支：\n"
+            "- **务必提交**——跨迭代保留成果、防 worktree 重建致工作丢失，并为收尾建 PR 留存提交历史；\n"
+            "- **切勿**推送（`git push`）、**切勿**切换或污染基线/master/main 分支（推送与建 PR 属 FINALIZE 相位）；\n"
+            "- 无实质改动则跳过提交即可。"
+        )
+
     return "\n\n".join(parts)
 
 

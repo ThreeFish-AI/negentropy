@@ -2817,4 +2817,45 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**（最小干预）：`_do_evaluate` 中 `skip_gate_in_plan = routine.current_phase == PHASE_PLAN`，PLAN 相位把 `routine_eval_view.verification_command` 置 None——`evaluate` 的既有 `if verification_command:` 守卫自然跳过门控，Judge 纯评估方案质量；IMPLEMENT/FINALIZE 相位门控照跑。
 - **后续防范**：门控/验证类副作用必须「相位感知」——PLAN（无产物）跳过、IMPLEMENT/FINALIZE（有产物）执行；任何「无条件对当前工作区跑测试」的逻辑都要先问「此相位有无可验证的产物」。
 - **同类问题影响**：所有配 `verification_command` 的 phased routine 的 PLAN 相位评分此前都被门控失败拉低；本修复使方案阶段评分回归方案质量本身。
-- **验证**：集成测试 `test_plan_phase_skips_verification_gate`（PLAN 相位 eval_view.verification_command 为 None）+ `test_implement_phase_runs_verification_gate`（IMPLEMENT 相位照传）对照锁定，全绿；实机「before」证据：探针 PLAN 迭代 `gate_exit_code=5`（修复前）。
+- **验证**：集成测试 `test_plan_phase_skips_verification_gate`（PLAN 相位 eval_view.verification_command 为 None）+ `test_implement_phase_runs_verification_gate`（IMPLEMENT 相位照传）对照锁定，全绿；实机「before」证据：探针 PLAN 迭代 `gate_exit_code=5`（修复前），忠实任务 PLAN 迭代 `gate_exit_code=NULL`（修复后）。
+
+## ISSUE-113 交互式 CC 产出干净成功 result 后被拆解 SIGTERM(143) 误标 error → phased 长任务 ~iter3 夭折（2026-06-06）
+
+- **表因**：phased routine 的 PLAN 迭代 `exec_status=error`、`exec_error="CLI exited with code 143"`，即便该迭代已产出方案（事件流尾部明确有 `result: success`）；Judge 因见 `exec_status=error` 给出 `stalled`/低分（实测忠实任务 plan 评 40/stalled）。
+- **根因**：**「我方拆解」的退出码被当作真实失败**。stream-json 输入模式下 CLI 产出 `result` 后**不自退**、保持 stdin 打开等更多输入；`_invoke_cli_interactive` 的 reader 见 `result` 即主动闭合 stdin 触发其退出，并给 10s 优雅窗口；若 CLI 未在窗口内退出，`finally` 强制 `terminate()`（SIGTERM → rc=143/-15）。旧状态判定 `status = "success" if proc.returncode == 0 else "error"` 据该退出码一律标 error，无视已捕获的成功 `result` 事件。
+- **二阶严重性（实测校准）**：实机数据显示该误标主要命中 **PLAN 迭代**（plan 模式下 CC 在 ExitPlanMode + plan_review 回环后产出 result 却不自退 → 拆解 SIGTERM → error/143），而 **IMPLEMENT 迭代多干净退出（rc=0/success）**——故并非「每迭代必 error」（忠实任务实测 iter1=plan/error/143、iter2=implement/success）。其危害有二：① PLAN 迭代被误标 error → Judge 见 `exec_status=error` 给 `stalled`/低分（实测忠实 plan 评 40/stalled），污染方案评分与反思；② **潜在**长跑夭折风险——`decision._consecutive_exec_failures` 把连续 `exec_status∈{error,timeout}` 计数达 `_CONSECUTIVE_FAILURE_LIMIT=3` 即判 `unrecoverable`；正常情况下 implement 的 success 会打断该计数，但若个别 implement 迭代亦因 stdin 拆解迟退而 143，连续 3 次即误判不可恢复夭折。修复从源头消除两者。
+- **处理方式**：`_invoke_cli` 与 `_invoke_cli_interactive` 的状态判定改为「**干净成功 result 优先于退出码**」：当 `last_result_event.subtype == "success"` 且 `not is_error` 时判 `success`，否则按退出码判定。关键守卫 `not is_error`：上下文耗尽事件的 `subtype` 误导性为 `success` 但 `is_error=True`，必须仍判 error 并由 `_classify_result_error` 归类 `context_exhausted`——否则会破坏 ISSUE-109/`729bfe54` 的死亡螺旋自愈。
+- **后续防范**：
+  1. **「进程退出码」≠「任务成败」**——当编排方主动 SIGTERM/kill 子进程（超时、拆解、abort）时，退出码反映的是「我方动作」而非「被编排任务的成败」；判定成败应优先采信任务自身的终态信号（此处为 `result` 事件），退出码仅作兜底；
+  2. **任何「连续失败计数 → 不可恢复」守卫，其失败判定的准确性是系统能否长跑的命门**——一个把「成功」误标「失败」的上游缺陷，会经此守卫放大为「长任务必在固定轮次夭折」，且只有真正长跑才暴露；新增此类守卫时必须审计「failure 的判定是否会把正常终态误判为失败」；
+  3. 交互式子进程「产出 result 后不自退」是 stream-json 模式的既有契约，闭合 stdin 后应给足优雅窗口，且**即使最终 SIGTERM 也不得据此抹掉已捕获的成功终态**。
+- **同类问题影响**：所有走交互式路径（`interactive=True`，即全部 Routine）的迭代均受益；非交互路径 `rc` 通常已为 0，该分支为防御性等价、消除两路径漂移。
+- **验证**：单测 `test_interactive_clean_result_success_survives_teardown_sigterm`（干净 result + SIGTERM(-15) → success）+ `test_interactive_is_error_result_not_masked_as_success`（`subtype=success` 但 `is_error=True` 仍 error 且归类 context_exhausted，守卫死亡螺旋自愈）；`claude_code_service` 全量 63 例全绿。实机「before」：探针/忠实任务 PLAN 迭代均 `error/143` 含 `result:success` 事件。
+
+## ISSUE-114 长 worktree routine 的 IMPLEMENT 进度仅以未提交工作树形态滞留——进度丢失风险 + PR 留存缺口（2026-06-06）
+
+- **表因**：忠实复刻长跑实机观测——worktree 已写出 `src/`、`tests/`、`pyproject.toml`、`Dockerfile` 等大量实现且 `pytest` 通过（gate exit 0），但 `git rev-list --count origin/feature/1.x.x..HEAD` 为 **0**（工作分支零提交），全部以未提交工作树形态存在。
+- **根因**：`prompt_builder.build_prompt` 仅在 **FINALIZE** 相位注入 `git add -A && git commit`，IMPLEMENT 相位（`继续`/`开始`）无任何提交指令。对能走到 FINALIZE 的 常规 phased routine 无碍；但本类**巨型长任务**（阈值 99 → 评分恒 ≤50、几乎不触发 FINALIZE，且会迭代至 max_iterations=100）下，上百轮成果**始终未落 git**：① worktree 一旦被重建/清理（stale 重建、人工删除、`git worktree prune`），未提交成果**全部丢失**；② 工作分支零提交，FINALIZE/人工建 PR 时 `git push` 仅推空分支（提交在 FINALIZE 内补，但长跑不触发 FINALIZE 即无任何 checkpoint）；③ 无跨迭代 git 检查点，单轮误改无法回滚。
+- **处理方式**（最小干预、相位感知）：`build_prompt` 在 **worktree routine 的 IMPLEMENT 相位** 追加「迭代检查点」段，指示每轮收尾 `git add -A && git commit` 提交到工作分支——**仅提交不推送**（推送/建 PR 仍属 FINALIZE），无实质改动则跳过。PLAN（只读）与 FINALIZE（自带 commit+push）不重复注入；扁平 routine（无 worktree）不注入。
+- **后续防范**：
+  1. **长 agentic 任务必须有跨迭代检查点**——不能让上百轮昂贵成果仅以「未提交工作树」单点形态存续；提交（或引擎侧确定性 auto-commit）是抵御 worktree 丢失的基本保险；
+  2. **「提交时机」应相位感知**：PLAN 不提交（无产物）、IMPLEMENT 增量提交检查点（仅本地）、FINALIZE 提交+推送+PR；
+  3. **进一步加固备选**（未实施，记录备忘）：引擎在每个 IMPLEMENT 迭代成功写回后**确定性 auto-commit** worktree（不依赖 CC 遵循 prompt），对成本极高的长跑更稳妥；本次先以 prompt 指令落地（与既有 FINALIZE 提交风格一致、零引擎热路径改动）。
+- **同类问题影响**：所有 worktree routine 的 IMPLEMENT 相位均受益；尤以「高阈值/不触发 FINALIZE 的长任务」获益最大。
+- **验证**：单测 `test_build_prompt_worktree_implement_injects_checkpoint_commit`（IMPLEMENT 注入 commit、禁 push）+ `test_build_prompt_worktree_checkpoint_only_in_implement`（PLAN/FINALIZE 不注入）+ `test_build_prompt_flat_implement_no_checkpoint`（扁平不注入）；`test_routine_phase` 全量绿。实机「before」：忠实任务工作分支 0 提交、15 项未跟踪/改动。
+
+## ISSUE-115 门控超时/异常退出码语义重载 + 门控超时不可调，长复刻评分被永久压顶（2026-06-06）
+
+- **表因**（潜伏，随复刻测试套件增长触发）：① 门控（`uv run pytest -q`）超时返回 `gate_exit_code=None`，与「未配置门控」同值；② 全局门控超时固定 120s，大型复刻的测试套件一旦超 120s，每轮门控必超时 → Judge 见门控失败 → 评分被规则 2 永久压顶 ≤60，复刻再好也无法被判高分收敛。
+- **根因**：
+  1. **`None` 语义重载**：`evaluator._run_gate` 超时/异常均 `return None, ...`；而 `decision.decide` 的成功判据 `latest.gate_exit_code in (None, 0)` 把 `None` 视为「门控通过/无门控」。于是「门控超时」（验证状态**未知**）被误当「门控通过」——若 Judge 给出达标分（如低阈值 routine 或 LLM 未严格执行评分上限规则），会据此误判 SUCCESS，把「未验证」当「已验证通过」。
+  2. **门控超时不可 per-routine 调**：`RoutineEvaluator._gate_timeout_seconds` 由 orchestrator 初始化时从全局 `settings.routine.gate_timeout_seconds`（默认 120）一次性设定，无 per-routine 覆盖；大型测试套件无法抬高超时。
+- **处理方式**：
+  1. `_run_gate` 超时返回 `124`（约定超时码）、异常返回 `1`——**绝不返回 None**，使 `None` **仅**表示「未配置门控」；`decision` 的 `in (None,0)` 遂自动把超时/异常（124/1）排除出「通过」，超时不再被误判成功；
+  2. `_run_gate` 增 `timeout` 形参，`evaluate` 从 `getattr(routine,"gate_timeout_seconds",None)`（即 `config.gate_timeout_seconds`）取 per-routine 覆盖、回退实例默认；orchestrator `_do_evaluate` 的 `routine_eval_view` 注入该字段。大型复刻可经 `config.gate_timeout_seconds` 抬高门控超时，避免评分被超时压顶。
+- **后续防范**：
+  1. **哨兵值语义不可重载**：`None`/`-1`/`0` 等若同时承载「未发生」与「发生但失败」两义，下游布尔判据必踩坑；「未运行」与「运行了但超时/异常」必须可区分（本例以非零退出码区分）；
+  2. **「未知 ≠ 通过」**：任何客观门控的「超时/异常/不可达」都应作**保守失败**处理，绝不可等同「通过」——尤其当其结果参与「终止为成功」这类不可逆判定时；
+  3. **资源阈值（超时/预算/上限）应 per-task 可调**：固定全局阈值对「重量级长任务」必然失配，须留 per-routine 覆盖通道。
+- **同类问题影响**：所有配 `verification_command` 的 routine；尤以测试套件较重、运行时长接近/超过 120s 的复刻/迁移类长任务。审计点：凡下游以 `x in (None, 0)` / `x is None` 兼判「无」与「失败」者，均需复核哨兵语义。
+- **验证**：单测 `test_run_gate_timeout_returns_124_not_none`、`test_run_gate_per_routine_timeout_overrides_instance_default`（传 timeout=1 约 1s 超时）、`test_run_gate_passes_through_exit_code`、`test_decide_success_blocked_by_gate_timeout_sentinel`（124 不判成功）；evaluator_gate + decision 共 39 例全绿。

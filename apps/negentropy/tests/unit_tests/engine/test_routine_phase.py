@@ -93,6 +93,26 @@ def test_build_prompt_worktree_finalize_injects_concrete_branches():
     assert "合并" in p  # 提示人工合并
 
 
+def test_build_prompt_worktree_implement_injects_checkpoint_commit():
+    """worktree IMPLEMENT 相位注入迭代检查点提交指令（git add -A && git commit，仅提交不推送）。"""
+    for ph in ("implement",):
+        p = build_prompt(_wt_routine(current_phase=ph))
+        assert "迭代检查点" in p
+        assert "git add -A" in p and "git commit" in p
+        assert "切勿" in p and "push" in p  # 明确禁止推送（推送属 FINALIZE）
+
+
+def test_build_prompt_worktree_checkpoint_only_in_implement():
+    """检查点提交仅在 IMPLEMENT：PLAN（只读）与 FINALIZE（自带 commit+push）不重复注入。"""
+    assert "迭代检查点" not in build_prompt(_wt_routine(current_phase="plan"))
+    assert "迭代检查点" not in build_prompt(_wt_routine(current_phase="finalize"))
+
+
+def test_build_prompt_flat_implement_no_checkpoint():
+    """扁平 routine（无 baseline/worktree）IMPLEMENT 不注入检查点提交（仅 worktree 适用）。"""
+    assert "迭代检查点" not in build_prompt(_routine(current_phase="implement"))
+
+
 def test_build_prompt_flat_finalize_unchanged_when_no_baseline():
     """旧扁平 routine（无 baseline）保留泛化收尾文案，不注入具体 push/--head。"""
     p = build_prompt(_routine(current_phase="finalize"))

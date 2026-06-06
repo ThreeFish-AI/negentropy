@@ -465,6 +465,8 @@ class RoutineOrchestrator:
                 cwd=routine.cwd,
                 verification_command=None if skip_gate_in_plan else routine.verification_command,
                 worktree_path=routine.worktree_path,
+                # per-routine 门控超时覆盖（大型复刻测试套件可能超默认 120s）。
+                gate_timeout_seconds=(routine.config or {}).get("gate_timeout_seconds"),
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,

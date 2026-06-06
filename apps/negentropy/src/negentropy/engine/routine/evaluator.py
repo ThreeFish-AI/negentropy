@@ -69,6 +69,8 @@ class _RoutineLike(Protocol):
     verification_command: str | None
     # worktree routine：CC 实际在隔离 worktree 内工作，门控须同处执行（见 _gate_cwd）。
     worktree_path: str | None
+    # per-routine 门控超时覆盖（来自 config.gate_timeout_seconds）；None → 用实例级默认。
+    gate_timeout_seconds: int | None
 
 
 class _IterationLike(Protocol):
@@ -119,11 +121,14 @@ class RoutineEvaluator:
         流程：先跑命令门控（若配置）→ 再调用 LLM Judge（门控结果作为锚点输入）。
         LLM 失败重试耗尽 → 返回 ``ok=False``，由 orchestrator 据 eval_failure_patience 处理。
         """
-        # 1) 命令门控（可选）
+        # 1) 命令门控（可选）。per-routine 超时覆盖：大型复刻任务测试套件可能超默认 120s。
         gate_exit_code: int | None = None
         gate_output = ""
         if routine.verification_command:
-            gate_exit_code, gate_output = await self._run_gate(routine.verification_command, self._gate_cwd(routine))
+            gate_timeout = getattr(routine, "gate_timeout_seconds", None)
+            gate_exit_code, gate_output = await self._run_gate(
+                routine.verification_command, self._gate_cwd(routine), timeout=gate_timeout
+            )
 
         # 2) LLM Judge
         summary = (iteration.summary or "").strip()
@@ -176,12 +181,19 @@ class RoutineEvaluator:
         """
         return getattr(routine, "worktree_path", None) or routine.cwd
 
-    async def _run_gate(self, command: str, cwd: str | None) -> tuple[int | None, str]:
-        """在 ``cwd`` 执行验证命令，返回 (exit_code, 截断输出)。超时/异常 → exit_code=None。
+    async def _run_gate(self, command: str, cwd: str | None, timeout: int | None = None) -> tuple[int | None, str]:
+        """在 ``cwd`` 执行验证命令，返回 (exit_code, 截断输出)。
+
+        超时 → exit_code=124（约定的超时退出码）；异常 → exit_code=1。**绝不返回 None**——
+        None 须**仅**表示「未配置门控」，否则 ``decision.decide`` 的成功判据
+        ``gate_exit_code in (None, 0)`` 会把「门控超时/异常」误当作「门控通过」，致未知验证状态被判成功
+        （ISSUE-115）。超时阈值优先用 per-routine ``timeout``（来自 ``config.gate_timeout_seconds``），
+        缺省回退实例级默认——大型复刻任务的测试套件可能超 120s，需可调以免评分被超时永久压顶。
 
         以 ``start_new_session=True`` 起独立进程组，超时时整组 SIGKILL，避免 pytest 等
         fork 出的子进程在 shell 被杀后变成孤儿泄漏。
         """
+        effective_timeout = timeout if (isinstance(timeout, int) and timeout > 0) else self._gate_timeout_seconds
         try:
             proc = await asyncio.create_subprocess_shell(
                 command,
@@ -191,19 +203,19 @@ class RoutineEvaluator:
                 start_new_session=True,
             )
             try:
-                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=self._gate_timeout_seconds)
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=effective_timeout)
             except TimeoutError:
                 self._kill_process_group(proc)
                 with suppress(Exception):
                     await proc.communicate()
-                logger.warning("routine_gate_timeout", command=command[:120])
-                return None, f"(命令执行超时 {self._gate_timeout_seconds}s)"
+                logger.warning("routine_gate_timeout", command=command[:120], timeout_s=effective_timeout)
+                return 124, f"(命令执行超时 {effective_timeout}s)"
             # 审计保留尾部 16KB（给 LLM 的仍由 _format_gate 切到 [-1000:]，行为不变）。
             output = (stdout or b"").decode("utf-8", errors="replace")[-_GATE_OUTPUT_AUDIT_CAP:]
             return proc.returncode, output
         except Exception as exc:
             logger.warning("routine_gate_failed", command=command[:120], error=str(exc))
-            return None, f"(命令执行异常: {exc})"
+            return 1, f"(命令执行异常: {exc})"
 
     @staticmethod
     def _kill_process_group(proc) -> None:
