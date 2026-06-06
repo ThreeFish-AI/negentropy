@@ -475,6 +475,9 @@ class RoutineOrchestrator:
                 gate_timeout_seconds=(routine.config or {}).get("gate_timeout_seconds"),
                 # per-routine 验收未达成评分上限覆盖（None → 用评估器实例默认）。
                 acceptance_unmet_score_cap=(routine.config or {}).get("acceptance_unmet_score_cap"),
+                # per-routine Judge 模型覆盖（None → 用评估器实例默认全局 task 模型）。高风险复刻类
+                # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（ISSUE-121）。
+                evaluator_model=(routine.config or {}).get("evaluator_model"),
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,

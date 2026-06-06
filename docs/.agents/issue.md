@@ -2906,3 +2906,23 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① 共享 DB 服务器上的「测试库」命名须计入并发维度（不止 test/prod 二分，还要 workspace/分支隔离），否则迁移版本互相踩踏；② 跨实例共享的 schema 版本须有「本地代码 head 与 DB version 偏差」的可观测校验。
 - **同类问题影响**：所有在共享 postgres 上并发跑集成测试的 workspace；环境性问题，非产品代码缺陷。
 - **验证**：drop+重建后集成测试全绿（见 ISSUE-118 验证：6+126+44 全绿）。
+
+## ISSUE-120 引擎 venv/uv 激活变量泄漏进 worktree 子进程（gate + CC），物理隔离未覆盖 Python 环境（2026-06-07）
+
+- **表因**：忠实复刻 routine 的 IMPLEMENT 门控 `uv run pytest -q` 输出首行恒为 `warning: VIRTUAL_ENV=.../negentropy/apps/negentropy/.venv does not match the project environment path \`.venv\` and will be ignored`。
+- **根因**：worktree 隔离此前只覆盖文件系统（cwd / `--add-dir` / `Edit` deny），但任务子进程**整体继承引擎 `os.environ`**。引擎自身经 `uv run` 启动，注入 `VIRTUAL_ENV`（指向 `negentropy/.venv`）与 `UV_RUN_RECURSION_DEPTH`；二者越界泄漏给在**另一项目** worktree（自有 `.venv`）内运行的 gate 与 CC 子进程——`service._build_subprocess_env` 直接 `os.environ.copy()` 未剥离；`evaluator._run_gate` 的 `create_subprocess_shell` 干脆不传 `env=`。
+- **影响**：本任务 gate 是 `uv run pytest`，uv 检测错配后忽略（自愈，仅警告）；但**非 uv 门控（裸 `pytest`/`python`）会落到引擎 venv 找错包 → 假失败污染评分**；`UV_RUN_RECURSION_DEPTH` 把任务独立 `uv run` 误计为嵌套递归、蚕食任务自身的嵌套预算。
+- **处理方式**（单一事实源）：新增 `engine/utils/subprocess_env.py::inherited_env_without_engine_venv()`，剥离 `{VIRTUAL_ENV, VIRTUAL_ENV_PROMPT, UV_RUN_RECURSION_DEPTH}`；`_build_subprocess_env`（CC 子进程）与 `_run_gate`（gate 子进程）统一复用，使物理隔离从文件系统延伸到 Python 运行环境。
+- **后续防范**：① worktree / 隔离子进程不应整体继承父进程 env；跨项目子进程须净化继承环境中的「venv / 工具激活」变量；② strip 逻辑单点收敛，避免双副本漂移。
+- **同类问题影响**：所有 worktree routine 的 gate 与 CC 子进程；尤以非 uv 门控者评分会被假失败污染。
+- **验证**：单测 `test_inherited_env_strips_engine_venv_vars` + `test_run_gate_subprocess_does_not_inherit_engine_virtualenv`（端到端 gate 子进程 `$VIRTUAL_ENV` 为空）；evaluator_gate 17 例 + routine 单测 130 + claude_code 164 + 集成 50 全绿。
+
+## ISSUE-121 弱 Judge 误判 acceptance_met=true 触发过早不可逆 SUCCESS+PR（复刻仅骨架即「成功」）（2026-06-07）
+
+- **表因**：忠实复刻 routine 实机跑完整闭环 `PLAN→IMPLEMENT→FINALIZE→succeeded`，建出真实 PR（`data-la-maps#4`），best_score=92。但检视产物：核心业务逻辑（geocoding 11 阶段管线 + 6 模式矩阵 + IP 双源融合——Go 服务存在的根本理由）**未实现**——`domain/geocodes/service.py` 仅 45 行桩，自述「Phase 2：简化实现，仅支持按 postal_code 直接查 PlacesRepo；Phase 4：完整 11 阶段 Pipeline + 6 模式矩阵」。即「成功」过早，复刻实为骨架。
+- **根因**：不可逆 SUCCESS（→FINALIZE→PR→succeeded）取决于**单次弱 Judge（`gpt-5-nano`）对 `acceptance_met` 的裁决**。ISSUE-116 的 cap 仅守护 `acceptance_met=False` 方向（未达标封顶），对**误判 `acceptance_met=true`**（假阳性）无任何防护。弱模型见「~21 端点 + 75 测试通过 + 架构清晰」即判 `acceptance_met=true`/92，未核验行为级 Go 对齐（其自身 reflection 反而承认「下一步聚焦 Phase 3 Write API 与规则引擎基线」——自相矛盾）。
+- **处理方式**（本轮，引擎层根因杠杆）：新增 per-routine `config.evaluator_model` 覆盖，经 `evaluate → _judge → resolve_model_config` 的 `explicit_model` 注入——高风险复刻类 acceptance 裁决可指定更强 Judge 模型，缓解弱模型假阳性；opt-in，未设时回退实例默认，其它 routine 零影响。配套任务定义将 acceptance 强化为「行为级对齐（管线/融合 faithfully 实现，非简化桩）」并设强 Judge 模型。
+- **后续防范**：① 触发**不可逆动作**（建 PR / 终止成功）的判定不应系于单次弱模型意见——高风险裁决须用足够强模型或多信号佐证；② LLM-as-Judge 的**假阳性与假阴性都要防**（ISSUE-116 防假阴性「达标却被压分」，本条防假阳性「未达标却判成功」）；③ acceptance 须可被 Judge **行为级**核验，避免「结构齐备即判达标」。
+- **候选后续加固**：当 `acceptance_met=true` 且分 ≥ 阈值（即将触发不可逆成功）时，以更强模型做一次对抗式确认门（confirm-before-commit），未确认则降级继续迭代。
+- **同类问题影响**：所有以弱模型 Judge 裁决 acceptance 的高风险 routine；尤以「结构易搭、业务逻辑深」的复刻/迁移类。
+- **验证**：单测 `test_evaluator_model_override_flows_to_judge`（per-routine 模型覆盖流经 `_judge`）+ `test_evaluator_model_falls_back_to_instance_default`（未设回退实例默认）；evaluator_gate 17 例全绿。实机 before：seq3 judge raw `acceptance_met:true, score:92` 而 `geocodes/service.py` 为 45 行简化桩。
