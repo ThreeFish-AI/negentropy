@@ -28,6 +28,15 @@ import {
 } from "./status-style";
 
 // ---------------------------------------------------------------------------
+// 共用样式常量（统一徽章胶囊与三级元信息字样，消除散落魔法字号）
+// ---------------------------------------------------------------------------
+
+/** 统一徽章胶囊基类（error / verdict / result / gate / evaluation / 统计 pill 共用）。 */
+const BADGE_BASE = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-semibold";
+/** 三级元信息字样（时间戳 / seq# / cost / 计数）：caption 字号 + 次级对比度 + 等宽数字。 */
+const META_TEXT = "shrink-0 text-caption tabular-nums text-text-secondary";
+
+// ---------------------------------------------------------------------------
 // Turn（轮次）聚合 —— 将执行阶段事件按 Claude Code 的 Turn 边界分组
 // ---------------------------------------------------------------------------
 
@@ -258,14 +267,14 @@ export function IterationEventTimeline({
           const meta = AGENT_ROLE_META[role];
           const Icon = meta.icon;
           return (
-            <span key={g} className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.badgeClass}`}>
+            <span key={g} className={`${BADGE_BASE} ${meta.badgeClass}`}>
               <Icon className="h-3 w-3" aria-hidden />
               {EVENT_GROUP_LABEL[g]} ({list.length})
             </span>
           );
         })}
         {live && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+          <span className="inline-flex items-center gap-1 text-caption font-semibold text-sky-600 dark:text-sky-400">
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
             LIVE
           </span>
@@ -344,11 +353,11 @@ function SpeakerGroupBubble({ group }: { group: SpeakerGroup }) {
         </div>
       </div>
       {/* 聚合内容区 */}
-      <div className="min-w-0 max-w-[85%] space-y-1.5">
+      <div className="min-w-0 max-w-[85%] space-y-2">
         {/* 统一发言人标签 */}
         <div className="flex items-center gap-2 px-1">
           <span className={cn(
-            "text-[10px] font-semibold",
+            "text-xs font-semibold",
             isLeft ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400",
           )}>
             {meta.label}
@@ -398,32 +407,35 @@ function ClaudeCodeTurnBubble({
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
-          className="flex w-full items-center gap-2 text-left"
+          className="-mx-1 flex w-full flex-col gap-1 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-muted/40"
         >
-          <ChevronRight
-            className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", !collapsed && "rotate-90")}
-            aria-hidden
-          />
-          {showHeader && (
-            <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">
-              Claude Code
-            </span>
-          )}
-          <span className="text-[10px] font-medium text-foreground">Turn {turn.turnNumber}</span>
-          <span className="text-[10px] tabular-nums text-text-muted">{turn.events.length} events</span>
-          {turn.hasError && (
-            <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
-              error
-            </span>
-          )}
-          {/* 摘要标题（始终显示，帮助折叠态下快速了解 Turn 内容） */}
-          <span className="min-w-0 flex-1 truncate text-[10px] text-text-muted" title={title}>
+          {/* 元信息行：折叠箭头 · 发言人 · Turn N · 事件数 · error 徽章 */}
+          <span className="flex w-full items-center gap-2">
+            <ChevronRight
+              className={cn("h-3.5 w-3.5 shrink-0 text-text-muted transition-transform", !collapsed && "rotate-90")}
+              aria-hidden
+            />
+            {showHeader && (
+              <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+                Claude Code
+              </span>
+            )}
+            <span className="text-sm font-semibold text-foreground">Turn {turn.turnNumber}</span>
+            <span className="text-caption tabular-nums text-text-secondary">{turn.events.length} events</span>
+            {turn.hasError && (
+              <span className={cn(BADGE_BASE, "shrink-0 bg-red-500/10 text-red-600 dark:text-red-400")}>
+                error
+              </span>
+            )}
+          </span>
+          {/* 摘要标题（独占整行，折叠态快速了解 Turn 内容；溢出截断 + 全文 tooltip） */}
+          <span className="block truncate pl-5 text-body font-medium text-text-secondary" title={title}>
             {title}
           </span>
         </button>
         {/* EventRow 列表——展开态可见 */}
         {!collapsed && (
-          <ol className="mt-1.5 space-y-1 border-l border-border pl-3">
+          <ol className="mt-2 space-y-1 border-l border-border pl-3">
             {turn.events.map((ev) => (
               <EventRow key={`${ev.seq}-${ev.id}`} ev={ev} />
             ))}
@@ -463,20 +475,20 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
       {/* 气泡内容 */}
       <div className={cn("min-w-0 rounded-2xl border border-sky-500/20 bg-sky-500/[0.03] p-3", showHeader ? "max-w-[85%] rounded-tr-sm" : "w-full")}>
         {/* Header（仅独立渲染时显示发言人标签，verdict/score 始终显示） */}
-        <div className="mb-1.5 flex items-center justify-end gap-2">
+        <div className="mb-2 flex items-center justify-end gap-2">
           {showHeader && (
             <>
-              <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+              <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">
                 NegentropyEngine
               </span>
-              <span className="text-[10px] text-text-muted">Plan Review</span>
+              <span className="text-caption font-medium text-text-secondary">Plan Review</span>
             </>
           )}
-          <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", vc.cls)}>
+          <span className={cn(BADGE_BASE, vc.cls)}>
             {vc.label}
           </span>
           {score != null && (
-            <span className={cn("text-xs font-bold tabular-nums", score >= 80 ? "text-emerald-600 dark:text-emerald-400" : score >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400")}>
+            <span className={cn("text-sm font-bold tabular-nums", score >= 80 ? "text-emerald-600 dark:text-emerald-400" : score >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400")}>
               {score}
             </span>
           )}
@@ -486,7 +498,7 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
         {moduleReviews && moduleReviews.length > 0 && (
           <div className="space-y-1">
             {moduleReviews.map((m, i) => (
-              <div key={i} className="text-[11px] text-text-secondary">
+              <div key={i} className="text-caption text-text-secondary">
                 {m.status === "pass" ? "✅" : m.status === "warn" ? "⚠️" : "❌"}{" "}
                 <span className="font-medium text-foreground">{m.module}</span>: {m.comment}
               </div>
@@ -496,7 +508,7 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
 
         {/* 反馈文本 */}
         {feedback && (
-          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2 text-[11px] text-text-secondary">
+          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2 text-caption leading-caption text-text-secondary">
             {feedback}
           </div>
         )}
@@ -506,19 +518,19 @@ function EngineReviewBubble({ ev, showHeader = true }: { ev: RoutineIterationEve
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="mt-2 flex items-center gap-1 text-[10px] text-text-muted hover:text-foreground"
+            className="mt-2 flex items-center gap-1 text-caption font-medium text-text-secondary hover:text-foreground"
           >
             <ChevronRight className={cn("h-3 w-3 transition-transform", expanded && "rotate-90")} />
             Reflection
           </button>
         )}
         {expanded && reflection && (
-          <p className="mt-1 text-[11px] italic text-text-muted">{reflection}</p>
+          <p className="mt-1 text-caption italic leading-caption text-text-secondary">{reflection}</p>
         )}
 
         {/* 详情（raw payload） */}
         {ev.created_at && (
-          <div className="mt-2 text-[10px] tabular-nums text-text-muted">
+          <div className="mt-2 text-caption tabular-nums text-text-secondary">
             {new Date(ev.created_at).toLocaleTimeString()}
           </div>
         )}
@@ -582,13 +594,13 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
         )}
       >
         {/* Header（仅独立渲染时显示发言人标签） */}
-        <div className="mb-1.5 flex items-center justify-end gap-2">
+        <div className="mb-2 flex items-center justify-end gap-2">
           {showHeader && (
             <>
-              <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+              <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">
                 NegentropyEngine
               </span>
-              <span className="text-[10px] text-text-muted">{label}</span>
+              <span className="text-caption font-medium text-text-secondary">{label}</span>
             </>
           )}
 
@@ -596,7 +608,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
           {et === "result" && (
             <span
               className={cn(
-                "rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                BADGE_BASE,
                 isError
                   ? "bg-red-500/10 text-red-700 dark:text-red-300"
                   : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -610,7 +622,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
           {et === "gate" && (
             <span
               className={cn(
-                "rounded-full px-1.5 py-0.5 text-[9px] font-bold",
+                BADGE_BASE,
                 gateFailed
                   ? "bg-red-500/10 text-red-700 dark:text-red-300"
                   : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -623,11 +635,11 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
           {/* Evaluation badge + score */}
           {et === "evaluation" && (
             <>
-              <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", vb.cls)}>
+              <span className={cn(BADGE_BASE, vb.cls)}>
                 {vb.label}
               </span>
               {score != null && (
-                <span className={cn("text-xs font-bold tabular-nums", scoreColorClass(score))}>
+                <span className={cn("text-sm font-bold tabular-nums", scoreColorClass(score))}>
                   {score}
                 </span>
               )}
@@ -636,7 +648,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
 
           {/* Cost (result) */}
           {ev.cost_usd != null && ev.cost_usd > 0 && (
-            <span className="text-[10px] tabular-nums text-text-muted">${ev.cost_usd.toFixed(4)}</span>
+            <span className="text-caption tabular-nums text-text-secondary">${ev.cost_usd.toFixed(4)}</span>
           )}
         </div>
 
@@ -646,12 +658,12 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
         {et === "result" && (
           <>
             {numTurns != null && (
-              <div className="text-[11px] text-text-secondary">
+              <div className="text-caption text-text-secondary">
                 <span className="font-medium text-foreground">{numTurns}</span> turns
               </div>
             )}
             {resultText && (
-              <div className="mt-1 line-clamp-3 text-[11px] text-text-secondary">{resultText}</div>
+              <div className="mt-1 line-clamp-3 text-caption leading-caption text-text-secondary">{resultText}</div>
             )}
           </>
         )}
@@ -660,13 +672,13 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
         {et === "gate" && (
           <>
             {command && (
-              <div className="rounded-md border border-border bg-muted/30 p-2 font-mono text-[11px] text-text-secondary">
-                <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">$ </span>
+              <div className="rounded-md border border-border bg-muted/30 p-2 font-mono text-caption text-text-secondary">
+                <span className="text-micro font-medium uppercase tracking-overline text-text-secondary">$ </span>
                 {command}
               </div>
             )}
             {gateOutput && (
-              <div className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/30 p-2 font-mono text-[11px] leading-relaxed text-text-secondary">
+              <div className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/30 p-2 font-mono text-caption leading-relaxed text-text-secondary">
                 {gateOutput.length > 500 ? gateOutput.slice(0, 500) + "…" : gateOutput}
               </div>
             )}
@@ -677,7 +689,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
         {et === "evaluation" && (
           <>
             {typeof p.error === "string" && (
-              <div className="rounded-md border border-red-500/20 bg-red-500/[0.03] p-2 text-[11px] text-red-600 dark:text-red-400">
+              <div className="rounded-md border border-red-500/20 bg-red-500/[0.03] p-2 text-caption leading-caption text-red-600 dark:text-red-400">
                 {p.error}
               </div>
             )}
@@ -685,14 +697,14 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
               <button
                 type="button"
                 onClick={() => setReflectionOpen((v) => !v)}
-                className="mt-2 flex items-center gap-1 text-[10px] text-text-muted hover:text-foreground"
+                className="mt-2 flex items-center gap-1 text-caption font-medium text-text-secondary hover:text-foreground"
               >
                 <ChevronRight className={cn("h-3 w-3 transition-transform", reflectionOpen && "rotate-90")} />
                 Reflection
               </button>
             )}
             {reflectionOpen && reflection && (
-              <p className="mt-1 text-[11px] italic text-text-muted">{reflection}</p>
+              <p className="mt-1 text-caption italic leading-caption text-text-secondary">{reflection}</p>
             )}
           </>
         )}
@@ -702,7 +714,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
           <button
             type="button"
             onClick={() => setDetailOpen((v) => !v)}
-            className="mt-2 flex items-center gap-1 text-[10px] text-text-muted hover:text-foreground"
+            className="mt-2 flex items-center gap-1 text-caption font-medium text-text-secondary hover:text-foreground"
           >
             <ChevronRight className={cn("h-3 w-3 transition-transform", detailOpen && "rotate-90")} />
             Detail
@@ -716,7 +728,7 @@ function EngineEventBubble({ ev, label, showHeader = true }: { ev: RoutineIterat
 
         {/* Timestamp */}
         {ev.created_at && (
-          <div className="mt-2 text-[10px] tabular-nums text-text-muted">
+          <div className="mt-2 text-caption tabular-nums text-text-secondary">
             {new Date(ev.created_at).toLocaleTimeString()}
           </div>
         )}
@@ -834,26 +846,26 @@ function EventRow({ ev }: { ev: RoutineIterationEventDTO }) {
             <span
               className={`inline-block h-1.5 w-1.5 rounded-full ${taskStatusDotClass(taskStatus)}`}
             />
-            <span className="text-[9px] font-medium text-text-muted">{taskStatusLabel(taskStatus)}</span>
+            <span className="text-micro font-medium text-text-secondary">{taskStatusLabel(taskStatus)}</span>
           </span>
         )}
         {isError && (
-          <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-600 dark:text-red-400">
+          <span className={cn(BADGE_BASE, "shrink-0 bg-red-500/10 text-red-600 dark:text-red-400")}>
             error
           </span>
         )}
         {ev.cost_usd != null && ev.cost_usd > 0 && (
-          <span className="shrink-0 text-[10px] tabular-nums text-text-muted">${ev.cost_usd.toFixed(4)}</span>
+          <span className={META_TEXT}>${ev.cost_usd.toFixed(4)}</span>
         )}
         {ev.created_at && (
           <span
-            className="shrink-0 text-[10px] tabular-nums text-text-muted"
+            className={META_TEXT}
             title={new Date(ev.created_at).toLocaleString()}
           >
             {new Date(ev.created_at).toLocaleTimeString()}
           </span>
         )}
-        <span className="shrink-0 text-[10px] tabular-nums text-text-muted">#{ev.seq}</span>
+        <span className={META_TEXT}>#{ev.seq}</span>
       </button>
 
       {open && hasDetail && (
@@ -884,8 +896,8 @@ function EventDetail({ payload }: { payload: Record<string, unknown> }) {
     <>
       {textBlocks.map(({ key, value }) => (
         <div key={key}>
-          <div className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">{key}</div>
-          <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed text-text-secondary">
+          <div className="mb-1 text-micro font-medium uppercase tracking-overline text-text-secondary">{key}</div>
+          <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-caption leading-relaxed text-text-secondary">
             {value}
           </pre>
         </div>

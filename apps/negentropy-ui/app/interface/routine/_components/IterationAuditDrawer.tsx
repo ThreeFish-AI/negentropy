@@ -23,6 +23,9 @@ import { phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-
 /** 在途（执行/评估流转中）的迭代状态：抽屉据此叠加实时动作并在终态时回查权威列表。 */
 const IN_FLIGHT_STATUSES = new Set(["pending_approval", "dispatched", "in_flight", "executed"]);
 
+/** 元信息条统一胶囊基类（phase / verdict / 主导人 / driver 共用，与时间线徽章同形）。 */
+const PILL = "rounded-full px-2 py-0.5 text-micro font-semibold";
+
 interface IterationAuditDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -141,24 +144,24 @@ function IterationMetaBar({
 }) {
   const driver = deriveIterationDriver(iteration.status);
   return (
-    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
       {iteration.phase && (
-        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${phaseClass(iteration.phase)}`}>
+        <span className={`${PILL} ${phaseClass(iteration.phase)}`}>
           {phaseLabel(iteration.phase)}
         </span>
       )}
-      <span className="text-[11px] text-text-muted">{iteration.status}</span>
+      <span className="text-caption font-medium text-text-secondary">{iteration.status}</span>
       {iteration.verdict && (
-        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${verdictClass(iteration.verdict)}`}>
+        <span className={`${PILL} ${verdictClass(iteration.verdict)}`}>
           {iteration.verdict}
         </span>
       )}
       {iteration.score != null && (
-        <span className={`text-xs font-bold tabular-nums ${scoreColorClass(iteration.score)}`}>{iteration.score}</span>
+        <span className={`text-sm font-bold tabular-nums ${scoreColorClass(iteration.score)}`}>{iteration.score}</span>
       )}
       <span className="text-text-muted">·</span>
-      <span className="text-[11px] tabular-nums text-text-muted">turns {iteration.turn_count}</span>
-      <span className="text-[11px] tabular-nums text-text-muted">${iteration.cost_usd.toFixed(4)}</span>
+      <span className="text-caption tabular-nums text-text-secondary">turns {iteration.turn_count}</span>
+      <span className="text-caption tabular-nums text-text-secondary">${iteration.cost_usd.toFixed(4)}</span>
       {/* 主导人摘要 pill 列表 */}
       {roleCounts.length > 0 && (
         <>
@@ -167,8 +170,8 @@ function IterationMetaBar({
             const meta = AGENT_ROLE_META[role];
             const Icon = meta.icon;
             return (
-              <span key={role} className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${meta.badgeClass}`}>
-                <Icon className="h-2.5 w-2.5" aria-hidden />
+              <span key={role} className={`inline-flex items-center gap-1 ${PILL} ${meta.badgeClass}`}>
+                <Icon className="h-3 w-3" aria-hidden />
                 {meta.label} ({count})
               </span>
             );
@@ -179,7 +182,7 @@ function IterationMetaBar({
       {driver && (
         <>
           <span className="text-text-muted">·</span>
-          <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${AGENT_ROLE_META[driver].badgeClass}`}>
+          <span className={`inline-flex items-center gap-1 ${PILL} ${AGENT_ROLE_META[driver].badgeClass}`}>
             ▸ {AGENT_ROLE_META[driver].label}
           </span>
         </>
@@ -187,7 +190,7 @@ function IterationMetaBar({
       {iteration.claude_session_id && (
         <>
           <span className="text-text-muted">·</span>
-          <span className="truncate font-mono text-[10px] text-text-muted" title={iteration.claude_session_id}>
+          <span className="truncate font-mono text-caption text-text-secondary" title={iteration.claude_session_id}>
             {iteration.claude_session_id.slice(0, 8)}
           </span>
         </>
