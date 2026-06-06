@@ -52,6 +52,10 @@ logger = get_logger("negentropy.engine.routine.orchestrator")
 # Routine 场景默认扩展工具集。
 # 全局 _DEFAULT_TOOLS（6 个基础工具）不含 WebSearch/WebFetch，
 # 但 Routine goal 常见"通过互联网深入调研"等需求，默认扩展。
+# ``mcp__playwright``：放行系统内置 Playwright 浏览器 MCP 的全部工具。
+# 相位权限模式 acceptEdits 仅自动放行文件编辑，**不**放行 MCP 工具调用，
+# 故须显式列入白名单，否则自治运行时浏览器实机回归工具不可用（详见
+# docs/concepts/design/browser-automation-mcp-integration.md）。
 # per-routine config.allowed_tools 可显式覆盖此默认值。
 _ROUTINE_DEFAULT_TOOLS = [
     "Bash",
@@ -62,6 +66,7 @@ _ROUTINE_DEFAULT_TOOLS = [
     "Grep",
     "WebFetch",
     "WebSearch",
+    "mcp__playwright",
 ]
 
 # 非终态迭代状态（一个 routine 同时至多存在一个）。
@@ -1341,8 +1346,11 @@ class RoutineOrchestrator:
         if overrides.get("disallowed_tools"):
             config.disallowed_tools = overrides["disallowed_tools"]
         # per-routine 可覆盖/补充全局 mcp_config（MCP 服务器配置）。
+        # 合并而非替换：保留全局默认（如系统内置 playwright 浏览器 MCP，用于实机回归验证），
+        # 同时允许 per-routine 追加或按具名 server 覆盖。这样"为所有 Routine 内置浏览器 MCP"
+        # 的语义不会被某条自定义了 mcp_config 的 routine 意外抹除。
         if overrides.get("mcp_config"):
-            config.mcp_config = overrides["mcp_config"]
+            config.mcp_config = {**(config.mcp_config or {}), **overrides["mcp_config"]}
         # 额外只读源目录（per-routine config.read_dirs 覆盖）。worktree routine 的 goal 常需读取
         # 源项目（如待复刻的 platform-maps/jerusalem-v3 Go 源码）；此处把声明的目录物理授予 CC
         # （CLI --add-dir / SDK add_dirs），并以 settings 的 permissions.deny 锁为只读

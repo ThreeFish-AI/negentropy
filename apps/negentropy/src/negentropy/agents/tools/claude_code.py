@@ -39,8 +39,32 @@ async def invoke_claude_code(
         max_turns: 最大自主迭代轮数（默认 500）
         system_prompt: 自定义系统指令
     """
-    # 1. 从 session state 读取全局配置（由 BuiltinTool 系统注入）
-    cc_defaults: dict = tool_context.state.get("claude_code_config", {})
+    # 1. 从 session state 读取全局配置（由 BuiltinTool 系统注入）。
+    #    缺口修复：当前引擎并不向 session state 写入 ``claude_code_config`` 键，缺省时
+    #    回退到与 Routine（orchestrator._build_config）/ Scheduler（claude_code handler）
+    #    相同的单一事实源——``builtin_tools(claude_code)`` 全局默认，使 ADK Agent 的
+    #    invoke_claude_code 同样获得默认 ``mcp_config``（如系统内置 playwright 浏览器 MCP）
+    #    与 ``allowed_tools``，三入口语义统一（SSOT）。
+    cc_defaults: dict = tool_context.state.get("claude_code_config") or {}
+    fallback_credential: str | None = None
+    if not cc_defaults:
+        from negentropy.engine.schedulers.handlers.claude_code import _load_claude_code_defaults
+
+        defaults = await _load_claude_code_defaults()
+        cc_defaults = {
+            "cli_path": defaults.cli_path,
+            "model": defaults.model,
+            "system_prompt": defaults.system_prompt,
+            "cwd": defaults.cwd,
+            "max_turns": defaults.max_turns,
+            "timeout_seconds": defaults.timeout_seconds,
+            "permission_mode": defaults.permission_mode,
+            "allowed_tools": defaults.allowed_tools,
+            "mcp_config": defaults.mcp_config,
+        }
+        # _load_claude_code_defaults 已解析真实凭证（UI credentials > 环境变量）；
+        # 回退路径无原始 credentials dict，直接复用其已解析结果。
+        fallback_credential = defaults.credential
 
     # 2. tool call 参数覆盖默认值
     config = ClaudeCodeConfig(
@@ -52,8 +76,9 @@ async def invoke_claude_code(
         permission_mode=cc_defaults.get("permission_mode", "auto"),
         timeout_seconds=float(cc_defaults.get("timeout_seconds", 300.0)),
         mcp_config=cc_defaults.get("mcp_config"),
-        # 注入真实 Anthropic 凭证（state 中的 credentials > 环境变量），与 Routine 路径一致。
-        credential=resolve_claude_code_credential(cc_defaults.get("credentials")),
+        # 注入真实 Anthropic 凭证：回退路径用已解析结果；state 路径解析其 credentials dict
+        # （state 中的 credentials > 环境变量），与 Routine 路径一致。
+        credential=fallback_credential or resolve_claude_code_credential(cc_defaults.get("credentials")),
     )
 
     # 3. 解析 allowed_tools
