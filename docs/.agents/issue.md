@@ -2875,3 +2875,15 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. 复刻类任务的 `acceptance_criteria` 若含「未达标即减半/封顶」语义，应同时设 `config.acceptance_unmet_score_cap`（落地引擎强制），不能仅写散文。
 - **同类问题影响**：所有依赖 LLM-as-Judge 评分的 routine；尤以「acceptance 含硬性末态条件（部署/切换/端到端）、主体完成但末态未达」的长任务——主体完成易诱使模型给高分，封顶机制确保「未达末态即不越线」。
 - **验证**：单测 5 例（`test_acceptance_unmet_caps_score_and_corrects_pass` 封顶 85→50 且 pass→progressing / `test_acceptance_met_true_not_capped` / `test_acceptance_met_none_not_capped` 向后兼容 / `test_acceptance_cap_disabled_when_zero` / `test_acceptance_cap_per_routine_overrides_instance`）；engine 全量 912 例全绿。实机「before」：忠实 iter8 score=85 而 reflection 自述验收未达成。
+
+## ISSUE-117 6 Agents 的 `invoke_claude_code` 全局默认（mcp_config/allowed_tools）从未注入 session-state——全系统默认 MCP 对 Agent 入口形同虚设（2026-06-06）
+
+- **表因**（潜伏，在"为全系统内置默认浏览器 MCP"时浮现）：把 Playwright 浏览器 MCP 注入 `builtin_tools(claude_code).config.mcp_config` 后，Routine / Scheduler 入口经 `_load_claude_code_defaults` 直读 DB，立即生效；但 6 个 ADK Agent 经 `ActionFaculty.invoke_claude_code` 调 Claude Code 时**拿不到**该默认 MCP。
+- **根因**：`agents/tools/claude_code.py` 的 `invoke_claude_code` 从 `tool_context.state.get("claude_code_config")` 读全局默认（`mcp_config` / `allowed_tools` / `permission_mode` …），但该 session-state 键**全仓从未被任何代码写入**——遂恒为空 dict，Agent 侧每次都以 `mcp_config=None`、内置 6 工具默认裸跑。即"全系统默认"对 Agent 入口形同虚设：三条 Claude Code 入口（Routine / Scheduler / Agent）中，唯独 Agent 入口未对齐单一事实源（builtin_tools）。
+- **处理方式**（SSOT 收敛，最小干预）：`invoke_claude_code` 在 `tool_context.state["claude_code_config"]` 缺省时**惰性回退** `_load_claude_code_defaults()`（与 Routine/Scheduler 同源），把 cli_path/model/system_prompt/cwd/max_turns/timeout/permission_mode/`allowed_tools`/`mcp_config` 投影为默认；凭证复用其已解析结果（回退路径无原始 credentials dict）。state 已注入时维持原路径不变（向后兼容）。
+- **后续防范**：
+  1. **"读取点"必有"写入点"**：任何 `state.get(K)` 形态的全局配置消费，都要追问"K 由谁写入"；若无写入方则该配置链路断裂（本例 `claude_code_config` 读而不写，潜伏至今）。新增 state 驱动配置时，读写两端须成对落地或显式回退单一事实源；
+  2. **多入口共享配置须收敛到单一事实源**：同一能力的多条入口（此处 3 条 Claude Code 调用路径）应统一经一个 loader 取默认，避免某条入口悄悄走"空配置裸跑"分支；
+  3. **"全系统默认"声明须按入口逐一核验**：声称系统级默认时，须枚举所有消费入口分别验证，不能假定一处注入即全域生效。
+- **同类问题影响**：所有经 `invoke_claude_code` 触发 Claude Code 的 ADK Agent 行为（不止浏览器 MCP——此前 model/system_prompt/allowed_tools 全局默认对 Agent 入口同样未生效，本次一并修复）。
+- **验证**：单测 `test_invoke_claude_code_falls_back_to_global_defaults_when_state_empty`（空 state → 回退默认，携 playwright mcp_config 与 mcp__playwright allowed_tools，复用已解析凭证）+ `test_invoke_claude_code_prefers_session_state_when_present`（state 存在 → 不触发回退、沿用 state 配置）。相关：迁移 0062 端到端注入与 Routine `_build_config` 合并语义见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。
