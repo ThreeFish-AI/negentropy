@@ -2817,4 +2817,17 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**（最小干预）：`_do_evaluate` 中 `skip_gate_in_plan = routine.current_phase == PHASE_PLAN`，PLAN 相位把 `routine_eval_view.verification_command` 置 None——`evaluate` 的既有 `if verification_command:` 守卫自然跳过门控，Judge 纯评估方案质量；IMPLEMENT/FINALIZE 相位门控照跑。
 - **后续防范**：门控/验证类副作用必须「相位感知」——PLAN（无产物）跳过、IMPLEMENT/FINALIZE（有产物）执行；任何「无条件对当前工作区跑测试」的逻辑都要先问「此相位有无可验证的产物」。
 - **同类问题影响**：所有配 `verification_command` 的 phased routine 的 PLAN 相位评分此前都被门控失败拉低；本修复使方案阶段评分回归方案质量本身。
-- **验证**：集成测试 `test_plan_phase_skips_verification_gate`（PLAN 相位 eval_view.verification_command 为 None）+ `test_implement_phase_runs_verification_gate`（IMPLEMENT 相位照传）对照锁定，全绿；实机「before」证据：探针 PLAN 迭代 `gate_exit_code=5`（修复前）。
+- **验证**：集成测试 `test_plan_phase_skips_verification_gate`（PLAN 相位 eval_view.verification_command 为 None）+ `test_implement_phase_runs_verification_gate`（IMPLEMENT 相位照传）对照锁定，全绿；实机「before」证据：探针 PLAN 迭代 `gate_exit_code=5`（修复前），忠实任务 PLAN 迭代 `gate_exit_code=NULL`（修复后）。
+
+## ISSUE-113 交互式 CC 产出干净成功 result 后被拆解 SIGTERM(143) 误标 error → phased 长任务 ~iter3 夭折（2026-06-06）
+
+- **表因**：phased routine 的 PLAN 迭代 `exec_status=error`、`exec_error="CLI exited with code 143"`，即便该迭代已产出方案（事件流尾部明确有 `result: success`）；Judge 因见 `exec_status=error` 给出 `stalled`/低分（实测忠实任务 plan 评 40/stalled）。
+- **根因**：**「我方拆解」的退出码被当作真实失败**。stream-json 输入模式下 CLI 产出 `result` 后**不自退**、保持 stdin 打开等更多输入；`_invoke_cli_interactive` 的 reader 见 `result` 即主动闭合 stdin 触发其退出，并给 10s 优雅窗口；若 CLI 未在窗口内退出，`finally` 强制 `terminate()`（SIGTERM → rc=143/-15）。旧状态判定 `status = "success" if proc.returncode == 0 else "error"` 据该退出码一律标 error，无视已捕获的成功 `result` 事件。
+- **二阶严重性（实测校准）**：实机数据显示该误标主要命中 **PLAN 迭代**（plan 模式下 CC 在 ExitPlanMode + plan_review 回环后产出 result 却不自退 → 拆解 SIGTERM → error/143），而 **IMPLEMENT 迭代多干净退出（rc=0/success）**——故并非「每迭代必 error」（忠实任务实测 iter1=plan/error/143、iter2=implement/success）。其危害有二：① PLAN 迭代被误标 error → Judge 见 `exec_status=error` 给 `stalled`/低分（实测忠实 plan 评 40/stalled），污染方案评分与反思；② **潜在**长跑夭折风险——`decision._consecutive_exec_failures` 把连续 `exec_status∈{error,timeout}` 计数达 `_CONSECUTIVE_FAILURE_LIMIT=3` 即判 `unrecoverable`；正常情况下 implement 的 success 会打断该计数，但若个别 implement 迭代亦因 stdin 拆解迟退而 143，连续 3 次即误判不可恢复夭折。修复从源头消除两者。
+- **处理方式**：`_invoke_cli` 与 `_invoke_cli_interactive` 的状态判定改为「**干净成功 result 优先于退出码**」：当 `last_result_event.subtype == "success"` 且 `not is_error` 时判 `success`，否则按退出码判定。关键守卫 `not is_error`：上下文耗尽事件的 `subtype` 误导性为 `success` 但 `is_error=True`，必须仍判 error 并由 `_classify_result_error` 归类 `context_exhausted`——否则会破坏 ISSUE-109/`729bfe54` 的死亡螺旋自愈。
+- **后续防范**：
+  1. **「进程退出码」≠「任务成败」**——当编排方主动 SIGTERM/kill 子进程（超时、拆解、abort）时，退出码反映的是「我方动作」而非「被编排任务的成败」；判定成败应优先采信任务自身的终态信号（此处为 `result` 事件），退出码仅作兜底；
+  2. **任何「连续失败计数 → 不可恢复」守卫，其失败判定的准确性是系统能否长跑的命门**——一个把「成功」误标「失败」的上游缺陷，会经此守卫放大为「长任务必在固定轮次夭折」，且只有真正长跑才暴露；新增此类守卫时必须审计「failure 的判定是否会把正常终态误判为失败」；
+  3. 交互式子进程「产出 result 后不自退」是 stream-json 模式的既有契约，闭合 stdin 后应给足优雅窗口，且**即使最终 SIGTERM 也不得据此抹掉已捕获的成功终态**。
+- **同类问题影响**：所有走交互式路径（`interactive=True`，即全部 Routine）的迭代均受益；非交互路径 `rc` 通常已为 0，该分支为防御性等价、消除两路径漂移。
+- **验证**：单测 `test_interactive_clean_result_success_survives_teardown_sigterm`（干净 result + SIGTERM(-15) → success）+ `test_interactive_is_error_result_not_masked_as_success`（`subtype=success` 但 `is_error=True` 仍 error 且归类 context_exhausted，守卫死亡螺旋自愈）；`claude_code_service` 全量 63 例全绿。实机「before」：探针/忠实任务 PLAN 迭代均 `error/143` 含 `result:success` 事件。

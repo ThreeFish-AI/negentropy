@@ -847,9 +847,16 @@ class ClaudeCodeService:
             stderr_bytes = await proc.stderr.read()
             stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
 
-        status = "success" if proc.returncode == 0 else "error"
+        # 干净成功 result 优先于退出码：当已捕获 subtype=success 且非 is_error 的 result 事件时判
+        # success。交互式 stream-json 路径下 CLI 产出 result 后不自退、等更多 stdin，我方主动闭合
+        # stdin 触发退出；若它未在优雅窗口内退出，finally 会 SIGTERM 之（rc=143/-15）——该退出码是
+        # **我方拆解**的产物而非真实失败，否则已成功产出的 PLAN/IMPLEMENT 迭代会被误标 error、连累
+        # Judge 评分（ISSUE-113）。非交互路径 rc 通常已为 0，此分支为防御性等价、消除两路径漂移。
+        _res = last_result_event or {}
+        _clean_success = _res.get("subtype") == "success" and not _res.get("is_error")
+        status = "success" if (proc.returncode == 0 or _clean_success) else "error"
         error_msg = None
-        if proc.returncode != 0:
+        if status == "error":
             parts = [f"CLI exited with code {proc.returncode}"]
             if stderr_text:
                 parts.append(f"stderr: {stderr_text[:500]}")
@@ -1515,9 +1522,16 @@ class ClaudeCodeService:
             stderr_bytes = await proc.stderr.read()
             stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
 
-        status = "success" if proc.returncode == 0 else "error"
+        # 干净成功 result 优先于退出码：当已捕获 subtype=success 且非 is_error 的 result 事件时判
+        # success。交互式 stream-json 路径下 CLI 产出 result 后不自退、等更多 stdin，我方主动闭合
+        # stdin 触发退出；若它未在优雅窗口内退出，finally 会 SIGTERM 之（rc=143/-15）——该退出码是
+        # **我方拆解**的产物而非真实失败，否则已成功产出的 PLAN/IMPLEMENT 迭代会被误标 error、连累
+        # Judge 评分（ISSUE-113）。非交互路径 rc 通常已为 0，此分支为防御性等价、消除两路径漂移。
+        _res = last_result_event or {}
+        _clean_success = _res.get("subtype") == "success" and not _res.get("is_error")
+        status = "success" if (proc.returncode == 0 or _clean_success) else "error"
         error_msg = None
-        if proc.returncode != 0:
+        if status == "error":
             parts = [f"CLI exited with code {proc.returncode}"]
             if stderr_text:
                 parts.append(f"stderr: {stderr_text[:500]}")
