@@ -51,6 +51,14 @@ class RoutineSettings(BaseSettings):
         default=60, ge=10, description="Runner lease 宽裕量：lease = 执行超时 + 此值，用于崩溃恢复 reaper 判定"
     )
     gate_timeout_seconds: int = Field(default=120, ge=10, description="verification_command 命令门控执行超时（秒）")
+    acceptance_unmet_score_cap: int = Field(
+        default=0,
+        ge=0,
+        le=100,
+        description="验收未达成（Judge 报 acceptance_met=false）时的确定性评分上限；0=关闭（默认，"
+        "退化原行为）。>0 时把「未满足 Acceptance 即封顶」由散文规则提升为引擎机制，防小模型评分越线。"
+        "per-routine 可经 config.acceptance_unmet_score_cap 覆盖。",
+    )
     max_reflections_injected: int = Field(
         default=5, ge=1, le=50, description="注入下一次迭代 prompt 的最近反思条数（Reflexion 窗口）"
     )

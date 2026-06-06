@@ -2859,3 +2859,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **资源阈值（超时/预算/上限）应 per-task 可调**：固定全局阈值对「重量级长任务」必然失配，须留 per-routine 覆盖通道。
 - **同类问题影响**：所有配 `verification_command` 的 routine；尤以测试套件较重、运行时长接近/超过 120s 的复刻/迁移类长任务。审计点：凡下游以 `x in (None, 0)` / `x is None` 兼判「无」与「失败」者，均需复核哨兵语义。
 - **验证**：单测 `test_run_gate_timeout_returns_124_not_none`、`test_run_gate_per_routine_timeout_overrides_instance_default`（传 timeout=1 约 1s 超时）、`test_run_gate_passes_through_exit_code`、`test_decide_success_blocked_by_gate_timeout_sentinel`（124 不判成功）；evaluator_gate + decision 共 39 例全绿。
+
+## ISSUE-116 LLM-as-Judge 不遵守 acceptance_criteria 的「未达标即封顶」散文规则，评分越线污染收敛（2026-06-06）
+
+- **表因**：忠实复刻长跑实机观测——任务 `acceptance_criteria` 明文规定「若未达到 Acceptance Criteria，评分一律减半，有效得分永远不高于 50」，但 Judge（`gpt-5-nano`）给 iter8 打 **85**，其自身 reflection 却写明「未完成 Acceptance Criteria 的端到端生产验证」——自相矛盾且越线；相邻 iter 在同等未达标下又打 45-50，评分剧烈震荡（50→50→45→85→48）。
+- **根因**：**关键评分约束仅以自然语言写在 acceptance_criteria 散文里，依赖小模型自觉执行**。LLM-as-Judge 对「全局硬约束（未达标即封顶）」的遵循本就不稳定（见 arXiv:2411.15594 偏差综述），小模型尤甚。后果：① `best_score=85` 是越过封顶规则的「幻象高分」，污染 `last/best_score`；② 评分剧烈震荡破坏 `_is_no_progress`/`_is_oscillating` 的停滞/振荡判据可靠性；③ 若震荡到达成阈值，会据幻象分误判 SUCCESS。
+- **处理方式**（把散文规则提升为引擎确定性机制）：
+  1. Judge JSON 契约新增结构化布尔 `acceptance_met`（prompt 要求：当且仅当**全部**验收项客观达成才 true，含其中声明的端到端/部署/切换硬条件）；`_parse` 解析该字段（缺失→None）；
+  2. `RoutineEvaluator` 新增 `acceptance_unmet_score_cap`（实例默认来自 `settings.routine.acceptance_unmet_score_cap`，默认 0=关闭）+ per-routine `config.acceptance_unmet_score_cap` 覆盖；
+  3. `evaluate`：当 `acceptance_met is False` 且 `cap>0` 且 `score>cap` 时，**确定性把分数封顶到 cap**，并把越线的 `verdict=pass` 纠正为 `progressing`（验收未达成绝不应判 pass → 防误终止）。`acceptance_met=None`（旧模型未遵循契约）或 `cap=0` 时不封顶，向后兼容、对其它 routine 零影响。
+- **后续防范**：
+  1. **不可把关键约束只托付给 LLM 自觉**——凡「硬性、可判定的评分/终止约束」（未达标封顶、门控失败上限、预算红线），都应在引擎层以确定性代码兜底，prompt 仅作软引导；LLM 适合「质量打分」，不适合「规则裁决」；
+  2. **让 Judge 输出结构化裁决信号**（如 `acceptance_met` 布尔）而非仅一个综合分——把「裁决」与「打分」正交分离，裁决项交确定性逻辑消费，比从单一分数反推更鲁棒；
+  3. 复刻类任务的 `acceptance_criteria` 若含「未达标即减半/封顶」语义，应同时设 `config.acceptance_unmet_score_cap`（落地引擎强制），不能仅写散文。
+- **同类问题影响**：所有依赖 LLM-as-Judge 评分的 routine；尤以「acceptance 含硬性末态条件（部署/切换/端到端）、主体完成但末态未达」的长任务——主体完成易诱使模型给高分，封顶机制确保「未达末态即不越线」。
+- **验证**：单测 5 例（`test_acceptance_unmet_caps_score_and_corrects_pass` 封顶 85→50 且 pass→progressing / `test_acceptance_met_true_not_capped` / `test_acceptance_met_none_not_capped` 向后兼容 / `test_acceptance_cap_disabled_when_zero` / `test_acceptance_cap_per_routine_overrides_instance`）；engine 全量 912 例全绿。实机「before」：忠实 iter8 score=85 而 reflection 自述验收未达成。
