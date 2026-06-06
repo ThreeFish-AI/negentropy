@@ -47,6 +47,8 @@ MCP (Model Context Protocol) 是 Negentropy 接入外部工具的标准协议。
 | **Try**           | 打开测试对话框，试用 Server 提供的工具              |
 | **Edit / Delete** | 编辑或删除 Server                                   |
 
+> **系统内置（Built-In）Server**：标记 `is_system` 的内置 Server 以「Built-In」徽章呈现，全员可见可用、非 admin 不可编辑/删除。当前内置两枚：文档抽取的 `negentropy-perceives`，与浏览器实机回归的 **`playwright`**（Playwright Browser，`stdio` · headless）。后者经全局注入点 provision 至**所有 Routine 任务**运行时，作为浏览器实机回归验证的默认能力（详见 [浏览器操作 MCP 集成方案](../design/browser-automation-mcp-integration.md)）。
+
 ### 6.4 Skill 管理
 
 Skill 是预定义的 Prompt 模板，可以为 Agent 赋能特定领域的技能。

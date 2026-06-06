@@ -6,7 +6,7 @@
 ## 协同协议与规范
 
 - [Agent 协作协议（CLAUDE.md / AGENTS.md）](../../AGENTS.md) — 项目根工程行为准则
-- [浏览器验证协议](./browser-validation.md) — Chrome devtools 实机验证规范
+- [浏览器验证协议](./browser-validation.md) — 浏览器实机验证规范（A 类 claude-in-chrome 交互 / B 类系统默认 Playwright MCP 自治）
 - [引用规范 (IEEE)](./reference-specifications.md) — 决策引用与文献格式
 
 ## 工程经验沉淀
@@ -23,6 +23,7 @@
 - [SSO（单点登录设计）](../concepts/design/sso.md)
 - [Observability / GenAI 可观测性](../concepts/design/observability-genai.md)
 - [QA Delivery Pipeline](../concepts/design/qa-delivery-pipeline.md)
+- [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md) — Playwright MCP 全系统默认配备：单一注入点（builtin_tools.mcp_config）provision 至 Routine / Scheduler / 6 Agents，用于浏览器实机回归验证
 
 ## 系统能力概览
 
@@ -55,6 +56,7 @@
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
 - [ADK 2.0 升级调研](../research/020b-adk-2.0-upgrade.md) — Google ADK 2.0 核心新特性、Breaking Changes、本项目影响评估与渐进式升级路径
 - [Routine Agent 迭代模式调研](../research/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）
+- [浏览器操作 MCP 调研](../research/120-browser-automation-mcp.md) — Playwright MCP / Chrome DevTools MCP / claude-in-chrome / Webwright 等纵向深挖与横向决策矩阵，结合"6 Agents + 自治 Routine"两类上下文的选型论证（集成落地见 [集成方案](../concepts/design/browser-automation-mcp-integration.md)）
 
 ## 用户文档与运维
 

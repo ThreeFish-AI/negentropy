@@ -829,8 +829,14 @@ async def test_build_config_disallowed_tools_passthrough():
         await _cleanup(rid)
 
 
-async def test_build_config_mcp_config_passthrough():
-    """per-routine config.mcp_config 正确透传到 ClaudeCodeConfig。"""
+async def test_build_config_mcp_config_merges_into_default():
+    """per-routine config.mcp_config 与全局默认**合并而非替换**。
+
+    迁移 0062 把系统内置 playwright 浏览器 MCP 注入 builtin_tools(claude_code) 全局默认，
+    `_build_config` 读取该默认后，per-routine 自定义 server 应被合并进来，而默认的
+    playwright 不应被抹除——保证"为所有 Routine 内置浏览器 MCP"的语义对自定义了
+    mcp_config 的 routine 同样成立。
+    """
     mcp = {"test-server": {"type": "stdio", "command": "echo"}}
     rid = await _make_routine(cwd="/tmp", config={"mcp_config": mcp})
     try:
@@ -838,6 +844,28 @@ async def test_build_config_mcp_config_passthrough():
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
             config = await orch._build_config(r)
-            assert config.mcp_config == mcp
+            # per-routine 具名 server 已合并
+            assert config.mcp_config["test-server"] == mcp["test-server"]
+            # 系统默认 playwright 浏览器 MCP 未被覆盖抹除
+            assert "playwright" in config.mcp_config
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_default_provisions_playwright_browser_mcp():
+    """默认 Routine（未自定义 mcp_config/allowed_tools）即获得系统内置 playwright 浏览器 MCP。
+
+    端到端验证 provisioning 链路：迁移 0062 → builtin_tools.config →
+    _load_claude_code_defaults → _build_config 的 mcp_config；并验证 mcp__playwright
+    已进入 allowed_tools（相位 acceptEdits 不自动放行 MCP 调用，须显式 allow）。
+    """
+    rid = await _make_routine(cwd="/tmp", config={})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r)
+            assert "playwright" in (config.mcp_config or {})
+            assert "mcp__playwright" in config.allowed_tools
     finally:
         await _cleanup(rid)

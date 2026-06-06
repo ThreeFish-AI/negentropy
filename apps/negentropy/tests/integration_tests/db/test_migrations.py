@@ -178,3 +178,53 @@ def test_negentropy_perceives_seed_is_idempotent_on_re_upgrade(alembic_config: C
     assert row["url"] == "http://localhost:2992/mcp"
     assert row["is_enabled"] is True
     assert row["auto_start"] is True
+
+
+def test_playwright_browser_mcp_seeded_by_migration(alembic_config: Config):
+    """迁移 0062：① mcp_servers 目录卡片（is_system）；② builtin_tools 全系统注入。"""
+    import json
+
+    command.upgrade(alembic_config, "head")
+
+    engine = create_engine(_sync_database_url())
+    try:
+        with engine.begin() as conn:
+            server = (
+                conn.execute(
+                    text("""
+                    SELECT owner_id, visibility::text AS visibility, display_name,
+                           transport_type, command, args, is_enabled, auto_start, is_system
+                    FROM negentropy.mcp_servers
+                    WHERE name = 'playwright'
+                """)
+                )
+                .mappings()
+                .one()
+            )
+            cfg_raw = conn.execute(
+                text("""
+                SELECT config FROM negentropy.builtin_tools
+                WHERE name = 'claude_code' AND owner_id = 'system'
+            """)
+            ).scalar_one()
+    finally:
+        engine.dispose()
+
+    # ① 目录卡片：stdio · npx · 系统内置
+    assert server["owner_id"] == "system:playwright-browser-preset"
+    assert server["visibility"] == "PUBLIC"
+    assert server["display_name"] == "Playwright Browser"
+    assert server["transport_type"] == "stdio"
+    assert server["command"] == "npx"
+    assert server["is_enabled"] is True
+    assert server["auto_start"] is True
+    assert server["is_system"] is True  # 0033 backfill 不覆盖新行，必须显式置 TRUE
+    args = server["args"] if isinstance(server["args"], list) else json.loads(server["args"])
+    assert any("@playwright/mcp@" in a for a in args)  # 版本钉死
+    assert "--headless" in args and "--isolated" in args
+
+    # ② 全系统注入：mcp_config.playwright + allowed_tools 含 mcp__playwright
+    config = cfg_raw if isinstance(cfg_raw, dict) else json.loads(cfg_raw)
+    assert "playwright" in (config.get("mcp_config") or {})
+    assert config["mcp_config"]["playwright"]["command"] == "npx"
+    assert "mcp__playwright" in (config.get("allowed_tools") or [])
