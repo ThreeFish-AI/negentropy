@@ -2887,3 +2887,22 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **"全系统默认"声明须按入口逐一核验**：声称系统级默认时，须枚举所有消费入口分别验证，不能假定一处注入即全域生效。
 - **同类问题影响**：所有经 `invoke_claude_code` 触发 Claude Code 的 ADK Agent 行为（不止浏览器 MCP——此前 model/system_prompt/allowed_tools 全局默认对 Agent 入口同样未生效，本次一并修复）。
 - **验证**：单测 `test_invoke_claude_code_falls_back_to_global_defaults_when_state_empty`（空 state → 回退默认，携 playwright mcp_config 与 mcp__playwright allowed_tools，复用已解析凭证）+ `test_invoke_claude_code_prefers_session_state_when_present`（state 存在 → 不触发回退、沿用 state 配置）。相关：迁移 0062 端到端注入与 Routine `_build_config` 合并语义见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。
+
+## ISSUE-118 `_evaluate_one` 生产死路径 + 事件持久化集成测试覆盖错路径（单一事实源违背 + 测试保真缺口）（2026-06-07）
+
+- **表因**：实机回归 Routine 闭环时审阅 orchestrator，发现 `_evaluate_one`（同步内联评估）已不被 `inspect_once` 调用——心跳实际走 `_evaluate_and_decide` → `_claim_for_eval` → 后台 `_do_evaluate`（Evaluate 后台化，729bfe54）。但 4 个事件持久化集成测试（`test_routine_event_persistence.py`）仍 `await orch._evaluate_one(rid)`，即测试在验证生产**从不执行**的死路径。
+- **根因**：Evaluate 后台化新增 `_do_evaluate` 时，未删除旧 `_evaluate_one`、亦未迁移其测试 → 同一「评估 → 写回 → 追加 gate/eval 事件」逻辑存在两份副本（违 Single Source of Truth），且测试钉在旧副本上（测试保真缺口：两副本一旦漂移，测试无法发现真实生产路径的回归）。
+- **处理方式**（最小干预，熵减）：① 测试新增 `_evaluate_latest(orch, rid)` 辅助，驱动真实路径 `_claim_for_eval` → `_do_evaluate`，替换 4 处 `_evaluate_one(rid)` 调用；② 删除 `_evaluate_one`（123 行死代码）。事件持久化 `_persist_eval_events` 本为两副本共享、行为等价，迁移零语义变更、无运行时行为改变。
+- **后续防范**：① 重构出「执行下沉/后台化」的新路径时，**必须同步迁移其测试到新路径并删除旧同步副本**，避免测试钉死在死代码上、给出虚假绿；② 同一核心闭环逻辑（评估/写回/决策）严禁双副本，须单点收敛。
+- **同类问题影响**：仅 Routine 评估路径；生产早已只走 `_do_evaluate`，本修复纯属代码/测试熵减，无行为变更。
+- **验证**：迁移后 `test_routine_event_persistence.py` 6 例全绿（真实路径）；routine 单测 126 + orchestrator/api 集成 44 全绿，零回归。
+
+## ISSUE-119 共享 `negentropy_test` 测试库跨 Conductor workspace 迁移版本污染（test-infra 脆弱性）（2026-06-07）
+
+- **表因**：在 puebla-v3（alembic head=0062）运行集成测试，conftest `_isolate_test_database` 的 `alembic upgrade head` 报 `Can't locate revision identified by '0064'`，全部集成测试 setup 失败。
+- **根因**：同一 PostgreSQL 实例被多个 Conductor workspace 共享，而 ISSUE-111 的测试库隔离仅区分「测试 vs 生产」——**测试库名固定为 `<db>_test`（`negentropy_test`），跨 workspace/分支共享同一物理库**。某更高分支的 workspace 跑测试时把 `negentropy_test` 迁到 0064，puebla-v3（本地仅到 0062）无法 upgrade（0064 在本地迁移脚本中不存在）→ setup 失败。生产 `negentropy` 同样已被迁到 0064（加列式增量迁移，故 0062 代码仍能在 0064 schema 上运行，routine 读写未受影响）。
+- **处理方式**（当前缓解）：`negentropy_test` 为空（routines=0、无活动连接），`DROP DATABASE ... WITH (FORCE)` 后由 conftest 重建至本地 head 0062，集成测试恢复全绿。
+- **提议根因修复**（候选后续轮次）：把测试库名做 **workspace 唯一化**（如以 repo 根路径 hash 派生 `negentropy_test_<hash>`），使多 workspace 并发测试互不污染；CI 在隔离容器内不受影响。另可在 conftest 升级前校验「DB 版本 ≤ 本地 head」，超前时给出明确重建指引而非裸 alembic 报错。
+- **后续防范**：① 共享 DB 服务器上的「测试库」命名须计入并发维度（不止 test/prod 二分，还要 workspace/分支隔离），否则迁移版本互相踩踏；② 跨实例共享的 schema 版本须有「本地代码 head 与 DB version 偏差」的可观测校验。
+- **同类问题影响**：所有在共享 postgres 上并发跑集成测试的 workspace；环境性问题，非产品代码缺陷。
+- **验证**：drop+重建后集成测试全绿（见 ISSUE-118 验证：6+126+44 全绿）。

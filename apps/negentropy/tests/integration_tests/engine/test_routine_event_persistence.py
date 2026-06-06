@@ -78,6 +78,17 @@ async def _cleanup(routine_id: uuid.UUID) -> None:
         await db.commit()
 
 
+async def _evaluate_latest(orch: RoutineOrchestrator, routine_id: uuid.UUID) -> None:
+    """驱动**生产评估路径**（``_claim_for_eval`` → ``_do_evaluate``）评估最新 executed 迭代。
+
+    替代已下线的 ``_evaluate_one``：``inspect_once`` 心跳实际走「认领 executed→evaluating +
+    后台 _do_evaluate 两段式写回」，测试须覆盖该真实路径而非其历史同步副本（单一事实源）。
+    """
+    iteration_id = await orch._claim_for_eval(routine_id)
+    assert iteration_id is not None, "未能认领待评估迭代（routine 非 running 或最新迭代非 executed）"
+    await orch._do_evaluate(routine_id, iteration_id)
+
+
 async def _events(iteration_id: uuid.UUID) -> list[RoutineIterationEvent]:
     async with db_session.AsyncSessionLocal() as db:
         return list(
@@ -198,7 +209,7 @@ async def test_evaluate_appends_gate_and_evaluation_events_after_execution():
         )
         # capture_events 默认 True；仅 mock evaluate 避免真实 LLM。
         with patch.object(orch._evaluator, "evaluate", new=AsyncMock(return_value=eval_result)):
-            await orch._evaluate_one(rid)
+            await _evaluate_latest(orch, rid)
 
         evs = await _events(iid)
         # 执行事件 0..3 + gate(4) + evaluation(5)
@@ -219,7 +230,7 @@ async def test_evaluation_failure_retry_does_not_append_events():
         orch = RoutineOrchestrator()
         fail = EvaluationResult(ok=False, error="LLM down", gate_exit_code=1, gate_output="boom")
         with patch.object(orch._evaluator, "evaluate", new=AsyncMock(return_value=fail)):
-            await orch._evaluate_one(rid)
+            await _evaluate_latest(orch, rid)
         assert await _events(iid) == []  # 重试期间零事件
         async with db_session.AsyncSessionLocal() as db:
             it = await db.get(RoutineIteration, iid)
@@ -239,7 +250,7 @@ async def test_evaluate_long_verification_command_title_does_not_overflow():
             ok=True, score=88, verdict="pass", reflection="ok", gate_exit_code=0, judge_prompt="P", judge_raw="R"
         )
         with patch.object(orch._evaluator, "evaluate", new=AsyncMock(return_value=eval_result)):
-            await orch._evaluate_one(rid)
+            await _evaluate_latest(orch, rid)
         evs = await _events(iid)
         gate = next(e for e in evs if e.event_type == "gate")
         assert len(gate.title) <= 255  # 未溢出
@@ -260,7 +271,7 @@ async def test_evaluate_without_verification_command_only_evaluation_event():
             ok=True, score=50, verdict="progressing", reflection="继续", judge_prompt="P", judge_raw="R"
         )
         with patch.object(orch._evaluator, "evaluate", new=AsyncMock(return_value=eval_result)):
-            await orch._evaluate_one(rid)
+            await _evaluate_latest(orch, rid)
         evs = await _events(iid)
         assert [e.event_type for e in evs] == ["evaluation"]
         assert evs[0].seq == 0  # 无执行事件时从 0 起
