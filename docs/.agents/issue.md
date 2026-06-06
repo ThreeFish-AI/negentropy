@@ -2835,7 +2835,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 ## ISSUE-114 长 worktree routine 的 IMPLEMENT 进度仅以未提交工作树形态滞留——进度丢失风险 + PR 留存缺口（2026-06-06）
 
 - **表因**：忠实复刻长跑实机观测——worktree 已写出 `src/`、`tests/`、`pyproject.toml`、`Dockerfile` 等大量实现且 `pytest` 通过（gate exit 0），但 `git rev-list --count origin/feature/1.x.x..HEAD` 为 **0**（工作分支零提交），全部以未提交工作树形态存在。
-- **根因**：`prompt_builder.build_prompt` 仅在 **FINALIZE** 相位注入 `git add -A && git commit`，IMPLEMENT 相位（`继续`/`开始`）无任何提交指令。对能走到 FINALIZE 的常规 phased routine 无碍；但本类**巨型长任务**（阈值 99 → 评分恒 ≤50、几乎不触发 FINALIZE，且会迭代至 max_iterations=100）下，上百轮成果**始终未落 git**：① worktree 一旦被重建/清理（stale 重建、人工删除、`git worktree prune`），未提交成果**全部丢失**；② 工作分支零提交，FINALIZE/人工建 PR 时 `git push` 仅推空分支（提交在 FINALIZE 内补，但长跑不触发 FINALIZE 即无任何 checkpoint）；③ 无跨迭代 git 检查点，单轮误改无法回滚。
+- **根因**：`prompt_builder.build_prompt` 仅在 **FINALIZE** 相位注入 `git add -A && git commit`，IMPLEMENT 相位（`继续`/`开始`）无任何提交指令。对能走到 FINALIZE 的 常规 phased routine 无碍；但本类**巨型长任务**（阈值 99 → 评分恒 ≤50、几乎不触发 FINALIZE，且会迭代至 max_iterations=100）下，上百轮成果**始终未落 git**：① worktree 一旦被重建/清理（stale 重建、人工删除、`git worktree prune`），未提交成果**全部丢失**；② 工作分支零提交，FINALIZE/人工建 PR 时 `git push` 仅推空分支（提交在 FINALIZE 内补，但长跑不触发 FINALIZE 即无任何 checkpoint）；③ 无跨迭代 git 检查点，单轮误改无法回滚。
 - **处理方式**（最小干预、相位感知）：`build_prompt` 在 **worktree routine 的 IMPLEMENT 相位** 追加「迭代检查点」段，指示每轮收尾 `git add -A && git commit` 提交到工作分支——**仅提交不推送**（推送/建 PR 仍属 FINALIZE），无实质改动则跳过。PLAN（只读）与 FINALIZE（自带 commit+push）不重复注入；扁平 routine（无 worktree）不注入。
 - **后续防范**：
   1. **长 agentic 任务必须有跨迭代检查点**——不能让上百轮昂贵成果仅以「未提交工作树」单点形态存续；提交（或引擎侧确定性 auto-commit）是抵御 worktree 丢失的基本保险；
