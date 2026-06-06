@@ -617,6 +617,19 @@ class ClaudeCodeService:
             options.resume = config.resume_session_id
         if config.model:
             options.model = config.model
+        # 额外只读源目录（镜像 CLI --add-dir）。新版 SDK 暴露 ``add_dirs``（list[str | Path]）；
+        # 旧版无该字段时仅告警——CLI 才是当前已装且权威的执行路径。
+        if config.add_dirs:
+            if hasattr(options, "add_dirs"):
+                options.add_dirs = list(config.add_dirs)
+            else:
+                logger.warning(
+                    "claude_code_sdk_add_dirs_unsupported",
+                    reason="ClaudeCodeOptions has no 'add_dirs'; CLI path authoritative",
+                )
+        # settings.json（承载只读 deny 规则）；新版 SDK 暴露 ``settings``。
+        if config.settings and hasattr(options, "settings"):
+            options.settings = config.settings
         # 镜像 CLI 路径：注入真实 Anthropic 凭证。优先经 SDK 的 ``options.env``（避免全局 os.environ
         # 突变带来的并发不安全）；旧版 SDK 无该字段时仅告警——CLI 才是当前已装且权威的执行路径。
         if config.credential:
@@ -744,6 +757,8 @@ class ClaudeCodeService:
             resume_session_id=config.resume_session_id,
             credential=config.credential,  # 必须透传：否则注入凭证在此重建处被静默丢弃 → 退回 401
             compact_threshold_pct=config.compact_threshold_pct,
+            add_dirs=config.add_dirs,  # 必须透传：否则 --add-dir 在此重建处被静默丢弃 → CC 读不到源码
+            settings=config.settings,  # 必须透传：否则只读 deny 规则被静默丢弃 → 源码可写
         )
 
         args = ClaudeCodeService._build_cli_args(prompt, config)
@@ -922,6 +937,14 @@ class ClaudeCodeService:
         # 明确禁止的工具列表。
         if config.disallowed_tools:
             args += ["--disallowed-tools", ",".join(config.disallowed_tools)]
+        # 额外只读源目录：CLI 接受重复 ``--add-dir <path>``（逐目录，不接受逗号合并形式）。
+        # 授予 CC 读取 worktree 之外的源项目（如待复刻的 Go 源码）；只读性由下方 --settings 锁定。
+        if config.add_dirs:
+            for d in config.add_dirs:
+                args += ["--add-dir", d]
+        # settings.json（JSON 字符串）：承载 permissions.deny，把 add_dirs 物理锁为只读。
+        if config.settings:
+            args += ["--settings", config.settings]
         # MCP 服务器配置：CLI --mcp-config 接受 JSON string 或文件路径。
         # 使用 {"mcpServers": {...}} 封装格式（与 .mcp.json 文件格式一致）。
         if config.mcp_config:
@@ -1229,6 +1252,8 @@ class ClaudeCodeService:
             interactive=config.interactive,
             auto_answer_context=config.auto_answer_context,
             compact_threshold_pct=config.compact_threshold_pct,
+            add_dirs=config.add_dirs,  # 必须透传：否则 --add-dir 在交互式重建处被静默丢弃
+            settings=config.settings,  # 必须透传：否则只读 deny 规则被静默丢弃
         )
 
         args = ClaudeCodeService._build_cli_args(prompt, config)

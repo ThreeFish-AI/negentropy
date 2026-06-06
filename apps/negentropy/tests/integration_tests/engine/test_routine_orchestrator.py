@@ -159,6 +159,54 @@ async def test_phased_plan_advances_to_implement():
         await _cleanup(rid)
 
 
+async def test_plan_phase_skips_verification_gate():
+    """PLAN 相位评估跳过验证门控（verification_command 置空）——方案阶段无实现，跑 pytest 既无意义又污染评分。"""
+    rid = await _make_routine(
+        config={"workflow": "phased"},
+        current_phase="plan",
+        iteration_count=1,
+        verification_command="uv run pytest -q",
+    )
+    await _add_iteration(rid, seq=1, phase="plan")
+    captured: dict = {}
+
+    async def _capture(routine_view, iter_view):
+        captured["vc"] = routine_view.verification_command
+        return EvaluationResult(ok=True, score=40, verdict="progressing", reflection="r")
+
+    try:
+        orch = RoutineOrchestrator()
+        with patch.object(orch._evaluator, "evaluate", new=AsyncMock(side_effect=_capture)):
+            await _evaluate_and_drain(orch)
+        assert captured["vc"] is None  # PLAN 相位门控被跳过
+    finally:
+        await _cleanup(rid)
+
+
+async def test_implement_phase_runs_verification_gate():
+    """IMPLEMENT 相位评估正常传入 verification_command（门控照跑），与 PLAN 跳过形成对照。"""
+    rid = await _make_routine(
+        config={"workflow": "phased"},
+        current_phase="implement",
+        iteration_count=2,
+        verification_command="uv run pytest -q",
+    )
+    await _add_iteration(rid, seq=1, phase="implement")
+    captured: dict = {}
+
+    async def _capture(routine_view, iter_view):
+        captured["vc"] = routine_view.verification_command
+        return EvaluationResult(ok=True, score=55, verdict="progressing", reflection="r", gate_exit_code=0)
+
+    try:
+        orch = RoutineOrchestrator()
+        with patch.object(orch._evaluator, "evaluate", new=AsyncMock(side_effect=_capture)):
+            await _evaluate_and_drain(orch)
+        assert captured["vc"] == "uv run pytest -q"  # IMPLEMENT 相位门控照跑
+    finally:
+        await _cleanup(rid)
+
+
 async def test_phased_implement_success_advances_to_finalize():
     """相位化：IMPLEMENT 命中成功阈值 → 推进到 FINALIZE（不直接 succeeded）。"""
     rid = await _make_routine(config={"workflow": "phased"}, current_phase="implement", iteration_count=2)

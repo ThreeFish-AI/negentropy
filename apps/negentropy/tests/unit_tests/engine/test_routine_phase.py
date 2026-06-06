@@ -5,7 +5,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from negentropy.engine.routine import phase as phase_mod
-from negentropy.engine.routine.orchestrator import RoutineOrchestrator, _build_scope_system_prompt
+from negentropy.engine.routine.orchestrator import (
+    RoutineOrchestrator,
+    _build_readonly_settings,
+    _build_scope_system_prompt,
+    _normalize_read_dirs,
+)
 from negentropy.engine.routine.prompt_builder import build_prompt
 
 
@@ -174,8 +179,31 @@ def test_build_scope_system_prompt_worktree():
     assert "isolated worktree" in sp
     assert "data-la-maps" not in sp  # 源项目路径绝不在 scope 指令中
     assert "MUST NOT" in sp
-    assert "original source project directory" in sp  # 明确禁止源项目
+    # 无 read_dirs 时回退旧契约：仅 goal 显式引用的绝对路径可读，其余一律禁止
+    assert "Absolute paths explicitly referenced in the task goal" in sp
     assert "Baseline branch" in sp  # 提及基线分支名
+
+
+def test_build_scope_system_prompt_worktree_grants_readonly_read_dirs():
+    """配置 config.read_dirs 后，scope prompt 显式枚举授予的只读源目录并标 READ-ONLY。"""
+    src = "/Users/cm.huang/conductor/workspaces/platform-maps/jerusalem-v3"
+    r = _wt_routine(
+        cwd="/Users/cm.huang/Documents/projects/aurelius/data-la-maps",
+        worktree_path="/Users/cm.huang/Documents/projects/aurelius/.negentropy-worktrees/demo",
+        config={"read_dirs": [src]},
+    )
+    sp = _build_scope_system_prompt(r)
+    assert src in sp  # 授予目录被显式列出（物理 --add-dir 与 prompt 一致）
+    assert "READ-ONLY" in sp
+    assert "MUST NOT write/edit here" in sp
+    assert "ONLY inside the worktree" in sp  # 写范围限定 worktree
+
+
+def test_build_scope_system_prompt_worktree_no_config_attr_safe():
+    """routine 无 config 属性时不抛 AttributeError（SimpleNamespace 替身鲁棒性）。"""
+    r = _wt_routine()  # 不含 config
+    sp = _build_scope_system_prompt(r)  # 不应抛异常
+    assert "File System Scope" in sp
 
 
 def test_build_prompt_worktree_never_leaks_source_cwd():
@@ -186,6 +214,29 @@ def test_build_prompt_worktree_never_leaks_source_cwd():
     # 两个 prompt 层都不得泄露源项目路径
     assert "/secret/source/project" not in p
     assert "/secret/source/project" not in sp
+
+
+def test_normalize_read_dirs_dedups_absolutizes_and_filters():
+    """规整：绝对化 + 展开 ~ + 去重 + 丢弃非字符串/空串；非 list/str 入参返回空。"""
+    import os
+
+    home_a = os.path.abspath(os.path.expanduser("~/a"))
+    assert _normalize_read_dirs(["~/a", os.path.expanduser("~/a"), "  ", None, 123]) == [home_a]
+    assert _normalize_read_dirs("/x") == ["/x"]  # 单字符串容忍
+    assert _normalize_read_dirs(None) == []
+    assert _normalize_read_dirs({"k": "v"}) == []  # 非 list/str → 空
+
+
+def test_build_readonly_settings_denies_edit_with_absolute_anchor():
+    """只读 settings：每个目录生成 Edit(//<abs>/**) deny，且无 allow 削弱。"""
+    import json
+
+    s = _build_readonly_settings(["/Users/x/src", "/opt/go"])
+    parsed = json.loads(s)
+    deny = parsed["permissions"]["deny"]
+    assert "Edit(//Users/x/src/**)" in deny
+    assert "Edit(//opt/go/**)" in deny
+    assert "allow" not in parsed["permissions"]  # 绝不放行
 
 
 def test_build_scope_system_prompt_flat_routine():

@@ -601,10 +601,30 @@ async def list_iteration_events(
 # ---------------------------------------------------------------------------
 
 
+def _validate_read_dirs(config: dict[str, Any] | None) -> None:
+    """校验 ``config.read_dirs``：字符串数组，每项绝对化后须为已存在目录（422 友好报错）。
+
+    这些目录会经 ``--add-dir`` 物理授予 CC 只读访问（见 orchestrator._build_config）；
+    校验为防御性早反馈——CLI 自身亦在 launch 时校验路径存在，故 None/缺省时直接放行。
+    """
+    if not config:
+        return
+    raw = config.get("read_dirs")
+    if raw is None:
+        return
+    if not isinstance(raw, list) or not all(isinstance(x, str) for x in raw):
+        raise HTTPException(status_code=422, detail="config.read_dirs must be a list of directory paths")
+    for d in raw:
+        p = os.path.abspath(os.path.expanduser(d.strip())) if d.strip() else ""
+        if not p or not os.path.isdir(p):
+            raise HTTPException(status_code=422, detail=f"read_dir does not exist or is not a directory: '{d}'")
+
+
 @router.post("")
 async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
     if body.cwd and not os.path.isdir(body.cwd):
         raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
+    _validate_read_dirs(body.config)
     # 提供了 Project Path (cwd) + Baseline Branch 时即时校验仓库/基线（早反馈）。存在性的硬约束
     # 由 start 守卫强制（执行前提），允许 API 侧先创建草稿；前端创建可执行 routine 时已强制二者。
     if body.cwd and body.baseline_branch:
@@ -682,6 +702,8 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
         # cwd 目录存在性校验（非 running 路径，unsafe 已被上方拦截）
         if "cwd" in update_data and update_data["cwd"] and not os.path.isdir(update_data["cwd"]):
             raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{update_data['cwd']}'")
+        if "config" in update_data:
+            _validate_read_dirs(update_data["config"])
 
         for field_name, value in update_data.items():
             setattr(r, field_name, value)

@@ -2769,3 +2769,52 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   4. **巨型长任务会耗尽 1M 上下文**：本例模型为 `claude-opus-4-7[1m]`，单轮 157 turns 即撑满。长周期 routine 必须具备跨会话的上下文管理（冷启动自愈 + reflections 注入 + worktree 持久），不能假设单一会话能承载整个任务。
 - **验证**：①单元（`test_claude_code_service.py` 10 例覆盖 `_classify_result_error` 用 seq=4 真实事件 fixture / 全 marker 大小写容错 / subtype 独立信号 / 负例防误判 / `_invoke_cli` 端到端打标签；`test_routine_decision.py` 5 例覆盖可自愈失败放行 / reset_max=0 退化 / 普通 error 仍 unrecoverable / continue 不隔断链 / success 归零）+ 集成（`test_routine_orchestrator.py` 3 例覆盖 runner 写回清 session+标记 / 成功正常续接 / 达上限封顶）；routine+claude_code 全量 **144 用例全绿**，零回归；ruff clean。②**实机全闭环**（Chrome devtools，复活 `a83d9c94`）：改 DB 复活（`status=running`、`claude_session_id=NULL`、`eval_floor_seq=5` 隔离旧失败窗口、保留 worktree）后，inspector 下一 tick dispatch seq=6——CC 子进程 `claude -p`（**无 `--resume`，确认冷启动**）、`resume_session_id=NULL`、189s 内产 **339 审计事件含 112 tool_use**（对比旧 seq=4/5 仅 ~6 事件 1 turn 即死），routine 持续 `running`、worktree（123.3M seq=1 产出）完整保留。UI 迭代时间线、Evaluator-Optimizer Loop、Reflexion 注入面板全部正确渲染。
 - **同类问题影响 / 跨上下文注意**：缺陷自 Routine 子系统引入即潜伏，凡「单会话上下文撑满」的长任务全部受害（短任务因不撑满上下文不触发）。承 ISSUE-108 修复使 Routine 全闭环可跑通后，本缺陷是「跑得足够久」才暴露的下一层失败模式——**只有用巨型真实任务实机长跑才能发现，单测与小任务均无法触发**。修复纯后端（service.py/runner.py/decision.py/config），无 schema/迁移变更，无前端改动；新增字段/参数均默认向后兼容（`error_kind=None`、`max_context_resets=0` 退化原行为）。
+
+## ISSUE-110 Routine worktree 隔离缺失「源目录只读读授权」物理通道——Prompt 声称可读而运行时无法兑现（复刻类长任务硬阻断，2026-06-06）
+
+- **表因**：以「Maps 项目复刻」（`9e90c3c7`，Go `platform-maps/jerusalem-v3`→Python `data-la-maps`）为模板的复刻类 routine，goal 明确要求 CC「通过 `/add-dir` 加载 source-project 全量代码进行源项目全方位分析」，但 CC 在隔离 worktree 中实际**读不到** worktree 之外的 Go 源码（407 文件）；隔离 system prompt（ISSUE 见 commit `002f58dd`）虽声称「goal 显式引用的绝对路径可读」(rule 2)，却无任何物理机制兑现该读权限。复刻因「看不到源」而不可能做好（历史 iter1 仅靠零散探索拿到 92 分，本质是盲人摸象）。
+- **根因**：**Prompt 授予了运行时无法兑现的读权限——隔离的物理层与 prompt 层不一致**：
+  1. CC 子进程 cwd 被钉在隔离 worktree；Claude Code 对 cwd 之外的路径默认不可读，需经 `--add-dir`（CLI）/`add_dirs`（SDK）显式授予；
+  2. goal 让 CC 用 `/add-dir`——但 `/add-dir` 是**交互式 slash 命令**，在 `claude -p` 非交互子进程 / SDK `query()` 中**完全不生效**；
+  3. `grep -rniE "add[_-]?dir|additional_director"` 全 `engine/` **零命中**——`ClaudeCodeConfig` 无 `add_dirs` 字段，`_build_cli_args` 不发 `--add-dir`，`_build_config` 也无来源接线。三层皆缺，rule 2 的「可读」沦为空头支票。
+- **处理方式**（物理授权 + 只读封锁 + prompt 对齐，最小干预）：
+  1. `claude_code/models.py`：`ClaudeCodeConfig` 增 `add_dirs: list[str]|None` + `settings: str|None`（repr 安全）；
+  2. `claude_code/service.py`：`_build_cli_args` 逐目录发 `--add-dir <path>`（**非逗号合并**，经 SDK 源码 `subprocess_cli.py::_build_command` 核实）+ `--settings <json>`；`_invoke_sdk` 经 `hasattr` 守卫设 `options.add_dirs`/`options.settings`（SDK 未装时仅告警，CLI 为权威路径）；**两处** config 重建点（`_invoke_cli` + `_invoke_cli_interactive`）均补透传 `add_dirs`/`settings`（同 credential 静默丢弃回归类——Routine 实际走交互式路径）；
+  3. `routine/orchestrator.py`：新增 `_normalize_read_dirs`（绝对化+去重+滤杂质）与 `_build_readonly_settings`（对每个 add_dir 生成 `permissions.deny:["Edit(//<abs>/**)"]`，`//` 为文件系统绝对锚点）；`_build_config` 从 `routine.config.read_dirs` 填充 `config.add_dirs` + `config.settings`——`--add-dir` 默认授予**读+写**，故必须以 `Edit` deny 把源码物理锁只读（deny 优先级最高，`acceptEdits/bypassPermissions/--add-dir` 均不可越权；CC 仍可 Read，但 Edit/Write/MultiEdit/识别的 Bash 写命令被封死，worktree/cwd 无 deny 写入正常）；`_build_scope_system_prompt` 改为枚举「worktree + 授予的只读源目录（标 READ-ONLY）」并禁止其余，使 prompt 层与物理层一致（无 read_dirs 时回退旧 rule 2 文案，零回归）；
+  4. `interface/routine_api.py`：新增 `_validate_read_dirs`，create/update 校验 `config.read_dirs` 为字符串数组且每项绝对化后是已存在目录（422 早反馈）。
+- **后续防范**：
+  1. **物理隔离的「授予」与「禁止」必须成对、且都落到运行时**——只声明「禁止读 X」而不提供「允许读 Y」的物理通道，会把本可达成的任务变成不可能；任何「prompt 说可读/可写」的语句都要追问「运行时有无对应的物理机制（`--add-dir`/`permissions.allow`/挂载）兑现」，否则即是 ISSUE-110 式的「空头权限」；
+  2. **`--add-dir` 是读+写双授**：凡需「只读引用外部目录」，必须叠加 `settings.permissions.deny(Edit(//dir/**))` 物理锁只读，不能依赖 prompt 自律（Prompt 无强制力）；
+  3. **交互式 slash 命令（`/add-dir`/`/model`/`/compact`…）在 `-p` 非交互子进程中全部无效**——凡 goal/prompt 指示 CC 执行 slash 命令的，引擎都须翻译为等价 CLI flag 或 settings，不能寄望 CC 在 headless 下「自己敲」；
+  4. **config 重建点是字段静默丢失的高发区**：`service.py` 有 `_invoke_cli` 与 `_invoke_cli_interactive` 两处 `ClaudeCodeConfig(...)` 逐字段重建，新增任何 config 字段都须同步两处 + 加「重建后字段存活」回归（镜像既有 credential 回归）。
+- **同类问题影响**：所有「在隔离环境中需读取环境外资源」的 routine（复刻、迁移、跨仓重构、对照基线 diff 等）此前全部受害；`config.read_dirs` 为通用解。审计点：凡 goal 含外部绝对路径引用的 worktree routine，须显式配 `read_dirs` 方能让 CC 物理读到。
+- **验证**：①单元（`test_claude_code_service.py` 7 例：`--add-dir` 逐目录非逗号 / `--settings` 注入 / None 时不发 / 非交互+交互**两处**重建存活；`test_routine_phase.py` 4 例：scope prompt 枚举授予目录且标 READ-ONLY+写限 worktree / 无 read_dirs 回退旧契约 / 无 config 属性不抛 / `_normalize_read_dirs` 去重绝对化滤杂 / `_build_readonly_settings` 绝对锚点 deny 无 allow 削弱）；`routine_phase`+`claude_code` 全量 **84 用例全绿**。②**实机**（Chrome 实机跟踪 + ps/DB）：探针 routine（`77efcd8e`，phased）dispatch 后，运行中 `claude -p` 子进程 argv 实测含 `--permission-mode plan`、`--add-dir /Users/.../jerusalem-v3`、`--settings {"permissions":{"deny":["Edit(//Users/.../jerusalem-v3/**)"]}}`；plan 相位 9 分钟内 CC 对 Go 源 `find/ls/Read` **124 次**（README/go.mod/Makefile/Dockerfile…），零 session/compact 重试——源码物理可读、改写被 deny 封锁，复刻首次具备「看得见源」的前提。③**重派发链路**（iter2/implement）：`--resume <iter1 session>`、cwd 恒为隔离 worktree（**非历史 `/tmp/wt/dispatch-auto`**）、`--add-dir` 与只读 deny 跨迭代保持、`--permission-mode` 随相位 plan→acceptEdits 切换——历史 iter2-5 的「cwd 错位 + 会话死亡螺旋」失败链已端到端愈合。
+
+## ISSUE-111 测试套件直连生产库——`test_migrations` 降级摧毁生产数据 + orchestrator 测试污染真实 routine（潜伏数据灾难，2026-06-06）
+
+- **表因**：以模板 routine（`9e90c3c7`）复刻任务实机长跑时，发现其历史 iter2 失败于 `working directory does not exist: '/tmp/wt/dispatch-auto'`——而 `/tmp/wt/dispatch-auto` 是 `test_routine_orchestrator.py` 的测试夹具值，却写进了**生产** routine 的迭代行。顺藤摸瓜发现整个测试套件直连生产 `negentropy` 库。
+- **根因**：**测试无独立数据库，与生产共享 `negentropy` 库**：
+  1. `tests/conftest.py::db_engine` 直接 `create_async_engine(str(settings.database_url))`——生产库；
+  2. `tests/integration_tests/db/test_migrations.py::reset_database`（autouse）执行 `command.downgrade(alembic_config, "base")`——**把生产库降级到 base，DROP 全部表 = 摧毁 routines/knowledge/memory/sessions 全部数据**，违反 [AGENTS.md「严禁删除现有数据」](../../CLAUDE.md)；其 `_sync_database_url()` 亦读 `settings.database_url`（生产）；
+  3. `orchestrator._dispatch_due` / `_evaluate_and_decide` 查询条件为 `Routine.status=='running'`（**扫描全部** running routine，不限于测试自建行）；集成测试 patch `ensure_workspace`→`WorkspaceInfo('/tmp/wt/dispatch-auto')` 后调 `_dispatch_due`，会把该假 cwd 派发给当时正在 running 的**真实**模板 routine → CC 报 cwd 不存在 → 该 routine 随后陷入会话死亡螺旋（ISSUE-110 表征的历史 iter2-5 即源于此）。
+  - 模板 routine 至今尚存，说明全量 `pytest tests/` 本地近期未跑全——否则 `reset_database` 一次即清空生产库。这是「跑得够全才爆」的潜伏数据灾难。
+- **处理方式**（会话级强制隔离到专用测试库，单一改写点）：
+  1. `tests/conftest.py` 新增 session 级 autouse fixture `_isolate_test_database`：幂等 `CREATE DATABASE negentropy_test`（asyncpg autocommit 连维护库 `postgres`）→ 覆盖 `Settings` 类的 `database_url` 纯属性返回测试库 DSN → `alembic upgrade head` 迁移测试库 → yield → 还原属性；
+  2. 选「覆盖 `database_url` 属性」而非改 `settings.database.url`——后者是 frozen pydantic 模型（`_check_frozen` 拒写）；而 `database_url` 是 `@property`（`str(self.database.url)`），且**同进程** alembic env.py（`configuration["sqlalchemy.url"]=str(settings.database_url)`）、`_sync_database_url`、conftest `db_engine` 全经它读 DSN——改一处即让迁移测试的 down/up、orchestrator 集成测试、全部 DB 访问落到 `negentropy_test`，绝不触碰生产库；
+  3. `db_engine` 无需改动（读 `settings.database_url`，已被改写）。
+- **后续防范**：
+  1. **测试**与**生产**必须物理分库——任何 conftest/fixture 直读 `settings.database_url` 建引擎或跑 DDL 都是红线，CR 必须确认测试落到 `*_test` 库；
+  2. **破坏性 DDL 的 autouse fixture（`downgrade base` / `DROP` / `TRUNCATE`）尤其危险**——必须在物理隔离的库上执行，且 fixture 自身应断言所连库名以 `_test` 结尾方可放行；
+  3. **扫描全表的编排逻辑（`status=='running'`）在共享库下会跨数据污染**——集成测试 patch workspace/外部副作用时，必须保证库隔离，否则测试副作用外溢到生产行；
+  4. 可选加固：在 `_isolate_test_database` 起始 `assert not str(settings.database_url).rstrip('/').endswith('/negentropy')` 之外，再对生产库名做显式黑名单断言，杜绝任何回退路径直连生产。
+- **同类问题影响**：所有 `tests/integration_tests/**` 此前都在生产库跑（knowledge/memory/mcp/interface 等）；隔离后一律落 `negentropy_test`。承 [ISSUE-100](#)（test_runner 污染 sys.modules）同源——测试隔离是系统性议题，DB 层是其最危险的一环。
+- **验证**：隔离前快照生产库 `routines=30 / iterations=174 / 模板存在`；跑 `test_migrations.py`（含 stairway down→up，历史会清生产库）+ `test_routine_orchestrator.py` + `test_routine_phase.py` 共 **59 例全绿**；跑后生产库快照**完全不变**（30/174/模板在），`negentropy_test` 库建成且 `routines=0`（干净隔离）——数据灾难闸门关闭。
+
+## ISSUE-112 Routine PLAN 相位评估误跑验证门控（pytest），对无实现的方案污染评分（2026-06-06）
+
+- **表因**：phased routine 的 PLAN 相位迭代评估后，迭代行 `gate_exit_code=5`（pytest「no tests collected」）、`verdict=stalled`、`score=50`——方案阶段尚无任何实现，却跑了 `uv run pytest -q`。
+- **根因**：`orchestrator._do_evaluate` 构建 `routine_eval_view` 时无条件透传 `verification_command`，`evaluator.evaluate` 凡 `verification_command` 非空即跑门控（`if routine.verification_command:`），**不区分相位**。PLAN 相位无实现，门控必然失败（exit 5/非零），其失败输出喂给 LLM Judge 会错误压低方案评分，且白白消耗 gate 超时延迟。
+- **处理方式**（最小干预）：`_do_evaluate` 中 `skip_gate_in_plan = routine.current_phase == PHASE_PLAN`，PLAN 相位把 `routine_eval_view.verification_command` 置 None——`evaluate` 的既有 `if verification_command:` 守卫自然跳过门控，Judge 纯评估方案质量；IMPLEMENT/FINALIZE 相位门控照跑。
+- **后续防范**：门控/验证类副作用必须「相位感知」——PLAN（无产物）跳过、IMPLEMENT/FINALIZE（有产物）执行；任何「无条件对当前工作区跑测试」的逻辑都要先问「此相位有无可验证的产物」。
+- **同类问题影响**：所有配 `verification_command` 的 phased routine 的 PLAN 相位评分此前都被门控失败拉低；本修复使方案阶段评分回归方案质量本身。
+- **验证**：集成测试 `test_plan_phase_skips_verification_gate`（PLAN 相位 eval_view.verification_command 为 None）+ `test_implement_phase_runs_verification_gate`（IMPLEMENT 相位照传）对照锁定，全绿；实机「before」证据：探针 PLAN 迭代 `gate_exit_code=5`（修复前）。

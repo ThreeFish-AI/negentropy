@@ -22,6 +22,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -87,6 +89,45 @@ def _cap(value: str | None, limit: int = _EVENT_FIELD_CAP) -> str | None:
     return value
 
 
+def _normalize_read_dirs(raw: object) -> list[str]:
+    """规整 ``config.read_dirs`` → 去重的绝对路径 ``list[str]``（容忍 str/list/杂质）。
+
+    这些是「额外授予 CC 读取的源目录」（如待复刻的 Go 源项目）；落地为 CLI ``--add-dir``
+    与 system prompt 的显式 READ 授权，并由 :func:`_build_readonly_settings` 锁为只读。
+    """
+    if not raw:
+        return []
+    items: list[object]
+    if isinstance(raw, str):
+        items = [raw]
+    elif isinstance(raw, (list, tuple)):
+        items = list(raw)
+    else:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for it in items:
+        if not isinstance(it, str) or not it.strip():
+            continue
+        p = os.path.abspath(os.path.expanduser(it.strip()))
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def _build_readonly_settings(read_dirs: list[str]) -> str:
+    """生成 CC ``settings.json``（JSON 字符串）：对每个 add_dir 注入 ``Edit`` deny 锁为只读。
+
+    ``Edit`` deny 覆盖 CC 所有内建写工具（Edit/Write/MultiEdit/NotebookEdit）及其识别的
+    Bash 写命令；deny 优先于 allow，且不可被任何层（含 ``permission_mode``/``--add-dir``）放行。
+    ``//`` 前缀 = 文件系统绝对路径锚点（gitignore 语义）。CC 仍可 **读取** 这些源目录
+    （Read 无 deny），但不能改写——worktree（cwd）无 deny，写入正常。
+    """
+    deny = [f"Edit(//{d.lstrip('/')}/**)" for d in read_dirs]
+    return json.dumps({"permissions": {"deny": deny}})
+
+
 def _build_scope_system_prompt(routine: Routine) -> str:
     """构建文件系统作用域限制的 system prompt 片段（对所有 routine 类型生效）。
 
@@ -96,28 +137,38 @@ def _build_scope_system_prompt(routine: Routine) -> str:
     隔离保证：worktree 存储在项目父目录的 ``.negentropy-worktrees/`` 下，
     与兄弟项目同级；Claude Code 自主探索时可能误读这些不相关项目或源
     项目目录（可能在不同分支）。本函数通过 system prompt 显式限定：仅
-    允许读取 worktree 目录内的文件，绝不授权访问源项目或兄弟目录。
-    worktree 已包含基线分支的完整检出，无需引用源项目。
+    允许读取 worktree 目录与「显式授予的只读源目录」（``config.read_dirs``，
+    经 ``--add-dir`` 物理授权），绝不授权访问其余兄弟目录。
     """
     cwd = routine.cwd or ""
     wt_path = getattr(routine, "worktree_path", None) or ""
     is_wt = phase_mod.is_worktree_routine(routine)
+    read_dirs = _normalize_read_dirs((getattr(routine, "config", None) or {}).get("read_dirs"))
 
     if is_wt and wt_path:
         baseline = getattr(routine, "baseline_branch", None) or ""
         baseline_note = f"\nBaseline branch: `{baseline}`." if baseline else ""
-        return (
-            "## File System Scope (文件系统作用域)\n"
-            f"Working directory: `{wt_path}` (isolated worktree).{baseline_note}\n"
-            "READ scope — you may ONLY read files within:\n"
-            "  1. The worktree directory and its subdirectories.\n"
-            "  2. Absolute paths explicitly referenced in the task goal.\n"
-            "You MUST NOT read from any directory outside the worktree, including the "
-            "original source project directory, sibling directories, or any other local path. "
-            "The worktree contains a complete checkout of the baseline branch — there is no "
-            "need to reference the source project.\n"
-            "Exceptions: WebSearch, WebFetch, and MCP tools are not restricted."
+        lines = [
+            "## File System Scope (文件系统作用域)",
+            f"Working directory: `{wt_path}` (isolated worktree).{baseline_note}",
+            "READ scope — you may ONLY read files within:",
+            "  1. The worktree directory and its subdirectories.",
+        ]
+        if read_dirs:
+            for i, d in enumerate(read_dirs, start=2):
+                lines.append(f"  {i}. `{d}` (READ-ONLY source — you may READ but MUST NOT write/edit here).")
+            lines.append(
+                "WRITE scope — you may create/modify files ONLY inside the worktree. "
+                "The granted source directories above are read-only references for reproduction."
+            )
+        else:
+            lines.append("  2. Absolute paths explicitly referenced in the task goal.")
+        lines.append(
+            "You MUST NOT read from any directory outside the scope above, including unrelated "
+            "sibling projects or any other local path."
         )
+        lines.append("Exceptions: WebSearch, WebFetch, and MCP tools are not restricted.")
+        return "\n".join(lines)
     elif cwd:
         return (
             "## File System Scope (文件系统作用域)\n"
@@ -403,11 +454,16 @@ class RoutineOrchestrator:
             if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
                 await self._reset_evaluating_to_executed(routine_id, iteration_id)
                 return
+            # PLAN 相位仅产出方案、未落盘任何实现，运行验证门控（如 uv run pytest）既无意义、
+            # 又徒增 gate 超时延迟，且把「无实现自然失败」的门控输出喂给 Judge 会错误压低方案评分。
+            # 故 PLAN 相位跳过门控（置空 verification_command），Judge 纯评估方案质量；
+            # IMPLEMENT/FINALIZE 相位照常跑门控。
+            skip_gate_in_plan = routine.current_phase == phase_mod.PHASE_PLAN
             routine_eval_view = SimpleNamespace(
                 goal=routine.goal,
                 acceptance_criteria=routine.acceptance_criteria,
                 cwd=routine.cwd,
-                verification_command=routine.verification_command,
+                verification_command=None if skip_gate_in_plan else routine.verification_command,
                 worktree_path=routine.worktree_path,
             )
             iter_eval_view = SimpleNamespace(
@@ -1282,6 +1338,14 @@ class RoutineOrchestrator:
         # per-routine 可覆盖/补充全局 mcp_config（MCP 服务器配置）。
         if overrides.get("mcp_config"):
             config.mcp_config = overrides["mcp_config"]
+        # 额外只读源目录（per-routine config.read_dirs 覆盖）。worktree routine 的 goal 常需读取
+        # 源项目（如待复刻的 platform-maps/jerusalem-v3 Go 源码）；此处把声明的目录物理授予 CC
+        # （CLI --add-dir / SDK add_dirs），并以 settings 的 permissions.deny 锁为只读
+        # （--add-dir 默认授予读+写，deny 把源码改写物理封死，仅 worktree 可写）。
+        read_dirs = _normalize_read_dirs(overrides.get("read_dirs"))
+        if read_dirs:
+            config.add_dirs = read_dirs
+            config.settings = _build_readonly_settings(read_dirs)
         # permission_mode 由相位决定（PLAN 仅规划、IMPLEMENT/FINALIZE 落盘）——对 worktree routine
         # 与 phased routine 均生效（覆盖 preset 静态值）；旧扁平 routine 沿用 preset 覆盖或全局默认。
         if phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
