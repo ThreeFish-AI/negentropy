@@ -2831,3 +2831,15 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. 交互式子进程「产出 result 后不自退」是 stream-json 模式的既有契约，闭合 stdin 后应给足优雅窗口，且**即使最终 SIGTERM 也不得据此抹掉已捕获的成功终态**。
 - **同类问题影响**：所有走交互式路径（`interactive=True`，即全部 Routine）的迭代均受益；非交互路径 `rc` 通常已为 0，该分支为防御性等价、消除两路径漂移。
 - **验证**：单测 `test_interactive_clean_result_success_survives_teardown_sigterm`（干净 result + SIGTERM(-15) → success）+ `test_interactive_is_error_result_not_masked_as_success`（`subtype=success` 但 `is_error=True` 仍 error 且归类 context_exhausted，守卫死亡螺旋自愈）；`claude_code_service` 全量 63 例全绿。实机「before」：探针/忠实任务 PLAN 迭代均 `error/143` 含 `result:success` 事件。
+
+## ISSUE-114 长 worktree routine 的 IMPLEMENT 进度仅以未提交工作树形态滞留——进度丢失风险 + PR 留存缺口（2026-06-06）
+
+- **表因**：忠实复刻长跑实机观测——worktree 已写出 `src/`、`tests/`、`pyproject.toml`、`Dockerfile` 等大量实现且 `pytest` 通过（gate exit 0），但 `git rev-list --count origin/feature/1.x.x..HEAD` 为 **0**（工作分支零提交），全部以未提交工作树形态存在。
+- **根因**：`prompt_builder.build_prompt` 仅在 **FINALIZE** 相位注入 `git add -A && git commit`，IMPLEMENT 相位（`继续`/`开始`）无任何提交指令。对能走到 FINALIZE 的常规 phased routine 无碍；但本类**巨型长任务**（阈值 99 → 评分恒 ≤50、几乎不触发 FINALIZE，且会迭代至 max_iterations=100）下，上百轮成果**始终未落 git**：① worktree 一旦被重建/清理（stale 重建、人工删除、`git worktree prune`），未提交成果**全部丢失**；② 工作分支零提交，FINALIZE/人工建 PR 时 `git push` 仅推空分支（提交在 FINALIZE 内补，但长跑不触发 FINALIZE 即无任何 checkpoint）；③ 无跨迭代 git 检查点，单轮误改无法回滚。
+- **处理方式**（最小干预、相位感知）：`build_prompt` 在 **worktree routine 的 IMPLEMENT 相位** 追加「迭代检查点」段，指示每轮收尾 `git add -A && git commit` 提交到工作分支——**仅提交不推送**（推送/建 PR 仍属 FINALIZE），无实质改动则跳过。PLAN（只读）与 FINALIZE（自带 commit+push）不重复注入；扁平 routine（无 worktree）不注入。
+- **后续防范**：
+  1. **长 agentic 任务必须有跨迭代检查点**——不能让上百轮昂贵成果仅以「未提交工作树」单点形态存续；提交（或引擎侧确定性 auto-commit）是抵御 worktree 丢失的基本保险；
+  2. **「提交时机」应相位感知**：PLAN 不提交（无产物）、IMPLEMENT 增量提交检查点（仅本地）、FINALIZE 提交+推送+PR；
+  3. **进一步加固备选**（未实施，记录备忘）：引擎在每个 IMPLEMENT 迭代成功写回后**确定性 auto-commit** worktree（不依赖 CC 遵循 prompt），对成本极高的长跑更稳妥；本次先以 prompt 指令落地（与既有 FINALIZE 提交风格一致、零引擎热路径改动）。
+- **同类问题影响**：所有 worktree routine 的 IMPLEMENT 相位均受益；尤以「高阈值/不触发 FINALIZE 的长任务」获益最大。
+- **验证**：单测 `test_build_prompt_worktree_implement_injects_checkpoint_commit`（IMPLEMENT 注入 commit、禁 push）+ `test_build_prompt_worktree_checkpoint_only_in_implement`（PLAN/FINALIZE 不注入）+ `test_build_prompt_flat_implement_no_checkpoint`（扁平不注入）；`test_routine_phase` 全量绿。实机「before」：忠实任务工作分支 0 提交、15 项未跟踪/改动。
