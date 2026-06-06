@@ -41,7 +41,7 @@ function GanttTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
   const row = payload?.find((p) => p.payload)?.payload;
   if (!active || !row) return null;
   return (
-    <div className="rounded-md border border-border bg-card px-2.5 py-1.5 text-[11px] shadow-md">
+    <div className="rounded-md border border-border bg-card px-2.5 py-1.5 text-xs shadow-md">
       <div className="font-semibold text-foreground">
         迭代 #{row.seq} · {row.status}
         {row.inFlight && " · 进行中"}
@@ -96,7 +96,7 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
   return (
     <CollapsibleSection title="迭代时间线 · Run Timeline（执行区间）">
       {rows.length === 0 ? (
-        <p className="py-8 text-center text-[11px] text-text-muted">尚无可视化的执行区间</p>
+        <p className="py-8 text-center text-sm text-text-secondary">尚无可视化的执行区间</p>
       ) : (
         <div style={{ height: Math.max(120, rows.length * 30 + 36), minWidth: 1 }} className="w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -104,10 +104,10 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
               <XAxis
                 type="number"
                 stroke="currentColor"
-                fontSize={10}
+                fontSize={12}
                 tickFormatter={(v: number) => formatDuration(v * 1000)}
               />
-              <YAxis type="category" dataKey="label" width={40} stroke="currentColor" fontSize={10} />
+              <YAxis type="category" dataKey="label" width={40} stroke="currentColor" fontSize={12} />
               <Tooltip content={<GanttTooltip />} cursor={{ fill: "var(--color-muted, #f4f4f5)", opacity: 0.4 }} />
               {/* 透明占位：run 起点 → 本迭代起点 */}
               <Bar dataKey="offset" stackId="t" fill="transparent" isAnimationActive={false} />

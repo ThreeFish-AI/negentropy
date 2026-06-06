@@ -16,7 +16,7 @@ export function RoutinePrCard({ prUrl }: { prUrl: string | null | undefined }) {
         href={prUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="min-w-0 flex-1 truncate text-xs font-medium text-violet-700 underline-offset-2 hover:underline dark:text-violet-300"
+        className="min-w-0 flex-1 truncate text-body font-medium text-violet-700 underline-offset-2 hover:underline dark:text-violet-300"
         title={prUrl}
       >
         查看 PR
@@ -25,7 +25,7 @@ export function RoutinePrCard({ prUrl }: { prUrl: string | null | undefined }) {
         href={prUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-200 px-2.5 py-1 text-[11px] font-medium text-emerald-600 hover:bg-emerald-500/10 dark:border-emerald-800 dark:text-emerald-400"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-500/10 dark:border-emerald-800 dark:text-emerald-400"
       >
         在 GitHub 合并 →
       </a>

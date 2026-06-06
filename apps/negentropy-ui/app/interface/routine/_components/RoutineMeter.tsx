@@ -26,7 +26,7 @@ export function RoutineMeter({
   const pct = ratio == null ? 0 : Math.min(100, Math.max(0, ratio * 100));
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between text-[10px] text-text-muted">
+      <div className="flex items-baseline justify-between text-xs text-text-secondary">
         <span>{label}</span>
         {rightElement ?? <span className="tabular-nums text-text-secondary">{valueText}</span>}
       </div>

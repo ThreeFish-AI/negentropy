@@ -7,21 +7,21 @@ import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plu
 
 // ---------------------------------------------------------------------------
 // 样式常量 —— Tailwind arbitrary variants 覆盖 Markdown 各元素
-// 字号基准 text-[11px]（text-caption），与 Iteration 视图一致
+// 字号基准 text-body（14px），与 Iteration 视图可读性体系一致
 // 参考 McpServerCard.tsx 的 MARKDOWN_CONTENT_CLASS 模式
 // ---------------------------------------------------------------------------
 
 const MARKDOWN_TEXT_CLASS = [
-  "overflow-hidden break-words whitespace-normal text-[11px] leading-[1.6] text-text-secondary",
+  "overflow-hidden break-words whitespace-normal text-body leading-[1.6] text-text-secondary",
 
   // 段落
   "[&_p]:my-0",
   "[&_p+*]:mt-2",
 
   // 标题
-  "[&_h1]:text-sm [&_h1]:font-bold [&_h1]:tracking-heading [&_h1]:mb-1.5 [&_h1]:mt-3 [&_h1]:text-foreground",
-  "[&_h2]:text-xs [&_h2]:font-bold [&_h2]:tracking-heading [&_h2]:mb-1.5 [&_h2]:mt-2.5 [&_h2]:text-foreground",
-  "[&_h3]:text-[11px] [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-2 [&_h3]:text-foreground",
+  "[&_h1]:text-h4 [&_h1]:font-bold [&_h1]:tracking-heading [&_h1]:mb-1.5 [&_h1]:mt-3 [&_h1]:text-foreground",
+  "[&_h2]:text-body-lg [&_h2]:font-bold [&_h2]:tracking-heading [&_h2]:mb-1.5 [&_h2]:mt-2.5 [&_h2]:text-foreground",
+  "[&_h3]:text-body [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-2 [&_h3]:text-foreground",
   "[&_h1+*]:mt-1 [&_h2+*]:mt-1 [&_h3+*]:mt-1",
 
   // 列表
@@ -33,11 +33,11 @@ const MARKDOWN_TEXT_CLASS = [
   "[&_code]:rounded [&_code]:bg-muted/60 [&_code]:px-1 [&_code]:py-px [&_code]:font-mono [&_code]:text-[0.9em]",
 
   // 代码块
-  "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted/40 [&_pre]:p-2 [&_pre]:text-[11px]",
+  "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted/40 [&_pre]:p-2 [&_pre]:text-xs",
   "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
 
   // 表格
-  "[&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[10px]",
+  "[&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs",
   "[&_thead]:bg-muted/40",
   "[&_th]:border [&_th]:border-border [&_th]:px-1.5 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold [&_th]:text-text-secondary",
   "[&_td]:border [&_td]:border-border [&_td]:px-1.5 [&_td]:py-1 [&_td]:align-top",
@@ -46,7 +46,7 @@ const MARKDOWN_TEXT_CLASS = [
   "[&_a]:text-sky-600 [&_a]:underline [&_a]:underline-offset-2 dark:[&_a]:text-sky-400",
 
   // 引用
-  "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-text-muted",
+  "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-text-secondary",
 
   // 分割线
   "[&_hr]:my-2 [&_hr]:border-border",

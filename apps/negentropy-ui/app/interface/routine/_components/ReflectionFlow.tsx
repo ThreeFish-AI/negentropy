@@ -32,10 +32,10 @@ export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO
   if (items.length === 0) {
     return (
       <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-        <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">
           反思记忆流 · Reflexion
         </h3>
-        <p className="py-4 text-center text-[11px] text-text-muted">暂无反思记录</p>
+        <p className="py-4 text-center text-sm text-text-secondary">暂无反思记录</p>
       </section>
     );
   }
@@ -46,7 +46,7 @@ export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="group flex w-full items-center justify-between gap-2 text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+        className="group flex w-full items-center justify-between gap-2 text-xs uppercase tracking-overline text-text-secondary transition-colors hover:text-foreground"
       >
         <span>反思记忆流 · Reflexion（reflection → 下轮 prompt）</span>
         <ChevronDown
@@ -61,17 +61,17 @@ export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO
         <ol className="mt-3 space-y-3">
           {items.map(({ it, next }) => (
             <li key={it.id} className="rounded-lg border border-border p-2.5">
-              <div className="flex items-center gap-2 text-[11px]">
+              <div className="flex items-center gap-2 text-xs">
                 <span className="font-semibold text-foreground">#{it.seq}</span>
                 {it.verdict && (
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${verdictClass(it.verdict)}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${verdictClass(it.verdict)}`}>
                     {it.verdict}
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-[11px] italic text-text-secondary">💡 {it.reflection}</p>
+              <p className="mt-1 text-caption italic text-text-secondary">💡 {it.reflection}</p>
               {next?.prompt && (
-                <div className="mt-2 flex items-start gap-1.5 rounded bg-muted/40 p-2 text-[10px] text-text-muted">
+                <div className="mt-2 flex items-start gap-1.5 rounded bg-muted/40 p-2 text-xs text-text-secondary">
                   <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" aria-hidden />
                   <span className="min-w-0">
                     注入 <span className="font-medium text-text-secondary">#{next.seq}</span> 提示：{head(next.prompt)}

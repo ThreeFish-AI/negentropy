@@ -79,17 +79,17 @@ export function RoutineGuardPanel({
 
   return (
     <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+      <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">
         守卫 / 预算 · Why will it stop?
       </h3>
 
       {isTerminal ? (
-        <div className="mb-3 rounded-lg border border-border bg-muted/40 p-2.5 text-[11px]">
-          <span className="text-text-muted">实际终止原因：</span>
+        <div className="mb-3 rounded-lg border border-border bg-muted/40 p-2.5 text-body">
+          <span className="text-text-secondary">实际终止原因：</span>
           <span className="font-semibold text-foreground">{routine.termination_reason ?? "—"}</span>
         </div>
       ) : predicted ? (
-        <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-700 dark:text-amber-300">
+        <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-body text-amber-700 dark:text-amber-300">
           ⚠ 预计停因：<span className="font-semibold">{predicted.label}</span>（
           {Math.round(predicted.ratio * 100)}%）
         </div>
@@ -128,7 +128,7 @@ export function RoutineGuardPanel({
 
         {/* 无进展计数 */}
         <div>
-          <div className="flex items-baseline justify-between text-[10px] text-text-muted">
+          <div className="flex items-baseline justify-between text-xs text-text-secondary">
             <span>No-progress（停滞）</span>
             <span className="tabular-nums text-text-secondary">
               {streak} / {routine.no_progress_patience}
@@ -149,12 +149,12 @@ export function RoutineGuardPanel({
       {(oscillation || unrecoverable) && !isTerminal && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {oscillation && (
-            <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:text-orange-300">
+            <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-300">
               震荡风险
             </span>
           )}
           {unrecoverable && (
-            <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
+            <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-300">
               不可恢复信号
             </span>
           )}
@@ -237,14 +237,14 @@ function SuccessScoreMeter({ routine }: { routine: RoutineDTO }) {
       onBlur={commit}
       onKeyDown={onKeyDown}
       disabled={saving}
-      className="h-4 w-12 rounded border border-border bg-background px-1 text-right text-[10px] tabular-nums text-text-secondary focus:outline-none focus:ring-1 focus:ring-primary"
+      className="h-4 w-12 rounded border border-border bg-background px-1 text-right text-xs tabular-nums text-text-secondary focus:outline-none focus:ring-1 focus:ring-primary"
       autoFocus
     />
   ) : (
     <button
       type="button"
       onClick={openEditor}
-      className="inline-flex items-center gap-0.5 rounded px-1 text-[10px] tabular-nums text-text-secondary transition-colors hover:bg-muted hover:text-foreground"
+      className="inline-flex items-center gap-0.5 rounded px-1 text-xs tabular-nums text-text-secondary transition-colors hover:bg-muted hover:text-foreground"
       title="点击调整 Success Score 阈值"
     >
       阈值 <span className="font-semibold">{threshold}</span>

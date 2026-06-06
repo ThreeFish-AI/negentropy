@@ -116,67 +116,72 @@ export default function RoutineRunPage() {
       <InterfaceNav title="Routine" />
       <div className="flex-1 overflow-auto">
         <ClockProvider active={!!clockActive}>
-          <div className="space-y-4 px-6 py-6">
-            {/* 头部：返回 + 标题 + 状态 + 控制 */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <Link
-                  href="/interface/routine"
-                  aria-label="返回 Routine 列表"
-                  className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-                <div className="min-w-0">
-                  <h1 className="truncate text-xl font-bold text-foreground">
-                    {routine?.display_name || routine?.title || "Routine"}
-                  </h1>
-                  {routine?.key && <p className="truncate text-[11px] text-text-muted">{routine.key}</p>}
+          <div className="space-y-6 px-8 py-8">
+            {/* 头部：返回 + 标题 + 状态 + 控制（双行结构） */}
+            <div className="border-b border-border pb-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Link
+                    href="/interface/routine"
+                    aria-label="返回 Routine 列表"
+                    className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                  <div className="min-w-0">
+                    <h1 className="truncate text-xl font-bold text-foreground">
+                      {routine?.display_name || routine?.title || "Routine"}
+                    </h1>
+                  </div>
+                  {routine && (
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(routine.status)}`}
+                    >
+                      {routine.status}
+                    </span>
+                  )}
+                  {routine?.current_phase && routine.status === "running" && (
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${phaseClass(routine.current_phase)}`}
+                    >
+                      {phaseLabel(routine.current_phase)}
+                    </span>
+                  )}
                 </div>
-                {routine && (
-                  <span
-                    className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${routineStatusClass(routine.status)}`}
-                  >
-                    {routine.status}
-                  </span>
-                )}
-                {routine?.current_phase && routine.status === "running" && (
-                  <span
-                    className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${phaseClass(routine.current_phase)}`}
-                  >
-                    {phaseLabel(routine.current_phase)}
-                  </span>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="flex shrink-0 items-center gap-1.5 text-xs text-text-secondary">
                   <span
                     className={`inline-block h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "animate-pulse bg-text-muted"}`}
                   />
                   {connected ? "Live" : "Reconnecting..."}
                 </span>
-                {controls.map((action) => (
-                  <Button
-                    key={action}
-                    variant={action === "cancel" ? "danger" : "neutral"}
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => handleControl(action)}
-                  >
-                    {CONTROL_LABEL[action]}
-                  </Button>
-                ))}
-                {routine && canRestart(routine.status) && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={busy}
-                    leftIcon={<RotateCcw className="h-4 w-4" />}
-                    onClick={() => requestRestart(routine)}
-                  >
-                    Restart
-                  </Button>
-                )}
+              </div>
+              <div className="mt-1.5 flex items-center justify-between gap-3">
+                {routine?.key && <p className="truncate font-mono text-xs text-text-secondary">{routine.key}</p>}
+                <div className="flex-1" />
+                <div className="flex shrink-0 items-center gap-2">
+                  {controls.map((action) => (
+                    <Button
+                      key={action}
+                      variant={action === "cancel" ? "danger" : "neutral"}
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => handleControl(action)}
+                    >
+                      {CONTROL_LABEL[action]}
+                    </Button>
+                  ))}
+                  {routine && canRestart(routine.status) && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={busy}
+                      leftIcon={<RotateCcw className="h-4 w-4" />}
+                      onClick={() => requestRestart(routine)}
+                    >
+                      Restart
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -11,9 +11,9 @@ interface RoutineKpiStripProps {
 function MetricCell({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3 flex-1 min-w-0">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className="text-xs uppercase tracking-overline text-text-secondary mb-1">{label}</div>
       <div className={`text-lg font-bold tabular-nums ${color ?? "text-foreground"}`}>{value}</div>
-      {sub && <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-text-secondary mt-0.5">{sub}</div>}
     </div>
   );
 }

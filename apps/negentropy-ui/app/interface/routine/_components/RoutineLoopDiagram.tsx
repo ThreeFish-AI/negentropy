@@ -28,13 +28,13 @@ export function RoutineLoopDiagram({
   return (
     <section className="rounded-card border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <h3 className="text-xs uppercase tracking-overline text-text-secondary">
           闭环过程 · Evaluator–Optimizer Loop
         </h3>
         {snapshot.mode === "looping" && snapshot.activeStage && (
-          <span className="text-[11px] font-medium text-foreground">
+          <span className="text-body font-medium text-foreground">
             {LOOP_STAGE_META[snapshot.activeStage].label}
-            {snapshot.pulsing && <span className="ml-1 text-text-muted">进行中…</span>}
+            {snapshot.pulsing && <span className="ml-1 text-text-secondary">进行中…</span>}
           </span>
         )}
       </div>
@@ -43,14 +43,14 @@ export function RoutineLoopDiagram({
 
       {/* 收尾阶段指示（独立于 4 段闭环，FINALIZE 时点亮）*/}
       {routine.current_phase === "finalize" && routine.status === "running" && (
-        <div className="mt-2 flex items-center gap-2 rounded-md bg-violet-500/5 p-2 text-[11px] text-violet-700 dark:text-violet-300">
+        <div className="mt-2 flex items-center gap-2 rounded-md bg-violet-500/5 p-2 text-body text-violet-700 dark:text-violet-300">
           <GitPullRequest className="h-3.5 w-3.5 shrink-0" aria-hidden />
           收尾阶段 · 运行 ruff + pytest，修复后创建 PR（待人工 Merge）
         </div>
       )}
 
       {/* 实时 / 终态状态行 */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-secondary">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary">
         {timing && latest ? (
           <>
             <span className="inline-flex items-center gap-1">
@@ -58,11 +58,11 @@ export function RoutineLoopDiagram({
               迭代 #{latest.seq}
             </span>
             <LiveElapsed startedAt={latest.started_at} prefix="⏱ " className="text-foreground" />
-            <span className="text-text-muted">{latest.turn_count} turns</span>
-            <span className="text-text-muted">${latest.cost_usd.toFixed(4)}</span>
+            <span className="text-text-secondary">{latest.turn_count} turns</span>
+            <span className="text-text-secondary">${latest.cost_usd.toFixed(4)}</span>
           </>
         ) : snapshot.mode === "done" ? (
-          <span className="text-text-muted">
+          <span className="text-text-secondary">
             已结束{snapshot.terminationReason ? ` · 终止原因：${snapshot.terminationReason}` : ""}
           </span>
         ) : snapshot.mode === "paused" ? (
@@ -70,10 +70,10 @@ export function RoutineLoopDiagram({
         ) : snapshot.mode === "waiting-approval" ? (
           <span className="text-amber-600 dark:text-amber-400">等待人工审批后派发下一轮迭代</span>
         ) : snapshot.mode === "idle" ? (
-          <span className="text-text-muted">尚未启动</span>
+          <span className="text-text-secondary">尚未启动</span>
         ) : null}
         {latest?.verdict && (
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${verdictClass(latest.verdict)}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${verdictClass(latest.verdict)}`}>
             {latest.verdict}
           </span>
         )}
@@ -82,14 +82,14 @@ export function RoutineLoopDiagram({
       {/* Reflexion 反馈边 */}
       <div className="mt-3 flex items-start gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-2.5">
         <Repeat className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-        <div className="min-w-0 text-[11px] text-text-secondary">
-          <span className="font-medium text-foreground">Reflexion 反馈</span>
+        <div className="min-w-0 text-xs text-text-secondary">
+          <span className="font-semibold text-foreground">Reflexion 反馈</span>
           ：Decide 后将上轮反思注入下轮 Dispatch 提示，驱动自迭代。
           {latest?.reflection && (
-            <span className="mt-1 block italic text-text-muted">💡 最近反思：{latest.reflection}</span>
+            <span className="mt-1 block italic text-text-secondary">💡 最近反思：{latest.reflection}</span>
           )}
           {!latest?.reflection && routine.reflections.length > 0 && (
-            <span className="mt-1 block italic text-text-muted">💡 {routine.reflections[routine.reflections.length - 1]}</span>
+            <span className="mt-1 block italic text-text-secondary">💡 {routine.reflections[routine.reflections.length - 1]}</span>
           )}
         </div>
       </div>

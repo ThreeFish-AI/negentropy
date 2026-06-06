@@ -517,7 +517,7 @@ export function RoutineEditDrawer({
   // 字段级错误渲染助手（普通函数，非组件 —— 避免 render 期创建组件丢失状态）。
   const renderFieldError = (name: string) =>
     fieldErrors[name] ? (
-      <p role="alert" className="mt-0.5 text-[10px] text-red-500">
+      <p role="alert" className="mt-0.5 text-xs text-red-500">
         {fieldErrors[name]}
       </p>
     ) : null;
@@ -543,27 +543,27 @@ export function RoutineEditDrawer({
               </h2>
               {liveRoutine && (
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${routineStatusClass(liveRoutine.status)}`}
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(liveRoutine.status)}`}
                 >
                   {liveRoutine.status}
                 </span>
               )}
               {liveRoutine?.current_phase && liveRoutine.status === "running" && (
                 <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${phaseClass(liveRoutine.current_phase)}`}
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${phaseClass(liveRoutine.current_phase)}`}
                 >
                   {phaseLabel(liveRoutine.current_phase)}
                 </span>
               )}
             </div>
-            <p className="mt-0.5 truncate text-[11px] text-text-muted">{subtitle}</p>
+            <p className="mt-0.5 truncate text-xs text-text-secondary">{subtitle}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {mode.kind === "routine-edit" && onOpenFull && (
               <button
                 type="button"
                 onClick={() => onOpenFull(mode.routine)}
-                className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline"
+                className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline"
               >
                 Full View
                 <ExternalLink className="h-3 w-3" />
@@ -632,11 +632,11 @@ export function RoutineEditDrawer({
                   />
                   {renderFieldError("key")}
                   {isBuiltinTemplate && !fieldErrors.key && (
-                    <p className="mt-0.5 text-[10px] text-text-muted">Saved as a new template — pick a unique key.</p>
+                    <p className="mt-0.5 text-xs text-text-secondary">Saved as a new template — pick a unique key.</p>
                   )}
                 </div>
               ) : (
-                <p className="mt-1 text-[10px] font-mono text-text-muted">key: {form.key}</p>
+                <p className="mt-1 text-xs font-mono text-text-secondary">key: {form.key}</p>
               )}
             </div>
 
@@ -707,7 +707,7 @@ export function RoutineEditDrawer({
                 placeholder="e.g. uv run pytest -q"
                 className={inputCls}
               />
-              <p className="mt-1 text-caption text-text-muted">
+              <p className="mt-1 text-caption text-text-secondary">
                 Test-driven gate — a non-zero exit code caps the score, mitigating LLM-judge bias.
               </p>
             </div>
@@ -832,7 +832,7 @@ export function RoutineEditDrawer({
                             </option>
                           ))}
                         </select>
-                        <p className="mt-1 text-caption text-text-muted">{APPROVAL_HELP[form.approval_mode]}</p>
+                        <p className="mt-1 text-caption text-text-secondary">{APPROVAL_HELP[form.approval_mode]}</p>
                       </div>
                     </div>
                   </div>
@@ -892,7 +892,7 @@ export function RoutineEditDrawer({
                           placeholder="feature 1, feature 2, feature 3"
                           className={inputCls}
                         />
-                        <p className="mt-1 text-caption text-text-muted">
+                        <p className="mt-1 text-caption text-text-secondary">
                           Feature tags shown on the template card (comma-separated).
                         </p>
                       </div>

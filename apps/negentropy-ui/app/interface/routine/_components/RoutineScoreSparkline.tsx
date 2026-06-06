@@ -22,7 +22,7 @@ export function RoutineScoreSparkline({
     .filter((p): p is { s: number; i: number } => p.s != null);
 
   if (pts.length === 0) {
-    return <div className="text-[10px] text-text-muted">尚无评分数据</div>;
+    return <div className="text-xs text-text-secondary">尚无评分数据</div>;
   }
 
   const pad = 4;

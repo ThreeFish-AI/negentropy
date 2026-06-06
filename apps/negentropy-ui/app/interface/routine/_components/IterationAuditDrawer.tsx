@@ -24,7 +24,7 @@ import { phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-
 const IN_FLIGHT_STATUSES = new Set(["pending_approval", "dispatched", "in_flight", "executed"]);
 
 /** 元信息条统一胶囊基类（phase / verdict / 主导人 / driver 共用，与时间线徽章同形）。 */
-const PILL = "rounded-full px-2 py-0.5 text-micro font-semibold";
+const PILL = "rounded-full px-2.5 py-0.5 text-xs font-semibold";
 
 interface IterationAuditDrawerProps {
   open: boolean;
@@ -112,7 +112,7 @@ export function IterationAuditDrawer({
       subtitle={iteration ? <IterationMetaBar iteration={iteration} roleCounts={roleCounts} /> : undefined}
       widthClassName="[width:clamp(480px,66.67%,1100px)]"
     >
-      <div className="px-5 py-4">
+      <div className="px-6 py-5">
         {error && <ErrorBanner message={error} onRetry={load} />}
 
         {/* MCP Server/Tool 面板 — 从系统 MCP API 实时获取已启用的 Server 及 Tools（含 .mcp.json 合并） */}
@@ -144,13 +144,13 @@ function IterationMetaBar({
 }) {
   const driver = deriveIterationDriver(iteration.status);
   return (
-    <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+    <span className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
       {iteration.phase && (
         <span className={`${PILL} ${phaseClass(iteration.phase)}`}>
           {phaseLabel(iteration.phase)}
         </span>
       )}
-      <span className="text-caption font-medium text-text-secondary">{iteration.status}</span>
+      <span className="text-xs font-medium text-text-secondary">{iteration.status}</span>
       {iteration.verdict && (
         <span className={`${PILL} ${verdictClass(iteration.verdict)}`}>
           {iteration.verdict}
@@ -160,8 +160,8 @@ function IterationMetaBar({
         <span className={`text-sm font-bold tabular-nums ${scoreColorClass(iteration.score)}`}>{iteration.score}</span>
       )}
       <span className="text-text-muted">·</span>
-      <span className="text-caption tabular-nums text-text-secondary">turns {iteration.turn_count}</span>
-      <span className="text-caption tabular-nums text-text-secondary">${iteration.cost_usd.toFixed(4)}</span>
+      <span className="text-xs tabular-nums text-text-secondary">turns {iteration.turn_count}</span>
+      <span className="text-xs tabular-nums text-text-secondary">${iteration.cost_usd.toFixed(4)}</span>
       {/* 主导人摘要 pill 列表 */}
       {roleCounts.length > 0 && (
         <>
@@ -190,7 +190,7 @@ function IterationMetaBar({
       {iteration.claude_session_id && (
         <>
           <span className="text-text-muted">·</span>
-          <span className="truncate font-mono text-caption text-text-secondary" title={iteration.claude_session_id}>
+          <span className="truncate font-mono text-xs text-text-secondary" title={iteration.claude_session_id}>
             {iteration.claude_session_id.slice(0, 8)}
           </span>
         </>
@@ -206,7 +206,7 @@ function EmptyState({ iteration }: { iteration: RoutineIterationDTO | null }) {
   else if (iteration?.status === "aborted") hint = "该迭代已中止，未捕获动作记录。";
   else if (iteration?.status === "reaped") hint = "该迭代因执行超时被回收，未捕获完整动作记录。";
   return (
-    <div className="rounded-card border border-dashed border-border bg-card py-12 text-center text-sm text-text-muted">
+    <div className="rounded-card border border-dashed border-border bg-card py-12 text-center text-sm text-text-secondary">
       {hint}
     </div>
   );
