@@ -97,6 +97,13 @@ def test_decide_success_blocked_by_failing_gate():
     assert d.decide(r, it, [it]).action == "continue"
 
 
+def test_decide_success_blocked_by_gate_timeout_sentinel():
+    """门控超时(124)不等于通过：即便评分达标也不应判成功（ISSUE-115，超时≠门控通过）。"""
+    r = FakeRoutine(best_score=92)
+    it = FakeIter(score=92, verdict="pass", gate_exit_code=124)
+    assert d.decide(r, it, [it]).action == "continue"
+
+
 def test_decide_unrecoverable_verdict():
     r = FakeRoutine(best_score=40)
     it = FakeIter(score=40, verdict="unrecoverable")

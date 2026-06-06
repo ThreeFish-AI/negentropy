@@ -2843,3 +2843,19 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **进一步加固备选**（未实施，记录备忘）：引擎在每个 IMPLEMENT 迭代成功写回后**确定性 auto-commit** worktree（不依赖 CC 遵循 prompt），对成本极高的长跑更稳妥；本次先以 prompt 指令落地（与既有 FINALIZE 提交风格一致、零引擎热路径改动）。
 - **同类问题影响**：所有 worktree routine 的 IMPLEMENT 相位均受益；尤以「高阈值/不触发 FINALIZE 的长任务」获益最大。
 - **验证**：单测 `test_build_prompt_worktree_implement_injects_checkpoint_commit`（IMPLEMENT 注入 commit、禁 push）+ `test_build_prompt_worktree_checkpoint_only_in_implement`（PLAN/FINALIZE 不注入）+ `test_build_prompt_flat_implement_no_checkpoint`（扁平不注入）；`test_routine_phase` 全量绿。实机「before」：忠实任务工作分支 0 提交、15 项未跟踪/改动。
+
+## ISSUE-115 门控超时/异常退出码语义重载 + 门控超时不可调，长复刻评分被永久压顶（2026-06-06）
+
+- **表因**（潜伏，随复刻测试套件增长触发）：① 门控（`uv run pytest -q`）超时返回 `gate_exit_code=None`，与「未配置门控」同值；② 全局门控超时固定 120s，大型复刻的测试套件一旦超 120s，每轮门控必超时 → Judge 见门控失败 → 评分被规则 2 永久压顶 ≤60，复刻再好也无法被判高分收敛。
+- **根因**：
+  1. **`None` 语义重载**：`evaluator._run_gate` 超时/异常均 `return None, ...`；而 `decision.decide` 的成功判据 `latest.gate_exit_code in (None, 0)` 把 `None` 视为「门控通过/无门控」。于是「门控超时」（验证状态**未知**）被误当「门控通过」——若 Judge 给出达标分（如低阈值 routine 或 LLM 未严格执行评分上限规则），会据此误判 SUCCESS，把「未验证」当「已验证通过」。
+  2. **门控超时不可 per-routine 调**：`RoutineEvaluator._gate_timeout_seconds` 由 orchestrator 初始化时从全局 `settings.routine.gate_timeout_seconds`（默认 120）一次性设定，无 per-routine 覆盖；大型测试套件无法抬高超时。
+- **处理方式**：
+  1. `_run_gate` 超时返回 `124`（约定超时码）、异常返回 `1`——**绝不返回 None**，使 `None` **仅**表示「未配置门控」；`decision` 的 `in (None,0)` 遂自动把超时/异常（124/1）排除出「通过」，超时不再被误判成功；
+  2. `_run_gate` 增 `timeout` 形参，`evaluate` 从 `getattr(routine,"gate_timeout_seconds",None)`（即 `config.gate_timeout_seconds`）取 per-routine 覆盖、回退实例默认；orchestrator `_do_evaluate` 的 `routine_eval_view` 注入该字段。大型复刻可经 `config.gate_timeout_seconds` 抬高门控超时，避免评分被超时压顶。
+- **后续防范**：
+  1. **哨兵值语义不可重载**：`None`/`-1`/`0` 等若同时承载「未发生」与「发生但失败」两义，下游布尔判据必踩坑；「未运行」与「运行了但超时/异常」必须可区分（本例以非零退出码区分）；
+  2. **「未知 ≠ 通过」**：任何客观门控的「超时/异常/不可达」都应作**保守失败**处理，绝不可等同「通过」——尤其当其结果参与「终止为成功」这类不可逆判定时；
+  3. **资源阈值（超时/预算/上限）应 per-task 可调**：固定全局阈值对「重量级长任务」必然失配，须留 per-routine 覆盖通道。
+- **同类问题影响**：所有配 `verification_command` 的 routine；尤以测试套件较重、运行时长接近/超过 120s 的复刻/迁移类长任务。审计点：凡下游以 `x in (None, 0)` / `x is None` 兼判「无」与「失败」者，均需复核哨兵语义。
+- **验证**：单测 `test_run_gate_timeout_returns_124_not_none`、`test_run_gate_per_routine_timeout_overrides_instance_default`（传 timeout=1 约 1s 超时）、`test_run_gate_passes_through_exit_code`、`test_decide_success_blocked_by_gate_timeout_sentinel`（124 不判成功）；evaluator_gate + decision 共 39 例全绿。

@@ -59,3 +59,38 @@ def test_gate_cwd_missing_attr_defensive():
         cwd: str | None = "/legacy/root"
 
     assert RoutineEvaluator._gate_cwd(_LegacyRoutine()) == "/legacy/root"
+
+
+# ---------------------------------------------------------------------------
+# _run_gate 超时/异常退出码语义 + per-routine 超时覆盖 —— ISSUE-115 回归锁定
+# 超时/异常须返回非零退出码（124/1），绝不返回 None——None 仅表示「未配置门控」，
+# 否则 decision 的 `gate_exit_code in (None,0)` 会把超时误判为门控通过。
+# ---------------------------------------------------------------------------
+
+
+async def test_run_gate_timeout_returns_124_not_none():
+    """门控超时返回 124（约定超时码），绝不 None。"""
+    ev = RoutineEvaluator(gate_timeout_seconds=120)
+    code, out = await ev._run_gate("sleep 3", None, timeout=1)
+    assert code == 124, f"超时须返回 124，实际 {code}"
+    assert code is not None
+    assert "超时" in out
+
+
+async def test_run_gate_per_routine_timeout_overrides_instance_default():
+    """per-routine timeout 覆盖实例默认：传 timeout=1 应约 1s 超时（而非等实例默认 120s）。"""
+    import time
+
+    ev = RoutineEvaluator(gate_timeout_seconds=120)
+    t0 = time.monotonic()
+    code, _ = await ev._run_gate("sleep 5", None, timeout=1)
+    elapsed = time.monotonic() - t0
+    assert code == 124
+    assert elapsed < 4, f"应用 timeout=1 在约 1s 超时，实际 {elapsed:.1f}s"
+
+
+async def test_run_gate_passes_through_exit_code():
+    """正常退出码原样透传（0 通过 / 非 0 失败）。"""
+    ev = RoutineEvaluator()
+    assert (await ev._run_gate("exit 0", None))[0] == 0
+    assert (await ev._run_gate("exit 7", None))[0] == 7
