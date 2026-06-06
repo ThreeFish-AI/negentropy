@@ -146,3 +146,53 @@ async def test_remove_worktree_idempotent(tmp_path):
     assert not os.path.isdir(info.path)
     # 再次移除：no-op，不抛
     await ws.remove_worktree(r, s)
+
+
+# ---------------------------------------------------------------------------
+# checkpoint_commit —— ISSUE-114 引擎确定性 auto-commit 回归锁定
+# ---------------------------------------------------------------------------
+
+
+async def test_checkpoint_commit_commits_changes(tmp_path):
+    """有改动时确定性提交并返回 True；提交后工作树干净、HEAD 前进一个提交。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    # 在 worktree（此处直接用 repo 根模拟隔离工作区）写入改动
+    (tmp_path / "repo" / "new_file.py").write_text("print('hi')\n")
+    before = subprocess.run(
+        ["git", "-C", repo, "rev-list", "--count", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    committed = await ws.checkpoint_commit(repo, s, seq=3)
+    assert committed is True
+    # 工作树应干净（全部已提交）
+    status = subprocess.run(["git", "-C", repo, "status", "--porcelain"], capture_output=True, text=True).stdout
+    assert status.strip() == ""
+    after = subprocess.run(
+        ["git", "-C", repo, "rev-list", "--count", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert int(after) == int(before) + 1
+    # commit message 含 seq
+    msg = subprocess.run(["git", "-C", repo, "log", "-1", "--pretty=%B"], capture_output=True, text=True).stdout
+    assert "seq=3" in msg
+
+
+async def test_checkpoint_commit_noop_when_clean(tmp_path):
+    """无改动时跳过提交、返回 False，HEAD 不前进。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    before = subprocess.run(
+        ["git", "-C", repo, "rev-list", "--count", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    committed = await ws.checkpoint_commit(repo, s, seq=1)
+    assert committed is False
+    after = subprocess.run(
+        ["git", "-C", repo, "rev-list", "--count", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert after == before
+
+
+async def test_checkpoint_commit_missing_path_returns_false(tmp_path):
+    """worktree 路径不存在 → 安全返回 False，不抛。"""
+    s = _settings(str(tmp_path / "wt"))
+    assert await ws.checkpoint_commit(str(tmp_path / "nonexistent"), s, seq=1) is False
