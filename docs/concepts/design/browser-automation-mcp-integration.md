@@ -90,8 +90,8 @@ Claude Code 的相位权限（[phase.py](../../../apps/negentropy/src/negentropy
 ## 6. 运营前置（部署须知）
 
 1. **Node/npx**：Routine 运行时（后台 Claude Code 子进程）PATH 中需有 `node`/`npx`。
-2. **浏览器二进制**：首次需 `npx playwright install chromium`（本仓 negentropy-ui 已依赖 Playwright，CI/开发机通常已具备）。
-3. **预热与离线缓存**：首次 `npx @playwright/mcp@0.0.75 --help` 预拉包，避免每次 Routine 启动的网络抖动；离线环境可预置 npm cache。
+2. **浏览器二进制**：`@playwright/mcp@0.0.75 --browser chromium` 实际解析到 **`chrome-for-testing`** 构建（如 `ms-playwright/chromium-1224`），**不**等同于通用 `npx playwright install chromium`（后者装的是 `chromium-<n>`，版本号常不一致）。首次须执行 **`npx @playwright/mcp@0.0.75 install-browser chrome-for-testing`**（实测：缺失时 `browser_navigate` 报 `Browser "chrome-for-testing" is not installed`，连接/发现却仍成功——故须在部署期预装，不能等运行时）。
+3. **预热与离线缓存**：首次 `npx @playwright/mcp@0.0.75 --help` 预拉包，避免每次 Routine 启动的网络抖动；离线环境可预置 npm cache 与上述浏览器缓存目录。
 4. **版本升级**：改 [迁移 0062](../../../apps/negentropy/src/negentropy/db/migrations/versions/0062_seed_playwright_browser_mcp.py) 的 `PLAYWRIGHT_ARGS` 版本号 → 新建一条幂等 data-fix 迁移同步 `mcp_servers.args` 与 `builtin_tools.config.mcp_config`（保持单一事实源同改）。
 5. **`--no-sandbox`**：容器/root 下运行 headless chromium 必需；仅用于**受控的内部/已知 URL** 回归，安全权衡见 §7。
 6. **鉴权回归配置**：在目标 Routine 的 `config.mcp_config` 内按具名 server 覆盖 args，追加 `--storage-state=/abs/path/dev-admin.json`（合并语义保证其余默认不丢）。
@@ -119,6 +119,8 @@ acceptance_criteria:
 ```
 
 迭代详情的 **MCP Servers** 面板（[McpServersPanel](../../../apps/negentropy-ui/app/interface/routine/_components/McpServersPanel.tsx)）会展示 playwright；`iteration.metrics["mcp_servers"]` 亦快照该 server，形成可审计链路。
+
+> **实机冒烟（2026-06-06，已验证）**：以 DB 中**已种子的** playwright 配置（`npx @playwright/mcp@0.0.75 --headless --isolated --browser chromium --no-sandbox`）经系统 MCP 客户端在**单一持久会话**内驱动 `initialize → list_tools(23) → browser_navigate(https://example.com) → browser_snapshot`，快照正确返回页面 a11y 树（含 `heading "Example Domain"` 与正文），navigate/snapshot 同会话状态共享——与 Routine 的 Claude Code 子进程使用方式一致。该冒烟同时暴露并修复了 §6 运营前置中的浏览器二进制项（`chrome-for-testing` ≠ 通用 `chromium`）。
 
 ## 9. 相关文档
 
