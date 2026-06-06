@@ -377,6 +377,9 @@ class RoutineRunner:
         session_retry_count: int = 0,
     ) -> None:
         exec_status = "success" if result.status == "success" else result.status  # success|error|timeout
+        # 检查点提交所需快照（事务内捕获，commit 后在事务外执行 git I/O，不持 DB 事务）。
+        checkpoint_path: str | None = None
+        checkpoint_seq: int | None = None
         async with db_session.AsyncSessionLocal() as db:
             # 仅当迭代仍处于 in_flight 时才翻转为 executed：若期间已被 reaper 标记 reaped
             # 或被用户 abort，rowcount=0，则不再覆盖终态、也不重复累加计数/成本（防双计）。
@@ -408,6 +411,17 @@ class RoutineRunner:
                 if routine is not None:
                     routine.total_cost_usd = (routine.total_cost_usd or 0.0) + (result.cost_usd or 0.0)
                     routine.iteration_count = (routine.iteration_count or 0) + 1
+                    # 检查点提交快照：worktree routine + 本轮执行成功 + 非 PLAN 相位（PLAN 只读无产物）。
+                    # 引擎确定性 auto-commit，不依赖 CC 遵循 prompt（ISSUE-114）。
+                    if (
+                        settings.routine.checkpoint_commit_enabled
+                        and exec_status == "success"
+                        and getattr(routine, "worktree_path", None)
+                        and getattr(routine, "current_phase", None) != "plan"
+                    ):
+                        checkpoint_path = routine.worktree_path
+                        it_seq = await db.get(RoutineIteration, iteration_id)
+                        checkpoint_seq = getattr(it_seq, "seq", None) if it_seq is not None else None
                     # 会话续接决策（优先级：会话失效 > 上下文耗尽 > 正常续接）：
                     if error_kind == ERROR_KIND_SESSION_NOT_FOUND:
                         # (0) 续接会话已彻底失效 → 无条件清空冷启动（再 resume 永不可能成功，
@@ -450,6 +464,14 @@ class RoutineRunner:
             if settings.routine.capture_events and result.events:
                 await self._persist_events(db, iteration_id, routine_id, result.events)
             await db.commit()
+
+        # 检查点提交（事务外、best-effort）：成功 worktree 迭代后确定性 auto-commit，
+        # 防 worktree 丢失致进度损毁 + 为 PR 留存提交历史（ISSUE-114）。异常不冒泡。
+        if checkpoint_path:
+            from . import workspace
+
+            with suppress(Exception):
+                await workspace.checkpoint_commit(checkpoint_path, settings.routine, seq=checkpoint_seq)
 
     @staticmethod
     async def _persist_events(db, iteration_id: UUID, routine_id: UUID, events: list[dict[str, Any]]) -> None:

@@ -286,6 +286,40 @@ async def _is_valid_worktree(path: str, expected_branch: str, timeout: float) ->
     return rc == 0 and out.strip() == expected_branch
 
 
+async def checkpoint_commit(worktree_path: str, settings: RoutineSettings, *, seq: int | None = None) -> bool:
+    """在隔离 worktree 内确定性提交一次迭代检查点（best-effort，返回是否产生提交）。
+
+    引擎侧的「确定性 auto-commit」——不依赖 CC 遵循 prompt 中的检查点指令（同 ISSUE-116 的思路：
+    硬性保障由引擎机制兜底，prompt 仅作软引导）。仅在 worktree 内操作，绝不 push、绝不触碰基线/主分支。
+    无变更（``git status --porcelain`` 为空）→ 跳过提交返回 False。所有步骤异常仅日志，绝不冒泡阻断写回。
+
+    设计要点（ISSUE-114 加固）：
+    - ``git add -A`` 暂存全部改动（含未跟踪）；
+    - 仅当有改动时 ``git commit``，避免空提交噪声；
+    - commit message 含 seq 便于回溯；``--no-verify`` 跳过 worktree 内可能存在的 pre-commit 钩子
+      （钩子失败不应阻断引擎检查点——质量门控由 routine 的 verification_command 负责）。
+    """
+    if not worktree_path or not os.path.isdir(worktree_path):
+        return False
+    timeout = float(settings.git_timeout_seconds)
+    try:
+        rc, out, _ = await _run_git(["-C", worktree_path, "status", "--porcelain"], timeout=timeout)
+        if rc != 0 or not out.strip():
+            return False  # 查询失败或无改动 → 不提交
+        await _run_git(["-C", worktree_path, "add", "-A"], timeout=timeout)
+        label = f" (seq={seq})" if seq is not None else ""
+        msg = f"chore(routine): iteration checkpoint{label}\n\n引擎确定性检查点提交（防 worktree 丢失/留存进度）。"
+        crc, _, cerr = await _run_git(["-C", worktree_path, "commit", "--no-verify", "-m", msg], timeout=timeout)
+        if crc != 0:
+            logger.info("routine_checkpoint_commit_soft_fail", path=worktree_path, detail=(cerr or "")[:200])
+            return False
+        logger.info("routine_checkpoint_committed", path=worktree_path, seq=seq)
+        return True
+    except Exception as exc:  # 绝不阻断写回
+        logger.warning("routine_checkpoint_commit_error", path=worktree_path, error=str(exc))
+        return False
+
+
 async def remove_worktree(routine: _RoutineLike, settings: RoutineSettings, *, force: bool = True) -> None:
     """best-effort 幂等回收隔离 worktree（删 worktree + prune + 删本地工作分支）。
 
