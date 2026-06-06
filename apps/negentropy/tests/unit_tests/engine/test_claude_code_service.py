@@ -1081,3 +1081,122 @@ async def test_build_cli_args_omits_disallowed_tools_when_none():
     config = ClaudeCodeConfig(disallowed_tools=None)
     args = ClaudeCodeService._build_cli_args("hello", config)
     assert "--disallowed-tools" not in args
+
+
+# ---------------------------------------------------------------------------
+# add_dirs（额外只读源目录，--add-dir）+ settings（只读 deny）—— P0-1 物理读授权回归锁定
+#
+# 根因：Routine goal 要求 CC 读取 worktree 之外的源项目（如待复刻的 Go 源码），但引擎
+# 此前零 --add-dir 接线，且 /add-dir 是交互式 slash 命令、在 claude -p 子进程中不生效 →
+# system prompt 声称「可读」而运行时无法兑现。修复：config.read_dirs → config.add_dirs →
+# CLI 重复 --add-dir + settings 的 permissions.deny(Edit(//src/**)) 锁只读。
+# ---------------------------------------------------------------------------
+
+
+async def test_build_cli_args_emits_repeated_add_dir():
+    """add_dirs 非空时逐目录注入 --add-dir（非逗号合并）。"""
+    config = ClaudeCodeConfig(add_dirs=["/src/a", "/src/b"])
+    args = ClaudeCodeService._build_cli_args("hello", config)
+    assert args.count("--add-dir") == 2
+    # 每个 --add-dir 紧跟其路径
+    idxs = [i for i, a in enumerate(args) if a == "--add-dir"]
+    vals = {args[i + 1] for i in idxs}
+    assert vals == {"/src/a", "/src/b"}
+    # 绝不能逗号合并
+    assert "/src/a,/src/b" not in args
+
+
+async def test_build_cli_args_omits_add_dir_when_none():
+    """add_dirs 为 None 时不注入 --add-dir。"""
+    args = ClaudeCodeService._build_cli_args("hello", ClaudeCodeConfig(add_dirs=None))
+    assert "--add-dir" not in args
+
+
+async def test_build_cli_args_emits_settings():
+    """settings 非空时注入 --settings <json>。"""
+    settings_json = '{"permissions": {"deny": ["Edit(//src/**)"]}}'
+    config = ClaudeCodeConfig(settings=settings_json)
+    args = ClaudeCodeService._build_cli_args("hello", config)
+    assert "--settings" in args
+    assert args[args.index("--settings") + 1] == settings_json
+
+
+async def test_build_cli_args_omits_settings_when_none():
+    """settings 为 None 时不注入 --settings。"""
+    args = ClaudeCodeService._build_cli_args("hello", ClaudeCodeConfig(settings=None))
+    assert "--settings" not in args
+
+
+async def test_invoke_cli_reconstruction_preserves_add_dirs_and_settings(monkeypatch):
+    """端到端锁定：非交互 _invoke_cli 重建 config 后仍保留 add_dirs/settings 并落到子进程 argv。
+
+    回归点：service.py 用 resolved CLI 路径重建 ClaudeCodeConfig；若漏传 add_dirs/settings，
+    --add-dir / --settings 会被静默丢弃 → CC 读不到源码 / 源码可写。镜像 credential 回归。
+    """
+    captured: dict = {}
+
+    class _FakeProc:
+        def __init__(self) -> None:
+            self.stdout = _FakeStream(b"")
+            self.stderr = _FakeStream(b"")
+            self.returncode = 0
+
+        def terminate(self) -> None:
+            pass
+
+        async def wait(self) -> int:
+            return 0
+
+    async def _fake_exec(*args, **kwargs):
+        captured["args"] = list(args)
+        return _FakeProc()
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    settings_json = '{"permissions": {"deny": ["Edit(//src/go/**)"]}}'
+    cfg = ClaudeCodeConfig(cli_path="claude", cwd=None, max_turns=1, add_dirs=["/src/go"], settings=settings_json)
+    await ClaudeCodeService.invoke("ping", cfg)
+
+    argv = captured["args"]
+    assert "--add-dir" in argv and "/src/go" in argv, "重建后 --add-dir 不可丢失"
+    assert "--settings" in argv and settings_json in argv, "重建后 --settings 不可丢失"
+
+
+async def test_invoke_cli_interactive_reconstruction_preserves_add_dirs_and_settings(monkeypatch):
+    """端到端锁定：交互式 _invoke_cli_interactive 重建 config 后仍保留 add_dirs/settings。
+
+    Routine 实际走交互式路径（interactive=True）；该路径有**独立的** config 重建点，
+    必须同样透传 add_dirs/settings，否则 worktree routine 的源码读授权被丢弃。
+    """
+    captured: dict = {}
+    events = [
+        {"type": "system", "subtype": "init", "session_id": "s1"},
+        {"type": "result", "subtype": "success", "result": "ok", "session_id": "s1", "num_turns": 1},
+    ]
+
+    async def _fake_exec(*args, **kwargs):
+        captured["args"] = list(args)
+        return _DuplexFakeProc(events)
+
+    monkeypatch.setattr(ClaudeCodeService, "_check_sdk", classmethod(lambda cls: False))
+    monkeypatch.setattr("negentropy.engine.claude_code.service.shutil.which", lambda p: "/usr/bin/claude")
+    monkeypatch.setattr("negentropy.engine.claude_code.service.asyncio.create_subprocess_exec", _fake_exec)
+
+    settings_json = '{"permissions": {"deny": ["Edit(//src/go/**)"]}}'
+    cfg = ClaudeCodeConfig(
+        cli_path="claude",
+        cwd=None,
+        max_turns=5,
+        timeout_seconds=10.0,
+        interactive=True,
+        auto_answer_context={"goal": "g", "acceptance_criteria": "ac"},
+        add_dirs=["/src/go"],
+        settings=settings_json,
+    )
+    await ClaudeCodeService.invoke("ping", cfg)
+
+    argv = captured["args"]
+    assert "--add-dir" in argv and "/src/go" in argv, "交互式重建后 --add-dir 不可丢失"
+    assert "--settings" in argv and settings_json in argv, "交互式重建后 --settings 不可丢失"

@@ -45,6 +45,15 @@ class ClaudeCodeConfig:
     mcp_config: dict[str, Any] | None = None
     resume_session_id: str | None = None
 
+    # 额外授予的「只读源目录」绝对路径列表。映射 SDK ClaudeAgentOptions.add_dirs 与
+    # CLI 重复 ``--add-dir <path>``（逐目录，非逗号合并）。注意：``--add-dir`` 同时授予
+    # 读+写，只读性由 ``settings`` 的 permissions.deny(Edit(//<dir>/**)) 物理保证
+    # （deny 优先级最高，acceptEdits/bypassPermissions 不可越权）。
+    add_dirs: list[str] | None = None
+    # CC settings.json 内容（JSON 字符串）或文件路径。映射 SDK options.settings /
+    # CLI ``--settings``。本仓库用其注入 permissions.deny 把 add_dirs 锁为只读。
+    settings: str | None = None
+
     # 双向交互模式：启用 stdin PIPE + stream-json 输入，允许 Engine 自动应答
     # Claude Code 的 AskUserQuestion 等交互式工具调用（Routine 执行场景）。
     interactive: bool = False
