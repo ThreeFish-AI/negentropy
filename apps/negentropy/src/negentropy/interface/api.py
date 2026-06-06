@@ -419,6 +419,8 @@ class SkillCreateRequest(BaseModel):
     visibility: str = "private"
     enforcement_mode: str = "warning"
     resources: list[dict[str, Any]] = Field(default_factory=list)
+    # 全局技能：TRUE 时自动注入全系统所有 Agent 的 Progressive Disclosure（见 skills_injector）。
+    is_global: bool = False
 
 
 class SkillUpdateRequest(BaseModel):
@@ -436,6 +438,7 @@ class SkillUpdateRequest(BaseModel):
     visibility: str | None = None
     enforcement_mode: str | None = None
     resources: list[dict[str, Any]] | None = None
+    is_global: bool | None = None
 
 
 class SkillResponse(BaseModel):
@@ -457,6 +460,8 @@ class SkillResponse(BaseModel):
     resources: list[dict[str, Any]] = Field(default_factory=list)
     # 「系统内置」统一对外字段，与 MCP/Agent/Tool 字段保持一致。
     is_builtin: bool = False
+    # 「全局技能」：TRUE 时自动注入全系统所有 Agent；前端据此渲染 Global 徽章。
+    is_global: bool = False
 
     class Config:
         from_attributes = True
@@ -1762,6 +1767,7 @@ async def create_skill(
             if payload.enforcement_mode in ("warning", "strict")
             else "warning",
             resources=payload.resources or [],
+            is_global=bool(payload.is_global),
         )
         db.add(skill)
         await db.commit()
@@ -1773,6 +1779,8 @@ async def create_skill(
         except Exception as exc:
             logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
+    if skill.is_global:
+        _invalidate_global_skill_caches()
     return _skill_to_response(skill)
 
 
@@ -1793,6 +1801,7 @@ def _build_initial_version(skill: Skill) -> SkillVersion:
             "priority": skill.priority,
             "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
             "resources": skill.resources,
+            "is_global": bool(getattr(skill, "is_global", False)),
         },
     )
 
@@ -1872,6 +1881,7 @@ async def create_skill_from_template(
             priority=tpl.priority,
             enforcement_mode=tpl.enforcement_mode,
             resources=tpl.resources,
+            is_global=bool(getattr(tpl, "is_global", False)),
         )
         db.add(skill)
         await db.commit()
@@ -1883,6 +1893,8 @@ async def create_skill_from_template(
         except Exception as exc:
             logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
+    if skill.is_global:
+        _invalidate_global_skill_caches()
     return _skill_to_response(skill)
 
 
@@ -1963,6 +1975,7 @@ async def update_skill(
                     "priority": skill.priority,
                     "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
                     "resources": skill.resources,
+                    "is_global": bool(getattr(skill, "is_global", False)),
                 }
                 existing = await db.scalar(
                     select(SkillVersion).where(
@@ -1988,6 +2001,9 @@ async def update_skill(
         await db.commit()
         await db.refresh(skill)
 
+    # 全局技能字段或当前为全局技能 → 失效缓存（含关闭 is_global 的情形）。
+    if skill.is_global or "is_global" in update_data:
+        _invalidate_global_skill_caches()
     return _skill_to_response(skill)
 
 
@@ -2243,8 +2259,12 @@ async def delete_skill(
         skill = await db.get(Skill, skill_id)
         if not skill:
             raise HTTPException(status_code=404, detail="Skill not found")
+        was_global = bool(getattr(skill, "is_global", False))
         await db.delete(skill)
         await db.commit()
+
+    if was_global:
+        _invalidate_global_skill_caches()
 
 
 def _skill_to_response(skill: Skill) -> SkillResponse:
@@ -2266,7 +2286,24 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
         resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
         is_builtin=bool(getattr(skill, "is_system", False)) or (skill.owner_id or "").startswith("system"),
+        is_global=bool(getattr(skill, "is_global", False)),
     )
+
+
+def _invalidate_global_skill_caches() -> None:
+    """全局技能写操作后清缓存，实现强一致（否则最长 60s TTL 后才生效）。
+
+    清两处：``skills_injector`` 的全局块缓存（fallback 路径）+ ``model_resolver``
+    的 ``subagent:`` 指令缓存（DB 路径已把全局块嵌入指令文本）。fail-soft。
+    """
+    try:
+        from negentropy.agents.skills_injector import invalidate_global_skills_cache
+        from negentropy.config.model_resolver import invalidate_cache
+
+        invalidate_global_skills_cache()
+        invalidate_cache(prefix="subagent:")
+    except Exception as exc:  # pragma: no cover - 缓存失效兜底
+        logger.warning("invalidate_global_skill_caches_failed", error=str(exc))
 
 
 # =============================================================================

@@ -89,6 +89,21 @@ def make_instruction_provider(
             text = None
         base = text or fallback
 
+        # DB 未命中（text is None）：指令来自代码 fallback，未经 ``_load_subagent_row``
+        # 的全局技能注入；在此补注入全局技能，使尚未 Sync 入库的 Agent 同样获得。
+        # 与 DB 路径互斥（text 非 None 时不进入），避免重复 ``<available_skills>`` 块。
+        if text is None:
+            try:
+                from negentropy.agents.skills_injector import append_global_skills_block
+
+                base = await append_global_skills_block(base)
+            except Exception:
+                _logger.warning(
+                    "dynamic_instruction_global_skills_failed",
+                    agent_name=agent_name,
+                    exc_info=True,
+                )
+
         # 非 root 一律走原路径——避免 faculty 共用 provider 时被偏好 prefix 污染。
         if not is_root:
             return base

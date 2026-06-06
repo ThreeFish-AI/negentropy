@@ -313,6 +313,8 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
     from negentropy.agents.skills_injector import (
         SkillToolMissingError,
         build_progressive_disclosure_prompt,
+        merge_skills,
+        resolve_global_skills,
         resolve_skills,
     )
     from negentropy.db.session import AsyncSessionLocal
@@ -340,36 +342,41 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
 
         instruction_normalized = str(system_prompt_value).strip() if system_prompt_value else None
 
-        # Progressive Disclosure 注入：Skills 描述常驻、prompt_template 按需展开（Phase 2）。
-        if skill_refs:
-            try:
-                resolved = await resolve_skills(session, skill_refs, owner_id=owner_id or "")
+        # Progressive Disclosure 注入：显式技能（Agent.skills）+ 全局技能（is_global）。
+        # 全局技能恒 warning，永不触发下方 SkillToolMissingError 分支；显式 strict 技能
+        # 缺工具仍按既有语义降级。即使 ``skill_refs`` 为空，也要并入全局技能——这正是
+        # 让硬编码 ``skills=[]`` 的 6 个内置 Agent 获得全局技能的关键路径（DB 命中分支）。
+        try:
+            resolved_explicit = await resolve_skills(session, skill_refs, owner_id=owner_id or "") if skill_refs else []
+            resolved_global = await resolve_global_skills(session, owner_id=owner_id or "")
+            merged = merge_skills(resolved_explicit, resolved_global)
+            if merged:
                 instruction_normalized = (
                     build_progressive_disclosure_prompt(
                         instruction_normalized,
-                        resolved,
+                        merged,
                         agent_tools=list(tools_list or []),
                     )
                     or None
                 )
-            except SkillToolMissingError:
-                # strict 模式下缺工具：降级为无 system prompt（明确比"装作没事"更安全）。
-                from negentropy.logging import get_logger
+        except SkillToolMissingError:
+            # strict 模式下缺工具：降级为无 system prompt（明确比"装作没事"更安全）。
+            from negentropy.logging import get_logger
 
-                get_logger("negentropy.config.model_resolver").error(
-                    "subagent_skills_strict_blocked",
-                    agent_name=agent_name,
-                    exc_info=True,
-                )
-                instruction_normalized = None
-            except Exception:
-                from negentropy.logging import get_logger
+            get_logger("negentropy.config.model_resolver").error(
+                "subagent_skills_strict_blocked",
+                agent_name=agent_name,
+                exc_info=True,
+            )
+            instruction_normalized = None
+        except Exception:
+            from negentropy.logging import get_logger
 
-                get_logger("negentropy.config.model_resolver").warning(
-                    "subagent_skills_inject_failed",
-                    agent_name=agent_name,
-                    exc_info=True,
-                )
+            get_logger("negentropy.config.model_resolver").warning(
+                "subagent_skills_inject_failed",
+                agent_name=agent_name,
+                exc_info=True,
+            )
 
     model_normalized = str(model_value).strip() if model_value else None
     return (model_normalized or None, instruction_normalized or None)

@@ -39,6 +39,8 @@ interface Skill {
   priority: number;
   enforcement_mode?: string;
   resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
+  is_builtin?: boolean;
+  is_global?: boolean;
 }
 
 export default function SkillsPage() {

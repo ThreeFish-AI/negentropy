@@ -21,6 +21,7 @@ interface Skill {
   enforcement_mode?: string;
   resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
   is_builtin?: boolean;
+  is_global?: boolean;
 }
 
 interface SkillCardProps {
@@ -176,6 +177,15 @@ export function SkillCard({
               title="系统内置：对全员可见，仅 admin 可编辑"
             >
               Built-In
+            </span>
+          )}
+          {skill.is_global && (
+            <span
+              data-testid="skill-global-badge"
+              className="inline-flex shrink-0 items-center rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+              title="全局技能：自动注入全系统所有 Agent（一核五翼及未来新增）的 Progressive Disclosure"
+            >
+              Global
             </span>
           )}
           <span className="inline-flex shrink-0 items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
