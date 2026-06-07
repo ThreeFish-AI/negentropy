@@ -171,6 +171,9 @@ async def _run(payload: dict, ctx: dict) -> str:
 
     plan_text = _extract_plan_text(payload.get("tool_input") or {})
     reflections = ctx.get("reflections") or None
+    # 方案字符上限（卡环根因修复）：交 judge 前的截断上限。过小会让 judge 看不到尾部 Phase 而误判
+    # 「不完整」致 refine 死循环；默认 200000 远超正常方案，仅作失控超长的有限上界。
+    max_plan_chars = int(ctx.get("max_plan_chars") or 200_000)
     # max_retries=1（ISSUE-129）：钩子受 Claude Code PreToolUse 超时硬约束，多次重试 × timeout 会超钩子
     # 预算被杀致 CC 落回 "Answer questions?"。钩子内单次尝试即可——真正的「重试」是 CC 据 refine 反馈
     # 重新提交（外层闭环），无需在钩子内重试空耗时间预算。
@@ -184,6 +187,7 @@ async def _run(payload: dict, ctx: dict) -> str:
         acceptance_criteria=ctx.get("acceptance_criteria") or "",
         plan_text=plan_text,
         reflections=reflections if isinstance(reflections, list) else None,
+        max_plan_chars=max_plan_chars,
     )
     # 批准后**结束本轮**而非调用 ExitPlanMode（ISSUE-128）：单迭代两段式下，Runner 在批准后于
     # 同一 Iteration 内 --resume 续接 implement 段；而 headless ExitPlanMode 恒被 CLI 标 is_error，

@@ -170,6 +170,11 @@ def _write_plan_review_ctx(routine: Routine, iteration_id: UUID, *, mode: str = 
     plan_review_max_refines = (routine.config or {}).get("plan_review_max_refines") or (
         settings.routine.plan_review_max_refines
     )
+    # per-routine 方案字符上限覆盖：审阅器据此截断方案再交 judge；过小会让 judge 看不到尾部 Phase
+    # 而误判「不完整」致 refine 死循环（卡环根因）。None → 回退全局 settings.routine.plan_review_max_plan_chars。
+    plan_review_max_plan_chars = (routine.config or {}).get("plan_review_max_plan_chars") or (
+        settings.routine.plan_review_max_plan_chars
+    )
     ctx = {
         "goal": routine.goal or "",
         "acceptance_criteria": routine.acceptance_criteria or "",
@@ -177,6 +182,7 @@ def _write_plan_review_ctx(routine: Routine, iteration_id: UUID, *, mode: str = 
         "model": plan_review_model,
         "timeout": plan_review_timeout,
         "max_refines": plan_review_max_refines,
+        "max_plan_chars": plan_review_max_plan_chars,
         "mode": mode,
         "iteration_id": str(iteration_id),
         "review_sidecar_path": _review_sidecar_path(iteration_id),

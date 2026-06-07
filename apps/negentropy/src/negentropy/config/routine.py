@@ -206,6 +206,16 @@ class RoutineSettings(BaseSettings):
         "下游 gate+Judge 兜底，防止 refine 闭环无限空耗 turns/预算。"
         "per-routine 可经 config.plan_review_max_refines 覆盖。",
     )
+    plan_review_max_plan_chars: int = Field(
+        default=200_000,
+        ge=2000,
+        le=1_000_000,
+        description="单次 Plan 审阅提交给 judge 的方案最大字符数（默认 200000）。现代 judge 模型"
+        "（claude-sonnet-4-6 等）上下文达 200K tokens，过小的截断会让 judge 看不到方案尾部、"
+        "反复误判『不完整 / Phase 缺失』致 refine 闭环结构性无法收敛（历史卡环根因）。仅极端超长方案"
+        "才会触发截断，且截断时会在末尾附显式标记，告知 judge 勿据未见尾部扣完整性分。"
+        "per-routine 可经 config.plan_review_max_plan_chars 覆盖。",
+    )
 
     # --- 上下文压缩（迭代内：提前触发 auto-compact + 迭代内重试续接）---
     context_compact_enabled: bool = Field(

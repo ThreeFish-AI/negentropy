@@ -26,7 +26,7 @@ def test_extract_plan_text_fallback_to_input():
 
 
 def _patch_review(monkeypatch, result: PlanReviewResult):
-    async def _fake_review(self, *, goal, acceptance_criteria, plan_text, reflections=None):
+    async def _fake_review(self, *, goal, acceptance_criteria, plan_text, reflections=None, max_plan_chars=200_000):
         return result
 
     # PlanReviewer 在 _run 内 import；patch 类方法即可覆盖
@@ -156,6 +156,39 @@ async def test_run_under_budget_still_reviews(monkeypatch, tmp_path):
     assert lines[-1].get("capped") is None
 
 
+async def test_run_threads_max_plan_chars_to_reviewer(monkeypatch):
+    """卡环根因修复：ctx.max_plan_chars 须透传给 PlanReviewer.review（截断上限可配置）。"""
+    captured: dict = {}
+
+    async def _fake_review(self, *, goal, acceptance_criteria, plan_text, reflections=None, max_plan_chars=200_000):
+        captured["max_plan_chars"] = max_plan_chars
+        return PlanReviewResult(ok=True, verdict="approve", score=90, feedback="ok")
+
+    from negentropy.engine.routine.plan_reviewer import PlanReviewer
+
+    monkeypatch.setattr(PlanReviewer, "review", _fake_review)
+    await h._run(
+        {"tool_input": {"plan": "p"}},
+        {"goal": "g", "acceptance_criteria": "a", "max_plan_chars": 12345},
+    )
+    assert captured["max_plan_chars"] == 12345, "ctx.max_plan_chars 须原样透传给 review()"
+
+
+async def test_run_defaults_max_plan_chars_when_ctx_missing(monkeypatch):
+    """ctx 缺 max_plan_chars 时回退到大默认值（不至于复发 8000 截断卡环）。"""
+    captured: dict = {}
+
+    async def _fake_review(self, *, goal, acceptance_criteria, plan_text, reflections=None, max_plan_chars=200_000):
+        captured["max_plan_chars"] = max_plan_chars
+        return PlanReviewResult(ok=True, verdict="approve", score=90, feedback="ok")
+
+    from negentropy.engine.routine.plan_reviewer import PlanReviewer
+
+    monkeypatch.setattr(PlanReviewer, "review", _fake_review)
+    await h._run({"tool_input": {"plan": "p"}}, {"goal": "g", "acceptance_criteria": "a"})
+    assert captured["max_plan_chars"] >= 100_000, "缺省须回退到足够大的上限"
+
+
 def test_main_exit_plan_unified_runs_review(monkeypatch, tmp_path):
     """unified（ctx.mode=unified）下，ExitPlanMode 走真实评审 _run（而非 legacy 直接批准）。"""
     import json
@@ -246,7 +279,11 @@ def test_write_plan_review_ctx_per_routine_model_override(tmp_path, monkeypatch)
         goal="g",
         acceptance_criteria="a",
         reflections={"items": ["r1"]},
-        config={"plan_review_model": "anthropic/claude-sonnet-4-6", "plan_review_max_refines": 8},
+        config={
+            "plan_review_model": "anthropic/claude-sonnet-4-6",
+            "plan_review_max_refines": 8,
+            "plan_review_max_plan_chars": 50_000,
+        },
     )
     iid = uuid.uuid4()
     path = orch_mod._write_plan_review_ctx(routine, iid, mode="unified")
@@ -259,6 +296,7 @@ def test_write_plan_review_ctx_per_routine_model_override(tmp_path, monkeypatch)
     assert ctx["review_sidecar_path"] == orch_mod._review_sidecar_path(iid)
     assert path.endswith(f"{iid}.json")  # ctx 文件按 iteration_id 键
     assert ctx["max_refines"] == 8, "per-routine plan_review_max_refines 须覆盖全局默认"
+    assert ctx["max_plan_chars"] == 50_000, "per-routine plan_review_max_plan_chars 须覆盖全局默认"
 
 
 def test_write_plan_review_ctx_falls_back_to_global(tmp_path, monkeypatch):
@@ -277,3 +315,4 @@ def test_write_plan_review_ctx_falls_back_to_global(tmp_path, monkeypatch):
     assert ctx["model"] == settings.routine.plan_review_model  # 全局默认（None → 走 task_registry）
     assert ctx["mode"] == "unified"  # 默认 mode
     assert ctx["max_refines"] == settings.routine.plan_review_max_refines  # 回退全局默认（5）
+    assert ctx["max_plan_chars"] == settings.routine.plan_review_max_plan_chars  # 回退全局默认（200000）
