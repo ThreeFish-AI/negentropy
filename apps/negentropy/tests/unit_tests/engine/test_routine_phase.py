@@ -113,6 +113,24 @@ def test_build_prompt_flat_implement_no_checkpoint():
     assert "迭代检查点" not in build_prompt(_routine(current_phase="implement"))
 
 
+def test_build_prompt_unified_plan_stage():
+    """统一闭环 plan 段（stage=plan，覆盖 current_phase）：仅产出方案、禁写盘；允许 ExitPlanMode
+    或 AskUserQuestion 提交评审（二者均被钩子真实评审）；批准后结束本轮、引擎同迭代续接实施。"""
+    # current_phase=implement 的 worktree routine，显式以 stage=plan 取 plan 段 prompt
+    p = build_prompt(_wt_routine(current_phase="implement"), stage="plan")
+    assert "仅产出实现方案" in p and "禁止写入" in p
+    assert "ExitPlanMode" in p and "AskUserQuestion" in p  # 两个提交工具均提及
+    assert "结束本轮" in p and "续接" in p  # 批准后结束本轮、引擎续接实施
+    assert "迭代检查点" not in p  # plan 段不提交（checkpoint 仅 implement）
+
+
+def test_build_prompt_legacy_plan_phase_asks_only():
+    """legacy（不传 stage、current_phase=plan）：仅指示 AskUserQuestion 提交（ExitPlanMode 自动放行不评审）。"""
+    p = build_prompt(_wt_routine(current_phase="plan"))
+    assert "AskUserQuestion" in p
+    assert "仅产出实现方案" in p
+
+
 def test_build_prompt_flat_finalize_unchanged_when_no_baseline():
     """旧扁平 routine（无 baseline）保留泛化收尾文案，不注入具体 push/--head。"""
     p = build_prompt(_routine(current_phase="finalize"))

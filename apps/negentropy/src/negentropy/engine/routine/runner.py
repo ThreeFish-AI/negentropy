@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import json
+import os
 import time
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
@@ -36,6 +38,7 @@ from negentropy.engine.claude_code.service import (
     ERROR_KIND_CONTEXT_EXHAUSTED,
     ERROR_KIND_SESSION_NOT_FOUND,
     ClaudeCodeService,
+    emit_raw_event,
 )
 from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
@@ -195,6 +198,10 @@ class RoutineRunner:
                 self._make_action_sink(iteration_id, routine_id, persister) if settings.routine.capture_events else None
             )
 
+            # 共享动作容器：跨「plan 段 + implement 段（含重试）」复用同一 list，使事件 seq 连续单调，
+            # 避免两段事件 ``ON CONFLICT(iteration_id,seq)`` 互相覆盖（单迭代两段式 seq 唯一性保证）。
+            events_holder: list[dict[str, Any]] = []
+
             compact_max_retries = (
                 settings.routine.context_compact_max_retries if settings.routine.context_compact_enabled else 0
             )
@@ -205,10 +212,37 @@ class RoutineRunner:
             session_max_retries = 2
             cumulative_cost = 0.0
             cumulative_turns = 0
+            # overall_deadline 用**原始** config.timeout_seconds 界定「本迭代总预算」，统一覆盖 plan 段 +
+            # implement 段（及其重试）。plan 段在此之后执行、消耗的时间从 implement 段剩余预算中扣除。
             overall_deadline = time.monotonic() + config.timeout_seconds
             result = None
 
             try:
+                # 单迭代两段式：先跑 plan 段（permission_mode=plan + 真实评审钩子），批准后于同一迭代内
+                # --resume 续接 implement 段。plan 段事件与随后注入的 plan_review 发言共享 events_holder，
+                # seq 紧接其后；批准后把 implement 段 --resume 到 plan 段会话、超时收敛到剩余预算。
+                if config.plan_stage_config is not None and not abort.is_set():
+                    plan_cfg = _with_reduced_timeout(config.plan_stage_config, overall_deadline - time.monotonic())
+                    plan_result = await ClaudeCodeService.invoke(
+                        config.plan_stage_prompt or prompt,
+                        plan_cfg,
+                        abort_event=abort,
+                        on_event=sink,
+                        events_holder=events_holder,
+                    )
+                    cumulative_cost += plan_result.cost_usd or 0.0
+                    cumulative_turns += plan_result.turn_count or 0
+                    result = plan_result  # 兜底：若 implement 段未及运行（abort/超时），仍回带 plan 段产出
+                    # 读 sidecar，把每次评审注入为 plan_review 事件 → 渲染为 NegentropyEngine「发言」。
+                    await self._inject_plan_review_events(
+                        iteration_id, events_holder, sink, max_events=config.max_events_per_iter
+                    )
+                    # implement 段：续接 plan 段会话（携带已批准方案上下文）、超时为剩余预算、卸下 plan 段防重复。
+                    config = _with_reduced_timeout(config, overall_deadline - time.monotonic())
+                    config.resume_session_id = plan_result.session_id or config.resume_session_id
+                    config.plan_stage_config = None
+                    config.plan_stage_prompt = None
+
                 while True:
                     # 重试时检查剩余时间是否足够（至少 60s，防无意义短命重试）
                     remaining = overall_deadline - time.monotonic()
@@ -218,7 +252,9 @@ class RoutineRunner:
                         break
 
                     invoke_config = config if not retried else _with_reduced_timeout(config, remaining)
-                    result = await ClaudeCodeService.invoke(prompt, invoke_config, abort_event=abort, on_event=sink)
+                    result = await ClaudeCodeService.invoke(
+                        prompt, invoke_config, abort_event=abort, on_event=sink, events_holder=events_holder
+                    )
                     cumulative_cost += result.cost_usd or 0.0
                     cumulative_turns += result.turn_count or 0
 
@@ -268,6 +304,8 @@ class RoutineRunner:
             finally:
                 if persister is not None:
                     await persister.finalize()
+                # 清理 Plan Review sidecar/ctx 临时文件（按 iteration_id 键，幂等 best-effort）。
+                self._cleanup_plan_review_files(iteration_id)
 
             # 累积 cost/turns 覆盖到最终 result（跨重试汇总）
             if result is not None:
@@ -323,6 +361,56 @@ class RoutineRunner:
                 persister.buffer(evt)
 
         return _sink
+
+    @staticmethod
+    async def _inject_plan_review_events(
+        iteration_id: UUID,
+        events_holder: list[dict[str, Any]],
+        sink,
+        *,
+        max_events: int | None,
+    ) -> None:
+        """读 plan 段评审 sidecar(JSONL)，把每条评审注入为 ``plan_review`` 事件（共享 seq）。
+
+        渲染侧 ``deriveAgentRole("plan_review")→engine``，故注入后即呈现为 NegentropyEngine「发言」；
+        seq 由共享 ``events_holder`` 续接 plan 段之后、与随后 implement 段无冲突。任何异常一律吞掉——
+        发言呈现是增强项，绝不可影响实施主链路。
+        """
+        # 复用 orchestrator 的单一路径口径（与钩子写入端同源），懒导入规避包内循环依赖。
+        from .orchestrator import _review_sidecar_path
+
+        path = _review_sidecar_path(iteration_id)
+        try:
+            with open(path, encoding="utf-8") as f:
+                lines = f.readlines()
+        except OSError:
+            return
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except Exception:
+                continue
+            with suppress(Exception):
+                await emit_raw_event(
+                    {"type": "system", "subtype": "plan_review", "review_result": record},
+                    events_holder,
+                    sink,
+                    max_events=max_events,
+                )
+
+    @staticmethod
+    def _cleanup_plan_review_files(iteration_id: UUID) -> None:
+        """best-effort 清理本迭代的 Plan Review sidecar + ctx 临时文件（按 iteration_id 键，幂等）。"""
+        from .orchestrator import _review_sidecar_path
+
+        sidecar = _review_sidecar_path(iteration_id)
+        ctx_file = os.path.join(os.path.dirname(sidecar), f"{iteration_id}.json")
+        for p in (sidecar, ctx_file):
+            with suppress(OSError):
+                os.remove(p)
 
     async def _mark_in_flight(self, iteration_id: UUID, lease: datetime) -> None:
         async with db_session.AsyncSessionLocal() as db:

@@ -386,6 +386,23 @@ async def _emit_events(
                 await on_event(evt)
 
 
+async def emit_raw_event(
+    raw: dict[str, Any],
+    events_holder: list[dict[str, Any]] | None,
+    on_event: EventSink | None,
+    *,
+    max_events: int | None = None,
+) -> None:
+    """公开包装：把一条「原始 stream 事件」归一化后注入 ``events_holder``（定格 seq）并实时回调。
+
+    供 Runner 在单迭代两段式的「段间」注入 NegentropyEngine 的 Plan Review 评审事件
+    （``raw = {"type":"system","subtype":"plan_review","review_result": {...}}``）。复用
+    ``_normalize_stream_event`` 的 plan_review 分支，使评审作为独立事件渲染为 Engine「发言」，
+    其 seq 紧接 plan 段之后、与随后 implement 段事件无冲突（共享同一 ``events_holder``）。
+    """
+    await _emit_events(raw, events_holder, on_event, max_events=max_events)
+
+
 # 子进程 stdout 读取：手动分块 + 抬高 StreamReader 缓冲上限，规避 asyncio readline() 默认
 # 64KiB 上限导致的 LimitOverrunError（stream-json 单行可达数 MiB，如大 tool_result）。
 _STREAM_READER_LIMIT = 16 * 1024 * 1024  # 16 MiB
@@ -523,6 +540,7 @@ class ClaudeCodeService:
         config: ClaudeCodeConfig,
         abort_event: asyncio.Event | None = None,
         on_event: EventSink | None = None,
+        events_holder: list[dict[str, Any]] | None = None,
     ) -> ClaudeCodeResult:
         """调用 Claude Code 并等待完整结果。
 
@@ -531,13 +549,18 @@ class ClaudeCodeService:
         ``on_event``：可选「全过程」动作回调，服务每解析出一个归一化动作即 best-effort
         回调一次（供 Runner 实时发布 SSE）。无论成功 / 超时 / 取消 / 出错，已捕获的动作
         都会回带到 ``ClaudeCodeResult.events``（含 seq），供写回持久化。
+
+        ``events_holder``：可选「外部共享」动作容器。为空则内部新建（默认行为）；非空则跨多次
+        ``invoke`` 复用同一列表，使事件 ``seq`` 连续单调——单迭代两段式（plan 段 + implement 段）
+        据此保证两段事件 seq 无冲突（避免 ``ON CONFLICT(iteration_id,seq)`` 丢事件）。
         """
         t0 = time.monotonic()
         # 可变容器：内部协程一旦从 stream 起始 init 事件解析出 session_id 即写入，
         # 使超时/取消（wait_for 丢弃内部局部结果）路径仍能回带 session_id，让下一迭代续接。
         session_holder: dict[str, str | None] = {"session_id": None}
         # 同理：动作事件外溢容器，超时/取消/出错路径回带已捕获的部分事件流。
-        events_holder: list[dict[str, Any]] = []
+        # 外部传入则共享（跨段 seq 连续），否则内部新建。
+        events_holder = events_holder if events_holder is not None else []
         try:
             if ClaudeCodeService._check_sdk():
                 coro = ClaudeCodeService._invoke_sdk(
