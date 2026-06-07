@@ -41,7 +41,8 @@ async def test_run_refine_returns_feedback(monkeypatch):
     assert "AskUserQuestion" in reason  # 要求据此再次提交
 
 
-async def test_run_approve_tells_exit(monkeypatch):
+async def test_run_approve_tells_end_turn(monkeypatch):
+    """ISSUE-128：批准后指示 CC 结束本轮（不调 ExitPlanMode），引擎自动推进实施。"""
     _patch_review(
         monkeypatch,
         PlanReviewResult(ok=True, verdict="approve", score=92, feedback="结构清晰"),
@@ -49,23 +50,27 @@ async def test_run_approve_tells_exit(monkeypatch):
     reason = await h._run(
         {"tool_input": {"questions": [{"question": "plan"}]}}, {"goal": "g", "acceptance_criteria": "a"}
     )
-    assert "通过" in reason and "92" in reason and "ExitPlanMode" in reason
+    assert "通过" in reason and "92" in reason
+    assert "结束本轮" in reason  # 明确指示结束本轮，不调用工具
+    assert "无需调用 ExitPlanMode" in reason or "不要" in reason
+    assert "IMPLEMENT" in reason or "实施" in reason
 
 
 async def test_run_review_unavailable_fail_open(monkeypatch):
     _patch_review(monkeypatch, PlanReviewResult(ok=False, error="LLM down"))
     reason = await h._run({"tool_input": {}}, {"goal": "g", "acceptance_criteria": "a"})
-    assert "ExitPlanMode" in reason  # fail-open：不卡死，引导退出继续
+    # fail-open：不卡死，指示 CC 结束本轮（不再调用工具），引擎自动推进（ISSUE-128）
+    assert "结束本轮" in reason and "不要" in reason
 
 
-# --- ISSUE-126：ExitPlanMode 同走钩子返回「已批准、进入实施」deny+reason，消噪 ---
+# --- ISSUE-126/128：ExitPlanMode 同走钩子返回「已批准、结束本轮」deny+reason ---
 
 
 def test_exit_plan_approved_reason_content():
-    """ExitPlanMode 批准文案明确「已批准 + 进入实施 + 无需再调用」，CC 据此继续。"""
+    """ExitPlanMode 批准文案指示 CC 结束本轮、不再调用工具（ISSUE-128），引擎自动推进实施。"""
     r = h._EXIT_APPROVED_REASON
-    assert "已批准" in r and "进入实施" in r
-    assert "ExitPlanMode" in r and "AskUserQuestion" in r  # 明确告知无需再调用
+    assert "批准" in r and "结束本轮" in r
+    assert "不要" in r and ("IMPLEMENT" in r or "实施" in r)
 
 
 def test_main_exit_plan_emits_approval(monkeypatch, capsysbinary=None):
@@ -85,7 +90,7 @@ def test_main_exit_plan_emits_approval(monkeypatch, capsysbinary=None):
     )
     monkeypatch.setattr("sys.argv", ["plan_review_hook.py"])
     h.main()
-    assert "reason" in captured and "已批准" in captured["reason"]
+    assert "reason" in captured and "批准" in captured["reason"] and "结束本轮" in captured["reason"]
     # 确认 os 仍可用（fd 重定向不影响测试进程）
     assert os is not None
 

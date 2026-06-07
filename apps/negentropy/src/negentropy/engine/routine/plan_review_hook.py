@@ -110,10 +110,13 @@ async def _run(payload: dict, ctx: dict) -> str:
         plan_text=plan_text,
         reflections=reflections if isinstance(reflections, list) else None,
     )
+    # 批准后**结束本轮**而非调用 ExitPlanMode（ISSUE-128）：相位推进（PLAN→IMPLEMENT）纯由引擎
+    # `_advance_phase_or_terminate` 在下一次评估驱动，不依赖 CC 退出 Plan 模式；而 headless ExitPlanMode
+    # 恒被 CLI 标 is_error，CC 会误判失败而循环重试、空耗 turns。故批准/失败兜底均指示 CC「直接结束本轮」。
     if not result.ok:
         return (
-            "（NegentropyEngine 评审暂不可用）请直接调用 ExitPlanMode 退出 Plan 模式继续，"
-            "不要再次调用 AskUserQuestion。"
+            "（NegentropyEngine 评审暂不可用）请**直接结束本轮**"
+            "（不要调用 ExitPlanMode 或 AskUserQuestion）；引擎将自动推进到实施阶段。"
         )
 
     score = result.score if result.score is not None else "?"
@@ -122,7 +125,8 @@ async def _run(payload: dict, ctx: dict) -> str:
         return (
             f"✅ NegentropyEngine 已通过本方案审阅（评分 {score}/100）。"
             f"{('审阅意见：' + feedback) if feedback else ''}\n"
-            "请**直接调用 ExitPlanMode 退出 Plan 模式**进入实施，**不要再次调用 AskUserQuestion**。"
+            "方案已批准。请**直接结束本轮回复**——无需调用 ExitPlanMode 或任何工具；"
+            "引擎会自动推进到实施（IMPLEMENT）阶段并据本方案派发实施迭代。"
         )
     # refine（或兜底）
     return (
@@ -132,13 +136,13 @@ async def _run(payload: dict, ctx: dict) -> str:
     )
 
 
-# ExitPlanMode 批准文案（ISSUE-126）：headless 下 ExitPlanMode 必被 CLI 自动报错
-# （permissionDecision=allow 经实验**不能**消除 "Exit plan mode?" is_error；ExitPlanMode 的
-# 退出确认非 permission allow 可满足）。故同走 deny+reason，把「已批准、进入实施」的明确指令
-# 同轮回灌 CC——CC 据此继续实施（实测 probe4 seq13/17 已证实正确理解），消除 opaque CLI 错误。
+# ExitPlanMode 批准文案（ISSUE-126/128）：headless 下 ExitPlanMode 必被 CLI 标 is_error
+# （permissionDecision=allow 经实验**不能**消除）。若指示 CC「继续实施」，CC 会因 is_error 误判失败
+# 而循环重试 ExitPlanMode 空耗 turns（ISSUE-128 实测 3×）。而 PLAN→IMPLEMENT 推进纯由引擎下一次
+# 评估驱动、不依赖 ExitPlanMode，故明确指示 CC **结束本轮**——引擎自动推进实施阶段。
 _EXIT_APPROVED_REASON = (
-    "✅ NegentropyEngine 已批准退出 Plan 模式。你已进入实施阶段，"
-    "请直接按既定方案开始落地实现，无需再次调用 ExitPlanMode 或 AskUserQuestion。"
+    "✅ NegentropyEngine 已收到你的方案并批准。请**立即结束本轮回复**，"
+    "**不要再调用 ExitPlanMode 或任何工具**——引擎会自动推进到实施（IMPLEMENT）阶段并据方案派发实施迭代。"
 )
 
 

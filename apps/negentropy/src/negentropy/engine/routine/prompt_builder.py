@@ -103,7 +103,8 @@ def build_prompt(
             "  - 把你的**完整方案全文写入该工具的 `question` 字段**（审阅者只读取该字段，故方案务必完整自包含）；\n"
             "  - `options` 设为「批准方案」与「需要完善」两项。\n"
             "NegentropyEngine 将在**同一轮内**通过该工具的返回结果直接给你审阅反馈：\n"
-            "  - 若返回「✅ 已通过」：直接调用 ExitPlanMode 退出 Plan 模式进入实施，**不要再调用 AskUserQuestion**；\n"
+            "  - 若返回「✅ 已通过/已批准」：请**直接结束本轮回复**，**不要调用 ExitPlanMode 或任何工具**——"
+            "引擎会自动推进到实施阶段并派发实施迭代（plan 模式下 ExitPlanMode 在无头环境必报错、徒增空转）；\n"
             "  - 若返回「🔄 需完善」：请据反馈**修订方案后再次调用 AskUserQuestion 提交审阅**，直至通过。"
         )
     elif phase == PHASE_FINALIZE and worktree:

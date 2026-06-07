@@ -3041,3 +3041,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **同族作业的服务声明应保持一致或显式注释差异**——同一 reusable workflow 内 unit/integration/performance 三作业若对 DB 依赖一致，其 `services` 块应同构；本次以注释说明「unit 由 fixture 动态建库、无需 init 步骤」的正交差异，避免后人误删。
 - **同类问题影响**：所有经 `tests/conftest.py` 会话夹具运行的后端测试作业（本次 unit 已补齐；integration/performance 早已具备 service）；`cognizes` 等其它 app 若引入同形 autouse 建库夹具，须同步核验其 `backend-unit` 服务块。
 - **验证**：本地以可达 pgvector（pg16/vector 0.8.x）复现 CI——原报错的 `test_permissions.py`/`test_scheduler_api.py` **27 passed**、本 PR 新增 `test_skills_injector.py` **34 passed**；fixture 仅触碰派生的 `*_test` 库，生产 `negentropy` 库只读零改动（66 表完好，恪守 ISSUE-111 安全不变量）；`pyyaml` 解析校验三作业 `services.postgres` 均为 `pgvector/pgvector:pg16` + `5432:5432`。
+
+## ISSUE-128 approve 后 CC 循环调用 ExitPlanMode 空耗 turns（2026-06-07）
+
+- **表因**：ISSUE-127 修复后强 sonnet 实审通过（探针 `6a43ed9e` seq12 评分 92 实审），但 CC 随后**循环调用 ExitPlanMode 3×**（seq14/23/30），每次 tool_result `is_error=true`，CC 误判失败而重试，空耗 turns（虽最终仍 break 出去写了 6 个文件）。
+- **根因**：headless ExitPlanMode 恒被 CLI 标 `is_error`（ISSUE-126 已证 allow 不能消除）；而 prompt/approve-reason 此前指示「批准后调用 ExitPlanMode 进入实施」，CC 见 is_error 即循环重试。但 **PLAN→IMPLEMENT 推进纯由引擎 `_advance_phase_or_terminate` 在下一次评估驱动、根本不依赖 CC 退出 Plan 模式**——ExitPlanMode 在此语境下是无意义的交互残留。
+- **处理方式**：approve-reason、`_EXIT_APPROVED_REASON`、PLAN prompt 三处统一改为「批准后**直接结束本轮回复**，不要调用 ExitPlanMode 或任何工具，引擎将自动推进实施阶段」。消除循环与 is_error 噪声。
+- **后续防范**：无头自治闭环中，凡「依赖人机交互确认才推进」的工具（ExitPlanMode）若其状态推进实为引擎驱动，应明确指示 Agent 跳过该工具、结束本轮，而非让其与 CLI 的 is_error 反复缠斗。
+- **同类问题影响**：所有 PLAN 相位经钩子审阅的 routine。
+- **验证**：单测 `test_run_approve_tells_end_turn` + `test_exit_plan_approved_reason_content`（结束本轮、不调工具、引擎推进）；hook 单测 10 例全绿。实机复验见复刻长跑。
