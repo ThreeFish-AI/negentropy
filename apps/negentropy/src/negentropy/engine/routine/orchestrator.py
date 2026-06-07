@@ -150,11 +150,15 @@ def _write_plan_review_ctx(routine: Routine) -> str:
     reflections = (
         list((routine.reflections or {}).get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
     )
+    # per-routine 审阅模型覆盖（ISSUE-125，镜像 evaluator_model 的 ISSUE-121 范式）：
+    # 重型复刻类 routine 的方案审阅须能指定强模型，弱模型（gpt-5-nano）审阅意见不可靠、
+    # 直接误导 CC 修订方向。None → 回退全局 settings.routine.plan_review_model。
+    plan_review_model = (routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model
     ctx = {
         "goal": routine.goal or "",
         "acceptance_criteria": routine.acceptance_criteria or "",
         "reflections": reflections,
-        "model": settings.routine.plan_review_model,
+        "model": plan_review_model,
         "timeout": settings.routine.plan_review_timeout_seconds,
     }
     ctx_dir = os.path.join(tempfile.gettempdir(), "negentropy-pr-ctx")
@@ -1306,12 +1310,21 @@ class RoutineOrchestrator:
             # 超 Claude Code PreToolUse 默认超时（~10s）即被放弃 → CC 落回 CLI 自动报错
             # "Answer questions?"（评审反馈丢失，ISSUE-123 实测复发根因）。取 review 超时 + 充裕余量。
             hook_timeout = int(settings.routine.plan_review_timeout_seconds) + 30
-            settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", []).append(
+            hook_cmd = _plan_review_hook_command(ctx_path)
+            pre = settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
+            pre.append(
                 {
                     "matcher": "AskUserQuestion",
-                    "hooks": [
-                        {"type": "command", "command": _plan_review_hook_command(ctx_path), "timeout": hook_timeout}
-                    ],
+                    "hooks": [{"type": "command", "command": hook_cmd, "timeout": hook_timeout}],
+                }
+            )
+            # ISSUE-126：ExitPlanMode 同走钩子返回「已批准、进入实施」deny+reason，消除 headless 下
+            # opaque "Exit plan mode?" is_error 噪声（allow 经实验不能消除，故同钩子分支处理）。
+            # 该分支无 LLM、瞬时返回，无需大 timeout。
+            pre.append(
+                {
+                    "matcher": "ExitPlanMode",
+                    "hooks": [{"type": "command", "command": hook_cmd, "timeout": 15}],
                 }
             )
         if settings_obj:

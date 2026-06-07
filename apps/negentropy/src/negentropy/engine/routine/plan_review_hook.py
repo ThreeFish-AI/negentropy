@@ -132,14 +132,29 @@ async def _run(payload: dict, ctx: dict) -> str:
     )
 
 
+# ExitPlanMode 批准文案（ISSUE-126）：headless 下 ExitPlanMode 必被 CLI 自动报错
+# （permissionDecision=allow 经实验**不能**消除 "Exit plan mode?" is_error；ExitPlanMode 的
+# 退出确认非 permission allow 可满足）。故同走 deny+reason，把「已批准、进入实施」的明确指令
+# 同轮回灌 CC——CC 据此继续实施（实测 probe4 seq13/17 已证实正确理解），消除 opaque CLI 错误。
+_EXIT_APPROVED_REASON = (
+    "✅ NegentropyEngine 已批准退出 Plan 模式。你已进入实施阶段，"
+    "请直接按既定方案开始落地实现，无需再次调用 ExitPlanMode 或 AskUserQuestion。"
+)
+
+
 def main() -> None:
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
     except Exception:
         payload = {}
-    # 仅处理 AskUserQuestion；其它工具放行（输出空 → 不干预）。
-    if (payload.get("tool_name") or "") != "AskUserQuestion":
+    tool_name = payload.get("tool_name") or ""
+    # ExitPlanMode：返回「已批准、进入实施」的 deny+reason（消除 opaque "Exit plan mode?" 噪声）。
+    if tool_name == "ExitPlanMode":
+        _emit(_EXIT_APPROVED_REASON)
+        return
+    # 仅处理 AskUserQuestion；其它工具不干预（输出空）。
+    if tool_name != "AskUserQuestion":
         return
     ctx: dict = {}
     if len(sys.argv) > 1:

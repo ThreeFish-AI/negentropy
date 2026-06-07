@@ -2982,6 +2982,24 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **残留小问题（低优先）**：ExitPlanMode 同样被 headless CLI 自动报错（seq16 `"Exit plan mode?" is_error=true`），但此处无害——CC 正确理解为「已批准、继续」并进入实施。可后续让同一钩子对 ExitPlanMode 也 allow/无害化，进一步消噪。
 - **回归**：plan_review_hook 单测 5 + _build_config 集成 7 + routine 单测全绿；钩子从任意 cwd 输出纯净单行 JSON、exit 0。
 
+## ISSUE-125 `plan_review_model` 无 per-routine 覆盖——重型复刻方案审阅仍由弱模型把关（2026-06-07）
+
+- **表因**：`orchestrator._write_plan_review_ctx` 只读全局 `settings.routine.plan_review_model`（默认 None → 解析到弱模型 gpt-5-nano）；重型复刻类 routine 的**方案审阅**无法指定强模型。
+- **根因**：与 ISSUE-121 同源缺口的对偶——评估侧 Judge 已在 ISSUE-121 拿到 per-routine `config.evaluator_model` 覆盖（orchestrator `_do_evaluate`），但**方案审阅侧 Plan Reviewer 漏配**对应的 per-routine 覆盖。审阅意见质量直接决定 CC 修订方向，弱模型审阅不可靠（同 ISSUE-116/121 的「弱模型裁决/审阅不可信」），在 Plan 闸门处仍开放。
+- **处理方式**（镜像 ISSUE-121 范式，最小干预）：`_write_plan_review_ctx` 的 `model` 改为 `(routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model`。hook 从 ctx 读 model 无需改。
+- **后续防范**：成对能力（评估 Judge / 方案 Reviewer）的「强模型覆盖」配置须对称落地——新增一侧覆盖时同步审计另一侧是否同源缺失。
+- **同类问题影响**：所有启用 Plan Review 的 routine；尤以重型复刻/迁移类需强模型审阅者。
+- **验证**：单测 `test_write_plan_review_ctx_per_routine_model_override`（config 覆盖）+ `test_write_plan_review_ctx_falls_back_to_global`（回退全局）。
+
+## ISSUE-126 ExitPlanMode 残留 headless 自动报错噪声——同钩子返回「已批准」消噪（2026-06-07）
+
+- **表因**：ISSUE-123 修复 AskUserQuestion 后，ExitPlanMode 仍走 service.py 的 stdin auto-answer（headless 下同样无效）→ 实测 probe4 seq16 `{"output":"Exit plan mode?","is_error":true}`。无害（CC 理解为已批准继续）但属同根残留噪声、污染审计。
+- **根因**：headless `claude -p` 下 ExitPlanMode 与 AskUserQuestion 同类——CLI 自动报错、不读 stdin tool_result。受控实验另证 PreToolUse `permissionDecision=allow` **不能**消除（ExitPlanMode 的退出确认非 permission allow 可满足）。
+- **处理方式**：ExitPlanMode 同走 `plan_review_hook.py`（按 tool_name 分支），返回 `deny + permissionDecisionReason=「✅ 已批准退出 Plan 模式，进入实施…无需再调用」`。受控实验证实该 reason 同轮回灌 CC（替代 opaque "Exit plan mode?"），CC 据此继续实施。orchestrator settings 追加 ExitPlanMode matcher（瞬时分支、timeout=15）；service.py 在 `plan_review_via_hook` 时跳过失效的 ExitPlanMode stdin auto-answer。
+- **后续防范**：headless 交互工具（AskUserQuestion/ExitPlanMode）的「应答」一律经 PreToolUse 钩子 deny+reason 投递，不依赖 stdin auto-answer（其对这两个工具自始无效）。
+- **同类问题影响**：所有 PLAN 相位经钩子评审的 worktree routine。
+- **验证**：单测 `test_exit_plan_approved_reason_content` + `test_main_exit_plan_emits_approval` + `test_main_unrelated_tool_no_emit`；钩子对 ExitPlanMode 输出批准 JSON。routine 单测 141 + build_config 7 + claude_code 163 全绿。实机复验见下轮。
+
 ---
 
 ## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」

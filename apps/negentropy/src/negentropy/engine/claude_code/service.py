@@ -1362,6 +1362,14 @@ class ClaudeCodeService:
 
                                 # ---- ExitPlanMode：自动批准退出 Plan 模式 ----
                                 if tool_name == ClaudeCodeService._EXIT_PLAN_TOOL:
+                                    # ISSUE-126：plan_review_via_hook 时 ExitPlanMode 由 PreToolUse 钩子
+                                    # 同轮 deny+「已批准」reason 处理（headless 下 stdin auto-answer 对其
+                                    # 同样无效、徒留 "Exit plan mode?" 噪声）。此处仅发射原始事件供审计、跳过失效写回。
+                                    if (config.auto_answer_context or {}).get("plan_review_via_hook"):
+                                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                                        logger.info("claude_code_exit_plan_delegated_to_hook", tool_use_id=tool_use_id)
+                                        _skip_emit = True
+                                        continue
                                     auto_answer_count += 1
                                     answer = "Plan approved. You may exit plan mode now."
                                     msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)

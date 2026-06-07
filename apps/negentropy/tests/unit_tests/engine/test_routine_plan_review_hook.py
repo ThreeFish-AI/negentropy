@@ -56,3 +56,90 @@ async def test_run_review_unavailable_fail_open(monkeypatch):
     _patch_review(monkeypatch, PlanReviewResult(ok=False, error="LLM down"))
     reason = await h._run({"tool_input": {}}, {"goal": "g", "acceptance_criteria": "a"})
     assert "ExitPlanMode" in reason  # fail-open：不卡死，引导退出继续
+
+
+# --- ISSUE-126：ExitPlanMode 同走钩子返回「已批准、进入实施」deny+reason，消噪 ---
+
+
+def test_exit_plan_approved_reason_content():
+    """ExitPlanMode 批准文案明确「已批准 + 进入实施 + 无需再调用」，CC 据此继续。"""
+    r = h._EXIT_APPROVED_REASON
+    assert "已批准" in r and "进入实施" in r
+    assert "ExitPlanMode" in r and "AskUserQuestion" in r  # 明确告知无需再调用
+
+
+def test_main_exit_plan_emits_approval(monkeypatch, capsysbinary=None):
+    """main() 对 ExitPlanMode 载荷输出 deny + 批准 reason 的纯 JSON（经原始 stdout fd）。"""
+    import json
+    import os
+
+    # 捕获 _emit 写入的原始 fd：替换为管道读端
+    captured = {}
+
+    def _fake_emit(reason):
+        captured["reason"] = reason
+
+    monkeypatch.setattr(h, "_emit", _fake_emit)
+    monkeypatch.setattr(
+        "sys.stdin", __import__("io").StringIO(json.dumps({"tool_name": "ExitPlanMode", "tool_input": {"plan": "x"}}))
+    )
+    monkeypatch.setattr("sys.argv", ["plan_review_hook.py"])
+    h.main()
+    assert "reason" in captured and "已批准" in captured["reason"]
+    # 确认 os 仍可用（fd 重定向不影响测试进程）
+    assert os is not None
+
+
+def test_main_unrelated_tool_no_emit(monkeypatch):
+    """非 AskUserQuestion/ExitPlanMode 工具：不干预（不调用 _emit）。"""
+    import json
+
+    called = {"n": 0}
+    monkeypatch.setattr(h, "_emit", lambda r: called.__setitem__("n", called["n"] + 1))
+    monkeypatch.setattr("sys.stdin", __import__("io").StringIO(json.dumps({"tool_name": "Bash", "tool_input": {}})))
+    monkeypatch.setattr("sys.argv", ["plan_review_hook.py"])
+    h.main()
+    assert called["n"] == 0
+
+
+# --- ISSUE-125：plan_review_model 的 per-routine 覆盖流入 ctx ---
+
+
+def test_write_plan_review_ctx_per_routine_model_override(tmp_path, monkeypatch):
+    """config.plan_review_model 覆盖全局 settings.routine.plan_review_model 写入 ctx 文件。"""
+    import json
+    import uuid
+    from types import SimpleNamespace
+
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    # 写入 tmp 目录，避免污染真实 /tmp
+    monkeypatch.setattr(orch_mod.tempfile, "gettempdir", lambda: str(tmp_path))
+
+    routine = SimpleNamespace(
+        id=uuid.uuid4(),
+        goal="g",
+        acceptance_criteria="a",
+        reflections={"items": ["r1"]},
+        config={"plan_review_model": "anthropic/claude-sonnet-4-6"},
+    )
+    path = orch_mod._write_plan_review_ctx(routine)
+    ctx = json.load(open(path, encoding="utf-8"))
+    assert ctx["model"] == "anthropic/claude-sonnet-4-6", "per-routine plan_review_model 须覆盖全局默认"
+    assert ctx["goal"] == "g" and ctx["reflections"] == ["r1"]
+
+
+def test_write_plan_review_ctx_falls_back_to_global(tmp_path, monkeypatch):
+    """未设 config.plan_review_model 时回退全局 settings.routine.plan_review_model。"""
+    import json
+    import uuid
+    from types import SimpleNamespace
+
+    from negentropy.config import settings
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    monkeypatch.setattr(orch_mod.tempfile, "gettempdir", lambda: str(tmp_path))
+    routine = SimpleNamespace(id=uuid.uuid4(), goal="g", acceptance_criteria="a", reflections={}, config={})
+    path = orch_mod._write_plan_review_ctx(routine)
+    ctx = json.load(open(path, encoding="utf-8"))
+    assert ctx["model"] == settings.routine.plan_review_model  # 全局默认（None → 走 task_registry）
