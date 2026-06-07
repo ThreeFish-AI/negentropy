@@ -3050,3 +3050,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：无头自治闭环中，凡「依赖人机交互确认才推进」的工具（ExitPlanMode）若其状态推进实为引擎驱动，应明确指示 Agent 跳过该工具、结束本轮，而非让其与 CLI 的 is_error 反复缠斗。
 - **同类问题影响**：所有 PLAN 相位经钩子审阅的 routine。
 - **验证**：单测 `test_run_approve_tells_end_turn` + `test_exit_plan_approved_reason_content`（结束本轮、不调工具、引擎推进）；hook 单测 10 例全绿。实机复验见复刻长跑。
+
+## ISSUE-129 强模型 Plan Review 在大型方案上超时（plan_review_timeout=60 过小 + 钩子重试预算错配）（2026-06-07）
+
+- **表因**：复刻长跑 `b378039d` seq1（重型任务，CC 探索 19 turns/666 事件后提交大型方案）的 Plan Review 失败——CC 收到 `"Answer questions?"`（ISSUE-123 老症状复现），评审反馈未送达。但评估侧 sonnet Judge 同轮**成功**（score=18/stalled/acceptance_met=false，反思详实）。
+- **根因**（钩子日志实证 `litellm.Timeout ... Timeout passed=60.0, time taken=60.002`）：① `plan_review_timeout_seconds=60`（为弱模型 nano 调的默认）对强模型 sonnet 审阅**大型方案**过小，单次 LLM 调用即超 60s；② 钩子内 PlanReviewer `max_retries=3`，最坏 3×60=180s，而 orchestrator 给钩子的 `hook_timeout=plan_review_timeout+30=90s` **覆盖不了重试总耗时** → Claude Code PreToolUse 超时杀钩子 → CC 落回 `"Answer questions?"`。两处叠加：超时过小 + 重试预算错配。
+- **处理方式**：① `plan_review_timeout_seconds` 默认 60→**120**（强模型大方案足够，实测大方案审阅 24.8s）；② 新增 per-routine `config.plan_review_timeout_seconds` 覆盖（写入 ctx）；③ 钩子内 PlanReviewer **`max_retries=1`**——钩子受 PreToolUse 硬超时约束，真正「重试」是 CC 据 refine 反馈重新提交（外层闭环），钩子内多次重试只会撑爆超时预算；④ `hook_timeout = review_timeout + 45`（单次尝试 + 冷启动余量，不再 ×retries）。
+- **后续防范**：① 为弱模型调的超时/重试默认，切强模型时必须复核（强模型更慢、输出更长）；② 受外层硬超时约束的子调用（钩子/gate）其内部重试次数 × 单次超时必须 ≤ 外层预算，否则永远在耗尽重试前被杀；③ 「重试边界」应设在正确的层级——评审的重试是 CC 重新提交，而非钩子内空转。
+- **同类问题影响**：所有用强模型 plan_review 且方案较大的 routine（即 ISSUE-125 的目标重型复刻场景）。eval Judge 因用独立的 `evaluate_judge_timeout_seconds`（更大）未受影响。
+- **验证**：端到端 sonnet 审阅大型方案 `elapsed=24.8s ok=True`（修复前 60s 超时 ×3 全败）；hook 单测 10 + build_config 集成 7 全绿。当前长跑已进 IMPLEMENT（评审失败非致命、引擎照常推进，ISSUE-128/相位机驱动），修复对后续 PLAN 迭代与新 routine 生效。

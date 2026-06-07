@@ -154,12 +154,16 @@ def _write_plan_review_ctx(routine: Routine) -> str:
     # 重型复刻类 routine 的方案审阅须能指定强模型，弱模型（gpt-5-nano）审阅意见不可靠、
     # 直接误导 CC 修订方向。None → 回退全局 settings.routine.plan_review_model。
     plan_review_model = (routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model
+    # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
+    plan_review_timeout = (routine.config or {}).get("plan_review_timeout_seconds") or (
+        settings.routine.plan_review_timeout_seconds
+    )
     ctx = {
         "goal": routine.goal or "",
         "acceptance_criteria": routine.acceptance_criteria or "",
         "reflections": reflections,
         "model": plan_review_model,
-        "timeout": settings.routine.plan_review_timeout_seconds,
+        "timeout": plan_review_timeout,
     }
     ctx_dir = os.path.join(tempfile.gettempdir(), "negentropy-pr-ctx")
     with suppress(OSError):
@@ -1306,10 +1310,15 @@ class RoutineOrchestrator:
             # ISSUE-123：PLAN 相位经 PreToolUse 钩子拦截 AskUserQuestion，由 Engine 评审并同轮
             # deny+reason 回灌 CC（headless 下 stdin auto-answer 对 AskUserQuestion 无效）。
             ctx_path = _write_plan_review_ctx(routine)
-            # hook timeout 必须 ≥ 钩子实际耗时（引擎冷启动 + PlanReviewer LLM ≈ 15-20s），否则
-            # 超 Claude Code PreToolUse 默认超时（~10s）即被放弃 → CC 落回 CLI 自动报错
-            # "Answer questions?"（评审反馈丢失，ISSUE-123 实测复发根因）。取 review 超时 + 充裕余量。
-            hook_timeout = int(settings.routine.plan_review_timeout_seconds) + 30
+            # hook timeout 必须覆盖钩子实际耗时（引擎冷启动 ~10s + PlanReviewer 单次 LLM 调用 ≤ review_timeout），
+            # 否则超 Claude Code PreToolUse 超时被杀 → CC 落回 "Answer questions?"（ISSUE-123/129）。
+            # 钩子内 PlanReviewer max_retries=1（见 plan_review_hook），故 = per-routine review_timeout + 冷启动余量；
+            # per-routine config.plan_review_timeout_seconds 覆盖（强模型大方案需 >60s，ISSUE-129）。
+            review_timeout = int(
+                (routine.config or {}).get("plan_review_timeout_seconds")
+                or settings.routine.plan_review_timeout_seconds
+            )
+            hook_timeout = review_timeout + 45
             hook_cmd = _plan_review_hook_command(ctx_path)
             pre = settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
             pre.append(

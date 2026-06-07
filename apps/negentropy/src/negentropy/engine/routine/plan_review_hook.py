@@ -100,9 +100,13 @@ async def _run(payload: dict, ctx: dict) -> str:
 
     plan_text = _extract_plan_text(payload.get("tool_input") or {})
     reflections = ctx.get("reflections") or None
+    # max_retries=1（ISSUE-129）：钩子受 Claude Code PreToolUse 超时硬约束，多次重试 × timeout 会超钩子
+    # 预算被杀致 CC 落回 "Answer questions?"。钩子内单次尝试即可——真正的「重试」是 CC 据 refine 反馈
+    # 重新提交（外层闭环），无需在钩子内重试空耗时间预算。
     reviewer = PlanReviewer(
         explicit_model=ctx.get("model"),
-        timeout_seconds=int(ctx.get("timeout") or 60),
+        timeout_seconds=int(ctx.get("timeout") or 120),
+        max_retries=1,
     )
     result = await reviewer.review(
         goal=ctx.get("goal") or "",
