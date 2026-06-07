@@ -2953,4 +2953,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**（最小干预）：`_build_config` 在 `auto_answer_questions` 开启时，强制把 `AskUserQuestion` + `ExitPlanMode` 并入 `config.allowed_tools`（幂等，去重），使 CLI 放行二者、Engine 经 stdin 的 Plan Review/auto-answer 得以送达 CC，评审反馈链路恢复（CC 可据反馈完善或通过）。新增模块常量 `_INTERACTIVE_AUTO_ANSWER_TOOLS`。
 - **后续防范**：① 任何「依赖工具被 CLI 放行才能运作」的机制（auto-answer/plan-review），其所需工具必须由引擎强制进白名单，不能假定用户 config 含之；② 交互工具的 tool_result `is_error=true` + 许可提示串（"Answer questions?"/"Exit plan mode?"）是「工具被白名单拒绝」的指纹，排障可据此快速定位；③ 评审反馈这类「写回 stdin 必达」语义，应有送达确认/失败可观测，而非静默被拒。
 - **同类问题影响**：所有启用 auto_answer/plan-review 且 `allowed_tools` 未含交互工具的 routine（含全部沿用模板 8 工具者）——即此前**所有** worktree routine 的 Plan Review 反馈均未真正送达 CC，评审形同虚设。
-- **验证**：集成测试 `test_build_config_forces_interactive_tools_when_auto_answer` + `test_build_config_per_routine_tools_override`（覆盖工具+强制并入交互工具）；_build_config 7 例、routine 单测 131 全绿。实机复跑验证见下文。
+- **验证**：集成测试 `test_build_config_forces_interactive_tools_when_auto_answer` + `test_build_config_per_routine_tools_override`（覆盖工具+强制并入交互工具）；_build_config 7 例、routine 单测 131 全绿。
+
+### ISSUE-123 深层根因（受控实验定性，2026-06-07）
+- **allowed_tools 白名单仅是必要前提，非完整修复**：把 AskUserQuestion/ExitPlanMode 并入 allowed_tools 后实机复跑（探针 routine `cf3022c9`），CC 收到的 AskUserQuestion tool_result **仍为 `{"output":"Answer questions?","is_error":true}`**。即白名单放行后问题依旧。
+- **受控实验（ground truth）**：直接 `printf '<stream-json user msg>' | claude -p --input-format stream-json --output-format stream-json --permission-mode default --model claude-haiku-4-5`，强制模型调用 AskUserQuestion，观察到 CLI **立即**自emit `user` tool_result `is_error=true out="Answer questions?"`，**根本不读 stdin、不发 control_request**。结论：**claude 2.1.150 headless(`-p`) 下 AskUserQuestion 被 CLI 即时自动报错解析，无法经 stdin tool_result 应答**——引擎「检测 tool_use → 写 stdin tool_result 应答」的交互式 auto-answer 机制对 AskUserQuestion 自始无效（CC 只是吞掉错误继续、自行 ExitPlanMode 单方面交付）。Plan Review 反馈物理无法经此通道送达 CC。
+- **可行性勘察**：① `--permission-prompt-tool` 在 homebrew 2.1.150 与 conductor 2.1.156 的 `--help` 均**未暴露**（不可经 CLI flag 启用）；② `claude_code_sdk` / `claude_agent_sdk` **均未安装**（引擎 `_invoke_sdk` 为死路径）。故「同轮答复」两条路径（SDK canUseTool / --permission-prompt-tool stdio）均非现成可用，需较大改造且 canUseTool 能否真正「答复」（而非仅许可）AskUserQuestion 尚待证实。
+- **两条修复路线**（待定）：
+  1. **跨迭代评审闭环**（headless 鲁棒、可立即落地）：PLAN prompt 不再让 CC 用 AskUserQuestion，改为直接产出方案；引擎迭代后评审，未通过则留在 PLAN 相位 + 反馈注入下一轮（CC 据此完善），通过才推进 IMPLEMENT。实现用户「提交→评审→反馈→完善/通过」意图，只是改为相邻迭代之间。
+  2. **同轮答复**（保留单轮内闭环，改动大、可行性待证）：安装 `claude_code_sdk` 并改走 SDK `query()` + `can_use_tool` 回调（或确证 conductor 隐藏 flag 的 stdio 控制协议），由引擎在回调内返回 AskUserQuestion 答复。
+- **当前状态**：allowed_tools 前提修复已提交（`2eea8249`）；完整修复路线待与用户确认后实施（用户已倾向路线 2，但其依赖项非现成、需评估投入与可行性）。
