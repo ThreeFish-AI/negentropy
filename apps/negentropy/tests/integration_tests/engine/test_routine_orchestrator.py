@@ -804,14 +804,39 @@ async def test_build_config_uses_routine_default_tools():
 
 
 async def test_build_config_per_routine_tools_override():
-    """per-routine config.allowed_tools 显式指定时，覆盖 Routine 扩展默认值。"""
+    """per-routine config.allowed_tools 显式指定时覆盖默认；交互工具被强制并入（ISSUE-123）。"""
     rid = await _make_routine(cwd="/tmp", config={"allowed_tools": ["Bash", "Read"]})
     try:
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
             config = await orch._build_config(r)
-            assert config.allowed_tools == ["Bash", "Read"]
+            # 显式覆盖的基础工具保留在前
+            assert config.allowed_tools[:2] == ["Bash", "Read"]
+            # auto_answer 默认开 → 交互工具被强制并入（见 test_build_config_forces_interactive_tools）
+            assert "AskUserQuestion" in config.allowed_tools
+            assert "ExitPlanMode" in config.allowed_tools
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_forces_interactive_tools_when_auto_answer():
+    """ISSUE-123：auto_answer_questions 开启时，AskUserQuestion + ExitPlanMode 必入 allowed_tools。
+
+    根因回归锁定：二者不在白名单 → CLI 拒绝（tool_result is_error "Answer questions?"/"Exit plan mode?"）
+    → Engine 经 stdin 写回的 Plan Review/auto-answer 永不送达 CC → 评审反馈闭环失效、CC 报错后单方面
+    ExitPlanMode 交付。强制并入即修复反馈链路。
+    """
+    rid = await _make_routine(cwd="/tmp", config={"allowed_tools": ["Bash"]})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r)
+            assert "AskUserQuestion" in config.allowed_tools, "交互应答须放行 AskUserQuestion"
+            assert "ExitPlanMode" in config.allowed_tools, "交互应答须放行 ExitPlanMode"
+            # 不重复并入（幂等）
+            assert config.allowed_tools.count("AskUserQuestion") == 1
     finally:
         await _cleanup(rid)
 

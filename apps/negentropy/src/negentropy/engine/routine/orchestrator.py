@@ -69,6 +69,13 @@ _ROUTINE_DEFAULT_TOOLS = [
     "mcp__playwright",
 ]
 
+# 交互式自动应答所需工具：Engine 经 stdin 写回 tool_result 应答这两个工具（Plan Review / 通用
+# auto-answer / 退出 Plan 模式）。二者**必须**在 allowed_tools 白名单内，否则 CLI 直接拒绝
+# （tool_result `is_error=true`，输出 "Answer questions?" / "Exit plan mode?"），Engine 写回 stdin
+# 的应答永远无法被 CC 消费——Plan Review 反馈送达失败、CC 报错后自行 ExitPlanMode 单方面交付，
+# 评审闭环（CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过）形同虚设（ISSUE-123）。
+_INTERACTIVE_AUTO_ANSWER_TOOLS = ("AskUserQuestion", "ExitPlanMode")
+
 # 非终态迭代状态（一个 routine 同时至多存在一个）。
 # 'evaluating' = 已执行完毕、后台评估在途；纳入「单在途」判定，避免评估期间误派发新迭代。
 _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed", "evaluating")
@@ -1255,6 +1262,14 @@ class RoutineOrchestrator:
         # 启用交互模式：Engine 自动应答 AskUserQuestion，使 CC 继续执行而非失败退出。
         if settings.routine.auto_answer_questions:
             config.interactive = True
+            # 强制并入交互工具白名单（ISSUE-123）：Plan Review / auto-answer 依赖 CLI 放行
+            # AskUserQuestion + ExitPlanMode，否则二者被 allowed_tools 白名单拒绝（is_error），
+            # Engine 经 stdin 写回的评审反馈/应答永远无法送达 CC，评审闭环失效。
+            merged_tools = list(config.allowed_tools or [])
+            for _t in _INTERACTIVE_AUTO_ANSWER_TOOLS:
+                if _t not in merged_tools:
+                    merged_tools.append(_t)
+            config.allowed_tools = merged_tools
             config.auto_answer_context = {
                 "goal": routine.goal,
                 "acceptance_criteria": routine.acceptance_criteria,

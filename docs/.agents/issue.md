@@ -2945,3 +2945,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① 见 ISSUE-119 根因修复（DB 按 workspace 唯一化，dev 库亦然）；② cli.sh 迁移步骤宜容忍「DB 版本超前本地 head」（视为 no-op + 告警）而非裸报错中止——超前是共享 DB 常态，不应阻断启动。
 - **同类问题影响**：共享 postgres 上多 workspace 并发开发的启动链路；环境性，非产品代码缺陷。
 - **验证**：stamp 0062→启动→恢复 0064 后四服务正常拉起。
+
+## ISSUE-123 交互工具未入白名单致 Plan Review 反馈无法送达 CC，评审闭环 DOA（2026-06-07）
+
+- **表因**（用户实机指认 routine `5ae4af6e` Iteration#1）：CC Turn 9 经 `AskUserQuestion` 提交 Plan、NegentropyEngine 产出 Plan Review，但**该 Review 从未送达 CC**；Turn 10 报错，Turn 12 跳过评审问询自行 `ExitPlanMode`，Turn 18 单方面交付 Plan。预期闭环「CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过」名存实亡。
+- **根因**（事件级实证）：iteration 事件 seq218 `tool_use AskUserQuestion` → seq219 `plan_review`(Engine 算出 refine/38) → **seq220 送达 CC 的 tool_result = `{"output":"Answer questions?","is_error":true}`**（非评审反馈）；seq223/225 `ExitPlanMode` → `{"output":"Exit plan mode?","is_error":true}`。即 CLI 因 `--allowed-tools` 白名单**不含 AskUserQuestion/ExitPlanMode** 而直接拒绝二者（返回许可提示串 + `is_error=true`），Engine 经 stdin 写回的应答根本无法被消费。`_build_config` 启用 `interactive=True`（`auto_answer_questions` 默认开）却从未把这两个交互应答工具并入 `allowed_tools`——per-routine `config.allowed_tools`（模板仅 8 工具）与 `_ROUTINE_DEFAULT_TOOLS` 均不含之。v4 routine 实测同样复现（seq485→487）。
+- **处理方式**（最小干预）：`_build_config` 在 `auto_answer_questions` 开启时，强制把 `AskUserQuestion` + `ExitPlanMode` 并入 `config.allowed_tools`（幂等，去重），使 CLI 放行二者、Engine 经 stdin 的 Plan Review/auto-answer 得以送达 CC，评审反馈链路恢复（CC 可据反馈完善或通过）。新增模块常量 `_INTERACTIVE_AUTO_ANSWER_TOOLS`。
+- **后续防范**：① 任何「依赖工具被 CLI 放行才能运作」的机制（auto-answer/plan-review），其所需工具必须由引擎强制进白名单，不能假定用户 config 含之；② 交互工具的 tool_result `is_error=true` + 许可提示串（"Answer questions?"/"Exit plan mode?"）是「工具被白名单拒绝」的指纹，排障可据此快速定位；③ 评审反馈这类「写回 stdin 必达」语义，应有送达确认/失败可观测，而非静默被拒。
+- **同类问题影响**：所有启用 auto_answer/plan-review 且 `allowed_tools` 未含交互工具的 routine（含全部沿用模板 8 工具者）——即此前**所有** worktree routine 的 Plan Review 反馈均未真正送达 CC，评审形同虚设。
+- **验证**：集成测试 `test_build_config_forces_interactive_tools_when_auto_answer` + `test_build_config_per_routine_tools_override`（覆盖工具+强制并入交互工具）；_build_config 7 例、routine 单测 131 全绿。实机复跑验证见下文。
