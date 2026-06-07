@@ -106,6 +106,17 @@ def _append_review_sidecar(path: str | None, record: dict) -> None:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+def _count_prior_reviews(path: str | None) -> int:
+    """统计 sidecar 中已记录的评审轮次（非空行数）——用于单 Iteration 内 refine 轮次封顶。"""
+    if not path:
+        return 0
+    try:
+        with open(path, encoding="utf-8") as f:
+            return sum(1 for line in f if line.strip())
+    except OSError:
+        return 0
+
+
 def _extract_plan_text(tool_input: dict) -> str:
     """从 ExitPlanMode / AskUserQuestion 的 tool_input 提取 CC 提交的方案全文。
 
@@ -137,6 +148,27 @@ def _extract_plan_text(tool_input: dict) -> str:
 async def _run(payload: dict, ctx: dict) -> str:
     from negentropy.engine.routine.plan_reviewer import PlanReviewer
 
+    sidecar = ctx.get("review_sidecar_path")
+    # 单 Iteration 内 Plan Review 轮次封顶：CC 据 refine 反馈反复修订重提时，达上限即**强制放行**
+    # （不再调用 PlanReviewer），由 CC 直接进入实施、下游 gate+Judge 兜底，防止 refine 闭环无限空耗
+    # turns/预算。已评轮次以 sidecar 行数计；max_refines 来自 ctx（per-routine 可覆盖，默认 5）。
+    max_refines = int(ctx.get("max_refines") or 5)
+    if _count_prior_reviews(sidecar) >= max_refines:
+        _append_review_sidecar(
+            sidecar,
+            {
+                "verdict": "approve",
+                "score": None,
+                "feedback": f"已达本迭代 Plan Review 轮次上限（{max_refines} 次），按当前方案放行实施。",
+                "module_reviews": [],
+                "capped": True,
+            },
+        )
+        return (
+            f"✅ 已达本迭代 Plan Review 轮次上限（{max_refines} 次），按当前方案放行实施。"
+            "请**直接结束本轮回复**——无需调用 ExitPlanMode 或任何工具；引擎将在同一迭代内续接实施阶段。"
+        )
+
     plan_text = _extract_plan_text(payload.get("tool_input") or {})
     reflections = ctx.get("reflections") or None
     # max_retries=1（ISSUE-129）：钩子受 Claude Code PreToolUse 超时硬约束，多次重试 × timeout 会超钩子
@@ -153,7 +185,6 @@ async def _run(payload: dict, ctx: dict) -> str:
         plan_text=plan_text,
         reflections=reflections if isinstance(reflections, list) else None,
     )
-    sidecar = ctx.get("review_sidecar_path")
     # 批准后**结束本轮**而非调用 ExitPlanMode（ISSUE-128）：单迭代两段式下，Runner 在批准后于
     # 同一 Iteration 内 --resume 续接 implement 段；而 headless ExitPlanMode 恒被 CLI 标 is_error，
     # CC 会误判失败而循环重试、空耗 turns。故批准/失败兜底均指示 CC「直接结束本轮」，由引擎续接实施。

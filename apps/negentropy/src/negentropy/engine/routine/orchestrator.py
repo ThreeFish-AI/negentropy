@@ -166,12 +166,17 @@ def _write_plan_review_ctx(routine: Routine, iteration_id: UUID, *, mode: str = 
     plan_review_timeout = (routine.config or {}).get("plan_review_timeout_seconds") or (
         settings.routine.plan_review_timeout_seconds
     )
+    # per-routine 评审轮次上限覆盖：单迭代内 refine 闭环至多 N 轮，达上限钩子强制放行。
+    plan_review_max_refines = (routine.config or {}).get("plan_review_max_refines") or (
+        settings.routine.plan_review_max_refines
+    )
     ctx = {
         "goal": routine.goal or "",
         "acceptance_criteria": routine.acceptance_criteria or "",
         "reflections": reflections,
         "model": plan_review_model,
         "timeout": plan_review_timeout,
+        "max_refines": plan_review_max_refines,
         "mode": mode,
         "iteration_id": str(iteration_id),
         "review_sidecar_path": _review_sidecar_path(iteration_id),
