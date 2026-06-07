@@ -2963,3 +2963,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. **跨迭代评审闭环**（headless 鲁棒、可立即落地）：PLAN prompt 不再让 CC 用 AskUserQuestion，改为直接产出方案；引擎迭代后评审，未通过则留在 PLAN 相位 + 反馈注入下一轮（CC 据此完善），通过才推进 IMPLEMENT。实现用户「提交→评审→反馈→完善/通过」意图，只是改为相邻迭代之间。
   2. **同轮答复**（保留单轮内闭环，改动大、可行性待证）：安装 `claude_code_sdk` 并改走 SDK `query()` + `can_use_tool` 回调（或确证 conductor 隐藏 flag 的 stdio 控制协议），由引擎在回调内返回 AskUserQuestion 答复。
 - **当前状态**：allowed_tools 前提修复已提交（`2eea8249`）；完整修复路线待与用户确认后实施（用户已倾向路线 2，但其依赖项非现成、需评估投入与可行性）。
+
+### ISSUE-123 同轮闭环可行性已证实（hooks 路径，2026-06-07）
+- **SDK can_use_tool 路线否决**：`claude_code_sdk` 0.0.25 与 claude 2.1.150 不兼容（`rate_limit_event` 解析崩溃）；`claude-agent-sdk` 0.2.93 兼容，但 `can_use_tool` 仅许可（`PermissionResultAllow` 字段 `behavior/updated_input/updated_permissions`，**无返回答案字段**），无法「答复」AskUserQuestion。
+- **hooks 路线证实可行（受控实验）**：PreToolUse hook 拦截 AskUserQuestion，返回 `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<评审反馈>}}` → CC **同轮收到反馈并据此修订**。SDK 内置 hooks 与 **CLI `--settings` hooks（引擎实际路径，homebrew claude 2.1.150）双双验证通过**（`CLI_HOOK_DELIVERED_FEEDBACK_SAME_TURN=True`，CC 下一 turn 输出「我会补充错误处理…增加单元测试…」）。
+- **落地设计（CLI hooks，已实现）**：
+  1. `plan_review_hook.py`：PreToolUse hook 入口。从 stdin 读 hook 载荷（AskUserQuestion 的 tool_input 含 CC 提交的完整方案），从命令行参数指向的 per-iteration ctx 文件读 routine 上下文（goal/acceptance/reflections/model/timeout），调 `PlanReviewer.review()`，输出 deny+reason：refine→反馈+要求据此修订重提；approve→告知通过、退出 Plan 模式。
+  2. orchestrator `_build_config`：phase=plan 且 plan_review_enabled 时，写 ctx 文件并把 PreToolUse hook 合并进 `config.settings`（与只读 deny 共存），命令 = `<engine_python> plan_review_hook.py <ctx_path>`。
+  3. prompt_builder PLAN 相位：指示 CC 把**完整方案写入 AskUserQuestion 的 question** 提交审阅（使 hook 能读到方案全文）。
+  4. 保留 ISSUE-123 的 allowed_tools 前提（AskUserQuestion/ExitPlanMode 须放行）。
+
+### ISSUE-123 实机端到端复验：三处真因逐一修复后 ✅ 完全修复（2026-06-07）
+首次接入钩子后实机仍复发（CC 仍收 "Answer questions?"），逐层定位并修复三处叠加真因：
+1. **stdout 污染**：钩子 stdout 混入引擎 structlog 噪声（`disposer_registered` 等）→ Claude Code 按纯 JSON 解析失败 → 放弃钩子 → CC 落回 CLI 自动报错。修复：`_emit` 经**保存的原始 stdout fd** 写最终 JSON + 进程级 `fd1→fd2` + `sys.stdout→stderr` + `configure_logging(sinks=file)` 四重纯净化。
+2. **`-m` 预导入父包**：`python -m negentropy.engine.routine.plan_review_hook` 会让 runpy 先 import 父包 `__init__` 链（在钩子重定向代码执行前触发 lifecycle 日志写 stdout）。修复：改 **脚本路径**执行（`python <hook.py> <ctx>`，不预导入父包），钩子自举把 `src/` 加入 `sys.path`。
+3. **钩子超时**：钩子实际耗时（引擎冷启动 + PlanReviewer LLM ≈ 15-20s）超 Claude Code PreToolUse 默认超时（~10s）→ 被放弃。修复：settings hook 项加 `"timeout" = plan_review_timeout_seconds + 30`。
+- **实机证据（probe `374b5f36`）**：seq11 CC 调 AskUserQuestion 提交方案 → seq12 tool_result = **「✅ NegentropyEngine 已通过本方案审阅（评分 85/100）。审阅意见：…」**（评审同轮送达）→ seq13 CC「审阅已通过…直接进入实施」→ seq14 ExitPlanMode → seq17 进入实施。`"Answer questions?"` 自动错误消失，闭环按预期工作。
+- **残留小问题（低优先）**：ExitPlanMode 同样被 headless CLI 自动报错（seq16 `"Exit plan mode?" is_error=true`），但此处无害——CC 正确理解为「已批准、继续」并进入实施。可后续让同一钩子对 ExitPlanMode 也 allow/无害化，进一步消噪。
+- **回归**：plan_review_hook 单测 5 + _build_config 集成 7 + routine 单测全绿；钩子从任意 cwd 输出纯净单行 JSON、exit 0。
