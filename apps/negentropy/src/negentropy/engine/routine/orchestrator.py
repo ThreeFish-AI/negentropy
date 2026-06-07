@@ -167,13 +167,18 @@ def _write_plan_review_ctx(routine: Routine) -> str:
 
 
 def _plan_review_hook_command(ctx_path: str) -> str:
-    """PreToolUse 钩子命令（settings.json）：以引擎 venv python 运行 plan_review_hook 模块。
+    """PreToolUse 钩子命令（settings.json）：以引擎 venv python 运行 plan_review_hook **脚本路径**。
 
-    用 ``sys.executable``（= 引擎后端 venv python，已装 negentropy 包）+ ``-m`` 调用，
-    与 CC 子进程 cwd 无关；ctx 路径作为 argv 传入。
+    必须用**脚本路径**而非 ``-m 包模块``：``-m`` 会让 runpy 先 import
+    ``negentropy.engine.routine`` 包 ``__init__`` 链（触发 lifecycle 日志写 stdout，污染钩子 JSON）；
+    脚本路径执行不预导入父包，钩子内的 stdout 重定向得以赶在任何引擎 import 前生效。
+    ``sys.executable`` = 引擎后端 venv python；钩子自行把 src 根加入 sys.path，故与 CC 子进程 cwd 无关。
     """
     py = sys.executable
-    return f'"{py}" -m negentropy.engine.routine.plan_review_hook "{ctx_path}"'
+    from . import plan_review_hook
+
+    hook_path = os.path.abspath(plan_review_hook.__file__)
+    return f'"{py}" "{hook_path}" "{ctx_path}"'
 
 
 def _is_plan_review_active(routine: Routine) -> bool:
@@ -1297,10 +1302,16 @@ class RoutineOrchestrator:
             # ISSUE-123：PLAN 相位经 PreToolUse 钩子拦截 AskUserQuestion，由 Engine 评审并同轮
             # deny+reason 回灌 CC（headless 下 stdin auto-answer 对 AskUserQuestion 无效）。
             ctx_path = _write_plan_review_ctx(routine)
+            # hook timeout 必须 ≥ 钩子实际耗时（引擎冷启动 + PlanReviewer LLM ≈ 15-20s），否则
+            # 超 Claude Code PreToolUse 默认超时（~10s）即被放弃 → CC 落回 CLI 自动报错
+            # "Answer questions?"（评审反馈丢失，ISSUE-123 实测复发根因）。取 review 超时 + 充裕余量。
+            hook_timeout = int(settings.routine.plan_review_timeout_seconds) + 30
             settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", []).append(
                 {
                     "matcher": "AskUserQuestion",
-                    "hooks": [{"type": "command", "command": _plan_review_hook_command(ctx_path)}],
+                    "hooks": [
+                        {"type": "command", "command": _plan_review_hook_command(ctx_path), "timeout": hook_timeout}
+                    ],
                 }
             )
         if settings_obj:

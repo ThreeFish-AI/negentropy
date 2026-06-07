@@ -19,29 +19,60 @@
 
 鲁棒性：任何异常一律 fail-open（输出一个「评审不可用、请直接退出 Plan 模式继续」的 deny），
 绝不让 CC 卡死在审阅环节。
+
+**stdout 纯净性（关键）**：Claude Code 按 **纯 JSON** 解析钩子 stdout；而 negentropy 引擎的
+structlog/日志默认写 stdout（实测 `disposer_registered`/`task_model_resolved` 等噪声行）。若混入
+stdout，Claude Code 解析失败 → 放弃钩子 → CC 落回 CLI 自动报错 "Answer questions?"（评审反馈丢失，
+ISSUE-123 实测复发根因）。故进程启动即**保存原始 stdout fd，并把进程级 stdout(fd 1) 重定向到 stderr**，
+所有引擎/日志噪声入 stderr，最终决策 JSON 仅经保存的原始 stdout 输出——无论日志去向皆纯净。
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
+
+# === stdout 纯净化（必须在任何 negentropy 引擎 import 之前执行）===
+# 关键：本文件须以**脚本路径**方式执行（``python <path> <ctx>``），**而非 ``python -m`` 包模块**——
+# 后者会让 runpy 在执行本模块代码前先 import ``negentropy.engine.routine`` 包 ``__init__`` 链
+# （触发 lifecycle/db.session 的 ``disposer_registered`` 日志写到尚未重定向的 stdout，污染钩子 JSON）。
+# 脚本路径执行不预导入父包，故下方重定向能赶在任何引擎 import 之前生效。
+# ① 保存原始 stdout fd，供 _emit 写最终 JSON。
+_REAL_STDOUT_FD = os.dup(1)
+# ② 进程级 fd1→fd2，覆盖直接写 fd 的噪声。
+os.dup2(2, 1)
+# ③ Python 级 sys.stdout→stderr，覆盖持有 stdout 对象引用的 writer。
+sys.stdout = sys.stderr
+# ④ 脚本路径执行：把 negentropy 包根（本文件上溯 4 级 = src/）加入 sys.path，使 ``from negentropy...`` 可导入。
+_SRC_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
+if _SRC_ROOT not in sys.path:
+    sys.path.insert(0, _SRC_ROOT)
+# ⑤ 决定性：把引擎统一日志配置为 **file sink**，structlog 永不写 stdout（双保险，且不依赖 ②③）。
+try:
+    from negentropy.logging.core import configure_logging
+
+    configure_logging(
+        level="WARNING", sinks="file", file_path=os.path.join(os.sep, "tmp", "negentropy-plan-review-hook.log")
+    )
+except Exception:
+    pass
 
 
 def _emit(reason: str) -> None:
-    """输出 PreToolUse deny + reason（CLI 将 reason 同轮回灌 CC 作为工具结果）。"""
-    print(
-        json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": reason,
-                }
-            },
-            ensure_ascii=False,
-        )
+    """经**原始 stdout fd** 输出纯 JSON 的 PreToolUse deny + reason（CLI 将 reason 同轮回灌 CC）。"""
+    payload = json.dumps(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": reason,
+            }
+        },
+        ensure_ascii=False,
     )
+    os.write(_REAL_STDOUT_FD, (payload + "\n").encode("utf-8"))
 
 
 def _extract_plan_text(tool_input: dict) -> str:
