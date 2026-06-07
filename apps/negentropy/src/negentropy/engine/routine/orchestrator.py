@@ -24,6 +24,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
+import tempfile
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -138,6 +140,50 @@ def _build_readonly_settings(read_dirs: list[str]) -> str:
     """
     deny = [f"Edit(//{d.lstrip('/')}/**)" for d in read_dirs]
     return json.dumps({"permissions": {"deny": deny}})
+
+
+def _write_plan_review_ctx(routine: Routine) -> str:
+    """写 per-iteration Plan Review 上下文文件，供 PreToolUse 钩子读取（避免经 env 传长文本）。
+
+    返回上下文文件绝对路径。内容：goal/acceptance/reflections/model/timeout。
+    """
+    reflections = (
+        list((routine.reflections or {}).get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
+    )
+    ctx = {
+        "goal": routine.goal or "",
+        "acceptance_criteria": routine.acceptance_criteria or "",
+        "reflections": reflections,
+        "model": settings.routine.plan_review_model,
+        "timeout": settings.routine.plan_review_timeout_seconds,
+    }
+    ctx_dir = os.path.join(tempfile.gettempdir(), "negentropy-pr-ctx")
+    with suppress(OSError):
+        os.makedirs(ctx_dir, exist_ok=True)
+    path = os.path.join(ctx_dir, f"{routine.id}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(ctx, f, ensure_ascii=False)
+    return path
+
+
+def _plan_review_hook_command(ctx_path: str) -> str:
+    """PreToolUse 钩子命令（settings.json）：以引擎 venv python 运行 plan_review_hook 模块。
+
+    用 ``sys.executable``（= 引擎后端 venv python，已装 negentropy 包）+ ``-m`` 调用，
+    与 CC 子进程 cwd 无关；ctx 路径作为 argv 传入。
+    """
+    py = sys.executable
+    return f'"{py}" -m negentropy.engine.routine.plan_review_hook "{ctx_path}"'
+
+
+def _is_plan_review_active(routine: Routine) -> bool:
+    """是否对本次（PLAN 相位）启用 Engine Plan Review 同轮钩子（ISSUE-123）。"""
+    return bool(
+        settings.routine.auto_answer_questions
+        and settings.routine.plan_review_enabled
+        and routine.current_phase == phase_mod.PHASE_PLAN
+        and (phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config))
+    )
 
 
 def _build_scope_system_prompt(routine: Routine) -> str:
@@ -1244,7 +1290,21 @@ class RoutineOrchestrator:
         read_dirs = _normalize_read_dirs(overrides.get("read_dirs"))
         if read_dirs:
             config.add_dirs = read_dirs
-            config.settings = _build_readonly_settings(read_dirs)
+        # CC settings.json：合并「源码只读 deny」+「Plan Review PreToolUse 钩子」。
+        settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
+        plan_review_active = _is_plan_review_active(routine)
+        if plan_review_active:
+            # ISSUE-123：PLAN 相位经 PreToolUse 钩子拦截 AskUserQuestion，由 Engine 评审并同轮
+            # deny+reason 回灌 CC（headless 下 stdin auto-answer 对 AskUserQuestion 无效）。
+            ctx_path = _write_plan_review_ctx(routine)
+            settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", []).append(
+                {
+                    "matcher": "AskUserQuestion",
+                    "hooks": [{"type": "command", "command": _plan_review_hook_command(ctx_path)}],
+                }
+            )
+        if settings_obj:
+            config.settings = json.dumps(settings_obj, ensure_ascii=False)
         # permission_mode 由相位决定（PLAN 仅规划、IMPLEMENT/FINALIZE 落盘）——对 worktree routine
         # 与 phased routine 均生效（覆盖 preset 静态值）；旧扁平 routine 沿用 preset 覆盖或全局默认。
         if phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
@@ -1277,6 +1337,9 @@ class RoutineOrchestrator:
                 # auto-answer 分支调用 PlanReviewer 而非通用 auto-answer。
                 "phase": routine.current_phase or "",
                 "plan_review_enabled": settings.routine.plan_review_enabled,
+                # ISSUE-123：PLAN 相位评审改由 PreToolUse 钩子同轮投递；置真令交互式 reader
+                # 跳过其（对 AskUserQuestion 无效且会重复评审的）内联 plan-review 应答分支。
+                "plan_review_via_hook": plan_review_active,
                 "plan_review_model": settings.routine.plan_review_model,
                 "plan_review_timeout": settings.routine.plan_review_timeout_seconds,
                 "reflections": (

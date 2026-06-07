@@ -1406,6 +1406,17 @@ class ClaudeCodeService:
                                     )
                                     audit_event: dict[str, Any] | None = None
 
+                                    # ISSUE-123：PLAN 相位评审改由 PreToolUse 钩子同轮 deny+reason 回灌 CC
+                                    # （headless 下 stdin tool_result 对 AskUserQuestion 无效）。此处不再内联
+                                    # 评审/写 stdin（否则重复评审且干扰钩子已解析的工具）——仅发射原始事件供审计。
+                                    if is_plan_submit and ctx.get("plan_review_via_hook"):
+                                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                                        logger.info(
+                                            "claude_code_plan_review_delegated_to_hook", tool_use_id=tool_use_id
+                                        )
+                                        _skip_emit = True
+                                        continue
+
                                     if is_plan_submit:
                                         answer, review_data = await ClaudeCodeService._plan_review_answer(
                                             questions,
