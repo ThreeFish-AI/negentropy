@@ -34,30 +34,45 @@ import json
 import os
 import sys
 
-# === stdout 纯净化（必须在任何 negentropy 引擎 import 之前执行）===
-# 关键：本文件须以**脚本路径**方式执行（``python <path> <ctx>``），**而非 ``python -m`` 包模块**——
-# 后者会让 runpy 在执行本模块代码前先 import ``negentropy.engine.routine`` 包 ``__init__`` 链
+# === stdout 纯净化（仅在以脚本路径执行钩子时生效，import 时绝不执行）===
+# 本文件须以**脚本路径**方式执行（``python <path> <ctx>``，见 orchestrator._plan_review_hook_command），
+# **而非 ``python -m`` 包模块**——后者会让 runpy 先 import ``negentropy.engine.routine`` 包 ``__init__`` 链
 # （触发 lifecycle/db.session 的 ``disposer_registered`` 日志写到尚未重定向的 stdout，污染钩子 JSON）。
-# 脚本路径执行不预导入父包，故下方重定向能赶在任何引擎 import 之前生效。
-# ① 保存原始 stdout fd，供 _emit 写最终 JSON。
-_REAL_STDOUT_FD = os.dup(1)
-# ② 进程级 fd1→fd2，覆盖直接写 fd 的噪声。
-os.dup2(2, 1)
-# ③ Python 级 sys.stdout→stderr，覆盖持有 stdout 对象引用的 writer。
-sys.stdout = sys.stderr
-# ④ 脚本路径执行：把 negentropy 包根（本文件上溯 4 级 = src/）加入 sys.path，使 ``from negentropy...`` 可导入。
-_SRC_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
-if _SRC_ROOT not in sys.path:
-    sys.path.insert(0, _SRC_ROOT)
-# ⑤ 决定性：把引擎统一日志配置为 **file sink**，structlog 永不写 stdout（双保险，且不依赖 ②③）。
-try:
-    from negentropy.logging.core import configure_logging
+#
+# 关键（ISSUE-130）：下述重定向/日志重配是**进程级全局副作用**，必须收敛进 ``__main__`` 入口的
+# ``_bootstrap_stdout_purity()``，**绝不可在 import 时执行**。否则任何在进程内 ``import plan_review_hook``
+# 的场景——pytest 收集本模块单测、orchestrator 仅为取 ``__file__`` 而 import（orchestrator.py）——都会把
+# 宿主进程 stdout 重定向到 stderr、并把全局 structlog 改道 file sink，连带破坏其它依赖 capsys 捕获
+# stdout 日志的单测（实证：test_skills_injector 三例 ``assert '...' in ''``）。
+_REAL_STDOUT_FD: int | None = None
 
-    configure_logging(
-        level="WARNING", sinks="file", file_path=os.path.join(os.sep, "tmp", "negentropy-plan-review-hook.log")
-    )
-except Exception:
-    pass
+
+def _bootstrap_stdout_purity() -> None:
+    """脚本入口专用:保存原始 stdout fd 并把进程 stdout 全量重定向到 stderr + 日志改 file sink。
+
+    顺序即正确性:先 fd/对象级重定向(②③),再 import ``configure_logging``(⑤),确保重定向赶在
+    任何引擎 import 的日志噪声之前生效。仅由 ``__main__`` 调用,import 时不触发(ISSUE-130)。
+    """
+    global _REAL_STDOUT_FD
+    # ① 保存原始 stdout fd，供 _emit 写最终 JSON。
+    _REAL_STDOUT_FD = os.dup(1)
+    # ② 进程级 fd1→fd2，覆盖直接写 fd 的噪声。
+    os.dup2(2, 1)
+    # ③ Python 级 sys.stdout→stderr，覆盖持有 stdout 对象引用的 writer。
+    sys.stdout = sys.stderr
+    # ④ 脚本路径执行：把 negentropy 包根（src/）加入 sys.path，使 ``from negentropy...`` 可导入。
+    src_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
+    if src_root not in sys.path:
+        sys.path.insert(0, src_root)
+    # ⑤ 决定性：把引擎统一日志配置为 **file sink**，structlog 永不写 stdout（双保险，且不依赖 ②③）。
+    try:
+        from negentropy.logging.core import configure_logging
+
+        configure_logging(
+            level="WARNING", sinks="file", file_path=os.path.join(os.sep, "tmp", "negentropy-plan-review-hook.log")
+        )
+    except Exception:
+        pass
 
 
 def _emit(reason: str) -> None:
@@ -72,7 +87,9 @@ def _emit(reason: str) -> None:
         },
         ensure_ascii=False,
     )
-    os.write(_REAL_STDOUT_FD, (payload + "\n").encode("utf-8"))
+    # _bootstrap_stdout_purity() 在 __main__ 入口已设 _REAL_STDOUT_FD；防御性兜底到 fd 1。
+    fd = _REAL_STDOUT_FD if _REAL_STDOUT_FD is not None else 1
+    os.write(fd, (payload + "\n").encode("utf-8"))
 
 
 def _extract_plan_text(tool_input: dict) -> str:
@@ -182,4 +199,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # 进程级 stdout 重定向 + 日志改 file sink —— 仅脚本入口执行，绝不在 import 时触发（ISSUE-130）。
+    _bootstrap_stdout_purity()
     main()
