@@ -2981,3 +2981,36 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **实机证据（probe `374b5f36`）**：seq11 CC 调 AskUserQuestion 提交方案 → seq12 tool_result = **「✅ NegentropyEngine 已通过本方案审阅（评分 85/100）。审阅意见：…」**（评审同轮送达）→ seq13 CC「审阅已通过…直接进入实施」→ seq14 ExitPlanMode → seq17 进入实施。`"Answer questions?"` 自动错误消失，闭环按预期工作。
 - **残留小问题（低优先）**：ExitPlanMode 同样被 headless CLI 自动报错（seq16 `"Exit plan mode?" is_error=true`），但此处无害——CC 正确理解为「已批准、继续」并进入实施。可后续让同一钩子对 ExitPlanMode 也 allow/无害化，进一步消噪。
 - **回归**：plan_review_hook 单测 5 + _build_config 集成 7 + routine 单测全绿；钩子从任意 cwd 输出纯净单行 JSON、exit 0。
+
+---
+
+## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」
+
+- **表因**：Knowledge/Documents 页渲染 perceives 抽取的 PDF 时，无图注的图片（如论文 logo `fig_p1_1.png`）下方显示出无语义的 "fig_p1_1.png" 文本；另：把技能标记 `is_system` 仅令其在 Skills 卡片对全员可见，却未注入任何 Agent 的 Progressive Disclosure。
+- **根因**：
+  1. **渲染层**：`DocumentMarkdownRenderer.tsx::DocumentImage` 对 `alt` 真值即渲染 `<figcaption>`；而 perceives 对无图注图片输出占位 `alt=<文件名>`，致文件名被当图注。
+  2. **机制层**：`skills_injector.resolve_skills` 仅注入 `Agent.skills` 数组中显式列出的技能；6 个内置 Agent 经 `agent_presets._build_payload` 硬编码 `skills=[]` 且会被 "Sync Negentropy" 覆盖——故 `is_system`（可见性）与「被 Agent 调用」是两套正交语义。
+- **处理方式**：
+  1. 渲染层新增 `isMeaningfulCaption`：以「是否含空格」为关键判别——纯文件名 / 自动命名（`fig_p1_1` / `figure-2` / `image_4`）等无空格 token 不渲染图注，含空格的真实图注（`Figure 1: ...`）照常保留（含空格判别避免误伤 "Figure 1" 这类以图号开头的真实图注）。
+  2. 机制层新增正交字段 `Skill.is_global`（迁移 0063）+ `skills_injector.resolve_global_skills`（强制 `warning` 注入，永不阻塞 Agent 启动）+ 在 `model_resolver._load_subagent_row`（DB 路径，合并去重）与 `_dynamic_instruction`（fallback 路径，互斥追加）双路径并入；技能 `pdf-fidelity-restore` 以 `is_system+is_global+PUBLIC` 种子（迁移 0064）+ 模板 YAML + `.agent/skills/SKILL.md` 三处同源物化。
+- **后续防范**：
+  1. **占位 alt 不得当图注**：凡「文件名兜底 alt」均须在渲染层与真实图注区分；判别用「含空格」比「前缀正则」稳健（前缀正则会误伤 `Figure 1: ...`）。
+  2. **「可见」与「可用」分层**：技能/插件的 RBAC 可见性（`is_system`/`visibility`）与「被 Agent 实际调用」是两套正交开关，新增「全员可用」诉求须走注入热路径（`is_global`），而非仅改可见性。
+  3. **全局注入恒 warning**：注入到全体 Agent 的技能若 `enforcement_mode=strict` 且缺 `required_tools`，会令缺工具 Agent 退化为无 system prompt；`resolve_global_skills` 强制 `warning` 守住此安全不变量。
+- **同类问题影响**：所有走 `DocumentMarkdownRenderer` 的文档渲染（图注抑制对全体文档生效）；所有经 `_load_subagent_row`/`_dynamic_instruction` 装配指令的 Agent（一核五翼 + 未来新增，均自动获得全局技能）。
+- **附带发现（perceives auto_batch 图注归属差异）**：对 28 页（< 60 页阈值）PDF 强制分批（threshold=10）实测：分批 + 跨片合并保全全部内容（7 图 / 2 表 / 公式 / 全文，图片 src 零重复，dedup 正常），但 Figure 1 / Figure 4 的图注在分批路径落为**正文文本**而非 `img alt`（docling 单切片 vs 全本的图注归属差异）。结论：内容无丢失，仅图注「位置」差异；28 页默认走单次路径（图注归属更整齐）为正确选择，分批保留给真正大文档（> 60 页）以可靠性优先。
+- **验证**：前端 `DocumentMarkdownRenderer.test.tsx` 新增 2 用例（文件名抑制 / 图注保留），7/7 通过；后端 `test_skills_injector.py` 新增全局注入 + 安全不变量用例，34 passed；迁移 0063/0064 实测 `alembic upgrade head` 成功，`resolve_subagent_instruction` 对一核五翼 6 个 Agent 均注入 `pdf-fidelity-restore`（缺工具仅 warning，不阻断）。
+
+---
+
+## ISSUE-119 `backend-unit` CI 作业缺 Postgres 服务——全量单测连库失败（潜伏红，2026-06-07）
+
+- **表因**：`backend-quality / Backend Unit Tests` 作业 2225 个单测全部 `OSError: Connect call failed ('127.0.0.1', 5432)`，作业失败；其 `needs` 的 integration/performance 作业因而连带不执行。多分支（含 `feature/1.x.x` 基线本身）CI 长期常红。
+- **根因**：ISSUE-111 在 `tests/conftest.py` 引入会话级 autouse fixture `_isolate_test_database`（数据安全防护），会话开始即**无条件** `CREATE DATABASE <db>_test`（asyncpg 连维护库）+ `alembic upgrade head`，强依赖可达 Postgres。但 `reusable-negentropy-backend-quality.yml` 的 `backend-unit` 作业**无 `services.postgres` 容器**（仅 integration/performance 有），workflow 级 `env.NE_DB_URL` 又指向 `localhost:5432`——单测一启动即在 setup 阶段连库失败。该 workflow 最后一次结构性改动（PR #594）早于 ISSUE-111（PR #877）落地 fixture，故 service 从未为 `backend-unit` 补上；又因 backend-tests 仅在 `apps/negentropy/**` 变更时触发，期间多为 UI-only 改动，缺陷潜伏至首个触及后端的 PR 才显形。
+- **处理方式**：为 `backend-unit` 作业补齐与 integration/performance **完全一致**的 `pgvector/pgvector:pg16` 服务块（`CREATE EXTENSION vector` 依赖该镜像，非 vanilla postgres）。fixture 自建并迁移 `test_db_test`，`alembic env.py` 在迁移前自动 `CREATE SCHEMA negentropy` + `CREATE EXTENSION vector`，故**无需**额外 `init_test_db` 步骤（与 integration 路径的差异：integration 跑预置库故显式 init，unit 由 fixture 动态建库）。
+- **后续防范**：
+  1. **「测试夹具的隐性外部依赖」必须在所有消费该夹具的 CI 作业同步满足**——session/autouse 且无条件副作用（建库 / 迁移 / 连网）的 fixture，等价于对**全部**收集到的测试施加前置依赖；新增此类 fixture 时须同步审计每个运行该测试目录的 CI 作业是否具备其依赖（此处 unit 作业被遗漏）。
+  2. **路径过滤触发的 workflow 易掩盖潜伏缺陷**——`paths: apps/negentropy/**` 令后端 CI 仅在后端变更时跑，UI-only 期间的红 = 不可见；评审引入「无条件外部依赖」的测试基建时，应主动手动触发一次目标 workflow 验证，而非等下一个偶然触及该路径的 PR。
+  3. **同族作业的服务声明应保持一致或显式注释差异**——同一 reusable workflow 内 unit/integration/performance 三作业若对 DB 依赖一致，其 `services` 块应同构；本次以注释说明「unit 由 fixture 动态建库、无需 init 步骤」的正交差异，避免后人误删。
+- **同类问题影响**：所有经 `tests/conftest.py` 会话夹具运行的后端测试作业（本次 unit 已补齐；integration/performance 早已具备 service）；`cognizes` 等其它 app 若引入同形 autouse 建库夹具，须同步核验其 `backend-unit` 服务块。
+- **验证**：本地以可达 pgvector（pg16/vector 0.8.x）复现 CI——原报错的 `test_permissions.py`/`test_scheduler_api.py` **27 passed**、本 PR 新增 `test_skills_injector.py` **34 passed**；fixture 仅触碰派生的 `*_test` 库，生产 `negentropy` 库只读零改动（66 表完好，恪守 ISSUE-111 安全不变量）；`pyyaml` 解析校验三作业 `services.postgres` 均为 `pgvector/pgvector:pg16` + `5432:5432`。

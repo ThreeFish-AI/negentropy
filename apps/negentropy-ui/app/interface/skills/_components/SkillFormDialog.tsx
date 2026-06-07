@@ -27,6 +27,7 @@ interface Skill {
   visibility: string;
   enforcement_mode?: string;
   resources?: SkillResource[];
+  is_global?: boolean;
 }
 
 interface SkillResource {
@@ -63,6 +64,7 @@ export function SkillFormDialog({
     priority: 0,
     visibility: "private",
     enforcement_mode: "warning" as "warning" | "strict",
+    is_global: false,
   };
   const [formData, setFormData] = useState(emptyForm);
   const [resourceRows, setResourceRows] = useState<SkillResource[]>([]);
@@ -88,6 +90,7 @@ export function SkillFormDialog({
         visibility: skill.visibility,
         enforcement_mode:
           skill.enforcement_mode === "strict" ? "strict" : "warning",
+        is_global: skill.is_global ?? false,
       });
       setResourceRows(
         Array.isArray(skill.resources)
@@ -183,6 +186,7 @@ export function SkillFormDialog({
         priority: formData.priority,
         visibility: formData.visibility,
         enforcement_mode: formData.enforcement_mode,
+        is_global: formData.is_global,
         resources: cleanedResources,
       };
 
@@ -319,6 +323,21 @@ export function SkillFormDialog({
                         className="rounded border-border"
                       />
                       Enabled
+                    </label>
+                  </div>
+                  <div className="flex items-end">
+                    <label
+                      className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary"
+                      title="全局技能：自动注入全系统所有 Agent（一核五翼及未来新增）的 Progressive Disclosure"
+                    >
+                      <input
+                        type="checkbox"
+                        data-testid="skills-form-is-global"
+                        checked={formData.is_global}
+                        onChange={(e) => setFormData({ ...formData, is_global: e.target.checked })}
+                        className="rounded border-border"
+                      />
+                      Global
                     </label>
                   </div>
                   <div>

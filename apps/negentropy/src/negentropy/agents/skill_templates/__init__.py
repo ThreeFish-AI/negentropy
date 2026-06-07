@@ -48,6 +48,8 @@ class SkillTemplate:
     default_config: dict[str, Any]
     required_tools: list[str]
     resources: list[dict[str, Any]] = field(default_factory=list)
+    # 全局技能：模板物化为 Skill 行时落库 ``is_global``（详见 models/skill.py）。
+    is_global: bool = False
 
 
 def _coerce_template(raw: dict[str, Any]) -> SkillTemplate | None:
@@ -89,6 +91,7 @@ def _coerce_template(raw: dict[str, Any]) -> SkillTemplate | None:
         default_config=raw.get("default_config") or {},
         required_tools=list(raw.get("required_tools") or []),
         resources=list(raw.get("resources") or []),
+        is_global=bool(raw.get("is_global") or False),
     )
 
 

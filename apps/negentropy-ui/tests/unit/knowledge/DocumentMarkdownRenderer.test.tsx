@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { DocumentMarkdownRenderer } from "@/features/knowledge/components/DocumentMarkdownRenderer";
 
 describe("DocumentMarkdownRenderer", () => {
@@ -76,5 +76,36 @@ describe("DocumentMarkdownRenderer", () => {
 
     expect(container.querySelector("table")).not.toBeNull();
     expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("alt 为自动生成的文件名时不渲染 figcaption（避免显示 fig_p1_1.png 这类无语义文本）", () => {
+    const { container } = render(
+      <DocumentMarkdownRenderer
+        content={"![fig_p1_1.png](fig_p1_1.png)"}
+        corpusId="corpus-1"
+        documentId="document-1"
+      />,
+    );
+    const img = container.querySelector("img")!;
+    expect(img).not.toBeNull();
+    // 触发 onLoad 使图片进入 loaded 态（jsdom 不会自动加载图片）
+    fireEvent.load(img);
+    expect(container.querySelector("figcaption")).toBeNull();
+  });
+
+  it("alt 为有意义图注时渲染 figcaption（保留 Figure N 等真实图注）", () => {
+    const caption = "Figure 1: The Overview of context engineering 1.0 to 4.0";
+    const { container } = render(
+      <DocumentMarkdownRenderer
+        content={`![${caption}](fig_p1_5.png)`}
+        corpusId="corpus-1"
+        documentId="document-1"
+      />,
+    );
+    const img = container.querySelector("img")!;
+    fireEvent.load(img);
+    const figcaption = container.querySelector("figcaption");
+    expect(figcaption).not.toBeNull();
+    expect(figcaption?.textContent).toContain("Figure 1");
   });
 });
