@@ -12,6 +12,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from typing import Any
 
+from negentropy.engine.utils.subprocess_env import inherited_env_without_engine_venv
 from negentropy.logging import get_logger
 
 from .credentials import is_console_api_key
@@ -449,11 +450,13 @@ class ClaudeCodeService:
     ) -> dict[str, str]:
         """构建子进程环境：``os.environ`` 副本叠加凭证覆盖（不就地修改 ``os.environ``）。
 
-        无凭证时返回纯继承副本，功能等价于不传 ``env=``，故不破坏交互式 / 开发 / 终端场景。
+        基线为「``os.environ`` 副本剥离引擎自身 venv/uv 激活变量」（``inherited_env_without_engine_venv``）——
+        CC 子进程在隔离 worktree（另一项目，自有 .venv）内运行，不应继承引擎的 ``VIRTUAL_ENV`` /
+        ``UV_RUN_RECURSION_DEPTH``（ISSUE-120：物理隔离须延伸到 Python 环境）。叠加凭证覆盖后返回。
         ``compact_threshold_pct`` 注入 ``CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`` 控制 CC auto-compact
         触发时机（值越小压缩越早，预留更多 headroom；None=使用 CLI 默认值）。
         """
-        env = os.environ.copy()
+        env = inherited_env_without_engine_venv()
         for key, value in ClaudeCodeService._credential_env(credential).items():
             if value is None:
                 env.pop(key, None)
@@ -1359,6 +1362,14 @@ class ClaudeCodeService:
 
                                 # ---- ExitPlanMode：自动批准退出 Plan 模式 ----
                                 if tool_name == ClaudeCodeService._EXIT_PLAN_TOOL:
+                                    # ISSUE-126：plan_review_via_hook 时 ExitPlanMode 由 PreToolUse 钩子
+                                    # 同轮 deny+「已批准」reason 处理（headless 下 stdin auto-answer 对其
+                                    # 同样无效、徒留 "Exit plan mode?" 噪声）。此处仅发射原始事件供审计、跳过失效写回。
+                                    if (config.auto_answer_context or {}).get("plan_review_via_hook"):
+                                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                                        logger.info("claude_code_exit_plan_delegated_to_hook", tool_use_id=tool_use_id)
+                                        _skip_emit = True
+                                        continue
                                     auto_answer_count += 1
                                     answer = "Plan approved. You may exit plan mode now."
                                     msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)
@@ -1402,6 +1413,17 @@ class ClaudeCodeService:
                                         questions
                                     )
                                     audit_event: dict[str, Any] | None = None
+
+                                    # ISSUE-123：PLAN 相位评审改由 PreToolUse 钩子同轮 deny+reason 回灌 CC
+                                    # （headless 下 stdin tool_result 对 AskUserQuestion 无效）。此处不再内联
+                                    # 评审/写 stdin（否则重复评审且干扰钩子已解析的工具）——仅发射原始事件供审计。
+                                    if is_plan_submit and ctx.get("plan_review_via_hook"):
+                                        await _emit_events(event, events_holder, on_event, max_events=evt_max)
+                                        logger.info(
+                                            "claude_code_plan_review_delegated_to_hook", tool_use_id=tool_use_id
+                                        )
+                                        _skip_emit = True
+                                        continue
 
                                     if is_plan_submit:
                                         answer, review_data = await ClaudeCodeService._plan_review_answer(

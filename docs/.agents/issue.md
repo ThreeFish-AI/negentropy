@@ -2888,6 +2888,127 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同类问题影响**：所有经 `invoke_claude_code` 触发 Claude Code 的 ADK Agent 行为（不止浏览器 MCP——此前 model/system_prompt/allowed_tools 全局默认对 Agent 入口同样未生效，本次一并修复）。
 - **验证**：单测 `test_invoke_claude_code_falls_back_to_global_defaults_when_state_empty`（空 state → 回退默认，携 playwright mcp_config 与 mcp__playwright allowed_tools，复用已解析凭证）+ `test_invoke_claude_code_prefers_session_state_when_present`（state 存在 → 不触发回退、沿用 state 配置）。相关：迁移 0062 端到端注入与 Routine `_build_config` 合并语义见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。
 
+## ISSUE-118 `_evaluate_one` 生产死路径 + 事件持久化集成测试覆盖错路径（单一事实源违背 + 测试保真缺口）（2026-06-07）
+
+- **表因**：实机回归 Routine 闭环时审阅 orchestrator，发现 `_evaluate_one`（同步内联评估）已不被 `inspect_once` 调用——心跳实际走 `_evaluate_and_decide` → `_claim_for_eval` → 后台 `_do_evaluate`（Evaluate 后台化，729bfe54）。但 4 个事件持久化集成测试（`test_routine_event_persistence.py`）仍 `await orch._evaluate_one(rid)`，即测试在验证生产**从不执行**的死路径。
+- **根因**：Evaluate 后台化新增 `_do_evaluate` 时，未删除旧 `_evaluate_one`、亦未迁移其测试 → 同一「评估 → 写回 → 追加 gate/eval 事件」逻辑存在两份副本（违 Single Source of Truth），且测试钉在旧副本上（测试保真缺口：两副本一旦漂移，测试无法发现真实生产路径的回归）。
+- **处理方式**（最小干预，熵减）：① 测试新增 `_evaluate_latest(orch, rid)` 辅助，驱动真实路径 `_claim_for_eval` → `_do_evaluate`，替换 4 处 `_evaluate_one(rid)` 调用；② 删除 `_evaluate_one`（123 行死代码）。事件持久化 `_persist_eval_events` 本为两副本共享、行为等价，迁移零语义变更、无运行时行为改变。
+- **后续防范**：① 重构出「执行下沉/后台化」的新路径时，**必须同步迁移其测试到新路径并删除旧同步副本**，避免测试钉死在死代码上、给出虚假绿；② 同一核心闭环逻辑（评估/写回/决策）严禁双副本，须单点收敛。
+- **同类问题影响**：仅 Routine 评估路径；生产早已只走 `_do_evaluate`，本修复纯属代码/测试熵减，无行为变更。
+- **验证**：迁移后 `test_routine_event_persistence.py` 6 例全绿（真实路径）；routine 单测 126 + orchestrator/api 集成 44 全绿，零回归。
+
+## ISSUE-119 共享 `negentropy_test` 测试库跨 Conductor workspace 迁移版本污染（test-infra 脆弱性）（2026-06-07）
+
+- **表因**：在 puebla-v3（alembic head=0062）运行集成测试，conftest `_isolate_test_database` 的 `alembic upgrade head` 报 `Can't locate revision identified by '0064'`，全部集成测试 setup 失败。
+- **根因**：同一 PostgreSQL 实例被多个 Conductor workspace 共享，而 ISSUE-111 的测试库隔离仅区分「测试 vs 生产」——**测试库名固定为 `<db>_test`（`negentropy_test`），跨 workspace/分支共享同一物理库**。某更高分支的 workspace 跑测试时把 `negentropy_test` 迁到 0064，puebla-v3（本地仅到 0062）无法 upgrade（0064 在本地迁移脚本中不存在）→ setup 失败。生产 `negentropy` 同样已被迁到 0064（加列式增量迁移，故 0062 代码仍能在 0064 schema 上运行，routine 读写未受影响）。
+- **处理方式**（当前缓解）：`negentropy_test` 为空（routines=0、无活动连接），`DROP DATABASE ... WITH (FORCE)` 后由 conftest 重建至本地 head 0062，集成测试恢复全绿。
+- **提议根因修复**（候选后续轮次）：把测试库名做 **workspace 唯一化**（如以 repo 根路径 hash 派生 `negentropy_test_<hash>`），使多 workspace 并发测试互不污染；CI 在隔离容器内不受影响。另可在 conftest 升级前校验「DB 版本 ≤ 本地 head」，超前时给出明确重建指引而非裸 alembic 报错。
+- **后续防范**：① 共享 DB 服务器上的「测试库」命名须计入并发维度（不止 test/prod 二分，还要 workspace/分支隔离），否则迁移版本互相踩踏；② 跨实例共享的 schema 版本须有「本地代码 head 与 DB version 偏差」的可观测校验。
+- **同类问题影响**：所有在共享 postgres 上并发跑集成测试的 workspace；环境性问题，非产品代码缺陷。
+- **验证**：drop+重建后集成测试全绿（见 ISSUE-118 验证：6+126+44 全绿）。
+
+## ISSUE-120 引擎 venv/uv 激活变量泄漏进 worktree 子进程（gate + CC），物理隔离未覆盖 Python 环境（2026-06-07）
+
+- **表因**：忠实复刻 routine 的 IMPLEMENT 门控 `uv run pytest -q` 输出首行恒为 `warning: VIRTUAL_ENV=.../negentropy/apps/negentropy/.venv does not match the project environment path \`.venv\` and will be ignored`。
+- **根因**：worktree 隔离此前只覆盖文件系统（cwd / `--add-dir` / `Edit` deny），但任务子进程**整体继承引擎 `os.environ`**。引擎自身经 `uv run` 启动，注入 `VIRTUAL_ENV`（指向 `negentropy/.venv`）与 `UV_RUN_RECURSION_DEPTH`；二者越界泄漏给在**另一项目** worktree（自有 `.venv`）内运行的 gate 与 CC 子进程——`service._build_subprocess_env` 直接 `os.environ.copy()` 未剥离；`evaluator._run_gate` 的 `create_subprocess_shell` 干脆不传 `env=`。
+- **影响**：本任务 gate 是 `uv run pytest`，uv 检测错配后忽略（自愈，仅警告）；但**非 uv 门控（裸 `pytest`/`python`）会落到引擎 venv 找错包 → 假失败污染评分**；`UV_RUN_RECURSION_DEPTH` 把任务独立 `uv run` 误计为嵌套递归、蚕食任务自身的嵌套预算。
+- **处理方式**（单一事实源）：新增 `engine/utils/subprocess_env.py::inherited_env_without_engine_venv()`，剥离 `{VIRTUAL_ENV, VIRTUAL_ENV_PROMPT, UV_RUN_RECURSION_DEPTH}`；`_build_subprocess_env`（CC 子进程）与 `_run_gate`（gate 子进程）统一复用，使物理隔离从文件系统延伸到 Python 运行环境。
+- **后续防范**：① worktree / 隔离子进程不应整体继承父进程 env；跨项目子进程须净化继承环境中的「venv / 工具激活」变量；② strip 逻辑单点收敛，避免双副本漂移。
+- **同类问题影响**：所有 worktree routine 的 gate 与 CC 子进程；尤以非 uv 门控者评分会被假失败污染。
+- **验证**：单测 `test_inherited_env_strips_engine_venv_vars` + `test_run_gate_subprocess_does_not_inherit_engine_virtualenv`（端到端 gate 子进程 `$VIRTUAL_ENV` 为空）；evaluator_gate 17 例 + routine 单测 130 + claude_code 164 + 集成 50 全绿。
+
+## ISSUE-121 弱 Judge 误判 acceptance_met=true 触发过早不可逆 SUCCESS+PR（复刻仅骨架即「成功」）（2026-06-07）
+
+- **表因**：忠实复刻 routine 实机跑完整闭环 `PLAN→IMPLEMENT→FINALIZE→succeeded`，建出真实 PR（`data-la-maps#4`），best_score=92。但检视产物：核心业务逻辑（geocoding 11 阶段管线 + 6 模式矩阵 + IP 双源融合——Go 服务存在的根本理由）**未实现**——`domain/geocodes/service.py` 仅 45 行桩，自述「Phase 2：简化实现，仅支持按 postal_code 直接查 PlacesRepo；Phase 4：完整 11 阶段 Pipeline + 6 模式矩阵」。即「成功」过早，复刻实为骨架。
+- **根因**：不可逆 SUCCESS（→FINALIZE→PR→succeeded）取决于**单次弱 Judge（`gpt-5-nano`）对 `acceptance_met` 的裁决**。ISSUE-116 的 cap 仅守护 `acceptance_met=False` 方向（未达标封顶），对**误判 `acceptance_met=true`**（假阳性）无任何防护。弱模型见「~21 端点 + 75 测试通过 + 架构清晰」即判 `acceptance_met=true`/92，未核验行为级 Go 对齐（其自身 reflection 反而承认「下一步聚焦 Phase 3 Write API 与规则引擎基线」——自相矛盾）。
+- **处理方式**（本轮，引擎层根因杠杆）：新增 per-routine `config.evaluator_model` 覆盖，经 `evaluate → _judge → resolve_model_config` 的 `explicit_model` 注入——高风险复刻类 acceptance 裁决可指定更强 Judge 模型，缓解弱模型假阳性；opt-in，未设时回退实例默认，其它 routine 零影响。配套任务定义将 acceptance 强化为「行为级对齐（管线/融合 faithfully 实现，非简化桩）」并设强 Judge 模型。
+- **后续防范**：① 触发**不可逆动作**（建 PR / 终止成功）的判定不应系于单次弱模型意见——高风险裁决须用足够强模型或多信号佐证；② LLM-as-Judge 的**假阳性与假阴性都要防**（ISSUE-116 防假阴性「达标却被压分」，本条防假阳性「未达标却判成功」）；③ acceptance 须可被 Judge **行为级**核验，避免「结构齐备即判达标」。
+- **候选后续加固**：当 `acceptance_met=true` 且分 ≥ 阈值（即将触发不可逆成功）时，以更强模型做一次对抗式确认门（confirm-before-commit），未确认则降级继续迭代。
+- **同类问题影响**：所有以弱模型 Judge 裁决 acceptance 的高风险 routine；尤以「结构易搭、业务逻辑深」的复刻/迁移类。
+- **验证**：单测 `test_evaluator_model_override_flows_to_judge`（per-routine 模型覆盖流经 `_judge`）+ `test_evaluator_model_falls_back_to_instance_default`（未设回退实例默认）；evaluator_gate 17 例全绿。实机 before：seq3 judge raw `acceptance_met:true, score:92` 而 `geocodes/service.py` 为 45 行简化桩。
+- **修复补正（端到端正确性）**：ISSUE-121 的 per-routine `evaluator_model` 经 `explicit_model` 注入，而 `resolve_model_config_async` 原对 `explicit_model` **短路返回 `(name, {})`**——丢失 `model_configs`/`vendor_configs` 的 `api_key`/`api_base` 代理凭证，致 Judge 的 litellm 调用必因缺凭证失败（单测因 mock 了 resolver 未暴露）。改为优先 `resolve_llm_config_by_model_name(explicit_model)` 解析以携带凭证 kwargs，DB 未命中再回退 `(name, {})`。实机验证 `anthropic/claude-sonnet-4-6` → kwargs 含 api_base/api_key/temperature/thinking；新增单测 `test_explicit_model_resolves_credentials_via_by_name`。
+
+## ISSUE-122 `--skip-build` 重启时 start-production.mjs `linkRuntimeAsset` 非幂等 → UI 启动失败连锁中止全部服务（2026-06-07）
+
+- **表因**：以 `cli.sh restart --no-pull --skip-build` 做后端 only 快速重启时，UI 启动报 `Error: src and dest cannot be the same .../.next/standalone/apps/negentropy-ui/.next/static`（ERR_FS_CP_EINVAL）；cli.sh 见「ui 启动失败」遂**中止并停掉已起的 backend/perceives**，全栈宕。
+- **根因**：`start-production.mjs::linkRuntimeAsset` 先 `symlinkSync(relativeSource, targetPath)`，target 已存在（monorepo 下 Next standalone 自带 `.next/static` 软链，或上次启动已链接）则抛 EEXIST 落入 `catch` 的 `cpSync(source, target)`；而 target 软链回指 source → src/dest 同 inode → `ERR_FS_CP_EINVAL`。即该函数对「重复启动（--skip-build 不重建前端）」非幂等。次生：cli.sh 对单服务启动失败采取「中止 + 停全部」策略，放大为全栈宕。
+- **处理方式**：`linkRuntimeAsset` 增幂等保护——`existsSync(targetPath)` 即 return（Next 自带软链 / 上次已链接则跳过），不再走 symlink→cpSync 冲突路径。使 `--skip-build` 快速重启可用（后端 only 改动免全量前端构建）。
+- **后续防范**：① 启动期「链接/复制运行时资产」须幂等（重复启动不报错）；② cli.sh 单服务启动失败的「中止全部」策略放大故障半径，可考虑保留已健康服务或更精确的回滚边界。
+- **同类问题影响**：所有 `--skip-build` 重启；阻断后端 only 快速迭代（被迫每次全量前端构建）。
+- **验证**：修复后 `restart --no-pull --skip-build` UI 正常启动、四服务健康（见下次重启）。
+
+## ISSUE-119 升级 共享 DB 迁移版本超前致 cli.sh **启动期** alembic upgrade 失败（不止测试库）（2026-06-07）
+
+- **表因**：会话中段（数小时后）`cli.sh restart` 在 Phase 3 数据库迁移报 `Can't locate revision identified by '0064'` 而**中止启动**，全栈无法拉起。
+- **根因**：ISSUE-119 同源升级——共享 PostgreSQL 的**生产 `negentropy` 库**被另一更高分支 workspace 的 `alembic upgrade head` 迁到 0064，而 puebla-v3 本地 head 仅 0062（0063/0064 不在 `origin/feature/1.x.x`，属未合并分支）。cli.sh 启动无条件 `alembic upgrade head`，current=0064 本地不可解析 → 失败中止。生产 schema 0064 为 0062 的加列式超集，故 0062 代码运行无碍，唯启动迁移步骤踩雷。
+- **处理方式**（最小可逆缓解）：迁移前临时 `UPDATE alembic_version SET version_num='0062'`（仅指针、不动 schema）使 `upgrade head` 在 0062=head 处 no-op，迁移阶段过后立即恢复 `'0064'`（真实 schema 态，保护其它 workspace 不被 0063/0064 重放误伤）；窗口约 4s。
+- **后续防范**：① 见 ISSUE-119 根因修复（DB 按 workspace 唯一化，dev 库亦然）；② cli.sh 迁移步骤宜容忍「DB 版本超前本地 head」（视为 no-op + 告警）而非裸报错中止——超前是共享 DB 常态，不应阻断启动。
+- **同类问题影响**：共享 postgres 上多 workspace 并发开发的启动链路；环境性，非产品代码缺陷。
+- **验证**：stamp 0062→启动→恢复 0064 后四服务正常拉起。
+
+## ISSUE-123 交互工具未入白名单致 Plan Review 反馈无法送达 CC，评审闭环 DOA（2026-06-07）
+
+- **表因**（用户实机指认 routine `5ae4af6e` Iteration#1）：CC Turn 9 经 `AskUserQuestion` 提交 Plan、NegentropyEngine 产出 Plan Review，但**该 Review 从未送达 CC**；Turn 10 报错，Turn 12 跳过评审问询自行 `ExitPlanMode`，Turn 18 单方面交付 Plan。预期闭环「CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过」名存实亡。
+- **根因**（事件级实证）：iteration 事件 seq218 `tool_use AskUserQuestion` → seq219 `plan_review`(Engine 算出 refine/38) → **seq220 送达 CC 的 tool_result = `{"output":"Answer questions?","is_error":true}`**（非评审反馈）；seq223/225 `ExitPlanMode` → `{"output":"Exit plan mode?","is_error":true}`。即 CLI 因 `--allowed-tools` 白名单**不含 AskUserQuestion/ExitPlanMode** 而直接拒绝二者（返回许可提示串 + `is_error=true`），Engine 经 stdin 写回的应答根本无法被消费。`_build_config` 启用 `interactive=True`（`auto_answer_questions` 默认开）却从未把这两个交互应答工具并入 `allowed_tools`——per-routine `config.allowed_tools`（模板仅 8 工具）与 `_ROUTINE_DEFAULT_TOOLS` 均不含之。v4 routine 实测同样复现（seq485→487）。
+- **处理方式**（最小干预）：`_build_config` 在 `auto_answer_questions` 开启时，强制把 `AskUserQuestion` + `ExitPlanMode` 并入 `config.allowed_tools`（幂等，去重），使 CLI 放行二者、Engine 经 stdin 的 Plan Review/auto-answer 得以送达 CC，评审反馈链路恢复（CC 可据反馈完善或通过）。新增模块常量 `_INTERACTIVE_AUTO_ANSWER_TOOLS`。
+- **后续防范**：① 任何「依赖工具被 CLI 放行才能运作」的机制（auto-answer/plan-review），其所需工具必须由引擎强制进白名单，不能假定用户 config 含之；② 交互工具的 tool_result `is_error=true` + 许可提示串（"Answer questions?"/"Exit plan mode?"）是「工具被白名单拒绝」的指纹，排障可据此快速定位；③ 评审反馈这类「写回 stdin 必达」语义，应有送达确认/失败可观测，而非静默被拒。
+- **同类问题影响**：所有启用 auto_answer/plan-review 且 `allowed_tools` 未含交互工具的 routine（含全部沿用模板 8 工具者）——即此前**所有** worktree routine 的 Plan Review 反馈均未真正送达 CC，评审形同虚设。
+- **验证**：集成测试 `test_build_config_forces_interactive_tools_when_auto_answer` + `test_build_config_per_routine_tools_override`（覆盖工具+强制并入交互工具）；_build_config 7 例、routine 单测 131 全绿。
+
+### ISSUE-123 深层根因（受控实验定性，2026-06-07）
+- **allowed_tools 白名单仅是必要前提，非完整修复**：把 AskUserQuestion/ExitPlanMode 并入 allowed_tools 后实机复跑（探针 routine `cf3022c9`），CC 收到的 AskUserQuestion tool_result **仍为 `{"output":"Answer questions?","is_error":true}`**。即白名单放行后问题依旧。
+- **受控实验（ground truth）**：直接 `printf '<stream-json user msg>' | claude -p --input-format stream-json --output-format stream-json --permission-mode default --model claude-haiku-4-5`，强制模型调用 AskUserQuestion，观察到 CLI **立即**自emit `user` tool_result `is_error=true out="Answer questions?"`，**根本不读 stdin、不发 control_request**。结论：**claude 2.1.150 headless(`-p`) 下 AskUserQuestion 被 CLI 即时自动报错解析，无法经 stdin tool_result 应答**——引擎「检测 tool_use → 写 stdin tool_result 应答」的交互式 auto-answer 机制对 AskUserQuestion 自始无效（CC 只是吞掉错误继续、自行 ExitPlanMode 单方面交付）。Plan Review 反馈物理无法经此通道送达 CC。
+- **可行性勘察**：① `--permission-prompt-tool` 在 homebrew 2.1.150 与 conductor 2.1.156 的 `--help` 均**未暴露**（不可经 CLI flag 启用）；② `claude_code_sdk` / `claude_agent_sdk` **均未安装**（引擎 `_invoke_sdk` 为死路径）。故「同轮答复」两条路径（SDK canUseTool / --permission-prompt-tool stdio）均非现成可用，需较大改造且 canUseTool 能否真正「答复」（而非仅许可）AskUserQuestion 尚待证实。
+- **两条修复路线**（待定）：
+  1. **跨迭代评审闭环**（headless 鲁棒、可立即落地）：PLAN prompt 不再让 CC 用 AskUserQuestion，改为直接产出方案；引擎迭代后评审，未通过则留在 PLAN 相位 + 反馈注入下一轮（CC 据此完善），通过才推进 IMPLEMENT。实现用户「提交→评审→反馈→完善/通过」意图，只是改为相邻迭代之间。
+  2. **同轮答复**（保留单轮内闭环，改动大、可行性待证）：安装 `claude_code_sdk` 并改走 SDK `query()` + `can_use_tool` 回调（或确证 conductor 隐藏 flag 的 stdio 控制协议），由引擎在回调内返回 AskUserQuestion 答复。
+- **当前状态**：allowed_tools 前提修复已提交（`2eea8249`）；完整修复路线待与用户确认后实施（用户已倾向路线 2，但其依赖项非现成、需评估投入与可行性）。
+
+### ISSUE-123 同轮闭环可行性已证实（hooks 路径，2026-06-07）
+- **SDK can_use_tool 路线否决**：`claude_code_sdk` 0.0.25 与 claude 2.1.150 不兼容（`rate_limit_event` 解析崩溃）；`claude-agent-sdk` 0.2.93 兼容，但 `can_use_tool` 仅许可（`PermissionResultAllow` 字段 `behavior/updated_input/updated_permissions`，**无返回答案字段**），无法「答复」AskUserQuestion。
+- **hooks 路线证实可行（受控实验）**：PreToolUse hook 拦截 AskUserQuestion，返回 `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<评审反馈>}}` → CC **同轮收到反馈并据此修订**。SDK 内置 hooks 与 **CLI `--settings` hooks（引擎实际路径，homebrew claude 2.1.150）双双验证通过**（`CLI_HOOK_DELIVERED_FEEDBACK_SAME_TURN=True`，CC 下一 turn 输出「我会补充错误处理…增加单元测试…」）。
+- **落地设计（CLI hooks，已实现）**：
+  1. `plan_review_hook.py`：PreToolUse hook 入口。从 stdin 读 hook 载荷（AskUserQuestion 的 tool_input 含 CC 提交的完整方案），从命令行参数指向的 per-iteration ctx 文件读 routine 上下文（goal/acceptance/reflections/model/timeout），调 `PlanReviewer.review()`，输出 deny+reason：refine→反馈+要求据此修订重提；approve→告知通过、退出 Plan 模式。
+  2. orchestrator `_build_config`：phase=plan 且 plan_review_enabled 时，写 ctx 文件并把 PreToolUse hook 合并进 `config.settings`（与只读 deny 共存），命令 = `<engine_python> plan_review_hook.py <ctx_path>`。
+  3. prompt_builder PLAN 相位：指示 CC 把**完整方案写入 AskUserQuestion 的 question** 提交审阅（使 hook 能读到方案全文）。
+  4. 保留 ISSUE-123 的 allowed_tools 前提（AskUserQuestion/ExitPlanMode 须放行）。
+
+### ISSUE-123 实机端到端复验：三处真因逐一修复后 ✅ 完全修复（2026-06-07）
+首次接入钩子后实机仍复发（CC 仍收 "Answer questions?"），逐层定位并修复三处叠加真因：
+1. **stdout 污染**：钩子 stdout 混入引擎 structlog 噪声（`disposer_registered` 等）→ Claude Code 按纯 JSON 解析失败 → 放弃钩子 → CC 落回 CLI 自动报错。修复：`_emit` 经**保存的原始 stdout fd** 写最终 JSON + 进程级 `fd1→fd2` + `sys.stdout→stderr` + `configure_logging(sinks=file)` 四重纯净化。
+2. **`-m` 预导入父包**：`python -m negentropy.engine.routine.plan_review_hook` 会让 runpy 先 import 父包 `__init__` 链（在钩子重定向代码执行前触发 lifecycle 日志写 stdout）。修复：改 **脚本路径**执行（`python <hook.py> <ctx>`，不预导入父包），钩子自举把 `src/` 加入 `sys.path`。
+3. **钩子超时**：钩子实际耗时（引擎冷启动 + PlanReviewer LLM ≈ 15-20s）超 Claude Code PreToolUse 默认超时（~10s）→ 被放弃。修复：settings hook 项加 `"timeout" = plan_review_timeout_seconds + 30`。
+- **实机证据（probe `374b5f36`）**：seq11 CC 调 AskUserQuestion 提交方案 → seq12 tool_result = **「✅ NegentropyEngine 已通过本方案审阅（评分 85/100）。审阅意见：…」**（评审同轮送达）→ seq13 CC「审阅已通过…直接进入实施」→ seq14 ExitPlanMode → seq17 进入实施。`"Answer questions?"` 自动错误消失，闭环按预期工作。
+- **残留小问题（低优先）**：ExitPlanMode 同样被 headless CLI 自动报错（seq16 `"Exit plan mode?" is_error=true`），但此处无害——CC 正确理解为「已批准、继续」并进入实施。可后续让同一钩子对 ExitPlanMode 也 allow/无害化，进一步消噪。
+- **回归**：plan_review_hook 单测 5 + _build_config 集成 7 + routine 单测全绿；钩子从任意 cwd 输出纯净单行 JSON、exit 0。
+
+## ISSUE-125 `plan_review_model` 无 per-routine 覆盖——重型复刻方案审阅仍由弱模型把关（2026-06-07）
+
+- **表因**：`orchestrator._write_plan_review_ctx` 只读全局 `settings.routine.plan_review_model`（默认 None → 解析到弱模型 gpt-5-nano）；重型复刻类 routine 的**方案审阅**无法指定强模型。
+- **根因**：与 ISSUE-121 同源缺口的对偶——评估侧 Judge 已在 ISSUE-121 拿到 per-routine `config.evaluator_model` 覆盖（orchestrator `_do_evaluate`），但**方案审阅侧 Plan Reviewer 漏配**对应的 per-routine 覆盖。审阅意见质量直接决定 CC 修订方向，弱模型审阅不可靠（同 ISSUE-116/121 的「弱模型裁决/审阅不可信」），在 Plan 闸门处仍开放。
+- **处理方式**（镜像 ISSUE-121 范式，最小干预）：`_write_plan_review_ctx` 的 `model` 改为 `(routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model`。hook 从 ctx 读 model 无需改。
+- **后续防范**：成对能力（评估 Judge / 方案 Reviewer）的「强模型覆盖」配置须对称落地——新增一侧覆盖时同步审计另一侧是否同源缺失。
+- **同类问题影响**：所有启用 Plan Review 的 routine；尤以重型复刻/迁移类需强模型审阅者。
+- **验证**：单测 `test_write_plan_review_ctx_per_routine_model_override`（config 覆盖）+ `test_write_plan_review_ctx_falls_back_to_global`（回退全局）。
+
+## ISSUE-126 ExitPlanMode 残留 headless 自动报错噪声——同钩子返回「已批准」消噪（2026-06-07）
+
+- **表因**：ISSUE-123 修复 AskUserQuestion 后，ExitPlanMode 仍走 service.py 的 stdin auto-answer（headless 下同样无效）→ 实测 probe4 seq16 `{"output":"Exit plan mode?","is_error":true}`。无害（CC 理解为已批准继续）但属同根残留噪声、污染审计。
+- **根因**：headless `claude -p` 下 ExitPlanMode 与 AskUserQuestion 同类——CLI 自动报错、不读 stdin tool_result。受控实验另证 PreToolUse `permissionDecision=allow` **不能**消除（ExitPlanMode 的退出确认非 permission allow 可满足）。
+- **处理方式**：ExitPlanMode 同走 `plan_review_hook.py`（按 tool_name 分支），返回 `deny + permissionDecisionReason=「✅ 已批准退出 Plan 模式，进入实施…无需再调用」`。受控实验证实该 reason 同轮回灌 CC（替代 opaque "Exit plan mode?"），CC 据此继续实施。orchestrator settings 追加 ExitPlanMode matcher（瞬时分支、timeout=15）；service.py 在 `plan_review_via_hook` 时跳过失效的 ExitPlanMode stdin auto-answer。
+- **后续防范**：headless 交互工具（AskUserQuestion/ExitPlanMode）的「应答」一律经 PreToolUse 钩子 deny+reason 投递，不依赖 stdin auto-answer（其对这两个工具自始无效）。
+- **同类问题影响**：所有 PLAN 相位经钩子评审的 worktree routine。
+- **验证**：单测 `test_exit_plan_approved_reason_content` + `test_main_exit_plan_emits_approval` + `test_main_unrelated_tool_no_emit`；钩子对 ExitPlanMode 输出批准 JSON。routine 单测 141 + build_config 7 + claude_code 163 全绿。**实机复验通过**（探针 `e49bf962`）：monitor 报 `✅(3) ExitPlanMode=APPROVED(no is_error noise): "✅ NegentropyEngine 已批准退出 Plan 模式…"`，opaque "Exit plan mode?" 消失。
+
+## ISSUE-127 强模型 JSON 围栏致 Judge/PlanReviewer/记忆提取解析全线失败（2026-06-07）
+
+- **表因**：ISSUE-125 接入强模型 `anthropic/claude-sonnet-4-6` 作 Plan Reviewer 后，实机首跑钩子返回「（NegentropyEngine 评审暂不可用）」fail-open——`plan_review_judge_failed: Expecting value: line 1 column 1 (char 0)` 重试 3 次耗尽。
+- **根因**：`claude-sonnet-4-6`（经代理）即便指定 `response_format={"type":"json_object"}`，仍把 JSON 包在 markdown 代码围栏里——实测恒返回 ` ```json\n{...}\n``` `。而 `evaluator._parse` / `plan_reviewer._parse` / `memory_extractor._parse_response` 均直接 `json.loads(content)`，见前导反引号即抛。弱模型（gpt-5-nano）返回裸 JSON 故历史未暴露——但凡切到会围栏的强模型（即 ISSUE-121/125 的目标场景），评审/评分/记忆提取**全线静默退化**。受控实验 2× 复现，且证实「无论加不加 `response_format`」sonnet 都围栏。
+- **处理方式**（单点收敛）：新增 `engine/utils/json_extract.py::loads_lenient`——先剥 ```fence```（正则 `_FENCE_RE`）再 `json.loads`；仍失败则兜底截取首个平衡 `{...}`/`[...]` 子串；彻底失败返回 default。三处解析器（evaluator/plan_reviewer/memory_extractor）统一复用。
+- **后续防范**：① 消费 LLM「JSON 输出」一律经容错解析，不可假定模型严格裸 JSON（即便声明 `response_format`，部分模型/代理仍围栏）；② 新增任何 LLM-JSON 消费点必须走 `loads_lenient`；③ 切换模型档位（弱→强）须回归所有结构化输出解析路径。
+- **同类问题影响**：所有以 LLM 结构化 JSON 输出驱动的 Routine 子系统（Judge 评分 / Plan 审阅 / 记忆提取）；尤在启用强模型覆盖（ISSUE-121 evaluator_model / ISSUE-125 plan_review_model）时必触发。
+- **验证**：单测 `test_json_extract.py` 8 例（围栏/裸/散文夹带/数组/垃圾兜底）；端到端 `PlanReviewer(explicit_model="anthropic/claude-sonnet-4-6").review(...)` → `ok=True verdict=approve score=92`（修复前 3 重试全败）。routine 单测 149 + build_config/evaluate 集成 14 全绿。
+
 ---
 
 ## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」
@@ -2920,3 +3041,29 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **同族作业的服务声明应保持一致或显式注释差异**——同一 reusable workflow 内 unit/integration/performance 三作业若对 DB 依赖一致，其 `services` 块应同构；本次以注释说明「unit 由 fixture 动态建库、无需 init 步骤」的正交差异，避免后人误删。
 - **同类问题影响**：所有经 `tests/conftest.py` 会话夹具运行的后端测试作业（本次 unit 已补齐；integration/performance 早已具备 service）；`cognizes` 等其它 app 若引入同形 autouse 建库夹具，须同步核验其 `backend-unit` 服务块。
 - **验证**：本地以可达 pgvector（pg16/vector 0.8.x）复现 CI——原报错的 `test_permissions.py`/`test_scheduler_api.py` **27 passed**、本 PR 新增 `test_skills_injector.py` **34 passed**；fixture 仅触碰派生的 `*_test` 库，生产 `negentropy` 库只读零改动（66 表完好，恪守 ISSUE-111 安全不变量）；`pyyaml` 解析校验三作业 `services.postgres` 均为 `pgvector/pgvector:pg16` + `5432:5432`。
+
+## ISSUE-128 approve 后 CC 循环调用 ExitPlanMode 空耗 turns（2026-06-07）
+
+- **表因**：ISSUE-127 修复后强 sonnet 实审通过（探针 `6a43ed9e` seq12 评分 92 实审），但 CC 随后**循环调用 ExitPlanMode 3×**（seq14/23/30），每次 tool_result `is_error=true`，CC 误判失败而重试，空耗 turns（虽最终仍 break 出去写了 6 个文件）。
+- **根因**：headless ExitPlanMode 恒被 CLI 标 `is_error`（ISSUE-126 已证 allow 不能消除）；而 prompt/approve-reason 此前指示「批准后调用 ExitPlanMode 进入实施」，CC 见 is_error 即循环重试。但 **PLAN→IMPLEMENT 推进纯由引擎 `_advance_phase_or_terminate` 在下一次评估驱动、根本不依赖 CC 退出 Plan 模式**——ExitPlanMode 在此语境下是无意义的交互残留。
+- **处理方式**：approve-reason、`_EXIT_APPROVED_REASON`、PLAN prompt 三处统一改为「批准后**直接结束本轮回复**，不要调用 ExitPlanMode 或任何工具，引擎将自动推进实施阶段」。消除循环与 is_error 噪声。
+- **后续防范**：无头自治闭环中，凡「依赖人机交互确认才推进」的工具（ExitPlanMode）若其状态推进实为引擎驱动，应明确指示 Agent 跳过该工具、结束本轮，而非让其与 CLI 的 is_error 反复缠斗。
+- **同类问题影响**：所有 PLAN 相位经钩子审阅的 routine。
+- **验证**：单测 `test_run_approve_tells_end_turn` + `test_exit_plan_approved_reason_content`（结束本轮、不调工具、引擎推进）；hook 单测 10 例全绿。实机复验见复刻长跑。
+
+## ISSUE-129 强模型 Plan Review 在大型方案上超时（plan_review_timeout=60 过小 + 钩子重试预算错配）（2026-06-07）
+
+- **表因**：复刻长跑 `b378039d` seq1（重型任务，CC 探索 19 turns/666 事件后提交大型方案）的 Plan Review 失败——CC 收到 `"Answer questions?"`（ISSUE-123 老症状复现），评审反馈未送达。但评估侧 sonnet Judge 同轮**成功**（score=18/stalled/acceptance_met=false，反思详实）。
+- **根因**（钩子日志实证 `litellm.Timeout ... Timeout passed=60.0, time taken=60.002`）：① `plan_review_timeout_seconds=60`（为弱模型 nano 调的默认）对强模型 sonnet 审阅**大型方案**过小，单次 LLM 调用即超 60s；② 钩子内 PlanReviewer `max_retries=3`，最坏 3×60=180s，而 orchestrator 给钩子的 `hook_timeout=plan_review_timeout+30=90s` **覆盖不了重试总耗时** → Claude Code PreToolUse 超时杀钩子 → CC 落回 `"Answer questions?"`。两处叠加：超时过小 + 重试预算错配。
+- **处理方式**：① `plan_review_timeout_seconds` 默认 60→**120**（强模型大方案足够，实测大方案审阅 24.8s）；② 新增 per-routine `config.plan_review_timeout_seconds` 覆盖（写入 ctx）；③ 钩子内 PlanReviewer **`max_retries=1`**——钩子受 PreToolUse 硬超时约束，真正「重试」是 CC 据 refine 反馈重新提交（外层闭环），钩子内多次重试只会撑爆超时预算；④ `hook_timeout = review_timeout + 45`（单次尝试 + 冷启动余量，不再 ×retries）。
+- **后续防范**：① 为弱模型调的超时/重试默认，切强模型时必须复核（强模型更慢、输出更长）；② 受外层硬超时约束的子调用（钩子/gate）其内部重试次数 × 单次超时必须 ≤ 外层预算，否则永远在耗尽重试前被杀；③ 「重试边界」应设在正确的层级——评审的重试是 CC 重新提交，而非钩子内空转。
+- **同类问题影响**：所有用强模型 plan_review 且方案较大的 routine（即 ISSUE-125 的目标重型复刻场景）。eval Judge 因用独立的 `evaluate_judge_timeout_seconds`（更大）未受影响。
+- **验证**：端到端 sonnet 审阅大型方案 `elapsed=24.8s ok=True`（修复前 60s 超时 ×3 全败）；hook 单测 10 + build_config 集成 7 全绿。当前长跑已进 IMPLEMENT（评审失败非致命、引擎照常推进，ISSUE-128/相位机驱动），修复对后续 PLAN 迭代与新 routine 生效。
+## ISSUE-130 `plan_review_hook` 模块级全局副作用（stdout 重定向 + 日志改道）经 import 泄漏，污染全套单测（CI backend-unit 3 例红）（2026-06-07）
+
+- **表因**：CI `backend-quality / Backend Unit Tests` 报 3 例失败，全在 `tests/unit_tests/agents/test_skills_injector.py`（`test_resolve_skills_logs_permission_filter_at_warning` 等），断言一律 `AssertionError: assert 'skills_injector_permission_filtered' in ''`——即 `capsys` 捕获的 stdout/stderr 为空。本地复现：3 例单独运行**全绿**，与 `test_routine_plan_review_hook.py` **同批收集即全红**。
+- **根因**（二阶涟漪，ISSUE-123 引入的 `plan_review_hook.py` 的副作用）：该钩子为「脚本路径执行」设计，在**模块顶层**（import 即执行）做了三件进程级全局副作用：① `os.dup2(2, 1)` 把进程 stdout(fd1) 重定向到 stderr；② `sys.stdout = sys.stderr`；③ `configure_logging(level="WARNING", sinks="file")` 把全局 structlog 改道到 `/tmp/negentropy-plan-review-hook.log`。而 `test_routine_plan_review_hook.py:9` 以 `from ... import plan_review_hook` **顶层 import**——pytest **收集阶段**即触发上述副作用，全局 structlog 自此只写文件。`skills_injector` 经 `negentropy.logging.get_logger().warning(...)` 打的日志遂全部进文件、`capsys`（stdout/stderr）一无所获 → 断言空串失败。clean session 下 structlog 未被 `configure_logging` 接管、停在内置默认（`PrintLogger` 调用时惰性解析 `sys.stdout` = capsys 缓冲），故单独跑全绿；upstream 无此钩子故历史全绿——确系本分支回归。次生：`orchestrator._plan_review_hook_command` 仅为取 `__file__` 而 `from . import plan_review_hook`，同样会在**引擎进程内**触发该副作用（潜伏生产隐患——长驻引擎 stdout 被永久重定向）。
+- **处理方式**（最小干预，根因杠杆）：把模块顶层的 ①②③ 副作用收敛进 `_bootstrap_stdout_purity()` 函数，仅在 `if __name__ == "__main__":` 入口（即生产以**脚本路径** `python <hook_path> <ctx>` 执行时，`orchestrator.py` 实证）调用；import 时**绝不执行**。`_emit` 改用 `_REAL_STDOUT_FD`（默认 `None`）兜底到 fd 1。脚本执行路径行为零变化（bootstrap 顺序不变：先 fd/对象级重定向，再 import `configure_logging`，赶在引擎 import 噪声前生效）；in-process import（单测收集 / orchestrator 取 `__file__`）不再有副作用。
+- **后续防范**：① 任何「脚本入口专用」的进程级全局副作用（fd 重定向、`sys.stdout` 替换、全局日志重配、信号处理器等）**必须**置于 `if __name__ == "__main__":` 或显式 bootstrap 函数内，**严禁**写在模块顶层——否则任何 import（含 pytest 收集、仅取 `__file__`）都会泄漏到宿主进程；② 依赖 `capsys` 捕获 structlog 的单测本身脆弱（隐含「全局 structlog 未被接管」前提），后续可迁移到 `structlog.testing.capture_logs()` 彻底解耦全局配置，但本轮按最小干预先断源头。
+- **同类问题影响**：任何在进程内 import `plan_review_hook` 的路径（pytest 收集、orchestrator）此前都被静默重定向 stdout + 改道日志；修复后一并消除。排查同类：`rg -n "^(os\.dup2|sys\.stdout =|configure_logging\()" src` 审计模块顶层全局副作用。
+- **验证**：复现批（hook 测 + skills_injector 3 例）修复前 3 红 → 修复后 **8 全绿**；`agents/` + `engine/` 全量单测同批收集 **1066 passed**；脚本路径 smoke（`echo '{"tool_name":"ExitPlanMode"}' | python plan_review_hook.py`）输出**纯 JSON**（`permissionDecision=deny`，无日志噪声），证 bootstrap 在 `__main__` 仍正确生效；`ruff check`/`format` 全过。

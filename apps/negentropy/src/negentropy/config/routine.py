@@ -182,10 +182,12 @@ class RoutineSettings(BaseSettings):
         description="Plan 审阅 LLM 模型覆盖；为空时走 task_registry 的 routine.plan_review 解析。",
     )
     plan_review_timeout_seconds: int = Field(
-        default=60,
+        default=120,
         ge=10,
         le=300,
-        description="单次 Plan 审阅 LLM 调用的超时（秒）。",
+        description="单次 Plan 审阅 LLM 调用的超时（秒）。默认 120：强模型（如 claude-sonnet-4-6）"
+        "审阅大型方案需 >60s，过小会触发 litellm.Timeout 致评审失败、CC 落回 'Answer questions?'（ISSUE-129）。"
+        "per-routine 可经 config.plan_review_timeout_seconds 覆盖。",
     )
 
     # --- 上下文压缩（迭代内：提前触发 auto-compact + 迭代内重试续接）---

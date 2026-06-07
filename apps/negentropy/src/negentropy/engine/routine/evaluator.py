@@ -15,14 +15,15 @@ LLM 调用路径复用 ``LLMFactExtractor`` 范式：``resolve_model_config_asyn
 from __future__ import annotations
 
 import asyncio
-import json
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 import litellm
 
+from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
+from negentropy.engine.utils.subprocess_env import inherited_env_without_engine_venv
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.routine.evaluator")
@@ -77,6 +78,10 @@ class _RoutineLike(Protocol):
     gate_timeout_seconds: int | None
     # per-routine 验收未达成评分上限覆盖（来自 config.acceptance_unmet_score_cap）；None → 用实例级默认。
     acceptance_unmet_score_cap: int | None
+    # per-routine Judge 模型覆盖（来自 config.evaluator_model）；None → 用实例级默认（全局 task 模型）。
+    # 高风险复刻类任务的 acceptance 裁决需要更强模型——弱模型（如 gpt-5-nano）易误判
+    # acceptance_met=true 触发过早不可逆 SUCCESS+PR（ISSUE-121）。
+    evaluator_model: str | None
 
 
 class _IterationLike(Protocol):
@@ -158,8 +163,12 @@ class RoutineEvaluator:
         )
         audit_gate = gate_output or None  # 门控完整输出（≤16KB）供审计；None 表示未配置门控
 
+        # per-routine Judge 模型覆盖（高风险 acceptance 裁决用更强模型，缓解弱模型误判，ISSUE-121）。
+        model_override = getattr(routine, "evaluator_model", None)
         try:
-            score, verdict, reflection, judge_raw, acceptance_met = await self._judge(judge_prompt)
+            score, verdict, reflection, judge_raw, acceptance_met = await self._judge(
+                judge_prompt, model_override=model_override
+            )
         except Exception as exc:
             logger.warning("routine_evaluate_judge_failed", error=str(exc))
             return EvaluationResult(
@@ -224,6 +233,10 @@ class RoutineEvaluator:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 start_new_session=True,
+                # 净化环境：剥离引擎自身 uv run/venv 激活变量（VIRTUAL_ENV / UV_RUN_RECURSION_DEPTH），
+                # 避免泄漏给 worktree 内的门控命令——否则 `uv run pytest` 报 VIRTUAL_ENV 错配警告，
+                # 非 uv 门控（裸 pytest/python）更会落到引擎 venv 找错包产生假失败污染评分（ISSUE-120）。
+                env=inherited_env_without_engine_venv(),
             )
             try:
                 stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=effective_timeout)
@@ -260,13 +273,16 @@ class RoutineEvaluator:
         tail = output.strip()[-1000:]
         return f"命令 `{command}` 执行结果：{status}\n输出尾部：\n{tail}"
 
-    async def _judge(self, prompt: str) -> tuple[int, str, str, str, bool | None]:
+    async def _judge(self, prompt: str, *, model_override: str | None = None) -> tuple[int, str, str, str, bool | None]:
         """调用 LLM 评审，解析结构化 JSON；含指数退避重试。
 
         prompt 由调用方（``evaluate``）构造并传入，使评估失败路径也能回带 judge_prompt 供审计。
+        ``model_override`` 为 per-routine Judge 模型覆盖（优先于实例级 ``explicit_model``）。
         返回 ``(score, verdict, reflection, raw_content, acceptance_met)``。
         """
-        model, model_kwargs = await resolve_model_config_async(_TASK_KEY, explicit_model=self._explicit_model)
+        model, model_kwargs = await resolve_model_config_async(
+            _TASK_KEY, explicit_model=model_override or self._explicit_model
+        )
         safe_kwargs = {
             k: v for k, v in model_kwargs.items() if k not in ("model", "messages", "temperature", "response_format")
         }
@@ -298,7 +314,8 @@ class RoutineEvaluator:
 
         ``acceptance_met`` 缺失（旧模型/未遵循新契约）→ None，由调用方决定是否施加 cap。
         """
-        data: dict[str, Any] = json.loads(content or "{}")
+        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（ISSUE-127）。
+        data: dict[str, Any] = loads_lenient(content)
 
         raw_score = data.get("score", 0)
         try:

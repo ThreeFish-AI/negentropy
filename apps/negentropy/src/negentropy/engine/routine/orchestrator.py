@@ -24,6 +24,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
+import tempfile
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -68,6 +70,13 @@ _ROUTINE_DEFAULT_TOOLS = [
     "WebSearch",
     "mcp__playwright",
 ]
+
+# 交互式自动应答所需工具：Engine 经 stdin 写回 tool_result 应答这两个工具（Plan Review / 通用
+# auto-answer / 退出 Plan 模式）。二者**必须**在 allowed_tools 白名单内，否则 CLI 直接拒绝
+# （tool_result `is_error=true`，输出 "Answer questions?" / "Exit plan mode?"），Engine 写回 stdin
+# 的应答永远无法被 CC 消费——Plan Review 反馈送达失败、CC 报错后自行 ExitPlanMode 单方面交付，
+# 评审闭环（CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过）形同虚设（ISSUE-123）。
+_INTERACTIVE_AUTO_ANSWER_TOOLS = ("AskUserQuestion", "ExitPlanMode")
 
 # 非终态迭代状态（一个 routine 同时至多存在一个）。
 # 'evaluating' = 已执行完毕、后台评估在途；纳入「单在途」判定，避免评估期间误派发新迭代。
@@ -131,6 +140,63 @@ def _build_readonly_settings(read_dirs: list[str]) -> str:
     """
     deny = [f"Edit(//{d.lstrip('/')}/**)" for d in read_dirs]
     return json.dumps({"permissions": {"deny": deny}})
+
+
+def _write_plan_review_ctx(routine: Routine) -> str:
+    """写 per-iteration Plan Review 上下文文件，供 PreToolUse 钩子读取（避免经 env 传长文本）。
+
+    返回上下文文件绝对路径。内容：goal/acceptance/reflections/model/timeout。
+    """
+    reflections = (
+        list((routine.reflections or {}).get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
+    )
+    # per-routine 审阅模型覆盖（ISSUE-125，镜像 evaluator_model 的 ISSUE-121 范式）：
+    # 重型复刻类 routine 的方案审阅须能指定强模型，弱模型（gpt-5-nano）审阅意见不可靠、
+    # 直接误导 CC 修订方向。None → 回退全局 settings.routine.plan_review_model。
+    plan_review_model = (routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model
+    # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
+    plan_review_timeout = (routine.config or {}).get("plan_review_timeout_seconds") or (
+        settings.routine.plan_review_timeout_seconds
+    )
+    ctx = {
+        "goal": routine.goal or "",
+        "acceptance_criteria": routine.acceptance_criteria or "",
+        "reflections": reflections,
+        "model": plan_review_model,
+        "timeout": plan_review_timeout,
+    }
+    ctx_dir = os.path.join(tempfile.gettempdir(), "negentropy-pr-ctx")
+    with suppress(OSError):
+        os.makedirs(ctx_dir, exist_ok=True)
+    path = os.path.join(ctx_dir, f"{routine.id}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(ctx, f, ensure_ascii=False)
+    return path
+
+
+def _plan_review_hook_command(ctx_path: str) -> str:
+    """PreToolUse 钩子命令（settings.json）：以引擎 venv python 运行 plan_review_hook **脚本路径**。
+
+    必须用**脚本路径**而非 ``-m 包模块``：``-m`` 会让 runpy 先 import
+    ``negentropy.engine.routine`` 包 ``__init__`` 链（触发 lifecycle 日志写 stdout，污染钩子 JSON）；
+    脚本路径执行不预导入父包，钩子内的 stdout 重定向得以赶在任何引擎 import 前生效。
+    ``sys.executable`` = 引擎后端 venv python；钩子自行把 src 根加入 sys.path，故与 CC 子进程 cwd 无关。
+    """
+    py = sys.executable
+    from . import plan_review_hook
+
+    hook_path = os.path.abspath(plan_review_hook.__file__)
+    return f'"{py}" "{hook_path}" "{ctx_path}"'
+
+
+def _is_plan_review_active(routine: Routine) -> bool:
+    """是否对本次（PLAN 相位）启用 Engine Plan Review 同轮钩子（ISSUE-123）。"""
+    return bool(
+        settings.routine.auto_answer_questions
+        and settings.routine.plan_review_enabled
+        and routine.current_phase == phase_mod.PHASE_PLAN
+        and (phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config))
+    )
 
 
 def _build_scope_system_prompt(routine: Routine) -> str:
@@ -475,6 +541,9 @@ class RoutineOrchestrator:
                 gate_timeout_seconds=(routine.config or {}).get("gate_timeout_seconds"),
                 # per-routine 验收未达成评分上限覆盖（None → 用评估器实例默认）。
                 acceptance_unmet_score_cap=(routine.config or {}).get("acceptance_unmet_score_cap"),
+                # per-routine Judge 模型覆盖（None → 用评估器实例默认全局 task 模型）。高风险复刻类
+                # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（ISSUE-121）。
+                evaluator_model=(routine.config or {}).get("evaluator_model"),
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,
@@ -632,130 +701,6 @@ class RoutineOrchestrator:
             )
         ).all()
         return [r[0] for r in rows]
-
-    async def _evaluate_one(self, routine_id: UUID) -> bool:
-        """评估单个 routine 的最新 executed 迭代并据决策推进状态机。"""
-        async with db_session.AsyncSessionLocal() as db:
-            routine = await db.get(Routine, routine_id, with_for_update=True)
-            if routine is None or routine.status != "running":
-                return False
-            latest = await self._latest_iteration(db, routine_id)
-            if latest is None or latest.status != "executed":
-                return False
-
-            result = await self._evaluator.evaluate(routine, latest)
-
-            if not result.ok:
-                # 评估失败：记录 + 计数；超过容忍阈值终止
-                attempts = int((latest.metrics or {}).get("eval_attempts", 0)) + 1
-                latest.eval_error = result.error
-                latest.metrics = {**(latest.metrics or {}), "eval_attempts": attempts}
-                eval_events: list[dict] = []
-                if attempts >= settings.routine.eval_failure_patience:
-                    self._terminate(routine, decision_mod.REASON_UNRECOVERABLE)
-                    latest.status = "evaluated"
-                    latest.verdict = "unrecoverable"
-                    # 仅在确实翻转 evaluated（终止）时落审计事件，避免重试期间每 tick 重复追加。
-                    eval_events = await self._persist_eval_events(db, routine, latest, result)
-                await db.commit()
-                await self._publish_routine(routine)
-                await self._publish_action_events(routine_id, latest.id, eval_events)
-                return False
-
-            # 写入评估结果
-            latest.score = result.score
-            latest.verdict = result.verdict
-            latest.reflection = result.reflection
-            latest.gate_exit_code = result.gate_exit_code
-            latest.status = "evaluated"
-
-            # 更新 routine 反规范化评分 + 追加反思
-            routine.last_score = result.score
-            if result.score is not None:
-                routine.best_score = (
-                    result.score if routine.best_score is None else max(routine.best_score, result.score)
-                )
-            if result.reflection:
-                routine.reflections = append_reflection(routine.reflections, result.reflection)
-
-            # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）。
-            # worktree routine 与 phased routine 均走相位机（FINALIZE/PR 对 worktree 通用）。
-            phased_flow = phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config)
-            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE and not routine.pr_url:
-                routine.pr_url = phase_mod.extract_pr_url(latest.summary)
-
-            # 决策（decision.py 保持纯守卫；相位化 routine 由 orchestrator 解释 SUCCESS）。
-            # 仅取「本次尝试」窗口（seq > eval_floor_seq）：重启后旧迭代不污染停滞/振荡判定。
-            history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
-            verdict = decision_mod.decide(
-                routine, latest, history, max_context_resets=settings.routine.context_reset_max
-            )
-            if phased_flow:
-                self._advance_phase_or_terminate(routine, verdict)
-            elif verdict.is_terminate:
-                self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
-
-            # 「全过程」审计：在迭代翻转 evaluated 时追加 gate / evaluation 事件（seq=MAX+1）。
-            eval_events = await self._persist_eval_events(db, routine, latest, result)
-
-            # 记忆提取所需参数（commit 后读取 DB 对象会过期，提前提取纯数据）。
-            was_running_before_commit = routine.status == "running"
-            routine_id_str = str(routine_id)
-            routine_key = routine.key
-            owner_id = routine.owner_id
-            routine_goal = routine.goal
-            routine_criteria = routine.acceptance_criteria
-            iteration_snap = {
-                "seq": latest.seq,
-                "score": latest.score,
-                "verdict": latest.verdict,
-                "reflection": latest.reflection,
-                "summary": latest.summary,
-                "gate_exit_code": latest.gate_exit_code,
-                "prompt": latest.prompt,
-            }
-            history_snap = [
-                {
-                    "seq": it.seq,
-                    "score": it.score,
-                    "verdict": it.verdict,
-                    "reflection": it.reflection,
-                    "status": it.status,
-                    "summary": it.summary,
-                }
-                for it in history
-            ]
-
-            await db.commit()
-            await self._publish_routine(routine)
-            await get_bus().publish(
-                {
-                    "type": "iteration",
-                    "id": str(latest.id),
-                    "routine_id": str(routine_id),
-                    "status": "evaluated",
-                    "phase": latest.phase,
-                    "score": result.score,
-                    "verdict": result.verdict,
-                }
-            )
-            await self._publish_action_events(routine_id, latest.id, eval_events)
-
-            # 记忆提取（fire-and-forget，不阻塞 inspector handler）。
-            # 必须在 commit 后执行：避免 LLM 调用耗时触发 handler timeout
-            # 导致 db.commit() 被取消，评估结果丢失。
-            # 使用强引用集合防止 task 被 GC 回收。
-            self._fire_memory_extraction(
-                routine_id_str,
-                routine_key,
-                owner_id,
-                routine_goal,
-                routine_criteria,
-                iteration_snap,
-                history_snap,
-                was_running_before_commit,
-            )
-            return True
 
     # ------------------------------------------------------------------
     # (c) DISPATCH
@@ -1358,7 +1303,41 @@ class RoutineOrchestrator:
         read_dirs = _normalize_read_dirs(overrides.get("read_dirs"))
         if read_dirs:
             config.add_dirs = read_dirs
-            config.settings = _build_readonly_settings(read_dirs)
+        # CC settings.json：合并「源码只读 deny」+「Plan Review PreToolUse 钩子」。
+        settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
+        plan_review_active = _is_plan_review_active(routine)
+        if plan_review_active:
+            # ISSUE-123：PLAN 相位经 PreToolUse 钩子拦截 AskUserQuestion，由 Engine 评审并同轮
+            # deny+reason 回灌 CC（headless 下 stdin auto-answer 对 AskUserQuestion 无效）。
+            ctx_path = _write_plan_review_ctx(routine)
+            # hook timeout 必须覆盖钩子实际耗时（引擎冷启动 ~10s + PlanReviewer 单次 LLM 调用 ≤ review_timeout），
+            # 否则超 Claude Code PreToolUse 超时被杀 → CC 落回 "Answer questions?"（ISSUE-123/129）。
+            # 钩子内 PlanReviewer max_retries=1（见 plan_review_hook），故 = per-routine review_timeout + 冷启动余量；
+            # per-routine config.plan_review_timeout_seconds 覆盖（强模型大方案需 >60s，ISSUE-129）。
+            review_timeout = int(
+                (routine.config or {}).get("plan_review_timeout_seconds")
+                or settings.routine.plan_review_timeout_seconds
+            )
+            hook_timeout = review_timeout + 45
+            hook_cmd = _plan_review_hook_command(ctx_path)
+            pre = settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
+            pre.append(
+                {
+                    "matcher": "AskUserQuestion",
+                    "hooks": [{"type": "command", "command": hook_cmd, "timeout": hook_timeout}],
+                }
+            )
+            # ISSUE-126：ExitPlanMode 同走钩子返回「已批准、进入实施」deny+reason，消除 headless 下
+            # opaque "Exit plan mode?" is_error 噪声（allow 经实验不能消除，故同钩子分支处理）。
+            # 该分支无 LLM、瞬时返回，无需大 timeout。
+            pre.append(
+                {
+                    "matcher": "ExitPlanMode",
+                    "hooks": [{"type": "command", "command": hook_cmd, "timeout": 15}],
+                }
+            )
+        if settings_obj:
+            config.settings = json.dumps(settings_obj, ensure_ascii=False)
         # permission_mode 由相位决定（PLAN 仅规划、IMPLEMENT/FINALIZE 落盘）——对 worktree routine
         # 与 phased routine 均生效（覆盖 preset 静态值）；旧扁平 routine 沿用 preset 覆盖或全局默认。
         if phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
@@ -1376,6 +1355,14 @@ class RoutineOrchestrator:
         # 启用交互模式：Engine 自动应答 AskUserQuestion，使 CC 继续执行而非失败退出。
         if settings.routine.auto_answer_questions:
             config.interactive = True
+            # 强制并入交互工具白名单（ISSUE-123）：Plan Review / auto-answer 依赖 CLI 放行
+            # AskUserQuestion + ExitPlanMode，否则二者被 allowed_tools 白名单拒绝（is_error），
+            # Engine 经 stdin 写回的评审反馈/应答永远无法送达 CC，评审闭环失效。
+            merged_tools = list(config.allowed_tools or [])
+            for _t in _INTERACTIVE_AUTO_ANSWER_TOOLS:
+                if _t not in merged_tools:
+                    merged_tools.append(_t)
+            config.allowed_tools = merged_tools
             config.auto_answer_context = {
                 "goal": routine.goal,
                 "acceptance_criteria": routine.acceptance_criteria,
@@ -1383,6 +1370,9 @@ class RoutineOrchestrator:
                 # auto-answer 分支调用 PlanReviewer 而非通用 auto-answer。
                 "phase": routine.current_phase or "",
                 "plan_review_enabled": settings.routine.plan_review_enabled,
+                # ISSUE-123：PLAN 相位评审改由 PreToolUse 钩子同轮投递；置真令交互式 reader
+                # 跳过其（对 AskUserQuestion 无效且会重复评审的）内联 plan-review 应答分支。
+                "plan_review_via_hook": plan_review_active,
                 "plan_review_model": settings.routine.plan_review_model,
                 "plan_review_timeout": settings.routine.plan_review_timeout_seconds,
                 "reflections": (
