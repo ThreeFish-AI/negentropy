@@ -29,7 +29,18 @@ from negentropy.logging import get_logger
 logger = get_logger("negentropy.engine.routine.plan_reviewer")
 
 _TASK_KEY = "routine.plan_review"
-_PLAN_MAX_CHARS = 8000
+# 提交给 judge 的方案默认字符上限。历史值 8000 过小：多 Phase 迁移方案（10K~16K 字符）被静默
+# 切到 Phase 3~6 处，judge 看不到尾部 → 反复误判「Phase 缺失/不完整」→ refine 闭环结构性无法收敛
+# （Routine 卡环根因）。现代 judge 模型上下文 200K tokens，抬至 200000 字符后正常方案永不触发截断；
+# 仅作失控超长的有限上界。可经 ``review(max_plan_chars=...)`` 覆盖（settings.routine.plan_review_max_plan_chars
+# → ctx → hook 逐层透传）。
+_DEFAULT_PLAN_MAX_CHARS = 200_000
+
+# 真发生截断时附于方案末尾的显式告知：阻止 judge「因未见尾部而判完整性不达标」的死循环复发。
+_TRUNCATION_NOTICE = (
+    "\n\n[⚠ 方案过长已被系统截断：以上为方案前 {shown} 字符，尾部 {dropped} 字符未展示。"
+    "请仅就已展示内容评审，**切勿因未见尾部而判定方案不完整或 Phase 缺失**。]"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,9 +134,20 @@ class PlanReviewer:
         acceptance_criteria: str,
         plan_text: str,
         reflections: list[str] | None = None,
+        max_plan_chars: int = _DEFAULT_PLAN_MAX_CHARS,
     ) -> PlanReviewResult:
-        """审阅 Plan 并返回审阅结果。"""
-        plan = (plan_text or "").strip()[:_PLAN_MAX_CHARS] or "(Claude Code 未产出实现方案)"
+        """审阅 Plan 并返回审阅结果。
+
+        ``max_plan_chars``：提交给 judge 的方案字符上限。仅当方案超限才截断，并在尾部附
+        :data:`_TRUNCATION_NOTICE` 告知 judge 勿据未见尾部判定缺失（防 refine 死循环复发）。
+        """
+        raw = (plan_text or "").strip()
+        if len(raw) > max_plan_chars:
+            plan = raw[:max_plan_chars] + _TRUNCATION_NOTICE.format(
+                shown=max_plan_chars, dropped=len(raw) - max_plan_chars
+            )
+        else:
+            plan = raw or "(Claude Code 未产出实现方案)"
 
         reflections_section = "（无既往反馈）"
         if reflections:

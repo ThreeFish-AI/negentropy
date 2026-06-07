@@ -55,7 +55,7 @@ def build_prompt(
             被评审），批准后以默认（``stage=None`` → 按 ``current_phase``）取 implement 段 prompt。
             为空时沿用旧逻辑（相位由 ``routine.current_phase`` 决定）。
     """
-    # 显式 plan 段（统一闭环）：ExitPlanMode 与 AskUserQuestion 均被钩子真实评审。
+    # 显式 plan 段（统一闭环）：prompt 漏斗到 AskUserQuestion 提交；ExitPlanMode 仍被钩子真实评审作安全网。
     unified_plan = stage == PHASE_PLAN
     phase = stage or getattr(routine, "current_phase", PHASE_IMPLEMENT) or PHASE_IMPLEMENT
     is_resume = bool(routine.claude_session_id)
@@ -103,15 +103,18 @@ def build_prompt(
         )
 
     if phase == PHASE_PLAN and unified_plan:
-        # 统一闭环 plan 段：ExitPlanMode（CC 原生方案提交方式）与 AskUserQuestion 均被钩子真实评审。
+        # 统一闭环 plan 段：方案提交**统一漏斗到 AskUserQuestion**（确定性载体，全文写 question 字段）；
+        # ExitPlanMode 仍被钩子真实评审作兜底安全网（CC 反射误调也不会绕过评审），但 prompt 不引导其使用。
         parts.append(
             "# 规划 (Plan ONLY)\n本段**仅产出实现方案，禁止写入或修改任何文件**（plan 模式）：\n"
             "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n\n"
-            "**提交审阅（重要）**：完成方案后，调用 **ExitPlanMode**（或 AskUserQuestion）把**完整方案全文**"
-            "提交给 NegentropyEngine 审阅——ExitPlanMode 写入 `plan` 字段；AskUserQuestion 写入 `question` 字段"
-            "（审阅者只读该字段，方案务必完整自包含）。\n"
+            "**提交审阅（重要）**：完成方案后，调用 **AskUserQuestion** 工具把方案提交给 NegentropyEngine 审阅。\n"
+            "  - 把你的**完整方案全文写入该工具的 `question` 字段**（审阅者只读取该字段，故方案务必完整自包含）；\n"
+            "  - **必须**同时提供 `options`，设为「批准方案」与「需要完善」两项"
+            "（缺少 `options` 该工具调用会直接报错）；\n"
+            "  - **不要调用 ExitPlanMode**（plan 模式无头环境下它必报错、徒增空转）。\n"
             "NegentropyEngine 将在**同一轮内**通过该工具的返回结果直接给你审阅反馈：\n"
-            "  - 若返回「🔄 需完善」：请据反馈**修订方案后再次提交审阅**，直至通过；\n"
+            "  - 若返回「🔄 需完善」：请据反馈**修订方案后再次调用 AskUserQuestion 提交审阅**，直至通过；\n"
             "  - 若返回「✅ 已通过/已批准」：请**直接结束本轮回复**，**不要再调用任何工具**——"
             "引擎将在**同一迭代内**自动续接你的会话进入实施阶段（headless 下勿自行退出 plan 模式或写文件）。"
         )
