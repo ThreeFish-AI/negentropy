@@ -15,13 +15,13 @@ LLM 调用路径复用 ``LLMFactExtractor`` 范式：``resolve_model_config_asyn
 from __future__ import annotations
 
 import asyncio
-import json
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 import litellm
 
+from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.engine.utils.model_config import resolve_model_config_async
 from negentropy.engine.utils.subprocess_env import inherited_env_without_engine_venv
 from negentropy.logging import get_logger
@@ -314,7 +314,8 @@ class RoutineEvaluator:
 
         ``acceptance_met`` 缺失（旧模型/未遵循新契约）→ None，由调用方决定是否施加 cap。
         """
-        data: dict[str, Any] = json.loads(content or "{}")
+        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（ISSUE-127）。
+        data: dict[str, Any] = loads_lenient(content)
 
         raw_score = data.get("score", 0)
         try:

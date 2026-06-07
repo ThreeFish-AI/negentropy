@@ -2998,7 +2998,16 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：ExitPlanMode 同走 `plan_review_hook.py`（按 tool_name 分支），返回 `deny + permissionDecisionReason=「✅ 已批准退出 Plan 模式，进入实施…无需再调用」`。受控实验证实该 reason 同轮回灌 CC（替代 opaque "Exit plan mode?"），CC 据此继续实施。orchestrator settings 追加 ExitPlanMode matcher（瞬时分支、timeout=15）；service.py 在 `plan_review_via_hook` 时跳过失效的 ExitPlanMode stdin auto-answer。
 - **后续防范**：headless 交互工具（AskUserQuestion/ExitPlanMode）的「应答」一律经 PreToolUse 钩子 deny+reason 投递，不依赖 stdin auto-answer（其对这两个工具自始无效）。
 - **同类问题影响**：所有 PLAN 相位经钩子评审的 worktree routine。
-- **验证**：单测 `test_exit_plan_approved_reason_content` + `test_main_exit_plan_emits_approval` + `test_main_unrelated_tool_no_emit`；钩子对 ExitPlanMode 输出批准 JSON。routine 单测 141 + build_config 7 + claude_code 163 全绿。实机复验见下轮。
+- **验证**：单测 `test_exit_plan_approved_reason_content` + `test_main_exit_plan_emits_approval` + `test_main_unrelated_tool_no_emit`；钩子对 ExitPlanMode 输出批准 JSON。routine 单测 141 + build_config 7 + claude_code 163 全绿。**实机复验通过**（探针 `e49bf962`）：monitor 报 `✅(3) ExitPlanMode=APPROVED(no is_error noise): "✅ NegentropyEngine 已批准退出 Plan 模式…"`，opaque "Exit plan mode?" 消失。
+
+## ISSUE-127 强模型 JSON 围栏致 Judge/PlanReviewer/记忆提取解析全线失败（2026-06-07）
+
+- **表因**：ISSUE-125 接入强模型 `anthropic/claude-sonnet-4-6` 作 Plan Reviewer 后，实机首跑钩子返回「（NegentropyEngine 评审暂不可用）」fail-open——`plan_review_judge_failed: Expecting value: line 1 column 1 (char 0)` 重试 3 次耗尽。
+- **根因**：`claude-sonnet-4-6`（经代理）即便指定 `response_format={"type":"json_object"}`，仍把 JSON 包在 markdown 代码围栏里——实测恒返回 ` ```json\n{...}\n``` `。而 `evaluator._parse` / `plan_reviewer._parse` / `memory_extractor._parse_response` 均直接 `json.loads(content)`，见前导反引号即抛。弱模型（gpt-5-nano）返回裸 JSON 故历史未暴露——但凡切到会围栏的强模型（即 ISSUE-121/125 的目标场景），评审/评分/记忆提取**全线静默退化**。受控实验 2× 复现，且证实「无论加不加 `response_format`」sonnet 都围栏。
+- **处理方式**（单点收敛）：新增 `engine/utils/json_extract.py::loads_lenient`——先剥 ```fence```（正则 `_FENCE_RE`）再 `json.loads`；仍失败则兜底截取首个平衡 `{...}`/`[...]` 子串；彻底失败返回 default。三处解析器（evaluator/plan_reviewer/memory_extractor）统一复用。
+- **后续防范**：① 消费 LLM「JSON 输出」一律经容错解析，不可假定模型严格裸 JSON（即便声明 `response_format`，部分模型/代理仍围栏）；② 新增任何 LLM-JSON 消费点必须走 `loads_lenient`；③ 切换模型档位（弱→强）须回归所有结构化输出解析路径。
+- **同类问题影响**：所有以 LLM 结构化 JSON 输出驱动的 Routine 子系统（Judge 评分 / Plan 审阅 / 记忆提取）；尤在启用强模型覆盖（ISSUE-121 evaluator_model / ISSUE-125 plan_review_model）时必触发。
+- **验证**：单测 `test_json_extract.py` 8 例（围栏/裸/散文夹带/数组/垃圾兜底）；端到端 `PlanReviewer(explicit_model="anthropic/claude-sonnet-4-6").review(...)` → `ok=True verdict=approve score=92`（修复前 3 重试全败）。routine 单测 149 + build_config/evaluate 集成 14 全绿。
 
 ---
 
