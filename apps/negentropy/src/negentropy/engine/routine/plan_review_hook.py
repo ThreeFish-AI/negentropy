@@ -33,6 +33,7 @@ import asyncio
 import json
 import os
 import sys
+from contextlib import suppress
 
 # === stdout 纯净化（仅在以脚本路径执行钩子时生效，import 时绝不执行）===
 # 本文件须以**脚本路径**方式执行（``python <path> <ctx>``，见 orchestrator._plan_review_hook_command），
@@ -92,10 +93,31 @@ def _emit(reason: str) -> None:
     os.write(fd, (payload + "\n").encode("utf-8"))
 
 
+def _append_review_sidecar(path: str | None, record: dict) -> None:
+    """把单次评审结果以 JSONL 追加写入 sidecar（供 Runner 段间读取并注入 plan_review 发言）。
+
+    O_APPEND 单行追加；CC 串行调用工具，同一 iteration 的钩子子进程不并发，写入安全。
+    任何异常一律吞掉——sidecar 仅用于「发言」呈现，绝不可影响评审反馈主链路。
+    """
+    if not path:
+        return
+    with suppress(Exception):
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 def _extract_plan_text(tool_input: dict) -> str:
-    """从 AskUserQuestion 的 tool_input 提取 CC 提交的方案全文（拼接各 question 文本）。"""
+    """从 ExitPlanMode / AskUserQuestion 的 tool_input 提取 CC 提交的方案全文。
+
+    - ExitPlanMode：``tool_input = {"plan": "<markdown 方案全文>"}``（CC 原生提交方式）。
+    - AskUserQuestion：``tool_input = {"questions": [{"question": "<方案>"}...]}``（PLAN prompt 约束）。
+    """
     if not isinstance(tool_input, dict):
         return ""
+    # ExitPlanMode：优先取 plan 字段（CC 原生方案提交载荷）。
+    plan = tool_input.get("plan")
+    if isinstance(plan, str) and plan.strip():
+        return plan.strip()
     qs = tool_input.get("questions")
     parts: list[str] = []
     if isinstance(qs, list):
@@ -131,14 +153,36 @@ async def _run(payload: dict, ctx: dict) -> str:
         plan_text=plan_text,
         reflections=reflections if isinstance(reflections, list) else None,
     )
-    # 批准后**结束本轮**而非调用 ExitPlanMode（ISSUE-128）：相位推进（PLAN→IMPLEMENT）纯由引擎
-    # `_advance_phase_or_terminate` 在下一次评估驱动，不依赖 CC 退出 Plan 模式；而 headless ExitPlanMode
-    # 恒被 CLI 标 is_error，CC 会误判失败而循环重试、空耗 turns。故批准/失败兜底均指示 CC「直接结束本轮」。
+    sidecar = ctx.get("review_sidecar_path")
+    # 批准后**结束本轮**而非调用 ExitPlanMode（ISSUE-128）：单迭代两段式下，Runner 在批准后于
+    # 同一 Iteration 内 --resume 续接 implement 段；而 headless ExitPlanMode 恒被 CLI 标 is_error，
+    # CC 会误判失败而循环重试、空耗 turns。故批准/失败兜底均指示 CC「直接结束本轮」，由引擎续接实施。
     if not result.ok:
+        # 评审自身失败（LLM 不可用等）：写一条「不可用」发言供审计，并 fail-open 放行实施（不死锁）。
+        _append_review_sidecar(
+            sidecar,
+            {"verdict": "unavailable", "score": None, "feedback": result.error or "评审执行失败", "module_reviews": []},
+        )
         return (
             "（NegentropyEngine 评审暂不可用）请**直接结束本轮**"
-            "（不要调用 ExitPlanMode 或 AskUserQuestion）；引擎将自动推进到实施阶段。"
+            "（不要调用 ExitPlanMode 或 AskUserQuestion）；引擎将续接实施阶段。"
         )
+
+    # 写结构化评审结果到 sidecar，供 Runner 段间注入 plan_review 事件（渲染为 NegentropyEngine 发言）。
+    _append_review_sidecar(
+        sidecar,
+        {
+            "verdict": result.verdict,
+            "score": result.score,
+            "module_reviews": [
+                {"module": m.module, "status": m.status, "comment": m.comment} for m in result.module_reviews
+            ],
+            "feedback": result.feedback or "",
+            "reflection": result.reflection or "",
+            "judge_prompt": result.judge_prompt,
+            "judge_raw": result.judge_raw,
+        },
+    )
 
     score = result.score if result.score is not None else "?"
     feedback = (result.feedback or "").strip()
@@ -147,13 +191,13 @@ async def _run(payload: dict, ctx: dict) -> str:
             f"✅ NegentropyEngine 已通过本方案审阅（评分 {score}/100）。"
             f"{('审阅意见：' + feedback) if feedback else ''}\n"
             "方案已批准。请**直接结束本轮回复**——无需调用 ExitPlanMode 或任何工具；"
-            "引擎会自动推进到实施（IMPLEMENT）阶段并据本方案派发实施迭代。"
+            "引擎将在同一迭代内续接实施（IMPLEMENT）阶段并据本方案推进。"
         )
     # refine（或兜底）
     return (
         f"🔄 NegentropyEngine 审阅：方案需完善（评分 {score}/100）。\n"
         f"具体修改建议：{feedback or '请补全验收标准覆盖、风险与回退、测试策略等薄弱项。'}\n"
-        "请据此**修订方案后再次调用 AskUserQuestion 提交审阅**；切勿在未达标前退出 Plan 模式。"
+        "请据此**修订方案后再次提交审阅**（ExitPlanMode 或 AskUserQuestion 均可）；切勿在未达标前退出 Plan 模式。"
     )
 
 
@@ -174,12 +218,8 @@ def main() -> None:
     except Exception:
         payload = {}
     tool_name = payload.get("tool_name") or ""
-    # ExitPlanMode：返回「已批准、进入实施」的 deny+reason（消除 opaque "Exit plan mode?" 噪声）。
-    if tool_name == "ExitPlanMode":
-        _emit(_EXIT_APPROVED_REASON)
-        return
-    # 仅处理 AskUserQuestion；其它工具不干预（输出空）。
-    if tool_name != "AskUserQuestion":
+    # 仅处理两个方案提交工具；其它工具不干预（输出空）。
+    if tool_name not in ("AskUserQuestion", "ExitPlanMode"):
         return
     ctx: dict = {}
     if len(sys.argv) > 1:
@@ -188,12 +228,18 @@ def main() -> None:
                 ctx = json.load(f)
         except Exception:
             ctx = {}
+    # legacy 模式（plan_review_unified_loop 关闭）：CC 经 AskUserQuestion 提交方案，ExitPlanMode 仅
+    # 返回「已批准」消噪、不评审（保留 ISSUE-126 行为）。unified 模式：ExitPlanMode（CC 原生提交方式）
+    # 与 AskUserQuestion 均走真实 PlanReviewer 评审。
+    if tool_name == "ExitPlanMode" and ctx.get("mode") != "unified":
+        _emit(_EXIT_APPROVED_REASON)
+        return
     try:
         reason = asyncio.run(_run(payload, ctx))
     except Exception as exc:  # fail-open：绝不卡死 CC
         reason = (
             "（NegentropyEngine 评审执行异常："
-            f"{str(exc)[:160]}）请直接调用 ExitPlanMode 退出 Plan 模式继续，不要再次调用 AskUserQuestion。"
+            f"{str(exc)[:160]}）请**直接结束本轮**，不要再次调用 ExitPlanMode 或 AskUserQuestion；引擎将续接实施阶段。"
         )
     _emit(reason)
 

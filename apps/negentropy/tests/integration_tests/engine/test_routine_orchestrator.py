@@ -376,11 +376,9 @@ async def test_dispatch_auto_launches_and_writes_back():
         orch = RoutineOrchestrator()
         fake = ClaudeCodeResult(status="success", summary="ok", session_id="s1", cost_usd=0.05, turn_count=2)
         info = WorkspaceInfo(path="/tmp/wt/dispatch-auto", branch="routine/dispatch-auto")
+        mock_invoke = AsyncMock(return_value=fake)
         with (
-            patch(
-                "negentropy.engine.claude_code.service.ClaudeCodeService.invoke",
-                new=AsyncMock(return_value=fake),
-            ),
+            patch("negentropy.engine.claude_code.service.ClaudeCodeService.invoke", new=mock_invoke),
             patch("negentropy.engine.routine.workspace.ensure_worktree", new=AsyncMock(return_value=info)),
         ):
             launched = await orch._dispatch_due()
@@ -388,13 +386,16 @@ async def test_dispatch_auto_launches_and_writes_back():
             await asyncio.sleep(1.2)  # 等待后台 runner 写回
         async with db_session.AsyncSessionLocal() as db:
             its = (await db.execute(select(RoutineIteration).where(RoutineIteration.routine_id == rid))).scalars().all()
-            assert len(its) == 1
+            # 统一闭环：fresh worktree routine 在**同一个** Iteration 内串接 plan 段 + implement 段两次 CC 调用。
+            assert len(its) == 1, "plan 段与 implement 段同属一个 Iteration（不分裂为两迭代）"
             assert its[0].status == "executed"
             assert its[0].exec_status == "success"
+            assert mock_invoke.call_count == 2, "两段式：plan 段 + implement 段各一次 CC 调用"
             r = await db.get(Routine, rid)
             assert r.iteration_count == 1
             assert r.claude_session_id == "s1"
-            assert r.total_cost_usd == pytest.approx(0.05)
+            # cost/turns 跨两段累加：plan 段 0.05 + implement 段 0.05 = 0.1
+            assert r.total_cost_usd == pytest.approx(0.1)
     finally:
         await _cleanup(rid)
 
@@ -732,7 +733,7 @@ async def test_ensure_workspace_targets_worktree_in_build_config():
                 await db.commit()
             async with db_session.AsyncSessionLocal() as db:
                 r = await db.get(Routine, rid)
-                config = await orch._build_config(r)
+                config = await orch._build_config(r, r.id)
                 assert config.cwd == "/tmp/wt/demo-x"  # CC 实际 cwd = worktree
                 assert config.permission_mode == "acceptEdits"  # implement 相位
     finally:
@@ -792,7 +793,7 @@ async def test_build_config_uses_routine_default_tools():
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
-            config = await orch._build_config(r)
+            config = await orch._build_config(r, r.id)
             # 扩展默认包含 WebFetch + WebSearch
             assert "WebFetch" in config.allowed_tools
             assert "WebSearch" in config.allowed_tools
@@ -810,7 +811,7 @@ async def test_build_config_per_routine_tools_override():
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
-            config = await orch._build_config(r)
+            config = await orch._build_config(r, r.id)
             # 显式覆盖的基础工具保留在前
             assert config.allowed_tools[:2] == ["Bash", "Read"]
             # auto_answer 默认开 → 交互工具被强制并入（见 test_build_config_forces_interactive_tools）
@@ -832,7 +833,7 @@ async def test_build_config_forces_interactive_tools_when_auto_answer():
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
-            config = await orch._build_config(r)
+            config = await orch._build_config(r, r.id)
             assert "AskUserQuestion" in config.allowed_tools, "交互应答须放行 AskUserQuestion"
             assert "ExitPlanMode" in config.allowed_tools, "交互应答须放行 ExitPlanMode"
             # 不重复并入（幂等）
@@ -848,7 +849,7 @@ async def test_build_config_disallowed_tools_passthrough():
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
-            config = await orch._build_config(r)
+            config = await orch._build_config(r, r.id)
             assert config.disallowed_tools == ["Task"]
     finally:
         await _cleanup(rid)
@@ -868,7 +869,7 @@ async def test_build_config_mcp_config_merges_into_default():
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
-            config = await orch._build_config(r)
+            config = await orch._build_config(r, r.id)
             # per-routine 具名 server 已合并
             assert config.mcp_config["test-server"] == mcp["test-server"]
             # 系统默认 playwright 浏览器 MCP 未被覆盖抹除
@@ -889,8 +890,96 @@ async def test_build_config_default_provisions_playwright_browser_mcp():
         orch = RoutineOrchestrator()
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
-            config = await orch._build_config(r)
+            config = await orch._build_config(r, r.id)
             assert "playwright" in (config.mcp_config or {})
             assert "mcp__playwright" in config.allowed_tools
     finally:
         await _cleanup(rid)
+
+
+# ---------------------------------------------------------------------------
+# 单迭代两段式 Plan Review 闭环（plan_review_unified_loop）
+# ---------------------------------------------------------------------------
+
+
+async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
+    """统一闭环（默认开）+ flat worktree + fresh：主 config=implement 段(acceptEdits、无评审钩子)，
+    挂载独立 plan 段(permission_mode=plan + ExitPlanMode/AskUserQuestion 真实评审钩子 + plan prompt)。"""
+    import json as _json
+
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    monkeypatch.setattr(orch_mod.tempfile, "gettempdir", lambda: str(tmp_path))
+    rid = await _make_routine(baseline_branch="origin/feature/1.x.x", cwd="/repo", current_phase="implement")
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            iid = uuid.uuid4()
+            config = await orch._build_config(r, iid)
+            # 主 config = implement 段：acceptEdits、不挂评审钩子、via_hook=False
+            assert config.permission_mode == "acceptEdits"
+            main_settings = _json.loads(config.settings) if config.settings else {}
+            assert not main_settings.get("hooks"), "主(implement)config 不应挂评审钩子——评审在 plan 段"
+            assert config.auto_answer_context["plan_review_via_hook"] is False
+            # plan 段：permission_mode=plan、无续接、双工具真实评审钩子、plan prompt
+            ps = config.plan_stage_config
+            assert ps is not None and ps.permission_mode == "plan"
+            assert ps.resume_session_id is None
+            assert ps.plan_stage_config is None  # 防自嵌套
+            pre = _json.loads(ps.settings)["hooks"]["PreToolUse"]
+            matchers = {h["matcher"]: h["hooks"][0]["timeout"] for h in pre}
+            assert "AskUserQuestion" in matchers and "ExitPlanMode" in matchers
+            # unified：ExitPlanMode 亦跑真实评审 → 与 AskUserQuestion 同 full timeout（非 legacy 的 15）
+            assert matchers["ExitPlanMode"] == matchers["AskUserQuestion"] > 15
+            assert ps.auto_answer_context["plan_review_via_hook"] is True
+            assert config.plan_stage_prompt and "提交" in config.plan_stage_prompt
+            # ctx 文件 mode=unified、按 iteration_id 键
+            ctx = _json.loads((tmp_path / "negentropy-pr-ctx" / f"{iid}.json").read_text(encoding="utf-8"))
+            assert ctx["mode"] == "unified" and ctx["iteration_id"] == str(iid)
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_unified_resume_skips_plan_stage(tmp_path, monkeypatch):
+    """统一闭环 + worktree + 已有续接会话（续接迭代）：不挂 plan 段，单段 implement（方案已批准）。"""
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    monkeypatch.setattr(orch_mod.tempfile, "gettempdir", lambda: str(tmp_path))
+    rid = await _make_routine(
+        baseline_branch="origin/feature/1.x.x",
+        cwd="/repo",
+        current_phase="implement",
+        claude_session_id="sess-abc",
+    )
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r, uuid.uuid4())
+            assert config.permission_mode == "acceptEdits"
+            assert config.plan_stage_config is None, "续接迭代不应再挂 plan 段（方案已批准、会话续接）"
+            assert config.resume_session_id == "sess-abc"
+    finally:
+        await _cleanup(rid)
+
+
+async def test_is_plan_review_active_toggle_rollback():
+    """rollback：plan_review_unified_loop=False → 回退旧判定（仅 PLAN 相位 worktree/phased 启用）。"""
+    from types import SimpleNamespace
+
+    from negentropy.config import settings
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    wt_impl = SimpleNamespace(current_phase="implement", baseline_branch="origin/x", config={})
+    wt_plan = SimpleNamespace(current_phase="plan", baseline_branch="origin/x", config={})
+    # 默认 unified=True：worktree 任何相位均激活（含 implement，故 flat worktree routine 首段获评审）
+    assert orch_mod._is_plan_review_active(wt_impl) is True
+    assert orch_mod._is_plan_review_active(wt_plan) is True
+    # 关闭 unified（绕过 pydantic frozen 直改实例字典，测试后还原）→ 回退旧判定
+    object.__setattr__(settings.routine, "plan_review_unified_loop", False)
+    try:
+        assert orch_mod._is_plan_review_active(wt_impl) is False, "legacy：implement 相位不激活评审"
+        assert orch_mod._is_plan_review_active(wt_plan) is True, "legacy：仅 PLAN 相位激活评审"
+    finally:
+        object.__setattr__(settings.routine, "plan_review_unified_loop", True)

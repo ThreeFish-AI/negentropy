@@ -61,6 +61,13 @@ class ClaudeCodeConfig:
     # 供 LLM 生成与任务目标一致的确定性回答。
     auto_answer_context: dict[str, Any] | None = None
 
+    # 单迭代两段式（Plan Review 统一闭环）：当 ``plan_stage_config`` 非空时，Runner 在同一
+    # Iteration 内先以本段配置（permission_mode="plan" + Plan Review 钩子）跑「方案制定+评审」段，
+    # 捕获 session 后再以本对象（acceptEdits + resume）跑「实施」段。``plan_stage_prompt`` 为该段
+    # 使用的 plan prompt。repr/compare=False：嵌套 config 不入 repr、不参与相等比较，避免递归噪声。
+    plan_stage_prompt: str | None = None
+    plan_stage_config: ClaudeCodeConfig | None = field(default=None, repr=False, compare=False)
+
     # 上下文压缩：注入 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE 环境变量，控制 CC auto-compact 触发阈值。
     # None = 使用 CLI 默认值（~83%）；整数（如 70）= context 达该百分比时触发压缩。
     compact_threshold_pct: int | None = None

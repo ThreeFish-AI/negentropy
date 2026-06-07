@@ -35,13 +35,14 @@ def build_prompt(
     *,
     max_reflections: int = 5,
     memory_context: str | None = None,
+    stage: str | None = None,
 ) -> str:
-    """构建发送给 Claude Code 的迭代 prompt（按相位分支）。
+    """构建发送给 Claude Code 的迭代 prompt（按相位/段分支）。
 
     通用部分：目标 + 验收标准 + [记忆上下文] + 最近 N 条反思（Reflexion 注入，来自
     ``routine.reflections["items"]``）。尾部指令依相位而定：
 
-    - PLAN     仅产出方案、禁写盘（plan 模式），待人工审批；
+    - PLAN     仅产出方案、禁写盘（plan 模式），提交评审；
     - FINALIZE 自检 ruff/pytest、修复、建 PR 并回带 ``PR_URL=`` sentinel；
     - IMPLEMENT（含扁平工作流）首轮「开始」/续接「继续」—— 与相位化前一致。
 
@@ -49,8 +50,14 @@ def build_prompt(
         routine: Routine-like 对象
         max_reflections: 注入的最近反思条数
         memory_context: 可选的记忆上下文文本（来自 Memory Module 检索）
+        stage: 显式覆盖本次 prompt 的「段」。统一闭环（``plan_review_unified_loop``）下，引擎在
+            同一迭代内先以 ``stage=PHASE_PLAN`` 取 plan 段 prompt（ExitPlanMode/AskUserQuestion 均
+            被评审），批准后以默认（``stage=None`` → 按 ``current_phase``）取 implement 段 prompt。
+            为空时沿用旧逻辑（相位由 ``routine.current_phase`` 决定）。
     """
-    phase = getattr(routine, "current_phase", PHASE_IMPLEMENT) or PHASE_IMPLEMENT
+    # 显式 plan 段（统一闭环）：ExitPlanMode 与 AskUserQuestion 均被钩子真实评审。
+    unified_plan = stage == PHASE_PLAN
+    phase = stage or getattr(routine, "current_phase", PHASE_IMPLEMENT) or PHASE_IMPLEMENT
     is_resume = bool(routine.claude_session_id)
     worktree = is_worktree_routine(routine)
 
@@ -95,7 +102,21 @@ def build_prompt(
             "以下是对你此前尝试的评估反馈，请逐条针对性改进：\n" + bullet
         )
 
-    if phase == PHASE_PLAN:
+    if phase == PHASE_PLAN and unified_plan:
+        # 统一闭环 plan 段：ExitPlanMode（CC 原生方案提交方式）与 AskUserQuestion 均被钩子真实评审。
+        parts.append(
+            "# 规划 (Plan ONLY)\n本段**仅产出实现方案，禁止写入或修改任何文件**（plan 模式）：\n"
+            "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n\n"
+            "**提交审阅（重要）**：完成方案后，调用 **ExitPlanMode**（或 AskUserQuestion）把**完整方案全文**"
+            "提交给 NegentropyEngine 审阅——ExitPlanMode 写入 `plan` 字段；AskUserQuestion 写入 `question` 字段"
+            "（审阅者只读该字段，方案务必完整自包含）。\n"
+            "NegentropyEngine 将在**同一轮内**通过该工具的返回结果直接给你审阅反馈：\n"
+            "  - 若返回「🔄 需完善」：请据反馈**修订方案后再次提交审阅**，直至通过；\n"
+            "  - 若返回「✅ 已通过/已批准」：请**直接结束本轮回复**，**不要再调用任何工具**——"
+            "引擎将在**同一迭代内**自动续接你的会话进入实施阶段（headless 下勿自行退出 plan 模式或写文件）。"
+        )
+    elif phase == PHASE_PLAN:
+        # Legacy（统一闭环关、phased PLAN 相位）：仅 AskUserQuestion 被评审，ExitPlanMode 自动放行。
         parts.append(
             "# 规划 (Plan ONLY)\n本轮**仅产出实现方案，禁止写入或修改任何文件**（plan 模式）：\n"
             "请给出正交分解维度、改动清单、预计爆炸半径与验证策略。\n\n"

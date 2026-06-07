@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import os
 import sys
@@ -142,10 +143,17 @@ def _build_readonly_settings(read_dirs: list[str]) -> str:
     return json.dumps({"permissions": {"deny": deny}})
 
 
-def _write_plan_review_ctx(routine: Routine) -> str:
+def _review_sidecar_path(iteration_id: UUID) -> str:
+    """Plan Review 评审结果 sidecar（JSONL）路径——按 iteration_id 键，杜绝跨迭代/跨 routine 串味。"""
+    return os.path.join(tempfile.gettempdir(), "negentropy-pr-ctx", f"{iteration_id}.reviews.jsonl")
+
+
+def _write_plan_review_ctx(routine: Routine, iteration_id: UUID, *, mode: str = "unified") -> str:
     """写 per-iteration Plan Review 上下文文件，供 PreToolUse 钩子读取（避免经 env 传长文本）。
 
-    返回上下文文件绝对路径。内容：goal/acceptance/reflections/model/timeout。
+    返回上下文文件绝对路径。内容：goal/acceptance/reflections/model/timeout/mode/iteration_id/
+    review_sidecar_path。``mode``：``unified``（ExitPlanMode 亦真实评审、写 sidecar）/``legacy``
+    （ExitPlanMode 仅消噪、不评审）。按 iteration_id 键，避免并发 routine 共用 routine.id 文件串味。
     """
     reflections = (
         list((routine.reflections or {}).get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
@@ -164,11 +172,14 @@ def _write_plan_review_ctx(routine: Routine) -> str:
         "reflections": reflections,
         "model": plan_review_model,
         "timeout": plan_review_timeout,
+        "mode": mode,
+        "iteration_id": str(iteration_id),
+        "review_sidecar_path": _review_sidecar_path(iteration_id),
     }
     ctx_dir = os.path.join(tempfile.gettempdir(), "negentropy-pr-ctx")
     with suppress(OSError):
         os.makedirs(ctx_dir, exist_ok=True)
-    path = os.path.join(ctx_dir, f"{routine.id}.json")
+    path = os.path.join(ctx_dir, f"{iteration_id}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(ctx, f, ensure_ascii=False)
     return path
@@ -189,12 +200,37 @@ def _plan_review_hook_command(ctx_path: str) -> str:
     return f'"{py}" "{hook_path}" "{ctx_path}"'
 
 
+def _plan_review_hook_pre(ctx_path: str, review_timeout: int, *, exit_plan_full_review: bool) -> list[dict]:
+    """构造 PreToolUse 钩子项（AskUserQuestion + ExitPlanMode），合并进 settings.hooks.PreToolUse。
+
+    - ``AskUserQuestion`` 恒跑真实评审 → timeout=``review_timeout+45``（ISSUE-129 公式：单次尝试 +
+      引擎冷启动余量；钩子内 PlanReviewer ``max_retries=1``）。
+    - ``ExitPlanMode``：``exit_plan_full_review=True``（unified，CC 原生方案提交方式）亦跑真实评审 →
+      同 full timeout；``=False``（legacy）仅瞬时返回「已批准」消噪 → timeout=15。
+    """
+    hook_cmd = _plan_review_hook_command(ctx_path)
+    hook_timeout = review_timeout + 45
+    exit_timeout = hook_timeout if exit_plan_full_review else 15
+    return [
+        {"matcher": "AskUserQuestion", "hooks": [{"type": "command", "command": hook_cmd, "timeout": hook_timeout}]},
+        {"matcher": "ExitPlanMode", "hooks": [{"type": "command", "command": hook_cmd, "timeout": exit_timeout}]},
+    ]
+
+
 def _is_plan_review_active(routine: Routine) -> bool:
-    """是否对本次（PLAN 相位）启用 Engine Plan Review 同轮钩子（ISSUE-123）。"""
+    """是否对本 routine 启用 Engine Plan Review 钩子（ISSUE-123）。
+
+    - 统一闭环开（``plan_review_unified_loop``，默认）：对**所有 worktree routine** 启用，**不再受
+      PLAN 相位约束**——Runner 在迭代内以独立 plan 段（permission_mode=plan）跑评审，任何相位的
+      worktree routine 首段都需评审钩子，故判定式仅看 ``is_worktree_routine``。
+    - 统一闭环关：回退旧判定——仅 phased/worktree routine 的 PLAN 相位启用（ISSUE-123 原行为）。
+    """
+    if not (settings.routine.auto_answer_questions and settings.routine.plan_review_enabled):
+        return False
+    if settings.routine.plan_review_unified_loop:
+        return phase_mod.is_worktree_routine(routine)
     return bool(
-        settings.routine.auto_answer_questions
-        and settings.routine.plan_review_enabled
-        and routine.current_phase == phase_mod.PHASE_PLAN
+        routine.current_phase == phase_mod.PHASE_PLAN
         and (phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config))
     )
 
@@ -818,7 +854,7 @@ class RoutineOrchestrator:
                 await self._publish_iteration_created(routine.id, iteration)
 
                 if not needs_approval:
-                    config = await self._build_config(routine)
+                    config = await self._build_config(routine, iteration.id)
                     # 快照系统中所有已启用的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
                     mcp_meta = await self._resolve_mcp_meta(db, cwd=routine.cwd)
                     if mcp_meta:
@@ -873,7 +909,7 @@ class RoutineOrchestrator:
                     dirty = True
                     await self._publish_routine(routine)
                     continue
-                config = await self._build_config(routine)
+                config = await self._build_config(routine, it.id)
                 # 快照系统中所有已启用的 MCP server/tool 元数据到 iteration.metrics（历史可追溯）
                 mcp_meta = await self._resolve_mcp_meta(db, cwd=routine.cwd)
                 if mcp_meta:
@@ -1247,11 +1283,16 @@ class RoutineOrchestrator:
         routine.work_branch = info.branch
         return True
 
-    async def _build_config(self, routine: Routine):
+    async def _build_config(self, routine: Routine, iteration_id: UUID):
         """构建本次执行的 ClaudeCodeConfig：全局默认 + routine 覆盖 + session 续接。
 
         worktree routine：CC 实际 cwd 指向引擎备好的隔离 worktree（``worktree_path`` 由
         ``_ensure_workspace`` 在 launch 前写入）；``cwd`` 仅作 worktree 派生源（仓库根）。
+
+        统一闭环（``plan_review_unified_loop``，worktree routine + fresh 会话）：返回的主 config 为
+        **implement 段**（acceptEdits），并挂载 ``plan_stage_config``/``plan_stage_prompt``（**plan 段**：
+        permission_mode=plan + 真实评审钩子）。Runner 据此在同一迭代内先评审、批准后 --resume 续接实施。
+        ``iteration_id`` 用于按迭代键定位 Plan Review ctx/sidecar 文件，避免并发 routine 串味。
         """
         from negentropy.engine.schedulers.handlers.claude_code import _load_claude_code_defaults
 
@@ -1303,44 +1344,27 @@ class RoutineOrchestrator:
         read_dirs = _normalize_read_dirs(overrides.get("read_dirs"))
         if read_dirs:
             config.add_dirs = read_dirs
-        # CC settings.json：合并「源码只读 deny」+「Plan Review PreToolUse 钩子」。
+        # CC settings.json 基底：源码只读 deny（read_dirs 非空时）。Plan Review 钩子按 unified/legacy 分别注入。
         settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
         plan_review_active = _is_plan_review_active(routine)
-        if plan_review_active:
-            # ISSUE-123：PLAN 相位经 PreToolUse 钩子拦截 AskUserQuestion，由 Engine 评审并同轮
-            # deny+reason 回灌 CC（headless 下 stdin auto-answer 对 AskUserQuestion 无效）。
-            ctx_path = _write_plan_review_ctx(routine)
-            # hook timeout 必须覆盖钩子实际耗时（引擎冷启动 ~10s + PlanReviewer 单次 LLM 调用 ≤ review_timeout），
-            # 否则超 Claude Code PreToolUse 超时被杀 → CC 落回 "Answer questions?"（ISSUE-123/129）。
-            # 钩子内 PlanReviewer max_retries=1（见 plan_review_hook），故 = per-routine review_timeout + 冷启动余量；
-            # per-routine config.plan_review_timeout_seconds 覆盖（强模型大方案需 >60s，ISSUE-129）。
-            review_timeout = int(
-                (routine.config or {}).get("plan_review_timeout_seconds")
-                or settings.routine.plan_review_timeout_seconds
-            )
-            hook_timeout = review_timeout + 45
-            hook_cmd = _plan_review_hook_command(ctx_path)
+        # 统一闭环：worktree routine + 开关开。主 config = implement 段；plan 段独立挂载（见文末）。
+        unified = bool(settings.routine.plan_review_unified_loop and phase_mod.is_worktree_routine(routine))
+        # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
+        review_timeout = int(
+            (routine.config or {}).get("plan_review_timeout_seconds") or settings.routine.plan_review_timeout_seconds
+        )
+        # Legacy 路径（统一闭环关）：评审钩子直接注入主 config（PLAN 相位，ISSUE-123 原行为；
+        # ExitPlanMode 仅消噪不评审）。unified 路径：钩子注入独立 plan 段（见文末），主 config 不挂钩子。
+        if plan_review_active and not unified:
+            ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="legacy")
             pre = settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
-            pre.append(
-                {
-                    "matcher": "AskUserQuestion",
-                    "hooks": [{"type": "command", "command": hook_cmd, "timeout": hook_timeout}],
-                }
-            )
-            # ISSUE-126：ExitPlanMode 同走钩子返回「已批准、进入实施」deny+reason，消除 headless 下
-            # opaque "Exit plan mode?" is_error 噪声（allow 经实验不能消除，故同钩子分支处理）。
-            # 该分支无 LLM、瞬时返回，无需大 timeout。
-            pre.append(
-                {
-                    "matcher": "ExitPlanMode",
-                    "hooks": [{"type": "command", "command": hook_cmd, "timeout": 15}],
-                }
-            )
+            pre.extend(_plan_review_hook_pre(ctx_path, review_timeout, exit_plan_full_review=False))
         if settings_obj:
             config.settings = json.dumps(settings_obj, ensure_ascii=False)
-        # permission_mode 由相位决定（PLAN 仅规划、IMPLEMENT/FINALIZE 落盘）——对 worktree routine
-        # 与 phased routine 均生效（覆盖 preset 静态值）；旧扁平 routine 沿用 preset 覆盖或全局默认。
-        if phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
+        # permission_mode：unified 主 config = implement 段（acceptEdits 落盘）；其余沿用相位/preset 覆盖。
+        if unified:
+            config.permission_mode = "acceptEdits"
+        elif phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config):
             config.permission_mode = phase_mod.permission_mode_for(routine.current_phase)
         elif overrides.get("permission_mode"):
             config.permission_mode = overrides["permission_mode"]
@@ -1366,19 +1390,41 @@ class RoutineOrchestrator:
             config.auto_answer_context = {
                 "goal": routine.goal,
                 "acceptance_criteria": routine.acceptance_criteria,
-                # Plan Review 上下文：当 phase=plan 且 plan_review_enabled 时，
-                # auto-answer 分支调用 PlanReviewer 而非通用 auto-answer。
                 "phase": routine.current_phase or "",
                 "plan_review_enabled": settings.routine.plan_review_enabled,
-                # ISSUE-123：PLAN 相位评审改由 PreToolUse 钩子同轮投递；置真令交互式 reader
-                # 跳过其（对 AskUserQuestion 无效且会重复评审的）内联 plan-review 应答分支。
-                "plan_review_via_hook": plan_review_active,
+                # 主 config 在 unified 下为 implement 段、不做评审，故 via_hook 仅在 legacy 评审激活时为真
+                # （置真令交互式 reader 跳过对 AskUserQuestion 无效且会重复评审的内联 plan-review 应答分支）。
+                "plan_review_via_hook": plan_review_active and not unified,
                 "plan_review_model": settings.routine.plan_review_model,
                 "plan_review_timeout": settings.routine.plan_review_timeout_seconds,
                 "reflections": (
                     list(routine.reflections.get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
                 ),
             }
+        # 统一闭环：构建迭代内独立 plan 段（permission_mode=plan + 真实评审钩子），**仅 fresh（无续接会话）**触发；
+        # 续接迭代沿用单段 implement（方案已批准、会话续接，无需重评审）。上下文耗尽清空会话后下轮会重新 plan。
+        if unified and plan_review_active and not routine.claude_session_id:
+            plan_settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
+            plan_ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="unified")
+            plan_pre = plan_settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
+            plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
+            plan_config = copy.copy(config)
+            plan_config.permission_mode = "plan"  # 原生只读写锁：plan 段禁止落盘
+            plan_config.settings = json.dumps(plan_settings_obj, ensure_ascii=False)
+            plan_config.resume_session_id = None  # plan 段以全新会话起（无续接）
+            plan_config.plan_stage_config = None  # 防自嵌套
+            plan_config.plan_stage_prompt = None
+            if config.auto_answer_context is not None:
+                _ac = dict(config.auto_answer_context)
+                _ac["plan_review_via_hook"] = True  # plan 段确由钩子评审
+                _ac["phase"] = phase_mod.PHASE_PLAN
+                plan_config.auto_answer_context = _ac
+            config.plan_stage_config = plan_config
+            config.plan_stage_prompt = build_prompt(
+                routine,
+                max_reflections=settings.routine.max_reflections_injected,
+                stage=phase_mod.PHASE_PLAN,
+            )
         return config
 
     @staticmethod

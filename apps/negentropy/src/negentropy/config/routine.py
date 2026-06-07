@@ -189,6 +189,14 @@ class RoutineSettings(BaseSettings):
         "审阅大型方案需 >60s，过小会触发 litellm.Timeout 致评审失败、CC 落回 'Answer questions?'（ISSUE-129）。"
         "per-routine 可经 config.plan_review_timeout_seconds 覆盖。",
     )
+    plan_review_unified_loop: bool = Field(
+        default=True,
+        description="启用「单迭代内 Plan→Review→Implement 闭环」：对所有 worktree routine，引擎在同一 Iteration "
+        "内串接两段 Claude Code 调用——①plan 模式(原生只读写锁)+真实 Plan Review 钩子(ExitPlanMode/"
+        "AskUserQuestion 均评审、含 refine 闭环)，批准后捕获会话；②acceptEdits + --resume 续接同一会话完成实施。"
+        "评审与实施同属一个迭代气泡、会话上下文连续，取代旧的 PLAN/IMPLEMENT 分裂两迭代流程。"
+        "关闭则回退旧行为（phased 走两迭代、flat 无评审），无需改代码即可一键回退。",
+    )
 
     # --- 上下文压缩（迭代内：提前触发 auto-compact + 迭代内重试续接）---
     context_compact_enabled: bool = Field(
