@@ -205,9 +205,14 @@ describe("IterationEventTimeline 事件标题翻译", () => {
 // ---------------------------------------------------------------------------
 
 describe("IterationEventTimeline 交织排序", () => {
-  /** 获取对话流容器的子元素列表，每个子元素即一个气泡行。 */
+  /** 获取对话流容器的子元素列表，每个子元素即一个气泡行。
+   *  组件结构：外层 div.space-y-2 包含统计栏 + 对话流 div.space-y-2；
+   *  取第二个 .space-y-2（对话流容器），其子元素即 SpeakerGroupBubble。 */
   function getFlowChildren(container: HTMLElement): Element[] {
-    const flow = container.querySelector(".space-y-2\\.5");
+    const flows = container.querySelectorAll(".space-y-2");
+    // flows[0] = 外层容器（含统计栏 + 对话流），flows[1] = 对话流 div
+    // 但如果 render 返回的 container 是包裹层，flows[0] 是外层，flows[1] 才是对话流
+    const flow = flows.length >= 2 ? flows[1] : flows[0];
     if (!flow) return [];
     return Array.from(flow.children);
   }
@@ -276,7 +281,9 @@ describe("IterationEventTimeline 交织排序", () => {
     expect(screen.getByText("✅ Succeeded")).toBeInTheDocument();
 
     // 验证 DOM 顺序：Turn 1 → Result → Gate → Evaluation（连续 engine 事件被 SpeakerGroupBubble 合并为一组）
-    const html = container.querySelector(".space-y-2\\.5")!.innerHTML;
+    const flows = container.querySelectorAll(".space-y-2");
+    const flowEl = flows.length >= 2 ? flows[1] : flows[0];
+    const html = flowEl!.innerHTML;
     const indices = [
       html.indexOf("Turn 1"),
       html.indexOf("✅ Success"),
