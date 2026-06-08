@@ -29,6 +29,14 @@ logger = logging.getLogger("negentropy.knowledge")
 # 目录树最大递归深度（防止无限循环或超深树导致性能问题）
 MAX_TREE_DEPTH = 6
 
+# PATCH 字段哨兵：区分「未传入(保持原值)」与「显式传入 None」。
+#
+# ``parent_id`` 的 None 是有意义的业务值——表示「提升为根节点」(parent_entry_id=NULL)。
+# 若沿用 ``= None`` 默认值 + ``if parent_id is not None`` 守卫，则无法区分调用方
+# 「没传 parent_id」与「显式要清空 parent」，导致「拖拽到顶层」永远无法持久化。
+# 故以独占哨兵作默认值，仅当调用方显式传值（含 None）时才落库。
+_UNSET: Any = object()
+
 # node_type 大小写映射（API 层传入小写，ORM Enum 存储大写）
 #
 # 自 0010 起：
@@ -141,13 +149,18 @@ class CatalogNodeDao:
         *,
         name: str | None = None,
         slug: str | None = None,
-        parent_id: UUID | None = None,
+        parent_id: UUID | None = _UNSET,
         node_type: str | None = None,
         description: str | None = None,
         sort_order: float | None = None,
         config: dict | None = None,
     ) -> DocCatalogEntry | None:
-        """更新目录条目节点（仅更新传入的非 None 字段）"""
+        """更新目录条目节点（仅更新传入的字段）。
+
+        ``parent_id`` 采用哨兵语义：未传入(``_UNSET``)则保持原父指针不变；
+        显式传入 ``None`` 表示**提升为根节点**(``parent_entry_id=NULL``)；传入 UUID
+        则改挂到该父节点。其余字段仍为「None=不改」语义。
+        """
         entry = await CatalogNodeDao.get_node(db, node_id)
         if entry is None:
             return None
@@ -155,7 +168,7 @@ class CatalogNodeDao:
             entry.name = name
         if slug is not None:
             entry.slug_override = slug
-        if parent_id is not None:
+        if parent_id is not _UNSET:
             entry.parent_entry_id = parent_id
         if node_type is not None:
             entry.node_type = _NODE_TYPE_TO_ENUM.get(node_type, node_type)

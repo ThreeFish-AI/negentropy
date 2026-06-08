@@ -3139,8 +3139,6 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同类问题影响**：所有 KB ingest_file run 的重试路径。KG run（无 document_id 重跑语义）不暴露重试入口；URL/text run 同样不暴露（无 document_id）；普通 ingest（resume=None）零行为变化。
 - **验证**：backend `_maybe_inject_resume` 5 守卫条件 + 既有 `_maybe_inject_tool_timeout` 4 条经直接导入验证 **9 全过**（同 alembic fixture 环境问题，纯函数逻辑无碍）；retry 端点导入 + 路由注册 + `get_document` corpus 校验签名核验通过；前端 `tsc --noEmit` + `eslint --max-warnings=0`（含移除 helper 后无 unused-var）**全过**；`ruff check`/`format` 全过；code review 捕获的卡片/helper 判定分歧 bug 已修（卡片信任父组件 `canRetry` 单一权威）。注：live 引擎运行旧 checkout，需部署后生效。
 
----
-
 ## ISSUE-135 新建 Corpus 未消费全局默认 Embedding 模型（model_resolver 忽略 model_configs.is_default）（2026-06-08）
 
 - **表因**（用户实证）：在 Interface/Model 模型卡片将 `openai/text-embedding-3-small` 设为全局默认（Default）Embedding 模型后，新建的、未显式指定 Embedding 模型的 Corpus 在文档构建（ingest）时仍使用硬编码 `gemini/text-embedding-004`，与用户设定不符。
@@ -3152,3 +3150,15 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① 解析器「文档化契约」须与实现一致——注释声明的回退层若未落地即为隐性缺陷，新增解析层应配套单测钉死；② corpus 级配置应在创建期固化为具体引用（pin），避免运行期跟随全局默认导致索引/查询维度漂移（与 ISSUE-028「索引/查询对称」同源）；③ 凡新增「全局默认 + 可空覆盖」语义，须显式覆盖「设默认后又禁用」等边界（此处 `enabled` 过滤）。
 - **同类问题影响**：① **LLM 默认同路修好**（`_resolve` 对称生效）；② **既有「无 pin」历史语料**：Fix #2 不回填（需独立数据迁移），仍由 Fix #1 运行期跟随全局默认；③ **多 worker 缓存陈旧窗口（≤60s，既有非新增）**：`_cache` 单进程模块级，写端点 `invalidate_cache(None)` 仅清处理该请求的 worker，余者至多 TTL 后跟进，Fix #2 对新建语料以具体 id 绕过此窗口。
 - **验证**：新增 `tests/unit_tests/config/test_model_resolver_default.py`（7 例：is_default 命中且不触达 vendor_configs / 无默认回退 gemini / `enabled` 过滤入查询 / DB 异常降级不崩 / LLM 对称且合并 `_DEFAULT_LLM_KWARGS` / 缓存命中仅查一次 / 失效后重查）+ `tests/unit_tests/knowledge/test_pin_default_embedding.py`（3 例：固化 / 显式 no-op / 无默认 no-op）；连同既有 `test_model_resolver_by_id`/`_task`/`test_model_names`/`test_embedding`/`test_search_resilience` 共 **140 全过**；三处改动模块导入校验通过。注：live 引擎运行旧 checkout，需部署后生效。
+
+## ISSUE-136 Wiki 目录节点「拖拽到顶层」刷新后回退（移动未持久化）（2026-06-08）
+
+- **表因**：Knowledge → Wiki 页将节点「Sinestesia of Cognition」从「Negentropy」子节点拖拽到与「Negentropy」「Harness Engineering」同级（提升为根节点），拖拽瞬间 UI 乐观更新正确显示在顶层，但**刷新页面后总是回退**为「Negentropy」的子节点——移动未持久化。
+- **根因**（全链路逐层实证）：前端 `updateCatalogNode` 正确发出 `PATCH {parent_id:null, sort_order}`、Next.js BFF `proxyPatch`（`JSON.parse`→`JSON.stringify`）保留 null、Pydantic `CatalogNodeUpdateRequest.parent_id: UUID|None` 接收正常；缺陷在后端写路径**两处独立「丢弃 None」**叠加，使 `parent_entry_id` 永不被清空为 NULL：① 路由层 `routes/catalog.py:299` `{k: v for ... if v is not None}` 把显式 `parent_id=None` 一并剔除，下发 service 的 kwargs 仅剩 `sort_order`；② DAO 层 `catalog_node_dao.py:158` `if parent_id is not None: entry.parent_entry_id = parent_id` 即便 None 抵达也跳过赋值。两者任修其一都不够。读路径（递归 CTE 以 `parent_entry_id IS NULL` 锚定根节点）本身正确，故只要写入正确，刷新即稳定停留顶层。`parent_entry_id` 列本就 nullable（迁移 0003），**无需 DB 迁移**。
+- **处理方式**（PATCH「字段存在性」语义 SSOT，最小且正交）：
+  1. **路由层**：抽出纯函数 `_build_update_kwargs(body) = body.model_dump(exclude_unset=True)`（以「请求显式出现的字段」为 SSOT，`exclude_unset` 已保证未传字段不出现，去掉 falsy 过滤），路由改用之；保留「空 kwargs→400」守卫（`{"parent_id": None}` 为非空 dict 可正常通过）。
+  2. **DAO 层**：引入模块级哨兵 `_UNSET = object()`，`parent_id` 默认值改 `_UNSET`、守卫改 `if parent_id is not _UNSET:`——未传(`_UNSET`)保持原父指针、显式 `None` 提升为根、UUID 改挂父。其余字段维持「None=不改」零回归。同时矫正 `move_node(new_parent_id=None)` 提升为根的语义（虽当前无路由调用）。
+  - 前端无需改动：乐观更新本就把节点显示在顶层，回退纯由后端未持久化导致。
+- **后续防范**：① PATCH/部分更新接口必须区分「字段未传(保持)」与「字段显式为 null(清空)」——以 `model_dump(exclude_unset=True)` 或哨兵承载「字段存在性」，严禁用 `if v is not None` / `if x:` 之类 falsy 过滤吞掉**有业务含义的 None**（如「提升为根」「清空可空外键」）；② 同一语义在「路由」「DAO」多层各设过滤时，任一层吞掉 None 即整体失效——字段存在性应单点(SSOT)承载并端到端透传，避免多层各自判定的隐式纠缠；③ 乐观更新会掩盖持久化缺陷至刷新才暴露，验证此类「拖拽/排序/移动」务必含「写入后新会话重读」一环（而非仅看乐观态）。
+- **同类问题影响**：所有经 `PATCH /catalogs/{cid}/entries/{eid}` 的目录节点更新——尤其「提升为根」「清空可空字段」。改名/改序/改父到非根等既有功能零影响（61 例 catalog 测试回归全绿）。
+- **验证**：DAO 集成测试 2 例（显式 None 清空 parent + 新会话重读确认 / 不传 parent_id 不清空）+ 路由边界单测 4 例（`_build_update_kwargs` 保留显式 None、UUID 原样保留、未传 parent_id 不出现、空请求空 kwargs），`uv run pytest` **6 passed**；catalog 全量回归 **61 passed**；`ruff check`/`format` 全过。**浏览器实测**：临时以本工作区版本替换 3292 live 引擎（同 `negentropy` 库、真实数据；单引擎不违反「同库勿并起第二引擎」约束），经生产 HTTP 路由对真实节点 `Sinestesia of Cognition` 执行 `PATCH {parent_id:null}` → 重新拉取树确认其 `parent_id=None, depth=0`、与「Harness Engineering」「Negentropy」同级（即「移动+刷新」已持久化；旧引擎对同请求会 200 但静默不改父，反证运行的是修复版）；验证后恢复主仓 live 引擎，重启后重读仍为根节点（DB 写入引擎无关、持久）。注：fix 在工作分支，运行中 live 引擎需部署后对**其它**节点的移动生效；已移动的 Sinestesia 因 DB 已落库故引擎无关。
