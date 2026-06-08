@@ -202,7 +202,7 @@ function PipelineRunCardContent({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {/* 双入口重试（断点续传 / 重新开始）：置于状态标签左侧，仅终态 + 可重试时显示 */}
+          {/* 双入口重试（断点续传 / 重新开始）：置于状态标签左侧，canRetry 为真时显示（不限定 run 终态，详见上方 showRetryButtons 说明） */}
           {showRetryButtons && (
             <>
               {onResume && (
