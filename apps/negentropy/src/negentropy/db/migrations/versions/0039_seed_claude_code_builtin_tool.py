@@ -128,7 +128,7 @@ CLAUDE_CODE_CONFIG_SCHEMA = {
 
 CLAUDE_CODE_CONFIG_DEFAULT = {
     "cli_path": "claude",
-    "model": None,
+    "model": "claude-opus-4-8",
     "system_prompt": None,
     "default_cwd": None,
     "max_turns": 500,
