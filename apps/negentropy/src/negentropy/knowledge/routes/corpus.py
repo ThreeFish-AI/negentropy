@@ -16,6 +16,7 @@ from negentropy.knowledge._shared import (
     _get_corpus_engine,
     _get_service,
     _has_explicit_extractor_routes,
+    _pin_default_embedding_config,
     _resolve_default_extractor_routes,
     _resolve_embedding_dimension,
     _serialize_corpus_config,
@@ -80,6 +81,8 @@ async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
     request_config = dict(payload.config or {})
     if not _has_explicit_extractor_routes(request_config):
         request_config["extractor_routes"] = await _resolve_default_extractor_routes()
+    # 未显式指定 Embedding 模型 → 固化当前全局默认的 config_id，使语料创建即绑定具体模型。
+    await _pin_default_embedding_config(request_config)
     normalized_config = _serialize_corpus_config(request_config)
     spec = CorpusSpec(
         app_name=_resolve_app_name(payload.app_name),

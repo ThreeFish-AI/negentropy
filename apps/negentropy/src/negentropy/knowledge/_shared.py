@@ -271,6 +271,33 @@ def _serialize_corpus_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return serialized
 
 
+async def _pin_default_embedding_config(request_config: dict[str, Any]) -> None:
+    """创建 Corpus 时固化当前全局默认 Embedding 模型的 config_id（原地修改 request_config）。
+
+    - 已显式提供 ``models.embedding_config_id`` → no-op（尊重调用方指定的 pin）；
+    - 未提供且存在全局默认（``model_configs.is_default`` 的 embedding 行）→ 写入其 id，
+      使语料创建即绑定具体模型，免疫日后全局默认变更；后续改模型走 ``update_corpus``
+      既有的维度比对 + 重建保护路径；
+    - 无全局默认行 → no-op（语料保持未 pin，由 model_resolver 运行期回退兜底）。
+
+    仅作用于 embedding：LLM 无向量维度契约，创建期固化非本次诉求，保持最小干预。
+    """
+    raw_models = request_config.get("models")
+    models: dict[str, Any] = dict(raw_models) if isinstance(raw_models, dict) else {}
+    existing = models.get("embedding_config_id")
+    if existing not in (None, ""):
+        return
+
+    from negentropy.config.model_resolver import resolve_default_model_config_id
+
+    default_id = await resolve_default_model_config_id("embedding")
+    if default_id is None:
+        return
+
+    models["embedding_config_id"] = str(default_id)
+    request_config["models"] = models
+
+
 async def _validate_models_references(models: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     """校验 config.models 引用的 model_configs 行存在且类型匹配；返回 {key: row_dict}。
 
