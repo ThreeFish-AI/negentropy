@@ -93,6 +93,16 @@ def test_build_prompt_worktree_finalize_injects_concrete_branches():
     assert "合并" in p  # 提示人工合并
 
 
+def test_build_prompt_worktree_finalize_uses_pr_view_before_create():
+    """FINALIZE PR 复用确定化：先 `gh pr view <head>` 查、空才 `gh pr create`，
+    消除重启后 head 已有 PR 时 `gh pr create` 报错导致 `PR_URL=` 丢失的回归（单一分支不变量配套）。"""
+    p = build_prompt(_wt_routine(current_phase="finalize"))
+    assert "gh pr view routine/demo-20260601" in p  # 复用优先：先查既存 PR
+    assert "复用" in p  # 明确指示复用既存链接
+    # gh pr view 须出现在 gh pr create 之前（先查后建）
+    assert p.index("gh pr view") < p.index("gh pr create")
+
+
 def test_build_prompt_worktree_implement_injects_checkpoint_commit():
     """worktree IMPLEMENT 相位注入迭代检查点提交指令（git add -A && git commit，仅提交不推送）。"""
     for ph in ("implement",):

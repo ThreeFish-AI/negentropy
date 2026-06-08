@@ -915,12 +915,13 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
         r.claude_session_id = None
         r.current_phase = phase_mod.initial_phase(r.config)
         r.pr_url = None
-        # 隔离 worktree：移除旧工作区并清空运行期句柄，使新一轮尝试从基线重建（best-effort）。
+        # 隔离 worktree：仅回收 worktree 目录、**保留终生单一工作分支**（含其检查点提交），
+        # 使新一轮尝试在同一分支上从上一检查点续作（不铸新分支、不重建自基线）。下一次派发的
+        # ensure_worktree 会按保留的 work_branch 重绑 worktree（本地分支存在则直接 checkout）。
         if r.worktree_path:
             with suppress(Exception):
-                await workspace.remove_worktree(r, settings.routine)
+                await workspace.remove_worktree(r, settings.routine, keep_branch=True)
         r.worktree_path = None
-        r.work_branch = None
         r.eval_floor_seq = int(max_seq)
         if not keep_reflections:
             r.reflections = {}
