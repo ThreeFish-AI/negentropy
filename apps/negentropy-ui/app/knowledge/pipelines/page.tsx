@@ -19,6 +19,8 @@ import {
   fetchCorpora,
   fetchGraphBuildHistory,
   cancelPipelineRun,
+  retryPipelineRun,
+  canRetryRun,
   KnowledgePipelinesData,
   KnowledgePipelinesPayload,
   PipelineRunCard,
@@ -167,6 +169,46 @@ export default function KnowledgePipelinesPage() {
           });
         }
         // 立即刷新让卡片切换到 cancelling/cancelled；剩余收敛交给 5s 轮询
+        await loadRuns().catch(() => undefined);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [confirm, loadRuns],
+  );
+
+  /**
+   * 重试 Pipeline Run（双入口）：
+   * - resume=true  断点续传（复用 perceives checkpoint）；
+   * - resume=false 重新开始（丢弃 checkpoint 全量重跑）。
+   *
+   * 仅 KB 来源支持（KG 无 document_id 重跑语义）。后端创建新 run，原 run 保留。
+   */
+  const handleRetryRun = useCallback(
+    async (run: UnifiedPipelineRun, resume: boolean) => {
+      if (run.source !== "kb") return;
+      const confirmed = await confirm({
+        title: resume ? "断点续传" : "重新开始",
+        message: (
+          <div className="space-y-2">
+            <p>
+              {resume
+                ? "从最后一个完成的切片继续处理 "
+                : "丢弃 checkpoint，全量重新处理 "}
+              <span className="font-mono">{run.run_id || run.id}</span>?
+            </p>
+            <p className="text-xs opacity-80">
+              将创建一个新的 Pipeline Run，原 Run 记录保留。
+            </p>
+          </div>
+        ),
+        confirmLabel: resume ? "确认续传" : "确认重跑",
+        cancelLabel: "取消",
+      });
+      if (!confirmed) return;
+      try {
+        await retryPipelineRun(run.run_id || run.id, resume, { appName: APP_NAME });
+        // 立即刷新让新 run 出现在列表顶部；剩余收敛交给 5s 轮询
         await loadRuns().catch(() => undefined);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -389,6 +431,18 @@ export default function KnowledgePipelinesPage() {
                         selected={selected?.id === run.id}
                         onSelect={() => setSelected(run)}
                         onCancel={() => handleCancelRun(run)}
+                        // 双入口重试：仅 KB 来源 + 可抽取文档关联时暴露
+                        canRetry={run.source === "kb" && canRetryRun(run)}
+                        onResume={
+                          run.source === "kb"
+                            ? () => handleRetryRun(run, true)
+                            : undefined
+                        }
+                        onRestart={
+                          run.source === "kb"
+                            ? () => handleRetryRun(run, false)
+                            : undefined
+                        }
                         // KG 专属字段
                         source={run.source}
                         corpus_id={run.source === "kg" ? run.corpus_id : undefined}

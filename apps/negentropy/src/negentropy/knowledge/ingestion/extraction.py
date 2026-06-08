@@ -768,6 +768,28 @@ def _maybe_inject_tool_timeout(
     return arguments
 
 
+def _maybe_inject_resume(
+    *,
+    arguments: dict[str, Any],
+    input_schema: dict[str, Any] | None,
+    resume: bool | None,
+) -> dict[str, Any]:
+    """将 resume 意图注入工具参数（当工具 schema 声明顶层 ``resume`` 参数时）。
+
+    用于双入口重试：断点续传(resume=True) / 重新开始(resume=False)。
+    resume is None（普通 ingest）→ 不注入，沿用 perceives 默认 True。
+    仅在 arguments 尚未包含 ``resume`` 时注入（尊重 LLM 规划 / 用户 tool_options）。
+    """
+    if resume is None or "resume" in arguments:
+        return arguments
+    if not isinstance(input_schema, dict):
+        return arguments
+    if "resume" not in _schema_property_names(input_schema):
+        return arguments
+    arguments["resume"] = resume
+    return arguments
+
+
 def _is_url_source_schema(schema: Any) -> bool:
     properties = _schema_property_names(schema)
     return "url" in properties or "uri" in properties
@@ -1938,6 +1960,7 @@ class DataExtractorProvider:
         content_type: str | None = None,
         tracker: Any | None = None,
         cancel_event: Any | None = None,
+        resume: bool | None = None,
     ) -> ExtractedDocumentResult:
         targets = resolve_targets(corpus_config, source_kind)
         if not targets:
@@ -1977,6 +2000,7 @@ class DataExtractorProvider:
                 stage_name=stage_name,
                 llm_config_id=llm_config_id,
                 cancel_event=cancel_event,
+                resume=resume,
             )
             attempts.append(attempt["attempt"])
 
@@ -2044,6 +2068,7 @@ class DataExtractorProvider:
         stage_name: str | None = None,
         llm_config_id: str | None = None,
         cancel_event: Any | None = None,
+        resume: bool | None = None,
     ) -> dict[str, Any]:
         # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
         if not target.timeout_ms:
@@ -2242,6 +2267,12 @@ class DataExtractorProvider:
                     arguments=plan.arguments,
                     input_schema=input_schema,
                     timeout_seconds=target.timeout_ms // 1000 if target.timeout_ms else None,
+                )
+                # 双入口重试：向声明了 resume 参数的 MCP 工具注入断点续传/重新开始意图
+                _maybe_inject_resume(
+                    arguments=plan.arguments,
+                    input_schema=input_schema,
+                    resume=resume,
                 )
 
                 result, resolved_resources, resource_errors = await self._call_tool_with_plan(
@@ -2498,6 +2529,7 @@ async def extract_source(
     content_type: str | None = None,
     tracker: Any | None = None,
     cancel_event: Any | None = None,
+    resume: bool | None = None,
 ) -> ExtractedDocumentResult:
     targets = resolve_targets(corpus_config, source_kind)
     if not targets:
@@ -2521,6 +2553,7 @@ async def extract_source(
         content_type=content_type,
         tracker=tracker,
         cancel_event=cancel_event,
+        resume=resume,
     )
 
 

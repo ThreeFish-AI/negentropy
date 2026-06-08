@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import type { PipelineRunRecord } from "../utils/knowledge-api";
 import {
   buildPipelineErrorDetails,
@@ -12,51 +10,6 @@ import {
   STAGE_LABELS,
   OPERATION_LABELS,
 } from "../utils/pipeline-helpers";
-
-/**
- * 从 PipelineRunRecord 的 input/output 中尽力抽取关联的 corpus_id / document_id。
- *
- * 不同 operation 把这些字段放在 input 的不同位置：
- *   - 文档 ingest 类：input.document_id + input.corpus_id
- *   - markdown refresh 类：input.document_id（corpus_id 来自 output 或 input.corpus_id）
- *
- * 抽不到完整对则返回 null，UI 隐藏 Continue 操作。绝不影响既有 run 详情渲染。
- */
-function extractDocumentRef(
-  run: PipelineRunRecord,
-): { corpusId: string; documentId: string } | null {
-  // markdown refresh 类 run 经常把 document_id 留在 input、corpus_id 留在
-  // output；先 union 两侧再判定，避免因「同一对象必须同时含两个字段」的
-  // 旧实现把合法可恢复场景误判为无法定位 → 隐藏 Resume 入口。
-  let docId: string | null = null;
-  let corpusId: string | null = null;
-  for (const obj of [run.input, run.output]) {
-    if (!obj) continue;
-    if (!docId && typeof obj.document_id === "string") docId = obj.document_id;
-    if (!corpusId && typeof obj.corpus_id === "string")
-      corpusId = obj.corpus_id;
-    if (docId && corpusId) break;
-  }
-  return docId && corpusId ? { corpusId, documentId: docId } : null;
-}
-
-/**
- * 判定该 Run 是否可走断点续传：状态为 failed / partial / cancelled，
- * 或 stages 中有 markdown extraction 类阶段失败。
- *
- * perceives 的 auto_batch 把 per-slice checkpoint 落到 output_dir/.batch_state/；
- * 即便整 Run 失败，下一次 refresh_markdown 会从最后一个完成切片继续。
- */
-function isRunResumable(run: PipelineRunRecord): boolean {
-  const s = (run.status || "").toLowerCase();
-  if (s === "failed" || s === "partial" || s === "cancelled") return true;
-  if (!run.stages) return false;
-  for (const stage of Object.values(run.stages)) {
-    const st = (stage?.status || "").toLowerCase();
-    if (st === "failed") return true;
-  }
-  return false;
-}
 
 const detailJsonClassName =
   "mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted p-3 text-caption";
@@ -71,33 +24,13 @@ const errorJsonClassName =
  */
 export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
   const errorDetails = buildPipelineErrorDetails(run);
-  const docRef = extractDocumentRef(run);
-  const resumable = docRef && isRunResumable(run);
 
   return (
     <div className="mt-3 min-w-0 space-y-3 text-xs text-text-secondary">
-      {/* Continue 断点续传入口（仅在 Run 失败 / partial + 可抽取文档关联时显示） */}
-      {resumable && docRef && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-caption font-semibold text-amber-700 dark:text-amber-300">
-                Resume from checkpoint
-              </p>
-              <p className="mt-0.5 text-micro text-amber-600 dark:text-amber-400">
-                perceives auto_batch 已为每个完成的切片落 checkpoint；点击 Continue
-                跳转到文档详情页触发断点续传（从最后一个完成的切片继续）。
-              </p>
-            </div>
-            <Link
-              href={`/knowledge/documents/${docRef.corpusId}/${docRef.documentId}`}
-              className="shrink-0 rounded-md bg-amber-600 px-2.5 py-1 text-caption font-semibold text-white shadow-sm hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400"
-            >
-              Continue →
-            </Link>
-          </div>
-        </div>
-      )}
+      {/*
+        断点续传 / 重新开始 入口已上移到 PipelineRunCard 卡片（直显两个按钮，
+        直接调 retry API），不再在详情面板放跳转链接，避免语义重复。
+      */}
 
       {/* 基本信息 */}
       <div className="rounded-lg border border-border bg-muted p-3">

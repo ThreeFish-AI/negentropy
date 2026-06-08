@@ -708,6 +708,7 @@ class KnowledgeService:
         filename: str,
         content_type: str | None,
         tracker: PipelineTracker | None = None,
+        resume: bool | None = None,
     ) -> ExtractedDocumentResult:
         source_kind = resolve_source_kind(filename=filename, content_type=content_type)
 
@@ -738,6 +739,7 @@ class KnowledgeService:
                 content_type=content_type,
                 tracker=tracker,
                 cancel_event=cancel_event,
+                resume=resume,
             )
         except Exception as exc:
             self._raise_if_mcp_cancelled(exc, tracker)
@@ -1161,8 +1163,13 @@ class KnowledgeService:
         metadata: dict[str, Any] | None = None,
         chunking_config: ChunkingConfig | None = None,
         document_id: UUID | None = None,
+        resume: bool | None = None,
     ) -> list[KnowledgeRecord]:
-        """执行 ingest_file Pipeline（后台任务）"""
+        """执行 ingest_file Pipeline（后台任务）
+
+        resume: 仅重试场景透传至 perceives——True 断点续传 / False 重新开始 /
+        None 普通 ingest（沿用 perceives 默认）。
+        """
         if not self._pipeline_dao:
             raise ValueError("pipeline_dao is required for async pipeline operations")
 
@@ -1194,6 +1201,7 @@ class KnowledgeService:
                     filename=filename,
                     content_type=content_type,
                     tracker=tracker,
+                    resume=resume,
                 )
                 await tracker.start_stage("extract_gate")
                 text = self._validate_extracted_document(extracted, source_uri=source_uri or filename)

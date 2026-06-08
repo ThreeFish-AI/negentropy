@@ -14,6 +14,7 @@ from negentropy.knowledge.ingestion.extraction import (
     ROUTE_URL,
     ExtractionAttempt,
     ExtractorExecutionError,
+    _maybe_inject_resume,
     _maybe_inject_tool_timeout,
     build_tool_adapter,
     extract_source,
@@ -223,3 +224,46 @@ def test_inject_timeout_skips_when_timeout_none_or_schema_missing() -> None:
     args_b: dict = {"pdf_source": "/tmp/x.pdf"}
     _maybe_inject_tool_timeout(arguments=args_b, input_schema=None, timeout_seconds=3600)
     assert "timeout" not in args_b
+
+
+# ---------------------------------------------------------------------------
+# _maybe_inject_resume：双入口重试向声明了 resume 参数的工具注入续传/重跑意图
+# ---------------------------------------------------------------------------
+
+_RESUME_SCHEMA = {"type": "object", "properties": {"pdf_source": {"type": "string"}, "resume": {"type": "boolean"}}}
+_NO_RESUME_SCHEMA = {"type": "object", "properties": {"pdf_source": {"type": "string"}}}
+
+
+def test_inject_resume_true_when_schema_declares_param() -> None:
+    """断点续传：schema 含 resume 且 arguments 未含 → 注入 True。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_resume(arguments=args, input_schema=_RESUME_SCHEMA, resume=True)
+    assert args["resume"] is True
+
+
+def test_inject_resume_false_for_fresh_restart() -> None:
+    """重新开始：注入 resume=False（丢弃 checkpoint 全量重跑）。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_resume(arguments=args, input_schema=_RESUME_SCHEMA, resume=False)
+    assert args["resume"] is False
+
+
+def test_inject_resume_skips_when_none() -> None:
+    """普通 ingest（resume=None）→ 不注入，沿用 perceives 默认 True。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_resume(arguments=args, input_schema=_RESUME_SCHEMA, resume=None)
+    assert "resume" not in args
+
+
+def test_inject_resume_skips_when_already_present() -> None:
+    """arguments 已含 resume（LLM/用户配置）→ 不覆盖。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf", "resume": True}
+    _maybe_inject_resume(arguments=args, input_schema=_RESUME_SCHEMA, resume=False)
+    assert args["resume"] is True
+
+
+def test_inject_resume_skips_when_schema_lacks_param() -> None:
+    """工具 schema 无 resume 属性 → 不注入（避免非法参数）。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_resume(arguments=args, input_schema=_NO_RESUME_SCHEMA, resume=False)
+    assert "resume" not in args

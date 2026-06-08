@@ -243,6 +243,19 @@ class PipelineCancelRequest(BaseModel):
     )
 
 
+class PipelineRetryRequest(BaseModel):
+    """Pipeline Run 重试请求体（双入口：断点续传 / 重新开始）。"""
+
+    app_name: str | None = None
+    resume: bool = Field(
+        default=True,
+        description=(
+            "True=断点续传（复用 perceives checkpoint，从最后完成切片继续）；"
+            "False=重新开始（丢弃 checkpoint 全量重跑）。"
+        ),
+    )
+
+
 class PipelineCancelResponse(BaseModel):
     """Pipeline Run 取消响应体。
 

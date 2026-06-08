@@ -40,6 +40,7 @@ export type {
 export {
   fetchPipelinesData,
   cancelPipelineRun,
+  retryPipelineRun,
   fetchCorpora,
   createCorpus,
   fetchCorpus,
@@ -319,6 +320,9 @@ export {
   formatDuration,
   calculateStageWidth,
   getSortedStages,
+  extractDocumentRef,
+  isRunResumable,
+  canRetryRun,
 } from "./utils/pipeline-helpers";
 
 // ============================================================================

@@ -650,3 +650,55 @@ export const buildPipelineErrorDetails = (
 
   return details;
 };
+
+// ============================================================================
+// 重试 / 断点续传判定（双入口：page 与 detail panel 单一事实源）
+// ============================================================================
+
+/**
+ * 从 PipelineRunRecord 的 input/output 中尽力抽取关联的 corpus_id / document_id。
+ *
+ * 不同 operation 把这些字段放在 input 的不同位置：先 union input 与 output
+ * 两侧再判定，避免「同一对象必须同时含两字段」的旧逻辑把合法可重试场景误判
+ * 为无法定位。抽不到完整对则返回 null（UI 隐藏重试入口）。
+ */
+export function extractDocumentRef(
+  run: PipelineRunRecord,
+): { corpusId: string; documentId: string } | null {
+  let docId: string | null = null;
+  let corpusId: string | null = null;
+  for (const obj of [run.input, run.output]) {
+    if (!obj) continue;
+    if (!docId && typeof obj.document_id === "string") docId = obj.document_id;
+    if (!corpusId && typeof obj.corpus_id === "string")
+      corpusId = obj.corpus_id;
+    if (docId && corpusId) break;
+  }
+  return docId && corpusId ? { corpusId, documentId: docId } : null;
+}
+
+/** 可重试的终态集合：失败 / 部分成功 / 已取消。 */
+const RETRYABLE_RUN_STATUSES = new Set(["failed", "partial", "cancelled"]);
+
+/**
+ * 判定该 Run 是否可走重试（断点续传 / 重新开始）：
+ * 状态为 failed / partial / cancelled，或某 stage 失败。
+ */
+export function isRunResumable(run: PipelineRunRecord): boolean {
+  const s = (run.status || "").toLowerCase();
+  if (RETRYABLE_RUN_STATUSES.has(s)) return true;
+  if (!run.stages) return false;
+  for (const stage of Object.values(run.stages)) {
+    if ((stage?.status || "").toLowerCase() === "failed") return true;
+  }
+  return false;
+}
+
+/**
+ * 综合判定：Run 是否应在 UI 暴露重试入口。
+ * 要求 KB 来源 + 可抽取文档关联 + 可重试状态三者同时满足。
+ * （文件 ingest 才有 document_id；URL/text 无法按 document_id 重跑。）
+ */
+export function canRetryRun(run: PipelineRunRecord): boolean {
+  return Boolean(extractDocumentRef(run)) && isRunResumable(run);
+}
