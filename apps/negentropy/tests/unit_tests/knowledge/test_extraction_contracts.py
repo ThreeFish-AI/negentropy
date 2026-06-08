@@ -14,6 +14,7 @@ from negentropy.knowledge.ingestion.extraction import (
     ROUTE_URL,
     ExtractionAttempt,
     ExtractorExecutionError,
+    _maybe_inject_tool_timeout,
     build_tool_adapter,
     extract_source,
     normalize_tool_contract,
@@ -182,3 +183,43 @@ def test_extraction_attempt_slots_dataclass_is_json_serialized_in_trace() -> Non
             "diagnostics": {},
         }
     ]
+
+
+# ---------------------------------------------------------------------------
+# _maybe_inject_tool_timeout：向声明了 timeout 参数的工具注入超时预算
+# ---------------------------------------------------------------------------
+
+_TIMEOUT_SCHEMA = {"type": "object", "properties": {"pdf_source": {"type": "string"}, "timeout": {"type": "integer"}}}
+_NO_TIMEOUT_SCHEMA = {"type": "object", "properties": {"pdf_source": {"type": "string"}}}
+
+
+def test_inject_timeout_when_schema_declares_param() -> None:
+    """工具 schema 含顶层 timeout 且 arguments 未含时 → 注入。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_tool_timeout(arguments=args, input_schema=_TIMEOUT_SCHEMA, timeout_seconds=3600)
+    assert args["timeout"] == 3600
+
+
+def test_inject_timeout_skips_when_already_present() -> None:
+    """arguments 已含 timeout（LLM/用户配置）→ 不覆盖。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf", "timeout": 120}
+    _maybe_inject_tool_timeout(arguments=args, input_schema=_TIMEOUT_SCHEMA, timeout_seconds=3600)
+    assert args["timeout"] == 120
+
+
+def test_inject_timeout_skips_when_schema_lacks_param() -> None:
+    """工具 schema 无 timeout 属性 → 不注入（避免非法参数）。"""
+    args: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_tool_timeout(arguments=args, input_schema=_NO_TIMEOUT_SCHEMA, timeout_seconds=3600)
+    assert "timeout" not in args
+
+
+def test_inject_timeout_skips_when_timeout_none_or_schema_missing() -> None:
+    """timeout_seconds 为 None 或 schema 非 dict → 不注入。"""
+    args_a: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_tool_timeout(arguments=args_a, input_schema=_TIMEOUT_SCHEMA, timeout_seconds=None)
+    assert "timeout" not in args_a
+
+    args_b: dict = {"pdf_source": "/tmp/x.pdf"}
+    _maybe_inject_tool_timeout(arguments=args_b, input_schema=None, timeout_seconds=3600)
+    assert "timeout" not in args_b

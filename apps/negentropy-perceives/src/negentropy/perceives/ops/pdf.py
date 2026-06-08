@@ -1,5 +1,6 @@
 """Core operations: PDF 解析为 Markdown。"""
 
+import asyncio
 import logging
 import time
 from pathlib import Path
@@ -16,11 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 # auto_batch 默认参数（与 tools/pdf.py 工具签名默认值保持一致）
-DEFAULT_BATCH_PAGE_SIZE = 40
-"""单切片最大页数。R8 基线 71 页全本 180-300s；40 页 ≈ 100-200s 单切片为甜蜜区。"""
+DEFAULT_BATCH_PAGE_SIZE = 20
+"""单切片最大页数。20 页 ≈ 50-100s 单切片；更小分批粒度降低单批超时风险，提升 checkpoint 恢复效率。"""
 
 DEFAULT_BATCH_THRESHOLD_PAGES = 60
 """超过该页数才启用分批；小于等于此值走原单次路径（既有 1604 单测零退化）。"""
+
+DEFAULT_PER_SLICE_TIMEOUT_SECONDS = 300
+"""逐批超时（5 分钟）。保障每批有充足的处理时间；超时后标记失败并继续下一批，checkpoint 保已完成的切片供断点续传。"""
 
 
 def _pdf_error_response(
@@ -163,6 +167,7 @@ async def parse_pdf_to_markdown(
                         output_dir=output_dir,
                         start_time=_start,
                         resume=resume,
+                        total_timeout_seconds=timeout,
                     )
                     if batched_response is not None:
                         return batched_response
@@ -415,6 +420,7 @@ async def _run_batched_pipeline(
     output_dir: Optional[str],
     start_time: float,
     resume: bool = True,
+    total_timeout_seconds: Optional[int] = None,
 ) -> Optional[PDFResponse]:
     """auto_batch 路径：按页切片串行调用 run_pdf_pipeline 并跨切片合并。
 
@@ -458,6 +464,15 @@ async def _run_batched_pipeline(
     completed: List[Any] = [None] * len(slice_ranges)
     partial_failures: List[Tuple[int, int, str]] = []
 
+    # 逐批超时：固定 5 分钟，保障每批有充足处理时间
+    per_slice_timeout: float = DEFAULT_PER_SLICE_TIMEOUT_SECONDS
+    logger.info(
+        "auto_batch per_slice_timeout=%ds total_timeout=%s slices=%d",
+        int(per_slice_timeout),
+        f"{total_timeout_seconds}s" if total_timeout_seconds else "unbounded",
+        len(slice_ranges),
+    )
+
     for i, (page_start, page_end) in enumerate(slice_ranges):
         # 尝试 resume：已完成切片直接读 checkpoint
         if resume:
@@ -473,19 +488,31 @@ async def _run_batched_pipeline(
                 completed[i] = cached
                 continue
 
-        # 执行切片（带 1 次重试）
-        slice_result = await _execute_slice_with_retry(
-            run_pdf_pipeline=run_pdf_pipeline,
-            pdf_source=pdf_source,
-            page_range=(page_start, page_end),
-            extract_images=extract_images,
-            extract_tables=extract_tables,
-            extract_formulas=extract_formulas,
-            embed_images=embed_images,
-            output_dir=output_dir,
-            slice_index=i,
-            total_slices=len(slice_ranges),
-        )
+        # 执行切片（带 1 次重试 + 逐批超时保护）
+        slice_result = None
+        try:
+            async with asyncio.timeout(per_slice_timeout):
+                slice_result = await _execute_slice_with_retry(
+                    run_pdf_pipeline=run_pdf_pipeline,
+                    pdf_source=pdf_source,
+                    page_range=(page_start, page_end),
+                    extract_images=extract_images,
+                    extract_tables=extract_tables,
+                    extract_formulas=extract_formulas,
+                    embed_images=embed_images,
+                    output_dir=output_dir,
+                    slice_index=i,
+                    total_slices=len(slice_ranges),
+                )
+        except asyncio.TimeoutError:
+            err = (
+                f"slice [{page_start}, {page_end}) timed out "
+                f"({per_slice_timeout:.0f}s budget)"
+            )
+            logger.warning("[batch %d/%d] %s", i + 1, len(slice_ranges), err)
+            partial_failures.append((page_start, page_end, err))
+            _save_slice_failure(checkpoint_dir, i, page_start, page_end, err)
+            continue
 
         if slice_result is None:
             err = f"slice [{page_start}, {page_end}) failed after retry"
