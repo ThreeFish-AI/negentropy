@@ -6,7 +6,10 @@ ensure_worktree 创建 + 幂等复用；remove_worktree 幂等回收。
 
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -15,6 +18,45 @@ import pytest
 from negentropy.engine.routine import workspace as ws
 
 pytestmark = pytest.mark.asyncio
+
+
+def _head_branch(path: str) -> str:
+    """worktree HEAD 所在分支名。"""
+    return subprocess.run(
+        ["git", "-C", path, "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
+def _local_branch_exists(repo: str, branch: str) -> bool:
+    """仓库中本地分支 ``branch`` 是否存在。"""
+    return (
+        subprocess.run(
+            ["git", "-C", repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"], capture_output=True
+        ).returncode
+        == 0
+    )
+
+
+def _routine_branches(repo: str) -> list[str]:
+    """仓库中全部 ``routine/*`` 本地分支（短名，排序）。"""
+    out = subprocess.run(
+        ["git", "-C", repo, "branch", "--list", "routine/*", "--format=%(refname:short)"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    return sorted(out)
+
+
+def _make_repo_with_remote(tmp_path) -> tuple[str, str]:
+    """建带 bare origin 的仓库：返回 (work_repo, bare_remote)；work 已含 main 并 push 到 origin。"""
+    bare = str(tmp_path / "origin.git")
+    subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
+    work = _make_git_repo(tmp_path / "repo")
+    subprocess.run(["git", "-C", work, "remote", "add", "origin", bare], check=True)
+    subprocess.run(["git", "-C", work, "push", "-q", "-u", "origin", "main"], check=True)
+    subprocess.run(["git", "-C", work, "fetch", "-q", "origin"], check=True)
+    return work, bare
 
 
 def _settings(worktree_root: str, **kw):
@@ -196,3 +238,180 @@ async def test_checkpoint_commit_missing_path_returns_false(tmp_path):
     """worktree 路径不存在 → 安全返回 False，不抛。"""
     s = _settings(str(tmp_path / "wt"))
     assert await ws.checkpoint_commit(str(tmp_path / "nonexistent"), s, seq=1) is False
+
+
+# ---------------------------------------------------------------------------
+# 单一分支不变量 —— 跨重启/崩溃终生一个工作分支（确定性命名 + 分支感知重绑）
+# ---------------------------------------------------------------------------
+
+
+def test_stable_work_branch_is_id_derived():
+    """确定性命名：``routine/<sanitize(key)>-<id8>``，由不可变 id 派生（可复算、自愈）。"""
+    rid = uuid4()
+    r = SimpleNamespace(id=rid, key="My Key!")
+    assert ws._stable_work_branch(r) == f"routine/My-Key-{rid.hex[:8]}"
+    assert ws._stable_slug(r) == f"My-Key-{rid.hex[:8]}"
+
+
+async def test_ensure_worktree_branch_name_is_stable_id_suffixed(tmp_path):
+    """新建 routine 的工作分支/路径后缀取 ``id8``（替代旧时间戳，确定性可复算）。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    assert info.branch == f"routine/demo_routine-{r.id.hex[:8]}"
+    assert info.path.endswith(f"demo_routine-{r.id.hex[:8]}")
+
+
+async def test_ensure_worktree_rebinds_same_branch_after_dir_deleted(tmp_path):
+    """worktree 目录被外部删除（留残注册）+ 句柄按重启清空 worktree_path → 重绑**同名**分支，绝不铸新。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    shutil.rmtree(info.path)  # 删目录、留残 worktree 注册（崩溃场景）
+    r.worktree_path = None  # 模拟重启：清 worktree_path、保 work_branch
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert info2.branch == info.branch  # 同一分支名
+    assert os.path.isdir(info2.path)
+    assert _head_branch(info2.path) == info.branch
+    assert _routine_branches(repo) == [info.branch]  # 仓库中只有这一个工作分支
+
+
+async def test_ensure_worktree_resumes_checkpoint_commits_after_restart(tmp_path):
+    """重启（keep_branch=True 回收目录、保分支+提交）后重绑 → 上一检查点产物存活（从检查点续作）。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    (Path(info.path) / "progress.py").write_text("done = True\n")
+    assert await ws.checkpoint_commit(info.path, s, seq=1) is True
+
+    await ws.remove_worktree(r, s, keep_branch=True)  # 回收目录、保留本地分支与提交
+    r.worktree_path = None  # 模拟重启：保 work_branch
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert info2.branch == info.branch
+    assert (Path(info2.path) / "progress.py").exists()  # 检查点提交在重建 worktree 中续作
+
+
+async def test_ensure_worktree_recovers_from_origin_when_local_branch_deleted(tmp_path):
+    """本地分支被清理（默认 keep_branch=False）但已 push 到 origin → 从 ``origin/<b>`` 恢复同名分支与提交。"""
+    repo, _bare = _make_repo_with_remote(tmp_path)
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    (Path(info.path) / "feat.py").write_text("x = 1\n")
+    assert await ws.checkpoint_commit(info.path, s, seq=1) is True
+    subprocess.run(["git", "-C", info.path, "push", "-q", "-u", "origin", info.branch], check=True)
+
+    await ws.remove_worktree(r, s)  # 默认删本地分支
+    r.worktree_path = None
+    assert _local_branch_exists(repo, info.branch) is False  # 本地分支已删
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert info2.branch == info.branch  # 同名恢复
+    assert (Path(info2.path) / "feat.py").exists()  # 提交从 origin 恢复
+    upstream = subprocess.run(
+        ["git", "-C", info2.path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert upstream == f"origin/{info.branch}"  # 跟踪 origin/<b>
+
+
+async def test_ensure_worktree_falls_back_to_baseline_when_no_local_no_remote(tmp_path):
+    """已有 work_branch 句柄但本地/远端皆无该分支 → 从 baseline 重建**同名**分支（首次/无可恢复提交）。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo, work_branch="routine/demo_routine-deadbeef")
+    info = await ws.ensure_worktree(r, s)
+    assert info.branch == "routine/demo_routine-deadbeef"  # 保留同名
+    head = subprocess.run(["git", "-C", info.path, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    main = subprocess.run(["git", "-C", repo, "rev-parse", "main"], capture_output=True, text=True).stdout.strip()
+    assert head == main  # 从基线 tip 派生
+
+
+async def test_ensure_worktree_clears_stale_dir_at_target_path(tmp_path):
+    """确定性目标路径上存在非空残留目录 → 先清理再 add，不报 ``already exists``。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    root = str(tmp_path / "wt")
+    s = _settings(root)
+    r = _routine(repo)
+    os.makedirs(root, exist_ok=True)
+    stale = os.path.join(root, f"demo_routine-{r.id.hex[:8]}")
+    os.makedirs(stale, exist_ok=True)
+    (Path(stale) / "junk.txt").write_text("junk\n")
+
+    info = await ws.ensure_worktree(r, s)
+    assert info.path == stale  # 用确定性路径
+    assert _head_branch(info.path) == info.branch  # 残留清理后成功重绑
+
+
+async def test_ensure_worktree_keeps_legacy_timestamped_branch(tmp_path):
+    """存量时间戳分支名（migration 前）原样保留、不改名、不误删活动目录（向后兼容）。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    root = str(tmp_path / "wt")
+    s = _settings(root)
+    os.makedirs(root, exist_ok=True)
+    legacy_branch = "routine/demo_routine-20240101000000"
+    legacy_path = os.path.join(root, "demo_routine-20240101000000")
+    subprocess.run(["git", "-C", repo, "worktree", "add", "-b", legacy_branch, legacy_path, "main"], check=True)
+
+    r = _routine(repo, work_branch=legacy_branch, worktree_path=legacy_path)
+    info = await ws.ensure_worktree(r, s)
+    assert info.branch == legacy_branch  # 不改名为 id8
+    assert info.path == legacy_path
+    assert os.path.isdir(legacy_path)  # 既有有效 worktree 被复用而非删除
+
+
+async def test_restart_preserves_single_branch_identity(tmp_path):
+    """**头号不变量**：跨一次「重启」（keep_branch=True 回收 + 清 worktree_path、保 work_branch）两次
+    ensure 必产**同一分支名**，且仓库始终只有一个 ``routine/*`` 工作分支。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+
+    info1 = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info1.path, info1.branch
+
+    # 复刻 restart 端点行为：保 work_branch、仅清 worktree 目录与 worktree_path 句柄。
+    await ws.remove_worktree(r, s, keep_branch=True)
+    r.worktree_path = None
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert info2.branch == info1.branch
+    assert _routine_branches(repo) == [info1.branch]  # 终生唯一工作分支
+
+
+async def test_remove_worktree_keep_branch_preserves_local_branch(tmp_path):
+    """keep_branch=True：回收 worktree 目录但保留本地工作分支（供续作/审计）。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    await ws.remove_worktree(r, s, keep_branch=True)
+    assert not os.path.isdir(info.path)
+    assert _local_branch_exists(repo, info.branch) is True  # 本地分支保留
+
+
+async def test_remove_worktree_default_deletes_local_branch(tmp_path):
+    """默认 keep_branch=False：回收 worktree 目录并删除本地分支（origin 同名分支保留供 PR，回归锁定）。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    await ws.remove_worktree(r, s)
+    assert not os.path.isdir(info.path)
+    assert _local_branch_exists(repo, info.branch) is False  # 本地分支已删

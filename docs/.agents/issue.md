@@ -3076,3 +3076,17 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① 任何「交给 LLM 的长文本」截断上限必须按目标模型上下文设定（现代 judge 200K tokens，8000 字符是过时弱模型遗产），且**截断必须留显式标记**——静默截断会让下游（judge/CC）对「看不到的内容」做出错误归因，制造结构性死循环；② 「评审反馈要求补全 X、而 CC 确认 X 已在方案中」这类**自相矛盾的 refine 信号**是「输入被截断」的强特征，排查应直查 reviewer 侧字符上限而非 CC 侧；③ 无头闭环中工具入参约束（如 AskUserQuestion 必带 `options`）必须在 prompt 显式声明，否则 CLITool 校验报错空耗 turns。
 - **同类问题影响**：所有提交大型方案的 worktree routine（重型复刻场景）。排查同类静默截断：`rg -n "\[:[A-Z_]*MAX[A-Z_]*\]|\[:\d{3,}\]" src` 审计交 LLM 前的硬截断。
 - **验证**：新增 `test_routine_plan_reviewer.py`（长方案不截断/超限附标记/空方案占位/默认上限 ≥100K）+ hook 透传 `max_plan_chars`（per-routine 覆盖/全局回退/默认兜底）+ phase prompt 漏斗（含 `options`/「不要调用 ExitPlanMode」）；`engine` 全量单测 **924 passed**、`ruff check`/`format` 全过。注：live 卡死 iteration `ee448c74` 不被本代码改动追溯修复（引擎需部署），本修复**防复发**。
+
+## ISSUE-132 Routine 重启每次铸新工作分支，破坏「终生单一工作分支」不变量（2026-06-08）
+
+- **表因**：一个 Routine 任务每经一次 `/restart` 就在仓库新建一个工作分支（`routine/<slug>-<时间戳1>`、`-<时间戳2>`…），同一逻辑任务散落多个分支与潜在多个 PR，违背「无论重启几次都只有一个基于 Baseline 的工作分支、最终单一 PR 回基线」的诉求。
+- **根因**（逐行实证）：① `routine_api.py:restart_routine` 复位运行态时**清空 `r.work_branch = None`** 并 `remove_worktree`（注释「从基线重建」），全仓库仅此一处清空该终生句柄；② `workspace.ensure_worktree` 的创建段**永远**按 `routine/<slug>-<时间戳>` 铸新名（`datetime.now()` 后缀），从不复用已存在的 `routine.work_branch`——故崩溃致 worktree 目录丢失（reuse 校验失败落入创建段）时亦会再造新分支。两者叠加：`work_branch` 本应是 `id` 级终生句柄（其余清理点 delete/manual/reaper 均只置空 `worktree_path` 而保 `work_branch`），却被 restart 与时间戳命名双重破坏。
+- **处理方式**（机制/策略分离，确定性单一身份）：
+  1. **确定性命名**：新增 `_stable_work_branch(routine)=routine/<sanitize(key)>-<id.hex[:8]>`（由不可变 `id` 派生，可复算、自愈）；`ensure_worktree` 创建段改 `work_branch = routine.work_branch or _stable_work_branch(...)`、`worktree_path = routine.worktree_path or <root>/<slug>-<id8>`（复用持久化路径，勿对存量 legacy 活动目录另算新路径而误删）。
+  2. **分支存在感知三级阶梯**（始终绑定同一 `work_branch`）：本地分支存在→`worktree add <path> <b>`（直接 checkout，含检查点提交，重启续作）；否则 `origin/<b>` 存在→`worktree add -b <b> <path> origin/<b>`（清理删本地分支后从远端恢复）；否则→`worktree add -b <b> <path> <baseline>`（首次/无可恢复提交）。
+  3. **重绑健壮性**：add 前 `prune` → `_purge_sibling_worktrees`（强制移除占用本分支但路径不符的兄弟注册）→ 再 `prune` → 清残目录（防 `already used by worktree`/`already exists` 硬失败，经真实 git 实验确证）。
+  4. **`remove_worktree(keep_branch=False)`**：新增开关，True 时仅回收 worktree 目录、保留本地分支与提交。`restart` 改 `keep_branch=True` 且**删去 `work_branch=None`**（从上一检查点续作、不铸新分支）；reaper 对 failed/cancelled 传 `keep_branch=True`（保进度待重启），succeeded 仍删本地分支（PR 已在 origin）。
+  5. **FINALIZE PR 复用确定化**：worktree FINALIZE prompt 改「先 `gh pr view <head> --json url -q .url` 查、空才 `gh pr create`」，消除重启后 head 已有 PR 时 `gh pr create` 报错致 `PR_URL=` 丢失的回归（与单一分支配套）。
+- **后续防范**：① 「终生唯一资源句柄」（此处 `work_branch`）应由不可变身份（`id`）派生确定性名、首次铸定后**绝不在任何重置路径清空**；带时间戳/随机后缀的命名天然与「单一」诉求冲突；② 复用既有外部资源（git 分支/worktree）的「重建」必须做**存在感知**与**残留清扫**（prune/force-remove/清目录），不能假设目标干净——`git worktree add -b` 在分支/目录已存在时硬失败；③ 跨进程/跨重启的幂等性，须区分「持久身份」（保留）与「运行期句柄」（可重建），restart 只重置后者。
+- **同类问题影响**：所有 worktree routine（`baseline_branch` 非空）的重启/崩溃恢复路径。存量已持久化的时间戳 `work_branch` 经 `work_branch or ...` 短路原样保留、不迁移、无需 DB 变更，向后兼容。
+- **验证**：`test_routine_workspace.py` 新增 11 例锁定不变量（确定性命名/目录删除后重绑同名/检查点续作/origin 恢复/基线回落/清残目录/legacy 兼容/keep_branch 保分支 vs 默认删分支/**跨重启仓库始终只有一个 `routine/*` 分支**）+ `test_routine_phase.py` 新增 FINALIZE「先 view 后 create」断言；`test_routine_workspace.py`+`test_routine_phase.py` **51 passed**、`test_routine_api.py`+`test_routine_orchestrator.py` 集成 **48 passed**、`ruff check`/`format` 全过。注：live 引擎运行旧 checkout，本修复需部署后对运行中任务生效。

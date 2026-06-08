@@ -414,6 +414,9 @@ class RoutineOrchestrator:
         策略 ``worktree_cleanup``：``never`` 不清；``on_success`` 仅清 succeeded（failed/cancelled
         保留 worktree 供调试）；``always`` 清全部终态。回收 = best-effort 删 worktree + 置空
         ``worktree_path``（``work_branch`` 保留供审计/PR head 溯源）。delete/restart 另有即时回收钩子。
+
+        分支保留：仅 succeeded 删本地分支（PR 已在 origin，无碍）；failed/cancelled 一律
+        ``keep_branch=True`` 保留本地分支与检查点提交，使其重启可从上一检查点续作（单一分支不变量）。
         """
         policy = settings.routine.worktree_cleanup
         if policy == "never":
@@ -434,7 +437,7 @@ class RoutineOrchestrator:
             )
             for r in rows:
                 with suppress(Exception):
-                    await workspace.remove_worktree(r, settings.routine)
+                    await workspace.remove_worktree(r, settings.routine, keep_branch=(r.status != "succeeded"))
                 r.worktree_path = None
                 cleaned += 1
             await db.commit()

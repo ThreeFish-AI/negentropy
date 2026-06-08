@@ -31,7 +31,6 @@ import re
 import shutil
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
@@ -152,6 +151,24 @@ def _sanitize_ref(name: str) -> str:
     return slug or "routine"
 
 
+def _stable_slug(routine: _RoutineLike) -> str:
+    """routine 的确定性命名片段：``<sanitize(key)>-<id8>``（路径与分支共用，跨重启不变）。
+
+    后缀取**不可变** ``routine.id`` 的前 8 位十六进制：① 即便 ``work_branch`` 句柄意外丢失也能
+    复算出同名分支/路径（自愈）；② 消解不同 routine 经 ``_sanitize_ref`` 归一后 slug 碰撞的路径冲突。
+    """
+    return f"{_sanitize_ref(routine.key)}-{routine.id.hex[:8]}"
+
+
+def _stable_work_branch(routine: _RoutineLike) -> str:
+    """routine 终生唯一的确定性工作分支名 ``routine/<sanitize(key)>-<id8>``。
+
+    仅当 routine 尚无 ``work_branch`` 句柄时用于首次铸名；已有句柄一律沿用（含存量时间戳分支名），
+    保障「一个 Routine 任务终生只有一个工作分支」不变量、且向后兼容、无需迁移。
+    """
+    return f"routine/{_stable_slug(routine)}"
+
+
 def normalize_base_branch(baseline_branch: str, remote: str) -> str:
     """归一 PR base：剥离前导 ``<remote>/`` 前缀（``origin/feature/1.x.x`` → ``feature/1.x.x``）。
 
@@ -226,8 +243,15 @@ async def _try_fetch(project_path: str, baseline_branch: str, settings: RoutineS
 async def ensure_worktree(routine: _RoutineLike, settings: RoutineSettings) -> WorkspaceInfo:
     """幂等地确保隔离 worktree 就绪，返回 (path, branch)。
 
-    - 复用：若 ``routine.worktree_path``/``work_branch`` 仍指向一个有效 worktree → 直接返回。
-    - 创建：否则基于 ``baseline_branch`` 新建工作分支 ``routine/<slug>-<ts>`` + worktree。
+    单一分支不变量：一个 routine 终生只有一个工作分支（``routine.work_branch``，由 ``id`` 派生的
+    确定性名 ``routine/<slug>-<id8>`` 首次铸定后**绝不**改名）。重启 / 崩溃丢失 worktree 时一律
+    （重）绑定到该分支，**不**铸新名。
+
+    - 复用：若 ``worktree_path``/``work_branch`` 仍指向一个有效 worktree → 直接返回（绝大多数迭代）。
+    - 重绑/创建：否则在**保留同一分支名**前提下重建 worktree——分支存在感知三级阶梯：
+      本地分支存在 → 直接 checkout（含其检查点提交，重启续作）；
+      否则远端 ``origin/<b>`` 存在 → 从远端恢复本地分支；
+      否则（首次 / 无可恢复提交）→ 基于 ``baseline_branch`` 新建。
 
     不写 DB——调用方（orchestrator）负责把返回值持久化到 ``routine`` 行（同事务）。
     """
@@ -248,32 +272,51 @@ async def ensure_worktree(routine: _RoutineLike, settings: RoutineSettings) -> W
                 stale_path=routine.worktree_path,
             )
 
-        # 创建：唯一后缀（时间戳）避免与既往（aborted）worktree 路径/分支冲突
-        slug = _sanitize_ref(routine.key)
-        ts = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-        work_branch = f"routine/{slug}-{ts}"
+        # 单一分支身份：已有句柄一律沿用（含存量时间戳分支名）；否则铸确定性名。
+        work_branch = routine.work_branch or _stable_work_branch(routine)
+        # 路径：复用持久化路径（勿对存量 legacy 活动目录另算新路径而误删）；否则取确定性路径。
         root = _resolve_worktree_root(project_path, settings)
-        worktree_path = os.path.join(root, f"{slug}-{ts}")
+        worktree_path = routine.worktree_path or os.path.join(root, _stable_slug(routine))
 
         with suppress(OSError):
             os.makedirs(root, exist_ok=True)
-        # 清理可能遗留的陈旧 worktree 元数据（best-effort），避免 add 报「already registered」。
+        # 扫清重绑障碍：① prune 清理目录已消失的陈旧注册；② 强制移除占用本分支的兄弟 worktree；
+        # ③ 再 prune；④ 清掉目标路径残留目录（防 add 报 already exists）。
         await _run_git(["-C", project_path, "worktree", "prune"], timeout=timeout)
+        await _purge_sibling_worktrees(project_path, work_branch, worktree_path, timeout)
+        await _run_git(["-C", project_path, "worktree", "prune"], timeout=timeout)
+        if os.path.isdir(worktree_path):
+            await _run_git(["-C", project_path, "worktree", "remove", "--force", worktree_path], timeout=timeout)
+            if os.path.isdir(worktree_path):
+                with suppress(OSError):
+                    shutil.rmtree(worktree_path, ignore_errors=True)
 
         if settings.git_fetch_before_worktree:
             await _try_fetch(project_path, baseline, settings)
 
+        # 分支存在感知三级阶梯——始终绑定同一 ``work_branch``。
+        if await _local_branch_exists(project_path, work_branch, timeout):
+            add_args = ["worktree", "add", worktree_path, work_branch]
+            source = f"local branch={work_branch}"
+        elif await _remote_branch_exists(project_path, settings.git_remote, work_branch, timeout):
+            origin_ref = f"{settings.git_remote}/{work_branch}"
+            add_args = ["worktree", "add", "-b", work_branch, worktree_path, origin_ref]
+            source = f"remote={origin_ref}"
+        else:
+            add_args = ["worktree", "add", "-b", work_branch, worktree_path, baseline]
+            source = f"baseline={baseline}"
+
         await _run_git_checked(
-            ["-C", project_path, "worktree", "add", "-b", work_branch, worktree_path, baseline],
+            ["-C", project_path, *add_args],
             timeout=timeout,
-            action=f"worktree add (baseline={baseline})",
+            action=f"worktree add ({source})",
         )
         logger.info(
             "routine_worktree_created",
             routine_id=str(routine.id),
             work_branch=work_branch,
             worktree_path=worktree_path,
-            baseline=baseline,
+            source=source,
         )
         return WorkspaceInfo(worktree_path, work_branch)
 
@@ -284,6 +327,46 @@ async def _is_valid_worktree(path: str, expected_branch: str, timeout: float) ->
         return False
     rc, out, _ = await _run_git(["-C", path, "rev-parse", "--abbrev-ref", "HEAD"], timeout=timeout)
     return rc == 0 and out.strip() == expected_branch
+
+
+async def _local_branch_exists(project_path: str, branch: str, timeout: float) -> bool:
+    """本地是否存在分支 ``branch``（``rev-parse --verify --quiet refs/heads/<b>`` rc==0）。"""
+    rc, _, _ = await _run_git(
+        ["-C", project_path, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"], timeout=timeout
+    )
+    return rc == 0
+
+
+async def _remote_branch_exists(project_path: str, remote: str, branch: str, timeout: float) -> bool:
+    """是否存在远端跟踪分支 ``<remote>/<branch>``（``refs/remotes/<remote>/<b>`` rc==0）。"""
+    rc, _, _ = await _run_git(
+        ["-C", project_path, "rev-parse", "--verify", "--quiet", f"refs/remotes/{remote}/{branch}"], timeout=timeout
+    )
+    return rc == 0
+
+
+async def _purge_sibling_worktrees(project_path: str, branch: str, keep_path: str, timeout: float) -> None:
+    """强制移除占用 ``branch`` 却位于 ``keep_path`` 之外的陈旧 worktree 注册（best-effort）。
+
+    ``git worktree add`` 在目标分支已被另一 worktree（其目录仍在）检出时会硬失败（``already used by
+    worktree``），而 ``prune`` 只能清理目录已消失的注册。本函数解析 ``worktree list --porcelain``，
+    对命中目标分支且路径不等于我方目标的兄弟注册逐一 ``worktree remove --force``，扫清重绑障碍。
+    """
+    rc, out, _ = await _run_git(["-C", project_path, "worktree", "list", "--porcelain"], timeout=timeout)
+    if rc != 0 or not out:
+        return
+    keep_abs = os.path.abspath(keep_path)
+    cur_path: str | None = None
+    for line in out.splitlines():
+        if line.startswith("worktree "):
+            cur_path = line[len("worktree ") :].strip()
+        elif line.startswith("branch ") and cur_path:
+            # porcelain 的 branch 行形如 ``branch refs/heads/<name>``。
+            ref = line[len("branch ") :].strip()
+            name = ref[len("refs/heads/") :] if ref.startswith("refs/heads/") else ref
+            if name == branch and os.path.abspath(cur_path) != keep_abs:
+                await _run_git(["-C", project_path, "worktree", "remove", "--force", cur_path], timeout=timeout)
+            cur_path = None
 
 
 async def checkpoint_commit(worktree_path: str, settings: RoutineSettings, *, seq: int | None = None) -> bool:
@@ -320,10 +403,15 @@ async def checkpoint_commit(worktree_path: str, settings: RoutineSettings, *, se
         return False
 
 
-async def remove_worktree(routine: _RoutineLike, settings: RoutineSettings, *, force: bool = True) -> None:
-    """best-effort 幂等回收隔离 worktree（删 worktree + prune + 删本地工作分支）。
+async def remove_worktree(
+    routine: _RoutineLike, settings: RoutineSettings, *, force: bool = True, keep_branch: bool = False
+) -> None:
+    """best-effort 幂等回收隔离 worktree（删 worktree + prune [+ 删本地工作分支]）。
 
     **不**删除已 push 到 origin 的同名分支——PR 依赖之。所有步骤 best-effort，异常仅日志。
+
+    ``keep_branch=True`` 时仅回收 worktree 目录、**保留本地工作分支**（含其检查点提交）：供 restart
+    从上一检查点续作、以及 ``always`` 清理策略下失败态保留进度，维系「终生单一工作分支」不变量。
     """
     path = routine.worktree_path
     if not path:
@@ -339,7 +427,7 @@ async def remove_worktree(routine: _RoutineLike, settings: RoutineSettings, *, f
             if rc != 0:
                 logger.info("routine_worktree_remove_soft_fail", path=path, detail=err[:200])
             await _run_git(["-C", project_path, "worktree", "prune"], timeout=timeout)
-            if routine.work_branch:
+            if routine.work_branch and not keep_branch:
                 # 删本地工作分支（origin 上的同名分支保留供 PR）；best-effort。
                 await _run_git(["-C", project_path, "branch", "-D", routine.work_branch], timeout=timeout)
         # 兜底：若目录仍残留（worktree remove 失败或 project_path 已失效），直接删目录。
