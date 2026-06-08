@@ -86,3 +86,69 @@ describe("PipelineRunCard 取消按钮", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("PipelineRunCard 重试按钮（断点续传 / 重新开始）", () => {
+  it("canRetry=true 且提供 onResume/onRestart 时显示两个按钮", () => {
+    render(
+      <PipelineRunCard
+        {...baseProps}
+        status="failed"
+        canRetry
+        onResume={vi.fn()}
+        onRestart={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "断点续传" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "重新开始" })).toBeInTheDocument();
+  });
+
+  it("canRetry=false 时即使提供回调也不显示重试按钮", () => {
+    render(
+      <PipelineRunCard
+        {...baseProps}
+        status="failed"
+        canRetry={false}
+        onResume={vi.fn()}
+        onRestart={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "断点续传" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新开始" })).toBeNull();
+  });
+
+  it("点击「断点续传」触发 onResume", () => {
+    const onResume = vi.fn();
+    render(
+      <PipelineRunCard {...baseProps} status="failed" canRetry onResume={onResume} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "断点续传" }));
+    expect(onResume).toHaveBeenCalledTimes(1);
+  });
+
+  it("点击「重新开始」触发 onRestart", () => {
+    const onRestart = vi.fn();
+    render(
+      <PipelineRunCard {...baseProps} status="failed" canRetry onRestart={onRestart} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "重新开始" }));
+    expect(onRestart).toHaveBeenCalledTimes(1);
+  });
+
+  it("selectable 模式下点击重试按钮 stopPropagation 不触发 onSelect", () => {
+    const onSelect = vi.fn();
+    const onResume = vi.fn();
+    render(
+      <PipelineRunCard
+        {...baseProps}
+        status="failed"
+        mode="selectable"
+        canRetry
+        onSelect={onSelect}
+        onResume={onResume}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "断点续传" }));
+    expect(onResume).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});
