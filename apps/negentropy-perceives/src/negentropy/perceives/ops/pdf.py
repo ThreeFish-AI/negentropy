@@ -679,12 +679,19 @@ def _stable_checkpoint_id(pdf_source: str) -> str:
     import hashlib
 
     if pdf_source.startswith(("http://", "https://")):
-        return "url-" + hashlib.sha1(pdf_source.encode("utf-8")).hexdigest()[:8]
+        # usedforsecurity=False：此处 SHA-1 仅用于内容寻址（派生稳定 checkpoint
+        # 目录键），非安全用途，避免 bandit B324 误报（与 _engine_worker_entry 一致）。
+        return (
+            "url-"
+            + hashlib.sha1(
+                pdf_source.encode("utf-8"), usedforsecurity=False
+            ).hexdigest()[:8]
+        )
     try:
         p = Path(pdf_source)
         if not p.exists():
             return p.stem or "document"
-        h = hashlib.sha1()
+        h = hashlib.sha1(usedforsecurity=False)
         with open(p, "rb") as fh:
             while True:
                 chunk = fh.read(1024 * 1024)
