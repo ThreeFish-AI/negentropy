@@ -83,7 +83,7 @@ async def parse_webpage_to_markdown(
         Field(
             default=None,
             ge=1,
-            description="任务级超时秒数。为空则使用配置 task_timeout_seconds（默认 300s / 5 min），超时后优雅返回错误并取消子任务。",
+            description="任务级超时秒数。为空则使用配置 task_timeout_seconds（默认 900s / 15 min），超时后优雅返回错误并取消子任务。",
         ),
     ] = None,
 ) -> MarkdownResponse:
@@ -182,7 +182,7 @@ async def parse_webpages_to_markdown(
         Field(
             default=None,
             ge=1,
-            description="整批任务级超时秒数（整批共用）。为空则使用配置 task_timeout_seconds（默认 300s / 5 min）。",
+            description="整批任务级超时秒数（整批共用）。为空则使用配置 task_timeout_seconds（默认 900s / 15 min）。",
         ),
     ] = None,
 ) -> BatchMarkdownResponse:

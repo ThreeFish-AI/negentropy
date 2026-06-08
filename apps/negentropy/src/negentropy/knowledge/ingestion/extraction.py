@@ -267,7 +267,7 @@ def resolve_targets(raw: dict[str, Any] | None, source_kind: SourceKind) -> list
 # 按 source_kind 的合理默认超时（毫秒），用于 target.timeout_ms 缺失的兜底
 _DEFAULT_EXTRACTION_TIMEOUT_MS: dict[str, int] = {
     ROUTE_URL: 60_000,  # 1 分钟
-    ROUTE_FILE_PDF: 300_000,  # 5 分钟
+    ROUTE_FILE_PDF: 3_600_000,  # 1 小时（大 PDF 需 auto_batch 多切片串行处理）
     ROUTE_FILE_MD: 30_000,  # 30 秒（本地读取，无需 MCP）
     ROUTE_FILE_GENERIC: 120_000,  # 2 分钟
 }
@@ -745,6 +745,49 @@ def _schema_required_fields(schema: Any) -> set[str]:
     if not isinstance(required, list):
         return set()
     return {str(item) for item in required if isinstance(item, str)}
+
+
+def _maybe_inject_tool_timeout(
+    *,
+    arguments: dict[str, Any],
+    input_schema: dict[str, Any] | None,
+    timeout_seconds: int | None,
+) -> dict[str, Any]:
+    """将提取超时预算注入工具参数（当工具 schema 声明顶层 ``timeout`` 参数时）。
+
+    防止 backend 和 MCP 工具（如 perceives parse_pdf_to_markdown）各自独立超时。
+    仅在 arguments 尚未包含 ``timeout`` 时注入（尊重 LLM 规划或用户 tool_options）。
+    """
+    if timeout_seconds is None or "timeout" in arguments:
+        return arguments
+    if not isinstance(input_schema, dict):
+        return arguments
+    if "timeout" not in _schema_property_names(input_schema):
+        return arguments
+    arguments["timeout"] = timeout_seconds
+    return arguments
+
+
+def _maybe_inject_resume(
+    *,
+    arguments: dict[str, Any],
+    input_schema: dict[str, Any] | None,
+    resume: bool | None,
+) -> dict[str, Any]:
+    """将 resume 意图注入工具参数（当工具 schema 声明顶层 ``resume`` 参数时）。
+
+    用于双入口重试：断点续传(resume=True) / 重新开始(resume=False)。
+    resume is None（普通 ingest）→ 不注入，沿用 perceives 默认 True。
+    仅在 arguments 尚未包含 ``resume`` 时注入（尊重 LLM 规划 / 用户 tool_options）。
+    """
+    if resume is None or "resume" in arguments:
+        return arguments
+    if not isinstance(input_schema, dict):
+        return arguments
+    if "resume" not in _schema_property_names(input_schema):
+        return arguments
+    arguments["resume"] = resume
+    return arguments
 
 
 def _is_url_source_schema(schema: Any) -> bool:
@@ -1917,6 +1960,7 @@ class DataExtractorProvider:
         content_type: str | None = None,
         tracker: Any | None = None,
         cancel_event: Any | None = None,
+        resume: bool | None = None,
     ) -> ExtractedDocumentResult:
         targets = resolve_targets(corpus_config, source_kind)
         if not targets:
@@ -1956,6 +2000,7 @@ class DataExtractorProvider:
                 stage_name=stage_name,
                 llm_config_id=llm_config_id,
                 cancel_event=cancel_event,
+                resume=resume,
             )
             attempts.append(attempt["attempt"])
 
@@ -2023,6 +2068,7 @@ class DataExtractorProvider:
         stage_name: str | None = None,
         llm_config_id: str | None = None,
         cancel_event: Any | None = None,
+        resume: bool | None = None,
     ) -> dict[str, Any]:
         # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
         if not target.timeout_ms:
@@ -2215,6 +2261,19 @@ class DataExtractorProvider:
                                 },
                             ),
                         }
+
+                # 通信提取超时预算至声明了 timeout 参数的 MCP 工具
+                _maybe_inject_tool_timeout(
+                    arguments=plan.arguments,
+                    input_schema=input_schema,
+                    timeout_seconds=target.timeout_ms // 1000 if target.timeout_ms else None,
+                )
+                # 双入口重试：向声明了 resume 参数的 MCP 工具注入断点续传/重新开始意图
+                _maybe_inject_resume(
+                    arguments=plan.arguments,
+                    input_schema=input_schema,
+                    resume=resume,
+                )
 
                 result, resolved_resources, resource_errors = await self._call_tool_with_plan(
                     server=server,
@@ -2470,6 +2529,7 @@ async def extract_source(
     content_type: str | None = None,
     tracker: Any | None = None,
     cancel_event: Any | None = None,
+    resume: bool | None = None,
 ) -> ExtractedDocumentResult:
     targets = resolve_targets(corpus_config, source_kind)
     if not targets:
@@ -2493,6 +2553,7 @@ async def extract_source(
         content_type=content_type,
         tracker=tracker,
         cancel_event=cancel_event,
+        resume=resume,
     )
 
 

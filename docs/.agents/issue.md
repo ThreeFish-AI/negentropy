@@ -3090,3 +3090,31 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① 「终生唯一资源句柄」（此处 `work_branch`）应由不可变身份（`id`）派生确定性名、首次铸定后**绝不在任何重置路径清空**；带时间戳/随机后缀的命名天然与「单一」诉求冲突；② 复用既有外部资源（git 分支/worktree）的「重建」必须做**存在感知**与**残留清扫**（prune/force-remove/清目录），不能假设目标干净——`git worktree add -b` 在分支/目录已存在时硬失败；③ 跨进程/跨重启的幂等性，须区分「持久身份」（保留）与「运行期句柄」（可重建），restart 只重置后者。
 - **同类问题影响**：所有 worktree routine（`baseline_branch` 非空）的重启/崩溃恢复路径。存量已持久化的时间戳 `work_branch` 经 `work_branch or ...` 短路原样保留、不迁移、无需 DB 变更，向后兼容。
 - **验证**：`test_routine_workspace.py` 新增 11 例锁定不变量（确定性命名/目录删除后重绑同名/检查点续作/origin 恢复/基线回落/清残目录/legacy 兼容/keep_branch 保分支 vs 默认删分支/**跨重启仓库始终只有一个 `routine/*` 分支**）+ `test_routine_phase.py` 新增 FINALIZE「先 view 后 create」断言；`test_routine_workspace.py`+`test_routine_phase.py` **51 passed**、`test_routine_api.py`+`test_routine_orchestrator.py` 集成 **48 passed**、`ruff check`/`format` 全过。注：live 引擎运行旧 checkout，本修复需部署后对运行中任务生效。
+
+## ISSUE-133 大型 PDF「Ingest from File」因 MCP 同步阻塞调用双重超时而失败（2026-06-08）
+
+- **表因**：Pipeline Run `ingest_file-General_-_浪潮之巅_2019_第四版-a539`（13.5MB / 约 500 页书籍）在 `extract_primary` 阶段失败，错误 `Connection timeout after 300.0s`（tool=`parse_pdf_to_markdown`、adapter=`single_string_source_v1`、source_kind=local_path），耗时 303,927ms；failover 段 `parse_pdfs_to_markdown` 亦被卷入而悬挂。
+- **根因**（live DB pipeline payload + 代码逐层实证）：MCP 工具调用是**同步阻塞**模型——backend `session.call_tool()` 直接 await 等待 perceives 返回完整结果，无异步/Task ID/心跳轮询，故必须设超时防连接永悬。两处独立超时叠加致大 PDF 必败：① backend `_DEFAULT_EXTRACTION_TIMEOUT_MS[file_pdf]=300_000`（5 分钟）；② perceives `auto_batch` 在**单次 MCP 调用内**串行处理所有分批（默认 40 页/批，每批 100-200s），500 页≈25 批共 2500-5000s，无论 backend 超时设多大，单次调用都无法覆盖。且 backend 从未将自身超时预算传递给 perceives（perceives 工具声明了顶层 `timeout` 参数却收不到）。
+- **处理方式**（保持 perceives auto_batch 架构，参数化控制 + 双层超时 + 断点续传）：
+  1. **backend 超时 300s→3600s（1 小时）**（`extraction.py` `_DEFAULT_EXTRACTION_TIMEOUT_MS[file_pdf]`），覆盖大书全程串行分批。
+  2. **超时预算注入**：新增 `_maybe_inject_tool_timeout`，当 MCP 工具 schema 声明顶层 `timeout` 属性且 arguments 未含时，注入 `target.timeout_ms//1000`——让 perceives 与 backend 共享同一时间预算（尊重 LLM 规划/用户 tool_options 已设的值，不覆盖）。
+  3. **perceives 分批粒度细化 40→20 页/批**（`ops/pdf.py` `DEFAULT_BATCH_PAGE_SIZE`、`tools/pdf.py` 签名默认值），每批 100-200s→50-100s，降低单批超时风险、提升 checkpoint 恢复效率。
+  4. **逐批 5 分钟超时**：新增 `DEFAULT_PER_SLICE_TIMEOUT_SECONDS=300`，`_run_batched_pipeline` 用 `asyncio.timeout` 包裹每切片；超时切片标记 partial failure 并继续后续切片（不拖垮整批），仅写 failure marker（不写 markdown checkpoint）。
+  5. **断点续传**（复用 perceives 既有机制，无需新开发）：成功切片立即落盘 `slice_{i}.json`+`slice_{i}.markdown.txt`（checkpoint 基于 PDF **内容 SHA-1** 而非文件路径，跨 MCP 调用稳定）；`resume=True`（默认）时 `_load_slice_checkpoint` 见超时切片无 markdown→返回 None 重处理，仅重跑未完成切片。
+  6. **工具描述校准**：`tools/pdf.py`+`tools/markdown.py` 的 `timeout` 描述「默认 300s」→「默认 900s」（与 `config.default.yaml` `task_timeout_seconds=900` 对齐，原描述与实际配置不符）。
+- **后续防范**：① 同步阻塞的远程调用（MCP）必有超时，调用方与被调方的超时预算应**显式传递并对齐**，避免「双方各自独立超时、谁先到谁杀连接」；② 长耗时串行任务（分批处理）应有**逐项超时 + 失败隔离 + 断点续传**三件套，单项失败不应级联致整体失败；③ 跨调用的进度持久化键应基于**内容指纹**（SHA-1）而非临时路径——backend 每次调用写新临时文件，按路径派生 checkpoint 会永远 miss；④ 对外工具的参数默认值/描述必须与底层配置（YAML）**单一事实源**对齐，避免文档漂移误导调用方。
+- **同类问题影响**：所有大型 PDF（>60 页触发 auto_batch）的 ingest_file / ingest_url 提取路径。小 PDF（≤60 页）走原单次路径零影响；URL/通用文件用各自独立默认超时不受波及。
+- **验证**：perceives `test_pdf_auto_batch.py` **15 passed**（新增逐批超时切片标记 partial+续传断言、常量改为动态比对工具签名消除魔数脆性）；backend `_maybe_inject_tool_timeout` 4 守卫条件经直接导入验证全过 + 新增 4 例契约单测（注：backend 单测库 alembic 残留版本不一致致 fixture ERROR，为预先存在环境问题，已 stash 对比基线确认与本改动无关）；两仓 `ruff check`/`format` 全过。注：live 引擎运行旧 checkout，本修复需部署后对运行中任务生效；失败的 `a539` run 可经 UI「Resume from checkpoint」或重新触发 ingest（同内容 PDF 命中 checkpoint）续作。
+
+## ISSUE-134 PDF 重试入口缺失且语义重叠：「断点续传」隐藏 + 「重新开始」能力缺失（2026-06-08）
+
+- **表因**（ISSUE-133 暴露的 UX/语义缺陷，用户实证）：① 失败 PDF run 的「Resume from checkpoint」入口几乎不可见——藏在 Pipeline Run 详情面板（需先展开），叫「Continue →」的**跳转链接**（跳文档页再手动 refresh），非真按钮；② **语义重叠且缺「重新开始」**：`resume` 永远默认 `True` 且 backend 从不控制，导致"重新触发 ingest"也命中同内容 SHA-1 checkpoint **续传**——与续传入口语义重复，反而没有"完全重新开始"的能力。
+- **根因**（代码逐层实证）：`extract_source`→`DataExtractorProvider.extract`→`_invoke_target` 整条链路**无 `resume` 参数**，perceives 永远用工具默认 `resume=True`；backend 仅能通过 corpus 级 `tool_options` 间接控制（非 per-request）。UI 侧「Continue」仅是 `<Link>` 跳转，不调任何 retry API，且 pipelines 路由**只有 cancel、无 retry 端点**。
+- **处理方式**（端到端「双入口」打通，复用既有模式）：
+  1. **新 retry 端点** `POST /pipelines/{run_id}/retry`（body `{app_name, resume}`）：`dao.get_pipeline_run` 加载原 run → 从 `input.document_id/corpus_id` 提取 → `DocumentStorageService` 重取 GCS 原文件（传 corpus_id/app_name 做归属校验）→ `create_pipeline` 创建**新 run**（`input.retried_from` 关联原 run，规避 PipelineTracker 终态 cancel 竞态）→ `execute_ingest_file_pipeline(resume=...)` 后台派发。404（run/文档不存在）、422（非文件 ingest）边界齐备。
+  2. **`resume: bool|None` 透传 5 层**：`execute_ingest_file_pipeline`→`_extract_file_document`→`extract_source`→`provider.extract`→`_invoke_target`。单一 `bool|None` 自文档化（None=普通 ingest 不注入沿用默认；True/False=显式重试意图）。
+  3. **`_maybe_inject_resume`**（镜像 `_maybe_inject_tool_timeout`）：仅当工具 schema 声明顶层 `resume` 属性且 arguments 未含时注入——perceives `resume` 是顶层参数。`resume=False` 时 perceives `_load_slice_checkpoint` 永不调用、所有切片重处理并覆盖、manifest 重写，等价全新重跑，无需显式删 checkpoint。
+  4. **UI 卡片直显双按钮**：`PipelineRunCard` 失败摘要后渲染【断点续传】（amber 实心，resume=true）【重新开始】（描边，resume=false），镜像既有 `onCancel`/`cancelPipelineRun` 模式（`onResume`/`onRestart`/`retryPipelineRun` + `useConfirmDialog` 二次确认）。移除详情面板的「Continue →」跳转块。`extractDocumentRef`/`isRunResumable`/`canRetryRun` 迁移到 `pipeline-helpers.ts` 单一事实源，page 与 panel 共用。
+- **后续防范**：① 「续传 vs 重来」是两种不同意图，必须各有显式入口——同一行为复用两个入口而缺另一意图是 UX 反模式；② 工具的"幂等续传/全量重跑"开关（如 perceives `resume`）应可从**调用方 per-request 控制**并端到端透传，而非仅靠被调方默认值或粗粒度 corpus 配置；③ 关键操作入口应**前置到主视图直显真按钮**（卡片），而非埋在详情面板的跳转链接——后者体验上等于不存在；④ 父/子组件双重判定同一可见性条件时，应以一方为**单一权威**（此处 `canRetry`），否则两者分歧会让一方判定形同虚设（code review 实捕：卡片旧 `isRetryableStatus` 门控会误隐藏 run 级非终态但含失败 stage 的可重试 run）。
+- **同类问题影响**：所有 KB ingest_file run 的重试路径。KG run（无 document_id 重跑语义）不暴露重试入口；URL/text run 同样不暴露（无 document_id）；普通 ingest（resume=None）零行为变化。
+- **验证**：backend `_maybe_inject_resume` 5 守卫条件 + 既有 `_maybe_inject_tool_timeout` 4 条经直接导入验证 **9 全过**（同 alembic fixture 环境问题，纯函数逻辑无碍）；retry 端点导入 + 路由注册 + `get_document` corpus 校验签名核验通过；前端 `tsc --noEmit` + `eslint --max-warnings=0`（含移除 helper 后无 unused-var）**全过**；`ruff check`/`format` 全过；code review 捕获的卡片/helper 判定分歧 bug 已修（卡片信任父组件 `canRetry` 单一权威）。注：live 引擎运行旧 checkout，需部署后生效。

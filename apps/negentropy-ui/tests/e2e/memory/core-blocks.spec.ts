@@ -160,6 +160,10 @@ test("Core Memory 新建 block 走 POST 并刷新", async ({ page }) => {
   await page.getByPlaceholder(/常驻摘要内容/).fill("hello world");
   await page.getByRole("button", { name: "创建" }).click();
 
-  await expect(page.getByText("hello world")).toBeVisible();
+  // 断言新建的块卡片（<article>）出现，而非裸 getByText——后者在抽屉关闭动画
+  // 期间会同时命中仍挂载的 <textarea> 与卡片 <p>，触发 strict-mode 双命中。
+  await expect(
+    page.getByRole("article").getByText("hello world"),
+  ).toBeVisible();
   expect(created).toBe(true);
 });

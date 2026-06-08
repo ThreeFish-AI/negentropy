@@ -93,7 +93,7 @@ async def parse_pdf_to_markdown(
         Field(
             default=None,
             ge=1,
-            description="任务级超时秒数。为空则使用配置 task_timeout_seconds（默认 300s / 5 min），超时后优雅返回错误并取消子任务。",
+            description="任务级超时秒数。为空则使用配置 task_timeout_seconds（默认 900s / 15 min），超时后优雅返回错误并取消子任务。",
         ),
     ] = None,
     auto_batch: Annotated[
@@ -109,12 +109,12 @@ async def parse_pdf_to_markdown(
     batch_page_size: Annotated[
         int,
         Field(
-            default=40,
+            default=20,
             ge=1,
             le=200,
-            description="auto_batch 单切片最大页数。默认 40（≈ 100-200s 单切片为甜蜜区）。",
+            description="auto_batch 单切片最大页数。默认 20（≈ 50-100s 单切片；更小粒度降低单批超时风险）。",
         ),
-    ] = 40,
+    ] = 20,
     batch_threshold_pages: Annotated[
         int,
         Field(
@@ -260,7 +260,7 @@ async def parse_pdfs_to_markdown(
         Field(
             default=None,
             ge=1,
-            description="整批任务级超时秒数（整批共用）。为空则使用配置 task_timeout_seconds（默认 300s / 5 min）。",
+            description="整批任务级超时秒数（整批共用）。为空则使用配置 task_timeout_seconds（默认 900s / 15 min）。",
         ),
     ] = None,
 ) -> BatchPDFResponse:

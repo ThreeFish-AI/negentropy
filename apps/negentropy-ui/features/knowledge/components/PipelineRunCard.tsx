@@ -21,6 +21,7 @@ function isCancellable(status?: string): boolean {
   return ACTIVE_STATUSES.has((status || "").toLowerCase());
 }
 
+
 function isCancellingState(status?: string): boolean {
   return (status || "").toLowerCase() === "cancelling";
 }
@@ -76,6 +77,17 @@ export interface PipelineRunCardProps {
    * 仅当 status 处于活跃态（pending/running/cancelling）时按钮可见。
    */
   onCancel?: () => Promise<void> | void;
+  /**
+   * 断点续传回调（resume=true）：复用 perceives checkpoint 从最后完成切片继续。
+   * 仅当 canRetry（父组件权威判定）为 true 时按钮可见。
+   */
+  onResume?: () => Promise<void> | void;
+  /**
+   * 重新开始回调（resume=false）：丢弃 checkpoint 全量重跑。
+   */
+  onRestart?: () => Promise<void> | void;
+  /** 是否可重试（由父组件判定：KB 来源 + 可抽取文档关联）。 */
+  canRetry?: boolean;
   /** 支持扩展字段 */
   [key: string]: unknown;
 }
@@ -119,6 +131,9 @@ function PipelineRunCardContent({
   error_message,
   progress_percent,
   onCancel,
+  onResume,
+  onRestart,
+  canRetry,
 }: PipelineRunCardProps & { isSelectable: boolean }) {
   const duration = formatDuration(duration_ms, started_at, completed_at);
   const isKg = source === "kg";
@@ -150,6 +165,28 @@ function PipelineRunCardContent({
       await onCancel();
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // 重试按钮状态：canRetry 为父组件的权威判定（KB 来源 + 可抽取文档关联 +
+  // 可重试状态/含失败 stage），卡片信任之，不再重复 run 级状态判断——否则
+  // 「run 级非终态但含失败 stage」会被卡片误隐藏（canRetry 形同虚设）。
+  const [retrySubmitting, setRetrySubmitting] = useState(false);
+  const showRetryButtons = canRetry && (onResume || onRestart);
+
+  const handleRetryClick = async (
+    e: React.MouseEvent,
+    action?: () => Promise<void> | void,
+  ) => {
+    // 阻止冒泡：selectable 卡片是 <button>，嵌套按钮点击不应触发选中。
+    e.stopPropagation();
+    e.preventDefault();
+    if (!action || retrySubmitting) return;
+    try {
+      setRetrySubmitting(true);
+      await action();
+    } finally {
+      setRetrySubmitting(false);
     }
   };
 
@@ -301,6 +338,34 @@ function PipelineRunCardContent({
         }
         return null;
       })()}
+
+      {/* 第五行：双入口重试（断点续传 / 重新开始）——仅终态 + 可重试时显示 */}
+      {showRetryButtons && (
+        <div className="mt-2 flex items-center gap-2">
+          {onResume && (
+            <button
+              type="button"
+              disabled={retrySubmitting}
+              onClick={(e) => handleRetryClick(e, onResume)}
+              title="从最后一个完成的切片继续处理（复用 checkpoint）"
+              className="rounded-md bg-amber-600 px-2.5 py-1 text-caption font-semibold text-white shadow-sm transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:hover:bg-amber-400"
+            >
+              {retrySubmitting ? "处理中…" : "断点续传"}
+            </button>
+          )}
+          {onRestart && (
+            <button
+              type="button"
+              disabled={retrySubmitting}
+              onClick={(e) => handleRetryClick(e, onRestart)}
+              title="丢弃 checkpoint，全量重新处理"
+              className="rounded-md border border-border px-2.5 py-1 text-caption font-semibold text-text-secondary transition-colors hover:border-foreground/40 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              重新开始
+            </button>
+          )}
+        </div>
+      )}
     </>
   );
 }

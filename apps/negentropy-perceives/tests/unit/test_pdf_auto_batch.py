@@ -408,6 +408,71 @@ class TestRunBatchedPipeline:
         assert resp.enhanced_assets is not None
         assert len(resp.enhanced_assets["partial_failures"]) == 1
 
+    def test_slice_timeout_marked_partial_and_continues(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        """单切片超时 → 标记 partial failure 并继续后续切片；超时切片不写 checkpoint。
+
+        逐批超时（per_slice_timeout）是本次大 PDF 修复的核心保护：某切片处理
+        超时后不应拖垮整个批处理，而是记录失败 marker 并继续，已完成切片的
+        checkpoint 保留以支持断点续传。
+        """
+        # slice_0 阻塞超过 per_slice_timeout → 触发 asyncio.TimeoutError；
+        # slice_1 正常返回。通过把 per_slice_timeout 降到极小值快速触发。
+        monkeypatch.setattr(pdf_ops, "DEFAULT_PER_SLICE_TIMEOUT_SECONDS", 0.05)
+
+        call_ranges: List[Tuple[int, int]] = []
+
+        async def stub(*, source, page_range, **kwargs):
+            call_ranges.append(page_range)
+            if page_range == (0, 40):
+                await asyncio.sleep(5)  # 远超 0.05s 预算 → 超时
+                return _ok_pipeline_result(markdown="should-not-reach")
+            return _ok_pipeline_result(markdown="slice-1-ok")
+
+        monkeypatch.setattr(
+            "negentropy.perceives.pipeline.run_pdf_pipeline",
+            stub,
+        )
+
+        resp = asyncio.run(
+            pdf_ops._run_batched_pipeline(
+                pdf_source="/tmp/fake.pdf",
+                output_format="markdown",
+                total_pages=60,
+                batch_size=40,
+                extract_images=True,
+                extract_tables=True,
+                extract_formulas=True,
+                embed_images=False,
+                output_dir=str(tmp_path),
+                start_time=0.0,
+                resume=False,
+                total_timeout_seconds=3600,
+            )
+        )
+
+        # slice_0 超时但 slice_1 成功 → 整体 partial success
+        assert resp.success is True
+        assert "slice-1-ok" in (resp.content or "")
+        assert resp.error is not None
+        assert resp.enhanced_assets is not None
+        partial = resp.enhanced_assets["partial_failures"]
+        assert len(partial) == 1
+        assert "timed out" in partial[0]["error"]
+
+        # 超时切片仅写 failure marker（slice_0.json status=failed，无 markdown），
+        # 成功切片写完整 checkpoint（slice_1.json + slice_1.markdown.txt）。
+        # 断点续传时 _load_slice_checkpoint 见超时切片无 markdown → 返回 None 重处理。
+        state_dir = _state_dir_for(tmp_path)
+        assert not (state_dir / "slice_0.markdown.txt").exists()
+        slice0_meta = json.loads(
+            (state_dir / "slice_0.json").read_text(encoding="utf-8")
+        )
+        assert slice0_meta["status"] == "failed"
+        assert (state_dir / "slice_1.json").exists()
+        assert (state_dir / "slice_1.markdown.txt").exists()
+
 
 # ---------------------------------------------------------------------------
 # Checkpoint / Resume
@@ -727,6 +792,20 @@ class TestCheckpointResume:
 
 
 def test_default_constants_are_documented_values() -> None:
-    """auto_batch 默认参数与 tools/pdf.py 工具签名默认值对齐。"""
-    assert pdf_ops.DEFAULT_BATCH_PAGE_SIZE == 40
-    assert pdf_ops.DEFAULT_BATCH_THRESHOLD_PAGES == 60
+    """auto_batch 默认参数与 tools/pdf.py 工具签名默认值对齐。
+
+    动态比对工具签名默认值（而非硬编码数字），确保 ops 常量与对外 MCP 工具
+    契约始终一致——修改默认分批策略时无需同步两处魔数。
+    """
+    import inspect
+
+    from negentropy.perceives.tools import pdf as pdf_tools
+
+    sig = inspect.signature(pdf_tools.parse_pdf_to_markdown)
+    assert pdf_ops.DEFAULT_BATCH_PAGE_SIZE == sig.parameters["batch_page_size"].default
+    assert (
+        pdf_ops.DEFAULT_BATCH_THRESHOLD_PAGES
+        == sig.parameters["batch_threshold_pages"].default
+    )
+    # 逐批超时常量须为正整数（5 分钟基线，保障每批充足处理时间）
+    assert pdf_ops.DEFAULT_PER_SLICE_TIMEOUT_SECONDS > 0

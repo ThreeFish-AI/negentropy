@@ -1037,6 +1037,32 @@ export async function cancelPipelineRun(
   return handleKnowledgeError<PipelineCancelResult>(res);
 }
 
+/**
+ * 重试失败/取消的 ingest_file Pipeline（双入口）。
+ *
+ * - resume=true  断点续传：从最后完成的切片继续（复用 perceives checkpoint）；
+ * - resume=false 重新开始：丢弃 checkpoint 全量重跑。
+ *
+ * 后端创建一个新的 Pipeline Run（fresh run_id），原 Run 记录保留。
+ * `POST /api/knowledge/pipelines/{run_id}/retry`
+ */
+export async function retryPipelineRun(
+  runId: string,
+  resume: boolean,
+  opts?: { appName?: string },
+): Promise<AsyncPipelineResult> {
+  const res = await fetch(
+    `/api/knowledge/pipelines/${encodeURIComponent(runId)}/retry`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ app_name: opts?.appName, resume }),
+    },
+  );
+  return handleKnowledgeError<AsyncPipelineResult>(res);
+}
+
 // ============================================================================
 // Corpus (Knowledge Base)
 // ============================================================================

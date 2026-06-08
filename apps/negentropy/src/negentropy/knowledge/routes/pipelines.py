@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import func, select
 
@@ -13,20 +14,25 @@ from negentropy.auth.deps import get_optional_user
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.knowledge._shared import (
+    _build_chunking_config,
     _get_dao,
+    _get_service,
 )
 from negentropy.knowledge.api_helpers import _resolve_app_name
 from negentropy.knowledge.schemas import (
     ApiStatsResponse,
+    AsyncPipelineResponse,
     KnowledgePipelinesResponse,
     PipelineCancelRequest,
     PipelineCancelResponse,
+    PipelineRetryRequest,
     PipelineRunRecordResponse,
     PipelinesResponse,
     PipelinesUpsertRequest,
     PipelineUpsertRecordResponse,
     PipelineUpsertResponse,
 )
+from negentropy.knowledge.types import chunking_config_summary
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus, Knowledge
 
@@ -189,6 +195,128 @@ async def cancel_pipeline_run(
         run_id=run_id,
         in_process=in_process,
         record=record_dict,
+    )
+
+
+@router.post(
+    "/pipelines/{run_id}/retry",
+    response_model=AsyncPipelineResponse,
+)
+async def retry_pipeline_run(
+    run_id: str,
+    background_tasks: BackgroundTasks,
+    payload: PipelineRetryRequest = Body(default_factory=PipelineRetryRequest),  # noqa: B008
+    user: AuthUser | None = Depends(get_optional_user),
+) -> AsyncPipelineResponse:
+    """重试失败/取消的 ingest_file Pipeline（双入口：断点续传 / 重新开始）。
+
+    - resume=True  → 断点续传：perceives 从最后完成切片继续（复用 content-SHA-1 checkpoint）；
+    - resume=False → 重新开始：perceives 丢弃 checkpoint 全量重跑。
+
+    创建**新 run**（fresh run_id），通过 input.retried_from 关联原 run——保留审计链，
+    且规避 PipelineTracker 对终态 run 的 cancel 竞态。
+
+    Errors:
+        404: 原 run 不存在 / 源文档已删除 / GCS 内容缺失；
+        422: 原 run 非文件 ingest（缺 document_id/corpus_id）或 input 中 UUID 非法。
+    """
+    from negentropy.storage.service import DocumentStorageService
+
+    resolved_app = _resolve_app_name(payload.app_name)
+    dao = _get_dao()
+    service = _get_service()
+
+    original = await dao.get_pipeline_run(resolved_app, run_id)
+    if original is None:
+        raise HTTPException(status_code=404, detail="Pipeline run not found")
+
+    original_input = (original.payload or {}).get("input") or {}
+    document_id_raw = original_input.get("document_id")
+    corpus_id_raw = original_input.get("corpus_id")
+    if not document_id_raw or not corpus_id_raw:
+        raise HTTPException(
+            status_code=422,
+            detail="Run is not a retryable file ingest (missing document_id/corpus_id).",
+        )
+
+    try:
+        document_id = UUID(str(document_id_raw))
+        corpus_id = UUID(str(corpus_id_raw))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid document_id/corpus_id in run input.",
+        ) from exc
+
+    storage_service = DocumentStorageService()
+    # 传 corpus_id/app_name 做 defense-in-depth 归属校验（document_id 虽源自已按
+    # app 限定的 run，但显式 scope 与 get_document 的校验契约一致，杜绝越权重跑）。
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if doc is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Source document not found (may have been deleted).",
+        )
+
+    content = await storage_service.get_document_content(document_id=document_id)
+    if not content:
+        raise HTTPException(
+            status_code=404,
+            detail="Source document content not found in GCS.",
+        )
+
+    # 复用原 run 的分块配置；缺失时 execute_ingest_file_pipeline 兜底 self._chunking_config
+    chunking_config = _build_chunking_config(original_input.get("chunking_config"))
+    final_source_uri = original_input.get("source_uri") or doc.gcs_uri
+
+    new_run_id = await service.create_pipeline(
+        app_name=resolved_app,
+        operation="ingest_file",
+        input_data={
+            "corpus_id": str(corpus_id),
+            "source_uri": final_source_uri,
+            "filename": doc.original_filename,
+            "content_type": doc.content_type,
+            "file_size": len(content),
+            "document_id": str(document_id),
+            "chunking_config": chunking_config_summary(chunking_config) if chunking_config else None,
+            "retried_from": {"run_id": run_id, "resume": payload.resume},
+        },
+    )
+
+    background_tasks.add_task(
+        service.execute_ingest_file_pipeline,
+        run_id=new_run_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        content=content,
+        filename=doc.original_filename,
+        content_type=doc.content_type,
+        source_uri=final_source_uri,
+        metadata={"source": "retry", "source_type": "file", "document_id": str(document_id)},
+        chunking_config=chunking_config,
+        document_id=document_id,
+        resume=payload.resume,
+    )
+
+    logger.info(
+        "pipeline_retry_queued",
+        original_run_id=run_id,
+        new_run_id=new_run_id,
+        document_id=str(document_id),
+        resume=payload.resume,
+        requested_by=user.email if user else None,
+    )
+
+    mode = "断点续传" if payload.resume else "重新开始"
+    return AsyncPipelineResponse(
+        run_id=new_run_id,
+        status="running",
+        message=f"Retry task started ({mode}, resume={payload.resume}, retried_from={run_id}).",
     )
 
 
