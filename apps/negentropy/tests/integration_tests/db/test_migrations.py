@@ -228,3 +228,138 @@ def test_playwright_browser_mcp_seeded_by_migration(alembic_config: Config):
     assert "playwright" in (config.get("mcp_config") or {})
     assert config["mcp_config"]["playwright"]["command"] == "npx"
     assert "mcp__playwright" in (config.get("allowed_tools") or [])
+
+
+def _fetch_targets(conn, corpus_name: str, route: str):
+    """读取某 corpus 指定路由的 extractor targets 数组（保序）。route 仅取受控字面量。"""
+    import json
+
+    raw = conn.execute(
+        text(
+            f"SELECT config #> '{{extractor_routes,{route},targets}}' FROM negentropy.corpus WHERE name = :name"
+        ).bindparams(name=corpus_name)
+    ).scalar_one()
+    return raw if isinstance(raw, list) else json.loads(raw)
+
+
+def test_corpus_pdf_extractor_timeout_bump_0066(alembic_config: Config):
+    """迁移 0066：纠正存量 corpus 的 file_pdf timeout_ms 旧默认值，其余值原样保留。
+
+    覆盖（ISSUE-133 follow-up）：
+      - 旧默认 300000→3600000(主)、600000→7200000(备)，且保持主备顺序；
+      - 无 timeout_ms 的元素不被注入 key；用户自定义值(900000)保留；
+      - url 路由(60000)不被本迁移触碰；
+      - 幂等：二次执行 upgrade SQL 零变更；
+      - downgrade 逆向还原旧默认值，且不回退非本迁移写入的自定义值。
+    """
+    import json
+
+    from alembic.script import ScriptDirectory
+
+    # 升级到本迁移前一版本，植入存量 corpus
+    command.upgrade(alembic_config, "0065")
+
+    cfg_old = {
+        "extractor_routes": {
+            "file_pdf": {
+                "targets": [
+                    {
+                        "server_id": "s1",
+                        "tool_name": "parse_pdf_to_markdown",
+                        "priority": 0,
+                        "enabled": True,
+                        "timeout_ms": 300000,
+                    },
+                    {
+                        "server_id": "s1",
+                        "tool_name": "parse_pdfs_to_markdown",
+                        "priority": 1,
+                        "enabled": True,
+                        "timeout_ms": 600000,
+                    },
+                ]
+            },
+            "url": {
+                "targets": [
+                    {
+                        "server_id": "s1",
+                        "tool_name": "parse_webpage_to_markdown",
+                        "priority": 0,
+                        "enabled": True,
+                        "timeout_ms": 60000,
+                    },
+                ]
+            },
+        }
+    }
+    cfg_custom = {
+        "extractor_routes": {
+            "file_pdf": {
+                "targets": [
+                    {
+                        "server_id": "s2",
+                        "tool_name": "parse_pdf_to_markdown",
+                        "priority": 0,
+                        "enabled": True,
+                    },  # 无 timeout_ms
+                    {
+                        "server_id": "s2",
+                        "tool_name": "parse_pdfs_to_markdown",
+                        "priority": 1,
+                        "enabled": True,
+                        "timeout_ms": 900000,
+                    },  # 自定义
+                ]
+            }
+        }
+    }
+
+    engine = create_engine(_sync_database_url())
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO negentropy.corpus (app_name, name, config) VALUES
+                    ('app-0066', 'corpus-old-defaults', CAST(:cfg_old AS jsonb)),
+                    ('app-0066', 'corpus-custom', CAST(:cfg_custom AS jsonb))
+                    """
+                ).bindparams(cfg_old=json.dumps(cfg_old), cfg_custom=json.dumps(cfg_custom))
+            )
+
+        # 运行本迁移（0065 → 0066/head）
+        command.upgrade(alembic_config, "head")
+
+        with engine.begin() as conn:
+            old = _fetch_targets(conn, "corpus-old-defaults", "file_pdf")
+            url = _fetch_targets(conn, "corpus-old-defaults", "url")
+            custom = _fetch_targets(conn, "corpus-custom", "file_pdf")
+
+        # 旧默认值被纠正，主备顺序保持
+        assert [t["tool_name"] for t in old] == ["parse_pdf_to_markdown", "parse_pdfs_to_markdown"]
+        assert old[0]["timeout_ms"] == 3600000
+        assert old[1]["timeout_ms"] == 7200000
+        # url 路由不被触碰
+        assert url[0]["timeout_ms"] == 60000
+        # 无 timeout_ms 的元素未被注入 key；自定义值保留
+        assert "timeout_ms" not in custom[0]
+        assert custom[1]["timeout_ms"] == 900000
+
+        # 幂等：二次执行本迁移的 upgrade SQL 不产生任何变更
+        mig = ScriptDirectory.from_config(alembic_config).get_revision("0066").module
+        with engine.begin() as conn:
+            conn.execute(text(mig._rewrite_sql(mig._UPGRADE_MAP)))
+            old_again = _fetch_targets(conn, "corpus-old-defaults", "file_pdf")
+        assert old_again[0]["timeout_ms"] == 3600000
+        assert old_again[1]["timeout_ms"] == 7200000
+
+        # downgrade 逆向还原旧默认值；自定义 900000 不在映射中，保持不变
+        command.downgrade(alembic_config, "0065")
+        with engine.begin() as conn:
+            old_down = _fetch_targets(conn, "corpus-old-defaults", "file_pdf")
+            custom_down = _fetch_targets(conn, "corpus-custom", "file_pdf")
+        assert old_down[0]["timeout_ms"] == 300000
+        assert old_down[1]["timeout_ms"] == 600000
+        assert custom_down[1]["timeout_ms"] == 900000
+    finally:
+        engine.dispose()

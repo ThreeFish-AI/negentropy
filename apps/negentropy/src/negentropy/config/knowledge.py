@@ -47,12 +47,12 @@ class DefaultExtractorRoutesSettings(BaseModel):
             primary=DefaultExtractorTargetSettings(
                 server_name="negentropy-perceives",
                 tool_name="parse_pdf_to_markdown",
-                timeout_ms=300_000,
+                timeout_ms=3_600_000,  # 1h，对齐 YAML timeout_long_ms（大 PDF 分批串行 + 续传）
             ),
             secondary=DefaultExtractorTargetSettings(
                 server_name="negentropy-perceives",
                 tool_name="parse_pdfs_to_markdown",
-                timeout_ms=600_000,
+                timeout_ms=7_200_000,  # 2h：批量 PDF（与 YAML timeout_xlong_ms 对齐）
             ),
         )
     )

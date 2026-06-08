@@ -65,6 +65,27 @@ def _to_json_compatible(
     return str(value)
 
 
+def strip_nul_chars(value: Any) -> Any:
+    """递归移除字符串中的 NUL 字符（``\\x00``）。
+
+    PostgreSQL 的 ``text`` 与 ``jsonb`` 类型均无法存储 NUL（``\\u0000``）——
+    asyncpg 写入时抛 ``UntranslatableCharacterError``。某些 PDF 解析产物会夹带
+    NUL 字节，故在「写库边界」对 str / dict / list / tuple / set 递归剥离。
+    非字符串标量原样返回；不改变其他结构语义（仅去 NUL，不做 JSON 归一）。
+    """
+    if isinstance(value, str):
+        return value.replace("\x00", "") if "\x00" in value else value
+    if isinstance(value, dict):
+        return {key: strip_nul_chars(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [strip_nul_chars(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(strip_nul_chars(item) for item in value)
+    if isinstance(value, set):
+        return {strip_nul_chars(item) for item in value}
+    return value
+
+
 def to_json_compatible(value: Any) -> Any:
     return _to_json_compatible(value, strict=False, path=())
 

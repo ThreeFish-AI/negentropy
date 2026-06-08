@@ -3106,6 +3106,26 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **同类问题影响**：所有大型 PDF（>60 页触发 auto_batch）的 ingest_file / ingest_url 提取路径。小 PDF（≤60 页）走原单次路径零影响；URL/通用文件用各自独立默认超时不受波及。
 - **验证**：perceives `test_pdf_auto_batch.py` **15 passed**（新增逐批超时切片标记 partial+续传断言、常量改为动态比对工具签名消除魔数脆性）；backend `_maybe_inject_tool_timeout` 4 守卫条件经直接导入验证全过 + 新增 4 例契约单测（注：backend 单测库 alembic 残留版本不一致致 fixture ERROR，为预先存在环境问题，已 stash 对比基线确认与本改动无关）；两仓 `ruff check`/`format` 全过。注：live 引擎运行旧 checkout，本修复需部署后对运行中任务生效；失败的 `a539` run 可经 UI「Resume from checkpoint」或重新触发 ingest（同内容 PDF 命中 checkpoint）续作。
 
+### follow-up: 依旧 300s 超时——配置 SSOT 与 DB 持久化副本 Split-Brain 闭环（2026-06-08）
+
+- **深层根因**（上一轮「处理方式」第 1 点「backend 超时 300s→3600s」的盲区）：上一轮修改的是 `_DEFAULT_EXTRACTION_TIMEOUT_MS[file_pdf]=3_600_000`，但该值**仅在 `if not target.timeout_ms:` 时生效**（`extraction.py:2074`）。标准路径下 `target.timeout_ms` 始终从 corpus 持久化 JSONB 读回 `300_000`（建库时由 `_shared.py:503` 从 YAML/config 默认值固化），条件永假 → 兜底永不触发 = **死代码**。真正的 300s 取值链：`config.default.yaml` 锚点 `timeout_long_ms: 300000` → `KnowledgeSettings.default_extractor_routes.file_pdf.primary.timeout_ms=300000` → 建库时固化进 `corpus.config.extractor_routes.file_pdf.targets[].timeout_ms` → 抽取时实时读回 → 后端 MCP（`extraction.py:2390` `target.timeout_ms/1000.0=300.0`）与 perceives（`extraction.py:2269` 注入 `timeout=300`）双层超时均落在 300s。**一句话：超时值的「定义源(YAML/config)」与「持久化副本(corpus JSONB)」存在 Split-Brain；上一轮只改了永不命中的代码兜底，既未改 YAML 定义源，也未纠正已固化进 DB 的存量副本。**
+- **处理方式**（SSOT 对齐 + 数据迁移，最小干预）：
+  1. **Part A — 配置 SSOT（修新建库）**：`config.default.yaml` 锚点 `timeout_long_ms` 300000→3600000（1h）/ `timeout_xlong_ms` 600000→7200000（2h）；`config/knowledge.py` Python 默认值同步对齐。仅 file_pdf 路由使用这两个锚点，url 用 short/medium 零外溢。
+  2. **Part B — Alembic 迁移 0066（修存量库）**：幂等 SQL UPDATE 重写 `negentropy.corpus.config` JSONB 内 `file_pdf.targets[]` 中**精确等于旧默认值**的 `timeout_ms`（300000→3600000、600000→7200000）。`CASE ... ELSE t` 保留用户显式自定义值（如 `Harness Engineering` 的 `1200000` 不被触碰）、无 `timeout_ms` 元素、`url` 路由一律不动。`WITH ORDINALITY` + `ORDER BY ord` 保序；downgrade 逆向同形。后端超时数据驱动（`extraction.py:2390` 每次运行实时读），迁移落库后存量库重试即取新预算，**无需引擎改码**。
+- **后续防范（补充 ISSUE-133 原有 4 点）**：⑤「代码兜底」不等同于「运行期默认值」——当默认值在**另一层**（配置→DB 固化）被消费方缓存后，代码层 fallback 即成死代码。变更必须追溯到**真正的取值源**（YAML/config → 建库逻辑 → DB 固化 → 运行期读取），逐层验证每一层是否已同步更新；⑥ 跨层数据（config→DB JSONB）存在「建时快照」语义——建库固化后，config 源头变更不自动反映到存量库。对此类数据需在**设计阶段**即考虑「配置漂移修正路径」（数据迁移或运行期 floor），而非仅靠修改默认值。
+- **验证**：单元 `test_file_pdf_extractor_timeout_defaults`（file_pdf 默认 3600000/7200000 断言）+ 集成 `test_corpus_pdf_extractor_timeout_bump_0066`（升级正确性 + 自定义保留 + 无键不注入 + 幂等 + downgrade）全过。对共享 live 库 `alembic upgrade head` 落迁移，DB 直查确认 `Sinestesia of Cognition`（失败 corpus）300000→3600000 / `Harness Engineering` 自定义 1200000 不受影响。重试《浪潮之巅》失败 run（`resume=true`），新 run 跑至 **323s（>300s）** 不再触发 `Connection timeout after 300.0s`——超时上限彻底解除。
+
+### follow-up 2: 二级问题——PDF 解析产物夹带 NUL 字符致 PostgreSQL 写库失败（2026-06-08）
+
+- **表因**（超时解除后暴露的下一层失败）：300s 上限解除后《浪潮之巅》重试 run 跑满 323s、perceives 返回 `success:true`（PDF 解析成功），却在后端持久化阶段失败：`UPDATE negentropy.mcp_tool_runs SET result_payload=$::jsonb` 抛 `asyncpg.exceptions.UntranslatableCharacterError:   cannot be converted to text`，run 标记 failed（duration 323087ms）。
+- **根因**：某些 PDF 解析产物（图层/字体异常）会夹带 NUL 字节（`\x00`），而 PostgreSQL 的 `jsonb` 与 `text` 类型**均无法存储 NUL**——asyncpg 序列化时即抛 `UntranslatableCharacterError`。该 PDF 内容流经**三个写库边界**且均无净化：① `interface/execution.py` MCP tool run 的 `result_payload`(JSONB)+`error_summary`(Text)（**实际失败点**）；② `storage/service.py::save_markdown_content` 的 `markdown_content`(Text)；③ `knowledge/service.py::_ingest_text_with_tracker` 的 chunk content → `Knowledge.content`(Text)。仅修第①处只会把失败下推到 ②③。代码库原 `_json_safe`（`json.dumps/loads`）不剥离 NUL（` ` 是合法 JSON 转义，仅 PG 拒绝）。
+- **处理方式**（单一共享净化器 + 三处咽喉点，正交 + 最小干预）：
+  1. **共享 helper** `negentropy/serialization.py::strip_nul_chars(value)`：递归剥离 str/dict/list/tuple/set 中的 `\x00`，非字符串标量原样返回（无 NUL 时返回同一对象避免拷贝），仅去 NUL 不改其他结构/JSON 语义。置于 `serialization.py`（已被 `extraction.py`/`agent_presets.py` 引用的序列化 SSOT）。
+  2. **三处写库边界应用**：`execution.py` 的 `result_payload`+`error_summary`；`storage/service.py::save_markdown_content`（覆盖全部 save 调用方）；`_ingest_text_with_tracker` 入口 `text`（全摄入路径 file/url/refresh/rebuild 的 chunk 持久化单一咽喉）。
+- **后续防范**：⑦ 远程工具（尤其文档/PDF/OCR 解析类）的产物可能含**控制字符/NUL**，凡落 PostgreSQL `text`/`jsonb` 的边界都应在**写库前**净化；净化器应放在被多方复用的 SSOT 层，并在**每个独立写库咽喉**都应用（仅修首个失败点会把同类失败下推到下游列）；⑧ `json.dumps/loads` 的「JSON 合法」不等于「PG 可存」——` ` 是合法 JSON 转义却为 PG text/jsonb 所拒，依赖 JSON 往返做净化是错觉。
+- **同类问题影响**：所有经 perceives 解析并落库的内容（PDF/网页 → mcp_tool_runs.result_payload、knowledge_documents.markdown_content、knowledge.content）。无 NUL 的内容零行为变化（返回同一对象）。
+- **验证**：`test_serialization.py` 新增 2 例（递归净化嵌套 str/dict/list/tuple/set + 标量/无 NUL 不变且返回同一对象）；对真实 PostgreSQL（test 库临时表）验证「原始 NUL 写 jsonb 必抛 `UntranslatableCharacterError` / `strip_nul_chars` 净化后写 jsonb+text 均成功」；`ruff check`/`format` + 既有 extraction-contract 16 例回归全过。注：本项为**代码改动**（区别于 follow-up 1 数据驱动的超时迁移），需部署 live 引擎后对运行中任务生效。
+
 ## ISSUE-134 PDF 重试入口缺失且语义重叠：「断点续传」隐藏 + 「重新开始」能力缺失（2026-06-08）
 
 - **表因**（ISSUE-133 暴露的 UX/语义缺陷，用户实证）：① 失败 PDF run 的「Resume from checkpoint」入口几乎不可见——藏在 Pipeline Run 详情面板（需先展开），叫「Continue →」的**跳转链接**（跳文档页再手动 refresh），非真按钮；② **语义重叠且缺「重新开始」**：`resume` 永远默认 `True` 且 backend 从不控制，导致"重新触发 ingest"也命中同内容 SHA-1 checkpoint **续传**——与续传入口语义重复，反而没有"完全重新开始"的能力。

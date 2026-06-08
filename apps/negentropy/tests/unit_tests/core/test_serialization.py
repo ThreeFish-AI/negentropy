@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.serialization import to_json_compatible, to_json_compatible_strict
+from negentropy.serialization import strip_nul_chars, to_json_compatible, to_json_compatible_strict
 
 
 @dataclass(slots=True)
@@ -79,3 +79,38 @@ def test_to_json_compatible_strict_raises_with_path_for_unknown_object() -> None
 
     with pytest.raises(TypeError, match="payload.options.opaque"):
         to_json_compatible_strict(payload, label="payload")
+
+
+def test_strip_nul_chars_removes_nul_recursively() -> None:
+    """NUL（\\x00）须从嵌套 str / dict / list / tuple / set 中递归剥离。
+
+    PostgreSQL text/jsonb 无法存储 NUL，asyncpg 写入会抛 UntranslatableCharacterError；
+    某些 PDF 解析产物会夹带 NUL 字节，写库边界需先净化。
+    """
+    payload = {
+        "content": ["he\x00llo", {"nested": "wo\x00rld"}],
+        "tuple": ("a\x00b", 1),
+        "set": {"x\x00y"},
+        "clean": "no nul here",
+        "number": 42,
+        "none": None,
+    }
+
+    result = strip_nul_chars(payload)
+
+    assert result["content"][0] == "hello"
+    assert result["content"][1]["nested"] == "world"
+    assert result["tuple"] == ("ab", 1)
+    assert result["set"] == {"xy"}
+    # 无 NUL 的标量原样返回，类型/结构不变
+    assert result["clean"] == "no nul here"
+    assert result["number"] == 42
+    assert result["none"] is None
+    assert isinstance(result["tuple"], tuple)
+
+
+def test_strip_nul_chars_handles_plain_string_and_no_nul() -> None:
+    assert strip_nul_chars("a\x00b\x00c") == "abc"
+    # 无 NUL 时返回同一对象（避免无谓拷贝）
+    clean = "plain"
+    assert strip_nul_chars(clean) is clean
