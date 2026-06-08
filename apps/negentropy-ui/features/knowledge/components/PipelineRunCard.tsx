@@ -202,6 +202,33 @@ function PipelineRunCardContent({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {/* 双入口重试（断点续传 / 重新开始）：置于状态标签左侧，canRetry 为真时显示（不限定 run 终态，详见上方 showRetryButtons 说明） */}
+          {showRetryButtons && (
+            <>
+              {onResume && (
+                <button
+                  type="button"
+                  disabled={retrySubmitting}
+                  onClick={(e) => handleRetryClick(e, onResume)}
+                  title="从最后一个完成的切片继续处理（复用 checkpoint）"
+                  className="rounded-md bg-amber-600 px-2 py-0.5 text-caption font-semibold text-white shadow-sm transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:hover:bg-amber-400"
+                >
+                  {retrySubmitting ? "处理中…" : "断点续传"}
+                </button>
+              )}
+              {onRestart && (
+                <button
+                  type="button"
+                  disabled={retrySubmitting}
+                  onClick={(e) => handleRetryClick(e, onRestart)}
+                  title="丢弃 checkpoint，全量重新处理"
+                  className="rounded-md border border-border px-2 py-0.5 text-caption font-semibold text-text-secondary transition-colors hover:border-foreground/40 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  重新开始
+                </button>
+              )}
+            </>
+          )}
           <PipelineStatusBadge status={status} />
           {showCancelButton && (
             <button
@@ -338,34 +365,6 @@ function PipelineRunCardContent({
         }
         return null;
       })()}
-
-      {/* 第五行：双入口重试（断点续传 / 重新开始）——仅终态 + 可重试时显示 */}
-      {showRetryButtons && (
-        <div className="mt-2 flex items-center gap-2">
-          {onResume && (
-            <button
-              type="button"
-              disabled={retrySubmitting}
-              onClick={(e) => handleRetryClick(e, onResume)}
-              title="从最后一个完成的切片继续处理（复用 checkpoint）"
-              className="rounded-md bg-amber-600 px-2.5 py-1 text-caption font-semibold text-white shadow-sm transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:hover:bg-amber-400"
-            >
-              {retrySubmitting ? "处理中…" : "断点续传"}
-            </button>
-          )}
-          {onRestart && (
-            <button
-              type="button"
-              disabled={retrySubmitting}
-              onClick={(e) => handleRetryClick(e, onRestart)}
-              title="丢弃 checkpoint，全量重新处理"
-              className="rounded-md border border-border px-2.5 py-1 text-caption font-semibold text-text-secondary transition-colors hover:border-foreground/40 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              重新开始
-            </button>
-          )}
-        </div>
-      )}
     </>
   );
 }
