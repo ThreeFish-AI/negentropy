@@ -85,6 +85,17 @@ def _entry_orm_to_resp(
     )
 
 
+def _build_update_kwargs(body: _CatalogNodeUpdateReq) -> dict[str, Any]:
+    """以「请求中显式出现的字段」为 SSOT 构建 PATCH 更新 kwargs。
+
+    关键不变量：显式传入的 ``parent_id=None``（提升为根节点）**必须保留**，
+    严禁被 ``if v is not None`` 之类的 falsy 过滤吞掉——否则「移动到顶层」会
+    静默丢失父指针更新，刷新后回退为子节点。``model_dump(exclude_unset=True)``
+    已保证未传字段不出现于结果，因此无需再做 None 过滤。
+    """
+    return body.model_dump(exclude_unset=True)
+
+
 def _catalog_orm_to_resp(catalog: Any) -> _CatalogResp:
     vis = catalog.visibility or "INTERNAL"
     return _CatalogResp(
@@ -296,7 +307,7 @@ async def update_catalog_entry(
     """更新目录条目属性"""
     catalog_svc = _get_catalog_service()
     async with AsyncSessionLocal() as db:
-        update_kwargs = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+        update_kwargs = _build_update_kwargs(body)
         if not update_kwargs:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
         try:
