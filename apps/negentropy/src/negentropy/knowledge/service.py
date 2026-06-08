@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlparse
 from uuid import UUID
 
 from negentropy.logging import get_logger
+from negentropy.serialization import strip_nul_chars
 
 from .cancellation import (
     get_cancel_event,
@@ -1883,6 +1884,10 @@ class KnowledgeService:
           - ``None``（默认）：按 ``source_uri`` 自动决定 — 非空 → replace，空 → append。
         """
         config = chunking_config or self._chunking_config
+        # 剥离 NUL（\x00）——chunk content 落 Knowledge.content（PostgreSQL text 列不接受 NUL，
+        # asyncpg 写入会抛 UntranslatableCharacterError）；某些 PDF 解析产物会夹带 NUL 字节。
+        # 此为全部摄入路径（file/url/refresh/rebuild）chunk 持久化的单一咽喉点。
+        text = strip_nul_chars(text)
         # Corpus 级 Embedding 模型解析：存在则按需构建 fn，否则回退 service 默认。
         corpus_record = await self._repository.get_corpus_by_id(corpus_id)
         corpus_config_dict: dict[str, Any] | None = dict(corpus_record.config or {}) if corpus_record else None

@@ -216,6 +216,21 @@ class TestSettingsIntegration:
         assert s.logging.level.value == "INFO"
         assert s.services.credential_backend.value == "postgres"
 
+    def test_file_pdf_extractor_timeout_defaults(self):
+        """file_pdf 抽取路由默认超时须为 1h/2h(大 PDF auto_batch 多切片串行 + checkpoint 续传)。
+
+        回归护栏(ISSUE-133 follow-up):旧值 300_000/600_000 会令后端 MCP 在大 PDF 单本
+        未跑完前即超时。SSOT = config.default.yaml 的 timeout_long_ms / timeout_xlong_ms。
+        """
+        from negentropy.config import Settings
+
+        s = Settings()
+        file_pdf = s.knowledge.default_extractor_routes.file_pdf
+        assert file_pdf.primary is not None
+        assert file_pdf.primary.timeout_ms == 3_600_000
+        assert file_pdf.secondary is not None
+        assert file_pdf.secondary.timeout_ms == 7_200_000
+
     def test_env_var_overrides_yaml(self, monkeypatch):
         """Environment variables must take precedence over YAML values."""
         monkeypatch.setenv("NE_DB_POOL_SIZE", "42")

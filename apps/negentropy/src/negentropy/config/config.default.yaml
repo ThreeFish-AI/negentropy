@@ -34,8 +34,8 @@ _constants:
   perceives_server:  &perceives_server  negentropy-perceives
   timeout_short_ms:  &timeout_short_ms  60000
   timeout_medium_ms: &timeout_medium_ms 120000
-  timeout_long_ms:   &timeout_long_ms   300000
-  timeout_xlong_ms:  &timeout_xlong_ms  600000
+  timeout_long_ms:   &timeout_long_ms   3600000  # file_pdf 主：1h（大 PDF 经 auto_batch 多切片串行 + checkpoint 续传，旧值 300000 会令后端 MCP 在单本未跑完前即超时）
+  timeout_xlong_ms:  &timeout_xlong_ms  7200000  # file_pdf 备(批量)：2h
   session_ttl_7d:    &session_ttl_7d    604800
 
 # --- 运行环境 ---

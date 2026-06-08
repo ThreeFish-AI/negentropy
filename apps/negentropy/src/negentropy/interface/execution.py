@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.auth.service import AuthUser
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool, McpToolRun, McpToolRunEvent, McpTrialAsset
+from negentropy.serialization import strip_nul_chars
 from negentropy.storage.gcs_client import GCSStorageClient
 
 from .mcp_client import McpCancelledError, McpClientService, McpResourceContent, McpToolCallResult
@@ -259,16 +260,20 @@ class McpToolExecutionService:
         if tool_called and tool:
             tool.call_count = (tool.call_count or 0) + 1
 
-        result_payload = {
-            "success": result.success,
-            "content": _json_safe(result.content),
-            "structured_content": _json_safe(result.structured_content),
-            "error": result.error,
-            "duration_ms": result.duration_ms,
-            "stderr": stderr_lines,
-        }
+        # 剥离 NUL（\x00）——PostgreSQL jsonb/text 不接受，asyncpg 写入会抛
+        # UntranslatableCharacterError；某些 PDF 解析产物会夹带 NUL 字节。
+        result_payload = strip_nul_chars(
+            {
+                "success": result.success,
+                "content": _json_safe(result.content),
+                "structured_content": _json_safe(result.structured_content),
+                "error": result.error,
+                "duration_ms": result.duration_ms,
+                "stderr": stderr_lines,
+            }
+        )
         run.result_payload = result_payload
-        run.error_summary = result.error
+        run.error_summary = strip_nul_chars(result.error)
         run.duration_ms = result.duration_ms
         run.ended_at = datetime.now(UTC)
         run.status = "completed" if result.success else "failed"

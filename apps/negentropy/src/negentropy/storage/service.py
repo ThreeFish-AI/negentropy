@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.perception import KnowledgeDocument
+from negentropy.serialization import strip_nul_chars
 
 from .gcs_client import GCSStorageClient, StorageError
 
@@ -548,7 +549,9 @@ class DocumentStorageService:
             if not doc:
                 return False
 
-            doc.markdown_content = markdown_content
+            # 剥离 NUL（\x00）——PostgreSQL text 列不接受，asyncpg 写入会抛
+            # UntranslatableCharacterError；某些 PDF 解析产物会夹带 NUL 字节。
+            doc.markdown_content = strip_nul_chars(markdown_content)
             doc.markdown_gcs_uri = markdown_gcs_uri
             doc.markdown_extract_status = "completed"
             doc.markdown_extract_error = None
