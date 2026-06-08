@@ -33,7 +33,7 @@ dependencies = [
     # --- MCP 框架 ---
     "fastmcp>=3.2.4",
     # --- 网页抓取 ---
-    "aiohttp>=3.13.5",
+    "aiohttp>=3.14.0",  # >=3.14.0 修复 CVE-2026-34993 / CVE-2026-47265
     "beautifulsoup4>=4.14.0",
     "fake-useragent>=2.2.0",
     "requests>=2.33.1",
@@ -52,7 +52,7 @@ dependencies = [
     "pymupdf>=1.27.2",
     "pypdf>=6.10.2",  # 修复 CVE-2026-33699, GHSA-3crg-w4f6-42mx
     # --- PDF 引擎 ---
-    "docling>=2.89.0",  # PDF 处理引擎 (GPU 加速)
+    "docling>=2.94.0",  # PDF 处理引擎 (GPU 加速)；>=2.94.0 修复 CVE-2026-44016/44017/44018/47214（处理不可信 PDF，必须升级）
     "mineru>=3.0.9",  # PDF 处理引擎 (VLM 自动引擎)
     "marker-pdf>=1.10.2",  # PDF 处理引擎 (高精度 OCR)
     "pdfplumber>=0.11.0",  # 表格提取补充引擎
@@ -193,7 +193,9 @@ ignore_missing_imports = true
 # openai>=2.20.0：litellm>=1.83.7 要求 openai>=2.20.0（覆盖 marker-pdf<2.0.0 约束）
 # transformers 锁定 4.x：marker-pdf(^4.45.2) 与 docling[vlm](>=4.42.0) 兼容交集
 # Trainer CVE: 任意代码执行仅影响 Trainer 类调用路径，项目未使用 Trainer，风险可接受
-override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "authlib>=1.7.1", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0"]
+# pyjwt>=2.13.0：修复 PYSEC-2026-175/177/178/179（间接依赖 mcp[crypto] → fastmcp）
+# docling-core>=2.74.1：修复 CVE-2026-44019 / CVE-2026-44023（间接依赖 docling）
+override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "authlib>=1.7.1", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.13.0", "docling-core>=2.74.1"]
 
 [dependency-groups]
 dev = [
