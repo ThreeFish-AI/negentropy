@@ -71,6 +71,21 @@ interface RoutineEditDrawerProps {
 
 type Entity = "routine" | "template";
 
+/**
+ * Running 状态下允许在线调整的字段集（与后端 _RUNTIME_SAFE_FIELDS 严格对齐）。
+ * 不在此集合中的字段在 Running 状态下禁用编辑，需 Pause 后方可修改。
+ */
+const RUNTIME_SAFE_FIELDS: ReadonlySet<string> = new Set([
+  "success_score_threshold",
+  "max_iterations",
+  "max_cost_usd",
+  "deadline_at",
+  "no_progress_patience",
+  "title",
+  "display_name",
+  "description",
+]);
+
 interface FormState {
   key: string;
   title: string;
@@ -85,6 +100,7 @@ interface FormState {
   max_cost_usd: string;
   success_score_threshold: string;
   no_progress_patience: string;
+  deadline_at: string; // ISO datetime-local string（YYYY-MM-DDTHH:mm）
   approval_mode: ApprovalMode;
   // Claude Code config 覆盖（routine entity）
   model: string;
@@ -114,6 +130,7 @@ const DEFAULTS: FormState = {
   max_cost_usd: "5",
   success_score_threshold: "85",
   no_progress_patience: "3",
+  deadline_at: "",
   approval_mode: "auto",
   model: "",
   max_turns: "1000",
@@ -206,6 +223,14 @@ function buildInitial(mode: DrawerMode): FormState {
         max_cost_usd: r.max_cost_usd != null ? String(r.max_cost_usd) : "",
         success_score_threshold: String(r.success_score_threshold),
         no_progress_patience: String(r.no_progress_patience),
+        deadline_at: r.deadline_at
+          ? (() => {
+              // datetime-local 需要 YYYY-MM-DDTHH:mm 格式（本地时间），不能直接用 toISOString()（UTC）
+              const d = new Date(r.deadline_at);
+              const pad = (n: number) => String(n).padStart(2, "0");
+              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            })()
+          : "",
         approval_mode: r.approval_mode,
         ...ccFromConfig(cfg),
       };
@@ -280,8 +305,17 @@ export function RoutineEditDrawer({
   const liveRoutine = mode.kind === "routine-edit" ? mode.routine : null;
   const isRunning = liveRoutine?.status === "running";
   const isBuiltinTemplate = mode.kind === "template-edit" && mode.template.source === "builtin";
-  // 仅运行中锁定；内置模板改为「可编辑 → 另存为我的模板」(copy-on-write, #794)，以 create 语义提交用户副本。
-  const readOnly = isRunning;
+  // 运行中精准锁定：仅运行时安全字段（RUNTIME_SAFE_FIELDS）可编辑，其余字段保持禁用。
+  // 内置模板改为「可编辑 → 另存为我的模板」(copy-on-write, #794)，以 create 语义提交用户副本。
+
+  /** 判断指定字段是否应在当前状态下禁用编辑。 */
+  const isFieldDisabled = useCallback(
+    (fieldName: string): boolean => {
+      if (isRunning) return !RUNTIME_SAFE_FIELDS.has(fieldName);
+      return false;
+    },
+    [isRunning],
+  );
   // 可执行 routine（非模板）必须提供 Project Path (cwd) + Baseline Branch（隔离 worktree 前提）。
   const requireWorktree = entity === "routine";
 
@@ -297,6 +331,7 @@ export function RoutineEditDrawer({
         form.approval_mode !== "auto" ||
         form.max_iterations !== DEFAULTS.max_iterations ||
         form.max_cost_usd !== DEFAULTS.max_cost_usd ||
+        form.deadline_at ||
         form.model ||
         form.max_turns !== DEFAULTS.max_turns ||
         form.permission_mode ||
@@ -315,6 +350,15 @@ export function RoutineEditDrawer({
     () => JSON.stringify(form) !== JSON.stringify(baseline),
     [form, baseline],
   );
+
+  /** Running 状态下是否有运行时安全字段被修改（决定 Save 按钮是否显示）。非运行态复用 isDirty。 */
+  const hasRuntimeSafeDirty = useMemo(() => {
+    if (!isRunning) return isDirty;
+    const changed = (Object.keys(form) as (keyof FormState)[]).filter(
+      (k) => JSON.stringify(form[k]) !== JSON.stringify(baseline[k]),
+    );
+    return changed.some((k) => RUNTIME_SAFE_FIELDS.has(k as string));
+  }, [isRunning, isDirty, form, baseline]);
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -375,11 +419,11 @@ export function RoutineEditDrawer({
     });
   }, []);
 
-  // 运行中锁定不静默：若 SSE 将状态翻为 running 时用户尚有未保存编辑，明确告警而非默默锁字段、隐藏 Save。
+  // 运行中状态翻转提醒：SSE 将状态翻为 running 时，告知用户哪些字段可在线调整。
   const wasRunningRef = useRef(isRunning);
   useEffect(() => {
     if (isRunning && !wasRunningRef.current && isDirty) {
-      toast.warning("This Routine just started running — unsaved edits can't be saved until you pause it.");
+      toast.warning("This Routine just started running — budget & threshold fields can still be saved live. Pause to edit goal or workspace settings.");
     }
     wasRunningRef.current = isRunning;
   }, [isRunning, isDirty]);
@@ -387,16 +431,21 @@ export function RoutineEditDrawer({
   // ── 提交 ──
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (readOnly) return;
 
+    // Running 状态下验证逻辑仅覆盖安全字段；非运行状态下全量验证。
     const errs: Record<string, string> = {};
-    // 内置模板另存为副本走 create 语义，同样需要唯一 Key（op 仍为 edit，故单列判断）。
-    if ((op === "create" || isBuiltinTemplate) && !form.key.trim()) errs.key = "Key is required";
-    if (!form.title.trim()) errs.title = "Name is required";
-    if (!form.goal.trim()) errs.goal = "Goal is required";
-    if (!form.acceptance_criteria.trim()) errs.acceptance_criteria = "Acceptance criteria is required";
-    if (requireWorktree && !form.cwd.trim()) errs.cwd = "Project Path is required";
-    if (requireWorktree && !form.baseline_branch.trim()) errs.baseline_branch = "Baseline Branch is required";
+    if (!isRunning) {
+      // 内置模板另存为副本走 create 语义，同样需要唯一 Key（op 仍为 edit，故单列判断）。
+      if ((op === "create" || isBuiltinTemplate) && !form.key.trim()) errs.key = "Key is required";
+      if (!form.title.trim()) errs.title = "Name is required";
+      if (!form.goal.trim()) errs.goal = "Goal is required";
+      if (!form.acceptance_criteria.trim()) errs.acceptance_criteria = "Acceptance criteria is required";
+      if (requireWorktree && !form.cwd.trim()) errs.cwd = "Project Path is required";
+      if (requireWorktree && !form.baseline_branch.trim()) errs.baseline_branch = "Baseline Branch is required";
+    } else {
+      // Running 状态：安全字段的基本验证
+      if (!form.title.trim()) errs.title = "Name is required";
+    }
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       setError("Fix the highlighted fields before saving.");
@@ -406,7 +455,7 @@ export function RoutineEditDrawer({
     setLoading(true);
     setError(null);
 
-    // 公共字段
+    // 公共字段（含 deadline_at）
     const common = {
       title: form.title.trim(),
       goal: form.goal.trim(),
@@ -416,6 +465,7 @@ export function RoutineEditDrawer({
       max_cost_usd: form.max_cost_usd.trim() ? parseFloat(form.max_cost_usd) : null,
       success_score_threshold: parseInt(form.success_score_threshold, 10) || 85,
       no_progress_patience: parseInt(form.no_progress_patience, 10) || 3,
+      deadline_at: form.deadline_at ? new Date(form.deadline_at).toISOString() : null,
       approval_mode: form.approval_mode,
       display_name: form.display_name.trim() || null,
       description: form.description.trim() || null,
@@ -456,9 +506,35 @@ export function RoutineEditDrawer({
       if ((mode.kind === "routine-edit" || mode.kind === "template-edit") && !isBuiltinTemplate) {
         // 用判别式收窄取 id（不用 as 强转，保持联合的穷尽性，未来新增 mode 时由编译器兜底）。
         const id = mode.kind === "routine-edit" ? mode.routine.id : mode.template.id;
-        result = await updateRoutine(id, base as RoutineUpdatePayload);
-        toast.success(entity === "template" ? "Template updated" : "Routine updated");
-        setBaseline(form); // 重置脏基线（edit 类抽屉保持打开）
+
+        if (isRunning) {
+          // Running 状态下仅提交「相对 baseline 真正变更」的运行时安全字段（与后端 _RUNTIME_SAFE_FIELDS 对齐）：
+          // ① 非安全字段的脏变更保留在 form 草稿中，待 pause 后提交；
+          // ② 只发变更字段而非全量安全集，避免抽屉打开期间他端对 title / description / deadline_at 等的并发修改被旧值覆盖。
+          const safePatch: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(base)) {
+            const fk = k as keyof FormState;
+            if (RUNTIME_SAFE_FIELDS.has(k) && JSON.stringify(form[fk]) !== JSON.stringify(baseline[fk])) {
+              safePatch[k] = v;
+            }
+          }
+          result = await updateRoutine(id, safePatch as RoutineUpdatePayload);
+        } else {
+          result = await updateRoutine(id, base as RoutineUpdatePayload);
+        }
+        toast.success(entity === "template" ? "Template updated" : isRunning ? "Runtime params updated" : "Routine updated");
+        // 脏基线重置（edit 类抽屉保持打开）：运行态仅重置安全字段，保留非安全字段的草稿脏态
+        // （pause 后 Save 按钮仍会出现、关闭仍会弹「Discard changes?」）；非运行态整表单重置。
+        if (isRunning) {
+          // 仅把安全字段并入基线（form 的安全字段值即已提交值）；非安全字段基线保持不变 → 其草稿仍计脏。
+          const merged: FormState = { ...baseline };
+          const draft = form as unknown as Record<string, unknown>;
+          const target = merged as unknown as Record<string, unknown>;
+          for (const k of RUNTIME_SAFE_FIELDS) target[k] = draft[k];
+          setBaseline(merged);
+        } else {
+          setBaseline(form);
+        }
       } else {
         // 含：routine-create / template-create / use-template / 内置模板「另存为我的模板」(copy-on-write)
         result = await createRoutine({ ...base, key: form.key.trim() } as RoutineCreatePayload);
@@ -589,10 +665,10 @@ export function RoutineEditDrawer({
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-            {/* 运行中锁定（只读，中性条）—— 含恢复路径 */}
-            {readOnly && (
+            {/* 运行中精准锁定提示 —— 安全字段可在线调整，非安全字段需 Pause */}
+            {isRunning && (
               <div className="rounded-card border border-border bg-muted/40 px-4 py-2.5 text-xs text-text-secondary">
-                This Routine is running. Pause it to edit its configuration.
+                <span className="font-medium text-foreground">Running</span> — Budget, threshold, and metadata fields can be adjusted live. Pause to modify goal, workspace, or model settings.
               </div>
             )}
 
@@ -618,7 +694,7 @@ export function RoutineEditDrawer({
                 type="text"
                 value={form.title}
                 onChange={(e) => updateName(e.target.value)}
-                disabled={readOnly}
+                disabled={isFieldDisabled("title")}
                 placeholder="My routine"
                 className={cn(inputCls, fieldErrors.title && "border-red-400")}
               />
@@ -631,7 +707,7 @@ export function RoutineEditDrawer({
                     type="text"
                     value={form.key}
                     onChange={(e) => update("key", e.target.value)}
-                    disabled={readOnly}
+                    disabled={isFieldDisabled("key")}
                     placeholder="unique_key"
                     className={cn(inputCls, "font-mono text-xs", fieldErrors.key && "border-red-400")}
                   />
@@ -647,11 +723,11 @@ export function RoutineEditDrawer({
 
             {/* ── Objective（视觉重心）── */}
             <div>
-              <label className={labelCls}>Goal{reqMark}</label>
+              <label className={labelCls}>Goal{!isFieldDisabled("goal") && reqMark}</label>
               <textarea
                 value={form.goal}
                 onChange={(e) => update("goal", e.target.value)}
-                disabled={readOnly}
+                disabled={isFieldDisabled("goal")}
                 rows={6}
                 placeholder="What should Claude Code accomplish?"
                 className={cn(inputCls, "resize-y", fieldErrors.goal && "border-red-400")}
@@ -659,11 +735,11 @@ export function RoutineEditDrawer({
               {renderFieldError("goal")}
             </div>
             <div>
-              <label className={labelCls}>Acceptance Criteria{reqMark}</label>
+              <label className={labelCls}>Acceptance Criteria{!isFieldDisabled("acceptance_criteria") && reqMark}</label>
               <textarea
                 value={form.acceptance_criteria}
                 onChange={(e) => update("acceptance_criteria", e.target.value)}
-                disabled={readOnly}
+                disabled={isFieldDisabled("acceptance_criteria")}
                 rows={4}
                 placeholder="How do you judge success?"
                 className={cn(inputCls, "resize-y", fieldErrors.acceptance_criteria && "border-red-400")}
@@ -676,24 +752,24 @@ export function RoutineEditDrawer({
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelCls}>Project Path{requireWorktree && reqMark}</label>
+                    <label className={labelCls}>Project Path{requireWorktree && !isFieldDisabled("cwd") && reqMark}</label>
                     <input
                       type="text"
                       value={form.cwd}
                       onChange={(e) => update("cwd", e.target.value)}
-                      disabled={readOnly}
+                      disabled={isFieldDisabled("cwd")}
                       placeholder="/path/to/repo"
                       className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
                     />
                     {renderFieldError("cwd")}
                   </div>
                   <div>
-                    <label className={labelCls}>Baseline Branch{requireWorktree && reqMark}</label>
+                    <label className={labelCls}>Baseline Branch{requireWorktree && !isFieldDisabled("baseline_branch") && reqMark}</label>
                     <input
                       type="text"
                       value={form.baseline_branch}
                       onChange={(e) => update("baseline_branch", e.target.value)}
-                      disabled={readOnly}
+                      disabled={isFieldDisabled("baseline_branch")}
                       placeholder="e.g. origin/feature/1.x.x"
                       className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
                     />
@@ -706,7 +782,7 @@ export function RoutineEditDrawer({
                     type="text"
                     value={form.read_dirs}
                     onChange={(e) => update("read_dirs", e.target.value)}
-                    disabled={readOnly}
+                    disabled={isFieldDisabled("read_dirs")}
                     placeholder="/path/to/other/repo, /path/to/docs"
                     className={inputCls}
                   />
@@ -725,7 +801,7 @@ export function RoutineEditDrawer({
                 type="text"
                 value={form.verification_command}
                 onChange={(e) => update("verification_command", e.target.value)}
-                disabled={readOnly}
+                disabled={isFieldDisabled("verification_command")}
                 placeholder="e.g. uv run pytest -q"
                 className={inputCls}
               />
@@ -762,7 +838,7 @@ export function RoutineEditDrawer({
                           min={1}
                           value={form.max_iterations}
                           onChange={(e) => update("max_iterations", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("max_iterations")}
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
@@ -774,7 +850,7 @@ export function RoutineEditDrawer({
                           step="0.5"
                           value={form.max_cost_usd}
                           onChange={(e) => update("max_cost_usd", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("max_cost_usd")}
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
@@ -786,7 +862,7 @@ export function RoutineEditDrawer({
                           max={100}
                           value={form.success_score_threshold}
                           onChange={(e) => update("success_score_threshold", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("success_score_threshold")}
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
@@ -797,7 +873,7 @@ export function RoutineEditDrawer({
                           min={1}
                           value={form.no_progress_patience}
                           onChange={(e) => update("no_progress_patience", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("no_progress_patience")}
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
@@ -808,7 +884,7 @@ export function RoutineEditDrawer({
                           min={1}
                           value={form.max_turns}
                           onChange={(e) => update("max_turns", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("max_turns")}
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
@@ -820,7 +896,7 @@ export function RoutineEditDrawer({
                           max={100000}
                           value={form.max_events_per_iter}
                           onChange={(e) => update("max_events_per_iter", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("max_events_per_iter")}
                           placeholder="5000"
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
@@ -833,8 +909,18 @@ export function RoutineEditDrawer({
                           max={86400}
                           value={form.timeout_seconds}
                           onChange={(e) => update("timeout_seconds", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("timeout_seconds")}
                           placeholder="10800"
+                          className={cn(inputCls, "min-w-0 flex-1")}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className={labelInlineCls}>Deadline</label>
+                        <input
+                          type="datetime-local"
+                          value={form.deadline_at}
+                          onChange={(e) => update("deadline_at", e.target.value)}
+                          disabled={isFieldDisabled("deadline_at")}
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
                       </div>
@@ -845,7 +931,7 @@ export function RoutineEditDrawer({
                         <select
                           value={form.approval_mode}
                           onChange={(e) => update("approval_mode", e.target.value as ApprovalMode)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("approval_mode")}
                           className={inputCls}
                         >
                           {APPROVAL_OPTIONS.map((o) => (
@@ -865,7 +951,7 @@ export function RoutineEditDrawer({
                     <textarea
                       value={form.description}
                       onChange={(e) => update("description", e.target.value)}
-                      disabled={readOnly}
+                      disabled={isFieldDisabled("description")}
                       rows={2}
                       placeholder="Short summary of what this does"
                       className={cn(inputCls, "resize-y")}
@@ -882,7 +968,7 @@ export function RoutineEditDrawer({
                           <select
                             value={form.category}
                             onChange={(e) => update("category", e.target.value)}
-                            disabled={readOnly}
+                            disabled={isFieldDisabled("category")}
                             className={inputCls}
                           >
                             {CATEGORY_OPTIONS.map((o) => (
@@ -898,7 +984,7 @@ export function RoutineEditDrawer({
                             type="text"
                             value={form.version}
                             onChange={(e) => update("version", e.target.value)}
-                            disabled={readOnly}
+                            disabled={isFieldDisabled("version")}
                             placeholder="1.0.0"
                             className={inputCls}
                           />
@@ -910,7 +996,7 @@ export function RoutineEditDrawer({
                           type="text"
                           value={form.features_showcase}
                           onChange={(e) => update("features_showcase", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("features_showcase")}
                           placeholder="feature 1, feature 2, feature 3"
                           className={inputCls}
                         />
@@ -931,7 +1017,7 @@ export function RoutineEditDrawer({
                             type="text"
                             value={form.model}
                             onChange={(e) => update("model", e.target.value)}
-                            disabled={readOnly}
+                            disabled={isFieldDisabled("model")}
                             placeholder="inherit global config"
                             className={cn(inputCls, "min-w-0 flex-1")}
                           />
@@ -941,7 +1027,7 @@ export function RoutineEditDrawer({
                           <select
                             value={form.permission_mode}
                             onChange={(e) => update("permission_mode", e.target.value)}
-                            disabled={readOnly}
+                            disabled={isFieldDisabled("permission_mode")}
                             className={cn(inputCls, "min-w-0 flex-1")}
                           >
                             <option value="">default</option>
@@ -957,7 +1043,7 @@ export function RoutineEditDrawer({
                           type="text"
                           value={form.allowed_tools}
                           onChange={(e) => update("allowed_tools", e.target.value)}
-                          disabled={readOnly}
+                          disabled={isFieldDisabled("allowed_tools")}
                           placeholder="Bash, Read, Write, Edit, Glob, Grep"
                           className={cn(inputCls, "min-w-0 flex-1")}
                         />
@@ -1028,15 +1114,17 @@ export function RoutineEditDrawer({
                 Use
               </Button>
             )}
-            {!readOnly && (
+            {(op === "create" || isBuiltinTemplate || hasRuntimeSafeDirty) && (
               <Button type="submit" variant="primary" size="sm" loading={loading}>
                 {isBuiltinTemplate
                   ? "Save as my copy"
-                  : op === "edit"
-                    ? "Save"
-                    : entity === "template"
-                      ? "Create Template"
-                      : "Create Routine"}
+                  : isRunning
+                    ? "Update live"
+                    : op === "edit"
+                      ? "Save"
+                      : entity === "template"
+                        ? "Create Template"
+                        : "Create Routine"}
               </Button>
             )}
             {mode.kind === "routine-edit" &&
