@@ -108,6 +108,7 @@ interface FormState {
   max_events_per_iter: string;
   permission_mode: string;
   allowed_tools: string;
+  read_dirs: string;
   timeout_seconds: string;
   // 模板元数据（template entity）
   category: string;
@@ -136,6 +137,7 @@ const DEFAULTS: FormState = {
   max_events_per_iter: "",
   permission_mode: "",
   allowed_tools: "",
+  read_dirs: "",
   timeout_seconds: "",
   category: "general",
   version: "1.0.0",
@@ -163,13 +165,14 @@ const CATEGORY_OPTIONS = [
 ];
 
 /** 从 config 提取 Claude Code 覆盖键 → 表单字符串。 */
-function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "max_events_per_iter" | "permission_mode" | "allowed_tools" | "timeout_seconds"> {
+function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "max_turns" | "max_events_per_iter" | "permission_mode" | "allowed_tools" | "read_dirs" | "timeout_seconds"> {
   return {
     model: (cfg.model as string) ?? "",
     max_turns: cfg.max_turns != null ? String(cfg.max_turns) : "1000",
     max_events_per_iter: cfg.max_events_per_iter != null ? String(cfg.max_events_per_iter) : "",
     permission_mode: (cfg.permission_mode as string) ?? "",
     allowed_tools: Array.isArray(cfg.allowed_tools) ? (cfg.allowed_tools as string[]).join(", ") : "",
+    read_dirs: Array.isArray(cfg.read_dirs) ? (cfg.read_dirs as string[]).join(", ") : "",
     timeout_seconds: cfg.timeout_seconds != null ? String(cfg.timeout_seconds) : "",
   };
 }
@@ -177,7 +180,7 @@ function ccFromConfig(cfg: Record<string, unknown>): Pick<FormState, "model" | "
 /** 将表单 CC 配置字段写入 config 对象（原地修改，ccFromConfig 的逆操作）。 */
 function applyCCConfig(
   config: Record<string, unknown>,
-  form: Pick<FormState, "model" | "max_turns" | "max_events_per_iter" | "permission_mode" | "allowed_tools" | "timeout_seconds">,
+  form: Pick<FormState, "model" | "max_turns" | "max_events_per_iter" | "permission_mode" | "allowed_tools" | "read_dirs" | "timeout_seconds">,
 ): void {
   if (form.model.trim()) config.model = form.model.trim();
   else delete config.model;
@@ -189,6 +192,8 @@ function applyCCConfig(
   else delete config.permission_mode;
   if (form.allowed_tools.trim()) config.allowed_tools = form.allowed_tools.split(",").map((s) => s.trim()).filter(Boolean);
   else delete config.allowed_tools;
+  if (form.read_dirs.trim()) config.read_dirs = form.read_dirs.split(",").map((s) => s.trim()).filter(Boolean);
+  else delete config.read_dirs;
   if (form.timeout_seconds.trim()) config.timeout_seconds = parseInt(form.timeout_seconds, 10);
   else delete config.timeout_seconds;
 }
@@ -731,32 +736,49 @@ export function RoutineEditDrawer({
 
             {/* ── Execution Context（仅 routine entity）── */}
             {entity === "routine" && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Project Path{requireWorktree && reqMark}</label>
-                  <input
-                    type="text"
-                    value={form.cwd}
-                    onChange={(e) => update("cwd", e.target.value)}
-                    disabled={isFieldDisabled("cwd")}
-                    placeholder="/path/to/repo"
-                    className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
-                  />
-                  {renderFieldError("cwd")}
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Project Path{requireWorktree && reqMark}</label>
+                    <input
+                      type="text"
+                      value={form.cwd}
+                      onChange={(e) => update("cwd", e.target.value)}
+                      disabled={isFieldDisabled("cwd")}
+                      placeholder="/path/to/repo"
+                      className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
+                    />
+                    {renderFieldError("cwd")}
+                  </div>
+                  <div>
+                    <label className={labelCls}>Baseline Branch{requireWorktree && reqMark}</label>
+                    <input
+                      type="text"
+                      value={form.baseline_branch}
+                      onChange={(e) => update("baseline_branch", e.target.value)}
+                      disabled={isFieldDisabled("baseline_branch")}
+                      placeholder="e.g. origin/feature/1.x.x"
+                      className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
+                    />
+                    {renderFieldError("baseline_branch")}
+                  </div>
                 </div>
                 <div>
-                  <label className={labelCls}>Baseline Branch{requireWorktree && reqMark}</label>
+                  <label className={labelCls}>Additional Dirs</label>
                   <input
                     type="text"
-                    value={form.baseline_branch}
-                    onChange={(e) => update("baseline_branch", e.target.value)}
-                    disabled={isFieldDisabled("baseline_branch")}
-                    placeholder="e.g. origin/feature/1.x.x"
-                    className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
+                    value={form.read_dirs}
+                    onChange={(e) => update("read_dirs", e.target.value)}
+                    disabled={isFieldDisabled("read_dirs")}
+                    placeholder="/path/to/other/repo, /path/to/docs"
+                    className={inputCls}
                   />
-                  {renderFieldError("baseline_branch")}
+                  <p className="mt-1 text-caption text-text-secondary">
+                    额外授予 Claude Code 只读访问的目录（逗号分隔），映射到 <code className="text-xs">--add-dir</code>。仅 Project
+                    Worktree 可写，这些目录均为只读。
+                  </p>
                 </div>
-              </div>
+              </>
             )}
 
             {/* ── Verification ── */}
