@@ -643,19 +643,30 @@ class ClaudeCodeService:
             options.resume = config.resume_session_id
         if config.model:
             options.model = config.model
-        # 额外只读源目录（镜像 CLI --add-dir）。新版 SDK 暴露 ``add_dirs``（list[str | Path]）；
-        # 旧版无该字段时仅告警——CLI 才是当前已装且权威的执行路径。
+        # 额外只读源目录（镜像 CLI --add-dir）。新版 SDK 暴露 ``add_dirs``（list[str | Path]）。
+        # 旧版无该字段时 **fail-loud**：配置了 read_dirs 却无法透传，等同让 CC「盲跑」缺失必需的
+        # 源访问，违反「配置即必然添加」契约——宁可显式失败，不可静默降级（异常经 invoke 的
+        # except 归一化为 error 结果，迭代干净失败并带明确信息）。
         if config.add_dirs:
             if hasattr(options, "add_dirs"):
                 options.add_dirs = list(config.add_dirs)
             else:
-                logger.warning(
-                    "claude_code_sdk_add_dirs_unsupported",
-                    reason="ClaudeCodeOptions has no 'add_dirs'; CLI path authoritative",
+                raise RuntimeError(
+                    "claude_code_sdk too old: ClaudeCodeOptions has no 'add_dirs'; "
+                    "configured read_dirs cannot be passed — refusing to run without the "
+                    "required read-only source access (upgrade the SDK or use the CLI path)."
                 )
-        # settings.json（承载只读 deny 规则）；新版 SDK 暴露 ``settings``。
-        if config.settings and hasattr(options, "settings"):
-            options.settings = config.settings
+        # settings.json（承载只读 deny 规则）；新版 SDK 暴露 ``settings``。无该字段时同样 **fail-loud**：
+        # 只读 deny 无法施加 ⇒ 源目录会变为可写，破坏 add_dirs 的只读安全契约，宁可显式失败。
+        if config.settings:
+            if hasattr(options, "settings"):
+                options.settings = config.settings
+            else:
+                raise RuntimeError(
+                    "claude_code_sdk too old: ClaudeCodeOptions has no 'settings'; "
+                    "read-only deny rules cannot be applied — refusing to run, source "
+                    "would be writable (upgrade the SDK or use the CLI path)."
+                )
         # 镜像 CLI 路径：注入真实 Anthropic 凭证。优先经 SDK 的 ``options.env``（避免全局 os.environ
         # 突变带来的并发不安全）；旧版 SDK 无该字段时仅告警——CLI 才是当前已装且权威的执行路径。
         if config.credential:
