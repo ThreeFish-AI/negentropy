@@ -12,6 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import sys
+import types
 
 import pytest
 
@@ -22,6 +25,7 @@ from negentropy.engine.claude_code.service import (
     ClaudeCodeService,
     _classify_result_error,
 )
+from negentropy.engine.routine.orchestrator import _build_readonly_settings, _normalize_read_dirs
 
 pytestmark = pytest.mark.asyncio
 
@@ -1279,3 +1283,125 @@ async def test_invoke_cli_interactive_reconstruction_preserves_add_dirs_and_sett
     argv = captured["args"]
     assert "--add-dir" in argv and "/src/go" in argv, "交互式重建后 --add-dir 不可丢失"
     assert "--settings" in argv and settings_json in argv, "交互式重建后 --settings 不可丢失"
+
+
+# ---------------------------------------------------------------------------
+# SDK 路径 fail-loud（add_dirs / settings 无法兑现时拒绝静默降级）
+#
+# 根因：SDK 路径此前在旧版 ClaudeCodeOptions 缺 add_dirs/settings 字段时仅 logger.warning
+# 后继续 → 会静默丢弃 read_dirs（违反「配置即必然添加」）且丢弃只读 deny（源码变为可写）。
+# 加固：改为 raise，让无法兑现「必然」契约的执行显式失败（经 invoke 归一化为 error 结果）。
+# 注：现网未装 SDK（_check_sdk False → CLI 权威路径），此分支为防御性兜底，下方以桩模块覆盖。
+# ---------------------------------------------------------------------------
+
+
+def _make_fake_sdk(*, supports_add_dirs: bool, supports_settings: bool) -> types.ModuleType:
+    """构造桩 ``claude_code_sdk`` 模块：``ClaudeCodeOptions`` 按需暴露/缺失 add_dirs/settings。
+
+    缺失即不预置该属性，使 ``hasattr(options, ...)`` 落空，命中 fail-loud 分支。
+    ``query`` 为空 async 生成器（健全性路径不产出任何消息即收尾）。
+    """
+    mod = types.ModuleType("claude_code_sdk")
+
+    class _Options:
+        def __init__(self, **kwargs: object) -> None:
+            # 仅当声明「支持」时预置属性，精确控制 hasattr 命中/落空。
+            if supports_add_dirs:
+                self.add_dirs = None
+            if supports_settings:
+                self.settings = None
+
+    async def _query(prompt: str, options: object):
+        # 不产出任何消息（空 async 生成器）；健全性路径下 _invoke_sdk 直接收尾。
+        return
+        yield  # pragma: no cover — 仅为使函数成为 async 生成器
+
+    mod.ClaudeCodeOptions = _Options
+    mod.query = _query
+    return mod
+
+
+async def test_invoke_sdk_raises_when_add_dirs_unsupported(monkeypatch):
+    """配置了 read_dirs(add_dirs) 但 SDK 的 ClaudeCodeOptions 无 add_dirs 字段 → 必须 raise，
+    而非告警继续盲跑（缺失必需的只读源访问）。"""
+    monkeypatch.setitem(
+        sys.modules,
+        "claude_code_sdk",
+        _make_fake_sdk(supports_add_dirs=False, supports_settings=True),
+    )
+    cfg = ClaudeCodeConfig(add_dirs=["/src/go"])
+    with pytest.raises(RuntimeError, match="add_dirs"):
+        await ClaudeCodeService._invoke_sdk("ping", cfg, None)
+
+
+async def test_invoke_sdk_raises_when_settings_unsupported(monkeypatch):
+    """配置了只读 deny settings 但 SDK 的 ClaudeCodeOptions 无 settings 字段 → 必须 raise
+    （否则只读锁无法施加，源目录变为可写，破坏 add_dirs 的安全契约）。"""
+    monkeypatch.setitem(
+        sys.modules,
+        "claude_code_sdk",
+        _make_fake_sdk(supports_add_dirs=True, supports_settings=False),
+    )
+    cfg = ClaudeCodeConfig(settings='{"permissions": {"deny": ["Edit(//src/**)"]}}')
+    with pytest.raises(RuntimeError, match="settings"):
+        await ClaudeCodeService._invoke_sdk("ping", cfg, None)
+
+
+async def test_invoke_sdk_ok_when_options_support_fields(monkeypatch):
+    """反向健全性：新版 SDK（ClaudeCodeOptions 具备 add_dirs/settings）下，配置 add_dirs+settings
+    不抛异常、正常透传并收尾（证明 fail-loud 是条件触发，而非无差别报错）。"""
+    monkeypatch.setitem(
+        sys.modules,
+        "claude_code_sdk",
+        _make_fake_sdk(supports_add_dirs=True, supports_settings=True),
+    )
+    cfg = ClaudeCodeConfig(
+        add_dirs=["/src/go"],
+        settings='{"permissions": {"deny": ["Edit(//src/go/**)"]}}',
+    )
+    result = await ClaudeCodeService._invoke_sdk("ping", cfg, None)
+    assert result.status == "success"
+
+
+# ---------------------------------------------------------------------------
+# read_dirs → add_dirs → --add-dir 全链双向契约（复刻 orchestrator._build_config 装配）
+#
+# 既有测试分别覆盖 _normalize_read_dirs / _build_readonly_settings / _build_cli_args；此处把
+# 三者按 orchestrator._build_config(1358-1362) 的真实装配串起，锁定「用户原始 read_dirs →
+# 子进程 argv」端到端属性，且双向：配置→逐目录 --add-dir + 只读 deny；未配置→零 --add-dir。
+# ---------------------------------------------------------------------------
+
+
+def _config_from_read_dirs(raw: object) -> ClaudeCodeConfig:
+    """以真实生产函数复刻 orchestrator._build_config(1358-1362) 的 add_dirs/settings 门控装配。"""
+    read_dirs = _normalize_read_dirs(raw)
+    cfg = ClaudeCodeConfig()
+    if read_dirs:  # 仅配置非空时才接线（与 orchestrator 一致）
+        cfg.add_dirs = read_dirs
+        cfg.settings = _build_readonly_settings(read_dirs)
+    return cfg
+
+
+async def test_read_dirs_configured_chains_to_add_dir_and_readonly_deny():
+    """配置 read_dirs（含空白/重复/空项）→ 归一化后逐目录 --add-dir + 每目录只读 Edit deny。"""
+    cfg = _config_from_read_dirs(["  /src/go  ", "/src/go", "/src/docs", " "])
+    # 归一化：strip + 绝对化 + 去重 + 滤空
+    assert cfg.add_dirs == [os.path.abspath("/src/go"), os.path.abspath("/src/docs")]
+
+    args = ClaudeCodeService._build_cli_args("g", cfg)
+    add_idxs = [i for i, a in enumerate(args) if a == "--add-dir"]
+    assert {args[i + 1] for i in add_idxs} == set(cfg.add_dirs)
+    # 只读 deny 经 --settings 注入，且逐目录覆盖
+    assert "--settings" in args
+    deny = json.loads(args[args.index("--settings") + 1])["permissions"]["deny"]
+    assert deny == [f"Edit(//{d.lstrip('/')}/**)" for d in cfg.add_dirs]
+
+
+async def test_read_dirs_unconfigured_chains_to_zero_add_dir():
+    """未配置（None/空/纯空白/全空项）→ add_dirs 不设、无只读 settings → argv 零 --add-dir。"""
+    for raw in (None, {}, [], "", "   ", ["", "  "]):
+        cfg = _config_from_read_dirs(raw)
+        assert cfg.add_dirs is None, f"未配置 {raw!r} 不应设 add_dirs"
+        assert cfg.settings is None, f"未配置 {raw!r} 不应注入只读 settings"
+        args = ClaudeCodeService._build_cli_args("g", cfg)
+        assert "--add-dir" not in args, f"未配置 {raw!r} 不应出现 --add-dir"
