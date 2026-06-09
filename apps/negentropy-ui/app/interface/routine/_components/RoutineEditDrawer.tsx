@@ -508,20 +508,33 @@ export function RoutineEditDrawer({
         const id = mode.kind === "routine-edit" ? mode.routine.id : mode.template.id;
 
         if (isRunning) {
-          // Running 状态下：仅提交运行时安全字段（与后端 _RUNTIME_SAFE_FIELDS 对齐）。
-          // 非安全字段的脏变更保留在 form 草稿中，待 pause 后提交。
-          const safeBase: Record<string, unknown> = {};
+          // Running 状态下仅提交「相对 baseline 真正变更」的运行时安全字段（与后端 _RUNTIME_SAFE_FIELDS 对齐）：
+          // ① 非安全字段的脏变更保留在 form 草稿中，待 pause 后提交；
+          // ② 只发变更字段而非全量安全集，避免抽屉打开期间他端对 title / description / deadline_at 等的并发修改被旧值覆盖。
+          const safePatch: Record<string, unknown> = {};
           for (const [k, v] of Object.entries(base)) {
-            if (RUNTIME_SAFE_FIELDS.has(k)) {
-              safeBase[k] = v;
+            const fk = k as keyof FormState;
+            if (RUNTIME_SAFE_FIELDS.has(k) && JSON.stringify(form[fk]) !== JSON.stringify(baseline[fk])) {
+              safePatch[k] = v;
             }
           }
-          result = await updateRoutine(id, safeBase as RoutineUpdatePayload);
+          result = await updateRoutine(id, safePatch as RoutineUpdatePayload);
         } else {
           result = await updateRoutine(id, base as RoutineUpdatePayload);
         }
         toast.success(entity === "template" ? "Template updated" : isRunning ? "Runtime params updated" : "Routine updated");
-        setBaseline(form); // 重置脏基线（edit 类抽屉保持打开）
+        // 脏基线重置（edit 类抽屉保持打开）：运行态仅重置安全字段，保留非安全字段的草稿脏态
+        // （pause 后 Save 按钮仍会出现、关闭仍会弹「Discard changes?」）；非运行态整表单重置。
+        if (isRunning) {
+          // 仅把安全字段并入基线（form 的安全字段值即已提交值）；非安全字段基线保持不变 → 其草稿仍计脏。
+          const merged: FormState = { ...baseline };
+          const draft = form as unknown as Record<string, unknown>;
+          const target = merged as unknown as Record<string, unknown>;
+          for (const k of RUNTIME_SAFE_FIELDS) target[k] = draft[k];
+          setBaseline(merged);
+        } else {
+          setBaseline(form);
+        }
       } else {
         // 含：routine-create / template-create / use-template / 内置模板「另存为我的模板」(copy-on-write)
         result = await createRoutine({ ...base, key: form.key.trim() } as RoutineCreatePayload);
@@ -710,7 +723,7 @@ export function RoutineEditDrawer({
 
             {/* ── Objective（视觉重心）── */}
             <div>
-              <label className={labelCls}>Goal{reqMark}</label>
+              <label className={labelCls}>Goal{!isFieldDisabled("goal") && reqMark}</label>
               <textarea
                 value={form.goal}
                 onChange={(e) => update("goal", e.target.value)}
@@ -722,7 +735,7 @@ export function RoutineEditDrawer({
               {renderFieldError("goal")}
             </div>
             <div>
-              <label className={labelCls}>Acceptance Criteria{reqMark}</label>
+              <label className={labelCls}>Acceptance Criteria{!isFieldDisabled("acceptance_criteria") && reqMark}</label>
               <textarea
                 value={form.acceptance_criteria}
                 onChange={(e) => update("acceptance_criteria", e.target.value)}
@@ -739,7 +752,7 @@ export function RoutineEditDrawer({
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelCls}>Project Path{requireWorktree && reqMark}</label>
+                    <label className={labelCls}>Project Path{requireWorktree && !isFieldDisabled("cwd") && reqMark}</label>
                     <input
                       type="text"
                       value={form.cwd}
@@ -751,7 +764,7 @@ export function RoutineEditDrawer({
                     {renderFieldError("cwd")}
                   </div>
                   <div>
-                    <label className={labelCls}>Baseline Branch{requireWorktree && reqMark}</label>
+                    <label className={labelCls}>Baseline Branch{requireWorktree && !isFieldDisabled("baseline_branch") && reqMark}</label>
                     <input
                       type="text"
                       value={form.baseline_branch}
@@ -1101,7 +1114,7 @@ export function RoutineEditDrawer({
                 Use
               </Button>
             )}
-            {hasRuntimeSafeDirty && (
+            {(op === "create" || isBuiltinTemplate || hasRuntimeSafeDirty) && (
               <Button type="submit" variant="primary" size="sm" loading={loading}>
                 {isBuiltinTemplate
                   ? "Save as my copy"
