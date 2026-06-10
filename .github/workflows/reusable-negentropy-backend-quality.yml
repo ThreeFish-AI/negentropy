@@ -31,6 +31,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
         run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
@@ -93,6 +94,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
         run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
@@ -140,6 +142,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
         run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
