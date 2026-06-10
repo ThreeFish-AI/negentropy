@@ -10,7 +10,8 @@
 #
 # 前置条件:
 #   1. 复制 .env.docker 为 .env.docker.local 并填写 API 密钥
-#   2. Docker Engine >= 24.0 (Compose V2 内置)
+#      （.local 已被 .gitignore 忽略，经 env_file 叠加加载并覆盖 .env.docker 同名项）
+#   2. Docker Engine >= 24.0 且 Docker Compose >= 2.24（env_file required 语法要求）
 # =============================================================================
 
 services:
@@ -38,6 +39,7 @@ services:
 
   # ── Perceives — MCP Server（Web/PDF 内容提取） ─────────────────────────────
   perceives:
+    image: threefishai/negentropy-perceives:${NEGENTROPY_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/perceives/Dockerfile
@@ -50,8 +52,12 @@ services:
     env_file:
       - path: .env.docker
         required: false
+      - path: .env.docker.local
+        required: false
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:2992/"]
+      # FastMCP 无根路由（GET / 返回 404），以 MCP 端点 /mcp 的状态码探活：
+      # GET 缺 MCP Accept 头时返回 406，即可证明 ASGI 服务已就绪
+      test: ["CMD-SHELL", "case $(curl -s -o /dev/null -w '%{http_code}' http://localhost:2992/mcp) in 200|307|405|406) exit 0;; *) exit 1;; esac"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -60,6 +66,7 @@ services:
 
   # ── Backend — Google ADK Web Server（核心 Agent 平台） ──────────────────────
   backend:
+    image: threefishai/negentropy-backend:${NEGENTROPY_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
@@ -76,6 +83,8 @@ services:
     env_file:
       - path: .env.docker
         required: false
+      - path: .env.docker.local
+        required: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +100,7 @@ services:
 
   # ── UI — Next.js 主聊天前端 ────────────────────────────────────────────────
   ui:
+    image: threefishai/negentropy-ui:${NEGENTROPY_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
@@ -118,6 +128,7 @@ services:
 
   # ── Wiki — Next.js 知识库前端 ──────────────────────────────────────────────
   wiki:
+    image: threefishai/negentropy-wiki:${NEGENTROPY_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
