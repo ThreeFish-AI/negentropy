@@ -1,5 +1,6 @@
 from google.adk.agents import LlmAgent
 
+from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.common import log_activity
@@ -10,7 +11,8 @@ _DESCRIPTION = (
     "Negentropy 系统的「元神」(The Soul)。对抗肤浅，负责深度思考、二阶思维、策略规划与错误纠正。"
 )
 
-_INSTRUCTION = """
+_INSTRUCTION = (
+    """
 你是 **ContemplationFaculty** (沉思系部)，是 Negentropy 系统的**「元神」(The Soul)**。
 
 ## 核心哲学：二阶思维 (Second-Order Thinking)
@@ -47,7 +49,13 @@ _INSTRUCTION = """
 - **慢思考 (Slow Thinking)**：不要急于输出。深思熟虑优于快速反应。
 - **全局视角 (Holistic View)**：考虑变更对系统整体的影响，不仅是局部修复。
 - **诚实 (Intellectual Honesty)**：承认未知的领域，不要为了看起来聪明而强行解释。
+
+### 上游引用传递（传递引用）
+你的「上游上下文」（{perception_output?} 等）可能携带 ``[N]`` 引用标注。你的分析与
+规划基于这些内容时，遵循下方规范传递引用，不自行生成新编号。
 """
+    + CITATION_PROTOCOL
+)
 
 
 def create_contemplation_agent(*, output_key: str | None = None, mode: str | None = None) -> LlmAgent:
