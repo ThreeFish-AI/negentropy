@@ -251,3 +251,70 @@ async def test_search_knowledge_base_injects_citation_fields():
     assert second["citation_id"] == 2
     assert "[2]" in second["formatted_citation"]
     assert "arXiv:2310.04406" in second["formatted_citation"]
+
+
+# ----------------------------------------------------------------------------
+# _fallback_to_memory_search 注入 Memory 风格 citation
+# ----------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fallback_to_memory_search_injects_memory_citations():
+    """memory fallback 路径须为每条结果注入 citation_id + Memory 风格 formatted_citation。"""
+    from types import SimpleNamespace
+
+    from negentropy.agents.tools import perception as perception_module
+
+    entry_1 = SimpleNamespace(
+        id="a1b2c3d4-5678-90ab-cdef-1234567890ab",
+        content={"parts": [{"text": "用户偏好 async-first 架构，模块统一走 asyncio。"}]},
+        timestamp="2026-05-12T08:00:00Z",
+        custom_metadata={"memory_type": "semantic"},
+    )
+    entry_2 = SimpleNamespace(
+        id="deadbeef-0000-0000-0000-000000000000",
+        content={"parts": [{"text": "Routine 收尾前必须运行 ruff 与 pytest。"}]},
+        timestamp="2026-06-01T00:00:00Z",
+        custom_metadata={"memory_type": "procedural"},
+    )
+
+    ctx = MagicMock()
+    ctx.search_memory = AsyncMock(return_value=SimpleNamespace(memories=[entry_1, entry_2]))
+
+    with patch(
+        "negentropy.engine.adapters.postgres.context_assembler.ContextAssembler.get_memory_summary",
+        new=AsyncMock(return_value=""),
+    ):
+        result = await perception_module._fallback_to_memory_search("async 架构", 5, ctx)
+
+    assert result["status"] == "success"
+    assert result["search_mode"] == "memory_fallback"
+    assert result["count"] == 2
+
+    first = result["results"][0]
+    assert first["citation_id"] == 1
+    assert first["formatted_citation"] == "[1] Memory a1b2c3d4, semantic, 2026-05-12"
+    assert first["created_at"] == "2026-05-12T08:00:00Z"
+    assert first["source_uri"] is None  # Memory 无 URI，前端 fail-soft 渲染纯文本
+
+    second = result["results"][1]
+    assert second["citation_id"] == 2
+    assert second["formatted_citation"] == "[2] Memory deadbeef, procedural, 2026-06-01"
+
+
+@pytest.mark.asyncio
+async def test_fallback_to_memory_search_without_search_memory_capability():
+    """tool_context 无 search_memory 时返回空结果（无 citation 注入，不抛异常）。"""
+    from negentropy.agents.tools import perception as perception_module
+
+    ctx = MagicMock(spec=[])  # 无 search_memory 属性
+
+    with patch(
+        "negentropy.engine.adapters.postgres.context_assembler.ContextAssembler.get_memory_summary",
+        new=AsyncMock(return_value=""),
+    ):
+        result = await perception_module._fallback_to_memory_search("query", 5, ctx)
+
+    assert result["status"] == "success"
+    assert result["count"] == 0
+    assert result["results"] == []
