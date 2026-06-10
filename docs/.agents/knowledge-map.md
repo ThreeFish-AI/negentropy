@@ -23,6 +23,7 @@
 - [SSO（单点登录设计）](../concepts/design/sso.md)
 - [Observability / GenAI 可观测性](../concepts/design/observability-genai.md)
 - [QA Delivery Pipeline](../concepts/design/qa-delivery-pipeline.md)
+- [Docker Release Pipeline](../concepts/design/docker-release-pipeline.md) — compose 栈 4 镜像（backend / perceives / ui / wiki）的多架构构建与 Docker Hub 发布：PR 构建校验 + tag 发布双入口，amd64+arm64 原生 runner + digest 合并 + provenance/SBOM
 - [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md) — Playwright MCP 全系统默认配备：单一注入点（builtin_tools.mcp_config）provision 至 Routine / Scheduler / 6 Agents，用于浏览器实机回归验证
 
 ## 系统能力概览
