@@ -1064,7 +1064,7 @@ def _build_canonical_request(
     *,
     source_kind: SourceKind,
     app_name: str,
-    corpus_id: UUID,
+    corpus_id: UUID | None,
     tool_options: dict[str, Any],
     url: str | None,
     content: bytes | None,
@@ -1081,9 +1081,10 @@ def _build_canonical_request(
             content_base64=base64.b64encode(content).decode("ascii") if content is not None else None,
         ),
         options=dict(tool_options),
+        # 库文档（corpus_id=None）不下发 corpus_id，避免 MCP 工具收到字面量 "None"
         context={
             "app_name": app_name,
-            "corpus_id": str(corpus_id),
+            **({"corpus_id": str(corpus_id)} if corpus_id else {}),
         },
     )
 
@@ -1951,7 +1952,7 @@ class DataExtractorProvider:
         self,
         *,
         app_name: str,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         source_kind: SourceKind,
         corpus_config: dict[str, Any] | None,
         url: str | None = None,
@@ -2057,7 +2058,7 @@ class DataExtractorProvider:
         self,
         *,
         app_name: str,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         target: McpToolTarget,
         source_kind: SourceKind,
         url: str | None,
@@ -2520,7 +2521,7 @@ class DataExtractorProvider:
 async def extract_source(
     *,
     app_name: str,
-    corpus_id: UUID,
+    corpus_id: UUID | None,
     corpus_config: dict[str, Any] | None,
     source_kind: SourceKind,
     url: str | None = None,

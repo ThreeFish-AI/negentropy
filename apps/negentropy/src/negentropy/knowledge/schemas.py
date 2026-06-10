@@ -88,6 +88,22 @@ class IngestUrlRequest(_LegacyChunkingRequest):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class ImportUrlRequest(BaseModel):
+    """导入 URL 至文档库（仅转换为 Markdown 并存储，不做索引）。"""
+
+    app_name: str | None = None
+    url: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class IngestDocumentRequest(_LegacyChunkingRequest):
+    """将既有 Document（库文档或任意 Corpus 文档）的 Markdown 索引进目标 Corpus。"""
+
+    app_name: str | None = None
+    document_id: UUID
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class ReplaceSourceRequest(_LegacyChunkingRequest):
     app_name: str | None = None
     text: str
@@ -583,10 +599,13 @@ class GraphQualityResponse(BaseModel):
 
 
 class DocumentResponse(BaseModel):
-    """文档元信息响应模型"""
+    """文档元信息响应模型
+
+    ``corpus_id`` 为 ``None`` 时表示独立文档库（Library）文档。
+    """
 
     id: UUID
-    corpus_id: UUID
+    corpus_id: UUID | None = None
     app_name: str
     file_hash: str
     original_filename: str

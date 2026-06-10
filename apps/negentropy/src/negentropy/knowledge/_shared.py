@@ -539,6 +539,15 @@ async def _resolve_default_extractor_routes() -> dict[str, Any]:
     return resolved_routes
 
 
+async def _resolve_library_extractor_config() -> dict[str, Any]:
+    """库文档（corpus_id=None）的提取配置单一来源。
+
+    Import Document / 库文档 refresh_markdown 无 Corpus 配置可读，
+    统一复用 Corpus 创建时的默认 extractor_routes 解析逻辑。
+    """
+    return {"extractor_routes": await _resolve_default_extractor_routes()}
+
+
 # ── Additional singleton getters (originally scattered in route modules) ──
 
 _kg_entity_service: KgEntityService | None = None
@@ -724,11 +733,14 @@ async def _resolve_documents_archived_set(
     """批量解析一批文档的归档状态，返回已归档的 ``(corpus_id, source_uri)`` 集合。
 
     单一事实源——复用与 ``SourceSummary.archived`` 同款聚合逻辑，避免前端做映射。
-    若 ``source_uri`` 无法解析（极端老数据），该文档默认按未归档处理。
+    若 ``source_uri`` 无法解析（极端老数据），该文档默认按未归档处理；
+    库文档（``corpus_id IS NULL``）无本 corpus chunks，恒为未归档。
     """
     pairs: list[tuple[UUID, str]] = []
     seen: set[tuple[UUID, str]] = set()
     for doc in docs:
+        if doc.corpus_id is None:
+            continue
         source_uri = _resolve_document_source_uri(doc)
         if not source_uri:
             continue
@@ -810,7 +822,12 @@ async def _extract_and_store_document_markdown_from_gcs(
 
     try:
         service = _get_service()
-        corpus_config = await service._get_corpus_config(doc.corpus_id)
+        # 库文档（corpus_id=None）无 Corpus 配置，回退默认 extractor_routes
+        corpus_config = (
+            await service._get_corpus_config(doc.corpus_id)
+            if doc.corpus_id is not None
+            else await _resolve_library_extractor_config()
+        )
         source_kind = resolve_source_kind(
             filename=doc.original_filename,
             content_type=doc.content_type,
