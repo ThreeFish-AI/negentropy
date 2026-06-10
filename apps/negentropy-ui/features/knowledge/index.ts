@@ -48,6 +48,9 @@ export {
   ingestText,
   ingestUrl,
   ingestFile,
+  ingestDocument,
+  importDocumentUrl,
+  importDocumentFile,
   replaceSource,
   syncSource,
   rebuildSource,
@@ -120,6 +123,8 @@ export {
   fetchWikiNavTree,
   fetchWikiEntryContent,
   syncWikiEntriesFromCatalog,
+  // Document Library
+  LIBRARY_CORPUS_SEGMENT,
 } from "./utils/knowledge-api";
 
 // ============================================================================

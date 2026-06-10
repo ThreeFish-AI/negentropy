@@ -26,6 +26,7 @@ import {
   ingestText,
   ingestUrl,
   ingestFile as ingestFileApi,
+  ingestDocument as ingestDocumentApi,
   replaceSource,
   syncSource as syncSourceApi,
   rebuildSource as rebuildSourceApi,
@@ -109,6 +110,11 @@ export interface UseKnowledgeBaseReturnValue {
     file: File;
     source_uri?: string;
     metadata?: Record<string, unknown>;
+    chunkingConfig?: ChunkingConfig;
+  }) => Promise<AsyncPipelineResult>;
+  /** 摄取既有 Document（异步；库文档或跨 Corpus 文档，chunks 建在当前 Corpus） */
+  ingestDocument: (params: {
+    document_id: string;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<AsyncPipelineResult>;
   /** 替换源文本（异步） */
@@ -393,6 +399,35 @@ export function useKnowledgeBase(
     [activeCorpusId, appName, onError],
   );
 
+  // 摄取既有 Document（跨 Corpus 摄入：chunks 建在当前 Corpus，文档本体不动）
+  const ingestDocumentHandler = useCallback(
+    async (params: {
+      document_id: string;
+      chunkingConfig?: ChunkingConfig;
+    }) => {
+      if (!activeCorpusId) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await ingestDocumentApi(activeCorpusId, {
+          app_name: appName,
+          document_id: params.document_id,
+          ...toChunkingPayload(params.chunkingConfig),
+        });
+        setState({ isLoading: false, error: null });
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [activeCorpusId, appName, onError],
+  );
+
   // 替换源文本
   const replaceSourceHandler = useCallback(
     async (params: {
@@ -585,6 +620,7 @@ export function useKnowledgeBase(
       ingestText: ingestTextHandler,
       ingestUrl: ingestUrlHandler,
       ingestFile: ingestFileHandler,
+      ingestDocument: ingestDocumentHandler,
       replaceSource: replaceSourceHandler,
       syncSource: syncSourceHandler,
       rebuildSource: rebuildSourceHandler,
@@ -605,6 +641,7 @@ export function useKnowledgeBase(
       ingestTextHandler,
       ingestUrlHandler,
       ingestFileHandler,
+      ingestDocumentHandler,
       replaceSourceHandler,
       syncSourceHandler,
       rebuildSourceHandler,

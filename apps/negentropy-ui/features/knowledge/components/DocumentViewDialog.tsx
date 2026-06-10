@@ -259,8 +259,11 @@ export function DocumentViewDialog({
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="shrink-0 text-text-muted">Corpus</span>
-            <span className="truncate font-mono font-medium text-foreground" title={viewedDoc.corpus_id}>
-              {truncateHash(viewedDoc.corpus_id)}
+            <span
+              className="truncate font-mono font-medium text-foreground"
+              title={viewedDoc.corpus_id ?? "Library"}
+            >
+              {viewedDoc.corpus_id ? truncateHash(viewedDoc.corpus_id) : "Library"}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">

@@ -47,6 +47,7 @@ import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { IngestFileDialog } from "./_components/IngestFileDialog";
+import { IngestDocumentDialog } from "./_components/IngestDocumentDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { CorpusSettingsPanel } from "./_components/CorpusSettingsPanel";
 import { CorpusStatusBadge } from "./_components/CorpusStatusBadge";
@@ -79,6 +80,7 @@ export default function KnowledgeBasePage() {
     deleteCorpus: deleteCorpusById,
     ingestUrl,
     ingestFile,
+    ingestDocument,
   } = useKnowledgeBase({ appName: APP_NAME });
 
   const [viewMode, setViewMode] = useState<ViewMode>("overview");
@@ -118,6 +120,7 @@ export default function KnowledgeBasePage() {
   const [isDeleteCorpusDialogOpen, setIsDeleteCorpusDialogOpen] = useState(false);
   const [isIngestUrlDialogOpen, setIsIngestUrlDialogOpen] = useState(false);
   const [isIngestFileDialogOpen, setIsIngestFileDialogOpen] = useState(false);
+  const [isIngestDocumentDialogOpen, setIsIngestDocumentDialogOpen] = useState(false);
   const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
   const [isDeleteDocumentDialogOpen, setIsDeleteDocumentDialogOpen] = useState(false);
@@ -862,6 +865,12 @@ export default function KnowledgeBasePage() {
                       >
                         Ingest From File
                       </button>
+                      <button
+                        onClick={() => setIsIngestDocumentDialogOpen(true)}
+                        className={outlineButtonClassName("neutral", "rounded px-3 py-1.5 text-xs")}
+                      >
+                        Ingest From Document
+                      </button>
                     </div>
                   </div>
 
@@ -1139,6 +1148,20 @@ export default function KnowledgeBasePage() {
         chunkingConfig={corpusChunkingConfig}
         onSuccess={() => setIsIngestFileDialogOpen(false)}
         title="Ingest From File"
+      />
+
+      <IngestDocumentDialog
+        isOpen={isIngestDocumentDialogOpen}
+        corpusId={selectedCorpusId}
+        onClose={() => setIsIngestDocumentDialogOpen(false)}
+        onIngestDocument={(params) =>
+          ingestDocument(params).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        chunkingConfig={corpusChunkingConfig}
+        onSuccess={() => setIsIngestDocumentDialogOpen(false)}
       />
 
       <CorpusFormDialog

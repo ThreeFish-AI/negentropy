@@ -745,6 +745,8 @@ export type PipelineOperation =
   | "ingest_text"
   | "ingest_url"
   | "ingest_file"
+  | "ingest_document"
+  | "import_document"
   | "replace_source"
   | "sync_source"
   | "rebuild_source";
@@ -1260,13 +1262,79 @@ export async function ingestFile(
   return handleKnowledgeError(res);
 }
 
+/**
+ * 导入 URL 至文档库（仅转换为 Markdown 并存储，不做索引）。
+ * 异步管线：立即返回 run_id，可在 Pipeline 页查看 import_document 进度。
+ */
+export async function importDocumentUrl(params: {
+  app_name?: string;
+  url: string;
+  metadata?: Record<string, unknown>;
+}): Promise<AsyncPipelineResult> {
+  const res = await fetch(`/api/knowledge/documents/import_url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 导入文件（PDF / Markdown）至文档库（仅转换为 Markdown 并存储，不做索引）。
+ */
+export async function importDocumentFile(params: {
+  app_name?: string;
+  file: File;
+}): Promise<AsyncPipelineResult> {
+  const formData = new FormData();
+  if (params.app_name) formData.set("app_name", params.app_name);
+  formData.set("file", params.file);
+
+  const res = await fetch(`/api/knowledge/documents/import_file`, {
+    method: "POST",
+    body: formData, // 不设置 Content-Type，让浏览器自动处理 multipart/form-data
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 将既有 Document（库文档或任意 Corpus 文档）的 Markdown 索引进目标 Corpus。
+ * chunks 建在目标 Corpus，文档本体不动；replace 模式幂等重摄入。
+ */
+export async function ingestDocument(
+  corpusId: string,
+  params: {
+    app_name?: string;
+    document_id: string;
+  } & ChunkingRequestFields,
+): Promise<AsyncPipelineResult> {
+  const { app_name, document_id, ...chunkingParams } = params;
+  const res = await fetch(`/api/knowledge/base/${corpusId}/ingest_document`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      app_name,
+      document_id,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
+  });
+  return handleKnowledgeError(res);
+}
+
 // ============================================================================
 // Document Management Types
 // ============================================================================
 
+/**
+ * 文档详情路由中库文档（corpus_id=null）的哨兵段：
+ * `/knowledge/documents/library/{documentId}`。
+ */
+export const LIBRARY_CORPUS_SEGMENT = "library";
+
 export interface KnowledgeDocument {
   id: string;
-  corpus_id: string;
+  /** 为 null 时表示独立文档库（Library）文档，不归属任何 Corpus。 */
+  corpus_id: string | null;
   app_name: string;
   file_hash: string;
   original_filename: string;
@@ -1416,8 +1484,18 @@ export async function fetchAllDocuments(
   return handleKnowledgeError(res);
 }
 
+/**
+ * 文档操作 API 路径：库文档（corpusId=null）走无 corpus 平行路由，
+ * 其余走 corpus 作用域路由。库文档分支收敛于此单一函数。
+ */
+function documentApiBase(corpusId: string | null, documentId: string): string {
+  return corpusId
+    ? `/api/knowledge/base/${corpusId}/documents/${documentId}`
+    : `/api/knowledge/documents/${documentId}`;
+}
+
 export async function deleteDocument(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1429,7 +1507,7 @@ export async function deleteDocument(
   if (params?.hardDelete) query.set("hard_delete", "true");
 
   const res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    `${documentApiBase(corpusId, documentId)}?${query.toString()}`,
     { method: "DELETE" },
   );
   if (!res.ok) {
@@ -1438,7 +1516,7 @@ export async function deleteDocument(
 }
 
 export async function fetchDocumentDetail(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1448,7 +1526,7 @@ export async function fetchDocumentDetail(
   if (params?.appName) query.set("app_name", params.appName);
 
   const res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    `${documentApiBase(corpusId, documentId)}?${query.toString()}`,
     { cache: "no-store" },
   );
   return handleKnowledgeError(res);
@@ -1463,7 +1541,7 @@ export async function fetchDocumentDetail(
  *   `metadata` JSONB；传空字符串清除对应键。
  */
 export async function updateDocument(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   patch: {
     display_name?: string | null;
@@ -1477,7 +1555,7 @@ export async function updateDocument(
   const body: Record<string, unknown> = { ...patch };
   if (params?.appName) body.app_name = params.appName;
 
-  const res = await fetch(`/api/knowledge/base/${corpusId}/documents/${documentId}`, {
+  const res = await fetch(documentApiBase(corpusId, documentId), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -1486,7 +1564,7 @@ export async function updateDocument(
 }
 
 export async function refreshDocumentMarkdown(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1501,23 +1579,18 @@ export async function refreshDocumentMarkdown(
     body: payload,
   };
 
-  let res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh_markdown`,
-    requestInit,
-  );
-  if (res.status === 404) {
+  const base = documentApiBase(corpusId, documentId);
+  let res = await fetch(`${base}/refresh_markdown`, requestInit);
+  if (res.status === 404 && corpusId) {
     // Backward-compatible fallback for deployments using kebab-case route naming.
-    res = await fetch(
-      `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh-markdown`,
-      requestInit,
-    );
+    res = await fetch(`${base}/refresh-markdown`, requestInit);
   }
 
   return handleKnowledgeError(res);
 }
 
 export async function downloadDocument(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1527,7 +1600,7 @@ export async function downloadDocument(
   if (params?.appName) query.set("app_name", params.appName);
 
   const res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}/download?${query.toString()}`,
+    `${documentApiBase(corpusId, documentId)}/download?${query.toString()}`,
   );
 
   if (!res.ok) {

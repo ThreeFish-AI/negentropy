@@ -20,6 +20,7 @@ import type {
 import {
   downloadDocument,
   fetchDocumentDetail,
+  LIBRARY_CORPUS_SEGMENT,
   refreshDocumentMarkdown,
   updateDocument,
 } from "@/features/knowledge/utils/knowledge-api";
@@ -131,7 +132,9 @@ function displayUser(createdBy: string | null, displayName?: string | null): str
 
 export default function DocumentDetailPage() {
   const params = useParams<{ corpusId: string; documentId: string }>();
-  const corpusId = params.corpusId;
+  // 路由段为 "library" 时表示库文档（corpus_id=null），API 走无 corpus 平行路由
+  const corpusId =
+    params.corpusId === LIBRARY_CORPUS_SEGMENT ? null : params.corpusId;
   const documentId = params.documentId;
 
   const [detail, setDetail] = useState<KnowledgeDocumentDetail | null>(null);
@@ -190,7 +193,7 @@ export default function DocumentDetailPage() {
     if (!detail || isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadDocument(detail.corpus_id, detail.id, {
+      await downloadDocument(corpusId, detail.id, {
         appName: requestAppName,
       });
       toast.success(`Downloaded: ${detail.original_filename}`);
@@ -205,7 +208,7 @@ export default function DocumentDetailPage() {
     if (!detail || isRefreshingMarkdown) return;
     setIsRefreshingMarkdown(true);
     try {
-      const result = await refreshDocumentMarkdown(detail.corpus_id, detail.id, {
+      const result = await refreshDocumentMarkdown(corpusId, detail.id, {
         appName: requestAppName,
       });
       toast.success(result.message || "Markdown re-parse started");
@@ -252,7 +255,7 @@ export default function DocumentDetailPage() {
     if (!detail) return;
     setIsSavingMeta(true);
     try {
-      await updateDocument(detail.corpus_id, detail.id, {
+      await updateDocument(corpusId, detail.id, {
         author: metaDraft.author.trim() || null,
         author_url: metaDraft.author_url.trim() || null,
         source_url: metaDraft.source_url.trim() || null,
@@ -266,7 +269,7 @@ export default function DocumentDetailPage() {
     } finally {
       setIsSavingMeta(false);
     }
-  }, [detail, metaDraft, loadDetail]);
+  }, [detail, corpusId, metaDraft, loadDetail]);
 
   const statusBadge = getStatusBadge(detail?.status || "");
   const markdownStatus =
@@ -388,9 +391,15 @@ export default function DocumentDetailPage() {
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="shrink-0 text-text-muted">Corpus</span>
-                <span className="truncate font-mono font-medium text-foreground" title={detail.corpus_id}>
-                  {truncateHash(detail.corpus_id)}
-                </span>
+                {detail.corpus_id ? (
+                  <span className="truncate font-mono font-medium text-foreground" title={detail.corpus_id}>
+                    {truncateHash(detail.corpus_id)}
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-text-secondary">
+                    Library
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="shrink-0 text-text-muted">Storage</span>
