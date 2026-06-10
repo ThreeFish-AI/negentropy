@@ -24,25 +24,49 @@ jobs:
     # ISSUE-111 数据安全防护）无条件 CREATE DATABASE + alembic upgrade head，需可达的
     # Postgres。沿用与 integration/performance 一致的 pgvector 服务（`CREATE EXTENSION
     # vector` 依赖该镜像）；fixture 自建并迁移 `test_db_test`，无需额外 init 步骤。
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
     defaults:
       run:
         working-directory: apps/negentropy
     steps:
+      - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
+        run: |
+          IMAGE="pgvector/pgvector:pg16"
+          MAX_ATTEMPTS=5
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Pulling ${IMAGE} (attempt ${i}/${MAX_ATTEMPTS})..."
+            if docker pull "$IMAGE"; then
+              echo "Pull succeeded."
+              break
+            fi
+            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error::Failed to pull ${IMAGE} after ${MAX_ATTEMPTS} attempts"
+              exit 1
+            fi
+            WAIT=$((i * 10))
+            echo "Pull failed, retrying in ${WAIT}s..."
+            sleep "$WAIT"
+          done
+
+          docker run -d --name postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=test_db \
+            -e POSTGRES_USER=postgres \
+            -p 5432:5432 \
+            "$IMAGE"
+
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in $(seq 1 30); do
+            if docker exec postgres pg_isready -U postgres -q; then
+              echo "PostgreSQL is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::PostgreSQL did not become ready in time"
+          docker logs postgres
+          exit 1
+
       - uses: actions/checkout@v4
 
       - name: Setup Python with uv
@@ -98,25 +122,49 @@ jobs:
     needs: backend-unit
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
     defaults:
       run:
         working-directory: apps/negentropy
     steps:
+      - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
+        run: |
+          IMAGE="pgvector/pgvector:pg16"
+          MAX_ATTEMPTS=5
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Pulling ${IMAGE} (attempt ${i}/${MAX_ATTEMPTS})..."
+            if docker pull "$IMAGE"; then
+              echo "Pull succeeded."
+              break
+            fi
+            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error::Failed to pull ${IMAGE} after ${MAX_ATTEMPTS} attempts"
+              exit 1
+            fi
+            WAIT=$((i * 10))
+            echo "Pull failed, retrying in ${WAIT}s..."
+            sleep "$WAIT"
+          done
+
+          docker run -d --name postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=test_db \
+            -e POSTGRES_USER=postgres \
+            -p 5432:5432 \
+            "$IMAGE"
+
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in $(seq 1 30); do
+            if docker exec postgres pg_isready -U postgres -q; then
+              echo "PostgreSQL is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::PostgreSQL did not become ready in time"
+          docker logs postgres
+          exit 1
+
       - uses: actions/checkout@v4
 
       - name: Setup Python with uv
@@ -157,25 +205,49 @@ jobs:
     needs: backend-integration
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
     defaults:
       run:
         working-directory: apps/negentropy
     steps:
+      - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
+        run: |
+          IMAGE="pgvector/pgvector:pg16"
+          MAX_ATTEMPTS=5
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Pulling ${IMAGE} (attempt ${i}/${MAX_ATTEMPTS})..."
+            if docker pull "$IMAGE"; then
+              echo "Pull succeeded."
+              break
+            fi
+            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error::Failed to pull ${IMAGE} after ${MAX_ATTEMPTS} attempts"
+              exit 1
+            fi
+            WAIT=$((i * 10))
+            echo "Pull failed, retrying in ${WAIT}s..."
+            sleep "$WAIT"
+          done
+
+          docker run -d --name postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=test_db \
+            -e POSTGRES_USER=postgres \
+            -p 5432:5432 \
+            "$IMAGE"
+
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in $(seq 1 30); do
+            if docker exec postgres pg_isready -U postgres -q; then
+              echo "PostgreSQL is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::PostgreSQL did not become ready in time"
+          docker logs postgres
+          exit 1
+
       - uses: actions/checkout@v4
 
       - name: Setup Python with uv
