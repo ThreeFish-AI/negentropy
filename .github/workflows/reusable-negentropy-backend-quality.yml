@@ -28,46 +28,10 @@ jobs:
       run:
         working-directory: apps/negentropy
     steps:
-      - name: Start PostgreSQL (pgvector) with retry
-        working-directory: .
-        run: |
-          IMAGE="pgvector/pgvector:pg16"
-          MAX_ATTEMPTS=5
-          for i in $(seq 1 $MAX_ATTEMPTS); do
-            echo "Pulling ${IMAGE} (attempt ${i}/${MAX_ATTEMPTS})..."
-            if docker pull "$IMAGE"; then
-              echo "Pull succeeded."
-              break
-            fi
-            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
-              echo "::error::Failed to pull ${IMAGE} after ${MAX_ATTEMPTS} attempts"
-              exit 1
-            fi
-            WAIT=$((i * 10))
-            echo "Pull failed, retrying in ${WAIT}s..."
-            sleep "$WAIT"
-          done
-
-          docker run -d --name postgres \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=test_db \
-            -e POSTGRES_USER=postgres \
-            -p 5432:5432 \
-            "$IMAGE"
-
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in $(seq 1 30); do
-            if docker exec postgres pg_isready -U postgres -q; then
-              echo "PostgreSQL is ready."
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::PostgreSQL did not become ready in time"
-          docker logs postgres
-          exit 1
-
       - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL (pgvector) with retry
+        run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
@@ -126,46 +90,10 @@ jobs:
       run:
         working-directory: apps/negentropy
     steps:
-      - name: Start PostgreSQL (pgvector) with retry
-        working-directory: .
-        run: |
-          IMAGE="pgvector/pgvector:pg16"
-          MAX_ATTEMPTS=5
-          for i in $(seq 1 $MAX_ATTEMPTS); do
-            echo "Pulling ${IMAGE} (attempt ${i}/${MAX_ATTEMPTS})..."
-            if docker pull "$IMAGE"; then
-              echo "Pull succeeded."
-              break
-            fi
-            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
-              echo "::error::Failed to pull ${IMAGE} after ${MAX_ATTEMPTS} attempts"
-              exit 1
-            fi
-            WAIT=$((i * 10))
-            echo "Pull failed, retrying in ${WAIT}s..."
-            sleep "$WAIT"
-          done
-
-          docker run -d --name postgres \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=test_db \
-            -e POSTGRES_USER=postgres \
-            -p 5432:5432 \
-            "$IMAGE"
-
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in $(seq 1 30); do
-            if docker exec postgres pg_isready -U postgres -q; then
-              echo "PostgreSQL is ready."
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::PostgreSQL did not become ready in time"
-          docker logs postgres
-          exit 1
-
       - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL (pgvector) with retry
+        run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
@@ -209,46 +137,10 @@ jobs:
       run:
         working-directory: apps/negentropy
     steps:
-      - name: Start PostgreSQL (pgvector) with retry
-        working-directory: .
-        run: |
-          IMAGE="pgvector/pgvector:pg16"
-          MAX_ATTEMPTS=5
-          for i in $(seq 1 $MAX_ATTEMPTS); do
-            echo "Pulling ${IMAGE} (attempt ${i}/${MAX_ATTEMPTS})..."
-            if docker pull "$IMAGE"; then
-              echo "Pull succeeded."
-              break
-            fi
-            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
-              echo "::error::Failed to pull ${IMAGE} after ${MAX_ATTEMPTS} attempts"
-              exit 1
-            fi
-            WAIT=$((i * 10))
-            echo "Pull failed, retrying in ${WAIT}s..."
-            sleep "$WAIT"
-          done
-
-          docker run -d --name postgres \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=test_db \
-            -e POSTGRES_USER=postgres \
-            -p 5432:5432 \
-            "$IMAGE"
-
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in $(seq 1 30); do
-            if docker exec postgres pg_isready -U postgres -q; then
-              echo "PostgreSQL is ready."
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::PostgreSQL did not become ready in time"
-          docker logs postgres
-          exit 1
-
       - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL (pgvector) with retry
+        run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
