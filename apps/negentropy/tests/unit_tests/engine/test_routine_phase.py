@@ -303,3 +303,36 @@ def test_build_scope_system_prompt_no_cwd():
     r = _routine(cwd=None)
     sp = _build_scope_system_prompt(r)
     assert sp == ""
+
+
+def test_build_prompt_memory_context_includes_citation_requirement():
+    """记忆段落带引用要求：标注来源（Memory id8 + 日期）+ 原文短摘录。"""
+    memory_ctx = "- [procedural] Memory a1b2c3d4 (2026-05-12): 收尾前必须运行 ruff 与 pytest"
+    p = build_prompt(_routine(), memory_context=memory_ctx)
+    assert "相关经验记忆" in p
+    assert "引用要求" in p
+    assert "依据 Memory <id8>" in p
+    assert "原文短摘录" in p
+    assert memory_ctx in p
+
+    # 记忆缺席时不应留下悬空的引用要求
+    p_no_mem = build_prompt(_routine(), memory_context=None)
+    assert "引用要求" not in p_no_mem
+    assert "相关经验记忆" not in p_no_mem
+
+
+def test_build_prompt_kb_retrieval_section_toggles():
+    """kb_retrieval=True 注入「知识库检索」段（工具介绍 + 引用要求）；False 时缺席。"""
+    p_on = build_prompt(_routine(), kb_retrieval=True)
+    assert "知识库检索" in p_on
+    assert "mcp__knowledge__kb_search" in p_on
+    assert "mcp__knowledge__kg_search_global" in p_on
+    assert "citation_id" in p_on
+    assert "snippet" in p_on
+    assert "严禁编造来源" in p_on
+
+    p_off = build_prompt(_routine(), kb_retrieval=False)
+    assert "mcp__knowledge__kb_search" not in p_off
+    # 默认值也应为关闭
+    p_default = build_prompt(_routine())
+    assert "mcp__knowledge__kb_search" not in p_default
