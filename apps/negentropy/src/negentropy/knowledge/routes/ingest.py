@@ -11,6 +11,7 @@ from pydantic import ValidationError  # noqa: F401
 
 from negentropy.auth.deps import get_optional_user
 from negentropy.auth.service import AuthUser
+from negentropy.config import settings
 from negentropy.knowledge._shared import (
     _extract_legacy_chunking_payload,
     _get_service,
@@ -245,10 +246,6 @@ async def ingest_url(
         ) from exc
 
 
-# 文件大小限制 (50MB)
-MAX_FILE_SIZE = 50 * 1024 * 1024
-
-
 async def _extract_and_store_document_markdown_from_gcs(
     *,
     document_id: UUID,
@@ -396,14 +393,15 @@ async def ingest_file(
         content = await file.read()
 
         # 文件大小验证
-        if len(content) > MAX_FILE_SIZE:
+        max_file_size = settings.knowledge.max_file_size_mb * 1024 * 1024
+        if len(content) > max_file_size:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
                     "code": "FILE_TOO_LARGE",
-                    "message": f"File size exceeds limit ({MAX_FILE_SIZE / 1024 / 1024:.0f}MB)",
+                    "message": f"File size exceeds limit ({max_file_size / 1024 / 1024:.0f}MB)",
                     "size": len(content),
-                    "max_size": MAX_FILE_SIZE,
+                    "max_size": max_file_size,
                 },
             )
 

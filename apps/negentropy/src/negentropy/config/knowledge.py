@@ -127,6 +127,13 @@ class KnowledgeSettings(BaseSettings):
         frozen=True,
     )
 
+    max_file_size_mb: int = Field(
+        default=200,
+        ge=1,
+        le=1024,
+        description="Knowledge 文件上传大小上限 (MB)。",
+    )
+
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,
     )
