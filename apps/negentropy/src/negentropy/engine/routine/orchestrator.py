@@ -29,6 +29,7 @@ import sys
 import tempfile
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -56,6 +57,8 @@ logger = get_logger("negentropy.engine.routine.orchestrator")
 # 全局 _DEFAULT_TOOLS（6 个基础工具）不含 WebSearch/WebFetch，
 # 但 Routine goal 常见"通过互联网深入调研"等需求，默认扩展。
 # ``mcp__playwright``：放行系统内置 Playwright 浏览器 MCP 的全部工具。
+# ``mcp__knowledge``：放行引擎内置知识库检索 MCP（kb_search / kg_search_global，
+# 带引用元数据，由 _build_config 程序化注入 HTTP entry）。
 # 相位权限模式 acceptEdits 仅自动放行文件编辑，**不**放行 MCP 工具调用，
 # 故须显式列入白名单，否则自治运行时浏览器实机回归工具不可用（详见
 # docs/concepts/design/browser-automation-mcp-integration.md）。
@@ -70,6 +73,7 @@ _ROUTINE_DEFAULT_TOOLS = [
     "WebFetch",
     "WebSearch",
     "mcp__playwright",
+    "mcp__knowledge",
 ]
 
 # 交互式自动应答所需工具：Engine 经 stdin 写回 tool_result 应答这两个工具（Plan Review / 通用
@@ -90,6 +94,16 @@ _EVENT_FIELD_CAP = 16 * 1024
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def _kb_retrieval_available() -> bool:
+    """引擎内置知识库检索 MCP 是否可用（fail-soft：判定异常视为不可用，不阻塞派发）。"""
+    try:
+        from negentropy.knowledge.mcp_server import kb_mcp_available
+
+        return kb_mcp_available()
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _cap(value: str | None, limit: int = _EVENT_FIELD_CAP) -> str | None:
@@ -853,6 +867,7 @@ class RoutineOrchestrator:
                     routine,
                     max_reflections=settings.routine.max_reflections_injected,
                     memory_context=memory_ctx,
+                    kb_retrieval=_kb_retrieval_available(),
                 )
                 iteration = RoutineIteration(
                     routine_id=routine.id,
@@ -932,7 +947,9 @@ class RoutineOrchestrator:
                 memory_ctx_approved = (
                     await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
                 )
-                prompt = it.prompt or build_prompt(routine, memory_context=memory_ctx_approved)
+                prompt = it.prompt or build_prompt(
+                    routine, memory_context=memory_ctx_approved, kb_retrieval=_kb_retrieval_available()
+                )
                 launch_specs.append((it.id, routine.id, prompt, config))
                 dirty = True  # _ensure_workspace 在 routine 上写入了 worktree_path/work_branch
                 slots -= 1
@@ -1235,6 +1252,29 @@ class RoutineOrchestrator:
     # 记忆注入（Memory Injection）
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _memory_entry_text(entry: Any) -> str:
+        """从 ADK MemoryEntry 提取纯文本。
+
+        ``MemoryEntry.content`` 是 ``genai.types.Content``（``.parts[].text``），
+        历史实现直接对其切片会抛 ``TypeError`` 并被外层 except 吞掉，导致记忆注入
+        静默失效。此处兼容 Content 对象 / dict / 纯字符串三种形态，任一失败降级空串。
+        """
+        content = getattr(entry, "content", None)
+        if isinstance(content, str):
+            return content
+        parts = getattr(content, "parts", None)
+        if parts is None and isinstance(content, dict):
+            parts = content.get("parts", [])
+        texts: list[str] = []
+        for part in parts or []:
+            text = getattr(part, "text", None)
+            if text is None and isinstance(part, dict):
+                text = part.get("text")
+            if text:
+                texts.append(str(text))
+        return "\n".join(texts)
+
     async def _retrieve_memory_context(self, routine: Routine) -> str | None:
         """从 Memory Module 检索与当前 routine 目标相关的经验记忆。
 
@@ -1254,19 +1294,24 @@ class RoutineOrchestrator:
             if not response or not response.memories:
                 return None
 
+            # 引用规范：每条记忆行附 Memory id 短码 + 日期 + Routine 溯源（routine_key/迭代序号），
+            # 使 Executor (Claude Code) 能在产出中按「依据 Memory <id8> (<日期>)」标注来源并附原文摘录。
             lines: list[str] = []
             for entry in response.memories[:5]:
                 meta = entry.custom_metadata or {}
                 type_label = meta.get("memory_type", "episodic") if isinstance(meta, dict) else "episodic"
+                mem_id8 = str(getattr(entry, "id", "") or "")[:8] or "unknown"
+                date = str(getattr(entry, "timestamp", "") or "")[:10]
+                prefix = f"[{type_label}] Memory {mem_id8}" + (f" ({date})" if date else "")
                 # 从 metadata_ 提取来源信息
                 source = meta.get("source", "") if isinstance(meta, dict) else ""
-                prefix = f"[{type_label}]"
                 if source == "routine_extraction" and isinstance(meta, dict):
                     key = meta.get("routine_key", "")
+                    seq = meta.get("iteration_seq")
                     if key:
-                        prefix += f" (来自 {key})"
-                content = (entry.content or "")[:200]
-                lines.append(f"- {prefix} {content}")
+                        prefix += f"（来自 routine {key}" + (f" 第{seq}轮" if seq is not None else "") + "）"
+                content = self._memory_entry_text(entry)[:200]
+                lines.append(f"- {prefix}: {content}")
 
             return "\n".join(lines) if lines else None
         except Exception as exc:
@@ -1351,6 +1396,16 @@ class RoutineOrchestrator:
         # 的语义不会被某条自定义了 mcp_config 的 routine 意外抹除。
         if overrides.get("mcp_config"):
             config.mcp_config = {**(config.mcp_config or {}), **overrides["mcp_config"]}
+        # 引擎内置知识库检索 MCP（程序化注入，不落库）：HTTP entry 含运行期端口与
+        # 每进程 token，落库即 Split-Brain；per-routine 已自配同名 server 时尊重覆盖。
+        try:
+            from negentropy.knowledge.mcp_server import KB_MCP_SERVER_KEY, build_kb_mcp_config_entry
+
+            kb_entry = build_kb_mcp_config_entry()
+            if kb_entry is not None and KB_MCP_SERVER_KEY not in (config.mcp_config or {}):
+                config.mcp_config = {**(config.mcp_config or {}), KB_MCP_SERVER_KEY: kb_entry}
+        except Exception as exc:  # noqa: BLE001 — MCP 注入失败不阻塞派发
+            logger.warning("kb_mcp_config_inject_failed", error=str(exc))
         # 额外只读源目录（per-routine config.read_dirs 覆盖）。worktree routine 的 goal 常需读取
         # 源项目（如待复刻的 platform-maps/jerusalem-v3 Go 源码）；此处把声明的目录物理授予 CC
         # （CLI --add-dir / SDK add_dirs），并以 settings 的 permissions.deny 锁为只读
@@ -1438,6 +1493,7 @@ class RoutineOrchestrator:
                 routine,
                 max_reflections=settings.routine.max_reflections_injected,
                 stage=phase_mod.PHASE_PLAN,
+                kb_retrieval=_kb_retrieval_available(),
             )
         return config
 
@@ -1513,6 +1569,16 @@ class RoutineOrchestrator:
                             "source": "mcp_json",
                         }
                     )
+
+        # 引擎内置知识库检索 MCP（程序化注入、不落 mcp_servers 表）：补静态目录条目，
+        # 使迭代详情面板可见。可用性判定与 _build_config 注入逻辑同源。
+        try:
+            from negentropy.knowledge.mcp_server import KB_MCP_SERVER_KEY, kb_mcp_available, kb_mcp_meta_entry
+
+            if kb_mcp_available() and KB_MCP_SERVER_KEY not in db_names:
+                result.append(kb_mcp_meta_entry())
+        except Exception as exc:  # noqa: BLE001 — 元数据快照失败不阻塞派发
+            logger.debug("kb_mcp_meta_skip", error=str(exc))
 
         return result
 

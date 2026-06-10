@@ -5,6 +5,7 @@ from google.adk.models.llm_request import LlmRequest
 from negentropy.engine.utils.action_intent import classify as classify_action_intent
 from negentropy.logging import get_logger
 
+from ._citation_protocol import CITATION_PROTOCOL
 from ._dynamic_instruction import make_instruction_provider
 from ._dynamic_model import set_root_thinking_enabled, set_selected_root_llm
 from ._model import create_root_model
@@ -105,7 +106,8 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
         logger.debug("action_intent_hint_skipped", error=str(exc))
 
 
-_ROOT_INSTRUCTION = """
+_ROOT_INSTRUCTION = (
+    """
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的 **「本我」(The Self)**。
 
 ## 核心哲学：熵减 (Entropy Reduction)
@@ -177,7 +179,8 @@ _ROOT_INSTRUCTION = """
    - 简单任务 → 单一系部
    - 常见多步骤 → 预定义流水线
    - 复杂特殊 → 自定义序列
-3. **循证执行 (Evidence-Based Execution)**：基于实际结果动态调整，引用来源，拒绝凭空捏造。
+3. **循证执行 (Evidence-Based Execution)**：基于实际结果动态调整，
+   引用来源（见下方「知识与记忆引用规范」），拒绝凭空捏造。
 4. **主动导航 (Proactive Navigation)**：完成任务后，建议下一步最佳行动。
 
 ## Ingest 意图分流 (Intent-Driven Ingest)
@@ -208,7 +211,13 @@ _ROOT_INSTRUCTION = """
 - **最小干预 (Minimal Intervention)**：不要过度设计。使用最简的系部路径解决问题（奥卡姆剃刀）。
 - **单一事实源 (Single Source of Truth)**：依赖 `InternalizationFaculty` 获取历史上下文，而非仅依赖你短暂的上下文窗口。
 - **优先流水线 (Pipeline First)**：对于多步骤任务，优先使用预定义流水线。
+
+### 调度者的引用职责（保留引用）
+你整合各系部产出形成最终回答时，**原样保留**其中的 ``[N]`` 标号与 *## 参考文献* 节
+（含原文摘录）；多系部产出合并时按出现顺序统一重排编号并合并参考文献节，不得丢条。
 """
+    + CITATION_PROTOCOL
+)
 
 
 root_agent = LlmAgent(

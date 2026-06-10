@@ -897,6 +897,80 @@ async def test_build_config_default_provisions_playwright_browser_mcp():
         await _cleanup(rid)
 
 
+async def test_build_config_injects_kb_mcp_when_available(monkeypatch):
+    """引擎内置知识库检索 MCP 可用时，程序化注入 mcp_config["knowledge"] HTTP entry，
+    且 mcp__knowledge 进入默认 allowed_tools（白名单通配，与 mcp__playwright 同构）。"""
+    from negentropy.config import settings
+    from negentropy.knowledge import mcp_server as kb_mcp_module
+
+    kb_mcp_module.reset_kb_mcp_for_tests()
+    monkeypatch.setenv("NE_KNOWLEDGE_MCP__SELF_BASE_URL", "http://127.0.0.1:3292")
+    # settings.knowledge 是 cached_property：env 变更后须使缓存失效
+    settings.__dict__.pop("knowledge", None)
+
+    rid = await _make_routine(cwd="/tmp", config={})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r, r.id)
+            entry = (config.mcp_config or {}).get("knowledge")
+            assert entry is not None
+            assert entry["type"] == "http"
+            assert entry["url"] == "http://127.0.0.1:3292/mcp/knowledge"
+            assert entry["headers"]["Authorization"].startswith("Bearer ")
+            assert "mcp__knowledge" in config.allowed_tools
+    finally:
+        kb_mcp_module.reset_kb_mcp_for_tests()
+        settings.__dict__.pop("knowledge", None)
+        await _cleanup(rid)
+
+
+async def test_build_config_kb_mcp_respects_per_routine_override(monkeypatch):
+    """per-routine 已自配同名 "knowledge" server 时，引擎注入尊重覆盖、不抹除。"""
+    from negentropy.config import settings
+    from negentropy.knowledge import mcp_server as kb_mcp_module
+
+    kb_mcp_module.reset_kb_mcp_for_tests()
+    monkeypatch.setenv("NE_KNOWLEDGE_MCP__SELF_BASE_URL", "http://127.0.0.1:3292")
+    settings.__dict__.pop("knowledge", None)
+
+    custom = {"knowledge": {"type": "stdio", "command": "my-custom-kb"}}
+    rid = await _make_routine(cwd="/tmp", config={"mcp_config": custom})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r, r.id)
+            assert config.mcp_config["knowledge"] == custom["knowledge"]
+    finally:
+        kb_mcp_module.reset_kb_mcp_for_tests()
+        settings.__dict__.pop("knowledge", None)
+        await _cleanup(rid)
+
+
+async def test_build_config_kb_mcp_absent_when_unavailable(monkeypatch):
+    """self_base_url 缺席（非 serve 启动）时不注入 knowledge entry——全链路优雅 no-op。"""
+    from negentropy.config import settings
+    from negentropy.knowledge import mcp_server as kb_mcp_module
+
+    kb_mcp_module.reset_kb_mcp_for_tests()
+    monkeypatch.delenv("NE_KNOWLEDGE_MCP__SELF_BASE_URL", raising=False)
+    settings.__dict__.pop("knowledge", None)
+
+    rid = await _make_routine(cwd="/tmp", config={})
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r, r.id)
+            assert "knowledge" not in (config.mcp_config or {})
+    finally:
+        kb_mcp_module.reset_kb_mcp_for_tests()
+        settings.__dict__.pop("knowledge", None)
+        await _cleanup(rid)
+
+
 # ---------------------------------------------------------------------------
 # 单迭代两段式 Plan Review 闭环（plan_review_unified_loop）
 # ---------------------------------------------------------------------------

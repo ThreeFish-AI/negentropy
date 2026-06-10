@@ -36,11 +36,12 @@ def build_prompt(
     max_reflections: int = 5,
     memory_context: str | None = None,
     stage: str | None = None,
+    kb_retrieval: bool = False,
 ) -> str:
     """构建发送给 Claude Code 的迭代 prompt（按相位/段分支）。
 
-    通用部分：目标 + 验收标准 + [记忆上下文] + 最近 N 条反思（Reflexion 注入，来自
-    ``routine.reflections["items"]``）。尾部指令依相位而定：
+    通用部分：目标 + 验收标准 + [记忆上下文] + [知识库检索引导] + 最近 N 条反思
+    （Reflexion 注入，来自 ``routine.reflections["items"]``）。尾部指令依相位而定：
 
     - PLAN     仅产出方案、禁写盘（plan 模式），提交评审；
     - FINALIZE 自检 ruff/pytest、修复、建 PR 并回带 ``PR_URL=`` sentinel；
@@ -54,6 +55,8 @@ def build_prompt(
             同一迭代内先以 ``stage=PHASE_PLAN`` 取 plan 段 prompt（ExitPlanMode/AskUserQuestion 均
             被评审），批准后以默认（``stage=None`` → 按 ``current_phase``）取 implement 段 prompt。
             为空时沿用旧逻辑（相位由 ``routine.current_phase`` 决定）。
+        kb_retrieval: 引擎内置知识库检索 MCP 是否可用（``kb_mcp_available()``）。
+            为 True 时注入「知识库检索」段落：介绍 ``mcp__knowledge__*`` 工具与引用要求。
     """
     # 显式 plan 段（统一闭环）：prompt 漏斗到 AskUserQuestion 提交；ExitPlanMode 仍被钩子真实评审作安全网。
     unified_plan = stage == PHASE_PLAN
@@ -67,10 +70,33 @@ def build_prompt(
     ]
 
     # 记忆注入：在验收标准之后插入经验知识上下文（由编排器在派发时检索）。
+    # 每条记忆行已带 Memory id 短码与日期（见 orchestrator._retrieve_memory_context），
+    # 此处同步给出引用要求，使产出可溯源（引用来源 + 原文摘录）。
     if memory_context:
         parts.append(
             "# 相关经验记忆 (Relevant Past Knowledge)\n"
-            "以下是你此前自主任务中积累的经验知识，请参考但不必盲从：\n" + memory_context
+            "以下是你此前自主任务中积累的经验记忆（每条带 Memory id 与日期），请参考但不必盲从。\n"
+            "**引用要求**：当你的方案、结论或总结实际使用了某条记忆时，必须标注其来源\n"
+            "（格式：`依据 Memory <id8> (<日期>)`）并附该记忆的原文短摘录（≤ 50 字，引号括起）；\n"
+            "未使用的记忆无需提及，严禁假装引用不存在的记忆。\n" + memory_context
+        )
+
+    # 知识库检索引导：引擎内置 MCP 可用时注入（kb_mcp_available()，由编排器在派发时判定）。
+    # 工具结果自带 citation 元数据，此处给出引用要求使产出可溯源（引用来源 + 原文摘录）。
+    if kb_retrieval:
+        parts.append(
+            "# 知识库检索 (Knowledge Base Retrieval)\n"
+            "你可调用系统知识库 MCP 工具检索内部沉淀的知识与文献：\n"
+            "- `mcp__knowledge__kb_search(query, top_k, corpus_filter?, search_mode?)`："
+            "混合检索（语义+关键词），返回带引用元数据的原文片段；\n"
+            "- `mcp__knowledge__kg_search_global(query, corpus_filter?, max_communities?)`："
+            "「主题概览/整体趋势」类问题的知识图谱全局摘要。\n"
+            "**引用要求（重要）**：\n"
+            "1. 产出中引用检索结果时，正文以 `[N]`（结果的 `citation_id`）标注，"
+            "文末附 `formatted_citation` 原样列表；\n"
+            "2. 引述原文必须取自结果的 `snippet` 字段并注明 `source_uri`，"
+            "不得凭记忆转述或虚构；\n"
+            "3. 检索无结果（count=0）时如实说明「知识库无相关记录」，严禁编造来源。"
         )
 
     # 隔离工作区上下文（worktree routine 各相位通用）：约束 CC 仅在隔离 worktree 内改动，

@@ -24,26 +24,15 @@ jobs:
     # ISSUE-111 数据安全防护）无条件 CREATE DATABASE + alembic upgrade head，需可达的
     # Postgres。沿用与 integration/performance 一致的 pgvector 服务（`CREATE EXTENSION
     # vector` 依赖该镜像）；fixture 自建并迁移 `test_db_test`，无需额外 init 步骤。
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
     defaults:
       run:
         working-directory: apps/negentropy
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
+        run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
@@ -98,26 +87,15 @@ jobs:
     needs: backend-unit
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
     defaults:
       run:
         working-directory: apps/negentropy
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
+        run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
@@ -157,26 +135,15 @@ jobs:
     needs: backend-integration
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
     defaults:
       run:
         working-directory: apps/negentropy
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL (pgvector) with retry
+        working-directory: .
+        run: scripts/ci-start-pgvector.sh
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv

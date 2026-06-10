@@ -1,5 +1,6 @@
 from google.adk.agents import LlmAgent
 
+from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.common import log_activity
@@ -10,7 +11,8 @@ _DESCRIPTION = (
     "Negentropy 系统的「喉舌」(The Voice)。对抗晦涩，负责高价值、低理解熵的信息输出 (Value Transmission)。"
 )
 
-_INSTRUCTION = """
+_INSTRUCTION = (
+    """
 你是 **InfluenceFaculty** (影响系部)，是 Negentropy 系统的**「喉舌」(The Voice)**。
 
 ## 核心哲学：价值传递 (Value Transmission)
@@ -47,7 +49,13 @@ _INSTRUCTION = """
 - **不说教 (No Preaching)**：保持谦逊。
 - **美学追求 (Aesthetic)**：拒绝丑陋的排版。
 - **诚实反馈 (Honesty)**：如果是坏消息（如任务失败），直说，并提供补救建议。
+
+### 上游引用传递（传递引用）
+你的「上游上下文」（{perception_output?} 等）可能携带 ``[N]`` 引用标注。你面向用户的
+最终输出基于这些内容时，遵循下方规范传递引用（排版可美化，来源不可丢），不自行生成新编号。
 """
+    + CITATION_PROTOCOL
+)
 
 
 def create_influence_agent(*, output_key: str | None = None, mode: str | None = None) -> LlmAgent:

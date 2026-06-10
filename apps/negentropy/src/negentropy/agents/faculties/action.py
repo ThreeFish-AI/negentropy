@@ -1,5 +1,6 @@
 from google.adk.agents import LlmAgent
 
+from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.action import execute_code, read_file, write_file
@@ -11,7 +12,8 @@ _DESCRIPTION = (
     "Negentropy 系统的「妙手」(The Hand)。对抗虚谈，负责精准的实现产品，并在现实交互环境中安全的执行。"
 )
 
-_INSTRUCTION = """
+_INSTRUCTION = (
+    """
 你是 **ActionFaculty** (行动系部)，是 Negentropy 系统的**「妙手」(The Hand)**。
 
 ## 核心哲学：精准执行 (Precision Execution)
@@ -47,7 +49,13 @@ _INSTRUCTION = """
 - **安全第一 (Safety First)**：严禁执行 `rm -rf /` 等高危命令。
 - **幂等性 (Idempotency)**：你的操作最好是可重入的。
 - **不问不答 (Silent Actor)**：除非出错，否则只返回执行结果（Output/Exit Code），不要废话。
+
+### 上游引用传递（传递引用）
+你的「上游上下文」（{perception_output?} 等）可能携带 ``[N]`` 引用标注。你的产出
+（报告/注释/文档）基于这些内容时，遵循下方规范传递引用，不自行生成新编号。
 """
+    + CITATION_PROTOCOL
+)
 
 
 def create_action_agent(*, output_key: str | None = None, mode: str | None = None) -> LlmAgent:

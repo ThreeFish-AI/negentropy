@@ -154,6 +154,12 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     port = args.port or 3292
     host = args.host or "0.0.0.0"
 
+    # 知识库检索 MCP（/mcp/knowledge）自身可达地址：serve 启动时按端口自动推导，
+    # 供 Routine 向 Claude Code 注入 mcp_config HTTP entry（回环地址，不出本机）。
+    # 已显式设置该 env 时尊重外部覆盖；非 serve 启动（裸 adk web / 单测）缺席此 env
+    # → kb_mcp_available()=False → MCP 全链路优雅 no-op。
+    os.environ.setdefault("NE_KNOWLEDGE_MCP__SELF_BASE_URL", f"http://127.0.0.1:{port}")
+
     # `apps/negentropy/src` 才是 ADK 的 agents_dir：ADK 会把它加入 sys.path 后
     # `import services`（src/services.py），并按 app_name="negentropy" 解析到
     # `src/negentropy/`。用 __file__ 推导绝对路径，避免依赖启动 cwd——否则一旦
