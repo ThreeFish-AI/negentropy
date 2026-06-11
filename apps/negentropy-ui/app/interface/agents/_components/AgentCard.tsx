@@ -59,26 +59,8 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
     >
       <TiltedCard disabled={isDragging}>
         <div
-          role={canEdit ? "button" : undefined}
-          tabIndex={canEdit ? 0 : undefined}
-          aria-label={
-            canEdit
-              ? `Edit ${agent.display_name || agent.name}`
-              : undefined
-          }
-          onClick={canEdit ? onEdit : undefined}
-          onKeyDown={
-            canEdit
-              ? (e: React.KeyboardEvent) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onEdit();
-                  }
-                }
-              : undefined
-          }
           className={[
-            "flex h-full flex-col overflow-hidden rounded-xl border bg-card p-4 transition-colors",
+            "relative flex h-full flex-col overflow-hidden rounded-xl border bg-card p-4 transition-colors",
             canEdit
               ? "cursor-pointer border-border hover:border-primary/30"
               : "border-border",
@@ -87,7 +69,15 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
             .filter(Boolean)
             .join(" ")}
         >
-          <div className="flex min-h-0 flex-1 flex-col">
+          {canEdit && (
+            <button
+              type="button"
+              aria-label={`Edit ${agent.display_name || agent.name}`}
+              onClick={onEdit}
+              className="absolute inset-0 z-10 cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          )}
+          <div className="relative z-20 flex min-h-0 flex-1 flex-col pointer-events-none">
             {/* Header: drag handle + title + delete */}
             <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
               <div className="flex min-w-0 items-start gap-1">
@@ -96,7 +86,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
                   {...listeners}
                   type="button"
                   aria-label={`Drag ${agent.display_name || agent.name}`}
-                  className="mt-0.5 cursor-grab rounded p-1.5 text-text-muted/40 transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+                  className="pointer-events-auto mt-0.5 cursor-grab rounded p-1.5 text-text-muted/40 transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
                 >
                   <GripVertical className="h-4 w-4" />
                 </button>
@@ -113,7 +103,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
                     }}
                     title="Delete Agent"
                     aria-label={`Delete ${agent.display_name || agent.name}`}
-                    className="cursor-pointer rounded-md p-1.5 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                    className="pointer-events-auto cursor-pointer rounded-md p-1.5 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-red-900/20 dark:hover:text-red-400"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

@@ -67,6 +67,7 @@ export default function AgentsPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [manualOrder, setManualOrder] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -85,6 +86,7 @@ export default function AgentsPage() {
       }
       const data = await response.json();
       setAgents(data);
+      setManualOrder(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -160,6 +162,7 @@ export default function AgentsPage() {
   };
 
   const sortedAgents = useMemo(() => {
+    if (manualOrder) return agents;
     const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
     return [...agents].sort((a, b) => {
       const diff = rank(a) - rank(b);
@@ -168,13 +171,14 @@ export default function AgentsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [agents]);
+  }, [agents, manualOrder]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (!over || active.id === over.id) return;
 
+      setManualOrder(true);
       setAgents((prev) => {
         const oldIndex = prev.findIndex((a) => a.id === active.id);
         const newIndex = prev.findIndex((a) => a.id === over.id);
