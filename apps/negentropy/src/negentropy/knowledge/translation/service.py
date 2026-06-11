@@ -47,6 +47,7 @@ _LANGUAGE_NAMES = {"zh": "中文"}
 
 # 进程内并发护栏：同文档去重 + 全局并发上限（翻译是重 LLM 任务，避免互相饿死）。
 _INFLIGHT: set[UUID] = set()
+_INFLIGHT_LOCK = asyncio.Lock()
 _SEMAPHORE = asyncio.Semaphore(2)
 
 # 译文正文中 CJK 字符占比超过该阈值时视为"已是中文"，跳过翻译。
@@ -58,11 +59,16 @@ class TranslationError(RuntimeError):
 
 
 def _cjk_ratio(text: str) -> float:
-    """统计 CJK 统一表意文字占非空白字符的比例。"""
+    """统计 CJK 统一表意文字占非空白字符的比例。
+
+    覆盖范围：基本区 (U+4E00..U+9FFF) + Extension A (U+3400..U+4DBF)。
+    Extension B-G (Surrogate Pair) 在 Python str 中以单码点表示，此处暂不覆盖——
+    实际文档中极少出现，且遗漏仅导致 CJK 比例低估（保守方向）。
+    """
     visible = [ch for ch in text if not ch.isspace()]
     if not visible:
         return 0.0
-    cjk = sum(1 for ch in visible if "一" <= ch <= "鿿")
+    cjk = sum(1 for ch in visible if ("一" <= ch <= "鿿") or ("㐀" <= ch <= "䶿"))
     return cjk / len(visible)
 
 
@@ -86,10 +92,11 @@ class DocumentTranslationService:
     # ------------------------------------------------------------------ #
 
     async def translate_document(self, *, document_id: UUID, target_language: str = "zh") -> None:
-        if document_id in _INFLIGHT:
-            logger.info("document_translation_inflight_skip", document_id=str(document_id))
-            return
-        _INFLIGHT.add(document_id)
+        async with _INFLIGHT_LOCK:
+            if document_id in _INFLIGHT:
+                logger.info("document_translation_inflight_skip", document_id=str(document_id))
+                return
+            _INFLIGHT.add(document_id)
         try:
             async with _SEMAPHORE:
                 await self._run(document_id=document_id, target_language=target_language)
@@ -132,6 +139,8 @@ class DocumentTranslationService:
             raise TranslationError("document content already appears to be Chinese")
 
         chunks = split_markdown(markdown, max_chars=self._max_chars)
+        if not chunks:
+            raise TranslationError("split_markdown returned no chunks for non-empty markdown")
         workdir = Path(tempfile.mkdtemp(prefix=f"negentropy-translate-{str(document_id)[:8]}-"))
         try:
             await self._execute_in_workdir(

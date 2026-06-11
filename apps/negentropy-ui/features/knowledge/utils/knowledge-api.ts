@@ -1550,7 +1550,8 @@ export async function translateDocuments(
   documentIds: string[],
   params?: {
     appName?: string;
-    targetLanguage?: string;
+    /** 当前仅支持 "zh"（中文）翻译 */
+    targetLanguage?: "zh";
     force?: boolean;
   },
 ): Promise<DocumentTranslateResponse> {

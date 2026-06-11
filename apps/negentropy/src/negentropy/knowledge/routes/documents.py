@@ -325,6 +325,10 @@ async def refresh_document_markdown(
 
 
 # 翻译任务"陈旧 processing"豁免窗口：超过该时长的 processing 视为僵尸（进程重启等），允许重入。
+#
+# ⚠ 运维注意：路由端点先写 processing 状态再派发 BackgroundTasks。若进程在 add_task 后、
+# 后台任务开始前崩溃（如 OOM kill），该文档将停留在 processing 直到此窗口过期（默认 1 小时）。
+# 如需更快恢复，可手动清除 metadata_.translation 或调低此值。
 _TRANSLATION_STALE_SECONDS = 3600
 
 
