@@ -24,6 +24,7 @@ export const OPERATION_LABELS: Record<string, string> = {
   replace_source: "替换源",
   sync_source: "同步源",
   rebuild_source: "重建源",
+  translate: "文档翻译",
   graph_build: "图谱构建",
 };
 
@@ -57,6 +58,11 @@ export const STAGE_ORDER = [
   "chunk",
   "embed",
   "persist",
+  // 翻译阶段
+  "chunking",
+  "agent_execution",
+  "validation",
+  "storing",
   // KG 构建阶段
   "kg_extracting",
   "kg_resolving",
@@ -87,6 +93,11 @@ export const STAGE_LABELS: Record<string, string> = {
   chunk: "文本分块",
   embed: "向量化",
   persist: "持久化",
+  // 翻译阶段
+  chunking: "文档分块",
+  agent_execution: "Agent 翻译",
+  validation: "校验拼接",
+  storing: "译文落库",
   // KG 构建阶段
   kg_extracting: "实体抽取",
   kg_resolving: "实体消解",
@@ -241,6 +252,31 @@ export const STAGE_COLORS: Record<
     completed: "bg-cyan-500",
     failed: "bg-cyan-700",
     skipped: "bg-cyan-300 dark:bg-cyan-600",
+  },
+  // 翻译阶段
+  chunking: {
+    running: "bg-amber-400",
+    completed: "bg-amber-500",
+    failed: "bg-amber-700",
+    skipped: "bg-amber-300 dark:bg-amber-600",
+  },
+  agent_execution: {
+    running: "bg-purple-400",
+    completed: "bg-purple-500",
+    failed: "bg-purple-700",
+    skipped: "bg-purple-300 dark:bg-purple-600",
+  },
+  validation: {
+    running: "bg-orange-400",
+    completed: "bg-orange-500",
+    failed: "bg-orange-700",
+    skipped: "bg-orange-300 dark:bg-orange-600",
+  },
+  storing: {
+    running: "bg-teal-400",
+    completed: "bg-teal-500",
+    failed: "bg-teal-700",
+    skipped: "bg-teal-300 dark:bg-teal-600",
   },
 };
 

@@ -118,7 +118,8 @@ def _extract_source_label(input_data: dict[str, Any]) -> str:
 
 
 # Pipeline 操作类型
-PipelineOperation = str  # "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source"
+PipelineOperation = str  # noqa: E501
+# "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source" | "translate"
 
 # Pipeline 阶段状态
 PipelineStageStatus = str  # "pending" | "running" | "completed" | "failed" | "skipped"
@@ -2249,6 +2250,68 @@ class KnowledgeService:
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+            unregister_cancellable_run(run_id)
+
+    async def execute_translate_pipeline(
+        self,
+        *,
+        run_id: str,
+        document_id: UUID,
+        target_language: str,
+        app_name: str,
+    ) -> None:
+        """执行 translate Pipeline（后台任务）。
+
+        由 BackgroundTasks 调用，使用已有的 run_id 追踪翻译各阶段执行状态。
+        翻译实际工作委托 DocumentTranslationService，tracker 通过参数透传至
+        服务内部，在 chunking / agent_execution / validation / storing 四个
+        阶段边界记录状态。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="translate",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            document_id=str(document_id),
+            operation="translate",
+        )
+
+        try:
+            from negentropy.knowledge.translation import DocumentTranslationService
+
+            translation_service = DocumentTranslationService()
+            await translation_service.translate_document(
+                document_id=document_id,
+                target_language=target_language,
+                tracker=tracker,
+            )
+            await tracker.complete({"document_id": str(document_id)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                document_id=str(document_id),
+                operation="translate",
+            )
+
+        except PipelineCancelled as cancel_exc:
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
         finally:
             try:
                 await tracker.ensure_finalized()
