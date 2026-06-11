@@ -1300,6 +1300,30 @@ export interface DocumentMarkdownRefreshResponse {
   message: string;
 }
 
+/**
+ * 文档翻译进度（源文档 `metadata.translation`，由后端翻译服务维护）。
+ */
+export interface DocumentTranslationMeta {
+  status?: "processing" | "completed" | "failed" | string;
+  target_document_id?: string | null;
+  target_language?: string;
+  error?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  warnings?: string[];
+}
+
+export interface DocumentTranslateSkipped {
+  document_id: string;
+  reason: string;
+}
+
+export interface DocumentTranslateResponse {
+  accepted: string[];
+  skipped: DocumentTranslateSkipped[];
+  status: string;
+}
+
 export interface DocumentListResponse {
   count: number;
   items: KnowledgeDocument[];
@@ -1513,6 +1537,33 @@ export async function refreshDocumentMarkdown(
     );
   }
 
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 批量翻译文档（Documents 页 Translate 按钮）。
+ *
+ * 后端由 InfluenceFaculty（装配 document-translate 技能 + Claude Code 工具）异步执行；
+ * 进度经源文档 `metadata.translation` 状态机轮询，译文以新文档分录落库。
+ */
+export async function translateDocuments(
+  documentIds: string[],
+  params?: {
+    appName?: string;
+    targetLanguage?: string;
+    force?: boolean;
+  },
+): Promise<DocumentTranslateResponse> {
+  const res = await fetch(`/api/knowledge/documents/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      document_ids: documentIds,
+      app_name: params?.appName,
+      target_language: params?.targetLanguage ?? "zh",
+      force: params?.force ?? false,
+    }),
+  });
   return handleKnowledgeError(res);
 }
 

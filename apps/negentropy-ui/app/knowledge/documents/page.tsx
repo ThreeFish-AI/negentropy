@@ -6,14 +6,16 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
   KnowledgeDocument,
+  DocumentTranslationMeta,
   fetchAllDocuments,
   deleteDocument,
   downloadDocument,
+  translateDocuments,
   fetchCorpora,
   CorpusRecord,
   formatRelativeTime,
@@ -21,6 +23,7 @@ import {
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 function formatFileSize(bytes: number): string {
@@ -70,6 +73,24 @@ function displayUser(createdBy: string | null, displayName?: string | null): str
   return createdBy.length > 12 ? createdBy.slice(0, 12) + "..." : createdBy;
 }
 
+/** 源文档翻译进度（metadata.translation，由后端翻译服务状态机维护）。 */
+function getTranslationMeta(doc: KnowledgeDocument): DocumentTranslationMeta | undefined {
+  return doc.metadata?.translation as DocumentTranslationMeta | undefined;
+}
+
+/** 译文文档的来源 ID（metadata.translated_from_document_id）。 */
+function getTranslatedFromId(doc: KnowledgeDocument): string | undefined {
+  const value = doc.metadata?.translated_from_document_id;
+  return typeof value === "string" && value ? value : undefined;
+}
+
+/** 是否可勾选翻译：Markdown 已就绪、自身非译文、且当前没有进行中的翻译。 */
+function isTranslatable(doc: KnowledgeDocument): boolean {
+  if (getTranslatedFromId(doc)) return false;
+  if ((doc.markdown_extract_status || "").toLowerCase() !== "completed") return false;
+  return getTranslationMeta(doc)?.status !== "processing";
+}
+
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
@@ -81,6 +102,8 @@ export default function DocumentsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isTranslating, setIsTranslating] = useState(false);
   const router = useRouter();
 
   // 加载语料库列表
@@ -93,24 +116,27 @@ export default function DocumentsPage() {
     }
   }, []);
 
-  // 加载文档列表
-  const loadDocuments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchAllDocuments({
-        appName: APP_NAME,
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-      });
-      setDocuments(data.items);
-      setTotal(data.count);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load documents");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize]);
+  // 加载文档列表（silent: 轮询路径跳过 loading 态，避免整表闪烁）
+  const loadDocuments = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!options?.silent) setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchAllDocuments({
+          appName: APP_NAME,
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
+        });
+        setDocuments(data.items);
+        setTotal(data.count);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load documents");
+      } finally {
+        if (!options?.silent) setLoading(false);
+      }
+    },
+    [page, pageSize],
+  );
 
   useEffect(() => {
     loadCorpora();
@@ -120,7 +146,82 @@ export default function DocumentsPage() {
     loadDocuments();
   }, [loadDocuments]);
 
+  // 翻译进行中时按心跳节拍静默刷新列表（完成后新译文分录自动出现）
+  const anyTranslating = useMemo(
+    () => documents.some((doc) => getTranslationMeta(doc)?.status === "processing"),
+    [documents],
+  );
+  const silentReload = useCallback(() => loadDocuments({ silent: true }), [loadDocuments]);
+  useHeartbeatPoll(silentReload, { enabled: anyTranslating, fireImmediately: false });
+
   const totalPages = Math.ceil(total / pageSize);
+
+  const translatableDocs = useMemo(() => documents.filter(isTranslatable), [documents]);
+  const allSelected =
+    translatableDocs.length > 0 && translatableDocs.every((doc) => selectedIds.has(doc.id));
+
+  const toggleSelect = (docId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) {
+        next.delete(docId);
+      } else {
+        next.add(docId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(translatableDocs.map((doc) => doc.id)));
+  };
+
+  // 本地把指定文档置为 processing（轮询接管后续状态）
+  const markProcessingLocally = useCallback((docIds: string[]) => {
+    const idSet = new Set(docIds);
+    setDocuments((docs) =>
+      docs.map((doc) =>
+        idSet.has(doc.id)
+          ? {
+              ...doc,
+              metadata: {
+                ...(doc.metadata || {}),
+                translation: { status: "processing" } satisfies DocumentTranslationMeta,
+              },
+            }
+          : doc,
+      ),
+    );
+  }, []);
+
+  const handleTranslate = async (docIds: string[], options?: { force?: boolean }) => {
+    if (docIds.length === 0 || isTranslating) return;
+    setIsTranslating(true);
+    try {
+      const result = await translateDocuments(docIds, {
+        appName: APP_NAME,
+        force: options?.force,
+      });
+      if (result.accepted.length > 0) {
+        toast.success(
+          `Translation started: ${result.accepted.length} document${result.accepted.length !== 1 ? "s" : ""} (EN → 中文)`,
+        );
+        markProcessingLocally(result.accepted);
+      }
+      if (result.skipped.length > 0) {
+        const reasons = result.skipped
+          .slice(0, 3)
+          .map((item) => item.reason)
+          .join(", ");
+        toast.error(`Skipped ${result.skipped.length} document(s): ${reasons}`);
+      }
+      setSelectedIds(new Set());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start translation");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleDelete = async (doc: KnowledgeDocument) => {
     try {
@@ -161,6 +262,65 @@ export default function DocumentsPage() {
     return corpus?.name || corpusId;
   };
 
+  // Translation 列四态：译文 badge / 翻译中 / 已翻译（链接译文）/ 失败（可重试）
+  const renderTranslationCell = (doc: KnowledgeDocument) => {
+    const translatedFromId = getTranslatedFromId(doc);
+    if (translatedFromId) {
+      const fromName =
+        (doc.metadata?.translated_from_filename as string | undefined) || translatedFromId;
+      return (
+        <button
+          onClick={() => router.push(`/knowledge/documents/${doc.corpus_id}/${translatedFromId}`)}
+          className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100 transition-colors dark:bg-blue-950 dark:text-blue-300"
+          title={`Translated from: ${fromName}`}
+        >
+          译文
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </button>
+      );
+    }
+
+    const translation = getTranslationMeta(doc);
+    if (translation?.status === "processing") {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+          <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Translating…
+        </span>
+      );
+    }
+    if (translation?.status === "completed" && translation.target_document_id) {
+      return (
+        <button
+          onClick={() =>
+            router.push(`/knowledge/documents/${doc.corpus_id}/${translation.target_document_id}`)
+          }
+          className="text-xs text-green-600 hover:text-green-700 hover:underline dark:text-green-400"
+          title="View translated document"
+        >
+          Translated
+        </button>
+      );
+    }
+    if (translation?.status === "failed") {
+      return (
+        <button
+          onClick={() => handleTranslate([doc.id], { force: true })}
+          className="text-xs text-red-500 hover:text-red-600 hover:underline"
+          title={`${translation.error || "Translation failed"} — click to retry`}
+        >
+          Failed · Retry
+        </button>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">-</span>;
+  };
+
   return (
     <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
@@ -170,16 +330,53 @@ export default function DocumentsPage() {
       <div className="flex min-h-0 flex-1 px-6 py-6">
         {/* 文档列表 */}
         <main className="flex min-h-0 flex-1 flex-col">
+          {/* 批量操作工具条 */}
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0
+                ? `${selectedIds.size} document${selectedIds.size !== 1 ? "s" : ""} selected`
+                : "Select documents to translate (EN → 中文)"}
+            </span>
+            <button
+              onClick={() => handleTranslate(Array.from(selectedIds))}
+              disabled={selectedIds.size === 0 || isTranslating}
+              className={outlineButtonClassName(
+                "neutral",
+                "rounded-lg px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5",
+              )}
+              title="Translate selected documents to Chinese"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              {isTranslating
+                ? "Translating…"
+                : `Translate${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+            </button>
+          </div>
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
-              <div className="col-span-4 text-center border-r border-border">File Name</div>
-              <div className="col-span-1 text-center border-r border-border">Size</div>
-              <div className="col-span-1 text-center border-r border-border">File Hash</div>
-              <div className="col-span-3 text-center border-r border-border">Corpus</div>
-              <div className="col-span-1 text-center border-r border-border">Created By</div>
-              <div className="col-span-1 text-center border-r border-border">Created At</div>
-              <div className="col-span-1 text-center">Actions</div>
+            <div className="flex items-center px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
+              <div className="w-8 shrink-0 flex justify-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  disabled={translatableDocs.length === 0}
+                  className="rounded"
+                  title="Select all translatable documents"
+                />
+              </div>
+              <div className="grid grid-cols-12 gap-2 flex-1">
+                <div className="col-span-3 text-center border-r border-border">File Name</div>
+                <div className="col-span-1 text-center border-r border-border">Size</div>
+                <div className="col-span-1 text-center border-r border-border">File Hash</div>
+                <div className="col-span-2 text-center border-r border-border">Corpus</div>
+                <div className="col-span-2 text-center border-r border-border">Translation</div>
+                <div className="col-span-1 text-center border-r border-border">Created By</div>
+                <div className="col-span-1 text-center border-r border-border">Created At</div>
+                <div className="col-span-1 text-center">Actions</div>
+              </div>
             </div>
 
             {/* 内容 */}
@@ -199,10 +396,26 @@ export default function DocumentsPage() {
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="grid grid-cols-12 gap-2 px-4 py-3 text-sm hover:bg-muted/30 transition-colors items-center"
+                      className="flex items-center px-4 py-3 text-sm hover:bg-muted/30 transition-colors"
                     >
-                      {/* 文件名 - col-span-4 */}
-                      <div className="col-span-4 flex items-center gap-2">
+                      {/* 勾选 - 固定宽 */}
+                      <div className="w-8 shrink-0 flex justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(doc.id)}
+                          onChange={() => toggleSelect(doc.id)}
+                          disabled={!isTranslatable(doc)}
+                          className="rounded disabled:opacity-30"
+                          title={
+                            isTranslatable(doc)
+                              ? "Select for translation"
+                              : "Not translatable (markdown not ready, already a translation, or translating)"
+                          }
+                        />
+                      </div>
+                      <div className="grid grid-cols-12 gap-2 flex-1 items-center">
+                      {/* 文件名 - col-span-3 */}
+                      <div className="col-span-3 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
                         <div className="min-w-0">
                           <p className="font-medium text-foreground truncate" title={doc.original_filename}>
@@ -220,13 +433,18 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* File Hash - col-span-1 */}
-                      <div className="col-span-1">
+                      <div className="col-span-1 text-center">
                         {truncateHash(doc.file_hash)}
                       </div>
 
-                      {/* 所属语料库 - col-span-3 */}
-                      <div className="col-span-3 text-muted-foreground truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
+                      {/* 所属语料库 - col-span-2 */}
+                      <div className="col-span-2 text-muted-foreground truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
                         {getCorpusName(doc.corpus_id)}
+                      </div>
+
+                      {/* Translation - col-span-2 */}
+                      <div className="col-span-2 flex justify-center">
+                        {renderTranslationCell(doc)}
                       </div>
 
                       {/* Created By - col-span-1 */}
@@ -301,6 +519,7 @@ export default function DocumentsPage() {
                             </button>
                           </>
                         )}
+                      </div>
                       </div>
                     </div>
                   ))}
