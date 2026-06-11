@@ -80,3 +80,19 @@ def test_builtin_payloads_are_serialized_without_name_error_regression():
     assert payloads
     for payload in payloads:
         assert isinstance(payload["adk_config"], dict)
+
+
+def test_influence_faculty_payload_carries_translate_skill_and_tool():
+    """InfluenceFaculty 装配：document-translate 技能 + invoke_claude_code 工具。
+
+    Sync 用本 payload 覆盖 DB 行（_AGENT_SKILLS 是精准挂载技能的单一事实源），
+    技能丢失会导致翻译链路的 Progressive Disclosure 失效。
+    """
+    payloads = {p["name"]: p for p in build_negentropy_agent_payloads()}
+    influence_payload = payloads["InfluenceFaculty"]
+    assert influence_payload["skills"] == ["document-translate"]
+    assert "invoke_claude_code" in influence_payload["tools"]
+    # 其余 Agent 不受映射影响
+    for name, payload in payloads.items():
+        if name != "InfluenceFaculty":
+            assert payload["skills"] == []

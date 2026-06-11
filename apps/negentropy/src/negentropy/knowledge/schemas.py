@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -664,6 +664,32 @@ class DocumentMarkdownRefreshRequest(BaseModel):
     """文档 Markdown 重解析请求。"""
 
     app_name: str | None = None
+
+
+class DocumentTranslateRequest(BaseModel):
+    """批量文档翻译请求（Documents 页 Translate 按钮）。"""
+
+    document_ids: list[UUID] = Field(min_length=1, max_length=20)
+    app_name: str | None = None
+    # 当前仅支持中文翻译；扩展时需同步补全 _LANGUAGE_NAMES 与「已是目标语言」检测逻辑。
+    target_language: Literal["zh"] = "zh"
+    # 强制重译：豁免 already_translated / 失败态守卫（processing 守卫不可豁免）。
+    force: bool = False
+
+
+class DocumentTranslateSkipped(BaseModel):
+    """被跳过的翻译项及原因。"""
+
+    document_id: UUID
+    reason: str
+
+
+class DocumentTranslateResponse(BaseModel):
+    """批量文档翻译响应。"""
+
+    accepted: list[UUID]
+    skipped: list[DocumentTranslateSkipped]
+    status: str = "running"
 
 
 class DocumentChunksResponse(BaseModel):

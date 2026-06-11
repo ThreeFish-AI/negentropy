@@ -71,6 +71,7 @@ export {
   updateDocumentChunk,
   regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,
+  translateDocuments,
   deleteDocument,
   downloadDocument,
   syncDocument,
@@ -180,6 +181,9 @@ export type {
   DocumentChunksResponse,
   DocumentChunksMetadata,
   DocumentMarkdownRefreshResponse,
+  DocumentTranslationMeta,
+  DocumentTranslateSkipped,
+  DocumentTranslateResponse,
   DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
   GraphSearchMode,
