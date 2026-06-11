@@ -116,3 +116,34 @@ async def test_invoke_claude_code_prefers_session_state_when_present() -> None:
     fallback.assert_not_awaited()  # 未触发回退
     assert captured["config"].mcp_config == {"custom": {"command": "echo"}}
     assert captured["config"].allowed_tools == ["Bash"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("requested", "expected"),
+    [
+        (None, 300.0),  # 未指定 → 沿用全局默认
+        (1800.0, 1800.0),  # 区间内 → 原样生效
+        (5.0, 30.0),  # 低于下限 → clamp 到 30
+        (99999.0, 3600.0),  # 高于上限 → clamp 到 3600
+    ],
+)
+async def test_invoke_claude_code_timeout_seconds_override(requested, expected) -> None:
+    """timeout_seconds 单次覆盖：None 沿用默认，越界 clamp 到 [30, 3600]。"""
+    from negentropy.agents.tools.claude_code import invoke_claude_code
+
+    ctx = _FakeToolContext({"claude_code_config": {"cli_path": "claude", "timeout_seconds": 300.0}})
+
+    captured: dict[str, ClaudeCodeConfig] = {}
+
+    async def _fake_invoke(task: str, config: ClaudeCodeConfig) -> ClaudeCodeResult:
+        captured["config"] = config
+        return _ok_result()
+
+    with patch(
+        "negentropy.agents.tools.claude_code.ClaudeCodeService.invoke",
+        new=AsyncMock(side_effect=_fake_invoke),
+    ):
+        await invoke_claude_code(task="t", tool_context=ctx, timeout_seconds=requested)
+
+    assert captured["config"].timeout_seconds == expected
