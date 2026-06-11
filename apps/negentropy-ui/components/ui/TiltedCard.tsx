@@ -22,6 +22,8 @@ interface TiltedCardProps {
   scaleOnHover?: number;
   /** 弹簧物理参数。 */
   springConfig?: { damping: number; stiffness: number; mass: number };
+  /** 禁用倾斜效果（拖拽场景下使用）。 */
+  disabled?: boolean;
 }
 
 /**
@@ -38,6 +40,7 @@ export function TiltedCard({
   tiltAmplitude = 8,
   scaleOnHover = 1.03,
   springConfig = DEFAULT_SPRING,
+  disabled = false,
 }: TiltedCardProps) {
   const prefersReduced = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -95,9 +98,9 @@ export function TiltedCard({
     rawShadowProgress.set(0);
   }, [rawRotateX, rawRotateY, rawScale, rawShadowProgress]);
 
-  /* ---- prefers-reduced-motion 降级 ---- */
+  /* ---- prefers-reduced-motion / disabled 降级 ---- */
 
-  if (prefersReduced) {
+  if (prefersReduced || disabled) {
     return <div className={className}>{children}</div>;
   }
 
