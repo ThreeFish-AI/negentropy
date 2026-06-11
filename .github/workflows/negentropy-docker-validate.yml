@@ -1,0 +1,47 @@
+name: Docker Build Validation
+
+# =============================================================================
+# Docker 构建校验（策略层：PR / 周期巡检入口）
+# =============================================================================
+# 1. compose-config — docker compose 配置静态校验（schema / 插值 / 语法）
+# 2. docker-build   — 4 镜像 × 2 架构原生构建（push=false，不产生任何推送副作用，
+#                     fork PR 无 secrets 亦可完整运行）
+# 每周一 cron 用于捕获基底镜像（python:3.13-slim / node:22-slim）漂移导致的
+# 构建退化，沿用仓库 weekly 巡检惯例。
+# =============================================================================
+
+on:
+  pull_request:
+    paths:
+      - "docker/**"
+      - "docker-compose.yml"
+      - ".dockerignore"
+      - ".github/workflows/negentropy-docker-validate.yml"
+      - ".github/workflows/reusable-negentropy-docker.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-config:
+    name: Compose Config Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config -q
+
+  docker-build:
+    name: Docker Build (no push)
+    uses: ./.github/workflows/reusable-negentropy-docker.yml
+    with:
+      push: false

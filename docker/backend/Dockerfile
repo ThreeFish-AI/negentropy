@@ -11,8 +11,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /build
 
-# 先复制依赖声明（利用 Docker 层缓存）
-COPY apps/negentropy/pyproject.toml apps/negentropy/uv.lock ./
+# 先复制依赖声明与 README（pyproject.toml 引用 README.md，hatchling 构建需要）
+COPY apps/negentropy/pyproject.toml apps/negentropy/uv.lock apps/negentropy/README.md ./
 
 # 安装依赖到虚拟环境（--frozen 锁定版本，--no-install-project 跳过项目本身）
 RUN uv sync --frozen --no-dev --no-install-project

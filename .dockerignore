@@ -54,7 +54,9 @@ docs
 !packages/*/README.md
 
 # Docker files (avoid recursive context)
-docker
+docker/*.yml
+docker/*.yaml
+docker/.env*
 
 # Environment files (secrets must not be baked into images)
 .env
