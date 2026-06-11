@@ -717,7 +717,7 @@ describe("importDocumentUrl / importDocumentFile / ingestDocument", () => {
     await ingestDocument("corpus-1", {
       app_name: "negentropy",
       document_id: "doc-1",
-      chunking_config: { strategy: "fixed", chunk_size: 512, overlap: 64 },
+      chunking_config: { strategy: "fixed", chunk_size: 512, overlap: 64, preserve_newlines: false },
     });
 
     const [url, init] = fetchSpy.mock.calls[0];

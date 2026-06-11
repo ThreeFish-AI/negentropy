@@ -34,6 +34,15 @@ from .conftest import FakeKnowledgeService, FakePipelineDao, FakePipelineRun
 APP = "negentropy"
 
 
+def _async_return(value):
+    """返回一个 async 函数，调用时直接返回 *value*。"""
+
+    async def _fn(*_a, **_kw):
+        return value
+
+    return _fn
+
+
 def _make_doc(
     *,
     corpus_id: UUID | None = None,
@@ -468,6 +477,10 @@ async def test_import_file_pipeline_failure_marks_doc_failed(monkeypatch):
         _ = kwargs
         raise ValueError("extract exploded")
 
+    monkeypatch.setattr(
+        "negentropy.knowledge._shared._resolve_library_extractor_config",
+        _async_return({"extractor_routes": {}}),
+    )
     monkeypatch.setattr(service, "_extract_file_document", fake_extract)
 
     run_id = await service.create_pipeline(
