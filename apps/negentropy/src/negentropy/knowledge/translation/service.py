@@ -128,6 +128,10 @@ class DocumentTranslationService:
         if doc is None:
             raise TranslationError("document not found")
 
+        if getattr(doc, "corpus_id", None) is None:
+            # Library 文档（corpus_id=NULL）：译文需落库到同 corpus，暂不支持
+            raise TranslationError("document is not attached to a corpus (library document)")
+
         metadata = dict(doc.metadata_ or {})
         if metadata.get(TRANSLATED_FROM_KEY):
             raise TranslationError("document is already a translation")

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { PipelineErrorPayload, PipelineStageResult } from "../utils/knowledge-api";
+import type { PipelineErrorPayload, PipelineOperation, PipelineStageResult } from "../utils/knowledge-api";
 import { PipelineStatusBadge } from "./PipelineStatusBadge";
 import { PipelineStagesBar } from "./PipelineStagesBar";
 import {
@@ -37,7 +37,7 @@ export interface PipelineRunCardProps {
   version: number;
   updated_at?: string;
   /** 操作类型 */
-  operation?: "ingest_text" | "ingest_url" | "ingest_file" | "replace_source";
+  operation?: PipelineOperation;
   /** 触发方式 */
   trigger?: "api" | "ui" | "schedule";
   /** 运行时长（毫秒） */

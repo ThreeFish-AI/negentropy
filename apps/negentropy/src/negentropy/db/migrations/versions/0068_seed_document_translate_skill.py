@@ -1,7 +1,7 @@
 """Seed: document-translate 内置技能 + InfluenceFaculty / claude_code 装配数据修复
 
-Revision ID: 0067
-Revises: 0066
+Revision ID: 0068
+Revises: 0067
 Create Date: 2026-06-11 00:00:00.000000+00:00
 
 设计动机：
@@ -45,8 +45,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
-revision: str = "0067"
-down_revision: str | None = "0066"
+revision: str = "0068"
+down_revision: str | None = "0067"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -212,9 +212,9 @@ def upgrade() -> None:
         sa.text(
             f"""
         UPDATE {SCHEMA}.agents
-        SET skills = COALESCE(skills, '[]'::jsonb) || :skill_ref::jsonb
+        SET skills = COALESCE(skills, '[]'::jsonb) || CAST(:skill_ref AS jsonb)
         WHERE name = :agent_name
-          AND NOT (COALESCE(skills, '[]'::jsonb) @> :skill_ref::jsonb)
+          AND NOT (COALESCE(skills, '[]'::jsonb) @> CAST(:skill_ref AS jsonb))
         """
         ).bindparams(
             sa.bindparam("agent_name", value=AGENT_NAME, type_=sa.Text),
@@ -230,11 +230,11 @@ def upgrade() -> None:
         SET config = jsonb_set(
             COALESCE(config, '{{}}'::jsonb),
             '{{skills}}',
-            COALESCE(config->'skills', '[]'::jsonb) || :skill_ref::jsonb,
+            COALESCE(config->'skills', '[]'::jsonb) || CAST(:skill_ref AS jsonb),
             true
         )
         WHERE name = :tool_name
-          AND NOT (COALESCE(config->'skills', '[]'::jsonb) @> :skill_ref::jsonb)
+          AND NOT (COALESCE(config->'skills', '[]'::jsonb) @> CAST(:skill_ref AS jsonb))
         """
         ).bindparams(
             sa.bindparam("tool_name", value=CLAUDE_CODE_TOOL_NAME, type_=sa.Text),
@@ -255,7 +255,7 @@ def downgrade() -> None:
             '{{skills}}',
             COALESCE(
                 (SELECT jsonb_agg(e) FROM jsonb_array_elements(config->'skills') AS e
-                 WHERE e <> :skill_elem::jsonb),
+                 WHERE e <> CAST(:skill_elem AS jsonb)),
                 '[]'::jsonb
             ),
             true
@@ -275,10 +275,10 @@ def downgrade() -> None:
         UPDATE {SCHEMA}.agents
         SET skills = COALESCE(
             (SELECT jsonb_agg(e) FROM jsonb_array_elements(skills) AS e
-             WHERE e <> :skill_elem::jsonb),
+             WHERE e <> CAST(:skill_elem AS jsonb)),
             '[]'::jsonb
         )
-        WHERE name = :agent_name AND COALESCE(skills, '[]'::jsonb) @> :skill_ref::jsonb
+        WHERE name = :agent_name AND COALESCE(skills, '[]'::jsonb) @> CAST(:skill_ref AS jsonb)
         """
         ).bindparams(
             sa.bindparam("agent_name", value=AGENT_NAME, type_=sa.Text),

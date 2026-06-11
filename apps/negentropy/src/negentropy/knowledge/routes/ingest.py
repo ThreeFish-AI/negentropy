@@ -16,16 +16,13 @@ from negentropy.knowledge._shared import (
     _extract_legacy_chunking_payload,
     _get_service,
     _resolve_chunking_config,
+    _resolve_document_source_uri,
 )
 from negentropy.knowledge.api_helpers import _map_exception_to_http, _resolve_app_name
 from negentropy.knowledge.exceptions import KnowledgeError
-from negentropy.knowledge.ingestion.extraction import (
-    extract_source,
-    resolve_source_kind,
-    store_extracted_document_artifacts,
-)
 from negentropy.knowledge.schemas import (
     AsyncPipelineResponse,
+    IngestDocumentRequest,
     IngestRequest,
     IngestUrlRequest,
 )
@@ -244,85 +241,6 @@ async def ingest_url(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
         ) from exc
-
-
-async def _extract_and_store_document_markdown_from_gcs(
-    *,
-    document_id: UUID,
-) -> None:
-    """从 GCS 重新加载原始文档，通过 MCP Tool 提取 Markdown 并刷新存储。
-
-    与 ingest pipeline 共用同一条 MCP Tool 提取路径（extract_source），
-    确保 Document View 的 Markdown 内容与 Chunk 内容质量一致。
-    """
-    from negentropy.storage.service import DocumentStorageService
-
-    storage_service = DocumentStorageService()
-    doc = await storage_service.get_document(document_id=document_id)
-    if not doc:
-        logger.warning(
-            "document_markdown_refresh_skipped_document_not_found",
-            document_id=str(document_id),
-        )
-        return
-
-    content = await storage_service.get_document_content(document_id=document_id)
-    if not content:
-        await storage_service.update_markdown_extraction_status(
-            document_id=document_id,
-            status="failed",
-            error="Source document content not found in GCS",
-        )
-        return
-
-    await storage_service.update_markdown_extraction_status(
-        document_id=document_id,
-        status="processing",
-        error=None,
-    )
-
-    try:
-        service = _get_service()
-        corpus_config = await service._get_corpus_config(doc.corpus_id)
-        source_kind = resolve_source_kind(
-            filename=doc.original_filename,
-            content_type=doc.content_type,
-        )
-        result = await extract_source(
-            app_name=doc.app_name,
-            corpus_id=doc.corpus_id,
-            corpus_config=corpus_config,
-            source_kind=source_kind,
-            content=content,
-            filename=doc.original_filename,
-            content_type=doc.content_type,
-        )
-
-        markdown_content = (result.markdown_content or "").strip()
-        if not markdown_content:
-            raise ValueError("Extractor returned empty markdown content")
-
-        markdown_gcs_uri, _ = await store_extracted_document_artifacts(
-            document_id=document_id,
-            extracted=result,
-        )
-        logger.info(
-            "document_markdown_extraction_completed",
-            document_id=str(document_id),
-            markdown_size=len(markdown_content),
-            markdown_gcs_uri=markdown_gcs_uri,
-        )
-    except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
-        logger.error(
-            "document_markdown_extraction_failed",
-            document_id=str(document_id),
-            error=str(exc),
-        )
-        await storage_service.update_markdown_extraction_status(
-            document_id=document_id,
-            status="failed",
-            error=str(exc),
-        )
 
 
 @router.post("/base/{corpus_id}/ingest_file", response_model=AsyncPipelineResponse)
@@ -564,6 +482,130 @@ async def ingest_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "FILE_PARSE_ERROR", "message": str(exc)},
         ) from exc
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+@router.post("/base/{corpus_id}/ingest_document", response_model=AsyncPipelineResponse)
+async def ingest_document(
+    corpus_id: UUID,
+    payload: IngestDocumentRequest,
+    background_tasks: BackgroundTasks,
+) -> AsyncPipelineResponse:
+    """异步将既有 Document 的 Markdown 索引进目标 Corpus
+
+    支持库文档（corpus_id=NULL）与任意其他 Corpus 的文档（跨 Corpus 摄入）：
+    chunks 建在目标 Corpus，文档本体不动（不复制、不改归属）。
+    以 (corpus, source_uri) 为键 replace 模式幂等重摄入。
+
+    Raises:
+        404: corpus / document 不存在
+        409: 文档 Markdown 未就绪（markdown_extract_status != completed）
+        400: 文档无可解析的 source_uri
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_ingest_document_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        document_id=str(payload.document_id),
+    )
+
+    try:
+        service = _get_service()
+
+        # 校验目标 corpus
+        corpus = await service.get_corpus_by_id(corpus_id)
+        if corpus is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "CORPUS_NOT_FOUND", "message": "Corpus not found"},
+            )
+        corpus_config = corpus.config or {}
+
+        # 校验文档（不带 corpus 过滤：允许库文档与跨 Corpus 文档；app 为租户边界）
+        from negentropy.storage.service import DocumentStorageService
+
+        storage_service = DocumentStorageService()
+        doc = await storage_service.get_document(
+            document_id=payload.document_id,
+            app_name=resolved_app,
+        )
+        if doc is None or doc.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found or inactive"},
+            )
+
+        # fail-loud：Markdown 未就绪不可摄入（前端已禁用，此处兜底竞态）
+        if doc.markdown_extract_status != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "DOCUMENT_MARKDOWN_NOT_READY",
+                    "message": (
+                        f"Document markdown is not ready (status={doc.markdown_extract_status}); "
+                        "wait for import/extraction to finish or trigger refresh_markdown."
+                    ),
+                },
+            )
+
+        source_uri = _resolve_document_source_uri(doc)
+        if not source_uri:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "Document has no resolvable source URI"},
+            )
+
+        # chunking 配置以目标 corpus 为基线（Single Source of Truth）
+        chunking_config = _resolve_chunking_config(
+            chunking_config=payload.chunking_config,
+            legacy_payload=_extract_legacy_chunking_payload(payload),
+            corpus_config=corpus_config,
+        )
+
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="ingest_document",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "document_id": str(payload.document_id),
+                "source_uri": source_uri,
+                "filename": doc.original_filename,
+                "source_document_corpus_id": str(doc.corpus_id) if doc.corpus_id else None,
+                "chunking_config": chunking_config_summary(chunking_config),
+            },
+        )
+
+        background_tasks.add_task(
+            service.execute_ingest_document_pipeline,
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            document_id=payload.document_id,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_ingest_document_queued",
+            corpus_id=str(corpus_id),
+            run_id=run_id,
+            document_id=str(payload.document_id),
+        )
+
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message="Document ingest task started. Check Pipeline page for progress.",
+        )
+
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
     except ValidationError as exc:

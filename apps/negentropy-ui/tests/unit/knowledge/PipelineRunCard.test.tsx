@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PipelineRunCard } from "@/features/knowledge/components/PipelineRunCard";
+import { OPERATION_LABELS, canRetryRun } from "@/features/knowledge/utils/pipeline-helpers";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -150,5 +151,34 @@ describe("PipelineRunCard 重试按钮（断点续传 / 重新开始）", () => 
     fireEvent.click(screen.getByRole("button", { name: "断点续传" }));
     expect(onResume).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe("Document Library 新操作类型", () => {
+  it("import_document / ingest_document 渲染中文操作标签", () => {
+    expect(OPERATION_LABELS.import_document).toBe("文档导入");
+    expect(OPERATION_LABELS.ingest_document).toBe("文档摄入");
+  });
+
+  it("import_document run（input 无 corpus_id）不暴露重试入口", () => {
+    const run = {
+      id: "r1",
+      run_id: "run-import",
+      status: "failed",
+      input: { document_id: "doc-1", corpus_id: null, source_type: "file_pdf" },
+    } as unknown as Parameters<typeof canRetryRun>[0];
+
+    expect(canRetryRun(run)).toBe(false);
+  });
+
+  it("ingest_document run（input 含 corpus_id + document_id）允许重试", () => {
+    const run = {
+      id: "r2",
+      run_id: "run-ingest",
+      status: "failed",
+      input: { document_id: "doc-1", corpus_id: "corpus-1" },
+    } as unknown as Parameters<typeof canRetryRun>[0];
+
+    expect(canRetryRun(run)).toBe(true);
   });
 });

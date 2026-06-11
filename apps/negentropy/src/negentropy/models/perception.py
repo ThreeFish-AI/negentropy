@@ -86,13 +86,18 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
 
 
 class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
-    """文档元信息表 - 存储上传到 GCS 的原始文件信息"""
+    """文档元信息表 - 存储上传到 GCS 的原始文件信息
+
+    ``corpus_id IS NULL`` 表示独立文档库（Library）文档：仅完成
+    「转换为 Markdown + GCS 存储」，未绑定任何 Corpus；可经
+    Ingest Document 在任意 Corpus 中索引化（文档本体不动）。
+    """
 
     __tablename__ = "knowledge_documents"
 
-    corpus_id: Mapped[UUID] = mapped_column(
+    corpus_id: Mapped[UUID | None] = mapped_column(
         ForeignKey(f"{NEGENTROPY_SCHEMA}.corpus.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -134,6 +139,15 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
+        # 库文档去重：UNIQUE(corpus_id, file_hash) 对 NULL 行豁免（PG 视 NULL 互异），
+        # 故以 app 为租户边界对库文档单独约束（详见 0067 迁移设计动机）。
+        Index(
+            "uq_knowledge_documents_library_hash",
+            "app_name",
+            "file_hash",
+            unique=True,
+            postgresql_where="corpus_id IS NULL",
+        ),
         Index("ix_knowledge_documents_file_hash", "file_hash"),
         Index("ix_knowledge_documents_app_name", "app_name"),
         Index("ix_knowledge_documents_status", "status"),
@@ -142,7 +156,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
         {"schema": NEGENTROPY_SCHEMA},
     )
 
-    corpus: Mapped["Corpus"] = relationship(back_populates="documents")
+    corpus: Mapped["Corpus | None"] = relationship(back_populates="documents")
     # Phase 2: 来源记录（反向关联）
     source: Mapped["DocSource | None"] = relationship(foreign_keys=[source_id])
 

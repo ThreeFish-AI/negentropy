@@ -140,11 +140,17 @@ async def list_all_documents(
     )
 
 
-@router.get("/base/{corpus_id}/documents/{document_id}", response_model=DocumentDetailResponse)
-async def get_document_detail(
-    corpus_id: UUID,
+# ---------------------------------------------------------------------------
+# 共享实现：corpus_id 为 None 时按 app_name 限界（库文档 / 跨 corpus 直达），
+# 否则附加 corpus 归属校验。corpus 路由与平行无 corpus 路由（library.py）共用。
+# ---------------------------------------------------------------------------
+
+
+async def _get_document_detail_impl(
+    *,
     document_id: UUID,
-    app_name: str | None = Query(default=None),
+    corpus_id: UUID | None,
+    app_name: str | None,
 ) -> DocumentDetailResponse:
     """获取单个文档详情（含 Markdown 正文）。"""
     resolved_app = _resolve_app_name(app_name)
@@ -170,7 +176,7 @@ async def get_document_detail(
 
     source_uri = _resolve_document_source_uri(doc)
     archived = False
-    if source_uri:
+    if source_uri and doc.corpus_id is not None:
         service = _get_service()
         archived_set = await service.get_archived_source_uris(
             pairs=[(doc.corpus_id, source_uri)],
@@ -202,10 +208,20 @@ async def get_document_detail(
     )
 
 
-@router.patch("/base/{corpus_id}/documents/{document_id}", response_model=DocumentResponse)
-async def update_document(
+@router.get("/base/{corpus_id}/documents/{document_id}", response_model=DocumentDetailResponse)
+async def get_document_detail(
     corpus_id: UUID,
     document_id: UUID,
+    app_name: str | None = Query(default=None),
+) -> DocumentDetailResponse:
+    """获取单个文档详情（含 Markdown 正文）。"""
+    return await _get_document_detail_impl(document_id=document_id, corpus_id=corpus_id, app_name=app_name)
+
+
+async def _update_document_impl(
+    *,
+    document_id: UUID,
+    corpus_id: UUID | None,
     payload: DocumentUpdateRequest,
 ) -> DocumentResponse:
     """更新文档元信息（display_name + Wiki 文章元数据）。
@@ -259,7 +275,7 @@ async def update_document(
     name_map = await _resolve_user_display_names([doc.created_by]) if doc.created_by else {}
     source_uri = _resolve_document_source_uri(doc)
     archived = False
-    if source_uri:
+    if source_uri and doc.corpus_id is not None:
         service = _get_service()
         archived_set = await service.get_archived_source_uris(
             pairs=[(doc.corpus_id, source_uri)],
@@ -275,18 +291,20 @@ async def update_document(
     return _build_document_response(doc, name_map, archived=archived)
 
 
-@router.post(
-    "/base/{corpus_id}/documents/{document_id}/refresh-markdown",
-    response_model=DocumentMarkdownRefreshResponse,
-    include_in_schema=False,
-)
-@router.post(
-    "/base/{corpus_id}/documents/{document_id}/refresh_markdown",
-    response_model=DocumentMarkdownRefreshResponse,
-)
-async def refresh_document_markdown(
+@router.patch("/base/{corpus_id}/documents/{document_id}", response_model=DocumentResponse)
+async def update_document(
     corpus_id: UUID,
     document_id: UUID,
+    payload: DocumentUpdateRequest,
+) -> DocumentResponse:
+    """更新文档元信息（display_name + Wiki 文章元数据）。"""
+    return await _update_document_impl(document_id=document_id, corpus_id=corpus_id, payload=payload)
+
+
+async def _refresh_document_markdown_impl(
+    *,
+    document_id: UUID,
+    corpus_id: UUID | None,
     payload: DocumentMarkdownRefreshRequest,
     background_tasks: BackgroundTasks,
 ) -> DocumentMarkdownRefreshResponse:
@@ -342,6 +360,9 @@ def _translation_eligibility(doc, *, force: bool) -> str | None:
 
     if doc is None:
         return "not_found"
+    if getattr(doc, "corpus_id", None) is None:
+        # Library 文档（corpus_id=NULL）：译文需落库到同 corpus，暂不支持
+        return "library_document"
     metadata = dict(doc.metadata_ or {})
     if metadata.get("translated_from_document_id"):
         return "already_translation"
@@ -421,21 +442,38 @@ async def translate_documents(
     return DocumentTranslateResponse(accepted=accepted, skipped=skipped)
 
 
-@router.delete("/base/{corpus_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_document(
+@router.post(
+    "/base/{corpus_id}/documents/{document_id}/refresh-markdown",
+    response_model=DocumentMarkdownRefreshResponse,
+    include_in_schema=False,
+)
+@router.post(
+    "/base/{corpus_id}/documents/{document_id}/refresh_markdown",
+    response_model=DocumentMarkdownRefreshResponse,
+)
+async def refresh_document_markdown(
     corpus_id: UUID,
     document_id: UUID,
-    app_name: str | None = Query(default=None),
-    hard_delete: bool = Query(default=False),
-) -> None:
-    """删除文档
+    payload: DocumentMarkdownRefreshRequest,
+    background_tasks: BackgroundTasks,
+) -> DocumentMarkdownRefreshResponse:
+    """从 GCS 源文档重新解析 Markdown 并刷新存储。"""
+    return await _refresh_document_markdown_impl(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        payload=payload,
+        background_tasks=background_tasks,
+    )
 
-    Args:
-        corpus_id: 知识库 ID
-        document_id: 文档 ID
-        app_name: 应用名称
-        hard_delete: 是否同时删除 GCS 中的原始文件（默认软删除）
-    """
+
+async def _delete_document_impl(
+    *,
+    document_id: UUID,
+    corpus_id: UUID | None,
+    app_name: str | None,
+    hard_delete: bool,
+) -> None:
+    """删除文档（corpus_id=None 时按 app_name 限界）。"""
     resolved_app = _resolve_app_name(app_name)
 
     from negentropy.storage.service import DocumentStorageService
@@ -455,22 +493,36 @@ async def delete_document(
         )
 
 
-@router.get("/base/{corpus_id}/documents/{document_id}/download")
-async def download_document(
+@router.delete("/base/{corpus_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
     corpus_id: UUID,
     document_id: UUID,
     app_name: str | None = Query(default=None),
-):
-    """下载文档原始文件
+    hard_delete: bool = Query(default=False),
+) -> None:
+    """删除文档
 
     Args:
         corpus_id: 知识库 ID
         document_id: 文档 ID
         app_name: 应用名称
-
-    Returns:
-        StreamingResponse: 文件流（带 Content-Disposition 头）
+        hard_delete: 是否同时删除 GCS 中的原始文件（默认软删除）
     """
+    await _delete_document_impl(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=app_name,
+        hard_delete=hard_delete,
+    )
+
+
+async def _download_document_impl(
+    *,
+    document_id: UUID,
+    corpus_id: UUID | None,
+    app_name: str | None,
+):
+    """下载文档原始文件，返回 StreamingResponse（带 Content-Disposition 头）。"""
     resolved_app = _resolve_app_name(app_name)
 
     from negentropy.storage.gcs_client import StorageError
@@ -533,12 +585,31 @@ async def download_document(
     )
 
 
-@router.get("/base/{corpus_id}/documents/{document_id}/assets/{asset_name:path}")
-async def get_document_asset(
+@router.get("/base/{corpus_id}/documents/{document_id}/download")
+async def download_document(
     corpus_id: UUID,
     document_id: UUID,
-    asset_name: str,
     app_name: str | None = Query(default=None),
+):
+    """下载文档原始文件
+
+    Args:
+        corpus_id: 知识库 ID
+        document_id: 文档 ID
+        app_name: 应用名称
+
+    Returns:
+        StreamingResponse: 文件流（带 Content-Disposition 头）
+    """
+    return await _download_document_impl(document_id=document_id, corpus_id=corpus_id, app_name=app_name)
+
+
+async def _get_document_asset_impl(
+    *,
+    document_id: UUID,
+    corpus_id: UUID | None,
+    asset_name: str,
+    app_name: str | None,
 ):
     """获取文档的衍生资产文件（图片等）。
 
@@ -607,4 +678,20 @@ async def get_document_asset(
             "Content-Disposition": f'inline; filename="{header_filename}"',
             "Content-Length": str(len(content)),
         },
+    )
+
+
+@router.get("/base/{corpus_id}/documents/{document_id}/assets/{asset_name:path}")
+async def get_document_asset(
+    corpus_id: UUID,
+    document_id: UUID,
+    asset_name: str,
+    app_name: str | None = Query(default=None),
+):
+    """获取文档的衍生资产文件（图片等）。"""
+    return await _get_document_asset_impl(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        asset_name=asset_name,
+        app_name=app_name,
     )

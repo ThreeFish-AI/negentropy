@@ -16,14 +16,18 @@ import {
   deleteDocument,
   downloadDocument,
   translateDocuments,
+  importDocumentUrl,
+  importDocumentFile,
   fetchCorpora,
   CorpusRecord,
   formatRelativeTime,
+  LIBRARY_CORPUS_SEGMENT,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
+import { ImportDocumentDialog } from "./_components/ImportDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 function formatFileSize(bytes: number): string {
@@ -84,8 +88,9 @@ function getTranslatedFromId(doc: KnowledgeDocument): string | undefined {
   return typeof value === "string" && value ? value : undefined;
 }
 
-/** 是否可勾选翻译：Markdown 已就绪、自身非译文、且当前没有进行中的翻译。 */
+/** 是否可勾选翻译：归属某 Corpus（译文需落库到同 corpus）、Markdown 已就绪、自身非译文、且当前没有进行中的翻译。 */
 function isTranslatable(doc: KnowledgeDocument): boolean {
+  if (!doc.corpus_id) return false; // Library 文档（未归属 Corpus）暂不支持翻译
   if (getTranslatedFromId(doc)) return false;
   if ((doc.markdown_extract_status || "").toLowerCase() !== "completed") return false;
   return getTranslationMeta(doc)?.status !== "processing";
@@ -101,6 +106,7 @@ export default function DocumentsPage() {
   const [pageSize] = useState(20);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isTranslating, setIsTranslating] = useState(false);
@@ -146,13 +152,23 @@ export default function DocumentsPage() {
     loadDocuments();
   }, [loadDocuments]);
 
-  // 翻译进行中时按心跳节拍静默刷新列表（完成后新译文分录自动出现）
+  // 翻译 / 导入转换进行中时按心跳节拍静默刷新列表（完成后新分录与状态自动出现）
   const anyTranslating = useMemo(
     () => documents.some((doc) => getTranslationMeta(doc)?.status === "processing"),
     [documents],
   );
+  const anyExtracting = useMemo(
+    () =>
+      documents.some((doc) =>
+        ["pending", "processing"].includes((doc.markdown_extract_status || "").toLowerCase()),
+      ),
+    [documents],
+  );
   const silentReload = useCallback(() => loadDocuments({ silent: true }), [loadDocuments]);
-  useHeartbeatPoll(silentReload, { enabled: anyTranslating, fireImmediately: false });
+  useHeartbeatPoll(silentReload, {
+    enabled: anyTranslating || anyExtracting,
+    fireImmediately: false,
+  });
 
   const totalPages = Math.ceil(total / pageSize);
 
@@ -257,7 +273,8 @@ export default function DocumentsPage() {
     }
   };
 
-  const getCorpusName = (corpusId: string) => {
+  const getCorpusName = (corpusId: string | null) => {
+    if (!corpusId) return null;
     const corpus = corpora.find((c) => c.id === corpusId);
     return corpus?.name || corpusId;
   };
@@ -330,29 +347,37 @@ export default function DocumentsPage() {
       <div className="flex min-h-0 flex-1 px-6 py-6">
         {/* 文档列表 */}
         <main className="flex min-h-0 flex-1 flex-col">
-          {/* 批量操作工具条 */}
+          {/* 工具栏：左侧勾选提示，右侧 Translate / Import 批量操作 */}
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
               {selectedIds.size > 0
                 ? `${selectedIds.size} document${selectedIds.size !== 1 ? "s" : ""} selected`
                 : "Select documents to translate (EN → 中文)"}
             </span>
-            <button
-              onClick={() => handleTranslate(Array.from(selectedIds))}
-              disabled={selectedIds.size === 0 || isTranslating}
-              className={outlineButtonClassName(
-                "neutral",
-                "rounded-lg px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5",
-              )}
-              title="Translate selected documents to Chinese"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-              </svg>
-              {isTranslating
-                ? "Translating…"
-                : `Translate${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleTranslate(Array.from(selectedIds))}
+                disabled={selectedIds.size === 0 || isTranslating}
+                className={outlineButtonClassName(
+                  "neutral",
+                  "rounded-lg px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5",
+                )}
+                title="Translate selected documents to Chinese"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+                {isTranslating
+                  ? "Translating…"
+                  : `Translate${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+              </button>
+              <button
+                onClick={() => setIsImportDialogOpen(true)}
+                className="rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-sm hover:opacity-90"
+              >
+                Import Document
+              </button>
+            </div>
           </div>
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
@@ -409,7 +434,7 @@ export default function DocumentsPage() {
                           title={
                             isTranslatable(doc)
                               ? "Select for translation"
-                              : "Not translatable (markdown not ready, already a translation, or translating)"
+                              : "Not translatable (library document, markdown not ready, already a translation, or translating)"
                           }
                         />
                       </div>
@@ -437,9 +462,20 @@ export default function DocumentsPage() {
                         {truncateHash(doc.file_hash)}
                       </div>
 
-                      {/* 所属语料库 - col-span-2 */}
-                      <div className="col-span-2 text-muted-foreground truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
-                        {getCorpusName(doc.corpus_id)}
+                      {/* 所属语料库 - col-span-2；库文档（corpus_id=null）显示 Library 徽标 */}
+                      <div className="col-span-2 flex justify-end">
+                        {doc.corpus_id ? (
+                          <span
+                            className="text-muted-foreground truncate text-xs"
+                            title={getCorpusName(doc.corpus_id) ?? undefined}
+                          >
+                            {getCorpusName(doc.corpus_id)}
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            Library
+                          </span>
+                        )}
                       </div>
 
                       {/* Translation - col-span-2 */}
@@ -489,7 +525,11 @@ export default function DocumentsPage() {
                         ) : (
                           <>
                             <button
-                              onClick={() => router.push(`/knowledge/documents/${doc.corpus_id}/${doc.id}`)}
+                              onClick={() =>
+                                router.push(
+                                  `/knowledge/documents/${doc.corpus_id ?? LIBRARY_CORPUS_SEGMENT}/${doc.id}`,
+                                )
+                              }
                               className="rounded p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
                               title="View document content"
                             >
@@ -561,6 +601,24 @@ export default function DocumentsPage() {
         </main>
       </div>
 
+      {/* Import Document 对话框 */}
+      <ImportDocumentDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImportUrl={({ url }) =>
+          importDocumentUrl({ app_name: APP_NAME, url }).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        onImportFile={({ file }) =>
+          importDocumentFile({ app_name: APP_NAME, file }).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        onSuccess={() => setIsImportDialogOpen(false)}
+      />
     </div>
   );
 }

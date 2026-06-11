@@ -352,8 +352,8 @@ class SourceTrackingService:
         if strategy is not None:
             pass  # 直接匹配到策略
         else:
-            # 兼容别名映射（如 "text" → "text_input"）
-            _ALIASES: dict[str, str] = {"text": "text_input"}
+            # 兼容别名映射（如 "text" → "text_input"；"file_md" 复用通用文件策略）
+            _ALIASES: dict[str, str] = {"text": "text_input", "file_md": "file_generic"}
             aliased = _ALIASES.get(source_kind)
             if aliased and aliased in self._strategies:
                 strategy = self._strategies[aliased]
