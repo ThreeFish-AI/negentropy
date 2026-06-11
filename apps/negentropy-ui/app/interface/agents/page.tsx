@@ -6,8 +6,23 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Bot } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -34,7 +49,6 @@ interface Agent {
   source: string;
   is_builtin: boolean;
   is_enabled: boolean;
-  // "root" = Negentropy 主 Agent；"agent"（默认）= Faculty 或用户自定义 Agent
   kind?: "root" | "agent";
 }
 
@@ -53,6 +67,15 @@ export default function AgentsPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const fetchAgents = async () => {
     try {
@@ -136,7 +159,6 @@ export default function AgentsPage() {
     setEditingAgent(null);
   };
 
-  // Root Agent 置顶；其余按 name 字典序保持稳定，避免 fetchAgents 顺序波动。
   const sortedAgents = useMemo(() => {
     const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
     return [...agents].sort((a, b) => {
@@ -147,6 +169,21 @@ export default function AgentsPage() {
       return a.name.localeCompare(b.name);
     });
   }, [agents]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      setAgents((prev) => {
+        const oldIndex = prev.findIndex((a) => a.id === active.id);
+        const newIndex = prev.findIndex((a) => a.id === over.id);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    },
+    [],
+  );
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     try {
@@ -179,7 +216,7 @@ export default function AgentsPage() {
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
                   Agents
@@ -235,20 +272,31 @@ export default function AgentsPage() {
                 }
               />
             ) : (
-              <div
-                data-testid="agents-grid"
-                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {sortedAgents.map((agent) => (
-                  <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
-                    <AgentCard
-                      agent={agent}
-                      onEdit={() => handleEdit(agent)}
-                      onDelete={() => handleDelete(agent.id)}
-                    />
+                <SortableContext
+                  items={sortedAgents.map((a) => a.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div
+                    data-testid="agents-grid"
+                    className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                  >
+                    {sortedAgents.map((agent) => (
+                      <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
+                        <AgentCard
+                          agent={agent}
+                          onEdit={() => handleEdit(agent)}
+                          onDelete={() => handleDelete(agent.id)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>

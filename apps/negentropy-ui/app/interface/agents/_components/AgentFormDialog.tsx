@@ -6,14 +6,22 @@
  */
 "use client";
 
-import { useState, useEffect, useId } from "react";
-import { ChevronRight } from "lucide-react";
+import { useState, useEffect, useId, type ReactNode } from "react";
+import {
+  Settings2,
+  MessageSquareCode,
+  Wrench,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorState";
 import { BaseModal } from "@/components/ui/BaseModal";
 import { LlmModelSelect } from "@/components/ui/LlmModelSelect";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { fetchModelConfigs, type ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
+import {
+  fetchModelConfigs,
+  type ModelConfigItem,
+} from "@/features/knowledge/utils/knowledge-api";
+import { cn } from "@/lib/utils";
 
 interface Agent {
   id: string;
@@ -55,7 +63,60 @@ const INPUT =
   "w-full rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring";
 const MONO =
   "w-full rounded-md border border-border bg-input px-3 py-1.5 text-sm font-mono text-foreground outline-none focus:ring-1 focus:ring-ring";
-const LABEL = "mb-1 block text-xs font-medium text-text-muted";
+const LABEL = "mb-1.5 block text-xs font-medium text-text-muted";
+
+/* ── Tab definitions ── */
+const TABS = [
+  { key: "general", label: "General", icon: Settings2 },
+  { key: "prompt-tools", label: "Prompt & Tools", icon: MessageSquareCode },
+  { key: "advanced", label: "Advanced", icon: Wrench },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
+
+function TabButton({
+  label,
+  icon: Icon,
+  active,
+  onClick,
+  tabId,
+  panelId,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+  tabId: string;
+  panelId: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={tabId}
+      aria-selected={active}
+      aria-controls={panelId}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+        active
+          ? "border-primary text-foreground"
+          : "border-transparent text-text-muted hover:text-text-secondary",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="mb-3 mt-1 text-[11px] font-medium uppercase tracking-wider text-text-muted/60">
+      {children}
+    </div>
+  );
+}
 
 export function AgentFormDialog({
   open,
@@ -65,6 +126,8 @@ export function AgentFormDialog({
 }: AgentFormDialogProps) {
   const { confirm, confirmDialog } = useConfirmDialog();
   const formId = useId();
+  const tabBaseId = useId();
+  const [activeTab, setActiveTab] = useState<TabKey>("general");
   const [formData, setFormData] = useState({
     name: "",
     display_name: "",
@@ -103,6 +166,7 @@ export function AgentFormDialog({
       is_enabled: true,
       visibility: "private",
     });
+    setSelectedTemplateName(template.name);
   };
 
   useEffect(() => {
@@ -146,6 +210,7 @@ export function AgentFormDialog({
       setSelectedTemplateName("");
     }
     setError(null);
+    setActiveTab("general");
   }, [agent, open]);
 
   useEffect(() => {
@@ -295,11 +360,280 @@ export function AgentFormDialog({
     }
   };
 
-  /* ── Helper: update a single form field ── */
   const setField = <K extends keyof typeof formData>(
     key: K,
     value: (typeof formData)[K],
   ) => setFormData((prev) => ({ ...prev, [key]: value }));
+
+  /* ── Tab: General ── */
+  const renderGeneral = () => (
+    <div className="space-y-5">
+      {/* Template selector (create only) */}
+      {!agent && templates.length > 0 && (
+        <div>
+          <SectionLabel>Template</SectionLabel>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {templates.map((t) => {
+              const selected = selectedTemplateName === t.name;
+              return (
+                <button
+                  key={t.name}
+                  type="button"
+                  onClick={() =>
+                    selected
+                      ? setSelectedTemplateName("")
+                      : setSelectedTemplateName(t.name)
+                  }
+                  className={cn(
+                    "flex shrink-0 flex-col rounded-lg border px-3 py-2 text-left transition-all min-w-[140px] max-w-[200px]",
+                    selected
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border bg-card hover:border-border/80 hover:bg-muted/50",
+                  )}
+                >
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {t.display_name || t.name}
+                  </span>
+                  {t.description && (
+                    <span className="mt-0.5 line-clamp-2 text-[11px] leading-tight text-text-muted">
+                      {t.description}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {selectedTemplateName && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => {
+                const target = templates.find(
+                  (item) => item.name === selectedTemplateName,
+                );
+                if (target) applyTemplate(target);
+              }}
+            >
+              Apply Template
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Identity */}
+      <SectionLabel>Identity</SectionLabel>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className={LABEL}>Name *</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setField("name", e.target.value)}
+            className={INPUT}
+            placeholder="my-agent"
+            required
+          />
+        </div>
+        <div>
+          <label className={LABEL}>Display Name</label>
+          <input
+            type="text"
+            value={formData.display_name}
+            onChange={(e) => setField("display_name", e.target.value)}
+            className={INPUT}
+            placeholder="My Agent"
+          />
+        </div>
+      </div>
+      <div>
+        <label className={LABEL}>Description</label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setField("description", e.target.value)}
+          className={INPUT}
+          rows={2}
+          placeholder="Brief description of this agent"
+        />
+      </div>
+
+      {/* Runtime */}
+      <SectionLabel>Runtime</SectionLabel>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className={LABEL}>Agent Type *</label>
+          <select
+            value={formData.agent_type}
+            onChange={(e) => setField("agent_type", e.target.value)}
+            className={INPUT}
+          >
+            <option value="llm_agent">LLM Agent</option>
+            <option value="sequential_agent">Sequential Agent</option>
+            <option value="parallel_agent">Parallel Agent</option>
+            <option value="loop_agent">Loop Agent</option>
+            <option value="custom_agent">Custom Agent</option>
+          </select>
+        </div>
+        <div>
+          <label className={LABEL}>Model</label>
+          <LlmModelSelect
+            models={llmModels}
+            value={formData.model}
+            onChange={(v) => setField("model", v)}
+            allowClear
+            placeholder="Default"
+            ariaLabel="Agent 使用的 LLM"
+            className="w-full"
+          />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className={LABEL}>Visibility</label>
+          <select
+            value={formData.visibility}
+            onChange={(e) => setField("visibility", e.target.value)}
+            className={INPUT}
+          >
+            <option value="private">Private</option>
+            <option value="shared">Shared</option>
+            <option value="public">Public</option>
+          </select>
+        </div>
+        <div className="flex items-end pb-0.5">
+          <label className="flex items-center gap-3 text-sm text-text-secondary">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={formData.is_enabled}
+              onClick={() => setField("is_enabled", !formData.is_enabled)}
+              className={cn(
+                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                formData.is_enabled ? "bg-primary" : "bg-border",
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+                  formData.is_enabled ? "translate-x-4" : "translate-x-0",
+                )}
+              />
+            </button>
+            Enabled
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── Tab: Prompt & Tools ── */
+  const renderPromptTools = () => (
+    <div className="space-y-5">
+      <SectionLabel>System Prompt</SectionLabel>
+      <div>
+        <textarea
+          value={formData.system_prompt}
+          onChange={(e) => setField("system_prompt", e.target.value)}
+          className={MONO}
+          rows={8}
+          placeholder="You are a specialized agent for..."
+        />
+      </div>
+
+      <SectionLabel>Tools</SectionLabel>
+      <div>
+        {availableTools.length > 0 && (
+          <div className="mb-2.5 flex flex-wrap gap-1.5">
+            {availableTools.map((t) => {
+              const currentTools = formData.tools
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              const isSelected = currentTools.includes(t.name);
+              return (
+                <button
+                  key={t.name}
+                  type="button"
+                  onClick={() => {
+                    const tools = formData.tools
+                      .split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+                    const next = isSelected
+                      ? tools.filter((n) => n !== t.name)
+                      : [...tools, t.name];
+                    setField("tools", next.join("\n"));
+                  }}
+                  className={
+                    "inline-flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+                    (isSelected
+                      ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
+                      : "bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border")
+                  }
+                >
+                  <span className="text-micro opacity-60">
+                    {t.source === "builtin" ? "●" : "◆"}
+                  </span>
+                  {t.display_name || t.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <textarea
+          value={formData.tools}
+          onChange={(e) => setField("tools", e.target.value)}
+          className={MONO}
+          rows={3}
+          placeholder="Select from above or type tool names (one per line)"
+        />
+      </div>
+    </div>
+  );
+
+  /* ── Tab: Advanced ── */
+  const renderAdvanced = () => (
+    <div className="space-y-5">
+      <SectionLabel>Skills</SectionLabel>
+      <div>
+        <textarea
+          value={formData.skills}
+          onChange={(e) => setField("skills", e.target.value)}
+          className={MONO}
+          rows={3}
+          placeholder="code-review&#10;document-analysis"
+        />
+      </div>
+
+      <SectionLabel>Configuration</SectionLabel>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={LABEL}>Config (JSON)</label>
+          <textarea
+            value={formData.config}
+            onChange={(e) => setField("config", e.target.value)}
+            className={MONO}
+            rows={6}
+            placeholder='{"temperature": 0.7}'
+          />
+        </div>
+        <div>
+          <label className={LABEL}>ADK Config (JSON)</label>
+          <textarea
+            value={formData.adk_config}
+            onChange={(e) => setField("adk_config", e.target.value)}
+            className={MONO}
+            rows={6}
+            placeholder='{"agent_class":"LlmAgent","output_key":"perception_output"}'
+          />
+          <p className="mt-1 text-[11px] text-text-muted">
+            Full-fidelity ADK config. Empty → auto-generate minimal config.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -308,7 +642,7 @@ export function AgentFormDialog({
         title={agent ? "Edit Agent" : "Add Agent"}
         subtitle="Configure agent properties and runtime behavior"
         onClose={onClose}
-        size="xl"
+        size="2xl"
         closeOnBackdrop={!loading}
         closeOnEscape={!loading}
         footer={
@@ -328,243 +662,41 @@ export function AgentFormDialog({
         }
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
-          {/* ── Template selector (create only) ── */}
-          {!agent && templates.length > 0 && (
-            <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-              <span className="shrink-0 text-xs text-text-muted">
-                Template
-              </span>
-              <select
-                value={selectedTemplateName}
-                onChange={(e) => setSelectedTemplateName(e.target.value)}
-                className={INPUT}
-              >
-                <option value="">Select template</option>
-                {templates.map((t) => (
-                  <option key={t.name} value={t.name}>
-                    {t.display_name || t.name}
-                  </option>
-                ))}
-              </select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!selectedTemplateName}
-                onClick={() => {
-                  const target = templates.find(
-                    (item) => item.name === selectedTemplateName,
-                  );
-                  if (target) applyTemplate(target);
-                }}
-              >
-                Apply
-              </Button>
-            </div>
-          )}
-
           {error && <ErrorBanner message={error} />}
 
-          {/* ── Identity ── */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className={LABEL}>Name *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setField("name", e.target.value)}
-                className={INPUT}
-                placeholder="my-agent"
-                required
-              />
-            </div>
-            <div>
-              <label className={LABEL}>Display Name</label>
-              <input
-                type="text"
-                value={formData.display_name}
-                onChange={(e) => setField("display_name", e.target.value)}
-                className={INPUT}
-                placeholder="My Agent"
-              />
-            </div>
-          </div>
-          <div>
-            <label className={LABEL}>Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setField("description", e.target.value)}
-              className={INPUT}
-              rows={2}
-              placeholder="Brief description of this agent"
-            />
-          </div>
-
-          {/* ── Runtime ── */}
-          <div className="border-t border-border" />
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className={LABEL}>Agent Type *</label>
-              <select
-                value={formData.agent_type}
-                onChange={(e) => setField("agent_type", e.target.value)}
-                className={INPUT}
-              >
-                <option value="llm_agent">LLM Agent</option>
-                <option value="sequential_agent">Sequential Agent</option>
-                <option value="parallel_agent">Parallel Agent</option>
-                <option value="loop_agent">Loop Agent</option>
-                <option value="custom_agent">Custom Agent</option>
-              </select>
-            </div>
-            <div>
-              <label className={LABEL}>Model</label>
-              <LlmModelSelect
-                models={llmModels}
-                value={formData.model}
-                onChange={(v) => setField("model", v)}
-                allowClear
-                placeholder="Default"
-                ariaLabel="Agent 使用的 LLM"
-                className="w-full"
-              />
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className={LABEL}>Visibility</label>
-              <select
-                value={formData.visibility}
-                onChange={(e) => setField("visibility", e.target.value)}
-                className={INPUT}
-              >
-                <option value="private">Private</option>
-                <option value="shared">Shared</option>
-                <option value="public">Public</option>
-              </select>
-            </div>
-            <div className="flex items-end pb-0.5">
-              <label className="flex items-center gap-2 text-xs text-text-muted">
-                <input
-                  type="checkbox"
-                  checked={formData.is_enabled}
-                  onChange={(e) => setField("is_enabled", e.target.checked)}
-                  className="rounded border-border"
+          {/* Tab bar */}
+          <div
+            role="tablist"
+            className="-mx-6 -mt-3 flex gap-0 overflow-x-auto border-b border-border px-6"
+          >
+            {TABS.map((tab) => {
+              const tabId = `${tabBaseId}-tab-${tab.key}`;
+              const panelId = `${tabBaseId}-panel-${tab.key}`;
+              return (
+                <TabButton
+                  key={tab.key}
+                  label={tab.label}
+                  icon={tab.icon}
+                  active={activeTab === tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  tabId={tabId}
+                  panelId={panelId}
                 />
-                Enabled
-              </label>
-            </div>
+              );
+            })}
           </div>
 
-          <div>
-            <label className={LABEL}>System Prompt</label>
-            <textarea
-              value={formData.system_prompt}
-              onChange={(e) => setField("system_prompt", e.target.value)}
-              className={MONO}
-              rows={4}
-              placeholder="You are a specialized agent for..."
-            />
+          {/* Tab panels */}
+          <div
+            role="tabpanel"
+            id={`${tabBaseId}-panel-${activeTab}`}
+            aria-labelledby={`${tabBaseId}-tab-${activeTab}`}
+            className="pt-1"
+          >
+            {activeTab === "general" && renderGeneral()}
+            {activeTab === "prompt-tools" && renderPromptTools()}
+            {activeTab === "advanced" && renderAdvanced()}
           </div>
-
-          {/* ── Tools ── */}
-          <div className="border-t border-border" />
-
-          <div>
-            <label className={LABEL}>Tools</label>
-            {availableTools.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {availableTools.map((t) => {
-                  const currentTools = formData.tools
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                  const isSelected = currentTools.includes(t.name);
-                  return (
-                    <button
-                      key={t.name}
-                      type="button"
-                      onClick={() => {
-                        const tools = formData.tools
-                          .split("\n")
-                          .map((s) => s.trim())
-                          .filter(Boolean);
-                        const next = isSelected
-                          ? tools.filter((n) => n !== t.name)
-                          : [...tools, t.name];
-                        setField("tools", next.join("\n"));
-                      }}
-                      className={
-                        "inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
-                        (isSelected
-                          ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
-                          : "bg-muted text-text-secondary hover:bg-border/60 dark:hover:bg-border")
-                      }
-                    >
-                      <span className="text-micro opacity-60">
-                        {t.source === "builtin" ? "●" : "◆"}
-                      </span>
-                      {t.display_name || t.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <textarea
-              value={formData.tools}
-              onChange={(e) => setField("tools", e.target.value)}
-              className={MONO}
-              rows={2}
-              placeholder="Select from above or type tool names (one per line)"
-            />
-          </div>
-
-          {/* ── Advanced Configuration ── */}
-          <details className="group border-t border-border pt-3">
-            <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-text-muted transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
-              Advanced Configuration
-            </summary>
-            <div className="mt-3 space-y-4">
-              <div>
-                <label className={LABEL}>Skills (one per line)</label>
-                <textarea
-                  value={formData.skills}
-                  onChange={(e) => setField("skills", e.target.value)}
-                  className={MONO}
-                  rows={3}
-                  placeholder="code-review&#10;document-analysis"
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className={LABEL}>Config (JSON)</label>
-                  <textarea
-                    value={formData.config}
-                    onChange={(e) => setField("config", e.target.value)}
-                    className={MONO}
-                    rows={6}
-                    placeholder='{"temperature": 0.7}'
-                  />
-                </div>
-                <div>
-                  <label className={LABEL}>ADK Config (JSON)</label>
-                  <textarea
-                    value={formData.adk_config}
-                    onChange={(e) => setField("adk_config", e.target.value)}
-                    className={MONO}
-                    rows={6}
-                    placeholder='{"agent_class":"LlmAgent","output_key":"perception_output"}'
-                  />
-                  <p className="mt-1 text-[11px] text-text-muted">
-                    Full-fidelity ADK config. Empty → auto-generate minimal
-                    config.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </details>
         </form>
       </BaseModal>
       {confirmDialog}
