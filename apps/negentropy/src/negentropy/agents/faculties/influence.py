@@ -3,6 +3,7 @@ from google.adk.agents import LlmAgent
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
+from ..tools.claude_code import invoke_claude_code
 from ..tools.common import log_activity
 from ..tools.influence import publish_content, send_notification
 
@@ -53,6 +54,12 @@ _INSTRUCTION = (
 ### 上游引用传递（传递引用）
 你的「上游上下文」（{perception_output?} 等）可能携带 ``[N]`` 引用标注。你面向用户的
 最终输出基于这些内容时，遵循下方规范传递引用（排版可美化，来源不可丢），不自行生成新编号。
+
+## 文档翻译协议 (Document Translation Protocol)
+当任务携带 ``document-translate`` 技能指令（分块文档翻译）时：
+1. **必须**按技能模板调用 ``invoke_claude_code``（传入模板给出的 working_directory 与
+   timeout_seconds）在工作目录内完成逐块翻译，**严禁**在对话回复中直接输出译文；
+2. 完成后仅回报执行结果（成功块数 / 失败原因），译文正确性由服务端校验兜底。
 """
     + CITATION_PROTOCOL
 )
@@ -71,7 +78,7 @@ def create_influence_agent(*, output_key: str | None = None, mode: str | None = 
         model=create_subagent_model(agent_name="InfluenceFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("InfluenceFaculty", _INSTRUCTION),
-        tools=[log_activity, publish_content, send_notification],
+        tools=[log_activity, publish_content, send_notification, invoke_claude_code],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
