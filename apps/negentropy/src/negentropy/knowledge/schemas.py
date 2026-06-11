@@ -647,6 +647,31 @@ class DocumentMarkdownRefreshRequest(BaseModel):
     app_name: str | None = None
 
 
+class DocumentTranslateRequest(BaseModel):
+    """批量文档翻译请求（Documents 页 Translate 按钮）。"""
+
+    document_ids: list[UUID] = Field(min_length=1, max_length=20)
+    app_name: str | None = None
+    target_language: str = "zh"
+    # 强制重译：豁免 already_translated / 失败态守卫（processing 守卫不可豁免）。
+    force: bool = False
+
+
+class DocumentTranslateSkipped(BaseModel):
+    """被跳过的翻译项及原因。"""
+
+    document_id: UUID
+    reason: str
+
+
+class DocumentTranslateResponse(BaseModel):
+    """批量文档翻译响应。"""
+
+    accepted: list[UUID]
+    skipped: list[DocumentTranslateSkipped]
+    status: str = "running"
+
+
 class DocumentChunksResponse(BaseModel):
     count: int
     page: int = 1

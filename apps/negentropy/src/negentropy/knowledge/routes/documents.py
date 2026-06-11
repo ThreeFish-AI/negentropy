@@ -27,6 +27,9 @@ from negentropy.knowledge.schemas import (
     DocumentMarkdownRefreshRequest,
     DocumentMarkdownRefreshResponse,
     DocumentResponse,
+    DocumentTranslateRequest,
+    DocumentTranslateResponse,
+    DocumentTranslateSkipped,
     DocumentUpdateRequest,
 )
 from negentropy.logging import get_logger
@@ -319,6 +322,99 @@ async def refresh_document_markdown(
         status="running",
         message="Markdown re-parse task started",
     )
+
+
+# 翻译任务"陈旧 processing"豁免窗口：超过该时长的 processing 视为僵尸（进程重启等），允许重入。
+_TRANSLATION_STALE_SECONDS = 3600
+
+
+def _translation_eligibility(doc, *, force: bool) -> str | None:
+    """逐文档翻译资格检查（仅做廉价判定，正文级守卫由翻译服务兜底）。
+
+    Returns:
+        None 表示可翻译；否则返回 skip reason 标识。
+    """
+    from datetime import UTC, datetime
+
+    if doc is None:
+        return "not_found"
+    metadata = dict(doc.metadata_ or {})
+    if metadata.get("translated_from_document_id"):
+        return "already_translation"
+    if (doc.markdown_extract_status or "").lower() != "completed":
+        return "markdown_not_ready"
+
+    translation = metadata.get("translation") or {}
+    state = str(translation.get("status") or "").lower()
+    if state == "processing":
+        started_raw = translation.get("started_at")
+        try:
+            started = datetime.fromisoformat(started_raw) if started_raw else None
+        except (TypeError, ValueError):
+            started = None
+        if started is not None and (datetime.now(UTC) - started).total_seconds() < _TRANSLATION_STALE_SECONDS:
+            return "translating"
+    if state == "completed" and not force:
+        return "already_translated"
+    return None
+
+
+@router.post("/documents/translate", response_model=DocumentTranslateResponse)
+async def translate_documents(
+    payload: DocumentTranslateRequest,
+    background_tasks: BackgroundTasks,
+) -> DocumentTranslateResponse:
+    """批量翻译文档（Documents 页 Translate 按钮）。
+
+    执行链：本端点逐文档资格检查并同步置 ``metadata_.translation.status=processing``
+    （列表轮询立刻可见）→ BackgroundTasks 派发 ``DocumentTranslationService`` →
+    InfluenceFaculty（装配 document-translate 技能 + invoke_claude_code）驱动 Claude Code
+    分块翻译 → 译文作为新文档分录落库（metadata 标记译自来源）。
+    """
+    from datetime import UTC, datetime
+
+    from negentropy.knowledge.translation import DocumentTranslationService
+    from negentropy.storage.service import DocumentStorageService
+
+    resolved_app = _resolve_app_name(payload.app_name)
+    storage_service = DocumentStorageService()
+    translation_service = DocumentTranslationService()
+
+    accepted: list[UUID] = []
+    skipped: list[DocumentTranslateSkipped] = []
+    for document_id in payload.document_ids:
+        doc = await storage_service.get_document(document_id=document_id, app_name=resolved_app)
+        reason = _translation_eligibility(doc, force=payload.force)
+        if reason:
+            skipped.append(DocumentTranslateSkipped(document_id=document_id, reason=reason))
+            continue
+
+        await storage_service.update_document_metadata(
+            document_id=document_id,
+            metadata_patch={
+                "translation": {
+                    "status": "processing",
+                    "target_language": payload.target_language,
+                    "target_document_id": None,
+                    "error": None,
+                    "started_at": datetime.now(UTC).isoformat(),
+                }
+            },
+        )
+        background_tasks.add_task(
+            translation_service.translate_document,
+            document_id=document_id,
+            target_language=payload.target_language,
+        )
+        accepted.append(document_id)
+
+    logger.info(
+        "api_translate_documents",
+        accepted=len(accepted),
+        skipped=len(skipped),
+        target_language=payload.target_language,
+    )
+    return DocumentTranslateResponse(accepted=accepted, skipped=skipped)
 
 
 @router.delete("/base/{corpus_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
