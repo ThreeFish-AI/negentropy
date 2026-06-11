@@ -749,7 +749,8 @@ export type PipelineOperation =
   | "import_document"
   | "replace_source"
   | "sync_source"
-  | "rebuild_source";
+  | "rebuild_source"
+  | "translate";
 
 /**
  * Pipeline 错误对象。

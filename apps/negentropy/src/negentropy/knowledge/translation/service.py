@@ -88,10 +88,17 @@ class DocumentTranslationService:
         self._max_chars = max_chars
 
     # ------------------------------------------------------------------ #
-    # 入口：BackgroundTasks 调用，永不向上抛（失败落 metadata + 日志）。
+    # 入口：BackgroundTasks 调用。失败落 metadata + 日志；
+    # 当 tracker 存在时 re-raise 以便 execute_translate_pipeline 写 fail 终态。
     # ------------------------------------------------------------------ #
 
-    async def translate_document(self, *, document_id: UUID, target_language: str = "zh") -> None:
+    async def translate_document(
+        self,
+        *,
+        document_id: UUID,
+        target_language: str = "zh",
+        tracker: Any | None = None,
+    ) -> None:
         async with _INFLIGHT_LOCK:
             if document_id in _INFLIGHT:
                 logger.info("document_translation_inflight_skip", document_id=str(document_id))
@@ -99,7 +106,7 @@ class DocumentTranslationService:
             _INFLIGHT.add(document_id)
         try:
             async with _SEMAPHORE:
-                await self._run(document_id=document_id, target_language=target_language)
+                await self._run(document_id=document_id, target_language=target_language, tracker=tracker)
         except Exception as exc:
             logger.error(
                 "document_translation_failed",
@@ -113,6 +120,8 @@ class DocumentTranslationService:
                 target_language=target_language,
                 error=str(exc)[:500],
             )
+            if tracker:
+                raise
         finally:
             _INFLIGHT.discard(document_id)
 
@@ -120,7 +129,7 @@ class DocumentTranslationService:
     # 主流程
     # ------------------------------------------------------------------ #
 
-    async def _run(self, *, document_id: UUID, target_language: str) -> None:
+    async def _run(self, *, document_id: UUID, target_language: str, tracker: Any | None = None) -> None:
         from negentropy.storage.service import DocumentStorageService
 
         storage = DocumentStorageService()
@@ -145,6 +154,11 @@ class DocumentTranslationService:
         chunks = split_markdown(markdown, max_chars=self._max_chars)
         if not chunks:
             raise TranslationError("split_markdown returned no chunks for non-empty markdown")
+
+        if tracker:
+            await tracker.start_stage("chunking")
+            await tracker.complete_stage("chunking", output={"chunk_count": len(chunks)})
+
         workdir = Path(tempfile.mkdtemp(prefix=f"negentropy-translate-{str(document_id)[:8]}-"))
         try:
             await self._execute_in_workdir(
@@ -154,6 +168,7 @@ class DocumentTranslationService:
                 chunks=chunks,
                 workdir=workdir,
                 target_language=target_language,
+                tracker=tracker,
             )
         except Exception:
             # 失败保留 workdir 供排障（错误信息由入口写 metadata）。
@@ -174,6 +189,7 @@ class DocumentTranslationService:
         chunks: list[str],
         workdir: Path,
         target_language: str,
+        tracker: Any | None = None,
     ) -> None:
         source_dir = workdir / "source"
         translated_dir = workdir / "translated"
@@ -196,6 +212,9 @@ class DocumentTranslationService:
             tool_timeout=tool_timeout,
         )
 
+        # 阶段：Agent 翻译执行（含可选重跑）
+        if tracker:
+            await tracker.start_stage("agent_execution")
         await asyncio.wait_for(self._run_influence(task_msg), timeout=total_timeout)
 
         invalid = self._invalid_chunks(translated_dir, chunks)
@@ -212,11 +231,21 @@ class DocumentTranslationService:
             invalid = self._invalid_chunks(translated_dir, chunks)
             if invalid:
                 raise TranslationError(f"translated chunks invalid after retry: {invalid[:5]}")
+        if tracker:
+            await tracker.complete_stage("agent_execution", output={"chunk_count": chunk_count})
 
+        # 阶段：校验拼接
+        if tracker:
+            await tracker.start_stage("validation")
         translated_md, warnings = self._assemble_and_validate(
             chunks=chunks, translated_dir=translated_dir, source_markdown=markdown
         )
+        if tracker:
+            await tracker.complete_stage("validation", output={"warnings_count": len(warnings)})
 
+        # 阶段：译文落库
+        if tracker:
+            await tracker.start_stage("storing")
         target_doc = await self._store_target_document(
             storage=storage,
             source_doc=doc,
@@ -224,6 +253,8 @@ class DocumentTranslationService:
             target_language=target_language,
             warnings=warnings,
         )
+        if tracker:
+            await tracker.complete_stage("storing", output={"target_document_id": str(target_doc.id)})
 
         await self._mark_translation(
             doc.id,
