@@ -53,9 +53,10 @@ async def list_document_chunks(
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
+    # 不带 corpus 过滤：允许查看库文档 / 跨 Corpus 摄入文档在本 corpus 的 chunks
+    # （chunks 本身仍按路径 corpus_id 限定；app 为租户边界）
     doc = await storage_service.get_document(
         document_id=document_id,
-        corpus_id=corpus_id,
         app_name=resolved_app,
     )
     if not doc:
@@ -114,9 +115,10 @@ async def get_document_chunk_detail(
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
+    # 不带 corpus 过滤：允许查看库文档 / 跨 Corpus 摄入文档在本 corpus 的 chunks
+    # （chunks 本身仍按路径 corpus_id 限定；app 为租户边界）
     doc = await storage_service.get_document(
         document_id=document_id,
-        corpus_id=corpus_id,
         app_name=resolved_app,
     )
     if not doc:
@@ -167,9 +169,10 @@ async def update_document_chunk(
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
+    # 不带 corpus 过滤：允许查看库文档 / 跨 Corpus 摄入文档在本 corpus 的 chunks
+    # （chunks 本身仍按路径 corpus_id 限定；app 为租户边界）
     doc = await storage_service.get_document(
         document_id=document_id,
-        corpus_id=corpus_id,
         app_name=resolved_app,
     )
     if not doc:
@@ -220,9 +223,10 @@ async def regenerate_document_chunk_family(
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
+    # 不带 corpus 过滤：允许查看库文档 / 跨 Corpus 摄入文档在本 corpus 的 chunks
+    # （chunks 本身仍按路径 corpus_id 限定；app 为租户边界）
     doc = await storage_service.get_document(
         document_id=document_id,
-        corpus_id=corpus_id,
         app_name=resolved_app,
     )
     if not doc:

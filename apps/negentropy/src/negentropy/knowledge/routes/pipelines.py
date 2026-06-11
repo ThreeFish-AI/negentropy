@@ -230,6 +230,15 @@ async def retry_pipeline_run(
     if original is None:
         raise HTTPException(status_code=404, detail="Pipeline run not found")
 
+    # operation guard：ingest_document run 同样携带 document_id+corpus_id，
+    # 不加守卫会被错误重放为文件重提取；import_document 等其余操作不可重试。
+    original_operation = (original.payload or {}).get("operation") or "ingest_file"
+    if original_operation not in {"ingest_file", "ingest_document"}:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Operation '{original_operation}' is not retryable.",
+        )
+
     original_input = (original.payload or {}).get("input") or {}
     document_id_raw = original_input.get("document_id")
     corpus_id_raw = original_input.get("corpus_id")
@@ -247,6 +256,56 @@ async def retry_pipeline_run(
             status_code=422,
             detail="Invalid document_id/corpus_id in run input.",
         ) from exc
+
+    if original_operation == "ingest_document":
+        # ingest_document 重放：从已存 Markdown 重建索引（无 perceives checkpoint，
+        # resume 参数无意义）；文档可为库文档或跨 Corpus 文档，故不带 corpus 过滤。
+        storage_service = DocumentStorageService()
+        doc = await storage_service.get_document(
+            document_id=document_id,
+            app_name=resolved_app,
+        )
+        if doc is None or doc.status != "active":
+            raise HTTPException(
+                status_code=404,
+                detail="Source document not found (may have been deleted).",
+            )
+
+        chunking_config = _build_chunking_config(original_input.get("chunking_config"))
+        new_run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="ingest_document",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "document_id": str(document_id),
+                "source_uri": original_input.get("source_uri"),
+                "filename": doc.original_filename,
+                "source_document_corpus_id": str(doc.corpus_id) if doc.corpus_id else None,
+                "chunking_config": chunking_config_summary(chunking_config) if chunking_config else None,
+                "retried_from": {"run_id": run_id, "resume": payload.resume},
+            },
+        )
+        background_tasks.add_task(
+            service.execute_ingest_document_pipeline,
+            run_id=new_run_id,
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            document_id=document_id,
+            chunking_config=chunking_config,
+        )
+        logger.info(
+            "pipeline_retry_queued",
+            original_run_id=run_id,
+            new_run_id=new_run_id,
+            document_id=str(document_id),
+            operation="ingest_document",
+            requested_by=user.email if user else None,
+        )
+        return AsyncPipelineResponse(
+            run_id=new_run_id,
+            status="running",
+            message=f"Retry task started (ingest_document, retried_from={run_id}).",
+        )
 
     storage_service = DocumentStorageService()
     # 传 corpus_id/app_name 做 defense-in-depth 归属校验（document_id 虽源自已按

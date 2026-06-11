@@ -14,13 +14,18 @@ import {
   fetchAllDocuments,
   deleteDocument,
   downloadDocument,
+  importDocumentUrl,
+  importDocumentFile,
   fetchCorpora,
   CorpusRecord,
   formatRelativeTime,
+  LIBRARY_CORPUS_SEGMENT,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
+import { ImportDocumentDialog } from "./_components/ImportDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 function formatFileSize(bytes: number): string {
@@ -80,6 +85,7 @@ export default function DocumentsPage() {
   const [pageSize] = useState(20);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const router = useRouter();
 
@@ -122,6 +128,16 @@ export default function DocumentsPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
+  // 导入转换进行中时后台轮询刷新（与文档详情页同款心跳约定）
+  useHeartbeatPoll(loadDocuments, {
+    enabled: documents.some((doc) =>
+      ["pending", "processing"].includes(
+        (doc.markdown_extract_status || "").toLowerCase(),
+      ),
+    ),
+    fireImmediately: false,
+  });
+
   const handleDelete = async (doc: KnowledgeDocument) => {
     try {
       await deleteDocument(doc.corpus_id, doc.id, {
@@ -156,7 +172,8 @@ export default function DocumentsPage() {
     }
   };
 
-  const getCorpusName = (corpusId: string) => {
+  const getCorpusName = (corpusId: string | null) => {
+    if (!corpusId) return null;
     const corpus = corpora.find((c) => c.id === corpusId);
     return corpus?.name || corpusId;
   };
@@ -170,6 +187,15 @@ export default function DocumentsPage() {
       <div className="flex min-h-0 flex-1 px-6 py-6">
         {/* 文档列表 */}
         <main className="flex min-h-0 flex-1 flex-col">
+          {/* 工具栏 */}
+          <div className="mb-3 flex items-center justify-end">
+            <button
+              onClick={() => setIsImportDialogOpen(true)}
+              className="rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-sm hover:opacity-90"
+            >
+              Import Document
+            </button>
+          </div>
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
             <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
@@ -224,9 +250,20 @@ export default function DocumentsPage() {
                         {truncateHash(doc.file_hash)}
                       </div>
 
-                      {/* 所属语料库 - col-span-3 */}
-                      <div className="col-span-3 text-muted-foreground truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
-                        {getCorpusName(doc.corpus_id)}
+                      {/* 所属语料库 - col-span-3；库文档（corpus_id=null）显示 Library 徽标 */}
+                      <div className="col-span-3 flex justify-end">
+                        {doc.corpus_id ? (
+                          <span
+                            className="text-muted-foreground truncate text-xs"
+                            title={getCorpusName(doc.corpus_id) ?? undefined}
+                          >
+                            {getCorpusName(doc.corpus_id)}
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            Library
+                          </span>
+                        )}
                       </div>
 
                       {/* Created By - col-span-1 */}
@@ -271,7 +308,11 @@ export default function DocumentsPage() {
                         ) : (
                           <>
                             <button
-                              onClick={() => router.push(`/knowledge/documents/${doc.corpus_id}/${doc.id}`)}
+                              onClick={() =>
+                                router.push(
+                                  `/knowledge/documents/${doc.corpus_id ?? LIBRARY_CORPUS_SEGMENT}/${doc.id}`,
+                                )
+                              }
                               className="rounded p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
                               title="View document content"
                             >
@@ -342,6 +383,24 @@ export default function DocumentsPage() {
         </main>
       </div>
 
+      {/* Import Document 对话框 */}
+      <ImportDocumentDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImportUrl={({ url }) =>
+          importDocumentUrl({ app_name: APP_NAME, url }).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        onImportFile={({ file }) =>
+          importDocumentFile({ app_name: APP_NAME, file }).then((result) => {
+            void loadDocuments();
+            return result;
+          })
+        }
+        onSuccess={() => setIsImportDialogOpen(false)}
+      />
     </div>
   );
 }

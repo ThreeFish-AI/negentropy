@@ -40,51 +40,77 @@ class DocumentStorageService:
         return self._gcs
 
     @staticmethod
+    def _corpus_segment(corpus_id: UUID | None) -> str:
+        """GCS 路径中的 corpus 段；库文档（corpus_id=None）固定为 ``library``。
+
+        ``library`` 不可能与 UUID 段冲突，单一收口覆盖原始 / derived / assets 路径。
+        """
+        return str(corpus_id) if corpus_id else "library"
+
+    @classmethod
     def _build_markdown_gcs_path(
+        cls,
         *,
         app_name: str,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         document_id: UUID,
         filename: str,
     ) -> str:
         """构建 Markdown 衍生文件路径。"""
         stem = Path(filename).stem or "document"
         safe_stem = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in stem)[:120] or "document"
-        return f"knowledge/{app_name}/{corpus_id}/derived/{document_id}/{safe_stem}.md"
+        return f"knowledge/{app_name}/{cls._corpus_segment(corpus_id)}/derived/{document_id}/{safe_stem}.md"
 
-    @staticmethod
+    @classmethod
     def _build_asset_gcs_path(
+        cls,
         *,
         app_name: str,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         document_id: UUID,
         filename: str,
     ) -> str:
         safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in filename)[:180] or "asset"
-        return f"knowledge/{app_name}/{corpus_id}/derived/{document_id}/assets/{safe_name}"
+        return f"knowledge/{app_name}/{cls._corpus_segment(corpus_id)}/derived/{document_id}/assets/{safe_name}"
 
     async def check_duplicate(
         self,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         file_hash: str,
+        *,
+        app_name: str | None = None,
     ) -> KnowledgeDocument | None:
         """Check if document with same hash exists in corpus (any status).
 
-        查询范围包含所有状态（active / deleted 等），以匹配数据库唯一约束
-        ``uq_knowledge_documents_corpus_hash(corpus_id, file_hash)`` 的实际覆盖范围。
+        查询范围包含所有状态（active / deleted 等），以匹配数据库唯一约束的实际覆盖范围：
+        - corpus 文档：``uq_knowledge_documents_corpus_hash(corpus_id, file_hash)``；
+        - 库文档（corpus_id=None）：部分唯一索引
+          ``uq_knowledge_documents_library_hash(app_name, file_hash) WHERE corpus_id IS NULL``，
+          此时 ``app_name`` 必填（app 为租户边界）。
 
         Args:
-            corpus_id: Corpus UUID
+            corpus_id: Corpus UUID；``None`` 表示文档库
             file_hash: SHA-256 hash of file content
+            app_name: 库文档查重所需的 app 边界
 
         Returns:
             Existing document record if found (including soft-deleted), None otherwise
         """
-        async with AsyncSessionLocal() as db:
+        if corpus_id is None and not app_name:
+            raise ValueError("app_name is required when checking library document duplicates")
+
+        if corpus_id is None:
+            stmt = select(KnowledgeDocument).where(
+                KnowledgeDocument.corpus_id.is_(None),
+                KnowledgeDocument.app_name == app_name,
+                KnowledgeDocument.file_hash == file_hash,
+            )
+        else:
             stmt = select(KnowledgeDocument).where(
                 KnowledgeDocument.corpus_id == corpus_id,
                 KnowledgeDocument.file_hash == file_hash,
             )
+        async with AsyncSessionLocal() as db:
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
 
@@ -131,7 +157,7 @@ class DocumentStorageService:
         同时重置 Markdown 提取状态以触发重新提取。
         """
         gcs_client = self._get_gcs_client()
-        gcs_path = gcs_client.build_gcs_path(app_name, str(existing_doc.corpus_id), filename)
+        gcs_path = gcs_client.build_gcs_path(app_name, self._corpus_segment(existing_doc.corpus_id), filename)
 
         gcs_uri = gcs_client.upload(
             content=content,
@@ -181,7 +207,7 @@ class DocumentStorageService:
 
     async def upload_and_store(
         self,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         app_name: str,
         content: bytes,
         filename: str,
@@ -196,7 +222,7 @@ class DocumentStorageService:
         document without uploading again.
 
         Args:
-            corpus_id: Corpus UUID
+            corpus_id: Corpus UUID；``None`` 表示导入独立文档库（Library）
             app_name: Application name
             content: File content as bytes
             filename: Original filename
@@ -215,7 +241,7 @@ class DocumentStorageService:
         file_hash = GCSStorageClient.compute_hash(content)
 
         # Check for duplicate (any status, including soft-deleted)
-        existing = await self.check_duplicate(corpus_id, file_hash)
+        existing = await self.check_duplicate(corpus_id, file_hash, app_name=app_name)
         if existing:
             if existing.status == "active":
                 logger.info(
@@ -247,7 +273,7 @@ class DocumentStorageService:
 
         # Build GCS path
         gcs_client = self._get_gcs_client()
-        gcs_path = gcs_client.build_gcs_path(app_name, str(corpus_id), filename)
+        gcs_path = gcs_client.build_gcs_path(app_name, self._corpus_segment(corpus_id), filename)
 
         # Upload to GCS
         gcs_uri = gcs_client.upload(
@@ -279,7 +305,7 @@ class DocumentStorageService:
             except IntegrityError:
                 # Race condition: another request completed first, or soft-deleted doc exists
                 await db.rollback()
-                existing = await self.check_duplicate(corpus_id, file_hash)
+                existing = await self.check_duplicate(corpus_id, file_hash, app_name=app_name)
                 if existing:
                     if existing.status == "active":
                         logger.info(
