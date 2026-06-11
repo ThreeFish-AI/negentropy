@@ -15,6 +15,7 @@ from .routes import (
     graph,
     graph_progress,
     ingest,
+    library,
     pipelines,
     provenance,
     search,
@@ -28,6 +29,8 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 router.include_router(corpus.router)
 router.include_router(ingest.router)
+# library 先于 documents：/documents/import_* 静态段不被动态路由吞没
+router.include_router(library.router)
 router.include_router(documents.router)
 router.include_router(chunks.router)
 router.include_router(sources.router)

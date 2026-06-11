@@ -2,6 +2,12 @@ import {
   buildExtractorRoutesFromDraft,
   buildCorpusConfig,
   createCatalogNode,
+  deleteDocument,
+  fetchDocumentDetail,
+  importDocumentFile,
+  importDocumentUrl,
+  ingestDocument,
+  refreshDocumentMarkdown,
   createEmptyExtractorDraftTarget,
   createDefaultChunkingConfig,
   encodeSeparatorsForDisplay,
@@ -655,5 +661,137 @@ describe("normalizeChunkingConfig 防御式解码", () => {
     if (result.strategy === "hierarchical") {
       expect(result.separators).toEqual(["\n"]);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Document Library：Import / Ingest Document 与库文档路径分支
+// ---------------------------------------------------------------------------
+
+describe("importDocumentUrl / importDocumentFile / ingestDocument", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const okResponse = () =>
+    new Response(JSON.stringify({ run_id: "run-1", status: "running", message: "ok" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
+  it("importDocumentUrl POST 到 /api/knowledge/documents/import_url", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(okResponse());
+
+    const result = await importDocumentUrl({
+      app_name: "negentropy",
+      url: "https://example.com/post",
+    });
+
+    expect(result.run_id).toBe("run-1");
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe("/api/knowledge/documents/import_url");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      app_name: "negentropy",
+      url: "https://example.com/post",
+    });
+  });
+
+  it("importDocumentFile 以 FormData POST 到 /api/knowledge/documents/import_file", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(okResponse());
+
+    const file = new File(["# hi"], "notes.md", { type: "text/markdown" });
+    await importDocumentFile({ app_name: "negentropy", file });
+
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe("/api/knowledge/documents/import_file");
+    const body = init?.body as FormData;
+    expect(body).toBeInstanceOf(FormData);
+    expect(body.get("app_name")).toBe("negentropy");
+    expect(body.get("file")).toBe(file);
+  });
+
+  it("ingestDocument POST 到 /api/knowledge/base/{corpusId}/ingest_document", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(okResponse());
+
+    await ingestDocument("corpus-1", {
+      app_name: "negentropy",
+      document_id: "doc-1",
+      chunking_config: { strategy: "fixed", chunk_size: 512, overlap: 64, preserve_newlines: false },
+    });
+
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe("/api/knowledge/base/corpus-1/ingest_document");
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      app_name: "negentropy",
+      document_id: "doc-1",
+      chunking_config: { strategy: "fixed" },
+    });
+  });
+});
+
+describe("库文档（corpusId=null）API 路径分支", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("fetchDocumentDetail(null, ...) 走 /api/knowledge/documents/{id}", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "doc-1", corpus_id: null }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchDocumentDetail(null, "doc-1", { appName: "negentropy" });
+
+    expect(String(fetchSpy.mock.calls[0][0])).toBe(
+      "/api/knowledge/documents/doc-1?app_name=negentropy",
+    );
+  });
+
+  it("fetchDocumentDetail(corpusId, ...) 仍走 corpus 作用域路径", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "doc-1", corpus_id: "corpus-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchDocumentDetail("corpus-1", "doc-1", { appName: "negentropy" });
+
+    expect(String(fetchSpy.mock.calls[0][0])).toBe(
+      "/api/knowledge/base/corpus-1/documents/doc-1?app_name=negentropy",
+    );
+  });
+
+  it("deleteDocument(null, ...) 走库文档 DELETE 路径", async () => {
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response(null, { status: 204 }));
+
+    await deleteDocument(null, "doc-1", { appName: "negentropy", hardDelete: true });
+
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(String(url)).toBe(
+      "/api/knowledge/documents/doc-1?app_name=negentropy&hard_delete=true",
+    );
+    expect(init?.method).toBe("DELETE");
+  });
+
+  it("refreshDocumentMarkdown(null, ...) 走库文档 refresh 路径且不做 kebab 回退", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ document_id: "doc-1", status: "running", message: "ok" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await refreshDocumentMarkdown(null, "doc-1", { appName: "negentropy" });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(String(fetchSpy.mock.calls[0][0])).toBe(
+      "/api/knowledge/documents/doc-1/refresh_markdown",
+    );
   });
 });

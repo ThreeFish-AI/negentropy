@@ -48,6 +48,9 @@ export {
   ingestText,
   ingestUrl,
   ingestFile,
+  ingestDocument,
+  importDocumentUrl,
+  importDocumentFile,
   replaceSource,
   syncSource,
   rebuildSource,
@@ -68,6 +71,7 @@ export {
   updateDocumentChunk,
   regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,
+  translateDocuments,
   deleteDocument,
   downloadDocument,
   syncDocument,
@@ -120,6 +124,8 @@ export {
   fetchWikiNavTree,
   fetchWikiEntryContent,
   syncWikiEntriesFromCatalog,
+  // Document Library
+  LIBRARY_CORPUS_SEGMENT,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -175,6 +181,9 @@ export type {
   DocumentChunksResponse,
   DocumentChunksMetadata,
   DocumentMarkdownRefreshResponse,
+  DocumentTranslationMeta,
+  DocumentTranslateSkipped,
+  DocumentTranslateResponse,
   DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
   GraphSearchMode,

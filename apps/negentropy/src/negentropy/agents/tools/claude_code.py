@@ -15,6 +15,10 @@ from negentropy.engine.claude_code.credentials import resolve_claude_code_creden
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
 from negentropy.engine.claude_code.service import ClaudeCodeService
 
+# timeout_seconds 单次调用覆盖的合法区间：低于 30s 无实际意义，高于 1h 视为配置错误。
+_TIMEOUT_SECONDS_MIN = 30.0
+_TIMEOUT_SECONDS_MAX = 3600.0
+
 
 async def invoke_claude_code(
     task: str,
@@ -23,6 +27,7 @@ async def invoke_claude_code(
     allowed_tools: str | None = None,
     max_turns: int = 500,
     system_prompt: str | None = None,
+    timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
     """调用 Claude Code 执行复杂的代码分析与修改任务。
 
@@ -38,6 +43,9 @@ async def invoke_claude_code(
             （默认: "Bash,Read,Write,Edit,Glob,Grep"）
         max_turns: 最大自主迭代轮数（默认 500）
         system_prompt: 自定义系统指令
+        timeout_seconds: 单次调用超时覆盖（秒，clamp 到 [30, 3600]）；
+            None 时沿用全局配置默认值（builtin_tools 行，缺省 300s）。
+            长任务（如分批文档翻译）应按工作量显式传入。
     """
     # 1. 从 session state 读取全局配置（由 BuiltinTool 系统注入）。
     #    缺口修复：当前引擎并不向 session state 写入 ``claude_code_config`` 键，缺省时
@@ -67,6 +75,10 @@ async def invoke_claude_code(
         fallback_credential = defaults.credential
 
     # 2. tool call 参数覆盖默认值
+    effective_timeout = float(cc_defaults.get("timeout_seconds", 300.0))
+    if timeout_seconds is not None:
+        effective_timeout = min(max(float(timeout_seconds), _TIMEOUT_SECONDS_MIN), _TIMEOUT_SECONDS_MAX)
+
     config = ClaudeCodeConfig(
         cli_path=cc_defaults.get("cli_path", "claude"),
         model=cc_defaults.get("model"),
@@ -74,7 +86,7 @@ async def invoke_claude_code(
         max_turns=max_turns,
         system_prompt=system_prompt or cc_defaults.get("system_prompt"),
         permission_mode=cc_defaults.get("permission_mode", "auto"),
-        timeout_seconds=float(cc_defaults.get("timeout_seconds", 300.0)),
+        timeout_seconds=effective_timeout,
         mcp_config=cc_defaults.get("mcp_config"),
         # 注入真实 Anthropic 凭证：回退路径用已解析结果；state 路径解析其 credentials dict
         # （state 中的 credentials > 环境变量），与 Routine 路径一致。

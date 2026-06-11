@@ -57,21 +57,24 @@ const documentSanitizeSchema: typeof defaultSchema = {
 
 interface DocumentMarkdownRendererProps {
   content: string;
-  corpusId: string;
+  /** 为 null 时表示库文档（corpus_id=null），资产走无 corpus 平行路由。 */
+  corpusId: string | null;
   documentId: string;
   appName?: string;
 }
 
 function buildAssetProxyUrl(
   assetName: string,
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   appName?: string,
 ): string {
   const params = new URLSearchParams();
   if (appName) params.set("app_name", appName);
   const query = params.toString();
-  const base = `/api/knowledge/base/${corpusId}/documents/${documentId}/assets/${encodeURIComponent(assetName)}`;
+  const base = corpusId
+    ? `/api/knowledge/base/${corpusId}/documents/${documentId}/assets/${encodeURIComponent(assetName)}`
+    : `/api/knowledge/documents/${documentId}/assets/${encodeURIComponent(assetName)}`;
   return query ? `${base}?${query}` : base;
 }
 
@@ -189,7 +192,7 @@ function DocumentImage({
   alt?: string;
   width?: number | string;
   height?: number | string;
-  corpusId: string;
+  corpusId: string | null;
   documentId: string;
   appName?: string;
 }) {

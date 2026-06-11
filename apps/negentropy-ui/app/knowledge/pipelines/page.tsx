@@ -416,11 +416,7 @@ export default function KnowledgePipelinesPage() {
                         run_id={run.run_id || run.id}
                         status={run.status}
                         version={run.version ?? 0}
-                        operation={
-                          run.source === "kb"
-                            ? (run.operation as "ingest_text" | "ingest_url" | "ingest_file" | "replace_source")
-                            : undefined
-                        }
+                        operation={run.source === "kb" ? run.operation : undefined}
                         trigger={run.source === "kb" ? run.trigger : undefined}
                         duration_ms={run.duration_ms}
                         started_at={run.started_at}

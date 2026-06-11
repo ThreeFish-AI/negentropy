@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -85,6 +85,22 @@ class IngestUrlRequest(_LegacyChunkingRequest):
     app_name: str | None = None
     url: str
     as_document: bool = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ImportUrlRequest(BaseModel):
+    """导入 URL 至文档库（仅转换为 Markdown 并存储，不做索引）。"""
+
+    app_name: str | None = None
+    url: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class IngestDocumentRequest(_LegacyChunkingRequest):
+    """将既有 Document（库文档或任意 Corpus 文档）的 Markdown 索引进目标 Corpus。"""
+
+    app_name: str | None = None
+    document_id: UUID
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -583,10 +599,13 @@ class GraphQualityResponse(BaseModel):
 
 
 class DocumentResponse(BaseModel):
-    """文档元信息响应模型"""
+    """文档元信息响应模型
+
+    ``corpus_id`` 为 ``None`` 时表示独立文档库（Library）文档。
+    """
 
     id: UUID
-    corpus_id: UUID
+    corpus_id: UUID | None = None
     app_name: str
     file_hash: str
     original_filename: str
@@ -645,6 +664,32 @@ class DocumentMarkdownRefreshRequest(BaseModel):
     """文档 Markdown 重解析请求。"""
 
     app_name: str | None = None
+
+
+class DocumentTranslateRequest(BaseModel):
+    """批量文档翻译请求（Documents 页 Translate 按钮）。"""
+
+    document_ids: list[UUID] = Field(min_length=1, max_length=20)
+    app_name: str | None = None
+    # 当前仅支持中文翻译；扩展时需同步补全 _LANGUAGE_NAMES 与「已是目标语言」检测逻辑。
+    target_language: Literal["zh"] = "zh"
+    # 强制重译：豁免 already_translated / 失败态守卫（processing 守卫不可豁免）。
+    force: bool = False
+
+
+class DocumentTranslateSkipped(BaseModel):
+    """被跳过的翻译项及原因。"""
+
+    document_id: UUID
+    reason: str
+
+
+class DocumentTranslateResponse(BaseModel):
+    """批量文档翻译响应。"""
+
+    accepted: list[UUID]
+    skipped: list[DocumentTranslateSkipped]
+    status: str = "running"
 
 
 class DocumentChunksResponse(BaseModel):
