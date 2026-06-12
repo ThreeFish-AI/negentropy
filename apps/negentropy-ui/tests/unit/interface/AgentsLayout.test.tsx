@@ -16,8 +16,12 @@ vi.mock("@/app/interface/agents/_components/AgentCard", () => ({
 }));
 
 vi.mock("@/components/ui/SortableCardGrid", () => ({
-  SortableCardGrid: ({ children, className = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3", ...rest }: Record<string, unknown>) => (
-    <div data-testid={(rest as Record<string, unknown>)["data-testid"] as string ?? "sortable-grid"} className={className as string}>{children}</div>
+  SortableCardGrid: ({ children, className = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3", "data-testid": dataTestId }: {
+    children: React.ReactNode;
+    className?: string;
+    "data-testid"?: string;
+  }) => (
+    <div data-testid={dataTestId ?? "sortable-grid"} className={className}>{children}</div>
   ),
 }));
 
