@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Spinner } from "@/components/ui/Spinner";
+import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
+import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
 import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
@@ -62,6 +64,7 @@ interface McpServer {
   // 「系统内置」标识：后端从显式 ``is_system`` 列 / owner_id 前缀派生，
   // 前端据此渲染 Built-In 徽标 + 隐藏 Edit/Delete（非 admin）。
   is_builtin?: boolean;
+  sort_order?: number;
 }
 
 interface ServerWithTools extends McpServer {
@@ -109,6 +112,22 @@ export default function McpServersPage() {
   useEffect(() => {
     fetchServers();
   }, []);
+
+  const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
+    items: servers,
+    onReorder: (reordered) => {
+      setServers(reordered as ServerWithTools[]);
+      fetch("/api/interface/mcp/servers/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: reordered.map((s) => ({ id: s.id, sort_order: s.sort_order })),
+        }),
+      }).catch(() => {
+        fetchServers();
+      });
+    },
+  });
 
   const handleCreate = () => {
     setEditingServer(null);
@@ -335,26 +354,26 @@ export default function McpServersPage() {
                 }
               />
             ) : (
-              <div
+              <SortableCardGrid
+                itemIds={sortableItemIds}
+                onDragEnd={handleDragEnd}
                 data-testid="mcp-grid"
-                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
                 {servers.map((server) => (
-                  <div key={server.id} data-testid="mcp-grid-item">
-                    <McpServerCard
-                      server={server}
-                      onTry={() => setTrialServer(server)}
-                      onEdit={() => handleEdit(server)}
-                      onDelete={() => handleDelete(server.id)}
-                      onLoad={() => handleLoadTools(server.id)}
-                      tools={server.tools}
-                      resourceTemplates={server.resourceTemplates}
-                      loadingTools={server.loadingTools}
-                      loadError={server.loadError}
-                    />
-                  </div>
+                  <McpServerCard
+                    key={server.id}
+                    server={server}
+                    onTry={() => setTrialServer(server)}
+                    onEdit={() => handleEdit(server)}
+                    onDelete={() => handleDelete(server.id)}
+                    onLoad={() => handleLoadTools(server.id)}
+                    tools={server.tools}
+                    resourceTemplates={server.resourceTemplates}
+                    loadingTools={server.loadingTools}
+                    loadError={server.loadError}
+                  />
                 ))}
-              </div>
+              </SortableCardGrid>
             )}
           </div>
         </div>

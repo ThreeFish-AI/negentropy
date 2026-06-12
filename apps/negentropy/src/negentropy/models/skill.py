@@ -48,6 +48,9 @@ class Skill(Base, UUIDMixin, TimestampMixin):
     is_global: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
+    # 排序：前端拖拽排序后的持久化序号，值越小越靠前（与 priority 独立）。
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
     # Phase 2 — 工具白名单 fail-close 模式（warning|strict，默认 warning）
     enforcement_mode: Mapped[str] = mapped_column(
         String(16), nullable=False, default="warning", server_default="warning"

@@ -132,6 +132,7 @@ class BuiltinToolResponse(BaseModel):
     config_schema: dict[str, Any] = Field(default_factory=dict)
     is_enabled: bool
     is_system: bool = False
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -209,6 +210,7 @@ def _builtin_tool_to_response(tool: BuiltinTool) -> BuiltinToolResponse:
         config_schema=ensure_dict(tool.config_schema),
         is_enabled=tool.is_enabled,
         is_system=tool.is_system,
+        sort_order=getattr(tool, "sort_order", 0),
     )
 
 
@@ -270,6 +272,7 @@ class McpServerResponse(BaseModel):
     is_builtin: bool = False
     # MCP 配置来源：db（系统 MCP 目录）、mcp_json（项目 .mcp.json 原生配置）、both（两者均有）。
     source: str = "db"
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -462,6 +465,7 @@ class SkillResponse(BaseModel):
     is_builtin: bool = False
     # 「全局技能」：TRUE 时自动注入全系统所有 Agent；前端据此渲染 Global 徽章。
     is_global: bool = False
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -774,7 +778,14 @@ async def list_mcp_servers(
             template_count_rows = (await db.execute(template_count_stmt)).all()
             template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
 
-            servers_stmt = select(McpServer).where(McpServer.id.in_(visible_ids)).order_by(McpServer.created_at.desc())
+            servers_stmt = (
+                select(McpServer)
+                .where(McpServer.id.in_(visible_ids))
+                .order_by(
+                    McpServer.sort_order.asc(),
+                    McpServer.created_at.desc(),
+                )
+            )
             servers = (await db.execute(servers_stmt)).scalars().all()
 
             db_servers = [
@@ -921,6 +932,78 @@ async def delete_mcp_server(
         await db.commit()
 
 
+# ── MCP Server Reorder ──
+
+
+class McpServerReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class McpServerReorderRequest(BaseModel):
+    items: list[McpServerReorderItem]
+
+
+@router.patch("/mcp/servers/reorder", response_model=list[McpServerResponse])
+async def reorder_mcp_servers(
+    payload: McpServerReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[McpServerResponse]:
+    """批量更新 MCP Server 排序序号。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "mcp_server", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for MCP server {item.id}")
+
+        # 批量查询所有目标 server，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(McpServer).where(McpServer.id.in_(target_ids)))
+        server_map = {s.id: s for s in result.scalars().all()}
+        for item in payload.items:
+            server = server_map.get(item.id)
+            if server:
+                server.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(McpServer)
+            .where(McpServer.id.in_(visible_ids))
+            .order_by(McpServer.sort_order.asc(), McpServer.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        servers = result.scalars().all()
+
+        # 计算每个 server 的 tool_count 和 resource_template_count
+        resp_list: list[McpServerResponse] = []
+        for s in servers:
+            tc = await _get_tool_count(db, s.id)
+            rtc = await _get_resource_template_count(db, s.id)
+            resp_list.append(_mcp_server_to_response(s, tc, rtc))
+        return resp_list
+
+
+async def _get_tool_count(db, server_id: UUID) -> int:
+    from sqlalchemy import func as sa_func
+
+    cnt = await db.scalar(select(sa_func.count()).select_from(McpTool).where(McpTool.server_id == server_id))
+    return cnt or 0
+
+
+async def _get_resource_template_count(db, server_id: UUID) -> int:
+    from sqlalchemy import func as sa_func
+
+    cnt = await db.scalar(
+        select(sa_func.count()).select_from(McpResourceTemplate).where(McpResourceTemplate.server_id == server_id)
+    )
+    return cnt or 0
+
+
 def _mcp_server_to_response(
     server: McpServer,
     tool_count: int,
@@ -946,6 +1029,7 @@ def _mcp_server_to_response(
         resource_template_count=resource_template_count or 0,
         # 显式列优先；旧库未迁移到 0033 时回退 owner_id 前缀，与 permissions 模块保持一致。
         is_builtin=bool(getattr(server, "is_system", False)) or (server.owner_id or "").startswith("system"),
+        sort_order=getattr(server, "sort_order", 0),
     )
 
 
@@ -1505,7 +1589,14 @@ async def list_builtin_tools(
         if not visible_ids:
             return []
 
-        stmt = select(BuiltinTool).where(BuiltinTool.id.in_(visible_ids)).order_by(BuiltinTool.created_at.desc())
+        stmt = (
+            select(BuiltinTool)
+            .where(BuiltinTool.id.in_(visible_ids))
+            .order_by(
+                BuiltinTool.sort_order.asc(),
+                BuiltinTool.created_at.desc(),
+            )
+        )
         result = await db.execute(stmt)
         tools = result.scalars().all()
 
@@ -1637,6 +1728,58 @@ async def delete_builtin_tool(
     invalidate_tool_cache(tool_name)
 
 
+# ── BuiltinTool Reorder ──
+
+
+class BuiltinToolReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class BuiltinToolReorderRequest(BaseModel):
+    items: list[BuiltinToolReorderItem]
+
+
+@router.patch("/tools/reorder", response_model=list[BuiltinToolResponse])
+async def reorder_builtin_tools(
+    payload: BuiltinToolReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[BuiltinToolResponse]:
+    """批量更新 Tool 排序序号。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for tool {item.id}")
+
+        # 批量查询所有目标 tool，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(BuiltinTool).where(BuiltinTool.id.in_(target_ids)))
+        tool_map = {t.id: t for t in result.scalars().all()}
+        for item in payload.items:
+            tool = tool_map.get(item.id)
+            if tool:
+                tool.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(BuiltinTool)
+            .where(BuiltinTool.id.in_(visible_ids))
+            .order_by(
+                BuiltinTool.sort_order.asc(),
+                BuiltinTool.created_at.desc(),
+            )
+        )
+        result = await db.execute(stmt)
+        tools = result.scalars().all()
+        return [_builtin_tool_to_response(t) for t in tools]
+
+
 @router.post("/tools/{tool_id}:test", response_model=BuiltinToolTestResponse)
 async def test_builtin_tool(
     tool_id: UUID,
@@ -1741,7 +1884,7 @@ async def list_skills(
         stmt = select(Skill).where(Skill.id.in_(visible_ids))
         if category:
             stmt = stmt.where(Skill.category == category)
-        stmt = stmt.order_by(Skill.priority.desc(), Skill.created_at.desc())
+        stmt = stmt.order_by(Skill.sort_order.asc(), Skill.priority.desc(), Skill.created_at.desc())
         result = await db.execute(stmt)
         skills = result.scalars().all()
 
@@ -2277,6 +2420,55 @@ async def delete_skill(
         _invalidate_global_skill_caches()
 
 
+# ── Skill Reorder ──
+
+
+class SkillReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class SkillReorderRequest(BaseModel):
+    items: list[SkillReorderItem]
+
+
+@router.patch("/skills/reorder", response_model=list[SkillResponse])
+async def reorder_skills(
+    payload: SkillReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillResponse]:
+    """批量更新 Skill 排序序号。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "skill", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for skill {item.id}")
+
+        # 批量查询所有目标 skill，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(Skill).where(Skill.id.in_(target_ids)))
+        skill_map = {s.id: s for s in result.scalars().all()}
+        for item in payload.items:
+            skill = skill_map.get(item.id)
+            if skill:
+                skill.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(Skill)
+            .where(Skill.id.in_(visible_ids))
+            .order_by(Skill.sort_order.asc(), Skill.priority.desc(), Skill.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        skills = result.scalars().all()
+        return [_skill_to_response(s) for s in skills]
+
+
 def _skill_to_response(skill: Skill) -> SkillResponse:
     return SkillResponse(
         id=skill.id,
@@ -2297,6 +2489,7 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
         is_builtin=bool(getattr(skill, "is_system", False)) or (skill.owner_id or "").startswith("system"),
         is_global=bool(getattr(skill, "is_global", False)),
+        sort_order=getattr(skill, "sort_order", 0),
     )
 
 

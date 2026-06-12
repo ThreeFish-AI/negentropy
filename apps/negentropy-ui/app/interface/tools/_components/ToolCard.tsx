@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/providers/AuthProvider";
-import { TiltedCard } from "@/components/ui/TiltedCard";
+import { SortableCardWrapper, SortableDragHandle } from "@/components/ui/SortableCardWrapper";
 
 interface BuiltinTool {
   id: string;
@@ -58,7 +58,6 @@ export function ToolCard({
 }: ToolCardProps) {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin") ?? false;
-  // 系统内置工具仅 admin 可编辑（与 MCP / Skill / Agent 卡片语义对齐）。
   const canEdit = isAdmin || !tool.is_system;
 
   const displayLabel = tool.display_name || tool.name;
@@ -69,17 +68,23 @@ export function ToolCard({
     Object.keys(tool.credentials).length > 0;
 
   return (
-    <TiltedCard>
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
-      <div className="flex min-h-0 flex-1 flex-col">
+    <SortableCardWrapper
+      id={tool.id}
+      onEdit={canEdit ? onEdit : undefined}
+      canEdit={canEdit}
+    >
+      <div className="relative z-20 flex min-h-0 flex-1 flex-col pointer-events-none">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
-          <h3 className="truncate text-lg font-semibold text-foreground">
-            {displayLabel}
-          </h3>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 items-start gap-1">
+            <SortableDragHandle />
+            <h3 className="truncate text-lg font-semibold text-foreground">
+              {displayLabel}
+            </h3>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 pointer-events-auto">
             {onToggleEnabled && (
               <button
-                onClick={onToggleEnabled}
+                onClick={(e) => { e.stopPropagation(); onToggleEnabled(); }}
                 disabled={toggling}
                 title={tool.is_enabled ? "Disable tool" : "Enable tool"}
                 aria-label={`${tool.is_enabled ? "Disable" : "Enable"} ${displayLabel}`}
@@ -104,7 +109,7 @@ export function ToolCard({
             )}
             {canEdit && (
               <button
-                onClick={onEdit}
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
                 title="Edit Tool"
                 aria-label={`Edit ${displayLabel}`}
                 className="rounded-md p-2 text-text-muted hover:bg-muted hover:text-text-secondary"
@@ -116,7 +121,7 @@ export function ToolCard({
             )}
             {!tool.is_system && (
               <button
-                onClick={onDelete}
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 title="Delete Tool"
                 aria-label={`Delete ${displayLabel}`}
                 className="rounded-md p-2 text-text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
@@ -128,7 +133,7 @@ export function ToolCard({
             )}
           </div>
         </div>
-        <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap">
+        <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap pl-6">
           {tool.is_enabled ? (
             <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
               Enabled
@@ -166,12 +171,12 @@ export function ToolCard({
           )}
         </div>
         <p
-          className="mb-1 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-text-muted line-clamp-4"
+          className="mb-1 ml-6 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-text-muted line-clamp-4"
           title={tool.description || "No description"}
         >
           {tool.description || "No description"}
         </p>
-        <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
+        <div className="mt-auto ml-6 flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
           <span className="inline-flex shrink-0 items-center gap-1">
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -187,7 +192,6 @@ export function ToolCard({
           </span>
         </div>
       </div>
-    </div>
-    </TiltedCard>
+    </SortableCardWrapper>
   );
 }

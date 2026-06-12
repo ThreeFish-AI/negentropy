@@ -83,6 +83,7 @@ def _make_tool(
         config_schema={},
         is_enabled=True,
         is_system=is_system,
+        sort_order=0,
     )
     # UUIDMixin 默认在 commit 时生成 id；测试里手动赋值即可。
     tool.id = tool_id or uuid4()

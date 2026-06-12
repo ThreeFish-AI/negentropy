@@ -62,8 +62,8 @@ describe("ToolCard", () => {
       />,
     );
 
-    // mock TiltedCard 包裹一层 div，实际卡片是其子元素
-    const root = container.firstElementChild?.firstElementChild;
+    // DOM: useSortable div > TiltedCard mock div > card div (with h-full)
+    const root = container.firstElementChild?.firstElementChild?.firstElementChild;
     expect(root).toHaveClass("h-full");
   });
 });

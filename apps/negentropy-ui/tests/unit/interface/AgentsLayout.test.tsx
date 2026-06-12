@@ -5,8 +5,8 @@ vi.mock("@/components/ui/InterfaceNav", () => ({
   InterfaceNav: ({ title }: { title: string }) => <div data-testid="interface-nav">{title}</div>,
 }));
 
-vi.mock("@/app/interface/agents/_components/AgentFormDialog", () => ({
-  AgentFormDialog: () => null,
+vi.mock("@/app/interface/agents/_components/AgentFormDrawer", () => ({
+  AgentFormDrawer: () => null,
 }));
 
 vi.mock("@/app/interface/agents/_components/AgentCard", () => ({
@@ -15,12 +15,22 @@ vi.mock("@/app/interface/agents/_components/AgentCard", () => ({
   ),
 }));
 
+vi.mock("@/components/ui/SortableCardGrid", () => ({
+  SortableCardGrid: ({ children, className = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3", "data-testid": dataTestId }: {
+    children: React.ReactNode;
+    className?: string;
+    "data-testid"?: string;
+  }) => (
+    <div data-testid={dataTestId ?? "sortable-grid"} className={className}>{children}</div>
+  ),
+}));
+
 describe("AgentsPage layout", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("renders responsive grid classes and fixed-height items", async () => {
+  it("renders responsive grid classes", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => [
@@ -55,8 +65,5 @@ describe("AgentsPage layout", () => {
     expect(grid).toHaveClass("grid-cols-1");
     expect(grid).toHaveClass("md:grid-cols-2");
     expect(grid).toHaveClass("xl:grid-cols-3");
-
-    const item = screen.getByTestId("agent-grid-item");
-    expect(item).toHaveClass("h-[176px]");
   });
 });
