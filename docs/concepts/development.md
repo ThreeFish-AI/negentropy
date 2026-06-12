@@ -29,6 +29,8 @@
 ### 1.1 前置依赖
 
 > 高层技术栈概览与应用边界详见 [Framework §2.2](./framework.md#22-应用边界与技术栈)。以下为环境搭建所需的完整依赖清单。
+>
+> **Docker 部署**：如需通过 Docker Compose 一键部署全套服务（非原生开发），请参阅 [Docker Compose 运维指引](./docker-operations.md)。
 
 1. 后端引擎
 

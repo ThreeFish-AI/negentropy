@@ -114,3 +114,7 @@ docker compose up -d
 - [negentropy-release.yml](../../../.github/workflows/negentropy-release.yml) — 策略层：tag 发布（`release-meta` + `docker-release`）
 - [negentropy-docker-validate.yml](../../../.github/workflows/negentropy-docker-validate.yml) — 策略层：PR 校验 + 周巡检
 - [docker-compose.yml](../../../docker-compose.yml) — 镜像命名单一事实源 + 本地编排
+
+## 运维操作指引
+
+本文档聚焦流水线**设计**与**机制**。部署、日常运维、故障排查等操作指引详见 [Docker Compose 运维指引](../docker-operations.md)。
