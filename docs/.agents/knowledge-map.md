@@ -25,6 +25,7 @@
 - [QA Delivery Pipeline](../concepts/design/qa-delivery-pipeline.md)
 - [Docker Release Pipeline](../concepts/design/docker-release-pipeline.md) — compose 栈 4 镜像（backend / perceives / ui / wiki）的多架构构建与 Docker Hub 发布：PR 构建校验 + tag 发布双入口，amd64+arm64 原生 runner + digest 合并 + provenance/SBOM
 - [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md) — Playwright MCP 全系统默认配备：单一注入点（builtin_tools.mcp_config）provision 至 Routine / Scheduler / 6 Agents，用于浏览器实机回归验证
+- [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md) — 三层自进化架构（固定框架 Meta-Layer / 动态 Agent 定义 / 外部能力工具）：遥测→评测→提案→验证→门控发布全闭环，含 agent_versions 版本化、GEPA/ACE 进化算子、Golden Set 双轨评测、金丝雀发布、护栏决策矩阵与四阶段演进路线（调研基础见 [130 号调研](../research/130-self-evolving-agents-team.md)）
 
 ## 系统能力概览
 
@@ -58,6 +59,7 @@
 - [ADK 2.0 升级调研](../research/020b-adk-2.0-upgrade.md) — Google ADK 2.0 核心新特性、Breaking Changes、本项目影响评估与渐进式升级路径
 - [Routine Agent 迭代模式调研](../research/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）
 - [浏览器操作 MCP 调研](../research/120-browser-automation-mcp.md) — Playwright MCP / Chrome DevTools MCP / claude-in-chrome / Webwright 等纵向深挖与横向决策矩阵，结合"6 Agents + 自治 Routine"两类上下文的选型论证（集成落地见 [集成方案](../concepts/design/browser-automation-mcp-integration.md)）
+- [自进化 Agents Team 调研](../research/130-self-evolving-agents-team.md) — 自进化智能体理论（DGM/ADAS/AlphaEvolve/AgentSquare）+ 进化算子（GEPA/ACE/DSPy）+ 评测回路（Agent-as-a-Judge/OTel/Langfuse）+ 工具生态自进化（MCP Registry/Agent Skills/LLM 自造工具）+ 护栏治理（OWASP Agentic Top 10/金丝雀/Goodhart 防护），映射至三层自进化架构（技术方案见 [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md)）
 
 ## 用户文档与运维
 
