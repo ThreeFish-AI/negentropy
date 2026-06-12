@@ -5,8 +5,8 @@ vi.mock("@/components/ui/InterfaceNav", () => ({
   InterfaceNav: ({ title }: { title: string }) => <div data-testid="interface-nav">{title}</div>,
 }));
 
-vi.mock("@/app/interface/agents/_components/AgentFormDialog", () => ({
-  AgentFormDialog: () => null,
+vi.mock("@/app/interface/agents/_components/AgentFormDrawer", () => ({
+  AgentFormDrawer: () => null,
 }));
 
 vi.mock("@/app/interface/agents/_components/AgentCard", () => ({

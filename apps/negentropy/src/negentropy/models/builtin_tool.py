@@ -13,7 +13,7 @@
 import json as _json
 from typing import Any
 
-from sqlalchemy import Boolean, Enum, Index, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Enum, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -70,6 +70,14 @@ class BuiltinTool(Base, UUIDMixin, TimestampMixin):
     # 状态
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+
+    # 排序：前端拖拽排序后的持久化序号，值越小越靠前。
+    sort_order: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
 
     __table_args__ = (
         UniqueConstraint("name", name="builtin_tools_name_unique"),

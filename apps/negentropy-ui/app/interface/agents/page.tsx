@@ -30,25 +30,14 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { AgentCard } from "./_components/AgentCard";
-import { AgentFormDialog } from "./_components/AgentFormDialog";
+import { AgentFormDrawer } from "./_components/AgentFormDrawer";
+import type { Agent as AgentType } from "./_components/_types";
 
-interface Agent {
-  id: string;
+interface Agent extends AgentType {
   owner_id: string;
-  visibility: string;
-  name: string;
-  display_name: string | null;
-  description: string | null;
-  agent_type: string;
-  system_prompt: string | null;
-  model: string | null;
-  config: Record<string, unknown>;
   adk_config: Record<string, unknown>;
-  skills: string[];
-  tools: string[];
   source: string;
   is_builtin: boolean;
-  is_enabled: boolean;
   kind?: "root" | "agent";
   sort_order?: number;
 }
@@ -317,7 +306,7 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      <AgentFormDialog
+      <AgentFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}
