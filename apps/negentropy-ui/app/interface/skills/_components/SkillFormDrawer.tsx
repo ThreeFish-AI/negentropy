@@ -45,6 +45,15 @@ interface SkillResource {
   lazy?: boolean;
 }
 
+/** 行内资源行（含稳定 key，仅组件内部使用）。 */
+interface ResourceRow {
+  _uid: string;
+  type: string;
+  ref: string;
+  title: string;
+  lazy: boolean;
+}
+
 interface SkillFormDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -77,17 +86,22 @@ export function SkillFormDrawer({
 }: SkillFormDrawerProps) {
   const formId = useId();
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [resourceRows, setResourceRows] = useState<SkillResource[]>([]);
+  const [resourceRows, setResourceRows] = useState<ResourceRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ config_schema?: string; default_config?: string }>({});
   const [availableTools, setAvailableTools] = useState<Array<{ name: string; display_name: string | null; source: string }>>([]);
 
-  // ── 脏检基线 ──
-  const [baseline, setBaseline] = useState(EMPTY_FORM);
+  // ── 脏检基线（含 resources） ──
+  const [baseline, setBaseline] = useState({
+    form: EMPTY_FORM,
+    resources: [] as ResourceRow[],
+  });
   const isDirty = useMemo(
-    () => JSON.stringify(formData) !== JSON.stringify(baseline),
-    [formData, baseline],
+    () =>
+      JSON.stringify(formData) !== JSON.stringify(baseline.form) ||
+      JSON.stringify(resourceRows) !== JSON.stringify(baseline.resources),
+    [formData, resourceRows, baseline],
   );
 
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -141,21 +155,21 @@ export function SkillFormDrawer({
           (skill.enforcement_mode === "strict" ? "strict" : "warning") as "warning" | "strict",
         is_global: skill.is_global ?? false,
       };
+      const rows: ResourceRow[] = Array.isArray(skill.resources)
+        ? skill.resources.map((r) => ({
+            _uid: crypto.randomUUID(),
+            type: r.type || "url",
+            ref: r.ref || "",
+            title: r.title || "",
+            lazy: r.lazy !== false,
+          }))
+        : [];
       setFormData(seeded);
-      setBaseline(seeded);
-      setResourceRows(
-        Array.isArray(skill.resources)
-          ? skill.resources.map((r) => ({
-              type: r.type || "url",
-              ref: r.ref || "",
-              title: r.title || "",
-              lazy: r.lazy !== false,
-            }))
-          : [],
-      );
+      setBaseline({ form: seeded, resources: rows });
+      setResourceRows(rows);
     } else {
       setFormData(EMPTY_FORM);
-      setBaseline(EMPTY_FORM);
+      setBaseline({ form: EMPTY_FORM, resources: [] });
       setResourceRows([]);
     }
     setError(null);
@@ -242,7 +256,7 @@ export function SkillFormDrawer({
       };
 
       await onSubmit(data);
-      setBaseline(formData);
+      setBaseline({ form: formData, resources: resourceRows });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -529,7 +543,7 @@ export function SkillFormDrawer({
                 onClick={() =>
                   setResourceRows((prev) => [
                     ...prev,
-                    { type: "url", ref: "", title: "", lazy: true },
+                    { _uid: crypto.randomUUID(), type: "url", ref: "", title: "", lazy: true },
                   ])
                 }
                 className="rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
@@ -545,7 +559,7 @@ export function SkillFormDrawer({
               <ul className="space-y-2">
                 {resourceRows.map((row, idx) => (
                   <li
-                    key={idx}
+                    key={row._uid}
                     data-testid={`skills-form-resource-${idx}`}
                     className="grid grid-cols-1 gap-2 rounded-md border border-border p-2 sm:grid-cols-12"
                   >
@@ -554,7 +568,7 @@ export function SkillFormDrawer({
                       value={row.type || "url"}
                       onChange={(e) =>
                         setResourceRows((prev) =>
-                          prev.map((r, i) => (i === idx ? { ...r, type: e.target.value } : r)),
+                          prev.map((r) => (r._uid === row._uid ? { ...r, type: e.target.value } : r)),
                         )
                       }
                       className="rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground sm:col-span-2"
@@ -571,7 +585,7 @@ export function SkillFormDrawer({
                       value={row.ref || ""}
                       onChange={(e) =>
                         setResourceRows((prev) =>
-                          prev.map((r, i) => (i === idx ? { ...r, ref: e.target.value } : r)),
+                          prev.map((r) => (r._uid === row._uid ? { ...r, ref: e.target.value } : r)),
                         )
                       }
                       placeholder="ref (URL / corpus name / kg node label / memory uuid)"
@@ -583,7 +597,7 @@ export function SkillFormDrawer({
                       value={row.title || ""}
                       onChange={(e) =>
                         setResourceRows((prev) =>
-                          prev.map((r, i) => (i === idx ? { ...r, title: e.target.value } : r)),
+                          prev.map((r) => (r._uid === row._uid ? { ...r, title: e.target.value } : r)),
                         )
                       }
                       placeholder="title (optional)"
@@ -595,8 +609,8 @@ export function SkillFormDrawer({
                         checked={row.lazy !== false}
                         onChange={(e) =>
                           setResourceRows((prev) =>
-                            prev.map((r, i) =>
-                              i === idx ? { ...r, lazy: e.target.checked } : r,
+                            prev.map((r) =>
+                              r._uid === row._uid ? { ...r, lazy: e.target.checked } : r,
                             ),
                           )
                         }
@@ -606,7 +620,7 @@ export function SkillFormDrawer({
                     <button
                       type="button"
                       onClick={() =>
-                        setResourceRows((prev) => prev.filter((_, i) => i !== idx))
+                        setResourceRows((prev) => prev.filter((r) => r._uid !== row._uid))
                       }
                       className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50 sm:col-span-1 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
                     >
