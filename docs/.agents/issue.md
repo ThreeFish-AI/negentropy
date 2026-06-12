@@ -3171,3 +3171,37 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：① healthcheck 探针属「事实性陈述」，必须以目标服务真实 HTTP 行为为证据（最小复现实测或运行实例实测），不得按「根路径理应 200」惯性假设——MCP/gRPC 网关类服务对裸 GET 返回 4xx 是常态；② `curl -f` 语义是「≥400 即失败」，对以 4xx 证明存活的端点应改用状态码允许清单；③ compose 引入/变更后应至少完整跑通一次 `docker compose up` 至全栈 healthy（本次同步落地的 negentropy-docker-validate.yml 已覆盖构建与配置校验，运行时 healthcheck 仍需实测兜底）；④ 长期更优解是在 perceives 注册显式 `/health` 自定义路由（FastMCP `custom_route`），将探针语义从「侧证存活」升级为「一等健康契约」。
 - **同类问题影响**：backend healthcheck `GET /` 经本机运行实例实证返回 307（ADK ApiServer 路径），`curl -sf` 通过，无需改动；ui/wiki 为 Next.js 根路径 200，无此问题。同 PR 一并校准 `.env.docker.local` 加载矛盾与 Compose >= 2.24 版本前置（详见 CHANGELOG [Unreleased] Fixed）。
 - **验证**：本地最小复现（`uv run --with fastmcp==3.2.4` 启动 HTTP transport + `/mcp` path）实测探针通过/失败两分支；`docker compose config -q` 通过；变更经 PR #902 的 Docker Build Validation workflow（4 镜像 × 2 架构构建 + compose lint）端到端校验。
+
+---
+
+## ISSUE-138 记忆检索机制全局断链：交互式主链路零接入、embedding 从未接线、零命中不可观测（2026-06-12）
+
+- **表因**：Memory → Insights 页「Retrieval Quality」恒为「暂无检索活动」，SEARCH·24H=0、30 天 `total_retrievals=0`；但 Memories=110 / Facts=47 / KG=671（写入侧正常），呈「只写不读」。
+- **根因**（三处独立断链叠加）：
+  1. **交互式对话主链路无检索接入点**：root_agent（`agents/agent.py`）仅有 `log_activity` 工具，五个 Faculty 工具列表均无记忆检索工具；唯一可达路径 `_fallback_to_memory_search`（`agents/tools/perception.py`）只在 KB 无 corpora 或 KB 检索 0 结果时被动触发——KB 有数据时永不触发。写入侧三层全接线（save_to_memory 工具 / routine 提取 / REST），读写严重不对称。
+  2. **embedding_fn 从未接线**：`engine/factories/memory.py` 的 `_BACKEND_FACTORIES` 无参调用 `create_postgres_memory_service()` → 运行时单例 `embedding_fn=None` → 语义/混合检索永不生效（只走 BM25/ilike）、写入不生成向量（live 库 75/94 条记忆缺向量）、写入去重被静默跳过。
+  3. **零命中检索不可观测**：`_record_access` 空结果直接 return、`log_retrieval` 空 `memory_ids` 返回 None，`retrieval_tracking_failed` 仅 debug 级——「检索发生但未命中」在指标层完全消失。
+  - 另有多个「有实现、无调用方」的悬空组件佐证系统性断链：`ContextAssembler.assemble()`、`ProactiveRecallService`（仅 API 暴露）、`memory_tools.memory_search()`（无端点无 Faculty 暴露）。
+- **处理方式**：
+  1. 新建 `agents/tools/memory.py::NegentropyPreloadMemoryTool`（继承 ADK `PreloadMemoryTool`）：root Agent 每轮自动以用户消息检索长期记忆注入 `<RELEVANT_MEMORIES>` 块；以 `temp:` state 缓存做**同 invocation 去重**（ADK 每个 LLM step 都重跑 `process_llm_request`，不去重会重复累加 access_count/importance 并重复落检索日志）；受 `memory.retrieval.preload_enabled`（默认 true）门控，top_k/max_chars 截断封顶 token 预算。
+  2. Perception/Contemplation/Internalization 三系部接入 ADK 原生 `load_memory` 显式工具（经 tool_context 取 app_name/user_id，无越权风险）+ instruction 触发指引与互斥规则。
+  3. factory 默认接线 `build_embedding_fn()`（与 Knowledge ingestion 同链路，fail-soft）；新增 `scripts/backfill_memory_embeddings.py` 回填存量（已对 live 库执行：memories 75 条、facts 39 条全部补齐）。
+  4. `_record_access` 解耦为 A 段（访问计数，仅命中）+ B 段（检索日志，**始终记录**，含零命中）；`log_retrieval` 放宽空列表；`retrieval_tracking_failed` 升 warning；新增 `zero_hit_rate` 指标贯通 tracker → `RetrievalMetricsResponse` → UI 卡片。
+  5. 补全 `POST /memory/self-edit/search` 端点（与 write/update/delete 对称）。
+- **后续防范**：
+  1. 「契约型读路径」（检索/召回/查询）必须与写路径同 PR 接线调用方并以结构测试锁定（本次新增 `test_root_agent_tools` 断言 preload_memory、`test_faculties_have_load_memory_tool`），防止「只写不读」的静默退化；
+  2. 依赖注入的可选能力（embedding_fn 等）若长期以 None 运行，应在 factory 处显式默认接线 + fail-soft 降级，而非依赖调用方记得传参；
+  3. 可观测性埋点必须覆盖失败/空分支——「零命中」与「未发生」在指标上必须可区分；
+  4. **部署后必须执行 `POST /interface/agents/sync/negentropy`**：instruction 运行时优先读 DB（60s TTL），不 sync 则 LLM 看不到新文案（preload 不受影响）。
+- **同类问题影响**：`ContextAssembler.assemble()` / `ProactiveRecallService` 会话级注入仍为悬空组件（独立议题）；指标语义变化需知悉——`total_retrievals` 分母自此包含零命中行，`precision_at_k` 与历史数据不可比；vector 检索无最小相似度阈值，无意义 query 也会返回近邻（preload 注入块靠 instruction 的「无关即忽略」约束兜底，阈值调优为后续议题）。
+- **验证**：单测 2429 全绿（新增 preload 去重/门控/截断 9 例、_record_access 解耦 5 例）；集成测试 7/7（含零命中落日志新例）；live 库服务级 E2E：embedding 接线后 `search_level='hybrid'` 首次生效、检索日志 219→221 落行；回填后 `embedding IS NULL` 归零。
+
+---
+
+## ISSUE-139 brew 升级 postgresql@16 清除手装 pgvector，本机向量能力静默瘫痪（2026-06-12）
+
+- **表因**：单测会话级 fixture 重建测试库时 `CREATE EXTENSION vector` 报 `extension "vector" is not available`；进一步实测 live 库 `SELECT '[1,2,3]'::vector` 报 `could not access file "$libdir/vector"`——本机 Postgres 的 vector 类型在**新连接**上已不可用（旧 backend 因 dylib 已 mmap 仍可部分工作，呈「半瘫痪」假象）。
+- **根因**：Homebrew 升级 `postgresql@16` 16.13→16.14 时替换了 keg 目录，清掉了此前手动安装进 keg 的 pgvector 文件（control/sql/dylib）；brew 官方 `pgvector` formula 仅为 postgresql@17/18 构建，不覆盖 @16。
+- **处理方式**：源码编译 pgvector v0.8.2（与库内扩展版本一致）并 `make install PG_CONFIG=/opt/homebrew/opt/postgresql@16/bin/pg_config`；实测 vector cast 恢复。测试库残留其他工作区的 alembic 版本（0069 > 本分支 head 0068）一并 `DROP DATABASE negentropy_test` 由 conftest 重建。
+- **后续防范**：① brew 升级 PG 后必须复验扩展（`SELECT '[1,2,3]'::vector`），手装扩展不在 brew 升级保障范围内；② 长期更优解是迁移到 docker-compose 的 pgvector 官方镜像（仓库已具备），消除宿主机 PG 版本漂移；③ 测试库跨工作区共享，分支间迁移版本超前会以 `Can't locate revision` 报错——重置 `*_test` 库即可（disposable，conftest 自动重建）。
+- **同类问题影响**：live 引擎（主仓 checkout，端口 3292）连同一实例——修复前其向量检索/写入路径在新 backend 上同样失效，是 Insights 检索断链表象的环境侧放大因素。
