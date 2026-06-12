@@ -45,7 +45,6 @@ flowchart TB
     CLIENT["用户浏览器<br/>localhost"]:::client
 
     VOL --- PG
-    PG -- "service_healthy" --> PER
     PG -- "service_healthy" --> BE
     PER -- "service_healthy" --> BE
     BE -- "service_healthy" --> UI
@@ -68,7 +67,7 @@ flowchart TB
 | 服务 | 容器名 | 镜像来源 | 主机端口 | 健康检查探针 | 依赖条件 |
 |:---|:---|:---|:---|:---|:---|
 | `postgres` | `negentropy-postgres` | `pgvector/pgvector:pg17` | 5432 | `pg_isready -U aigc -d negentropy` | — |
-| `perceives` | `negentropy-perceives` | `threefishai/negentropy-perceives` | 2992 | `/mcp` 端点状态码白名单（200/307/405/406） | `postgres: healthy` |
+| `perceives` | `negentropy-perceives` | `threefishai/negentropy-perceives` | 2992 | `/mcp` 端点状态码白名单（200/307/405/406） | — |
 | `backend` | `negentropy-backend` | `threefishai/negentropy-backend` | 3292 | `curl -sf http://localhost:3292/` | `postgres + perceives: healthy` |
 | `ui` | `negentropy-ui` | `threefishai/negentropy-ui` | 3192 | `curl -sf http://localhost:3192/` | `backend: healthy` |
 | `wiki` | `negentropy-wiki` | `threefishai/negentropy-wiki` | 3092 | `curl -sf http://localhost:3092/` | `backend + ui: healthy` |
@@ -79,13 +78,14 @@ flowchart TB
 
 Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
-1. **postgres** 首先启动 → 等待 `pg_isready` 通过 → 标记 healthy
-2. **perceives** 依赖 postgres healthy → 启动 MCP Server → `/mcp` 探针通过 → 标记 healthy
-3. **backend** 依赖 postgres + perceives healthy → 执行 Alembic 迁移 → 启动 ADK Server → 根路由探针通过 → 标记 healthy
-4. **ui** 依赖 backend healthy → 启动 Next.js → 根路由探针通过 → 标记 healthy
-5. **wiki** 依赖 backend + ui healthy → 启动 Next.js → 根路由探针通过 → 标记 healthy
+1. **postgres** 与 **perceives** 并行启动（二者无依赖关系）：
+   - postgres 等待 `pg_isready` 通过 → 标记 healthy
+   - perceives 启动 MCP Server → `/mcp` 探针通过 → 标记 healthy
+2. **backend** 依赖 postgres + perceives healthy → 执行 Alembic 迁移 → 启动 ADK Server → 根路由探针通过 → 标记 healthy
+3. **ui** 依赖 backend healthy → 启动 Next.js → 根路由探针通过 → 标记 healthy
+4. **wiki** 依赖 backend + ui healthy → 启动 Next.js → 根路由探针通过 → 标记 healthy
 
-任一上游服务未达到 healthy 状态，下游服务不会启动。这确保了数据库就绪后才执行迁移、后端就绪后才启动前端。
+除 postgres 与 perceives（无依赖、并行首启）外，任一服务的上游未达 healthy 状态即不会启动：这确保了数据库与 MCP 就绪后才执行迁移、后端就绪后才启动前端。
 
 ---
 
@@ -205,7 +205,7 @@ docker compose build backend && docker compose up -d backend
 | `AGUI_BASE_URL` | `http://backend:3292` | UI BFF 代理目标 |
 | `WIKI_API_BASE` | `http://backend:3292` | Wiki 内容 API 代理目标 |
 | `WIKI_UI_BFF_BASE` | `http://ui:3192` | Wiki BFF 代理目标 |
-| `PORT` / `HOSTNAME` | 各服务端口 / `0.0.0.0` | 容器内绑定覆盖 |
+| `PORT` / `HOSTNAME` | ui / wiki 各自端口 / `0.0.0.0` | ui / wiki 容器内绑定覆盖（perceives 改用 `NEGENTROPY_PERCEIVES_HTTP_HOST` / `_PORT`） |
 
 ### 3.4 健康检查参考
 
@@ -281,7 +281,7 @@ docker compose logs --tail 100 ui       # ui 最近 100 行日志
 |:---|:---|
 | postgres | `database system is ready to accept connections` |
 | perceives | `Uvicorn running on http://0.0.0.0:2992` |
-| backend | `Running migrations...` → `negentropy serve --host 0.0.0.0 --port 3292` |
+| backend | `Running Alembic migrations...` → `negentropy serve --host 0.0.0.0 --port 3292` |
 | ui / wiki | `Ready in ...s` 或 `✓ Ready` |
 
 ### 4.4 数据持久化与备份
@@ -395,7 +395,7 @@ flowchart TD
 | **数据卷损坏** | postgres 启动失败，日志显示数据目录错误 | 主机异常重启后 `postgres_data` 卷状态不一致 | `docker compose down && docker volume rm <project>_postgres_data && docker compose up -d`（⚠ 数据不可恢复） |
 | **镜像拉取失败** | `manifest not found` | `NEGENTROPY_IMAGE_TAG` 指定了不存在的标签 | 确认标签存在：`docker manifest inspect threefishai/negentropy-backend:<tag>` |
 | **健康检查超时** | 容器持续 `(unhealthy)` | 服务启动慢或探针目标不可达 | 查看日志 `docker compose logs <service>`；首次构建镜像时 backend 的 `start_period` 可能不够，等待后重试 |
-| **依赖链阻塞** | 服务一直等待，未启动 | 上游服务未达到 healthy 状态 | 按启动顺序逐级排查：先确保 postgres healthy，再 perceives，依次往下 |
+| **依赖链阻塞** | 服务一直等待，未启动 | 上游服务未达到 healthy 状态 | postgres 与 perceives 无级联关系、应分别独立排查；级联链为 postgres/perceives → backend → ui → wiki，按此顺序逐级确认上游 healthy |
 | **环境变量未加载** | 认证失败或 API Key 缺失 | `.env.docker.local` 未创建或密钥为空 | 确认文件存在且值已填写：`cat .env.docker.local \| grep -v '^#' \| grep -v '^$'` |
 | **架构不匹配** | `exec format error` | 在 amd64 主机运行 arm64 单架构镜像（或反之） | 使用多架构清单（默认行为），不要指定特定架构 digest |
 
