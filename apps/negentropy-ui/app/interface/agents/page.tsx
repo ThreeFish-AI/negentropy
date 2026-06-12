@@ -6,29 +6,16 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bot } from "lucide-react";
-import {
-  DndContext,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
+import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { AgentCard } from "./_components/AgentCard";
 import { AgentFormDrawer } from "./_components/AgentFormDrawer";
 import type { Agent as AgentType } from "./_components/_types";
@@ -57,15 +44,6 @@ export default function AgentsPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
 
   const fetchAgents = async () => {
     try {
@@ -149,9 +127,9 @@ export default function AgentsPage() {
     setEditingAgent(null);
   };
 
+  // 后端已按 sort_order ASC 返回；若所有 sort_order 为默认值 0（从未拖拽过），
+  // 则做前端兜底排序：root 置顶 + name 字母序。
   const sortedAgents = useMemo(() => {
-    // 后端已按 sort_order ASC 返回；若所有 sort_order 为默认值 0（从未拖拽过），
-    // 则做前端兜底排序：root 置顶 + name 字母序。
     const hasCustomOrder = agents.some((a) => (a.sort_order ?? 0) !== 0);
     if (hasCustomOrder) return agents;
     const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
@@ -162,32 +140,21 @@ export default function AgentsPage() {
     });
   }, [agents]);
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      // 乐观更新：立即重排前端数组
-      const reordered = arrayMove(
-        sortedAgents,
-        sortedAgents.findIndex((a) => a.id === active.id),
-        sortedAgents.findIndex((a) => a.id === over.id),
-      );
-      // 为每个元素赋予新的 sort_order
-      const withOrder = reordered.map((a, i) => ({ ...a, sort_order: i }));
-      setAgents(withOrder);
-
-      // 持久化到后端
+  const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
+    items: sortedAgents,
+    onReorder: (reordered) => {
+      setAgents(reordered as Agent[]);
       fetch("/api/interface/agents/reorder", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: withOrder.map((a) => ({ id: a.id, sort_order: a.sort_order })) }),
+        body: JSON.stringify({
+          items: reordered.map((a) => ({ id: a.id, sort_order: a.sort_order })),
+        }),
       }).catch(() => {
-        // 持久化失败时静默回退，不阻塞用户操作
+        fetchAgents();
       });
     },
-    [sortedAgents],
-  );
+  });
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     try {
@@ -276,31 +243,20 @@ export default function AgentsPage() {
                 }
               />
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
+              <SortableCardGrid
+                itemIds={sortableItemIds}
                 onDragEnd={handleDragEnd}
+                data-testid="agents-grid"
               >
-                <SortableContext
-                  items={sortedAgents.map((a) => a.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div
-                    data-testid="agents-grid"
-                    className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-                  >
-                    {sortedAgents.map((agent) => (
-                      <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
-                        <AgentCard
-                          agent={agent}
-                          onEdit={() => handleEdit(agent)}
-                          onDelete={() => handleDelete(agent.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+                {sortedAgents.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    onEdit={() => handleEdit(agent)}
+                    onDelete={() => handleDelete(agent.id)}
+                  />
+                ))}
+              </SortableCardGrid>
             )}
           </div>
         </div>

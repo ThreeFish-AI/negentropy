@@ -959,7 +959,13 @@ async def reorder_mcp_servers(
         for item in payload.items:
             if item.id not in visible_set:
                 raise HTTPException(status_code=403, detail=f"No edit permission for MCP server {item.id}")
-            server = await db.get(McpServer, item.id)
+
+        # 批量查询所有目标 server，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(McpServer).where(McpServer.id.in_(target_ids)))
+        server_map = {s.id: s for s in result.scalars().all()}
+        for item in payload.items:
+            server = server_map.get(item.id)
             if server:
                 server.sort_order = item.sort_order
 
@@ -1749,7 +1755,13 @@ async def reorder_builtin_tools(
         for item in payload.items:
             if item.id not in visible_set:
                 raise HTTPException(status_code=403, detail=f"No edit permission for tool {item.id}")
-            tool = await db.get(BuiltinTool, item.id)
+
+        # 批量查询所有目标 tool，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(BuiltinTool).where(BuiltinTool.id.in_(target_ids)))
+        tool_map = {t.id: t for t in result.scalars().all()}
+        for item in payload.items:
+            tool = tool_map.get(item.id)
             if tool:
                 tool.sort_order = item.sort_order
 
@@ -2435,7 +2447,13 @@ async def reorder_skills(
         for item in payload.items:
             if item.id not in visible_set:
                 raise HTTPException(status_code=403, detail=f"No edit permission for skill {item.id}")
-            skill = await db.get(Skill, item.id)
+
+        # 批量查询所有目标 skill，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(Skill).where(Skill.id.in_(target_ids)))
+        skill_map = {s.id: s for s in result.scalars().all()}
+        for item in payload.items:
+            skill = skill_map.get(item.id)
             if skill:
                 skill.sort_order = item.sort_order
 

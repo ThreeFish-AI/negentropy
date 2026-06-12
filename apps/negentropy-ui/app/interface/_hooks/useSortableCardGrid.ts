@@ -2,17 +2,10 @@
 
 import { useCallback } from "react";
 import {
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import {
-  sortableKeyboardCoordinates,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { arrayMove } from "@dnd-kit/sortable";
 
 interface SortableItem {
   id: UniqueIdentifier;
@@ -29,32 +22,29 @@ interface UseSortableCardGridOptions<T extends SortableItem> {
 /**
  * 可排序卡片网格 hook。
  *
- * 封装 @dnd-kit 的传感器配置、拖拽结束处理、以及 arrayMove 逻辑。
- * 返回可直接传给 DndContext + SortableContext 的 props。
+ * 封装拖拽结束处理与 arrayMove 逻辑，返回可直接传给 SortableCardGrid 的 props。
+ * 传感器配置由 SortableCardGrid 组件内部管理，无需在此重复创建。
  *
  * 使用方式：
  * ```tsx
- * const { sensors, sortableItems, handleDragEnd, SortableProvider } = useSortableCardGrid({
+ * const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
  *   items: sortedAgents,
  *   onReorder: async (reordered) => {
  *     await fetch("/api/interface/agents/reorder", { ... });
  *   },
  * });
+ *
+ * return (
+ *   <SortableCardGrid itemIds={sortableItemIds} onDragEnd={handleDragEnd}>
+ *     {items.map(item => <Card key={item.id} ... />)}
+ *   </SortableCardGrid>
+ * );
  * ```
  */
 export function useSortableCardGrid<T extends SortableItem>({
   items,
   onReorder,
 }: UseSortableCardGridOptions<T>) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -65,15 +55,14 @@ export function useSortableCardGrid<T extends SortableItem>({
       if (oldIndex === -1 || newIndex === -1) return;
 
       const reordered = arrayMove(items, oldIndex, newIndex);
-      // 为每个元素赋予新的序号
+      // 为每个元素赋予新的序号；void 显式忽略返回的 Promise
       const withOrder = reordered.map((item, i) => ({ ...item, sort_order: i }));
-      onReorder(withOrder);
+      void onReorder(withOrder);
     },
     [items, onReorder],
   );
 
   return {
-    sensors,
     sortableItemIds: items.map((a) => a.id),
     handleDragEnd,
   };
