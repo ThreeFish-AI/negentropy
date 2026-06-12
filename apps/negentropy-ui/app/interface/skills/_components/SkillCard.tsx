@@ -67,6 +67,7 @@ export function SkillCard({
       id={skill.id}
       onEdit={canEdit ? onEdit : undefined}
       canEdit={canEdit}
+      dataTestId="skill-grid-item"
     >
       <div className="relative z-20 flex min-h-0 flex-1 flex-col pointer-events-none">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">

@@ -74,6 +74,8 @@ interface SortableCardWrapperProps {
   children: ReactNode;
   /** 额外容器 className。 */
   className?: string;
+  /** 透传到外层 div 的 data-testid，供 E2E 测试定位。 */
+  dataTestId?: string;
 }
 
 /**
@@ -107,6 +109,7 @@ export function SortableCardWrapper({
   canEdit = true,
   children,
   className,
+  dataTestId,
 }: SortableCardWrapperProps) {
   const {
     attributes,
@@ -133,6 +136,7 @@ export function SortableCardWrapper({
       <div
         ref={setNodeRef}
         style={sortableStyle}
+        data-testid={dataTestId}
         className={isDragging ? "relative z-10" : undefined}
       >
         <TiltedCard disabled={isDragging}>
