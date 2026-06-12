@@ -273,7 +273,7 @@ Agent 评测综述<sup>[[16]](#ref16)</sup> 明确分层：最终响应评测（
 | 可进化资产 | 信号源 | 归因 | 变更算子 | 验证门禁 | 发布/回滚 | 文献 |
 |-----------|-------|------|---------|---------|----------|------|
 | Agent `system_prompt` | Routine 轨迹 + 反馈 | `blamed_component` 字段 | GEPA 反思→变异 | Shadow eval + Golden Set 双轨 | `active_version` 指针 + 秒级回滚 | [[9]](#ref9) [[11]](#ref11) |
-| 技能 `prompt_template` | 工具调用遥测 + 评测分数 | per-skill eval_suite | GEPA/OPRO + 长度约束 | Shadow eval + 红|$ | SemVer 晋升 + 金丝雀 | [[9]](#ref9) [[14]](#ref14) |
+| 技能 `prompt_template` | 工具调用遥测 + 评测分数 | per-skill eval_suite | GEPA/OPRO + 长度约束 | Shadow eval + 红队 | SemVer 晋升 + 金丝雀 | [[9]](#ref9) [[14]](#ref14) |
 | 工具 config JSONB | 延迟/成本/成功率 | `tool_stats_daily` 聚合 | 参数搜索 + competition 证据 | 回归测试 | `builtin_tool_versions` + 回滚 | [[5]](#ref5) |
 | MCP Pipeline 参数 | Stage 输出 + 竞争评分 | per-stage 评分 | 参数调优 / 引擎排名 | competition_mode 验证 | YAML 更新（Phase 3 DB 化） | [[22]](#ref22) |
 | 记忆/经验条目 | 失败案例 + 反馈 | — | ACE 增量 delta + 去重 | 语义去重 + helpful/harmful 计数 | 条目级淘汰 | [[11]](#ref11) |

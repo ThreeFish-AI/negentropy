@@ -389,7 +389,7 @@ evolution_proposals
 - `is_global` 技能与 root Agent prompt 的 canary 比例上限更低；
 - 全系统同一时间窗在途 canary 数量上限。
 
-### 8.4 防好hart 四件套
+### 8.4 防 Goodhart 四件套
 
 1. **冻结 holdout 集**（`is_frozen = true`）：结果不回流 proposer；
 2. **多目标判据**：质量 AND 成本 AND 延迟 AND 在线确认——单指标最优不可晋升；
