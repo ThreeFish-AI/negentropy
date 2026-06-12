@@ -6,8 +6,23 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Bot } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -34,8 +49,8 @@ interface Agent {
   source: string;
   is_builtin: boolean;
   is_enabled: boolean;
-  // "root" = Negentropy 主 Agent；"agent"（默认）= Faculty 或用户自定义 Agent
   kind?: "root" | "agent";
+  sort_order?: number;
 }
 
 interface SyncResponse {
@@ -53,6 +68,15 @@ export default function AgentsPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const fetchAgents = async () => {
     try {
@@ -136,17 +160,45 @@ export default function AgentsPage() {
     setEditingAgent(null);
   };
 
-  // Root Agent 置顶；其余按 name 字典序保持稳定，避免 fetchAgents 顺序波动。
   const sortedAgents = useMemo(() => {
+    // 后端已按 sort_order ASC 返回；若所有 sort_order 为默认值 0（从未拖拽过），
+    // 则做前端兜底排序：root 置顶 + name 字母序。
+    const hasCustomOrder = agents.some((a) => (a.sort_order ?? 0) !== 0);
+    if (hasCustomOrder) return agents;
     const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
     return [...agents].sort((a, b) => {
       const diff = rank(a) - rank(b);
-      if (diff !== 0) {
-        return diff;
-      }
+      if (diff !== 0) return diff;
       return a.name.localeCompare(b.name);
     });
   }, [agents]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      // 乐观更新：立即重排前端数组
+      const reordered = arrayMove(
+        sortedAgents,
+        sortedAgents.findIndex((a) => a.id === active.id),
+        sortedAgents.findIndex((a) => a.id === over.id),
+      );
+      // 为每个元素赋予新的 sort_order
+      const withOrder = reordered.map((a, i) => ({ ...a, sort_order: i }));
+      setAgents(withOrder);
+
+      // 持久化到后端
+      fetch("/api/interface/agents/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: withOrder.map((a) => ({ id: a.id, sort_order: a.sort_order })) }),
+      }).catch(() => {
+        // 持久化失败时静默回退，不阻塞用户操作
+      });
+    },
+    [sortedAgents],
+  );
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     try {
@@ -179,7 +231,7 @@ export default function AgentsPage() {
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
                   Agents
@@ -235,20 +287,31 @@ export default function AgentsPage() {
                 }
               />
             ) : (
-              <div
-                data-testid="agents-grid"
-                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {sortedAgents.map((agent) => (
-                  <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
-                    <AgentCard
-                      agent={agent}
-                      onEdit={() => handleEdit(agent)}
-                      onDelete={() => handleDelete(agent.id)}
-                    />
+                <SortableContext
+                  items={sortedAgents.map((a) => a.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div
+                    data-testid="agents-grid"
+                    className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                  >
+                    {sortedAgents.map((agent) => (
+                      <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
+                        <AgentCard
+                          agent={agent}
+                          onEdit={() => handleEdit(agent)}
+                          onDelete={() => handleDelete(agent.id)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>

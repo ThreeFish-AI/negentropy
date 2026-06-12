@@ -392,18 +392,18 @@ async def translate_documents(
     """批量翻译文档（Documents 页 Translate 按钮）。
 
     执行链：本端点逐文档资格检查并同步置 ``metadata_.translation.status=processing``
-    （列表轮询立刻可见）→ BackgroundTasks 派发 ``DocumentTranslationService`` →
-    InfluenceFaculty（装配 document-translate 技能 + invoke_claude_code）驱动 Claude Code
+    （列表轮询立刻可见）→ 创建 PipelineRun 记录 → BackgroundTasks 派发
+    ``KnowledgeService.execute_translate_pipeline`` → InfluenceFaculty
+    （装配 document-translate 技能 + invoke_claude_code）驱动 Claude Code
     分块翻译 → 译文作为新文档分录落库（metadata 标记译自来源）。
     """
     from datetime import UTC, datetime
 
-    from negentropy.knowledge.translation import DocumentTranslationService
     from negentropy.storage.service import DocumentStorageService
 
     resolved_app = _resolve_app_name(payload.app_name)
     storage_service = DocumentStorageService()
-    translation_service = DocumentTranslationService()
+    service = _get_service()
 
     accepted: list[UUID] = []
     skipped: list[DocumentTranslateSkipped] = []
@@ -413,6 +413,17 @@ async def translate_documents(
         if reason:
             skipped.append(DocumentTranslateSkipped(document_id=document_id, reason=reason))
             continue
+
+        # 创建 PipelineRun 记录（Pipelines 页面可见）
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="translate",
+            input_data={
+                "document_id": str(document_id),
+                "target_language": payload.target_language,
+                "filename": doc.original_filename,
+            },
+        )
 
         await storage_service.update_document_metadata(
             document_id=document_id,
@@ -427,9 +438,11 @@ async def translate_documents(
             },
         )
         background_tasks.add_task(
-            translation_service.translate_document,
+            service.execute_translate_pipeline,
+            run_id=run_id,
             document_id=document_id,
             target_language=payload.target_language,
+            app_name=resolved_app,
         )
         accepted.append(document_id)
 
