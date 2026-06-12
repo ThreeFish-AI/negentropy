@@ -296,3 +296,35 @@ async def test_governance_audit_trail():
     assert mem.memory_type == "semantic"
 
     await _cleanup_memories(user_id, app_name)
+
+
+@pytest.mark.asyncio
+async def test_zero_hit_search_logged():
+    """P1 观测闭环：零命中检索也落 memory_retrieval_logs（retrieved_memory_ids=[]）。
+
+    同时覆盖「无 embedding_fn 走 keyword→ilike 链路仍记录」路径。
+    """
+    service = PostgresMemoryService(embedding_fn=None)
+    app_name = "zero_hit_app"
+    user_id = "zero_hit_user"
+
+    await _cleanup_memories(user_id, app_name)
+
+    response = await service.search_memory(app_name=app_name, user_id=user_id, query="qzx_nonexistent_token_42")
+    assert response.memories == []
+
+    async with db_session.AsyncSessionLocal() as db:
+        log = (
+            await db.execute(
+                select(MemoryRetrievalLog).where(
+                    MemoryRetrievalLog.user_id == user_id,
+                    MemoryRetrievalLog.app_name == app_name,
+                )
+            )
+        ).scalar_one_or_none()
+
+    assert log is not None
+    assert log.retrieved_memory_ids == []
+    assert log.query == "qzx_nonexistent_token_42"
+
+    await _cleanup_memories(user_id, app_name)

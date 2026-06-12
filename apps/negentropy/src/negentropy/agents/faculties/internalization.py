@@ -1,4 +1,5 @@
 from google.adk.agents import LlmAgent
+from google.adk.tools import load_memory
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
@@ -37,7 +38,9 @@ _INSTRUCTION = (
 ## 运行协议 (Operating Protocol)
 处理请求时，执行以下**内化流**：
 
-1. **去重 (Deduplication)**：查询现有知识库，确认是否已存在相关概念。
+1. **去重 (Deduplication)**：查询现有知识库，确认是否已存在相关概念；
+   涉及长期记忆写入时，可先调用 ``load_memory`` 回查既有记忆，避免重复沉淀、
+   并为新知寻找关联锚点。
 2. **原子化拆解 (Atomic Decomposition)**：将复杂的输入拆解为独立的原子知识点。
 3. **建立连接 (Linking)**：寻找新知识与旧知识的关联（双向链接）。孤立的知识是熵增的温床。
 4. **持久化 (Persistence)**：调用存储工具（文件写入/数据库提交），并返回引用的 URI。
@@ -99,7 +102,7 @@ def create_internalization_agent(*, output_key: str | None = None, mode: str | N
         model=create_subagent_model(agent_name="InternalizationFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("InternalizationFaculty", _INSTRUCTION),
-        tools=[log_activity, save_to_memory, update_knowledge_graph, ingest_paper, ingest_to_corpus],
+        tools=[log_activity, save_to_memory, update_knowledge_graph, ingest_paper, ingest_to_corpus, load_memory],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸

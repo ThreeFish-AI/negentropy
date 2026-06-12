@@ -703,6 +703,7 @@ class RetrievalMetricsResponse(BaseModel):
     precision_at_k: float
     utilization_rate: float
     noise_rate: float
+    zero_hit_rate: float = Field(default=0.0, description="零命中检索占比（检索发生但未召回任何记忆）")
 
 
 @router.post("/retrieval/feedback")
@@ -1102,6 +1103,15 @@ class SelfEditDeleteRequest(BaseModel):
     thread_id: str | None = None
 
 
+class SelfEditSearchRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    query: str
+    k: int = 5
+    memory_type: str | None = None
+    thread_id: str | None = None
+
+
 class CoreBlockUpsertRequest(BaseModel):
     user_id: str
     app_name: str | None = None
@@ -1177,6 +1187,32 @@ async def self_edit_delete(
             app_name=_resolve_app_name(payload.app_name),
             memory_id=payload.memory_id,
             reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/search")
+async def self_edit_search(
+    payload: SelfEditSearchRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """主动检索记忆（与 write/update/delete 对称的 Self-Edit 检索端点）。
+
+    经 ``memory_tools.memory_search`` 复用速率限制与参数校验；
+    检索本身经 ``search_memory()`` 落 ``memory_retrieval_logs``（可观测）。
+    """
+    await _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_search
+
+    try:
+        return await memory_search(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            query=payload.query,
+            k=payload.k,
+            memory_type=payload.memory_type,
             thread_id=payload.thread_id,
         )
     except (ValueError, PermissionError) as exc:
