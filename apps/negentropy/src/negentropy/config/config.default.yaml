@@ -184,6 +184,10 @@ memory:
     prf_alpha: 0.7
     feedback_min_count: 3                    # 最低反馈条数门槛
     reweight_interval_seconds: 3600
+  retrieval:                                 # 主链路记忆检索（交互式对话 Preload 自动注入）
+    preload_enabled: true                    # root Agent 每轮以用户 query 自动检索并注入 <RELEVANT_MEMORIES>
+    preload_top_k: 5                         # 注入记忆条数上限
+    preload_max_chars: 4000                  # 注入块字符预算（约 1-2K tokens）
 
 # --- Routine 配置（长周期自主任务迭代执行：Evaluator-Optimizer + Reflexion）---
 routine:

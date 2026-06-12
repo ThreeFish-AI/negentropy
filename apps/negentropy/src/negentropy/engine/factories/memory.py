@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from google.adk.memory.base_memory_service import BaseMemoryService
 
 from negentropy.config import settings
+from negentropy.logging import get_logger
 
 if TYPE_CHECKING:
     from negentropy.engine.adapters.postgres.association_service import AssociationService
@@ -29,6 +30,23 @@ if TYPE_CHECKING:
 
 # 类型别名：embedding 函数签名
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
+
+logger = get_logger("negentropy.engine.factories.memory")
+
+
+def _build_default_embedding_fn() -> EmbeddingFn | None:
+    """构建默认 embedding 函数（与 Knowledge ingestion 共用同一链路）。
+
+    fail-soft：构建失败仅写 warning 并返回 None（检索降级为 BM25/ilike、
+    写入不生成向量），绝不阻断服务启动。
+    """
+    try:
+        from negentropy.knowledge.ingestion.embedding import build_embedding_fn
+
+        return build_embedding_fn()
+    except Exception as exc:
+        logger.warning("memory_embedding_fn_unavailable", error=str(exc))
+        return None
 
 
 class MemoryBackend(str, Enum):
@@ -70,13 +88,18 @@ def create_postgres_memory_service(
     创建 Postgres 后端 (自研，ORM 实现)
 
     Args:
-        embedding_fn: 向量化函数，签名: async (text: str) -> list[float]
+        embedding_fn: 向量化函数，签名: async (text: str) -> list[float]；
+            None 时默认接线 Knowledge ingestion 的 ``build_embedding_fn()``
+            （激活语义/混合检索、写入向量生成与写入去重），构建失败回退纯关键词链路
         consolidation_worker: Phase 2 记忆巩固 Worker (可选)
 
     Returns:
         PostgresMemoryService 实例
     """
     from negentropy.engine.adapters.postgres.memory_service import PostgresMemoryService
+
+    if embedding_fn is None:
+        embedding_fn = _build_default_embedding_fn()
 
     return PostgresMemoryService(embedding_fn=embedding_fn, consolidation_worker=consolidation_worker)
 
