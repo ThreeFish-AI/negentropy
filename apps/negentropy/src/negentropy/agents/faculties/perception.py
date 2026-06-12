@@ -1,4 +1,5 @@
 from google.adk.agents import LlmAgent
+from google.adk.tools import load_memory
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
@@ -53,7 +54,7 @@ _INSTRUCTION = (
 - **时效敏感 (Time Sensitivity)**：明确区分"过时信息"与"最新状态"，在涉及技术版本时尤为重要。
 
 ## 检索策略 (Retrieval Strategy — P3 Cross-Corpus KG)
-四个检索工具的协作规则（互斥使用，每轮最多调用一个 retrieval 工具）：
+五个检索工具的协作规则（互斥使用，每轮最多调用一个 retrieval 工具）：
 
 1. **默认入口**：``search_knowledge_base``（已内置 intent 自适应 + 跨 Corpus KG 桥接）。
    - 多 @Corpus 时自动启用 Hybrid Planner 四阶段管线（Intent → Seed → Graph Expand → Fuse+Rerank）；
@@ -67,8 +68,18 @@ _INSTRUCTION = (
    - 触发条件：问题明确指向论文实体（"哪些论文谈到 ...", "Reflexion 相关 paper"）
      且 scoped 含 ``agent-papers`` Corpus。
 
-4. **三者互斥**：不要在同一轮同时调用 ``search_knowledge_base`` 与 ``search_knowledge_graph_global``；
+4. **长期记忆回溯** → ``load_memory``。
+   - 触发条件：问题指向**用户过往交互/偏好/此前结论/历史决定**
+     （"我之前 / 上次 / 我们讨论过 / 我的偏好 / 历史上"类个人语境），
+     或 KB 检索无法回答的个人化问题；
+   - 返回 memories 列表（含 id / timestamp / custom_metadata.memory_type）；
+   - 引用：按「知识与记忆引用规范」第 3 条生成
+     ``[N] Memory <id8>, <memory_type>, <YYYY-MM-DD>``，自行按出现顺序编号并附原文摘录。
+
+5. **工具互斥**：不要在同一轮同时调用 ``search_knowledge_base`` 与 ``search_knowledge_graph_global``；
    若 graph_global 返回 ``status=failed``，再退到 ``search_knowledge_base``。
+   ``load_memory`` 同样遵守互斥规则；当 KB 检索已返回 ``search_mode=="memory_fallback"``
+   时**不要**再调用 ``load_memory``（结果已是记忆内容）。
 
 ## 感知系部引用增强 (Perception-Specific Citation — P2-3 + P3 Corpus 来源标注)
 你是引用的**生成者**：每条 result 都携带 ``citation_id``（数字）与 ``formatted_citation``
@@ -117,6 +128,8 @@ def create_perception_agent(*, output_key: str | None = None, mode: str | None =
             search_knowledge_graph_with_papers,
             search_web,
             search_papers,
+            # 长期记忆回溯（ADK 原生：经 tool_context 取 app_name/user_id，无越权风险）
+            load_memory,
         ],
         output_key=output_key,
         mode=mode,

@@ -1378,57 +1378,60 @@ class PostgresMemoryService(BaseMemoryService):
         Returns:
             检索日志 ID（用于显式传递给上下文组装器的反馈闭环）
 
-        使用批量 UPDATE 避免 N+1 问题。
+        两段独立 fail-soft：
+        - A 段（访问计数/importance 更新）仅在命中非空时执行，批量 UPDATE 避免 N+1；
+        - B 段（检索日志）**始终**执行（含零命中），保证「检索发生了但没命中」
+          同样可观测（Insights total_retrievals / zero_hit_rate 的数据来源）。
+          A 段失败不阻断 B 段。
         """
-        if not memories_data:
-            return None
+        memory_ids = [uuid.UUID(m["id"]) for m in (memories_data or []) if m.get("id")]
 
-        memory_ids = [uuid.UUID(m["id"]) for m in memories_data if m.get("id")]
-        if not memory_ids:
-            return None
-
-        try:
-            async with db_session.AsyncSessionLocal() as db:
-                now = datetime.now(UTC)
-                # 批量更新 access_count、last_accessed_at 和 importance_score
-                stmt = (
-                    update(Memory)
-                    .where(Memory.id.in_(memory_ids))
-                    .values(
-                        access_count=Memory.access_count + 1,
-                        last_accessed_at=now,
-                        importance_score=func.least(1.0, Memory.importance_score + 0.02),
-                    )
-                )
-                await db.execute(stmt)
-                await db.commit()
-
-            logger.debug(
-                "memory_access_recorded",
-                memory_count=len(memory_ids),
-            )
-
-            # 异步记录检索事件（fire-and-forget，不影响主路径）
+        # A 段：访问计数 + importance 更新（仅命中时）
+        if memory_ids:
             try:
-                from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+                async with db_session.AsyncSessionLocal() as db:
+                    now = datetime.now(UTC)
+                    # 批量更新 access_count、last_accessed_at 和 importance_score
+                    stmt = (
+                        update(Memory)
+                        .where(Memory.id.in_(memory_ids))
+                        .values(
+                            access_count=Memory.access_count + 1,
+                            last_accessed_at=now,
+                            importance_score=func.least(1.0, Memory.importance_score + 0.02),
+                        )
+                    )
+                    await db.execute(stmt)
+                    await db.commit()
 
-                tracker = RetrievalTracker()
-                log_id = await tracker.log_retrieval(
-                    user_id=user_id,
-                    app_name=app_name,
-                    query=query,
-                    memory_ids=memory_ids,
+                logger.debug(
+                    "memory_access_recorded",
+                    memory_count=len(memory_ids),
                 )
-                return log_id
             except Exception as exc:
-                logger.debug("retrieval_tracking_failed", error=str(exc))
-        except Exception as exc:
-            # 访问记录失败不应影响检索结果返回
-            logger.warning(
-                "memory_access_record_failed",
-                memory_count=len(memory_ids),
-                error=str(exc),
+                # 访问记录失败不应影响检索结果返回，也不阻断检索日志
+                logger.warning(
+                    "memory_access_record_failed",
+                    memory_count=len(memory_ids),
+                    error=str(exc),
+                )
+
+        # B 段：检索日志（始终记录；租户标识缺失时跳过——防御默认参 ""）
+        if not user_id or not app_name:
+            return None
+        try:
+            from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+            tracker = RetrievalTracker()
+            return await tracker.log_retrieval(
+                user_id=user_id,
+                app_name=app_name,
+                query=query,
+                memory_ids=memory_ids,
             )
+        except Exception as exc:
+            logger.warning("retrieval_tracking_failed", error=str(exc), query_length=len(query))
+        return None
 
     def _build_search_response(
         self, memories_data: list[dict[str, Any]], *, viewer_role: str | None = None

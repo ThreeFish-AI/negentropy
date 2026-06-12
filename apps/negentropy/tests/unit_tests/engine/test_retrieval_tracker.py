@@ -49,14 +49,23 @@ class TestRetrievalTracker:
 
         assert result == log_id
 
-    async def test_log_retrieval_empty_memory_ids_returns_none(self, tracker):
+    async def test_log_retrieval_empty_memory_ids_still_logged(self, mock_db, tracker):
+        """零命中检索也记录（retrieved_memory_ids=[]）——total/zero_hit_rate 的数据来源"""
+        log_id = uuid4()
+        mock_db.add = MagicMock()
+        mock_db.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "id", log_id))
+
         result = await tracker.log_retrieval(
             user_id="u1",
             app_name="app1",
             query="test",
             memory_ids=[],
         )
-        assert result is None
+
+        assert result == log_id
+        mock_db.add.assert_called_once()
+        logged = mock_db.add.call_args[0][0]
+        assert logged.retrieved_memory_ids == []
 
     async def test_mark_referenced_updates_entry(self, mock_db, tracker):
         mock_result = MagicMock()
@@ -100,6 +109,7 @@ class TestRetrievalTracker:
         assert metrics["precision_at_k"] == 0.0
         assert metrics["utilization_rate"] == 0.0
         assert metrics["noise_rate"] == 0.0
+        assert metrics["zero_hit_rate"] == 0.0
 
     async def test_get_effectiveness_metrics_with_data(self, mock_db, tracker):
         row = MagicMock()
@@ -108,6 +118,7 @@ class TestRetrievalTracker:
         row.helpful = 30
         row.irrelevant = 10
         row.with_feedback = 50
+        row.zero_hit = 20
         mock_db.execute.return_value = MagicMock(one=MagicMock(return_value=row))
 
         metrics = await tracker.get_effectiveness_metrics(user_id="u1", app_name="app1")
@@ -116,3 +127,4 @@ class TestRetrievalTracker:
         assert metrics["precision_at_k"] == 0.6
         assert metrics["utilization_rate"] == 0.6
         assert metrics["noise_rate"] == 0.2
+        assert metrics["zero_hit_rate"] == 0.2

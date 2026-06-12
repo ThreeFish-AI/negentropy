@@ -141,6 +141,8 @@ export interface RetrievalMetrics {
   precision_at_k: number;
   utilization_rate: number;
   noise_rate: number;
+  /** 零命中检索占比（检索发生但未召回任何记忆）；旧后端无此字段时为 undefined。 */
+  zero_hit_rate?: number;
 }
 
 // ============================================================================

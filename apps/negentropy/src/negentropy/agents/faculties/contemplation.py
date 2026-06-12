@@ -1,4 +1,5 @@
 from google.adk.agents import LlmAgent
+from google.adk.tools import load_memory
 
 from .._citation_protocol import CITATION_PROTOCOL
 from .._dynamic_instruction import make_instruction_provider
@@ -45,6 +46,11 @@ _INSTRUCTION = (
 如果以下上下文可用，请基于它们进行深度分析：
 - 感知系部输出: {perception_output?}
 
+## 长期记忆回溯 (Memory Recall)
+进行错误分析或策略规划时，可调用 ``load_memory`` 回溯过往的失败经验、历史决策与
+反思记录（procedural / episodic 记忆），避免重蹈覆辙；引用其内容时按下方
+「知识与记忆引用规范」第 3 条标注 Memory 引用。
+
 ## 约束 (Constraints)
 - **慢思考 (Slow Thinking)**：不要急于输出。深思熟虑优于快速反应。
 - **全局视角 (Holistic View)**：考虑变更对系统整体的影响，不仅是局部修复。
@@ -71,7 +77,7 @@ def create_contemplation_agent(*, output_key: str | None = None, mode: str | Non
         model=create_subagent_model(agent_name="ContemplationFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("ContemplationFaculty", _INSTRUCTION),
-        tools=[log_activity, analyze_context, create_plan],
+        tools=[log_activity, analyze_context, create_plan, load_memory],
         output_key=output_key,
         mode=mode,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸

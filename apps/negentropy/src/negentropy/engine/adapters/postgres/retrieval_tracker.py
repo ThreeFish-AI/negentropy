@@ -65,9 +65,11 @@ class RetrievalTracker:
         fact_ids: list[UUID] | None = None,
         thread_id: UUID | None = None,
     ) -> UUID | None:
-        if not memory_ids:
-            return None
+        """记录一次检索事件。
 
+        零命中也记录（``retrieved_memory_ids=[]``），保证「检索发生但未命中」
+        可观测——是 total_retrievals / zero_hit_rate 指标的数据来源。
+        """
         log = MemoryRetrievalLog(
             user_id=user_id,
             app_name=app_name,
@@ -178,6 +180,9 @@ class RetrievalTracker:
                 sa.func.sum(sa.case((MemoryRetrievalLog.outcome_feedback.isnot(None), 1), else_=0)).label(
                     "with_feedback"
                 ),
+                sa.func.sum(
+                    sa.case((sa.func.cardinality(MemoryRetrievalLog.retrieved_memory_ids) == 0, 1), else_=0)
+                ).label("zero_hit"),
             ).where(
                 MemoryRetrievalLog.app_name == app_name,
                 MemoryRetrievalLog.created_at >= since,
@@ -188,18 +193,26 @@ class RetrievalTracker:
 
         total = row.total or 0
         if total == 0:
-            return {"total_retrievals": 0, "precision_at_k": 0.0, "utilization_rate": 0.0, "noise_rate": 0.0}
+            return {
+                "total_retrievals": 0,
+                "precision_at_k": 0.0,
+                "utilization_rate": 0.0,
+                "noise_rate": 0.0,
+                "zero_hit_rate": 0.0,
+            }
 
         referenced = row.referenced or 0
         helpful = row.helpful or 0
         irrelevant = row.irrelevant or 0
         with_feedback = row.with_feedback or 0
+        zero_hit = row.zero_hit or 0
 
         return {
             "total_retrievals": total,
             "precision_at_k": referenced / total,
             "utilization_rate": helpful / with_feedback if with_feedback > 0 else 0.0,
             "noise_rate": irrelevant / with_feedback if with_feedback > 0 else 0.0,
+            "zero_hit_rate": zero_hit / total,
         }
 
 
