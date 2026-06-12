@@ -25,6 +25,8 @@ export interface BaseDrawerProps {
   children: ReactNode;
   title?: ReactNode;
   subtitle?: ReactNode;
+  /** 标题栏右侧、关闭按钮左侧的额外操作区（如 "Full View" 链接）。 */
+  headerActions?: ReactNode;
   footer?: ReactNode;
   /** 滑出方向。默认 right。 */
   side?: "right" | "left";
@@ -44,6 +46,7 @@ export function BaseDrawer({
   children,
   title,
   subtitle,
+  headerActions,
   footer,
   side = "right",
   widthClassName = "[width:clamp(480px,66.67%,1100px)]",
@@ -115,6 +118,11 @@ export function BaseDrawer({
                     <p className="text-sm leading-caption text-text-muted">{subtitle}</p>
                   ) : null}
                 </div>
+                {headerActions ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    {headerActions}
+                  </div>
+                ) : null}
                 {showClose ? (
                   <Button
                     iconOnly

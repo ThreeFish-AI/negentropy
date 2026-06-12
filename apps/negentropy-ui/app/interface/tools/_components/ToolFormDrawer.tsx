@@ -6,10 +6,18 @@
  */
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  useState,
+  useEffect,
+  useId,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { toast } from "sonner";
-import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { Button } from "@/components/ui/Button";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 interface BuiltinTool {
   id: string;
@@ -25,7 +33,7 @@ interface BuiltinTool {
   is_system: boolean;
 }
 
-interface ToolFormDialogProps {
+interface ToolFormDrawerProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
@@ -42,28 +50,74 @@ interface FieldSchema {
   maximum?: number;
 }
 
-export function ToolFormDialog({
+const EMPTY_FORM = {
+  name: "",
+  display_name: "",
+  description: "",
+  tool_type: "search",
+  version: "1.0.0",
+  visibility: "private",
+  is_enabled: true,
+};
+
+export function ToolFormDrawer({
   open,
   onClose,
   onSubmit,
   tool,
-}: ToolFormDialogProps) {
-  const emptyForm = {
-    name: "",
-    display_name: "",
-    description: "",
-    tool_type: "search",
-    version: "1.0.0",
-    visibility: "private",
-    is_enabled: true,
-  };
-
-  const [formData, setFormData] = useState(emptyForm);
+}: ToolFormDrawerProps) {
+  const formId = useId();
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [configFields, setConfigFields] = useState<Record<string, unknown>>({});
   const [credentialFields, setCredentialFields] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency_ms?: number } | null>(null);
+
+  // ── 脏检基线 ──
+  const [baseline, setBaseline] = useState({
+    form: EMPTY_FORM,
+    config: {} as Record<string, unknown>,
+    credentials: {} as Record<string, unknown>,
+  });
+  const isDirty = useMemo(
+    () =>
+      JSON.stringify(formData) !== JSON.stringify(baseline.form) ||
+      JSON.stringify(configFields) !== JSON.stringify(baseline.config) ||
+      JSON.stringify(credentialFields) !== JSON.stringify(baseline.credentials),
+    [formData, configFields, credentialFields, baseline],
+  );
+
+  const { confirm, confirmDialog } = useConfirmDialog();
+  const confirmingRef = useRef(false);
+
+  const requestClose = useCallback(async () => {
+    if (confirmingRef.current) return;
+    if (!isDirty) {
+      onClose();
+      return;
+    }
+    confirmingRef.current = true;
+    const ok = await confirm({
+      title: "Discard changes?",
+      message: "You have unsaved changes. Closing now will discard them.",
+      confirmLabel: "Discard",
+      cancelLabel: "Keep editing",
+      destructive: true,
+    });
+    confirmingRef.current = false;
+    if (ok) onClose();
+  }, [isDirty, confirm, onClose]);
+
+  // Escape 键关闭（脏检确认）
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") void requestClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, requestClose]);
 
   const configSchema = (tool?.config_schema || {}) as Record<string, Record<string, FieldSchema>>;
   const configFieldDefs = configSchema.config || {};
@@ -71,29 +125,24 @@ export function ToolFormDialog({
 
   useEffect(() => {
     if (tool) {
-      setFormData({
+      const seeded = {
         name: tool.name,
         display_name: tool.display_name || "",
         description: tool.description || "",
         tool_type: tool.tool_type,
         version: tool.version,
-        visibility: "private",
+        visibility: "private" as const,
         is_enabled: tool.is_enabled,
-      });
+      };
+      setFormData(seeded);
       setConfigFields(tool.config || {});
       setCredentialFields(tool.credentials || {});
+      setBaseline({ form: seeded, config: tool.config || {}, credentials: tool.credentials || {} });
     } else {
-      setFormData({
-        name: "",
-        display_name: "",
-        description: "",
-        tool_type: "search",
-        version: "1.0.0",
-        visibility: "private",
-        is_enabled: true,
-      });
+      setFormData(EMPTY_FORM);
       setConfigFields({});
       setCredentialFields({});
+      setBaseline({ form: EMPTY_FORM, config: {}, credentials: {} });
     }
     setTestResult(null);
   }, [tool, open]);
@@ -116,6 +165,7 @@ export function ToolFormDialog({
         data.name = formData.name;
       }
       await onSubmit(data);
+      setBaseline({ form: formData, config: configFields, credentials: credentialFields });
     } catch {
       // onSubmit already handles toast
     } finally {
@@ -190,26 +240,46 @@ export function ToolFormDialog({
   };
 
   return (
-    <OverlayDismissLayer
-      open={open}
-      onClose={onClose}
-      busy={submitting}
-      containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
-      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-modal border border-border bg-card shadow-xl sm:max-h-[calc(100vh-2rem)]"
-    >
-      {/* ── Header ── */}
-      <div className="border-b border-border px-5 py-4 sm:px-6">
-        <h2 className="text-lg font-semibold text-foreground">
-          {tool ? `Edit Tool: ${tool.display_name || tool.name}` : "Add Tool"}
-        </h2>
-        <p className="mt-1 text-sm text-text-muted">
-          Configure tool credentials and runtime parameters.
-        </p>
-      </div>
-
-      {/* ── Body ── */}
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+    <>
+      <BaseDrawer
+        open={open}
+        title={tool ? `Edit Tool: ${tool.display_name || tool.name}` : "Add Tool"}
+        subtitle="Configure tool credentials and runtime parameters."
+        onClose={() => void requestClose()}
+        closeOnBackdrop={!submitting}
+        closeOnEscape={false}
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              {tool && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTest}
+                  disabled={testing || submitting}
+                  loading={testing}
+                >
+                  Test Connection
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="ghost" onClick={() => void requestClose()}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form={formId}
+                variant="neutral"
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : tool ? "Update" : "Create"}
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <form id={formId} onSubmit={handleSubmit} className="space-y-6 px-5 py-5">
           {/* 基本信息 */}
           <section className="space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
@@ -321,33 +391,9 @@ export function ToolFormDialog({
               )}
             </div>
           )}
-        </div>
-
-        {/* ── Footer ── */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card px-5 py-4 sm:px-6">
-          <div>
-            {tool && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleTest}
-                disabled={testing || submitting}
-                loading={testing}
-              >
-                Test Connection
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="neutral" disabled={submitting}>
-              {submitting ? "Saving..." : tool ? "Update" : "Create"}
-            </Button>
-          </div>
-        </div>
-      </form>
-    </OverlayDismissLayer>
+        </form>
+      </BaseDrawer>
+      {confirmDialog}
+    </>
   );
 }
