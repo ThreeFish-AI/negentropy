@@ -642,7 +642,7 @@ export function AgentFormDialog({
         title={agent ? "Edit Agent" : "Add Agent"}
         subtitle="Configure agent properties and runtime behavior"
         onClose={onClose}
-        size="2xl"
+        size="3xl"
         closeOnBackdrop={!loading}
         closeOnEscape={!loading}
         footer={
@@ -686,16 +686,32 @@ export function AgentFormDialog({
             })}
           </div>
 
-          {/* Tab panels */}
-          <div
-            role="tabpanel"
-            id={`${tabBaseId}-panel-${activeTab}`}
-            aria-labelledby={`${tabBaseId}-tab-${activeTab}`}
-            className="pt-1"
-          >
-            {activeTab === "general" && renderGeneral()}
-            {activeTab === "prompt-tools" && renderPromptTools()}
-            {activeTab === "advanced" && renderAdvanced()}
+          {/* Tab panels — CSS hidden 替代条件渲染，保持高度一致避免跳动 */}
+          <div className="pt-1">
+            <div
+              role="tabpanel"
+              id={`${tabBaseId}-panel-general`}
+              aria-labelledby={`${tabBaseId}-tab-general`}
+              className={cn(activeTab !== "general" && "hidden")}
+            >
+              {renderGeneral()}
+            </div>
+            <div
+              role="tabpanel"
+              id={`${tabBaseId}-panel-prompt-tools`}
+              aria-labelledby={`${tabBaseId}-tab-prompt-tools`}
+              className={cn(activeTab !== "prompt-tools" && "hidden")}
+            >
+              {renderPromptTools()}
+            </div>
+            <div
+              role="tabpanel"
+              id={`${tabBaseId}-panel-advanced`}
+              aria-labelledby={`${tabBaseId}-tab-advanced`}
+              className={cn(activeTab !== "advanced" && "hidden")}
+            >
+              {renderAdvanced()}
+            </div>
           </div>
         </form>
       </BaseModal>

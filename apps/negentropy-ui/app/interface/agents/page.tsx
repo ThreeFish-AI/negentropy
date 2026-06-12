@@ -50,6 +50,7 @@ interface Agent {
   is_builtin: boolean;
   is_enabled: boolean;
   kind?: "root" | "agent";
+  sort_order?: number;
 }
 
 interface SyncResponse {
@@ -67,7 +68,6 @@ export default function AgentsPage() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [manualOrder, setManualOrder] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,7 +86,6 @@ export default function AgentsPage() {
       }
       const data = await response.json();
       setAgents(data);
-      setManualOrder(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -162,31 +161,43 @@ export default function AgentsPage() {
   };
 
   const sortedAgents = useMemo(() => {
-    if (manualOrder) return agents;
+    // 后端已按 sort_order ASC 返回；若所有 sort_order 为默认值 0（从未拖拽过），
+    // 则做前端兜底排序：root 置顶 + name 字母序。
+    const hasCustomOrder = agents.some((a) => (a.sort_order ?? 0) !== 0);
+    if (hasCustomOrder) return agents;
     const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
     return [...agents].sort((a, b) => {
       const diff = rank(a) - rank(b);
-      if (diff !== 0) {
-        return diff;
-      }
+      if (diff !== 0) return diff;
       return a.name.localeCompare(b.name);
     });
-  }, [agents, manualOrder]);
+  }, [agents]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (!over || active.id === over.id) return;
 
-      setManualOrder(true);
-      setAgents((prev) => {
-        const oldIndex = prev.findIndex((a) => a.id === active.id);
-        const newIndex = prev.findIndex((a) => a.id === over.id);
-        if (oldIndex === -1 || newIndex === -1) return prev;
-        return arrayMove(prev, oldIndex, newIndex);
+      // 乐观更新：立即重排前端数组
+      const reordered = arrayMove(
+        sortedAgents,
+        sortedAgents.findIndex((a) => a.id === active.id),
+        sortedAgents.findIndex((a) => a.id === over.id),
+      );
+      // 为每个元素赋予新的 sort_order
+      const withOrder = reordered.map((a, i) => ({ ...a, sort_order: i }));
+      setAgents(withOrder);
+
+      // 持久化到后端
+      fetch("/api/interface/agents/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: withOrder.map((a) => ({ id: a.id, sort_order: a.sort_order })) }),
+      }).catch(() => {
+        // 持久化失败时静默回退，不阻塞用户操作
       });
     },
-    [],
+    [sortedAgents],
   );
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {

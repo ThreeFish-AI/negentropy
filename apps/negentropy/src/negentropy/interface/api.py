@@ -572,6 +572,15 @@ class AgentUpdateRequest(BaseModel):
     confirm_builtin_rename: bool | None = False
 
 
+class AgentReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class AgentReorderRequest(BaseModel):
+    items: list[AgentReorderItem]
+
+
 class AgentResponse(BaseModel):
     id: UUID
     owner_id: str
@@ -592,6 +601,7 @@ class AgentResponse(BaseModel):
     # `kind` 来源于 ``config.adk_config.kind``：``"root"`` 标记 Negentropy 主 Agent，
     # ``"agent"``（默认）适用于 Faculty 与用户自定义 Agent。前端按此置顶 + Root 徽章。
     kind: str = "agent"
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -2511,11 +2521,39 @@ async def list_agents(user: AuthUser = Depends(get_current_user)) -> list[AgentR
         if not visible_ids:
             return []
 
-        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.created_at.desc())
+        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.sort_order.asc(), Agent.created_at.desc())
         result = await db.execute(stmt)
         agents = result.scalars().all()
 
     return [_agent_to_response(a) for a in agents]
+
+
+@router.patch("/agents/reorder", response_model=list[AgentResponse])
+async def reorder_agents(
+    payload: AgentReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[AgentResponse]:
+    """批量更新 Agent 排序序号。前端拖拽后调用，传入所有可见 Agent 的 id + sort_order。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "agent", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for agent {item.id}")
+            agent = await db.get(Agent, item.id)
+            if agent:
+                agent.sort_order = item.sort_order
+
+        await db.commit()
+
+        # 返回更新后的完整列表
+        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.sort_order.asc(), Agent.created_at.desc())
+        result = await db.execute(stmt)
+        agents = result.scalars().all()
+        return [_agent_to_response(a) for a in agents]
 
 
 @router.get("/agents/templates/negentropy", response_model=list[NegentropyAgentTemplateResponse])
@@ -2847,6 +2885,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         is_builtin=is_builtin,
         is_enabled=agent.is_enabled,
         kind=kind,
+        sort_order=getattr(agent, "sort_order", 0),
     )
 
 
