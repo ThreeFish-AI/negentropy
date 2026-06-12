@@ -42,6 +42,23 @@ class _FakeTranslationService:
         self.calls.append({"document_id": document_id, "target_language": target_language})
 
 
+class _FakeKnowledgeService:
+    """最小化 mock：仅实现 translate_documents 路由用到的 create_pipeline / execute_translate_pipeline。"""
+
+    def __init__(self, translation: _FakeTranslationService | None = None):
+        self.pipeline_calls: list[dict] = []
+        self._translation = translation
+
+    async def create_pipeline(self, *, app_name, operation, input_data):
+        return f"translate-guide-{uuid4().hex[:4]}"
+
+    async def execute_translate_pipeline(self, *, run_id, document_id, target_language, app_name):
+        self.pipeline_calls.append({"run_id": run_id, "document_id": document_id, "target_language": target_language})
+        # 若注入了 translation service，按原链路转发以验证参数透传
+        if self._translation:
+            await self._translation.translate_document(document_id=document_id, target_language=target_language)
+
+
 def _doc(metadata: dict | None = None, extract_status: str = "completed") -> SimpleNamespace:
     return SimpleNamespace(
         id=uuid4(),
@@ -56,6 +73,10 @@ def _doc(metadata: dict | None = None, extract_status: str = "completed") -> Sim
 def _patch(monkeypatch, storage: _FakeStorage, translation: _FakeTranslationService) -> None:
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: storage)
     monkeypatch.setattr("negentropy.knowledge.translation.DocumentTranslationService", lambda: translation)
+    monkeypatch.setattr(
+        "negentropy.knowledge.routes.documents._get_service",
+        lambda: _FakeKnowledgeService(translation=translation),
+    )
 
 
 @pytest.mark.asyncio
