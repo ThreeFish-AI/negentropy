@@ -91,6 +91,18 @@ export function RetrievalMetricsCard({
                 : undefined
             }
           />
+          {typeof metrics.zero_hit_rate === "number" && (
+            <MetricCell
+              label="Zero Hit"
+              value={`${(metrics.zero_hit_rate * 100).toFixed(0)}%`}
+              hint="零命中检索占比"
+              color={
+                metrics.zero_hit_rate > 0.5
+                  ? "text-amber-600 dark:text-amber-400"
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
     </section>
