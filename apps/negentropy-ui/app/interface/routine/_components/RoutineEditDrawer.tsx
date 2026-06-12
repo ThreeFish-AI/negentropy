@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ExternalLink, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { ErrorBanner } from "@/components/ui/ErrorState";
+import { BaseDrawer } from "@/components/ui/BaseDrawer";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { useFocusTrap } from "@/lib/useFocusTrap";
 import { cn } from "@/lib/utils";
 import { createRoutine, updateRoutine } from "@/features/routine";
 import type {
@@ -295,8 +295,6 @@ export function RoutineEditDrawer({
   onOpenFull,
   busy,
 }: RoutineEditDrawerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
   const { confirm, confirmDialog } = useConfirmDialog();
 
   // ── 派生 mode 维度 ──
@@ -404,20 +402,6 @@ export function RoutineEditDrawer({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [requestClose]);
-
-  // 焦点陷阱 + 焦点回归（无障碍）
-  useFocusTrap(panelRef, true);
-
-  // translateX 滑入（复用原抽屉手法）
-  useEffect(() => {
-    const el = panelRef.current;
-    if (!el) return;
-    el.style.transform = "translateX(100%)";
-    requestAnimationFrame(() => {
-      el.style.transition = "transform 200ms ease-out";
-      el.style.transform = "translateX(0)";
-    });
-  }, []);
 
   // 运行中状态翻转提醒：SSE 将状态翻为 running 时，告知用户哪些字段可在线调整。
   const wasRunningRef = useRef(isRunning);
@@ -605,66 +589,133 @@ export function RoutineEditDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-overlay" onClick={() => void requestClose()} />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className="fixed inset-y-0 right-0 z-50 flex [width:clamp(480px,66.67%,1100px)] flex-col border-l border-border bg-card shadow-xl outline-none"
-        style={{ transform: "translateX(100%)" }}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 id={titleId} className="text-base font-bold text-foreground">
-                {heading}
-              </h2>
-              {liveRoutine && (
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(liveRoutine.status)}`}
-                >
-                  {liveRoutine.status}
-                </span>
-              )}
-              {liveRoutine?.current_phase && liveRoutine.status === "running" && (
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${phaseClass(liveRoutine.current_phase)}`}
-                >
-                  {phaseLabel(liveRoutine.current_phase)}
-                </span>
-              )}
-            </div>
-            <p className="mt-0.5 truncate text-xs text-text-secondary">{subtitle}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {mode.kind === "routine-edit" && onOpenFull && (
-              <button
-                type="button"
-                onClick={() => onOpenFull(mode.routine)}
-                className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline"
+      <BaseDrawer
+        open={true}
+        title={
+          <div className="flex items-center gap-2">
+            <span>{heading}</span>
+            {liveRoutine && (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(liveRoutine.status)}`}
               >
-                Full View
-                <ExternalLink className="h-3 w-3" />
-              </button>
+                {liveRoutine.status}
+              </span>
             )}
+            {liveRoutine?.current_phase && liveRoutine.status === "running" && (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${phaseClass(liveRoutine.current_phase)}`}
+              >
+                {phaseLabel(liveRoutine.current_phase)}
+              </span>
+            )}
+          </div>
+        }
+        subtitle={subtitle}
+        onClose={() => void requestClose()}
+        closeOnBackdrop={!loading}
+        closeOnEscape={false}
+        headerActions={
+          mode.kind === "routine-edit" && onOpenFull ? (
             <button
               type="button"
-              onClick={() => void requestClose()}
-              aria-label="Close"
-              className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              onClick={() => onOpenFull(mode.routine)}
+              className="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              Full View
+              <ExternalLink className="h-3 w-3" />
             </button>
-          </div>
-        </div>
+          ) : undefined
+        }
+        footer={
+          <div className="flex items-center gap-2">
+            {/* 左簇：routine-edit 生命周期控制 / template-edit 删除 */}
+            {mode.kind === "routine-edit" &&
+              onControl &&
+              controlsFor(mode.routine.status).map((action) => (
+                <Button
+                  key={action}
+                  type="button"
+                  variant={action === "cancel" ? "danger" : "neutral"}
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => onControl(action)}
+                >
+                  {CONTROL_LABEL[action]}
+                </Button>
+              ))}
+            {mode.kind === "routine-edit" && onRestart && canRestart(mode.routine.status) && (
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                disabled={busy}
+                leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
+                onClick={() => onRestart(mode.routine)}
+              >
+                Restart
+              </Button>
+            )}
+            {mode.kind === "template-edit" && !isBuiltinTemplate && onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(mode.template)}
+                disabled={busy || loading}
+                className="flex cursor-pointer items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            )}
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+            <div className="flex-1" />
+
+            {/* 右簇：取消 / Use / Save / Create / Delete(routine 终态) */}
+            {op === "create" && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => void requestClose()} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+            {mode.kind === "template-edit" && onUse && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                onClick={() => onUse(mode.template)}
+              >
+                Use
+              </Button>
+            )}
+            {(op === "create" || isBuiltinTemplate || hasRuntimeSafeDirty) && (
+              <Button type="submit" form="routine-edit-form" variant="primary" size="sm" loading={loading}>
+                {isBuiltinTemplate
+                  ? "Save as my copy"
+                  : isRunning
+                    ? "Update live"
+                    : op === "edit"
+                      ? "Save"
+                      : entity === "template"
+                        ? "Create Template"
+                        : "Create Routine"}
+              </Button>
+            )}
+            {mode.kind === "routine-edit" &&
+              onDelete &&
+              ["succeeded", "failed", "cancelled"].includes(mode.routine.status) && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(mode.routine)}
+                  disabled={busy || loading}
+                  className="flex cursor-pointer items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              )}
+          </div>
+        }
+      >
+        <form id="routine-edit-form" onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
             {/* 运行中精准锁定提示 —— 安全字段可在线调整，非安全字段需 Pause */}
             {isRunning && (
               <div className="rounded-card border border-border bg-muted/40 px-4 py-2.5 text-xs text-text-secondary">
@@ -1052,98 +1103,8 @@ export function RoutineEditDrawer({
                 </div>
               )}
             </section>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center gap-2 border-t border-border px-5 py-3">
-            {/* 左簇：routine-edit 生命周期控制 / template-edit 删除 */}
-            {mode.kind === "routine-edit" &&
-              onControl &&
-              controlsFor(mode.routine.status).map((action) => (
-                <Button
-                  key={action}
-                  type="button"
-                  variant={action === "cancel" ? "danger" : "neutral"}
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => onControl(action)}
-                >
-                  {CONTROL_LABEL[action]}
-                </Button>
-              ))}
-            {mode.kind === "routine-edit" && onRestart && canRestart(mode.routine.status) && (
-              <Button
-                type="button"
-                variant="neutral"
-                size="sm"
-                disabled={busy}
-                leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
-                onClick={() => onRestart(mode.routine)}
-              >
-                Restart
-              </Button>
-            )}
-            {mode.kind === "template-edit" && !isBuiltinTemplate && onDelete && (
-              <button
-                type="button"
-                onClick={() => onDelete(mode.template)}
-                disabled={busy || loading}
-                className="flex cursor-pointer items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </button>
-            )}
-
-            <div className="flex-1" />
-
-            {/* 右簇：取消 / Use / Save / Create / Delete(routine 终态) */}
-            {op === "create" && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => void requestClose()} disabled={loading}>
-                Cancel
-              </Button>
-            )}
-            {mode.kind === "template-edit" && onUse && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={loading}
-                onClick={() => onUse(mode.template)}
-              >
-                Use
-              </Button>
-            )}
-            {(op === "create" || isBuiltinTemplate || hasRuntimeSafeDirty) && (
-              <Button type="submit" variant="primary" size="sm" loading={loading}>
-                {isBuiltinTemplate
-                  ? "Save as my copy"
-                  : isRunning
-                    ? "Update live"
-                    : op === "edit"
-                      ? "Save"
-                      : entity === "template"
-                        ? "Create Template"
-                        : "Create Routine"}
-              </Button>
-            )}
-            {mode.kind === "routine-edit" &&
-              onDelete &&
-              ["succeeded", "failed", "cancelled"].includes(mode.routine.status) && (
-                <button
-                  type="button"
-                  onClick={() => onDelete(mode.routine)}
-                  disabled={busy || loading}
-                  className="flex cursor-pointer items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
-              )}
-          </div>
         </form>
-      </div>
-
+      </BaseDrawer>
       {confirmDialog}
     </>
   );

@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
 import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { ToolCard } from "./_components/ToolCard";
-import { ToolFormDialog } from "./_components/ToolFormDialog";
+import { ToolFormDrawer } from "./_components/ToolFormDrawer";
 
 interface BuiltinTool {
   id: string;
@@ -274,7 +274,7 @@ export default function ToolsPage() {
         </div>
       </div>
 
-      <ToolFormDialog
+      <ToolFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}

@@ -6,8 +6,8 @@ vi.mock("@/components/ui/InterfaceNav", () => ({
   InterfaceNav: ({ title }: { title: string }) => <div data-testid="interface-nav">{title}</div>,
 }));
 
-vi.mock("@/app/interface/mcp/_components/McpServerFormDialog", () => ({
-  McpServerFormDialog: () => null,
+vi.mock("@/app/interface/mcp/_components/McpServerFormDrawer", () => ({
+  McpServerFormDrawer: () => null,
 }));
 
 vi.mock("@/app/interface/mcp/_components/McpServerTrialDialog", () => ({

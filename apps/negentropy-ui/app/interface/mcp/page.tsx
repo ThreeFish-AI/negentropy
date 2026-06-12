@@ -11,7 +11,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
 import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { McpServerCard } from "./_components/McpServerCard";
-import { McpServerFormDialog } from "./_components/McpServerFormDialog";
+import { McpServerFormDrawer } from "./_components/McpServerFormDrawer";
 import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
@@ -379,7 +379,7 @@ export default function McpServersPage() {
         </div>
       </div>
 
-      <McpServerFormDialog
+      <McpServerFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}

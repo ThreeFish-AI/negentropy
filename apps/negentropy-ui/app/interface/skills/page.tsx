@@ -18,7 +18,7 @@ import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
 import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { ConfirmDialog } from "./_components/ConfirmDialog";
 import { SkillCard } from "./_components/SkillCard";
-import { SkillFormDialog } from "./_components/SkillFormDialog";
+import { SkillFormDrawer } from "./_components/SkillFormDrawer";
 import { SkillPreviewDialog } from "./_components/SkillPreviewDialog";
 import { SkillScheduleDialog } from "./_components/SkillScheduleDialog";
 import { SkillVersionsDialog } from "./_components/SkillVersionsDialog";
@@ -322,7 +322,7 @@ export default function SkillsPage() {
         </div>
       </div>
 
-      <SkillFormDialog
+      <SkillFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}
