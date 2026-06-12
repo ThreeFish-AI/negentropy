@@ -27,6 +27,8 @@ interface SortableCardGridProps {
   children: ReactNode;
   /** 额外 grid className。默认为 "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"。 */
   className?: string;
+  /** 传递给 grid div 的额外 HTML 属性（如 data-testid）。 */
+  [key: string]: unknown;
 }
 
 /**
@@ -40,6 +42,7 @@ export function SortableCardGrid({
   onDragEnd,
   children,
   className = "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3",
+  ...rest
 }: SortableCardGridProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -57,7 +60,7 @@ export function SortableCardGrid({
       onDragEnd={onDragEnd}
     >
       <SortableContext items={itemIds} strategy={rectSortingStrategy}>
-        <div className={className}>
+        <div className={className} {...rest}>
           {children}
         </div>
       </SortableContext>

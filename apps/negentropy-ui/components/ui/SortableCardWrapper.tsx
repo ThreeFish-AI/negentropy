@@ -123,8 +123,8 @@ export function SortableCardWrapper({
   };
 
   const contextValue: SortableCardContextValue = {
-    attributes,
-    listeners,
+    attributes: { ...attributes },
+    listeners: listeners ? { ...listeners } : undefined,
     isDragging,
   };
 

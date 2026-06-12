@@ -49,8 +49,8 @@ describe("AgentCard", () => {
     const onDelete = vi.fn();
     render(<AgentCard agent={baseAgent} onEdit={onEdit} onDelete={onDelete} />);
 
-    // Clicking the card body triggers onEdit
-    const card = screen.getByRole("button", { name: "Edit PerceptionFaculty" });
+    // Clicking the card body triggers onEdit (SortableCardWrapper renders aria-label="Edit")
+    const card = screen.getByRole("button", { name: "Edit" });
     await userEvent.click(card);
 
     // Delete button triggers onDelete

@@ -16,7 +16,7 @@ import {
 
 interface SortableItem {
   id: UniqueIdentifier;
-  [key: string]: unknown;
+  sort_order?: number;
 }
 
 interface UseSortableCardGridOptions<T extends SortableItem> {
