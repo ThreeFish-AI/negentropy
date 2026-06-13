@@ -40,13 +40,15 @@ _WELCOME_AGENT_MSG = (
 async def _reset_demo(session) -> None:  # type: ignore[no-untyped-def]
     """仅删除带 demo 标记的行；events 经 thread FK ondelete=CASCADE 级联清除。"""
     # 依赖顺序：先删 memories/facts（按标记），再删 threads（级联 events）
+    # 用 ``CAST(:m AS jsonb)`` 而非 ``:m::jsonb`` —— 后者命名参数紧邻 ``::`` cast 操作符
+    # 会被 SQLAlchemy 误解析为绑定占位符（syntax error at or near ":"），见 graph/repository.py 同类修复。
     for table in ("memories", "facts"):
         await session.execute(
-            text(f"DELETE FROM negentropy.{table} WHERE metadata @> :m::jsonb"),
+            text(f"DELETE FROM negentropy.{table} WHERE metadata @> CAST(:m AS jsonb)"),
             {"m": _MARKER_JSON},
         )
     await session.execute(
-        text("DELETE FROM negentropy.threads WHERE metadata @> :m::jsonb"),
+        text("DELETE FROM negentropy.threads WHERE metadata @> CAST(:m AS jsonb)"),
         {"m": _MARKER_JSON},
     )
 
@@ -54,7 +56,7 @@ async def _reset_demo(session) -> None:  # type: ignore[no-untyped-def]
 async def _demo_exists(session) -> bool:  # type: ignore[no-untyped-def]
     row = (
         await session.execute(
-            text("SELECT 1 FROM negentropy.threads WHERE metadata @> :m::jsonb LIMIT 1"),
+            text("SELECT 1 FROM negentropy.threads WHERE metadata @> CAST(:m AS jsonb) LIMIT 1"),
             {"m": _MARKER_JSON},
         )
     ).first()

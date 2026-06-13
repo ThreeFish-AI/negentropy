@@ -20,9 +20,11 @@ _MARKER = json.dumps({"seed_marker": _DEMO_MARKER})
 
 
 async def _count(session, table: str) -> int:
+    # ``CAST(:m AS jsonb)`` 而非 ``:m::jsonb``：后者命名参数紧邻 ``::`` 会触发
+    # asyncpg「syntax error at or near ":"」，与 cli_seed 保持一致。
     return (
         await session.execute(
-            text(f"SELECT count(*) FROM negentropy.{table} WHERE metadata @> :m::jsonb"),
+            text(f"SELECT count(*) FROM negentropy.{table} WHERE metadata @> CAST(:m AS jsonb)"),
             {"m": _MARKER},
         )
     ).scalar()
@@ -34,7 +36,7 @@ async def _count_events(session) -> int:
             text(
                 "SELECT count(*) FROM negentropy.events e "
                 "JOIN negentropy.threads t ON e.thread_id = t.id "
-                "WHERE t.metadata @> :m::jsonb"
+                "WHERE t.metadata @> CAST(:m AS jsonb)"
             ),
             {"m": _MARKER},
         )
