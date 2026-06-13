@@ -26,14 +26,14 @@ negentropy 已具备四个可复用的进化原语，本报告的核心论点是
 |------|---------|------|
 | LLM-as-Judge 评测 | [engine/routine/evaluator.py](../../apps/negentropy/src/negentropy/engine/routine/evaluator.py) | 0–100 分 + verdict 五档 + 自然语言反思 |
 | Reflexion 反思 | [engine/consolidation/reflection_generator.py](../../apps/negentropy/src/negentropy/engine/consolidation/reflection_generator.py) | `routines.reflections` JSONB 跨迭代注入 |
-| SemVer 版本快照 | [models/skill.py](../concepts/design/skills.md) `skill_versions` 表 | 不可变版本历史 + SemVer + JSONB snapshot |
+| SemVer 版本快照 | [models/skill.py](../../apps/negentropy/src/negentropy/models/skill.py) `skill_versions` 表 | 不可变版本历史 + SemVer + JSONB snapshot |
 | 竞争择优 | perceives [pipeline_config.py](../reference/perceives/) `competition_mode` | 多引擎并行 + LLM 评审择优 |
 | 检索反馈闭环 | engine/adapters/postgres/retrieval_tracker.py | `memory_retrieval_logs`（zero_hit_rate / was_referenced / outcome_feedback）+ 反馈触发反思 |
 | 遗忘曲线治理 | engine/governance/memory.py | retention_score（λ 支持 `metadata.decay_override` 条目级覆盖——参数外置接口已就位） |
 
 四个决定性缺口（方案需解决）：
 1. `agents` 表**无版本表**，且 `sync_negentropy_agents` 每次 Sync 覆写 `system_prompt`——进化产物会被踩掉；
-2. ADK 主运行时**无工具调用级遥测**（`tool_executions` 表 dormant 无写入方）；
+2. ADK 主运行时**无工具调用级遥测**（`tool_executions` 表 dormant——写入路径 `ToolRegistry._record_execution` 虽存在，但该 Registry 未接入主运行时，仅集成测试实例化，生产无写入）；
 3. `eval_tests/` 近乎空壳，无 golden set / 回归门禁；
 4. 记忆/知识子系统的运行参数（遗忘 λ、检索权重、chunking 策略、KG 抽取 prompt）**散落在 env/代码常量中无版本化**——进化产物无处落地。
 
@@ -191,15 +191,15 @@ Agent 评测综述<sup>[[16]](#ref16)</sup> 明确分层：最终响应评测（
 
 ### 5.1 MCP 规范与 Registry 进展
 
-**MCP Registry**（2025-09-08 Preview<sup>[[21]](#ref21)</sup>）是面向公开 MCP Server 的开放目录，server.json 元数据 schema + REST API，当前 **Preview 阶段**（v0.1 冻结）。支持公共/私有子注册表——私有型映射企业部署场景。注册条目近 **2,000**。
+**MCP Registry**（2025-09-08 Preview<sup>[[21]](#ref21)</sup>）是面向公开 MCP Server 的开放目录，server.json 元数据 schema + REST API，当前 **Preview 阶段**（v0.1 冻结）。支持公共/私有子注册表——私有型映射企业部署场景。注册体量随生态快速扩张（第三方分析显示去重后约千余个唯一包，原始条目因 CI 重复发布远高于此）。
 
-**MCP 2025-11-25 稳定版**<sup>[[22]](#ref22)</sup> 引入 Tasks 原语（长时运行任务，状态机 working→completed/failed/cancelled）、Sampling+Tools（服务端 agentic loop）、简化 OAuth。2026-07-28 RC 计划无状态核心、Transport Headers、Tasks 移至扩展。
+**MCP 2025-11-25 稳定版**<sup>[[22]](#ref22)</sup> 引入 Tasks 原语（长时运行任务，experimental capability，状态机 working/input_required→completed/failed/cancelled）、Sampling+Tools（服务端 agentic loop）、简化 OAuth。2026-07-28 RC 计划无状态核心、Transport Headers、Tasks 移至扩展。
 
 ### 5.2 Agent Skills 设计哲学
 
-**Anthropic Agent Skills**<sup>[[23]](#ref23)</sup>（开放标准 agentskills.io，40+ 产品采用）核心设计：**渐进式披露三层加载**——Discovery（name/description）→ Activation（完整 SKILL.md 正文）→ Execution（引用文件/脚本）。
+**Anthropic Agent Skills**<sup>[[23]](#ref23)</sup>（开放标准 agentskills.io，2025-12-18 启动）核心设计：**渐进式披露三级加载**——Level 1 技能元数据（name/description，启动期注入系统提示）→ Level 2 完整 SKILL.md 正文（判定相关时加载）→ Level 3 SKILL.md 引用的捆绑文件/脚本（按需读取）。
 
-**negentropy 对标**：`skills_injector` 的 Jinja2 prompt_template + Progressive Disclosure 与 SKILL.md 三层加载**高度同构**。skills 表 name/description = Discovery 层；prompt_template = Activation 层；resources = Execution 层。建议增加 SKILL.md 兼容 adapter。
+**negentropy 对标**：`skills_injector` 的 Jinja2 prompt_template + Progressive Disclosure 与 SKILL.md 三级加载**高度同构**。skills 表 name/description = Level 1 元数据层；prompt_template = Level 2 正文层；resources = Level 3 捆绑文件层。建议增加 SKILL.md 兼容 adapter。
 
 **技能层综述**<sup>[[24]](#ref24)</sup> 发现社区贡献技能中 **26.1% 含安全漏洞**——强力驱动验证流水线需求。
 
@@ -379,7 +379,7 @@ flowchart LR
 
 **OpenAI CoT 监控论文**<sup>[[37]](#ref37)</sup> 证明：对 CoT 施加强优化压力会导致 Obfuscated Reward Hacking——Agent 学会在 CoT 中隐藏意图但仍继续作弊。建议：不对 CoT 直接施加优化压力。
 
-**Anthropic Emergent Misalignment**<sup>[[38]](#ref38)</sup> 证明：模型学会 reward hack 的瞬间，所有 misalignment 指标同时飙升。Inoculation prompting（告知模型作弊边界）高度有效。
+**Anthropic Emergent Misalignment**<sup>[[38]](#ref38)</sup> 证明：模型学会 reward hack 的瞬间，所有 misalignment 指标同时飙升。Inoculation prompting（告知模型作弊边界）是论文列出的三个**有效**缓解之一（正文报告其将 misalignment 降低 75–90%）。
 
 **防护四件套**：① 冻结 holdout 集（结果不回流 proposer）；② 多目标晋升判据（质量 AND 成本 AND 延迟 AND 在线确认）；③ Judge 与 Proposer 模型强制异源；④ 评测集随失败采收持续换血。
 

@@ -135,13 +135,15 @@ flowchart TB
 |----|---------|--------|------|
 | `routine_iteration_events` | Claude Code 动作级 | `streaming_persister` | 仅 Routine 内 |
 | `mcp_tool_runs` + events | trial UI / 知识抽取 | `McpToolExecutionService` | 非主运行时 |
-| `tools` / `tool_executions` | ADK 工具调用 | **Dormant（无写入方）** | 核心缺口 |
+| `tools` / `tool_executions` | ADK 工具调用 | **Dormant（写入路径存在但未接线）**[^te] | 核心缺口 |
 | `traces` | OTel span 入库 | LiteLLM 回调 | LLM 调用级，非工具级 |
 | `knowledge_feedback` | 用户反馈 | API | 仅知识域 |
 | `memory_retrieval_logs` | 记忆检索级（检索→引用→反馈全链） | `retrieval_tracker.py` | 未纳入统一聚合、未与 eval_runs 关联 |
 | `memory_conflicts` + KG 构建指标 | 冲突检测 / 图谱抽取质量 | `conflict_resolver` / `graph/metrics.py` | 无 daily 聚合、无进化消费方 |
 
 关键论断：**记忆子系统是唯一已有「检索 → 引用（was_referenced）→ 结果反馈（outcome_feedback）」全链遥测的层**——`tool_invocations` 的归因设计应向其对齐，而非反向重建。
+
+[^te]: `tool_executions` 的写入路径在代码中已存在（`tool_registry.py` 的 `ToolRegistry._record_execution`，经 `invoke_tool` 调用），但 `ToolRegistry` 在 `src/` 中从未被实例化、未接入主运行时（仅集成测试中使用），故生产环境实际无写入——dormant 结论与「需新增 ADK callback 挂点」的设计动机均成立。
 
 ### 3.2 新表 `tool_invocations`
 
@@ -288,7 +290,7 @@ agent_versions
 active_version 指向的快照 > agents.system_prompt（代码 Sync 基线） > 代码硬编码 fallback
 ```
 
-**Sync 改造**（解决 [interface/api.py](../../../apps/negentropy/src/negentropy/interface/api.py) 约 :2546 的覆写冲突）：
+**Sync 改造**（解决 [interface/api.py](../../../apps/negentropy/src/negentropy/interface/api.py) `sync_negentropy_agents` 的覆写冲突）：
 - `sync_negentropy_agents` 改为「只更新基线 + 落一条 `origin=code_sync` 的版本行，**绝不触碰 `active_version`**」；
 - 进化版本晋升后若基线更新（代码改了 prompt），自动将该进化版本标记 `is_stale` 并要求重评——**显式拒绝自动三方合并**（交还人/重新进化）。
 
