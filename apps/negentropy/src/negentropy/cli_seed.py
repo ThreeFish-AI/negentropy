@@ -38,15 +38,23 @@ _WELCOME_AGENT_MSG = (
 
 
 async def _reset_demo(session) -> None:  # type: ignore[no-untyped-def]
-    """仅删除带 demo 标记的行；events 经 thread FK ondelete=CASCADE 级联清除。"""
-    # 依赖顺序：先删 memories/facts（按标记），再删 threads（级联 events）
-    # 用 ``CAST(:m AS jsonb)`` 而非 ``:m::jsonb`` —— 后者命名参数紧邻 ``::`` cast 操作符
-    # 会被 SQLAlchemy 误解析为绑定占位符（syntax error at or near ":"），见 graph/repository.py 同类修复。
+    """删除 demo thread 及其子行；events 经 thread FK ondelete=CASCADE 级联清除。
+
+    锚点为 ``threads.metadata``（demo seed 仅在 thread 上携带 seed_marker）。
+    ``facts`` 表实际**无** ``metadata`` 列（见迁移 0001；ORM ``Fact.metadata_`` 与 schema 存在 drift），
+    故子行（memories/facts）一律按 ``thread_id`` 子查询清除，绝不直接谓词 ``facts.metadata``。
+    用 ``CAST(:m AS jsonb)`` 而非 ``:m::jsonb`` 规避命名参数与 ``::`` cast 冲突（见 graph/repository.py）。
+    """
+    # 先删子行（memories/facts.thread_id 为 SET NULL，须显式按 thread_id 清除避免孤儿）
     for table in ("memories", "facts"):
         await session.execute(
-            text(f"DELETE FROM negentropy.{table} WHERE metadata @> CAST(:m AS jsonb)"),
+            text(
+                f"DELETE FROM negentropy.{table} "
+                "WHERE thread_id IN (SELECT id FROM negentropy.threads WHERE metadata @> CAST(:m AS jsonb))"
+            ),
             {"m": _MARKER_JSON},
         )
+    # 再删 threads：events 经 thread_id FK ondelete=CASCADE 自动级联清除
     await session.execute(
         text("DELETE FROM negentropy.threads WHERE metadata @> CAST(:m AS jsonb)"),
         {"m": _MARKER_JSON},
@@ -74,7 +82,8 @@ async def _seed_demo(user_id: str) -> None:
                 print(f"✔ 演示数据已存在（marker={_DEMO_MARKER}），跳过。使用 --reset 重建。")
                 return
 
-            # 1) 欢迎会话（metadata.title_source="manual" 免触发会话标题 inspector）
+            # 1) 欢迎会话（thread 为 demo 锚点：metadata.seed_marker + title_source="manual"
+            #    免触发会话标题 inspector）
             thread = Thread(
                 app_name="negentropy",
                 user_id=user_id,
@@ -87,7 +96,7 @@ async def _seed_demo(user_id: str) -> None:
                 },
             )
             session.add(thread)
-            await session.flush()  # 取 thread.id 供 events/memories 外键引用
+            await session.flush()  # 取 thread.id 供 events/memories/facts 外键引用
 
             invocation = uuid4()
             # 2) 一轮欢迎对话（content 采用 ADK/Gemini parts 形式）
@@ -112,7 +121,7 @@ async def _seed_demo(user_id: str) -> None:
                 )
             )
 
-            # 3) 示例记忆（episodic，无 embedding，关键词可检索）
+            # 3) 示例记忆（episodic，无 embedding，关键词可检索；经 thread_id 关联 demo 锚点）
             session.add(
                 Memory(
                     thread_id=thread.id,
@@ -121,11 +130,11 @@ async def _seed_demo(user_id: str) -> None:
                     memory_type="episodic",
                     content="（示例记忆）用户正在探索 Negentropy 的首启演示流程。",
                     embedding=None,
-                    metadata_={"seed_marker": _DEMO_MARKER},
                 )
             )
 
-            # 4) 示例事实（用户画像；key 受唯一约束 user×app×fact_type×key）
+            # 4) 示例事实（用户画像；key 受唯一约束 user×app×fact_type×key；经 thread_id 关联 demo 锚点）
+            # 注意：facts 表无 metadata 列，ORM 经 server_default 省略自动生成不含 metadata 的 INSERT。
             session.add(
                 Fact(
                     thread_id=thread.id,
@@ -134,8 +143,6 @@ async def _seed_demo(user_id: str) -> None:
                     fact_type="preference",
                     key="preferred_language",
                     value={"lang": "zh-CN"},
-                    embedding=None,
-                    metadata_={"seed_marker": _DEMO_MARKER},
                 )
             )
 
