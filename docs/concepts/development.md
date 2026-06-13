@@ -42,7 +42,7 @@
 | LLM 接口      | [LiteLLM](https://docs.litellm.ai/) (统一 100+ LLM 接入) |
 | Web 框架      | FastAPI (通过 ADK Web Server)                            |
 | ORM           | SQLAlchemy 2.0 (async, asyncpg)                          |
-| 数据库        | PostgreSQL 16+ (pgvector)                                |
+| 数据库        | PostgreSQL 17+ (pgvector)                                |
 | 迁移          | Alembic                                                  |
 | 沙箱          | MCP + MicroSandbox                                       |
 | 可观测性      | structlog + OpenTelemetry + Langfuse                     |
@@ -63,39 +63,26 @@
 
 ### 1.2 PostgreSQL 初始化
 
-> 首次运行后端之前，必须确保 PostgreSQL 服务运行正常且所需扩展已安装。
+> 首次运行后端之前，必须确保 PostgreSQL 服务运行正常且所需扩展已安装。`./dev`（Docker 路径）已内置 pgvector Postgres，可跳过本节。
 
-**安装与启动**（以 Homebrew macOS 为例）：
+**安装与启动**（以 Homebrew macOS 为例；推荐 PG17，与 Docker 栈一致）：
 
 ```bash
-# 安装 PostgreSQL 16 与 pgvector 扩展
-brew install postgresql@16 pgvector
+# 安装 PostgreSQL 17 与 pgvector 扩展
+brew install postgresql@17 pgvector
 
 # 启动服务
-brew services start postgresql@16
+brew services start postgresql@17
 pg_isready -h localhost -p 5432        # 验证：accepting connections
 ```
 
-**安装 pg_cron 扩展**（Skill 调度、Memory 自动化等模块依赖）：
+> **`pg_cron` 不再需要**：自迁移 `0042` 起，Skill 调度与 Memory 自动化已迁入进程内 Unified Scheduler（`skill_scheduler.py` / `engine/schedulers/`），不再依赖 `pg_cron` 扩展 —— **无需**编译安装，**无需**在 `postgresql.conf` 配置 `shared_preload_libraries`。`uuid-ossp` 与 `vector` 扩展由应用启动时自动 `CREATE EXTENSION`（见 `docker/postgres/init.sql` 与迁移 `env.py`）。
 
-```bash
-# Homebrew bottle 仅提供 PG17/18 版本，PG16 需从源码编译
-brew install pg_cron                   # 安装依赖头文件
-cd /tmp && git clone --depth 1 -b v1.6.7 https://github.com/citusdata/pg_cron.git
-cd pg_cron
-PG_CONFIG=/opt/homebrew/opt/postgresql@16/bin/pg_config \
-  make CFLAGS_SL="-bundle -L/opt/homebrew/opt/gettext/lib -lintl"
-PG_CONFIG=/opt/homebrew/opt/postgresql@16/bin/pg_config make install
-```
-
-**配置 `postgresql.conf`**：
-
-```bash
-# /opt/homebrew/var/postgresql@16/postgresql.conf
-# 确保以下配置项存在（pg_cron 需要 restart 才能生效）
-shared_preload_libraries = 'pg_cron'
-# pg_cron 库可在启动后通过 CREATE EXTENSION 启用
-```
+> **更省事**：若仅本地开发，可只起 Docker 内的 Postgres 供裸机后端连接 ——
+> ```bash
+> docker compose up -d postgres        # 仅起数据库容器
+> ./dev native                         # 裸机后端连接容器 DB（默认 NE_DB_URL 即 localhost:5432）
+> ```
 
 **创建用户与数据库**：
 
@@ -109,7 +96,7 @@ psql -d negentropy -c "GRANT ALL ON DATABASE negentropy TO aigc; GRANT ALL ON SC
 
 ```bash
 psql -h localhost -U aigc -d negentropy -c "SELECT version();"
-# 应返回 PostgreSQL 16.x 版本信息
+# 应返回 PostgreSQL 17.x 版本信息
 ```
 
 > 连接配置默认值为 `postgresql+asyncpg://aigc:@localhost:5432/negentropy`，如需覆盖可通过 `config.local.yaml` 或 `NE_DB_URL` 环境变量。参见 [§8 环境变量管理](#8-环境变量管理)。
@@ -366,12 +353,12 @@ uv run alembic current               # 验证：应显示最新 revision
 
 **运行时扩展**（非迁移必需，但应用功能依赖）：
 
-| 扩展       | 安装方式                                     | 依赖模块                       | 是否需要 `shared_preload_libraries` |
-| :--------- | :------------------------------------------- | :----------------------------- | :---------------------------------- |
-| `pgvector` | `brew install pgvector`                      | Knowledge / Embedding 向量检索 | 否                                  |
-| `pg_cron`  | 源码编译（见 [§1.2](#12-postgresql-初始化)） | Skill 调度、Memory 自动化      | **是**（需重启 PostgreSQL）         |
+| 扩展       | 安装方式                | 依赖模块                       | 是否需要 `shared_preload_libraries` |
+| :--------- | :---------------------- | :----------------------------- | :---------------------------------- |
+| `pgvector` | `brew install pgvector` | Knowledge / Embedding 向量检索 | 否                                  |
+| `uuid-ossp` | 随 PostgreSQL 自带      | UUID 生成                      | 否                                  |
 
-> `pg_cron` 需在 `postgresql.conf` 中配置 `shared_preload_libraries = 'pg_cron'` 并重启 PostgreSQL 后，才能通过 `CREATE EXTENSION pg_cron` 启用。应用启动时会自动处理 `CREATE EXTENSION`。
+> **`pg_cron` 已废弃**：自迁移 `0042` 起，Skill 调度与 Memory 自动化改由进程内 Unified Scheduler 驱动，**不再依赖 `pg_cron`**，无需安装、无需 `shared_preload_libraries`、无需重启 PostgreSQL。`pgvector` / `uuid-ossp` 由应用启动时自动 `CREATE EXTENSION`。
 
 ### 6.2 环境准备
 
@@ -643,14 +630,14 @@ lsof -i :3292
 ```bash
 # 1. 检查 PostgreSQL 运行状态
 pg_isready -h localhost -p 5432
-brew services info postgresql@16
+brew services info postgresql@17
 
 # 2. 若服务未运行，尝试启动
-brew services restart postgresql@16
+brew services restart postgresql@17
 
 # 3. 若启动失败，查看日志定位原因
-/opt/homebrew/opt/postgresql@16/bin/pg_ctl \
-  -D /opt/homebrew/var/postgresql@16 \
+/opt/homebrew/opt/postgresql@17/bin/pg_ctl \
+  -D /opt/homebrew/var/postgresql@17 \
   -l /tmp/pg_debug.log start
 cat /tmp/pg_debug.log
 ```
@@ -659,7 +646,8 @@ cat /tmp/pg_debug.log
 
 | 错误信息                                                 | 根因                                                                         | 修复                                                                                                        |
 | :------------------------------------------------------- | :--------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
-| `could not access file "pg_cron"`                        | `pg_cron` 扩展未安装，但 `postgresql.conf` 配置了 `shared_preload_libraries` | 按 [§1.2](#12-postgresql-初始化) 安装 pg_cron，或临时注释 `postgresql.conf` 中的 `shared_preload_libraries` |
+| `could not access file "pg_cron"`                        | 旧版残留：`postgresql.conf` 仍配置了 `shared_preload_libraries = 'pg_cron'`，而 `pg_cron` 已不再需要 | 注释/删除 `postgresql.conf` 中的 `shared_preload_libraries` 配置项并重启 PostgreSQL（`pg_cron` 自迁移 `0042` 起已废弃）|
+| `extension "vector" does not exist`                      | pgvector 扩展未安装                                                          | `brew install pgvector`（或使用 Docker 内置 pgvector Postgres）                                            |
 | `port 5432 already in use`                               | 端口被其他 PG 实例或进程占用                                                 | `lsof -i :5432` 定位并处理占用进程                                                                          |
 | `data directory was initialized by PostgreSQL version X` | 数据目录版本与 PG 版本不匹配                                                 | 使用 `pg_upgrade` 迁移或重新 `initdb`                                                                       |
 

@@ -1,0 +1,36 @@
+# =============================================================================
+# Negentropy 本地零配置叠加层（与 docker-compose.yml 经 `-f` 合并使用）
+# =============================================================================
+# 用途：
+#   为本地开发注入「本地安全」环境变量（inmemory 制品 / 关闭 Langfuse 外发 /
+#   剥离他人 Vertex 项目 / 标记 development 环境），使 clone 后无需任何云凭证即可启动。
+#
+# 与生产隔离（核心安全约束）：
+#   - 本文件**不会**被 `docker compose up` 自动合并（其文件名非 docker-compose.override.yml）。
+#   - 仅当显式 `-f docker-compose.yml -f docker-compose.local.yml` 时叠加（由 ./dev 自动拼接）。
+#   - 生产部署走 `docker-compose.yml` 单文件 + `.env.docker.local` 注入真实密钥 → 默认行为不变。
+#
+# 机制：
+#   Negentropy 配置优先级中「环境变量（NE_*）」高于 config.default.yaml。
+#   故此处注入的 NE_SVC_ARTIFACT_BACKEND 等 env 直接覆盖出厂的生产倾向默认值，
+#   无需改动 config.default.yaml（生产单一事实源保持零变更）。
+#
+# 用法：
+#   ./dev                                  # 推荐：自动拼接本文件
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#
+# 参考：
+# [1] Docker, "Merge Compose files," Docker Docs. [Online].
+#     Available: https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/.
+# =============================================================================
+services:
+  backend:
+    environment:
+      # 标记运行环境（development；影响日志级别建议与开发态语义）
+      NE_ENV: development
+      # 本地无 GCS 凭证：制品回退内存（env 优先级高于 config.default.yaml 的 gcs）
+      NE_SVC_ARTIFACT_BACKEND: inmemory
+      # 剥离他人 GCP 项目，避免误触 VertexAI 调用
+      NE_SVC_VERTEX_PROJECT_ID: ""
+      # 关闭 Langfuse 外发（本地无需第三方可观测性上报；缺失 Key 时本就 warn-and-continue）
+      NE_OBSERVABILITY_LANGFUSE_ENABLED: "false"

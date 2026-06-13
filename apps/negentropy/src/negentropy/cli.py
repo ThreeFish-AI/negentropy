@@ -244,12 +244,33 @@ def main() -> None:
     pii_parser = subparsers.add_parser("bootstrap-pii-models", help="下载 Presidio PII 引擎所需 spaCy NER 模型")
     pii_parser.add_argument("--force", action="store_true", help="即使已安装也强制重新下载")
 
+    # doctor subcommand（首启自检：启动期即暴露配置缺失，而非首条消息）
+    subparsers.add_parser("doctor", help="首启自检：配置就绪度 PASS/WARN/FAIL 报告")
+
+    # seed-demo subcommand（首启可见的演示数据种子，opt-in、幂等）
+    seed_parser = subparsers.add_parser("seed-demo", help="写入首启可见的演示数据（幂等、opt-in）")
+    seed_parser.add_argument(
+        "--user",
+        default="dev-user",
+        help="演示数据的 user_id（默认 dev-user，与前端 NEXT_PUBLIC_AGUI_USER_ID 对齐）",
+    )
+    seed_parser.add_argument("--reset", action="store_true", help="先清除旧演示数据后重建")
+
     args = parser.parse_args()
 
     if args.command == "init":
         sys.exit(_cmd_init(args))
     elif args.command == "bootstrap-pii-models":
         sys.exit(_cmd_bootstrap_pii_models(args))
+    elif args.command == "doctor":
+        # 延迟导入：仅在调用时加载 DB/httpx 依赖，保持 serve/init 路径轻量
+        from negentropy.cli_doctor import run_doctor_sync
+
+        sys.exit(run_doctor_sync())
+    elif args.command == "seed-demo":
+        from negentropy.cli_seed import run_seed_demo_sync
+
+        sys.exit(run_seed_demo_sync(args))
     else:
         # Default: serve
         sys.exit(_cmd_serve(args))
