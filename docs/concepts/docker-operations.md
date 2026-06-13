@@ -91,7 +91,24 @@ Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
 ## 2. 环境准备
 
-### 2.1 前置依赖
+### 2.1 本地零配置快速启动（推荐入门）
+
+本地开发**无需任何云凭证**即可启动全栈。一键入口 [`./dev`](../../dev) 会自动叠加本地安全配置层
+[`docker-compose.local.yml`](../../docker-compose.local.yml)（inmemory 制品 / 关闭 Langfuse 外发 / 标记 development）：
+
+```bash
+./dev            # = setup（创建 .env.docker.local）+ 构建并启动全栈 + 健康自检 + doctor
+```
+
+对话能力默认由一个 LLM Key 激活（在 `.env.docker.local` 填入 `OPENAI`/`ANTHROPIC`/`GEMINI` 任一）；
+零 Key 本地方案见 [本地 Ollama 集成](./local-llm-ollama.md)。
+
+> **本地 vs 生产的关键隔离**：`docker-compose.local.yml` **不会**被 `docker compose up` 自动合并
+> （其文件名非 `docker-compose.override.yml`）。本地经 `./dev`（或显式
+> `-f docker-compose.yml -f docker-compose.local.yml`）叠加；**生产部署走 `docker-compose.yml` 单文件**，
+> 叠加逻辑、默认行为均不变。参见 Docker「Merge Compose files」规范 [5]。
+
+### 2.2 前置依赖
 
 | 依赖 | 最低版本 | 说明 |
 |:---|:---|:---|
@@ -102,7 +119,7 @@ Compose 通过 `depends_on: condition: service_healthy` 建立级联启动链：
 
 > **Apple Silicon 用户**：所有发布镜像均支持 `linux/arm64`（多架构构建），Docker Desktop 会自动选择匹配架构。
 
-### 2.2 环境变量设置
+### 2.3 环境变量设置
 
 [docker-compose.yml](../../docker-compose.yml) 采用双层 `env_file` 叠加机制：
 
@@ -120,7 +137,7 @@ cp .env.docker .env.docker.local
 # 2. 编辑 .env.docker.local，填写所需密钥（文件已被 .gitignore 忽略）
 ```
 
-### 2.3 环境变量清单
+### 2.4 环境变量清单
 
 | 变量 | 必填 | 影响服务 | 说明 |
 |:---|:---|:---|:---|
@@ -517,3 +534,5 @@ docker compose ps
 [3] Docker Inc., "docker compose CLI reference," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/compose/reference/
 
 [4] Docker Inc., "Dockerfile multi-stage builds," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/build/building/multi-stage/
+
+[5] Docker Inc., "Merge Compose files," _Docker Documentation_, 2025. [Online]. Available: https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/

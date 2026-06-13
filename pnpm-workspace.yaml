@@ -10,6 +10,9 @@
 
 packages:
   - apps/*
+  # 注：apps/cognizes（与 apps/cognizes-ui）是独立项目（Agentic AI Papers），
+  # 非 Negentropy 主栈组成部分 —— ./dev 与 docker-compose 均不启动它。
+  # 仅因 pnpm workspace 单 store 共享而纳入匹配；如需运行 cognizes，请参阅其自身 README。
   - packages/*
   # E2E Travel Agent Demo 前端已从 workspace 解耦（独立 pnpm install），
   # 以消除 @copilotkit/runtime → @ai-sdk/provider-utils@3.0.25 受 CVE-2026-8769 影响的传递依赖链。

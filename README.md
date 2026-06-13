@@ -80,68 +80,67 @@ graph TB
 
 ## ✨ Quick Start
 
+> **One command brings up the full stack** (postgres + perceives + backend + ui + wiki) with **zero cloud credentials** required to boot. LLM chat is activated by **one of OpenAI / Anthropic / Gemini API keys**; for a fully local, zero-key setup, see [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md).
+
 ### Prerequisites
 
 <center>
 
-| Dependency                       | Minimum Version     | Purpose                  |
-| :------------------------------- | :------------------ | :----------------------- |
-| Python                           | 3.13+               | Backend Runtime          |
-| [uv](https://docs.astral.sh/uv/) | Latest              | Python Package Manager   |
-| Node.js                          | 20+                 | Frontend Runtime         |
-| [pnpm](https://pnpm.io/)         | Latest              | Frontend Package Manager |
-| PostgreSQL                       | 16+ (with pgvector) | Data Persistence         |
+| Dependency | Minimum Version | Purpose |
+| :--- | :--- | :--- |
+| Docker Engine + Compose v2 | Engine 24+ · Compose 2.24+ | One-click launch (includes the database) |
+| _or (native path)_ Python · [uv](https://docs.astral.sh/uv/) · Node.js · [pnpm](https://pnpm.io/) | 3.13 · latest · 22+ · latest | Hot-reload without Docker |
 
 </center>
 
-### 1. Clone the Repository
+> The Docker path needs **no** local PostgreSQL. The native path needs a pgvector-enabled Postgres (see [Development Guide](./docs/concepts/development.md)). `mise` / `asdf` users get the right Python & Node automatically via the root `.tool-versions`.
+
+### A. One-click (Docker, recommended)
 
 ```bash
 git clone https://github.com/ThreeFish-AI/negentropy.git
 cd negentropy
+./dev            # = setup + build & start the full stack + health self-check
 ```
 
-### 2. Boot the Backend
+`./dev` automatically: creates `.env.docker.local`, layers local-safe config, builds & starts 5 containers, polls `backend /health`, and runs `negentropy doctor`.
+
+**Drop in one LLM key** in `.env.docker.local` (gitignored) to enable chat:
 
 ```bash
-cd apps/negentropy
-uv sync --dev                  # Install all dependencies (including dev)
-uv run negentropy init         # Generate ~/.negentropy/config.yaml
-# Provide secrets via shell environment (or .env.local for local dev):
-#   export NE_DB_URL=postgresql+asyncpg://...
-#   export OPENAI_API_KEY=...
-#   export ANTHROPIC_API_KEY=...
-uv run alembic upgrade head    # Apply database migrations
-uv run negentropy serve --port 8000  # Start the engine
+OPENAI_API_KEY=sk-...        # or ANTHROPIC_API_KEY / GEMINI_API_KEY
 ```
 
-### 3. Boot the Frontend
+Then open **http://localhost:3192**.
+
+| Service | URL |
+| :--- | :--- |
+| backend | http://localhost:3292 (+ `/docs`, `/health`) |
+| ui (chat) | http://localhost:3192 |
+| wiki (knowledge base) | http://localhost:3092 |
+| perceives (content extraction) | http://localhost:2992 |
+
+### B. Native path (hot-reload, no Docker)
 
 ```bash
-cd apps/negentropy-ui
-pnpm install                   # Install dependencies
-pnpm run dev                   # Start development server (localhost:3192)
+git clone https://github.com/ThreeFish-AI/negentropy.git
+cd negentropy
+./dev native     # delegates to scripts/cli.sh: deps + migrations + frontend build + all services
 ```
 
-### 4. Set Up Pre-commit Hooks (Recommended)
+> Requires a local pgvector Postgres. `pg_cron` is **no longer needed** — since migration `0042`, scheduling runs in-process.
 
-Install local git hooks to auto-run format and lint before every commit, keeping CI clean:
+### C. More
 
-```bash
-# Install pre-commit (requires uv)
-uv tool install pre-commit
+- First-run demo content: `./dev seed-demo`
+- Preflight self-check: `./dev doctor`
+- All subcommands: `./dev help`
+- Contributors: `uv tool install pre-commit && pre-commit install`
+- Env setup, migrations, integrations, troubleshooting: [Development Guide](./docs/concepts/development.md)
+- Zero-key local LLM: [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md)
+- Docker operations (production deploy): [Docker Operations](./docs/concepts/docker-operations.md)
 
-# Register hooks (run once at the project root)
-pre-commit install
-```
-
-> On first commit, pre-commit will download hook environments automatically. To verify all hooks manually: `pre-commit run --all-files`
-
-### 5. Initiate Dialogue
-
-Fire up your browser, head over to `http://localhost:3192`, and start conversing with the NegentropyEngine.
-
-> For comprehensive guides on environment setup, database migrations, frontend-backend integration, and troubleshooting, please refer to [docs/development.md](./docs/concepts/development.md).
+> **Note:** `apps/cognizes` is a **separate** project; `./dev` and `docker compose` do **not** start it.
 
 ---
 
@@ -220,6 +219,8 @@ graph TB
 | :---------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
 | [User Guide](./docs/user-guide.md)                          | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki         |
 | [Development Guide](./docs/concepts/development.md)         | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
+| [Docker Operations](./docs/concepts/docker-operations.md)   | Compose service topology, local one-click path, production deploy, ops runbook                  |
+| [Local LLM (Ollama)](./docs/concepts/local-llm-ollama.md)   | Optional zero-key local LLM via Ollama (install, register, caveats)                             |
 | [Architecture Design](./docs/concepts/framework.md)         | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
 | [Knowledge System](docs/concepts/035-the-knowledge-base.md) | Detailed design and usage of the knowledge management module                                    |
 | [Memory System](docs/concepts/025-the-memory-system.md)     | Memory lifecycle, forgetting curves, and governance mechanics                                   |
