@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# =============================================================================
+# dev — Negentropy 一键入口（Docker 主路径，裸机副路径）
+# =============================================================================
+# 让新用户 clone 后一条命令即可拉起全套服务（postgres + perceives + backend + ui + wiki）。
+#
+# 设计（Reuse-Driven）：
+#   - Docker 路径复用 docker-compose.yml，仅叠加 docker-compose.local.yml（本地安全 env）。
+#   - 裸机路径复用 scripts/cli.sh（./dev native）。
+#   - 不重造编排逻辑。
+#
+# 用法：
+#   ./dev                  默认：setup + start（Docker，推荐）
+#   ./dev setup            仅准备 .env.docker.local / config.local.yaml 并检测 LLM Key
+#   ./dev start            拉起 Docker 全栈并健康自检
+#   ./dev stop | restart | status | logs [backend|ui|wiki|perceives]
+#   ./dev update           git pull + setup
+#   ./dev native           裸机路径（热重载，需外部 pgvector Postgres；委托 scripts/cli.sh）
+#   ./dev doctor           容器内运行 negentropy doctor（首启自检）
+#   ./dev seed-demo        容器内写入演示数据
+#
+# 前置：Docker Engine + Docker Compose v2（>= 2.24，env_file required 语法）。
+# =============================================================================
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+COMPOSE=(docker compose -f "$REPO_ROOT/docker-compose.yml" -f "$REPO_ROOT/docker-compose.local.yml")
+ENV_LOCAL="$REPO_ROOT/.env.docker.local"
+ENV_TPL="$REPO_ROOT/.env.docker"
+CFG_TPL="$REPO_ROOT/apps/negentropy/src/negentropy/config/config.local.example.yaml"
+CFG_LOCAL="$REPO_ROOT/apps/negentropy/config.local.yaml"
+BACKEND_HEALTH="http://localhost:3292/health"
+BACKEND_ROOT="http://localhost:3292/"
+
+# ── 颜色 / 日志 ─────────────────────────────────────────────────────────────
+if [[ -t 1 ]]; then
+  C_BLUE=$'\033[34m'; C_GREEN=$'\033[32m'; C_YELLOW=$'\033[33m'; C_RED=$'\033[31m'
+  C_BOLD=$'\033[1m'; C_RST=$'\033[0m'
+else
+  C_BLUE=''; C_GREEN=''; C_YELLOW=''; C_RED=''; C_BOLD=''; C_RST=''
+fi
+_info()  { printf '%s[i]%s %s\n' "$C_BLUE" "$C_RST" "$*"; }
+_ok()    { printf '%s[✓]%s %s\n' "$C_GREEN" "$C_RST" "$*"; }
+_warn()  { printf '%s[!]%s %s\n' "$C_YELLOW" "$C_RST" "$*" >&2; }
+_error() { printf '%s[✗]%s %s\n' "$C_RED" "$C_RST" "$*" >&2; }
+_phase() { printf '\n%s── %s ──%s\n' "$C_BOLD$C_BLUE" "$*" "$C_RST"; }
+
+# ── 子命令 ──────────────────────────────────────────────────────────────────
+cmd_setup() {
+  _phase "setup（准备本地配置）"
+  # 1) Docker 密钥模板
+  if [[ ! -f "$ENV_LOCAL" ]]; then
+    cp "$ENV_TPL" "$ENV_LOCAL"
+    _ok "已创建 .env.docker.local（从 .env.docker 模板；请填入 LLM Key）"
+  else
+    _info ".env.docker.local 已存在"
+  fi
+  # 2) 裸机本地安全覆盖（cwd 为 apps/negentropy 时被加载）
+  if [[ ! -f "$CFG_LOCAL" && -f "$CFG_TPL" ]]; then
+    cp "$CFG_TPL" "$CFG_LOCAL"
+    _ok "已创建 apps/negentropy/config.local.yaml（裸机本地安全覆盖）"
+  fi
+  # 3) LLM Key 检测与引导（不替用户收集密钥——安全红线）
+  if [[ -f "$ENV_LOCAL" ]] && grep -qE '^[[:space:]]*(OPENAI|ANTHROPIC|GEMINI)_API_KEY=[^[:space:]]+' "$ENV_LOCAL"; then
+    _ok "检测到 LLM Key（.env.docker.local）"
+  else
+    _warn "未检测到 LLM Key —— 对话能力需至少一个 Key 激活。"
+    _warn "  请在 .env.docker.local 填入 OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY 任一，再重跑 ./dev。"
+    _warn "  若希望零 Key 本地运行，参见 docs/concepts/local-llm-ollama.md 配置 Ollama。"
+  fi
+}
+
+backend_ready() {
+  curl -sf "$BACKEND_HEALTH" -o /dev/null 2>/dev/null && return 0
+  # 回退：ADK 根路径可能 307，任一 HTTP 响应即视为进程就绪（与 cli.sh 同语义）
+  curl -sL "$BACKEND_ROOT" -o /dev/null 2>/dev/null
+}
+
+wait_backend() {
+  local i=1 attempts=90
+  _info "等待 backend 就绪（/health）..."
+  while (( i <= attempts )); do
+    if backend_ready; then return 0; fi
+    sleep 2; ((i++))
+  done
+  return 1
+}
+
+print_urls() {
+  printf '\n%s  服务地址%s\n' "$C_BOLD" "$C_RST"
+  printf '  %-11s %s\n' "backend"   "http://localhost:3292  (+ /docs  /health)"
+  printf '  %-11s %s\n' "ui"        "http://localhost:3192"
+  printf '  %-11s %s\n' "wiki"      "http://localhost:3092"
+  printf '  %-11s %s\n' "perceives" "http://localhost:2992"
+}
+
+cmd_start() {
+  cmd_setup
+  _phase "start（docker compose -f docker-compose.yml -f docker-compose.local.yml）"
+  "${COMPOSE[@]}" up -d --build
+  if ! wait_backend; then
+    _error "backend 健康检查超时；最近日志："
+    "${COMPOSE[@]}" logs --tail=40 backend 2>/dev/null || true
+    exit 1
+  fi
+  _ok "backend 已就绪"
+  print_urls
+  _phase "首启自检（negentropy doctor）"
+  "${COMPOSE[@]}" exec -T backend negentropy doctor 2>&1 || _warn "doctor 报告存在 FAIL（见上）"
+}
+
+cmd_stop()    { _phase "stop"; "${COMPOSE[@]}" down; }
+cmd_restart() { cmd_stop; cmd_start; }
+cmd_status()  { "${COMPOSE[@]}" ps; }
+cmd_logs()    {
+  if [[ -n "${1:-}" ]]; then "${COMPOSE[@]}" logs -f "$1"; else "${COMPOSE[@]}" logs -f; fi
+}
+cmd_update()  { _phase "update"; git -C "$REPO_ROOT" pull --ff-only || _warn "git pull 失败，继续"; cmd_setup; }
+cmd_native()  { _info "裸机路径（委托 scripts/cli.sh）"; exec "$REPO_ROOT/scripts/cli.sh" start; }
+cmd_doctor()  { "${COMPOSE[@]}" exec -T backend negentropy doctor; }
+cmd_seed()    { "${COMPOSE[@]}" exec -T backend negentropy seed-demo "$@"; }
+
+cmd_help() {
+  cat <<EOF
+${C_BOLD}Negentropy 一键入口${C_RST}（Docker 主路径）
+
+${C_BOLD}用法:${C_RST}  ./dev [command]
+
+${C_BOLD}命令:${C_RST}
+  (默认) / start      setup + 拉起 Docker 全栈 + 健康自检
+  setup               准备 .env.docker.local / config.local.yaml 并检测 LLM Key
+  stop | restart      停止 / 重启 Docker 全栈
+  status              查看容器状态
+  logs [服务]         实时日志（默认全部；服务：backend ui wiki perceives）
+  update              git pull + setup
+  native              裸机路径（热重载，需外部 pgvector；委托 scripts/cli.sh）
+  doctor              容器内运行首启自检
+  seed-demo           容器内写入演示数据
+
+${C_BOLD}示例:${C_RST}
+  ./dev                 # 一键启动
+  ./dev native          # 裸机（无需 Docker）
+  ./dev logs backend    # 看后端日志
+EOF
+}
+
+case "${1:-start}" in
+  setup)        cmd_setup ;;
+  start)        cmd_start ;;
+  stop)         cmd_stop ;;
+  restart)      cmd_restart ;;
+  status)       cmd_status ;;
+  logs)         shift; cmd_logs "$@" ;;
+  update)       cmd_update ;;
+  native)       cmd_native ;;
+  doctor)       cmd_doctor ;;
+  seed-demo)    shift; cmd_seed "$@" ;;
+  help|-h|--help) cmd_help ;;
+  *)            _error "未知命令: $1"; cmd_help; exit 1 ;;
+esac
