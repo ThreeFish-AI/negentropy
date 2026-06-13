@@ -1,6 +1,6 @@
 # 自进化 Agents Team：自主迭代与自我强化系统调研
 
-> **摘要 / 导言**：将 negentropy 平台打造成「自主迭代升级、自我强化的 Agents Team」，系统分三类——**固定框架**（进化基座，自身稳定不自改）、**动态 Agent 定义**（根据反馈学习成长）、**外部能力工具**（Skills / MCP / Tools，效果反向驱动迭代）。核心命题是构建一条统一的进化闭环：信号采集 → 归因 → 变更生成 → 验证门禁 → 发布/回滚。本报告综合自进化智能体理论（DGM、ADAS、AgentSquare、AlphaEvolve）、进化算子（GEPA、ACE、DSPy）、评测与反馈回路（Agent-as-a-Judge、OTel GenAI semconv、Langfuse 评测体系）、工具/技能生态自进化（MCP Registry、Agent Skills、LLM 自造工具谱系）、记忆与知识系统自进化（MemGPT/Mem0/A-Mem 自编辑记忆、ExpeL/AWM/ReasoningBank 经验沉淀、MemEvolve/MemSkill 记忆元进化、Zep/HippoRAG 2 图谱记忆、SSGM/MINJA 记忆治理）、以及生产化护栏（OWASP Agentic AI Top 10、金丝雀/影子部署、Goodhart 防护），最终将证据映射到 negentropy 三类系统的设计决策上。重叠声明：ReAct / Reflexion / Self-Refine / LATS / Voyager / LLM-as-Judge 偏差治理已由 [110 号调研](./110-routine-agent-iteration.md) 覆盖，本报告一律引用不重述。
+> **摘要 / 导言**：将 negentropy 平台打造成「自主迭代升级、自我强化的 Agents Team」，系统分四类——**固定框架**（进化基座，自身稳定不自改）、**动态 Agent 定义**（根据反馈学习成长）、**外部能力工具**（Skills / MCP / Tools，效果反向驱动迭代）、**记忆与知识系统**（兼具进化基质与客体双角色）。核心命题是构建一条统一的进化闭环：信号采集 → 归因 → 变更生成 → 验证门禁 → 发布/回滚。本报告综合自进化智能体理论（DGM、ADAS、AgentSquare、AlphaEvolve）、进化算子（GEPA、ACE、DSPy）、评测与反馈回路（Agent-as-a-Judge、OTel GenAI semconv、Langfuse 评测体系）、工具/技能生态自进化（MCP Registry、Agent Skills、LLM 自造工具谱系）、记忆与知识系统自进化（MemGPT/Mem0/A-Mem 自编辑记忆、ExpeL/AWM/ReasoningBank 经验沉淀、MemEvolve/MemSkill 记忆元进化、Zep/HippoRAG 2 图谱记忆、SSGM/MINJA 记忆治理）、以及生产化护栏（OWASP Agentic AI Top 10、金丝雀/影子部署、Goodhart 防护），最终将证据映射到 negentropy 四类系统的设计决策上。重叠声明：ReAct / Reflexion / Self-Refine / LATS / Voyager / LLM-as-Judge 偏差治理已由 [110 号调研](./110-routine-agent-iteration.md) 覆盖，本报告一律引用不重述。
 
 ---
 
