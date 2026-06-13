@@ -16,8 +16,8 @@ import json
 
 from sqlalchemy import text
 
+import negentropy.db.session as db_session
 from negentropy.cli_seed import _DEMO_MARKER, _seed_demo_with_reset
-from negentropy.db import AsyncSessionLocal
 
 _MARKER = json.dumps({"seed_marker": _DEMO_MARKER})
 
@@ -49,7 +49,7 @@ async def _count_via_thread(session, table: str) -> int:
 async def test_seed_demo_idempotent_reset_and_events():
     # 1) 首次写入（reset=True）
     await _seed_demo_with_reset("dev-user", reset=True)
-    async with AsyncSessionLocal() as s:
+    async with db_session.AsyncSessionLocal() as s:
         assert await _count_threads(s) == 1
         assert await _count_via_thread(s, "events") == 2
         assert await _count_via_thread(s, "memories") == 1
@@ -57,14 +57,14 @@ async def test_seed_demo_idempotent_reset_and_events():
 
     # 2) 重复（reset=False）→ 幂等跳过，计数不变
     await _seed_demo_with_reset("dev-user", reset=False)
-    async with AsyncSessionLocal() as s:
+    async with db_session.AsyncSessionLocal() as s:
         assert await _count_threads(s) == 1
         assert await _count_via_thread(s, "events") == 2
         assert await _count_via_thread(s, "facts") == 1
 
     # 3) reset=True → 清除后重建（仍是 1 thread / 2 events / 1 fact）
     await _seed_demo_with_reset("dev-user", reset=True)
-    async with AsyncSessionLocal() as s:
+    async with db_session.AsyncSessionLocal() as s:
         assert await _count_threads(s) == 1
         assert await _count_via_thread(s, "events") == 2
         assert await _count_via_thread(s, "facts") == 1

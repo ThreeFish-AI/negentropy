@@ -72,11 +72,11 @@ async def _demo_exists(session) -> bool:  # type: ignore[no-untyped-def]
 
 
 async def _seed_demo(user_id: str) -> None:
-    from negentropy.db import AsyncSessionLocal
+    import negentropy.db.session as db_session
     from negentropy.models.internalization import Fact, Memory
     from negentropy.models.pulse import Event, Thread
 
-    async with AsyncSessionLocal() as session:
+    async with db_session.AsyncSessionLocal() as session:
         async with session.begin():
             if await _demo_exists(session):
                 print(f"✔ 演示数据已存在（marker={_DEMO_MARKER}），跳过。使用 --reset 重建。")
@@ -151,9 +151,9 @@ async def _seed_demo(user_id: str) -> None:
 
 async def _seed_demo_with_reset(user_id: str, reset: bool) -> None:
     if reset:
-        from negentropy.db import AsyncSessionLocal
+        import negentropy.db.session as db_session
 
-        async with AsyncSessionLocal() as session:
+        async with db_session.AsyncSessionLocal() as session:
             async with session.begin():
                 await _reset_demo(session)
         print("✔ 已清除旧演示数据（按 seed_marker 标记）。")
