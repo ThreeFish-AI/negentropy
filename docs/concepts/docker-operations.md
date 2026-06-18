@@ -444,6 +444,51 @@ docker buildx imagetools inspect threefishai/negentropy-backend:latest
 
 > 镜像构建与流水线设计详见 [Docker Release Pipeline](./design/docker-release-pipeline.md)。本节聚焦发布操作的**执行步骤**。
 
+### 7.0 首次发布（First Release）
+
+> 当 `negentropy-v*` tag 数为 0、且 `threefishai` 命名空间下 4 个镜像仓库均不存在时即为**首次发布**——在常规 [7.1 检查清单](#71-发布前检查清单) / [7.2 发布流程](#72-发布流程) 之外，需额外关注以下首发专属事项。
+
+**① 首发判定**（确认确为第一次）：
+
+```bash
+# 仓内无历史发布 tag（预期为空）
+git tag --list 'negentropy-v*'
+
+# Docker Hub 上镜像仓库不存在（HTTP 404 即从未发布）
+curl -s -o /dev/null -w '%{http_code}\n' https://hub.docker.com/v2/repositories/threefishai/negentropy-backend/tags/
+```
+
+**② 版本号决策**（⚠️ 非显而易见的耦合）：
+
+Docker 镜像 tag 由 git tag 派生（`negentropy-v<x.y.z>` → `<x.y.z>`），但 `package-release` 用 `uv build` 打的 wheel 取自 [`apps/negentropy/pyproject.toml`](../../apps/negentropy/pyproject.toml) 的 `version`。**首发 tag 务必与 pyproject `version` 对齐**，否则 GitHub Release 标题、wheel 命名、Docker 镜像 tag 三者错位。
+
+| 当前 pyproject `version` | 推荐首发 tag |
+|:---|:---|
+| `0.1.0` | `negentropy-v0.1.0` |
+
+> 若需发布更高版本（如 `1.0.0`），须先 bump pyproject / package.json —— 属代码改动，不属于纯发布操作。
+
+**③ 首发陷阱速查**：
+
+| 陷阱 | 说明 |
+|:---|:---|
+| Secrets 必须 **Repository 级** | `uses:` 型 `docker-release` job 无法声明 environment，environment-scoped secrets 对其不可见 → `Login to Docker Hub` 失败。详见 [Release Pipeline 前置配置](./design/docker-release-pipeline.md)。 |
+| fork 防御 | `docker-release` 含 `if: github.repository_owner == 'ThreeFish-AI'`；非 ThreeFish-AI 仓库推 tag 不会发布。 |
+| PG 来自上游命名空间 | 消费者 `pull` 会从 `pgvector` 官方拉 `pgvector/pgvector:pg17` + 从 `threefishai` 拉 4 个应用镜像——属「复用上游 PG」方案的预期外观，非异常。 |
+| 消费者必填 LLM key | PG 无密钥（trust 认证），但应用不填至少一个 LLM key 与 `NE_AUTH_TOKEN_SECRET` 无法正常服务。密钥准备见 [§2.3 环境变量设置](#23-环境变量设置)。 |
+| 勿混入 `.local.yml` | 消费者使用裸 `docker-compose.yml`，勿叠加 `docker-compose.local.yml`（开发期 inmemory / 关 langfuse 覆盖）或 `./dev` 脚本。 |
+
+**④ 首发端到端验证**（在 [7.3 发布后验证](#73-发布后验证) 基础上补应用层自检）：
+
+```bash
+export NEGENTROPY_IMAGE_TAG=0.1.0
+docker compose -f docker-compose.yml up -d --no-build
+curl -fsS http://localhost:3292/health                               # backend 健康（HTTP 200）
+docker compose -f docker-compose.yml exec backend negentropy doctor  # 应用自检（含 DB / pgvector 扩展）
+```
+
+> **判定**：5 服务（postgres / perceives / backend / ui / wiki）均 `healthy` + `/health` 返回 200 + `negentropy doctor` 通过 = 首次发布成功。
+
 ### 7.1 发布前检查清单
 
 - [ ] 所有 CI 门禁通过（backend QA + UI QA）
