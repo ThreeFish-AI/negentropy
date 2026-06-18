@@ -12,7 +12,7 @@ packages = ["src/negentropy"]
 
 [project]
 name = "negentropy"
-version = "0.1.0"
+version = "0.0.1a1"
 description = "An entropy-reducing 'cultivation' system for AI agents."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
