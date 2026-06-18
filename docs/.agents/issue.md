@@ -3218,10 +3218,25 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ---
 
-## ISSUE-141 Dependabot 无补丁告警以「可接受风险」驳回——dompurify GHSA-x4vx / torch GHSA-rrmf（2026-06-19）
+## ISSUE-141 negentropy-perceives `pip-audit` CI 失败：upstream 新增 17 CVE 未纳入忽略列表——4 包可升 1 包无修复（2026-06-18）
+
+- **表因**：[GitHub Actions Run 27769280161](https://github.com/ThreeFish-AI/negentropy/actions/runs/27769280161)（PR #918 `feature/1.x.x → master`）`Perceves CI` 的 **`Security Audit` job 失败**——`Run pip-audit vulnerability scan` 步骤 exit 1（`Process completed with exit code 1.`）。其余 6 个 job（Test×3 / Lint & Type Check / Build Package / Coverage Report）全绿。
+- **根因**：perceives 在 `.github/workflows/negentropy-perceives-ci.yml:88-141` 维护了一份精心策展的 `--ignore-vuln` 列表，仅忽略「upstream 无修复 / 修复受硬约束」的漏洞。近期 PyPI 上游新增一批 CVE，致 **17 个漏洞（5 个包）未在忽略列表**，pip-audit 因发现未忽略漏洞而 exit 1：`pypdf 6.10.2`（8 CVE，构造 PDF 触发的 DoS）、`starlette 1.0.1`（4 CVE，MCP http-transport 攻击面）、`python-multipart 0.0.27`（3 CVE，表单解析）、`cryptography 46.0.7`（1 GHSA）、`torch 2.10.0`（CVE-2025-3000，**upstream 确无修复**）。前四者均有修复版本且逆向依赖无 upper-cap；torch CVE-2025-3000 被 upstream disputed、攻击面与已忽略的 PYSEC-2025-189..197/210 同类（本地内存破坏/DoS，需构造恶意 tensor）。
+- **处理方式**（严格循项目既有「双轨」安全约定，最小干预、零结构性改动）：
+  1. **约定 1·直接依赖升级**：`apps/negentropy-perceives/pyproject.toml:53` `pypdf>=6.10.2` → `pypdf>=6.13.3`，注释覆盖全部 8 个新 CVE。pypdf 是直接依赖且 `pypdf.PdfReader` 在 4 处不可信 PDF 入口被调用（`pipeline/stages/pdf/text_extraction.py:858`、`preprocessing.py:182`、`pdf/processor.py:875`、`pdf/llm/orchestrator.py:868`），攻击面真实可达，对标既有 `docling>=2.94.0` 先例。
+  2. **约定 2·传递依赖 override 强制升级**：`pyproject.toml:198` `override-dependencies` 追加 `starlette>=1.3.1`、`python-multipart>=0.0.32`、`cryptography>=48.0.1`（均经 PyPI `requires_dist` 核实 fastapi 0.135.2 / mcp 1.26.0 / sse-starlette 3.3.4 / mineru 3.0.9 及 cryptography 的 5 个消费者 authlib / google-auth / joserfc / pdfminer-six / secretstorage 对三者只设下界、无 upper-cap）。`uv lock` 解析后 cryptography 实际落到 **49.0.0**（latest，含 48.0.1 修复且更多）。
+  3. **约定 3·忽略列表**：workflow `--ignore-vuln PYSEC-2026-139` 之后追加 `--ignore-vuln CVE-2025-3000`，附简注复用既有 torch 注释块理由（仅加载第一方模型 artifact、无不可信输入路径、upstream 无 fix）。
+  4. `cd apps/negentropy-perceives && uv lock` 重新生成 `uv.lock`（313 packages，37s 无解析冲突）。
+- **后续防范**：① pip-audit 忽略列表是「动态漂移」契约——upstream 持续新增 CVE，每次 CI 失败须按「**先升后忽略**」优先级处理：有修复版本且无硬约束者必升级（约定 1/2），仅无 upstream fix 或受硬锁者方入忽略列表（约定 3，每条附威胁模型注释）；② 升级传递依赖前必须核实逆向依赖的 `requires_dist` 有无 upper-cap（本次 fastapi/mcp/sse-starlette/mineru 及 cryptography 5 消费者均无），否则 `uv lock` 会解析失败；③ cryptography 跨大版本（46→49）虽走 `cp311-abi3` stable-ABI、消费者不加载原始 X.509 CRL 故不受 48.0.0 的 CRL breaking-change 影响，但 fastapi/mcp 无官方 starlette 1.x 兼容矩阵——建议升级后跑通 MCP http-transport 启动冒烟兜底；④ 本地复现 pip-audit 须用 `uv run pip-audit`（env 模式，审计 uv 已装环境）——`pip-audit -r requirements.txt` 模式会创建内部 venv，在 uv 管理的 standalone Python（astral-sh/python-build-standalone）上 `ensurepip` SIGABRT 失败，不可用。
+- **同类问题影响**：所有经 `negentropy-perceives-ci.yml` 的 perceives 依赖变更均受此「忽略列表漂移」影响——未来新增/升级依赖后若引入 upstream 暂无修复的 CVE，CI 会再次失败，需同流程处理。cognizes 子项目若引入同类 pip-audit 步骤亦同。
+- **验证**：`uv lock` 313 packages 无解析冲突，4 包落到目标版本（pypdf 6.13.3 / starlette 1.3.1 / python-multipart 0.0.32 / cryptography 49.0.0）；本地 `uv run pip-audit`（复用 CI 完整 ignore_args + 新增 CVE-2025-3000）验证；最终以 CI `Security Audit` job 重跑转绿为准（见 PR）。
+
+---
+
+## ISSUE-142 Dependabot 无补丁告警以「可接受风险」驳回——dompurify GHSA-x4vx / torch GHSA-rrmf（2026-06-19）
 
 - **表因**：GitHub Dependabot 安全面板 99 条开放告警中，有 **3 条无任何 patched 版本**（`first_patched_version.identifier == null`），无法靠升级依赖消除：① #472 `dompurify` GHSA-x4vx-rjvf-j5p4（npm，pnpm-lock.yaml）——`IN_PLACE` 模式信任攻击者可控 `nodeName` 致 script 残留/XSS（low）；② #390 `torch` GHSA-rrmf-rvhw-rf47（pip，apps/cognizes/uv.lock）——`torch.jit.script` 内存破坏（low）；③ #389 `torch` GHSA-rrmf-rvhw-rf47（pip，apps/negentropy-perceives/uv.lock）——同上。
-- **根因**：上游（DOMPurify / PyTorch）对这 3 个 advisory 尚未发布修复版本，`fixed_in` 字段为空。任何版本升级都无法核销——它们与「可升级修复」的 96 条告警是两类问题，须分别处理。
-- **处理方式**：随本次安全核销 PR（96 条可修复告警已全部通过 `[tool.uv]` 约束/override 提升 + `pnpm-workspace.yaml` overrides 修复），对这 3 条无补丁告警以 `dismissed_reason=tolerable_risk` 经 `gh api -X PATCH repos/.../dependabot/alerts/<n>` 驳回，理由：① **dompurify** 仅由 `mermaid`（图表渲染）传递引入，用于**受控的 mermaid SVG/HTML 清洗**而非任意用户 DOM，项目代码不使用 `IN_PLACE` 模式、不将 DOMPurify 暴露给攻击者可控的 live DOM 节点，触发路径不可达；② **torch** 仅由 `docling`/`mineru`/`sentence-transformers` 等 PDF/Embedding 引擎传递引入，且仅在 `cognizes` gpu 组 + `perceives` PDF 处理路径加载，项目**从不调用 `torch.jit.script`**（JIT 编译入口），漏洞函数不在调用图内。两者均为 low 严重度，触发条件不满足，故定级可接受风险。
+- **根因**：上游（DOMPurify / PyTorch）对这 3 个 advisory 尚未发布修复版本，`fixed_in` 字段为空。任何版本升级都无法核销——它们与「可升级修复」的告警是两类问题，须分别处理（注意：ISSUE-141 中 perceives CI 忽略的 torch `CVE-2025-3000` 是另一个 advisory，与本 ISSUE 的 torch `GHSA-rrmf-rvhw-rf47` 不同，二者独立成立）。
+- **处理方式**：随本次安全核销（negentropy/cognizes/npm 经本 PR 修复、perceives 经同期 PR #921 覆盖），对这 3 条无补丁告警以 `dismissed_reason=tolerable_risk` 经 `gh api -X PATCH repos/.../dependabot/alerts/<n>` 驳回，理由：① **dompurify** 仅由 `mermaid`（图表渲染）传递引入，用于**受控的 mermaid SVG/HTML 清洗**而非任意用户 DOM，项目代码不使用 `IN_PLACE` 模式、不将 DOMPurify 暴露给攻击者可控的 live DOM 节点，触发路径不可达；② **torch** 仅由 `docling`/`mineru`/`sentence-transformers` 等 PDF/Embedding 引擎传递引入，且仅在 `cognizes` gpu 组 + `perceives` PDF 处理路径加载，项目**从不调用 `torch.jit.script`**（JIT 编译入口），漏洞函数不在调用图内。两者均为 low 严重度，触发条件不满足，故定级可接受风险。
 - **后续防范**：① 定期（如每月）复查这 3 条已驳回告警——一旦上游发布 patched 版本（`fixed_in` 不再为 null），应立即升级核销并清理由此产生的「可驳回」状态；② 新增传递依赖若引入 DOMPurify 的 `IN_PLACE` 用法或 `torch.jit.script` 调用，须重新评估本驳回是否仍成立（在 PR 评审中显式核对）；③ Dependabot 驳回状态可在 GitHub 安全面板按 `Dismissed` 过滤复查，驳回理由（tolerable_risk）附在本 issue 摘要中可追溯。
 - **同类问题影响**：所有「上游无补丁」类 Dependabot 告警（`fixed_in` 为空）都适用本模式——先评估「项目调用图是否触及漏洞函数」与「触发前置条件是否满足」，满足「不可达 / 不满足」且 low 严重度方可 `tolerable_risk` 驳回并在 issue.md 留痕；high/critical 即便无补丁也应单独跟踪（如通过虚拟补丁、WAF、依赖替换缓解），不得直接驳回。
