@@ -159,7 +159,10 @@ jobs:
           # cache scope 按 镜像 × 平台 隔离（共 8 个），mode=max 导出全部
           # 构建阶段层（multi-stage 下 builder 层缓存是命中率关键）
           cache-from: type=gha,scope=docker-${{ matrix.image.name }}-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,scope=docker-${{ matrix.image.name }}-${{ env.PLATFORM_PAIR }},mode=max
+          # cache-to 仅发布（push=true）时导出：PR 校验构建即弃，cache-to 上传对当前构建
+          # 零收益，却因 mode=max 全量上传中间阶段层（perceives venv 单层曾达 8.5 分钟）
+          # 拖慢 ~14 分钟并放大被并发取消的窗口。cache-from 保留，PR 仍可命中发布预热缓存。
+          cache-to: ${{ inputs.push && format('type=gha,scope=docker-{0}-{1},mode=max', matrix.image.name, env.PLATFORM_PAIR) || '' }}
           outputs: type=image,name=docker.io/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image.name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
 
       - name: Export digest
