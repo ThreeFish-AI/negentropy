@@ -43,9 +43,9 @@ overrides:
   '@ag-ui/core': 0.0.47
   flatted: '>=3.4.2'
   # jsdom@28.1.0 引用 undici/lib/handler/{wrap,unwrap}-handler.js，该路径在 undici@8 已删除；
-  # 限制上限到 <8 以保持 jsdom 兼容性，同时保留 >=7.24.0 的安全补丁要求。
+  # 限制上限到 <8 以保持 jsdom 兼容性，同时保留 >=7.28.0 的安全补丁要求（CVE-2026-9697/9678）。
   # 等 jsdom 升级到 29+ 且生态稳定后可考虑放开。
-  undici: '>=7.24.0 <8.0.0'
+  undici: '>=7.28.0 <8.0.0'
   dompurify: '>=3.4.9'      # mermaid 传递 (运行时); 7 个 medium 告警 fixed @3.4.9 (GHSA-x4vx 无补丁, 仅升版本基线)
   lodash-es: '>=4.18.1'
   picomatch: '>=4.0.4'
