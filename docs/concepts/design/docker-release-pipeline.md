@@ -108,6 +108,8 @@ docker compose up -d
 2. **首发用 prerelease 小步验证**：推 tag `negentropy-v<x.y.z>-rc.1`，验证 `docker buildx imagetools inspect threefishai/negentropy-backend:<x.y.z>-rc.1` 含 amd64+arm64 双平台；
 3. **正式发布**：推 tag `negentropy-v<x.y.z>`，联动产出 `x.y.z` / `x.y` / `latest`。
 
+> **首次发布**（`negentropy-v*` tag 数为 0、镜像仓库不存在）的专属准备——版本号 ↔ pyproject 耦合、首发陷阱速查、`negentropy doctor` 端到端自检——见 [Docker Compose 运维指引 §7.0](../docker-operations.md#7-发布运维)。
+
 ## 相关文件
 
 - [reusable-negentropy-docker.yml](../../../.github/workflows/reusable-negentropy-docker.yml) — 机制层：构建 + digest 合并
