@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
+import { SortableCardWrapper, SortableDragHandle } from "@/components/ui/SortableCardWrapper";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 const MARKDOWN_CONTENT_CLASS = [
@@ -846,15 +847,22 @@ export function McpServerCard({
 
   return (
     <div className="space-y-2">
-      <div className="flex h-[176px] flex-col overflow-hidden rounded-xl border border-border bg-card p-4">
-        <div className="flex min-h-0 flex-1 flex-col">
+      <SortableCardWrapper
+        id={server.id}
+        onEdit={canEdit ? onEdit : undefined}
+        canEdit={canEdit}
+      >
+        <div className="relative z-20 flex min-h-0 flex-1 flex-col pointer-events-none">
           <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
-            <h3 className="truncate text-lg font-semibold text-foreground">
-              {server.display_name || server.name}
-            </h3>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex min-w-0 items-start gap-1">
+              <SortableDragHandle />
+              <h3 className="truncate text-lg font-semibold text-foreground">
+                {server.display_name || server.name}
+              </h3>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 pointer-events-auto">
               <button
-                onClick={onTry}
+                onClick={(e) => { e.stopPropagation(); onTry(); }}
                 className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
                 title="Try MCP Server"
                 aria-label={`Try ${server.display_name || server.name}`}
@@ -865,7 +873,7 @@ export function McpServerCard({
                 </svg>
               </button>
               <button
-                onClick={onLoad}
+                onClick={(e) => { e.stopPropagation(); onLoad(); }}
                 disabled={loadingTools}
                 className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
                 title="Load Tools from Server"
@@ -885,7 +893,7 @@ export function McpServerCard({
               {canEdit && (
                 <>
                   <button
-                    onClick={onEdit}
+                    onClick={(e) => { e.stopPropagation(); onEdit(); }}
                     title="Edit Server"
                     aria-label={`Edit ${server.display_name || server.name}`}
                     className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
@@ -895,7 +903,7 @@ export function McpServerCard({
                     </svg>
                   </button>
                   <button
-                    onClick={onDelete}
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
                     title="Delete Server"
                     aria-label={`Delete ${server.display_name || server.name}`}
                     className="cursor-pointer rounded-md p-2 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:hover:bg-red-900/20 dark:hover:text-red-400"
@@ -909,7 +917,7 @@ export function McpServerCard({
             </div>
           </div>
 
-          <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap">
+          <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap pl-6">
             {server.is_enabled ? (
               <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 Enabled
@@ -944,18 +952,18 @@ export function McpServerCard({
           </div>
 
           <p
-            className="mb-1 h-[60px] min-w-0 w-full overflow-hidden text-sm leading-5 text-text-muted line-clamp-3"
+            className="mb-1 ml-6 h-[60px] min-w-0 w-full overflow-hidden text-sm leading-5 text-text-muted line-clamp-3"
             title={summaryDescription}
           >
             {summaryDescription}
           </p>
 
-          <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
+          <div className="mt-auto ml-6 flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-text-muted">
             {showToolToggle && (
               <button
                 type="button"
-                onClick={handleToggleTools}
-                className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={(e) => { e.stopPropagation(); handleToggleTools(); }}
+                className="pointer-events-auto inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-expanded={showTools}
                 aria-label={`Toggle tools list for ${server.display_name || server.name}`}
                 title="Toggle tools list"
@@ -994,8 +1002,8 @@ export function McpServerCard({
             {showResourceToggle && (
               <button
                 type="button"
-                onClick={handleToggleResources}
-                className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={(e) => { e.stopPropagation(); handleToggleResources(); }}
+                className="pointer-events-auto inline-flex shrink-0 cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-text-muted transition-colors hover:bg-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-expanded={showResources}
                 aria-label={`Toggle resource templates list for ${server.display_name || server.name}`}
                 title="Toggle resource templates list"
@@ -1023,7 +1031,7 @@ export function McpServerCard({
             )}
           </div>
         </div>
-      </div>
+      </SortableCardWrapper>
 
       {loadError && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive" role="alert">

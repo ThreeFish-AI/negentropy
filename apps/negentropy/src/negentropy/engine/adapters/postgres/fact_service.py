@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 import negentropy.db.session as db_session
@@ -213,6 +213,7 @@ class FactService:
         app_name: str,
         query: str,
         limit: int = 10,
+        offset: int = 0,
     ) -> list[Fact]:
         """搜索相关 Fact
 
@@ -223,6 +224,7 @@ class FactService:
             app_name: 应用名称
             query: 搜索查询
             limit: 返回数量限制
+            offset: 偏移量（分页）
 
         Returns:
             匹配的 Fact 列表
@@ -238,6 +240,7 @@ class FactService:
                     app_name=app_name,
                     query_embedding=query_embedding,
                     limit=limit,
+                    offset=offset,
                     now=now,
                 )
             except Exception as exc:
@@ -258,10 +261,47 @@ class FactService:
                     (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
                 )
                 .order_by(Fact.created_at.desc())
+                .offset(offset)
                 .limit(limit)
             )
             result = await db.execute(stmt)
             return list(result.scalars().all())
+
+    async def count_search_facts(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        query: str,
+    ) -> int:
+        """统计搜索匹配的 Fact 总数（用于分页）
+
+        使用与 search_facts ilike 回退相同的 WHERE 条件进行 COUNT。
+        向量语义检索的总数用 ilike 近似（搜索结果量小，可接受）。
+
+        Args:
+            user_id: 用户 ID
+            app_name: 应用名称
+            query: 搜索查询
+
+        Returns:
+            匹配的 Fact 总数
+        """
+        now = datetime.now(UTC)
+
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(func.count())
+                .select_from(Fact)
+                .where(
+                    Fact.user_id == user_id,
+                    Fact.app_name == app_name,
+                    Fact.key.ilike(f"%{query}%"),
+                    (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
+                )
+            )
+            result = await db.execute(stmt)
+            return result.scalar_one()
 
     async def _semantic_search_facts(
         self,
@@ -270,9 +310,13 @@ class FactService:
         app_name: str,
         query_embedding: list[float],
         limit: int,
-        now: datetime,
+        offset: int = 0,
+        now: datetime | None = None,
     ) -> list[Fact]:
         """向量语义检索 Fact"""
+        if now is None:
+            now = datetime.now(UTC)
+
         async with db_session.AsyncSessionLocal() as db:
             distance = Fact.embedding.op("<=>")(query_embedding)
             stmt = (
@@ -284,6 +328,7 @@ class FactService:
                     (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
                 )
                 .order_by(distance.asc())
+                .offset(offset)
                 .limit(limit)
             )
             result = await db.execute(stmt)
@@ -340,6 +385,7 @@ class FactService:
         app_name: str,
         fact_type: str | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> list[Fact]:
         """列出有效 Fact
 
@@ -348,6 +394,7 @@ class FactService:
             app_name: 应用名称
             fact_type: 可选的事实类型过滤
             limit: 返回数量限制
+            offset: 偏移量（分页）
 
         Returns:
             Fact 列表
@@ -368,10 +415,47 @@ class FactService:
             if fact_type:
                 stmt = stmt.where(Fact.fact_type == fact_type)
 
-            stmt = stmt.order_by(Fact.created_at.desc()).limit(limit)
+            stmt = stmt.order_by(Fact.created_at.desc()).offset(offset).limit(limit)
 
             result = await db.execute(stmt)
             return list(result.scalars().all())
+
+    async def count_facts(
+        self,
+        *,
+        user_id: str | None = None,
+        app_name: str,
+        fact_type: str | None = None,
+    ) -> int:
+        """统计有效 Fact 总数（用于分页）
+
+        与 list_facts 使用相同的 WHERE 条件，但不应用 ORDER BY / LIMIT / OFFSET。
+
+        Args:
+            user_id: 用户 ID，为 None 时统计所有用户的 Facts
+            app_name: 应用名称
+            fact_type: 可选的事实类型过滤
+
+        Returns:
+            符合条件的 Fact 总数
+        """
+        now = datetime.now(UTC)
+
+        async with db_session.AsyncSessionLocal() as db:
+            conditions = [
+                Fact.app_name == app_name,
+                Fact.status == "active",
+                (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
+            ]
+            if user_id is not None:
+                conditions.append(Fact.user_id == user_id)
+
+            if fact_type:
+                conditions.append(Fact.fact_type == fact_type)
+
+            stmt = select(func.count()).select_from(Fact).where(*conditions)
+            result = await db.execute(stmt)
+            return result.scalar_one()
 
     @staticmethod
     def _cosine_similarity(a: list[float], b: list[float]) -> float:

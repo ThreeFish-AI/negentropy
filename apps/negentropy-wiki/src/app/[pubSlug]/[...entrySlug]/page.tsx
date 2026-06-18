@@ -14,14 +14,18 @@ import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiToc } from "@/components/WikiToc";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
+import { WikiSearchProvider } from "@/components/WikiSearchProvider";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { extractHeadings } from "@/lib/markdown-headings";
 import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
 import { WikiCommentSection } from "@/components/WikiCommentSection";
+import { WikiArticleMeta } from "@/components/WikiArticleMeta";
 import { AnnotationLayer } from "@/components/annotation/AnnotationLayer";
 import { WikiFooter } from "@/components/home/WikiFooter";
+import { SearchSnippetScroller } from "@/components/SearchSnippetScroller";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -159,11 +163,13 @@ export default async function WikiEntryPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
+      userMenu={<WikiUserMenu />}
       graphTab={{ active: false, show: hasAnyEntry }}
     />
   );
 
   return (
+    <WikiSearchProvider pubSlug={pubSlug}>
     <WikiLayoutShell
       sidebar={sidebar}
       hasToc={hasToc}
@@ -204,25 +210,32 @@ export default async function WikiEntryPage({ params }: Props) {
               <h1 className="wiki-doc-title">
                 {content.entry_title || slug}
               </h1>
-              <div className="wiki-doc-meta">
-                来源: {content.document_filename || "未知"}
-                {content.document_id &&
-                  ` · 文档 ID: ${String(content.document_id).slice(0, 8)}...`}
-              </div>
+              <WikiArticleMeta
+                entryId={entryId!}
+                authorName={content.author_name}
+                authorUrl={content.author_url}
+                publishedAt={content.published_at}
+                sourceUrl={content.source_url}
+              />
             </header>
             {entryId ? (
               <>
                 <AnnotationLayer entryId={entryId}>
                   <MarkdownRenderer content={md} />
                 </AnnotationLayer>
+                <SearchSnippetScroller />
                 <WikiCommentSection entryId={entryId} />
               </>
             ) : (
-              <MarkdownRenderer content={md} />
+              <>
+                <MarkdownRenderer content={md} />
+                <SearchSnippetScroller />
+              </>
             )}
           </>
         )
       )}
     </WikiLayoutShell>
+    </WikiSearchProvider>
   );
 }

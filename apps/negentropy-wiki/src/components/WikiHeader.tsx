@@ -33,6 +33,7 @@ interface WikiHeaderProps {
   graphTab?: WikiHeaderGraphTab;
   searchBox?: React.ReactNode;
   actions?: React.ReactNode;
+  userMenu?: React.ReactNode;
   homeLinks?: HomeLink[];
 }
 
@@ -44,6 +45,7 @@ export function WikiHeader({
   graphTab,
   searchBox,
   actions,
+  userMenu,
   homeLinks,
 }: WikiHeaderProps) {
   if (!items.length && !homeLinks?.length && !(graphTab?.show)) return null;
@@ -62,22 +64,9 @@ export function WikiHeader({
           />
           <span className="wiki-header-name">Negentropy Wiki</span>
         </Link>
-        <nav className="wiki-header-tabs" aria-label="主导航">
-          {homeLinks
-            ? homeLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="wiki-header-tab">
-                  {link.label}
-                </Link>
-              ))
-            : items.map((item) => (
-                <WikiHeaderTab
-                  key={`${item.entry_id ?? "c"}:${item.entry_slug}`}
-                  item={item}
-                  pubSlug={pubSlug!}
-                  isActive={!graphTab?.active && item.entry_slug === activeTopSlug}
-                />
-              ))}
-          {graphTab?.show && (
+        {/* LEFT: Knowledge Graph tab only */}
+        {graphTab?.show && (
+          <nav className="wiki-header-tabs wiki-header-tabs--left" aria-label="特色导航">
             <Link
               href={`/${pubSlug}/graph`}
               className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
@@ -85,12 +74,33 @@ export function WikiHeader({
             >
               {graphTab.label ?? "Knowledge Graph"}
             </Link>
-          )}
-        </nav>
+          </nav>
+        )}
+
+        {/* RIGHT: Content navigation tabs */}
+        {(items.length > 0 || (homeLinks && homeLinks.length > 0)) && (
+          <nav className="wiki-header-tabs wiki-header-tabs--right" aria-label="主导航">
+            {homeLinks
+              ? homeLinks.map((link) => (
+                  <Link key={link.href} href={link.href} className="wiki-header-tab">
+                    {link.label}
+                  </Link>
+                ))
+              : items.map((item) => (
+                  <WikiHeaderTab
+                    key={`${item.entry_id ?? "c"}:${item.entry_slug}`}
+                    item={item}
+                    pubSlug={pubSlug!}
+                    isActive={!graphTab?.active && item.entry_slug === activeTopSlug}
+                  />
+                ))}
+          </nav>
+        )}
         <div className="wiki-header-slot">
           {searchBox}
           {actions}
           {headerSlot}
+          {userMenu}
         </div>
       </div>
     </header>

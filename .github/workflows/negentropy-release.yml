@@ -32,6 +32,54 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 解析发布元数据并暴露为 outputs，供 `uses:` 型 job（docker-release）引用。
+  # 与 package-release 内联的 Resolve release metadata step 同源（后者保持
+  # 原样以零回归；如后续重构可改读本 job outputs 消除重复）。
+  release-meta:
+    name: Resolve Release Metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DISPATCH_VERSION: ${{ github.event.inputs.version }}
+      DISPATCH_CHANNEL: ${{ github.event.inputs.channel }}
+      DISPATCH_PUBLISH: ${{ github.event.inputs.publish_release }}
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      docker_push: ${{ steps.meta.outputs.docker_push }}
+      docker_stable: ${{ steps.meta.outputs.docker_stable }}
+    steps:
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#negentropy-v}"
+            channel="stable"
+            publish_release="true"
+          else
+            version="${DISPATCH_VERSION}"
+            if [[ -z "${version}" ]]; then
+              echo "workflow_dispatch requires a version input" >&2
+              exit 1
+            fi
+            channel="${DISPATCH_CHANNEL:-candidate}"
+            publish_release="${DISPATCH_PUBLISH:-false}"
+          fi
+
+          is_prerelease="false"
+          if [[ "${channel}" == "candidate" || "${version}" == *-* ]]; then
+            is_prerelease="true"
+          fi
+
+          docker_stable="false"
+          if [[ "${is_prerelease}" == "false" ]]; then
+            docker_stable="true"
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "docker_push=${publish_release}" >> "$GITHUB_OUTPUT"
+          echo "docker_stable=${docker_stable}" >> "$GITHUB_OUTPUT"
+
   backend-qa:
     uses: ./.github/workflows/reusable-negentropy-backend-quality.yml
     with:
@@ -199,3 +247,19 @@ jobs:
               --notes-file "${notes_file}" \
               "${extra_args[@]}"
           fi
+
+  # Docker 镜像多架构构建与 Docker Hub 发布：复用既有 QA 门禁（不重复跑 CI）。
+  # tag 触发恒推送；workflow_dispatch 下 publish_release=false 时为全链路干跑
+  # （构建不推送）。repository_owner 防御 fork 仓库误触发推送。
+  docker-release:
+    name: Docker Images
+    needs: [release-meta, backend-qa, ui-qa]
+    if: github.repository_owner == 'ThreeFish-AI'
+    uses: ./.github/workflows/reusable-negentropy-docker.yml
+    with:
+      version: ${{ needs.release-meta.outputs.version }}
+      push: ${{ needs.release-meta.outputs.docker_push == 'true' }}
+      stable: ${{ needs.release-meta.outputs.docker_stable == 'true' }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

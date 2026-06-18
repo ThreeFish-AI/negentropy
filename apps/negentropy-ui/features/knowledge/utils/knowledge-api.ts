@@ -745,9 +745,12 @@ export type PipelineOperation =
   | "ingest_text"
   | "ingest_url"
   | "ingest_file"
+  | "ingest_document"
+  | "import_document"
   | "replace_source"
   | "sync_source"
-  | "rebuild_source";
+  | "rebuild_source"
+  | "translate";
 
 /**
  * Pipeline 错误对象。
@@ -1037,6 +1040,32 @@ export async function cancelPipelineRun(
   return handleKnowledgeError<PipelineCancelResult>(res);
 }
 
+/**
+ * 重试失败/取消的 ingest_file Pipeline（双入口）。
+ *
+ * - resume=true  断点续传：从最后完成的切片继续（复用 perceives checkpoint）；
+ * - resume=false 重新开始：丢弃 checkpoint 全量重跑。
+ *
+ * 后端创建一个新的 Pipeline Run（fresh run_id），原 Run 记录保留。
+ * `POST /api/knowledge/pipelines/{run_id}/retry`
+ */
+export async function retryPipelineRun(
+  runId: string,
+  resume: boolean,
+  opts?: { appName?: string },
+): Promise<AsyncPipelineResult> {
+  const res = await fetch(
+    `/api/knowledge/pipelines/${encodeURIComponent(runId)}/retry`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ app_name: opts?.appName, resume }),
+    },
+  );
+  return handleKnowledgeError<AsyncPipelineResult>(res);
+}
+
 // ============================================================================
 // Corpus (Knowledge Base)
 // ============================================================================
@@ -1234,13 +1263,79 @@ export async function ingestFile(
   return handleKnowledgeError(res);
 }
 
+/**
+ * 导入 URL 至文档库（仅转换为 Markdown 并存储，不做索引）。
+ * 异步管线：立即返回 run_id，可在 Pipeline 页查看 import_document 进度。
+ */
+export async function importDocumentUrl(params: {
+  app_name?: string;
+  url: string;
+  metadata?: Record<string, unknown>;
+}): Promise<AsyncPipelineResult> {
+  const res = await fetch(`/api/knowledge/documents/import_url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 导入文件（PDF / Markdown）至文档库（仅转换为 Markdown 并存储，不做索引）。
+ */
+export async function importDocumentFile(params: {
+  app_name?: string;
+  file: File;
+}): Promise<AsyncPipelineResult> {
+  const formData = new FormData();
+  if (params.app_name) formData.set("app_name", params.app_name);
+  formData.set("file", params.file);
+
+  const res = await fetch(`/api/knowledge/documents/import_file`, {
+    method: "POST",
+    body: formData, // 不设置 Content-Type，让浏览器自动处理 multipart/form-data
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 将既有 Document（库文档或任意 Corpus 文档）的 Markdown 索引进目标 Corpus。
+ * chunks 建在目标 Corpus，文档本体不动；replace 模式幂等重摄入。
+ */
+export async function ingestDocument(
+  corpusId: string,
+  params: {
+    app_name?: string;
+    document_id: string;
+  } & ChunkingRequestFields,
+): Promise<AsyncPipelineResult> {
+  const { app_name, document_id, ...chunkingParams } = params;
+  const res = await fetch(`/api/knowledge/base/${corpusId}/ingest_document`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      app_name,
+      document_id,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
+  });
+  return handleKnowledgeError(res);
+}
+
 // ============================================================================
 // Document Management Types
 // ============================================================================
 
+/**
+ * 文档详情路由中库文档（corpus_id=null）的哨兵段：
+ * `/knowledge/documents/library/{documentId}`。
+ */
+export const LIBRARY_CORPUS_SEGMENT = "library";
+
 export interface KnowledgeDocument {
   id: string;
-  corpus_id: string;
+  /** 为 null 时表示独立文档库（Library）文档，不归属任何 Corpus。 */
+  corpus_id: string | null;
   app_name: string;
   file_hash: string;
   original_filename: string;
@@ -1272,6 +1367,30 @@ export interface DocumentMarkdownRefreshResponse {
   document_id: string;
   status: string;
   message: string;
+}
+
+/**
+ * 文档翻译进度（源文档 `metadata.translation`，由后端翻译服务维护）。
+ */
+export interface DocumentTranslationMeta {
+  status?: "processing" | "completed" | "failed" | string;
+  target_document_id?: string | null;
+  target_language?: string;
+  error?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  warnings?: string[];
+}
+
+export interface DocumentTranslateSkipped {
+  document_id: string;
+  reason: string;
+}
+
+export interface DocumentTranslateResponse {
+  accepted: string[];
+  skipped: DocumentTranslateSkipped[];
+  status: string;
 }
 
 export interface DocumentListResponse {
@@ -1390,8 +1509,18 @@ export async function fetchAllDocuments(
   return handleKnowledgeError(res);
 }
 
+/**
+ * 文档操作 API 路径：库文档（corpusId=null）走无 corpus 平行路由，
+ * 其余走 corpus 作用域路由。库文档分支收敛于此单一函数。
+ */
+function documentApiBase(corpusId: string | null, documentId: string): string {
+  return corpusId
+    ? `/api/knowledge/base/${corpusId}/documents/${documentId}`
+    : `/api/knowledge/documents/${documentId}`;
+}
+
 export async function deleteDocument(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1403,7 +1532,7 @@ export async function deleteDocument(
   if (params?.hardDelete) query.set("hard_delete", "true");
 
   const res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    `${documentApiBase(corpusId, documentId)}?${query.toString()}`,
     { method: "DELETE" },
   );
   if (!res.ok) {
@@ -1412,7 +1541,7 @@ export async function deleteDocument(
 }
 
 export async function fetchDocumentDetail(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1422,29 +1551,36 @@ export async function fetchDocumentDetail(
   if (params?.appName) query.set("app_name", params.appName);
 
   const res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    `${documentApiBase(corpusId, documentId)}?${query.toString()}`,
     { cache: "no-store" },
   );
   return handleKnowledgeError(res);
 }
 
 /**
- * 更新文档元信息（目前仅支持 `display_name`）。
+ * 更新文档元信息（display_name + Wiki 文章元数据）。
  *
- * - 传入 `null` 或仅空白字符串 → 清除覆盖；Wiki 站点回退到
- *   `metadata.title -> original_filename`。
- * - 长度上限 255；超过由后端返回 422。
+ * - `display_name`: 传入 `null` 或仅空白字符串 → 清除覆盖；Wiki 站点回退到
+ *   `metadata.title -> original_filename`。长度上限 255。
+ * - `author` / `author_url` / `source_url` / `published_at`: 合并写入
+ *   `metadata` JSONB；传空字符串清除对应键。
  */
 export async function updateDocument(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
-  patch: { display_name?: string | null },
+  patch: {
+    display_name?: string | null;
+    author?: string | null;
+    author_url?: string | null;
+    source_url?: string | null;
+    published_at?: string | null;
+  },
   params?: { appName?: string },
 ): Promise<KnowledgeDocument> {
   const body: Record<string, unknown> = { ...patch };
   if (params?.appName) body.app_name = params.appName;
 
-  const res = await fetch(`/api/knowledge/base/${corpusId}/documents/${documentId}`, {
+  const res = await fetch(documentApiBase(corpusId, documentId), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -1453,7 +1589,7 @@ export async function updateDocument(
 }
 
 export async function refreshDocumentMarkdown(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1468,23 +1604,46 @@ export async function refreshDocumentMarkdown(
     body: payload,
   };
 
-  let res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh_markdown`,
-    requestInit,
-  );
-  if (res.status === 404) {
+  const base = documentApiBase(corpusId, documentId);
+  let res = await fetch(`${base}/refresh_markdown`, requestInit);
+  if (res.status === 404 && corpusId) {
     // Backward-compatible fallback for deployments using kebab-case route naming.
-    res = await fetch(
-      `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh-markdown`,
-      requestInit,
-    );
+    res = await fetch(`${base}/refresh-markdown`, requestInit);
   }
 
   return handleKnowledgeError(res);
 }
 
+/**
+ * 批量翻译文档（Documents 页 Translate 按钮）。
+ *
+ * 后端由 InfluenceFaculty（装配 document-translate 技能 + Claude Code 工具）异步执行；
+ * 进度经源文档 `metadata.translation` 状态机轮询，译文以新文档分录落库。
+ */
+export async function translateDocuments(
+  documentIds: string[],
+  params?: {
+    appName?: string;
+    /** 当前仅支持 "zh"（中文）翻译 */
+    targetLanguage?: "zh";
+    force?: boolean;
+  },
+): Promise<DocumentTranslateResponse> {
+  const res = await fetch(`/api/knowledge/documents/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      document_ids: documentIds,
+      app_name: params?.appName,
+      target_language: params?.targetLanguage ?? "zh",
+      force: params?.force ?? false,
+    }),
+  });
+  return handleKnowledgeError(res);
+}
+
 export async function downloadDocument(
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   params?: {
     appName?: string;
@@ -1494,7 +1653,7 @@ export async function downloadDocument(
   if (params?.appName) query.set("app_name", params.appName);
 
   const res = await fetch(
-    `/api/knowledge/base/${corpusId}/documents/${documentId}/download?${query.toString()}`,
+    `${documentApiBase(corpusId, documentId)}/download?${query.toString()}`,
   );
 
   if (!res.ok) {
@@ -2626,6 +2785,8 @@ export interface CatalogNode {
   description: string | null;
   sort_order: number;
   config: Record<string, unknown>;
+  /** DOCUMENT_REF 叶子节点关联的文档 ID（FOLDER 等结构节点为 null） */
+  document_id?: string | null;
   /** CTE 计算字段：层级深度（根节点为 0） */
   depth?: number;
   /** CTE 计算字段：从根到当前节点的 ID 路径数组 */

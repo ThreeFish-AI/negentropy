@@ -19,24 +19,82 @@ B 进程的 reaper 可能误判 A 进程仍在执行的迭代为孤儿——``is
 from __future__ import annotations
 
 import asyncio
+import copy
+import json
+import os
+import time
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 import negentropy.db.session as db_session
+from negentropy.config import settings
 from negentropy.engine.claude_code.models import ClaudeCodeConfig
-from negentropy.engine.claude_code.service import ClaudeCodeService
+from negentropy.engine.claude_code.service import (
+    ERROR_KIND_CONTEXT_EXHAUSTED,
+    ERROR_KIND_SESSION_NOT_FOUND,
+    ClaudeCodeService,
+    emit_raw_event,
+)
 from negentropy.logging import get_logger
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from .bus import get_bus
+from .streaming_persister import StreamingEventPersister
 
 logger = get_logger("negentropy.engine.routine.runner")
 
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+# ---------------------------------------------------------------------------
+# 迭代内上下文压缩续接辅助函数
+# ---------------------------------------------------------------------------
+
+_COMPACT_RETRY_PROMPT_TEMPLATE = (
+    "# 上下文续接 (Context Continuation)\n\n"
+    "上一次 Claude Code 会话因上下文窗口耗尽被自动压缩重启。\n"
+    "以下是压缩前的执行摘要，请据此继续推进任务。\n\n"
+    "## 原始任务\n{original_prompt}\n\n"
+    "## 已完成的工作摘要\n{summary}\n\n"
+    "## 指令\n"
+    "请从上述摘要断点继续工作，聚焦尚未完成的验收标准项。"
+    "不要重复已完成的工作。所有文件变更已持久化在当前工作目录中。"
+)
+
+
+def _build_compact_retry_prompt(result, original_prompt: str) -> str:
+    """构建上下文耗尽后的迭代内续接 prompt。
+
+    将原始任务 prompt + CC 返回的执行摘要合成为续接 prompt，
+    使新 CC 会话能在无历史上下文的情况下从断点继续工作。
+    """
+    summary = (result.summary or "")[:2000]
+    return _COMPACT_RETRY_PROMPT_TEMPLATE.format(original_prompt=original_prompt, summary=summary)
+
+
+def _reset_config_for_retry(config: ClaudeCodeConfig) -> ClaudeCodeConfig:
+    """克隆配置但清空 session 续接，强制 CC 以新会话启动。
+
+    使用 ``copy.copy`` 浅拷贝：ClaudeCodeConfig 的字段均为不可变类型或
+    由调用方自行管理的容器（``allowed_tools`` 等），浅拷贝语义安全。
+    """
+    new = copy.copy(config)
+    new.resume_session_id = None  # 强制新会话
+    return new
+
+
+def _with_reduced_timeout(config: ClaudeCodeConfig, remaining_seconds: float) -> ClaudeCodeConfig:
+    """克隆配置并设置剩余超时时间（下限 60s 防无意义短命重试）。"""
+    new = copy.copy(config)
+    new.timeout_seconds = max(60.0, remaining_seconds)
+    return new
 
 
 class RoutineRunner:
@@ -126,7 +184,133 @@ class RoutineRunner:
             )
 
             # 2) 执行 Claude Code（长耗时，受 config.timeout_seconds 约束）
-            result = await ClaudeCodeService.invoke(prompt, config, abort_event=abort)
+            #    capture_events 开启时附 on_event sink：每个动作经非阻塞总线实时发布（边跑边看）。
+            #    StreamingEventPersister 增量 flush：使页面 reload 后仍可见已完成的审计步骤。
+            #    迭代内上下文压缩重试：当 CC context 耗尽时，不清空迭代、在同迭代内以新 session 续接，
+            #    通过续接 prompt 传递已完成工作摘要，使任务在当前迭代内继续推进。
+            persister: StreamingEventPersister | None = None
+            if settings.routine.capture_events:
+                persister = StreamingEventPersister(
+                    iteration_id, routine_id, flush_interval_seconds=settings.routine.event_streaming_flush_seconds
+                )
+                persister.start()
+            sink = (
+                self._make_action_sink(iteration_id, routine_id, persister) if settings.routine.capture_events else None
+            )
+
+            # 共享动作容器：跨「plan 段 + implement 段（含重试）」复用同一 list，使事件 seq 连续单调，
+            # 避免两段事件 ``ON CONFLICT(iteration_id,seq)`` 互相覆盖（单迭代两段式 seq 唯一性保证）。
+            events_holder: list[dict[str, Any]] = []
+
+            compact_max_retries = (
+                settings.routine.context_compact_max_retries if settings.routine.context_compact_enabled else 0
+            )
+            compact_retry_count = 0
+            # 会话失效（session_not_found）迭代内冷启动重试：独立于上下文压缩开关，因为续接会话
+            # 已彻底不存在、再 resume 永不可能成功，必须清空 session 冷启动。预算固定为 2。
+            session_retry_count = 0
+            session_max_retries = 2
+            cumulative_cost = 0.0
+            cumulative_turns = 0
+            # overall_deadline 用**原始** config.timeout_seconds 界定「本迭代总预算」，统一覆盖 plan 段 +
+            # implement 段（及其重试）。plan 段在此之后执行、消耗的时间从 implement 段剩余预算中扣除。
+            overall_deadline = time.monotonic() + config.timeout_seconds
+            result = None
+
+            try:
+                # 单迭代两段式：先跑 plan 段（permission_mode=plan + 真实评审钩子），批准后于同一迭代内
+                # --resume 续接 implement 段。plan 段事件与随后注入的 plan_review 发言共享 events_holder，
+                # seq 紧接其后；批准后把 implement 段 --resume 到 plan 段会话、超时收敛到剩余预算。
+                if config.plan_stage_config is not None and not abort.is_set():
+                    plan_cfg = _with_reduced_timeout(config.plan_stage_config, overall_deadline - time.monotonic())
+                    plan_result = await ClaudeCodeService.invoke(
+                        config.plan_stage_prompt or prompt,
+                        plan_cfg,
+                        abort_event=abort,
+                        on_event=sink,
+                        events_holder=events_holder,
+                    )
+                    cumulative_cost += plan_result.cost_usd or 0.0
+                    cumulative_turns += plan_result.turn_count or 0
+                    result = plan_result  # 兜底：若 implement 段未及运行（abort/超时），仍回带 plan 段产出
+                    # 读 sidecar，把每次评审注入为 plan_review 事件 → 渲染为 NegentropyEngine「发言」。
+                    await self._inject_plan_review_events(
+                        iteration_id, events_holder, sink, max_events=config.max_events_per_iter
+                    )
+                    # implement 段：续接 plan 段会话（携带已批准方案上下文）、超时为剩余预算、卸下 plan 段防重复。
+                    config = _with_reduced_timeout(config, overall_deadline - time.monotonic())
+                    config.resume_session_id = plan_result.session_id or config.resume_session_id
+                    config.plan_stage_config = None
+                    config.plan_stage_prompt = None
+
+                while True:
+                    # 重试时检查剩余时间是否足够（至少 60s，防无意义短命重试）
+                    remaining = overall_deadline - time.monotonic()
+                    retried = compact_retry_count > 0 or session_retry_count > 0
+                    if remaining < 60 and retried:
+                        logger.warning("routine_retry_timeout_exhausted", remaining_s=round(remaining, 1))
+                        break
+
+                    invoke_config = config if not retried else _with_reduced_timeout(config, remaining)
+                    result = await ClaudeCodeService.invoke(
+                        prompt, invoke_config, abort_event=abort, on_event=sink, events_holder=events_holder
+                    )
+                    cumulative_cost += result.cost_usd or 0.0
+                    cumulative_turns += result.turn_count or 0
+
+                    kind = getattr(result, "error_kind", None)
+                    # 成功或非可恢复错误：直接退出循环
+                    if result.status == "success" or kind not in (
+                        ERROR_KIND_CONTEXT_EXHAUSTED,
+                        ERROR_KIND_SESSION_NOT_FOUND,
+                    ):
+                        break
+
+                    # 会话失效：清空 session 冷启动重试，沿用原始 prompt（无工作产出，无需续接摘要）。
+                    if kind == ERROR_KIND_SESSION_NOT_FOUND:
+                        if session_retry_count >= session_max_retries:
+                            logger.warning("routine_session_reset_retries_exhausted", retries=session_retry_count)
+                            break
+                        session_retry_count += 1
+                        logger.info(
+                            "routine_session_reset_retry",
+                            iteration_id=str(iteration_id),
+                            retry=session_retry_count,
+                            stale_session=invoke_config.resume_session_id,
+                        )
+                        config = _reset_config_for_retry(config)  # 清空 resume_session_id；prompt 保持原始
+                        continue
+
+                    # 上下文耗尽但重试次数已用尽：退出循环（回退到 Layer 3 跨迭代冷启动）
+                    if compact_retry_count >= compact_max_retries:
+                        logger.info(
+                            "routine_compact_retries_exhausted",
+                            retries=compact_retry_count,
+                            max_retries=compact_max_retries,
+                        )
+                        break
+
+                    # 上下文耗尽迭代内重试：清空 session（强制新会话）+ 构建续接 prompt
+                    compact_retry_count += 1
+                    logger.info(
+                        "routine_compact_retry",
+                        iteration_id=str(iteration_id),
+                        retry=compact_retry_count,
+                        max_retries=compact_max_retries,
+                        previous_session=result.session_id,
+                    )
+                    prompt = _build_compact_retry_prompt(result, prompt)
+                    config = _reset_config_for_retry(config)
+            finally:
+                if persister is not None:
+                    await persister.finalize()
+                # 清理 Plan Review sidecar/ctx 临时文件（按 iteration_id 键，幂等 best-effort）。
+                self._cleanup_plan_review_files(iteration_id)
+
+            # 累积 cost/turns 覆盖到最终 result（跨重试汇总）
+            if result is not None:
+                result.cost_usd = cumulative_cost
+                result.turn_count = cumulative_turns
 
             # 3) 写回结果（abort 命中则标记 aborted，否则 executed）
             if abort.is_set():
@@ -136,7 +320,13 @@ class RoutineRunner:
                 )
                 return
 
-            await self._write_back(iteration_id, routine_id, result)
+            await self._write_back(
+                iteration_id,
+                routine_id,
+                result,
+                compact_retry_count=compact_retry_count,
+                session_retry_count=session_retry_count,
+            )
             await get_bus().publish(
                 {
                     "type": "iteration",
@@ -148,6 +338,79 @@ class RoutineRunner:
                     "turn_count": result.turn_count,
                 }
             )
+
+    @staticmethod
+    def _make_action_sink(iteration_id: UUID, routine_id: UUID, persister: StreamingEventPersister | None = None):
+        """构造「全过程」动作实时发布回调：每个归一化动作经非阻塞总线广播为 ``action`` 事件。
+
+        best-effort：``RoutineBus.publish`` 为 ``put_nowait`` + 丢旧，绝不阻塞 CC 执行；
+        异常一律 suppress（实时是增强，持久化端点才是事实源）。事件携带 ``seq``（服务定格，
+        与写回持久化一致），前端据 ``(iteration_id, seq)`` 去重合并实时与历史动作。
+        当 ``persister`` 非空时同步追加到缓冲，由后台定时器增量刷入 DB。
+        """
+        rid, iid = str(routine_id), str(iteration_id)
+
+        async def _sink(evt: dict[str, Any]) -> None:
+            with suppress(Exception):
+                # ts：服务端 emit 时刻（与持久化 created_at 同为服务端时间），供前端为在途行渲染时间戳；
+                # 仅注入发布载荷，不污染用于写回持久化的 result.events（其时间走 DB server_default）。
+                await get_bus().publish(
+                    {"type": "action", "routine_id": rid, "iteration_id": iid, "ts": _utcnow().isoformat(), **evt}
+                )
+            if persister is not None:
+                persister.buffer(evt)
+
+        return _sink
+
+    @staticmethod
+    async def _inject_plan_review_events(
+        iteration_id: UUID,
+        events_holder: list[dict[str, Any]],
+        sink,
+        *,
+        max_events: int | None,
+    ) -> None:
+        """读 plan 段评审 sidecar(JSONL)，把每条评审注入为 ``plan_review`` 事件（共享 seq）。
+
+        渲染侧 ``deriveAgentRole("plan_review")→engine``，故注入后即呈现为 NegentropyEngine「发言」；
+        seq 由共享 ``events_holder`` 续接 plan 段之后、与随后 implement 段无冲突。任何异常一律吞掉——
+        发言呈现是增强项，绝不可影响实施主链路。
+        """
+        # 复用 orchestrator 的单一路径口径（与钩子写入端同源），懒导入规避包内循环依赖。
+        from .orchestrator import _review_sidecar_path
+
+        path = _review_sidecar_path(iteration_id)
+        try:
+            with open(path, encoding="utf-8") as f:
+                lines = f.readlines()
+        except OSError:
+            return
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except Exception:
+                continue
+            with suppress(Exception):
+                await emit_raw_event(
+                    {"type": "system", "subtype": "plan_review", "review_result": record},
+                    events_holder,
+                    sink,
+                    max_events=max_events,
+                )
+
+    @staticmethod
+    def _cleanup_plan_review_files(iteration_id: UUID) -> None:
+        """best-effort 清理本迭代的 Plan Review sidecar + ctx 临时文件（按 iteration_id 键，幂等）。"""
+        from .orchestrator import _review_sidecar_path
+
+        sidecar = _review_sidecar_path(iteration_id)
+        ctx_file = os.path.join(os.path.dirname(sidecar), f"{iteration_id}.json")
+        for p in (sidecar, ctx_file):
+            with suppress(OSError):
+                os.remove(p)
 
     async def _mark_in_flight(self, iteration_id: UUID, lease: datetime) -> None:
         async with db_session.AsyncSessionLocal() as db:
@@ -167,15 +430,44 @@ class RoutineRunner:
             )
             await db.commit()
 
-    async def _write_back(self, iteration_id: UUID, routine_id: UUID, result) -> None:
+    async def _write_back(
+        self,
+        iteration_id: UUID,
+        routine_id: UUID,
+        result,
+        *,
+        compact_retry_count: int = 0,
+        session_retry_count: int = 0,
+    ) -> None:
         """原子写回执行结果 + 更新父 routine 反规范化累计。
 
         用 ``asyncio.shield`` 包裹，避免关停取消时丢失已完成的 Claude Code 结果。
+        ``compact_retry_count`` 记录迭代内上下文压缩重试次数；``session_retry_count`` 记录会话失效
+        冷启动重试次数；均写入 iteration metrics。
         """
-        await asyncio.shield(self._do_write_back(iteration_id, routine_id, result))
+        await asyncio.shield(
+            self._do_write_back(
+                iteration_id,
+                routine_id,
+                result,
+                compact_retry_count=compact_retry_count,
+                session_retry_count=session_retry_count,
+            )
+        )
 
-    async def _do_write_back(self, iteration_id: UUID, routine_id: UUID, result) -> None:
+    async def _do_write_back(
+        self,
+        iteration_id: UUID,
+        routine_id: UUID,
+        result,
+        *,
+        compact_retry_count: int = 0,
+        session_retry_count: int = 0,
+    ) -> None:
         exec_status = "success" if result.status == "success" else result.status  # success|error|timeout
+        # 检查点提交所需快照（事务内捕获，commit 后在事务外执行 git I/O，不持 DB 事务）。
+        checkpoint_path: str | None = None
+        checkpoint_seq: int | None = None
         async with db_session.AsyncSessionLocal() as db:
             # 仅当迭代仍处于 in_flight 时才翻转为 executed：若期间已被 reaper 标记 reaped
             # 或被用户 abort，rowcount=0，则不再覆盖终态、也不重复累加计数/成本（防双计）。
@@ -195,14 +487,109 @@ class RoutineRunner:
                 )
             )
             if res.rowcount == 1:
-                # 父 routine 累计：成本累加、迭代计数 +1、会话续接（仅成功转换时）
+                # 上下文耗尽判定（根因：原实现无条件回写 session_id，把 routine 永久钉死在已耗尽
+                # 的会话，导致 resume 后每轮立即撞上下文上限的"死亡螺旋"）。提前到 routine 取用之前
+                # 计算，使 routine 缺失时下方 iteration 标记块仍能安全引用。
+                error_kind = getattr(result, "error_kind", None)
+                is_ctx = error_kind == ERROR_KIND_CONTEXT_EXHAUSTED
+                # 会话失效：迭代内冷启动重试发生过（session_retry_count>0），或最终结果仍为会话失效。
+                is_session_gone = error_kind == ERROR_KIND_SESSION_NOT_FOUND or session_retry_count > 0
+                # 父 routine 累计：成本累加、迭代计数 +1、会话续接。
                 routine = await db.get(Routine, routine_id)
                 if routine is not None:
                     routine.total_cost_usd = (routine.total_cost_usd or 0.0) + (result.cost_usd or 0.0)
                     routine.iteration_count = (routine.iteration_count or 0) + 1
-                    if result.session_id:
+                    # 检查点提交快照：worktree routine + 本轮执行成功 + 非 PLAN 相位（PLAN 只读无产物）。
+                    # 引擎确定性 auto-commit，不依赖 CC 遵循 prompt（ISSUE-114）。
+                    if (
+                        settings.routine.checkpoint_commit_enabled
+                        and exec_status == "success"
+                        and getattr(routine, "worktree_path", None)
+                        and getattr(routine, "current_phase", None) != "plan"
+                    ):
+                        checkpoint_path = routine.worktree_path
+                        it_seq = await db.get(RoutineIteration, iteration_id)
+                        checkpoint_seq = getattr(it_seq, "seq", None) if it_seq is not None else None
+                    # 会话续接决策（优先级：会话失效 > 上下文耗尽 > 正常续接）：
+                    if error_kind == ERROR_KIND_SESSION_NOT_FOUND:
+                        # (0) 续接会话已彻底失效 → 无条件清空冷启动（再 resume 永不可能成功，
+                        # 无 context_reset 上限语义；runaway 由 no_progress/max_iterations 守卫兜底）。
+                        routine.claude_session_id = None
+                    elif is_ctx:
+                        resets = int((routine.reflections or {}).get("_context_resets", 0))
+                        if resets < settings.routine.context_reset_max:
+                            # (a) 上下文耗尽且未达上限 → 清空污染会话，使下轮在同 worktree 冷启动续干
+                            # （prompt_builder 每轮全量注入 goal/criteria/reflections + worktree 上下文，
+                            #  worktree 持久保留既往产出，故会话仅工作记忆而非正确性必需）。
+                            routine.claude_session_id = None
+                            routine.reflections = {**(routine.reflections or {}), "_context_resets": resets + 1}
+                        else:
+                            # (b) 达自动重置上限 → 不再清空，记标记，落回原 unrecoverable 自然路径（防 runaway）。
+                            routine.reflections = {**(routine.reflections or {}), "_context_reset_exhausted": True}
+                    elif result.session_id:
+                        # (c) 非上述可恢复错误（含成功 / 普通 error / timeout）→ 维持原会话续接逻辑。
+                        # 注：会话失效冷启动重试成功后 result.session_id 为新会话，经此分支正确续接。
                         routine.claude_session_id = result.session_id
+                # 给 iteration 打可自愈标记：供 decision 将"可自愈失败"从连续失败计数剔除，避免被误判为
+                # unrecoverable。同时记录迭代内重试次数（compact_retries / session_resets > 0 表示发生续接/冷启动）。
+                if is_ctx or is_session_gone or compact_retry_count > 0:
+                    it = await db.get(RoutineIteration, iteration_id)
+                    if it is not None:
+                        metrics = {**(it.metrics or {})}
+                        if is_ctx:
+                            metrics["context_exhausted"] = True
+                        if is_session_gone:
+                            metrics["session_reset"] = True
+                        if compact_retry_count > 0:
+                            metrics["compact_retries"] = compact_retry_count
+                        if session_retry_count > 0:
+                            metrics["session_retries"] = session_retry_count
+                        it.metrics = metrics
+            # 「全过程」动作事件持久化（reconciliation backstop）：
+            # 不再受 rowcount==1 门控——即使迭代已被 reaper 标记 reaped，仍确保事件落库
+            # （StreamingEventPersister 已增量刷入部分事件，此处补齐尾部 + 终态事件）。
+            # ON CONFLICT DO NOTHING 使其与增量 flush 完全幂等。
+            if settings.routine.capture_events and result.events:
+                await self._persist_events(db, iteration_id, routine_id, result.events)
             await db.commit()
+
+        # 检查点提交（事务外、best-effort）：成功 worktree 迭代后确定性 auto-commit，
+        # 防 worktree 丢失致进度损毁 + 为 PR 留存提交历史（ISSUE-114）。异常不冒泡。
+        if checkpoint_path:
+            from . import workspace
+
+            with suppress(Exception):
+                await workspace.checkpoint_commit(checkpoint_path, settings.routine, seq=checkpoint_seq)
+
+    @staticmethod
+    async def _persist_events(db, iteration_id: UUID, routine_id: UUID, events: list[dict[str, Any]]) -> None:
+        """批量落库执行动作事件（seq 由服务按到达顺序定格 0..N-1）。
+
+        ``ON CONFLICT (iteration_id, seq) DO NOTHING`` 兜底 reaper / abort / 重复写回竞态，
+        使任何二次写入为 no-op。字段做长度收口（防 String 列溢出）。
+        """
+        rows: list[dict[str, Any]] = []
+        for i, evt in enumerate(events):
+            title = evt.get("title")
+            tool_name = evt.get("tool_name")
+            rows.append(
+                {
+                    "iteration_id": iteration_id,
+                    "routine_id": routine_id,
+                    "seq": int(evt.get("seq", i)),
+                    "event_type": str(evt.get("event_type") or "unknown")[:24],
+                    "tool_name": str(tool_name)[:128] if tool_name is not None else None,
+                    "title": str(title)[:255] if title is not None else None,
+                    "payload": evt.get("payload") or {},
+                    "cost_usd": evt.get("cost_usd"),
+                }
+            )
+        if not rows:
+            return
+        stmt = (
+            pg_insert(RoutineIterationEvent).values(rows).on_conflict_do_nothing(index_elements=["iteration_id", "seq"])
+        )
+        await db.execute(stmt)
 
 
 # 进程内单例

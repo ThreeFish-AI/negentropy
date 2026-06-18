@@ -137,6 +137,9 @@ jobs:
             --ignore-vuln PYSEC-2025-197
             --ignore-vuln PYSEC-2025-210
             --ignore-vuln PYSEC-2026-139
+
+            # torch 2.10.0 CVE-2025-3000：本地内存破坏 / DoS，同上（需构造恶意 tensor；本项目仅加载第一方模型 artifact，upstream 暂无 fix）
+            --ignore-vuln CVE-2025-3000
           )
           uv run pip-audit "${ignore_args[@]}"
 

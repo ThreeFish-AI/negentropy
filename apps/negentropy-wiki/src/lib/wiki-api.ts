@@ -62,6 +62,8 @@ export interface WikiNavTreeItem {
   entry_id: string | null;
   entry_slug: string;
   entry_title: string;
+  /** 容器节点从 Catalog 节点同步而来的描述；DOCUMENT / 历史合成节点为 null */
+  entry_description?: string | null;
   is_index_page: boolean;
   /** 叶节点的源文档；容器节点为 null */
   document_id: string | null;
@@ -88,6 +90,10 @@ export interface WikiEntryContent {
   entry_title: string | null;
   markdown_content: string | null;
   document_filename: string;
+  author_name?: string | null;
+  author_url?: string | null;
+  source_url?: string | null;
+  published_at?: string | null;
 }
 
 // ---------------------------------------------------------------------------

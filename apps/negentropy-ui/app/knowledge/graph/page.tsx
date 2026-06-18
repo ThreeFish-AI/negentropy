@@ -135,7 +135,7 @@ export default function KnowledgeGraphPage() {
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
   // G2: 渲染引擎切换（默认 Sigma WebGL）— Sigma / 3D / d3-force / Force Graph / Cytoscape
-  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("sigma");
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("d3");
   const { openPanel, toggle: togglePanel, close: closePanel } = usePanelState();
   // D3 inline 渲染器 tooltip
   const [d3Tooltip, setD3Tooltip] = useState<{ nodeId: string; x: number; y: number } | null>(null);
@@ -544,15 +544,15 @@ export default function KnowledgeGraphPage() {
                   {viewTab === "graph" && (
                     <div className="flex rounded-lg border border-border text-micro">
                       <button
-                        onClick={() => setRenderer("sigma")}
-                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
+                        onClick={() => setRenderer("d3")}
+                        title="d3-force（Phase 1 兼容回退）"
                         className={`px-2 py-1 font-medium outline-hidden transition-colors ${
-                          renderer === "sigma"
+                          renderer === "d3"
                             ? "bg-foreground text-background"
                             : "text-text-muted hover:text-foreground"
                         } rounded-l-lg`}
                       >
-                        Sigma
+                        d3-force
                       </button>
                       <button
                         onClick={() => setRenderer("3d")}
@@ -566,15 +566,15 @@ export default function KnowledgeGraphPage() {
                         3D
                       </button>
                       <button
-                        onClick={() => setRenderer("d3")}
-                        title="d3-force（Phase 1 兼容回退）"
+                        onClick={() => setRenderer("sigma")}
+                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）"
                         className={`px-2 py-1 font-medium outline-hidden transition-colors border-x border-border ${
-                          renderer === "d3"
+                          renderer === "sigma"
                             ? "bg-foreground text-background"
                             : "text-text-muted hover:text-foreground"
                         }`}
                       >
-                        d3-force
+                        Sigma
                       </button>
                       <button
                         onClick={() => setRenderer("force-graph")}

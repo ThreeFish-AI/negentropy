@@ -264,9 +264,25 @@ async def _negentropy_lifespan(app):
     except Exception as exc:
         logger.warning("unified_scheduler_bootstrap_failed", error=str(exc))
 
+    # 知识库检索 MCP：StreamableHTTPSessionManager 要求在 lifespan 内 run()
+    # （由 _inject_negentropy_routes 挂载到 app.state）。fail-soft：启动失败仅
+    # 使 /mcp/knowledge 不可服务，不阻塞 FastAPI 主链路。
+    kb_mcp_stack = contextlib.AsyncExitStack()
+    try:
+        kb_mcp_manager = getattr(app.state, "kb_mcp_session_manager", None)
+        if kb_mcp_manager is not None:
+            await kb_mcp_stack.enter_async_context(kb_mcp_manager.run())
+            logger.info("kb_mcp_session_manager_started")
+    except Exception as exc:
+        logger.warning("kb_mcp_session_manager_start_failed", error=str(exc))
+
     try:
         yield
     finally:
+        try:
+            await kb_mcp_stack.aclose()
+        except Exception as exc:
+            logger.warning("kb_mcp_session_manager_stop_failed", error=str(exc))
         logger.info("negentropy_lifespan_shutdown_started")
         if registry is not None:
             try:
@@ -578,6 +594,27 @@ def apply_adk_patches():
         if not any(getattr(route, "path", "").endswith("/sessions/{session_id}/title") for route in app.router.routes):
             app.include_router(sessions_router)
             logger.info("Sessions API router mounted for title updates")
+
+        # 知识库检索 MCP 端点（streamable-HTTP，供 Routine 的 Claude Code 接入）。
+        # 仅当可用（serve 启动推导出 self_base_url 且开关开启）时挂载；自带 bearer
+        # 强校验（见 knowledge/mcp_server.create_kb_mcp_asgi_app），fail-soft 不阻塞启动。
+        try:
+            from negentropy.knowledge.mcp_server import (
+                KB_MCP_MOUNT_PATH,
+                create_kb_mcp_asgi_app,
+                kb_mcp_available,
+            )
+
+            if kb_mcp_available() and not any(
+                getattr(route, "path", "") == KB_MCP_MOUNT_PATH for route in app.router.routes
+            ):
+                kb_mcp_app, kb_mcp_session_manager = create_kb_mcp_asgi_app()
+                app.mount(KB_MCP_MOUNT_PATH, kb_mcp_app)
+                # session manager 需在 lifespan 内 run()（见 _negentropy_lifespan）
+                app.state.kb_mcp_session_manager = kb_mcp_session_manager
+                logger.info("Knowledge MCP endpoint mounted", path=KB_MCP_MOUNT_PATH)
+        except Exception as exc:
+            logger.warning("kb_mcp_mount_failed", error=str(exc))
 
         # Phase 4：统一心跳调度引擎（5s tick + Registry + Handlers）。
         # 6 个旧 startup hook（cache_warm / pgvector_check / skill_scheduler /

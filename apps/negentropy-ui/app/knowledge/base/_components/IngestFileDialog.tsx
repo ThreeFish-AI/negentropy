@@ -10,7 +10,7 @@ import { FileText, FileType, UploadCloud, X } from "lucide-react";
 // 常量
 // ---------------------------------------------------------------------------
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 
 type FileTab = "pdf" | "markdown";
 
@@ -30,7 +30,7 @@ const TAB_CONFIG: Record<FileTab, TabConfig> = {
     Icon: FileText,
     description: "PDF 文档将通过 AI 提取转换为 Markdown",
     label: "PDF",
-    supportedFormats: "支持 .pdf（最大 50 MB）",
+    supportedFormats: "支持 .pdf（最大 200 MB）",
   },
   markdown: {
     accept: ".txt,.md,.markdown",
@@ -38,7 +38,7 @@ const TAB_CONFIG: Record<FileTab, TabConfig> = {
     Icon: FileType,
     description: "Markdown 与纯文本文件直接摄入，无需格式转换",
     label: "Markdown",
-    supportedFormats: "支持 .md, .markdown, .txt（最大 50 MB）",
+    supportedFormats: "支持 .md, .markdown, .txt（最大 200 MB）",
   },
 };
 

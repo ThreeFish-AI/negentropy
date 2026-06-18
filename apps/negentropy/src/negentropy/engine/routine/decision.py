@@ -39,6 +39,7 @@ class _IterationLike(Protocol):
     score: int | None
     verdict: str | None
     gate_exit_code: int | None
+    metrics: dict | None
 
 
 # 终止原因常量（与 Routine.termination_reason 列约定一致）
@@ -99,6 +100,7 @@ def decide(
     history: list[_IterationLike],
     *,
     now: datetime | None = None,
+    max_context_resets: int = 0,
 ) -> Decision:
     """评估后的核心决策：成功 / 终止 / 继续。
 
@@ -107,6 +109,10 @@ def decide(
         latest: 刚完成评估的最新迭代。
         history: 全部已评估迭代（按 seq 升序），用于停滞 / 振荡 / 连续失败判定。
         now: 注入当前时间（测试用）。
+        max_context_resets: 上下文耗尽自动重置上限（>0 时，标记 ``metrics.context_exhausted``
+            的失败被视为"可自愈"，不计入连续执行失败——runaway 由 Runner 侧重置计数上限兜底）。
+            默认 0 = 关闭该豁免，退化为原行为（向后兼容）。纯函数边界：上限由调用方显式注入，
+            decision 不读 settings。
 
     Returns:
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
@@ -121,7 +127,7 @@ def decide(
     # 2) 不可恢复：judge 显式判定 / 连续执行失败 / 连续评估失败
     if latest.verdict == "unrecoverable":
         return Decision("terminate", REASON_UNRECOVERABLE)
-    if _consecutive_exec_failures(history) >= _CONSECUTIVE_FAILURE_LIMIT:
+    if _consecutive_exec_failures(history, max_context_resets=max_context_resets) >= _CONSECUTIVE_FAILURE_LIMIT:
         return Decision("terminate", REASON_UNRECOVERABLE)
 
     # 3) 预算 / 截止（评估后再查一次，确保本轮成本计入后即时熔断）
@@ -140,11 +146,24 @@ def decide(
     return Decision("continue")
 
 
-def _consecutive_exec_failures(history: list[_IterationLike]) -> int:
-    """从尾部起连续 ``exec_status ∈ {error, timeout}`` 的迭代数。"""
+def _consecutive_exec_failures(history: list[_IterationLike], *, max_context_resets: int = 0) -> int:
+    """从尾部起连续 ``exec_status ∈ {error, timeout}`` 的迭代数。
+
+    当 ``max_context_resets > 0`` 时，标记 ``metrics.context_exhausted`` 的失败被视为"可自愈"——
+    透明跳过（既不计数也不中断扫描），因为它们会被 Runner 侧的"重置 session 冷启动"自愈。
+    这避免上下文耗尽的连续失败被误判为 ``unrecoverable``；runaway 由 Runner 的
+    ``reflections._context_resets`` 上限兜底（达上限后不再标记 context_exhausted，自然计入此处）。
+    """
     count = 0
     for it in reversed(history):
         if it.exec_status in ("error", "timeout"):
+            metrics = getattr(it, "metrics", None) or {}
+            # 会话失效（session_not_found）：Runner 已无条件清空续接会话冷启动自愈——下轮必不再 resume，
+            # 故此类失败透明跳过（无 context_reset 上限语义，runaway 由 no_progress/max_iterations 兜底）。
+            if metrics.get("session_reset"):
+                continue
+            if max_context_resets > 0 and metrics.get("context_exhausted"):
+                continue  # 可自愈失败：透明跳过，不计数也不 break
             count += 1
         else:
             break

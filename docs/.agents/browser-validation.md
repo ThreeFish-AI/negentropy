@@ -76,6 +76,8 @@
 4. 同时支持视觉交互（`computer` 截图 + 鼠标键盘）与无障碍树（`read_page`）双通道，适应不同验证需求；
 5. 内置批量操作（`browser_batch`）与 GIF 录制（`gif_creator`），提升验证效率与文档化能力。
 
+> **A 类（交互）vs B 类（自治）的驱动分工**：上述"唯一驱动"针对 **A 类交互场景**——由开发者或 Agent 在**真人监督**的会话中验证 OAuth/SSO/认证态 UI，复用用户真实 Chrome 登录态。而 **B 类自治场景**（[Routine](../concepts/039-the-routine-system.md) 后台 Claude Code 子进程：无真人、无桌面、headless）无法使用 claude-in-chrome（其需可见桌面浏览器 + 人工完成登录/CAPTCHA，且非 command/url 形态、无法注入 mcp_config）。为此，系统将 **Playwright MCP（`@playwright/mcp`，headless · isolated）内置为全系统默认浏览器操作 MCP**，经单一注入点 `builtin_tools(claude_code).config.mcp_config` provision 至所有 Routine 运行时，用于浏览器实机回归验证；鉴权回归复用本仓 dev-cookie storageState 旁路（§9，**非** IdP storageState 复制）。选型论证见 [浏览器操作 MCP 调研](../research/120-browser-automation-mcp.md)，集成与使用见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。
+
 ### 4.2 工具职责矩阵
 
 | 维度         | `mcp__claude-in-chrome__*`（**唯一驱动**）                                    | `mcp__playwright__*`（**仅限 B 类场景**）                                        |
@@ -443,6 +445,7 @@ npx playwright test <your.authed.spec.ts>
 | 2026-05-15 | 文档结构重组：引入术语约定、安全模型、风险矩阵；将项目特化案例移至附录                                                                               |
 | 2026-05-15 | 协议泛化：移除项目特化描述，使协议可通用于所有需要浏览器验证的 Agent 行为规范                                                                        |
 | 2026-05-16 | 驱动迁移：从 `mcp__chrome_devtools__*` 迁移至 `mcp__claude-in-chrome__*`，利用 Chrome 扩展实现零配置接入；新增常用操作模式章节；泛化所有项目特化引用 |
+| 2026-06-06 | 厘清 A 类（claude-in-chrome 交互）/ B 类（自治）分工；将 **Playwright MCP（`@playwright/mcp`）内置为全系统默认浏览器操作 MCP**，经 `builtin_tools(claude_code).config.mcp_config` 单一注入点 provision 至所有 Routine 运行时，用于浏览器实机回归验证（见 [集成方案](../concepts/design/browser-automation-mcp-integration.md)） |
 
 ---
 

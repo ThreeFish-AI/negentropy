@@ -21,6 +21,24 @@ from negentropy.agents._dynamic_instruction import make_instruction_provider
 _FALLBACK = "FALLBACK_INSTRUCTION_BODY"
 
 
+@pytest.fixture(autouse=True)
+def _neutralize_global_skills_injection():
+    """隔离全局技能注入：本文件专测「偏好 prefix + fallback 选择」逻辑，与全局技能注入正交。
+
+    ``make_instruction_provider`` 在 DB 未命中（``text is None``）分支会调用
+    ``skills_injector.append_global_skills_block`` 注入全局技能块——该路径依赖真实 DB
+    且受种子技能（迁移 0064 的 ``pdf-fidelity-restore``）影响，会向 fallback 追加
+    ``<available_skills>`` 块，破坏本文件对 ``== _FALLBACK`` / ``endswith(_FALLBACK)``
+    的断言。全局注入有独立单测 ``test_skills_injector.py`` 覆盖，故此处以 async 透传桩
+    中和该并发关注点（``_dynamic_instruction`` 内为函数级 import，须 patch 源模块属性）。
+    """
+    with patch(
+        "negentropy.agents.skills_injector.append_global_skills_block",
+        new=AsyncMock(side_effect=lambda base: base),
+    ):
+        yield
+
+
 def _ctx_with_state(state: dict | None) -> MagicMock:
     ctx = MagicMock()
     ctx.state = state

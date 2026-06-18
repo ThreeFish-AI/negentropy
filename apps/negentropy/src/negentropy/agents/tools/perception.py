@@ -25,6 +25,7 @@ from google.adk.tools import ToolContext
 from sqlalchemy import select
 
 import negentropy.db.session as db_session
+from negentropy.agents._citation_protocol import format_memory_citation
 from negentropy.config import settings
 from negentropy.config.search import SearchProvider, SearchSettings
 from negentropy.knowledge.constants import (
@@ -32,7 +33,14 @@ from negentropy.knowledge.constants import (
     DEFAULT_SEMANTIC_WEIGHT,
 )
 from negentropy.knowledge.ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
-from negentropy.knowledge.types import SearchConfig
+from negentropy.knowledge.retrieval.citation_search import (
+    MAX_RESULTS_LIMIT,
+    MAX_SNIPPET_CHARS,
+    format_citation,
+    kg_global_search_with_citations,
+    resolve_corpus_label,
+    search_kb_with_citations,
+)
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus
 
@@ -41,8 +49,10 @@ if TYPE_CHECKING:
 
 logger = get_logger("negentropy.tools.perception")
 
-_MAX_SNIPPET_CHARS = 500
-_MAX_RESULTS_LIMIT = 20
+# 常量已正交提取至 knowledge/retrieval/citation_search.py（单一事实源）；
+# 别名保留既有引用路径。
+_MAX_SNIPPET_CHARS = MAX_SNIPPET_CHARS
+_MAX_RESULTS_LIMIT = MAX_RESULTS_LIMIT
 _GOOGLE_SEARCH_URL = "https://www.googleapis.com/customsearch/v1"
 
 # 全局 KnowledgeService 单例，避免重复初始化
@@ -51,61 +61,11 @@ _knowledge_service: KnowledgeService | None = None
 
 # ----------------------------------------------------------------------------
 # P2-3 G2 · Citation 规范化 helper（IEEE 风格）
+# 实现已正交提取至 knowledge/retrieval/citation_search.py（脱离 ToolContext 的
+# 单一事实源，与 MCP 工具共享）；此处 re-export 保持既有 import/patch 路径稳定。
 # ----------------------------------------------------------------------------
 
-
-def _format_citation(
-    metadata: dict[str, Any] | None,
-    source_uri: str | None,
-    idx: int,
-) -> str:
-    """生成 IEEE 风格 citation 字符串：``[N] {first_author} et al., "{title}," arXiv:{id}, {year}.``
-
-    旧记录无 arxiv_id 则退化为 ``[N] {source_uri or 'Unknown'}``。所有字段都是 best-effort，
-    不抛异常。仅依赖 ``metadata`` 中可能存在的 ``arxiv_id`` / ``title`` / ``authors`` /
-    ``published_at`` —— 这与 ``paper.py`` `ingest_paper` 注入的 metadata 兼容。
-
-    设计动机（参见 docs/architecture/conversation-foundation.md §3 RAG + 引用机制）：
-        Self-RAG 与 Corrective RAG 等近期工作均强调 retrieval 过程必须返回 stable citation
-        token，让模型在生成阶段引用，从而把 hallucination 率压到可控。本 helper 是该
-        契约的工程落点。
-
-    Args:
-        metadata: chunk 级 metadata（可能为 None）。
-        source_uri: chunk 关联的源 URL（用于 fallback 与跳转）。
-        idx: 1-based 引用序号（数组下标 + 1）。
-
-    Returns:
-        single-line citation 字符串（前端渲染时按 ``[N]`` 解析尾注）。
-    """
-    meta = metadata or {}
-    arxiv_id = (meta.get("arxiv_id") or "").strip()
-    title = (meta.get("title") or "").strip()
-    authors = meta.get("authors") or []
-    if not isinstance(authors, list):
-        authors = []
-    first_author = ""
-    if authors:
-        first = authors[0]
-        first_author = str(first).split(",")[0].strip() if first else ""
-    year = ""
-    published_at = (meta.get("published_at") or "").strip()
-    if len(published_at) >= 4 and published_at[:4].isdigit():
-        year = published_at[:4]
-
-    if arxiv_id:
-        author_part = f"{first_author} et al., " if first_author else ""
-        title_part = f'"{title}," ' if title else ""
-        # year 缺席时直接以句点收尾，避免 ", " 与孤逗号污染（IEEE 风格保持一致）。
-        if year:
-            return f"[{idx}] {author_part}{title_part}arXiv:{arxiv_id}, {year}."
-        return f"[{idx}] {author_part}{title_part}arXiv:{arxiv_id}."
-
-    # 退化路径：无 arxiv_id 时使用 source_uri，仍尽量保留 title
-    if title:
-        suffix = f" — {source_uri}" if source_uri else ""
-        return f'[{idx}] "{title}"{suffix}'
-    return f"[{idx}] {source_uri or 'Unknown source'}"
+_format_citation = format_citation
 
 
 def _get_knowledge_service() -> KnowledgeService:
@@ -300,83 +260,28 @@ async def search_knowledge_base(
             )
             return await _fallback_to_memory_search(query, limit, tool_context)
 
-        # 使用混合检索从所有语料库中搜索
-        service = _get_knowledge_service()
-        config = SearchConfig(
-            mode=search_mode,
-            limit=limit,
+        # 使用混合检索从所有语料库中搜索（核心逻辑已正交提取至 citation_search，
+        # 与 MCP 工具共享同一实现 —— 单一事实源）
+        payload = await search_kb_with_citations(
+            query=query,
+            top_k=limit,
+            service=_get_knowledge_service(),
+            corpora=corpora,
+            app_name=settings.app_name,
+            search_mode=search_mode,
             semantic_weight=semantic_weight,
             keyword_weight=keyword_weight,
         )
-
-        all_results = []
-        for corpus in corpora:
-            try:
-                matches = await service.search(
-                    corpus_id=corpus.id,
-                    app_name=settings.app_name,
-                    query=query,
-                    config=config,
-                )
-                for match in matches:
-                    content = match.content
-                    truncated = len(content) > _MAX_SNIPPET_CHARS
-                    snippet = content[:_MAX_SNIPPET_CHARS] if truncated else content
-                    all_results.append(
-                        {
-                            "id": str(match.id),
-                            "corpus": corpus.name,
-                            "corpus_id": str(corpus.id),
-                            "source_uri": match.source_uri,
-                            "chunk_index": 0,  # KnowledgeMatch 不包含 chunk_index
-                            "snippet": snippet,
-                            "truncated": truncated,
-                            "metadata": match.metadata,
-                            # 相关性分数
-                            "semantic_score": round(match.semantic_score, 4),
-                            "keyword_score": round(match.keyword_score, 4),
-                            "combined_score": round(match.combined_score, 4),
-                            # citation 字段稍后按最终排序后的 idx 注入
-                        }
-                    )
-            except Exception as exc:
-                # 单个语料库搜索失败不影响其他语料库
-                logger.warning(
-                    "corpus_search_failed",
-                    corpus_id=str(corpus.id),
-                    corpus_name=corpus.name,
-                    error=str(exc),
-                )
-                continue
-
-        # 按融合分数排序并限制返回数量
-        all_results.sort(key=lambda x: x["combined_score"], reverse=True)
-        all_results = all_results[:limit]
-
-        # P2-3 G2 · Citation 规范化：按最终排序顺序注入 citation_id + formatted_citation
-        for idx, result in enumerate(all_results, start=1):
-            result["citation_id"] = idx
-            result["formatted_citation"] = _format_citation(
-                metadata=result.get("metadata"),
-                source_uri=result.get("source_uri"),
-                idx=idx,
-            )
 
         logger.info(
             "knowledge_search_completed",
             query=query[:100],
             mode=search_mode,
-            result_count=len(all_results),
+            result_count=payload["count"],
         )
 
-        if all_results:
-            return {
-                "status": "success",
-                "query": query,
-                "count": len(all_results),
-                "results": all_results,
-                "search_mode": search_mode,
-            }
+        if payload["count"]:
+            return payload
 
         # 知识库为空或无结果时，回退到 Memory 搜索
         return await _fallback_to_memory_search(query, limit, tool_context)
@@ -437,10 +342,24 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
                 "snippet": text[:_MAX_SNIPPET_CHARS],
                 "truncated": len(text) > _MAX_SNIPPET_CHARS,
                 "metadata": (getattr(entry, "custom_metadata", {}) if hasattr(entry, "custom_metadata") else {}),
+                # MemoryEntry.timestamp 即 created_at 的 ISO 串（memory_service._build_search_response）
+                "created_at": getattr(entry, "timestamp", None),
                 "semantic_score": 0.0,
                 "keyword_score": 0.0,
                 "combined_score": 0.0,
             }
+        )
+
+    # 引用规范：与 KB 主路径同构，按序注入 citation_id + Memory 风格 formatted_citation，
+    # 让 LLM 在 memory fallback 场景同样能按 [N] 标注来源并附原文摘录。
+    for idx, result in enumerate(fallback, start=1):
+        meta = result.get("metadata") or {}
+        result["citation_id"] = idx
+        result["formatted_citation"] = format_memory_citation(
+            memory_id=str(result.get("id") or ""),
+            memory_type=meta.get("memory_type") if isinstance(meta, dict) else None,
+            created_at_iso=result.get("created_at"),
+            idx=idx,
         )
 
     logger.info("memory_fallback_completed", query=query[:100], result_count=len(fallback))
@@ -460,13 +379,8 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
 # ============================================================================
 
 
-def _resolve_corpus_label(corpus_name: str | None, corpus_id: str | None) -> str:
-    """生成 citation 中的 Corpus 来源徽章文本"""
-    if corpus_name:
-        return str(corpus_name)
-    if corpus_id:
-        return f"corpus:{corpus_id[:8]}"
-    return "unknown"
+# 实现已正交提取至 knowledge/retrieval/citation_search.py；re-export 保持既有引用路径稳定。
+_resolve_corpus_label = resolve_corpus_label
 
 
 async def _planner_search_knowledge_base(
@@ -616,8 +530,6 @@ async def search_knowledge_graph_global(
           ``{status, query, corpus_count, per_corpus: [{corpus_id, corpus_label,
           answer, evidence, candidates_total, latency_ms, summaries_dirty}, ...]}``
     """
-    from dataclasses import asdict
-
     scoped_ids: list[str] = []
     if tool_context is not None and getattr(tool_context, "state", None):
         raw = tool_context.state.get("corpus_ids")
@@ -634,86 +546,13 @@ async def search_knowledge_graph_global(
     if not valid_ids:
         return {"status": "failed", "error": "no valid corpus UUIDs in scope"}
 
-    try:
-        from negentropy.knowledge.graph.global_search import GlobalSearchService  # type: ignore
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("global_search_unavailable", error=str(exc))
-        return {
-            "status": "failed",
-            "error": "GlobalSearchService not available; falling back to search_knowledge_base.",
-        }
-
-    # 计算 query embedding（与 GraphService.search 同款）；失败 → None，
-    # GlobalSearchService 会按 entity_count DESC fallback。
-    try:
-        embedding_fn = build_embedding_fn()
-        query_embedding = (
-            await embedding_fn(query) if inspect.iscoroutinefunction(embedding_fn) else embedding_fn(query)
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("global_search_embedding_failed", error=str(exc))
-        query_embedding = None
-
-    # 解析 corpus 显示名（用于来源徽章）—— 单次会话内拉一次
-    async with db_session.AsyncSessionLocal() as db:
-        rows = (
-            (
-                await db.execute(
-                    select(Corpus).where(
-                        Corpus.app_name == settings.app_name,
-                        Corpus.id.in_(valid_ids),
-                    )
-                )
-            )
-            .scalars()
-            .all()
-        )
-    corpus_name_by_id = {str(c.id): c.name for c in rows}
-
-    svc = GlobalSearchService()
-
-    async def _one(corpus_id: UUID) -> dict[str, Any]:
-        # 每个 corpus 独立开 session：GlobalSearchService.search 要求 db 是第一位
-        # positional arg（见 knowledge/graph/global_search.py:116）。
-        async with db_session.AsyncSessionLocal() as db:
-            try:
-                result = await svc.search(
-                    db=db,
-                    corpus_id=corpus_id,
-                    query=query,
-                    query_embedding=query_embedding,
-                    max_communities=max_communities,
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("global_search_per_corpus_failed", corpus_id=str(corpus_id), error=str(exc))
-                return {
-                    "corpus_id": str(corpus_id),
-                    "corpus_label": _resolve_corpus_label(corpus_name_by_id.get(str(corpus_id)), str(corpus_id)),
-                    "status": "failed",
-                    "error": str(exc),
-                }
-        payload = asdict(result)
-        payload["corpus_id"] = str(corpus_id)
-        payload["corpus_label"] = _resolve_corpus_label(corpus_name_by_id.get(str(corpus_id)), str(corpus_id))
-        payload["status"] = "success"
-        return payload
-
-    per_corpus = await asyncio.gather(*[_one(cid) for cid in valid_ids])
-    succeeded = [p for p in per_corpus if p.get("status") == "success"]
-    if not succeeded:
-        return {
-            "status": "failed",
-            "query": query,
-            "corpus_count": len(per_corpus),
-            "per_corpus": per_corpus,
-            "error": "all per-corpus global searches failed",
-        }
-    return {
-        "status": "success",
-        "query": query,
-        "corpus_count": len(per_corpus),
-        "per_corpus": per_corpus,
-    }
+    # 核心逻辑已正交提取至 citation_search，与 MCP 工具共享同一实现（单一事实源）。
+    return await kg_global_search_with_citations(
+        query=query,
+        corpus_ids=valid_ids,
+        app_name=settings.app_name,
+        max_communities=max_communities,
+    )
 
 
 def _is_uuid(s: str) -> bool:

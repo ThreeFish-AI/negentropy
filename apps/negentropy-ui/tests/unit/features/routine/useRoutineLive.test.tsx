@@ -42,9 +42,14 @@ function makeRoutine(id: string, status: RoutineDTO["status"] = "running"): Rout
     goal: "g",
     acceptance_criteria: "ac",
     cwd: null,
+    baseline_branch: null,
     verification_command: null,
     status,
     termination_reason: null,
+    current_phase: null,
+    pr_url: null,
+    work_branch: null,
+    worktree_path: null,
     max_iterations: 20,
     max_cost_usd: 5,
     deadline_at: null,
@@ -62,6 +67,7 @@ function makeRoutine(id: string, status: RoutineDTO["status"] = "running"): Rout
     agent_id: null,
     created_at: null,
     updated_at: null,
+    is_template: false,
   };
 }
 
@@ -71,6 +77,7 @@ function makeIteration(id: string): RoutineIterationDTO {
     routine_id: "r1",
     seq: 1,
     status: "in_flight",
+    phase: null,
     prompt: null,
     resume_session_id: null,
     exec_status: null,
@@ -86,6 +93,7 @@ function makeIteration(id: string): RoutineIterationDTO {
     gate_exit_code: null,
     started_at: "2026-01-01T00:00:00.000Z",
     finished_at: null,
+    metrics: {},
   };
 }
 
@@ -95,6 +103,7 @@ describe("liteFromIteration", () => {
       id: "it1",
       seq: 2,
       status: "evaluated",
+      phase: null,
       score: 80,
       verdict: "progressing",
       turn_count: 3,
@@ -106,6 +115,7 @@ describe("liteFromIteration", () => {
       id: "it1",
       seq: 2,
       status: "evaluated",
+      phase: null,
       score: 80,
       verdict: "progressing",
       turn_count: 3,

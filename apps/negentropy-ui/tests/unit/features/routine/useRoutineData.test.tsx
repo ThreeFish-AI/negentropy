@@ -34,9 +34,14 @@ function makeRoutine(id: string): RoutineDTO {
     goal: "g",
     acceptance_criteria: "ac",
     cwd: null,
+    baseline_branch: null,
     verification_command: null,
     status: "running",
     termination_reason: null,
+    current_phase: null,
+    pr_url: null,
+    work_branch: null,
+    worktree_path: null,
     max_iterations: 20,
     max_cost_usd: 5,
     deadline_at: null,
@@ -54,6 +59,7 @@ function makeRoutine(id: string): RoutineDTO {
     agent_id: null,
     created_at: null,
     updated_at: null,
+    is_template: false,
   };
 }
 

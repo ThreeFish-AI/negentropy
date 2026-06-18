@@ -5,15 +5,15 @@
  */
 
 import type {
+  IterationEventsResponse,
   IterationListResponse,
   RoutineCreatePayload,
   RoutineDTO,
   RoutineFilters,
-  RoutineFromPresetPayload,
   RoutineKpis,
   RoutineListResponse,
   RoutineIterationDTO,
-  RoutinePresetSummary,
+  RoutineTemplateItem,
   RoutineUpdatePayload,
 } from "./types";
 
@@ -49,6 +49,7 @@ export async function fetchRoutines(filters: Partial<RoutineFilters> = {}): Prom
   const sp = new URLSearchParams();
   if (filters.status) sp.set("status", filters.status);
   if (filters.q) sp.set("q", filters.q);
+  if (filters.is_template != null) sp.set("is_template", String(filters.is_template));
   const q = sp.toString();
   return jsonFetch(`${q ? `?${q}` : ""}`);
 }
@@ -66,6 +67,21 @@ export async function fetchIterations(
   if (opts.before_seq != null) sp.set("before_seq", String(opts.before_seq));
   const q = sp.toString();
   return jsonFetch(`/${encodeURIComponent(routineId)}/iterations${q ? `?${q}` : ""}`);
+}
+
+/** 拉取单次迭代的「全过程」动作级审计事件流（按 seq 升序，懒加载于审计抽屉打开时）。 */
+export async function fetchIterationEvents(
+  routineId: string,
+  iterationId: string,
+  opts: { limit?: number; after_seq?: number } = {},
+): Promise<IterationEventsResponse> {
+  const sp = new URLSearchParams();
+  if (opts.limit) sp.set("limit", String(opts.limit));
+  if (opts.after_seq != null) sp.set("after_seq", String(opts.after_seq));
+  const q = sp.toString();
+  return jsonFetch(
+    `/${encodeURIComponent(routineId)}/iterations/${encodeURIComponent(iterationId)}/events${q ? `?${q}` : ""}`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +115,20 @@ export async function controlRoutine(routineId: string, action: ControlAction): 
   return jsonFetch(`/${encodeURIComponent(routineId)}/${action}`, { method: "POST" });
 }
 
+/**
+ * 重启失败 / 取消的 routine：复位运行态并重跑。`keep_reflections` 决定是否携带既往反思记忆。
+ * 仅对 failed/cancelled 终态有效（后端守卫，否则 409）。
+ */
+export async function restartRoutine(
+  routineId: string,
+  body: { keep_reflections: boolean },
+): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/restart`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function approveIteration(
   routineId: string,
   iterationId: string,
@@ -119,16 +149,21 @@ export async function rejectIteration(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Presets
-// ---------------------------------------------------------------------------
-
-export async function fetchPresets(): Promise<RoutinePresetSummary[]> {
-  return jsonFetch("/presets");
+/**
+ * 手动回收终态 routine 的隔离 worktree（best-effort，不改变 routine 状态）。
+ * 仅对 succeeded/failed/cancelled 终态且 worktree 仍活跃的 routine 有效（后端守卫，否则 409）。
+ */
+export async function cleanupWorktree(routineId: string): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/cleanup-worktree`, { method: "POST" });
 }
 
-export async function createRoutineFromPreset(
-  body: RoutineFromPresetPayload,
-): Promise<RoutineDTO> {
-  return jsonFetch("/from-preset", { method: "POST", body: JSON.stringify(body) });
+// ---------------------------------------------------------------------------
+// Templates（合并模板列表）
+// ---------------------------------------------------------------------------
+
+export async function fetchTemplates(category?: string): Promise<RoutineTemplateItem[]> {
+  const sp = new URLSearchParams();
+  if (category) sp.set("category", category);
+  const q = sp.toString();
+  return jsonFetch(`/templates${q ? `?${q}` : ""}`);
 }

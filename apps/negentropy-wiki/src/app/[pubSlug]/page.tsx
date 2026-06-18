@@ -12,7 +12,9 @@ import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
+import { WikiSearchProvider } from "@/components/WikiSearchProvider";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiUserMenu } from "@/components/WikiUserMenu";
 import Link from "next/link";
 import { WikiFooter } from "@/components/home/WikiFooter";
 
@@ -92,11 +94,13 @@ export default async function WikiPublicationPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
+      userMenu={<WikiUserMenu />}
       graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );
 
   return (
+    <WikiSearchProvider pubSlug={pubSlug}>
     <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined} footer={<WikiFooter />}>
       <header className="wiki-doc-header">
         <h1 className="wiki-doc-title">
@@ -135,5 +139,6 @@ export default async function WikiPublicationPage({ params }: Props) {
         <p className="wiki-text-hint">请从左侧导航选择文档开始阅读。</p>
       )}
     </WikiLayoutShell>
+    </WikiSearchProvider>
   );
 }

@@ -24,7 +24,11 @@ export function useRoutineData(filters: Partial<RoutineFilters>) {
   const [error, setError] = useState<string | null>(null);
 
   // 序列化 filters 以稳定 effect 依赖
-  const filterKey = JSON.stringify({ status: filters.status ?? null, q: filters.q ?? "" });
+  const filterKey = JSON.stringify({
+    status: filters.status ?? null,
+    q: filters.q ?? "",
+    is_template: filters.is_template ?? null,
+  });
   const reqIdRef = useRef(0);
 
   const load = useCallback(async () => {

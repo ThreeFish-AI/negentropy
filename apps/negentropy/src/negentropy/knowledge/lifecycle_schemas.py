@@ -79,7 +79,7 @@ class CatalogNodeCreateRequest(BaseModel):
     parent_id: UUID | None = None
     node_type: str = "folder"
     description: str | None = None
-    sort_order: int = 0
+    sort_order: float = 0
     config: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("node_type")
@@ -106,7 +106,7 @@ class CatalogNodeUpdateRequest(BaseModel):
     parent_id: UUID | None = None
     node_type: str | None = None
     description: str | None = None
-    sort_order: int | None = None
+    sort_order: float | None = None
     config: dict[str, Any] | None = None
 
 
@@ -122,8 +122,10 @@ class CatalogNodeResponse(BaseModel):
     slug: str
     node_type: str
     description: str | None = None
-    sort_order: int
+    sort_order: float
     config: dict[str, Any] = Field(default_factory=dict)
+    # DOCUMENT_REF 叶子节点携带的文档 ID（FOLDER / CATEGORY / COLLECTION 为 None）
+    document_id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     # 展开字段
@@ -274,7 +276,7 @@ class WikiEntryResponse(BaseModel):
 
 
 class WikiEntryContentResponse(BaseModel):
-    """Wiki 条目内容响应（含 Markdown）"""
+    """Wiki 条目内容响应（含 Markdown + 文章元数据）"""
 
     entry_id: UUID
     document_id: UUID
@@ -282,6 +284,10 @@ class WikiEntryContentResponse(BaseModel):
     entry_title: str | None
     markdown_content: str | None = None
     document_filename: str = ""
+    author_name: str | None = None
+    author_url: str | None = None
+    source_url: str | None = None
+    published_at: str | None = None
 
 
 class WikiNavTreeResponse(BaseModel):
@@ -313,6 +319,7 @@ class SyncFromCatalogResponse(BaseModel):
     """从目录同步到 Wiki 的响应"""
 
     synced_count: int = 0
+    container_count: int = 0
     errors: list[str] = Field(default_factory=list)
     removed_count: int = 0
 

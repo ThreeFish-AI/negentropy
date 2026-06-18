@@ -1,11 +1,11 @@
 """
-Routine Presets 包 — 内置 Demo 预设加载器
+Routine Presets 包 — 内置 Routine 预设模版加载器
 
 设计目标：
-- 用 YAML 文件作为预设分发载体（每个文件一个 Demo）；
+- 用 YAML 文件作为预设分发载体（每个文件一个模版）；
 - 加载时进行字段完整性 + SemVer 合法性 + approval_mode 合法性校验，失败仅 warning 跳过；
-- 通过 ``GET /routines/presets`` 暴露给前端，``POST /routines/from-preset``
-  把预设物化为用户的 Routine 行。
+- 经合并端点 ``GET /routines/templates`` 暴露给前端（与用户自建模板合并为统一列表），
+  用户在前端 Templates 页选定模版后由 ``POST /routines`` 物化为自己的 Routine 行。
 
 参考文献：
 [1] 本模块对标 ``skill_templates/__init__.py`` 的加载器模式。

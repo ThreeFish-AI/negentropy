@@ -34,8 +34,8 @@ _constants:
   perceives_server:  &perceives_server  negentropy-perceives
   timeout_short_ms:  &timeout_short_ms  60000
   timeout_medium_ms: &timeout_medium_ms 120000
-  timeout_long_ms:   &timeout_long_ms   300000
-  timeout_xlong_ms:  &timeout_xlong_ms  600000
+  timeout_long_ms:   &timeout_long_ms   3600000  # file_pdf 主：1h（大 PDF 经 auto_batch 多切片串行 + checkpoint 续传，旧值 300000 会令后端 MCP 在单本未跑完前即超时）
+  timeout_xlong_ms:  &timeout_xlong_ms  7200000  # file_pdf 备(批量)：2h
   session_ttl_7d:    &session_ttl_7d    604800
 
 # --- 运行环境 ---
@@ -184,22 +184,36 @@ memory:
     prf_alpha: 0.7
     feedback_min_count: 3                    # 最低反馈条数门槛
     reweight_interval_seconds: 3600
+  retrieval:                                 # 主链路记忆检索（交互式对话 Preload 自动注入）
+    preload_enabled: true                    # root Agent 每轮以用户 query 自动检索并注入 <RELEVANT_MEMORIES>
+    preload_top_k: 5                         # 注入记忆条数上限
+    preload_max_chars: 4000                  # 注入块字符预算（约 1-2K tokens）
 
 # --- Routine 配置（长周期自主任务迭代执行：Evaluator-Optimizer + Reflexion）---
 routine:
-  enabled: false                             # 灰度开关：关闭时 routine_inspector 心跳 no-op，不影响调度引擎
+  enabled: true                              # Routine 编排循环已启用：routine_inspector 心跳驱动 Evaluate-Dispatch 闭环
+  capture_events: true                       # 捕获并持久化迭代「全过程」动作级审计事件（工具调用/结果/评估）+ SSE 实时推送
   inspector_interval_seconds: 25             # 心跳 tick 间隔；与种子 routine_inspector ScheduledTask 一致
   max_concurrent_executions: 2               # 全局并发 Claude Code 执行上限（进程内信号量）
   lease_slack_seconds: 60                    # Runner lease 宽裕量；崩溃恢复 reaper 据此判定孤儿迭代
   gate_timeout_seconds: 120                  # verification_command 命令门控执行超时
   max_reflections_injected: 5                # 注入下一迭代 prompt 的最近反思条数（Reflexion 窗口）
   eval_failure_patience: 3                   # 评估器连续失败容忍次数，超过终止为 unrecoverable_error
+  context_reset_max: 10                       # CC 会话上下文耗尽自动重置 session 冷启动上限；超过落回 unrecoverable（0=关闭自愈）
   default_max_iterations: 20                 # 创建 routine 默认迭代硬上限
   default_max_cost_usd: 5.0                  # 创建 routine 默认成本熔断（USD）
+  max_events_per_iter: 5000                  # 单迭代动作事件捕获上限（Full View 审计）
   evaluator_model: null                      # LLM-as-Judge 模型覆盖；null 走 task_registry 的 routine.evaluate
+  # 隔离 worktree（基于基线分支的隔离工作区 + 自动 PR 回基线）
+  worktree_root: null                        # worktree 根目录；null → 运行期解析为仓库同级 <project_parent>/.negentropy-worktrees
+  worktree_cleanup: on_success               # 终态回收策略：on_success（成功即清、失败保留）| always | never
+  git_remote: origin                         # fetch / PR base 归一所用 git 远端名
+  git_fetch_before_worktree: true            # 建 worktree 前 best-effort git fetch（带超时，失败不阻断）
+  git_timeout_seconds: 120                   # 单条 git 子命令执行超时（秒）
 
 # --- Knowledge 配置 ---
 knowledge:
+  max_file_size_mb: 200                   # 文件上传大小上限 (MB)
   # Wiki SSG ISR 主动 revalidate webhook：publish/unpublish 完成后向 SSG 通知立即重渲染。
   # 未配置 url → 退化为「被动 ISR」（SSG 自身 5 分钟窗口刷新），不阻塞发布主链路。
   # secret 通过环境变量 NE_KNOWLEDGE_WIKI_REVALIDATE__SECRET 注入（生产必填，本地可空）。

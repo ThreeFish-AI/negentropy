@@ -6,7 +6,7 @@
 ## 协同协议与规范
 
 - [Agent 协作协议（CLAUDE.md / AGENTS.md）](../../AGENTS.md) — 项目根工程行为准则
-- [浏览器验证协议](./browser-validation.md) — Chrome devtools 实机验证规范
+- [浏览器验证协议](./browser-validation.md) — 浏览器实机验证规范（A 类 claude-in-chrome 交互 / B 类系统默认 Playwright MCP 自治）
 - [引用规范 (IEEE)](./reference-specifications.md) — 决策引用与文献格式
 
 ## 工程经验沉淀
@@ -23,6 +23,10 @@
 - [SSO（单点登录设计）](../concepts/design/sso.md)
 - [Observability / GenAI 可观测性](../concepts/design/observability-genai.md)
 - [QA Delivery Pipeline](../concepts/design/qa-delivery-pipeline.md)
+- [Docker Release Pipeline](../concepts/design/docker-release-pipeline.md) — compose 栈 4 镜像（backend / perceives / ui / wiki）的多架构构建与 Docker Hub 发布：PR 构建校验 + tag 发布双入口，amd64+arm64 原生 runner + digest 合并 + provenance/SBOM
+- [Docker Compose 运维指引](../concepts/docker-operations.md) — compose 栈 5 服务的部署、日常操作、开发工作流与故障排查：首次部署、首次发布、版本管理、健康检查、日志查看、卷备份、常见故障排除
+- [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md) — Playwright MCP 全系统默认配备：单一注入点（builtin_tools.mcp_config）provision 至 Routine / Scheduler / 6 Agents，用于浏览器实机回归验证
+- [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md) — 四层自进化架构（固定框架 Meta-Layer / 动态 Agent 定义 / 外部能力工具 / 记忆与知识系统）：遥测→评测→提案→验证→门控发布全闭环，含 agent_versions 版本化、GEPA/ACE 进化算子、记忆/知识配置进化回路（基质/客体分轨 ADR-4）、Golden Set 双轨评测、金丝雀发布、护栏决策矩阵与四阶段演进路线（调研基础见 [130 号调研](../research/130-self-evolving-agents-team.md)）
 
 ## 系统能力概览
 
@@ -30,7 +34,7 @@
 - [Knowledge Base（知识库设计）](../concepts/035-the-knowledge-base.md)
 - [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
 - [Claude Code 集成（BuiltinTool）](../concepts/038-claude-code-integration.md) — Claude Code CLI 作为 ADK Agent 工具的接入方案
-- [Routine（长周期自主任务）](../concepts/039-the-routine-system.md) — Engine 编排 + Claude Code 执行的 Evaluator-Optimizer 自迭代闭环（含 Reflexion 反思记忆、LLM-as-Judge 评估、审批门控、停止护栏） · [Demo 预设](../concepts/user-guide/routine-presets.md) — 3 个开箱即用的示例场景（代码审计 / 测试增强 / 文档完善），覆盖全部核心功能
+- [Routine（长周期自主任务）](../concepts/039-the-routine-system.md) — Engine 编排 + Claude Code 执行的 Evaluator-Optimizer 自迭代闭环（含 Reflexion 反思记忆、LLM-as-Judge 评估、审批门控、停止护栏） · [预设模版](../concepts/user-guide/routine-presets.md) — 4 个开箱即用的场景模版（代码审计 / 测试增强 / 文档生成 / 架构清减），正交覆盖全部核心功能
 - [Skills](../concepts/design/skills.md)
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
 - [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
@@ -55,6 +59,8 @@
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
 - [ADK 2.0 升级调研](../research/020b-adk-2.0-upgrade.md) — Google ADK 2.0 核心新特性、Breaking Changes、本项目影响评估与渐进式升级路径
 - [Routine Agent 迭代模式调研](../research/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）
+- [浏览器操作 MCP 调研](../research/120-browser-automation-mcp.md) — Playwright MCP / Chrome DevTools MCP / claude-in-chrome / Webwright 等纵向深挖与横向决策矩阵，结合"6 Agents + 自治 Routine"两类上下文的选型论证（集成落地见 [集成方案](../concepts/design/browser-automation-mcp-integration.md)）
+- [自进化 Agents Team 调研](../research/130-self-evolving-agents-team.md) — 自进化智能体理论（DGM/ADAS/AlphaEvolve/AgentSquare）+ 进化算子（GEPA/ACE/DSPy）+ 评测回路（Agent-as-a-Judge/OTel/Langfuse）+ 工具生态自进化（MCP Registry/Agent Skills/LLM 自造工具）+ 记忆/知识系统自进化（MemGPT/Mem0/A-Mem 自编辑记忆、ReasoningBank/Memp 经验沉淀、MemEvolve/MemSkill 记忆元进化、Zep/HippoRAG 2 图谱记忆、SSGM/MINJA 记忆治理）+ 护栏治理（OWASP Agentic Top 10/金丝雀/Goodhart 防护），映射至四层自进化架构（技术方案见 [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md)）
 
 ## 用户文档与运维
 

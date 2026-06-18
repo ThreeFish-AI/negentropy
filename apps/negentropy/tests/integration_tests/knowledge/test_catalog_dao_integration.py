@@ -619,6 +619,87 @@ class TestCatalogCrudIntegration:
         assert fetched_child.parent_entry_id == parent.id
 
     @pytest.mark.asyncio
+    async def test_update_node_clears_parent_when_explicit_none(self, db_engine, sample_catalog):
+        """update_node(parent_id=None) 应将子节点提升为根节点（parent_entry_id=NULL）。
+
+        回归保护：「拖拽到顶层」依赖此语义；历史 ``if parent_id is not None`` 守卫会吞掉
+        显式 None，使移动到顶层无法持久化（刷新后回退为子节点）。
+        """
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with session_factory() as session:
+            parent = await CatalogDao.create_node(
+                session,
+                catalog_id=sample_catalog,
+                name="Promote Parent",
+                slug="promote-parent",
+            )
+            child = await CatalogDao.create_node(
+                session,
+                catalog_id=sample_catalog,
+                name="Promote Child",
+                slug="promote-child",
+                parent_id=parent.id,
+            )
+            await session.commit()
+
+        # 显式提升为根节点
+        async with session_factory() as session:
+            updated = await CatalogDao.update_node(session, node_id=child.id, parent_id=None)
+            await session.commit()
+
+        assert updated is not None
+        assert updated.parent_entry_id is None
+
+        # 新开 session 验证持久化
+        async with session_factory() as session:
+            fetched = await CatalogDao.get_node(session, child.id)
+
+        assert fetched is not None
+        assert fetched.parent_entry_id is None
+
+    @pytest.mark.asyncio
+    async def test_update_node_without_parent_id_keeps_parent(self, db_engine, sample_catalog):
+        """不传 parent_id 的部分更新（如仅改 sort_order）不得清空已有父指针。
+
+        哨兵语义的反向不变量：``parent_id`` 未传入时保持原值，仅显式传入才落库。
+        """
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with session_factory() as session:
+            parent = await CatalogDao.create_node(
+                session,
+                catalog_id=sample_catalog,
+                name="Keep Parent",
+                slug="keep-parent",
+            )
+            child = await CatalogDao.create_node(
+                session,
+                catalog_id=sample_catalog,
+                name="Keep Child",
+                slug="keep-child",
+                parent_id=parent.id,
+            )
+            await session.commit()
+
+        async with session_factory() as session:
+            updated = await CatalogDao.update_node(session, node_id=child.id, sort_order=7)
+            await session.commit()
+
+        assert updated is not None
+        assert updated.position == 7
+        assert updated.parent_entry_id == parent.id
+
+        # 新开 session 验证持久化
+        async with session_factory() as session:
+            fetched = await CatalogDao.get_node(session, child.id)
+
+        assert fetched is not None
+        assert fetched.parent_entry_id == parent.id
+
+    @pytest.mark.asyncio
     async def test_delete_nonexistent_node_returns_false(self, db_engine, sample_catalog):
         """删除不存在的节点应幂等返回 False"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker

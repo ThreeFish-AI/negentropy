@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Negentropy UI
 
-## Getting Started
+Negentropy 的主聊天前端（Next.js 16 / React 19 / Tailwind），经 [AG-UI 协议](https://github.com/ag-ui-protocol/ag-ui) 与后端 `NegentropyEngine`（端口 `3292`）交互。
 
-First, run the development server:
+> 本包是 [negentropy monorepo](../../README.md) 的工作区成员，请优先在仓库根目录操作。
+
+## 启动
+
+最简方式（仓库根目录，Docker 一键拉起全套）：
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+./dev            # 含 backend / wiki / perceives / postgres
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+仅前端开发（热重载，需后端已运行于 :3292）：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install     # 在仓库根目录（pnpm workspace 单一 store）
+pnpm dev:ui      # → http://localhost:3192
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 关键信息
 
-## Learn More
+| 项 | 值 |
+| :--- | :--- |
+| 端口 | `3192` |
+| 后端基址 | `AGUI_BASE_URL`（默认 `http://localhost:3292`） |
+| 健康检查 | `GET /api/health` |
+| 环境变量模板 | [.env.example](./.env.example) → 复制为 `.env.local` |
 
-To learn more about Next.js, take a look at the following resources:
+## 相关
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 根 [README](../../README.md) · [Development Guide](../../docs/concepts/development.md)
+- 共享协议包：[`@negentropy/agents-chat-core`](../../packages/agents-chat-core)
+- Wiki 前端：[`negentropy-wiki`](../negentropy-wiki)

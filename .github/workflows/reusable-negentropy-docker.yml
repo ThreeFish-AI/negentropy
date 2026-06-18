@@ -1,0 +1,251 @@
+name: Reusable Docker Images
+
+# =============================================================================
+# 可复用 Docker 镜像构建流水线（机制层）
+# =============================================================================
+# 覆盖 docker-compose 栈内 4 个自建镜像：backend / perceives / ui / wiki。
+# 多架构采用 Docker 官方推荐范式：per-arch 原生 runner 构建（amd64 用
+# ubuntu-latest，arm64 用 ubuntu-24.04-arm，零 QEMU 模拟）+ push-by-digest，
+# 再以 `docker buildx imagetools create` 合并 manifest list 并打标。
+# 入口策略（何时触发、是否推送）由 caller workflow 决定：
+#   - negentropy-release.yml        → push=true（tag 发布）
+#   - negentropy-docker-validate.yml → push=false（PR 构建校验）
+# =============================================================================
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "镜像语义化版本号，例如 1.2.0 或 1.2.0-rc.1（push=false 时可省略）"
+        required: false
+        type: string
+        default: "0.0.0-dev"
+      push:
+        description: "是否推送镜像到 Docker Hub"
+        required: false
+        type: boolean
+        default: false
+      stable:
+        description: "是否为 stable 发布（追加 major.minor 与 latest 标签）"
+        required: false
+        type: boolean
+        default: false
+      platforms:
+        description: "目标平台 CSV"
+        required: false
+        type: string
+        default: "linux/amd64,linux/arm64"
+    secrets:
+      DOCKERHUB_USERNAME:
+        description: "Docker Hub 登录用户名（push=true 时必需）"
+        required: false
+      DOCKERHUB_TOKEN:
+        description: "Docker Hub Access Token（push=true 时必需）"
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY_NAMESPACE: threefishai
+
+jobs:
+  prepare:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      platforms: ${{ steps.meta.outputs.platforms }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Resolve platforms and image tags
+        id: meta
+        shell: bash
+        env:
+          INPUT_PLATFORMS: ${{ inputs.platforms }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUSH: ${{ inputs.push }}
+          INPUT_STABLE: ${{ inputs.stable }}
+        run: |
+          platforms_json=$(jq -cn --arg csv "${INPUT_PLATFORMS}" '$csv | split(",") | map(gsub("^\\s+|\\s+$"; ""))')
+          echo "platforms=${platforms_json}" >> "$GITHUB_OUTPUT"
+
+          version="${INPUT_VERSION}"
+          if [[ "${INPUT_PUSH}" == "true" && -z "${version}" ]]; then
+            echo "push=true requires a non-empty version" >&2
+            exit 1
+          fi
+
+          tags="type=raw,value=${version}"
+          if [[ "${INPUT_STABLE}" == "true" ]]; then
+            if [[ ! "${version}" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+              echo "stable=true but version '${version}' is not release semver (x.y.z)" >&2
+              exit 1
+            fi
+            tags+=$'\n'"type=raw,value=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+            tags+=$'\n'"type=raw,value=latest"
+          fi
+          {
+            echo "tags<<EOF"
+            echo "${tags}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.image.name }} (${{ matrix.platform }})
+    needs: prepare
+    # arm64 使用 GitHub 原生 arm runner（public 仓库免费），避免 QEMU 模拟拖慢
+    # 镜像内的 uv sync / next build
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.prepare.outputs.platforms) }}
+        image:
+          - name: negentropy-backend
+            dockerfile: docker/backend/Dockerfile
+            build_args: ""
+          - name: negentropy-perceives
+            dockerfile: docker/perceives/Dockerfile
+            build_args: ""
+          - name: negentropy-ui
+            dockerfile: docker/frontend/Dockerfile
+            build_args: "TARGET_SERVICE=negentropy-ui"
+          - name: negentropy-wiki
+            dockerfile: docker/frontend/Dockerfile
+            build_args: "TARGET_SERVICE=negentropy-wiki"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare platform pair
+        shell: bash
+        run: |
+          platform="${{ matrix.platform }}"
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+
+      # 构建期写入 OCI labels（merge 阶段无法补写到各 arch 镜像）
+      - name: Docker meta (labels)
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image.name }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image.name }}
+            org.opencontainers.image.version=${{ inputs.version }}
+
+      - name: Login to Docker Hub
+        if: inputs.push
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (push by digest when enabled)
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.image.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          build-args: ${{ matrix.image.build_args }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # PR 校验（不推送）关闭 attestation 以节省构建时间
+          provenance: ${{ inputs.push && 'mode=max' || 'false' }}
+          sbom: ${{ inputs.push }}
+          # cache scope 按 镜像 × 平台 隔离（共 8 个），mode=max 导出全部
+          # 构建阶段层（multi-stage 下 builder 层缓存是命中率关键）
+          cache-from: type=gha,scope=docker-${{ matrix.image.name }}-${{ env.PLATFORM_PAIR }}
+          # cache-to 仅发布（push=true）时导出：PR 校验构建即弃，cache-to 上传对当前构建
+          # 零收益，却因 mode=max 全量上传中间阶段层（perceives venv 单层曾达 8.5 分钟）
+          # 拖慢 ~14 分钟并放大被并发取消的窗口。cache-from 保留，PR 仍可命中发布预热缓存。
+          cache-to: ${{ inputs.push && format('type=gha,scope=docker-{0}-{1},mode=max', matrix.image.name, env.PLATFORM_PAIR) || '' }}
+          outputs: type=image,name=docker.io/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image.name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
+
+      - name: Export digest
+        if: inputs.push
+        shell: bash
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: inputs.push
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image.name }}-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge ${{ matrix.image }} Manifest
+    if: inputs.push
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 审批/保护门加在「打标发布」动作上；build 阶段仅推送未打标 digest
+    environment:
+      name: release
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - negentropy-backend
+          - negentropy-perceives
+          - negentropy-ui
+          - negentropy-wiki
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.image }}-*
+          merge-multiple: true
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker meta (tags)
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}
+          flavor: |
+            latest=false
+          tags: ${{ needs.prepare.outputs.tags }}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        shell: bash
+        run: |
+          # shellcheck disable=SC2046 # 词分裂为有意行为：展开多个 -t 参数与 digest 引用
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "${DOCKER_METADATA_OUTPUT_JSON}") \
+            $(printf 'docker.io/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}@sha256:%s ' *)
+
+      # 推送后校验：确认 manifest list 已含全部目标平台
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect \
+            "docker.io/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}:${{ inputs.version }}"
+
+      - name: Publish summary
+        shell: bash
+        run: |
+          echo "## Docker Image: \`${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Platforms: \`${{ inputs.platforms }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tags:" >> "$GITHUB_STEP_SUMMARY"
+          while IFS= read -r tag; do
+            [[ -n "${tag}" ]] && echo "  - \`${tag}\`" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "${{ steps.meta.outputs.tags }}"

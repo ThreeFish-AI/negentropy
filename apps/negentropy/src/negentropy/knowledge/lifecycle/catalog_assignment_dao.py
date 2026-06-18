@@ -58,6 +58,15 @@ class CatalogAssignmentDao:
         source_corpus_id = doc.corpus_id if doc else None
         doc_name = (doc.original_filename or str(document_id)) if doc else str(document_id)
 
+        # 查询兄弟节点中最大 position，确保新 DOCUMENT_REF 获得递增排序值
+        # （避免全部默认 0 导致前端拖拽排序分数索引坍缩）
+        max_pos_result = await db.execute(
+            select(func.coalesce(func.max(DocCatalogEntry.position), 0)).where(
+                DocCatalogEntry.parent_entry_id == catalog_entry_id,
+            )
+        )
+        max_pos = max_pos_result.scalar() or 0
+
         entry = DocCatalogEntry(
             catalog_id=catalog_id,
             parent_entry_id=catalog_entry_id,
@@ -66,6 +75,7 @@ class CatalogAssignmentDao:
             node_type="DOCUMENT_REF",
             name=doc_name,
             status="ACTIVE",
+            position=max_pos + 1000,
         )
         db.add(entry)
         await db.flush()
@@ -149,3 +159,26 @@ class CatalogAssignmentDao:
             .order_by(DocCatalogEntry.position, DocCatalogEntry.name)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def get_node_document_refs(
+        db: AsyncSession,
+        catalog_entry_id: UUID,
+    ) -> list[tuple[KnowledgeDocument, int]]:
+        """获取目录条目下的文档及其 DOCUMENT_REF position 排序值。
+
+        Returns:
+            ``[(KnowledgeDocument, position), ...]`` 按 ``position, created_at DESC`` 排序。
+            用于 Wiki 同步链路传递 Catalog 侧排序到 Wiki 条目。
+        """
+        result = await db.execute(
+            select(KnowledgeDocument, DocCatalogEntry.position)
+            .join(DocCatalogEntry, KnowledgeDocument.id == DocCatalogEntry.document_id)
+            .where(
+                DocCatalogEntry.parent_entry_id == catalog_entry_id,
+                DocCatalogEntry.node_type == "DOCUMENT_REF",
+                DocCatalogEntry.document_id.is_not(None),
+            )
+            .order_by(DocCatalogEntry.position, DocCatalogEntry.created_at.desc())
+        )
+        return list(result.all())

@@ -41,7 +41,15 @@ class Skill(Base, UUIDMixin, TimestampMixin):
     # 「系统内置」标识：与 BuiltinTool.is_system / McpServer.is_system / Agent.is_system
     # 对齐，作为可见性与权限判断的单一事实源（参见 permissions._is_plugin_builtin）。
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    # 「全局技能」标识：为 TRUE 时由 skills_injector.resolve_global_skills 自动并入
+    # **全系统所有 Agent** 的 Progressive Disclosure（一核五翼 + 未来新增 Agent），
+    # 无需在 ``Agent.skills`` 中显式列出。安全不变量：全局注入一律按 ``warning`` 强制，
+    # 永不因 ``required_tools`` 缺失而阻塞任何 Agent 启动（详见 skills_injector）。
+    is_global: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+    # 排序：前端拖拽排序后的持久化序号，值越小越靠前（与 priority 独立）。
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     # Phase 2 — 工具白名单 fail-close 模式（warning|strict，默认 warning）
     enforcement_mode: Mapped[str] = mapped_column(
@@ -59,6 +67,7 @@ class Skill(Base, UUIDMixin, TimestampMixin):
         Index("ix_skills_owner", "owner_id"),
         Index("ix_skills_category", "category"),
         Index("ix_skills_is_system", "is_system"),
+        Index("ix_skills_is_global", "is_global"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

@@ -309,6 +309,15 @@ class FakeKnowledgeService:
     async def execute_ingest_file_pipeline(self, **kwargs):
         self.ingest_file_pipeline_calls.append(kwargs)
 
+    async def execute_import_url_document_pipeline(self, **kwargs):
+        _ = kwargs
+
+    async def execute_import_file_pipeline(self, **kwargs):
+        _ = kwargs
+
+    async def execute_ingest_document_pipeline(self, **kwargs):
+        _ = kwargs
+
 
 # ---------------------------------------------------------------------------
 # 4. FakePipelineRun & FakePipelineDao

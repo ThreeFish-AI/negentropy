@@ -46,6 +46,13 @@ NEGENTROPY_AGENT_NAMES = [
 KIND_ROOT = "root"
 KIND_AGENT = "agent"
 
+# 内置 Agent 的显式技能挂载（单一事实源）：Sync 会用本映射覆盖 DB 行的 ``Agent.skills``，
+# 故内置 Agent 的精准挂载技能（is_global=false）必须登记于此，而非仅靠迁移 data-fix
+# （迁移仅修存量行，Sync 后即被覆盖）。全局技能（is_global=true）无需登记。
+_AGENT_SKILLS: dict[str, list[str]] = {
+    "InfluenceFaculty": ["document-translate"],
+}
+
 
 def _callable_name(callback: Any) -> str | None:
     if callback is None:
@@ -163,7 +170,7 @@ def _build_payload(agent: BaseAgent, *, kind: str) -> dict[str, Any]:
         "agent_type": adk_config["agent_type"],
         "system_prompt": system_prompt,
         "model": adk_config.get("model"),
-        "skills": [],
+        "skills": list(_AGENT_SKILLS.get(agent.name, [])),
         "tools": adk_config.get("tools", []),
         "is_enabled": True,
         "visibility": "private",

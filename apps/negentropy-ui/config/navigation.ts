@@ -23,7 +23,7 @@ export const mainNavConfig: MainNavItem[] = [
   },
   {
     title: "Memory",
-    href: "/memory/timeline",
+    href: "/memory/overview",
     activePaths: ["/memory"],
   },
   {

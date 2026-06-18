@@ -12,16 +12,16 @@ import {
   approveIteration,
   controlRoutine,
   createRoutine,
-  createRoutineFromPreset,
   deleteRoutine,
   fetchIterations,
   fetchKpis,
-  fetchPresets,
   fetchRoutineDetail,
   fetchRoutines,
   rejectIteration,
+  restartRoutine,
   updateRoutine,
 } from "@/features/routine/api";
+import { canRestart } from "@/app/interface/routine/_components/routine-controls";
 
 /** 构造一个成功的 JSON Response。 */
 function jsonResponse(body: unknown, status = 200): Response {
@@ -123,6 +123,15 @@ describe("routine api · 写入端点", () => {
     expect(init.method).toBe("POST");
   });
 
+  it("restartRoutine 命中 /restart 并 POST keep_reflections", async () => {
+    const spy = mockFetch(() => jsonResponse({ id: "r1", status: "running" }));
+    await restartRoutine("r1", { keep_reflections: false });
+    const { url, init } = lastCall(spy);
+    expect(url).toBe("/api/routine/r1/restart");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ keep_reflections: false });
+  });
+
   it("approveIteration / rejectIteration 命中迭代审批路径", async () => {
     const spy = mockFetch(() => jsonResponse({ id: "it1" }));
     await approveIteration("r1", "it1");
@@ -132,24 +141,16 @@ describe("routine api · 写入端点", () => {
   });
 });
 
-describe("routine api · 预设端点", () => {
-  it("fetchPresets 命中 /api/routine/presets", async () => {
-    const spy = mockFetch(() => jsonResponse([]));
-    await fetchPresets();
-    expect(lastCall(spy).url).toBe("/api/routine/presets");
+describe("routine controls · canRestart", () => {
+  it("仅对非成功终态（failed / cancelled）为真", () => {
+    expect(canRestart("failed")).toBe(true);
+    expect(canRestart("cancelled")).toBe(true);
   });
 
-  it("createRoutineFromPreset 以 POST 提交 preset_id + key + cwd", async () => {
-    const spy = mockFetch(() => jsonResponse({ id: "r1" }, 201));
-    await createRoutineFromPreset({ preset_id: "code_quality_audit", key: "demo-x", cwd: "/tmp" });
-    const { url, init } = lastCall(spy);
-    expect(url).toBe("/api/routine/from-preset");
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toMatchObject({
-      preset_id: "code_quality_audit",
-      key: "demo-x",
-      cwd: "/tmp",
-    });
+  it("对其余状态为假（含 succeeded / running / paused / pending）", () => {
+    for (const s of ["pending", "running", "paused", "succeeded"] as const) {
+      expect(canRestart(s)).toBe(false);
+    }
   });
 });
 
@@ -163,8 +164,8 @@ describe("routine api · 错误处理", () => {
           headers: { "Content-Type": "application/json" },
         }),
     );
-    await expect(fetchPresets()).rejects.toThrow(/404/);
-    await expect(fetchPresets()).rejects.toThrow(/boom/);
+    await expect(fetchKpis()).rejects.toThrow(/404/);
+    await expect(fetchKpis()).rejects.toThrow(/boom/);
   });
 
   it("非 2xx 且响应体非 JSON 时回落到 statusText", async () => {

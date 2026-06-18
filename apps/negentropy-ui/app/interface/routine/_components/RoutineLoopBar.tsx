@@ -82,7 +82,7 @@ export function RoutineLoopBar({ snapshot, size = "sm", showLabels = false, clas
             return (
               <div
                 key={stage}
-                className={`flex-1 text-center text-[10px] tracking-tight ${
+                className={`flex-1 text-center text-xs tracking-tight ${
                   isActive
                     ? "font-semibold text-foreground"
                     : isDone

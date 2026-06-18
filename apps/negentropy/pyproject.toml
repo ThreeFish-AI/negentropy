@@ -12,7 +12,7 @@ packages = ["src/negentropy"]
 
 [project]
 name = "negentropy"
-version = "0.1.0"
+version = "0.0.1a1"
 description = "An entropy-reducing 'cultivation' system for AI agents."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
@@ -23,7 +23,7 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.46",  # SQL Toolkit and ORM
     "alembic>=1.18.3",              # Database migration tool
     # Core Infrastructure
-    "google-adk>=2.1.0",            # ADK 2.1: Workflow Runtime + native OTel agentic metrics + event compaction tracing
+    "google-adk>=2.2.0",            # ADK 2.2: 解锁 starlette 1.x (ADK 2.1 硬 pin starlette<1, 阻断 starlette 11 个 high/medium CVE 修复); 保留 Workflow Runtime + native OTel agentic metrics + event compaction tracing
     "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
     "opentelemetry-exporter-otlp-proto-http>=1.37.0,<2.0.0",  # OTLP HTTP/protobuf span exporter — TracingManager / LiteLLM otel callback / ADK _get_otel_span_exporter 均依赖此包
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
@@ -31,7 +31,7 @@ dependencies = [
     "pydantic-settings[yaml]>=2.12.0",  # Configuration management with YAML support
     "pyyaml>=6.0.2",                # YAML parser for configuration files
     # LLM & AI Services
-    "litellm>=1.83.7",              # Unified interface for various LLM providers (>=1.83.7 修复 SQLi/SSTI/MCP-RCE，对应 GHSA-9566-... / 90 / 88 / 89)
+    "litellm>=1.84.0",              # Unified interface for various LLM providers (>=1.84.0 修复 GHSA-4xpc-pv4p-pm3w critical Host Header Injection 鉴权绕过; 兼容 1.83.7 的 SQLi/SSTI/MCP-RCE 修复 GHSA-9566-... / 90 / 88 / 89)
     # Google Cloud Services
     "google-cloud-storage>=3.8.0",  # Object storage for artifacts
     "google-auth>=2.48.0",          # Authentication for Google services
@@ -147,19 +147,19 @@ exclude_lines = [
 
 [tool.uv]
 override-dependencies = [
-    "aiohttp>=3.13.4",      # CVE-2025/2026 (19 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级
+    "aiohttp>=3.14.1",      # CVE-2026-34993/47265 等 (22 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级至 3.14.1
 ]
 constraint-dependencies = [
     # ── 既有约束 ──
     "authlib>=1.7.1",       # GHSA-jj8c-mmj3-mmgv: OIDC Open Redirect + OAuth client cache CSRF (+ 保留历史 CVE-2026-27962 等防御)
     "pyasn1>=0.6.3",        # CVE-2026-30922: unbounded recursion DoS
-    "pyjwt>=2.12.0",        # CVE-2026-32597: unknown crit header extensions
-    "cryptography>=46.0.7", # CVE-2026: buffer overflow, subgroup attack, DNS constraint
+    "pyjwt>=2.13.0",        # PYSEC-2026-175/177/178/179 + CVE-2026-32597: unknown crit header extensions
+    "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf: wheel 内 OpenSSL 漏洞 (high); 兼容 46.0.7 的 buffer overflow/subgroup/DNS constraint 防御
     "pygments>=2.20.0",     # CVE-2026-4539: ReDoS via GUID regex
     "requests>=2.33.0",     # CVE-2026-25645: insecure temp file reuse
     # ── 新增约束 (上游传递依赖防御性声明) ──
     "pillow>=12.2.0",       # FITS GZIP decompression bomb + OOB write (high)
-    "pypdf>=6.10.0",        # 14 个 DoS/RAM 耗尽漏洞 (medium)
+    "pypdf>=6.13.0",        # 14 个 DoS/RAM 耗尽漏洞 (medium, fixed 6.13.0)
     "transformers>=4.53.0", # ReDoS + Trainer 任意代码执行 (medium)
     "tornado>=6.5.5",       # cookie injection + DoS multipart (high)
     "ujson>=5.12.0",        # integer overflow buffer overflow + memory leak (high)
@@ -177,7 +177,7 @@ constraint-dependencies = [
     "azure-core>=1.38.0",   # 不可信数据反序列化 (high)
     "aiomysql>=0.3.0",      # 恶意 MySQL 服务器客户端文件访问 (high)
     "pyopenssl>=26.0.0",    # DTLS cookie callback 缓冲区溢出 (high)
-    "starlette>=0.50.0",    # O(n²) Range header DoS + multipart DoS (high)
+    "starlette>=1.3.1",     # 11 个 high/medium CVE (form DoS / SSRF / Host header bypass 等; 0.x 无回溯补丁, 需 google-adk>=2.2.0 解锁 1.x)
     "protobuf>=5.29.6",     # JSON recursion depth bypass (high)
     "urllib3>=2.7.0",       # GHSA-mf9v-mfxr-j63j + GHSA-qccp-gfcp-xxvc: 解压缩炸弹 + 无限链解压缩 (high)
     "idna>=3.15",           # GHSA-65pc-fj4g-8rjx: idna.encode() 特殊构造输入绕过 CVE-2024-3651 修复 (medium)
@@ -185,5 +185,5 @@ constraint-dependencies = [
     "orjson>=3.11.6",       # 无限递归 DoS (high)
     "google-cloud-aiplatform>=1.133.0", # 可预测 bucket 命名 (high)
     "mako>=1.3.12",         # GHSA-2h4p-vjrc-8xpq / CVE-2026-44307: Windows 反斜杠 URI TemplateLookup 路径穿越 (high, alembic 传递; 兼容 GHSA-v92g-xgxw-vvmm)
-    "python-multipart>=0.0.27", # GHSA-pp6c-gr5w-3c5g / CVE-2026-42561: MultipartParser 无界 part headers DoS (high, mcp/starlette 传递; 兼容 GHSA-mj87-hwqh-73pj)
+    "python-multipart>=0.0.31", # GHSA-pp6c-gr5w-3c5g / CVE-2026-42561 + 后续 part headers DoS (high, mcp/starlette 传递; 兼容 GHSA-mj87-hwqh-73pj)
 ]

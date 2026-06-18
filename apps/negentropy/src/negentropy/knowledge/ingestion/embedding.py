@@ -17,11 +17,52 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import UUID
 
+from opentelemetry import trace
+from opentelemetry.sdk.trace import Status, StatusCode
+
+from negentropy.instrumentation import _apply_model_normalization
 from negentropy.logging import get_logger
+from negentropy.model_names import extract_vendor
 
 from ..exceptions import EmbeddingFailed
 
 logger = get_logger("negentropy.knowledge.embedding")
+
+# ---------------------------------------------------------------------------
+# OTel Span 辅助 — 绕过 LiteLLM callback 不触发 embedding 的缺陷
+# ---------------------------------------------------------------------------
+# LiteLLM embedding() 成功路径不调用 success_callback / failure_callback
+# （参见 litellm/main.py:5793 的 bare `return response`），
+# 导致 ``"otel"`` + ``LiteLLMLoggingCallback`` 永远不会被触发。
+# 此处显式创建 OTel Span 并复用 ``instrumentation._apply_model_normalization``
+# 注入模型归一化、token 用量和 cost，保证 embedding 调用与 completion 调用
+# 在 Langfuse 上的观测一致性。
+# ---------------------------------------------------------------------------
+
+_tracer = trace.get_tracer("negentropy.embedding")
+
+
+def _start_embedding_span(model_name: str, *, api_base_host: str = "") -> trace.Span:
+    """为单次 / 批量 embedding 调用创建 OTel Span 并写入请求侧标准属性。"""
+    span = _tracer.start_span("litellm.aembedding")
+    span.set_attribute("gen_ai.operation.name", "embeddings")
+    span.set_attribute("gen_ai.request.model", model_name)
+    vendor = extract_vendor(model_name)
+    if vendor:
+        span.set_attribute("gen_ai.system", vendor)
+    if api_base_host:
+        span.set_attribute("server.address", api_base_host)
+    return span
+
+
+def _annotate_embedding_response(span: trace.Span, response: Any, model_name: str) -> None:
+    """复用 ``instrumentation._apply_model_normalization`` 注入响应侧属性。
+
+    包括：模型名归一化、token 用量、cost 计算、``langfuse.observation.model.name``
+    等与 LLM completion Span 一致的属性集合。
+    """
+    kwargs = {"model": model_name, "litellm_call_type": "embedding"}
+    _apply_model_normalization(span, kwargs, response)
 
 
 def _api_base_host(api_base: Any) -> str:
@@ -226,16 +267,18 @@ def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> Embeddi
             return []
 
         model_name, extra_kwargs = await _resolve_embedding(embedding_config_id)
+        api_base_host = _api_base_host(extra_kwargs.get("api_base"))
 
         logger.debug(
             "embedding_request",
             model=model_name,
-            api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+            api_base_host=api_base_host,
             input_count=1,
             text_preview=cleaned[:50],
             kwargs_keys=sorted(k for k in extra_kwargs.keys() if k != "api_key"),
         )
 
+        span = _start_embedding_span(model_name, api_base_host=api_base_host)
         try:
             import litellm
 
@@ -250,9 +293,10 @@ def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> Embeddi
                 _call,
                 context=f"embed({cleaned[:50]}...)",
             )
+            _annotate_embedding_response(span, response, model_name)
         except (TimeoutError, Exception) as exc:
+            span.set_status(Status(StatusCode.ERROR, str(exc)))
             upstream_text = _extract_upstream_text(exc)
-            api_base_host = _api_base_host(extra_kwargs.get("api_base"))
             hint = _build_embedding_failure_hint(upstream_text, api_base_host)
             logger.error(
                 "embedding_request_failed",
@@ -267,6 +311,8 @@ def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> Embeddi
                 model=model_name,
                 reason=str(exc),
             ) from exc
+        finally:
+            span.end()
 
         data = _extract_data_from_response(response)
         if not data:
@@ -312,6 +358,7 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
             return []
 
         model_name, extra_kwargs = await _resolve_embedding(embedding_config_id)
+        api_base_host = _api_base_host(extra_kwargs.get("api_base"))
 
         # Split texts into batches
         batches = [texts[i : i + MAX_BATCH_SIZE] for i in range(0, len(texts), MAX_BATCH_SIZE)]
@@ -329,11 +376,13 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
                 logger.debug(
                     "batch_embedding_request",
                     model=model_name,
-                    api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+                    api_base_host=api_base_host,
                     input_count=len(non_empty_texts),
                     text_preview=non_empty_texts[0][:50],
                     kwargs_keys=sorted(k for k in extra_kwargs.keys() if k != "api_key"),
                 )
+                span = _start_embedding_span(model_name, api_base_host=api_base_host)
+                span.set_attribute("gen_ai.usage.input_count", len(non_empty_texts))
                 try:
                     import litellm
 
@@ -352,9 +401,10 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
                         _call,
                         context=f"batch_embed({len(non_empty_texts)} texts)",
                     )
+                    _annotate_embedding_response(span, response, model_name)
                 except (TimeoutError, Exception) as exc:
+                    span.set_status(Status(StatusCode.ERROR, str(exc)))
                     upstream_text = _extract_upstream_text(exc)
-                    api_base_host = _api_base_host(extra_kwargs.get("api_base"))
                     hint = _build_embedding_failure_hint(upstream_text, api_base_host)
                     logger.error(
                         "batch_embedding_request_failed",
@@ -370,6 +420,8 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
                         model=model_name,
                         reason=str(exc),
                     ) from exc
+                finally:
+                    span.end()
 
                 data = _extract_data_from_response(response)
                 if not data:

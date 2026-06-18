@@ -1,0 +1,122 @@
+# PDF 高保真还原 (PDF Fidelity Restore) — 内置 Skill 模板（全局技能）
+#
+# 用途：用 negentropy-perceives 的 ``parse_pdf_to_markdown``，经 Knowledge Base 的
+#       Documents Ingest，把 PDF **一比一**还原为可在 Documents 页正确渲染的 Markdown
+#       （文字 / 段落顺序 / 高清原图 / 图片显示尺寸 / 目录 / 表格 / 数学公式 / 代码块 /
+#       注释脚注），大文件分批，逐页浏览器对比、发现一处修一处，直到管线与 UI 渲染均达最佳。
+#
+# 触发方式（任选其一）：
+#   1. UI: /interface/skills → "From Template..." → 选 PDF 高保真还原 → Install
+#   2. API: POST /interface/skills/from-template { template_id: "pdf_fidelity_restore" }
+#   3. 任意 Agent（is_global=true，自动注入 Progressive Disclosure）: expand_skill("pdf-fidelity-restore", { pdf_source, corpus_name })
+#
+# SSOT 提示：本文件与 .agent/skills/pdf-fidelity-restore/SKILL.md 同源（DB 技能供一核五翼，
+#            文件技能供 Routine 的 Claude Code），两处正文骨架须保持一致。
+#
+# 参考：
+#   - negentropy-perceives parse_pdf_to_markdown（auto_batch / resume / 多引擎 docling·mineru·marker·smart）
+#   - Anthropic Claude Skills / Google ADK Skills 的 Progressive Disclosure 原则
+
+template_id: pdf_fidelity_restore
+name: pdf-fidelity-restore
+display_name: PDF 高保真还原 (PDF Fidelity Restore)
+description: >-
+  用 negentropy-perceives 的 parse_pdf_to_markdown 经 Knowledge Base Documents Ingest 将 PDF 一比一还原为可渲染
+  Markdown（文字、段落顺序、高清原图、图片显示尺寸、目录、表格、数学公式、代码块、注释），大文件分批，逐页浏览器对比、发现一处修一处，直至完全一致。
+category: knowledge
+version: 1.0.0
+visibility: public
+priority: 20
+enforcement_mode: warning
+# 全局技能：自动注入全系统所有 Agent（一核五翼 + 未来新增），无需逐 Agent 维护 skills 数组。
+is_global: true
+
+# advisory（enforcement_mode=warning + is_global 强制 warning：缺失不阻塞，仅作能力提示）
+required_tools:
+  - data-extractor
+  - parse_pdf_to_markdown
+  - ingest_to_corpus
+
+prompt_template: |
+  你是「PDF 高保真还原」专家。目标：把 PDF **一比一**还原为可在 Knowledge / Documents 页正确渲染的
+  Markdown，并通过浏览器逐页对比将差异修复至完全一致。
+
+  ## 输入
+  - pdf_source：``{{ pdf_source }}``（本地绝对路径或 http(s) URL）
+  - corpus_name：``{{ corpus_name }}``（目标 Corpus，默认 Harness Engineering）
+  - method：``{{ method }}``（perceives 引擎：auto / smart / docling / mineru / marker / pymupdf / pypdf）
+  - 分批：batch_page_size=``{{ batch_page_size }}``，batch_threshold_pages=``{{ batch_threshold_pages }}``
+
+  ## 一比一还原范围（缺一不可）
+  文字、段落顺序、高清原图、**图片显示尺寸**、目录(TOC/锚点)、表格、数学公式(LaTeX/KaTeX)、
+  代码块(语言与高亮)、脚注/注释。
+
+  ## 流程（自驱闭环）
+  1. **基准**：用用户常用浏览器（真实登录态）打开源 PDF（``file://`` 或 URL）作为对照基线；不得绕过/模拟任何登录。
+  2. **路由就绪**：确认目标 Corpus 的 ``config.extractor_routes`` 已把 ``source_kind=pdf`` 路由到
+     ``negentropy-perceives.parse_pdf_to_markdown``，``tool_options`` 开启 extract_images/tables/formulas，
+     并设 ``auto_batch=true`` 与合适的 ``batch_page_size``。
+  3. **分批摄取**：经 Documents Ingest 上传 PDF。大文件依赖 perceives 的 ``auto_batch``
+     （总页数 > batch_threshold_pages 时自动切片，``resume`` 断点续传），确保**整本**最终合并为单一 Markdown 文档。
+  4. **等待完成**：轮询文档 ``markdown_extract_status`` 至 ``completed``（失败则查 ``markdown_extract_error`` 并 refresh 重试）。
+  5. **渲染核对**：在 Documents 页 View 渲染结果（react-markdown + remark-gfm/math + rehype-katex/raw/highlight/sanitize）。
+  6. **逐页对比**：按上「一比一还原范围」逐页 / 逐模块比对源 PDF 与渲染 Markdown，逐条记录差异（页号 + 类别 + 现象）。
+  7. **发现一处修一处（分层修复路由）**：
+     - **渲染层**：DocumentMarkdownRenderer / sanitize schema / DocumentImage（图片宽高、表格、KaTeX、代码高亮、figure/figcaption、TOC 锚点）。
+     - **摄取层**：图片链接重写、资产存储、元数据。
+     - **管线层**：perceives 引擎选型、分批边界、跨片合并（图片去重、边界图注补救）、图片分辨率与显示尺寸提取。
+     改后经 refresh_markdown 重摄取或重载页面，复核该项。
+  8. **循环**：重复 6–7，直到逐页校验清单全绿；保留关键页源 PDF vs 渲染 Markdown 对比截图为证。
+
+  ## 反模式（严禁）
+  - 跳过逐页核对即声明完成；
+  - 只比文字而忽略图 / 表 / 公式 / 代码 / 注释；
+  - 图片不还原原始显示尺寸（宽高）。
+
+  ## 完成判据
+  逐页校验清单全绿 + 关键页对比截图留证 + 整本 PDF 在 Documents 页可读性与一致性达最佳。
+
+config_schema:
+  type: object
+  properties:
+    pdf_source:
+      type: string
+      description: 本地绝对路径或 http(s) URL 的 PDF 源
+    corpus_name:
+      type: string
+      default: Harness Engineering
+      description: 目标 Knowledge Corpus 名称
+    method:
+      type: string
+      enum: [auto, smart, docling, mineru, marker, pymupdf, pypdf]
+      default: auto
+      description: perceives 解析引擎
+    batch_page_size:
+      type: integer
+      minimum: 1
+      maximum: 200
+      default: 40
+      description: auto_batch 单切片最大页数
+    batch_threshold_pages:
+      type: integer
+      minimum: 1
+      default: 60
+      description: 超过该页数才启用 auto_batch 分批
+  required:
+    - pdf_source
+
+default_config:
+  corpus_name: Harness Engineering
+  method: auto
+  batch_page_size: 40
+  batch_threshold_pages: 60
+
+resources:
+  - type: corpus
+    ref: harness-engineering
+    title: Harness Engineering corpus（默认目标语料库）
+    lazy: true
+  - type: url
+    ref: https://github.com/negentropy/negentropy-perceives
+    title: negentropy-perceives parse_pdf_to_markdown 工具文档
+    lazy: true

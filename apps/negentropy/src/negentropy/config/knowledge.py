@@ -47,12 +47,12 @@ class DefaultExtractorRoutesSettings(BaseModel):
             primary=DefaultExtractorTargetSettings(
                 server_name="negentropy-perceives",
                 tool_name="parse_pdf_to_markdown",
-                timeout_ms=300_000,
+                timeout_ms=3_600_000,  # 1h，对齐 YAML timeout_long_ms（大 PDF 分批串行 + 续传）
             ),
             secondary=DefaultExtractorTargetSettings(
                 server_name="negentropy-perceives",
                 tool_name="parse_pdfs_to_markdown",
-                timeout_ms=600_000,
+                timeout_ms=7_200_000,  # 2h：批量 PDF（与 YAML timeout_xlong_ms 对齐）
             ),
         )
     )
@@ -82,6 +82,25 @@ class WikiRevalidateSettings(BaseModel):
     )
 
 
+class KnowledgeMcpSettings(BaseModel):
+    """知识库检索 MCP 端点配置（供 Routine 的 Claude Code 经 streamable-HTTP 接入）。
+
+    端点由常驻引擎进程内挂载（``/mcp/knowledge``），凭证不出引擎进程 ——
+    Claude Code 仅持低权限只读 bearer token。
+
+    - ``self_base_url``：引擎自身可达地址（如 ``http://127.0.0.1:3292``）。
+      由 ``negentropy serve`` 启动时按端口自动推导（env
+      ``NE_KNOWLEDGE_MCP__SELF_BASE_URL``）；缺席时 MCP 全链路优雅 no-op
+      （非 serve 启动场景，如裸 adk web / 单测）。
+    - ``auth_token``：静态部署 token；缺省则每进程随机生成（重启轮换）。
+    """
+
+    enabled: bool = True
+    self_base_url: str | None = None
+    auth_token: SecretStr | None = None
+    default_top_k: int = Field(default=5, ge=1, le=20)
+
+
 class KnowledgeFeatureFlags(BaseModel):
     """联邦知识图谱与跨 Corpus 检索的 feature flag
 
@@ -108,6 +127,13 @@ class KnowledgeSettings(BaseSettings):
         frozen=True,
     )
 
+    max_file_size_mb: int = Field(
+        default=200,
+        ge=1,
+        le=1024,
+        description="Knowledge 文件上传大小上限 (MB)。",
+    )
+
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,
     )
@@ -116,6 +142,9 @@ class KnowledgeSettings(BaseSettings):
     )
     feature_flags: KnowledgeFeatureFlags = Field(
         default_factory=KnowledgeFeatureFlags,
+    )
+    mcp: KnowledgeMcpSettings = Field(
+        default_factory=KnowledgeMcpSettings,
     )
 
     @classmethod

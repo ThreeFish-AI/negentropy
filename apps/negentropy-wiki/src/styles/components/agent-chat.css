@@ -43,7 +43,7 @@
   position: fixed;
   right: 24px;
   bottom: 92px; /* FAB(56) + gap(12) + margin(24) */
-  width: min(420px, calc(100vw - 48px));
+  width: clamp(480px, 66.67vw, 1100px);
   height: min(620px, calc(100vh - 140px));
   display: flex;
   flex-direction: column;

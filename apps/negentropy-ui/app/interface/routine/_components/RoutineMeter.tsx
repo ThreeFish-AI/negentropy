@@ -11,6 +11,8 @@ export function RoutineMeter({
   fillClass,
   /** 阈值刻痕位置（0-100），如成功阈值线。 */
   notchPct,
+  /** 自定义右侧内容（替代 valueText 文本）。 */
+  rightElement,
   className,
 }: {
   label: string;
@@ -18,14 +20,15 @@ export function RoutineMeter({
   ratio: number | null;
   fillClass: string;
   notchPct?: number;
+  rightElement?: React.ReactNode;
   className?: string;
 }) {
   const pct = ratio == null ? 0 : Math.min(100, Math.max(0, ratio * 100));
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between text-[10px] text-text-muted">
+      <div className="flex items-baseline justify-between text-xs text-text-secondary">
         <span>{label}</span>
-        <span className="tabular-nums text-text-secondary">{valueText}</span>
+        {rightElement ?? <span className="tabular-nums text-text-secondary">{valueText}</span>}
       </div>
       <div className="relative mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div

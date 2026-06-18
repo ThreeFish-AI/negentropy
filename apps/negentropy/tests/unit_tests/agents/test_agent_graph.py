@@ -44,9 +44,11 @@ def test_root_agent_has_8_sub_agents():
 
 
 def test_root_agent_tools():
-    """root_agent 绑定 log_activity 及 ADK 2.0 Collaborative Agents 自动注册的 single_turn 系部工具"""
+    """root_agent 绑定 log_activity + preload_memory 及 ADK 2.0 自动注册的 single_turn 系部工具"""
     tool_names = [t.__name__ if callable(t) else getattr(t, "name", str(t)) for t in root_agent.tools]
     assert "log_activity" in tool_names
+    # 记忆检索主链路接入：每轮自动检索长期记忆注入 llm_request（LLM 不可见）
+    assert "preload_memory" in tool_names
     # ADK 2.0: mode="single_turn" 的五大系部自动注册为 _SingleTurnAgentTool
     faculty_names = {
         "PerceptionFaculty",
@@ -55,8 +57,15 @@ def test_root_agent_tools():
         "ActionFaculty",
         "InfluenceFaculty",
     }
-    auto_tool_names = {name for name in tool_names if name != "log_activity"}
+    auto_tool_names = {name for name in tool_names if name not in {"log_activity", "preload_memory"}}
     assert faculty_names == auto_tool_names, f"expected faculty tools {faculty_names}, got {auto_tool_names}"
+
+
+def test_faculties_have_load_memory_tool():
+    """Perception / Contemplation / Internalization 暴露 load_memory（长期记忆回溯）"""
+    for agent in (perception_agent, contemplation_agent, internalization_agent):
+        tool_names = [t.__name__ if callable(t) else getattr(t, "name", str(t)) for t in agent.tools]
+        assert "load_memory" in tool_names, f"{agent.name} 缺少 load_memory 工具"
 
 
 # ---------------------------------------------------------------------------

@@ -290,7 +290,12 @@ class ContextAssembler:
             summary = await summarizer.get_or_generate_summary(user_id=user_id, app_name=app_name)
             if summary and summary.content:
                 logger.debug("using_cached_summary", user_id=user_id)
-                return summary.content
+                # 引用规范：标注内容为二手画像摘要，避免 LLM 把它当作可逐条引用的原始记忆。
+                generated = summary.updated_at.strftime("%Y-%m-%d") if summary.updated_at else "unknown"
+                return (
+                    f"（来源：记忆画像摘要，生成于 {generated}；引用时请标注为画像摘要而非具体记忆条目）\n"
+                    f"{summary.content}"
+                )
         except Exception as exc:
             logger.debug("summary_fallback_to_raw", user_id=user_id, error=str(exc))
 
@@ -308,10 +313,14 @@ class ContextAssembler:
             result = await db.execute(stmt)
             memories = result.scalars().all()
 
+        # 引用规范：每条记忆/事实附 id 短码与日期，让下游 LLM 能按
+        # `[N] Memory <id8>, <type>, <date>` 格式标注来源（见 agents/_citation_protocol.py）。
         for m in memories:
             if m.content and m.retention_score and m.retention_score > 0.3:
                 snippet = m.content[:200] + ("..." if len(m.content) > 200 else "")
-                parts.append(f"[Memory] {snippet}")
+                id8 = str(m.id)[:8]
+                date = m.created_at.strftime("%Y-%m-%d") if m.created_at else "unknown"
+                parts.append(f"[Memory {id8} | {m.memory_type} | {date}] {snippet}")
 
         # 获取活跃事实
         fact_service = get_fact_service()
@@ -319,7 +328,9 @@ class ContextAssembler:
 
         for f in facts:
             value_text = str(f.value)[:100]
-            parts.append(f"[Fact:{f.fact_type}] {f.key}: {value_text}")
+            id8 = str(f.id)[:8]
+            date = f.created_at.strftime("%Y-%m-%d") if f.created_at else "unknown"
+            parts.append(f"[Fact:{f.fact_type} | {id8} | {date}] {f.key}: {value_text}")
 
         # GraphRAG 上下文注入：高重要性实体 + 1-hop 关系摘要
         # 理论: Edge et al., 2024 GraphRAG; Guo et al., 2024 LightRAG

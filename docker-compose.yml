@@ -1,0 +1,163 @@
+# =============================================================================
+# Negentropy Docker Compose — 一键启动全套服务
+# =============================================================================
+# Usage:
+#   docker compose up -d              启动所有服务
+#   docker compose logs -f            查看日志
+#   docker compose ps                 查看服务状态
+#   docker compose down               停止所有服务
+#   docker compose down -v            停止并清除数据卷
+#
+# 前置条件:
+#   1. 复制 .env.docker 为 .env.docker.local 并填写 API 密钥
+#      （.local 已被 .gitignore 忽略，经 env_file 叠加加载并覆盖 .env.docker 同名项）
+#   2. Docker Engine >= 24.0 且 Docker Compose >= 2.24（env_file required 语法要求）
+# =============================================================================
+
+services:
+  # ── PostgreSQL + pgvector ──────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: negentropy-postgres
+    environment:
+      POSTGRES_USER: aigc
+      POSTGRES_PASSWORD: ""
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: negentropy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aigc -d negentropy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Perceives — MCP Server（Web/PDF 内容提取） ─────────────────────────────
+  perceives:
+    image: threefishai/negentropy-perceives:${NEGENTROPY_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/perceives/Dockerfile
+    container_name: negentropy-perceives
+    ports:
+      - "2992:2992"
+    environment:
+      NEGENTROPY_PERCEIVES_HTTP_HOST: "0.0.0.0"
+      NEGENTROPY_PERCEIVES_HTTP_PORT: "2992"
+    env_file:
+      - path: .env.docker
+        required: false
+      - path: .env.docker.local
+        required: false
+    healthcheck:
+      # FastMCP 无根路由（GET / 返回 404），以 MCP 端点 /mcp 的状态码探活：
+      # GET 缺 MCP Accept 头时返回 406，即可证明 ASGI 服务已就绪
+      test: ["CMD-SHELL", "case $(curl -s -o /dev/null -w '%{http_code}' http://localhost:2992/mcp) in 200|307|405|406) exit 0;; *) exit 1;; esac"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Backend — Google ADK Web Server（核心 Agent 平台） ──────────────────────
+  backend:
+    image: threefishai/negentropy-backend:${NEGENTROPY_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: negentropy-backend
+    ports:
+      - "3292:3292"
+    environment:
+      # Docker 内部网络：postgres 服务名替代 localhost
+      NE_DB_URL: "postgresql+asyncpg://aigc:@postgres:5432/negentropy"
+      # Wiki ISR revalidate webhook（Docker 内部网络）
+      NE_KNOWLEDGE_WIKI_REVALIDATE__URL: "http://wiki:3092/api/revalidate"
+      # SSO 回调地址保持 localhost（浏览器端访问）
+      NE_AUTH_GOOGLE_REDIRECT_URI: "http://localhost:3292/auth/google/callback"
+    env_file:
+      - path: .env.docker
+        required: false
+      - path: .env.docker.local
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      perceives:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3292/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  # ── UI — Next.js 主聊天前端 ────────────────────────────────────────────────
+  ui:
+    image: threefishai/negentropy-ui:${NEGENTROPY_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        TARGET_SERVICE: negentropy-ui
+    container_name: negentropy-ui
+    ports:
+      - "3192:3192"
+    environment:
+      # 服务端 BFF 代理目标（Docker 内部网络）
+      AGUI_BASE_URL: "http://backend:3292"
+      # 容器绑定到所有接口（healthcheck 需要）
+      PORT: "3192"
+      HOSTNAME: "0.0.0.0"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3192/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Wiki — Next.js 知识库前端 ──────────────────────────────────────────────
+  wiki:
+    image: threefishai/negentropy-wiki:${NEGENTROPY_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        TARGET_SERVICE: negentropy-wiki
+    container_name: negentropy-wiki
+    ports:
+      - "3092:3092"
+    environment:
+      # Wiki 内容 API 代理目标（Docker 内部网络）
+      WIKI_API_BASE: "http://backend:3292"
+      # Wiki BFF 代理目标（Docker 内部网络）
+      WIKI_UI_BFF_BASE: "http://ui:3192"
+      # 容器绑定到所有接口
+      PORT: "3092"
+      HOSTNAME: "0.0.0.0"
+    depends_on:
+      backend:
+        condition: service_healthy
+      ui:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3092/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+# ── 持久化数据卷 ────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:

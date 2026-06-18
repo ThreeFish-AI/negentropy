@@ -7,6 +7,10 @@ vi.mock("@/components/providers/AuthProvider", () => ({
   }),
 }));
 
+vi.mock("@/components/ui/TiltedCard", () => ({
+  TiltedCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 const server = {
   id: "server-1",
   owner_id: "user-1",

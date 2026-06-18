@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     Float,
@@ -85,13 +86,18 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
 
 
 class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
-    """文档元信息表 - 存储上传到 GCS 的原始文件信息"""
+    """文档元信息表 - 存储上传到 GCS 的原始文件信息
+
+    ``corpus_id IS NULL`` 表示独立文档库（Library）文档：仅完成
+    「转换为 Markdown + GCS 存储」，未绑定任何 Corpus；可经
+    Ingest Document 在任意 Corpus 中索引化（文档本体不动）。
+    """
 
     __tablename__ = "knowledge_documents"
 
-    corpus_id: Mapped[UUID] = mapped_column(
+    corpus_id: Mapped[UUID | None] = mapped_column(
         ForeignKey(f"{NEGENTROPY_SCHEMA}.corpus.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -133,6 +139,15 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
+        # 库文档去重：UNIQUE(corpus_id, file_hash) 对 NULL 行豁免（PG 视 NULL 互异），
+        # 故以 app 为租户边界对库文档单独约束（详见 0067 迁移设计动机）。
+        Index(
+            "uq_knowledge_documents_library_hash",
+            "app_name",
+            "file_hash",
+            unique=True,
+            postgresql_where="corpus_id IS NULL",
+        ),
         Index("ix_knowledge_documents_file_hash", "file_hash"),
         Index("ix_knowledge_documents_app_name", "app_name"),
         Index("ix_knowledge_documents_status", "status"),
@@ -141,7 +156,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
         {"schema": NEGENTROPY_SCHEMA},
     )
 
-    corpus: Mapped["Corpus"] = relationship(back_populates="documents")
+    corpus: Mapped["Corpus | None"] = relationship(back_populates="documents")
     # Phase 2: 来源记录（反向关联）
     source: Mapped["DocSource | None"] = relationship(foreign_keys=[source_id])
 
@@ -302,6 +317,7 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
 
     其它字段：
       - ``entry_slug`` / ``entry_title``：URL 段与标题（CONTAINER 取 Catalog 节点 name）。
+      - ``entry_description``：CONTAINER 取 Catalog 节点 description，供 SSG 首页卡片展示。
       - ``is_index_page``：标记是否为该 Publication 首页（仅 DOCUMENT 有意义）。
       - ``entry_path``：导航树层级路径（Materialized Path，list[str] JSON 串）。
     """
@@ -329,8 +345,13 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     )
     entry_slug: Mapped[str] = mapped_column(String(255), nullable=False)
     entry_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # CONTAINER 条目从 Catalog 节点 description 拷入（entry_title 的同生命周期姊妹字段），
+    # 供 SSG 首页「内容主题」卡片展示；DOCUMENT 条目通常为 NULL。
+    entry_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Materialized Path：list[str] 以 JSON 字符串形式存储；历史列名 entry_order。
     entry_path: Mapped[str | None] = mapped_column("entry_path", JSONB)
+    # Catalog 排序权重：源自 DocCatalogEntry.position，0 表示未显式排序（回退 slug 字母序）。
+    entry_position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     is_index_page: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     publication: Mapped["WikiPublication"] = relationship(back_populates="entries")
@@ -407,6 +428,25 @@ class WikiEntryAnnotation(Base, UUIDMixin, TimestampMixin):
         Index("ix_wiki_annotations_user_id", "user_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+class WikiEntryViews(Base):
+    """Wiki 条目浏览计数
+
+    轻量级 per-entry 计数器，每次页面加载通过 POST /view 原子递增。
+    不做用户去重，使用 PostgreSQL INSERT ... ON CONFLICT DO UPDATE 实现原子 upsert。
+    """
+
+    __tablename__ = "wiki_entry_views"
+
+    entry_id: Mapped[UUID] = mapped_column(
+        fk("wiki_publication_entries", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    view_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
 
 
 # =============================================================================
@@ -767,7 +807,7 @@ class DocCatalogEntry(Base, UUIDMixin, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug_override: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    position: Mapped[float] = mapped_column(Float, nullable=False, default=0, server_default="0")
     status: Mapped[str] = mapped_column(
         SAEnum(
             "ACTIVE",

@@ -57,21 +57,24 @@ const documentSanitizeSchema: typeof defaultSchema = {
 
 interface DocumentMarkdownRendererProps {
   content: string;
-  corpusId: string;
+  /** 为 null 时表示库文档（corpus_id=null），资产走无 corpus 平行路由。 */
+  corpusId: string | null;
   documentId: string;
   appName?: string;
 }
 
 function buildAssetProxyUrl(
   assetName: string,
-  corpusId: string,
+  corpusId: string | null,
   documentId: string,
   appName?: string,
 ): string {
   const params = new URLSearchParams();
   if (appName) params.set("app_name", appName);
   const query = params.toString();
-  const base = `/api/knowledge/base/${corpusId}/documents/${documentId}/assets/${encodeURIComponent(assetName)}`;
+  const base = corpusId
+    ? `/api/knowledge/base/${corpusId}/documents/${documentId}/assets/${encodeURIComponent(assetName)}`
+    : `/api/knowledge/documents/${documentId}/assets/${encodeURIComponent(assetName)}`;
   return query ? `${base}?${query}` : base;
 }
 
@@ -90,6 +93,30 @@ function isAbsoluteUrl(src: string): boolean {
  */
 function extractFilename(src: string): string {
   return src.split("/").pop() || src;
+}
+
+/**
+ * 判断 alt 是否为「有意义的图注」而非自动生成的文件名。
+ *
+ * perceives 抽取的图片以 ``alt="fig_p1_1.png"`` 形式输出占位 alt（= 文件名），
+ * 不应被当作 figcaption 渲染（否则页面显示 "fig_p1_1.png" 这类无语义文本）。
+ * 真正的图注（如「Figure 1: ...」）在 Markdown 正文中以文本呈现，不走 alt。
+ * 仅当 alt 非空、且不等于文件名、且不形如自动命名 / 纯文件名时，才视为图注。
+ */
+function isMeaningfulCaption(alt: string | undefined, src: string): boolean {
+  const text = (alt ?? "").trim();
+  if (!text) return false;
+  if (text === extractFilename(src)) return false;
+  // 关键判别：真实图注（如「Figure 1: The Overview ...」）必含空格与描述性文字；
+  // 自动命名（fig_p1_1 / figure-2 / image_4）与纯文件名（*.png）均为无空格单 token。
+  // 故仅对「无空格」的 token 做文件名 / 自动命名抑制，绝不误伤含空格的真实图注。
+  if (!/\s/.test(text)) {
+    // 纯文件名（以图片扩展名结尾）
+    if (/\.(png|jpe?g|gif|webp|svg|bmp|tiff?)$/i.test(text)) return false;
+    // 自动命名 token（fig_p1_1 / figure-2 / image_4 等）
+    if (/^(fig|figure|image|img|pic|picture)[._-]*p?\d/i.test(text)) return false;
+  }
+  return true;
 }
 
 /**
@@ -165,7 +192,7 @@ function DocumentImage({
   alt?: string;
   width?: number | string;
   height?: number | string;
-  corpusId: string;
+  corpusId: string | null;
   documentId: string;
   appName?: string;
 }) {
@@ -225,7 +252,7 @@ function DocumentImage({
         onError={() => setImgState("error")}
       />
 
-      {alt && imgState === "loaded" && (
+      {imgState === "loaded" && isMeaningfulCaption(alt, src) && (
         <figcaption className="mt-1.5 text-center text-xs text-text-muted">
           {alt}
         </figcaption>

@@ -15,6 +15,7 @@ import { SeparatorsTextarea } from "@/features/knowledge/components/SeparatorsTe
 import {
   buildPipelineErrorDetails,
   calculateStageWidth,
+  canRetryRun,
   getFailureCategoryLabel,
   formatDuration,
   getFailedStages,
@@ -159,6 +160,7 @@ export function createKnowledgeConfigTestExports() {
     formatDuration,
     calculateStageWidth,
     getSortedStages,
+    canRetryRun,
     PipelineRunCard,
     PipelineRunList,
     PipelineRunDetailPanel,

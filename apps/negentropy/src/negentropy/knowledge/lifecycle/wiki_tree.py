@@ -22,8 +22,8 @@ JSON 数组）合成嵌套的导航树。
 
 输出约定：
   - 返回 ``list[NavTreeItem]``，每个节点形如
-    ``{entry_id, entry_slug, entry_title, is_index_page, document_id,
-       catalog_node_id, entry_kind, children}``；
+    ``{entry_id, entry_slug, entry_title, entry_description, is_index_page,
+       document_id, catalog_node_id, entry_kind, children}``；
   - 合成型容器节点（仅在缺 CONTAINER 时回退）``entry_id`` / ``document_id`` /
     ``catalog_node_id`` 为 ``None``，``entry_kind=CONTAINER``。
 """
@@ -63,10 +63,12 @@ def _entry_to_item(entry: Any) -> dict:
         "entry_id": str(entry_id) if entry_id else None,
         "entry_slug": entry.entry_slug,
         "entry_title": entry.entry_title or entry.entry_slug,
+        "entry_description": getattr(entry, "entry_description", None),
         "is_index_page": bool(getattr(entry, "is_index_page", False)),
         "document_id": str(document_id) if document_id else None,
         "catalog_node_id": str(catalog_node_id) if catalog_node_id else None,
         "entry_kind": entry_kind,
+        "entry_position": getattr(entry, "entry_position", 0) or 0,
         "children": [],
     }
 
@@ -77,6 +79,7 @@ def _make_synthetic_container(slug_path: str, title_segment: str) -> dict:
         "entry_id": None,
         "entry_slug": slug_path,
         "entry_title": title_segment,
+        "entry_description": None,
         "is_index_page": False,
         "document_id": None,
         "catalog_node_id": None,
@@ -103,14 +106,16 @@ def build_nav_tree(entries: Iterable[Any]) -> list[dict]:
     roots: list[dict] = []
     container_index: dict[str, dict] = {}
 
-    # 按 (path_len, entry_kind 优先级) 排序：CONTAINER < DOCUMENT 同级时容器先注册。
-    def _sort_key(entry: Any) -> tuple[int, int, str]:
+    # 按 (path_len, entry_kind 优先级, entry_position, slug) 排序：
+    # 同深度下 CONTAINER 先注册；同级同 kind 按 entry_position 排序（0 = 回退字母序）。
+    def _sort_key(entry: Any) -> tuple[int, int, int, str]:
         path = _parse_path(getattr(entry, "entry_path", None), getattr(entry, "entry_slug", ""))
         kind = getattr(entry, "entry_kind", None) or (
             "DOCUMENT" if getattr(entry, "document_id", None) else "CONTAINER"
         )
         kind_order = 0 if kind == "CONTAINER" else 1
-        return (len(path), kind_order, getattr(entry, "entry_slug", ""))
+        pos = getattr(entry, "entry_position", 0) or 0
+        return (len(path), kind_order, pos, getattr(entry, "entry_slug", ""))
 
     sorted_entries = sorted(entries, key=_sort_key)
 

@@ -271,6 +271,33 @@ def _serialize_corpus_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return serialized
 
 
+async def _pin_default_embedding_config(request_config: dict[str, Any]) -> None:
+    """创建 Corpus 时固化当前全局默认 Embedding 模型的 config_id（原地修改 request_config）。
+
+    - 已显式提供 ``models.embedding_config_id`` → no-op（尊重调用方指定的 pin）；
+    - 未提供且存在全局默认（``model_configs.is_default`` 的 embedding 行）→ 写入其 id，
+      使语料创建即绑定具体模型，免疫日后全局默认变更；后续改模型走 ``update_corpus``
+      既有的维度比对 + 重建保护路径；
+    - 无全局默认行 → no-op（语料保持未 pin，由 model_resolver 运行期回退兜底）。
+
+    仅作用于 embedding：LLM 无向量维度契约，创建期固化非本次诉求，保持最小干预。
+    """
+    raw_models = request_config.get("models")
+    models: dict[str, Any] = dict(raw_models) if isinstance(raw_models, dict) else {}
+    existing = models.get("embedding_config_id")
+    if existing not in (None, ""):
+        return
+
+    from negentropy.config.model_resolver import resolve_default_model_config_id
+
+    default_id = await resolve_default_model_config_id("embedding")
+    if default_id is None:
+        return
+
+    models["embedding_config_id"] = str(default_id)
+    request_config["models"] = models
+
+
 async def _validate_models_references(models: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     """校验 config.models 引用的 model_configs 行存在且类型匹配；返回 {key: row_dict}。
 
@@ -512,6 +539,15 @@ async def _resolve_default_extractor_routes() -> dict[str, Any]:
     return resolved_routes
 
 
+async def _resolve_library_extractor_config() -> dict[str, Any]:
+    """库文档（corpus_id=None）的提取配置单一来源。
+
+    Import Document / 库文档 refresh_markdown 无 Corpus 配置可读，
+    统一复用 Corpus 创建时的默认 extractor_routes 解析逻辑。
+    """
+    return {"extractor_routes": await _resolve_default_extractor_routes()}
+
+
 # ── Additional singleton getters (originally scattered in route modules) ──
 
 _kg_entity_service: KgEntityService | None = None
@@ -697,11 +733,14 @@ async def _resolve_documents_archived_set(
     """批量解析一批文档的归档状态，返回已归档的 ``(corpus_id, source_uri)`` 集合。
 
     单一事实源——复用与 ``SourceSummary.archived`` 同款聚合逻辑，避免前端做映射。
-    若 ``source_uri`` 无法解析（极端老数据），该文档默认按未归档处理。
+    若 ``source_uri`` 无法解析（极端老数据），该文档默认按未归档处理；
+    库文档（``corpus_id IS NULL``）无本 corpus chunks，恒为未归档。
     """
     pairs: list[tuple[UUID, str]] = []
     seen: set[tuple[UUID, str]] = set()
     for doc in docs:
+        if doc.corpus_id is None:
+            continue
         source_uri = _resolve_document_source_uri(doc)
         if not source_uri:
             continue
@@ -783,7 +822,12 @@ async def _extract_and_store_document_markdown_from_gcs(
 
     try:
         service = _get_service()
-        corpus_config = await service._get_corpus_config(doc.corpus_id)
+        # 库文档（corpus_id=None）无 Corpus 配置，回退默认 extractor_routes
+        corpus_config = (
+            await service._get_corpus_config(doc.corpus_id)
+            if doc.corpus_id is not None
+            else await _resolve_library_extractor_config()
+        )
         source_kind = resolve_source_kind(
             filename=doc.original_filename,
             content_type=doc.content_type,

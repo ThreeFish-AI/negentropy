@@ -19,9 +19,12 @@ export const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
   ingest_file: "文件摄入",
+  ingest_document: "文档摄入",
+  import_document: "文档导入",
   replace_source: "替换源",
   sync_source: "同步源",
   rebuild_source: "重建源",
+  translate: "文档翻译",
   graph_build: "图谱构建",
 };
 
@@ -43,6 +46,8 @@ export const STAGE_ORDER = [
   "extract_failover_1",
   "extract_failover_2",
   "extract_assets_store",
+  "document_store",
+  "source_tracking",
   "markdown_store",
   "extract_finalize",
   "extract_gate",
@@ -53,6 +58,11 @@ export const STAGE_ORDER = [
   "chunk",
   "embed",
   "persist",
+  // 翻译阶段
+  "chunking",
+  "agent_execution",
+  "validation",
+  "storing",
   // KG 构建阶段
   "kg_extracting",
   "kg_resolving",
@@ -74,6 +84,8 @@ export const STAGE_LABELS: Record<string, string> = {
   extract_failover_1: "备用 MCP 提取 1",
   extract_failover_2: "备用 MCP 提取 2",
   extract_assets_store: "存储提取资源",
+  document_store: "存储原始文档",
+  source_tracking: "来源追踪",
   markdown_store: "存储 Markdown",
   extract_finalize: "整理提取结果",
   extract_gate: "提取结果校验",
@@ -81,6 +93,11 @@ export const STAGE_LABELS: Record<string, string> = {
   chunk: "文本分块",
   embed: "向量化",
   persist: "持久化",
+  // 翻译阶段
+  chunking: "文档分块",
+  agent_execution: "Agent 翻译",
+  validation: "校验拼接",
+  storing: "译文落库",
   // KG 构建阶段
   kg_extracting: "实体抽取",
   kg_resolving: "实体消解",
@@ -144,6 +161,18 @@ export const STAGE_COLORS: Record<
     completed: "bg-teal-500",
     failed: "bg-teal-700",
     skipped: "bg-teal-300 dark:bg-teal-600",
+  },
+  document_store: {
+    running: "bg-stone-400",
+    completed: "bg-stone-500",
+    failed: "bg-stone-700",
+    skipped: "bg-stone-300 dark:bg-stone-600",
+  },
+  source_tracking: {
+    running: "bg-lime-400",
+    completed: "bg-lime-500",
+    failed: "bg-lime-700",
+    skipped: "bg-lime-300 dark:bg-lime-600",
   },
   markdown_store: {
     running: "bg-emerald-400",
@@ -223,6 +252,31 @@ export const STAGE_COLORS: Record<
     completed: "bg-cyan-500",
     failed: "bg-cyan-700",
     skipped: "bg-cyan-300 dark:bg-cyan-600",
+  },
+  // 翻译阶段
+  chunking: {
+    running: "bg-amber-400",
+    completed: "bg-amber-500",
+    failed: "bg-amber-700",
+    skipped: "bg-amber-300 dark:bg-amber-600",
+  },
+  agent_execution: {
+    running: "bg-purple-400",
+    completed: "bg-purple-500",
+    failed: "bg-purple-700",
+    skipped: "bg-purple-300 dark:bg-purple-600",
+  },
+  validation: {
+    running: "bg-orange-400",
+    completed: "bg-orange-500",
+    failed: "bg-orange-700",
+    skipped: "bg-orange-300 dark:bg-orange-600",
+  },
+  storing: {
+    running: "bg-teal-400",
+    completed: "bg-teal-500",
+    failed: "bg-teal-700",
+    skipped: "bg-teal-300 dark:bg-teal-600",
   },
 };
 
@@ -650,3 +704,55 @@ export const buildPipelineErrorDetails = (
 
   return details;
 };
+
+// ============================================================================
+// 重试 / 断点续传判定（双入口：page 与 detail panel 单一事实源）
+// ============================================================================
+
+/**
+ * 从 PipelineRunRecord 的 input/output 中尽力抽取关联的 corpus_id / document_id。
+ *
+ * 不同 operation 把这些字段放在 input 的不同位置：先 union input 与 output
+ * 两侧再判定，避免「同一对象必须同时含两字段」的旧逻辑把合法可重试场景误判
+ * 为无法定位。抽不到完整对则返回 null（UI 隐藏重试入口）。
+ */
+export function extractDocumentRef(
+  run: PipelineRunRecord,
+): { corpusId: string; documentId: string } | null {
+  let docId: string | null = null;
+  let corpusId: string | null = null;
+  for (const obj of [run.input, run.output]) {
+    if (!obj) continue;
+    if (!docId && typeof obj.document_id === "string") docId = obj.document_id;
+    if (!corpusId && typeof obj.corpus_id === "string")
+      corpusId = obj.corpus_id;
+    if (docId && corpusId) break;
+  }
+  return docId && corpusId ? { corpusId, documentId: docId } : null;
+}
+
+/** 可重试的终态集合：失败 / 部分成功 / 已取消。 */
+const RETRYABLE_RUN_STATUSES = new Set(["failed", "partial", "cancelled"]);
+
+/**
+ * 判定该 Run 是否可走重试（断点续传 / 重新开始）：
+ * 状态为 failed / partial / cancelled，或某 stage 失败。
+ */
+export function isRunResumable(run: PipelineRunRecord): boolean {
+  const s = (run.status || "").toLowerCase();
+  if (RETRYABLE_RUN_STATUSES.has(s)) return true;
+  if (!run.stages) return false;
+  for (const stage of Object.values(run.stages)) {
+    if ((stage?.status || "").toLowerCase() === "failed") return true;
+  }
+  return false;
+}
+
+/**
+ * 综合判定：Run 是否应在 UI 暴露重试入口。
+ * 要求 KB 来源 + 可抽取文档关联 + 可重试状态三者同时满足。
+ * （文件 ingest 才有 document_id；URL/text 无法按 document_id 重跑。）
+ */
+export function canRetryRun(run: PipelineRunRecord): boolean {
+  return Boolean(extractDocumentRef(run)) && isRunResumable(run);
+}

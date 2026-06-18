@@ -1,0 +1,107 @@
+# Translate (文档翻译 / Document Translate) — 内置 Skill 模板（精准挂载 InfluenceFaculty）
+#
+# 用途：把 Knowledge / Documents 中英文文档的 Markdown 正文高保真翻译为目标语言（默认中文）。
+#       服务端（DocumentTranslationService）按段落边界 + 字符长度把正文确定性切分为
+#       source/chunk_NNNN.md 分块，本技能驱动 InfluenceFaculty 经 invoke_claude_code
+#       在工作目录内逐块翻译产出 translated/chunk_NNNN.md；译文正确性（代码块还原、
+#       结构一致、零丢失）由服务端校验兜底。
+#
+# 触发方式（任选其一）：
+#   1. UI: Knowledge / Documents → 勾选文档 → Translate 按钮（产品主链路）
+#   2. UI: /interface/skills → "From Template..." → 选 Translate → Install
+#   3. API: POST /interface/skills/from-template { template_id: "document_translate" }
+#   4. InfluenceFaculty（Agent.skills 显式挂载）: expand_skill("document-translate", { workdir, chunk_count })
+#
+# SSOT 提示：本文件与 .agent/skills/document-translate/SKILL.md 同源（DB 技能供一核五翼，
+#            文件技能供 Claude Code 工作目录发现），两处正文骨架须保持一致。
+#
+# 参考：
+#   - Anthropic Claude Skills / Google ADK Skills 的 Progressive Disclosure 原则
+#   - 迁移 0067_seed_document_translate_skill（首发内容冻结快照）
+
+template_id: document_translate
+name: document-translate
+display_name: Translate (文档翻译)
+description: >-
+  将 Knowledge / Documents 文档的英文 Markdown 正文按段落分块高保真翻译为中文：代码块、行内代码、
+  URL、图片路径、LaTeX 公式、HTML 标签、front-matter 键名逐字节保留不翻，Markdown 结构与原文
+  一一对应，逐块翻译禁止合并/拆分/遗漏，由 InfluenceFaculty 经 invoke_claude_code 执行。
+category: knowledge
+version: 1.0.0
+visibility: public
+priority: 20
+enforcement_mode: warning
+# 非全局技能：经 Agent.skills 精准挂载到 InfluenceFaculty（喉舌·价值输出），
+# 区别于 pdf-fidelity-restore 的 is_global 全员注入。
+is_global: false
+
+# advisory（enforcement_mode=warning：缺失不阻塞，仅作能力提示）
+required_tools:
+  - invoke_claude_code
+
+prompt_template: |
+  你是「Markdown 高保真翻译」执行者。任务：把工作目录 ``{{ workdir }}`` 下 ``source/`` 内的
+  {{ chunk_count }} 个分块文件（``chunk_0000.md`` 起按序零填充编号）翻译为{{ target_language }}，
+  逐块写入 ``{{ workdir }}/translated/`` 下的**同名文件**。
+
+  ## 执行方式（唯一合法路径）
+  必须调用 ``invoke_claude_code`` 完成翻译，参数：
+  - task：下方「翻译铁律」+「逐块流程」全文；
+  - working_directory：``{{ workdir }}``；
+  - timeout_seconds：{{ tool_timeout }}。
+  **严禁**在对话回复中直接输出译文；完成后仅回报执行结果（成功块数 / 失败原因）。
+
+  ## 翻译铁律（缺一即失败）
+  1. 以下内容**逐字节保留、绝不翻译/改写**：
+     - 代码块（``` 或 ~~~ 围栏，含语言标记与围栏本身）与行内代码（`...`）；
+     - URL / 链接目标 / 图片路径（[text](url) 仅译 text，url 原样）；
+     - LaTeX 公式（$...$ / $$...$$ / \(...\) / \[...\]）；
+     - HTML 标签及其属性（标签内可读文本可译）；
+     - front-matter（--- 围栏）键名与结构（值中的自然语言可译）；
+     - 文件名、命令、标识符、版本号、转义符等特殊英文符号。
+  2. Markdown 结构与原文**一一对应**：标题层级、列表缩进与标记、表格行列、引用块、
+     分隔线、空行布局均不得增删。
+  3. 每个 ``source/chunk_NNNN.md`` 必须产出**非空**的 ``translated/chunk_NNNN.md``，
+     禁止合并、拆分、跳过任何分块；不得丢失任何原文内容。
+  4. 只翻译自然语言散文（段落、标题文字、列表文字、表格单元格文本、图片 alt 文本）；
+     专业术语首次出现可附原文括注，保持全篇术语一致。
+
+  ## 逐块流程
+  1. 列出 ``source/`` 下全部分块文件并确认数量 == {{ chunk_count }}；
+  2. 按编号升序逐块：读取 → 翻译 → 写入 ``translated/`` 同名文件；
+  3. 全部完成后自检：``translated/`` 文件数 == {{ chunk_count }} 且逐块非空、
+     代码围栏数量与原块一致。
+
+  ## 完成判据
+  translated/ 分块齐全非空 + 铁律自检通过；服务端将做确定性校验（代码块还原、
+  结构对比、内容完整性），不达标即整体失败。
+
+config_schema:
+  type: object
+  properties:
+    workdir:
+      type: string
+      description: 翻译工作目录绝对路径（含 source/ 与 translated/ 子目录）
+    chunk_count:
+      type: integer
+      minimum: 1
+      description: source/ 下待翻译分块文件数
+    target_language:
+      type: string
+      default: 中文
+      description: 目标语言（自然语言名称）
+    tool_timeout:
+      type: number
+      minimum: 30
+      maximum: 3600
+      default: 1800
+      description: invoke_claude_code 单次调用超时（秒）
+  required:
+    - workdir
+    - chunk_count
+
+default_config:
+  target_language: 中文
+  tool_timeout: 1800
+
+resources: []

@@ -1,28 +1,28 @@
 # ────────────────────────────────────────────────────────────
-# Routine Demo 3/3 — 文档完善（Documentation Enhancement）
+# Routine 预设模版 — 技术文档生成（Documentation Enhancement）
 #
 # 审批模式: first（仅首次审批）
 # 命令门控: 无（纯 LLM-as-Judge 评估）
-# 重点展示: 首次审批门控（first 模式）、纯 LLM 评审无命令门控、
+# 工程范式: 首次审批门控（first 模式）、纯 LLM 评审无命令门控、
 #           Reflexion 跨迭代记忆、session 连续性
 # ────────────────────────────────────────────────────────────
 
 preset_id: documentation_enhancement
-display_name: "Demo: 文档完善"
+display_name: "技术文档生成"
 description: >
-  为目标模块生成或更新技术文档：Claude Code 分析代码并产出结构化文档，
-  仅首次执行前需人工确认方向，后续自动迭代。
-  演示 Routine 的 first-approval 模式——首轮审批确认方向正确性后进入全自动迭代，
-  由于文档质量难以用命令行工具客观验证，采用纯 LLM-as-Judge 评估，
-  依赖 Reflexion 反思记忆在迭代间逐步逼近高质量文档。
+  面向目标模块的方向确认式文档工程：阅读源码后产出包含模块概述、架构说明、
+  API 参考、配置与扩展指引的结构化技术文档。
+  采用 first 审批模式——仅首轮确认文档方向与范围，之后进入全自动迭代，
+  兼顾人工把控与效率。由于文档质量难以由命令行工具客观验证，采用纯 LLM-as-Judge 评审，
+  依赖 Reflexion 反思记忆在迭代间持续逼近高质量；轻量迭代护栏契合文档类任务节奏。
 category: documentation
 version: 1.0.0
 features_showcase:
-  - "审批模式: first — 仅首轮需人工确认方向"
-  - "纯 LLM-as-Judge — 无 Command Gate，完全依赖 AI 评审"
-  - "Reflexion — 跨迭代反思记忆持续改进文档质量"
-  - "Session 连续性 — Claude Code 保持会话上下文"
-  - "max_iterations 护栏 — 迭代次数硬上限"
+  - "方向确认 — first 审批，仅首轮确认方向与范围"
+  - "纯 LLM-as-Judge — 无 Command Gate，AI 评审文档质量"
+  - "Reflexion — 跨迭代反思记忆持续改进文档"
+  - "会话连续性 — Claude Code 保持上下文"
+  - "轻量迭代护栏 — 契合文档任务的迭代节奏"
 
 title: "Documentation Enhancement"
 goal: >

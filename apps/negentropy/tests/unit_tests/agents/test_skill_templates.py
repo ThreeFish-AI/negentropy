@@ -62,3 +62,25 @@ def test_paper_hunter_yaml_lives_under_skill_templates_dir():
     """物理位置守门：避免无意中把 yaml 挪走破坏加载。"""
     path = Path(__file__).resolve().parents[3] / "src/negentropy/agents/skill_templates/paper_hunter.yaml"
     assert path.exists(), f"paper_hunter.yaml not found at {path}"
+
+
+def test_load_all_includes_document_translate():
+    """内置 Translate 技能模板：精准挂载 InfluenceFaculty（is_global=False）。"""
+    templates = load_all()
+    by_id = {t.template_id: t for t in templates}
+    assert "document_translate" in by_id
+    tpl = by_id["document_translate"]
+    assert tpl.name == "document-translate"
+    assert tpl.version == "1.0.0"
+    assert tpl.required_tools == ["invoke_claude_code"]
+    assert tpl.enforcement_mode == "warning"
+    assert tpl.is_global is False
+    assert tpl.visibility == "public"
+    # 模板变量齐全（服务端渲染依赖）
+    for var in ("{{ workdir }}", "{{ chunk_count }}", "{{ target_language }}", "{{ tool_timeout }}"):
+        assert var in (tpl.prompt_template or ""), f"missing template var: {var}"
+
+
+def test_document_translate_yaml_lives_under_skill_templates_dir():
+    path = Path(__file__).resolve().parents[3] / "src/negentropy/agents/skill_templates/document_translate.yaml"
+    assert path.exists(), f"document_translate.yaml not found at {path}"

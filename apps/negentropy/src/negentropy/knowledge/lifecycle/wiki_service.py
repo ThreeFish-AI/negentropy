@@ -198,9 +198,9 @@ class WikiPublishingService:
     ) -> None:
         """SNAPSHOT 模式：冻结当前 entries 到 wiki_publication_snapshots。
 
-        frozen_entries 仅冻结条目映射元数据（id/slug/title/path/is_index_page/
-        document_id），不冗余 markdown 内容——SSG 仍从 ``KnowledgeDocument``
-        按 document_id 拉取，避免快照表膨胀。
+        frozen_entries 仅冻结条目映射元数据（id/slug/title/description/path/
+        is_index_page/document_id/entry_position），不冗余 markdown 内容——
+        SSG 仍从 ``KnowledgeDocument`` 按 document_id 拉取，避免快照表膨胀。
         """
         entries = await WikiDao.get_entries(db, pub.id)
         frozen = [
@@ -208,9 +208,11 @@ class WikiPublishingService:
                 "entry_id": str(e.id),
                 "entry_slug": e.entry_slug,
                 "entry_title": e.entry_title,
+                "entry_description": e.entry_description,
                 "entry_path": e.entry_path,
                 "is_index_page": bool(e.is_index_page),
                 "document_id": str(e.document_id),
+                "entry_position": e.entry_position,
             }
             for e in entries
         ]
@@ -377,6 +379,7 @@ class WikiPublishingService:
               - ``errors``：遍历期错误（``empty_subtree`` / ``cycle_detected`` /
                 ``descendant_of:<ancestor_id>`` 表示因祖先并选而被丢弃）。
         """
+        from .catalog_assignment_dao import CatalogAssignmentDao
         from .catalog_dao import CatalogDao
 
         container_plans: list[tuple[list[str], dict]] = []
@@ -422,11 +425,18 @@ class WikiPublishingService:
                     errors.append(f"node:{cycle_node_id}:cycle_detected")
                     continue
 
-                container_plans.append((path_slugs, node))
+                # 仅 FOLDER（含历史 CATEGORY / COLLECTION）成为 CONTAINER
+                # Wiki 条目；DOCUMENT_REF 是文档引用叶子节点，不是结构容器，
+                # 不应创建 CONTAINER 条目（否则其 slug 可能与已有 DOCUMENT 条目
+                # 冲突触发 uq_wiki_entry_pub_slug 唯一约束违反）。
+                if node.get("node_type") == "folder":
+                    container_plans.append((path_slugs, node))
 
-                docs, _ = await CatalogDao.get_node_documents(db, node["id"], limit=500)
-                for doc in docs:
-                    document_plans.append((path_slugs, doc))
+                # 使用 get_node_document_refs 获取文档 + position 排序值；
+                # 对 DOCUMENT_REF 节点调用返回空集（无 DOCUMENT_REF 子节点），无副作用。
+                doc_refs = await CatalogAssignmentDao.get_node_document_refs(db, node["id"])
+                for doc, pos in doc_refs:
+                    document_plans.append((path_slugs, doc, pos))
 
         return container_plans, document_plans, errors
 
@@ -505,7 +515,9 @@ class WikiPublishingService:
                 catalog_node_id=node["id"],
                 entry_slug=final_slug,
                 entry_title=node.get("name") or path_slugs[-1],
+                entry_description=node.get("description"),
                 entry_path=entry_path,
+                entry_position=node.get("sort_order", 0),
             )
             synced_node_ids.add(str(node["id"]))
             count += 1
@@ -517,13 +529,17 @@ class WikiPublishingService:
         db: AsyncSession,
         *,
         publication_id: UUID,
-        plans: list[tuple[list[str], Any]],
+        plans: list[tuple[list[str], Any, int]],
         seen_slugs: set[str],
     ) -> tuple[int, list[str], set[str]]:
         """对 DOCUMENT 计划应用 Wiki Entry 映射；处理 markdown 就绪 + slug 冲突。
 
         ``seen_slugs`` 与 :meth:`_apply_container_mappings` 共享，CONTAINER 先
         登记 slug，DOCUMENT 端遇冲突则走 ``-2/-3`` 后缀兜底。
+
+        ``plans`` 元组格式：``(path_slugs, doc, position)``，其中 ``position``
+        源自 Catalog DOCUMENT_REF 的 ``position`` 列，传递给 Wiki Entry 的
+        ``entry_position`` 以保持排序一致性。
 
         Returns:
             ``(synced_count, errors, synced_doc_ids)``。
@@ -534,7 +550,7 @@ class WikiPublishingService:
         errors: list[str] = []
         synced_doc_ids: set[str] = set()
 
-        for path_slugs, doc in plans:
+        for path_slugs, doc, position in plans:
             if getattr(doc, "markdown_extract_status", None) != "completed":
                 errors.append(f"skip:{doc.id}:markdown_not_ready")
                 continue
@@ -566,6 +582,7 @@ class WikiPublishingService:
                 entry_slug=final_slug,
                 entry_title=_resolve_doc_display_title(doc),
                 entry_path=entry_path,
+                entry_position=position,
             )
             synced_doc_ids.add(str(doc.id))
             synced += 1

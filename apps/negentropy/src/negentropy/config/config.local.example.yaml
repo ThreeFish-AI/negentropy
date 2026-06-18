@@ -1,0 +1,35 @@
+# =============================================================================
+# Negentropy 本地开发覆盖配置（示例模板）
+# =============================================================================
+# 用途：
+#   裸机（非 Docker）启动时，为本地开发注入「本地安全」覆盖，使 clone 后无需任何云凭证
+#   即可启动。与 docker-compose.local.yml（Docker 路径）等价，覆盖同一组配置项。
+#
+# 生效方式：
+#   拷贝本文件为 cwd 下 `config.local.yaml`（已被 .gitignore 忽略）：
+#     cp apps/negentropy/src/negentropy/config/config.local.example.yaml config.local.yaml
+#   或由一键入口自动拷贝：
+#     ./dev setup
+#
+# 优先级（高 → 低，详见 config.default.yaml 头注）：
+#   1. 环境变量 NE_*        2. config.local.yaml（本文件拷贝体）
+#   3. -c/NE_CONFIG_PATH    4. ~/.negentropy/config.yaml
+#   5. config.default.yaml（生产倾向默认，零改动）   6. 代码 Field 默认
+#
+#   本文件（config.local.yaml）rank 高于 config.default.yaml，故下列覆盖即生效。
+#   生产部署不创建 config.local.yaml、改用 NE_* 环境变量或 config.local.yaml 注入真实值。
+# =============================================================================
+environment:
+  env: development
+
+services:
+  # 本地无 GCS 凭证：制品回退内存（inmemory）；生产保留 gcs
+  artifact_backend: inmemory
+  # 剥离他人 GCP 项目，避免误触 VertexAI
+  vertex_project_id: null
+  # memory/session/credential_backend 保持 postgres：pgvector 是唯一数据存储，
+  # 本地（compose 或宿主 PG）即可提供持久化记忆，无需改动。
+
+observability:
+  # 关闭 Langfuse 外发：本地无需第三方可观测性上报
+  langfuse_enabled: false

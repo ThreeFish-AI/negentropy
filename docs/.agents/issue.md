@@ -2639,6 +2639,27 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续补充（tracking-[...] 宽标签语义化）**：复用上述范式处理剩余 14 处 `tracking-[0.14~0.24em]`。实测其中 **13 处为 `uppercase` 宽间距标签眼纹**（一致设计模式，众数 0.18em），新增 `--tracking-label: 0.18em` 语义令牌收敛；**剔除** 1 处非 uppercase 的作者名 pill（`MessageBubble.tsx` 的 `tracking-[0.14em]`，语义不符且非该模式）。computed-style 量化收口：众数 0.18em→0.18em 渲染零变化、0.16em→0.18em +1.6px、极端 0.24em→0.18em 短标题 −5.3px（已知可见、可接受，因属短 section 标题且更趋一致）。`rounded-[1.5~2rem]`(6) 与 `gap-[2px]`(1) 为定制一次性值、无对应令牌且 ROI 低，**不纳入**。教训补充：⑤ad-hoc 值语义化前必须先按「是否同一设计模式」分类（此处以 `uppercase` 判别 label vs pill），勿因值相近就盲并；⑥单令牌吸收一段值域时，用 computed-style 量化**最坏值**的累计宽度位移（非单 gap 差），据此判定可接受性而非仅看 em 差。
 - **后续补充（review 收口：sub-10px 下限与冗余清理）**：评审指出原 `text-[8/9px]` 并入 `text-micro` 后，`RetrievedChunkCard` 评分徽标 `isCompact` 分支残留冗余 `text-micro`（base 已是 micro），致紧凑态字号不再随密度收缩、仅 padding 收紧。**确认 10px 为 micro 档下限**（8px 近不可读，10px 更佳且与「可接受可见位移」口径自洽），删除该 3 处冗余类（`text-micro` 计数 267→264，渲染零变化）；标准缩档 base `text-caption`→compact `text-micro`(11→10px) 保持不动。教训⑦：单令牌设最小档后，原低于该档的散值会被**静默上调**——机械替换须对「低于令牌最小档」的来源值单独标注，勿令「残留=0」的计数对账掩盖真实像素位移。
 
+---
+
+## ISSUE-104 Wiki 节点描述未同步至站点首页卡片（条目层缺列 + 前端取值错源）
+
+- **表因**：主站点 Knowledge / Wiki 为根节点 Harness Engineering（描述「智能体工程化综述」）、Negentropy（描述「熵减引擎设计概念与使用指引」）填了 `DocCatalogEntry.description`，但 wiki 站点首页「内容主题」卡片只显示标题、描述缺失。
+- **根因（两处独立断裂）**：
+  1. **后端条目层丢字段**：`CatalogDao.get_subtree` 返回的 node dict 含 `description`，但 `wiki_service._apply_container_mappings` 调 `WikiDao.upsert_container_entry(...)` 时只传 `entry_title` 未传描述；且 `WikiPublicationEntry` 根本无 description 列——描述自同步落库即丢失，导航树（`wiki_tree._entry_to_item`）/ nav-tree API / 前端类型一路皆无该字段。`upsert_container_entry` docstring 早已声明容器条目应承载「title、description、entry_id」，属"文档承诺、实现缺失"。
+  2. **前端取值错源**：`apps/negentropy-wiki/src/app/page.tsx` 首页卡片按 nav tree 一级节点逐个生成，却用 Publication 级 `pub.description` 给所有卡片赋值（对同一 Publication 恒相同，且该 Publication 描述为空 → 回退「暂无描述」），而非节点级描述。
+- **处理方式**（反规范化，与 `entry_title` 同生命周期）：
+  1. 迁移 `0051`：`wiki_publication_entries` 加可空列 `entry_description TEXT`（`ADD COLUMN IF NOT EXISTS`，不回填）；
+  2. 模型 `WikiPublicationEntry` 加 `entry_description`；DAO `upsert_container_entry` 加 `entry_description` 参数并写入更新/创建两分支；
+  3. Service `_apply_container_mappings` 传 `entry_description=node.get("description")`；`_freeze_snapshot` frozen dict 同步冻结该字段；
+  4. `wiki_tree._entry_to_item` 经 `getattr(entry, "entry_description", None)` 输出，合成容器补 `None` 保形；
+  5. 前端 `WikiNavTreeItem` 加可选 `entry_description`；`page.tsx` 改为 `item.entry_description || pub.description || "暂无描述"`（节点级优先 → Publication 级回退 → 占位）。
+- **后续防范**：
+  1. **denormalize 字段须全链同改**：`WikiPublicationEntry` 这类"发布快照"表新增展示字段，必须同步覆盖「DAO upsert 参数 + sync 服务写入 + 快照冻结 + nav tree 输出 + 前端类型 + 渲染取值」六层，漏任一层即断链；
+  2. **docstring 承诺即契约**：`upsert_container_entry` docstring 写了 description 却从未实现，属危险的"虚假完备"——新增/审阅时须核对 docstring 声明字段与签名/落库是否一致；
+  3. **逐节点卡片禁用聚合级字段兜底**：前端按节点渲染的卡片，描述/图标等须取节点自身字段，`pub.*` 仅作回退，勿对所有同级卡片赋同一聚合级值。
+- **生效注意**：与 `entry_title`/`display_name`（ISSUE-040）一致，新列对**既有已发布数据**需用户主动点一次「同步并发布」回填后首页卡片才显示描述（迁移不隐式回填）。
+- **同类问题影响**：与 ISSUE-002（`sync_entries_from_catalog` 死代码 + 契约缺口）同域——凡 Catalog → Wiki Publication 的字段映射（未来 icon / cover / order 等节点元数据）都须按"六层全链"核对；其它经 `getattr` 读 ORM 的 duck 调用点新增字段时记得给安全默认。
+
 ## ISSUE-103 模型下拉 Default 占位移除 + 默认 gpt-5-nano + test-vendor 残留清理与 fixture 清理加固（2026-05-30）
 
 - **需求触因**：Home/Studio 中栏 Composer 的 LLM 下拉首项为可清除的 "Default" 占位（`value=""` = 不指定模型，后端回退硬编码默认），且下拉里出现一个 `TEST-VENDOR` 分组的 `Test Model`。用户要求：①移除 Default 占位、默认显式选中 `openai/gpt-5-nano`；②清除 TEST-VENDOR。
@@ -2653,3 +2674,569 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   5. **DB 清理（数据非代码）**：单事务按 FK 依赖顺序先删 2 行 `task_model_settings`、再删 test-vendor `model_config` 行（精确按 id + 二次校验 vendor）。
 - **验证**：DB 删前后只读计数对照（test-vendor 1→0、引用行 2→0、全表 14 行真实 vendor 无误删）；fixture 清理语义经独立临时脚本证「seed→DELETE teardown→查无残留」（同脚本实测旧 `db.delete(detached)` 在此**亦正常删除**、非泄漏，详见「根因订正」）；后端 grep 确认 fallback；tsc + eslint(`--max-warnings=0`) 双绿；alt-port(3193) dev server + chrome_devtools 复用真实登录态实机：下拉 8 项/3 真实组、`hasDefault:false`、`hasTestVendor:false`、默认 `gpt-5-nano`、双向切换 + localStorage 持久化(`openai/gpt-5-nano`↔`anthropic/claude-opus-4-6`)均正常。
 - **同类问题影响 / 跨上下文注意**：①**detached 对象的 `db.delete()` 在 async 下可正常删除**（按 identity key 重挂 session + flush 发 DELETE，已实测），**勿**据此把跨 session detached delete 误判为「静默泄漏」而盲目审计——`test_global_setting_insert_and_read`（line 114-116）即同型写法、实测清理正常。async ORM 下真正危险的是**对 detached 对象触发 lazy-load**（访问未加载的属性/关系 → `DetachedInstanceError`/`MissingGreenlet`，与 312-313 行谱系同源）；seed-yield-teardown 清理仍**推荐** `delete().where()`，理由是幂等、不依赖对象状态、不触发 cascade/lazy-load，而非 `db.delete()` 会失效。②前端「占位/默认」语义变更须穷举**所有** state 初始化分支（本例 home-body 含 6 处，易漏 Effect 2 后端 snapshot 回退点），否则「打开历史会话」等冷路径仍回退旧 null。③`is_default` 字段（DB 层全局唯一默认）与前端默认选中（代码常量）是**两套独立机制**，本期前端默认不读 `is_default`，勿混淆。
+
+## ISSUE-105 Routine 编辑/查看面板五屏割裂统一为单一「Edit Routine」抽屉 + 模板「使用」内联展开被遮挡（2026-05-31）
+
+- **需求触因**：Interface / Routine 模块存在 5 个职责重叠、文案中英混杂的编辑/查看面板（只读详情抽屉 `RoutineDetailDrawer` + 编辑模态 `RoutineFormDialog` + 模板详情抽屉 `TemplateDetailDrawer` + 模板三步向导 `TemplateFormDialog` + 内联创建 `InlineCreateFromTemplate`），体验割裂、字段定义重复。用户要求收敛为单一可直接编辑的「Edit Routine」通用抽屉、宽度 1.5×、文案全英文一致。
+- **表因（图 4 遮挡 bug）**：模板库点击「使用此模板」展开的内联填写区被下一行卡片遮住、无法操作。
+- **根因（图 4）**：`templates/page.tsx` 把 `TemplateCard` 与 `InlineCreateFromTemplate` 放进同一 grid cell（`<div key={t.id}>`），grid cell 无 `overflow`/定位上下文，卡片 `h-full` + 内联块在 cell 内堆叠 → 内联块底部被相邻 grid item 的卡片视觉覆盖。属「把展开态塞进等高网格单元」的布局误用。
+- **处理方式（正交分解：单组件判别式驱动）**：
+  1. 新增 `RoutineEditDrawer.tsx`，以判别式联合 `mode`（`routine-create`/`routine-edit`/`template-create`/`template-edit`/`use-template`）驱动 5 种形态——`entity ∈ {routine,template} × op ∈ {create,edit}` + 一个实例化态。页面是「打开哪个 mode」的单一事实源，抽屉只自持表单草稿态；
+  2. 图 4 根治：模板「Use」改为**打开抽屉**（非内联展开），删去 grid cell 内联分支，回归「一个卡片一个 grid cell」；
+  3. 图 1+2 合并：行点击直接进可编辑抽屉，底部 Edit→**Save**（不再二次弹模态）；图 3：模板卡片进同一抽屉，内置只读仅 Use、用户模板 Save+Use+Delete；
+  4. 提交统一走 `createRoutine`/`updateRoutine`（模板 `is_template:true` + 元数据并入 config）；模板「Use」忠实提交用户编辑过的完整字段（`from-preset` 快捷通道与 6 个旧组件 + 死代码 `PresetCard`/`CreateFromTemplateDialog` 一并删除，净减 ~1824 行）；
+  5. 宽度 `w-[460px]`→`w-[690px]`（实测 690px）保留 `max-w-[92vw]` 窄屏兜底。
+- **UX 加固（ui-ux-pro-max skill 循证）**：①可见 label 替代原 placeholder-only（Goal/Acceptance 等，修原 High-severity a11y 缺陷）；②read-only ≠ disabled——运行中/内置模板只读态附**恢复路径**说明（"Pause to edit"/"Click Use"）；③弃改二次确认（dirty close → "Discard changes?"）防误丢编辑；④字段错误 icon+文案（非仅红框）+ `aria-live`。
+- **关键易错点 / 二阶风险**：
+  1. **SSE 刷新勿重置草稿**：抽屉表单**仅挂载时** seed 初值，外层按 `key={kind}:{id}` 强制重挂以切实体；同一 routine 的 `selected` prop 更新（SSE 状态翻转）只流向 header 状态徽标/`readOnly`/footer 控制（读实时 prop），不回灌 `form` 草稿；
+  2. **脏基线 seed 同源**：`baseline = useState(form)` 复用 `form` 的 `useState(() => buildInitial(mode))` 初值——`use-template` 的 `crypto.randomUUID()` key 只生成一次，避免 form/baseline 双生随机致**恒脏**（误判 + 每次关闭都弹弃改确认）；
+  3. **运行中锁定不静默**：SSE 将状态翻 running 时若用户有未保存编辑，字段会即时 disabled + 隐藏 Save——加 `wasRunningRef` 边沿检测 + `toast.warning` 显式告警，避免「字段变灰 + Save 消失」成为无声数据丢失陷阱；
+  4. **判别式收窄取 id 勿用 `as` 强转**：`mode.kind === "routine-edit" ? mode.routine.id : mode.template.id`（按 kind 穷尽），保留联合穷尽性，未来新增 mode 由编译器兜底（`as {template}` 强转会让缺 `.template` 的新 mode 编译通过、运行时 throw）；
+  5. **React Compiler 规则**：`isDirty` 比较基线用 **state**（非 render 期读 `ref.current`，触 `react-hooks/refs`）；字段错误渲染用普通函数 `renderFieldError()`（非 render 期创建组件，触 `react-hooks/static-components`）。
+- **验证**：`pnpm typecheck`（pretypecheck 重建 `@negentropy/agents-chat-core` 消除 stale-dist 噪声）+ eslint(`--max-warnings=0`) 双绿；alt-port 3193 `next dev` + chrome_devtools 复用真实登录态实机走查 **5 条 mode 全链路**：图 4「Use」弹抽屉不再被遮挡、cwd 必填校验 + 实际创建并跳转详情；图 1+2 行点击直接可编辑 + Save（PUT 200 + 列表/详情刷新）；paused 显 Resume/Cancel + Save、failed 显 Delete；内置模板全字段 disabled 仅 Use；New Routine 空表单 + Advanced 折叠；弃改确认；抽屉实测 690px；明暗双主题；console 仅余 font-preload 框架噪声 0 报错。
+- **同类问题影响 / 跨上下文注意**：①**展开态/内联块勿塞进等高网格单元**（`h-full` + `grid` cell）——会被相邻 item 遮挡；展开交互优先用抽屉/弹层（脱离文档流 + z-index 分层），或把展开块移出 grid 容器；②多形态面板优先**判别式联合单组件 + keyed remount** 而非 N 个并存组件（消重复字段定义 + 单一事实源）；③React 19 + eslint-plugin-react-hooks v7 的 React Compiler 规则禁止 render 期读 ref / 创建组件，dirty-baseline 用 state、字段助手用普通函数；④抽屉宽度等"任意值"改动后须 computed-style/`getBoundingClientRect` 量化实证（本期实测 690px / 0.54 视口），勿凭截图目测。
+- **收尾 chore（2026-05-31）**：ISSUE-105 删 UI 组件时遗留 `from-preset` API 管线孤岛——前端 client（`fetchPresets`/`createRoutineFromPreset`）+ 类型（`RoutinePresetSummary`/`RoutineFromPresetPayload`）+ `index.ts` re-export + 对应单测，及后端 `GET /routines/presets`、`POST /routines/from-preset` + `RoutineFromPresetRequest`（均**无调用方、无测试**，已被 `/templates` + `createRoutine` 取代）。本 chore 一并清除，使上文「`from-preset` 快捷通道…一并删除」端到端为真（彻底熵减）；`agents/routine_presets/`（`load_all` + 4 个 YAML）**保留**——仍由合并端点 `GET /routines/templates` 加载内置预设。同步：user-guide [routine-presets.md](../concepts/user-guide/routine-presets.md)「API 参考」改指 `/templates` 与 `POST /routines`；404 错误处理单测载体改用 `fetchKpis`。另统一两页 Save 体验——`templates` 页 `template-edit` 保存后抽屉保持打开（对齐 `routine` 页 `routine-edit`，草稿基线由抽屉自身 `setBaseline` 重置）。
+
+---
+
+## ISSUE-106 Routine 执行「全过程」动作级审计 + 实时流（事后审计 + 边跑边看）
+
+- **表因**：Routine 单任务页虽名为「全过程」视图，但仅到迭代粒度——每轮只持久化最终摘要（`summary` 截断 2000 字符）+ 成本/轮数/评分。Claude Code 在一轮内真正执行的**所有动作**（读/改/跑命令、中间推理）以及评估阶段的 Judge prompt/原始回复、Gate 完整输出全部被丢弃，无法事后审计与 Review。
+- **根因**：
+  1. `engine/claude_code/service.py` `_invoke_cli` 逐条解析 stream-json 但只取最终 `result`，丢弃每个 `tool_use`/`tool_result`/中间 `assistant`；且 assistant 分支误读扁平 `event.get("content")`（真实 CLI 嵌套在 `message.content` 块列表）——**实为死代码**；
+  2. `engine/routine/evaluator.py` 的 Judge prompt、原始回复、Gate 完整输出本地算出后即弃，只留 score/verdict/reflection/gate_exit_code。
+- **处理方式**（全链路，新表 + 捕获 + 持久化 + 实时 + 审计 UI）：
+  1. **新表** `routine_iteration_events`（模型 `RoutineIterationEvent` + 迁移 `0052`，schema `negentropy`，双 FK CASCADE + `UniqueConstraint(iteration_id,seq)` + 两索引）——append-only 动作事实流；
+  2. **归一化捕获** `service.py::_normalize_stream_event`（防御式解析 system/init、assistant 块列表→text/tool_use/thinking、user tool_result 字符串/块列表、result、未知 type **绝不丢弃**）+ `_cap`/`_coerce_content`/`_cap_json`（16KB/字段）+ `_MAX_EVENTS_PER_ITER=1000` 封顶 + `_truncated` 哨兵；顺手修复 assistant 摘要回退读 `message.content`；
+  3. **`invoke(on_event=...)` sink + `events_holder`** 可变容器（仿 `session_holder`），超时/取消/出错路径亦回带已捕获部分事件；
+  4. **Runner 持久化**：`_do_write_back` 在 `rowcount==1`（与计数同条件）+ `capture_events` 开关下，`pg_insert(...).on_conflict_do_nothing(["iteration_id","seq"])` 批量插 seq 0..N-1，与状态翻转同事务；`_make_action_sink` 经非阻塞总线（`put_nowait`+丢旧）实时广播 `action` 事件（`suppress` 异常，绝不阻塞 CC 执行）；
+  5. **Orchestrator 评估事件**：`_persist_eval_events` 仅在迭代翻转 `evaluated` 时以 DB 侧 `MAX(seq)+1` 追加 gate+evaluation 行（`on_conflict_do_nothing`），**评估失败重试期间 status 停留 executed 不追加**（防每 tick 重复）；`EvaluationResult` 新增 judge_prompt/judge_raw/gate_output；
+  6. **API** `GET /routines/{id}/iterations/{iid}/events`（升序 seq 分页，catch-all 代理自动转发，**无需新前端路由**）；events 不内联进迭代详情（保持列表/详情载荷小，抽屉懒加载）；
+  7. **审计 UI**：`IterationAuditDrawer`（复用 `BaseDrawer`，宽 ~720px，懒加载 + 实时缓冲按 seq 去重合并 + 终态回查）+ `IterationEventTimeline`（纵向 trace，类型图标**颜色+图标双编码**，分组 执行→结果→门控→评估，折叠展开 input/output/context 用 `JsonViewer`/`pre`，skeleton/空态/LIVE 脉冲/`role=alert`）；`useRoutineDetailLive` 增 `liveActionsByIteration`（仅在途迭代缓冲，**action 事件不触发整 routine 重拉**）。
+- **后续防范**：
+  1. **签名变更的 cascade**：`invoke`/`_invoke_cli` 新增 kwargs 后，既有用 4-arg mock 替换 `_invoke_cli` 的单测会以「takes 4 args but 6 given」失败被吞为 `error`——替换内部协程的 mock 必须同步新签名（`test_claude_code_service.py::test_invoke_timeout_returns_partial_session_id`）；
+  2. **`_cap` 输出须 ≤ limit**：截断标记若**追加在 limit 之外**会使返回值超长，写入定长列（`title` String(255)）触发 `StringDataRightTruncation` 中断评估事务——`_cap` 必须从 head 预扣标记预算；定长列入库再做 `[:255]` 防御性收口（runner 与 orchestrator 两处一致）；
+  3. seq 双写者（runner 0..N-1 / orchestrator MAX+1）全程 `ON CONFLICT DO NOTHING` 兜底 reaper/abort/重试竞态；
+  4. 实时为 best-effort，**持久化端点为事实源**（队列满丢弃的事件经 refetch 补齐）。
+- **验证**：unit（归一化各形态/截断边界/seq 单调/tool_use↔tool_result 配对/sink 异常吞噬）+ integration（写回 seq 幂等/capture 关闭仍翻转/gate+eval 追加于 MAX+1/失败重试零事件/超长 verification_command 不溢出）+ API（升序分页 + 404）共 **66+ 用例全绿**；迁移在隔离库 upgrade/downgrade 往返干净；alt-port 3194 dev server + 路由级 router-only verify 后端（3393，无心跳）+ 13 条种子事件，Playwright 明暗双主题实机走查：4 分组正确、人读标题（`Read src/...`、`Bash: pytest -q`、`Judge: progressing · 72`）、error 徽章、cost、折叠 JsonViewer 展开 `command`/`tool_id`——全部如设计；验证后**删种子事件+手建表恢复 live DB 原状**。
+- **同类问题影响 / 跨上下文注意**：**跨工作区 alembic `0052` 撞号（已解决）**——本分支原 `0052_routine_iteration_events`（revises `0051`）与 sibling（`tel-aviv-v1`/`routine-failed-restart`）的 `0052_routine_eval_floor_seq`（同 revises `0051`）撞号。sibling 先合入 `origin/feature/1.x.x` 后，处理方式 = **merge 最新基线 + 将本迁移线性重链为 `0053`（revises `0052`，renumber 文件名/`revision`/`down_revision`/docstring 四处一致）**，`alembic heads` 单 head 收敛。隔离库实测 `0051→0052(eval_floor_seq)→0053(events 表)` upgrade/downgrade 往返干净，两特性运行期共存（**79 用例全绿**：本审计事件 + sibling eval_floor/restart）。**教训**：共享 DB + 多工作区并行时迁移撞号是常态；后合入者须 fetch 最新基线、把自己的迁移重链到对方之后（**严禁 rebase，用 merge**），并验证单 head + 往返；测试文件「文件尾各自追加新用例」也极易触发同段冲突，解析时须**两侧用例都保留**。
+
+## ISSUE-107 Memory Core Memory e2e 在 CI 失败：Playwright route mock 非 hermetic（本地有后端掩盖）（2026-05-31）
+
+> 注：本条原编号 ISSUE-106，因与 `feature/1.x.x` 上先合入的 Routine 审计条目（现 ISSUE-106）合并冲突，按「后合入者顺延」重编为 107。
+
+- **表因**：`ui-quality / UI Playwright Smoke` 仅 `tests/e2e/memory/core-blocks.spec.ts` 两例失败（其余 68 例全过）。「列出 blocks」断言记忆内容 `toBeVisible` 超时（元素未渲染）；「新建 block」点击 `New Block` 按钮 30s 超时（`element is not enabled` —— 按钮始终 disabled）。**本地（含 alt-port dev server）全过**，仅 CI 复现。
+- **根因**：测试**非 hermetic**。`New Block` 按钮 `disabled={!activeUserId}`，`activeUserId` 由 `fetchMemories()` → `GET /api/memory?app_name=negentropy` 的用户聚合列表自动选中；`useCoreBlocks` 同样依赖选中的 user。原 `mockUserList` 用 `page.route("**/api/memory", …)`——**glob 无尾通配**，匹配不到带 query 的 `/api/memory?app_name=negentropy`。该请求遂未被拦截，**穿透 Next 代理回退到真实后端**：本地后端（:3292）在跑 → 返回真实 users → `activeUserId` 被设 → 测试假性通过；**CI 无后端**（日志可见 `Error connecting to backend ... fetch failed`）→ 代理 502 → `fetchMemories` throw → `users=[]` → `activeUserId` 恒 null → 按钮 disabled + 列表永不加载。环境差异（本地有后端 / CI 无）掩盖了 mock 缺口。
+- **处理方式**：把两例改为**单一 catch-all 始终 fulfill**——`page.route("**/api/memory**", …)`（带尾通配，匹配带 query 的 URL），内部按 `url.includes("/api/memory/core-blocks")` 分支返回 core-blocks，否则返回 `USER_LIST`，**绝不回退网络**。复刻 `memory-pages.spec.ts`「Retrieval Metrics」passing 例的成熟范式。
+- **验证**：以 CI 等价**无后端** webServer（`playwright.config.ts` 默认 `pnpm build && pnpm start` on :3210，注释明示「没有 backend」）本地复现——改前必败、改后 `core-blocks.spec.ts` 2/2 过、`tests/e2e/memory/` 全量 21/21 过。
+- **后续防范 / 同类问题影响**：①Playwright route glob **务必带尾 `**`**（`**/api/x**`）以匹配 query string——`**/api/x` 不匹配 `/api/x?…`，是静默穿透的高频坑；②**E2E 必须 hermetic**：CI 无后端，凡页面初始化依赖的接口（尤其驱动「默认选中/按钮可用态」的列表类接口）都须 mock 且 catch-all **always-fulfill**，勿留「未匹配 → 穿透代理 → 撞真实后端」的回退路径；③**本地验证须复现 CI 拓扑**：涉及后端代理的 e2e 用默认 config（自带无后端 webServer on :3210）跑一遍，勿只在「本地后端在跑」的 alt-port 环境验证，否则 mock 缺口被真实后端掩盖；④凡「按钮 disabled / 列表空」类 e2e 失败，先查**前置数据接口的 mock 是否命中**（route glob、query、method），而非急改断言或加 `waitFor`。
+
+## ISSUE-108 Routine 交互模式双向 stdin 死锁 + 评估门控在 worktree routine 用错 cwd（全闭环阻断，2026-06-02）
+
+- **表因**：实机走 Routine 全闭环（resume → dispatch → execute → evaluate → decide）时，**没有一个 routine 能跑通**。两个独立缺陷叠加：(1) 任何 routine 启动后迭代恒卡在 `in_flight`、`turn_count=0`、`cost=0`、零审计事件，Claude Code 子进程 CPU 0% 长期 sleep，直到外层超时（默认 3h）或被 kill——卡死的子进程占满 Runner 全局并发槽位（`max_concurrent=2`），导致**后续所有 routine 永远无法 dispatch**（`launched=0`，假性「调度停摆」）；(2) 即使绕过 (1)，worktree routine 的产物完美却始终 `gate_exit≠0`、评分被 Judge 规则压在 ≤60、永远达不到阈值。
+- **根因**：
+  1. **交互模式双向 stdin 死锁**（`engine/claude_code/service.py::_invoke_cli_interactive`，随 #824 auto-answer 引入）：`--input-format stream-json` 下 claude CLI **忽略** `-p <prompt>` 命令行取值，改从 **stdin** 读首条 `user` 消息作为任务输入；旧实现只在检测到 AskUserQuestion 后才写 stdin，**初始 prompt 从未经 stdin 投喂** → CLI 永久阻塞等待 stdin（既不产事件也不退出）。更隐蔽的第二层：即便投喂了 prompt，CLI 产出 `result` 后**仍不自退**，保持 stdin 打开等待更多输入；而 reader 用 `async for ... in _iter_json_events(stdout)` 等 stdout EOF（依赖进程退出）、writer 等 reader 发 None sentinel（依赖 reader 结束）→ **三方循环死锁**。
+  2. **评估门控 cwd 错位**（`engine/routine/evaluator.py::evaluate`）：`_run_gate(verification_command, routine.cwd)` 用的是**原始仓库根 `cwd`**，而 worktree routine 的 Claude Code 实际在引擎备好的隔离 `worktree_path` 内改代码（见 `orchestrator._build_config` 的 `effective_cwd`）。门控在 `cwd` 根目录跑 `python3 hello.py` / `uv run pytest` 找不到 CC 在 worktree 内新建/改的文件（`exit 2/127` file-not-found），与 `_build_config` 的 worktree 寻址逻辑**不一致**。
+- **处理方式**：
+  1. **死锁修复**（三处）：新增 `_build_stdin_user_prompt(prompt)`（封装 `{"type":"user","message":{"role":"user","content":prompt}}\n`，`ensure_ascii=False` 保中文）；启动 reader/writer 后**立即经 write_queue 投喂初始 prompt**；reader 命中 `result` 事件即先 `_emit_events` 落审计、再 `write_queue.put(None)` 闭合 stdin 并 `break`；`gather` 后加 **10s 优雅退出窗口**（`asyncio.wait_for(proc.wait(), 10)`），让 CLI 因 stdin 闭合自然 rc=0 退出，避免 `finally` 抢先 `terminate()` 误判 SIGTERM(143) 把成功迭代标记 error。
+  2. **门控 cwd 修复**：新增静态 `RoutineEvaluator._gate_cwd(routine)`=`worktree_path or cwd`（`getattr` 兜底旧视图），`evaluate` 改用之；`_RoutineLike` 协议补 `worktree_path` 字段。
+- **后续防范**：
+  1. **stream-json 输入模式的契约**：开 `--input-format stream-json` 后 `-p` 失效、prompt 必须经 stdin；且 result 后须**主动闭合 stdin**触发退出——这是「读 + 写 + 子进程退出」三方依赖，任一环不闭合即死锁。新增交互/双向管道路径务必端到端验证「能产事件 + 能干净退出（rc=0 非 143）」。
+  2. **僵尸子进程占满并发槽 = 假性调度停摆**：Runner `max_concurrent` 槽被 hang 死的 CC 占满时，现象是「新 routine 永不 dispatch、inspector `launched=0`」，**极易误判为调度器/数据库锁问题**。排查链路应含：`ps aux | grep 'claude -p'` 看僵尸子进程 + CPU%/STATE（0%/S = 等 stdin 死锁）+ 进程级 RCA（`lsof -p` 看 PIPE fd）。
+  3. **「机制（worktree 寻址）」必须在所有消费点一致**：CC 执行 cwd（`_build_config.effective_cwd`）与门控执行 cwd（`evaluator._gate_cwd`）**同源**，否则产物与验收错位、评分恒低、无限迭代直至 `max_iterations` 假性 `failed`。新增任何「在 routine 工作目录跑命令」的代码都须走统一的 worktree 寻址。
+  4. **gate 失败的两面性**：`gate_exit≠0` 既可能是「产物未达标」也可能是「门控命令本身环境不匹配」（如 `python` 不存在只有 `python3`、cwd 错位）。Judge 的 reflection 能准确诊断（实测「环境缺少 python 命令」「找不到 hello.py」），是排查 cwd/环境类门控误判的高价值信号。
+- **验证**：①隔离单测（`uv run python` 直调 `ClaudeCodeService.invoke` interactive，连跑 3 次稳定 `status=success`/`turns>0`/`session_id` 回带；AskUserQuestion auto-answer 路径 `turns=2`/`error=None`）；②新增单测 `test_routine_evaluator_gate.py`（5 例：`_gate_cwd` worktree 优先/回退 cwd/空串回退/全 None/缺属性兜底）+ `test_claude_code_service.py` 新增 3 例（stdin prompt builder × 2 + `_DuplexFakeProc` 端到端复刻「prompt 经 stdin 投喂 + result 后闭合 stdin 干净退出」）；routine+claude_code 全量 **85 用例全绿**；③**实机全闭环**（Chrome devtools 实操，dest-project `data-la-maps` + baseline `origin/feature/1.x.x`）：修复前 #1-#4 `gate=2` 评分卡 55；门控 cwd 修复后 restart → #5 `gate=0` 评分跃升 95 → IMPLEMENT 自动推进 FINALIZE → #6 执行 git add/commit/push/`gh pr create` → 捕获 `PR_URL`（实建 PR #1）→ routine `succeeded`/`term=success`/score 98 → worktree `on_success` 自动清理（`worktree_status=cleaned`、物理目录删除）；ConvergenceChart/Gantt/PR card/审计抽屉（49 CC 事件 + 2 Negentropy 事件，owner 归属正确）全部正确渲染；原「项目复刻」routine resume 后 #2 正常 dispatch、产 8+ 审计事件（init→thinking→Agent→Bash/Read→task_progress，证明 CC 真实执行不再死锁）；手动 `POST /cleanup-worktree` 对 cancelled/failed routine 的 worktree 回收亦验证通过。
+- **同类问题影响 / 跨上下文注意**：缺陷 (1) 自 #824（auto-answer 引入交互模式）起潜伏，凡 `settings.routine.auto_answer_questions=True`（默认 ON）的 routine 全部受害；缺陷 (2) 自 #793（隔离 worktree）起潜伏，凡配 `verification_command` 的 worktree routine 全部受害。二者叠加使 Routine 子系统**整体不可用**，但因 hang 表现为「慢」而非「报错」、低分表现为「还在迭代」而非「失败」，**极具隐蔽性**，必须实机全闭环（非单测）才能暴露。修复均为纯后端 `service.py`/`evaluator.py`，无 schema/迁移变更，无前端改动。
+- **收尾 chore（2026-06-02）— PR#831 CI 集成测试因 sibling PR#829 守卫红**：本 PR（#831）CI 的 `backend-quality / Backend Integration Tests` 报 5 例失败（`test_routine_orchestrator.py` 3 个 dispatch + `test_routine_api.py` 2 个 restart），均非本 PR 改动所致——而是 sibling **PR#829「补齐 restart/resume 端点 baseline_branch 守卫 + orchestrator 纵深防御」**先合入基线后，给 `_dispatch_due`（无 baseline 的非模板 routine 直接 `terminate(unrecoverable)` + `launched=0`）与 restart/resume 端点（无 cwd+baseline → 409）加了守卫，**却未同步更新既有集成测试**（这些测试造的 routine 不带 baseline_branch/cwd）。本地跑全绿是因为本工作区基线停在 #829 之前（`30e84fb1`），而 CI 把 PR merge 进**更新的基线**（含 #829）后才暴露。处理方式 = **merge 最新基线 + 修测试满足新守卫**：3 个 dispatch 用例补 `baseline_branch+cwd`，auto-launch 用例 `patch("...workspace.ensure_worktree", AsyncMock(return_value=WorkspaceInfo(...)))` 避免真实 git；2 个 restart 用例接入既有 `git_repo` fixture（真实临时 git 仓库 + `main` 分支）并在 create 时带 `cwd+baseline`。**教训**：①给 API/编排加「拒绝某类输入」的守卫时，**必须同批次更新所有造该类输入的测试**，否则破窗在 sibling PR 的 CI 才爆；②本地集成测试通过 ≠ CI 通过——本地基线可能滞后于 origin，**合 PR 前应 `git fetch && git merge origin/<base>` 把最新基线纳入再跑测试**，复现 CI 的 merge 拓扑；③守卫类 PR 的「纵深防御」（API + orchestrator 双层）会放大测试面，新增守卫点须全量跑 routine 集成测试而非仅单测。
+
+## ISSUE-109 Routine CC 会话上下文窗口耗尽导致死亡螺旋（巨型长任务自迭代夭折，2026-06-03）
+
+- **表因**：实机全闭环验证 Routine `a83d9c94`（"Map 项目复刻"：Go 版 athens-v2 → Python 3.13 一比一复刻到 data-la-maps，巨型任务）时，routine 仅跑 5/50 迭代、$12/$5000 预算即 `failed`/`unrecoverable_error`。迭代序列异常：seq=1 冷启动跑 **157 turns / $10.19** 成功（score=50），seq=2~5 全部 `exec_status=error`、summary 恒为 `"API Error: The model has reached its context window limit."`，seq=4/5 更是一启动即 1 turn 失败、`cost=0`。连续 4 次 exec error 触发 `decision._consecutive_exec_failures≥3` → `unrecoverable_error` 终止。
+- **根因（三处协同缺陷）**：
+  1. **错误识别只看 exit code**（`engine/claude_code/service.py`）：`_invoke_cli` / `_invoke_cli_interactive` 收尾均 `status = "success" if proc.returncode == 0 else "error"`，**丢弃 result 事件已携带的 `is_error` 信号**——把「可自愈的会话上下文耗尽」与普通失败混为一谈。实测上下文耗尽的 result 事件形态为 `{subtype:"success"（误导！）, is_error:true, result:"API Error: The model has reached its context window limit."}` + exit 1，故识别**必须以 `is_error` + 文本为准，不能依赖 subtype**。
+  2. **session 污染**（`engine/routine/runner.py::_do_write_back`）：`if result.session_id: routine.claude_session_id = result.session_id` **无条件回写**，即使 exec error。CC resume 一个已耗尽会话时其 `system/init` 仍报同一 session_id，于是 routine 被**永久钉死在已满会话**，后续每轮 resume 一启动即撞上下文上限——死亡螺旋。
+  3. **无条件 resume**（`engine/routine/orchestrator.py::_build_config`）：`config.resume_session_id = routine.claude_session_id` 无「会话已耗尽则冷启动」逃逸路径。
+- **修复可行性关键事实**：`prompt_builder.build_prompt` **每轮都注入完整 goal + acceptance_criteria + 最近 N 条 reflections + 隔离 worktree 上下文**；worktree 是持久状态（既往 commit + working tree 全保留）。**故 CC 会话仅是「工作记忆优化」而非「正确性必需」**——重置 session 让下一轮在同一 worktree 冷启动、重读既往产出即可续干。这与 `restart` 端点本质不同：restart 会 `remove_worktree` 销毁既往产出，**不能用于恢复长任务**。
+- **处理方式（最小外科手术 + 机制/策略分离，零 DB 迁移）**：
+  1. **机制层**（service.py）：新增纯函数 `_classify_result_error(result_event, returncode)` + 常量 `ERROR_KIND_CONTEXT_EXHAUSTED`；双信号 OR 识别（文本 `_CONTEXT_EXHAUSTION_RE` 主据 + subtype `_CONTEXT_SUBTYPES` 辅据），仅 `returncode!=0` 触发不误伤成功路径；`ClaudeCodeResult` 增 `error_kind` 字段（默认 None 向后兼容）；`_invoke_cli` / `_invoke_cli_interactive` 两路径保存原始 result 事件并共用该纯函数分类。
+  2. **策略层**（runner.py `_do_write_back` 三态）：上下文耗尽且 `reflections._context_resets < context_reset_max` → 清空 `routine.claude_session_id`（下轮冷启动）+ 计数 +1 + 给 `iteration.metrics` 打 `context_exhausted` 标记；达上限 → 不清、记 `_context_reset_exhausted`（落回 unrecoverable 自然路径防 runaway）；非上下文耗尽 → 维持原 session 续接。**orchestrator dispatch 零改动**（session 已被清空 → 下轮自然冷启动，解耦红利）。
+  3. **decision.py 不误判**：`decide` 增显式入参 `max_context_resets`（纯函数边界，不读 settings）；`_consecutive_exec_failures` 在 `max_context_resets>0` 时把标记 `context_exhausted` 的失败**透明跳过**（continue，不计数也不中断），避免可自愈失败被误判 unrecoverable；runaway 由 runner 侧重置计数上限兜底。
+  4. **配置**：`RoutineSettings.context_reset_max`（默认 10，`config.default.yaml` 同步）。
+- **后续防范 / 跨上下文注意**：
+  1. **CLI result 事件的 `subtype` 不可靠**：上下文耗尽时 subtype 竟为 `"success"`，凭它判错会漏判。识别可恢复错误类型须以 `is_error` + result 文本为准，subtype 仅作辅助信号。
+  2. **「执行失败」需区分可恢复 vs 不可恢复**：原系统把所有 exit≠0 一律当 error 计入连续失败守卫，对「会话上下文耗尽」这种纯属工作记忆溢出、可经冷启动自愈的错误一刀切终止。新增错误类型时应评估其可恢复性，纳入 `error_kind` 分类与对应自愈策略。
+  3. **session 是工作记忆而非事实源，worktree 才是持久状态**：worktree routine 的真相在隔离工作区（含 commit + working tree），CC 会话可丢弃重建。任何依赖「resume 同一会话」的逻辑都应有「会话不可用则冷启动」的退化路径。
+  4. **巨型长任务会耗尽 1M 上下文**：本例模型为 `claude-opus-4-7[1m]`，单轮 157 turns 即撑满。长周期 routine 必须具备跨会话的上下文管理（冷启动自愈 + reflections 注入 + worktree 持久），不能假设单一会话能承载整个任务。
+- **验证**：①单元（`test_claude_code_service.py` 10 例覆盖 `_classify_result_error` 用 seq=4 真实事件 fixture / 全 marker 大小写容错 / subtype 独立信号 / 负例防误判 / `_invoke_cli` 端到端打标签；`test_routine_decision.py` 5 例覆盖可自愈失败放行 / reset_max=0 退化 / 普通 error 仍 unrecoverable / continue 不隔断链 / success 归零）+ 集成（`test_routine_orchestrator.py` 3 例覆盖 runner 写回清 session+标记 / 成功正常续接 / 达上限封顶）；routine+claude_code 全量 **144 用例全绿**，零回归；ruff clean。②**实机全闭环**（Chrome devtools，复活 `a83d9c94`）：改 DB 复活（`status=running`、`claude_session_id=NULL`、`eval_floor_seq=5` 隔离旧失败窗口、保留 worktree）后，inspector 下一 tick dispatch seq=6——CC 子进程 `claude -p`（**无 `--resume`，确认冷启动**）、`resume_session_id=NULL`、189s 内产 **339 审计事件含 112 tool_use**（对比旧 seq=4/5 仅 ~6 事件 1 turn 即死），routine 持续 `running`、worktree（123.3M seq=1 产出）完整保留。UI 迭代时间线、Evaluator-Optimizer Loop、Reflexion 注入面板全部正确渲染。
+- **同类问题影响 / 跨上下文注意**：缺陷自 Routine 子系统引入即潜伏，凡「单会话上下文撑满」的长任务全部受害（短任务因不撑满上下文不触发）。承 ISSUE-108 修复使 Routine 全闭环可跑通后，本缺陷是「跑得足够久」才暴露的下一层失败模式——**只有用巨型真实任务实机长跑才能发现，单测与小任务均无法触发**。修复纯后端（service.py/runner.py/decision.py/config），无 schema/迁移变更，无前端改动；新增字段/参数均默认向后兼容（`error_kind=None`、`max_context_resets=0` 退化原行为）。
+
+## ISSUE-110 Routine worktree 隔离缺失「源目录只读读授权」物理通道——Prompt 声称可读而运行时无法兑现（复刻类长任务硬阻断，2026-06-06）
+
+- **表因**：以「Maps 项目复刻」（`9e90c3c7`，Go `platform-maps/jerusalem-v3`→Python `data-la-maps`）为模板的复刻类 routine，goal 明确要求 CC「通过 `/add-dir` 加载 source-project 全量代码进行源项目全方位分析」，但 CC 在隔离 worktree 中实际**读不到** worktree 之外的 Go 源码（407 文件）；隔离 system prompt（ISSUE 见 commit `002f58dd`）虽声称「goal 显式引用的绝对路径可读」(rule 2)，却无任何物理机制兑现该读权限。复刻因「看不到源」而不可能做好（历史 iter1 仅靠零散探索拿到 92 分，本质是盲人摸象）。
+- **根因**：**Prompt 授予了运行时无法兑现的读权限——隔离的物理层与 prompt 层不一致**：
+  1. CC 子进程 cwd 被钉在隔离 worktree；Claude Code 对 cwd 之外的路径默认不可读，需经 `--add-dir`（CLI）/`add_dirs`（SDK）显式授予；
+  2. goal 让 CC 用 `/add-dir`——但 `/add-dir` 是**交互式 slash 命令**，在 `claude -p` 非交互子进程 / SDK `query()` 中**完全不生效**；
+  3. `grep -rniE "add[_-]?dir|additional_director"` 全 `engine/` **零命中**——`ClaudeCodeConfig` 无 `add_dirs` 字段，`_build_cli_args` 不发 `--add-dir`，`_build_config` 也无来源接线。三层皆缺，rule 2 的「可读」沦为空头支票。
+- **处理方式**（物理授权 + 只读封锁 + prompt 对齐，最小干预）：
+  1. `claude_code/models.py`：`ClaudeCodeConfig` 增 `add_dirs: list[str]|None` + `settings: str|None`（repr 安全）；
+  2. `claude_code/service.py`：`_build_cli_args` 逐目录发 `--add-dir <path>`（**非逗号合并**，经 SDK 源码 `subprocess_cli.py::_build_command` 核实）+ `--settings <json>`；`_invoke_sdk` 经 `hasattr` 守卫设 `options.add_dirs`/`options.settings`（SDK 未装时仅告警，CLI 为权威路径）；**两处** config 重建点（`_invoke_cli` + `_invoke_cli_interactive`）均补透传 `add_dirs`/`settings`（同 credential 静默丢弃回归类——Routine 实际走交互式路径）；
+  3. `routine/orchestrator.py`：新增 `_normalize_read_dirs`（绝对化+去重+滤杂质）与 `_build_readonly_settings`（对每个 add_dir 生成 `permissions.deny:["Edit(//<abs>/**)"]`，`//` 为文件系统绝对锚点）；`_build_config` 从 `routine.config.read_dirs` 填充 `config.add_dirs` + `config.settings`——`--add-dir` 默认授予**读+写**，故必须以 `Edit` deny 把源码物理锁只读（deny 优先级最高，`acceptEdits/bypassPermissions/--add-dir` 均不可越权；CC 仍可 Read，但 Edit/Write/MultiEdit/识别的 Bash 写命令被封死，worktree/cwd 无 deny 写入正常）；`_build_scope_system_prompt` 改为枚举「worktree + 授予的只读源目录（标 READ-ONLY）」并禁止其余，使 prompt 层与物理层一致（无 read_dirs 时回退旧 rule 2 文案，零回归）；
+  4. `interface/routine_api.py`：新增 `_validate_read_dirs`，create/update 校验 `config.read_dirs` 为字符串数组且每项绝对化后是已存在目录（422 早反馈）。
+- **后续防范**：
+  1. **物理隔离的「授予」与「禁止」必须成对、且都落到运行时**——只声明「禁止读 X」而不提供「允许读 Y」的物理通道，会把本可达成的任务变成不可能；任何「prompt 说可读/可写」的语句都要追问「运行时有无对应的物理机制（`--add-dir`/`permissions.allow`/挂载）兑现」，否则即是 ISSUE-110 式的「空头权限」；
+  2. **`--add-dir` 是读+写双授**：凡需「只读引用外部目录」，必须叠加 `settings.permissions.deny(Edit(//dir/**))` 物理锁只读，不能依赖 prompt 自律（Prompt 无强制力）；
+  3. **交互式 slash 命令（`/add-dir`/`/model`/`/compact`…）在 `-p` 非交互子进程中全部无效**——凡 goal/prompt 指示 CC 执行 slash 命令的，引擎都须翻译为等价 CLI flag 或 settings，不能寄望 CC 在 headless 下「自己敲」；
+  4. **config 重建点是字段静默丢失的高发区**：`service.py` 有 `_invoke_cli` 与 `_invoke_cli_interactive` 两处 `ClaudeCodeConfig(...)` 逐字段重建，新增任何 config 字段都须同步两处 + 加「重建后字段存活」回归（镜像既有 credential 回归）。
+- **同类问题影响**：所有「在隔离环境中需读取环境外资源」的 routine（复刻、迁移、跨仓重构、对照基线 diff 等）此前全部受害；`config.read_dirs` 为通用解。审计点：凡 goal 含外部绝对路径引用的 worktree routine，须显式配 `read_dirs` 方能让 CC 物理读到。
+- **验证**：①单元（`test_claude_code_service.py` 7 例：`--add-dir` 逐目录非逗号 / `--settings` 注入 / None 时不发 / 非交互+交互**两处**重建存活；`test_routine_phase.py` 4 例：scope prompt 枚举授予目录且标 READ-ONLY+写限 worktree / 无 read_dirs 回退旧契约 / 无 config 属性不抛 / `_normalize_read_dirs` 去重绝对化滤杂 / `_build_readonly_settings` 绝对锚点 deny 无 allow 削弱）；`routine_phase`+`claude_code` 全量 **84 用例全绿**。②**实机**（Chrome 实机跟踪 + ps/DB）：探针 routine（`77efcd8e`，phased）dispatch 后，运行中 `claude -p` 子进程 argv 实测含 `--permission-mode plan`、`--add-dir /Users/.../jerusalem-v3`、`--settings {"permissions":{"deny":["Edit(//Users/.../jerusalem-v3/**)"]}}`；plan 相位 9 分钟内 CC 对 Go 源 `find/ls/Read` **124 次**（README/go.mod/Makefile/Dockerfile…），零 session/compact 重试——源码物理可读、改写被 deny 封锁，复刻首次具备「看得见源」的前提。③**重派发链路**（iter2/implement）：`--resume <iter1 session>`、cwd 恒为隔离 worktree（**非历史 `/tmp/wt/dispatch-auto`**）、`--add-dir` 与只读 deny 跨迭代保持、`--permission-mode` 随相位 plan→acceptEdits 切换——历史 iter2-5 的「cwd 错位 + 会话死亡螺旋」失败链已端到端愈合。
+
+## ISSUE-111 测试套件直连生产库——`test_migrations` 降级摧毁生产数据 + orchestrator 测试污染真实 routine（潜伏数据灾难，2026-06-06）
+
+- **表因**：以模板 routine（`9e90c3c7`）复刻任务实机长跑时，发现其历史 iter2 失败于 `working directory does not exist: '/tmp/wt/dispatch-auto'`——而 `/tmp/wt/dispatch-auto` 是 `test_routine_orchestrator.py` 的测试夹具值，却写进了**生产** routine 的迭代行。顺藤摸瓜发现整个测试套件直连生产 `negentropy` 库。
+- **根因**：**测试无独立数据库，与生产共享 `negentropy` 库**：
+  1. `tests/conftest.py::db_engine` 直接 `create_async_engine(str(settings.database_url))`——生产库；
+  2. `tests/integration_tests/db/test_migrations.py::reset_database`（autouse）执行 `command.downgrade(alembic_config, "base")`——**把生产库降级到 base，DROP 全部表 = 摧毁 routines/knowledge/memory/sessions 全部数据**，违反 [AGENTS.md「严禁删除现有数据」](../../CLAUDE.md)；其 `_sync_database_url()` 亦读 `settings.database_url`（生产）；
+  3. `orchestrator._dispatch_due` / `_evaluate_and_decide` 查询条件为 `Routine.status=='running'`（**扫描全部** running routine，不限于测试自建行）；集成测试 patch `ensure_workspace`→`WorkspaceInfo('/tmp/wt/dispatch-auto')` 后调 `_dispatch_due`，会把该假 cwd 派发给当时正在 running 的**真实**模板 routine → CC 报 cwd 不存在 → 该 routine 随后陷入会话死亡螺旋（ISSUE-110 表征的历史 iter2-5 即源于此）。
+  - 模板 routine 至今尚存，说明全量 `pytest tests/` 本地近期未跑全——否则 `reset_database` 一次即清空生产库。这是「跑得够全才爆」的潜伏数据灾难。
+- **处理方式**（会话级强制隔离到专用测试库，单一改写点）：
+  1. `tests/conftest.py` 新增 session 级 autouse fixture `_isolate_test_database`：幂等 `CREATE DATABASE negentropy_test`（asyncpg autocommit 连维护库 `postgres`）→ 覆盖 `Settings` 类的 `database_url` 纯属性返回测试库 DSN → `alembic upgrade head` 迁移测试库 → yield → 还原属性；
+  2. 选「覆盖 `database_url` 属性」而非改 `settings.database.url`——后者是 frozen pydantic 模型（`_check_frozen` 拒写）；而 `database_url` 是 `@property`（`str(self.database.url)`），且**同进程** alembic env.py（`configuration["sqlalchemy.url"]=str(settings.database_url)`）、`_sync_database_url`、conftest `db_engine` 全经它读 DSN——改一处即让迁移测试的 down/up、orchestrator 集成测试、全部 DB 访问落到 `negentropy_test`，绝不触碰生产库；
+  3. `db_engine` 无需改动（读 `settings.database_url`，已被改写）。
+- **后续防范**：
+  1. **测试**与**生产**必须物理分库——任何 conftest/fixture 直读 `settings.database_url` 建引擎或跑 DDL 都是红线，CR 必须确认测试落到 `*_test` 库；
+  2. **破坏性 DDL 的 autouse fixture（`downgrade base` / `DROP` / `TRUNCATE`）尤其危险**——必须在物理隔离的库上执行，且 fixture 自身应断言所连库名以 `_test` 结尾方可放行；
+  3. **扫描全表的编排逻辑（`status=='running'`）在共享库下会跨数据污染**——集成测试 patch workspace/外部副作用时，必须保证库隔离，否则测试副作用外溢到生产行；
+  4. 可选加固：在 `_isolate_test_database` 起始 `assert not str(settings.database_url).rstrip('/').endswith('/negentropy')` 之外，再对生产库名做显式黑名单断言，杜绝任何回退路径直连生产。
+- **同类问题影响**：所有 `tests/integration_tests/**` 此前都在生产库跑（knowledge/memory/mcp/interface 等）；隔离后一律落 `negentropy_test`。承 [ISSUE-100](#)（test_runner 污染 sys.modules）同源——测试隔离是系统性议题，DB 层是其最危险的一环。
+- **验证**：隔离前快照生产库 `routines=30 / iterations=174 / 模板存在`；跑 `test_migrations.py`（含 stairway down→up，历史会清生产库）+ `test_routine_orchestrator.py` + `test_routine_phase.py` 共 **59 例全绿**；跑后生产库快照**完全不变**（30/174/模板在），`negentropy_test` 库建成且 `routines=0`（干净隔离）——数据灾难闸门关闭。
+
+## ISSUE-112 Routine PLAN 相位评估误跑验证门控（pytest），对无实现的方案污染评分（2026-06-06）
+
+- **表因**：phased routine 的 PLAN 相位迭代评估后，迭代行 `gate_exit_code=5`（pytest「no tests collected」）、`verdict=stalled`、`score=50`——方案阶段尚无任何实现，却跑了 `uv run pytest -q`。
+- **根因**：`orchestrator._do_evaluate` 构建 `routine_eval_view` 时无条件透传 `verification_command`，`evaluator.evaluate` 凡 `verification_command` 非空即跑门控（`if routine.verification_command:`），**不区分相位**。PLAN 相位无实现，门控必然失败（exit 5/非零），其失败输出喂给 LLM Judge 会错误压低方案评分，且白白消耗 gate 超时延迟。
+- **处理方式**（最小干预）：`_do_evaluate` 中 `skip_gate_in_plan = routine.current_phase == PHASE_PLAN`，PLAN 相位把 `routine_eval_view.verification_command` 置 None——`evaluate` 的既有 `if verification_command:` 守卫自然跳过门控，Judge 纯评估方案质量；IMPLEMENT/FINALIZE 相位门控照跑。
+- **后续防范**：门控/验证类副作用必须「相位感知」——PLAN（无产物）跳过、IMPLEMENT/FINALIZE（有产物）执行；任何「无条件对当前工作区跑测试」的逻辑都要先问「此相位有无可验证的产物」。
+- **同类问题影响**：所有配 `verification_command` 的 phased routine 的 PLAN 相位评分此前都被门控失败拉低；本修复使方案阶段评分回归方案质量本身。
+- **验证**：集成测试 `test_plan_phase_skips_verification_gate`（PLAN 相位 eval_view.verification_command 为 None）+ `test_implement_phase_runs_verification_gate`（IMPLEMENT 相位照传）对照锁定，全绿；实机「before」证据：探针 PLAN 迭代 `gate_exit_code=5`（修复前），忠实任务 PLAN 迭代 `gate_exit_code=NULL`（修复后）。
+
+## ISSUE-113 交互式 CC 产出干净成功 result 后被拆解 SIGTERM(143) 误标 error → phased 长任务 ~iter3 夭折（2026-06-06）
+
+- **表因**：phased routine 的 PLAN 迭代 `exec_status=error`、`exec_error="CLI exited with code 143"`，即便该迭代已产出方案（事件流尾部明确有 `result: success`）；Judge 因见 `exec_status=error` 给出 `stalled`/低分（实测忠实任务 plan 评 40/stalled）。
+- **根因**：**「我方拆解」的退出码被当作真实失败**。stream-json 输入模式下 CLI 产出 `result` 后**不自退**、保持 stdin 打开等更多输入；`_invoke_cli_interactive` 的 reader 见 `result` 即主动闭合 stdin 触发其退出，并给 10s 优雅窗口；若 CLI 未在窗口内退出，`finally` 强制 `terminate()`（SIGTERM → rc=143/-15）。旧状态判定 `status = "success" if proc.returncode == 0 else "error"` 据该退出码一律标 error，无视已捕获的成功 `result` 事件。
+- **二阶严重性（实测校准）**：实机数据显示该误标主要命中 **PLAN 迭代**（plan 模式下 CC 在 ExitPlanMode + plan_review 回环后产出 result 却不自退 → 拆解 SIGTERM → error/143），而 **IMPLEMENT 迭代多干净退出（rc=0/success）**——故并非「每迭代必 error」（忠实任务实测 iter1=plan/error/143、iter2=implement/success）。其危害有二：① PLAN 迭代被误标 error → Judge 见 `exec_status=error` 给 `stalled`/低分（实测忠实 plan 评 40/stalled），污染方案评分与反思；② **潜在**长跑夭折风险——`decision._consecutive_exec_failures` 把连续 `exec_status∈{error,timeout}` 计数达 `_CONSECUTIVE_FAILURE_LIMIT=3` 即判 `unrecoverable`；正常情况下 implement 的 success 会打断该计数，但若个别 implement 迭代亦因 stdin 拆解迟退而 143，连续 3 次即误判不可恢复夭折。修复从源头消除两者。
+- **处理方式**：`_invoke_cli` 与 `_invoke_cli_interactive` 的状态判定改为「**干净成功 result 优先于退出码**」：当 `last_result_event.subtype == "success"` 且 `not is_error` 时判 `success`，否则按退出码判定。关键守卫 `not is_error`：上下文耗尽事件的 `subtype` 误导性为 `success` 但 `is_error=True`，必须仍判 error 并由 `_classify_result_error` 归类 `context_exhausted`——否则会破坏 ISSUE-109/`729bfe54` 的死亡螺旋自愈。
+- **后续防范**：
+  1. **「进程退出码」≠「任务成败」**——当编排方主动 SIGTERM/kill 子进程（超时、拆解、abort）时，退出码反映的是「我方动作」而非「被编排任务的成败」；判定成败应优先采信任务自身的终态信号（此处为 `result` 事件），退出码仅作兜底；
+  2. **任何「连续失败计数 → 不可恢复」守卫，其失败判定的准确性是系统能否长跑的命门**——一个把「成功」误标「失败」的上游缺陷，会经此守卫放大为「长任务必在固定轮次夭折」，且只有真正长跑才暴露；新增此类守卫时必须审计「failure 的判定是否会把正常终态误判为失败」；
+  3. 交互式子进程「产出 result 后不自退」是 stream-json 模式的既有契约，闭合 stdin 后应给足优雅窗口，且**即使最终 SIGTERM 也不得据此抹掉已捕获的成功终态**。
+- **同类问题影响**：所有走交互式路径（`interactive=True`，即全部 Routine）的迭代均受益；非交互路径 `rc` 通常已为 0，该分支为防御性等价、消除两路径漂移。
+- **验证**：单测 `test_interactive_clean_result_success_survives_teardown_sigterm`（干净 result + SIGTERM(-15) → success）+ `test_interactive_is_error_result_not_masked_as_success`（`subtype=success` 但 `is_error=True` 仍 error 且归类 context_exhausted，守卫死亡螺旋自愈）；`claude_code_service` 全量 63 例全绿。实机「before」：探针/忠实任务 PLAN 迭代均 `error/143` 含 `result:success` 事件。
+
+## ISSUE-114 长 worktree routine 的 IMPLEMENT 进度仅以未提交工作树形态滞留——进度丢失风险 + PR 留存缺口（2026-06-06）
+
+- **表因**：忠实复刻长跑实机观测——worktree 已写出 `src/`、`tests/`、`pyproject.toml`、`Dockerfile` 等大量实现且 `pytest` 通过（gate exit 0），但 `git rev-list --count origin/feature/1.x.x..HEAD` 为 **0**（工作分支零提交），全部以未提交工作树形态存在。
+- **根因**：`prompt_builder.build_prompt` 仅在 **FINALIZE** 相位注入 `git add -A && git commit`，IMPLEMENT 相位（`继续`/`开始`）无任何提交指令。对能走到 FINALIZE 的 常规 phased routine 无碍；但本类**巨型长任务**（阈值 99 → 评分恒 ≤50、几乎不触发 FINALIZE，且会迭代至 max_iterations=100）下，上百轮成果**始终未落 git**：① worktree 一旦被重建/清理（stale 重建、人工删除、`git worktree prune`），未提交成果**全部丢失**；② 工作分支零提交，FINALIZE/人工建 PR 时 `git push` 仅推空分支（提交在 FINALIZE 内补，但长跑不触发 FINALIZE 即无任何 checkpoint）；③ 无跨迭代 git 检查点，单轮误改无法回滚。
+- **处理方式**（最小干预、相位感知）：`build_prompt` 在 **worktree routine 的 IMPLEMENT 相位** 追加「迭代检查点」段，指示每轮收尾 `git add -A && git commit` 提交到工作分支——**仅提交不推送**（推送/建 PR 仍属 FINALIZE），无实质改动则跳过。PLAN（只读）与 FINALIZE（自带 commit+push）不重复注入；扁平 routine（无 worktree）不注入。
+- **后续防范**：
+  1. **长 agentic 任务必须有跨迭代检查点**——不能让上百轮昂贵成果仅以「未提交工作树」单点形态存续；提交（或引擎侧确定性 auto-commit）是抵御 worktree 丢失的基本保险；
+  2. **「提交时机」应相位感知**：PLAN 不提交（无产物）、IMPLEMENT 增量提交检查点（仅本地）、FINALIZE 提交+推送+PR；
+  3. **进一步加固备选**（未实施，记录备忘）：引擎在每个 IMPLEMENT 迭代成功写回后**确定性 auto-commit** worktree（不依赖 CC 遵循 prompt），对成本极高的长跑更稳妥；本次先以 prompt 指令落地（与既有 FINALIZE 提交风格一致、零引擎热路径改动）。
+- **同类问题影响**：所有 worktree routine 的 IMPLEMENT 相位均受益；尤以「高阈值/不触发 FINALIZE 的长任务」获益最大。
+- **验证**：单测 `test_build_prompt_worktree_implement_injects_checkpoint_commit`（IMPLEMENT 注入 commit、禁 push）+ `test_build_prompt_worktree_checkpoint_only_in_implement`（PLAN/FINALIZE 不注入）+ `test_build_prompt_flat_implement_no_checkpoint`（扁平不注入）；`test_routine_phase` 全量绿。实机「before」：忠实任务工作分支 0 提交、15 项未跟踪/改动。
+- **加固落地（2026-06-06，承上文「进一步加固备选」）**：将「备选」升级为已实施——引擎侧**确定性 auto-commit**，不再仅依赖 CC 遵循 prompt（与 ISSUE-116「硬约束由引擎机制兜底、不托付 LLM 自觉」同源）。新增 `workspace.checkpoint_commit(worktree_path, settings, seq)`：best-effort，`git status --porcelain` 有改动才 `git add -A && git commit --no-verify`（`--no-verify` 跳过 worktree 内 pre-commit 钩子——质量门控由 `verification_command` 负责，钩子失败不应阻断引擎检查点），无改动跳过，异常仅日志绝不冒泡。`runner._do_write_back` 在事务内捕获 `(worktree_path, seq)` 快照（gated：`checkpoint_commit_enabled` + `exec_status==success` + 有 worktree + 非 PLAN 相位），`db.commit()` 后在**事务外**执行 git I/O（不持 DB 事务）。新增 `settings.routine.checkpoint_commit_enabled`（默认 True）。prompt 指令与引擎 auto-commit 并存：双保险（prompt 引导 CC 自己提交得更语义化的 message，引擎兜底确保即便 CC 不提交也有检查点）。验证：`test_checkpoint_commit_commits_changes`（有改动→提交、工作树净、HEAD+1、message 含 seq）+ `test_checkpoint_commit_noop_when_clean`（无改动→False、HEAD 不动）+ `test_checkpoint_commit_missing_path_returns_false`（路径不存在安全返回）；workspace+orchestrator 共 43 例全绿。
+
+## ISSUE-115 门控超时/异常退出码语义重载 + 门控超时不可调，长复刻评分被永久压顶（2026-06-06）
+
+- **表因**（潜伏，随复刻测试套件增长触发）：① 门控（`uv run pytest -q`）超时返回 `gate_exit_code=None`，与「未配置门控」同值；② 全局门控超时固定 120s，大型复刻的测试套件一旦超 120s，每轮门控必超时 → Judge 见门控失败 → 评分被规则 2 永久压顶 ≤60，复刻再好也无法被判高分收敛。
+- **根因**：
+  1. **`None` 语义重载**：`evaluator._run_gate` 超时/异常均 `return None, ...`；而 `decision.decide` 的成功判据 `latest.gate_exit_code in (None, 0)` 把 `None` 视为「门控通过/无门控」。于是「门控超时」（验证状态**未知**）被误当「门控通过」——若 Judge 给出达标分（如低阈值 routine 或 LLM 未严格执行评分上限规则），会据此误判 SUCCESS，把「未验证」当「已验证通过」。
+  2. **门控超时不可 per-routine 调**：`RoutineEvaluator._gate_timeout_seconds` 由 orchestrator 初始化时从全局 `settings.routine.gate_timeout_seconds`（默认 120）一次性设定，无 per-routine 覆盖；大型测试套件无法抬高超时。
+- **处理方式**：
+  1. `_run_gate` 超时返回 `124`（约定超时码）、异常返回 `1`——**绝不返回 None**，使 `None` **仅**表示「未配置门控」；`decision` 的 `in (None,0)` 遂自动把超时/异常（124/1）排除出「通过」，超时不再被误判成功；
+  2. `_run_gate` 增 `timeout` 形参，`evaluate` 从 `getattr(routine,"gate_timeout_seconds",None)`（即 `config.gate_timeout_seconds`）取 per-routine 覆盖、回退实例默认；orchestrator `_do_evaluate` 的 `routine_eval_view` 注入该字段。大型复刻可经 `config.gate_timeout_seconds` 抬高门控超时，避免评分被超时压顶。
+- **后续防范**：
+  1. **哨兵值语义不可重载**：`None`/`-1`/`0` 等若同时承载「未发生」与「发生但失败」两义，下游布尔判据必踩坑；「未运行」与「运行了但超时/异常」必须可区分（本例以非零退出码区分）；
+  2. **「未知 ≠ 通过」**：任何客观门控的「超时/异常/不可达」都应作**保守失败**处理，绝不可等同「通过」——尤其当其结果参与「终止为成功」这类不可逆判定时；
+  3. **资源阈值（超时/预算/上限）应 per-task 可调**：固定全局阈值对「重量级长任务」必然失配，须留 per-routine 覆盖通道。
+- **同类问题影响**：所有配 `verification_command` 的 routine；尤以测试套件较重、运行时长接近/超过 120s 的复刻/迁移类长任务。审计点：凡下游以 `x in (None, 0)` / `x is None` 兼判「无」与「失败」者，均需复核哨兵语义。
+- **验证**：单测 `test_run_gate_timeout_returns_124_not_none`、`test_run_gate_per_routine_timeout_overrides_instance_default`（传 timeout=1 约 1s 超时）、`test_run_gate_passes_through_exit_code`、`test_decide_success_blocked_by_gate_timeout_sentinel`（124 不判成功）；evaluator_gate + decision 共 39 例全绿。
+
+## ISSUE-116 LLM-as-Judge 不遵守 acceptance_criteria 的「未达标即封顶」散文规则，评分越线污染收敛（2026-06-06）
+
+- **表因**：忠实复刻长跑实机观测——任务 `acceptance_criteria` 明文规定「若未达到 Acceptance Criteria，评分一律减半，有效得分永远不高于 50」，但 Judge（`gpt-5-nano`）给 iter8 打 **85**，其自身 reflection 却写明「未完成 Acceptance Criteria 的端到端生产验证」——自相矛盾且越线；相邻 iter 在同等未达标下又打 45-50，评分剧烈震荡（50→50→45→85→48）。
+- **根因**：**关键评分约束仅以自然语言写在 acceptance_criteria 散文里，依赖小模型自觉执行**。LLM-as-Judge 对「全局硬约束（未达标即封顶）」的遵循本就不稳定（见 arXiv:2411.15594 偏差综述），小模型尤甚。后果：① `best_score=85` 是越过封顶规则的「幻象高分」，污染 `last/best_score`；② 评分剧烈震荡破坏 `_is_no_progress`/`_is_oscillating` 的停滞/振荡判据可靠性；③ 若震荡到达成阈值，会据幻象分误判 SUCCESS。
+- **处理方式**（把散文规则提升为引擎确定性机制）：
+  1. Judge JSON 契约新增结构化布尔 `acceptance_met`（prompt 要求：当且仅当**全部**验收项客观达成才 true，含其中声明的端到端/部署/切换硬条件）；`_parse` 解析该字段（缺失→None）；
+  2. `RoutineEvaluator` 新增 `acceptance_unmet_score_cap`（实例默认来自 `settings.routine.acceptance_unmet_score_cap`，默认 0=关闭）+ per-routine `config.acceptance_unmet_score_cap` 覆盖；
+  3. `evaluate`：当 `acceptance_met is False` 且 `cap>0` 且 `score>cap` 时，**确定性把分数封顶到 cap**，并把越线的 `verdict=pass` 纠正为 `progressing`（验收未达成绝不应判 pass → 防误终止）。`acceptance_met=None`（旧模型未遵循契约）或 `cap=0` 时不封顶，向后兼容、对其它 routine 零影响。
+- **后续防范**：
+  1. **不可把关键约束只托付给 LLM 自觉**——凡「硬性、可判定的评分/终止约束」（未达标封顶、门控失败上限、预算红线），都应在引擎层以确定性代码兜底，prompt 仅作软引导；LLM 适合「质量打分」，不适合「规则裁决」；
+  2. **让 Judge 输出结构化裁决信号**（如 `acceptance_met` 布尔）而非仅一个综合分——把「裁决」与「打分」正交分离，裁决项交确定性逻辑消费，比从单一分数反推更鲁棒；
+  3. 复刻类任务的 `acceptance_criteria` 若含「未达标即减半/封顶」语义，应同时设 `config.acceptance_unmet_score_cap`（落地引擎强制），不能仅写散文。
+- **同类问题影响**：所有依赖 LLM-as-Judge 评分的 routine；尤以「acceptance 含硬性末态条件（部署/切换/端到端）、主体完成但末态未达」的长任务——主体完成易诱使模型给高分，封顶机制确保「未达末态即不越线」。
+- **验证**：单测 5 例（`test_acceptance_unmet_caps_score_and_corrects_pass` 封顶 85→50 且 pass→progressing / `test_acceptance_met_true_not_capped` / `test_acceptance_met_none_not_capped` 向后兼容 / `test_acceptance_cap_disabled_when_zero` / `test_acceptance_cap_per_routine_overrides_instance`）；engine 全量 912 例全绿。实机「before」：忠实 iter8 score=85 而 reflection 自述验收未达成。
+
+## ISSUE-117 6 Agents 的 `invoke_claude_code` 全局默认（mcp_config/allowed_tools）从未注入 session-state——全系统默认 MCP 对 Agent 入口形同虚设（2026-06-06）
+
+- **表因**（潜伏，在"为全系统内置默认浏览器 MCP"时浮现）：把 Playwright 浏览器 MCP 注入 `builtin_tools(claude_code).config.mcp_config` 后，Routine / Scheduler 入口经 `_load_claude_code_defaults` 直读 DB，立即生效；但 6 个 ADK Agent 经 `ActionFaculty.invoke_claude_code` 调 Claude Code 时**拿不到**该默认 MCP。
+- **根因**：`agents/tools/claude_code.py` 的 `invoke_claude_code` 从 `tool_context.state.get("claude_code_config")` 读全局默认（`mcp_config` / `allowed_tools` / `permission_mode` …），但该 session-state 键**全仓从未被任何代码写入**——遂恒为空 dict，Agent 侧每次都以 `mcp_config=None`、内置 6 工具默认裸跑。即"全系统默认"对 Agent 入口形同虚设：三条 Claude Code 入口（Routine / Scheduler / Agent）中，唯独 Agent 入口未对齐单一事实源（builtin_tools）。
+- **处理方式**（SSOT 收敛，最小干预）：`invoke_claude_code` 在 `tool_context.state["claude_code_config"]` 缺省时**惰性回退** `_load_claude_code_defaults()`（与 Routine/Scheduler 同源），把 cli_path/model/system_prompt/cwd/max_turns/timeout/permission_mode/`allowed_tools`/`mcp_config` 投影为默认；凭证复用其已解析结果（回退路径无原始 credentials dict）。state 已注入时维持原路径不变（向后兼容）。
+- **后续防范**：
+  1. **"读取点"必有"写入点"**：任何 `state.get(K)` 形态的全局配置消费，都要追问"K 由谁写入"；若无写入方则该配置链路断裂（本例 `claude_code_config` 读而不写，潜伏至今）。新增 state 驱动配置时，读写两端须成对落地或显式回退单一事实源；
+  2. **多入口共享配置须收敛到单一事实源**：同一能力的多条入口（此处 3 条 Claude Code 调用路径）应统一经一个 loader 取默认，避免某条入口悄悄走"空配置裸跑"分支；
+  3. **"全系统默认"声明须按入口逐一核验**：声称系统级默认时，须枚举所有消费入口分别验证，不能假定一处注入即全域生效。
+- **同类问题影响**：所有经 `invoke_claude_code` 触发 Claude Code 的 ADK Agent 行为（不止浏览器 MCP——此前 model/system_prompt/allowed_tools 全局默认对 Agent 入口同样未生效，本次一并修复）。
+- **验证**：单测 `test_invoke_claude_code_falls_back_to_global_defaults_when_state_empty`（空 state → 回退默认，携 playwright mcp_config 与 mcp__playwright allowed_tools，复用已解析凭证）+ `test_invoke_claude_code_prefers_session_state_when_present`（state 存在 → 不触发回退、沿用 state 配置）。相关：迁移 0062 端到端注入与 Routine `_build_config` 合并语义见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。
+
+## ISSUE-118 `_evaluate_one` 生产死路径 + 事件持久化集成测试覆盖错路径（单一事实源违背 + 测试保真缺口）（2026-06-07）
+
+- **表因**：实机回归 Routine 闭环时审阅 orchestrator，发现 `_evaluate_one`（同步内联评估）已不被 `inspect_once` 调用——心跳实际走 `_evaluate_and_decide` → `_claim_for_eval` → 后台 `_do_evaluate`（Evaluate 后台化，729bfe54）。但 4 个事件持久化集成测试（`test_routine_event_persistence.py`）仍 `await orch._evaluate_one(rid)`，即测试在验证生产**从不执行**的死路径。
+- **根因**：Evaluate 后台化新增 `_do_evaluate` 时，未删除旧 `_evaluate_one`、亦未迁移其测试 → 同一「评估 → 写回 → 追加 gate/eval 事件」逻辑存在两份副本（违 Single Source of Truth），且测试钉在旧副本上（测试保真缺口：两副本一旦漂移，测试无法发现真实生产路径的回归）。
+- **处理方式**（最小干预，熵减）：① 测试新增 `_evaluate_latest(orch, rid)` 辅助，驱动真实路径 `_claim_for_eval` → `_do_evaluate`，替换 4 处 `_evaluate_one(rid)` 调用；② 删除 `_evaluate_one`（123 行死代码）。事件持久化 `_persist_eval_events` 本为两副本共享、行为等价，迁移零语义变更、无运行时行为改变。
+- **后续防范**：① 重构出「执行下沉/后台化」的新路径时，**必须同步迁移其测试到新路径并删除旧同步副本**，避免测试钉死在死代码上、给出虚假绿；② 同一核心闭环逻辑（评估/写回/决策）严禁双副本，须单点收敛。
+- **同类问题影响**：仅 Routine 评估路径；生产早已只走 `_do_evaluate`，本修复纯属代码/测试熵减，无行为变更。
+- **验证**：迁移后 `test_routine_event_persistence.py` 6 例全绿（真实路径）；routine 单测 126 + orchestrator/api 集成 44 全绿，零回归。
+
+## ISSUE-119 共享 `negentropy_test` 测试库跨 Conductor workspace 迁移版本污染（test-infra 脆弱性）（2026-06-07）
+
+- **表因**：在 puebla-v3（alembic head=0062）运行集成测试，conftest `_isolate_test_database` 的 `alembic upgrade head` 报 `Can't locate revision identified by '0064'`，全部集成测试 setup 失败。
+- **根因**：同一 PostgreSQL 实例被多个 Conductor workspace 共享，而 ISSUE-111 的测试库隔离仅区分「测试 vs 生产」——**测试库名固定为 `<db>_test`（`negentropy_test`），跨 workspace/分支共享同一物理库**。某更高分支的 workspace 跑测试时把 `negentropy_test` 迁到 0064，puebla-v3（本地仅到 0062）无法 upgrade（0064 在本地迁移脚本中不存在）→ setup 失败。生产 `negentropy` 同样已被迁到 0064（加列式增量迁移，故 0062 代码仍能在 0064 schema 上运行，routine 读写未受影响）。
+- **处理方式**（当前缓解）：`negentropy_test` 为空（routines=0、无活动连接），`DROP DATABASE ... WITH (FORCE)` 后由 conftest 重建至本地 head 0062，集成测试恢复全绿。
+- **提议根因修复**（候选后续轮次）：把测试库名做 **workspace 唯一化**（如以 repo 根路径 hash 派生 `negentropy_test_<hash>`），使多 workspace 并发测试互不污染；CI 在隔离容器内不受影响。另可在 conftest 升级前校验「DB 版本 ≤ 本地 head」，超前时给出明确重建指引而非裸 alembic 报错。
+- **后续防范**：① 共享 DB 服务器上的「测试库」命名须计入并发维度（不止 test/prod 二分，还要 workspace/分支隔离），否则迁移版本互相踩踏；② 跨实例共享的 schema 版本须有「本地代码 head 与 DB version 偏差」的可观测校验。
+- **同类问题影响**：所有在共享 postgres 上并发跑集成测试的 workspace；环境性问题，非产品代码缺陷。
+- **验证**：drop+重建后集成测试全绿（见 ISSUE-118 验证：6+126+44 全绿）。
+
+## ISSUE-120 引擎 venv/uv 激活变量泄漏进 worktree 子进程（gate + CC），物理隔离未覆盖 Python 环境（2026-06-07）
+
+- **表因**：忠实复刻 routine 的 IMPLEMENT 门控 `uv run pytest -q` 输出首行恒为 `warning: VIRTUAL_ENV=.../negentropy/apps/negentropy/.venv does not match the project environment path \`.venv\` and will be ignored`。
+- **根因**：worktree 隔离此前只覆盖文件系统（cwd / `--add-dir` / `Edit` deny），但任务子进程**整体继承引擎 `os.environ`**。引擎自身经 `uv run` 启动，注入 `VIRTUAL_ENV`（指向 `negentropy/.venv`）与 `UV_RUN_RECURSION_DEPTH`；二者越界泄漏给在**另一项目** worktree（自有 `.venv`）内运行的 gate 与 CC 子进程——`service._build_subprocess_env` 直接 `os.environ.copy()` 未剥离；`evaluator._run_gate` 的 `create_subprocess_shell` 干脆不传 `env=`。
+- **影响**：本任务 gate 是 `uv run pytest`，uv 检测错配后忽略（自愈，仅警告）；但**非 uv 门控（裸 `pytest`/`python`）会落到引擎 venv 找错包 → 假失败污染评分**；`UV_RUN_RECURSION_DEPTH` 把任务独立 `uv run` 误计为嵌套递归、蚕食任务自身的嵌套预算。
+- **处理方式**（单一事实源）：新增 `engine/utils/subprocess_env.py::inherited_env_without_engine_venv()`，剥离 `{VIRTUAL_ENV, VIRTUAL_ENV_PROMPT, UV_RUN_RECURSION_DEPTH}`；`_build_subprocess_env`（CC 子进程）与 `_run_gate`（gate 子进程）统一复用，使物理隔离从文件系统延伸到 Python 运行环境。
+- **后续防范**：① worktree / 隔离子进程不应整体继承父进程 env；跨项目子进程须净化继承环境中的「venv / 工具激活」变量；② strip 逻辑单点收敛，避免双副本漂移。
+- **同类问题影响**：所有 worktree routine 的 gate 与 CC 子进程；尤以非 uv 门控者评分会被假失败污染。
+- **验证**：单测 `test_inherited_env_strips_engine_venv_vars` + `test_run_gate_subprocess_does_not_inherit_engine_virtualenv`（端到端 gate 子进程 `$VIRTUAL_ENV` 为空）；evaluator_gate 17 例 + routine 单测 130 + claude_code 164 + 集成 50 全绿。
+
+## ISSUE-121 弱 Judge 误判 acceptance_met=true 触发过早不可逆 SUCCESS+PR（复刻仅骨架即「成功」）（2026-06-07）
+
+- **表因**：忠实复刻 routine 实机跑完整闭环 `PLAN→IMPLEMENT→FINALIZE→succeeded`，建出真实 PR（`data-la-maps#4`），best_score=92。但检视产物：核心业务逻辑（geocoding 11 阶段管线 + 6 模式矩阵 + IP 双源融合——Go 服务存在的根本理由）**未实现**——`domain/geocodes/service.py` 仅 45 行桩，自述「Phase 2：简化实现，仅支持按 postal_code 直接查 PlacesRepo；Phase 4：完整 11 阶段 Pipeline + 6 模式矩阵」。即「成功」过早，复刻实为骨架。
+- **根因**：不可逆 SUCCESS（→FINALIZE→PR→succeeded）取决于**单次弱 Judge（`gpt-5-nano`）对 `acceptance_met` 的裁决**。ISSUE-116 的 cap 仅守护 `acceptance_met=False` 方向（未达标封顶），对**误判 `acceptance_met=true`**（假阳性）无任何防护。弱模型见「~21 端点 + 75 测试通过 + 架构清晰」即判 `acceptance_met=true`/92，未核验行为级 Go 对齐（其自身 reflection 反而承认「下一步聚焦 Phase 3 Write API 与规则引擎基线」——自相矛盾）。
+- **处理方式**（本轮，引擎层根因杠杆）：新增 per-routine `config.evaluator_model` 覆盖，经 `evaluate → _judge → resolve_model_config` 的 `explicit_model` 注入——高风险复刻类 acceptance 裁决可指定更强 Judge 模型，缓解弱模型假阳性；opt-in，未设时回退实例默认，其它 routine 零影响。配套任务定义将 acceptance 强化为「行为级对齐（管线/融合 faithfully 实现，非简化桩）」并设强 Judge 模型。
+- **后续防范**：① 触发**不可逆动作**（建 PR / 终止成功）的判定不应系于单次弱模型意见——高风险裁决须用足够强模型或多信号佐证；② LLM-as-Judge 的**假阳性与假阴性都要防**（ISSUE-116 防假阴性「达标却被压分」，本条防假阳性「未达标却判成功」）；③ acceptance 须可被 Judge **行为级**核验，避免「结构齐备即判达标」。
+- **候选后续加固**：当 `acceptance_met=true` 且分 ≥ 阈值（即将触发不可逆成功）时，以更强模型做一次对抗式确认门（confirm-before-commit），未确认则降级继续迭代。
+- **同类问题影响**：所有以弱模型 Judge 裁决 acceptance 的高风险 routine；尤以「结构易搭、业务逻辑深」的复刻/迁移类。
+- **验证**：单测 `test_evaluator_model_override_flows_to_judge`（per-routine 模型覆盖流经 `_judge`）+ `test_evaluator_model_falls_back_to_instance_default`（未设回退实例默认）；evaluator_gate 17 例全绿。实机 before：seq3 judge raw `acceptance_met:true, score:92` 而 `geocodes/service.py` 为 45 行简化桩。
+- **修复补正（端到端正确性）**：ISSUE-121 的 per-routine `evaluator_model` 经 `explicit_model` 注入，而 `resolve_model_config_async` 原对 `explicit_model` **短路返回 `(name, {})`**——丢失 `model_configs`/`vendor_configs` 的 `api_key`/`api_base` 代理凭证，致 Judge 的 litellm 调用必因缺凭证失败（单测因 mock 了 resolver 未暴露）。改为优先 `resolve_llm_config_by_model_name(explicit_model)` 解析以携带凭证 kwargs，DB 未命中再回退 `(name, {})`。实机验证 `anthropic/claude-sonnet-4-6` → kwargs 含 api_base/api_key/temperature/thinking；新增单测 `test_explicit_model_resolves_credentials_via_by_name`。
+
+## ISSUE-122 `--skip-build` 重启时 start-production.mjs `linkRuntimeAsset` 非幂等 → UI 启动失败连锁中止全部服务（2026-06-07）
+
+- **表因**：以 `cli.sh restart --no-pull --skip-build` 做后端 only 快速重启时，UI 启动报 `Error: src and dest cannot be the same .../.next/standalone/apps/negentropy-ui/.next/static`（ERR_FS_CP_EINVAL）；cli.sh 见「ui 启动失败」遂**中止并停掉已起的 backend/perceives**，全栈宕。
+- **根因**：`start-production.mjs::linkRuntimeAsset` 先 `symlinkSync(relativeSource, targetPath)`，target 已存在（monorepo 下 Next standalone 自带 `.next/static` 软链，或上次启动已链接）则抛 EEXIST 落入 `catch` 的 `cpSync(source, target)`；而 target 软链回指 source → src/dest 同 inode → `ERR_FS_CP_EINVAL`。即该函数对「重复启动（--skip-build 不重建前端）」非幂等。次生：cli.sh 对单服务启动失败采取「中止 + 停全部」策略，放大为全栈宕。
+- **处理方式**：`linkRuntimeAsset` 增幂等保护——`existsSync(targetPath)` 即 return（Next 自带软链 / 上次已链接则跳过），不再走 symlink→cpSync 冲突路径。使 `--skip-build` 快速重启可用（后端 only 改动免全量前端构建）。
+- **后续防范**：① 启动期「链接/复制运行时资产」须幂等（重复启动不报错）；② cli.sh 单服务启动失败的「中止全部」策略放大故障半径，可考虑保留已健康服务或更精确的回滚边界。
+- **同类问题影响**：所有 `--skip-build` 重启；阻断后端 only 快速迭代（被迫每次全量前端构建）。
+- **验证**：修复后 `restart --no-pull --skip-build` UI 正常启动、四服务健康（见下次重启）。
+
+## ISSUE-119 升级 共享 DB 迁移版本超前致 cli.sh **启动期** alembic upgrade 失败（不止测试库）（2026-06-07）
+
+- **表因**：会话中段（数小时后）`cli.sh restart` 在 Phase 3 数据库迁移报 `Can't locate revision identified by '0064'` 而**中止启动**，全栈无法拉起。
+- **根因**：ISSUE-119 同源升级——共享 PostgreSQL 的**生产 `negentropy` 库**被另一更高分支 workspace 的 `alembic upgrade head` 迁到 0064，而 puebla-v3 本地 head 仅 0062（0063/0064 不在 `origin/feature/1.x.x`，属未合并分支）。cli.sh 启动无条件 `alembic upgrade head`，current=0064 本地不可解析 → 失败中止。生产 schema 0064 为 0062 的加列式超集，故 0062 代码运行无碍，唯启动迁移步骤踩雷。
+- **处理方式**（最小可逆缓解）：迁移前临时 `UPDATE alembic_version SET version_num='0062'`（仅指针、不动 schema）使 `upgrade head` 在 0062=head 处 no-op，迁移阶段过后立即恢复 `'0064'`（真实 schema 态，保护其它 workspace 不被 0063/0064 重放误伤）；窗口约 4s。
+- **后续防范**：① 见 ISSUE-119 根因修复（DB 按 workspace 唯一化，dev 库亦然）；② cli.sh 迁移步骤宜容忍「DB 版本超前本地 head」（视为 no-op + 告警）而非裸报错中止——超前是共享 DB 常态，不应阻断启动。
+- **同类问题影响**：共享 postgres 上多 workspace 并发开发的启动链路；环境性，非产品代码缺陷。
+- **验证**：stamp 0062→启动→恢复 0064 后四服务正常拉起。
+
+## ISSUE-123 交互工具未入白名单致 Plan Review 反馈无法送达 CC，评审闭环 DOA（2026-06-07）
+
+- **表因**（用户实机指认 routine `5ae4af6e` Iteration#1）：CC Turn 9 经 `AskUserQuestion` 提交 Plan、NegentropyEngine 产出 Plan Review，但**该 Review 从未送达 CC**；Turn 10 报错，Turn 12 跳过评审问询自行 `ExitPlanMode`，Turn 18 单方面交付 Plan。预期闭环「CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过」名存实亡。
+- **根因**（事件级实证）：iteration 事件 seq218 `tool_use AskUserQuestion` → seq219 `plan_review`(Engine 算出 refine/38) → **seq220 送达 CC 的 tool_result = `{"output":"Answer questions?","is_error":true}`**（非评审反馈）；seq223/225 `ExitPlanMode` → `{"output":"Exit plan mode?","is_error":true}`。即 CLI 因 `--allowed-tools` 白名单**不含 AskUserQuestion/ExitPlanMode** 而直接拒绝二者（返回许可提示串 + `is_error=true`），Engine 经 stdin 写回的应答根本无法被消费。`_build_config` 启用 `interactive=True`（`auto_answer_questions` 默认开）却从未把这两个交互应答工具并入 `allowed_tools`——per-routine `config.allowed_tools`（模板仅 8 工具）与 `_ROUTINE_DEFAULT_TOOLS` 均不含之。v4 routine 实测同样复现（seq485→487）。
+- **处理方式**（最小干预）：`_build_config` 在 `auto_answer_questions` 开启时，强制把 `AskUserQuestion` + `ExitPlanMode` 并入 `config.allowed_tools`（幂等，去重），使 CLI 放行二者、Engine 经 stdin 的 Plan Review/auto-answer 得以送达 CC，评审反馈链路恢复（CC 可据反馈完善或通过）。新增模块常量 `_INTERACTIVE_AUTO_ANSWER_TOOLS`。
+- **后续防范**：① 任何「依赖工具被 CLI 放行才能运作」的机制（auto-answer/plan-review），其所需工具必须由引擎强制进白名单，不能假定用户 config 含之；② 交互工具的 tool_result `is_error=true` + 许可提示串（"Answer questions?"/"Exit plan mode?"）是「工具被白名单拒绝」的指纹，排障可据此快速定位；③ 评审反馈这类「写回 stdin 必达」语义，应有送达确认/失败可观测，而非静默被拒。
+- **同类问题影响**：所有启用 auto_answer/plan-review 且 `allowed_tools` 未含交互工具的 routine（含全部沿用模板 8 工具者）——即此前**所有** worktree routine 的 Plan Review 反馈均未真正送达 CC，评审形同虚设。
+- **验证**：集成测试 `test_build_config_forces_interactive_tools_when_auto_answer` + `test_build_config_per_routine_tools_override`（覆盖工具+强制并入交互工具）；_build_config 7 例、routine 单测 131 全绿。
+
+### ISSUE-123 深层根因（受控实验定性，2026-06-07）
+- **allowed_tools 白名单仅是必要前提，非完整修复**：把 AskUserQuestion/ExitPlanMode 并入 allowed_tools 后实机复跑（探针 routine `cf3022c9`），CC 收到的 AskUserQuestion tool_result **仍为 `{"output":"Answer questions?","is_error":true}`**。即白名单放行后问题依旧。
+- **受控实验（ground truth）**：直接 `printf '<stream-json user msg>' | claude -p --input-format stream-json --output-format stream-json --permission-mode default --model claude-haiku-4-5`，强制模型调用 AskUserQuestion，观察到 CLI **立即**自emit `user` tool_result `is_error=true out="Answer questions?"`，**根本不读 stdin、不发 control_request**。结论：**claude 2.1.150 headless(`-p`) 下 AskUserQuestion 被 CLI 即时自动报错解析，无法经 stdin tool_result 应答**——引擎「检测 tool_use → 写 stdin tool_result 应答」的交互式 auto-answer 机制对 AskUserQuestion 自始无效（CC 只是吞掉错误继续、自行 ExitPlanMode 单方面交付）。Plan Review 反馈物理无法经此通道送达 CC。
+- **可行性勘察**：① `--permission-prompt-tool` 在 homebrew 2.1.150 与 conductor 2.1.156 的 `--help` 均**未暴露**（不可经 CLI flag 启用）；② `claude_code_sdk` / `claude_agent_sdk` **均未安装**（引擎 `_invoke_sdk` 为死路径）。故「同轮答复」两条路径（SDK canUseTool / --permission-prompt-tool stdio）均非现成可用，需较大改造且 canUseTool 能否真正「答复」（而非仅许可）AskUserQuestion 尚待证实。
+- **两条修复路线**（待定）：
+  1. **跨迭代评审闭环**（headless 鲁棒、可立即落地）：PLAN prompt 不再让 CC 用 AskUserQuestion，改为直接产出方案；引擎迭代后评审，未通过则留在 PLAN 相位 + 反馈注入下一轮（CC 据此完善），通过才推进 IMPLEMENT。实现用户「提交→评审→反馈→完善/通过」意图，只是改为相邻迭代之间。
+  2. **同轮答复**（保留单轮内闭环，改动大、可行性待证）：安装 `claude_code_sdk` 并改走 SDK `query()` + `can_use_tool` 回调（或确证 conductor 隐藏 flag 的 stdio 控制协议），由引擎在回调内返回 AskUserQuestion 答复。
+- **当前状态**：allowed_tools 前提修复已提交（`2eea8249`）；完整修复路线待与用户确认后实施（用户已倾向路线 2，但其依赖项非现成、需评估投入与可行性）。
+
+### ISSUE-123 同轮闭环可行性已证实（hooks 路径，2026-06-07）
+- **SDK can_use_tool 路线否决**：`claude_code_sdk` 0.0.25 与 claude 2.1.150 不兼容（`rate_limit_event` 解析崩溃）；`claude-agent-sdk` 0.2.93 兼容，但 `can_use_tool` 仅许可（`PermissionResultAllow` 字段 `behavior/updated_input/updated_permissions`，**无返回答案字段**），无法「答复」AskUserQuestion。
+- **hooks 路线证实可行（受控实验）**：PreToolUse hook 拦截 AskUserQuestion，返回 `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<评审反馈>}}` → CC **同轮收到反馈并据此修订**。SDK 内置 hooks 与 **CLI `--settings` hooks（引擎实际路径，homebrew claude 2.1.150）双双验证通过**（`CLI_HOOK_DELIVERED_FEEDBACK_SAME_TURN=True`，CC 下一 turn 输出「我会补充错误处理…增加单元测试…」）。
+- **落地设计（CLI hooks，已实现）**：
+  1. `plan_review_hook.py`：PreToolUse hook 入口。从 stdin 读 hook 载荷（AskUserQuestion 的 tool_input 含 CC 提交的完整方案），从命令行参数指向的 per-iteration ctx 文件读 routine 上下文（goal/acceptance/reflections/model/timeout），调 `PlanReviewer.review()`，输出 deny+reason：refine→反馈+要求据此修订重提；approve→告知通过、退出 Plan 模式。
+  2. orchestrator `_build_config`：phase=plan 且 plan_review_enabled 时，写 ctx 文件并把 PreToolUse hook 合并进 `config.settings`（与只读 deny 共存），命令 = `<engine_python> plan_review_hook.py <ctx_path>`。
+  3. prompt_builder PLAN 相位：指示 CC 把**完整方案写入 AskUserQuestion 的 question** 提交审阅（使 hook 能读到方案全文）。
+  4. 保留 ISSUE-123 的 allowed_tools 前提（AskUserQuestion/ExitPlanMode 须放行）。
+
+### ISSUE-123 实机端到端复验：三处真因逐一修复后 ✅ 完全修复（2026-06-07）
+首次接入钩子后实机仍复发（CC 仍收 "Answer questions?"），逐层定位并修复三处叠加真因：
+1. **stdout 污染**：钩子 stdout 混入引擎 structlog 噪声（`disposer_registered` 等）→ Claude Code 按纯 JSON 解析失败 → 放弃钩子 → CC 落回 CLI 自动报错。修复：`_emit` 经**保存的原始 stdout fd** 写最终 JSON + 进程级 `fd1→fd2` + `sys.stdout→stderr` + `configure_logging(sinks=file)` 四重纯净化。
+2. **`-m` 预导入父包**：`python -m negentropy.engine.routine.plan_review_hook` 会让 runpy 先 import 父包 `__init__` 链（在钩子重定向代码执行前触发 lifecycle 日志写 stdout）。修复：改 **脚本路径**执行（`python <hook.py> <ctx>`，不预导入父包），钩子自举把 `src/` 加入 `sys.path`。
+3. **钩子超时**：钩子实际耗时（引擎冷启动 + PlanReviewer LLM ≈ 15-20s）超 Claude Code PreToolUse 默认超时（~10s）→ 被放弃。修复：settings hook 项加 `"timeout" = plan_review_timeout_seconds + 30`。
+- **实机证据（probe `374b5f36`）**：seq11 CC 调 AskUserQuestion 提交方案 → seq12 tool_result = **「✅ NegentropyEngine 已通过本方案审阅（评分 85/100）。审阅意见：…」**（评审同轮送达）→ seq13 CC「审阅已通过…直接进入实施」→ seq14 ExitPlanMode → seq17 进入实施。`"Answer questions?"` 自动错误消失，闭环按预期工作。
+- **残留小问题（低优先）**：ExitPlanMode 同样被 headless CLI 自动报错（seq16 `"Exit plan mode?" is_error=true`），但此处无害——CC 正确理解为「已批准、继续」并进入实施。可后续让同一钩子对 ExitPlanMode 也 allow/无害化，进一步消噪。
+- **回归**：plan_review_hook 单测 5 + _build_config 集成 7 + routine 单测全绿；钩子从任意 cwd 输出纯净单行 JSON、exit 0。
+
+## ISSUE-125 `plan_review_model` 无 per-routine 覆盖——重型复刻方案审阅仍由弱模型把关（2026-06-07）
+
+- **表因**：`orchestrator._write_plan_review_ctx` 只读全局 `settings.routine.plan_review_model`（默认 None → 解析到弱模型 gpt-5-nano）；重型复刻类 routine 的**方案审阅**无法指定强模型。
+- **根因**：与 ISSUE-121 同源缺口的对偶——评估侧 Judge 已在 ISSUE-121 拿到 per-routine `config.evaluator_model` 覆盖（orchestrator `_do_evaluate`），但**方案审阅侧 Plan Reviewer 漏配**对应的 per-routine 覆盖。审阅意见质量直接决定 CC 修订方向，弱模型审阅不可靠（同 ISSUE-116/121 的「弱模型裁决/审阅不可信」），在 Plan 闸门处仍开放。
+- **处理方式**（镜像 ISSUE-121 范式，最小干预）：`_write_plan_review_ctx` 的 `model` 改为 `(routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model`。hook 从 ctx 读 model 无需改。
+- **后续防范**：成对能力（评估 Judge / 方案 Reviewer）的「强模型覆盖」配置须对称落地——新增一侧覆盖时同步审计另一侧是否同源缺失。
+- **同类问题影响**：所有启用 Plan Review 的 routine；尤以重型复刻/迁移类需强模型审阅者。
+- **验证**：单测 `test_write_plan_review_ctx_per_routine_model_override`（config 覆盖）+ `test_write_plan_review_ctx_falls_back_to_global`（回退全局）。
+
+## ISSUE-126 ExitPlanMode 残留 headless 自动报错噪声——同钩子返回「已批准」消噪（2026-06-07）
+
+- **表因**：ISSUE-123 修复 AskUserQuestion 后，ExitPlanMode 仍走 service.py 的 stdin auto-answer（headless 下同样无效）→ 实测 probe4 seq16 `{"output":"Exit plan mode?","is_error":true}`。无害（CC 理解为已批准继续）但属同根残留噪声、污染审计。
+- **根因**：headless `claude -p` 下 ExitPlanMode 与 AskUserQuestion 同类——CLI 自动报错、不读 stdin tool_result。受控实验另证 PreToolUse `permissionDecision=allow` **不能**消除（ExitPlanMode 的退出确认非 permission allow 可满足）。
+- **处理方式**：ExitPlanMode 同走 `plan_review_hook.py`（按 tool_name 分支），返回 `deny + permissionDecisionReason=「✅ 已批准退出 Plan 模式，进入实施…无需再调用」`。受控实验证实该 reason 同轮回灌 CC（替代 opaque "Exit plan mode?"），CC 据此继续实施。orchestrator settings 追加 ExitPlanMode matcher（瞬时分支、timeout=15）；service.py 在 `plan_review_via_hook` 时跳过失效的 ExitPlanMode stdin auto-answer。
+- **后续防范**：headless 交互工具（AskUserQuestion/ExitPlanMode）的「应答」一律经 PreToolUse 钩子 deny+reason 投递，不依赖 stdin auto-answer（其对这两个工具自始无效）。
+- **同类问题影响**：所有 PLAN 相位经钩子评审的 worktree routine。
+- **验证**：单测 `test_exit_plan_approved_reason_content` + `test_main_exit_plan_emits_approval` + `test_main_unrelated_tool_no_emit`；钩子对 ExitPlanMode 输出批准 JSON。routine 单测 141 + build_config 7 + claude_code 163 全绿。**实机复验通过**（探针 `e49bf962`）：monitor 报 `✅(3) ExitPlanMode=APPROVED(no is_error noise): "✅ NegentropyEngine 已批准退出 Plan 模式…"`，opaque "Exit plan mode?" 消失。
+
+## ISSUE-127 强模型 JSON 围栏致 Judge/PlanReviewer/记忆提取解析全线失败（2026-06-07）
+
+- **表因**：ISSUE-125 接入强模型 `anthropic/claude-sonnet-4-6` 作 Plan Reviewer 后，实机首跑钩子返回「（NegentropyEngine 评审暂不可用）」fail-open——`plan_review_judge_failed: Expecting value: line 1 column 1 (char 0)` 重试 3 次耗尽。
+- **根因**：`claude-sonnet-4-6`（经代理）即便指定 `response_format={"type":"json_object"}`，仍把 JSON 包在 markdown 代码围栏里——实测恒返回 ` ```json\n{...}\n``` `。而 `evaluator._parse` / `plan_reviewer._parse` / `memory_extractor._parse_response` 均直接 `json.loads(content)`，见前导反引号即抛。弱模型（gpt-5-nano）返回裸 JSON 故历史未暴露——但凡切到会围栏的强模型（即 ISSUE-121/125 的目标场景），评审/评分/记忆提取**全线静默退化**。受控实验 2× 复现，且证实「无论加不加 `response_format`」sonnet 都围栏。
+- **处理方式**（单点收敛）：新增 `engine/utils/json_extract.py::loads_lenient`——先剥 ```fence```（正则 `_FENCE_RE`）再 `json.loads`；仍失败则兜底截取首个平衡 `{...}`/`[...]` 子串；彻底失败返回 default。三处解析器（evaluator/plan_reviewer/memory_extractor）统一复用。
+- **后续防范**：① 消费 LLM「JSON 输出」一律经容错解析，不可假定模型严格裸 JSON（即便声明 `response_format`，部分模型/代理仍围栏）；② 新增任何 LLM-JSON 消费点必须走 `loads_lenient`；③ 切换模型档位（弱→强）须回归所有结构化输出解析路径。
+- **同类问题影响**：所有以 LLM 结构化 JSON 输出驱动的 Routine 子系统（Judge 评分 / Plan 审阅 / 记忆提取）；尤在启用强模型覆盖（ISSUE-121 evaluator_model / ISSUE-125 plan_review_model）时必触发。
+- **验证**：单测 `test_json_extract.py` 8 例（围栏/裸/散文夹带/数组/垃圾兜底）；端到端 `PlanReviewer(explicit_model="anthropic/claude-sonnet-4-6").review(...)` → `ok=True verdict=approve score=92`（修复前 3 重试全败）。routine 单测 149 + build_config/evaluate 集成 14 全绿。
+
+---
+
+## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」
+
+- **表因**：Knowledge/Documents 页渲染 perceives 抽取的 PDF 时，无图注的图片（如论文 logo `fig_p1_1.png`）下方显示出无语义的 "fig_p1_1.png" 文本；另：把技能标记 `is_system` 仅令其在 Skills 卡片对全员可见，却未注入任何 Agent 的 Progressive Disclosure。
+- **根因**：
+  1. **渲染层**：`DocumentMarkdownRenderer.tsx::DocumentImage` 对 `alt` 真值即渲染 `<figcaption>`；而 perceives 对无图注图片输出占位 `alt=<文件名>`，致文件名被当图注。
+  2. **机制层**：`skills_injector.resolve_skills` 仅注入 `Agent.skills` 数组中显式列出的技能；6 个内置 Agent 经 `agent_presets._build_payload` 硬编码 `skills=[]` 且会被 "Sync Negentropy" 覆盖——故 `is_system`（可见性）与「被 Agent 调用」是两套正交语义。
+- **处理方式**：
+  1. 渲染层新增 `isMeaningfulCaption`：以「是否含空格」为关键判别——纯文件名 / 自动命名（`fig_p1_1` / `figure-2` / `image_4`）等无空格 token 不渲染图注，含空格的真实图注（`Figure 1: ...`）照常保留（含空格判别避免误伤 "Figure 1" 这类以图号开头的真实图注）。
+  2. 机制层新增正交字段 `Skill.is_global`（迁移 0063）+ `skills_injector.resolve_global_skills`（强制 `warning` 注入，永不阻塞 Agent 启动）+ 在 `model_resolver._load_subagent_row`（DB 路径，合并去重）与 `_dynamic_instruction`（fallback 路径，互斥追加）双路径并入；技能 `pdf-fidelity-restore` 以 `is_system+is_global+PUBLIC` 种子（迁移 0064）+ 模板 YAML + `.agent/skills/SKILL.md` 三处同源物化。
+- **后续防范**：
+  1. **占位 alt 不得当图注**：凡「文件名兜底 alt」均须在渲染层与真实图注区分；判别用「含空格」比「前缀正则」稳健（前缀正则会误伤 `Figure 1: ...`）。
+  2. **「可见」与「可用」分层**：技能/插件的 RBAC 可见性（`is_system`/`visibility`）与「被 Agent 实际调用」是两套正交开关，新增「全员可用」诉求须走注入热路径（`is_global`），而非仅改可见性。
+  3. **全局注入恒 warning**：注入到全体 Agent 的技能若 `enforcement_mode=strict` 且缺 `required_tools`，会令缺工具 Agent 退化为无 system prompt；`resolve_global_skills` 强制 `warning` 守住此安全不变量。
+- **同类问题影响**：所有走 `DocumentMarkdownRenderer` 的文档渲染（图注抑制对全体文档生效）；所有经 `_load_subagent_row`/`_dynamic_instruction` 装配指令的 Agent（一核五翼 + 未来新增，均自动获得全局技能）。
+- **附带发现（perceives auto_batch 图注归属差异）**：对 28 页（< 60 页阈值）PDF 强制分批（threshold=10）实测：分批 + 跨片合并保全全部内容（7 图 / 2 表 / 公式 / 全文，图片 src 零重复，dedup 正常），但 Figure 1 / Figure 4 的图注在分批路径落为**正文文本**而非 `img alt`（docling 单切片 vs 全本的图注归属差异）。结论：内容无丢失，仅图注「位置」差异；28 页默认走单次路径（图注归属更整齐）为正确选择，分批保留给真正大文档（> 60 页）以可靠性优先。
+- **验证**：前端 `DocumentMarkdownRenderer.test.tsx` 新增 2 用例（文件名抑制 / 图注保留），7/7 通过；后端 `test_skills_injector.py` 新增全局注入 + 安全不变量用例，34 passed；迁移 0063/0064 实测 `alembic upgrade head` 成功，`resolve_subagent_instruction` 对一核五翼 6 个 Agent 均注入 `pdf-fidelity-restore`（缺工具仅 warning，不阻断）。
+
+---
+
+## ISSUE-119 `backend-unit` CI 作业缺 Postgres 服务——全量单测连库失败（潜伏红，2026-06-07）
+
+- **表因**：`backend-quality / Backend Unit Tests` 作业 2225 个单测全部 `OSError: Connect call failed ('127.0.0.1', 5432)`，作业失败；其 `needs` 的 integration/performance 作业因而连带不执行。多分支（含 `feature/1.x.x` 基线本身）CI 长期常红。
+- **根因**：ISSUE-111 在 `tests/conftest.py` 引入会话级 autouse fixture `_isolate_test_database`（数据安全防护），会话开始即**无条件** `CREATE DATABASE <db>_test`（asyncpg 连维护库）+ `alembic upgrade head`，强依赖可达 Postgres。但 `reusable-negentropy-backend-quality.yml` 的 `backend-unit` 作业**无 `services.postgres` 容器**（仅 integration/performance 有），workflow 级 `env.NE_DB_URL` 又指向 `localhost:5432`——单测一启动即在 setup 阶段连库失败。该 workflow 最后一次结构性改动（PR #594）早于 ISSUE-111（PR #877）落地 fixture，故 service 从未为 `backend-unit` 补上；又因 backend-tests 仅在 `apps/negentropy/**` 变更时触发，期间多为 UI-only 改动，缺陷潜伏至首个触及后端的 PR 才显形。
+- **处理方式**：为 `backend-unit` 作业补齐与 integration/performance **完全一致**的 `pgvector/pgvector:pg16` 服务块（`CREATE EXTENSION vector` 依赖该镜像，非 vanilla postgres）。fixture 自建并迁移 `test_db_test`，`alembic env.py` 在迁移前自动 `CREATE SCHEMA negentropy` + `CREATE EXTENSION vector`，故**无需**额外 `init_test_db` 步骤（与 integration 路径的差异：integration 跑预置库故显式 init，unit 由 fixture 动态建库）。
+- **后续防范**：
+  1. **「测试夹具的隐性外部依赖」必须在所有消费该夹具的 CI 作业同步满足**——session/autouse 且无条件副作用（建库 / 迁移 / 连网）的 fixture，等价于对**全部**收集到的测试施加前置依赖；新增此类 fixture 时须同步审计每个运行该测试目录的 CI 作业是否具备其依赖（此处 unit 作业被遗漏）。
+  2. **路径过滤触发的 workflow 易掩盖潜伏缺陷**——`paths: apps/negentropy/**` 令后端 CI 仅在后端变更时跑，UI-only 期间的红 = 不可见；评审引入「无条件外部依赖」的测试基建时，应主动手动触发一次目标 workflow 验证，而非等下一个偶然触及该路径的 PR。
+  3. **同族作业的服务声明应保持一致或显式注释差异**——同一 reusable workflow 内 unit/integration/performance 三作业若对 DB 依赖一致，其 `services` 块应同构；本次以注释说明「unit 由 fixture 动态建库、无需 init 步骤」的正交差异，避免后人误删。
+- **同类问题影响**：所有经 `tests/conftest.py` 会话夹具运行的后端测试作业（本次 unit 已补齐；integration/performance 早已具备 service）；`cognizes` 等其它 app 若引入同形 autouse 建库夹具，须同步核验其 `backend-unit` 服务块。
+- **验证**：本地以可达 pgvector（pg16/vector 0.8.x）复现 CI——原报错的 `test_permissions.py`/`test_scheduler_api.py` **27 passed**、本 PR 新增 `test_skills_injector.py` **34 passed**；fixture 仅触碰派生的 `*_test` 库，生产 `negentropy` 库只读零改动（66 表完好，恪守 ISSUE-111 安全不变量）；`pyyaml` 解析校验三作业 `services.postgres` 均为 `pgvector/pgvector:pg16` + `5432:5432`。
+
+## ISSUE-128 approve 后 CC 循环调用 ExitPlanMode 空耗 turns（2026-06-07）
+
+- **表因**：ISSUE-127 修复后强 sonnet 实审通过（探针 `6a43ed9e` seq12 评分 92 实审），但 CC 随后**循环调用 ExitPlanMode 3×**（seq14/23/30），每次 tool_result `is_error=true`，CC 误判失败而重试，空耗 turns（虽最终仍 break 出去写了 6 个文件）。
+- **根因**：headless ExitPlanMode 恒被 CLI 标 `is_error`（ISSUE-126 已证 allow 不能消除）；而 prompt/approve-reason 此前指示「批准后调用 ExitPlanMode 进入实施」，CC 见 is_error 即循环重试。但 **PLAN→IMPLEMENT 推进纯由引擎 `_advance_phase_or_terminate` 在下一次评估驱动、根本不依赖 CC 退出 Plan 模式**——ExitPlanMode 在此语境下是无意义的交互残留。
+- **处理方式**：approve-reason、`_EXIT_APPROVED_REASON`、PLAN prompt 三处统一改为「批准后**直接结束本轮回复**，不要调用 ExitPlanMode 或任何工具，引擎将自动推进实施阶段」。消除循环与 is_error 噪声。
+- **后续防范**：无头自治闭环中，凡「依赖人机交互确认才推进」的工具（ExitPlanMode）若其状态推进实为引擎驱动，应明确指示 Agent 跳过该工具、结束本轮，而非让其与 CLI 的 is_error 反复缠斗。
+- **同类问题影响**：所有 PLAN 相位经钩子审阅的 routine。
+- **验证**：单测 `test_run_approve_tells_end_turn` + `test_exit_plan_approved_reason_content`（结束本轮、不调工具、引擎推进）；hook 单测 10 例全绿。实机复验见复刻长跑。
+
+## ISSUE-129 强模型 Plan Review 在大型方案上超时（plan_review_timeout=60 过小 + 钩子重试预算错配）（2026-06-07）
+
+- **表因**：复刻长跑 `b378039d` seq1（重型任务，CC 探索 19 turns/666 事件后提交大型方案）的 Plan Review 失败——CC 收到 `"Answer questions?"`（ISSUE-123 老症状复现），评审反馈未送达。但评估侧 sonnet Judge 同轮**成功**（score=18/stalled/acceptance_met=false，反思详实）。
+- **根因**（钩子日志实证 `litellm.Timeout ... Timeout passed=60.0, time taken=60.002`）：① `plan_review_timeout_seconds=60`（为弱模型 nano 调的默认）对强模型 sonnet 审阅**大型方案**过小，单次 LLM 调用即超 60s；② 钩子内 PlanReviewer `max_retries=3`，最坏 3×60=180s，而 orchestrator 给钩子的 `hook_timeout=plan_review_timeout+30=90s` **覆盖不了重试总耗时** → Claude Code PreToolUse 超时杀钩子 → CC 落回 `"Answer questions?"`。两处叠加：超时过小 + 重试预算错配。
+- **处理方式**：① `plan_review_timeout_seconds` 默认 60→**120**（强模型大方案足够，实测大方案审阅 24.8s）；② 新增 per-routine `config.plan_review_timeout_seconds` 覆盖（写入 ctx）；③ 钩子内 PlanReviewer **`max_retries=1`**——钩子受 PreToolUse 硬超时约束，真正「重试」是 CC 据 refine 反馈重新提交（外层闭环），钩子内多次重试只会撑爆超时预算；④ `hook_timeout = review_timeout + 45`（单次尝试 + 冷启动余量，不再 ×retries）。
+- **后续防范**：① 为弱模型调的超时/重试默认，切强模型时必须复核（强模型更慢、输出更长）；② 受外层硬超时约束的子调用（钩子/gate）其内部重试次数 × 单次超时必须 ≤ 外层预算，否则永远在耗尽重试前被杀；③ 「重试边界」应设在正确的层级——评审的重试是 CC 重新提交，而非钩子内空转。
+- **同类问题影响**：所有用强模型 plan_review 且方案较大的 routine（即 ISSUE-125 的目标重型复刻场景）。eval Judge 因用独立的 `evaluate_judge_timeout_seconds`（更大）未受影响。
+- **验证**：端到端 sonnet 审阅大型方案 `elapsed=24.8s ok=True`（修复前 60s 超时 ×3 全败）；hook 单测 10 + build_config 集成 7 全绿。当前长跑已进 IMPLEMENT（评审失败非致命、引擎照常推进，ISSUE-128/相位机驱动），修复对后续 PLAN 迭代与新 routine 生效。
+## ISSUE-130 `plan_review_hook` 模块级全局副作用（stdout 重定向 + 日志改道）经 import 泄漏，污染全套单测（CI backend-unit 3 例红）（2026-06-07）
+
+- **表因**：CI `backend-quality / Backend Unit Tests` 报 3 例失败，全在 `tests/unit_tests/agents/test_skills_injector.py`（`test_resolve_skills_logs_permission_filter_at_warning` 等），断言一律 `AssertionError: assert 'skills_injector_permission_filtered' in ''`——即 `capsys` 捕获的 stdout/stderr 为空。本地复现：3 例单独运行**全绿**，与 `test_routine_plan_review_hook.py` **同批收集即全红**。
+- **根因**（二阶涟漪，ISSUE-123 引入的 `plan_review_hook.py` 的副作用）：该钩子为「脚本路径执行」设计，在**模块顶层**（import 即执行）做了三件进程级全局副作用：① `os.dup2(2, 1)` 把进程 stdout(fd1) 重定向到 stderr；② `sys.stdout = sys.stderr`；③ `configure_logging(level="WARNING", sinks="file")` 把全局 structlog 改道到 `/tmp/negentropy-plan-review-hook.log`。而 `test_routine_plan_review_hook.py:9` 以 `from ... import plan_review_hook` **顶层 import**——pytest **收集阶段**即触发上述副作用，全局 structlog 自此只写文件。`skills_injector` 经 `negentropy.logging.get_logger().warning(...)` 打的日志遂全部进文件、`capsys`（stdout/stderr）一无所获 → 断言空串失败。clean session 下 structlog 未被 `configure_logging` 接管、停在内置默认（`PrintLogger` 调用时惰性解析 `sys.stdout` = capsys 缓冲），故单独跑全绿；upstream 无此钩子故历史全绿——确系本分支回归。次生：`orchestrator._plan_review_hook_command` 仅为取 `__file__` 而 `from . import plan_review_hook`，同样会在**引擎进程内**触发该副作用（潜伏生产隐患——长驻引擎 stdout 被永久重定向）。
+- **处理方式**（最小干预，根因杠杆）：把模块顶层的 ①②③ 副作用收敛进 `_bootstrap_stdout_purity()` 函数，仅在 `if __name__ == "__main__":` 入口（即生产以**脚本路径** `python <hook_path> <ctx>` 执行时，`orchestrator.py` 实证）调用；import 时**绝不执行**。`_emit` 改用 `_REAL_STDOUT_FD`（默认 `None`）兜底到 fd 1。脚本执行路径行为零变化（bootstrap 顺序不变：先 fd/对象级重定向，再 import `configure_logging`，赶在引擎 import 噪声前生效）；in-process import（单测收集 / orchestrator 取 `__file__`）不再有副作用。
+- **后续防范**：① 任何「脚本入口专用」的进程级全局副作用（fd 重定向、`sys.stdout` 替换、全局日志重配、信号处理器等）**必须**置于 `if __name__ == "__main__":` 或显式 bootstrap 函数内，**严禁**写在模块顶层——否则任何 import（含 pytest 收集、仅取 `__file__`）都会泄漏到宿主进程；② 依赖 `capsys` 捕获 structlog 的单测本身脆弱（隐含「全局 structlog 未被接管」前提），后续可迁移到 `structlog.testing.capture_logs()` 彻底解耦全局配置，但本轮按最小干预先断源头。
+- **同类问题影响**：任何在进程内 import `plan_review_hook` 的路径（pytest 收集、orchestrator）此前都被静默重定向 stdout + 改道日志；修复后一并消除。排查同类：`rg -n "^(os\.dup2|sys\.stdout =|configure_logging\()" src` 审计模块顶层全局副作用。
+- **验证**：复现批（hook 测 + skills_injector 3 例）修复前 3 红 → 修复后 **8 全绿**；`agents/` + `engine/` 全量单测同批收集 **1066 passed**；脚本路径 smoke（`echo '{"tool_name":"ExitPlanMode"}' | python plan_review_hook.py`）输出**纯 JSON**（`permissionDecision=deny`，无日志噪声），证 bootstrap 在 `__main__` 仍正确生效；`ruff check`/`format` 全过。
+
+## ISSUE-131 Plan Review 8000 字符静默截断致大型方案 refine 闭环结构性死循环（Plan 提交未漏斗到 AskUserQuestion）（2026-06-07）
+
+- **表因**：重型复刻 routine（`0b9cec1f`，Go→Python 一比一迁移）的单 Iteration（`ee448c74`）在 PLAN 段陷入 **14+ 轮 refine 死循环**（ExitPlanMode ×13、AskUserQuestion ×3、累计 1453 事件仍未进 IMPLEMENT）；CC 在 Turn 50 留言「审阅引擎持续无法读取完整方案文件（Phase 7-9 在文件中存在但被截断）。让我通过 AskUserQuestion 直接提交方案全文。」后继续空耗。
+- **根因**（live DB + 代码逐行实证）：`plan_reviewer.py` `_PLAN_MAX_CHARS = 8000` 在拼装 judge prompt 前把方案**静默截断到 8000 字符且不附标记**。CC 提交的方案 10K~16K 字符（Phase 0-9），judge 只看到前 ~8000 字符（切在 Phase 3~6），于是**审阅反馈本身反复写**「方案被截断 / Phase 7-9 完全缺失」（seq 548/1023/1111/1320/1347/1368…）。CC 不断补内容重提，但截断点恒定在 8000 → **循环结构性无法收敛**。CC 误判为「ExitPlanMode/文件读取截断」，转用 AskUserQuestion 仍走同一 8000 链路；且 **unified PLAN prompt 未要求 `options`** → AskUserQuestion 报 `InputValidationError: questions[0].options is missing`（seq 1115/1372）二次空转。`max_refines=5` 封顶本应在第 5 轮放行，但 live 引擎（主仓旧 checkout）早于封顶代码、sidecar 目录不存在 → 计数恒 0 → 永不触发（当前分支封顶逻辑已逐行核验无 bug，部署即生效）。
+- **处理方式**（最小干预，根因杠杆）：① 截断上限 `_PLAN_MAX_CHARS=8000` → `_DEFAULT_PLAN_MAX_CHARS=200_000` 且**可配置**——新增 `settings.routine.plan_review_max_plan_chars`（默认 200000，镜像 ISSUE-129/125 的 settings→ctx→hook→reviewer 线缆 + per-routine 覆盖）；② **截断感知**——真超限时在方案尾部附 `_TRUNCATION_NOTICE` 显式告知 judge「勿据未见尾部判定缺失」，从机制根除复发；③ **提交路径漏斗到 AskUserQuestion**——unified PLAN prompt 改为只引导 AskUserQuestion（`question` 写全文 + **必带 `options`**=[批准方案/需要完善]，显式「不要调用 ExitPlanMode」），消除 `options` 缺失报错；ExitPlanMode 仍由钩子真实评审作**安全网**（CC 反射误调也不绕过评审），零绕过、无需重定向状态机。
+- **后续防范**：① 任何「交给 LLM 的长文本」截断上限必须按目标模型上下文设定（现代 judge 200K tokens，8000 字符是过时弱模型遗产），且**截断必须留显式标记**——静默截断会让下游（judge/CC）对「看不到的内容」做出错误归因，制造结构性死循环；② 「评审反馈要求补全 X、而 CC 确认 X 已在方案中」这类**自相矛盾的 refine 信号**是「输入被截断」的强特征，排查应直查 reviewer 侧字符上限而非 CC 侧；③ 无头闭环中工具入参约束（如 AskUserQuestion 必带 `options`）必须在 prompt 显式声明，否则 CLITool 校验报错空耗 turns。
+- **同类问题影响**：所有提交大型方案的 worktree routine（重型复刻场景）。排查同类静默截断：`rg -n "\[:[A-Z_]*MAX[A-Z_]*\]|\[:\d{3,}\]" src` 审计交 LLM 前的硬截断。
+- **验证**：新增 `test_routine_plan_reviewer.py`（长方案不截断/超限附标记/空方案占位/默认上限 ≥100K）+ hook 透传 `max_plan_chars`（per-routine 覆盖/全局回退/默认兜底）+ phase prompt 漏斗（含 `options`/「不要调用 ExitPlanMode」）；`engine` 全量单测 **924 passed**、`ruff check`/`format` 全过。注：live 卡死 iteration `ee448c74` 不被本代码改动追溯修复（引擎需部署），本修复**防复发**。
+
+## ISSUE-132 Routine 重启每次铸新工作分支，破坏「终生单一工作分支」不变量（2026-06-08）
+
+- **表因**：一个 Routine 任务每经一次 `/restart` 就在仓库新建一个工作分支（`routine/<slug>-<时间戳1>`、`-<时间戳2>`…），同一逻辑任务散落多个分支与潜在多个 PR，违背「无论重启几次都只有一个基于 Baseline 的工作分支、最终单一 PR 回基线」的诉求。
+- **根因**（逐行实证）：① `routine_api.py:restart_routine` 复位运行态时**清空 `r.work_branch = None`** 并 `remove_worktree`（注释「从基线重建」），全仓库仅此一处清空该终生句柄；② `workspace.ensure_worktree` 的创建段**永远**按 `routine/<slug>-<时间戳>` 铸新名（`datetime.now()` 后缀），从不复用已存在的 `routine.work_branch`——故崩溃致 worktree 目录丢失（reuse 校验失败落入创建段）时亦会再造新分支。两者叠加：`work_branch` 本应是 `id` 级终生句柄（其余清理点 delete/manual/reaper 均只置空 `worktree_path` 而保 `work_branch`），却被 restart 与时间戳命名双重破坏。
+- **处理方式**（机制/策略分离，确定性单一身份）：
+  1. **确定性命名**：新增 `_stable_work_branch(routine)=routine/<sanitize(key)>-<id.hex[:8]>`（由不可变 `id` 派生，可复算、自愈）；`ensure_worktree` 创建段改 `work_branch = routine.work_branch or _stable_work_branch(...)`、`worktree_path = routine.worktree_path or <root>/<slug>-<id8>`（复用持久化路径，勿对存量 legacy 活动目录另算新路径而误删）。
+  2. **分支存在感知三级阶梯**（始终绑定同一 `work_branch`）：本地分支存在→`worktree add <path> <b>`（直接 checkout，含检查点提交，重启续作）；否则 `origin/<b>` 存在→`worktree add -b <b> <path> origin/<b>`（清理删本地分支后从远端恢复）；否则→`worktree add -b <b> <path> <baseline>`（首次/无可恢复提交）。
+  3. **重绑健壮性**：add 前 `prune` → `_purge_sibling_worktrees`（强制移除占用本分支但路径不符的兄弟注册）→ 再 `prune` → 清残目录（防 `already used by worktree`/`already exists` 硬失败，经真实 git 实验确证）。
+  4. **`remove_worktree(keep_branch=False)`**：新增开关，True 时仅回收 worktree 目录、保留本地分支与提交。`restart` 改 `keep_branch=True` 且**删去 `work_branch=None`**（从上一检查点续作、不铸新分支）；reaper 对 failed/cancelled 传 `keep_branch=True`（保进度待重启），succeeded 仍删本地分支（PR 已在 origin）。
+  5. **FINALIZE PR 复用确定化**：worktree FINALIZE prompt 改「先 `gh pr view <head> --json url -q .url` 查、空才 `gh pr create`」，消除重启后 head 已有 PR 时 `gh pr create` 报错致 `PR_URL=` 丢失的回归（与单一分支配套）。
+- **后续防范**：① 「终生唯一资源句柄」（此处 `work_branch`）应由不可变身份（`id`）派生确定性名、首次铸定后**绝不在任何重置路径清空**；带时间戳/随机后缀的命名天然与「单一」诉求冲突；② 复用既有外部资源（git 分支/worktree）的「重建」必须做**存在感知**与**残留清扫**（prune/force-remove/清目录），不能假设目标干净——`git worktree add -b` 在分支/目录已存在时硬失败；③ 跨进程/跨重启的幂等性，须区分「持久身份」（保留）与「运行期句柄」（可重建），restart 只重置后者。
+- **同类问题影响**：所有 worktree routine（`baseline_branch` 非空）的重启/崩溃恢复路径。存量已持久化的时间戳 `work_branch` 经 `work_branch or ...` 短路原样保留、不迁移、无需 DB 变更，向后兼容。
+- **验证**：`test_routine_workspace.py` 新增 11 例锁定不变量（确定性命名/目录删除后重绑同名/检查点续作/origin 恢复/基线回落/清残目录/legacy 兼容/keep_branch 保分支 vs 默认删分支/**跨重启仓库始终只有一个 `routine/*` 分支**）+ `test_routine_phase.py` 新增 FINALIZE「先 view 后 create」断言；`test_routine_workspace.py`+`test_routine_phase.py` **51 passed**、`test_routine_api.py`+`test_routine_orchestrator.py` 集成 **48 passed**、`ruff check`/`format` 全过。注：live 引擎运行旧 checkout，本修复需部署后对运行中任务生效。
+
+## ISSUE-133 大型 PDF「Ingest from File」因 MCP 同步阻塞调用双重超时而失败（2026-06-08）
+
+- **表因**：Pipeline Run `ingest_file-General_-_浪潮之巅_2019_第四版-a539`（13.5MB / 约 500 页书籍）在 `extract_primary` 阶段失败，错误 `Connection timeout after 300.0s`（tool=`parse_pdf_to_markdown`、adapter=`single_string_source_v1`、source_kind=local_path），耗时 303,927ms；failover 段 `parse_pdfs_to_markdown` 亦被卷入而悬挂。
+- **根因**（live DB pipeline payload + 代码逐层实证）：MCP 工具调用是**同步阻塞**模型——backend `session.call_tool()` 直接 await 等待 perceives 返回完整结果，无异步/Task ID/心跳轮询，故必须设超时防连接永悬。两处独立超时叠加致大 PDF 必败：① backend `_DEFAULT_EXTRACTION_TIMEOUT_MS[file_pdf]=300_000`（5 分钟）；② perceives `auto_batch` 在**单次 MCP 调用内**串行处理所有分批（默认 40 页/批，每批 100-200s），500 页≈25 批共 2500-5000s，无论 backend 超时设多大，单次调用都无法覆盖。且 backend 从未将自身超时预算传递给 perceives（perceives 工具声明了顶层 `timeout` 参数却收不到）。
+- **处理方式**（保持 perceives auto_batch 架构，参数化控制 + 双层超时 + 断点续传）：
+  1. **backend 超时 300s→3600s（1 小时）**（`extraction.py` `_DEFAULT_EXTRACTION_TIMEOUT_MS[file_pdf]`），覆盖大书全程串行分批。
+  2. **超时预算注入**：新增 `_maybe_inject_tool_timeout`，当 MCP 工具 schema 声明顶层 `timeout` 属性且 arguments 未含时，注入 `target.timeout_ms//1000`——让 perceives 与 backend 共享同一时间预算（尊重 LLM 规划/用户 tool_options 已设的值，不覆盖）。
+  3. **perceives 分批粒度细化 40→20 页/批**（`ops/pdf.py` `DEFAULT_BATCH_PAGE_SIZE`、`tools/pdf.py` 签名默认值），每批 100-200s→50-100s，降低单批超时风险、提升 checkpoint 恢复效率。
+  4. **逐批 5 分钟超时**：新增 `DEFAULT_PER_SLICE_TIMEOUT_SECONDS=300`，`_run_batched_pipeline` 用 `asyncio.timeout` 包裹每切片；超时切片标记 partial failure 并继续后续切片（不拖垮整批），仅写 failure marker（不写 markdown checkpoint）。
+  5. **断点续传**（复用 perceives 既有机制，无需新开发）：成功切片立即落盘 `slice_{i}.json`+`slice_{i}.markdown.txt`（checkpoint 基于 PDF **内容 SHA-1** 而非文件路径，跨 MCP 调用稳定）；`resume=True`（默认）时 `_load_slice_checkpoint` 见超时切片无 markdown→返回 None 重处理，仅重跑未完成切片。
+  6. **工具描述校准**：`tools/pdf.py`+`tools/markdown.py` 的 `timeout` 描述「默认 300s」→「默认 900s」（与 `config.default.yaml` `task_timeout_seconds=900` 对齐，原描述与实际配置不符）。
+- **后续防范**：① 同步阻塞的远程调用（MCP）必有超时，调用方与被调方的超时预算应**显式传递并对齐**，避免「双方各自独立超时、谁先到谁杀连接」；② 长耗时串行任务（分批处理）应有**逐项超时 + 失败隔离 + 断点续传**三件套，单项失败不应级联致整体失败；③ 跨调用的进度持久化键应基于**内容指纹**（SHA-1）而非临时路径——backend 每次调用写新临时文件，按路径派生 checkpoint 会永远 miss；④ 对外工具的参数默认值/描述必须与底层配置（YAML）**单一事实源**对齐，避免文档漂移误导调用方。
+- **同类问题影响**：所有大型 PDF（>60 页触发 auto_batch）的 ingest_file / ingest_url 提取路径。小 PDF（≤60 页）走原单次路径零影响；URL/通用文件用各自独立默认超时不受波及。
+- **验证**：perceives `test_pdf_auto_batch.py` **15 passed**（新增逐批超时切片标记 partial+续传断言、常量改为动态比对工具签名消除魔数脆性）；backend `_maybe_inject_tool_timeout` 4 守卫条件经直接导入验证全过 + 新增 4 例契约单测（注：backend 单测库 alembic 残留版本不一致致 fixture ERROR，为预先存在环境问题，已 stash 对比基线确认与本改动无关）；两仓 `ruff check`/`format` 全过。注：live 引擎运行旧 checkout，本修复需部署后对运行中任务生效；失败的 `a539` run 可经 UI「Resume from checkpoint」或重新触发 ingest（同内容 PDF 命中 checkpoint）续作。
+
+### follow-up: 依旧 300s 超时——配置 SSOT 与 DB 持久化副本 Split-Brain 闭环（2026-06-08）
+
+- **深层根因**（上一轮「处理方式」第 1 点「backend 超时 300s→3600s」的盲区）：上一轮修改的是 `_DEFAULT_EXTRACTION_TIMEOUT_MS[file_pdf]=3_600_000`，但该值**仅在 `if not target.timeout_ms:` 时生效**（`extraction.py:2074`）。标准路径下 `target.timeout_ms` 始终从 corpus 持久化 JSONB 读回 `300_000`（建库时由 `_shared.py:503` 从 YAML/config 默认值固化），条件永假 → 兜底永不触发 = **死代码**。真正的 300s 取值链：`config.default.yaml` 锚点 `timeout_long_ms: 300000` → `KnowledgeSettings.default_extractor_routes.file_pdf.primary.timeout_ms=300000` → 建库时固化进 `corpus.config.extractor_routes.file_pdf.targets[].timeout_ms` → 抽取时实时读回 → 后端 MCP（`extraction.py:2390` `target.timeout_ms/1000.0=300.0`）与 perceives（`extraction.py:2269` 注入 `timeout=300`）双层超时均落在 300s。**一句话：超时值的「定义源(YAML/config)」与「持久化副本(corpus JSONB)」存在 Split-Brain；上一轮只改了永不命中的代码兜底，既未改 YAML 定义源，也未纠正已固化进 DB 的存量副本。**
+- **处理方式**（SSOT 对齐 + 数据迁移，最小干预）：
+  1. **Part A — 配置 SSOT（修新建库）**：`config.default.yaml` 锚点 `timeout_long_ms` 300000→3600000（1h）/ `timeout_xlong_ms` 600000→7200000（2h）；`config/knowledge.py` Python 默认值同步对齐。仅 file_pdf 路由使用这两个锚点，url 用 short/medium 零外溢。
+  2. **Part B — Alembic 迁移 0066（修存量库）**：幂等 SQL UPDATE 重写 `negentropy.corpus.config` JSONB 内 `file_pdf.targets[]` 中**精确等于旧默认值**的 `timeout_ms`（300000→3600000、600000→7200000）。`CASE ... ELSE t` 保留用户显式自定义值（如 `Harness Engineering` 的 `1200000` 不被触碰）、无 `timeout_ms` 元素、`url` 路由一律不动。`WITH ORDINALITY` + `ORDER BY ord` 保序；downgrade 逆向同形。后端超时数据驱动（`extraction.py:2390` 每次运行实时读），迁移落库后存量库重试即取新预算，**无需引擎改码**。
+- **后续防范（补充 ISSUE-133 原有 4 点）**：⑤「代码兜底」不等同于「运行期默认值」——当默认值在**另一层**（配置→DB 固化）被消费方缓存后，代码层 fallback 即成死代码。变更必须追溯到**真正的取值源**（YAML/config → 建库逻辑 → DB 固化 → 运行期读取），逐层验证每一层是否已同步更新；⑥ 跨层数据（config→DB JSONB）存在「建时快照」语义——建库固化后，config 源头变更不自动反映到存量库。对此类数据需在**设计阶段**即考虑「配置漂移修正路径」（数据迁移或运行期 floor），而非仅靠修改默认值。
+- **验证**：单元 `test_file_pdf_extractor_timeout_defaults`（file_pdf 默认 3600000/7200000 断言）+ 集成 `test_corpus_pdf_extractor_timeout_bump_0066`（升级正确性 + 自定义保留 + 无键不注入 + 幂等 + downgrade）全过。对共享 live 库 `alembic upgrade head` 落迁移，DB 直查确认 `Sinestesia of Cognition`（失败 corpus）300000→3600000 / `Harness Engineering` 自定义 1200000 不受影响。重试《浪潮之巅》失败 run（`resume=true`），新 run 跑至 **323s（>300s）** 不再触发 `Connection timeout after 300.0s`——超时上限彻底解除。
+
+### follow-up 2: 二级问题——PDF 解析产物夹带 NUL 字符致 PostgreSQL 写库失败（2026-06-08）
+
+- **表因**（超时解除后暴露的下一层失败）：300s 上限解除后《浪潮之巅》重试 run 跑满 323s、perceives 返回 `success:true`（PDF 解析成功），却在后端持久化阶段失败：`UPDATE negentropy.mcp_tool_runs SET result_payload=$::jsonb` 抛 `asyncpg.exceptions.UntranslatableCharacterError:   cannot be converted to text`，run 标记 failed（duration 323087ms）。
+- **根因**：某些 PDF 解析产物（图层/字体异常）会夹带 NUL 字节（`\x00`），而 PostgreSQL 的 `jsonb` 与 `text` 类型**均无法存储 NUL**——asyncpg 序列化时即抛 `UntranslatableCharacterError`。该 PDF 内容流经**三个写库边界**且均无净化：① `interface/execution.py` MCP tool run 的 `result_payload`(JSONB)+`error_summary`(Text)（**实际失败点**）；② `storage/service.py::save_markdown_content` 的 `markdown_content`(Text)；③ `knowledge/service.py::_ingest_text_with_tracker` 的 chunk content → `Knowledge.content`(Text)。仅修第①处只会把失败下推到 ②③。代码库原 `_json_safe`（`json.dumps/loads`）不剥离 NUL（` ` 是合法 JSON 转义，仅 PG 拒绝）。
+- **处理方式**（单一共享净化器 + 三处咽喉点，正交 + 最小干预）：
+  1. **共享 helper** `negentropy/serialization.py::strip_nul_chars(value)`：递归剥离 str/dict/list/tuple/set 中的 `\x00`，非字符串标量原样返回（无 NUL 时返回同一对象避免拷贝），仅去 NUL 不改其他结构/JSON 语义。置于 `serialization.py`（已被 `extraction.py`/`agent_presets.py` 引用的序列化 SSOT）。
+  2. **三处写库边界应用**：`execution.py` 的 `result_payload`+`error_summary`；`storage/service.py::save_markdown_content`（覆盖全部 save 调用方）；`_ingest_text_with_tracker` 入口 `text`（全摄入路径 file/url/refresh/rebuild 的 chunk 持久化单一咽喉）。
+- **后续防范**：⑦ 远程工具（尤其文档/PDF/OCR 解析类）的产物可能含**控制字符/NUL**，凡落 PostgreSQL `text`/`jsonb` 的边界都应在**写库前**净化；净化器应放在被多方复用的 SSOT 层，并在**每个独立写库咽喉**都应用（仅修首个失败点会把同类失败下推到下游列）；⑧ `json.dumps/loads` 的「JSON 合法」不等于「PG 可存」——` ` 是合法 JSON 转义却为 PG text/jsonb 所拒，依赖 JSON 往返做净化是错觉。
+- **同类问题影响**：所有经 perceives 解析并落库的内容（PDF/网页 → mcp_tool_runs.result_payload、knowledge_documents.markdown_content、knowledge.content）。无 NUL 的内容零行为变化（返回同一对象）。
+- **验证**：`test_serialization.py` 新增 2 例（递归净化嵌套 str/dict/list/tuple/set + 标量/无 NUL 不变且返回同一对象）；对真实 PostgreSQL（test 库临时表）验证「原始 NUL 写 jsonb 必抛 `UntranslatableCharacterError` / `strip_nul_chars` 净化后写 jsonb+text 均成功」；`ruff check`/`format` + 既有 extraction-contract 16 例回归全过。注：本项为**代码改动**（区别于 follow-up 1 数据驱动的超时迁移），需部署 live 引擎后对运行中任务生效。
+
+## ISSUE-134 PDF 重试入口缺失且语义重叠：「断点续传」隐藏 + 「重新开始」能力缺失（2026-06-08）
+
+- **表因**（ISSUE-133 暴露的 UX/语义缺陷，用户实证）：① 失败 PDF run 的「Resume from checkpoint」入口几乎不可见——藏在 Pipeline Run 详情面板（需先展开），叫「Continue →」的**跳转链接**（跳文档页再手动 refresh），非真按钮；② **语义重叠且缺「重新开始」**：`resume` 永远默认 `True` 且 backend 从不控制，导致"重新触发 ingest"也命中同内容 SHA-1 checkpoint **续传**——与续传入口语义重复，反而没有"完全重新开始"的能力。
+- **根因**（代码逐层实证）：`extract_source`→`DataExtractorProvider.extract`→`_invoke_target` 整条链路**无 `resume` 参数**，perceives 永远用工具默认 `resume=True`；backend 仅能通过 corpus 级 `tool_options` 间接控制（非 per-request）。UI 侧「Continue」仅是 `<Link>` 跳转，不调任何 retry API，且 pipelines 路由**只有 cancel、无 retry 端点**。
+- **处理方式**（端到端「双入口」打通，复用既有模式）：
+  1. **新 retry 端点** `POST /pipelines/{run_id}/retry`（body `{app_name, resume}`）：`dao.get_pipeline_run` 加载原 run → 从 `input.document_id/corpus_id` 提取 → `DocumentStorageService` 重取 GCS 原文件（传 corpus_id/app_name 做归属校验）→ `create_pipeline` 创建**新 run**（`input.retried_from` 关联原 run，规避 PipelineTracker 终态 cancel 竞态）→ `execute_ingest_file_pipeline(resume=...)` 后台派发。404（run/文档不存在）、422（非文件 ingest）边界齐备。
+  2. **`resume: bool|None` 透传 5 层**：`execute_ingest_file_pipeline`→`_extract_file_document`→`extract_source`→`provider.extract`→`_invoke_target`。单一 `bool|None` 自文档化（None=普通 ingest 不注入沿用默认；True/False=显式重试意图）。
+  3. **`_maybe_inject_resume`**（镜像 `_maybe_inject_tool_timeout`）：仅当工具 schema 声明顶层 `resume` 属性且 arguments 未含时注入——perceives `resume` 是顶层参数。`resume=False` 时 perceives `_load_slice_checkpoint` 永不调用、所有切片重处理并覆盖、manifest 重写，等价全新重跑，无需显式删 checkpoint。
+  4. **UI 卡片直显双按钮**：`PipelineRunCard` 失败摘要后渲染【断点续传】（amber 实心，resume=true）【重新开始】（描边，resume=false），镜像既有 `onCancel`/`cancelPipelineRun` 模式（`onResume`/`onRestart`/`retryPipelineRun` + `useConfirmDialog` 二次确认）。移除详情面板的「Continue →」跳转块。`extractDocumentRef`/`isRunResumable`/`canRetryRun` 迁移到 `pipeline-helpers.ts` 单一事实源，page 与 panel 共用。
+- **后续防范**：① 「续传 vs 重来」是两种不同意图，必须各有显式入口——同一行为复用两个入口而缺另一意图是 UX 反模式；② 工具的"幂等续传/全量重跑"开关（如 perceives `resume`）应可从**调用方 per-request 控制**并端到端透传，而非仅靠被调方默认值或粗粒度 corpus 配置；③ 关键操作入口应**前置到主视图直显真按钮**（卡片），而非埋在详情面板的跳转链接——后者体验上等于不存在；④ 父/子组件双重判定同一可见性条件时，应以一方为**单一权威**（此处 `canRetry`），否则两者分歧会让一方判定形同虚设（code review 实捕：卡片旧 `isRetryableStatus` 门控会误隐藏 run 级非终态但含失败 stage 的可重试 run）。
+- **同类问题影响**：所有 KB ingest_file run 的重试路径。KG run（无 document_id 重跑语义）不暴露重试入口；URL/text run 同样不暴露（无 document_id）；普通 ingest（resume=None）零行为变化。
+- **验证**：backend `_maybe_inject_resume` 5 守卫条件 + 既有 `_maybe_inject_tool_timeout` 4 条经直接导入验证 **9 全过**（同 alembic fixture 环境问题，纯函数逻辑无碍）；retry 端点导入 + 路由注册 + `get_document` corpus 校验签名核验通过；前端 `tsc --noEmit` + `eslint --max-warnings=0`（含移除 helper 后无 unused-var）**全过**；`ruff check`/`format` 全过；code review 捕获的卡片/helper 判定分歧 bug 已修（卡片信任父组件 `canRetry` 单一权威）。注：live 引擎运行旧 checkout，需部署后生效。
+
+## ISSUE-135 新建 Corpus 未消费全局默认 Embedding 模型（model_resolver 忽略 model_configs.is_default）（2026-06-08）
+
+- **表因**（用户实证）：在 Interface/Model 模型卡片将 `openai/text-embedding-3-small` 设为全局默认（Default）Embedding 模型后，新建的、未显式指定 Embedding 模型的 Corpus 在文档构建（ingest）时仍使用硬编码 `gemini/text-embedding-004`，与用户设定不符。
+- **根因**（逐层实证）：`build_embedding_fn(None)` 闭包**每次调用**都重解析 `resolve_embedding_config()`→`_resolve("embedding")`（非构造期锁定）；而 `_resolve` 回退链为「缓存→`_resolve_from_vendor_configs`→`_resolve_defaults`」，其中 `_resolve_from_vendor_configs` 直接取硬编码 `_DEFAULT_EMBEDDING_MODEL`，**从未查询 `model_configs.is_default`**——与该模块自身在解析链注释中声明的契约（第 3 层应为 `model_configs.is_default`，第 4 层才是硬编码 fallback）不符，属「契约已声明、实现缺失」。本缺陷与 [ISSUE-028](#issue-028) 互补：028 修好「有 corpus pin」时索引/查询侧的对称解析，但「无 pin」时双方都回退到忽略全局默认的 `resolve_embedding_config()`，单点修复 `_resolve` 即同时修好索引侧与查询侧。补充：向量列固定 `vector(1536)`（`models/base.py` `DEFAULT_EMBEDDING_DIM=1536`，hybrid SQL 硬转 `::vector(1536)`），768 维 gemini 默认根本无法写入 1536 列，故用户所选 1536 维 `text-embedding-3-small` 才是维度正确项；`model_resolver.py` 旧注释「768 维匹配既有索引」系陈旧错误。
+- **处理方式**（最小干预 + 复用驱动 + 创建期固化）：
+  1. **Fix #1 — `_resolve` 消费 is_default**：抽取 `_build_resolved_config(model_type, mc)`（复用既有 `_get_vendor_config`/`_build_embedding_kwargs`/`_build_llm_kwargs` + LLM `_DEFAULT_LLM_KWARGS` 合并，供「按 id」与「按默认」两路复用，DRY）；新增 `_load_default_model_config_row`（`is_default=True AND enabled=True LIMIT 1`，`enabled` 过滤排除「设为默认后又禁用」的行）与 `_resolve_from_default_model_config`；`_resolve` 在缓存命中后、`_resolve_from_vendor_configs` 之前插入 is_default 分支（**独立 try/except**，DB 异常记 warning 降级不冒泡），对 `llm`/`embedding` 对称生效。
+  2. **Fix #2 — 创建期固化绑定**：resolver 新增 `resolve_default_model_config_id`（复用同一行查询，仅返回 id）；`_shared._pin_default_embedding_config` 在 `create_corpus` 序列化前将当前全局默认的 `embedding_config_id` 写入 `corpus.config.models`（已显式指定 / 无默认行 → no-op），使语料创建即绑定具体模型，免疫日后全局默认变更；后续改模型走 `update_corpus` 既有的 `_resolve_embedding_dimension` 维度比对 + `_enqueue_embedding_rebuild` 重建保护。
+  3. 订正 `model_resolver.py` 陈旧注释（硬编码值仅为 DB 不可达时末位回退、权威默认来自 `model_configs.is_default`、列维 1536）。未改硬编码默认值（属部署/env 范畴）与前端（默认设置链路本就正确）。
+- **后续防范**：① 解析器「文档化契约」须与实现一致——注释声明的回退层若未落地即为隐性缺陷，新增解析层应配套单测钉死；② corpus 级配置应在创建期固化为具体引用（pin），避免运行期跟随全局默认导致索引/查询维度漂移（与 ISSUE-028「索引/查询对称」同源）；③ 凡新增「全局默认 + 可空覆盖」语义，须显式覆盖「设默认后又禁用」等边界（此处 `enabled` 过滤）。
+- **同类问题影响**：① **LLM 默认同路修好**（`_resolve` 对称生效）；② **既有「无 pin」历史语料**：Fix #2 不回填（需独立数据迁移），仍由 Fix #1 运行期跟随全局默认；③ **多 worker 缓存陈旧窗口（≤60s，既有非新增）**：`_cache` 单进程模块级，写端点 `invalidate_cache(None)` 仅清处理该请求的 worker，余者至多 TTL 后跟进，Fix #2 对新建语料以具体 id 绕过此窗口。
+- **验证**：新增 `tests/unit_tests/config/test_model_resolver_default.py`（7 例：is_default 命中且不触达 vendor_configs / 无默认回退 gemini / `enabled` 过滤入查询 / DB 异常降级不崩 / LLM 对称且合并 `_DEFAULT_LLM_KWARGS` / 缓存命中仅查一次 / 失效后重查）+ `tests/unit_tests/knowledge/test_pin_default_embedding.py`（3 例：固化 / 显式 no-op / 无默认 no-op）；连同既有 `test_model_resolver_by_id`/`_task`/`test_model_names`/`test_embedding`/`test_search_resilience` 共 **140 全过**；三处改动模块导入校验通过。注：live 引擎运行旧 checkout，需部署后生效。
+
+## ISSUE-136 Wiki 目录节点「拖拽到顶层」刷新后回退（移动未持久化）（2026-06-08）
+
+- **表因**：Knowledge → Wiki 页将节点「Sinestesia of Cognition」从「Negentropy」子节点拖拽到与「Negentropy」「Harness Engineering」同级（提升为根节点），拖拽瞬间 UI 乐观更新正确显示在顶层，但**刷新页面后总是回退**为「Negentropy」的子节点——移动未持久化。
+- **根因**（全链路逐层实证）：前端 `updateCatalogNode` 正确发出 `PATCH {parent_id:null, sort_order}`、Next.js BFF `proxyPatch`（`JSON.parse`→`JSON.stringify`）保留 null、Pydantic `CatalogNodeUpdateRequest.parent_id: UUID|None` 接收正常；缺陷在后端写路径**两处独立「丢弃 None」**叠加，使 `parent_entry_id` 永不被清空为 NULL：① 路由层 `routes/catalog.py:299` `{k: v for ... if v is not None}` 把显式 `parent_id=None` 一并剔除，下发 service 的 kwargs 仅剩 `sort_order`；② DAO 层 `catalog_node_dao.py:158` `if parent_id is not None: entry.parent_entry_id = parent_id` 即便 None 抵达也跳过赋值。两者任修其一都不够。读路径（递归 CTE 以 `parent_entry_id IS NULL` 锚定根节点）本身正确，故只要写入正确，刷新即稳定停留顶层。`parent_entry_id` 列本就 nullable（迁移 0003），**无需 DB 迁移**。
+- **处理方式**（PATCH「字段存在性」语义 SSOT，最小且正交）：
+  1. **路由层**：抽出纯函数 `_build_update_kwargs(body) = body.model_dump(exclude_unset=True)`（以「请求显式出现的字段」为 SSOT，`exclude_unset` 已保证未传字段不出现，去掉 falsy 过滤），路由改用之；保留「空 kwargs→400」守卫（`{"parent_id": None}` 为非空 dict 可正常通过）。
+  2. **DAO 层**：引入模块级哨兵 `_UNSET = object()`，`parent_id` 默认值改 `_UNSET`、守卫改 `if parent_id is not _UNSET:`——未传(`_UNSET`)保持原父指针、显式 `None` 提升为根、UUID 改挂父。其余字段维持「None=不改」零回归。同时矫正 `move_node(new_parent_id=None)` 提升为根的语义（虽当前无路由调用）。
+  - 前端无需改动：乐观更新本就把节点显示在顶层，回退纯由后端未持久化导致。
+- **后续防范**：① PATCH/部分更新接口必须区分「字段未传(保持)」与「字段显式为 null(清空)」——以 `model_dump(exclude_unset=True)` 或哨兵承载「字段存在性」，严禁用 `if v is not None` / `if x:` 之类 falsy 过滤吞掉**有业务含义的 None**（如「提升为根」「清空可空外键」）；② 同一语义在「路由」「DAO」多层各设过滤时，任一层吞掉 None 即整体失效——字段存在性应单点(SSOT)承载并端到端透传，避免多层各自判定的隐式纠缠；③ 乐观更新会掩盖持久化缺陷至刷新才暴露，验证此类「拖拽/排序/移动」务必含「写入后新会话重读」一环（而非仅看乐观态）。
+- **同类问题影响**：所有经 `PATCH /catalogs/{cid}/entries/{eid}` 的目录节点更新——尤其「提升为根」「清空可空字段」。改名/改序/改父到非根等既有功能零影响（61 例 catalog 测试回归全绿）。
+- **验证**：DAO 集成测试 2 例（显式 None 清空 parent + 新会话重读确认 / 不传 parent_id 不清空）+ 路由边界单测 4 例（`_build_update_kwargs` 保留显式 None、UUID 原样保留、未传 parent_id 不出现、空请求空 kwargs），`uv run pytest` **6 passed**；catalog 全量回归 **61 passed**；`ruff check`/`format` 全过。**浏览器实测**：临时以本工作区版本替换 3292 live 引擎（同 `negentropy` 库、真实数据；单引擎不违反「同库勿并起第二引擎」约束），经生产 HTTP 路由对真实节点 `Sinestesia of Cognition` 执行 `PATCH {parent_id:null}` → 重新拉取树确认其 `parent_id=None, depth=0`、与「Harness Engineering」「Negentropy」同级（即「移动+刷新」已持久化；旧引擎对同请求会 200 但静默不改父，反证运行的是修复版）；验证后恢复主仓 live 引擎，重启后重读仍为根节点（DB 写入引擎无关、持久）。注：fix 在工作分支，运行中 live 引擎需部署后对**其它**节点的移动生效；已移动的 Sinestesia 因 DB 已落库故引擎无关。
+
+## ISSUE-137 docker-compose perceives healthcheck 永假，service_healthy 依赖链阻塞全栈一键启动（2026-06-11）
+
+- **表因**：`docker compose up -d` 后 perceives 容器持续 `unhealthy`，backend/ui/wiki 因 `depends_on: condition: service_healthy` 级联永不启动，「一键启动全套服务」的声明实际不可达。该缺陷自 compose 引入（#816）后从未被端到端实测暴露。
+- **根因**：healthcheck 探针 `curl -sf http://localhost:2992/` 的前提假设（FastMCP HTTP 服务在根路径返回 2xx/3xx）不成立——实测 FastMCP 3.2.4（perceives uv.lock 锁定版本）：`GET /` 返回 **404**（Starlette 未注册根路由，MCP 端点挂载在 `http_path` 默认 `/mcp`）、`GET /mcp` 缺 MCP Accept 头返回 **406**，`curl -f` 对 ≥400 一律退出 22。FastMCP 亦无内置 `/health` 类端点（`/health`、`/healthz`、`/ready`、`/status`、`/ping` 实测全 404）。
+- **处理方式**（最小干预，仅改 compose 探针）：改为 MCP 端点状态码允许清单探针 `case $(curl -s -o /dev/null -w '%{http_code}' http://localhost:2992/mcp) in 200|307|405|406) exit 0;; *) exit 1;; esac`——406 即可证明 ASGI 栈已就绪；连接拒绝/超时时 `%{http_code}` 为 `000` 走 FAIL 分支。探针语法在 dash/sh 与 FastMCP 3.2.4 真实服务上双向实证（406→PASS、不可达→FAIL）。
+- **后续防范**：① healthcheck 探针属「事实性陈述」，必须以目标服务真实 HTTP 行为为证据（最小复现实测或运行实例实测），不得按「根路径理应 200」惯性假设——MCP/gRPC 网关类服务对裸 GET 返回 4xx 是常态；② `curl -f` 语义是「≥400 即失败」，对以 4xx 证明存活的端点应改用状态码允许清单；③ compose 引入/变更后应至少完整跑通一次 `docker compose up` 至全栈 healthy（本次同步落地的 negentropy-docker-validate.yml 已覆盖构建与配置校验，运行时 healthcheck 仍需实测兜底）；④ 长期更优解是在 perceives 注册显式 `/health` 自定义路由（FastMCP `custom_route`），将探针语义从「侧证存活」升级为「一等健康契约」。
+- **同类问题影响**：backend healthcheck `GET /` 经本机运行实例实证返回 307（ADK ApiServer 路径），`curl -sf` 通过，无需改动；ui/wiki 为 Next.js 根路径 200，无此问题。同 PR 一并校准 `.env.docker.local` 加载矛盾与 Compose >= 2.24 版本前置（详见 CHANGELOG [Unreleased] Fixed）。
+- **验证**：本地最小复现（`uv run --with fastmcp==3.2.4` 启动 HTTP transport + `/mcp` path）实测探针通过/失败两分支；`docker compose config -q` 通过；变更经 PR #902 的 Docker Build Validation workflow（4 镜像 × 2 架构构建 + compose lint）端到端校验。
+
+---
+
+## ISSUE-138 记忆检索机制全局断链：交互式主链路零接入、embedding 从未接线、零命中不可观测（2026-06-12）
+
+- **表因**：Memory → Insights 页「Retrieval Quality」恒为「暂无检索活动」，SEARCH·24H=0、30 天 `total_retrievals=0`；但 Memories=110 / Facts=47 / KG=671（写入侧正常），呈「只写不读」。
+- **根因**（三处独立断链叠加）：
+  1. **交互式对话主链路无检索接入点**：root_agent（`agents/agent.py`）仅有 `log_activity` 工具，五个 Faculty 工具列表均无记忆检索工具；唯一可达路径 `_fallback_to_memory_search`（`agents/tools/perception.py`）只在 KB 无 corpora 或 KB 检索 0 结果时被动触发——KB 有数据时永不触发。写入侧三层全接线（save_to_memory 工具 / routine 提取 / REST），读写严重不对称。
+  2. **embedding_fn 从未接线**：`engine/factories/memory.py` 的 `_BACKEND_FACTORIES` 无参调用 `create_postgres_memory_service()` → 运行时单例 `embedding_fn=None` → 语义/混合检索永不生效（只走 BM25/ilike）、写入不生成向量（live 库 75/94 条记忆缺向量）、写入去重被静默跳过。
+  3. **零命中检索不可观测**：`_record_access` 空结果直接 return、`log_retrieval` 空 `memory_ids` 返回 None，`retrieval_tracking_failed` 仅 debug 级——「检索发生但未命中」在指标层完全消失。
+  - 另有多个「有实现、无调用方」的悬空组件佐证系统性断链：`ContextAssembler.assemble()`、`ProactiveRecallService`（仅 API 暴露）、`memory_tools.memory_search()`（无端点无 Faculty 暴露）。
+- **处理方式**：
+  1. 新建 `agents/tools/memory.py::NegentropyPreloadMemoryTool`（继承 ADK `PreloadMemoryTool`）：root Agent 每轮自动以用户消息检索长期记忆注入 `<RELEVANT_MEMORIES>` 块；以 `temp:` state 缓存做**同 invocation 去重**（ADK 每个 LLM step 都重跑 `process_llm_request`，不去重会重复累加 access_count/importance 并重复落检索日志）；受 `memory.retrieval.preload_enabled`（默认 true）门控，top_k/max_chars 截断封顶 token 预算。
+  2. Perception/Contemplation/Internalization 三系部接入 ADK 原生 `load_memory` 显式工具（经 tool_context 取 app_name/user_id，无越权风险）+ instruction 触发指引与互斥规则。
+  3. factory 默认接线 `build_embedding_fn()`（与 Knowledge ingestion 同链路，fail-soft）；新增 `scripts/backfill_memory_embeddings.py` 回填存量（已对 live 库执行：memories 75 条、facts 39 条全部补齐）。
+  4. `_record_access` 解耦为 A 段（访问计数，仅命中）+ B 段（检索日志，**始终记录**，含零命中）；`log_retrieval` 放宽空列表；`retrieval_tracking_failed` 升 warning；新增 `zero_hit_rate` 指标贯通 tracker → `RetrievalMetricsResponse` → UI 卡片。
+  5. 补全 `POST /memory/self-edit/search` 端点（与 write/update/delete 对称）。
+- **后续防范**：
+  1. 「契约型读路径」（检索/召回/查询）必须与写路径同 PR 接线调用方并以结构测试锁定（本次新增 `test_root_agent_tools` 断言 preload_memory、`test_faculties_have_load_memory_tool`），防止「只写不读」的静默退化；
+  2. 依赖注入的可选能力（embedding_fn 等）若长期以 None 运行，应在 factory 处显式默认接线 + fail-soft 降级，而非依赖调用方记得传参；
+  3. 可观测性埋点必须覆盖失败/空分支——「零命中」与「未发生」在指标上必须可区分；
+  4. **部署后必须执行 `POST /interface/agents/sync/negentropy`**：instruction 运行时优先读 DB（60s TTL），不 sync 则 LLM 看不到新文案（preload 不受影响）。
+- **同类问题影响**：`ContextAssembler.assemble()` / `ProactiveRecallService` 会话级注入仍为悬空组件（独立议题）；指标语义变化需知悉——`total_retrievals` 分母自此包含零命中行，`precision_at_k` 与历史数据不可比；vector 检索无最小相似度阈值，无意义 query 也会返回近邻（preload 注入块靠 instruction 的「无关即忽略」约束兜底，阈值调优为后续议题）。
+- **验证**：单测 2429 全绿（新增 preload 去重/门控/截断 9 例、_record_access 解耦 5 例）；集成测试 7/7（含零命中落日志新例）；live 库服务级 E2E：embedding 接线后 `search_level='hybrid'` 首次生效、检索日志 219→221 落行；回填后 `embedding IS NULL` 归零。
+
+---
+
+## ISSUE-139 brew 升级 postgresql@16 清除手装 pgvector，本机向量能力静默瘫痪（2026-06-12）
+
+- **表因**：单测会话级 fixture 重建测试库时 `CREATE EXTENSION vector` 报 `extension "vector" is not available`；进一步实测 live 库 `SELECT '[1,2,3]'::vector` 报 `could not access file "$libdir/vector"`——本机 Postgres 的 vector 类型在**新连接**上已不可用（旧 backend 因 dylib 已 mmap 仍可部分工作，呈「半瘫痪」假象）。
+- **根因**：Homebrew 升级 `postgresql@16` 16.13→16.14 时替换了 keg 目录，清掉了此前手动安装进 keg 的 pgvector 文件（control/sql/dylib）；brew 官方 `pgvector` formula 仅为 postgresql@17/18 构建，不覆盖 @16。
+- **处理方式**：源码编译 pgvector v0.8.2（与库内扩展版本一致）并 `make install PG_CONFIG=/opt/homebrew/opt/postgresql@16/bin/pg_config`；实测 vector cast 恢复。测试库残留其他工作区的 alembic 版本（0069 > 本分支 head 0068）一并 `DROP DATABASE negentropy_test` 由 conftest 重建。
+- **后续防范**：① brew 升级 PG 后必须复验扩展（`SELECT '[1,2,3]'::vector`），手装扩展不在 brew 升级保障范围内；② 长期更优解是迁移到 docker-compose 的 pgvector 官方镜像（仓库已具备），消除宿主机 PG 版本漂移；③ 测试库跨工作区共享，分支间迁移版本超前会以 `Can't locate revision` 报错——重置 `*_test` 库即可（disposable，conftest 自动重建）。
+- **同类问题影响**：live 引擎（主仓 checkout，端口 3292）连同一实例——修复前其向量检索/写入路径在新 backend 上同样失效，是 Insights 检索断链表象的环境侧放大因素。
+
+---
+
+## ISSUE-140 `cli.sh restart` Phase 3 报 `role "aigc" does not exist`——@16 `postgresql.conf` 残留 pg_cron 致 FATAL、@17 顶替触发角色缺失（2026-06-14）
+
+- **表因**：`scripts/cli.sh restart` 在 Phase 3/5（数据库迁移）执行 `uv run alembic upgrade head` 时报 `asyncpg.exceptions.InvalidAuthorizationSpecificationError: role "aigc" does not exist`。`cli.sh` Phase 3（`scripts/cli.sh:318-327`）仅以 `pg_isready -h localhost -p 5432` 做进程级探活，能越过预检、在 alembic 真正建连时才炸。
+- **根因**：本机同时装 PG@16/17/18，当前 5432 实际由 **@17** 监听——一个干净实例（仅 `postgres` 库、仅 macOS 同名超级用户 `cm.huang`，无 `aigc` 角色、无 `negentropy` 库、无 pgvector 扩展）。而项目配置全链路（`config.default.yaml:65` / `config/database.py:20` Field 默认 / `alembic.ini:58` / `~/.negentropy/config.yaml`）一致期望 `postgresql+asyncpg://aigc:@localhost:5432/negentropy`。**为何是 @17 而非 @16**：@16 的 `postgresql.conf` 残留两行 pg_cron 配置（`shared_preload_libraries = 'pg_cron'` + `cron.database_name = 'cognizes-engine'`，后者为 cognizes 子项目遗留），而 pg_cron 扩展**从未链接到任一 PG 版本**（brew 装过 formula 但 @16/17/18 extension 目录均无）→ conf 引用一个不存在的共享库 → @16 **FATAL 启动失败**（`postgresql@16.log` 每 10 秒刷 `could not access file "pg_cron": No such file or directory`）→ @17 顶上 5432。pg_cron 自迁移 `0042` 起已被进程内 Unified Scheduler 替代（PR #691 / `6c7f3994` 落地，代码实体 `engine/schedulers/{async_scheduler,registry,handlers}`、`agents/skill_scheduler.py`、`interface/scheduler_api.py`；落库迁移 `0035_unified_scheduler.py` / `0042_memory_automation_unified_scheduler.py`），运行时非硬依赖——故该 conf 残留是纯历史垃圾。
+- **处理方式**：① 删除 @16 `postgresql.conf` 的 `shared_preload_libraries = 'pg_cron'` + `cron.database_name = 'cognizes-engine'` 两行（移除零影响：pg_cron 本就 FATAL 不可用，无服务依赖；对齐 `development.md §10.3` 既载排查项）；② `brew services stop postgresql@17` + `restart postgresql@16`（@16 启动时自动 crash recovery 恢复 data dir，约 20s 就绪，无 pg_cron FATAL）；③ 验证 @16 上 `aigc` 角色/`negentropy` 库已存在（历史 data dir 完整，含 cognizes-engine 等，无需补建），`psql aigc@negentropy` 连通、`alembic upgrade head` 通过（current `0070 head`，pgvector 扩展可用）；④ `cli.sh restart --no-pull` 5 Phase 全过、4 服务（backend 3292 / ui 3192 / wiki 3092 / perceives 2992）就绪。**未改动任何项目代码**（`cli.sh`/`env.py`/`config.*`/`alembic.ini` 零改动），纯本机 PG 环境修复。
+- **后续防范**：① 切换/升级 PG 版本后，先 `tail /opt/homebrew/var/log/postgresql@N.log` 确认无 FATAL，再 `pg_isready`——进程级探活（端口在听）**不等于**角色/库就绪；② `postgresql.conf` 的 `shared_preload_libraries` 引用的扩展必须真实安装到对应 PG 的 extension 目录，否则该 PG 实例直接 FATAL、会被其它版本顶替而静默错位；③ 长期更优解仍如 ISSUE-139 所述——迁移到 docker-compose 的 pgvector 官方镜像，消除宿主机多版本 PG 共存与手装扩展漂移；④ `cli.sh` Phase 3 仅 `pg_isready` 是已知薄弱点（不做角色/库级认证探活），未来可考虑增强为认证级探活或幂等 DB 引导子命令（本次按用户「最小干预」选择未改）。
+- **同类问题影响**：任何「配置期望 `aigc@negentropy`，但 5432 被一个干净/错误 PG 实例占据」的场景都会复现此报错——排查第一动作应是 `psql -h localhost -p 5432 -d postgres -c "SELECT version();"` 确认实际监听版本与角色，而非盲改项目配置。与 ISSUE-139 同属本机 PG 环境侧问题，但根因不同：本次是 pg_cron conf 残留致版本错位，彼次是 brew 升级清扩展。
+
+---
+
+## ISSUE-141 negentropy-perceives `pip-audit` CI 失败：upstream 新增 17 CVE 未纳入忽略列表——4 包可升 1 包无修复（2026-06-18）
+
+- **表因**：[GitHub Actions Run 27769280161](https://github.com/ThreeFish-AI/negentropy/actions/runs/27769280161)（PR #918 `feature/1.x.x → master`）`Perceves CI` 的 **`Security Audit` job 失败**——`Run pip-audit vulnerability scan` 步骤 exit 1（`Process completed with exit code 1.`）。其余 6 个 job（Test×3 / Lint & Type Check / Build Package / Coverage Report）全绿。
+- **根因**：perceives 在 `.github/workflows/negentropy-perceives-ci.yml:88-141` 维护了一份精心策展的 `--ignore-vuln` 列表，仅忽略「upstream 无修复 / 修复受硬约束」的漏洞。近期 PyPI 上游新增一批 CVE，致 **17 个漏洞（5 个包）未在忽略列表**，pip-audit 因发现未忽略漏洞而 exit 1：`pypdf 6.10.2`（8 CVE，构造 PDF 触发的 DoS）、`starlette 1.0.1`（4 CVE，MCP http-transport 攻击面）、`python-multipart 0.0.27`（3 CVE，表单解析）、`cryptography 46.0.7`（1 GHSA）、`torch 2.10.0`（CVE-2025-3000，**upstream 确无修复**）。前四者均有修复版本且逆向依赖无 upper-cap；torch CVE-2025-3000 被 upstream disputed、攻击面与已忽略的 PYSEC-2025-189..197/210 同类（本地内存破坏/DoS，需构造恶意 tensor）。
+- **处理方式**（严格循项目既有「双轨」安全约定，最小干预、零结构性改动）：
+  1. **约定 1·直接依赖升级**：`apps/negentropy-perceives/pyproject.toml:53` `pypdf>=6.10.2` → `pypdf>=6.13.3`，注释覆盖全部 8 个新 CVE。pypdf 是直接依赖且 `pypdf.PdfReader` 在 4 处不可信 PDF 入口被调用（`pipeline/stages/pdf/text_extraction.py:858`、`preprocessing.py:182`、`pdf/processor.py:875`、`pdf/llm/orchestrator.py:868`），攻击面真实可达，对标既有 `docling>=2.94.0` 先例。
+  2. **约定 2·传递依赖 override 强制升级**：`pyproject.toml:198` `override-dependencies` 追加 `starlette>=1.3.1`、`python-multipart>=0.0.32`、`cryptography>=48.0.1`（均经 PyPI `requires_dist` 核实 fastapi 0.135.2 / mcp 1.26.0 / sse-starlette 3.3.4 / mineru 3.0.9 及 cryptography 的 5 个消费者 authlib / google-auth / joserfc / pdfminer-six / secretstorage 对三者只设下界、无 upper-cap）。`uv lock` 解析后 cryptography 实际落到 **49.0.0**（latest，含 48.0.1 修复且更多）。
+  3. **约定 3·忽略列表**：workflow `--ignore-vuln PYSEC-2026-139` 之后追加 `--ignore-vuln CVE-2025-3000`，附简注复用既有 torch 注释块理由（仅加载第一方模型 artifact、无不可信输入路径、upstream 无 fix）。
+  4. `cd apps/negentropy-perceives && uv lock` 重新生成 `uv.lock`（313 packages，37s 无解析冲突）。
+- **后续防范**：① pip-audit 忽略列表是「动态漂移」契约——upstream 持续新增 CVE，每次 CI 失败须按「**先升后忽略**」优先级处理：有修复版本且无硬约束者必升级（约定 1/2），仅无 upstream fix 或受硬锁者方入忽略列表（约定 3，每条附威胁模型注释）；② 升级传递依赖前必须核实逆向依赖的 `requires_dist` 有无 upper-cap（本次 fastapi/mcp/sse-starlette/mineru 及 cryptography 5 消费者均无），否则 `uv lock` 会解析失败；③ cryptography 跨大版本（46→49）虽走 `cp311-abi3` stable-ABI、消费者不加载原始 X.509 CRL 故不受 48.0.0 的 CRL breaking-change 影响，但 fastapi/mcp 无官方 starlette 1.x 兼容矩阵——建议升级后跑通 MCP http-transport 启动冒烟兜底；④ 本地复现 pip-audit 须用 `uv run pip-audit`（env 模式，审计 uv 已装环境）——`pip-audit -r requirements.txt` 模式会创建内部 venv，在 uv 管理的 standalone Python（astral-sh/python-build-standalone）上 `ensurepip` SIGABRT 失败，不可用。
+- **同类问题影响**：所有经 `negentropy-perceives-ci.yml` 的 perceives 依赖变更均受此「忽略列表漂移」影响——未来新增/升级依赖后若引入 upstream 暂无修复的 CVE，CI 会再次失败，需同流程处理。cognizes 子项目若引入同类 pip-audit 步骤亦同。
+- **验证**：`uv lock` 313 packages 无解析冲突，4 包落到目标版本（pypdf 6.13.3 / starlette 1.3.1 / python-multipart 0.0.32 / cryptography 49.0.0）；本地 `uv run pip-audit`（复用 CI 完整 ignore_args + 新增 CVE-2025-3000）验证；最终以 CI `Security Audit` job 重跑转绿为准（见 PR）。
+
+---
+
+## ISSUE-142 Dependabot 无补丁告警以「可接受风险」驳回——dompurify GHSA-x4vx / torch GHSA-rrmf（2026-06-19）
+
+- **表因**：GitHub Dependabot 安全面板 99 条开放告警中，有 **3 条无任何 patched 版本**（`first_patched_version.identifier == null`），无法靠升级依赖消除：① #472 `dompurify` GHSA-x4vx-rjvf-j5p4（npm，pnpm-lock.yaml）——`IN_PLACE` 模式信任攻击者可控 `nodeName` 致 script 残留/XSS（low）；② #390 `torch` GHSA-rrmf-rvhw-rf47（pip，apps/cognizes/uv.lock）——`torch.jit.script` 内存破坏（low）；③ #389 `torch` GHSA-rrmf-rvhw-rf47（pip，apps/negentropy-perceives/uv.lock）——同上。
+- **根因**：上游（DOMPurify / PyTorch）对这 3 个 advisory 尚未发布修复版本，`fixed_in` 字段为空。任何版本升级都无法核销——它们与「可升级修复」的告警是两类问题，须分别处理（注意：ISSUE-141 中 perceives CI 忽略的 torch `CVE-2025-3000` 是另一个 advisory，与本 ISSUE 的 torch `GHSA-rrmf-rvhw-rf47` 不同，二者独立成立）。
+- **处理方式**：随本次安全核销（negentropy/cognizes/npm 经本 PR 修复、perceives 经同期 PR #921 覆盖），对这 3 条无补丁告警以 `dismissed_reason=tolerable_risk` 经 `gh api -X PATCH repos/.../dependabot/alerts/<n>` 驳回，理由：① **dompurify** 仅由 `mermaid`（图表渲染）传递引入，用于**受控的 mermaid SVG/HTML 清洗**而非任意用户 DOM，项目代码不使用 `IN_PLACE` 模式、不将 DOMPurify 暴露给攻击者可控的 live DOM 节点，触发路径不可达；② **torch** 仅由 `docling`/`mineru`/`sentence-transformers` 等 PDF/Embedding 引擎传递引入，且仅在 `cognizes` gpu 组 + `perceives` PDF 处理路径加载，项目**从不调用 `torch.jit.script`**（JIT 编译入口），漏洞函数不在调用图内。两者均为 low 严重度，触发条件不满足，故定级可接受风险。
+- **后续防范**：① 定期（如每月）复查这 3 条已驳回告警——一旦上游发布 patched 版本（`fixed_in` 不再为 null），应立即升级核销并清理由此产生的「可驳回」状态；② 新增传递依赖若引入 DOMPurify 的 `IN_PLACE` 用法或 `torch.jit.script` 调用，须重新评估本驳回是否仍成立（在 PR 评审中显式核对）；③ Dependabot 驳回状态可在 GitHub 安全面板按 `Dismissed` 过滤复查，驳回理由（tolerable_risk）附在本 issue 摘要中可追溯。
+- **同类问题影响**：所有「上游无补丁」类 Dependabot 告警（`fixed_in` 为空）都适用本模式——先评估「项目调用图是否触及漏洞函数」与「触发前置条件是否满足」，满足「不可达 / 不满足」且 low 严重度方可 `tolerable_risk` 驳回并在 issue.md 留痕；high/critical 即便无补丁也应单独跟踪（如通过虚拟补丁、WAF、依赖替换缓解），不得直接驳回。

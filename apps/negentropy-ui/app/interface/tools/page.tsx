@@ -14,8 +14,10 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
+import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { ToolCard } from "./_components/ToolCard";
-import { ToolFormDialog } from "./_components/ToolFormDialog";
+import { ToolFormDrawer } from "./_components/ToolFormDrawer";
 
 interface BuiltinTool {
   id: string;
@@ -31,6 +33,7 @@ interface BuiltinTool {
   config_schema: Record<string, unknown>;
   is_enabled: boolean;
   is_system: boolean;
+  sort_order?: number;
 }
 
 export default function ToolsPage() {
@@ -62,6 +65,22 @@ export default function ToolsPage() {
   useEffect(() => {
     void fetchTools();
   }, [fetchTools]);
+
+  const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
+    items: tools,
+    onReorder: (reordered) => {
+      setTools(reordered as BuiltinTool[]);
+      fetch("/api/interface/tools/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: reordered.map((t) => ({ id: t.id, sort_order: t.sort_order })),
+        }),
+      }).catch(() => {
+        void fetchTools();
+      });
+    },
+  });
 
   const handleCreate = () => {
     setEditingTool(null);
@@ -235,25 +254,27 @@ export default function ToolsPage() {
                 }
               />
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <SortableCardGrid
+                itemIds={sortableItemIds}
+                onDragEnd={handleDragEnd}
+              >
                 {tools.map((tool) => (
-                  <div key={tool.id} className="h-[196px]">
-                    <ToolCard
-                      tool={tool}
-                      onEdit={() => handleEdit(tool)}
-                      onDelete={() => handleDeleteRequest(tool)}
-                      onToggleEnabled={() => handleToggleEnabled(tool)}
-                      toggling={togglingId === tool.id}
-                    />
-                  </div>
+                  <ToolCard
+                    key={tool.id}
+                    tool={tool}
+                    onEdit={() => handleEdit(tool)}
+                    onDelete={() => handleDeleteRequest(tool)}
+                    onToggleEnabled={() => handleToggleEnabled(tool)}
+                    toggling={togglingId === tool.id}
+                  />
                 ))}
-              </div>
+              </SortableCardGrid>
             )}
           </div>
         </div>
       </div>
 
-      <ToolFormDialog
+      <ToolFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}

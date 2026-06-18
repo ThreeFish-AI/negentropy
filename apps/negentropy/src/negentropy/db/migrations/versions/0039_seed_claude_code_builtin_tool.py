@@ -79,9 +79,9 @@ CLAUDE_CODE_CONFIG_SCHEMA = {
             "type": "integer",
             "title": "Max Turns",
             "description": "Claude Code 在单次调用中允许的最大自主迭代轮数",
-            "default": 20,
+            "default": 500,
             "minimum": 1,
-            "maximum": 200,
+            "maximum": 1000,
         },
         "timeout_seconds": {
             "type": "number",
@@ -110,17 +110,28 @@ CLAUDE_CODE_CONFIG_SCHEMA = {
         },
     },
     "credentials": {
-        # ANTHROPIC_API_KEY 由 VendorConfig 统一管理，不在 builtin_tools 表中存储明文。
-        # 此处保留空字典占位，便于未来扩展 per-tool 凭据时无需再次 schema 迁移。
+        # Claude Code 子进程出示给 coding-proxy 的「真实 Anthropic 凭证」。
+        # 留空则回退环境变量（CLAUDE_CODE_OAUTH_TOKEN / sk-ant-api ANTHROPIC_API_KEY）/ 交互式登录态。
+        # 注意：这与 VendorConfig(anthropic) 的网关 key 是不同凭证命名空间——后者对根
+        # /v1/messages failover anthropic tier 无效（详见迁移 0058/0060 与 engine/claude_code/credentials.py）。
+        "oauth_token": {
+            "type": "password",
+            "title": "Claude Code Credential",
+            "description": (
+                "填 Console API Key（`sk-ant-api…`，console.anthropic.com 签发，注入为 x-api-key），"
+                "或 claude.ai 订阅令牌（`sk-ant-oat…`，`claude setup-token` 生成，注入为 Bearer）。"
+                "留空则回退环境变量 / 交互式登录态。"
+            ),
+        },
     },
 }
 
 CLAUDE_CODE_CONFIG_DEFAULT = {
     "cli_path": "claude",
-    "model": None,
+    "model": "claude-opus-4-8",
     "system_prompt": None,
     "default_cwd": None,
-    "max_turns": 20,
+    "max_turns": 500,
     "timeout_seconds": 300.0,
     "permission_mode": "auto",
     "allowed_tools": _DEFAULT_ALLOWED_TOOLS,

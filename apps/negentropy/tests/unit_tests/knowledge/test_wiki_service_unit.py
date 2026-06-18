@@ -198,6 +198,18 @@ class TestWikiCatalogSync:
             )
             return [doc], 1
 
+        async def fake_get_node_document_refs(db, catalog_entry_id):
+            _ = db
+            assert catalog_entry_id == root_node_id
+            doc = SimpleNamespace(
+                id=doc_id,
+                original_filename="System Design.pdf",
+                markdown_extract_status="completed",
+                markdown_content="# System Design",
+                metadata_={},
+            )
+            return [(doc, 0)]
+
         async def fake_upsert_entry(db, **kwargs):
             _ = db
             captured.update(kwargs)
@@ -212,6 +224,10 @@ class TestWikiCatalogSync:
         monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
+            fake_get_node_document_refs,
         )
         monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
         monkeypatch.setattr(
@@ -255,8 +271,14 @@ class TestWikiCatalogSync:
             _ = db
             assert node_id == parent_id
             return [
-                {"id": parent_id, "parent_id": None, "slug": "parent", "name": "Parent"},
-                {"id": eng_folder_id, "parent_id": parent_id, "slug": "eng", "name": "Engineering"},
+                {"id": parent_id, "parent_id": None, "slug": "parent", "name": "Parent", "node_type": "folder"},
+                {
+                    "id": eng_folder_id,
+                    "parent_id": parent_id,
+                    "slug": "eng",
+                    "name": "Engineering",
+                    "node_type": "folder",
+                },
             ]
 
         async def fake_get_node_documents(db, catalog_node_id, limit=500):
@@ -273,6 +295,19 @@ class TestWikiCatalogSync:
                 return [doc], 1
             return [], 0
 
+        async def fake_get_node_document_refs(db, catalog_entry_id):
+            _ = db
+            if catalog_entry_id == parent_id:
+                doc = SimpleNamespace(
+                    id=doc_id,
+                    original_filename="eng",
+                    markdown_extract_status="completed",
+                    markdown_content="# Eng",
+                    metadata_={},
+                )
+                return [(doc, 0)]
+            return []
+
         async def fake_upsert_entry(db, **kwargs):
             _ = db
             document_writes.append(kwargs)
@@ -288,6 +323,10 @@ class TestWikiCatalogSync:
         monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
             "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
+            fake_get_node_document_refs,
         )
         monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
         monkeypatch.setattr(
@@ -315,6 +354,75 @@ class TestWikiCatalogSync:
         # 错误流应记录 renamed 标记，便于运营可观测
         renamed_events = [e for e in result["errors"] if e.startswith("renamed:")]
         assert any(f"{doc_id}" in e and "parent/eng->" in e for e in renamed_events), result["errors"]
+
+    @pytest.mark.asyncio
+    async def test_sync_passes_node_description_to_container_entry(self, monkeypatch):
+        """Catalog 节点 description 应随同步落库到 CONTAINER 条目。
+
+        回归首页「内容主题」卡片描述缺失缺陷：此前 ``_apply_container_mappings`` 仅传
+        ``entry_title`` 而丢弃 ``description``，致节点描述无法经「导航树 → API → SSG」
+        抵达首页卡片。锁定描述自 ``node['description']`` 透传至 ``entry_description``。
+        """
+        service = WikiPublishingService()
+        publication_id = uuid4()
+        root_node_id = uuid4()
+        fake_db = _FakeAsyncSession()
+        container_writes: list[dict[str, object]] = []
+
+        async def fake_get_subtree(db, node_id):
+            _ = db
+            assert node_id == root_node_id
+            return [
+                {
+                    "id": root_node_id,
+                    "parent_id": None,
+                    "slug": "harness-engineering",
+                    "name": "Harness Engineering",
+                    "description": "智能体工程化综述",
+                    "node_type": "folder",
+                }
+            ]
+
+        async def fake_get_node_documents(db, catalog_node_id, limit=500):
+            _ = (db, catalog_node_id, limit)
+            return [], 0
+
+        async def fake_get_node_document_refs(db, catalog_entry_id):
+            _ = (db, catalog_entry_id)
+            return []
+
+        async def fake_upsert_container_entry(db, **kwargs):
+            _ = db
+            container_writes.append(kwargs)
+
+        async def fake_remove_stale_entries(db, publication_id, keep_document_ids, keep_container_node_ids=None):
+            _ = (db, publication_id, keep_document_ids, keep_container_node_ids)
+            return 0
+
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.catalog_assignment_dao.CatalogAssignmentDao.get_node_document_refs",
+            fake_get_node_document_refs,
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries
+        )
+
+        await service.sync_entries_from_catalog(
+            fake_db,
+            publication_id=publication_id,
+            catalog_node_ids=[root_node_id],
+        )
+
+        assert len(container_writes) == 1
+        assert container_writes[0]["entry_title"] == "Harness Engineering"
+        assert container_writes[0]["entry_description"] == "智能体工程化综述"
 
 
 # ---------------------------------------------------------------------------

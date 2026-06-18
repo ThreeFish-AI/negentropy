@@ -6,7 +6,8 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -28,6 +29,7 @@ import {
 import { FactCard } from "./_components/FactCard";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+const PAGE_SIZE = 12; // 4 rows × 3 columns
 
 export default function MemoryFactsPage() {
   const [users, setUsers] = useState<Array<{ id: string; label: string }>>([]);
@@ -37,6 +39,7 @@ export default function MemoryFactsPage() {
   const [payload, setPayload] = useState<FactListPayload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [currentPage, setCurrentPage] = useState(0); // 0-indexed
 
   // Fact History modal state
   const [historyFactId, setHistoryFactId] = useState<string | null>(null);
@@ -44,11 +47,17 @@ export default function MemoryFactsPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
-  const loadFacts = useCallback(async () => {
+  const loadFacts = useCallback(async (page = 0) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchFacts(activeUserId ?? undefined, APP_NAME);
+      const data = await fetchFacts(
+        activeUserId ?? undefined,
+        APP_NAME,
+        undefined,
+        PAGE_SIZE,
+        page * PAGE_SIZE,
+      );
       setPayload(data);
     } catch (err) {
       setError(err as Error);
@@ -66,14 +75,27 @@ export default function MemoryFactsPage() {
   }, []);
 
   useEffect(() => {
-    loadFacts();
+    setCurrentPage(0);
+    loadFacts(0);
   }, [loadFacts]);
 
   const facts = payload?.items || [];
+  const total = payload?.total ?? 0;
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
+  const safePage = Math.min(currentPage, totalPages - 1);
   const userLabelMap = new Map(users.map((u) => [u.id, u.label || u.id]));
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      loadFacts(page);
+    },
+    [loadFacts],
+  );
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !activeUserId) return;
+    setCurrentPage(0);
     setIsLoading(true);
     setError(null);
     try {
@@ -81,6 +103,8 @@ export default function MemoryFactsPage() {
         app_name: APP_NAME,
         user_id: activeUserId,
         query: searchQuery.trim(),
+        limit: PAGE_SIZE,
+        offset: 0,
       });
       setPayload(result);
     } catch (err) {
@@ -92,7 +116,8 @@ export default function MemoryFactsPage() {
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    loadFacts();
+    setCurrentPage(0);
+    loadFacts(0);
   };
 
   const handleShowHistory = async (factId: string) => {
@@ -138,8 +163,8 @@ export default function MemoryFactsPage() {
                 <SidebarCard title="Facts Overview">
                   <p className="mt-2 text-caption text-muted-foreground">
                     {activeUserId
-                      ? `${facts.length} facts for selected user`
-                      : `${facts.length} facts across ${users.length} users`}
+                      ? `${total} facts for selected user`
+                      : `${total} facts across ${users.length} users`}
                   </p>
                   {!activeUserId && users.length > 0 && (
                     <div className="mt-3 space-y-1.5">
@@ -206,16 +231,51 @@ export default function MemoryFactsPage() {
                 title={activeUserId ? "No facts found for this user." : "No facts found."}
               />
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {facts.map((fact) => (
-                  <FactCard
-                    key={fact.id}
-                    fact={fact}
-                    userLabel={activeUserId ? undefined : userLabelMap.get(fact.user_id)}
-                    onShowHistory={handleShowHistory}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {facts.map((fact) => (
+                    <FactCard
+                      key={fact.id}
+                      fact={fact}
+                      userLabel={activeUserId ? undefined : userLabelMap.get(fact.user_id)}
+                      onShowHistory={handleShowHistory}
+                    />
+                  ))}
+                </div>
+
+                {/* Pagination controls */}
+                {total > PAGE_SIZE && (
+                  <div className="mt-6 flex items-center justify-between">
+                    <span className="text-micro text-muted-foreground">
+                      {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, total)} of{" "}
+                      {total}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={safePage <= 0 || isLoading}
+                        onClick={() => handlePageChange(safePage - 1)}
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="min-w-[5rem] text-center text-xs text-muted-foreground">
+                        {safePage + 1} / {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={safePage >= totalPages - 1 || isLoading}
+                        onClick={() => handlePageChange(safePage + 1)}
+                        aria-label="Next page"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </MemorySidebarLayout>
         </div>

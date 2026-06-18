@@ -5,6 +5,7 @@ from google.adk.models.llm_request import LlmRequest
 from negentropy.engine.utils.action_intent import classify as classify_action_intent
 from negentropy.logging import get_logger
 
+from ._citation_protocol import CITATION_PROTOCOL
 from ._dynamic_instruction import make_instruction_provider
 from ._dynamic_model import set_root_thinking_enabled, set_selected_root_llm
 from ._model import create_root_model
@@ -19,6 +20,7 @@ from .pipelines.standard import (
     create_value_delivery_pipeline,
 )
 from .tools.common import log_activity
+from .tools.memory import preload_memory_tool
 
 logger = get_logger("negentropy.agents.agent")
 
@@ -105,7 +107,8 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
         logger.debug("action_intent_hint_skipped", error=str(exc))
 
 
-_ROOT_INSTRUCTION = """
+_ROOT_INSTRUCTION = (
+    """
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的 **「本我」(The Self)**。
 
 ## 核心哲学：熵减 (Entropy Reduction)
@@ -143,9 +146,9 @@ _ROOT_INSTRUCTION = """
 ## 五大系部职责 (The Five Faculties)
 
 1. **感知系部 (`PerceptionFaculty` - 慧眼)**：*信息获取*。
-    - [适用场景]：需要获取新的外部数据、搜索结果、或扫描环境上下文时
+    - [适用场景]：需要获取新的外部数据、搜索结果、扫描环境上下文、或回溯用户过往交互/偏好/历史结论时
     - [目标]：高信噪比 (High-Signal)，过滤噪音
-    - [工具]：search_knowledge_base, search_web
+    - [工具]：search_knowledge_base, search_web, load_memory
 2. **内化系部 (`InternalizationFaculty` - 本心)**：*知识结构化*。
     - [适用场景]：需要整理原始数据、更新知识图谱 (Knowledge Graph)、或存入长期记忆时
     - [目标]：系统完整性 (Systemic Integrity)，建立连接
@@ -168,6 +171,11 @@ _ROOT_INSTRUCTION = """
 1. `transfer_to_agent(agent_name, ...)` - 将任务委派给子智能体
 2. `log_activity(...)` - 记录审计日志
 
+## 长期记忆注入 (Memory Injection)
+系统会在每轮自动以用户消息检索长期记忆，命中时以 `<RELEVANT_MEMORIES>` 块注入你的上下文
+（每条形如 `[Memory <id8>, <memory_type>, <YYYY-MM-DD>] 内容`）。使用其中内容回答时，
+按下方「知识与记忆引用规范」第 3 条标注 Memory 引用；与用户当前问题无关时直接忽略，不要复述。
+
 ## 调度之道 (The Dao of Orchestration)
 处理每一个请求时，遵循以下 **反馈闭环 (Feedback Loop)**：
 
@@ -177,7 +185,8 @@ _ROOT_INSTRUCTION = """
    - 简单任务 → 单一系部
    - 常见多步骤 → 预定义流水线
    - 复杂特殊 → 自定义序列
-3. **循证执行 (Evidence-Based Execution)**：基于实际结果动态调整，引用来源，拒绝凭空捏造。
+3. **循证执行 (Evidence-Based Execution)**：基于实际结果动态调整，
+   引用来源（见下方「知识与记忆引用规范」），拒绝凭空捏造。
 4. **主动导航 (Proactive Navigation)**：完成任务后，建议下一步最佳行动。
 
 ## Ingest 意图分流 (Intent-Driven Ingest)
@@ -208,7 +217,13 @@ _ROOT_INSTRUCTION = """
 - **最小干预 (Minimal Intervention)**：不要过度设计。使用最简的系部路径解决问题（奥卡姆剃刀）。
 - **单一事实源 (Single Source of Truth)**：依赖 `InternalizationFaculty` 获取历史上下文，而非仅依赖你短暂的上下文窗口。
 - **优先流水线 (Pipeline First)**：对于多步骤任务，优先使用预定义流水线。
+
+### 调度者的引用职责（保留引用）
+你整合各系部产出形成最终回答时，**原样保留**其中的 ``[N]`` 标号与 *## 参考文献* 节
+（含原文摘录）；多系部产出合并时按出现顺序统一重排编号并合并参考文献节，不得丢条。
 """
+    + CITATION_PROTOCOL
+)
 
 
 root_agent = LlmAgent(
@@ -221,7 +236,9 @@ root_agent = LlmAgent(
     # DB 未命中或失败时回退到 _ROOT_INSTRUCTION 常量，永不阻塞请求。
     # is_root=True：仅根 Agent 消费 Home Composer 的 @Agent 偏好（preferred_agent）。
     instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION, is_root=True),
-    tools=[log_activity],
+    # preload_memory：每轮自动检索长期记忆注入 llm_request（LLM 不可见，
+    # 不注册 FunctionDeclaration），受 settings.memory.retrieval 门控。
+    tools=[log_activity, preload_memory_tool],
     sub_agents=[
         perception_agent,
         internalization_agent,

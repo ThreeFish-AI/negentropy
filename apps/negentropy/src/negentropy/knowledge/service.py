@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlparse
 from uuid import UUID
 
 from negentropy.logging import get_logger
+from negentropy.serialization import strip_nul_chars
 
 from .cancellation import (
     get_cancel_event,
@@ -117,7 +118,8 @@ def _extract_source_label(input_data: dict[str, Any]) -> str:
 
 
 # Pipeline 操作类型
-PipelineOperation = str  # "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source"
+PipelineOperation = str  # noqa: E501
+# "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source" | "translate"
 
 # Pipeline 阶段状态
 PipelineStageStatus = str  # "pending" | "running" | "completed" | "failed" | "skipped"
@@ -654,13 +656,26 @@ class KnowledgeService:
         corpus = await self.get_corpus_by_id(corpus_id)
         return corpus.config if corpus and corpus.config else {}
 
+    async def _resolve_extraction_config(
+        self,
+        corpus_id: UUID | None,
+        corpus_config: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """解析提取配置：显式覆盖 > Corpus 配置；库文档（corpus_id=None）必须显式传入。"""
+        if corpus_config is not None:
+            return corpus_config
+        if corpus_id is None:
+            raise ValueError("corpus_config is required when extracting without a corpus (library document)")
+        return await self._get_corpus_config(corpus_id)
+
     async def _extract_url_content(
         self,
         *,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         app_name: str,
         url: str,
         tracker: PipelineTracker | None = None,
+        corpus_config: dict[str, Any] | None = None,
     ) -> tuple[str, ExtractedDocumentResult]:
         """提取 URL 内容，返回 (plain_text, 完整结果)"""
         cancel_event = get_cancel_event(tracker.run_id) if tracker else None
@@ -668,7 +683,7 @@ class KnowledgeService:
             result = await extract_source(
                 app_name=app_name,
                 corpus_id=corpus_id,
-                corpus_config=await self._get_corpus_config(corpus_id),
+                corpus_config=await self._resolve_extraction_config(corpus_id, corpus_config),
                 source_kind=ROUTE_URL,
                 url=url,
                 tracker=tracker,
@@ -702,12 +717,14 @@ class KnowledgeService:
     async def _extract_file_document(
         self,
         *,
-        corpus_id: UUID,
+        corpus_id: UUID | None,
         app_name: str,
         content: bytes,
         filename: str,
         content_type: str | None,
         tracker: PipelineTracker | None = None,
+        resume: bool | None = None,
+        corpus_config: dict[str, Any] | None = None,
     ) -> ExtractedDocumentResult:
         source_kind = resolve_source_kind(filename=filename, content_type=content_type)
 
@@ -731,13 +748,14 @@ class KnowledgeService:
             result = await extract_source(
                 app_name=app_name,
                 corpus_id=corpus_id,
-                corpus_config=await self._get_corpus_config(corpus_id),
+                corpus_config=await self._resolve_extraction_config(corpus_id, corpus_config),
                 source_kind=source_kind,
                 content=content,
                 filename=filename,
                 content_type=content_type,
                 tracker=tracker,
                 cancel_event=cancel_event,
+                resume=resume,
             )
         except Exception as exc:
             self._raise_if_mcp_cancelled(exc, tracker)
@@ -1161,8 +1179,13 @@ class KnowledgeService:
         metadata: dict[str, Any] | None = None,
         chunking_config: ChunkingConfig | None = None,
         document_id: UUID | None = None,
+        resume: bool | None = None,
     ) -> list[KnowledgeRecord]:
-        """执行 ingest_file Pipeline（后台任务）"""
+        """执行 ingest_file Pipeline（后台任务）
+
+        resume: 仅重试场景透传至 perceives——True 断点续传 / False 重新开始 /
+        None 普通 ingest（沿用 perceives 默认）。
+        """
         if not self._pipeline_dao:
             raise ValueError("pipeline_dao is required for async pipeline operations")
 
@@ -1194,6 +1217,7 @@ class KnowledgeService:
                     filename=filename,
                     content_type=content_type,
                     tracker=tracker,
+                    resume=resume,
                 )
                 await tracker.start_stage("extract_gate")
                 text = self._validate_extracted_document(extracted, source_uri=source_uri or filename)
@@ -1298,6 +1322,480 @@ class KnowledgeService:
             await self._fail_pipeline_execution(tracker, exc)
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
             # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+            unregister_cancellable_run(run_id)
+
+    async def execute_import_url_document_pipeline(
+        self,
+        *,
+        run_id: str,
+        app_name: str,
+        url: str,
+        metadata: dict[str, Any] | None = None,
+        user_id: str | None = None,
+    ) -> UUID | None:
+        """执行 import_document (URL) Pipeline（后台任务）
+
+        = ``execute_ingest_url_document_pipeline`` 去掉索引阶段：
+        URL 提取 → 文档库存储（corpus_id=None）→ 来源追踪，**不做** chunk/embed/persist。
+        提取路由取库文档默认配置（``_resolve_library_extractor_config``）。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="import_document",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            operation="import_document",
+            source_type="url",
+            url=url,
+        )
+
+        try:
+            from ._shared import _resolve_library_extractor_config
+
+            extractor_config = await _resolve_library_extractor_config()
+
+            # Stage 1: 提取 URL 内容（extract_resolve / extract_primary / ... 由 extract_source 内部发出）
+            try:
+                text, extraction_result = await self._extract_url_content(
+                    corpus_id=None,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                    corpus_config=extractor_config,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+                from .ingestion.extraction import ExtractorExecutionError
+
+                url_details: dict[str, Any] = {}
+                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
+                    url_details["failure_category"] = "no_extractor_configured"
+                    url_details["diagnostic_summary"] = (
+                        "请配置 Negentropy Perceives MCP 服务，并确保默认 extractor_routes 配置正确。"
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED",
+                    message=f"Failed to fetch content from URL: {exc}",
+                    details=url_details or None,
+                ) from exc
+
+            if not text:
+                raise ValueError("No content extracted from URL")
+
+            # Stage 2: 文档库存储（corpus_id=None）
+            await tracker.start_stage("document_store")
+            from negentropy.storage.service import DocumentStorageService
+
+            from .ingestion.extraction import build_url_document_filename, store_extracted_document_artifacts
+
+            storage_service = DocumentStorageService()
+            raw_name = build_url_document_filename(url)
+            markdown_bytes = extraction_result.markdown_content.encode("utf-8")
+            doc_record, is_new_doc = await storage_service.upload_and_store(
+                corpus_id=None,
+                app_name=app_name,
+                content=markdown_bytes,
+                filename=raw_name,
+                content_type="text/markdown",
+                metadata={
+                    **(metadata or {}),
+                    "source_type": "url",
+                    "origin_url": url,
+                    "title": extraction_result.metadata.get("title"),
+                },
+                created_by=user_id,
+            )
+            # 重写图片链接 → 上传 derived Markdown → 持久化 assets（extract_assets_store 阶段）
+            markdown_gcs_uri, stored_assets = await store_extracted_document_artifacts(
+                document_id=doc_record.id,
+                extracted=extraction_result,
+                tracker=tracker,
+            )
+            await tracker.complete_stage(
+                "document_store",
+                {
+                    "document_id": str(doc_record.id),
+                    "duplicate_document": not is_new_doc,
+                    "markdown_gcs_uri": markdown_gcs_uri,
+                    "stored_assets": len(stored_assets) if stored_assets else 0,
+                },
+            )
+
+            # Stage 3: 来源追踪（best-effort）
+            await tracker.start_stage("source_tracking")
+            try:
+                tracking_ctx = TrackingContext(
+                    tracker_run_id=tracker.run_id,
+                    corpus_id=None,
+                    app_name=app_name,
+                )
+                async with self._repository.session() as db:
+                    await self.source_tracker.track(
+                        db,
+                        document_id=doc_record.id,
+                        result=extraction_result,
+                        source_kind="url",
+                        context=tracking_ctx,
+                    )
+            except Exception as track_exc:
+                logger.warning("source_tracking_failed", error=str(track_exc), exc_info=True)
+            await tracker.complete_stage("source_tracking")
+
+            await tracker.complete(
+                {
+                    "document_id": str(doc_record.id),
+                    "duplicate_document": not is_new_doc,
+                    "markdown_length": len(extraction_result.markdown_content),
+                }
+            )
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                operation="import_document",
+                document_id=str(doc_record.id),
+            )
+            return doc_record.id
+
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return None
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+            return None
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+            unregister_cancellable_run(run_id)
+
+    async def execute_import_file_pipeline(
+        self,
+        *,
+        run_id: str,
+        app_name: str,
+        document_id: UUID,
+        content: bytes,
+        filename: str,
+        content_type: str | None = None,
+        resume: bool | None = None,
+    ) -> UUID | None:
+        """执行 import_document (File) Pipeline（后台任务）
+
+        = ``execute_ingest_file_pipeline`` 去掉索引阶段：文档已在路由层上传至
+        GCS（corpus_id=None），此处仅完成 Markdown 提取与衍生物存储。
+        Markdown 文件走 passthrough（无 MCP），PDF/通用文件经 Perceives MCP 提取。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="import_document",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            operation="import_document",
+            source_type="file",
+            filename=filename,
+            document_id=str(document_id),
+        )
+
+        from negentropy.storage.service import DocumentStorageService
+
+        storage_service = DocumentStorageService()
+
+        try:
+            # 重复导入且 Markdown 已就绪 → 短路完成（run 仍保留在 Pipelines 页）
+            doc = await storage_service.get_document(document_id=document_id, app_name=app_name)
+            if doc is None:
+                raise ValueError(f"Document {document_id} not found during import")
+            if doc.markdown_extract_status == "completed":
+                await tracker.complete(
+                    {
+                        "document_id": str(document_id),
+                        "duplicate_document": True,
+                        "skipped": "markdown_already_extracted",
+                    }
+                )
+                return document_id
+
+            await storage_service.update_markdown_extraction_status(
+                document_id=document_id,
+                status="processing",
+            )
+
+            from ._shared import _resolve_library_extractor_config
+
+            try:
+                extracted = await self._extract_file_document(
+                    corpus_id=None,
+                    app_name=app_name,
+                    content=content,
+                    filename=filename,
+                    content_type=content_type,
+                    tracker=tracker,
+                    resume=resume,
+                    corpus_config=await _resolve_library_extractor_config(),
+                )
+                await tracker.start_stage("extract_gate")
+                self._validate_extracted_document(extracted, source_uri=filename)
+                await tracker.complete_stage(
+                    "extract_gate",
+                    {
+                        "plain_text_length": len(extracted.plain_text),
+                        "markdown_length": len(extracted.markdown_content),
+                        "trace": extracted.trace,
+                    },
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+                from .ingestion.extraction import ExtractorExecutionError
+
+                details: dict[str, Any] = {}
+                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
+                    details["failure_category"] = "no_extractor_configured"
+                    details["diagnostic_summary"] = (
+                        "请配置 Negentropy Perceives MCP 服务，并确保默认 extractor_routes 配置正确。"
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_EXTRACTION_FAILED",
+                    message=f"Failed to extract content: {exc}",
+                    details=details or None,
+                ) from exc
+
+            # 来源追踪（best-effort）
+            await tracker.start_stage("source_tracking")
+            try:
+                source_kind = resolve_source_kind(
+                    source_uri=filename,
+                    filename=filename,
+                    content_type=content_type,
+                )
+                tracking_ctx = TrackingContext(
+                    tracker_run_id=tracker.run_id,
+                    corpus_id=None,
+                    app_name=app_name,
+                )
+                async with self._repository.session() as db:
+                    await self.source_tracker.track(
+                        db,
+                        document_id=document_id,
+                        result=extracted,
+                        source_kind=source_kind,
+                        context=tracking_ctx,
+                    )
+            except Exception as track_exc:
+                logger.warning("source_tracking_failed", error=str(track_exc), exc_info=True)
+            await tracker.complete_stage("source_tracking")
+
+            # Markdown 与资产存储（内部置 markdown_extract_status=completed）
+            from .ingestion.extraction import store_extracted_document_artifacts
+
+            await tracker.start_stage("markdown_store")
+            markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+                document_id=document_id,
+                extracted=extracted,
+                tracker=tracker,
+            )
+            await tracker.complete_stage(
+                "markdown_store",
+                {
+                    "document_id": str(document_id),
+                    "markdown_gcs_uri": markdown_gcs_uri,
+                    "markdown_length": len(extracted.markdown_content),
+                },
+            )
+
+            await tracker.complete(
+                {
+                    "document_id": str(document_id),
+                    "markdown_length": len(extracted.markdown_content),
+                }
+            )
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                operation="import_document",
+                document_id=str(document_id),
+            )
+            return document_id
+
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return None
+        except Exception as exc:
+            # 文档不应停留在 processing 状态（fail-loud 且状态自洽）
+            try:
+                await storage_service.update_markdown_extraction_status(
+                    document_id=document_id,
+                    status="failed",
+                    error=str(exc),
+                )
+            except Exception:
+                logger.warning("import_file_status_update_failed", document_id=str(document_id), exc_info=True)
+            await self._fail_pipeline_execution(tracker, exc)
+            return None
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+            unregister_cancellable_run(run_id)
+
+    async def execute_ingest_document_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        document_id: UUID,
+        chunking_config: ChunkingConfig | None = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 ingest_document Pipeline（后台任务）
+
+        将既有 Document（库文档或任意 Corpus 文档）的已存 Markdown 索引进目标
+        Corpus（≈ ``execute_sync_document_pipeline`` 的索引段，免重提取）。
+        ``persist_mode="replace"`` 以 (corpus, source_uri) 为键幂等替换，
+        不影响同文档在其他 Corpus 的 chunks；文档本体不动。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="ingest_document",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="ingest_document",
+            document_id=str(document_id),
+        )
+
+        try:
+            from .exceptions import KnowledgeError
+
+            # Stage 1: 读取文档已存 Markdown（fail-loud）
+            await tracker.start_stage("download")
+            from negentropy.storage.service import DocumentStorageService
+
+            storage_service = DocumentStorageService()
+            doc = await storage_service.get_document(document_id=document_id, app_name=app_name)
+            if doc is None or doc.status != "active":
+                raise KnowledgeError(
+                    code="DOCUMENT_NOT_FOUND",
+                    message=f"Document {document_id} not found or inactive",
+                )
+            if doc.markdown_extract_status != "completed":
+                raise KnowledgeError(
+                    code="DOCUMENT_MARKDOWN_NOT_READY",
+                    message=(
+                        f"Document markdown is not ready (status={doc.markdown_extract_status}); "
+                        "wait for import/extraction to finish or trigger refresh_markdown."
+                    ),
+                )
+
+            from ._shared import _resolve_document_source_uri
+
+            source_uri = _resolve_document_source_uri(doc)
+            if not source_uri:
+                raise KnowledgeError(
+                    code="INVALID_DOCUMENT_SOURCE",
+                    message=f"Document {document_id} has no resolvable source URI",
+                )
+
+            markdown = await storage_service.get_document_markdown(document_id)
+            if not markdown or not markdown.strip():
+                raise KnowledgeError(
+                    code="DOCUMENT_MARKDOWN_EMPTY",
+                    message=f"Document {document_id} markdown content is empty",
+                )
+            await tracker.complete_stage(
+                "download",
+                {
+                    "document_id": str(document_id),
+                    "markdown_length": len(markdown),
+                    "source_uri": source_uri,
+                },
+            )
+
+            # Stage 2+: chunk / embed / persist（replace 模式原子 DELETE+INSERT）
+            doc_metadata = doc.metadata_ or {}
+            meta = normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={
+                    "document_id": str(document_id),
+                    "source_type": doc_metadata.get("source_type") or "file",
+                    **({"origin_url": source_uri} if doc_metadata.get("source_type") == "url" else {}),
+                    **({"ingested_from_corpus_id": str(doc.corpus_id)} if doc.corpus_id else {}),
+                    "ingest_operation": "ingest_document",
+                },
+            )
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=markdown,
+                source_uri=source_uri,
+                metadata=meta,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+                persist_mode="replace",
+            )
+            deleted_count = int(tracker.get_stage_output("persist").get("replaced_count") or 0) if tracker else 0
+            await tracker.complete(
+                {
+                    "deleted_count": deleted_count,
+                    "chunk_count": len(records),
+                    "document_id": str(document_id),
+                }
+            )
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+                operation="ingest_document",
+                document_id=str(document_id),
+            )
+            return records
+
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
             return []
         finally:
             try:
@@ -1759,6 +2257,68 @@ class KnowledgeService:
                 pass
             unregister_cancellable_run(run_id)
 
+    async def execute_translate_pipeline(
+        self,
+        *,
+        run_id: str,
+        document_id: UUID,
+        target_language: str,
+        app_name: str,
+    ) -> None:
+        """执行 translate Pipeline（后台任务）。
+
+        由 BackgroundTasks 调用，使用已有的 run_id 追踪翻译各阶段执行状态。
+        翻译实际工作委托 DocumentTranslationService，tracker 通过参数透传至
+        服务内部，在 chunking / agent_execution / validation / storing 四个
+        阶段边界记录状态。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="translate",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            document_id=str(document_id),
+            operation="translate",
+        )
+
+        try:
+            from negentropy.knowledge.translation import DocumentTranslationService
+
+            translation_service = DocumentTranslationService()
+            await translation_service.translate_document(
+                document_id=document_id,
+                target_language=target_language,
+                tracker=tracker,
+            )
+            await tracker.complete({"document_id": str(document_id)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                document_id=str(document_id),
+                operation="translate",
+            )
+
+        except PipelineCancelled as cancel_exc:
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+            unregister_cancellable_run(run_id)
+
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
 
@@ -1875,6 +2435,10 @@ class KnowledgeService:
           - ``None``（默认）：按 ``source_uri`` 自动决定 — 非空 → replace，空 → append。
         """
         config = chunking_config or self._chunking_config
+        # 剥离 NUL（\x00）——chunk content 落 Knowledge.content（PostgreSQL text 列不接受 NUL，
+        # asyncpg 写入会抛 UntranslatableCharacterError）；某些 PDF 解析产物会夹带 NUL 字节。
+        # 此为全部摄入路径（file/url/refresh/rebuild）chunk 持久化的单一咽喉点。
+        text = strip_nul_chars(text)
         # Corpus 级 Embedding 模型解析：存在则按需构建 fn，否则回退 service 默认。
         corpus_record = await self._repository.get_corpus_by_id(corpus_id)
         corpus_config_dict: dict[str, Any] | None = dict(corpus_record.config or {}) if corpus_record else None

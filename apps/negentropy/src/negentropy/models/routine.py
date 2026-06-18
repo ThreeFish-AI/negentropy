@@ -27,6 +27,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
@@ -35,6 +36,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -74,7 +76,13 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     # --- 任务定义 ---
     goal: Mapped[str] = mapped_column(Text, nullable=False)
     acceptance_criteria: Mapped[str] = mapped_column(Text, nullable=False)
+    # worktree 模式下 cwd 视为 git 仓库根（Project Path）；引擎据此派生隔离 worktree 作为 CC 实际工作目录。
     cwd: Mapped[str | None] = mapped_column(Text, nullable=True)
+    baseline_branch: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="worktree 基线分支 + PR base；非空即启用隔离工作区与通用 FINALIZE/PR",
+    )
     verification_command: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # --- 生命周期 ---
@@ -107,16 +115,46 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         comment="auto|first|every — 迭代执行前的人工审批级别",
     )
 
+    # --- 相位状态机（仅 config.workflow='phased' 推进三相位；扁平工作流恒为 implement）---
+    current_phase: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="implement",
+        server_default="implement",
+        comment="plan|implement|finalize — 相位状态机指针",
+    )
+    pr_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        comment="FINALIZE 阶段创建的 PR 链接；非空 + succeeded 表示等待人工 Merge",
+    )
+
     # --- 运行期状态（反规范化，加速守卫判定）---
     iteration_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     total_cost_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default="0")
     best_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     claude_session_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # 隔离 worktree 运行期状态（引擎独占管理）：work_branch=本轮创建的工作分支，
+    # worktree_path=隔离 worktree 文件系统路径（= CC 实际 cwd）。终态回收后置空；restart 复位重建。
+    work_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    worktree_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 决策窗口水位线：仅 seq > 此值的迭代参与 decide/审批判定。重启失败 routine 时置为当前
+    # MAX(seq)，使新一轮尝试的停滞/振荡/审批判定不被既往迭代「污染」（旧迭代仍保留供审计）。
+    eval_floor_seq: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     # --- Reflexion 反思记忆 + Claude Code 配置覆盖 ---
     reflections: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+
+    # --- 模板标记 ---
+    is_template: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="true 时本行为 Routine Template，可作为创建 Routine 的模板来源",
+    )
 
     iterations: Mapped[list[RoutineIteration]] = relationship(
         back_populates="routine",
@@ -127,6 +165,7 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     __table_args__ = (
         Index("ix_routines_status", "status"),
         Index("ix_routines_owner", "owner_id"),
+        Index("ix_routines_is_template", "is_template"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -165,6 +204,11 @@ class RoutineIteration(Base, UUIDMixin):
         server_default="dispatched",
         comment="pending_approval|dispatched|in_flight|executed|evaluated|reaped|aborted",
     )
+    phase: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="plan|implement|finalize — 本迭代所属相位（派发时定格）",
+    )
 
     # --- 执行输入 ---
     prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -197,6 +241,11 @@ class RoutineIteration(Base, UUIDMixin):
     metrics: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
 
     routine: Mapped[Routine] = relationship(back_populates="iterations")
+    events: Mapped[list[RoutineIterationEvent]] = relationship(
+        back_populates="iteration",
+        cascade="all, delete-orphan",
+        order_by="RoutineIterationEvent.seq.asc()",
+    )
 
     __table_args__ = (
         UniqueConstraint("routine_id", "seq", name="uq_routine_iterations_seq"),
@@ -206,4 +255,58 @@ class RoutineIteration(Base, UUIDMixin):
     )
 
 
-__all__ = ["Routine", "RoutineIteration"]
+class RoutineIterationEvent(Base, UUIDMixin):
+    """单次迭代内的**动作级**审计事件 — 「全过程」可审计事实流。
+
+    一轮迭代（Execute→Evaluate）内 Claude Code 执行的每个动作（工具调用 ``tool_use`` /
+    工具结果 ``tool_result`` / 中间 ``assistant`` 文本 / 最终 ``result``）以及评估阶段的
+    命令门控（``gate``）与 LLM-as-Judge（``evaluation``）各落一行，按 ``seq`` 顺序还原
+    「全过程」，供事后审计与 Review，并经 SSE ``action`` 事件实时投递。
+
+    设计取舍：
+    - append-only 事件流，仅 ``UUIDMixin`` + 自带 ``created_at``，不写 ``updated_at``。
+    - ``seq`` 在单迭代内单调递增：执行动作由 Runner 在写回时定格 0..N-1；门控/评估由
+      Orchestrator 在迭代翻转 ``evaluated`` 时以 ``MAX(seq)+1`` 追加。所有写入均
+      ``ON CONFLICT (iteration_id, seq) DO NOTHING`` 兜底 reaper/abort/重试竞态。
+    - ``payload`` 为归一化后的结构化载荷（input/output/text/context/meta），单字段截断到
+      ~16KB、单迭代至多 ~1000 条，防 DB 膨胀（截断处保留可见标记）。
+    - 双外键（iteration_id / routine_id）均 ``CASCADE``：随 routine / iteration 删除级联清理。
+    """
+
+    __tablename__ = "routine_iteration_events"
+
+    iteration_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.routine_iterations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    routine_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.routines.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    event_type: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        comment="system|assistant|tool_use|tool_result|result|gate|evaluation",
+    )
+    tool_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    iteration: Mapped[RoutineIteration] = relationship(back_populates="events")
+
+    __table_args__ = (
+        UniqueConstraint("iteration_id", "seq", name="uq_routine_iteration_events_seq"),
+        Index("ix_routine_iteration_events_iter_seq", "iteration_id", "seq"),
+        Index("ix_routine_iteration_events_routine", "routine_id"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+__all__ = ["Routine", "RoutineIteration", "RoutineIterationEvent"]

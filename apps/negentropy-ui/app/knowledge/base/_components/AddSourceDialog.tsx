@@ -7,7 +7,7 @@ import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 // 支持的文件扩展名
 const SUPPORTED_EXTENSIONS = [".txt", ".md", ".markdown", ".pdf"];
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
 
 interface AddSourceDialogProps {
   isOpen: boolean;

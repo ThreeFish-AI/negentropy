@@ -1,37 +1,13 @@
 "use client";
 
-import { useWikiAuth } from "@/lib/auth/wiki-auth";
-
+/**
+ * Wiki 头部右侧操作区 — GitHub 仓库链接
+ *
+ * 用户菜单（登录/登出）已迁至 WikiUserMenu 组件。
+ */
 export function WikiHeaderActions() {
-  const { status, login } = useWikiAuth();
-
   return (
     <div className="wiki-header-actions">
-      {/* Auth zone: only show login for unauthenticated users */}
-      {status === "unauthenticated" && (
-        <button
-          type="button"
-          className="wiki-header-action-btn"
-          onClick={login}
-          title="登录"
-          aria-label="登录"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </button>
-      )}
-
       {/* GitHub */}
       <a
         href="https://github.com/ThreeFish-AI/negentropy"

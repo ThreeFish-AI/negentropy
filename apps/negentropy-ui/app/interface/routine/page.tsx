@@ -8,47 +8,38 @@ import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
-  approveIteration,
+  cleanupWorktree,
   controlRoutine,
-  createRoutine,
   deleteRoutine,
   fetchRoutineDetail,
-  rejectIteration,
-  updateRoutine,
   useRoutineLive,
   useRoutineStream,
 } from "@/features/routine";
 import type {
-  RoutineCreatePayload,
   RoutineDTO,
   RoutineFilters,
-  RoutineUpdatePayload,
 } from "@/features/routine";
 
 import { ClockProvider } from "./_components/ClockProvider";
-import { RoutineDetailDrawer } from "./_components/RoutineDetailDrawer";
+import { RoutineEditDrawer, drawerKey, type DrawerMode } from "./_components/RoutineEditDrawer";
 import { RoutineFilterBar } from "./_components/RoutineFilterBar";
-import { RoutineFleetView } from "./_components/RoutineFleetView";
-import { RoutineFormDialog } from "./_components/RoutineFormDialog";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
-import { PresetPickerDialog } from "./_components/PresetPickerDialog";
-import { RoutineViewToggle, type RoutineView } from "./_components/RoutineViewToggle";
+import { useRestartRoutine } from "./_components/useRestartRoutine";
+import { useTerminateRoutine } from "./_components/useTerminateRoutine";
 
-const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "" };
+const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "", is_template: false };
 
 function RoutinePageInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const view: RoutineView = sp.get("view") === "fleet" ? "fleet" : "table";
   const selId = sp.get("sel");
 
   const [filters, setFilters] = useState<Partial<RoutineFilters>>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<RoutineDTO | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<RoutineDTO | null>(null);
-  const [presetPickerOpen, setPresetPickerOpen] = useState(false);
+  // null = 抽屉关闭；"create" = 新建；否则由 ?sel 派生的 routine-edit。
+  const [createOpen, setCreateOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -58,8 +49,6 @@ function RoutinePageInner() {
     loading,
     error,
     refresh,
-    latestByRoutine,
-    seedLatest,
     applyRoutineEvent,
     applyIterationEvent,
   } = useRoutineLive(filters);
@@ -76,6 +65,18 @@ function RoutinePageInner() {
       // ignore — 抽屉可能已关闭
     }
   }, []);
+
+  // 重启失败 / 取消的 routine（列表行内 + 抽屉共用单一逻辑源）。
+  const { requestRestart, restartDialog } = useRestartRoutine((updated) => {
+    refresh();
+    if (selId === updated.id) void refreshSelected(updated.id);
+  });
+
+  // 终止运行中 / 暂停的 routine（列表行内 + 抽屉共用单一逻辑源）。
+  const { requestTerminate, terminateDialog } = useTerminateRoutine((updated) => {
+    refresh();
+    if (selId === updated.id) void refreshSelected(updated.id);
+  });
 
   // ?sel 派生选中态：URL 变化即加载/清空详情（使浏览器后退 / Esc / 遮罩点击一致关闭）。
   useEffect(() => {
@@ -97,17 +98,6 @@ function RoutinePageInner() {
       cancelled = true;
     };
   }, [selId]);
-
-  // URL 导航助手（依赖 sp/router，仅在路由变化时重建 → 不破坏子组件 memo）。
-  const setView = useCallback(
-    (v: RoutineView) => {
-      const next = new URLSearchParams(sp.toString());
-      if (v === "fleet") next.set("view", "fleet");
-      else next.delete("view");
-      router.replace(`?${next.toString()}`, { scroll: false });
-    },
-    [router, sp],
-  );
 
   const openDetail = useCallback(
     (r: RoutineDTO) => {
@@ -144,12 +134,17 @@ function RoutinePageInner() {
     },
   });
 
+  // 生命周期控制：cancel 路由到确认对话框；其余直接执行。
   const handleControl = async (action: "start" | "pause" | "resume" | "cancel") => {
     if (!selected) return;
+    if (action === "cancel") {
+      requestTerminate(selected);
+      return;
+    }
     setActionBusy(true);
     try {
       const updated = await controlRoutine(selected.id, action);
-      toast.success(`Routine ${{ start: "started", pause: "paused", resume: "resumed", cancel: "cancelled" }[action]}`);
+      toast.success(`Routine ${{ start: "started", pause: "paused", resume: "resumed" }[action]}`);
       await refreshSelected(updated.id);
       refresh();
     } catch (err) {
@@ -157,44 +152,6 @@ function RoutinePageInner() {
     } finally {
       setActionBusy(false);
     }
-  };
-
-  const handleApprove = async (iterationId: string) => {
-    if (!selected) return;
-    setActionBusy(true);
-    try {
-      await approveIteration(selected.id, iterationId);
-      toast.success("Iteration approved");
-      await refreshSelected(selected.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to approve");
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  const handleReject = async (iterationId: string) => {
-    if (!selected) return;
-    setActionBusy(true);
-    try {
-      await rejectIteration(selected.id, iterationId);
-      toast.success("Iteration rejected");
-      await refreshSelected(selected.id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to reject");
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  const handleCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-
-  const handleEdit = (r: RoutineDTO) => {
-    setEditing(r);
-    setFormOpen(true);
   };
 
   const handleDelete = async (r: RoutineDTO) => {
@@ -221,23 +178,34 @@ function RoutinePageInner() {
     }
   };
 
-  const handleFormSubmit = async (
-    mode: "create" | "edit",
-    id: string | null,
-    body: RoutineCreatePayload | RoutineUpdatePayload,
-  ) => {
-    if (mode === "create") {
-      const created = await createRoutine(body as RoutineCreatePayload);
-      toast.success("Routine created");
-      setFormOpen(false);
+  const handleCleanupWorktree = async (r: RoutineDTO) => {
+    try {
+      await cleanupWorktree(r.id);
+      toast.success("Worktree cleaned up");
       refresh();
-      openDetail(created);
-    } else if (mode === "edit" && id) {
-      const updated = await updateRoutine(id, body as RoutineUpdatePayload);
-      toast.success("Routine updated");
-      setFormOpen(false);
+      if (selId === r.id) void refreshSelected(r.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clean up worktree");
+    }
+  };
+
+  // 统一抽屉 mode：新建优先；否则由 ?sel 派生的选中态进入 routine-edit。
+  const drawerMode: DrawerMode | null = createOpen
+    ? { kind: "routine-create" }
+    : selected
+      ? { kind: "routine-edit", routine: selected }
+      : null;
+
+  // 创建成功 → 关新建抽屉、刷新列表、打开新建任务详情（routine-edit）。
+  // 编辑保存 → 仅刷新列表与选中详情，抽屉保持打开（草稿基线由抽屉自身重置）。
+  const handleSaved = (result: RoutineDTO, kind: DrawerMode["kind"]) => {
+    if (kind === "routine-create") {
+      setCreateOpen(false);
       refresh();
-      await refreshSelected(updated.id);
+      openDetail(result);
+    } else {
+      refresh();
+      void refreshSelected(result.id);
     }
   };
 
@@ -247,58 +215,46 @@ function RoutinePageInner() {
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={handleCreate} onFromPreset={() => setPresetPickerOpen(true)} />
+            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} />
 
             {error && <ErrorBanner message={error} />}
 
             <RoutineKpiStrip kpis={kpis} loading={loading} />
 
-            <div className="flex flex-wrap items-center gap-3">
-              <RoutineViewToggle view={view} onChange={setView} />
-              <div className="min-w-[200px] flex-1">
-                <RoutineFilterBar filters={filters} onChange={setFilters} />
-              </div>
+            <div className="min-w-[200px]">
+              <RoutineFilterBar filters={filters} onChange={setFilters} />
             </div>
 
-            {view === "table" ? (
-              <RoutineTable routines={routines} loading={loading} onSelect={openDetail} />
-            ) : (
-              <RoutineFleetView
-                routines={routines}
-                latestByRoutine={latestByRoutine}
-                loading={loading}
-                seedLatest={seedLatest}
-                onOpenDetail={openDetail}
-                onOpenFull={openFull}
-              />
-            )}
-
-            {selected && (
-              <RoutineDetailDrawer
-                routine={selected}
-                onClose={closeDetail}
-                onOpenFull={() => openFull(selected)}
-                onControl={handleControl}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onApproveIteration={handleApprove}
-                onRejectIteration={handleReject}
-                busy={actionBusy}
-              />
-            )}
+            <RoutineTable
+              routines={routines}
+              loading={loading}
+              onSelect={openDetail}
+              onOpenFull={openFull}
+              onRestart={requestRestart}
+              onTerminate={requestTerminate}
+              onCleanupWorktree={handleCleanupWorktree}
+            />
           </div>
         </ClockProvider>
       </div>
 
-      <RoutineFormDialog open={formOpen} routine={editing} onClose={() => setFormOpen(false)} onSubmit={handleFormSubmit} />
-
-      <PresetPickerDialog
-        open={presetPickerOpen}
-        onClose={() => setPresetPickerOpen(false)}
-        onCreated={() => { refresh(); }}
-      />
+      {drawerMode && (
+        <RoutineEditDrawer
+          key={drawerKey(drawerMode)}
+          mode={drawerMode}
+          onClose={() => (createOpen ? setCreateOpen(false) : closeDetail())}
+          onSaved={handleSaved}
+          onControl={handleControl}
+          onRestart={requestRestart}
+          onDelete={(target) => handleDelete(target as RoutineDTO)}
+          onOpenFull={openFull}
+          busy={actionBusy}
+        />
+      )}
 
       {confirmDialog}
+      {restartDialog}
+      {terminateDialog}
     </div>
   );
 }

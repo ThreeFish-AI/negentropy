@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import shutil
+
 from negentropy.logging import get_logger
 
 from . import HandlerDescriptor, HandlerResult, PayloadField, register_descriptor, register_handler
@@ -91,6 +93,7 @@ async def _load_claude_code_defaults():
     from sqlalchemy import select
 
     from negentropy.db.session import AsyncSessionLocal
+    from negentropy.engine.claude_code.credentials import resolve_claude_code_credential
     from negentropy.engine.claude_code.models import ClaudeCodeConfig
     from negentropy.models.builtin_tool import BuiltinTool
 
@@ -106,17 +109,28 @@ async def _load_claude_code_defaults():
         result = await db.execute(stmt)
         tool = result.scalar_one_or_none()
 
+    # 单一汇聚点：解析注入子进程的真实 Anthropic 凭证（UI credentials > 环境变量 > None）。
+    # 此处一改即覆盖 scheduler handler 与 orchestrator._build_config 两条派发路径。
+    credential = resolve_claude_code_credential(tool.credentials if tool else None)
+
     if tool:
         cfg = tool.config or {}
+        raw_cli = cfg.get("cli_path", "claude")
+        # 将裸名解析为绝对路径，消除子进程对 PATH 的依赖
+        resolved_cli = shutil.which(raw_cli) or raw_cli
         return ClaudeCodeConfig(
-            cli_path=cfg.get("cli_path", "claude"),
+            cli_path=resolved_cli,
             model=cfg.get("model"),
             system_prompt=cfg.get("system_prompt"),
             allowed_tools=cfg.get("allowed_tools"),
+            disallowed_tools=cfg.get("disallowed_tools"),
             cwd=cfg.get("cwd") or cfg.get("default_cwd"),
-            max_turns=cfg.get("max_turns", 20),
+            max_turns=cfg.get("max_turns", 500),
             timeout_seconds=float(cfg.get("timeout_seconds", 300.0)),
             permission_mode=cfg.get("permission_mode", "auto"),
             mcp_config=cfg.get("mcp_config"),
+            credential=credential,
         )
-    return ClaudeCodeConfig()
+    # 无 DB 配置时，尝试解析默认 "claude" 为绝对路径
+    default_cli = shutil.which("claude") or "claude"
+    return ClaudeCodeConfig(cli_path=default_cli, credential=credential)

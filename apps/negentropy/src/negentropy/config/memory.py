@@ -130,6 +130,23 @@ class RelevanceSettings(BaseSettings):
     reweight_interval_seconds: int = Field(default=3600, ge=60, description="周期性反馈聚合间隔（秒）")
 
 
+class RetrievalSettings(BaseSettings):
+    """主链路记忆检索接入（Preload 自动注入）。
+
+    控制 root Agent 每轮对话自动以用户消息检索长期记忆并注入
+    ``<RELEVANT_MEMORIES>`` 块的行为（见 ``agents/tools/memory.py``）。
+
+    成本提示：``PostgresMemoryService`` 接线 embedding_fn 后，每轮 preload
+    为一次 embedding 调用 + hybrid SQL；未接线时为 BM25/ilike 纯 SQL。
+    """
+
+    model_config = SettingsConfigDict(extra="ignore", frozen=True)
+
+    preload_enabled: bool = Field(default=True, description="root Agent 每轮自动检索长期记忆并注入 prompt")
+    preload_top_k: int = Field(default=5, ge=1, le=20, description="注入记忆条数上限")
+    preload_max_chars: int = Field(default=4000, ge=200, description="注入块字符预算（约 1-2K tokens）")
+
+
 class MemorySettings(BaseSettings):
     """Memory 子系统配置 — Phase 5+ 高级特性。"""
 
@@ -146,6 +163,7 @@ class MemorySettings(BaseSettings):
     pii: PIISettings = Field(default_factory=PIISettings)
     observability: MemoryObservabilitySettings = Field(default_factory=MemoryObservabilitySettings)
     relevance: RelevanceSettings = Field(default_factory=RelevanceSettings)
+    retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
 
     @classmethod
     def settings_customise_sources(
@@ -175,4 +193,5 @@ __all__ = [
     "PIISettings",
     "MemoryObservabilitySettings",
     "RelevanceSettings",
+    "RetrievalSettings",
 ]

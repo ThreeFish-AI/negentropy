@@ -25,10 +25,12 @@ export interface BaseDrawerProps {
   children: ReactNode;
   title?: ReactNode;
   subtitle?: ReactNode;
+  /** 标题栏右侧、关闭按钮左侧的额外操作区（如 "Full View" 链接）。 */
+  headerActions?: ReactNode;
   footer?: ReactNode;
   /** 滑出方向。默认 right。 */
   side?: "right" | "left";
-  /** 面板宽度类（如 "max-w-md" / "w-[480px]"）。默认 max-w-md。 */
+  /** 面板宽度类。默认 [width:clamp(480px,66.67%,1100px)]（最小 480px / 理想视口 2/3 / 最大 1100px）。 */
   widthClassName?: string;
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
@@ -44,9 +46,10 @@ export function BaseDrawer({
   children,
   title,
   subtitle,
+  headerActions,
   footer,
   side = "right",
-  widthClassName = "max-w-md",
+  widthClassName = "[width:clamp(480px,66.67%,1100px)]",
   closeOnBackdrop = true,
   closeOnEscape = true,
   showClose = true,
@@ -92,7 +95,7 @@ export function BaseDrawer({
             aria-labelledby={title ? titleId : undefined}
             tabIndex={-1}
             className={cn(
-              "relative flex h-full w-full flex-col bg-card shadow-xl outline-none",
+              "relative flex h-full flex-col bg-card shadow-xl outline-none",
               side === "right"
                 ? "border-l border-border"
                 : "border-r border-border",
@@ -115,6 +118,11 @@ export function BaseDrawer({
                     <p className="text-sm leading-caption text-text-muted">{subtitle}</p>
                   ) : null}
                 </div>
+                {headerActions ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    {headerActions}
+                  </div>
+                ) : null}
                 {showClose ? (
                   <Button
                     iconOnly

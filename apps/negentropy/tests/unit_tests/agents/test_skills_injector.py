@@ -26,6 +26,8 @@ from negentropy.agents.skills_injector import (
     format_skill_invocation,
     format_skill_resources,
     format_skills_block,
+    merge_skills,
+    resolve_global_skills,
     resolve_skills,
     validate_required_tools,
 )
@@ -420,3 +422,70 @@ def test_format_skill_invocation_appends_resources_eager():
     out = format_skill_invocation(skill, variables={"q": "hi"})
     assert "run query=hi" in out
     assert "<skill_resources>" in out
+
+
+# ============================================================================
+# 全局技能（is_global）— resolve_global_skills / merge_skills / 安全不变量
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_resolve_global_skills_includes_public_and_forces_warning():
+    """全局技能：PUBLIC 可见，且输出 enforcement 一律 warning（即便源带 strict 语义）。"""
+    pub = _skill(name="global-pub", owner="owner-X", visibility=PluginVisibility.PUBLIC)
+    session = _FakeSession([pub])
+    out = await resolve_global_skills(session, owner_id="owner-A")
+    assert {s.name for s in out} == {"global-pub"}
+    # 安全不变量：全局注入恒 warning，绝不因缺工具阻塞 Agent 启动。
+    assert out[0].enforcement_mode == "warning"
+
+
+@pytest.mark.asyncio
+async def test_resolve_global_skills_includes_owner_match_and_skips_other_private():
+    """owner 匹配的私有全局技能纳入；他人私有的不可见。"""
+    mine = _skill(name="mine-priv", owner="owner-A", visibility=PluginVisibility.PRIVATE)
+    others = _skill(name="theirs-priv", owner="owner-X", visibility=PluginVisibility.PRIVATE)
+    session = _FakeSession([mine, others])
+    out = await resolve_global_skills(session, owner_id="owner-A")
+    assert {s.name for s in out} == {"mine-priv"}
+
+
+@pytest.mark.asyncio
+async def test_resolve_global_skills_empty_session_returns_empty():
+    session = _FakeSession([])
+    assert await resolve_global_skills(session, owner_id="owner-A") == []
+
+
+def test_merge_skills_dedups_by_name_explicit_first():
+    explicit = _resolved(name="dup", template="EXPLICIT")
+    glob = _resolved(name="dup", template="GLOBAL")
+    other = _resolved(name="extra")
+    merged = merge_skills([explicit], [glob, other])
+    # 同名仅保留先出现者（显式 > 全局）；额外的全局技能并入。
+    assert [s.name for s in merged] == ["dup", "extra"]
+    assert next(s for s in merged if s.name == "dup").prompt_template == "EXPLICIT"
+
+
+def test_merge_skills_preserves_first_seen_order():
+    a = _resolved(name="a")
+    b = _resolved(name="b")
+    c = _resolved(name="c")
+    merged = merge_skills([a], [b, c, a])
+    assert [s.name for s in merged] == ["a", "b", "c"]
+
+
+@pytest.mark.asyncio
+async def test_global_skill_missing_tools_does_not_block_agent_startup():
+    """安全不变量回归：全局技能即便 required_tools 缺失，也不得抛 SkillToolMissingError。
+
+    resolve_global_skills 强制 warning → build_progressive_disclosure_prompt 仅记日志而非
+    阻断；这保证缺工具的内置 Agent（一核五翼）不会因全局技能而退化为无 system prompt。
+    """
+    needs_tools = _skill(name="global-needs-tools", owner="owner-X", visibility=PluginVisibility.PUBLIC)
+    needs_tools.required_tools = ["parse_pdf_to_markdown", "ingest_to_corpus"]
+    session = _FakeSession([needs_tools])
+    resolved = await resolve_global_skills(session, owner_id="owner-A")
+    # 不抛错（agent_tools 为空，全部 required 缺失）
+    out = build_progressive_disclosure_prompt("You are Faculty.", resolved, agent_tools=[])
+    assert "<available_skills>" in out
+    assert "global-needs-tools" in out

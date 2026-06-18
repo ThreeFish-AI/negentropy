@@ -7,6 +7,7 @@ Interface API 模块。
 from __future__ import annotations
 
 import json
+import shutil
 import time as _mcp_time
 from asyncio import Lock as _AsyncLock
 from datetime import UTC, datetime
@@ -131,6 +132,7 @@ class BuiltinToolResponse(BaseModel):
     config_schema: dict[str, Any] = Field(default_factory=dict)
     is_enabled: bool
     is_system: bool = False
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -208,6 +210,7 @@ def _builtin_tool_to_response(tool: BuiltinTool) -> BuiltinToolResponse:
         config_schema=ensure_dict(tool.config_schema),
         is_enabled=tool.is_enabled,
         is_system=tool.is_system,
+        sort_order=getattr(tool, "sort_order", 0),
     )
 
 
@@ -267,6 +270,9 @@ class McpServerResponse(BaseModel):
     resource_template_count: int = 0
     # 「系统内置」统一对外字段，前端据此渲染 Built-In 徽标 + 隐藏 Edit/Delete。
     is_builtin: bool = False
+    # MCP 配置来源：db（系统 MCP 目录）、mcp_json（项目 .mcp.json 原生配置）、both（两者均有）。
+    source: str = "db"
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -416,6 +422,8 @@ class SkillCreateRequest(BaseModel):
     visibility: str = "private"
     enforcement_mode: str = "warning"
     resources: list[dict[str, Any]] = Field(default_factory=list)
+    # 全局技能：TRUE 时自动注入全系统所有 Agent 的 Progressive Disclosure（见 skills_injector）。
+    is_global: bool = False
 
 
 class SkillUpdateRequest(BaseModel):
@@ -433,6 +441,7 @@ class SkillUpdateRequest(BaseModel):
     visibility: str | None = None
     enforcement_mode: str | None = None
     resources: list[dict[str, Any]] | None = None
+    is_global: bool | None = None
 
 
 class SkillResponse(BaseModel):
@@ -454,6 +463,9 @@ class SkillResponse(BaseModel):
     resources: list[dict[str, Any]] = Field(default_factory=list)
     # 「系统内置」统一对外字段，与 MCP/Agent/Tool 字段保持一致。
     is_builtin: bool = False
+    # 「全局技能」：TRUE 时自动注入全系统所有 Agent；前端据此渲染 Global 徽章。
+    is_global: bool = False
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -564,6 +576,15 @@ class AgentUpdateRequest(BaseModel):
     confirm_builtin_rename: bool | None = False
 
 
+class AgentReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class AgentReorderRequest(BaseModel):
+    items: list[AgentReorderItem]
+
+
 class AgentResponse(BaseModel):
     id: UUID
     owner_id: str
@@ -584,6 +605,7 @@ class AgentResponse(BaseModel):
     # `kind` 来源于 ``config.adk_config.kind``：``"root"`` 标记 Negentropy 主 Agent，
     # ``"agent"``（默认）适用于 Faculty 与用户自定义 Agent。前端按此置顶 + Root 徽章。
     kind: str = "agent"
+    sort_order: int = 0
 
     class Config:
         from_attributes = True
@@ -726,42 +748,72 @@ async def _mcp_load_throttle_or_snapshot(db, server_id: UUID) -> LoadToolsRespon
 
 
 @router.get("/mcp/servers", response_model=list[McpServerResponse])
-async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> list[McpServerResponse]:
-    """列出用户可见的 MCP 服务器"""
+async def list_mcp_servers(
+    user: AuthUser = Depends(get_current_user),
+    project_path: str | None = Query(None, alias="projectPath"),
+) -> list[McpServerResponse]:
+    """列出用户可见的 MCP 服务器，可选合并项目 ``.mcp.json`` 中定义的服务器。"""
+    # ---- 1. DB 注册服务器 ----
+    db_servers: list[McpServerResponse] = []
+    db_names: set[str] = set()
+
     async with AsyncSessionLocal() as db:
         visible_ids = await get_visible_plugin_ids(db, "mcp_server", user)
-        if not visible_ids:
-            return []
+        if visible_ids:
+            # tool_count 与 resource_template_count 分两段查询：避免单条 SQL 的
+            # JOIN 笛卡尔积导致两类计数互相膨胀。
+            tool_count_stmt = (
+                select(McpTool.server_id, func.count(McpTool.id))
+                .where(McpTool.server_id.in_(visible_ids))
+                .group_by(McpTool.server_id)
+            )
+            tool_count_rows = (await db.execute(tool_count_stmt)).all()
+            tool_count_map: dict[UUID, int] = {row[0]: row[1] for row in tool_count_rows}
 
-        # tool_count 与 resource_template_count 分两段查询：避免单条 SQL 的
-        # JOIN 笛卡尔积导致两类计数互相膨胀。
-        tool_count_stmt = (
-            select(McpTool.server_id, func.count(McpTool.id))
-            .where(McpTool.server_id.in_(visible_ids))
-            .group_by(McpTool.server_id)
-        )
-        tool_count_rows = (await db.execute(tool_count_stmt)).all()
-        tool_count_map: dict[UUID, int] = {row[0]: row[1] for row in tool_count_rows}
+            template_count_stmt = (
+                select(McpResourceTemplate.server_id, func.count(McpResourceTemplate.id))
+                .where(McpResourceTemplate.server_id.in_(visible_ids))
+                .group_by(McpResourceTemplate.server_id)
+            )
+            template_count_rows = (await db.execute(template_count_stmt)).all()
+            template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
 
-        template_count_stmt = (
-            select(McpResourceTemplate.server_id, func.count(McpResourceTemplate.id))
-            .where(McpResourceTemplate.server_id.in_(visible_ids))
-            .group_by(McpResourceTemplate.server_id)
-        )
-        template_count_rows = (await db.execute(template_count_stmt)).all()
-        template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
+            servers_stmt = (
+                select(McpServer)
+                .where(McpServer.id.in_(visible_ids))
+                .order_by(
+                    McpServer.sort_order.asc(),
+                    McpServer.created_at.desc(),
+                )
+            )
+            servers = (await db.execute(servers_stmt)).scalars().all()
 
-        servers_stmt = select(McpServer).where(McpServer.id.in_(visible_ids)).order_by(McpServer.created_at.desc())
-        servers = (await db.execute(servers_stmt)).scalars().all()
+            db_servers = [
+                _mcp_server_to_response(
+                    s,
+                    tool_count_map.get(s.id, 0),
+                    template_count_map.get(s.id, 0),
+                )
+                for s in servers
+            ]
+            db_names = {s.name for s in servers}
 
-    return [
-        _mcp_server_to_response(
-            server,
-            tool_count_map.get(server.id, 0),
-            template_count_map.get(server.id, 0),
-        )
-        for server in servers
+    # ---- 2. .mcp.json 原生配置（可选） ----
+    from negentropy.interface.mcp_config_resolver import read_mcp_json
+
+    mcp_json_servers = read_mcp_json(project_path)
+
+    # 标记 DB 服务器中同时存在于 .mcp.json 的为 "both"
+    for srv in db_servers:
+        if srv.name in mcp_json_servers:
+            srv.source = "both"
+
+    # 合并 .mcp.json 独有的服务器（DB 中不存在）
+    mcp_json_only = [
+        _mcp_json_server_to_response(name, config) for name, config in mcp_json_servers.items() if name not in db_names
     ]
+
+    return db_servers + mcp_json_only
 
 
 @router.post("/mcp/servers", response_model=McpServerResponse, status_code=status.HTTP_201_CREATED)
@@ -880,6 +932,78 @@ async def delete_mcp_server(
         await db.commit()
 
 
+# ── MCP Server Reorder ──
+
+
+class McpServerReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class McpServerReorderRequest(BaseModel):
+    items: list[McpServerReorderItem]
+
+
+@router.patch("/mcp/servers/reorder", response_model=list[McpServerResponse])
+async def reorder_mcp_servers(
+    payload: McpServerReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[McpServerResponse]:
+    """批量更新 MCP Server 排序序号。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "mcp_server", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for MCP server {item.id}")
+
+        # 批量查询所有目标 server，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(McpServer).where(McpServer.id.in_(target_ids)))
+        server_map = {s.id: s for s in result.scalars().all()}
+        for item in payload.items:
+            server = server_map.get(item.id)
+            if server:
+                server.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(McpServer)
+            .where(McpServer.id.in_(visible_ids))
+            .order_by(McpServer.sort_order.asc(), McpServer.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        servers = result.scalars().all()
+
+        # 计算每个 server 的 tool_count 和 resource_template_count
+        resp_list: list[McpServerResponse] = []
+        for s in servers:
+            tc = await _get_tool_count(db, s.id)
+            rtc = await _get_resource_template_count(db, s.id)
+            resp_list.append(_mcp_server_to_response(s, tc, rtc))
+        return resp_list
+
+
+async def _get_tool_count(db, server_id: UUID) -> int:
+    from sqlalchemy import func as sa_func
+
+    cnt = await db.scalar(select(sa_func.count()).select_from(McpTool).where(McpTool.server_id == server_id))
+    return cnt or 0
+
+
+async def _get_resource_template_count(db, server_id: UUID) -> int:
+    from sqlalchemy import func as sa_func
+
+    cnt = await db.scalar(
+        select(sa_func.count()).select_from(McpResourceTemplate).where(McpResourceTemplate.server_id == server_id)
+    )
+    return cnt or 0
+
+
 def _mcp_server_to_response(
     server: McpServer,
     tool_count: int,
@@ -905,6 +1029,37 @@ def _mcp_server_to_response(
         resource_template_count=resource_template_count or 0,
         # 显式列优先；旧库未迁移到 0033 时回退 owner_id 前缀，与 permissions 模块保持一致。
         is_builtin=bool(getattr(server, "is_system", False)) or (server.owner_id or "").startswith("system"),
+        sort_order=getattr(server, "sort_order", 0),
+    )
+
+
+def _mcp_json_server_to_response(name: str, config: dict[str, Any]) -> McpServerResponse:
+    """将 ``.mcp.json`` 中的单条服务器配置转换为 ``McpServerResponse``。
+
+    使用 ``UUID(int=0)`` 哨兵值标记「无 DB 记录」，前端据此跳过 tools 获取。
+    """
+    from negentropy.interface.mcp_config_resolver import derive_transport_type
+
+    return McpServerResponse(
+        id=UUID(int=0),
+        owner_id="",
+        visibility="private",
+        name=name,
+        display_name=None,
+        description="Auto-discovered from .mcp.json",
+        transport_type=derive_transport_type(config),
+        command=config.get("command"),
+        args=config.get("args", []),
+        env={},
+        url=config.get("url"),
+        headers={},
+        is_enabled=True,
+        auto_start=False,
+        config={},
+        tool_count=0,
+        resource_template_count=0,
+        is_builtin=False,
+        source="mcp_json",
     )
 
 
@@ -1434,7 +1589,14 @@ async def list_builtin_tools(
         if not visible_ids:
             return []
 
-        stmt = select(BuiltinTool).where(BuiltinTool.id.in_(visible_ids)).order_by(BuiltinTool.created_at.desc())
+        stmt = (
+            select(BuiltinTool)
+            .where(BuiltinTool.id.in_(visible_ids))
+            .order_by(
+                BuiltinTool.sort_order.asc(),
+                BuiltinTool.created_at.desc(),
+            )
+        )
         result = await db.execute(stmt)
         tools = result.scalars().all()
 
@@ -1519,6 +1681,18 @@ async def update_builtin_tool(
             update_data["credentials"] = _merge_masked_credentials(
                 update_data["credentials"], ensure_dict(tool.credentials)
             )
+        # 校验 claude_code 类型工具的 cli_path 合法性
+        if tool.tool_type == "claude_code" and "config" in update_data:
+            new_config = update_data["config"]
+            if isinstance(new_config, dict) and "cli_path" in new_config:
+                cli_val = new_config["cli_path"]
+                if isinstance(cli_val, str) and cli_val.strip():
+                    if not shutil.which(cli_val):
+                        raise HTTPException(
+                            status_code=422,
+                            detail=f"cli_path '{cli_val}' not found in PATH — "
+                            f"ensure Claude Code CLI is installed and the path is correct",
+                        )
         for field, value in update_data.items():
             setattr(tool, field, value)
 
@@ -1552,6 +1726,58 @@ async def delete_builtin_tool(
         await db.commit()
 
     invalidate_tool_cache(tool_name)
+
+
+# ── BuiltinTool Reorder ──
+
+
+class BuiltinToolReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class BuiltinToolReorderRequest(BaseModel):
+    items: list[BuiltinToolReorderItem]
+
+
+@router.patch("/tools/reorder", response_model=list[BuiltinToolResponse])
+async def reorder_builtin_tools(
+    payload: BuiltinToolReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[BuiltinToolResponse]:
+    """批量更新 Tool 排序序号。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for tool {item.id}")
+
+        # 批量查询所有目标 tool，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(BuiltinTool).where(BuiltinTool.id.in_(target_ids)))
+        tool_map = {t.id: t for t in result.scalars().all()}
+        for item in payload.items:
+            tool = tool_map.get(item.id)
+            if tool:
+                tool.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(BuiltinTool)
+            .where(BuiltinTool.id.in_(visible_ids))
+            .order_by(
+                BuiltinTool.sort_order.asc(),
+                BuiltinTool.created_at.desc(),
+            )
+        )
+        result = await db.execute(stmt)
+        tools = result.scalars().all()
+        return [_builtin_tool_to_response(t) for t in tools]
 
 
 @router.post("/tools/{tool_id}:test", response_model=BuiltinToolTestResponse)
@@ -1617,13 +1843,16 @@ async def test_builtin_tool(
             return BuiltinToolTestResponse(success=False, message=f"Connection failed: {exc}")
 
     if tool.tool_type == "claude_code":
+        from negentropy.engine.claude_code.credentials import resolve_claude_code_credential
         from negentropy.engine.claude_code.models import ClaudeCodeConfig
         from negentropy.engine.claude_code.service import ClaudeCodeService
 
         cc_config = ClaudeCodeConfig(
             cli_path=config.get("cli_path", "claude"),
             model=config.get("model"),
-            timeout_seconds=15.0,
+            timeout_seconds=300.0,
+            # 注入真实 Anthropic 凭证（UI credentials > 环境变量），令未保存即测试也走真实凭证。
+            credential=resolve_claude_code_credential(credentials),
         )
         result = await ClaudeCodeService.test_connection(cc_config)
         latency = result.get("latency_ms")
@@ -1655,7 +1884,7 @@ async def list_skills(
         stmt = select(Skill).where(Skill.id.in_(visible_ids))
         if category:
             stmt = stmt.where(Skill.category == category)
-        stmt = stmt.order_by(Skill.priority.desc(), Skill.created_at.desc())
+        stmt = stmt.order_by(Skill.sort_order.asc(), Skill.priority.desc(), Skill.created_at.desc())
         result = await db.execute(stmt)
         skills = result.scalars().all()
 
@@ -1691,6 +1920,7 @@ async def create_skill(
             if payload.enforcement_mode in ("warning", "strict")
             else "warning",
             resources=payload.resources or [],
+            is_global=bool(payload.is_global),
         )
         db.add(skill)
         await db.commit()
@@ -1702,6 +1932,8 @@ async def create_skill(
         except Exception as exc:
             logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
+    if skill.is_global:
+        _invalidate_global_skill_caches()
     return _skill_to_response(skill)
 
 
@@ -1722,6 +1954,7 @@ def _build_initial_version(skill: Skill) -> SkillVersion:
             "priority": skill.priority,
             "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
             "resources": skill.resources,
+            "is_global": bool(getattr(skill, "is_global", False)),
         },
     )
 
@@ -1801,6 +2034,7 @@ async def create_skill_from_template(
             priority=tpl.priority,
             enforcement_mode=tpl.enforcement_mode,
             resources=tpl.resources,
+            is_global=bool(getattr(tpl, "is_global", False)),
         )
         db.add(skill)
         await db.commit()
@@ -1812,6 +2046,8 @@ async def create_skill_from_template(
         except Exception as exc:
             logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
+    if skill.is_global:
+        _invalidate_global_skill_caches()
     return _skill_to_response(skill)
 
 
@@ -1892,6 +2128,7 @@ async def update_skill(
                     "priority": skill.priority,
                     "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
                     "resources": skill.resources,
+                    "is_global": bool(getattr(skill, "is_global", False)),
                 }
                 existing = await db.scalar(
                     select(SkillVersion).where(
@@ -1917,6 +2154,9 @@ async def update_skill(
         await db.commit()
         await db.refresh(skill)
 
+    # 全局技能字段或当前为全局技能 → 失效缓存（含关闭 is_global 的情形）。
+    if skill.is_global or "is_global" in update_data:
+        _invalidate_global_skill_caches()
     return _skill_to_response(skill)
 
 
@@ -2172,8 +2412,61 @@ async def delete_skill(
         skill = await db.get(Skill, skill_id)
         if not skill:
             raise HTTPException(status_code=404, detail="Skill not found")
+        was_global = bool(getattr(skill, "is_global", False))
         await db.delete(skill)
         await db.commit()
+
+    if was_global:
+        _invalidate_global_skill_caches()
+
+
+# ── Skill Reorder ──
+
+
+class SkillReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class SkillReorderRequest(BaseModel):
+    items: list[SkillReorderItem]
+
+
+@router.patch("/skills/reorder", response_model=list[SkillResponse])
+async def reorder_skills(
+    payload: SkillReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillResponse]:
+    """批量更新 Skill 排序序号。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "skill", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for skill {item.id}")
+
+        # 批量查询所有目标 skill，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(Skill).where(Skill.id.in_(target_ids)))
+        skill_map = {s.id: s for s in result.scalars().all()}
+        for item in payload.items:
+            skill = skill_map.get(item.id)
+            if skill:
+                skill.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(Skill)
+            .where(Skill.id.in_(visible_ids))
+            .order_by(Skill.sort_order.asc(), Skill.priority.desc(), Skill.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        skills = result.scalars().all()
+        return [_skill_to_response(s) for s in skills]
 
 
 def _skill_to_response(skill: Skill) -> SkillResponse:
@@ -2195,7 +2488,25 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
         resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
         is_builtin=bool(getattr(skill, "is_system", False)) or (skill.owner_id or "").startswith("system"),
+        is_global=bool(getattr(skill, "is_global", False)),
+        sort_order=getattr(skill, "sort_order", 0),
     )
+
+
+def _invalidate_global_skill_caches() -> None:
+    """全局技能写操作后清缓存，实现强一致（否则最长 60s TTL 后才生效）。
+
+    清两处：``skills_injector`` 的全局块缓存（fallback 路径）+ ``model_resolver``
+    的 ``subagent:`` 指令缓存（DB 路径已把全局块嵌入指令文本）。fail-soft。
+    """
+    try:
+        from negentropy.agents.skills_injector import invalidate_global_skills_cache
+        from negentropy.config.model_resolver import invalidate_cache
+
+        invalidate_global_skills_cache()
+        invalidate_cache(prefix="subagent:")
+    except Exception as exc:  # pragma: no cover - 缓存失效兜底
+        logger.warning("invalidate_global_skill_caches_failed", error=str(exc))
 
 
 # =============================================================================
@@ -2403,11 +2714,39 @@ async def list_agents(user: AuthUser = Depends(get_current_user)) -> list[AgentR
         if not visible_ids:
             return []
 
-        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.created_at.desc())
+        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.sort_order.asc(), Agent.created_at.desc())
         result = await db.execute(stmt)
         agents = result.scalars().all()
 
     return [_agent_to_response(a) for a in agents]
+
+
+@router.patch("/agents/reorder", response_model=list[AgentResponse])
+async def reorder_agents(
+    payload: AgentReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[AgentResponse]:
+    """批量更新 Agent 排序序号。前端拖拽后调用，传入所有可见 Agent 的 id + sort_order。"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "agent", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for agent {item.id}")
+            agent = await db.get(Agent, item.id)
+            if agent:
+                agent.sort_order = item.sort_order
+
+        await db.commit()
+
+        # 返回更新后的完整列表
+        stmt = select(Agent).where(Agent.id.in_(visible_ids)).order_by(Agent.sort_order.asc(), Agent.created_at.desc())
+        result = await db.execute(stmt)
+        agents = result.scalars().all()
+        return [_agent_to_response(a) for a in agents]
 
 
 @router.get("/agents/templates/negentropy", response_model=list[NegentropyAgentTemplateResponse])
@@ -2739,6 +3078,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         is_builtin=is_builtin,
         is_enabled=agent.is_enabled,
         kind=kind,
+        sort_order=getattr(agent, "sort_order", 0),
     )
 
 

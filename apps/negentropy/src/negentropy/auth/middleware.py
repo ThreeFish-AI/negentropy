@@ -55,7 +55,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._service = AuthService()
         self._settings = settings.auth
-        self._allowlist = ("/auth", "/health", "/docs", "/openapi.json")
+        # /mcp/knowledge：知识库检索 MCP 端点，由子应用自带 bearer token 强校验
+        # （见 knowledge/mcp_server.create_kb_mcp_asgi_app），严于全局 OPTIONAL 模式。
+        self._allowlist = ("/auth", "/health", "/docs", "/openapi.json", "/mcp/knowledge")
 
     async def dispatch(self, request: Request, call_next):
         if not self._settings.enabled or self._settings.mode == AuthMode.OFF:

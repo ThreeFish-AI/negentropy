@@ -14,9 +14,11 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
+import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { ConfirmDialog } from "./_components/ConfirmDialog";
 import { SkillCard } from "./_components/SkillCard";
-import { SkillFormDialog } from "./_components/SkillFormDialog";
+import { SkillFormDrawer } from "./_components/SkillFormDrawer";
 import { SkillPreviewDialog } from "./_components/SkillPreviewDialog";
 import { SkillScheduleDialog } from "./_components/SkillScheduleDialog";
 import { SkillVersionsDialog } from "./_components/SkillVersionsDialog";
@@ -37,8 +39,11 @@ interface Skill {
   required_tools: string[];
   is_enabled: boolean;
   priority: number;
+  sort_order?: number;
   enforcement_mode?: string;
   resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
+  is_builtin?: boolean;
+  is_global?: boolean;
 }
 
 export default function SkillsPage() {
@@ -190,6 +195,22 @@ export default function SkillsPage() {
 
   const categories = [...new Set(skills.map((s) => s.category))];
 
+  const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
+    items: skills,
+    onReorder: (reordered) => {
+      setSkills(reordered as Skill[]);
+      fetch("/api/interface/skills/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: reordered.map((s) => ({ id: s.id, sort_order: s.sort_order })),
+        }),
+      }).catch(() => {
+        void fetchSkills();
+      });
+    },
+  });
+
   return (
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Skills" />
@@ -277,31 +298,31 @@ export default function SkillsPage() {
                 }
               />
             ) : (
-              <div
+              <SortableCardGrid
+                itemIds={sortableItemIds}
+                onDragEnd={handleDragEnd}
                 data-testid="skills-grid"
-                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
                 {skills.map((skill) => (
-                  <div key={skill.id} className="h-[196px]" data-testid="skill-grid-item">
-                    <SkillCard
-                      skill={skill}
-                      onEdit={() => handleEdit(skill)}
-                      onDelete={() => handleDeleteRequest(skill)}
-                      onToggleEnabled={() => handleToggleEnabled(skill)}
-                      onPreview={() => setPreviewSkill(skill)}
-                      onViewVersions={() => setVersionsSkill(skill)}
-                      onManageSchedule={() => setScheduleSkill(skill)}
-                      toggling={togglingId === skill.id}
-                    />
-                  </div>
+                  <SkillCard
+                    key={skill.id}
+                    skill={skill}
+                    onEdit={() => handleEdit(skill)}
+                    onDelete={() => handleDeleteRequest(skill)}
+                    onToggleEnabled={() => handleToggleEnabled(skill)}
+                    onPreview={() => setPreviewSkill(skill)}
+                    onViewVersions={() => setVersionsSkill(skill)}
+                    onManageSchedule={() => setScheduleSkill(skill)}
+                    toggling={togglingId === skill.id}
+                  />
                 ))}
-              </div>
+              </SortableCardGrid>
             )}
           </div>
         </div>
       </div>
 
-      <SkillFormDialog
+      <SkillFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}

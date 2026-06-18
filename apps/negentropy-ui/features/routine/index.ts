@@ -8,8 +8,12 @@ export type {
   IterationStatus,
   Verdict,
   ExecStatus,
+  RoutinePhase,
   RoutineDTO,
   RoutineIterationDTO,
+  RoutineIterationMetrics,
+  McpServerSnapshot,
+  McpToolSnapshot,
   RoutineIterationLite,
   RoutineKpis,
   RoutineListResponse,
@@ -18,26 +22,37 @@ export type {
   RoutineCreatePayload,
   RoutineUpdatePayload,
   RoutineStreamEvent,
-  RoutinePresetSummary,
-  RoutineFromPresetPayload,
+  RoutineActionStreamEvent,
+  RoutineEventType,
+  RoutineIterationEventDTO,
+  IterationEventsResponse,
+  TemplateSource,
+  RoutineTemplateItem,
+  PlanReviewPayload,
 } from "./types";
+
+export type { AgentRole, AgentRoleMeta } from "./agent-role";
+export { AGENT_ROLE_META, deriveAgentRole, deriveIterationDriver, countAgentRoles } from "./agent-role";
 
 export {
   fetchKpis,
   fetchRoutines,
   fetchRoutineDetail,
   fetchIterations,
+  fetchIterationEvents,
   createRoutine,
   updateRoutine,
   deleteRoutine,
   controlRoutine,
+  restartRoutine,
   approveIteration,
   rejectIteration,
-  fetchPresets,
-  createRoutineFromPreset,
+  fetchTemplates,
+  cleanupWorktree,
 } from "./api";
 
 export { useRoutineData } from "./hooks/useRoutineData";
 export { useRoutineStream } from "./hooks/useRoutineStream";
 export { useRoutineLive, useFleetSeed, liteFromIteration } from "./hooks/useRoutineLive";
 export { useRoutineDetailLive } from "./hooks/useRoutineDetailLive";
+export type { LiveActionsByIteration } from "./hooks/useRoutineDetailLive";

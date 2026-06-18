@@ -14,28 +14,19 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
+import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import { AgentCard } from "./_components/AgentCard";
-import { AgentFormDialog } from "./_components/AgentFormDialog";
+import { AgentFormDrawer } from "./_components/AgentFormDrawer";
+import type { Agent as AgentType } from "./_components/_types";
 
-interface Agent {
-  id: string;
+interface Agent extends AgentType {
   owner_id: string;
-  visibility: string;
-  name: string;
-  display_name: string | null;
-  description: string | null;
-  agent_type: string;
-  system_prompt: string | null;
-  model: string | null;
-  config: Record<string, unknown>;
   adk_config: Record<string, unknown>;
-  skills: string[];
-  tools: string[];
   source: string;
   is_builtin: boolean;
-  is_enabled: boolean;
-  // "root" = Negentropy 主 Agent；"agent"（默认）= Faculty 或用户自定义 Agent
   kind?: "root" | "agent";
+  sort_order?: number;
 }
 
 interface SyncResponse {
@@ -136,17 +127,34 @@ export default function AgentsPage() {
     setEditingAgent(null);
   };
 
-  // Root Agent 置顶；其余按 name 字典序保持稳定，避免 fetchAgents 顺序波动。
+  // 后端已按 sort_order ASC 返回；若所有 sort_order 为默认值 0（从未拖拽过），
+  // 则做前端兜底排序：root 置顶 + name 字母序。
   const sortedAgents = useMemo(() => {
+    const hasCustomOrder = agents.some((a) => (a.sort_order ?? 0) !== 0);
+    if (hasCustomOrder) return agents;
     const rank = (agent: Agent) => (agent.kind === "root" ? 0 : 1);
     return [...agents].sort((a, b) => {
       const diff = rank(a) - rank(b);
-      if (diff !== 0) {
-        return diff;
-      }
+      if (diff !== 0) return diff;
       return a.name.localeCompare(b.name);
     });
   }, [agents]);
+
+  const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
+    items: sortedAgents,
+    onReorder: (reordered) => {
+      setAgents(reordered as Agent[]);
+      fetch("/api/interface/agents/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: reordered.map((a) => ({ id: a.id, sort_order: a.sort_order })),
+        }),
+      }).catch(() => {
+        fetchAgents();
+      });
+    },
+  });
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     try {
@@ -179,7 +187,7 @@ export default function AgentsPage() {
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
                   Agents
@@ -235,26 +243,26 @@ export default function AgentsPage() {
                 }
               />
             ) : (
-              <div
+              <SortableCardGrid
+                itemIds={sortableItemIds}
+                onDragEnd={handleDragEnd}
                 data-testid="agents-grid"
-                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
                 {sortedAgents.map((agent) => (
-                  <div key={agent.id} className="h-[176px]" data-testid="agent-grid-item">
-                    <AgentCard
-                      agent={agent}
-                      onEdit={() => handleEdit(agent)}
-                      onDelete={() => handleDelete(agent.id)}
-                    />
-                  </div>
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    onEdit={() => handleEdit(agent)}
+                    onDelete={() => handleDelete(agent.id)}
+                  />
                 ))}
-              </div>
+              </SortableCardGrid>
             )}
           </div>
         </div>
       </div>
 
-      <AgentFormDialog
+      <AgentFormDrawer
         open={dialogOpen}
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}

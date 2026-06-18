@@ -3,8 +3,7 @@
 端点清单：
 - GET    /routines                          路由清单（status/owner/q 筛选 + 游标分页）
 - GET    /routines/kpis                      KPI 卡片数据
-- GET    /routines/presets                   内置 Demo 预设列表
-- POST   /routines/from-preset               从预设创建路由
+- GET    /routines/templates                 合并模板列表（内置预设 + 用户模板）
 - GET    /routines/{id}                      单路由详情 + 最近迭代
 - GET    /routines/{id}/iterations           迭代历史（分页）
 - POST   /routines                           创建路由（status=pending）
@@ -14,6 +13,8 @@
 - POST   /routines/{id}/pause                暂停（running → paused，中止在途迭代）
 - POST   /routines/{id}/resume               恢复（paused → running）
 - POST   /routines/{id}/cancel               取消（→ cancelled）
+- POST   /routines/{id}/restart              重启（failed/cancelled → running，复位运行态 + 抬高决策水位线）
+- POST   /routines/{id}/cleanup-worktree     手动回收终态 routine 的隔离 worktree
 - POST   /routines/{id}/iterations/{iid}/approve   审批通过待执行迭代
 - POST   /routines/{id}/iterations/{iid}/reject    驳回待执行迭代
 - GET    /routines/stream                    SSE 实时事件（routine + iteration）
@@ -29,7 +30,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import time as _time
+from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID
@@ -42,8 +45,10 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
+from negentropy.engine.routine import phase as phase_mod
+from negentropy.engine.routine import workspace
 from negentropy.logging import get_logger
-from negentropy.models.routine import Routine, RoutineIteration
+from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 logger = get_logger("negentropy.interface.routine_api")
 
@@ -52,6 +57,22 @@ router = APIRouter(prefix="/routines", tags=["routines"])
 # 终态：不可再启动 / 编辑调度
 _TERMINAL = ("succeeded", "failed", "cancelled")
 _ACTIVE = ("running", "paused")
+
+# Running 状态下允许在线调整的字段（不影响执行语义的安全字段）。
+# 其余字段（goal / cwd / baseline_branch / verification_command / approval_mode / config 等）
+# 仍需 pause 后方可修改。
+_RUNTIME_SAFE_FIELDS: frozenset[str] = frozenset(
+    {
+        "success_score_threshold",  # 成功判定阈值
+        "max_iterations",  # 迭代预算
+        "max_cost_usd",  # 成本预算
+        "deadline_at",  # 截止时间
+        "no_progress_patience",  # 停滞容忍度
+        "title",  # 纯展示元数据
+        "display_name",  # 纯展示元数据
+        "description",  # 纯展示元数据
+    }
+)
 _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed")
 _DEFAULT_RECENT_ITERATIONS = 20
 
@@ -101,6 +122,7 @@ class RoutineCreateRequest(BaseModel):
     goal: str = Field(..., min_length=1)
     acceptance_criteria: str = Field(..., min_length=1)
     cwd: str | None = None
+    baseline_branch: str | None = Field(default=None, max_length=255)
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -113,6 +135,7 @@ class RoutineCreateRequest(BaseModel):
     agent_id: UUID | None = None
     display_name: str | None = None
     description: str | None = None
+    is_template: bool = False
 
 
 class RoutineUpdateRequest(BaseModel):
@@ -120,6 +143,7 @@ class RoutineUpdateRequest(BaseModel):
     goal: str | None = None
     acceptance_criteria: str | None = None
     cwd: str | None = None
+    baseline_branch: str | None = Field(default=None, max_length=255)
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -136,10 +160,8 @@ class ControlBody(BaseModel):
     reason: str | None = None
 
 
-class RoutineFromPresetRequest(BaseModel):
-    preset_id: str = Field(..., min_length=1)
-    key: str = Field(..., min_length=1, max_length=192)
-    cwd: str = Field(..., min_length=1)
+class RestartBody(BaseModel):
+    keep_reflections: bool = True  # True=携带既往反思（Reflexion 跨尝试学习）；False=清空重来
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +169,12 @@ class RoutineFromPresetRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None = None) -> dict[str, Any]:
+def _serialize_routine(
+    r: Routine,
+    *,
+    iterations: list[RoutineIteration] | None = None,
+    worktree_meta: dict[str, str | None] | None = None,
+) -> dict[str, Any]:
     data: dict[str, Any] = {
         "id": str(r.id),
         "key": r.key,
@@ -157,9 +184,17 @@ def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None 
         "goal": r.goal,
         "acceptance_criteria": r.acceptance_criteria,
         "cwd": r.cwd,
+        "baseline_branch": r.baseline_branch,
         "verification_command": r.verification_command,
         "status": r.status,
         "termination_reason": r.termination_reason,
+        "current_phase": r.current_phase,
+        "pr_url": r.pr_url,
+        "work_branch": r.work_branch,
+        "worktree_path": r.worktree_path,
+        "worktree_status": worktree_meta.get("status") if worktree_meta else None,
+        "worktree_disk_usage": worktree_meta.get("disk_usage") if worktree_meta else None,
+        "worktree_cleanup_policy": worktree_meta.get("cleanup_policy") if worktree_meta else None,
         "max_iterations": r.max_iterations,
         "max_cost_usd": r.max_cost_usd,
         "deadline_at": r.deadline_at.isoformat() if r.deadline_at else None,
@@ -177,6 +212,7 @@ def _serialize_routine(r: Routine, *, iterations: list[RoutineIteration] | None 
         "agent_id": str(r.agent_id) if r.agent_id else None,
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+        "is_template": r.is_template,
     }
     if iterations is not None:
         data["iterations"] = [_serialize_iteration(it) for it in iterations]
@@ -189,6 +225,7 @@ def _serialize_iteration(it: RoutineIteration) -> dict[str, Any]:
         "routine_id": str(it.routine_id),
         "seq": it.seq,
         "status": it.status,
+        "phase": it.phase,
         "prompt": it.prompt,
         "resume_session_id": it.resume_session_id,
         "exec_status": it.exec_status,
@@ -204,6 +241,23 @@ def _serialize_iteration(it: RoutineIteration) -> dict[str, Any]:
         "gate_exit_code": it.gate_exit_code,
         "started_at": it.started_at.isoformat() if it.started_at else None,
         "finished_at": it.finished_at.isoformat() if it.finished_at else None,
+        "metrics": it.metrics or {},
+    }
+
+
+def _serialize_event(ev: RoutineIterationEvent) -> dict[str, Any]:
+    """序列化单条「全过程」动作审计事件（与前端 ``RoutineIterationEventDTO`` 对齐）。"""
+    return {
+        "id": str(ev.id),
+        "iteration_id": str(ev.iteration_id),
+        "routine_id": str(ev.routine_id),
+        "seq": ev.seq,
+        "event_type": ev.event_type,
+        "tool_name": ev.tool_name,
+        "title": ev.title,
+        "payload": ev.payload or {},
+        "cost_usd": ev.cost_usd,
+        "created_at": ev.created_at.isoformat() if ev.created_at else None,
     }
 
 
@@ -220,11 +274,23 @@ async def get_kpis() -> dict[str, Any]:
         return cached
 
     async with db_session.AsyncSessionLocal() as db:
-        status_counts_rows = (await db.execute(select(Routine.status, func.count()).group_by(Routine.status))).all()
+        status_counts_rows = (
+            await db.execute(
+                select(Routine.status, func.count()).where(Routine.is_template.is_(False)).group_by(Routine.status)
+            )
+        ).all()
         status_counts = {row[0]: row[1] for row in status_counts_rows}
         total = sum(status_counts.values())
-        total_cost = (await db.execute(select(func.coalesce(func.sum(Routine.total_cost_usd), 0.0)))).scalar() or 0.0
-        avg_iter = (await db.execute(select(func.coalesce(func.avg(Routine.iteration_count), 0.0)))).scalar() or 0.0
+        total_cost = (
+            await db.execute(
+                select(func.coalesce(func.sum(Routine.total_cost_usd), 0.0)).where(Routine.is_template.is_(False))
+            )
+        ).scalar() or 0.0
+        avg_iter = (
+            await db.execute(
+                select(func.coalesce(func.avg(Routine.iteration_count), 0.0)).where(Routine.is_template.is_(False))
+            )
+        ).scalar() or 0.0
 
     result = {
         "total": total,
@@ -242,60 +308,97 @@ async def get_kpis() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# GET /routines/presets
-# POST /routines/from-preset
+# GET /routines/templates
 # 声明在 /{routine_id} 之前，确保字面路径优先于路径参数匹配。
 # ---------------------------------------------------------------------------
 
 
-@router.get("/presets")
-async def list_routine_presets() -> list[dict[str, Any]]:
-    """内置 Demo 预设列表。"""
+@router.get("/templates")
+async def list_templates(
+    category: str | None = Query(None, description="按 category 筛选"),
+) -> list[dict[str, Any]]:
+    """合并模板列表：内置 YAML 预设（source=builtin）+ 用户自建模板（source=user）。
+
+    返回统一结构，前端区分 source 决定是否允许编辑/删除。
+    """
+    # ── 1. 内置 YAML 预设 → 统一结构 ──
     from negentropy.agents.routine_presets import load_all
 
-    presets = load_all()
-    return [
-        {
-            "preset_id": p.preset_id,
-            "display_name": p.display_name,
-            "description": p.description,
-            "category": p.category,
-            "version": p.version,
-            "features_showcase": p.features_showcase,
-            "approval_mode": p.approval_mode,
-            "has_verification_command": p.verification_command is not None,
-        }
-        for p in presets
-    ]
+    builtin: list[dict[str, Any]] = []
+    for p in load_all():
+        if category and p.category != category:
+            continue
+        builtin.append(
+            {
+                "id": f"builtin:{p.preset_id}",
+                "source": "builtin",
+                "key": p.preset_id,
+                "display_name": p.display_name,
+                "description": p.description,
+                "category": p.category,
+                "version": p.version,
+                "features_showcase": p.features_showcase,
+                "title": p.title,
+                "goal": p.goal,
+                "acceptance_criteria": p.acceptance_criteria,
+                "verification_command": p.verification_command,
+                "max_iterations": p.max_iterations,
+                "max_cost_usd": p.max_cost_usd,
+                "success_score_threshold": p.success_score_threshold,
+                "no_progress_patience": p.no_progress_patience,
+                "approval_mode": p.approval_mode,
+                "config": p.config or {},
+                "has_verification_command": p.verification_command is not None,
+                "owner_id": None,
+                "created_at": None,
+                "updated_at": None,
+            }
+        )
 
+    # ── 2. 用户模板（is_template=true 的 Routine 行）→ 统一结构 ──
+    user_templates: list[dict[str, Any]] = []
+    async with db_session.AsyncSessionLocal() as db:
+        stmt = select(Routine).where(Routine.is_template.is_(True)).order_by(Routine.created_at.desc())
+        rows = (await db.execute(stmt)).scalars().all()
+        for r in rows:
+            if category and (r.config or {}).get("category", "general") != category:
+                continue
+            user_templates.append(
+                {
+                    "id": str(r.id),
+                    "source": "user",
+                    "key": r.key,
+                    "display_name": r.display_name or r.title,
+                    "description": r.description or "",
+                    "category": (r.config or {}).get("category", "general"),
+                    "version": (r.config or {}).get("version", "1.0.0"),
+                    "features_showcase": (r.config or {}).get("features_showcase", []),
+                    "title": r.title,
+                    "goal": r.goal,
+                    "acceptance_criteria": r.acceptance_criteria,
+                    "verification_command": r.verification_command,
+                    "max_iterations": r.max_iterations,
+                    "max_cost_usd": r.max_cost_usd,
+                    "success_score_threshold": r.success_score_threshold,
+                    "no_progress_patience": r.no_progress_patience,
+                    "approval_mode": r.approval_mode,
+                    "config": r.config or {},
+                    "has_verification_command": r.verification_command is not None,
+                    "owner_id": r.owner_id,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+                }
+            )
 
-@router.post("/from-preset", status_code=201)
-async def create_routine_from_preset(body: RoutineFromPresetRequest) -> dict[str, Any]:
-    """从内置预设创建 Routine。用户提供 key + cwd，其余字段由预设填充。"""
-    from negentropy.agents.routine_presets import load_all
+    # ── 3. 合并 + 排序 ──
+    merged = builtin + user_templates
+    merged.sort(key=lambda t: (t.get("category", ""), t.get("display_name", "")))
 
-    presets = {p.preset_id: p for p in load_all()}
-    preset = presets.get(body.preset_id)
-    if preset is None:
-        raise HTTPException(status_code=404, detail=f"Preset '{body.preset_id}' not found")
+    # 后置 category 过滤（已在内置和用户分别过滤的基础上统一再筛一次）
+    if category:
+        merged = [t for t in merged if t.get("category") == category]
 
-    create_req = RoutineCreateRequest(
-        key=body.key,
-        title=preset.title,
-        goal=preset.goal,
-        acceptance_criteria=preset.acceptance_criteria,
-        cwd=body.cwd,
-        verification_command=preset.verification_command,
-        max_iterations=preset.max_iterations,
-        max_cost_usd=preset.max_cost_usd,
-        success_score_threshold=preset.success_score_threshold,
-        no_progress_patience=preset.no_progress_patience,
-        approval_mode=preset.approval_mode,
-        config=preset.config or {},
-        display_name=preset.display_name,
-        description=preset.description,
-    )
-    return await create_routine(create_req)
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -365,6 +468,7 @@ async def list_routines(
     status: str | None = Query(None),
     owner_id: str | None = Query(None),
     q: str | None = Query(None, description="按 key / title 模糊搜索"),
+    is_template: bool | None = Query(None, description="过滤模板行"),
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串"),
 ) -> dict[str, Any]:
@@ -375,6 +479,8 @@ async def list_routines(
             stmt = stmt.where(Routine.status == status)
         if owner_id:
             stmt = stmt.where(Routine.owner_id == owner_id)
+        if is_template is not None:
+            stmt = stmt.where(Routine.is_template == is_template)
         if q:
             like = f"%{q}%"
             stmt = stmt.where((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
@@ -423,7 +529,9 @@ async def get_routine(
             .scalars()
             .all()
         )
-    return _serialize_routine(r, iterations=list(iterations))
+    # 按需计算 worktree 生命周期状态（仅 detail 端点，避免 list 端点 N+1 磁盘检查）。
+    worktree_meta = await workspace.compute_worktree_status(r, settings.routine)
+    return _serialize_routine(r, iterations=list(iterations), worktree_meta=worktree_meta)
 
 
 # ---------------------------------------------------------------------------
@@ -456,12 +564,74 @@ async def list_iterations(
 
 
 # ---------------------------------------------------------------------------
+# GET /routines/{id}/iterations/{iid}/events
+# 「全过程」动作级审计事件流（懒加载；不内联进迭代详情，保持列表/详情载荷小）。
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{routine_id}/iterations/{iteration_id}/events")
+async def list_iteration_events(
+    routine_id: UUID,
+    iteration_id: UUID,
+    limit: int = Query(200, ge=1, le=100000),
+    after_seq: int | None = Query(None, description="分页：返回 seq 大于此值的事件（升序）"),
+) -> dict[str, Any]:
+    """单次迭代的「全过程」动作级审计事件流（工具调用/结果/中间消息/结果/门控/评估，按 seq 升序）。"""
+    async with db_session.AsyncSessionLocal() as db:
+        it = await db.get(RoutineIteration, iteration_id)
+        if it is None or it.routine_id != routine_id:
+            raise HTTPException(status_code=404, detail="iteration not found")
+        stmt = select(RoutineIterationEvent).where(RoutineIterationEvent.iteration_id == iteration_id)
+        if after_seq is not None:
+            stmt = stmt.where(RoutineIterationEvent.seq > after_seq)
+        stmt = stmt.order_by(RoutineIterationEvent.seq.asc()).limit(limit + 1)
+        rows = (await db.execute(stmt)).scalars().all()
+
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    return {
+        "items": [_serialize_event(ev) for ev in rows],
+        "has_more": has_more,
+        "next_after_seq": rows[-1].seq if has_more and rows else None,
+    }
+
+
+# ---------------------------------------------------------------------------
 # POST /routines
 # ---------------------------------------------------------------------------
 
 
+def _validate_read_dirs(config: dict[str, Any] | None) -> None:
+    """校验 ``config.read_dirs``：字符串数组，每项绝对化后须为已存在目录（422 友好报错）。
+
+    这些目录会经 ``--add-dir`` 物理授予 CC 只读访问（见 orchestrator._build_config）；
+    校验为防御性早反馈——CLI 自身亦在 launch 时校验路径存在，故 None/缺省时直接放行。
+    """
+    if not config:
+        return
+    raw = config.get("read_dirs")
+    if raw is None:
+        return
+    if not isinstance(raw, list) or not all(isinstance(x, str) for x in raw):
+        raise HTTPException(status_code=422, detail="config.read_dirs must be a list of directory paths")
+    for d in raw:
+        p = os.path.abspath(os.path.expanduser(d.strip())) if d.strip() else ""
+        if not p or not os.path.isdir(p):
+            raise HTTPException(status_code=422, detail=f"read_dir does not exist or is not a directory: '{d}'")
+
+
 @router.post("")
 async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
+    if body.cwd and not os.path.isdir(body.cwd):
+        raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
+    _validate_read_dirs(body.config)
+    # 提供了 Project Path (cwd) + Baseline Branch 时即时校验仓库/基线（早反馈）。存在性的硬约束
+    # 由 start 守卫强制（执行前提），允许 API 侧先创建草稿；前端创建可执行 routine 时已强制二者。
+    if body.cwd and body.baseline_branch:
+        try:
+            await workspace.validate_repo(body.cwd, body.baseline_branch, settings.routine)
+        except workspace.WorkspaceError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     async with db_session.AsyncSessionLocal() as db:
         routine = Routine(
             key=body.key,
@@ -469,6 +639,7 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             goal=body.goal,
             acceptance_criteria=body.acceptance_criteria,
             cwd=body.cwd,
+            baseline_branch=body.baseline_branch,
             verification_command=body.verification_command,
             status="pending",
             max_iterations=body.max_iterations
@@ -480,11 +651,13 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             no_progress_patience=body.no_progress_patience,
             approval_mode=body.approval_mode,
             config=body.config or {},
+            current_phase=phase_mod.initial_phase(body.config or {}),
             reflections={},
             owner_id=body.owner_id,
             agent_id=body.agent_id,
             display_name=body.display_name,
             description=body.description,
+            is_template=body.is_template,
         )
         db.add(routine)
         try:
@@ -509,16 +682,43 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
 
 @router.put("/{routine_id}")
 async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[str, Any]:
+    update_data = body.model_dump(exclude_unset=True)
+
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:
             raise HTTPException(status_code=404, detail="routine not found")
-        if r.status == "running":
-            raise HTTPException(status_code=409, detail="cannot edit a running routine; pause it first")
 
-        update_data = body.model_dump(exclude_unset=True)
+        # Running 状态下仅允许运行时安全字段；非安全字段需 pause 后修改。
+        if r.status == "running":
+            requested = set(update_data.keys())
+            unsafe = requested - _RUNTIME_SAFE_FIELDS
+            if unsafe:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"cannot edit {', '.join(sorted(unsafe))} while running; pause first",
+                )
+
+        # cwd 目录存在性校验（非 running 路径，unsafe 已被上方拦截）
+        if "cwd" in update_data and update_data["cwd"] and not os.path.isdir(update_data["cwd"]):
+            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{update_data['cwd']}'")
+        if "config" in update_data:
+            _validate_read_dirs(update_data["config"])
+
         for field_name, value in update_data.items():
             setattr(r, field_name, value)
+
+        # 校验合并后的仓库/基线（仅当二者皆有值时即时校验；强制性由 create + start 守卫保证，
+        # 允许增量编辑期间暂缺其一）。
+        if not r.is_template and r.cwd and r.baseline_branch:
+            try:
+                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
+            except workspace.WorkspaceError as exc:
+                await db.rollback()
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        if r.status == "running" and update_data:
+            logger.info("routine_runtime_update", routine_id=str(routine_id), fields=sorted(update_data.keys()))
 
         try:
             await db.commit()
@@ -545,6 +745,10 @@ async def delete_routine(routine_id: UUID) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status in _ACTIVE:
             raise HTTPException(status_code=409, detail=f"cannot delete a {r.status} routine; cancel it first")
+        # 删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort）。
+        if r.worktree_path:
+            with suppress(Exception):
+                await workspace.remove_worktree(r, settings.routine)
         try:
             await db.delete(r)
             await db.commit()
@@ -571,6 +775,18 @@ async def start_routine(routine_id: UUID, body: ControlBody | None = None) -> di
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status not in ("pending", "paused"):
             raise HTTPException(status_code=409, detail=f"cannot start from status '{r.status}'")
+        # worktree 隔离守卫（执行硬前提）：可执行 routine 启动前须具备 Project Path (cwd) +
+        # Baseline Branch（保护未回填的旧行；模板不在此路径启动），并校验仓库/基线可用。
+        if not r.is_template:
+            if not (r.cwd and r.baseline_branch):
+                raise HTTPException(
+                    status_code=409,
+                    detail="启动前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
+                )
+            try:
+                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
+            except workspace.WorkspaceError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
         r.status = "running"
         r.termination_reason = None
         await db.commit()
@@ -607,6 +823,13 @@ async def resume_routine(routine_id: UUID, body: ControlBody | None = None) -> d
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status != "paused":
             raise HTTPException(status_code=409, detail=f"cannot resume from status '{r.status}'")
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 恢复前须具备 cwd + baseline_branch。
+        if not r.is_template:
+            if not (r.cwd and r.baseline_branch):
+                raise HTTPException(
+                    status_code=409,
+                    detail="恢复前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
+                )
         r.status = "running"
         await db.commit()
         await db.refresh(r)
@@ -632,6 +855,113 @@ async def cancel_routine(routine_id: UUID, body: ControlBody | None = None) -> d
     _KPI_CACHE.invalidate()
     await _publish_routine(r)
     return _serialize_routine(r)
+
+
+@router.post("/{routine_id}/restart")
+async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> dict[str, Any]:
+    """重新启动失败 / 取消的 routine：非成功终态 → running，复位运行态并开启新一轮尝试。
+
+    复位运行期计数器（迭代数 / 成本 / 评分 / session / 相位 / PR）使预算守卫从零重新计；
+    抬高 ``eval_floor_seq`` 至当前 ``MAX(seq)`` 使新一轮的停滞 / 振荡 / 审批判定不被既往迭代污染
+    （旧迭代行**保留**供审计，seq 唯一性由 ``_next_seq`` 取 ``MAX(seq)+1`` 保证）。
+    ``deadline`` 为绝对时间，无法靠归零复活——已过期则拒绝并引导用户先更新截止时间。
+    """
+    keep_reflections = body.keep_reflections if body is not None else True
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id, with_for_update=True)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if r.status not in ("failed", "cancelled"):
+            raise HTTPException(
+                status_code=409,
+                detail=f"cannot restart from status '{r.status}'; only failed/cancelled routines can be restarted",
+            )
+        if r.deadline_at is not None:
+            deadline = r.deadline_at if r.deadline_at.tzinfo else r.deadline_at.replace(tzinfo=UTC)
+            if _utcnow() >= deadline:
+                raise HTTPException(
+                    status_code=409,
+                    detail="deadline has passed; update or clear the deadline before restarting",
+                )
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 重启前须具备 cwd + baseline_branch。
+        if not r.is_template:
+            if not (r.cwd and r.baseline_branch):
+                raise HTTPException(
+                    status_code=409,
+                    detail="重启前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
+                )
+
+        # 闭合上一轮遗留的全部非终态迭代（含 executed）。终态 routine 理论上不应有在途迭代，
+        # 但 cancel 会保留 executed 迭代、且崩溃/reaper 竞态可能遗留孤儿；若不闭合，重启后
+        # 这些旧迭代会被 _find_routines_pending_eval / _has_active_iteration 拾取，污染新尝试
+        # 评分/反思、阻塞派发甚至即刻误终止。须在抬高 eval_floor_seq 前完成（同一事务内）。
+        await _abort_active_iterations(db, routine_id, include_executed=True)
+
+        max_seq = (
+            await db.execute(
+                select(func.coalesce(func.max(RoutineIteration.seq), 0)).where(
+                    RoutineIteration.routine_id == routine_id
+                )
+            )
+        ).scalar_one()
+
+        # 复位运行态（保留任务定义 / 预算策略 / 既往迭代行）
+        r.status = "running"
+        r.termination_reason = None
+        r.iteration_count = 0
+        r.total_cost_usd = 0.0
+        r.best_score = None
+        r.last_score = None
+        r.claude_session_id = None
+        r.current_phase = phase_mod.initial_phase(r.config)
+        r.pr_url = None
+        # 隔离 worktree：仅回收 worktree 目录、**保留终生单一工作分支**（含其检查点提交），
+        # 使新一轮尝试在同一分支上从上一检查点续作（不铸新分支、不重建自基线）。下一次派发的
+        # ensure_worktree 会按保留的 work_branch 重绑 worktree（本地分支存在则直接 checkout）。
+        if r.worktree_path:
+            with suppress(Exception):
+                await workspace.remove_worktree(r, settings.routine, keep_branch=True)
+        r.worktree_path = None
+        r.eval_floor_seq = int(max_seq)
+        if not keep_reflections:
+            r.reflections = {}
+
+        await db.commit()
+        await db.refresh(r)
+    _KPI_CACHE.invalidate()
+    await _publish_routine(r)
+    return _serialize_routine(r)
+
+
+@router.post("/{routine_id}/cleanup-worktree")
+async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
+    """手动回收终态 routine 的隔离 worktree（best-effort，不改变 routine 状态）。
+
+    终态 routine（succeeded/failed/cancelled）在 worktree 仍活跃时可用于手动触发磁盘回收，
+    无需等待周期巡检器。``work_branch`` 保留供审计/PR 溯源。
+    """
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if r.status not in _TERMINAL:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"can only clean up worktrees for terminal routines"
+                    f" (succeeded/failed/cancelled), current: '{r.status}'"
+                ),
+            )
+        if not r.worktree_path:
+            raise HTTPException(status_code=409, detail="worktree already cleaned up or never created")
+        # best-effort 回收：异常仅日志，不阻断。
+        with suppress(Exception):
+            await workspace.remove_worktree(r, settings.routine)
+        r.worktree_path = None
+        await db.commit()
+        await db.refresh(r)
+    worktree_meta = await workspace.compute_worktree_status(r, settings.routine)
+    return _serialize_routine(r, worktree_meta=worktree_meta)
 
 
 # ---------------------------------------------------------------------------
@@ -675,8 +1005,13 @@ async def reject_iteration(routine_id: UUID, iteration_id: UUID) -> dict[str, An
 # ---------------------------------------------------------------------------
 
 
-async def _abort_active_iterations(db, routine_id: UUID) -> None:
-    """中止该 routine 当前在途/待执行迭代：请求 runner abort + 标记 aborted。"""
+async def _abort_active_iterations(db, routine_id: UUID, *, include_executed: bool = False) -> None:
+    """中止该 routine 当前在途/待执行迭代：请求 runner abort + 标记 aborted。
+
+    默认（pause/cancel）保留 ``executed`` 迭代（结果已产出，待评估）。``include_executed=True``
+    时（restart）连同 ``executed`` 一并闭合为 aborted——重启开启全新尝试，上一轮遗留的未评估
+    结果不应被新一轮的评估/派发链路拾取（否则会污染新尝试评分/反思甚至即刻误终止）。
+    """
     from negentropy.engine.routine.runner import get_runner
 
     runner = get_runner()
@@ -692,11 +1027,12 @@ async def _abort_active_iterations(db, routine_id: UUID) -> None:
         .scalars()
         .all()
     )
+    abortable = _NON_TERMINAL_ITER if include_executed else ("pending_approval", "dispatched", "in_flight")
     now = _utcnow()
     for it in rows:
         runner.request_abort(it.id)
-        # executed 等待评估的不强行中止（结果已产出）；其余标记 aborted
-        if it.status in ("pending_approval", "dispatched", "in_flight"):
+        # executed 等待评估的默认不强行中止（结果已产出）；其余（含 restart 的 executed）标记 aborted
+        if it.status in abortable:
             it.status = "aborted"
             it.finished_at = now
             it.lease_expires_at = None
@@ -716,6 +1052,8 @@ async def _publish_routine(r: Routine) -> None:
             "last_score": r.last_score,
             "iteration_count": r.iteration_count,
             "total_cost_usd": r.total_cost_usd,
+            "current_phase": r.current_phase,
+            "pr_url": r.pr_url,
         }
     )
 

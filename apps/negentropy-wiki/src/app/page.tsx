@@ -11,6 +11,7 @@ import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { HomeCard } from "@/components/home/HomeCard";
 import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
 import { WikiFooter } from "@/components/home/WikiFooter";
@@ -54,7 +55,12 @@ export default async function WikiHomePage() {
   // 从 nav tree 一级节点构建 header 导航项
   const homeLinks: { label: string; href: string }[] = [];
   // 从 nav tree 一级节点构建卡片数据（存储 Icon 组件引用，在 JSX 中渲染）
-  const homeCards: { title: string; href: string; description: string; Icon: ComponentType }[] = [];
+  const homeCards: {
+    title: string;
+    href: string;
+    description: string;
+    Icon: ComponentType;
+  }[] = [];
 
   for (const { pub, items } of navTrees) {
     if (items.length > 0) {
@@ -65,8 +71,9 @@ export default async function WikiHomePage() {
         homeLinks.push({ label: title, href });
         homeCards.push({
           title,
+          // 优先节点级描述（Catalog 节点 description）→ 回退 Publication 级描述 → 占位
+          description: item.entry_description || pub.description || "暂无描述",
           href,
-          description: pub.description || "暂无描述",
           Icon: getPublicationIcon(pub.name),
         });
       }
@@ -84,13 +91,15 @@ export default async function WikiHomePage() {
 
   const firstHref = homeCards.length > 0 ? homeCards[0].href : undefined;
 
-  const firstPubSlug = publications.length > 0 ? publications[0].slug : undefined;
+  const firstPubSlug =
+    publications.length > 0 ? publications[0].slug : undefined;
 
   const header = (
     <WikiHeader
       homeLinks={homeLinks}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
+      userMenu={<WikiUserMenu />}
       pubSlug={firstPubSlug}
       graphTab={
         firstPubSlug
@@ -103,7 +112,11 @@ export default async function WikiHomePage() {
   const sidebar = (
     <div className="home-mobile-sidebar">
       {homeLinks.map((link) => (
-        <a key={link.href} href={link.href} className="home-mobile-sidebar-link">
+        <a
+          key={link.href}
+          href={link.href}
+          className="home-mobile-sidebar-link"
+        >
           {link.label}
         </a>
       ))}
@@ -121,11 +134,9 @@ export default async function WikiHomePage() {
         <GalaxyHeroMount />
         <div className="home-hero-content">
           <p className="home-hero-text">
-            关注 AI Infra、Agent 工程化、信息论等领域前沿动态
+            关注 AI Infra、Agent 工程化、信息学等领域前沿动态
           </p>
-          <p className="home-hero-subtext">
-            你我的相识绝非一场零和游戏！
-          </p>
+          <p className="home-hero-subtext">你我的相识绝非一场零和游戏！</p>
           {firstHref && (
             <a href={firstHref} className="home-hero-cta">
               Harness Engineering → 5min

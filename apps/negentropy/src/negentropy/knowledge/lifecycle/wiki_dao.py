@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from negentropy.models.perception import (
+    DocSource,
     KnowledgeDocument,
     WikiEntryAnnotation,
     WikiEntryComment,
@@ -236,11 +237,13 @@ class WikiDao:
         entry_title: str | None = None,
         entry_path: str | None = None,
         is_index_page: bool = False,
+        entry_position: int = 0,
     ) -> WikiPublicationEntry:
         """创建或更新 DOCUMENT 类型条目（幂等：同一 publication+document 组合只保留一条）。
 
         ``entry_path``：``list[str]`` 序列化后的 JSON 字符串（Materialized Path）。
         ``entry_kind`` 始终设为 ``"DOCUMENT"``；``catalog_node_id`` 必为 NULL。
+        ``entry_position``：源自 Catalog DOCUMENT_REF 的 position 排序权重。
         """
         existing = await db.execute(
             select(WikiPublicationEntry).where(
@@ -257,6 +260,7 @@ class WikiDao:
             rec.entry_title = entry_title
             rec.entry_path = entry_path
             rec.is_index_page = is_index_page
+            rec.entry_position = entry_position
         else:
             rec = WikiPublicationEntry(
                 publication_id=publication_id,
@@ -266,6 +270,7 @@ class WikiDao:
                 entry_path=entry_path,
                 is_index_page=is_index_page,
                 entry_kind="DOCUMENT",
+                entry_position=entry_position,
             )
             db.add(rec)
 
@@ -280,7 +285,9 @@ class WikiDao:
         catalog_node_id: UUID,
         entry_slug: str,
         entry_title: str | None,
-        entry_path: str | None,
+        entry_description: str | None = None,
+        entry_path: str | None = None,
+        entry_position: int = 0,
     ) -> WikiPublicationEntry:
         """创建或更新 CONTAINER 类型条目（幂等：同一 publication+catalog_node 组合只保留一条）。
 
@@ -288,6 +295,7 @@ class WikiDao:
         （title、description、entry_id），消除"用 slug 字符串合成虚拟容器"的痛点。
 
         ``document_id`` 强制为 NULL；``entry_kind=CONTAINER``。
+        ``entry_position``：源自 Catalog FOLDER 节点的 sort_order 排序权重。
         """
         existing = await db.execute(
             select(WikiPublicationEntry).where(
@@ -301,7 +309,9 @@ class WikiDao:
         if rec is not None:
             rec.entry_slug = entry_slug
             rec.entry_title = entry_title
+            rec.entry_description = entry_description
             rec.entry_path = entry_path
+            rec.entry_position = entry_position
         else:
             rec = WikiPublicationEntry(
                 publication_id=publication_id,
@@ -309,9 +319,11 @@ class WikiDao:
                 catalog_node_id=catalog_node_id,
                 entry_slug=entry_slug,
                 entry_title=entry_title,
+                entry_description=entry_description,
                 entry_path=entry_path,
                 is_index_page=False,
                 entry_kind="CONTAINER",
+                entry_position=entry_position,
             )
             db.add(rec)
 
@@ -335,15 +347,20 @@ class WikiDao:
         db: AsyncSession,
         publication_id: UUID,
     ) -> list[WikiPublicationEntry]:
-        """获取发布的所有条目（按 is_index_page 优先 + entry_slug 字典序）。
+        """获取发布的所有条目（按 is_index_page 优先 + entry_position + entry_slug 排序）。
 
+        ``entry_position = 0`` 表示未显式排序（回退到 slug 字母序），保证向后兼容。
         导航树嵌套合成委托给 :func:`negentropy.knowledge.wiki_tree.build_nav_tree`，
         本方法仅返回平铺结果以保持 DAO 层职责单一。
         """
         result = await db.execute(
             select(WikiPublicationEntry)
             .where(WikiPublicationEntry.publication_id == publication_id)
-            .order_by(WikiPublicationEntry.is_index_page.desc(), WikiPublicationEntry.entry_slug)
+            .order_by(
+                WikiPublicationEntry.is_index_page.desc(),
+                WikiPublicationEntry.entry_position,
+                WikiPublicationEntry.entry_slug,
+            )
         )
         return list(result.scalars().all())
 
@@ -380,27 +397,46 @@ class WikiDao:
         db: AsyncSession,
         entry_id: UUID,
     ) -> dict | None:
-        """获取条目关联文档的 Markdown 内容
+        """获取条目关联文档的 Markdown 内容及来源元数据
 
         Returns:
-            包含 markdown_content, title, metadata 的字典；文档不存在则返回 None
+            包含 markdown_content, title, metadata, author, source_url 等的字典；
+            文档不存在则返回 None
         """
         result = await db.execute(
             select(
                 WikiPublicationEntry.document_id,
+                WikiPublicationEntry.created_at,
                 KnowledgeDocument.original_filename,
                 KnowledgeDocument.display_name,
                 KnowledgeDocument.markdown_content,
                 KnowledgeDocument.metadata_,
+                KnowledgeDocument.source_id,
+                DocSource.source_url,
+                DocSource.original_url,
+                DocSource.author,
             )
             .join(KnowledgeDocument, WikiPublicationEntry.document_id == KnowledgeDocument.id)
+            .outerjoin(DocSource, KnowledgeDocument.source_id == DocSource.id)
             .where(WikiPublicationEntry.id == entry_id)
         )
         row = result.one_or_none()
         if row is None:
             return None
 
-        doc_id, filename, display_name, markdown_content, metadata = row
+        (
+            doc_id,
+            entry_created_at,
+            filename,
+            display_name,
+            markdown_content,
+            metadata,
+            _source_id,
+            doc_source_url,
+            doc_original_url,
+            doc_author,
+        ) = row
+
         # 与 wiki_service._resolve_doc_display_title 保持同源优先级：
         # display_name (用户覆盖) -> metadata_.title -> original_filename。
         resolved_title = (display_name or "").strip()
@@ -410,6 +446,14 @@ class WikiDao:
                 resolved_title = meta_title.strip()
         if not resolved_title:
             resolved_title = filename or "Untitled"
+
+        # 来源 URL 解析：URL 文档取 DocSource；File 文档取 metadata
+        source_type = (metadata or {}).get("source_type")
+        if source_type == "url":
+            resolved_source_url = doc_original_url or doc_source_url
+        else:
+            resolved_source_url = (metadata or {}).get("source_url") or (metadata or {}).get("source_uri")
+
         return {
             "document_id": doc_id,
             "filename": filename,
@@ -417,7 +461,22 @@ class WikiDao:
             "markdown_content": markdown_content or "",
             "title": resolved_title,
             "metadata": metadata or {},
+            "entry_created_at": entry_created_at,
+            "author": doc_author,
+            "source_url": resolved_source_url,
         }
+
+    # ------------------------------------------------------------------
+    # 浏览计数
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def get_view_count(db: AsyncSession, entry_id: UUID) -> int:
+        """获取条目的浏览次数"""
+        from negentropy.models.perception import WikiEntryViews
+
+        result = await db.execute(select(WikiEntryViews.view_count).where(WikiEntryViews.entry_id == entry_id))
+        return result.scalar() or 0
 
     # ------------------------------------------------------------------
     # 导航树（薄委托）

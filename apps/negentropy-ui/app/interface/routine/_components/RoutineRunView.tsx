@@ -1,30 +1,42 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
-import type { RoutineDTO } from "@/features/routine";
+import type { LiveActionsByIteration, RoutineDTO, RoutineIterationDTO } from "@/features/routine";
 
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+
+import { IterationAuditDrawer } from "./IterationAuditDrawer";
 import { ReflectionFlow } from "./ReflectionFlow";
 import { RoutineConvergenceChart } from "./RoutineConvergenceChart";
 import { RoutineGuardPanel } from "./RoutineGuardPanel";
 import { RoutineIterationTimeline } from "./RoutineIterationTimeline";
 import { RoutineLoopDiagram } from "./RoutineLoopDiagram";
+import { RoutinePrCard } from "./RoutinePrCard";
 import { RoutineRunGantt } from "./RoutineRunGantt";
+import { RoutineWorkspaceCard } from "./RoutineWorkspaceCard";
 import { loopStageOf } from "./routine-loop";
 
 /**
  * 单任务「全过程」视图主体 —— 闭环图 + 守卫面板 + 收敛趋势 + 甘特时间线 + 反思流 + 迭代明细。
  * 置于深链路由 ``/interface/routine/[id]``（外层由 ClockProvider 包裹以驱动实时计时）。
+ *
+ * 迭代明细的每张卡片可下钻「全过程」审计抽屉，按时间线还原该轮所有动作（工具调用/结果/
+ * 中间消息/门控/评估）的输入/输出/上下文，并叠加在途迭代的实时动作流。
  */
 export function RoutineRunView({
   routine,
   onApproveIteration,
   onRejectIteration,
+  onCleanupWorktree,
+  liveActionsByIteration,
   busy,
 }: {
   routine: RoutineDTO;
   onApproveIteration: (iterationId: string) => void;
   onRejectIteration: (iterationId: string) => void;
+  onCleanupWorktree?: () => void;
+  liveActionsByIteration?: LiveActionsByIteration;
   busy?: boolean;
 }) {
   const iterations = useMemo(() => routine.iterations ?? [], [routine.iterations]);
@@ -33,23 +45,42 @@ export function RoutineRunView({
   const latest = asc[asc.length - 1];
   const snapshot = loopStageOf(latest, routine);
 
+  // 「全过程」审计抽屉：选中迭代下钻。从最新 routine.iterations 派生当前迭代，使在途状态/评分
+  // 随详情重拉同步更新（抽屉据此在终态回查权威事件列表）。
+  const [auditId, setAuditId] = useState<string | null>(null);
+  const auditIteration = useMemo(
+    () => (auditId ? (iterations.find((it) => it.id === auditId) ?? null) : null),
+    [auditId, iterations],
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* 目标 / 验收标准 */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Goal</h3>
-          <p className="whitespace-pre-wrap break-words text-xs text-foreground">{routine.goal}</p>
-        </section>
-        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-          <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-            Acceptance Criteria
-          </h3>
-          <p className="whitespace-pre-wrap break-words text-xs text-text-secondary">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <CollapsibleSection title="Goal">
+          <p className="whitespace-pre-wrap break-words text-body text-foreground">{routine.goal}</p>
+        </CollapsibleSection>
+        <CollapsibleSection title="Acceptance Criteria">
+          <p className="whitespace-pre-wrap break-words text-body text-text-secondary">
             {routine.acceptance_criteria}
           </p>
-        </section>
+        </CollapsibleSection>
       </div>
+
+      {/* 隔离工作区（worktree 生命周期状态 + 手动清理）*/}
+      <RoutineWorkspaceCard
+        routine={routine}
+        onCleanup={onCleanupWorktree ?? (() => {})}
+        cleanupBusy={busy}
+      />
+
+      {/* Pull Request（FINALIZE 产出，等待人工 Merge）*/}
+      {routine.pr_url && (
+        <section className="rounded-card border border-border bg-card p-4 shadow-sm">
+          <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">Pull Request</h3>
+          <RoutinePrCard prUrl={routine.pr_url} />
+        </section>
+      )}
 
       {/* 闭环过程 */}
       <RoutineLoopDiagram snapshot={snapshot} latest={latest} routine={routine} />
@@ -58,7 +89,7 @@ export function RoutineRunView({
       <RoutineGuardPanel routine={routine} iterations={asc} />
 
       {/* 收敛趋势 + 甘特 */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <RoutineConvergenceChart
           iterations={asc}
           threshold={routine.success_score_threshold}
@@ -72,16 +103,27 @@ export function RoutineRunView({
 
       {/* 迭代明细 */}
       <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-        <h3 className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <h3 className="mb-3 text-xs uppercase tracking-overline text-text-secondary">
           迭代明细 · Iterations ({iterations.length})
         </h3>
         <RoutineIterationTimeline
           iterations={desc}
           onApprove={onApproveIteration}
           onReject={onRejectIteration}
+          onAudit={(it: RoutineIterationDTO) => setAuditId(it.id)}
           busy={busy}
         />
       </section>
+
+      {/* 「全过程」审计抽屉 */}
+      <IterationAuditDrawer
+        open={auditId != null}
+        onClose={() => setAuditId(null)}
+        routineId={routine.id}
+        iteration={auditIteration}
+        liveActions={auditId ? liveActionsByIteration?.[auditId] : undefined}
+        projectPath={routine.cwd}
+      />
     </div>
   );
 }

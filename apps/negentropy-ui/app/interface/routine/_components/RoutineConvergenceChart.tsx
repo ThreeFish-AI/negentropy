@@ -13,6 +13,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
+
 import type { RoutineIterationDTO, Verdict } from "@/features/routine";
 
 import { NULL_HEX, VERDICT_HEX } from "./chart-colors";
@@ -33,7 +35,7 @@ function ConvergenceTooltip({ active, payload }: { active?: boolean; payload?: T
   const row = payload[0]?.payload;
   if (!row) return null;
   return (
-    <div className="rounded-md border border-border bg-card px-2.5 py-1.5 text-[11px] shadow-md">
+    <div className="rounded-md border border-border bg-card px-2.5 py-1.5 text-xs shadow-md">
       <div className="font-semibold text-foreground">迭代 #{row.seq}</div>
       <div className="text-text-secondary">score: {row.score ?? "—"}</div>
       {row.verdict && <div className="text-text-secondary">verdict: {row.verdict}</div>}
@@ -64,12 +66,9 @@ export function RoutineConvergenceChart({
   const hasScores = data.some((d) => d.score != null);
 
   return (
-    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-        评分收敛趋势 · Convergence
-      </h3>
+    <CollapsibleSection title="评分收敛趋势 · Convergence">
       {!hasScores ? (
-        <p className="py-8 text-center text-[11px] text-text-muted">尚无评分数据</p>
+        <p className="py-8 text-center text-sm text-text-secondary">尚无评分数据</p>
       ) : (
         <div className="h-56 min-h-[14rem] w-full" style={{ minWidth: 1 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -81,17 +80,17 @@ export function RoutineConvergenceChart({
                 domain={["dataMin", "dataMax"]}
                 allowDecimals={false}
                 stroke="currentColor"
-                fontSize={11}
+                fontSize={12}
                 tickFormatter={(v) => `#${v}`}
               />
-              <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="currentColor" fontSize={11} />
+              <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="currentColor" fontSize={12} />
               <Tooltip content={<ConvergenceTooltip />} />
               <ReferenceLine
                 y={threshold}
                 stroke="#10b981"
                 strokeDasharray="4 4"
                 strokeOpacity={0.7}
-                label={{ value: `阈值 ${threshold}`, position: "right", fontSize: 10, fill: "#10b981" }}
+                label={{ value: `阈值 ${threshold}`, position: "right", fontSize: 12, fill: "#10b981" }}
               />
               {bestScore != null && (
                 <ReferenceLine y={bestScore} stroke="#6366f1" strokeDasharray="2 4" strokeOpacity={0.6} />
@@ -114,6 +113,6 @@ export function RoutineConvergenceChart({
           </ResponsiveContainer>
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
