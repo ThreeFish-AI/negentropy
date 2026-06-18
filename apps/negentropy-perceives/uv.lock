@@ -2252,7 +2252,7 @@ wheels = [
 
 [[package]]
 name = "negentropy-perceives"
-version = "0.2.0a3"
+version = "0.0.1a1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
