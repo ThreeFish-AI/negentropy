@@ -44,7 +44,7 @@ classifiers = [
 dependencies = [
     # === 1. 核心框架：AI/LLM Agent 基础设施 ===
     # Agent 开发框架和 LLM 客户端，是整个系统的核心依赖
-    "google-adk>=2.0.0",               # Google Agent Development Kit 2.0: Workflow Runtime, Collaborative Agents
+    "google-adk>=2.2.0",               # Google ADK 2.2: 解锁 starlette 1.x (ADK 2.1 硬 pin starlette<1 阻断 11 个 CVE 修复); 保留 Workflow Runtime, Collaborative Agents
     "google-generativeai>=0.8.6",       # Gemini API 客户端: Embedding 和 LLM 调用
     "anthropic>=0.76.0",                # Claude API 客户端: Claude 模型调用
 
@@ -58,7 +58,7 @@ dependencies = [
     # RESTful API 服务和 HTTP 客户端
     "fastapi>=0.115.0",                 # 现代 Python Web 框架: 自动 OpenAPI 文档 (版本受 google-adk 约束)
     "uvicorn[standard]>=0.40.0",        # ASGI 服务器: 运行 FastAPI/Starlette 应用
-    "python-multipart>=0.0.6",          # 文件上传支持: multipart/form-data 解析
+    "python-multipart>=0.0.31",         # 文件上传支持: multipart/form-data 解析 (>=0.0.31 修复 MultipartParser 无界 part headers DoS, GHSA-pp6c-gr5w-3c5g 等)
     "httpx>=0.28.1",                    # 现代 HTTP 客户端: 支持 async/await 和 HTTP/2
 
     # === 4. 可观测性：追踪与监控 ===
@@ -75,7 +75,7 @@ dependencies = [
 
     # === 6. 文档处理：知识摄取 (Perception) ===
     # 多格式文档解析，用于知识库摄取
-    "pypdf>=3.0.0",                     # PDF 文本提取: 纯文本 PDF 解析 (PyPDF2 已废弃，合并至 pypdf)
+    "pypdf>=6.13.0",                    # PDF 文本提取: 纯文本 PDF 解析 (>=6.13.0 修复 14 个 DoS/RAM 耗尽漏洞; PyPDF2 已废弃，合并至 pypdf)
     "pdfplumber>=0.10.0",               # PDF 高级解析: 表格、图像提取
     "markdown>=3.5.0",                  # Markdown 解析: 文档结构化处理
     "beautifulsoup4>=4.14.3",           # HTML 解析: 网页内容提取
@@ -183,6 +183,16 @@ build-backend = "hatchling.build"       # 构建后端入口点
 # ==============================================================================
 [tool.hatch.build.targets.wheel]
 packages = ["src/cognizes"]             # 要打包的源码目录: src layout 布局
+
+# ==============================================================================
+# [tool.uv] - 安全约束 (传递依赖补丁地板)
+# cognizes 此前无 [tool.uv] 加固段, 新增 constraint-dependencies 强制传递依赖补丁版本下限
+# ==============================================================================
+[tool.uv]
+constraint-dependencies = [
+    "starlette>=1.3.1",     # 11 个 high/medium CVE (需 google-adk>=2.2.0 解锁 1.x; 0.x 无回溯补丁)
+    "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf: wheel 内 OpenSSL 漏洞 (high)
+]
 
 # ==============================================================================
 # [tool.uv.workspace] - uv 工作区配置

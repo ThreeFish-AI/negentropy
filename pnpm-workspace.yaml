@@ -46,7 +46,7 @@ overrides:
   # 限制上限到 <8 以保持 jsdom 兼容性，同时保留 >=7.24.0 的安全补丁要求。
   # 等 jsdom 升级到 29+ 且生态稳定后可考虑放开。
   undici: '>=7.24.0 <8.0.0'
-  dompurify: '>=3.4.0'
+  dompurify: '>=3.4.9'      # mermaid 传递 (运行时); 7 个 medium 告警 fixed @3.4.9 (GHSA-x4vx 无补丁, 仅升版本基线)
   lodash-es: '>=4.18.1'
   picomatch: '>=4.0.4'
   follow-redirects: '>=1.16.0'
@@ -54,3 +54,9 @@ overrides:
   uuid: '>=14.0.0'
   # GHSA-x7hr-w5r2-h6wg: prismjs < 1.30.0 DOM clobbering（refractor@3.6.0 锁死 1.27.0，强制覆盖）
   prismjs: '>=1.30.0'
+  # ── Dependabot 安全告警修复：传递依赖补丁地板（父包均无版本封顶，override 干净解析）──
+  form-data: '>=4.0.6'        # axios 传递 (cognizes-ui 运行时, GHSA high)
+  ws: '>=8.21.0'              # jsdom@27 传递 (cognizes-ui dev/test, GHSA high)
+  js-yaml: '>=4.2.0'          # @eslint/eslintrc 传递 (dev, GHSA medium)
+  '@babel/core': '>=7.29.6 <8.0.0'   # @vitejs/plugin-react/next/styled-jsx peer ^7.0.0; 限 <8 避免 Babel 8 大版本跳跃破坏兼容 (GHSA low)
+  esbuild: '>=0.28.1'         # vite + tsup 传递 (dev, GHSA low)
