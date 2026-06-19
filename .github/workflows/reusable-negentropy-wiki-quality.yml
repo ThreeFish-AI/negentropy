@@ -1,0 +1,55 @@
+name: Reusable Negentropy Wiki Quality
+
+# wiki 纯静态站点的质量门禁：lint / 单测 / 构建冒烟。
+# 独立于主站后端（无 DB/API 依赖），build 读取仓库内 content/ 静态内容包。
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  wiki-lint:
+    name: Wiki Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/negentropy-wiki
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pnpm-wiki
+      - run: pnpm lint
+
+  wiki-unit:
+    name: Wiki Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/negentropy-wiki
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pnpm-wiki
+      - run: pnpm test
+
+  wiki-build-smoke:
+    name: Wiki Static Build Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/negentropy-wiki
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pnpm-wiki
+      # next build（output:export → out/）+ postbuild pagefind 索引；
+      # content/ 已在仓库内（CI 提交的静态内容包 / 开发种子）。
+      - run: pnpm build
+      - name: Verify static output
+        shell: bash
+        run: |
+          test -f out/index.html
+          test -d out/pagefind
+          echo "✅ wiki 静态产物 + pagefind 索引就绪"

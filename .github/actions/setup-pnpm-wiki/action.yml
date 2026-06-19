@@ -1,0 +1,28 @@
+name: Setup pnpm Wiki
+description: 安装 pnpm、Node.js 与项目依赖（wiki 已不再依赖 agents-chat-core，无需构建共享包）
+
+inputs:
+  node-version:
+    description: Node.js 版本
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    # pnpm 版本由根 package.json 的 packageManager 字段统一提供（单一事实源）
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: "pnpm"
+        cache-dependency-path: pnpm-lock.yaml
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    # wiki 纯静态化后已移除 @negentropy/agents-chat-core 依赖，
+    # 故无需 prebuild 共享包（与 setup-pnpm-ui 的关键差异）。
