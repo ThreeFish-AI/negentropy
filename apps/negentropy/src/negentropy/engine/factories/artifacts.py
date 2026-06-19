@@ -15,6 +15,9 @@ import google.auth
 from google.adk.artifacts import BaseArtifactService
 
 from negentropy.config import settings
+from negentropy.logging import get_logger
+
+logger = get_logger("negentropy.engine.factories.artifacts")
 
 if TYPE_CHECKING:
     pass
@@ -35,18 +38,30 @@ def create_inmemory_artifact_service() -> BaseArtifactService:
 
 
 def create_gcs_artifact_service() -> BaseArtifactService:
-    """创建 GCS 后端"""
-    from google.adk.artifacts import GcsArtifactService
+    """创建 GCS 后端；Bucket 或凭证缺失时优雅降级为 inmemory 并告警。
+
+    ArtifactService 属可选外部依赖：本地 / 无凭证场景不应因此阻断服务启动，故采用
+    优雅降级（fail-open with warning）而非硬失败。生产环境务必配置 GCS 凭证与 bucket
+    ——缺失将降级为 inmemory（制品不持久化、重启丢失）并打 WARNING 日志以暴露问题。
+    """
+    from google.adk.artifacts import GcsArtifactService, InMemoryArtifactService
 
     if not settings.gcs_bucket_name:
-        raise ValueError("GCS ArtifactService requires GCS_BUCKET_NAME to be set")
+        logger.warning(
+            "GCS_BUCKET_NAME 未配置，ArtifactService 降级为 inmemory（仅适用本地开发；"
+            "生产环境请配置 GCS bucket 与凭证，否则制品将不持久化）"
+        )
+        return InMemoryArtifactService()
 
-    # verify credentials exist
+    # 凭证缺失 → 降级（生产凭证配错时亦不崩溃，但 WARNING 暴露问题，优于服务完全不可用）
     try:
         google.auth.default()
     except google.auth.exceptions.DefaultCredentialsError:
-        msg = "GCS ArtifactService requires Google Cloud credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS)"
-        raise ValueError(msg) from None
+        logger.warning(
+            "GCS 凭证缺失（未设置 GOOGLE_APPLICATION_CREDENTIALS），ArtifactService 降级为 inmemory"
+            "（仅适用本地开发；生产环境请注入 GCS 凭证，否则制品将不持久化）"
+        )
+        return InMemoryArtifactService()
 
     return GcsArtifactService(bucket_name=settings.gcs_bucket_name)
 
