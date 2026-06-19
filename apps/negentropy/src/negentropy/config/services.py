@@ -29,7 +29,6 @@ class SessionBackend(str, Enum):
 
 class ArtifactBackend(str, Enum):
     INMEMORY = "inmemory"
-    GCS = "gcs"
     POSTGRES = "postgres"
 
 
@@ -66,9 +65,6 @@ class ServicesSettings(BaseSettings):
         default=ArtifactBackend.INMEMORY,
         description="Artifact service backend",
     )
-
-    # GCS Configuration
-    gcs_bucket_name: str | None = Field(default=None, description="GCS bucket name for artifact storage")
 
     # VertexAI Configuration
     vertex_project_id: str | None = Field(default=None, description="VertexAI project ID")

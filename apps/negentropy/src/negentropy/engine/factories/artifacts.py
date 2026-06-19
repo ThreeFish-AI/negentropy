@@ -3,15 +3,13 @@ ArtifactsFactory: 统一的 ArtifactService 后端工厂
 
 采用 Strategy + Factory 模式，根据配置动态选择 ArtifactService 实现：
 - inmemory: ADK 内置 InMemoryArtifactService (开发/测试)
-- gcs: ADK 内置 GcsArtifactService (生产环境)
+- postgres: 自研 PostgresArtifactService，持久化到 adk_artifacts 表 (生产/本地)
 """
 
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING
 
-import google.auth
 from google.adk.artifacts import BaseArtifactService
 
 from negentropy.config import settings
@@ -19,15 +17,11 @@ from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.factories.artifacts")
 
-if TYPE_CHECKING:
-    pass
-
 
 class ArtifactBackend(str, Enum):
     """支持的 ArtifactService 后端类型"""
 
     INMEMORY = "inmemory"
-    GCS = "gcs"
     POSTGRES = "postgres"
 
 
@@ -38,37 +32,8 @@ def create_inmemory_artifact_service() -> BaseArtifactService:
     return InMemoryArtifactService()
 
 
-def create_gcs_artifact_service() -> BaseArtifactService:
-    """创建 GCS 后端；Bucket 或凭证缺失时优雅降级为 inmemory 并告警。
-
-    ArtifactService 属可选外部依赖：本地 / 无凭证场景不应因此阻断服务启动，故采用
-    优雅降级（fail-open with warning）而非硬失败。生产环境务必配置 GCS 凭证与 bucket
-    ——缺失将降级为 inmemory（制品不持久化、重启丢失）并打 WARNING 日志以暴露问题。
-    """
-    from google.adk.artifacts import GcsArtifactService, InMemoryArtifactService
-
-    if not settings.gcs_bucket_name:
-        logger.warning(
-            "GCS_BUCKET_NAME 未配置，ArtifactService 降级为 inmemory（仅适用本地开发；"
-            "生产环境请配置 GCS bucket 与凭证，否则制品将不持久化）"
-        )
-        return InMemoryArtifactService()
-
-    # 凭证缺失 → 降级（生产凭证配错时亦不崩溃，但 WARNING 暴露问题，优于服务完全不可用）
-    try:
-        google.auth.default()
-    except google.auth.exceptions.DefaultCredentialsError:
-        logger.warning(
-            "GCS 凭证缺失（未设置 GOOGLE_APPLICATION_CREDENTIALS），ArtifactService 降级为 inmemory"
-            "（仅适用本地开发；生产环境请注入 GCS 凭证，否则制品将不持久化）"
-        )
-        return InMemoryArtifactService()
-
-    return GcsArtifactService(bucket_name=settings.gcs_bucket_name)
-
-
 def create_postgres_artifact_service() -> BaseArtifactService:
-    """创建 PostgreSQL 后端（自研，GCS 退役后的默认制品持久化）。
+    """创建 PostgreSQL 后端（自研，默认制品持久化）。
 
     制品持久化到 ``adk_artifacts`` 表（bytea 存储），无需任何外部凭证 / bucket，
     与 memory/session 的 postgres 后端同库（pgvector 唯一数据存储哲学）。
@@ -81,7 +46,6 @@ def create_postgres_artifact_service() -> BaseArtifactService:
 # 后端创建函数映射表 (Strategy Pattern)
 _BACKEND_FACTORIES = {
     ArtifactBackend.INMEMORY: create_inmemory_artifact_service,
-    ArtifactBackend.GCS: create_gcs_artifact_service,
     ArtifactBackend.POSTGRES: create_postgres_artifact_service,
 }
 
@@ -94,7 +58,7 @@ def get_artifact_service(backend: str | None = None) -> BaseArtifactService:
     获取 ArtifactService 实例 (工厂函数)
 
     Args:
-        backend: 后端类型，可选值：inmemory, gcs
+        backend: 后端类型，可选值：inmemory, postgres
                  若为 None，则从 settings.artifact_service_backend 读取
 
     Returns:
@@ -141,6 +105,5 @@ __all__ = [
     "get_artifact_service",
     "reset_artifact_service",
     "create_inmemory_artifact_service",
-    "create_gcs_artifact_service",
     "create_postgres_artifact_service",
 ]

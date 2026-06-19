@@ -49,7 +49,7 @@ def _make_doc(
     markdown_extract_status: str = "completed",
     status: str = "active",
     metadata: dict | None = None,
-    content_uri: str = "gs://bucket/knowledge/negentropy/library/doc.md",
+    content_uri: str = "pgblob://bucket/knowledge/negentropy/library/doc.md",
 ) -> SimpleNamespace:
     return SimpleNamespace(
         id=uuid4(),
@@ -191,7 +191,7 @@ async def test_import_document_file_rejects_oversized_file(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_import_document_file_storage_failure_is_fatal(monkeypatch):
-    from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage import StorageError
 
     storage = _RecordingStorage(upload_error=StorageError("bucket unavailable"))
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: storage)

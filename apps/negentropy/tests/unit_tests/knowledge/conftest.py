@@ -138,7 +138,7 @@ class FakeStorageService:
     async def upload_markdown_derivative(self, *, document_id, markdown_content: str):
         _ = document_id
         self.uploaded_markdown = markdown_content
-        return "gs://derived/markdown.md"
+        return "pgblob://derived/markdown.md"
 
     async def save_markdown_content(
         self,
@@ -180,7 +180,7 @@ class FakeStorageService:
                 "content_type": content_type,
             }
         )
-        return f"gs://derived/assets/{filename}"
+        return f"pgblob://derived/assets/{filename}"
 
     async def update_document_metadata(self, *, document_id, metadata_patch: dict):
         _ = document_id

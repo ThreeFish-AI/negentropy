@@ -229,10 +229,6 @@ class Settings(BaseSettings):
         return self.services.artifact_backend.value
 
     @property
-    def gcs_bucket_name(self) -> str | None:
-        return self.services.gcs_bucket_name
-
-    @property
     def vertex_project_id(self) -> str | None:
         return self.services.vertex_project_id
 
