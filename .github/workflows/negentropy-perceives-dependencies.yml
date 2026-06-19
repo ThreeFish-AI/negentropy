@@ -9,6 +9,11 @@ permissions:
   contents: write
   pull-requests: write
 
+# 自动建 PR 并独占分支（delete-branch: true）；不可中途取消，避免半成品 PR/分支残留。
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 defaults:
   run:
     working-directory: apps/negentropy-perceives
@@ -17,6 +22,7 @@ jobs:
   update:
     name: Update Dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4

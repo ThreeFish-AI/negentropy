@@ -2,8 +2,11 @@ name: Backend Test Suite
 
 on:
   push:
+    # 仅默认分支直推触发；其余分支由下方 pull_request 承担 CI，避免同提交 push+PR 双触发。
     branches:
-      - "**"
+      - master
+      - main
+      - develop
     paths:
       - "apps/negentropy/**"
       - "apps/negentropy-ui/lib/adk.ts"
