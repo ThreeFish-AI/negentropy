@@ -15,7 +15,7 @@ exclude = ["tests*", "reports*", "htmlcov*", "scripts*"]
 
 [project]
 name = "negentropy-perceives"
-version = "0.0.1-rc.1"
+version = "0.0.1-rc.2"
 description = "A commercial-grade MCP Server built on FastMCP, offering robust capabilities to read, extract, and localize (into Markdown) content from web pages and PDFs with both text and images. It is purpose-built for long-term deployment in enterprise environments."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"

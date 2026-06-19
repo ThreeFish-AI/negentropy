@@ -1,6 +1,6 @@
 {
   "name": "negentropy-wiki",
-  "version": "0.0.1-rc.1",
+  "version": "0.0.1-rc.2",
   "private": true,
   "scripts": {
     "predev": "pnpm --filter @negentropy/agents-chat-core build",
