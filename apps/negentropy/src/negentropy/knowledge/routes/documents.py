@@ -191,7 +191,7 @@ async def _get_document_detail_impl(
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
         display_name=doc.display_name,
-        gcs_uri=doc.gcs_uri,
+        content_uri=doc.content_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,
         status=doc.status,
@@ -204,7 +204,7 @@ async def _get_document_detail_impl(
         archived=archived,
         metadata=doc.metadata_ or {},
         markdown_content=markdown_content,
-        markdown_gcs_uri=doc.markdown_gcs_uri,
+        markdown_uri=doc.markdown_uri,
     )
 
 

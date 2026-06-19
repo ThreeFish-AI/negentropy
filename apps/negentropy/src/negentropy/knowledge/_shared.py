@@ -711,7 +711,7 @@ def _build_document_response(
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
         display_name=getattr(doc, "display_name", None),
-        gcs_uri=doc.gcs_uri,
+        content_uri=doc.content_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,
         status=doc.status,
@@ -768,8 +768,8 @@ def _resolve_document_source_uri(doc: Any) -> str | None:
         origin_url = metadata.get("origin_url")
         if isinstance(origin_url, str) and origin_url:
             return origin_url
-    if doc.gcs_uri:
-        return doc.gcs_uri
+    if doc.content_uri:
+        return doc.content_uri
     return None
 
 
@@ -846,7 +846,7 @@ async def _extract_and_store_document_markdown_from_gcs(
         if not markdown_content:
             raise ValueError("Extractor returned empty markdown content")
 
-        markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+        markdown_uri, _ = await store_extracted_document_artifacts(
             document_id=document_id,
             extracted=result,
         )
@@ -854,7 +854,7 @@ async def _extract_and_store_document_markdown_from_gcs(
             "document_markdown_extraction_completed",
             document_id=str(document_id),
             markdown_size=len(markdown_content),
-            markdown_gcs_uri=markdown_gcs_uri,
+            markdown_uri=markdown_uri,
         )
     except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
         logger.error(

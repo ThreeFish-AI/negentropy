@@ -285,7 +285,7 @@ class TestMergeExtractionAssets:
         names = [a.name for a in merged]
         assert names == ["existing.png", "new1.png", "new2.png"]
 
-    def test_backfill_when_structured_has_non_gcs_uri(self):
+    def test_backfill_when_structured_has_non_content_uri(self):
         """非 GCS URI 时允许用 content_items 数据回填。"""
         merged = _merge_extraction_assets(
             [ExtractionAsset(name="img.png", content_type="image/png", uri="file:///tmp/img.png")],
@@ -305,7 +305,7 @@ class TestMergeExtractionAssets:
         assert len(merged) == 1
         assert merged[0].data_base64 == "content_data"
 
-    def test_no_backfill_when_structured_has_gcs_uri(self):
+    def test_no_backfill_when_structured_has_content_uri(self):
         """GCS URI 时不回填。"""
         merged = _merge_extraction_assets(
             [ExtractionAsset(name="img.png", content_type="image/png", uri="pgblob://bucket/path/img.png")],
@@ -466,7 +466,7 @@ class TestExtractEnhancedImageAssets:
 
 class TestPersistExtractedAssets:
     @pytest.mark.asyncio
-    async def test_uploads_asset_with_non_gcs_uri_and_data(self):
+    async def test_uploads_asset_with_non_content_uri_and_data(self):
         """有非 GCS URI 但有 data_base64 时，应上传到 GCS。"""
         doc_id = uuid4()
         asset = ExtractionAsset(
@@ -488,7 +488,7 @@ class TestPersistExtractedAssets:
         mock_storage.upload_extraction_asset.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_skips_upload_for_gcs_uri(self):
+    async def test_skips_upload_for_content_uri(self):
         """已有 GCS URI 时不重复上传。"""
         doc_id = uuid4()
         asset = ExtractionAsset(
@@ -563,7 +563,7 @@ class TestPersistExtractedAssets:
             document_id=doc_id,
             metadata_patch={"extracted_assets": result},
         )
-        mock_storage.delete_gcs_uri.assert_awaited_once_with(gcs_uri="pgblob://bucket/assets/stale.png")
+        mock_storage.delete_blob.assert_awaited_once_with(content_uri="pgblob://bucket/assets/stale.png")
 
     @pytest.mark.asyncio
     async def test_clears_manifest_when_assets_empty(self):
@@ -585,4 +585,4 @@ class TestPersistExtractedAssets:
             document_id=doc_id,
             metadata_patch={"extracted_assets": []},
         )
-        mock_storage.delete_gcs_uri.assert_awaited_once_with(gcs_uri="pgblob://bucket/assets/stale.png")
+        mock_storage.delete_blob.assert_awaited_once_with(content_uri="pgblob://bucket/assets/stale.png")

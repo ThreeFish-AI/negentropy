@@ -86,10 +86,10 @@ class TestExtractFromUrl:
 
 
 class TestExtractFromSourceUri:
-    def test_gcs_uri_with_filename(self) -> None:
+    def test_content_uri_with_filename(self) -> None:
         assert _extract_source_label({"source_uri": "pgblob://bucket/app/corpus/report.pdf"}) == "report"
 
-    def test_gcs_uri_without_extension(self) -> None:
+    def test_content_uri_without_extension(self) -> None:
         assert _extract_source_label({"source_uri": "pgblob://bucket/app/corpus/data"}) == "data"
 
     def test_http_source_uri(self) -> None:

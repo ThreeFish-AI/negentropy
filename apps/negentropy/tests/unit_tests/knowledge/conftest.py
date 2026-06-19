@@ -124,10 +124,10 @@ class FakeStorageService:
         self.doc = doc
         self.markdown = markdown
         self.saved_markdown: str | None = None
-        self.saved_markdown_gcs_uri: str | None = None
+        self.saved_markdown_uri: str | None = None
         self.uploaded_markdown: str | None = None
         self.uploaded_assets: list[dict[str, object]] = []
-        self.deleted_gcs_uris: list[str] = []
+        self.deleted_content_uris: list[str] = []
         self.updated_metadata_patches: list[dict[str, object]] = []
         self.upload_and_store_calls: list[dict[str, object]] = []
 
@@ -145,11 +145,11 @@ class FakeStorageService:
         *,
         document_id,
         markdown_content: str,
-        markdown_gcs_uri=None,
+        markdown_uri=None,
     ):
         _ = document_id
         self.saved_markdown = markdown_content
-        self.saved_markdown_gcs_uri = markdown_gcs_uri
+        self.saved_markdown_uri = markdown_uri
         return True
 
     async def get_document_markdown(self, document_id):
@@ -165,7 +165,7 @@ class FakeStorageService:
         if self.doc is None:
             self.doc = SimpleNamespace(
                 id=uuid4(),
-                gcs_uri="pgblob://negentropy/knowledge/test.pdf",
+                content_uri="pgblob://negentropy/knowledge/test.pdf",
                 markdown_extract_status="pending",
                 metadata_={},
             )
@@ -191,8 +191,8 @@ class FakeStorageService:
             self.doc.metadata_ = current
         return True
 
-    async def delete_gcs_uri(self, *, gcs_uri: str):
-        self.deleted_gcs_uris.append(gcs_uri)
+    async def delete_blob(self, *, content_uri: str):
+        self.deleted_content_uris.append(content_uri)
         return True
 
 

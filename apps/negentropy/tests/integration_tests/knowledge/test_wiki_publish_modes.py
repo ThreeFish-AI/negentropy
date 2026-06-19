@@ -417,7 +417,7 @@ class TestWikiPublicationEntriesEagerLoading:
                 app_name="negentropy",
                 file_hash="entries-eager-load-hash",
                 original_filename="entries-eager-load.md",
-                gcs_uri="gs://test/entries-eager-load.md",
+                content_uri="gs://test/entries-eager-load.md",
                 file_size=42,
             )
             session.add(doc)
@@ -471,7 +471,7 @@ class TestWikiPublicationEntriesEagerLoading:
                 app_name="negentropy",
                 file_hash="get-pub-eager-hash",
                 original_filename="get-pub-eager.md",
-                gcs_uri="gs://test/get-pub-eager.md",
+                content_uri="gs://test/get-pub-eager.md",
                 file_size=42,
             )
             session.add(doc)

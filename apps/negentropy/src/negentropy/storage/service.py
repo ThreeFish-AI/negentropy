@@ -52,7 +52,7 @@ class DocumentStorageService:
         return str(corpus_id) if corpus_id else "library"
 
     @classmethod
-    def _build_markdown_gcs_path(
+    def _build_markdown_path(
         cls,
         *,
         app_name: str,
@@ -66,7 +66,7 @@ class DocumentStorageService:
         return f"knowledge/{app_name}/{cls._corpus_segment(corpus_id)}/derived/{document_id}/{safe_stem}.md"
 
     @classmethod
-    def _build_asset_gcs_path(
+    def _build_asset_path(
         cls,
         *,
         app_name: str,
@@ -178,20 +178,20 @@ class DocumentStorageService:
 
             # Best-effort 清理旧 blob 资源，防止孤立对象积累
             await self._best_effort_cleanup(
-                old_uri=doc.gcs_uri if doc.gcs_uri != blob_uri else None,
-                old_markdown_uri=doc.markdown_gcs_uri,
+                old_uri=doc.content_uri if doc.content_uri != blob_uri else None,
+                old_markdown_uri=doc.markdown_uri,
                 old_metadata=doc.metadata_,
             )
 
             doc.status = "active"
-            doc.gcs_uri = blob_uri
+            doc.content_uri = blob_uri
             doc.original_filename = filename
             doc.content_type = content_type
             doc.file_size = len(content)
             doc.metadata_ = metadata or {}
             doc.created_by = created_by
             doc.markdown_content = None
-            doc.markdown_gcs_uri = None
+            doc.markdown_uri = None
             doc.markdown_extract_status = "pending"
             doc.markdown_extract_error = None
             doc.markdown_extracted_at = None
@@ -203,7 +203,7 @@ class DocumentStorageService:
                 "document_reactivated",
                 doc_id=str(doc.id),
                 corpus_id=str(doc.corpus_id),
-                gcs_uri=blob_uri,
+                content_uri=blob_uri,
                 file_hash=doc.file_hash,
             )
             return doc
@@ -292,7 +292,7 @@ class DocumentStorageService:
                 app_name=app_name,
                 file_hash=file_hash,
                 original_filename=filename,
-                gcs_uri=blob_uri,
+                content_uri=blob_uri,
                 content_type=content_type,
                 file_size=len(content),
                 status="active",
@@ -339,7 +339,7 @@ class DocumentStorageService:
                 "document_stored",
                 doc_id=str(doc.id),
                 corpus_id=str(corpus_id),
-                gcs_uri=blob_uri,
+                content_uri=blob_uri,
                 file_hash=file_hash,
             )
 
@@ -459,9 +459,9 @@ class DocumentStorageService:
                 # Hard delete: remove blobs first
                 try:
                     blob = self._get_blob()
-                    await blob.delete(doc.gcs_uri)
-                    if doc.markdown_gcs_uri:
-                        await blob.delete(doc.markdown_gcs_uri)
+                    await blob.delete(doc.content_uri)
+                    if doc.markdown_uri:
+                        await blob.delete(doc.markdown_uri)
                     metadata = dict(doc.metadata_ or {})
                     extracted_assets = metadata.get("extracted_assets")
                     if isinstance(extracted_assets, list):
@@ -496,17 +496,17 @@ class DocumentStorageService:
 
             return True
 
-    async def get_document_by_gcs_uri(
+    async def get_document_by_uri(
         self,
         *,
-        gcs_uri: str,
+        content_uri: str,
         corpus_id: UUID | None = None,
         app_name: str | None = None,
         include_deleted: bool = False,
     ) -> KnowledgeDocument | None:
-        """按 gcs_uri 查询文档记录。"""
+        """按 content_uri 查询文档记录。"""
         async with AsyncSessionLocal() as db:
-            conditions = [KnowledgeDocument.gcs_uri == gcs_uri]
+            conditions = [KnowledgeDocument.content_uri == content_uri]
             if corpus_id:
                 conditions.append(KnowledgeDocument.corpus_id == corpus_id)
             if app_name:
@@ -528,7 +528,7 @@ class DocumentStorageService:
         async with AsyncSessionLocal() as db:
             conditions = [
                 or_(
-                    KnowledgeDocument.gcs_uri == source_uri,
+                    KnowledgeDocument.content_uri == source_uri,
                     KnowledgeDocument.metadata_["origin_url"].astext == source_uri,
                 )
             ]
@@ -568,7 +568,7 @@ class DocumentStorageService:
         *,
         document_id: UUID,
         markdown_content: str,
-        markdown_gcs_uri: str | None = None,
+        markdown_uri: str | None = None,
     ) -> bool:
         """保存 Markdown 正文与提取完成状态。"""
         async with AsyncSessionLocal() as db:
@@ -581,7 +581,7 @@ class DocumentStorageService:
             # 剥离 NUL（\x00）——PostgreSQL text 列不接受，asyncpg 写入会抛
             # UntranslatableCharacterError；某些 PDF 解析产物会夹带 NUL 字节。
             doc.markdown_content = strip_nul_chars(markdown_content)
-            doc.markdown_gcs_uri = markdown_gcs_uri
+            doc.markdown_uri = markdown_uri
             doc.markdown_extract_status = "completed"
             doc.markdown_extract_error = None
             doc.markdown_extracted_at = datetime.now(UTC)
@@ -667,13 +667,13 @@ class DocumentStorageService:
             )
             return doc
 
-    async def delete_gcs_uri(self, *, gcs_uri: str) -> bool:
+    async def delete_blob(self, *, content_uri: str) -> bool:
         """删除任意 blob URI；失败时仅记录日志。"""
         try:
-            await self._get_blob().delete(gcs_uri)
+            await self._get_blob().delete(content_uri)
             return True
         except StorageError as exc:
-            logger.warning("blob_uri_delete_failed", gcs_uri=gcs_uri, error=str(exc))
+            logger.warning("blob_uri_delete_failed", content_uri=content_uri, error=str(exc))
             return False
 
     async def upload_markdown_derivative(
@@ -689,7 +689,7 @@ class DocumentStorageService:
 
         try:
             blob = self._get_blob()
-            blob_path = self._build_markdown_gcs_path(
+            blob_path = self._build_markdown_path(
                 app_name=doc.app_name,
                 corpus_id=doc.corpus_id,
                 document_id=doc.id,
@@ -723,7 +723,7 @@ class DocumentStorageService:
 
         try:
             blob = self._get_blob()
-            blob_path = self._build_asset_gcs_path(
+            blob_path = self._build_asset_path(
                 app_name=doc.app_name,
                 corpus_id=doc.corpus_id,
                 document_id=doc.id,
@@ -755,7 +755,7 @@ class DocumentStorageService:
             return None
 
         blob = self._get_blob()
-        blob_path = self._build_asset_gcs_path(
+        blob_path = self._build_asset_path(
             app_name=doc.app_name,
             corpus_id=doc.corpus_id,
             document_id=doc.id,
@@ -770,7 +770,7 @@ class DocumentStorageService:
                 "extraction_asset_download_failed",
                 document_id=str(document_id),
                 filename=filename,
-                gcs_uri=blob_uri,
+                content_uri=blob_uri,
             )
             return None
 
@@ -787,7 +787,7 @@ class DocumentStorageService:
         if not doc:
             return None
 
-        return await self._get_blob().download(doc.gcs_uri)
+        return await self._get_blob().download(doc.content_uri)
 
     async def get_document_markdown(self, document_id: UUID) -> str | None:
         """读取文档 Markdown 正文（优先 PostgreSQL，缺失时回退 blob 存储）。"""
@@ -798,23 +798,23 @@ class DocumentStorageService:
         if doc.markdown_content and doc.markdown_content.strip():
             return doc.markdown_content
 
-        if not doc.markdown_gcs_uri:
+        if not doc.markdown_uri:
             return None
 
         try:
-            content = (await self._get_blob().download(doc.markdown_gcs_uri)).decode("utf-8")
+            content = (await self._get_blob().download(doc.markdown_uri)).decode("utf-8")
             if not content.strip():
                 logger.warning(
                     "markdown_content_empty",
                     document_id=str(document_id),
-                    markdown_gcs_uri=doc.markdown_gcs_uri,
+                    markdown_uri=doc.markdown_uri,
                 )
                 return None
             # 最佳努力回填 PostgreSQL，避免后续重复读 blob。
             await self.save_markdown_content(
                 document_id=document_id,
                 markdown_content=content,
-                markdown_gcs_uri=doc.markdown_gcs_uri,
+                markdown_uri=doc.markdown_uri,
             )
             return content
         except Exception as exc:  # noqa: BLE001 - 读取失败由调用方决定处理
@@ -825,13 +825,13 @@ class DocumentStorageService:
             )
             return None
 
-    async def get_document_content_by_uri(self, gcs_uri: str) -> bytes | None:
+    async def get_document_content_by_uri(self, content_uri: str) -> bytes | None:
         """Download document content by blob URI directly.
 
         用于 Rebuild 操作，直接通过 blob URI 下载文件内容。
 
         Args:
-            gcs_uri: blob URI（pgblob://{key}）
+            content_uri: blob URI（pgblob://{key}）
 
         Returns:
             File content as bytes
@@ -839,4 +839,4 @@ class DocumentStorageService:
         Raises:
             StorageError: If blob download fails
         """
-        return await self._get_blob().download(gcs_uri)
+        return await self._get_blob().download(content_uri)

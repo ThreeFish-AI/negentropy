@@ -403,8 +403,8 @@ export default function DocumentDetailPage() {
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="shrink-0 text-text-muted">Storage</span>
-                <span className="truncate font-mono font-medium text-foreground" title={detail.gcs_uri}>
-                  {detail.gcs_uri ? `...${detail.gcs_uri.slice(-24)}` : "-"}
+                <span className="truncate font-mono font-medium text-foreground" title={detail.content_uri}>
+                  {detail.content_uri ? `...${detail.content_uri.slice(-24)}` : "-"}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">

@@ -188,17 +188,17 @@ async def rebuild_document(
             message="Document rebuild task started. Check Pipeline page for progress.",
         )
 
-    if not doc.gcs_uri:
+    if not doc.content_uri:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "File document gcs_uri not available"},
+            detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "File document content_uri not available"},
         )
     run_id = await service.create_pipeline(
         app_name=resolved_app,
         operation="rebuild_source",
         input_data={
             "corpus_id": str(corpus_id),
-            "source_uri": doc.gcs_uri,
+            "source_uri": doc.content_uri,
             "document_id": str(document_id),
         },
     )
@@ -207,7 +207,7 @@ async def rebuild_document(
         run_id=run_id,
         corpus_id=corpus_id,
         app_name=resolved_app,
-        source_uri=doc.gcs_uri,
+        source_uri=doc.content_uri,
         chunking_config=chunking_config,
         document_id=document_id,
     )

@@ -2649,7 +2649,7 @@ async def persist_extracted_assets(
     }
     stale_uris = sorted(existing_uris - current_uris)
     for stale_uri in stale_uris:
-        await storage_service.delete_gcs_uri(gcs_uri=stale_uri)
+        await storage_service.delete_blob(content_uri=stale_uri)
 
     if tracker:
         await tracker.complete_stage(
@@ -2741,21 +2741,21 @@ async def store_extracted_document_artifacts(
     )
 
     storage_service = DocumentStorageService()
-    markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+    markdown_uri = await storage_service.upload_markdown_derivative(
         document_id=document_id,
         markdown_content=rewritten_markdown,
     )
     await storage_service.save_markdown_content(
         document_id=document_id,
         markdown_content=rewritten_markdown,
-        markdown_gcs_uri=markdown_gcs_uri,
+        markdown_uri=markdown_uri,
     )
     stored_assets = await persist_extracted_assets(
         document_id=document_id,
         assets=extracted.assets,
         tracker=tracker,
     )
-    return markdown_gcs_uri, stored_assets
+    return markdown_uri, stored_assets
 
 
 def build_url_document_filename(url: str) -> str:

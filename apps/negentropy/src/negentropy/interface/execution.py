@@ -75,7 +75,7 @@ class McpToolExecutionService:
             content_type=content_type,
             size_bytes=len(content),
             sha256=sha256,
-            gcs_uri=await blob.upload(
+            content_uri=await blob.upload(
                 content=content,
                 path=f"mcp-trials/negentropy/{server.id}/{sha256[:12]}-{safe_name}",
                 content_type=content_type,
@@ -352,7 +352,7 @@ class McpToolExecutionService:
         asset = await self._db.get(McpTrialAsset, asset_id)
         if not asset or asset.server_id != server.id:
             raise ValueError(f"Trial asset not found: {asset_id}")
-        content = await self._get_blob().download(asset.gcs_uri)
+        content = await self._get_blob().download(asset.content_uri)
         suffix = Path(asset.original_filename).suffix or ".pdf"
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
         temp_file.write(content)

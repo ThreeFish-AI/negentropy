@@ -12,7 +12,7 @@ Create Date: 2026-06-20 00:00:00.000000+00:00
 
 正交分解：
     本迁移仅新增两张存储基建表（纯加法，零回归）。业务表
-    ``knowledge_documents`` / ``mcp_trial_assets`` 的 ``gcs_uri`` 列重命名与
+    ``knowledge_documents`` / ``mcp_trial_assets`` 的 ``content_uri`` 列重命名与
     存量 URI scheme 改写由后续 0072 迁移与 ORM/调用方改动**原子**进行。
 
 幂等性：

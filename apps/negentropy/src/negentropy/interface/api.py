@@ -351,7 +351,7 @@ class McpTrialAssetResponse(BaseModel):
     content_type: str | None = None
     size_bytes: int
     sha256: str
-    gcs_uri: str
+    content_uri: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: str | None = None
 
@@ -1106,7 +1106,7 @@ def _mcp_trial_asset_to_response(asset: McpTrialAsset) -> McpTrialAssetResponse:
         content_type=asset.content_type,
         size_bytes=asset.size_bytes,
         sha256=asset.sha256,
-        gcs_uri=asset.gcs_uri,
+        content_uri=asset.content_uri,
         metadata=asset.metadata_ or {},
         created_at=asset.created_at.isoformat() if asset.created_at else None,
     )
