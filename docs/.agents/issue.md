@@ -3240,3 +3240,23 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：随本次安全核销（negentropy/cognizes/npm 经本 PR 修复、perceives 经同期 PR #921 覆盖），对这 3 条无补丁告警以 `dismissed_reason=tolerable_risk` 经 `gh api -X PATCH repos/.../dependabot/alerts/<n>` 驳回，理由：① **dompurify** 仅由 `mermaid`（图表渲染）传递引入，用于**受控的 mermaid SVG/HTML 清洗**而非任意用户 DOM，项目代码不使用 `IN_PLACE` 模式、不将 DOMPurify 暴露给攻击者可控的 live DOM 节点，触发路径不可达；② **torch** 仅由 `docling`/`mineru`/`sentence-transformers` 等 PDF/Embedding 引擎传递引入，且仅在 `cognizes` gpu 组 + `perceives` PDF 处理路径加载，项目**从不调用 `torch.jit.script`**（JIT 编译入口），漏洞函数不在调用图内。两者均为 low 严重度，触发条件不满足，故定级可接受风险。
 - **后续防范**：① 定期（如每月）复查这 3 条已驳回告警——一旦上游发布 patched 版本（`fixed_in` 不再为 null），应立即升级核销并清理由此产生的「可驳回」状态；② 新增传递依赖若引入 DOMPurify 的 `IN_PLACE` 用法或 `torch.jit.script` 调用，须重新评估本驳回是否仍成立（在 PR 评审中显式核对）；③ Dependabot 驳回状态可在 GitHub 安全面板按 `Dismissed` 过滤复查，驳回理由（tolerable_risk）附在本 issue 摘要中可追溯。
 - **同类问题影响**：所有「上游无补丁」类 Dependabot 告警（`fixed_in` 为空）都适用本模式——先评估「项目调用图是否触及漏洞函数」与「触发前置条件是否满足」，满足「不可达 / 不满足」且 low 严重度方可 `tolerable_risk` 驳回并在 issue.md 留痕；high/critical 即便无补丁也应单独跟踪（如通过虚拟补丁、WAF、依赖替换缓解），不得直接驳回。
+
+---
+
+## ISSUE-143 Dependabot 可补丁告警核销——undici CVE-2026-9697 / CVE-2026-9678（override 地板提至 7.28.0）（2026-06-19）
+
+- **表因**：GitHub Dependabot 安全面板经 PR #922 / #921 核销后仅剩 **2 条 open 告警**，均指向 npm 传递依赖 `undici`（manifest: `pnpm-lock.yaml`，relationship: transitive）：① #480 `CVE-2026-9697`（GHSA-vmh5-mc38-953g，high，CVSS 7.4）——SOCKS5 `ProxyAgent` 丢弃 `requestTls` 致 TLS 证书校验绕过 / MITM，受影响 `>=7.23.0, <7.28.0`；② #479 `CVE-2026-9678`（GHSA-pr7r-676h-xcf6，medium，CVSS 5.9）——shared cache 空白符绕过致跨用户信息泄露，受影响 `>=7.0.0, <7.28.0`。二者 `first_patched_version` 均为 **7.28.0**。
+- **根因**：`pnpm-workspace.yaml` 已设 `undici` override `>=7.24.0 <8.0.0`，但**地板 7.24.0 低于修复线 7.28.0**，lockfile 实际解析到 `7.25.0` 仍落在两条告警的受影响区间内。`<8.0.0` 上限是刻意保留——`jsdom@28.1.0` 引用 `undici/lib/handler/{wrap,unwrap}-handler.js`，该路径在 `undici@8` 已删除，故不能直接跳到 8.x（advisory 虽给出 8.5.0 备选，但会破坏 jsdom）。
+- **处理方式**：最小干预——override 地板由 `>=7.24.0` 提至 **`>=7.28.0`**（保留 `<8.0.0` jsdom 兼容上限不变），`pnpm install` 重生成 lockfile 使 `undici@7.25.0 → 7.28.0`。`pnpm why undici -r` 确认 undici **仅由 `jsdom@28.1.0` 传递消费**（经 vitest 用于 `negentropy-ui` / `negentropy-wiki` 的 dev/test），**无任何 workspace 包直接依赖**、运行时不暴露；`pnpm -r typecheck` 全过。两条告警随 fixed_in 命中 7.28.0 自动转 `fixed`。
+- **后续防范**：① override 地板应随新 CVE 修复线持续上提——每次 Dependabot 告警核销时核对既有 override 地板是否已低于新修复线，是则同步上提（勿新建重复 override）；② 待 `jsdom` 升级到 29+ 且引用的 undici 内部路径稳定后，可评估放开 `<8.0.0` 上限、跟进 undici 8.x；③ undici 仅处 dev/test 路径、运行时无暴露面，此类「传递依赖 + 父包无版本封顶」的可补丁告警，优先以 override 地板模式修复（参考 PR #922 同批 form-data/ws/js-yaml/@babel/core/esbuild 处理）。
+- **同类问题影响**：所有「npm 传递依赖、父包（如 jsdom/axios/eslint 链）无版本封顶、`fixed_in` 非空」的 Dependabot 告警均适用本 override 地板模式。**注意与 ISSUE-142 区分**：本 ISSUE 为「有补丁可升级」类（升级即核销），ISSUE-142 为「上游无补丁」驳回类（`fixed_in` 为空，须 `tolerable_risk` 驳回），二者根因与处理路径截然不同，不可混为一谈；若未来 undici 出现无补丁 advisory，应另起 ISSUE 按 ISSUE-142 流程评估驳回，而非在此续写。
+
+---
+
+## ISSUE-144 全局版本号单一事实源（SSOT）落地；cognizes 版本自治与内部漂移遗留（2026-06-19）
+
+- **表因**：monorepo 版本号散落于 8+ 清单（5 package.json + 3 pyproject.toml + 3 uv.lock），纯手工维护，历史多次分裂——commit `c54917b3` 统一版本时漏掉 negentropy 后端（分两次提交才补齐）、`agents-chat-core` 长期停滞 `0.1.0` 未与主栈对齐；`docs/concepts/docker-operations.md` 警告「tag 须与 pyproject version 对齐否则 wheel 名 / tag / Release 标题三者错位」此前完全靠人肉核对。
+- **根因**：混合语言 monorepo（pnpm workspace + 3 个独立 uv Python 项目）无原生跨语言版本工具，缺单一事实源与防漂移机制。
+- **处理方式**：① 仓库根新增 `VERSION` 文件作 SSOT（当前 `0.0.1-rc.1`）；② 新增 `scripts/sync_versions.py`（PEP 723 单文件，tomlkit 保格式写 pyproject + 行级正则写 package.json + `packaging` 规范化比对消除 `0.0.1-rc.1`↔`0.0.1rc1` 字面误报 + 对受影响 app 跑 `uv lock`），含 `sync`/`check` 两子命令；③ pre-commit `version-sync-check` local hook（只校验不 autofix）+ CI `.github/workflows/version-consistency.yml`（fail-only）双重防漂移；④ 管辖主栈 6 包（root / negentropy / negentropy-ui / negentropy-wiki / negentropy-perceives / agents-chat-core），`cognizes`/`cognizes-ui` 保持独立（pnpm-workspace.yaml 已注明其为独立项目，且 `0.1.0` 与主栈 `0.0.1-rc.1` 语义本就不同步）。
+- **后续防范**：① 改版本只动 `VERSION` 后跑 `uv run scripts/sync_versions.py sync`，勿手改清单；② 发版前确保 git tag 版本号 == `VERSION` 值（docker-operations.md 既有要求，SSOT 让清单侧自动满足）；③ CI 发布是 tag-driven，SSOT 是开发期写入、CI 仍信任 tag，二者职责正交。
+- **同类问题影响 / 已知遗留**：(1) `cognizes` 内部版本漂移未治理——`apps/cognizes/pyproject.toml`=`0.1.0`、`src/cognizes/__init__.py` `__version__`=`0.1.0`、`api/main.py` FastAPI `version`=`"1.0.0"`、`agents/claude/__init__.py` `__version__`=`0.1.0` 多处不一致，本方案刻意不动（正交边界）；若 cognizes 未来并入主栈统一发版，将其加入 sync 脚本目标列表并先治理内部漂移。(2) `perceives` 独立发 PyPI（`perceives-v*` tag）当前与主栈同 version 安全；未来若需独立演进，从脚本目标列表移除即 opt-out（清单驱动，预留正交解耦）。

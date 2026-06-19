@@ -10,6 +10,11 @@ permissions:
   contents: write
   id-token: write
 
+# 发布流水线串行化：同一 tag 的重推/重跑不得互相取消，避免发布产物半途中断。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 defaults:
   run:
     working-directory: apps/negentropy-perceives
@@ -23,6 +28,7 @@ jobs:
     name: Build Distribution
     runs-on: ubuntu-latest
     needs: validate
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -112,6 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, pre-release-github]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    timeout-minutes: 10
 
     environment:
       name: testpypi
@@ -139,6 +147,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-release-github, testpypi]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    # 该 job 仅向 $GITHUB_STEP_SUMMARY 写审批清单、不读取仓库文件，故不执行 checkout；
+    # 必须覆盖 workflow 级 working-directory（apps/negentropy-perceives 在 checkout 前不存在，
+    # 否则 bash 启动报 "No such file or directory"），改在 workspace 根运行。与 perceives-ci
+    # matrix-prep 同根因（无 checkout job 继承 perceives 工作目录）。
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
 
     environment:
       name: production
@@ -162,6 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: approval
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -196,6 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: promote-release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && needs.promote-release.result == 'success'
+    timeout-minutes: 10
 
     environment:
       name: pypi

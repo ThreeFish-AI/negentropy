@@ -1,6 +1,6 @@
 {
   "name": "negentropy-monorepo",
-  "version": "0.0.1a1",
+  "version": "0.0.1-rc.1",
   "private": true,
   "description": "Negentropy monorepo root — apps + shared packages",
   "scripts": {
@@ -15,7 +15,9 @@
     "dev": "./dev",
     "setup": "./dev setup",
     "start": "./dev",
-    "stop": "./dev stop"
+    "stop": "./dev stop",
+    "version:sync": "uv run scripts/sync_versions.py sync",
+    "version:check": "uv run scripts/sync_versions.py check"
   },
   "devDependencies": {
     "tsup": "^8.3.5",

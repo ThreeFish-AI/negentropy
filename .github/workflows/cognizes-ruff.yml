@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python-uv
@@ -88,8 +88,9 @@ jobs:
             EXISTING_BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
 
             echo "Updating existing PR #$PR_NUMBER on branch $EXISTING_BRANCH"
-            git checkout "$EXISTING_BRANCH"
-            git pull origin "$EXISTING_BRANCH"
+            # fetch-depth:1 仅拉取触发分支；显式浅取既有修复分支后再切换，避免 checkout 失败
+            git fetch --depth 1 origin "$EXISTING_BRANCH"
+            git checkout -B "$EXISTING_BRANCH" "origin/$EXISTING_BRANCH"
             uv run ruff check src/cognizes/ tests/ --fix
             uv run ruff format src/cognizes/ tests/
 
