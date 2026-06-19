@@ -19,6 +19,12 @@ on:
 permissions:
   contents: read
 
+# 该工作流同时被直接触发（push/PR）与被 release 经 workflow_call 调用；
+# group 追加 event_name 后缀，隔离发布校验运行，避免重推 tag 时误取消在途校验。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
 defaults:
   run:
     working-directory: apps/negentropy-perceives
@@ -50,6 +56,7 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -71,6 +78,7 @@ jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -155,6 +163,7 @@ jobs:
   build:
     name: Build Package
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
