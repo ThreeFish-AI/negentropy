@@ -357,7 +357,7 @@ async def ingest_file(
         storage_service = None
 
         if store_to_gcs:
-            from negentropy.storage.gcs_client import StorageError
+            from negentropy.storage import StorageError
             from negentropy.storage.service import DocumentStorageService
 
             try:

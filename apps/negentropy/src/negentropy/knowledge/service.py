@@ -92,9 +92,9 @@ def _extract_source_label(input_data: dict[str, Any]) -> str:
         if label := _sanitize_label(parsed.netloc):
             return label
 
-    # 3. source_uri → 区分 GCS / HTTP / 通用
+    # 3. source_uri → 区分 blob / HTTP / 通用
     if source_uri := input_data.get("source_uri"):
-        if source_uri.startswith("gs://"):
+        if source_uri.startswith("pgblob://"):
             name = source_uri.split("/")[-1]
             if "." in name:
                 name = Path(name).stem
@@ -2140,7 +2140,7 @@ class KnowledgeService:
             # 阶段 1: Download
             await tracker.start_stage("download")
             try:
-                from negentropy.storage.gcs_client import StorageError
+                from negentropy.storage import StorageError
                 from negentropy.storage.service import DocumentStorageService
 
                 storage_service = DocumentStorageService()
@@ -2663,8 +2663,8 @@ class KnowledgeService:
         deleted_documents = 0
         deleted_gcs_objects = 0
 
-        if source_uri.startswith("gs://"):
-            from negentropy.storage.gcs_client import StorageError
+        if source_uri.startswith("pgblob://"):
+            from negentropy.storage import StorageError
             from negentropy.storage.service import DocumentStorageService
 
             storage_service = DocumentStorageService()
@@ -3023,22 +3023,22 @@ class KnowledgeService:
         Args:
             corpus_id: 知识库 ID
             app_name: 应用名称
-            source_uri: GCS URI（必须是 gs://... 格式）
+            source_uri: blob URI（必须是 pgblob://... 格式）
             chunking_config: 可选的分块配置，未提供时使用默认配置
 
         Returns:
             list[KnowledgeRecord]: 新创建的知识记录列表
 
         Raises:
-            ValueError: source_uri 不是有效的 GCS URI
+            ValueError: source_uri 不是有效的 blob URI
             KnowledgeError: 处理失败
         """
         tracker = None
         config = chunking_config or self._chunking_config
 
-        # 验证 GCS URI
-        if not source_uri.startswith("gs://"):
-            raise ValueError(f"Invalid GCS URI: {source_uri}. Must start with gs://")
+        # 验证 blob URI
+        if not source_uri.startswith("pgblob://"):
+            raise ValueError(f"Invalid blob URI: {source_uri}. Must start with pgblob://")
 
         # 初始化 Pipeline 追踪器
         if self._pipeline_dao:
@@ -3069,7 +3069,7 @@ class KnowledgeService:
                 await tracker.start_stage("download")
 
             try:
-                from negentropy.storage.gcs_client import StorageError
+                from negentropy.storage import StorageError
                 from negentropy.storage.service import DocumentStorageService
 
                 storage_service = DocumentStorageService()

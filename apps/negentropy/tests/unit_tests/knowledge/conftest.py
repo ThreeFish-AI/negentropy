@@ -165,7 +165,7 @@ class FakeStorageService:
         if self.doc is None:
             self.doc = SimpleNamespace(
                 id=uuid4(),
-                gcs_uri="gs://negentropy/knowledge/test.pdf",
+                gcs_uri="pgblob://negentropy/knowledge/test.pdf",
                 markdown_extract_status="pending",
                 metadata_={},
             )

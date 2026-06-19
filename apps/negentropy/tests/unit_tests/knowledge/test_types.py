@@ -312,8 +312,8 @@ class TestInferSourceType:
     """infer_source_type 工具函数测试"""
 
     def test_gs_uri_returns_file(self) -> None:
-        """gs:// 前缀应推断为 file"""
-        assert infer_source_type("gs://bucket/path") == "file"
+        """pgblob:// 前缀应推断为 file"""
+        assert infer_source_type("pgblob://bucket/path") == "file"
 
     def test_http_uri_returns_url(self) -> None:
         """http:// 前缀应推断为 url"""
@@ -333,12 +333,12 @@ class TestInferSourceType:
 
     def test_metadata_source_type_takes_precedence(self) -> None:
         """metadata 中已有 source_type 应优先采用"""
-        result = infer_source_type("gs://bucket/path", {"source_type": "url"})
+        result = infer_source_type("pgblob://bucket/path", {"source_type": "url"})
         assert result == "url"
 
     def test_metadata_invalid_source_type_falls_back(self) -> None:
         """metadata 中无效 source_type 应回退到 URI 推断"""
-        result = infer_source_type("gs://bucket/path", {"source_type": "invalid"})
+        result = infer_source_type("pgblob://bucket/path", {"source_type": "invalid"})
         assert result == "file"
 
 
@@ -357,7 +357,7 @@ class TestNormalizeSourceMetadata:
     def test_preserves_valid_source_type(self) -> None:
         """已有有效 source_type 时应保留"""
         result = normalize_source_metadata(
-            source_uri="gs://bucket/file",
+            source_uri="pgblob://bucket/file",
             metadata={"source_type": "text"},
         )
         assert result["source_type"] == "text"

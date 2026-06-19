@@ -310,9 +310,9 @@ def _extract_base64_from_asset(item: dict[str, Any]) -> str | None:
     return None
 
 
-def _is_gcs_uri(uri: str | None) -> bool:
-    """判断 URI 是否为 GCS 路径。"""
-    return bool(uri and uri.startswith("gs://"))
+def _is_blob_uri(uri: str | None) -> bool:
+    """判断 URI 是否为 blob 存储路径（``pgblob://``）。"""
+    return bool(uri and uri.startswith("pgblob://"))
 
 
 def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
@@ -572,7 +572,7 @@ def _merge_extraction_assets(
             if existing.data_base64:
                 continue
             # structured 已有 GCS URI → 不覆盖（GCS URI 可直接服务）
-            if _is_gcs_uri(existing.uri):
+            if _is_blob_uri(existing.uri):
                 continue
             # 其他情况（无数据、或 URI 非 GCS）→ 允许用 content_items 数据回填
             if img_asset.data_base64:
@@ -2586,7 +2586,7 @@ async def persist_extracted_assets(
 
         # 上传决策：无 URI 或 URI 非 GCS 且有可上传数据时，需上传到 GCS
         needs_upload = not uri or (
-            not _is_gcs_uri(uri) and bool(asset.data_base64 or asset.local_path or asset.text is not None)
+            not _is_blob_uri(uri) and bool(asset.data_base64 or asset.local_path or asset.text is not None)
         )
 
         if needs_upload:
@@ -2617,7 +2617,7 @@ async def persist_extracted_assets(
                     content=content_bytes,
                     content_type=asset.content_type,
                 )
-            elif not _is_gcs_uri(uri):
+            elif not _is_blob_uri(uri):
                 logger.warning(
                     "asset_no_uploadable_content",
                     document_id=str(document_id),
@@ -2640,12 +2640,12 @@ async def persist_extracted_assets(
     existing_uris = {
         str(item.get("uri"))
         for item in existing_assets
-        if isinstance(item.get("uri"), str) and _is_gcs_uri(item.get("uri"))
+        if isinstance(item.get("uri"), str) and _is_blob_uri(item.get("uri"))
     }
     current_uris = {
         str(item.get("uri"))
         for item in stored_assets
-        if isinstance(item.get("uri"), str) and _is_gcs_uri(item.get("uri"))
+        if isinstance(item.get("uri"), str) and _is_blob_uri(item.get("uri"))
     }
     stale_uris = sorted(existing_uris - current_uris)
     for stale_uri in stale_uris:

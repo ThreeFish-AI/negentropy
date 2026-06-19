@@ -526,13 +526,13 @@ async def rebuild_source(
     resolved_app = _resolve_app_name(payload.app_name)
     source_uri = payload.source_uri
 
-    # 验证 source_uri 是有效的 GCS URI
-    if not source_uri or not source_uri.startswith("gs://"):
+    # 验证 source_uri 是有效的 blob URI
+    if not source_uri or not source_uri.startswith("pgblob://"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "code": "INVALID_SOURCE_URI",
-                "message": "source_uri must be a valid GCS URI (gs://...) for rebuild operation",
+                "message": "source_uri must be a valid blob URI (pgblob://...) for rebuild operation",
             },
         )
 
