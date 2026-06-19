@@ -1,9 +1,4 @@
-"use client";
-
-import { useEntryStats } from "@/lib/use-entry-stats";
-
 interface WikiArticleMetaProps {
-  entryId: string;
   authorName?: string | null;
   authorUrl?: string | null;
   publishedAt?: string | null;
@@ -13,23 +8,16 @@ interface WikiArticleMetaProps {
 /**
  * 文章元数据栏 — 展示在标题与正文之间
  *
- * 静态数据（作者 / 发布时间 / 源头链接）由 SSG 注入 props；
- * 动态数据（浏览 / 评论 / 注解计数）在客户端通过 /stats 端点获取。
+ * 纯静态化后仅保留静态字段（作者 / 发布时间 / 源头链接），由 SSG 从静态内容包
+ * 直接注入。浏览 / 评论 / 注解等动态计数随纯静态化移除（站点不再依赖后端）。
  */
 export function WikiArticleMeta({
-  entryId,
   authorName,
   authorUrl,
   publishedAt,
   sourceUrl,
 }: WikiArticleMetaProps) {
-  const { stats } = useEntryStats(entryId);
-
-  const commentTotal = stats
-    ? stats.comment_count + stats.annotation_count
-    : null;
-
-  const hasAnyMeta = authorName || publishedAt || sourceUrl || stats;
+  const hasAnyMeta = authorName || publishedAt || sourceUrl;
 
   if (!hasAnyMeta) return null;
 
@@ -38,10 +26,7 @@ export function WikiArticleMeta({
       {/* 作者 */}
       {authorName && (
         <span className="wiki-meta-author">
-          <AuthorAvatar
-            authorName={authorName}
-            authorUrl={authorUrl}
-          />
+          <AuthorAvatar authorName={authorName} authorUrl={authorUrl} />
           {authorUrl ? (
             <a
               className="wiki-meta-author-name"
@@ -57,7 +42,7 @@ export function WikiArticleMeta({
         </span>
       )}
 
-      {authorName && (publishedAt || stats || sourceUrl) && (
+      {authorName && (publishedAt || sourceUrl) && (
         <span className="wiki-meta-sep">·</span>
       )}
 
@@ -68,18 +53,6 @@ export function WikiArticleMeta({
           {formatDate(publishedAt)}
         </span>
       )}
-
-      {/* 浏览次数 */}
-      <span className="wiki-meta-item">
-        <EyeIcon />
-        {stats ? formatNumber(stats.view_count) : "–"}
-      </span>
-
-      {/* 评论总数（评论 + 注解） */}
-      <span className="wiki-meta-item">
-        <CommentIcon />
-        {commentTotal !== null ? formatNumber(commentTotal) : "–"}
-      </span>
 
       {/* 源头链接 */}
       {sourceUrl && (
@@ -152,14 +125,8 @@ function formatDate(iso: string): string {
   }
 }
 
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
 // ---------------------------------------------------------------------------
-// 内联 SVG 图标（15×15，opacity 0.55，与 wiki 现有无图标库风格一致）
+// 内联 SVG 图标（与 wiki 现有无图标库风格一致）
 // ---------------------------------------------------------------------------
 
 function CalendarIcon() {
@@ -177,39 +144,6 @@ function CalendarIcon() {
       <line x1="5" y1="1" x2="5" y2="4" />
       <line x1="11" y1="1" x2="11" y2="4" />
       <line x1="2" y1="7" x2="14" y2="7" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg
-      className="wiki-meta-icon"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z" />
-      <circle cx="8" cy="8" r="2" />
-    </svg>
-  );
-}
-
-function CommentIcon() {
-  return (
-    <svg
-      className="wiki-meta-icon"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3z" />
     </svg>
   );
 }

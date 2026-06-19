@@ -3,22 +3,15 @@
   "version": "0.0.1-rc.2",
   "private": true,
   "scripts": {
-    "predev": "pnpm --filter @negentropy/agents-chat-core build",
     "dev": "next dev --port 3092",
-    "prebuild": "test -n \"$NEGENTROPY_CORE_PREBUILT\" || pnpm --filter @negentropy/agents-chat-core build",
     "build": "next build",
-    "start": "node ./scripts/start-production.mjs",
-    "prelint": "pnpm --filter @negentropy/agents-chat-core build",
+    "postbuild": "pagefind --site out",
+    "start": "serve out -l 3092",
     "lint": "eslint .",
-    "pretest": "pnpm --filter @negentropy/agents-chat-core build",
     "test": "vitest run",
-    "pretest:watch": "pnpm --filter @negentropy/agents-chat-core build",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@ag-ui/client": "catalog:",
-    "@ag-ui/core": "catalog:",
-    "@negentropy/agents-chat-core": "workspace:*",
     "cytoscape": "^3.33.3",
     "cytoscape-fcose": "^2.2.0",
     "d3-drag": "^3.0.0",
@@ -47,12 +40,10 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
-    "rxjs": "catalog:",
     "sigma": "^3.0.3",
     "three-spritetext": "^1.10.0",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0",
-    "zod": "catalog:"
+    "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -75,6 +66,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "jsdom": "^28.0.0",
+    "pagefind": "^1.4.0",
+    "serve": "^14.2.5",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.3"

@@ -1,23 +1,15 @@
 /**
- * Wiki API 客户端
+ * Wiki 类型与导航纯函数（client-safe）
  *
- * 用于 SSG 构建时从后端拉取 Wiki 发布数据（Publications、Entries、NavTree、Content、Graph）。
- * 运行时通过 ISR 增量再验证保持数据新鲜度。
+ * 本模块**不**导入任何 Node 专属 API（`node:fs` / `server-only`），故可被客户端
+ * 组件安全引用（类型 + 导航派生纯函数）。
+ *
+ * 数据访问单例 `wikiApi`（读取本地静态内容包的 `LocalContentClient`）定义在
+ * `./content-source`（server-only）；服务端页面/generate 从那里导入。
+ * 两者解耦是为了避免 `node:fs` 经本模块泄漏进客户端 bundle。
+ *
+ * wiki 站点纯静态化后不再直接或间接依赖主站数据库：构建期只读本地文件。
  */
-
-import type {
-  WikiEntryGraphResponse,
-  WikiGraphEntityDetailResponse,
-  WikiGraphEntityListResponse,
-  WikiGraphEntityQueryOptions,
-  WikiGraphQueryOptions,
-  WikiGraphResponse,
-} from "./wiki-graph-types";
-
-const API_BASE =
-  typeof process !== "undefined"
-    ? process.env.WIKI_API_BASE || "http://localhost:3292"
-    : "http://localhost:3292";
 
 // ---------------------------------------------------------------------------
 // 类型定义
@@ -95,154 +87,6 @@ export interface WikiEntryContent {
   source_url?: string | null;
   published_at?: string | null;
 }
-
-// ---------------------------------------------------------------------------
-// API 客户端
-// ---------------------------------------------------------------------------
-
-class WikiApiClient {
-  private baseUrl: string;
-
-  constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || API_BASE;
-  }
-
-  private async fetch<T>(
-    path: string,
-    init?: { tags?: string[] },
-  ): Promise<T> {
-    const url = `${this.baseUrl}/knowledge/wiki${path}`;
-    const res = await fetch(url, {
-      next: {
-        revalidate: 300, // ISR: 5 分钟增量再验证
-        ...(init?.tags ? { tags: init.tags } : {}),
-      },
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) {
-      throw new Error(`Wiki API error [${res.status}] ${url}: ${await res.text()}`);
-    }
-    return res.json();
-  }
-
-  /** 列出所有已发布的 Publication */
-  async listPublications(): Promise<{ items: WikiPublication[]; total: number }> {
-    return this.fetch("/publications?status=published");
-  }
-
-  /** 获取单个 Publication 详情 */
-  async getPublication(pubId: string): Promise<WikiPublication> {
-    return this.fetch(`/publications/${pubId}`);
-  }
-
-  /** 获取 Publication 的所有条目 */
-  async getEntries(pubId: string): Promise<{ items: WikiEntry[]; total: number }> {
-    return this.fetch(`/publications/${pubId}/entries`);
-  }
-
-  /** 获取导航树 */
-  async getNavTree(pubId: string): Promise<{
-    publication_id: string;
-    nav_tree: { items: WikiNavTreeItem[] };
-  }> {
-    return this.fetch(`/publications/${pubId}/nav-tree`);
-  }
-
-  /** 获取单条条目的 Markdown 内容 */
-  async getEntryContent(entryId: string): Promise<WikiEntryContent> {
-    return this.fetch(`/entries/${entryId}/content`);
-  }
-
-  // -------------------------------------------------------------------------
-  // 辅助查询（组合原子 API，供页面组件直接调用）
-  // -------------------------------------------------------------------------
-
-  /**
-   * 通过 slug 查找已发布的 Publication
-   *
-   * 当前后端不支持 slug 直查，先列出再匹配。
-   * 后续若后端提供 `/publications?slug=xxx` 接口可直接替换实现。
-   */
-  async findPublicationBySlug(slug: string): Promise<WikiPublication | null> {
-    const result = await this.listPublications();
-    return result.items.find((p) => p.slug === slug) ?? null;
-  }
-
-  /**
-   * 通过 entry_slug 查找对应的 entry_id
-   *
-   * 当前后端不支持按 slug 查询 entry，先获取 entries 列表再匹配。
-   */
-  async findEntryId(pubId: string, entrySlug: string): Promise<string | null> {
-    const result = await this.getEntries(pubId);
-    const match = result.items.find((e) => e.entry_slug === entrySlug);
-    return match?.id ?? null;
-  }
-
-  // -------------------------------------------------------------------------
-  // 知识图谱（按 Publication 维度切片）
-  //
-  // 后端在 `/knowledge/wiki/publications/{pub_id}/graph` 系列端点上仅暴露
-  // `status='published'` 的发布；切片语义见
-  // `apps/negentropy/.../lifecycle/wiki_graph_service.py`。
-  // `revalidateTag('wiki-graph:${pub_slug}')` 由后端发布时主动触发。
-  // -------------------------------------------------------------------------
-
-  /** 获取 Publication 整体切片图谱 */
-  async getPublicationGraph(
-    pubId: string,
-    opts?: WikiGraphQueryOptions & { tag?: string },
-  ): Promise<WikiGraphResponse> {
-    const qs = new URLSearchParams();
-    if (opts?.maxNodes != null) qs.set("max_nodes", String(opts.maxNodes));
-    if (opts?.minImportance != null) qs.set("min_importance", String(opts.minImportance));
-    if (opts?.includeIsolated != null) qs.set("include_isolated", String(opts.includeIsolated));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.fetch<WikiGraphResponse>(
-      `/publications/${pubId}/graph${suffix}`,
-      opts?.tag ? { tags: [opts.tag] } : undefined,
-    );
-  }
-
-  /** 获取 Publication 实体扁平列表（分页） */
-  async getPublicationEntities(
-    pubId: string,
-    opts?: WikiGraphEntityQueryOptions & { tag?: string },
-  ): Promise<WikiGraphEntityListResponse> {
-    const qs = new URLSearchParams();
-    if (opts?.offset != null) qs.set("offset", String(opts.offset));
-    if (opts?.limit != null) qs.set("limit", String(opts.limit));
-    if (opts?.sortBy != null) qs.set("sort_by", opts.sortBy);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.fetch<WikiGraphEntityListResponse>(
-      `/publications/${pubId}/graph/entities${suffix}`,
-      opts?.tag ? { tags: [opts.tag] } : undefined,
-    );
-  }
-
-  /** 获取单实体详情（含邻居 + 提及 entries） */
-  async getPublicationEntityDetail(
-    pubId: string,
-    entityId: string,
-  ): Promise<WikiGraphEntityDetailResponse> {
-    return this.fetch<WikiGraphEntityDetailResponse>(
-      `/publications/${pubId}/graph/entities/${entityId}`,
-    );
-  }
-
-  /** 获取单 entry 的局部图（该文档涉及实体 + 一跳邻居） */
-  async getEntryGraph(
-    entryId: string,
-    opts?: { maxNodes?: number },
-  ): Promise<WikiEntryGraphResponse> {
-    const qs = new URLSearchParams();
-    if (opts?.maxNodes != null) qs.set("max_nodes", String(opts.maxNodes));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.fetch<WikiEntryGraphResponse>(`/entries/${entryId}/graph${suffix}`);
-  }
-}
-
-export const wikiApi = new WikiApiClient();
 
 // ---------------------------------------------------------------------------
 // 导航视图派生（供 Header tabs / Sidebar 子树切片复用）

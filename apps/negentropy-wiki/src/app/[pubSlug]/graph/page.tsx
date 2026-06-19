@@ -4,33 +4,34 @@ import { ThemePreference } from "@/components/ThemePreference";
 import { WikiGraphRenderer } from "@/components/WikiGraphRenderer";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
   countLeafEntries,
   resolveSectionView,
-  wikiApi,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { wikiApi } from "@/lib/content-source";
 import type { WikiGraphResponse } from "@/lib/wiki-graph-types";
 
 /**
  * Publication 知识图谱页 — /:pubSlug/graph
  *
- * 数据流：
- *   - 服务端 `wikiApi.getPublicationGraph(pub.id)` 拉取按 Publication 切片
- *     的图谱 JSON（节点 + 边）；
- *   - ISR 5 分钟 + ``wiki-graph:${pubSlug}`` tag，后端 publish 时通过
- *     ``/api/revalidate`` webhook 主动刷新；
- *   - 客户端组件 `WikiGraphCanvas` 自带 ``"use client"``，Sigma WebGL bundle
+ * 数据流（纯静态化）：
+ *   - 构建期 `wikiApi.getPublicationGraph(pub.id)` 从静态内容包读取按
+ *     Publication 切片、已烘焙为静态 JSON 的图谱数据（节点 + 边）；
+ *   - 客户端组件 `WikiGraphRenderer` 自带 ``"use client"``，Sigma WebGL bundle
  *     会被 Next.js 自动拆分进本路由的客户端 chunk，SSR 阶段不引入。
  *
  * 图谱页使用全宽布局（variant="home"），无 sidebar / TOC，canvas 占满
  * viewport 宽度以最大化图谱可视化空间。
  */
 
-export const revalidate = 300;
+/**
+ * `output: export` 要求动态路由导出 generateStaticParams；Graph 与 Publication
+ * 首页共用 `[pubSlug]` 段，复用父级参数生成（Next 仅识别 page.tsx 的导出）。
+ */
+export { generateStaticParams } from "../generate";
 
 interface Props {
   params: Promise<{ pubSlug: string }>;
@@ -49,9 +50,7 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
     if (publication) {
       const [navResult, graphResult] = await Promise.all([
         wikiApi.getNavTree(publication.id),
-        wikiApi.getPublicationGraph(publication.id, {
-          tag: `wiki-graph:${pubSlug}`,
-        }),
+        wikiApi.getPublicationGraph(publication.id),
       ]);
       navItems = navResult.nav_tree?.items || [];
       graph = graphResult;
@@ -85,7 +84,6 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
       graphTab={{ active: true, show: entriesTotal > 0 }}
     />
   );

@@ -8,6 +8,14 @@
 
 ## 1. 概述
 
+> ⚠️ **架构演进（纯静态化）**：`negentropy-wiki` 已由 "SSG + ISR + 运行时后端 API 代理"
+> **解耦为纯静态站点**（`output: export`）。内容来自仓库内 `apps/negentropy-wiki/content/`
+> 静态内容包（主站 publish 经 CI 导出并提交）；构建期只读本地文件，运行时**无 Node
+> 服务端、无后端、无数据库依赖**，可由任意静态托管提供服务。下文 §2.1/§2.3/§3.1/§5/§6
+> 描述的 ISR / `WIKI_API_BASE` / `start-production.mjs` / `rewrites` 等**已作废**，
+> 实际形态见 [`apps/negentropy-wiki/content/README.md`](../../../apps/negentropy-wiki/content/README.md)
+> 与 [`docker/wiki/Dockerfile`](../../../docker/wiki/Dockerfile)。§12（Catalog/发布版本运维）仍适用。
+
 ### 1.1 定位
 
 Negentropy Wiki 是 Negentropy 平台的知识库文档发布站点，负责将后端知识库中已发布的内容以静态网站形式对外展示。

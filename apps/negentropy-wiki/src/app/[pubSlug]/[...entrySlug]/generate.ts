@@ -1,4 +1,4 @@
-import { wikiApi } from "@/lib/wiki-api";
+import { wikiApi } from "@/lib/content-source";
 
 /**
  * SSG 静态参数生成 — Entry 条目列表

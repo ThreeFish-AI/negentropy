@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AgentChatMount } from "@/components/agent-chat/AgentChatMount";
-import { WikiAuthProvider } from "@/lib/auth/wiki-auth";
 
 /**
  * 自托管 Inter（对齐 SquareDocs 字形观感）。
@@ -56,15 +54,7 @@ export default function RootLayout({
           跳到主要内容
         </a>
         <div id="wiki-root">
-          <WikiAuthProvider>
-            {children}
-            {/*
-              Agents at Wiki —— 一主五翼 6 Agents 的右下角悬浮聊天框。
-              通过 next/dynamic({ ssr:false }) 异步装载，不阻塞 SSG/ISR 首屏；
-              必须置于 WikiAuthProvider 内部，以便 ChatDrawer 读取 userId。
-            */}
-            <AgentChatMount />
-          </WikiAuthProvider>
+          {children}
         </div>
       </body>
     </html>

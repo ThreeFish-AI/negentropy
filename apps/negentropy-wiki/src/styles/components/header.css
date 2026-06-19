@@ -270,7 +270,7 @@
   color: var(--wiki-text);
 }
 
-/* User avatar — shared by WikiHeaderActions & WikiUserMenu */
+/* User avatar (legacy styles; avatar no longer rendered after static simplification) */
 .wiki-header-avatar {
   padding: 0;
   overflow: hidden;

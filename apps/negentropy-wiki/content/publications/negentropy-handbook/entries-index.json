@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "id": "22222222-2222-4222-9222-2222222222c1",
+      "document_id": null,
+      "entry_slug": "quickstart",
+      "entry_title": "快速入门",
+      "is_index_page": false
+    },
+    {
+      "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      "document_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+      "entry_slug": "quickstart/getting-started",
+      "entry_title": "开始使用",
+      "is_index_page": true
+    },
+    {
+      "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2",
+      "document_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+      "entry_slug": "architecture-overview",
+      "entry_title": "架构总览",
+      "is_index_page": false
+    }
+  ],
+  "total": 3,
+  "slug_to_id": {
+    "quickstart": "22222222-2222-4222-9222-2222222222c1",
+    "quickstart/getting-started": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    "architecture-overview": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"
+  }
+}

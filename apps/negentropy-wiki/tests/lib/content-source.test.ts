@@ -1,0 +1,84 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+// `server-only` 在 vitest（非 RSC）环境导入会抛错，mock 为空模块。
+vi.mock("server-only", () => ({}));
+
+const testDir = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURE_DIR = path.resolve(testDir, "../../content");
+
+describe("LocalContentClient（读取静态内容包 fixture）", () => {
+  // wikiApi 单例由动态导入返回；测试仅断言其方法行为，宽松类型即可。
+  let wikiApi: any;
+
+  beforeAll(async () => {
+    // content-source 在模块加载期读 process.env.WIKI_CONTENT_DIR 计算 CONTENT_DIR；
+    // 重置模块并设置环境后再动态导入，确保指向 fixture。
+    process.env.WIKI_CONTENT_DIR = FIXTURE_DIR;
+    vi.resetModules();
+    vi.mock("server-only", () => ({}));
+    const mod = await import("@/lib/content-source");
+    wikiApi = mod.wikiApi;
+  });
+
+  it("listPublications 返回 fixture 中的 handbook", async () => {
+    const { items, total } = await wikiApi.listPublications();
+    expect(total).toBe(1);
+    expect(items[0].slug).toBe("negentropy-handbook");
+    expect(items[0].status).toBe("published");
+  });
+
+  it("findPublicationBySlug 按 slug 命中 publication", async () => {
+    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    expect(pub).not.toBeNull();
+    expect(pub.id).toBe("11111111-1111-4111-8111-111111111111");
+    expect(pub.version).toBe(3);
+  });
+
+  it("findPublicationBySlug 未命中返回 null", async () => {
+    const pub = await wikiApi.findPublicationBySlug("nope");
+    expect(pub).toBeNull();
+  });
+
+  it("getNavTree 返回嵌套导航树（含 CONTAINER 容器节点）", async () => {
+    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const { nav_tree } = await wikiApi.getNavTree(pub.id);
+    const topSlugs = nav_tree.items.map((i: { entry_slug: string }) => i.entry_slug);
+    expect(topSlugs).toContain("quickstart");
+    expect(topSlugs).toContain("architecture-overview");
+    const quickstart = nav_tree.items.find(
+      (i: { entry_slug: string }) => i.entry_slug === "quickstart",
+    );
+    expect(quickstart.entry_kind).toBe("CONTAINER");
+    expect(quickstart.children[0].entry_slug).toBe("quickstart/getting-started");
+  });
+
+  it("getEntries + getEntryContent 返回 markdown 正文（含 GCS 直链被保留/重写）", async () => {
+    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const { items } = await wikiApi.getEntries(pub.id);
+    const gs = items.find((e: { entry_slug: string }) => e.entry_slug === "quickstart/getting-started");
+    expect(gs).toBeTruthy();
+    const content = await wikiApi.getEntryContent(gs.id);
+    expect(content.entry_title).toBe("开始使用");
+    expect(content.markdown_content).toContain("纯静态");
+    // 不应残留对主站后端的运行时资产引用
+    expect(content.markdown_content).not.toContain("/api/documents/");
+  });
+
+  it("getPublicationGraph 返回烘焙的静态图谱数据", async () => {
+    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const graph = await wikiApi.getPublicationGraph(pub.id);
+    expect(graph.status).toBe("ok");
+    expect(graph.nodes.length).toBe(2);
+    expect(graph.edges.length).toBe(1);
+  });
+
+  it("getPublicationGraph 缺失图谱时降级为 no_kg", async () => {
+    // 用不存在的 pubId 触发 slug 解析失败 → 返回 no_kg 兜底
+    const graph = await wikiApi.getPublicationGraph("00000000-0000-0000-0000-000000000000");
+    expect(graph.status).toBe("no_kg");
+    expect(graph.nodes).toEqual([]);
+  });
+});
