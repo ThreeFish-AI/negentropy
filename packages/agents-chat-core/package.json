@@ -1,6 +1,6 @@
 {
   "name": "@negentropy/agents-chat-core",
-  "version": "0.1.0",
+  "version": "0.0.1-rc.1",
   "private": true,
   "description": "AGUI 协议层与 Mention 解析共享库（一主五翼 6 Agents 对话协议 SSOT）",
   "type": "module",

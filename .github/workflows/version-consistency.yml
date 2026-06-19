@@ -1,0 +1,55 @@
+name: Version Consistency
+
+# 版本号单一事实源（SSOT）校验 —— 横切关注点，正交于各 app CI。
+#
+# 仓库根 VERSION 文件为唯一权威源，投射到主栈 6 清单（4 package.json + 2 pyproject.toml）
+# 与 2 个 uv.lock。本 job 校验它们与 VERSION 一致（lock 经 packaging 规范化比对，
+# 容忍 uv 对 0.0.1-rc.1 -> 0.0.1rc1 的自动规范化）。
+#
+# fail-only：检测到漂移即阻塞合并，提示本地执行 `uv run scripts/sync_versions.py sync`。
+# 详见 docs/.agents/knowledge-map.md「版本治理」与 scripts/sync_versions.py。
+
+on:
+  pull_request:
+    paths:
+      - "VERSION"
+      - "scripts/sync_versions.py"
+      - "package.json"
+      - "apps/negentropy/pyproject.toml"
+      - "apps/negentropy/uv.lock"
+      - "apps/negentropy-ui/package.json"
+      - "apps/negentropy-wiki/package.json"
+      - "apps/negentropy-perceives/pyproject.toml"
+      - "apps/negentropy-perceives/uv.lock"
+      - "packages/agents-chat-core/package.json"
+      - ".github/workflows/version-consistency.yml"
+  push:
+    branches: [master, main]
+    paths:
+      - "VERSION"
+      - "scripts/sync_versions.py"
+      - "package.json"
+      - "apps/negentropy/pyproject.toml"
+      - "apps/negentropy/uv.lock"
+      - "apps/negentropy-ui/package.json"
+      - "apps/negentropy-wiki/package.json"
+      - "apps/negentropy-perceives/pyproject.toml"
+      - "apps/negentropy-perceives/uv.lock"
+      - "packages/agents-chat-core/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  version-consistency:
+    name: Version SSOT Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Check version consistency against VERSION (SSOT)
+        run: uv run scripts/sync_versions.py check

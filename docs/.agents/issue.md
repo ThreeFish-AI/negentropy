@@ -3250,3 +3250,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：最小干预——override 地板由 `>=7.24.0` 提至 **`>=7.28.0`**（保留 `<8.0.0` jsdom 兼容上限不变），`pnpm install` 重生成 lockfile 使 `undici@7.25.0 → 7.28.0`。`pnpm why undici -r` 确认 undici **仅由 `jsdom@28.1.0` 传递消费**（经 vitest 用于 `negentropy-ui` / `negentropy-wiki` 的 dev/test），**无任何 workspace 包直接依赖**、运行时不暴露；`pnpm -r typecheck` 全过。两条告警随 fixed_in 命中 7.28.0 自动转 `fixed`。
 - **后续防范**：① override 地板应随新 CVE 修复线持续上提——每次 Dependabot 告警核销时核对既有 override 地板是否已低于新修复线，是则同步上提（勿新建重复 override）；② 待 `jsdom` 升级到 29+ 且引用的 undici 内部路径稳定后，可评估放开 `<8.0.0` 上限、跟进 undici 8.x；③ undici 仅处 dev/test 路径、运行时无暴露面，此类「传递依赖 + 父包无版本封顶」的可补丁告警，优先以 override 地板模式修复（参考 PR #922 同批 form-data/ws/js-yaml/@babel/core/esbuild 处理）。
 - **同类问题影响**：所有「npm 传递依赖、父包（如 jsdom/axios/eslint 链）无版本封顶、`fixed_in` 非空」的 Dependabot 告警均适用本 override 地板模式。**注意与 ISSUE-142 区分**：本 ISSUE 为「有补丁可升级」类（升级即核销），ISSUE-142 为「上游无补丁」驳回类（`fixed_in` 为空，须 `tolerable_risk` 驳回），二者根因与处理路径截然不同，不可混为一谈；若未来 undici 出现无补丁 advisory，应另起 ISSUE 按 ISSUE-142 流程评估驳回，而非在此续写。
+
+---
+
+## ISSUE-144 全局版本号单一事实源（SSOT）落地；cognizes 版本自治与内部漂移遗留（2026-06-19）
+
+- **表因**：monorepo 版本号散落于 8+ 清单（5 package.json + 3 pyproject.toml + 3 uv.lock），纯手工维护，历史多次分裂——commit `c54917b3` 统一版本时漏掉 negentropy 后端（分两次提交才补齐）、`agents-chat-core` 长期停滞 `0.1.0` 未与主栈对齐；`docs/concepts/docker-operations.md` 警告「tag 须与 pyproject version 对齐否则 wheel 名 / tag / Release 标题三者错位」此前完全靠人肉核对。
+- **根因**：混合语言 monorepo（pnpm workspace + 3 个独立 uv Python 项目）无原生跨语言版本工具，缺单一事实源与防漂移机制。
+- **处理方式**：① 仓库根新增 `VERSION` 文件作 SSOT（当前 `0.0.1-rc.1`）；② 新增 `scripts/sync_versions.py`（PEP 723 单文件，tomlkit 保格式写 pyproject + 行级正则写 package.json + `packaging` 规范化比对消除 `0.0.1-rc.1`↔`0.0.1rc1` 字面误报 + 对受影响 app 跑 `uv lock`），含 `sync`/`check` 两子命令；③ pre-commit `version-sync-check` local hook（只校验不 autofix）+ CI `.github/workflows/version-consistency.yml`（fail-only）双重防漂移；④ 管辖主栈 6 包（root / negentropy / negentropy-ui / negentropy-wiki / negentropy-perceives / agents-chat-core），`cognizes`/`cognizes-ui` 保持独立（pnpm-workspace.yaml 已注明其为独立项目，且 `0.1.0` 与主栈 `0.0.1-rc.1` 语义本就不同步）。
+- **后续防范**：① 改版本只动 `VERSION` 后跑 `uv run scripts/sync_versions.py sync`，勿手改清单；② 发版前确保 git tag 版本号 == `VERSION` 值（docker-operations.md 既有要求，SSOT 让清单侧自动满足）；③ CI 发布是 tag-driven，SSOT 是开发期写入、CI 仍信任 tag，二者职责正交。
+- **同类问题影响 / 已知遗留**：(1) `cognizes` 内部版本漂移未治理——`apps/cognizes/pyproject.toml`=`0.1.0`、`src/cognizes/__init__.py` `__version__`=`0.1.0`、`api/main.py` FastAPI `version`=`"1.0.0"`、`agents/claude/__init__.py` `__version__`=`0.1.0` 多处不一致，本方案刻意不动（正交边界）；若 cognizes 未来并入主栈统一发版，将其加入 sync 脚本目标列表并先治理内部漂移。(2) `perceives` 独立发 PyPI（`perceives-v*` tag）当前与主栈同 version 安全；未来若需独立演进，从脚本目标列表移除即 opt-out（清单驱动，预留正交解耦）。
