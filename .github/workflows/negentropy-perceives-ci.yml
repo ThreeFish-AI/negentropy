@@ -30,13 +30,49 @@ defaults:
     working-directory: apps/negentropy-perceives
 
 jobs:
+  # 动态矩阵：跨平台全量（ubuntu/windows/macos）仅在「合并闸口」事件触发——
+  # PR / 默认分支(master,main,develop)推送 / 周期 / 手动 / workflow_call；
+  # feature/** 等短分支推送仅跑 ubuntu（macOS 10×/Windows 2× 高成本），跨平台由 PR 保证。
+  matrix-prep:
+    name: Prepare Test Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      os_matrix: ${{ steps.set.outputs.os_matrix }}
+    steps:
+      - name: Resolve OS matrix
+        id: set
+        shell: bash
+        run: |
+          event="${{ github.event_name }}"
+          ref="${{ github.ref }}"
+          full="false"
+          if [[ "$event" == "pull_request" \
+             || "$event" == "schedule" \
+             || "$event" == "workflow_dispatch" \
+             || "$event" == "workflow_call" ]]; then
+            full="true"
+          elif [[ "$event" == "push" ]]; then
+            case "$ref" in
+              refs/heads/master|refs/heads/main|refs/heads/develop) full="true" ;;
+              *) full="false" ;;
+            esac
+          fi
+          if [[ "$full" == "true" ]]; then
+            echo 'os_matrix=["ubuntu-latest","windows-latest","macos-latest"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'os_matrix=["ubuntu-latest"]' >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Test on ${{ matrix.os }}
+    needs: [matrix-prep]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON(needs.matrix-prep.outputs.os_matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -47,11 +83,31 @@ jobs:
           working-directory: apps/negentropy-perceives
           enable-cache: "true"
 
-      - name: Run tests
-        run: uv run pytest -v --tb=short -n auto --timeout=300 -m "not slow"
+      # 合并原独立 coverage job：测试步骤直接产出 coverage（term/xml/html），
+      # 仅在 ubuntu 腿上传 artifact + Codecov（ubuntu 恒在矩阵中，确保唯一上传，避免各 OS 重复）。
+      - name: Run tests with coverage
+        run: uv run pytest -v --tb=short -n auto --timeout=300 -m "not slow" --cov=negentropy.perceives --cov-report=term --cov-report=xml --cov-report=html
         timeout-minutes: 20
         env:
           NEGENTROPY_PERCEIVES_ENABLE_JAVASCRIPT: "false"
+
+      - name: Upload coverage reports
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perceives-coverage-report
+          path: |
+            apps/negentropy-perceives/coverage.xml
+            apps/negentropy-perceives/htmlcov/
+
+      - name: Upload to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./apps/negentropy-perceives/coverage.xml
+          flags: perceives-unittests
+          name: perceives-codecov-umbrella
+          fail_ci_if_error: false
 
   lint:
     name: Lint & Type Check
@@ -188,37 +244,3 @@ jobs:
           name: perceives-dist-test
           path: apps/negentropy-perceives/dist/
           retention-days: 7
-
-  coverage:
-    name: Coverage Report
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python-uv
-        with:
-          working-directory: apps/negentropy-perceives
-
-      - name: Run tests with coverage
-        run: uv run pytest --cov=negentropy.perceives --cov-report=xml --cov-report=html --cov-report=term -n auto --timeout=300 -m "not slow"
-        timeout-minutes: 20
-        env:
-          NEGENTROPY_PERCEIVES_ENABLE_JAVASCRIPT: "false"
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: perceives-coverage-report
-          path: |
-            apps/negentropy-perceives/coverage.xml
-            apps/negentropy-perceives/htmlcov/
-
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./apps/negentropy-perceives/coverage.xml
-          flags: perceives-unittests
-          name: perceives-codecov-umbrella
-          fail_ci_if_error: false
