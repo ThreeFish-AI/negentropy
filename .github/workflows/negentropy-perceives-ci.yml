@@ -37,6 +37,12 @@ jobs:
     name: Prepare Test Matrix
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    # 该 job 仅依据 github 上下文计算 OS 矩阵、不读取仓库文件，故不执行 checkout；
+    # 必须覆盖 workflow 级 working-directory（apps/negentropy-perceives 在 checkout 前不存在，
+    # 否则 bash 启动报 "No such file or directory"），改在 workspace 根运行。
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
     outputs:
       os_matrix: ${{ steps.set.outputs.os_matrix }}
     steps:
