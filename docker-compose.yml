@@ -25,7 +25,10 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: negentropy
     ports:
-      - "5432:5432"
+      # 主机端口可经 NE_POSTGRES_HOST_PORT 覆盖（默认 5432，规避本机 PG 或同端口容器冲突）；
+      # 容器间通信仍走 service 名 postgres:5432，backend 的 NE_DB_URL 无需改动。
+      # 注意：本变量为 Compose 插值变量，须设于 shell 环境或根目录 .env（非 .env.docker*）。
+      - "${NE_POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro

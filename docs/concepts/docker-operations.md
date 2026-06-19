@@ -408,13 +408,14 @@ flowchart TD
 
 | 问题 | 症状 | 根因 | 解决方案 |
 |:---|:---|:---|:---|
-| **端口冲突** | `bind: address already in use` | 本地 PostgreSQL 或其他进程占用了 :5432 / :3292 等端口 | `lsof -i :<port>` 定位占用进程，停止后重试；或修改 `docker-compose.yml` 中主机端口映射 |
+| **端口冲突** | `port is already allocated`（被其他容器占用）或 `bind: address already in use`（被宿主机进程占用） | 本机 PostgreSQL 或其他容器/进程占用了 :5432 / :3292 等主机端口 | `docker ps`（查容器）/ `lsof -i :<port>`（查进程）定位占用者；postgres 主机端口可经 `NE_POSTGRES_HOST_PORT`（设于根目录 `.env` 或 shell）改映射，无需停用既有服务；其余服务端口同理编辑 `docker-compose.yml` |
 | **数据卷损坏** | postgres 启动失败，日志显示数据目录错误 | 主机异常重启后 `postgres_data` 卷状态不一致 | `docker compose down && docker volume rm <project>_postgres_data && docker compose up -d`（⚠ 数据不可恢复） |
 | **镜像拉取失败** | `manifest not found` | `NEGENTROPY_IMAGE_TAG` 指定了不存在的标签 | 确认标签存在：`docker manifest inspect threefishai/negentropy-backend:<tag>` |
 | **健康检查超时** | 容器持续 `(unhealthy)` | 服务启动慢或探针目标不可达 | 查看日志 `docker compose logs <service>`；首次构建镜像时 backend 的 `start_period` 可能不够，等待后重试 |
 | **依赖链阻塞** | 服务一直等待，未启动 | 上游服务未达到 healthy 状态 | postgres 与 perceives 无级联关系、应分别独立排查；级联链为 postgres/perceives → backend → ui → wiki，按此顺序逐级确认上游 healthy |
 | **环境变量未加载** | 认证失败或 API Key 缺失 | `.env.docker.local` 未创建或密钥为空 | 确认文件存在且值已填写：`cat .env.docker.local \| grep -v '^#' \| grep -v '^$'` |
 | **架构不匹配** | `exec format error` | 在 amd64 主机运行 arm64 单架构镜像（或反之） | 使用多架构清单（默认行为），不要指定特定架构 digest |
+| **Python 服务 exec 失败** | `exec /app/.venv/bin/<script>: no such file or directory`，容器退出码 255 | 多阶段 Dockerfile 中 builder 与 runtime `WORKDIR` 不一致，`uv sync` 生成的 console_script shebang 被固化为 builder 绝对路径（如 `/build/.venv/bin/python3`），runtime 不存在 | builder 与 runtime 须保持相同 `WORKDIR`（本项目统一 `/app`），参见 [`docker/perceives/Dockerfile`](../../docker/perceives/Dockerfile)、[`docker/backend/Dockerfile`](../../docker/backend/Dockerfile) |
 
 ### 6.3 调试命令参考
 
