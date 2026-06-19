@@ -28,6 +28,7 @@ class ArtifactBackend(str, Enum):
 
     INMEMORY = "inmemory"
     GCS = "gcs"
+    POSTGRES = "postgres"
 
 
 def create_inmemory_artifact_service() -> BaseArtifactService:
@@ -66,10 +67,22 @@ def create_gcs_artifact_service() -> BaseArtifactService:
     return GcsArtifactService(bucket_name=settings.gcs_bucket_name)
 
 
+def create_postgres_artifact_service() -> BaseArtifactService:
+    """创建 PostgreSQL 后端（自研，GCS 退役后的默认制品持久化）。
+
+    制品持久化到 ``adk_artifacts`` 表（bytea 存储），无需任何外部凭证 / bucket，
+    与 memory/session 的 postgres 后端同库（pgvector 唯一数据存储哲学）。
+    """
+    from negentropy.engine.adapters.postgres.artifact_service import PostgresArtifactService
+
+    return PostgresArtifactService()
+
+
 # 后端创建函数映射表 (Strategy Pattern)
 _BACKEND_FACTORIES = {
     ArtifactBackend.INMEMORY: create_inmemory_artifact_service,
     ArtifactBackend.GCS: create_gcs_artifact_service,
+    ArtifactBackend.POSTGRES: create_postgres_artifact_service,
 }
 
 # 模块级单例缓存
@@ -129,4 +142,5 @@ __all__ = [
     "reset_artifact_service",
     "create_inmemory_artifact_service",
     "create_gcs_artifact_service",
+    "create_postgres_artifact_service",
 ]

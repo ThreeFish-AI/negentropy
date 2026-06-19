@@ -15,6 +15,7 @@ from google.cloud.exceptions import GoogleCloudError
 
 from negentropy.config import settings
 from negentropy.logging import get_logger
+from negentropy.storage.exceptions import StorageError  # noqa: F401 — 过渡期兼容旧导入路径
 
 logger = get_logger("negentropy.storage.gcs")
 
@@ -193,9 +194,3 @@ class GCSStorageClient:
         self._ensure_client()
         blob = self._bucket.blob(gcs_path)
         return blob.exists()
-
-
-class StorageError(Exception):
-    """Exception raised for storage operation failures."""
-
-    pass

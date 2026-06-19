@@ -30,6 +30,7 @@ class SessionBackend(str, Enum):
 class ArtifactBackend(str, Enum):
     INMEMORY = "inmemory"
     GCS = "gcs"
+    POSTGRES = "postgres"
 
 
 class ServicesSettings(BaseSettings):
