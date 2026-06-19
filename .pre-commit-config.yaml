@@ -93,3 +93,16 @@ repos:
         files: ^apps/negentropy-perceives/
         types_or: [python, pyi]
         pass_filenames: false
+
+  # ── 版本号单一事实源（SSOT）校验 ──────────────────────────────────────────
+  # VERSION 文件为唯一权威源，投射到主栈 6 清单（4 package.json + 2 pyproject.toml）。
+  # 仅校验不自动修复 —— 版本变更是发布动作，需开发者显式执行：
+  #   uv run scripts/sync_versions.py sync
+  - repo: local
+    hooks:
+      - id: version-sync-check
+        name: Version SSOT check
+        language: system
+        entry: uv run scripts/sync_versions.py check
+        files: ^(VERSION|scripts/sync_versions\.py|package\.json|apps/negentropy/(pyproject\.toml|uv\.lock)|apps/negentropy-ui/package\.json|apps/negentropy-wiki/package\.json|apps/negentropy-perceives/(pyproject\.toml|uv\.lock)|packages/agents-chat-core/package\.json)$
+        pass_filenames: false

@@ -85,6 +85,7 @@
 - JS/TS：`pnpm` 管理依赖与运行（禁用 npm / yarn）
 - Git 提交：使用 Claude Code `/commit` slash command，严禁 rebase；分支命名见 AGENTS.md
 - 数据库迁移：使用 alembic，严禁清理数据；新增表使用偏唯一索引覆盖 PG 复合主键 NULL 语义（参考 `0032_task_model_settings.py`）
+- 版本号单一事实源（SSOT）：仓库根 `VERSION` 文件为唯一权威源，由 `scripts/sync_versions.py`（`uv run ... sync` 写回 / `check` 校验）投射到主栈 6 清单（4 package.json + 2 pyproject.toml）+ 2 uv.lock；pre-commit `version-sync-check` hook + CI `.github/workflows/version-consistency.yml` 双重防漂移。管辖主栈（root / negentropy / negentropy-ui / negentropy-wiki / negentropy-perceives / agents-chat-core）；改版本只动 `VERSION` 后跑 sync，勿手改清单。`cognizes` / `cognizes-ui` 为独立项目保持自治（详见 [issue.md ISSUE-144](issue.md#issue-144)）
 
 - [RFC 0001：会话架构重塑](../concepts/0001-conversation-architecture-refactor.md) · [RFC 0002：UI 交互增强](../concepts/0002-ui-interaction-enhancements.md) — 设计提案与决策记录
 - `docs/reference/cognizes/engine/schema/` — 数据 schema 参考 DDL（Knowledge / Memory / KG）
