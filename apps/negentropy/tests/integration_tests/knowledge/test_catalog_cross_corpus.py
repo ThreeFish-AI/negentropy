@@ -115,7 +115,7 @@ async def doc_in_negentropy(db_engine, negentropy_corpus):
             app_name="negentropy",
             file_hash="abcdef1234567890" * 4,
             original_filename="valid_doc.pdf",
-            gcs_uri="gs://test/valid_doc.pdf",
+            content_uri="gs://test/valid_doc.pdf",
             content_type="application/pdf",
             file_size=2048,
         )
@@ -148,7 +148,7 @@ async def doc_in_other_app(db_engine, other_app_corpus):
             app_name="other-app",
             file_hash="fedcba0987654321" * 4,
             original_filename="foreign_doc.pdf",
-            gcs_uri="gs://test/foreign_doc.pdf",
+            content_uri="gs://test/foreign_doc.pdf",
             content_type="application/pdf",
             file_size=1024,
         )
@@ -460,7 +460,7 @@ async def three_docs_in_negentropy(db_engine, negentropy_corpus):
                 app_name="negentropy",
                 file_hash=f"{idx:064x}"[-64:],  # 64-hex-char, unique per doc
                 original_filename=fn,
-                gcs_uri=f"gs://test/doc_{idx}",
+                content_uri=f"gs://test/doc_{idx}",
                 content_type="application/pdf" if fn.endswith(".pdf") else "text/markdown",
                 file_size=1024 * (idx + 1),
             )
@@ -509,7 +509,7 @@ class TestGetCatalogDocuments:
             assert item.original_filename, "original_filename 必须非空（UI 直接显示）"
             assert item.app_name == "negentropy"
             assert item.file_hash
-            assert item.gcs_uri
+            assert item.content_uri
             assert item.file_size
             assert item.created_at
             assert item.markdown_extract_status  # 默认 "pending"
@@ -631,4 +631,4 @@ class TestGetEntryDocuments:
         assert item.original_filename == "valid_doc.pdf"
         assert item.app_name == "negentropy"
         assert item.file_hash
-        assert item.gcs_uri
+        assert item.content_uri

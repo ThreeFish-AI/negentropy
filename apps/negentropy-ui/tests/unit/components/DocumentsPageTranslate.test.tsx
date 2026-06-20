@@ -34,7 +34,7 @@ function makeDoc(overrides: Record<string, unknown>) {
     app_name: "negentropy",
     file_hash: "abcdef1234567890",
     original_filename: "guide.md",
-    gcs_uri: "gs://bucket/guide.md",
+    content_uri: "pgblob://bucket/guide.md",
     content_type: "text/markdown",
     file_size: 1024,
     status: "active",

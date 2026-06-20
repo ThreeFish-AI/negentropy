@@ -31,6 +31,7 @@ from .scheduled_task import ScheduledTask, TaskExecution
 from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
+from .storage import AdkArtifact, BlobObject
 from .task_model_setting import TaskModelSetting
 from .vendor_config import VendorConfig
 
@@ -110,4 +111,7 @@ __all__ = [
     "VendorConfig",
     # Task Model Settings
     "TaskModelSetting",
+    # Storage (blob 对象 + ADK 制品，GCS 退役后的本地持久化)
+    "BlobObject",
+    "AdkArtifact",
 ]

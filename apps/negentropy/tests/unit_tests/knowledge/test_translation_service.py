@@ -79,8 +79,8 @@ class _FakeStorage:
         self.upload_calls.append(kwargs)
         return self.target_doc, self.upload_is_new
 
-    async def save_markdown_content(self, *, document_id, markdown_content, markdown_gcs_uri=None):
-        _ = markdown_gcs_uri
+    async def save_markdown_content(self, *, document_id, markdown_content, markdown_uri=None):
+        _ = markdown_uri
         self.saved_markdown[document_id] = markdown_content
         return True
 

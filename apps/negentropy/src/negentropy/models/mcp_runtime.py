@@ -72,7 +72,7 @@ class McpTrialAsset(Base, UUIDMixin, TimestampMixin):
     content_type: Mapped[str | None] = mapped_column(String(255))
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    gcs_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    content_uri: Mapped[str] = mapped_column(Text, nullable=False)
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, nullable=False, server_default="{}")
 
     __table_args__ = (

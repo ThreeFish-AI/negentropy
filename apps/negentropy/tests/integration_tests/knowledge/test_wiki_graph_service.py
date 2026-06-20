@@ -146,7 +146,7 @@ async def graph_world(db_engine, graph_corpus, graph_catalog, graph_app_name):
                 app_name=graph_app_name,
                 file_hash=f"{i:064d}",  # 64-char hex 占位
                 original_filename=f"wg-doc-{i}.md",
-                gcs_uri=f"gs://test/wg-doc-{i}.md",
+                content_uri=f"gs://test/wg-doc-{i}.md",
                 content_type="text/markdown",
                 file_size=100,
                 status="active",
@@ -547,7 +547,7 @@ class TestWikiEntryGraph:
                 app_name=graph_app_name,
                 file_hash=f"{99:064d}",
                 original_filename="no-mention.md",
-                gcs_uri="gs://test/no-mention.md",
+                content_uri="gs://test/no-mention.md",
                 content_type="text/markdown",
                 file_size=100,
                 status="active",

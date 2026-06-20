@@ -476,7 +476,6 @@ async def get_wiki_document_asset(document_id: UUID, filename: str):
             },
         )
 
-    from negentropy.storage.gcs_client import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -500,28 +499,21 @@ async def get_wiki_document_asset(document_id: UUID, filename: str):
             detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
         )
 
-    gcs_path = DocumentStorageService._build_asset_gcs_path(
-        app_name=doc.app_name,
-        corpus_id=doc.corpus_id,
-        document_id=doc.id,
+    # 经 Service 层下载衍生资产（路径构造与 blob 解析收口在 DocumentStorageService）
+    content = await storage_service.download_extraction_asset(
+        document_id=document_id,
         filename=filename,
     )
-
-    try:
-        gcs_client = storage_service._get_gcs_client()
-        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
-        content = gcs_client.download(gcs_uri)
-    except (StorageError, ValueError) as exc:
+    if content is None:
         logger.warning(
             "wiki_asset_download_failed",
             doc_id=str(document_id),
             asset_name=filename,
-            error=str(exc),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
-        ) from exc
+        )
 
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     return StreamingResponse(

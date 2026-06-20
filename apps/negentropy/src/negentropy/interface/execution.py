@@ -17,7 +17,8 @@ from negentropy.auth.service import AuthUser
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool, McpToolRun, McpToolRunEvent, McpTrialAsset
 from negentropy.serialization import strip_nul_chars
-from negentropy.storage.gcs_client import GCSStorageClient
+from negentropy.storage.postgres_client import get_blob_storage
+from negentropy.storage.protocol import BlobStorage
 
 from .mcp_client import McpCancelledError, McpClientService, McpResourceContent, McpToolCallResult
 
@@ -48,11 +49,11 @@ class McpToolExecutionService:
         db: AsyncSession,
         *,
         client: McpClientService | None = None,
-        gcs_client: GCSStorageClient | None = None,
+        blob_storage: BlobStorage | None = None,
     ) -> None:
         self._db = db
         self._client = client or McpClientService()
-        self._gcs = gcs_client
+        self._blob = blob_storage
 
     async def upload_trial_asset(
         self,
@@ -65,7 +66,8 @@ class McpToolExecutionService:
         metadata: dict[str, Any] | None = None,
     ) -> McpTrialAsset:
         safe_name = _sanitize_filename(filename)
-        sha256 = GCSStorageClient.compute_hash(content)
+        blob = self._get_blob()
+        sha256 = blob.compute_hash(content)
         asset = McpTrialAsset(
             server_id=server.id,
             owner_id=owner_id,
@@ -73,9 +75,9 @@ class McpToolExecutionService:
             content_type=content_type,
             size_bytes=len(content),
             sha256=sha256,
-            gcs_uri=self._get_gcs_client().upload(
+            content_uri=await blob.upload(
                 content=content,
-                gcs_path=f"mcp-trials/negentropy/{server.id}/{sha256[:12]}-{safe_name}",
+                path=f"mcp-trials/negentropy/{server.id}/{sha256[:12]}-{safe_name}",
                 content_type=content_type,
             ),
             metadata_=metadata or {},
@@ -350,7 +352,7 @@ class McpToolExecutionService:
         asset = await self._db.get(McpTrialAsset, asset_id)
         if not asset or asset.server_id != server.id:
             raise ValueError(f"Trial asset not found: {asset_id}")
-        content = self._get_gcs_client().download(asset.gcs_uri)
+        content = await self._get_blob().download(asset.content_uri)
         suffix = Path(asset.original_filename).suffix or ".pdf"
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
         temp_file.write(content)
@@ -358,10 +360,10 @@ class McpToolExecutionService:
         temp_file.close()
         return Path(temp_file.name)
 
-    def _get_gcs_client(self) -> GCSStorageClient:
-        if self._gcs is None:
-            self._gcs = GCSStorageClient.get_instance()
-        return self._gcs
+    def _get_blob(self) -> BlobStorage:
+        if self._blob is None:
+            self._blob = get_blob_storage()
+        return self._blob
 
 
 def _sanitize_filename(filename: str) -> str:

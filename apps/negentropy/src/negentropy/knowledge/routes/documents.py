@@ -191,7 +191,7 @@ async def _get_document_detail_impl(
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
         display_name=doc.display_name,
-        gcs_uri=doc.gcs_uri,
+        content_uri=doc.content_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,
         status=doc.status,
@@ -204,7 +204,7 @@ async def _get_document_detail_impl(
         archived=archived,
         metadata=doc.metadata_ or {},
         markdown_content=markdown_content,
-        markdown_gcs_uri=doc.markdown_gcs_uri,
+        markdown_uri=doc.markdown_uri,
     )
 
 
@@ -538,7 +538,7 @@ async def _download_document_impl(
     """下载文档原始文件，返回 StreamingResponse（带 Content-Disposition 头）。"""
     resolved_app = _resolve_app_name(app_name)
 
-    from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -631,7 +631,6 @@ async def _get_document_asset_impl(
     """
     resolved_app = _resolve_app_name(app_name)
 
-    from negentropy.storage.gcs_client import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -655,29 +654,21 @@ async def _get_document_asset_impl(
             detail={"code": "INVALID_ASSET_NAME", "message": "Asset name is empty"},
         )
 
-    # 直接构造 GCS 路径并下载（避免第二次文档查询）
-    gcs_path = DocumentStorageService._build_asset_gcs_path(
-        app_name=doc.app_name,
-        corpus_id=doc.corpus_id,
-        document_id=doc.id,
+    # 经 Service 层下载衍生资产（路径构造与 blob 解析收口在 DocumentStorageService）
+    content = await storage_service.download_extraction_asset(
+        document_id=document_id,
         filename=safe_filename,
     )
-
-    try:
-        gcs_client = storage_service._get_gcs_client()
-        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
-        content = gcs_client.download(gcs_uri)
-    except (StorageError, ValueError) as exc:
+    if content is None:
         logger.warning(
             "asset_download_failed",
             doc_id=str(document_id),
             asset_name=safe_filename,
-            error=str(exc),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
-        ) from exc
+        )
 
     content_type = mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
     # 清洗 header 用文件名，防止注入

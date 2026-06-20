@@ -49,7 +49,7 @@ def _make_doc(
     markdown_extract_status: str = "completed",
     status: str = "active",
     metadata: dict | None = None,
-    gcs_uri: str = "gs://bucket/knowledge/negentropy/library/doc.md",
+    content_uri: str = "pgblob://bucket/knowledge/negentropy/library/doc.md",
 ) -> SimpleNamespace:
     return SimpleNamespace(
         id=uuid4(),
@@ -59,7 +59,7 @@ def _make_doc(
         markdown_extract_status=markdown_extract_status,
         original_filename="doc.md",
         content_type="text/markdown",
-        gcs_uri=gcs_uri,
+        content_uri=content_uri,
         metadata_=metadata or {},
     )
 
@@ -191,7 +191,7 @@ async def test_import_document_file_rejects_oversized_file(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_import_document_file_storage_failure_is_fatal(monkeypatch):
-    from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage import StorageError
 
     storage = _RecordingStorage(upload_error=StorageError("bucket unavailable"))
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: storage)
@@ -274,7 +274,7 @@ async def test_ingest_document_markdown_not_ready_conflicts(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_ingest_document_without_source_uri_rejected(monkeypatch):
-    doc = _make_doc(gcs_uri="")  # 无 origin_url 且无 gcs_uri → source_uri 不可解析
+    doc = _make_doc(content_uri="")  # 无 origin_url 且无 content_uri → source_uri 不可解析
     monkeypatch.setattr(ingest_routes, "_get_service", lambda: _IngestFakeService(corpus=SimpleNamespace(config={})))
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: _RecordingStorage(doc=doc))
 
@@ -368,7 +368,7 @@ async def test_retry_ingest_document_replays_ingest_document_pipeline(monkeypatc
         input_data={
             "document_id": str(doc.id),
             "corpus_id": str(corpus_id),
-            "source_uri": doc.gcs_uri,
+            "source_uri": doc.content_uri,
         },
     )
     fake_service = FakeKnowledgeService()
@@ -408,10 +408,10 @@ def test_corpus_segment_library_fallback():
 
 def test_derived_paths_use_library_segment_for_corpusless_docs():
     document_id = uuid4()
-    md_path = DocumentStorageService._build_markdown_gcs_path(
+    md_path = DocumentStorageService._build_markdown_path(
         app_name=APP, corpus_id=None, document_id=document_id, filename="paper.pdf"
     )
-    asset_path = DocumentStorageService._build_asset_gcs_path(
+    asset_path = DocumentStorageService._build_asset_path(
         app_name=APP, corpus_id=None, document_id=document_id, filename="img.png"
     )
     assert md_path == f"knowledge/{APP}/library/derived/{document_id}/paper.md"

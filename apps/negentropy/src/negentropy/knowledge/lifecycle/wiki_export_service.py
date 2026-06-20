@@ -229,7 +229,10 @@ class WikiExportService:
         GCS 是对象存储（CDN），非主站 DB —— wiki 运行时直连 GCS 取图，满足"不依赖
         主站数据库"。文档的 ``app_name`` / ``corpus_id`` 按需查询并缓存。
         """
-        if not markdown or "gs://" in markdown or not settings.gcs_bucket_name:
+        # #932 起 GCS 全量退役（资产转 PostgreSQL bytea），settings.gcs_bucket_name 可能已移除；
+        # 用 getattr 容错：无 GCS 配置时跳过重写、保留原始 /api/documents 链接（文本可读优先）。
+        gcs_bucket = getattr(settings, "gcs_bucket_name", None)
+        if not markdown or "gs://" in markdown or not gcs_bucket:
             return markdown
         if "/api/documents/" not in markdown:
             return markdown
@@ -268,7 +271,7 @@ class WikiExportService:
                     continue
                 app_name, corpus_id = resolved
                 gcs_path = self._build_asset_gcs_path(app_name, corpus_id, doc_id, filename)
-                url = f"https://storage.googleapis.com/{settings.gcs_bucket_name}/{gcs_path}"
+                url = f"https://storage.googleapis.com/{gcs_bucket}/{gcs_path}"
                 replacements.append((m.group(0), url))
             for original, url in replacements:
                 markdown = markdown.replace(original, url)
