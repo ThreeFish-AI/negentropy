@@ -40,6 +40,7 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
+    "server-only": "^0.0.1",
     "sigma": "^3.0.3",
     "three-spritetext": "^1.10.0",
     "unified": "^11.0.5",

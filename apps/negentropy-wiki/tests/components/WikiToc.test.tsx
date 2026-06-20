@@ -44,8 +44,19 @@ describe("WikiToc", () => {
     expect(container.querySelector(".wiki-toc-rail")).toBeNull();
   });
 
-  it("renders all headings in expanded mode and applies depth classes", () => {
-    render(wrap(<WikiToc headings={headings} />));
+  // WikiLayoutShell 初始 collapsed=true（默认折叠，hydration 安全）；空 localStorage 时保持折叠。
+  it("默认折叠：渲染为 rail（非展开列表），data-toc='collapsed'", () => {
+    const { container } = render(wrap(<WikiToc headings={headings} />));
+    expect(container.querySelector(".wiki-toc-rail")).not.toBeNull();
+    expect(container.querySelector(".wiki-toc")).toBeNull();
+    expect(container.querySelector('[data-toc="collapsed"]')).not.toBeNull();
+  });
+
+  it("从折叠态展开后，渲染全部 headings 并应用 depth 类、data-toc='expanded'", () => {
+    const { container } = render(wrap(<WikiToc headings={headings} />));
+    // 默认折叠 → 点击 rail 的「展开目录」按钮
+    fireEvent.click(screen.getByRole("button", { name: /展开目录/ }));
+
     const items = document.querySelectorAll(".wiki-toc-item");
     expect(items.length).toBe(3);
     expect(items[0].className).toContain("depth-2");
@@ -54,29 +65,29 @@ describe("WikiToc", () => {
     expect(screen.getByText("Intro")).toBeTruthy();
     expect(screen.getByText("Why")).toBeTruthy();
     expect(screen.getByText("Detail")).toBeTruthy();
+    expect(container.querySelector('[data-toc="expanded"]')).not.toBeNull();
   });
 
-  it("collapses to rail and persists state to localStorage", () => {
+  it("折叠/展开切换并持久化到 localStorage", () => {
     render(wrap(<WikiToc headings={headings} />));
-    const collapseBtn = screen.getByRole("button", { name: /折叠目录/ });
-    fireEvent.click(collapseBtn);
+    // 展开（默认折叠）→ localStorage "0"
+    fireEvent.click(screen.getByRole("button", { name: /展开目录/ }));
+    expect(window.localStorage.getItem("wiki:toc:collapsed")).toBe("0");
+    expect(document.querySelector(".wiki-toc")).not.toBeNull();
+
+    // 折叠 → localStorage "1"，回到 rail
+    fireEvent.click(screen.getByRole("button", { name: /折叠目录/ }));
     expect(window.localStorage.getItem("wiki:toc:collapsed")).toBe("1");
     expect(document.querySelector(".wiki-toc-rail")).not.toBeNull();
     expect(document.querySelector(".wiki-toc")).toBeNull();
 
-    const railBtn = screen.getByRole("button", { name: /展开目录/ });
-    fireEvent.click(railBtn);
+    // 再次展开 → localStorage "0"
+    fireEvent.click(screen.getByRole("button", { name: /展开目录/ }));
     expect(window.localStorage.getItem("wiki:toc:collapsed")).toBe("0");
-    expect(document.querySelector(".wiki-toc")).not.toBeNull();
   });
 
   it("writes data-toc='none' on layout when hasToc=false", () => {
     const { container } = render(wrap(<WikiToc headings={[]} />, false));
     expect(container.querySelector('[data-toc="none"]')).not.toBeNull();
-  });
-
-  it("writes data-toc='expanded' by default when hasToc=true", () => {
-    const { container } = render(wrap(<WikiToc headings={headings} />, true));
-    expect(container.querySelector('[data-toc="expanded"]')).not.toBeNull();
   });
 });

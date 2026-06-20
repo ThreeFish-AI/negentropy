@@ -16,9 +16,9 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
   beforeAll(async () => {
     // content-source 在模块加载期读 process.env.WIKI_CONTENT_DIR 计算 CONTENT_DIR；
     // 重置模块并设置环境后再动态导入，确保指向 fixture。
+    // （顶部已 vi.mock("server-only")；resetModules 不清除 mock 注册，无需重复声明。）
     process.env.WIKI_CONTENT_DIR = FIXTURE_DIR;
     vi.resetModules();
-    vi.mock("server-only", () => ({}));
     const mod = await import("@/lib/content-source");
     wikiApi = mod.wikiApi;
   });
@@ -75,10 +75,11 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
     expect(graph.edges.length).toBe(1);
   });
 
-  it("getPublicationGraph 缺失图谱时降级为 no_kg", async () => {
-    // 用不存在的 pubId 触发 slug 解析失败 → 返回 no_kg 兜底
-    const graph = await wikiApi.getPublicationGraph("00000000-0000-0000-0000-000000000000");
-    expect(graph.status).toBe("no_kg");
-    expect(graph.nodes).toEqual([]);
+  it("getPublicationGraph 对未知 pubId 抛错（与 getPublication 一致）", async () => {
+    // 未知 pubId 解析不到 slug → 抛错（no_kg 降级仅针对「有效 pub 但 graph.json 缺失」，
+    // 由 content-source 的 exists 检查处理，页面层不会用未知 id 调用本方法）。
+    await expect(
+      wikiApi.getPublicationGraph("00000000-0000-0000-0000-000000000000"),
+    ).rejects.toThrow(/publication not found/);
   });
 });
