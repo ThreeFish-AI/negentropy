@@ -12,10 +12,11 @@
   - **发布边界**：本服务是主站职责（合法持有 DB 访问），产出静态文件；wiki 端构建
     期只读这些文件，运行期纯静态，**不直接或间接依赖主站数据库**。
 
-内容包 schema 见 ``apps/negentropy-wiki/content/README.md``：
+内容包 schema 见 ``apps/negentropy-wiki/content.fixture/README.md``：
   content/index.json                            顶层索引
   content/publications.json                     listPublications()
   content/entries/[entryId].json                getEntryContent()（扁平，UUID 键）
+  content/assets/[docId]/[file]                 烘焙的图片字节（仅 bake_assets=True）
   content/publications/[pubSlug]/
       publication.json / nav-tree.json /
       entries-index.json / graph.json
@@ -77,6 +78,9 @@ class WikiExportService:
         # publication 序列化缓存：主循环写 publication.json 时缓存，
         # 供 publications.json 复用，避免二次查询 entries_count。
         self._pub_cache: dict[str, dict[str, Any]] = {}
+        # bake_assets 路径：延迟初始化的存储服务 + 已烘焙资产文件清单。
+        self._storage_service: Any = None
+        self._asset_files: list[str] = []
 
     async def export_all_published(
         self,
@@ -95,6 +99,8 @@ class WikiExportService:
         entries_dir.mkdir(parents=True, exist_ok=True)
         pubs_root = out_dir / "publications"
         pubs_root.mkdir(parents=True, exist_ok=True)
+        # bake_assets 路径：图片字节烘焙落点（next build 复制进 out/assets/）。
+        assets_dir = out_dir / "assets"
 
         pubs_index: list[dict[str, Any]] = []
         index_pubs: dict[str, dict[str, Any]] = {}
@@ -143,7 +149,9 @@ class WikiExportService:
                         continue
                     resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
                     payload = resp.model_dump(mode="json")
-                    payload["markdown_content"] = self._rewrite_asset_links(payload.get("markdown_content") or "")
+                    payload["markdown_content"] = await self._rewrite_asset_links(
+                        payload.get("markdown_content") or "", assets_dir=assets_dir
+                    )
                     self._write_json(entries_dir / f"{e.id}.json", payload, result)
                     result.entries += 1
 
@@ -185,11 +193,14 @@ class WikiExportService:
             result,
         )
 
+        result.files.extend(self._asset_files)
+
         logger.info(
             "wiki_export_done",
             publications=len(pubs),
             entries=result.entries,
             graphs=result.graphs,
+            assets=len(self._asset_files),
             files=len(result.files),
         )
         return result
@@ -220,21 +231,21 @@ class WikiExportService:
         self._pub_cache[str(pub.id)] = payload  # type: ignore[attr-defined]
         return payload
 
-    def _rewrite_asset_links(self, markdown: str) -> str:
-        """把 markdown 内 ``/api/documents/{doc}/assets/{file}`` 重写为主站 wiki 资产端点 URL。
+    async def _rewrite_asset_links(self, markdown: str, *, assets_dir: Path) -> str:
+        """重写 markdown 内 ``/api/documents/{doc}/assets/{file}`` 图片引用。
 
-        GCS 退役（#932）后，资产字节存于主站 PostgreSQL，由公开端点
-        ``/knowledge/wiki/documents/{doc}/assets/{file}`` 从 bytea 流式提供
-        （见 ``routes/wiki.py::get_wiki_document_asset``，按发布状态鉴权）。
+        两条互斥路径（由 ``settings.knowledge.wiki_export.bake_assets`` 选择）：
 
-        - 配置 ``settings.knowledge.wiki_export.asset_base_url`` 时，重写为
-          ``{base}/knowledge/wiki/documents/{doc}/assets/{file}`` 绝对 URL
-          （wiki 与主站分域部署时必需）。
-        - 未配置时，重写为 ``/knowledge/wiki/documents/{doc}/assets/{file}``
-          相对路径（wiki 与主站同源反代时可用）。
+        - **bake_assets=True（自包含）**：把资产**字节**下载写入
+          ``assets_dir/{doc}/{file}`` 静态文件，markdown 改为相对路径
+          ``/assets/{doc}/{file}``。产物零主站依赖，可发布到公网静态托管
+          （GitHub Pages 等），主站不可达时图片仍正常。
+        - **bake_assets=False（URL 重写）**：重写为
+          ``{asset_base_url}/knowledge/wiki/documents/{doc}/assets/{file}``
+          （``asset_base_url`` 空则同源相对路径）；运行期由主站端点供图。
 
-        wiki 资产端点仅需 ``document_id`` + ``filename``（不暴露 app_name /
-        corpus_id），故无需再查询文档元信息。
+        图片处理为"尽力而为"：单条资产下载/重写失败仅 WARN 并保留原引用，
+        绝不阻断正文导出（文本可读优先于图片可用）。
         """
         if not markdown or "/api/documents/" not in markdown:
             return markdown
@@ -243,22 +254,49 @@ class WikiExportService:
         if not matches:
             return markdown
 
-        base = (settings.knowledge.wiki_export.asset_base_url or "").rstrip("/")
+        cfg = settings.knowledge.wiki_export
+        replacements: list[tuple[str, str]] = []
 
-        # 图片重写为"尽力而为"：任一异常仅 WARN 并保留原 markdown，
-        # 绝不阻断正文导出（文本可读优先于图片可用）。
-        try:
-            replacements: list[tuple[str, str]] = []
+        if cfg.bake_assets:
+            storage_service = self._get_storage_service()
             for m in matches:
                 doc_id = m.group("doc_id")
                 filename = m.group("filename")
-                url = f"{base}/knowledge/wiki/documents/{doc_id}/assets/{filename}"
-                replacements.append((m.group(0), url))
-            for original, url in replacements:
-                markdown = markdown.replace(original, url)
-        except Exception as exc:  # noqa: BLE001 - 容错：图片重写失败不阻断导出
-            logger.warning("wiki_export_asset_rewrite_failed", error=str(exc))
+                try:
+                    data = await storage_service.download_extraction_asset(document_id=UUID(doc_id), filename=filename)
+                    if not data:
+                        logger.warning("wiki_export_asset_missing", doc_id=doc_id, filename=filename)
+                        continue
+                    asset_path = assets_dir / doc_id / filename
+                    asset_path.parent.mkdir(parents=True, exist_ok=True)
+                    asset_path.write_bytes(data)
+                    self._asset_files.append(str(asset_path))
+                    replacements.append((m.group(0), f"/assets/{doc_id}/{filename}"))
+                except Exception as exc:  # noqa: BLE001 - 容错：单图失败不阻断导出
+                    logger.warning(
+                        "wiki_export_asset_bake_failed",
+                        doc_id=doc_id,
+                        filename=filename,
+                        error=str(exc),
+                    )
+        else:
+            base = (cfg.asset_base_url or "").rstrip("/")
+            for m in matches:
+                doc_id = m.group("doc_id")
+                filename = m.group("filename")
+                replacements.append((m.group(0), f"{base}/knowledge/wiki/documents/{doc_id}/assets/{filename}"))
+
+        for original, url in replacements:
+            markdown = markdown.replace(original, url)
         return markdown
+
+    def _get_storage_service(self) -> Any:
+        """延迟初始化 DocumentStorageService（仅 bake_assets 路径需要）。"""
+        if self._storage_service is None:
+            from negentropy.storage.service import DocumentStorageService
+
+            self._storage_service = DocumentStorageService()
+        return self._storage_service
 
     # ------------------------------------------------------------------
     # 文件 IO
@@ -266,9 +304,9 @@ class WikiExportService:
 
     @staticmethod
     def _reset(out_dir: Path) -> None:
-        """覆盖式重写：清空既有 publications/、entries/ 与顶层 json，避免遗留陈旧内容。"""
+        """覆盖式重写：清空既有 publications/、entries/、assets/ 与顶层 json，避免遗留陈旧内容。"""
         out_dir.mkdir(parents=True, exist_ok=True)
-        for sub in ("publications", "entries"):
+        for sub in ("publications", "entries", "assets"):
             target = out_dir / sub
             if target.exists():
                 for child in target.iterdir():

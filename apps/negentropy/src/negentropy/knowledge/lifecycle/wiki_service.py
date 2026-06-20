@@ -11,6 +11,7 @@ Wiki 发布 — 服务层
 
 from __future__ import annotations
 
+import os
 from typing import Any
 from uuid import UUID
 
@@ -25,6 +26,52 @@ from .wiki_dao import WikiDao
 from .wiki_redeploy import trigger_wiki_redeploy
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
+
+
+def _maybe_spawn_pages_publish() -> None:
+    """本地场景：publish 后后台 spawn 脚本自动发布 Wiki 到 GitHub Pages。
+
+    仅当 ``settings.knowledge.wiki_pages_publish.enabled`` 显式开启时执行
+    （默认关闭，不影响生产与现有 publish 流程）。fire-and-forget：
+    ``subprocess.Popen`` 不阻塞 publish 返回；任何异常仅 WARN，绝不冒泡。
+
+    与 ``trigger_wiki_redeploy``（webhook → 云端 CI）正交：本地用 spawn、
+    分域/云端用 webhook。脚本路径来自配置（固定相对仓库根，不拼接外部输入）。
+    """
+    from negentropy.config import settings
+
+    cfg = settings.knowledge.wiki_pages_publish
+    if not cfg.enabled:
+        return
+    try:
+        import subprocess
+        from pathlib import Path
+
+        # 仓库根：本文件位于 apps/negentropy/src/negentropy/knowledge/lifecycle/。
+        repo_root = Path(__file__).resolve().parents[6]
+        script_path = (repo_root / cfg.script).resolve()
+        if not script_path.is_file():
+            logger.warning("wiki_pages_publish_script_missing", script=str(script_path))
+            return
+
+        env = dict(os.environ)
+        if cfg.repo:
+            env["WIKI_PAGES_REPO"] = cfg.repo
+        env["WIKI_PAGES_BRANCH"] = cfg.branch
+
+        # fire-and-forget：脱离请求生命周期后台运行；输出交由脚本自身/系统日志。
+        subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 不拼接外部输入
+            ["bash", str(script_path)],
+            cwd=str(repo_root),
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        logger.info("wiki_pages_publish_spawned", script=str(script_path), branch=cfg.branch)
+    except Exception as exc:  # noqa: BLE001 - 主动吞噬：spawn 失败不阻塞发布
+        logger.warning("wiki_pages_publish_spawn_failed", error=str(exc))
+
 
 # 合法主题列表
 VALID_THEMES = {"default", "book", "docs"}
@@ -223,6 +270,8 @@ class WikiPublishingService:
                 app_name=pub.app_name,
                 event="publish",
             )
+            # 本地自动发布到 GitHub Pages（默认关闭；fire-and-forget，不阻塞）。
+            _maybe_spawn_pages_publish()
 
         return pub, revalidation
 

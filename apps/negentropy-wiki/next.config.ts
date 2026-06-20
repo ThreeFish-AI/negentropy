@@ -16,12 +16,45 @@ import type { NextConfig } from "next";
  *   （`/knowledge/wiki/documents/{doc}/assets/{file}`，从 PostgreSQL bytea 提供），
  *   导出期由后端 WikiExportService 重写为绝对/相对 URL。
  */
+/**
+ * 稳定 buildId：默认 Next 每次构建生成随机 buildId（注入 __next.*.txt / 404 等），
+ * 致「内容未变也产生差异」，破坏 Pages 发布的幂等（每次 publish 都 noise commit）。
+ * 这里把 buildId 绑定到内容包各 publication 的 (slug,id,version) —— 仅当真实内容
+ * 重新发布（version 递增）时变化；纯重跑导出/构建保持幂等（不取 generated_at 时间戳）。
+ * content 缺失（fixture 兜底）时用固定回退值。
+ */
+function stableBuildId(): string {
+  try {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const crypto = require("node:crypto");
+    const base = process.env.WIKI_CONTENT_DIR
+      ? path.resolve(process.env.WIKI_CONTENT_DIR)
+      : (() => {
+          const real = path.join(process.cwd(), "content");
+          return fs.existsSync(path.join(real, "index.json"))
+            ? real
+            : path.join(process.cwd(), "content.fixture");
+        })();
+    const idx = JSON.parse(fs.readFileSync(path.join(base, "index.json"), "utf8"));
+    // 仅取内容版本标识（剔除 generated_at 等 wall-clock 字段），保证内容不变则 id 不变。
+    const pubs = (idx.publications || [])
+      .map((p: { slug: string; id: string; version: number }) => `${p.slug}:${p.id}:${p.version}`)
+      .sort();
+    const hash = crypto.createHash("sha256").update(JSON.stringify(pubs)).digest("hex");
+    return `wiki-${hash.slice(0, 16)}`;
+  } catch {
+    return "wiki-fixture";
+  }
+}
+
 const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   images: {
     unoptimized: true,
   },
+  generateBuildId: stableBuildId,
 };
 
 export default nextConfig;
