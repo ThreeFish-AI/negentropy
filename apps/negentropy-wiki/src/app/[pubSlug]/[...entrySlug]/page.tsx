@@ -2,12 +2,12 @@ import {
   findFirstDocumentSlug,
   joinEntrySlug,
   resolveSectionView,
-  wikiApi,
   type WikiEntry,
   type WikiEntryContent,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
@@ -16,20 +16,20 @@ import { WikiToc } from "@/components/WikiToc";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiSearchProvider } from "@/components/WikiSearchProvider";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { extractHeadings } from "@/lib/markdown-headings";
 import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
-import { WikiCommentSection } from "@/components/WikiCommentSection";
 import { WikiArticleMeta } from "@/components/WikiArticleMeta";
-import { AnnotationLayer } from "@/components/annotation/AnnotationLayer";
 import { WikiFooter } from "@/components/home/WikiFooter";
-import { SearchSnippetScroller } from "@/components/SearchSnippetScroller";
 import Link from "next/link";
 import { Metadata } from "next";
 
-export const revalidate = 300;
+/**
+ * `output: export` 要求动态路由导出 generateStaticParams；
+ * 从 colocated `generate.ts` re-export（Next 仅识别 page.tsx 的导出）。
+ */
+export { generateStaticParams } from "./generate";
 
 /**
  * Wiki 文档详情页 — 渲染 Markdown 内容（支持层级路径）
@@ -66,7 +66,6 @@ export default async function WikiEntryPage({ params }: Props) {
   let navItems: WikiNavTreeItem[] = [];
   let content: WikiEntryContent | null = null;
   let status: LoadStatus = "missing";
-  let entryId: string | null = null;
 
   try {
     publication = await wikiApi.findPublicationBySlug(pubSlug);
@@ -81,7 +80,6 @@ export default async function WikiEntryPage({ params }: Props) {
         (e) => e.entry_slug === slug,
       );
       if (entry) {
-        entryId = entry.id;
         if (entry.status === "orphaned" || entry.document_id === null) {
           status = "orphaned";
         } else {
@@ -163,7 +161,6 @@ export default async function WikiEntryPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
       graphTab={{ active: false, show: hasAnyEntry }}
     />
   );
@@ -211,27 +208,13 @@ export default async function WikiEntryPage({ params }: Props) {
                 {content.entry_title || slug}
               </h1>
               <WikiArticleMeta
-                entryId={entryId!}
                 authorName={content.author_name}
                 authorUrl={content.author_url}
                 publishedAt={content.published_at}
                 sourceUrl={content.source_url}
               />
             </header>
-            {entryId ? (
-              <>
-                <AnnotationLayer entryId={entryId}>
-                  <MarkdownRenderer content={md} />
-                </AnnotationLayer>
-                <SearchSnippetScroller />
-                <WikiCommentSection entryId={entryId} />
-              </>
-            ) : (
-              <>
-                <MarkdownRenderer content={md} />
-                <SearchSnippetScroller />
-              </>
-            )}
+            <MarkdownRenderer content={md} />
           </>
         )
       )}

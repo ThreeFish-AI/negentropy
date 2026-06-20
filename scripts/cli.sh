@@ -56,7 +56,8 @@ svc_start_cmd() {
   case "$1" in
     backend)   echo "uv run negentropy serve --port 3292" ;;
     ui)        echo "node ./scripts/start-production.mjs" ;;
-    wiki)      echo "node ./scripts/start-production.mjs" ;;
+    # wiki 纯静态化后：`pnpm start` = `serve out -l 3092` 托管静态产物（无 Node 服务端）
+    wiki)      echo "pnpm start" ;;
     perceives) echo "uv run negentropy-perceives" ;;
   esac
 }
@@ -329,24 +330,24 @@ cmd_start() {
   # Phase 4 — 前端构建
   if ! $skip_build; then
     log_phase "Phase 4/5: 前端构建"
-    # 依赖链：perceives（MCP 前置）→ backend（wiki SSG 数据源）
-    # backend 在 MCP 工具调用链上依赖 perceives，必须先就绪。
-    start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
-    start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
+    # 依赖链：perceives（MCP 前置）→ backend（ui BFF 数据源，wiki 不再依赖 backend）。
+    # wiki 纯静态化后构建期只读本地 content/，无需 backend 在线；此处 backend 仅为
+    # ui 运行时提前就绪。
+    start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 可能降级"
+    start_service "$SVC_BACKEND" || log_warn "backend 启动失败，ui BFF 将不可用"
 
-    # agents-chat-core 是 ui/wiki 共享的工作区依赖，且 tsup 配置 clean:true
-    # （每次构建先清空 dist）。若任由下方并行的两个 pnpm build 各自触发 prebuild
-    # 重建，会并发清空/写入同一 dist 而偶发构建失败。故在此显式顺序重建一次，
-    # 并通过 NEGENTROPY_CORE_PREBUILT 让并行子进程的 prebuild 跳过重建。
+    # agents-chat-core 仍是 ui 的工作区依赖（wiki 纯静态化后已移除该依赖）。
+    # tsup 配置 clean:true（每次构建先清空 dist），故在此显式构建一次，并通过
+    # NEGENTROPY_CORE_PREBUILT 让 ui 的 prebuild 跳过重建。
     log_info "构建 agents-chat-core..."
     (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
       || { log_error "agents-chat-core 构建失败"; cmd_stop; exit 1; }
 
-    # NEGENTROPY_CORE_PREBUILT=1：core 已在上方构建，跳过子进程 prebuild 的并发重建。
+    # wiki 构建独立于 backend（next build 读 content/ + postbuild pagefind 索引）。
     log_info "构建 ui + wiki (并行)..."
     (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_ui_pid=$!
-    (cd "$REPO_ROOT/apps/negentropy-wiki" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
+    (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
     local build_wiki_pid=$!
     local _rc=0; wait "$build_ui_pid" || _rc=$?; wait "$build_wiki_pid" || _rc=$?
     (( _rc )) && { log_error "前端构建失败"; cmd_stop; exit 1; }
@@ -417,9 +418,9 @@ cmd_logs() {
 cmd_build() {
   log_phase "仅构建（不启动）"
   run_dir_init
-  # 依赖链：perceives（MCP 前置）→ backend（wiki SSG 数据源）
-  start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
-  start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
+  # 依赖链：perceives（MCP 前置）→ backend（ui BFF 数据源；wiki 纯静态化后独立构建）
+  start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 可能降级"
+  start_service "$SVC_BACKEND" || log_warn "backend 启动失败，ui BFF 将不可用"
   log_info "构建 ui + wiki (并行)..."
   (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
   local pid_ui=$!

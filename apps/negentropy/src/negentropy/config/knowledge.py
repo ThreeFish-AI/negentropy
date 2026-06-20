@@ -82,6 +82,40 @@ class WikiRevalidateSettings(BaseModel):
     )
 
 
+class WikiRedeploySettings(BaseModel):
+    """Wiki 静态站点「内容导出 + 重建」触发配置。
+
+    wiki 纯静态化后不再有运行时 ISR；publish/unpublish 完成后，后端通过本配置
+    指向的触发端点（如 GitHub ``repository_dispatch`` 或自建 webhook）驱动 CI：
+    重新导出静态内容包 → 提交 ``content/`` → 重建并重新部署 wiki。
+
+    所有字段可选；未配置 ``url`` 则跳过（等价被动，等下一次定时/手动重建）。
+    """
+
+    url: str | None = Field(
+        default=None,
+        description=(
+            "触发端点 URL。GitHub repository_dispatch 形如 https://api.github.com/repos/{owner}/{repo}/dispatches。"
+        ),
+    )
+    event_type: str = Field(
+        default="wiki_content_export",
+        description="repository_dispatch 的 event_type（CI workflow 据此筛选）。",
+    )
+    token: SecretStr | None = Field(
+        default=None,
+        description="触发端点鉴权 token（GitHub dispatch 需 PAT/GITHUB_TOKEN，Bearer 头）。",
+    )
+    secret: SecretStr | None = Field(
+        default=None,
+        description="可选 HMAC 签名密钥（自建 webhook 鉴权用）。未配置则跳过签名头。",
+    )
+    timeout_seconds: float = Field(
+        default=5.0,
+        description="单次 POST 超时秒数。失败仅 WARN 不阻塞发布。",
+    )
+
+
 class KnowledgeMcpSettings(BaseModel):
     """知识库检索 MCP 端点配置（供 Routine 的 Claude Code 经 streamable-HTTP 接入）。
 
@@ -139,6 +173,9 @@ class KnowledgeSettings(BaseSettings):
     )
     wiki_revalidate: WikiRevalidateSettings = Field(
         default_factory=WikiRevalidateSettings,
+    )
+    wiki_redeploy: WikiRedeploySettings = Field(
+        default_factory=WikiRedeploySettings,
     )
     feature_flags: KnowledgeFeatureFlags = Field(
         default_factory=KnowledgeFeatureFlags,

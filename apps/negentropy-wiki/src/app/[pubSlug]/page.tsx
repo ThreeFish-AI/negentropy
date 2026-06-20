@@ -3,10 +3,10 @@ import {
   findFirstDocumentSlug,
   findIndexEntry,
   resolveSectionView,
-  wikiApi,
   type WikiPublication,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
+import { wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
@@ -14,11 +14,14 @@ import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiSearchProvider } from "@/components/WikiSearchProvider";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import Link from "next/link";
 import { WikiFooter } from "@/components/home/WikiFooter";
 
-export const revalidate = 300;
+/**
+ * `output: export` 要求动态路由导出 generateStaticParams；
+ * 从 colocated `generate.ts` re-export（Next 仅识别 page.tsx 的导出）。
+ */
+export { generateStaticParams } from "./generate";
 
 /**
  * Publication 首页 — 显示层级导航树与索引入口
@@ -94,7 +97,6 @@ export default async function WikiPublicationPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
       graphTab={{ active: false, show: entriesTotal > 0 }}
     />
   );

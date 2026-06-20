@@ -16,12 +16,13 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.knowledge.lifecycle_schemas import WikiEntryContentResponse
 from negentropy.logging import get_logger
 from negentropy.models.perception import WikiPublication, WikiPublicationEntry
 
-from .revalidate import trigger_wiki_revalidate
 from .slug import is_valid_slug, slugify
 from .wiki_dao import WikiDao
+from .wiki_redeploy import trigger_wiki_redeploy
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 
@@ -29,6 +30,61 @@ logger = get_logger(__name__.rsplit(".", 1)[0])
 VALID_THEMES = {"default", "book", "docs"}
 # 合法状态列表
 VALID_STATUSES = {"draft", "published", "archived"}
+
+
+def build_entry_content_response(
+    entry_id: UUID,
+    content_data: dict,
+    *,
+    entry_slug: str = "",
+) -> WikiEntryContentResponse:
+    """由 ``WikiDao.get_entry_content`` 的原始 dict 构建对外响应（单一事实源）。
+
+    解析作者信息（metadata 手动覆盖 > DocSource.author）、来源 URL、发布时间，
+    与 ``routes.wiki.get_wiki_entry_content`` 共享同一逻辑，避免双份维护漂移
+    （DRY：Wiki API 响应与静态内容包导出逐字段一致）。
+
+    Args:
+        entry_id: 条目 ID。
+        content_data: ``WikiDao.get_entry_content`` 返回的 dict（含 markdown_content /
+            title / metadata / author / source_url / entry_created_at 等）。
+        entry_slug: 条目 slug；Wiki API 因历史原因传空串，静态导出传入真实 slug。
+    """
+    metadata = content_data.get("metadata", {})
+    author_raw = metadata.get("author") or content_data.get("author")
+    author_name: str | None = None
+    author_url: str | None = None
+
+    if author_raw:
+        author_str = str(author_raw).strip()
+        explicit_url = metadata.get("author_url")
+        if explicit_url and isinstance(explicit_url, str):
+            author_url = explicit_url
+            if not author_name:
+                author_name = author_str.rstrip("/").rsplit("/", 1)[-1] if author_str.startswith("http") else author_str
+        elif author_str.startswith("http"):
+            author_url = author_str
+            author_name = author_str.rstrip("/").rsplit("/", 1)[-1]
+        else:
+            author_name = author_str
+
+    published_at: str | None = None
+    entry_created_at = content_data.get("entry_created_at")
+    if entry_created_at:
+        published_at = entry_created_at.isoformat() if hasattr(entry_created_at, "isoformat") else str(entry_created_at)
+
+    return WikiEntryContentResponse(
+        entry_id=entry_id,
+        document_id=content_data["document_id"],
+        entry_slug=entry_slug,
+        entry_title=content_data.get("title"),
+        markdown_content=content_data.get("markdown_content"),
+        document_filename=content_data.get("filename") or "",
+        author_name=author_name,
+        author_url=author_url,
+        source_url=content_data.get("source_url"),
+        published_at=published_at,
+    )
 
 
 def _resolve_doc_display_title(doc: Any) -> str:
@@ -161,7 +217,7 @@ class WikiPublishingService:
             await self._freeze_snapshot(db, pub)
 
         if pub is not None:
-            revalidation = await trigger_wiki_revalidate(
+            revalidation = await trigger_wiki_redeploy(
                 publication_id=pub.id,
                 pub_slug=pub.slug,
                 app_name=pub.app_name,
@@ -179,7 +235,7 @@ class WikiPublishingService:
         pub = await WikiDao.unpublish(db, pub_id)
         revalidation = "not_configured"
         if pub is not None:
-            revalidation = await trigger_wiki_revalidate(
+            revalidation = await trigger_wiki_redeploy(
                 publication_id=pub.id,
                 pub_slug=pub.slug,
                 app_name=pub.app_name,
