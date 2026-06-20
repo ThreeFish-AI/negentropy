@@ -353,11 +353,11 @@ async def ingest_file(
         # GCS 存储逻辑
         doc_record = None
         is_new_doc = True
-        gcs_uri = None
+        content_uri = None
         storage_service = None
 
         if store_to_gcs:
-            from negentropy.storage.gcs_client import StorageError
+            from negentropy.storage import StorageError
             from negentropy.storage.service import DocumentStorageService
 
             try:
@@ -371,14 +371,14 @@ async def ingest_file(
                     metadata={"source": "ingest_file", "source_type": "file"},
                     created_by=getattr(user, "user_id", None),
                 )
-                gcs_uri = doc_record.gcs_uri
+                content_uri = doc_record.content_uri
 
                 logger.info(
                     "document_storage_completed",
                     corpus_id=str(corpus_id),
                     doc_id=str(doc_record.id),
                     is_new=is_new_doc,
-                    gcs_uri=gcs_uri,
+                    content_uri=content_uri,
                 )
             except StorageError as exc:
                 logger.warning("gcs_storage_failed_proceeding_without_storage", error=str(exc))
@@ -388,10 +388,10 @@ async def ingest_file(
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
 
-        # GCS 存储的文件强制使用 gcs_uri 作为 source_uri（支持 Rebuild 功能）
+        # GCS 存储的文件强制使用 content_uri 作为 source_uri（支持 Rebuild 功能）
         # 只有非 GCS 存储时才使用用户提供的 source_uri 或文件名
-        if store_to_gcs and gcs_uri:
-            final_source_uri = gcs_uri
+        if store_to_gcs and content_uri:
+            final_source_uri = content_uri
         else:
             final_source_uri = source_uri or safe_filename
 
@@ -423,8 +423,8 @@ async def ingest_file(
         meta["content_type"] = file.content_type
         meta["file_size"] = len(content)
         meta["source_type"] = "file"
-        if gcs_uri:
-            meta["gcs_uri"] = gcs_uri
+        if content_uri:
+            meta["content_uri"] = content_uri
         if doc_record:
             meta["document_id"] = str(doc_record.id)
 

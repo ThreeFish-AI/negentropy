@@ -151,8 +151,8 @@ async def import_document_file(
         raw_filename = (file.filename or "unknown").split("/")[-1].split("\\")[-1][:255] or "unknown"
         source_kind = resolve_source_kind(filename=raw_filename, content_type=file.content_type)
 
-        # 路由层同步上传 GCS + 落库（corpus_id=None → 文档库）；失败为致命错误
-        from negentropy.storage.gcs_client import StorageError
+        # 路由层同步上传 blob + 落库（corpus_id=None → 文档库）；失败为致命错误
+        from negentropy.storage import StorageError
         from negentropy.storage.service import DocumentStorageService
 
         try:

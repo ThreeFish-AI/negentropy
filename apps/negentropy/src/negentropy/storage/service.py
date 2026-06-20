@@ -18,7 +18,10 @@ from negentropy.logging import get_logger
 from negentropy.models.perception import KnowledgeDocument
 from negentropy.serialization import strip_nul_chars
 
-from .gcs_client import GCSStorageClient, StorageError
+from .exceptions import StorageError
+from .postgres_client import get_blob_storage
+from .protocol import BlobStorage
+from .uri import build_uri, is_blob_uri
 
 logger = get_logger("negentropy.storage.service")
 
@@ -26,18 +29,19 @@ logger = get_logger("negentropy.storage.service")
 class DocumentStorageService:
     """Service for managing document storage and deduplication.
 
-    This service coordinates between GCS storage and database metadata,
+    This service coordinates between blob storage (PostgreSQL ``bytea`` via
+    :class:`~negentropy.storage.protocol.BlobStorage`) and database metadata,
     handling file deduplication based on content hash.
     """
 
-    def __init__(self, gcs_client: GCSStorageClient | None = None):
-        self._gcs = gcs_client
+    def __init__(self, blob_storage: BlobStorage | None = None):
+        self._blob = blob_storage
 
-    def _get_gcs_client(self) -> GCSStorageClient:
-        """Get GCS client (lazy initialization)."""
-        if self._gcs is None:
-            self._gcs = GCSStorageClient.get_instance()
-        return self._gcs
+    def _get_blob(self) -> BlobStorage:
+        """Get blob storage (lazy initialization, defaults to Postgres singleton)."""
+        if self._blob is None:
+            self._blob = get_blob_storage()
+        return self._blob
 
     @staticmethod
     def _corpus_segment(corpus_id: UUID | None) -> str:
@@ -48,7 +52,7 @@ class DocumentStorageService:
         return str(corpus_id) if corpus_id else "library"
 
     @classmethod
-    def _build_markdown_gcs_path(
+    def _build_markdown_path(
         cls,
         *,
         app_name: str,
@@ -62,7 +66,7 @@ class DocumentStorageService:
         return f"knowledge/{app_name}/{cls._corpus_segment(corpus_id)}/derived/{document_id}/{safe_stem}.md"
 
     @classmethod
-    def _build_asset_gcs_path(
+    def _build_asset_path(
         cls,
         *,
         app_name: str,
@@ -114,30 +118,30 @@ class DocumentStorageService:
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
 
-    @staticmethod
-    def _best_effort_cleanup_gcs(
-        gcs_client: GCSStorageClient,
+    async def _best_effort_cleanup(
+        self,
         *,
-        old_gcs_uri: str | None,
-        old_markdown_gcs_uri: str | None,
+        old_uri: str | None,
+        old_markdown_uri: str | None,
         old_metadata: dict | None,
     ) -> None:
-        """Best-effort 清理旧 GCS 资源，失败仅记录日志，不阻断主流程。"""
-        for uri in (old_gcs_uri, old_markdown_gcs_uri):
+        """Best-effort 清理旧 blob 资源，失败仅记录日志，不阻断主流程。"""
+        blob = self._get_blob()
+        for uri in (old_uri, old_markdown_uri):
             if uri:
                 try:
-                    gcs_client.delete(uri)
+                    await blob.delete(uri)
                 except StorageError:
-                    logger.warning("reactivate_old_gcs_cleanup_failed", uri=uri)
+                    logger.warning("reactivate_old_blob_cleanup_failed", uri=uri)
 
         old_assets = (old_metadata or {}).get("extracted_assets")
         if isinstance(old_assets, list):
             for asset in old_assets:
                 if isinstance(asset, dict):
                     uri = asset.get("uri")
-                    if isinstance(uri, str) and uri.startswith("gs://"):
+                    if isinstance(uri, str) and is_blob_uri(uri):
                         try:
-                            gcs_client.delete(uri)
+                            await blob.delete(uri)
                         except StorageError:
                             logger.warning("reactivate_old_asset_cleanup_failed", uri=uri)
 
@@ -151,17 +155,17 @@ class DocumentStorageService:
         metadata: dict | None = None,
         created_by: str | None = None,
     ) -> KnowledgeDocument:
-        """复活 soft-deleted 文档：重新上传 GCS 并更新记录状态。
+        """复活 soft-deleted 文档：重新上传 blob 并更新记录状态。
 
-        soft-delete 后 GCS 文件可能已被清理，因此需要重新上传。
+        soft-delete 后 blob 可能已被清理，因此需要重新上传。
         同时重置 Markdown 提取状态以触发重新提取。
         """
-        gcs_client = self._get_gcs_client()
-        gcs_path = gcs_client.build_gcs_path(app_name, self._corpus_segment(existing_doc.corpus_id), filename)
+        blob = self._get_blob()
+        blob_path = blob.build_path(app_name, self._corpus_segment(existing_doc.corpus_id), filename)
 
-        gcs_uri = gcs_client.upload(
+        blob_uri = await blob.upload(
             content=content,
-            gcs_path=gcs_path,
+            path=blob_path,
             content_type=content_type,
         )
 
@@ -172,23 +176,22 @@ class DocumentStorageService:
             if not doc:
                 raise StorageError(f"Document {existing_doc.id} disappeared during reactivation")
 
-            # Best-effort 清理旧 GCS 资源，防止孤立 blob 积累
-            self._best_effort_cleanup_gcs(
-                gcs_client,
-                old_gcs_uri=doc.gcs_uri if doc.gcs_uri != gcs_uri else None,
-                old_markdown_gcs_uri=doc.markdown_gcs_uri,
+            # Best-effort 清理旧 blob 资源，防止孤立对象积累
+            await self._best_effort_cleanup(
+                old_uri=doc.content_uri if doc.content_uri != blob_uri else None,
+                old_markdown_uri=doc.markdown_uri,
                 old_metadata=doc.metadata_,
             )
 
             doc.status = "active"
-            doc.gcs_uri = gcs_uri
+            doc.content_uri = blob_uri
             doc.original_filename = filename
             doc.content_type = content_type
             doc.file_size = len(content)
             doc.metadata_ = metadata or {}
             doc.created_by = created_by
             doc.markdown_content = None
-            doc.markdown_gcs_uri = None
+            doc.markdown_uri = None
             doc.markdown_extract_status = "pending"
             doc.markdown_extract_error = None
             doc.markdown_extracted_at = None
@@ -200,7 +203,7 @@ class DocumentStorageService:
                 "document_reactivated",
                 doc_id=str(doc.id),
                 corpus_id=str(doc.corpus_id),
-                gcs_uri=gcs_uri,
+                content_uri=blob_uri,
                 file_hash=doc.file_hash,
             )
             return doc
@@ -235,10 +238,11 @@ class DocumentStorageService:
             if a duplicate was found
 
         Raises:
-            StorageError: If GCS upload fails
+            StorageError: If blob upload fails
         """
         # Compute hash
-        file_hash = GCSStorageClient.compute_hash(content)
+        blob = self._get_blob()
+        file_hash = blob.compute_hash(content)
 
         # Check for duplicate (any status, including soft-deleted)
         existing = await self.check_duplicate(corpus_id, file_hash, app_name=app_name)
@@ -271,14 +275,13 @@ class DocumentStorageService:
             )
             return reactivated, False
 
-        # Build GCS path
-        gcs_client = self._get_gcs_client()
-        gcs_path = gcs_client.build_gcs_path(app_name, self._corpus_segment(corpus_id), filename)
+        # Build blob path
+        blob_path = blob.build_path(app_name, self._corpus_segment(corpus_id), filename)
 
-        # Upload to GCS
-        gcs_uri = gcs_client.upload(
+        # Upload to blob storage
+        blob_uri = await blob.upload(
             content=content,
-            gcs_path=gcs_path,
+            path=blob_path,
             content_type=content_type,
         )
 
@@ -289,7 +292,7 @@ class DocumentStorageService:
                 app_name=app_name,
                 file_hash=file_hash,
                 original_filename=filename,
-                gcs_uri=gcs_uri,
+                content_uri=blob_uri,
                 content_type=content_type,
                 file_size=len(content),
                 status="active",
@@ -336,7 +339,7 @@ class DocumentStorageService:
                 "document_stored",
                 doc_id=str(doc.id),
                 corpus_id=str(corpus_id),
-                gcs_uri=gcs_uri,
+                content_uri=blob_uri,
                 file_hash=file_hash,
             )
 
@@ -426,7 +429,7 @@ class DocumentStorageService:
             document_id: Document UUID to delete
             corpus_id: Optional corpus UUID for validation
             app_name: Optional app name for validation
-            soft_delete: If True, mark as deleted; if False, also delete from GCS
+            soft_delete: If True, mark as deleted; if False, also delete from blob storage
 
         Returns:
             True if deleted, False if not found
@@ -453,12 +456,12 @@ class DocumentStorageService:
                     corpus_id=str(corpus_id),
                 )
             else:
-                # Hard delete: remove from GCS first
+                # Hard delete: remove blobs first
                 try:
-                    gcs_client = self._get_gcs_client()
-                    gcs_client.delete(doc.gcs_uri)
-                    if doc.markdown_gcs_uri:
-                        gcs_client.delete(doc.markdown_gcs_uri)
+                    blob = self._get_blob()
+                    await blob.delete(doc.content_uri)
+                    if doc.markdown_uri:
+                        await blob.delete(doc.markdown_uri)
                     metadata = dict(doc.metadata_ or {})
                     extracted_assets = metadata.get("extracted_assets")
                     if isinstance(extracted_assets, list):
@@ -466,19 +469,19 @@ class DocumentStorageService:
                             if not isinstance(asset, dict):
                                 continue
                             uri = asset.get("uri")
-                            if isinstance(uri, str) and uri.startswith("gs://"):
+                            if isinstance(uri, str) and is_blob_uri(uri):
                                 try:
-                                    gcs_client.delete(uri)
+                                    await blob.delete(uri)
                                 except StorageError as exc:
                                     logger.warning(
-                                        "gcs_delete_asset_failed_proceeding_with_db_delete",
+                                        "blob_delete_asset_failed_proceeding_with_db_delete",
                                         doc_id=str(document_id),
                                         asset_uri=uri,
                                         error=str(exc),
                                     )
                 except StorageError as exc:
                     logger.warning(
-                        "gcs_delete_failed_proceeding_with_db_delete",
+                        "blob_delete_failed_proceeding_with_db_delete",
                         doc_id=str(document_id),
                         error=str(exc),
                     )
@@ -493,17 +496,17 @@ class DocumentStorageService:
 
             return True
 
-    async def get_document_by_gcs_uri(
+    async def get_document_by_uri(
         self,
         *,
-        gcs_uri: str,
+        content_uri: str,
         corpus_id: UUID | None = None,
         app_name: str | None = None,
         include_deleted: bool = False,
     ) -> KnowledgeDocument | None:
-        """按 gcs_uri 查询文档记录。"""
+        """按 content_uri 查询文档记录。"""
         async with AsyncSessionLocal() as db:
-            conditions = [KnowledgeDocument.gcs_uri == gcs_uri]
+            conditions = [KnowledgeDocument.content_uri == content_uri]
             if corpus_id:
                 conditions.append(KnowledgeDocument.corpus_id == corpus_id)
             if app_name:
@@ -525,7 +528,7 @@ class DocumentStorageService:
         async with AsyncSessionLocal() as db:
             conditions = [
                 or_(
-                    KnowledgeDocument.gcs_uri == source_uri,
+                    KnowledgeDocument.content_uri == source_uri,
                     KnowledgeDocument.metadata_["origin_url"].astext == source_uri,
                 )
             ]
@@ -565,7 +568,7 @@ class DocumentStorageService:
         *,
         document_id: UUID,
         markdown_content: str,
-        markdown_gcs_uri: str | None = None,
+        markdown_uri: str | None = None,
     ) -> bool:
         """保存 Markdown 正文与提取完成状态。"""
         async with AsyncSessionLocal() as db:
@@ -578,7 +581,7 @@ class DocumentStorageService:
             # 剥离 NUL（\x00）——PostgreSQL text 列不接受，asyncpg 写入会抛
             # UntranslatableCharacterError；某些 PDF 解析产物会夹带 NUL 字节。
             doc.markdown_content = strip_nul_chars(markdown_content)
-            doc.markdown_gcs_uri = markdown_gcs_uri
+            doc.markdown_uri = markdown_uri
             doc.markdown_extract_status = "completed"
             doc.markdown_extract_error = None
             doc.markdown_extracted_at = datetime.now(UTC)
@@ -664,13 +667,13 @@ class DocumentStorageService:
             )
             return doc
 
-    async def delete_gcs_uri(self, *, gcs_uri: str) -> bool:
-        """删除任意 GCS URI；失败时仅记录日志。"""
+    async def delete_blob(self, *, content_uri: str) -> bool:
+        """删除任意 blob URI；失败时仅记录日志。"""
         try:
-            self._get_gcs_client().delete(gcs_uri)
+            await self._get_blob().delete(content_uri)
             return True
         except StorageError as exc:
-            logger.warning("gcs_uri_delete_failed", gcs_uri=gcs_uri, error=str(exc))
+            logger.warning("blob_uri_delete_failed", content_uri=content_uri, error=str(exc))
             return False
 
     async def upload_markdown_derivative(
@@ -679,22 +682,22 @@ class DocumentStorageService:
         document_id: UUID,
         markdown_content: str,
     ) -> str | None:
-        """将 Markdown 内容上传到 GCS，失败时仅记录日志并返回 None。"""
+        """将 Markdown 内容上传到 blob 存储，失败时仅记录日志并返回 None。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
             return None
 
         try:
-            gcs_client = self._get_gcs_client()
-            gcs_path = self._build_markdown_gcs_path(
+            blob = self._get_blob()
+            blob_path = self._build_markdown_path(
                 app_name=doc.app_name,
                 corpus_id=doc.corpus_id,
                 document_id=doc.id,
                 filename=doc.original_filename,
             )
-            return gcs_client.upload(
+            return await blob.upload(
                 content=markdown_content.encode("utf-8"),
-                gcs_path=gcs_path,
+                path=blob_path,
                 content_type="text/markdown; charset=utf-8",
             )
         except Exception as exc:  # noqa: BLE001 - 衍生存储失败不应影响主流程
@@ -719,16 +722,16 @@ class DocumentStorageService:
             return None
 
         try:
-            gcs_client = self._get_gcs_client()
-            gcs_path = self._build_asset_gcs_path(
+            blob = self._get_blob()
+            blob_path = self._build_asset_path(
                 app_name=doc.app_name,
                 corpus_id=doc.corpus_id,
                 document_id=doc.id,
                 filename=filename,
             )
-            return gcs_client.upload(
+            return await blob.upload(
                 content=content,
-                gcs_path=gcs_path,
+                path=blob_path,
                 content_type=content_type,
             )
         except Exception as exc:  # noqa: BLE001 - 衍生存储失败不应影响主流程
@@ -746,33 +749,33 @@ class DocumentStorageService:
         document_id: UUID,
         filename: str,
     ) -> bytes | None:
-        """从 GCS 下载 Negentropy Perceives 生成的衍生资源。"""
+        """从 blob 存储下载 Negentropy Perceives 生成的衍生资源。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
             return None
 
-        gcs_client = self._get_gcs_client()
-        gcs_path = self._build_asset_gcs_path(
+        blob = self._get_blob()
+        blob_path = self._build_asset_path(
             app_name=doc.app_name,
             corpus_id=doc.corpus_id,
             document_id=doc.id,
             filename=filename,
         )
-        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
+        blob_uri = build_uri(blob_path)
 
         try:
-            return gcs_client.download(gcs_uri)
+            return await blob.download(blob_uri)
         except Exception:  # noqa: BLE001
             logger.warning(
                 "extraction_asset_download_failed",
                 document_id=str(document_id),
                 filename=filename,
-                gcs_uri=gcs_uri,
+                content_uri=blob_uri,
             )
             return None
 
     async def get_document_content(self, document_id: UUID) -> bytes | None:
-        """Download document content from GCS.
+        """Download document content from blob storage.
 
         Args:
             document_id: Document UUID
@@ -784,11 +787,10 @@ class DocumentStorageService:
         if not doc:
             return None
 
-        gcs_client = self._get_gcs_client()
-        return gcs_client.download(doc.gcs_uri)
+        return await self._get_blob().download(doc.content_uri)
 
     async def get_document_markdown(self, document_id: UUID) -> str | None:
-        """读取文档 Markdown 正文（优先 PostgreSQL，缺失时回退 GCS）。"""
+        """读取文档 Markdown 正文（优先 PostgreSQL，缺失时回退 blob 存储）。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
             return None
@@ -796,24 +798,23 @@ class DocumentStorageService:
         if doc.markdown_content and doc.markdown_content.strip():
             return doc.markdown_content
 
-        if not doc.markdown_gcs_uri:
+        if not doc.markdown_uri:
             return None
 
         try:
-            gcs_client = self._get_gcs_client()
-            content = gcs_client.download(doc.markdown_gcs_uri).decode("utf-8")
+            content = (await self._get_blob().download(doc.markdown_uri)).decode("utf-8")
             if not content.strip():
                 logger.warning(
                     "markdown_content_empty",
                     document_id=str(document_id),
-                    markdown_gcs_uri=doc.markdown_gcs_uri,
+                    markdown_uri=doc.markdown_uri,
                 )
                 return None
-            # 最佳努力回填 PostgreSQL，避免后续重复读 GCS。
+            # 最佳努力回填 PostgreSQL，避免后续重复读 blob。
             await self.save_markdown_content(
                 document_id=document_id,
                 markdown_content=content,
-                markdown_gcs_uri=doc.markdown_gcs_uri,
+                markdown_uri=doc.markdown_uri,
             )
             return content
         except Exception as exc:  # noqa: BLE001 - 读取失败由调用方决定处理
@@ -824,19 +825,18 @@ class DocumentStorageService:
             )
             return None
 
-    async def get_document_content_by_uri(self, gcs_uri: str) -> bytes | None:
-        """Download document content by GCS URI directly.
+    async def get_document_content_by_uri(self, content_uri: str) -> bytes | None:
+        """Download document content by blob URI directly.
 
-        用于 Rebuild 操作，直接通过 GCS URI 下载文件内容。
+        用于 Rebuild 操作，直接通过 blob URI 下载文件内容。
 
         Args:
-            gcs_uri: Full GCS URI (gs://bucket/path)
+            content_uri: blob URI（pgblob://{key}）
 
         Returns:
             File content as bytes
 
         Raises:
-            StorageError: If GCS download fails
+            StorageError: If blob download fails
         """
-        gcs_client = self._get_gcs_client()
-        return gcs_client.download(gcs_uri)
+        return await self._get_blob().download(content_uri)

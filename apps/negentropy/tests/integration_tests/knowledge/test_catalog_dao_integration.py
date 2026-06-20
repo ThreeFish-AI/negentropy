@@ -192,7 +192,7 @@ async def sample_documents(db_engine, sample_corpus):
                 app_name="negentropy",
                 file_hash=f"hash_{i}" * 8,
                 original_filename=f"doc_{i}.pdf",
-                gcs_uri=f"gs://test/doc_{i}.pdf",
+                content_uri=f"gs://test/doc_{i}.pdf",
                 content_type="application/pdf",
                 file_size=1024 * (i + 1),
             )

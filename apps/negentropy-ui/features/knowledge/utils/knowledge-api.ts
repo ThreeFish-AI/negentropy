@@ -1344,7 +1344,7 @@ export interface KnowledgeDocument {
    * 为空 / null 时，Wiki 站点回退到 `metadata.title -> original_filename`。
    */
   display_name?: string | null;
-  gcs_uri: string;
+  content_uri: string;
   content_type: string | null;
   file_size: number;
   status: string;
@@ -1360,7 +1360,7 @@ export interface KnowledgeDocument {
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   markdown_content: string | null;
-  markdown_gcs_uri: string | null;
+  markdown_uri: string | null;
 }
 
 export interface DocumentMarkdownRefreshResponse {

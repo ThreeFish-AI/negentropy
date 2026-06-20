@@ -109,7 +109,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # 存储信息
-    gcs_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    content_uri: Mapped[str] = mapped_column(Text, nullable=False)
     content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -121,7 +121,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     # 预处理后的 Markdown 内容与状态
     markdown_content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    markdown_gcs_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    markdown_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     markdown_extract_status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,

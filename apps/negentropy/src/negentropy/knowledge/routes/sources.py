@@ -188,17 +188,17 @@ async def rebuild_document(
             message="Document rebuild task started. Check Pipeline page for progress.",
         )
 
-    if not doc.gcs_uri:
+    if not doc.content_uri:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "File document gcs_uri not available"},
+            detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "File document content_uri not available"},
         )
     run_id = await service.create_pipeline(
         app_name=resolved_app,
         operation="rebuild_source",
         input_data={
             "corpus_id": str(corpus_id),
-            "source_uri": doc.gcs_uri,
+            "source_uri": doc.content_uri,
             "document_id": str(document_id),
         },
     )
@@ -207,7 +207,7 @@ async def rebuild_document(
         run_id=run_id,
         corpus_id=corpus_id,
         app_name=resolved_app,
-        source_uri=doc.gcs_uri,
+        source_uri=doc.content_uri,
         chunking_config=chunking_config,
         document_id=document_id,
     )
@@ -526,13 +526,13 @@ async def rebuild_source(
     resolved_app = _resolve_app_name(payload.app_name)
     source_uri = payload.source_uri
 
-    # 验证 source_uri 是有效的 GCS URI
-    if not source_uri or not source_uri.startswith("gs://"):
+    # 验证 source_uri 是有效的 blob URI
+    if not source_uri or not source_uri.startswith("pgblob://"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "code": "INVALID_SOURCE_URI",
-                "message": "source_uri must be a valid GCS URI (gs://...) for rebuild operation",
+                "message": "source_uri must be a valid blob URI (pgblob://...) for rebuild operation",
             },
         )
 

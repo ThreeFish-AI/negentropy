@@ -86,11 +86,11 @@ class TestExtractFromUrl:
 
 
 class TestExtractFromSourceUri:
-    def test_gcs_uri_with_filename(self) -> None:
-        assert _extract_source_label({"source_uri": "gs://bucket/app/corpus/report.pdf"}) == "report"
+    def test_content_uri_with_filename(self) -> None:
+        assert _extract_source_label({"source_uri": "pgblob://bucket/app/corpus/report.pdf"}) == "report"
 
-    def test_gcs_uri_without_extension(self) -> None:
-        assert _extract_source_label({"source_uri": "gs://bucket/app/corpus/data"}) == "data"
+    def test_content_uri_without_extension(self) -> None:
+        assert _extract_source_label({"source_uri": "pgblob://bucket/app/corpus/data"}) == "data"
 
     def test_http_source_uri(self) -> None:
         assert _extract_source_label({"source_uri": "https://docs.com/guide/install"}) == "install"
@@ -112,7 +112,7 @@ class TestExtractPriority:
 
     def test_url_over_source_uri(self) -> None:
         """url 优先级高于 source_uri"""
-        result = _extract_source_label({"url": "https://x.com/article", "source_uri": "gs://b/doc.pdf"})
+        result = _extract_source_label({"url": "https://x.com/article", "source_uri": "pgblob://b/doc.pdf"})
         assert result == "article"
 
     def test_empty_input_returns_empty(self) -> None:

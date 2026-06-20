@@ -92,9 +92,9 @@ def _extract_source_label(input_data: dict[str, Any]) -> str:
         if label := _sanitize_label(parsed.netloc):
             return label
 
-    # 3. source_uri → 区分 GCS / HTTP / 通用
+    # 3. source_uri → 区分 blob / HTTP / 通用
     if source_uri := input_data.get("source_uri"):
-        if source_uri.startswith("gs://"):
+        if source_uri.startswith("pgblob://"):
             name = source_uri.split("/")[-1]
             if "." in name:
                 name = Path(name).stem
@@ -1105,7 +1105,7 @@ class KnowledgeService:
             await storage_service.save_markdown_content(
                 document_id=doc_record.id,
                 markdown_content=extraction_result.markdown_content,
-                markdown_gcs_uri=doc_record.gcs_uri,
+                markdown_uri=doc_record.content_uri,
             )
             stored_assets = await persist_extracted_assets(
                 document_id=doc_record.id,
@@ -1276,7 +1276,7 @@ class KnowledgeService:
                 from .ingestion.extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
-                markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+                markdown_uri, _ = await store_extracted_document_artifacts(
                     document_id=document_id,
                     extracted=extracted,
                     tracker=tracker,
@@ -1285,7 +1285,7 @@ class KnowledgeService:
                     "markdown_store",
                     {
                         "document_id": str(document_id),
-                        "markdown_gcs_uri": markdown_gcs_uri,
+                        "markdown_uri": markdown_uri,
                         "markdown_length": len(extracted.markdown_content),
                     },
                 )
@@ -1421,7 +1421,7 @@ class KnowledgeService:
                 created_by=user_id,
             )
             # 重写图片链接 → 上传 derived Markdown → 持久化 assets（extract_assets_store 阶段）
-            markdown_gcs_uri, stored_assets = await store_extracted_document_artifacts(
+            markdown_uri, stored_assets = await store_extracted_document_artifacts(
                 document_id=doc_record.id,
                 extracted=extraction_result,
                 tracker=tracker,
@@ -1431,7 +1431,7 @@ class KnowledgeService:
                 {
                     "document_id": str(doc_record.id),
                     "duplicate_document": not is_new_doc,
-                    "markdown_gcs_uri": markdown_gcs_uri,
+                    "markdown_uri": markdown_uri,
                     "stored_assets": len(stored_assets) if stored_assets else 0,
                 },
             )
@@ -1615,7 +1615,7 @@ class KnowledgeService:
             from .ingestion.extraction import store_extracted_document_artifacts
 
             await tracker.start_stage("markdown_store")
-            markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+            markdown_uri, _ = await store_extracted_document_artifacts(
                 document_id=document_id,
                 extracted=extracted,
                 tracker=tracker,
@@ -1624,7 +1624,7 @@ class KnowledgeService:
                 "markdown_store",
                 {
                     "document_id": str(document_id),
-                    "markdown_gcs_uri": markdown_gcs_uri,
+                    "markdown_uri": markdown_uri,
                     "markdown_length": len(extracted.markdown_content),
                 },
             )
@@ -2140,7 +2140,7 @@ class KnowledgeService:
             # 阶段 1: Download
             await tracker.start_stage("download")
             try:
-                from negentropy.storage.gcs_client import StorageError
+                from negentropy.storage import StorageError
                 from negentropy.storage.service import DocumentStorageService
 
                 storage_service = DocumentStorageService()
@@ -2196,7 +2196,7 @@ class KnowledgeService:
                 from .ingestion.extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
-                markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+                markdown_uri, _ = await store_extracted_document_artifacts(
                     document_id=document_id,
                     extracted=extracted,
                     tracker=tracker,
@@ -2205,13 +2205,13 @@ class KnowledgeService:
                     "markdown_store",
                     {
                         "document_id": str(document_id),
-                        "markdown_gcs_uri": markdown_gcs_uri,
+                        "markdown_uri": markdown_uri,
                         "markdown_length": len(extracted.markdown_content),
                     },
                 )
             metadata = normalize_source_metadata(
                 source_uri=source_uri,
-                metadata={"gcs_uri": source_uri, "rebuild": True},
+                metadata={"content_uri": source_uri, "rebuild": True},
             )
 
             # 原子 DELETE+INSERT：由 _ingest_text_with_tracker(persist_mode="replace") 内部完成
@@ -2663,13 +2663,13 @@ class KnowledgeService:
         deleted_documents = 0
         deleted_gcs_objects = 0
 
-        if source_uri.startswith("gs://"):
-            from negentropy.storage.gcs_client import StorageError
+        if source_uri.startswith("pgblob://"):
+            from negentropy.storage import StorageError
             from negentropy.storage.service import DocumentStorageService
 
             storage_service = DocumentStorageService()
-            doc = await storage_service.get_document_by_gcs_uri(
-                gcs_uri=source_uri,
+            doc = await storage_service.get_document_by_uri(
+                content_uri=source_uri,
                 corpus_id=corpus_id,
                 app_name=app_name,
             )
@@ -2683,7 +2683,7 @@ class KnowledgeService:
                     )
                     if deleted:
                         deleted_documents = 1
-                        deleted_gcs_objects = 1 + (1 if doc.markdown_gcs_uri else 0)
+                        deleted_gcs_objects = 1 + (1 if doc.markdown_uri else 0)
                 except StorageError as exc:
                     warnings.append(f"GCS_DELETE_FAILED: {exc}")
 
@@ -2848,7 +2848,7 @@ class KnowledgeService:
                         select(KnowledgeDocument)
                         .where(KnowledgeDocument.corpus_id == corpus_id)
                         .where(
-                            KnowledgeDocument.gcs_uri.like(  # noqa: S608
+                            KnowledgeDocument.content_uri.like(  # noqa: S608
                                 f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
                                 escape="\\",
                             )
@@ -3023,22 +3023,22 @@ class KnowledgeService:
         Args:
             corpus_id: 知识库 ID
             app_name: 应用名称
-            source_uri: GCS URI（必须是 gs://... 格式）
+            source_uri: blob URI（必须是 pgblob://... 格式）
             chunking_config: 可选的分块配置，未提供时使用默认配置
 
         Returns:
             list[KnowledgeRecord]: 新创建的知识记录列表
 
         Raises:
-            ValueError: source_uri 不是有效的 GCS URI
+            ValueError: source_uri 不是有效的 blob URI
             KnowledgeError: 处理失败
         """
         tracker = None
         config = chunking_config or self._chunking_config
 
-        # 验证 GCS URI
-        if not source_uri.startswith("gs://"):
-            raise ValueError(f"Invalid GCS URI: {source_uri}. Must start with gs://")
+        # 验证 blob URI
+        if not source_uri.startswith("pgblob://"):
+            raise ValueError(f"Invalid blob URI: {source_uri}. Must start with pgblob://")
 
         # 初始化 Pipeline 追踪器
         if self._pipeline_dao:
@@ -3069,7 +3069,7 @@ class KnowledgeService:
                 await tracker.start_stage("download")
 
             try:
-                from negentropy.storage.gcs_client import StorageError
+                from negentropy.storage import StorageError
                 from negentropy.storage.service import DocumentStorageService
 
                 storage_service = DocumentStorageService()
@@ -3132,7 +3132,7 @@ class KnowledgeService:
             # 准备 metadata
             metadata = normalize_source_metadata(
                 source_uri=source_uri,
-                metadata={"gcs_uri": source_uri, "rebuild": True},
+                metadata={"content_uri": source_uri, "rebuild": True},
             )
 
             records = await self._ingest_text_with_tracker(

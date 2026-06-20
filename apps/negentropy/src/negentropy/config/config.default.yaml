@@ -80,8 +80,7 @@ services:
   credential_backend: postgres              # inmemory | postgres | session
   memory_backend: postgres                  # inmemory | vertexai | postgres
   session_backend: postgres                 # inmemory | vertexai | database | postgres
-  artifact_backend: gcs                     # inmemory | gcs
-  gcs_bucket_name: negentropy               # GCS bucket（artifact_backend=gcs 时必填）
+  artifact_backend: postgres                # inmemory | postgres（制品持久化到 adk_artifacts 表）
   vertex_project_id: aftership-team-data    # VertexAI 项目 ID
   # vertex_location: null                  # VertexAI 区域
   # vertex_agent_engine_id: null           # VertexAI Agent Engine ID

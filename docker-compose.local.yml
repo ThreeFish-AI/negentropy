@@ -28,8 +28,8 @@ services:
     environment:
       # 标记运行环境（development；影响日志级别建议与开发态语义）
       NE_ENV: development
-      # 本地无 GCS 凭证：制品回退内存（env 优先级高于 config.default.yaml 的 gcs）
-      NE_SVC_ARTIFACT_BACKEND: inmemory
+      # 制品持久化到 PostgreSQL（adk_artifacts 表）；env 优先级高于 config.default.yaml
+      NE_SVC_ARTIFACT_BACKEND: postgres
       # 剥离他人 GCP 项目，避免误触 VertexAI 调用
       NE_SVC_VERTEX_PROJECT_ID: ""
       # 关闭 Langfuse 外发（本地无需第三方可观测性上报；缺失 Key 时本就 warn-and-continue）

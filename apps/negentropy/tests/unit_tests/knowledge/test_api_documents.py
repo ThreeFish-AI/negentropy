@@ -57,7 +57,7 @@ async def test_list_document_chunks_success(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": "https://example.com/a"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -102,7 +102,7 @@ async def test_list_document_chunks_invalid_source(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
 
@@ -157,7 +157,7 @@ async def test_list_document_chunks_excludes_child_from_top_level(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": "https://example.com/a"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
 
@@ -190,7 +190,7 @@ async def test_sync_document_success(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": source_url},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -221,7 +221,7 @@ async def test_sync_document_rejects_non_url(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri="gs://bucket/file.pdf",
+        content_uri="pgblob://bucket/file.pdf",
     )
     fake_storage = FakeStorageService(doc=doc)
 
@@ -246,7 +246,7 @@ async def test_rebuild_document_url_requires_markdown(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": "https://example.com/doc"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc, markdown=None)
     fake_service = FakeKnowledgeService()
@@ -299,7 +299,7 @@ async def test_rebuild_document_url_success(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": source_url},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc, markdown="# m")
     fake_service = FakeKnowledgeService()
@@ -326,7 +326,7 @@ async def test_rebuild_document_file_requires_gcs(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -396,7 +396,7 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
         app_name="negentropy",
         original_filename="design-spec.md",
         file_hash="",
-        gcs_uri="",
+        content_uri="",
         content_type=None,
         file_size=0,
         metadata_={},
@@ -424,11 +424,11 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
 async def test_rebuild_document_file_success(monkeypatch):
     corpus_id = uuid4()
     document_id = uuid4()
-    gcs_uri = "gs://bucket/file.md"
+    content_uri = "pgblob://bucket/file.md"
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri=gcs_uri,
+        content_uri=content_uri,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -445,7 +445,7 @@ async def test_rebuild_document_file_success(monkeypatch):
 
     assert result.status == "running"
     assert fake_service.pipeline_calls[-1]["operation"] == "rebuild_source"
-    assert fake_service.pipeline_calls[-1]["input_data"]["source_uri"] == gcs_uri
+    assert fake_service.pipeline_calls[-1]["input_data"]["source_uri"] == content_uri
 
 
 @pytest.mark.asyncio
@@ -454,7 +454,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     document_id = uuid4()
     fake_doc = SimpleNamespace(
         id=document_id,
-        gcs_uri="gs://negentropy/knowledge/context-engineering.pdf",
+        content_uri="pgblob://negentropy/knowledge/context-engineering.pdf",
         markdown_extract_status="pending",
     )
     fake_storage = FakeStorageService(doc=fake_doc)
@@ -527,7 +527,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
         content=b"%PDF-1.4 mock content",
         filename="Context Engineering.pdf",
         content_type=None,
-        source_uri=fake_doc.gcs_uri,
+        source_uri=fake_doc.content_uri,
         metadata={"document_id": str(document_id)},
         chunking_config=queued_chunking_config,
         document_id=document_id,
@@ -541,7 +541,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     assert chunking_config.hierarchical_parent_chunk_size == 1200
     assert chunking_config.hierarchical_child_chunk_size == 300
     assert chunking_config.hierarchical_child_overlap == 60
-    assert queued_call["source_uri"] == fake_doc.gcs_uri
+    assert queued_call["source_uri"] == fake_doc.content_uri
     assert queued_call["metadata"]["document_id"] == str(document_id)
 
 
