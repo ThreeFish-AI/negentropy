@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.config import settings
@@ -143,7 +144,9 @@ class WikiExportService:
                         continue
                     resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
                     payload = resp.model_dump(mode="json")
-                    payload["markdown_content"] = self._rewrite_asset_links(payload.get("markdown_content") or "", db)
+                    payload["markdown_content"] = await self._rewrite_asset_links(
+                        payload.get("markdown_content") or "", db
+                    )
                     self._write_json(entries_dir / f"{e.id}.json", payload, result)
                     result.entries += 1
 
@@ -226,43 +229,54 @@ class WikiExportService:
         GCS 是对象存储（CDN），非主站 DB —— wiki 运行时直连 GCS 取图，满足"不依赖
         主站数据库"。文档的 ``app_name`` / ``corpus_id`` 按需查询并缓存。
         """
-        if not markdown or "gs://" in markdown or not settings.gcs_bucket_name:
+        # #932 起 GCS 全量退役（资产转 PostgreSQL bytea），settings.gcs_bucket_name 可能已移除；
+        # 用 getattr 容错：无 GCS 配置时跳过重写、保留原始 /api/documents 链接（文本可读优先）。
+        gcs_bucket = getattr(settings, "gcs_bucket_name", None)
+        if not markdown or "gs://" in markdown or not gcs_bucket:
             return markdown
         if "/api/documents/" not in markdown:
             return markdown
 
-        cache: dict[str, tuple[str, Any]] = {}
-
-        async def resolve(doc_id: str) -> tuple[str, Any] | None:
-            if doc_id in cache:
-                return cache[doc_id]
-            doc = await db.get(KnowledgeDocument, UUID(doc_id))
-            if doc is None:
-                cache[doc_id] = (None, None)  # type: ignore[assignment]
-                return None
-            val = (doc.app_name, doc.corpus_id)
-            cache[doc_id] = val
-            return val
-
-        # 同步正则无法 await，先收集匹配，再逐个异步解析 doc 元信息后替换。
         matches = list(_ASSET_REF_PATTERN.finditer(markdown))
         if not matches:
             return markdown
 
-        replacements: list[tuple[str, str]] = []
-        for m in matches:
-            doc_id = m.group("doc_id")
-            filename = m.group("filename")
-            resolved = await resolve(doc_id)
-            if not resolved or resolved[0] is None:
-                continue
-            app_name, corpus_id = resolved
-            gcs_path = self._build_asset_gcs_path(app_name, corpus_id, doc_id, filename)
-            url = f"https://storage.googleapis.com/{settings.gcs_bucket_name}/{gcs_path}"
-            replacements.append((m.group(0), url))
+        cache: dict[str, tuple[str, Any] | None] = {}
 
-        for original, url in replacements:
-            markdown = markdown.replace(original, url)
+        async def resolve(doc_id: str) -> tuple[str, Any] | None:
+            if doc_id in cache:
+                return cache[doc_id]
+            # 轻量列查询：仅取 app_name / corpus_id，避免 db.get(全模型) 触发
+            # 新增列（如 gcs_uri）在未完全迁移的 schema 上查询失败。
+            row = (
+                await db.execute(
+                    sa_select(KnowledgeDocument.app_name, KnowledgeDocument.corpus_id).where(
+                        KnowledgeDocument.id == UUID(doc_id)
+                    )
+                )
+            ).one_or_none()
+            val: tuple[str, Any] | None = (row.app_name, row.corpus_id) if row is not None else None
+            cache[doc_id] = val
+            return val
+
+        # 图片重写为"尽力而为"：任一异常（GCS 未配置 / schema 差异 / 资产缺失）
+        # 仅 WARN 并保留原 markdown，绝不阻断正文导出（文本可读优先于图片可用）。
+        try:
+            replacements: list[tuple[str, str]] = []
+            for m in matches:
+                doc_id = m.group("doc_id")
+                filename = m.group("filename")
+                resolved = await resolve(doc_id)
+                if not resolved or resolved[0] is None:
+                    continue
+                app_name, corpus_id = resolved
+                gcs_path = self._build_asset_gcs_path(app_name, corpus_id, doc_id, filename)
+                url = f"https://storage.googleapis.com/{gcs_bucket}/{gcs_path}"
+                replacements.append((m.group(0), url))
+            for original, url in replacements:
+                markdown = markdown.replace(original, url)
+        except Exception as exc:  # noqa: BLE001 - 容错：图片重写失败不阻断导出
+            logger.warning("wiki_export_asset_rewrite_failed", error=str(exc))
         return markdown
 
     @staticmethod
