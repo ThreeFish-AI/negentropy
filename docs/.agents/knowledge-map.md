@@ -37,6 +37,7 @@
 - [Routine（长周期自主任务）](../concepts/039-the-routine-system.md) — Engine 编排 + Claude Code 执行的 Evaluator-Optimizer 自迭代闭环（含 Reflexion 反思记忆、LLM-as-Judge 评估、审批门控、停止护栏） · [预设模版](../concepts/user-guide/routine-presets.md) — 4 个开箱即用的场景模版（代码审计 / 测试增强 / 文档生成 / 架构清减），正交覆盖全部核心功能
 - [Skills](../concepts/design/skills.md)
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
+- [Wiki 独立部署与内容同步](../reference/wiki/deployment.md) — 纯静态 wiki 独立部署（Docker / 静态托管）+ 本地主站 Catalog 内容同步到远程 wiki 的 step-by-step 指引
 - [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)
 - [Agents at Wiki —— 浏览器回归验证报告](../reference/wiki/reports/agents-validation.md) — 一主五翼 6 Agents 嵌入 wiki 的端到端验证
 - [Engineering Changelog](../concepts/engineering-changelog.md)
