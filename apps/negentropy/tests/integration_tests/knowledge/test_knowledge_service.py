@@ -347,7 +347,7 @@ async def test_ingest_text_with_hierarchical_chunking_preserves_parent_child_met
         corpus_id=corpus_id,
         app_name=app_name,
         text=text,
-        source_uri="gs://knowledge/context-engineering.pdf",
+        source_uri="pgblob://knowledge/context-engineering.pdf",
         metadata={"source_type": "file", "original_filename": "context-engineering.pdf"},
         chunking_config=ChunkingConfig(
             strategy=ChunkingStrategy.HIERARCHICAL,
