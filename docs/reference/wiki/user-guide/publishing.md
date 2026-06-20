@@ -10,6 +10,10 @@ Negentropy Wiki 是知识库的**对外发布窗口**，将知识库中整理好
 
 ### 8.2 内容发布流程
 
+> 📦 **下游刷新机制已变更**：wiki 纯静态化后不再有运行时 ISR。「同步并发布」的 UI 操作不变，
+> 但发布后内容需经「**导出 → 重建**」才上线（本地 `cli.sh restart` 已内置；远程部署见
+> [`deployment.md`](../deployment.md)）。下图与下文中的「ISR 增量更新 / webhook」描述仅作历史参考。
+
 ```mermaid
 flowchart LR
     KB["📚 知识库<br/>Corpus / Documents"] --> Publish["📤 创建 Wiki Publication"]
@@ -90,10 +94,11 @@ Wiki 站点支持 3 套预设主题（`default` / `book` / `docs`），并自动
 
 ### 8.4 运维概要
 
-Wiki 采用 **SSG (Static Site Generation) + ISR (Incremental Static Regeneration)** 模式：
+Wiki 已采用**纯静态导出**（`output: export`）模式：
 
-- 构建时预渲染所有页面
-- 每 5 分钟增量再验证，自动更新内容
-- 支持独立部署（Node.js Standalone 或 Docker）
+- 构建期预渲染所有页面（`next build` → `out/`，含 Pagefind 搜索索引）
+- 运行时**无 Node 服务端、无后端、无数据库依赖**
+- 内容更新 = **重建**（ISR 已退役）；支持 Docker 独立部署或任意静态托管
 
-> 完整的 Wiki 运维文档，请参阅 [Wiki 运维指引](../ops.md)。
+> 独立部署与「本地主站内容 → 远程 wiki」同步的完整 step-by-step，请参阅
+> [Wiki 独立部署与内容同步指引](../deployment.md)；综合运维见 [Wiki 运维指引](../ops.md)。
