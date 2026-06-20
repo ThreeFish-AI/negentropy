@@ -30,13 +30,12 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.config import settings
 from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
 from negentropy.logging import get_logger
-from negentropy.models.perception import KnowledgeDocument, WikiPublication
+from negentropy.models.perception import WikiPublication
 
 from .wiki_graph_service import get_publication_graph
 from .wiki_service import build_entry_content_response
@@ -46,7 +45,7 @@ logger = get_logger(__name__.rsplit(".", 1)[0])
 SCHEMA_VERSION = 1
 
 # markdown 内的衍生资产引用：/api/documents/{doc_id}/assets/{filename}
-# （ingestion 期由 extraction.py 重写而成）；导出期反向还原为 GCS 直链。
+# （ingestion 期由 extraction.py 重写而成）；导出期重写为主站 wiki 资产端点 URL。
 _ASSET_REF_PATTERN = re.compile(r"/api/documents/(?P<doc_id>[0-9a-fA-F-]{36})/assets/(?P<filename>[A-Za-z0-9._-]+)")
 
 
@@ -144,9 +143,7 @@ class WikiExportService:
                         continue
                     resp = build_entry_content_response(e.id, content_data, entry_slug=e.entry_slug)
                     payload = resp.model_dump(mode="json")
-                    payload["markdown_content"] = await self._rewrite_asset_links(
-                        payload.get("markdown_content") or "", db
-                    )
+                    payload["markdown_content"] = self._rewrite_asset_links(payload.get("markdown_content") or "")
                     self._write_json(entries_dir / f"{e.id}.json", payload, result)
                     result.entries += 1
 
@@ -223,73 +220,45 @@ class WikiExportService:
         self._pub_cache[str(pub.id)] = payload  # type: ignore[attr-defined]
         return payload
 
-    async def _rewrite_asset_links(self, markdown: str, db: AsyncSession) -> str:
-        """把 markdown 内 ``/api/documents/{doc}/assets/{file}`` 重写为 GCS 公共直链。
+    def _rewrite_asset_links(self, markdown: str) -> str:
+        """把 markdown 内 ``/api/documents/{doc}/assets/{file}`` 重写为主站 wiki 资产端点 URL。
 
-        GCS 是对象存储（CDN），非主站 DB —— wiki 运行时直连 GCS 取图，满足"不依赖
-        主站数据库"。文档的 ``app_name`` / ``corpus_id`` 按需查询并缓存。
+        GCS 退役（#932）后，资产字节存于主站 PostgreSQL，由公开端点
+        ``/knowledge/wiki/documents/{doc}/assets/{file}`` 从 bytea 流式提供
+        （见 ``routes/wiki.py::get_wiki_document_asset``，按发布状态鉴权）。
+
+        - 配置 ``settings.knowledge.wiki_export.asset_base_url`` 时，重写为
+          ``{base}/knowledge/wiki/documents/{doc}/assets/{file}`` 绝对 URL
+          （wiki 与主站分域部署时必需）。
+        - 未配置时，重写为 ``/knowledge/wiki/documents/{doc}/assets/{file}``
+          相对路径（wiki 与主站同源反代时可用）。
+
+        wiki 资产端点仅需 ``document_id`` + ``filename``（不暴露 app_name /
+        corpus_id），故无需再查询文档元信息。
         """
-        # #932 起 GCS 全量退役（资产转 PostgreSQL bytea），settings.gcs_bucket_name 可能已移除；
-        # 用 getattr 容错：无 GCS 配置时跳过重写、保留原始 /api/documents 链接（文本可读优先）。
-        gcs_bucket = getattr(settings, "gcs_bucket_name", None)
-        if not markdown or "gs://" in markdown or not gcs_bucket:
-            return markdown
-        if "/api/documents/" not in markdown:
+        if not markdown or "/api/documents/" not in markdown:
             return markdown
 
         matches = list(_ASSET_REF_PATTERN.finditer(markdown))
         if not matches:
             return markdown
 
-        cache: dict[str, tuple[str, Any] | None] = {}
+        base = (settings.knowledge.wiki_export.asset_base_url or "").rstrip("/")
 
-        async def resolve(doc_id: str) -> tuple[str, Any] | None:
-            if doc_id in cache:
-                return cache[doc_id]
-            # 轻量列查询：仅取 app_name / corpus_id，避免 db.get(全模型) 触发
-            # 新增列（如 gcs_uri）在未完全迁移的 schema 上查询失败。
-            row = (
-                await db.execute(
-                    sa_select(KnowledgeDocument.app_name, KnowledgeDocument.corpus_id).where(
-                        KnowledgeDocument.id == UUID(doc_id)
-                    )
-                )
-            ).one_or_none()
-            val: tuple[str, Any] | None = (row.app_name, row.corpus_id) if row is not None else None
-            cache[doc_id] = val
-            return val
-
-        # 图片重写为"尽力而为"：任一异常（GCS 未配置 / schema 差异 / 资产缺失）
-        # 仅 WARN 并保留原 markdown，绝不阻断正文导出（文本可读优先于图片可用）。
+        # 图片重写为"尽力而为"：任一异常仅 WARN 并保留原 markdown，
+        # 绝不阻断正文导出（文本可读优先于图片可用）。
         try:
             replacements: list[tuple[str, str]] = []
             for m in matches:
                 doc_id = m.group("doc_id")
                 filename = m.group("filename")
-                resolved = await resolve(doc_id)
-                if not resolved or resolved[0] is None:
-                    continue
-                app_name, corpus_id = resolved
-                gcs_path = self._build_asset_gcs_path(app_name, corpus_id, doc_id, filename)
-                url = f"https://storage.googleapis.com/{gcs_bucket}/{gcs_path}"
+                url = f"{base}/knowledge/wiki/documents/{doc_id}/assets/{filename}"
                 replacements.append((m.group(0), url))
             for original, url in replacements:
                 markdown = markdown.replace(original, url)
         except Exception as exc:  # noqa: BLE001 - 容错：图片重写失败不阻断导出
             logger.warning("wiki_export_asset_rewrite_failed", error=str(exc))
         return markdown
-
-    @staticmethod
-    def _build_asset_gcs_path(
-        app_name: str,
-        corpus_id: Any,
-        document_id: str,
-        filename: str,
-    ) -> str:
-        """与 ``DocumentStorageService._build_asset_gcs_path`` 对齐的资产路径。"""
-        corpus_segment = str(corpus_id) if corpus_id else "library"
-        safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in filename)[:180] or "asset"
-        return f"knowledge/{app_name}/{corpus_segment}/derived/{document_id}/assets/{safe_name}"
 
     # ------------------------------------------------------------------
     # 文件 IO

@@ -12,7 +12,9 @@ import type { NextConfig } from "next";
  *   Pagefind（构建时索引、浏览器端运行）。
  * - `trailingSlash: true`：为 catch-all 路由 `[...entrySlug]` 产出目录式 HTML
  *   （`/pub/entry/`），对静态托管更友好（避免刷新 404）。
- * - `images.unoptimized: true`：保留。markdown 图片走 GCS 直链（CDN，非主站 DB）。
+ * - `images.unoptimized: true`：保留。markdown 图片走主站资产端点
+ *   （`/knowledge/wiki/documents/{doc}/assets/{file}`，从 PostgreSQL bytea 提供），
+ *   导出期由后端 WikiExportService 重写为绝对/相对 URL。
  */
 const nextConfig: NextConfig = {
   output: "export",

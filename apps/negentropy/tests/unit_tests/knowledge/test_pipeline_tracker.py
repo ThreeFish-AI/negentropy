@@ -101,7 +101,7 @@ async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timest
     service = KnowledgeService(repository=FakeRepository(), pipeline_dao=dao)
     corpus_id = uuid4()
     app_name = "negentropy"
-    source_uri = "gs://bucket/doc.md"
+    source_uri = "pgblob://bucket/doc.md"
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
@@ -161,7 +161,7 @@ async def test_async_rebuild_pipeline_accepts_mcp_extracted_markdown_payload(mon
     service = KnowledgeService(repository=SuccessfulRepository(), pipeline_dao=dao)
     corpus_id = uuid4()
     app_name = "negentropy"
-    source_uri = "gs://bucket/doc.md"
+    source_uri = "pgblob://bucket/doc.md"
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
@@ -214,7 +214,7 @@ async def test_async_rebuild_pipeline_does_not_delete_existing_source_when_extra
     service = KnowledgeService(repository=repository, pipeline_dao=dao)
     corpus_id = uuid4()
     app_name = "negentropy"
-    source_uri = "gs://bucket/doc.pdf"
+    source_uri = "pgblob://bucket/doc.pdf"
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
@@ -266,7 +266,7 @@ async def test_async_ingest_file_pipeline_marks_run_failed_when_extracted_docume
     service = KnowledgeService(repository=GuardRepository(), pipeline_dao=dao)
     corpus_id = uuid4()
     app_name = "negentropy"
-    source_uri = "gs://bucket/context-engineering.pdf"
+    source_uri = "pgblob://bucket/context-engineering.pdf"
     document_id = uuid4()
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
