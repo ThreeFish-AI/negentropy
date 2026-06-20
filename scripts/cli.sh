@@ -344,6 +344,12 @@ cmd_start() {
       || { log_error "agents-chat-core 构建失败"; cmd_stop; exit 1; }
 
     # wiki 构建独立于 backend（next build 读 content/ + postbuild pagefind 索引）。
+    # 纯静态 wiki：构建前从 DB 导出已发布内容到 content/（本地 publish→restart 闭环）。
+    # 失败仅 WARN（DB 未就绪 / 未迁移 / 无已发布内容时沿用既有 content/），不阻断构建。
+    log_info "同步 Wiki 已发布内容到 content/..."
+    bash "$REPO_ROOT/scripts/sync-wiki-content.sh" \
+      || log_warn "Wiki 内容导出失败（DB 未就绪 / 未迁移 / 无已发布内容？）沿用既有 content/"
+
     log_info "构建 ui + wiki (并行)..."
     (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_ui_pid=$!
@@ -421,6 +427,10 @@ cmd_build() {
   # 依赖链：perceives（MCP 前置）→ backend（ui BFF 数据源；wiki 纯静态化后独立构建）
   start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 可能降级"
   start_service "$SVC_BACKEND" || log_warn "backend 启动失败，ui BFF 将不可用"
+  # 纯静态 wiki：构建前从 DB 导出已发布内容（本地 publish→build 闭环）。
+  log_info "同步 Wiki 已发布内容到 content/..."
+  bash "$REPO_ROOT/scripts/sync-wiki-content.sh" \
+    || log_warn "Wiki 内容导出失败（DB 未就绪 / 未迁移 / 无已发布内容？）沿用既有 content/"
   log_info "构建 ui + wiki (并行)..."
   (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
   local pid_ui=$!
