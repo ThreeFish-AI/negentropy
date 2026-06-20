@@ -12,8 +12,10 @@ name: Wiki Content Export
 # 本工作流所需 Secrets（仓库 Settings → Secrets 配置）：
 #   NE_DB_URL                主站数据库连接串（导出只读访问已发布内容）
 #   WIKI_CONTENT_BOT_TOKEN   有 push 权限的 PAT（提交 content/）
-#   GCS 相关（GOOGLE_APPLICATION_CREDENTIALS / NE_SVC_GCS_BUCKET_NAME）
-#                            导出期把 markdown 图片重写为 GCS 直链所需
+#   NE_KNOWLEDGE_WIKI_EXPORT__ASSET_BASE_URL（可选）
+#                            主站可达前缀，把 markdown 图片重写为
+#                            {base}/knowledge/wiki/documents/{doc}/assets/{file} 绝对 URL
+#                            （wiki 与主站分域部署时必需；同源反代可省略）
 
 on:
   repository_dispatch:
@@ -52,8 +54,8 @@ jobs:
       - name: Export published wiki content
         env:
           NE_DB_URL: ${{ secrets.NE_DB_URL }}
-          NE_SVC_GCS_BUCKET_NAME: ${{ secrets.NE_SVC_GCS_BUCKET_NAME }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_PATH }}
+          # 可选：主站资产端点前缀（分域部署时配置；同源反代可留空）
+          NE_KNOWLEDGE_WIKI_EXPORT__ASSET_BASE_URL: ${{ secrets.NE_KNOWLEDGE_WIKI_EXPORT_ASSET_BASE_URL }}
         run: |
           uv run python scripts/export_wiki_content.py --out ../negentropy-wiki/content
 

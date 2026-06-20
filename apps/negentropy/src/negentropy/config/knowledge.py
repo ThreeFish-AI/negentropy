@@ -116,6 +116,32 @@ class WikiRedeploySettings(BaseModel):
     )
 
 
+class WikiExportSettings(BaseModel):
+    """Wiki 静态内容导出配置。
+
+    wiki 纯静态站独立部署，运行期不连主站 DB。导出 entry markdown 时，内嵌的
+    衍生资产图片（``/api/documents/{doc}/assets/{file}``）需重写为可被 wiki
+    站点访问的绝对 URL。
+
+    GCS 退役（#932）后，资产字节存于主站 PostgreSQL，由主站公开端点
+    ``/knowledge/wiki/documents/{doc}/assets/{file}`` 提供（从 bytea 流式返回）。
+    ``asset_base_url`` 即该端点的主站可达前缀。
+
+    - 配置后：图片重写为 ``{asset_base_url}/knowledge/wiki/documents/{doc}/assets/{file}``
+      绝对 URL（wiki 与主站分域部署时必需）。
+    - 未配置：保留原始 ``/api/documents/...`` 相对路径（wiki 与主站同源反代时可用，
+      或纯文本可读优先、图片暂不可用）。
+    """
+
+    asset_base_url: str | None = Field(
+        default=None,
+        description=(
+            "主站可达前缀，用于把 wiki markdown 资产图片重写为绝对 URL，"
+            "例如 https://api.example.com。末尾斜杠自动去除。"
+        ),
+    )
+
+
 class KnowledgeMcpSettings(BaseModel):
     """知识库检索 MCP 端点配置（供 Routine 的 Claude Code 经 streamable-HTTP 接入）。
 
@@ -176,6 +202,9 @@ class KnowledgeSettings(BaseSettings):
     )
     wiki_redeploy: WikiRedeploySettings = Field(
         default_factory=WikiRedeploySettings,
+    )
+    wiki_export: WikiExportSettings = Field(
+        default_factory=WikiExportSettings,
     )
     feature_flags: KnowledgeFeatureFlags = Field(
         default_factory=KnowledgeFeatureFlags,

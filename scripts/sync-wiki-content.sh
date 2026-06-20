@@ -21,9 +21,9 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 
-# 导出工具仅需 DB（+ 可选 GCS 用于图片直链重写），不使用 artifact 后端。
-# 显式置 inmemory 以容忍用户级 ~/.negentropy/config.yaml 中与本分支枚举
-# （inmemory|gcs）不符的 artifact_backend 取值，避免无关校验阻塞导出。
+# 导出工具仅需 DB（图片重写为主站资产端点 URL，纯字符串变换），不使用 artifact 后端。
+# 显式置 inmemory 以容忍用户级 ~/.negentropy/config.yaml 中与当前枚举
+# （inmemory|postgres）不符的 artifact_backend 取值（如已退役的 gcs），避免无关校验阻塞导出。
 export NE_SVC_ARTIFACT_BACKEND="${NE_SVC_ARTIFACT_BACKEND:-inmemory}"
 
 cd "$REPO_ROOT/apps/negentropy"

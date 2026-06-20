@@ -275,7 +275,7 @@ class TestPdfSourceTracker:
         tracker = PdfSourceTracker()
         doc_id = uuid4()
         result = make_extracted_document_result(
-            metadata={"filename": "test.pdf", "source_url": "gs://bucket/test.pdf"},
+            metadata={"filename": "test.pdf", "source_url": "pgblob://bucket/test.pdf"},
         )
 
         meta = await tracker.extract_metadata(

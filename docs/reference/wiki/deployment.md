@@ -293,12 +293,12 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<remote>/<pubSlug>/   # 期望 
 | --- | --- |
 | `NE_DB_URL` | 导出时只读访问主站 DB |
 | `WIKI_CONTENT_BOT_TOKEN` | 提交 `content/` 的 push 权限 PAT |
-| `NE_SVC_GCS_BUCKET_NAME` 等 | 可选；#932（GCS 退役）后图片重写默认跳过 |
+| `NE_KNOWLEDGE_WIKI_EXPORT_ASSET_BASE_URL` | 可选；主站可达前缀，把图片重写为 `{base}/knowledge/wiki/documents/{doc}/assets/{file}` 绝对 URL（wiki 与主站分域部署时配置；同源反代可省略） |
 
 ### 4.3 通用注意
 
-- **`artifact_backend`**：本分支枚举仅 `inmemory|gcs`。`sync-wiki-content.sh` 已为导出工具置 `inmemory`；若主站 backend 自身启动报相关校验错，请把 `~/.negentropy/config.yaml` 的 `services.artifact_backend` 改为合法值。
-- **资产/图片**：#932 起 GCS 全量退役、资产转 PostgreSQL bytea。静态 wiki 暂无后端可服务图片，故**图片在纯静态 wiki 为已知限制**（正文 Markdown 正常渲染）。后续可通过「导出资产为静态文件」补齐。
+- **`artifact_backend`**：#932（GCS 退役）后枚举仅 `inmemory|postgres`，默认 `postgres`（制品持久化到 `adk_artifacts` 表）。若 `~/.negentropy/config.yaml` 仍保留 `services.artifact_backend: gcs` 等失效值，请改为合法值，否则主站启动校验报错。
+- **资产/图片**：#932 起 GCS 全量退役、资产转 PostgreSQL bytea，由主站公开端点 `/knowledge/wiki/documents/{doc}/assets/{file}` 从 bytea 流式提供。导出期 `WikiExportService` 把 markdown 图片重写为该端点 URL（配置 `asset_base_url` 则为绝对 URL，否则为同源相对路径）。静态 wiki 经此端点取图——分域部署须配置 `asset_base_url` 并确保主站对 wiki 可达。
 
 ---
 
@@ -323,9 +323,8 @@ curl -s http://localhost:8080/            # 200 + 含真实文章
 ### 5.3 其他
 
 - **端口/反代 404**：`trailingSlash:true` 生成目录式 HTML（`/pub/entry/`），静态层 `try_files $uri $uri/ $uri.html` 即可，无需 SPA fallback。
-- **图片不显示**：见 §4.3（#932 后已知限制）。
+- **图片不显示**：markdown 图片重写为主站资产端点 `/knowledge/wiki/documents/{doc}/assets/{file}`（PostgreSQL bytea 流式提供，#935）。wiki 与主站**分域部署**时须配置 `NE_KNOWLEDGE_WIKI_EXPORT__ASSET_BASE_URL` 为主站可达前缀并确保网络可达；同源反代可省略。
 - **导出报 `artifact_backend` 校验错**：用 `sync-wiki-content.sh`（已置 inmemory）或手动 `NE_SVC_ARTIFACT_BACKEND=inmemory`。
-- **导出报 `gcs_uri column does not exist`**：DB schema 未迁移到当前分支；导出工具已用轻量列查询规避，若仍报错请 `uv run alembic upgrade head`。
 
 ---
 
