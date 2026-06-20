@@ -2,29 +2,32 @@
  * 本地静态内容源（LocalContentClient）
  *
  * 纯静态化后，wiki 站点不再在运行时/构建时调用主站后端 API，而是直接读取
- * 仓库内 `content/` 目录下由主站 publish 流程导出、并由 CI 提交的静态内容包。
+ * 内容根目录下的静态内容包（由主站 publish 流程经 `WikiExportService` 导出）。
+ *
+ * 内容根目录三级解析（见 `resolveContentDir`）：`WIKI_CONTENT_DIR` > `content/`
+ * （真实导出，gitignored）> `content.fixture/`（仓库内开发种子 fixture，构建兜底）。
  *
  * 设计要点（Orthogonal Decomposition）：
  *   - 本类与历史 `WikiApiClient`（HTTP）**接口完全一致**，故 `wiki-api.ts`
  *     导出的 `wikiApi` 单例从 HTTP 客户端切到本类后，所有页面/组件零改动。
- *   - 内容包 schema 见 `content/` 根的 README 与主站 `WikiExportService`，
+ *   - 内容包 schema 见内容根的 README 与主站 `WikiExportService`，
  *     字段形状与原后端 API 响应逐字段对齐（DRY：导出端复用了路由层序列化）。
  *   - 仅在 Node.js（SSG 构建期）执行；`import "server-only"` 杜绝被打进
  *     客户端 bundle。
  *
- * 内容包布局（与后端导出对齐）：
- *   content/index.json                                   顶层索引（slug/id/版本 + 倒排）
- *   content/publications.json                            listPublications()
- *   content/publications/[pubSlug]/publication.json      getPublication()
- *   content/publications/[pubSlug]/nav-tree.json         getNavTree()
- *   content/publications/[pubSlug]/entries-index.json    getEntries() + slug_to_id 倒排
- *   content/publications/[pubSlug]/entries/[entryId].json getEntryContent()
- *   content/publications/[pubSlug]/graph.json            getPublicationGraph()
+ * 内容包布局（相对内容根，与后端导出对齐）：
+ *   index.json                                   顶层索引（slug/id/版本 + 倒排）
+ *   publications.json                            listPublications()
+ *   publications/[pubSlug]/publication.json      getPublication()
+ *   publications/[pubSlug]/nav-tree.json         getNavTree()
+ *   publications/[pubSlug]/entries-index.json    getEntries() + slug_to_id 倒排
+ *   entries/[entryId].json                       getEntryContent()
+ *   publications/[pubSlug]/graph.json            getPublicationGraph()
  */
 
 import "server-only";
 
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 
 import type {
@@ -41,14 +44,30 @@ import type {
 } from "./wiki-graph-types";
 
 /**
- * 内容包根目录。
+ * 内容包根目录（三级解析，模块加载期一次性确定）。
  *
- * 默认基于 `process.cwd()`（`next build` / `next dev` 均以 wiki app 目录为
- * cwd）；可通过 `WIKI_CONTENT_DIR` 覆盖，便于单测注入 fixtures。
+ * 优先级：
+ *   1. `WIKI_CONTENT_DIR` 显式覆盖（单测注入 / 自定义部署）；
+ *   2. `content/`（真实导出落点）—— 仅当其存在 `index.json` 时采用。
+ *      `content/` 整体 gitignored：由 `sync-wiki-content.sh` / CI 导出真实内容写入；
+ *   3. `content.fixture/`（仓库内开发种子 fixture）—— `content/` 缺失/未导出时回退，
+ *      保证全新 clone 也能 `next build` / `pnpm dev` 出可用站点（CI build-smoke 依赖）。
+ *
+ * 设计动机：真实导出内容环境相关、不入 git（`content/` gitignored），fixture 入 git
+ * 供构建兜底；二者物理隔离，导出工具的覆盖式 `_reset` 不再波及 fixture。
  */
-const CONTENT_DIR = process.env.WIKI_CONTENT_DIR
-  ? path.resolve(process.env.WIKI_CONTENT_DIR)
-  : path.join(process.cwd(), "content");
+function resolveContentDir(): string {
+  if (process.env.WIKI_CONTENT_DIR) {
+    return path.resolve(process.env.WIKI_CONTENT_DIR);
+  }
+  const real = path.join(process.cwd(), "content");
+  if (existsSync(path.join(real, "index.json"))) {
+    return real;
+  }
+  return path.join(process.cwd(), "content.fixture");
+}
+
+const CONTENT_DIR = resolveContentDir();
 
 /** 顶层索引结构（与后端导出 `index.json` 对齐）。 */
 interface ContentIndex {

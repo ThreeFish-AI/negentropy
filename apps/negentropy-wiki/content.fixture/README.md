@@ -1,40 +1,41 @@
-# Wiki 静态内容包（`content/`）
+# Wiki 静态内容包 —— 开发种子 fixture（`content.fixture/`）
 
-本目录是 **negentropy-wiki 站点的唯一内容来源**。wiki 站点纯静态化后，不再在
-运行时或构建时调用主站后端，而是直接读取本目录下的 JSON 文件，由 `next build`
-烘焙为静态 HTML。
+本目录是 **negentropy-wiki 的开发种子 fixture**（手写，固定 `negentropy-handbook`
+publication），用于**全新 clone / CI build-smoke 的构建兜底**——保证在没有真实导出内容时
+`next build` / `pnpm dev` 也能产出可用站点。
 
-## 来源与 git 策略（Single Source of Truth）
+## 内容根二元结构与 git 策略（Single Source of Truth）
 
-本目录由**主站 publish 流程导出**（`WikiExportService` / `export_wiki_content.py`
-从主站 DB 序列化已发布内容）：
+wiki 纯静态化后，站点内容来自「内容根目录」下的静态内容包；`content-source.ts` 按
+三级优先解析内容根：
 
-```
-主站 UI「同步并发布」
-  → 后端 WikiExportService 序列化已发布内容
-  → export_wiki_content.py 写入本目录（content/）
-  → next build 烘焙为静态 out/ → 部署
-```
+| 目录 | 角色 | git |
+| --- | --- | --- |
+| `content/` | **真实导出落点**（`sync-wiki-content.sh` / CI 写入，覆盖式 `_reset`） | **整体 gitignored**（环境相关，不入 git） |
+| `content.fixture/`（本目录） | **开发种子 fixture**（构建兜底） | **入 git** |
+| `WIKI_CONTENT_DIR` | 显式覆盖（单测 / 自定义部署） | — |
 
-> **git 策略（重要）**：真实导出内容**环境相关、不入 git**——`.gitignore` 仅放行
-> 开发种子 fixture（`negentropy-handbook` + `README.md` + 顶层 `index.json` /
-> `publications.json` + 2 个固定 UUID entries），忽略所有真实导出物（随机 UUID entries、
-> 其它 publication slug）。fixture 供本地 `pnpm build` / CI build-smoke 使用。
->
-> 真实内容经「**导出 → 部署**」链路投递，有三条路径（详见
-> [`docs/reference/wiki/deployment.md`](../../../docs/reference/wiki/deployment.md)）：
-> - **本地直发远程**（不入 git）：`sync-wiki-content.sh` → `pnpm build` → `rsync out/` 到远程静态托管；
-> - **本地开发刷新**：`./scripts/cli.sh restart`（内置导出 + 重建）；
-> - **CI 自动**：publish webhook → `wiki-content-export.yml` 导出（bot 提交，非人工）。
->
-> **请勿手改本目录的真实内容**——内容归主站 Catalog 管理。
+> **解析优先级**（见 `content-source.ts` 的 `resolveContentDir`）：
+> `WIKI_CONTENT_DIR` > `content/`（存在 `index.json` 时）> `content.fixture/`。
+> 即：有真实导出用真实，否则回退本 fixture。二者**物理隔离**——导出工具的覆盖式
+> `_reset` 只动 `content/`，绝不波及本 fixture。
+
+真实内容由**主站 publish 流程导出**（`WikiExportService` / `export_wiki_content.py`
+从主站 DB 序列化已发布内容），经「**导出 → 重建**」链路投递，三条路径（详见
+[`docs/reference/wiki/deployment.md`](../../../docs/reference/wiki/deployment.md)）：
+
+- **本地直发远程**（不入 git）：`sync-wiki-content.sh` → `pnpm build` → `rsync out/` 到远程静态托管；
+- **本地开发刷新**：`./scripts/cli.sh restart`（内置导出 + 重建）；
+- **CI 自动**：publish webhook → `wiki-content-export.yml` 导出（bot 提交，非人工）。
+
+> **请勿手改 `content/` 的真实内容**——内容归主站 Catalog 管理。本 fixture 仅作兜底种子。
 
 ## Schema
 
-顶层索引 + 扁平 entry 存储 + 按 publication 分目录：
+顶层索引 + 扁平 entry 存储 + 按 publication 分目录（`content/` 与 `content.fixture/` 同构）：
 
 ```
-content/
+<内容根>/
 ├── index.json                              顶层索引（slug/id/版本 + 倒排映射）
 ├── publications.json                       listPublications() → { items, total }
 ├── entries/[entryId].json                  getEntryContent() → WikiEntryContent

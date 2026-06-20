@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURE_DIR = path.resolve(testDir, "../../content");
+const FIXTURE_DIR = path.resolve(testDir, "../../content.fixture");
 
 describe("LocalContentClient（读取静态内容包 fixture）", () => {
   // wikiApi 单例由动态导入返回；测试仅断言其方法行为，宽松类型即可。

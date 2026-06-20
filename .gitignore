@@ -222,22 +222,11 @@ coverage/
 .next/
 out/
 
-# apps/negentropy-wiki 静态内容包：真实内容由「导出 → 部署」链路生成（环境相关），不入 git。
-# 策略：忽略整个 content/ 的真实导出物，仅例外放行开发种子 fixture（negentropy-handbook），
-# 供本地构建 / CI build-smoke。注意 git 不会进入被忽略的目录，故需逐级放行父目录后再放行文件。
-apps/negentropy-wiki/content/**
-# 顶层 fixture
-!apps/negentropy-wiki/content/README.md
-!apps/negentropy-wiki/content/index.json
-!apps/negentropy-wiki/content/publications.json
-# fixture entries（2 个固定 UUID；真实导出为随机 UUID，仍被忽略）
-!apps/negentropy-wiki/content/entries/
-!apps/negentropy-wiki/content/entries/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1.json
-!apps/negentropy-wiki/content/entries/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2.json
-# fixture publication（negentropy-handbook 子树；真实 publication 为其它 slug，仍被忽略）
-!apps/negentropy-wiki/content/publications/
-!apps/negentropy-wiki/content/publications/negentropy-handbook/
-!apps/negentropy-wiki/content/publications/negentropy-handbook/**
+# apps/negentropy-wiki 静态内容包：真实导出内容环境相关、不入 git。
+# content/ 整体忽略——由 sync-wiki-content.sh / CI 导出真实内容写入（覆盖式 _reset）。
+# 开发种子 fixture 独立存放于 content.fixture/（入 git），构建期经 content-source.ts
+# 三级解析兜底（content/ 缺失时回退 content.fixture/）。详见 docs/reference/wiki/deployment.md。
+apps/negentropy-wiki/content/
 
 .DS_Store
 *.pem

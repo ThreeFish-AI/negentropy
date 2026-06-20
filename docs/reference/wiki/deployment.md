@@ -13,7 +13,9 @@
 `negentropy-wiki` 在 [#931](https://github.com/ThreeFish-AI/negentropy/pull/931) 完成纯静态解耦：
 
 - **运行时零依赖**：无 Node 服务端、无后端 API 调用、无数据库访问。产物是纯静态 HTML/CSS/JS（`apps/negentropy-wiki/out/`），可由任意静态托管（nginx / static-web-server / CDN / GitHub Pages）提供服务。
-- **内容单一来源**：站点内容来自仓库内 [`apps/negentropy-wiki/content/`](../../../apps/negentropy-wiki/content/) 静态内容包（schema 见其 README）。构建期 `next build` 读取 `content/` 烘焙为静态 HTML；运行时不再回源任何后端。
+- **内容来自「内容根」**：构建期 `next build` 读取内容根的静态内容包烘焙为静态 HTML；运行时不再回源任何后端。内容根三级解析（`content-source.ts` 的 `resolveContentDir`）：
+  - `WIKI_CONTENT_DIR`（显式覆盖）> `content/`（真实导出落点，**整体 gitignored**，存在 `index.json` 时采用）> [`content.fixture/`](../../../apps/negentropy-wiki/content.fixture/)（仓库内开发种子 fixture，**入 git**，构建兜底）。
+  - 真实导出内容**环境相关、不入 git**；fixture 与真实物理隔离——导出工具覆盖式 `_reset` 只动 `content/`，不波及 `content.fixture/`。schema 见 [`content.fixture/README.md`](../../../apps/negentropy-wiki/content.fixture/README.md)。
 - **关键不变量**：**内容更新 = 重建**。ISR 已退役——不存在「运行时 5 分钟自动刷新」。要让新发布的内容上线，必须重新导出 `content/` 并重建站点（Docker 镜像或静态产物）。
 
 ### 1.1 数据流（发布 → 上线）
@@ -52,7 +54,12 @@ flowchart LR
 | --- | --- | --- |
 | 静态产物 | `apps/negentropy-wiki/out/` | `next build`（`output: export`）输出，含全部预渲染 HTML |
 | 搜索索引 | `out/pagefind/` | `postbuild`（`pagefind --site out`）生成，**必须随 `out/` 一起部署**，否则全文搜索失效 |
-| 内容包（构建输入） | `apps/negentropy-wiki/content/` | 导出产物或开发种子 fixture；构建期被烘焙进 `out/` |
+| 真实内容（构建输入） | `apps/negentropy-wiki/content/` | 真实导出落点，**整体 gitignored**；由 `sync-wiki-content.sh` / CI 写入 |
+| fixture（构建兜底） | `apps/negentropy-wiki/content.fixture/` | 开发种子，**入 git**；`content/` 缺失时构建自动回退（见 [§1 内容根解析](#1-架构前提)） |
+
+> **内容根三级解析**（`content-source.ts` 的 `resolveContentDir`）：`WIKI_CONTENT_DIR` >
+> `content/`（存在 `index.json` 时）> `content.fixture/`。即有真实导出用真实、否则回退 fixture，
+> 二者物理隔离——导出工具覆盖式 `_reset` 只动 `content/`，不波及 fixture。
 
 构建命令（仓库根目录）：
 
