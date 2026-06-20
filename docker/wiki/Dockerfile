@@ -31,7 +31,8 @@ FROM deps AS builder
 
 WORKDIR /app
 
-# 复制 wiki 源码 + 静态内容包（CI 已提交）
+# 复制 wiki 源码（含 content.fixture/ 兜底；若 content/ 真实导出物存在则一并带入，
+# 由 content-source.ts 三级解析优先选用 content/，否则回退 content.fixture/）
 COPY apps/negentropy-wiki/ ./apps/negentropy-wiki/
 
 # 构建纯静态产物：next build（output:export → out/）+ postbuild pagefind 索引

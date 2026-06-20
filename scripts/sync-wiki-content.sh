@@ -13,8 +13,9 @@
 #   ./scripts/sync-wiki-content.sh
 #   # 之后重新构建 wiki：pnpm --filter negentropy-wiki build  （或 ./scripts/cli.sh restart）
 #
-# 注意：本脚本会覆盖 apps/negentropy-wiki/content/（content/ 是构建输入，非手工编辑源）；
-# 本地生成的内容请勿提交——仓库内的 content/ 是开发种子 fixture，真实内容由 CI 维护。
+# 注意：本脚本写入（覆盖式 _reset）apps/negentropy-wiki/content/ —— 该目录整体 gitignored，
+# 是真实导出落点（构建期 content-source.ts 优先采用）。开发种子 fixture 另存于
+# content.fixture/（入 git）；content/ 缺失时构建自动回退 fixture。本地生成的 content/ 勿提交。
 
 set -euo pipefail
 
