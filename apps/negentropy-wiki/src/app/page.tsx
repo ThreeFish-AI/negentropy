@@ -1,24 +1,19 @@
-import { unstable_noStore as noStore } from "next/cache";
 import type { ComponentType } from "react";
 
 import {
   findFirstDocumentSlug,
-  wikiApi,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { HomeCard } from "@/components/home/HomeCard";
 import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
 import { WikiFooter } from "@/components/home/WikiFooter";
 import { getPublicationIcon } from "@/components/home/CardIcons";
-
-// ISR: 5 分钟增量再验证
-export const revalidate = 300;
 
 /** 从 nav tree 一级节点构建跳转 href */
 function buildEntryHref(pubSlug: string, item: WikiNavTreeItem): string {
@@ -33,11 +28,7 @@ export default async function WikiHomePage() {
     const result = await wikiApi.listPublications();
     publications = result.items;
   } catch (err) {
-    noStore();
-    console.warn(
-      "[Wiki ISR] Failed to fetch publications (degraded to per-request SSR; will rebuild ISR on next success):",
-      err,
-    );
+    console.warn("[Wiki] Failed to load publications:", err);
   }
 
   // 并行获取每个 publication 的 nav tree，从中提取一级目录节点
@@ -99,7 +90,6 @@ export default async function WikiHomePage() {
       homeLinks={homeLinks}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
       pubSlug={firstPubSlug}
       graphTab={
         firstPubSlug

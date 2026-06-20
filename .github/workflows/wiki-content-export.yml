@@ -1,0 +1,88 @@
+name: Wiki Content Export
+
+# 主站 publish 触发本工作流（经后端 ``trigger_wiki_redeploy`` → GitHub
+# repository_dispatch），把已发布内容导出为静态内容包并提交到 wiki 仓库，
+# 驱动 wiki 静态重建。
+#
+# 触发端点配置（后端）：
+#   NE_KNOWLEDGE_WIKI_REDEPLOY__URL=https://api.github.com/repos/{owner}/{repo}/dispatches
+#   NE_KNOWLEDGE_WIKI_REDEPLOY__TOKEN=<PAT，repo + workflow 权限>
+#   NE_KNOWLEDGE_WIKI_REDEPLOY__EVENT_TYPE=wiki_content_export
+#
+# 本工作流所需 Secrets（仓库 Settings → Secrets 配置）：
+#   NE_DB_URL                主站数据库连接串（导出只读访问已发布内容）
+#   WIKI_CONTENT_BOT_TOKEN   有 push 权限的 PAT（提交 content/）
+#   GCS 相关（GOOGLE_APPLICATION_CREDENTIALS / NE_SVC_GCS_BUCKET_NAME）
+#                            导出期把 markdown 图片重写为 GCS 直链所需
+
+on:
+  repository_dispatch:
+    types: [wiki_content_export]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-content-export
+  cancel-in-progress: false
+
+jobs:
+  export-and-commit:
+    name: Export static content & commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/negentropy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # bot token 确保后续 push 有权限
+          token: ${{ secrets.WIKI_CONTENT_BOT_TOKEN }}
+          persist-credentials: true
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python-uv
+        with:
+          project-dir: apps/negentropy
+
+      - name: Export published wiki content
+        env:
+          NE_DB_URL: ${{ secrets.NE_DB_URL }}
+          NE_SVC_GCS_BUCKET_NAME: ${{ secrets.NE_SVC_GCS_BUCKET_NAME }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_PATH }}
+        run: |
+          uv run python scripts/export_wiki_content.py --out ../negentropy-wiki/content
+
+      - name: Detect content changes
+        id: diff
+        shell: bash
+        working-directory: .
+        run: |
+          git add apps/negentropy-wiki/content
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "无内容变更，跳过提交。"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit & push content
+        if: steps.diff.outputs.changed == 'true'
+        shell: bash
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 触发来源（来自 repository_dispatch client_payload）写入提交信息
+          EVENT="${{ github.event.client_payload.event || 'manual' }}"
+          PUB="${{ github.event.client_payload.pub_slug || '' }}"
+          git commit -m "chore(Wiki): 同步静态内容包 (${EVENT} ${PUB})"
+          git push
+
+      # push 到 apps/negentropy-wiki/content 会触发 negentropy-wiki-tests.yml
+      # （build-smoke 校验）。生产镜像重建由 release 流水线或专用 wiki-deploy
+      # 任务承接（按需扩展：调用 reusable-negentropy-docker 仅构建 wiki 镜像）。

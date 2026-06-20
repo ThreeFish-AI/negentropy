@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-20T00:00:00Z",
+  "exporter_version": "dev-seed-0.0.1",
+  "publications": [
+    { "slug": "negentropy-handbook", "id": "11111111-1111-4111-8111-111111111111", "version": 3 }
+  ],
+  "pubs": {
+    "negentropy-handbook": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "version": 3,
+      "entry_slug_to_id": {
+        "quickstart": "22222222-2222-4222-9222-2222222222c1",
+        "quickstart/getting-started": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        "architecture-overview": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"
+      },
+      "entry_ids": [
+        "22222222-2222-4222-9222-2222222222c1",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"
+      ]
+    }
+  }
+}

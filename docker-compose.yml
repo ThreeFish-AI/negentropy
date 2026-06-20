@@ -79,8 +79,6 @@ services:
     environment:
       # Docker 内部网络：postgres 服务名替代 localhost
       NE_DB_URL: "postgresql+asyncpg://aigc:@postgres:5432/negentropy"
-      # Wiki ISR revalidate webhook（Docker 内部网络）
-      NE_KNOWLEDGE_WIKI_REVALIDATE__URL: "http://wiki:3092/api/revalidate"
       # SSO 回调地址保持 localhost（浏览器端访问）
       NE_AUTH_GOOGLE_REDIRECT_URI: "http://localhost:3292/auth/google/callback"
     env_file:
@@ -129,36 +127,17 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # ── Wiki — Next.js 知识库前端 ──────────────────────────────────────────────
+  # ── Wiki — 纯静态知识库站点（独立部署，零后端/DB 依赖）─────────────────────
   wiki:
     image: threefishai/negentropy-wiki:${NEGENTROPY_IMAGE_TAG:-latest}
     build:
       context: .
-      dockerfile: docker/frontend/Dockerfile
-      args:
-        TARGET_SERVICE: negentropy-wiki
+      dockerfile: docker/wiki/Dockerfile
     container_name: negentropy-wiki
     ports:
-      - "3092:3092"
-    environment:
-      # Wiki 内容 API 代理目标（Docker 内部网络）
-      WIKI_API_BASE: "http://backend:3292"
-      # Wiki BFF 代理目标（Docker 内部网络）
-      WIKI_UI_BFF_BASE: "http://ui:3192"
-      # 容器绑定到所有接口
-      PORT: "3092"
-      HOSTNAME: "0.0.0.0"
-    depends_on:
-      backend:
-        condition: service_healthy
-      ui:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3092/"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      - "3092:80"
+    # 内容来自镜像内烘焙的静态产物（content/ 由主站 publish 经 CI 提交）；
+    # 纯静态托管，无运行时 API/DB 依赖，故不 depends_on backend/ui。
     restart: unless-stopped
 
 # ── 持久化数据卷 ────────────────────────────────────────────────────────────
