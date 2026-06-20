@@ -4,20 +4,30 @@
 运行时或构建时调用主站后端，而是直接读取本目录下的 JSON 文件，由 `next build`
 烘焙为静态 HTML。
 
-## 来源（Single Source of Truth）
+## 来源与 git 策略（Single Source of Truth）
 
-本目录由 **主站 publish 流程导出、经 CI 自动提交**（方案 A）：
+本目录由**主站 publish 流程导出**（`WikiExportService` / `export_wiki_content.py`
+从主站 DB 序列化已发布内容）：
 
 ```
 主站 UI「同步并发布」
   → 后端 WikiExportService 序列化已发布内容
-  → CI workflow 运行 export_wiki_content.py 写入本目录
-  → git bot 提交并 push → 触发 wiki 重建部署
+  → export_wiki_content.py 写入本目录（content/）
+  → next build 烘焙为静态 out/ → 部署
 ```
 
-> 当前仓库内为**开发种子 fixture**（手写，便于本地 `pnpm dev` / `next build` 验证）。
-> CI 首次导出后会以同 schema 覆盖替换为真实内容。**请勿手改真实内容**——内容归
-> 主站 Catalog 管理；此处仅由 CI 维护。
+> **git 策略（重要）**：真实导出内容**环境相关、不入 git**——`.gitignore` 仅放行
+> 开发种子 fixture（`negentropy-handbook` + `README.md` + 顶层 `index.json` /
+> `publications.json` + 2 个固定 UUID entries），忽略所有真实导出物（随机 UUID entries、
+> 其它 publication slug）。fixture 供本地 `pnpm build` / CI build-smoke 使用。
+>
+> 真实内容经「**导出 → 部署**」链路投递，有三条路径（详见
+> [`docs/reference/wiki/deployment.md`](../../../docs/reference/wiki/deployment.md)）：
+> - **本地直发远程**（不入 git）：`sync-wiki-content.sh` → `pnpm build` → `rsync out/` 到远程静态托管；
+> - **本地开发刷新**：`./scripts/cli.sh restart`（内置导出 + 重建）；
+> - **CI 自动**：publish webhook → `wiki-content-export.yml` 导出（bot 提交，非人工）。
+>
+> **请勿手改本目录的真实内容**——内容归主站 Catalog 管理。
 
 ## Schema
 
