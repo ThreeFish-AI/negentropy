@@ -58,6 +58,10 @@ def _maybe_spawn_pages_publish() -> None:
         if cfg.repo:
             env["WIKI_PAGES_REPO"] = cfg.repo
         env["WIKI_PAGES_BRANCH"] = cfg.branch
+        if cfg.token is not None:
+            token_value = cfg.token.get_secret_value()
+            if token_value:
+                env["WIKI_PAGES_TOKEN"] = token_value
 
         # fire-and-forget：脱离请求生命周期后台运行；输出交由脚本自身/系统日志。
         subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 不拼接外部输入
