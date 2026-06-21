@@ -127,18 +127,65 @@ class WikiExportSettings(BaseModel):
     ``/knowledge/wiki/documents/{doc}/assets/{file}`` 提供（从 bytea 流式返回）。
     ``asset_base_url`` 即该端点的主站可达前缀。
 
-    - 配置后：图片重写为 ``{asset_base_url}/knowledge/wiki/documents/{doc}/assets/{file}``
-      绝对 URL（wiki 与主站分域部署时必需）。
-    - 未配置：保留原始 ``/api/documents/...`` 相对路径（wiki 与主站同源反代时可用，
-      或纯文本可读优先、图片暂不可用）。
+    图片处理有两条互斥路径：
+
+    - ``bake_assets=True``（**自包含**，公网 Pages / 本地主站推荐）：导出期把资产
+      **字节**写入 ``content/assets/{doc}/{file}`` 静态文件，markdown 图片改为
+      相对路径 ``/assets/{doc}/{file}``。产物零主站依赖，可发布到任意公网静态托管
+      （如 GitHub Pages），即使主站不公网可达图片也正常显示。
+    - ``bake_assets=False`` + ``asset_base_url``（**URL 重写**，分域反代部署）：
+      图片重写为 ``{asset_base_url}/knowledge/wiki/documents/{doc}/assets/{file}``
+      绝对 URL（``asset_base_url`` 为空则为同源相对路径）。运行期由主站端点供图，
+      要求主站对访客可达。
     """
 
+    bake_assets: bool = Field(
+        default=False,
+        description=(
+            "True：导出期把图片字节烘焙为 content/assets/ 静态文件、markdown 改相对路径"
+            "（自包含、零主站依赖，公网 Pages 部署推荐）；False：走 asset_base_url URL 重写。"
+        ),
+    )
     asset_base_url: str | None = Field(
         default=None,
         description=(
-            "主站可达前缀，用于把 wiki markdown 资产图片重写为绝对 URL，"
+            "bake_assets=False 时生效：主站可达前缀，把 wiki markdown 资产图片重写为绝对 URL，"
             "例如 https://api.example.com。末尾斜杠自动去除。"
         ),
+    )
+
+
+class WikiPagesPublishSettings(BaseModel):
+    """Wiki 本地自动发布到静态托管（如 GitHub Pages）配置。
+
+    适用「主站纯本地（DB 不公网暴露）→ publish 后本地导出+构建+推送到独立 Pages 仓库」
+    场景：云端 CI 连不上本地 DB，故由后端在 publish 后**后台 spawn** 本地脚本
+    （``script``）完成「导出（烘焙图片）→ next build → 推 out/ 到目标仓库分支」。
+
+    与 ``wiki_redeploy``（webhook → 云端 CI）正交：本地用本块、分域/云端用 webhook。
+
+    **默认 ``enabled=False``** —— 不影响生产与现有 publish 流程；仅本地显式开启。
+    spawn 为 fire-and-forget（不阻塞 publish 返回、失败仅 WARN）。
+    """
+
+    enabled: bool = Field(
+        default=False,
+        description="True 时 publish 后后台 spawn script 自动发布到 Pages；默认关闭。",
+    )
+    script: str = Field(
+        default="scripts/publish-wiki-pages.sh",
+        description="发布脚本路径（相对仓库根）。仅 enabled 时执行。",
+    )
+    repo: str | None = Field(
+        default=None,
+        description=(
+            "目标 Pages 仓库（透传脚本 env WIKI_PAGES_REPO），"
+            "如 git@github.com:ThreeFish-AI/threefish-ai.github.io.git。"
+        ),
+    )
+    branch: str = Field(
+        default="main",
+        description="目标 Pages 分支（透传脚本 env WIKI_PAGES_BRANCH）。",
     )
 
 
@@ -205,6 +252,9 @@ class KnowledgeSettings(BaseSettings):
     )
     wiki_export: WikiExportSettings = Field(
         default_factory=WikiExportSettings,
+    )
+    wiki_pages_publish: WikiPagesPublishSettings = Field(
+        default_factory=WikiPagesPublishSettings,
     )
     feature_flags: KnowledgeFeatureFlags = Field(
         default_factory=KnowledgeFeatureFlags,

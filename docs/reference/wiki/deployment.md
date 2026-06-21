@@ -268,6 +268,59 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<remote>/<pubSlug>/   # 期望 
 
 详见 [Wiki README · 本地刷新](../../../apps/negentropy-wiki/README.md)。
 
+### 3.5b 路径 D：本地 publish 自动发布到 GitHub Pages（本地主站 → threefish-ai.github.io）
+
+**适用**：主站**纯本地**（DB 不公网暴露），希望在 `/knowledge/wiki`「同步并发布」后**自动**把站点上线到独立的 GitHub Pages 仓库（如 `threefish-ai.github.io`）。
+
+**为什么不是云端 CI**：`wiki-content-export.yml`（§3.4）在 GitHub 云端 runner 跑，需 `NE_DB_URL` 连主站 DB——本地 DB 云端连不上。故由**后端在 publish 后后台 spawn 本地脚本**完成「导出 → 构建 → 推 Pages」，全程在本地。
+
+**图片自包含**：本路径用 `bake_assets=true` 把图片字节烘焙进 `out/assets/`（见 [§4.4](#44-图片烘焙-bake_assets)），站点**零主站运行时依赖**——即使主站不公网可达，公网 Pages 上图片照常显示。
+
+```mermaid
+flowchart LR
+  subgraph Local["本地主站"]
+    PUB["/UI 同步并发布/"] --> SVC["wiki_service.publish()"]
+    SVC -->|"spawn（fire-and-forget）"| SH["publish-wiki-pages.sh"]
+    SH --> EXP["export（烘焙图片）→ content/"]
+    EXP --> BUILD["next build → out/"]
+  end
+  subgraph Remote["GitHub"]
+    REPO[("threefish-ai.github.io<br/>main 分支")] --> PAGES["GitHub Pages"]
+  end
+  BUILD -->|"rsync + push"| REPO
+  PAGES --> USER(["https://threefish-ai.github.io/"])
+```
+
+**一次性配置**：
+
+1. **目标仓库 Pages**：`threefish-ai.github.io` → Settings → Pages → Source 选 `Deploy from a branch`，分支 `main` / root（user/org pages 根域，无需 `basePath`）。
+2. **推送凭证**：确保本地对该仓库有 push 权限（SSH key 或 PAT；脚本默认用 SSH URL）。
+3. **主站后端开关**（env 或 `config.local.yaml`）：
+
+   ```bash
+   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__ENABLED=true
+   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__REPO=git@github.com:ThreeFish-AI/threefish-ai.github.io.git
+   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__BRANCH=main
+   ```
+
+**之后**：在主站点「同步并发布」→ 后端后台跑 `scripts/publish-wiki-pages.sh` →（导出含图片 → 构建 → rsync `out/` + push）→ 数十秒后 `https://threefish-ai.github.io/` 更新。spawn 为 fire-and-forget，**不阻塞 publish 接口**（失败仅后端 WARN 日志）。
+
+**手动 fallback / 首次验证**：
+
+```bash
+# 手动跑（等价后端 spawn 的脚本）
+WIKI_PAGES_REPO=git@github.com:ThreeFish-AI/threefish-ai.github.io.git \
+  ./scripts/publish-wiki-pages.sh
+
+# 演练（导出+构建+同步到 .temp 工作副本，不 commit/push）
+WIKI_PAGES_DRY_RUN=1 ./scripts/publish-wiki-pages.sh
+```
+
+**关键细节**：
+- 脚本自动写 `.nojekyll`（否则 GitHub Pages 的 Jekyll 会忽略 `_next/` 下划线目录，致 JS/CSS 404）。
+- `out/` 用 `rsync --delete` 同步到目标仓库工作副本（保留 `.git` 与 `CNAME`），仅含当前快照。
+- **幂等**：buildId 绑定内容版本（见 [§4.5](#45-发布幂等buildid)），内容未变则跳过 commit，避免 noise 历史。
+
 ### 3.6 内容刷新语义
 
 - **纯静态 = 必须重建才更新**：不存在运行时 ISR。主站 publish 后，内容要上线必须走 §3.3 / §3.4 的「导出 + 重建」。
@@ -298,7 +351,33 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<remote>/<pubSlug>/   # 期望 
 ### 4.3 通用注意
 
 - **`artifact_backend`**：#932（GCS 退役）后枚举仅 `inmemory|postgres`，默认 `postgres`（制品持久化到 `adk_artifacts` 表）。若 `~/.negentropy/config.yaml` 仍保留 `services.artifact_backend: gcs` 等失效值，请改为合法值，否则主站启动校验报错。
-- **资产/图片**：#932 起 GCS 全量退役、资产转 PostgreSQL bytea，由主站公开端点 `/knowledge/wiki/documents/{doc}/assets/{file}` 从 bytea 流式提供。导出期 `WikiExportService` 把 markdown 图片重写为该端点 URL（配置 `asset_base_url` 则为绝对 URL，否则为同源相对路径）。静态 wiki 经此端点取图——分域部署须配置 `asset_base_url` 并确保主站对 wiki 可达。
+- **资产/图片**：#932 起 GCS 全量退役、资产转 PostgreSQL bytea。两种处理见 §4.4。
+
+### 4.4 图片烘焙（`bake_assets`）
+
+markdown 内的图片（`/api/documents/{doc}/assets/{file}`）有两条互斥处理路径，由 `NE_KNOWLEDGE_WIKI_EXPORT__BAKE_ASSETS` 控制：
+
+| 模式 | 配置 | 行为 | 适用 |
+| --- | --- | --- | --- |
+| **烘焙（自包含）** | `BAKE_ASSETS=true` | 导出期下载图片字节写入 `content/assets/{doc}/{file}`，markdown 改相对路径 `/assets/{doc}/{file}`；`next build` 复制进 `out/assets/` | **公网 Pages / 本地主站**——零主站运行时依赖，主站不可达也能显示图片 |
+| **URL 重写** | `BAKE_ASSETS=false`（默认）+ `ASSET_BASE_URL` | 重写为 `{base}/knowledge/wiki/documents/{doc}/assets/{file}`，运行期由主站 bytea 端点供图 | 分域反代部署——要求主站对访客可达 |
+
+> `publish-wiki-pages.sh`（§3.5b）默认置 `BAKE_ASSETS=true`。烘焙失败的单张图仅 WARN 并保留原引用，不阻断正文导出。
+
+### 4.5 发布幂等（buildId）
+
+`next.config.ts` 的 `generateBuildId` 把 Next buildId 绑定到内容包各 publication 的 `(slug,id,version)` 哈希（剔除导出时间戳）。**内容未变（version 不递增）则 buildId 不变** → `publish-wiki-pages.sh` 的 rsync 无差异 → 跳过 commit，避免每次构建因随机 buildId 产生 noise 历史。
+
+### 4.6 本地 Pages 自动发布（`WikiPagesPublishSettings`）
+
+| Env | 默认 | 说明 |
+| --- | --- | --- |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__ENABLED` | `false` | True 时 publish 后后台 spawn 脚本自动发布到 Pages |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__SCRIPT` | `scripts/publish-wiki-pages.sh` | 发布脚本（相对仓库根） |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__REPO` | `None` | 目标 Pages 仓库（透传脚本 `WIKI_PAGES_REPO`） |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__BRANCH` | `main` | 目标分支（透传脚本 `WIKI_PAGES_BRANCH`） |
+
+> 与 `WikiRedeploySettings`（webhook → 云端 CI）正交：本地纯本地主站用本块、分域/云端用 webhook。默认关闭，不影响现有流程。
 
 ---
 

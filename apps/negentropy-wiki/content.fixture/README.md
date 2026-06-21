@@ -40,6 +40,8 @@ wiki 纯静态化后，站点内容来自「内容根目录」下的静态内容
 ├── publications.json                       listPublications() → { items, total }
 ├── entries/[entryId].json                  getEntryContent() → WikiEntryContent
 │                                           （entryId 为全局唯一 UUID，扁平存储）
+├── assets/[docId]/[file]                   烘焙的图片字节（仅 bake_assets=true 导出时产出，
+│                                           markdown 图片引用为 /assets/{docId}/{file}）
 └── publications/[pubSlug]/
     ├── publication.json                    getPublication() → WikiPublication
     ├── nav-tree.json                       getNavTree() → { publication_id, nav_tree:{items} }
