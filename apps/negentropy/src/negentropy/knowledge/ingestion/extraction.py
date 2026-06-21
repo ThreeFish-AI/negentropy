@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import os
 import re
 import tempfile
+import time
 import urllib.parse
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -14,6 +17,7 @@ from uuid import UUID
 import litellm
 from sqlalchemy import select, update
 
+from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.interface.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
 from negentropy.logging import get_logger
@@ -37,6 +41,95 @@ ROUTE_FILE_MD = "file_md"
 ROUTE_FILE_GENERIC = "file_generic"
 MAX_LLM_PLANNING_PAYLOAD_CHARS = 16_000
 MAX_LLM_VALIDATION_ERROR_CHARS = 1_500
+
+
+# ---------------------------------------------------------------------------
+# 并发闸门：按 (MCP server_id, source_kind) 维度限制并发提取调用
+# ---------------------------------------------------------------------------
+# 动机：perceives 重引擎（docling/mineru/marker）每引擎仅 1 个 worker 且全局共享，
+# 单机 MPS 上并发 PDF 提取会互相争抢 GPU/worker，导致切片超时级联、双双撞穿总超时
+# （见 .temp/run 日志：两个并发 PDF 均 1200s 超时）。此处在后端调用 MCP 之前加闸门，
+# 同一 (server, source_kind) 默认串行（N=1，可经 NE_KNOWLEDGE_EXTRACTION_MAX_CONCURRENCY 调大）。
+#
+# 关键：闸门在 _call_tool_with_plan 调用之外获取——排队等待不计入单次 MCP 调用的超时预算
+# （asyncio.timeout 在 execute_tool→call_tool 内部），故排队任务仍享有完整超时预算。
+# 粒度取 (server_id, source_kind) 而非全局：PDF 工具共享 docling 池需串行，
+# 而 URL/webpage 用 scrapy/selenium 等不同引擎，不应被 PDF 阻塞。
+_EXTRACTION_GATES: dict[tuple[str, SourceKind], asyncio.Semaphore] = {}
+_EXTRACTION_GATES_LOCK = asyncio.Lock()
+_EXTRACTION_INFLIGHT: dict[tuple[str, SourceKind], int] = {}
+
+
+class ExtractionGateQueueTimeout(Exception):
+    """并发闸门排队超时（调用方应转为 ``concurrency_queue_timeout`` 失败）。"""
+
+    def __init__(self, *, server_id: str, source_kind: SourceKind, waited_seconds: float) -> None:
+        self.server_id = server_id
+        self.source_kind = source_kind
+        self.waited_seconds = waited_seconds
+        super().__init__(f"extraction gate queue timeout after {waited_seconds:.1f}s")
+
+
+async def _get_extraction_gate(server_id: str, source_kind: SourceKind) -> asyncio.Semaphore:
+    """获取或懒创建 (server_id, source_kind) 维度的并发信号量（进程内单例）。"""
+    key = (server_id, source_kind)
+    async with _EXTRACTION_GATES_LOCK:
+        gate = _EXTRACTION_GATES.get(key)
+        if gate is None:
+            gate = asyncio.Semaphore(max(1, settings.knowledge.extraction_max_concurrency))
+            _EXTRACTION_GATES[key] = gate
+            _EXTRACTION_INFLIGHT[key] = 0
+        return gate
+
+
+@asynccontextmanager
+async def _extraction_gate(server_id: str, source_kind: SourceKind):
+    """按 (server_id, source_kind) 维度的并发闸门上下文。
+
+    - 排队等待发生在 ``async with`` 进入阶段（即 MCP 调用之前），不侵蚀单次调用超时预算；
+    - 排队超过 ``extraction_queue_timeout_seconds`` 则抛 :class:`ExtractionGateQueueTimeout`，
+      由调用方转为 ``concurrency_queue_timeout`` 失败，避免无限空等。
+    - ``asyncio.Semaphore`` 在 FastAPI/Starlette 单 event loop 下安全（3.10+ 懒绑定 loop，
+      且 knowledge/translation/service.py 同模式已生产可用）。
+    """
+    key = (server_id, source_kind)
+    gate = await _get_extraction_gate(server_id, source_kind)
+    limit = settings.knowledge.extraction_max_concurrency
+    queue_t0 = time.monotonic()
+    try:
+        await asyncio.wait_for(
+            gate.acquire(),
+            timeout=settings.knowledge.extraction_queue_timeout_seconds,
+        )
+    except TimeoutError as exc:
+        raise ExtractionGateQueueTimeout(
+            server_id=server_id,
+            source_kind=source_kind,
+            waited_seconds=time.monotonic() - queue_t0,
+        ) from exc
+    _EXTRACTION_INFLIGHT[key] = _EXTRACTION_INFLIGHT.get(key, 0) + 1
+    logger.info(
+        "extraction_gate_acquired",
+        server_id=server_id,
+        source_kind=source_kind,
+        waited_seconds=round(time.monotonic() - queue_t0, 3),
+        inflight=_EXTRACTION_INFLIGHT[key],
+        limit=limit,
+    )
+    held_t0 = time.monotonic()
+    try:
+        yield
+    finally:
+        _EXTRACTION_INFLIGHT[key] = max(0, _EXTRACTION_INFLIGHT.get(key, 0) - 1)
+        gate.release()
+        logger.info(
+            "extraction_gate_released",
+            server_id=server_id,
+            source_kind=source_kind,
+            held_seconds=round(time.monotonic() - held_t0, 3),
+            inflight=_EXTRACTION_INFLIGHT[key],
+            limit=limit,
+        )
 
 
 @dataclass(slots=True)
@@ -2276,14 +2369,57 @@ class DataExtractorProvider:
                     resume=resume,
                 )
 
-                result, resolved_resources, resource_errors = await self._call_tool_with_plan(
-                    server=server,
-                    target=target,
-                    plan=plan,
-                    tracker=tracker,
-                    stage_name=stage_name,
-                    cancel_event=cancel_event,
-                )
+                # 并发闸门：按 (server_id, source_kind) 串行化对同一 perceives 的重引擎调用，
+                # 排队等待不计入下方 execute_tool→call_tool 内的 asyncio.timeout 预算。
+                try:
+                    async with _extraction_gate(str(server.id), source_kind):
+                        result, resolved_resources, resource_errors = await self._call_tool_with_plan(
+                            server=server,
+                            target=target,
+                            plan=plan,
+                            tracker=tracker,
+                            stage_name=stage_name,
+                            cancel_event=cancel_event,
+                        )
+                except ExtractionGateQueueTimeout as gate_timeout:
+                    logger.warning(
+                        "extraction_gate_queue_timeout",
+                        server_id=gate_timeout.server_id,
+                        source_kind=gate_timeout.source_kind,
+                        waited_seconds=round(gate_timeout.waited_seconds, 3),
+                    )
+                    invocation_trace.append(
+                        {
+                            "attempt": index + 1,
+                            "adapter_name": plan.adapter_name,
+                            "reasoning_source": plan.reasoning_source,
+                            "diagnostics": plan.diagnostics,
+                            "success": False,
+                            "error": str(gate_timeout),
+                            "failure_category": "concurrency_queue_timeout",
+                            "duration_ms": int(gate_timeout.waited_seconds * 1000),
+                            "resource_links_total": 0,
+                            "resource_read_success": 0,
+                            "resource_read_failed": 0,
+                        }
+                    )
+                    return {
+                        "success": False,
+                        "attempt": ExtractionAttempt(
+                            server_id=str(target.server_id),
+                            server_name=server.name,
+                            tool_name=target.tool_name,
+                            status="failed",
+                            duration_ms=int(gate_timeout.waited_seconds * 1000),
+                            error=str(gate_timeout),
+                            failure_category="concurrency_queue_timeout",
+                            diagnostics={
+                                "server_id": str(server.id),
+                                "source_kind": source_kind,
+                                "adapter_attempts": invocation_trace,
+                            },
+                        ),
+                    }
                 invocation_trace.append(
                     {
                         "attempt": index + 1,
