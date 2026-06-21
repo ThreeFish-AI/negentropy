@@ -247,6 +247,24 @@ class KnowledgeSettings(BaseSettings):
         le=1024,
         description="Knowledge 文件上传大小上限 (MB)。",
     )
+    extraction_max_concurrency: int = Field(
+        default=1,
+        ge=1,
+        description=(
+            "同一 (MCP server, source_kind) 维度的最大并发提取调用数。"
+            "perceives 重引擎（docling/mineru/marker）每引擎仅 1 个 worker 且全局共享，"
+            "单机 MPS 上并发 PDF 提取会互相争抢 GPU/worker 致切片超时级联；默认 1（严格串行，"
+            "最稳），多 worker/多 perceives 实例可经 NE_KNOWLEDGE_EXTRACTION_MAX_CONCURRENCY 调大。"
+        ),
+    )
+    extraction_queue_timeout_seconds: int = Field(
+        default=3600,
+        ge=1,
+        description=(
+            "提取调用在并发闸门排队等待的上限秒数；超时则该 target 失败"
+            "（failure_category=concurrency_queue_timeout），交由 failover/上层处理，避免无限空等。"
+        ),
+    )
 
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,

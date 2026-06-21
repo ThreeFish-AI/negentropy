@@ -4,16 +4,21 @@
 包括批量/单文件 schema 适配、重试机制、failover 和契约诊断。
 """
 
+import asyncio
+from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 
+from negentropy.knowledge.ingestion import extraction as extraction_mod
 from negentropy.knowledge.ingestion.extraction import (
     ROUTE_FILE_PDF,
     AdaptiveToolInvocationPlan,
     DataExtractorProvider,
+    ExtractionGateQueueTimeout,
+    _extraction_gate,
 )
 
 from .conftest import (
@@ -1245,3 +1250,96 @@ async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_d
     assert extracted.assets[0].name == "img_1.png"
     assert extracted.assets[0].local_path == str((output_dir / "img_1.png").resolve())
     assert extracted.assets[0].metadata["source"] == "enhanced_output_directory"
+
+
+# ---------------------------------------------------------------------------
+# 并发闸门 _extraction_gate：串行化 / 粒度隔离 / 排队超时
+#
+# 动机见 extraction.py 模块注释：perceives 重引擎单 worker + 单机 MPS，
+# 并发 PDF 提取会互相争抢致双双超时。此处直接验证闸门语义。
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _reset_extraction_gates() -> Iterator[None]:
+    """每个用例前后清空模块级闸门状态，确保 (server_id, source_kind) 用例隔离。"""
+    extraction_mod._EXTRACTION_GATES.clear()
+    extraction_mod._EXTRACTION_INFLIGHT.clear()
+    yield
+    extraction_mod._EXTRACTION_GATES.clear()
+    extraction_mod._EXTRACTION_INFLIGHT.clear()
+
+
+async def _measure_concurrent_entries(
+    server_id: str,
+    source_kinds: list[str],
+    *,
+    hold_seconds: float = 0.05,
+) -> tuple[int, int]:
+    """并发对给定 (server_id, source_kind) 序列各进入一次闸门，返回 (最大并发数, 完成数)。"""
+    state: dict[str, int] = {"concurrent": 0, "max": 0, "done": 0}
+    lock = asyncio.Lock()
+
+    async def enter(source_kind: str) -> None:
+        async with _extraction_gate(server_id, source_kind):
+            async with lock:
+                state["concurrent"] += 1
+                state["max"] = max(state["max"], state["concurrent"])
+            await asyncio.sleep(hold_seconds)
+            async with lock:
+                state["concurrent"] -= 1
+                state["done"] += 1
+
+    await asyncio.gather(*(enter(sk) for sk in source_kinds))
+    return state["max"], state["done"]
+
+
+@pytest.mark.asyncio
+async def test_extraction_gate_serializes_same_server_and_source_kind() -> None:
+    """同一 (server, source_kind)、limit=1：两次进入严格互斥，最大并发为 1。"""
+    max_concurrent, done = await _measure_concurrent_entries(str(uuid4()), [ROUTE_FILE_PDF, ROUTE_FILE_PDF])
+    assert done == 2
+    assert max_concurrent == 1  # 闸门限流 1 → 任意时刻至多 1 个在临界区
+
+
+@pytest.mark.asyncio
+async def test_extraction_gate_isolates_different_source_kinds() -> None:
+    """同一 server、不同 source_kind（file_pdf vs url）使用独立闸门，可真并发（max=2）。
+
+    防止误把 URL/webpage 抓取（scrapy/selenium）与 PDF 提取（docling）串到一起。
+    """
+    max_concurrent, done = await _measure_concurrent_entries(str(uuid4()), ["file_pdf", "url"])
+    assert done == 2
+    assert max_concurrent == 2  # 不同 source_kind → 不同闸门 → 真并发
+
+
+@pytest.mark.asyncio
+async def test_extraction_gate_queue_timeout_raises_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
+    """排队超过 queue_timeout 抛 ExtractionGateQueueTimeout，而非无限空等。"""
+    monkeypatch.setattr(
+        extraction_mod,
+        "settings",
+        SimpleNamespace(
+            knowledge=SimpleNamespace(
+                extraction_max_concurrency=1,
+                extraction_queue_timeout_seconds=0.2,
+            )
+        ),
+    )
+    server_id = str(uuid4())
+    release_holder = asyncio.Event()
+
+    async def hold() -> None:
+        async with _extraction_gate(server_id, ROUTE_FILE_PDF):
+            await asyncio.wait_for(release_holder.wait(), timeout=2.0)
+
+    holder = asyncio.create_task(hold())
+    await asyncio.sleep(0.05)  # 让 holder 先进入临界区占住 limit=1 的闸门
+
+    try:
+        with pytest.raises(ExtractionGateQueueTimeout):
+            async with _extraction_gate(server_id, ROUTE_FILE_PDF):
+                pytest.fail("排队超时不应进入临界区")
+    finally:
+        release_holder.set()
+        await holder
