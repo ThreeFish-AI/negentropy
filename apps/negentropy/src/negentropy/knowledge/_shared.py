@@ -785,15 +785,20 @@ def _resolve_chunking_config_from_doc_request(
     )
 
 
-async def _extract_and_store_document_markdown_from_gcs(
+async def _reparse_document_markdown(
     *,
     document_id: UUID,
 ) -> None:
-    """从 GCS 重新加载原始文档，通过 MCP Tool 提取 Markdown 并刷新存储。
+    """从 PostgreSQL 已存储的源字节重新加载文档，经 MCP Tool 重新解析 Markdown 并刷新存储。
 
     与 ingest pipeline 共用同一条 MCP Tool 提取路径（extract_source），
     确保 Document View 的 Markdown 内容与 Chunk 内容质量一致。
+
+    作为 starlette BackgroundTask 执行（HTTP 已返回 200），故所有失败路径必须
+    自洽兜底：写 ``markdown_extract_status='failed'`` + 可读 error，绝不让异常逃逸
+    （逃逸会污染 ASGI 错误日志且前端无从感知）。
     """
+    from negentropy.storage.exceptions import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -805,12 +810,33 @@ async def _extract_and_store_document_markdown_from_gcs(
         )
         return
 
-    content = await storage_service.get_document_content(document_id=document_id)
+    # 源字节读取：存量文档（GCS 时代摄入）的 blob 可能从未回填到 PostgreSQL
+    # （迁移 0072 仅改写 URI 字符串、未迁字节）。download 对缺失 blob 抛 StorageError，
+    # 此处显式兜底为优雅失败，避免逃逸到 BackgroundTask（见 ISSUE：Re-Parse blob 缺失）。
+    try:
+        content = await storage_service.get_document_content(document_id=document_id)
+    except StorageError as exc:
+        logger.warning(
+            "document_markdown_reparse_source_blob_missing",
+            document_id=str(document_id),
+            content_uri=doc.content_uri,
+            error=str(exc),
+        )
+        await storage_service.update_markdown_extraction_status(
+            document_id=document_id,
+            status="failed",
+            error=(
+                f"源文档字节在 PostgreSQL 中缺失（content_uri={doc.content_uri}）。"
+                "该文档可能来自 GCS 时代且字节未迁移；URL 来源可经 backfill 脚本重新下载回填，"
+                "本地文件来源需重新上传。"
+            ),
+        )
+        return
     if not content:
         await storage_service.update_markdown_extraction_status(
             document_id=document_id,
             status="failed",
-            error="Source document content not found in GCS",
+            error="Source blob not found in PostgreSQL",
         )
         return
 

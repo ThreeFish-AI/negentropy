@@ -14,8 +14,8 @@ from pydantic import ValidationError  # noqa: F401
 
 from negentropy.knowledge._shared import (
     _build_document_response,
-    _extract_and_store_document_markdown_from_gcs,
     _get_service,
+    _reparse_document_markdown,
     _resolve_document_source_uri,
     _resolve_documents_archived_set,
     _resolve_user_display_names,
@@ -308,7 +308,7 @@ async def _refresh_document_markdown_impl(
     payload: DocumentMarkdownRefreshRequest,
     background_tasks: BackgroundTasks,
 ) -> DocumentMarkdownRefreshResponse:
-    """从 GCS 源文档重新解析 Markdown 并刷新存储。"""
+    """从已存储的源文档（PostgreSQL）重新解析 Markdown 并刷新存储。"""
     resolved_app = _resolve_app_name(payload.app_name)
 
     from negentropy.storage.service import DocumentStorageService
@@ -331,7 +331,7 @@ async def _refresh_document_markdown_impl(
         error=None,
     )
     background_tasks.add_task(
-        _extract_and_store_document_markdown_from_gcs,
+        _reparse_document_markdown,
         document_id=document_id,
     )
 
@@ -470,7 +470,7 @@ async def refresh_document_markdown(
     payload: DocumentMarkdownRefreshRequest,
     background_tasks: BackgroundTasks,
 ) -> DocumentMarkdownRefreshResponse:
-    """从 GCS 源文档重新解析 Markdown 并刷新存储。"""
+    """从已存储的源文档（PostgreSQL）重新解析 Markdown 并刷新存储。"""
     return await _refresh_document_markdown_impl(
         document_id=document_id,
         corpus_id=corpus_id,
@@ -519,7 +519,7 @@ async def delete_document(
         corpus_id: 知识库 ID
         document_id: 文档 ID
         app_name: 应用名称
-        hard_delete: 是否同时删除 GCS 中的原始文件（默认软删除）
+        hard_delete: 是否同时删除存储后端（PostgreSQL blob）中的原始文件（默认软删除）
     """
     await _delete_document_impl(
         document_id=document_id,
@@ -626,7 +626,7 @@ async def _get_document_asset_impl(
 ):
     """获取文档的衍生资产文件（图片等）。
 
-    从 GCS 的 ``derived/{document_id}/assets/`` 路径下载指定资产并流式返回。
+    从存储后端（PostgreSQL blob）的 ``derived/{document_id}/assets/`` 路径下载指定资产并流式返回。
     资产内容不可变，设置长期缓存。
     """
     resolved_app = _resolve_app_name(app_name)
