@@ -11,16 +11,21 @@
 # 前置：
 #   - postgres 运行中（NE_DB_URL 未设时用默认 localhost:5432/negentropy）
 #   - 至少一个 status=published 的 Wiki publication
-#   - 对目标 Pages 仓库有 push 权限（SSH key 或 PAT 凭证已就绪）
+#   - 对目标 Pages 仓库有 push 权限（SSH key、或 WIKI_PAGES_TOKEN/gh CLI 的 HTTPS token）
 #   - 目标仓库 Settings → Pages 已选 source = 目标分支 / root
 #
 # 配置（环境变量）：
-#   WIKI_PAGES_REPO    目标仓库 URL（默认 git@github.com:ThreeFish-AI/threefish-ai.github.io.git）
-#   WIKI_PAGES_BRANCH  目标分支（默认 main）
-#   WIKI_PAGES_DRY_RUN 设为 1 则构建+同步到工作副本但不 commit/push（验证用）
+#   WIKI_PAGES_REPO    目标仓库（默认 ThreeFish-AI/threefish-ai.github.io）。可为
+#                      git@github.com:owner/repo.git（SSH）或 https://github.com/owner/repo.git。
+#   WIKI_PAGES_BRANCH  目标分支（默认 master —— GitHub user/org pages 默认分支）
+#   WIKI_PAGES_TOKEN   可选；GitHub PAT/token。提供则用 HTTPS + token 推送（x-access-token），
+#                      无需 SSH key。缺省时回退 `gh auth token`（若装了 gh CLI），再缺则用
+#                      WIKI_PAGES_REPO 原样（SSH 凭证由本机 ssh-agent 提供）。
+#   WIKI_PAGES_BACKUP  覆盖前是否在目标仓库备份当前分支为 <branch>-archive-<ts>（默认 1=备份）。
+#   WIKI_PAGES_DRY_RUN 设为 1 则构建+同步到工作副本但不 commit/push（验证用）。
 #
 # 用法：
-#   ./scripts/publish-wiki-pages.sh
+#   WIKI_PAGES_TOKEN=$(gh auth token) ./scripts/publish-wiki-pages.sh
 #   WIKI_PAGES_DRY_RUN=1 ./scripts/publish-wiki-pages.sh   # 演练
 
 set -euo pipefail
@@ -28,15 +33,33 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
-WIKI_PAGES_REPO="${WIKI_PAGES_REPO:-git@github.com:ThreeFish-AI/threefish-ai.github.io.git}"
-WIKI_PAGES_BRANCH="${WIKI_PAGES_BRANCH:-main}"
+WIKI_PAGES_REPO="${WIKI_PAGES_REPO:-https://github.com/ThreeFish-AI/threefish-ai.github.io.git}"
+WIKI_PAGES_BRANCH="${WIKI_PAGES_BRANCH:-master}"
 WIKI_PAGES_DRY_RUN="${WIKI_PAGES_DRY_RUN:-0}"
+WIKI_PAGES_BACKUP="${WIKI_PAGES_BACKUP:-1}"
 
 OUT_DIR="$REPO_ROOT/apps/negentropy-wiki/out"
 WORK_DIR="$REPO_ROOT/.temp/wiki-pages-repo"   # 目标仓库的本地工作副本（gitignored .temp/）
 
 log() { printf '\033[34m[publish-wiki-pages]\033[0m %s\n' "$*"; }
 err() { printf '\033[31m[publish-wiki-pages] ERROR:\033[0m %s\n' "$*" >&2; }
+
+# 解析推送 URL：优先 WIKI_PAGES_TOKEN（或 gh auth token）→ HTTPS+token；否则原样（SSH）。
+# token 仅注入到 remote URL，不落盘日志（git remote 存于 .git/config，工作副本在 gitignored .temp/）。
+_resolve_push_url() {
+  local repo="$WIKI_PAGES_REPO" token="${WIKI_PAGES_TOKEN:-}"
+  if [ -z "$token" ] && command -v gh >/dev/null 2>&1; then
+    token="$(gh auth token 2>/dev/null || true)"
+  fi
+  if [ -n "$token" ]; then
+    # 归一化为 https://github.com/owner/repo.git 后注入 token
+    local path
+    path="$(printf '%s' "$repo" | sed -E 's#^git@github\.com:#https://github.com/#; s#^https://github\.com/##')"
+    printf 'https://x-access-token:%s@github.com/%s' "$token" "$path"
+  else
+    printf '%s' "$repo"
+  fi
+}
 
 # ── Step 1: 导出（烘焙图片为静态文件，零主站依赖）────────────────────────────────
 log "Step 1/3 导出 Wiki 内容（烘焙图片）→ content/"
@@ -56,26 +79,33 @@ log "Step 2/3 next build → out/（含 assets/ + pagefind/）"
 # ── Step 3: 同步 out/ 到目标 Pages 仓库并推送 ───────────────────────────────────
 log "Step 3/3 同步到 $WIKI_PAGES_REPO ($WIKI_PAGES_BRANCH)"
 
-# 准备工作副本：已存在则复用并 fetch，否则浅克隆目标分支。
-if [ -d "$WORK_DIR/.git" ]; then
-  git -C "$WORK_DIR" remote set-url origin "$WIKI_PAGES_REPO"
-  git -C "$WORK_DIR" fetch --depth=1 origin "$WIKI_PAGES_BRANCH" \
-    || { err "fetch 目标分支失败（仓库可达性 / 推送凭证？）"; exit 1; }
-  git -C "$WORK_DIR" checkout -B "$WIKI_PAGES_BRANCH" "origin/$WIKI_PAGES_BRANCH"
-else
-  rm -rf "$WORK_DIR"; mkdir -p "$(dirname "$WORK_DIR")"
-  git clone --depth=1 --branch "$WIKI_PAGES_BRANCH" "$WIKI_PAGES_REPO" "$WORK_DIR" \
-    || { err "克隆目标仓库失败（仓库/分支存在？凭证就绪？）"; exit 1; }
+PUSH_URL="$(_resolve_push_url)"   # 含 token（若有）；仅存于 remote，不打印
+
+# 每次重新浅克隆（避免复用副本残留旧 token；.temp 已 gitignored）。
+rm -rf "$WORK_DIR"; mkdir -p "$(dirname "$WORK_DIR")"
+git clone --depth=1 --branch "$WIKI_PAGES_BRANCH" "$PUSH_URL" "$WORK_DIR" 2>/dev/null \
+  || { err "克隆目标仓库失败（仓库/分支 $WIKI_PAGES_BRANCH 存在？凭证就绪？）"; exit 1; }
+
+# 覆盖前备份目标分支（可逆兜底）：把当前 HEAD 推到 <branch>-archive-<ts>。
+# 适用「目标分支原本有内容（如既有站点）」——一次性覆盖前留存，可随时恢复。
+if [ "$WIKI_PAGES_BACKUP" = "1" ] && [ "$WIKI_PAGES_DRY_RUN" != "1" ]; then
+  ARCHIVE_BRANCH="${WIKI_PAGES_BRANCH}-archive-$(date -u +%Y%m%d%H%M%S)"
+  if git -C "$WORK_DIR" push origin "HEAD:refs/heads/${ARCHIVE_BRANCH}" 2>/dev/null; then
+    log "已备份目标分支当前内容 → ${ARCHIVE_BRANCH}"
+  else
+    log "备份分支推送跳过（无变更/权限不足，不阻断发布）"
+  fi
 fi
 
-# 增量同步：out/ → 工作副本；--delete 保持目标仅含当前快照；
+# 全量覆盖：out/ → 工作副本；--delete 使目标仅含当前快照（连同旧站点文件一并清理）；
 # 保留 .git 与 CNAME（自定义域名标记，若有）。
 rsync -a --delete \
   --exclude='.git/' \
   --exclude='CNAME' \
   "$OUT_DIR/" "$WORK_DIR/"
 
-# .nojekyll：禁用 GitHub Pages 的 Jekyll，否则 _next/ 等下划线开头目录会被忽略（致 JS/CSS 404）。
+# .nojekyll：禁用 GitHub Pages 的 Jekyll（legacy 构建模式同样读取），
+# 否则 _next/ 等下划线开头目录会被忽略（致 JS/CSS 404）。
 touch "$WORK_DIR/.nojekyll"
 
 if [ "$WIKI_PAGES_DRY_RUN" = "1" ]; then
@@ -84,9 +114,8 @@ if [ "$WIKI_PAGES_DRY_RUN" = "1" ]; then
   exit 0
 fi
 
-# 幂等：无变更则跳过。
-if git -C "$WORK_DIR" diff --quiet && git -C "$WORK_DIR" diff --cached --quiet \
-   && [ -z "$(git -C "$WORK_DIR" status --porcelain)" ]; then
+# 幂等：无变更则跳过（buildId 绑定内容版本，内容未变则 out/ 无差异）。
+if [ -z "$(git -C "$WORK_DIR" status --porcelain)" ]; then
   log "无内容变更，跳过提交。"
   exit 0
 fi
@@ -94,8 +123,8 @@ fi
 git -C "$WORK_DIR" add -A
 git -C "$WORK_DIR" -c user.name="negentropy-wiki-bot" \
                    -c user.email="wiki-bot@threefish.ai" \
-  commit -m "chore(wiki): sync static site $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  commit -q -m "chore(wiki): sync static site $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 git -C "$WORK_DIR" push origin "$WIKI_PAGES_BRANCH" \
   || { err "推送失败（push 权限？分支保护？）"; exit 1; }
 
-log "✅ 已发布到 $WIKI_PAGES_REPO ($WIKI_PAGES_BRANCH)。Pages 将在数十秒内更新。"
+log "✅ 已发布到 $WIKI_PAGES_BRANCH 分支。GitHub Pages 将在数十秒内更新。"

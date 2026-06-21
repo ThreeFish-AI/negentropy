@@ -179,13 +179,20 @@ class WikiPagesPublishSettings(BaseModel):
     repo: str | None = Field(
         default=None,
         description=(
-            "目标 Pages 仓库（透传脚本 env WIKI_PAGES_REPO），"
-            "如 git@github.com:ThreeFish-AI/threefish-ai.github.io.git。"
+            "目标 Pages 仓库（透传脚本 env WIKI_PAGES_REPO），SSH 或 HTTPS URL，"
+            "如 https://github.com/ThreeFish-AI/threefish-ai.github.io.git。"
         ),
     )
     branch: str = Field(
-        default="main",
-        description="目标 Pages 分支（透传脚本 env WIKI_PAGES_BRANCH）。",
+        default="master",
+        description="目标 Pages 分支（透传脚本 env WIKI_PAGES_BRANCH；user/org pages 默认 master）。",
+    )
+    token: SecretStr | None = Field(
+        default=None,
+        description=(
+            "可选 GitHub PAT/token（透传脚本 env WIKI_PAGES_TOKEN），用于 HTTPS 推送，"
+            "免 SSH key。缺省时脚本回退 `gh auth token` 或 SSH 凭证。"
+        ),
     )
 
 
