@@ -111,7 +111,7 @@ function getMarkdownActionLabel(
     };
   }
   return {
-    label: isWorking ? "Re-Parsing..." : "Re-Parse from GCS",
+    label: isWorking ? "Re-Parsing..." : "Re-Parse",
     isResumable: false,
   };
 }
@@ -316,7 +316,7 @@ export default function DocumentDetailPage() {
           title={
             markdownAction.isResumable
               ? "从最后一个完成的切片继续解析（perceives auto_batch checkpoint）"
-              : "从源文档（GCS）重新解析 Markdown"
+              : "从已存储的源文档重新解析 Markdown"
           }
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -571,7 +571,7 @@ export default function DocumentDetailPage() {
                   </p>
                 ) : (detail.markdown_content || "").trim().length === 0 ? (
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
+                    Markdown content is empty. Click <strong>Re-Parse</strong> to regenerate from the source document.
                   </p>
                 ) : (
                   <DocumentMarkdownRenderer

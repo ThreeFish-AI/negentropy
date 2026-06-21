@@ -310,7 +310,7 @@ export function DocumentViewDialog({
               </p>
             ) : (detail?.markdown_content || "").trim().length === 0 ? (
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
+                Markdown content is empty. Click <strong>Re-Parse</strong> to regenerate from the source document.
               </p>
             ) : (
               <DocumentMarkdownRenderer
@@ -338,7 +338,7 @@ export function DocumentViewDialog({
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.636 18.364A9 9 0 103.22 9.88" />
             </svg>
-            {isRefreshingMarkdown ? "Re-Parsing..." : "Re-Parse from GCS"}
+            {isRefreshingMarkdown ? "Re-Parsing..." : "Re-Parse"}
           </button>
           <Button
             variant="neutral"
