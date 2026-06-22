@@ -187,6 +187,12 @@
   color: var(--wiki-accent);
   text-decoration: none;
 }
+/* 当前激活章节（与触发器 active 同语义，标识所属二级菜单的当前页） */
+.wiki-header-dropdown-item.active {
+  color: var(--wiki-accent);
+  background: var(--wiki-primary-light);
+  font-weight: 600;
+}
 
 /* Header slot (right side) */
 .wiki-header-slot {
