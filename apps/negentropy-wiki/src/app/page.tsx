@@ -103,27 +103,29 @@ export default async function WikiHomePage() {
 
   const firstHref = homeCards.length > 0 ? homeCards[0].href : undefined;
 
-  // Knowledge Graph 标签指向首个**非保留** publication（保留 docs 目录无 KG）。
-  const firstPubSlug = publications.find(
-    (p) => !isReservedDocsSlug(p.slug),
-  )?.slug;
-
   // 首页不身处任何 pub：reservedTab 纯链接、不高亮，右区不高亮。
   const reservedTab = buildReservedDocsTab({
     reservedExists: headerNav.reservedExists,
     isReserved: false,
   });
+  // Knowledge Graph 标签恒指向有 KG 的动态 pub（首个非保留 pub；保留 docs 目录无 KG）。
+  const graphPubSlug = headerNav.graphPubSlug;
 
   const header = (
     <WikiHeader
       topNav={headerNav.topNav}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      pubSlug={firstPubSlug}
+      pubSlug={graphPubSlug}
       reservedTab={reservedTab}
       graphTab={
-        firstPubSlug
-          ? { show: true, active: false, label: "Knowledge Graph" }
+        graphPubSlug
+          ? {
+              show: true,
+              active: false,
+              label: "Knowledge Graph",
+              href: `/${graphPubSlug}/graph`,
+            }
           : undefined
       }
     />

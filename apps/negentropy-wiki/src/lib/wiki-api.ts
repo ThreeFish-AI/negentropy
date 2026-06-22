@@ -86,7 +86,9 @@ export interface HeaderTopNavItem {
  * 全站稳定的顶栏导航模型（单一事实源）。
  *
  * - `reservedExists`：保留 pub（slug=`negentropy`）是否存在 → 决定是否渲染左侧纯链接标签；
- * - `topNav`：其余（非保留）pub 的 nav-tree 第一层 → 右区一级 tabs（每项带自身 pubSlug）。
+ * - `topNav`：其余（非保留）pub 的 nav-tree 第一层 → 右区一级 tabs（每项带自身 pubSlug）；
+ * - `graphPubSlug`：首个非保留 pub 的 slug（其知识图谱可作为全站顶栏「Knowledge Graph」
+ *   入口；保留 pub 由 docs/ 合成、无 KG）。
  *
  * 保留 pub 第一层不进顶栏（改由左栏全树侧栏承载），与右区在 publication 维度互斥，
  * 故同一节点不会重复出现。
@@ -94,6 +96,7 @@ export interface HeaderTopNavItem {
 export interface HeaderNav {
   reservedExists: boolean;
   topNav: HeaderTopNavItem[];
+  graphPubSlug?: string;
 }
 
 /**
@@ -110,19 +113,22 @@ export function buildHeaderNav(
   pubNavTrees: { slug: string; items: WikiNavTreeItem[] }[],
 ): HeaderNav {
   let reservedExists = false;
+  let graphPubSlug: string | undefined;
   const topNav: HeaderTopNavItem[] = [];
 
   for (const { slug, items } of pubNavTrees) {
     if (isReservedDocsSlug(slug)) {
       reservedExists = true;
     } else {
+      // 首个非保留 pub 作为知识图谱入口（保留 pub 由 docs/ 合成、无 KG）。
+      if (!graphPubSlug) graphPubSlug = slug;
       for (const item of items) {
         topNav.push({ pubSlug: slug, item });
       }
     }
   }
 
-  return { reservedExists, topNav };
+  return { reservedExists, topNav, graphPubSlug };
 }
 
 // ---------------------------------------------------------------------------

@@ -179,7 +179,11 @@ export default async function WikiEntryPage({ params }: Props) {
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
       reservedTab={reservedTab}
-      graphTab={{ active: false, show: hasAnyEntry && !isReserved }}
+      graphTab={{
+        active: false,
+        show: !!headerNav.graphPubSlug,
+        href: headerNav.graphPubSlug ? `/${headerNav.graphPubSlug}/graph` : undefined,
+      }}
     />
   );
 

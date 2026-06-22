@@ -40,12 +40,12 @@ function container(slug: string, children: WikiNavTreeItem[] = []): WikiNavTreeI
 }
 
 describe("buildHeaderNav", () => {
-  it("空输入 → 全空模型（无保留、无 topNav）", () => {
+  it("空输入 → 全空模型（无保留、无 topNav、无 graphPubSlug）", () => {
     const nav = buildHeaderNav([]);
-    expect(nav).toEqual({ reservedExists: false, topNav: [] });
+    expect(nav).toEqual({ reservedExists: false, topNav: [], graphPubSlug: undefined });
   });
 
-  it("仅保留 pub → reservedExists=true、topNav 为空（其第一层交左栏全树，不入顶栏）", () => {
+  it("仅保留 pub → reservedExists=true、topNav 为空、无 graphPubSlug（保留 pub 无 KG）", () => {
     const nav = buildHeaderNav([
       {
         slug: RESERVED_DOCS_SLUG,
@@ -54,9 +54,10 @@ describe("buildHeaderNav", () => {
     ]);
     expect(nav.reservedExists).toBe(true);
     expect(nav.topNav).toEqual([]);
+    expect(nav.graphPubSlug).toBeUndefined();
   });
 
-  it("仅非保留 pub → topNav 每项携带正确 pubSlug，reservedExists=false", () => {
+  it("仅非保留 pub → topNav 每项携带正确 pubSlug、graphPubSlug=首个非保留 pub", () => {
     const wikiItems = [
       container("harness-engineering", [doc("harness-engineering/getting-started")]),
       doc("sinestesia-of-cognition"),
@@ -69,6 +70,7 @@ describe("buildHeaderNav", () => {
       "harness-engineering",
       "sinestesia-of-cognition",
     ]);
+    expect(nav.graphPubSlug).toBe("wiki");
   });
 
   it("混合（1 保留 + 2 非保留）→ 保留 pub 不进 topNav、顺序稳定、各带自身 pubSlug", () => {
@@ -78,6 +80,8 @@ describe("buildHeaderNav", () => {
       { slug: "blog", items: [doc("post-1"), doc("post-2")] },
     ]);
     expect(nav.reservedExists).toBe(true);
+    // graphPubSlug 取首个非保留 pub（即便保留 pub 排在前面）
+    expect(nav.graphPubSlug).toBe("wiki");
     // 非保留 pub 第一层进 topNav，顺序 = 入参顺序，pubSlug 各自归属
     expect(nav.topNav.map((t) => `${t.pubSlug}:${t.item.entry_slug}`)).toEqual([
       "wiki:harness-engineering",
