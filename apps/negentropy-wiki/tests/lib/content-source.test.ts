@@ -23,17 +23,17 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
     wikiApi = mod.wikiApi;
   });
 
-  it("listPublications 返回 fixture 中的 handbook 与保留 docs 目录", async () => {
+  it("listPublications 返回 fixture 中的动态 wiki 与保留 docs 目录", async () => {
     const { items, total } = await wikiApi.listPublications();
     expect(total).toBe(2);
     const slugs = items.map((p: { slug: string }) => p.slug);
-    expect(slugs).toContain("negentropy-handbook");
+    expect(slugs).toContain("wiki");
     expect(slugs).toContain("negentropy");
     expect(items.every((p: { status: string }) => p.status === "published")).toBe(true);
   });
 
   it("findPublicationBySlug 按 slug 命中 publication", async () => {
-    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const pub = await wikiApi.findPublicationBySlug("wiki");
     expect(pub).not.toBeNull();
     expect(pub.id).toBe("11111111-1111-4111-8111-111111111111");
     expect(pub.version).toBe(3);
@@ -45,22 +45,22 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
   });
 
   it("getNavTree 返回嵌套导航树（含 CONTAINER 容器节点）", async () => {
-    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const pub = await wikiApi.findPublicationBySlug("wiki");
     const { nav_tree } = await wikiApi.getNavTree(pub.id);
     const topSlugs = nav_tree.items.map((i: { entry_slug: string }) => i.entry_slug);
-    expect(topSlugs).toContain("quickstart");
-    expect(topSlugs).toContain("architecture-overview");
-    const quickstart = nav_tree.items.find(
-      (i: { entry_slug: string }) => i.entry_slug === "quickstart",
+    expect(topSlugs).toContain("harness-engineering");
+    expect(topSlugs).toContain("sinestesia-of-cognition");
+    const harness = nav_tree.items.find(
+      (i: { entry_slug: string }) => i.entry_slug === "harness-engineering",
     );
-    expect(quickstart.entry_kind).toBe("CONTAINER");
-    expect(quickstart.children[0].entry_slug).toBe("quickstart/getting-started");
+    expect(harness.entry_kind).toBe("CONTAINER");
+    expect(harness.children[0].entry_slug).toBe("harness-engineering/getting-started");
   });
 
   it("getEntries + getEntryContent 返回 markdown 正文（含 GCS 直链被保留/重写）", async () => {
-    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const pub = await wikiApi.findPublicationBySlug("wiki");
     const { items } = await wikiApi.getEntries(pub.id);
-    const gs = items.find((e: { entry_slug: string }) => e.entry_slug === "quickstart/getting-started");
+    const gs = items.find((e: { entry_slug: string }) => e.entry_slug === "harness-engineering/getting-started");
     expect(gs).toBeTruthy();
     const content = await wikiApi.getEntryContent(gs.id);
     expect(content.entry_title).toBe("开始使用");
@@ -70,7 +70,7 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
   });
 
   it("getPublicationGraph 返回烘焙的静态图谱数据", async () => {
-    const pub = await wikiApi.findPublicationBySlug("negentropy-handbook");
+    const pub = await wikiApi.findPublicationBySlug("wiki");
     const graph = await wikiApi.getPublicationGraph(pub.id);
     expect(graph.status).toBe("ok");
     expect(graph.nodes.length).toBe(2);

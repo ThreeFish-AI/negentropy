@@ -1,9 +1,9 @@
 {
   "entry_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
   "document_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
-  "entry_slug": "quickstart/getting-started",
+  "entry_slug": "harness-engineering/getting-started",
   "entry_title": "开始使用",
-  "markdown_content": "# 开始使用\n\n欢迎使用 **Negentropy Wiki**——一个纯静态、可独立部署的知识库发布站点。\n\n## 它是如何工作的\n\n1. 运营在主站通过 **Catalog 目录**编排文档树；\n2. 「同步并发布」后，主站把已发布内容**导出为静态内容包**；\n3. CI 把内容包**提交到 wiki 仓库的 `content/` 目录**；\n4. wiki 构建期读取本地文件，烘焙为**纯静态 HTML**。\n\n> 站点运行时**不依赖主站数据库**，可由任意静态托管提供服务。\n\n## 代码示例\n\n```ts\n// 内容读取层（content-source.ts）与历史 HTTP 客户端接口完全一致\nconst pub = await wikiApi.findPublicationBySlug(\"negentropy-handbook\");\n```\n\n| 优势 | 说明 |\n| --- | --- |\n| 独立部署 | 零后端、零数据库运行时依赖 |\n| 纯静态 | CDN 友好、刷新不回源 |\n\n下一节：[架构总览](/negentropy-handbook/architecture-overview/)。",
+  "markdown_content": "# 开始使用\n\n欢迎使用 **Negentropy Wiki**——一个纯静态、可独立部署的知识库发布站点。\n\n## 它是如何工作的\n\n1. 运营在主站通过 **Catalog 目录**编排文档树；\n2. 「同步并发布」后，主站把已发布内容**导出为静态内容包**；\n3. CI 把内容包**提交到 wiki 仓库的 `content/` 目录**；\n4. wiki 构建期读取本地文件，烘焙为**纯静态 HTML**。\n\n> 站点运行时**不依赖主站数据库**，可由任意静态托管提供服务。\n\n## 代码示例\n\n```ts\n// 内容读取层（content-source.ts）与历史 HTTP 客户端接口完全一致\nconst pub = await wikiApi.findPublicationBySlug(\"wiki\");\n```\n\n| 优势 | 说明 |\n| --- | --- |\n| 独立部署 | 零后端、零数据库运行时依赖 |\n| 纯静态 | CDN 友好、刷新不回源 |\n\n下一节：[Sinestesia of Cognition](/wiki/sinestesia-of-cognition/)。",
   "document_filename": "getting-started.md",
   "author_name": "ThreeFish",
   "author_url": "https://github.com/ThreeFish-AI",

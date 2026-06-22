@@ -3,17 +3,20 @@ import {
   findFirstDocumentSlug,
   isContainerItem,
   RESERVED_DOCS_SLUG,
+  type HeaderTopNavItem,
   type ReservedDocsTab,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
 
 /**
- * Wiki 顶部 Header 导航 — 把 catalog 第一层提升为 tabs
+ * Wiki 顶部 Header 导航 — 把全站各 publication 的 catalog 第一层提升为 tabs
  *
  * - Server Component（仅 `<Link>`，零客户端状态）；保持 SSG 友好。
+ * - 右区 `topNav` 是全站稳定模型（跨多个非保留 pub，每项带自身 pubSlug），与当前
+ *   路由无关，使各动态一级菜单恒并存；左侧「Negentropy」保留标签承载保留 pub 二级目录。
  * - tab 跳转目标：DOCUMENT 直链；CONTAINER → DFS 找首个后代 DOCUMENT；无文档则禁用。
  * - 有 children 的 CONTAINER 项渲染为 CSS-only 下拉菜单。
- * - `items` 为空时早返回 `null`，避免渲染空壳。
+ * - `topNav` 为空且无保留标签/图谱标签时早返回 `null`，避免渲染空壳。
  */
 
 interface WikiHeaderGraphTab {
@@ -22,14 +25,14 @@ interface WikiHeaderGraphTab {
   label?: string;
 }
 
-interface HomeLink {
-  label: string;
-  href: string;
-}
-
 interface WikiHeaderProps {
+  /** 仅供 Knowledge Graph 标签构建 `/${pubSlug}/graph` 链接；右区 tab 各自带 pubSlug。 */
   pubSlug?: string;
-  items?: WikiNavTreeItem[];
+  /** 右区一级 tabs：全站各非保留 pub 的 nav-tree 第一层（每项带自身 pubSlug）。 */
+  topNav?: HeaderTopNavItem[];
+  /** 当前所在的非保留 pub slug；身处保留 pub / 首页时为 undefined（右区不高亮）。 */
+  activePubSlug?: string;
+  /** 当前激活的第一层 slug，配合 activePubSlug 定位右区高亮项。 */
   activeTopSlug?: string;
   headerSlot?: React.ReactNode;
   /** 左侧「Negentropy」保留标签；`items` 非空时渲染为二级下拉（见 ReservedDocsTab）。 */
@@ -38,12 +41,12 @@ interface WikiHeaderProps {
   searchBox?: React.ReactNode;
   actions?: React.ReactNode;
   userMenu?: React.ReactNode;
-  homeLinks?: HomeLink[];
 }
 
 export function WikiHeader({
   pubSlug,
-  items = [],
+  topNav = [],
+  activePubSlug,
   activeTopSlug,
   headerSlot,
   reservedTab,
@@ -51,9 +54,8 @@ export function WikiHeader({
   searchBox,
   actions,
   userMenu,
-  homeLinks,
 }: WikiHeaderProps) {
-  if (!items.length && !homeLinks?.length && !(graphTab?.show) && !(reservedTab?.show)) return null;
+  if (!topNav.length && !(graphTab?.show) && !(reservedTab?.show)) return null;
 
   return (
     <header className="wiki-header">
@@ -103,23 +105,22 @@ export function WikiHeader({
           </nav>
         )}
 
-        {/* RIGHT: Content navigation tabs */}
-        {(items.length > 0 || (homeLinks && homeLinks.length > 0)) && (
+        {/* RIGHT: 全站内容一级 tabs（跨非保留 pub，每项以自身 pubSlug 渲染） */}
+        {topNav.length > 0 && (
           <nav className="wiki-header-tabs wiki-header-tabs--right" aria-label="主导航">
-            {homeLinks
-              ? homeLinks.map((link) => (
-                  <Link key={link.href} href={link.href} className="wiki-header-tab">
-                    {link.label}
-                  </Link>
-                ))
-              : items.map((item) => (
-                  <WikiHeaderTab
-                    key={`${item.entry_id ?? "c"}:${item.entry_slug}`}
-                    item={item}
-                    pubSlug={pubSlug!}
-                    isActive={!graphTab?.active && item.entry_slug === activeTopSlug}
-                  />
-                ))}
+            {topNav.map(({ pubSlug: itemPubSlug, item }) => (
+              <WikiHeaderTab
+                key={`${itemPubSlug}:${item.entry_id ?? "c"}:${item.entry_slug}`}
+                item={item}
+                pubSlug={itemPubSlug}
+                isActive={
+                  !graphTab?.active &&
+                  activePubSlug != null &&
+                  itemPubSlug === activePubSlug &&
+                  item.entry_slug === activeTopSlug
+                }
+              />
+            ))}
           </nav>
         )}
         <div className="wiki-header-slot">
