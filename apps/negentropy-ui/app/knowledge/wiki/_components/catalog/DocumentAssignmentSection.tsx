@@ -6,12 +6,12 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   fetchCatalogNodeDocuments,
   unassignDocumentFromNode,
-  updateDocument,
-  KnowledgeDocument,
+  useInlineDocumentRename,
+  type KnowledgeDocument,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
@@ -21,6 +21,8 @@ import { AddDocumentsDialog } from "./AddDocumentsDialog";
 interface DocumentAssignmentSectionProps {
   nodeId: string;
   catalogId: string;
+  /** 文档归属变更（改名 / 增删）后通知父级刷新目录树——CTE 派生的节点名需即时反映 */
+  onUpdate?: () => void;
 }
 
 /** 决定 Wiki 站点上显示的标题（优先级与后端 _resolve_doc_display_title 一致）。
@@ -36,16 +38,12 @@ function effectiveDisplayName(doc: KnowledgeDocument): string {
 export function DocumentAssignmentSection({
   nodeId,
   catalogId,
+  onUpdate,
 }: DocumentAssignmentSectionProps) {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  // 行内编辑态：正在编辑的文档 id
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [saving, setSaving] = useState(false);
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -63,14 +61,6 @@ export function DocumentAssignmentSection({
     void refresh();
   }, [refresh]);
 
-  // 编辑态挂载后自动聚焦
-  useEffect(() => {
-    if (editingId) {
-      editInputRef.current?.focus();
-      editInputRef.current?.select();
-    }
-  }, [editingId]);
-
   const handleRemove = useCallback(
     async (docId: string, filename: string) => {
       const confirmed = await confirm({
@@ -84,62 +74,38 @@ export function DocumentAssignmentSection({
         await unassignDocumentFromNode(catalogId, nodeId, docId);
         toast.success("已移除");
         await refresh();
+        // 左栏目录树的 DOCUMENT_REF 节点随之消失，需同步刷新
+        onUpdate?.();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "移除失败");
       }
     },
-    [catalogId, confirm, nodeId, refresh],
+    [catalogId, confirm, nodeId, refresh, onUpdate],
   );
 
   const handleAdded = useCallback(() => {
     void refresh();
-  }, [refresh]);
+    onUpdate?.();
+  }, [refresh, onUpdate]);
 
-  const startEdit = useCallback((doc: KnowledgeDocument) => {
-    setEditingId(doc.id);
-    setEditDraft(doc.display_name ?? "");
-  }, []);
-
-  const cancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditDraft("");
-  }, []);
-
-  const commitEdit = useCallback(
-    async (doc: KnowledgeDocument) => {
-      const trimmed = editDraft.trim() || null;
-      // 无变化时静默退出
-      if (trimmed === (doc.display_name ?? null)) {
-        cancelEdit();
-        return;
-      }
-      setSaving(true);
-      try {
-        await updateDocument(doc.corpus_id, doc.id, { display_name: trimmed });
-        toast.success("保存成功，下次发布生效");
-        setEditingId(null);
-        setEditDraft("");
-        await refresh();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "保存失败");
-      } finally {
-        setSaving(false);
-      }
+  // 行内重命名 display_name（逻辑下沉到 useInlineDocumentRename，与 Documents 页共用）
+  const {
+    editingId,
+    editDraft,
+    setEditDraft,
+    saving,
+    editInputRef,
+    startEdit,
+    cancelEdit,
+    commitEdit,
+    handleKeyDown,
+  } = useInlineDocumentRename({
+    // 保存后回写本组件文档列表，并通知父级刷新目录树（CTE 对 DOCUMENT_REF 派生同一展示名）
+    onSaved: async () => {
+      await refresh();
+      onUpdate?.();
     },
-    [cancelEdit, editDraft, refresh],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, doc: KnowledgeDocument) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void commitEdit(doc);
-      } else if (e.key === "Escape") {
-        cancelEdit();
-      }
-    },
-    [cancelEdit, commitEdit],
-  );
+  });
 
   return (
     <div className="px-5 py-4 border-t border-border">

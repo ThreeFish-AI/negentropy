@@ -1363,6 +1363,20 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   markdown_uri: string | null;
 }
 
+/**
+ * 文件列表语境下的「有效名称」：`display_name`（用户重命名覆盖）→ `original_filename`。
+ *
+ * 注意：与 Wiki 目录的 `effectiveDisplayName`（含 `metadata.title` 三段回退）**刻意分离** ——
+ * 「File Name」列只应显示用户填的名或源文件名，不该把 PDF 自动抽取的 title 污染进来；
+ * `metadata.title` 回退是 Wiki 发布语境（后端 `_resolve_doc_display_title`）的职责。
+ */
+export function effectiveDocumentName(
+  doc: Pick<KnowledgeDocument, "display_name" | "original_filename">,
+): string {
+  const displayName = (doc.display_name ?? "").trim();
+  return displayName || doc.original_filename;
+}
+
 export interface DocumentMarkdownRefreshResponse {
   document_id: string;
   status: string;
@@ -2787,6 +2801,8 @@ export interface CatalogNode {
   config: Record<string, unknown>;
   /** DOCUMENT_REF 叶子节点关联的文档 ID（FOLDER 等结构节点为 null） */
   document_id?: string | null;
+  /** DOCUMENT_REF 关联文档所属 corpus（左栏重命名文档节点时据此直连 document API 改 display_name） */
+  source_corpus_id?: string | null;
   /** CTE 计算字段：层级深度（根节点为 0） */
   depth?: number;
   /** CTE 计算字段：从根到当前节点的 ID 路径数组 */

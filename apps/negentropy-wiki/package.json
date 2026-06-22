@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3092",
+    "predev": "node scripts/sync-assets.mjs",
     "build": "next build",
+    "prebuild": "node scripts/sync-assets.mjs",
     "postbuild": "pagefind --site out",
     "start": "serve out -l 3092",
     "lint": "eslint .",

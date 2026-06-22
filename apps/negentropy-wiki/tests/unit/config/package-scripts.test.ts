@@ -23,9 +23,13 @@ describe("package.json scripts（纯静态化）", () => {
     expect(packageJson.scripts?.start).toContain("serve out");
   });
 
-  it("不再依赖 agents-chat-core 的 prebuild 钩子", () => {
+  it("predev/prebuild 同步烘焙图片 content/assets/ → public/assets/", () => {
     const scripts = packageJson.scripts ?? {};
-    const preHooks = Object.keys(scripts).filter((k) => k.startsWith("pre"));
-    expect(preHooks).toEqual([]);
+    // 烘焙图片（bake_assets=true 产出的 content/assets/）经 sync-assets.mjs 镜像到
+    // public/assets/，使 dev/build/Pages 三场景图片皆可达（见 sync-assets.mjs）。
+    expect(scripts.predev).toContain("sync-assets.mjs");
+    expect(scripts.prebuild).toContain("sync-assets.mjs");
+    // prebuild 现归图片资产同步，不得回退到 agents-chat-core 的历史 prebuild。
+    expect(scripts.prebuild).not.toContain("agents-chat-core");
   });
 });

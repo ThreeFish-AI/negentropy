@@ -127,6 +127,9 @@ class CatalogNodeResponse(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     # DOCUMENT_REF 叶子节点携带的文档 ID（FOLDER / CATEGORY / COLLECTION 为 None）
     document_id: UUID | None = None
+    # DOCUMENT_REF 关联文档所属 corpus（FK 冗余）：前端重命名文档节点时据此直连
+    # document API 改 display_name，与 document_id 同生命周期（document 硬删时随其清空）
+    source_corpus_id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     # 展开字段

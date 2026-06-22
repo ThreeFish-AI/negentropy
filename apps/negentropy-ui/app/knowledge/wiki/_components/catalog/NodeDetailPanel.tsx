@@ -206,7 +206,7 @@ export function NodeDetailPanel({
       </div>
 
       {/* Document assignment */}
-      <DocumentAssignmentSection nodeId={node.id} catalogId={catalogId} />
+      <DocumentAssignmentSection nodeId={node.id} catalogId={catalogId} onUpdate={onUpdate} />
       </div>
       {confirmDialog}
     </>

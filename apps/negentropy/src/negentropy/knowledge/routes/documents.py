@@ -19,6 +19,7 @@ from negentropy.knowledge._shared import (
     _resolve_document_source_uri,
     _resolve_documents_archived_set,
     _resolve_user_display_names,
+    effective_download_filename,
 )
 from negentropy.knowledge.api_helpers import _resolve_app_name
 from negentropy.knowledge.schemas import (
@@ -583,8 +584,9 @@ async def _download_document_impl(
             detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
         ) from exc
 
-    # 编码文件名以支持中文
-    filename = doc.original_filename
+    # 文件名跟随用户重命名：display_name 覆盖 → original_filename，
+    # 并保留 original_filename 的扩展名，确保下载内容与扩展名一致可正确打开。
+    filename = effective_download_filename(doc.original_filename, doc.display_name)
     if is_url_doc and not filename.lower().endswith(".md"):
         filename = f"{filename}.md"
     encoded_filename = urllib.parse.quote(filename)

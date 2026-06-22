@@ -17,6 +17,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.knowledge._shared import effective_display_name
 from negentropy.knowledge.lifecycle_schemas import (
     WikiEntryContentResponse,
     WikiPublishTarget,
@@ -191,6 +192,7 @@ def build_entry_content_response(
 def _resolve_doc_display_title(doc: Any) -> str:
     """决定文档在 Wiki 站点上的展示标题（单一事实源）。
 
+    委托给 :func:`negentropy.knowledge._shared.effective_display_name`，
     优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``
     （PDF / 抓取自动抽取）→ ``original_filename``（兜底）。
 
@@ -198,13 +200,7 @@ def _resolve_doc_display_title(doc: Any) -> str:
     ``routes.wiki.get_entry_content``，保证后端 entry_title 与前端
     SSG 展示一致。
     """
-    display_name = (getattr(doc, "display_name", None) or "").strip()
-    if display_name:
-        return display_name
-    meta_title = (doc.metadata_ or {}).get("title") if getattr(doc, "metadata_", None) else None
-    if isinstance(meta_title, str) and meta_title.strip():
-        return meta_title.strip()
-    return doc.original_filename
+    return effective_display_name(doc)
 
 
 class WikiPublishingService:
@@ -345,7 +341,10 @@ class WikiPublishingService:
         return pub, revalidation
 
     async def unpublish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
-        """取消发布：published → draft，并通知 SSG 主动 revalidate。
+        """取消发布：published → draft，并通知重建流水线（webhook → 云端 CI）。
+
+        wiki 纯静态化后无运行时 ISR/revalidate：``trigger_wiki_redeploy`` 仅作为
+        云端 CI 重建的旁路通知（未配置即 no-op）；实际站点产物不在本方法内更新。
 
         Returns:
             ``(publication, revalidation_status)``。

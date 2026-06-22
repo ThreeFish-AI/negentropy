@@ -100,7 +100,9 @@ class WikiExportService:
         entries_dir.mkdir(parents=True, exist_ok=True)
         pubs_root = out_dir / "publications"
         pubs_root.mkdir(parents=True, exist_ok=True)
-        # bake_assets 路径：图片字节烘焙落点（next build 复制进 out/assets/）。
+        # bake_assets 路径：图片字节烘焙落点 content/assets/{doc}/{file}。进静态产物由
+        # wiki 端 prebuild 钩子（scripts/sync-assets.mjs）同步到 public/assets/，next build
+        # 自动复制 public/ → out/（output:"export" 只复制 public/，不复制内容根 assets/）。
         assets_dir = out_dir / "assets"
 
         pubs_index: list[dict[str, Any]] = []

@@ -128,13 +128,11 @@ describe("WikiPublishToolbar", () => {
     vi.mocked(publishWiki).mockResolvedValue({
       version: 2,
       entries_count: 3,
-      revalidation: "dispatched",
       target: "local",
       site_url: "http://localhost:3092",
     } as never);
     vi.mocked(unpublishWiki).mockResolvedValue({
       version: 2,
-      revalidation: "dispatched",
     } as never);
     vi.mocked(syncWikiEntriesFromCatalog).mockResolvedValue({
       synced_count: 3,
