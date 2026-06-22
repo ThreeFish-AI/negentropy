@@ -5,8 +5,7 @@ import random
 from typing import Dict, Any, Optional
 import logging
 
-from selenium.webdriver.common.action_chains import ActionChains
-
+# ActionChains 仅在 Selenium 人类行为模拟时才需要，模块级导入会拖慢 perceives 启动；下沉到函数内懒加载。
 from .browser import stealth_selenium_session, stealth_playwright_session
 from .content_extraction import (
     extract_page_data_selenium,
@@ -64,6 +63,10 @@ async def _scroll_page_playwright(page) -> None:
 
 async def _simulate_human_behavior_selenium(driver) -> None:
     """Selenium 人类行为模拟。"""
+    from selenium.webdriver.common.action_chains import (
+        ActionChains,
+    )  # 懒加载：见模块头注释
+
     try:
         actions = ActionChains(driver)
         for _ in range(random.randint(2, 5)):  # nosec B311

@@ -212,7 +212,9 @@ class TestSeleniumStealth:
         assert mock_driver.execute_script.call_count >= 2
         mock_sleep.assert_called()
 
-    @patch("negentropy.perceives.scraping.anti_detection.ActionChains")
+    # ActionChains 已下沉为 _simulate_human_behavior_selenium 内的懒加载导入；
+    # patch 其源模块属性（调用期 `from selenium...import ActionChains` 从源模块取值，可被拦截）。
+    @patch("selenium.webdriver.common.action_chains.ActionChains")
     @patch("negentropy.perceives.scraping.anti_detection.random.randint")
     @patch("negentropy.perceives.scraping.anti_detection.random.uniform")
     @patch("asyncio.sleep")
@@ -563,7 +565,8 @@ class TestFormHandler:
 class TestSeleniumFormHandling:
     """测试Selenium表单处理"""
 
-    @patch("negentropy.perceives.scraping.form_handler.Select")
+    # Select 已下沉为 _fill_field_selenium 内的懒加载导入；patch 其源模块属性以拦截调用期导入。
+    @patch("selenium.webdriver.support.ui.Select")
     @pytest.mark.asyncio
     async def test_selenium_fill_select_field(self, mock_select):
         """测试Selenium填充选择框"""
