@@ -117,7 +117,9 @@ class TestFormHandlerSelenium:
 
         handler = FormHandler(mock_driver)
 
-        with patch("negentropy.perceives.scraping.form_handler.Select") as MockSelect:
+        # Select 已下沉为 _fill_field_selenium 内的懒加载导入（避免 perceives 启动期加载 selenium），
+        # 故 patch 其源模块属性：方法内 `from selenium...import Select` 在调用期从源模块取值，可被拦截。
+        with patch("selenium.webdriver.support.ui.Select") as MockSelect:
             mock_select = MagicMock()
             MockSelect.return_value = mock_select
 
