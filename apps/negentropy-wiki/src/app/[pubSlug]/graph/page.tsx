@@ -11,7 +11,6 @@ import {
   countLeafEntries,
   isReservedDocsSlug,
   resolveSectionView,
-  RESERVED_DOCS_SLUG,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
@@ -82,16 +81,12 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
   const sectionView = resolveSectionView(navItems);
 
   const isReserved = isReservedDocsSlug(pubSlug);
-  const reservedExists =
-    isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
 
-  // 顶栏全局模型：左侧「Negentropy」恒列其二级目录，右区恒列各动态 pub 一级菜单（全页并存）。
+  // 顶栏全局模型：左侧「Negentropy」纯链接，右区恒列各动态 pub 一级菜单（全页并存）。
   const headerNav = await loadHeaderNav();
   const reservedTab = buildReservedDocsTab({
-    reservedExists,
+    reservedExists: headerNav.reservedExists,
     isReserved,
-    items: headerNav.reservedItems,
-    activeChildSlug: isReserved ? sectionView.activeTopSlug : undefined,
   });
 
   const header = (

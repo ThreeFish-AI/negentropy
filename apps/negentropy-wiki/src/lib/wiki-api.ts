@@ -39,41 +39,28 @@ export function isReservedDocsSlug(slug: string | null | undefined): boolean {
 /**
  * WikiHeader 左侧「Negentropy」保留标签的渲染输入。
  *
- * - `items` 缺省/空 → 纯链接标签（保留 pub 第一层为空时回退），点击直达保留 docs 首页；
- * - `items` 非空 → 渲染为二级下拉（联级菜单），面板列出保留 pub 第一层章节。
- *   全站稳定：无论当前身处哪个 pub，下拉恒列保留 pub 的二级目录（来自全局 header 模型）。
+ * 始终为**纯链接**（无下拉）：点击直达保留 docs 首页（`/negentropy/readme`），
+ * 其二级目录由进入后的左栏完整文档树承载，而非顶栏下拉。
  */
 export interface ReservedDocsTab {
   show: boolean;
   active?: boolean;
   label?: string;
   href: string;
-  /** 保留下拉面板条目（保留 pub nav-tree 第一层）；缺省/空时渲染纯链接。 */
-  items?: WikiNavTreeItem[];
-  /** 当前激活的第一层 slug，用于下拉项高亮（仅身处保留 pub 时有意义）。 */
-  activeChildSlug?: string;
 }
 
 /**
  * 派生左侧「Negentropy」保留标签的 Header 渲染输入（单一事实源）。
  *
- * 顶级菜单全局化后，保留标签的下拉项**始终**来自全站 header 模型的 `reservedItems`
- * （全局加载、与当前路由无关），使「Negentropy」下拉在任意页面恒列二级目录；
- * 仅「当前激活子项高亮」依路由而变（身处保留 pub 时才有激活子项）。
- *
  * - `reservedExists=false` → `undefined`（保留 pub 不存在，不渲染标签）；
- * - `items` 非空 → 渲染二级下拉；空/缺省 → 纯链接（保留 pub 无第一层时的回退）；
- * - `active = isReserved`（身处保留 pub 时标签高亮）；
- * - `activeChildSlug` 仅 `isReserved` 时透传（非保留页左下拉不高亮任何子项）。
+ * - 否则恒纯链接，`active = isReserved`（身处保留 pub 时标签高亮）。
  *
- * 「右区只含非保留 pub、左下拉只含保留 pub」的分区不变式由 `buildHeaderNav` 保证，
- * 故下拉项与右区一级 tabs 不会重复出现同一节点。
+ * 保留 pub 第一层只进左栏全树侧栏、不进顶栏右区/下拉；右区只含非保留 pub
+ * （见 `buildHeaderNav` 分区），故三个一级菜单全页并存且互不重复。
  */
 export function buildReservedDocsTab(opts: {
   reservedExists: boolean;
   isReserved: boolean;
-  items?: WikiNavTreeItem[];
-  activeChildSlug?: string;
 }): ReservedDocsTab | undefined {
   if (!opts.reservedExists) return undefined;
   return {
@@ -81,9 +68,6 @@ export function buildReservedDocsTab(opts: {
     active: opts.isReserved,
     label: RESERVED_DOCS_LABEL,
     href: RESERVED_DOCS_HOME,
-    // 始终注入全局 reservedItems；空数组归一为 undefined，让组件层据 items?.length 回退纯链接。
-    items: opts.items && opts.items.length > 0 ? opts.items : undefined,
-    activeChildSlug: opts.isReserved ? opts.activeChildSlug : undefined,
   };
 }
 
@@ -101,14 +85,14 @@ export interface HeaderTopNavItem {
 /**
  * 全站稳定的顶栏导航模型（单一事实源）。
  *
- * - `reservedItems`：保留 pub（slug=`negentropy`）的 nav-tree 第一层 → 左侧标签二级下拉；
+ * - `reservedExists`：保留 pub（slug=`negentropy`）是否存在 → 决定是否渲染左侧纯链接标签；
  * - `topNav`：其余（非保留）pub 的 nav-tree 第一层 → 右区一级 tabs（每项带自身 pubSlug）。
  *
- * 二者在 publication 维度上互斥且穷尽，保证同一节点不会同时出现在左下拉与右区。
+ * 保留 pub 第一层不进顶栏（改由左栏全树侧栏承载），与右区在 publication 维度互斥，
+ * 故同一节点不会重复出现。
  */
 export interface HeaderNav {
   reservedExists: boolean;
-  reservedItems: WikiNavTreeItem[];
   topNav: HeaderTopNavItem[];
 }
 
@@ -116,22 +100,21 @@ export interface HeaderNav {
  * 从所有 publication 的 nav-tree 第一层派生全站稳定的顶栏模型（client-safe 纯函数）。
  *
  * 遍历入参（顺序即 `listPublications` 顺序，确定性稳定）按 `isReservedDocsSlug` 分区：
- * 保留 pub 第一层归 `reservedItems`，其余 pub 第一层逐项归 `topNav`（携带 pubSlug）。
+ * 命中保留 pub 仅置 `reservedExists=true`（其第一层交左栏全树渲染，不入顶栏）；
+ * 其余 pub 第一层逐项归 `topNav`（携带 pubSlug）。
  *
  * 该模型与当前路由无关，使顶栏在任意页面呈现一致的一级菜单集合：
- * 「Negentropy」（左，下拉列其二级目录）与各动态 pub 的一级菜单恒并存。
+ * 「Negentropy」（左，纯链接）与各动态 pub 的一级菜单恒并存。
  */
 export function buildHeaderNav(
   pubNavTrees: { slug: string; items: WikiNavTreeItem[] }[],
 ): HeaderNav {
   let reservedExists = false;
-  const reservedItems: WikiNavTreeItem[] = [];
   const topNav: HeaderTopNavItem[] = [];
 
   for (const { slug, items } of pubNavTrees) {
     if (isReservedDocsSlug(slug)) {
       reservedExists = true;
-      reservedItems.push(...items);
     } else {
       for (const item of items) {
         topNav.push({ pubSlug: slug, item });
@@ -139,7 +122,7 @@ export function buildHeaderNav(
     }
   }
 
-  return { reservedExists, reservedItems, topNav };
+  return { reservedExists, topNav };
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +275,57 @@ export function resolveSectionView(
     activeTopSlug,
     activeItem,
     sidebarItems: activeItem?.children ?? [],
+  };
+}
+
+/** 左栏侧边导航的渲染输入（供 `WikiSidebar` 消费）。 */
+export interface WikiSidebarView {
+  /** 待渲染的导航树 */
+  sidebarItems: WikiNavTreeItem[];
+  /** 是否存在激活分组（决定「该分组暂无文档」空态提示） */
+  hasActiveItem: boolean;
+  /** 侧栏品牌头显示名（null → 调用方回退 publication.name） */
+  catalogName: string | null;
+  /** 品牌头跳转目标 slug（null → 不可点击） */
+  catalogTargetSlug: string | null;
+  /** 落地页「🏠 首页」入口条目（null → 不单独渲染，由全树索引页节点承载） */
+  indexEntry: WikiNavTreeItem | null;
+}
+
+/**
+ * 单一事实源：按 `fullTree` 派生左栏侧边导航视图。
+ *
+ * - `fullTree=true`（保留 pub「Negentropy」）：采用**经典文档全树侧栏**——左栏渲染
+ *   整棵 nav 树（README + 各二级目录容器），不切片到「当前 section」；品牌头回退
+ *   publication.name（`catalogName=null`），落地页不另渲染独立「🏠 首页」
+ *   （`indexEntry=null`，由全树中的索引页节点承载，杜绝重复）。
+ * - `fullTree=false`（动态 pub）：沿用既有 section 视图——侧栏=激活第一层 section 的
+ *   子树，品牌头=激活 section 名，落地页渲染索引页入口。
+ *
+ * 与 `resolveSectionView` 正交：后者仍单独服务顶栏右区高亮（`activeTopSlug`），
+ * 其 `activeItem.children` 切片语义不被全树场景污染。
+ */
+export function resolveSidebarView(
+  items: WikiNavTreeItem[],
+  opts: { fullTree: boolean; currentSlug?: string },
+): WikiSidebarView {
+  if (opts.fullTree) {
+    return {
+      sidebarItems: items,
+      hasActiveItem: items.length > 0,
+      catalogName: null,
+      catalogTargetSlug: null,
+      indexEntry: null,
+    };
+  }
+  const section = resolveSectionView(items, opts.currentSlug);
+  const activeItem = section.activeItem;
+  return {
+    sidebarItems: section.sidebarItems,
+    hasActiveItem: !!activeItem,
+    catalogName: activeItem ? activeItem.entry_title || activeItem.entry_slug : null,
+    catalogTargetSlug: activeItem ? findFirstDocumentSlug(activeItem) : null,
+    indexEntry: findIndexEntry(items),
   };
 }
 

@@ -1,0 +1,12 @@
+{
+  "entry_id": "d0c00000-0000-4000-8000-000000000011",
+  "document_id": "d0c00000-0000-4000-8000-0000000000b1",
+  "entry_slug": "reference/cognizes/readme",
+  "entry_title": "Cognizes 概览",
+  "markdown_content": "# Cognizes 概览\n\n本页为保留一级目录下 `reference/cognizes/` 子目录中的索引页样本文档，用于本地复现「Negentropy」左栏全树深嵌套（3 级）展开。返回 [手册首页](/negentropy/readme)。",
+  "document_filename": "readme.md",
+  "author_name": null,
+  "author_url": null,
+  "source_url": "https://github.com/ThreeFish-AI/negentropy/blob/main/docs/reference/cognizes/README.md",
+  "published_at": null
+}

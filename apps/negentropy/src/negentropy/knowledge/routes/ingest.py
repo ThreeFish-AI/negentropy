@@ -427,6 +427,10 @@ async def ingest_file(
             meta["content_uri"] = content_uri
         if doc_record:
             meta["document_id"] = str(doc_record.id)
+            # 携带 display_name 覆盖，使检索/引用类展示跟随用户重命名（见
+            # DocumentStorageService.update_document_display_name 的回填逻辑）。
+            if getattr(doc_record, "display_name", None):
+                meta["display_name"] = doc_record.display_name
 
         run_id = await service.create_pipeline(
             app_name=resolved_app,

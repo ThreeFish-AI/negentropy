@@ -33,6 +33,87 @@
             "catalog_node_id": null,
             "entry_kind": "DOCUMENT",
             "children": []
+          },
+          {
+            "entry_id": "d0c00000-0000-4000-8000-000000000008",
+            "entry_slug": "concepts/user-guide",
+            "entry_title": "User Guide",
+            "entry_description": null,
+            "is_index_page": false,
+            "document_id": null,
+            "catalog_node_id": null,
+            "entry_kind": "CONTAINER",
+            "children": [
+              {
+                "entry_id": "d0c00000-0000-4000-8000-000000000009",
+                "entry_slug": "concepts/user-guide/skills-advanced",
+                "entry_title": "Skills 进阶",
+                "entry_description": null,
+                "is_index_page": false,
+                "document_id": "d0c00000-0000-4000-8000-0000000000a9",
+                "catalog_node_id": null,
+                "entry_kind": "DOCUMENT",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry_id": "d0c00000-0000-4000-8000-000000000004",
+        "entry_slug": "reference",
+        "entry_title": "Reference",
+        "entry_description": null,
+        "is_index_page": false,
+        "document_id": null,
+        "catalog_node_id": null,
+        "entry_kind": "CONTAINER",
+        "children": [
+          {
+            "entry_id": "d0c00000-0000-4000-8000-000000000010",
+            "entry_slug": "reference/cognizes",
+            "entry_title": "Cognizes",
+            "entry_description": null,
+            "is_index_page": false,
+            "document_id": null,
+            "catalog_node_id": null,
+            "entry_kind": "CONTAINER",
+            "children": [
+              {
+                "entry_id": "d0c00000-0000-4000-8000-000000000011",
+                "entry_slug": "reference/cognizes/readme",
+                "entry_title": "Cognizes 概览",
+                "entry_description": null,
+                "is_index_page": true,
+                "document_id": "d0c00000-0000-4000-8000-0000000000b1",
+                "catalog_node_id": null,
+                "entry_kind": "DOCUMENT",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry_id": "d0c00000-0000-4000-8000-000000000006",
+        "entry_slug": "research",
+        "entry_title": "Research",
+        "entry_description": null,
+        "is_index_page": false,
+        "document_id": null,
+        "catalog_node_id": null,
+        "entry_kind": "CONTAINER",
+        "children": [
+          {
+            "entry_id": "d0c00000-0000-4000-8000-000000000007",
+            "entry_slug": "research/overview",
+            "entry_title": "调研总览",
+            "entry_description": null,
+            "is_index_page": false,
+            "document_id": "d0c00000-0000-4000-8000-0000000000a7",
+            "catalog_node_id": null,
+            "entry_kind": "DOCUMENT",
+            "children": []
           }
         ]
       }

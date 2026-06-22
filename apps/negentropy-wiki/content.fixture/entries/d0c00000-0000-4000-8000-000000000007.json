@@ -1,0 +1,12 @@
+{
+  "entry_id": "d0c00000-0000-4000-8000-000000000007",
+  "document_id": "d0c00000-0000-4000-8000-0000000000a7",
+  "entry_slug": "research/overview",
+  "entry_title": "调研总览",
+  "markdown_content": "# 调研总览\n\n本页为保留一级目录下 `research/` 容器中的样本文档，用于本地复现「Negentropy」左栏全树多二级目录切换。返回 [手册首页](/negentropy/readme)。",
+  "document_filename": "overview.md",
+  "author_name": null,
+  "author_url": null,
+  "source_url": "https://github.com/ThreeFish-AI/negentropy/blob/main/docs/research/overview.md",
+  "published_at": null
+}
