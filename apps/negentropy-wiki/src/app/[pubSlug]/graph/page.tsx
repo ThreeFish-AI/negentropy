@@ -96,23 +96,6 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       variant="home"
     >
       <div className="wiki-graph-page">
-        <header className="wiki-graph-page-header">
-          <div className="wiki-doc-meta">
-            版本 v{publication.version}
-            {graph && graph.nodes.length > 0 && (
-              <>
-                {" · "}
-                {graph.nodes.length} 节点 · {graph.edges.length} 边
-                {graph.truncated && graph.total_entities > graph.nodes.length && (
-                  <>
-                    {" · "}共 {graph.total_entities} 实体
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </header>
-
         <WikiGraphBody
           pubSlug={pubSlug}
           publication={publication}
@@ -135,7 +118,12 @@ interface WikiGraphBodyProps {
   graphError: string | null;
 }
 
-function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
+function WikiGraphBody({
+  pubSlug,
+  publication,
+  graph,
+  graphError,
+}: WikiGraphBodyProps) {
   if (graphError) {
     return (
       <div className="wiki-graph-error">
@@ -179,6 +167,7 @@ function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
     <div className="wiki-graph-canvas-wrap">
       <WikiGraphRenderer
         pubSlug={pubSlug}
+        version={publication.version}
         nodes={graph.nodes}
         edges={graph.edges}
         truncated={graph.truncated}
