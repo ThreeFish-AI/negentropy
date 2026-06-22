@@ -227,6 +227,9 @@ out/
 # 开发种子 fixture 独立存放于 content.fixture/（入 git），构建期经 content-source.ts
 # 三级解析兜底（content/ 缺失时回退 content.fixture/）。详见 docs/reference/wiki/deployment.md。
 apps/negentropy-wiki/content/
+# wiki 烘焙图片镜像：prebuild/predev 经 sync-assets.mjs 同步 content/assets/ → public/assets/，
+# 随后 next build 自动复制 public/ → out/。产物环境相关（源于 content/），不入 git。
+apps/negentropy-wiki/public/assets/
 
 .DS_Store
 *.pem
