@@ -40,9 +40,35 @@ WIKI_PAGES_BACKUP="${WIKI_PAGES_BACKUP:-1}"
 
 OUT_DIR="$REPO_ROOT/apps/negentropy-wiki/out"
 WORK_DIR="$REPO_ROOT/.temp/wiki-pages-repo"   # 目标仓库的本地工作副本（gitignored .temp/）
+LOG_FILE="$REPO_ROOT/.temp/wiki-pages-publish.log"   # 全流程日志（后端 spawn / 手动运行统一入口）
+LOCK_DIR="$REPO_ROOT/.temp/wiki-pages-publish.lock"  # 并发锁目录（mkdir 原子操作）
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# 日志落盘：手动运行（stdout 为终端）时同时落盘 + 终端；被后端 spawn 时 stdout/stderr
+# 已由 _maybe_spawn_pages_publish 重定向到同一 LOG_FILE，此处不再 tee（避免重复写）。
+if [ -t 1 ]; then
+  exec > >(tee -a "$LOG_FILE") 2>&1
+fi
 
 log() { printf '\033[34m[publish-wiki-pages]\033[0m %s\n' "$*"; }
 err() { printf '\033[31m[publish-wiki-pages] ERROR:\033[0m %s\n' "$*" >&2; }
+
+# 并发锁：串行化多次 publish 触发的 spawn，避免目标 Pages 仓库 push 竞争（后写覆盖 /
+# 分支冲突 / 备份分支污染）。用 mkdir 原子操作实现（portable；flock 仅 Linux，本地
+# macOS 主站不可用）。拿不到锁则跳过本次——publish 幂等，下次会带上最新内容。
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  LOCK_PID="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
+  if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
+    err "另一发布进程正在运行（pid $LOCK_PID），跳过本次（下次 publish 会带上最新内容）。"
+    exit 0
+  fi
+  err "检测到陈旧锁（pid ${LOCK_PID:-unknown} 已不在），清理后重试。"
+  rm -rf "$LOCK_DIR"
+  mkdir "$LOCK_DIR"
+fi
+echo "$$" > "$LOCK_DIR/pid"
+trap 'rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
+log "已获取发布锁（pid $$）→ $LOCK_DIR"
 
 # 解析推送 URL：优先 WIKI_PAGES_TOKEN（或 gh auth token）→ HTTPS+token；否则原样（SSH）。
 # token 仅注入到 remote URL，不落盘日志（git remote 存于 .git/config，工作副本在 gitignored .temp/）。

@@ -63,16 +63,30 @@ def _maybe_spawn_pages_publish() -> None:
             if token_value:
                 env["WIKI_PAGES_TOKEN"] = token_value
 
-        # fire-and-forget：脱离请求生命周期后台运行；输出交由脚本自身/系统日志。
+        # 输出统一落盘到 .temp/wiki-pages-publish.log（与脚本自身日志同文件，单一排查入口）。
+        # 脚本内另有 mkdir 并发锁串行化多次 spawn。fire-and-forget：不 wait、不阻塞 publish
+        # 返回；父侧 fd 关闭不影响子进程继承的 fd。
+        from datetime import UTC, datetime
+
+        log_path = repo_root / ".temp" / "wiki-pages-publish.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_fp = log_path.open("a", encoding="utf-8")
+        log_fp.write(f"\n[{datetime.now(UTC).isoformat()}] wiki-pages-publish spawned\n")
+        log_fp.flush()
+        logger.info(
+            "wiki_pages_publish_spawned",
+            script=str(script_path),
+            branch=cfg.branch,
+            log=str(log_path),
+        )
         subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 不拼接外部输入
             ["bash", str(script_path)],
             cwd=str(repo_root),
             env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_fp,
+            stderr=log_fp,
             start_new_session=True,
         )
-        logger.info("wiki_pages_publish_spawned", script=str(script_path), branch=cfg.branch)
     except Exception as exc:  # noqa: BLE001 - 主动吞噬：spawn 失败不阻塞发布
         logger.warning("wiki_pages_publish_spawn_failed", error=str(exc))
 

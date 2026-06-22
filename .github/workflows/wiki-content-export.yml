@@ -1,8 +1,14 @@
 name: Wiki Content Export
 
-# 主站 publish 触发本工作流（经后端 ``trigger_wiki_redeploy`` → GitHub
-# repository_dispatch），把已发布内容导出为静态内容包并提交到 wiki 仓库，
-# 驱动 wiki 静态重建。
+# 适用「云端主站（CI 可达主站 DB）」场景：主站 publish 经后端 ``trigger_wiki_redeploy``
+# → GitHub repository_dispatch 触发本工作流，把已发布内容导出为静态内容包。
+#
+# 现状定位：``apps/negentropy-wiki/content/`` 自 #936/#937 起被 gitignore，下方
+# ``git add content/`` 实为 no-op，故本工作流当前主要价值是「导出 smoke」（验证
+# 导出器连 DB 可运行）；**生产 GitHub Pages 发布由本地 ``publish-wiki-pages.sh``
+# 承担**（见 docs/reference/wiki/deployment.md §3.5b / WikiPagesPublishSettings）。
+# 本地自托管主站**不要**配置 ``NE_KNOWLEDGE_WIKI_REDEPLOY__URL``（CI 连不上本地
+# DB 会失败），改用 ``NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__ENABLED=true``。
 #
 # 触发端点配置（后端）：
 #   NE_KNOWLEDGE_WIKI_REDEPLOY__URL=https://api.github.com/repos/{owner}/{repo}/dispatches
