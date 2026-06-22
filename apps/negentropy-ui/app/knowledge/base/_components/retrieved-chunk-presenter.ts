@@ -29,6 +29,8 @@ interface RetrievedChunkMetadata extends Record<string, unknown> {
   parent_chunk_index?: number | string;
   chunk_index?: number | string;
   original_filename?: string;
+  /** 用户重命名覆盖（display_name），优先于 original_filename。 */
+  display_name?: string;
   matched_child_chunk_indices?: unknown[];
   matched_child_chunks?: Array<{
     id?: string;
@@ -73,6 +75,17 @@ function basenameFromUri(sourceUri?: string): string | null {
 }
 
 function resolveSourceLabel(match: KnowledgeMatch, metadata: RetrievedChunkMetadata) {
+  // 优先 display_name（用户重命名覆盖）→ original_filename → source_uri basename
+  const displayName = typeof metadata.display_name === "string"
+    ? metadata.display_name.trim()
+    : "";
+  if (displayName) {
+    return {
+      label: displayName,
+      title: displayName,
+    };
+  }
+
   const explicit = typeof metadata.original_filename === "string"
     ? metadata.original_filename.trim()
     : "";

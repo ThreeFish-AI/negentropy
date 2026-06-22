@@ -22,7 +22,10 @@ import {
   CorpusRecord,
   formatRelativeTime,
   LIBRARY_CORPUS_SEGMENT,
+  effectiveDocumentName,
+  useInlineDocumentRename,
 } from "@/features/knowledge";
+import { Check, Pencil, X } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
@@ -168,6 +171,27 @@ export default function DocumentsPage() {
   useHeartbeatPoll(silentReload, {
     enabled: anyTranslating || anyExtracting,
     fireImmediately: false,
+  });
+
+  // 行内重命名 File Name → 写入 display_name（逻辑下沉到 useInlineDocumentRename，
+  // 与 Wiki 目录共用）。保存成功后按服务端返回值局部 patch，避免全量 loadDocuments
+  // 与心跳轮询/分页互相打架。
+  const handleRenameSaved = useCallback((updated: KnowledgeDocument) => {
+    setDocuments((docs) => docs.map((d) => (d.id === updated.id ? updated : d)));
+  }, []);
+  const {
+    editingId,
+    editDraft,
+    setEditDraft,
+    saving: renaming,
+    editInputRef,
+    startEdit,
+    cancelEdit,
+    commitEdit,
+    handleKeyDown,
+  } = useInlineDocumentRename({
+    onSaved: handleRenameSaved,
+    savingToast: "文件名称已更新",
   });
 
   const totalPages = Math.ceil(total / pageSize);
@@ -421,7 +445,7 @@ export default function DocumentsPage() {
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center px-4 py-3 text-sm hover:bg-muted/30 transition-colors"
+                      className="group flex items-center px-4 py-3 text-sm hover:bg-muted/30 transition-colors"
                     >
                       {/* 勾选 - 固定宽 */}
                       <div className="w-8 shrink-0 flex justify-center">
@@ -439,17 +463,65 @@ export default function DocumentsPage() {
                         />
                       </div>
                       <div className="grid grid-cols-12 gap-2 flex-1 items-center">
-                      {/* 文件名 - col-span-3 */}
+                      {/* 文件名 - col-span-3，支持就地重命名（写 display_name） */}
                       <div className="col-span-3 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate" title={doc.original_filename}>
-                            {doc.original_filename}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {doc.content_type || "Unknown"}
-                          </p>
-                        </div>
+                        {editingId === doc.id ? (
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
+                            <input
+                              ref={editInputRef}
+                              type="text"
+                              value={editDraft}
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, doc)}
+                              placeholder="留空则使用源名称"
+                              maxLength={255}
+                              disabled={renaming}
+                              aria-label="编辑文件名称"
+                              className="flex-1 min-w-0 h-6 px-1.5 text-sm rounded border border-primary/50 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              onClick={() => void commitEdit(doc)}
+                              disabled={renaming}
+                              title="保存"
+                              aria-label="保存文件名称"
+                              className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={renaming}
+                              title="取消"
+                              aria-label="取消编辑"
+                              className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="min-w-0 flex-1 flex items-center gap-1">
+                            <div className="min-w-0">
+                              <p
+                                className="font-medium text-foreground truncate"
+                                title={effectiveDocumentName(doc)}
+                              >
+                                {effectiveDocumentName(doc)}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {doc.content_type || "Unknown"}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => startEdit(doc)}
+                              title="编辑文件名称"
+                              aria-label="编辑文件名称"
+                              className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* 大小 - col-span-1 */}
