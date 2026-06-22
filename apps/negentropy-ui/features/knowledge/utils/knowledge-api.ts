@@ -2801,6 +2801,8 @@ export interface CatalogNode {
   config: Record<string, unknown>;
   /** DOCUMENT_REF 叶子节点关联的文档 ID（FOLDER 等结构节点为 null） */
   document_id?: string | null;
+  /** DOCUMENT_REF 关联文档所属 corpus（左栏重命名文档节点时据此直连 document API 改 display_name） */
+  source_corpus_id?: string | null;
   /** CTE 计算字段：层级深度（根节点为 0） */
   depth?: number;
   /** CTE 计算字段：从根到当前节点的 ID 路径数组 */
