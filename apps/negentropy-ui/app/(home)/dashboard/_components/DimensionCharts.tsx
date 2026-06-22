@@ -36,8 +36,9 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   return (
     <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
       <div className="mb-2 text-caption uppercase tracking-overline text-muted-foreground">{title}</div>
-      {/* 显式 min-h 让 ResponsiveContainer 即便在 SSR / Flex 折叠时仍有非负尺寸，
-          避免 recharts "width(-1) and height(-1)" 警告。 */}
+      {/* 外层 min-h 在客户端 Flex 折叠时保底；真正消除 recharts SSR "width(-1)" 警告的是
+          ResponsiveContainer 的 minWidth/minHeight props —— recharts 以 max(measured, min) 兜底，
+          不依赖 CSS layout（SSG 在 Node 无 layout，外层 CSS min-width 并不生效）。 */}
       <div className="h-56 min-h-[14rem] w-full" style={{ minWidth: 1 }}>
         {children}
       </div>
@@ -63,7 +64,7 @@ export function DimensionCharts({ byRole, byScenario, byOwner }: DimensionCharts
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
       <ChartCard title="Role × Success / Failed">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <BarChart data={roleData} margin={{ top: 8, right: 12, bottom: 8, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" strokeOpacity={0.2} />
             <XAxis dataKey="name" stroke="currentColor" fontSize={11} />
@@ -82,7 +83,7 @@ export function DimensionCharts({ byRole, byScenario, byOwner }: DimensionCharts
         </ResponsiveContainer>
       </ChartCard>
       <ChartCard title="Scenario × Runs">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <BarChart
             data={scenarioData}
             layout="vertical"
@@ -103,7 +104,7 @@ export function DimensionCharts({ byRole, byScenario, byOwner }: DimensionCharts
         </ResponsiveContainer>
       </ChartCard>
       <ChartCard title="Owner × Runs">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <PieChart>
             <Tooltip
               contentStyle={{
