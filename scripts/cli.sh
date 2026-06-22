@@ -288,7 +288,7 @@ cmd_start() {
       exit 1
     fi
   done
-  log_ok "uv $(uv --version 2>/dev/null | head -1), pnpm $(pnpm --version 2>/dev/null)"
+  log_ok "$(uv --version 2>/dev/null | head -1), pnpm $(pnpm --version 2>/dev/null)"
 
   if ! $no_pull && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
     log_info "拉取最新代码..."
@@ -330,11 +330,11 @@ cmd_start() {
   # Phase 4 — 前端构建
   if ! $skip_build; then
     log_phase "Phase 4/5: 前端构建"
-    # 依赖链：perceives（MCP 前置）→ backend（ui BFF 数据源，wiki 不再依赖 backend）。
-    # wiki 纯静态化后构建期只读本地 content/，无需 backend 在线；此处 backend 仅为
-    # ui 运行时提前就绪。
-    start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 可能降级"
-    start_service "$SVC_BACKEND" || log_warn "backend 启动失败，ui BFF 将不可用"
+    # 构建期零服务依赖：
+    #   - sync-wiki-content.sh 直连 PostgreSQL（不经 backend HTTP）；
+    #   - wiki next build 读本地 content/（output:"export"，零 backend/DB）；
+    #   - ui next build 不调用运行时 backend。
+    # 故 perceives/backend 统一延后到 Phase 5 按依赖链启动，构建期不占端口、无孤儿风险。
 
     # agents-chat-core 仍是 ui 的工作区依赖（wiki 纯静态化后已移除该依赖）。
     # tsup 配置 clean:true（每次构建先清空 dist），故在此显式构建一次，并通过
@@ -364,14 +364,24 @@ cmd_start() {
 
   # Phase 5 — 服务启动
   log_phase "Phase 5/5: 服务启动"
-  # 注册 trap：启动过程中 Ctrl+C 清理已启动的服务
-  trap 'log_warn "收到中断信号，清理已启动的服务..."; cmd_stop; exit 130' INT TERM
+  # EXIT trap 兜底：启动未完成时，无论 errexit 失败还是收到中断信号，都清理已启动的服务。
+  # 选用 EXIT 而非 INT/TERM：set -e 下前台命令失败时 shell 在命令边界前即 errexit 退出，
+  # INT/TERM trap 不会被触发；唯有 EXIT trap 在 errexit 退出路径上仍保证执行（bash 语义）。
+  _STARTUP_DONE=0
+  _cleanup_on_exit() {
+    trap - EXIT INT TERM          # 首行清空 trap，防 handler 重入
+    [ "${_STARTUP_DONE:-0}" = "1" ] && return 0
+    log_warn "启动未完成，清理已启动的服务..."
+    cmd_stop >/dev/null 2>&1 || true
+  }
+  trap '_cleanup_on_exit' EXIT
 
   for svc in "${ALL_SERVICES[@]}"; do
-    start_service "$svc" || { log_error "${svc} 启动失败，中止"; cmd_stop; exit 1; }
+    start_service "$svc" || { log_error "${svc} 启动失败，中止"; exit 1; }
   done
 
-  trap - INT TERM
+  _STARTUP_DONE=1
+  trap - EXIT INT TERM            # 全部成功：清除兜底，避免脚本正常退出误杀刚启动的服务
 
   echo ""
   log_ok "所有服务已启动"
@@ -424,28 +434,28 @@ cmd_logs() {
 cmd_build() {
   log_phase "仅构建（不启动）"
   run_dir_init
-  # 依赖链：perceives（MCP 前置）→ backend（ui BFF 数据源；wiki 纯静态化后独立构建）
-  start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 可能降级"
-  start_service "$SVC_BACKEND" || log_warn "backend 启动失败，ui BFF 将不可用"
+  # 构建期零服务依赖：sync-wiki-content.sh 直连 PostgreSQL（不经 backend HTTP），
+  # wiki next build 读本地 content/（output:"export"，零 backend/DB），
+  # ui next build 不调用运行时 backend —— 全程无需启动任何服务。
   # 纯静态 wiki：构建前从 DB 导出已发布内容（本地 publish→build 闭环）。
   log_info "同步 Wiki 已发布内容到 content/..."
   bash "$REPO_ROOT/scripts/sync-wiki-content.sh" \
     || log_warn "Wiki 内容导出失败（DB 未就绪 / 未迁移 / 无已发布内容？）沿用既有 content/"
+
+  # agents-chat-core 是 ui 的工作区依赖（wiki 纯静态化后已移除该依赖）。
+  # tsup 配置 clean:true（每次构建先清空 dist），故在此显式构建一次，并通过
+  # NEGENTROPY_CORE_PREBUILT 让 ui 的 prebuild 跳过重建（与 cmd_start 一致）。
+  log_info "构建 agents-chat-core..."
+  (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
+    || { log_error "agents-chat-core 构建失败"; exit 1; }
+
   log_info "构建 ui + wiki (并行)..."
-  (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
+  (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
   local pid_ui=$!
   (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
   local pid_wiki=$!
   local _rc=0; wait "$pid_ui" || _rc=$?; wait "$pid_wiki" || _rc=$?
-  # 倒序回收，先停 backend 再停 perceives
-  if (( _rc )); then
-    log_error "前端构建失败"
-    stop_service "$SVC_BACKEND"
-    stop_service "$SVC_PERCEIVES"
-    exit 1
-  fi
-  stop_service "$SVC_BACKEND"
-  stop_service "$SVC_PERCEIVES"
+  (( _rc )) && { log_error "前端构建失败"; exit 1; }
   log_ok "前端构建完成"
 }
 
