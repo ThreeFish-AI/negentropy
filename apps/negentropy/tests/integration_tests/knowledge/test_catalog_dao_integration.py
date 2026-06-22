@@ -721,6 +721,64 @@ class TestCatalogMembershipIntegration:
     """CatalogDao 文档归属管理的端到端集成测试"""
 
     @pytest.mark.asyncio
+    async def test_get_tree_document_ref_name_derives_from_document(
+        self, db_engine, sample_corpus, catalog_tree, sample_documents
+    ):
+        """get_tree 的 DOCUMENT_REF 节点名遵循「单一事实源」：从关联 document 派生
+        （display_name → metadata.title → original_filename），document 改名后即时跟随；
+        FOLDER 结构节点仍直读 entry.name 不受影响；source_corpus_id 透传。
+
+        回归 guard：防止 CTE 退回单表读 entry.name（复发 Split-Brain）。
+        """
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.models.perception import KnowledgeDocument
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        node_id = catalog_tree["cat_b"].id
+        doc_id = sample_documents[0]
+
+        async def _set_doc_fields(**fields):
+            async with session_factory() as s:
+                doc = await s.get(KnowledgeDocument, doc_id)
+                for k, v in fields.items():
+                    setattr(doc, k, v)
+                await s.commit()
+
+        async def _doc_ref_and_folder_names() -> tuple[str, UUID | None, str]:
+            async with session_factory() as s:
+                tree = await CatalogDao.get_tree(s, catalog_id=catalog_tree["catalog_id"])
+            ref = next((n for n in tree if n["document_id"] == doc_id), None)
+            cat_b = next(n for n in tree if n["id"] == node_id)
+            assert ref is not None, "DOCUMENT_REF 节点未出现在树中"
+            return ref["name"], ref.get("source_corpus_id"), cat_b["name"]
+
+        # 1. 未设 display_name / metadata.title → 回退 original_filename；校验 source_corpus_id 透传、FOLDER 不变
+        async with session_factory() as s:
+            await CatalogDao.assign_document(s, catalog_entry_id=node_id, document_id=doc_id)
+            await s.commit()
+        name, src_corpus, cat_b_name = await _doc_ref_and_folder_names()
+        assert name == "doc_0.pdf"
+        assert src_corpus == sample_corpus
+        assert cat_b_name == "Category B"
+
+        # 2. 设 display_name → 优先于 original_filename
+        await _set_doc_fields(display_name="Custom Display Title")
+        assert (await _doc_ref_and_folder_names())[0] == "Custom Display Title"
+
+        # 3. 改 display_name → 即时跟随（无需重新 assign）
+        await _set_doc_fields(display_name="Updated Title")
+        assert (await _doc_ref_and_folder_names())[0] == "Updated Title"
+
+        # 4. 清空 display_name，设 metadata.title → 回退到 metadata.title
+        await _set_doc_fields(display_name=None, metadata_={"title": "Meta Title"})
+        assert (await _doc_ref_and_folder_names())[0] == "Meta Title"
+
+        # 5. metadata.title 纯空白 + 无 display_name → 回退 original_filename
+        await _set_doc_fields(metadata_={"title": "   "})
+        assert (await _doc_ref_and_folder_names())[0] == "doc_0.pdf"
+
+    @pytest.mark.asyncio
     async def test_assign_and_unassign_document_lifecycle(
         self, db_engine, sample_corpus, catalog_tree, sample_documents
     ):
