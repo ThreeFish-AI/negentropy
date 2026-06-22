@@ -79,6 +79,27 @@ def test_format_citation_legacy_no_metadata_no_uri():
     assert citation == "[4] Unknown source"
 
 
+def test_format_citation_prefers_display_name_over_title():
+    """用户重命名覆盖（display_name）优先于抽取标题 title，使聊天引用题录跟随重命名。"""
+    from negentropy.agents.tools.perception import _format_citation
+
+    citation = _format_citation(
+        metadata={
+            "arxiv_id": "2310.11511",
+            "title": "Self-RAG: Learning to Retrieve, Generate, and Critique",
+            "display_name": "我的读书笔记",
+            "authors": ["Akari Asai"],
+            "published_at": "2024-01-15T08:30:00Z",
+        },
+        source_uri="https://arxiv.org/pdf/2310.11511.pdf",
+        idx=7,
+    )
+    assert "我的读书笔记" in citation
+    # 被覆盖的 title 不应再出现
+    assert "Self-RAG" not in citation
+    assert citation.startswith("[7]")
+
+
 def test_format_citation_handles_malformed_authors_field():
     """authors 字段不是 list 时（比如脏数据 = "Alice"）也不应抛。"""
     from negentropy.agents.tools.perception import _format_citation

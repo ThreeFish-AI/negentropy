@@ -19,6 +19,7 @@ import type {
 } from "@/features/knowledge/utils/knowledge-api";
 import {
   downloadDocument,
+  effectiveDocumentName,
   fetchDocumentDetail,
   LIBRARY_CORPUS_SEGMENT,
   refreshDocumentMarkdown,
@@ -286,7 +287,7 @@ export default function DocumentDetailPage() {
   return (
     <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
-        title={detail?.original_filename || "Document Detail"}
+        title={detail ? effectiveDocumentName(detail) : "Document Detail"}
       />
 
       {/* Action bar */}
@@ -359,8 +360,8 @@ export default function DocumentDetailPage() {
               {getFileIcon(detail.content_type)}
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-xl font-semibold text-foreground" title={detail.original_filename}>
-                    {detail.original_filename}
+                  <h1 className="truncate text-xl font-semibold text-foreground" title={effectiveDocumentName(detail)}>
+                    {effectiveDocumentName(detail)}
                   </h1>
                   <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-micro font-medium ${statusBadge.bg} ${statusBadge.text}`}>
                     {statusBadge.label}

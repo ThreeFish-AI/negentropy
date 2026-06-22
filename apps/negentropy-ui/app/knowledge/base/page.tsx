@@ -37,6 +37,7 @@ import {
   unarchiveDocument,
   downloadDocument,
   deleteDocument,
+  effectiveDocumentName,
   normalizeChunkingConfig,
   PipelineStatusBadge,
 } from "@/features/knowledge";
@@ -892,7 +893,7 @@ export default function KnowledgeBasePage() {
                                 className="min-w-0 text-left"
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
-                                <p className="truncate text-sm font-medium">{doc.original_filename}</p>
+                                <p className="truncate text-sm font-medium">{effectiveDocumentName(doc)}</p>
                                 <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
                                   <span>{sourceType} · {doc.file_size} bytes</span>
                                   <PipelineStatusBadge

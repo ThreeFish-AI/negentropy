@@ -6,15 +6,17 @@ including deduplication, listing, and deletion.
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import KnowledgeDocument
 from negentropy.serialization import strip_nul_chars
 
@@ -622,6 +624,9 @@ class DocumentStorageService:
           展示侧回退到 ``metadata_.title -> original_filename``）。
         - 长度上限 255；超过抛 ``ValueError``。
         - 与 :meth:`get_document` 一致的 ``corpus_id`` / ``app_name`` 权限校验。
+        - 同事务回填该文档所有 chunk 的 ``metadata.display_name``（附加式），
+          使检索命中片段、来源摘要、聊天引用等 chunk 派生展示即时跟随重命名，
+          无需重新 ingest；``display_name`` 清空时同步删除该键。
 
         Args:
             document_id: 文档 UUID
@@ -658,12 +663,52 @@ class DocumentStorageService:
                 return None
 
             doc.display_name = normalized
+
+            # 同事务回填该文档所有 chunk 的 metadata.display_name（附加式，
+            # 不破坏 original_filename），使检索/引用类展示即时跟随重命名。
+            # chunk 仅经 metadata JSONB 中的 document_id 软关联文档（无 FK 列），
+            # 物理列名为 metadata（ORM 属性为 metadata_）。
+            if normalized is not None:
+                backfill_stmt = text(
+                    f"""
+                    UPDATE {NEGENTROPY_SCHEMA}.knowledge
+                    SET metadata = jsonb_set(
+                        COALESCE(metadata, '{{}}'::jsonb),
+                        '{{display_name}}',
+                        :display_name_json::jsonb
+                    )
+                    WHERE metadata->>'document_id' = :document_id
+                    """
+                )
+                backfill_result = await db.execute(
+                    backfill_stmt,
+                    {
+                        "document_id": str(document_id),
+                        "display_name_json": json.dumps(normalized),
+                    },
+                )
+                chunks_updated = backfill_result.rowcount or 0
+            else:
+                clear_stmt = text(
+                    f"""
+                    UPDATE {NEGENTROPY_SCHEMA}.knowledge
+                    SET metadata = metadata - 'display_name'
+                    WHERE metadata->>'document_id' = :document_id
+                    """
+                )
+                clear_result = await db.execute(
+                    clear_stmt,
+                    {"document_id": str(document_id)},
+                )
+                chunks_updated = clear_result.rowcount or 0
+
             await db.commit()
             await db.refresh(doc)
             logger.info(
                 "document_display_name_updated",
                 doc_id=str(document_id),
                 cleared=normalized is None,
+                chunks_updated=chunks_updated,
             )
             return doc
 

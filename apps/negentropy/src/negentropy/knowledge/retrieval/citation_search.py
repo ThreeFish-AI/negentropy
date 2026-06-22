@@ -71,7 +71,8 @@ def format_citation(
     """
     meta = metadata or {}
     arxiv_id = (meta.get("arxiv_id") or "").strip()
-    title = (meta.get("title") or "").strip()
+    # 优先 display_name（用户重命名覆盖），回退到抽取标题 title
+    title = (meta.get("display_name") or "").strip() or (meta.get("title") or "").strip()
     authors = meta.get("authors") or []
     if not isinstance(authors, list):
         authors = []
