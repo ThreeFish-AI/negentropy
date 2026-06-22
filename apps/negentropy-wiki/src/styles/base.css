@@ -72,3 +72,16 @@ a:hover {
     scroll-behavior: auto;
   }
 }
+
+/*
+ * 桌面端防护 footer full-bleed（width:100vw，见 home-footer.css）在 Windows 经典滚动条下
+ * 因 100vw 含滚动条宽度而溢出引起的横向滚动。`clip` 不创建 scroll container（异于 `hidden`），
+ * 不改变 sticky 的 scrolling ancestor，故不影响 sidebar 的垂直吸顶。
+ * 仅桌面（≥769px）：移动端 footer 在窄屏不溢出（100vw=可视宽），且避免裁剪移动端 header
+ * 既有的窄屏溢出布局（属无关既有问题，不在本次 sidebar 修复范围）。
+ */
+@media (min-width: 769px) {
+  body.wiki-body {
+    overflow-x: clip;
+  }
+}

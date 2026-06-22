@@ -2,6 +2,20 @@
 .wiki-footer {
   background: var(--wiki-footer-bg);
   color: var(--wiki-footer-text);
+  /*
+   * Footer 现作为最后一个 grid item 纳入 .wiki-layout（见 WikiLayoutShell.tsx），
+   * 使左栏 .wiki-sidebar 的 sticky 包含块覆盖整篇文档（含页脚）——根治「短正文页
+   * 滚到页脚区时 sidebar 因 grid area 提前耗尽而脱粘、随正文上滑消失」。
+   *
+   * - grid-column:1/-1：跨越 sidebar/main/toc 全部列（grid 列数随 data-toc 三态变化皆适配）；
+   *   home 变体为 block 布局，此声明被忽略，无副作用。
+   * - width:100vw + 对称负 margin：full-bleed 全宽背景，保留移入前 footer 贯穿视口的
+   *   深色视觉（不随 .wiki-layout 的 1404px 容器限宽）。50% 相对 grid cell（整行宽）。
+   */
+  grid-column: 1 / -1;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 .wiki-footer-inner {
