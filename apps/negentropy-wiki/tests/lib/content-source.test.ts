@@ -23,11 +23,13 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
     wikiApi = mod.wikiApi;
   });
 
-  it("listPublications 返回 fixture 中的 handbook", async () => {
+  it("listPublications 返回 fixture 中的 handbook 与保留 docs 目录", async () => {
     const { items, total } = await wikiApi.listPublications();
-    expect(total).toBe(1);
-    expect(items[0].slug).toBe("negentropy-handbook");
-    expect(items[0].status).toBe("published");
+    expect(total).toBe(2);
+    const slugs = items.map((p: { slug: string }) => p.slug);
+    expect(slugs).toContain("negentropy-handbook");
+    expect(slugs).toContain("negentropy");
+    expect(items.every((p: { status: string }) => p.status === "published")).toBe(true);
   });
 
   it("findPublicationBySlug 按 slug 命中 publication", async () => {
@@ -81,5 +83,38 @@ describe("LocalContentClient（读取静态内容包 fixture）", () => {
     await expect(
       wikiApi.getPublicationGraph("00000000-0000-0000-0000-000000000000"),
     ).rejects.toThrow(/publication not found/);
+  });
+
+  // 保留一级目录「Negentropy」（源自仓库 docs/）的内容包契约。
+  it("保留 docs 目录：'negentropy' 命中，DOCUMENT 携带非空 document_id 且正文可载", async () => {
+    const pub = await wikiApi.findPublicationBySlug("negentropy");
+    expect(pub).not.toBeNull();
+    expect(pub.slug).toBe("negentropy");
+
+    const { nav_tree } = await wikiApi.getNavTree(pub.id);
+    const topSlugs = nav_tree.items.map((i: { entry_slug: string }) => i.entry_slug);
+    expect(topSlugs).toContain("readme"); // docs/README.md → 首页
+    expect(topSlugs).toContain("concepts");
+
+    const concepts = nav_tree.items.find(
+      (i: { entry_slug: string }) => i.entry_slug === "concepts",
+    );
+    expect(concepts.entry_kind).toBe("CONTAINER");
+    expect(concepts.document_id).toBeNull();
+
+    const overview = concepts.children[0];
+    expect(overview.entry_kind).toBe("DOCUMENT");
+    // 关键约束：DOCUMENT 必须携带非空 document_id（否则页面判「失效」不渲染正文）。
+    expect(overview.document_id).not.toBeNull();
+
+    const content = await wikiApi.getEntryContent(overview.entry_id);
+    expect(content.markdown_content).toContain("熵减");
+  });
+
+  it("getPublicationGraph 对保留 docs 目录降级为 no_kg（无 graph.json）", async () => {
+    const pub = await wikiApi.findPublicationBySlug("negentropy");
+    const graph = await wikiApi.getPublicationGraph(pub.id);
+    expect(graph.status).toBe("no_kg");
+    expect(graph.nodes.length).toBe(0);
   });
 });

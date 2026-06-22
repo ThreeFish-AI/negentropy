@@ -38,6 +38,7 @@ from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
 from negentropy.logging import get_logger
 from negentropy.models.perception import WikiPublication
 
+from .wiki_docs_ingest import build_docs_pack
 from .wiki_graph_service import get_publication_graph
 from .wiki_service import build_entry_content_response
 
@@ -175,10 +176,39 @@ class WikiExportService:
                 "entry_ids": [str(e.id) for e in entries],
             }
 
-        # publications.json + index.json（复用主循环缓存的 publication 序列化结果）
+        # 保留一级目录「Negentropy」：把仓库 docs/ 公开子集合成为 reserved publication
+        # 注入同一内容包（DB pub 循环之后、聚合写盘之前；_reset 已清目录）。与 DB pub
+        # 走同一 _write_json / index 聚合，wiki 端零改动复用 schema 与页面路由。
+        docs_items: list[dict[str, Any]] = []
+        docs_cfg = settings.knowledge.wiki_docs_sync
+        if docs_cfg.enabled and docs_cfg.reserved_slug in {p.slug for p in pubs}:
+            # DB 已存在同名 slug 的 publication：让位 DB（避免双源覆盖），跳过 docs 合成。
+            logger.warning("wiki_export_docs_slug_conflict", slug=docs_cfg.reserved_slug)
+        elif docs_cfg.enabled:
+            frag = build_docs_pack(docs_cfg)
+            if frag is not None:
+                docs_dir = pubs_root / docs_cfg.reserved_slug
+                docs_dir.mkdir(parents=True, exist_ok=True)
+                self._write_json(docs_dir / "publication.json", frag.publication, result)
+                self._write_json(docs_dir / "nav-tree.json", frag.nav_tree, result)
+                self._write_json(docs_dir / "entries-index.json", frag.entries_index, result)
+                for eid, payload in frag.entry_payloads.items():
+                    self._write_json(entries_dir / f"{eid}.json", payload, result)
+                    result.entries += 1
+                pubs_index.append(frag.pub_index_row)
+                index_pubs[docs_cfg.reserved_slug] = frag.index_pub
+                docs_items.append(frag.publication)
+                result.publications.append(docs_cfg.reserved_slug)
+                logger.info(
+                    "wiki_export_docs_pack",
+                    slug=docs_cfg.reserved_slug,
+                    entries=len(frag.entry_payloads),
+                )
+
+        # publications.json + index.json（复用主循环缓存的 publication 序列化结果 + docs pack）
         pubs_payload = {
-            "items": [self._pub_cache[str(pub.id)] for pub in pubs],
-            "total": len(pubs),
+            "items": [self._pub_cache[str(pub.id)] for pub in pubs] + docs_items,
+            "total": len(pubs) + len(docs_items),
         }
         self._write_json(out_dir / "publications.json", pubs_payload, result)
         self._write_json(

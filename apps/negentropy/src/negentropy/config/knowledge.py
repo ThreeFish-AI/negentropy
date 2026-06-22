@@ -155,6 +155,76 @@ class WikiExportSettings(BaseModel):
     )
 
 
+class WikiDocsSyncSettings(BaseModel):
+    """仓库 ``docs/`` → wiki「保留一级目录 Negentropy」同步配置。
+
+    与 ``wiki_export`` 正交：``wiki_export`` 序列化主站 DB 已发布内容；本块把仓库
+    ``docs/`` 公开子集合成为一个**保留 Publication**（slug=``negentropy``）注入同一
+    静态内容包。导出器（``export_wiki_content.py``）在完整 repo checkout 中运行，
+    故 ``docs/`` 在盘可读；合成产物随既有 ``content/`` 交付链路下发，无新增运行期依赖。
+
+    取舍：``docs/`` 非 DB 内容、与 wiki 应用同仓，故由导出步骤一次性烘焙为静态条目，
+    使「同步并发布」天然附带刷新 docs，且 wiki 端零改动地复用既有内容包 schema 与路由。
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="True 时导出期把 docs/ 公开子集合成为保留 Publication 注入内容包；False 关闭。",
+    )
+    docs_root: str | None = Field(
+        default=None,
+        description="docs/ 绝对路径；缺省时由 resolve_docs_root 经哨兵探测自动定位仓库 docs/。",
+    )
+    include_dirs: list[str] = Field(
+        default_factory=lambda: ["concepts", "reference", "research"],
+        description="纳入同步的 docs/ 一级子目录（公开子集）。",
+    )
+    include_root_readme: bool = Field(
+        default=True,
+        description="是否把 docs/README.md 作为保留 Publication 首页（slug=readme）。",
+    )
+    exclude_dirs: list[str] = Field(
+        default_factory=lambda: [".agents", "i18n"],
+        description="排除的 docs/ 一级子目录（内部协议/截图、国际化）。",
+    )
+    exclude_dir_names: list[str] = Field(
+        default_factory=lambda: ["zh-CN"],
+        description="任意层级按目录名排除的目录（如嵌套 locale 目录），与 i18n 排除意图一致。",
+    )
+    exclude_suffixes: list[str] = Field(
+        default_factory=lambda: [".zh.md"],
+        description="按文件名后缀排除（如 locale 变体 *.zh.md），避免重复 slug 与多语噪声。",
+    )
+    reserved_slug: str = Field(
+        default="negentropy",
+        description="保留 Publication 的 slug（站内一级目录路由前缀 /<slug>/...）。",
+    )
+    reserved_name: str = Field(
+        default="Negentropy",
+        description="保留 Publication 显示名（首页卡片 / 头部标签）。",
+    )
+    reserved_description: str | None = Field(
+        default="Negentropy 工程文档 — 源自主站仓库 docs/。",
+        description="保留 Publication 描述（首页卡片副文）。",
+    )
+    github_owner: str = Field(
+        default="ThreeFish-AI",
+        description="源码/仓库链接重写目标 owner（GitHub blob URL）。",
+    )
+    github_repo: str = Field(
+        default="negentropy",
+        description="源码/仓库链接重写目标 repo（GitHub blob URL）。",
+    )
+    github_ref: str = Field(
+        default="main",
+        description="GitHub blob 链接的 ref（分支/标签/SHA）；CI 可经 env 覆盖为 commit SHA 得永久链接。",
+    )
+    github_docs_prefix: str = Field(
+        default="docs",
+        description="docs/ 在仓库内的路径前缀，用于解析指向 docs 外/未纳入文档的 GitHub 兜底链接。",
+    )
+
+
 class WikiPagesPublishSettings(BaseModel):
     """Wiki 本地自动发布到静态托管（如 GitHub Pages）配置。
 
@@ -277,6 +347,9 @@ class KnowledgeSettings(BaseSettings):
     )
     wiki_export: WikiExportSettings = Field(
         default_factory=WikiExportSettings,
+    )
+    wiki_docs_sync: WikiDocsSyncSettings = Field(
+        default_factory=WikiDocsSyncSettings,
     )
     wiki_pages_publish: WikiPagesPublishSettings = Field(
         default_factory=WikiPagesPublishSettings,

@@ -2,6 +2,9 @@ import type { ComponentType } from "react";
 
 import {
   findFirstDocumentSlug,
+  isReservedDocsSlug,
+  RESERVED_DOCS_HOME,
+  RESERVED_DOCS_LABEL,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
@@ -54,6 +57,9 @@ export default async function WikiHomePage() {
   }[] = [];
 
   for (const { pub, items } of navTrees) {
+    // 保留一级目录「Negentropy」不进右区内容标签 / 卡片：它由左侧保留标签 + 领衔卡片单独承载，
+    // 避免「左侧保留标签」与「右区普通标签」双重出现。
+    if (isReservedDocsSlug(pub.slug)) continue;
     if (items.length > 0) {
       // 有 nav tree 一级节点时，从中构建导航项
       for (const item of items) {
@@ -80,10 +86,21 @@ export default async function WikiHomePage() {
     }
   }
 
+  // 保留一级目录领衔首页卡片（置于普通卡片之前），与左侧保留标签呼应。
+  const reservedPub = publications.find((p) => isReservedDocsSlug(p.slug));
+  if (reservedPub) {
+    homeCards.unshift({
+      title: RESERVED_DOCS_LABEL,
+      href: RESERVED_DOCS_HOME,
+      description: reservedPub.description || "Negentropy 工程文档 — 源自仓库 docs/。",
+      Icon: getPublicationIcon(reservedPub.name),
+    });
+  }
+
   const firstHref = homeCards.length > 0 ? homeCards[0].href : undefined;
 
-  const firstPubSlug =
-    publications.length > 0 ? publications[0].slug : undefined;
+  // Knowledge Graph 标签指向首个**非保留** publication（保留 docs 目录无 KG）。
+  const firstPubSlug = publications.find((p) => !isReservedDocsSlug(p.slug))?.slug;
 
   const header = (
     <WikiHeader
@@ -91,6 +108,11 @@ export default async function WikiHomePage() {
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
       pubSlug={firstPubSlug}
+      reservedTab={
+        reservedPub
+          ? { show: true, active: false, label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }
+          : undefined
+      }
       graphTab={
         firstPubSlug
           ? { show: true, active: false, label: "Knowledge Graph" }
@@ -99,9 +121,14 @@ export default async function WikiHomePage() {
     />
   );
 
+  // 移动端侧栏：保留目录领衔，其后接普通右区导航项。
+  const mobileLinks = reservedPub
+    ? [{ label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }, ...homeLinks]
+    : homeLinks;
+
   const sidebar = (
     <div className="home-mobile-sidebar">
-      {homeLinks.map((link) => (
+      {mobileLinks.map((link) => (
         <a
           key={link.href}
           href={link.href}

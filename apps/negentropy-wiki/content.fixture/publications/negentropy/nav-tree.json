@@ -1,0 +1,41 @@
+{
+  "publication_id": "d0c00000-0000-4000-8000-000000000000",
+  "nav_tree": {
+    "items": [
+      {
+        "entry_id": "d0c00000-0000-4000-8000-000000000001",
+        "entry_slug": "readme",
+        "entry_title": "Negentropy 用户手册",
+        "entry_description": null,
+        "is_index_page": true,
+        "document_id": "d0c00000-0000-4000-8000-0000000000a1",
+        "catalog_node_id": null,
+        "entry_kind": "DOCUMENT",
+        "children": []
+      },
+      {
+        "entry_id": "d0c00000-0000-4000-8000-000000000002",
+        "entry_slug": "concepts",
+        "entry_title": "Concepts",
+        "entry_description": null,
+        "is_index_page": false,
+        "document_id": null,
+        "catalog_node_id": null,
+        "entry_kind": "CONTAINER",
+        "children": [
+          {
+            "entry_id": "d0c00000-0000-4000-8000-000000000003",
+            "entry_slug": "concepts/overview",
+            "entry_title": "认识 Negentropy",
+            "entry_description": null,
+            "is_index_page": false,
+            "document_id": "d0c00000-0000-4000-8000-0000000000a3",
+            "catalog_node_id": null,
+            "entry_kind": "DOCUMENT",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

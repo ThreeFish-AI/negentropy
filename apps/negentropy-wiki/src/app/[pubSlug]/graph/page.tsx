@@ -7,7 +7,11 @@ import { WikiHeaderActions } from "@/components/WikiHeaderActions";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
   countLeafEntries,
+  isReservedDocsSlug,
   resolveSectionView,
+  RESERVED_DOCS_HOME,
+  RESERVED_DOCS_LABEL,
+  RESERVED_DOCS_SLUG,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
@@ -77,6 +81,10 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
 
+  const isReserved = isReservedDocsSlug(pubSlug);
+  const reservedExists =
+    isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
+
   const header = sectionView.headerItems.length > 0 && (
     <WikiHeader
       pubSlug={pubSlug}
@@ -84,7 +92,12 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      graphTab={{ active: true, show: entriesTotal > 0 }}
+      reservedTab={
+        reservedExists
+          ? { show: true, active: isReserved, label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }
+          : undefined
+      }
+      graphTab={{ active: true, show: entriesTotal > 0 && !isReserved }}
     />
   );
 

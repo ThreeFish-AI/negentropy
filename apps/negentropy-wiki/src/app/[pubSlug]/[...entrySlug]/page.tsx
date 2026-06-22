@@ -1,7 +1,11 @@
 import {
   findFirstDocumentSlug,
+  isReservedDocsSlug,
   joinEntrySlug,
   resolveSectionView,
+  RESERVED_DOCS_HOME,
+  RESERVED_DOCS_LABEL,
+  RESERVED_DOCS_SLUG,
   type WikiEntry,
   type WikiEntryContent,
   type WikiNavTreeItem,
@@ -154,6 +158,10 @@ export default async function WikiEntryPage({ params }: Props) {
     />
   );
 
+  const isReserved = isReservedDocsSlug(pubSlug);
+  const reservedExists =
+    isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
+
   const header = sectionView.headerItems.length > 0 && (
     <WikiHeader
       pubSlug={pubSlug}
@@ -161,7 +169,12 @@ export default async function WikiEntryPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      graphTab={{ active: false, show: hasAnyEntry }}
+      reservedTab={
+        reservedExists
+          ? { show: true, active: isReserved, label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }
+          : undefined
+      }
+      graphTab={{ active: false, show: hasAnyEntry && !isReserved }}
     />
   );
 

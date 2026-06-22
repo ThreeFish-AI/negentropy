@@ -20,6 +20,14 @@ interface WikiHeaderGraphTab {
   label?: string;
 }
 
+/** 保留一级目录「Negentropy」标签（置于 Knowledge Graph 左侧的系统保留入口）。 */
+interface WikiHeaderReservedTab {
+  show: boolean;
+  active?: boolean;
+  label?: string;
+  href: string;
+}
+
 interface HomeLink {
   label: string;
   href: string;
@@ -30,6 +38,7 @@ interface WikiHeaderProps {
   items?: WikiNavTreeItem[];
   activeTopSlug?: string;
   headerSlot?: React.ReactNode;
+  reservedTab?: WikiHeaderReservedTab;
   graphTab?: WikiHeaderGraphTab;
   searchBox?: React.ReactNode;
   actions?: React.ReactNode;
@@ -42,13 +51,14 @@ export function WikiHeader({
   items = [],
   activeTopSlug,
   headerSlot,
+  reservedTab,
   graphTab,
   searchBox,
   actions,
   userMenu,
   homeLinks,
 }: WikiHeaderProps) {
-  if (!items.length && !homeLinks?.length && !(graphTab?.show)) return null;
+  if (!items.length && !homeLinks?.length && !(graphTab?.show) && !(reservedTab?.show)) return null;
 
   return (
     <header className="wiki-header">
@@ -64,16 +74,27 @@ export function WikiHeader({
           />
           <span className="wiki-header-name">Negentropy Wiki</span>
         </Link>
-        {/* LEFT: Knowledge Graph tab only */}
-        {graphTab?.show && (
+        {/* LEFT: 保留一级目录「Negentropy」（最左）+ Knowledge Graph */}
+        {(reservedTab?.show || graphTab?.show) && (
           <nav className="wiki-header-tabs wiki-header-tabs--left" aria-label="特色导航">
-            <Link
-              href={`/${pubSlug}/graph`}
-              className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
-              aria-current={graphTab.active ? "page" : undefined}
-            >
-              {graphTab.label ?? "Knowledge Graph"}
-            </Link>
+            {reservedTab?.show && (
+              <Link
+                href={reservedTab.href}
+                className={`wiki-header-tab${reservedTab.active ? " active" : ""}`}
+                aria-current={reservedTab.active ? "page" : undefined}
+              >
+                {reservedTab.label ?? "Negentropy"}
+              </Link>
+            )}
+            {graphTab?.show && (
+              <Link
+                href={`/${pubSlug}/graph`}
+                className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
+                aria-current={graphTab.active ? "page" : undefined}
+              >
+                {graphTab.label ?? "Knowledge Graph"}
+              </Link>
+            )}
           </nav>
         )}
 
