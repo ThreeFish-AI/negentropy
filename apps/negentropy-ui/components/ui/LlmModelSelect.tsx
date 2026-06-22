@@ -15,6 +15,7 @@ type LlmModelSelectProps = {
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  showChevron?: boolean;
 };
 
 function buildFullModelName(vendor: string, modelName: string): string {
@@ -39,6 +40,7 @@ export function LlmModelSelect({
   disabled,
   className,
   ariaLabel,
+  showChevron = true,
 }: LlmModelSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [navIdx, setNavIdx] = useState(0);
@@ -219,13 +221,15 @@ export function LlmModelSelect({
         aria-haspopup="listbox"
         disabled={disabled}
         onClick={handleTriggerClick}
-        className="h-7 rounded-md border border-border/50 bg-transparent pl-2 pr-6 text-xs text-foreground outline-none transition-colors hover:border-border hover:bg-border-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
+        className={`h-7 rounded-md border border-border/50 bg-transparent pl-2 ${showChevron ? "pr-6" : "pr-2"} text-xs text-foreground outline-none transition-colors hover:border-border hover:bg-border-muted disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus-visible:ring-2 focus-visible:ring-ring`}
       >
         <span className="truncate max-w-48 inline-block align-middle">{displayLabel}</span>
-        <ChevronDown
-          className={`pointer-events-none absolute right-1.5 h-3 w-3 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
-          aria-hidden
-        />
+        {showChevron && (
+          <ChevronDown
+            className={`pointer-events-none absolute right-1.5 h-3 w-3 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        )}
       </button>
 
       {isOpen &&
