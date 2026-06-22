@@ -1,0 +1,12 @@
+{
+  "entry_id": "d0c00000-0000-4000-8000-000000000009",
+  "document_id": "d0c00000-0000-4000-8000-0000000000a9",
+  "entry_slug": "concepts/user-guide/skills-advanced",
+  "entry_title": "Skills 进阶",
+  "markdown_content": "# Skills 进阶\n\n本页为保留一级目录下 `concepts/user-guide/` 子目录中的样本文档，用于本地复现「Negentropy」左栏全树深嵌套（3 级）展开。返回 [手册首页](/negentropy/readme)。",
+  "document_filename": "skills-advanced.md",
+  "author_name": null,
+  "author_url": null,
+  "source_url": "https://github.com/ThreeFish-AI/negentropy/blob/main/docs/concepts/user-guide/skills-advanced.md",
+  "published_at": null
+}
