@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   findFirstDocumentSlug,
   isContainerItem,
-  RESERVED_DOCS_SLUG,
   type HeaderTopNavItem,
   type ReservedDocsTab,
   type WikiNavTreeItem,
@@ -35,7 +34,7 @@ interface WikiHeaderProps {
   /** 当前激活的第一层 slug，配合 activePubSlug 定位右区高亮项。 */
   activeTopSlug?: string;
   headerSlot?: React.ReactNode;
-  /** 左侧「Negentropy」保留标签；`items` 非空时渲染为二级下拉（见 ReservedDocsTab）。 */
+  /** 左侧「Negentropy」保留标签（纯链接，无下拉；二级目录由进入后的左栏全树承载）。 */
   reservedTab?: ReservedDocsTab;
   graphTab?: WikiHeaderGraphTab;
   searchBox?: React.ReactNode;
@@ -74,25 +73,15 @@ export function WikiHeader({
         {/* LEFT: 保留一级目录「Negentropy」（最左）+ Knowledge Graph */}
         {(reservedTab?.show || graphTab?.show) && (
           <nav className="wiki-header-tabs wiki-header-tabs--left" aria-label="特色导航">
-            {reservedTab?.show &&
-              (reservedTab.items && reservedTab.items.length > 0 ? (
-                <HeaderDropdown
-                  label={reservedTab.label ?? "Negentropy"}
-                  href={reservedTab.href}
-                  active={reservedTab.active}
-                  panelItems={reservedTab.items}
-                  pubSlug={RESERVED_DOCS_SLUG}
-                  activeChildSlug={reservedTab.activeChildSlug}
-                />
-              ) : (
-                <Link
-                  href={reservedTab.href}
-                  className={`wiki-header-tab${reservedTab.active ? " active" : ""}`}
-                  aria-current={reservedTab.active ? "page" : undefined}
-                >
-                  {reservedTab.label ?? "Negentropy"}
-                </Link>
-              ))}
+            {reservedTab?.show && (
+              <Link
+                href={reservedTab.href}
+                className={`wiki-header-tab${reservedTab.active ? " active" : ""}`}
+                aria-current={reservedTab.active ? "page" : undefined}
+              >
+                {reservedTab.label ?? "Negentropy"}
+              </Link>
+            )}
             {graphTab?.show && (
               <Link
                 href={`/${pubSlug}/graph`}
@@ -143,13 +132,9 @@ interface WikiHeaderTabProps {
 function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
   const targetSlug = pickTabTargetSlug(item);
   const label = item.entry_title || item.entry_slug;
-  /* 仅当直接子项中存在 DOCUMENT（非纯 CONTAINER 分组）时渲染下拉；
-     纯 CONTAINER 子项是侧边栏层级结构，不应出现在头部下拉菜单 */
-  const hasChildren =
-    isContainerItem(item) &&
-    item.children &&
-    item.children.some((child) => !isContainerItem(child));
 
+  // 顶栏一级菜单恒为纯链接（无下拉箭头）：CONTAINER → DFS 首个后代 DOCUMENT 作为入口，
+  // 其子项由进入后的左栏侧边导航承载。无可达文档时渲染禁用态。
   if (!targetSlug) {
     return (
       <span
@@ -163,19 +148,6 @@ function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
     );
   }
 
-  // Container with children → render dropdown
-  if (hasChildren) {
-    return (
-      <HeaderDropdown
-        label={label}
-        href={`/${pubSlug}/${targetSlug}`}
-        active={isActive}
-        panelItems={item.children ?? []}
-        pubSlug={pubSlug}
-      />
-    );
-  }
-
   return (
     <Link
       href={`/${pubSlug}/${targetSlug}`}
@@ -184,65 +156,6 @@ function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
     >
       {label}
     </Link>
-  );
-}
-
-interface HeaderDropdownProps {
-  label: string;
-  href: string;
-  active?: boolean;
-  panelItems: WikiNavTreeItem[];
-  /** 面板条目链接的 pubSlug 前缀（容器 tab 用当前 pub，保留标签用 RESERVED_DOCS_SLUG）。 */
-  pubSlug: string;
-  /** 当前激活的第一层 slug，命中则对应面板项高亮。 */
-  activeChildSlug?: string;
-}
-
-/**
- * CSS-only 下拉原语（hover/focus-within）—— Header tab 容器分支与左侧「Negentropy」
- * 保留标签共用，确保两处联级菜单视觉与行为一致。
- *
- * 面板对每个 item 取 `pickTabTargetSlug` 作为跳转目标（CONTAINER → 首个后代文档），
- * 跳过无可达文档的条目；`activeChildSlug` 命中时给该项加 active 态。
- */
-function HeaderDropdown({
-  label,
-  href,
-  active,
-  panelItems,
-  pubSlug,
-  activeChildSlug,
-}: HeaderDropdownProps) {
-  return (
-    <div className={`wiki-header-dropdown${active ? " active" : ""}`}>
-      <Link
-        href={href}
-        className="wiki-header-dropdown-trigger"
-        aria-current={active ? "page" : undefined}
-      >
-        {label}
-        <span className="wiki-header-dropdown-arrow">▼</span>
-      </Link>
-      <div className="wiki-header-dropdown-panel">
-        {panelItems.map((child) => {
-          const childTarget = pickTabTargetSlug(child);
-          if (!childTarget) return null;
-          const childLabel = child.entry_title || child.entry_slug;
-          const childActive =
-            activeChildSlug != null && child.entry_slug === activeChildSlug;
-          return (
-            <Link
-              key={`${child.entry_id ?? "c"}:${child.entry_slug}`}
-              href={`/${pubSlug}/${childTarget}`}
-              className={`wiki-header-dropdown-item${childActive ? " active" : ""}`}
-              aria-current={childActive ? "page" : undefined}
-            >
-              {childLabel}
-            </Link>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
