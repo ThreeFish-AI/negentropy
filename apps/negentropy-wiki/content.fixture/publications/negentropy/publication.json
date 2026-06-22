@@ -5,7 +5,7 @@
   "publish_mode": "snapshot",
   "name": "Negentropy",
   "slug": "negentropy",
-  "description": "Negentropy 工程文档 — 源自仓库 docs/（开发种子 fixture，仅含最小样本）。",
+  "description": "熵减引擎设计概念与使用指引",
   "status": "published",
   "theme": "docs",
   "version": 1,

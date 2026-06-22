@@ -92,7 +92,7 @@ export default async function WikiHomePage() {
     homeCards.unshift({
       title: RESERVED_DOCS_LABEL,
       href: RESERVED_DOCS_HOME,
-      description: reservedPub.description || "Negentropy 工程文档 — 源自仓库 docs/。",
+      description: reservedPub.description || "熵减引擎设计概念与使用指引",
       Icon: getPublicationIcon(reservedPub.name),
     });
   }
@@ -100,7 +100,9 @@ export default async function WikiHomePage() {
   const firstHref = homeCards.length > 0 ? homeCards[0].href : undefined;
 
   // Knowledge Graph 标签指向首个**非保留** publication（保留 docs 目录无 KG）。
-  const firstPubSlug = publications.find((p) => !isReservedDocsSlug(p.slug))?.slug;
+  const firstPubSlug = publications.find(
+    (p) => !isReservedDocsSlug(p.slug),
+  )?.slug;
 
   const header = (
     <WikiHeader
@@ -110,7 +112,12 @@ export default async function WikiHomePage() {
       pubSlug={firstPubSlug}
       reservedTab={
         reservedPub
-          ? { show: true, active: false, label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }
+          ? {
+              show: true,
+              active: false,
+              label: RESERVED_DOCS_LABEL,
+              href: RESERVED_DOCS_HOME,
+            }
           : undefined
       }
       graphTab={

@@ -204,7 +204,7 @@ class WikiDocsSyncSettings(BaseModel):
         description="保留 Publication 显示名（首页卡片 / 头部标签）。",
     )
     reserved_description: str | None = Field(
-        default="Negentropy 工程文档 — 源自主站仓库 docs/。",
+        default="熵减引擎设计概念与使用指引",
         description="保留 Publication 描述（首页卡片副文）。",
     )
     github_owner: str = Field(
