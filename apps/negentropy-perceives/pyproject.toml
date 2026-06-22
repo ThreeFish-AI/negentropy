@@ -68,7 +68,7 @@ dependencies = [
     "rich>=15.0.0",
     # --- 数据模型与配置 ---
     "pydantic>=2.12.5",
-    "pydantic-settings>=2.13.1",
+    "pydantic-settings>=2.14.2",  # 修复 GHSA-4xgf-cpjx-pc3j（2.14.1 及以下）
     "pyyaml>=6.0.3",              # YAML 配置文件解析
     # --- 运行时基础设施 ---
     "setuptools>=82.0.1",  # 运行时补丁：undetected-chromedriver 依赖 pkg_resources（distutils），Python 3.12+ 已从标准库移除
@@ -198,7 +198,8 @@ ignore_missing_imports = true
 # starlette>=1.3.1：修复 CVE-2026-48817/48818/54282/54283（间接依赖 fastapi，MCP http-transport 攻击面）
 # python-multipart>=0.0.32：修复 CVE-2026-53538/53539/53540（间接依赖 fastapi，表单解析攻击面）
 # cryptography>=48.0.1：修复 GHSA-537c-gmf6-5ccf（间接依赖 authlib/google-auth/joserfc/pdfminer-six/secretstorage）
-override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "authlib>=1.7.1", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.13.0", "docling-core>=2.74.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1"]
+# msgpack>=1.2.1：修复 GHSA-6v7p-g79w-8964（传递依赖，反序列化 DoS）
+override-dependencies = ["pillow>=12.2.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "authlib>=1.7.1", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.13.0", "docling-core>=2.74.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.1"]
 
 [dependency-groups]
 dev = [
