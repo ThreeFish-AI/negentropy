@@ -12,9 +12,11 @@ import type { NextConfig } from "next";
  *   Pagefind（构建时索引、浏览器端运行）。
  * - `trailingSlash: true`：为 catch-all 路由 `[...entrySlug]` 产出目录式 HTML
  *   （`/pub/entry/`），对静态托管更友好（避免刷新 404）。
- * - `images.unoptimized: true`：保留。markdown 图片走主站资产端点
- *   （`/knowledge/wiki/documents/{doc}/assets/{file}`，从 PostgreSQL bytea 提供），
- *   导出期由后端 WikiExportService 重写为绝对/相对 URL。
+ * - `images.unoptimized: true`：保留。markdown 图片经 `WikiExportService` 烘焙为
+ *   `public/assets/{doc}/{file}` 静态文件（`bake_assets=true`，默认；由 prebuild/predev
+ *   钩子 `scripts/sync-assets.mjs` 把内容根 `assets/` 镜像到 `public/assets/`，next build
+ *   再复制进 `out/assets/`）；`bake_assets=false + asset_base_url` 时改走主站 bytea 端点。
+ *   静态导出不可用 next/image optimization，故图片直链。
  */
 /**
  * 稳定 buildId：默认 Next 每次构建生成随机 buildId（注入 __next.*.txt / 404 等），
