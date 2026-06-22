@@ -10,6 +10,7 @@ import { CodeBlock } from "./CodeBlock";
 import { AnchorHeading } from "./AnchorHeading";
 import { ResponsiveTable } from "./ResponsiveTable";
 import { MermaidDiagram } from "./MermaidDiagram";
+import { ZoomableImage } from "./ZoomableImage";
 
 const wikiSanitizeSchema: typeof defaultSchema = {
   ...defaultSchema,
@@ -78,35 +79,19 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             return <pre>{children}</pre>;
           },
           table: ({ children }) => <ResponsiveTable>{children}</ResponsiveTable>,
-          img: ({ src, alt, width, height, style }) => {
-            // ISSUE-094 R8：透传后端 _image_to_markdown 输出的 width / height /
-            // style，避免图片自然宽度（PNG 像素）造成 PDF→Markdown 视觉缩放失真。
-            //
-            // 大图（width ≥ 400px，PDF figure region 渲染产物）使用 width:100%
-            // 填满容器，与 PDF 原版 figure 占满正文栏全宽的视觉等价。
-            // 小图（inline icon 等）保持 max-width:100% 不主动撑开。
-            const pxWidth = width ? parseInt(String(width), 10) : 0;
-            const isLargeFigure = pxWidth >= 400;
-            const mergedStyle: React.CSSProperties = {
-              ...(style && typeof style === "object" ? style : {}),
-              ...(isLargeFigure
-                ? { width: "100%", maxWidth: "100%", height: "auto" }
-                : {}),
-              borderRadius: "var(--wiki-radius)",
-            };
-            // eslint-disable-next-line @next/next/no-img-element
-            return (
-              <img
-                src={src}
-                alt={alt ?? ""}
-                width={width}
-                height={height}
-                loading="lazy"
-                decoding="async"
-                style={mergedStyle}
-              />
-            );
-          },
+          // 单击图片在整页 Lightbox 中最大化查看（业界常规 click-to-zoom 交互）。
+          // 显式解构丢弃 react-markdown 传入的 hast `node`，避免无用节点对象跨
+          // Server→Client 边界。isLargeFigure 等宽度逻辑已迁入 ZoomableImage。
+          img: ({ src, alt, title, width, height, style }) => (
+            <ZoomableImage
+              src={src}
+              alt={alt}
+              title={title}
+              width={width}
+              height={height}
+              style={style}
+            />
+          ),
         }}
       >
         {content}

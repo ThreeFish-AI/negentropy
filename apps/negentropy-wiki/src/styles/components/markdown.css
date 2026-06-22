@@ -80,6 +80,7 @@
   max-width: 100%;
   height: auto;
   margin: 0.75rem 0;
+  cursor: zoom-in; /* 暗示可单击放大；具体交互由 ZoomableImage 承载 */
 }
 
 /* 引用块 */
