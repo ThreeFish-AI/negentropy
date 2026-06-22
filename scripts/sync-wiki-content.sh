@@ -21,11 +21,25 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 
-# 导出工具仅需 DB（图片重写为主站资产端点 URL，纯字符串变换），不使用 artifact 后端。
-# 显式置 inmemory 以容忍用户级 ~/.negentropy/config.yaml 中与当前枚举
+# 导出工具仅需 DB（不使用 artifact 后端）。bake_assets=true 时下载图片字节烘焙为
+# content/assets/{doc}/{file}（需 DB 内 bytea 可读）；bake_assets=false 时仅做 URL
+# 字符串变换。显式置 inmemory 以容忍用户级 ~/.negentropy/config.yaml 中与当前枚举
 # （inmemory|postgres）不符的 artifact_backend 取值（如已退役的 gcs），避免无关校验阻塞导出。
 export NE_SVC_ARTIFACT_BACKEND="${NE_SVC_ARTIFACT_BACKEND:-inmemory}"
 
+# bake_assets=true（默认）：图片烘焙为 content/assets/{doc}/{file} 静态文件、markdown
+# 改相对路径 /assets/{doc}/{file}，产物自包含、零主站运行时依赖（与 publish-wiki-pages.sh
+# 对齐）。用 ${VAR:-true} 允许调用方显式置 false 走 asset_base_url URL 重写（分域反代部署，
+# 见 docs/reference/wiki/deployment.md §4.4）。烘焙图片进静态产物由 wiki 端 prebuild 同步
+# content/assets/ → public/assets/ 完成（next build 自动复制 public/ → out/）。
+export NE_KNOWLEDGE_WIKI_EXPORT__BAKE_ASSETS="${NE_KNOWLEDGE_WIKI_EXPORT__BAKE_ASSETS:-true}"
+
 cd "$REPO_ROOT/apps/negentropy"
-exec uv run python scripts/export_wiki_content.py \
+uv run python scripts/export_wiki_content.py \
   --out "$REPO_ROOT/apps/negentropy-wiki/content"
+
+cat <<'EOF'
+[sync-wiki-content] 已导出（含烘焙图片 content/assets/）。
+  - wiki 用 pnpm dev 运行：请重启 pnpm dev 以加载新图片（predev 同步 public/assets/）；
+  - wiki 用 serve out 托管：请重新 pnpm --filter negentropy-wiki build 后 pnpm start。
+EOF
