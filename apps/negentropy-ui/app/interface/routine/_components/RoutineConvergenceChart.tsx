@@ -71,7 +71,7 @@ export function RoutineConvergenceChart({
         <p className="py-8 text-center text-sm text-text-secondary">尚无评分数据</p>
       ) : (
         <div className="h-56 min-h-[14rem] w-full" style={{ minWidth: 1 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" strokeOpacity={0.2} />
               <XAxis

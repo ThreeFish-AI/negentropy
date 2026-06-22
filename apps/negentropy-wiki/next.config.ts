@@ -51,6 +51,10 @@ function stableBuildId(): string {
 const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
+  // 不设 outputFileTracingRoot：曾尝试收敛到 wiki 包根（process.cwd()），但 CI 的 pnpm
+  // hoisting 把 next 提升至 monorepo 根 node_modules，收缩 Turbopack 边界后从 src/app
+  // 解析不到 next/package.json 致构建失败（本地 node_modules 布局不同故未暴露）。
+  // output:"export" 静态产物不依赖 NFT，「unexpected file in NFT list」为无害诊断，保留默认根即可。
   images: {
     unoptimized: true,
   },

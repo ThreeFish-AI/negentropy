@@ -99,7 +99,7 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
         <p className="py-8 text-center text-sm text-text-secondary">尚无可视化的执行区间</p>
       ) : (
         <div style={{ height: Math.max(120, rows.length * 30 + 36), minWidth: 1 }} className="w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }} barCategoryGap={6}>
               <XAxis
                 type="number"
