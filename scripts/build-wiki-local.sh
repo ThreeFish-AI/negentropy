@@ -20,8 +20,35 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 
+LOG_FILE="$REPO_ROOT/.temp/wiki-local-rebuild.log"   # 全流程日志（后端 spawn / 手动运行统一入口）
+LOCK_DIR="$REPO_ROOT/.temp/wiki-local-rebuild.lock"  # 并发锁目录（mkdir 原子操作）
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# 日志落盘：手动运行（stdout 为终端）时同时落盘 + 终端；被后端 spawn 时 stdout/stderr
+# 已由 _spawn_wiki_deploy_script 重定向到同一 LOG_FILE，此处不再 tee（避免重复写）。
+if [ -t 1 ]; then
+  exec > >(tee -a "$LOG_FILE") 2>&1
+fi
+
 log() { printf '\033[34m[build-wiki-local]\033[0m %s\n' "$*"; }
 err() { printf '\033[31m[build-wiki-local] ERROR:\033[0m %s\n' "$*" >&2; }
+
+# 并发锁：串行化多次 publish(target=local) 触发的并发 spawn，避免 next build 并发
+# 损坏 out/。用 mkdir 原子操作（portable；flock 仅 Linux，本地 macOS 主站不可用）。
+# 拿不到锁则跳过本次——publish 幂等，下次会带上最新内容。
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  LOCK_PID="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
+  if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
+    err "另一本地重建进程正在运行（pid $LOCK_PID），跳过本次（下次 publish 会带上最新内容）。"
+    exit 0
+  fi
+  err "检测到陈旧锁（pid ${LOCK_PID:-unknown} 已不在），清理后重试。"
+  rm -rf "$LOCK_DIR"
+  mkdir "$LOCK_DIR"
+fi
+echo "$$" > "$LOCK_DIR/pid"
+trap 'rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
+log "已获取本地重建锁（pid $$）→ $LOCK_DIR"
 
 # Step 1: 导出已发布 Wiki 内容 → content/（复用既有导出脚本，其内部已处理
 # NE_SVC_ARTIFACT_BACKEND=inmemory 容错与 DB 连接）。

@@ -3,8 +3,10 @@
 # =============================================================================
 # 构建 Next.js `output: export` 产物（out/），用 static-web-server 托管。
 # 运行时**无 Node 进程、无后端、无数据库依赖** —— 纯静态站点，可由任意静态托管
-# 替换。内容来自仓库内 `apps/negentropy-wiki/content/`（主站 publish 经 CI
-# 导出并提交）；构建期只读本地文件，运行期产物为静态 HTML。
+# 替换。镜像仅含 `content.fixture/` 构建兜底；真实内容由主站 publish 经
+# `scripts/publish-wiki-pages.sh` 推 GitHub Pages / 本地预览（见
+# docs/reference/wiki/deployment.md §3.5b），**不进镜像**。构建期只读本地文件，
+# 运行期产物为静态 HTML。
 #
 # 与 docker/frontend/Dockerfile（ui 专用，standalone + node 运行时）解耦。
 # =============================================================================

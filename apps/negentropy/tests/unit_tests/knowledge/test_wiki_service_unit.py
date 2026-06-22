@@ -274,6 +274,7 @@ class TestWikiPublishDeploySpawn:
         svc._spawn_wiki_deploy_script(
             "scripts/build-wiki-local.sh",
             spawn_log_key="wiki_local_rebuild_spawned",
+            log_filename="wiki-local-rebuild.log",
         )
 
         cmd = captured["cmd"]
@@ -295,6 +296,7 @@ class TestWikiPublishDeploySpawn:
         svc._spawn_wiki_deploy_script(
             "scripts/__definitely_missing__.sh",
             spawn_log_key="wiki_missing_spawned",
+            log_filename="wiki-missing.log",
         )
         assert popen_called == []  # 脚本缺失时仅 WARN，不 Popen
 

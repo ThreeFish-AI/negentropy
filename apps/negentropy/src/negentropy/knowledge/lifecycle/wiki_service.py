@@ -36,6 +36,7 @@ def _spawn_wiki_deploy_script(
     *,
     env_overrides: dict[str, str] | None = None,
     spawn_log_key: str,
+    log_filename: str,
 ) -> None:
     """fire-and-forget spawn 一个相对仓库根的 wiki 部署脚本。
 
@@ -44,11 +45,13 @@ def _spawn_wiki_deploy_script(
     脚本路径为固定内部相对值（``script_relpath`` 不拼接外部输入），env 仅透传
     受信配置。
 
-    与 ``trigger_wiki_redeploy``（webhook → 云端 CI）正交：本地 spawn 用本函数、
-    分域/云端用 webhook。
+    stdout/stderr 统一落盘 ``.temp/<log_filename>``（与脚本自身日志同文件，单一
+    排查入口）；脚本内另有 mkdir 并发锁串行化多次 spawn。与 ``trigger_wiki_redeploy``
+    （webhook → 云端 CI）正交：本地 spawn 用本函数、分域/云端用 webhook。
     """
     try:
         import subprocess
+        from datetime import UTC, datetime
         from pathlib import Path
 
         # 仓库根：本文件位于 apps/negentropy/src/negentropy/knowledge/lifecycle/。
@@ -62,16 +65,22 @@ def _spawn_wiki_deploy_script(
         if env_overrides:
             env.update(env_overrides)
 
-        # fire-and-forget：脱离请求生命周期后台运行；输出交由脚本自身/系统日志。
+        # 输出统一落盘 .temp/<log_filename>（与脚本自身日志同文件，单一排查入口）。
+        # fire-and-forget：不 wait、不阻塞 publish；父侧 fd 关闭不影响子进程继承的 fd。
+        log_path = repo_root / ".temp" / log_filename
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_fp = log_path.open("a", encoding="utf-8")
+        log_fp.write(f"\n[{datetime.now(UTC).isoformat()}] {script_relpath} spawned\n")
+        log_fp.flush()
+        logger.info(spawn_log_key, script=str(script_path), log=str(log_path))
         subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 仅透传受信配置
             ["bash", str(script_path)],
             cwd=str(repo_root),
             env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_fp,
+            stderr=log_fp,
             start_new_session=True,
         )
-        logger.info(spawn_log_key, script=str(script_path))
     except Exception as exc:  # noqa: BLE001 - 主动吞噬：spawn 失败不阻塞发布
         logger.warning(f"{spawn_log_key}_failed", error=str(exc))
 
@@ -99,6 +108,7 @@ def _spawn_pages_publish() -> None:
         cfg.script,
         env_overrides=env_overrides,
         spawn_log_key="wiki_pages_publish_spawned",
+        log_filename="wiki-pages-publish.log",
     )
 
 
@@ -113,6 +123,7 @@ def _spawn_local_wiki_rebuild() -> None:
         "scripts/build-wiki-local.sh",
         env_overrides=None,
         spawn_log_key="wiki_local_rebuild_spawned",
+        log_filename="wiki-local-rebuild.log",
     )
 
 

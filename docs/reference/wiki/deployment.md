@@ -334,7 +334,9 @@ WIKI_PAGES_DRY_RUN=1 ./scripts/publish-wiki-pages.sh
 - 脚本自动写 `.nojekyll`（GitHub Pages 即使 `build_type: legacy`（Jekyll）也读它；否则 `_next/` 等下划线目录被忽略，致 JS/CSS 404）。
 - `out/` 用 `rsync --delete` 全量覆盖目标分支（保留 `.git` 与 `CNAME`），旧站点文件一并清理。
 - **幂等**：buildId 绑定内容版本（见 [§4.5](#45-发布幂等buildid)），内容未变则跳过 commit，避免 noise 历史。
-- **token 安全**：token 仅注入 git remote URL（工作副本在 gitignored `.temp/`），不落盘日志。
+- **并发安全**：多次「同步并发布」触发的 spawn 经 `.temp/wiki-pages-publish.lock`（mkdir 原子锁 + PID 陈旧检测，portable，macOS/Linux 通用）串行化，避免目标 Pages 仓库 push 竞争（后写覆盖 / 分支冲突 / 备份分支污染）；锁被持有时跳过本次，下次 publish 会带上最新内容。
+- **全流程日志**：导出 / build / push 各步与失败原因落盘 `.temp/wiki-pages-publish.log`（后端 spawn 与手动运行同一入口；手动运行同时输出终端）。发布未生效时**首选查此日志**。
+- **token 安全**：token 仅注入 git remote URL（工作副本在 gitignored `.temp/`），上述日志不记录 token。
 
 ### 3.6 内容刷新语义
 
