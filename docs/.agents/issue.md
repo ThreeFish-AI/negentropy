@@ -3273,3 +3273,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   - 同步修正 3 处单测 patch 目标（`test_form_handler.py` / `test_advanced_features.py` 的 `Select`/`ActionChains`）由已移除的模块级符号改为源模块属性（`selenium.webdriver...`），与 `test_browser_utils` 既有约定一致——懒加载符号的 patch 须指向源模块（方法内 `from X import Y` 调用期从 `sys.modules[X].Y` 取值，patch 源属性可拦截）。
 - **后续防范**：① 服务健康检查预算应按**壁钟**（`$SECONDS` 截止）而非次数——探针本身有耗时（curl/连接），按次数会漂移；② `set -euo pipefail` 下捕获函数返回码必须 `cmd || rc=$?`，bare `rc=$?` 紧跟会被 errexit 抢先；③ Python 服务冷启动慢，优先排查模块级 eager 导入的重依赖（selenium/playwright/ML 框架），下沉为函数内懒加载 + `TYPE_CHECKING` 守卫注解，既不拖慢启动又过静态检查；④ 测试 patch 懒加载符号须指向**源模块属性**而非消费方模块别名（后者已不存在）；⑤ `git pull --ff-only` 在脏树的行为虽安全但输出惊吓，交互脚本应预检脏树。
 - **同类问题影响**：任何 Python 服务在模块级 eager 导入重依赖（浏览器自动化/ML/PDF 引擎）都会拖慢进程启动，进而压垮按固定预算计的健康检查——`cli.sh wait_for_health` 是 4 服务通用探活模式，perceives 的 selenium 是典型样本，backend 的 `bootstrap.py`（litellm + 20+ 路由）属同类（本次未动，仅放宽预算兜底）。与 ISSUE-140（cli.sh Phase 3 仅 `pg_isready` 进程级探活）同属 cli.sh 探活薄弱面，但维度不同：本次是预算/冷启动时长，彼次是探活深度（角色/库级认证）。
+
+---
+
+## ISSUE-146 Wiki 发布面板 ISR 时代 UI 残留移除：三步流水线指示器 + content-status 轮询 + 「5 分钟窗口」提示均与纯静态架构脱节（2026-06-22）
+
+- **表因**：Wiki「发布」面板红框内的「保存版本 / 通知 SSG / 验证内容」三步指示器，以及「未配置主动 ISR，内容将通过 5 分钟窗口异步更新」提示，在当前架构下功能失效或主动误导——用户发布后看到「通知 SSG」「验证内容」长期停在未完成态，且误以为内容要等 5 分钟才上线。
+- **根因**：wiki 完成纯静态化（`apps/negentropy-wiki/next.config.ts` `output: "export"`，无 server runtime / API routes / ISR）后，`apps/negentropy-ui/app/knowledge/wiki/_components/WikiPublishPipeline.tsx` 的整套 ISR 语义与真实链路脱节：
+  ① **「验证内容」彻底失效**——组件轮询 `${SSG_BASE_URL}/api/content-status`，但该端点在 wiki app **根本不存在**（纯静态无 API route），且 `NEXT_PUBLIC_WIKI_SSG_BASE_URL` 从未在任何 env 配置（全仓唯一引用即在组件内）→ 轮询永不触发、`freshness` 永停 idle。
+  ② **「通知 SSG」语义错误**——真实部署机制是 `wiki_service.publish` fire-and-forget spawn `build-wiki-local.sh`（测试）/ `publish-wiki-pages.sh`（生产），不是"通知 SSG"；UI 消费的后端 `revalidation` 字段实为独立的 `trigger_wiki_redeploy` webhook 旁路返回值，而 `wiki_redeploy.url` 默认 None → 恒为 `"not_configured"`，UI 却渲染成"未配置主动 ISR"。
+  ③ **「5 分钟窗口」提示主动错误**——ISR 已退役（`docs/reference/wiki/deployment.md` 不变量："ISR 已退役——不存在运行时 5 分钟自动刷新"），不存在所谓窗口；真实机制是 spawn 脚本重建（秒级到分钟级）。
+  ④ **「保存版本」恒绿勾纯装饰**——底层版本递增/快照/回滚真实有效（`wiki_dao.py` `version += 1` + `wiki_publication_snapshots` + `ops.md` §12.3 回滚 + buildId 幂等），但作为"始终 completed"的步骤指示器不传递任何信息。
+- **处理方式**（本次 PR）：
+  - **前端**：重写 `WikiPublishPipeline.tsx`——删除三步指示器（`getSteps`/`StepDot`）、全部 `STATUS_MESSAGES`（ISR/SSG/5 分钟文案）、`/api/content-status` 轮询 + freshness 状态机、`SSG_BASE_URL`/`NEXT_PUBLIC_WIKI_SSG_BASE_URL` 依赖；改为 `action + target + version` 驱动的**单行精确状态**（publish+local：「已保存版本 vX · 已触发本地重建（:3092）」；publish+production：「已触发生产发布（GitHub Pages）」；unpublish：「已取消发布」）。`WikiPublishToolbar.tsx` 用 `pipelineAction + pipelineTarget` 替换 `pipelineRevalidation` 状态，移除 `WikiRevalidationStatus` 导入；单测同步移除 mock 中已不消费的 `revalidation` 字段（Pipeline 组件本身在单测中已 mock，无文案断言需改）。
+  - **后端死代码**：删除生产零引用的 `revalidate.py`（111 行，旧 ISR revalidate 触发器，已被 `wiki_redeploy.py` 取代）及其专测 `test_revalidate.py`；修正 `wiki_service.py` `unpublish` docstring（谎称"通知 SSG 主动 revalidate"，实为 redeploy webhook 旁路）。
+  - **契约保留**：`WikiRevalidationStatus` 类型与 `WikiPublishActionResponse.revalidation` 字段、`trigger_wiki_redeploy` webhook 旁路均保留（云端 CI 回溯兼容），仅 UI 停止以 ISR 语义消费。
+  - **文档**：修正 `ops.md` §8.1 两行 ISR 自愈/缓存过期排错描述（ISR 不复存在，纯静态站需重新发布触发重建）。
+- **后续防范**：① 架构范式迁移（如运行时 ISR → 纯静态 SSG）须同步审计 **UI / 文案 / 配置 / 文档** 四层，杜绝「代码已迁、UI 未迁」的语义漂移；② 后端字段（如 `revalidation`）被前端以过时语义渲染时，应以「真实链路」为准重写消费侧，而非保留误导性中间层；③ 删除死模块时须连带其专测与配套配置类评估（本次 `WikiRevalidateSettings` 配置类因仍被 yaml/docs 引用、爆炸半径跨 config schema，刻意保留待专项治理）。
+- **同类问题影响**：所有「运行时范式 → 构建时范式」迁移（SSR/ISR → SSG、动态 → 静态）都会留下 UI 中间层语义残骸。已识别的相邻遗留：(1) `WikiRevalidateSettings` 配置类 + `wiki_revalidate` 字段（`config/knowledge.py:61/349`）+ `config.default.yaml:218` + `docker-operations.md:220` env 表的 `NE_KNOWLEDGE_WIKI_REVALIDATE__*`——本 PR 删 `revalidate.py` 后该配置完全孤立（仅自身定义 + yaml/docs 引用，无生产消费方），建议专项 ISSUE 一并清理；(2) `docs/reference/wiki/design/knowledge-graph.md:132` 图缓存旁注「与 SSG ISR 5 分钟窗口一致」属同型 ISR 残留表述，归图 API 子系统，留待该子系统治理；(3) `issue.md` ISSUE-020（L390）记录的 ISR 缓存毒化历史保留不动，仅作回溯参考。

@@ -15,7 +15,6 @@ import {
   unpublishWiki,
   type WikiPublication,
   type WikiPublishTarget,
-  type WikiRevalidationStatus,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
@@ -59,8 +58,9 @@ export function WikiPublishToolbar({
   const [publishTarget, setPublishTarget] = useState<WikiPublishTarget>("local");
   const [submitting, setSubmitting] = useState(false);
   const [pipelineActive, setPipelineActive] = useState(false);
-  const [pipelineRevalidation, setPipelineRevalidation] =
-    useState<WikiRevalidationStatus | null>(null);
+  // 发布后状态条：以「操作 + 目标 + 版本」驱动精确文案，不再消费 ISR 语义的 revalidation。
+  const [pipelineAction, setPipelineAction] = useState<"publish" | "unpublish" | null>(null);
+  const [pipelineTarget, setPipelineTarget] = useState<WikiPublishTarget>("local");
   const [pipelineTargetVersion, setPipelineTargetVersion] = useState<number | null>(null);
 
   const pubId = selectedPub?.id ?? null;
@@ -71,7 +71,7 @@ export function WikiPublishToolbar({
   // 切换发布对象时清空残留的 Pipeline 状态，避免上次发布的回执遗留到新对象。
   useEffect(() => {
     setPipelineActive(false);
-    setPipelineRevalidation(null);
+    setPipelineAction(null);
     setPipelineTargetVersion(null);
   }, [pubId]);
 
@@ -89,7 +89,7 @@ export function WikiPublishToolbar({
     setPipelineActive(true);
     try {
       const resp = await unpublishWiki(pubId);
-      setPipelineRevalidation(resp.revalidation ?? null);
+      setPipelineAction("unpublish");
       setPipelineTargetVersion(resp.version);
       toast.success("已取消发布");
       onPublicationsChanged();
@@ -158,7 +158,8 @@ export function WikiPublishToolbar({
         // 同步完成随即发布到所选目标（重建/推送由后端 fire-and-forget spawn 承担）。
         setPipelineActive(true);
         const pubResp = await publishWiki(pubId, publishTarget);
-        setPipelineRevalidation(pubResp.revalidation ?? null);
+        setPipelineAction("publish");
+        setPipelineTarget(publishTarget);
         setPipelineTargetVersion(pubResp.version);
         const sitePart = pubResp.site_url ? `，站点 ${pubResp.site_url}` : "";
         toast.success(`发布成功：v${pubResp.version}（${targetLabel}${sitePart}）`);
@@ -296,11 +297,11 @@ export function WikiPublishToolbar({
       </div>
 
       {/* Pipeline 状态条 */}
-      {pipelineActive && pipelineRevalidation !== null && selectedPub && (
+      {pipelineActive && pipelineAction !== null && (
         <WikiPublishPipeline
-          revalidation={pipelineRevalidation}
-          targetVersion={pipelineTargetVersion ?? undefined}
-          pubSlug={selectedPub.slug}
+          action={pipelineAction}
+          target={pipelineAction === "publish" ? pipelineTarget : undefined}
+          version={pipelineTargetVersion ?? undefined}
         />
       )}
 

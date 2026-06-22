@@ -345,7 +345,10 @@ class WikiPublishingService:
         return pub, revalidation
 
     async def unpublish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
-        """取消发布：published → draft，并通知 SSG 主动 revalidate。
+        """取消发布：published → draft，并通知重建流水线（webhook → 云端 CI）。
+
+        wiki 纯静态化后无运行时 ISR/revalidate：``trigger_wiki_redeploy`` 仅作为
+        云端 CI 重建的旁路通知（未配置即 no-op）；实际站点产物不在本方法内更新。
 
         Returns:
             ``(publication, revalidation_status)``。
