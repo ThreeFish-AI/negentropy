@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 # Lifecycle schema imports
 from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
+    WIKI_PUBLISH_TARGET_SITE_URL,
     AssignDocumentRequest,
     CatalogTreeResponse,
     CategorySuggestionResponse,
@@ -44,6 +45,7 @@ from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
     WikiEntryContentResponse,
     WikiNavTreeResponse,
     WikiPublishActionResponse,
+    WikiPublishRequest,
 )
 from negentropy.knowledge.lifecycle_schemas import SyncFromCatalogRequest as _SyncFromCatalogReq
 from negentropy.knowledge.lifecycle_schemas import SyncFromCatalogResponse as _SyncFromCatalogResp
@@ -288,17 +290,26 @@ async def delete_wiki_publication(pub_id: UUID):
 
 
 @router.post("/wiki/publications/{pub_id}/publish")
-async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
+async def publish_wiki(
+    pub_id: UUID,
+    body: WikiPublishRequest | None = None,
+) -> WikiPublishActionResponse:
     """触发发布：将 draft/published 状态转为 published，递增版本号
 
-    SSG 应用 (apps/negentropy-wiki) 在 ISR 再验证窗口内会自动拉取最新数据。
-    响应中的 revalidation 字段反映 ISR 主动通知的状态。
+    请求体 ``target`` 指定发布目标：
+      - ``local``（缺省，测试环境）：重建本地 wiki（``:3092``）。
+      - ``production``（生产环境）：推送到 ``threefish-ai.github.io`` master，
+        直接更新 https://threefish-ai.github.io/。
+
+    响应中的 ``revalidation`` 反映 webhook 派发状态；``target`` / ``site_url``
+    回填本次目标与上线站点 URL。
     """
+    target = (body or WikiPublishRequest()).target
     wiki_svc = _get_wiki_service()
 
     async with AsyncSessionLocal() as db:
         try:
-            pub, revalidation_status = await wiki_svc.publish(db, pub_id)
+            pub, revalidation_status = await wiki_svc.publish(db, pub_id, target=target)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -308,7 +319,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         doc_count = await wiki_svc.count_document_entries(db, pub_id)
         await db.commit()
 
-    logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version)
+    logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version, target=target.value)
 
     return WikiPublishActionResponse(
         publication_id=pub.id,
@@ -318,6 +329,8 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         entries_count=doc_count,
         message=f"Published successfully (v{pub.version})",
         revalidation=revalidation_status,
+        target=target.value,
+        site_url=WIKI_PUBLISH_TARGET_SITE_URL.get(target),
     )
 
 
