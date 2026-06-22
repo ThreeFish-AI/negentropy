@@ -3,7 +3,7 @@
   position: relative;
   overflow: hidden;
   background: var(--wiki-hero-base);
-  color: #ffffff;
+  color: var(--wiki-hero-text);
   text-align: center;
   padding: 5rem 2rem 4rem;
 }
@@ -46,17 +46,24 @@
 .home-hero-cta {
   display: inline-block;
   padding: 0.7rem 1.8rem;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--wiki-hero-cta-border);
   border-radius: 24px;
-  color: #ffffff;
+  background: var(--wiki-hero-cta-bg);
+  color: var(--wiki-hero-cta-color);
   font-size: 0.95em;
   font-weight: 600;
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .home-hero-cta:hover {
+  /* 反相反馈：浅色「紫底白字 → 白底紫字」、深色「白边透明 → 白底紫字」，两套主题一致 */
   background: #ffffff;
   color: var(--wiki-home-accent);
+}
+/* 实心紫 CTA 上显式焦点环：全局 :focus-visible 为 accent 描边，紫底之上不可见，故覆写 */
+.home-hero-cta:focus-visible {
+  outline: 2px solid var(--wiki-hero-cta-color);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

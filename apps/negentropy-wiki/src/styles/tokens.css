@@ -66,18 +66,31 @@
     transparent 70%
   );
 
-  /* 首页 Hero — 深紫罗兰夜空（Galaxy 之下的基色，两套主题一致） */
-  --wiki-hero-base: #140d24;
-  --wiki-hero-blob-1: #3b1d6e;
-  --wiki-hero-blob-2: #6d28d9;
-  --wiki-hero-blob-3: #1e1140;
-  --wiki-hero-blob-4: #4c1d95;
+  /* 首页 Hero —— 浅紫「绽放」渐变：首尾回到页面底色 var(--wiki-bg)，与顶栏/卡片区
+     像素级无缝；中段最浓 #faf7ff（唯一新增魔法色，≤ Squaredocs 的极浅调性）。
+     深色主题在 themes.css 覆写为 #140d24 深空平铺（Galaxy 画布覆盖其上）。 */
+  --wiki-hero-base: linear-gradient(180deg, var(--wiki-bg) 0%, #faf7ff 45%, var(--wiki-bg) 100%);
+  /* Hero 文字 / CTA —— 浅色：深字 + 紫实心 CTA（#6d28d9 对 #fff 对比度 ≈7:1）；
+     深色 themes.css 覆写回「白字 + 白边描边 CTA」，保持深空 Hero 零回归。 */
+  --wiki-hero-text: var(--wiki-text);
+  --wiki-hero-cta-bg: var(--wiki-accent-hover);
+  --wiki-hero-cta-color: #ffffff;
+  --wiki-hero-cta-border: transparent;
 
   /* Footer — 全站深色 */
   --wiki-footer-bg: #0f0f12;
   --wiki-footer-text: #ffffff;
   --wiki-footer-text-secondary: rgba(255, 255, 255, 0.66);
   --wiki-footer-border: rgba(255, 255, 255, 0.1);
+  /* 首页「卡片区(白) → 深色页脚」浅色主题羽化（白→深渐变，柔化硬切）；
+     仅首页命中（见 home-footer.css 的 :has 作用域）；深色 themes.css 置 none/0 跳过 */
+  --wiki-footer-fade: linear-gradient(
+    180deg,
+    var(--wiki-bg) 0%,
+    var(--wiki-bg) 35%,
+    var(--wiki-footer-bg) 100%
+  );
+  --wiki-footer-fade-height: 96px;
 
   /* Primary light（active 背景叠色） */
   --wiki-primary-light: rgba(124, 58, 237, 0.1);
