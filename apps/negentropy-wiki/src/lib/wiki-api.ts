@@ -39,31 +39,35 @@ export function isReservedDocsSlug(slug: string | null | undefined): boolean {
 /**
  * WikiHeader 左侧「Negentropy」保留标签的渲染输入。
  *
- * - `items` 缺省 → 纯链接标签（首页 / 非保留 pub 页），点击直达保留 docs 首页；
- * - `items` 非空 → 渲染为二级下拉（联级菜单），面板列出保留 pub 第一层章节，
- *   仅在「身处保留 pub」时由 `buildReservedDocsTab` 注入。
+ * - `items` 缺省/空 → 纯链接标签（保留 pub 第一层为空时回退），点击直达保留 docs 首页；
+ * - `items` 非空 → 渲染为二级下拉（联级菜单），面板列出保留 pub 第一层章节。
+ *   全站稳定：无论当前身处哪个 pub，下拉恒列保留 pub 的二级目录（来自全局 header 模型）。
  */
 export interface ReservedDocsTab {
   show: boolean;
   active?: boolean;
   label?: string;
   href: string;
-  /** 保留下拉面板条目（保留 pub nav-tree 第一层）；缺省时渲染纯链接。 */
+  /** 保留下拉面板条目（保留 pub nav-tree 第一层）；缺省/空时渲染纯链接。 */
   items?: WikiNavTreeItem[];
-  /** 当前激活的第一层 slug，用于下拉项高亮。 */
+  /** 当前激活的第一层 slug，用于下拉项高亮（仅身处保留 pub 时有意义）。 */
   activeChildSlug?: string;
 }
 
 /**
  * 派生左侧「Negentropy」保留标签的 Header 渲染输入（单一事实源）。
  *
- * 集中"身处保留 pub 时把 nav-tree 第一层折叠进左侧下拉、其它页面保持纯链接"的规则，
- * 杜绝三个 pub 页面各自重复实现，亦与首页「保留 pub 不进 `--right`」的过滤意图呼应。
+ * 顶级菜单全局化后，保留标签的下拉项**始终**来自全站 header 模型的 `reservedItems`
+ * （全局加载、与当前路由无关），使「Negentropy」下拉在任意页面恒列二级目录；
+ * 仅「当前激活子项高亮」依路由而变（身处保留 pub 时才有激活子项）。
  *
  * - `reservedExists=false` → `undefined`（保留 pub 不存在，不渲染标签）；
- * - `isReserved=true`（身处保留 pub）→ 注入 `items` + `activeChildSlug`，调用方同时应
- *   据 `isReserved` 清空 `--right` 一级 tabs（避免子项与左侧下拉重复出现）；
- * - 其它页面 → 纯链接（`items` 不注入），点击直达保留 docs 首页。
+ * - `items` 非空 → 渲染二级下拉；空/缺省 → 纯链接（保留 pub 无第一层时的回退）；
+ * - `active = isReserved`（身处保留 pub 时标签高亮）；
+ * - `activeChildSlug` 仅 `isReserved` 时透传（非保留页左下拉不高亮任何子项）。
+ *
+ * 「右区只含非保留 pub、左下拉只含保留 pub」的分区不变式由 `buildHeaderNav` 保证，
+ * 故下拉项与右区一级 tabs 不会重复出现同一节点。
  */
 export function buildReservedDocsTab(opts: {
   reservedExists: boolean;
@@ -77,9 +81,65 @@ export function buildReservedDocsTab(opts: {
     active: opts.isReserved,
     label: RESERVED_DOCS_LABEL,
     href: RESERVED_DOCS_HOME,
-    items: opts.isReserved ? opts.items : undefined,
-    activeChildSlug: opts.activeChildSlug,
+    // 始终注入全局 reservedItems；空数组归一为 undefined，让组件层据 items?.length 回退纯链接。
+    items: opts.items && opts.items.length > 0 ? opts.items : undefined,
+    activeChildSlug: opts.isReserved ? opts.activeChildSlug : undefined,
   };
+}
+
+/**
+ * Header 右区一级 tab 项：携带自身所属 publication 的 slug。
+ *
+ * 顶级菜单跨多个 publication（每个非保留 pub 的 nav-tree 第一层各贡献若干项），
+ * 故每项需自带 `pubSlug` 以正确构建链接与判定激活，而非共享单一 pubSlug。
+ */
+export interface HeaderTopNavItem {
+  pubSlug: string;
+  item: WikiNavTreeItem;
+}
+
+/**
+ * 全站稳定的顶栏导航模型（单一事实源）。
+ *
+ * - `reservedItems`：保留 pub（slug=`negentropy`）的 nav-tree 第一层 → 左侧标签二级下拉；
+ * - `topNav`：其余（非保留）pub 的 nav-tree 第一层 → 右区一级 tabs（每项带自身 pubSlug）。
+ *
+ * 二者在 publication 维度上互斥且穷尽，保证同一节点不会同时出现在左下拉与右区。
+ */
+export interface HeaderNav {
+  reservedExists: boolean;
+  reservedItems: WikiNavTreeItem[];
+  topNav: HeaderTopNavItem[];
+}
+
+/**
+ * 从所有 publication 的 nav-tree 第一层派生全站稳定的顶栏模型（client-safe 纯函数）。
+ *
+ * 遍历入参（顺序即 `listPublications` 顺序，确定性稳定）按 `isReservedDocsSlug` 分区：
+ * 保留 pub 第一层归 `reservedItems`，其余 pub 第一层逐项归 `topNav`（携带 pubSlug）。
+ *
+ * 该模型与当前路由无关，使顶栏在任意页面呈现一致的一级菜单集合：
+ * 「Negentropy」（左，下拉列其二级目录）与各动态 pub 的一级菜单恒并存。
+ */
+export function buildHeaderNav(
+  pubNavTrees: { slug: string; items: WikiNavTreeItem[] }[],
+): HeaderNav {
+  let reservedExists = false;
+  const reservedItems: WikiNavTreeItem[] = [];
+  const topNav: HeaderTopNavItem[] = [];
+
+  for (const { slug, items } of pubNavTrees) {
+    if (isReservedDocsSlug(slug)) {
+      reservedExists = true;
+      reservedItems.push(...items);
+    } else {
+      for (const item of items) {
+        topNav.push({ pubSlug: slug, item });
+      }
+    }
+  }
+
+  return { reservedExists, reservedItems, topNav };
 }
 
 // ---------------------------------------------------------------------------

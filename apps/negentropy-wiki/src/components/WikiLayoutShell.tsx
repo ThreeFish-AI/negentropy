@@ -65,6 +65,13 @@ interface WikiLayoutShellProps {
   variant?: "content" | "home";
   /** 页脚（渲染在布局底部） */
   footer?: ReactNode;
+  /**
+   * 移动端抽屉顶部的全站一级菜单（桌面顶栏右区的移动等价物）。
+   *
+   * 桌面 ≤768px 隐藏右区一级 tabs（header.css），一级导航改由抽屉承载；透传给
+   * `WikiMobileNav` 在侧栏内容之上渲染，使各一级菜单在移动端同样并存。
+   */
+  mobileTopNav?: ReactNode;
 }
 
 export function WikiLayoutShell({
@@ -76,6 +83,7 @@ export function WikiLayoutShell({
   storageKey = TOC_STORAGE_KEY,
   variant = "content",
   footer,
+  mobileTopNav,
 }: WikiLayoutShellProps) {
   const [collapsed, setCollapsedState] = useState(true);
 
@@ -121,14 +129,14 @@ export function WikiLayoutShell({
       {header}
       {isHome ? (
         <>
-          <WikiMobileNav>{sidebar}</WikiMobileNav>
+          <WikiMobileNav topNav={mobileTopNav}>{sidebar}</WikiMobileNav>
           <div className="wiki-layout wiki-layout--home" data-header={header ? "" : undefined}>
             <main className="wiki-main wiki-main--home">{children}</main>
           </div>
         </>
       ) : (
         <>
-          <WikiMobileNav>{sidebar}</WikiMobileNav>
+          <WikiMobileNav topNav={mobileTopNav}>{sidebar}</WikiMobileNav>
           <div className="wiki-layout" data-toc={dataToc} data-header={header ? "" : undefined}>
             <aside className="wiki-sidebar">{sidebar}</aside>
             <main className="wiki-main">{children}</main>

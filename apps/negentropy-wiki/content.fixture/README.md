@@ -1,8 +1,9 @@
 # Wiki 静态内容包 —— 开发种子 fixture（`content.fixture/`）
 
-本目录是 **negentropy-wiki 的开发种子 fixture**（手写，固定 `negentropy-handbook`
-publication），用于**全新 clone / CI build-smoke 的构建兜底**——保证在没有真实导出内容时
-`next build` / `pnpm dev` 也能产出可用站点。
+本目录是 **negentropy-wiki 的开发种子 fixture**（手写，固定一个动态 `wiki` publication
+与保留 `negentropy` 目录），用于**全新 clone / CI build-smoke 的构建兜底**——保证在没有
+真实导出内容时 `next build` / `pnpm dev` 也能产出可用站点，并复现生产顶栏拓扑（动态一级
+菜单 + 保留「Negentropy」二级目录并存）。
 
 ## 内容根二元结构与 git 策略（Single Source of Truth）
 

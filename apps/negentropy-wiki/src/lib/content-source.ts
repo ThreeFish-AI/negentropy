@@ -30,6 +30,7 @@ import "server-only";
 import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 
+import { buildHeaderNav, type HeaderNav } from "./wiki-api";
 import type {
   WikiEntry,
   WikiEntryContent,
@@ -284,3 +285,29 @@ export class LocalContentClient {
 // ---------------------------------------------------------------------------
 
 export const wikiApi = new LocalContentClient();
+
+// ---------------------------------------------------------------------------
+// 全站顶栏导航装配（server-only 薄封装）
+//
+// 顶级菜单是全站稳定模型（与当前路由无关），需读取所有 publication 的 nav-tree
+// 第一层。本函数只做「列表 + 并发取树 + 纯函数分区」的装配，底层文件 IO 去重
+// 完全交给上方既有的 `fileCache`/`indexCache`——故四个页面各自调用一次，真实
+// 磁盘读取仍仅发生一次/文件，无需额外模块级 memo（避免双重缓存）。
+// ---------------------------------------------------------------------------
+
+/** 加载全站稳定的顶栏导航模型（保留 pub 二级目录 + 各动态 pub 一级菜单）。 */
+export async function loadHeaderNav(): Promise<HeaderNav> {
+  const { items } = await wikiApi.listPublications();
+  const pubNavTrees = await Promise.all(
+    items.map(async (pub) => {
+      try {
+        const navResult = await wikiApi.getNavTree(pub.id);
+        return { slug: pub.slug, items: navResult.nav_tree?.items ?? [] };
+      } catch {
+        // 单个 pub 取树失败不应拖垮整条顶栏：降级为空第一层。
+        return { slug: pub.slug, items: [] as WikiNavTreeItem[] };
+      }
+    }),
+  );
+  return buildHeaderNav(pubNavTrees);
+}

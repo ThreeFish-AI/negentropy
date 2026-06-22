@@ -194,6 +194,61 @@
   font-weight: 600;
 }
 
+/* ---- Mobile drawer top-level nav (桌面右区一级 tabs 的移动等价物) ---- */
+.wiki-mobile-topnav {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--wiki-border);
+}
+.wiki-mobile-topnav-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.25rem;
+}
+.wiki-mobile-topnav-title {
+  display: block;
+  padding: 0.6rem 1rem;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--wiki-text);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-mobile-topnav-title:hover {
+  background: var(--wiki-primary-light);
+  color: var(--wiki-accent);
+  text-decoration: none;
+}
+.wiki-mobile-topnav-sublink {
+  display: block;
+  padding: 0.5rem 1rem 0.5rem 1.75rem;
+  font-size: 0.9em;
+  color: var(--wiki-text-secondary);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-mobile-topnav-sublink:hover {
+  background: var(--wiki-bg-secondary);
+  color: var(--wiki-text);
+  text-decoration: none;
+}
+.wiki-mobile-topnav-link {
+  display: block;
+  padding: 0.6rem 1rem;
+  font-size: 0.95em;
+  font-weight: 500;
+  color: var(--wiki-text);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wiki-mobile-topnav-link:hover {
+  background: var(--wiki-primary-light);
+  color: var(--wiki-accent);
+  text-decoration: none;
+}
+
 /* Header slot (right side) */
 .wiki-header-slot {
   display: flex;

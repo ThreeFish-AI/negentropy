@@ -4,6 +4,7 @@ import { ThemePreference } from "@/components/ThemePreference";
 import { WikiGraphRenderer } from "@/components/WikiGraphRenderer";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
+import { WikiHeaderMobileNav } from "@/components/WikiHeaderMobileNav";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
   buildReservedDocsTab,
@@ -14,7 +15,7 @@ import {
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
-import { wikiApi } from "@/lib/content-source";
+import { loadHeaderNav, wikiApi } from "@/lib/content-source";
 import type { WikiGraphResponse } from "@/lib/wiki-graph-types";
 
 /**
@@ -84,20 +85,20 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
   const reservedExists =
     isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
 
-  // 身处保留 pub 时，把其 nav-tree 第一层注入左侧「Negentropy」标签的二级下拉，
-  // 并清空右侧 `--right` 一级 tabs，避免子项与下拉重复出现（首页同此过滤意图）。
+  // 顶栏全局模型：左侧「Negentropy」恒列其二级目录，右区恒列各动态 pub 一级菜单（全页并存）。
+  const headerNav = await loadHeaderNav();
   const reservedTab = buildReservedDocsTab({
     reservedExists,
     isReserved,
-    items: sectionView.headerItems,
-    activeChildSlug: sectionView.activeTopSlug,
+    items: headerNav.reservedItems,
+    activeChildSlug: isReserved ? sectionView.activeTopSlug : undefined,
   });
-  const headerItems = isReserved ? [] : sectionView.headerItems;
 
-  const header = sectionView.headerItems.length > 0 && (
+  const header = (
     <WikiHeader
       pubSlug={pubSlug}
-      items={headerItems}
+      topNav={headerNav.topNav}
+      activePubSlug={isReserved ? undefined : pubSlug}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
@@ -106,11 +107,16 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
     />
   );
 
+  const mobileTopNav = (
+    <WikiHeaderMobileNav reservedTab={reservedTab} topNav={headerNav.topNav} />
+  );
+
   return (
     <WikiLayoutShell
       sidebar={<></>}
       hasToc={false}
-      header={header || undefined}
+      header={header}
+      mobileTopNav={mobileTopNav}
       variant="home"
     >
       <div className="wiki-graph-page">

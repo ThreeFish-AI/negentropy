@@ -9,7 +9,7 @@
       "type": "CONCEPT",
       "importance": 0.95,
       "community_id": 1,
-      "entry_slugs": ["quickstart/getting-started", "architecture-overview"],
+      "entry_slugs": ["harness-engineering/getting-started", "sinestesia-of-cognition"],
       "mention_count_in_pub": 8,
       "metadata": { "entity_type": "CONCEPT", "corpus_id": "55555555-5555-4555-8555-555555555551", "global_mention_count": 12 }
     },
@@ -19,7 +19,7 @@
       "type": "CONCEPT",
       "importance": 0.82,
       "community_id": 1,
-      "entry_slugs": ["architecture-overview"],
+      "entry_slugs": ["sinestesia-of-cognition"],
       "mention_count_in_pub": 3,
       "metadata": { "entity_type": "CONCEPT", "corpus_id": "55555555-5555-4555-8555-555555555551", "global_mention_count": 5 }
     }

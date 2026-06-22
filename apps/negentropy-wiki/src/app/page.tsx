@@ -1,6 +1,8 @@
 import type { ComponentType } from "react";
 
 import {
+  buildHeaderNav,
+  buildReservedDocsTab,
   findFirstDocumentSlug,
   isReservedDocsSlug,
   RESERVED_DOCS_HOME,
@@ -10,6 +12,7 @@ import {
 } from "@/lib/wiki-api";
 import { wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
+import { WikiHeaderMobileNav } from "@/components/WikiHeaderMobileNav";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
@@ -46,8 +49,11 @@ export default async function WikiHomePage() {
     }),
   );
 
-  // 从 nav tree 一级节点构建 header 导航项
-  const homeLinks: { label: string; href: string }[] = [];
+  // 全站稳定的顶栏模型：保留 pub 二级目录 + 各动态 pub 一级菜单（复用已加载的 navTrees，零额外 IO）。
+  const headerNav = buildHeaderNav(
+    navTrees.map(({ pub, items }) => ({ slug: pub.slug, items })),
+  );
+
   // 从 nav tree 一级节点构建卡片数据（存储 Icon 组件引用，在 JSX 中渲染）
   const homeCards: {
     title: string;
@@ -57,15 +63,14 @@ export default async function WikiHomePage() {
   }[] = [];
 
   for (const { pub, items } of navTrees) {
-    // 保留一级目录「Negentropy」不进右区内容标签 / 卡片：它由左侧保留标签 + 领衔卡片单独承载，
-    // 避免「左侧保留标签」与「右区普通标签」双重出现。
+    // 保留一级目录「Negentropy」不进右区卡片：它由左侧保留标签 + 领衔卡片单独承载，
+    // 避免「左侧保留标签」与「右区普通卡片」双重出现。
     if (isReservedDocsSlug(pub.slug)) continue;
     if (items.length > 0) {
-      // 有 nav tree 一级节点时，从中构建导航项
+      // 有 nav tree 一级节点时，从中构建卡片
       for (const item of items) {
         const title = item.entry_title || item.entry_slug;
         const href = buildEntryHref(pub.slug, item);
-        homeLinks.push({ label: title, href });
         homeCards.push({
           title,
           // 优先节点级描述（Catalog 节点 description）→ 回退 Publication 级描述 → 占位
@@ -76,7 +81,6 @@ export default async function WikiHomePage() {
       }
     } else {
       // nav tree 为空或 API 失败时，用 publication 自身作为兜底
-      homeLinks.push({ label: pub.name, href: `/${pub.slug}` });
       homeCards.push({
         title: pub.name,
         href: `/${pub.slug}`,
@@ -104,22 +108,20 @@ export default async function WikiHomePage() {
     (p) => !isReservedDocsSlug(p.slug),
   )?.slug;
 
+  // 首页不身处任何 pub：reservedTab 始终下拉（列保留二级目录）但不高亮、右区不高亮。
+  const reservedTab = buildReservedDocsTab({
+    reservedExists: headerNav.reservedExists,
+    isReserved: false,
+    items: headerNav.reservedItems,
+  });
+
   const header = (
     <WikiHeader
-      homeLinks={homeLinks}
+      topNav={headerNav.topNav}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
       pubSlug={firstPubSlug}
-      reservedTab={
-        reservedPub
-          ? {
-              show: true,
-              active: false,
-              label: RESERVED_DOCS_LABEL,
-              href: RESERVED_DOCS_HOME,
-            }
-          : undefined
-      }
+      reservedTab={reservedTab}
       graphTab={
         firstPubSlug
           ? { show: true, active: false, label: "Knowledge Graph" }
@@ -128,30 +130,17 @@ export default async function WikiHomePage() {
     />
   );
 
-  // 移动端侧栏：保留目录领衔，其后接普通右区导航项。
-  const mobileLinks = reservedPub
-    ? [{ label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }, ...homeLinks]
-    : homeLinks;
-
-  const sidebar = (
-    <div className="home-mobile-sidebar">
-      {mobileLinks.map((link) => (
-        <a
-          key={link.href}
-          href={link.href}
-          className="home-mobile-sidebar-link"
-        >
-          {link.label}
-        </a>
-      ))}
-    </div>
+  // 移动端抽屉：全站一级菜单（保留目录领衔 + 各动态一级菜单），与桌面顶栏一致。
+  const mobileTopNav = (
+    <WikiHeaderMobileNav reservedTab={reservedTab} topNav={headerNav.topNav} />
   );
 
   return (
     <WikiLayoutShell
       variant="home"
       header={header}
-      sidebar={sidebar}
+      sidebar={null}
+      mobileTopNav={mobileTopNav}
       footer={<WikiFooter />}
     >
       <section className="home-hero">
