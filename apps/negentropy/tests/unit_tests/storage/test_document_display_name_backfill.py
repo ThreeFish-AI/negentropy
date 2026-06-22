@@ -102,6 +102,17 @@ async def test_set_display_name_backfills_chunks_with_parameterized_jsonb_set():
     # 参数化绑定（而非字符串拼接）——防注入与转义
     assert params == {"document_id": str(doc.id), "display_name_json": json.dumps("我的新名称")}
 
+    # 回归守护：两个命名参数都必须被 asyncpg 方言编译为位置占位符（$N）。
+    # 曾因 ``:display_name_json::jsonb`` 的 ``::cast`` 紧贴参数，SQLAlchemy 解析器
+    # 未识别该参数 → asyncpg 收到字面 ``:`` → ``PostgresSyntaxError``（生产 500）。
+    # 必须用 ``CAST(:param AS jsonb)`` 让参数被绑定。
+    from sqlalchemy.dialects import postgresql
+
+    compiled = str(backfill_stmt.compile(dialect=postgresql.asyncpg.dialect()))
+    assert ":display_name_json" not in compiled  # 不得残留字面 ':name'
+    assert ":document_id" not in compiled
+    assert "$1" in compiled and "$2" in compiled  # 两者都被绑定为位置参数
+
 
 @pytest.mark.asyncio
 async def test_clear_display_name_uses_jsonb_delete_key_branch():
