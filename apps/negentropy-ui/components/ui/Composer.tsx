@@ -485,6 +485,7 @@ export function Composer({
               onChange={(v) => onSelectedLlmModelChange?.(v === "" ? null : v)}
               allowClear={false}
               ariaLabel="选择主 Agent 使用的 LLM"
+              showChevron={false}
             />
           )}
           {showThinkingToggle && (
