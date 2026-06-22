@@ -10,38 +10,48 @@ Negentropy Wiki 是知识库的**对外发布窗口**，将知识库中整理好
 
 ### 8.2 内容发布流程
 
-> 📦 **下游刷新机制已变更**：wiki 纯静态化后不再有运行时 ISR。「同步并发布」的 UI 操作不变，
-> 但发布后内容需经「**导出 → 重建**」才上线（本地 `cli.sh restart` 已内置；远程部署见
-> [`deployment.md`](../deployment.md)）。下图与下文中的「ISR 增量更新 / webhook」描述仅作历史参考。
+> 📦 **下游刷新机制**：wiki 纯静态化（`output: export`）后无运行时 ISR，内容上线需经
+> 「**导出 `content/` → `next build` 重建**」。发布入口已一体化为顶部粘性工具栏的单一
+> **「发布」** 按钮，并支持**双目标**：
+>
+> - **测试环境**：重建本地 `negentropy-wiki`（`http://localhost:3092`）。
+> - **生产环境**：推送到 [`threefish-ai.github.io`](https://github.com/ThreeFish-AI/threefish-ai.github.io) `master` 分支，直接更新 [https://threefish-ai.github.io/](https://threefish-ai.github.io/)。
+>
+> 重建 / 推送由后端在「发布」后 **fire-and-forget spawn** 承担；本地 `cli.sh restart` 亦内置相同闭环。
+> 完整部署拓扑见 [`deployment.md`](../deployment.md)。
 
 ```mermaid
 flowchart LR
-    KB["📚 知识库<br/>Corpus / Documents"] --> Publish["📤 创建 Wiki Publication"]
-    Publish --> Wiki["🌐 Wiki 站点<br/>SSG + ISR"]
-    Wiki --> User["👤 用户浏览"]
-
-    Wiki -.->|"ISR 增量更新<br/>(5 分钟)"| KB
+    KB["📚 知识库<br/>Corpus / Documents"] --> Publish["📤 发布<br/>选节点 + 选目标"]
+    Publish --> Build["🔨 导出 + 重建<br/>content/ → out/"]
+    Build --> Local["🏠 测试环境<br/>本地 :3092"]
+    Build --> Prod["🌐 生产环境<br/>threefish-ai.github.io"]
+    Local --> User["👤 用户浏览"]
+    Prod --> User
 
     classDef proc fill:#DBEAFE,stroke:#1E3A8A,color:#000
     classDef wiki fill:#D1FAE5,stroke:#065F46,color:#000
+    classDef prod fill:#FEE2E2,stroke:#991B1B,color:#000
 
-    class Publish proc
-    class Wiki,User wiki
+    class Publish,Build proc
+    class Local wiki
+    class Prod prod
 ```
 
 #### 8.2.1 在控制台一步步发布（实操指南）
 
-> 适用于已经在 `/knowledge/wiki` 编排好 Catalog 树，希望把已编排内容推送到 negentropy-wiki 站点的运营/编辑同学。
-> UI 入口在 [Knowledge / Wiki 模块发布入口一体化](../../../../CHANGELOG.md) 之后改为「顶部粘性发布工具栏」，不再有「Catalog/Publish」模式切换。
+> 适用于已经在 `/knowledge/wiki` 编排好 Catalog 树，希望把已编排内容发布到 wiki 站点的运营/编辑同学。
+> UI 入口为「顶部粘性发布工具栏」——单一 **「发布」** 按钮承担「选节点同步 → 选目标发布」全流程，
+> 并支持在「测试环境 / 生产环境」间切换。
 
 ##### 前置条件
 
-| 项                             | 说明                                                                                                                 |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Catalog 树                     | 已在左栏完成层级编排，叶子节点已挂载文档（含已提取的 Markdown，否则同步会跳过未提取条目）                            |
-| 后端服务                       | `pnpm dev:negentropy`（默认 `:3292`，与 `WIKI_API_BASE` 一致）                                                       |
-| Wiki 站点                      | `pnpm dev:wiki`（默认 `:3092`，与 `NEXT_PUBLIC_WIKI_SSG_BASE_URL` 一致）                                             |
-| 主动 ISR webhook（可选但推荐） | 后端环境变量 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL=http://localhost:3092/api/revalidate`；未配置时退化为 5 分钟被动 ISR |
+| 项                       | 说明                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Catalog 树               | 已在左栏完成层级编排，叶子节点已挂载文档（含已提取的 Markdown，否则同步会跳过未提取条目）                                                  |
+| 后端服务                 | `pnpm dev:negentropy`（默认 `:3292`，与 `WIKI_API_BASE` 一致）                                                                             |
+| 测试环境 wiki 站点       | `pnpm dev:wiki`（默认 `:3092`，与 `NEXT_PUBLIC_WIKI_SSG_BASE_URL` 一致）；发布后由后端 spawn 重建                                          |
+| 生产环境推送凭证（生产目标） | `gh auth token` 可用（对 `threefish-ai.github.io` 有写权限）即可零配置；或配置 `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__TOKEN=<PAT>`（详见 [deployment.md](../deployment.md)） |
 
 ##### 第一次发布：从 0 到 1
 
@@ -51,41 +61,46 @@ flowchart LR
    - **Slug**：站点 URL 前缀，例如 `engineering`（会自动从名称推导，可手动覆盖）
    - **描述**（可选）：发布的目标受众与内容范围
    - **主题**：`default` / `book` / `docs`
-3. **同步条目**：工具栏点 **「从 Catalog 同步」** → 在节点选择器中勾选要发布的子树（可选多个，包含子节点） → 点 **「确认同步」**。同步完成后 toast 提示「同步成功：新增/保留 N 条」。
-4. **触发发布**：工具栏点 **「同步并发布」**（蓝色 primary 按钮，等价于「同步」+「发布」的组合操作）。Pipeline 状态条出现，分三步：
-   - `保存版本`（同步完成即 ✓）
-   - `通知 SSG`（webhook 已派发 → dispatched）
-   - `验证内容`（站点轮询返回的版本 ≥ 目标版本 → confirmed）
-5. **访问站点验证**：打开 `${NEXT_PUBLIC_WIKI_SSG_BASE_URL}/${slug}`（默认 `http://localhost:3092/engineering`），看到新版本内容即发布成功。
+3. **选择发布目标**：工具栏右侧的目标选择器默认 **「测试环境」**（本地 `:3092`）。需要上线公开站点时切到 **「生产环境」**。
+4. **触发发布**：工具栏点 **「发布」**（蓝色 primary 按钮）→ 在节点选择器勾选要发布的子树（可选多个，含子节点）→ 点 **「发布」** 确认。
+   - 同步阶段：toast 提示「同步成功：新增/保留 N 条」（⚠️ 全量覆盖：未选子树内的既有条目将被删除）。
+   - **生产目标**会额外弹出 **destructive 二次确认**（提示推送 `threefish-ai.github.io` master 不可逆），确认后才执行。
+   - 发布阶段：后端 fire-and-forget spawn 重建 / 推送；toast 提示「发布成功：vN（测试/生产环境，站点 …）」。
+5. **访问站点验证**：
+   - 测试环境：打开 `http://localhost:3092/${slug}`（重建完成片刻后见新内容）。
+   - 生产环境：等待 GitHub Pages 部署后打开 `https://threefish-ai.github.io/${slug}`。
 
 ##### 日常增量发布（已有发布对象）
 
 1. 在 Catalog 树修改节点内容（编辑文档、调整层级、增删节点）。
-2. 顶部工具栏从下拉中选中目标发布对象。
-3. 直接点 **「同步并发布」** —— 一键完成「同步增量」+「触发 ISR」。
+2. 顶部工具栏从下拉中选中目标发布对象，选择「测试环境」或「生产环境」。
+3. 直接点 **「发布」** → 勾选子树 → 确认 —— 一键完成「同步 + 重建/推送」。
 
-> 若仅修改了节点元数据但未修改文档内容，建议先「从 Catalog 同步」校对条目数与告警，再点「仅发布」推送新版本。
+> 重建 / 推送为 fire-and-forget：失败仅入后端日志，不回传前端。若发布后站点未见更新，查
+> `./scripts/cli.sh logs`（测试环境 wiki 日志）或 GitHub Actions（生产环境 pages 部署）。
 
 ##### 取消发布与回滚
 
 | 场景                             | 操作                                                                                                                                            |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 临时下线 Publication（保留草稿） | 工具栏点 **「取消发布」** → 确认后版本回退为草稿，访客 404                                                                                      |
+| 临时下线 Publication（保留草稿） | 工具栏点 **「取消发布」**（仅 published 态出现）→ 确认后版本回退为草稿，访客 404                                                               |
 | 删除整个 Publication（不可逆）   | 工具栏点 **「删除」** → 二次确认后，发布对象及历史版本一并清除                                                                                  |
 | 误发布想回到上一版本             | 当前不提供「版本回滚」UI；按 [运维指引 §12.3 WikiPublication 多版本与回退](../ops.md#123-wikipublication-多版本与回退) 手动恢复 `ARCHIVED` 版本 |
 
 ##### 配置说明（环境变量）
 
-| 变量                                | 作用范围        | 默认值                     | 说明                                                             |
-| ----------------------------------- | --------------- | -------------------------- | ---------------------------------------------------------------- |
-| `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` | 后端 negentropy | （未配置时退化为被动 ISR） | 发布/取消发布完成后，POST 到此 URL 触发 SSG `/api/revalidate`    |
-| `NEXT_PUBLIC_WIKI_SSG_BASE_URL`     | 前端 ui         | `http://localhost:3092`    | 工具栏 Pipeline 用此 URL 轮询 `/api/content-status` 做新鲜度验证 |
-| `WIKI_API_BASE`                     | 站点 wiki       | `http://localhost:3292`    | SSG 端的后端 API 反向代理目标                                    |
+| 变量                                              | 作用范围        | 默认值                          | 说明                                                                 |
+| ------------------------------------------------- | --------------- | ------------------------------- | -------------------------------------------------------------------- |
+| `NEXT_PUBLIC_WIKI_SSG_BASE_URL`                   | 前端 ui         | `http://localhost:3092`         | 工具栏 Pipeline 轮询 `/api/content-status` 做新鲜度验证（测试环境）  |
+| `WIKI_API_BASE`                                   | 站点 wiki       | `http://localhost:3292`         | SSG 端的后端 API 反向代理目标                                        |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__TOKEN`          | 后端 negentropy | （未配置时回退 `gh auth token`）| 生产目标 HTTPS 推送 GitHub PAT；透传 `publish-wiki-pages.sh`         |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__REPO`           | 后端 negentropy | `threefish-ai.github.io.git`    | 生产目标 Pages 仓库（可覆盖）                                        |
+| `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__BRANCH`         | 后端 negentropy | `master`                        | 生产目标 Pages 分支                                                  |
 
 ##### 常见问题（FAQ）
 
-- **「同步并发布」后首页持续显示「暂无已发布的 Wiki」** → 多半是端口错配或 ISR webhook 未触达。详见 [运维指引 §8 故障排除](../ops.md#8-故障排除)。
-- **Pipeline 卡在「验证内容」步** → 站点未配置或不可达；改用被动 5 分钟 ISR 也能更新。
+- **「发布」后首页持续显示「暂无已发布的 Wiki」** → 多为重建 / 推送未完成或失败。测试环境查 `cli.sh logs`；生产环境查 GitHub Actions。详见 [运维指引 §8 故障排除](../ops.md#8-故障排除)。
+- **生产目标发布未生效** → 确认 `gh auth token` 对 `threefish-ai.github.io` 有写权限；或配置 `NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__TOKEN`。
 - **看不到「+ 新建」按钮** → 检查 Catalog 是否已加载（`catalogId` 非空）；后端 `/knowledge/catalogs/singleton` 是否返回正常。
 
 ### 8.3 主题与深色模式
