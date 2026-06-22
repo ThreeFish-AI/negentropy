@@ -20,12 +20,68 @@
       "entry_slug": "concepts/overview",
       "entry_title": "认识 Negentropy",
       "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000008",
+      "document_id": null,
+      "entry_slug": "concepts/user-guide",
+      "entry_title": "User Guide",
+      "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000009",
+      "document_id": "d0c00000-0000-4000-8000-0000000000a9",
+      "entry_slug": "concepts/user-guide/skills-advanced",
+      "entry_title": "Skills 进阶",
+      "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000004",
+      "document_id": null,
+      "entry_slug": "reference",
+      "entry_title": "Reference",
+      "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000010",
+      "document_id": null,
+      "entry_slug": "reference/cognizes",
+      "entry_title": "Cognizes",
+      "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000011",
+      "document_id": "d0c00000-0000-4000-8000-0000000000b1",
+      "entry_slug": "reference/cognizes/readme",
+      "entry_title": "Cognizes 概览",
+      "is_index_page": true
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000006",
+      "document_id": null,
+      "entry_slug": "research",
+      "entry_title": "Research",
+      "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000007",
+      "document_id": "d0c00000-0000-4000-8000-0000000000a7",
+      "entry_slug": "research/overview",
+      "entry_title": "调研总览",
+      "is_index_page": false
     }
   ],
-  "total": 3,
+  "total": 10,
   "slug_to_id": {
     "readme": "d0c00000-0000-4000-8000-000000000001",
     "concepts": "d0c00000-0000-4000-8000-000000000002",
-    "concepts/overview": "d0c00000-0000-4000-8000-000000000003"
+    "concepts/overview": "d0c00000-0000-4000-8000-000000000003",
+    "concepts/user-guide": "d0c00000-0000-4000-8000-000000000008",
+    "concepts/user-guide/skills-advanced": "d0c00000-0000-4000-8000-000000000009",
+    "reference": "d0c00000-0000-4000-8000-000000000004",
+    "reference/cognizes": "d0c00000-0000-4000-8000-000000000010",
+    "reference/cognizes/readme": "d0c00000-0000-4000-8000-000000000011",
+    "research": "d0c00000-0000-4000-8000-000000000006",
+    "research/overview": "d0c00000-0000-4000-8000-000000000007"
   }
 }

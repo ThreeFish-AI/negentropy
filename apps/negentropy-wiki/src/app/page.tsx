@@ -108,11 +108,10 @@ export default async function WikiHomePage() {
     (p) => !isReservedDocsSlug(p.slug),
   )?.slug;
 
-  // 首页不身处任何 pub：reservedTab 始终下拉（列保留二级目录）但不高亮、右区不高亮。
+  // 首页不身处任何 pub：reservedTab 纯链接、不高亮，右区不高亮。
   const reservedTab = buildReservedDocsTab({
     reservedExists: headerNav.reservedExists,
     isReserved: false,
-    items: headerNav.reservedItems,
   });
 
   const header = (

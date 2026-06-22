@@ -6,12 +6,12 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   fetchCatalogNodeDocuments,
   unassignDocumentFromNode,
-  updateDocument,
-  KnowledgeDocument,
+  useInlineDocumentRename,
+  type KnowledgeDocument,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
@@ -44,11 +44,6 @@ export function DocumentAssignmentSection({
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  // 行内编辑态：正在编辑的文档 id
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [saving, setSaving] = useState(false);
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -65,14 +60,6 @@ export function DocumentAssignmentSection({
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  // 编辑态挂载后自动聚焦
-  useEffect(() => {
-    if (editingId) {
-      editInputRef.current?.focus();
-      editInputRef.current?.select();
-    }
-  }, [editingId]);
 
   const handleRemove = useCallback(
     async (docId: string, filename: string) => {
@@ -101,53 +88,24 @@ export function DocumentAssignmentSection({
     onUpdate?.();
   }, [refresh, onUpdate]);
 
-  const startEdit = useCallback((doc: KnowledgeDocument) => {
-    setEditingId(doc.id);
-    setEditDraft(doc.display_name ?? "");
-  }, []);
-
-  const cancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditDraft("");
-  }, []);
-
-  const commitEdit = useCallback(
-    async (doc: KnowledgeDocument) => {
-      const trimmed = editDraft.trim() || null;
-      // 无变化时静默退出
-      if (trimmed === (doc.display_name ?? null)) {
-        cancelEdit();
-        return;
-      }
-      setSaving(true);
-      try {
-        await updateDocument(doc.corpus_id, doc.id, { display_name: trimmed });
-        toast.success("保存成功");
-        setEditingId(null);
-        setEditDraft("");
-        await refresh();
-        // 触发左栏目录树刷新：CTE 已对 DOCUMENT_REF 派生同一展示名，即时同步
-        onUpdate?.();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "保存失败");
-      } finally {
-        setSaving(false);
-      }
+  // 行内重命名 display_name（逻辑下沉到 useInlineDocumentRename，与 Documents 页共用）
+  const {
+    editingId,
+    editDraft,
+    setEditDraft,
+    saving,
+    editInputRef,
+    startEdit,
+    cancelEdit,
+    commitEdit,
+    handleKeyDown,
+  } = useInlineDocumentRename({
+    // 保存后回写本组件文档列表，并通知父级刷新目录树（CTE 对 DOCUMENT_REF 派生同一展示名）
+    onSaved: async () => {
+      await refresh();
+      onUpdate?.();
     },
-    [cancelEdit, editDraft, refresh, onUpdate],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, doc: KnowledgeDocument) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void commitEdit(doc);
-      } else if (e.key === "Escape") {
-        cancelEdit();
-      }
-    },
-    [cancelEdit, commitEdit],
-  );
+  });
 
   return (
     <div className="px-5 py-4 border-t border-border">

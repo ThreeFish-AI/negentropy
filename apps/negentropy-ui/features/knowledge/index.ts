@@ -33,6 +33,12 @@ export type {
   UseKnowledgeSearchReturnValue,
 } from "./hooks/useKnowledgeSearch";
 
+export { useInlineDocumentRename } from "./hooks/useInlineDocumentRename";
+export type {
+  UseInlineDocumentRenameOptions,
+  UseInlineDocumentRename,
+} from "./hooks/useInlineDocumentRename";
+
 // ============================================================================
 // Utils (API Functions)
 // ============================================================================
@@ -68,6 +74,7 @@ export {
   fetchDocumentChunks,
   fetchDocumentChunkDetail,
   updateDocument,
+  effectiveDocumentName,
   updateDocumentChunk,
   regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,

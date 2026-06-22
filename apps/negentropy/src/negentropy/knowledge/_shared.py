@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -658,11 +659,44 @@ def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[Knowled
     }
 
 
+def effective_display_name(doc: Any) -> str:
+    """文档展示名的单一事实源（ORM 级）。
+
+    优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``
+    （PDF / 抓取自动抽取）→ ``original_filename``（不可变兜底）。
+
+    用于 Wiki 发布 entry_title 解析等需要「文档标题」的 ORM 级场景。
+    chunk 字典级读取方见
+    :meth:`KnowledgeRepository._infer_display_name`，二者语义对齐、须同步演进。
+    """
+    display_name = (getattr(doc, "display_name", None) or "").strip()
+    if display_name:
+        return display_name
+    meta = getattr(doc, "metadata_", None) or {}
+    meta_title = meta.get("title")
+    if isinstance(meta_title, str) and meta_title.strip():
+        return meta_title.strip()
+    return doc.original_filename
+
+
+def effective_download_filename(original_filename: str, display_name: str | None) -> str:
+    """下载文件名：``display_name`` 覆盖 → ``original_filename``，并保留原扩展名。
+
+    扩展名取自物理文件名，确保下载内容与扩展名一致、可被正确打开；
+    用户名已以相同扩展名（大小写不敏感）结尾则不重复追加。URL 文档的
+    ``.md`` 收尾由调用方在拿到本结果后另行处理。
+    """
+    ext = os.path.splitext(original_filename)[1]
+    base = (display_name or "").strip() or original_filename
+    return f"{base}{ext}" if (ext and not base.lower().endswith(ext.lower())) else base
+
+
 def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> dict[str, Any]:
     chunk_stats = ((doc.metadata_ or {}).get("chunk_stats") or {}) if doc else {}
     total_retrieval_count = sum(item.retrieval_count for item in items)
     return {
         "original_filename": getattr(doc, "original_filename", None),
+        "display_name": getattr(doc, "display_name", None) or None,
         "file_size": getattr(doc, "file_size", None),
         "upload_date": doc.created_at.isoformat() if getattr(doc, "created_at", None) else None,
         "last_update_date": doc.updated_at.isoformat() if getattr(doc, "updated_at", None) else None,

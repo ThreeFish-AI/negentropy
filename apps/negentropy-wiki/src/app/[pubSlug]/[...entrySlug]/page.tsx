@@ -1,10 +1,9 @@
 import {
   buildReservedDocsTab,
-  findFirstDocumentSlug,
   isReservedDocsSlug,
   joinEntrySlug,
   resolveSectionView,
-  RESERVED_DOCS_SLUG,
+  resolveSidebarView,
   type WikiEntry,
   type WikiEntryContent,
   type WikiNavTreeItem,
@@ -133,42 +132,35 @@ export default async function WikiEntryPage({ params }: Props) {
   const md = content?.markdown_content ?? "";
   const headings = status === "ok" ? extractHeadings(md) : [];
   const hasToc = headings.length >= 2;
+  const isReserved = isReservedDocsSlug(pubSlug);
   const sectionView = resolveSectionView(navItems, slug);
   const hasAnyEntry = sectionView.headerItems.length > 0;
   const breadcrumbItems = status === "ok"
     ? buildBreadcrumbPath(navItems, slug)
     : [];
 
-  const catalogItem = sectionView.activeItem;
-  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
-  const catalogName = catalogItem
-    ? (catalogItem.entry_title || catalogItem.entry_slug)
-    : null;
+  // 左栏侧边视图：保留 pub 渲染完整文档树（README + concepts/reference/research，全页可切换），
+  // 动态 pub 维持 section 切片。
+  const sidebarView = resolveSidebarView(navItems, { fullTree: isReserved, currentSlug: slug });
 
   const sidebar = (
     <WikiSidebar
       pubSlug={pubSlug}
       publication={publication}
-      sidebarItems={sectionView.sidebarItems}
-      hasActiveItem={!!sectionView.activeItem}
+      sidebarItems={sidebarView.sidebarItems}
+      hasActiveItem={sidebarView.hasActiveItem}
       activeSlug={slug}
-      catalogTargetSlug={catalogTargetSlug}
-      catalogName={catalogName}
+      catalogTargetSlug={sidebarView.catalogTargetSlug}
+      catalogName={sidebarView.catalogName}
       searchSlot={<WikiSearchBox />}
     />
   );
 
-  const isReserved = isReservedDocsSlug(pubSlug);
-  const reservedExists =
-    isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
-
-  // 顶栏全局模型：左侧「Negentropy」恒列其二级目录，右区恒列各动态 pub 一级菜单（全页并存）。
+  // 顶栏全局模型：左侧「Negentropy」纯链接，右区恒列各动态 pub 一级菜单（全页并存）。
   const headerNav = await loadHeaderNav();
   const reservedTab = buildReservedDocsTab({
-    reservedExists,
+    reservedExists: headerNav.reservedExists,
     isReserved,
-    items: headerNav.reservedItems,
-    activeChildSlug: isReserved ? sectionView.activeTopSlug : undefined,
   });
 
   const header = (

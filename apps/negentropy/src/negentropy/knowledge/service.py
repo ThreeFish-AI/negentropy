@@ -1126,6 +1126,9 @@ class KnowledgeService:
             meta["source_type"] = "url"
             meta["origin_url"] = url
             meta["document_id"] = str(doc_record.id)
+            # 携带 display_name 覆盖，使检索/引用类展示跟随用户重命名。
+            if getattr(doc_record, "display_name", None):
+                meta["display_name"] = doc_record.display_name
             meta["extractor_trace"] = extraction_result.trace
             if stored_assets:
                 meta["extracted_assets"] = stored_assets
