@@ -234,6 +234,7 @@ export type {
   WikiNavTreeItem,
   WikiNavTreeResponse,
   WikiPublishActionResponse,
+  WikiPublishTarget,
   WikiRevalidationStatus,
   SyncFromCatalogParams,
   SyncFromCatalogResponse,

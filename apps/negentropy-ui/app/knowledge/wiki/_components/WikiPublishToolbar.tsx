@@ -14,16 +14,16 @@ import {
   syncWikiEntriesFromCatalog,
   unpublishWiki,
   type WikiPublication,
+  type WikiPublishTarget,
   type WikiRevalidationStatus,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
+import { cn } from "@/lib/utils";
 import { WikiStatusBadge } from "./WikiStatusBadge";
 import { CatalogNodeSelectorDialog } from "./CatalogNodeSelectorDialog";
 import { CreateWikiPublicationDialog } from "./CreateWikiPublicationDialog";
 import { WikiPublishPipeline } from "./WikiPublishPipeline";
-
-type SyncMode = "sync-only" | "sync-and-publish";
 
 interface WikiPublishToolbarProps {
   catalogId: string;
@@ -54,7 +54,9 @@ export function WikiPublishToolbar({
   const { confirm, confirmDialog } = useConfirmDialog();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [selectorMode, setSelectorMode] = useState<SyncMode>("sync-only");
+  // 发布目标：测试环境（本地 wiki :3092）/ 生产环境（threefish-ai.github.io master）。
+  // 默认测试环境（安全侧）：生产发布经 handleSyncConfirm 内 destructive 二次确认。
+  const [publishTarget, setPublishTarget] = useState<WikiPublishTarget>("local");
   const [submitting, setSubmitting] = useState(false);
   const [pipelineActive, setPipelineActive] = useState(false);
   const [pipelineRevalidation, setPipelineRevalidation] =
@@ -72,24 +74,6 @@ export function WikiPublishToolbar({
     setPipelineRevalidation(null);
     setPipelineTargetVersion(null);
   }, [pubId]);
-
-  const handlePublish = useCallback(async () => {
-    if (!pubId) return;
-    setSubmitting(true);
-    setPipelineActive(true);
-    try {
-      const resp = await publishWiki(pubId);
-      setPipelineRevalidation(resp.revalidation ?? null);
-      setPipelineTargetVersion(resp.version);
-      toast.success(`发布成功：v${resp.version}，${resp.entries_count} 个条目`);
-      onPublicationsChanged();
-    } catch (err) {
-      setPipelineActive(false);
-      toast.error(err instanceof Error ? err.message : "发布失败");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [pubId, onPublicationsChanged]);
 
   const handleUnpublish = useCallback(async () => {
     if (!pubId) return;
@@ -141,6 +125,20 @@ export function WikiPublishToolbar({
   const handleSyncConfirm = useCallback(
     async (catalogNodeIds: string[]) => {
       if (!pubId) return;
+      // 先关闭节点选择器，避免与后续确认对话框堆叠。
+      setSelectorOpen(false);
+      // 生产环境为不可逆推送（直接更新 threefish-ai.github.io 生产站点），二次确认。
+      if (publishTarget === "production") {
+        const confirmed = await confirm({
+          title: "发布到生产环境",
+          message:
+            "将推送至 threefish-ai.github.io 的 master 分支，直接更新 https://threefish-ai.github.io/ 生产站点，操作不可逆。确认继续？",
+          confirmLabel: "确认发布到生产",
+          destructive: true,
+        });
+        if (!confirmed) return;
+      }
+      const targetLabel = publishTarget === "production" ? "生产环境" : "测试环境";
       setSubmitting(true);
       setPipelineActive(false);
       try {
@@ -156,25 +154,23 @@ export function WikiPublishToolbar({
         if (resp.errors.length > 0) {
           console.warn("[wiki sync] errors:", resp.errors);
         }
-        setSelectorOpen(false);
         onAfterSync?.();
-        if (selectorMode === "sync-and-publish") {
-          setPipelineActive(true);
-          const pubResp = await publishWiki(pubId);
-          setPipelineRevalidation(pubResp.revalidation ?? null);
-          setPipelineTargetVersion(pubResp.version);
-          toast.success(`发布成功：v${pubResp.version}`);
-        }
+        // 同步完成随即发布到所选目标（重建/推送由后端 fire-and-forget spawn 承担）。
+        setPipelineActive(true);
+        const pubResp = await publishWiki(pubId, publishTarget);
+        setPipelineRevalidation(pubResp.revalidation ?? null);
+        setPipelineTargetVersion(pubResp.version);
+        const sitePart = pubResp.site_url ? `，站点 ${pubResp.site_url}` : "";
+        toast.success(`发布成功：v${pubResp.version}（${targetLabel}${sitePart}）`);
         onPublicationsChanged();
       } catch (err) {
         setPipelineActive(false);
-        const msg = selectorMode === "sync-and-publish" ? "操作失败" : "同步失败";
-        toast.error(err instanceof Error ? err.message : msg);
+        toast.error(err instanceof Error ? err.message : "发布失败");
       } finally {
         setSubmitting(false);
       }
     },
-    [pubId, selectorMode, onAfterSync, onPublicationsChanged],
+    [pubId, publishTarget, confirm, onAfterSync, onPublicationsChanged],
   );
 
   return (
@@ -235,41 +231,57 @@ export function WikiPublishToolbar({
 
         {/* 操作按钮组 */}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              setSelectorMode("sync-only");
-              setSelectorOpen(true);
-            }}
-            disabled={actionsDisabled}
-            className="px-3 py-1.5 text-sm rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          {/* 发布目标：测试环境（本地 :3092）/ 生产环境（threefish-ai.github.io） */}
+          <div
+            role="group"
+            aria-label="选择发布目标"
+            className="flex items-center rounded-md border border-border overflow-hidden"
           >
-            从 Catalog 同步
-          </button>
+            <button
+              type="button"
+              onClick={() => setPublishTarget("local")}
+              disabled={actionsDisabled}
+              title="发布到本地 negentropy-wiki 测试站点（:3092）"
+              aria-pressed={publishTarget === "local"}
+              className={cn(
+                "px-2.5 py-1.5 text-xs disabled:opacity-50",
+                publishTarget === "local"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground hover:bg-muted",
+              )}
+            >
+              测试环境
+            </button>
+            <button
+              type="button"
+              onClick={() => setPublishTarget("production")}
+              disabled={actionsDisabled}
+              title="发布到 threefish-ai.github.io master（生产站点）"
+              aria-pressed={publishTarget === "production"}
+              className={cn(
+                "px-2.5 py-1.5 text-xs border-l border-border disabled:opacity-50",
+                publishTarget === "production"
+                  ? "bg-amber-600 text-white"
+                  : "bg-background text-muted-foreground hover:bg-muted",
+              )}
+            >
+              生产环境
+            </button>
+          </div>
           <button
-            onClick={() => {
-              setSelectorMode("sync-and-publish");
-              setSelectorOpen(true);
-            }}
+            onClick={() => setSelectorOpen(true)}
             disabled={actionsDisabled}
             className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            同步并发布
+            发布
           </button>
-          {isPublished ? (
+          {isPublished && (
             <button
               onClick={handleUnpublish}
               disabled={actionsDisabled}
               className="px-3 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-50"
             >
               取消发布
-            </button>
-          ) : (
-            <button
-              onClick={handlePublish}
-              disabled={actionsDisabled}
-              className="px-3 py-1.5 text-sm rounded-md border border-emerald-500/30 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 disabled:opacity-50"
-            >
-              仅发布
             </button>
           )}
           <button
@@ -305,14 +317,8 @@ export function WikiPublishToolbar({
           onClose={() => setSelectorOpen(false)}
           onConfirm={handleSyncConfirm}
           submitting={submitting}
-          confirmLabel={
-            selectorMode === "sync-and-publish" ? "同步并发布" : "确认同步"
-          }
-          title={
-            selectorMode === "sync-and-publish"
-              ? "选择同步源后直接发布"
-              : "选择要同步的 Catalog 节点"
-          }
+          confirmLabel="发布"
+          title="选择同步源后发布"
         />
       )}
       {confirmDialog}
