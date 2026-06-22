@@ -19,7 +19,12 @@ export function WikiFooter() {
           </div>
         ))}
         <div className="wiki-footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Negentropy Wiki. All rights reserved.</p>
+          <p>
+            Copyright &copy; {new Date().getFullYear()} 三余知行. 保留所有权利{" "}
+            <a style={{ color: "#6ea8fe" }} href="https://beian.miit.gov.cn">
+              粤ICP备2023147376号-1
+            </a>
+          </p>
         </div>
       </div>
     </footer>
