@@ -49,24 +49,12 @@ interface WikiGraphCanvasProps {
   pubSlug: string;
   nodes: WikiGraphNode[];
   edges: WikiGraphEdge[];
-  /**
-   * 截断横幅阈值：节点数 >= 此值时显示提示。
-   * 与后端 ``max_nodes`` 默认 300 相协调，避免误报。
-   */
-  truncateThreshold?: number;
-  /** 是否实际被后端截断（来自响应的 truncated 字段） */
-  truncated?: boolean;
-  /** 截断前的实体总数（来自响应的 total_entities） */
-  totalEntities?: number;
 }
 
 export function WikiGraphCanvas({
   pubSlug,
   nodes,
   edges,
-  truncateThreshold = 500,
-  truncated = false,
-  totalEntities,
 }: WikiGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // 通过 unknown 桥接绕过 ESM 默认导出类型在 ESLint --max-warnings=0 下的过严校验。
@@ -200,26 +188,9 @@ export function WikiGraphCanvas({
     sigma.refresh();
   }, [isDark]);
 
-  const exceedsThreshold = nodes.length >= truncateThreshold;
-  const showTruncatedBanner = truncated || exceedsThreshold;
-
   return (
     <div className="wiki-graph-canvas-root">
       <div ref={containerRef} className="wiki-graph-canvas-stage" />
-
-      {/* 状态横幅：左上角统计 + 截断提示 */}
-      <div className="wiki-graph-canvas-overlay">
-        <span className="wiki-graph-badge">
-          {nodes.length} 节点 · {edges.length} 边 · Sigma WebGL
-        </span>
-        {showTruncatedBanner && (
-          <span className="wiki-graph-badge wiki-graph-badge-warn">
-            {truncated && totalEntities
-              ? `已按 importance 截断（共 ${totalEntities} 个实体，仅显示 top-${nodes.length}）`
-              : "图谱过大，建议在实体列表中筛选"}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
