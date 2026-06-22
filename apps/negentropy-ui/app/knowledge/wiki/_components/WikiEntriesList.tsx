@@ -44,7 +44,7 @@ function flattenNavTree(
 export function WikiEntriesList({
   navTree,
   loading,
-  emptyHint = "暂无条目，点击「从 Catalog 同步」拉取",
+  emptyHint = "暂无条目，点击「发布」拉取",
 }: WikiEntriesListProps) {
   const flat = useMemo(() => {
     const out: FlatItem[] = [];

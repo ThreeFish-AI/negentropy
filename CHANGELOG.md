@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Wiki 发布入口一体化 + 双目标发布**：`/knowledge/wiki` 工具栏的「从 Catalog 同步」「同步并发布」「仅发布」收敛为单一 **「发布」** 按钮（选 Catalog 节点 → 同步 → 发布），并新增**发布目标选择器**：
+  - **测试环境**：后端 spawn `scripts/build-wiki-local.sh`（导出 `content/` + `next build` 重建本地 `:3092`）。
+  - **生产环境**：spawn `scripts/publish-wiki-pages.sh` 推送到 [`threefish-ai.github.io`](https://github.com/ThreeFish-AI/threefish-ai.github.io) `master` 分支，直接更新 [https://threefish-ai.github.io/](https://threefish-ai.github.io/)；`gh auth token` 可用即零配置，生产目标经 destructive 二次确认（不可逆）。
+  - `POST /wiki/publications/{pub_id}/publish` 新增可选请求体 `{ target: "local" | "production" }`（缺省 `local`）；响应回填 `target` / `site_url`。
+
 ## [0.0.1](https://github.com/ThreeFish-AI/negentropy/releases/tag/v0.0.1) - 2026-06-19
 
 首个公开 MVP。立意于薛定谔「熵减」，Negentropy 不在于打造 Agent，而是构建持续自我进化的认知系统，直面当下 AI 助手的五大熵增痛点——**信息过载、金鱼记忆、浅尝辄止、纸上谈兵、晦涩难懂**，把混沌输入转化为有序、可落地的高价值输出。

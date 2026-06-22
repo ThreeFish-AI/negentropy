@@ -17,6 +17,11 @@ import pytest
 import sqlalchemy.orm
 
 from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
+from negentropy.knowledge.lifecycle_schemas import (
+    WIKI_PUBLISH_TARGET_SITE_URL,
+    WikiPublishActionResponse,
+    WikiPublishTarget,
+)
 
 # ---------------------------------------------------------------------------
 # 修复 KnowledgeDocument <-> DocSource 双向 FK 的 AmbiguousForeignKeysError
@@ -167,6 +172,161 @@ class TestWikiDelegationMethods:
         session = _FakeAsyncSession()
         result = await service.delete_publication(session, pub_id=uuid4())
         assert result is False  # FakeAsyncSession.execute 返回 None → 删除失败
+
+
+# ---------------------------------------------------------------------------
+# publish(target=...) 双目标路由
+# ---------------------------------------------------------------------------
+
+
+def _fake_published_pub() -> SimpleNamespace:
+    """publish() 内部访问的最小 pub 形状（LIVE 模式，跳过 _freeze_snapshot）。"""
+    return SimpleNamespace(
+        id=uuid4(),
+        slug="demo",
+        app_name="negentropy",
+        publish_mode="LIVE",
+    )
+
+
+class TestWikiPublishTargetRouting:
+    """publish(target=...) 按目标路由 fire-and-forget spawn 部署脚本。
+
+    锁定「双目标发布」契约：
+      - 缺省 / ``LOCAL`` → ``_spawn_local_wiki_rebuild``（测试环境，:3092）。
+      - ``PRODUCTION`` → ``_spawn_pages_publish``（生产 threefish-ai.github.io master）。
+    """
+
+    async def _publish_with_target(
+        self,
+        monkeypatch,
+        *,
+        target: WikiPublishTarget | None,
+        spawned: list[str],
+    ) -> None:
+        service = WikiPublishingService()
+        session = _FakeAsyncSession()
+        fake_pub = _fake_published_pub()
+
+        async def fake_dao_publish(db, pub_id):
+            _ = (db, pub_id)
+            return fake_pub
+
+        async def fake_redeploy(**kwargs):
+            _ = kwargs
+            return "dispatched"
+
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.publish", fake_dao_publish)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.trigger_wiki_redeploy", fake_redeploy)
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service._spawn_local_wiki_rebuild",
+            lambda: spawned.append("local"),
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service._spawn_pages_publish",
+            lambda: spawned.append("production"),
+        )
+
+        kwargs: dict[str, object] = {}
+        if target is not None:
+            kwargs["target"] = target
+        pub, revalidation = await service.publish(session, pub_id=fake_pub.id, **kwargs)
+        assert pub is fake_pub
+        assert revalidation == "dispatched"
+
+    @pytest.mark.asyncio
+    async def test_default_target_routes_to_local_rebuild(self, monkeypatch):
+        spawned: list[str] = []
+        await self._publish_with_target(monkeypatch, target=None, spawned=spawned)
+        assert spawned == ["local"]
+
+    @pytest.mark.asyncio
+    async def test_explicit_local_target_routes_to_local_rebuild(self, monkeypatch):
+        spawned: list[str] = []
+        await self._publish_with_target(monkeypatch, target=WikiPublishTarget.LOCAL, spawned=spawned)
+        assert spawned == ["local"]
+
+    @pytest.mark.asyncio
+    async def test_production_target_routes_to_pages_publish(self, monkeypatch):
+        spawned: list[str] = []
+        await self._publish_with_target(monkeypatch, target=WikiPublishTarget.PRODUCTION, spawned=spawned)
+        assert spawned == ["production"]
+
+
+class TestWikiPublishDeploySpawn:
+    """``_spawn_wiki_deploy_script`` 的脚本解析与 Popen 派发（不实际执行脚本）。"""
+
+    def test_invokes_bash_with_resolved_script(self, monkeypatch):
+        captured: dict[str, object] = {}
+
+        class _FakePopen:
+            def __init__(self, cmd, **kwargs):
+                captured["cmd"] = cmd
+                captured["cwd"] = kwargs.get("cwd")
+                captured["start_new_session"] = kwargs.get("start_new_session")
+
+        # _spawn_wiki_deploy_script 内部 `import subprocess` 后调用 subprocess.Popen，
+        # 直接 patch subprocess 模块属性即可生效。
+        import negentropy.knowledge.lifecycle.wiki_service as svc
+
+        monkeypatch.setattr("subprocess.Popen", _FakePopen)
+
+        svc._spawn_wiki_deploy_script(
+            "scripts/build-wiki-local.sh",
+            spawn_log_key="wiki_local_rebuild_spawned",
+            log_filename="wiki-local-rebuild.log",
+        )
+
+        cmd = captured["cmd"]
+        assert cmd[0] == "bash"
+        assert str(cmd[1]).endswith("scripts/build-wiki-local.sh")
+        assert captured["start_new_session"] is True
+
+    def test_missing_script_skips_popen(self, monkeypatch):
+        popen_called: list[bool] = []
+
+        class _FakePopen:
+            def __init__(self, *a, **k):
+                popen_called.append(True)
+
+        import negentropy.knowledge.lifecycle.wiki_service as svc
+
+        monkeypatch.setattr("subprocess.Popen", _FakePopen)
+
+        svc._spawn_wiki_deploy_script(
+            "scripts/__definitely_missing__.sh",
+            spawn_log_key="wiki_missing_spawned",
+            log_filename="wiki-missing.log",
+        )
+        assert popen_called == []  # 脚本缺失时仅 WARN，不 Popen
+
+
+def test_publish_action_response_carries_target_and_site_url():
+    """WikiPublishActionResponse 透传 target / site_url（供前端「查看站点」）。"""
+    resp = WikiPublishActionResponse(
+        publication_id=uuid4(),
+        status="published",
+        version=2,
+        published_at=None,
+        entries_count=3,
+        message="ok",
+        target=WikiPublishTarget.PRODUCTION.value,
+        site_url=WIKI_PUBLISH_TARGET_SITE_URL[WikiPublishTarget.PRODUCTION],
+    )
+    assert resp.target == "production"
+    assert resp.site_url == "https://threefish-ai.github.io"
+
+    # 缺省：target=local、site_url=None
+    default_resp = WikiPublishActionResponse(
+        publication_id=uuid4(),
+        status="published",
+        version=1,
+        published_at=None,
+        entries_count=0,
+        message="ok",
+    )
+    assert default_resp.target == "local"
+    assert default_resp.site_url is None
 
 
 class TestWikiCatalogSync:

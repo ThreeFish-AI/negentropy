@@ -236,11 +236,18 @@ class WikiPagesPublishSettings(BaseModel):
 
     **默认 ``enabled=False``** —— 不影响生产与现有 publish 流程；仅本地显式开启。
     spawn 为 fire-and-forget（不阻塞 publish 返回、失败仅 WARN）。
+
+    注：新「发布」入口以显式 ``target=production`` 触发 ``_spawn_pages_publish``，
+    不再受 ``enabled`` 门控（目标即授权）；``enabled`` 保留为遗留自动发布开关，
+    供未接入新 UI 的旧流程兼容。
     """
 
     enabled: bool = Field(
         default=False,
-        description="True 时 publish 后后台 spawn script 自动发布到 Pages；默认关闭。",
+        description=(
+            "遗留自动发布开关：True 时任意 publish 后后台 spawn script 推送到 Pages。"
+            "新「发布」入口以显式 target=production 触发，不再读取本字段。默认关闭。"
+        ),
     )
     script: str = Field(
         default="scripts/publish-wiki-pages.sh",
