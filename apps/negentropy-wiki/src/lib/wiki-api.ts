@@ -12,6 +12,31 @@
  */
 
 // ---------------------------------------------------------------------------
+// 保留一级目录「Negentropy」（来自仓库 docs/，由后端导出器合成进内容包）
+//
+// 单一事实源：slug / 首页 / 标签文案集中于此，供 Header 左侧保留标签与首页卡片
+// 共享，避免散落的字符串字面量漂移。与后端 ``WikiDocsSyncSettings.reserved_slug``
+// 保持一致（默认 "negentropy"）。
+// ---------------------------------------------------------------------------
+
+/** 保留 docs 一级目录的 publication slug（与后端 reserved_slug 对齐）。 */
+export const RESERVED_DOCS_SLUG = "negentropy";
+
+/** 保留 docs 一级目录首页 entry slug（docs/README.md → "readme"）。 */
+export const RESERVED_DOCS_INDEX_SLUG = "readme";
+
+/** 保留一级目录首页 href（Header 左侧标签 / 首页卡片跳转目标）。 */
+export const RESERVED_DOCS_HOME = `/${RESERVED_DOCS_SLUG}/${RESERVED_DOCS_INDEX_SLUG}`;
+
+/** 保留一级目录的头部标签文案。 */
+export const RESERVED_DOCS_LABEL = "Negentropy";
+
+/** 判定某 publication slug 是否为保留 docs 目录（用于首页右区过滤等）。 */
+export function isReservedDocsSlug(slug: string | null | undefined): boolean {
+  return slug === RESERVED_DOCS_SLUG;
+}
+
+// ---------------------------------------------------------------------------
 // 类型定义
 // ---------------------------------------------------------------------------
 

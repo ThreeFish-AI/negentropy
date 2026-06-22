@@ -2,7 +2,11 @@ import {
   countLeafEntries,
   findFirstDocumentSlug,
   findIndexEntry,
+  isReservedDocsSlug,
   resolveSectionView,
+  RESERVED_DOCS_HOME,
+  RESERVED_DOCS_LABEL,
+  RESERVED_DOCS_SLUG,
   type WikiPublication,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
@@ -71,6 +75,12 @@ export default async function WikiPublicationPage({ params }: Props) {
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
 
+  // 保留一级目录「Negentropy」：左侧标签恒在（存在保留 pub 时），当前在该 pub 时高亮；
+  // 保留 docs 目录无 KG，故其页面隐藏 Knowledge Graph 标签。
+  const isReserved = isReservedDocsSlug(pubSlug);
+  const reservedExists =
+    isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
+
   const catalogItem = sectionView.activeItem;
   const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
   const catalogName = catalogItem
@@ -97,7 +107,12 @@ export default async function WikiPublicationPage({ params }: Props) {
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      graphTab={{ active: false, show: entriesTotal > 0 }}
+      reservedTab={
+        reservedExists
+          ? { show: true, active: isReserved, label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }
+          : undefined
+      }
+      graphTab={{ active: false, show: entriesTotal > 0 && !isReserved }}
     />
   );
 

@@ -1,0 +1,12 @@
+{
+  "entry_id": "d0c00000-0000-4000-8000-000000000001",
+  "document_id": "d0c00000-0000-4000-8000-0000000000a1",
+  "entry_slug": "readme",
+  "entry_title": "Negentropy 用户手册",
+  "markdown_content": "# Negentropy 用户手册\n\n这是 **Negentropy 保留一级目录** 的开发种子样本（fixture）。真实站点中，本目录由主站「同步并发布」时从仓库 `docs/` 公开子集（README + concepts + reference + research）自动合成，置于「Knowledge Graph」标签左侧。\n\n## 导航\n\n- [认识 Negentropy](/negentropy/concepts/overview)\n\n> 真实导出内容由后端 `WikiExportService` + `wiki_docs_ingest` 生成；此处仅为构建兜底的最小样本。",
+  "document_filename": "README.md",
+  "author_name": null,
+  "author_url": null,
+  "source_url": "https://github.com/ThreeFish-AI/negentropy/blob/main/docs/README.md",
+  "published_at": null
+}

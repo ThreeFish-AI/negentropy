@@ -1,0 +1,12 @@
+{
+  "entry_id": "d0c00000-0000-4000-8000-000000000003",
+  "document_id": "d0c00000-0000-4000-8000-0000000000a3",
+  "entry_slug": "concepts/overview",
+  "entry_title": "认识 Negentropy",
+  "markdown_content": "# 认识 Negentropy\n\nNegentropy 以「熵减」为核心理念，通过上下文锚定、复用驱动与标准化流水线对抗系统的无序熵增。\n\n本页为保留一级目录下 `concepts/` 容器中的样本文档。返回 [手册首页](/negentropy/readme)。",
+  "document_filename": "overview.md",
+  "author_name": null,
+  "author_url": null,
+  "source_url": "https://github.com/ThreeFish-AI/negentropy/blob/main/docs/concepts/user-guide/overview.md",
+  "published_at": null
+}

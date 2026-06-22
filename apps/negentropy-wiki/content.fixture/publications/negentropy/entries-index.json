@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "id": "d0c00000-0000-4000-8000-000000000001",
+      "document_id": "d0c00000-0000-4000-8000-0000000000a1",
+      "entry_slug": "readme",
+      "entry_title": "Negentropy 用户手册",
+      "is_index_page": true
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000002",
+      "document_id": null,
+      "entry_slug": "concepts",
+      "entry_title": "Concepts",
+      "is_index_page": false
+    },
+    {
+      "id": "d0c00000-0000-4000-8000-000000000003",
+      "document_id": "d0c00000-0000-4000-8000-0000000000a3",
+      "entry_slug": "concepts/overview",
+      "entry_title": "认识 Negentropy",
+      "is_index_page": false
+    }
+  ],
+  "total": 3,
+  "slug_to_id": {
+    "readme": "d0c00000-0000-4000-8000-000000000001",
+    "concepts": "d0c00000-0000-4000-8000-000000000002",
+    "concepts/overview": "d0c00000-0000-4000-8000-000000000003"
+  }
+}
