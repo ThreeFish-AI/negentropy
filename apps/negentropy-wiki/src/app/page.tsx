@@ -153,7 +153,7 @@ export default async function WikiHomePage() {
           <p className="home-hero-subtext">你我的相识绝非一场零和游戏！</p>
           {firstHref && (
             <a href={firstHref} className="home-hero-cta">
-              Harness Engineering → 5min
+              Negentropy 用户手册
             </a>
           )}
         </div>
