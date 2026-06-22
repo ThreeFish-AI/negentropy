@@ -145,20 +145,55 @@ port_in_use() {
   lsof -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | grep -q .
 }
 
+# ── 健康检查预算 ─────────────────────────────────────────────────────────────────
+# 冷启动实测：perceives 因 scraping 模块级 eager 导入 selenium 需 45~90s，backend
+# （bootstrap 20+ 路由 + litellm）15~45s；原硬编码 attempts=60（≈60s）会在 perceives
+# 仍在初始化时误判超时 → start_service 清理即将就绪的进程 → 启动失败、整链中止。
+# 故按服务分级预算：perceives/backend 180s，ui/wiki 60s。可经环境变量整体覆盖：
+# NEGENTROPY_HEALTH_TIMEOUT_SECONDS（未设则取按服务默认值）。
+_svc_health_secs() {
+  local override="${NEGENTROPY_HEALTH_TIMEOUT_SECONDS:-}"
+  [ -n "$override" ] && { echo "$override"; return; }
+  case "$1" in
+    perceives|backend) echo 180 ;;
+    *)                 echo 60 ;;
+  esac
+}
+
 wait_for_health() {
   # 端口绑定 = 服务存活：去掉 `-f` 让任意 HTTP 响应（含 404/405/406）都视为就绪，
   # 兼容 FastMCP 等仅在 /mcp 子路径暴露端点、根路径 404 的服务；
   # 进程级活性仍由 `is_running` 兜底，崩溃可立即检出。
-  local name="$1" port="$2" attempts=60 i=1
-  while (( i <= attempts )); do
-    if curl -sLo /dev/null "http://localhost:${port}/" 2>/dev/null; then
+  # 返回码：0=就绪，1=进程异常退出（is_running 假），2=预算耗尽超时（进程仍存活）。
+  # 预算按壁钟计（$SECONDS 截止）而非次数：每探针 curl 受 --connect-timeout/--max-time
+  # 约束，拒绝连接即时返回，但极端下单次探针可耗数秒，按次数会漂移；壁钟保证预算即上限。
+  local name="$1" port="$2" budget deadline
+  budget="$(_svc_health_secs "$name")"
+  deadline=$(( SECONDS + budget ))
+  while (( SECONDS < deadline )); do
+    # curl 作为 if 条件，非零退出被测试吸收，不触发 errexit。
+    if curl -sLo /dev/null --connect-timeout 2 --max-time 5 \
+        "http://localhost:${port}/" 2>/dev/null; then
       return 0
     fi
     is_running "$name" || return 1
     sleep 1
-    ((i++))
   done
-  return 1
+  return 2
+}
+
+# 展示 <logf> 自字节偏移 <offset> 起新增的日志，最多取末 30 行。
+# 偏移失效（文件已滚动/截断致当前大小 < offset）时退化为整文件末 30 行。
+# `tail -c +N` 1-indexed：从第 N 字节起输出，故传 offset+1；管道尾 `|| true` 兜住
+# pipefail 下 tail 的非零退出（文件缺失等），不干扰失败诊断路径。
+_tail_this_attempt() {
+  local logf="$1" offset="$2" cur
+  cur="$(_file_size "$logf")"
+  if [ "$offset" -gt 0 ] 2>/dev/null && [ "$cur" -ge "$offset" ] 2>/dev/null; then
+    tail -c "+$(( offset + 1 ))" "$logf" 2>/dev/null | tail -30 || true
+  else
+    tail -30 "$logf" 2>/dev/null || true
+  fi
 }
 
 start_service() {
@@ -179,7 +214,12 @@ start_service() {
   fi
 
   log_info "启动 ${name} (port ${port})..."
-  _log_banner "$(log_file "$name")" "$name" "STARTING" "port $port"
+  local logf
+  logf="$(log_file "$name")"
+  # 记录 spawn 前日志字节偏移：失败时仅展示本次启动新增日志（见 _tail_this_attempt）。
+  local log_offset
+  log_offset="$(_file_size "$logf")"
+  _log_banner "$logf" "$name" "STARTING" "port $port"
 
   # 所有服务统一经 FIFO → _log_sink 落盘，由 sink 负责 3MB 滚动：
   #   Node(ui/wiki) 注入时间戳前缀(add_ts=1)；Python(backend/perceives) 自带时间戳原样透传(add_ts=0)。
@@ -189,19 +229,35 @@ start_service() {
   local fifo="/tmp/.negentropy_${name}_log_fifo"
   rm -f "$fifo"; mkfifo "$fifo"
   _log_sink "$name" "$add_ts" < "$fifo" &
+  # $! = `uv run`/node 进程；uv run 为同步包装器（随子进程退出并以子进程码退出），
+  # 故服务崩溃 → 该 PID 退出 → is_running 即假，进程级活性检测有效。
   (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$fifo" 2>&1 &
-  echo $! > "$(pid_file "$name")"   # $! = 服务进程（紧跟服务启动捕获），PID/停止语义不变
+  echo $! > "$(pid_file "$name")"
   rm -f "$fifo"
 
-  if wait_for_health "$name" "$port"; then
-    log_ok "${name} 已就绪 (PID $(cat "$(pid_file "$name")"))"
-  else
-    log_error "${name} 健康检查失败，最近日志："
-    tail -20 "$(log_file "$name")" 2>/dev/null
-    # 清理失败的孤儿进程与陈旧 PID 文件，避免 is_running 误判导致后续重试被静默跳过
-    stop_service "$name" >/dev/null 2>&1 || true
-    return 1
-  fi
+  # 健康检查三态：用 `|| health_rc=$?` 捕获返回码（set -e 下 bare $? 会被 errexit 抢先）。
+  local health_rc=0
+  wait_for_health "$name" "$port" || health_rc=$?
+  case "$health_rc" in
+    0)
+      log_ok "${name} 已就绪 (PID $(cat "$(pid_file "$name")"))"
+      ;;
+    1)
+      sleep 0.3   # 等 _log_sink 排空 FIFO→文件，取到最近启动日志
+      log_error "${name} 进程异常退出，本次启动日志（最近 30 行）："
+      _tail_this_attempt "$logf" "$log_offset"
+      # 清理失败的孤儿进程与陈旧 PID 文件，避免 is_running 误判导致后续重试被静默跳过
+      stop_service "$name" >/dev/null 2>&1 || true
+      return 1
+      ;;
+    *)
+      sleep 0.3   # 进程仍存活，需排空最近日志以诊断"卡在哪一步"
+      log_error "${name} 在 $(_svc_health_secs "$name")s 内未就绪（冷启动超预算，进程仍存活），本次启动日志（最近 30 行）："
+      _tail_this_attempt "$logf" "$log_offset"
+      stop_service "$name" >/dev/null 2>&1 || true
+      return 1
+      ;;
+  esac
 }
 
 stop_service() {
@@ -268,6 +324,19 @@ cmd_status() {
   done
 }
 
+# 尽力拉取：工作区干净才 `git pull --ff-only`；脏树直接跳过，避免触发 git 的惊吓性提示
+# （"Your local changes would be overwritten by merge" / "run git reset --hard to recover"——
+# 实为 --ff-only 安全中止，但易诱导破坏性操作）。任何失败均降级为 WARN，不阻断启动。
+_git_pull_best_effort() {
+  local dirty_rc=0
+  git -C "$REPO_ROOT" diff --quiet HEAD || dirty_rc=$?   # || 兜住 rc=1（脏树），不触发 errexit
+  if [ "$dirty_rc" -ne 0 ]; then
+    log_warn "工作区有未提交改动，跳过 git pull（提交/暂存后重试，或加 --no-pull 显式跳过）"
+    return 0
+  fi
+  git -C "$REPO_ROOT" pull --ff-only || log_warn "git pull 失败，继续使用当前代码"
+}
+
 # ── 子命令: start ────────────────────────────────────────────────────────────────
 cmd_start() {
   local no_pull=false skip_build=false
@@ -292,7 +361,7 @@ cmd_start() {
 
   if ! $no_pull && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
     log_info "拉取最新代码..."
-    git -C "$REPO_ROOT" pull --ff-only || log_warn "git pull 失败，继续使用当前代码"
+    _git_pull_best_effort
   fi
 
   # Phase 2 — 依赖安装
