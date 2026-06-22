@@ -20,7 +20,7 @@ interface WikiEntriesPreviewProps {
 }
 
 export interface WikiEntriesPreviewHandle {
-  /** 由父组件在「从 Catalog 同步」成功后调用，刷新导航树。 */
+  /** 由父组件在「发布」（同步）成功后调用，刷新导航树。 */
   refresh: () => void;
 }
 

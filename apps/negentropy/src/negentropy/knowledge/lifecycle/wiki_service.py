@@ -17,7 +17,10 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.lifecycle_schemas import WikiEntryContentResponse
+from negentropy.knowledge.lifecycle_schemas import (
+    WikiEntryContentResponse,
+    WikiPublishTarget,
+)
 from negentropy.logging import get_logger
 from negentropy.models.perception import WikiPublication, WikiPublicationEntry
 
@@ -28,43 +31,39 @@ from .wiki_redeploy import trigger_wiki_redeploy
 logger = get_logger(__name__.rsplit(".", 1)[0])
 
 
-def _maybe_spawn_pages_publish() -> None:
-    """本地场景：publish 后后台 spawn 脚本自动发布 Wiki 到 GitHub Pages。
+def _spawn_wiki_deploy_script(
+    script_relpath: str,
+    *,
+    env_overrides: dict[str, str] | None = None,
+    spawn_log_key: str,
+) -> None:
+    """fire-and-forget spawn 一个相对仓库根的 wiki 部署脚本。
 
-    仅当 ``settings.knowledge.wiki_pages_publish.enabled`` 显式开启时执行
-    （默认关闭，不影响生产与现有 publish 流程）。fire-and-forget：
-    ``subprocess.Popen`` 不阻塞 publish 返回；任何异常仅 WARN，绝不冒泡。
+    ``subprocess.Popen`` 脱离请求生命周期后台运行；任何异常仅 WARN，绝不冒泡
+    （``next build`` / git push 耗时且非事务性，不阻塞 publish 返回）。
+    脚本路径为固定内部相对值（``script_relpath`` 不拼接外部输入），env 仅透传
+    受信配置。
 
-    与 ``trigger_wiki_redeploy``（webhook → 云端 CI）正交：本地用 spawn、
-    分域/云端用 webhook。脚本路径来自配置（固定相对仓库根，不拼接外部输入）。
+    与 ``trigger_wiki_redeploy``（webhook → 云端 CI）正交：本地 spawn 用本函数、
+    分域/云端用 webhook。
     """
-    from negentropy.config import settings
-
-    cfg = settings.knowledge.wiki_pages_publish
-    if not cfg.enabled:
-        return
     try:
         import subprocess
         from pathlib import Path
 
         # 仓库根：本文件位于 apps/negentropy/src/negentropy/knowledge/lifecycle/。
         repo_root = Path(__file__).resolve().parents[6]
-        script_path = (repo_root / cfg.script).resolve()
+        script_path = (repo_root / script_relpath).resolve()
         if not script_path.is_file():
-            logger.warning("wiki_pages_publish_script_missing", script=str(script_path))
+            logger.warning("wiki_deploy_script_missing", script=str(script_path))
             return
 
         env = dict(os.environ)
-        if cfg.repo:
-            env["WIKI_PAGES_REPO"] = cfg.repo
-        env["WIKI_PAGES_BRANCH"] = cfg.branch
-        if cfg.token is not None:
-            token_value = cfg.token.get_secret_value()
-            if token_value:
-                env["WIKI_PAGES_TOKEN"] = token_value
+        if env_overrides:
+            env.update(env_overrides)
 
         # fire-and-forget：脱离请求生命周期后台运行；输出交由脚本自身/系统日志。
-        subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 不拼接外部输入
+        subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 仅透传受信配置
             ["bash", str(script_path)],
             cwd=str(repo_root),
             env=env,
@@ -72,9 +71,49 @@ def _maybe_spawn_pages_publish() -> None:
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
-        logger.info("wiki_pages_publish_spawned", script=str(script_path), branch=cfg.branch)
+        logger.info(spawn_log_key, script=str(script_path))
     except Exception as exc:  # noqa: BLE001 - 主动吞噬：spawn 失败不阻塞发布
-        logger.warning("wiki_pages_publish_spawn_failed", error=str(exc))
+        logger.warning(f"{spawn_log_key}_failed", error=str(exc))
+
+
+def _spawn_pages_publish() -> None:
+    """生产目标：spawn ``publish-wiki-pages.sh``。
+
+    全链路「导出（烘焙图片）→ next build → rsync → git push 到
+    ``threefish-ai.github.io`` master」，直接更新 https://threefish-ai.github.io/。
+    目标仓库/分支/token 由 ``wiki_pages_publish`` 配置可选覆盖；缺省时脚本回退
+    ``gh auth token`` / SSH 凭证。fire-and-forget（由 ``publish(target=PRODUCTION)``
+    显式触发）。
+    """
+    from negentropy.config import settings
+
+    cfg = settings.knowledge.wiki_pages_publish
+    env_overrides: dict[str, str] = {"WIKI_PAGES_BRANCH": cfg.branch}
+    if cfg.repo:
+        env_overrides["WIKI_PAGES_REPO"] = cfg.repo
+    if cfg.token is not None:
+        token_value = cfg.token.get_secret_value()
+        if token_value:
+            env_overrides["WIKI_PAGES_TOKEN"] = token_value
+    _spawn_wiki_deploy_script(
+        cfg.script,
+        env_overrides=env_overrides,
+        spawn_log_key="wiki_pages_publish_spawned",
+    )
+
+
+def _spawn_local_wiki_rebuild() -> None:
+    """本地目标：spawn ``build-wiki-local.sh``。
+
+    「导出 ``content/`` → ``next build`` 重建 ``apps/negentropy-wiki/out/``」，
+    重建后由本地 wiki（``:3092``）serve 新产物（测试环境）。
+    fire-and-forget（由 ``publish(target=LOCAL)`` 触发，默认目标）。
+    """
+    _spawn_wiki_deploy_script(
+        "scripts/build-wiki-local.sh",
+        env_overrides=None,
+        spawn_log_key="wiki_local_rebuild_spawned",
+    )
 
 
 # 合法主题列表
@@ -246,11 +285,22 @@ class WikiPublishingService:
     # 发布操作 (状态流转)
     # ------------------------------------------------------------------
 
-    async def publish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
+    async def publish(
+        self,
+        db: AsyncSession,
+        pub_id: UUID,
+        *,
+        target: WikiPublishTarget = WikiPublishTarget.LOCAL,
+    ) -> tuple[WikiPublication | None, str]:
         """触发发布：draft/published → published，递增版本号。
 
         - ``publish_mode == 'SNAPSHOT'``：同步冻结 entries 到 snapshots 表。
-        - 配置了 ``wiki_revalidate.url``：异步通知 SSG 主动 ISR revalidate（失败仅 WARN）。
+        - 始终触发 ``trigger_wiki_redeploy``（webhook → 云端 CI；本地未配置即 no-op，
+          保留云端部署回溯兼容）。
+        - 按 ``target`` fire-and-forget spawn 部署脚本（不阻塞 publish 返回）：
+          - ``LOCAL``：重建本地 wiki（``build-wiki-local.sh``，测试环境）。
+          - ``PRODUCTION``：推送到 ``threefish-ai.github.io`` master
+            （``publish-wiki-pages.sh``，生产环境）。
 
         Returns:
             ``(publication, revalidation_status)`` — revalidation_status 为
@@ -274,8 +324,12 @@ class WikiPublishingService:
                 app_name=pub.app_name,
                 event="publish",
             )
-            # 本地自动发布到 GitHub Pages（默认关闭；fire-and-forget，不阻塞）。
-            _maybe_spawn_pages_publish()
+            # 目标路由 spawn（fire-and-forget）：显式目标即授权，不再受
+            # wiki_pages_publish.enabled 门控。
+            if target == WikiPublishTarget.PRODUCTION:
+                _spawn_pages_publish()
+            else:
+                _spawn_local_wiki_rebuild()
 
         return pub, revalidation
 

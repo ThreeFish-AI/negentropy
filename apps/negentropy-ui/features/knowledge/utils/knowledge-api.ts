@@ -3104,6 +3104,14 @@ export interface WikiNavTreeResponse {
 
 export type WikiRevalidationStatus = "dispatched" | "failed" | "not_configured";
 
+/**
+ * Wiki 发布目标环境：
+ * - `local`（测试环境）：重建本地 negentropy-wiki 站点（:3092）。
+ * - `production`（生产环境）：推送到 threefish-ai.github.io master，
+ *   直接更新 https://threefish-ai.github.io/。
+ */
+export type WikiPublishTarget = "local" | "production";
+
 export interface WikiPublishActionResponse {
   publication_id: string;
   status: WikiPublicationStatus;
@@ -3112,6 +3120,10 @@ export interface WikiPublishActionResponse {
   entries_count: number;
   message: string;
   revalidation?: WikiRevalidationStatus;
+  /** 本次发布的目标环境（local/production） */
+  target?: WikiPublishTarget;
+  /** 上线站点 base URL（供「查看站点」跳转） */
+  site_url?: string | null;
 }
 
 export interface SyncFromCatalogParams {
@@ -3195,10 +3207,18 @@ export async function deleteWikiPublication(pubId: string): Promise<void> {
   if (!res.ok) throw new Error(`Failed to delete wiki publication: ${res.statusText}`);
 }
 
-/** 发布 Wiki（draft/published → published，递增版本号） */
-export async function publishWiki(pubId: string): Promise<WikiPublishActionResponse> {
+/**
+ * 发布 Wiki（draft/published → published，递增版本号）。
+ * @param target 发布目标环境，缺省 `local`（测试环境，安全侧默认）。
+ */
+export async function publishWiki(
+  pubId: string,
+  target: WikiPublishTarget = "local",
+): Promise<WikiPublishActionResponse> {
   const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/publish`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target }),
   });
   if (!res.ok) throw new Error(`Failed to publish wiki: ${res.statusText}`);
   return res.json();

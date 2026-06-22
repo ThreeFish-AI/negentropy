@@ -266,20 +266,29 @@ curl -s -o /dev/null -w "%{http_code}\n" https://<remote>/<pubSlug>/   # 期望 
 ./scripts/cli.sh restart   # 自动 sync-wiki-content.sh + pnpm build
 ```
 
+> 在 `/knowledge/wiki` 选择**「测试环境」**目标「发布」时，后端会 fire-and-forget spawn
+> [`scripts/build-wiki-local.sh`](../../../scripts/build-wiki-local.sh)（复用
+> [`sync-wiki-content.sh`](../../../scripts/sync-wiki-content.sh) + `next build`），
+> 等价于上述本地刷新的「导出 + 重建」步骤——无需手动 `cli.sh restart` 即可在 `:3092` 看到新内容。
+
 详见 [Wiki README · 本地刷新](../../../apps/negentropy-wiki/README.md)。
 
-### 3.5b 路径 D：本地 publish 自动发布到 GitHub Pages（本地主站 → threefish-ai.github.io）
+### 3.5b 路径 D：发布到 GitHub Pages（本地主站 → threefish-ai.github.io）
 
-**适用**：主站**纯本地**（DB 不公网暴露），希望在 `/knowledge/wiki`「同步并发布」后**自动**把站点上线到独立的 GitHub Pages 仓库（如 `threefish-ai.github.io`）。
+**适用**：主站**纯本地**（DB 不公网暴露），希望在 `/knowledge/wiki` 选择**「生产环境」**目标「发布」后**自动**把站点上线到独立的 GitHub Pages 仓库（如 `threefish-ai.github.io`）。
 
 **为什么不是云端 CI**：`wiki-content-export.yml`（§3.4）在 GitHub 云端 runner 跑，需 `NE_DB_URL` 连主站 DB——本地 DB 云端连不上。故由**后端在 publish 后后台 spawn 本地脚本**完成「导出 → 构建 → 推 Pages」，全程在本地。
+
+> 入口：`publish(target=production)` → spawn `publish-wiki-pages.sh`（与「测试环境」目标的
+> `build-wiki-local.sh` 共享「导出 + 构建」前两步，生产目标额外 rsync + git push）。
+> 显式目标即授权——不再依赖 `ENABLED` 开关（该开关保留为遗留自动发布兼容）。
 
 **图片自包含**：本路径用 `bake_assets=true` 把图片字节烘焙进 `out/assets/`（见 [§4.4](#44-图片烘焙-bake_assets)），站点**零主站运行时依赖**——即使主站不公网可达，公网 Pages 上图片照常显示。
 
 ```mermaid
 flowchart LR
   subgraph Local["本地主站"]
-    PUB["/UI 同步并发布/"] --> SVC["wiki_service.publish()"]
+    PUB["/UI 发布 · 选「生产环境」/"] --> SVC["wiki_service.publish(target=production)"]
     SVC -->|"spawn（fire-and-forget）"| SH["publish-wiki-pages.sh"]
     SH --> EXP["export（烘焙图片）→ content/"]
     EXP --> BUILD["next build → out/"]
@@ -294,18 +303,20 @@ flowchart LR
 **一次性配置**：
 
 1. **目标仓库 Pages**：`threefish-ai.github.io` → Settings → Pages → Source 选 `Deploy from a branch`，分支 `master` / root（user/org pages 根域默认分支即 `master`，无需 `basePath`）。
-2. **推送凭证**：本地对该仓库有 push 权限。脚本支持三种凭证（优先级从高到低）：① `WIKI_PAGES_TOKEN` 环境变量（GitHub PAT）；② `gh auth token`（装了 gh CLI 且已登录则自动取）；③ SSH key（`WIKI_PAGES_REPO` 用 `git@` URL 时）。**推荐 token**——最契合无 SSH key 的环境。
-3. **主站后端开关**（env 或 `config.local.yaml`）：
+2. **推送凭证**：本地对该仓库有 push 权限。脚本支持三种凭证（优先级从高到低）：① `WIKI_PAGES_TOKEN` 环境变量（GitHub PAT）；② `gh auth token`（装了 gh CLI 且已登录则自动取）；③ SSH key（`WIKI_PAGES_REPO` 用 `git@` URL 时）。**零配置最快**：`gh auth login` 后直接选「生产环境」发布即可。
 
-   ```bash
-   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__ENABLED=true
-   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__REPO=https://github.com/ThreeFish-AI/threefish-ai.github.io.git
-   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__BRANCH=master
-   # 可选：HTTPS 推送 token（缺省则脚本回退 gh auth token / SSH）
-   NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__TOKEN=ghp_xxx
-   ```
+   > 仅当需覆盖默认仓库/分支或禁用 `gh auth` 回退时，才需下列 env：
+   >
+   > ```bash
+   > NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__REPO=https://github.com/ThreeFish-AI/threefish-ai.github.io.git
+   > NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__BRANCH=master
+   > # 可选：HTTPS 推送 token（缺省则脚本回退 gh auth token / SSH）
+   > NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__TOKEN=ghp_xxx
+   > # 遗留：True 时任意 publish 即推 Pages（新流程已由显式 target 触发，通常无需开启）
+   > # NE_KNOWLEDGE_WIKI_PAGES_PUBLISH__ENABLED=true
+   > ```
 
-**之后**：在主站点「同步并发布」→ 后端后台跑 `scripts/publish-wiki-pages.sh` →（导出含图片 → 构建 → 备份目标分支 → rsync `out/` + push）→ 数十秒后 `https://threefish-ai.github.io/` 更新。spawn 为 fire-and-forget，**不阻塞 publish 接口**（失败仅后端 WARN 日志）。
+**之后**：在主站点选择**「生产环境」**目标 → 点 **「发布」**（destructive 二次确认）→ 后端后台跑 `scripts/publish-wiki-pages.sh` →（导出含图片 → 构建 → 备份目标分支 → rsync `out/` + push）→ 数十秒后 `https://threefish-ai.github.io/` 更新。spawn 为 fire-and-forget，**不阻塞 publish 接口**（失败仅后端 WARN 日志）。
 
 **手动 fallback / 首次验证**：
 
