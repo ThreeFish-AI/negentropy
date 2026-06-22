@@ -36,6 +36,52 @@ export function isReservedDocsSlug(slug: string | null | undefined): boolean {
   return slug === RESERVED_DOCS_SLUG;
 }
 
+/**
+ * WikiHeader 左侧「Negentropy」保留标签的渲染输入。
+ *
+ * - `items` 缺省 → 纯链接标签（首页 / 非保留 pub 页），点击直达保留 docs 首页；
+ * - `items` 非空 → 渲染为二级下拉（联级菜单），面板列出保留 pub 第一层章节，
+ *   仅在「身处保留 pub」时由 `buildReservedDocsTab` 注入。
+ */
+export interface ReservedDocsTab {
+  show: boolean;
+  active?: boolean;
+  label?: string;
+  href: string;
+  /** 保留下拉面板条目（保留 pub nav-tree 第一层）；缺省时渲染纯链接。 */
+  items?: WikiNavTreeItem[];
+  /** 当前激活的第一层 slug，用于下拉项高亮。 */
+  activeChildSlug?: string;
+}
+
+/**
+ * 派生左侧「Negentropy」保留标签的 Header 渲染输入（单一事实源）。
+ *
+ * 集中"身处保留 pub 时把 nav-tree 第一层折叠进左侧下拉、其它页面保持纯链接"的规则，
+ * 杜绝三个 pub 页面各自重复实现，亦与首页「保留 pub 不进 `--right`」的过滤意图呼应。
+ *
+ * - `reservedExists=false` → `undefined`（保留 pub 不存在，不渲染标签）；
+ * - `isReserved=true`（身处保留 pub）→ 注入 `items` + `activeChildSlug`，调用方同时应
+ *   据 `isReserved` 清空 `--right` 一级 tabs（避免子项与左侧下拉重复出现）；
+ * - 其它页面 → 纯链接（`items` 不注入），点击直达保留 docs 首页。
+ */
+export function buildReservedDocsTab(opts: {
+  reservedExists: boolean;
+  isReserved: boolean;
+  items?: WikiNavTreeItem[];
+  activeChildSlug?: string;
+}): ReservedDocsTab | undefined {
+  if (!opts.reservedExists) return undefined;
+  return {
+    show: true,
+    active: opts.isReserved,
+    label: RESERVED_DOCS_LABEL,
+    href: RESERVED_DOCS_HOME,
+    items: opts.isReserved ? opts.items : undefined,
+    activeChildSlug: opts.activeChildSlug,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // 类型定义
 // ---------------------------------------------------------------------------

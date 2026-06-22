@@ -1,10 +1,9 @@
 import {
+  buildReservedDocsTab,
   findFirstDocumentSlug,
   isReservedDocsSlug,
   joinEntrySlug,
   resolveSectionView,
-  RESERVED_DOCS_HOME,
-  RESERVED_DOCS_LABEL,
   RESERVED_DOCS_SLUG,
   type WikiEntry,
   type WikiEntryContent,
@@ -162,18 +161,24 @@ export default async function WikiEntryPage({ params }: Props) {
   const reservedExists =
     isReserved || (await wikiApi.findPublicationBySlug(RESERVED_DOCS_SLUG)) !== null;
 
+  // 身处保留 pub 时，把其 nav-tree 第一层注入左侧「Negentropy」标签的二级下拉，
+  // 并清空右侧 `--right` 一级 tabs，避免子项与下拉重复出现（首页同此过滤意图）。
+  const reservedTab = buildReservedDocsTab({
+    reservedExists,
+    isReserved,
+    items: sectionView.headerItems,
+    activeChildSlug: sectionView.activeTopSlug,
+  });
+  const headerItems = isReserved ? [] : sectionView.headerItems;
+
   const header = sectionView.headerItems.length > 0 && (
     <WikiHeader
       pubSlug={pubSlug}
-      items={sectionView.headerItems}
+      items={headerItems}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      reservedTab={
-        reservedExists
-          ? { show: true, active: isReserved, label: RESERVED_DOCS_LABEL, href: RESERVED_DOCS_HOME }
-          : undefined
-      }
+      reservedTab={reservedTab}
       graphTab={{ active: false, show: hasAnyEntry && !isReserved }}
     />
   );
