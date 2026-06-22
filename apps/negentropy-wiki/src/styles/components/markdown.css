@@ -4,6 +4,12 @@
   overflow-wrap: break-word;
 }
 
+/* 正文首元素（剥离标题后的首个 <p>/<h2> 等）不再叠加顶部 margin，
+   避免其与上方元信息栏之间产生额外留白（原首行 H1 的 1.5em 是间隙主因）。 */
+.wiki-markdown-body > :first-child {
+  margin-top: 0;
+}
+
 .wiki-markdown-body :is(h1, h2, h3, h4, h5, h6) {
   scroll-margin-top: 4.5rem;
 }
