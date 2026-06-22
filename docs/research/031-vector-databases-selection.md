@@ -316,7 +316,7 @@ tags:
 - **定位:** MongoDB Atlas 云数据平台的全托管向量搜索服务。它是 MongoDB 聚合管道（Aggregation Pipeline）中的一个功能模块（不是一个独立的数据库）<sup>[[18]](#ref18)</sup>。
 - **核心架构:**
   - **Lucene 集成:** 向量搜索底层依赖于 Apache Lucene 库。MongoDB 通过内部的同步机制（基于 Oplog），将主数据库（mongod 进程）中的数据实时同步到 Sidecar（侧车）搜索节点（mongot 进程）中，并在那里构建 HNSW 索引。
-  - **聚合管道 ($vectorSearch):** 向量搜索并非独立的 API，而是作为聚合管道的第一阶段 $vectorSearch 存在。这意味着你可以将向量搜索的结果无缝传递给后续的 MongoDB 阶段（如 $match, $project, $lookup），在数据库内部完成复杂的“向量 + 标量 + 关联查询”逻辑，无需应用层组装。
+  - **聚合管道 (`$vectorSearch`):** 向量搜索并非独立的 API，而是作为聚合管道的第一阶段 `$vectorSearch` 存在。这意味着你可以将向量搜索的结果无缝传递给后续的 MongoDB 阶段（如 `$match`, `$project`, `$lookup`），在数据库内部完成复杂的“向量 + 标量 + 关联查询”逻辑，无需应用层组装。
   - **预过滤 (Pre-filtering):** 利用 Lucene 的能力，支持在 HNSW 遍历前进行高效的元数据过滤（基于 MQL 语法），这对于多租户或带权限控制的 RAG 系统至关重要。
   - **搜索模式:**
     - **ANN (Approximate):** 默认的近似最近邻搜索，使用 HNSW 索引，速度快但可能有召回损失。
@@ -524,7 +524,7 @@ tags:
      - **生产阶段:** 如果文档数量超过 500 万，或者需要精细的权限控制（如 HR 文档只能 HR 看），迁移至 **Weaviate** 或 **Qdrant**。因为它们对 Filter Search 的优化更好。
 2. **场景 B：企业级知识库 (+精准的文本匹配)**
    - **推荐:** **Weaviate**、**Elasticsearch**、**MongoDB Atlas**。
-   - **理由:** 纯向量搜索在匹配专有名词（如产品型号“X-2000”、人名、法律条款号）时效果很差，因为这些词在 Embedding 空间中可能被“平均化”了（Out-of-vocabulary 问题），必须结合关键词检索解决 OOV 问题。Weaviate 利用 RRF 自动平衡关键词和向量权重、ES 的 kNN + Filter、MongoDB Atlas 的 Lucene 全文检索（$vectorSearch + $search）都具备良好的 Hybrid Search 能力。
+   - **理由:** 纯向量搜索在匹配专有名词（如产品型号“X-2000”、人名、法律条款号）时效果很差，因为这些词在 Embedding 空间中可能被“平均化”了（Out-of-vocabulary 问题），必须结合关键词检索解决 OOV 问题。Weaviate 利用 RRF 自动平衡关键词和向量权重、ES 的 kNN + Filter、MongoDB Atlas 的 Lucene 全文检索（`$vectorSearch` + `$search`）都具备良好的 Hybrid Search 能力。
 3. **场景 C：高并发推荐系统 / 广告投放 / 图像搜索**
    - **推荐:** **Milvus** (通用高性能), **Vertex AI** (Google 生态), 或 **Vespa** (复杂计算)。
    - **理由:** 这里的瓶颈是 QPS（每秒查询数）、Latency（延迟）、写入实时性。如果需要每秒处理数万次查询，且要求 10ms 内返回，**Redis** 或 **Qdrant** 是单机性价比之选；如果规模大到需要分布式，Milvus 的存算分离架构能让你独立扩容查询节点（Query Node）以保证高并发（Milvus 对 GPU 索引的支持可以进一步降低超大规模下的延迟），消息队列架构保证了写入不丢数据。Vespa 可以在检索时做复杂的重排序（Re-ranking），适合广告业务。
