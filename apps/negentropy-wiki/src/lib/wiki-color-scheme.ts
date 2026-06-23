@@ -56,3 +56,36 @@ export function useIsDark(): boolean {
     () => false,
   );
 }
+
+/** 颜色方案字面量（与 localStorage 存储值一致）。 */
+export type ColorScheme = "light" | "dark" | "system";
+
+/**
+ * 读取 localStorage 中的主题偏好，缺失 / 异常（隐私模式等）回退 `"system"`。
+ * SSR 安全：服务端 / SSG 预渲染阶段无 `window`，恒返回 `"system"`。
+ */
+export function getStoredColorScheme(): ColorScheme {
+  if (typeof window === "undefined") return "system";
+  try {
+    const v = window.localStorage.getItem(COLOR_SCHEME_KEY);
+    return v === "light" || v === "dark" || v === "system" ? v : "system";
+  } catch {
+    return "system";
+  }
+}
+
+/**
+ * 把颜色方案应用到 `<html data-color-scheme>`（仅改 DOM，不写 localStorage）。
+ *
+ * - `"system"`：移除属性，交由 CSS `@media (prefers-color-scheme)` 跟随系统；
+ * - `"light"` / `"dark"`：显式设属性，覆盖系统偏好。
+ *
+ * 该属性是主题的单一事实源：`detectDark()`、`useIsDark()`、Galaxy 画布与各图谱
+ * 渲染器均读取它，故只需翻转此属性即可让全站暗色感知同步。
+ */
+export function applyColorScheme(cs: ColorScheme): void {
+  if (typeof document === "undefined") return;
+  const el = document.documentElement;
+  if (cs === "system") el.removeAttribute("data-color-scheme");
+  else el.setAttribute("data-color-scheme", cs);
+}
