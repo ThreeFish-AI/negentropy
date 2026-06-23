@@ -132,8 +132,8 @@ export function WikiLayoutShell({
           <WikiMobileNav topNav={mobileTopNav}>{sidebar}</WikiMobileNav>
           <div className="wiki-layout wiki-layout--home" data-header={header ? "" : undefined}>
             <main className="wiki-main wiki-main--home">{children}</main>
-            {footer}
           </div>
+          {footer}
         </>
       ) : (
         <>
@@ -142,8 +142,8 @@ export function WikiLayoutShell({
             <aside className="wiki-sidebar">{sidebar}</aside>
             <main className="wiki-main">{children}</main>
             {hasToc && <aside className="wiki-toc-aside">{toc}</aside>}
-            {footer}
           </div>
+          {footer}
         </>
       )}
     </TocContext.Provider>

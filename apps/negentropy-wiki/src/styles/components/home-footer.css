@@ -5,19 +5,15 @@
   color: var(--wiki-footer-text);
   border-top: 1px solid var(--wiki-footer-border); /* 发丝线分隔正文↔页脚 */
   /*
-   * Footer 现作为最后一个 grid item 纳入 .wiki-layout（见 WikiLayoutShell.tsx），
-   * 使左栏 .wiki-sidebar 的 sticky 包含块覆盖整篇文档（含页脚）——根治「短正文页
-   * 滚到页脚区时 sidebar 因 grid area 提前耗尽而脱粘、随正文上滑消失」。
+   * Footer 渲染在 .wiki-layout 之外、作为其兄弟节点（父为全宽的 #wiki-root，见
+   * WikiLayoutShell.tsx）——使左 .wiki-sidebar / 右 .wiki-toc-aside 的 sticky 脱粘
+   * 下边界（= 直接父 .wiki-layout 的 content box 底）精确落在 footer 顶部，滚到页底时
+   * 左右栏底边停在页脚上边界，绝不遮盖页脚（对齐 Docusaurus / VitePress / Stripe Docs）。
    *
-   * - grid-column:1/-1：跨越 sidebar/main/toc 全部列（grid 列数随 data-toc 三态变化皆适配）；
-   *   home 变体为 block 布局，此声明被忽略，无副作用。
-   * - width:100vw + 对称负 margin：full-bleed 全宽背景，保留 footer 贯穿视口的视觉
-   *   （不随 .wiki-layout 的 1404px 容器限宽）。50% 相对 grid cell（整行宽）。
+   * #wiki-root 全宽无 max-width/padding，footer 作为 block 默认撑满视口，无需 full-bleed
+   * 出血计算（旧 width:100vw + 负 margin 在 Windows 经典滚动条下会被 body overflow-x:clip
+   * 硬切右端并整体左移，已移除）。内容居中由 .wiki-footer-inner 的 max-width:1200px 承担。
    */
-  grid-column: 1 / -1;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
 }
 
 .wiki-footer-inner {
