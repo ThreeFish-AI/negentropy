@@ -37,7 +37,8 @@ uniform float uRepulsionStrength;
 uniform float uMouseActiveFactor;
 uniform float uAutoCenterRepulsion;
 uniform bool uTransparent;
-uniform vec3 uStarColor; // 浅底暗紫描点色（仅透明分支使用）
+uniform vec3 uStarTint; // 浅底星点冷调描点色（仅透明分支使用）
+uniform float uLightAlpha; // 浅底星点整体存在感（whisper；深色恒 1.0 不参与）
 varying vec2 vUv;
 
 #define NUM_LAYER 4.0
@@ -146,12 +147,13 @@ void main() {
     col += StarLayer(uv * scale + i * 453.32) * fade;
   }
   if (uTransparent) {
-    // 浅底模式：累加亮星在白/浅紫底上不可见（亮 on 亮，对比度趋零），故以累加量为
-    // 「星强度图」、输出暗紫描点 uStarColor，alpha 由强度 smoothstep 控制 → 浅底上的微妙星点。
+    // 浅底模式：additive 亮星在白底不可见，故以累加量 length(col) 为「星强度图」——它天然携带
+    // 原版 Star() 的光晕软边、twinkle 闪烁与多层景深；输出冷调描点 uStarTint，alpha 经 smoothstep
+    // 保留光晕软边、再乘 uLightAlpha 压低整体存在感 → 浅底上「远方星辰呼吸」而非平涂色点。
     float intensity = length(col);
     float alpha = smoothstep(0.0, 0.3, intensity);
-    alpha = min(alpha, 1.0);
-    gl_FragColor = vec4(uStarColor, alpha);
+    alpha = min(alpha, 1.0) * uLightAlpha;
+    gl_FragColor = vec4(uStarTint, alpha);
   } else {
     gl_FragColor = vec4(col, 1.0);
   }
@@ -184,21 +186,23 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
     // 注意：OGL `alpha` 标志锁定在 Renderer 创建时、不可热改，故切换主题必须 teardown+recreate
     //       （effect deps=[isDark]），与 Cytoscape/3DGraph 的「就地刷新」本质不同 —— 勿回退。
     const transparent = !isDark;
-    const glowIntensity = isDark ? 0.5 : 0.15;
+    const glowIntensity = isDark ? 0.5 : 0.15; // 浅色仅最亮星核显著 → 干净星点
     const hueShift = 280;
     const saturation = 0.28;
     const disableAnimation = prefersReducedMotion;
     const starSpeed = 0.5;
-    const density = isDark ? 1.2 : 0.4; // 浅色稀疏描点
+    const density = isDark ? 1.2 : 0.2; // 浅色大幅稀疏（whisper）
     const speed = 1.0;
     const mouseRepulsion = isDark; // 浅底排斥不可见且抢占指针，关闭
     const repulsionStrength = 2;
-    const twinkleIntensity = isDark ? 0.4 : 0.2;
+    const twinkleIntensity = isDark ? 0.4 : 0.25;
     const rotationSpeed = 0.1;
-    // 浅底暗紫描点色（~#4a2d78）；深色走 additive 亮星路径，此值不参与
-    const starColor: [number, number, number] = isDark
+    // 浅底整体存在感（whisper，视觉调参）；深色恒 1.0（additive 亮星路径不参与）
+    const lightAlpha = isDark ? 1.0 : 0.42;
+    // 浅底冷调灰蓝靛描点（~#737899，比暗紫更轻盈）；深色不参与
+    const starTint: [number, number, number] = isDark
       ? [1.0, 1.0, 1.0]
-      : [0.29, 0.18, 0.47];
+      : [0.45, 0.47, 0.62];
 
     const targetMousePos = { x: 0.5, y: 0.5 };
     const smoothMousePos = { x: 0.5, y: 0.5 };
@@ -260,9 +264,10 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
         uMouseActiveFactor: { value: 0.0 },
         uAutoCenterRepulsion: { value: 0 },
         uTransparent: { value: transparent },
-        uStarColor: {
-          value: new Color(starColor[0], starColor[1], starColor[2]),
+        uStarTint: {
+          value: new Color(starTint[0], starTint[1], starTint[2]),
         },
+        uLightAlpha: { value: lightAlpha },
       },
     });
 

@@ -1,30 +1,9 @@
-/* Wiki 页脚 — 全站深色 */
+/* Wiki 页脚 —— 浅色主题与页面同色自洽（贴 Squaredops：纯白 + 发丝线 + 低噪深字）；
+   深色 themes.css 覆写为深色。全站统一（首页 / 内容页同款）。 */
 .wiki-footer {
-  position: relative; /* ::before 羽化锚定所需 */
   background: var(--wiki-footer-bg);
   color: var(--wiki-footer-text);
-}
-
-/*
- * 仅首页「卡片区(白) → 深色页脚」浅色主题羽化：页脚顶部叠一层白→深渐变，柔化像素级硬切。
- * 作用域 #wiki-root:has(.wiki-layout--home) 隔离 —— 内容页页脚不受影响。
- * 深色主题 --wiki-footer-fade=none / --wiki-footer-fade-height=0 → ::before 不可见、padding-top 回落。
- */
-#wiki-root:has(.wiki-layout--home) .wiki-footer::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: var(--wiki-footer-fade-height);
-  background: var(--wiki-footer-fade);
-  z-index: 0;
-  pointer-events: none;
-}
-#wiki-root:has(.wiki-layout--home) .wiki-footer-inner {
-  position: relative;
-  z-index: 1; /* 内容浮于羽化渐变之上 */
-  padding-top: calc(var(--wiki-footer-fade-height) + 0.625rem);
+  border-top: 1px solid var(--wiki-footer-border); /* 发丝线分隔正文↔页脚 */
 }
 
 .wiki-footer-inner {

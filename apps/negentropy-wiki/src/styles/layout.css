@@ -143,9 +143,9 @@
 
 /* Home variant: full-width single column（Hero 需全幅出血，不受容器约束） */
 /*
- * 首页最底层背景填深色（与页脚同色）—— 仅当页面含首页布局时命中（`:has()` 作用域隔离，
- * 内容页不受影响）。配合下方移除 `.wiki-layout--home` 的 min-height：高视口短内容时，
- * 页脚下方的余白不再露出 body 的浅色背景，而是与深色页脚无缝衔接，避免「白条」回归。
+ * 首页最底层背景与页脚同色（`var(--wiki-footer-bg)`：浅色=白、深色=深）—— 仅首页布局命中
+ *（`:has()` 作用域隔离，内容页不受影响）。高视口短内容时，页脚下方余白与页脚无缝同色，
+ * 两套主题皆无色带回归（浅色全白自洽 / 深色全深）。
  */
 #wiki-root:has(.wiki-layout--home) {
   min-height: 100vh;
@@ -156,7 +156,7 @@
  * 不再强制撑满视口：显式 `min-height: 0` 覆写基类 `.wiki-layout` 的 `min-height: 100vh`
  *（首页元素同时持有 `wiki-layout wiki-layout--home` 两个类）。高度回归内容自适应——
  * 卡片区上下间隙由 `.home-cards-section` 的对称 padding 决定（各 48px），页脚紧随其后。
- * 显式声明 body 同色背景，避免被上方 `#wiki-root` 的深色底透出（浅色模式卡片区应为白）。
+ * 显式声明 body 同色背景（`var(--wiki-bg)`），与 `#wiki-root` 底色一致，浅/深皆自洽。
  */
 .wiki-layout--home {
   display: block;
