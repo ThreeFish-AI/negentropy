@@ -98,7 +98,11 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
       reservedTab={reservedTab}
-      graphTab={{ active: true, show: entriesTotal > 0 && !isReserved }}
+      graphTab={{
+        active: pubSlug === headerNav.graphPubSlug,
+        show: !!headerNav.graphPubSlug,
+        href: headerNav.graphPubSlug ? `/${headerNav.graphPubSlug}/graph` : undefined,
+      }}
     />
   );
 

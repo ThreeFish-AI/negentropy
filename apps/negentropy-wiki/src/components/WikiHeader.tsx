@@ -22,6 +22,8 @@ interface WikiHeaderGraphTab {
   show: boolean;
   active: boolean;
   label?: string;
+  /** 知识图谱页 href（缺省回退 `/${pubSlug}/graph`）；全站顶栏恒指向有 KG 的 pub。 */
+  href?: string;
 }
 
 interface WikiHeaderProps {
@@ -84,7 +86,7 @@ export function WikiHeader({
             )}
             {graphTab?.show && (
               <Link
-                href={`/${pubSlug}/graph`}
+                href={graphTab.href ?? `/${pubSlug}/graph`}
                 className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
                 aria-current={graphTab.active ? "page" : undefined}
               >

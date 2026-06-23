@@ -675,7 +675,7 @@ class DocumentStorageService:
                     SET metadata = jsonb_set(
                         COALESCE(metadata, '{{}}'::jsonb),
                         '{{display_name}}',
-                        :display_name_json::jsonb
+                        CAST(:display_name_json AS jsonb)
                     )
                     WHERE metadata->>'document_id' = :document_id
                     """
