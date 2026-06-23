@@ -7,7 +7,7 @@ on:
       - "apps/negentropy-perceives/**"
       - ".github/workflows/negentropy-perceives-review.yml"
   push:
-    branches: [master, main]
+    branches: [master]
     paths:
       - "apps/negentropy-perceives/**"
   workflow_dispatch:
@@ -115,7 +115,7 @@ jobs:
     name: Push Code Review
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     env:
       HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && 'true' || 'false' }}
     permissions:

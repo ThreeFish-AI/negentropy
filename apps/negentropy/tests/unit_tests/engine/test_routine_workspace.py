@@ -49,12 +49,12 @@ def _routine_branches(repo: str) -> list[str]:
 
 
 def _make_repo_with_remote(tmp_path) -> tuple[str, str]:
-    """建带 bare origin 的仓库：返回 (work_repo, bare_remote)；work 已含 main 并 push 到 origin。"""
+    """建带 bare origin 的仓库：返回 (work_repo, bare_remote)；work 已含 master 并 push 到 origin。"""
     bare = str(tmp_path / "origin.git")
     subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
     work = _make_git_repo(tmp_path / "repo")
     subprocess.run(["git", "-C", work, "remote", "add", "origin", bare], check=True)
-    subprocess.run(["git", "-C", work, "push", "-q", "-u", "origin", "main"], check=True)
+    subprocess.run(["git", "-C", work, "push", "-q", "-u", "origin", "master"], check=True)
     subprocess.run(["git", "-C", work, "fetch", "-q", "origin"], check=True)
     return work, bare
 
@@ -73,7 +73,7 @@ def _settings(worktree_root: str, **kw):
 
 
 def _make_git_repo(path) -> str:
-    """在 path 下建一个含 main 分支与初始提交的 git 仓库，返回其路径字符串。"""
+    """在 path 下建一个含 master 分支与初始提交的 git 仓库，返回其路径字符串。"""
     p = str(path)
     subprocess.run(["git", "init", "-q", p], check=True)
     subprocess.run(["git", "-C", p, "config", "user.email", "t@t.io"], check=True)
@@ -81,7 +81,7 @@ def _make_git_repo(path) -> str:
     (path / "README.md").write_text("# repo\n")
     subprocess.run(["git", "-C", p, "add", "-A"], check=True)
     subprocess.run(["git", "-C", p, "commit", "-q", "-m", "init"], check=True)
-    subprocess.run(["git", "-C", p, "branch", "-M", "main"], check=True)
+    subprocess.run(["git", "-C", p, "branch", "-M", "master"], check=True)
     return p
 
 
@@ -90,7 +90,7 @@ def _routine(repo: str, **kw):
         id=uuid4(),
         key="demo_routine",
         cwd=repo,
-        baseline_branch="main",
+        baseline_branch="master",
         work_branch=None,
         worktree_path=None,
     )
@@ -106,7 +106,7 @@ def _routine(repo: str, **kw):
 def test_normalize_base_branch_strips_remote_prefix():
     assert ws.normalize_base_branch("origin/feature/1.x.x", "origin") == "feature/1.x.x"
     assert ws.normalize_base_branch("feature/1.x.x", "origin") == "feature/1.x.x"  # 无前缀原样
-    assert ws.normalize_base_branch("upstream/main", "origin") == "upstream/main"  # 非该远端不剥
+    assert ws.normalize_base_branch("upstream/master", "origin") == "upstream/master"  # 非该远端不剥
 
 
 def test_sanitize_ref():
@@ -123,14 +123,14 @@ def test_sanitize_ref():
 
 async def test_validate_repo_ok(tmp_path):
     repo = _make_git_repo(tmp_path / "repo")
-    await ws.validate_repo(repo, "main", _settings(str(tmp_path / "wt")))  # 不抛即通过
+    await ws.validate_repo(repo, "master", _settings(str(tmp_path / "wt")))  # 不抛即通过
 
 
 async def test_validate_repo_missing_inputs(tmp_path):
     s = _settings(str(tmp_path / "wt"))
     repo = _make_git_repo(tmp_path / "repo")
     with pytest.raises(ws.WorkspaceError):
-        await ws.validate_repo(None, "main", s)  # 缺 cwd
+        await ws.validate_repo(None, "master", s)  # 缺 cwd
     with pytest.raises(ws.WorkspaceError):
         await ws.validate_repo(repo, None, s)  # 缺 baseline
 
@@ -139,7 +139,7 @@ async def test_validate_repo_not_a_git_worktree(tmp_path):
     plain = tmp_path / "plain"
     plain.mkdir()
     with pytest.raises(ws.WorkspaceError):
-        await ws.validate_repo(str(plain), "main", _settings(str(tmp_path / "wt")))
+        await ws.validate_repo(str(plain), "master", _settings(str(tmp_path / "wt")))
 
 
 async def test_validate_repo_unresolvable_baseline(tmp_path):
@@ -335,8 +335,8 @@ async def test_ensure_worktree_falls_back_to_baseline_when_no_local_no_remote(tm
     info = await ws.ensure_worktree(r, s)
     assert info.branch == "routine/demo_routine-deadbeef"  # 保留同名
     head = subprocess.run(["git", "-C", info.path, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    main = subprocess.run(["git", "-C", repo, "rev-parse", "main"], capture_output=True, text=True).stdout.strip()
-    assert head == main  # 从基线 tip 派生
+    base_sha = subprocess.run(["git", "-C", repo, "rev-parse", "master"], capture_output=True, text=True).stdout.strip()
+    assert head == base_sha  # 从基线 tip 派生
 
 
 async def test_ensure_worktree_clears_stale_dir_at_target_path(tmp_path):
@@ -363,7 +363,7 @@ async def test_ensure_worktree_keeps_legacy_timestamped_branch(tmp_path):
     os.makedirs(root, exist_ok=True)
     legacy_branch = "routine/demo_routine-20240101000000"
     legacy_path = os.path.join(root, "demo_routine-20240101000000")
-    subprocess.run(["git", "-C", repo, "worktree", "add", "-b", legacy_branch, legacy_path, "main"], check=True)
+    subprocess.run(["git", "-C", repo, "worktree", "add", "-b", legacy_branch, legacy_path, "master"], check=True)
 
     r = _routine(repo, work_branch=legacy_branch, worktree_path=legacy_path)
     info = await ws.ensure_worktree(r, s)

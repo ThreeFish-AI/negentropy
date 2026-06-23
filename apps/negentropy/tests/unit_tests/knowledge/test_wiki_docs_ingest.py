@@ -192,12 +192,12 @@ def test_rewrite_links_table():
         "[f](../../../concepts/framework.md)": "/negentropy/concepts/framework",
         # 过度 ../ 的源码路径 → 钳制为仓库根 → GitHub blob
         "[src](../../../../apps/negentropy/src/x.py)": (
-            "https://github.com/ThreeFish-AI/negentropy/blob/main/apps/negentropy/src/x.py"
+            "https://github.com/ThreeFish-AI/negentropy/blob/master/apps/negentropy/src/x.py"
         ),
         # docs 内但未纳入子集（.agents）→ GitHub blob
-        "[i](../.agents/issue.md)": ("https://github.com/ThreeFish-AI/negentropy/blob/main/docs/.agents/issue.md"),
+        "[i](../.agents/issue.md)": ("https://github.com/ThreeFish-AI/negentropy/blob/master/docs/.agents/issue.md"),
         # 图片 → GitHub raw
-        "![img](../assets/a.png)": "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/main/docs/assets/a.png",
+        "![img](../assets/a.png)": "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/master/docs/assets/a.png",
     }
     for src, expected_url in cases.items():
         out = rewrite_doc_links(src, current_rel_path=cur, included_slugs=included, cfg=cfg)
@@ -206,4 +206,4 @@ def test_rewrite_links_table():
     # 嵌套 [] 的链接文案（Next.js 动态段）仍被匹配重写
     nested = "[`app/[id]/route.ts`](../../../../apps/x/app/[id]/route.ts)"
     out = rewrite_doc_links(nested, current_rel_path=cur, included_slugs=included, cfg=cfg)
-    assert "github.com/ThreeFish-AI/negentropy/blob/main/apps/x/app/[id]/route.ts" in out
+    assert "github.com/ThreeFish-AI/negentropy/blob/master/apps/x/app/[id]/route.ts" in out

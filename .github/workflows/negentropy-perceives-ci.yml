@@ -2,13 +2,13 @@ name: Perceives CI
 
 on:
   push:
-    branches: [master, main, develop, "feature/**"]
+    branches: [master, develop, "feature/**"]
     paths:
       - "apps/negentropy-perceives/**"
       - ".github/workflows/negentropy-perceives-ci.yml"
       - ".github/actions/setup-python-uv/**"
   pull_request:
-    branches: [master, main, develop, "feature/**"]
+    branches: [master, develop, "feature/**"]
     paths:
       - "apps/negentropy-perceives/**"
       - ".github/workflows/negentropy-perceives-ci.yml"
@@ -31,7 +31,7 @@ defaults:
 
 jobs:
   # 动态矩阵：跨平台全量（ubuntu/windows/macos）仅在「合并闸口」事件触发——
-  # PR / 默认分支(master,main,develop)推送 / 周期 / 手动 / workflow_call；
+  # PR / 默认分支(master,develop)推送 / 周期 / 手动 / workflow_call；
   # feature/** 等短分支推送仅跑 ubuntu（macOS 10×/Windows 2× 高成本），跨平台由 PR 保证。
   matrix-prep:
     name: Prepare Test Matrix
@@ -60,7 +60,7 @@ jobs:
             full="true"
           elif [[ "$event" == "push" ]]; then
             case "$ref" in
-              refs/heads/master|refs/heads/main|refs/heads/develop) full="true" ;;
+              refs/heads/master|refs/heads/develop) full="true" ;;
               *) full="false" ;;
             esac
           fi

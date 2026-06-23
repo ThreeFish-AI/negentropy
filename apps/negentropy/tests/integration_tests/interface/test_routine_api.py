@@ -52,7 +52,7 @@ async def _cleanup(key_prefix: str) -> None:
 
 @pytest.fixture(scope="module")
 def git_repo(tmp_path_factory) -> str:
-    """模块级临时 git 仓库（含 main 分支与初始提交），供可执行 routine 的 cwd + baseline 校验。"""
+    """模块级临时 git 仓库（含 master 分支与初始提交），供可执行 routine 的 cwd + baseline 校验。"""
     repo = tmp_path_factory.mktemp("api_repo")
     p = str(repo)
     subprocess.run(["git", "init", "-q", p], check=True)
@@ -61,7 +61,7 @@ def git_repo(tmp_path_factory) -> str:
     (repo / "README.md").write_text("# repo\n")
     subprocess.run(["git", "-C", p, "add", "-A"], check=True)
     subprocess.run(["git", "-C", p, "commit", "-q", "-m", "init"], check=True)
-    subprocess.run(["git", "-C", p, "branch", "-M", "main"], check=True)
+    subprocess.run(["git", "-C", p, "branch", "-M", "master"], check=True)
     return p
 
 
@@ -85,7 +85,7 @@ async def test_full_crud_and_control_lifecycle(git_repo):
                     "goal": "实现功能 X",
                     "acceptance_criteria": "测试通过",
                     "cwd": git_repo,
-                    "baseline_branch": "main",
+                    "baseline_branch": "master",
                     "max_iterations": 5,
                     "approval_mode": "first",
                     "verification_command": "echo ok",
@@ -260,7 +260,7 @@ async def test_restart_failed_resets_run_state_and_sets_floor(git_repo):
                     "max_cost_usd": 10,
                     # cwd + baseline 满足 #829 restart 端点的 worktree 隔离守卫。
                     "cwd": git_repo,
-                    "baseline_branch": "main",
+                    "baseline_branch": "master",
                 },
             )
             rid = r.json()["id"]
@@ -331,7 +331,7 @@ async def test_restart_closes_leftover_nonterminal_iterations(git_repo):
                     "acceptance_criteria": "a",
                     # cwd + baseline 满足 #829 restart 端点的 worktree 隔离守卫。
                     "cwd": git_repo,
-                    "baseline_branch": "main",
+                    "baseline_branch": "master",
                 },
             )
             rid = r.json()["id"]
@@ -380,7 +380,7 @@ async def test_restart_guards_and_reflection_reset(git_repo):
                     "goal": "g",
                     "acceptance_criteria": "a",
                     "cwd": git_repo,
-                    "baseline_branch": "main",
+                    "baseline_branch": "master",
                 },
             )
             rid = r.json()["id"]
@@ -438,12 +438,12 @@ async def test_create_persists_and_serializes_worktree_fields(git_repo):
                     "goal": "g",
                     "acceptance_criteria": "a",
                     "cwd": git_repo,
-                    "baseline_branch": "main",
+                    "baseline_branch": "master",
                 },
             )
             assert r.status_code == 200, r.text
             body = r.json()
-            assert body["baseline_branch"] == "main"
+            assert body["baseline_branch"] == "master"
             assert body["work_branch"] is None
             assert body["worktree_path"] is None
     finally:
@@ -509,7 +509,7 @@ async def test_runtime_safe_fields_update_while_running(git_repo):
                     "goal": "实现功能 X",
                     "acceptance_criteria": "测试通过",
                     "cwd": git_repo,
-                    "baseline_branch": "main",
+                    "baseline_branch": "master",
                     "success_score_threshold": 90,
                     "max_iterations": 10,
                 },
