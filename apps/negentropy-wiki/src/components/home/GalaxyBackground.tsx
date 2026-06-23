@@ -3,6 +3,8 @@
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import { useEffect, useRef } from "react";
 
+import { useIsDark } from "@/lib/wiki-color-scheme";
+
 /* ── GLSL Vertex Shader ── */
 const vertexShader = /* glsl */ `
 attribute vec2 uv;
@@ -35,6 +37,7 @@ uniform float uRepulsionStrength;
 uniform float uMouseActiveFactor;
 uniform float uAutoCenterRepulsion;
 uniform bool uTransparent;
+uniform vec3 uStarColor; // 浅底暗紫描点色（仅透明分支使用）
 varying vec2 vUv;
 
 #define NUM_LAYER 4.0
@@ -143,10 +146,12 @@ void main() {
     col += StarLayer(uv * scale + i * 453.32) * fade;
   }
   if (uTransparent) {
-    float alpha = length(col);
-    alpha = smoothstep(0.0, 0.3, alpha);
+    // 浅底模式：累加亮星在白/浅紫底上不可见（亮 on 亮，对比度趋零），故以累加量为
+    // 「星强度图」、输出暗紫描点 uStarColor，alpha 由强度 smoothstep 控制 → 浅底上的微妙星点。
+    float intensity = length(col);
+    float alpha = smoothstep(0.0, 0.3, intensity);
     alpha = min(alpha, 1.0);
-    gl_FragColor = vec4(col, alpha);
+    gl_FragColor = vec4(uStarColor, alpha);
   } else {
     gl_FragColor = vec4(col, 1.0);
   }
@@ -159,30 +164,41 @@ interface GalaxyBackgroundProps {
 
 export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
+  const isDark = useIsDark();
 
   useEffect(() => {
     if (!ctnDom.current) return;
     const ctn = ctnDom.current;
+
+    // 防御性前置清理：主题切换触发 teardown+recreate 时，杜绝残留 canvas 致重影。
+    while (ctn.firstChild) ctn.removeChild(ctn.firstChild);
 
     // 无障碍：减弱动画
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    // 主题预设 — 紫罗兰夜空，对齐 SquareDocs 深色主题
-    // 低饱和 → 以银白星点为主、紫罗兰为底，克制而非彩虹色
-    const transparent = false;
-    const glowIntensity = 0.5;
+    // 主题预设 ——
+    //   深色：紫罗兰夜空 + additive 亮星（原状，对齐 SquareDocs 深色）；
+    //   浅色：透明画布 + 暗紫描点（shader 透明分支），稀疏微妙星点点缀浅紫渐变。
+    // 注意：OGL `alpha` 标志锁定在 Renderer 创建时、不可热改，故切换主题必须 teardown+recreate
+    //       （effect deps=[isDark]），与 Cytoscape/3DGraph 的「就地刷新」本质不同 —— 勿回退。
+    const transparent = !isDark;
+    const glowIntensity = isDark ? 0.5 : 0.15;
     const hueShift = 280;
     const saturation = 0.28;
     const disableAnimation = prefersReducedMotion;
     const starSpeed = 0.5;
-    const density = 1.2;
+    const density = isDark ? 1.2 : 0.4; // 浅色稀疏描点
     const speed = 1.0;
-    const mouseRepulsion = true;
+    const mouseRepulsion = isDark; // 浅底排斥不可见且抢占指针，关闭
     const repulsionStrength = 2;
-    const twinkleIntensity = 0.4;
+    const twinkleIntensity = isDark ? 0.4 : 0.2;
     const rotationSpeed = 0.1;
+    // 浅底暗紫描点色（~#4a2d78）；深色走 additive 亮星路径，此值不参与
+    const starColor: [number, number, number] = isDark
+      ? [1.0, 1.0, 1.0]
+      : [0.29, 0.18, 0.47];
 
     const targetMousePos = { x: 0.5, y: 0.5 };
     const smoothMousePos = { x: 0.5, y: 0.5 };
@@ -244,6 +260,9 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
         uMouseActiveFactor: { value: 0.0 },
         uAutoCenterRepulsion: { value: 0 },
         uTransparent: { value: transparent },
+        uStarColor: {
+          value: new Color(starColor[0], starColor[1], starColor[2]),
+        },
       },
     });
 
@@ -311,7 +330,7 @@ export function GalaxyBackground({ className }: GalaxyBackgroundProps) {
       }
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
-  }, []);
+  }, [isDark]);
 
   return <div ref={ctnDom} className={className} aria-hidden="true" />;
 }
