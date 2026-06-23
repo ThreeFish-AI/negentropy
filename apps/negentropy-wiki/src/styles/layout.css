@@ -22,8 +22,9 @@
   position: sticky;
   top: 0;
   /* grid item 钉顶：对齐 .wiki-toc-aside 的正确 sticky 实践（sticky grid item 需显式
-     align-self:start 钉顶而非默认 stretch）。全程吸顶的根本保障是 footer 纳入 grid
-     扩展 sticky 包含块覆盖整篇文档（见 home-footer.css 与 WikiLayoutShell.tsx）。 */
+     align-self:start 钉顶而非默认 stretch）。脱粘下边界 = 直接父 .wiki-layout 的 content
+     box 底；footer 现作为 .wiki-layout 的兄弟置于其外（见 WikiLayoutShell.tsx 与
+     home-footer.css），故该边界 = footer 顶部，滚到页底时左右栏底边停在页脚上沿不遮盖。 */
   align-self: start;
   height: 100vh;
   overflow-y: auto;
