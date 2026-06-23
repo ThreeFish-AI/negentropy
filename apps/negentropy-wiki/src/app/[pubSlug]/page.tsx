@@ -1,6 +1,8 @@
 import {
   buildReservedDocsTab,
   countLeafEntries,
+  entryHref,
+  graphHref,
   isReservedDocsSlug,
   resolveSectionView,
   resolveSidebarView,
@@ -110,7 +112,7 @@ export default async function WikiPublicationPage({ params }: Props) {
       graphTab={{
         active: false,
         show: !!headerNav.graphPubSlug,
-        href: headerNav.graphPubSlug ? `/${headerNav.graphPubSlug}/graph` : undefined,
+        href: headerNav.graphPubSlug ? graphHref(headerNav.graphPubSlug) : undefined,
       }}
     />
   );
@@ -126,7 +128,7 @@ export default async function WikiPublicationPage({ params }: Props) {
         <h1 className="wiki-doc-title">
           {sidebarView.catalogName ? (
             sidebarView.catalogTargetSlug ? (
-              <Link href={`/${pubSlug}/${sidebarView.catalogTargetSlug}`}>
+              <Link href={entryHref(pubSlug, sidebarView.catalogTargetSlug)}>
                 {sidebarView.catalogName}
               </Link>
             ) : (
@@ -155,7 +157,7 @@ export default async function WikiPublicationPage({ params }: Props) {
       ) : sidebarView.indexEntry ? (
         <p className="wiki-text-hint">
           请从左侧导航选择文档，或直接访问{" "}
-          <Link href={`/${pubSlug}/${sidebarView.indexEntry.entry_slug}`}>首页</Link>。
+          <Link href={entryHref(pubSlug, sidebarView.indexEntry.entry_slug)}>首页</Link>。
         </p>
       ) : (
         <p className="wiki-text-hint">请从左侧导航选择文档开始阅读。</p>

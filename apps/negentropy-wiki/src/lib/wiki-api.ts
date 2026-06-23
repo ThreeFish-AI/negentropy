@@ -12,6 +12,54 @@
  */
 
 // ---------------------------------------------------------------------------
+// 内链 href 规范化（单一事实源）
+//
+// `next.config.ts` 设 `trailingSlash: true`，静态导出为每个路由产出目录式 HTML
+// （`/pub/entry/` → `out/pub/entry/index.html`）。故全站内链须统一带尾斜杠，
+// 方能在 nginx / static-web-server / GitHub Pages 等任意静态托管下稳定命中目录 index
+// （无尾斜杠的目录型 URL 在部分 nginx 配置——如 SPA fallback 或缺 `$uri/`——下会 404）。
+// 所有内链 href 须经此处的 helper 构造，杜绝散落的 `` `/${...}` `` 内联拼装漂移。
+// ---------------------------------------------------------------------------
+
+/**
+ * 为站内绝对路径补尾斜杠；外部 URL、同页 hash、根路径原样返回。
+ *
+ * - 空 / `http(s)://` / `#` 开头 → 原样（外部链接 / 同页锚点，非路由）；
+ * - 根 `/` → 原样（避免产出 `//`，顺带保护 `/#anchor`、`/?q`）；
+ * - 其余站内路径 → 保证以 `/` 结尾（幂等），并把 query / hash 移到尾斜杠之后。
+ */
+export function ensureTrailingSlash(path: string): string {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("#")) return path;
+  // 仅对核心路径补斜杠，query / hash 原样后置
+  const queryIdx = path.indexOf("?");
+  const hashIdx = path.indexOf("#");
+  let end = path.length;
+  if (queryIdx !== -1) end = Math.min(end, queryIdx);
+  if (hashIdx !== -1) end = Math.min(end, hashIdx);
+  const core = path.slice(0, end);
+  if (core === "/" || core === "") return path;
+  const suffix = path.slice(end);
+  return core.endsWith("/") ? path : `${core}/${suffix}`;
+}
+
+/** entry 文档页 href：`/{pubSlug}/{entrySlug}/`（entrySlug 可含 Materialized Path `/`）。 */
+export function entryHref(pubSlug: string, entrySlug: string): string {
+  return ensureTrailingSlash(`/${pubSlug}/${entrySlug}`);
+}
+
+/** publication 根页 href：`/{pubSlug}/`。 */
+export function pubHref(pubSlug: string): string {
+  return ensureTrailingSlash(`/${pubSlug}`);
+}
+
+/** 知识图谱页 href：`/{pubSlug}/graph/`。 */
+export function graphHref(pubSlug: string): string {
+  return ensureTrailingSlash(`/${pubSlug}/graph`);
+}
+
+// ---------------------------------------------------------------------------
 // 保留一级目录「Negentropy」（来自仓库 docs/，由后端导出器合成进内容包）
 //
 // 单一事实源：slug / 首页 / 标签文案集中于此，供 Header 左侧保留标签与首页卡片
@@ -25,8 +73,8 @@ export const RESERVED_DOCS_SLUG = "negentropy";
 /** 保留 docs 一级目录首页 entry slug（docs/README.md → "readme"）。 */
 export const RESERVED_DOCS_INDEX_SLUG = "readme";
 
-/** 保留一级目录首页 href（Header 左侧标签 / 首页卡片跳转目标）。 */
-export const RESERVED_DOCS_HOME = `/${RESERVED_DOCS_SLUG}/${RESERVED_DOCS_INDEX_SLUG}`;
+/** 保留一级目录首页 href（Header 左侧标签 / 首页卡片跳转目标，目录式带尾斜杠）。 */
+export const RESERVED_DOCS_HOME = entryHref(RESERVED_DOCS_SLUG, RESERVED_DOCS_INDEX_SLUG);
 
 /** 保留一级目录的头部标签文案。 */
 export const RESERVED_DOCS_LABEL = "Negentropy";

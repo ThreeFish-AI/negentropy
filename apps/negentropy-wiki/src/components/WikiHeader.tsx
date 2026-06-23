@@ -1,6 +1,8 @@
 import Link from "next/link";
 import {
+  entryHref,
   findFirstDocumentSlug,
+  graphHref,
   isContainerItem,
   type HeaderTopNavItem,
   type ReservedDocsTab,
@@ -86,7 +88,7 @@ export function WikiHeader({
             )}
             {graphTab?.show && (
               <Link
-                href={graphTab.href ?? `/${pubSlug}/graph`}
+                href={graphTab.href ?? graphHref(pubSlug ?? "")}
                 className={`wiki-header-tab${graphTab.active ? " active" : ""}`}
                 aria-current={graphTab.active ? "page" : undefined}
               >
@@ -152,7 +154,7 @@ function WikiHeaderTab({ item, pubSlug, isActive }: WikiHeaderTabProps) {
 
   return (
     <Link
-      href={`/${pubSlug}/${targetSlug}`}
+      href={entryHref(pubSlug, targetSlug)}
       className={`wiki-header-tab${isActive ? " active" : ""}`}
       aria-current={isActive ? "page" : undefined}
     >

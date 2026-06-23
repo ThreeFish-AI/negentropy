@@ -121,10 +121,17 @@ server {
   listen 80;
   server_name wiki.example.com;
   root /var/www/negentropy-wiki/out;   # 指向 out/
+  index index.html;                    # 显式声明：使 $uri/ 能解析到目录 index.html
 
-  # 目录式 HTML：/pub/entry/ → /pub/entry/index.html
+  # 目录式 HTML：/pub/entry/ → /pub/entry/index.html。
+  # try_files 的 $uri/ 分支使「无尾斜杠」请求（如 /pub/entry）也能内部命中目录 index，
+  # 故无论链接是否带尾斜杠均可访问（静态导出不产出 .html，无需 $uri.html）。
   location / {
-    try_files $uri $uri/ $uri.html =404;
+    try_files $uri $uri/ =404;
+
+    # 可选 SEO 规范化：把无尾斜杠的目录型 URL 301 到尾斜杠（单一规范 URL）。
+    # 启用后上述 try_files 的无尾斜杠兜底可移除。
+    # rewrite ^([^.]*[^/])$ $1/ permanent;
   }
 
   # pagefind 搜索索引（随 out/ 一起部署）
@@ -422,7 +429,7 @@ curl -s http://localhost:8080/            # 200 + 含真实文章
 
 ### 5.3 其他
 
-- **端口/反代 404**：`trailingSlash:true` 生成目录式 HTML（`/pub/entry/`），静态层 `try_files $uri $uri/ $uri.html` 即可，无需 SPA fallback。
+- **端口/反代 404**：`trailingSlash:true` 生成目录式 HTML（`/pub/entry/`），静态层 `try_files $uri $uri/ =404` + `index index.html` 即可，无尾斜杠请求亦能命中目录 index，无需 SPA fallback。
 - **图片不显示**：markdown 图片重写为主站资产端点 `/knowledge/wiki/documents/{doc}/assets/{file}`（PostgreSQL bytea 流式提供，#935）。wiki 与主站**分域部署**时须配置 `NE_KNOWLEDGE_WIKI_EXPORT__ASSET_BASE_URL` 为主站可达前缀并确保网络可达；同源反代可省略。
 - **导出报 `artifact_backend` 校验错**：用 `sync-wiki-content.sh`（已置 inmemory）或手动 `NE_SVC_ARTIFACT_BACKEND=inmemory`。
 

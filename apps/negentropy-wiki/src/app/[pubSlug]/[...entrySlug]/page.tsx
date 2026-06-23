@@ -1,7 +1,9 @@
 import {
   buildReservedDocsTab,
+  graphHref,
   isReservedDocsSlug,
   joinEntrySlug,
+  pubHref,
   resolveSectionView,
   resolveSidebarView,
   type WikiEntry,
@@ -108,7 +110,7 @@ export default async function WikiEntryPage({ params }: Props) {
           文档 &quot;{slug}&quot; 的源文件已被移除或转移，条目暂时无法访问。
         </p>
         <div className="wiki-not-found-actions">
-          <Link href={`/${pubSlug}`}>← 返回 {pubSlug}</Link>
+          <Link href={pubHref(pubSlug)}>← 返回 {pubSlug}</Link>
           <Link href="/">返回首页</Link>
         </div>
       </main>
@@ -123,7 +125,7 @@ export default async function WikiEntryPage({ params }: Props) {
           文档 &quot;{slug}&quot; 不存在或未发布
         </p>
         <div className="wiki-not-found-actions">
-          <Link href={`/${pubSlug}`}>← 返回 {pubSlug}</Link>
+          <Link href={pubHref(pubSlug)}>← 返回 {pubSlug}</Link>
           <Link href="/">返回首页</Link>
         </div>
       </main>
@@ -182,7 +184,7 @@ export default async function WikiEntryPage({ params }: Props) {
       graphTab={{
         active: false,
         show: !!headerNav.graphPubSlug,
-        href: headerNav.graphPubSlug ? `/${headerNav.graphPubSlug}/graph` : undefined,
+        href: headerNav.graphPubSlug ? graphHref(headerNav.graphPubSlug) : undefined,
       }}
     />
   );

@@ -14,7 +14,7 @@ describe("保留 docs 目录常量与 isReservedDocsSlug", () => {
   it("常量取值与后端 reserved_slug 默认值对齐", () => {
     expect(RESERVED_DOCS_SLUG).toBe("negentropy");
     expect(RESERVED_DOCS_INDEX_SLUG).toBe("readme");
-    expect(RESERVED_DOCS_HOME).toBe("/negentropy/readme");
+    expect(RESERVED_DOCS_HOME).toBe("/negentropy/readme/");
     expect(RESERVED_DOCS_LABEL).toBe("Negentropy");
   });
 
@@ -59,6 +59,6 @@ describe("buildReservedDocsTab", () => {
   it("label/href 与 RESERVED_DOCS_* 常量族对齐（单一事实源）", () => {
     const tab = buildReservedDocsTab({ reservedExists: true, isReserved: true });
     expect(tab?.label).toBe(RESERVED_DOCS_LABEL);
-    expect(tab?.href).toBe(`/${RESERVED_DOCS_SLUG}/${RESERVED_DOCS_INDEX_SLUG}`);
+    expect(tab?.href).toBe(`/${RESERVED_DOCS_SLUG}/${RESERVED_DOCS_INDEX_SLUG}/`);
   });
 });
