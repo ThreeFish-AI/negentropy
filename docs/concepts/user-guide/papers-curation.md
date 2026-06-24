@@ -1,3 +1,6 @@
+---
+sidebar_position: 18
+---
 # 论文自动采集（AI Agent Papers）
 
 将 arXiv 上 AI Agent 相关最新论文自动收集到 Negentropy 知识库与知识图谱，构建可被对话模块复用的研究语料库。

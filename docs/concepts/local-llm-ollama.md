@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # 本地 LLM 集成（Ollama，零 Key 可选方案）
 
 > 默认情况下，Negentropy 的 LLM 能力由 **OpenAI / Anthropic / Gemini 之一的 API Key 激活**（在 `.env.docker.local` 填入即可，见 [Quick Start](../../README.md)）。

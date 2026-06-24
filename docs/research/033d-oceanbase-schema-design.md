@@ -1,3 +1,6 @@
+---
+sidebar_position: 3.34
+---
 # 执行阶段一：基座部署与 Unified Schema 设计 (Foundation)
 
 本文档作为 **Phase 1** 的详细操作指引，涵盖 **OceanBase V4.5.0+** 在 GCP Compute Engine VM 上的 Docker 部署、向量能力验证以及 "Unified Memory Bank" 的 Schema 设计。此类设计参考了 Google Agent Builder 的 Memory Bank 模式，旨在实现 Structured Log (Short-term) 与 Semantic Episodic Memory (Long-term) 的统一存储。

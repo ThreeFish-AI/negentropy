@@ -1,3 +1,6 @@
+---
+sidebar_position: 3
+---
 # Interface 能力接入
 
 ## 6. Interface 能力接入

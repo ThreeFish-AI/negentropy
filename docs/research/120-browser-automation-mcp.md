@@ -1,3 +1,6 @@
+---
+sidebar_position: 12
+---
 # 浏览器操作 MCP 调研：选型论证与横向盘点
 
 > **摘要 / 导言**：本报告面向一个明确的工程命题——为 Negentropy（一核五翼平台）选择一款浏览器操作 MCP，**内置为全系统默认配备**，并用于**所有 Routine 任务运行时的浏览器实机回归验证**。评估锚定本项目两类真实执行上下文：(1) 6 个 ADK Agent 经 `ActionFaculty.invoke_claude_code` 调用 Claude Code（无直接 ADK→MCP 桥）；(2) Routine 任务 = 自治后台 Claude Code 子进程（**无真人、无桌面浏览器、headless**）。二者经**同一** `builtin_tools(claude_code).config.mcp_config` 注入点喂入 MCP——这意味着默认 MCP 必须能表达为 `McpServer`（stdio/sse/http）、能无人值守 headless 运行，并能复用本仓既有的 dev-cookie 鉴权旁路。结论：采用 **Microsoft 官方 `@playwright/mcp`**；落地方案见 [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md)。本文遵循 [AGENTS.md](../../AGENTS.md) 的循证要求，引用格式遵 [reference-specifications.md](../.agents/reference-specifications.md)。

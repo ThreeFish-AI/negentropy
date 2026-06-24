@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # 浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备
 
 > 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。设计核心锚定：

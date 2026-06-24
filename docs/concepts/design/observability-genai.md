@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # GenAI 可观测性 · OpenTelemetry GenAI Semantic Conventions 落地
 
 > 本文档说明 negentropy 如何把 LLM 调用的可观测信号对齐到 **OpenTelemetry GenAI Semantic Conventions 1.28+** 标准；与 [conversation-foundation.md §7](../conversation-foundation.md) 的理论坐标系对应。

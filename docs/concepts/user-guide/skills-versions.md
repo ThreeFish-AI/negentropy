@@ -1,3 +1,6 @@
+---
+sidebar_position: 13
+---
 # Skills · 版本锚定与历史快照（Phase 3）
 
 > 让 SubAgent 引用 `arxiv-fetch@1.0.0`，避免上游 Skill 改动悄无声息影响下游 Agent。

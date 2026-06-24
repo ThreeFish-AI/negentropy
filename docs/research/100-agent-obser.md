@@ -1,3 +1,6 @@
+---
+sidebar_position: 10
+---
 # **架构分歧与融合：生成式 AI 可观测性时代的 Jaeger 与 Langfuse 深度对比分析报告**
 
 ## **1. 执行摘要**

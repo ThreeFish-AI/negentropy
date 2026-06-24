@@ -1,3 +1,6 @@
+---
+sidebar_position: 17
+---
 # Routine 预设模版
 
 > 开箱即用的内置 Routine 场景模版，正交覆盖 Routine 子系统的全部核心能力。

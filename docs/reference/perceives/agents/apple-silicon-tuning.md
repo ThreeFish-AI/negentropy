@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # Apple Silicon PDF Pipeline 调优指南
 
 本文档汇总 `parse_pdf_to_markdown` 在 Apple M 系列芯片上的所有调优点：

@@ -1,3 +1,6 @@
+---
+sidebar_position: 3.32
+---
 # Agentic AI Memory 基座选型对比报告
 
 ## 1. 候选方案概览

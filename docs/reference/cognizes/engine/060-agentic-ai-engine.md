@@ -1,6 +1,6 @@
 ---
 id: agentic-ai-engine-roadmap-tco
-sidebar_position: 1.0
+sidebar_position: 6.0
 title: Agentic AI Engine Roadmap & TCO
 last_update:
   author: Aurelius Huang

@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # 自进化 Agents Team 系统技术方案
 
 > 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。

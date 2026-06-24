@@ -1,3 +1,6 @@
+---
+sidebar_position: 11.0
+---
 ## 4. 工程验证
 
 ### 4.1 Unified Context Store (PGVector)

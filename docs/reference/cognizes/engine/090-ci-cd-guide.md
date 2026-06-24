@@ -1,3 +1,6 @@
+---
+sidebar_position: 9.0
+---
 # GitHub Actions 自动化流程
 
 ## 📋 快速概览

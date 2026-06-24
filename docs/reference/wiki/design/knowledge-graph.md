@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 # Wiki 知识图谱（按 Publication 切片发布）
 
 ## 概述

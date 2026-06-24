@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 # RFC 0001: Home Chat 会话架构重塑（Codex Turn 模型 + 去重抽象 + AG-UI 协议合规）
 
 | 字段             | 值                                                                           |

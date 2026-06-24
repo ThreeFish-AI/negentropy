@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 # Negentropy Wiki 独立部署与内容同步指引
 
 > **适用对象**：负责把 `negentropy-wiki` 部署到远程环境、并把主站 Catalog 内容发布上去的工程师 / 运营。

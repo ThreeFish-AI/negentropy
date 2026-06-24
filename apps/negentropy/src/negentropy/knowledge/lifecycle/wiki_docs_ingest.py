@@ -20,12 +20,15 @@ slug=``negentropy`` 的**保留 Publication** 内容包片段，注入 ``WikiExp
 
 from __future__ import annotations
 
+import json
 import posixpath
 import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
+
+import yaml
 
 from negentropy.config.knowledge import WikiDocsSyncSettings
 from negentropy.logging import get_logger
@@ -52,6 +55,9 @@ _REF_DEF_RE = re.compile(r"(?m)^(?P<indent>[ ]{0,3})\[(?P<id>[^\]]+)\]:\s*(?P<ur
 # 首个 ATX H1（代码围栏之前）。
 _H1_RE = re.compile(r"(?m)^#[ \t]+(?P<title>.+?)[ \t]*#*[ \t]*$")
 _FENCE_RE = re.compile(r"(?m)^[ \t]*(```|~~~)")
+
+# YAML frontmatter：文件首的 ``---\n...\n---`` 围栏（DOTALL 跨行匹配正文）。
+_FM_RE = re.compile(r"\A---[ \t]*\n(?P<body>.*?)\n---[ \t]*(?:\n|$)", re.DOTALL)
 
 
 @dataclass
@@ -158,7 +164,10 @@ def _humanize(stem: str) -> str:
 
 
 def _extract_title(markdown: str, fallback_stem: str) -> str:
-    """取首个 ATX H1（代码围栏之前、剥行内反引号）；无则 humanize 文件名。"""
+    """取首个 ATX H1（代码围栏之前、剥行内反引号）；无则 humanize 文件名。
+
+    调用方应传入**已剥离 frontmatter** 的 body，避免围栏内 ``# 注释`` 行被误判为标题。
+    """
     fence = _FENCE_RE.search(markdown)
     scope = markdown[: fence.start()] if fence else markdown
     m = _H1_RE.search(scope)
@@ -167,6 +176,54 @@ def _extract_title(markdown: str, fallback_stem: str) -> str:
         if title:
             return title
     return _humanize(fallback_stem)
+
+
+def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
+    """拆分 YAML frontmatter；返回 ``(meta, 去掉围栏的 body)``。
+
+    无 frontmatter / 解析失败 / 非 dict → ``({}, 原文)``，绝不抛错（单篇坏 frontmatter
+    不应中断整次导出）。meta 仅接受 dict（拒 scalar/list），保证下游 ``.get`` 安全。
+    """
+    m = _FM_RE.match(text)
+    if not m:
+        return {}, text
+    try:
+        meta = yaml.safe_load(m.group("body")) or {}
+    except yaml.YAMLError as exc:
+        logger.warning("wiki_docs_frontmatter_parse_error", error=str(exc))
+        return {}, text
+    if not isinstance(meta, dict):
+        return {}, text
+    return meta, text[m.end() :]
+
+
+def _read_category_json(dir_path: Path) -> dict[str, Any]:
+    """读目录内 ``_category_.json``（Docusaurus 风格目录元数据）。
+
+    缺失 / 解析失败 / 非 dict → ``{}``（坏文件仅 WARN，回退到 humanize 目录名）。
+    """
+    fp = dir_path / "_category_.json"
+    if not fp.is_file():
+        return {}
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("wiki_docs_category_json_error", path=str(fp), error=str(exc))
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _coerce_position(value: Any) -> float | None:
+    """把 frontmatter / ``_category_.json`` 的位次值归一为 float。
+
+    仅 int/float 放行（**显式拒 bool/str/None**），保证 ``_sort_children`` 排序键
+    类型一致、无 ``TypeError``。
+    """
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -320,15 +377,37 @@ def _collect_files(docs_root: Path, cfg: WikiDocsSyncSettings) -> list[str]:
 class _Node:
     """构树用可变节点（容器或文档）。"""
 
-    __slots__ = ("slug", "title", "is_doc", "rel_path", "sort_name", "is_index", "children")
+    __slots__ = (
+        "slug",
+        "title",
+        "is_doc",
+        "rel_path",
+        "sort_name",
+        "is_index",
+        "position",
+        "description",
+        "children",
+    )
 
-    def __init__(self, slug: str, title: str, *, is_doc: bool, rel_path: str | None, sort_name: str) -> None:
+    def __init__(
+        self,
+        slug: str,
+        title: str,
+        *,
+        is_doc: bool,
+        rel_path: str | None,
+        sort_name: str,
+        position: float | None = None,
+        description: str | None = None,
+    ) -> None:
         self.slug = slug
         self.title = title
         self.is_doc = is_doc
         self.rel_path = rel_path
         self.sort_name = sort_name
         self.is_index = False
+        self.position = position
+        self.description = description
         self.children: dict[str, _Node] = {}
 
 
@@ -368,12 +447,26 @@ def build_docs_pack(cfg: WikiDocsSyncSettings) -> DocsPackFragment | None:
     for rel in rels:
         slug = doc_slugs[rel]
         p = PurePosixPath(rel)
-        title = _extract_title((docs_root / rel).read_text(encoding="utf-8", errors="replace"), p.stem)
+        raw = (docs_root / rel).read_text(encoding="utf-8", errors="replace")
+        meta, body = _parse_frontmatter(raw)
+        # 标题：frontmatter title（SSOT）→ H1 → humanize；位次/描述来自 frontmatter。
+        title = meta.get("title") or _extract_title(body, p.stem)
+        position = _coerce_position(meta.get("sidebar_position"))
+        desc = meta.get("description")
+        description = desc if isinstance(desc, str) and desc.strip() else None
         is_index = p.name.lower().rsplit(".", 1)[0] in _INDEX_BASENAMES
 
         if len(p.parts) == 1:
             # 顶层文件（docs/README.md）。
-            node = _Node(slug, title, is_doc=True, rel_path=rel, sort_name=p.name)
+            node = _Node(
+                slug,
+                title,
+                is_doc=True,
+                rel_path=rel,
+                sort_name=p.name,
+                position=position,
+                description=description,
+            )
             node.is_index = is_index
             root_children[slug] = node
             continue
@@ -387,10 +480,29 @@ def build_docs_pack(cfg: WikiDocsSyncSettings) -> DocsPackFragment | None:
             cslug = _dir_slug_for(dir_rel)
             child = cursor.get(cslug)
             if child is None:
-                child = _Node(cslug, _humanize(seg), is_doc=False, rel_path=None, sort_name=seg)
+                # 目录元数据来自其 _category_.json（Docusaurus 风格）；缺失则 humanize。
+                cat = _read_category_json(docs_root / dir_rel)
+                cat_desc = cat.get("description")
+                child = _Node(
+                    cslug,
+                    cat.get("label") or _humanize(seg),
+                    is_doc=False,
+                    rel_path=None,
+                    sort_name=seg,
+                    position=_coerce_position(cat.get("position")),
+                    description=cat_desc if isinstance(cat_desc, str) and cat_desc.strip() else None,
+                )
                 cursor[cslug] = child
             cursor = child.children
-        doc_node = _Node(slug, title, is_doc=True, rel_path=rel, sort_name=p.name)
+        doc_node = _Node(
+            slug,
+            title,
+            is_doc=True,
+            rel_path=rel,
+            sort_name=p.name,
+            position=position,
+            description=description,
+        )
         doc_node.is_index = is_index
         cursor[slug] = doc_node
 
@@ -407,9 +519,16 @@ def build_docs_pack(cfg: WikiDocsSyncSettings) -> DocsPackFragment | None:
         repo_path = f"{docs_prefix}/{rel_path}" if docs_prefix else rel_path
         return f"https://github.com/{cfg.github_owner}/{cfg.github_repo}/blob/{cfg.github_ref}/{repo_path}"
 
+    def _effective_pos(n: _Node) -> float:
+        # 显式位次优先（frontmatter sidebar_position / _category_.json position）；
+        # 无位次者：索引页(README/index)→ -inf 浮动至最前（向后兼容），其余 → +inf 沉末尾。
+        if n.position is not None:
+            return n.position
+        return float("-inf") if n.is_index else float("inf")
+
     def _sort_children(nodes: dict[str, _Node]) -> list[_Node]:
-        # 索引页优先，其余按自然序（目录/文件交错）。
-        return sorted(nodes.values(), key=lambda n: (not n.is_index, _natural_key(n.sort_name)))
+        # 主键：有效位次升序；次键：文件名自然序 tiebreak —— 全链路确定、永不随机。
+        return sorted(nodes.values(), key=lambda n: (_effective_pos(n), _natural_key(n.sort_name)))
 
     def _has_doc_descendant(node: _Node) -> bool:
         if node.is_doc:
@@ -425,7 +544,15 @@ def build_docs_pack(cfg: WikiDocsSyncSettings) -> DocsPackFragment | None:
             eid = _entry_id(node.rel_path or node.slug)
             did = _document_id(node.rel_path or node.slug)
             raw_md = (docs_root / node.rel_path).read_text(encoding="utf-8", errors="replace")
-            md = rewrite_doc_links(raw_md, current_rel_path=node.rel_path or "", included_slugs=included_slugs, cfg=cfg)
+            # 链接重写只作用于去 frontmatter 的 body；frontmatter 不进入导出内容
+            # （wiki 渲染器未装 remark-frontmatter，围栏会渲染为可见 <hr>/裸文本）。
+            _, doc_body = _parse_frontmatter(raw_md)
+            md = rewrite_doc_links(
+                doc_body,
+                current_rel_path=node.rel_path or "",
+                included_slugs=included_slugs,
+                cfg=cfg,
+            )
             entry_payloads[eid] = {
                 "entry_id": eid,
                 "document_id": did,
@@ -453,7 +580,7 @@ def build_docs_pack(cfg: WikiDocsSyncSettings) -> DocsPackFragment | None:
                 "entry_id": eid,
                 "entry_slug": node.slug,
                 "entry_title": node.title,
-                "entry_description": None,
+                "entry_description": node.description,
                 "is_index_page": node.is_index,
                 "document_id": did,
                 "catalog_node_id": None,
@@ -483,7 +610,7 @@ def build_docs_pack(cfg: WikiDocsSyncSettings) -> DocsPackFragment | None:
             "entry_id": cid,
             "entry_slug": node.slug,
             "entry_title": node.title,
-            "entry_description": None,
+            "entry_description": node.description,
             "is_index_page": False,
             "document_id": None,
             "catalog_node_id": None,

@@ -1,3 +1,6 @@
+---
+sidebar_position: 7
+---
 # Memory Automation Guide：自动化调度与运维
 
 > 运维侧手册。前置阅读 [`memory-basics.md`](./memory-basics.md)。

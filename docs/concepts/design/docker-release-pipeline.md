@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # Docker Release Pipeline（镜像构建与 Docker Hub 发布）
 
 本文档定义 Negentropy compose 栈 4 个自建镜像（`backend` / `perceives` / `ui` / `wiki`）的 CI/CD 流水线：PR 阶段双架构构建校验（零推送副作用），tag 发布阶段经既有 QA 门禁后多架构构建并发布至 Docker Hub `threefishai` 命名空间。与 [QA Delivery Pipeline](./qa-delivery-pipeline.md) 同属交付体系，遵循仓库「入口 workflow（策略）→ 可复用 workflow（机制）」分层约定。

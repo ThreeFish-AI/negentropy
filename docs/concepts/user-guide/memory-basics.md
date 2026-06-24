@@ -1,3 +1,6 @@
+---
+sidebar_position: 5
+---
 # Memory User-Guide：5 分钟上手
 
 > 本文聚焦"概念入门 + UI 导航"。深入设计原理见 [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md)；理论支撑见 [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md)；API 集成见 [`memory-integration.md`](./memory-integration.md)。

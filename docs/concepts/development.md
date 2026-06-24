@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # 开发指南 (Development Guide)
 
 > 本文档是 Negentropy 系统的**开发操作单一参考**，覆盖环境搭建、日常开发工作流、数据库迁移、前后端对接及故障排查。

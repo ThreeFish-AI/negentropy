@@ -1,3 +1,6 @@
+---
+sidebar_position: 3.35
+---
 ## 5. 工程验证 Roadmap
 
 ### 5.1 Phase 2: Memory Management

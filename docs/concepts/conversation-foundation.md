@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # Conversation Foundation · 人与 Agent 对话基础
 
 > 本文档是 negentropy「Home / 人与 Agent 对话」系列的**理论总章**与**业界对标坐标**。所有具体落地方案与协议事实分别沉淀于 [framework.md](./framework.md)（架构）、[a2ui.md](./a2ui.md)（协议）、[rfc-0001](./0001-conversation-architecture-refactor.md) / [rfc-0002](./0002-ui-interaction-enhancements.md)（设计），以及 [user-guide.md](../user-guide.md) 与 [user-guide/chat-essentials.md](../user-guide/chat-essentials.md)（操作手册）。

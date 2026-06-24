@@ -1,3 +1,6 @@
+---
+sidebar_position: 15
+---
 # Skills · 定时调度（Phase 3）
 
 > 让 Paper Hunter 等 Skill 按 cron 表达式自动跑，不依赖 LLM 触发。

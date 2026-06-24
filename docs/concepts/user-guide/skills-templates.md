@@ -1,3 +1,6 @@
+---
+sidebar_position: 12
+---
 # Skills · 一键导入模板（From Template）
 
 > 本指南帮你在 30 秒内把内置 Skill 模板物化到工作区。理论锚点参见 [`docs/skills.md`](../design/skills.md) §3.2 「Phase 2 模板库」。

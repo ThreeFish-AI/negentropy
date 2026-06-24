@@ -1,3 +1,6 @@
+---
+sidebar_position: 8.1
+---
 # **AI Agent 代码执行环境的正交分析报告：Microsandbox、Wasmtime、Firecracker 与 Google Vertex AI Agent Engine**
 
 ## **1. 执行摘要**

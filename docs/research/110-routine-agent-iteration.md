@@ -1,3 +1,6 @@
+---
+sidebar_position: 11
+---
 # Routine：长周期自主任务的 Agent 迭代模式调研
 
 > **摘要 / 导言**：单次（single-shot）的智能体调用在长周期（long-horizon）任务上系统性失效——模型一旦交付便丧失对"结果是否达标"的判断与纠错能力，错误沿轨迹复利累积，且缺乏跨轮次的经验承继。Negentropy 的 **Routine** 特性主张以一个**闭环**应对这一困境：由 Engine 担任 Orchestrator + Evaluator，向 Claude Code（Executor）下发目标；Engine 对暂存（staged）产物进行评估——LLM-as-Judge 给出 0–100 分、verdict 与 reflection，并叠加可选的命令/测试客观门禁（objective gate）；据此决策**迭代**（恢复 Claude Code 会话并注入累积反思）或**终止**（成功 / 不可恢复 / 预算耗尽）。本报告综合迭代式智能体的学术基础、LLM-as-a-Judge 的偏差治理、业界编码智能体的长程执行工程，以及停止准则与失控防护，最终将这些证据映射到 Routine 的具体设计决策上。

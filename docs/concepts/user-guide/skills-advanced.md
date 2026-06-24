@@ -1,3 +1,6 @@
+---
+sidebar_position: 11
+---
 # Skills 进阶用法
 
 > 进阶主题：Visibility 策略、工具白名单、Progressive Disclosure、Paper 收集端到端示例。基础上手见 [`skills-basics.md`](./skills-basics.md)。
