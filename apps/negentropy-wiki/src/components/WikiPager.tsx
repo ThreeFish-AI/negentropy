@@ -1,3 +1,5 @@
+import { entryHref } from "@/lib/wiki-api";
+
 interface PagerLink {
   title: string;
   slug: string;
@@ -27,7 +29,7 @@ export function WikiPager({ prev, next, pubSlug }: WikiPagerProps) {
     >
       {prev ? (
         <a
-          href={`/${pubSlug}/${prev.slug}`}
+          href={entryHref(pubSlug, prev.slug)}
           style={{
             color: "var(--wiki-accent)",
             textDecoration: "none",
@@ -45,7 +47,7 @@ export function WikiPager({ prev, next, pubSlug }: WikiPagerProps) {
       )}
       {next ? (
         <a
-          href={`/${pubSlug}/${next.slug}`}
+          href={entryHref(pubSlug, next.slug)}
           style={{
             color: "var(--wiki-accent)",
             textDecoration: "none",

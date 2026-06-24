@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import {
+  entryHref,
   findFirstDocumentSlug,
   RESERVED_DOCS_HOME,
   RESERVED_DOCS_LABEL,
@@ -29,7 +30,7 @@ interface WikiHeaderMobileNavProps {
 /** CONTAINER → 首个后代 DOCUMENT slug；DOCUMENT → 自身 slug；无文档 → null。 */
 function targetHref(pubSlug: string, item: WikiNavTreeItem): string | null {
   const target = findFirstDocumentSlug(item);
-  return target ? `/${pubSlug}/${target}` : null;
+  return target ? entryHref(pubSlug, target) : null;
 }
 
 export function WikiHeaderMobileNav({ reservedTab, topNav = [] }: WikiHeaderMobileNavProps) {

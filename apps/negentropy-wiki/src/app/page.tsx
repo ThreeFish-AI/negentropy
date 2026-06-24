@@ -3,8 +3,11 @@ import type { ComponentType } from "react";
 import {
   buildHeaderNav,
   buildReservedDocsTab,
+  entryHref,
   findFirstDocumentSlug,
+  graphHref,
   isReservedDocsSlug,
+  pubHref,
   RESERVED_DOCS_HOME,
   RESERVED_DOCS_LABEL,
   type WikiNavTreeItem,
@@ -20,12 +23,6 @@ import { HomeCard } from "@/components/home/HomeCard";
 import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
 import { WikiFooter } from "@/components/home/WikiFooter";
 import { getPublicationIcon } from "@/components/home/CardIcons";
-
-/** 从 nav tree 一级节点构建跳转 href */
-function buildEntryHref(pubSlug: string, item: WikiNavTreeItem): string {
-  const target = findFirstDocumentSlug(item);
-  return target ? `/${pubSlug}/${target}` : `/${pubSlug}`;
-}
 
 export default async function WikiHomePage() {
   let publications: WikiPublication[] = [];
@@ -70,7 +67,9 @@ export default async function WikiHomePage() {
       // 有 nav tree 一级节点时，从中构建卡片
       for (const item of items) {
         const title = item.entry_title || item.entry_slug;
-        const href = buildEntryHref(pub.slug, item);
+        // CONTAINER → DFS 首个后代 DOCUMENT；DOCUMENT → 自身。href 经 SSOT helper 带尾斜杠。
+        const firstDoc = findFirstDocumentSlug(item);
+        const href = firstDoc ? entryHref(pub.slug, firstDoc) : pubHref(pub.slug);
         homeCards.push({
           title,
           // 优先节点级描述（Catalog 节点 description）→ 回退 Publication 级描述 → 占位
@@ -83,7 +82,7 @@ export default async function WikiHomePage() {
       // nav tree 为空或 API 失败时，用 publication 自身作为兜底
       homeCards.push({
         title: pub.name,
-        href: `/${pub.slug}`,
+        href: pubHref(pub.slug),
         description: pub.description || "暂无描述",
         Icon: getPublicationIcon(pub.name),
       });
@@ -124,7 +123,7 @@ export default async function WikiHomePage() {
               show: true,
               active: false,
               label: "Knowledge Graph",
-              href: `/${graphPubSlug}/graph`,
+              href: graphHref(graphPubSlug),
             }
           : undefined
       }

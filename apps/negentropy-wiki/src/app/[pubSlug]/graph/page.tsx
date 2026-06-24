@@ -9,7 +9,9 @@ import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
   buildReservedDocsTab,
   countLeafEntries,
+  graphHref,
   isReservedDocsSlug,
+  pubHref,
   resolveSectionView,
   type WikiNavTreeItem,
   type WikiPublication,
@@ -101,7 +103,7 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
       graphTab={{
         active: pubSlug === headerNav.graphPubSlug,
         show: !!headerNav.graphPubSlug,
-        href: headerNav.graphPubSlug ? `/${headerNav.graphPubSlug}/graph` : undefined,
+        href: headerNav.graphPubSlug ? graphHref(headerNav.graphPubSlug) : undefined,
       }}
     />
   );
@@ -152,7 +154,7 @@ function WikiGraphBody({
       <div className="wiki-graph-error">
         <p className="wiki-text-hint">
           图谱数据暂时不可用，请稍后重试或返回
-          <Link href={`/${pubSlug}`} style={{ marginLeft: "0.3em" }}>
+          <Link href={pubHref(pubSlug)} style={{ marginLeft: "0.3em" }}>
             Publication 首页
           </Link>
           。

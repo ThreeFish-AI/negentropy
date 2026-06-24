@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
+import { entryHref, isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
  * 计算「当前页祖先链」的 entry_slug 集合，用于初始化展开态。
@@ -121,7 +121,7 @@ function WikiNavNode({
         ) : (
           <Link
             ref={linkRef}
-            href={`/${pubSlug}/${item.entry_slug}`}
+            href={entryHref(pubSlug, item.entry_slug)}
             className={`wiki-nav-link${isActive ? " active" : ""}`}
             aria-current={isActive ? "page" : undefined}
           >
