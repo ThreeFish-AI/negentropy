@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 (Transcribed by TurboScribe.ai. Go Unlimited to remove this message.)
 
 Welcome back to the Deep Dive. Today we are strapping in and moving past all the superficial talk about AI agents. Right.

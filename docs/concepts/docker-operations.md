@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # Docker Compose 运维指引
 
 > 本文档是 Negentropy Docker Compose 栈的**运维操作单一参考**，覆盖服务拓扑、首次部署、日常操作、开发工作流与故障排查。

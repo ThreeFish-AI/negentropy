@@ -1,3 +1,6 @@
+---
+sidebar_position: 2
+---
 # Negentropy Wiki 运维指引
 
 > **适用对象**: 负责部署、监控和维护 Negentropy Wiki 知识库发布站点的运维工程师

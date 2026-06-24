@@ -1,7 +1,7 @@
 ---
 id: knowledge-base
 sidebar_position: 3.4
-title: Knowledge Base: RAG Pipeline & Hybrid Search 调研
+title: "Knowledge Base: RAG Pipeline & Hybrid Search 调研"
 last_update:
   author: Aurelius Huang
   created_at: 2026-01-12

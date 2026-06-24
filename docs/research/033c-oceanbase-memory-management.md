@@ -1,3 +1,6 @@
+---
+sidebar_position: 3.33
+---
 # Phase 2: Memory Management 实施指引 (Google Memory Bank 仿生)
 
 本文档基于对 **Google Agent Engine: Memory Bank** 的深度调研（参考官方文档 [Overview](https://cloud.google.com/agent-builder/agent-engine/memory-bank/overview)) 及 **OceanBase V4.5.0** 特性的研究，旨在为 `task.md` 中 **Phase 2** 的执行提供详细的理论基础与操作指南。

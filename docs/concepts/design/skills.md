@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # Skills 模块（Agent Skills 在 Negentropy 的工程实现）
 
 > 项目内的 Skills 模块是「可复用 Agent 技能配置 + Progressive Disclosure 注入」的最小工程化落地。本文档汇总：理论锚点、与主流框架的对照、当前实现边界、未来演进路线。其它操作指引参见 [`docs/user-guide/skills-basics.md`](../user-guide/skills-basics.md) / [`skills-advanced.md`](../user-guide/skills-advanced.md) / [`skills-templates.md`](../user-guide/skills-templates.md) / [`skills-paper-hunter.md`](../user-guide/skills-paper-hunter.md) / [`skills-versions.md`](../user-guide/skills-versions.md) / [`skills-scheduling.md`](../user-guide/skills-scheduling.md) / [`skills-troubleshooting.md`](../user-guide/skills-troubleshooting.md)。

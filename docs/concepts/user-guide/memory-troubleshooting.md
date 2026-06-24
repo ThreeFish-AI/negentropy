@@ -1,3 +1,6 @@
+---
+sidebar_position: 8
+---
 # Memory Troubleshooting Guide：故障排除 FAQ
 
 > 实测过的问题 + SQL 诊断脚本。前置阅读 [`memory-basics.md`](./memory-basics.md)。

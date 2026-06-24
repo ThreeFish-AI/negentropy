@@ -1,3 +1,6 @@
+---
+sidebar_position: 3.8
+---
 # Claude Code 集成设计：作为 BuiltinTool 接入 ADK Agent
 
 > 将本地 Claude Code CLI 作为 **BuiltinTool** 接入 Negentropy 系统，使 ADK Agent（一核五翼）获得调用 Claude Code 的能力。

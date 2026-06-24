@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # AGUI / A2UI 协议校正与 Chat 页落地方案
 
 ## 1. 文档定位

@@ -1,3 +1,6 @@
+---
+sidebar_position: 6
+---
 # Memory Integration Guide：API + Agent 工具
 
 > 工程师集成手册。前置阅读 [`memory-basics.md`](./memory-basics.md)。

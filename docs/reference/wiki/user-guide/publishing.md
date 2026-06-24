@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 # Wiki 知识发布
 
 Negentropy Wiki 是知识库的**对外发布窗口**，将知识库中整理好的内容以静态站点形式发布，供公众浏览。

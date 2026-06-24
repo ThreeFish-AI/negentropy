@@ -3291,3 +3291,19 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   - **文档**：修正 `ops.md` §8.1 两行 ISR 自愈/缓存过期排错描述（ISR 不复存在，纯静态站需重新发布触发重建）。
 - **后续防范**：① 架构范式迁移（如运行时 ISR → 纯静态 SSG）须同步审计 **UI / 文案 / 配置 / 文档** 四层，杜绝「代码已迁、UI 未迁」的语义漂移；② 后端字段（如 `revalidation`）被前端以过时语义渲染时，应以「真实链路」为准重写消费侧，而非保留误导性中间层；③ 删除死模块时须连带其专测与配套配置类评估（本次 `WikiRevalidateSettings` 配置类因仍被 yaml/docs 引用、爆炸半径跨 config schema，刻意保留待专项治理）。
 - **同类问题影响**：所有「运行时范式 → 构建时范式」迁移（SSR/ISR → SSG、动态 → 静态）都会留下 UI 中间层语义残骸。已识别的相邻遗留：(1) `WikiRevalidateSettings` 配置类 + `wiki_revalidate` 字段（`config/knowledge.py:61/349`）+ `config.default.yaml:218` + `docker-operations.md:220` env 表的 `NE_KNOWLEDGE_WIKI_REVALIDATE__*`——本 PR 删 `revalidate.py` 后该配置完全孤立（仅自身定义 + yaml/docs 引用，无生产消费方），建议专项 ISSUE 一并清理；(2) `docs/reference/wiki/design/knowledge-graph.md:132` 图缓存旁注「与 SSG ISR 5 分钟窗口一致」属同型 ISR 残留表述，归图 API 子系统，留待该子系统治理；(3) `issue.md` ISSUE-020（L390）记录的 ISR 缓存毒化历史保留不动，仅作回溯参考。
+
+---
+
+## ISSUE-147 docs/ → wiki 排序随机 + frontmatter 泄漏渲染
+
+- **表因**：wiki「Negentropy」一级目录的导航顺序「随机」——带数字前缀与无前缀文件交错、目录间仅字母序；且带 frontmatter 的文档页顶部会渲染出 `---` 横线与 `sidebar_position` 等裸键文本。
+- **根因**（三层）：
+  1. `wiki_docs_ingest.py` **从不解析 frontmatter**——`_extract_title` 只取 H1、`_sort_children` 只按文件名自然序排序；37 个文件里已写的 Docusaurus 风格 `sidebar_position` 是**死数据**。
+  2. wiki 渲染器 `MarkdownRenderer.tsx` 的 `remarkPlugins` 仅 `[remarkGfm, remarkMath]`，**未装 `remark-frontmatter`** → frontmatter 围栏被当作 `<hr>` + 裸段落渲染；而 ingest 又把含 frontmatter 的**全文**原样写入 `markdown_content`（`_emit` 直接 `rewrite_doc_links(raw_md)`），双重作用致泄漏。
+  3. 个别既有 frontmatter 为**非法 YAML**（`research/034-knowledge-base.md` 的 `title: Knowledge Base: RAG ...` 未加引号、冒号致 `yaml.safe_load` 抛错），即便启用解析也会**静默忽略**该文件 `sidebar_position` 使其沉底。
+- **处理方式**（本次 PR，详见 [Wiki 文档排序元数据规范](./wiki-docs-ordering.md)）：
+  1. **机制**：ingest 新增 `_parse_frontmatter`/`_read_category_json`/`_coerce_position`；`_sort_children` 改为「有效位次」主键（显式位次升序 / 索引页 `-∞` 浮顶 / 其余 `+∞` 沉末，文件名自然序 tiebreak）；标题 `frontmatter title → H1 → humanize`；`_emit` **先拆 frontmatter、只重写 body、剥离后不回填**（frontmatter 不进 `markdown_content`，同时消除围栏内链接被误改的隐患）。
+  2. **治理**：为 104 个纳入文件落定 `sidebar_position`、补 15 个 `_category_.json`；**续编各分部既有 taxonomy**（如 research 小数 taxonomy、engine 去重 `1.0` 冲突）；修复 034 非法 YAML（标题加引号）。复用既有 `pyyaml` 依赖，零新增包；不新增 feature flag（改动纯增量、零回归）。
+  3. **验证**：`build_docs_pack` 真实导出 nav-tree 逐级核验 + `pnpm build` 127 页 + 浏览器实机（侧栏顺序正确、frontmatter 不泄漏、标题取 frontmatter title）。
+- **后续防范**：① 新写文档 frontmatter 必须是**合法 YAML**——值含冒号/特殊字符须加引号，否则 `sidebar_position` 会被静默忽略（ingest 仅 WARN 不中断）；② 任何「消费 markdown frontmatter」的链路（渲染/搜索索引/链接重写）都须**先剥离围栏**再处理正文，禁止把 frontmatter 当正文传递；③ 排序位次变更用**小数中点插入**避免重排整段；DB 出版物路径（`entry_position`）与 docs 路径（`sidebar_position`/`_category_.json`）正交，互不影响。
+- **同类问题影响**：仓内其他「文件 → 站点」合成链路若引入 frontmatter 元数据，须复用本 PR 的 `_parse_frontmatter` 惯例（`isinstance(dict)` 守卫 + 失败回退原文 + 剥离不回填）。

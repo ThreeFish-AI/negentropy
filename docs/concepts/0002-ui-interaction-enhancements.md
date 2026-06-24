@@ -1,3 +1,6 @@
+---
+sidebar_position: 2
+---
 # RFC 0002: Home Chat UI 交互能力增强（Phase 4 backlog）
 
 | 字段         | 值                                                       |

@@ -1,3 +1,6 @@
+---
+sidebar_position: 100
+---
 # 架构设计方案 (Architecture Framework)
 
 > 本文档是 Negentropy 系统的**架构设计单一权威参考**，基于代码事实与工程实践，描述系统的设计原理、组件结构与扩展范式。

@@ -1,3 +1,6 @@
+---
+sidebar_position: 3.9
+---
 # The Routine System：长周期自主任务架构设计
 
 > 「持续自迭代自主决策任务执行」的全生命周期支持。Negentropy Engine 担任 **Orchestrator + Evaluator**，Claude Code 担任 **Executor**，构成 Evaluator-Optimizer 闭环（结合 Reflexion 跨迭代反思记忆）。
