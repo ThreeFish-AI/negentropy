@@ -216,7 +216,7 @@ class WikiDocsSyncSettings(BaseModel):
         description="源码/仓库链接重写目标 repo（GitHub blob URL）。",
     )
     github_ref: str = Field(
-        default="main",
+        default="master",
         description="GitHub blob 链接的 ref（分支/标签/SHA）；CI 可经 env 覆盖为 commit SHA 得永久链接。",
     )
     github_docs_prefix: str = Field(
