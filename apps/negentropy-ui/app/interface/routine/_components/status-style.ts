@@ -1,4 +1,5 @@
 import {
+  Bot,
   Brain,
   CheckCircle2,
   CircleDot,
@@ -226,8 +227,9 @@ export function verdictClass(verdict: Verdict | null | undefined): string {
 // 「全过程」动作级审计事件：图标 + 配色 + 分组（图标+颜色双编码，绝不仅靠颜色）
 // ---------------------------------------------------------------------------
 
-/** 工具名（Read/Edit/Write/Bash/Grep/Glob…）→ Lucide 图标。 */
-function toolIcon(toolName: string | null | undefined): LucideIcon {
+/** 工具名（Read/Edit/Write/Bash/Grep/Glob…）→ Lucide 图标。
+ *  导出以供 transcript 模块复用，保持图标注册表单一事实源。 */
+export function toolIcon(toolName: string | null | undefined): LucideIcon {
   switch ((toolName || "").toLowerCase()) {
     case "read":
       return FileText;
@@ -251,6 +253,12 @@ function toolIcon(toolName: string | null | undefined): LucideIcon {
     case "taskcreate":
     case "taskupdate":
       return ListChecks;
+    // 子代理 Task 工具（Bot：代理语义）
+    case "task":
+      return Bot;
+    // 退出 Plan 模式（Brain：规划语义）
+    case "exitplanmode":
+      return Brain;
     default:
       return Wrench;
   }
