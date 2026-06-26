@@ -18,15 +18,18 @@ import type {
   KnowledgeDocumentDetail,
 } from "@/features/knowledge/utils/knowledge-api";
 import {
+  documentPreviewUrl,
   downloadDocument,
   effectiveDocumentName,
   fetchDocumentDetail,
+  isPdfDocument,
   LIBRARY_CORPUS_SEGMENT,
   refreshDocumentMarkdown,
   updateDocument,
 } from "@/features/knowledge/utils/knowledge-api";
 import { formatRelativeTime } from "@/features/knowledge/utils/pipeline-helpers";
 import { DocumentMarkdownRenderer } from "@/features/knowledge/components/DocumentMarkdownRenderer";
+import { DocumentPdfViewer } from "@/features/knowledge/components/DocumentPdfViewer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -143,6 +146,8 @@ export default function DocumentDetailPage() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isRefreshingMarkdown, setIsRefreshingMarkdown] = useState(false);
+  // 文档预览模式：仅当源文档为 PDF 时才会出现「PDF」切换；默认 Markdown，保持现状。
+  const [viewMode, setViewMode] = useState<"markdown" | "pdf">("markdown");
 
   // Article Metadata editing state
   const [isEditingMeta, setIsEditingMeta] = useState(false);
@@ -282,6 +287,11 @@ export default function DocumentDetailPage() {
     detail?.markdown_extract_error,
   );
 
+  // 源文档是否为 PDF —— 决定是否展示「Markdown | PDF」切换。
+  const isPdf = detail ? isPdfDocument(detail) : false;
+  // 仅在 PDF 文档 + 选中 PDF 标签时渲染原文查看器；其余一律走 Markdown 分支。
+  const showPdf = isPdf && viewMode === "pdf";
+
   // ---- Render ----
 
   return (
@@ -305,7 +315,43 @@ export default function DocumentDetailPage() {
           Back to Documents
         </Link>
 
-        <div className="flex-1" />
+        {/* 顶部中栏：Markdown | PDF 切换（仅 PDF 源文档显示，居中于操作栏） */}
+        <div className="flex flex-1 justify-center">
+          {isPdf ? (
+            <div
+              role="tablist"
+              aria-label="Document view mode"
+              className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5 text-xs font-semibold"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === "markdown"}
+                onClick={() => setViewMode("markdown")}
+                className={`rounded-md px-3 py-1 transition-colors ${
+                  viewMode === "markdown"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-text-muted hover:text-foreground"
+                }`}
+              >
+                Markdown
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === "pdf"}
+                onClick={() => setViewMode("pdf")}
+                className={`rounded-md px-3 py-1 transition-colors ${
+                  viewMode === "pdf"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-text-muted hover:text-foreground"
+                }`}
+              >
+                PDF
+              </button>
+            </div>
+          ) : null}
+        </div>
 
         <button
           onClick={handleRefreshMarkdown}
@@ -548,41 +594,52 @@ export default function DocumentDetailPage() {
               )}
             </div>
 
-            {/* Markdown content card */}
+            {/* Content card: Markdown 解析视图 / PDF 原文视图（由顶部中栏切换） */}
             <div className="rounded-xl border border-border p-4">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">Markdown Content</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  {showPdf ? "PDF Source" : "Markdown Content"}
+                </h2>
                 <span className="text-xs text-text-muted">
-                  {detail.markdown_extracted_at ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}` : ""}
+                  {!showPdf && detail.markdown_extracted_at
+                    ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}`
+                    : ""}
                 </span>
               </div>
 
-              <div className="rounded-lg bg-muted p-4">
-                {loadingDetail ? (
-                  <p className="text-sm text-text-muted">Loading markdown content...</p>
-                ) : detailError ? (
-                  <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
-                ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
-                  <p className="text-sm text-text-muted">
-                    Markdown extraction is running in background. This page will auto-refresh.
-                  </p>
-                ) : markdownStatus === "failed" ? (
-                  <p className="text-sm text-red-600 dark:text-red-400">
-                    {detail.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
-                  </p>
-                ) : (detail.markdown_content || "").trim().length === 0 ? (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Markdown content is empty. Click <strong>Re-Parse</strong> to regenerate from the source document.
-                  </p>
-                ) : (
-                  <DocumentMarkdownRenderer
-                    content={detail.markdown_content || ""}
-                    corpusId={corpusId}
-                    documentId={documentId}
-                    appName={requestAppName}
-                  />
-                )}
-              </div>
+              {showPdf ? (
+                <DocumentPdfViewer
+                  src={documentPreviewUrl(corpusId, documentId, { appName: requestAppName })}
+                  filename={effectiveDocumentName(detail)}
+                />
+              ) : (
+                <div className="rounded-lg bg-muted p-4">
+                  {loadingDetail ? (
+                    <p className="text-sm text-text-muted">Loading markdown content...</p>
+                  ) : detailError ? (
+                    <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
+                  ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
+                    <p className="text-sm text-text-muted">
+                      Markdown extraction is running in background. This page will auto-refresh.
+                    </p>
+                  ) : markdownStatus === "failed" ? (
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {detail.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
+                    </p>
+                  ) : (detail.markdown_content || "").trim().length === 0 ? (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      Markdown content is empty. Click <strong>Re-Parse</strong> to regenerate from the source document.
+                    </p>
+                  ) : (
+                    <DocumentMarkdownRenderer
+                      content={detail.markdown_content || ""}
+                      corpusId={corpusId}
+                      documentId={documentId}
+                      appName={requestAppName}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : null}

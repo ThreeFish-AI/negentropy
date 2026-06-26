@@ -1377,6 +1377,23 @@ export function effectiveDocumentName(
   return displayName || doc.original_filename;
 }
 
+/**
+ * 判定源文档是否为 PDF —— 决定文档详情页是否展示「Markdown | PDF」切换标签。
+ *
+ * 双重判据（任一命中即视为 PDF），覆盖 MIME 缺失但扩展名为 .pdf 的历史数据：
+ *  - `content_type` 含 "pdf"（如 `application/pdf`，大小写不敏感）；
+ *  - `original_filename` 以 `.pdf` 结尾。
+ *
+ * URL / Markdown / 其他类型文档均返回 false，从而不显示 PDF 预览入口。
+ */
+export function isPdfDocument(
+  doc: Pick<KnowledgeDocument, "content_type" | "original_filename">,
+): boolean {
+  const contentType = (doc.content_type ?? "").toLowerCase();
+  if (contentType.includes("pdf")) return true;
+  return /\.pdf$/i.test(doc.original_filename ?? "");
+}
+
 export interface DocumentMarkdownRefreshResponse {
   document_id: string;
   status: string;
@@ -1531,6 +1548,26 @@ function documentApiBase(corpusId: string | null, documentId: string): string {
   return corpusId
     ? `/api/knowledge/base/${corpusId}/documents/${documentId}`
     : `/api/knowledge/documents/${documentId}`;
+}
+
+/**
+ * 文档原文「内联预览」URL（PDF 原文视图的 `<object>`/`<iframe>` src）。
+ *
+ * 走 BFF `/preview` 路由：复用后端 `/download` 字节、仅把 `Content-Disposition`
+ * 改写为 `inline`。库文档（corpusId=null）与 corpus 文档的路径分支由
+ * {@link documentApiBase} 统一收敛。同源请求自动携带 cookie 完成鉴权，故此处
+ * 仅需返回 URL 字符串，无需手工拼接鉴权头。
+ */
+export function documentPreviewUrl(
+  corpusId: string | null,
+  documentId: string,
+  params?: { appName?: string },
+): string {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  const qs = query.toString();
+  const base = `${documentApiBase(corpusId, documentId)}/preview`;
+  return qs ? `${base}?${qs}` : base;
 }
 
 export async function deleteDocument(

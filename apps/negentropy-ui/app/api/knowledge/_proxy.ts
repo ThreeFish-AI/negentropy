@@ -87,6 +87,16 @@ type ProxyOptions = {
    * 调用方按端点语义显式启用（仅 GET 推荐启用，POST 重试会触发副作用）。
    */
   retry?: RetryOptions;
+  /**
+   * 仅 `proxyGetBinary` 消费：把上游二进制响应的 `Content-Disposition` 强制为
+   * `inline`，使浏览器（`<object>`/`<iframe>`）内联渲染而非触发下载。默认
+   * `undefined` → 原样透传上游头部，行为不变（向后兼容）。
+   *
+   * 设计动机：后端 `/download` 端点固定回传 `attachment`（语义为「下载」），
+   * 但 PDF 源文档「预览」场景需要内联渲染。复用同一后端端点、仅在 BFF 层改写
+   * 响应头，避免后端为预览新增并行端点（单一事实源 + 最小干预）。
+   */
+  responseDisposition?: "inline";
 };
 
 /** 上游响应被视作 transient 的状态码集合 */
@@ -544,8 +554,29 @@ export async function proxyGetBinary(
   const contentDisposition = upstreamResponse.headers.get("content-disposition");
   const contentType = upstreamResponse.headers.get("content-type");
   const cacheControl = upstreamResponse.headers.get("cache-control");
-  if (contentDisposition) responseHeaders.set("content-disposition", contentDisposition);
-  if (contentType) responseHeaders.set("content-type", contentType);
+
+  if (options.responseDisposition === "inline") {
+    // 预览语义：把上游的 `attachment` 改写为 `inline`，保留 `filename*` 等参数，
+    // 让浏览器内联渲染 PDF 而非触发下载。上游缺失头部时也显式置 `inline`。
+    if (contentDisposition) {
+      responseHeaders.set(
+        "content-disposition",
+        contentDisposition.replace(/^\s*attachment/i, "inline"),
+      );
+    } else {
+      responseHeaders.set("content-disposition", "inline");
+    }
+    // 兜底：.pdf 文件但上游 MIME 缺失/为通用二进制时，回退为 application/pdf，
+    // 否则浏览器可能拒绝内联渲染。已知具体类型则原样透传。
+    if (!contentType || contentType === "application/octet-stream") {
+      responseHeaders.set("content-type", "application/pdf");
+    } else {
+      responseHeaders.set("content-type", contentType);
+    }
+  } else {
+    if (contentDisposition) responseHeaders.set("content-disposition", contentDisposition);
+    if (contentType) responseHeaders.set("content-type", contentType);
+  }
   if (cacheControl) responseHeaders.set("cache-control", cacheControl);
 
   return new NextResponse(upstreamResponse.body, {
