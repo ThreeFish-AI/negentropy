@@ -153,6 +153,26 @@ export interface HandlerListResponse {
   items: HandlerDescriptor[];
 }
 
+/**
+ * Handler 实现源码 + 解释。
+ * 与后端 ``interface/scheduler_api.py::_build_handler_source`` 对齐，
+ * 供任务详情抽屉「实现逻辑」区展示。
+ */
+export interface HandlerSourceResponse {
+  handler_kind: string;
+  label: string;
+  description: string | null;
+  module: string | null;
+  file_path: string | null;
+  function_name: string;
+  function_lineno: number | null;
+  function_docstring: string | null;
+  module_docstring: string | null;
+  module_source: string | null;
+  function_source: string | null;
+  language: string;
+}
+
 // ---------------------------------------------------------------------------
 // CRUD 请求载荷
 // ---------------------------------------------------------------------------
