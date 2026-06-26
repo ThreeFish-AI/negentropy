@@ -49,11 +49,26 @@ export function TranscriptView({ events, live }: { events: RoutineIterationEvent
   );
 }
 
+/** 从旧数据的 payload.raw 中 best-effort 提取 system subtype。
+ *  旧持久化数据 title=null，payload.raw 含原始 JSON（含 subtype 字段）。 */
+function extractSubtitle(payload: Record<string, unknown> | null | undefined): string | null {
+  const raw = payload?.raw;
+  if (typeof raw === "object" && raw !== null) return ((raw as Record<string, unknown>).subtype as string) ?? null;
+  if (typeof raw === "string") {
+    try {
+      return (JSON.parse(raw)?.subtype as string) ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** system / system_retry / system_compact / unknown 行——低信号，紧凑单行，可展开看 payload。 */
 function SystemRow({ event }: { event: RoutineIterationEventDTO }) {
   const [open, setOpen] = useState(false);
   const glyph = eventTypeIcon(event.event_type, event.tool_name);
-  const title = resolveEventTitle(event.event_type, event.title, event.tool_name);
+  const title = resolveEventTitle(event.event_type, event.title || extractSubtitle(event.payload), event.tool_name);
   const hasDetail = !!event.payload && Object.keys(event.payload).length > 0;
 
   return (
