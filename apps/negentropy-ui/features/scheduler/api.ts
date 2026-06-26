@@ -8,6 +8,7 @@ import type {
   DashboardFilters,
   ExecutionListResponse,
   HandlerListResponse,
+  HandlerSourceResponse,
   KpiResponse,
   ScheduledTaskDTO,
   StatsGroupBy,
@@ -107,6 +108,11 @@ export async function toggleTaskEnabled(
 
 export async function fetchHandlers(): Promise<HandlerListResponse> {
   return jsonFetch("/handlers");
+}
+
+/** 拉取指定 handler 的实现源码 + docstring + 描述（驱动任务详情抽屉「实现逻辑」区）。 */
+export async function fetchHandlerSource(handlerKind: string): Promise<HandlerSourceResponse> {
+  return jsonFetch(`/handlers/${encodeURIComponent(handlerKind)}/source`);
 }
 
 // ---------------------------------------------------------------------------

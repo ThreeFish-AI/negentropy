@@ -41,6 +41,7 @@ def test_router_exposes_all_endpoints():
         "/scheduler/tasks/{task_id}/toggle",
         "/scheduler/stream",
         "/scheduler/handlers",
+        "/scheduler/handlers/{handler_kind}/source",
     }
     assert expected <= paths
 
@@ -108,6 +109,35 @@ def test_serialize_descriptor():
     # 验证 applies_when 正确序列化
     threshold_field = next(f for f in data["payload_fields"] if f["name"] == "threshold")
     assert threshold_field["applies_when"] == ["cleanup_memories"]
+
+
+def test_build_handler_source_known_handler():
+    """命中已注册 handler → 返回整模块源码 + docstring + descriptor 元数据。"""
+    from negentropy.interface.scheduler_api import _build_handler_source
+
+    data = _build_handler_source("pgvector_check")
+    assert data is not None
+    assert data["handler_kind"] == "pgvector_check"
+    assert data["language"] == "python"
+    # 整模块源码：应含注册装饰器本身（证明拿到的是模块而非裸函数）
+    assert data["module_source"] and 'register_handler("pgvector_check")' in data["module_source"]
+    # 入口函数源码 + 行号
+    assert data["function_name"].endswith("handler")
+    assert data["function_source"] and "def " in data["function_source"]
+    assert isinstance(data["function_lineno"], int) and data["function_lineno"] > 0
+    # 解释：descriptor 描述 + 至少一处 docstring 非空
+    assert data["description"]
+    assert data["function_docstring"] or data["module_docstring"]
+    # file_path 已裁剪为 src/ 之后的仓库相对路径
+    assert data["file_path"] and data["file_path"].startswith("negentropy/")
+    assert "/src/" not in data["file_path"]
+
+
+def test_build_handler_source_unknown_returns_none():
+    """未注册 handler_kind → None（端点据此转 404）。"""
+    from negentropy.interface.scheduler_api import _build_handler_source
+
+    assert _build_handler_source("__definitely_not_a_handler__") is None
 
 
 class TestValidateTaskSpec:
