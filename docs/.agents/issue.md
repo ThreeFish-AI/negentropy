@@ -3307,3 +3307,21 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   3. **验证**：`build_docs_pack` 真实导出 nav-tree 逐级核验 + `pnpm build` 127 页 + 浏览器实机（侧栏顺序正确、frontmatter 不泄漏、标题取 frontmatter title）。
 - **后续防范**：① 新写文档 frontmatter 必须是**合法 YAML**——值含冒号/特殊字符须加引号，否则 `sidebar_position` 会被静默忽略（ingest 仅 WARN 不中断）；② 任何「消费 markdown frontmatter」的链路（渲染/搜索索引/链接重写）都须**先剥离围栏**再处理正文，禁止把 frontmatter 当正文传递；③ 排序位次变更用**小数中点插入**避免重排整段；DB 出版物路径（`entry_position`）与 docs 路径（`sidebar_position`/`_category_.json`）正交，互不影响。
 - **同类问题影响**：仓内其他「文件 → 站点」合成链路若引入 frontmatter 元数据，须复用本 PR 的 `_parse_frontmatter` 惯例（`isinstance(dict)` 守卫 + 失败回退原文 + 剥离不回填）。
+
+---
+
+## ISSUE-148 Memory Overview 后端检索串行 N+1 + 缺索引全表扫描
+
+- **表因**：首次加载 `/memory/overview` 各模块数据加载慢（用户感知 >5s）。页面一次性并行拉取 `/api/memory/dashboard`、`/api/memory/health`、`/api/memory/metrics`（admin）三端点（无轮询），经 Next.js BFF 代理到后端 `engine/api.py`。
+- **根因**（两层；循证：EXPLAIN ANALYZE + 实测）：
+  1. **首屏 >5s 的直接主因是 dev-only**：本机 UI 为 `next dev --webpack`，首次访问触发 webpack 按需编译路由/bundle；后端三端点实测直连 `:3292` 仅 ~20–46ms、BFF ~40ms（dev DB 极小：memories=1/facts=47/audit=11）。非后端检索瓶颈。
+  2. **但后端确有随规模放大的真实低效**（本 PR 目标）：① 串行 N+1——`/dashboard` 串行 8 次 `db.scalar()`（6 次打 memories 同一过滤）、`/health` 开 2 个独立 session、`/metrics` 7 次含 2 次相同 WHERE 重复全扫 memories；② 缺索引——`memories`/`facts`/`memory_audit_logs`/`kg_entities` 对 `app_name`(+`user_id`) 聚合全部 Seq Scan，且 `memories` 每行携带 `Vector(1536)`≈6KB，Seq Scan 把 embedding 拖过 I/O。
+- **处理方式**（本次 PR，纯查询合并 + 索引，逐字节契约不变，**不引入缓存/不引入 asyncio.gather**）：
+  1. **dashboard**（`engine/api.py`）：6 个 memories 聚合合并为单条 `select(count/avg/sum(case))`，fact/audit 各 1 条 → 8 往返降为 3。`func.count()`≡旧 `count(subquery)`、`sum(case(...,1,else_=0))`≡旧 `count(filtered subquery)`（空集 NULL→0 由 `or 0` 兜底）。
+  2. **metrics**（`memory_metrics.py`）：`retention_stmt`+`pii_stmt` WHERE 完全相同 → 合并单条，`pii_total` 复用合并行 `total`（分母等价，`pii_detection_rate` 逐字节不变）；消除一次 memories 全扫。
+  3. **health**（`health_checker.py`）：2 session→1；两个无过滤 count 用双标量子查询并入单往返；保留 `SELECT 1` 探针；双 inner try + 外层 try **保留失败粒度**（「连通 OK 但计数失败」/「会话完全不可用 db+tables 均 error」）。
+  4. **索引迁移 0073** + ORM `__table_args__` 同步：`ix_memories_app_user(app_name,user_id)`、`ix_facts_app_user`、`ix_kg_entities_app_active(app_name) WHERE is_active IS TRUE`、`ix_memory_audit_logs_app_created(app_name,created_at)`、`ix_memory_retrieval_logs_app_created`。CONCURRENTLY + `autocommit_block`（沿用 0010）+ `IF NOT EXISTS`（沿用 0029），可重入；kg 部分索引入 `env.py _IGNORED_INDEXES`（沿用仓库部分索引惯例）。
+- **关键坑（务必复用经验）**：PG **部分索引谓词证明器不会把 `is_active IS TRUE`（BooleanTest）蕴含为裸布尔 `is_active`**。最初写 `WHERE is_active` 建成的索引，对实际查询 `... AND is_active IS TRUE`（`memory_metrics.py`）**完全无法命中**（`SET enable_seqscan=off` 仍走 Seq Scan，cost 带 1e10 惩罚）。修正：部分索引谓词须与查询 `BooleanTest` 形态**逐字匹配**（改为 `WHERE is_active IS TRUE`），改后 Index Only Scan 命中。**前导列法则**同理：`(app_name,user_id)` 经前导列服务 `app_name`-only，故无需单列 `app_name` 索引；现有以 `user_id`/`corpus_id` 前导的索引对 app-scoped 查询无效。
+- **验证**：受控种子（独立 `app_name='__perf_verify__'`，覆盖 low_retention/high_importance 边界/deleted/pii/valid_until 各分支，验后清理）对比 NEW 合并查询 vs OLD 逐条查询——dashboard 三 user 维度全字段 MATCH；`dashboard.memory_count=5`(含 deleted) vs `metrics.memory_total=4`(排除 deleted)、`dashboard.fact_count=2`(过滤过期) vs `metrics.fact_count=3`(不过滤) 证差异化过滤器保留。956 engine 单测全过；alembic up/down 幂等；autogenerate 无漂移；ruff 通过。
+- **后续防范**：① 新建部分索引务必让谓词与查询布尔表达式 AST 形态一致（`IS TRUE` vs 裸布尔不互通），建索引后用 `SET enable_seqscan=off; EXPLAIN` 实测命中；② 多聚合同表同 WHERE 应合并为单条 `select(... sum(case))`（复用 `retrieval_tracker.py`/`scheduler_api.py` 惯例），勿逐条 `db.scalar`；③ 跨表计数因基数不同不能合并（笛卡尔积污染），按表拆条是下限；④ 区分「dev webpack 首屏编译慢」与「后端检索慢」——前者非后端范畴，勿误改后端；⑤ pool_size=5/max_overflow=10 下慎用 `asyncio.gather` 多 session（连接放大），优先单 session 多语句合并。
+- **同类问题影响**：knowledge 模块若新增 dashboard/metrics 聚合端点应复用本 PR 合并范式与 `(app_name,user_id)` 前导索引惯例；所有 `app_name`-scoped 聚合查询都应核查是否落到以 `user_id` 前导的既有索引（无效）。

@@ -24,16 +24,42 @@ async def check_memory_health() -> dict[str, Any]:
     status = "healthy"
     checks: dict[str, Any] = {}
 
-    # 1. DB 连通性
+    # 1 & 3. DB 连通性 + 核心表行数合并到单 session（旧实现开两个独立 session）：
+    # 两个 inner try 保留失败粒度（「连通 OK 但计数失败」仍可区分）；外层 try 复现
+    # 旧行为——session/checkout 完全不可用时 db 与 tables 均标记 error 并降级。
     try:
         async with db_session.AsyncSessionLocal() as db:
-            await db.execute(sa.text("SELECT 1"))
-        checks["db"] = {"status": "ok"}
+            try:
+                await db.execute(sa.text("SELECT 1"))
+                checks["db"] = {"status": "ok"}
+            except Exception as exc:
+                checks["db"] = {"status": "error", "detail": str(exc)[:200]}
+                status = "degraded"
+
+            # 核心表行数（无过滤全表 count，用于快速诊断空表）：两个标量子查询
+            # 并入单次往返。
+            try:
+                from negentropy.models.internalization import Fact, Memory
+
+                counts_stmt = sa.select(
+                    sa.select(sa.func.count()).select_from(Memory).scalar_subquery().label("memories"),
+                    sa.select(sa.func.count()).select_from(Fact).scalar_subquery().label("facts"),
+                )
+                row = (await db.execute(counts_stmt)).one()
+                checks["tables"] = {
+                    "memories": row.memories or 0,
+                    "facts": row.facts or 0,
+                }
+            except Exception as exc:
+                await db.rollback()
+                checks["tables"] = {"status": "error", "detail": str(exc)[:200]}
+                status = "degraded"
     except Exception as exc:
-        checks["db"] = {"status": "error", "detail": str(exc)[:200]}
+        checks.setdefault("db", {"status": "error", "detail": str(exc)[:200]})
+        checks.setdefault("tables", {"status": "error", "detail": str(exc)[:200]})
         status = "degraded"
 
-    # 2. Feature flags
+    # 2. Feature flags（纯配置读，独立于 DB：即使 DB / 会话不可用也必采集，与旧行为一致）
     try:
         from negentropy.config import settings as global_settings
 
@@ -62,21 +88,6 @@ async def check_memory_health() -> dict[str, Any]:
             logger.warning("pii_engine_probe_failed", error=str(exc)[:200])
     except Exception as exc:
         checks["features"] = {"status": "error", "detail": str(exc)[:200]}
-        status = "degraded"
-
-    # 3. 核心表行数（用于快速诊断空表问题）
-    try:
-        async with db_session.AsyncSessionLocal() as db:
-            from negentropy.models.internalization import Fact, Memory
-
-            mem_count = (await db.execute(sa.select(sa.func.count()).select_from(Memory))).scalar() or 0
-            fact_count = (await db.execute(sa.select(sa.func.count()).select_from(Fact))).scalar() or 0
-            checks["tables"] = {
-                "memories": mem_count,
-                "facts": fact_count,
-            }
-    except Exception as exc:
-        checks["tables"] = {"status": "error", "detail": str(exc)[:200]}
         status = "degraded"
 
     return {"status": status, "checks": checks}

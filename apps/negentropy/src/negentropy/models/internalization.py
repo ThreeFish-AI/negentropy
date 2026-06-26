@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import UUID as SA_UUID
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -38,6 +38,13 @@ class Memory(Base, UUIDMixin, TimestampMixin):
     # Relationships? Memory usually stands alone or links to thread.
     # The schema references threads(id).
 
+    __table_args__ = (
+        # Overview dashboard / metrics 以 app_name(+user_id) 聚合扫描，前导复合索引
+        # 同时服务 app_name-only 与 app_name+user_id（migration 0073）。
+        Index("ix_memories_app_user", "app_name", "user_id"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
 
 class Fact(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "facts"
@@ -63,6 +70,8 @@ class Fact(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
+        # 现有 unique 以 user_id 前导，无法服务 app_name-only 聚合；补复合索引（migration 0073）。
+        Index("ix_facts_app_user", "app_name", "user_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -99,6 +108,9 @@ class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
         UniqueConstraint(
             "app_name", "user_id", "memory_id", "idempotency_key", name="memory_audit_logs_idempotency_unique"
         ),
+        # metrics 以 app_name + created_at>=24h 窗口聚合；unique 第二列是 user_id 无法服务
+        # created_at 范围（migration 0073）。
+        Index("ix_memory_audit_logs_app_created", "app_name", "created_at"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -155,7 +167,12 @@ class MemoryRetrievalLog(Base, UUIDMixin):
     outcome_feedback: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
-    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
+    __table_args__ = (
+        # metrics 以 app_name + created_at 聚合；现有 ix_memory_retrieval_logs_user_app
+        # 以 user_id 前导，无法服务 app-scoped 查询（migration 0073）。
+        Index("ix_memory_retrieval_logs_app_created", "app_name", "created_at"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
 
 
 class MemoryConflict(Base, UUIDMixin, TimestampMixin):

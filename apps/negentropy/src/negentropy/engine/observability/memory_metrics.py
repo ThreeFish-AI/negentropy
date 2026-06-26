@@ -37,20 +37,30 @@ async def get_memory_metrics(*, user_id: str | None = None, app_name: str = "neg
     window_24h = now - timedelta(hours=24)
 
     async with db_session.AsyncSessionLocal() as db:
-        # --- Retention 分布 ---
-        retention_stmt = sa.select(
+        # --- Retention 分布 + PII 检测率 ---
+        # 二者 WHERE 完全相同（app_name + 非 deleted + 可选 user_id），合并为单条
+        # memories 扫描：消除一次重复全表扫描。pii 的分母 total == retention total，
+        # 故 pii_detection_rate 逐字节不变。
+        mem_filters = [
+            Memory.app_name == app_name,
+            sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") != "true",
+        ]
+        if user_id:
+            mem_filters.append(Memory.user_id == user_id)
+        mem_stmt = sa.select(
             sa.func.avg(Memory.retention_score).label("avg"),
             sa.func.percentile_cont(0.1).within_group(Memory.retention_score.asc()).label("p10"),
             sa.func.percentile_cont(0.9).within_group(Memory.retention_score.asc()).label("p90"),
             sa.func.count().label("total"),
             sa.func.sum(sa.case((Memory.retention_score < 0.1, 1), else_=0)).label("low_count"),
-        ).where(
-            Memory.app_name == app_name,
-            sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") != "true",
-        )
-        if user_id:
-            retention_stmt = retention_stmt.where(Memory.user_id == user_id)
-        ret_row = (await db.execute(retention_stmt)).one()
+            sa.func.sum(
+                sa.case(
+                    (Memory.metadata_["pii_flags"].astext.isnot(None), 1),
+                    else_=0,
+                )
+            ).label("with_pii"),
+        ).where(*mem_filters)
+        ret_row = (await db.execute(mem_stmt)).one()
 
         # --- 搜索指标（24h） ---
         search_stmt = sa.select(
@@ -80,22 +90,7 @@ async def get_memory_metrics(*, user_id: str | None = None, app_name: str = "neg
             audit_stmt = audit_stmt.where(MemoryAuditLog.user_id == user_id)
         audit_row = (await db.execute(audit_stmt)).one()
 
-        # --- PII 检测率 ---
-        pii_stmt = sa.select(
-            sa.func.count().label("total"),
-            sa.func.sum(
-                sa.case(
-                    (Memory.metadata_["pii_flags"].astext.isnot(None), 1),
-                    else_=0,
-                )
-            ).label("with_pii"),
-        ).where(
-            Memory.app_name == app_name,
-            sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") != "true",
-        )
-        if user_id:
-            pii_stmt = pii_stmt.where(Memory.user_id == user_id)
-        pii_row = (await db.execute(pii_stmt)).one()
+        # PII 检测率已并入上方 mem_stmt（ret_row.with_pii / total），无需独立扫描。
 
         # --- Facts & Associations ---
         fact_count = (
@@ -132,8 +127,9 @@ async def get_memory_metrics(*, user_id: str | None = None, app_name: str = "neg
     with_feedback = search_row.with_feedback_24h or 0
     helpful = search_row.helpful_24h or 0
     audit_total = audit_row.total_24h or 0
-    pii_total = pii_row.total or 0
-    pii_with = pii_row.with_pii or 0
+    # pii 与 retention 同一 WHERE，分母 total 等价，直接复用合并行
+    pii_total = ret_row.total or 0
+    pii_with = ret_row.with_pii or 0
 
     return {
         # 搜索指标
