@@ -38,6 +38,7 @@ import {
   downloadDocument,
   deleteDocument,
   effectiveDocumentName,
+  formatRelativeTime,
   normalizeChunkingConfig,
   PipelineStatusBadge,
 } from "@/features/knowledge";
@@ -100,6 +101,9 @@ export default function KnowledgeBasePage() {
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsTotal, setDocumentsTotal] = useState(0);
+  const [documentsPage, setDocumentsPage] = useState(1);
+  const documentsPageSize = 10;
   const [buildingDocIds, setBuildingDocIds] = useState<Set<string>>(new Set());
 
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
@@ -204,22 +208,37 @@ export default function KnowledgeBasePage() {
     if (!selectedCorpusId) return;
     setDocumentsLoading(true);
     try {
-      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 100, offset: 0 });
+      const res = await fetchDocuments(selectedCorpusId, {
+        appName: APP_NAME,
+        limit: documentsPageSize,
+        offset: (documentsPage - 1) * documentsPageSize,
+      });
       setDocuments(res.items);
+      setDocumentsTotal(res.count);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load documents");
     } finally {
       setDocumentsLoading(false);
     }
-  }, [selectedCorpusId]);
+  }, [selectedCorpusId, documentsPage]);
 
   /** 静默刷新：更新文档列表但不显示 Loading 状态 */
   const silentLoadDocuments = useCallback(async () => {
     if (!selectedCorpusId) return;
     try {
-      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 100, offset: 0 });
+      const res = await fetchDocuments(selectedCorpusId, {
+        appName: APP_NAME,
+        limit: documentsPageSize,
+        offset: (documentsPage - 1) * documentsPageSize,
+      });
       setDocuments(res.items);
+      setDocumentsTotal(res.count);
     } catch { /* 静默刷新失败不阻断 */ }
+  }, [selectedCorpusId, documentsPage]);
+
+  // 切换语料时回到第 1 页，避免停留在新语料不存在的页码导致空列表
+  useEffect(() => {
+    setDocumentsPage(1);
   }, [selectedCorpusId]);
 
   useEffect(() => {
@@ -875,37 +894,63 @@ export default function KnowledgeBasePage() {
                     </div>
                   </div>
 
-                  {documentsLoading ? (
-                    <p className="text-xs text-muted-foreground">Loading...</p>
-                  ) : documents.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No documents.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {documents.map((doc) => {
-                        const sourceType = String(doc.metadata?.source_type || "file");
-                        return (
-                          <div
-                            key={doc.id}
-                            className="rounded-lg border border-border bg-background p-3"
-                          >
-                            <div className="flex items-start justify-between gap-2">
+                  <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                    {/* 表头 */}
+                    <div className="grid grid-cols-12 gap-2 border-b border-border bg-muted/30 px-4 py-3 text-xs font-medium text-muted-foreground">
+                      <div className="col-span-3 border-r border-border text-center">Name</div>
+                      <div className="col-span-1 border-r border-border text-center">Source</div>
+                      <div className="col-span-1 border-r border-border text-center">Size</div>
+                      <div className="col-span-2 border-r border-border text-center">Status</div>
+                      <div className="col-span-2 border-r border-border text-center">Updated At</div>
+                      <div className="col-span-3 text-center">Actions</div>
+                    </div>
+
+                    {documentsLoading ? (
+                      <p className="px-4 py-6 text-center text-xs text-muted-foreground">Loading...</p>
+                    ) : documents.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-xs text-muted-foreground">No documents.</p>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {documents.map((doc) => {
+                          const sourceType = String(doc.metadata?.source_type || "file");
+                          return (
+                            <div
+                              key={doc.id}
+                              className="grid grid-cols-12 items-center gap-2 px-4 py-3 transition-colors hover:bg-muted/30"
+                            >
+                              {/* Name —— 点击进入 document-chunks 标签页 */}
                               <button
-                                className="min-w-0 text-left"
+                                className="col-span-3 min-w-0 text-left"
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
-                                <p className="truncate text-sm font-medium">{effectiveDocumentName(doc)}</p>
-                                <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
-                                  <span>{sourceType} · {doc.file_size} bytes</span>
-                                  <PipelineStatusBadge
-                                    status={
-                                      buildingDocIds.has(doc.id)
-                                        ? "processing"
-                                        : doc.markdown_extract_status || doc.status
-                                    }
-                                  />
-                                </div>
+                                <p className="truncate text-sm font-medium" title={effectiveDocumentName(doc)}>
+                                  {effectiveDocumentName(doc)}
+                                </p>
                               </button>
-                              <div className="flex flex-wrap items-center justify-end gap-1">
+                              {/* Source */}
+                              <div className="col-span-1 truncate text-center text-xs text-muted-foreground" title={sourceType}>
+                                {sourceType}
+                              </div>
+                              {/* Size */}
+                              <div className="col-span-1 text-center text-xs text-muted-foreground">
+                                {doc.file_size} bytes
+                              </div>
+                              {/* Status */}
+                              <div className="col-span-2 flex justify-center">
+                                <PipelineStatusBadge
+                                  status={
+                                    buildingDocIds.has(doc.id)
+                                      ? "processing"
+                                      : doc.markdown_extract_status || doc.status
+                                  }
+                                />
+                              </div>
+                              {/* Updated At —— 列表按最终修改时间倒序 */}
+                              <div className="col-span-2 text-center text-xs text-muted-foreground">
+                                {formatRelativeTime(doc.updated_at ?? undefined)}
+                              </div>
+                              {/* Actions */}
+                              <div className="col-span-3 flex flex-wrap items-center justify-end gap-1">
                                 <button
                                   onClick={() => runDocumentAction("view", doc)}
                                   title="在弹窗中预览文档解析后的 Markdown 正文"
@@ -969,11 +1014,48 @@ export default function KnowledgeBasePage() {
                                 </button>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* 分页：每页 10 条 */}
+                    {documentsTotal > 0 && (
+                      <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                        <span className="text-xs text-muted-foreground">
+                          {`${documentsTotal} document${documentsTotal !== 1 ? "s" : ""}`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={documentsPage <= 1 || documentsLoading}
+                            onClick={() => setDocumentsPage((current) => Math.max(1, current - 1))}
+                            className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
+                          >
+                            Prev
+                          </button>
+                          <span className="text-xs text-muted-foreground">
+                            {documentsPage}/{Math.max(1, Math.ceil(documentsTotal / documentsPageSize))}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={
+                              documentsPage >= Math.max(1, Math.ceil(documentsTotal / documentsPageSize)) ||
+                              documentsLoading
+                            }
+                            onClick={() =>
+                              setDocumentsPage((current) =>
+                                Math.min(Math.max(1, Math.ceil(documentsTotal / documentsPageSize)), current + 1),
+                              )
+                            }
+                            className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

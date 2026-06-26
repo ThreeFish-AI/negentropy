@@ -106,7 +106,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize] = useState(10);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -416,7 +416,7 @@ export default function DocumentsPage() {
                   title="Select all translatable documents"
                 />
               </div>
-              <div className="grid grid-cols-12 gap-2 flex-1">
+              <div className="grid grid-cols-13 gap-2 flex-1">
                 <div className="col-span-3 text-center border-r border-border">File Name</div>
                 <div className="col-span-1 text-center border-r border-border">Size</div>
                 <div className="col-span-1 text-center border-r border-border">File Hash</div>
@@ -424,6 +424,7 @@ export default function DocumentsPage() {
                 <div className="col-span-2 text-center border-r border-border">Translation</div>
                 <div className="col-span-1 text-center border-r border-border">Created By</div>
                 <div className="col-span-1 text-center border-r border-border">Created At</div>
+                <div className="col-span-1 text-center border-r border-border">Updated At</div>
                 <div className="col-span-1 text-center">Actions</div>
               </div>
             </div>
@@ -462,7 +463,7 @@ export default function DocumentsPage() {
                           }
                         />
                       </div>
-                      <div className="grid grid-cols-12 gap-2 flex-1 items-center">
+                      <div className="grid grid-cols-13 gap-2 flex-1 items-center">
                       {/* 文件名 - col-span-3，支持就地重命名（写 display_name） */}
                       <div className="col-span-3 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
@@ -563,6 +564,11 @@ export default function DocumentsPage() {
                       {/* Created At - col-span-1 */}
                       <div className="col-span-1 text-muted-foreground text-xs text-center">
                         {formatRelativeTime(doc.created_at ?? undefined)}
+                      </div>
+
+                      {/* Updated At - col-span-1（按最终修改时间倒序，故置于 Created At 之后） */}
+                      <div className="col-span-1 text-muted-foreground text-xs text-center">
+                        {formatRelativeTime(doc.updated_at ?? undefined)}
                       </div>
 
                       {/* 操作 - col-span-1 */}

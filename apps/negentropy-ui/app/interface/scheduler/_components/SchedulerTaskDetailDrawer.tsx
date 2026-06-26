@@ -5,6 +5,8 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
+import { SchedulerHandlerSource } from "./SchedulerHandlerSource";
+
 interface SchedulerTaskDetailDrawerProps {
   task: ScheduledTaskDTO;
   onClose: () => void;
@@ -216,6 +218,12 @@ export function SchedulerTaskDetailDrawer({
               </div>
             </section>
           )}
+
+          {/* 实现逻辑：Handler 源码与解释 */}
+          <section>
+            <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">实现逻辑</h3>
+            <SchedulerHandlerSource key={task.handler_kind} handlerKind={task.handler_kind} />
+          </section>
         </div>
 
         {/* Footer */}

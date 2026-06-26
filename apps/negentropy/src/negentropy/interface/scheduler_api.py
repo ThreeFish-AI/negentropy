@@ -585,6 +585,71 @@ async def list_handler_descriptors() -> dict[str, Any]:
     return {"items": [_serialize_descriptor(d) for d in list_descriptors()]}
 
 
+def _build_handler_source(handler_kind: str) -> dict[str, Any] | None:
+    """从注册表解析 ``handler_kind`` → 返回模块源码 + docstring + descriptor 元数据。
+
+    ``handler_kind`` 仅作 ``HANDLER_REGISTRY`` 字典键查找，绝不接受/拼接文件路径，
+    故无路径穿越风险；未命中返回 ``None``（由端点转 404）。源码经 ``inspect`` 从
+    已加载模块获取——反映**实际运行中**的实现。
+
+    抽成纯函数（不触 DB）以便免 Postgres 单测，与 ``GET /handlers/{kind}/source`` 端点解耦。
+    """
+    import inspect
+
+    from negentropy.engine.schedulers.handlers import (
+        _bootstrap_default_handlers,
+        get_descriptor,
+        get_handler,
+    )
+
+    _bootstrap_default_handlers()  # 幂等：确保 handler 模块已 import → 已注册
+    fn = get_handler(handler_kind)
+    if fn is None:
+        return None
+
+    module = inspect.getmodule(fn)
+
+    def _src(obj: Any) -> str | None:
+        try:
+            return inspect.getsource(obj)
+        except (OSError, TypeError):
+            return None
+
+    try:
+        _, fn_lineno = inspect.getsourcelines(fn)
+    except (OSError, TypeError):
+        fn_lineno = None
+
+    d = get_descriptor(handler_kind)
+    raw_file = getattr(module, "__file__", None)
+    # 仅展示用：裁剪为 src/ 之后的仓库相对路径
+    file_path = raw_file.split("/src/", 1)[-1] if raw_file and "/src/" in raw_file else raw_file
+
+    return {
+        "handler_kind": handler_kind,
+        "label": d.label if d else handler_kind,
+        "description": d.description if d else None,
+        "module": module.__name__ if module else None,
+        "file_path": file_path,
+        "function_name": fn.__name__,
+        "function_lineno": fn_lineno,
+        "function_docstring": inspect.getdoc(fn),
+        "module_docstring": inspect.getdoc(module) if module else None,
+        "module_source": _src(module),  # 主体：整模块（含入口函数 + 私有 _run_* 辅助 + descriptor）
+        "function_source": _src(fn),  # 备用：仅注册入口函数
+        "language": "python",
+    }
+
+
+@router.get("/handlers/{handler_kind}/source")
+async def get_handler_source(handler_kind: str = Path(..., max_length=64)) -> dict[str, Any]:
+    """返回指定 Handler 的实现源码 + docstring + 描述（驱动 UI「实现逻辑」区）。"""
+    data = _build_handler_source(handler_kind)
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"unknown handler_kind: {handler_kind}")
+    return data
+
+
 # ---------------------------------------------------------------------------
 # CRUD — Pydantic 请求模型
 # ---------------------------------------------------------------------------

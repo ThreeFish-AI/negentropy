@@ -43,6 +43,7 @@ function makeRoutine(id: string, status: RoutineDTO["status"] = "running"): Rout
     acceptance_criteria: "ac",
     cwd: null,
     baseline_branch: null,
+    repository_id: null,
     verification_command: null,
     status,
     termination_reason: null,

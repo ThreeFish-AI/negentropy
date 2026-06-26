@@ -615,6 +615,7 @@ class DocumentResponse(BaseModel):
     file_size: int
     status: str
     created_at: str | None = None
+    updated_at: str | None = None
     created_by: str | None = None
     created_by_name: str | None = None
     markdown_extract_status: str = "pending"
