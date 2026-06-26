@@ -26,6 +26,7 @@ from .perception import (
 )
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
 from .pulse import Event, Thread
+from .repository import Repository
 from .routine import Routine, RoutineIteration
 from .scheduled_task import ScheduledTask, TaskExecution
 from .security import Credential
@@ -101,6 +102,8 @@ __all__ = [
     # Scheduled Task (统一心跳调度)
     "ScheduledTask",
     "TaskExecution",
+    # Repository (本地仓库锚点 — 第 5 类 plugin 资源)
+    "Repository",
     # Routine (长周期自主任务迭代)
     "Routine",
     "RoutineIteration",

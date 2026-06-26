@@ -48,6 +48,7 @@ from negentropy.config import settings
 from negentropy.engine.routine import phase as phase_mod
 from negentropy.engine.routine import workspace
 from negentropy.logging import get_logger
+from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 logger = get_logger("negentropy.interface.routine_api")
@@ -123,6 +124,9 @@ class RoutineCreateRequest(BaseModel):
     acceptance_criteria: str = Field(..., min_length=1)
     cwd: str | None = None
     baseline_branch: str | None = Field(default=None, max_length=255)
+    # 可选关联的已注册 Repository（单一事实源指针）：非空时派生有效 cwd/baseline_branch，
+    # 此时 cwd/baseline_branch 手填值可留空（不复制副本）。
+    repository_id: UUID | None = None
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -144,6 +148,7 @@ class RoutineUpdateRequest(BaseModel):
     acceptance_criteria: str | None = None
     cwd: str | None = None
     baseline_branch: str | None = Field(default=None, max_length=255)
+    repository_id: UUID | None = None
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -185,6 +190,7 @@ def _serialize_routine(
         "acceptance_criteria": r.acceptance_criteria,
         "cwd": r.cwd,
         "baseline_branch": r.baseline_branch,
+        "repository_id": str(r.repository_id) if r.repository_id else None,
         "verification_command": r.verification_command,
         "status": r.status,
         "termination_reason": r.termination_reason,
@@ -620,19 +626,54 @@ def _validate_read_dirs(config: dict[str, Any] | None) -> None:
             raise HTTPException(status_code=422, detail=f"read_dir does not exist or is not a directory: '{d}'")
 
 
-@router.post("")
-async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
-    if body.cwd and not os.path.isdir(body.cwd):
-        raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
-    _validate_read_dirs(body.config)
-    # 提供了 Project Path (cwd) + Baseline Branch 时即时校验仓库/基线（早反馈）。存在性的硬约束
-    # 由 start 守卫强制（执行前提），允许 API 侧先创建草稿；前端创建可执行 routine 时已强制二者。
-    if body.cwd and body.baseline_branch:
+async def _resolve_repository(db, repository_id: UUID | None) -> Repository | None:
+    """repository_id 非空时取 Repository（缺失→422，供 API 早反馈）；否则 None。"""
+    if repository_id is None:
+        return None
+    repo = await db.get(Repository, repository_id)
+    if repo is None:
+        raise HTTPException(status_code=422, detail=f"repository not found: {repository_id}")
+    return repo
+
+
+async def _validate_effective_repo(eff_cwd: str | None, eff_baseline: str | None) -> None:
+    """二者皆有值时即时校验仓库/基线（非法转 422）。允许草稿态暂缺其一。"""
+    if eff_cwd and eff_baseline:
         try:
-            await workspace.validate_repo(body.cwd, body.baseline_branch, settings.routine)
+            await workspace.validate_repo(eff_cwd, eff_baseline, settings.routine)
         except workspace.WorkspaceError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+async def _require_effective_repo(db, r: Routine, *, validate: bool) -> None:
+    """start/resume/restart 守卫：非模板 routine 须具备有效仓库配置（repository_id 指针优先）。
+
+    缺失（手填与 Repo 皆未提供）→ 409；validate=True 时额外 workspace.validate_repo（start 用）。
+    """
+    repository = await _resolve_repository(db, r.repository_id)
+    eff_cwd, eff_baseline = workspace.resolve_effective_repo(r, repository)
+    if not (eff_cwd and eff_baseline):
+        raise HTTPException(
+            status_code=409,
+            detail="需补全 Project Path (cwd) 与 Baseline Branch，或选择已注册 Repository（隔离 worktree 的前提）",
+        )
+    if validate:
+        await _validate_effective_repo(eff_cwd, eff_baseline)
+
+
+@router.post("")
+async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
+    _validate_read_dirs(body.config)
     async with db_session.AsyncSessionLocal() as db:
+        # 解析有效仓库配置（repository_id 指针优先；否则手填 cwd/baseline）。
+        repository = await _resolve_repository(db, body.repository_id)
+        eff_cwd = repository.local_path if repository is not None else body.cwd
+        eff_baseline = repository.baseline_branch if repository is not None else body.baseline_branch
+        # 未关联 Repo 且手填 cwd 时校验目录存在（早反馈）；关联 Repo 时由 validate_repo 统一校验。
+        if repository is None and body.cwd and not os.path.isdir(body.cwd):
+            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
+        # 即时校验有效仓库/基线（二者皆有值时）；存在性硬约束由 start 守卫强制，允许先创建草稿。
+        await _validate_effective_repo(eff_cwd, eff_baseline)
         routine = Routine(
             key=body.key,
             title=body.title,
@@ -640,6 +681,7 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             acceptance_criteria=body.acceptance_criteria,
             cwd=body.cwd,
             baseline_branch=body.baseline_branch,
+            repository_id=body.repository_id,
             verification_command=body.verification_command,
             status="pending",
             max_iterations=body.max_iterations
@@ -699,23 +741,26 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
                     detail=f"cannot edit {', '.join(sorted(unsafe))} while running; pause first",
                 )
 
-        # cwd 目录存在性校验（非 running 路径，unsafe 已被上方拦截）
-        if "cwd" in update_data and update_data["cwd"] and not os.path.isdir(update_data["cwd"]):
-            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{update_data['cwd']}'")
         if "config" in update_data:
             _validate_read_dirs(update_data["config"])
 
         for field_name, value in update_data.items():
             setattr(r, field_name, value)
 
-        # 校验合并后的仓库/基线（仅当二者皆有值时即时校验；强制性由 create + start 守卫保证，
-        # 允许增量编辑期间暂缺其一）。
-        if not r.is_template and r.cwd and r.baseline_branch:
+        # 解析合并后的有效仓库配置（repository_id 指针优先；否则手填 cwd/baseline）。
+        repository = await _resolve_repository(db, r.repository_id)
+        eff_cwd, eff_baseline = workspace.resolve_effective_repo(r, repository)
+        # 未关联 Repo 且手填 cwd 非空 → 校验目录存在（非 running 路径，unsafe 已被上方拦截）。
+        if repository is None and r.cwd and not os.path.isdir(r.cwd):
+            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{r.cwd}'")
+        # 校验合并后的有效仓库/基线（仅当二者皆有值时；强制性由 create + start 守卫保证，
+        # 允许增量编辑期间暂缺其一）。模板跳过。
+        if not r.is_template:
             try:
-                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
-            except workspace.WorkspaceError as exc:
+                await _validate_effective_repo(eff_cwd, eff_baseline)
+            except HTTPException:
                 await db.rollback()
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
+                raise
 
         if r.status == "running" and update_data:
             logger.info("routine_runtime_update", routine_id=str(routine_id), fields=sorted(update_data.keys()))
@@ -775,18 +820,10 @@ async def start_routine(routine_id: UUID, body: ControlBody | None = None) -> di
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status not in ("pending", "paused"):
             raise HTTPException(status_code=409, detail=f"cannot start from status '{r.status}'")
-        # worktree 隔离守卫（执行硬前提）：可执行 routine 启动前须具备 Project Path (cwd) +
-        # Baseline Branch（保护未回填的旧行；模板不在此路径启动），并校验仓库/基线可用。
+        # worktree 隔离守卫（执行硬前提）：可执行 routine 启动前须具备有效仓库配置
+        # （repository_id 指针优先，否则手填 cwd + baseline_branch；模板不在此路径启动），并校验可用。
         if not r.is_template:
-            if not (r.cwd and r.baseline_branch):
-                raise HTTPException(
-                    status_code=409,
-                    detail="启动前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
-                )
-            try:
-                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
-            except workspace.WorkspaceError as exc:
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            await _require_effective_repo(db, r, validate=True)
         r.status = "running"
         r.termination_reason = None
         await db.commit()
@@ -823,13 +860,9 @@ async def resume_routine(routine_id: UUID, body: ControlBody | None = None) -> d
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status != "paused":
             raise HTTPException(status_code=409, detail=f"cannot resume from status '{r.status}'")
-        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 恢复前须具备 cwd + baseline_branch。
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 恢复前须具备有效仓库配置。
         if not r.is_template:
-            if not (r.cwd and r.baseline_branch):
-                raise HTTPException(
-                    status_code=409,
-                    detail="恢复前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
-                )
+            await _require_effective_repo(db, r, validate=False)
         r.status = "running"
         await db.commit()
         await db.refresh(r)
@@ -883,13 +916,9 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
                     status_code=409,
                     detail="deadline has passed; update or clear the deadline before restarting",
                 )
-        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 重启前须具备 cwd + baseline_branch。
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 重启前须具备有效仓库配置。
         if not r.is_template:
-            if not (r.cwd and r.baseline_branch):
-                raise HTTPException(
-                    status_code=409,
-                    detail="重启前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
-                )
+            await _require_effective_repo(db, r, validate=False)
 
         # 闭合上一轮遗留的全部非终态迭代（含 executed）。终态 routine 理论上不应有在途迭代，
         # 但 cancel 会保留 executed 迭代、且崩溃/reaper 竞态可能遗留孤儿；若不闭合，重启后
