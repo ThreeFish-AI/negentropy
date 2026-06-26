@@ -300,7 +300,7 @@ describe("KnowledgeBasePage", () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it("进入 documents 视图时使用不超过后端约束的 limit=100", async () => {
+  it("进入 documents 视图时按每页 10 条分页加载（首页 offset=0）", async () => {
     render(<KnowledgeBasePage />);
 
     await act(async () => {
@@ -309,7 +309,7 @@ describe("KnowledgeBasePage", () => {
 
     expect(fetchDocumentsMock).toHaveBeenCalledWith(
       "11111111-1111-1111-1111-111111111111",
-      { appName: "negentropy", limit: 100, offset: 0 },
+      { appName: "negentropy", limit: 10, offset: 0 },
     );
   });
 
