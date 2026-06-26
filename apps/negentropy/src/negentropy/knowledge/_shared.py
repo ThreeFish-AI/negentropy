@@ -750,6 +750,7 @@ def _build_document_response(
         file_size=doc.file_size,
         status=doc.status,
         created_at=doc.created_at.isoformat() if doc.created_at else None,
+        updated_at=doc.updated_at.isoformat() if doc.updated_at else None,
         created_by=doc.created_by,
         created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
         markdown_extract_status=doc.markdown_extract_status,

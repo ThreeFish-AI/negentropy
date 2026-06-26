@@ -35,6 +35,7 @@ function makeRoutine(id: string): RoutineDTO {
     acceptance_criteria: "ac",
     cwd: null,
     baseline_branch: null,
+    repository_id: null,
     verification_command: null,
     status: "running",
     termination_reason: null,

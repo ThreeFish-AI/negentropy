@@ -1349,6 +1349,8 @@ export interface KnowledgeDocument {
   file_size: number;
   status: string;
   created_at: string | null;
+  /** 最终修改时间（后端 TimestampMixin 经 onupdate 自动维护）。 */
+  updated_at: string | null;
   created_by: string | null;
   created_by_name?: string | null;
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;

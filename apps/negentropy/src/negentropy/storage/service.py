@@ -353,6 +353,7 @@ class DocumentStorageService:
         app_name: str | None = None,
         limit: int = 50,
         offset: int = 0,
+        order_by: str = "created_at",
     ) -> tuple[list[KnowledgeDocument], int]:
         """List documents with optional filtering.
 
@@ -361,6 +362,10 @@ class DocumentStorageService:
             app_name: Optional app name filter
             limit: Maximum number of results
             offset: Offset for pagination
+            order_by: Sort column, descending. Whitelisted to "created_at"
+                (default) or "updated_at"; unknown values fall back to
+                "created_at". A secondary ``id`` ordering guarantees stable
+                pagination when timestamps tie.
 
         Returns:
             Tuple of (list of documents, total count)
@@ -378,11 +383,16 @@ class DocumentStorageService:
             count_result = await db.execute(count_stmt)
             total = count_result.scalar() or 0
 
-            # Data query
+            # Data query —— 白名单映射排序列，杜绝任意列注入；附加 id 次序确保
+            # 时间戳相等时分页稳定（避免跨页错漏）。
+            sort_col = {
+                "created_at": KnowledgeDocument.created_at,
+                "updated_at": KnowledgeDocument.updated_at,
+            }.get(order_by, KnowledgeDocument.created_at)
             stmt = (
                 select(KnowledgeDocument)
                 .where(*conditions)
-                .order_by(KnowledgeDocument.created_at.desc())
+                .order_by(sort_col.desc(), KnowledgeDocument.id.desc())
                 .limit(limit)
                 .offset(offset)
             )
