@@ -81,6 +81,7 @@ async def list_documents(
         app_name=resolved_app,
         limit=limit,
         offset=offset,
+        order_by="updated_at",
     )
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
@@ -124,6 +125,7 @@ async def list_all_documents(
         app_name=resolved_app,
         limit=limit,
         offset=offset,
+        order_by="updated_at",
     )
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
