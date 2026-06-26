@@ -40,6 +40,8 @@ export interface RoutineDTO {
   cwd: string | null;
   /** 隔离 worktree 的基线分支 + PR base（如 origin/feature/1.x.x）。 */
   baseline_branch: string | null;
+  /** 可选关联的已注册 Repository（单一事实源指针）；非空时由后端派生 cwd/baseline_branch。 */
+  repository_id: string | null;
   verification_command: string | null;
   status: RoutineStatus;
   termination_reason: string | null;
@@ -264,6 +266,8 @@ export interface RoutineCreatePayload {
   acceptance_criteria: string;
   cwd?: string | null;
   baseline_branch?: string | null;
+  /** 关联已注册 Repository（单一事实源指针）；选定后后端派生 cwd/baseline，二者可留空。 */
+  repository_id?: string | null;
   verification_command?: string | null;
   max_iterations?: number | null;
   max_cost_usd?: number | null;

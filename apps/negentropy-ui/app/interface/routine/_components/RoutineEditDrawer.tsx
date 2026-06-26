@@ -17,6 +17,8 @@ import type {
   RoutineTemplateItem,
   RoutineUpdatePayload,
 } from "@/features/routine";
+import { fetchRepositories } from "@/features/repositories";
+import type { RepositoryDTO } from "@/features/repositories";
 
 import { canRestart, CONTROL_LABEL, controlsFor, type ControlAction } from "./routine-controls";
 import { phaseClass, phaseLabel, routineStatusClass } from "./status-style";
@@ -95,6 +97,8 @@ interface FormState {
   acceptance_criteria: string;
   cwd: string;
   baseline_branch: string;
+  /** 关联的已注册 Repository id（空串 = 未关联 = 手填模式）。 */
+  repository_id: string;
   verification_command: string;
   max_iterations: string;
   max_cost_usd: string;
@@ -125,6 +129,7 @@ const DEFAULTS: FormState = {
   acceptance_criteria: "",
   cwd: "",
   baseline_branch: "",
+  repository_id: "",
   verification_command: "",
   max_iterations: "20",
   max_cost_usd: "5",
@@ -218,6 +223,7 @@ function buildInitial(mode: DrawerMode): FormState {
         acceptance_criteria: r.acceptance_criteria,
         cwd: r.cwd ?? "",
         baseline_branch: r.baseline_branch ?? "",
+        repository_id: r.repository_id ?? "",
         verification_command: r.verification_command ?? "",
         max_iterations: r.max_iterations != null ? String(r.max_iterations) : "",
         max_cost_usd: r.max_cost_usd != null ? String(r.max_cost_usd) : "",
@@ -344,6 +350,34 @@ export function RoutineEditDrawer({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const confirmingRef = useRef(false); // 弃改确认进行中 → 抑制重复关闭
 
+  // ── Repository 关联选择（仅 routine entity）——单一事实源：选定后仅提交 repository_id，
+  //    cwd/baseline 由后端派生（提交 null）；未选则回退手填 cwd/baseline。──
+  const [repos, setRepos] = useState<RepositoryDTO[]>([]);
+  useEffect(() => {
+    if (entity !== "routine") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const list = await fetchRepositories();
+        if (!cancelled) setRepos(list);
+      } catch {
+        /* 静默：下拉退化为空，仍可手填 cwd/baseline */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entity]);
+  const selectedRepo = useMemo(
+    () => repos.find((r) => r.id === form.repository_id) ?? null,
+    [repos, form.repository_id],
+  );
+  const repoLinked = entity === "routine" && !!form.repository_id;
+  const onPickRepository = (repoId: string) => {
+    setForm((f) => ({ ...f, repository_id: repoId }));
+    setFieldErrors((e) => ({ ...e, cwd: "", baseline_branch: "" }));
+  };
+
   const isDirty = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(baseline),
     [form, baseline],
@@ -424,8 +458,10 @@ export function RoutineEditDrawer({
       if (!form.title.trim()) errs.title = "Name is required";
       if (!form.goal.trim()) errs.goal = "Goal is required";
       if (!form.acceptance_criteria.trim()) errs.acceptance_criteria = "Acceptance criteria is required";
-      if (requireWorktree && !form.cwd.trim()) errs.cwd = "Project Path is required";
-      if (requireWorktree && !form.baseline_branch.trim()) errs.baseline_branch = "Baseline Branch is required";
+      // 关联 Repository 时由后端派生 cwd/baseline，跳过手填必填校验；未关联则照旧。
+      if (requireWorktree && !repoLinked && !form.cwd.trim()) errs.cwd = "Project Path is required";
+      if (requireWorktree && !repoLinked && !form.baseline_branch.trim())
+        errs.baseline_branch = "Baseline Branch is required";
     } else {
       // Running 状态：安全字段的基本验证
       if (!form.title.trim()) errs.title = "Name is required";
@@ -467,7 +503,15 @@ export function RoutineEditDrawer({
             : {};
       config = { ...inherited };
       applyCCConfig(config, form);
-      extra = { cwd: form.cwd.trim() || null, baseline_branch: form.baseline_branch.trim() || null };
+      // 单一事实源：关联 Repository 时仅提交 repository_id（cwd/baseline 由后端派生，提交 null）；
+      // 未关联则提交手填 cwd/baseline、清空 repository_id。
+      extra = form.repository_id
+        ? { repository_id: form.repository_id, cwd: null, baseline_branch: null }
+        : {
+            repository_id: null,
+            cwd: form.cwd.trim() || null,
+            baseline_branch: form.baseline_branch.trim() || null,
+          };
     } else {
       // 模板元数据收敛进 config（与列表 API 的读取契约对齐）
       const inherited =
@@ -801,32 +845,82 @@ export function RoutineEditDrawer({
             {/* ── Execution Context（仅 routine entity）── */}
             {entity === "routine" && (
               <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelCls}>Project Path{requireWorktree && !isFieldDisabled("cwd") && reqMark}</label>
-                    <input
-                      type="text"
-                      value={form.cwd}
-                      onChange={(e) => update("cwd", e.target.value)}
-                      disabled={isFieldDisabled("cwd")}
-                      placeholder="/path/to/repo"
-                      className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
-                    />
-                    {renderFieldError("cwd")}
-                  </div>
-                  <div>
-                    <label className={labelCls}>Baseline Branch{requireWorktree && !isFieldDisabled("baseline_branch") && reqMark}</label>
-                    <input
-                      type="text"
-                      value={form.baseline_branch}
-                      onChange={(e) => update("baseline_branch", e.target.value)}
-                      disabled={isFieldDisabled("baseline_branch")}
-                      placeholder="e.g. origin/feature/1.x.x"
-                      className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
-                    />
-                    {renderFieldError("baseline_branch")}
-                  </div>
+                <div>
+                  <label className={labelCls}>Repository</label>
+                  <select
+                    value={form.repository_id}
+                    onChange={(e) => onPickRepository(e.target.value)}
+                    disabled={isFieldDisabled("cwd")}
+                    className={inputCls}
+                  >
+                    <option value="">— Manual (enter path &amp; branch below) —</option>
+                    {repos.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.display_name || r.name}
+                      </option>
+                    ))}
+                    {repoLinked && !selectedRepo && (
+                      <option value={form.repository_id}>(repository unavailable — switch to Manual)</option>
+                    )}
+                  </select>
+                  <p className="mt-1 text-caption text-text-secondary">
+                    选择已注册的 Repository 以自动派生 Project Path 与 Baseline Branch；或选 Manual 手动填写。
+                  </p>
                 </div>
+
+                {repoLinked ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Project Path</label>
+                      <input
+                        type="text"
+                        value={selectedRepo?.local_path ?? ""}
+                        disabled
+                        readOnly
+                        placeholder="（仓库信息加载中或不可用）"
+                        className={cn(inputCls, "opacity-70")}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Baseline Branch</label>
+                      <input
+                        type="text"
+                        value={selectedRepo?.baseline_branch ?? ""}
+                        disabled
+                        readOnly
+                        placeholder="（仓库信息加载中或不可用）"
+                        className={cn(inputCls, "opacity-70")}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Project Path{requireWorktree && !isFieldDisabled("cwd") && reqMark}</label>
+                      <input
+                        type="text"
+                        value={form.cwd}
+                        onChange={(e) => update("cwd", e.target.value)}
+                        disabled={isFieldDisabled("cwd")}
+                        placeholder="/path/to/repo"
+                        className={cn(inputCls, fieldErrors.cwd && "border-red-400")}
+                      />
+                      {renderFieldError("cwd")}
+                    </div>
+                    <div>
+                      <label className={labelCls}>Baseline Branch{requireWorktree && !isFieldDisabled("baseline_branch") && reqMark}</label>
+                      <input
+                        type="text"
+                        value={form.baseline_branch}
+                        onChange={(e) => update("baseline_branch", e.target.value)}
+                        disabled={isFieldDisabled("baseline_branch")}
+                        placeholder="e.g. origin/feature/1.x.x"
+                        className={cn(inputCls, fieldErrors.baseline_branch && "border-red-400")}
+                      />
+                      {renderFieldError("baseline_branch")}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className={labelCls}>Additional Dirs</label>
                   <input

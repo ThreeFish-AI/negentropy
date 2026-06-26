@@ -35,11 +35,13 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.logging import get_logger
 from negentropy.models.mcp import McpServer, McpTool
+from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from . import decision as decision_mod
@@ -590,6 +592,8 @@ class RoutineOrchestrator:
             if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
                 await self._reset_evaluating_to_executed(routine_id, iteration_id)
                 return
+            # 注入有效仓库配置（repository_id → cwd），使 gate cwd 快照（worktree_path 回退）正确。
+            await self._hydrate_effective_repo(db, routine)
             # PLAN 相位仅产出方案、未落盘任何实现，运行验证门控（如 uv run pytest）既无意义、
             # 又徒增 gate 超时延迟，且把「无实现自然失败」的门控输出喂给 Judge 会错误压低方案评分。
             # 故 PLAN 相位跳过门控（置空 verification_command），Judge 纯评估方案质量；
@@ -629,12 +633,16 @@ class RoutineOrchestrator:
             routine = await db.get(Routine, routine_id, with_for_update=True)
             latest = await db.get(RoutineIteration, iteration_id)
             if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
+                # 注：此分支不读 cwd/baseline，无需 hydrate。
                 # 评估期间状态被改写（pause/cancel/reaped）→ 丢弃本次结果；仍 evaluating 则回退 executed
                 if latest is not None and latest.status == "evaluating":
                     latest.status = "executed"
                     latest.lease_expires_at = None
                     await db.commit()
                 return
+
+            # 注入有效仓库配置（repository_id → baseline），早于下方 is_worktree_routine 判定。
+            await self._hydrate_effective_repo(db, routine)
 
             if not result.ok:
                 # 评估失败：记录 + 计数；超阈值终止，否则回退 executed 供下轮重评（保留 eval_attempts）
@@ -806,6 +814,9 @@ class RoutineOrchestrator:
             for routine in routines:
                 if slots <= 0:
                     break
+                # 注入有效仓库配置（repository_id 指针 → cwd/baseline）——必须早于下方 baseline
+                # 守卫、is_phased/is_worktree 判定与 _ensure_workspace。
+                await self._hydrate_effective_repo(db, routine)
                 # 已有非终态迭代 → 跳过（每 routine 单在途）
                 if await self._has_active_iteration(db, routine.id):
                     continue
@@ -930,6 +941,8 @@ class RoutineOrchestrator:
                 routine = await db.get(Routine, it.routine_id)
                 if routine is None:
                     continue
+                # 注入有效仓库配置（repository_id → cwd/baseline），早于 _ensure_workspace / _build_config。
+                await self._hydrate_effective_repo(db, routine)
                 # 确保隔离 worktree 就绪（待审批迭代在此刻才创建工作区）。失败 → 终止 routine +
                 # 闭合该迭代为 aborted，跳过 launch。
                 if not await self._ensure_workspace(routine):
@@ -1321,6 +1334,27 @@ class RoutineOrchestrator:
                 error=str(exc),
             )
             return None
+
+    async def _hydrate_effective_repo(self, db: AsyncSession, routine: Routine) -> None:
+        """把关联 Repository 的 local_path/baseline_branch 注入内存 routine（单一事实源）。
+
+        Routine 仅持 ``repository_id`` 指针、不存 cwd/baseline 副本；本方法在 dispatch / evaluate
+        装载 routine 后、**任何** ``is_worktree_routine`` / baseline 判定与 ``ensure_worktree`` 之前
+        调用，用 ``set_committed_value`` 把有效 cwd/baseline 写入内存对象——该 API 将值标记为
+        「已从 DB 加载」，**不进 session.dirty**，故同事务对 ``worktree_path``/``work_branch``/评分等
+        的 commit 不会把派生值持久化进 ``routines`` 行（DB 中 cwd/baseline_branch 保持原值，避免副本）。
+
+        ``repository_id`` 为空 → no-op（沿用手填 cwd/baseline_branch）；Repository 已删（FK SET NULL
+        竞态）→ 回退手填值，不抛。
+        """
+        if routine.repository_id is None:
+            return
+        repository = await db.get(Repository, routine.repository_id)
+        if repository is None:
+            return
+        eff_cwd, eff_baseline = workspace.resolve_effective_repo(routine, repository)
+        set_committed_value(routine, "cwd", eff_cwd)
+        set_committed_value(routine, "baseline_branch", eff_baseline)
 
     async def _ensure_workspace(self, routine: Routine) -> bool:
         """worktree routine：确保隔离 worktree 就绪并把 ``worktree_path``/``work_branch`` 写回

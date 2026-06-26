@@ -64,6 +64,13 @@ class _RoutineLike(Protocol):
     worktree_path: str | None
 
 
+class _RepositoryLike(Protocol):
+    """已注册 Repository 的最小契约：派生隔离 worktree 所需的本地根 + 基线分支。"""
+
+    local_path: str
+    baseline_branch: str
+
+
 @dataclass(frozen=True, slots=True)
 class WorkspaceInfo:
     """隔离工作区句柄：worktree 路径（= CC 实际 cwd）+ 工作分支名。"""
@@ -233,6 +240,70 @@ async def _try_fetch(project_path: str, baseline_branch: str, settings: RoutineS
     )
     if rc != 0:
         logger.info("routine_worktree_fetch_skipped", baseline=baseline_branch, detail=err[:200])
+
+
+# ---------------------------------------------------------------------------
+# 有效仓库配置解析（单一事实源：Routine 持 repository_id 指针，不存副本）
+# ---------------------------------------------------------------------------
+
+
+def resolve_effective_repo(routine: _RoutineLike, repository: _RepositoryLike | None) -> tuple[str | None, str | None]:
+    """解析 routine 的「有效仓库配置」(cwd, baseline_branch)（纯函数，无 IO）。
+
+    单一事实源：Routine 仅持有 ``repository_id`` 指针（FK），不复制 Repository 的
+    local_path/baseline_branch 副本。调用方负责在 ``repository_id`` 非空时预取 Repository
+    并传入；本函数据此选取权威值：
+
+    - ``repository`` 非空 → ``(repository.local_path, repository.baseline_branch)``（指针优先）。
+    - ``repository`` 为空（未关联 / 已删 / 竞态）→ 回退手填 ``(routine.cwd, routine.baseline_branch)``。
+
+    对 ``repository=None`` 安全回退（不抛），故 FK ``SET NULL`` 后仍优雅降级到手填配置。
+    """
+    if repository is not None:
+        return repository.local_path, repository.baseline_branch
+    return routine.cwd, routine.baseline_branch
+
+
+async def list_branches(
+    project_path: str | None,
+    settings: RoutineSettings,
+    *,
+    fetch: bool | None = None,
+) -> dict[str, list[str] | str]:
+    """枚举本地仓库的本地分支 + 远端跟踪分支（供前端基线分支下拉）。
+
+    校验 ``project_path`` 为已存在的 git 工作树（非法抛 ``WorkspaceError`` → API 转 422）。
+    best-effort ``git fetch <remote>``（默认随 ``settings.git_fetch_before_worktree``，失败不阻断）
+    后以 ``branch --format`` 枚举：
+
+    - ``local``：``git -C <p> branch --format=%(refname:short)``。
+    - ``remote``：``git -C <p> branch -r --format=%(refname:short)``（剔除 ``<remote>/HEAD`` 指针）。
+
+    Returns:
+        ``{"local": [...], "remote": [...], "default_remote": settings.git_remote}``。
+    """
+    if not project_path:
+        raise WorkspaceError("分支枚举需提供本地仓库根路径（local_path）")
+    if not os.path.isdir(project_path):
+        raise WorkspaceError(f"本地仓库路径不存在：'{project_path}'")
+
+    timeout = float(settings.git_timeout_seconds)
+    rc, out, _ = await _run_git(["-C", project_path, "rev-parse", "--is-inside-work-tree"], timeout=timeout)
+    if rc != 0 or out.strip() != "true":
+        raise WorkspaceError(f"路径不是 git 工作树：'{project_path}'")
+
+    do_fetch = settings.git_fetch_before_worktree if fetch is None else fetch
+    if do_fetch:
+        # best-effort 全量 fetch（失败不阻断；不指定 base 以拉全部远端分支供下拉）。
+        await _run_git(["-C", project_path, "fetch", settings.git_remote], timeout=timeout)
+
+    rc, out, _ = await _run_git(["-C", project_path, "branch", "--format=%(refname:short)"], timeout=timeout)
+    local = [ln.strip() for ln in out.splitlines() if ln.strip()] if rc == 0 else []
+
+    rc, out, _ = await _run_git(["-C", project_path, "branch", "-r", "--format=%(refname:short)"], timeout=timeout)
+    remote = [ln.strip() for ln in out.splitlines() if ln.strip() and "/HEAD" not in ln] if rc == 0 else []
+
+    return {"local": local, "remote": remote, "default_remote": settings.git_remote}
 
 
 # ---------------------------------------------------------------------------
@@ -507,6 +578,8 @@ __all__ = [
     "WorkspaceError",
     "WorkspaceInfo",
     "validate_repo",
+    "list_branches",
+    "resolve_effective_repo",
     "ensure_worktree",
     "remove_worktree",
     "normalize_base_branch",

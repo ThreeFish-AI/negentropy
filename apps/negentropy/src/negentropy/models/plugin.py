@@ -14,4 +14,5 @@ from .builtin_tool import BuiltinTool, ensure_dict  # noqa: F401
 from .mcp import McpResourceTemplate, McpServer, McpTool  # noqa: F401
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset  # noqa: F401
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility  # noqa: F401
+from .repository import Repository  # noqa: F401
 from .skill import Skill, SkillSchedule, SkillVersion  # noqa: F401

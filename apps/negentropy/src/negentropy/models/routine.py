@@ -42,7 +42,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin
+from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, fk
 
 
 class Routine(Base, UUIDMixin, TimestampMixin):
@@ -68,6 +68,10 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     key: Mapped[str] = mapped_column(String(192), unique=True, nullable=False)
     owner_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     agent_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    # 可选关联的已注册 Repository（单一事实源指针）：非空时由 worktree.resolve_effective_repo
+    # 派生有效 cwd(=local_path)/baseline_branch；为空则回退手填的 cwd/baseline_branch。
+    # ondelete=SET NULL：删除 Repository 仅解除关联，不级联删 Routine。
+    repository_id: Mapped[UUID | None] = mapped_column(fk("repositories", ondelete="SET NULL"), nullable=True)
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -166,6 +170,7 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         Index("ix_routines_status", "status"),
         Index("ix_routines_owner", "owner_id"),
         Index("ix_routines_is_template", "is_template"),
+        Index("ix_routines_repository_id", "repository_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
