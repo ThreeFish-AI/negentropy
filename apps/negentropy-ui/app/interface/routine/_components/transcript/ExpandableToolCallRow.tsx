@@ -47,14 +47,7 @@ function computeHasDetail(detail: ToolCallDetail): boolean {
  * 行布局：``[22px 图标] [displayName] [灰显 summary truncate] [状态/error] [chevron]``。
  * 展开态：行底角拉直 + 明细框 border-t-0，二者无缝衔接。
  */
-export function ExpandableToolCallRow({
-  item,
-  spacedBottom,
-}: {
-  item: Extract<TranscriptItem, { kind: "tool" }>;
-  /** 该工具行是一段连续工具行的末行（紧邻 assistant 文本前）→ 加大底距。 */
-  spacedBottom?: boolean;
-}) {
+export function ExpandableToolCallRow({ item }: { item: Extract<TranscriptItem, { kind: "tool" }> }) {
   const detail = useMemo(
     () => deriveToolCallDetail({ toolName: item.toolName, input: item.input, output: item.output, isError: item.isError }),
     [item.toolName, item.input, item.output, item.isError],
@@ -66,7 +59,7 @@ export function ExpandableToolCallRow({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className={cn("flex flex-col", spacedBottom ? "mb-4" : "mb-1")}>
+    <div className="flex flex-col">
       <button
         type="button"
         onClick={() => hasDetail && setOpen((v) => !v)}
