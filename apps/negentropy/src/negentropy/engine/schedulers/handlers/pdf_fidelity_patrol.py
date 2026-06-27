@@ -389,8 +389,7 @@ async def _stage_source_pdf(*, doc_id: str, uri: str) -> tuple[str, str]:
 # ---------------------------------------------------------------------------
 
 
-async def _create_and_start_patrol_routine(
-    db,
+def _build_patrol_routine(
     *,
     repo_id: uuid.UUID,
     baseline_branch: str,
@@ -399,7 +398,13 @@ async def _create_and_start_patrol_routine(
     source_read_dir: str,
     regression_sample: list[str],
     source_task_key: str,
-) -> uuid.UUID:
+) -> Routine:
+    """构造巡检 Routine ORM 对象（纯函数，无 DB —— 可单测验证字段装配无 AttributeError）。
+
+    字段口径与 ``routine_api.create_routine`` 对齐。注意 ``no_progress_patience`` 是
+    per-Routine DB 列（默认 3），**非** ``RoutineSettings`` 属性——勿读 settings（曾致
+    ``'RoutineSettings' object has no attribute 'no_progress_patience'`` 全量执行异常）。
+    """
     from negentropy.engine.routine import phase as phase_mod
     from negentropy.engine.routine.patrol_prompt import (
         build_acceptance_criteria,
@@ -410,7 +415,7 @@ async def _create_and_start_patrol_routine(
     doc_id = str(doc["id"])
     doc_title = doc["original_filename"]
     short = uuid.uuid4().hex[:8]
-    routine = Routine(
+    return Routine(
         key=f"{PATROL_KEY_PREFIX}/{doc_id}/{short}",
         title=f"PDF 高保真巡检：{doc_title}",
         display_name=f"PDF Fidelity Patrol · {doc_title}",
@@ -434,7 +439,7 @@ async def _create_and_start_patrol_routine(
         max_cost_usd=settings.routine.default_max_cost_usd,
         deadline_at=None,
         success_score_threshold=100,
-        no_progress_patience=settings.routine.no_progress_patience,
+        no_progress_patience=3,  # per-Routine DB 列默认值（非 RoutineSettings 属性）
         approval_mode="auto",
         config=build_routine_config(
             doc_id=doc_id,
@@ -449,6 +454,32 @@ async def _create_and_start_patrol_routine(
         owner_id="system",
         agent_id=None,
         is_template=False,
+    )
+
+
+async def _create_and_start_patrol_routine(
+    db,
+    *,
+    repo_id: uuid.UUID,
+    baseline_branch: str,
+    doc: dict[str, Any],
+    source_pdf_path: str,
+    source_read_dir: str,
+    regression_sample: list[str],
+    source_task_key: str,
+) -> uuid.UUID:
+    """构造（_build_patrol_routine）+ 落库 + flush，返回 routine id。
+
+    DB 写集中于此；构造逻辑（字段装配）抽到纯函数 _build_patrol_routine 便于无 DB 单测。
+    """
+    routine = _build_patrol_routine(
+        repo_id=repo_id,
+        baseline_branch=baseline_branch,
+        doc=doc,
+        source_pdf_path=source_pdf_path,
+        source_read_dir=source_read_dir,
+        regression_sample=regression_sample,
+        source_task_key=source_task_key,
     )
     db.add(routine)
     await db.flush()

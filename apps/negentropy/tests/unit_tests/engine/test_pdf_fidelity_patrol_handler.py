@@ -165,3 +165,43 @@ def test_handler_disabled_gates_return_reason(monkeypatch):
     r2 = asyncio.run(patrol.pdf_fidelity_patrol_handler(task))
     assert r2.status == "ok"
     assert r2.metrics["reason"] == "patrol_disabled"
+
+
+# ---------------------------------------------------------------------------
+# _build_patrol_routine：构造巡检 Routine（回归 no_progress_patience 误读 settings 致全量异常）
+# ---------------------------------------------------------------------------
+
+
+def test_build_patrol_routine_constructs_without_attribute_error():
+    """回归：_build_patrol_routine 用真实 settings 装配字段，不得抛 AttributeError。
+
+    历史 bug：``no_progress_patience=settings.routine.no_progress_patience`` —— 该属性
+    不在 RoutineSettings（是 per-Routine DB 列），致 handler 全量执行异常、Routine 从不创建。
+    """
+    import uuid as _uuid
+
+    repo_id = _uuid.uuid4()
+    doc = {"id": _uuid.uuid4(), "original_filename": "report.pdf"}
+    routine = patrol._build_patrol_routine(
+        repo_id=repo_id,
+        baseline_branch="origin/feature/1.x.x",
+        doc=doc,
+        source_pdf_path="/tmp/patrol/source.pdf",
+        source_read_dir="/tmp/patrol",
+        regression_sample=["s1"],
+        source_task_key="pdf_fidelity_patrol",
+    )
+    # 关键字段装配正确（与 routine_api.create_routine 口径对齐）
+    assert routine.no_progress_patience == 3  # per-Routine 默认，非 settings
+    assert routine.success_score_threshold == 100
+    assert routine.status == "running"
+    assert routine.repository_id == repo_id
+    assert routine.baseline_branch == "origin/feature/1.x.x"
+    assert routine.owner_id == "system"
+    assert routine.is_template is False
+    assert routine.key.startswith("pdf-fidelity-patrol/")
+    # config 装配（patrol 标记 + source_task_key 回链 + system_prompt）
+    assert routine.config["patrol"] is True
+    assert routine.config["source_task_key"] == "pdf_fidelity_patrol"
+    assert "system_prompt" in routine.config
+    assert routine.config["read_dirs"] == ["/tmp/patrol"]
