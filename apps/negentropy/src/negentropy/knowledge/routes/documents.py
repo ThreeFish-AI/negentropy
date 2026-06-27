@@ -58,6 +58,21 @@ router = APIRouter()
 # 凭 If-None-Match 廉价 304 校验。不使用 `immutable`——同一 document_id 可被重传。
 DOWNLOAD_CACHE_CONTROL = "private, max-age=300, must-revalidate"
 
+# 是否对原文预览/下载启用 HTTP Range（206）。
+#
+# 现状：库内 PDF 均为非线性化（非 Fast Web View）。一旦声明 `Accept-Ranges`，浏览器
+# 原生 PDF 查看器会切到「范围请求」模式；对非线性化文档它无法只靠前缀渲染首页，转而
+# 先发一次全量 GET（看到 Accept-Ranges 后中止）再用一连串范围请求分块取回整文，每块都
+# 多走一遍 浏览器→BFF→后端→PG 往返 —— 首屏反而比「单次顺序下载」更慢（实测回归）。
+#
+# 故默认关闭 Range：首屏回到单次全量下载（与改动前一致），而「二次打开快」由条件缓存
+# （ETag/304/Cache-Control）保证，与 Range 相互独立、不受影响。
+#
+# 注：Range 决策机制（`_http_range`）与按需切片读取（`download_blob_range_by_uri`）保留
+# 但暂不触发；待后续「入库线性化」落地后，可改为按文档（已线性化才开）开启，实现真正的
+# 渐进式首屏。
+PREVIEW_RANGE_ENABLED = False
+
 
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
 async def list_documents(
@@ -631,6 +646,7 @@ async def _download_document_impl(
         if_range=request.headers.get("if-range"),
         if_none_match=request.headers.get("if-none-match"),
         if_modified_since=request.headers.get("if-modified-since"),
+        enable_range=PREVIEW_RANGE_ENABLED,
     )
     headers = dict(decision.headers)
     headers["Content-Disposition"] = content_disposition
