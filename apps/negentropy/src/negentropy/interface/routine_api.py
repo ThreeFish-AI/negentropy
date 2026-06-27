@@ -475,6 +475,9 @@ async def list_routines(
     owner_id: str | None = Query(None),
     q: str | None = Query(None, description="按 key / title 模糊搜索"),
     is_template: bool | None = Query(None, description="过滤模板行"),
+    source_task_key: str | None = Query(
+        None, description="按 config.source_task_key 过滤（如 pdf_fidelity_patrol 派生的巡检 Routine）"
+    ),
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串"),
 ) -> dict[str, Any]:
@@ -490,6 +493,8 @@ async def list_routines(
         if q:
             like = f"%{q}%"
             stmt = stmt.where((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
+        if source_task_key:
+            stmt = stmt.where(Routine.config.op("->>")("source_task_key") == source_task_key)
         if cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)

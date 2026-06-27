@@ -35,6 +35,21 @@ const STATUS_STYLES: Record<ExecutionStatus, string> = {
   timeout: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 };
 
+/** 从 HandlerResult.metrics 提取派生 Routine 深链（如巡检 routine_id/doc_id）。 */
+function SpawnedRoutineLink({ metrics }: { metrics: Record<string, unknown> | undefined }) {
+  const rid = typeof metrics?.routine_id === "string" ? metrics.routine_id : null;
+  if (!rid) return null;
+  const docId = typeof metrics?.doc_id === "string" ? metrics.doc_id : null;
+  return (
+    <a
+      href={`/interface/routine?sel=${encodeURIComponent(rid)}`}
+      className="inline-flex items-center gap-1 text-micro text-blue-600 dark:text-blue-400 hover:underline w-fit"
+    >
+      派生 Routine →{docId ? `（doc ${docId.slice(0, 8)}）` : ""}
+    </a>
+  );
+}
+
 function formatDuration(ms: number | null): string {
   if (ms === null) return "—";
   if (ms < 1000) return `${ms}ms`;
@@ -184,11 +199,14 @@ export function SchedulerExecutionPanel({
                     {formatDuration(e.duration_ms)}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{e.fire_reason}</td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-[200px] truncate">
+                  <td className="px-3 py-2 text-muted-foreground max-w-[240px]">
                     {e.error ? (
-                      <span className="text-red-600 dark:text-red-400">{e.error}</span>
+                      <span className="text-red-600 dark:text-red-400 truncate block">{e.error}</span>
                     ) : (
-                      e.output_summary ?? "—"
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="truncate block">{e.output_summary ?? "—"}</span>
+                        <SpawnedRoutineLink metrics={e.metrics} />
+                      </div>
                     )}
                   </td>
                 </tr>

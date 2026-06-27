@@ -76,7 +76,7 @@ async def pdf_fidelity_patrol_handler(task: ScheduledTask) -> HandlerResult:
         return HandlerResult(status="ok", output_summary="patrol disabled (settings.routine.patrol_enabled)")
 
     try:
-        return await _run_patrol_tick()
+        return await _run_patrol_tick(task_key=task.key)
     except Exception as exc:  # noqa: BLE001 — 心跳不因单 tick 异常中断
         logger.warning("pdf_fidelity_patrol_tick_failed", error=str(exc))
         return HandlerResult(status="failed", error=str(exc))
@@ -87,7 +87,7 @@ async def pdf_fidelity_patrol_handler(task: ScheduledTask) -> HandlerResult:
 # ---------------------------------------------------------------------------
 
 
-async def _run_patrol_tick() -> HandlerResult:
+async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
     baseline_branch = settings.routine.patrol_baseline_branch
 
     async with AsyncSessionLocal() as db:
@@ -146,6 +146,7 @@ async def _run_patrol_tick() -> HandlerResult:
             source_pdf_path=source_pdf_path,
             source_read_dir=source_read_dir,
             regression_sample=regression_sample,
+            source_task_key=task_key,
         )
         await db.commit()
 
@@ -381,6 +382,7 @@ async def _create_and_start_patrol_routine(
     source_pdf_path: str,
     source_read_dir: str,
     regression_sample: list[str],
+    source_task_key: str,
 ) -> uuid.UUID:
     from negentropy.engine.routine import phase as phase_mod
     from negentropy.engine.routine.patrol_prompt import (
@@ -424,6 +426,7 @@ async def _create_and_start_patrol_routine(
             candidate_md_path=CANDIDATE_MD_FILENAME,
             source_read_dir=source_read_dir,
             regression_sample=regression_sample,
+            extra={"source_task_key": source_task_key},
         ),
         current_phase=phase_mod.initial_phase({}),  # 扁平工作流：IMPLEMENT 起；worktree 仍开 FINALIZE
         reflections={},

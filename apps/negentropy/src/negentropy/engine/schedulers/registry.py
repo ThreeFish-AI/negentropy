@@ -446,6 +446,7 @@ class ScheduledTaskRegistry:
                 exec_row.memory_id = result.memory_id
                 exec_row.pipeline_run_id = result.pipeline_run_id
                 exec_row.thread_id = result.thread_id
+                exec_row.metrics = result.metrics or {}
 
             task = await db.get(ScheduledTask, task_id)
             if task is not None:
@@ -620,6 +621,7 @@ def _serialize_execution(task: ScheduledTask, exec_row: TaskExecution) -> dict[s
         "output_summary": exec_row.output_summary,
         "error": exec_row.error,
         "fire_reason": exec_row.fire_reason,
+        "metrics": exec_row.metrics or {},
     }
 
 

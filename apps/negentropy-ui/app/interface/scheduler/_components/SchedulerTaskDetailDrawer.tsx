@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
+import { fetchRoutines } from "@/features/routine";
+import type { RoutineDTO } from "@/features/routine";
 
 import { SchedulerHandlerSource } from "./SchedulerHandlerSource";
 
@@ -42,6 +44,85 @@ function Badge({
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${cls}`}>
       {children}
     </span>
+  );
+}
+
+const ROUTINE_STATUS_STYLE: Record<string, string> = {
+  running: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  succeeded: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  failed: "bg-red-500/10 text-red-700 dark:text-red-300",
+  paused: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  cancelled: "bg-muted text-text-secondary",
+  pending: "bg-muted/50 text-foreground",
+};
+
+/**
+ * 派生 Routine 面板：按 config.source_task_key 拉取本任务派生的 Routine（如巡检），
+ * 每行深链到 /interface/routine?sel=<id>（Routine 详情抽屉，含迭代/事件/评分/PR 全历史）。
+ */
+function SpawnedRoutinesSection({ taskKey }: { taskKey: string }) {
+  const [routines, setRoutines] = useState<RoutineDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    // 注：不在此同步 setLoading/setError（触发 react-hooks/set-state-in-effect）；
+    // 改由外层 <SpawnedRoutinesSection key={taskKey} /> 每任务重挂载、初始 loading=true。
+    fetchRoutines({ source_task_key: taskKey, is_template: false })
+      .then((res) => {
+        if (!cancelled) setRoutines(res.items);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskKey]);
+
+  return (
+    <section>
+      <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">
+        派生 Routine（Spawned Routines）
+      </h3>
+      <div className="rounded-lg border border-border p-2 space-y-0.5">
+        {loading ? (
+          <p className="text-micro text-muted-foreground px-1 py-1.5">加载中…</p>
+        ) : error ? (
+          <p className="text-micro text-red-600 dark:text-red-400 px-1 py-1.5">加载失败：{error}</p>
+        ) : routines.length === 0 ? (
+          <p className="text-micro text-muted-foreground px-1 py-1.5">
+            暂无派生 Routine（任务触发后将在此列出，点击直达 Routine 详情全历史）。
+          </p>
+        ) : (
+          routines.map((r) => (
+            <a
+              key={r.id}
+              href={`/interface/routine?sel=${encodeURIComponent(r.id)}`}
+              className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span
+                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold ${ROUTINE_STATUS_STYLE[r.status] ?? "bg-muted text-text-secondary"}`}
+                >
+                  {r.status}
+                </span>
+                <span className="text-foreground truncate">{r.display_name || r.title}</span>
+              </span>
+              <span className="flex items-center gap-2 text-micro text-muted-foreground shrink-0">
+                {r.best_score != null && <span>best {r.best_score}</span>}
+                {r.pr_url && <span className="text-blue-600 dark:text-blue-400">PR</span>}
+                <span>→</span>
+              </span>
+            </a>
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -224,6 +305,9 @@ export function SchedulerTaskDetailDrawer({
             <h3 className="text-micro uppercase tracking-overline text-muted-foreground mb-2">实现逻辑</h3>
             <SchedulerHandlerSource key={task.handler_kind} handlerKind={task.handler_kind} />
           </section>
+
+          {/* 派生 Routine：本任务派生的 Routine（如巡检），深链到 Routine 详情全历史 */}
+          <SpawnedRoutinesSection key={task.key} taskKey={task.key} />
         </div>
 
         {/* Footer */}
