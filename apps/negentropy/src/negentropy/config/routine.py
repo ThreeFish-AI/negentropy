@@ -278,6 +278,46 @@ class RoutineSettings(BaseSettings):
         description="注入 prompt 的记忆上下文最大 token 预算。",
     )
 
+    # --- pdf-fidelity-patrol（PDF→Markdown 高保真自拟合巡检 · Scheduler Task）---
+    # 巡检 = 一个绑定「negentropy」Repository 的 Routine（worktree + FINALIZE 开 PR + 0-100
+    # 评估闭环）；其 Claude Code 会话即 NegentropyEngine，依全局技能 pdf-fidelity-restore
+    # 反复调度三系部（Contemplation 视觉对比+评分 / Action 改 perceives+重转 / Internalization
+    # 记忆）。详见 engine/routine/patrol_prompt.py 与 handlers/pdf_fidelity_patrol.py。
+    patrol_enabled: bool = Field(
+        default=False,
+        description="启用 pdf-fidelity_patrol 巡检 handler（依赖 routine.enabled；二者皆开才生效）。",
+    )
+    patrol_repo_local_path: str | None = Field(
+        default=None,
+        description="巡检 worktree 的源仓库根（引擎宿主机上 negentropy 主仓 checkout 路径）；"
+        "为空时尝试从 negentropy 包路径向上推导。无法确定则 handler 返回 not configured，"
+        "需改用 Interface/Repositories 手工注册。",
+    )
+    patrol_repo_github_url: str = Field(
+        default="https://github.com/ThreeFish-AI/negentropy",
+        description="注册到 repositories 的 GitHub 地址（展示/溯源用，非克隆来源）。",
+    )
+    patrol_baseline_branch: str = Field(
+        default="origin/feature/1.x.x",
+        description="巡检 worktree 的基线分支 + PR base（如 origin/feature/1.x.x）。",
+    )
+    patrol_input_dir: str = Field(
+        default="/tmp/negentropy-patrol",
+        description="源 PDF 暂存与候选 Markdown 输出根目录（按 doc_id 建子目录）。",
+    )
+    patrol_max_iterations_per_doc: int = Field(
+        default=8,
+        ge=1,
+        le=50,
+        description="单文档巡检 Routine 的迭代硬上限（拟合到满分或触上限即终止）。",
+    )
+    patrol_regression_sample_size: int = Field(
+        default=6,
+        ge=1,
+        le=30,
+        description="非回归基线样本数（首次巡检时分层抽取的生产 PDF 文档数）。",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
