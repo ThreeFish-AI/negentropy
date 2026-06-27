@@ -52,10 +52,13 @@ export function RoutineConvergenceChart({
   iterations,
   threshold,
   bestScore,
+  bare = false,
 }: {
   iterations: RoutineIterationDTO[];
   threshold: number;
   bestScore: number | null;
+  /** 抽屉内渲染：省去 CollapsibleSection 标题/折叠壳，仅渲染内容（标题由抽屉头提供）。 */
+  bare?: boolean;
 }) {
   const data: Row[] = iterations.map((it) => ({
     seq: it.seq,
@@ -65,12 +68,10 @@ export function RoutineConvergenceChart({
   }));
   const hasScores = data.some((d) => d.score != null);
 
-  return (
-    <CollapsibleSection title="评分收敛趋势 · Convergence">
-      {!hasScores ? (
-        <p className="py-8 text-center text-sm text-text-secondary">尚无评分数据</p>
-      ) : (
-        <div className="h-56 min-h-[14rem] w-full" style={{ minWidth: 1 }}>
+  const body = !hasScores ? (
+    <p className="py-8 text-center text-sm text-text-secondary">尚无评分数据</p>
+  ) : (
+    <div className="h-56 min-h-[14rem] w-full" style={{ minWidth: 1 }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: -8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" strokeOpacity={0.2} />
@@ -112,7 +113,11 @@ export function RoutineConvergenceChart({
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-      )}
-    </CollapsibleSection>
+  );
+
+  return bare ? (
+    body
+  ) : (
+    <CollapsibleSection title="评分收敛趋势 · Convergence">{body}</CollapsibleSection>
   );
 }

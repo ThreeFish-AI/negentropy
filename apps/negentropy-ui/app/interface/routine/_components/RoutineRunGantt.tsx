@@ -63,7 +63,14 @@ function GanttTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
  * 评估阶段后端不记时间戳，故评估不占时长）；在途迭代延伸至 now（随时钟动）。
  * 颜色：error/timeout 红、在途蓝、否则按 verdict。
  */
-export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDTO[] }) {
+export function RoutineRunGantt({
+  iterations,
+  bare = false,
+}: {
+  iterations: RoutineIterationDTO[];
+  /** 抽屉内渲染：省去 CollapsibleSection 标题/折叠壳，仅渲染内容（标题由抽屉头提供）。 */
+  bare?: boolean;
+}) {
   const now = useClock();
 
   const rows = useMemo<GanttRow[]>(() => {
@@ -93,12 +100,10 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
     });
   }, [iterations, now]);
 
-  return (
-    <CollapsibleSection title="迭代时间线 · Run Timeline（执行区间）">
-      {rows.length === 0 ? (
-        <p className="py-8 text-center text-sm text-text-secondary">尚无可视化的执行区间</p>
-      ) : (
-        <div style={{ height: Math.max(120, rows.length * 30 + 36), minWidth: 1 }} className="w-full">
+  const body = rows.length === 0 ? (
+    <p className="py-8 text-center text-sm text-text-secondary">尚无可视化的执行区间</p>
+  ) : (
+    <div style={{ height: Math.max(120, rows.length * 30 + 36), minWidth: 1 }} className="w-full">
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }} barCategoryGap={6}>
               <XAxis
@@ -120,7 +125,11 @@ export function RoutineRunGantt({ iterations }: { iterations: RoutineIterationDT
             </BarChart>
           </ResponsiveContainer>
         </div>
-      )}
-    </CollapsibleSection>
+  );
+
+  return bare ? (
+    body
+  ) : (
+    <CollapsibleSection title="迭代时间线 · Run Timeline（执行区间）">{body}</CollapsibleSection>
   );
 }
