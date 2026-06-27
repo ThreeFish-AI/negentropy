@@ -254,6 +254,10 @@ def _is_plan_review_active(routine: Routine) -> bool:
     """
     if not (settings.routine.auto_answer_questions and settings.routine.plan_review_enabled):
         return False
+    # per-routine 关闭开关：config.plan_review_enabled=False 时跳过评审钩子（如 pdf-fidelity-patrol
+    # 这种指令式紧凑闭环任务，无需 Plan 审批门控；亦避免 headless deny→is_error 致交互报错）。
+    if not bool((routine.config or {}).get("plan_review_enabled", True)):
+        return False
     if settings.routine.plan_review_unified_loop:
         return phase_mod.is_worktree_routine(routine)
     return bool(
@@ -1450,8 +1454,13 @@ class RoutineOrchestrator:
         # CC settings.json 基底：源码只读 deny（read_dirs 非空时）。Plan Review 钩子按 unified/legacy 分别注入。
         settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
         plan_review_active = _is_plan_review_active(routine)
-        # 统一闭环：worktree routine + 开关开。主 config = implement 段；plan 段独立挂载（见文末）。
-        unified = bool(settings.routine.plan_review_unified_loop and phase_mod.is_worktree_routine(routine))
+        # 统一闭环：worktree + 全局开关开 + per-routine 未关闭。主 config = implement 段；plan 段独立挂载（见文末）。
+        # config.plan_review_enabled=False（如巡检）→ 不挂 plan 段、直接 implement 段，规避 headless deny→is_error。
+        unified = bool(
+            settings.routine.plan_review_unified_loop
+            and phase_mod.is_worktree_routine(routine)
+            and bool((routine.config or {}).get("plan_review_enabled", True))
+        )
         # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
         review_timeout = int(
             (routine.config or {}).get("plan_review_timeout_seconds") or settings.routine.plan_review_timeout_seconds

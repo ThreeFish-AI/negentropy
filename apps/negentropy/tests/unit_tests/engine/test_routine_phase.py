@@ -9,9 +9,24 @@ from negentropy.engine.routine.orchestrator import (
     RoutineOrchestrator,
     _build_readonly_settings,
     _build_scope_system_prompt,
+    _is_plan_review_active,
     _normalize_read_dirs,
 )
 from negentropy.engine.routine.prompt_builder import build_prompt
+
+
+def test_plan_review_per_routine_opt_out():
+    """config.plan_review_enabled=False 跳过 Plan Review（巡检等指令式任务用，规避 headless deny→is_error）。"""
+    # worktree routine（baseline_branch 非空）默认启用评审
+    r_on = SimpleNamespace(current_phase=phase_mod.PHASE_PLAN, baseline_branch="origin/feature/1.x.x", config={})
+    assert _is_plan_review_active(r_on) is True
+    # per-routine 关闭 → 跳过
+    r_off = SimpleNamespace(
+        current_phase=phase_mod.PHASE_PLAN,
+        baseline_branch="origin/feature/1.x.x",
+        config={"plan_review_enabled": False},
+    )
+    assert _is_plan_review_active(r_off) is False
 
 
 def test_initial_phase_phased_vs_flat():

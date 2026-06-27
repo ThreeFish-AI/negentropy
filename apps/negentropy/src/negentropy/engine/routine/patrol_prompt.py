@@ -156,6 +156,9 @@ def build_routine_config(
         "regression_sample": regression_sample,
         "system_prompt": PATROL_SYSTEM_PROMPT,
         "read_dirs": [source_read_dir],
+        # 巡检是指令式紧凑闭环（system_prompt 已是 directive），无需 Plan 审批门控；
+        # 且 headless 下 Plan Review 经 AskUserQuestion deny→is_error 致交互报错，故关闭。
+        "plan_review_enabled": False,
     }
     if extra:
         cfg.update(extra)
