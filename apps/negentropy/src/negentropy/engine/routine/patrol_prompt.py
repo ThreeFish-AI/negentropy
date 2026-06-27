@@ -156,6 +156,10 @@ def build_routine_config(
         "regression_sample": regression_sample,
         "system_prompt": PATROL_SYSTEM_PROMPT,
         "read_dirs": [source_read_dir],
+        # Plan Review 保持启用（CC ↔ NegentropyEngine 正常交流方案、恰当时 Approve），
+        # 但走 **clean stdin 应答**路径（reader 内 _plan_review_answer → 干净 tool_result），
+        # 而非 PreToolUse deny 钩子（deny→is_error 致 UI 报错、交互断联）。
+        "plan_review_via_hook": False,
     }
     if extra:
         cfg.update(extra)

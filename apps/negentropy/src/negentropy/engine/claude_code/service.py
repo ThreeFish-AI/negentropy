@@ -1044,6 +1044,33 @@ class ClaudeCodeService:
         return False
 
     @staticmethod
+    def _extract_plan_from_input(tool_input: dict) -> str:
+        """从 AskUserQuestion 的 tool_input 提取 CC 提交的方案全文（clean-path 评审用）。
+
+        CC 经 AskUserQuestion 提交方案时，方案写在 ``questions[].question``（与 ExitPlanMode 的
+        ``plan`` 字段不同）。本方法与 ``plan_review_hook._extract_plan_text`` 同构，供 clean-path
+        （非 deny 钩子）的 ``_plan_review_answer`` 取得方案文本，避免 PlanReviewer 收到空方案。
+        """
+        if not isinstance(tool_input, dict):
+            return ""
+        plan = tool_input.get("plan")
+        if isinstance(plan, str) and plan.strip():
+            return plan.strip()
+        qs = tool_input.get("questions")
+        parts: list[str] = []
+        if isinstance(qs, list):
+            for q in qs:
+                if isinstance(q, dict):
+                    t = q.get("question") or q.get("header") or ""
+                    if isinstance(t, str) and t.strip():
+                        parts.append(t.strip())
+                elif isinstance(q, str):
+                    parts.append(q)
+        if not parts:
+            return json.dumps(tool_input, ensure_ascii=False)
+        return "\n\n".join(parts)
+
+    @staticmethod
     def _build_stdin_user_prompt(prompt: str) -> str:
         """构建写入 stdin 的初始 user prompt 消息行（``--input-format stream-json``）。
 
@@ -1448,7 +1475,11 @@ class ClaudeCodeService:
 
                                     ctx = config.auto_answer_context or {}
                                     plan_review_enabled = ctx.get("plan_review_enabled", False)
-                                    plan_text = ctx.get("plan_summary") or result_text or ""
+                                    plan_text = (
+                                        ctx.get("plan_summary")
+                                        or result_text
+                                        or ClaudeCodeService._extract_plan_from_input(tool_input)
+                                    )
 
                                     # Fix 1：区分「Plan 提交审阅」vs「结构化选项问题」
                                     is_plan_submit = plan_review_enabled and ClaudeCodeService._is_plan_review_question(

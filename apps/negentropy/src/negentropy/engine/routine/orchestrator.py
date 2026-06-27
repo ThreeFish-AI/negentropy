@@ -254,6 +254,10 @@ def _is_plan_review_active(routine: Routine) -> bool:
     """
     if not (settings.routine.auto_answer_questions and settings.routine.plan_review_enabled):
         return False
+    # per-routine 关闭开关：config.plan_review_enabled=False 时跳过评审钩子（如 pdf-fidelity-patrol
+    # 这种指令式紧凑闭环任务，无需 Plan 审批门控；亦避免 headless deny→is_error 致交互报错）。
+    if not bool((routine.config or {}).get("plan_review_enabled", True)):
+        return False
     if settings.routine.plan_review_unified_loop:
         return phase_mod.is_worktree_routine(routine)
     return bool(
@@ -1450,8 +1454,13 @@ class RoutineOrchestrator:
         # CC settings.json 基底：源码只读 deny（read_dirs 非空时）。Plan Review 钩子按 unified/legacy 分别注入。
         settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
         plan_review_active = _is_plan_review_active(routine)
-        # 统一闭环：worktree routine + 开关开。主 config = implement 段；plan 段独立挂载（见文末）。
-        unified = bool(settings.routine.plan_review_unified_loop and phase_mod.is_worktree_routine(routine))
+        # 统一闭环：worktree + 全局开关开 + per-routine 未关闭。主 config = implement 段；plan 段独立挂载（见文末）。
+        # config.plan_review_enabled=False（如巡检）→ 不挂 plan 段、直接 implement 段，规避 headless deny→is_error。
+        unified = bool(
+            settings.routine.plan_review_unified_loop
+            and phase_mod.is_worktree_routine(routine)
+            and bool((routine.config or {}).get("plan_review_enabled", True))
+        )
         # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
         review_timeout = int(
             (routine.config or {}).get("plan_review_timeout_seconds") or settings.routine.plan_review_timeout_seconds
@@ -1507,10 +1516,16 @@ class RoutineOrchestrator:
         # 统一闭环：构建迭代内独立 plan 段（permission_mode=plan + 真实评审钩子），**仅 fresh（无续接会话）**触发；
         # 续接迭代沿用单段 implement（方案已批准、会话续接，无需重评审）。上下文耗尽清空会话后下轮会重新 plan。
         if unified and plan_review_active and not routine.claude_session_id:
+            # per-routine 评审通道：plan_review_via_hook=True（默认）→ PreToolUse deny 钩子回灌评审
+            # （deny→is_error）；=False（如巡检）→ 不挂钩子，reader 内 _plan_review_answer 经
+            # stdin 写干净 tool_result（approve/refine），CC↔Engine 正常交流、恰当时 Approve。
+            # 后者经实测 auto_answer 路径（DB 中 19 例 ExitPlanMode 应答）证明 stdin 通道可用。
+            via_hook = bool((routine.config or {}).get("plan_review_via_hook", True))
             plan_settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
             plan_ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="unified")
             plan_pre = plan_settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
-            plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
+            if via_hook:
+                plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
             plan_config = copy.copy(config)
             plan_config.permission_mode = "plan"  # 原生只读写锁：plan 段禁止落盘
             plan_config.settings = json.dumps(plan_settings_obj, ensure_ascii=False)
@@ -1519,7 +1534,7 @@ class RoutineOrchestrator:
             plan_config.plan_stage_prompt = None
             if config.auto_answer_context is not None:
                 _ac = dict(config.auto_answer_context)
-                _ac["plan_review_via_hook"] = True  # plan 段确由钩子评审
+                _ac["plan_review_via_hook"] = via_hook  # False → reader 走 clean stdin _plan_review_answer
                 _ac["phase"] = phase_mod.PHASE_PLAN
                 plan_config.auto_answer_context = _ac
             config.plan_stage_config = plan_config
