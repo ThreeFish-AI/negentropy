@@ -63,6 +63,19 @@ def test_build_routine_config_extra_override():
     assert cfg["model"] == "claude-opus-4-8"
 
 
+def test_build_routine_config_source_task_key():
+    """handler 透传 source_task_key 便于 Scheduler UI 反查派生 Routine。"""
+    cfg = build_routine_config(
+        doc_id="d",
+        source_pdf_path="/a/b.pdf",
+        candidate_md_path="c.md",
+        source_read_dir="/a",
+        regression_sample=[],
+        extra={"source_task_key": "pdf_fidelity_patrol"},
+    )
+    assert cfg["source_task_key"] == "pdf_fidelity_patrol"
+
+
 def test_system_prompt_contains_protocol_and_contract():
     # 三系部角色 + 非回归 + 红线 + JSON 契约 均应在协议中
     assert "ContemplationFaculty" in PATROL_SYSTEM_PROMPT

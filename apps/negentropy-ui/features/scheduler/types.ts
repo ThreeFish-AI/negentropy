@@ -68,6 +68,8 @@ export interface TaskExecutionDTO {
   memory_id: string | null;
   pipeline_run_id: string | null;
   thread_id: string | null;
+  /** HandlerResult.metrics 结构化产物（如巡检 routine_id/doc_id），供 UI 回链派生资源。 */
+  metrics: Record<string, unknown>;
 }
 
 export interface KpiResponse {

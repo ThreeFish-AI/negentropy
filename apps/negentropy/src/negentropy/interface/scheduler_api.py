@@ -157,6 +157,7 @@ def _serialize_execution(e: TaskExecution, task: ScheduledTask | None = None) ->
         "memory_id": str(e.memory_id) if e.memory_id else None,
         "pipeline_run_id": str(e.pipeline_run_id) if e.pipeline_run_id else None,
         "thread_id": str(e.thread_id) if e.thread_id else None,
+        "metrics": e.metrics or {},
     }
 
 

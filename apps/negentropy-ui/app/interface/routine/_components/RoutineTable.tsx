@@ -62,7 +62,14 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
               className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
             >
               <td className="px-4 py-3">
-                <div className="font-medium text-foreground">{r.display_name || r.title}</div>
+                <div className="font-medium text-foreground flex items-center gap-2">
+                  <span className="truncate">{r.display_name || r.title}</span>
+                  {r.key.startsWith("pdf-fidelity-patrol/") && (
+                    <span className="inline-flex items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-micro font-semibold text-violet-700 dark:text-violet-300 shrink-0">
+                      巡检
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-text-secondary">{r.key}</div>
               </td>
               <td className="px-4 py-3">

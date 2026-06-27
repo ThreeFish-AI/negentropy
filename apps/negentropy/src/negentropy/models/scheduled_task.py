@@ -124,6 +124,8 @@ class TaskExecution(Base, UUIDMixin):
     output_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     fire_reason: Mapped[str] = mapped_column(String(16), nullable=False, default="tick", server_default="tick")
+    # HandlerResult.metrics 结构化产物（如巡检 routine_id/doc_id），供 Scheduler UI 回链派生资源。
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
 
     task: Mapped[ScheduledTask] = relationship(back_populates="executions")
 

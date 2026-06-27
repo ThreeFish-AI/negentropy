@@ -50,6 +50,7 @@ export async function fetchRoutines(filters: Partial<RoutineFilters> = {}): Prom
   if (filters.status) sp.set("status", filters.status);
   if (filters.q) sp.set("q", filters.q);
   if (filters.is_template != null) sp.set("is_template", String(filters.is_template));
+  if (filters.source_task_key) sp.set("source_task_key", filters.source_task_key);
   const q = sp.toString();
   return jsonFetch(`${q ? `?${q}` : ""}`);
 }

@@ -256,6 +256,7 @@ export interface RoutineFilters {
   status: RoutineStatus | null;
   q: string;
   is_template?: boolean | null;
+  source_task_key?: string | null;
 }
 
 /** 创建请求体 */
