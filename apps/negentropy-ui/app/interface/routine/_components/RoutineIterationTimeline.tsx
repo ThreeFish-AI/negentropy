@@ -130,6 +130,55 @@ function IterationCard({
   const bodyId = `iter-${it.id}-body`;
   const headline = summaryHeadline(it);
 
+  // 行体内容（状态点 + 序号 + 相位 + 摘要首行 + verdict + score + 元信息 + View Full 标签）。
+  // 交互：点击行首 chevron 触发展开/收起；点击行体（整行其余部分）= View Full 打开审计抽屉。
+  // View Full 为行内视觉标签（非独立按钮），随行体按钮一并触发，避免 button 套 button。
+  const rowContent = (
+    <>
+      <span className={cn("inline-block h-2 w-2 shrink-0 rounded-full", iterationDotClass(it.status))} />
+      <span className="shrink-0 text-xs font-semibold text-foreground">#{it.seq}</span>
+      {it.phase && (
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide",
+            phaseClass(it.phase),
+          )}
+        >
+          {phaseLabel(it.phase)}
+        </span>
+      )}
+      <span className="min-w-0 flex-1 truncate text-xs text-text-secondary" title={headline.full ?? undefined}>
+        {headline.text}
+      </span>
+      {it.verdict && (
+        <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold", verdictClass(it.verdict))}>
+          {it.verdict}
+        </span>
+      )}
+      {it.score != null && (
+        <span className={cn("shrink-0 text-sm font-bold tabular-nums", scoreColorClass(it.score))}>{it.score}</span>
+      )}
+      {/* 收起态核心元信息：turns · cost · elapsed（小屏隐藏） */}
+      <span className="hidden shrink-0 items-center gap-1.5 text-xs text-text-secondary sm:flex">
+        <span className="tabular-nums">{it.turn_count}t</span>
+        <span className="text-text-muted">·</span>
+        <span className="tabular-nums">${it.cost_usd.toFixed(4)}</span>
+        <span className="text-text-muted">·</span>
+        {isActive ? (
+          <LiveElapsed startedAt={it.started_at} />
+        ) : (
+          <StaticDuration startedAt={it.started_at} finishedAt={it.finished_at} />
+        )}
+      </span>
+      {onAudit && (
+        <span className="flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-text-secondary transition-colors group-hover/head:border-foreground/20 group-hover/head:text-foreground">
+          <ListTree className="h-3 w-3" aria-hidden />
+          View Full
+        </span>
+      )}
+    </>
+  );
+
   return (
     <li
       className={cn(
@@ -141,77 +190,32 @@ function IterationCard({
             : "border-transparent hover:border-border/60",
       )}
     >
-      {/* 头部单行：展开切换（chevron + 标识 + 摘要首行）+ 右侧操作区（避免 button 套 button） */}
-      <div className="flex items-center gap-2 px-2 py-1.5">
+      {/* 头部单行：仅 chevron 触发展开/收起；点击行体（整行其余部分）= View Full 打开审计抽屉 */}
+      <div className="flex items-center gap-1 px-2 py-1.5">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           aria-controls={bodyId}
           aria-label={expanded ? `收起迭代 #${it.seq} 详情` : `展开迭代 #${it.seq} 详情`}
-          className="group/head flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          title={expanded ? "收起" : "展开"}
+          className="flex shrink-0 items-center justify-center rounded-md p-1 text-text-muted transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <ChevronRight
-            className={cn(
-              "h-3.5 w-3.5 shrink-0 text-text-muted transition-transform duration-150 group-hover/head:text-foreground",
-              expanded && "rotate-90",
-            )}
-            aria-hidden
-          />
-          <span className={cn("inline-block h-2 w-2 shrink-0 rounded-full", iterationDotClass(it.status))} />
-          <span className="shrink-0 text-xs font-semibold text-foreground">#{it.seq}</span>
-          {it.phase && (
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wide",
-                phaseClass(it.phase),
-              )}
-            >
-              {phaseLabel(it.phase)}
-            </span>
-          )}
-          <span className="min-w-0 flex-1 truncate text-xs text-text-secondary" title={headline.full ?? undefined}>
-            {headline.text}
-          </span>
+          <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-150", expanded && "rotate-90")} aria-hidden />
         </button>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {it.verdict && (
-            <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", verdictClass(it.verdict))}>
-              {it.verdict}
-            </span>
-          )}
-          {it.score != null && (
-            <span className={cn("text-sm font-bold tabular-nums", scoreColorClass(it.score))}>{it.score}</span>
-          )}
-          {/* 收起态核心元信息：turns · cost · elapsed（小屏隐藏，保留 verdict / score / View Full） */}
-          <span className="hidden items-center gap-1.5 text-xs text-text-secondary sm:flex">
-            <span className="tabular-nums">{it.turn_count}t</span>
-            <span className="text-text-muted">·</span>
-            <span className="tabular-nums">${it.cost_usd.toFixed(4)}</span>
-            <span className="text-text-muted">·</span>
-            {isActive ? (
-              <LiveElapsed startedAt={it.started_at} />
-            ) : (
-              <StaticDuration startedAt={it.started_at} finishedAt={it.finished_at} />
-            )}
-          </span>
-          {onAudit && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAudit(it);
-              }}
-              aria-label={`Iteration #${it.seq} Full View`}
-              title="Full View (all actions I/O & context)"
-              className="flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ListTree className="h-3 w-3" aria-hidden />
-              View Full
-            </button>
-          )}
-        </div>
+        {onAudit ? (
+          <button
+            type="button"
+            onClick={() => onAudit(it)}
+            title="查看全过程 (View Full)"
+            aria-label={`Iteration #${it.seq} View Full`}
+            className="group/head flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {rowContent}
+          </button>
+        ) : (
+          <div className="group/head flex min-w-0 flex-1 items-center gap-2 px-1.5 py-1">{rowContent}</div>
+        )}
       </div>
 
       {/* 展开态明细框（头部 100% 复用，仅 chevron 翻转） */}
