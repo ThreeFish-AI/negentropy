@@ -206,6 +206,61 @@ async def create_repository(
     return _repository_to_response(repo)
 
 
+# ---------------------------------------------------------------------------
+# Reorder（批量排序）—— 必须声明在 /{repository_id} 之前
+# ---------------------------------------------------------------------------
+
+
+class RepositoryReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class RepositoryReorderRequest(BaseModel):
+    items: list[RepositoryReorderItem]
+
+
+@router.patch("/reorder", response_model=list[RepositoryResponse])
+async def reorder_repositories(
+    payload: RepositoryReorderRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> list[RepositoryResponse]:
+    """批量更新 Repository 排序序号。前端拖拽后调用，传入所有可见 Repository 的 id + sort_order。
+
+    ⚠️ 必须声明在 ``/{repository_id}`` 之前——Starlette 按声明顺序匹配路由，否则
+    "reorder" 会被当作路径参数解析为 UUID 而 422。语义对齐 agents/tools 的 reorder：
+    以可见集合为闸门，``sort_order`` 为共享列。
+    """
+    async with db_session.AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "repository", user)
+        if not visible_ids:
+            return []
+
+        visible_set = set(visible_ids)
+        for item in payload.items:
+            if item.id not in visible_set:
+                raise HTTPException(status_code=403, detail=f"No edit permission for repository {item.id}")
+
+        # 批量查询所有目标 repo，避免 N+1
+        target_ids = [item.id for item in payload.items]
+        result = await db.execute(select(Repository).where(Repository.id.in_(target_ids)))
+        repo_map = {r.id: r for r in result.scalars().all()}
+        for item in payload.items:
+            repo = repo_map.get(item.id)
+            if repo:
+                repo.sort_order = item.sort_order
+
+        await db.commit()
+
+        stmt = (
+            select(Repository)
+            .where(Repository.id.in_(visible_ids))
+            .order_by(Repository.sort_order.asc(), Repository.created_at.desc())
+        )
+        repos = (await db.execute(stmt)).scalars().all()
+        return [_repository_to_response(r) for r in repos]
+
+
 @router.get("/{repository_id}", response_model=RepositoryResponse)
 async def get_repository(
     repository_id: UUID,

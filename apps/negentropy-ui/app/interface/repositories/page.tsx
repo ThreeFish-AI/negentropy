@@ -14,10 +14,13 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SortableCardGrid } from "@/components/ui/SortableCardGrid";
+import { useSortableCardGrid } from "@/app/interface/_hooks/useSortableCardGrid";
 import {
   createRepository,
   deleteRepository,
   fetchRepositories,
+  reorderRepositories,
   updateRepository,
 } from "@/features/repositories";
 import type {
@@ -52,6 +55,17 @@ export default function RepositoriesPage() {
   useEffect(() => {
     void loadRepositories();
   }, [loadRepositories]);
+
+  // 拖拽排序：乐观更新本地顺序 + 持久化到后端；失败回退重载（对齐 skills/tools 页）
+  const { sortableItemIds, handleDragEnd } = useSortableCardGrid({
+    items: repositories,
+    onReorder: (reordered) => {
+      setRepositories(reordered as RepositoryDTO[]);
+      reorderRepositories(
+        reordered.map((r) => ({ id: r.id, sort_order: r.sort_order ?? 0 })),
+      ).catch(() => void loadRepositories());
+    },
+  });
 
   const handleCreate = () => {
     setEditingRepository(null);
@@ -142,7 +156,7 @@ export default function RepositoriesPage() {
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-[196px] rounded-xl border border-border bg-card p-4"
+                    className="h-[180px] rounded-xl border border-border bg-card p-4"
                   >
                     <Skeleton className="mb-3 h-5 w-1/3" />
                     <div className="mb-2 flex gap-2">
@@ -174,7 +188,11 @@ export default function RepositoriesPage() {
                 }
               />
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <SortableCardGrid
+                itemIds={sortableItemIds}
+                onDragEnd={handleDragEnd}
+                data-testid="repositories-grid"
+              >
                 {repositories.map((repository) => (
                   <RepositoryCard
                     key={repository.id}
@@ -183,7 +201,7 @@ export default function RepositoriesPage() {
                     onDelete={() => handleDeleteRequest(repository)}
                   />
                 ))}
-              </div>
+              </SortableCardGrid>
             )}
           </div>
         </div>
