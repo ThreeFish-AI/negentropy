@@ -29,4 +29,14 @@ describe("DocumentPdfViewer", () => {
     expect(links[0]).toHaveAttribute("target", "_blank");
     expect(links[0]?.getAttribute("rel")).toContain("noopener");
   });
+
+  it("渲染加载占位（spinner），供原生查看器绘制前占位（纯 CSS、无 onLoad 依赖）", () => {
+    const { container } = render(<DocumentPdfViewer src={SRC} />);
+
+    // 占位层位于 <object> 之下（z-0），原生查看器绘制后其不透明背景自然覆盖。
+    const spinner = container.querySelector(".animate-spin");
+    expect(spinner).not.toBeNull();
+    // object 仍嵌套 iframe 兜底，结构未因占位层而破坏。
+    expect(container.querySelector("object iframe")).not.toBeNull();
+  });
 });

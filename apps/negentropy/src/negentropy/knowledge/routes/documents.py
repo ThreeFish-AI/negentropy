@@ -8,10 +8,11 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, status
+from fastapi.responses import Response, StreamingResponse
 from pydantic import ValidationError  # noqa: F401
 
+from negentropy.knowledge._http_range import build_etag, decide_range_response
 from negentropy.knowledge._shared import (
     _build_document_response,
     _get_service,
@@ -51,6 +52,11 @@ from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
 
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter()
+
+# 原文（PDF 等）下载/预览的缓存策略：内容按 file_hash 内容寻址、强 ETag 保证正确性，
+# 故允许浏览器短期缓存以加速「Markdown↔PDF 切换 / 在新标签打开 / 重访」，过期后
+# 凭 If-None-Match 廉价 304 校验。不使用 `immutable`——同一 document_id 可被重传。
+DOWNLOAD_CACHE_CONTROL = "private, max-age=300, must-revalidate"
 
 
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
@@ -534,11 +540,21 @@ async def delete_document(
 
 async def _download_document_impl(
     *,
+    request: Request,
     document_id: UUID,
     corpus_id: UUID | None,
     app_name: str | None,
 ):
-    """下载文档原始文件，返回 StreamingResponse（带 Content-Disposition 头）。"""
+    """下载/预览文档原始文件。
+
+    - **URL 源文档**：返回其 Markdown 正文（``text/markdown``，``attachment``），不施加
+      Range —— 显示内容与历史完全一致。
+    - **二进制源文档（PDF 等）**：支持 HTTP Range（``206``）与条件缓存（``ETag`` /
+      ``If-None-Match`` → ``304``；越界 → ``416``），并补齐 ``Accept-Ranges`` /
+      ``Content-Length`` / ``Last-Modified`` / ``Cache-Control``。使浏览器原生 PDF 查看器
+      可渐进式渲染大文件、并跨视图切换复用缓存。``Content-Disposition`` 固定 ``attachment``
+      （预览场景由 BFF 代理改写为 ``inline``，下载按钮行为不变）。
+    """
     resolved_app = _resolve_app_name(app_name)
 
     from negentropy.storage import StorageError
@@ -562,23 +578,86 @@ async def _download_document_impl(
     metadata = doc.metadata_ or {}
     is_url_doc = metadata.get("source_type") == "url"
 
-    # 下载文件内容
-    try:
-        if is_url_doc:
+    # 文件名跟随用户重命名：display_name 覆盖 → original_filename，
+    # 并保留 original_filename 的扩展名，确保下载内容与扩展名一致可正确打开。
+    filename = effective_download_filename(doc.original_filename, doc.display_name)
+    if is_url_doc and not filename.lower().endswith(".md"):
+        filename = f"{filename}.md"
+    encoded_filename = urllib.parse.quote(filename)
+    content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
+
+    # URL 源文档：返回 Markdown 正文（不支持 Range，行为与历史一致）。
+    if is_url_doc:
+        try:
             markdown_text = await storage_service.get_document_markdown(document_id)
-            if not markdown_text:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document markdown content not found"},
-                )
-            content = markdown_text.encode("utf-8")
-        else:
-            content = await storage_service.get_document_content(document_id)
-            if content is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document content not found"},
-                )
+        except StorageError as exc:
+            logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
+            ) from exc
+        if not markdown_text:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document markdown content not found"},
+            )
+        return StreamingResponse(
+            BytesIO(markdown_text.encode("utf-8")),
+            media_type="text/markdown; charset=utf-8",
+            headers={"Content-Disposition": content_disposition},
+        )
+
+    # 二进制源文档：Range + 条件缓存协商。
+    media_type = doc.content_type or "application/octet-stream"
+    total_size = doc.file_size
+    if not total_size:
+        # file_size 理论 NOT NULL；异常存量数据回退按 blob 实际大小。
+        try:
+            total_size = await storage_service.get_blob_size_by_uri(doc.content_uri) or 0
+        except StorageError as exc:
+            logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
+            ) from exc
+
+    decision = decide_range_response(
+        total_size=total_size,
+        etag=build_etag(doc.file_hash),
+        last_modified=doc.updated_at,
+        cache_control=DOWNLOAD_CACHE_CONTROL,
+        content_type=media_type,
+        range_header=request.headers.get("range"),
+        if_range=request.headers.get("if-range"),
+        if_none_match=request.headers.get("if-none-match"),
+        if_modified_since=request.headers.get("if-modified-since"),
+    )
+    headers = dict(decision.headers)
+    headers["Content-Disposition"] = content_disposition
+
+    # 304 / 416：无 body（416 头已含 Content-Range: bytes */{total}）。
+    if decision.status_code in (status.HTTP_304_NOT_MODIFIED, status.HTTP_416_RANGE_NOT_SATISFIABLE):
+        return Response(status_code=decision.status_code, headers=headers)
+
+    try:
+        if decision.spec is not None:
+            # 206：只读所需切片（PostgreSQL substring 部分读，不入整块内存）。
+            chunk = await storage_service.download_blob_range_by_uri(
+                doc.content_uri, decision.spec.start, decision.spec.length
+            )
+            return Response(
+                content=chunk,
+                status_code=status.HTTP_206_PARTIAL_CONTENT,
+                media_type=media_type,
+                headers=headers,
+            )
+        # 200 全量：复用既有读取路径，与「下载」按钮字节完全一致。
+        content = await storage_service.get_document_content(document_id)
+        if content is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document content not found"},
+            )
     except StorageError as exc:
         logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
         raise HTTPException(
@@ -586,39 +665,34 @@ async def _download_document_impl(
             detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
         ) from exc
 
-    # 文件名跟随用户重命名：display_name 覆盖 → original_filename，
-    # 并保留 original_filename 的扩展名，确保下载内容与扩展名一致可正确打开。
-    filename = effective_download_filename(doc.original_filename, doc.display_name)
-    if is_url_doc and not filename.lower().endswith(".md"):
-        filename = f"{filename}.md"
-    encoded_filename = urllib.parse.quote(filename)
-
     return StreamingResponse(
         BytesIO(content),
-        media_type="text/markdown; charset=utf-8" if is_url_doc else (doc.content_type or "application/octet-stream"),
-        headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
-        },
+        media_type=media_type,
+        headers=headers,
     )
 
 
 @router.get("/base/{corpus_id}/documents/{document_id}/download")
 async def download_document(
+    request: Request,
     corpus_id: UUID,
     document_id: UUID,
     app_name: str | None = Query(default=None),
 ):
-    """下载文档原始文件
+    """下载/预览文档原始文件（支持 Range + 条件缓存）
 
     Args:
+        request: 用于读取 Range / 条件请求头
         corpus_id: 知识库 ID
         document_id: 文档 ID
         app_name: 应用名称
 
     Returns:
-        StreamingResponse: 文件流（带 Content-Disposition 头）
+        Response: 200 全量 / 206 分段 / 304 未改动 / 416 区间不可满足
     """
-    return await _download_document_impl(document_id=document_id, corpus_id=corpus_id, app_name=app_name)
+    return await _download_document_impl(
+        request=request, document_id=document_id, corpus_id=corpus_id, app_name=app_name
+    )
 
 
 async def _get_document_asset_impl(

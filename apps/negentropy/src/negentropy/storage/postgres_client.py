@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import hashlib
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -107,6 +107,43 @@ class PostgresBlobStorage:
         content = row[0]
         logger.info("blob_download_completed", uri=uri, size=len(content))
         return content
+
+    async def get_size(self, uri: str) -> int | None:
+        """按 URI 返回对象字节数（仅读 ``size`` 列，不取 ``content``）。"""
+        key = parse_uri(uri)
+        try:
+            async with db_session.AsyncSessionLocal() as db:
+                result = await db.execute(select(BlobObject.size).where(BlobObject.key == key))
+                row = result.one_or_none()
+        except SQLAlchemyError as exc:
+            logger.error("blob_get_size_failed", uri=uri, error=str(exc))
+            raise StorageError(f"Failed to get blob size {uri}: {exc}") from exc
+
+        return None if row is None else int(row[0])
+
+    async def download_range(self, uri: str, start: int, length: int) -> bytes:
+        """下载 ``[start, start+length)`` 字节切片。
+
+        用 PostgreSQL ``substring(content FROM :from FOR :for)`` 只取所需切片，
+        避免大 PDF 全量入内存。注意 ``substring`` 为 **1-based**，故 ``start + 1``。
+        """
+        key = parse_uri(uri)
+        try:
+            async with db_session.AsyncSessionLocal() as db:
+                slice_col = func.substring(BlobObject.content, start + 1, length)
+                result = await db.execute(select(slice_col).where(BlobObject.key == key))
+                row = result.one_or_none()
+        except SQLAlchemyError as exc:
+            logger.error("blob_download_range_failed", uri=uri, error=str(exc))
+            raise StorageError(f"Failed to download blob range {uri}: {exc}") from exc
+
+        if row is None:
+            raise StorageError(f"Blob not found: {uri}")
+
+        # asyncpg 对 bytea 可能回 memoryview，统一归一为 bytes。
+        chunk = bytes(row[0])
+        logger.info("blob_download_range_completed", uri=uri, start=start, length=len(chunk))
+        return chunk
 
     async def delete(self, uri: str) -> None:
         """按 URI 删除 blob（不存在视为成功，幂等）。"""
