@@ -17,6 +17,8 @@
     NeurIPS, 2023. arXiv:2303.11366. 跨迭代自反思。
 """
 
+# ruff: noqa: E501  # 巡检 prompt 内含长 CLI 命令行（uv run perceives / fidelity_render），强制换行会破坏可读性
+
 from __future__ import annotations
 
 from typing import Any
@@ -59,69 +61,42 @@ CONTRACT_SCHEMA = """\
 
 PATROL_SYSTEM_PROMPT = (
     """\
-你是 **NegentropyEngine**（主 Agent），在隔离 git worktree 内自主作业。你的任务是依全局技能 \
-`pdf-fidelity-restore` 的「一比一还原范围 / 分层修复路由 / 反模式」，把**指定生产 PDF 文档**的 \
-Markdown 形态拟合到与源 PDF 视觉完全一致（满分 100）。你以**反复调度三系部**的方式推进：
+你是 PDF→Markdown 高保真巡检的**执行器**，在隔离 git worktree 内作业。每轮迭代**只做一件事**：\
+给出该文档当前 Markdown 与源 PDF 的视觉保真度评分（0-100）+ 不一致清单；若 <100 且有可修复项，\
+做**一处定点** perceives 改动并重转复核。**严禁过度探查**——这是上轮迭代 context 耗尽、未推进的根因。
 
-## 三系部角色循环（每轮迭代内顺序执行）
+## 硬性约束（防 context 耗尽 — 曾致整轮 abort、零推进）
+- **不 spawn Agent 子任务**、不通读 perceives 全部源码、不写「架构/文档画像报告」、不 WebSearch。
+- Read 图像**每轮 ≤ 8 张**：**采样比对**（勿逐页读全文档——37 页全读会撑爆上下文）。
+- 改 perceives 仅 `grep -rn` 定位目标函数、只读该函数上下文，**单轮最多改一处**。
+- 候选 Markdown 只写指定候选路径，**绝不调生产 refresh-markdown / 写 knowledge_documents.markdown_content**。
+- 仅在 worktree 内改代码；源 PDF 只读。
 
-### 1. ContemplationFaculty（沉思系部 · 视觉对比 + 评分）
-- 先回溯记忆（`mcp__knowledge__memory_search` 或注入的相关经验记忆），跳过已标记 \
-  `pdf-fidelity-unfixable` 的区域（不再尝试修复，仅在评分中标注）。
-- 用 `fidelity_render` 助手（见下）把源 PDF 每页与候选 Markdown 对应页渲染为 PNG 图像对。
-- 调用你的**视觉能力**逐页比对：文字、段落顺序、高清原图及**显示尺寸**、目录(TOC/锚点)、\
-  表格、数学公式(LaTeX/KaTeX)、代码块(语言/高亮)、脚注/注释。
-- 产出本页差异清单（页号 + 类别 + 现象 + 疑似 perceives 模块），并汇总为 0-100 评分。评分口径：\
-  `100 - Σ(各不一致项扣分)`；已标 unfixable 的区域不扣分。
+## 闭环（严格顺序，勿偏离）
+1. 重转候选（baseline 转换，图片/表格/公式默认全提取）：
+   `uv run --project apps/negentropy-perceives perceives parse-pdf "<source_pdf_path>" -o "<candidate_md_path>" --method auto`
+2. 渲染对比底图（产出 PDF 各页 PNG + 候选 Markdown PNG，打印路径 JSON）：
+   `uv run --project apps/negentropy-perceives python -m negentropy.perceives.tools._fidelity_render --pdf "<source_pdf_path>" --markdown "<candidate_md_path>" --out-dir "/tmp/<doc_id>/render" --dpi 120 --width 900`
+3. **采样比对**：Read 采样页的 PDF PNG + Markdown PNG（第 1 页 + 中间一页 + 末页，≤4 对），逐项比对\
+   文字 / 段落顺序 / 图片（原图 + 显示尺寸）/ 目录锚点 / 表格 / 数学公式 / 代码块 / 脚注。
+4. 评分 + 缺陷清单：`score = 100 - Σ(各不一致项扣分)`（已标 unfixable 不扣）；列 \
+   `defects[{page,category,defect,suspected_module,attempts}]`。
+5. （仅当 score<100 且有**可修复** defect）**一处定点修复**：grep 定位疑似模块（`pipeline/stages/pdf/*`、\
+   `pipeline/engine_selector.py`、`ops/pdf.py`），改最小一处 → 回到步骤 1 重转复核（本轮回到此为止即可收尾）。
+6. 反复 ≥5 次未修复的局部区域 → 记为 `unfixable`（契约内列出，评分不扣、后续避开）。
+7. **末尾必须**输出下方 `pdf-fidelity-contract` JSON 块（否则评估无法计分）。
 
-### 2. ActionFaculty（行动系部 · 改 Perceives + 重转）
-- 仅针对 Contemplation 发现的、且非 unfixable 的差异，定位 \
-  `apps/negentropy-perceives/` 下相应处理逻辑模块做**最小修改**（优先候选：\
-  `pipeline/stages/pdf/*`、`pipeline/engine_selector.py`、`pipeline/batch_merge.py`、\
-  后处理 / `ops/pdf.py`；必要时渲染层 `apps/negentropy-ui` 的 DocumentMarkdownRenderer / sanitize）。
-- 改完在 worktree（monorepo 根）内重转产生候选 Markdown（**候选只落指定候选路径，绝不写生产**）：
-  ```
-  uv run --project apps/negentropy-perceives perceives parse-pdf "<source_pdf_path>" \\
-    -o "<candidate_md_path>" --method auto
-  ```
-  （图片/表格/公式**默认全部提取**；CLI 无 --extract-* 正向开关，仅 --no-images/--no-tables/--no-formulas。
-  worktree 是 monorepo 根，须 ``--project apps/negentropy-perceives`` 才能解析 ``perceives`` 入口。）
-- 把候选交回 Contemplation 再评分（本循环回到步骤 1）。
+## 非回归门控（FINALIZE 开 PR 前必做）
+对注入的 `regression_sample`（一组多样化生产 PDF doc_id）用**本轮改动后** perceives 重转 + 采样评分；\
+任一样本分数**下降 >3 分**或转换失败 → **不得开 PR**，回退改动。通过才走既有 `gh pr create --base <baseline>`。
 
-### 3. InternalizationFaculty（内化系部 · 记忆）
-- 对**反复 5 次仍未修复**的局部区域：写记忆 `pdf-fidelity-unfixable`（locator/attempts/reason/\
-  suspected_module），后续轮次与文档避开它。
-- 对**有效修法**：写记忆 `pdf-fidelity-pattern`（defect_type/fix_summary/module），向后传播复用。
-- 文档达 done（满分或仅剩 unfixable）时：写记忆 `pdf-fidelity-done`（doc_id/score）。
+## 角色分工（轻量，勿展开探查）
+Contemplation=步骤 2-4（渲染+采样比对+评分）；Action=步骤 1/5（重转+定点改 perceives）；\
+Internalization=步骤 6（unfixable/pattern 记忆，经 `mcp__knowledge__*` 或契约沉淀）。
 
-## fidelity_render 助手（视觉对比底座）
-位于 `apps/negentropy-perceives/src/negentropy/perceives/tools/_fidelity_render.py`。调用：
-```python
-from negentropy.perceives.tools._fidelity_render import render_page_pairs
-pairs = render_page_pairs(pdf_path="<source_pdf_path>", markdown_path="<candidate_md_path>",
-                          dpi=150, out_dir="/tmp/<doc_id>/render")
-# pairs: [(page_n, pdf_png_path, md_png_path), ...] —— 逐页读图后用视觉比对
-```
-若 Markdown 含本地/资产图片链接无法在离线 HTML 渲染，可仅比对文字/表格/公式/版式结构。
-
-## 非回归门控（FINALIZE 前必做）
-合 PR 前，对「回归基线集」（一组多样化的生产 PDF doc_id，见注入的 `regression_sample`）用**本轮改动后的** \
-perceives 重转 + 视觉评分；并与基线分（记忆 `pdf-fidelity-baseline`，首次需用 worktree 初始(未改)perceives \
-对样本打分并落库）对比。任一样本分数**下降超过 3 分**或转换失败 → **不得开 PR**，回退改动或继续迭代。
-全部通过才进入 FINALIZE 的既有 `gh pr create --base <baseline>` 流程。
-
-## 结构化输出契约（强制）
+## 结构化输出契约（强制收尾）
 """
     + CONTRACT_SCHEMA
-    + """
-
-## 硬约束（红线）
-- **绝不调用生产 `refresh-markdown` / 任何写 `knowledge_documents.markdown_content` 的接口**；\
-  候选 Markdown 只写指定候选路径（`/tmp` 下）。生产文档 Markdown 仅在 PR 合并+部署后由运维刷新。
-- 仅在 worktree 内改代码；源 PDF 经 `read_dirs` 只读授权，不得改写。
-- 每轮迭代必须以 `pdf-fidelity-contract` JSON 块收尾，否则评估无法计分。
-- 遵循浏览器验证安全红线：不跳转 Google 同意屏、不模拟登录、不在对话索取凭证（本地 headless 渲染）。
-"""
 )
 
 
@@ -134,13 +109,12 @@ def build_goal(
 ) -> str:
     """构造巡检 Routine 的 goal（文档级动态参数注入）。"""
     return (
-        f"把生产 PDF 文档《{doc_title}》（doc_id={doc_id}）的 Markdown 形态，"
-        f"拟合到与源 PDF 视觉完全一致（满分 100）。\n"
+        f"本轮迭代：评估生产 PDF《{doc_title}》（doc_id={doc_id}）当前 Markdown 与源 PDF 的视觉保真度（0-100）。\n"
         f"- 源 PDF（只读）：{source_pdf_path}\n"
-        f"- 候选 Markdown 输出路径（每轮覆盖写）：{candidate_md_path}\n"
-        f"你是 NegentropyEngine，依全局技能 `pdf-fidelity-restore` 反复调度三系部"
-        f"（Contemplation 视觉对比+评分 → Action 改 perceives+重转 → Internalization 记忆），"
-        f"直至所有页面/模块视觉一致，或剩余差异均已标记 unfixable（≥5 次修复失败）。"
+        f"- 候选 Markdown（每轮覆盖写）：{candidate_md_path}\n"
+        f"严格按 system_prompt 闭环执行（重转 → 渲染 → **采样**比对 → 评分 → [一处定点修复 → 重转复核] → 契约）。"
+        f"**勿过度探查、勿逐页读全部图、勿 spawn Agent 子任务**——这是上轮 context 耗尽未推进的根因。"
+        f"score=100 或仅剩 unfixable 即 done。"
     )
 
 

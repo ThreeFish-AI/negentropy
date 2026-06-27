@@ -43,6 +43,26 @@ def test_system_init_extracts_meta():
     assert ev["payload"]["session_id"] == "sess-1"
 
 
+def test_system_thinking_tokens_heartbeat_dropped():
+    """逐 token 心跳（estimated_tokens_delta=1）不落库——避免数千条淹没转录流。
+
+    回归：一次巡检迭代实测捕获 4703 条 system/thinking_tokens，把真实 96 条 tool_use/tool_result
+    埋没并逼近 max_events_per_iter。思考文本已由 assistant/thinking 块捕获，心跳丢弃无信息损失。
+    """
+    raw = {
+        "type": "system",
+        "subtype": "thinking_tokens",
+        "estimated_tokens": 42,
+        "estimated_tokens_delta": 1,
+    }
+    assert _normalize_stream_event(raw) == []
+    # 思考文本仍由 assistant/thinking 块捕获（不受心跳丢弃影响）
+    keep = _normalize_stream_event(
+        {"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": "推理中"}]}}
+    )
+    assert keep and keep[0]["title"] == "thinking"
+
+
 def test_assistant_text_and_tool_use_expand_to_multiple():
     out = _normalize_stream_event(
         {

@@ -201,6 +201,14 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
 
     etype = raw.get("type")
 
+    # system/thinking_tokens：模型扩展思考的「逐 token 心跳」（estimated_tokens_delta=1），
+    # 无审计价值，却会以数千条 system 事件淹没 Full View 转录流（实测一次巡检迭代 4703 条），
+    # 既压垮 DB/SSE，又把真实的 tool_use/tool_result（96 条）埋没，并逼近 max_events_per_iter
+    # 上限致尾部真实事件被截断。**思考文本已由 assistant/thinking 块（见下）完整捕获**，故此处
+    # 直接丢弃该心跳，不落库、不下发 SSE。
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "thinking_tokens":
+        return []
+
     # system/init：模型、cwd、可用工具、permission_mode、session_id
     if etype == _EVT_SYSTEM and raw.get("subtype") == "init":
         return [
