@@ -1,9 +1,11 @@
-"""文档下载/预览端点的 HTTP Range + 条件缓存路由测试。
+"""文档下载/预览端点路由测试（Range 默认关闭 + 条件缓存）。
 
 经 ``FastAPI() + include_router + TestClient`` 驱动真实请求头解析，``monkeypatch``
-注入 Fake ``DocumentStorageService`` 以脱离 blob/DB，断言 200/206/304/416 分发、
-切片正确性、校验器头，以及 **URL 源文档仍返回 Markdown、不施加 Range**（显示内容回归护栏）。
-同时覆盖 corpus 与 library 两条路由（共用同一 ``_download_document_impl``）。
+注入 Fake ``DocumentStorageService`` 以脱离 blob/DB。当前策略：非线性化 PDF 关闭
+Range（``PREVIEW_RANGE_ENABLED=False``）—— 不声明 ``Accept-Ranges``、任何 ``Range``
+统一回 200 全量以规避 range 风暴拖慢首屏；仅保留条件缓存（``ETag``/``304``）保证二次
+打开快。断言：200 全量+校验器头、``Range`` 被忽略、``If-None-Match``→304，以及
+**URL 源文档仍返回 Markdown**（显示内容回归护栏）。覆盖 corpus 与 library 两条路由。
 """
 
 from __future__ import annotations
@@ -69,12 +71,16 @@ CORPUS_URL = "/base/11111111-1111-1111-1111-111111111111/documents/22222222-2222
 LIBRARY_URL = "/documents/22222222-2222-2222-2222-222222222222/download"
 
 
-class TestBinaryRange:
-    def test_plain_get_returns_200_with_validators(self, monkeypatch):
+class TestBinaryPreview:
+    """二进制源文档：Range 默认关闭（非线性化 PDF 避免 range 风暴），仅保留条件缓存。"""
+
+    def test_plain_get_returns_200_with_caching_validators(self, monkeypatch):
         client = _client(monkeypatch, _FakeDoc())
         r = client.get(CORPUS_URL)
         assert r.status_code == 200
-        assert r.headers["accept-ranges"] == "bytes"
+        # Range 关闭：不声明 Accept-Ranges → 浏览器不切到范围模式，首屏走单次全量下载。
+        assert "accept-ranges" not in r.headers
+        # 缓存协商头保留 → 「二次打开快」。
         assert r.headers["content-length"] == str(len(PDF_BYTES))
         assert r.headers["etag"] == ETAG
         assert "last-modified" in r.headers
@@ -83,38 +89,35 @@ class TestBinaryRange:
         assert "content-range" not in r.headers
         assert r.content == PDF_BYTES
 
-    def test_range_returns_206_exact_slice(self, monkeypatch):
+    def test_range_header_ignored_serves_full_200(self, monkeypatch):
+        # 即便客户端发来 Range，也统一回 200 全量（不出现 206 / Content-Range）。
         client = _client(monkeypatch, _FakeDoc())
         r = client.get(CORPUS_URL, headers={"Range": "bytes=0-99"})
-        assert r.status_code == 206
-        assert r.headers["content-range"] == f"bytes 0-99/{len(PDF_BYTES)}"
-        assert r.headers["content-length"] == "100"
-        assert r.content == PDF_BYTES[0:100]
+        assert r.status_code == 200
+        assert "content-range" not in r.headers
+        assert "accept-ranges" not in r.headers
+        assert r.content == PDF_BYTES
 
-    def test_suffix_range(self, monkeypatch):
+    def test_out_of_range_also_serves_full_200(self, monkeypatch):
+        # Range 关闭时越界 Range 不再触发 416，而是回 200 全量。
         client = _client(monkeypatch, _FakeDoc())
-        r = client.get(CORPUS_URL, headers={"Range": "bytes=-10"})
-        assert r.status_code == 206
-        assert r.content == PDF_BYTES[-10:]
+        r = client.get(CORPUS_URL, headers={"Range": "bytes=100000-100100"})
+        assert r.status_code == 200
+        assert r.content == PDF_BYTES
 
     def test_if_none_match_returns_304_empty(self, monkeypatch):
+        # 条件缓存独立于 Range：命中 ETag 仍回 304 空 body（「二次打开快」）。
         client = _client(monkeypatch, _FakeDoc())
         r = client.get(CORPUS_URL, headers={"If-None-Match": ETAG})
         assert r.status_code == 304
         assert r.content == b""
         assert r.headers["etag"] == ETAG
 
-    def test_unsatisfiable_range_returns_416(self, monkeypatch):
-        client = _client(monkeypatch, _FakeDoc())
-        r = client.get(CORPUS_URL, headers={"Range": "bytes=100000-100100"})
-        assert r.status_code == 416
-        assert r.headers["content-range"] == f"bytes */{len(PDF_BYTES)}"
-
-    def test_library_route_supports_range(self, monkeypatch):
+    def test_library_route_serves_full_200(self, monkeypatch):
         client = _client(monkeypatch, _FakeDoc())
         r = client.get(LIBRARY_URL, headers={"Range": "bytes=10-19"})
-        assert r.status_code == 206
-        assert r.content == PDF_BYTES[10:20]
+        assert r.status_code == 200
+        assert r.content == PDF_BYTES
 
 
 class TestUrlDocUnchanged:

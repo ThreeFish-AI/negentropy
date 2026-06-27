@@ -21,7 +21,15 @@ CACHE = "private, max-age=300, must-revalidate"
 CT = "application/pdf"
 
 
-def _decide(total=1000, *, range_header=None, if_range=None, if_none_match=None, if_modified_since=None):
+def _decide(
+    total=1000,
+    *,
+    range_header=None,
+    if_range=None,
+    if_none_match=None,
+    if_modified_since=None,
+    enable_range=True,
+):
     return decide_range_response(
         total_size=total,
         etag=ETAG,
@@ -32,6 +40,7 @@ def _decide(total=1000, *, range_header=None, if_range=None, if_none_match=None,
         if_range=if_range,
         if_none_match=if_none_match,
         if_modified_since=if_modified_since,
+        enable_range=enable_range,
     )
 
 
@@ -179,3 +188,35 @@ class TestEmptyResource:
     def test_any_range_on_empty_is_416(self):
         assert _decide(total=0, range_header="bytes=0-0").status_code == 416
         assert _decide(total=0, range_header="bytes=-5").status_code == 416
+
+
+class TestRangeDisabled:
+    """``enable_range=False``：不声明 Accept-Ranges、忽略 Range，但缓存协商仍生效。"""
+
+    def test_no_accept_ranges_header_when_disabled(self):
+        d = _decide(enable_range=False)
+        assert d.status_code == 200
+        assert "Accept-Ranges" not in d.headers
+        assert d.headers["Content-Length"] == "1000"
+        assert d.headers["ETag"] == ETAG
+
+    def test_range_header_ignored_when_disabled(self):
+        # 即便客户端发来 Range，也统一回 200 全量、不出现 206 / Content-Range。
+        d = _decide(range_header="bytes=0-99", enable_range=False)
+        assert d.status_code == 200
+        assert d.is_full is True
+        assert d.spec is None
+        assert "Content-Range" not in d.headers
+
+    def test_unsatisfiable_range_ignored_when_disabled(self):
+        # Range 关闭时越界 Range 也不再触发 416，而是回 200 全量。
+        d = _decide(total=1000, range_header="bytes=100000-", enable_range=False)
+        assert d.status_code == 200
+        assert d.is_full is True
+
+    def test_conditional_304_still_works_when_disabled(self):
+        # 「二次打开快」的来源：条件缓存独立于 Range，关闭 Range 不影响 304。
+        d = _decide(if_none_match=ETAG, enable_range=False)
+        assert d.status_code == 304
+        assert d.headers["ETag"] == ETAG
+        assert "Accept-Ranges" not in d.headers

@@ -148,6 +148,7 @@ def decide_range_response(
     if_range: str | None,
     if_none_match: str | None,
     if_modified_since: str | None,
+    enable_range: bool = True,
 ) -> RangeDecision:
     """裁决一次下载/预览请求应返回 200 / 206 / 304 / 416 及其响应头。
 
@@ -158,20 +159,27 @@ def decide_range_response(
         cache_control: ``Cache-Control`` 头值。
         content_type: 资源 MIME。
         range_header / if_range / if_none_match / if_modified_since: 对应请求头原值。
+        enable_range: 是否启用 Range（206）。``False`` 时不声明 ``Accept-Ranges``、
+            忽略任何 ``Range`` / ``If-Range`` 统一回 200 全量；条件 304 仍照常生效。
+            用于「非线性化 PDF 关闭 Range、仅保留缓存」以规避 range 风暴拖慢首屏。
 
     Returns:
         :class:`RangeDecision`。调用方据 ``status_code`` 分发：304/416 回空 body；
         ``is_full`` 回整份；``spec`` 非空时读取切片回 206。
     """
     base_headers: dict[str, str] = {
-        "Accept-Ranges": "bytes",
         "ETag": etag,
         "Last-Modified": http_date(last_modified),
         "Cache-Control": cache_control,
         "Content-Type": content_type,
     }
+    # 仅在启用 Range 时声明 Accept-Ranges：否则浏览器原生查看器不会切到范围模式，
+    # 对非线性化 PDF 即回退为「单次顺序下载」，避免分块往返风暴拖慢首屏。
+    if enable_range:
+        base_headers["Accept-Ranges"] = "bytes"
 
     # 1) 条件 GET：If-None-Match 优先于 If-Modified-Since（RFC 9110 §13.2.2）。
+    #    无论是否启用 Range，条件缓存都生效——这是「二次打开快」的来源。
     not_modified = False
     if if_none_match is not None:
         not_modified = _etag_matches(if_none_match, etag)
@@ -192,11 +200,15 @@ def decide_range_response(
         headers["Content-Length"] = str(total_size)
         return RangeDecision(200, headers, spec=None, is_full=True)
 
-    # 2) 无 Range（或语法不可解析）→ 200 全量。
+    # 2) Range 关闭（如非线性化 PDF）：忽略 Range / If-Range，统一回 200 全量。
+    if not enable_range:
+        return full_200()
+
+    # 3) 无 Range（或语法不可解析）→ 200 全量。
     if not range_header:
         return full_200()
 
-    # 3) If-Range：存在且与当前强 ETag 不匹配 → 忽略 Range，回 200 全量。
+    # 4) If-Range：存在且与当前强 ETag 不匹配 → 忽略 Range，回 200 全量。
     #    （If-Range 亦可为 HTTP-date 形态；此处仅认强 ETag，其余一律保守回 200，
     #    不影响正确性，仅放弃该次 Range 优化。）
     if if_range is not None and _normalize_etag(if_range) != _normalize_etag(etag):
