@@ -22,9 +22,12 @@ const TERMINAL: ReadonlySet<string> = new Set(["succeeded", "failed", "cancelled
 export function RoutineGuardPanel({
   routine,
   iterations,
+  bare = false,
 }: {
   routine: RoutineDTO;
   iterations: RoutineIterationDTO[];
+  /** 抽屉内渲染：省去卡片外壳与标题（标题由抽屉头提供）。 */
+  bare?: boolean;
 }) {
   const now = useClock();
   const isTerminal = TERMINAL.has(routine.status);
@@ -78,10 +81,12 @@ export function RoutineGuardPanel({
   }, [isTerminal, iterRatio, costRatio, deadline, streak, routine.no_progress_patience]);
 
   return (
-    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">
-        守卫 / 预算 · Why will it stop?
-      </h3>
+    <section className={bare ? "" : "rounded-card border border-border bg-card p-4 shadow-sm"}>
+      {!bare && (
+        <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">
+          守卫 / 预算 · Why will it stop?
+        </h3>
+      )}
 
       {isTerminal ? (
         <div className="mb-3 rounded-lg border border-border bg-muted/40 p-2.5 text-body">

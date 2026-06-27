@@ -18,7 +18,14 @@ function head(text: string | null, n = 140): string {
  * Reflexion 记忆流 —— 把「迭代 N 的 reflection 注入迭代 N+1 的 prompt」这条反馈边显式化，
  * 是闭环之所以「自迭代」的关键。仅展示最近若干条以保持精炼。
  */
-export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO[] }) {
+export function ReflectionFlow({
+  iterations,
+  bare = false,
+}: {
+  iterations: RoutineIterationDTO[];
+  /** 抽屉内渲染：省去卡片外壳/标题/折叠,直接展开列表（标题由抽屉头提供）。 */
+  bare?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const asc = useMemo(() => [...iterations].sort((a, b) => a.seq - b.seq), [iterations]);
   const items = useMemo(() => {
@@ -30,37 +37,24 @@ export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO
   }, [asc]);
 
   if (items.length === 0) {
+    const empty = (
+      <p className="py-4 text-center text-sm text-text-secondary">暂无反思记录</p>
+    );
+    if (bare) return empty;
     return (
       <section className="rounded-card border border-border bg-card p-4 shadow-sm">
         <h3 className="mb-2 text-xs uppercase tracking-overline text-text-secondary">
           反思记忆流 · Reflexion
         </h3>
-        <p className="py-4 text-center text-sm text-text-secondary">暂无反思记录</p>
+        {empty}
       </section>
     );
   }
 
-  return (
-    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="group flex w-full items-center justify-between gap-2 text-xs uppercase tracking-overline text-text-secondary transition-colors hover:text-foreground"
-      >
-        <span>反思记忆流 · Reflexion（reflection → 下轮 prompt）</span>
-        <ChevronDown
-          aria-hidden="true"
-          className={cn(
-            "h-3.5 w-3.5 shrink-0 transition-transform duration-150",
-            expanded && "rotate-180",
-          )}
-        />
-      </button>
-      {expanded && (
-        <ol className="mt-3 space-y-3">
-          {items.map(({ it, next }) => (
-            <li key={it.id} className="rounded-lg border border-border p-2.5">
+  const list = (
+    <ol className="space-y-3">
+      {items.map(({ it, next }) => (
+        <li key={it.id} className="rounded-lg border border-border p-2.5">
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-semibold text-foreground">#{it.seq}</span>
                 {it.verdict && (
@@ -81,7 +75,28 @@ export function ReflectionFlow({ iterations }: { iterations: RoutineIterationDTO
             </li>
           ))}
         </ol>
-      )}
+  );
+
+  if (bare) return list;
+
+  return (
+    <section className="rounded-card border border-border bg-card p-4 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="group flex w-full items-center justify-between gap-2 text-xs uppercase tracking-overline text-text-secondary transition-colors hover:text-foreground"
+      >
+        <span>反思记忆流 · Reflexion（reflection → 下轮 prompt）</span>
+        <ChevronDown
+          aria-hidden="true"
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 transition-transform duration-150",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
+      {expanded && <div className="mt-3">{list}</div>}
     </section>
   );
 }
