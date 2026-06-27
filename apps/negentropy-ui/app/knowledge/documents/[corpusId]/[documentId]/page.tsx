@@ -6,7 +6,7 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "@/lib/activity-toast";
@@ -302,6 +302,23 @@ export default function DocumentDetailPage() {
   // 仅在 PDF 文档 + 选中 PDF 标签时渲染原文查看器；其余一律走 Markdown 分支。
   const showPdf = isPdf && viewMode === "pdf";
 
+  // PDF「意图预取」：默认视图是 Markdown 且多数用户不会点开 PDF，故不在挂载时预取
+  // （会让所有人白白下载整份 PDF）。改在用户对 PDF 标签产生意图（hover/focus）时，
+  // 用低优先级 `<link rel=prefetch>` 预热浏览器缓存一次，使随后点击近乎秒开。
+  // 后端已为预览端点补齐 ETag/Cache-Control，预取内容可被 `<object>` 命中复用。
+  const pdfPrefetchedRef = useRef(false);
+  const prefetchPdf = useCallback(() => {
+    if (pdfPrefetchedRef.current || !isPdf) return;
+    pdfPrefetchedRef.current = true;
+    const href = documentPreviewUrl(corpusId, documentId, { appName: requestAppName });
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.as = "document"; // 原生查看器以 document/object 加载，as=document 对齐缓存分区
+    link.href = href;
+    link.setAttribute("fetchpriority", "low"); // 不与首屏 markdown 资源争抢带宽
+    document.head.appendChild(link);
+  }, [isPdf, corpusId, documentId, requestAppName]);
+
   // ---- Render ----
 
   return (
@@ -351,6 +368,8 @@ export default function DocumentDetailPage() {
                 role="tab"
                 aria-selected={viewMode === "pdf"}
                 onClick={() => setViewMode("pdf")}
+                onPointerEnter={prefetchPdf}
+                onFocus={prefetchPdf}
                 className={`rounded-md px-3 py-1 transition-colors ${
                   viewMode === "pdf"
                     ? "bg-background text-foreground shadow-sm"

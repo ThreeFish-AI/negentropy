@@ -85,6 +85,41 @@ class BlobStorage(Protocol):
         """
         ...
 
+    async def get_size(self, uri: str) -> int | None:
+        """按 blob URI 返回对象字节数（不读取内容）。
+
+        用于 HTTP Range 协商：调用方据此计算 ``Content-Range`` / 裁剪区间，
+        无需先下载整块内容。
+
+        Args:
+            uri: ``pgblob://{key}`` URI。
+
+        Returns:
+            字节数；对象不存在返回 ``None``。
+
+        Raises:
+            StorageError: 查询失败。
+        """
+        ...
+
+    async def download_range(self, uri: str, start: int, length: int) -> bytes:
+        """按 blob URI 下载 ``[start, start+length)`` 字节切片。
+
+        仅读取所需切片（PostgreSQL ``substring``），避免大文件全量入内存。
+
+        Args:
+            uri: ``pgblob://{key}`` URI。
+            start: 0-based 起始偏移（含）。
+            length: 切片字节数（> 0）。
+
+        Returns:
+            切片字节（长度 ≤ ``length``，若越界则为可用部分）。
+
+        Raises:
+            StorageError: 下载失败 / 对象不存在。
+        """
+        ...
+
     async def delete(self, uri: str) -> None:
         """按 blob URI 删除对象（不存在视为成功，幂等）。
 

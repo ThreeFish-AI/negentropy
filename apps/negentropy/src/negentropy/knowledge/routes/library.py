@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 
 from negentropy.auth.deps import get_optional_user
 from negentropy.auth.service import AuthUser
@@ -262,11 +262,12 @@ async def delete_library_document(
 
 @router.get("/documents/{document_id}/download")
 async def download_library_document(
+    request: Request,
     document_id: UUID,
     app_name: str | None = Query(default=None),
 ):
-    """下载文档原始文件。"""
-    return await _download_document_impl(document_id=document_id, corpus_id=None, app_name=app_name)
+    """下载/预览库文档原始文件（支持 Range + 条件缓存）。"""
+    return await _download_document_impl(request=request, document_id=document_id, corpus_id=None, app_name=app_name)
 
 
 @router.post(

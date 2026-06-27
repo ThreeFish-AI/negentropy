@@ -45,9 +45,23 @@ export function DocumentPdfViewer({
         </a>
       </div>
 
-      <div className="h-[calc(100vh-240px)] min-h-[600px] w-full overflow-hidden rounded-lg border border-border bg-background">
-        {/* object（主）→ iframe（兜底）→ 链接（终极兜底） */}
-        <object data={src} type="application/pdf" aria-label={title} className="h-full w-full">
+      <div className="relative h-[calc(100vh-240px)] min-h-[600px] w-full overflow-hidden rounded-lg border border-border bg-background">
+        {/* 加载占位层（底层 z-0）：原生查看器渲染后其不透明背景会自然覆盖此层，
+            无需 JS 状态、无 `<object>` onLoad 跨浏览器不可靠导致的卡死风险。
+            aria-hidden 避免对读屏用户暴露装饰性 loading。 */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center gap-3 text-text-muted"
+        >
+          <svg className="h-6 w-6 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <p className="text-xs">正在加载 PDF…</p>
+        </div>
+
+        {/* object（主）→ iframe（兜底）→ 链接（终极兜底），层级置于占位层之上 */}
+        <object data={src} type="application/pdf" aria-label={title} className="relative z-10 h-full w-full">
           <iframe src={src} title={title} className="h-full w-full border-0">
             <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-text-muted">
               <p>当前浏览器无法内联预览此 PDF。</p>
