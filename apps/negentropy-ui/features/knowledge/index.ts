@@ -307,7 +307,6 @@ export { PipelineRunDetailPanel } from "./components/PipelineRunDetailPanel";
 export { KgRunDetailPanel } from "./components/KgRunDetailPanel";
 export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
 export { PipelineStagesBar } from "./components/PipelineStagesBar";
-export { DocumentViewDialog } from "./components/DocumentViewDialog";
 export { SeparatorsTextarea } from "./components/SeparatorsTextarea";
 export type { SeparatorsTextareaProps } from "./components/SeparatorsTextarea";
 

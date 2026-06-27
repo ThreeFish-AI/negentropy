@@ -29,6 +29,13 @@ import { Check, Pencil, X } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import {
+  tableBodyClassName,
+  tableContainerClassName,
+  tableHeaderClassName,
+  tableRowClassName,
+} from "@/components/ui/table-styles";
+import { cn } from "@/lib/utils";
 import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 import { ImportDocumentDialog } from "./_components/ImportDocumentDialog";
 
@@ -403,9 +410,9 @@ export default function DocumentsPage() {
               </button>
             </div>
           </div>
-          <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
+          <div className={cn(tableContainerClassName, "flex flex-1 flex-col")}>
             {/* 表头 */}
-            <div className="flex items-center px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
+            <div className={cn("flex items-center", tableHeaderClassName)}>
               <div className="w-8 shrink-0 flex justify-center">
                 <input
                   type="checkbox"
@@ -417,14 +424,14 @@ export default function DocumentsPage() {
                 />
               </div>
               <div className="grid grid-cols-13 gap-2 flex-1">
-                <div className="col-span-3 text-center border-r border-border">File Name</div>
-                <div className="col-span-1 text-center border-r border-border">Size</div>
-                <div className="col-span-1 text-center border-r border-border">File Hash</div>
-                <div className="col-span-2 text-center border-r border-border">Corpus</div>
-                <div className="col-span-2 text-center border-r border-border">Translation</div>
-                <div className="col-span-1 text-center border-r border-border">Created By</div>
-                <div className="col-span-1 text-center border-r border-border">Created At</div>
-                <div className="col-span-1 text-center border-r border-border">Updated At</div>
+                <div className="col-span-3 text-center">File Name</div>
+                <div className="col-span-1 text-center">Size</div>
+                <div className="col-span-1 text-center">File Hash</div>
+                <div className="col-span-2 text-center">Corpus</div>
+                <div className="col-span-2 text-center">Translation</div>
+                <div className="col-span-1 text-center">Created By</div>
+                <div className="col-span-1 text-center">Created At</div>
+                <div className="col-span-1 text-center">Updated At</div>
                 <div className="col-span-1 text-center">Actions</div>
               </div>
             </div>
@@ -442,11 +449,11 @@ export default function DocumentsPage() {
                   No documents uploaded yet
                 </div>
               ) : (
-                <div className="divide-y divide-border">
+                <div className={tableBodyClassName}>
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="group flex items-center px-4 py-3 text-sm hover:bg-muted/30 transition-colors"
+                      className={cn("group flex items-center text-sm", tableRowClassName)}
                     >
                       {/* 勾选 - 固定宽 */}
                       <div className="w-8 shrink-0 flex justify-center">
