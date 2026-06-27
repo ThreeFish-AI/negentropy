@@ -9,6 +9,7 @@ Phase 4 内置 handler 清单：
 - ``agent_inspection``      — 24/7 自驱 Agent 巡检最小骨架
 - ``memory_automation``     — 仿生记忆自动化三作业统一入口
 - ``claude_code``           — Claude Code 任务执行
+- ``pdf_fidelity_patrol``   — PDF→Markdown 高保真自拟合巡检（1h 节奏权威）
 
 每个 handler 是 ``async def fn(task) -> HandlerResult``，由
 ``ScheduledTaskRegistry.dispatch`` 调用。
@@ -165,6 +166,7 @@ def _bootstrap_default_handlers() -> None:
         "memory_automation",
         "claude_code",
         "routine_inspector",
+        "pdf_fidelity_patrol",
     ):
         try:
             __import__(f"negentropy.engine.schedulers.handlers.{module_name}")
