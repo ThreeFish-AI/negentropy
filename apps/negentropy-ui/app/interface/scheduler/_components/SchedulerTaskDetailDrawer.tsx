@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { fetchTaskDetail } from "@/features/scheduler";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
+import { patrolReasonLabel, patrolReasonStyle } from "@/features/scheduler/patrol-reason";
 import { fetchRoutines } from "@/features/routine";
 import type { RoutineDTO } from "@/features/routine";
 
@@ -60,18 +62,36 @@ const ROUTINE_STATUS_STYLE: Record<string, string> = {
  * 派生 Routine 面板：按 config.source_task_key 拉取本任务派生的 Routine（如巡检），
  * 每行深链到 /interface/routine?sel=<id>（Routine 详情抽屉，含迭代/事件/评分/PR 全历史）。
  */
-function SpawnedRoutinesSection({ taskKey }: { taskKey: string }) {
+function SpawnedRoutinesSection({ taskKey, taskId }: { taskKey: string; taskId: string }) {
   const [routines, setRoutines] = useState<RoutineDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [skipReason, setSkipReason] = useState<string | null>(null);
+  const [skipTime, setSkipTime] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     // 注：不在此同步 setLoading/setError（触发 react-hooks/set-state-in-effect）；
     // 改由外层 <SpawnedRoutinesSection key={taskKey} /> 每任务重挂载、初始 loading=true。
     fetchRoutines({ source_task_key: taskKey, is_template: false })
-      .then((res) => {
-        if (!cancelled) setRoutines(res.items);
+      .then(async (res) => {
+        if (cancelled) return;
+        setRoutines(res.items);
+        // 空态：拉任务详情取最近一次执行的跳过原因，避免泛泛「暂无」（不 silent ok）。
+        if (res.items.length === 0) {
+          try {
+            const detail = await fetchTaskDetail(taskId);
+            if (cancelled) return;
+            const latest = detail.recent_executions?.[0];
+            const reason = latest?.metrics?.reason;
+            if (typeof reason === "string") {
+              setSkipReason(reason);
+              setSkipTime(latest?.started_at ?? null);
+            }
+          } catch {
+            // 任务详情拉取失败不阻塞派生面板主流程
+          }
+        }
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -82,7 +102,7 @@ function SpawnedRoutinesSection({ taskKey }: { taskKey: string }) {
     return () => {
       cancelled = true;
     };
-  }, [taskKey]);
+  }, [taskKey, taskId]);
 
   return (
     <section>
@@ -95,9 +115,24 @@ function SpawnedRoutinesSection({ taskKey }: { taskKey: string }) {
         ) : error ? (
           <p className="text-micro text-red-600 dark:text-red-400 px-1 py-1.5">加载失败：{error}</p>
         ) : routines.length === 0 ? (
-          <p className="text-micro text-muted-foreground px-1 py-1.5">
-            暂无派生 Routine（任务触发后将在此列出，点击直达 Routine 详情全历史）。
-          </p>
+          <div className="px-1 py-1.5 space-y-1">
+            {patrolReasonLabel(skipReason) ? (
+              <p className="text-micro text-muted-foreground">
+                最近未派生 Routine：
+                <span
+                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold mx-1 align-middle ${patrolReasonStyle(skipReason)}`}
+                >
+                  {patrolReasonLabel(skipReason)}
+                </span>
+                {skipTime && <span>（{new Date(skipTime).toLocaleString()}）</span>}
+              </p>
+            ) : (
+              <p className="text-micro text-muted-foreground">暂无派生 Routine（任务触发后将在此列出）。</p>
+            )}
+            <p className="text-micro text-muted-foreground/70">
+              点击派生 Routine 直达其详情全历史（迭代 / 事件 / 评分 / PR）。
+            </p>
+          </div>
         ) : (
           routines.map((r) => (
             <a
@@ -307,7 +342,7 @@ export function SchedulerTaskDetailDrawer({
           </section>
 
           {/* 派生 Routine：本任务派生的 Routine（如巡检），深链到 Routine 详情全历史 */}
-          <SpawnedRoutinesSection key={task.key} taskKey={task.key} />
+          <SpawnedRoutinesSection key={task.key} taskKey={task.key} taskId={task.id} />
         </div>
 
         {/* Footer */}

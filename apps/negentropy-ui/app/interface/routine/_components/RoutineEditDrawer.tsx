@@ -616,6 +616,13 @@ export function RoutineEditDrawer({
     }
   })();
 
+  // 反向链接：派生自 Scheduler 任务（config.source_task_key，如 pdf_fidelity_patrol）。
+  const sourceTaskKey =
+    mode.kind === "routine-edit"
+      ? (mode.routine.config as Record<string, unknown> | undefined)?.source_task_key
+      : undefined;
+  const sourceTaskKeyStr = typeof sourceTaskKey === "string" ? sourceTaskKey : null;
+
   /* ── 样式常量 ── */
   const inputCls =
     "w-full rounded-control border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-text-muted focus:border-border focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
@@ -654,7 +661,19 @@ export function RoutineEditDrawer({
             )}
           </div>
         }
-        subtitle={subtitle}
+        subtitle={
+          <>
+            {subtitle}
+            {sourceTaskKeyStr && (
+              <a
+                href={`/interface/scheduler?task_key=${encodeURIComponent(sourceTaskKeyStr)}`}
+                className="ml-2 inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                派生自 Scheduler：{sourceTaskKeyStr} →
+              </a>
+            )}
+          </>
+        }
         onClose={() => void requestClose()}
         closeOnBackdrop={!loading}
         closeOnEscape={false}

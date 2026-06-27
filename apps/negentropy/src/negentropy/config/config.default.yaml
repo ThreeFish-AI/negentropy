@@ -209,6 +209,16 @@ routine:
   git_remote: origin                         # fetch / PR base 归一所用 git 远端名
   git_fetch_before_worktree: true            # 建 worktree 前 best-effort git fetch（带超时，失败不阻断）
   git_timeout_seconds: 120                   # 单条 git 子命令执行超时（秒）
+  # --- pdf-fidelity-patrol 巡检（#978）---
+  # 部署期默认开启：enabled 的种子任务真正每 1h 派生 Routine（routine.enabled 已 true）。
+  # 缺凭证/可解析仓库/已转换 PDF 文档时，Routine 创建后失败或 handler 跳过，原因写入
+  # task_executions.metrics.reason 并在 Scheduler UI 醒目展示（不 silent ok）。
+  patrol_enabled: true                       # 巡检总开关（与 routine.enabled 同范式；Field 默认 False，YAML 覆盖为 true）
+  patrol_repo_local_path: null               # null → 运行期从 negentropy 包路径自动推导仓库根；不可解析时报 repo_not_configured
+  patrol_baseline_branch: "origin/feature/1.x.x"
+  patrol_input_dir: "/tmp/negentropy-patrol"  # 源 PDF 暂存 + 候选 Markdown 输出根
+  patrol_max_iterations_per_doc: 8           # 单文档巡检 Routine 迭代硬上限
+  patrol_regression_sample_size: 6           # 非回归基线样本数
 
 # --- Knowledge 配置 ---
 knowledge:
