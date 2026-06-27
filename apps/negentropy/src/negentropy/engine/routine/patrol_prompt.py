@@ -79,11 +79,13 @@ Markdown 形态拟合到与源 PDF 视觉完全一致（满分 100）。你以**
   `apps/negentropy-perceives/` 下相应处理逻辑模块做**最小修改**（优先候选：\
   `pipeline/stages/pdf/*`、`pipeline/engine_selector.py`、`pipeline/batch_merge.py`、\
   后处理 / `ops/pdf.py`；必要时渲染层 `apps/negentropy-ui` 的 DocumentMarkdownRenderer / sanitize）。
-- 改完在 worktree 内重转产生候选 Markdown（**候选只落指定候选路径，绝不写生产**）：
+- 改完在 worktree（monorepo 根）内重转产生候选 Markdown（**候选只落指定候选路径，绝不写生产**）：
   ```
-  uv sync --quiet 2>/dev/null; uv run perceives parse-pdf "<source_pdf_path>" \\
-    -o "<candidate_md_path>" --method auto --extract-images --extract-tables --extract-formulas
+  uv run --project apps/negentropy-perceives perceives parse-pdf "<source_pdf_path>" \\
+    -o "<candidate_md_path>" --method auto
   ```
+  （图片/表格/公式**默认全部提取**；CLI 无 --extract-* 正向开关，仅 --no-images/--no-tables/--no-formulas。
+  worktree 是 monorepo 根，须 ``--project apps/negentropy-perceives`` 才能解析 ``perceives`` 入口。）
 - 把候选交回 Contemplation 再评分（本循环回到步骤 1）。
 
 ### 3. InternalizationFaculty（内化系部 · 记忆）
