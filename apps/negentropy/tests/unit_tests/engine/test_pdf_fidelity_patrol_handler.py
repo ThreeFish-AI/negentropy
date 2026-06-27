@@ -132,3 +132,36 @@ def test_select_regression_sample_shape():
     db = _FakeDB(fetchall=[("s1",), ("s2",), ("s3",)])
     sample = asyncio.run(patrol._select_regression_sample(db, size=3))
     assert sample == ["s1", "s2", "s3"]
+
+
+# ---------------------------------------------------------------------------
+# handler 禁用门控 → 结构化 metrics.reason（根因：patrol_enabled 默认 False 致 silent no-op）
+# ---------------------------------------------------------------------------
+
+
+def test_handler_disabled_gates_return_reason(monkeypatch):
+    """禁用门控（routine_enabled / patrol_enabled）必须在 metrics.reason 体现，不再 silent ok。"""
+    import asyncio
+    from types import SimpleNamespace
+
+    task = SimpleNamespace(key="pdf_fidelity_patrol")
+
+    # routine 子系统禁用
+    monkeypatch.setattr(
+        patrol,
+        "settings",
+        SimpleNamespace(routine=SimpleNamespace(enabled=False, patrol_enabled=True)),
+    )
+    r1 = asyncio.run(patrol.pdf_fidelity_patrol_handler(task))
+    assert r1.status == "ok"
+    assert r1.metrics["reason"] == "routine_disabled"
+
+    # 巡检禁用（部署期 patrol_enabled 默认 False 的根因路径）
+    monkeypatch.setattr(
+        patrol,
+        "settings",
+        SimpleNamespace(routine=SimpleNamespace(enabled=True, patrol_enabled=False)),
+    )
+    r2 = asyncio.run(patrol.pdf_fidelity_patrol_handler(task))
+    assert r2.status == "ok"
+    assert r2.metrics["reason"] == "patrol_disabled"

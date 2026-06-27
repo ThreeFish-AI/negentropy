@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/nav-styles";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { ExecutionStatus, TaskExecutionDTO } from "@/features/scheduler";
+import { patrolReasonLabel, patrolReasonStyle } from "@/features/scheduler/patrol-reason";
 
 interface SchedulerExecutionPanelProps {
   executions: TaskExecutionDTO[];
@@ -199,12 +200,23 @@ export function SchedulerExecutionPanel({
                     {formatDuration(e.duration_ms)}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">{e.fire_reason}</td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-[240px]">
+                  <td className="px-3 py-2 text-muted-foreground max-w-[260px]">
                     {e.error ? (
                       <span className="text-red-600 dark:text-red-400 truncate block">{e.error}</span>
                     ) : (
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="truncate block">{e.output_summary ?? "—"}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {patrolReasonLabel(e.metrics?.reason) && (
+                            <span
+                              className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-semibold shrink-0 ${patrolReasonStyle(
+                                e.metrics?.reason,
+                              )}`}
+                            >
+                              {patrolReasonLabel(e.metrics?.reason)}
+                            </span>
+                          )}
+                          <span className="truncate block">{e.output_summary ?? "—"}</span>
+                        </div>
                         <SpawnedRoutineLink metrics={e.metrics} />
                       </div>
                     )}

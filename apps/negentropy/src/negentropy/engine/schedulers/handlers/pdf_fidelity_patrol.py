@@ -71,9 +71,15 @@ register_descriptor(
 async def pdf_fidelity_patrol_handler(task: ScheduledTask) -> HandlerResult:
     """单次巡检 tick。"""
     if not settings.routine.enabled:
-        return HandlerResult(status="ok", output_summary="routine subsystem disabled")
+        return HandlerResult(
+            status="ok", output_summary="routine subsystem disabled", metrics={"reason": "routine_disabled"}
+        )
     if not settings.routine.patrol_enabled:
-        return HandlerResult(status="ok", output_summary="patrol disabled (settings.routine.patrol_enabled)")
+        return HandlerResult(
+            status="ok",
+            output_summary="patrol disabled (settings.routine.patrol_enabled)",
+            metrics={"reason": "patrol_disabled"},
+        )
 
     try:
         return await _run_patrol_tick(task_key=task.key)
@@ -100,6 +106,7 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
                     "patrol repo not configured: set NE_ROUTINE_PATROL_REPO_LOCAL_PATH "
                     "to a valid negentropy checkout, or register via Interface/Repositories"
                 ),
+                metrics={"reason": "repo_not_configured"},
             )
         finalized = await _finalize_terminal_patrols(db)
         await db.commit()
@@ -110,7 +117,7 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
             return HandlerResult(
                 status="ok",
                 output_summary="patrol in progress, skipped",
-                metrics={"finalized": finalized},
+                metrics={"reason": "in_progress", "finalized": finalized},
             )
 
     # 选下一份待检 PDF
@@ -124,7 +131,7 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
         return HandlerResult(
             status="ok",
             output_summary="no pending PDF documents",
-            metrics={"finalized": finalized},
+            metrics={"reason": "no_pending_docs", "finalized": finalized},
         )
 
     # 预取源 PDF（blob IO，独立于 DB 事务）
@@ -133,7 +140,11 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
         source_pdf_path, source_read_dir = await _stage_source_pdf(doc_id=doc_id, uri=doc["content_uri"])
     except Exception as exc:
         logger.warning("patrol_stage_source_pdf_failed", doc_id=doc_id, error=str(exc))
-        return HandlerResult(status="failed", error=f"stage source pdf failed: {exc}", metrics={"doc_id": doc_id})
+        return HandlerResult(
+            status="failed",
+            error=f"stage source pdf failed: {exc}",
+            metrics={"reason": "stage_source_pdf_failed", "doc_id": doc_id},
+        )
 
     # 确保回归基线集 + 创建并启动巡检 Routine
     async with AsyncSessionLocal() as db:
@@ -159,7 +170,12 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
     return HandlerResult(
         status="ok",
         output_summary=f"patrol started: doc={doc_id} ({doc['original_filename']})",
-        metrics={"doc_id": doc_id, "routine_id": str(routine_id), "finalized": finalized},
+        metrics={
+            "reason": "spawned",
+            "doc_id": doc_id,
+            "routine_id": str(routine_id),
+            "finalized": finalized,
+        },
     )
 
 

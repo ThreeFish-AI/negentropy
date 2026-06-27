@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { DashboardFilters, ScheduledTaskDTO, TaskWritePayload } from "@/features/scheduler";
@@ -56,6 +56,17 @@ export default function SchedulerPage() {
   } = useSchedulerData(filters);
 
   const { connected } = useSchedulerStream({ onExecution: pushExecution });
+
+  // 反向深链：?task_key=<key> 打开指定任务详情抽屉（来自 Routine 详情「派生自 Scheduler」回链）。
+  // 用 window.location.search（client-only effect）规避 useSearchParams 的 Suspense 边界要求。
+  useEffect(() => {
+    if (selectedTask || tasks.length === 0) return;
+    const key = new URLSearchParams(window.location.search).get("task_key");
+    if (!key) return;
+    const found = tasks.find((t) => t.key === key);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 由 URL ?task_key 同步选中态（外部源，仅首次命中）
+    if (found) setSelectedTask(found);
+  }, [tasks, selectedTask]);
 
   // ---- Existing handlers ----
 

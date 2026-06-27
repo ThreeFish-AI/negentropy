@@ -57,4 +57,27 @@ describe("SchedulerExecutionPanel — 派生 Routine 深链（metrics.routine_id
     expect(screen.queryByText(/派生 Routine/)).toBeNull();
     expect(screen.getByText("boom")).toBeInTheDocument();
   });
+
+  it("metrics.reason 存在时渲染跳过原因徽标（取代 silent ok）", () => {
+    render(
+      <SchedulerExecutionPanel
+        executions={[baseExec({ metrics: { reason: "no_pending_docs" } })]}
+        loading={false}
+      />,
+    );
+    expect(screen.getByText("无待检 PDF 文档")).toBeInTheDocument();
+  });
+
+  it("metrics.reason=spawned 渲染「已派生 Routine」徽标 + 派生链接", () => {
+    render(
+      <SchedulerExecutionPanel
+        executions={[baseExec({ metrics: { reason: "spawned", routine_id: "r-1", doc_id: "d-1" } })]}
+        loading={false}
+      />,
+    );
+    expect(screen.getByText("已派生 Routine")).toBeInTheDocument();
+    // 同时存在「派生 Routine →」深链（用 role=link 精确定位，避开徽标文本）
+    const link = screen.getByRole("link", { name: /派生 Routine/ });
+    expect(link.getAttribute("href")).toBe("/interface/routine?sel=r-1");
+  });
 });
