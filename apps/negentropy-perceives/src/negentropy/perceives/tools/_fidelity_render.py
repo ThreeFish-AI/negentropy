@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 from pathlib import Path
 from typing import Any
@@ -152,10 +153,9 @@ async def render_markdown_html_to_png(
             )
             await page.goto(html_uri, wait_until="load")
             # networkidle 等待 CDN（KaTeX/hljs）尽力加载；超时不阻断（离线回退原文）。
-            try:
+            # 用 contextlib.suppress 代替 try/except: pass，规避 bandit B110（CWE-703）。
+            with contextlib.suppress(Exception):
                 await page.wait_for_load_state("networkidle", timeout=8000)
-            except Exception:  # noqa: BLE001
-                pass
             await page.screenshot(path=str(png_path), full_page=True)
         finally:
             await browser.close()
