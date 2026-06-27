@@ -145,8 +145,12 @@
   --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-out) both;
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;
 
-  --font-sans: var(--font-geist-sans), "PingFang SC", "Noto Sans SC", "Microsoft YaHei",
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* 中英混排字族（参考 Ant Design font-cn 规范）：
+   * 拉丁优先 Geist，CJK 依次回退 PingFang SC（新版 macOS）→ Hiragino Sans GB（旧版 macOS）
+   * → Noto/Source Han Sans SC（Linux/Web）→ Microsoft YaHei（Windows），再回退系统默认。 */
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Hiragino Sans GB",
+    "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), "JetBrains Mono", "Fira Code", ui-monospace,
     SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -246,6 +250,9 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1, "liga" 1;
   font-variant-ligatures: common-ligatures;
+  /* 禁用合成字形：CJK 缺少对应字重时，浏览器会「假粗体/假斜体」导致边缘糊化；
+   * 强制仅用真实字形（PingFang/Noto 等具备 400/500/600 真字重），保证中文锐利。 */
+  font-synthesis: none;
   /* 全局正文行高/字间距基线。
    * 行高用「无单位」比值：body 字号 16px 时解析为 22px（与原绝对值同效，保持排版节奏），
    * 且后代元素按各自字号缩放，避免绝对 rem 被 text-[10px] 等任意小字号继承为固定 22px 行距

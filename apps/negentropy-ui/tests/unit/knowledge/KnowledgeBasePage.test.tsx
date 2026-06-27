@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
@@ -23,6 +24,7 @@ import {
 
 const {
   replaceMock,
+  pushMock,
   useKnowledgeBaseMock,
   deleteCorpusMock,
   deleteDocumentMock,
@@ -35,7 +37,6 @@ const {
   updateDocumentChunkMock,
   regenerateDocumentChunkFamilyMock,
   searchAcrossCorporaMock,
-  documentViewDialogMock,
   fetchMock,
   syncDocumentMock,
   rebuildDocumentMock,
@@ -45,6 +46,7 @@ const {
   downloadDocumentMock,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
+  pushMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
   deleteCorpusMock: vi.fn(),
   deleteDocumentMock: vi.fn(),
@@ -56,7 +58,6 @@ const {
   updateDocumentChunkMock: vi.fn(),
   regenerateDocumentChunkFamilyMock: vi.fn(),
   searchAcrossCorporaMock: vi.fn(),
-  documentViewDialogMock: vi.fn(),
   fetchMock: vi.fn(),
   syncDocumentMock: vi.fn(),
   rebuildDocumentMock: vi.fn(),
@@ -75,6 +76,7 @@ const loadCorporaMock = vi.fn();
 const updateCorpusMock = vi.fn();
 const localMocks: KnowledgeBasePageLocalMocks = {
   replaceMock,
+  pushMock,
   useKnowledgeBaseMock,
   loadCorpusMock,
   loadCorporaMock,
@@ -89,7 +91,6 @@ const localMocks: KnowledgeBasePageLocalMocks = {
   updateDocumentChunkMock,
   regenerateDocumentChunkFamilyMock,
   searchAcrossCorporaMock,
-  documentViewDialogMock,
   fetchMock,
   syncDocumentMock,
   rebuildDocumentMock,
@@ -101,9 +102,22 @@ const localMocks: KnowledgeBasePageLocalMocks = {
 };
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: replaceMock }),
+  useRouter: () => ({ replace: replaceMock, push: pushMock }),
   usePathname: () => "/knowledge/base",
   useSearchParams: () => new URLSearchParams(searchParamsState.value),
+}));
+
+// AnimatedList 依赖 framer-motion 的 useReducedMotion（需 window.matchMedia），
+// 测试环境（jsdom）未提供该 API；与既有约定一致（如 TiltedCard）以哑组件替身渲染，
+// 直接透传 children 与布局 className，保证内容与断言不受动画包裹影响。
+vi.mock("@/components/ui/AnimatedList", () => ({
+  AnimatedList: ({
+    children,
+    className,
+  }: {
+    children: ReactNode;
+    className?: string;
+  }) => <div className={className}>{children}</div>,
 }));
 
 vi.mock("sonner", () => ({
@@ -148,17 +162,6 @@ vi.mock("@/features/knowledge", async () => {
 
   return createKnowledgeFeatureTestHarness(knowledgeMocks, {
       useKnowledgeBase: (...args: unknown[]) => useKnowledgeBaseMock(...args),
-      DocumentViewDialog: ({
-        isOpen,
-        document,
-      }: {
-        isOpen: boolean;
-        document: { original_filename: string } | null;
-      }) => {
-        documentViewDialogMock({ isOpen, document });
-        if (!isOpen || !document) return null;
-        return <div>Viewing {document.original_filename}</div>;
-      },
     },
   ).exports;
 });
@@ -329,7 +332,7 @@ describe("KnowledgeBasePage", () => {
     expect(contentScroll.className).toContain("flex-1");
   });
 
-  it("点击 View 会打开文档预览弹窗，而不是跳到 chunks 视图", async () => {
+  it("点击 View 会跳转到独立文档详情页并携带 from 返回路径，而不是跳到 chunks 视图", async () => {
     const user = userEvent.setup();
 
     render(<KnowledgeBasePage />);
@@ -340,11 +343,18 @@ describe("KnowledgeBasePage", () => {
 
     await user.click(screen.getByRole("button", { name: "View" }));
 
-    expect(screen.getByText("Viewing Context Engineering.pdf")).toBeInTheDocument();
-    expect(fetchDocumentChunksMock).not.toHaveBeenCalled();
-    expect(replaceMock).not.toHaveBeenCalledWith(
-      expect.stringContaining("tab=document-chunks"),
+    const corpusId = "11111111-1111-1111-1111-111111111111";
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    const target = String(pushMock.mock.calls[0][0]);
+    expect(target).toContain(`/knowledge/documents/${corpusId}/doc-1`);
+    expect(target).toContain(
+      `from=${encodeURIComponent(
+        `/knowledge/base?view=corpus&corpusId=${corpusId}&tab=documents`,
+      )}`,
     );
+    // 跳转不改变当前 tab，故不会触发 chunks 拉取，也不残留弹窗预览文案。
+    expect(fetchDocumentChunksMock).not.toHaveBeenCalled();
+    expect(screen.queryByText(/^Viewing /)).not.toBeInTheDocument();
   });
 
   it("点击文档标题仍然进入 document-chunks 视图", async () => {
@@ -786,8 +796,9 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Original filename").className).toContain("text-sm");
     expect(screen.getByText("Context Engineering.pdf").tagName).toBe("DD");
     expect(screen.getByText("Context Engineering.pdf").className).toContain("font-medium");
-    expect(screen.queryByText("Open")).not.toBeInTheDocument();
-    expect(screen.queryByText("doc://alpha")).not.toBeInTheDocument();
+    // 卡片向 Retrieve 基线收敛：恢复底部来源区（source + Open），不再隐藏 footer。
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getByText("doc://alpha")).toBeInTheDocument();
     expect(within(sidebar).getByRole("button", { name: "Documents" })).toBeInTheDocument();
     expect(within(sidebar).getByRole("button", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Documents" })).toHaveLength(1);

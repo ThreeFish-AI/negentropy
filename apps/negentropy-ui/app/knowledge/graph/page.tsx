@@ -76,6 +76,10 @@ const GraphCanvas3D = dynamic(
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
+// 图谱页默认聚焦的语料库名称；列表中命中则默认选中并加载其图谱，
+// 未命中时回退到列表第一个（见 CorpusSelector 的 defaultCorpusName 逻辑）。
+const DEFAULT_GRAPH_CORPUS_NAME = "Harness Engineering";
+
 const PANEL_DEFS = [
   { key: "model-config" as const, label: "模型设置" },
   { key: "global-search" as const, label: "全局问答" },
@@ -484,7 +488,12 @@ export default function KnowledgeGraphPage() {
               {/* Toolbar — 三段式：左 CorpusSelector / 中 SearchBar / 右 viewTab+渲染器+构建按钮+Pill */}
               <div className="flex items-center gap-3">
                 {/* 左 */}
-                <CorpusSelector value={corpusId} onChange={setCorpusId} onCorporaLoaded={setCorpora} />
+                <CorpusSelector
+                  value={corpusId}
+                  onChange={setCorpusId}
+                  onCorporaLoaded={setCorpora}
+                  defaultCorpusName={DEFAULT_GRAPH_CORPUS_NAME}
+                />
 
                 {/* 中（仅图谱视图 + 已选语料库时显示）*/}
                 <div className="flex-1 min-w-0 flex justify-center">

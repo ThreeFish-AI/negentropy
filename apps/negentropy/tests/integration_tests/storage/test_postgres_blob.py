@@ -50,6 +50,33 @@ class TestUploadDownload:
             await storage.download("pgblob://knowledge/nonexistent/key")
 
 
+class TestRangeReads:
+    """``get_size`` / ``download_range``（HTTP Range 部分读）。"""
+
+    async def test_get_size_matches_content_length(self, storage):
+        content = bytes(range(256)) * 4  # 1024 字节
+        uri = await storage.upload(content, "knowledge/app/c/size.bin")
+        assert await storage.get_size(uri) == len(content)
+
+    async def test_get_size_missing_returns_none(self, storage):
+        assert await storage.get_size("pgblob://knowledge/missing/size.bin") is None
+
+    async def test_download_range_byte_exact(self, storage):
+        # 用 0x00..0xff 全字节序列证明按字节精确（非文本化、非编码错位）。
+        content = bytes(range(256)) * 4  # 1024 字节
+        uri = await storage.upload(content, "knowledge/app/c/range.bin")
+        # 起始
+        assert await storage.download_range(uri, 0, 100) == content[0:100]
+        # 中段
+        assert await storage.download_range(uri, 500, 123) == content[500:623]
+        # 尾部
+        assert await storage.download_range(uri, len(content) - 10, 10) == content[-10:]
+
+    async def test_download_range_missing_raises(self, storage):
+        with pytest.raises(StorageError):
+            await storage.download_range("pgblob://knowledge/missing/range.bin", 0, 10)
+
+
 class TestDeleteAndExists:
     async def test_exists_true_after_upload(self, storage):
         await storage.upload(b"data", "knowledge/app/c/exists.bin")

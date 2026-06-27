@@ -895,3 +895,14 @@ class DocumentStorageService:
             StorageError: If blob download fails
         """
         return await self._get_blob().download(content_uri)
+
+    async def get_blob_size_by_uri(self, content_uri: str) -> int | None:
+        """按 blob URI 返回字节数（用于 HTTP Range 协商，不取 content）。
+
+        路由层已持有 ``doc.content_uri``，经此直通避免重复 ``get_document``。
+        """
+        return await self._get_blob().get_size(content_uri)
+
+    async def download_blob_range_by_uri(self, content_uri: str, start: int, length: int) -> bytes:
+        """按 blob URI 下载 ``[start, start+length)`` 字节切片（HTTP 206 用）。"""
+        return await self._get_blob().download_range(content_uri, start, length)
