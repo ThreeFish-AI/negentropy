@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import type { DashboardFilters, ScheduledTaskDTO, TaskWritePayload } from "@/features/scheduler";
 import { runTaskNow, toggleTaskEnabled, createTask, updateTask, deleteTask } from "@/features/scheduler/api";
 import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
+import { Pagination } from "@/components/ui/Pagination";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 import { useSchedulerData } from "@/app/(home)/dashboard/_hooks/useSchedulerData";
@@ -29,6 +30,29 @@ const DEFAULT_FILTERS: DashboardFilters = {
   category: null,
   window: "24h",
 };
+
+const PAGE_SIZE = 10;
+
+/** 解析 last_fire_at 为毫秒；无值/非法返回 null（用于沉底）。 */
+function lastFireMs(t: ScheduledTaskDTO): number | null {
+  if (!t.last_fire_at) return null;
+  const ms = Date.parse(t.last_fire_at);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/** 按 Last（上次触发）时间倒序；从未触发(null)沉底，id 兜底稳定排序。 */
+function compareByLastFireDesc(a: ScheduledTaskDTO, b: ScheduledTaskDTO): number {
+  const ta = lastFireMs(a);
+  const tb = lastFireMs(b);
+  if (ta != null && tb != null) {
+    if (tb !== ta) return tb - ta;
+  } else if (ta != null) {
+    return -1;
+  } else if (tb != null) {
+    return 1;
+  }
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
 
 export default function SchedulerPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "executions" | "stats">("tasks");
@@ -56,6 +80,16 @@ export default function SchedulerPage() {
   } = useSchedulerData(filters);
 
   const { connected } = useSchedulerStream({ onExecution: pushExecution });
+
+  // ---- Tasks 排序 + 分页（镜像 Routine：排序 → totalPages/safePage → 切片）----
+  const [page, setPage] = useState(1);
+  const sortedTasks = useMemo(() => [...tasks].sort(compareByLastFireDesc), [tasks]);
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageTasks = useMemo(
+    () => sortedTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [sortedTasks, safePage],
+  );
 
   // 反向深链：?task_key=<key> 打开指定任务详情抽屉（来自 Routine 详情「派生自 Scheduler」回链）。
   // 用 window.location.search（client-only effect）规避 useSearchParams 的 Suspense 边界要求。
@@ -172,16 +206,36 @@ export default function SchedulerPage() {
           {error && <ErrorBanner message={error} />}
 
           <SchedulerKpiStrip kpis={kpis} loading={loading} />
-          <SchedulerFilterBar filters={filters} tasks={tasks} onFiltersChange={setFilters} />
+          <SchedulerFilterBar
+            filters={filters}
+            tasks={tasks}
+            onFiltersChange={(f) => {
+              setFilters(f);
+              setPage(1);
+            }}
+          />
 
           {activeTab === "tasks" && (
-            <SchedulerTaskTable
-              tasks={tasks}
-              loading={loading}
-              onToggle={handleToggle}
-              onRun={handleRun}
-              onSelect={setSelectedTask}
-            />
+            <>
+              <SchedulerTaskTable
+                tasks={pageTasks}
+                total={sortedTasks.length}
+                loading={loading}
+                onToggle={handleToggle}
+                onRun={handleRun}
+                onSelect={setSelectedTask}
+              />
+              {sortedTasks.length > 0 && (
+                <Pagination
+                  page={safePage}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  total={sortedTasks.length}
+                  itemLabel="task"
+                  disabled={loading}
+                />
+              )}
+            </>
           )}
 
           {activeTab === "executions" && (
