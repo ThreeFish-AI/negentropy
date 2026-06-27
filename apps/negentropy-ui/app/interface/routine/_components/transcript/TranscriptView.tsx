@@ -13,10 +13,40 @@ import { ExpandableToolCallRow } from "./ExpandableToolCallRow";
 import { LucideGlyph } from "./Icon";
 import { normalizeTranscript } from "./normalize-transcript";
 import { PayloadDetail } from "./PayloadDetail";
+import type { TranscriptItem } from "./types";
+
+/** 发言人侧：engine 居右（驱动方/人），其余（assistant/tool/system/truncated）居左（执行方/机）。 */
+function speaker(item: TranscriptItem): "cc" | "engine" {
+  return item.kind === "engine" ? "engine" : "cc";
+}
+
+/** turn 间距节奏（单一事实源）：换方 16px、连续工具行 4px、其余同方 8px、首项无间距。 */
+function gapClass(item: TranscriptItem, prev: TranscriptItem | null): string {
+  if (!prev) return "";
+  if (speaker(item) !== speaker(prev)) return "mt-4";
+  if (item.kind === "tool" && prev.kind === "tool") return "mt-1";
+  return "mt-2";
+}
+
+/** 按 kind 分发渲染单项（key 与对齐/间距由外层 wrapper 统一处理）。 */
+function renderItem(item: TranscriptItem) {
+  switch (item.kind) {
+    case "assistant":
+      return <AssistantText item={item} />;
+    case "tool":
+      return <ExpandableToolCallRow item={item} />;
+    case "engine":
+      return <EngineMessageBlock item={item} />;
+    case "system":
+      return <SystemRow event={item.event} />;
+    case "truncated":
+      return <TruncatedRow title={item.title} />;
+  }
+}
 
 /**
- * paseo 风格扁平转录流：Claude Code 的 assistant 文本 + 紧凑工具调用行，
- * 与 Negentropy Engine 消息块按 seq 时序交织排布。
+ * paseo 风格转录流：以「左右对齐」区分人机——Claude Code（机）裸文居左、紧凑工具行，
+ * Negentropy Engine（人/驱动方）消息气泡居右；按 seq 时序交织，间距承载 turn 节奏。
  */
 export function TranscriptView({ events, live }: { events: RoutineIterationEventDTO[]; live?: boolean }) {
   const items = useMemo(() => normalizeTranscript(events, { live: !!live }), [events, live]);
@@ -24,26 +54,15 @@ export function TranscriptView({ events, live }: { events: RoutineIterationEvent
   return (
     <div className="flex flex-col">
       {items.map((item, i) => {
-        const next = items[i + 1];
-        switch (item.kind) {
-          case "assistant":
-            return <AssistantText key={`assistant-${item.seq}-${item.id}`} item={item} />;
-          case "tool":
-            return (
-              <ExpandableToolCallRow
-                key={`tool-${item.seq}-${item.id}`}
-                item={item}
-                // 一段连续工具行的末行（紧邻非工具项前）加大底距
-                spacedBottom={!next || next.kind !== "tool"}
-              />
-            );
-          case "engine":
-            return <EngineMessageBlock key={`engine-${item.seq}-${item.id}`} item={item} />;
-          case "system":
-            return <SystemRow key={`system-${item.seq}-${item.id}`} event={item.event} />;
-          case "truncated":
-            return <TruncatedRow key={`truncated-${item.seq}-${item.id}`} title={item.title} />;
-        }
+        const prev = i > 0 ? items[i - 1] : null;
+        return (
+          <div
+            key={`${item.kind}-${item.seq}-${item.id}`}
+            className={cn(gapClass(item, prev), speaker(item) === "engine" && "flex justify-end")}
+          >
+            {renderItem(item)}
+          </div>
+        );
       })}
     </div>
   );
@@ -72,7 +91,7 @@ function SystemRow({ event }: { event: RoutineIterationEventDTO }) {
   const hasDetail = !!event.payload && Object.keys(event.payload).length > 0;
 
   return (
-    <div className="mb-1 flex flex-col">
+    <div className="flex flex-col">
       <button
         type="button"
         onClick={() => hasDetail && setOpen((v) => !v)}
@@ -107,7 +126,7 @@ function SystemRow({ event }: { event: RoutineIterationEventDTO }) {
 /** 动作数超上限的截断哨兵——灰显提示行。 */
 function TruncatedRow({ title }: { title: string | null }) {
   return (
-    <div className="my-2 rounded-md border border-dashed border-border bg-muted/20 px-3 py-1.5 text-caption text-text-muted">
+    <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-1.5 text-caption text-text-muted">
       {title || "动作数超过上限，后续动作未记录"}
     </div>
   );

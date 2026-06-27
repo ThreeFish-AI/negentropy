@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Cpu } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { type PlanReviewPayload, type RoutineIterationEventDTO } from "@/features/routine";
@@ -18,19 +18,21 @@ function payloadIsError(payload: Record<string, unknown>): boolean {
 }
 
 /**
- * Negentropy Engine 侧事件（plan_review / gate / evaluation / result）的紧凑消息块。
+ * Negentropy Engine 侧事件（plan_review / gate / evaluation / result）的消息气泡。
  *
- * 取代旧的右侧大气泡：扁平左强调边（slate）卡片，与 Claude Code 转录同列时序排布，
- * 保留全部既有信息（模块评审 / feedback / gate 命令输出 / evaluation 反思 / result 摘要）。
+ * 仿 paseo「用户消息」：右对齐中性气泡（``rounded-2xl`` + 右上角拉直），以「对齐 + 气泡」
+ * 而非头像/边框区分发言人——Engine（驱动方/人）居右，Claude Code（执行方/机）居左裸文。
+ * 仅保留极简 muted 标签 + verdict/score 徽章，富内容（模块评审 / feedback / gate 输出 /
+ * evaluation 反思 / result 摘要）零回归。右对齐由 TranscriptView 外层包裹实现。
  */
 export function EngineMessageBlock({ item }: { item: Extract<TranscriptItem, { kind: "engine" }> }) {
   const { event, group } = item;
   return (
-    <div className="my-2 rounded-lg border border-border border-l-2 border-l-slate-400/60 bg-muted/20 p-3">
+    <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <Cpu className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Negentropy Engine</span>
-        <span className="text-caption font-medium text-text-secondary">{EVENT_GROUP_LABEL[group]}</span>
+        <span className="text-xs font-semibold text-text-secondary">Negentropy Engine</span>
+        <span className="text-caption text-text-muted">{EVENT_GROUP_LABEL[group]}</span>
+        <span className="flex-1" />
         <EngineHeaderBadges event={event} />
       </div>
       <EngineBody event={event} />
