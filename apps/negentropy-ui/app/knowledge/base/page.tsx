@@ -12,12 +12,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
   type CorpusRecord,
   type ChunkingConfig,
-  DocumentViewDialog,
+  LIBRARY_CORPUS_SEGMENT,
   type DocumentChunkItem,
   type DocumentChunksMetadata,
   type KnowledgeDocument,
@@ -45,8 +45,16 @@ import {
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Button } from "@/components/ui/Button";
+import { AnimatedList } from "@/components/ui/AnimatedList";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
+import {
+  tableBodyClassName,
+  tableContainerClassName,
+  tableHeaderClassName,
+  tableRowClassName,
+} from "@/components/ui/table-styles";
+import { cn } from "@/lib/utils";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { IngestFileDialog } from "./_components/IngestFileDialog";
 import { IngestDocumentDialog } from "./_components/IngestDocumentDialog";
@@ -57,8 +65,7 @@ import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
 import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 import { DocumentMetadataPanel } from "./_components/DocumentMetadataPanel";
 import { RetrievedChunkCard } from "./_components/RetrievedChunkCard";
-import { RetrievedChunkDetailDialog } from "./_components/RetrievedChunkDetailDialog";
-import { EditChunkDialog } from "./_components/EditChunkDialog";
+import { ChunkDetailDialog } from "./_components/ChunkDetailDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 import { buildRetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
 import { formatCorpusConfigSummary, toDocumentChunkCardViewModel } from "./_components/format-utils";
@@ -70,6 +77,7 @@ type CorpusTab = "documents" | "settings" | "document-chunks";
 
 export default function KnowledgeBasePage() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const {
@@ -133,7 +141,6 @@ export default function KnowledgeBasePage() {
   const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
-  const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
 
   const selectedCorpus = useMemo(
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
@@ -152,6 +159,14 @@ export default function KnowledgeBasePage() {
         ? buildRetrievedChunkViewModel(selectedRetrievedChunk)
         : null,
     [selectedRetrievedChunk],
+  );
+  // 选中文档 chunk 的展示视图模型：与卡片复用同一 presenter，喂给统一的 ChunkDetailDialog（编辑态）。
+  const selectedDocumentChunkCard = useMemo(
+    () =>
+      selectedDocumentChunk
+        ? toDocumentChunkCardViewModel(selectedDocumentChunk)
+        : null,
+    [selectedDocumentChunk],
   );
 
   const syncQueryState = useCallback(
@@ -538,7 +553,13 @@ export default function KnowledgeBasePage() {
       } else if (action === "download") {
         await downloadDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
       } else if (action === "view") {
-        setViewingDoc(doc);
+        // 收敛到独立文档详情页（与 Knowledge/Documents 一致）。
+        // 携带编码后的返回路径 from，使详情页 Back 能原路返回当前 Corpus 的 Documents。
+        const returnPath = `/knowledge/base?view=corpus&corpusId=${selectedCorpusId}&tab=documents`;
+        const seg = doc.corpus_id ?? selectedCorpusId ?? LIBRARY_CORPUS_SEGMENT;
+        router.push(
+          `/knowledge/documents/${seg}/${doc.id}?from=${encodeURIComponent(returnPath)}`,
+        );
         return;
       } else if (action === "delete") {
         setDeletingDocument(doc);
@@ -701,7 +722,10 @@ export default function KnowledgeBasePage() {
       {corpora.length === 0 ? (
         <p className="text-xs text-muted-foreground">暂无 Corpus</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <AnimatedList
+          className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+          staggerMs={50}
+        >
           {corpora.map((corpus) => (
             <div
               key={corpus.id}
@@ -769,7 +793,7 @@ export default function KnowledgeBasePage() {
               </div>
             </div>
           ))}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );
@@ -787,7 +811,7 @@ export default function KnowledgeBasePage() {
                   <div className="mb-2.5 text-2xl font-semibold text-foreground">
                     {retrievedChunkCards.length} Retrieved Chunks
                   </div>
-                  <div className="space-y-1.5">
+                  <AnimatedList className="space-y-1.5" staggerMs={40}>
                     {retrievedChunkCards.map((item) => (
                       <RetrievedChunkCard
                         key={`${item.id}-${item.raw.metadata?.corpus_id || "na"}`}
@@ -795,7 +819,7 @@ export default function KnowledgeBasePage() {
                         onOpen={() => setSelectedRetrievedChunk(item.raw)}
                       />
                     ))}
-                  </div>
+                  </AnimatedList>
                 </div>
               )}
 
@@ -894,14 +918,14 @@ export default function KnowledgeBasePage() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                  <div className={tableContainerClassName}>
                     {/* 表头 */}
-                    <div className="grid grid-cols-12 gap-2 border-b border-border bg-muted/30 px-4 py-3 text-xs font-medium text-muted-foreground">
-                      <div className="col-span-3 border-r border-border text-center">Name</div>
-                      <div className="col-span-1 border-r border-border text-center">Source</div>
-                      <div className="col-span-1 border-r border-border text-center">Size</div>
-                      <div className="col-span-2 border-r border-border text-center">Status</div>
-                      <div className="col-span-2 border-r border-border text-center">Updated At</div>
+                    <div className={cn("grid grid-cols-12 gap-2", tableHeaderClassName)}>
+                      <div className="col-span-3 text-center">Name</div>
+                      <div className="col-span-1 text-center">Source</div>
+                      <div className="col-span-1 text-center">Size</div>
+                      <div className="col-span-2 text-center">Status</div>
+                      <div className="col-span-2 text-center">Updated At</div>
                       <div className="col-span-3 text-center">Actions</div>
                     </div>
 
@@ -910,13 +934,13 @@ export default function KnowledgeBasePage() {
                     ) : documents.length === 0 ? (
                       <p className="px-4 py-6 text-center text-xs text-muted-foreground">No documents.</p>
                     ) : (
-                      <div className="divide-y divide-border">
+                      <div className={tableBodyClassName}>
                         {documents.map((doc) => {
                           const sourceType = String(doc.metadata?.source_type || "file");
                           return (
                             <div
                               key={doc.id}
-                              className="grid grid-cols-12 items-center gap-2 px-4 py-3 transition-colors hover:bg-muted/30"
+                              className={cn("grid grid-cols-12 items-center gap-2", tableRowClassName)}
                             >
                               {/* Name —— 点击进入 document-chunks 标签页 */}
                               <button
@@ -953,7 +977,7 @@ export default function KnowledgeBasePage() {
                               <div className="col-span-3 flex flex-wrap items-center justify-end gap-1">
                                 <button
                                   onClick={() => runDocumentAction("view", doc)}
-                                  title="在弹窗中预览文档解析后的 Markdown 正文"
+                                  title="打开文档详情页查看解析后的 Markdown 正文"
                                   className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   View
@@ -1093,8 +1117,6 @@ export default function KnowledgeBasePage() {
                               key={chunk.id}
                               chunk={cardModel}
                               onOpen={() => void handleSelectDocumentChunk(chunk)}
-                              density="compact"
-                              hideFooter
                               hideScores
                               showHitPrefix={false}
                               onChildChunkOpen={(childChunkId) => {
@@ -1194,15 +1216,9 @@ export default function KnowledgeBasePage() {
         )}
       </div>
 
-      <RetrievedChunkDetailDialog
+      <ChunkDetailDialog
         chunk={selectedRetrievedChunkCard}
         onClose={() => setSelectedRetrievedChunk(null)}
-      />
-
-      <DocumentViewDialog
-        isOpen={viewingDoc !== null}
-        document={viewingDoc}
-        onClose={() => setViewingDoc(null)}
       />
 
       <AddSourceDialog
@@ -1302,20 +1318,26 @@ export default function KnowledgeBasePage() {
         onConfirm={handleConfirmDeleteDocument}
       />
 
-      <EditChunkDialog
-        chunk={selectedDocumentChunk}
-        draftContent={chunkDraftContent}
-        draftEnabled={chunkDraftEnabled}
-        onDraftContentChange={setChunkDraftContent}
-        onDraftEnabledChange={setChunkDraftEnabled}
+      <ChunkDetailDialog
+        chunk={selectedDocumentChunkCard}
         onClose={() => {
           setSelectedDocumentChunk(null);
           setChunkDraftContent("");
           setChunkDraftEnabled(true);
         }}
-        onSave={() => void handleSaveDocumentChunk()}
-        onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
-        pending={chunkActionPending}
+        editable={
+          selectedDocumentChunk
+            ? {
+                draftContent: chunkDraftContent,
+                draftEnabled: chunkDraftEnabled,
+                onDraftContentChange: setChunkDraftContent,
+                onDraftEnabledChange: setChunkDraftEnabled,
+                onSave: () => void handleSaveDocumentChunk(),
+                onRegenerate: () => void handleRegenerateDocumentChunkFamily(),
+                pending: chunkActionPending,
+              }
+            : undefined
+        }
       />
     </div>
   );
