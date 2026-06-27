@@ -104,7 +104,7 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
 
         {/* Description */}
         <p
-          className="mb-1 ml-6 h-[60px] min-w-0 w-full overflow-hidden leading-5 line-clamp-3 text-sm text-text-muted"
+          className="mb-1 pl-6 pr-2 h-[60px] min-w-0 overflow-hidden leading-5 line-clamp-3 text-sm text-text-muted"
           title={agent.description || "No description"}
         >
           {agent.description || "No description"}
