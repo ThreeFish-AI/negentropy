@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from negentropy.engine.claude_code.service import (
     _EVENT_FIELD_CAP,
+    ClaudeCodeService,
     _cap,
     _coerce_content,
     _emit_events,
@@ -61,6 +62,25 @@ def test_system_thinking_tokens_heartbeat_dropped():
         {"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": "推理中"}]}}
     )
     assert keep and keep[0]["title"] == "thinking"
+
+
+def test_extract_plan_from_askuserquestion_input():
+    """clean-path 评审：从 AskUserQuestion 的 questions[].question 提取方案全文（非空）。"""
+    tool_input = {
+        "questions": [
+            {
+                "header": "方案审阅",
+                "question": "【实施方案】step1 重转 → step2 渲染 → step3 评分 ...",
+                "options": [{"label": "批准方案"}, {"label": "需要完善"}],
+            }
+        ]
+    }
+    plan = ClaudeCodeService._extract_plan_from_input(tool_input)
+    assert "重转" in plan and "评分" in plan
+    # ExitPlanMode 形态（plan 字段）亦兼容
+    assert ClaudeCodeService._extract_plan_from_input({"plan": "# My plan"}) == "# My plan"
+    # 空兜底不抛
+    assert isinstance(ClaudeCodeService._extract_plan_from_input({}), str)
 
 
 def test_assistant_text_and_tool_use_expand_to_multiple():

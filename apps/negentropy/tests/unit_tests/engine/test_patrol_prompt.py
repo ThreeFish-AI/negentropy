@@ -49,6 +49,8 @@ def test_build_routine_config_shape():
     assert cfg["read_dirs"] == ["/tmp/patrol/doc-9"]
     assert cfg["regression_sample"] == ["s1", "s2", "s3"]
     assert cfg["system_prompt"] == PATROL_SYSTEM_PROMPT
+    # Plan Review 保持启用，但走 clean stdin 应答（非 deny 钩子→is_error）
+    assert cfg["plan_review_via_hook"] is False
 
 
 def test_build_routine_config_extra_override():

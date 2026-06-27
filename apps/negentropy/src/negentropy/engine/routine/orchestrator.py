@@ -1516,10 +1516,16 @@ class RoutineOrchestrator:
         # 统一闭环：构建迭代内独立 plan 段（permission_mode=plan + 真实评审钩子），**仅 fresh（无续接会话）**触发；
         # 续接迭代沿用单段 implement（方案已批准、会话续接，无需重评审）。上下文耗尽清空会话后下轮会重新 plan。
         if unified and plan_review_active and not routine.claude_session_id:
+            # per-routine 评审通道：plan_review_via_hook=True（默认）→ PreToolUse deny 钩子回灌评审
+            # （deny→is_error）；=False（如巡检）→ 不挂钩子，reader 内 _plan_review_answer 经
+            # stdin 写干净 tool_result（approve/refine），CC↔Engine 正常交流、恰当时 Approve。
+            # 后者经实测 auto_answer 路径（DB 中 19 例 ExitPlanMode 应答）证明 stdin 通道可用。
+            via_hook = bool((routine.config or {}).get("plan_review_via_hook", True))
             plan_settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
             plan_ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="unified")
             plan_pre = plan_settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
-            plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
+            if via_hook:
+                plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
             plan_config = copy.copy(config)
             plan_config.permission_mode = "plan"  # 原生只读写锁：plan 段禁止落盘
             plan_config.settings = json.dumps(plan_settings_obj, ensure_ascii=False)
@@ -1528,7 +1534,7 @@ class RoutineOrchestrator:
             plan_config.plan_stage_prompt = None
             if config.auto_answer_context is not None:
                 _ac = dict(config.auto_answer_context)
-                _ac["plan_review_via_hook"] = True  # plan 段确由钩子评审
+                _ac["plan_review_via_hook"] = via_hook  # False → reader 走 clean stdin _plan_review_answer
                 _ac["phase"] = phase_mod.PHASE_PLAN
                 plan_config.auto_answer_context = _ac
             config.plan_stage_config = plan_config

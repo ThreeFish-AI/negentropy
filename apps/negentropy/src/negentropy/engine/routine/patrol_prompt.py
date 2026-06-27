@@ -156,9 +156,10 @@ def build_routine_config(
         "regression_sample": regression_sample,
         "system_prompt": PATROL_SYSTEM_PROMPT,
         "read_dirs": [source_read_dir],
-        # 巡检是指令式紧凑闭环（system_prompt 已是 directive），无需 Plan 审批门控；
-        # 且 headless 下 Plan Review 经 AskUserQuestion deny→is_error 致交互报错，故关闭。
-        "plan_review_enabled": False,
+        # Plan Review 保持启用（CC ↔ NegentropyEngine 正常交流方案、恰当时 Approve），
+        # 但走 **clean stdin 应答**路径（reader 内 _plan_review_answer → 干净 tool_result），
+        # 而非 PreToolUse deny 钩子（deny→is_error 致 UI 报错、交互断联）。
+        "plan_review_via_hook": False,
     }
     if extra:
         cfg.update(extra)
