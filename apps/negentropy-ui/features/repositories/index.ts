@@ -9,5 +9,6 @@ export {
   deleteRepository,
   fetchRepositories,
   inspectBranches,
+  reorderRepositories,
   updateRepository,
 } from "./api";

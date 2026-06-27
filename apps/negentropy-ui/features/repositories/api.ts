@@ -50,6 +50,13 @@ export async function deleteRepository(id: string): Promise<void> {
   return jsonFetch(`/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+/** 批量更新 Repository 排序序号（前端拖拽后调用），返回排序后的完整可见列表。 */
+export async function reorderRepositories(
+  items: Array<{ id: string; sort_order: number }>,
+): Promise<RepositoryDTO[]> {
+  return jsonFetch("/reorder", { method: "PATCH", body: JSON.stringify({ items }) });
+}
+
 /** 给定本地仓库根路径枚举其 git 分支（填好 local_path 后调用，类比 Test Connection）。 */
 export async function inspectBranches(localPath: string): Promise<BranchInspectResponse> {
   return jsonFetch("/inspect", {
