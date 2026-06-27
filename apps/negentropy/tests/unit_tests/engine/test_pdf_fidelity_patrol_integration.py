@@ -65,6 +65,7 @@ async def test_create_and_start_patrol_routine_persists_real_row(db_engine):
         assert row.no_progress_patience == 3  # per-Routine 默认（非 settings）—— 回归点
         assert row.success_score_threshold == 100
         assert row.max_iterations == 8  # settings.routine.patrol_max_iterations_per_doc
+        assert row.max_cost_usd == 30.0  # patrol 专属预算（非全局 default_max_cost_usd=5）
         assert row.owner_id == "system"
         assert row.is_template is False
         assert row.key.startswith("pdf-fidelity-patrol/")
