@@ -22,7 +22,8 @@ def test_build_goal_injects_doc_params():
     assert "论文 A" in g
     assert "/tmp/patrol/doc-123/source.pdf" in g
     assert "patrol-candidate.md" in g
-    assert "NegentropyEngine" in g
+    assert "保真度" in g  # 紧凑目标：本轮评分（非开放式「调度三系部」）
+    assert "采样" in g  # 防过度探查：采样比对
 
 
 def test_build_acceptance_criteria_allows_unfixable_carveout():
@@ -77,10 +78,14 @@ def test_build_routine_config_source_task_key():
 
 
 def test_system_prompt_contains_protocol_and_contract():
-    # 三系部角色 + 非回归 + 红线 + JSON 契约 均应在协议中
-    assert "ContemplationFaculty" in PATROL_SYSTEM_PROMPT
-    assert "ActionFaculty" in PATROL_SYSTEM_PROMPT
-    assert "InternalizationFaculty" in PATROL_SYSTEM_PROMPT
+    # 紧凑闭环 + 防过度探查 + 非回归 + 红线 + JSON 契约 均应在协议中
+    assert "uv run --project apps/negentropy-perceives perceives parse-pdf" in PATROL_SYSTEM_PROMPT
+    assert "_fidelity_render" in PATROL_SYSTEM_PROMPT  # 渲染对比底座
+    assert "采样" in PATROL_SYSTEM_PROMPT  # 防逐页读全图撑爆上下文
+    assert "不 spawn Agent" in PATROL_SYSTEM_PROMPT  # 防过度探查（曾致 context 耗尽 abort）
+    assert "Contemplation" in PATROL_SYSTEM_PROMPT  # 三角色（轻量分工）
+    assert "Action" in PATROL_SYSTEM_PROMPT
+    assert "Internalization" in PATROL_SYSTEM_PROMPT
     assert "非回归" in PATROL_SYSTEM_PROMPT
     assert "refresh-markdown" in PATROL_SYSTEM_PROMPT  # 红线：禁止调生产重转
     assert "pdf-fidelity-contract" in PATROL_SYSTEM_PROMPT
