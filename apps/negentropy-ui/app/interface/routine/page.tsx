@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -67,6 +67,13 @@ function RoutinePageInner() {
   const [createOpen, setCreateOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [page, setPage] = useState(1);
+
+  // SSE ghost-reopen 守卫：镜像 selected 供异步 SSE 回调读取「抽屉是否仍打开」，
+  // 关闭时在 closeDetail 内同步清空，杜绝 stale-id 事件在 setSelected 提交前重开抽屉（§2）。
+  const selectedRef = useRef<RoutineDTO | null>(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   const { confirm, confirmDialog } = useConfirmDialog();
   const {
@@ -145,6 +152,10 @@ function RoutinePageInner() {
   );
 
   const closeDetail = useCallback(() => {
+    // 乐观即时关闭：与 openDetail 对称，使 drawerMode 立即变 null、抽屉卸载，
+    // 规避 Next.js 同路由纯 query nav 下 useSearchParams 反应式不可靠（深链冷启动场景，§1）。
+    selectedRef.current = null; // 同步清空：覆盖 setSelected(null) 提交前的微秒级竞态窗，配合 SSE 守卫杜绝 ghost 重开
+    setSelected(null);
     const next = new URLSearchParams(sp.toString());
     next.delete("sel");
     router.replace(`?${next.toString()}`, { scroll: false });
@@ -161,11 +172,15 @@ function RoutinePageInner() {
   const { connected } = useRoutineStream({
     onRoutineEvent: (ev) => {
       applyRoutineEvent();
-      if (selId && ev.id === selId) void refreshSelected(selId);
+      // 以实际打开的 routine（selectedRef）为准，而非 URL 的 selId——后者在深链冷启动场景下可能 stale，
+      // 会用旧 id 把已乐观关闭的抽屉重新打开（ghost-reopen，§2）。
+      const id = selectedRef.current?.id;
+      if (id && ev.id === id) void refreshSelected(id);
     },
     onIterationEvent: (ev) => {
       applyIterationEvent(ev);
-      if (selId && (ev.routine_id === selId || ev.id === selId)) void refreshSelected(selId);
+      const id = selectedRef.current?.id;
+      if (id && (ev.routine_id === id || ev.id === id)) void refreshSelected(id);
     },
   });
 

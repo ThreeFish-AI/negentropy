@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/Button";
 import { fetchTaskDetail } from "@/features/scheduler";
@@ -135,7 +136,7 @@ function SpawnedRoutinesSection({ taskKey, taskId }: { taskKey: string; taskId: 
           </div>
         ) : (
           routines.map((r) => (
-            <a
+            <Link
               key={r.id}
               href={`/interface/routine?sel=${encodeURIComponent(r.id)}`}
               className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors"
@@ -153,7 +154,7 @@ function SpawnedRoutinesSection({ taskKey, taskId }: { taskKey: string; taskId: 
                 {r.pr_url && <span className="text-blue-600 dark:text-blue-400">PR</span>}
                 <span>→</span>
               </span>
-            </a>
+            </Link>
           ))
         )}
       </div>
