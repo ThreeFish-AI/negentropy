@@ -209,6 +209,10 @@ class Settings(BaseSettings):
         return self.database.pool_recycle
 
     @property
+    def db_pool_timeout(self) -> int:
+        return self.database.pool_timeout
+
+    @property
     def db_echo(self) -> bool:
         return self.database.echo
 

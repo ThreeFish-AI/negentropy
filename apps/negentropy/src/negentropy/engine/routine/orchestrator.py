@@ -32,7 +32,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -437,12 +437,15 @@ class RoutineOrchestrator:
 
         分支保留：仅 succeeded 删本地分支（PR 已在 origin，无碍）；failed/cancelled 一律
         ``keep_branch=True`` 保留本地分支与检查点提交，使其重启可从上一检查点续作（单一分支不变量）。
+
+        慢操作（git/rmtree）须在 DB 会话**外**逐个执行：会话仅做短查 + 批量短写，避免单个会话横跨
+        最多 ``_BATCH_LIMIT`` 个串行回收而长期占用连接池连接；rmtree 已卸载线程池，回收期不阻塞事件循环。
         """
         policy = settings.routine.worktree_cleanup
         if policy == "never":
             return 0
         statuses = ("succeeded",) if policy == "on_success" else ("succeeded", "failed", "cancelled")
-        cleaned = 0
+        # ① 短会话：拉取待清理 routine（expire_on_commit=False → detached 后属性可读）。
         async with db_session.AsyncSessionLocal() as db:
             rows = (
                 (
@@ -455,12 +458,16 @@ class RoutineOrchestrator:
                 .scalars()
                 .all()
             )
-            for r in rows:
-                with suppress(Exception):
-                    await workspace.remove_worktree(r, settings.routine, keep_branch=(r.status != "succeeded"))
-                r.worktree_path = None
-                cleaned += 1
-            await db.commit()
+        # ② 会话外：逐个 best-effort 回收（纯 git/FS、无 DB；不占连接、不阻塞事件循环）。
+        for r in rows:
+            with suppress(Exception):
+                await workspace.remove_worktree(r, settings.routine, keep_branch=(r.status != "succeeded"))
+        # ③ 短会话：批量置空 + 提交（保持「先回收、后置空」语义）。
+        if rows:
+            async with db_session.AsyncSessionLocal() as db:
+                await db.execute(update(Routine).where(Routine.id.in_([r.id for r in rows])).values(worktree_path=None))
+                await db.commit()
+        cleaned = len(rows)
         if cleaned:
             logger.info("routine_reaped_workspaces", count=cleaned, policy=policy)
         return cleaned

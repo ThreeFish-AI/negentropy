@@ -373,8 +373,9 @@ async def ensure_worktree(routine: _RoutineLike, settings: RoutineSettings) -> W
         if os.path.isdir(worktree_path):
             await _run_git(["-C", project_path, "worktree", "remove", "--force", worktree_path], timeout=timeout)
             if os.path.isdir(worktree_path):
+                # 同 remove_worktree：同步 rmtree 须离事件循环，避免派发期阻塞全站其他请求。
                 with suppress(OSError):
-                    shutil.rmtree(worktree_path, ignore_errors=True)
+                    await asyncio.to_thread(shutil.rmtree, worktree_path, ignore_errors=True)
 
         if settings.git_fetch_before_worktree:
             await _try_fetch(project_path, baseline, settings)
@@ -580,8 +581,10 @@ async def remove_worktree(
                 await _run_git(["-C", project_path, "branch", "-D", routine.work_branch], timeout=timeout)
         # 兜底：若目录仍残留（worktree remove 失败或 project_path 已失效），直接删目录。
         if os.path.isdir(path):
+            # rmtree 是纯同步递归删除，对巨型 worktree（node_modules/.git/构建产物）可耗时数十秒；
+            # 必须卸载到线程池，否则会冻结单 uvicorn 事件循环、阻塞全站其他请求（同 graph_algorithms 范式）。
             with suppress(OSError):
-                shutil.rmtree(path, ignore_errors=True)
+                await asyncio.to_thread(shutil.rmtree, path, ignore_errors=True)
         logger.info("routine_worktree_removed", routine_id=str(routine.id), path=path)
     _LOCKS.pop(routine.id, None)
 
