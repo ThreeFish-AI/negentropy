@@ -104,6 +104,52 @@ def test_decide_success_blocked_by_gate_timeout_sentinel():
     assert d.decide(r, it, [it]).action == "continue"
 
 
+# ---------------------------------------------------------------------------
+# accept_verdict_pass 旁路：Judge verdict=pass 亦判成功（默认关闭，opt-in 开启）
+# ---------------------------------------------------------------------------
+
+
+def test_decide_verdict_pass_triggers_success_when_optin():
+    """巡检回归（Routine 861ab544）：threshold=100 与 Judge 评分尺度「全部满足≈90-100」结构性
+    失配，score=88 恒 <100；但 acceptance 允许「仅剩 unfixable 即 done」，Judge 据此判 verdict=pass。
+    accept_verdict_pass=True 后 pass 应判成功，而非落入 no_progress 误判 failed。复现 seq=9 场景。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=None)
+    res = d.decide(r, it, [it], accept_verdict_pass=True)
+    assert res.is_terminate and res.reason == d.REASON_SUCCESS
+
+
+def test_decide_verdict_pass_not_success_by_default():
+    """向后兼容锁：默认 accept_verdict_pass=False 时，verdict=pass 但 score<threshold 不判成功，
+    保留「评分阈值是权威成功闸门」契约（对照 test_runtime_threshold_lowering_triggers_success）。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=None)
+    assert d.decide(r, it, [it]).action == "continue"
+
+
+def test_decide_verdict_pass_optin_blocked_by_failing_gate():
+    """门控守卫对 pass 旁路同样生效（ISSUE-115 回归锁）：gate 失败时即便 opt-in + verdict=pass
+    也不判成功，避免把失败验证状态误判成功。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=1)
+    assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
+
+
+def test_decide_verdict_pass_optin_blocked_by_gate_timeout():
+    """门控超时(124)≠通过（ISSUE-115）：opt-in + verdict=pass 但 gate 超时亦不判成功。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=124)
+    assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
+
+
+def test_decide_verdict_pass_optin_not_triggered_when_progressing():
+    """opt-in 只认 verdict=pass：verdict=progressing 时即便 opt-in 也不判成功，照常走停滞/振荡/
+    继续判定（此处 score=88<100、单条历史 → continue）。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="progressing", gate_exit_code=None)
+    assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
+
+
 def test_decide_unrecoverable_verdict():
     r = FakeRoutine(best_score=40)
     it = FakeIter(score=40, verdict="unrecoverable")

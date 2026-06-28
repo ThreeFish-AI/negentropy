@@ -51,6 +51,9 @@ def test_build_routine_config_shape():
     assert cfg["system_prompt"] == PATROL_SYSTEM_PROMPT
     # Plan Review 保持启用，但走 clean stdin 应答（非 deny 钩子→is_error）
     assert cfg["plan_review_via_hook"] is False
+    # 巡检完成判据含「仅剩 unfixable 即 done」carve-out，threshold=100 与 Judge 评分尺度失配，
+    # 故开启 accept_verdict_pass 旁路让 Judge 的 pass 成为第二成功通道（防 no_progress 误判 failed）
+    assert cfg["accept_verdict_pass"] is True
 
 
 def test_build_routine_config_extra_override():

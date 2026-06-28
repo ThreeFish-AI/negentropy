@@ -700,7 +700,13 @@ class RoutineOrchestrator:
             # 决策（仅取「本次尝试」窗口 seq > eval_floor_seq，重启后旧迭代不污染停滞/振荡判定）。
             history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
             verdict = decision_mod.decide(
-                routine, latest, history, max_context_resets=settings.routine.context_reset_max
+                routine,
+                latest,
+                history,
+                max_context_resets=settings.routine.context_reset_max,
+                # per-routine 开启「Judge verdict=pass 亦判成功」旁路（config.accept_verdict_pass）：
+                # 用于完成判据无法被单一分数阈值捕获的任务（如巡检 threshold=100 与 Judge 评分尺度失配）。
+                accept_verdict_pass=bool((routine.config or {}).get("accept_verdict_pass")),
             )
             if phased_flow:
                 self._advance_phase_or_terminate(routine, verdict)
