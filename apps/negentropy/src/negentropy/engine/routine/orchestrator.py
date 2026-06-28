@@ -1454,8 +1454,11 @@ class RoutineOrchestrator:
         # CC settings.json 基底：源码只读 deny（read_dirs 非空时）。Plan Review 钩子按 unified/legacy 分别注入。
         settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
         plan_review_active = _is_plan_review_active(routine)
+        # Plan 审批通道（默认 clean stdin）：plan_review_via_hook=False → reader 内 _plan_review_answer 经
+        # stdin 写干净 tool_result（approve/refine），无 deny→is_error；=True 才回灌 PreToolUse deny 钩子
+        # （历史默认 True，headless 下 deny→is_error 致 UI 报错/交互断联，故现默认关）。巡检即用默认 False 走通。
+        via_hook = bool((routine.config or {}).get("plan_review_via_hook", False))
         # 统一闭环：worktree + 全局开关开 + per-routine 未关闭。主 config = implement 段；plan 段独立挂载（见文末）。
-        # config.plan_review_enabled=False（如巡检）→ 不挂 plan 段、直接 implement 段，规避 headless deny→is_error。
         unified = bool(
             settings.routine.plan_review_unified_loop
             and phase_mod.is_worktree_routine(routine)
@@ -1467,7 +1470,8 @@ class RoutineOrchestrator:
         )
         # Legacy 路径（统一闭环关）：评审钩子直接注入主 config（PLAN 相位，ISSUE-123 原行为；
         # ExitPlanMode 仅消噪不评审）。unified 路径：钩子注入独立 plan 段（见文末），主 config 不挂钩子。
-        if plan_review_active and not unified:
+        if plan_review_active and not unified and via_hook:
+            # legacy + deny 钩子通道（opt-in）：via_hook=False 时不挂钩子，改由 reader clean stdin 应答。
             ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="legacy")
             pre = settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
             pre.extend(_plan_review_hook_pre(ctx_path, review_timeout, exit_plan_full_review=False))
@@ -1504,9 +1508,9 @@ class RoutineOrchestrator:
                 "acceptance_criteria": routine.acceptance_criteria,
                 "phase": routine.current_phase or "",
                 "plan_review_enabled": settings.routine.plan_review_enabled,
-                # 主 config 在 unified 下为 implement 段、不做评审，故 via_hook 仅在 legacy 评审激活时为真
-                # （置真令交互式 reader 跳过对 AskUserQuestion 无效且会重复评审的内联 plan-review 应答分支）。
-                "plan_review_via_hook": plan_review_active and not unified,
+                # 主 config 在 unified 下为 implement 段、不做评审；legacy 评审激活且走 deny 钩子时置真，
+                # 令交互式 reader 跳过内联 plan-review 应答（避免与钩子重复）；via_hook=False 时 reader 走 clean stdin。
+                "plan_review_via_hook": plan_review_active and not unified and via_hook,
                 "plan_review_model": settings.routine.plan_review_model,
                 "plan_review_timeout": settings.routine.plan_review_timeout_seconds,
                 "reflections": (
@@ -1516,11 +1520,9 @@ class RoutineOrchestrator:
         # 统一闭环：构建迭代内独立 plan 段（permission_mode=plan + 真实评审钩子），**仅 fresh（无续接会话）**触发；
         # 续接迭代沿用单段 implement（方案已批准、会话续接，无需重评审）。上下文耗尽清空会话后下轮会重新 plan。
         if unified and plan_review_active and not routine.claude_session_id:
-            # per-routine 评审通道：plan_review_via_hook=True（默认）→ PreToolUse deny 钩子回灌评审
-            # （deny→is_error）；=False（如巡检）→ 不挂钩子，reader 内 _plan_review_answer 经
-            # stdin 写干净 tool_result（approve/refine），CC↔Engine 正常交流、恰当时 Approve。
-            # 后者经实测 auto_answer 路径（DB 中 19 例 ExitPlanMode 应答）证明 stdin 通道可用。
-            via_hook = bool((routine.config or {}).get("plan_review_via_hook", True))
+            # per-routine 评审通道（沿用上文 via_hook，默认 False=clean stdin）：=True 才挂 PreToolUse deny 钩子
+            # （deny→is_error）；=False → reader 内 _plan_review_answer 经 stdin 写干净 tool_result（approve/refine），
+            # CC↔Engine 正常交流、恰当时 Approve。后者经实测 auto_answer 路径（DB 中 19 例 ExitPlanMode 应答）证明可用。
             plan_settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
             plan_ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="unified")
             plan_pre = plan_settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])

@@ -978,7 +978,8 @@ async def test_build_config_kb_mcp_absent_when_unavailable(monkeypatch):
 
 async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
     """统一闭环（默认开）+ flat worktree + fresh：主 config=implement 段(acceptEdits、无评审钩子)，
-    挂载独立 plan 段(permission_mode=plan + ExitPlanMode/AskUserQuestion 真实评审钩子 + plan prompt)。"""
+    挂载独立 plan 段(permission_mode=plan)。默认 plan_review_via_hook=False → 走 clean stdin（reader
+    内 _plan_review_answer），plan 段不挂 PreToolUse deny 钩子（无 deny→is_error）。"""
     import json as _json
 
     from negentropy.engine.routine import orchestrator as orch_mod
@@ -996,21 +997,50 @@ async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
             main_settings = _json.loads(config.settings) if config.settings else {}
             assert not main_settings.get("hooks"), "主(implement)config 不应挂评审钩子——评审在 plan 段"
             assert config.auto_answer_context["plan_review_via_hook"] is False
-            # plan 段：permission_mode=plan、无续接、双工具真实评审钩子、plan prompt
+            # plan 段：permission_mode=plan、无续接、plan prompt
             ps = config.plan_stage_config
             assert ps is not None and ps.permission_mode == "plan"
             assert ps.resume_session_id is None
             assert ps.plan_stage_config is None  # 防自嵌套
+            # 默认 clean stdin（via_hook=False）：plan 段不挂 PreToolUse deny 钩子
+            ps_settings = _json.loads(ps.settings) if ps.settings else {}
+            assert (ps_settings.get("hooks") or {}).get("PreToolUse", []) == []
+            assert ps.auto_answer_context["plan_review_via_hook"] is False
+            assert config.plan_stage_prompt and "提交" in config.plan_stage_prompt
+            # ctx 文件 mode=unified、按 iteration_id 键
+            ctx = _json.loads((tmp_path / "negentropy-pr-ctx" / f"{iid}.json").read_text(encoding="utf-8"))
+            assert ctx["mode"] == "unified" and ctx["iteration_id"] == str(iid)
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_unified_plan_stage_via_hook_opt_in(tmp_path, monkeypatch):
+    """opt-in：per-routine config plan_review_via_hook=True → plan 段挂 PreToolUse deny 钩子
+    （AskUserQuestion + ExitPlanMode，unified 下 ExitPlanMode 跑真实评审用 full timeout）。"""
+    import json as _json
+
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    monkeypatch.setattr(orch_mod.tempfile, "gettempdir", lambda: str(tmp_path))
+    rid = await _make_routine(
+        baseline_branch="origin/feature/1.x.x",
+        cwd="/repo",
+        current_phase="implement",
+        config={"plan_review_via_hook": True},
+    )
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r, uuid.uuid4())
+            ps = config.plan_stage_config
+            assert ps is not None and ps.permission_mode == "plan"
             pre = _json.loads(ps.settings)["hooks"]["PreToolUse"]
             matchers = {h["matcher"]: h["hooks"][0]["timeout"] for h in pre}
             assert "AskUserQuestion" in matchers and "ExitPlanMode" in matchers
             # unified：ExitPlanMode 亦跑真实评审 → 与 AskUserQuestion 同 full timeout（非 legacy 的 15）
             assert matchers["ExitPlanMode"] == matchers["AskUserQuestion"] > 15
             assert ps.auto_answer_context["plan_review_via_hook"] is True
-            assert config.plan_stage_prompt and "提交" in config.plan_stage_prompt
-            # ctx 文件 mode=unified、按 iteration_id 键
-            ctx = _json.loads((tmp_path / "negentropy-pr-ctx" / f"{iid}.json").read_text(encoding="utf-8"))
-            assert ctx["mode"] == "unified" and ctx["iteration_id"] == str(iid)
     finally:
         await _cleanup(rid)
 
