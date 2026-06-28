@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -42,12 +43,12 @@ function SpawnedRoutineLink({ metrics }: { metrics: Record<string, unknown> | un
   if (!rid) return null;
   const docId = typeof metrics?.doc_id === "string" ? metrics.doc_id : null;
   return (
-    <a
+    <Link
       href={`/interface/routine?sel=${encodeURIComponent(rid)}`}
       className="inline-flex items-center gap-1 text-micro text-blue-600 dark:text-blue-400 hover:underline w-fit"
     >
       派生 Routine →{docId ? `（doc ${docId.slice(0, 8)}）` : ""}
-    </a>
+    </Link>
   );
 }
 
