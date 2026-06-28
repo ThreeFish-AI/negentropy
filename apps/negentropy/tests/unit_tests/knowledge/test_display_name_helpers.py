@@ -10,6 +10,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from negentropy.knowledge._shared import effective_display_name, effective_download_filename
+from negentropy.models.perception import resolve_effective_display_name
 
 # ----------------------------------------------------------------------------
 # effective_display_name
@@ -41,6 +42,32 @@ def test_effective_display_name_ignores_blank_display_name_and_blank_title():
 
 def test_effective_display_name_strips_whitespace():
     assert effective_display_name(_doc(display_name="  Q3 Report  ")) == "Q3 Report"
+
+
+# ----------------------------------------------------------------------------
+# resolve_effective_display_name（纯解析器内核；handler raw-SQL dict 级入口）
+# ----------------------------------------------------------------------------
+
+
+def test_resolve_prefers_display_name():
+    assert resolve_effective_display_name("用户改名", "Quarterly", "scan.pdf") == "用户改名"
+
+
+def test_resolve_falls_back_to_metadata_title():
+    assert resolve_effective_display_name(None, "Quarterly", "scan.pdf") == "Quarterly"
+
+
+def test_resolve_falls_back_to_original_filename():
+    assert resolve_effective_display_name(None, None, "scan.pdf") == "scan.pdf"
+
+
+def test_resolve_ignores_blank_and_non_str_title():
+    assert resolve_effective_display_name("   ", "  ", "scan.pdf") == "scan.pdf"
+    assert resolve_effective_display_name(None, 123, "scan.pdf") == "scan.pdf"  # 非 str 守卫
+
+
+def test_resolve_strips_whitespace():
+    assert resolve_effective_display_name("  Q3 Report  ", None, "scan.pdf") == "Q3 Report"
 
 
 # ----------------------------------------------------------------------------

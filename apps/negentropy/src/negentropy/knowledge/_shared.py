@@ -13,7 +13,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.knowledge.types import KnowledgeRecord
 from negentropy.logging import get_logger
-from negentropy.models.perception import Knowledge
+from negentropy.models.perception import Knowledge, resolve_effective_display_name
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
 
@@ -669,14 +669,8 @@ def effective_display_name(doc: Any) -> str:
     chunk 字典级读取方见
     :meth:`KnowledgeRepository._infer_display_name`，二者语义对齐、须同步演进。
     """
-    display_name = (getattr(doc, "display_name", None) or "").strip()
-    if display_name:
-        return display_name
     meta = getattr(doc, "metadata_", None) or {}
-    meta_title = meta.get("title")
-    if isinstance(meta_title, str) and meta_title.strip():
-        return meta_title.strip()
-    return doc.original_filename
+    return resolve_effective_display_name(getattr(doc, "display_name", None), meta.get("title"), doc.original_filename)
 
 
 def effective_download_filename(original_filename: str, display_name: str | None) -> str:

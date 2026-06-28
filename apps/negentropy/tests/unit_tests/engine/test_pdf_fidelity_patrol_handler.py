@@ -90,9 +90,25 @@ def test_derive_repo_root_package_fallback_finds_ancestor():
 def test_select_next_pending_doc_returns_dict():
     import asyncio
 
-    db = _FakeDB(fetchone=("doc-uuid", "pgblob://k", "report.pdf"))
+    db = _FakeDB(fetchone=("doc-uuid", "pgblob://k", "report.pdf", None, None))
     doc = asyncio.run(patrol._select_next_pending_doc(db, skip_ids=set()))
-    assert doc == {"id": "doc-uuid", "content_uri": "pgblob://k", "original_filename": "report.pdf"}
+    assert doc == {
+        "id": "doc-uuid",
+        "content_uri": "pgblob://k",
+        "original_filename": "report.pdf",
+        "display_name": None,
+        "metadata_title": None,
+    }
+
+
+def test_select_next_pending_doc_carries_corrected_title_fields():
+    """display_name / metadata_title 透传到返回 dict，供 _doc_display_title 三级解析。"""
+    import asyncio
+
+    db = _FakeDB(fetchone=("doc-uuid", "pgblob://k", "report.pdf", "用户改名", None))
+    doc = asyncio.run(patrol._select_next_pending_doc(db, skip_ids=set()))
+    assert doc["display_name"] == "用户改名"
+    assert doc["metadata_title"] is None
 
 
 def test_select_next_pending_doc_none_when_empty():
@@ -205,3 +221,56 @@ def test_build_patrol_routine_constructs_without_attribute_error():
     assert routine.config["source_task_key"] == "pdf_fidelity_patrol"
     assert "system_prompt" in routine.config
     assert routine.config["read_dirs"] == ["/tmp/patrol"]
+    # 标题源：未修正时回退 original_filename（_doc_display_title 经 SSOT 解析）
+    assert routine.title == "PDF 高保真巡检：report.pdf"
+
+
+def test_build_patrol_routine_uses_corrected_display_name():
+    """回归本次目标：用户修正后的 display_name 透传到 Routine 标题/展示名/描述/goal，
+    原始文件名不再出现在用户可见标题链路。"""
+    import uuid as _uuid
+
+    doc = {
+        "id": _uuid.uuid4(),
+        "original_filename": "scan_2023.pdf",
+        "display_name": "用户修正标题",
+        "metadata_title": None,
+    }
+    routine = patrol._build_patrol_routine(
+        repo_id=_uuid.uuid4(),
+        baseline_branch="origin/feature/1.x.x",
+        doc=doc,
+        source_pdf_path="/tmp/patrol/source.pdf",
+        source_read_dir="/tmp/patrol",
+        regression_sample=["s1"],
+        source_task_key="pdf_fidelity_patrol",
+    )
+    assert routine.title == "PDF 高保真巡检：用户修正标题"
+    assert routine.display_name == "PDF Fidelity Patrol · 用户修正标题"
+    assert "用户修正标题" in routine.description
+    assert "用户修正标题" in routine.goal
+    # 原始文件名不得出现在用户可见标题链路
+    assert "scan_2023.pdf" not in routine.title
+    assert "scan_2023.pdf" not in routine.display_name
+
+
+def test_build_patrol_routine_falls_back_to_metadata_title():
+    """display_name 缺省时回退到 PDF 自动抽取的 metadata_title（三级解析器第二级）。"""
+    import uuid as _uuid
+
+    doc = {
+        "id": _uuid.uuid4(),
+        "original_filename": "scan_2023.pdf",
+        "display_name": None,
+        "metadata_title": "自动抽取的文档标题",
+    }
+    routine = patrol._build_patrol_routine(
+        repo_id=_uuid.uuid4(),
+        baseline_branch="origin/feature/1.x.x",
+        doc=doc,
+        source_pdf_path="/tmp/p.pdf",
+        source_read_dir="/tmp",
+        regression_sample=[],
+        source_task_key="pdf_fidelity_patrol",
+    )
+    assert routine.title == "PDF 高保真巡检：自动抽取的文档标题"
