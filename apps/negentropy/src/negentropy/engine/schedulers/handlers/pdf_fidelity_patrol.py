@@ -36,6 +36,7 @@ import sqlalchemy as sa
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.perception import resolve_effective_display_name
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine
 
@@ -51,6 +52,16 @@ PATROL_REPO_NAME = "negentropy"
 PATROL_KEY_PREFIX = "pdf-fidelity-patrol"
 CANDIDATE_MD_FILENAME = "patrol-candidate.md"
 SOURCE_PDF_FILENAME = "source.pdf"
+
+
+def _doc_display_title(doc: dict[str, Any]) -> str:
+    """文档展示标题（复用 ``perception.resolve_effective_display_name`` SSOT 内核）。
+
+    raw-SQL dict 直喂纯解析器：``display_name``（用户修正）→ ``metadata_title``
+    （PDF 自动抽取）→ ``original_filename``（兜底）。避免把 knowledge 重图拖入 engine 顶层。
+    """
+    return resolve_effective_display_name(doc.get("display_name"), doc.get("metadata_title"), doc["original_filename"])
+
 
 register_descriptor(
     HandlerDescriptor(
@@ -165,11 +176,11 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
         "patrol_routine_started",
         doc_id=doc_id,
         routine_id=str(routine_id),
-        doc_title=doc["original_filename"],
+        doc_title=_doc_display_title(doc),
     )
     return HandlerResult(
         status="ok",
-        output_summary=f"patrol started: doc={doc_id} ({doc['original_filename']})",
+        output_summary=f"patrol started: doc={doc_id} ({_doc_display_title(doc)})",
         metrics={
             "reason": "spawned",
             "doc_id": doc_id,
@@ -320,7 +331,8 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
         params["skip"] = tuple(skip_ids)
 
     sql = (
-        "SELECT id, content_uri, original_filename FROM negentropy.knowledge_documents "
+        "SELECT id, content_uri, original_filename, display_name, metadata->>'title' "
+        "FROM negentropy.knowledge_documents "
         "WHERE app_name = :app "
         "AND COALESCE(content_type,'') ILIKE '%pdf%' "
         "AND markdown_extract_status = 'completed' "
@@ -334,7 +346,13 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
     r = row.fetchone()
     if not r:
         return None
-    return {"id": r[0], "content_uri": r[1], "original_filename": r[2]}
+    return {
+        "id": r[0],
+        "content_uri": r[1],
+        "original_filename": r[2],
+        "display_name": r[3],
+        "metadata_title": r[4],
+    }
 
 
 async def _select_regression_sample(db, *, size: int) -> list[str]:
@@ -413,7 +431,7 @@ def _build_patrol_routine(
     )
 
     doc_id = str(doc["id"])
-    doc_title = doc["original_filename"]
+    doc_title = _doc_display_title(doc)
     short = uuid.uuid4().hex[:8]
     return Routine(
         key=f"{PATROL_KEY_PREFIX}/{doc_id}/{short}",

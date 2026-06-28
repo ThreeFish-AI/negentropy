@@ -162,6 +162,28 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
 
 # =============================================================================
+# 文档展示名解析（单一事实源内核）
+# =============================================================================
+
+
+def resolve_effective_display_name(display_name: str | None, metadata_title: Any, original_filename: str) -> str:
+    """文档展示名的纯函数解析（单一事实源内核，无 IO / 无 ORM 依赖）。
+
+    优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``（PDF / 抓取自动抽取，
+    须为非空 str）→ ``original_filename``（不可变兜底）。
+
+    供 ``_shared.effective_display_name``（ORM 级 duck-typed）与 raw-SQL dict 级场景
+    （如 ``pdf_fidelity_patrol`` handler）共同复用，避免 3-tier 回退链多处重复实现。
+    """
+    name = (display_name or "").strip()
+    if name:
+        return name
+    if isinstance(metadata_title, str) and metadata_title.strip():
+        return metadata_title.strip()
+    return original_filename
+
+
+# =============================================================================
 # Phase 2: 文档来源追踪
 # =============================================================================
 
