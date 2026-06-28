@@ -101,6 +101,7 @@ def decide(
     *,
     now: datetime | None = None,
     max_context_resets: int = 0,
+    accept_verdict_pass: bool = False,
 ) -> Decision:
     """评估后的核心决策：成功 / 终止 / 继续。
 
@@ -113,15 +114,25 @@ def decide(
             的失败被视为"可自愈"，不计入连续执行失败——runaway 由 Runner 侧重置计数上限兜底）。
             默认 0 = 关闭该豁免，退化为原行为（向后兼容）。纯函数边界：上限由调用方显式注入，
             decision 不读 settings。
+        accept_verdict_pass: 为 True 时，Judge 的 ``verdict == "pass"``（验收标准达成·可终止）亦
+            判为成功（仍需门控通过）。默认 False 以保留「评分阈值是权威成功闸门」契约——避免在
+            常规 routine 上让 LLM-as-Judge 的 pass 单方面越过阈值触发不可逆成功。仅用于完成判据无法
+            被单一分数阈值捕获的任务（如巡检：``success_score_threshold=100`` 与 Judge 评分尺度
+            「全部满足≈90-100」结构性失配，且 acceptance 允许「仅剩 unfixable 即 done」由 Judge
+            在 <100 分判 pass）——这类任务经 ``config.accept_verdict_pass=True`` 显式开启旁路。
 
     Returns:
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
+        成功由「score 达阈值」OR「accept_verdict_pass 且 verdict=pass」触发（均需门控通过）。
     """
     now = now or _utcnow()
 
-    # 1) 成功：评分达标 AND（无门控 或 门控通过）
-    if latest.score is not None and latest.score >= routine.success_score_threshold:
-        if latest.gate_exit_code in (None, 0):
+    # 1) 成功：评分达标 OR（accept_verdict_pass 时）Judge 显式判 pass；均需门控通过（或无门控）。
+    # pass 是 Judge 的权威完成裁决（"达到验收标准，可终止"）。门控检查置外层（gate∉{None,0} 时整块
+    # 跳过），保护 ISSUE-115「门控超时/失败≠门控通过」——对 pass 旁路同样适用，避免误判成功。
+    if latest.gate_exit_code in (None, 0):
+        score_met = latest.score is not None and latest.score >= routine.success_score_threshold
+        if score_met or (accept_verdict_pass and latest.verdict == "pass"):
             return Decision("terminate", REASON_SUCCESS)
 
     # 2) 不可恢复：judge 显式判定 / 连续执行失败 / 连续评估失败

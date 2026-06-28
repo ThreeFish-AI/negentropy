@@ -160,6 +160,13 @@ def build_routine_config(
         # 但走 **clean stdin 应答**路径（reader 内 _plan_review_answer → 干净 tool_result），
         # 而非 PreToolUse deny 钩子（deny→is_error 致 UI 报错、交互断联）。
         "plan_review_via_hook": False,
+        # 开启「Judge verdict=pass 亦判成功」旁路（消费见 orchestrator.decide()）。
+        # 巡检完成判据含「仅剩 unfixable 即 done」carve-out（见 build_acceptance_criteria），Judge
+        # 据此对 <100 的分判 verdict=pass；但 success_score_threshold=100 与 Judge 评分尺度
+        # （"全部满足≈90-100"）结构性失配，score 恒 <100，致 decide() 成功路径永不触发、反被
+        # no_progress 误判 failed（曾致 Routine 861ab544 收敛成功态被判 failed）。开启此旁路让 Judge
+        # 的权威完成裁决（verdict=pass + 门控通过）成为第二成功通道，与阈值路径并列。
+        "accept_verdict_pass": True,
     }
     if extra:
         cfg.update(extra)
