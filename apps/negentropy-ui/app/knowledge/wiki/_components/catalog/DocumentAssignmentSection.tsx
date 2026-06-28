@@ -14,6 +14,7 @@ import {
   type KnowledgeDocument,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/lib/activity-toast";
 import { Plus, Trash2, Pencil, Check, X } from "./icons";
 import { AddDocumentsDialog } from "./AddDocumentsDialog";
@@ -108,19 +109,20 @@ export function DocumentAssignmentSection({
   });
 
   return (
-    <div className="px-5 py-4 border-t border-border">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <div className="flex min-h-0 flex-1 flex-col border-t border-border px-5 py-4">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           归属文档 ({docs.length})
         </h3>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
+          leftIcon={<Plus className="h-3 w-3" />}
           onClick={() => setAdding(true)}
           disabled={!catalogId}
-          className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Plus className="h-3 w-3" />
           添加文档
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -128,7 +130,7 @@ export function DocumentAssignmentSection({
       ) : docs.length === 0 ? (
         <p className="text-xs text-muted-foreground/60 italic">暂无归属文档</p>
       ) : (
-        <ul className="space-y-1 max-h-[280px] overflow-y-auto">
+        <ul className="space-y-1 min-h-0 flex-1 overflow-y-auto">
           {docs.map((doc) => {
             const isEditing = editingId === doc.id;
             const effectiveName = effectiveDisplayName(doc);
@@ -158,7 +160,7 @@ export function DocumentAssignmentSection({
                         onClick={() => void commitEdit(doc)}
                         disabled={saving}
                         title="保存"
-                        className="p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>
@@ -166,7 +168,7 @@ export function DocumentAssignmentSection({
                         onClick={cancelEdit}
                         disabled={saving}
                         title="取消"
-                        className="p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -193,14 +195,14 @@ export function DocumentAssignmentSection({
                     <button
                       onClick={() => startEdit(doc)}
                       title="编辑 Wiki 显示名称"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                      className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus:opacity-100 group-hover:opacity-100"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     <button
                       onClick={() => handleRemove(doc.id, doc.original_filename)}
                       title="从节点移除"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-opacity"
+                      className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
