@@ -66,6 +66,8 @@ function RoutinePageInner() {
   // null = 抽屉关闭；"create" = 新建；否则由 ?sel 派生的 routine-edit。
   const [createOpen, setCreateOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  // 行内 Clean Up 在途 routine id（null=无）；按钮 busy/disabled + spinner，防二次点击。
+  const [cleanupBusyId, setCleanupBusyId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   // SSE ghost-reopen 守卫：镜像 selected 供异步 SSE 回调读取「抽屉是否仍打开」，
@@ -229,6 +231,7 @@ function RoutinePageInner() {
   };
 
   const handleCleanupWorktree = async (r: RoutineDTO) => {
+    setCleanupBusyId(r.id);
     try {
       await cleanupWorktree(r.id);
       toast.success("Worktree cleaned up");
@@ -236,6 +239,8 @@ function RoutinePageInner() {
       if (selId === r.id) void refreshSelected(r.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to clean up worktree");
+    } finally {
+      setCleanupBusyId(null);
     }
   };
 
@@ -289,6 +294,7 @@ function RoutinePageInner() {
               onRestart={requestRestart}
               onTerminate={requestTerminate}
               onCleanupWorktree={handleCleanupWorktree}
+              cleanupBusyId={cleanupBusyId}
             />
 
             {sortedRoutines.length > 0 && (

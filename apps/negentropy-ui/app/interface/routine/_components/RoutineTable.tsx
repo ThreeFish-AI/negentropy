@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, OctagonX, RotateCcw, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, OctagonX, RotateCcw, Trash2 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
@@ -19,9 +19,11 @@ interface RoutineTableProps {
   onTerminate?: (r: RoutineDTO) => void;
   /** 终态 + worktree 活跃时行内清理 worktree。 */
   onCleanupWorktree?: (r: RoutineDTO) => void;
+  /** 正在清理的 routine id（行内按钮 busy/disabled + spinner，防二次点击；null 表示无在途）。 */
+  cleanupBusyId?: string | null;
 }
 
-export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree, cleanupBusyId }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -114,13 +116,20 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                   {onCleanupWorktree && canCleanupWorktree(r.status, r.worktree_path) && (
                     <button
                       type="button"
+                      disabled={cleanupBusyId === r.id}
+                      aria-busy={cleanupBusyId === r.id || undefined}
+                      aria-label={`Clean Up worktree for ${r.display_name || r.title}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onCleanupWorktree(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-amber-400"
+                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline dark:text-amber-400"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      {cleanupBusyId === r.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
                       Clean Up
                     </button>
                   )}
