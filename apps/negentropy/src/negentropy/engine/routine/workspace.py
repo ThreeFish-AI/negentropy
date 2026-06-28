@@ -337,6 +337,20 @@ async def ensure_worktree(routine: _RoutineLike, settings: RoutineSettings) -> W
         if routine.worktree_path and routine.work_branch:
             if await _is_valid_worktree(routine.worktree_path, routine.work_branch, timeout):
                 return WorkspaceInfo(routine.worktree_path, routine.work_branch)
+            # CC 可能在 worktree 内漂移 HEAD（git switch/checkout 偏离 work_branch）。此时目录仍是
+            # 有效 git worktree——re-anchor：把 HEAD 切回 work_branch，**不重建目录**（Engine「巡检 +
+            # 保持」单一 workspace）。仅当目录缺失/非 git worktree 才回落重建。
+            if await _is_git_worktree(routine.worktree_path, timeout):
+                logger.warning(
+                    "routine_worktree_head_drifted",
+                    routine_id=str(routine.id),
+                    path=routine.worktree_path,
+                    expected=routine.work_branch,
+                    actual=await _get_head_branch(routine.worktree_path, timeout),
+                )
+                if await _reanchor_head(routine.worktree_path, routine.work_branch, timeout):
+                    return WorkspaceInfo(routine.worktree_path, routine.work_branch)
+                # re-anchor 失败（极少：work_branch ref 丢失等）→ 回落既有重建兜底。
             logger.warning(
                 "routine_worktree_stale_recreate",
                 routine_id=str(routine.id),
@@ -398,6 +412,69 @@ async def _is_valid_worktree(path: str, expected_branch: str, timeout: float) ->
         return False
     rc, out, _ = await _run_git(["-C", path, "rev-parse", "--abbrev-ref", "HEAD"], timeout=timeout)
     return rc == 0 and out.strip() == expected_branch
+
+
+async def _is_git_worktree(path: str, timeout: float) -> bool:
+    """路径是否为有效 git 工作树（不论 HEAD 当前在哪条分支 / 是否 detached）。
+
+    与 ``_is_valid_worktree`` 的区别：后者额外要求 HEAD 恰在 ``expected_branch``；本函数只判
+    「目录在 + 是 git 工作树」，用于区分「HEAD 漂移（可 re-anchor）」与「目录缺失/非 worktree（需重建）」。
+    """
+    if not os.path.isdir(path):
+        return False
+    rc, out, _ = await _run_git(["-C", path, "rev-parse", "--is-inside-work-tree"], timeout=timeout)
+    return rc == 0 and out.strip() == "true"
+
+
+async def _get_head_branch(path: str, timeout: float) -> str | None:
+    """当前 HEAD 的符号引用分支名；detached HEAD（输出 ``HEAD``）或查询失败 → None。"""
+    rc, out, _ = await _run_git(["-C", path, "rev-parse", "--abbrev-ref", "HEAD"], timeout=timeout)
+    if rc != 0:
+        return None
+    name = out.strip()
+    if not name or name == "HEAD":
+        return None
+    return name
+
+
+async def _reanchor_head(worktree_path: str, work_branch: str, timeout: float) -> bool:
+    """把漂移的 worktree HEAD 切回 ``work_branch``（re-anchor，**不重建目录**）。
+
+    纯 workspace 机制：CC 在 worktree 内 ``git switch``/``checkout`` 偏离 work_branch 时，由 Engine
+    在下轮派发前把 HEAD 切回，维系「一个 Routine 终生单一工作分支 + 单一 worktree」不变量。
+
+    - 干净切换优先；脏工作树致 ``git switch`` 拒绝时，``stash push → switch → stash pop`` 兜底。
+    - best-effort：任一步失败返回 False，调用方回落 ``stale_recreate`` 重建。偏离分支上的提交留在其
+      分支 ref 不丢；work_branch 上的提交保留。
+    """
+    rc, _, err = await _run_git(["-C", worktree_path, "switch", work_branch], timeout=timeout)
+    if rc == 0:
+        logger.info("routine_worktree_reanchored", path=worktree_path, branch=work_branch)
+        return True
+    # 切换失败——仅当工作树确有未提交改动时尝试 stash 兜底（否则多为 work_branch ref 丢失，stash 无益）。
+    rc_st, status_out, _ = await _run_git(["-C", worktree_path, "status", "--porcelain"], timeout=timeout)
+    if rc_st == 0 and status_out.strip():
+        await _run_git(["-C", worktree_path, "stash", "push", "-m", "negentropy-reanchor"], timeout=timeout)
+        rc2, _, err2 = await _run_git(["-C", worktree_path, "switch", work_branch], timeout=timeout)
+        if rc2 == 0:
+            # stash pop best-effort：冲突时留 stash 供人工处理，不阻断 re-anchor 成局。
+            await _run_git(["-C", worktree_path, "stash", "pop"], timeout=timeout)
+            logger.info("routine_worktree_reanchored_with_stash", path=worktree_path, branch=work_branch)
+            return True
+        logger.warning(
+            "routine_worktree_reanchor_failed_after_stash",
+            path=worktree_path,
+            branch=work_branch,
+            detail=(err2 or "")[:200],
+        )
+        return False
+    logger.warning(
+        "routine_worktree_reanchor_failed",
+        path=worktree_path,
+        branch=work_branch,
+        detail=(err or "")[:200],
+    )
+    return False
 
 
 async def _local_branch_exists(project_path: str, branch: str, timeout: float) -> bool:

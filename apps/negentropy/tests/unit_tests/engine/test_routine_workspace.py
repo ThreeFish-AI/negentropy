@@ -175,6 +175,61 @@ async def test_ensure_worktree_creates_then_reuses(tmp_path):
     assert (info2.path, info2.branch) == (info.path, info.branch)
 
 
+async def test_ensure_worktree_reanchors_when_head_drifted(tmp_path):
+    """CC 在 worktree 内 ``git switch`` 漂离 work_branch → 下轮 ensure_worktree re-anchor 切回，
+    **不移除/不重建目录**（未跟踪 marker 文件保留，证明非 stale_recreate）。维系单一 workspace。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    # 在 worktree 内留未跟踪 marker：re-anchor 保留；stale_recreate（remove+re-add）会丢。
+    marker = Path(info.path) / "marker.txt"
+    marker.write_text("persist")
+    # CC 漂移：切到一条新分支
+    subprocess.run(["git", "-C", info.path, "checkout", "-b", "stray"], check=True, capture_output=True)
+    assert _head_branch(info.path) == "stray"
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert (info2.path, info2.branch) == (info.path, info.branch)  # 同一 workspace
+    assert _head_branch(info.path) == info.branch  # HEAD 已 re-anchor 回 work_branch
+    assert marker.exists() and marker.read_text() == "persist"  # 目录未重建
+
+
+async def test_ensure_worktree_reanchors_detached_head(tmp_path):
+    """CC 漂移到 detached HEAD（``git checkout --detach``）→ re-anchor 切回 work_branch。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    subprocess.run(["git", "-C", info.path, "checkout", "--detach"], check=True, capture_output=True)
+    assert _head_branch(info.path) == "HEAD"  # detached
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert (info2.path, info2.branch) == (info.path, info.branch)
+    assert _head_branch(info.path) == info.branch
+
+
+async def test_ensure_worktree_reanchors_with_dirty_worktree(tmp_path):
+    """漂移 + 脏工作树 → re-anchor 兜底切回 work_branch（clean-carry 或 stash），工作树改动不阻断。"""
+    repo = _make_git_repo(tmp_path / "repo")
+    s = _settings(str(tmp_path / "wt"))
+    r = _routine(repo)
+    info = await ws.ensure_worktree(r, s)
+    r.worktree_path, r.work_branch = info.path, info.branch
+
+    # 脏工作树（改已跟踪文件）+ 漂移到新分支
+    (Path(info.path) / "README.md").write_text("# changed")
+    subprocess.run(["git", "-C", info.path, "checkout", "-b", "stray"], check=True, capture_output=True)
+
+    info2 = await ws.ensure_worktree(r, s)
+    assert (info2.path, info2.branch) == (info.path, info.branch)
+    assert _head_branch(info.path) == info.branch  # 无论 clean-carry 还是 stash，HEAD 已回 work_branch
+
+
 async def test_remove_worktree_idempotent(tmp_path):
     import os
 
