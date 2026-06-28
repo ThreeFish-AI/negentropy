@@ -347,6 +347,10 @@ async def get_catalog_documents(
     catalog_id: UUID,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=200, ge=1, le=200),
+    # 普通默认值而非 Query(default=None)：Query 包装对象在 handler 被直接调用时
+    # （本仓测试惯例）是 truthy 的 FieldInfo，会误触发过滤；str|None=None 既能被
+    # FastAPI 识别为可选 query 参，又保证直接调用拿到真正的 None。
+    markdown_status: str | None = None,
 ):
     """获取 Catalog 作用域下可分配的候选文档列表
 
@@ -356,6 +360,9 @@ async def get_catalog_documents(
 
     跨 app 不可见：与 catalog_service.assign_document 的 app_name 同源断言对齐
     （ISSUE-011 Phase 3 不变量）。
+
+    markdown_status：UI 默认传 ``completed``——仅已成功转换为 Markdown 的文档才可
+    渲染为 Wiki 节点，故候选集限定于此；None 时回退到「全部 active 文档」语义。
     """
     from negentropy.models.perception import DocCatalog
     from negentropy.storage.service import DocumentStorageService
@@ -375,6 +382,7 @@ async def get_catalog_documents(
         app_name=catalog_app,
         limit=limit,
         offset=offset,
+        markdown_status=markdown_status,
     )
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
     name_map = await _resolve_user_display_names(unique_user_ids)

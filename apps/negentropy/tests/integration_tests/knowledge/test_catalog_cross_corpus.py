@@ -577,6 +577,65 @@ class TestGetCatalogDocuments:
         result = await catalog_routes.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
         assert result["total"] == 3
 
+    @pytest.mark.asyncio
+    async def test_markdown_status_filter(
+        self,
+        db_engine,
+        patch_handler_sessions,
+        negentropy_catalog,
+        negentropy_corpus,
+    ):
+        """markdown_status=completed 仅返回已成功转换为 Markdown 的候选文档；
+        省略该参（默认 None）回退到「全部 active 文档」——锁定 AddDocumentsDialog
+        候选集 = 可渲染为 Wiki 节点的文档，且向后兼容既有直接调用。"""
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge.routes import catalog as catalog_routes
+        from negentropy.models.perception import KnowledgeDocument
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        statuses = ["completed", "completed", "pending"]
+        doc_ids: list[UUID] = []
+        async with session_factory() as session:
+            for idx, status in enumerate(statuses):
+                doc = KnowledgeDocument(
+                    corpus_id=negentropy_corpus,
+                    app_name="negentropy",
+                    # 与 three_docs_in_negentropy 的 {idx:064x} 错峰，避免 file_hash 唯一约束冲突
+                    file_hash=f"{0xC0FFEE00 + idx:064x}"[-64:],
+                    original_filename=f"md-filter-{idx}.md",
+                    content_uri=f"pgblob://test/mdfilter_{idx}",
+                    content_type="text/markdown",
+                    file_size=1024 * (idx + 1),
+                    markdown_extract_status=status,
+                )
+                session.add(doc)
+                await session.flush()
+                doc_ids.append(doc.id)
+            await session.commit()
+
+        try:
+            # 过滤 completed：仅命中 2 条，且全部为 completed
+            filtered = await catalog_routes.get_catalog_documents(
+                catalog_id=negentropy_catalog, offset=0, limit=200, markdown_status="completed"
+            )
+            assert filtered["total"] == 2
+            assert len(filtered["items"]) == 2
+            assert all(item.markdown_extract_status == "completed" for item in filtered["items"])
+
+            # 省略 markdown_status（默认 None）：回退全部 active，向后兼容
+            all_docs = await catalog_routes.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+            assert all_docs["total"] == 3
+            returned_ids = {str(item.id) for item in all_docs["items"]}
+            assert {str(d) for d in doc_ids} == returned_ids
+        finally:
+            async with session_factory() as s:
+                for did in doc_ids:
+                    obj = await s.get(KnowledgeDocument, did)
+                    if obj is not None:
+                        await s.delete(obj)
+                await s.commit()
+
 
 class TestGetEntryDocuments:
     """GET /catalogs/{catalog_id}/entries/{entry_id}/documents 已归属文档契约"""

@@ -11,6 +11,7 @@ import {
   fetchCatalogNodeDocuments,
   unassignDocumentFromNode,
   useInlineDocumentRename,
+  effectiveDisplayName,
   type KnowledgeDocument,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
@@ -22,23 +23,17 @@ import { AddDocumentsDialog } from "./AddDocumentsDialog";
 interface DocumentAssignmentSectionProps {
   nodeId: string;
   catalogId: string;
+  /** 整棵 Wiki 目录树范围内已添加的文档 ID 集合——由 NodeDetailPanel 从全树
+   *  DOCUMENT_REF 节点派生，保证「一篇文档全站仅出现一次」，灰显防止二次添加。 */
+  existingDocIds: Set<string>;
   /** 文档归属变更（改名 / 增删）后通知父级刷新目录树——CTE 派生的节点名需即时反映 */
   onUpdate?: () => void;
-}
-
-/** 决定 Wiki 站点上显示的标题（优先级与后端 _resolve_doc_display_title 一致）。
- *  display_name（用户手填）→ metadata.title（PDF/抓取自动抽取）→ original_filename（兜底）。 */
-function effectiveDisplayName(doc: KnowledgeDocument): string {
-  const displayName = (doc.display_name || "").trim();
-  if (displayName) return displayName;
-  const metaTitle = typeof doc.metadata?.title === "string" ? doc.metadata.title.trim() : "";
-  if (metaTitle) return metaTitle;
-  return doc.original_filename;
 }
 
 export function DocumentAssignmentSection({
   nodeId,
   catalogId,
+  existingDocIds,
   onUpdate,
 }: DocumentAssignmentSectionProps) {
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -218,7 +213,7 @@ export function DocumentAssignmentSection({
         <AddDocumentsDialog
           nodeId={nodeId}
           catalogId={catalogId}
-          existingDocIds={new Set(docs.map((d) => d.id))}
+          existingDocIds={existingDocIds}
           onClose={() => setAdding(false)}
           onAdded={handleAdded}
         />

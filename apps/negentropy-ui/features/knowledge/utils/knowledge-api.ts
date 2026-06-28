@@ -1368,15 +1368,33 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
 /**
  * 文件列表语境下的「有效名称」：`display_name`（用户重命名覆盖）→ `original_filename`。
  *
- * 注意：与 Wiki 目录的 `effectiveDisplayName`（含 `metadata.title` 三段回退）**刻意分离** ——
- * 「File Name」列只应显示用户填的名或源文件名，不该把 PDF 自动抽取的 title 污染进来；
- * `metadata.title` 回退是 Wiki 发布语境（后端 `_resolve_doc_display_title`）的职责。
+ * 注意：与 Wiki 目录语境的 {@link effectiveDisplayName}（含 `metadata.title` 三段回退）
+ * **刻意分离** ——「File Name」列只应显示用户填的名或源文件名，不该把 PDF 自动抽取的
+ * title 污染进来；`metadata.title` 回退是 Wiki 发布语境（后端 `_resolve_doc_display_title`）的职责。
  */
 export function effectiveDocumentName(
   doc: Pick<KnowledgeDocument, "display_name" | "original_filename">,
 ): string {
   const displayName = (doc.display_name ?? "").trim();
   return displayName || doc.original_filename;
+}
+
+/**
+ * Wiki 目录语境下的「有效展示名」：`display_name`（用户手填）→ `metadata.title`
+ * （PDF/抓取自动抽取）→ `original_filename`（兜底）。
+ *
+ * 优先级与后端 `_resolve_doc_display_title`、目录树 CTE（`catalog_node_dao`）一致，
+ * 保证「候选列表 → 归属列表 → 目录树节点名」三处同屏展示名完全一致。原本内联于
+ * `DocumentAssignmentSection`，现上移为唯一事实源供 `AddDocumentsDialog` 复用。
+ */
+export function effectiveDisplayName(
+  doc: Pick<KnowledgeDocument, "display_name" | "original_filename" | "metadata">,
+): string {
+  const displayName = (doc.display_name || "").trim();
+  if (displayName) return displayName;
+  const metaTitle = typeof doc.metadata?.title === "string" ? doc.metadata.title.trim() : "";
+  if (metaTitle) return metaTitle;
+  return doc.original_filename;
 }
 
 /**
@@ -3050,11 +3068,12 @@ export async function createCatalog(params: {
 /** 获取 Catalog 下可用文档（跨 corpus，用于 AddDocumentsDialog） */
 export async function fetchCatalogDocuments(
   catalogId: string,
-  params?: { limit?: number; offset?: number },
+  params?: { limit?: number; offset?: number; markdownStatus?: string },
 ): Promise<DocCatalogDocumentsResponse> {
   const query = new URLSearchParams();
   if (params?.limit != null) query.set("limit", String(params.limit));
   if (params?.offset != null) query.set("offset", String(params.offset));
+  if (params?.markdownStatus) query.set("markdown_status", params.markdownStatus);
   const qs = query.toString();
   const res = await fetch(
     `/api/knowledge/catalogs/${catalogId}/documents${qs ? `?${qs}` : ""}`,
@@ -3062,6 +3081,37 @@ export async function fetchCatalogDocuments(
   );
   if (!res.ok) throw new Error(`Failed to fetch catalog documents: ${res.statusText}`);
   return res.json();
+}
+
+/**
+ * 拉取 Catalog 下「全部」候选文档——以 200/页循环递增 offset 直至累计达到 total，
+ * 突破后端单次 `le=200` 上限，保证「添加文档节点」候选集不被截断。
+ *
+ * @param markdownStatus 透传 `markdown_status` 过滤（UI 默认 "completed"：仅已转换为
+ *   Markdown 的文档才可渲染为 Wiki 节点）；省略则不过滤。
+ * 上限 100 页（20000 条）兜底，防异常 total 导致死循环。
+ */
+export async function fetchAllCatalogDocuments(
+  catalogId: string,
+  opts?: { markdownStatus?: string },
+): Promise<KnowledgeDocument[]> {
+  const PAGE = 200;
+  const MAX_PAGES = 100;
+  const acc: KnowledgeDocument[] = [];
+  let offset = 0;
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const res = await fetchCatalogDocuments(catalogId, {
+      limit: PAGE,
+      offset,
+      markdownStatus: opts?.markdownStatus,
+    });
+    const items = res.items ?? [];
+    acc.push(...items);
+    const total = res.total ?? acc.length;
+    if (acc.length >= total || items.length < PAGE) break;
+    offset += PAGE;
+  }
+  return acc;
 }
 
 // ============================================================================
