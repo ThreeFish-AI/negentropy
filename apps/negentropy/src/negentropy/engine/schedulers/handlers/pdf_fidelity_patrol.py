@@ -40,7 +40,15 @@ from negentropy.models.perception import resolve_effective_display_name
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine
 
-from . import HandlerDescriptor, HandlerResult, register_descriptor, register_handler
+from . import (
+    PATROL_LIFECYCLE_IDLE,
+    PATROL_LIFECYCLE_IN_FLIGHT,
+    PATROL_LIFECYCLE_KEY,
+    HandlerDescriptor,
+    HandlerResult,
+    register_descriptor,
+    register_handler,
+)
 
 if TYPE_CHECKING:
     from negentropy.models.scheduled_task import ScheduledTask
@@ -83,13 +91,15 @@ async def pdf_fidelity_patrol_handler(task: ScheduledTask) -> HandlerResult:
     """单次巡检 tick。"""
     if not settings.routine.enabled:
         return HandlerResult(
-            status="ok", output_summary="routine subsystem disabled", metrics={"reason": "routine_disabled"}
+            status="ok",
+            output_summary="routine subsystem disabled",
+            metrics={"reason": "routine_disabled", PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IDLE},
         )
     if not settings.routine.patrol_enabled:
         return HandlerResult(
             status="ok",
             output_summary="patrol disabled (settings.routine.patrol_enabled)",
-            metrics={"reason": "patrol_disabled"},
+            metrics={"reason": "patrol_disabled", PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IDLE},
         )
 
     try:
@@ -117,10 +127,13 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
                     "patrol repo not configured: set NE_ROUTINE_PATROL_REPO_LOCAL_PATH "
                     "to a valid negentropy checkout, or register via Interface/Repositories"
                 ),
-                metrics={"reason": "repo_not_configured"},
+                metrics={"reason": "repo_not_configured", PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IDLE},
             )
         finalized = await _finalize_terminal_patrols(db)
+        propagated = await _propagate_patrol_outcomes(db)
         await db.commit()
+        if propagated:
+            logger.info("patrol_outcomes_propagated", count=propagated)
 
     # 跳过并发（独立短事务，避免长读）
     async with AsyncSessionLocal() as db:
@@ -128,7 +141,11 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
             return HandlerResult(
                 status="ok",
                 output_summary="patrol in progress, skipped",
-                metrics={"reason": "in_progress", "finalized": finalized},
+                metrics={
+                    "reason": "in_progress",
+                    "finalized": finalized,
+                    PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IN_FLIGHT,
+                },
             )
 
     # 选下一份待检 PDF
@@ -142,7 +159,7 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
         return HandlerResult(
             status="ok",
             output_summary="no pending PDF documents",
-            metrics={"reason": "no_pending_docs", "finalized": finalized},
+            metrics={"reason": "no_pending_docs", "finalized": finalized, PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IDLE},
         )
 
     # 预取源 PDF（blob IO，独立于 DB 事务）
@@ -186,6 +203,7 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
             "doc_id": doc_id,
             "routine_id": str(routine_id),
             "finalized": finalized,
+            PATROL_LIFECYCLE_KEY: PATROL_LIFECYCLE_IN_FLIGHT,
         },
     )
 
@@ -300,6 +318,80 @@ async def _finalize_terminal_patrols(db) -> int:
                 "SET config = COALESCE(config,'{}'::jsonb) || jsonb_build_object('memory_persisted', true) "
                 "WHERE id = :rid"
             ).bindparams(rid=rid)
+        )
+        count += 1
+    return count
+
+
+# ---------------------------------------------------------------------------
+# 终态 Routine 成败回写 ScheduledTask（聚合状态唯一权威写者）
+# ---------------------------------------------------------------------------
+
+
+async def _propagate_patrol_outcomes(db) -> int:
+    """把终态 patrol Routine 的成败回写到派生它的 ScheduledTask。
+
+    patrol 是 fire-and-forget：spawn 成功 ≠ Routine 成功。per-tick 的 ``_finalize_execution``
+    见 ``patrol_lifecycle`` 标记后不再写 ``ScheduledTask.last_status/last_error/
+    consecutive_failures``，改由本函数在 Routine 终态时统一回写，使 Scheduler 任务状态与
+    Routine 终态一致——``succeeded``→``ok``、``failed``→``failed``、``cancelled``→``cancelled``。
+    ``consecutive_failures`` 语义与 ``_finalize_execution`` 对齐（failed→+1、succeeded→清零、
+    cancelled→不变）。
+
+    通过 ``Routine.config->>'source_task_key'``（SSOT 软关联）反查 ScheduledTask；
+    ``config->>'outcome_propagated'='true'`` 幂等（与 ``memory_persisted`` 独立标记）。
+    返回回写条数。
+    """
+    rows = await db.execute(
+        sa.text(
+            "SELECT id, status, termination_reason, config->>'source_task_key' AS source_task_key "
+            "FROM negentropy.routines "
+            "WHERE config->>'patrol' = 'true' "
+            "AND status IN ('succeeded','failed','cancelled') "
+            "AND config->>'outcome_propagated' IS DISTINCT FROM 'true' "
+            "AND config->>'source_task_key' IS NOT NULL"
+        )
+    )
+    candidates = rows.fetchall()
+    if not candidates:
+        return 0
+
+    count = 0
+    for routine_id, routine_status, termination_reason, source_task_key in candidates:
+        if routine_status == "succeeded":
+            last_status, cf_clause = "ok", "consecutive_failures = 0"
+        elif routine_status == "failed":
+            last_status, cf_clause = "failed", "consecutive_failures = consecutive_failures + 1"
+        else:  # cancelled
+            last_status, cf_clause = "cancelled", "consecutive_failures = consecutive_failures"
+        last_error = termination_reason if routine_status == "failed" else None
+
+        updated = await db.execute(
+            sa.text(
+                "UPDATE negentropy.scheduled_tasks "
+                "SET last_status = :last_status, last_error = :last_error, "
+                f"{cf_clause} "
+                "WHERE key = :source_task_key"
+            ).bindparams(
+                last_status=last_status,
+                last_error=last_error,
+                source_task_key=source_task_key,
+            )
+        )
+        if updated.rowcount == 0:
+            # 源 ScheduledTask 不存在（已删 / key 漂移）—— 仍标记 Routine 已传播，避免每 tick 重扫。
+            logger.warning(
+                "patrol_propagate_source_task_missing",
+                routine_id=str(routine_id),
+                source_task_key=source_task_key,
+            )
+
+        await db.execute(
+            sa.text(
+                "UPDATE negentropy.routines "
+                "SET config = COALESCE(config,'{}'::jsonb) || jsonb_build_object('outcome_propagated', true) "
+                "WHERE id = :rid"
+            ).bindparams(rid=routine_id)
         )
         count += 1
     return count

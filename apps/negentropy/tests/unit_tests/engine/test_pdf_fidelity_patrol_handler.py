@@ -171,6 +171,8 @@ def test_handler_disabled_gates_return_reason(monkeypatch):
     r1 = asyncio.run(patrol.pdf_fidelity_patrol_handler(task))
     assert r1.status == "ok"
     assert r1.metrics["reason"] == "routine_disabled"
+    # 禁用=本轮无生命周期活动 → idle 标记（让 registry 不声称聚合状态终态）
+    assert r1.metrics[patrol.PATROL_LIFECYCLE_KEY] == patrol.PATROL_LIFECYCLE_IDLE
 
     # 巡检禁用（部署期 patrol_enabled 默认 False 的根因路径）
     monkeypatch.setattr(
@@ -181,6 +183,29 @@ def test_handler_disabled_gates_return_reason(monkeypatch):
     r2 = asyncio.run(patrol.pdf_fidelity_patrol_handler(task))
     assert r2.status == "ok"
     assert r2.metrics["reason"] == "patrol_disabled"
+    assert r2.metrics[patrol.PATROL_LIFECYCLE_KEY] == patrol.PATROL_LIFECYCLE_IDLE
+
+
+# ---------------------------------------------------------------------------
+# patrol_lifecycle 标记：tick 各路径（spawn/in_progress→in_flight；no_pending/repo_not_configured→idle）
+# ---------------------------------------------------------------------------
+
+
+def test_run_patrol_tick_carries_lifecycle_markers():
+    """白盒：_run_patrol_tick 的 spawn/in_progress 路径标 in_flight、no_pending/repo_not_configured 标 idle。
+
+    这四条路径依赖真实 PG + blob，行为级覆盖在集成测试（_finalize_execution 延迟语义）；
+    此处仅断言标记就位，防止后续重构无意间丢失（与既有白盒断言同风格）。
+    """
+    import inspect
+
+    body = inspect.getsource(patrol._run_patrol_tick)
+    # 源码中以标识符形式出现（非常量值）：spawn + in_progress = 2 处 in_flight
+    assert body.count("PATROL_LIFECYCLE_IN_FLIGHT") >= 2
+    # no_pending_docs + repo_not_configured = 2 处 idle
+    assert body.count("PATROL_LIFECYCLE_IDLE") >= 2
+    # stage_failed 是真失败（不打标记，走既有 failed 分支）
+    assert "stage_source_pdf_failed" in body
 
 
 # ---------------------------------------------------------------------------

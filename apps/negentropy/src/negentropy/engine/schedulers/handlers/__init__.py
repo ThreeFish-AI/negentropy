@@ -56,6 +56,22 @@ HandlerFn = Callable[["ScheduledTask"], Awaitable[HandlerResult]]
 
 
 # ---------------------------------------------------------------------------
+# patrol_lifecycle 标记协议
+# ---------------------------------------------------------------------------
+# patrol（pdf_fidelity_patrol）是 fire-and-forget：handler 创建 Routine 后立即返回，
+# 「spawn 成功 ≠ Routine 成功」。若 per-tick 的 ``_finalize_execution`` 照常用
+# ``HandlerResult.status`` 写 ``ScheduledTask.last_status/last_error/consecutive_failures``，
+# 会在 Routine 数小时后真正失败时仍把 Scheduler 任务标成 success。
+#
+# 携带本标记的 tick 让出聚合状态字段的写权——这些字段的**唯一权威写者**收敛到
+# ``pdf_fidelity_patrol._propagate_patrol_outcomes``（Routine 终态传播），保证 Scheduler
+# 任务状态与所派生 Routine 的终态一致。协议常量集中于此供 handler 与 registry 共享（SSOT）。
+PATROL_LIFECYCLE_KEY = "patrol_lifecycle"
+PATROL_LIFECYCLE_IN_FLIGHT = "in_flight"  # 有 Routine 在跑（spawn / in_progress 跳过）
+PATROL_LIFECYCLE_IDLE = "idle"  # 本轮无生命周期活动（无待检 / 未配置 / 未启用）
+
+
+# ---------------------------------------------------------------------------
 # Handler 注册表
 # ---------------------------------------------------------------------------
 
