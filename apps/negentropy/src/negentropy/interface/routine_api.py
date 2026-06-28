@@ -789,16 +789,23 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
 
 @router.delete("/{routine_id}")
 async def delete_routine(routine_id: UUID) -> dict[str, Any]:
+    # ① 短会话：校验 + 读取（detached 后属性可读，供会话外回收）。
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status in _ACTIVE:
             raise HTTPException(status_code=409, detail=f"cannot delete a {r.status} routine; cancel it first")
-        # 删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort）。
-        if r.worktree_path:
-            with suppress(Exception):
-                await workspace.remove_worktree(r, settings.routine)
+    # ② 会话外：删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort；不占连接、不阻塞事件循环）。
+    if r.worktree_path:
+        with suppress(Exception):
+            await workspace.remove_worktree(r, settings.routine)
+    # ③ 短会话：删行 + 提交（保持「先回收、后删行」语义；并发已删则视作幂等成功）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            _KPI_CACHE.invalidate()
+            return {"ok": True, "deleted_routine_id": str(routine_id)}
         try:
             await db.delete(r)
             await db.commit()
@@ -973,7 +980,11 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
 
     终态 routine（succeeded/failed/cancelled）在 worktree 仍活跃时可用于手动触发磁盘回收，
     无需等待周期巡检器。``work_branch`` 保留供审计/PR 溯源。
+
+    慢操作（git/rmtree）须在 DB 会话**外**执行：会话仅做短读 + 短写，避免长时间占用连接池连接；
+    其本身亦不阻塞事件循环（``remove_worktree`` 内 rmtree 已卸载线程池），故清理期间全站其他请求不受影响。
     """
+    # ① 短会话：校验 + 读取（worktree_path 仍非空，供会话外清理）。
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:
@@ -988,9 +999,12 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
             )
         if not r.worktree_path:
             raise HTTPException(status_code=409, detail="worktree already cleaned up or never created")
-        # best-effort 回收：异常仅日志，不阻断。
-        with suppress(Exception):
-            await workspace.remove_worktree(r, settings.routine)
+    # ② 会话外：best-effort 回收（expire_on_commit=False → r 已 detached 但属性可读；纯 git/FS，无 DB）。
+    with suppress(Exception):
+        await workspace.remove_worktree(r, settings.routine)
+    # ③ 短会话：置空 + 提交（保持「先回收、后置空」语义）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
         r.worktree_path = None
         await db.commit()
         await db.refresh(r)

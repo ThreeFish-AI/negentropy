@@ -6,9 +6,11 @@ ensure_worktree 创建 + 幂等复用；remove_worktree 幂等回收。
 
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -470,3 +472,68 @@ async def test_remove_worktree_default_deletes_local_branch(tmp_path):
     await ws.remove_worktree(r, s)
     assert not os.path.isdir(info.path)
     assert _local_branch_exists(repo, info.branch) is False  # 本地分支已删
+
+
+# ---------------------------------------------------------------------------
+# 事件循环非阻塞回归 —— rmtree 兜底须离事件循环（asyncio.to_thread），不冻结全站
+# ---------------------------------------------------------------------------
+
+
+def _make_big_tree(root: Path, file_count: int = 6000) -> None:
+    """在 root 下造一棵含 file_count 个小文件（分散于 ~50 子目录）的目录树，供 rmtree 产生可观耗时。"""
+    root.mkdir(parents=True, exist_ok=True)
+    for i in range(file_count):
+        d = root / f"d{i % 50}"
+        d.mkdir(exist_ok=True)
+        (d / f"f{i}.txt").write_text("x")
+
+
+async def test_remove_worktree_does_not_block_event_loop(tmp_path):
+    """回归：remove_worktree 的 rmtree 兜底已卸载到线程池（asyncio.to_thread），不再冻结事件循环。
+
+    构造含大量文件的伪 worktree 目录，令 ``cwd`` 失效以跳过 git 子命令、直击 rmtree 兜底（即原同步
+    阻塞点）；回收期间并发跑紧凑 asyncio 心跳，断言心跳单次间隔远小于一次完整 rmtree 耗时——证明
+    阻塞 IO 已离事件循环。修复前（直调 shutil.rmtree），心跳会在 rmtree 期间整体停滞 ≈ rmtree 耗时。
+    """
+    wt = tmp_path / "big_worktree"
+    _make_big_tree(wt)
+
+    # 量出同步 rmtree 基线耗时（= 修复前会冻结事件循环的时长）。
+    baseline = tmp_path / "baseline_worktree"
+    shutil.copytree(wt, baseline)
+    t0 = time.perf_counter()
+    shutil.rmtree(baseline)
+    rmtree_secs = time.perf_counter() - t0
+    if rmtree_secs < 0.1:
+        pytest.skip(f"本机 rmtree 过快（{rmtree_secs * 1000:.0f}ms < 100ms），测试无区分度")
+
+    s = _settings(str(tmp_path / "wt"))
+    # cwd 指向不存在路径 → 跳过 git 子命令，直击 rmtree 兜底（原同步阻塞点）。
+    r = _routine(str(tmp_path / "nonexistent_repo"), worktree_path=str(wt))
+
+    gaps: list[float] = []
+
+    async def heartbeat(steps: int = 60, interval: float = 0.01) -> None:
+        loop = asyncio.get_running_loop()
+        last = loop.time()
+        for _ in range(steps):
+            await asyncio.sleep(interval)
+            now = loop.time()
+            gaps.append(now - last)
+            last = now
+
+    # 先起心跳后台任务并预热若干 tick，再开始回收——确保 rmtree 运行时心跳正处节拍中；
+    # 否则同步阻塞的 remove_worktree 会在单个事件循环步长内跑完、心跳尚未启动，掩盖阻塞。
+    # 「事件循环被同步 rmtree 冻结」会直接表现为某次心跳间隔 ≈ rmtree 整体耗时。
+    hb = asyncio.create_task(heartbeat())
+    await asyncio.sleep(0.05)  # 预热：让心跳先跑几个 tick
+    await ws.remove_worktree(r, s)  # 期间心跳仍在后台跑
+    await hb  # 收尾剩余 tick
+
+    assert not wt.exists()  # 清理仍完整生效（正确性不变）
+    assert gaps, "心跳未运行"
+    max_gap = max(gaps)
+    # 心跳单次间隔不应接近 rmtree 整体耗时：修复前 max_gap ≈ rmtree_secs，修复后 ≪ rmtree_secs。
+    assert max_gap < rmtree_secs * 0.5, (
+        f"事件循环疑似被阻塞：max_gap={max_gap * 1000:.0f}ms，rmtree 基线={rmtree_secs * 1000:.0f}ms"
+    )

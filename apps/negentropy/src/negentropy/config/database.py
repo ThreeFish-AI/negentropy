@@ -23,6 +23,7 @@ class DatabaseSettings(BaseSettings):
     pool_size: int = Field(default=5, description="Connection pool size")
     max_overflow: int = Field(default=10, description="Max overflow connections")
     pool_recycle: int = Field(default=3600, description="Pool recycle time in seconds")
+    pool_timeout: int = Field(default=10, description="Seconds to wait for a pooled connection before giving up")
     echo: bool = Field(default=False, description="Echo SQL statements")
 
     @classmethod
