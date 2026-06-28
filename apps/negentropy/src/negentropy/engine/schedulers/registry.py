@@ -38,7 +38,14 @@ from negentropy.logging import get_logger
 from negentropy.models.scheduled_task import ScheduledTask, TaskExecution
 
 from .async_scheduler import AsyncScheduler, _resolved_default_poll_interval
-from .handlers import HandlerResult, _bootstrap_default_handlers, get_handler
+from .handlers import (
+    PATROL_LIFECYCLE_IDLE,
+    PATROL_LIFECYCLE_IN_FLIGHT,
+    PATROL_LIFECYCLE_KEY,
+    HandlerResult,
+    _bootstrap_default_handlers,
+    get_handler,
+)
 
 logger = get_logger("negentropy.engine.schedulers.registry")
 
@@ -451,18 +458,33 @@ class ScheduledTaskRegistry:
             task = await db.get(ScheduledTask, task_id)
             if task is not None:
                 task.last_fire_at = started_at
-                task.last_status = result.status
-                task.last_error = result.error
                 task.total_runs += 1
-                # ``failed`` / ``timeout`` 共同累加失败计数；``cancelled`` 不计失败
-                # （shutdown 主动取消不应触发退避）。
-                if result.status in ("failed", "timeout"):
-                    task.consecutive_failures += 1
-                elif result.status == "cancelled":
+                task.next_fire_at = _compute_next_fire(task)
+
+                # patrol（pdf_fidelity_patrol）是 fire-and-forget：spawn 成功 ≠ Routine 成功。
+                # 携带 ``patrol_lifecycle`` 标记的 tick 让出聚合状态写权——``last_status`` /
+                # ``last_error`` / ``consecutive_failures`` 的唯一权威写者是
+                # ``pdf_fidelity_patrol._propagate_patrol_outcomes``（Routine 终态传播），
+                # 保证 Scheduler 任务状态与所派生 Routine 终态一致，而非被 per-tick 误标成功。
+                lifecycle = (result.metrics or {}).get(PATROL_LIFECYCLE_KEY)
+                if lifecycle == PATROL_LIFECYCLE_IN_FLIGHT:
+                    # 有 Routine 在跑：``last_status=running``，保留上一轮 ``last_error`` / ``consecutive_failures``。
+                    task.last_status = "running"
+                elif lifecycle == PATROL_LIFECYCLE_IDLE:
+                    # 本轮无生命周期活动：三字段全保留（不掩盖上一轮失败信号）。
                     pass
                 else:
-                    task.consecutive_failures = 0
-                task.next_fire_at = _compute_next_fire(task)
+                    # 非 patrol（或 patrol 的 stage_failed 真失败）：维持既有语义。
+                    task.last_status = result.status
+                    task.last_error = result.error
+                    # ``failed`` / ``timeout`` 共同累加失败计数；``cancelled`` 不计失败
+                    # （shutdown 主动取消不应触发退避）。
+                    if result.status in ("failed", "timeout"):
+                        task.consecutive_failures += 1
+                    elif result.status == "cancelled":
+                        pass
+                    else:
+                        task.consecutive_failures = 0
 
             await db.commit()
             if exec_row is not None and task is not None:
