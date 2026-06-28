@@ -436,7 +436,7 @@ def _build_patrol_routine(
         verification_command=None,
         status="running",
         max_iterations=settings.routine.patrol_max_iterations_per_doc,
-        max_cost_usd=settings.routine.default_max_cost_usd,
+        max_cost_usd=settings.routine.patrol_max_cost_usd_per_doc,
         deadline_at=None,
         success_score_threshold=100,
         no_progress_patience=3,  # per-Routine DB 列默认值（非 RoutineSettings 属性）

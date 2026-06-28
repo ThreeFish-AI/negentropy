@@ -311,6 +311,13 @@ class RoutineSettings(BaseSettings):
         le=50,
         description="单文档巡检 Routine 的迭代硬上限（拟合到满分或触上限即终止）。",
     )
+    patrol_max_cost_usd_per_doc: float = Field(
+        default=30.0,
+        ge=0.0,
+        description="单文档巡检 Routine 的成本熔断（USD）。巡检是重自治任务（opus + 扩展思考"
+        " + perceives 重转 + worktree），单轮约 $3-4；默认 30 容许 ~8 轮迭代收敛。"
+        "原沿用全局 default_max_cost_usd=5，2 轮即撞顶 max_cost 终止（实测 $6.92）。",
+    )
     patrol_regression_sample_size: int = Field(
         default=6,
         ge=1,
