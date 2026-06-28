@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CatalogNode,
   updateCatalogNode,
@@ -30,6 +30,18 @@ export function NodeDetailPanel({
   const { confirm, confirmDialog } = useConfirmDialog();
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState("");
+
+  // 整棵 Wiki 目录树范围内已添加的文档 ID 集合——一篇文档全站仅出现一次，
+  // 用于「添加文档」模态框灰显防重复。复用已加载的全树 nodes，零新增请求。
+  const existingDocIds = useMemo(
+    () =>
+      new Set(
+        nodes
+          .filter((n) => n.node_type === "document_ref" && n.document_id)
+          .map((n) => n.document_id!),
+      ),
+    [nodes],
+  );
 
   if (!node) {
     return (
@@ -206,7 +218,12 @@ export function NodeDetailPanel({
       </div>
 
       {/* Document assignment */}
-      <DocumentAssignmentSection nodeId={node.id} catalogId={catalogId} onUpdate={onUpdate} />
+      <DocumentAssignmentSection
+        nodeId={node.id}
+        catalogId={catalogId}
+        existingDocIds={existingDocIds}
+        onUpdate={onUpdate}
+      />
       </div>
       {confirmDialog}
     </>

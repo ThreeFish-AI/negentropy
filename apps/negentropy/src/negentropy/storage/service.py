@@ -354,6 +354,7 @@ class DocumentStorageService:
         limit: int = 50,
         offset: int = 0,
         order_by: str = "created_at",
+        markdown_status: str | None = None,
     ) -> tuple[list[KnowledgeDocument], int]:
         """List documents with optional filtering.
 
@@ -366,6 +367,8 @@ class DocumentStorageService:
                 (default) or "updated_at"; unknown values fall back to
                 "created_at". A secondary ``id`` ordering guarantees stable
                 pagination when timestamps tie.
+            markdown_status: Optional ``markdown_extract_status`` 过滤（如
+                ``"completed"``）。None 表示不过滤，保留既有调用方语义。
 
         Returns:
             Tuple of (list of documents, total count)
@@ -377,6 +380,8 @@ class DocumentStorageService:
                 conditions.append(KnowledgeDocument.corpus_id == corpus_id)
             if app_name:
                 conditions.append(KnowledgeDocument.app_name == app_name)
+            if markdown_status:
+                conditions.append(KnowledgeDocument.markdown_extract_status == markdown_status)
 
             # Count query
             count_stmt = select(func.count()).select_from(KnowledgeDocument).where(*conditions)
