@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`cli.sh restart` 报 `Can't locate revision identified by '0078'`**：共享 `negentropy` dev DB 的 `alembic_version` 被超前 stamp 到 `0078`（`routine_iteration_events.agent_role` 列），但 `cli.sh` 从部署分支 `feature/1.x.x`（迁移树 head 仅到 `0077`）跑 alembic 时无法在自身树中定位 `0078`。根因是工作区（带未合并 PR #1013 的 migration 0078）曾以无效 env override 跑 alembic roundtrip——`NE_DATABASE__NAME` 并非 `DatabaseSettings` 真实字段，未重定向到临时库、实际落到共享 `negentropy` DB。修复：从工作区执行 `0078` 的 `downgrade()`（drop 空 `agent_role` 列，核查 113550 行该列 0 非空、零数据损失）realign DB 到 `0077`，与部署分支 head 对齐；前向安全已验证（`0077→0078` 幂等重应用，PR #1013 合并后自动复用）。防范：迁移测试须用真实 settings 字段或独立 DSN 重定向，勿依赖未映射的 env key。
+
 ### Changed
 
 - **Wiki 发布入口一体化 + 双目标发布**：`/knowledge/wiki` 工具栏的「从 Catalog 同步」「同步并发布」「仅发布」收敛为单一 **「发布」** 按钮（选 Catalog 节点 → 同步 → 发布），并新增**发布目标选择器**：
