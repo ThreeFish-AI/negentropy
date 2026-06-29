@@ -711,6 +711,11 @@ class RoutineOrchestrator:
                 # per-routine 开启「Judge verdict=pass 亦判成功」旁路（config.accept_verdict_pass）：
                 # 用于完成判据无法被单一分数阈值捕获的任务（如巡检 threshold=100 与 Judge 评分尺度失配）。
                 accept_verdict_pass=bool((routine.config or {}).get("accept_verdict_pass")),
+                # per-routine 停滞判定分数容差带（config.no_progress_score_tolerance）：
+                # 用于 Judge 聚合分天然 ±振荡的长尾任务（如巡检：修一处感知缺陷常压低另一处总分），
+                # 防一次早期运气高点致正常振荡永远清不过历史最优 → 假阳性 no_progress 误杀。
+                # max(0,...) 防负值反向收紧；缺失键 → 0 退化原点态比较（向后兼容）。
+                no_progress_score_tolerance=max(0, int((routine.config or {}).get("no_progress_score_tolerance") or 0)),
             )
             if phased_flow:
                 self._advance_phase_or_terminate(routine, verdict)

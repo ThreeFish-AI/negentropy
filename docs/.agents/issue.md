@@ -3011,6 +3011,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ---
 
+## ISSUE-128 巡检 Routine 被 `_is_no_progress` 假阳性误杀为 failed：点态停滞判定对 Judge 聚合分天然振荡零容忍（2026-06-29）
+
+- **表因**：PDF Fidelity Patrol 巡检 Routine `35ff2e9f-9a25-4706-be38-96fa32c35628`（PDF→Markdown 效果值守与自主拟合优化）运行**仅 6 轮、花费 $28 / $1500 预算**即 `status=failed, termination_reason=no_progress`。用户预期：这类「尽力优化型」Routine 本不该 hard-fail，只应在运行时长与优化程度上有差异。实测迭代评分轨迹 `72→84→62→72→42→72`（`best_score=84` 为 seq 2 早期尖峰），各轮 reflection 均显示实质推进（图廊去重 14→1、双栏排序修复、伪 SQL 围栏消除）。
+- **根因**：`engine/routine/decision.py::_is_no_progress` 用**点态、零容差**的 `all(score <= 窗口前最优)` 判定停滞。Judge 聚合分对「修一处 perceives 缺陷、回归压低另一处」的拟合任务天然 **±20 振荡**；`patience=3` 时窗口前最优取 `max([72,84,62])=84`（一次早期运气尖峰立起 watermark），窗口 `[72,42,72]` 全 ≤84 → 误判停滞 → `decide()` 判 `terminate/no_progress` → `_terminate` 映射 `failed`。`accept_verdict_pass=True` 旁路兜不住：该旁路仅当 `verdict=="pass"`（"仅剩 unfixable 即 done"）触发，本文档仍有可修复缺陷，Judge 正确判 `progressing/stalled` 而非 `pass`——旁路为「收敛但分低」场景设计，不覆盖「仍在修复中但分震荡」场景。`_is_oscillating` 不接力误杀（其 verdict 过滤 `stalled`、仅认 `progressing/regressed`，巡检翻转是 `progressing↔stalled`，过滤后 `len<3` 永不满足；已用真实模块复现 `oscillating=False`）。
+- **二阶影响**：误杀后 `pdf_fidelity_patrol._finalize_terminal_patrols` → `patrol_memory.persist_terminal_outcome` 因 `best_score=84<qualified_threshold=95` 且契约非 done，把文档标 `unfixable` 永久进 `skip_ids` 不再巡检——**一次假阳性永久污染文档**。主修复消除上游假阳性后，该映射对「真正耗尽预算」场景语义正确，故本次不动下游（最小干预）。
+- **处理方式**（最小干预、向后兼容）：为 `_is_no_progress` 与 `decide()` 引入 per-call 关键字参数 `no_progress_score_tolerance: int = 0`（容差带）；比较改为 `all(score <= best - tolerance)`，窗口内任一评分落在 `[best-tolerance, +∞)` 即视为「接近最优·有进展」不判停滞。`tolerance=0` 逐字节退化原行为（向后兼容）。`orchestrator.py` decide 调用点镜像 `accept_verdict_pass` 从 `config.no_progress_score_tolerance` 透传（`max(0,int(...))` 防负值）；`patrol_prompt.build_routine_config` 注入 `no_progress_score_tolerance: 20`（典型振荡幅度）。`_RoutineLike` Protocol、`_is_oscillating`、`persist_terminal_outcome`、`_terminate`、ORM、迁移均不动。
+- **后续防范**：① 任何以 LLM-as-Judge 聚合分驱动的停滞/振荡判定，须考虑该分天然波动性，点态阈值判定对振荡型收敛任务须配容差带或趋势判定，不可零容差；② 「尽力优化型」Routine（巡检）的非成功终态（no_progress/oscillation/budget）映射为 hard `failed` 是更上游的语义债——理想应有 `converged`（尽力收敛）独立终态，由 `persist_terminal_outcome` 按 best_score 判 done/unfixable，列为后续演进（需谨慎处理 `_propagate_patrol_outcomes` 的 Scheduler 状态映射，不得回归 `be3b257a`「失败不再误标成功」）；③ **更深层根因（评分口径）**：决策用分是 Evaluator Judge 基于「本轮 summary」独立重打的分，每轮无历史、无客观锚点（巡检 `verification_command=None`），与 CC 自评的累计视觉一致度 `contract.score`（口径正确、应单调趋近 100）口径错配——这是评分大幅波动甚至走低的结构性根因，治本方向是让累计 contract.score 进入决策位，需独立评估其可信度（亦 LLM 自评），列为后续演进。
+- **同类问题影响**：所有 `accept_verdict_pass=True` 类「完成判据无法被单一分数阈值捕获」的长尾 Routine；与 ISSUE-116（评分越线封顶）、ISSUE-121（弱 Judge 误判 acceptance）正交但同属 LLM-as-Judge 评分链路稳定性议题。
+- **验证**：`test_routine_decision.py` 新增 5 例（核心回归编码真实轨迹 `72→84→62→72→42→72` 断言 `continue`、向后兼容锁 tolerance=0 仍 `no_progress`、平线远低于最优仍停滞、边界精度 `best-tolerance` 闭区间、in-window-climb 守护）+ `test_pdf_fidelity_patrol_handler.py` 补 config 断言；engine 全套单测 **1043 passed**、ruff All checks passed。真实数据回放：`decide(...,no_progress_score_tolerance=20)` 由 `terminate/no_progress` 反转为 `continue`。
+
+---
+
 ## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」
 
 - **表因**：Knowledge/Documents 页渲染 perceives 抽取的 PDF 时，无图注的图片（如论文 logo `fig_p1_1.png`）下方显示出无语义的 "fig_p1_1.png" 文本；另：把技能标记 `is_system` 仅令其在 Skills 卡片对全员可见，却未注入任何 Agent 的 Progressive Disclosure。

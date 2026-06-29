@@ -315,6 +315,8 @@ def test_build_patrol_routine_constructs_without_attribute_error():
     assert routine.config["source_task_key"] == "pdf_fidelity_patrol"
     assert "system_prompt" in routine.config
     assert routine.config["read_dirs"] == ["/tmp/patrol"]
+    # 停滞容差带：防 Judge 聚合分 ±振荡致假阳性 no_progress 误杀（消费见 orchestrator.decide()）
+    assert routine.config["no_progress_score_tolerance"] == 20
     # 标题源：未修正时回退 original_filename（_doc_display_title 经 SSOT 解析）
     assert routine.title == "PDF 高保真巡检：report.pdf"
 

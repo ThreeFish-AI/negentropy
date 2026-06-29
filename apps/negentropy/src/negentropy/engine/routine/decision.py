@@ -102,6 +102,7 @@ def decide(
     now: datetime | None = None,
     max_context_resets: int = 0,
     accept_verdict_pass: bool = False,
+    no_progress_score_tolerance: int = 0,
 ) -> Decision:
     """评估后的核心决策：成功 / 终止 / 继续。
 
@@ -120,6 +121,12 @@ def decide(
             被单一分数阈值捕获的任务（如巡检：``success_score_threshold=100`` 与 Judge 评分尺度
             「全部满足≈90-100」结构性失配，且 acceptance 允许「仅剩 unfixable 即 done」由 Judge
             在 <100 分判 pass）——这类任务经 ``config.accept_verdict_pass=True`` 显式开启旁路。
+        no_progress_score_tolerance: 停滞判定的分数容差带（>0 时，窗口内评分落在
+            ``[历史最优 - tolerance, +∞)`` 即视为「接近最优·有进展」，不判停滞）。默认 0 = 点态
+            严格比较，退化为原行为（向后兼容）。仅用于 Judge 聚合分天然 ±振荡的长尾任务（如巡检：
+            修一处感知缺陷常压低另一处总分，±20 振荡），防一次早期运气高点使正常振荡永远清不过
+            历史最优 → 假阳性 no_progress 误杀。经 ``config.no_progress_score_tolerance`` 注入、
+            per-routine 开启。纯函数边界：容差由调用方显式注入，decision 不读 settings。
 
     Returns:
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
@@ -146,8 +153,8 @@ def decide(
     if budget.is_terminate:
         return budget
 
-    # 4) 进度停滞：最近 N 次评分均未超过历史最优
-    if _is_no_progress(routine, history):
+    # 4) 进度停滞：最近 N 次评分均未（含容差带）超过历史最优
+    if _is_no_progress(routine, history, no_progress_score_tolerance=no_progress_score_tolerance):
         return Decision("terminate", REASON_NO_PROGRESS)
 
     # 5) 振荡：verdict 在 progressing/regressed 间反复横跳且分数无上升趋势
@@ -181,11 +188,22 @@ def _consecutive_exec_failures(history: list[_IterationLike], *, max_context_res
     return count
 
 
-def _is_no_progress(routine: _RoutineLike, history: list[_IterationLike]) -> bool:
+def _is_no_progress(
+    routine: _RoutineLike,
+    history: list[_IterationLike],
+    *,
+    no_progress_score_tolerance: int = 0,
+) -> bool:
     """最近 ``no_progress_patience`` 次评分无一超过「窗口之前」的历史最优则视为停滞。
 
     基线取最近窗口之前的迭代最优分（``routine.best_score`` 含窗口自身，直接比较会恒真）；
     需窗口之前另有评分历史方可能触发，不足时不判停滞（给探索留出空间）。
+
+    ``no_progress_score_tolerance``（容差带）：窗口内任一评分落在
+    ``[best - tolerance, +∞)`` 即视为「接近历史最优·有进展」，不判停滞。默认 ``0`` 退化为
+    点态严格比较（``<= best``，逐字节向后兼容）。用于 Judge 聚合分天然 ±振荡的长尾任务
+    （如巡检：修一处感知缺陷常压低另一处总分，±20 振荡），防一次早期运气高点（watermark）
+    使正常振荡永远清不过 → 假阳性 no_progress 误杀正在收敛的任务。
     """
     patience = routine.no_progress_patience
     if patience <= 0:
@@ -193,12 +211,13 @@ def _is_no_progress(routine: _RoutineLike, history: list[_IterationLike]) -> boo
     scored = [it for it in history if it.score is not None]
     if len(scored) < patience:
         return False
-    # 基线 = 最近窗口之前的迭代最优分；窗口内若创出新高即视为有进展。
+    # 基线 = 最近窗口之前的迭代最优分；窗口内若创出新高（含容差带内接近最优）即视为有进展。
     best = max((it.score for it in scored[:-patience]), default=None)
     if best is None:
         return False  # 窗口前无评分历史 → 不判停滞
     recent = scored[-patience:]
-    return all(it.score <= best for it in recent)
+    threshold = best - no_progress_score_tolerance
+    return all(it.score <= threshold for it in recent)
 
 
 def _is_oscillating(history: list[_IterationLike]) -> bool:
