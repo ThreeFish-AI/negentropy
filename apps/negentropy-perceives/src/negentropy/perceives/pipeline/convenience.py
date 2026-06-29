@@ -545,6 +545,13 @@ async def run_pdf_pipeline(
     code_output = _unwrap(stage_results.get("code_detection"))
     assembly_output = _unwrap(stage_results.get("assembly"))
 
+    # PDF /Title 在预处理 Stage 已抽取（PreprocessingOutput.metadata["title"]）但历史在此被丢弃；
+    # 透传进 PipelineResult.metadata，供下游（文档标题回填 / 巡检命名）复用（Fix B1）。
+    _pdf_title = ""
+    if isinstance(preprocessing_output, PreprocessingOutput):
+        _raw_title = preprocessing_output.metadata.get("title")
+        _pdf_title = str(_raw_title).strip() if _raw_title else ""
+
     # 如果有 assembly 输出，直接使用
     if assembly_output and isinstance(assembly_output, AssemblyOutput):
         image_output_typed = (
@@ -590,7 +597,10 @@ async def run_pdf_pipeline(
             stage_results={
                 k: _serialize_stage_result(v) for k, v in stage_results.items()
             },
-            metadata=assembly_output.metadata,
+            metadata={
+                **assembly_output.metadata,
+                **({"title": _pdf_title} if _pdf_title else {}),
+            },
             image_assets=image_assets,
         )
 
@@ -603,6 +613,7 @@ async def run_pdf_pipeline(
             success=True,
             markdown=text_output.full_text,
             word_count=text_output.word_count,
+            metadata={"title": _pdf_title} if _pdf_title else {},
             characteristics=(
                 preprocessing_output.characteristics
                 if isinstance(preprocessing_output, PreprocessingOutput)
