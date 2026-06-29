@@ -58,6 +58,15 @@ _HOMOGENEOUS_PAIRS = frozenset(
 )
 
 
+# 运行页眉/页脚剥离：PDF 每页顶部/底部的 running header（如文档短标题）会被文本
+# 抽取引擎逐页当作文体保留，在 Markdown 中形成同一短独立行重复数十次的噪声。
+# ``_strip_running_headers`` 仅剥离「单行 + 简短 + 逐字完全相同 + 出现 ≥
+# ``_RUNNING_HEADER_MIN_REPEAT`` 次」的行；阈值刻意远高于正常正文短行的复现次数
+# （实测正文短行最高复现 2 次），从而零误伤。
+_RUNNING_HEADER_MIN_REPEAT = 6
+_RUNNING_HEADER_MAX_LEN = 80
+
+
 # R10-D19 守护词表：em-dash 风格 ``word - connector ...`` 中的常见 RHS 连接词。
 # Why: D19 的 ``word - word`` 合并对学术 PDF 表格 cell / Reference 内的跨行断字
 # （``Scalabil - ity`` → ``Scalability``）有效，但对正文中的 em-dash 风格
@@ -370,6 +379,9 @@ class MarkdownFormatter:
 
             if self.options.get("fix_spacing", True):
                 markdown_content = self._normalize_paragraph_breaks(markdown_content)
+
+            # 剥离逐字高频重复的运行页眉/页脚独立行（如 PDF 短标题每页残留）
+            markdown_content = self._strip_running_headers(markdown_content)
 
             # 近似段落去重（跨引擎内容重复）
             markdown_content = self._deduplicate_approximate_paragraphs(
@@ -1138,6 +1150,43 @@ class MarkdownFormatter:
             kept.append(para)
             seen_fingerprints.append(fp)
 
+        return "\n\n".join(kept)
+
+    def _strip_running_headers(self, markdown_content: str) -> str:
+        """移除逐字高频重复的运行页眉/页脚独立行。
+
+        PDF 每页的 running header（如短标题 "Code as Agent Harness"）会被文本
+        抽取引擎当作文体逐页保留，在 Markdown 中形成同一短行重复数十次的噪声。
+        此 pass 剥离满足全部条件的行：单行、简短（≤ ``_RUNNING_HEADER_MAX_LEN``）、
+        逐字完全相同、出现 ≥ ``_RUNNING_HEADER_MIN_REPEAT`` 次。
+
+        保守性：仅作用于 ``\\n{2,}`` 切分后的单行短段，要求逐字相等且复现次数
+        远高于正常文档中任何合法短行（实测正文短行最高复现 2 次），故对正文零
+        误伤；带 ``#`` 前缀的标题字符串与裸页眉不同，亦不受影响。代码块 / 数学
+        块在管线中先于此 pass 被替换为占位符（``%%CODEBLOCK_…%%`` / ``$$…$$``），
+        故不会误删块内同名行。
+        """
+        paragraphs = re.split(r"\n{2,}", markdown_content)
+        if len(paragraphs) < _RUNNING_HEADER_MIN_REPEAT:
+            return markdown_content
+
+        counts: Dict[str, int] = {}
+        for para in paragraphs:
+            s = para.strip()
+            if not s or "\n" in s or len(s) > _RUNNING_HEADER_MAX_LEN:
+                continue
+            # 跳过结构化行：标题 / 已保护占位符 / HTML 标签 / 代码围栏 / 表格行
+            if s.startswith(("#", "%%", "<", "```", "|")):
+                continue
+            counts[s] = counts.get(s, 0) + 1
+
+        headers = {
+            text for text, n in counts.items() if n >= _RUNNING_HEADER_MIN_REPEAT
+        }
+        if not headers:
+            return markdown_content
+
+        kept = [p for p in paragraphs if p.strip() not in headers]
         return "\n\n".join(kept)
 
     def _basic_cleanup(self, markdown_content: str) -> str:
