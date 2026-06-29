@@ -251,6 +251,76 @@ async def test_phased_finalize_with_pr_succeeds():
         await _cleanup(rid)
 
 
+async def test_patrol_finalize_noop_succeeds_without_pr():
+    """巡检 clean no-op：FINALIZE + 成功裁决 + worktree 相对基线 0 提交 + 无 PR → succeeded 无 PR。
+
+    回归 PR #1010：文档已达标（score≥阈值）、本轮未改 perceives → 候选移出 worktree（FIX 1）后
+    worktree 干净、无可交付提交 → 引擎据 0-commits 判 clean no-op 成功，不开 PR、不空转重试。
+    仅限 ``config.patrol``——普通 feature routine 的「零改动收敛」不可一概判成功（安全护栏）。
+    """
+    rid = await _make_routine(
+        config={"patrol": True},
+        current_phase="finalize",
+        baseline_branch="origin/feature/1.x.x",
+        success_score_threshold=95,
+        iteration_count=3,
+    )
+    await _add_iteration(rid, seq=1, phase="finalize", summary="文档已达标，本轮未改 perceives")
+    try:
+        orch = RoutineOrchestrator()
+        with (
+            patch.object(
+                orch._evaluator,
+                "evaluate",
+                new=AsyncMock(
+                    return_value=EvaluationResult(ok=True, score=96, verdict="pass", reflection="", gate_exit_code=None)
+                ),
+            ),
+            patch.object(orch, "_finalize_is_noop", new=AsyncMock(return_value=True)),
+        ):
+            await _evaluate_and_drain(orch)
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "succeeded"
+            assert r.termination_reason == "success"
+            assert r.pr_url is None  # 无可交付改动 → 不开 PR
+    finally:
+        await _cleanup(rid)
+
+
+async def test_patrol_finalize_with_commits_still_requires_pr():
+    """安全回归：巡检 FINALIZE + 成功裁决，但 worktree 有提交（探针 False）+ 无 PR → 仍须真实 PR，
+    留 running 在收尾重试。核心不变量：no-op 成功仅在「可证明零可交付提交」时可达。"""
+    rid = await _make_routine(
+        config={"patrol": True},
+        current_phase="finalize",
+        baseline_branch="origin/feature/1.x.x",
+        success_score_threshold=95,
+        iteration_count=3,
+    )
+    await _add_iteration(rid, seq=1, phase="finalize", summary="改了 perceives 但未输出链接")
+    try:
+        orch = RoutineOrchestrator()
+        with (
+            patch.object(
+                orch._evaluator,
+                "evaluate",
+                new=AsyncMock(
+                    return_value=EvaluationResult(ok=True, score=96, verdict="pass", reflection="", gate_exit_code=None)
+                ),
+            ),
+            patch.object(orch, "_finalize_is_noop", new=AsyncMock(return_value=False)),
+        ):
+            await _evaluate_and_drain(orch)
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "running"  # 有提交但无 PR → 留收尾重试
+            assert r.current_phase == "finalize"
+            assert r.pr_url is None
+    finally:
+        await _cleanup(rid)
+
+
 async def test_evaluate_slow_judge_does_not_block_heartbeat():
     """根因回归（卡在 Evaluate）：评估已从心跳剥离为后台任务。
 

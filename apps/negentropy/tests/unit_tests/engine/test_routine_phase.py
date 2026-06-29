@@ -118,6 +118,20 @@ def test_build_prompt_worktree_finalize_uses_pr_view_before_create():
     assert p.index("gh pr view") < p.index("gh pr create")
 
 
+def test_build_prompt_worktree_finalize_noop_guard():
+    """FINALIZE 无可交付守卫：先 `git rev-list --count <base>..HEAD` 判有无提交——
+    为 0（如巡检文档已达标、本轮未改代码）则跳过 push/PR、输出 ``PR_URL=NONE`` 直接收尾。
+    引擎的 rev-list 探针是权威闸门；此 prompt 守卫仅省一轮 ``gh pr create`` 报错空转。
+    回归 PR #1010（巡检交付仅含 patrol-candidate.md 的 PR）。"""
+    p = build_prompt(_wt_routine(current_phase="finalize"))
+    assert "rev-list --count" in p
+    assert "feature/1.x.x..HEAD" in p  # base 已归一（origin/ 剥离）
+    assert "PR_URL=NONE" in p  # 无可交付的惰性 sentinel（extract_pr_url 不识别）
+    # 守卫须在 push/gh pr create 之前（先判有无提交）
+    assert p.index("rev-list --count") < p.index("git push")
+    assert p.index("rev-list --count") < p.index("gh pr create")
+
+
 def test_build_prompt_worktree_implement_injects_checkpoint_commit():
     """worktree IMPLEMENT 相位注入迭代检查点提交指令（git add -A && git commit，仅提交不推送）。"""
     for ph in ("implement",):
