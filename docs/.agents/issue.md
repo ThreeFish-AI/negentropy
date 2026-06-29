@@ -3337,3 +3337,22 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **验证**：受控种子（独立 `app_name='__perf_verify__'`，覆盖 low_retention/high_importance 边界/deleted/pii/valid_until 各分支，验后清理）对比 NEW 合并查询 vs OLD 逐条查询——dashboard 三 user 维度全字段 MATCH；`dashboard.memory_count=5`(含 deleted) vs `metrics.memory_total=4`(排除 deleted)、`dashboard.fact_count=2`(过滤过期) vs `metrics.fact_count=3`(不过滤) 证差异化过滤器保留。956 engine 单测全过；alembic up/down 幂等；autogenerate 无漂移；ruff 通过。
 - **后续防范**：① 新建部分索引务必让谓词与查询布尔表达式 AST 形态一致（`IS TRUE` vs 裸布尔不互通），建索引后用 `SET enable_seqscan=off; EXPLAIN` 实测命中；② 多聚合同表同 WHERE 应合并为单条 `select(... sum(case))`（复用 `retrieval_tracker.py`/`scheduler_api.py` 惯例），勿逐条 `db.scalar`；③ 跨表计数因基数不同不能合并（笛卡尔积污染），按表拆条是下限；④ 区分「dev webpack 首屏编译慢」与「后端检索慢」——前者非后端范畴，勿误改后端；⑤ pool_size=5/max_overflow=10 下慎用 `asyncio.gather` 多 session（连接放大），优先单 session 多语句合并。
 - **同类问题影响**：knowledge 模块若新增 dashboard/metrics 聚合端点应复用本 PR 合并范式与 `(app_name,user_id)` 前导索引惯例；所有 `app_name`-scoped 聚合查询都应核查是否落到以 `user_id` 前导的既有索引（无效）。
+
+## ISSUE-149 PDF Fidelity Patrol 交付仅含 `patrol-candidate.md` 的 PR（候选产物落 worktree 被提交 + 引擎缺 no-op 终态）（2026-06-29）
+
+- **表因**：巡检 Routine（#1010）最终交付的 PR **仅含一个文件 `patrol-candidate.md`**（+676/−0），而非对 `apps/negentropy-perceives` 的代码优化——该 `.md` 是闭环步骤 1 `perceives parse-pdf -o` 的**评估用临时候选 Markdown**，根本不该进交付。
+- **根因**（三个叠加结构性缺陷）：
+  1. **候选产物落 worktree 内被 `git add -A` 提交**：`CANDIDATE_MD_FILENAME = "patrol-candidate.md"` 是**相对路径** → agent 在 worktree 根写出 → IMPLEMENT 检查点（`prompt_builder.py:199`）与 FINALIZE（`prompt_builder.py:167`）的 `git add -A` 将其提交并随 PR 推出。反证：渲染底图已正确落到 worktree 外 `/tmp/<doc_id>/render`，且 `patrol_input_dir` 配置 docstring 明示其为「源 PDF 暂存**与候选 Markdown 输出**根目录」——**相对路径是对设计意图的偏离**。
+  2. **「零代码改动」的收敛仍开 PR**：doc 早轮即 score≥合格阈值 95、无可修复缺陷 → 未改 perceives；worktree 内唯一变更就是候选 `.md`。
+  3. **引擎 FINALIZE 终态强依赖 `pr_url`**（`orchestrator._advance_phase_or_terminate`）：修缺陷 1 后无改动巡检无可提交、`gh pr create` 报「no commits between base and head」、永不产出 `pr_url` → Routine 在 FINALIZE **空转至 max_iterations(400) 才 failed**（虽 `persist_terminal_outcome` 因 best_score≥95 仍标 done，但白烧预算且终态 failed 污染 consecutive_failures）。
+- **处理方式**（PR #1012）：
+  1. **FIX1 候选移出 worktree**：`pdf_fidelity_patrol._build_patrol_routine` 将候选路径改为暂存目录内**绝对路径**（`source.pdf` 同级、worktree 之外）。写入经 bash 子进程 `-o`，不受 `read_dirs` 的 Edit-deny 限制（与 `/tmp/render` 同理）。
+  2. **FIX2 引擎 no-op 干净终态（仅 `config.patrol`）**：`orchestrator` 新增 `_finalize_is_noop`（`git rev-list --count <baseline>..HEAD == 0` → 无可交付）；`_advance_phase_or_terminate` 新增 `finalize_noop` 参数（默认 False，既有调用零变更），FINALIZE 下「无 PR + 0 提交 + 本轮成功裁决」判 succeeded 无 PR。配套 prompt（`prompt_builder` FINALIZE STEP0 守卫 + `patrol_prompt` 非回归门控补「零改动即 done 不开 PR」）。
+  3. **兜底**：`.gitignore` 忽略 `patrol-candidate.md`。
+- **关键坑（务必复用经验）**：
+  1. **「临时评估产物」与「交付物」须物理隔离**：任何 agent 在 worktree 内生成的中间产物（候选、渲染、报告），经 `git add -A` 会无条件进 commit/PR。须落到 worktree **之外**的暂存目录（如既有 `patrol_input_dir`/`/tmp`），而非靠 `.gitignore` 或「agent 自觉」——后者是软约束、终会漏。
+  2. **引擎「无 PR 即 failed」对「零改动收敛」任务是错配**：worktree routine 的 FINALIZE 终态强依赖 `pr_url`，对「达标即无需改代码」的自拟合任务会空转。no-op 成功须 **`rev-list --count` 量「提交载荷」**（精确对应 `gh pr create` 报错条件），**勿用 `git diff --quiet`**（误判工作树脏污）；且须 **合取本轮 `is_success`、严格限定 `config.patrol`**——普通 feature routine 的「零改动收敛」可能是漏提交/跑空，不可一概判成功（首要安全护栏）。核心不变量：**no-op 成功仅在「可证明零可交付提交」时可达**。
+  3. **async/sync 边界**：`_advance_phase_or_terminate` 是 sync（单 worker 事件循环禁阻塞 IO），no-op 的 git 探针须在 async 捕获点（`_do_evaluate` 内 pr_url 捕获同处）算好 bool、经参数传入 sync 方法，**勿在 sync 方法内直接调 git 子进程**。
+- **验证**：`test_pdf_fidelity_patrol_handler`（候选绝对路径 / worktree 外）、`test_routine_phase`（FINALIZE `rev-list --count` + `PR_URL=NONE` 守卫先于 push/create）、`test_patrol_prompt`（协议含「零代码改动」）、`test_routine_orchestrator` 集成（no-op 巡检→succeeded 无 PR；安全回归：有提交+无 PR→留 running 仍须真实 PR）；既有 finalize/worktree 用例 7/7 无回归；ruff lint+format 通过。
+- **后续防范**：① 新增「worktree 内生成中间产物」的 routine 须第一时间检查产物落点是否在 worktree 外；② 为「达标即完成、未必有代码改动」类任务设计 routine 时，须校验 FINALIZE 终态对「零改动」的处理（开 no-op 成功或文档化空转代价）；③ `git add -A` 是 worktree routine 的默认提交语义——任何不该进 PR 的产物都不能留在 worktree。
+- **同类问题影响**：所有派生 worktree + PR 的 routine（非仅巡检）若在 worktree 内写中间产物，都会复现「PR 含无关文件」；通用 worktree routine 若未来需要「零改动收敛」语义，可参考本 no-op 终态范式（但须各自论证安全性，本次刻意只为 patrol 开启）。
