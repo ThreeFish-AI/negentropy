@@ -67,6 +67,22 @@ _RUNNING_HEADER_MIN_REPEAT = 6
 _RUNNING_HEADER_MAX_LEN = 80
 
 
+# 伪代码块降级：抽取引擎（docling 等）偶把带边框的自然语言横幅（版权 / 关键词 /
+# 署名横幅，形如 ``© Keywords: … © Github: …``）误判为 YAML / 代码块。此类内容
+# 不含任何真实代码特征，且常含 ``©`` / ``®`` / ``™`` 商标版权符——后者在真实源码
+# 与 YAML 中几乎不出现。``_demote_non_code_fences`` 仅当围栏块「含商标符且无任一
+# 强代码信号」时剥离围栏还原为普通段落；判定刻意保守，对真代码 / 真 YAML 零误伤。
+_NON_CODE_FENCE_TRIGGER = re.compile(r"[©®™]")
+_NON_CODE_FENCE_CODE_SIGNALS = (
+    re.compile(r"[{}]"),  # 花括号（绝大多数编程语言）
+    re.compile(r";"),  # 分号（C 系 / SQL / JS 语句终止）
+    re.compile(r"->|=>|::"),  # 箭头 / 作用域解析
+    re.compile(r"==|!=|<=|>="),  # 比较运算符
+    re.compile(r"""["'][^"'\n]{1,80}["']"""),  # 引号字符串
+    re.compile(r"(?<!:)//|/\*|\*/"),  # C 系注释（排除 URL ``https://`` 的 ``//``）
+)
+
+
 # R10-D19 守护词表：em-dash 风格 ``word - connector ...`` 中的常见 RHS 连接词。
 # Why: D19 的 ``word - word`` 合并对学术 PDF 表格 cell / Reference 内的跨行断字
 # （``Scalabil - ity`` → ``Scalability``）有效，但对正文中的 em-dash 风格
@@ -644,6 +660,36 @@ class MarkdownFormatter:
             logger.warning(f"Error formatting links: {str(e)}")
             return markdown_content
 
+    def _demote_non_code_fences(self, markdown_content: str) -> str:
+        """剥离实为自然语言横幅的伪代码块围栏，还原为普通段落。
+
+        抽取引擎（docling 等）偶把带边框的自然语言横幅（版权 / 关键词 / 署名
+        横幅，形如 ``© Keywords: … © Github: <url>``）误判为 YAML / 代码块。
+        此类内容不含任何真实代码特征（无花括号 / 分号 / 箭头 / 比较运算符 /
+        引号字符串 / C 系注释），且常含 ``©`` / ``®`` / ``™`` 商标版权符——后者
+        在真实源码与 YAML 中几乎不出现。
+
+        本 pass 对满足「含商标符 ``©/®/™`` 且无任一强代码信号」的围栏块剥离
+        围栏、还原为普通段落；其余围栏块原样保留。判定刻意保守，避免误降级
+        真代码 / 真 YAML（真 YAML 不含商标符）。
+        """
+
+        def _is_code_like(content: str) -> bool:
+            return any(pat.search(content) for pat in _NON_CODE_FENCE_CODE_SIGNALS)
+
+        def _demote(m: re.Match) -> str:
+            content = m.group(1)
+            if _NON_CODE_FENCE_TRIGGER.search(content) and not _is_code_like(content):
+                return content.strip("\n")
+            return m.group(0)
+
+        return re.sub(
+            r"^```[^\n]*\n(.*?)^```\s*$",
+            _demote,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection.
 
@@ -655,6 +701,9 @@ class MarkdownFormatter:
         and none of the regex patterns here can match.
         """
         try:
+            # 先把实为自然语言横幅（含 ©/®/™ 且无代码特征）的伪代码块降级为普通段落
+            markdown_content = self._demote_non_code_fences(markdown_content)
+
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(
                 r"^```(\w*)\n```[ \t]*(\S.*?)$",

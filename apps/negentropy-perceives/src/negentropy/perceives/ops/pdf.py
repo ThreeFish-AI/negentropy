@@ -170,6 +170,16 @@ async def parse_pdf_to_markdown(
                         total_timeout_seconds=timeout,
                     )
                     if batched_response is not None:
+                        # auto_batch 合并后的 markdown 同样需走格式化咽喉点：
+                        # 各 slice 经 pipeline 内部格式化，但跨 slice 合并 / 引擎原生
+                        # 直出仍可能残留运行页眉、伪代码块等。统一格式化（幂等）。
+                        from ..markdown.formatter import MarkdownFormatter
+
+                        _batched_md = getattr(batched_response, "content", "") or ""
+                        if _batched_md:
+                            batched_response.content = MarkdownFormatter().format(
+                                _batched_md
+                            )
                         return batched_response
                     logger.warning(
                         "auto_batch 整体失败，回退到单次 Pipeline 路径 source=%s",
@@ -188,6 +198,18 @@ async def parse_pdf_to_markdown(
                 output_dir=output_dir,
             )
             if pipeline_result is not None:
+                # auto/pipeline 路径的 markdown 通用格式化咽喉点：pipeline 内部
+                # assembly 已格式化，但历史实测部分路径（引擎原生直出 / 降级）会
+                # 绕过 assembly 的格式化，导致运行页眉残留、自然语言横幅被误判
+                # 为代码块等。在此对最终 markdown 统一再走一次 MarkdownFormatter
+                # （幂等：已格式化的内容二次格式化无副作用），确保所有 auto 产出
+                # 一致地剥离运行页眉、降级伪代码块、排版/去重。
+                from ..markdown.formatter import MarkdownFormatter
+
+                _pipeline_md = pipeline_result.markdown
+                if _pipeline_md:
+                    _pipeline_md = MarkdownFormatter().format(_pipeline_md)
+                    pipeline_result.markdown = _pipeline_md
                 enhanced_assets = {
                     "images_extracted": pipeline_result.images_count,
                     "tables_extracted": pipeline_result.tables_count,
@@ -246,12 +268,23 @@ async def parse_pdf_to_markdown(
         )
 
         if result.get("success"):
+            # 通用格式化咽喉点：无论引擎路径（docling/mineru/marker 经
+            # _build_result_from_engine）还是 pymupdf/pypdf 降级路径，最终
+            # markdown 都经此传入 PDFResponse。此前仅 assembly 管线路径格式化，
+            # 引擎/降级路径直出裸 markdown，导致运行页眉逐页残留、自然语言横幅
+            # 被误判为代码块等问题漏网。在此统一走 MarkdownFormatter，与 assembly
+            # 路径对齐（剥离运行页眉、降级伪代码块、排版/去重等）。
+            from ..markdown.formatter import MarkdownFormatter
+
+            _content = result.get("content", result.get("markdown", ""))
+            if _content:
+                _content = MarkdownFormatter().format(_content)
             return PDFResponse(
                 success=True,
                 pdf_source=pdf_source,
                 method=method,
                 output_format=output_format,
-                content=result.get("content", result.get("markdown", "")),
+                content=_content,
                 metadata=result.get("metadata", {}),
                 page_count=result.get(
                     "page_count",
