@@ -20,10 +20,11 @@ from negentropy.engine.schedulers.handlers import pdf_fidelity_patrol as patrol
 
 
 class _FakeResult:
-    def __init__(self, *, fetchone: Any = None, fetchall: Any = None, scalar: Any = None) -> None:
+    def __init__(self, *, fetchone: Any = None, fetchall: Any = None, scalar: Any = None, rowcount: int = 0) -> None:
         self._fetchone = fetchone
         self._fetchall = fetchall
         self._scalar = scalar
+        self.rowcount = rowcount
 
     def fetchone(self):  # noqa: ANN201
         return self._fetchone
@@ -128,6 +129,55 @@ def test_select_next_pending_doc_skip_set_passes_expanding_param():
     _stmt, params = db.executed[0]
     assert params["app"]  # 含 app_name 绑定
     assert "skip" in params
+
+
+def test_select_next_pending_doc_sql_contains_per_doc_uniqueness_guard():
+    """Fix A + 命名门控：emitted SQL 必含「命名门控」+「一文一活跃巡检」NOT EXISTS 守卫（排除 cancelled）。
+
+    FakeDB 不解析 SQL，仅以串存在性守护不变量防回归——后续重构若误删命名门控 / NOT EXISTS /
+    把 cancelled 纳入阻塞，本断言即失败。真实 SQL 语义由集成测试覆盖。
+    """
+    import asyncio
+
+    db = _FakeDB(fetchone=None)
+    asyncio.run(patrol._select_next_pending_doc(db, skip_ids=set()))
+    stmt = db.executed[0][0]
+    # 命名门控：display_name 或 metadata->>'title' 至少一个非空（杜绝原始文件名兜底）
+    assert "COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL" in stmt
+    assert "NOT EXISTS" in stmt
+    assert "config->>'patrol'" in stmt
+    assert "config->>'doc_id'" in stmt
+    assert "status <> 'cancelled'" in stmt  # cancelled 排除（取消即复位）
+
+
+# ---------------------------------------------------------------------------
+# _collapse_superseded_patrols：收敛「一文一巡检」（去重 + 原始文件名兜底自愈）
+# ---------------------------------------------------------------------------
+
+
+def test_collapse_superseded_patrols_emits_dedupe_update():
+    """Fix C：发射一条「一文一巡检」去重 UPDATE（CTE 排序保留 rank 1），关键片段就位且返回 rowcount。
+
+    FakeDB 不解析 SQL；以串存在性守护不变量防回归——保留 rank 1（非原始名/succeeded/最新优先）、
+    取消 rn>1 冗余 + has_name&is_raw（有更优名源时的原始文件名兜底）。真实语义见集成测试。
+    """
+    import asyncio
+
+    db = _FakeDB(rowcount=3)
+    n = asyncio.run(patrol._collapse_superseded_patrols(db))
+    assert n == 3
+    assert len(db.executed) == 1
+    stmt = db.executed[0][0]
+    assert "WITH ranked" in stmt  # CTE 排序选保留项
+    assert "ROW_NUMBER()" in stmt
+    assert "PARTITION BY r.config->>'doc_id'" in stmt  # 按 doc 分组
+    assert "status IN ('succeeded', 'failed')" in stmt  # 仅终态（不触碰 running/paused）
+    assert "UPDATE negentropy.routines" in stmt
+    assert "status = 'cancelled'" in stmt
+    assert "superseded_patrol" in stmt
+    assert "outcome_propagated" in stmt  # 不回写 ScheduledTask 聚合态
+    assert "rn > 1" in stmt  # 取消冗余
+    assert "has_name = 1 AND is_raw = 1" in stmt  # 有更优名源时取消原始文件名兜底
 
 
 # ---------------------------------------------------------------------------

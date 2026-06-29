@@ -134,9 +134,12 @@ async def _run_patrol_tick(*, task_key: str) -> HandlerResult:
             )
         finalized = await _finalize_terminal_patrols(db)
         propagated = await _propagate_patrol_outcomes(db)
+        collapsed = await _collapse_superseded_patrols(db)
         await db.commit()
         if propagated:
             logger.info("patrol_outcomes_propagated", count=propagated)
+        if collapsed:
+            logger.info("patrol_superseded_collapsed", count=collapsed)
 
     # 跳过并发（独立短事务，避免长读）
     async with AsyncSessionLocal() as db:
@@ -447,6 +450,67 @@ async def _propagate_patrol_outcomes(db) -> int:
 
 
 # ---------------------------------------------------------------------------
+# 收敛「一文一巡检」：取消冗余/原始文件名兜底的终态巡检 Routine（去重 + 改名自愈）
+# ---------------------------------------------------------------------------
+
+
+async def _collapse_superseded_patrols(db) -> int:
+    """收敛「一文一巡检」：每 doc 至多保留一条终态巡检 Routine，余者（冗余 / 原始文件名兜底）取消。
+
+    背景：历史 ``_select_next_pending_doc`` 缺一文一巡检守卫，**失败的巡检不落 done/unfixable
+    记忆即被重选**，致同一 doc 累积大量 failed Routine（实证：单 doc 可达十余条，全部 max_cost /
+    no_progress 失败）；且文档改名前创建的 Routine 名字兜底成 ``original_filename``（如
+    ``2603.05344v3.pdf``）。本函数在 tick 开头收敛历史脏数据，与 Fix A（NOT EXISTS 防新增）配合
+    达成「一文一活跃巡检」不变量。
+
+    规则（仅作用于**终态** succeeded/failed Routine，绝不触碰 running/paused——不中断在跑任务）：
+      - 每 doc 按「非原始名优先 → succeeded 优先 → 最新优先」排序，**保留 rank 1**，取消其余（冗余）。
+      - 文档已有更优名源（``display_name`` 或 ``metadata->>'title'``）时，其「原始文件名兜底」Routine
+        即便 rank 1 也取消——下一 tick 以更优名重建（自愈）；无更优名源时保留 rank 1（原始名为其
+        当前最佳可用名，待用户改名 / Fix B 回填标题后自愈）。
+
+    **保留一条终态 Routine 是防重试死循环的必要条件**：否则 NOT EXISTS 放行 → 重巡 → 失败 →
+    再取消 → 再重巡……无限循环。取消而非删除以保留审计轨迹（routine_iterations/events 随 routine
+    CASCADE 删除）；``outcome_propagated=true`` 阻止被取消的冗余 Routine 回写 ScheduledTask 聚合态
+    （聚合态以保留的那条为准）。幂等：仅作用于非 cancelled 终态行。返回取消条数。
+    """
+    result = await db.execute(
+        sa.text(
+            "WITH ranked AS ("
+            "  SELECT r.id,"
+            "    ROW_NUMBER() OVER ("
+            "      PARTITION BY r.config->>'doc_id'"
+            "      ORDER BY"
+            "        CASE WHEN r.title = ('PDF 高保真巡检：' || kd.original_filename)"
+            "              OR r.display_name = ('PDF Fidelity Patrol · ' || kd.original_filename)"
+            "             THEN 1 ELSE 0 END,"
+            "        CASE WHEN r.status = 'succeeded' THEN 0 ELSE 1 END,"
+            "        r.created_at DESC"
+            "    ) AS rn,"
+            "    CASE WHEN COALESCE(NULLIF(kd.display_name, ''), NULLIF(kd.metadata->>'title', '')) IS NOT NULL"
+            "         THEN 1 ELSE 0 END AS has_name,"
+            "    CASE WHEN r.title = ('PDF 高保真巡检：' || kd.original_filename)"
+            "          OR r.display_name = ('PDF Fidelity Patrol · ' || kd.original_filename)"
+            "         THEN 1 ELSE 0 END AS is_raw"
+            "  FROM negentropy.routines r"
+            "  JOIN negentropy.knowledge_documents kd ON kd.id::text = r.config->>'doc_id'"
+            "  WHERE r.config->>'patrol' = 'true'"
+            "    AND r.status IN ('succeeded', 'failed')"
+            ") "
+            "UPDATE negentropy.routines "
+            "SET status = 'cancelled', termination_reason = 'superseded_patrol', "
+            "    config = COALESCE(config, '{}'::jsonb) || jsonb_build_object('outcome_propagated', true) "
+            "WHERE id IN ("
+            "  SELECT id FROM ranked"
+            "  WHERE rn > 1"
+            "     OR (has_name = 1 AND is_raw = 1)"
+            ")"
+        )
+    )
+    return result.rowcount or 0
+
+
+# ---------------------------------------------------------------------------
 # 并发跳过
 # ---------------------------------------------------------------------------
 
@@ -464,7 +528,20 @@ async def _has_running_patrol(db) -> bool:
 
 
 async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] | None:
-    """选最早入库、未 done/unfixable 的 PDF 文档（content_type=pdf 且转换已完成）。"""
+    """选最早入库、未 done/unfixable 的 PDF 文档（content_type=pdf 且转换已完成）。
+
+    两道守卫（缺一不可）：
+      - **命名门控**：``display_name`` 或 ``metadata->>'title'`` 至少有一个非空，否则跳过。
+        巡检 Routine 名字在创建时刻定格（``_doc_display_title`` 三级解析），无更优名源时会兜底成
+        ``original_filename``（如 ``2603.05344v3.pdf``）——本门控从源头杜绝「原始文件名兜底」巡检。
+        新导入经 Fix B（Perceives 标题透传 + 回填）自动获得 ``metadata.title``；存量无标题文档待
+        用户改名 / 重新抽取后入选（绝不以原始文件名兜底发起巡检）。
+      - **一文一活跃巡检**（Fix A）：``NOT EXISTS`` 排除已有**非 cancelled** 巡检 Routine 的文档
+        （``config->>'doc_id'`` 为 SSOT 指针）。排除 cancelled 使「取消」成为合法复位——被取消的冗余
+        Routine 不再阻塞同 doc 以当前有效名重建（见 ``_collapse_superseded_patrols``）。
+
+    与 ``skip_ids``（done/unfixable 终态语义）正交互补。
+    """
     params: dict[str, Any] = {"app": settings.app_name}
     exclude_clause = ""
     if skip_ids:
@@ -477,6 +554,13 @@ async def _select_next_pending_doc(db, *, skip_ids: set[str]) -> dict[str, Any] 
         "WHERE app_name = :app "
         "AND COALESCE(content_type,'') ILIKE '%pdf%' "
         "AND markdown_extract_status = 'completed' "
+        "AND COALESCE(NULLIF(display_name, ''), NULLIF(metadata->>'title', '')) IS NOT NULL "
+        "AND NOT EXISTS ("
+        "  SELECT 1 FROM negentropy.routines r "
+        "  WHERE r.config->>'patrol' = 'true' "
+        "  AND r.config->>'doc_id' = knowledge_documents.id::text "
+        "  AND r.status <> 'cancelled'"
+        ") "
         f"{exclude_clause} "
         "ORDER BY created_at ASC LIMIT 1"
     )
