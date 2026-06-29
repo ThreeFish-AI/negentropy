@@ -177,8 +177,8 @@ async def parse_pdf_to_markdown(
 
                         _batched_md = getattr(batched_response, "content", "") or ""
                         if _batched_md:
-                            batched_response.content = MarkdownFormatter().format(
-                                _batched_md
+                            batched_response.content = (
+                                MarkdownFormatter().format_fidelity_safe(_batched_md)
                             )
                         return batched_response
                     logger.warning(
@@ -208,7 +208,9 @@ async def parse_pdf_to_markdown(
 
                 _pipeline_md = pipeline_result.markdown
                 if _pipeline_md:
-                    _pipeline_md = MarkdownFormatter().format(_pipeline_md)
+                    _pipeline_md = MarkdownFormatter().format_fidelity_safe(
+                        _pipeline_md
+                    )
                     pipeline_result.markdown = _pipeline_md
                 enhanced_assets = {
                     "images_extracted": pipeline_result.images_count,
@@ -278,7 +280,7 @@ async def parse_pdf_to_markdown(
 
             _content = result.get("content", result.get("markdown", ""))
             if _content:
-                _content = MarkdownFormatter().format(_content)
+                _content = MarkdownFormatter().format_fidelity_safe(_content)
             return PDFResponse(
                 success=True,
                 pdf_source=pdf_source,
