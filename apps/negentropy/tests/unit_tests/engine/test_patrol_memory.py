@@ -154,3 +154,164 @@ def test_persist_contract_dedup_existing_region():
 
     asyncio.run(store.persist_contract(contract=contract, routine_id="r4"))
     assert [r["locator"] for r in store.regions] == ["page2-tbl"]
+
+
+# ---------------------------------------------------------------------------
+# persist_terminal_outcome：终态确定性沉淀（文档推进 SSOT —— 修「始终拟合同一份文档」根因）
+# 判定：契约自报 done 或 best_score≥阈值 → done；否则 unfixable；cancelled 跳过。
+# ---------------------------------------------------------------------------
+
+
+def _run(coro):
+    import asyncio
+
+    return asyncio.run(coro)
+
+
+def test_persist_terminal_outcome_failed_high_score_marks_done():
+    """failed + best_score=97 ≥ 95 + progressing 契约 → done（核心：progressing 不再死循环）。"""
+    store = _FakeStore()
+    contract = {"doc_id": "d1", "score": 70, "status": "progressing", "unfixable_regions": [], "patterns": []}
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d1",
+            routine_id="r1",
+            best_score=97,
+            qualified_threshold=95,
+            contract=contract,
+            routine_status="failed",
+        )
+    )
+    assert store.done == [{"doc_id": "d1", "score": 97, "routine_id": "r1"}]
+    assert store.doc_unfixable == []
+
+
+def test_persist_terminal_outcome_failed_low_score_marks_unfixable():
+    """failed + best_score=52 < 95 → unfixable（尽力，亦推进）。"""
+    store = _FakeStore()
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d2",
+            routine_id="r2",
+            best_score=52,
+            qualified_threshold=95,
+            contract=None,
+            routine_status="failed",
+        )
+    )
+    assert store.doc_unfixable == [{"doc_id": "d2", "score": 52, "routine_id": "r2"}]
+    assert store.done == []
+
+
+def test_persist_terminal_outcome_null_best_score_marks_unfixable():
+    """failed + best_score=None（首轮崩）→ unfixable（保证推进，不死循环）。"""
+    store = _FakeStore()
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d3",
+            routine_id="r3",
+            best_score=None,
+            qualified_threshold=95,
+            contract=None,
+            routine_status="failed",
+        )
+    )
+    assert store.doc_unfixable == [{"doc_id": "d3", "score": None, "routine_id": "r3"}]
+
+
+def test_persist_terminal_outcome_contract_done_overrides_low_best_score():
+    """契约自报 done + best_score=70(<95) → done（agent 显式收敛声明优先于阈值）。"""
+    store = _FakeStore()
+    contract = {"doc_id": "d4", "score": 70, "status": "done", "unfixable_regions": [], "patterns": []}
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d4",
+            routine_id="r4",
+            best_score=70,
+            qualified_threshold=95,
+            contract=contract,
+            routine_status="failed",
+        )
+    )
+    assert store.done == [{"doc_id": "d4", "score": 70, "routine_id": "r4"}]
+
+
+def test_persist_terminal_outcome_cancelled_skips_persist():
+    """cancelled + best_score=97 → 不写任何状态、不提取 regions/patterns（用户干预，文档可重选）。"""
+    store = _FakeStore()
+    contract = {
+        "doc_id": "d5",
+        "score": 97,
+        "status": "done",
+        "unfixable_regions": [{"locator": "p1-x", "attempts": 5, "reason": "r"}],
+        "patterns": [{"defect_type": "t", "fix_summary": "f", "module": "m"}],
+    }
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d5",
+            routine_id="r5",
+            best_score=97,
+            qualified_threshold=95,
+            contract=contract,
+            routine_status="cancelled",
+        )
+    )
+    assert store.done == [] and store.doc_unfixable == []
+    assert store.regions == [] and store.patterns == []
+
+
+def test_persist_terminal_outcome_threshold_boundary_is_inclusive():
+    """best_score 恰等于阈值(95) → done（>=边界）。"""
+    store = _FakeStore()
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d6",
+            routine_id="r6",
+            best_score=95,
+            qualified_threshold=95,
+            contract=None,
+            routine_status="failed",
+        )
+    )
+    assert store.done == [{"doc_id": "d6", "score": 95, "routine_id": "r6"}]
+
+
+def test_persist_terminal_outcome_no_doc_id_skipped():
+    """doc_id='' → 不写任何记忆（防御性）。"""
+    store = _FakeStore()
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="",
+            routine_id="r7",
+            best_score=97,
+            qualified_threshold=95,
+            contract=None,
+            routine_status="failed",
+        )
+    )
+    assert store.done == [] and store.doc_unfixable == []
+
+
+def test_persist_terminal_outcome_extracts_regions_and_patterns():
+    """done 判定下，契约内 unfixable_regions / patterns 仍被提取（复用既有去重逻辑）。"""
+    store = _FakeStore()
+    contract = {
+        "doc_id": "d8",
+        "score": 97,
+        "status": "progressing",
+        "unfixable_regions": [{"locator": "p3-t2", "attempts": 5, "reason": "扫描版"}],
+        "patterns": [{"defect_type": "table", "fix_summary": "调阈值", "module": "pdf/"}],
+    }
+    _run(
+        store.persist_terminal_outcome(
+            doc_id="d8",
+            routine_id="r8",
+            best_score=97,
+            qualified_threshold=95,
+            contract=contract,
+            routine_status="succeeded",
+        )
+    )
+    assert store.done == [{"doc_id": "d8", "score": 97, "routine_id": "r8"}]
+    assert [r["locator"] for r in store.regions] == ["p3-t2"]
+    assert store.patterns[0]["defect_type"] == "table"

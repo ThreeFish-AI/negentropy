@@ -106,29 +106,50 @@ def build_goal(
     doc_title: str,
     source_pdf_path: str,
     candidate_md_path: str,
+    qualified_threshold: int,
+    known_unfixable_regions: list[dict[str, Any]] | None = None,
 ) -> str:
-    """构造巡检 Routine 的 goal（文档级动态参数注入）。"""
+    """构造巡检 Routine 的 goal（文档级动态参数注入）。
+
+    - ``qualified_threshold``：合格分阈值，注入 done 判定（达此或仅剩 unfixable 即 done）。
+    - ``known_unfixable_regions``：该文档**已知 unfixable 区域**（跨 Routine 记忆复用），注入避让清单。
+    """
+    unfixable_hint = ""
+    if known_unfixable_regions:
+        locators = ", ".join(
+            str(r.get("locator") or "").strip()
+            for r in known_unfixable_regions
+            if isinstance(r, dict) and str(r.get("locator") or "").strip()
+        )
+        if locators:
+            unfixable_hint = f"\n- **已知 unfixable 区域（勿再尝试修复，评分不计）**：{locators}"
     return (
         f"本轮迭代：评估生产 PDF《{doc_title}》（doc_id={doc_id}）当前 Markdown 与源 PDF 的视觉保真度（0-100）。\n"
         f"- 源 PDF（只读）：{source_pdf_path}\n"
-        f"- 候选 Markdown（每轮覆盖写）：{candidate_md_path}\n"
+        f"- 候选 Markdown（每轮覆盖写）：{candidate_md_path}{unfixable_hint}\n"
         f"严格按 system_prompt 闭环执行（重转 → 渲染 → **采样**比对 → 评分 → [一处定点修复 → 重转复核] → 契约）。"
         f"**勿过度探查、勿逐页读全部图、勿 spawn Agent 子任务**——这是上轮 context 耗尽未推进的根因。"
-        f"score=100 或仅剩 unfixable 即 done。"
+        f"score≥{qualified_threshold}（合格阈值）或仅剩 unfixable 即 done。"
     )
 
 
-def build_acceptance_criteria(*, baseline_branch: str) -> str:
+def build_acceptance_criteria(*, baseline_branch: str, qualified_threshold: int) -> str:
     """构造巡检 Routine 的 acceptance_criteria。
 
-    允许「满分 100」在仅剩 unfixable carve-out 时达成（carve-out 不扣分），避免死循环。
+    合格阈值为 ``qualified_threshold``（默认 95）：达此分即判合格 done、Routine 经 decide() 判 SUCCESS。
+    允许在仅剩 unfixable carve-out 时达成（carve-out 不扣分），避免死循环。
+    含显式评分指引：收敛文档须评 ``qualified_threshold``-100，防评估器压分致本应成功的 Routine 误判 Failed。
     """
     return (
         "该文档所有页面/模块（文字、段落顺序、高清原图及显示尺寸、目录锚点、表格、数学公式、"
-        "代码块、脚注）与源 PDF 视觉一致（Contemplation 评分 100）；或剩余差异均已计入 "
+        "代码块、脚注）与源 PDF 视觉一致；或剩余差异均已计入 "
         "`pdf-fidelity-unfixable`（≥5 次修复失败）并由 Internalization 写入记忆——此时亦可判 done。\n"
-        "完成判据：每轮以 `pdf-fidelity-contract` JSON 收尾；done 时 score=100 且 defects 为空"
-        "（或仅剩 unfixable）；Perceives 改动经非回归门控通过后以 PR 合回基线 "
+        "**评分指引（重要）**：当文档已收敛（可修复模块全部一致；剩余差异均已列入 "
+        f"`pdf-fidelity-unfixable` 忽略不计）时，acceptance_met=true 且 score 应为 "
+        f"**{qualified_threshold}-100**（unfixable 模块不扣分）；仍有可修复缺陷时方在 "
+        f"{qualified_threshold} 以下评分。**勿对已收敛文档压低分数**，致本应成功的 Routine 误判失败。\n"
+        "完成判据：每轮以 `pdf-fidelity-contract` JSON 收尾；done 时 score≥"
+        f"{qualified_threshold} 且 defects 为空（或仅剩 unfixable）；Perceives 改动经非回归门控通过后以 PR 合回基线 "
         f"`{baseline_branch}`。"
     )
 

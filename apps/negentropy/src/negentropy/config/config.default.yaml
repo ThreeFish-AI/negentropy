@@ -220,6 +220,7 @@ routine:
   patrol_max_iterations_per_doc: 400         # 单文档巡检 Routine 迭代硬上限（×50：原 8）
   patrol_max_cost_usd_per_doc: 1500.0        # 单文档成本熔断（USD）；×50（原 30）容许数百轮深度拟合收敛（原 5 致 2 轮撞顶）
   patrol_regression_sample_size: 6           # 非回归基线样本数
+  patrol_qualified_score_threshold: 95       # 巡检文档「合格」分阈值；best_score≥此值→done 推进(success_score_threshold 同步取此)，否则 unfixable 尽力(亦推进)
 
 # --- Knowledge 配置 ---
 knowledge:

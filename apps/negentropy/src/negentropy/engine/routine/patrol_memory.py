@@ -277,11 +277,13 @@ class PatrolMemoryStore:
     # ------------------------------------------------------------------
 
     async def persist_contract(self, *, contract: dict[str, Any], routine_id: str) -> None:
-        """把一轮 ``pdf-fidelity-contract`` 解析为结构化记忆。
+        """把一轮 ``pdf-fidelity-contract`` 解析为结构化记忆（契约直驱变体）。
 
         - status==done → record_done；status==unfixable → record_doc_unfixable。
-        - unfixable_regions → 逐条 record_unfixable_region（去重：同 locator 已存在则跳过）。
-        - patterns → 逐条 record_pattern。
+        - unfixable_regions / patterns → 复用 ``_extract_regions_and_patterns``（去重提取）。
+
+        注：handler 的终态沉淀已切到 ``persist_terminal_outcome``（best_score 兜底，保证文档推进）。
+        本方法保留为「契约 status 直驱」语义入口（会话中途落库等场景），二者共享提取逻辑。
         """
         doc_id = str(contract.get("doc_id") or "").strip()
         if not doc_id:
@@ -294,6 +296,10 @@ class PatrolMemoryStore:
         elif status == "unfixable":
             await self.record_doc_unfixable(doc_id=doc_id, score=score, routine_id=routine_id)
 
+        await self._extract_regions_and_patterns(doc_id=doc_id, contract=contract)
+
+    async def _extract_regions_and_patterns(self, *, doc_id: str, contract: dict[str, Any]) -> None:
+        """从契约提取 unfixable_regions（去重：同 locator 已存在则跳过）+ patterns。"""
         existing = {r.get("locator") for r in await self.get_unfixable_regions(doc_id)}
         for region in contract.get("unfixable_regions") or []:
             if not isinstance(region, dict):
@@ -323,6 +329,53 @@ class PatrolMemoryStore:
                 fix_summary=str(pat.get("fix_summary") or ""),
                 module=str(pat.get("module") or ""),
             )
+
+    async def persist_terminal_outcome(
+        self,
+        *,
+        doc_id: str,
+        routine_id: str,
+        best_score: int | None,
+        qualified_threshold: int,
+        contract: dict[str, Any] | None = None,
+        routine_status: str,
+    ) -> None:
+        """终态 Routine 的**确定性状态沉淀**（文档推进的 SSOT 写者）。
+
+        保证每个 succeeded/failed 终态 Routine 必定把其文档标为 done 或 unfixable——
+        从而文档进 ``skip_ids``、被推进，不再因 agent 不自报 done 而死循环（修根因）。
+
+        判定优先级（与 handler ``_finalize_terminal_patrols`` 对齐）：
+        1) ``routine_status == 'cancelled'`` → 不写状态记忆（用户干预，文档保持可被重新选中）。
+        2) 契约自报 status == 'done' → done（agent 显式收敛声明，最强信号）。
+        3) ``best_score`` is not None and best_score >= qualified_threshold → done（合格，评估器权威峰值）。
+        4) 否则 → unfixable（尽力，含 best_score=None 的首轮崩）。
+
+        ``score`` 字段写 ``best_score``（跨迭代峰值，非末轮分）；cancelled 不写、不提取。
+        仍尽力提取契约内 unfixable_regions / patterns（done/unfixable 均可，复用既有去重逻辑）。
+        ``doc_id`` 由调用方权威传入（routine config 的 doc_id），不依赖契约自报。
+        """
+        doc_id = str(doc_id or "").strip()
+        if not doc_id:
+            return
+        if routine_status == "cancelled":
+            return  # 用户干预语义：不沉淀状态，文档可被重新选中
+
+        contract_status = str((contract or {}).get("status") or "").strip().lower()
+        if contract_status == "done":
+            terminal = "done"
+        elif best_score is not None and best_score >= qualified_threshold:
+            terminal = "done"
+        else:
+            terminal = "unfixable"
+
+        if terminal == "done":
+            await self.record_done(doc_id=doc_id, score=best_score, routine_id=routine_id)
+        else:
+            await self.record_doc_unfixable(doc_id=doc_id, score=best_score, routine_id=routine_id)
+
+        if contract:
+            await self._extract_regions_and_patterns(doc_id=doc_id, contract=contract)
 
 
 __all__ = [
