@@ -3,10 +3,45 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
+from typing import Any, Optional
 
 from .._output import format_result
 from .._progress import console
+
+
+def _colocate_image_assets(result: Any, out_path: Any) -> None:
+    """将提取出的图片资源并置到 ``-o`` 输出文件旁的 ``images/`` 目录。
+
+    CLI 的 ``-o`` 仅写入 Markdown 文本，但图片由提取管线落盘到默认输出目录
+    （如 ``<cwd>/output/<stem>/images/``），二者解耦会使 Markdown 中
+    ``./images/...`` 相对引用全部裂图。此处按 ``result.image_assets`` 逐张拷贝
+    到输出文件同级，使相对引用可解析。embed_images / --no-images 场景下
+    ``image_assets`` 为空，本函数空操作。
+    """
+    import shutil
+    from pathlib import Path
+
+    assets = getattr(result, "image_assets", None) or []
+    if not assets:
+        return
+    dest_images = out_path.parent / "images"
+    dest_images.mkdir(parents=True, exist_ok=True)
+    for a in assets:
+        src = getattr(a, "image_path", None) or getattr(a, "local_path", None)
+        if not src:
+            continue
+        src_path = Path(src)
+        if not src_path.is_file():
+            continue
+        fname = getattr(a, "filename", None) or src_path.name
+        dest = dest_images / fname
+        try:
+            if dest.exists() and dest.resolve() == src_path.resolve():
+                continue
+        except Exception:
+            pass
+        shutil.copy2(src_path, dest)
+
 
 try:
     import typer
@@ -120,7 +155,9 @@ async def _run(
     if output:
         from pathlib import Path
 
-        Path(output).write_text(formatted, encoding="utf-8")
+        out_path = Path(output)
+        out_path.write_text(formatted, encoding="utf-8")
+        _colocate_image_assets(result, out_path)
         console.print(f"[green]Output saved to {output}[/green]")
     else:
         console.print(formatted)
