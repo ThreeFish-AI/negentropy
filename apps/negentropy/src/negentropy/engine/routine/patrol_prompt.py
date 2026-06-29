@@ -188,6 +188,12 @@ def build_routine_config(
         # no_progress 误判 failed（曾致 Routine 861ab544 收敛成功态被判 failed）。开启此旁路让 Judge
         # 的权威完成裁决（verdict=pass + 门控通过）成为第二成功通道，与阈值路径并列。
         "accept_verdict_pass": True,
+        # 停滞判定分数容差带（消费见 orchestrator.decide()）。Judge 聚合分对「修一处感知缺陷、
+        # 回归压低另一处」的拟合任务天然 ±20 振荡，一次早期运气高点（watermark）会令正常振荡
+        # 永远清不过历史最优 → 假阳性 no_progress 误杀正在收敛的任务（曾致 PDF Fidelity Patrol
+        # 仅 6 轮即 failed、文档被永久标 unfixable）。设 20 = 典型振荡幅度，使窗口内任一评分接近
+        # 历史最优即视为「有进展/继续」，而非停滞误杀。
+        "no_progress_score_tolerance": 20,
     }
     if extra:
         cfg.update(extra)

@@ -191,6 +191,91 @@ def test_decide_no_progress_ignores_in_window_climb():
     assert d.decide(r, hist[-1], hist).action == "continue"
 
 
+# ---------------------------------------------------------------------------
+# no_progress_score_tolerance 容差带：Judge 聚合分天然 ±振荡的长尾任务（如巡检）防假阳性误杀
+# ---------------------------------------------------------------------------
+
+
+def test_decide_no_progress_rescued_by_score_tolerance_live_trajectory():
+    """核心回归（巡检 35ff2e9f）：真实轨迹 72→84→62→72→42→72，best=84（早期运气尖峰），
+    patience=3、窗口 [72,42,72] 点态全 ≤84 → 原逻辑误判 no_progress→failed（6 轮即挂、文档被永久
+    标 unfixable）。开启 tolerance=20 后 threshold=64，窗口内 72>64 即视为「接近最优·有进展」→ 继续。
+    success_score_threshold=95 高于全部评分，隔离成功分支、专测 no_progress 判定。"""
+    r = FakeRoutine(best_score=84, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=72, verdict="progressing"),
+        FakeIter(seq=2, score=84, verdict="progressing"),
+        FakeIter(seq=3, score=62, verdict="stalled"),
+        FakeIter(seq=4, score=72, verdict="progressing"),
+        FakeIter(seq=5, score=42, verdict="stalled"),
+        FakeIter(seq=6, score=72, verdict="progressing"),
+    ]
+    assert d.decide(r, hist[-1], hist, no_progress_score_tolerance=20).action == "continue"
+
+
+def test_decide_no_progress_tolerance_default_zero_preserves_stall():
+    """向后兼容锁:同一真实轨迹下,默认 tolerance=0(点态严格比较)仍判 no_progress 终止,
+    证明容差带为纯 opt-in、不改变既有任何 routine 的行为。"""
+    r = FakeRoutine(best_score=84, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=72, verdict="progressing"),
+        FakeIter(seq=2, score=84, verdict="progressing"),
+        FakeIter(seq=3, score=62, verdict="stalled"),
+        FakeIter(seq=4, score=72, verdict="progressing"),
+        FakeIter(seq=5, score=42, verdict="stalled"),
+        FakeIter(seq=6, score=72, verdict="progressing"),
+    ]
+    res = d.decide(r, hist[-1], hist)  # 不传 kwarg → 默认 0
+    assert res.is_terminate and res.reason == d.REASON_NO_PROGRESS
+
+
+def test_decide_no_progress_tolerance_flatline_well_below_best_still_stalls():
+    """未削弱真实停滞检测：窗口评分远低于历史最优（gap 50 > tolerance 20）时仍判停滞。
+    best=90（窗口前），窗口 [40,40,40] 全 ≤ threshold(70) → no_progress 正确触发。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=90, verdict="progressing"),
+        FakeIter(seq=2, score=40, verdict="stalled"),
+        FakeIter(seq=3, score=40, verdict="stalled"),
+        FakeIter(seq=4, score=40, verdict="stalled"),
+    ]
+    res = d.decide(r, hist[-1], hist, no_progress_score_tolerance=20)
+    assert res.is_terminate and res.reason == d.REASON_NO_PROGRESS
+
+
+def test_decide_no_progress_tolerance_boundary_exact_band_edge():
+    """边界精度锁：threshold = best - tolerance，比较为 `<= threshold`。
+    best=90、tolerance=20 → threshold=70；窗口 [70,69,70] 全 ≤70 → 停滞；
+    任一分越过边界（71>70）→ 继续。锁定 `best - tolerance` 的闭区间语义。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    base = [FakeIter(seq=1, score=90, verdict="progressing")]
+    stall = base + [
+        FakeIter(seq=2, score=70, verdict="stalled"),
+        FakeIter(seq=3, score=69, verdict="stalled"),
+        FakeIter(seq=4, score=70, verdict="stalled"),
+    ]
+    assert d.decide(r, stall[-1], stall, no_progress_score_tolerance=20).reason == d.REASON_NO_PROGRESS
+    progress = base + [
+        FakeIter(seq=2, score=70, verdict="progressing"),
+        FakeIter(seq=3, score=71, verdict="progressing"),
+        FakeIter(seq=4, score=70, verdict="progressing"),
+    ]
+    assert d.decide(r, progress[-1], progress, no_progress_score_tolerance=20).action == "continue"
+
+
+def test_decide_no_progress_tolerance_in_window_climb_still_continues():
+    """与既有 test_decide_no_progress_ignores_in_window_climb 交互守护：窗口内逐级爬升
+    （40→60→75→90，窗口前最优=40）在 tolerance=20 下照常继续，容差带不破坏爬升路径。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=40, verdict="progressing"),
+        FakeIter(seq=2, score=60, verdict="progressing"),
+        FakeIter(seq=3, score=75, verdict="progressing"),
+        FakeIter(seq=4, score=90, verdict="progressing"),
+    ]
+    assert d.decide(r, hist[-1], hist, no_progress_score_tolerance=20).action == "continue"
+
+
 def test_decide_oscillation():
     r = FakeRoutine(best_score=60, no_progress_patience=10)  # patience 大以排除 no_progress 抢先
     hist = [
