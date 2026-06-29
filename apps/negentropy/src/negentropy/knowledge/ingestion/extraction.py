@@ -2886,6 +2886,16 @@ async def store_extracted_document_artifacts(
         markdown_content=rewritten_markdown,
         markdown_uri=markdown_uri,
     )
+    # 回填 PDF 自动抽取的标题进 knowledge_documents.metadata（Fix B2）。
+    # 历史仅 URL-sync 路径回填 title；文件导入路径丢失标题，致巡检命名兜底成原始文件名
+    # （如 2603.05344v3.pdf）。对齐 knowledge/service.py 的 URL-sync 回填口径；空白不回填，
+    # 失败不阻断导入（标题为附加增强，markdown 已先行落库）。
+    _title = str((extracted.metadata or {}).get("title") or "").strip()
+    if _title:
+        try:
+            await storage_service.update_document_metadata(document_id=document_id, metadata_patch={"title": _title})
+        except Exception:  # noqa: BLE001
+            logger.warning("backfill_document_title_failed", document_id=str(document_id))
     stored_assets = await persist_extracted_assets(
         document_id=document_id,
         assets=extracted.assets,

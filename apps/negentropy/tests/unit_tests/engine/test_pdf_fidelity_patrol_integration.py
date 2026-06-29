@@ -15,9 +15,10 @@ import time
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from negentropy.config import settings
 from negentropy.engine.schedulers import registry as registry_mod
 from negentropy.engine.schedulers.handlers import (
     PATROL_LIFECYCLE_IDLE,
@@ -28,6 +29,7 @@ from negentropy.engine.schedulers.handlers import (
 from negentropy.engine.schedulers.handlers import (
     pdf_fidelity_patrol as patrol,
 )
+from negentropy.models.perception import KnowledgeDocument
 from negentropy.models.plugin_common import PluginVisibility
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration
@@ -582,3 +584,178 @@ async def test_finalize_normal_ok_resets_failures(db_engine, monkeypatch):
         assert t.last_status == "ok"
         assert t.last_error is None  # ok 覆盖
         assert t.consecutive_failures == 0  # 清零
+
+
+# ---------------------------------------------------------------------------
+# Fix A / Fix C：一文一活跃巡检守卫 + 取消原始文件名冗余 Routine（真实 PG）
+# ---------------------------------------------------------------------------
+
+
+async def _seed_pdf_document(
+    db_engine,
+    *,
+    original_filename: str = "spec.pdf",
+    display_name: str | None = None,
+    metadata_title: str | None = None,
+):
+    """落库一条 library PDF 文档（markdown_extract_status=completed）；返回 doc_id。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        doc = KnowledgeDocument(
+            app_name=settings.app_name,
+            file_hash=uuid.uuid4().hex,
+            original_filename=original_filename,
+            content_uri=f"pgblob://test/{uuid.uuid4().hex}",
+            content_type="application/pdf",
+            file_size=1024,
+            status="active",
+            markdown_extract_status="completed",
+            display_name=display_name,
+            metadata_={"title": metadata_title} if metadata_title else {},
+        )
+        db.add(doc)
+        await db.commit()
+        return doc.id
+
+
+async def _seed_patrol_routine(
+    db_engine,
+    *,
+    doc_id,
+    title: str,
+    display_name: str,
+    status: str = "running",
+):
+    """落库一条绑定 doc_id 的巡检 Routine（最小必填字段 + patrol/doc_id 指针）；返回 routine_id。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        routine = Routine(
+            key=f"pdf-fidelity-patrol/{doc_id}/{uuid.uuid4().hex[:8]}",
+            title=title,
+            display_name=display_name,
+            goal="patrol-test",
+            acceptance_criteria="patrol-test",
+            status=status,
+            config={"patrol": True, "doc_id": str(doc_id)},
+            owner_id="system",
+        )
+        db.add(routine)
+        await db.commit()
+        return routine.id
+
+
+async def _completed_pdf_doc_ids(db_engine) -> set[str]:
+    """当前 app 下所有 completed PDF 文档 id（构造 skip_ids 隔离被测文档，规避 created_at 排序串扰）。"""
+    factory = _sf(db_engine)
+    async with factory() as db:
+        rows = await db.execute(
+            text(
+                "SELECT id::text FROM negentropy.knowledge_documents "
+                "WHERE app_name = :app "
+                "AND COALESCE(content_type, '') ILIKE '%pdf%' "
+                "AND markdown_extract_status = 'completed'"
+            ).bindparams(app=settings.app_name)
+        )
+        return {r[0] for r in rows.fetchall()}
+
+
+async def test_select_next_pending_doc_one_active_patrol_per_doc_and_cancel_relets(db_engine):
+    """Fix A：已有非 cancelled 巡检 Routine 的文档不被重选；该 Routine cancelled 后重新入选（自愈复位）。"""
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(db_engine, original_filename="guard.pdf", display_name="Guard Doc")
+    others = (await _completed_pdf_doc_ids(db_engine)) - {str(doc_id)}  # 隔离：仅被测 doc 为候选
+
+    # 1) 无巡检 → 被测 doc 可选
+    async with factory() as db:
+        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
+    assert doc is not None and str(doc["id"]) == str(doc_id)
+
+    # 2) 建活跃巡检 → NOT EXISTS 阻塞被测 doc
+    await _seed_patrol_routine(
+        db_engine,
+        doc_id=doc_id,
+        title="PDF 高保真巡检：guard.pdf",
+        display_name="PDF Fidelity Patrol · guard.pdf",
+        status="running",
+    )
+    async with factory() as db:
+        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
+    assert doc is None or str(doc["id"]) != str(doc_id)
+
+    # 3) 取消该巡检 → cancelled 排除 → 被测 doc 重新入选（自愈）
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.routines SET status = 'cancelled' "
+                "WHERE config->>'patrol' = 'true' AND config->>'doc_id' = :did"
+            ).bindparams(did=str(doc_id))
+        )
+        await db.commit()
+    async with factory() as db:
+        doc = await patrol._select_next_pending_doc(db, skip_ids=others)
+    assert doc is not None and str(doc["id"]) == str(doc_id)
+
+
+async def test_collapse_superseded_patrols_cancels_raw_keeps_corrected(db_engine):
+    """Fix C：取消「原始文件名兜底」的终态 Routine；非终态（running）修正名 Routine 不被触碰。"""
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(db_engine, original_filename="raw.pdf", display_name="Real Title")
+    raw_id = await _seed_patrol_routine(
+        db_engine,
+        doc_id=doc_id,
+        title="PDF 高保真巡检：raw.pdf",
+        display_name="PDF Fidelity Patrol · raw.pdf",
+        status="succeeded",
+    )
+    good_id = await _seed_patrol_routine(
+        db_engine,
+        doc_id=doc_id,
+        title="PDF 高保真巡检：Real Title",
+        display_name="PDF Fidelity Patrol · Real Title",
+        status="running",  # 非终态 → 不得被收敛触碰（不中断在跑任务）
+    )
+
+    async with factory() as db:
+        collapsed = await patrol._collapse_superseded_patrols(db)
+        await db.commit()
+    assert collapsed >= 1
+
+    async with factory() as db:
+        raw = await db.get(Routine, raw_id)
+        good = await db.get(Routine, good_id)
+    assert raw.status == "cancelled"
+    assert raw.termination_reason == "superseded_patrol"
+    assert good.status == "running"  # 非终态修正名 Routine 保留
+
+
+async def test_collapse_superseded_patrols_collapses_surplus_to_one(db_engine):
+    """Fix C：同 doc 多条终态 Routine 收敛为恰好一条（防失败重选累积 + 防重试死循环）。"""
+    factory = _sf(db_engine)
+    doc_id = await _seed_pdf_document(db_engine, original_filename="surplus.pdf", display_name="Surplus Title")
+    # 三条同 doc 的修正名终态 Routine（模拟历史失败重选累积）
+    for _ in range(3):
+        await _seed_patrol_routine(
+            db_engine,
+            doc_id=doc_id,
+            title="PDF 高保真巡检：Surplus Title",
+            display_name="PDF Fidelity Patrol · Surplus Title",
+            status="failed",
+        )
+
+    async with factory() as db:
+        collapsed = await patrol._collapse_superseded_patrols(db)
+        await db.commit()
+    assert collapsed >= 2  # 3 → 1，至少取消 2
+
+    async with factory() as db:
+        remaining = (
+            await db.execute(
+                text(
+                    "SELECT count(*) FROM negentropy.routines "
+                    "WHERE config->>'patrol' = 'true' "
+                    "AND config->>'doc_id' = :did "
+                    "AND status <> 'cancelled'"
+                ).bindparams(did=str(doc_id))
+            )
+        ).scalar()
+    assert remaining == 1  # 恰好保留一条（防重试死循环）
