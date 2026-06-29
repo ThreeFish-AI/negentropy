@@ -510,12 +510,39 @@ async def _run_batched_pipeline(
                 f"({per_slice_timeout:.0f}s budget)"
             )
             logger.warning("[batch %d/%d] %s", i + 1, len(slice_ranges), err)
+            fallback = await _fallback_slice_lightweight(
+                pdf_source=pdf_source,
+                page_range=(page_start, page_end),
+                output_dir=output_dir,
+                slice_index=i,
+                total_slices=len(slice_ranges),
+            )
+            if fallback is not None:
+                completed[i] = fallback
+                _save_slice_checkpoint(
+                    checkpoint_dir, i, page_start, page_end, fallback
+                )
+                continue
             partial_failures.append((page_start, page_end, err))
             _save_slice_failure(checkpoint_dir, i, page_start, page_end, err)
             continue
 
         if slice_result is None:
             err = f"slice [{page_start}, {page_end}) failed after retry"
+            logger.warning("[batch %d/%d] %s", i + 1, len(slice_ranges), err)
+            fallback = await _fallback_slice_lightweight(
+                pdf_source=pdf_source,
+                page_range=(page_start, page_end),
+                output_dir=output_dir,
+                slice_index=i,
+                total_slices=len(slice_ranges),
+            )
+            if fallback is not None:
+                completed[i] = fallback
+                _save_slice_checkpoint(
+                    checkpoint_dir, i, page_start, page_end, fallback
+                )
+                continue
             partial_failures.append((page_start, page_end, err))
             _save_slice_failure(checkpoint_dir, i, page_start, page_end, err)
             continue
@@ -654,6 +681,101 @@ async def _execute_slice_with_retry(
                 exc,
             )
     return None
+
+
+async def _fallback_slice_lightweight(
+    *,
+    pdf_source: str,
+    page_range: Tuple[int, int],
+    output_dir: Optional[str],
+    slice_index: int,
+    total_slices: int,
+) -> Optional[Any]:
+    """切片超时/二次失败后的轻量引擎兜底：用 pymupdf 回收文字内容。
+
+    必要性：auto 重型引擎（docling/mineru/marker）在大切片上可能整体超时，
+    原逻辑直接丢弃整段内容（如标题/摘要/目录/前几章），致 Markdown 从中段起始、
+    ``partial success``。本兜底在超时/失败后用本地快速引擎 pymupdf 重跑该切片
+    页范围，至少回收文字、标题与段落顺序，避免内容整段丢失（图片资产适配较重，
+    本兜底不回填 ``image_assets``；其文字保真已远胜于完全丢弃）。
+
+    Returns:
+        成功时返回 :class:`PipelineResult`（``engines_used`` 标记
+        ``pymupdf-fallback``）；兜底亦失败/超时/异常/空内容时返回 ``None``。
+    """
+    from ..pipeline import PipelineResult
+
+    start, end = page_range
+    fallback_budget = 120.0
+    try:
+        pdf_processor = create_pdf_processor(
+            enable_enhanced_features=False, output_dir=output_dir
+        )
+        async with asyncio.timeout(fallback_budget):
+            result = await pdf_processor.process_pdf(
+                pdf_source=pdf_source,
+                method="pymupdf",
+                include_metadata=False,
+                page_range=(start, end),
+                output_format="markdown",
+                extract_images=False,
+                extract_tables=False,
+                extract_formulas=False,
+                embed_images=False,
+                enhanced_options=None,
+            )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "[batch %d/%d] 轻量兜底超时 pages=%d-%d budget=%ds",
+            slice_index + 1,
+            total_slices,
+            start + 1,
+            end,
+            int(fallback_budget),
+        )
+        return None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "[batch %d/%d] 轻量兜底异常 pages=%d-%d: %s",
+            slice_index + 1,
+            total_slices,
+            start + 1,
+            end,
+            exc,
+        )
+        return None
+
+    if not result.get("success"):
+        logger.warning(
+            "[batch %d/%d] 轻量兜底失败 pages=%d-%d error=%s",
+            slice_index + 1,
+            total_slices,
+            start + 1,
+            end,
+            result.get("error", "unknown"),
+        )
+        return None
+
+    markdown = result.get("content", result.get("markdown", ""))
+    if not markdown.strip():
+        return None
+
+    logger.info(
+        "[batch %d/%d] 轻量兜底成功(pymupdf) pages=%d-%d words=%s",
+        slice_index + 1,
+        total_slices,
+        start + 1,
+        end,
+        result.get("word_count", 0),
+    )
+    return PipelineResult(
+        success=True,
+        markdown=markdown,
+        page_count=result.get("page_count", end - start),
+        word_count=result.get("word_count", 0),
+        engines_used=["pymupdf-fallback"],
+        metadata={"fallback_engine": "pymupdf"},
+    )
 
 
 # ---------------------------------------------------------------------------
