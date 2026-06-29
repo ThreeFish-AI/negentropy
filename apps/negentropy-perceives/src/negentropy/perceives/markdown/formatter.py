@@ -821,7 +821,11 @@ class MarkdownFormatter:
             from ..pdf.math_formula import protect_math_content
 
             def _typography_inner(text: str) -> str:
-                text = re.sub(r"(?<!\-)\-\-(?!\-)", "\u2014", text)
+                # \u8d1f\u5411\u65ad\u8a00\u6269\u5c55\uff1a``<!--`` / ``-->`` \u7b49 HTML \u6ce8\u91ca\u5b9a\u754c\u7b26\u4e2d\u7684 ``--``
+                # \u4e0d\u8f6c\u4e3a em-dash\uff08lookbehind \u589e ``!``\u3001lookahead \u589e ``>``\uff09\u3002
+                # code block / LaTeX \u5df2\u7531 protect \u6d41\u7a0b\u4fdd\u62a4\uff0cHTML \u6ce8\u91ca\u6b64\u524d\u6f0f\u7f51\uff0c
+                # \u81f4 ``<!-- orphan images ... -->`` \u88ab\u7834\u574f\u4e3a\u53ef\u89c1\u5783\u573e ``<!\u2014 \u2026 \u2014>``\u3002
+                text = re.sub(r"(?<![!\-])\-\-(?![\->])", "\u2014", text)
 
                 # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
                 text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
