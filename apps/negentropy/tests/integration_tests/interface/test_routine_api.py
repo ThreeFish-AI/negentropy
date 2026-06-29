@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import uuid
 from datetime import UTC, datetime
@@ -25,6 +26,8 @@ from sqlalchemy import delete, func, select
 
 import negentropy.db.session as db_session
 from negentropy.interface.routine_api import router
+from negentropy.models.plugin_common import PluginVisibility
+from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 pytestmark = pytest.mark.asyncio
@@ -560,3 +563,84 @@ async def test_runtime_safe_fields_update_while_running(git_repo):
             assert res.json()["goal"] == "paused goal"
     finally:
         await _cleanup("itest_api_")
+
+
+# ---------------------------------------------------------------------------
+# cleanup-worktree：Repository 型 routine 须 hydrate 仓库根才能真正清理（回归）
+# ---------------------------------------------------------------------------
+
+
+async def test_cleanup_worktree_hydrates_repository_and_removes_branch(git_repo, tmp_path):
+    """Repository 型 routine（cwd 列 NULL）的 cleanup-worktree 须 hydrate 仓库根，真正执行
+    git worktree remove + 删本地工作分支。
+
+    回归：修复前 ``remove_worktree`` 读 ``routine.cwd``（DB 列）= NULL → git 块整段被跳过，
+    worktree 仍在 repo 注册、工作分支残留（即"没清理干净"）。
+    """
+    key = _key()
+    work_branch = f"routine/itest-{uuid.uuid4().hex[:8]}"
+    wt_path = str(tmp_path / "wt")
+    # 预置真实 worktree + 工作分支（模拟引擎派发产物）
+    subprocess.run(["git", "-C", git_repo, "worktree", "add", "-b", work_branch, wt_path, "main"], check=True)
+    assert (
+        subprocess.run(
+            ["git", "-C", git_repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{work_branch}"]
+        ).returncode
+        == 0
+    )
+
+    app = _app()
+    repo_id = None
+    try:
+        # Repository（local_path=git_repo）+ 终态 Routine（repository_id 指针；cwd 列 NULL，复现 bug 条件）
+        async with db_session.AsyncSessionLocal() as db:
+            repo = Repository(
+                owner_id="itest",
+                visibility=PluginVisibility.PRIVATE,
+                name=key,
+                github_url="https://example.invalid/itest",
+                local_path=git_repo,
+                baseline_branch="main",
+            )
+            db.add(repo)
+            await db.commit()
+            await db.refresh(repo)
+            repo_id = repo.id
+            r = Routine(
+                key=key,
+                title="T",
+                goal="g",
+                acceptance_criteria="a",
+                status="succeeded",
+                repository_id=repo.id,
+                cwd=None,
+                baseline_branch=None,
+                worktree_path=wt_path,
+                work_branch=work_branch,
+            )
+            db.add(r)
+            await db.commit()
+            rid = str(r.id)
+
+        async with _client(app) as c:
+            resp = await c.post(f"/routines/{rid}/cleanup-worktree")
+            assert resp.status_code == 200, resp.text
+
+        # worktree 目录已删
+        assert not os.path.isdir(wt_path)
+        # git worktree 注册已清除（修复前残留）
+        wt_list = subprocess.run(["git", "-C", git_repo, "worktree", "list"], capture_output=True, text=True).stdout
+        assert wt_path not in wt_list
+        # 本地工作分支已删（修复前残留）
+        rc = subprocess.run(
+            ["git", "-C", git_repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{work_branch}"]
+        ).returncode
+        assert rc != 0
+    finally:
+        await _cleanup("itest_api_")
+        if repo_id is not None:
+            async with db_session.AsyncSessionLocal() as db:
+                await db.execute(delete(Repository).where(Repository.id == repo_id))
+                await db.commit()
+        subprocess.run(["git", "-C", git_repo, "worktree", "prune"], capture_output=True)
+        subprocess.run(["git", "-C", git_repo, "branch", "-D", work_branch], capture_output=True)
