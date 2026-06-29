@@ -321,6 +321,36 @@ def test_build_patrol_routine_constructs_without_attribute_error():
     assert routine.title == "PDF 高保真巡检：report.pdf"
 
 
+def test_build_patrol_routine_candidate_md_is_absolute_outside_worktree():
+    """回归 PR #1010：候选 Markdown 须落在源 PDF 暂存目录内（绝对路径、worktree 之外）。
+
+    历史 bug：``candidate_md_path=CANDIDATE_MD_FILENAME``（相对文件名）→ agent 在 worktree 根写出
+    候选 → ``git add -A`` 将其提交并随 PR 推出（PR 仅含 ``patrol-candidate.md``）。候选是评估用
+    临时产物（perceives parse-pdf -o），须置 worktree 外、永不进 commit/PR。
+    """
+    import uuid as _uuid
+
+    repo_id = _uuid.uuid4()
+    doc = {"id": _uuid.uuid4(), "original_filename": "report.pdf"}
+    source_read_dir = "/tmp/negentropy-patrol/013c5ebc"
+    routine = patrol._build_patrol_routine(
+        repo_id=repo_id,
+        baseline_branch="origin/feature/1.x.x",
+        doc=doc,
+        source_pdf_path=f"{source_read_dir}/source.pdf",
+        source_read_dir=source_read_dir,
+        regression_sample=["s1"],
+        source_task_key="pdf_fidelity_patrol",
+    )
+    expected = f"{source_read_dir}/{patrol.CANDIDATE_MD_FILENAME}"
+    # 绝对路径、暂存目录内（source.pdf 同级）、worktree 之外
+    assert routine.config["candidate_md_path"] == expected
+    assert routine.config["candidate_md_path"] == str(Path(expected))
+    assert not routine.config["candidate_md_path"].startswith(patrol.CANDIDATE_MD_FILENAME)  # 非裸相对文件名
+    # goal 同步注入该绝对候选路径
+    assert expected in routine.goal
+
+
 def test_build_patrol_routine_uses_corrected_display_name():
     """回归本次目标：用户修正后的 display_name 透传到 Routine 标题/展示名/描述/goal，
     原始文件名不再出现在用户可见标题链路。"""

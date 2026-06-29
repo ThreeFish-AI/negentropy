@@ -283,3 +283,7 @@ apps/negentropy-ui/.userdata/
 .gitignore
 output/
 benchmarks/runs/
+
+# PDF Fidelity Patrol 临时候选产物（评估用重转 Markdown，正常落 worktree 外暂存目录；
+# 此条兜底 agent 路径漂移误在 worktree 写候选的极端场景，确保其永不进 commit/PR）
+patrol-candidate.md
