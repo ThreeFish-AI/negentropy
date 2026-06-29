@@ -376,22 +376,24 @@ async def _mark_memory_persisted(db, rid: uuid.UUID) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 终态 Routine 成败回写 ScheduledTask（聚合状态唯一权威写者）
+# 终态 Routine 成败回写 ScheduledTask + 派生 TaskExecution（聚合状态唯一权威写者）
 # ---------------------------------------------------------------------------
 
 
 async def _propagate_patrol_outcomes(db) -> int:
-    """把终态 patrol Routine 的成败回写到派生它的 ScheduledTask。
+    """把终态 patrol Routine 的成败回写到派生它的 ScheduledTask 及其 spawn TaskExecution。
 
-    patrol 是 fire-and-forget：spawn 成功 ≠ Routine 成功。per-tick 的 ``_finalize_execution``
-    见 ``patrol_lifecycle`` 标记后不再写 ``ScheduledTask.last_status/last_error/
-    consecutive_failures``，改由本函数在 Routine 终态时统一回写，使 Scheduler 任务状态与
-    Routine 终态一致——``succeeded``→``ok``、``failed``→``failed``、``cancelled``→``cancelled``。
+    patrol 是 fire-and-forget：派生 Routine 的那一轮（TaskExecution）在 spawn 时记 ok（绿），
+    但 Routine 数小时后才真正成败。本函数在 Routine 终态时：
+
+    1. 翻转派生该 Routine 的那条 TaskExecution（按 ``metrics.routine_id`` 精确定位）为
+       Routine 终态（succeeded→ok / failed→failed / cancelled→cancelled），使该**运行轮次**
+       如实反映 Routine 结局——失败则由绿转红，不再误标成功；
+    2. 回写 ``ScheduledTask.last_status/last_error/consecutive_failures``（聚合状态快照）。
+
     ``consecutive_failures`` 语义与 ``_finalize_execution`` 对齐（failed→+1、succeeded→清零、
-    cancelled→不变）。
-
-    通过 ``Routine.config->>'source_task_key'``（SSOT 软关联）反查 ScheduledTask；
-    ``config->>'outcome_propagated'='true'`` 幂等（与 ``memory_persisted`` 独立标记）。
+    cancelled→不变）。通过 ``Routine.config->>'source_task_key'``（SSOT 软关联）反查
+    ScheduledTask；``config->>'outcome_propagated'='true'`` 幂等（与 ``memory_persisted`` 独立）。
     返回回写条数。
     """
     rows = await db.execute(
@@ -410,27 +412,50 @@ async def _propagate_patrol_outcomes(db) -> int:
 
     count = 0
     for routine_id, routine_status, termination_reason, source_task_key in candidates:
+        # 终态 → 状态映射（TaskExecution.status 与 ScheduledTask.last_status 共用同一取值）
         if routine_status == "succeeded":
-            last_status, cf_clause = "ok", "consecutive_failures = 0"
+            resolved_status, cf_clause = "ok", "consecutive_failures = 0"
         elif routine_status == "failed":
-            last_status, cf_clause = "failed", "consecutive_failures = consecutive_failures + 1"
+            resolved_status, cf_clause = "failed", "consecutive_failures = consecutive_failures + 1"
         else:  # cancelled
-            last_status, cf_clause = "cancelled", "consecutive_failures = consecutive_failures"
-        last_error = termination_reason if routine_status == "failed" else None
+            resolved_status, cf_clause = "cancelled", "consecutive_failures = consecutive_failures"
+        task_error = termination_reason if routine_status == "failed" else None
 
-        updated = await db.execute(
-            sa.text(
-                "UPDATE negentropy.scheduled_tasks "
-                "SET last_status = :last_status, last_error = :last_error, "
-                f"{cf_clause} "
-                "WHERE key = :source_task_key"
-            ).bindparams(
-                last_status=last_status,
-                last_error=last_error,
-                source_task_key=source_task_key,
+        # 反查 ScheduledTask id（TaskExecution 作用域定位 + 聚合字段更新共用）
+        task_id = (
+            await db.execute(
+                sa.text("SELECT id FROM negentropy.scheduled_tasks WHERE key = :stk").bindparams(stk=source_task_key)
             )
-        )
-        if updated.rowcount == 0:
+        ).scalar()
+
+        if task_id is not None:
+            # 1) 翻转派生该 Routine 的 spawn TaskExecution（按 metrics.routine_id 精确定位，取最新一条）
+            exec_id = (
+                await db.execute(
+                    sa.text(
+                        "SELECT id FROM negentropy.task_executions "
+                        "WHERE task_id = :tid AND metrics->>'routine_id' = :rid "
+                        "ORDER BY started_at DESC LIMIT 1"
+                    ).bindparams(tid=task_id, rid=str(routine_id))
+                )
+            ).scalar()
+            if exec_id is not None:
+                await db.execute(
+                    sa.text("UPDATE negentropy.task_executions SET status = :s, error = :e WHERE id = :eid").bindparams(
+                        s=resolved_status, e=task_error, eid=exec_id
+                    )
+                )
+
+            # 2) 回写 ScheduledTask 聚合状态（last_status / last_error / consecutive_failures）
+            await db.execute(
+                sa.text(
+                    "UPDATE negentropy.scheduled_tasks "
+                    "SET last_status = :last_status, last_error = :last_error, "
+                    f"{cf_clause} "
+                    "WHERE id = :tid"
+                ).bindparams(last_status=resolved_status, last_error=task_error, tid=task_id)
+            )
+        else:
             # 源 ScheduledTask 不存在（已删 / key 漂移）—— 仍标记 Routine 已传播，避免每 tick 重扫。
             logger.warning(
                 "patrol_propagate_source_task_missing",
@@ -438,6 +463,7 @@ async def _propagate_patrol_outcomes(db) -> int:
                 source_task_key=source_task_key,
             )
 
+        # 3) 幂等标记
         await db.execute(
             sa.text(
                 "UPDATE negentropy.routines "

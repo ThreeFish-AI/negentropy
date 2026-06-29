@@ -144,12 +144,24 @@ async def _seed_terminal_patrol(
             last_status=initial_last_status,
         )
         db.add(task)
+        await db.flush()
+        # 模拟真实 dispatch 流：派生该 Routine 的那一轮 TaskExecution（spawn 时记 ok + metrics.routine_id）
+        now = datetime.now(UTC)
+        db.add(
+            TaskExecution(
+                task_id=task.id,
+                started_at=now,
+                finished_at=now,
+                status="ok",
+                metrics={"reason": "spawned", "routine_id": str(routine_id)},
+            )
+        )
         await db.commit()
     return routine_id
 
 
 async def test_propagate_failed_routine_flips_scheduled_task(db_engine):
-    """Routine failed → ScheduledTask.last_status=failed / consecutive_failures+1 / last_error=reason。"""
+    """Routine failed → 派生轮次 TaskExecution 由 ok 翻转为 failed（绿→红）+ ScheduledTask 聚合状态。"""
     task_key = f"pdf_fidelity_patrol-prop-{uuid.uuid4().hex[:6]}"
     routine_id = await _seed_terminal_patrol(
         db_engine,
@@ -169,14 +181,20 @@ async def test_propagate_failed_routine_flips_scheduled_task(db_engine):
         assert task.last_status == "failed"
         assert task.last_error == "unrecoverable_error"
         assert task.consecutive_failures == 1
+        # 派生该 Routine 的那一轮 TaskExecution 被翻转为 failed（核心：运行轮次如实反映 Routine 失败）
+        spawn = (
+            await db.execute(select(TaskExecution).where(TaskExecution.metrics["routine_id"].astext == str(routine_id)))
+        ).scalar_one()
+        assert spawn.status == "failed"
+        assert spawn.error == "unrecoverable_error"
         routine = await db.get(Routine, routine_id)
         assert routine.config["outcome_propagated"] is True
 
 
 async def test_propagate_succeeded_routine_resets_failures(db_engine):
-    """Routine succeeded → last_status=ok / consecutive_failures 清零 / last_error=NULL。"""
+    """Routine succeeded → 派生轮次保持 ok / last_status=ok / consecutive_failures 清零 / last_error=NULL。"""
     task_key = f"pdf_fidelity_patrol-prop-{uuid.uuid4().hex[:6]}"
-    await _seed_terminal_patrol(
+    routine_id = await _seed_terminal_patrol(
         db_engine,
         status="succeeded",
         termination_reason="success",
@@ -192,12 +210,16 @@ async def test_propagate_succeeded_routine_resets_failures(db_engine):
         assert task.last_status == "ok"
         assert task.last_error is None
         assert task.consecutive_failures == 0
+        spawn = (
+            await db.execute(select(TaskExecution).where(TaskExecution.metrics["routine_id"].astext == str(routine_id)))
+        ).scalar_one()
+        assert spawn.status == "ok"
 
 
 async def test_propagate_cancelled_routine_keeps_failures(db_engine):
-    """Routine cancelled → last_status=cancelled / consecutive_failures 不变（与既有 cancelled 语义对齐）。"""
+    """Routine cancelled → 派生轮次 cancelled / last_status=cancelled / consecutive_failures 不变。"""
     task_key = f"pdf_fidelity_patrol-prop-{uuid.uuid4().hex[:6]}"
-    await _seed_terminal_patrol(
+    routine_id = await _seed_terminal_patrol(
         db_engine,
         status="cancelled",
         termination_reason=None,
@@ -213,6 +235,10 @@ async def test_propagate_cancelled_routine_keeps_failures(db_engine):
         assert task.last_status == "cancelled"
         assert task.consecutive_failures == 2  # 不变
         assert task.last_error is None
+        spawn = (
+            await db.execute(select(TaskExecution).where(TaskExecution.metrics["routine_id"].astext == str(routine_id)))
+        ).scalar_one()
+        assert spawn.status == "cancelled"
 
 
 async def test_propagate_idempotent(db_engine):
