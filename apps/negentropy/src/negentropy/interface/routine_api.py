@@ -42,6 +42,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm.attributes import set_committed_value
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
@@ -641,6 +642,24 @@ async def _resolve_repository(db, repository_id: UUID | None) -> Repository | No
     return repo
 
 
+async def _hydrate_effective_repo(db, r: Routine) -> None:
+    """把关联 Repository 的 local_path/baseline 注入内存 routine（单一事实源，不持久化）。
+
+    镜像 ``orchestrator._hydrate_effective_repo``：Repository 型 routine 的 ``cwd`` **列**恒为 NULL
+    （仅持 ``repository_id`` 指针、DB 不存副本），而 ``remove_worktree`` 读 ``routine.cwd`` 定位仓库根跑
+    ``git worktree remove`` / ``branch -D``——须先 hydrate，否则 git 块被静默跳过、worktree/分支残留。
+    ``set_committed_value`` 标记「已加载」、不进 dirty、不持久化（维持单一事实源；detached 后仍可读）。
+    """
+    if r.repository_id is None:
+        return
+    repository = await db.get(Repository, r.repository_id)
+    if repository is None:
+        return
+    eff_cwd, eff_baseline = workspace.resolve_effective_repo(r, repository)
+    set_committed_value(r, "cwd", eff_cwd)
+    set_committed_value(r, "baseline_branch", eff_baseline)
+
+
 async def _validate_effective_repo(eff_cwd: str | None, eff_baseline: str | None) -> None:
     """二者皆有值时即时校验仓库/基线（非法转 422）。允许草稿态暂缺其一。"""
     if eff_cwd and eff_baseline:
@@ -796,6 +815,7 @@ async def delete_routine(routine_id: UUID) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status in _ACTIVE:
             raise HTTPException(status_code=409, detail=f"cannot delete a {r.status} routine; cancel it first")
+        await _hydrate_effective_repo(db, r)  # 同 cleanup_worktree：hydrate 仓库根，防 git 清理被跳过
     # ② 会话外：删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort；不占连接、不阻塞事件循环）。
     if r.worktree_path:
         with suppress(Exception):
@@ -999,6 +1019,9 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
             )
         if not r.worktree_path:
             raise HTTPException(status_code=409, detail="worktree already cleaned up or never created")
+        # Repository 型 routine 的 cwd 列为 NULL——hydrate 有效仓库根，否则 remove_worktree 找不到仓库、
+        # git worktree remove / branch -D 被静默跳过（worktree/分支残留）。
+        await _hydrate_effective_repo(db, r)
     # ② 会话外：best-effort 回收（expire_on_commit=False → r 已 detached 但属性可读；纯 git/FS，无 DB）。
     with suppress(Exception):
         await workspace.remove_worktree(r, settings.routine)

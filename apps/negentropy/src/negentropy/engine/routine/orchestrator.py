@@ -458,6 +458,10 @@ class RoutineOrchestrator:
                 .scalars()
                 .all()
             )
+            # Repository 型 routine 的 cwd 列为 NULL——会话内先 hydrate 有效仓库根，否则会话外 remove_worktree
+            # 找不到仓库、git worktree remove / branch -D 被静默跳过（worktree/分支残留）。
+            for r in rows:
+                await self._hydrate_effective_repo(db, r)
         # ② 会话外：逐个 best-effort 回收（纯 git/FS、无 DB；不占连接、不阻塞事件循环）。
         for r in rows:
             with suppress(Exception):
