@@ -25,7 +25,6 @@ import { ClockProvider } from "./_components/ClockProvider";
 import { RoutineEditDrawer, drawerKey, type DrawerMode } from "./_components/RoutineEditDrawer";
 import { RoutineFilterBar } from "./_components/RoutineFilterBar";
 import { RoutineHeader } from "./_components/RoutineHeader";
-import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
 import { useRestartRoutine } from "./_components/useRestartRoutine";
 import { useTerminateRoutine } from "./_components/useTerminateRoutine";
@@ -270,11 +269,9 @@ function RoutinePageInner() {
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} />
+            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} kpis={kpis} />
 
             {error && <ErrorBanner message={error} />}
-
-            <RoutineKpiStrip kpis={kpis} loading={loading} />
 
             <div className="min-w-[200px]">
               <RoutineFilterBar
