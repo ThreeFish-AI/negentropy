@@ -98,6 +98,9 @@ class TaskExecution(Base, UUIDMixin):
     设计取舍：
     - 不写 ``updated_at``：执行历史是 append-only 不可变事件流，行级再 UPDATE 仅有
       ``status running → ok|failed`` 一次状态翻转；避免与 ``TimestampMixin`` 耦合。
+      **例外**：fire-and-forget handler（``pdf_fidelity_patrol``）派生异步 Routine 的那一轮，
+      spawn 时先记 ``ok``，待 Routine 终态后由 ``_propagate_patrol_outcomes`` 按
+      ``metrics.routine_id`` 回链，延迟翻转 ``ok → failed|cancelled``，使该轮如实反映 Routine 结局。
     - ``fire_reason ∈ {tick, manual, replay}``：区分调度源便于审计与回放。
     """
 
