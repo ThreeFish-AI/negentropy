@@ -439,7 +439,11 @@ async def test_finalize_multiple_routines_same_doc_best_wins(db_engine):
 
 
 async def _seed_knowledge_pdf(db_engine, *, filename):
-    """落库一条 knowledge_documents（pdf + completed）；返回其 id。"""
+    """落库一条 knowledge_documents（pdf + completed）；返回其 id。
+
+    带 ``display_name``：命名门控（``_select_next_pending_doc``）要求文档至少有 display_name
+    或 metadata.title 之一，否则被跳过——测试文档须具名才可被选中（测试的是推进逻辑，非命名）。
+    """
     from negentropy.config import settings
     from negentropy.models.perception import KnowledgeDocument
 
@@ -449,6 +453,7 @@ async def _seed_knowledge_pdf(db_engine, *, filename):
             app_name=settings.app_name,
             file_hash=uuid.uuid4().hex,
             original_filename=filename,
+            display_name=filename,
             content_uri=f"pgblob://test/{uuid.uuid4().hex}",
             content_type="application/pdf",
             file_size=1024,
