@@ -1626,6 +1626,13 @@ def _is_toc_table_text(text: str) -> bool:
     """
     if not text:
         return False
+    # 带 "Table N:" / "Figure N:" / "表 N:" caption 的结果表绝非目录（TOC）。
+    # 结果表常含数值列（如 P_drop=0.1 形似章节号、BLEU/params 整数形似页码），
+    # 会误命中下方的 section_no_rows / page_no_rows 启发式而被当成 TOC 丢弃
+    # （如 Attention 论文 Table 3 架构变体表）。caption 起手即排除。
+    first_line = text.split("\n", 1)[0].strip()
+    if re.match(r"^(?:Table|Figure|Tab\.|Fig\.|表|图)\s*\d", first_line, re.IGNORECASE):
+        return False
     lines = [ln for ln in text.split("\n") if ln.strip().startswith("|")]
     if len(lines) < 3:
         return False
