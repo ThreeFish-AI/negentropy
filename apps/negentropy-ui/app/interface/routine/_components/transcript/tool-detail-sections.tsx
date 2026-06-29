@@ -49,6 +49,40 @@ function EditDiff({ edits, output }: { edits: Array<{ oldString: string | null; 
 }
 
 /**
+ * 子代理（Task）嵌套卡片 —— Conductor ``Mfi`` SubAgentExecution 范式的等价物。
+ *
+ * Negentropy 的 Routine 事件流是单线程 seq 流（无嵌套子事件流），故「嵌套」体现为：以缩进的
+ * 左边框 + 子代理类型徽标 + 任务描述 + 产出，把 Task 工具调用呈现为「派生子任务」而非普通工具。
+ */
+function SubAgentCard({
+  detail,
+  outputColor,
+}: {
+  detail: Extract<ToolCallDetail, { type: "sub_agent" }>;
+  outputColor: string;
+}) {
+  const { subagentType, description, output } = detail;
+  if (!subagentType && !description && !output) return <Empty />;
+  return (
+    <div className="border-l-2 border-violet-400/50 px-2.5 py-2">
+      {subagentType || description ? (
+        <div className="mb-1.5 flex flex-wrap items-center gap-2">
+          {subagentType ? (
+            <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-caption font-semibold text-violet-700 dark:text-violet-300">
+              {subagentType}
+            </span>
+          ) : null}
+          {description ? <span className="text-caption text-text-secondary">{description}</span> : null}
+        </div>
+      ) : null}
+      {output ? (
+        <div className={cn(CODE_BLOCK, "whitespace-pre-wrap break-words", outputColor)}>{output}</div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * 按 ``ToolCallDetail.type`` 渲染展开区内容（仿 paseo buildDetailSections）。
  * 外层连接边框由 ExpandableToolCallRow 提供，这里只渲染内部内容。
  */
@@ -85,8 +119,7 @@ export function ToolDetailSections({ detail, isError }: { detail: ToolCallDetail
         <Empty />
       );
 
-    case "fetch":
-    case "sub_agent": {
+    case "fetch": {
       const text = detail.output;
       return text ? (
         <div className={cn(CODE_BLOCK, "whitespace-pre-wrap break-words", outputColor)}>{text}</div>
@@ -94,6 +127,9 @@ export function ToolDetailSections({ detail, isError }: { detail: ToolCallDetail
         <Empty />
       );
     }
+
+    case "sub_agent":
+      return <SubAgentCard detail={detail} outputColor={outputColor} />;
 
     case "plan":
       return detail.text ? (

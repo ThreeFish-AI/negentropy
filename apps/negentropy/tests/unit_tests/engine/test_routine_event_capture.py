@@ -349,3 +349,68 @@ def test_system_init_unchanged_by_new_branch():
     assert ev["title"] == "init"
     assert ev["payload"]["model"] == "claude-opus"
     assert "raw" not in ev["payload"]  # init 走结构化路径，不含 raw
+
+
+# ---------------------------------------------------------------------------
+# 多 Agent 归因（ADR 040）：auto_answer 提级 + agent_role
+# ---------------------------------------------------------------------------
+
+
+def test_auto_answer_promoted_to_first_class_event_type():
+    """system/auto_answer 提级为独立 event_type，answer 全文进顶层 payload（不再 500 字截断）。"""
+    long_answer = "x" * 1200  # 远超旧 500 字截断
+    ev = _one(
+        {
+            "type": "system",
+            "subtype": "auto_answer",
+            "tool_use_id": "tu-q-1",
+            "tool_name": "AskUserQuestion",
+            "questions": [{"question": "选哪个？"}],
+            "answer": long_answer,
+            "answer_preview": long_answer[:500],
+        }
+    )
+    assert ev["event_type"] == "auto_answer"
+    assert ev["title"] == "auto_answer"
+    assert ev["payload"]["tool_use_id"] == "tu-q-1"
+    assert ev["payload"]["answer"] == long_answer  # 全文，未截断
+    # 结构化问题的应答归因本心（Internalization）
+    assert ev["agent_role"] == "internalization"
+
+
+def test_auto_answer_exit_plan_attributed_to_contemplation():
+    """ExitPlanMode 的 auto_answer（批准退出 plan）归因元神（Contemplation）。"""
+    ev = _one(
+        {
+            "type": "system",
+            "subtype": "auto_answer",
+            "tool_use_id": "tu-ep-1",
+            "tool_name": "ExitPlanMode",
+            "answer": "Plan approved. You may exit plan mode now.",
+            "answer_preview": "Plan approved. You may exit plan mode now.",
+        }
+    )
+    assert ev["event_type"] == "auto_answer"
+    assert ev["agent_role"] == "contemplation"
+
+
+def test_plan_review_attributed_to_contemplation():
+    """plan_review 事件归因元神（Contemplation）。"""
+    ev = _one(
+        {
+            "type": "system",
+            "subtype": "plan_review",
+            "review_result": {"verdict": "refine", "score": 72, "feedback": "补充边缘 case"},
+        }
+    )
+    assert ev["event_type"] == "plan_review"
+    assert ev["agent_role"] == "contemplation"
+    assert ev["payload"]["verdict"] == "refine"
+
+
+def test_cc_self_actions_have_no_agent_role():
+    """CC 自身动作（assistant / tool_use / result）不带 agent_role（前端回退推导）。"""
+    asst = _normalize_stream_event({"type": "assistant", "message": {"content": [{"type": "text", "text": "hi"}]}})
+    assert asst[0]["agent_role"] is None
+    result = _normalize_stream_event({"type": "result", "subtype": "success", "result": "done", "num_turns": 1})
+    assert result[0]["agent_role"] is None

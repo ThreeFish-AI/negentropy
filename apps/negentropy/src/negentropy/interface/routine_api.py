@@ -264,6 +264,7 @@ def _serialize_event(ev: RoutineIterationEvent) -> dict[str, Any]:
         "title": ev.title,
         "payload": ev.payload or {},
         "cost_usd": ev.cost_usd,
+        "agent_role": ev.agent_role,
         "created_at": ev.created_at.isoformat() if ev.created_at else None,
     }
 

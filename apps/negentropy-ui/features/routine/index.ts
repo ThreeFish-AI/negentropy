@@ -24,6 +24,7 @@ export type {
   RoutineStreamEvent,
   RoutineActionStreamEvent,
   RoutineEventType,
+  EventAgentRole,
   RoutineIterationEventDTO,
   IterationEventsResponse,
   TemplateSource,
@@ -31,8 +32,8 @@ export type {
   PlanReviewPayload,
 } from "./types";
 
-export type { AgentRole, AgentRoleMeta } from "./agent-role";
-export { AGENT_ROLE_META, deriveAgentRole, deriveIterationDriver, countAgentRoles } from "./agent-role";
+export type { AgentRole, AgentRoleMeta, HumanAction } from "./agent-role";
+export { AGENT_ROLE_META, deriveAgentRole, deriveHumanRole, deriveIterationDriver, countAgentRoles } from "./agent-role";
 
 export {
   fetchKpis,

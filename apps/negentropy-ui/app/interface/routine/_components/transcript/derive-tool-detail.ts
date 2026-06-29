@@ -83,7 +83,12 @@ export function deriveToolCallDetail(args: {
     case "task":
     case "taskcreate":
     case "taskupdate":
-      return { type: "sub_agent", description: strField(inp, "description") ?? strField(inp, "subject"), output };
+      return {
+        type: "sub_agent",
+        description: strField(inp, "description") ?? strField(inp, "subject"),
+        subagentType: strField(inp, "subagent_type"),
+        output,
+      };
 
     case "exitplanmode":
       return { type: "plan", text: strField(inp, "plan") ?? output ?? "" };

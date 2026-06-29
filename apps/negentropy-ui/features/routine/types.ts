@@ -141,10 +141,27 @@ export type RoutineEventType =
   | "tool_result"
   | "result"
   | "plan_review"
+  | "auto_answer"
   | "gate"
   | "evaluation"
+  | "perception"
   | "_truncated"
   | "unknown";
+
+/**
+ * 多 Agent 归因角色（后端 routine_iteration_events.agent_role）。
+ *
+ * 与 ``agent-role.ts`` 的 ``AgentRole`` 同集；后端 Phase 2 落地后，前端归一化优先读此字段，
+ * 缺失时回退 ``deriveHumanRole`` 语义推导（详见 ADR 040）。
+ */
+export type EventAgentRole =
+  | "engine"
+  | "claude_code"
+  | "perception"
+  | "action"
+  | "internalization"
+  | "contemplation"
+  | "influence";
 
 /** Plan Review 事件的归一化载荷结构。 */
 export interface PlanReviewPayload {
@@ -181,6 +198,8 @@ export interface RoutineIterationEventDTO {
   /** 归一化结构化载荷（input/output/text/context/meta；字段截断到 ~16KB）。 */
   payload: Record<string, unknown>;
   cost_usd: number | null;
+  /** 多 Agent 归因（Phase 2 后端落地）：产出此事件的 Agent 角色；NULL=未归因（回退前端推导）。 */
+  agent_role?: EventAgentRole | null;
   created_at: string | null;
 }
 

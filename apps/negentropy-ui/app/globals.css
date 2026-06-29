@@ -144,6 +144,9 @@
   --animate-fade-in: fade-in var(--duration-base) var(--ease-out) both;
   --animate-slide-in-right: slide-in-right var(--duration-base) var(--ease-out) both;
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;
+  /* 运行态点脉冲（animate-working-pulse）——Conductor working/typing 态的 CSS 等价物，
+   * 规避 dotlottie-web WASM 依赖；多点错相位形成「波动」观感（错相位由 inline animation-delay 控制）。 */
+  --animate-working-pulse: working-pulse 1.2s ease-in-out infinite;
 
   /* 中英混排字族（参考 Ant Design font-cn 规范）：
    * 拉丁优先 Geist，CJK 依次回退 PingFang SC（新版 macOS）→ Hiragino Sans GB（旧版 macOS）
@@ -316,6 +319,23 @@ body {
   }
   to {
     background-position: 200% 0;
+  }
+}
+
+/*
+ * 运行态点脉冲（WorkingIndicator）——Conductor working/typing 态的纯 CSS 等价物。
+ * 单点在透明度与缩放间循环；多点经 inline animation-delay 错相位形成波动观感。
+ * 已被 prefers-reduced-motion 规则统一降级。
+ */
+@keyframes working-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
