@@ -550,6 +550,20 @@ async def _run_batched_pipeline(
         completed[i] = slice_result
         _save_slice_checkpoint(checkpoint_dir, i, page_start, page_end, slice_result)
 
+    # 首页标题守卫：docling 在全量批次中偶发丢弃首页标题/作者/摘要块（p1 单独跑
+    # pymupdf 可完整产出）。对 page0 切片用 pymupdf page0 原文补回缺失前导内容，
+    # 覆盖 checkpoint resume 与新跑两条路径（resume 会跳过 _execute_slice_with_retry）。
+    if (
+        slice_ranges
+        and slice_ranges[0][0] == 0
+        and completed
+        and completed[0] is not None
+    ):
+        first_md = getattr(completed[0], "markdown", "") or ""
+        guarded = _ensure_first_page_header(first_md, pdf_source)
+        if guarded != first_md:
+            completed[0].markdown = guarded
+
     # 收集成功切片
     successful_results = [r for r in completed if r is not None]
     successful_ranges = [rg for r, rg in zip(completed, slice_ranges) if r is not None]
@@ -776,6 +790,83 @@ async def _fallback_slice_lightweight(
         engines_used=["pymupdf-fallback"],
         metadata={"fallback_engine": "pymupdf"},
     )
+
+
+def _ensure_first_page_header(markdown: str, pdf_source: str) -> str:
+    """首页标题守卫：若首页切片 markdown 缺失文档标题，用 pymupdf page0 原文补回。
+
+    背景：docling 文本引擎在全量批次中偶发丢弃首页标题/作者/摘要块，而 p1 单独跑
+    pymupdf 可完整产出。本守卫取 pymupdf page0 首个非空行（≈文档标题），若该标题
+    不在 markdown 中（任意位置），则把 page0 原文前导部分（标题+作者+摘要）以 H1
+    形式前置补回；截至首个已存在于 markdown 的行（去重边界），无重叠则截至首个
+    疑似章节标题（Contents / "1 Introduction" 等）。
+
+    幂等：标题已存在则原样返回；pymupdf 抽取失败/无 page0 文本则原样返回（安全降级）。
+    """
+    import re
+
+    if not markdown or not pdf_source:
+        return markdown
+    try:
+        from ..pdf._imports import import_fitz
+
+        fitz = import_fitz()
+        doc = fitz.open(pdf_source)
+        if doc.page_count == 0:
+            return markdown
+        p0_text = doc[0].get_text("text")
+        doc.close()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "首页标题守卫：pymupdf page0 抽取失败 source=%s err=%s", pdf_source, exc
+        )
+        return markdown
+
+    p0_lines = [ln.strip() for ln in p0_text.splitlines() if ln.strip()]
+    if not p0_lines:
+        return markdown
+    title = p0_lines[0]
+
+    def _norm(s: str) -> str:
+        return re.sub(r"\s+", " ", s).strip().lower()
+
+    title_norm = _norm(title)
+    md_norm = _norm(markdown)
+    # 标题已存在于 markdown（任意位置）→ 无需补回
+    if title_norm and title_norm in md_norm:
+        return markdown
+
+    # 去重边界：page0 中首个（除标题外）已存在于 markdown 的长行
+    boundary = None
+    for ln in p0_lines[1:]:
+        lnn = _norm(ln)
+        if lnn and len(lnn) >= 12 and lnn in md_norm:
+            boundary = ln
+            break
+
+    if boundary is not None:
+        idx = p0_text.find(boundary)
+        recovered = p0_text[:idx].strip() if idx > 0 else title
+    else:
+        # 无重叠：补到首个疑似章节标题（Contents / "1 Introduction" 等）前
+        rec_lines = [title]
+        for ln in p0_lines[1:]:
+            if re.match(r"^(?:contents|\d+(?:\.\d+)*\s+[A-Z])", ln, re.IGNORECASE):
+                break
+            rec_lines.append(ln)
+        recovered = "\n".join(rec_lines).strip()
+
+    if not recovered:
+        return markdown
+    # 标题作 H1，其余作正文段落
+    body = "\n".join(recovered.splitlines()[1:]).strip()
+    header_md = f"# {title}".strip()
+    if body:
+        header_md += "\n\n" + body
+    logger.info(
+        "首页标题守卫：补回缺失前导内容 title=%r chars=%d", title[:60], len(header_md)
+    )
+    return header_md + "\n\n" + markdown.lstrip()
 
 
 # ---------------------------------------------------------------------------
