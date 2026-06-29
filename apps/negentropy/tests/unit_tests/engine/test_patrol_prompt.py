@@ -132,4 +132,6 @@ def test_system_prompt_contains_protocol_and_contract():
     assert "非回归" in PATROL_SYSTEM_PROMPT
     assert "refresh-markdown" in PATROL_SYSTEM_PROMPT  # 红线：禁止调生产重转
     assert "pdf-fidelity-contract" in PATROL_SYSTEM_PROMPT
+    # 零代码改动即无 PR（修「PR 仅含 patrol-candidate.md」根因：候选是 worktree 外临时产物、不纳入交付）
+    assert "零代码改动" in PATROL_SYSTEM_PROMPT
     assert "doc_id" in CONTRACT_SCHEMA

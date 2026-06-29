@@ -89,6 +89,9 @@ PATROL_SYSTEM_PROMPT = (
 ## 非回归门控（FINALIZE 开 PR 前必做）
 对注入的 `regression_sample`（一组多样化生产 PDF doc_id）用**本轮改动后** perceives 重转 + 采样评分；\
 任一样本分数**下降 >3 分**或转换失败 → **不得开 PR**，回退改动。通过才走既有 `gh pr create --base <baseline>`。
+**零代码改动即无 PR（交付物只能是 perceives 代码优化）**：若本轮（及历轮）未对 perceives 做任何代码改动\
+（worktree 相对基线 0 提交），说明该文档已达标、无需优化 → **不得开 PR**，直接以 done 收尾。候选 Markdown \
+是隔离工作区**之外**的临时评估产物（`-o` 指向暂存目录绝对路径），**绝不**纳入 worktree / commit / PR。
 
 ## 角色分工（轻量，勿展开探查）
 Contemplation=步骤 2-4（渲染+采样比对+评分）；Action=步骤 1/5（重转+定点改 perceives）；\

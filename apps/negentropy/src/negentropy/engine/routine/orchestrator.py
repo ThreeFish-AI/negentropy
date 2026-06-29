@@ -698,8 +698,16 @@ class RoutineOrchestrator:
 
             # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）。
             phased_flow = phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config)
-            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE and not routine.pr_url:
-                routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+            finalize_noop = False
+            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE:
+                if not routine.pr_url:
+                    routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+                # 巡检专属 clean no-op 探针：无 PR 且 worktree 相对基线 0 提交 → 无可交付改动
+                # （文档已达标、本轮未改 perceives）。严格限定 ``config.patrol``——普通 feature routine 的
+                # 「零改动收敛」语义不同（可能漏提交/跑空），不可一概判成功（首要安全护栏）。仅在 no-pr
+                # 路径触探针，避免常态 PR-captured 路径多跑一次 git 子进程。
+                if not routine.pr_url and bool((routine.config or {}).get("patrol")):
+                    finalize_noop = await self._finalize_is_noop(routine)
 
             # 决策（仅取「本次尝试」窗口 seq > eval_floor_seq，重启后旧迭代不污染停滞/振荡判定）。
             history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
@@ -718,7 +726,7 @@ class RoutineOrchestrator:
                 no_progress_score_tolerance=max(0, int((routine.config or {}).get("no_progress_score_tolerance") or 0)),
             )
             if phased_flow:
-                self._advance_phase_or_terminate(routine, verdict)
+                self._advance_phase_or_terminate(routine, verdict, finalize_noop=finalize_noop)
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
 
@@ -1026,12 +1034,41 @@ class RoutineOrchestrator:
             return seq == 1
         return False  # auto
 
-    def _advance_phase_or_terminate(self, routine: Routine, verdict: decision_mod.Decision) -> None:
+    async def _finalize_is_noop(self, routine: Routine) -> bool:
+        """FINALIZE 无可交付提交判定：worktree 相对基线 0 commits ahead → True（clean no-op）。
+
+        语义对齐 ``gh pr create`` 的「no commits between base and head」报错条件：用
+        ``rev-list --count <baseline>..HEAD == 0`` 度量「可建 PR 的提交载荷」，**不用**
+        ``git diff --quiet``（误判工作树脏污）。``baseline`` 取 ``routine.baseline_branch`` 原值
+        （worktree 据该 remote-tracking ref 建立）。rc≠0/解析失败 → 保守 False（绝不把不确定当成功）。
+
+        仅用于巡检（``config.patrol``）的「文档已达标、本轮零代码改动」干净收尾——避免修复候选
+        产物移出 worktree 后，无改动巡检在 FINALIZE 空转至 max_iterations 才 failed。
+        """
+        wt = getattr(routine, "worktree_path", None)
+        base = getattr(routine, "baseline_branch", None)
+        if not wt or not base:
+            return False
+        rc, out, _ = await workspace._run_git(
+            ["-C", wt, "rev-list", "--count", f"{base}..HEAD"],
+            timeout=float(settings.routine.git_timeout_seconds),
+        )
+        if rc != 0:
+            return False
+        try:
+            return int(out.strip() or "0") == 0
+        except ValueError:
+            return False
+
+    def _advance_phase_or_terminate(
+        self, routine: Routine, verdict: decision_mod.Decision, *, finalize_noop: bool = False
+    ) -> None:
         """相位化工作流：按相位解释 decision 的 SUCCESS，否则照常终止。
 
         - PLAN：非成功守卫（如不可恢复）照常终止；否则（成功或继续）推进到 IMPLEMENT；
         - IMPLEMENT：SUCCESS → 推进到 FINALIZE（不终止）；其它终止守卫 → failed；
-        - FINALIZE：一旦捕获 ``pr_url`` 即 succeeded（交人工 Merge）；否则非成功守卫 → failed，
+        - FINALIZE：捕获 ``pr_url`` 即 succeeded；或（``finalize_noop`` 且本轮成功裁决）判
+          clean no-op succeeded（无可交付改动、不开 PR）；否则非成功守卫 → failed，
           其余留在 FINALIZE 重试建 PR。
         """
         phase = routine.current_phase
@@ -1043,6 +1080,12 @@ class RoutineOrchestrator:
                 routine.current_phase = phase_mod.PHASE_IMPLEMENT
         elif phase == phase_mod.PHASE_FINALIZE:
             if routine.pr_url:
+                self._terminate(routine, decision_mod.REASON_SUCCESS)
+            elif finalize_noop and is_success:
+                # clean no-op：FINALIZE + 成功裁决 + worktree 相对基线 0 commits ahead + 无 PR
+                # → 无可交付改动（如文档已高保真、本轮未改 perceives）。判 succeeded 无 PR，不空转重试。
+                # 核心不变量：no-op 成功仅在「可证明零可交付提交」时可达（有提交者 finalize_noop=False，
+                # 仍须真实 pr_url 才成功）；且须合取本轮 is_success——非成功裁决绝不被 no-op 掩盖。
                 self._terminate(routine, decision_mod.REASON_SUCCESS)
             elif verdict.is_terminate and not is_success:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_UNRECOVERABLE)

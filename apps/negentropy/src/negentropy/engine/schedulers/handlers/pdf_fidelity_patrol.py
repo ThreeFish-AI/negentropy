@@ -713,6 +713,12 @@ def _build_patrol_routine(
     doc_title = _doc_display_title(doc)
     short = uuid.uuid4().hex[:8]
     qualified_threshold = settings.routine.patrol_qualified_score_threshold
+    # 候选 Markdown 落「源 PDF 暂存目录」内（绝对路径，与 source.pdf 同级、worktree 之外）——
+    # 它是闭环重转/评估的临时产物（perceives parse-pdf -o），非交付物：置于 worktree 外可确保
+    # FINALIZE 的 `git add -A` 永不将其纳入 PR（修「PR 仅含 patrol-candidate.md」根因），
+    # 且恰为 patrol_input_dir 配置语义（「源 PDF 暂存与候选 Markdown 输出根目录」）。
+    # 经 bash 子进程写出（非 Edit 工具），不受 read_dirs 的 Edit-deny 限制。
+    candidate_md_path = str(Path(source_read_dir) / CANDIDATE_MD_FILENAME)
     return Routine(
         key=f"{PATROL_KEY_PREFIX}/{doc_id}/{short}",
         title=f"PDF 高保真巡检：{doc_title}",
@@ -725,7 +731,7 @@ def _build_patrol_routine(
             doc_id=doc_id,
             doc_title=doc_title,
             source_pdf_path=source_pdf_path,
-            candidate_md_path=CANDIDATE_MD_FILENAME,
+            candidate_md_path=candidate_md_path,
             qualified_threshold=qualified_threshold,
             known_unfixable_regions=known_unfixable_regions,
         ),
@@ -747,7 +753,7 @@ def _build_patrol_routine(
         config=build_routine_config(
             doc_id=doc_id,
             source_pdf_path=source_pdf_path,
-            candidate_md_path=CANDIDATE_MD_FILENAME,
+            candidate_md_path=candidate_md_path,
             source_read_dir=source_read_dir,
             regression_sample=regression_sample,
             extra={"source_task_key": source_task_key},
