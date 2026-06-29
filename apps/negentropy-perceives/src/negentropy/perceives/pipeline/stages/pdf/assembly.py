@@ -1139,6 +1139,9 @@ class BuiltinAssembler(PDFToolBase):
             formatter = MarkdownFormatter()
             markdown = formatter.format(markdown)
 
+            # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
+            markdown = _segment_references_section(markdown)
+
             word_count = len(markdown.split())
 
             output = AssemblyOutput(
@@ -1743,6 +1746,47 @@ def _table_to_markdown(table: ExtractedTable) -> str:
     if grid_caption:
         return f"{grid_caption}\n\n{md}"
     return md
+
+
+def _segment_references_section(markdown: str) -> str:
+    """对 References 节做条目分段（每条文献独占一段）。
+
+    学术 PDF 的参考文献常被引擎抽为逐行/连段文本块：多条目挤在同一段、且 PDF
+    行尾换行被提成段落断词。本函数定位 ``## References`` 标题到下一标题之间的
+    内容，按 Springer 作者-年份制的条目起点切分：非逗号前导的空白 + ``Surname
+    Initials`` 紧跟 ``,``（多作者列表首作者）或 ``(``（直接接年份），从而把每
+    条文献拆为独立段落。找不到 References 节、节内条目 <3、或任何异常时原样返回。
+    """
+    lines = markdown.split("\n")
+    start = None
+    for i, ln in enumerate(lines):
+        if re.match(r"^#{0,6}\s*References\s*$", ln.strip()):
+            start = i
+            break
+    if start is None:
+        return markdown
+    end = len(lines)
+    end_marker = re.compile(
+        r"^(?:#{1,6}\s|(?:Publisher'?s Note|Authors? and Affiliations|"
+        r"Author Information|Acknowledg|Funding|Author contributions|"
+        r"Conflict of [Ii]nterest|Ethics?|Data [Aa]vailab|Code [Aa]vailab|"
+        r"Statistics|Appendix)\b)"
+    )
+    for j in range(start + 1, len(lines)):
+        if end_marker.match(lines[j].strip()):
+            end = j
+            break
+    body = [ln.strip() for ln in lines[start + 1 : end] if ln.strip()]
+    if not body:
+        return markdown
+    text = " ".join(body)
+    split_re = re.compile(r"(?<!,)\s+(?=[A-Z][A-Za-zÀ-ÿ’'\-]+ [A-Z]{1,3}(?:,|\s*\())")
+    entries = [p.strip() for p in split_re.split(text) if p.strip()]
+    if len(entries) < 3:
+        return markdown
+    rebuilt = [lines[start], ""] + entries
+    tail = [""] + lines[end:] if end < len(lines) else []
+    return "\n".join(lines[:start] + rebuilt + tail)
 
 
 def _sanitize_latex(latex: str) -> str:
