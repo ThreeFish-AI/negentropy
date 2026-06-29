@@ -36,6 +36,7 @@
 - [Knowledge Graph（知识图谱）](../concepts/036-the-knowledge-graph.md) · [联邦知识图谱 + 跨 Corpus 混合检索](../concepts/037-federated-kg.md)
 - [Claude Code 集成（BuiltinTool）](../concepts/038-claude-code-integration.md) — Claude Code CLI 作为 ADK Agent 工具的接入方案
 - [Routine（长周期自主任务）](../concepts/039-the-routine-system.md) — Engine 编排 + Claude Code 执行的 Evaluator-Optimizer 自迭代闭环（含 Reflexion 反思记忆、LLM-as-Judge 评估、审批门控、停止护栏） · [预设模版](../concepts/user-guide/routine-presets.md) — 4 个开箱即用的场景模版（代码审计 / 测试增强 / 文档生成 / 架构清减），正交覆盖全部核心功能
+- [Routine 多 Agent 归因（一核五翼 Faculty 接入）](../concepts/040-routine-multi-agent-faculty.md) — 将 5 翼 Faculty 真正引入 Routine 编排链，使「人机交互」中「人」侧动作（审 Plan / 答问 / 门控 / 评估）由真实 Faculty Agent 产出并归因（agent_role）；FacultyBridge 同步桥接 + litellm 降级，前端 deriveHumanRole 语义投射平滑切换至后端字段
 - [Skills](../concepts/design/skills.md)
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
 - [Wiki 独立部署与内容同步](../reference/wiki/deployment.md) — 纯静态 wiki 独立部署（Docker / 静态托管）+ 本地主站 Catalog 内容同步到远程 wiki 的 step-by-step 指引；含「本地 publish 自动发布到 GitHub Pages」（图片烘焙自包含 + 后端 spawn `publish-wiki-pages.sh` + buildId 幂等）

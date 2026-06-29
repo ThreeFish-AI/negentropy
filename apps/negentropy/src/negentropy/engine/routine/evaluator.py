@@ -279,7 +279,27 @@ class RoutineEvaluator:
         prompt 由调用方（``evaluate``）构造并传入，使评估失败路径也能回带 judge_prompt 供审计。
         ``model_override`` 为 per-routine Judge 模型覆盖（优先于实例级 ``explicit_model``）。
         返回 ``(score, verdict, reflection, raw_content, acceptance_met)``。
+
+        FacultyBridge（路径 A，详见 ADR 040）：当 ``settings.routine.faculty_bridge_enabled`` 开启时，
+        优先经 ADK Runner 同步调用**真实元神（Contemplation）Faculty** 产出评估 JSON；失败/超时/解析
+        异常即降级到下方 litellm 直调，保证评估永不因 Faculty 不可用而中断。
         """
+        from negentropy.config import settings
+
+        if settings.routine.faculty_bridge_enabled:
+            with suppress(Exception):
+                from negentropy.engine.routine.faculty_bridge import run_faculty
+
+                text = await run_faculty(
+                    "contemplation",
+                    prompt,
+                    timeout_seconds=float(settings.routine.faculty_bridge_timeout_seconds),
+                )
+                if text:
+                    score, verdict, reflection, acceptance_met = self._parse(text)
+                    return score, verdict, reflection, text, acceptance_met
+                logger.info("routine_judge_faculty_bridge_empty_fallback_litellm")
+
         model, model_kwargs = await resolve_model_config_async(
             _TASK_KEY, explicit_model=model_override or self._explicit_model
         )

@@ -1810,6 +1810,8 @@ class RoutineOrchestrator:
                         "output": _cap(result.gate_output or ""),
                     },
                     "cost_usd": None,
+                    # 多 Agent 归因：命令门控属行动系 → 妙手（Action）。详见 ADR 040。
+                    "agent_role": "action",
                 }
             )
             seq += 1
@@ -1829,6 +1831,8 @@ class RoutineOrchestrator:
                     "error": result.error,
                 },
                 "cost_usd": None,
+                # 多 Agent 归因：LLM-as-Judge 评估反思属思辨系 → 元神（Contemplation）。
+                "agent_role": "contemplation",
             }
         )
         rows = [
@@ -1842,6 +1846,7 @@ class RoutineOrchestrator:
                 "title": e["title"][:255] if e["title"] else None,
                 "payload": e["payload"],
                 "cost_usd": e["cost_usd"],
+                "agent_role": e.get("agent_role"),
             }
             for e in events
         ]

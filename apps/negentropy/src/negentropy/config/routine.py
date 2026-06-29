@@ -278,6 +278,24 @@ class RoutineSettings(BaseSettings):
         description="注入 prompt 的记忆上下文最大 token 预算。",
     )
 
+    # --- 多 Agent 归因（一核五翼 Faculty 接入 Routine 编排链）---
+    # 详见 ADR docs/concepts/040-routine-multi-agent-faculty.md。
+    # agent_role 归因（事件标注产出 Agent）始终生效、无需开关；此开关仅控制是否真正经
+    # FacultyBridge 同步调用 ADK Faculty Agent 来产出审阅/评估（路径 A）。关闭时（默认）
+    # 沿用现有 litellm 直调（PlanReviewer / RoutineEvaluator），事件仍带语义 agent_role。
+    faculty_bridge_enabled: bool = Field(
+        default=False,
+        description="启用 FacultyBridge：在 Plan 审 / 评估等注入点经 ADK Runner 同步调用真实 Faculty "
+        "Agent（元神 / 本心 / 妙手），失败/超时降级 litellm 直调。默认关闭——开启前需确保 ADK "
+        "Runner 在 Routine 编排上下文中可用且不阻塞单 worker 事件循环。",
+    )
+    faculty_bridge_timeout_seconds: int = Field(
+        default=90,
+        ge=10,
+        le=600,
+        description="FacultyBridge 单次同步调用 Faculty Agent 的超时（秒），超时即降级。",
+    )
+
     # --- pdf-fidelity-patrol（PDF→Markdown 高保真自拟合巡检 · Scheduler Task）---
     # 巡检 = 一个绑定「negentropy」Repository 的 Routine（worktree + FINALIZE 开 PR + 0-100
     # 评估闭环）；其 Claude Code 会话即 NegentropyEngine，依全局技能 pdf-fidelity-restore

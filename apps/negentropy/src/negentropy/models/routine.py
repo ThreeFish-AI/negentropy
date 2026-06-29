@@ -295,12 +295,17 @@ class RoutineIterationEvent(Base, UUIDMixin):
     event_type: Mapped[str] = mapped_column(
         String(24),
         nullable=False,
-        comment="system|assistant|tool_use|tool_result|result|gate|evaluation",
+        comment="system|assistant|tool_use|tool_result|result|gate|evaluation|auto_answer|perception",
     )
     tool_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # 多 Agent 归因（一核五翼）：标识产出此事件的 Agent 角色。NULL=未归因（旧数据/CC 自身动作可回退前端推导）。
+    # 取值与前端 features/routine/agent-role.ts 的 AgentRole 对齐：
+    # engine|claude_code|perception|action|internalization|contemplation|influence
+    # 详见 ADR docs/concepts/040-routine-multi-agent-faculty.md
+    agent_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

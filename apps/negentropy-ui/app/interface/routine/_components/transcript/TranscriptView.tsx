@@ -8,16 +8,23 @@ import type { RoutineIterationEventDTO } from "@/features/routine";
 
 import { eventTypeIcon, resolveEventTitle } from "../status-style";
 import { AssistantText } from "./AssistantText";
+import { CcRequestBlock } from "./CcRequestBlock";
 import { EngineMessageBlock } from "./EngineMessageBlock";
 import { ExpandableToolCallRow } from "./ExpandableToolCallRow";
+import { HumanReplyBlock } from "./HumanReplyBlock";
 import { LucideGlyph } from "./Icon";
 import { normalizeTranscript } from "./normalize-transcript";
 import { PayloadDetail } from "./PayloadDetail";
+import { ToolSummaryRow } from "./ToolSummaryRow";
+import { WorkingIndicator } from "./WorkingIndicator";
 import type { TranscriptItem } from "./types";
 
-/** 发言人侧：engine 居右（驱动方/人），其余（assistant/tool/system/truncated）居左（执行方/机）。 */
-function speaker(item: TranscriptItem): "cc" | "engine" {
-  return item.kind === "engine" ? "engine" : "cc";
+/** 发言人侧：人机交互三分——human_reply 居右（人/6 Agent）、engine 居右（编排驱动方）、其余居左（机/Claude Code）。 */
+type Speaker = "cc" | "human" | "engine";
+function speaker(item: TranscriptItem): Speaker {
+  if (item.kind === "human_reply") return "human";
+  if (item.kind === "engine") return "engine";
+  return "cc";
 }
 
 /** turn 间距节奏（单一事实源）：换方 16px、连续工具行 4px、其余同方 8px、首项无间距。 */
@@ -35,6 +42,12 @@ function renderItem(item: TranscriptItem) {
       return <AssistantText item={item} />;
     case "tool":
       return <ExpandableToolCallRow item={item} />;
+    case "tool_summary":
+      return <ToolSummaryRow item={item} />;
+    case "cc_request":
+      return <CcRequestBlock item={item} />;
+    case "human_reply":
+      return <HumanReplyBlock item={item} />;
     case "engine":
       return <EngineMessageBlock item={item} />;
     case "system":
@@ -45,25 +58,36 @@ function renderItem(item: TranscriptItem) {
 }
 
 /**
- * paseo 风格转录流：以「左右对齐」区分人机——Claude Code（机）裸文居左、紧凑工具行，
- * Negentropy Engine（人/驱动方）消息气泡居右；按 seq 时序交织，间距承载 turn 节奏。
+ * paseo 风格人机交互转录流：以「左右对齐」区分人机——Claude Code（机）裸文居左、紧凑工具行 /
+ * 待决卡片，一核五翼 6 Agent（人）应答气泡居右、Engine 编排产出气泡居右；按 seq 时序交织，
+ * 间距承载 turn 节奏。
  */
 export function TranscriptView({ events, live }: { events: RoutineIterationEventDTO[]; live?: boolean }) {
   const items = useMemo(() => normalizeTranscript(events, { live: !!live }), [events, live]);
+
+  // 在途态尾随运行指示器：末项若为待决的 CC 提交（等人裁决）显「Planning…」，否则「Working…」。
+  const last = items[items.length - 1];
+  const workingLabel = last?.kind === "cc_request" && last.pending ? "Planning…" : "Working…";
 
   return (
     <div className="flex flex-col">
       {items.map((item, i) => {
         const prev = i > 0 ? items[i - 1] : null;
+        const side = speaker(item);
         return (
           <div
             key={`${item.kind}-${item.seq}-${item.id}`}
-            className={cn(gapClass(item, prev), speaker(item) === "engine" && "flex justify-end")}
+            className={cn(gapClass(item, prev), (side === "engine" || side === "human") && "flex justify-end")}
           >
             {renderItem(item)}
           </div>
         );
       })}
+      {live ? (
+        <div className={items.length > 0 ? "mt-2" : ""}>
+          <WorkingIndicator label={workingLabel} />
+        </div>
+      ) : null}
     </div>
   );
 }

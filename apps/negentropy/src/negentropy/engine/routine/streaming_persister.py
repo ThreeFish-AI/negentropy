@@ -151,6 +151,7 @@ def _evt_to_row(iteration_id: UUID, routine_id: UUID, evt: dict[str, Any]) -> di
     """单条事件 dict → DB 行 dict（含字段截断保护）。"""
     title = evt.get("title")
     tool_name = evt.get("tool_name")
+    agent_role = evt.get("agent_role")
     return {
         "iteration_id": iteration_id,
         "routine_id": routine_id,
@@ -160,6 +161,7 @@ def _evt_to_row(iteration_id: UUID, routine_id: UUID, evt: dict[str, Any]) -> di
         "title": str(title)[:255] if title is not None else None,
         "payload": evt.get("payload") or {},
         "cost_usd": evt.get("cost_usd"),
+        "agent_role": str(agent_role)[:32] if agent_role is not None else None,
     }
 
 

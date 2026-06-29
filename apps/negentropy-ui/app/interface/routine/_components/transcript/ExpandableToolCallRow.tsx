@@ -29,8 +29,9 @@ function computeHasDetail(detail: ToolCallDetail): boolean {
     case "search":
       return !!(detail.output || detail.query);
     case "fetch":
-    case "sub_agent":
       return !!detail.output;
+    case "sub_agent":
+      return !!(detail.output || detail.subagentType || detail.description);
     case "plan":
       return !!detail.text;
     case "generic":

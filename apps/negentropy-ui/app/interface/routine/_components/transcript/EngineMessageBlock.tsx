@@ -1,15 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, RefreshCw, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { type PlanReviewPayload, type RoutineIterationEventDTO } from "@/features/routine";
 
 import { MarkdownText } from "../MarkdownText";
 import { EVENT_GROUP_LABEL, scoreColorClass } from "../status-style";
+import {
+  BADGE_ERR,
+  BADGE_OK,
+  BADGE_WARN,
+  PlanReviewBody,
+  Reflection,
+  RoleHeader,
+  StatusBadge,
+} from "./message-shared";
 import { PayloadDetail } from "./PayloadDetail";
-import { BADGE_BASE } from "./style";
 import type { TranscriptItem } from "./types";
 
 /** payload.is_error 旗标。 */
@@ -18,29 +26,27 @@ function payloadIsError(payload: Record<string, unknown>): boolean {
 }
 
 /**
- * Negentropy Engine 侧事件（plan_review / gate / evaluation / result）的消息气泡。
+ * Negentropy Engine 侧事件（gate / evaluation / result）的消息气泡。
  *
  * 仿 paseo「用户消息」：右对齐中性气泡（``rounded-2xl`` + 右上角拉直），以「对齐 + 气泡」
- * 而非头像/边框区分发言人——Engine（驱动方/人）居右，Claude Code（执行方/机）居左裸文。
- * 仅保留极简 muted 标签 + verdict/score 徽章，富内容（模块评审 / feedback / gate 输出 /
- * evaluation 反思 / result 摘要）零回归。右对齐由 TranscriptView 外层包裹实现。
+ * 区分发言人——Engine（编排/评估的驱动方）居右。头部经 ``RoleHeader`` 以一核（engine）
+ * 角色元数据渲染（图标 + 配色 + 标签），不再硬编码文本。Plan 审阅（plan_review）已在
+ * 归一化层升格为 ``human_reply`` 由 HumanReplyBlock 渲染；此处保留 plan_review 分支作
+ * 旧数据兜底。右对齐由 TranscriptView 外层包裹实现。
  */
 export function EngineMessageBlock({ item }: { item: Extract<TranscriptItem, { kind: "engine" }> }) {
   const { event, group } = item;
   return (
     <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-3">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-text-secondary">Negentropy Engine</span>
-        <span className="text-caption text-text-muted">{EVENT_GROUP_LABEL[group]}</span>
-        <span className="flex-1" />
+      <RoleHeader role="engine" sublabel={EVENT_GROUP_LABEL[group]}>
         <EngineHeaderBadges event={event} />
-      </div>
+      </RoleHeader>
       <EngineBody event={event} />
     </div>
   );
 }
 
-/** 头部右侧徽章：result / gate / evaluation 各自的 verdict / score / cost。 */
+/** 头部右侧徽章：result / gate / evaluation / plan_review 各自的 verdict / score / cost。 */
 function EngineHeaderBadges({ event }: { event: RoutineIterationEventDTO }) {
   const et = event.event_type;
   const p = event.payload ?? {};
@@ -49,50 +55,56 @@ function EngineHeaderBadges({ event }: { event: RoutineIterationEventDTO }) {
   if (et === "plan_review") {
     const verdict = typeof p.verdict === "string" ? p.verdict : "";
     const score = typeof p.score === "number" ? p.score : null;
-    const vc =
-      verdict === "approve"
-        ? { label: "✅ Approved", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" }
-        : verdict === "refine"
-          ? { label: "🔄 Refine", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-300" }
-          : { label: verdict || "Review", cls: "bg-muted/60 text-text-secondary" };
+    const badge =
+      verdict === "approve" ? (
+        <StatusBadge icon={CheckCircle2} label="Approved" cls={BADGE_OK} />
+      ) : verdict === "refine" ? (
+        <StatusBadge icon={RefreshCw} label="Refine" cls={BADGE_WARN} />
+      ) : (
+        <StatusBadge icon={RefreshCw} label={verdict || "Review"} cls={BADGE_WARN} />
+      );
     return (
       <>
-        <span className={cn(BADGE_BASE, vc.cls)}>{vc.label}</span>
+        {badge}
         {score != null ? <span className={cn("text-sm font-bold tabular-nums", scoreColorClass(score))}>{score}</span> : null}
       </>
     );
   }
 
   if (et === "result") {
-    return (
-      <span className={cn(BADGE_BASE, isError ? "bg-red-500/10 text-red-700 dark:text-red-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}>
-        {isError ? "❌ Error" : "✅ Success"}
-      </span>
+    return isError ? (
+      <StatusBadge icon={XCircle} label="Error" cls={BADGE_ERR} />
+    ) : (
+      <StatusBadge icon={CheckCircle2} label="Success" cls={BADGE_OK} />
     );
   }
 
   if (et === "gate") {
     const exitCode = p.exit_code as number | null | undefined;
     const failed = exitCode != null && exitCode !== 0;
-    return (
-      <span className={cn(BADGE_BASE, failed ? "bg-red-500/10 text-red-700 dark:text-red-300" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}>
-        {failed ? `❌ Exit ${exitCode}` : "✅ Passed"}
-      </span>
+    return failed ? (
+      <StatusBadge icon={XCircle} label={`Exit ${exitCode}`} cls={BADGE_ERR} />
+    ) : (
+      <StatusBadge icon={CheckCircle2} label="Passed" cls={BADGE_OK} />
     );
   }
 
   if (et === "evaluation") {
     const verdict = typeof p.verdict === "string" ? p.verdict : null;
     const score = typeof p.score === "number" ? p.score : null;
-    const vb: Record<string, { label: string; cls: string }> = {
-      succeeded: { label: "✅ Succeeded", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
-      progressing: { label: "🔄 Progressing", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
-      failed: { label: "❌ Failed", cls: "bg-red-500/10 text-red-700 dark:text-red-300" },
-    };
-    const cfg = vb[verdict ?? ""] ?? { label: verdict ?? "Evaluation", cls: "bg-muted/60 text-text-secondary" };
+    const badge =
+      verdict === "succeeded" ? (
+        <StatusBadge icon={CheckCircle2} label="Succeeded" cls={BADGE_OK} />
+      ) : verdict === "progressing" ? (
+        <StatusBadge icon={RefreshCw} label="Progressing" cls={BADGE_WARN} />
+      ) : verdict === "failed" ? (
+        <StatusBadge icon={XCircle} label="Failed" cls={BADGE_ERR} />
+      ) : verdict ? (
+        <StatusBadge icon={AlertTriangle} label={verdict} cls={BADGE_WARN} />
+      ) : null;
     return (
       <>
-        <span className={cn(BADGE_BASE, cfg.cls)}>{cfg.label}</span>
+        {badge}
         {score != null ? <span className={cn("text-sm font-bold tabular-nums", scoreColorClass(score))}>{score}</span> : null}
       </>
     );
@@ -104,33 +116,12 @@ function EngineHeaderBadges({ event }: { event: RoutineIterationEventDTO }) {
 /** 事件主体内容（按类型分发）。 */
 function EngineBody({ event }: { event: RoutineIterationEventDTO }) {
   const [detailOpen, setDetailOpen] = useState(false);
-  const [subOpen, setSubOpen] = useState(false);
   const et = event.event_type;
   const p = event.payload ?? {};
   const hasDetail = !!event.payload && Object.keys(event.payload).length > 0;
 
   if (et === "plan_review") {
-    const review = event.payload as unknown as PlanReviewPayload;
-    return (
-      <div className="space-y-2">
-        {review?.module_reviews && review.module_reviews.length > 0 ? (
-          <div className="space-y-1">
-            {review.module_reviews.map((m, i) => (
-              <div key={i} className="text-caption text-text-secondary">
-                {m.status === "pass" ? "✅" : m.status === "warn" ? "⚠️" : "❌"}{" "}
-                <span className="font-medium text-foreground">{m.module}</span>: {m.comment}
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {review?.feedback ? (
-          <div className="rounded-md border border-border bg-muted/30 p-2">
-            <MarkdownText content={review.feedback} />
-          </div>
-        ) : null}
-        {review?.reflection ? <Reflection open={subOpen} onToggle={() => setSubOpen((v) => !v)} text={review.reflection} /> : null}
-      </div>
-    );
+    return <PlanReviewBody review={event.payload as unknown as PlanReviewPayload} />;
   }
 
   return (
@@ -176,9 +167,7 @@ function EngineBody({ event }: { event: RoutineIterationEventDTO }) {
               {p.error}
             </div>
           ) : null}
-          {typeof p.reflection === "string" && p.reflection ? (
-            <Reflection open={subOpen} onToggle={() => setSubOpen((v) => !v)} text={p.reflection} />
-          ) : null}
+          {typeof p.reflection === "string" && p.reflection ? <Reflection text={p.reflection} /> : null}
         </>
       ) : null}
 
@@ -201,22 +190,5 @@ function EngineBody({ event }: { event: RoutineIterationEventDTO }) {
         </>
       ) : null}
     </div>
-  );
-}
-
-/** 可折叠的 Reflection 片段。 */
-function Reflection({ open, onToggle, text }: { open: boolean; onToggle: () => void; text: string }) {
-  return (
-    <>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-1 text-caption font-medium text-text-secondary hover:text-foreground"
-      >
-        <ChevronRight className={cn("h-3 w-3 transition-transform", open && "rotate-90")} aria-hidden />
-        Reflection
-      </button>
-      {open ? <MarkdownText content={text} className="mt-1 italic" /> : null}
-    </>
   );
 }

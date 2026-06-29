@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 
 import { IterationEventTimeline } from "../interface/routine/_components/IterationEventTimeline";
-import { previewEvents, runningEvents } from "./fixture";
+import { humanLoopEvents, previewEvents, runningEvents } from "./fixture";
 
 /**
  * Transcript 视觉验证预览（dev-only）。
@@ -38,6 +38,13 @@ export function TimelinePreview() {
 
       <div data-testid="transcript-preview" className="rounded-card border border-border bg-card p-4">
         <IterationEventTimeline events={previewEvents} />
+      </div>
+
+      <h2 className="mb-2 mt-6 text-body-lg font-semibold text-foreground">
+        人机交互回合（6 Agent ↔ Claude Code）
+      </h2>
+      <div data-testid="transcript-preview-human-loop" className="rounded-card border border-border bg-card p-4">
+        <IterationEventTimeline events={humanLoopEvents} />
       </div>
 
       <h2 className="mb-2 mt-6 text-body-lg font-semibold text-foreground">在途态（LIVE / 运行中）</h2>

@@ -209,7 +209,7 @@ describe("IterationEventTimeline system 事件标题翻译", () => {
 // ---------------------------------------------------------------------------
 
 describe("IterationEventTimeline Engine 消息块", () => {
-  it("result/success 显示 Negentropy Engine 标签、结果分组、Success 徽章与 turns 数", () => {
+  it("result/success 显示 Negentropy 角色标签、结果分组、Success 徽章与 turns 数", () => {
     render(
       <IterationEventTimeline
         events={[
@@ -222,19 +222,21 @@ describe("IterationEventTimeline Engine 消息块", () => {
         ]}
       />,
     );
-    expect(screen.getByText("Negentropy Engine")).toBeInTheDocument();
+    // 角色头部由 AGENT_ROLE_META.engine 渲染（标签 "Negentropy"，替代旧硬编码 "Negentropy Engine"）
+    expect(screen.getByText("Negentropy")).toBeInTheDocument();
     expect(screen.getByText("结果 · Result")).toBeInTheDocument();
-    expect(screen.getByText("✅ Success")).toBeInTheDocument();
+    // emoji 徽章已换为 Lucide 图标 + 文本标签
+    expect(screen.getByText("Success")).toBeInTheDocument();
     expect(screen.getByText((_c, el) => el?.textContent === "3 turns")).toBeInTheDocument();
   });
 
-  it("gate 通过显示「✅ Passed」", () => {
+  it("gate 通过显示「Passed」徽章", () => {
     render(
       <IterationEventTimeline
         events={[makeEvent({ event_type: "gate", title: "gate", tool_name: null, payload: { command: "pnpm test", exit_code: 0, output: "OK" } })]}
       />,
     );
-    expect(screen.getByText("✅ Passed")).toBeInTheDocument();
+    expect(screen.getByText("Passed")).toBeInTheDocument();
     expect(screen.getByText("门控 · Gate")).toBeInTheDocument();
   });
 
@@ -244,18 +246,216 @@ describe("IterationEventTimeline Engine 消息块", () => {
         events={[makeEvent({ event_type: "evaluation", title: "eval", tool_name: null, payload: { score: 90, verdict: "succeeded", reflection: "好" } })]}
       />,
     );
-    expect(screen.getByText("✅ Succeeded")).toBeInTheDocument();
+    expect(screen.getByText("Succeeded")).toBeInTheDocument();
     expect(screen.getByText("90")).toBeInTheDocument();
   });
+});
 
-  it("plan_review approve 显示「✅ Approved」", () => {
+// ---------------------------------------------------------------------------
+// 人机回合：plan_review 升格为「人」侧 human_reply（元神角色），不再走 Engine 块
+// ---------------------------------------------------------------------------
+
+describe("IterationEventTimeline 人机回合（human_reply）", () => {
+  it("plan_review approve 升格为 human_reply：显示元神角色 + Approved 徽章", () => {
     render(
       <IterationEventTimeline
         events={[makeEvent({ event_type: "plan_review", title: "Plan Review", tool_name: null, payload: { verdict: "approve", score: 85, module_reviews: [], feedback: "", reflection: "" } })]}
       />,
     );
-    expect(screen.getByText("✅ Approved")).toBeInTheDocument();
-    expect(screen.getByText("Plan 审阅 · Review")).toBeInTheDocument();
+    // 「人」侧由扮演审 Plan 动作的元神（Contemplation）角色呈现
+    expect(screen.getByText("元神")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    // 不再走 Engine 块的 "Plan 审阅 · Review" 分组标签
+    expect(screen.queryByText("Plan 审阅 · Review")).not.toBeInTheDocument();
+  });
+
+  it("plan_review refine 显示 Refine 徽章 + module_reviews + feedback", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "plan_review",
+            title: "Plan Review",
+            tool_name: null,
+            payload: {
+              verdict: "refine",
+              score: 60,
+              module_reviews: [{ module: "边缘 Case", status: "fail", comment: "未覆盖连击" }],
+              feedback: "请补充连击处理。",
+              reflection: "",
+            },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("元神")).toBeInTheDocument();
+    expect(screen.getByText("Refine")).toBeInTheDocument();
+    expect(screen.getByText("边缘 Case")).toBeInTheDocument();
+    expect(screen.getByText("请补充连击处理。")).toBeInTheDocument();
+  });
+
+  it("CC 提交 Plan（AskUserQuestion 开放式）渲染为 Review plan 待决卡片", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "tool_use",
+            tool_name: "AskUserQuestion",
+            payload: { tool_id: "p1", input: { questions: [{ question: "请审阅方案：实现 X" }] } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Review plan")).toBeInTheDocument();
+    expect(screen.getByText(/请审阅方案/)).toBeInTheDocument();
+  });
+
+  it("CC 提问（AskUserQuestion 带 options）渲染为 Answer question 卡片", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "tool_use",
+            tool_name: "AskUserQuestion",
+            payload: { tool_id: "q1", input: { questions: [{ question: "选哪个？", options: [{ label: "A" }, { label: "B" }] }] } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Answer question")).toBeInTheDocument();
+    expect(screen.getByText("选哪个？")).toBeInTheDocument();
+  });
+
+  it("auto_answer（generic question）升格为 human_reply：显示本心角色 + Answered + 应答正文", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "system",
+            title: "auto_answer",
+            tool_name: null,
+            payload: { raw: { type: "system", subtype: "auto_answer", tool_use_id: "q1", answer_preview: "选择 120ms 方案。" } },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("本心")).toBeInTheDocument();
+    expect(screen.getByText("Answered")).toBeInTheDocument();
+    expect(screen.getByText("选择 120ms 方案。")).toBeInTheDocument();
+  });
+
+  it("ExitPlanMode 的 auto_answer 升格为 approve_exit：显示元神角色 + Approved", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "system",
+            title: "auto_answer",
+            tool_name: null,
+            payload: {
+              raw: { type: "system", subtype: "auto_answer", tool_use_id: "x1", tool_name: "ExitPlanMode", answer_preview: "Plan approved." },
+            },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("元神")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+  });
+
+  it("Phase 2 一等 auto_answer 事件（顶层 answer 全文）升格为 human_reply：本心 + Answered", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "auto_answer",
+            title: "auto_answer",
+            tool_name: null,
+            payload: { tool_use_id: "q1", tool_name: "AskUserQuestion", answer: "选择 120ms 全文应答（不截断）。" },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("本心")).toBeInTheDocument();
+    expect(screen.getByText("Answered")).toBeInTheDocument();
+    expect(screen.getByText("选择 120ms 全文应答（不截断）。")).toBeInTheDocument();
+  });
+
+  it("后端 agent_role 优先于前端推导：plan_review 标 perception 时显示慧眼", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "plan_review",
+            title: "Plan Review",
+            tool_name: null,
+            agent_role: "perception",
+            payload: { verdict: "approve", score: 80, module_reviews: [], feedback: "", reflection: "" },
+          }),
+        ]}
+      />,
+    );
+    // agent_role=perception 覆盖默认的 contemplation（元神）→ 显示慧眼
+    expect(screen.getByText("慧眼")).toBeInTheDocument();
+    expect(screen.queryByText("元神")).not.toBeInTheDocument();
+  });
+
+  it("连续 ≥3 个工具调用折叠为 tool_summary 行，展开还原", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, tool_name: "Read", payload: { tool_id: "t1", input: { file_path: "a.ts" } } }),
+      makeEvent({ seq: 1, id: "e2", tool_name: "Edit", payload: { tool_id: "t2", input: { file_path: "a.ts", old_string: "x", new_string: "y" } } }),
+      makeEvent({ seq: 2, id: "e3", tool_name: "Write", payload: { tool_id: "t3", input: { file_path: "b.ts", content: "z" } } }),
+    ];
+    render(<IterationEventTimeline events={events} />);
+    // 折叠态：显示 "3 次工具调用" summary 行
+    expect(screen.getByText("3 次工具调用")).toBeInTheDocument();
+    // 展开还原内嵌工具行
+    fireEvent.click(screen.getByText("3 次工具调用"));
+    expect(screen.getByText("Read")).toBeInTheDocument();
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(screen.getByText("Write")).toBeInTheDocument();
+  });
+
+  it("Task 子代理调用展开为嵌套卡片：显示 subagent_type 徽标 + 描述", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            tool_name: "Task",
+            payload: {
+              tool_id: "ta1",
+              input: { subagent_type: "Explore", description: "搜索 transcript 渲染实现" },
+            },
+          }),
+          makeEvent({
+            seq: 2,
+            id: "e2",
+            event_type: "tool_result",
+            tool_name: null,
+            payload: { tool_use_id: "ta1", output: "找到 5 个相关文件", is_error: false },
+          }),
+        ]}
+      />,
+    );
+    // 展开 Task 行
+    fireEvent.click(screen.getByText("Task"));
+    // subagent_type 徽标（卡片内唯一）
+    expect(screen.getByText("Explore")).toBeInTheDocument();
+    // 描述出现两处（行 summary + 嵌套卡片），断言至少一处
+    expect(screen.getAllByText("搜索 transcript 渲染实现").length).toBeGreaterThanOrEqual(1);
+    // 子代理产出（卡片内唯一）
+    expect(screen.getByText("找到 5 个相关文件")).toBeInTheDocument();
+  });
+
+  it("少于 3 个连续工具不折叠（原样渲染）", () => {
+    const events: RoutineIterationEventDTO[] = [
+      makeEvent({ seq: 0, tool_name: "Read", payload: { tool_id: "t1", input: { file_path: "a.ts" } } }),
+      makeEvent({ seq: 1, id: "e2", tool_name: "Edit", payload: { tool_id: "t2", input: { file_path: "a.ts", old_string: "x", new_string: "y" } } }),
+    ];
+    render(<IterationEventTimeline events={events} />);
+    expect(screen.queryByText(/次工具调用/)).not.toBeInTheDocument();
+    expect(screen.getByText("Read")).toBeInTheDocument();
+    expect(screen.getByText("Edit")).toBeInTheDocument();
   });
 });
 
@@ -321,14 +521,14 @@ describe("IterationEventTimeline 交织排序", () => {
     }
   }
 
-  it("plan_review 按 seq 穿插在 assistant 文本之间", () => {
+  it("plan_review（升格 human_reply）按 seq 穿插在 assistant 文本之间", () => {
     const events: RoutineIterationEventDTO[] = [
       makeEvent({ seq: 0, event_type: "assistant", title: null, tool_name: null, payload: { text: "第一步" } }),
       makeEvent({ seq: 1, id: "e2", event_type: "plan_review", title: "Plan Review", tool_name: null, payload: { verdict: "approve", score: 85, module_reviews: [], feedback: "", reflection: "" } }),
       makeEvent({ seq: 2, id: "e3", event_type: "assistant", title: null, tool_name: null, payload: { text: "第二步" } }),
     ];
     const { container } = render(<IterationEventTimeline events={events} />);
-    expectOrder(container, ["第一步", "✅ Approved", "第二步"]);
+    expectOrder(container, ["第一步", "Approved", "第二步"]);
   });
 
   it("result/gate/evaluation 在最后的执行项之后按 seq 排列", () => {
@@ -339,7 +539,7 @@ describe("IterationEventTimeline 交织排序", () => {
       makeEvent({ seq: 3, id: "e4", event_type: "evaluation", title: "eval", tool_name: null, payload: { score: 90, verdict: "succeeded", reflection: "好" } }),
     ];
     const { container } = render(<IterationEventTimeline events={events} />);
-    expectOrder(container, ["执行中", "✅ Success", "✅ Passed", "✅ Succeeded"]);
+    expectOrder(container, ["执行中", "Success", "Passed", "Succeeded"]);
   });
 
   it("纯 execution 事件无 Engine 块时仍正常渲染", () => {
@@ -378,6 +578,42 @@ describe("IterationEventTimeline 运行态", () => {
     );
     // 顶部 LIVE 脉冲点（sky-500 animate-pulse）也不应存在
     expect(document.querySelector(".animate-pulse.bg-sky-500")).toBeNull();
+  });
+
+  it("live 态在转录流末尾显示 WorkingIndicator（Working…）", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", tool_name: null, payload: { text: "执行中" } })]}
+        live
+      />,
+    );
+    expect(screen.getByTestId("working-indicator")).toBeInTheDocument();
+    expect(screen.getByText("Working…")).toBeInTheDocument();
+  });
+
+  it("非 live 时不显示 WorkingIndicator", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", tool_name: null, payload: { text: "已完成" } })]}
+      />,
+    );
+    expect(screen.queryByTestId("working-indicator")).not.toBeInTheDocument();
+  });
+
+  it("末项为待决 CC 提交时 WorkingIndicator 显 Planning…", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "tool_use",
+            tool_name: "AskUserQuestion",
+            payload: { tool_id: "p1", input: { questions: [{ question: "请审阅方案 X" }] } },
+          }),
+        ]}
+        live
+      />,
+    );
+    expect(screen.getByText("Planning…")).toBeInTheDocument();
   });
 });
 
