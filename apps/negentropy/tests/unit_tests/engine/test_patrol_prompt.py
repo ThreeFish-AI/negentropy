@@ -17,6 +17,7 @@ def test_build_goal_injects_doc_params():
         doc_title="论文 A",
         source_pdf_path="/tmp/patrol/doc-123/source.pdf",
         candidate_md_path="patrol-candidate.md",
+        qualified_threshold=95,
     )
     assert "doc-123" in g
     assert "论文 A" in g
@@ -24,14 +25,51 @@ def test_build_goal_injects_doc_params():
     assert "patrol-candidate.md" in g
     assert "保真度" in g  # 紧凑目标：本轮评分（非开放式「调度三系部」）
     assert "采样" in g  # 防过度探查：采样比对
+    assert "95" in g  # 合格阈值注入 done 判定
+    assert "合格阈值" in g
+
+
+def test_build_goal_injects_known_unfixable_regions():
+    """已知 unfixable 区域注入避让清单（跨 Routine 记忆复用——修复「只写不读」半失效）。"""
+    g = build_goal(
+        doc_id="doc-9",
+        doc_title="论文 B",
+        source_pdf_path="/tmp/patrol/doc-9/source.pdf",
+        candidate_md_path="patrol-candidate.md",
+        qualified_threshold=95,
+        known_unfixable_regions=[
+            {"locator": "page3-table2"},
+            {"locator": "page7-formula1"},
+            {"locator": ""},  # 空 locator 应被过滤
+        ],
+    )
+    assert "已知 unfixable 区域" in g
+    assert "page3-table2" in g
+    assert "page7-formula1" in g
+    assert "评分不计" in g
+
+
+def test_build_goal_no_unfixable_hint_when_empty():
+    """无已知 unfixable 区域时不附加避让段（避免空提示噪声）。"""
+    g = build_goal(
+        doc_id="d",
+        doc_title="t",
+        source_pdf_path="/p.pdf",
+        candidate_md_path="c.md",
+        qualified_threshold=95,
+        known_unfixable_regions=None,
+    )
+    assert "已知 unfixable 区域" not in g
 
 
 def test_build_acceptance_criteria_allows_unfixable_carveout():
-    ac = build_acceptance_criteria(baseline_branch="origin/feature/1.x.x")
-    assert "100" in ac
+    ac = build_acceptance_criteria(baseline_branch="origin/feature/1.x.x", qualified_threshold=95)
+    assert "95" in ac  # 合格阈值（取代旧「满分 100」门槛）
+    assert "100" in ac  # 收敛评分区间 95-100
     assert "unfixable" in ac
     assert "origin/feature/1.x.x" in ac
     assert "pdf-fidelity-contract" in ac
+    assert "评分指引" in ac  # 防评估器压分致本应成功的 Routine 误判 Failed
 
 
 def test_build_routine_config_shape():

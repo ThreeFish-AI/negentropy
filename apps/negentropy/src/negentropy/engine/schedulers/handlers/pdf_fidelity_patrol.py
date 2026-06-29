@@ -5,8 +5,10 @@
 1. **确保巡检 Repository**：幂等 upsert 名为 ``negentropy`` 的 Repository（local_path 从
    ``settings.routine.patrol_repo_local_path`` 或 negentropy 包路径推导；无法确定则返回
    not configured，引导改用 Interface/Repositories 手工注册）。
-2. **沉淀终态巡检 Routine 的契约记忆**：扫到 ``config->>'patrol'=true`` 且已终态但未落记忆的
-   Routine，解析其末轮 ``pdf-fidelity-contract`` JSON，写 done/unfixable/pattern 记忆。
+2. **确定性沉淀终态巡检 Routine 的文档终态**：扫到 ``config->>'patrol'=true`` 且已终态但未落记忆的
+   Routine，依 ``best_score`` + 合格阈值（``patrol_qualified_score_threshold``，契约自报 done 兜底）
+   把文档标 done（合格）/unfixable（尽力）——保证文档必进 ``skip_ids``、被推进，不再死循环；
+   cancelled 不沉淀（用户干预，文档保持可被重新选中）。
 3. **跳过并发**：存在 ``status='running'`` 的巡检 Routine → 本 tick SKIP（保证「上一轮结束后
    再启下一轮」；ScheduledTask 的 ``interval`` 计 ``next_fire_at = 完成时刻 + 3600s``，叠加此
    互斥即满足「巡检进行中则等待其结束 + 1h」语义）。
@@ -14,7 +16,8 @@
    ``markdown_extract_status='completed'``，排除记忆中已 done/unfixable 的 doc_id。
 5. **预取源 PDF**：``BlobStorage.download(content_uri)`` → 暂存到 ``patrol_input_dir/<doc_id>/``。
 6. **创建并启动巡检 Routine**（``status='running'``，绑定 Repository，worktree + FINALIZE PR +
-   0-100 评估闭环）。其 Claude Code 会话即 NegentropyEngine，依三系部协议循环拟合至满分。
+   0-100 评估闭环）。其 Claude Code 会话即 NegentropyEngine，依三系部协议循环拟合至合格阈值
+   （``success_score_threshold=patrol_qualified_score_threshold``，默认 95）即 SUCCESS、推进下一份。
 
 真正的 Claude Code 长耗执行交由 ``routine_inspector``（25s tick）驱动的 Routine 编排闭环异步完成，
 本 handler 恒不阻塞调度心跳。
@@ -275,16 +278,29 @@ async def _ensure_patrol_repository(db, *, baseline_branch: str) -> uuid.UUID | 
 
 
 async def _finalize_terminal_patrols(db) -> int:
-    """对终态但未落记忆的巡检 Routine，解析末轮契约 → 写记忆 → 标记 memory_persisted。
+    """对终态但未落记忆的巡检 Routine，**确定性**沉淀文档终态 → 标记 memory_persisted。
 
-    返回沉淀条数。
+    每个 succeeded/failed 终态 Routine 必定把其文档标为 done（合格）/unfixable（尽力），
+    从而文档进 skip_ids、被推进——不再因 agent 不自报 done 而死循环（修「始终拟合同一份文档」根因）。
+    cancelled 不沉淀状态（用户干预，文档保持可被重新选中），仅标记避免每 tick 重扫。
+
+    终态判定（``PatrolMemoryStore.persist_terminal_outcome``）：契约自报 done **或** best_score ≥
+    ``patrol_qualified_score_threshold`` → done；否则 unfixable；cancelled 跳过。
+    score 写 best_score（跨迭代权威峰值，非末轮分）；契约缺失/解析失败亦以 best_score 兜底沉淀。
+
+    同文档多 Routine 时按 ``best_score ASC NULLS FIRST`` 处理 → upsert 末写即最高 best_score，
+    保证「最佳拟合」语义（cancelled/NULL 先处理、被高分覆盖）。
+
+    返回处理条数。
     """
     rows = await db.execute(
         sa.text(
-            "SELECT id, key FROM negentropy.routines "
+            "SELECT id, status, best_score, config->>'doc_id' AS doc_id "
+            "FROM negentropy.routines "
             "WHERE config->>'patrol' = 'true' "
             "AND status IN ('succeeded','failed','cancelled') "
-            "AND (config->>'memory_persisted' IS NULL OR config->>'memory_persisted' <> 'true')"
+            "AND (config->>'memory_persisted' IS NULL OR config->>'memory_persisted' <> 'true') "
+            "ORDER BY best_score ASC NULLS FIRST"
         )
     )
     candidates = rows.fetchall()
@@ -294,9 +310,18 @@ async def _finalize_terminal_patrols(db) -> int:
     from negentropy.engine.routine.patrol_memory import PatrolMemoryStore, parse_contract
 
     store = PatrolMemoryStore(db)
+    qualified_threshold = settings.routine.patrol_qualified_score_threshold
     count = 0
-    for routine_id, _key in candidates:
+    for routine_id, routine_status, best_score, doc_id_cfg in candidates:
         rid = uuid.UUID(str(routine_id))
+
+        if routine_status == "cancelled":
+            # 用户干预：不沉淀状态记忆（文档保持可被重新选中），仅标记避免每 tick 重扫。
+            await _mark_memory_persisted(db, rid)
+            count += 1
+            continue
+
+        # 末轮契约（doc_id 兜底 + regions/patterns 提取；best_score 兜底保证契约缺失亦沉淀）
         summ_row = await db.execute(
             sa.text(
                 "SELECT summary FROM negentropy.routine_iterations "
@@ -306,21 +331,45 @@ async def _finalize_terminal_patrols(db) -> int:
         )
         summary = summ_row.scalar()
         contract = parse_contract(summary if isinstance(summary, str) else None)
-        if contract:
-            try:
-                await store.persist_contract(contract=contract, routine_id=str(rid))
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("patrol_persist_contract_failed", routine_id=str(rid), error=str(exc))
-                continue
-        await db.execute(
-            sa.text(
-                "UPDATE negentropy.routines "
-                "SET config = COALESCE(config,'{}'::jsonb) || jsonb_build_object('memory_persisted', true) "
-                "WHERE id = :rid"
-            ).bindparams(rid=rid)
-        )
+
+        # doc_id 优先 routine config（handler 创建时权威写入），契约内兜底
+        doc_id = str(doc_id_cfg or "").strip() or str((contract or {}).get("doc_id") or "").strip()
+        if not doc_id:
+            # config 与契约均无 doc_id（异常）——无法沉淀，仅标记避免重扫（防御性，不应发生）。
+            logger.warning("patrol_finalize_missing_doc_id", routine_id=str(rid))
+            await _mark_memory_persisted(db, rid)
+            count += 1
+            continue
+
+        try:
+            await store.persist_terminal_outcome(
+                doc_id=doc_id,
+                routine_id=str(rid),
+                best_score=int(best_score) if best_score is not None else None,
+                qualified_threshold=qualified_threshold,
+                contract=contract,
+                routine_status=routine_status,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("patrol_persist_terminal_outcome_failed", routine_id=str(rid), error=str(exc))
+            await _mark_memory_persisted(db, rid)
+            count += 1
+            continue
+
+        await _mark_memory_persisted(db, rid)
         count += 1
     return count
+
+
+async def _mark_memory_persisted(db, rid: uuid.UUID) -> None:
+    """幂等标记 Routine 的契约记忆已沉淀（避免每 tick 重扫致日志/IO 膨胀）。"""
+    await db.execute(
+        sa.text(
+            "UPDATE negentropy.routines "
+            "SET config = COALESCE(config,'{}'::jsonb) || jsonb_build_object('memory_persisted', true) "
+            "WHERE id = :rid"
+        ).bindparams(rid=rid)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -508,6 +557,7 @@ def _build_patrol_routine(
     source_read_dir: str,
     regression_sample: list[str],
     source_task_key: str,
+    known_unfixable_regions: list[dict[str, Any]] | None = None,
 ) -> Routine:
     """构造巡检 Routine ORM 对象（纯函数，无 DB —— 可单测验证字段装配无 AttributeError）。
 
@@ -525,21 +575,27 @@ def _build_patrol_routine(
     doc_id = str(doc["id"])
     doc_title = _doc_display_title(doc)
     short = uuid.uuid4().hex[:8]
+    qualified_threshold = settings.routine.patrol_qualified_score_threshold
     return Routine(
         key=f"{PATROL_KEY_PREFIX}/{doc_id}/{short}",
         title=f"PDF 高保真巡检：{doc_title}",
         display_name=f"PDF Fidelity Patrol · {doc_title}",
         description=(
             f"NegentropyEngine 巡检生产 PDF《{doc_title}》→ Markdown 高保真自拟合。"
-            "三系部循环（视觉对比→改 perceives→重转→记忆）至满分；PR 合回基线。"
+            "三系部循环（视觉对比→改 perceives→重转→记忆）至合格阈值；PR 合回基线。"
         ),
         goal=build_goal(
             doc_id=doc_id,
             doc_title=doc_title,
             source_pdf_path=source_pdf_path,
             candidate_md_path=CANDIDATE_MD_FILENAME,
+            qualified_threshold=qualified_threshold,
+            known_unfixable_regions=known_unfixable_regions,
         ),
-        acceptance_criteria=build_acceptance_criteria(baseline_branch=baseline_branch),
+        acceptance_criteria=build_acceptance_criteria(
+            baseline_branch=baseline_branch,
+            qualified_threshold=qualified_threshold,
+        ),
         cwd=None,  # 由 repository_id 派生 worktree cwd（单一事实源指针）
         baseline_branch=baseline_branch,
         repository_id=repo_id,
@@ -548,7 +604,7 @@ def _build_patrol_routine(
         max_iterations=settings.routine.patrol_max_iterations_per_doc,
         max_cost_usd=settings.routine.patrol_max_cost_usd_per_doc,
         deadline_at=None,
-        success_score_threshold=100,
+        success_score_threshold=qualified_threshold,  # 合格阈值（默认 95）：收敛即 SUCCESS，不再误标 Failed
         no_progress_patience=3,  # per-Routine DB 列默认值（非 RoutineSettings 属性）
         approval_mode="auto",
         config=build_routine_config(
@@ -581,7 +637,11 @@ async def _create_and_start_patrol_routine(
     """构造（_build_patrol_routine）+ 落库 + flush，返回 routine id。
 
     DB 写集中于此；构造逻辑（字段装配）抽到纯函数 _build_patrol_routine 便于无 DB 单测。
+    构造前取出该文档**已知 unfixable 区域**注入 goal（跨 Routine 复用避让——修复「只写不读」半失效）。
     """
+    from negentropy.engine.routine.patrol_memory import PatrolMemoryStore
+
+    known_unfixable_regions = await PatrolMemoryStore(db).get_unfixable_regions(str(doc["id"]))
     routine = _build_patrol_routine(
         repo_id=repo_id,
         baseline_branch=baseline_branch,
@@ -590,6 +650,7 @@ async def _create_and_start_patrol_routine(
         source_read_dir=source_read_dir,
         regression_sample=regression_sample,
         source_task_key=source_task_key,
+        known_unfixable_regions=known_unfixable_regions,
     )
     db.add(routine)
     await db.flush()

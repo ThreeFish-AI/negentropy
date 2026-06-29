@@ -324,6 +324,16 @@ class RoutineSettings(BaseSettings):
         le=30,
         description="非回归基线样本数（首次巡检时分层抽取的生产 PDF 文档数）。",
     )
+    patrol_qualified_score_threshold: int = Field(
+        default=95,
+        ge=0,
+        le=100,
+        description="巡检文档「合格」分阈值（0-100）。巡检 Routine 的 success_score_threshold 取此值——"
+        "best_score 达此值即判 done（合格）并经 decide() 判 SUCCESS；低于此值（尽力）记 unfixable。"
+        "二者皆推进文档、不再死循环（修「始终拟合同一份文档」根因）。"
+        "终态沉淀双信号：契约自报 done 或 best_score ≥ 此阈值 → done，否则 unfixable；"
+        "仅对 succeeded/failed 终态生效，cancelled 不沉淀。",
+    )
 
     @classmethod
     def settings_customise_sources(
