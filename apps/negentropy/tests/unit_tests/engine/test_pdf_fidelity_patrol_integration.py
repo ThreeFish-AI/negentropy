@@ -263,6 +263,47 @@ async def test_propagate_idempotent(db_engine):
         assert task.consecutive_failures == 1  # 未因二次调用重复累加
 
 
+async def test_propagate_backfills_v1_legacy_unflipped_execution(db_engine):
+    """Pass B 回填：v1 已传播（outcome_propagated=true）但派生轮次仍 ok 的历史脏数据被补翻转。
+
+    复现 v1（#1001）遗留场景——只回写了 ScheduledTask，未翻转派生 TaskExecution。
+    Pass B 须仅补翻转 TaskExecution（绿→红），且不重复累加 consecutive_failures。
+    """
+    task_key = f"pdf_fidelity_patrol-prop-{uuid.uuid4().hex[:6]}"
+    routine_id = await _seed_terminal_patrol(
+        db_engine,
+        status="failed",
+        termination_reason="no_progress",
+        source_task_key=task_key,
+        initial_cf=5,
+    )
+    factory = _sf(db_engine)
+    # 模拟 v1 终态：已置 outcome_propagated=true，但派生轮次仍 ok（未翻转）
+    async with factory() as db:
+        await db.execute(
+            text(
+                "UPDATE negentropy.routines "
+                "SET config = COALESCE(config,'{}'::jsonb) || jsonb_build_object('outcome_propagated', true) "
+                "WHERE id = :rid"
+            ).bindparams(rid=routine_id)
+        )
+        await db.commit()
+
+    async with factory() as db:
+        await patrol._propagate_patrol_outcomes(db)
+        await db.commit()
+
+    async with factory() as db:
+        spawn = (
+            await db.execute(select(TaskExecution).where(TaskExecution.metrics["routine_id"].astext == str(routine_id)))
+        ).scalar_one()
+        assert spawn.status == "failed"  # Pass B 补翻转（绿→红）
+        assert spawn.error == "no_progress"
+        # Pass B 不动 ScheduledTask（不重复累加 cf）——仍是 seed 的初值
+        task = (await db.execute(select(ScheduledTask).where(ScheduledTask.key == task_key))).scalar_one()
+        assert task.consecutive_failures == 5
+
+
 # ---------------------------------------------------------------------------
 # _finalize_terminal_patrols：终态确定性沉淀 → 文档推进（修「始终拟合同一份文档」根因）
 # ---------------------------------------------------------------------------
