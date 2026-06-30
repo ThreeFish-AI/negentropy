@@ -175,7 +175,14 @@ async def _run(
     if output:
         from pathlib import Path
 
-        Path(output).write_text(formatted, encoding="utf-8")
+        # markdown 文件输出写纯文档内容（result.content），剥离 CLI 展示用的元数据
+        # 头尾（``## <source>`` / ``**Status**`` / 末尾 ``### Statistics``）——这些是
+        # format_result 的展示 chrome、非文档内容，混入 .md 会污染下游消费（保真度
+        # 比对、知识库灌库等）。stdout 与 json/plain 格式仍走 format_result 不变。
+        if format == "markdown":
+            Path(output).write_text(result.content or "", encoding="utf-8")
+        else:
+            Path(output).write_text(formatted, encoding="utf-8")
         # 补齐图片资产落盘：传统路径图片写到 EnhancedPDFProcessor.output_directory
         # （可能为临时目录），需拷贝到 -o 同级 images/ 使 ./images/<filename> 引用可达。
         _copy_image_assets(result, output)
