@@ -50,6 +50,7 @@ export {
   rejectIteration,
   fetchTemplates,
   cleanupWorktree,
+  syncRoutinePr,
 } from "./api";
 
 export { useRoutineData } from "./hooks/useRoutineData";

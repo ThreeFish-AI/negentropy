@@ -49,6 +49,7 @@ export function RoutineRunView({
   onApproveIteration,
   onRejectIteration,
   onCleanupWorktree,
+  onSyncPr,
   liveActionsByIteration,
   busy,
 }: {
@@ -56,6 +57,8 @@ export function RoutineRunView({
   onApproveIteration: (iterationId: string) => void;
   onRejectIteration: (iterationId: string) => void;
   onCleanupWorktree?: () => void;
+  /** 手动同步 PR 合并状态（PR 抽屉「同步状态」按钮回调）。 */
+  onSyncPr?: () => void | Promise<void>;
   liveActionsByIteration?: LiveActionsByIteration;
   busy?: boolean;
 }) {
@@ -178,7 +181,7 @@ export function RoutineRunView({
           widthClassName={MODULE_DRAWER_WIDTH}
         >
           <div className="px-5 py-5">
-            <RoutinePrCard prUrl={routine.pr_url} />
+            <RoutinePrCard prUrl={routine.pr_url} merged={routine.pr_merged} onSync={onSyncPr} />
           </div>
         </BaseDrawer>
       )}

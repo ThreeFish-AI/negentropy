@@ -64,6 +64,7 @@ export function RoutineLoopDiagram({
         ) : snapshot.mode === "done" ? (
           <span className="text-text-secondary">
             已结束{snapshot.terminationReason ? ` · 终止原因：${snapshot.terminationReason}` : ""}
+            {routine.pr_url && routine.pr_merged ? " · PR 已合并" : ""}
           </span>
         ) : snapshot.mode === "paused" ? (
           <span className="text-amber-600 dark:text-amber-400">已暂停 · 恢复后继续迭代</span>
