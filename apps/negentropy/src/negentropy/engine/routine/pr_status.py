@@ -116,10 +116,14 @@ async def fetch_pr_merge_status(pr_url: str | None, *, timeout: float = 5.0) -> 
     流程（任一失败即返回 ``PrMergeStatus(None, None)``）：
     1. ``gh`` 不在 PATH → unknown（首次 WARN 一次）。
     2. URL 形状不合法 → unknown（不起子进程）。
-    3. 起 ``gh pr view <url> --json state,merged`` 子进程，``timeout`` 超时整组 SIGKILL → unknown。
+    3. 起 ``gh pr view <url> --json state,mergedAt`` 子进程，``timeout`` 超时整组 SIGKILL → unknown。
     4. rc≠0（未授权 / 不可达 / PR 不存在）→ unknown。
-    5. stdout 非 JSON / 字段缺失 → unknown。
-    6. 成功：``state=MERGED`` 或 ``merged=true`` → merged=True；否则按 ``merged`` 布尔值。
+    5. stdout 空 / 非 JSON / 字段缺失 → unknown（rc=0 但 stdout 空常为 gh 误用 JSON 字段，记 stderr 便于排查）。
+    6. 成功：``state=MERGED``（或 ``mergedAt`` 非空）→ merged=True；
+       否则（OPEN/CLOSED，``mergedAt`` 为 null）→ merged=False。
+
+    注：``gh pr view --json`` **无 ``merged`` 布尔字段**（误用会 rc=0 + 空输出，曾致本特性静默全失败）。
+    合并态权威信号是 ``state == "MERGED"``；``mergedAt`` 非空作 belt-and-suspenders。
     """
     global _warned_no_gh
 
@@ -143,7 +147,7 @@ async def fetch_pr_merge_status(pr_url: str | None, *, timeout: float = 5.0) -> 
             "view",
             pr_url,
             "--json",
-            "state,merged",
+            "state,mergedAt",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             start_new_session=True,
@@ -153,7 +157,7 @@ async def fetch_pr_merge_status(pr_url: str | None, *, timeout: float = 5.0) -> 
         return PrMergeStatus(merged=None, state=None)
 
     try:
-        stdout_b, _stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except TimeoutError:
         _kill_process_group(proc)
         with suppress(Exception):
@@ -170,6 +174,12 @@ async def fetch_pr_merge_status(pr_url: str | None, *, timeout: float = 5.0) -> 
         return PrMergeStatus(merged=None, state=None)
 
     out = (stdout_b or b"").decode("utf-8", errors="replace").strip()
+    if not out:
+        # rc=0 但 stdout 空——通常是 gh 误用 JSON 字段（如旧版误用 merged）等，stderr 有线索；
+        # 记 WARN 便于排查，避免静默 unknown（曾因 merged 字段不存在静默全失败）。
+        err = (stderr_b or b"").decode("utf-8", errors="replace").strip()
+        logger.warning("routine_pr_view_empty_stdout", returncode=proc.returncode, stderr_preview=err[:200])
+        return PrMergeStatus(merged=None, state=None)
     try:
         raw = json.loads(out)
     except (json.JSONDecodeError, ValueError):
@@ -180,9 +190,10 @@ async def fetch_pr_merge_status(pr_url: str | None, *, timeout: float = 5.0) -> 
         return PrMergeStatus(merged=None, state=None)
 
     state = raw.get("state")
-    merged_raw = raw.get("merged")
-    # state=MERGED 即判已合并（防御性：即便 merged 布尔缺失）；否则尊重 merged 布尔值。
-    if state == "MERGED":
-        return PrMergeStatus(merged=True, state=state)
-    merged = bool(merged_raw) if isinstance(merged_raw, bool) else None
-    return PrMergeStatus(merged=merged, state=state if isinstance(state, str) else None)
+    state_str = state if isinstance(state, str) else None
+    # 合并态权威信号：state == "MERGED"；mergedAt 非空作 belt-and-suspenders（gh 无 merged 布尔字段）。
+    merged_at = raw.get("mergedAt")
+    if state_str == "MERGED" or (isinstance(merged_at, str) and merged_at):
+        return PrMergeStatus(merged=True, state=state_str or "MERGED")
+    # state 为 OPEN/CLOSED 且无 mergedAt → 确认为未合并（gh 已应答，调用方据此节流/停检）。
+    return PrMergeStatus(merged=False, state=state_str)

@@ -107,16 +107,20 @@ async def test_bad_url_returns_unknown_without_spawn(monkeypatch):
 
 @_asyncio
 async def test_merged_state_returns_true(monkeypatch):
+    """真实 gh 输出：state=MERGED + mergedAt 时间戳 → merged=True。"""
     monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
-    _patch_exec(monkeypatch, _FakeProc(stdout=b'{"state":"MERGED","merged":true}'))
+    _patch_exec(
+        monkeypatch,
+        _FakeProc(stdout=b'{"state":"MERGED","mergedAt":"2026-06-30T02:34:16Z","mergedBy":{"login":"x"}}'),
+    )
     st = await _fetch()
     assert st.merged is True
     assert st.state == "MERGED"
 
 
 @_asyncio
-async def test_merged_state_infers_true_even_if_merged_field_missing(monkeypatch):
-    """state=MERGED 即判已合并（防御性：即便 merged 布尔缺失）。"""
+async def test_merged_inferred_from_state_only(monkeypatch):
+    """state=MERGED 即判已合并（权威信号；即便缺 mergedAt）。"""
     monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
     _patch_exec(monkeypatch, _FakeProc(stdout=b'{"state":"MERGED"}'))
     st = await _fetch()
@@ -124,9 +128,19 @@ async def test_merged_state_infers_true_even_if_merged_field_missing(monkeypatch
 
 
 @_asyncio
-async def test_open_state_returns_false(monkeypatch):
+async def test_merged_inferred_from_merged_at_only(monkeypatch):
+    """belt-and-suspenders：mergedAt 非空即判已合并（即便 state 异常缺失）。"""
     monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
-    _patch_exec(monkeypatch, _FakeProc(stdout=b'{"state":"OPEN","merged":false}'))
+    _patch_exec(monkeypatch, _FakeProc(stdout=b'{"mergedAt":"2026-06-30T02:34:16Z"}'))
+    st = await _fetch()
+    assert st.merged is True
+
+
+@_asyncio
+async def test_open_state_returns_false(monkeypatch):
+    """OPEN + mergedAt=null → merged=False（gh 已应答，调用方据此节流）。"""
+    monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
+    _patch_exec(monkeypatch, _FakeProc(stdout=b'{"state":"OPEN","mergedAt":null}'))
     st = await _fetch()
     assert st.merged is False
     assert st.state == "OPEN"
@@ -134,11 +148,25 @@ async def test_open_state_returns_false(monkeypatch):
 
 @_asyncio
 async def test_closed_state_returns_false(monkeypatch):
+    """CLOSED-without-merge → merged=False（停检）。"""
     monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
-    _patch_exec(monkeypatch, _FakeProc(stdout=b'{"state":"CLOSED","merged":false}'))
+    _patch_exec(monkeypatch, _FakeProc(stdout=b'{"state":"CLOSED","mergedAt":null}'))
     st = await _fetch()
     assert st.merged is False
     assert st.state == "CLOSED"
+
+
+@_asyncio
+async def test_empty_stdout_with_rc0_returns_unknown(monkeypatch):
+    """rc=0 但 stdout 空 → unknown（曾因 gh 误用 merged 字段静默全失败；现记 WARN stderr）。
+
+    回归 503 根因：旧代码请求不存在的 ``--json state,merged``，gh rc=0 + stderr 报
+    ``Unknown JSON field`` + stdout 空 → json.loads 失败 → unknown → 前端 503。
+    """
+    monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
+    _patch_exec(monkeypatch, _FakeProc(stdout=b"", stderr=b'Unknown JSON field: "merged"', returncode=0))
+    st = await _fetch()
+    assert st == pr_status.PrMergeStatus(merged=None, state=None)
 
 
 @_asyncio
@@ -162,7 +190,7 @@ async def test_bad_json_returns_unknown(monkeypatch):
 async def test_timeout_returns_unknown_and_kills_process_group(monkeypatch):
     """超时 → unknown 且进程组被杀（_kill_process_group 兜底 proc.kill）。"""
     monkeypatch.setattr(pr_status, "GH_BIN", "/fake/gh")
-    proc = _FakeProc(stdout=b'{"state":"OPEN","merged":false}', sleep=1.0)
+    proc = _FakeProc(stdout=b'{"state":"OPEN","mergedAt":null}', sleep=1.0)
     _patch_exec(monkeypatch, proc)
     st = await _fetch(timeout=0.05)
     assert st == pr_status.PrMergeStatus(merged=None, state=None)
