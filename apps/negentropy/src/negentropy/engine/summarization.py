@@ -28,6 +28,162 @@ logger = get_logger("negentropy.engine.summarization")
 _TITLE_MAX_TOKENS = 256
 
 
+# ---------------------------------------------------------------------------
+# 无语义占位标题判定 —— 标题质量门禁的单一事实源（SoT）
+#
+# 生产观察到的劣态标题（"首次标题" / "标题 v2" / "会话标题自动生成" 等）已被
+# LLM 实际生成并写回 DB（失败路径不写 title，故非空结果必来自 LLM 输出）。
+# 本函数作为 SoT 被「生成即拒绝」(generate_title 后处理)、存量回填 CLI、
+# 未来巡检自愈三处复用，严禁在他处镜像黑名单。
+#
+# 三层短路判定：
+# 1. 整体命中元词汇黑名单正则 → True（覆盖生产已观察的具体坏标题）
+# 2. 剥离元词汇 token 后，剩余实质字符 < 3 → True（泛化未来新组合，同时
+#    避免误伤「用户画像摘要」「会话功能设计」这类含元词但有实体的正常标题）
+# 3. 与生成指令文本互相包含 → True（防御 LLM 复述指令的退化模式）
+# ---------------------------------------------------------------------------
+
+# 整体黑名单：纯元词汇标题。命中即判 vacant。
+_VACANT_TITLE_PATTERNS = (
+    r"^标题\s*v?\d*$",  # "标题" / "标题 v2" / "标题v3"
+    r"^首次标题$",
+    r"^新标题$",
+    r"^无标题$",
+    r"^会话标题(自动生成)?$",
+    r"^标题自动生成$",
+    r"^对话标题$",
+    r"^对话(总结|摘要)?$",
+    r"^(摘要|总结)$",
+    r"^新(对话|会话)$",
+    r"^未命名(会话|对话)?$",
+    r"^title$",
+    r"^session\s*title$",
+    r"^session$",
+    r"^summary$",
+    r"^conversation$",
+    r"^new\s*(chat|session|conversation)?$",
+    r"^untitled$",
+)
+_VACANT_REGEX = re.compile("|".join(_VACANT_TITLE_PATTERNS), re.IGNORECASE)
+
+# 元词汇 token：用于「剥离后看剩余实质长度」，不是整体黑名单。
+# 不含单字"新"——避免误伤「新加坡」「新闻」等正常词；"新对话"/"新会话"由黑名单正则覆盖。
+_META_TERMS = (
+    "标题",
+    "会话",
+    "对话",
+    "摘要",
+    "总结",
+    "自动生成",
+    "首次",
+    "未命名",
+    "无标题",
+    "title",
+    "session",
+    "summary",
+    "conversation",
+    "chat",
+    "untitled",
+)
+
+# 生成指令文本片段：标题复述指令时命中（仅当标题 >= 6 字符才检测，避免短标题误伤）。
+_INSTRUCTION_FRAGMENTS = (
+    "生成一个简短标题",
+    "生成标题",
+    "summarize the conversation",
+    "会话标题自动生成",
+    "标题自动生成",
+    "仅输出标题",
+    "output only the title",
+    "仅输出标题文本",
+)
+
+# 剥离元词汇后清理分隔/版本号残渣用的字符集。
+_RESIDUE_CHARS_RE = re.compile(r"[\s\-—_:：vV0-9]+")
+
+
+def is_semantically_vacant_title(title: str) -> bool:
+    """判定标题是否为无语义占位符。
+
+    命中（返回 True）表示该标题应被视为无效——调用方应丢弃并回退到「不写 title」，
+    让前端以 ``Session <id前8位>`` 兜底，优于保留一个无语义标题。
+
+    纯函数、无 IO、无副作用：生成路径、存量回填 CLI、巡检自愈均可安全调用。
+    """
+    if not title:
+        return True
+    text = title.strip()
+    if not text:
+        return True
+
+    # 规则 1：整体命中元词汇黑名单正则
+    if _VACANT_REGEX.match(text):
+        return True
+
+    # 规则 2：剥离元词汇 token 后，剩余实质字符过短
+    stripped = text
+    for term in _META_TERMS:
+        stripped = stripped.replace(term, "")
+    stripped = _RESIDUE_CHARS_RE.sub("", stripped)
+    if len(stripped) < 3:
+        return True
+
+    # 规则 3：复述生成指令文本（仅较长标题检测，避免短标题误伤）
+    if len(text) >= 6:
+        lowered = text.lower()
+        for frag in _INSTRUCTION_FRAGMENTS:
+            frag_low = frag.lower()
+            if frag_low in lowered or lowered in frag_low:
+                return True
+
+    return False
+
+
+# ---------------------------------------------------------------------------
+# 标题生成指令 —— 全部结构化约束收敛到 system_instruction（单一载体）
+#
+# 设计要点（修复 prompt 双用缺陷）：
+# - 历史问题：同一份指令文本曾同时塞进 system_instruction 与追加到 contents
+#   末尾的 user message，弱模型把"指令本身"当对话内容描述，输出"会话标题自动生成"
+#   这类元描述。现改为 system 承载全部指令、contents 仅追加极简触发句。
+# - few-shot 中英 + 动作型各一，锚定"概括用户需求"而非"描述对话"。
+# - 显式禁止元词汇（含生产观察到的坏标题字面量作反向锚定）。
+# ---------------------------------------------------------------------------
+
+_TITLE_SYSTEM_INSTRUCTION = (
+    "你是会话标题生成器。根据用户与助手的对话，概括出用户的核心需求或问题主题，"
+    "生成一个简短的会话标题。\n\n"
+    "【输出规则】\n"
+    "1. 概括「用户想做什么 / 问了什么」，不要描述这段对话本身。\n"
+    "2. 中文标题 8-18 个汉字；英文标题不超过 36 个字符。\n"
+    "3. 只输出标题文本本身：不要引号、不要前缀（如「标题:」「Title:」）、"
+    "不要句末标点、不要任何解释。\n"
+    "4. 使用名词短语或短句，不要以句号结尾。\n\n"
+    "【禁止输出的内容】\n"
+    "禁止输出对「标题/对话/任务」本身的描述或元词汇，例如：\n"
+    "「标题」「会话标题」「标题自动生成」「首次标题」「无标题」「新对话」「未命名」、\n"
+    "「Title」「Session Title」「Summary」「Conversation」「对话总结」。\n"
+    "标题必须包含来自对话内容的具体信息（人名、产品名、技术词、动作、主题）。\n\n"
+    "【示例】\n"
+    "对话：\n"
+    "用户：帮我查一下 AfterShip 最近一个季度的财报数据\n"
+    "助手：AfterShip 2025 Q3 营收……\n"
+    "标题：AfterShip Q3 财报查询\n\n"
+    "对话：\n"
+    "用户：How do I set up OAuth2 for a Next.js API route?\n"
+    "助手：You can use NextAuth……\n"
+    "标题：Next.js OAuth2 setup\n\n"
+    "对话：\n"
+    "用户：把这段中文翻译成英文\n"
+    "助手：……\n"
+    "标题：中译英翻译请求\n\n"
+    "现在请根据下方对话生成标题。"
+)
+
+# contents 末尾的极简触发句：不含任何约束/元词汇，仅触发模型按 system 指令输出。
+_TITLE_TRIGGER = "请根据以上对话，给出会话标题："
+
+
 class SessionSummarizer:
     """Uses LLM to summarize conversation history into a short title.
 
@@ -89,26 +245,18 @@ class SessionSummarizer:
 
         logger.info("generating_title", event_count=len(history))
 
-        prompt = (
-            "请根据以下对话生成一个简短标题，长度约 15-18 个汉字（不超过 18 个汉字）。\n"
-            "若为英文，尽量简短（不超过 36 个字符）。\n"
-            "仅输出标题文本，不要引号、前缀、冒号或任何解释。\n"
-            "格式要求：直接输出标题，不要有 'Title:' 等前缀。\n\n"
-            "Summarize the conversation into a short title. "
-            "Output ONLY the title text. No quotes. No prefixes. No explanations."
-        )
-
         try:
+            # 指令全部收敛到 system_instruction（消除历史双用缺陷）；
+            # contents 仅保留纯净对话 history + 末尾极简触发句。
             chat_history = list(history)
-            instruction = types.Content(role="user", parts=[types.Part(text=prompt)])
-            chat_history.append(instruction)
+            chat_history.append(types.Content(role="user", parts=[types.Part(text=_TITLE_TRIGGER)]))
 
             logger.debug("title_generation_request", event_count=len(history), max_tokens=_TITLE_MAX_TOKENS)
 
             request = LlmRequest(
                 contents=chat_history,
                 config=types.GenerateContentConfig(
-                    system_instruction=prompt,
+                    system_instruction=_TITLE_SYSTEM_INSTRUCTION,
                     temperature=0.3,
                     max_output_tokens=_TITLE_MAX_TOKENS,
                 ),
@@ -164,6 +312,11 @@ class SessionSummarizer:
 
                 if len(title) < 3:
                     logger.warning("title_too_short", title_length=len(title))
+                    return None
+
+                # 质量门禁（SoT）：拒绝元词汇占位符 / 复述指令的标题，宁可不写也不写无语义标题。
+                if is_semantically_vacant_title(title):
+                    logger.warning("title_semantically_vacant", title=title)
                     return None
 
                 logger.info("session_title_generated", title=title)
