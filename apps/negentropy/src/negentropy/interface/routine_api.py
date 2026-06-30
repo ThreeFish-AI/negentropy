@@ -15,6 +15,7 @@
 - POST   /routines/{id}/cancel               取消（→ cancelled）
 - POST   /routines/{id}/restart              重启（failed/cancelled → running，复位运行态 + 抬高决策水位线）
 - POST   /routines/{id}/cleanup-worktree     手动回收终态 routine 的隔离 worktree
+- POST   /routines/{id}/sync-pr              手动同步 PR 合并状态（即时回写 pr_merged → 三处 UI 显示「Merged」）
 - POST   /routines/{id}/iterations/{iid}/approve   审批通过待执行迭代
 - POST   /routines/{id}/iterations/{iid}/reject    驳回待执行迭代
 - GET    /routines/stream                    SSE 实时事件（routine + iteration）
@@ -197,6 +198,7 @@ def _serialize_routine(
         "termination_reason": r.termination_reason,
         "current_phase": r.current_phase,
         "pr_url": r.pr_url,
+        "pr_merged": r.pr_merged,
         "work_branch": r.work_branch,
         "worktree_path": r.worktree_path,
         "worktree_status": worktree_meta.get("status") if worktree_meta else None,
@@ -977,6 +979,9 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
         r.claude_session_id = None
         r.current_phase = phase_mod.initial_phase(r.config)
         r.pr_url = None
+        # 复位 PR 合并状态：避免旧 PR 的 merged 污染新一轮 PR 的检测与「Merged」展示。
+        r.pr_merged = None
+        r.pr_merged_checked_at = None
         # 隔离 worktree：仅回收 worktree 目录、**保留终生单一工作分支**（含其检查点提交），
         # 使新一轮尝试在同一分支上从上一检查点续作（不铸新分支、不重建自基线）。下一次派发的
         # ensure_worktree 会按保留的 work_branch 重绑 worktree（本地分支存在则直接 checkout）。
@@ -1036,9 +1041,53 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
     return _serialize_routine(r, worktree_meta=worktree_meta)
 
 
-# ---------------------------------------------------------------------------
-# 审批门控：approve / reject
-# ---------------------------------------------------------------------------
+@router.post("/{routine_id}/sync-pr")
+async def sync_pr_status(routine_id: UUID) -> dict[str, Any]:
+    """手动同步 routine 的 PR 合并状态（即时回写 ``pr_merged``，无需等~5min 心跳）。
+
+    用户在 GitHub 合并 PR 后点 PR 抽屉「同步 PR 状态」即时触发：复用 ``gh pr view --json state,merged``
+    回写 ``pr_merged`` 并经 SSE 推送，使列表 / Full View / PR 抽屉三处立即显示「Merged」。回写逻辑与
+    心跳 ``_sync_pr_merge_status`` 复用同一 ``apply_pr_merge_result``，避免两处分支漂移。
+
+    与心跳 pass 的差异：用户主动触发，故 ``gh`` 缺失/未授权/不可达时**显式 503**（心跳为静默 no-op）。
+    慢操作（gh 子进程）在 DB 会话外执行，不占连接池、不阻塞事件循环（同 cleanup-worktree 范式）。
+    """
+    from negentropy.engine.routine.pr_status import (
+        apply_pr_merge_result,
+        fetch_pr_merge_status,
+        gh_available,
+    )
+
+    # ① 短会话：校验 + 取 pr_url（会话外做 gh 子进程，不占连接池）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if not r.pr_url:
+            raise HTTPException(status_code=409, detail="routine has no PR to sync (pr_url is empty)")
+        pr_url = r.pr_url
+
+    # ② 会话外：best-effort gh 检测（带超时）。gh 缺失或未应答 → 503（用户主动触发应显式暴露）。
+    if not gh_available():
+        raise HTTPException(status_code=503, detail="gh CLI not available on backend PATH; cannot sync PR status")
+    try:
+        st = await fetch_pr_merge_status(pr_url, timeout=float(settings.routine.pr_merge_check_timeout_seconds))
+    except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；用户面兜底 502
+        raise HTTPException(status_code=502, detail=f"PR status check failed: {exc}") from exc
+    if st.merged is None and st.state is None:
+        raise HTTPException(
+            status_code=503,
+            detail="gh could not determine PR status (unauthorized / unreachable / timeout); retry later",
+        )
+
+    # ③ 短会话：回写 + 提交 + 推 SSE（expire_on_commit=False → r 提交后仍可读）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        apply_pr_merge_result(r, st, _utcnow())
+        await db.commit()
+        await db.refresh(r)
+        await _publish_routine(r)
+    return _serialize_routine(r)
 
 
 @router.post("/{routine_id}/iterations/{iteration_id}/approve")
@@ -1126,6 +1175,7 @@ async def _publish_routine(r: Routine) -> None:
             "total_cost_usd": r.total_cost_usd,
             "current_phase": r.current_phase,
             "pr_url": r.pr_url,
+            "pr_merged": r.pr_merged,
         }
     )
 

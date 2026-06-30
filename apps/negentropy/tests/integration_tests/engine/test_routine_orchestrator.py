@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -23,7 +24,7 @@ from sqlalchemy import delete, select
 import negentropy.db.session as db_session
 from negentropy.engine.claude_code.models import ClaudeCodeResult
 from negentropy.engine.routine import decision as decision_mod
-from negentropy.engine.routine import workspace
+from negentropy.engine.routine import pr_status, workspace
 from negentropy.engine.routine.evaluator import EvaluationResult
 from negentropy.engine.routine.orchestrator import RoutineOrchestrator
 from negentropy.engine.routine.workspace import WorkspaceInfo
@@ -1206,3 +1207,132 @@ async def test_is_plan_review_active_toggle_rollback():
         assert orch_mod._is_plan_review_active(wt_plan) is True, "legacy：仅 PLAN 相位激活评审"
     finally:
         object.__setattr__(settings.routine, "plan_review_unified_loop", True)
+
+
+# ---------------------------------------------------------------------------
+# _sync_pr_merge_status：PR 合并状态巡检 pass（mock gh 检测，真实 Postgres）
+# ---------------------------------------------------------------------------
+
+_PR_URL = "https://github.com/owner/repo/pull/123"
+
+
+async def _make_succeeded_routine_with_pr(**overrides) -> uuid.UUID:
+    """种子一个 succeeded + pr_url 的 routine（FINALIZE 后「等待人工 Merge」态）。"""
+    defaults = dict(
+        key=_key(),
+        title="PR Merge Sync Test",
+        goal="g",
+        acceptance_criteria="ac",
+        status="succeeded",
+        termination_reason="success",
+        pr_url=_PR_URL,
+        pr_merged=None,
+        pr_merged_checked_at=None,
+        max_iterations=5,
+        success_score_threshold=85,
+        no_progress_patience=3,
+        approval_mode="auto",
+        iteration_count=1,
+        reflections={},
+        config={},
+    )
+    defaults.update(overrides)
+    async with db_session.AsyncSessionLocal() as db:
+        r = Routine(**defaults)
+        db.add(r)
+        await db.commit()
+        return r.id
+
+
+async def test_sync_pr_merge_status_detects_merged_and_publishes():
+    """succeeded + pr_url + 未知 → gh 报 MERGED → 回写 pr_merged=True + 推 SSE，返回 1。"""
+    rid = await _make_succeeded_routine_with_pr()
+    try:
+        orch = RoutineOrchestrator()
+        publish_mock = AsyncMock()
+        with (
+            patch(
+                "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+                new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=True, state="MERGED")),
+            ),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=publish_mock),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 1
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_merged is True
+            assert r.pr_merged_checked_at is not None
+        publish_mock.assert_awaited_once()
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_skips_already_merged():
+    """pr_merged=True 的 routine 不在 due 集 → 不调 gh、不推 SSE，返回 0。"""
+    rid = await _make_succeeded_routine_with_pr(pr_merged=True, pr_merged_checked_at=None)
+    fetch_mock = AsyncMock()
+    try:
+        orch = RoutineOrchestrator()
+        with (
+            patch("negentropy.engine.routine.pr_status.fetch_pr_merge_status", new=fetch_mock),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=AsyncMock()),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_records_closed_unmerged():
+    """closed-without-merge（merged=False）→ 回写 pr_merged=False + 推进 checked_at（停检）。"""
+    rid = await _make_succeeded_routine_with_pr()
+    try:
+        orch = RoutineOrchestrator()
+        with patch(
+            "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+            new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=False, state="CLOSED")),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0  # 非新检出 merged
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_merged is False
+            assert r.pr_merged_checked_at is not None
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_unknown_leaves_state_untouched():
+    """gh 未应答（merged=None, state=None）→ 不动 pr_merged/checked_at，保持 due 下 tick 重试。"""
+    rid = await _make_succeeded_routine_with_pr()
+    try:
+        orch = RoutineOrchestrator()
+        with patch(
+            "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+            new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=None, state=None)),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_merged is None
+            assert r.pr_merged_checked_at is None  # 未应答 → 不推进节流
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_throttle_skips_recently_checked():
+    """窗口内（checked_at 距今 < interval）→ 不在 due 集 → 不调 gh。"""
+    recent = datetime.now(UTC) - timedelta(seconds=10)
+    rid = await _make_succeeded_routine_with_pr(pr_merged=None, pr_merged_checked_at=recent)
+    fetch_mock = AsyncMock()
+    try:
+        orch = RoutineOrchestrator()
+        with patch("negentropy.engine.routine.pr_status.fetch_pr_merge_status", new=fetch_mock):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
