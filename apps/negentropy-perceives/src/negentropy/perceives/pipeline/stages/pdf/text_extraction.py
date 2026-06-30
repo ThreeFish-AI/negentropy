@@ -456,18 +456,33 @@ class FitzTextExtractor(PDFToolBase):
         if y1 > page_height * 0.95 and 20 <= text_len <= 100:
             return True
 
-        # ACM/IEEE 会议论文页眉模式
-        _conf_patterns = [
-            r"Conference\s+acronym",
-            r"Proceedings\s+of",
-            r"In\s+Proceedings",
+        # ACM/IEEE 会议论文页眉模式。
+        # 版权/格式行（ACM Reference Format / Permission to make digital /
+        # Copyright ... ACM）只出现在真实页眉/页脚，绝不会出现在参考文献条目
+        # 中，无论长度都可安全判定为页眉。
+        _copyright_header_patterns = [
             r"ACM\s+Reference\s+Format",
             r"Permission\s+to\s+make\s+digital",
             r"Copyright\s+.*\d{4}\s+ACM",
         ]
-        for pat in _conf_patterns:
+        for pat in _copyright_header_patterns:
             if re.search(pat, text_stripped, re.IGNORECASE):
                 return True
+
+        # 会议/论文集模式（"In Proceedings of" / "Proceedings of" / 会议简称）
+        # 既出现在短页眉（如 "In Proceedings of SIGIR '26"）也高频出现在参考
+        # 文献条目中。用 re.search 子串匹配时，整列参考文献（数千字符，必含上述
+        # 短语）会被误判为会议页眉而整体丢弃（ISSUE: 参考文献整段丢失）。
+        # 仅当文本短（真页眉，< 200 字符）才判定；长块必为参考文献正文，保留。
+        # 与下方 DOI 行检测阈值一致。
+        if text_len < 200:
+            for pat in (
+                r"Conference\s+acronym",
+                r"Proceedings\s+of",
+                r"In\s+Proceedings",
+            ):
+                if re.search(pat, text_stripped, re.IGNORECASE):
+                    return True
 
         # DOI 行
         if re.search(r"https?://doi\.org/", text_stripped) and text_len < 200:
