@@ -47,7 +47,7 @@ export async function fetchKpis(): Promise<RoutineKpis> {
 
 export async function fetchRoutines(
   filters: Partial<RoutineFilters> = {},
-  opts: { limit?: number; cursor?: string | null; signal?: AbortSignal } = {},
+  opts: { limit?: number; cursor?: string | null; offset?: number; signal?: AbortSignal } = {},
 ): Promise<RoutineListResponse> {
   const sp = new URLSearchParams();
   if (filters.status) sp.set("status", filters.status);
@@ -56,6 +56,7 @@ export async function fetchRoutines(
   if (filters.source_task_key) sp.set("source_task_key", filters.source_task_key);
   if (opts.limit) sp.set("limit", String(opts.limit));
   if (opts.cursor) sp.set("cursor", opts.cursor);
+  if (opts.offset != null) sp.set("offset", String(opts.offset));
   const q = sp.toString();
   return jsonFetch(`${q ? `?${q}` : ""}`, opts.signal ? { signal: opts.signal } : undefined);
 }

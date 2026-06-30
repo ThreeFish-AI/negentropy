@@ -1,7 +1,7 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useRoutineData } from "@/features/routine/hooks/useRoutineData";
+import { useRoutineData, ROUTINE_PAGE_SIZE } from "@/features/routine/hooks/useRoutineData";
 import * as api from "@/features/routine/api";
 import type { RoutineDTO, RoutineKpis } from "@/features/routine";
 
@@ -75,7 +75,7 @@ describe("useRoutineData", () => {
     vi.restoreAllMocks();
   });
 
-  it("挂载后游标拉取列表 + 独立拉取 KPI 并落地 state", async () => {
+  it("挂载后偏移拉取列表首页 + 独立拉取 KPI 并落地 state", async () => {
     const listSpy = vi
       .spyOn(api, "fetchRoutines")
       .mockResolvedValue({ items: [makeRoutine("r1")], next_cursor: null, has_more: false, total: 1 });
@@ -89,10 +89,11 @@ describe("useRoutineData", () => {
     expect(result.current.kpis).toMatchObject({ total: 2 });
     expect(result.current.error).toBeNull();
     expect(result.current.total).toBe(1);
-    // 游标分页：首页 cursor=null + 透传 limit；filters 作为第二实参的 filters 字段。
+    expect(result.current.totalPages).toBe(1);
+    // 偏移分页：首页 offset=0 + 透传 limit；filters 作为第二实参的 filters 字段。
     expect(listSpy).toHaveBeenCalledWith(
       { status: "running" },
-      expect.objectContaining({ cursor: null }),
+      expect.objectContaining({ offset: 0, limit: ROUTINE_PAGE_SIZE }),
     );
     expect(kpiSpy).toHaveBeenCalledTimes(1);
   });
@@ -111,7 +112,7 @@ describe("useRoutineData", () => {
 
     rerender({ q: "b" });
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
-    expect(listSpy).toHaveBeenLastCalledWith({ q: "b" }, expect.objectContaining({ cursor: null }));
+    expect(listSpy).toHaveBeenLastCalledWith({ q: "b" }, expect.objectContaining({ offset: 0 }));
   });
 
   it("拉取失败时写入 error", async () => {
@@ -137,5 +138,28 @@ describe("useRoutineData", () => {
     result.current.refresh();
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(kpiSpy).toHaveBeenCalledTimes(2));
+  });
+
+  it("goToPage 以 offset 翻页并暴露当前页切片", async () => {
+    const all = Array.from({ length: 15 }, (_, i) => makeRoutine(`r${i}`));
+    const listSpy = vi.spyOn(api, "fetchRoutines").mockImplementation(async (_f, opts) => ({
+      items: all.slice(opts?.offset ?? 0, (opts?.offset ?? 0) + (opts?.limit ?? ROUTINE_PAGE_SIZE)),
+      next_cursor: null,
+      has_more: false,
+      total: all.length,
+    }));
+    vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
+
+    const { result } = renderHook(() => useRoutineData({}));
+    await waitFor(() => expect(result.current.routines).toHaveLength(ROUTINE_PAGE_SIZE));
+    expect(result.current.totalPages).toBe(2); // ceil(15/10)
+    expect(result.current.routines.map((r) => r.id)).toEqual([
+      "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9",
+    ]);
+
+    act(() => result.current.goToPage(2));
+    await waitFor(() => expect(result.current.routines.map((r) => r.id)).toEqual(["r10", "r11", "r12", "r13", "r14"]));
+    // 第 2 页以 offset=10 拉取剩余 5 条。
+    expect(listSpy).toHaveBeenLastCalledWith({}, expect.objectContaining({ offset: 10, limit: ROUTINE_PAGE_SIZE }));
   });
 });

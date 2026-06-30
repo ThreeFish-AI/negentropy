@@ -8,7 +8,6 @@ import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { Pagination } from "@/components/ui/Pagination";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
-import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import {
   cleanupWorktree,
   controlRoutine,
@@ -45,11 +44,6 @@ function RoutinePageInner() {
   // 行内 Clean Up 在途 routine id（null=无）；按钮 busy/disabled + spinner，防二次点击。
   const [cleanupBusyId, setCleanupBusyId] = useState<string | null>(null);
 
-  // 无限滚动 + 翻页：滚动容器 ref（哨兵 / 滚动联动 observer 的 root）、程序化滚动闸门、待跳页号。
-  const scrollRootRef = useRef<HTMLDivElement | null>(null);
-  const programmaticScrollRef = useRef(false);
-  const pendingPageRef = useRef<number | null>(null);
-
   // SSE ghost-reopen 守卫：镜像 selected 供异步 SSE 回调读取「抽屉是否仍打开」，
   // 关闭时在 closeDetail 内同步清空，杜绝 stale-id 事件在 setSelected 提交前重开抽屉（§2）。
   const selectedRef = useRef<RoutineDTO | null>(selected);
@@ -70,54 +64,11 @@ function RoutinePageInner() {
     total,
     totalPages,
     goToPage,
-    loadMore,
-    hasMore,
-    loadingMore,
-    pageSize,
   } = useRoutineLive(filters);
 
-  // 时钟仅在有运行中任务时滴答（运行中任务 updated_at 最新、恒在已加载前缀内）。
+  // 时钟仅在有运行中任务时滴答（列表行用绝对时间、不消费时钟；此值仅控制 ClockProvider 心跳，
+  // 切片后按「当前页是否含运行中任务」判定，保守且无可见副作用）。
   const clockActive = useMemo(() => routines.some((r) => r.status === "running"), [routines]);
-
-  // 无限滚动哨兵：滚到底（提前 200px）→ 追加下一游标页。root = 页面级滚动容器。
-  const { sentinelRef } = useInfiniteScrollSentinel({
-    onReach: loadMore,
-    enabled: hasMore && !loadingMore && !loading,
-    root: scrollRootRef,
-  });
-
-  // 滚动联动当前页高亮：观测每页首行的 data-infinite-page 锚点，取最靠上可见页。
-  useScrollPageSync({
-    enabled: true,
-    onPageChange: goToPage,
-    root: scrollRootRef,
-    rescanKey: routines.length,
-    programmaticRef: programmaticScrollRef,
-  });
-
-  // 点页码跳页：先经 hook 确保该页已加载（游标顺序补齐 / 已加载即时），再滚动到该页锚点。
-  const handleGoToPage = useCallback(
-    (target: number) => {
-      pendingPageRef.current = target;
-      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
-      goToPage(target);
-    },
-    [goToPage],
-  );
-
-  // 待跳页锚点出现即平滑滚动（cursor 顺序补齐时，锚点随 routines 增长后再现 → effect 重跑命中）。
-  useEffect(() => {
-    const target = pendingPageRef.current;
-    if (target == null) return;
-    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
-    if (!anchor) return; // 该页尚未渲染，待 routines 增长后重跑
-    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-    pendingPageRef.current = null;
-    const t = window.setTimeout(() => {
-      programmaticScrollRef.current = false;
-    }, 600);
-    return () => window.clearTimeout(t);
-  }, [currentPage, routines.length]);
 
   // 刷新当前选中详情（含迭代）。
   const refreshSelected = useCallback(async (id: string) => {
@@ -286,7 +237,7 @@ function RoutinePageInner() {
   return (
     <div className="flex h-full flex-col bg-muted">
       <InterfaceNav title="Routine" />
-      <div ref={scrollRootRef} className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
             <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} kpis={kpis} />
@@ -309,23 +260,18 @@ function RoutinePageInner() {
               onTerminate={requestTerminate}
               onCleanupWorktree={handleCleanupWorktree}
               cleanupBusyId={cleanupBusyId}
-              pageSize={pageSize}
             />
 
-            {/* 无限滚动哨兵：进入视口即追加下一页（hasMore 为否时 hook 自动停观察）。 */}
-            <div ref={sentinelRef} aria-hidden className="h-px w-full" />
-
-            {/* 居中翻页控件（页总数 + 控件组居中成组），与无限滚动并存；sticky 底栏始终可达。 */}
+            {/* 居中翻页控件（页总数 + 控件组居中成组）；sticky 底栏始终可达。 */}
             {routines.length > 0 && (
               <div className="sticky bottom-0 -mx-6 border-t border-border bg-muted/95 px-6 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
                 <Pagination
                   page={currentPage}
                   totalPages={totalPages}
-                  onPageChange={handleGoToPage}
+                  onPageChange={goToPage}
                   total={total ?? undefined}
                   itemLabel="routine"
                   disabled={loading}
-                  loadingMore={loadingMore}
                 />
               </div>
             )}
