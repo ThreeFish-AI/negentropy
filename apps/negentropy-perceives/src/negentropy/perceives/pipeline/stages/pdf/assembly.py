@@ -1483,24 +1483,40 @@ def _is_low_content_figure_label(text: str) -> bool:
     """判断落入 figure region 的文本块是否是缺乏实质内容的图周碎片。
 
     ``_block_overlaps_special`` 命中后，caption 已恒保留；本函数用于进一步区分
-    "真实内容块"与"图周矢量标签碎片"，双信号判定：
+    "真实内容块"与"图周矢量标签碎片"，三信号判定：
 
     - 信号 A（缺实质英文词）：坐标轴刻度（``10 3 10 2 10 1``、``1 K 10 K``、
-      ``10 −1``）、面板标记（``(a) (b)``）等几乎不含 ≥3 字母英文词（< 2 个）。
-    - 信号 B（刻度序列）：即便跟 2 词轴标题（如 ``1 2 4 8 16 32 Feature index j``、
+      ``10 −1``）、面板标记（``(a) (b)``）、单字轴标题（``Residual δ F``）——0~1 个
+      ≥3 字母英文词。
+    - 信号 C（2 词轴标题碎片）：``Training Step`` / ``Train Loss`` / ``Eval Loss`` /
+      ``Training Step Δ`` 等——≤2 个 ≥3 字母英文词、且**无**章节编号前缀
+      （``4.2 Behavioral Evidence`` / ``A Related Work`` 起首带编号 → 放行）、**无**
+      句末标点。真实短标题多带章节编号或句末标点，且罕见落入 figure region。
+    - 信号 B（刻度序列）：即便跟 2 词轴标题（``1 2 4 8 16 32 Feature index j``、
       ``10 20 30 Task index k``），出现 ≥3 个**相邻**纯数字 token（仅由空白/逗号/
       分号分隔）即为坐标轴刻度序列。要求"相邻 ≥3"以避免误伤正文里散落的章节引用
       （``Sec. 3 ... Sec. 3``、``sections 3, 4``）与型号 ``4M``/``210B``/``GPT-4``。
 
     真实 section 标题与导言段落（``4 Corroborating Claims...``、``We now verify
-    the claims of Sec. 3 ... Following the structure of Sec. 3 ...``）两信号均不
+    the claims of Sec. 3 ... Following the structure of Sec. 3 ...``）三信号均不
     命中，予以保留。
     """
     if not text:
         return True
-    if len(re.findall(r"[A-Za-z]{3,}", text)) < 2:
-        return True
-    # 相邻纯数字序列（≥3 个）= 坐标轴刻度
+    t = text.strip()
+    words = re.findall(r"[A-Za-z]{3,}", text)
+    # 信号 A + C：短碎片（≤2 个 ≥3 字母英文词）且非"章节编号前缀 / 句末标点"形态
+    if len(words) <= 2:
+        # 章节编号前缀要求编号后跟 ≥2 字母英文词（'4.2 Behavioral Evidence'/'A Related Work'），
+        # 避免把 '10 −1'（−1 非字母）、'1 B 300 M 20 M'（B/M 单字母）这类刻度/图例
+        # 噪声误判为 section 编号。
+        has_section_prefix = bool(
+            re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", t)
+        )
+        has_terminal_punct = bool(re.search(r"[.!?][\"')\]]*\s*$", t))
+        if not has_section_prefix and not has_terminal_punct:
+            return True
+    # 信号 B：相邻纯数字序列（≥3 个）= 坐标轴刻度
     return bool(re.search(r"\d+(?:\.\d+)?(?:[\s,;]+\d+(?:\.\d+)?){2,}", text))
 
 
