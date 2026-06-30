@@ -21,9 +21,11 @@ interface RoutineTableProps {
   onCleanupWorktree?: (r: RoutineDTO) => void;
   /** 正在清理的 routine id（行内按钮 busy/disabled + spinner，防二次点击；null 表示无在途）。 */
   cleanupBusyId?: string | null;
+  /** 无限滚动每页条数：每页首行挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。 */
+  pageSize?: number;
 }
 
-export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree, cleanupBusyId }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree, cleanupBusyId, pageSize }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -57,9 +59,10 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
           </tr>
         </thead>
         <tbody>
-          {routines.map((r) => (
+          {routines.map((r, i) => (
             <tr
               key={r.id}
+              data-infinite-page={pageSize && i % pageSize === 0 ? Math.floor(i / pageSize) + 1 : undefined}
               onClick={() => onSelect(r)}
               className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
             >

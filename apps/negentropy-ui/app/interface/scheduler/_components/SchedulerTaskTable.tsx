@@ -4,10 +4,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
-  /** 当前页要渲染的任务（已由调用方排序 + 切片）。 */
+  /** 要渲染的任务（由调用方以连续前缀形式提供，后端 updated_at 倒序）。 */
   tasks: ScheduledTaskDTO[];
   /** 任务总数，用于表头计数；缺省回退到 tasks.length。 */
   total?: number;
+  /** 无限滚动每页条数：每页首行挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。 */
+  pageSize?: number;
   loading: boolean;
   onToggle: (id: string, enabled: boolean) => void;
   onRun: (id: string) => void;
@@ -70,6 +72,7 @@ function SkeletonRow() {
 export function SchedulerTaskTable({
   tasks,
   total,
+  pageSize,
   loading,
   onToggle,
   onRun,
@@ -105,9 +108,10 @@ export function SchedulerTaskTable({
                 </td>
               </tr>
             ) : (
-              tasks.map((t) => (
+              tasks.map((t, i) => (
                 <tr
                   key={t.id}
+                  data-infinite-page={pageSize && i % pageSize === 0 ? Math.floor(i / pageSize) + 1 : undefined}
                   onClick={() => onSelect(t)}
                   className="cursor-pointer border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
                 >

@@ -57,9 +57,15 @@ export async function fetchKpis(window: StatsWindow = "24h"): Promise<KpiRespons
   return jsonFetch(`/kpis?window=${encodeURIComponent(window)}`);
 }
 
-export async function fetchTasks(filters: Partial<DashboardFilters> = {}): Promise<TaskListResponse> {
-  const q = buildFilterQuery(filters);
-  return jsonFetch(`/tasks${q ? `?${q}` : ""}`);
+export async function fetchTasks(
+  filters: Partial<DashboardFilters> = {},
+  opts: { limit?: number; cursor?: string | null; signal?: AbortSignal } = {},
+): Promise<TaskListResponse> {
+  const sp = new URLSearchParams(buildFilterQuery(filters));
+  if (opts.limit) sp.set("limit", String(opts.limit));
+  if (opts.cursor) sp.set("cursor", opts.cursor);
+  const q = sp.toString();
+  return jsonFetch(`/tasks${q ? `?${q}` : ""}`, opts.signal ? { signal: opts.signal } : undefined);
 }
 
 export async function fetchTaskDetail(taskId: string): Promise<TaskDetailResponse> {
@@ -67,7 +73,12 @@ export async function fetchTaskDetail(taskId: string): Promise<TaskDetailRespons
 }
 
 export async function fetchExecutions(
-  filters: Partial<DashboardFilters> & { limit?: number; task_id?: string } = {},
+  filters: Partial<DashboardFilters> & {
+    limit?: number;
+    task_id?: string;
+    cursor?: string | null;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<ExecutionListResponse> {
   const sp = new URLSearchParams();
   if (filters.role) sp.set("role", filters.role);
@@ -75,8 +86,9 @@ export async function fetchExecutions(
   if (filters.agent) sp.set("agent", filters.agent);
   if (filters.task_id) sp.set("task_id", filters.task_id);
   if (filters.limit) sp.set("limit", String(filters.limit));
+  if (filters.cursor) sp.set("cursor", filters.cursor);
   const q = sp.toString();
-  return jsonFetch(`/executions${q ? `?${q}` : ""}`);
+  return jsonFetch(`/executions${q ? `?${q}` : ""}`, filters.signal ? { signal: filters.signal } : undefined);
 }
 
 export async function fetchStats(

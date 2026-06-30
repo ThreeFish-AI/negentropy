@@ -6,15 +6,17 @@
  */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import {
-  FactListPayload,
+  FactItem,
   FactHistoryItem,
   fetchFacts,
   searchFacts,
@@ -31,15 +33,19 @@ import { FactCard } from "./_components/FactCard";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const PAGE_SIZE = 12; // 4 rows × 3 columns
 
+/** useInfiniteList 的筛选键：用户 + 已提交的搜索词，任一变化即 reset 回第 1 页。 */
+interface FactFilters {
+  userId: string | null;
+  /** 已提交的搜索词（由 Search 按钮 / Enter 触发，非输入框实时值）；空串 = 浏览模式。 */
+  query: string;
+}
+
 export default function MemoryFactsPage() {
   const [users, setUsers] = useState<Array<{ id: string; label: string }>>([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // 输入框实时值（不触发取数）
+  const [submittedQuery, setSubmittedQuery] = useState(""); // 已提交搜索词（触发取数）
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
-  const [payload, setPayload] = useState<FactListPayload | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [currentPage, setCurrentPage] = useState(0); // 0-indexed
 
   // Fact History modal state
   const [historyFactId, setHistoryFactId] = useState<string | null>(null);
@@ -47,24 +53,85 @@ export default function MemoryFactsPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
-  const loadFacts = useCallback(async (page = 0) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await fetchFacts(
-        activeUserId ?? undefined,
-        APP_NAME,
-        undefined,
-        PAGE_SIZE,
-        page * PAGE_SIZE,
-      );
-      setPayload(data);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeUserId]);
+  // 无限滚动 + 翻页：主内容区滚动容器 ref（哨兵 / 滚动联动 observer 的 root）、
+  // 程序化滚动闸门、待跳页号（照搬 Routine 样板结构）。
+  const scrollRootRef = useRef<HTMLElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
+
+  // 偏移分页适配器：浏览态走 fetchFacts，搜索态走 searchFacts；
+  // 两者同形（limit/offset → { count, total, items }），total 即全量总数，直接归一。
+  const fetcher = useMemo<OffsetFetcher<FactItem, FactFilters>>(
+    () => ({
+      kind: "offset",
+      fetchRange: async ({ offset, limit, filters }) => {
+        const q = filters?.query.trim() ?? "";
+        const uid = filters?.userId ?? undefined;
+        // 搜索仅在选定用户时有效（searchFacts 必带 user_id）；否则回退浏览。
+        if (q && uid) {
+          const r = await searchFacts({ app_name: APP_NAME, user_id: uid, query: q, limit, offset });
+          return { items: r.items, total: r.total };
+        }
+        const r = await fetchFacts(uid, APP_NAME, undefined, limit, offset);
+        return { items: r.items, total: r.total };
+      },
+    }),
+    [],
+  );
+
+  const filters = useMemo<FactFilters>(
+    () => ({ userId: activeUserId, query: submittedQuery }),
+    [activeUserId, submittedQuery],
+  );
+
+  const list = useInfiniteList<FactItem, FactFilters>({ fetcher, pageSize: PAGE_SIZE, filters });
+
+  const facts = list.items;
+  const total = list.total ?? 0;
+  const userLabelMap = useMemo(
+    () => new Map(users.map((u) => [u.id, u.label || u.id])),
+    [users],
+  );
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 追加下一偏移页。root = 主内容区滚动容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首卡的 data-infinite-page 锚点，取最靠上可见页。
+  useScrollPageSync({
+    enabled: true,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: facts.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  // 点页码跳页：先经 hook 确保该页已加载（偏移单请求补齐缺口），再滚动到该页锚点。
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（缺口补齐时锚点随 items 增长后再现 → effect 重跑命中）。
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return; // 该页尚未渲染，待 items 增长后重跑
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [list.currentPage, facts.length]);
 
   useEffect(() => {
     setUsersLoading(true);
@@ -74,50 +141,20 @@ export default function MemoryFactsPage() {
       .finally(() => setUsersLoading(false));
   }, []);
 
+  // 切换用户即回浏览态（与迁移前一致：原 user-switch effect 走 fetchFacts 浏览、忽略搜索词）。
+  // 仅清「已提交搜索词」，输入框文本保留（对齐原行为）。
   useEffect(() => {
-    setCurrentPage(0);
-    loadFacts(0);
-  }, [loadFacts]);
+    setSubmittedQuery("");
+  }, [activeUserId]);
 
-  const facts = payload?.items || [];
-  const total = payload?.total ?? 0;
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
-  const safePage = Math.min(currentPage, totalPages - 1);
-  const userLabelMap = new Map(users.map((u) => [u.id, u.label || u.id]));
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setCurrentPage(page);
-      loadFacts(page);
-    },
-    [loadFacts],
-  );
-
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!searchQuery.trim() || !activeUserId) return;
-    setCurrentPage(0);
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await searchFacts({
-        app_name: APP_NAME,
-        user_id: activeUserId,
-        query: searchQuery.trim(),
-        limit: PAGE_SIZE,
-        offset: 0,
-      });
-      setPayload(result);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
+    setSubmittedQuery(searchQuery.trim()); // 提交搜索词 → filters 变化 → useInfiniteList 自动 reset 回第 1 页
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    setCurrentPage(0);
-    loadFacts(0);
+    setSubmittedQuery(""); // 清空 → 回浏览态 → 自动 reset
   };
 
   const handleShowHistory = async (factId: string) => {
@@ -158,6 +195,7 @@ export default function MemoryFactsPage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col px-6 py-6">
           <MemorySidebarLayout
+            mainRef={scrollRootRef}
             sidebar={
               <>
                 <SidebarCard title="Facts Overview">
@@ -189,14 +227,14 @@ export default function MemoryFactsPage() {
               <MemoryUserPillFilter
                 users={users}
                 activeUserId={activeUserId}
-                onSelect={setActiveUserId}
+                onSelect={setActiveUserId} // 选用户由 useInfiniteList 自动 reset 回第 1 页
                 loading={usersLoading}
               />
             </div>
 
-            {error && (
+            {list.error && (
               <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
-                {error?.message || String(error)}
+                {list.error}
               </div>
             )}
 
@@ -220,7 +258,7 @@ export default function MemoryFactsPage() {
             )}
 
             {/* Facts grid -- always shown */}
-            {isLoading ? (
+            {list.loading ? (
               <p className="text-xs text-muted-foreground">
                 <Spinner size="sm" className="mr-1.5 inline-block align-text-bottom" />
                 Loading facts...
@@ -233,48 +271,36 @@ export default function MemoryFactsPage() {
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {facts.map((fact) => (
-                    <FactCard
+                  {facts.map((fact, i) => (
+                    // 每 PAGE_SIZE 卡首卡挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。
+                    <div
                       key={fact.id}
-                      fact={fact}
-                      userLabel={activeUserId ? undefined : userLabelMap.get(fact.user_id)}
-                      onShowHistory={handleShowHistory}
-                    />
+                      data-infinite-page={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
+                    >
+                      <FactCard
+                        fact={fact}
+                        userLabel={activeUserId ? undefined : userLabelMap.get(fact.user_id)}
+                        onShowHistory={handleShowHistory}
+                      />
+                    </div>
                   ))}
                 </div>
 
-                {/* Pagination controls */}
-                {total > PAGE_SIZE && (
-                  <div className="mt-6 flex items-center justify-between">
-                    <span className="text-micro text-muted-foreground">
-                      {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, total)} of{" "}
-                      {total}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={safePage <= 0 || isLoading}
-                        onClick={() => handlePageChange(safePage - 1)}
-                        aria-label="Previous page"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </Button>
-                      <span className="min-w-[5rem] text-center text-xs text-muted-foreground">
-                        {safePage + 1} / {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={safePage >= totalPages - 1 || isLoading}
-                        onClick={() => handlePageChange(safePage + 1)}
-                        aria-label="Next page"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                {/* 无限滚动哨兵：进入视口即追加下一页（hasMore 为否时 hook 自动停观察）。 */}
+                <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+
+                {/* 居中翻页控件（总数 + 控件组居中成组），与无限滚动并存。 */}
+                <div className="mt-6">
+                  <Pagination
+                    page={list.currentPage}
+                    totalPages={list.totalPages}
+                    onPageChange={handleGoToPage}
+                    total={list.total ?? undefined}
+                    itemLabel="fact"
+                    disabled={list.loading}
+                    loadingMore={list.loadingMore}
+                  />
+                </div>
               </>
             )}
           </MemorySidebarLayout>

@@ -103,11 +103,15 @@ export interface StatsResponse {
 export interface TaskListResponse {
   items: ScheduledTaskDTO[];
   next_cursor: string | null;
+  has_more?: boolean;
+  total?: number;
 }
 
 export interface ExecutionListResponse {
   items: TaskExecutionDTO[];
   next_cursor: string | null;
+  has_more?: boolean;
+  total?: number;
 }
 
 export interface TaskDetailResponse extends ScheduledTaskDTO {

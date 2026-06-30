@@ -263,12 +263,16 @@ export interface RoutineListResponse {
   items: RoutineDTO[];
   next_cursor: string | null;
   has_more: boolean;
+  /** 当前筛选下的全量计数（后端 COUNT）；旧后端可能缺省。 */
+  total?: number;
 }
 
 export interface IterationListResponse {
   items: RoutineIterationDTO[];
   has_more: boolean;
   next_before_seq: number | null;
+  /** 该 routine 的迭代全量计数（后端 COUNT）；旧后端可能缺省。 */
+  total?: number;
 }
 
 export interface RoutineFilters {

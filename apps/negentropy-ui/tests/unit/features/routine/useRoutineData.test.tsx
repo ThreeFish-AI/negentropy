@@ -73,64 +73,67 @@ describe("useRoutineData", () => {
     vi.restoreAllMocks();
   });
 
-  it("挂载后并发拉取列表与 KPI 并落地 state", async () => {
+  it("挂载后游标拉取列表 + 独立拉取 KPI 并落地 state", async () => {
     const listSpy = vi
       .spyOn(api, "fetchRoutines")
-      .mockResolvedValue({ items: [makeRoutine("r1")], next_cursor: null, has_more: false });
+      .mockResolvedValue({ items: [makeRoutine("r1")], next_cursor: null, has_more: false, total: 1 });
     const kpiSpy = vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
 
     const { result } = renderHook(() => useRoutineData({ status: "running" }));
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.routines).toHaveLength(1));
 
-    expect(result.current.routines).toHaveLength(1);
     expect(result.current.routines[0].id).toBe("r1");
     expect(result.current.kpis).toMatchObject({ total: 2 });
     expect(result.current.error).toBeNull();
-    expect(listSpy).toHaveBeenCalledWith({ status: "running" });
+    expect(result.current.total).toBe(1);
+    // 游标分页：首页 cursor=null + 透传 limit；filters 作为第二实参的 filters 字段。
+    expect(listSpy).toHaveBeenCalledWith(
+      { status: "running" },
+      expect.objectContaining({ cursor: null }),
+    );
     expect(kpiSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("filters 变化时重新拉取", async () => {
+  it("filters 变化时重新拉取首页", async () => {
     const listSpy = vi
       .spyOn(api, "fetchRoutines")
-      .mockResolvedValue({ items: [], next_cursor: null, has_more: false });
+      .mockResolvedValue({ items: [], next_cursor: null, has_more: false, total: 0 });
     vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
 
-    const { result, rerender } = renderHook((props: { q: string }) => useRoutineData(props), {
+    const { rerender } = renderHook((props: { q: string }) => useRoutineData(props), {
       initialProps: { q: "a" },
     });
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(listSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(1));
 
     rerender({ q: "b" });
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
-    expect(listSpy).toHaveBeenLastCalledWith({ q: "b" });
+    expect(listSpy).toHaveBeenLastCalledWith({ q: "b" }, expect.objectContaining({ cursor: null }));
   });
 
-  it("拉取失败时写入 error 并停止 loading", async () => {
+  it("拉取失败时写入 error", async () => {
     vi.spyOn(api, "fetchRoutines").mockRejectedValue(new Error("network down"));
     vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
 
     const { result } = renderHook(() => useRoutineData({}));
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.error).toBe("network down");
+    await waitFor(() => expect(result.current.error).toBe("network down"));
     expect(result.current.routines).toHaveLength(0);
   });
 
-  it("refresh() 触发再次拉取", async () => {
+  it("refresh() 触发列表与 KPI 再次拉取", async () => {
     const listSpy = vi
       .spyOn(api, "fetchRoutines")
-      .mockResolvedValue({ items: [], next_cursor: null, has_more: false });
-    vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
+      .mockResolvedValue({ items: [], next_cursor: null, has_more: false, total: 0 });
+    const kpiSpy = vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
 
     const { result } = renderHook(() => useRoutineData({}));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(listSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(1));
+    expect(kpiSpy).toHaveBeenCalledTimes(1);
 
-    await result.current.refresh();
+    result.current.refresh();
     await waitFor(() => expect(listSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(kpiSpy).toHaveBeenCalledTimes(2));
   });
 });

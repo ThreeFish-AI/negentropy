@@ -485,26 +485,37 @@ async def list_routines(
 ) -> dict[str, Any]:
     """路由清单：多维筛选 + 基于 updated_at 的游标分页。"""
     async with db_session.AsyncSessionLocal() as db:
-        stmt = select(Routine)
+        # 收集筛选条件（不含 cursor）：行查询与 total 计数共用，避免重复逻辑。
+        conditions = []
         if status:
-            stmt = stmt.where(Routine.status == status)
+            conditions.append(Routine.status == status)
         if owner_id:
-            stmt = stmt.where(Routine.owner_id == owner_id)
+            conditions.append(Routine.owner_id == owner_id)
         if is_template is not None:
-            stmt = stmt.where(Routine.is_template == is_template)
+            conditions.append(Routine.is_template == is_template)
         if q:
             like = f"%{q}%"
-            stmt = stmt.where((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
+            conditions.append((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
         if source_task_key:
-            stmt = stmt.where(Routine.config.op("->>")("source_task_key") == source_task_key)
+            conditions.append(Routine.config.op("->>")("source_task_key") == source_task_key)
+
+        stmt = select(Routine)
+        for cond in conditions:
+            stmt = stmt.where(cond)
         if cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                stmt = stmt.where(Routine.updated_at < cursor_dt)
             except ValueError:
                 raise HTTPException(status_code=400, detail="invalid cursor") from None
+            stmt = stmt.where(Routine.updated_at < cursor_dt)
         stmt = stmt.order_by(Routine.updated_at.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
+
+        # total：当前筛选下的全量计数（不含 cursor 分页约束），供前端 totalPages 与「共 N 条」。
+        count_stmt = select(func.count()).select_from(Routine)
+        for cond in conditions:
+            count_stmt = count_stmt.where(cond)
+        total = int((await db.execute(count_stmt)).scalar_one())
 
     has_more = len(rows) > limit
     rows = rows[:limit]
@@ -513,6 +524,7 @@ async def list_routines(
         "items": [_serialize_routine(r) for r in rows],
         "next_cursor": next_cursor,
         "has_more": has_more,
+        "total": total,
     }
 
 
@@ -567,12 +579,21 @@ async def list_iterations(
         stmt = stmt.order_by(RoutineIteration.seq.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
+        total = int(
+            (
+                await db.execute(
+                    select(func.count()).select_from(RoutineIteration).where(RoutineIteration.routine_id == routine_id)
+                )
+            ).scalar_one()
+        )
+
     has_more = len(rows) > limit
     rows = rows[:limit]
     return {
         "items": [_serialize_iteration(it) for it in rows],
         "has_more": has_more,
         "next_before_seq": rows[-1].seq if has_more and rows else None,
+        "total": total,
     }
 
 
