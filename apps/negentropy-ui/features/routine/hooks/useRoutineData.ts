@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useInfiniteList, type CursorFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
 
 import { fetchKpis, fetchRoutines } from "../api";
 import type { RoutineDTO, RoutineFilters, RoutineKpis } from "../types";
@@ -18,20 +18,22 @@ export const ROUTINE_PAGE_SIZE = 10;
 /**
  * Routine 列表 + KPI 数据 hook。
  *
- * 列表改由 [[useInfiniteList]] 游标分页驱动（消除此前「仅取最近 50 条」上限），
- * 支持页码跳页 + 无限滚动；KPI 独立拉取（统计全量，不受列表 limit 影响）。
- * ``refresh()`` 供控制动作 / SSE 去抖刷新：原地重载已加载范围 + 重拉 KPI，不闪空。
+ * 列表由 [[useInfiniteList]] **偏移分页**驱动（``offset`` 模式）：每页 ``ROUTINE_PAGE_SIZE``
+ * 条、按后端 ``updated_at`` 倒序，``total`` 为无上限全量计数 → 可翻阅所有 Routine（无 50 条上限）。
+ * 该页以「纯翻页」呈现：``routines`` 仅暴露**当前页切片**（``items[(page-1)*size, page*size)``），
+ * 不再做无限滚动追加；KPI 独立拉取（统计全量，不受列表 limit 影响）。
+ * ``refresh()`` 供控制动作 / SSE 去抖刷新：原地重载当前页 + 重拉 KPI，不闪空。
  */
 export function useRoutineData(filters: Partial<RoutineFilters>) {
   const [kpis, setKpis] = useState<RoutineKpis | null>(null);
   const [kpiError, setKpiError] = useState<string | null>(null);
 
-  const fetcher = useMemo<CursorFetcher<RoutineDTO, Partial<RoutineFilters>>>(
+  const fetcher = useMemo<OffsetFetcher<RoutineDTO, Partial<RoutineFilters>>>(
     () => ({
-      kind: "cursor",
-      fetchPage: async ({ cursor, limit, filters: f, signal }) => {
-        const r = await fetchRoutines(f ?? {}, { limit, cursor: cursor as string | null, signal });
-        return { items: r.items, nextCursor: r.next_cursor, hasMore: r.has_more, total: r.total ?? null };
+      kind: "offset",
+      fetchRange: async ({ offset, limit, filters: f, signal }) => {
+        const r = await fetchRoutines(f ?? {}, { limit, offset, signal });
+        return { items: r.items, total: r.total ?? r.items.length };
       },
     }),
     [],
@@ -62,13 +64,17 @@ export function useRoutineData(filters: Partial<RoutineFilters>) {
     void loadKpis();
   }, [listRefresh, loadKpis]);
 
+  // 纯翻页：仅暴露当前页切片（连续前缀缓冲由 useInfiniteList 内部维护）。
+  const pageStart = (list.currentPage - 1) * ROUTINE_PAGE_SIZE;
+  const routines = list.items.slice(pageStart, pageStart + ROUTINE_PAGE_SIZE);
+
   return {
-    routines: list.items,
+    routines,
     kpis,
     loading: list.loading,
     error: list.error ?? kpiError,
     refresh,
-    // 分页控件 + 无限滚动控制
+    // 翻页控制（loadMore/hasMore/loadingMore 透传保留，纯翻页 UI 不再使用，最小化上层改动）
     currentPage: list.currentPage,
     total: list.total,
     totalPages: list.totalPages,

@@ -136,6 +136,7 @@ describe("useRoutineLive", () => {
       items: [makeRoutine("r1")],
       next_cursor: null,
       has_more: false,
+      total: 1,
     });
     vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
   });

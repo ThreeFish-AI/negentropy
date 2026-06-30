@@ -484,11 +484,15 @@ async def list_routines(
         None, description="按 config.source_task_key 过滤（如 pdf_fidelity_patrol 派生的巡检 Routine）"
     ),
     limit: int = Query(50, ge=1, le=200),
-    cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串"),
+    cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串（与 offset 互斥）"),
+    offset: int | None = Query(None, ge=0, description="偏移分页起点（与 cursor 互斥；翻页模式）"),
 ) -> dict[str, Any]:
-    """路由清单：多维筛选 + 基于 updated_at 的游标分页。"""
+    """路由清单：多维筛选 + 基于 ``(updated_at, id)`` 的分页（cursor 游标 / offset 偏移二选一）。"""
+    if cursor and offset is not None:
+        raise HTTPException(status_code=400, detail="cursor and offset are mutually exclusive")
+    use_offset = offset is not None
     async with db_session.AsyncSessionLocal() as db:
-        # 收集筛选条件（不含 cursor）：行查询与 total 计数共用，避免重复逻辑。
+        # 收集筛选条件（不含分页约束）：行查询与 total 计数共用，避免重复逻辑。
         conditions = []
         if status:
             conditions.append(Routine.status == status)
@@ -502,27 +506,38 @@ async def list_routines(
         if source_task_key:
             conditions.append(Routine.config.op("->>")("source_task_key") == source_task_key)
 
+        # 稳定排序 (updated_at DESC, id DESC)：updated_at 有 onupdate、Routine 又是高频变更列表，
+        # id 兜底消除跨页重复/跳号（兼修 cursor 模式 tie-skip）。
         stmt = select(Routine)
         for cond in conditions:
             stmt = stmt.where(cond)
-        if cursor:
+        if not use_offset and cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
             except ValueError:
                 raise HTTPException(status_code=400, detail="invalid cursor") from None
             stmt = stmt.where(Routine.updated_at < cursor_dt)
-        stmt = stmt.order_by(Routine.updated_at.desc()).limit(limit + 1)
+        stmt = stmt.order_by(Routine.updated_at.desc(), Routine.id.desc())
+        if use_offset:
+            stmt = stmt.offset(offset).limit(limit)
+        else:
+            stmt = stmt.limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
-        # total：当前筛选下的全量计数（不含 cursor 分页约束），供前端 totalPages 与「共 N 条」。
+        # total：当前筛选下的全量计数（不含分页约束），供前端 totalPages 与「共 N 条」。
         count_stmt = select(func.count()).select_from(Routine)
         for cond in conditions:
             count_stmt = count_stmt.where(cond)
         total = int((await db.execute(count_stmt)).scalar_one())
 
-    has_more = len(rows) > limit
-    rows = rows[:limit]
-    next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
+    if use_offset:
+        # offset 模式：恰好取一页（无 limit+1 探测），has_more 由 total 推导；不产 cursor。
+        has_more = (offset + limit) < total
+        next_cursor = None
+    else:
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+        next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
     return {
         "items": [_serialize_routine(r) for r in rows],
         "next_cursor": next_cursor,
