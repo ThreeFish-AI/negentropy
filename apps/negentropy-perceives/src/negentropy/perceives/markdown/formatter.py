@@ -58,6 +58,105 @@ _HOMOGENEOUS_PAIRS = frozenset(
 )
 
 
+# 运行页眉/页脚剥离：PDF 每页顶部/底部的 running header（如文档短标题）会被文本
+# 抽取引擎逐页当作文体保留，在 Markdown 中形成同一短独立行重复数十次的噪声。
+# ``_strip_running_headers`` 仅剥离「单行 + 简短 + 逐字完全相同 + 出现 ≥
+# ``_RUNNING_HEADER_MIN_REPEAT`` 次」的行；阈值刻意远高于正常正文短行的复现次数
+# （实测正文短行最高复现 2 次），从而零误伤。
+_RUNNING_HEADER_MIN_REPEAT = 6
+_RUNNING_HEADER_MAX_LEN = 80
+
+
+# 伪代码块降级：抽取引擎（docling 等）偶把带边框的自然语言横幅（版权 / 关键词 /
+# 署名横幅，形如 ``© Keywords: … © Github: …``）误判为 YAML / 代码块。此类内容
+# 不含任何真实代码特征，且常含 ``©`` / ``®`` / ``™`` 商标版权符——后者在真实源码
+# 与 YAML 中几乎不出现。``_demote_non_code_fences`` 仅当围栏块「含商标符且无任一
+# 强代码信号」时剥离围栏还原为普通段落；判定刻意保守，对真代码 / 真 YAML 零误伤。
+_NON_CODE_FENCE_TRIGGER = re.compile(r"[©®™]")
+_NON_CODE_FENCE_CODE_SIGNALS = (
+    re.compile(r"[{}]"),  # 花括号（绝大多数编程语言）
+    re.compile(r";"),  # 分号（C 系 / SQL / JS 语句终止）
+    re.compile(r"->|=>|::"),  # 箭头 / 作用域解析
+    re.compile(r"==|!=|<=|>="),  # 比较运算符
+    re.compile(r"""["'][^"'\n]{1,80}["']"""),  # 引号字符串
+    re.compile(r"(?<!:)//|/\*|\*/"),  # C 系注释（排除 URL ``https://`` 的 ``//``）
+)
+
+
+# 跨行断字复合词守护：``([a-z]+)- ([a-z]+)`` 合并规则（行 910 附近）默认把所有
+# ``word- word`` 当软断字合并为 ``wordword``，对 ``sur- vey→survey`` 正确，但对
+# 语义复合词跨行（``high- level`` 源 ``high-level``）误并为 ``highlevel``。当连字符
+# 左侧为下列「几乎只作复合词前缀、极少是某单词软断字碎片」的完整词时，保留连字符
+# → ``high-level``。刻意排除 over/per/pro/con/com/dis/pre/re/for/out/off 等「既可
+# 独立成词又常作软断字碎片」（performance/process/former/overall/react）的高频词，
+# 避免把 ``per- formance`` 误留为 ``per-formance``。
+_COMPOUND_HYPHEN_PREFIXES = frozenset(
+    {
+        # 体量 / 位置
+        "high",
+        "low",
+        "mid",
+        "long",
+        "short",
+        "deep",
+        "wide",
+        "near",
+        "far",
+        "top",
+        "full",
+        "half",
+        "thin",
+        "thick",
+        "front",
+        "back",
+        "side",
+        "end",
+        # 真伪 / 开闭
+        "real",
+        "open",
+        "closed",
+        "fake",
+        "true",
+        # 动作
+        "pull",
+        "push",
+        # 技术语义
+        "repository",
+        "state",
+        "agent",
+        "code",
+        "model",
+        "multi",
+        "cross",
+        "inter",
+        "intra",
+        "self",
+        "single",
+        "double",
+        "triple",
+        "fine",
+        "gross",
+        "net",
+        "large",
+        # 程度 / 性状
+        "well",
+        "ill",
+        "hard",
+        "soft",
+        "hot",
+        "cold",
+        "fast",
+        "slow",
+        "stale",
+        "clean",
+        "dirty",
+        "dry",
+        "wet",
+        "raw",
+    }
+)
+
+
 # R10-D19 守护词表：em-dash 风格 ``word - connector ...`` 中的常见 RHS 连接词。
 # Why: D19 的 ``word - word`` 合并对学术 PDF 表格 cell / Reference 内的跨行断字
 # （``Scalabil - ity`` → ``Scalability``）有效，但对正文中的 em-dash 风格
@@ -371,6 +470,9 @@ class MarkdownFormatter:
             if self.options.get("fix_spacing", True):
                 markdown_content = self._normalize_paragraph_breaks(markdown_content)
 
+            # 剥离逐字高频重复的运行页眉/页脚独立行（如 PDF 短标题每页残留）
+            markdown_content = self._strip_running_headers(markdown_content)
+
             # 近似段落去重（跨引擎内容重复）
             markdown_content = self._deduplicate_approximate_paragraphs(
                 markdown_content
@@ -412,6 +514,29 @@ class MarkdownFormatter:
 
         except Exception as e:
             logger.warning(f"Error post-processing Markdown: {str(e)}")
+            return markdown_content
+
+    def format_fidelity_safe(self, markdown_content: str) -> str:
+        """仅运行「内容保全型」保真 pass，跳过可能误删正文的 pass。
+
+        与全量 :meth:`format` 的区别：**不跑** ``_deduplicate_approximate_paragraphs``
+        （近似段落去重）与 ``_apply_typography_fixes`` 等会改写/删除正文的 pass。
+        引擎/批处理路径（auto_batch 合并产物）的正文（如参考文献）条目结构高度
+        相似（共享 ``arXiv`` / ``Proceedings`` / 年份等词），全量 format 的 Jaccard
+        去重会把后续条目误判为近似重复而删除（实测删去参考 [477]/[478] 标题）。
+
+        仅保留两类定点修复，二者均不删除合法正文：
+        - ``_format_code_blocks``：降级伪代码块（含 ``_demote_non_code_fences``）；
+        - ``_strip_running_headers``：剥离逐字高频 / 与标题同文的运行页眉独立行。
+
+        用于 :mod:`ops.pdf` 各返回路径对最终 markdown 的轻量后处理。
+        """
+        try:
+            markdown_content = self._format_code_blocks(markdown_content)
+            markdown_content = self._strip_running_headers(markdown_content)
+            return markdown_content
+        except Exception as e:
+            logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
             return markdown_content
 
     def _protect_code_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
@@ -632,6 +757,36 @@ class MarkdownFormatter:
             logger.warning(f"Error formatting links: {str(e)}")
             return markdown_content
 
+    def _demote_non_code_fences(self, markdown_content: str) -> str:
+        """剥离实为自然语言横幅的伪代码块围栏，还原为普通段落。
+
+        抽取引擎（docling 等）偶把带边框的自然语言横幅（版权 / 关键词 / 署名
+        横幅，形如 ``© Keywords: … © Github: <url>``）误判为 YAML / 代码块。
+        此类内容不含任何真实代码特征（无花括号 / 分号 / 箭头 / 比较运算符 /
+        引号字符串 / C 系注释），且常含 ``©`` / ``®`` / ``™`` 商标版权符——后者
+        在真实源码与 YAML 中几乎不出现。
+
+        本 pass 对满足「含商标符 ``©/®/™`` 且无任一强代码信号」的围栏块剥离
+        围栏、还原为普通段落；其余围栏块原样保留。判定刻意保守，避免误降级
+        真代码 / 真 YAML（真 YAML 不含商标符）。
+        """
+
+        def _is_code_like(content: str) -> bool:
+            return any(pat.search(content) for pat in _NON_CODE_FENCE_CODE_SIGNALS)
+
+        def _demote(m: re.Match) -> str:
+            content = m.group(1)
+            if _NON_CODE_FENCE_TRIGGER.search(content) and not _is_code_like(content):
+                return content.strip("\n")
+            return m.group(0)
+
+        return re.sub(
+            r"^```[^\n]*\n(.*?)^```\s*$",
+            _demote,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection.
 
@@ -643,6 +798,9 @@ class MarkdownFormatter:
         and none of the regex patterns here can match.
         """
         try:
+            # 先把实为自然语言横幅（含 ©/®/™ 且无代码特征）的伪代码块降级为普通段落
+            markdown_content = self._demote_non_code_fences(markdown_content)
+
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(
                 r"^```(\w*)\n```[ \t]*(\S.*?)$",
@@ -846,7 +1004,21 @@ class MarkdownFormatter:
                 # \u901a\u8fc7 ``(?<![a-zA-Z]-)`` \u5b88\u62a4\uff1a\u5339\u914d\u524d\u7f00 ``[a-z]+`` \u8d77\u59cb\u4f4d\u7f6e\u7684\u524d
                 # 2 \u5b57\u7b26\u82e5\u5df2\u662f ``<letter>-``\uff08\u5373\u4f4d\u4e8e\u65e2\u6709 hyphen \u94fe\u4e2d\uff09\uff0c\u8df3\u8fc7\u5408\u5e76\uff1b
                 # \u4ec5\u5bf9\u72ec\u7acb\u5355\u8bcd\u7684 wrap-hyphen \u5b9e\u65bd\u5408\u5e76\u3002
-                text = re.sub(r"\b(?<![a-zA-Z]-)([a-z]+)- ([a-z]+)\b", r"\1\2", text)
+                #
+                # \u590d\u5408\u8bcd\u5b88\u62a4\uff1a\u8fde\u5b57\u7b26\u5de6\u4fa7\u82e5\u4e3a\u5b8c\u6574\u5355\u8bcd\uff08\u89c1
+                # ``_COMPOUND_HYPHEN_PREFIXES``\uff09\uff0c\u5c5e\u8bed\u4e49\u8fde\u5b57\u7b26\u8de8\u884c\uff0c\u4fdd\u7559\u4e3a
+                # ``high-level``\uff1b\u5426\u5219\u89c6\u4e3a\u884c\u5c3e\u8f6f\u65ad\u5b57\uff08``sur- vey``\uff09\u5408\u5e76\u4e3a ``survey``\u3002
+                def _merge_wrap_hyphen(m: re.Match) -> str:
+                    left, right = m.group(1), m.group(2)
+                    if left in _COMPOUND_HYPHEN_PREFIXES:
+                        return f"{left}-{right}"
+                    return f"{left}{right}"
+
+                text = re.sub(
+                    r"\b(?<![a-zA-Z]-)([a-z]+)- ([a-z]+)\b",
+                    _merge_wrap_hyphen,
+                    text,
+                )
                 # R10-D21 \u7eed\uff1a\u590d\u5408\u94fe wrap \u7a7a\u683c\u6536\u5c3e\u3002\u547d\u4e2d\u5b88\u62a4\u540e\u4fdd\u7559\u7684 ``acting- interacting``
                 # \u4ecd\u542b\u4e00\u4e2a\u591a\u4f59\u7a7a\u683c\uff0c\u9700\u628a ``<lowercase>-<space>+<lowercase>`` \u4e2d\u7684\u7a7a\u683c
                 # \u6536\u7d27\u4e3a\u96f6\uff0c\u628a ``acting- interacting`` \u53d8\u6210 ``acting-interacting``\u3002
@@ -1103,10 +1275,23 @@ class MarkdownFormatter:
         def _is_caption(text: str) -> bool:
             return bool(_caption_re.match(text.strip()))
 
+        # 参考文献条目：``[N] 作者. 标题. …``。学术 PDF 的 References 条目结构高度
+        # 相似（共享 ``arXiv`` / ``Proceedings`` / 年份 / 人名 / ``pages`` 等词），
+        # Jaccard 极易越过 0.6 阈值，把后续条目误判为重复而删除（实测参考 [477] 被吞）。
+        # 参考条目由唯一编号 ``[N]`` 标识、语义独立，一律豁免去重。
+        _reference_re = re.compile(r"^\[\d+\]")
+
+        def _is_reference_entry(text: str) -> bool:
+            return bool(_reference_re.match(text.strip()))
+
         for para in paragraphs:
             # 块级公式段落始终保留，不参与 Jaccard 相似度比较，
             # 也不污染后续段落的对比基线。
             if _is_math_block(para):
+                kept.append(para)
+                continue
+            # 参考文献条目（[N] 起首）唯一编号、语义独立，绝不参与近似去重
+            if _is_reference_entry(para):
                 kept.append(para)
                 continue
             # caption 精确相邻去重：仅当上一保留段为相同 caption 时跳过
@@ -1138,6 +1323,52 @@ class MarkdownFormatter:
             kept.append(para)
             seen_fingerprints.append(fp)
 
+        return "\n\n".join(kept)
+
+    def _strip_running_headers(self, markdown_content: str) -> str:
+        """移除逐字高频重复的运行页眉/页脚独立行。
+
+        PDF 每页的 running header（如短标题 "Code as Agent Harness"）会被文本
+        抽取引擎当作文体逐页保留，在 Markdown 中形成同一短行重复数十次的噪声。
+        此 pass 剥离满足全部条件的行：单行、简短（≤ ``_RUNNING_HEADER_MAX_LEN``）、
+        逐字完全相同、出现 ≥ ``_RUNNING_HEADER_MIN_REPEAT`` 次。
+
+        保守性：仅作用于 ``\\n{2,}`` 切分后的单行短段，要求逐字相等且复现次数
+        远高于正常文档中任何合法短行（实测正文短行最高复现 2 次），故对正文零
+        误伤；带 ``#`` 前缀的标题字符串与裸页眉不同，亦不受影响。代码块 / 数学
+        块在管线中先于此 pass 被替换为占位符（``%%CODEBLOCK_…%%`` / ``$$…$$``），
+        故不会误删块内同名行。
+        """
+        paragraphs = re.split(r"\n{2,}", markdown_content)
+        if len(paragraphs) < _RUNNING_HEADER_MIN_REPEAT:
+            return markdown_content
+
+        counts: Dict[str, int] = {}
+        for para in paragraphs:
+            s = para.strip()
+            if not s or "\n" in s or len(s) > _RUNNING_HEADER_MAX_LEN:
+                continue
+            # 跳过结构化行：标题 / 已保护占位符 / HTML 标签 / 代码围栏 / 表格行
+            if s.startswith(("#", "%%", "<", "```", "|")):
+                continue
+            counts[s] = counts.get(s, 0) + 1
+
+        headers = {
+            text for text, n in counts.items() if n >= _RUNNING_HEADER_MIN_REPEAT
+        }
+        # 补捉分片(batch)格式化后的残余页眉：auto_batch 逐片格式化已剥离片中
+        # 大量页眉，合并后全文档残留的少量同文页眉 count 可能 < 阈值而漏网。
+        # 「与文档 H1 标题同文的裸独立行」几乎必为运行页眉（带 ``#`` 前缀的真正
+        # 标题字符串不同，不会被剥离），零误伤地把这类残余一并移除。
+        _title_match = re.search(r"^#\s+(.+)$", markdown_content, re.MULTILINE)
+        if _title_match:
+            _title = _title_match.group(1).strip()
+            if _title and "\n" not in _title and len(_title) <= _RUNNING_HEADER_MAX_LEN:
+                headers.add(_title)
+        if not headers:
+            return markdown_content
+
+        kept = [p for p in paragraphs if p.strip() not in headers]
         return "\n\n".join(kept)
 
     def _basic_cleanup(self, markdown_content: str) -> str:
