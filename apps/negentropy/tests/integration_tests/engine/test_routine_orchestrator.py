@@ -1226,6 +1226,7 @@ async def _make_succeeded_routine_with_pr(**overrides) -> uuid.UUID:
         status="succeeded",
         termination_reason="success",
         pr_url=_PR_URL,
+        pr_state=None,
         pr_merged=None,
         pr_merged_checked_at=None,
         max_iterations=5,
@@ -1245,7 +1246,7 @@ async def _make_succeeded_routine_with_pr(**overrides) -> uuid.UUID:
 
 
 async def test_sync_pr_merge_status_detects_merged_and_publishes():
-    """succeeded + pr_url + 未知 → gh 报 MERGED → 回写 pr_merged=True + 推 SSE，返回 1。"""
+    """succeeded + pr_url + 未知 → gh 报 MERGED → 回写 pr_state=merged/pr_merged=True + 推 SSE，返回 1。"""
     rid = await _make_succeeded_routine_with_pr()
     try:
         orch = RoutineOrchestrator()
@@ -1261,6 +1262,7 @@ async def test_sync_pr_merge_status_detects_merged_and_publishes():
         assert count == 1
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
+            assert r.pr_state == "merged"
             assert r.pr_merged is True
             assert r.pr_merged_checked_at is not None
         publish_mock.assert_awaited_once()
@@ -1269,8 +1271,8 @@ async def test_sync_pr_merge_status_detects_merged_and_publishes():
 
 
 async def test_sync_pr_merge_status_skips_already_merged():
-    """pr_merged=True 的 routine 不在 due 集 → 不调 gh、不推 SSE，返回 0。"""
-    rid = await _make_succeeded_routine_with_pr(pr_merged=True, pr_merged_checked_at=None)
+    """pr_state=merged（终态）的 routine 不在 due 集 → 不调 gh、不推 SSE，返回 0。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="merged", pr_merged=True, pr_merged_checked_at=None)
     fetch_mock = AsyncMock()
     try:
         orch = RoutineOrchestrator()
@@ -1285,8 +1287,22 @@ async def test_sync_pr_merge_status_skips_already_merged():
         await _cleanup(rid)
 
 
+async def test_sync_pr_merge_status_closed_is_terminal_skips_recheck():
+    """pr_state=closed（终态）的 routine 不在 due 集 → 不调 gh（修掉 Closed 每 5min 复检的浪费）。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="closed", pr_merged=False, pr_merged_checked_at=None)
+    fetch_mock = AsyncMock()
+    try:
+        orch = RoutineOrchestrator()
+        with patch("negentropy.engine.routine.pr_status.fetch_pr_merge_status", new=fetch_mock):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
+
+
 async def test_sync_pr_merge_status_records_closed_unmerged():
-    """closed-without-merge（merged=False）→ 回写 pr_merged=False + 推进 checked_at（停检）。"""
+    """closed-without-merge → 回写 pr_state=closed/pr_merged=False + 推进 checked_at（之后停检）。"""
     rid = await _make_succeeded_routine_with_pr()
     try:
         orch = RoutineOrchestrator()
@@ -1298,6 +1314,7 @@ async def test_sync_pr_merge_status_records_closed_unmerged():
         assert count == 0  # 非新检出 merged
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
+            assert r.pr_state == "closed"
             assert r.pr_merged is False
             assert r.pr_merged_checked_at is not None
     finally:
@@ -1305,7 +1322,7 @@ async def test_sync_pr_merge_status_records_closed_unmerged():
 
 
 async def test_sync_pr_merge_status_unknown_leaves_state_untouched():
-    """gh 未应答（merged=None, state=None）→ 不动 pr_merged/checked_at，保持 due 下 tick 重试。"""
+    """gh 未应答（merged=None, state=None）→ 不动 pr_state/pr_merged/checked_at，保持 due 下 tick 重试。"""
     rid = await _make_succeeded_routine_with_pr()
     try:
         orch = RoutineOrchestrator()
@@ -1317,6 +1334,7 @@ async def test_sync_pr_merge_status_unknown_leaves_state_untouched():
         assert count == 0
         async with db_session.AsyncSessionLocal() as db:
             r = await db.get(Routine, rid)
+            assert r.pr_state is None
             assert r.pr_merged is None
             assert r.pr_merged_checked_at is None  # 未应答 → 不推进节流
     finally:
@@ -1326,7 +1344,7 @@ async def test_sync_pr_merge_status_unknown_leaves_state_untouched():
 async def test_sync_pr_merge_status_throttle_skips_recently_checked():
     """窗口内（checked_at 距今 < interval）→ 不在 due 集 → 不调 gh。"""
     recent = datetime.now(UTC) - timedelta(seconds=10)
-    rid = await _make_succeeded_routine_with_pr(pr_merged=None, pr_merged_checked_at=recent)
+    rid = await _make_succeeded_routine_with_pr(pr_state="open", pr_merged_checked_at=recent)
     fetch_mock = AsyncMock()
     try:
         orch = RoutineOrchestrator()
@@ -1334,5 +1352,61 @@ async def test_sync_pr_merge_status_throttle_skips_recently_checked():
             count = await orch._sync_pr_merge_status()  # noqa: SLF001
         assert count == 0
         fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
+
+
+async def _updated_at(rid: uuid.UUID) -> datetime:
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, rid)
+        return r.updated_at
+
+
+async def test_sync_pr_merge_status_no_state_change_keeps_updated_at():
+    """重确认 Open（状态未翻转）→ 仅推进 checked_at（Core update），**不动 updated_at**（修列表乱跳）。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="open", pr_merged=False)
+    try:
+        before = await _updated_at(rid)
+        # gh 仍报 OPEN（与 before 相同 → state_changed=False）。
+        orch = RoutineOrchestrator()
+        with (
+            patch(
+                "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+                new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=False, state="OPEN")),
+            ),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=AsyncMock()),
+        ):
+            # checked_at=None（种子默认）→ 该 routine 已在 due 集，无需压缩节流窗口。
+            await orch._sync_pr_merge_status()  # noqa: SLF001
+        after = await _updated_at(rid)
+        # 无状态翻转 → Core update 不带 updated_at → updated_at 不变（修列表乱跳）
+        assert after == before
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_merged_checked_at is not None  # checked_at 仍正常推进（节流）
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_state_change_advances_updated_at():
+    """状态翻转（open→merged）→ 显式带 updated_at → updated_at 推进（真实变更才重排）。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="open", pr_merged=False)
+    try:
+        before = await _updated_at(rid)
+        orch = RoutineOrchestrator()
+        with (
+            patch(
+                "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+                new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=True, state="MERGED")),
+            ),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=AsyncMock()),
+        ):
+            await orch._sync_pr_merge_status()  # noqa: SLF001
+        after = await _updated_at(rid)
+        assert after >= before
+        # merged 落库（顺带校验）
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_state == "merged"
     finally:
         await _cleanup(rid)

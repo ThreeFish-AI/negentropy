@@ -206,55 +206,88 @@ async def test_spawn_failure_returns_unknown(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# apply_pr_merge_result：三分支回写语义（鸭子类型 routine）
+# next_pr_state / compute_pr_write：纯决策（心跳 pass Core 写回据此推导）
+# ---------------------------------------------------------------------------
+
+
+def test_next_pr_state_normalizes_and_validates():
+    assert pr_status.next_pr_state(pr_status.PrMergeStatus(merged=True, state="MERGED")) == "merged"
+    assert pr_status.next_pr_state(pr_status.PrMergeStatus(merged=False, state="OPEN")) == "open"
+    assert pr_status.next_pr_state(pr_status.PrMergeStatus(merged=False, state="CLOSED")) == "closed"
+    # 未应答 / 非法 state → None（调用方不写，保持 due 重试）
+    assert pr_status.next_pr_state(pr_status.PrMergeStatus(merged=None, state=None)) is None
+    assert pr_status.next_pr_state(pr_status.PrMergeStatus(merged=None, state="WEIRD")) is None
+
+
+def test_compute_pr_write_detects_change_and_noop():
+    # gh 未应答 → (None, False) 不写
+    assert pr_status.compute_pr_write("open", pr_status.PrMergeStatus(merged=None, state=None)) == (None, False)
+    # 状态翻转（决定 updated_at 是否刷新 / 是否推 SSE）
+    assert pr_status.compute_pr_write("open", pr_status.PrMergeStatus(merged=True, state="MERGED")) == ("merged", True)
+    assert pr_status.compute_pr_write(None, pr_status.PrMergeStatus(merged=False, state="CLOSED")) == ("closed", True)
+    # 状态未变（重确认 open / merged）→ changed=False（不刷 updated_at）
+    assert pr_status.compute_pr_write("open", pr_status.PrMergeStatus(merged=False, state="OPEN")) == ("open", False)
+    assert pr_status.compute_pr_write("merged", pr_status.PrMergeStatus(merged=True, state="MERGED")) == (
+        "merged",
+        False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# apply_pr_merge_result：状态化回写（鸭子类型 routine，供手动端点 ORM 路径）
 # ---------------------------------------------------------------------------
 
 
 class _RoutineLike:
-    """最小鸭子类型：仅携带 pr_merged / pr_merged_checked_at 两个属性。"""
+    """最小鸭子类型：携带 pr_state / pr_merged / pr_merged_checked_at。"""
 
-    def __init__(self, *, pr_merged=None, checked_at=None) -> None:
+    def __init__(self, *, pr_state=None, pr_merged=None, checked_at=None) -> None:
+        self.pr_state = pr_state
         self.pr_merged = pr_merged
         self.pr_merged_checked_at = checked_at
 
 
-def test_apply_merged_true_sets_true_and_advances_checked_at():
+def test_apply_merged_writes_state_and_derives_flag():
     r = _RoutineLike()
-    now = "2026-06-30T00:00:00Z"
-    newly = pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=True, state="MERGED"), now)
+    newly = pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=True, state="MERGED"), "now")
     assert newly is True
-    assert r.pr_merged is True
-    assert r.pr_merged_checked_at == now
+    assert r.pr_state == "merged"
+    assert r.pr_merged is True  # 派生 = (pr_state == 'merged')
+    assert r.pr_merged_checked_at == "now"
 
 
-def test_apply_already_true_is_not_newly_detected():
-    r = _RoutineLike(pr_merged=True, checked_at="old")
-    newly = pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=True, state="MERGED"), "new")
-    assert newly is False  # 之前已是 True → 非新检出（不重复推 SSE）
-    assert r.pr_merged is True
+def test_apply_already_merged_not_newly_detected():
+    r = _RoutineLike(pr_state="merged", pr_merged=True)
+    newly = pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=True, state="MERGED"), "now")
+    assert newly is False  # 之前已 merged → 非新检出（不重复推 SSE）
+    assert r.pr_state == "merged"
 
 
-def test_apply_false_records_false_and_advances_checked_at():
-    """closed-without-merge：记 False 并推进 checked_at → 停检（退出 due 集）。"""
+def test_apply_closed_writes_state_and_false_flag():
+    """closed-without-merge：写 pr_state='closed' + 派生 pr_merged=False + 推进 checked_at。"""
     r = _RoutineLike()
     newly = pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=False, state="CLOSED"), "now")
     assert newly is False
+    assert r.pr_state == "closed"
     assert r.pr_merged is False
     assert r.pr_merged_checked_at == "now"
 
 
-def test_apply_unknown_with_state_advances_checked_at_only():
-    """gh 应答但 merged 未定（如 OPEN 已被 False 分支覆盖；此处防御 state 非 None）→ 仅节流。"""
+def test_apply_open_writes_state_and_false_flag():
+    """open：写 pr_state='open' + pr_merged=False + 推进 checked_at（Open 仍留 due 复检）。"""
     r = _RoutineLike()
-    pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=None, state="OPEN"), "now")
-    assert r.pr_merged is None
+    pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=False, state="OPEN"), "now")
+    assert r.pr_state == "open"
+    assert r.pr_merged is False
     assert r.pr_merged_checked_at == "now"
 
 
-def test_apply_unknown_without_state_leaves_checked_at_untouched():
-    """gh 未应答 → 不动 checked_at，保持 due 下 tick 重试。"""
+def test_apply_unknown_no_op_keeps_due():
+    """gh 未应答（state=None）→ 不写任何字段，保持 due 下 tick 重试。"""
     r = _RoutineLike()
-    pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=None, state=None), "now")
+    newly = pr_status.apply_pr_merge_result(r, pr_status.PrMergeStatus(merged=None, state=None), "now")
+    assert newly is False
+    assert r.pr_state is None
     assert r.pr_merged is None
     assert r.pr_merged_checked_at is None
 
