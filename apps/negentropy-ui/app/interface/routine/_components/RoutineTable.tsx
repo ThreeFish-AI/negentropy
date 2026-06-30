@@ -1,12 +1,18 @@
 "use client";
 
-import { ExternalLink, GitMerge, Loader2, OctagonX, RotateCcw, Trash2, X } from "lucide-react";
+import { ExternalLink, GitMerge, GitPullRequest, Loader2, OctagonX, RotateCcw, Trash2, X } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
 
 import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
-import { closedBadgeClass, mergedBadgeClass, routineStatusClass, scoreColorClass } from "./status-style";
+import {
+  closedBadgeClass,
+  mergedBadgeClass,
+  openBadgeClass,
+  routineStatusClass,
+  scoreColorClass,
+} from "./status-style";
 
 interface RoutineTableProps {
   routines: RoutineDTO[];
@@ -91,6 +97,12 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                     <span className={closedBadgeClass}>
                       <X className="h-3 w-3" aria-hidden />
                       Closed
+                    </span>
+                  )}
+                  {r.pr_state === "open" && (
+                    <span className={openBadgeClass}>
+                      <GitPullRequest className="h-3 w-3" aria-hidden />
+                      Open
                     </span>
                   )}
                 </div>

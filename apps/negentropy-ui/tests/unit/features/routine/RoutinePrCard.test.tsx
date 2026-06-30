@@ -32,11 +32,18 @@ describe("RoutinePrCard", () => {
     expect(screen.getByText("查看 PR")).toBeInTheDocument();
   });
 
-  it("prState=open（显式）按待合并渲染（合并入口 + 同步按钮）", () => {
+  it("prState=open（显式）渲染「Open」徽章 + 合并入口 + 同步按钮", () => {
     render(<RoutinePrCard prUrl={PR_URL} merged={false} prState="open" onSync={vi.fn()} />);
+    expect(screen.getByText("Open")).toBeInTheDocument();
     expect(screen.getByText("在 GitHub 合并 →")).toBeInTheDocument();
     expect(screen.getByText("同步状态")).toBeInTheDocument();
     expect(screen.queryByText("已关闭")).not.toBeInTheDocument();
+  });
+
+  it("prState=null（未知/旧记录）不渲染「Open」徽章（仅合并入口 + 同步）", () => {
+    render(<RoutinePrCard prUrl={PR_URL} merged={false} prState={null} onSync={vi.fn()} />);
+    expect(screen.queryByText("Open")).not.toBeInTheDocument();
+    expect(screen.getByText("在 GitHub 合并 →")).toBeInTheDocument();
   });
 
   it("未合并显示「在 GitHub 合并」外链 + 「同步状态」按钮", () => {

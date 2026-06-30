@@ -68,7 +68,9 @@ export function RoutineLoopDiagram({
               ? " · PR 已合并"
               : routine.pr_url && routine.pr_state === "closed"
                 ? " · PR 已关闭"
-                : ""}
+                : routine.pr_url && routine.pr_state === "open"
+                  ? " · PR 开启中"
+                  : ""}
           </span>
         ) : snapshot.mode === "paused" ? (
           <span className="text-amber-600 dark:text-amber-400">已暂停 · 恢复后继续迭代</span>
