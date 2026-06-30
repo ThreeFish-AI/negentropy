@@ -24,6 +24,24 @@ export interface UseInfiniteScrollSentinelOptions {
   rootMargin?: string;
 }
 
+/** 解析 rootMargin 的像素前缀（仅支持 px 形如 "200px"；% 归 0，保持简单）。 */
+function parseMarginPx(margin: string): number {
+  const m = /^(-?\d+(?:\.\d+)?)(px|%)?$/.exec(margin.trim());
+  if (!m) return 0;
+  return m[2] === "%" ? 0 : parseFloat(m[1]);
+}
+
+/**
+ * 实时复核：哨兵顶端是否在 root 底沿 + margin 之内（即「该再加载」）。
+ * IntersectionObserver 在 ``enabled`` 切换重建时可能给出陈旧的 isIntersecting，
+ * 仅凭它会导致首屏一次性把全部页拉空；此复核用实时布局兜底，确保「视口填满即停」。
+ */
+function isWithinRoot(sentinel: HTMLElement, root: HTMLElement | null, margin: string): boolean {
+  const s = sentinel.getBoundingClientRect();
+  const limit = (root ? root.getBoundingClientRect().bottom : window.innerHeight) + parseMarginPx(margin);
+  return s.top <= limit;
+}
+
 export function useInfiniteScrollSentinel({
   onReach,
   enabled,
@@ -46,7 +64,9 @@ export function useInfiniteScrollSentinel({
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
+          if (!entry.isIntersecting) continue;
+          // 实时布局复核：规避 observer 重建时的陈旧回调，防首屏拉空大列表。
+          if (isWithinRoot(node, rootEl, rootMargin)) {
             onReachRef.current();
             break;
           }

@@ -149,8 +149,9 @@ export function useInfiniteList<T, F = unknown>(
   const [error, setError] = useState<string | null>(null);
 
   const reqIdRef = useRef(0);
-  const loadingRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  /** 是否有取数在途：供 refresh() 让路，避免 SSE/控制动作触发的全量重载中断用户翻页/滚动加载。 */
+  const loadInFlightRef = useRef(false);
 
   // 最新值 ref，供异步循环/回调读取，规避闭包陈旧（在 effect 内同步，对齐 useHeartbeatPoll）。
   const fetcherRef = useRef(fetcher);
@@ -170,12 +171,15 @@ export function useInfiniteList<T, F = unknown>(
   // 最终一次性原子替换——供 refresh() 实时刷新而不闪空。
   const ensureLoaded = useCallback(
     async (targetCount: number, isAppend: boolean, fromScratch = false) => {
-      if (loadingRef.current) return;
       const buf = bufRef.current;
       if (!fromScratch && (buf.items.length >= targetCount || !buf.hasMore)) return;
 
-      loadingRef.current = true;
+      // 不用 loadingRef 互斥 bail：React 19 严格模式双重调用 reset effect 时，
+      // 第二次 reset 会中断并 bump reqId，首个 ensureLoaded 的 finally 因 reqId 不匹配
+      // 不重置 loadingRef，致其卡 true、后续加载全部被 bail 掉。改由 reqId + AbortController
+      // 保证「最新一次胜出、陈旧结果丢弃」，正确性等价且无卡死。
       const reqId = ++reqIdRef.current;
+      loadInFlightRef.current = true;
       abortRef.current?.abort();
       const ac = new AbortController();
       abortRef.current = ac;
@@ -229,8 +233,10 @@ export function useInfiniteList<T, F = unknown>(
         if ((e as { name?: string })?.name === "AbortError") return;
         setError(e instanceof Error ? e.message : "加载失败");
       } finally {
+        // loadInFlightRef 无条件重置（不依赖 reqId 匹配），杜绝严格模式/abort 场景下的卡死；
+        // 让 refresh() 能在空闲时补刷新（SSE 触发的全量重载不会无限被跳过）。
+        loadInFlightRef.current = false;
         if (reqId === reqIdRef.current) {
-          loadingRef.current = false;
           setLoading(false);
           setLoadingMore(false);
         }
@@ -243,7 +249,6 @@ export function useInfiniteList<T, F = unknown>(
   const reset = useCallback(() => {
     reqIdRef.current += 1; // 作废在途
     abortRef.current?.abort();
-    loadingRef.current = false;
     const fresh = freshBuffer<T>();
     bufRef.current = fresh;
     setServerBuf(fresh);
@@ -286,6 +291,9 @@ export function useInfiniteList<T, F = unknown>(
 
   const refresh = useCallback(() => {
     if (isClient) return; // 客户端数据由调用方持有，无需重拉
+    // 分页加载在途时让路：避免 SSE/控制动作触发的全量重载 abort 掉用户正在进行的翻页/滚动加载
+    // （下一轮空闲刷新会补足元数据）。这是 server 模式相对旧 client 全量模式的关键适配。
+    if (loadInFlightRef.current) return;
     // 从头重载当前已加载范围，不清空旧 buffer（避免实时刷新闪空），最终原子替换。
     const keep = Math.max(pageSize, bufRef.current.items.length);
     void ensureLoaded(keep, false, true);
