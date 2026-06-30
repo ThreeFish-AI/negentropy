@@ -564,6 +564,17 @@ class FitzTextExtractor(PDFToolBase):
         if re.search(r"https?://doi\.org/", text_stripped) and text_len < 200:
             return True
 
+        # 会议运行头：含「会议简称+'两位年份」（如 SIGIR '26 / ICML '24）+ 4 位
+        # 年份，且为短文本。这类运行头每页重复出现于页顶/页脚（位置启发式 5% 阈值
+        # 常漏判 y0≈7.8% 的页眉）。参考文献列块虽含会议名，但作为整栏大块（数千
+        # 字符）远超 text_len<200 阈值，不受影响（ISSUE: 运行页眉泄漏）。
+        if (
+            text_len < 200
+            and re.search(r"\b[A-Z][A-Z0-9]{1,8}\s*['’]\s*\d{2}\b", text_stripped)
+            and re.search(r"\b(?:19|20)\d{2}\b", text_stripped)
+        ):
+            return True
+
         return False
 
     @staticmethod

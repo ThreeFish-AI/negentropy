@@ -243,7 +243,14 @@ async def parse_pdf_to_markdown(
                     output_format=output_format,
                     content=pipeline_result.markdown,
                     metadata=pipeline_result.metadata,
-                    page_count=getattr(pipeline_result, "page_count", 0),
+                    page_count=(
+                        # auto pipeline 的 asset_bundling 应从 preprocessing 回填
+                        # page_count，但部分降级路径未透传；为 0 时从源 PDF 兜底，
+                        # 避免 Statistics 暴露错误的 page_count=0（ISSUE: page_count=0）。
+                        getattr(pipeline_result, "page_count", 0)
+                        or detect_pdf_total_pages(pdf_source)
+                        or 0
+                    ),
                     word_count=pipeline_result.word_count,
                     conversion_time=elapsed_ms(_start) / 1000.0,
                     enhanced_assets=enhanced_assets,

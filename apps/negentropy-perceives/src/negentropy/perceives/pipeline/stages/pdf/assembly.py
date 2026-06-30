@@ -515,6 +515,14 @@ class BuiltinAssembler(PDFToolBase):
                     if not (col0_ok and col1_ok):
                         is_two_col = False
 
+                    # 行优先守卫：两栏均无≥250pt 高块时，页面是横排多元素区
+                    # （典型：3 栏作者块 / 标题页装饰），count-path 会误判为双栏
+                    # 并按列优先排序，把同 y0 横排的作者重排成列序、破坏阅读序
+                    # （ISSUE: 作者块乱序）。仅当至少一栏有高块（真双栏正文）才
+                    # 保留列优先；否则降级行优先 (y0, x0)。body 正文页有高块不受影响。
+                    if is_two_col and not (col0_tall or col1_tall):
+                        is_two_col = False
+
                 for elem, bbox in items:
                     if is_two_col:
                         elem_width = bbox[2] - bbox[0]
