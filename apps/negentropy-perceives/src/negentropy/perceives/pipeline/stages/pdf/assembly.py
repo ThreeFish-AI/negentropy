@@ -1296,6 +1296,9 @@ def _formula_text_signature(s: str) -> str:
     用于跨形式公式去重：
       - LaTeX 命令 ``\\xxx`` 全部剥除（``\\theta``、``\\in``、``\\wedge`` 等
         无文本字符等价，丢弃即可）；
+      - ``\\begin{...}{...}`` / ``\\end{...}`` 排版结构（如 ``\\begin{array}{r}``
+        的 ``array``/``r``/``l``/``c`` 列规格）整段剥除——这些是版式噪声而非
+        公式语义字符，混入会膨胀 fsig 致碎片文本块的覆盖率失真；
       - 大括号 / 下标符号 / 标点 / 空白 / Unicode 数学符号 全部丢弃；
       - 仅保留 ASCII 字母数字。
 
@@ -1303,6 +1306,8 @@ def _formula_text_signature(s: str) -> str:
     保留为独立字符，与 MinerU 提取的 LaTeX 字符序列（同样把 ``M _ { l }``
     拆为 ``M l`` 等）经归一化后几乎完全相同。该签名作为跨形式等价锚点。
     """
+    # 先剥离开 \begin{...} / \end{...} 及其紧随的列规格 {...}（版式结构噪声）
+    s = re.sub(r"\\(?:begin|end)\s*\{[^{}]*\}(?:\s*\{[^{}]*\})?", "", s)
     # 剥离 \xxx LaTeX 命令
     s = re.sub(r"\\[a-zA-Z]+\*?", "", s)
     # 仅保留 ASCII 字母数字
@@ -1339,12 +1344,22 @@ def _text_block_matches_formula(
     if len(text_sig) < 20:
         return False
     for fsig in sigs:
-        if fsig not in text_sig:
-            continue
-        # 子串匹配 → 进一步判定长度比例，过滤"公式埋在长正文段"假阳性
-        len_ratio = len(fsig) / max(len(text_sig), 1)
-        if len_ratio >= 0.85:
-            return True
+        # 正向：完整公式签名是文本块签名的子串（PyMuPDF 把整个公式视觉区
+        # 抽成一段字符流文本，签名与公式 LaTeX 几乎全等）。
+        if fsig in text_sig:
+            # 子串匹配 → 进一步判定长度比例，过滤"公式埋在长正文段"假阳性
+            len_ratio = len(fsig) / max(len(text_sig), 1)
+            if len_ratio >= 0.85:
+                return True
+        # 反向：文本块签名是公式签名的子串（PyMuPDF 把一个公式视觉区拆成
+        # 多个碎片文本块，每块签名是完整公式签名的片段，正向 fsig-in-text_sig
+        # 因 fsig 更长而失配）。要求文本块覆盖公式签名的较大比例(≥0.4)，
+        # 避免短巧合子串误杀正文——公式签名为密集字母数字串、无词边界，
+        # 正文连写词几乎不可能 ≥20 字符地落入其中，FP 风险极低。
+        if text_sig in fsig:
+            coverage = len(text_sig) / max(len(fsig), 1)
+            if coverage >= 0.4:
+                return True
     return False
 
 
@@ -1610,6 +1625,13 @@ def _is_toc_table_text(text: str) -> bool:
     3. 至少一列形如纯数字页码（``\\| \\d+ \\|``）
     """
     if not text:
+        return False
+    # 带 "Table N:" / "Figure N:" / "表 N:" caption 的结果表绝非目录（TOC）。
+    # 结果表常含数值列（如 P_drop=0.1 形似章节号、BLEU/params 整数形似页码），
+    # 会误命中下方的 section_no_rows / page_no_rows 启发式而被当成 TOC 丢弃
+    # （如 Attention 论文 Table 3 架构变体表）。caption 起手即排除。
+    first_line = text.split("\n", 1)[0].strip()
+    if re.match(r"^(?:Table|Figure|Tab\.|Fig\.|表|图)\s*\d", first_line, re.IGNORECASE):
         return False
     lines = [ln for ln in text.split("\n") if ln.strip().startswith("|")]
     if len(lines) < 3:
