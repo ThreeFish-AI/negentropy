@@ -181,7 +181,12 @@ export function RoutineRunView({
           widthClassName={MODULE_DRAWER_WIDTH}
         >
           <div className="px-5 py-5">
-            <RoutinePrCard prUrl={routine.pr_url} merged={routine.pr_merged} onSync={onSyncPr} />
+            <RoutinePrCard
+              prUrl={routine.pr_url}
+              merged={routine.pr_merged}
+              prState={routine.pr_state}
+              onSync={onSyncPr}
+            />
           </div>
         </BaseDrawer>
       )}

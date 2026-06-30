@@ -22,6 +22,23 @@ describe("RoutinePrCard", () => {
     expect(screen.getByText("查看 PR")).toBeInTheDocument();
   });
 
+  it("prState=closed 显示「已关闭」且无合并外链 / 同步按钮（保留查看 PR）", () => {
+    render(<RoutinePrCard prUrl={PR_URL} merged={false} prState="closed" onSync={vi.fn()} />);
+    expect(screen.getByText("已关闭")).toBeInTheDocument();
+    expect(screen.queryByText("在 GitHub 合并 →")).not.toBeInTheDocument();
+    expect(screen.queryByText("同步状态")).not.toBeInTheDocument();
+    expect(screen.queryByText("已合并 ✓")).not.toBeInTheDocument();
+    // 「查看 PR」始终保留
+    expect(screen.getByText("查看 PR")).toBeInTheDocument();
+  });
+
+  it("prState=open（显式）按待合并渲染（合并入口 + 同步按钮）", () => {
+    render(<RoutinePrCard prUrl={PR_URL} merged={false} prState="open" onSync={vi.fn()} />);
+    expect(screen.getByText("在 GitHub 合并 →")).toBeInTheDocument();
+    expect(screen.getByText("同步状态")).toBeInTheDocument();
+    expect(screen.queryByText("已关闭")).not.toBeInTheDocument();
+  });
+
   it("未合并显示「在 GitHub 合并」外链 + 「同步状态」按钮", () => {
     render(<RoutinePrCard prUrl={PR_URL} merged={false} onSync={vi.fn()} />);
     expect(screen.getByText("在 GitHub 合并 →")).toBeInTheDocument();

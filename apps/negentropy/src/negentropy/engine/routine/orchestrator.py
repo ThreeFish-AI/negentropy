@@ -487,18 +487,22 @@ class RoutineOrchestrator:
         return cleaned
 
     async def _sync_pr_merge_status(self) -> int:
-        """巡检终态 routine 的 PR 合并状态并回写 ``pr_merged``（best-effort，绝不阻塞/崩溃心跳）。
+        """巡检终态 routine 的 PR 状态（open/closed/merged）并回写 ``pr_state``（best-effort，绝不阻塞/崩溃心跳）。
 
-        复用既有 ``gh`` CLI（仓库 GitHub 集成的唯一事实源）做只读 ``gh pr view --json state,merged``：
-        succeeded + pr_url 的 routine 在 FINALIZE 后处于「等待人工 Merge」态，人在 GitHub 合并后，
-        本 pass 把 ``pr_merged`` 回写为 True 并经 SSE 推送，使列表 / Full View / PR 抽屉三处显示「Merged」。
+        复用既有 ``gh`` CLI（仓库 GitHub 集成的唯一事实源）做只读 ``gh pr view --json state,mergedAt``：
+        succeeded + pr_url 的 routine 在 FINALIZE 后处于「等待人工 Merge」态，人在 GitHub 合并/关闭后，
+        本 pass 回写 ``pr_state`` 并经 SSE 推送 merged，使列表 / Full View / PR 抽屉三处显示「Merged」/「Closed」。
 
         可降级（对齐 AGENTS.md「不引入新问题」）：``gh`` 缺失/未授权/超时/坏 URL → ``pr_status`` 返回
-        unknown，本 pass 静默跳过（节流水位线 ``pr_merged_checked_at`` 不推进，保持 due 下 tick 重试）；
+        unknown（state=None），本 pass 静默跳过（不写、不推进 ``checked_at``，保持 due 下 tick 重试）；
         心跳永不因本 pass 崩溃（双层兜底：pr_status 不抛 + 本 pass 单层 ``except Exception``）。
 
-        范式镜像 ``_reap_workspaces``：短会话查 due → 会话外做 gh 子进程（不占连接池）→ 短会话写回 + 推送。
-        due 集 = succeeded ∧ pr_url 非空 ∧ pr_merged 未确认为 True ∧ 距上次检测 > 节流间隔；批量上限适配 25s 心跳。
+        due 集 = succeeded ∧ pr_url 非空 ∧ pr_state 未达终态（NULL 或 open）∧ 距上次检测 > 节流间隔。
+        Open（可能后续合并）继续复检；Merged/Closed 终态排除（顺带修掉 Closed 每 5min 复检的浪费）。
+
+        **不污染 updated_at**：写回用 Core ``update()``（绕过 ORM ``onupdate=func.now()``），仅当
+        ``pr_state`` 实际翻转时才把 ``updated_at`` 纳入 SET —— 纯节流水位线推进不再刷新 updated_at，
+        避免这些 routine 在列表（按 updated_at 排序）里反复乱跳。
 
         返回本轮新检出「已合并」的 routine 数（推 SSE 的次数）。详见 ``pr_status.fetch_pr_merge_status``。
         """
@@ -510,15 +514,16 @@ class RoutineOrchestrator:
         batch = settings.routine.pr_merge_check_batch
         timeout = float(settings.routine.pr_merge_check_timeout_seconds)
 
-        # ① 短会话：拉取 due routine 的 (id, pr_url)（expire_on_commit=False → detached 后可读）。
+        # ① 短会话：拉取 due routine 的 (id, pr_url, pr_state)（expire_on_commit=False → detached 后可读）。
         async with db_session.AsyncSessionLocal() as db:
             rows = (
                 await db.execute(
-                    select(Routine.id, Routine.pr_url)
+                    select(Routine.id, Routine.pr_url, Routine.pr_state)
                     .where(
                         Routine.status == "succeeded",
                         Routine.pr_url.is_not(None),
-                        or_(Routine.pr_merged.is_(None), Routine.pr_merged.is_(False)),
+                        # due = 未达终态（NULL 未知 或 open 仍可后续合并）；merged/closed 终态排除。
+                        or_(Routine.pr_state.is_(None), Routine.pr_state == "open"),
                         or_(
                             Routine.pr_merged_checked_at.is_(None),
                             Routine.pr_merged_checked_at < cutoff,
@@ -532,30 +537,45 @@ class RoutineOrchestrator:
             return 0
 
         # ② 会话外：best-effort 检测每个 PR（gh 子进程带超时；pr_status 契约为绝不抛）。
-        checks: list[tuple[UUID, pr_status.PrMergeStatus]] = []
-        for rid, pr_url in rows:
+        checks: list[tuple[UUID, str | None, pr_status.PrMergeStatus]] = []
+        for rid, pr_url, before_state in rows:
             url = pr_url or ""
-            # 坏 URL 预筛：直接判「未合并」落库停检，杜绝永滞 due 集（防饥饿）。
+            # 坏 URL 预筛：归一化为终态 closed（落库停检，杜绝永滞 due 集）；before_state 供翻转判定。
             if not pr_status.is_valid_pr_url(url):
-                checks.append((rid, pr_status.PrMergeStatus(merged=False, state=None)))
+                checks.append((rid, before_state, pr_status.PrMergeStatus(merged=False, state="CLOSED")))
                 continue
             try:
                 st = await pr_status.fetch_pr_merge_status(url, timeout=timeout)
             except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；双保险兜底，护心跳
                 logger.warning("routine_pr_merge_check_failed", routine_id=str(rid), error=str(exc))
                 st = pr_status.PrMergeStatus(merged=None, state=None)
-            checks.append((rid, st))
+            checks.append((rid, before_state, st))
 
-        # ③ 短会话：回写 + 提交；仅「新检出 merged」者推 SSE（commit 后属性仍可读：expire_on_commit=False）。
+        # ③ 短会话：Core update 回写 + 提交；仅「新检出 merged」者推 SSE。
+        # **不污染 updated_at**：Routine.updated_at 带 ORM ``onupdate=func.now()``，Core update 仍会触发它
+        # （实证：见探针），故对「未翻转」分支显式 ``updated_at = Routine.updated_at`` 自引用保形——
+        # 仅状态实际翻转时才置为 now（列表只在 PR 真正合并/关闭时才重排，不随节流推进乱跳）。
+        # WHERE 含 status/pr_url 守卫：restart/cancel/pr_url 清理等使其脱离 due → UPDATE 匹配 0 行（no-op）。
         merged_ids: list[UUID] = []
         now = _utcnow()
         async with db_session.AsyncSessionLocal() as db:
-            for rid, st in checks:
-                r = await db.get(Routine, rid)
-                # 竞态守卫：restart/cancel/pr_url 清理等使其脱离 due → 跳过，不回写。
-                if r is None or r.status != "succeeded" or not r.pr_url:
-                    continue
-                if pr_status.apply_pr_merge_result(r, st, now):
+            for rid, before_state, st in checks:
+                new_state, changed = pr_status.compute_pr_write(before_state, st)
+                if new_state is None:
+                    continue  # gh 未应答 → 不写，保持 due 下 tick 重试
+                vals: dict[str, Any] = {
+                    "pr_state": new_state,
+                    "pr_merged": new_state == "merged",
+                    "pr_merged_checked_at": now,
+                    # 显式 updated_at：翻转→now；未翻转→自引用保形（绕过 onupdate，不刷 updated_at）。
+                    "updated_at": now if changed else Routine.updated_at,
+                }
+                await db.execute(
+                    update(Routine)
+                    .where(Routine.id == rid, Routine.status == "succeeded", Routine.pr_url.is_not(None))
+                    .values(**vals)
+                )
+                if new_state == "merged" and changed:
                     merged_ids.append(rid)
             await db.commit()
             for rid in merged_ids:
@@ -1888,6 +1908,7 @@ class RoutineOrchestrator:
                 "current_phase": routine.current_phase,
                 "pr_url": routine.pr_url,
                 "pr_merged": routine.pr_merged,
+                "pr_state": routine.pr_state,
             }
         )
 

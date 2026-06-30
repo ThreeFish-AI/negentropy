@@ -199,6 +199,7 @@ def _serialize_routine(
         "current_phase": r.current_phase,
         "pr_url": r.pr_url,
         "pr_merged": r.pr_merged,
+        "pr_state": r.pr_state,
         "work_branch": r.work_branch,
         "worktree_path": r.worktree_path,
         "worktree_status": worktree_meta.get("status") if worktree_meta else None,
@@ -1000,8 +1001,9 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
         r.claude_session_id = None
         r.current_phase = phase_mod.initial_phase(r.config)
         r.pr_url = None
-        # 复位 PR 合并状态：避免旧 PR 的 merged 污染新一轮 PR 的检测与「Merged」展示。
+        # 复位 PR 合并状态：避免旧 PR 的 merged/state 污染新轮 PR 的检测与「Merged」/「Closed」展示。
         r.pr_merged = None
+        r.pr_state = None
         r.pr_merged_checked_at = None
         # 隔离 worktree：仅回收 worktree 目录、**保留终生单一工作分支**（含其检查点提交），
         # 使新一轮尝试在同一分支上从上一检查点续作（不铸新分支、不重建自基线）。下一次派发的
@@ -1197,6 +1199,7 @@ async def _publish_routine(r: Routine) -> None:
             "current_phase": r.current_phase,
             "pr_url": r.pr_url,
             "pr_merged": r.pr_merged,
+            "pr_state": r.pr_state,
         }
     )
 

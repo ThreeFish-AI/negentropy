@@ -1,29 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { GitMerge, GitPullRequest, Loader2, RefreshCw } from "lucide-react";
+import { GitMerge, GitPullRequest, Loader2, RefreshCw, X } from "lucide-react";
 
 /**
- * PR 卡片 —— FINALIZE 阶段 Claude Code 创建 PR 后，展示「查看 PR」与合并状态。
+ * PR 卡片 —— FINALIZE 阶段 Claude Code 创建 PR 后，展示「查看 PR」与 PR 状态。
  *
- * - ``merged`` 为真：渲染 violet「已合并 ✓」终态（合并是人工动作，已完成即不再提供合并入口）。
- * - 否则：保留「在 GitHub 合并 →」外链 + 「同步 PR 状态」按钮（合并后即时回写，无需等~5min 心跳）。
+ * 三态（由 pr_state 决定，merged 为派生快捷入参）：
+ * - ``merged`` 为真：violet「已合并 ✓」终态（合并是人工动作，已完成即不再提供合并入口）。
+ * - ``prState === "closed"``：muted「已关闭」终态（已关闭未合并，不能合并 → 无合并链接、无同步按钮）。
+ * - 否则（open / null）：保留「在 GitHub 合并 →」外链 + 「同步状态」按钮（合并后即时回写）。
  *
  * 安全：合并是人工动作，本组件仅 link-out 到 GitHub + 只读状态同步（不调用任何后端 merge 接口、不自动合并）。
  */
 export function RoutinePrCard({
   prUrl,
   merged,
+  prState,
   onSync,
 }: {
   prUrl: string | null | undefined;
   merged?: boolean | null;
+  prState?: "open" | "closed" | "merged" | null;
   onSync?: () => void | Promise<void>;
 }) {
   const [syncing, setSyncing] = useState(false);
   if (!prUrl) return null;
 
-  const isMerged = !!merged;
+  const isMerged = !!merged || prState === "merged";
+  const isClosed = !isMerged && prState === "closed";
 
   const handleSync = async () => {
     if (syncing || !onSync) return;
@@ -51,6 +56,11 @@ export function RoutinePrCard({
         <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-violet-300 bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:border-violet-700 dark:text-violet-300">
           <GitMerge className="h-3.5 w-3.5" aria-hidden />
           已合并 ✓
+        </span>
+      ) : isClosed ? (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-text-secondary">
+          <X className="h-3.5 w-3.5" aria-hidden />
+          已关闭
         </span>
       ) : (
         <>

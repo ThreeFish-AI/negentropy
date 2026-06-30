@@ -50,6 +50,7 @@ function makeRoutine(id: string, status: RoutineDTO["status"] = "running"): Rout
     current_phase: null,
     pr_url: null,
     pr_merged: null,
+    pr_state: null,
     work_branch: null,
     worktree_path: null,
     max_iterations: 20,

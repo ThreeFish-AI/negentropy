@@ -139,6 +139,14 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         nullable=True,
         comment="PR 是否已 merge（null=未知/未检测；与 status 正交，不改状态机）",
     )
+    # PR 权威状态（gh pr view --json state）：open|closed|merged（null=未知/未检测）。
+    # 与 pr_merged 正交持久化以区分 Open 与 Closed-without-merge（两者 pr_merged 均为 False）；
+    # pr_merged 为派生反规范化布尔（= pr_state=='merged'），沿用 best_score/last_score 同范式。
+    pr_state: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="PR 状态 open|closed|merged（null=未知/未检测；与 status 正交）",
+    )
     pr_merged_checked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

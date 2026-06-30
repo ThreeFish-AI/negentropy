@@ -8,7 +8,7 @@
 为何复用 ``gh`` CLI：
     ``gh`` 是本仓库 GitHub 集成的唯一事实源（CC 经 ``gh pr create`` 建 PR；``publish-wiki-pages.sh``
     经 ``gh auth token`` 取 token）。后端不引入新 GitHub 客户端 / token，直接复用运行时已授权的
-    ``gh`` 做只读 ``gh pr view --json state,merged``。
+    ``gh`` 做只读 ``gh pr view --json state,mergedAt``。
 
 可降级契约（对齐 AGENTS.md「不引入新问题」）：
     ``gh`` 不在 PATH / 未授权 / 超时 / rc≠0 / 坏 JSON / 坏 URL → 一律返回 ``PrMergeStatus(None, None)``
@@ -74,31 +74,52 @@ def is_valid_pr_url(url: str | None) -> bool:
     return bool(url) and bool(_PR_URL_RE.match(url))
 
 
-def apply_pr_merge_result(routine, st: PrMergeStatus, now) -> bool:
-    """把检测结果回写到 routine 的 ``pr_merged`` / ``pr_merged_checked_at``（鸭子类型，复用于
-    心跳 pass 与手动 ``sync-pr`` 端点，避免两处写回分支漂移）。
+def next_pr_state(st: PrMergeStatus) -> str | None:
+    """gh 应答的归一化 ``pr_state``（``open``|``closed``|``merged``）。
 
-    回写语义：
-    - ``merged is True`` → ``pr_merged=True`` + 推进 ``checked_at``；返回是否「新检出」合并
-      （之前非 True）——调用方据此决定是否推 SSE。
-    - ``merged is False``（OPEN / closed-without-merge）→ ``pr_merged=False`` + 推进 ``checked_at``
-      （确认为未合并即停检：部分索引谓词 ``COALESCE(pr_merged,false)=false`` 会把 True/False 都排除）。
-    - ``merged is None``：``state`` 非 None（gh 应答，如 OPEN 已被上面覆盖；此处防御）→ 仅推进
-      ``checked_at`` 节流；``state is None``（gh 未应答）→ **不动** ``checked_at``，保持 due 下 tick 重试。
+    ``None`` = gh 未给出有效应答（缺失/超时/rc≠0/坏 JSON/坏 state）→ 调用方应**不写**，
+    保持 due 下 tick 重试（节流水位线 ``checked_at`` 亦不推进）。
     """
-    if st.merged is True:
-        before = getattr(routine, "pr_merged", None)
-        routine.pr_merged = True
-        routine.pr_merged_checked_at = now
-        return before is not True
-    if st.merged is False:
-        routine.pr_merged = False
-        routine.pr_merged_checked_at = now
+    if st.state is None:
+        return None
+    norm = st.state.lower()
+    return norm if norm in ("open", "closed", "merged") else None
+
+
+def compute_pr_write(before_state: str | None, st: PrMergeStatus) -> tuple[str | None, bool]:
+    """纯决策：由检测结果推导应写入的 ``pr_state`` 与「状态是否翻转」。
+
+    Returns:
+        ``(new_state, state_changed)`` —— ``new_state is None`` 表示 gh 未应答（不写）；
+        ``state_changed`` = ``new_state != before_state``（用于决定是否更新 ``updated_at`` / 推 SSE）。
+    """
+    new_state = next_pr_state(st)
+    if new_state is None:
+        return (None, False)
+    return (new_state, before_state != new_state)
+
+
+def apply_pr_merge_result(routine, st: PrMergeStatus, now) -> bool:
+    """把检测结果回写到 routine 的 ``pr_state`` / ``pr_merged`` / ``pr_merged_checked_at``
+    （鸭子类型，供手动 ``sync-pr`` 端点的 ORM 写回路径复用）。
+
+    状态化写回（``pr_state`` 权威、``pr_merged`` 派生 = ``pr_state=='merged'``）：
+    - gh 应答（state ∈ open/closed/merged）→ 写 ``pr_state`` + 派生 ``pr_merged`` + 推进 ``checked_at``；
+      返回是否「新检出 merged」（之前非 merged）——调用方据此决定是否推 SSE。
+    - gh 未应答（state is None）→ **不写**（保持 due 下 tick 重试），返回 False。
+
+    注：心跳 pass 不走此 ORM 路径（ORM flush 会刷新 ``updated_at`` 致列表乱跳），改用 Core
+    ``update()`` + ``compute_pr_merge_write``（见 orchestrator._sync_pr_merge_status）；本函数仅用于
+    用户主动触发的手动端点（updated_at 即便刷新可接受）。
+    """
+    new_state = next_pr_state(st)
+    if new_state is None:
         return False
-    # merged is None
-    if st.state is not None:
-        routine.pr_merged_checked_at = now
-    return False
+    before_merged = getattr(routine, "pr_merged", None)
+    routine.pr_state = new_state
+    routine.pr_merged = new_state == "merged"
+    routine.pr_merged_checked_at = now
+    return new_state == "merged" and before_merged is not True
 
 
 def _kill_process_group(proc) -> None:

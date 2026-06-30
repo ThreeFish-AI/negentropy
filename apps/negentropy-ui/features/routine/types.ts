@@ -49,6 +49,8 @@ export interface RoutineDTO {
   pr_url: string | null;
   /** PR 是否已合并（true=已 Merge；null=未知/未检测，旧记录回退）。派生显示条件，非新状态值。 */
   pr_merged: boolean | null;
+  /** PR 状态（open|closed|merged；null=未知/未检测，旧记录回退）。区分 Open 与 Closed-without-merge。 */
+  pr_state: "open" | "closed" | "merged" | null;
   /** 引擎管理的运行期：本轮隔离工作分支（routine/<key>-<ts>）。 */
   work_branch: string | null;
   /** 引擎管理的运行期：隔离 worktree 文件系统路径（= CC 实际 cwd）。 */
