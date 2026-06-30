@@ -737,8 +737,15 @@ class BuiltinAssembler(PDFToolBase):
                         #   LaTeX 名经希腊字母 / 运算符 unicode 映射桥接文本层字形
                         #   （``\alpha``↔``α``、``\theta``↔``θ``、``\approx``↔``≈``）。
                         is_block = formula.formula_type == "block"
-                        is_inline_short = (
-                            formula.formula_type == "inline" and len(text) <= 40
+                        # inline 独立短块：整段即公式。≤ 40 字符直接放；40 < len ≤ 60
+                        # 时要求高数学字形密度（≥ 2 个 greek/运算符特征字形），确认整段
+                        # 确为公式而非散文片段。仅独立块、不触 prose 段落，零损坏风险。
+                        _MATH_GLYPHS = set(
+                            "αβγδεζηθικλμνξπρστυφχψωΔΘΛΣΦΨΩΓ×÷≈≤≥≠∈∉⊂⊆⊃⊇∪∩∀∃∑∏∫∂∇"
+                        )
+                        _glyph_density = sum(1 for c in text if c in _MATH_GLYPHS)
+                        is_inline_short = formula.formula_type == "inline" and (
+                            len(text) <= 40 or (len(text) <= 60 and _glyph_density >= 2)
                         )
                         if not matched and (is_block or is_inline_short):
                             _math_symbols = [
