@@ -190,7 +190,7 @@ async def test_inspector_refreshes_when_event_delta_exceeds_threshold(monkeypatc
     session = await service.create_session(app_name=app_name, user_id=user_id)
 
     # 首条 user 消息触发反应式生成，得到 "标题 v1"
-    await _append_user_event(service, session, "首次问候")
+    await _append_user_event(service, session, "首次问候，开始本次巡检刷新测试")
     await service.wait_for_background_tasks()
     after_first = await _get_metadata(session.id)
     assert after_first["title"] == "标题 v1"
@@ -237,7 +237,7 @@ async def test_inspector_respects_max_attempts_backoff(monkeypatch):
     event = ADKEvent(
         id=str(uuid.uuid4()),
         author="assistant",
-        content={"parts": [{"text": "失败重试样本"}]},
+        content={"parts": [{"text": "失败重试样本，用于验证退避逻辑"}]},
     )
     await service.append_event(session, event)
 
@@ -290,7 +290,7 @@ async def test_update_session_title_clear_removes_all_auto_keys(monkeypatch):
     session = await service.create_session(app_name=app_name, user_id=user_id)
 
     # 先生成 auto 标题
-    await _append_user_event(service, session, "触发生成")
+    await _append_user_event(service, session, "触发自动标题生成流程")
     await service.wait_for_background_tasks()
     meta_after_gen = await _get_metadata(session.id)
     assert meta_after_gen["title"] == "首次标题"
@@ -321,7 +321,7 @@ async def test_reactive_trigger_records_source_and_event_seq(monkeypatch):
     user_id = f"user_{uuid.uuid4()}"
     session = await service.create_session(app_name=app_name, user_id=user_id)
 
-    await _append_user_event(service, session, "你好")
+    await _append_user_event(service, session, "你好，这是 reactive 触发溯源测试")
     await service.wait_for_background_tasks()
 
     meta = await _get_metadata(session.id)
@@ -366,7 +366,7 @@ async def test_advisory_lock_serializes_concurrent_inspector_runs(monkeypatch):
     event = ADKEvent(
         id=str(uuid.uuid4()),
         author="assistant",
-        content={"parts": [{"text": "并发候选种子"}]},
+        content={"parts": [{"text": "并发候选种子事件内容样本"}]},
     )
     await service.append_event(session, event)
 
