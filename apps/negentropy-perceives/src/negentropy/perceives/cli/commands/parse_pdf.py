@@ -14,6 +14,43 @@ except ImportError:
     raise ImportError("CLI dependencies not installed. Install with: uv add typer rich")
 
 
+def _copy_image_assets(result, output: str) -> None:
+    """将抽取的图片资产拷贝到 markdown 输出目录的 ``images/`` 子目录。
+
+    传统（非 auto pipeline）路径把图片写到 ``EnhancedPDFProcessor.output_directory``
+    ——当上层未透传 ``output_dir`` 时即 ``tempfile.mkdtemp('enhanced_pdf_*')`` 临时目录。
+    此前 CLI 仅写 markdown 文本、不搬运图片资产，导致候选中 ``./images/<filename>``
+    引用全部死链。此处补齐资产落地，使 markdown 图片引用可达。
+
+    auto pipeline 路径自带 ``image_assets`` 落盘逻辑，其 ``enhanced_assets`` 结构不同，
+    ``output_directory`` 缺失时本函数直接 no-op，互不影响。
+    """
+    import shutil
+    from pathlib import Path
+
+    ea = getattr(result, "enhanced_assets", None) or {}
+    src_dir = ea.get("output_directory")
+    if not src_dir:
+        return
+    src_path = Path(src_dir)
+    if not src_path.is_dir():
+        return
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+    candidates = [
+        p for p in src_path.iterdir() if p.is_file() and p.suffix.lower() in image_exts
+    ]
+    if not candidates:
+        return
+    images_dst = Path(output).resolve().parent / "images"
+    images_dst.mkdir(parents=True, exist_ok=True)
+    for src in candidates:
+        try:
+            shutil.copy2(src, images_dst / src.name)
+        except OSError:
+            # 单图拷贝失败不应中断整体输出落盘（如只读源/目标磁盘满）。
+            pass
+
+
 def run(
     pdf_source: str = typer.Argument(..., help="PDF source (URL or local file path)"),
     method: str = typer.Option(
@@ -121,6 +158,9 @@ async def _run(
         from pathlib import Path
 
         Path(output).write_text(formatted, encoding="utf-8")
+        # 补齐图片资产落盘：传统路径图片写到 EnhancedPDFProcessor.output_directory
+        # （可能为临时目录），需拷贝到 -o 同级 images/ 使 ./images/<filename> 引用可达。
+        _copy_image_assets(result, output)
         console.print(f"[green]Output saved to {output}[/green]")
     else:
         console.print(formatted)
