@@ -119,8 +119,28 @@ async def _run(
     formatted = format_result(result, format=format)
     if output:
         from pathlib import Path
+        import shutil
 
-        Path(output).write_text(formatted, encoding="utf-8")
-        console.print(f"[green]Output saved to {output}[/green]")
+        out_path = Path(output)
+        out_path.write_text(formatted, encoding="utf-8")
+
+        # 持久化提取的图片到输出目录的 images/，使 markdown 中的
+        # ``./images/<filename>`` 引用可解析。CLI 默认仅写文本，pipeline
+        # 产出的图片落盘在内部临时目录、随进程清理，否则引用将永久断裂。
+        image_assets = getattr(result, "image_assets", None) or []
+        saved_images = 0
+        if image_assets and format == "markdown":
+            images_dir = out_path.parent / "images"
+            images_dir.mkdir(parents=True, exist_ok=True)
+            for asset in image_assets:
+                src = getattr(asset, "image_path", None)
+                if src and Path(src).exists():
+                    try:
+                        shutil.copy2(src, images_dir / asset.filename)
+                        saved_images += 1
+                    except OSError:
+                        pass
+        suffix = f" (+{saved_images} images)" if image_assets else ""
+        console.print(f"[green]Output saved to {output}{suffix}[/green]")
     else:
         console.print(formatted)
