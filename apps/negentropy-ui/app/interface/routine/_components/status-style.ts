@@ -123,6 +123,10 @@ export const mergedBadgeClass =
 export const closedBadgeClass =
   "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-micro font-semibold text-text-secondary";
 
+/** 「PR 开启中（待合并）」徽章配色（sky/天蓝 = 活跃待处理；区别于 succeeded-绿/merged-紫/closed-灰/failed-红）。 */
+export const openBadgeClass =
+  "inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-micro font-semibold text-sky-700 dark:text-sky-300";
+
 /** 迭代状态 → 状态点配色。 */
 export function iterationDotClass(status: IterationStatus): string {
   switch (status) {
