@@ -810,6 +810,51 @@ async def test_ensure_workspace_targets_worktree_in_build_config():
         await _cleanup(rid)
 
 
+async def test_unified_plan_stage_force_hooks_even_when_via_hook_false():
+    """根治断链：unified 闭环的 plan 段**无条件挂 PreToolUse 钩子**，即便 config.plan_review_via_hook=False。
+
+    实证 Routine 77c8a8b6：via_hook=False 致 plan 段不挂钩子、回退 reader clean stdin，而 headless
+    `claude -p` 下 AskUserQuestion 的 stdin 回灌从始无效 → CC 收 "Answer questions?" 报错、refine 永送不到。
+    修复后 plan 段强制走钩子 + plan_config.auto_answer_context.plan_review_via_hook=True（令 reader 跳过失效 stdin）。
+    """
+    import json
+
+    # worktree routine + plan_review_via_hook=False（模拟巡检配置）+ fresh（无 session）→ 命中 unified plan 段。
+    rid = await _make_routine(
+        baseline_branch="origin/feature/1.x.x",
+        cwd="/repo/root",
+        current_phase="implement",
+        config={"plan_review_via_hook": False},
+    )
+    try:
+        orch = RoutineOrchestrator()
+        info = WorkspaceInfo(path="/tmp/wt/relink-x", branch="routine/relink-x")
+        with patch("negentropy.engine.routine.workspace.ensure_worktree", new=AsyncMock(return_value=info)):
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid, with_for_update=True)
+                await orch._ensure_workspace(r)
+                await db.commit()
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid)
+                config = await orch._build_config(r, r.id)
+        # 命中 unified plan 段
+        assert config.plan_stage_config is not None, "worktree+fresh 应构建独立 plan 段"
+        plan_cfg = config.plan_stage_config
+        # ① plan 段强制挂 PreToolUse 钩子（不受 via_hook=False 影响）
+        plan_settings = json.loads(plan_cfg.settings or "{}")
+        pre = plan_settings.get("hooks", {}).get("PreToolUse", [])
+        matchers = {h.get("matcher") for h in pre}
+        assert "AskUserQuestion" in matchers, f"plan 段须挂 AskUserQuestion 钩子，实得 {matchers}"
+        assert "ExitPlanMode" in matchers, f"plan 段须挂 ExitPlanMode 钩子，实得 {matchers}"
+        # ② plan 段 auto_answer_context.plan_review_via_hook 强制 True（reader 跳过失效 stdin）
+        assert plan_cfg.auto_answer_context is not None
+        assert plan_cfg.auto_answer_context.get("plan_review_via_hook") is True
+        # ③ plan 段为只读 plan 模式
+        assert plan_cfg.permission_mode == "plan"
+    finally:
+        await _cleanup(rid)
+
+
 async def test_ensure_workspace_failure_terminates_unrecoverable():
     """worktree 创建失败 → _ensure_workspace False 且 routine 终止 unrecoverable。"""
     rid = await _make_routine(baseline_branch="origin/feature/1.x.x", cwd="/repo/root")
@@ -1048,8 +1093,9 @@ async def test_build_config_kb_mcp_absent_when_unavailable(monkeypatch):
 
 async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
     """统一闭环（默认开）+ flat worktree + fresh：主 config=implement 段(acceptEdits、无评审钩子)，
-    挂载独立 plan 段(permission_mode=plan)。默认 plan_review_via_hook=False → 走 clean stdin（reader
-    内 _plan_review_answer），plan 段不挂 PreToolUse deny 钩子（无 deny→is_error）。"""
+    挂载独立 plan 段(permission_mode=plan)。plan 段**强制走 PreToolUse 钩子**（根治断链——headless 下
+    AskUserQuestion 的 reader clean stdin 回灌从始无效）：plan 段挂 AskUserQuestion+ExitPlanMode 钩子，
+    且 plan_config.auto_answer_context.plan_review_via_hook=True（令 reader 跳过失效 stdin）。"""
     import json as _json
 
     from negentropy.engine.routine import orchestrator as orch_mod
@@ -1072,10 +1118,13 @@ async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
             assert ps is not None and ps.permission_mode == "plan"
             assert ps.resume_session_id is None
             assert ps.plan_stage_config is None  # 防自嵌套
-            # 默认 clean stdin（via_hook=False）：plan 段不挂 PreToolUse deny 钩子
+            # plan 段**强制挂 PreToolUse 钩子**（根治断链，不受 via_hook 控制）
             ps_settings = _json.loads(ps.settings) if ps.settings else {}
-            assert (ps_settings.get("hooks") or {}).get("PreToolUse", []) == []
-            assert ps.auto_answer_context["plan_review_via_hook"] is False
+            ps_pre = (ps_settings.get("hooks") or {}).get("PreToolUse", [])
+            ps_matchers = {h.get("matcher") for h in ps_pre}
+            assert "AskUserQuestion" in ps_matchers and "ExitPlanMode" in ps_matchers
+            # plan 段 via_hook 强制 True（reader 跳过失效 stdin，统一委托钩子）
+            assert ps.auto_answer_context["plan_review_via_hook"] is True
             assert config.plan_stage_prompt and "提交" in config.plan_stage_prompt
             # ctx 文件 mode=unified、按 iteration_id 键
             ctx = _json.loads((tmp_path / "negentropy-pr-ctx" / f"{iid}.json").read_text(encoding="utf-8"))
