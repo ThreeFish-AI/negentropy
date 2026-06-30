@@ -64,11 +64,13 @@ export type HumanReplyMode =
 /**
  * 一条转录项：人机对话流的单元。
  *
+ * - 人（一核五翼 6 Agent）侧：``task_dispatch`` 开场任务下发 / ``human_reply`` 应答。
  * - 机（Claude Code）侧：``assistant`` 文本 / ``tool`` 调用 / ``tool_summary`` 折叠 / ``cc_request`` 提交。
- * - 人（一核五翼 6 Agent）侧：``human_reply`` 应答。
  * - 其余：``engine``（编排产出 gate/evaluation/result）/ ``system`` / ``truncated``。
  */
 export type TranscriptItem =
+  /** 开场「人（一核 Engine）→ 机」任务下发回合——由 iteration.prompt 合成，非事件流原始项。 */
+  | { kind: "task_dispatch"; prompt: string }
   | { kind: "assistant"; seq: number; id: string; text: string; thinking: boolean }
   | {
       kind: "tool";
