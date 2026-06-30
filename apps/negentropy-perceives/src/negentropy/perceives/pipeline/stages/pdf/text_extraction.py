@@ -237,15 +237,25 @@ class FitzTextExtractor(PDFToolBase):
             for page_idx in range(start_page, end_page):
                 pd = page_dict_blocks[page_idx]
                 page_height = pd.get("height", 792)
+                page_width = pd.get("width", 612.0)
                 raw_blocks = pd.get("blocks", [])
+
+                # 双栏阅读序：fitz 把每栏正文合并为单个大块，全局 (y0, x0) 排序
+                # 会把 y0 略小的右栏排到左栏之前（如右栏 §3.1 早于左栏 §3 正文）。
+                # 仅当页存在「一左一右、高度>30%页高、y 显著重叠」的栏块对时，
+                # 判为双栏正文页，改用 (栏, y0, x0)：左栏（含跨栏全宽块）先于右栏，
+                # 栏内自上而下。单栏页 / 复杂标题页（3 栏作者块，无高栏块对）
+                # 检测不到 → 沿用 (y0, x0)，零回归。
+                two_column = FitzTextExtractor._is_two_column_body(
+                    raw_blocks, page_width, page_height
+                )
 
                 page_blocks: List[TextBlock] = []
                 in_page_order = 0
                 for block in sorted(
                     raw_blocks,
-                    key=lambda b: (
-                        b.get("bbox", (0, 0, 0, 0))[1],
-                        b.get("bbox", (0, 0, 0, 0))[0],
+                    key=lambda b: FitzTextExtractor._page_reading_key(
+                        b, page_width, two_column
                     ),
                 ):
                     if block.get("type") != 0:
@@ -366,6 +376,72 @@ class FitzTextExtractor(PDFToolBase):
         finally:
             doc.close()
         return out
+
+    @staticmethod
+    def _is_two_column_body(
+        raw_blocks: list, page_width: float, page_height: float
+    ) -> bool:
+        """检测页面是否为「双栏正文」布局。
+
+        判据：存在两个文本块同时满足——(1)均非跨栏全宽块（宽度 ≤ 70% 页宽）；
+        (2)均较高（高度 > 30% 页高，排除标题/作者/摘要等短块）；(3)一个在中线
+        左侧、一个在右侧；(4)x 方向分离不重叠；(5)y 方向显著重叠（> 较小块
+        高度的 50%）。满足即认为存在左右两个正文栏块，需列优先阅读序。
+
+        该判据专门识别「整列正文大块」（fitz 把每栏合并为一个高块），与 3 栏
+        作者块、单栏页区分（后者无满足条件的块对 → 返回 False，沿用行优先排序）。
+        """
+        mid_x = page_width / 2.0
+        min_col_height = page_height * 0.3
+        cols: List[tuple] = []
+        for b in raw_blocks:
+            if b.get("type") != 0:
+                continue
+            x0, y0, x1, y1 = b.get("bbox", (0, 0, 0, 0))[:4]
+            if (x1 - x0) > page_width * 0.7:  # 跨栏全宽块
+                continue
+            if (y1 - y0) < min_col_height:  # 短块（标题/作者等）
+                continue
+            cols.append((x0, y0, x1, y1))
+        n = len(cols)
+        for i in range(n):
+            ax0, ay0, ax1, ay1 = cols[i]
+            a_cx = (ax0 + ax1) / 2.0
+            a_left = a_cx < mid_x
+            for j in range(i + 1, n):
+                bx0, by0, bx1, by1 = cols[j]
+                b_cx = (bx0 + bx1) / 2.0
+                # 一左一右（分属中线两侧）
+                if a_left == (b_cx < mid_x):
+                    continue
+                # x 方向分离（不重叠）
+                if not (ax1 <= bx0 or bx1 <= ax0):
+                    continue
+                # y 方向显著重叠
+                overlap_y = min(ay1, by1) - max(ay0, by0)
+                min_h = min(ay1 - ay0, by1 - by0)
+                if min_h > 0 and overlap_y > min_h * 0.5:
+                    return True
+        return False
+
+    @staticmethod
+    def _page_reading_key(block: dict, page_width: float, two_column: bool) -> tuple:
+        """块阅读序排序键。
+
+        - ``two_column=False``（单栏 / 复杂标题页）：返回 ``(y0, x0)``，行优先，
+          兼容旧行为。
+        - ``two_column=True``（双栏正文页）：返回 ``(栏, y0, x0)``，列优先——
+          跨栏全宽块（标题/页眉/通栏图）与左栏归 col=0，右栏归 col=1，左栏
+          整体先于右栏，栏内自上而下。修复右栏 y0 略小被排到左栏之前的问题。
+        """
+        bbox = block.get("bbox", (0, 0, 0, 0))
+        x0, y0, x1 = bbox[0], bbox[1], bbox[2]
+        if not two_column:
+            return (y0, x0)
+        if (x1 - x0) > page_width * 0.7:
+            return (0, y0, x0)
+        col = 0 if (x0 + x1) / 2.0 < page_width / 2.0 else 1
+        return (col, y0, x0)
 
     @staticmethod
     def _rejoin_spaced_words(text: str) -> str:
