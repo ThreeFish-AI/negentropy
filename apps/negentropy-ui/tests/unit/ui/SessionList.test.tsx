@@ -160,7 +160,7 @@ describe("SessionList", () => {
 });
 
 describe("SessionList 分页", () => {
-  it("超过 10 个 session 时仅显示 10 个，分页栏显示正确页码", () => {
+  it("初始仅揭示首页 10 个 session，总数与页码控件就绪", () => {
     const sessions = makeSessions(15);
     render(
       <SessionList
@@ -171,15 +171,17 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    // 应该恰好渲染 10 个 session（第 1 页）
+    // 渐进揭示：初始仅前 10 个（首页缓冲）
     const sessionItems = document.querySelectorAll("[data-session-id]");
     expect(sessionItems).toHaveLength(10);
 
-    // 分页栏应显示 "1 / 2"
-    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    // 共享 Pagination：总数计数 "15 sessions" + 数字页码 1/2
+    expect(screen.getByText("15 sessions")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Page 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Page 2" })).toBeInTheDocument();
   });
 
-  it("点击下一页显示后续 session", async () => {
+  it("点击下一页揭示至第 2 页（追加后续 session）", async () => {
     const user = userEvent.setup();
     const sessions = makeSessions(15);
     render(
@@ -191,12 +193,12 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Next page" }));
 
-    // 第 2 页应显示 5 个 session（11-15）
+    // 渐进揭示至第 2 页：全部 15 个已加载并渲染
     const sessionItems = document.querySelectorAll("[data-session-id]");
-    expect(sessionItems).toHaveLength(5);
-    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(sessionItems).toHaveLength(15);
+    expect(screen.getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
   });
 
   it("首页时上一页按钮 disabled，末页时下一页按钮 disabled", async () => {
@@ -211,18 +213,18 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    // 第 1 页：上一页 disabled
-    expect(screen.getByRole("button", { name: "上一页" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "下一页" })).not.toBeDisabled();
+    // 第 1 页：上一页 disabled，下一页可用
+    expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next page" })).not.toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Next page" }));
 
-    // 第 2 页：下一页 disabled
-    expect(screen.getByRole("button", { name: "上一页" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "下一页" })).toBeDisabled();
+    // 第 2 页（末页）：下一页 disabled，上一页可用
+    expect(screen.getByRole("button", { name: "Previous page" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
   });
 
-  it("10 个或更少 session 时不显示分页栏", () => {
+  it("10 个或更少 session 时不显示翻页按钮", () => {
     const sessions = makeSessions(10);
     render(
       <SessionList
@@ -233,8 +235,8 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "上一页" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "下一页" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Previous page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
   });
 
   it("sessions 数量变化后重置到第 1 页", () => {
@@ -248,7 +250,7 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    // 模拟删除后 sessions 减少
+    // 模拟删除后 sessions 减少到单页
     const reduced = makeSessions(10);
     rerender(
       <SessionList
@@ -259,8 +261,9 @@ describe("SessionList 分页", () => {
       />,
     );
 
-    // 分页栏应消失（10 <= 10）
-    expect(screen.queryByRole("button", { name: "上一页" })).not.toBeInTheDocument();
+    // 单页时翻页按钮消失
+    expect(screen.queryByRole("button", { name: "Previous page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
   });
 
   it("view 切换后重置到第 1 页", async () => {
@@ -276,8 +279,8 @@ describe("SessionList 分页", () => {
 
     // 导航到第 2 页
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "下一页" }));
-    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+    expect(screen.getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
 
     // 切换到 archived 视图
     rerender(
@@ -290,6 +293,6 @@ describe("SessionList 分页", () => {
     );
 
     // 应重置到第 1 页
-    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
   });
 });

@@ -1,10 +1,7 @@
-/* eslint-disable react-hooks/set-state-in-effect -- useEffect 内调用 setCurrentPage 重置分页 */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
   ArchiveRestore,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   Search,
   Trash2,
@@ -12,6 +9,9 @@ import {
 
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import type { SessionListView } from "@/utils/session";
 
 const PAGE_SIZE = 10;
@@ -60,21 +60,70 @@ export function SessionList({
   // 会话搜索：按标题客户端过滤（大小写不敏感），在当前视图（active/archived）内生效
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredSessions = normalizedQuery
-    ? sessions.filter((s) => s.label.toLowerCase().includes(normalizedQuery))
-    : sessions;
-
-  // 分页：过滤结果数量 / view / 查询变化时重置到第 1 页
-  const [currentPage, setCurrentPage] = useState(1);
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredSessions.length, view, normalizedQuery]);
-  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const pagedSessions = filteredSessions.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
+  const filteredSessions = useMemo(
+    () =>
+      normalizedQuery
+        ? sessions.filter((s) => s.label.toLowerCase().includes(normalizedQuery))
+        : sessions,
+    [sessions, normalizedQuery],
   );
+
+  // 统一分页（client 模式）：全量过滤结果已在内存，渐进切片即可。
+  // filters 编入 view / query，二者变化即由 hook 自动 reset 回第 1 页（替代原手搓 reset effect）。
+  const list = useInfiniteList<SessionItem, { view: SessionListView; q: string }>({
+    fetcher: useMemo(() => ({ kind: "client" as const, items: filteredSessions }), [filteredSessions]),
+    pageSize: PAGE_SIZE,
+    filters: { view, q: normalizedQuery },
+  });
+
+  // 无限滚动 + 翻页：滚动容器 ref（哨兵 / 滚动联动 observer 的 root = 会话列表自身的 overflow 容器）、
+  // 程序化滚动闸门、待跳页号。
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 揭示下一页。root = 会话列表 overflow 容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首项的 data-infinite-page 锚点，取最靠上可见页。
+  useScrollPageSync({
+    enabled: true,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: list.items.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  // 点页码跳页：先经 hook 揭示该页，再滚动到该页锚点。
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（client 切片增长后锚点再现 → effect 重跑命中）。
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return; // 该页尚未渲染，待 items 增长后重跑
+    // jsdom 未实现 scrollIntoView；生产浏览器正常。守卫以兼容测试环境。
+    if (typeof anchor.scrollIntoView === "function") {
+      anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [list.currentPage, list.items.length]);
 
   // 确认弹窗状态：归档 / 解档 / 删除共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
   const [confirmTarget, setConfirmTarget] = useState<
@@ -227,8 +276,8 @@ export function SessionList({
           className="w-full rounded-lg border border-border bg-input py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-input-placeholder focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
-      <div className="space-y-1 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
-        {pagedSessions.length === 0 ? (
+      <div ref={scrollRootRef} className="space-y-1 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+        {list.items.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-border-muted/70 text-text-muted">
               {normalizedQuery ? (
@@ -253,11 +302,13 @@ export function SessionList({
             ) : null}
           </div>
         ) : (
-          pagedSessions.map((session) => (
+          list.items.map((session, i) => (
             <div
               key={session.id}
               data-session-id={session.id}
               data-active={session.id === activeId ? "true" : "false"}
+              // 每 PAGE_SIZE 项首项打锚点，供翻页定位与滚动联动当前页（1-indexed）。
+              data-infinite-page={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
             >
               {editingId === session.id ? (
                 <input
@@ -365,30 +416,21 @@ export function SessionList({
             </div>
           ))
         )}
+        {/* 无限滚动哨兵：进入视口即揭示下一页（hasMore 为否时 hook 自动停观察）。 */}
+        <div ref={sentinelRef} aria-hidden className="h-px w-full" />
       </div>
-      {filteredSessions.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between px-3 py-1.5 border-t border-border shrink-0">
-          <button
-            type="button"
-            disabled={safePage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            aria-label="上一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <span className="text-micro font-medium tabular-nums text-text-muted">
-            {safePage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={safePage >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            aria-label="下一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
+      {/* 居中翻页控件（替换原手搓 prev/next）；与无限滚动并存。 */}
+      {list.total != null && list.total > 0 && (
+        <div className="border-t border-border px-3 py-1.5 shrink-0">
+          <Pagination
+            page={list.currentPage}
+            totalPages={list.totalPages}
+            onPageChange={handleGoToPage}
+            total={list.total}
+            itemLabel="session"
+            disabled={list.loading}
+            loadingMore={list.loadingMore}
+          />
         </div>
       )}
     </aside>

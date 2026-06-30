@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, ListTree } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, ListTree } from "lucide-react";
 
 import type { RoutineIterationDTO } from "@/features/routine";
 import { AGENT_ROLE_META, deriveIterationDriver } from "@/features/routine";
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import { cn } from "@/lib/utils";
 
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
@@ -29,10 +32,56 @@ export function RoutineIterationTimeline({
   onAudit,
   busy,
 }: RoutineIterationTimelineProps) {
-  const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(iterations.length / PAGE_SIZE);
-  const safePage = Math.min(page, Math.max(0, totalPages - 1));
-  const pageItems = iterations.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+  // 统一分页（client 模式）：迭代为父级 detail 加载的近期全量集合，已在内存，渐进切片即可。
+  // 对外统一 1-indexed（原本地实现为 0-indexed，由套件归一）。本次仅做 UI 统一 + 对该集合的
+  // 无限滚动/翻页，不引入新的 cursor 全量拉取（那是父级 detail 的职责）。
+  const list = useInfiniteList<RoutineIterationDTO>({
+    fetcher: useMemo(() => ({ kind: "client" as const, items: iterations }), [iterations]),
+    pageSize: PAGE_SIZE,
+  });
+
+  // 无限滚动 + 翻页：本组件不自建滚动容器，内容平铺进所在深链页的页面级 overflow 容器，
+  // 故哨兵 / 滚动联动 observer 以 viewport 为 root（root 省略 → 相对视口，即真实滚动面）。
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 揭示下一页。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+  });
+
+  // 滚动联动当前页高亮：观测每页首项的 data-infinite-page 锚点，取最靠上可见页。
+  useScrollPageSync({
+    enabled: true,
+    onPageChange: list.goToPage,
+    rescanKey: list.items.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  // 点页码跳页：先经 hook 揭示该页，再滚动到该页锚点。
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（client 切片增长后锚点再现 → effect 重跑命中）。
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = document.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return; // 该页尚未渲染，待 items 增长后重跑
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [list.currentPage, list.items.length]);
 
   if (iterations.length === 0) {
     return <p className="text-sm text-text-secondary">No iterations yet.</p>;
@@ -41,33 +90,32 @@ export function RoutineIterationTimeline({
   return (
     <>
       <ol className="space-y-1.5">
-        {pageItems.map((it) => (
-          <IterationCard key={it.id} it={it} onApprove={onApprove} onAudit={onAudit} busy={busy} />
+        {list.items.map((it, i) => (
+          <IterationCard
+            key={it.id}
+            it={it}
+            onApprove={onApprove}
+            onAudit={onAudit}
+            busy={busy}
+            // 每 PAGE_SIZE 项首项打锚点，供翻页定位与滚动联动当前页（1-indexed）。
+            anchorPage={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
+          />
         ))}
       </ol>
-      {totalPages > 1 && (
-        <div className="mt-3 flex items-center justify-center gap-2 border-t border-border pt-3 text-xs text-text-secondary">
-          <button
-            type="button"
-            disabled={safePage <= 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            aria-label="上一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <span className="font-medium tabular-nums">
-            {safePage + 1} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={safePage >= totalPages - 1}
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            aria-label="下一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
+      {/* 无限滚动哨兵：进入视口即揭示下一页（hasMore 为否时 hook 自动停观察）。 */}
+      <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+      {/* 居中翻页控件（替换原手搓 prev/next，沿用居中布局）；与无限滚动并存。 */}
+      {list.total != null && list.total > 0 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <Pagination
+            page={list.currentPage}
+            totalPages={list.totalPages}
+            onPageChange={handleGoToPage}
+            total={list.total}
+            itemLabel="iteration"
+            disabled={list.loading}
+            loadingMore={list.loadingMore}
+          />
         </div>
       )}
     </>
@@ -117,11 +165,14 @@ function IterationCard({
   onApprove,
   onAudit,
   busy,
+  anchorPage,
 }: {
   it: RoutineIterationDTO;
   onApprove: (id: string) => void;
   onAudit?: (iteration: RoutineIterationDTO) => void;
   busy?: boolean;
+  /** 无限滚动锚点页号（仅每页首项传入），打在 <li> 上供翻页定位与滚动联动当前页。 */
+  anchorPage?: number;
 }) {
   const isActive = !it.finished_at && ACTIVE_TIMING.has(it.status);
   const isPendingApproval = it.status === "pending_approval";
@@ -181,6 +232,7 @@ function IterationCard({
 
   return (
     <li
+      data-infinite-page={anchorPage}
       className={cn(
         "overflow-hidden rounded-lg border transition-colors",
         isActive
