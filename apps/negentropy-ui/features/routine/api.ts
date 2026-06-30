@@ -166,6 +166,11 @@ export async function cleanupWorktree(routineId: string): Promise<RoutineDTO> {
   return jsonFetch(`/${encodeURIComponent(routineId)}/cleanup-worktree`, { method: "POST" });
 }
 
+/** 手动同步 PR 合并状态（即时回写 pr_merged；后端经 gh pr view 检测并 SSE 推送）。 */
+export async function syncRoutinePr(routineId: string): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/sync-pr`, { method: "POST" });
+}
+
 // ---------------------------------------------------------------------------
 // Templates（合并模板列表）
 // ---------------------------------------------------------------------------

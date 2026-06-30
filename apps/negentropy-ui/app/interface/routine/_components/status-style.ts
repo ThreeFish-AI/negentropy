@@ -114,6 +114,11 @@ export function routineStatusClass(status: RoutineStatus): string {
   }
 }
 
+/** 「PR 已合并」徽章配色（violet = GitHub merged 色 + 仓库 PR/finalize 强调色；区别于绿色 succeeded）。
+ *  列表行与详情头复用，保持「Merged」视觉单一事实源。 */
+export const mergedBadgeClass =
+  "inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-micro font-semibold text-violet-700 dark:text-violet-300";
+
 /** 迭代状态 → 状态点配色。 */
 export function iterationDotClass(status: IterationStatus): string {
   switch (status) {

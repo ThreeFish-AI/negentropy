@@ -32,7 +32,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -355,12 +355,22 @@ class RoutineOrchestrator:
     # 主入口
     # ------------------------------------------------------------------
     async def inspect_once(self) -> dict[str, int]:
-        """单次巡检：reap(孤儿迭代 + worktree) → evaluate → dispatch。返回各阶段计数（供 handler 汇报）。"""
+        """单次巡检：reap(孤儿迭代 + worktree) → sync(PR 合并状态) → evaluate → dispatch。
+
+        返回各阶段计数（供 handler 汇报 + task_executions 观测）。
+        """
         reaped = await self._reap_orphans()
         cleaned = await self._reap_workspaces()
+        pr_synced = await self._sync_pr_merge_status()
         evaluated = await self._evaluate_and_decide()
         launched = await self._dispatch_due()
-        return {"reaped": reaped, "cleaned": cleaned, "evaluated": evaluated, "launched": launched}
+        return {
+            "reaped": reaped,
+            "cleaned": cleaned,
+            "pr_synced": pr_synced,
+            "evaluated": evaluated,
+            "launched": launched,
+        }
 
     # ------------------------------------------------------------------
     # (a) REAP
@@ -475,6 +485,87 @@ class RoutineOrchestrator:
         if cleaned:
             logger.info("routine_reaped_workspaces", count=cleaned, policy=policy)
         return cleaned
+
+    async def _sync_pr_merge_status(self) -> int:
+        """巡检终态 routine 的 PR 合并状态并回写 ``pr_merged``（best-effort，绝不阻塞/崩溃心跳）。
+
+        复用既有 ``gh`` CLI（仓库 GitHub 集成的唯一事实源）做只读 ``gh pr view --json state,merged``：
+        succeeded + pr_url 的 routine 在 FINALIZE 后处于「等待人工 Merge」态，人在 GitHub 合并后，
+        本 pass 把 ``pr_merged`` 回写为 True 并经 SSE 推送，使列表 / Full View / PR 抽屉三处显示「Merged」。
+
+        可降级（对齐 AGENTS.md「不引入新问题」）：``gh`` 缺失/未授权/超时/坏 URL → ``pr_status`` 返回
+        unknown，本 pass 静默跳过（节流水位线 ``pr_merged_checked_at`` 不推进，保持 due 下 tick 重试）；
+        心跳永不因本 pass 崩溃（双层兜底：pr_status 不抛 + 本 pass 单层 ``except Exception``）。
+
+        范式镜像 ``_reap_workspaces``：短会话查 due → 会话外做 gh 子进程（不占连接池）→ 短会话写回 + 推送。
+        due 集 = succeeded ∧ pr_url 非空 ∧ pr_merged 未确认为 True ∧ 距上次检测 > 节流间隔；批量上限适配 25s 心跳。
+
+        返回本轮新检出「已合并」的 routine 数（推 SSE 的次数）。详见 ``pr_status.fetch_pr_merge_status``。
+        """
+        if not settings.routine.pr_merge_check_enabled:
+            return 0
+        from . import pr_status  # 延迟导入：避免 import 期 which('gh') 探测进入与 PR 无关的测试路径
+
+        cutoff = _utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
+        batch = settings.routine.pr_merge_check_batch
+        timeout = float(settings.routine.pr_merge_check_timeout_seconds)
+
+        # ① 短会话：拉取 due routine 的 (id, pr_url)（expire_on_commit=False → detached 后可读）。
+        async with db_session.AsyncSessionLocal() as db:
+            rows = (
+                await db.execute(
+                    select(Routine.id, Routine.pr_url)
+                    .where(
+                        Routine.status == "succeeded",
+                        Routine.pr_url.is_not(None),
+                        or_(Routine.pr_merged.is_(None), Routine.pr_merged.is_(False)),
+                        or_(
+                            Routine.pr_merged_checked_at.is_(None),
+                            Routine.pr_merged_checked_at < cutoff,
+                        ),
+                    )
+                    .order_by(Routine.pr_merged_checked_at.asc().nullsfirst())
+                    .limit(batch)
+                )
+            ).all()
+        if not rows:
+            return 0
+
+        # ② 会话外：best-effort 检测每个 PR（gh 子进程带超时；pr_status 契约为绝不抛）。
+        checks: list[tuple[UUID, pr_status.PrMergeStatus]] = []
+        for rid, pr_url in rows:
+            url = pr_url or ""
+            # 坏 URL 预筛：直接判「未合并」落库停检，杜绝永滞 due 集（防饥饿）。
+            if not pr_status.is_valid_pr_url(url):
+                checks.append((rid, pr_status.PrMergeStatus(merged=False, state=None)))
+                continue
+            try:
+                st = await pr_status.fetch_pr_merge_status(url, timeout=timeout)
+            except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；双保险兜底，护心跳
+                logger.warning("routine_pr_merge_check_failed", routine_id=str(rid), error=str(exc))
+                st = pr_status.PrMergeStatus(merged=None, state=None)
+            checks.append((rid, st))
+
+        # ③ 短会话：回写 + 提交；仅「新检出 merged」者推 SSE（commit 后属性仍可读：expire_on_commit=False）。
+        merged_ids: list[UUID] = []
+        now = _utcnow()
+        async with db_session.AsyncSessionLocal() as db:
+            for rid, st in checks:
+                r = await db.get(Routine, rid)
+                # 竞态守卫：restart/cancel/pr_url 清理等使其脱离 due → 跳过，不回写。
+                if r is None or r.status != "succeeded" or not r.pr_url:
+                    continue
+                if pr_status.apply_pr_merge_result(r, st, now):
+                    merged_ids.append(rid)
+            await db.commit()
+            for rid in merged_ids:
+                r = await db.get(Routine, rid)
+                if r is not None:
+                    with suppress(Exception):
+                        await self._publish_routine(r)
+        if merged_ids:
+            logger.info("routine_pr_merge_detected", count=len(merged_ids))
+        return len(merged_ids)
 
     # ------------------------------------------------------------------
     # (b) EVALUATE + DECIDE
@@ -1796,6 +1887,7 @@ class RoutineOrchestrator:
                 "total_cost_usd": routine.total_cost_usd,
                 "current_phase": routine.current_phase,
                 "pr_url": routine.pr_url,
+                "pr_merged": routine.pr_merged,
             }
         )
 

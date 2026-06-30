@@ -47,6 +47,8 @@ export interface RoutineDTO {
   termination_reason: string | null;
   current_phase: RoutinePhase | null;
   pr_url: string | null;
+  /** PR 是否已合并（true=已 Merge；null=未知/未检测，旧记录回退）。派生显示条件，非新状态值。 */
+  pr_merged: boolean | null;
   /** 引擎管理的运行期：本轮隔离工作分支（routine/<key>-<ts>）。 */
   work_branch: string | null;
   /** 引擎管理的运行期：隔离 worktree 文件系统路径（= CC 实际 cwd）。 */
