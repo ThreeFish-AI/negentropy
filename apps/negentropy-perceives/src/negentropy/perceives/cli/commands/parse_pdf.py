@@ -17,35 +17,53 @@ except ImportError:
 def _copy_image_assets(result, output: str) -> None:
     """将抽取的图片资产拷贝到 markdown 输出目录的 ``images/`` 子目录。
 
-    传统（非 auto pipeline）路径把图片写到 ``EnhancedPDFProcessor.output_directory``
-    ——当上层未透传 ``output_dir`` 时即 ``tempfile.mkdtemp('enhanced_pdf_*')`` 临时目录。
-    此前 CLI 仅写 markdown 文本、不搬运图片资产，导致候选中 ``./images/<filename>``
-    引用全部死链。此处补齐资产落地，使 markdown 图片引用可达。
+    两条 pipeline 路径的图片落盘位置都可能与用户 ``-o`` 输出路径不一致，需在此统一
+    搬运到 ``Path(output).parent / "images"``，使候选 markdown 中 ``./images/<filename>``
+    引用可达（否则全量死链）：
 
-    auto pipeline 路径自带 ``image_assets`` 落盘逻辑，其 ``enhanced_assets`` 结构不同，
-    ``output_directory`` 缺失时本函数直接 no-op，互不影响。
+    - **auto pipeline**：``result.image_assets``（``List[ImageAsset]``）携带每张图的绝对
+      ``image_path``。其落盘约定（``_resolve_images_dir``）在未透传 ``output_dir`` 时
+      回退到 ``<cwd>/output/<stem>/images/``，与用户 ``-o`` 路径常常不一致——此前本函数
+      误以为 auto 路径「自带正确落盘」而对齐 no-op，导致 CLI 候选图片全量死链。
+    - **传统（非 auto）路径**：图片写在 ``EnhancedPDFProcessor.output_directory``
+      （``result.enhanced_assets["output_directory"]`` 指向的目录，可能为临时目录）。
     """
     import shutil
     from pathlib import Path
 
+    images_dst = Path(output).resolve().parent / "images"
+
+    src_files = []
+    # (1) auto pipeline：从 image_assets 逐图收集绝对 image_path
+    for asset in getattr(result, "image_assets", None) or []:
+        image_path = getattr(asset, "image_path", None)
+        if image_path:
+            src_files.append(Path(image_path))
+    # (2) 传统路径：从 enhanced_assets.output_directory 收集目录内全部图片
     ea = getattr(result, "enhanced_assets", None) or {}
     src_dir = ea.get("output_directory")
-    if not src_dir:
+    if src_dir and Path(src_dir).is_dir():
+        image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+        src_files.extend(
+            p
+            for p in Path(src_dir).iterdir()
+            if p.is_file() and p.suffix.lower() in image_exts
+        )
+
+    if not src_files:
         return
-    src_path = Path(src_dir)
-    if not src_path.is_dir():
-        return
-    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
-    candidates = [
-        p for p in src_path.iterdir() if p.is_file() and p.suffix.lower() in image_exts
-    ]
-    if not candidates:
-        return
-    images_dst = Path(output).resolve().parent / "images"
     images_dst.mkdir(parents=True, exist_ok=True)
-    for src in candidates:
+    seen = set()
+    for src in src_files:
         try:
-            shutil.copy2(src, images_dst / src.name)
+            if not src.is_file():
+                continue
+            dest = images_dst / src.name
+            if src.name in seen or src.resolve() == dest.resolve():
+                # 同名已拷贝 / 源与目标同一文件（auto 路径已恰好落在 images_dst 时）。
+                continue
+            seen.add(src.name)
+            shutil.copy2(src, dest)
         except OSError:
             # 单图拷贝失败不应中断整体输出落盘（如只读源/目标磁盘满）。
             pass
