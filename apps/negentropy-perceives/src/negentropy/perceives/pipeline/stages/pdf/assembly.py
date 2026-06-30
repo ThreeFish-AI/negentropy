@@ -730,7 +730,17 @@ class BuiltinAssembler(PDFToolBase):
                             if re.search(r"\(\s*" + re.escape(eq_num) + r"\s*\)", text):
                                 matched = True
                         # 策略 2：数学符号 + LaTeX 关键词匹配（短公式或无编号场景）
-                        if not matched and formula.formula_type == "block":
+                        #   - block 短公式 / 无编号块公式（数学符号 + 名称双条件）；
+                        #   - inline 独立短块（整段文本即公式，≤ 40 字符）——仅当文本元素
+                        #     本身为公式而非散文段落时整体替换，避免误吞 prose；inline
+                        #     希腊变量（α/β/θ）无 block 数学符号，放宽为"名称匹配即可"。
+                        #   LaTeX 名经希腊字母 / 运算符 unicode 映射桥接文本层字形
+                        #   （``\alpha``↔``α``、``\theta``↔``θ``、``\approx``↔``≈``）。
+                        is_block = formula.formula_type == "block"
+                        is_inline_short = (
+                            formula.formula_type == "inline" and len(text) <= 40
+                        )
+                        if not matched and (is_block or is_inline_short):
                             _math_symbols = [
                                 "→",
                                 "∑",
@@ -759,13 +769,71 @@ class BuiltinAssembler(PDFToolBase):
                                     "\\dots",
                                     "\\text",
                                     "\\tag",
+                                    "\\mathrm",
                                 )
                             ]
-                            _name_match = any(
-                                n.lower() in text.lower() for n in _latex_names
-                            )
-                            if _has_math and _name_match:
-                                matched = True
+                            # LaTeX 命令名 → unicode 字形（greek 字母 / 运算符）
+                            _LATEX_GLYPH = {
+                                "alpha": "α",
+                                "beta": "β",
+                                "gamma": "γ",
+                                "delta": "δ",
+                                "theta": "θ",
+                                "phi": "φ",
+                                "varphi": "ϕ",
+                                "psi": "ψ",
+                                "omega": "ω",
+                                "lambda": "λ",
+                                "mu": "μ",
+                                "sigma": "σ",
+                                "epsilon": "ε",
+                                "eta": "η",
+                                "zeta": "ζ",
+                                "nu": "ν",
+                                "tau": "τ",
+                                "rho": "ρ",
+                                "kappa": "κ",
+                                "chi": "χ",
+                                "Phi": "Φ",
+                                "Theta": "Θ",
+                                "Omega": "Ω",
+                                "Gamma": "Γ",
+                                "Delta": "Δ",
+                                "Lambda": "Λ",
+                                "Sigma": "Σ",
+                                "Psi": "Ψ",
+                                "approx": "≈",
+                                "times": "×",
+                                "cdot": "·",
+                                "le": "≤",
+                                "ge": "≥",
+                                "ne": "≠",
+                                "sum": "∑",
+                                "in": "∈",
+                                "cup": "∪",
+                                "cap": "∩",
+                                "subseteq": "⊆",
+                                "rightarrow": "→",
+                            }
+
+                            def _name_in_text(name: str) -> bool:
+                                # 仅认 unicode 字形（α/θ/≈/×/≤ 等）——这些字形几乎不出现在
+                                # 非数学散文。丢弃 ascii 名 substring 路径，避免 ``\in``→"in"
+                                # 误匹配 "Introduction"/"training" 等通用子串致短段被整体替换。
+                                if not name:
+                                    return False
+                                glyph = _LATEX_GLYPH.get(name) or _LATEX_GLYPH.get(
+                                    name.lower()
+                                )
+                                return glyph is not None and glyph in text
+
+                            _name_match = any(_name_in_text(n) for n in _latex_names)
+                            if is_block:
+                                if _has_math and _name_match:
+                                    matched = True
+                            else:  # inline 独立短块
+                                if _name_match and _latex_names:
+                                    matched = True
                         if matched:
                             formula_md = _formula_to_markdown(formula)
                             elem.content = formula_md
