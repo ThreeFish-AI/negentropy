@@ -508,22 +508,44 @@ class BuiltinAssembler(PDFToolBase):
                 if is_two_col:
                     _SUBSTANTIAL_W_PT = 100.0
                     _MIN_SUBSTANTIAL_PER_COL = 3
+                    # fitz/PyMuPDF 常把整栏正文合并为单个「高块」（宽~栏宽、高数百
+                    # pt）。这种块每栏仅 1 个，宽度可能略超 full_width_thr 被排除，
+                    # 致「每栏 ≥3 实质元素」校验误判真双栏正文页为单栏，进而按 y0
+                    # 排序把右栏（y0 较小）排到左栏之前（ISSUE: 双栏章节序错乱）。
+                    # 增加高度路径：每栏存在高度 ≥250pt 的块即视为实质栏
+                    # （正文栏块通常 280pt+；标题页摘要块 ~195pt 不致误判）。
+                    _TALL_BLOCK_H_PT = 250.0
                     full_width_thr = x_range * 0.7
                     col0_substantial = 0
                     col1_substantial = 0
+                    col0_tall = False
+                    col1_tall = False
                     for _, bx in items:
                         w = bx[2] - bx[0]
-                        if w < _SUBSTANTIAL_W_PT or w > full_width_thr:
-                            continue
+                        h = bx[3] - bx[1]
                         xc = (bx[0] + bx[2]) / 2
-                        if xc < split_x:
-                            col0_substantial += 1
-                        else:
-                            col1_substantial += 1
-                    if (
-                        col0_substantial < _MIN_SUBSTANTIAL_PER_COL
-                        or col1_substantial < _MIN_SUBSTANTIAL_PER_COL
-                    ):
+                        left = xc < split_x
+                        if _SUBSTANTIAL_W_PT <= w <= full_width_thr:
+                            if left:
+                                col0_substantial += 1
+                            else:
+                                col1_substantial += 1
+                        if h >= _TALL_BLOCK_H_PT:
+                            if left:
+                                col0_tall = True
+                            else:
+                                col1_tall = True
+                    col0_ok = col0_substantial >= _MIN_SUBSTANTIAL_PER_COL or col0_tall
+                    col1_ok = col1_substantial >= _MIN_SUBSTANTIAL_PER_COL or col1_tall
+                    if not (col0_ok and col1_ok):
+                        is_two_col = False
+
+                    # 行优先守卫：两栏均无≥250pt 高块时，页面是横排多元素区
+                    # （典型：3 栏作者块 / 标题页装饰），count-path 会误判为双栏
+                    # 并按列优先排序，把同 y0 横排的作者重排成列序、破坏阅读序
+                    # （ISSUE: 作者块乱序）。仅当至少一栏有高块（真双栏正文）才
+                    # 保留列优先；否则降级行优先 (y0, x0)。body 正文页有高块不受影响。
+                    if is_two_col and not (col0_tall or col1_tall):
                         is_two_col = False
 
                 for elem, bbox in items:
