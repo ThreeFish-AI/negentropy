@@ -1164,10 +1164,23 @@ class BuiltinAssembler(PDFToolBase):
                     )
                     if cap_match:
                         cap_text = cap_match.group(1)
-                        cap_norm = _normalize_for_dedup(cap_text)
-                        if cap_norm in _seen_caption:
+                        # 同编号 Figure/Table caption 不论长短只保留首份：
+                        # 不同源（docling/PyMuPDF）常给出完整版与截断版，整段
+                        # 归一化文本不同会漏去重，改以 "figure N" / "table N"
+                        # 编号作去重键（编号在论文中唯一，不会误伤不同图表）。
+                        _cap_num = re.match(
+                            r"(?:Table|Figure)\s+\d+", cap_text, re.IGNORECASE
+                        )
+                        cap_key = (
+                            _cap_num.group(0).lower()
+                            if _cap_num
+                            else _normalize_for_dedup(cap_text)
+                        )
+                        # 仅对 text 元素去重：image 元素即使 caption 重复也保留，
+                        # 避免同编号 caption 已记录时把图片本身丢弃。
+                        if cap_key in _seen_caption and elem.element_type == "text":
                             continue
-                        _seen_caption.add(cap_norm)
+                        _seen_caption.add(cap_key)
                 _dd.append(elem)
             elements = _dd
 
@@ -2061,19 +2074,33 @@ def _code_block_to_markdown(
 def _split_code_tail_section(code: str) -> Tuple[str, str]:
     """检测 code body 尾部被引擎误纳的章节标题块并截断。
 
-    docling/marker 有时把代码块后续的章节标题（上下装饰线 + "N Title"）连同
-    引言正文一起纳入同一 code body。检测首处 "装饰线 + 数字标题" 边界，在装饰
-    线前截断：返回 ``(kept_code, tail_text)``，kept_code 为算法/代码主体；
-    tail_text 为误纳尾部清洗后的正文（去掉装饰线与裸章节标题行——裸标题通常在
-    块外已有规范 ``## N Title`` 版本，视为冗余丢弃）。无边界则 ``(code, "")``。
+    docling/marker 有时把代码块后续的章节标题（上下装饰线 + "N Title"）或图表
+    caption（``Figure N:`` / ``Table N:``）连同后续正文一起纳入同一 code body。
+    检测首处边界并在其前截断：返回 ``(kept_code, tail_text)``，kept_code 为算法/
+    代码主体；tail_text 为误纳尾部清洗后的正文（去掉装饰线与裸章节标题行——裸
+    标题/重复 caption 通常在块外已有规范版本，由后续 2.7 去重处理）。识别两类
+    边界，取最早者：(1) "装饰线(≥10 个 -/=) + 数字标题"；(2) 行首 ``Figure N:``
+    / ``Table N:`` caption。无边界则 ``(code, "")``。
     """
     if not code:
         return code, ""
-    m = re.search(r"\n[-=]{10,}\s*\n\d+\s+[A-Z][^\n]*", code)
-    if not m:
+    _starts = []
+    m1 = re.search(r"\n[-=]{10,}\s*\n\d+\s+[A-Z][^\n]*", code)
+    if m1:
+        _starts.append(m1.start())
+    # code 块尾部误纳的图表 caption（行首 Figure N: / Table N:）
+    m2 = re.search(
+        r"\n\s*(?:Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+        code,
+        re.IGNORECASE,
+    )
+    if m2:
+        _starts.append(m2.start())
+    if not _starts:
         return code, ""
-    kept = code[: m.start()].rstrip()
-    tail_raw = code[m.start() :].strip()
+    _cut = min(_starts)
+    kept = code[:_cut].rstrip()
+    tail_raw = code[_cut:].strip()
     tail_lines: List[str] = []
     for ln in tail_raw.split("\n"):
         s = ln.strip()
