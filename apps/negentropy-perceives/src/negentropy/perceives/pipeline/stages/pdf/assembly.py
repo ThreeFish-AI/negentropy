@@ -332,15 +332,30 @@ class BuiltinAssembler(PDFToolBase):
                                 break
                     if _skip:
                         continue
+                    # 边界修正：截断引擎误纳的尾部章节标题/引言正文
+                    _kept_code, _tail_text = _split_code_tail_section(
+                        code_block.code or ""
+                    )
                     elements.append(
                         _ContentElement(
                             reading_order=code_block.reading_order,
                             page_number=code_block.page_number,
                             element_type="code",
-                            content=_code_block_to_markdown(code_block),
+                            content=_code_block_to_markdown(
+                                code_block, code_override=_kept_code
+                            ),
                             code_block=code_block,
                         )
                     )
+                    if _tail_text:
+                        elements.append(
+                            _ContentElement(
+                                reading_order=code_block.reading_order + 0.5,
+                                page_number=code_block.page_number,
+                                element_type="text",
+                                content=_tail_text,
+                            )
+                        )
 
             # 图片：落入表格 bbox 的散落图片（如表格内 logo）应予跳过，
             # 因为表格的 Markdown 版本已包含完整文本内容。
@@ -514,7 +529,7 @@ class BuiltinAssembler(PDFToolBase):
 
             def _sort_key(
                 elem: _ContentElement,
-            ) -> Tuple[int, int, float, float, int]:
+            ) -> Tuple[int, int, float, float, float]:
                 page = elem.page_number if elem.page_number is not None else 0
                 page = max(0, page)
                 col = _column_map.get(id(elem), 0)
@@ -1246,7 +1261,7 @@ class _ContentElement:
 
     def __init__(
         self,
-        reading_order: int,
+        reading_order: float,
         page_number: int,
         element_type: str,
         content: str,
@@ -1993,7 +2008,9 @@ _CODE_LANG_HEADER_MAP = {
 """
 
 
-def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
+def _code_block_to_markdown(
+    code_block: ExtractedCodeBlock, code_override: Optional[str] = None
+) -> str:
     """将代码块转换为 Markdown 代码围栏。
 
     R9 修复：docling 部分 PDF 上把代码块首行 lang 名字（如 ``Python``）当作
@@ -2006,8 +2023,11 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
       允许尾随空白）→ 提升为 fence info string，从 body 移除首行。
 
     不在 :data:`_CODE_LANG_HEADER_MAP` 中的首行不会被吞掉，避免误删合法代码。
+
+    ``code_override`` 非空时替代 ``code_block.code`` 作为 body，供调用方对 code
+    body 做预处理（如截断引擎误纳的尾部章节标题/正文）后再走 lang 头推断。
     """
-    code = code_block.code or ""
+    code = code_override if code_override is not None else (code_block.code or "")
     lang = (code_block.language or "").strip().lower()
 
     # 拆首行用于 lang 头识别
@@ -2036,6 +2056,34 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
         return f"```{inferred_lang}\n{rest}\n```"
 
     return f"```\n{code}\n```"
+
+
+def _split_code_tail_section(code: str) -> Tuple[str, str]:
+    """检测 code body 尾部被引擎误纳的章节标题块并截断。
+
+    docling/marker 有时把代码块后续的章节标题（上下装饰线 + "N Title"）连同
+    引言正文一起纳入同一 code body。检测首处 "装饰线 + 数字标题" 边界，在装饰
+    线前截断：返回 ``(kept_code, tail_text)``，kept_code 为算法/代码主体；
+    tail_text 为误纳尾部清洗后的正文（去掉装饰线与裸章节标题行——裸标题通常在
+    块外已有规范 ``## N Title`` 版本，视为冗余丢弃）。无边界则 ``(code, "")``。
+    """
+    if not code:
+        return code, ""
+    m = re.search(r"\n[-=]{10,}\s*\n\d+\s+[A-Z][^\n]*", code)
+    if not m:
+        return code, ""
+    kept = code[: m.start()].rstrip()
+    tail_raw = code[m.start() :].strip()
+    tail_lines: List[str] = []
+    for ln in tail_raw.split("\n"):
+        s = ln.strip()
+        if re.match(r"^[-=]{10,}$", s):
+            continue  # 装饰线
+        if re.match(r"^\d+\s+[A-Z][^\n]{15,}$", s):
+            continue  # 裸章节标题行（冗余，块外已有 ## 版本）
+        tail_lines.append(ln)
+    tail_text = "\n".join(tail_lines).strip()
+    return kept, tail_text
 
 
 # PDF 点（pt）→ CSS 像素（px）转换因子：
