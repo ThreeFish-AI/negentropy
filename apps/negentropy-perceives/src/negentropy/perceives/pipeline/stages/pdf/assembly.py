@@ -1209,6 +1209,20 @@ class BuiltinAssembler(PDFToolBase):
                 def caption(self) -> Optional[str]:
                     return self._img.caption
 
+                # 暴露几何/页码信息，供 image_ref_normalizer 做"同页 page-dominant
+                # 大图抑制冗余 orphan 碎片"判定（如封面全页图 + 同页噪声碎片）。
+                @property
+                def width(self) -> Optional[int]:
+                    return getattr(self._img, "width", None)
+
+                @property
+                def height(self) -> Optional[int]:
+                    return getattr(self._img, "height", None)
+
+                @property
+                def page_number(self) -> Optional[int]:
+                    return getattr(self._img, "page_number", None)
+
             adapted_images = [_ImageMetaAdapter(img) for img in images]
             markdown = normalize_image_references(markdown, adapted_images)
 
