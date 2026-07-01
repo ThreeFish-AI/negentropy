@@ -23,7 +23,6 @@ import type {
 
 import { ClockProvider } from "./_components/ClockProvider";
 import { RoutineEditDrawer, drawerKey, type DrawerMode } from "./_components/RoutineEditDrawer";
-import { RoutineFilterBar } from "./_components/RoutineFilterBar";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineTable } from "./_components/RoutineTable";
 import { useRestartRoutine } from "./_components/useRestartRoutine";
@@ -240,16 +239,19 @@ function RoutinePageInner() {
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} kpis={kpis} />
+            <RoutineHeader
+              connected={connected}
+              onRefresh={refresh}
+              loading={loading}
+              onCreate={() => setCreateOpen(true)}
+              onFromPreset={() => router.push("/interface/routine/templates")}
+              kpis={kpis}
+              // 筛选变更由 useInfiniteList 自动 reset 回第 1 页
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
 
             {error && <ErrorBanner message={error} />}
-
-            <div className="min-w-[200px]">
-              <RoutineFilterBar
-                filters={filters}
-                onChange={setFilters} // 筛选变更由 useInfiniteList 自动 reset 回第 1 页
-              />
-            </div>
 
             <RoutineTable
               routines={routines}
