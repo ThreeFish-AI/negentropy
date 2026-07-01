@@ -15,58 +15,112 @@ except ImportError:
 
 
 def _copy_image_assets(result, output: str) -> None:
-    """将抽取的图片资产拷贝到 markdown 输出目录的 ``images/`` 子目录。
+    """将抽取的图片资产统一兜底拷贝到 markdown 输出目录的 ``images/`` 子目录。
 
-    两条 pipeline 路径的图片落盘位置都可能与用户 ``-o`` 输出路径不一致，需在此统一
-    搬运到 ``Path(output).parent / "images"``，使候选 markdown 中 ``./images/<filename>``
-    引用可达（否则全量死链）：
+    从 result 的所有已知图片来源收集图片实体，拷贝到 ``-o`` 同级 ``images/``，
+    使 markdown 中 ``./images/<filename>`` 引用可达。覆盖四类来源：
 
-    - **auto pipeline**：``result.image_assets``（``List[ImageAsset]``）携带每张图的绝对
-      ``image_path``。其落盘约定（``_resolve_images_dir``）在未透传 ``output_dir`` 时
-      回退到 ``<cwd>/output/<stem>/images/``，与用户 ``-o`` 路径常常不一致——此前本函数
-      误以为 auto 路径「自带正确落盘」而对齐 no-op，导致 CLI 候选图片全量死链。
-    - **传统（非 auto）路径**：图片写在 ``EnhancedPDFProcessor.output_directory``
-      （``result.enhanced_assets["output_directory"]`` 指向的目录，可能为临时目录）。
+    1. 传统 ``EnhancedPDFProcessor.output_directory``（上层未透传 ``output_dir`` 时
+       即 ``tempfile.mkdtemp('enhanced_pdf_*')`` 临时目录）。
+    2. auto/processor 路径 ``enhanced_assets["images"]["items"][].local_path``——
+       其图片实体由 image_extraction stage 写入 ``tempfile.mkdtemp('pdf_images_')``
+       临时目录；mineru 失败回退等场景下 ``output_directory`` 缺失，此前 CLI 直接
+       no-op，导致候选 ``./images/*`` 全部死链。
+    3. image_extraction stage 临时目录（若透传到 ``enhanced_assets["_temp_output_dir"]``）。
+    4. ``PDFResponse.image_assets``（auto pipeline 路径），目标文件名取
+       ``asset.filename`` 以对齐 markdown 引用（详见来源 4 处注释）。
+
+    任一来源命中即拷贝；单图拷贝失败不中断整体落盘。
     """
     import shutil
     from pathlib import Path
 
+    ea = getattr(result, "enhanced_assets", None) or {}
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
     images_dst = Path(output).resolve().parent / "images"
 
-    src_files = []
-    # (1) auto pipeline：从 image_assets 逐图收集绝对 image_path
-    for asset in getattr(result, "image_assets", None) or []:
-        image_path = getattr(asset, "image_path", None)
-        if image_path:
-            src_files.append(Path(image_path))
-    # (2) 传统路径：从 enhanced_assets.output_directory 收集目录内全部图片
-    ea = getattr(result, "enhanced_assets", None) or {}
-    src_dir = ea.get("output_directory")
-    if src_dir and Path(src_dir).is_dir():
-        image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
-        src_files.extend(
-            p
-            for p in Path(src_dir).iterdir()
-            if p.is_file() and p.suffix.lower() in image_exts
-        )
+    # (源路径, 目标文件名) 二元组：来源 1–3 目标名沿用 basename，来源 4 用
+    # asset.filename（见来源 4 注释）。
+    src_files: list = []
+    seen: set = set()
+
+    def _add_file(p, dest_name: Optional[str] = None) -> None:
+        if not p:
+            return
+        path = Path(str(p))
+        if (
+            path.is_file()
+            and path.suffix.lower() in image_exts
+            and str(path) not in seen
+        ):
+            seen.add(str(path))
+            src_files.append((path, dest_name or path.name))
+
+    def _add_dir(d) -> None:
+        if not d:
+            return
+        path = Path(str(d))
+        if path.is_dir():
+            for p in path.iterdir():
+                if p.is_file() and p.suffix.lower() in image_exts:
+                    _add_file(p)
+
+    # 来源 1：传统 EnhancedPDFProcessor.output_directory
+    _add_dir(ea.get("output_directory"))
+
+    # 来源 2：auto/processor 路径 enhanced_assets["images"]（dict 或 list）
+    images_meta = ea.get("images")
+    if isinstance(images_meta, dict):
+        items = images_meta.get("items") or images_meta.get("files") or []
+    elif isinstance(images_meta, (list, tuple)):
+        items = images_meta
+    else:
+        items = []
+    for it in items:
+        if isinstance(it, dict):
+            _add_file(it.get("local_path"))
+        else:
+            _add_file(getattr(it, "local_path", None))
+
+    # 来源 3：image_extraction stage 临时目录（若已透传到 enhanced_assets）
+    _add_dir(ea.get("_temp_output_dir"))
+
+    # 来源 4：PDFResponse.image_assets（ImageAssetModel 列表，auto pipeline 路径）。
+    # enhanced_assets 在 auto 路径仅含 images_extracted 计数，图片实体路径在本字段。
+    # 目标文件名须取 asset.filename 而非 basename(image_path)：markdown 引用由
+    # image_ref_normalizer 按 filename 生成 ./images/<filename>；且 auto_batch 跨切片
+    # 去重重命名（batch_merge._rename_asset_on_disk）冲突/失败时 filename 会与
+    # basename(image_path) 背离，用 basename 复制将致 ./images/* 死链。
+    image_assets_field = getattr(result, "image_assets", None) or []
+    sample_paths = []
+    if isinstance(image_assets_field, (list, tuple)):
+        for it in image_assets_field:
+            p = getattr(it, "image_path", None) or getattr(it, "local_path", None)
+            fname = getattr(it, "filename", None)
+            sample_paths.append(p)
+            _add_file(p, fname)
 
     if not src_files:
+        console.print(
+            "[yellow]图片资产落盘：未发现任何图片源"
+            f"（enhanced_assets keys={list(ea.keys())},"
+            f" image_assets={len(image_assets_field)},"
+            f" sample_paths={sample_paths[:3]}）"
+            "——候选 ./images/* 引用可能死链[/yellow]"
+        )
         return
+
     images_dst.mkdir(parents=True, exist_ok=True)
-    seen = set()
-    for src in src_files:
+    copied = 0
+    for src, dest_name in src_files:
         try:
-            if not src.is_file():
-                continue
-            dest = images_dst / src.name
-            if src.name in seen or src.resolve() == dest.resolve():
-                # 同名已拷贝 / 源与目标同一文件（auto 路径已恰好落在 images_dst 时）。
-                continue
-            seen.add(src.name)
-            shutil.copy2(src, dest)
+            shutil.copy2(src, images_dst / dest_name)
+            copied += 1
         except OSError:
-            # 单图拷贝失败不应中断整体输出落盘（如只读源/目标磁盘满）。
+            # 单图拷贝失败不应中断整体输出落盘（如只读源/目标磁盘满/自拷贝
+            # SameFileError，其为 OSError 子类）。
             pass
+    console.print(f"[dim]图片资产落盘：{copied}/{len(src_files)} -> {images_dst}[/dim]")
 
 
 def run(

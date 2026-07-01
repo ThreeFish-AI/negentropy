@@ -534,10 +534,51 @@ class MarkdownFormatter:
         try:
             markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._strip_running_headers(markdown_content)
+            markdown_content = self._strip_orphan_lang_labels(markdown_content)
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
             return markdown_content
+
+    def _strip_orphan_lang_labels(self, markdown_content: str) -> str:
+        """移除 fence 外孤立的纯语言字面行（如独立成段的 ``python``）。
+
+        抽取引擎（docling 等）偶把代码块的 lang 名字面作为独立文本行输出、
+        或在围栏修复后遗留裸 lang 行，表现为 fenced code 块之后紧跟一至多行
+        仅含语言名（``python`` / ``fortran`` / ``json`` 等）的孤立段落，破坏
+        排版。本 pass 先用占位符保护所有 fenced 代码块（含其 ``​```lang``
+        info string 行），再删除正文中"整行仅为已知语言名"的孤立行，最后还原
+        代码块，确保不误删围栏 info string 与真实代码内容。
+        """
+        protected: Dict[str, str] = {}
+
+        def _protect(match: re.Match) -> str:
+            key = f"%%ORPHANLANG_{len(protected)}%%"
+            protected[key] = match.group(0)
+            return key
+
+        # 保护所有 fenced 代码块整体（含首行 ```lang 与内容）
+        text = re.sub(
+            r"^```[^\n]*\n.*?^```[ \t]*$",
+            _protect,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        # 删除 fence 外整行仅为已知代码语言名的孤立行（大小写不敏感）。
+        # 仅收录歧义性低的编程语言名，排除 "text" 等常见英文单词避免误删正文。
+        _lang_names = (
+            "python|fortran|algorithm|javascript|typescript|java|kotlin|"
+            "golang|rust|ruby|php|perl|scala|swift|cpp|csharp|matlab|"
+            "yaml|toml|dockerfile|makefile|graphql|protobuf"
+        )
+        text = re.sub(
+            rf"(?im)^[ \t]*(?:{_lang_names})[ \t]*$\n?",
+            "",
+            text,
+        )
+        for key, block in protected.items():
+            text = text.replace(key, block)
+        return text
 
     def _protect_code_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
         """提取所有 fenced 代码块并替换为占位符，防止格式化管线修改其内容。
