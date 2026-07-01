@@ -1230,6 +1230,9 @@ class BuiltinAssembler(PDFToolBase):
             formatter = MarkdownFormatter()
             markdown = formatter.format(markdown)
 
+            # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
+            markdown = _segment_references_section(markdown)
+
             word_count = len(markdown.split())
 
             output = AssemblyOutput(
@@ -1742,20 +1745,161 @@ def _is_toc_table_text(text: str) -> bool:
     return has_toc_signature and page_no_rows >= 2
 
 
+_TABLE_CAPTION_CELL_RE = re.compile(r"^Table\s+S?\d+\s+\S")
+
+
+def _emit_gfm_separator(ncols: int) -> str:
+    """生成 ncols 列的 GFM 表格分隔符行。"""
+    return "| " + " | ".join("---" for _ in range(max(ncols, 1))) + " |"
+
+
+def _strip_caption_row_from_grid(md: str) -> tuple[str, Optional[str]]:
+    """从 GFM 表格网格中剥离被引擎误并入表头的 ``Table N`` caption。
+
+    部分引擎（如 docling）会把表格标题塞进 markdown 表头，两种形态：
+    A. caption 占首格、真实列标题右移一格、数据行首格全空 → 删除首列；
+    B. 表头所有格均为同一 caption（广播）、真实表头沦为首个数据行 → 提升。
+
+    返回 (清洗后 md, 抽出的 caption)；非表格或无 caption 污染时原样返回并
+    caption=None。重建表格使用统一 GFM 间距并对单元格内 ``|`` 转义以保合法。
+    """
+    if not md or "|" not in md:
+        return md, None
+    lines = md.split("\n")
+    sep_re = re.compile(r"^\s*\|[\s\-:|]+\|\s*$")
+
+    def is_sep(ln: str) -> bool:
+        return bool(sep_re.match(ln))
+
+    def parse_cells(ln: str) -> list[str]:
+        s = ln.strip()
+        if not s.startswith("|"):
+            return []
+        s = s[1:-1] if s.endswith("|") else s[1:]
+        return [c.strip() for c in s.split("|")]
+
+    def emit_row(cells: list[str]) -> str:
+        return "| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |"
+
+    # 定位表头行（| 起始、非分隔符、紧跟分隔符行）
+    hi = None
+    for i, ln in enumerate(lines):
+        if (
+            ln.strip().startswith("|")
+            and not is_sep(ln)
+            and i + 1 < len(lines)
+            and is_sep(lines[i + 1])
+        ):
+            hi = i
+            break
+    if hi is None:
+        return md, None
+
+    header = parse_cells(lines[hi])
+    if not header or not _TABLE_CAPTION_CELL_RE.match(header[0]):
+        return md, None
+
+    sep_idx = hi + 1
+    data_idxs: list[int] = []
+    j = sep_idx + 1
+    while j < len(lines):
+        if not lines[j].strip().startswith("|") or is_sep(lines[j]):
+            break
+        data_idxs.append(j)
+        j += 1
+    if not data_idxs:
+        return md, None
+
+    before = lines[:hi]
+    after = lines[data_idxs[-1] + 1 :]
+    nonempty_header = [c for c in header if c]
+
+    # 形态 B：广播 caption（所有非空表头格相同）→ 提升首个数据行为表头
+    if len(nonempty_header) >= 2 and len(set(nonempty_header)) == 1:
+        caption = nonempty_header[0]
+        new_header = parse_cells(lines[data_idxs[0]])
+        new_data = [parse_cells(lines[k]) for k in data_idxs[1:]]
+        rebuilt = [emit_row(new_header), _emit_gfm_separator(len(new_header))]
+        rebuilt.extend(emit_row(r) for r in new_data)
+        return "\n".join(before + rebuilt + after), caption
+
+    # 形态 A：caption 在首格 → 删首列（caption 已由 _TABLE_CAPTION_CELL_RE
+    # 强匹配 ``Table N + 描述文本`` 确认；兼容 caption 过长折行使数据行首格
+    # 沦为 caption 残片的情况，故不要求数据行首格为空）
+    if len(header) >= 2:
+        caption = header[0]
+        new_header = header[1:]
+        new_data = [parse_cells(lines[k])[1:] for k in data_idxs]
+        rebuilt = [emit_row(new_header), _emit_gfm_separator(len(new_header))]
+        rebuilt.extend(emit_row(r) for r in new_data)
+        return "\n".join(before + rebuilt + after), caption
+
+    return md, None
+
+
 def _table_to_markdown(table: ExtractedTable) -> str:
     """将表格转换为 Markdown（带可选标题）。
 
-    当 table.markdown 已包含 caption 文本时，不再额外添加，
-    避免 table 元素内部出现重复标题。
+    先用 ``_strip_caption_row_from_grid`` 清洗被引擎误并入表头的 ``Table N``
+    caption（避免标题被复制为首行或吞进表头导致列错位），再把 caption 还原为
+    表格上方的粗体段落。当 markdown 首行已等于 caption 文本时不重复添加。
     """
-    md = table.markdown
+    md, grid_caption = _strip_caption_row_from_grid(table.markdown)
+    # 显式 table.caption → 粗体段落（保留原行为）
     if table.caption and table.caption.strip():
         cap_stripped = table.caption.strip()
         # 检查 markdown 首行是否已包含 caption 文本
         first_line = md.split("\n", 1)[0].strip() if md else ""
         if first_line != cap_stripped:
             return f"**{cap_stripped}**\n\n{md}"
+        return md
+    # 从网格剥离出的 caption → 纯文本段落：与正文 caption 风格一致，且首字符
+    # 非 ``*``/``-``/``+``，避免 MarkdownFormatter._format_lists 把 ``**`` 起
+    # 手的粗体行首个 ``*`` 误判为列表标记而改写成 ``- *...``。
+    if grid_caption:
+        return f"{grid_caption}\n\n{md}"
     return md
+
+
+def _segment_references_section(markdown: str) -> str:
+    """对 References 节做条目分段（每条文献独占一段）。
+
+    学术 PDF 的参考文献常被引擎抽为逐行/连段文本块：多条目挤在同一段、且 PDF
+    行尾换行被提成段落断词。本函数定位 ``## References`` 标题到下一标题之间的
+    内容，按 Springer 作者-年份制的条目起点切分：非逗号前导的空白 + ``Surname
+    Initials`` 紧跟 ``,``（多作者列表首作者）或 ``(``（直接接年份），从而把每
+    条文献拆为独立段落。找不到 References 节、节内条目 <3、或任何异常时原样返回。
+    """
+    lines = markdown.split("\n")
+    start = None
+    for i, ln in enumerate(lines):
+        if re.match(r"^#{0,6}\s*References\s*$", ln.strip()):
+            start = i
+            break
+    if start is None:
+        return markdown
+    end = len(lines)
+    end_marker = re.compile(
+        r"^(?:#{1,6}\s|(?:Publisher'?s Note|Authors? and Affiliations|"
+        r"Author Information|Acknowledg|Funding|Author contributions|"
+        r"Conflict of [Ii]nterest|Ethics?|Data [Aa]vailab|Code [Aa]vailab|"
+        r"Statistics|Appendix)\b)"
+    )
+    for j in range(start + 1, len(lines)):
+        if end_marker.match(lines[j].strip()):
+            end = j
+            break
+    body = [ln.strip() for ln in lines[start + 1 : end] if ln.strip()]
+    if not body:
+        return markdown
+    text = " ".join(body)
+    split_re = re.compile(r"(?<!,)\s+(?=[A-Z][A-Za-zÀ-ÿ’'\-]+ [A-Z]{1,3}(?:,|\s*\())")
+    entries = [p.strip() for p in split_re.split(text) if p.strip()]
+    if len(entries) < 3:
+        return markdown
+    rebuilt = [lines[start], ""] + entries
+    tail = [""] + lines[end:] if end < len(lines) else []
+    return "\n".join(lines[:start] + rebuilt + tail)
 
 
 def _sanitize_latex(latex: str) -> str:
