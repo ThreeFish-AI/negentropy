@@ -2101,15 +2101,26 @@ def _split_code_tail_section(code: str) -> Tuple[str, str]:
     _cut = min(_starts)
     kept = code[:_cut].rstrip()
     tail_raw = code[_cut:].strip()
-    tail_lines: List[str] = []
+    # 按 PDF 硬换行拆行、过滤装饰线/裸标题后，把连续正文行用空格合并为单一
+    # 段落（PDF 为版面宽度而插入的硬换行不应在 markdown 中断成多段）；仅真正
+    # 空行（PDF 段落边界）才切分为新段落，段落间以空行分隔。
+    _paragraphs: List[str] = []
+    _cur: List[str] = []
     for ln in tail_raw.split("\n"):
         s = ln.strip()
+        if not s:
+            if _cur:
+                _paragraphs.append(" ".join(_cur))
+                _cur = []
+            continue
         if re.match(r"^[-=]{10,}$", s):
             continue  # 装饰线
         if re.match(r"^\d+\s+[A-Z][^\n]{15,}$", s):
             continue  # 裸章节标题行（冗余，块外已有 ## 版本）
-        tail_lines.append(ln)
-    tail_text = "\n".join(tail_lines).strip()
+        _cur.append(s)
+    if _cur:
+        _paragraphs.append(" ".join(_cur))
+    tail_text = "\n\n".join(_paragraphs).strip()
     return kept, tail_text
 
 
