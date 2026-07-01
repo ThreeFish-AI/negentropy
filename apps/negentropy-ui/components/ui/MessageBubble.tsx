@@ -475,10 +475,12 @@ export function MessageBubble({
       >
         <div
           className={cn(
-            "rounded-[1.6rem] px-5 py-3.5 text-body-lg shadow-sm transition-all duration-300",
+            "rounded-[1.6rem] px-5 py-3.5 text-body-lg transition-all duration-300",
             isUser
-              ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
-              : "w-full max-w-full rounded-tl-md border border-border bg-card text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)]",
+              ? // 用户气泡（Doubao 式轻盈浅色）：主强调色淡填充 + 发丝边，暗色安全，无重投影
+                "max-w-[85%] rounded-tr-md border border-primary/15 bg-primary/10 text-text-primary shadow-xs"
+              : // 助手气泡（扁平克制）：发丝边 + 卡面，去除大投影，内容优先
+                "w-full max-w-full rounded-tl-md border border-border/60 bg-card text-foreground",
             isStreaming && hasContent && "ring-1 ring-primary/50",
           )}
         >
@@ -495,26 +497,21 @@ export function MessageBubble({
               "[&_h3]:text-body-lg [&_h3]:font-semibold [&_h3]:tracking-heading [&_h3]:mb-2",
               "[&_h1+*]:mt-2 [&_h2+*]:mt-2 [&_h3+*]:mt-2",
               "[&_br]:leading-6",
+              // 用户气泡已改为浅色表面（bg-primary/10），故内联代码 / 链接 / 表格
+              // 与助手气泡采用同一套浅底可读样式，不再区分深浅底。
               "[&_code]:font-mono [&_code]:text-[0.875em] [&_code]:tracking-default",
-              !isUser &&
-                "[&_code]:bg-border-muted [&_code]:text-foreground [&_code]:px-1 [&_code]:rounded",
-              isUser &&
-                "[&_code]:bg-background/20 [&_code]:text-background [&_code]:px-1 [&_code]:rounded",
+              "[&_code]:bg-border-muted [&_code]:text-foreground [&_code]:px-1 [&_code]:rounded",
               "[&_pre]:bg-background/50 [&_pre]:text-foreground [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2",
               "[&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0",
               "[&_a]:underline [&_a]:underline-offset-2",
-              !isUser && "[&_a]:text-primary hover:[&_a]:text-primary/80",
-              isUser && "[&_a]:text-background hover:[&_a]:text-background/80",
+              "[&_a]:text-primary hover:[&_a]:text-primary/80",
               // Table styles
               "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm",
               "[&_thead]:bg-border-muted/40",
               "[&_tbody_tr:nth-child(even)]:bg-border-muted/30",
               "[&_th]:border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
               "[&_td]:border [&_td]:px-3 [&_td]:py-2",
-              !isUser &&
-                "[&_th]:border-border [&_th]:bg-border-muted/60 [&_td]:border-border",
-              isUser &&
-                "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
+              "[&_th]:border-border [&_th]:bg-border-muted/60 [&_td]:border-border",
             )}
           >
             {body ||

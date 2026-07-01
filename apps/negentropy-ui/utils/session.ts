@@ -47,6 +47,90 @@ function formatRelativeTime(epochSeconds: number): string {
 }
 
 /**
+ * 会话时间分档键（Doubao 式：今天 / 昨天 / 7 天内 / 30 天内 / 更早）。
+ */
+export type RecencyBucketKey = "today" | "yesterday" | "7d" | "30d" | "earlier";
+
+export interface RecencyGroup<T> {
+  key: RecencyBucketKey;
+  label: string;
+  items: T[];
+}
+
+const RECENCY_LABELS: Record<RecencyBucketKey, string> = {
+  today: "今天",
+  yesterday: "昨天",
+  "7d": "7 天内",
+  "30d": "30 天内",
+  earlier: "更早",
+};
+
+const RECENCY_ORDER: RecencyBucketKey[] = [
+  "today",
+  "yesterday",
+  "7d",
+  "30d",
+  "earlier",
+];
+
+const DAY_MS = 86_400_000;
+
+/**
+ * 依据 ``lastUpdateTime``（epoch 秒）将会话分档为有序时间组（Doubao 式会话栏分组）。
+ *
+ * 约定（以本地日历日为界）：
+ * - ``today``    ≥ 今日 0 点
+ * - ``yesterday``在 [昨日 0 点, 今日 0 点)
+ * - ``7d``       在 [今日 0 点 − 6 日, 昨日 0 点)（含今日共 7 个日历日窗口）
+ * - ``30d``      在 [今日 0 点 − 29 日, 7d 下界)（含今日共 30 个日历日窗口）
+ * - ``earlier``  更早，或缺失 ``lastUpdateTime``
+ *
+ * 输入内相对顺序被保留（调用方通常已按 ``lastUpdateTime`` 降序排序），
+ * 空桶自动跳过；``now`` 可注入以便单测确定性。纯函数，无副作用。
+ */
+export function bucketSessionsByRecency<T extends { lastUpdateTime?: number }>(
+  items: T[],
+  now: Date = new Date(),
+): RecencyGroup<T>[] {
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+  const startOfYesterday = startOfToday - DAY_MS;
+  const start7d = startOfToday - 6 * DAY_MS;
+  const start30d = startOfToday - 29 * DAY_MS;
+
+  const buckets: Record<RecencyBucketKey, T[]> = {
+    today: [],
+    yesterday: [],
+    "7d": [],
+    "30d": [],
+    earlier: [],
+  };
+
+  for (const item of items) {
+    const seconds = item.lastUpdateTime;
+    if (seconds == null || !Number.isFinite(seconds)) {
+      buckets.earlier.push(item);
+      continue;
+    }
+    const ms = seconds * 1000;
+    if (ms >= startOfToday) buckets.today.push(item);
+    else if (ms >= startOfYesterday) buckets.yesterday.push(item);
+    else if (ms >= start7d) buckets["7d"].push(item);
+    else if (ms >= start30d) buckets["30d"].push(item);
+    else buckets.earlier.push(item);
+  }
+
+  return RECENCY_ORDER.filter((key) => buckets[key].length > 0).map((key) => ({
+    key,
+    label: RECENCY_LABELS[key],
+    items: buckets[key],
+  }));
+}
+
+/**
  * 构建 Agent URL
  * @param sessionId 会话 ID
  * @param userId 用户 ID
