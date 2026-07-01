@@ -15,40 +15,102 @@ except ImportError:
 
 
 def _copy_image_assets(result, output: str) -> None:
-    """将抽取的图片资产拷贝到 markdown 输出目录的 ``images/`` 子目录。
+    """将抽取的图片资产统一兜底拷贝到 markdown 输出目录的 ``images/`` 子目录。
 
-    传统（非 auto pipeline）路径把图片写到 ``EnhancedPDFProcessor.output_directory``
-    ——当上层未透传 ``output_dir`` 时即 ``tempfile.mkdtemp('enhanced_pdf_*')`` 临时目录。
-    此前 CLI 仅写 markdown 文本、不搬运图片资产，导致候选中 ``./images/<filename>``
-    引用全部死链。此处补齐资产落地，使 markdown 图片引用可达。
+    从 result 的所有已知图片来源收集图片实体，拷贝到 ``-o`` 同级 ``images/``，
+    使 markdown 中 ``./images/<filename>`` 引用可达。覆盖三类来源：
 
-    auto pipeline 路径自带 ``image_assets`` 落盘逻辑，其 ``enhanced_assets`` 结构不同，
-    ``output_directory`` 缺失时本函数直接 no-op，互不影响。
+    1. 传统 ``EnhancedPDFProcessor.output_directory``（上层未透传 ``output_dir`` 时
+       即 ``tempfile.mkdtemp('enhanced_pdf_*')`` 临时目录）。
+    2. auto/processor 路径 ``enhanced_assets["images"]["items"][].local_path``——
+       其图片实体由 image_extraction stage 写入 ``tempfile.mkdtemp('pdf_images_')``
+       临时目录；mineru 失败回退等场景下 ``output_directory`` 缺失，此前 CLI 直接
+       no-op，导致候选 ``./images/*`` 全部死链。
+    3. image_extraction stage 临时目录（若透传到 ``enhanced_assets["_temp_output_dir"]``）。
+
+    任一来源命中即拷贝；单图拷贝失败不中断整体落盘。
     """
     import shutil
     from pathlib import Path
 
     ea = getattr(result, "enhanced_assets", None) or {}
-    src_dir = ea.get("output_directory")
-    if not src_dir:
-        return
-    src_path = Path(src_dir)
-    if not src_path.is_dir():
-        return
     image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
-    candidates = [
-        p for p in src_path.iterdir() if p.is_file() and p.suffix.lower() in image_exts
-    ]
-    if not candidates:
-        return
     images_dst = Path(output).resolve().parent / "images"
+
+    src_files: list = []
+    seen: set = set()
+
+    def _add_file(p) -> None:
+        if not p:
+            return
+        path = Path(str(p))
+        if (
+            path.is_file()
+            and path.suffix.lower() in image_exts
+            and str(path) not in seen
+        ):
+            seen.add(str(path))
+            src_files.append(path)
+
+    def _add_dir(d) -> None:
+        if not d:
+            return
+        path = Path(str(d))
+        if path.is_dir():
+            for p in path.iterdir():
+                if p.is_file() and p.suffix.lower() in image_exts:
+                    _add_file(p)
+
+    # 来源 1：传统 EnhancedPDFProcessor.output_directory
+    _add_dir(ea.get("output_directory"))
+
+    # 来源 2：auto/processor 路径 enhanced_assets["images"]（dict 或 list）
+    images_meta = ea.get("images")
+    if isinstance(images_meta, dict):
+        items = images_meta.get("items") or images_meta.get("files") or []
+    elif isinstance(images_meta, (list, tuple)):
+        items = images_meta
+    else:
+        items = []
+    for it in items:
+        if isinstance(it, dict):
+            _add_file(it.get("local_path"))
+        else:
+            _add_file(getattr(it, "local_path", None))
+
+    # 来源 3：image_extraction stage 临时目录（若已透传到 enhanced_assets）
+    _add_dir(ea.get("_temp_output_dir"))
+
+    # 来源 4：PDFResponse.image_assets（ImageAssetModel 列表，auto pipeline 路径）。
+    # enhanced_assets 在 auto 路径仅含 images_extracted 计数，图片实体路径在本字段。
+    image_assets_field = getattr(result, "image_assets", None) or []
+    sample_paths = []
+    if isinstance(image_assets_field, (list, tuple)):
+        for it in image_assets_field:
+            p = getattr(it, "image_path", None) or getattr(it, "local_path", None)
+            sample_paths.append(p)
+            _add_file(p)
+
+    if not src_files:
+        console.print(
+            "[yellow]图片资产落盘：未发现任何图片源"
+            f"（enhanced_assets keys={list(ea.keys())},"
+            f" image_assets={len(image_assets_field)},"
+            f" sample_paths={sample_paths[:3]}）"
+            "——候选 ./images/* 引用可能死链[/yellow]"
+        )
+        return
+
     images_dst.mkdir(parents=True, exist_ok=True)
-    for src in candidates:
+    copied = 0
+    for src in src_files:
         try:
             shutil.copy2(src, images_dst / src.name)
+            copied += 1
         except OSError:
             # 单图拷贝失败不应中断整体输出落盘（如只读源/目标磁盘满）。
             pass
+    console.print(f"[dim]图片资产落盘：{copied}/{len(src_files)} -> {images_dst}[/dim]")
 
 
 def run(

@@ -332,15 +332,30 @@ class BuiltinAssembler(PDFToolBase):
                                 break
                     if _skip:
                         continue
+                    # 边界修正：截断引擎误纳的尾部章节标题/引言正文
+                    _kept_code, _tail_text = _split_code_tail_section(
+                        code_block.code or ""
+                    )
                     elements.append(
                         _ContentElement(
                             reading_order=code_block.reading_order,
                             page_number=code_block.page_number,
                             element_type="code",
-                            content=_code_block_to_markdown(code_block),
+                            content=_code_block_to_markdown(
+                                code_block, code_override=_kept_code
+                            ),
                             code_block=code_block,
                         )
                     )
+                    if _tail_text:
+                        elements.append(
+                            _ContentElement(
+                                reading_order=code_block.reading_order + 0.5,
+                                page_number=code_block.page_number,
+                                element_type="text",
+                                content=_tail_text,
+                            )
+                        )
 
             # 图片：落入表格 bbox 的散落图片（如表格内 logo）应予跳过，
             # 因为表格的 Markdown 版本已包含完整文本内容。
@@ -514,7 +529,7 @@ class BuiltinAssembler(PDFToolBase):
 
             def _sort_key(
                 elem: _ContentElement,
-            ) -> Tuple[int, int, float, float, int]:
+            ) -> Tuple[int, int, float, float, float]:
                 page = elem.page_number if elem.page_number is not None else 0
                 page = max(0, page)
                 col = _column_map.get(id(elem), 0)
@@ -689,6 +704,55 @@ class BuiltinAssembler(PDFToolBase):
                                 )
                 except ImportError:
                     pass
+
+            # 2.1.2 同页同编号算法块跨类型去重：多引擎（PyMuPDF 文本块 /
+            #   docling/marker code 块 / code_detection algorithm 块）可能各自
+            #   产出同一 "Algorithm N" 的内容，导致同一算法在候选 markdown 中
+            #   重复出现（如纯文本标题 + 乱码内容文本 + fortran 块 + algorithm
+            #   块）。策略：(a) 同 (页码, 编号) 的算法 code 块仅保留内容最长者；
+            #   (b) 同页已存在算法 code 块时，移除同页冗余文本块——含同编号
+            #   Algorithm 标题的（标题重复），或含算法行号模式（≥2 个 "N:"，
+            #   PyMuPDF 字符流常把算法多行挤成乱码文本）。
+            _algo_num_re = re.compile(r"Algorithm\s+(\d+)", re.IGNORECASE)
+            _algo_code_by_key: Dict[Tuple[int, str], List[int]] = {}
+            for _i, _e in enumerate(elements):
+                if _i in _algo_remove or _e.element_type != "code":
+                    continue
+                _m = _algo_num_re.search(_e.content or "")
+                if not _m:
+                    continue
+                _algo_code_by_key.setdefault((_e.page_number, _m.group(1)), []).append(
+                    _i
+                )
+            # (a) 同页同编号算法 code 块：保留内容最长者
+            for _idxs in _algo_code_by_key.values():
+                if len(_idxs) <= 1:
+                    continue
+                _ranked = sorted(
+                    _idxs,
+                    key=lambda i: len((elements[i].content or "").strip()),
+                    reverse=True,
+                )
+                for _i in _ranked[1:]:
+                    _algo_remove.add(_i)
+            # (b) 同页存在算法 code 块时，移除同页冗余文本块
+            _algo_page_nums: Dict[int, set] = {}
+            for _pg, _num in _algo_code_by_key:
+                _algo_page_nums.setdefault(_pg, set()).add(_num)
+            for _i, _e in enumerate(elements):
+                if _i in _algo_remove or _e.element_type != "text" or not _e.block:
+                    continue
+                _nums = _algo_page_nums.get(_e.page_number)
+                if not _nums:
+                    continue
+                _content = _e.block.text or ""
+                _m2 = _algo_num_re.search(_content)
+                if (
+                    (_m2 and _m2.group(1) in _nums)
+                    or re.search(r"(?:^|\n)\s*\d+:\s", _content)
+                    or len(re.findall(r"\d+:\s", _content)) >= 2
+                ):
+                    _algo_remove.add(_i)
 
             if _algo_remove:
                 elements = [e for i, e in enumerate(elements) if i not in _algo_remove]
@@ -1100,10 +1164,23 @@ class BuiltinAssembler(PDFToolBase):
                     )
                     if cap_match:
                         cap_text = cap_match.group(1)
-                        cap_norm = _normalize_for_dedup(cap_text)
-                        if cap_norm in _seen_caption:
+                        # 同编号 Figure/Table caption 不论长短只保留首份：
+                        # 不同源（docling/PyMuPDF）常给出完整版与截断版，整段
+                        # 归一化文本不同会漏去重，改以 "figure N" / "table N"
+                        # 编号作去重键（编号在论文中唯一，不会误伤不同图表）。
+                        _cap_num = re.match(
+                            r"(?:Table|Figure)\s+\d+", cap_text, re.IGNORECASE
+                        )
+                        cap_key = (
+                            _cap_num.group(0).lower()
+                            if _cap_num
+                            else _normalize_for_dedup(cap_text)
+                        )
+                        # 仅对 text 元素去重：image 元素即使 caption 重复也保留，
+                        # 避免同编号 caption 已记录时把图片本身丢弃。
+                        if cap_key in _seen_caption and elem.element_type == "text":
                             continue
-                        _seen_caption.add(cap_norm)
+                        _seen_caption.add(cap_key)
                 _dd.append(elem)
             elements = _dd
 
@@ -1197,7 +1274,7 @@ class _ContentElement:
 
     def __init__(
         self,
-        reading_order: int,
+        reading_order: float,
         page_number: int,
         element_type: str,
         content: str,
@@ -1944,7 +2021,9 @@ _CODE_LANG_HEADER_MAP = {
 """
 
 
-def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
+def _code_block_to_markdown(
+    code_block: ExtractedCodeBlock, code_override: Optional[str] = None
+) -> str:
     """将代码块转换为 Markdown 代码围栏。
 
     R9 修复：docling 部分 PDF 上把代码块首行 lang 名字（如 ``Python``）当作
@@ -1957,8 +2036,11 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
       允许尾随空白）→ 提升为 fence info string，从 body 移除首行。
 
     不在 :data:`_CODE_LANG_HEADER_MAP` 中的首行不会被吞掉，避免误删合法代码。
+
+    ``code_override`` 非空时替代 ``code_block.code`` 作为 body，供调用方对 code
+    body 做预处理（如截断引擎误纳的尾部章节标题/正文）后再走 lang 头推断。
     """
-    code = code_block.code or ""
+    code = code_override if code_override is not None else (code_block.code or "")
     lang = (code_block.language or "").strip().lower()
 
     # 拆首行用于 lang 头识别
@@ -1987,6 +2069,59 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
         return f"```{inferred_lang}\n{rest}\n```"
 
     return f"```\n{code}\n```"
+
+
+def _split_code_tail_section(code: str) -> Tuple[str, str]:
+    """检测 code body 尾部被引擎误纳的章节标题块并截断。
+
+    docling/marker 有时把代码块后续的章节标题（上下装饰线 + "N Title"）或图表
+    caption（``Figure N:`` / ``Table N:``）连同后续正文一起纳入同一 code body。
+    检测首处边界并在其前截断：返回 ``(kept_code, tail_text)``，kept_code 为算法/
+    代码主体；tail_text 为误纳尾部清洗后的正文（去掉装饰线与裸章节标题行——裸
+    标题/重复 caption 通常在块外已有规范版本，由后续 2.7 去重处理）。识别两类
+    边界，取最早者：(1) "装饰线(≥10 个 -/=) + 数字标题"；(2) 行首 ``Figure N:``
+    / ``Table N:`` caption。无边界则 ``(code, "")``。
+    """
+    if not code:
+        return code, ""
+    _starts = []
+    m1 = re.search(r"\n[-=]{10,}\s*\n\d+\s+[A-Z][^\n]*", code)
+    if m1:
+        _starts.append(m1.start())
+    # code 块尾部误纳的图表 caption（行首 Figure N: / Table N:）
+    m2 = re.search(
+        r"\n\s*(?:Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+        code,
+        re.IGNORECASE,
+    )
+    if m2:
+        _starts.append(m2.start())
+    if not _starts:
+        return code, ""
+    _cut = min(_starts)
+    kept = code[:_cut].rstrip()
+    tail_raw = code[_cut:].strip()
+    # 按 PDF 硬换行拆行、过滤装饰线/裸标题后，把连续正文行用空格合并为单一
+    # 段落（PDF 为版面宽度而插入的硬换行不应在 markdown 中断成多段）；仅真正
+    # 空行（PDF 段落边界）才切分为新段落，段落间以空行分隔。
+    _paragraphs: List[str] = []
+    _cur: List[str] = []
+    for ln in tail_raw.split("\n"):
+        s = ln.strip()
+        if not s:
+            if _cur:
+                _paragraphs.append(" ".join(_cur))
+                _cur = []
+            continue
+        if re.match(r"^[-=]{10,}$", s):
+            continue  # 装饰线
+        if re.match(r"^\d+\s+[A-Z][^\n]{15,}$", s):
+            continue  # 裸章节标题行（冗余，块外已有 ## 版本）
+        _cur.append(s)
+    if _cur:
+        _paragraphs.append(" ".join(_cur))
+    tail_text = "\n\n".join(_paragraphs).strip()
+    return kept, tail_text
 
 
 # PDF 点（pt）→ CSS 像素（px）转换因子：
