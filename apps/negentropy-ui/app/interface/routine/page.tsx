@@ -23,37 +23,12 @@ import type {
 
 import { ClockProvider } from "./_components/ClockProvider";
 import { RoutineEditDrawer, drawerKey, type DrawerMode } from "./_components/RoutineEditDrawer";
-import { RoutineFilterBar } from "./_components/RoutineFilterBar";
 import { RoutineHeader } from "./_components/RoutineHeader";
 import { RoutineTable } from "./_components/RoutineTable";
 import { useRestartRoutine } from "./_components/useRestartRoutine";
 import { useTerminateRoutine } from "./_components/useTerminateRoutine";
 
 const DEFAULT_FILTERS: Partial<RoutineFilters> = { status: null, q: "", is_template: false };
-
-const PAGE_SIZE = 10;
-
-/** 列表排序时间戳：updated_at 优先，缺失回退 created_at；无效/缺失返回 null。 */
-function rowTimestamp(r: RoutineDTO): number | null {
-  const raw = r.updated_at ?? r.created_at;
-  if (!raw) return null;
-  const t = Date.parse(raw);
-  return Number.isNaN(t) ? null : t;
-}
-
-/** Updated At 倒序：有时间者在前并按时间降序；皆缺失者置末；id 兜底保证刷新间排序稳定。 */
-function compareByUpdatedDesc(a: RoutineDTO, b: RoutineDTO): number {
-  const ta = rowTimestamp(a);
-  const tb = rowTimestamp(b);
-  if (ta != null && tb != null) {
-    if (tb !== ta) return tb - ta;
-  } else if (ta != null) {
-    return -1;
-  } else if (tb != null) {
-    return 1;
-  }
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-}
 
 function RoutinePageInner() {
   const router = useRouter();
@@ -67,7 +42,6 @@ function RoutinePageInner() {
   const [actionBusy, setActionBusy] = useState(false);
   // 行内 Clean Up 在途 routine id（null=无）；按钮 busy/disabled + spinner，防二次点击。
   const [cleanupBusyId, setCleanupBusyId] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
 
   // SSE ghost-reopen 守卫：镜像 selected 供异步 SSE 回调读取「抽屉是否仍打开」，
   // 关闭时在 closeDetail 内同步清空，杜绝 stale-id 事件在 setSelected 提交前重开抽屉（§2）。
@@ -85,19 +59,15 @@ function RoutinePageInner() {
     refresh,
     applyRoutineEvent,
     applyIterationEvent,
+    currentPage,
+    total,
+    totalPages,
+    goToPage,
   } = useRoutineLive(filters);
 
-  // 时钟仅在有运行中任务时滴答（无在途零开销）。
+  // 时钟仅在有运行中任务时滴答（列表行用绝对时间、不消费时钟；此值仅控制 ClockProvider 心跳，
+  // 切片后按「当前页是否含运行中任务」判定，保守且无可见副作用）。
   const clockActive = useMemo(() => routines.some((r) => r.status === "running"), [routines]);
-
-  // 列表分页（客户端）：按 Updated At 倒序排序后切片。clockActive 与 KPI 仍读全量 routines，不受分页影响。
-  const sortedRoutines = useMemo(() => [...routines].sort(compareByUpdatedDesc), [routines]);
-  const totalPages = Math.max(1, Math.ceil(sortedRoutines.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages); // 渲染期钳制：列表变短时不滞留死页
-  const pageRoutines = useMemo(
-    () => sortedRoutines.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-    [sortedRoutines, safePage],
-  );
 
   // 刷新当前选中详情（含迭代）。
   const refreshSelected = useCallback(async (id: string) => {
@@ -269,22 +239,22 @@ function RoutinePageInner() {
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
           <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} kpis={kpis} />
+            <RoutineHeader
+              connected={connected}
+              onRefresh={refresh}
+              loading={loading}
+              onCreate={() => setCreateOpen(true)}
+              onFromPreset={() => router.push("/interface/routine/templates")}
+              kpis={kpis}
+              // 筛选变更由 useInfiniteList 自动 reset 回第 1 页
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
 
             {error && <ErrorBanner message={error} />}
 
-            <div className="min-w-[200px]">
-              <RoutineFilterBar
-                filters={filters}
-                onChange={(f) => {
-                  setFilters(f);
-                  setPage(1); // 筛选变更回到第 1 页
-                }}
-              />
-            </div>
-
             <RoutineTable
-              routines={pageRoutines}
+              routines={routines}
               loading={loading}
               onSelect={openDetail}
               onOpenFull={openFull}
@@ -294,15 +264,18 @@ function RoutinePageInner() {
               cleanupBusyId={cleanupBusyId}
             />
 
-            {sortedRoutines.length > 0 && (
-              <Pagination
-                page={safePage}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                total={sortedRoutines.length}
-                itemLabel="routine"
-                disabled={loading}
-              />
+            {/* 居中翻页控件（页总数 + 控件组居中成组）；sticky 底栏始终可达。 */}
+            {routines.length > 0 && (
+              <div className="sticky bottom-0 -mx-6 border-t border-border bg-muted/95 px-6 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                <Pagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  total={total ?? undefined}
+                  itemLabel="routine"
+                  disabled={loading}
+                />
+              </div>
             )}
           </div>
         </ClockProvider>

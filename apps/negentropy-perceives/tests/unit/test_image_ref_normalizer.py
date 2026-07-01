@@ -29,6 +29,9 @@ class FakeImage:
 
     filename: Optional[str] = None
     caption: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    page_number: Optional[int] = None
 
 
 # ============================================================
@@ -267,6 +270,90 @@ class TestOrphanImageAppend:
         images = [FakeImage(filename="img_0_0_20260525.png", caption="x")]
         result = normalize_image_references(md, images)
         assert "<!-- orphan images appended" not in result
+
+
+# ============================================================
+# page-dominant 同页 orphan 抑制
+# ============================================================
+class TestPageDominantOrphanSuppression:
+    """封面/整页插图页：全页大图已引用时，抑制同页冗余 orphan 碎片。"""
+
+    def test_cover_fragment_orphans_suppressed(self) -> None:
+        """封面全页图(816x1056)已引用，同页 2 张碎片 orphan 不再追加。"""
+        md = (
+            '<img src="./images/img_0_0.png" alt="cover" '
+            'width="816" height="1056" style="max-width:100%;height:auto;" />'
+        )
+        images = [
+            FakeImage(
+                filename="img_0_0.png",
+                caption="cover",
+                width=816,
+                height=1056,
+                page_number=0,
+            ),
+            FakeImage(filename="fig_p1_1.png", caption=None, page_number=0),
+            FakeImage(filename="fig_p1_2.png", caption=None, page_number=0),
+        ]
+        result = normalize_image_references(md, images)
+        assert "<!-- orphan images appended" not in result
+        assert "fig_p1_1.png" not in result
+        assert "fig_p1_2.png" not in result
+        # 主图保留
+        assert "img_0_0.png" in result
+
+    def test_content_figure_preserved_not_page_dominant(self) -> None:
+        """正文 figure(167k < 500k 阈值)非 page-dominant，同页 orphan 不抑制。"""
+        md = (
+            '<img src="./images/fig_p14_1.png" alt="图1.1" '
+            'width="457" height="365" style="max-width:100%;height:auto;" />'
+        )
+        images = [
+            FakeImage(
+                filename="fig_p14_1.png",
+                caption="图1.1",
+                width=457,
+                height=365,
+                page_number=13,
+            ),
+            FakeImage(filename="fig_p14_2.png", caption=None, page_number=13),
+        ]
+        result = normalize_image_references(md, images)
+        # 非主导图页：fig_p14_2 作为正常 orphan 仍追加
+        assert "<!-- orphan images appended" in result
+        assert "fig_p14_2.png" in result
+
+    def test_no_page_number_is_noop(self) -> None:
+        """page_number 缺失时安全降级，保留既有 orphan 追加行为。"""
+        md = '<img src="./images/big.png" alt="x" width="816" height="1056" />'
+        images = [
+            FakeImage(
+                filename="big.png", caption="x", width=816, height=1056
+            ),  # page_number=None
+            FakeImage(filename="frag.png", caption=None),  # page_number=None
+        ]
+        result = normalize_image_references(md, images)
+        # 无页码维度无法安全抑制 → frag.png 仍作为 orphan 追加（不丢图）
+        assert "<!-- orphan images appended" in result
+        assert "frag.png" in result
+
+    def test_orphan_on_different_page_not_suppressed(self) -> None:
+        """orphan 与 dominant 图不同页时不抑制（多页文档）。"""
+        md = '<img src="./images/cover.png" alt="cover" width="816" height="1056" />'
+        images = [
+            FakeImage(
+                filename="cover.png",
+                caption="cover",
+                width=816,
+                height=1056,
+                page_number=0,
+            ),
+            FakeImage(filename="other.png", caption=None, page_number=5),
+        ]
+        result = normalize_image_references(md, images)
+        # other.png 在第 5 页，不受第 0 页 dominant 影响 → 正常追加
+        assert "<!-- orphan images appended" in result
+        assert "other.png" in result
 
 
 # ============================================================

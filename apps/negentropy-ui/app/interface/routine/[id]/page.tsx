@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, GitMerge, GitPullRequest, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,7 @@ import {
   cleanupWorktree,
   controlRoutine,
   rejectIteration,
+  syncRoutinePr,
   useRoutineDetailLive,
 } from "@/features/routine";
 
@@ -106,6 +107,17 @@ export default function RoutineRunPage() {
     }
   }, [id, reload]);
 
+  // 手动同步 PR 合并状态：合并后即时回写 pr_merged（无需等~5min 心跳轮询）。
+  const handleSyncPr = useCallback(async () => {
+    if (!id) return;
+    try {
+      await syncRoutinePr(id);
+      await reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sync PR status");
+    }
+  }, [id, reload]);
+
   const { requestRestart, restartDialog } = useRestartRoutine(() => void reload());
 
   const clockActive = routine?.status === "running";
@@ -138,6 +150,24 @@ export default function RoutineRunPage() {
                       className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(routine.status)}`}
                     >
                       {routine.status}
+                    </span>
+                  )}
+                  {routine?.status === "succeeded" && routine.pr_url && routine.pr_merged && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
+                      <GitMerge className="h-3.5 w-3.5" aria-hidden />
+                      Merged
+                    </span>
+                  )}
+                  {routine?.status === "succeeded" && routine.pr_url && routine.pr_state === "closed" && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-text-secondary">
+                      <X className="h-3.5 w-3.5" aria-hidden />
+                      Closed
+                    </span>
+                  )}
+                  {routine?.status === "succeeded" && routine.pr_url && routine.pr_state === "open" && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sky-500/10 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                      <GitPullRequest className="h-3.5 w-3.5" aria-hidden />
+                      Open
                     </span>
                   )}
                   {routine?.current_phase && routine.status === "running" && (
@@ -193,6 +223,7 @@ export default function RoutineRunPage() {
                 onApproveIteration={handleApprove}
                 onRejectIteration={handleReject}
                 onCleanupWorktree={handleCleanupWorktree}
+                onSyncPr={handleSyncPr}
                 liveActionsByIteration={liveActionsByIteration}
                 busy={busy}
               />

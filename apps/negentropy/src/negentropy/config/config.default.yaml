@@ -209,6 +209,11 @@ routine:
   git_remote: origin                         # fetch / PR base 归一所用 git 远端名
   git_fetch_before_worktree: true            # 建 worktree 前 best-effort git fetch（带超时，失败不阻断）
   git_timeout_seconds: 120                   # 单条 git 子命令执行超时（秒）
+  # --- PR 合并状态巡检（终态 routine 的 PR 被 Merge 后回写 pr_merged → 三处 UI 显示「Merged」）---
+  pr_merge_check_enabled: true               # gh 不在 PATH 时整段静默 no-op（绝不崩溃心跳）
+  pr_merge_check_interval_seconds: 300       # 同一 routine 最小重查间隔（节流，适配 25s 心跳）
+  pr_merge_check_timeout_seconds: 5          # 单次 gh pr view 子进程超时；超时整组 SIGKILL
+  pr_merge_check_batch: 3                    # 单 tick 批量上限（×5s ≈ pass 最坏 15s，留足心跳余量）
   # --- pdf-fidelity-patrol 巡检（#978）---
   # 部署期默认开启：enabled 的种子任务真正每 1h 派生 Routine（routine.enabled 已 true）。
   # 缺凭证/可解析仓库/已转换 PDF 文档时，Routine 创建后失败或 handler 跳过，原因写入

@@ -230,7 +230,7 @@ async def list_tasks(
     """任务清单 + 最近 3 次执行状态（用于 ◐◐◐ 简明指示）。"""
 
     async with AsyncSessionLocal() as db:
-        stmt = select(ScheduledTask)
+        # 筛选条件（不含 cursor）：行查询与 total 计数共用。
         clauses: list[Any] = []
         if enabled is not None:
             clauses.append(ScheduledTask.enabled.is_(enabled))
@@ -250,14 +250,23 @@ async def list_tasks(
         if q:
             like = f"%{q}%"
             clauses.append((ScheduledTask.key.ilike(like)) | (ScheduledTask.display_name.ilike(like)))
+
+        # total：当前筛选下全量计数（不含 cursor），供前端 totalPages 与「共 N 条」。
+        count_stmt = select(func.count()).select_from(ScheduledTask)
+        if clauses:
+            count_stmt = count_stmt.where(and_(*clauses))
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+        stmt = select(ScheduledTask)
+        row_clauses = list(clauses)
         if cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                clauses.append(ScheduledTask.updated_at < cursor_dt)
+                row_clauses.append(ScheduledTask.updated_at < cursor_dt)
             except ValueError:
                 pass
-        if clauses:
-            stmt = stmt.where(and_(*clauses))
+        if row_clauses:
+            stmt = stmt.where(and_(*row_clauses))
         stmt = stmt.order_by(ScheduledTask.updated_at.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
@@ -299,7 +308,7 @@ async def list_tasks(
 
         items = [_serialize_task(r, recent=recent_map.get(r.id, [])) for r in rows]
         next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
-        return {"items": items, "next_cursor": next_cursor}
+        return {"items": items, "next_cursor": next_cursor, "has_more": has_more, "total": total}
 
 
 # ---------------------------------------------------------------------------
@@ -344,7 +353,7 @@ async def list_executions(
     cursor: str | None = Query(None, description="ISO 时间戳，按 started_at 倒序分页"),
 ) -> dict[str, Any]:
     async with AsyncSessionLocal() as db:
-        stmt = select(TaskExecution, ScheduledTask).join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
+        # 筛选条件（不含 cursor）：行查询与 total 计数共用。
         clauses: list[Any] = []
         if task_id is not None:
             clauses.append(TaskExecution.task_id == task_id)
@@ -363,21 +372,34 @@ async def list_executions(
                 clauses.append(ScheduledTask.agent_id == UUID(agent))
             except (ValueError, TypeError):
                 pass
+
+        # total：当前筛选下全量计数（不含 cursor）；filters 含 ScheduledTask 维度故同样 join。
+        count_stmt = (
+            select(func.count())
+            .select_from(TaskExecution)
+            .join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
+        )
+        if clauses:
+            count_stmt = count_stmt.where(and_(*clauses))
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+        stmt = select(TaskExecution, ScheduledTask).join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
+        row_clauses = list(clauses)
         if cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                clauses.append(TaskExecution.started_at < cursor_dt)
+                row_clauses.append(TaskExecution.started_at < cursor_dt)
             except ValueError:
                 pass
-        if clauses:
-            stmt = stmt.where(and_(*clauses))
+        if row_clauses:
+            stmt = stmt.where(and_(*row_clauses))
         stmt = stmt.order_by(TaskExecution.started_at.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).all()
         has_more = len(rows) > limit
         rows = rows[:limit]
         items = [_serialize_execution(e, t) for e, t in rows]
         next_cursor = rows[-1][0].started_at.isoformat() if has_more and rows else None
-        return {"items": items, "next_cursor": next_cursor}
+        return {"items": items, "next_cursor": next_cursor, "has_more": has_more, "total": total}
 
 
 # ---------------------------------------------------------------------------

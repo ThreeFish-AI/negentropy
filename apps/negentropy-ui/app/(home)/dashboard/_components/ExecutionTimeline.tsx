@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
+
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList, type ClientFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 
 import type { ExecutionStatus, TaskExecutionDTO } from "../_lib/types";
 
@@ -54,15 +58,22 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+interface TimelineFilters {
+  status: ExecutionStatus | "all";
+  q: string;
+}
+
 export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
-  const listRef = useRef<HTMLDivElement | null>(null);
+  // 列表滚动容器 ref（哨兵 / 滚动联动 observer 的 root，须为本组件 overflow 容器，非 viewport）。
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const firstIdRef = useRef<string | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<ExecutionStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
 
-  // --- Client-side filter pipeline ---
+  // --- 本地筛选流水线：对【全量】executions 做 status + 关键字筛选（红线：保留原语义） ---
   const filtered = useMemo(() => {
     let result = executions;
     if (statusFilter !== "all") {
@@ -78,34 +89,84 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
     return result;
   }, [executions, statusFilter, searchQuery]);
 
+  // 客户端模式：fetcher.items = 筛选后全量数组；filters 传筛选状态（变化即 reset 回第 1 页）。
+  const fetcher = useMemo<ClientFetcher<TaskExecutionDTO>>(
+    () => ({ kind: "client", items: filtered }),
+    [filtered],
+  );
+  const list = useInfiniteList<TaskExecutionDTO, TimelineFilters>({
+    fetcher,
+    pageSize: PAGE_SIZE,
+    filters: { status: statusFilter, q: searchQuery.trim().toLowerCase() },
+  });
+
   const totalCount = executions.length;
   const filteredCount = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  // --- SSE: auto-jump to page 1 when new execution arrives ---
+  // 无限滚动哨兵：滚到底（提前 200px）→ 揭示下一页。root = 本组件 overflow 容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首项的 data-infinite-page 锚点。
+  useScrollPageSync({
+    enabled: true,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: list.items.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true;
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（本组件 root 限定查询范围）。
+  const { currentPage } = list;
+  const itemsLen = list.items.length;
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return;
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [currentPage, itemsLen]);
+
+  // --- SSE：新执行（数组头）到达 → 跳回第 1 页（红线：保留「回顶」语义） ---
+  const goToPage1 = list.goToPage;
   useEffect(() => {
     if (!executions.length) return;
     const newest = executions[0];
     if (firstIdRef.current === newest.id) return;
     firstIdRef.current = newest.id;
-    setCurrentPage(1);
-  }, [executions]);
+    goToPage1(1);
+  }, [executions, goToPage1]);
 
-  // --- Flash highlight on the first item of page 1 ---
-  const pagedLen = paged.length;
-  const firstPagedId = paged[0]?.id;
+  // --- 第 1 页 flash 高亮（红线：保留原 ring flash——作用于列表容器首元素，与迁移前一致） ---
+  const pagedLen = list.items.length;
+  const firstPagedId = list.items[0]?.id;
   useEffect(() => {
-    if (safePage !== 1 || !pagedLen) return;
-    const node = listRef.current?.firstElementChild as HTMLElement | undefined;
+    if (list.currentPage !== 1 || !pagedLen) return;
+    const node = scrollRootRef.current?.firstElementChild as HTMLElement | undefined;
     if (!node) return;
     node.classList.add("ring-2", "ring-indigo-400");
     const id = window.setTimeout(() => {
       node.classList.remove("ring-2", "ring-indigo-400");
     }, 800);
     return () => window.clearTimeout(id);
-  }, [safePage, pagedLen, firstPagedId]);
+  }, [list.currentPage, pagedLen, firstPagedId]);
 
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm">
@@ -121,7 +182,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => { setStatusFilter(opt.value); setCurrentPage(1); }}
+                onClick={() => setStatusFilter(opt.value)}
                 className={`shrink-0 rounded-full px-1.5 py-0.5 text-micro font-semibold transition-colors ${
                   statusFilter === opt.value
                     ? "bg-foreground text-background"
@@ -137,7 +198,7 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
             <Search className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
             <input
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
               className="w-full rounded-md border border-border bg-background py-0.5 pl-6 pr-2 text-caption text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
             />
@@ -149,9 +210,9 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
         </div>
       </div>
 
-      {/* List */}
-      <div ref={listRef}>
-        {paged.length === 0 ? (
+      {/* List — 本组件 overflow 滚动容器（哨兵 / 滚动联动 root） */}
+      <div ref={scrollRootRef} className="max-h-[420px] overflow-auto">
+        {list.items.length === 0 ? (
           <div className="px-3 py-6 text-center text-xs text-muted-foreground">
             {filteredCount === 0 && totalCount > 0
               ? "No executions match current filters."
@@ -159,8 +220,12 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {paged.map((e) => (
-              <li key={e.id} className="px-3 py-2 transition-shadow">
+            {list.items.map((e, i) => (
+              <li
+                key={e.id}
+                data-infinite-page={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
+                className="px-3 py-2 transition-shadow"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="font-mono text-caption text-muted-foreground">{formatTime(e.started_at)}</span>
@@ -184,32 +249,22 @@ export function ExecutionTimeline({ executions }: ExecutionTimelineProps) {
             ))}
           </ul>
         )}
+
+        {/* 无限滚动哨兵：进入视口即揭示下一页。 */}
+        <div ref={sentinelRef} aria-hidden className="h-px w-full" />
       </div>
 
-      {/* Pagination */}
-      {filteredCount > PAGE_SIZE && (
-        <div className="flex items-center justify-between border-t border-border px-3 py-1.5">
-          <button
-            type="button"
-            disabled={safePage <= 1}
-            onClick={() => setCurrentPage(Math.max(1, safePage - 1))}
-            aria-label="上一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <span className="text-micro font-medium text-muted-foreground">
-            {safePage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={safePage >= totalPages}
-            onClick={() => setCurrentPage(Math.min(totalPages, safePage + 1))}
-            aria-label="下一页"
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
+      {/* Pagination — 居中统一控件 */}
+      {filteredCount > 0 && (
+        <div className="border-t border-border px-3 py-1.5">
+          <Pagination
+            page={list.currentPage}
+            totalPages={list.totalPages}
+            onPageChange={handleGoToPage}
+            total={list.total ?? undefined}
+            itemLabel="execution"
+            loadingMore={list.loadingMore}
+          />
         </div>
       )}
     </div>

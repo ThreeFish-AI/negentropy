@@ -132,6 +132,26 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         nullable=True,
         comment="FINALIZE 阶段创建的 PR 链接；非空 + succeeded 表示等待人工 Merge",
     )
+    # PR 合并状态回写（与 status 正交，不改状态机）：succeeded + pr_url 后由巡检心跳或
+    # 手动「同步 PR 状态」经 ``gh pr view`` 检测回填。pr_merged=True 即「已 Merge」。
+    pr_merged: Mapped[bool | None] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="PR 是否已 merge（null=未知/未检测；与 status 正交，不改状态机）",
+    )
+    # PR 权威状态（gh pr view --json state）：open|closed|merged（null=未知/未检测）。
+    # 与 pr_merged 正交持久化以区分 Open 与 Closed-without-merge（两者 pr_merged 均为 False）；
+    # pr_merged 为派生反规范化布尔（= pr_state=='merged'），沿用 best_score/last_score 同范式。
+    pr_state: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="PR 状态 open|closed|merged（null=未知/未检测；与 status 正交）",
+    )
+    pr_merged_checked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="上次 gh pr view 检测时间；节流用（同一 routine 最小重查间隔）",
+    )
 
     # --- 运行期状态（反规范化，加速守卫判定）---
     iteration_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")

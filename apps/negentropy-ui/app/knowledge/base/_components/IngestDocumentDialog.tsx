@@ -1,11 +1,6 @@
-/* eslint-disable react-hooks/set-state-in-effect --
- * React 19 + eslint-plugin-react-hooks v7.1.1 的 React Compiler 兼容新规则集
- * 命中既有代码模式（useEffect 内调用 fetcher 同步外部数据到 state）。
- * 与 documents/page.tsx 同款豁免；TODO(react-compiler): 按 SWR / useSyncExternalStore 重构。
- */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/lib/activity-toast";
 import {
   AsyncPipelineResult,
@@ -16,7 +11,9 @@ import {
   fetchCorpora,
 } from "@/features/knowledge";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import { FileText, X } from "lucide-react";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -91,38 +88,78 @@ export function IngestDocumentDialog({
   onSuccess,
   title = "Ingest From Document",
 }: IngestDocumentDialogProps) {
-  const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // 无限滚动 + 翻页：滚动容器 ref（哨兵 / 滚动联动 observer 的 root）、程序化滚动闸门、待跳页号。
+  // 红线：root 必须是对话框内的 overflow 容器（下方 max-h-[360px] overflow-y-auto），不可用 viewport。
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
 
-  const loadDocuments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchAllDocuments({
-        appName: APP_NAME,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      });
-      setDocuments(data.items);
-      setTotal(data.count);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load documents");
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
+  // 偏移分页适配器：薄包 fetchAllDocuments；响应 count 归一为 total。
+  const fetcher = useMemo<OffsetFetcher<KnowledgeDocument>>(
+    () => ({
+      kind: "offset",
+      fetchRange: async ({ offset, limit }) => {
+        const data = await fetchAllDocuments({ appName: APP_NAME, limit, offset });
+        return { items: data.items, total: data.count };
+      },
+    }),
+    [],
+  );
 
+  // enabled=isOpen：对话框关闭时挂起取数（对齐 useHeartbeatPoll.enabled 语义）。
+  const list = useInfiniteList<KnowledgeDocument>({
+    fetcher,
+    pageSize: PAGE_SIZE,
+    enabled: isOpen,
+  });
+  const documents = list.items;
+  const total = list.total ?? 0;
+  const loading = list.loading;
+  const error = list.error;
+  const { reset: listReset } = list;
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 偏移补齐下一页。root = 对话框内 overflow 容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首项的 data-infinite-page 锚点，取最靠上可见页。
+  useScrollPageSync({
+    enabled: isOpen,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: documents.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  // 点页码跳页：先经 hook 确保该页已加载（偏移单请求补齐），再滚动到该页锚点。
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（偏移补齐后，锚点随 documents 增长后再现 → effect 重跑命中）。
   useEffect(() => {
-    if (!isOpen) return;
-    void loadDocuments();
-  }, [isOpen, loadDocuments]);
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return;
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [list.currentPage, documents.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -138,8 +175,7 @@ export function IngestDocumentDialog({
 
   const resetForm = () => {
     setSelectedId(null);
-    setPage(1);
-    setError(null);
+    listReset(); // 回第 1 页 + 清缓冲（替代此前 setPage(1)）
   };
 
   const handleClose = () => {
@@ -206,9 +242,9 @@ export function IngestDocumentDialog({
         Markdown 就绪的文档可摄入）。
       </p>
 
-      {/* Document List */}
-      <div className="max-h-[360px] min-h-[160px] overflow-y-auto rounded-lg border border-border">
-        {loading ? (
+      {/* Document List — 红线：此 overflow 容器即无限滚动哨兵 / 滚动联动 observer 的 root（非 viewport）。 */}
+      <div ref={scrollRootRef} className="max-h-[360px] min-h-[160px] overflow-y-auto rounded-lg border border-border">
+        {loading && documents.length === 0 ? (
           <p className="p-4 text-center text-xs text-muted-foreground">Loading documents...</p>
         ) : error ? (
           <p className="p-4 text-center text-xs text-red-500">{error}</p>
@@ -218,7 +254,7 @@ export function IngestDocumentDialog({
           </p>
         ) : (
           <div className="divide-y divide-border">
-            {documents.map((doc) => {
+            {documents.map((doc, i) => {
               const ready =
                 (doc.markdown_extract_status || "").toLowerCase() === "completed";
               const badge = markdownStatusBadge(doc.markdown_extract_status);
@@ -227,6 +263,9 @@ export function IngestDocumentDialog({
                 <button
                   key={doc.id}
                   type="button"
+                  data-infinite-page={
+                    i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined
+                  }
                   disabled={!ready}
                   title={ready ? undefined : "Markdown 未就绪，无法摄入"}
                   onClick={() => setSelectedId(isSelected ? null : doc.id)}
@@ -283,28 +322,23 @@ export function IngestDocumentDialog({
             })}
           </div>
         )}
+
+        {/* 无限滚动哨兵：进入视口即追加下一页。须位于 overflow root 内方能被正确观测。 */}
+        <div ref={sentinelRef} aria-hidden className="h-px w-full" />
       </div>
 
-      {/* Pagination */}
+      {/* 居中翻页控件，与无限滚动并存。 */}
       {total > PAGE_SIZE && (
-        <div className="mt-2 flex items-center justify-end gap-1.5">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1 || loading}
-            className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
-          >
-            Previous
-          </button>
-          <span className="text-xs text-muted-foreground">
-            Page {page} / {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages || loading}
-            className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
-          >
-            Next
-          </button>
+        <div className="mt-2">
+          <Pagination
+            page={list.currentPage}
+            totalPages={list.totalPages}
+            onPageChange={handleGoToPage}
+            total={total}
+            itemLabel="document"
+            disabled={loading}
+            loadingMore={list.loadingMore}
+          />
         </div>
       )}
 

@@ -41,6 +41,12 @@ import negentropy.db.session as db_session
 # 这样可以避免在选择其他 SessionService 时注册 ORM 模型
 
 
+# 触发标题生成所需的最小有效文本字符数。低于此值视为空对话（如纯"你好"或仅工具调用
+# 摘要），不发起 LLM 调用——宁可不写 title 走前端 `Session <id>` 兜底，也不硬生成
+# 空洞标题（与 summarization.is_semantically_vacant_title 共同保障标题质量）。
+_TITLE_MIN_HISTORY_CHARS = 8
+
+
 class PostgresSessionService(BaseSessionService):
     """
     PostgreSQL 实现的 SessionService
@@ -357,15 +363,30 @@ class PostgresSessionService(BaseSessionService):
                 )
                 return
 
-            events_result = await db.execute(
+            thread_uuid = uuid.UUID(session_id)
+
+            # 取「首条 user 消息（最能代表主题）+ 最近 N 条」去重合并、按 seq 升序，
+            # 避免长会话把首条主题消息截断丢失。短会话两者重合，去重后仍为一组。
+            recent_result = await db.execute(
                 select(self.Event)
-                .where(self.Event.thread_id == uuid.UUID(session_id))
+                .where(self.Event.thread_id == thread_uuid)
                 .order_by(self.Event.sequence_num.desc())
                 .limit(6)
             )
-            recent_events = list(reversed(events_result.scalars().all()))
+            first_user_result = await db.execute(
+                select(self.Event)
+                .where(self.Event.thread_id == thread_uuid, self.Event.author == "user")
+                .order_by(self.Event.sequence_num.asc())
+                .limit(1)
+            )
+            merged: dict[int, Any] = {}
+            for e in recent_result.scalars().all():
+                merged[e.sequence_num] = e
+            for e in first_user_result.scalars().all():
+                merged[e.sequence_num] = e
+            recent_events = [merged[seq] for seq in sorted(merged)]
 
-            history = []
+            history: list[types.Content] = []
             for e in recent_events:
                 content_dict = e.content or {}
                 parts: list[types.Part] = []
@@ -374,8 +395,33 @@ class PostgresSessionService(BaseSessionService):
                     raw_parts = content_dict.get("parts")
                     if isinstance(raw_parts, list):
                         for part in raw_parts:
-                            if isinstance(part, dict) and part.get("text"):
+                            if not isinstance(part, dict):
+                                continue
+                            if part.get("text"):
                                 parts.append(types.Part(text=part["text"]))
+                                continue
+                            # 工具调用密集会话：纳入 functionCall / functionResponse 可读摘要，
+                            # 避免有效文本稀薄时在空对话上硬生成空洞标题。
+                            # functionResponse 仅取 name（不取 payload，防 token 爆炸）。
+                            fc = part.get("functionCall")
+                            if isinstance(fc, dict) and fc.get("name"):
+                                args = fc.get("args") or {}
+                                query = (
+                                    args.get("query")
+                                    or args.get("q")
+                                    or args.get("keyword")
+                                    or args.get("prompt")
+                                    or args.get("input")
+                                    or args.get("message")
+                                )
+                                if query:
+                                    parts.append(types.Part(text=f'[调用工具: {fc["name"]}("{str(query)[:60]}")]'))
+                                else:
+                                    parts.append(types.Part(text=f"[调用工具: {fc['name']}]"))
+                                continue
+                            fr = part.get("functionResponse")
+                            if isinstance(fr, dict) and fr.get("name"):
+                                parts.append(types.Part(text=f"[工具结果: {fr['name']}]"))
                     elif content_dict.get("text"):
                         parts.append(types.Part(text=content_dict["text"]))
 
@@ -384,6 +430,16 @@ class PostgresSessionService(BaseSessionService):
                     history.append(types.Content(role=role, parts=parts))
 
             if not history:
+                return
+
+            # 有效文本总量阈值：低于此值视为空对话，不发起 LLM 调用。
+            total_chars = sum(len(p.text) for c in history for p in c.parts if getattr(p, "text", None))
+            if total_chars < _TITLE_MIN_HISTORY_CHARS:
+                logger.debug(
+                    "title_generation_skipped_low_content",
+                    session_id=session_id,
+                    total_chars=total_chars,
+                )
                 return
 
             logger.info(

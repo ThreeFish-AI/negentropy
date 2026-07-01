@@ -44,7 +44,12 @@ export function TimelinePreview() {
         人机交互回合（6 Agent ↔ Claude Code）
       </h2>
       <div data-testid="transcript-preview-human-loop" className="rounded-card border border-border bg-card p-4">
-        <IterationEventTimeline events={humanLoopEvents} />
+        <IterationEventTimeline
+          events={humanLoopEvents}
+          openingPrompt={
+            "你是 NegentropyEngine。请修复 number keys 注册逻辑：组合键（Shift+数字）与连击去抖，补单测，通过 `pnpm test`。验收：边缘 case 全覆盖、回归绿。"
+          }
+        />
       </div>
 
       <h2 className="mb-2 mt-6 text-body-lg font-semibold text-foreground">在途态（LIVE / 运行中）</h2>
