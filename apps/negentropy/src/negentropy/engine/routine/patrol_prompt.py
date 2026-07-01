@@ -180,9 +180,11 @@ def build_routine_config(
         "regression_sample": regression_sample,
         "system_prompt": PATROL_SYSTEM_PROMPT,
         "read_dirs": [source_read_dir],
-        # Plan Review 保持启用（CC ↔ NegentropyEngine 正常交流方案、恰当时 Approve），
-        # 但走 **clean stdin 应答**路径（reader 内 _plan_review_answer → 干净 tool_result），
-        # 而非 PreToolUse deny 钩子（deny→is_error 致 UI 报错、交互断联）。
+        # Plan Review 保持启用（CC ↔ NegentropyEngine 正常交流方案、恰当时 Approve）。
+        # 注：unified 闭环下 plan 段**已强制走 PreToolUse 钩子**（orchestrator 文末，根治断链——
+        # headless `claude -p` 下 AskUserQuestion 的 reader stdin 回灌从始无效、CC 收 `Answer questions?`
+        # 报错，refine 永送不到），故此 via_hook 值**不再影响 plan 段**，仅遗留作 legacy 非 unified
+        # 路径开关（巡检为 worktree routine、走 unified，不经该路径）。
         "plan_review_via_hook": False,
         # 开启「Judge verdict=pass 亦判成功」旁路（消费见 orchestrator.decide()）。
         # 巡检完成判据含「仅剩 unfixable 即 done」carve-out（见 build_acceptance_criteria），Judge

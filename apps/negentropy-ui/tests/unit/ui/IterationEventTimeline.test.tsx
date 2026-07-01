@@ -132,14 +132,34 @@ describe("IterationEventTimeline assistant 文本", () => {
     expect(screen.getByText("正在检查当前分支。")).toBeInTheDocument();
   });
 
-  it("thinking 文本渲染其内容（不再显示『思考』标签）", () => {
+  it("thinking 默认折叠为「思考…」toggle，点击展开内容（避免长推理刷屏）", () => {
     render(
       <IterationEventTimeline
         events={[makeEvent({ event_type: "assistant", title: "thinking", tool_name: null, payload: { text: "推理内容在此" } })]}
       />,
     );
+    // 折叠态：toggle 可见、内容隐藏
+    expect(screen.getByText("思考…")).toBeInTheDocument();
+    expect(screen.queryByText("推理内容在此")).not.toBeInTheDocument();
+    // 点击展开
+    fireEvent.click(screen.getByText("思考…"));
     expect(screen.getByText("推理内容在此")).toBeInTheDocument();
-    expect(screen.queryByText("思考")).not.toBeInTheDocument();
+  });
+
+  it("CC 自报交互异常（returned an error）红显 + ⚠，让断链可见", () => {
+    render(
+      <IterationEventTimeline
+        events={[
+          makeEvent({
+            event_type: "assistant",
+            tool_name: null,
+            payload: { text: "The AskUserQuestion returned an error: invalid tool_use_id" },
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText(/returned an error/)).toBeInTheDocument();
+    expect(screen.queryByText("思考…")).not.toBeInTheDocument();
   });
 
   it("空 assistant（仅 raw、无 text）不渲染空行", () => {
@@ -256,6 +276,28 @@ describe("IterationEventTimeline Engine 消息块", () => {
 // ---------------------------------------------------------------------------
 
 describe("IterationEventTimeline 人机回合（human_reply）", () => {
+  it("openingPrompt 合成开场「人(一核)→机」任务回合：人先发言", () => {
+    render(
+      <IterationEventTimeline
+        events={[makeEvent({ event_type: "assistant", tool_name: null, payload: { text: "我先调研。" } })]}
+        openingPrompt="你是 NegentropyEngine。请修复 number keys 注册逻辑。"
+      />,
+    );
+    // 一核（engine）角色 + 下发任务标签 + 任务正文在前（人先发言）
+    expect(screen.getByText("Negentropy")).toBeInTheDocument();
+    expect(screen.getByText("下发任务 · Dispatch")).toBeInTheDocument();
+    expect(screen.getByText(/请修复 number keys 注册逻辑/)).toBeInTheDocument();
+    // 任务回合（人侧）排在 CC 文本之前
+    const flow = document.querySelector(".flex.flex-col");
+    const html = flow?.innerHTML ?? "";
+    expect(html.indexOf("请修复 number keys 注册逻辑")).toBeLessThan(html.indexOf("我先调研。"));
+  });
+
+  it("openingPrompt 为空时不合成开场回合（兼容）", () => {
+    render(<IterationEventTimeline events={[makeEvent({ event_type: "assistant", tool_name: null, payload: { text: "干活" } })]} />);
+    expect(screen.queryByText("下发任务 · Dispatch")).not.toBeInTheDocument();
+  });
+
   it("plan_review approve 升格为 human_reply：显示元神角色 + Approved 徽章", () => {
     render(
       <IterationEventTimeline

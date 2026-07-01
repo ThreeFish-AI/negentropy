@@ -15,6 +15,7 @@
 - POST   /routines/{id}/cancel               取消（→ cancelled）
 - POST   /routines/{id}/restart              重启（failed/cancelled → running，复位运行态 + 抬高决策水位线）
 - POST   /routines/{id}/cleanup-worktree     手动回收终态 routine 的隔离 worktree
+- POST   /routines/{id}/sync-pr              手动同步 PR 合并状态（即时回写 pr_merged → 三处 UI 显示「Merged」）
 - POST   /routines/{id}/iterations/{iid}/approve   审批通过待执行迭代
 - POST   /routines/{id}/iterations/{iid}/reject    驳回待执行迭代
 - GET    /routines/stream                    SSE 实时事件（routine + iteration）
@@ -197,6 +198,8 @@ def _serialize_routine(
         "termination_reason": r.termination_reason,
         "current_phase": r.current_phase,
         "pr_url": r.pr_url,
+        "pr_merged": r.pr_merged,
+        "pr_state": r.pr_state,
         "work_branch": r.work_branch,
         "worktree_path": r.worktree_path,
         "worktree_status": worktree_meta.get("status") if worktree_meta else None,
@@ -481,38 +484,65 @@ async def list_routines(
         None, description="按 config.source_task_key 过滤（如 pdf_fidelity_patrol 派生的巡检 Routine）"
     ),
     limit: int = Query(50, ge=1, le=200),
-    cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串"),
+    cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串（与 offset 互斥）"),
+    offset: int | None = Query(None, ge=0, description="偏移分页起点（与 cursor 互斥；翻页模式）"),
 ) -> dict[str, Any]:
-    """路由清单：多维筛选 + 基于 updated_at 的游标分页。"""
+    """路由清单：多维筛选 + 基于 ``(updated_at, id)`` 的分页（cursor 游标 / offset 偏移二选一）。"""
+    if cursor and offset is not None:
+        raise HTTPException(status_code=400, detail="cursor and offset are mutually exclusive")
+    use_offset = offset is not None
     async with db_session.AsyncSessionLocal() as db:
-        stmt = select(Routine)
+        # 收集筛选条件（不含分页约束）：行查询与 total 计数共用，避免重复逻辑。
+        conditions = []
         if status:
-            stmt = stmt.where(Routine.status == status)
+            conditions.append(Routine.status == status)
         if owner_id:
-            stmt = stmt.where(Routine.owner_id == owner_id)
+            conditions.append(Routine.owner_id == owner_id)
         if is_template is not None:
-            stmt = stmt.where(Routine.is_template == is_template)
+            conditions.append(Routine.is_template == is_template)
         if q:
             like = f"%{q}%"
-            stmt = stmt.where((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
+            conditions.append((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
         if source_task_key:
-            stmt = stmt.where(Routine.config.op("->>")("source_task_key") == source_task_key)
-        if cursor:
+            conditions.append(Routine.config.op("->>")("source_task_key") == source_task_key)
+
+        # 稳定排序 (updated_at DESC, id DESC)：updated_at 有 onupdate、Routine 又是高频变更列表，
+        # id 兜底消除跨页重复/跳号（兼修 cursor 模式 tie-skip）。
+        stmt = select(Routine)
+        for cond in conditions:
+            stmt = stmt.where(cond)
+        if not use_offset and cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                stmt = stmt.where(Routine.updated_at < cursor_dt)
             except ValueError:
                 raise HTTPException(status_code=400, detail="invalid cursor") from None
-        stmt = stmt.order_by(Routine.updated_at.desc()).limit(limit + 1)
+            stmt = stmt.where(Routine.updated_at < cursor_dt)
+        stmt = stmt.order_by(Routine.updated_at.desc(), Routine.id.desc())
+        if use_offset:
+            stmt = stmt.offset(offset).limit(limit)
+        else:
+            stmt = stmt.limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
-    has_more = len(rows) > limit
-    rows = rows[:limit]
-    next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
+        # total：当前筛选下的全量计数（不含分页约束），供前端 totalPages 与「共 N 条」。
+        count_stmt = select(func.count()).select_from(Routine)
+        for cond in conditions:
+            count_stmt = count_stmt.where(cond)
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+    if use_offset:
+        # offset 模式：恰好取一页（无 limit+1 探测），has_more 由 total 推导；不产 cursor。
+        has_more = (offset + limit) < total
+        next_cursor = None
+    else:
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+        next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
     return {
         "items": [_serialize_routine(r) for r in rows],
         "next_cursor": next_cursor,
         "has_more": has_more,
+        "total": total,
     }
 
 
@@ -567,12 +597,21 @@ async def list_iterations(
         stmt = stmt.order_by(RoutineIteration.seq.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
+        total = int(
+            (
+                await db.execute(
+                    select(func.count()).select_from(RoutineIteration).where(RoutineIteration.routine_id == routine_id)
+                )
+            ).scalar_one()
+        )
+
     has_more = len(rows) > limit
     rows = rows[:limit]
     return {
         "items": [_serialize_iteration(it) for it in rows],
         "has_more": has_more,
         "next_before_seq": rows[-1].seq if has_more and rows else None,
+        "total": total,
     }
 
 
@@ -977,6 +1016,10 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
         r.claude_session_id = None
         r.current_phase = phase_mod.initial_phase(r.config)
         r.pr_url = None
+        # 复位 PR 合并状态：避免旧 PR 的 merged/state 污染新轮 PR 的检测与「Merged」/「Closed」展示。
+        r.pr_merged = None
+        r.pr_state = None
+        r.pr_merged_checked_at = None
         # 隔离 worktree：仅回收 worktree 目录、**保留终生单一工作分支**（含其检查点提交），
         # 使新一轮尝试在同一分支上从上一检查点续作（不铸新分支、不重建自基线）。下一次派发的
         # ensure_worktree 会按保留的 work_branch 重绑 worktree（本地分支存在则直接 checkout）。
@@ -1036,9 +1079,53 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
     return _serialize_routine(r, worktree_meta=worktree_meta)
 
 
-# ---------------------------------------------------------------------------
-# 审批门控：approve / reject
-# ---------------------------------------------------------------------------
+@router.post("/{routine_id}/sync-pr")
+async def sync_pr_status(routine_id: UUID) -> dict[str, Any]:
+    """手动同步 routine 的 PR 合并状态（即时回写 ``pr_merged``，无需等~5min 心跳）。
+
+    用户在 GitHub 合并 PR 后点 PR 抽屉「同步 PR 状态」即时触发：复用 ``gh pr view --json state,merged``
+    回写 ``pr_merged`` 并经 SSE 推送，使列表 / Full View / PR 抽屉三处立即显示「Merged」。回写逻辑与
+    心跳 ``_sync_pr_merge_status`` 复用同一 ``apply_pr_merge_result``，避免两处分支漂移。
+
+    与心跳 pass 的差异：用户主动触发，故 ``gh`` 缺失/未授权/不可达时**显式 503**（心跳为静默 no-op）。
+    慢操作（gh 子进程）在 DB 会话外执行，不占连接池、不阻塞事件循环（同 cleanup-worktree 范式）。
+    """
+    from negentropy.engine.routine.pr_status import (
+        apply_pr_merge_result,
+        fetch_pr_merge_status,
+        gh_available,
+    )
+
+    # ① 短会话：校验 + 取 pr_url（会话外做 gh 子进程，不占连接池）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if not r.pr_url:
+            raise HTTPException(status_code=409, detail="routine has no PR to sync (pr_url is empty)")
+        pr_url = r.pr_url
+
+    # ② 会话外：best-effort gh 检测（带超时）。gh 缺失或未应答 → 503（用户主动触发应显式暴露）。
+    if not gh_available():
+        raise HTTPException(status_code=503, detail="gh CLI not available on backend PATH; cannot sync PR status")
+    try:
+        st = await fetch_pr_merge_status(pr_url, timeout=float(settings.routine.pr_merge_check_timeout_seconds))
+    except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；用户面兜底 502
+        raise HTTPException(status_code=502, detail=f"PR status check failed: {exc}") from exc
+    if st.merged is None and st.state is None:
+        raise HTTPException(
+            status_code=503,
+            detail="gh could not determine PR status (unauthorized / unreachable / timeout); retry later",
+        )
+
+    # ③ 短会话：回写 + 提交 + 推 SSE（expire_on_commit=False → r 提交后仍可读）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        apply_pr_merge_result(r, st, _utcnow())
+        await db.commit()
+        await db.refresh(r)
+        await _publish_routine(r)
+    return _serialize_routine(r)
 
 
 @router.post("/{routine_id}/iterations/{iteration_id}/approve")
@@ -1126,6 +1213,8 @@ async def _publish_routine(r: Routine) -> None:
             "total_cost_usd": r.total_cost_usd,
             "current_phase": r.current_phase,
             "pr_url": r.pr_url,
+            "pr_merged": r.pr_merged,
+            "pr_state": r.pr_state,
         }
     )
 

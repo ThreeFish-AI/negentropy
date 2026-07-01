@@ -1,12 +1,18 @@
 "use client";
 
-import { ExternalLink, Loader2, OctagonX, RotateCcw, Trash2 } from "lucide-react";
+import { ExternalLink, GitMerge, GitPullRequest, Loader2, OctagonX, RotateCcw, Trash2, X } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
 
 import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
-import { routineStatusClass, scoreColorClass } from "./status-style";
+import {
+  closedBadgeClass,
+  mergedBadgeClass,
+  openBadgeClass,
+  routineStatusClass,
+  scoreColorClass,
+} from "./status-style";
 
 interface RoutineTableProps {
   routines: RoutineDTO[];
@@ -75,11 +81,31 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                 <div className="text-xs text-text-secondary">{r.key}</div>
               </td>
               <td className="px-4 py-3">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
-                >
-                  {r.status}
-                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
+                  >
+                    {r.status}
+                  </span>
+                  {r.pr_merged && (
+                    <span className={mergedBadgeClass}>
+                      <GitMerge className="h-3 w-3" aria-hidden />
+                      Merged
+                    </span>
+                  )}
+                  {r.pr_state === "closed" && (
+                    <span className={closedBadgeClass}>
+                      <X className="h-3 w-3" aria-hidden />
+                      Closed
+                    </span>
+                  )}
+                  {r.pr_state === "open" && (
+                    <span className={openBadgeClass}>
+                      <GitPullRequest className="h-3 w-3" aria-hidden />
+                      Open
+                    </span>
+                  )}
+                </div>
                 {r.termination_reason && (
                   <div className="mt-0.5 text-xs text-text-secondary">{r.termination_reason}</div>
                 )}

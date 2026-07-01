@@ -67,6 +67,22 @@ describe("routine api · 读取端点", () => {
     expect(sp.get("q")).toBe("demo");
   });
 
+  it("fetchRoutines 透传 limit + offset 为查询参数", async () => {
+    const spy = mockFetch(() => jsonResponse({ items: [], next_cursor: null }));
+    await fetchRoutines({}, { limit: 10, offset: 20 });
+    const sp = new URL(lastCall(spy).url, "http://x").searchParams;
+    expect(sp.get("limit")).toBe("10");
+    expect(sp.get("offset")).toBe("20");
+  });
+
+  it("fetchRoutines 未给 offset 时不带 offset 参数", async () => {
+    const spy = mockFetch(() => jsonResponse({ items: [], next_cursor: null }));
+    await fetchRoutines({ status: "running" }, { limit: 10 });
+    const sp = new URL(lastCall(spy).url, "http://x").searchParams;
+    expect(sp.get("offset")).toBeNull();
+    expect(sp.get("limit")).toBe("10");
+  });
+
   it("fetchRoutineDetail 编码 id 并带上 recent", async () => {
     const spy = mockFetch(() => jsonResponse({ id: "a/b" }));
     await fetchRoutineDetail("a/b", 5);

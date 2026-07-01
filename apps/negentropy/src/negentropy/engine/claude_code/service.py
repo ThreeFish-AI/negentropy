@@ -1198,6 +1198,26 @@ class ClaudeCodeService:
                 "如果问题有选项，回答必须是选项之一的 label 原文。"
             )
 
+            # FacultyBridge（INJECT-4，路径 A，详见 ADR 040）：开启时优先经 ADK Runner 同步调用
+            # **真实本心（Internalization）Faculty** 产出答复 JSON（内化目标、给确定性裁决）；失败/超时/
+            # 解析异常即降级到下方 litellm 直调，保证答问永不因 Faculty 不可用而中断。
+            from negentropy.config import settings as _settings
+
+            if _settings.routine.faculty_bridge_enabled:
+                with suppress(Exception):
+                    from negentropy.engine.routine.faculty_bridge import run_faculty
+
+                    fac_text = await run_faculty(
+                        "internalization",
+                        judge_prompt,
+                        timeout_seconds=min(float(_settings.routine.faculty_bridge_timeout_seconds), timeout),
+                    )
+                    if fac_text:
+                        fac_parsed = json.loads(fac_text)
+                        if isinstance(fac_parsed.get("answers"), list):
+                            return "\n".join(str(a) for a in fac_parsed["answers"])
+                    logger.info("claude_code_auto_answer_faculty_bridge_fallback_litellm")
+
             model, model_kwargs = await resolve_model_config_async(
                 ClaudeCodeService._AUTO_ANSWER_TASK_KEY,
                 explicit_model=model_override,

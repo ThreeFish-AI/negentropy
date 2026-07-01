@@ -170,6 +170,16 @@ async def parse_pdf_to_markdown(
                         total_timeout_seconds=timeout,
                     )
                     if batched_response is not None:
+                        # auto_batch 合并后的 markdown 同样需走格式化咽喉点：
+                        # 各 slice 经 pipeline 内部格式化，但跨 slice 合并 / 引擎原生
+                        # 直出仍可能残留运行页眉、伪代码块等。统一格式化（幂等）。
+                        from ..markdown.formatter import MarkdownFormatter
+
+                        _batched_md = getattr(batched_response, "content", "") or ""
+                        if _batched_md:
+                            batched_response.content = (
+                                MarkdownFormatter().format_fidelity_safe(_batched_md)
+                            )
                         return batched_response
                     logger.warning(
                         "auto_batch 整体失败，回退到单次 Pipeline 路径 source=%s",
@@ -188,6 +198,20 @@ async def parse_pdf_to_markdown(
                 output_dir=output_dir,
             )
             if pipeline_result is not None:
+                # auto/pipeline 路径的 markdown 通用格式化咽喉点：pipeline 内部
+                # assembly 已格式化，但历史实测部分路径（引擎原生直出 / 降级）会
+                # 绕过 assembly 的格式化，导致运行页眉残留、自然语言横幅被误判
+                # 为代码块等。在此对最终 markdown 统一再走一次 MarkdownFormatter
+                # （幂等：已格式化的内容二次格式化无副作用），确保所有 auto 产出
+                # 一致地剥离运行页眉、降级伪代码块、排版/去重。
+                from ..markdown.formatter import MarkdownFormatter
+
+                _pipeline_md = pipeline_result.markdown
+                if _pipeline_md:
+                    _pipeline_md = MarkdownFormatter().format_fidelity_safe(
+                        _pipeline_md
+                    )
+                    pipeline_result.markdown = _pipeline_md
                 enhanced_assets = {
                     "images_extracted": pipeline_result.images_count,
                     "tables_extracted": pipeline_result.tables_count,
@@ -219,7 +243,14 @@ async def parse_pdf_to_markdown(
                     output_format=output_format,
                     content=pipeline_result.markdown,
                     metadata=pipeline_result.metadata,
-                    page_count=getattr(pipeline_result, "page_count", 0),
+                    page_count=(
+                        # auto pipeline 的 asset_bundling 应从 preprocessing 回填
+                        # page_count，但部分降级路径未透传；为 0 时从源 PDF 兜底，
+                        # 避免 Statistics 暴露错误的 page_count=0（ISSUE: page_count=0）。
+                        getattr(pipeline_result, "page_count", 0)
+                        or detect_pdf_total_pages(pdf_source)
+                        or 0
+                    ),
                     word_count=pipeline_result.word_count,
                     conversion_time=elapsed_ms(_start) / 1000.0,
                     enhanced_assets=enhanced_assets,
@@ -246,12 +277,23 @@ async def parse_pdf_to_markdown(
         )
 
         if result.get("success"):
+            # 通用格式化咽喉点：无论引擎路径（docling/mineru/marker 经
+            # _build_result_from_engine）还是 pymupdf/pypdf 降级路径，最终
+            # markdown 都经此传入 PDFResponse。此前仅 assembly 管线路径格式化，
+            # 引擎/降级路径直出裸 markdown，导致运行页眉逐页残留、自然语言横幅
+            # 被误判为代码块等问题漏网。在此统一走 MarkdownFormatter，与 assembly
+            # 路径对齐（剥离运行页眉、降级伪代码块、排版/去重等）。
+            from ..markdown.formatter import MarkdownFormatter
+
+            _content = result.get("content", result.get("markdown", ""))
+            if _content:
+                _content = MarkdownFormatter().format_fidelity_safe(_content)
             return PDFResponse(
                 success=True,
                 pdf_source=pdf_source,
                 method=method,
                 output_format=output_format,
-                content=result.get("content", result.get("markdown", "")),
+                content=_content,
                 metadata=result.get("metadata", {}),
                 page_count=result.get(
                     "page_count",
@@ -510,18 +552,59 @@ async def _run_batched_pipeline(
                 f"({per_slice_timeout:.0f}s budget)"
             )
             logger.warning("[batch %d/%d] %s", i + 1, len(slice_ranges), err)
+            fallback = await _fallback_slice_lightweight(
+                pdf_source=pdf_source,
+                page_range=(page_start, page_end),
+                output_dir=output_dir,
+                slice_index=i,
+                total_slices=len(slice_ranges),
+            )
+            if fallback is not None:
+                completed[i] = fallback
+                _save_slice_checkpoint(
+                    checkpoint_dir, i, page_start, page_end, fallback
+                )
+                continue
             partial_failures.append((page_start, page_end, err))
             _save_slice_failure(checkpoint_dir, i, page_start, page_end, err)
             continue
 
         if slice_result is None:
             err = f"slice [{page_start}, {page_end}) failed after retry"
+            logger.warning("[batch %d/%d] %s", i + 1, len(slice_ranges), err)
+            fallback = await _fallback_slice_lightweight(
+                pdf_source=pdf_source,
+                page_range=(page_start, page_end),
+                output_dir=output_dir,
+                slice_index=i,
+                total_slices=len(slice_ranges),
+            )
+            if fallback is not None:
+                completed[i] = fallback
+                _save_slice_checkpoint(
+                    checkpoint_dir, i, page_start, page_end, fallback
+                )
+                continue
             partial_failures.append((page_start, page_end, err))
             _save_slice_failure(checkpoint_dir, i, page_start, page_end, err)
             continue
 
         completed[i] = slice_result
         _save_slice_checkpoint(checkpoint_dir, i, page_start, page_end, slice_result)
+
+    # 首页标题守卫：docling 在全量批次中偶发丢弃首页标题/作者/摘要块（p1 单独跑
+    # pymupdf 可完整产出）。对 page0 切片用 pymupdf page0 原文补回缺失前导内容，
+    # 覆盖 checkpoint resume 与新跑两条路径（resume 会跳过 _execute_slice_with_retry）。
+    if (
+        slice_ranges
+        and slice_ranges[0][0] == 0
+        and completed
+        and completed[0] is not None
+    ):
+        first_md = getattr(completed[0], "markdown", "") or ""
+        guarded = _ensure_first_page_header(first_md, pdf_source)
+        if guarded != first_md:
+            completed[0].markdown = guarded
 
     # 收集成功切片
     successful_results = [r for r in completed if r is not None]
@@ -654,6 +737,178 @@ async def _execute_slice_with_retry(
                 exc,
             )
     return None
+
+
+async def _fallback_slice_lightweight(
+    *,
+    pdf_source: str,
+    page_range: Tuple[int, int],
+    output_dir: Optional[str],
+    slice_index: int,
+    total_slices: int,
+) -> Optional[Any]:
+    """切片超时/二次失败后的轻量引擎兜底：用 pymupdf 回收文字内容。
+
+    必要性：auto 重型引擎（docling/mineru/marker）在大切片上可能整体超时，
+    原逻辑直接丢弃整段内容（如标题/摘要/目录/前几章），致 Markdown 从中段起始、
+    ``partial success``。本兜底在超时/失败后用本地快速引擎 pymupdf 重跑该切片
+    页范围，至少回收文字、标题与段落顺序，避免内容整段丢失（图片资产适配较重，
+    本兜底不回填 ``image_assets``；其文字保真已远胜于完全丢弃）。
+
+    Returns:
+        成功时返回 :class:`PipelineResult`（``engines_used`` 标记
+        ``pymupdf-fallback``）；兜底亦失败/超时/异常/空内容时返回 ``None``。
+    """
+    from ..pipeline import PipelineResult
+
+    start, end = page_range
+    fallback_budget = 120.0
+    try:
+        pdf_processor = create_pdf_processor(
+            enable_enhanced_features=False, output_dir=output_dir
+        )
+        async with asyncio.timeout(fallback_budget):
+            result = await pdf_processor.process_pdf(
+                pdf_source=pdf_source,
+                method="pymupdf",
+                include_metadata=False,
+                page_range=(start, end),
+                output_format="markdown",
+                extract_images=False,
+                extract_tables=False,
+                extract_formulas=False,
+                embed_images=False,
+                enhanced_options=None,
+            )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "[batch %d/%d] 轻量兜底超时 pages=%d-%d budget=%ds",
+            slice_index + 1,
+            total_slices,
+            start + 1,
+            end,
+            int(fallback_budget),
+        )
+        return None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "[batch %d/%d] 轻量兜底异常 pages=%d-%d: %s",
+            slice_index + 1,
+            total_slices,
+            start + 1,
+            end,
+            exc,
+        )
+        return None
+
+    if not result.get("success"):
+        logger.warning(
+            "[batch %d/%d] 轻量兜底失败 pages=%d-%d error=%s",
+            slice_index + 1,
+            total_slices,
+            start + 1,
+            end,
+            result.get("error", "unknown"),
+        )
+        return None
+
+    markdown = result.get("content", result.get("markdown", ""))
+    if not markdown.strip():
+        return None
+
+    logger.info(
+        "[batch %d/%d] 轻量兜底成功(pymupdf) pages=%d-%d words=%s",
+        slice_index + 1,
+        total_slices,
+        start + 1,
+        end,
+        result.get("word_count", 0),
+    )
+    return PipelineResult(
+        success=True,
+        markdown=markdown,
+        page_count=result.get("page_count", end - start),
+        word_count=result.get("word_count", 0),
+        engines_used=["pymupdf-fallback"],
+        metadata={"fallback_engine": "pymupdf"},
+    )
+
+
+def _ensure_first_page_header(markdown: str, pdf_source: str) -> str:
+    """首页标题守卫：若首页切片 markdown 缺失文档标题，用 pymupdf page0 原文补回。
+
+    背景：docling 文本引擎在全量批次中偶发丢弃首页标题/作者/摘要块，而 p1 单独跑
+    pymupdf 可完整产出。本守卫取 pymupdf page0 首个非空行（≈文档标题），若该标题
+    不在 markdown 中（任意位置），则把 page0 原文前导部分（标题+作者+摘要）以 H1
+    形式前置补回；截至首个已存在于 markdown 的行（去重边界），无重叠则截至首个
+    疑似章节标题（Contents / "1 Introduction" 等）。
+
+    幂等：标题已存在则原样返回；pymupdf 抽取失败/无 page0 文本则原样返回（安全降级）。
+    """
+    import re
+
+    if not markdown or not pdf_source:
+        return markdown
+    try:
+        from ..pdf._imports import import_fitz
+
+        fitz = import_fitz()
+        doc = fitz.open(pdf_source)
+        if doc.page_count == 0:
+            return markdown
+        p0_text = doc[0].get_text("text")
+        doc.close()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "首页标题守卫：pymupdf page0 抽取失败 source=%s err=%s", pdf_source, exc
+        )
+        return markdown
+
+    p0_lines = [ln.strip() for ln in p0_text.splitlines() if ln.strip()]
+    if not p0_lines:
+        return markdown
+    title = p0_lines[0]
+
+    def _norm(s: str) -> str:
+        return re.sub(r"\s+", " ", s).strip().lower()
+
+    title_norm = _norm(title)
+    md_norm = _norm(markdown)
+    # 标题已存在于 markdown（任意位置）→ 无需补回
+    if title_norm and title_norm in md_norm:
+        return markdown
+
+    # 去重边界：page0 中首个（除标题外）已存在于 markdown 的长行
+    boundary = None
+    for ln in p0_lines[1:]:
+        lnn = _norm(ln)
+        if lnn and len(lnn) >= 12 and lnn in md_norm:
+            boundary = ln
+            break
+
+    if boundary is not None:
+        idx = p0_text.find(boundary)
+        recovered = p0_text[:idx].strip() if idx > 0 else title
+    else:
+        # 无重叠：补到首个疑似章节标题（Contents / "1 Introduction" 等）前
+        rec_lines = [title]
+        for ln in p0_lines[1:]:
+            if re.match(r"^(?:contents|\d+(?:\.\d+)*\s+[A-Z])", ln, re.IGNORECASE):
+                break
+            rec_lines.append(ln)
+        recovered = "\n".join(rec_lines).strip()
+
+    if not recovered:
+        return markdown
+    # 标题作 H1，其余作正文段落
+    body = "\n".join(recovered.splitlines()[1:]).strip()
+    header_md = f"# {title}".strip()
+    if body:
+        header_md += "\n\n" + body
+    logger.info(
+        "首页标题守卫：补回缺失前导内容 title=%r chars=%d", title[:60], len(header_md)
+    )
+    return header_md + "\n\n" + markdown.lstrip()
 
 
 # ---------------------------------------------------------------------------

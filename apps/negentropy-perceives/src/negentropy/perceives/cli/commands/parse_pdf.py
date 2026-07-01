@@ -14,6 +14,115 @@ except ImportError:
     raise ImportError("CLI dependencies not installed. Install with: uv add typer rich")
 
 
+def _copy_image_assets(result, output: str) -> None:
+    """将抽取的图片资产统一兜底拷贝到 markdown 输出目录的 ``images/`` 子目录。
+
+    从 result 的所有已知图片来源收集图片实体，拷贝到 ``-o`` 同级 ``images/``，
+    使 markdown 中 ``./images/<filename>`` 引用可达。覆盖四类来源：
+
+    1. 传统 ``EnhancedPDFProcessor.output_directory``（上层未透传 ``output_dir`` 时
+       即 ``tempfile.mkdtemp('enhanced_pdf_*')`` 临时目录）。
+    2. auto/processor 路径 ``enhanced_assets["images"]["items"][].local_path``——
+       其图片实体由 image_extraction stage 写入 ``tempfile.mkdtemp('pdf_images_')``
+       临时目录；mineru 失败回退等场景下 ``output_directory`` 缺失，此前 CLI 直接
+       no-op，导致候选 ``./images/*`` 全部死链。
+    3. image_extraction stage 临时目录（若透传到 ``enhanced_assets["_temp_output_dir"]``）。
+    4. ``PDFResponse.image_assets``（auto pipeline 路径），目标文件名取
+       ``asset.filename`` 以对齐 markdown 引用（详见来源 4 处注释）。
+
+    任一来源命中即拷贝；单图拷贝失败不中断整体落盘。
+    """
+    import shutil
+    from pathlib import Path
+
+    ea = getattr(result, "enhanced_assets", None) or {}
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+    images_dst = Path(output).resolve().parent / "images"
+
+    # (源路径, 目标文件名) 二元组：来源 1–3 目标名沿用 basename，来源 4 用
+    # asset.filename（见来源 4 注释）。
+    src_files: list = []
+    seen: set = set()
+
+    def _add_file(p, dest_name: Optional[str] = None) -> None:
+        if not p:
+            return
+        path = Path(str(p))
+        if (
+            path.is_file()
+            and path.suffix.lower() in image_exts
+            and str(path) not in seen
+        ):
+            seen.add(str(path))
+            src_files.append((path, dest_name or path.name))
+
+    def _add_dir(d) -> None:
+        if not d:
+            return
+        path = Path(str(d))
+        if path.is_dir():
+            for p in path.iterdir():
+                if p.is_file() and p.suffix.lower() in image_exts:
+                    _add_file(p)
+
+    # 来源 1：传统 EnhancedPDFProcessor.output_directory
+    _add_dir(ea.get("output_directory"))
+
+    # 来源 2：auto/processor 路径 enhanced_assets["images"]（dict 或 list）
+    images_meta = ea.get("images")
+    if isinstance(images_meta, dict):
+        items = images_meta.get("items") or images_meta.get("files") or []
+    elif isinstance(images_meta, (list, tuple)):
+        items = images_meta
+    else:
+        items = []
+    for it in items:
+        if isinstance(it, dict):
+            _add_file(it.get("local_path"))
+        else:
+            _add_file(getattr(it, "local_path", None))
+
+    # 来源 3：image_extraction stage 临时目录（若已透传到 enhanced_assets）
+    _add_dir(ea.get("_temp_output_dir"))
+
+    # 来源 4：PDFResponse.image_assets（ImageAssetModel 列表，auto pipeline 路径）。
+    # enhanced_assets 在 auto 路径仅含 images_extracted 计数，图片实体路径在本字段。
+    # 目标文件名须取 asset.filename 而非 basename(image_path)：markdown 引用由
+    # image_ref_normalizer 按 filename 生成 ./images/<filename>；且 auto_batch 跨切片
+    # 去重重命名（batch_merge._rename_asset_on_disk）冲突/失败时 filename 会与
+    # basename(image_path) 背离，用 basename 复制将致 ./images/* 死链。
+    image_assets_field = getattr(result, "image_assets", None) or []
+    sample_paths = []
+    if isinstance(image_assets_field, (list, tuple)):
+        for it in image_assets_field:
+            p = getattr(it, "image_path", None) or getattr(it, "local_path", None)
+            fname = getattr(it, "filename", None)
+            sample_paths.append(p)
+            _add_file(p, fname)
+
+    if not src_files:
+        console.print(
+            "[yellow]图片资产落盘：未发现任何图片源"
+            f"（enhanced_assets keys={list(ea.keys())},"
+            f" image_assets={len(image_assets_field)},"
+            f" sample_paths={sample_paths[:3]}）"
+            "——候选 ./images/* 引用可能死链[/yellow]"
+        )
+        return
+
+    images_dst.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for src, dest_name in src_files:
+        try:
+            shutil.copy2(src, images_dst / dest_name)
+            copied += 1
+        except OSError:
+            # 单图拷贝失败不应中断整体输出落盘（如只读源/目标磁盘满/自拷贝
+            # SameFileError，其为 OSError 子类）。
+            pass
+    console.print(f"[dim]图片资产落盘：{copied}/{len(src_files)} -> {images_dst}[/dim]")
+
+
 def run(
     pdf_source: str = typer.Argument(..., help="PDF source (URL or local file path)"),
     method: str = typer.Option(
@@ -119,28 +228,18 @@ async def _run(
     formatted = format_result(result, format=format)
     if output:
         from pathlib import Path
-        import shutil
 
-        out_path = Path(output)
-        out_path.write_text(formatted, encoding="utf-8")
-
-        # 持久化提取的图片到输出目录的 images/，使 markdown 中的
-        # ``./images/<filename>`` 引用可解析。CLI 默认仅写文本，pipeline
-        # 产出的图片落盘在内部临时目录、随进程清理，否则引用将永久断裂。
-        image_assets = getattr(result, "image_assets", None) or []
-        saved_images = 0
-        if image_assets and format == "markdown":
-            images_dir = out_path.parent / "images"
-            images_dir.mkdir(parents=True, exist_ok=True)
-            for asset in image_assets:
-                src = getattr(asset, "image_path", None)
-                if src and Path(src).exists():
-                    try:
-                        shutil.copy2(src, images_dir / asset.filename)
-                        saved_images += 1
-                    except OSError:
-                        pass
-        suffix = f" (+{saved_images} images)" if image_assets else ""
-        console.print(f"[green]Output saved to {output}{suffix}[/green]")
+        # markdown 文件输出写纯文档内容（result.content），剥离 CLI 展示用的元数据
+        # 头尾（``## <source>`` / ``**Status**`` / 末尾 ``### Statistics``）——这些是
+        # format_result 的展示 chrome、非文档内容，混入 .md 会污染下游消费（保真度
+        # 比对、知识库灌库等）。stdout 与 json/plain 格式仍走 format_result 不变。
+        if format == "markdown":
+            Path(output).write_text(result.content or "", encoding="utf-8")
+        else:
+            Path(output).write_text(formatted, encoding="utf-8")
+        # 补齐图片资产落盘：传统路径图片写到 EnhancedPDFProcessor.output_directory
+        # （可能为临时目录），需拷贝到 -o 同级 images/ 使 ./images/<filename> 引用可达。
+        _copy_image_assets(result, output)
+        console.print(f"[green]Output saved to {output}[/green]")
     else:
         console.print(formatted)

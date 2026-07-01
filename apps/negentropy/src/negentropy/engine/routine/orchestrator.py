@@ -32,7 +32,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -355,12 +355,22 @@ class RoutineOrchestrator:
     # 主入口
     # ------------------------------------------------------------------
     async def inspect_once(self) -> dict[str, int]:
-        """单次巡检：reap(孤儿迭代 + worktree) → evaluate → dispatch。返回各阶段计数（供 handler 汇报）。"""
+        """单次巡检：reap(孤儿迭代 + worktree) → sync(PR 合并状态) → evaluate → dispatch。
+
+        返回各阶段计数（供 handler 汇报 + task_executions 观测）。
+        """
         reaped = await self._reap_orphans()
         cleaned = await self._reap_workspaces()
+        pr_synced = await self._sync_pr_merge_status()
         evaluated = await self._evaluate_and_decide()
         launched = await self._dispatch_due()
-        return {"reaped": reaped, "cleaned": cleaned, "evaluated": evaluated, "launched": launched}
+        return {
+            "reaped": reaped,
+            "cleaned": cleaned,
+            "pr_synced": pr_synced,
+            "evaluated": evaluated,
+            "launched": launched,
+        }
 
     # ------------------------------------------------------------------
     # (a) REAP
@@ -475,6 +485,107 @@ class RoutineOrchestrator:
         if cleaned:
             logger.info("routine_reaped_workspaces", count=cleaned, policy=policy)
         return cleaned
+
+    async def _sync_pr_merge_status(self) -> int:
+        """巡检终态 routine 的 PR 状态（open/closed/merged）并回写 ``pr_state``（best-effort，绝不阻塞/崩溃心跳）。
+
+        复用既有 ``gh`` CLI（仓库 GitHub 集成的唯一事实源）做只读 ``gh pr view --json state,mergedAt``：
+        succeeded + pr_url 的 routine 在 FINALIZE 后处于「等待人工 Merge」态，人在 GitHub 合并/关闭后，
+        本 pass 回写 ``pr_state`` 并经 SSE 推送 merged，使列表 / Full View / PR 抽屉三处显示「Merged」/「Closed」。
+
+        可降级（对齐 AGENTS.md「不引入新问题」）：``gh`` 缺失/未授权/超时/坏 URL → ``pr_status`` 返回
+        unknown（state=None），本 pass 静默跳过（不写、不推进 ``checked_at``，保持 due 下 tick 重试）；
+        心跳永不因本 pass 崩溃（双层兜底：pr_status 不抛 + 本 pass 单层 ``except Exception``）。
+
+        due 集 = succeeded ∧ pr_url 非空 ∧ pr_state 未达终态（NULL 或 open）∧ 距上次检测 > 节流间隔。
+        Open（可能后续合并）继续复检；Merged/Closed 终态排除（顺带修掉 Closed 每 5min 复检的浪费）。
+
+        **不污染 updated_at**：写回用 Core ``update()``（绕过 ORM ``onupdate=func.now()``），仅当
+        ``pr_state`` 实际翻转时才把 ``updated_at`` 纳入 SET —— 纯节流水位线推进不再刷新 updated_at，
+        避免这些 routine 在列表（按 updated_at 排序）里反复乱跳。
+
+        返回本轮新检出「已合并」的 routine 数（推 SSE 的次数）。详见 ``pr_status.fetch_pr_merge_status``。
+        """
+        if not settings.routine.pr_merge_check_enabled:
+            return 0
+        from . import pr_status  # 延迟导入：避免 import 期 which('gh') 探测进入与 PR 无关的测试路径
+
+        cutoff = _utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
+        batch = settings.routine.pr_merge_check_batch
+        timeout = float(settings.routine.pr_merge_check_timeout_seconds)
+
+        # ① 短会话：拉取 due routine 的 (id, pr_url, pr_state)（expire_on_commit=False → detached 后可读）。
+        async with db_session.AsyncSessionLocal() as db:
+            rows = (
+                await db.execute(
+                    select(Routine.id, Routine.pr_url, Routine.pr_state)
+                    .where(
+                        Routine.status == "succeeded",
+                        Routine.pr_url.is_not(None),
+                        # due = 未达终态（NULL 未知 或 open 仍可后续合并）；merged/closed 终态排除。
+                        or_(Routine.pr_state.is_(None), Routine.pr_state == "open"),
+                        or_(
+                            Routine.pr_merged_checked_at.is_(None),
+                            Routine.pr_merged_checked_at < cutoff,
+                        ),
+                    )
+                    .order_by(Routine.pr_merged_checked_at.asc().nullsfirst())
+                    .limit(batch)
+                )
+            ).all()
+        if not rows:
+            return 0
+
+        # ② 会话外：best-effort 检测每个 PR（gh 子进程带超时；pr_status 契约为绝不抛）。
+        checks: list[tuple[UUID, str | None, pr_status.PrMergeStatus]] = []
+        for rid, pr_url, before_state in rows:
+            url = pr_url or ""
+            # 坏 URL 预筛：归一化为终态 closed（落库停检，杜绝永滞 due 集）；before_state 供翻转判定。
+            if not pr_status.is_valid_pr_url(url):
+                checks.append((rid, before_state, pr_status.PrMergeStatus(merged=False, state="CLOSED")))
+                continue
+            try:
+                st = await pr_status.fetch_pr_merge_status(url, timeout=timeout)
+            except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；双保险兜底，护心跳
+                logger.warning("routine_pr_merge_check_failed", routine_id=str(rid), error=str(exc))
+                st = pr_status.PrMergeStatus(merged=None, state=None)
+            checks.append((rid, before_state, st))
+
+        # ③ 短会话：Core update 回写 + 提交；仅「新检出 merged」者推 SSE。
+        # **不污染 updated_at**：Routine.updated_at 带 ORM ``onupdate=func.now()``，Core update 仍会触发它
+        # （实证：见探针），故对「未翻转」分支显式 ``updated_at = Routine.updated_at`` 自引用保形——
+        # 仅状态实际翻转时才置为 now（列表只在 PR 真正合并/关闭时才重排，不随节流推进乱跳）。
+        # WHERE 含 status/pr_url 守卫：restart/cancel/pr_url 清理等使其脱离 due → UPDATE 匹配 0 行（no-op）。
+        merged_ids: list[UUID] = []
+        now = _utcnow()
+        async with db_session.AsyncSessionLocal() as db:
+            for rid, before_state, st in checks:
+                new_state, changed = pr_status.compute_pr_write(before_state, st)
+                if new_state is None:
+                    continue  # gh 未应答 → 不写，保持 due 下 tick 重试
+                vals: dict[str, Any] = {
+                    "pr_state": new_state,
+                    "pr_merged": new_state == "merged",
+                    "pr_merged_checked_at": now,
+                    # 显式 updated_at：翻转→now；未翻转→自引用保形（绕过 onupdate，不刷 updated_at）。
+                    "updated_at": now if changed else Routine.updated_at,
+                }
+                await db.execute(
+                    update(Routine)
+                    .where(Routine.id == rid, Routine.status == "succeeded", Routine.pr_url.is_not(None))
+                    .values(**vals)
+                )
+                if new_state == "merged" and changed:
+                    merged_ids.append(rid)
+            await db.commit()
+            for rid in merged_ids:
+                r = await db.get(Routine, rid)
+                if r is not None:
+                    with suppress(Exception):
+                        await self._publish_routine(r)
+        if merged_ids:
+            logger.info("routine_pr_merge_detected", count=len(merged_ids))
+        return len(merged_ids)
 
     # ------------------------------------------------------------------
     # (b) EVALUATE + DECIDE
@@ -1519,9 +1630,10 @@ class RoutineOrchestrator:
         # CC settings.json 基底：源码只读 deny（read_dirs 非空时）。Plan Review 钩子按 unified/legacy 分别注入。
         settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
         plan_review_active = _is_plan_review_active(routine)
-        # Plan 审批通道（默认 clean stdin）：plan_review_via_hook=False → reader 内 _plan_review_answer 经
-        # stdin 写干净 tool_result（approve/refine），无 deny→is_error；=True 才回灌 PreToolUse deny 钩子
-        # （历史默认 True，headless 下 deny→is_error 致 UI 报错/交互断联，故现默认关）。巡检即用默认 False 走通。
+        # Plan 审批通道：``via_hook`` 仅影响 **legacy（非 unified）** 路径——=True 挂 PreToolUse deny 钩子、
+        # =False 回退 reader clean stdin。**unified 闭环的 plan 段已强制走钩子（见文末，不受此值控制）**，
+        # 因 headless 下 AskUserQuestion 的 stdin 回灌从始无效（ISSUE-123）。注意：reader clean stdin 仅对
+        # ExitPlanMode 可用、对 AskUserQuestion 无效，故勿据「stdin 应答」假设 plan 段可不挂钩子。
         via_hook = bool((routine.config or {}).get("plan_review_via_hook", False))
         # 统一闭环：worktree + 全局开关开 + per-routine 未关闭。主 config = implement 段；plan 段独立挂载（见文末）。
         unified = bool(
@@ -1585,14 +1697,19 @@ class RoutineOrchestrator:
         # 统一闭环：构建迭代内独立 plan 段（permission_mode=plan + 真实评审钩子），**仅 fresh（无续接会话）**触发；
         # 续接迭代沿用单段 implement（方案已批准、会话续接，无需重评审）。上下文耗尽清空会话后下轮会重新 plan。
         if unified and plan_review_active and not routine.claude_session_id:
-            # per-routine 评审通道（沿用上文 via_hook，默认 False=clean stdin）：=True 才挂 PreToolUse deny 钩子
-            # （deny→is_error）；=False → reader 内 _plan_review_answer 经 stdin 写干净 tool_result（approve/refine），
-            # CC↔Engine 正常交流、恰当时 Approve。后者经实测 auto_answer 路径（DB 中 19 例 ExitPlanMode 应答）证明可用。
+            # plan 段评审通道**强制走 PreToolUse 钩子**（不再受 per-routine via_hook 控制）——根治断链
+            # （实证 Routine 77c8a8b6：via_hook=False 致 plan 段不挂钩子、回退 reader clean stdin，而
+            # headless `claude -p` 下 AskUserQuestion 的 stdin tool_result **从始无效**——CLI 即时报
+            # `is_error "Answer questions?"`、不读 stdin，refine 永送不到 CC，CC 困惑重试空耗 turns）。
+            # 纠正历史错误论断：所谓「clean stdin 经 DB 19 例 ExitPlanMode 应答证明可用」混淆了
+            # ExitPlanMode（stdin 可用）与 AskUserQuestion（stdin 无效）——而 PLAN prompt 约束 CC 用
+            # AskUserQuestion 提交方案（见 plan_review_hook._extract_plan_text），恰走失效那条。
+            # plan 段评审是引擎核心机制、headless 下唯有 PreToolUse 钩子可工作，不应被 per-routine
+            # via_hook=False 关闭——故此处无条件挂钩子（exit_plan_full_review=True：ExitPlanMode 亦真审）。
             plan_settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
             plan_ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="unified")
             plan_pre = plan_settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
-            if via_hook:
-                plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
+            plan_pre.extend(_plan_review_hook_pre(plan_ctx_path, review_timeout, exit_plan_full_review=True))
             plan_config = copy.copy(config)
             plan_config.permission_mode = "plan"  # 原生只读写锁：plan 段禁止落盘
             plan_config.settings = json.dumps(plan_settings_obj, ensure_ascii=False)
@@ -1601,7 +1718,9 @@ class RoutineOrchestrator:
             plan_config.plan_stage_prompt = None
             if config.auto_answer_context is not None:
                 _ac = dict(config.auto_answer_context)
-                _ac["plan_review_via_hook"] = via_hook  # False → reader 走 clean stdin _plan_review_answer
+                # 强制 True：plan 段评审已统一委托钩子，令交互式 reader **跳过**失效的内联
+                # _plan_review_answer（AskUserQuestion stdin 回灌），避免 reader 与钩子双写/重复评审。
+                _ac["plan_review_via_hook"] = True
                 _ac["phase"] = phase_mod.PHASE_PLAN
                 plan_config.auto_answer_context = _ac
             config.plan_stage_config = plan_config
@@ -1788,6 +1907,8 @@ class RoutineOrchestrator:
                 "total_cost_usd": routine.total_cost_usd,
                 "current_phase": routine.current_phase,
                 "pr_url": routine.pr_url,
+                "pr_merged": routine.pr_merged,
+                "pr_state": routine.pr_state,
             }
         )
 

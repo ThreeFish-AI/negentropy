@@ -11,6 +11,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 
 export interface PaginationProps {
@@ -19,12 +20,14 @@ export interface PaginationProps {
   /** 总页数（>= 1）。 */
   totalPages: number;
   onPageChange: (page: number) => void;
-  /** 可选总条数，用于左侧 "N items" 计数文案。 */
+  /** 可选总条数，用于计数文案（与控件组居中成组）。 */
   total?: number;
   /** 计数单位名（默认 "item"，自动追加复数 s）。 */
   itemLabel?: string;
   /** loading 时禁用全部按钮。 */
   disabled?: boolean;
+  /** 无限滚动「向后追加」在途时，于控件旁渲染小 spinner（不阻断翻页）。 */
+  loadingMore?: boolean;
   className?: string;
 }
 
@@ -57,13 +60,14 @@ export function Pagination({
   total,
   itemLabel = "item",
   disabled = false,
+  loadingMore = false,
   className,
 }: PaginationProps) {
-  // 单页（或无数据）时不渲染翻页器；若提供了 total 则仅显示一行计数。
+  // 单页（或无数据）时不渲染翻页器；若提供了 total 则仅显示一行居中计数。
   if (totalPages <= 1) {
     if (total == null) return null;
     return (
-      <div className={cn("flex justify-end text-micro tabular-nums text-text-secondary", className)}>
+      <div className={cn("flex justify-center text-micro tabular-nums text-text-secondary", className)}>
         {countLabel(total, itemLabel)}
       </div>
     );
@@ -78,11 +82,13 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className={cn("flex items-center justify-between gap-3", className)}
+      className={cn("flex items-center justify-center gap-4", className)}
     >
-      <span className="text-micro tabular-nums text-text-secondary">
-        {total != null ? countLabel(total, itemLabel) : null}
-      </span>
+      {total != null && (
+        <span className="text-micro tabular-nums text-text-secondary">
+          {countLabel(total, itemLabel)}
+        </span>
+      )}
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -128,6 +134,7 @@ export function Pagination({
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
+        {loadingMore && <Spinner size="sm" className="ml-1 text-text-muted" label="加载更多" />}
       </div>
     </nav>
   );

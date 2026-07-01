@@ -45,14 +45,20 @@ export async function fetchKpis(): Promise<RoutineKpis> {
   return jsonFetch("/kpis");
 }
 
-export async function fetchRoutines(filters: Partial<RoutineFilters> = {}): Promise<RoutineListResponse> {
+export async function fetchRoutines(
+  filters: Partial<RoutineFilters> = {},
+  opts: { limit?: number; cursor?: string | null; offset?: number; signal?: AbortSignal } = {},
+): Promise<RoutineListResponse> {
   const sp = new URLSearchParams();
   if (filters.status) sp.set("status", filters.status);
   if (filters.q) sp.set("q", filters.q);
   if (filters.is_template != null) sp.set("is_template", String(filters.is_template));
   if (filters.source_task_key) sp.set("source_task_key", filters.source_task_key);
+  if (opts.limit) sp.set("limit", String(opts.limit));
+  if (opts.cursor) sp.set("cursor", opts.cursor);
+  if (opts.offset != null) sp.set("offset", String(opts.offset));
   const q = sp.toString();
-  return jsonFetch(`${q ? `?${q}` : ""}`);
+  return jsonFetch(`${q ? `?${q}` : ""}`, opts.signal ? { signal: opts.signal } : undefined);
 }
 
 export async function fetchRoutineDetail(routineId: string, recent = 20): Promise<RoutineDTO> {
@@ -61,13 +67,16 @@ export async function fetchRoutineDetail(routineId: string, recent = 20): Promis
 
 export async function fetchIterations(
   routineId: string,
-  opts: { limit?: number; before_seq?: number } = {},
+  opts: { limit?: number; before_seq?: number; signal?: AbortSignal } = {},
 ): Promise<IterationListResponse> {
   const sp = new URLSearchParams();
   if (opts.limit) sp.set("limit", String(opts.limit));
   if (opts.before_seq != null) sp.set("before_seq", String(opts.before_seq));
   const q = sp.toString();
-  return jsonFetch(`/${encodeURIComponent(routineId)}/iterations${q ? `?${q}` : ""}`);
+  return jsonFetch(
+    `/${encodeURIComponent(routineId)}/iterations${q ? `?${q}` : ""}`,
+    opts.signal ? { signal: opts.signal } : undefined,
+  );
 }
 
 /** 拉取单次迭代的「全过程」动作级审计事件流（按 seq 升序，懒加载于审计抽屉打开时）。 */
@@ -156,6 +165,11 @@ export async function rejectIteration(
  */
 export async function cleanupWorktree(routineId: string): Promise<RoutineDTO> {
   return jsonFetch(`/${encodeURIComponent(routineId)}/cleanup-worktree`, { method: "POST" });
+}
+
+/** 手动同步 PR 合并状态（即时回写 pr_merged；后端经 gh pr view 检测并 SSE 推送）。 */
+export async function syncRoutinePr(routineId: string): Promise<RoutineDTO> {
+  return jsonFetch(`/${encodeURIComponent(routineId)}/sync-pr`, { method: "POST" });
 }
 
 // ---------------------------------------------------------------------------

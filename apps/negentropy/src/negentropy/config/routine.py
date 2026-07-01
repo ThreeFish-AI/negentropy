@@ -147,6 +147,21 @@ class RoutineSettings(BaseSettings):
     )
     git_timeout_seconds: int = Field(default=120, ge=5, description="单条 git 子命令执行超时（秒）")
 
+    # --- PR 合并状态巡检（终态 routine 的 PR 是否已被人工 Merge 回写 pr_merged）---
+    # 复用运行时已授权的 gh CLI 做 `gh pr view --json state,merged`；gh 不在 PATH 时整段 no-op。
+    pr_merge_check_enabled: bool = Field(
+        default=True, description="启用终态 routine 的 PR merge 状态巡检（需后端 PATH 可用 gh；缺失则静默 no-op）"
+    )
+    pr_merge_check_interval_seconds: int = Field(
+        default=300, ge=60, le=86400, description="同一 routine 的 PR merge 状态最小重查间隔（节流，适配 25s 心跳）"
+    )
+    pr_merge_check_timeout_seconds: int = Field(
+        default=5, ge=1, le=30, description="单次 gh pr view 子进程超时（秒）；超时整组 SIGKILL"
+    )
+    pr_merge_check_batch: int = Field(
+        default=3, ge=1, le=20, description="单 tick 内 PR merge 巡检的 routine 批量上限（×超时 ≈ pass 最坏耗时）"
+    )
+
     # --- Claude Code 交互式工具自动应答（AskUserQuestion 拦截）---
     auto_answer_questions: bool = Field(
         default=True,

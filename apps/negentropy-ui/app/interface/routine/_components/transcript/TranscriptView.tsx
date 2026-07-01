@@ -15,14 +15,15 @@ import { HumanReplyBlock } from "./HumanReplyBlock";
 import { LucideGlyph } from "./Icon";
 import { normalizeTranscript } from "./normalize-transcript";
 import { PayloadDetail } from "./PayloadDetail";
+import { TaskDispatchBubble } from "./TaskDispatchBubble";
 import { ToolSummaryRow } from "./ToolSummaryRow";
 import { WorkingIndicator } from "./WorkingIndicator";
 import type { TranscriptItem } from "./types";
 
-/** 发言人侧：人机交互三分——human_reply 居右（人/6 Agent）、engine 居右（编排驱动方）、其余居左（机/Claude Code）。 */
+/** 发言人侧：人机交互三分——task_dispatch/human_reply 居右（人/6 Agent）、engine 居右（编排驱动方）、其余居左（机/Claude Code）。 */
 type Speaker = "cc" | "human" | "engine";
 function speaker(item: TranscriptItem): Speaker {
-  if (item.kind === "human_reply") return "human";
+  if (item.kind === "human_reply" || item.kind === "task_dispatch") return "human";
   if (item.kind === "engine") return "engine";
   return "cc";
 }
@@ -38,6 +39,8 @@ function gapClass(item: TranscriptItem, prev: TranscriptItem | null): string {
 /** 按 kind 分发渲染单项（key 与对齐/间距由外层 wrapper 统一处理）。 */
 function renderItem(item: TranscriptItem) {
   switch (item.kind) {
+    case "task_dispatch":
+      return <TaskDispatchBubble prompt={item.prompt} />;
     case "assistant":
       return <AssistantText item={item} />;
     case "tool":
@@ -57,13 +60,35 @@ function renderItem(item: TranscriptItem) {
   }
 }
 
+/** 稳定 key：task_dispatch 无 seq/id，用固定标识；其余用 kind+seq+id。 */
+function itemKey(item: TranscriptItem): string {
+  if (item.kind === "task_dispatch") return "task-dispatch";
+  return `${item.kind}-${item.seq}-${item.id}`;
+}
+
 /**
- * paseo 风格人机交互转录流：以「左右对齐」区分人机——Claude Code（机）裸文居左、紧凑工具行 /
- * 待决卡片，一核五翼 6 Agent（人）应答气泡居右、Engine 编排产出气泡居右；按 seq 时序交织，
- * 间距承载 turn 节奏。
+ * paseo 风格人机交互转录流：以「左右对齐」区分人机——开场 ``openingPrompt`` 合成「人（一核）→ 机」
+ * 任务下发回合居首，Claude Code（机）裸文居左、紧凑工具行 / 待决卡片，一核五翼 6 Agent（人）应答
+ * 气泡居右、Engine 编排产出气泡居右；按 seq 时序交织，间距承载 turn 节奏。
  */
-export function TranscriptView({ events, live }: { events: RoutineIterationEventDTO[]; live?: boolean }) {
-  const items = useMemo(() => normalizeTranscript(events, { live: !!live }), [events, live]);
+export function TranscriptView({
+  events,
+  live,
+  openingPrompt,
+}: {
+  events: RoutineIterationEventDTO[];
+  live?: boolean;
+  /** 迭代任务 prompt（人下发给 CC 的任务）——非空时合成为开场「人→机」task_dispatch 回合。 */
+  openingPrompt?: string | null;
+}) {
+  const normalized = useMemo(() => normalizeTranscript(events, { live: !!live }), [events, live]);
+  const items = useMemo<TranscriptItem[]>(
+    () =>
+      openingPrompt && openingPrompt.trim()
+        ? [{ kind: "task_dispatch", prompt: openingPrompt }, ...normalized]
+        : normalized,
+    [normalized, openingPrompt],
+  );
 
   // 在途态尾随运行指示器：末项若为待决的 CC 提交（等人裁决）显「Planning…」，否则「Working…」。
   const last = items[items.length - 1];
@@ -76,7 +101,7 @@ export function TranscriptView({ events, live }: { events: RoutineIterationEvent
         const side = speaker(item);
         return (
           <div
-            key={`${item.kind}-${item.seq}-${item.id}`}
+            key={itemKey(item)}
             className={cn(gapClass(item, prev), (side === "engine" || side === "human") && "flex justify-end")}
           >
             {renderItem(item)}

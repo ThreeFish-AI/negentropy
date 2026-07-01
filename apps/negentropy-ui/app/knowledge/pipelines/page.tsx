@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { Pagination } from "@/components/ui/Pagination";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
@@ -454,29 +455,14 @@ export default function KnowledgePipelinesPage() {
                   <p className="mt-3 text-xs text-text-muted">暂无作业</p>
                 )}
                 {total > 0 && (
-                  <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                    <span className="text-xs text-text-muted">
-                      {`${total} run${total !== 1 ? "s" : ""}`}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                      >
-                        Previous
-                      </button>
-                      <span className="text-xs text-text-muted">
-                        Page {page} / {Math.ceil(total / PAGE_SIZE) || 1}
-                      </span>
-                      <button
-                        onClick={() => setPage((p) => Math.min(Math.ceil(total / PAGE_SIZE), p + 1))}
-                        disabled={page >= Math.ceil(total / PAGE_SIZE)}
-                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
-                      >
-                        Next
-                      </button>
-                    </div>
+                  <div className="mt-4 border-t border-border pt-3">
+                    <Pagination
+                      page={page}
+                      totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                      onPageChange={setPage}
+                      total={total}
+                      itemLabel="run"
+                    />
                   </div>
                 )}
               </div>

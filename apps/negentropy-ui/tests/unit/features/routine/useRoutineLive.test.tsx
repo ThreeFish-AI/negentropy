@@ -49,6 +49,8 @@ function makeRoutine(id: string, status: RoutineDTO["status"] = "running"): Rout
     termination_reason: null,
     current_phase: null,
     pr_url: null,
+    pr_merged: null,
+    pr_state: null,
     work_branch: null,
     worktree_path: null,
     max_iterations: 20,
@@ -134,6 +136,7 @@ describe("useRoutineLive", () => {
       items: [makeRoutine("r1")],
       next_cursor: null,
       has_more: false,
+      total: 1,
     });
     vi.spyOn(api, "fetchKpis").mockResolvedValue(KPIS);
   });
