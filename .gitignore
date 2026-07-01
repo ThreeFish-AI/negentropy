@@ -274,6 +274,12 @@ apps/cognizes-ui/.yarn/*
 apps/negentropy-ui/.auth/
 apps/negentropy-ui/.userdata/
 
+# Playwright run outputs（每次 test 运行重新生成；不应纳入版本追踪）
+apps/negentropy-ui/test-results/
+apps/negentropy-ui/playwright-report/
+apps/negentropy-ui/blob-report/
+apps/negentropy-ui/playwright/.cache/
+
 # KG verification artifacts
 .kg-verify/
 
