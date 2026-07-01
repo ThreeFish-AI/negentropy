@@ -690,6 +690,55 @@ class BuiltinAssembler(PDFToolBase):
                 except ImportError:
                     pass
 
+            # 2.1.2 同页同编号算法块跨类型去重：多引擎（PyMuPDF 文本块 /
+            #   docling/marker code 块 / code_detection algorithm 块）可能各自
+            #   产出同一 "Algorithm N" 的内容，导致同一算法在候选 markdown 中
+            #   重复出现（如纯文本标题 + 乱码内容文本 + fortran 块 + algorithm
+            #   块）。策略：(a) 同 (页码, 编号) 的算法 code 块仅保留内容最长者；
+            #   (b) 同页已存在算法 code 块时，移除同页冗余文本块——含同编号
+            #   Algorithm 标题的（标题重复），或含算法行号模式（≥2 个 "N:"，
+            #   PyMuPDF 字符流常把算法多行挤成乱码文本）。
+            _algo_num_re = re.compile(r"Algorithm\s+(\d+)", re.IGNORECASE)
+            _algo_code_by_key: Dict[Tuple[int, str], List[int]] = {}
+            for _i, _e in enumerate(elements):
+                if _i in _algo_remove or _e.element_type != "code":
+                    continue
+                _m = _algo_num_re.search(_e.content or "")
+                if not _m:
+                    continue
+                _algo_code_by_key.setdefault((_e.page_number, _m.group(1)), []).append(
+                    _i
+                )
+            # (a) 同页同编号算法 code 块：保留内容最长者
+            for _idxs in _algo_code_by_key.values():
+                if len(_idxs) <= 1:
+                    continue
+                _ranked = sorted(
+                    _idxs,
+                    key=lambda i: len((elements[i].content or "").strip()),
+                    reverse=True,
+                )
+                for _i in _ranked[1:]:
+                    _algo_remove.add(_i)
+            # (b) 同页存在算法 code 块时，移除同页冗余文本块
+            _algo_page_nums: Dict[int, set] = {}
+            for _pg, _num in _algo_code_by_key:
+                _algo_page_nums.setdefault(_pg, set()).add(_num)
+            for _i, _e in enumerate(elements):
+                if _i in _algo_remove or _e.element_type != "text" or not _e.block:
+                    continue
+                _nums = _algo_page_nums.get(_e.page_number)
+                if not _nums:
+                    continue
+                _content = _e.block.text or ""
+                _m2 = _algo_num_re.search(_content)
+                if (
+                    (_m2 and _m2.group(1) in _nums)
+                    or re.search(r"(?:^|\n)\s*\d+:\s", _content)
+                    or len(re.findall(r"\d+:\s", _content)) >= 2
+                ):
+                    _algo_remove.add(_i)
+
             if _algo_remove:
                 elements = [e for i, e in enumerate(elements) if i not in _algo_remove]
                 # 新增的算法代码块需要在排序后的位置插入，重新排序
