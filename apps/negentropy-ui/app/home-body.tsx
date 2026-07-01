@@ -7,12 +7,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PanelLeft, PanelRight } from "lucide-react";
+import {
+  FileText,
+  GitCompare,
+  Lightbulb,
+  PanelLeft,
+  PanelRight,
+  Telescope,
+} from "lucide-react";
 
 import { randomUUID } from "@ag-ui/client";
 import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
+import type { ChatSuggestion } from "../components/ui/ChatWelcome";
 import { Composer } from "../components/ui/Composer";
 import type { ComposerAttachment } from "../components/ui/AttachmentChip";
 import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
@@ -52,6 +60,41 @@ import type {
 
 export const AGENT_ID = "negentropy";
 export const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+
+/**
+ * 中栏空会话欢迎区的通用启动建议词（Doubao 式引导）。
+ * 点击卡片即把 ``prompt`` 回填 Composer 并聚焦；文案聚焦研究/写作/分析等通用场景。
+ */
+const STUDIO_SUGGESTIONS: ChatSuggestion[] = [
+  {
+    id: "research",
+    title: "调研一个主题",
+    description: "给出结构化综述与关键结论",
+    prompt: "帮我调研以下主题，给出结构化综述与关键结论：\n",
+    icon: Telescope,
+  },
+  {
+    id: "summarize",
+    title: "总结一份材料",
+    description: "提炼要点与行动项",
+    prompt: "请总结以下材料的核心要点与后续行动项：\n",
+    icon: FileText,
+  },
+  {
+    id: "compare",
+    title: "对比两个方案",
+    description: "列出优劣与取舍建议",
+    prompt: "请对比以下两个方案的优劣与取舍建议：\n方案 A：\n方案 B：\n",
+    icon: GitCompare,
+  },
+  {
+    id: "brainstorm",
+    title: "头脑风暴创意",
+    description: "围绕目标发散可行想法",
+    prompt: "围绕以下目标，帮我头脑风暴一组可行的想法：\n",
+    icon: Lightbulb,
+  },
+];
 
 /**
  * Per-session LLM 模型选择的本地持久化键（按 sessionId 命名空间隔离）。
@@ -262,6 +305,8 @@ export function HomeBody({
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
+  // 欢迎区建议词点击后触发 Composer 聚焦（单调递增信号）。
+  const [composerFocusToken, setComposerFocusToken] = useState(0);
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   // Home Composer 的 @ Mention（agent / corpus）。
   // 与 inputValue 平行存在，仅承担 ① UI 高亮 ② forwardedProps 派生。
@@ -1185,11 +1230,11 @@ export function HomeBody({
         <div
           className={`shrink-0 h-full border-r border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
             showLeftPanel
-              ? "w-56 translate-x-0 opacity-100"
+              ? "w-64 translate-x-0 opacity-100"
               : "w-0 -translate-x-10 opacity-0"
           }`}
         >
-          <div className="w-56 h-full overflow-hidden flex flex-col">
+          <div className="w-64 h-full overflow-hidden flex flex-col">
             <SessionList
               sessions={sessions}
               activeId={sessionId}
@@ -1289,6 +1334,11 @@ export function HomeBody({
               }
               highlightedNodeIds={search.matchingNodeIds}
               scrollToNodeId={search.currentMatchNodeId}
+              suggestions={STUDIO_SUGGESTIONS}
+              onSuggestionPick={(prompt) => {
+                setInputValue(prompt);
+                setComposerFocusToken((token) => token + 1);
+              }}
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
@@ -1324,6 +1374,7 @@ export function HomeBody({
                 agentsError={agentsError}
                 corporaLoading={corporaLoading}
                 corporaError={corporaError}
+                autoFocusToken={composerFocusToken}
               />
             </div>
           </div>

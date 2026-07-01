@@ -1,10 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { UserEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { SessionList } from "@/components/ui/SessionList";
 
-/** 生成 N 个 SessionItem 供分页测试使用 */
+/** 生成 N 个 SessionItem 供列表/分组测试使用 */
 function makeSessions(count: number) {
   return Array.from({ length: count }, (_, i) => ({
     id: `s${i + 1}`,
@@ -13,13 +14,18 @@ function makeSessions(count: number) {
   }));
 }
 
+/** 打开某会话行的「⋯」更多菜单 */
+async function openMenu(user: UserEvent, label: string) {
+  await user.click(screen.getByRole("button", { name: `会话操作 ${label}` }));
+}
+
 const defaultProps = {
   onSwitchView: vi.fn(),
   onSelect: vi.fn(),
 };
 
-describe("SessionList", () => {
-  it("活跃视图点击归档不会触发选中（弹出确认对话框 + 确认后调 onArchive）", async () => {
+describe("SessionList 行操作（经「⋯」菜单）", () => {
+  it("活跃视图菜单内点击归档不会触发选中（弹出确认对话框 + 确认后调 onArchive）", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     const onArchive = vi.fn();
@@ -35,7 +41,8 @@ describe("SessionList", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Archive Session One" }));
+    await openMenu(user, "Session One");
+    await user.click(screen.getByRole("menuitem", { name: "Archive Session One" }));
 
     // 自定义 ConfirmDialog 替代 window.confirm（参考 ISSUE-054 修复）
     expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
@@ -45,7 +52,7 @@ describe("SessionList", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("归档视图显示返回入口并支持解档（自定义确认对话框）", async () => {
+  it("归档视图菜单支持解档（自定义确认对话框）", async () => {
     const user = userEvent.setup();
     const onSwitchView = vi.fn();
     const onUnarchive = vi.fn();
@@ -62,7 +69,10 @@ describe("SessionList", () => {
     );
 
     await user.click(screen.getByRole("tab", { name: "Active" }));
-    await user.click(screen.getByRole("button", { name: "Unarchive Archived Session" }));
+    await openMenu(user, "Archived Session");
+    await user.click(
+      screen.getByRole("menuitem", { name: "Unarchive Archived Session" }),
+    );
     await user.click(screen.getByTestId("confirm-dialog-confirm"));
 
     expect(onSwitchView).toHaveBeenCalledWith("active");
@@ -82,13 +92,14 @@ describe("SessionList", () => {
         onArchive={onArchive}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Archive Session One" }));
+    await openMenu(user, "Session One");
+    await user.click(screen.getByRole("menuitem", { name: "Archive Session One" }));
     expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
     await user.click(screen.getByTestId("confirm-dialog-cancel"));
     expect(onArchive).not.toHaveBeenCalled();
   });
 
-  it("active 视图点击 Delete 弹出确认对话框，确认后调用 onDelete 且不触发选中", async () => {
+  it("active 视图菜单内点击 Delete 弹出确认对话框，确认后调用 onDelete 且不触发选中", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     const onDelete = vi.fn();
@@ -104,7 +115,8 @@ describe("SessionList", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Delete Session One" }));
+    await openMenu(user, "Session One");
+    await user.click(screen.getByRole("menuitem", { name: "Delete Session One" }));
     expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
     // 文案应明确"不可恢复"以降低误触
     expect(screen.getByTestId("confirm-dialog")).toHaveTextContent(/不可恢复/);
@@ -114,7 +126,7 @@ describe("SessionList", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("archived 视图也提供 Delete 入口，并与 Unarchive 并存", async () => {
+  it("archived 视图菜单同时提供解档与删除", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     const onUnarchive = vi.fn();
@@ -130,9 +142,12 @@ describe("SessionList", () => {
       />,
     );
 
-    // Unarchive 与 Delete 两个按钮都应可见
-    expect(screen.getByRole("button", { name: "Unarchive Archived One" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Delete Archived One" }));
+    await openMenu(user, "Archived One");
+    // 解档与删除两项都应在菜单内
+    expect(
+      screen.getByRole("menuitem", { name: "Unarchive Archived One" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Delete Archived One" }));
     await user.click(screen.getByTestId("confirm-dialog-confirm"));
 
     expect(onDelete).toHaveBeenCalledWith("s2");
@@ -152,147 +167,93 @@ describe("SessionList", () => {
         onDelete={onDelete}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Delete Session One" }));
+    await openMenu(user, "Session One");
+    await user.click(screen.getByRole("menuitem", { name: "Delete Session One" }));
     expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
     await user.click(screen.getByTestId("confirm-dialog-cancel"));
     expect(onDelete).not.toHaveBeenCalled();
   });
+
+  it("菜单内点击重命名进入内联编辑态", async () => {
+    const user = userEvent.setup();
+    const onRename = vi.fn();
+    render(
+      <SessionList
+        sessions={[{ id: "s1", label: "Session One" }]}
+        activeId="s1"
+        view="active"
+        onSwitchView={vi.fn()}
+        onSelect={vi.fn()}
+        onRename={onRename}
+      />,
+    );
+
+    await openMenu(user, "Session One");
+    await user.click(screen.getByRole("menuitem", { name: "Rename Session One" }));
+
+    // 进入编辑：出现标题输入框且预填当前标题
+    const input = screen.getByPlaceholderText("输入会话标题") as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input.value).toBe("Session One");
+  });
 });
 
-describe("SessionList 分页", () => {
-  it("初始仅揭示首页 10 个 session，总数与页码控件就绪", () => {
-    const sessions = makeSessions(15);
+describe("SessionList 时间分组与连续滚动", () => {
+  it("按 lastUpdateTime 渲染时间分组标题", () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const day = 86400;
     render(
       <SessionList
         {...defaultProps}
-        sessions={sessions}
+        sessions={[
+          { id: "a", label: "Today A", lastUpdateTime: nowSec },
+          { id: "b", label: "Old B", lastUpdateTime: nowSec - 40 * day },
+        ]}
+        activeId="a"
+        view="active"
+      />,
+    );
+
+    // 今天 / 更早 两个分组标题应出现
+    expect(screen.getByText("今天")).toBeInTheDocument();
+    expect(screen.getByText("更早")).toBeInTheDocument();
+  });
+
+  it("移除数字页码控件：即便超过一页也不渲染 Page/Next/Previous 按钮", () => {
+    render(
+      <SessionList
+        {...defaultProps}
+        sessions={makeSessions(15)}
         activeId="s1"
         view="active"
       />,
     );
 
-    // 渐进揭示：初始仅前 10 个（首页缓冲）
-    const sessionItems = document.querySelectorAll("[data-session-id]");
-    expect(sessionItems).toHaveLength(10);
+    // Doubao 式连续滚动：不再有数字页码控件
+    expect(screen.queryByRole("button", { name: "Page 1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Previous page" })).toBeNull();
+    expect(screen.queryByText("15 sessions")).toBeNull();
 
-    // 共享 Pagination：总数计数 "15 sessions" + 数字页码 1/2
-    expect(screen.getByText("15 sessions")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Page 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Page 2" })).toBeInTheDocument();
+    // 首屏懒加载切片（PAGE_SIZE=10）：初始揭示不超过 10 项
+    const items = document.querySelectorAll("[data-session-id]");
+    expect(items.length).toBeLessThanOrEqual(10);
   });
 
-  it("点击下一页揭示至第 2 页（追加后续 session）", async () => {
+  it("全宽「新建对话」按钮在活跃视图可见并触发 onNewSession", async () => {
     const user = userEvent.setup();
-    const sessions = makeSessions(15);
+    const onNewSession = vi.fn();
     render(
       <SessionList
         {...defaultProps}
-        sessions={sessions}
+        sessions={makeSessions(2)}
         activeId="s1"
         view="active"
+        onNewSession={onNewSession}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Next page" }));
-
-    // 渐进揭示至第 2 页：全部 15 个已加载并渲染
-    const sessionItems = document.querySelectorAll("[data-session-id]");
-    expect(sessionItems).toHaveLength(15);
-    expect(screen.getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
-  });
-
-  it("首页时上一页按钮 disabled，末页时下一页按钮 disabled", async () => {
-    const user = userEvent.setup();
-    const sessions = makeSessions(15);
-    render(
-      <SessionList
-        {...defaultProps}
-        sessions={sessions}
-        activeId="s1"
-        view="active"
-      />,
-    );
-
-    // 第 1 页：上一页 disabled，下一页可用
-    expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Next page" })).not.toBeDisabled();
-
-    await user.click(screen.getByRole("button", { name: "Next page" }));
-
-    // 第 2 页（末页）：下一页 disabled，上一页可用
-    expect(screen.getByRole("button", { name: "Previous page" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
-  });
-
-  it("10 个或更少 session 时不显示翻页按钮", () => {
-    const sessions = makeSessions(10);
-    render(
-      <SessionList
-        {...defaultProps}
-        sessions={sessions}
-        activeId="s1"
-        view="active"
-      />,
-    );
-
-    expect(screen.queryByRole("button", { name: "Previous page" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
-  });
-
-  it("sessions 数量变化后重置到第 1 页", () => {
-    const sessions = makeSessions(15);
-    const { rerender } = render(
-      <SessionList
-        {...defaultProps}
-        sessions={sessions}
-        activeId="s1"
-        view="active"
-      />,
-    );
-
-    // 模拟删除后 sessions 减少到单页
-    const reduced = makeSessions(10);
-    rerender(
-      <SessionList
-        {...defaultProps}
-        sessions={reduced}
-        activeId="s1"
-        view="active"
-      />,
-    );
-
-    // 单页时翻页按钮消失
-    expect(screen.queryByRole("button", { name: "Previous page" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
-  });
-
-  it("view 切换后重置到第 1 页", async () => {
-    const sessions = makeSessions(15);
-    const { rerender } = render(
-      <SessionList
-        {...defaultProps}
-        sessions={sessions}
-        activeId="s1"
-        view="active"
-      />,
-    );
-
-    // 导航到第 2 页
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Next page" }));
-    expect(screen.getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
-
-    // 切换到 archived 视图
-    rerender(
-      <SessionList
-        {...defaultProps}
-        sessions={sessions}
-        activeId="s1"
-        view="archived"
-      />,
-    );
-
-    // 应重置到第 1 页
-    expect(screen.getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "新建对话" }));
+    expect(onNewSession).toHaveBeenCalledTimes(1);
   });
 });

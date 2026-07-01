@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Sparkles } from "lucide-react";
 import { AssistantReplyBubble } from "./AssistantReplyBubble";
 import { ChatTypingIndicator } from "./ChatTypingIndicator";
+import { ChatWelcome, type ChatSuggestion } from "./ChatWelcome";
 import { EmptyState } from "./EmptyState";
 import { MessageBubble } from "./MessageBubble";
 import { ToolExecutionGroup } from "./ToolExecutionGroup";
@@ -41,6 +42,14 @@ type ChatStreamProps = {
   highlightedNodeIds?: Set<string>;
   /** 滚动到指定节点（由搜索导航触发，节点 ID 变化时自动 scrollIntoView） */
   scrollToNodeId?: string | null;
+  /**
+   * 空态欢迎区（Doubao 式）——建议提示词与点击回填 Composer 的回调。
+   * 传入 ``onSuggestionPick`` 时空态渲染 ``ChatWelcome``；未传则回退到精简 ``EmptyState``（向后兼容）。
+   */
+  suggestions?: ChatSuggestion[];
+  onSuggestionPick?: (prompt: string) => void;
+  /** 欢迎区个性化问候名（可选）。 */
+  welcomeUserName?: string | null;
 };
 
 export function ChatStream({
@@ -53,6 +62,9 @@ export function ChatStream({
   pending = false,
   highlightedNodeIds,
   scrollToNodeId,
+  suggestions,
+  onSuggestionPick,
+  welcomeUserName,
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
@@ -142,6 +154,12 @@ export function ChatStream({
           // 此时仍优先显示 indicator，避免「发送指令开始对话」误导文案在用户已发送后出现。
           pending ? (
             <ChatTypingIndicator variant="standalone" />
+          ) : onSuggestionPick ? (
+            <ChatWelcome
+              userName={welcomeUserName}
+              suggestions={suggestions ?? []}
+              onPick={onSuggestionPick}
+            />
           ) : (
             <EmptyState
                 icon={Sparkles}

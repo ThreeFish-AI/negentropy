@@ -74,6 +74,35 @@ describe("Composer", () => {
     expect(onThinkingEnabledChange).not.toHaveBeenCalled();
   });
 
+  it("autoFocusToken 变化（>0）时聚焦输入框并将光标移至末尾", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <Composer
+        value="hello"
+        onChange={onChange}
+        onSend={vi.fn()}
+        disabled={false}
+        autoFocusToken={0}
+      />,
+    );
+    const ta = screen.getByPlaceholderText("输入指令...") as HTMLTextAreaElement;
+    // 初值 0 不抢占焦点
+    expect(ta).not.toHaveFocus();
+
+    rerender(
+      <Composer
+        value="hello"
+        onChange={onChange}
+        onSend={vi.fn()}
+        disabled={false}
+        autoFocusToken={1}
+      />,
+    );
+    expect(ta).toHaveFocus();
+    expect(ta.selectionStart).toBe("hello".length);
+    expect(ta.selectionEnd).toBe("hello".length);
+  });
+
   it("聊天输入区与消息流复用同一内容轨道常量", () => {
     expect(CHAT_CONTENT_RAIL_CLASS).toContain("max-w-4xl");
     expect(CHAT_CONTENT_RAIL_CLASS).toContain("px-6");
