@@ -1335,6 +1335,15 @@ class MarkdownFormatter:
             if _is_math_block(para):
                 kept.append(para)
                 continue
+            # 图片段落（HTML ``<img>``）结构性关键，绝不作为近似重复被删除：
+            # 其 alt 文本与独立文本 caption 段高度重合（Jaccard 易 > 0.6），当文本
+            # caption 段排在 <img> 之前时，<img> 段会被误判为"跨引擎重复段"删除，
+            # 致整张图从 Markdown 消失（实测 Fig 15/16 因此丢失）。始终保留 <img> 段；
+            # 仍把其指纹加入 seen，使后续冗余文本 caption 段被正常去重。
+            if "<img" in para:
+                kept.append(para)
+                seen_fingerprints.append(_fingerprint(para))
+                continue
             # 参考文献条目（[N] 起首）唯一编号、语义独立，绝不参与近似去重
             if _is_reference_entry(para):
                 kept.append(para)

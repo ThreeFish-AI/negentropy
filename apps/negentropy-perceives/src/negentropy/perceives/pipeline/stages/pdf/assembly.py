@@ -166,9 +166,17 @@ class BuiltinAssembler(PDFToolBase):
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
-                        # 例外：``Figure N:`` / ``Table N:`` 起手的 caption
-                        # 即便几何上落入 layout figure region 也必须保留为段落
-                        # （它们是图表的语义描述，正文阅读价值高）。
+                        # figure-region 抑制本意是滤除图周矢量标签（坐标轴刻度
+                        # ``10 3 10 2 10 1``、面板标记 ``(a) (b)`` 等短碎片）。但
+                        # layout figure region 常过大，会把紧随图表的真实内容——
+                        # section 标题（``4 Corroborating Claims...``）、导言段落——
+                        # 一并吞没，致结构性内容丢失。改为按内容实质性区分而非
+                        # ``全抑制``：
+                        #   1. ``Figure N:`` / ``Table N:`` caption 恒保留；
+                        #   2. 实质文本块（含 ≥2 个 ≥3 字母英文词，涵盖标题与
+                        #      段落）放行至下方通用处理（含 byline / table-caption /
+                        #      metadata 降级守卫）；
+                        #   3. 仅抑制缺乏实质英文词的低内容碎片（轴刻度 / 面板标签）。
                         if _is_figure_or_table_caption_text(block.text):
                             elements.append(
                                 _ContentElement(
@@ -179,7 +187,9 @@ class BuiltinAssembler(PDFToolBase):
                                     block=block,
                                 )
                             )
-                        continue
+                            continue
+                        if _is_low_content_figure_label(block.text):
+                            continue
                     # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
                     # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
                     # 的 PyMuPDF 字符序列与 MinerU LaTeX 经签名归一化后等价）
@@ -784,7 +794,24 @@ class BuiltinAssembler(PDFToolBase):
                             if re.search(r"\(\s*" + re.escape(eq_num) + r"\s*\)", text):
                                 matched = True
                         # 策略 2：数学符号 + LaTeX 关键词匹配（短公式或无编号场景）
-                        if not matched and formula.formula_type == "block":
+                        #   - block 短公式 / 无编号块公式（数学符号 + 名称双条件）；
+                        #   - inline 独立短块（整段文本即公式，≤ 40 字符）——仅当文本元素
+                        #     本身为公式而非散文段落时整体替换，避免误吞 prose；inline
+                        #     希腊变量（α/β/θ）无 block 数学符号，放宽为"名称匹配即可"。
+                        #   LaTeX 名经希腊字母 / 运算符 unicode 映射桥接文本层字形
+                        #   （``\alpha``↔``α``、``\theta``↔``θ``、``\approx``↔``≈``）。
+                        is_block = formula.formula_type == "block"
+                        # inline 独立短块：整段即公式。≤ 40 字符直接放；40 < len ≤ 60
+                        # 时要求高数学字形密度（≥ 2 个 greek/运算符特征字形），确认整段
+                        # 确为公式而非散文片段。仅独立块、不触 prose 段落，零损坏风险。
+                        _MATH_GLYPHS = set(
+                            "αβγδεζηθικλμνξπρστυφχψωΔΘΛΣΦΨΩΓ×÷≈≤≥≠∈∉⊂⊆⊃⊇∪∩∀∃∑∏∫∂∇"
+                        )
+                        _glyph_density = sum(1 for c in text if c in _MATH_GLYPHS)
+                        is_inline_short = formula.formula_type == "inline" and (
+                            len(text) <= 40 or (len(text) <= 60 and _glyph_density >= 2)
+                        )
+                        if not matched and (is_block or is_inline_short):
                             _math_symbols = [
                                 "→",
                                 "∑",
@@ -813,13 +840,71 @@ class BuiltinAssembler(PDFToolBase):
                                     "\\dots",
                                     "\\text",
                                     "\\tag",
+                                    "\\mathrm",
                                 )
                             ]
-                            _name_match = any(
-                                n.lower() in text.lower() for n in _latex_names
-                            )
-                            if _has_math and _name_match:
-                                matched = True
+                            # LaTeX 命令名 → unicode 字形（greek 字母 / 运算符）
+                            _LATEX_GLYPH = {
+                                "alpha": "α",
+                                "beta": "β",
+                                "gamma": "γ",
+                                "delta": "δ",
+                                "theta": "θ",
+                                "phi": "φ",
+                                "varphi": "ϕ",
+                                "psi": "ψ",
+                                "omega": "ω",
+                                "lambda": "λ",
+                                "mu": "μ",
+                                "sigma": "σ",
+                                "epsilon": "ε",
+                                "eta": "η",
+                                "zeta": "ζ",
+                                "nu": "ν",
+                                "tau": "τ",
+                                "rho": "ρ",
+                                "kappa": "κ",
+                                "chi": "χ",
+                                "Phi": "Φ",
+                                "Theta": "Θ",
+                                "Omega": "Ω",
+                                "Gamma": "Γ",
+                                "Delta": "Δ",
+                                "Lambda": "Λ",
+                                "Sigma": "Σ",
+                                "Psi": "Ψ",
+                                "approx": "≈",
+                                "times": "×",
+                                "cdot": "·",
+                                "le": "≤",
+                                "ge": "≥",
+                                "ne": "≠",
+                                "sum": "∑",
+                                "in": "∈",
+                                "cup": "∪",
+                                "cap": "∩",
+                                "subseteq": "⊆",
+                                "rightarrow": "→",
+                            }
+
+                            def _name_in_text(name: str) -> bool:
+                                # 仅认 unicode 字形（α/θ/≈/×/≤ 等）——这些字形几乎不出现在
+                                # 非数学散文。丢弃 ascii 名 substring 路径，避免 ``\in``→"in"
+                                # 误匹配 "Introduction"/"training" 等通用子串致短段被整体替换。
+                                if not name:
+                                    return False
+                                glyph = _LATEX_GLYPH.get(name) or _LATEX_GLYPH.get(
+                                    name.lower()
+                                )
+                                return glyph is not None and glyph in text
+
+                            _name_match = any(_name_in_text(n) for n in _latex_names)
+                            if is_block:
+                                if _has_math and _name_match:
+                                    matched = True
+                            else:  # inline 独立短块
+                                if _name_match and _latex_names:
+                                    matched = True
                         if matched:
                             formula_md = _formula_to_markdown(formula)
                             elem.content = formula_md
@@ -1561,6 +1646,47 @@ def _is_figure_or_table_caption_text(text: str) -> bool:
     if not text:
         return False
     return bool(_FIGURE_TABLE_CAPTION_RE.match(text))
+
+
+def _is_low_content_figure_label(text: str) -> bool:
+    """判断落入 figure region 的文本块是否是缺乏实质内容的图周碎片。
+
+    ``_block_overlaps_special`` 命中后，caption 已恒保留；本函数用于进一步区分
+    "真实内容块"与"图周矢量标签碎片"，三信号判定：
+
+    - 信号 A（缺实质英文词）：坐标轴刻度（``10 3 10 2 10 1``、``1 K 10 K``、
+      ``10 −1``）、面板标记（``(a) (b)``）、单字轴标题（``Residual δ F``）——0~1 个
+      ≥3 字母英文词。
+    - 信号 C（2 词轴标题碎片）：``Training Step`` / ``Train Loss`` / ``Eval Loss`` /
+      ``Training Step Δ`` 等——≤2 个 ≥3 字母英文词、且**无**章节编号前缀
+      （``4.2 Behavioral Evidence`` / ``A Related Work`` 起首带编号 → 放行）、**无**
+      句末标点。真实短标题多带章节编号或句末标点，且罕见落入 figure region。
+    - 信号 B（刻度序列）：即便跟 2 词轴标题（``1 2 4 8 16 32 Feature index j``、
+      ``10 20 30 Task index k``），出现 ≥3 个**相邻**纯数字 token（仅由空白/逗号/
+      分号分隔）即为坐标轴刻度序列。要求"相邻 ≥3"以避免误伤正文里散落的章节引用
+      （``Sec. 3 ... Sec. 3``、``sections 3, 4``）与型号 ``4M``/``210B``/``GPT-4``。
+
+    真实 section 标题与导言段落（``4 Corroborating Claims...``、``We now verify
+    the claims of Sec. 3 ... Following the structure of Sec. 3 ...``）三信号均不
+    命中，予以保留。
+    """
+    if not text:
+        return True
+    t = text.strip()
+    words = re.findall(r"[A-Za-z]{3,}", text)
+    # 信号 A + C：短碎片（≤2 个 ≥3 字母英文词）且非"章节编号前缀 / 句末标点"形态
+    if len(words) <= 2:
+        # 章节编号前缀要求编号后跟 ≥2 字母英文词（'4.2 Behavioral Evidence'/'A Related Work'），
+        # 避免把 '10 −1'（−1 非字母）、'1 B 300 M 20 M'（B/M 单字母）这类刻度/图例
+        # 噪声误判为 section 编号。
+        has_section_prefix = bool(
+            re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", t)
+        )
+        has_terminal_punct = bool(re.search(r"[.!?][\"')\]]*\s*$", t))
+        if not has_section_prefix and not has_terminal_punct:
+            return True
+    # 信号 B：相邻纯数字序列（≥3 个）= 坐标轴刻度
+    return bool(re.search(r"\d+(?:\.\d+)?(?:[\s,;]+\d+(?:\.\d+)?){2,}", text))
 
 
 def _figure_caption_to_inject(
