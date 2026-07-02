@@ -64,11 +64,16 @@ class RetrievalTracker:
         memory_ids: list[UUID],
         fact_ids: list[UUID] | None = None,
         thread_id: UUID | None = None,
+        config_version: str | None = None,
+        strategy: str | None = None,
     ) -> UUID | None:
         """记录一次检索事件。
 
         零命中也记录（``retrieved_memory_ids=[]``），保证「检索发生但未命中」
         可观测——是 total_retrievals / zero_hit_rate 指标的数据来源。
+
+        ``config_version``：本次检索所用的 ``memory_config_versions.version``，供自进化
+        shadow/canary eval 按配置版本分桶对比（迁移 0081 新增列）。
         """
         log = MemoryRetrievalLog(
             user_id=user_id,
@@ -77,6 +82,8 @@ class RetrievalTracker:
             query=query,
             retrieved_memory_ids=memory_ids,
             retrieved_fact_ids=fact_ids or [],
+            config_version=config_version,
+            strategy=strategy,
         )
         async with db_session.AsyncSessionLocal() as db:
             db.add(log)

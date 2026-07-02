@@ -526,6 +526,16 @@ evolution_proposals
 
 ## 10. 演进路线
 
+> **实现进度注记（2026-07）**：Phase 3 记忆检索权重面第一切片已落地——`engine/evolution/`
+> 子系统骨架（decision 纯函数护栏 / canary 路由 / weights 配置解析 / GEPA proposer /
+> eval_runner 窗口指标对比 / orchestrator 状态机）+ `evolution_proposals` +
+> `memory_config_versions` 两表（迁移 0081）+ `memory_retrieval_logs` 加 `config_version`
+> 分桶列 + `search_memory` canary 路由 + `evolution_inspector` 心跳。默认全关灰度
+> （`settings.evolution.enabled`/`auto_mode`）。**明确留后续**：agent/skill/knowledge 面
+> proposer、Phase 1 `tool_invocations` 三源遥测、eval 四表子系统、归因 job、记忆管线
+> prompt 进化。本切片基建（proposer `_ProposerBase` / decision / orchestrator）对后续面
+> 无重造，仅各面补 proposer 子类 + eval_runner + config_versions 表。
+
 ### Phase 1：遥测 + 评测地基
 
 **范围**：`tool_invocations` 三源采集（ADK callback 新挂点 / Routine 旁路 / MCP 旁路）+ `interaction_feedback` + `tool_stats_daily` 聚合 + eval 四表 + DB 驱动 eval runner + 首批 golden suite（每个 Faculty Agent ≥20 例）+ `memory_stats_daily` 聚合 + LoCoMo-mini / LongMemEval-mini / KG quality 注册为 eval_suites 行。

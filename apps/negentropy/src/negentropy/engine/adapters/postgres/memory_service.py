@@ -36,6 +36,9 @@ from sqlalchemy import func, select, text, update
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
 from negentropy.engine.consolidation.llm_fact_extractor import LLMFactExtractor
+from negentropy.engine.evolution import canary as canary_mod
+from negentropy.engine.evolution.queries import fetch_active_canary
+from negentropy.engine.evolution.weights import resolve_active_retrieval_config
 from negentropy.engine.governance.memory import (
     _MEMORY_TYPE_MULTIPLIER,
     VALID_MEMORY_TYPES,
@@ -648,6 +651,8 @@ class PostgresMemoryService(BaseMemoryService):
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         viewer_role: str | None = None,
+        config_override: dict[str, float] | None = None,
+        config_version_label: str | None = None,
     ) -> SearchMemoryResponse:
         """基于 Query 检索相关记忆
 
@@ -669,6 +674,14 @@ class PostgresMemoryService(BaseMemoryService):
             date_from: 起始日期过滤
             date_to: 截止日期过滤
         """
+        # 解析本次检索的有效 hybrid 权重 + 配置版本标签（自进化 canary 路由地基）。
+        # override（显式/测试）> canary 候选（在途 canary 提案 + user 桶命中）> active 配置。
+        semantic_weight, keyword_weight, cv_label = await self._resolve_effective_weights(
+            user_id=user_id,
+            config_override=config_override,
+            config_version_label=config_version_label,
+        )
+
         # 生成查询向量
         query_embedding = None
         if self._embedding_fn:
@@ -693,6 +706,8 @@ class PostgresMemoryService(BaseMemoryService):
                     query_embedding=query_embedding,
                     limit=limit,
                     offset=offset,
+                    semantic_weight=semantic_weight,
+                    keyword_weight=keyword_weight,
                 )
                 if result is not None:
                     memories_data = self._tag_search_level(result, "hybrid", "combined")
@@ -711,7 +726,12 @@ class PostgresMemoryService(BaseMemoryService):
                     memories_data = self._apply_intent_rerank(memories_data, query)
                     memories_data = self._apply_relevance_weights(memories_data)
                     retrieval_log_id = await self._record_access(
-                        memories_data, query=query, user_id=user_id, app_name=app_name
+                        memories_data,
+                        query=query,
+                        user_id=user_id,
+                        app_name=app_name,
+                        config_version=cv_label,
+                        strategy="hybrid",
                     )
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
                     return self._build_search_response(
@@ -738,7 +758,14 @@ class PostgresMemoryService(BaseMemoryService):
             # Phase 4：query intent 类型加权重排
             memories_data = self._apply_intent_rerank(memories_data, query)
             memories_data = self._apply_relevance_weights(memories_data)
-            retrieval_log_id = await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
+            retrieval_log_id = await self._record_access(
+                memories_data,
+                query=query,
+                user_id=user_id,
+                app_name=app_name,
+                config_version=cv_label,
+                strategy="vector",
+            )
             self._log_search_event("vector", len(memories_data), user_id, app_name, query)
             return self._build_search_response(
                 memories_data, viewer_role=viewer_role, retrieval_log_id=retrieval_log_id
@@ -761,7 +788,14 @@ class PostgresMemoryService(BaseMemoryService):
                 # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
                 memories_data = self._apply_intent_rerank(memories_data, query)
                 memories_data = self._apply_relevance_weights(memories_data)
-                await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
+                await self._record_access(
+                    memories_data,
+                    query=query,
+                    user_id=user_id,
+                    app_name=app_name,
+                    config_version=cv_label,
+                    strategy="keyword",
+                )
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
                 # legacy keyword 路径：retrieval_log_id 未透传（反馈闭环在 hybrid/vector 主路径覆盖）
                 return self._build_search_response(memories_data, viewer_role=viewer_role)
@@ -783,10 +817,57 @@ class PostgresMemoryService(BaseMemoryService):
         # Phase 4：query intent 类型加权重排
         memories_data = self._apply_intent_rerank(memories_data, query)
         memories_data = self._apply_relevance_weights(memories_data)
-        await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
+        await self._record_access(
+            memories_data,
+            query=query,
+            user_id=user_id,
+            app_name=app_name,
+            config_version=cv_label,
+            strategy="ilike",
+        )
         self._log_search_event("ilike", len(memories_data), user_id, app_name, query)
         # legacy ilike 路径：retrieval_log_id 未透传（反馈闭环在 hybrid/vector 主路径覆盖）
         return self._build_search_response(memories_data, viewer_role=viewer_role)
+
+    async def _resolve_effective_weights(
+        self,
+        *,
+        user_id: str,
+        config_override: dict[str, float] | None = None,
+        config_version_label: str | None = None,
+    ) -> tuple[float, float, str]:
+        """解析本次 hybrid 检索的有效权重 + 配置版本标签。
+
+        解析顺序：``config_override``（显式/测试）> canary 候选（在途 canary 提案 + user 桶命中）
+        > active 配置（``memory_config_versions`` is_active 行，30s 缓存，回退代码常量）。
+        返回 ``(semantic_weight, keyword_weight, config_version_label)``。
+
+        canary 路由：按 user_id 哈希分桶（ADK search_memory 不暴露 thread_id），命中候选桶
+        → 用候选提案的 payload 权重 + 候选版本号（供 retrieval_log 标记 → shadow eval 分桶）。
+        """
+        if config_override:
+            sw = float(config_override.get("semantic_weight", _DEFAULT_SEMANTIC_WEIGHT))
+            kw = float(config_override.get("keyword_weight", _DEFAULT_KEYWORD_WEIGHT))
+            return sw, kw, config_version_label or "override"
+
+        snapshot, version = await resolve_active_retrieval_config()
+        sw = float(snapshot.get("semantic_weight", _DEFAULT_SEMANTIC_WEIGHT))
+        kw = float(snapshot.get("keyword_weight", _DEFAULT_KEYWORD_WEIGHT))
+
+        # canary 路由：查询在途 canary 提案（带短缓存，避免高频检索打 DB）
+        try:
+            canary = await fetch_active_canary()
+            if canary is not None:
+                bucket = canary_mod.bucket_index(None, user_id)
+                ratio = float((canary.get("canary_config") or {}).get("bucket_ratio", 0))
+                if canary_mod.should_use_candidate(bucket, ratio):
+                    payload = canary.get("payload") or {}
+                    cand_sw = float(payload.get("semantic_weight", sw))
+                    return cand_sw, round(1.0 - cand_sw, 4), canary.get("proposed_version") or version
+        except Exception as exc:
+            logger.debug("evolution_canary_resolve_failed", error=str(exc))
+
+        return sw, kw, version
 
     # ------------------------------------------------------------------
     # Phase 5 F1 — HippoRAG PPR-Boosted Hybrid 检索
@@ -1032,6 +1113,8 @@ class PostgresMemoryService(BaseMemoryService):
         query_embedding: list[float],
         limit: int = _DEFAULT_SEARCH_LIMIT,
         offset: int = 0,
+        semantic_weight: float = _DEFAULT_SEMANTIC_WEIGHT,
+        keyword_weight: float = _DEFAULT_KEYWORD_WEIGHT,
     ) -> list[dict[str, Any]] | None:
         """调用 DB 原生 hybrid_search() 函数
 
@@ -1074,8 +1157,8 @@ class PostgresMemoryService(BaseMemoryService):
                     "query": query,
                     "embedding": embedding_literal,
                     "limit": oversample_limit,
-                    "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
-                    "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
+                    "semantic_weight": semantic_weight,
+                    "keyword_weight": keyword_weight,
                 },
             )
             rows = result.fetchall()
@@ -1382,6 +1465,8 @@ class PostgresMemoryService(BaseMemoryService):
         query: str = "",
         user_id: str = "",
         app_name: str = "",
+        config_version: str | None = None,
+        strategy: str | None = None,
     ) -> uuid.UUID | None:
         """记录记忆访问行为
 
@@ -1447,6 +1532,8 @@ class PostgresMemoryService(BaseMemoryService):
                 app_name=app_name,
                 query=query,
                 memory_ids=memory_ids,
+                config_version=config_version,
+                strategy=strategy,
             )
         except Exception as exc:
             logger.warning("retrieval_tracking_failed", error=str(exc), query_length=len(query))
