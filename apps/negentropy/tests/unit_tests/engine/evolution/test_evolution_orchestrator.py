@@ -72,7 +72,7 @@ def test_parse_dt_none_and_invalid():
 
 def test_enter_canary_sets_status_and_config(monkeypatch):
     monkeypatch.setattr(
-        "negentropy.engine.evolution.orchestrator.settings",
+        "negentropy.engine.evolution.handlers._shared.settings",
         SimpleNamespace(
             evolution=SimpleNamespace(
                 canary_bucket_ratio_pct=15.0,
@@ -134,7 +134,7 @@ async def test_emit_evolution_event_swallows_bus_error(monkeypatch):
         def publish_nowait(self, event):
             raise RuntimeError("boom")
 
-    monkeypatch.setattr(o, "_get_routine_bus", lambda: _BoomBus())
+    monkeypatch.setattr("negentropy.engine.evolution.handlers._shared._get_routine_bus", lambda: _BoomBus())
     proposal = SimpleNamespace(
         id="p2",
         target_kind="retrieval_config",
