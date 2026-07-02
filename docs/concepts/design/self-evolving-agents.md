@@ -528,6 +528,9 @@ evolution_proposals
 
 > **实现进度注记（2026-07）**：Phase 3 记忆检索权重面第一切片已落地——`engine/evolution/`
 > 子系统骨架（decision 纯函数护栏 / canary 路由 / weights 配置解析 / GEPA proposer /
+> **Phase 1 遥测地基也已落地**——`tool_invocations` 事实表 + `tool_stats_daily` 聚合表
+> （迁移 0082）+ ADK `before/after_tool_callback` 采集器（fire-and-forget，灰度 `tool_telemetry_enabled`）
+> + `tool_stats_aggregate` 每日聚合 job。这是后续 agent/skill/knowledge 面 GEPA 的共同证据源。
 > eval_runner 窗口指标对比 / orchestrator 状态机）+ `evolution_proposals` +
 > `memory_config_versions` 两表（迁移 0081）+ `memory_retrieval_logs` 加 `config_version`
 > 分桶列 + `search_memory` canary 路由 + `evolution_inspector` 心跳。默认全关灰度
