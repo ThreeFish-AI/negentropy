@@ -119,22 +119,47 @@ async def memory_automation_handler(task: ScheduledTask) -> HandlerResult:
 
 
 async def _run_cleanup(task: ScheduledTask) -> HandlerResult:
-    """基于艾宾浩斯遗忘曲线清理低价值记忆。"""
+    """基于艾宾浩斯遗忘曲线清理低价值记忆。
+
+    retention 重算 λ 取 ``COALESCE((metadata->>'decay_override')::float, :decay_lambda)``——
+    尊重每条记忆自带的衰减覆盖（如 Routine 经验记忆 λ=0.003≈230 天半衰、巡检确定性标记），
+    而非 SQL 函数原先的平坦 λ=0.1（致未检索命中的经验记忆约 7-8 天全灭、``decay_override``
+    沦为死配置）。对无 ``decay_override`` 的普通会话记忆，行为与原 SQL 函数逐字节一致。
+    SQL 存储函数定义（迁移 0043）保留不动——零迁移，仅 handler 改为内联 SQL。
+    """
     payload = task.payload or {}
     threshold = payload.get("threshold", 0.1)
     min_age_days = payload.get("min_age_days", 7)
     decay_lambda = payload.get("decay_lambda", 0.1)
 
-    sql = text(f"SELECT {NEGENTROPY_SCHEMA}.cleanup_low_value_memories(:threshold, :min_age_days, :decay_lambda)")
+    # 与 calculate_retention_score 同公式：LEAST(1, EXP(-λ·d)·(1+ln(1+access))/5)
+    update_sql = text(
+        f"""
+        UPDATE {NEGENTROPY_SCHEMA}.memories
+        SET retention_score = LEAST(
+            1.0,
+            EXP(
+                -COALESCE((metadata ->> 'decay_override')::float, :decay_lambda)
+                * (EXTRACT(EPOCH FROM (NOW() - COALESCE(last_accessed_at, created_at))) / 86400.0)
+            )
+            * (1.0 + LN(1.0 + access_count)) / 5.0
+        )
+        """
+    )
+    delete_sql = text(
+        f"""
+        DELETE FROM {NEGENTROPY_SCHEMA}.memories
+        WHERE retention_score < :threshold
+          AND created_at < NOW() - make_interval(days => :min_age_days)
+        RETURNING id
+        """
+    )
     try:
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                sql,
-                {"threshold": threshold, "min_age_days": min_age_days, "decay_lambda": decay_lambda},
-            )
-            row = result.first()
+            await db.execute(update_sql, {"decay_lambda": decay_lambda})
+            result = await db.execute(delete_sql, {"threshold": threshold, "min_age_days": min_age_days})
+            deleted = result.rowcount
             await db.commit()
-        deleted = row[0] if row else None
         return HandlerResult(
             status="ok",
             output_summary=f"cleanup_memories: deleted={deleted}",

@@ -300,6 +300,13 @@ class RoutineSettings(BaseSettings):
         default=True,
         description="启用记忆注入：派发迭代时从 Memory Module 检索相关记忆注入 prompt。",
     )
+    memory_feedback_enabled: bool = Field(
+        default=True,
+        description="启用记忆检索反馈闭环：评估期解析产出中 `依据 Memory <id8>` 引用 → was_referenced；"
+        "并据本轮 verdict 粗粒度回写 outcome_feedback（cited+pass/progressing→helpful；"
+        "注入非空且零引用→irrelevant；cited+regressed/stalled→不写）。激活既有 Rocchio 调权管道。"
+        "Rocchio min_count=3、γ=0.15 天然平滑单次误差；关闭则不解析、不回写。",
+    )
     memory_injection_max_tokens: int = Field(
         default=500,
         ge=0,

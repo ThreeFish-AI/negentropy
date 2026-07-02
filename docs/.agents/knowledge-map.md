@@ -64,6 +64,7 @@
 - [Routine Agent 迭代模式调研](../research/110-routine-agent-iteration.md) — ReAct/Reflexion/Self-Refine/LATS/Voyager + LLM-as-Judge + Claude Code/Codex/Gemini/OpenHands 工程实践与停止护栏（长周期自主任务理论基础）
 - [浏览器操作 MCP 调研](../research/120-browser-automation-mcp.md) — Playwright MCP / Chrome DevTools MCP / claude-in-chrome / Webwright 等纵向深挖与横向决策矩阵，结合"6 Agents + 自治 Routine"两类上下文的选型论证（集成落地见 [集成方案](../concepts/design/browser-automation-mcp-integration.md)）
 - [自进化 Agents Team 调研](../research/130-self-evolving-agents-team.md) — 自进化智能体理论（DGM/ADAS/AlphaEvolve/AgentSquare）+ 进化算子（GEPA/ACE/DSPy）+ 评测回路（Agent-as-a-Judge/OTel/Langfuse）+ 工具生态自进化（MCP Registry/Agent Skills/LLM 自造工具）+ 记忆/知识系统自进化（MemGPT/Mem0/A-Mem 自编辑记忆、ReasoningBank/Memp 经验沉淀、MemEvolve/MemSkill 记忆元进化、Zep/HippoRAG 2 图谱记忆、SSGM/MINJA 记忆治理）+ 护栏治理（OWASP Agentic Top 10/金丝雀/Goodhart 防护），映射至四层自进化架构（技术方案见 [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md)）
+- [经验时代的自驱迭代进化智能体调研](../research/140-experience-era-self-improvement.md) — 精读 88 页综述提炼 Harness 经验基础设施框架，对照 negentropy Routine 闭环诊断出两处根本断点（Judge 无历史锚点 ±20 振荡 / `decay_override` 死配置致经验记忆 7-8 天全灭 + 反馈链断），落地双支柱改进：证据锚定纵向评估（trajectory + progress_evidence + 量化振荡 opt-in）与经验记忆闭环补强（衰减修复 E / 检索反馈闭环 B / 写入去重准入 A / 失败教训结构化与注入 C-D）
 
 ## 用户文档与运维
 

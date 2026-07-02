@@ -550,6 +550,17 @@ class PostgresMemoryService(BaseMemoryService):
         embedding: list[float],
         content: str,
     ) -> bool:
+        return await self._find_duplicate(db, user_id, app_name, embedding, content) is not None
+
+    async def _find_duplicate(
+        self,
+        db: Any,
+        user_id: str,
+        app_name: str,
+        embedding: list[float],
+        content: str,
+    ) -> uuid.UUID | None:
+        """返回命中的既有记忆 id（无则 None）。两阶段去重同 ``_check_duplicate`` 语义。"""
         distance = Memory.embedding.op("<=>")(embedding)
         stmt = (
             select(Memory.id, Memory.content, distance.label("dist"))
@@ -564,18 +575,18 @@ class PostgresMemoryService(BaseMemoryService):
         result = await db.execute(stmt)
         row = result.first()
         if row is None:
-            return False
+            return None
         similarity = 1.0 - float(row.dist)
         if similarity >= _DEDUP_SIMILARITY_THRESHOLD:
-            return True
+            return uuid.UUID(str(row.id))
         if similarity >= 0.80 and content and row.content:
             words_new = set(content.lower().split())
             words_old = set(row.content.lower().split())
             if words_new and words_old:
                 jaccard = len(words_new & words_old) / len(words_new | words_old)
                 if jaccard >= _DEDUP_JACCARD_THRESHOLD:
-                    return True
-        return False
+                    return uuid.UUID(str(row.id))
+        return None
 
     @staticmethod
     def _calculate_initial_retention(
@@ -699,9 +710,13 @@ class PostgresMemoryService(BaseMemoryService):
                     # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
                     memories_data = self._apply_intent_rerank(memories_data, query)
                     memories_data = self._apply_relevance_weights(memories_data)
-                    await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
+                    retrieval_log_id = await self._record_access(
+                        memories_data, query=query, user_id=user_id, app_name=app_name
+                    )
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
-                    return self._build_search_response(memories_data, viewer_role=viewer_role)
+                    return self._build_search_response(
+                        memories_data, viewer_role=viewer_role, retrieval_log_id=retrieval_log_id
+                    )
             except Exception as exc:
                 self._log_fallback_event("hybrid", "vector", str(exc), user_id, app_name, query)
 
@@ -723,9 +738,11 @@ class PostgresMemoryService(BaseMemoryService):
             # Phase 4：query intent 类型加权重排
             memories_data = self._apply_intent_rerank(memories_data, query)
             memories_data = self._apply_relevance_weights(memories_data)
-            await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
+            retrieval_log_id = await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
             self._log_search_event("vector", len(memories_data), user_id, app_name, query)
-            return self._build_search_response(memories_data, viewer_role=viewer_role)
+            return self._build_search_response(
+                memories_data, viewer_role=viewer_role, retrieval_log_id=retrieval_log_id
+            )
 
         # 策略 3: BM25 全文检索
         try:
@@ -746,6 +763,7 @@ class PostgresMemoryService(BaseMemoryService):
                 memories_data = self._apply_relevance_weights(memories_data)
                 await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
+                # legacy keyword 路径：retrieval_log_id 未透传（反馈闭环在 hybrid/vector 主路径覆盖）
                 return self._build_search_response(memories_data, viewer_role=viewer_role)
         except Exception as exc:
             self._log_fallback_event("keyword", "ilike", str(exc), user_id, app_name, query)
@@ -767,6 +785,7 @@ class PostgresMemoryService(BaseMemoryService):
         memories_data = self._apply_relevance_weights(memories_data)
         await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
         self._log_search_event("ilike", len(memories_data), user_id, app_name, query)
+        # legacy ilike 路径：retrieval_log_id 未透传（反馈闭环在 hybrid/vector 主路径覆盖）
         return self._build_search_response(memories_data, viewer_role=viewer_role)
 
     # ------------------------------------------------------------------
@@ -1434,12 +1453,20 @@ class PostgresMemoryService(BaseMemoryService):
         return None
 
     def _build_search_response(
-        self, memories_data: list[dict[str, Any]], *, viewer_role: str | None = None
+        self,
+        memories_data: list[dict[str, Any]],
+        *,
+        viewer_role: str | None = None,
+        retrieval_log_id: uuid.UUID | None = None,
     ) -> SearchMemoryResponse:
         """构建 ADK SearchMemoryResponse（携带 search_level 元数据）
 
         F4：出口处经 PIIGatekeeper 按 viewer_role 决定是否遮蔽含 PII 的 content
         （依赖写入期落库的 ``metadata.pii_spans``）。未启用 / 高权限时原样透传。
+
+        ``retrieval_log_id``：检索日志行 ID（来自 ``_record_access`` 返回值），注入每条 entry 的
+        ``custom_metadata``，供 Routine 路径在评估期解析产出引用、回写 outcome_feedback，闭合
+        「检索→引用→效果」反馈环（激活既有 Rocchio 调权管道）。None 时不下发该键。
         """
         # PII 检索守门员（受 settings.memory.pii.gatekeeper_enabled 控）
         try:
@@ -1465,6 +1492,9 @@ class PostgresMemoryService(BaseMemoryService):
             metadata["relevance_score"] = float(m.get("relevance_score", 0.0) or 0.0)
             if m.get("memory_type") is not None:
                 metadata["memory_type"] = m.get("memory_type")
+            # 检索日志行 ID：供 Routine 评估期解析产出引用、回写 outcome（激活 Rocchio 调权）。
+            if retrieval_log_id is not None:
+                metadata["retrieval_log_id"] = str(retrieval_log_id)
 
             memories.append(
                 MemoryEntry(
@@ -1487,16 +1517,22 @@ class PostgresMemoryService(BaseMemoryService):
         content: str,
         memory_type: str = "episodic",
         metadata: dict[str, Any] | None = None,
+        dedupe: bool = False,
     ) -> dict[str, Any]:
-        """Phase 4 — 类型显式写入（用于 Self-editing Tools）。
+        """Phase 4 — 类型显式写入（用于 Self-editing Tools / Routine 经验沉淀）。
 
         与 ``add_session_to_memory`` 的差异：
         - 不走巩固管线，直接落库（适合 Agent 主动 write_memory 工具调用）
         - 必须显式指定 ``memory_type``，受 VALID_MEMORY_TYPES 约束
         - 仍然计算 embedding + 初始 retention/importance，保持一致性
 
+        ``dedupe=True``（Routine 路径用）：embedding 可用时先查重，命中既有近似记忆则不落新行，
+        转而对既有记忆 touch（``access_count+1, last_accessed_at=now``——「重复出现即重要性信号」），
+        返回 ``{"id": <existing>, "deduped": True}``。embedding 不可用 → 保守直写（与管线同语义）。
+        默认 ``False`` 保证 Self-edit 等其他调用方零行为变化。
+
         Returns:
-            {"id", "memory_type", "retention_score", "importance_score"}
+            {"id", "memory_type", "retention_score", "importance_score", "deduped"}
         """
         if memory_type not in VALID_MEMORY_TYPES:
             raise ValueError(f"Invalid memory_type '{memory_type}'. Must be one of {sorted(VALID_MEMORY_TYPES)}")
@@ -1524,6 +1560,36 @@ class PostgresMemoryService(BaseMemoryService):
             merged_metadata["pii_spans"] = pii_spans
 
         async with db_session.AsyncSessionLocal() as db:
+            # 写入准入去重（opt-in）：命中既有近似记忆 → touch 既有行而非新增，抑制同模板 routine 的
+            # 近似经验累积与 restart 重复沉淀。阈值复用 _find_duplicate 的 cos≥0.85 / 边带 Jaccard≥0.7。
+            if dedupe and embedding is not None:
+                try:
+                    existing_id = await self._find_duplicate(db, user_id, app_name, embedding, content)
+                except Exception as exc:
+                    logger.warning("add_memory_typed_dedupe_check_failed", error=str(exc))
+                    existing_id = None
+                if existing_id is not None:
+                    await db.execute(
+                        update(Memory)
+                        .where(Memory.id == existing_id)
+                        .values(
+                            access_count=Memory.access_count + 1,
+                            last_accessed_at=datetime.now(UTC),
+                            importance_score=func.least(1.0, Memory.importance_score + 0.02),
+                        )
+                    )
+                    await db.commit()
+                    logger.info(
+                        "memory_typed_deduped",
+                        user_id=user_id,
+                        existing_memory_id=str(existing_id),
+                    )
+                    return {
+                        "id": str(existing_id),
+                        "memory_type": memory_type,
+                        "deduped": True,
+                    }
+
             memory = Memory(
                 thread_id=thread_uuid,
                 user_id=user_id,
@@ -1551,6 +1617,7 @@ class PostgresMemoryService(BaseMemoryService):
             "memory_type": memory_type,
             "retention_score": retention,
             "importance_score": importance,
+            "deduped": False,
         }
 
     async def update_memory_content(
