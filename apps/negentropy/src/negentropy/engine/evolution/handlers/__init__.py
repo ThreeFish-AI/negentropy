@@ -10,5 +10,12 @@ from __future__ import annotations
 
 from .base import TargetHandler
 from .retrieval import RetrievalConfigHandler
+from .skill import SkillProposalDraft, SkillProposer, SkillTemplateHandler
 
-__all__ = ["TargetHandler", "RetrievalConfigHandler"]
+__all__ = [
+    "TargetHandler",
+    "RetrievalConfigHandler",
+    "SkillTemplateHandler",
+    "SkillProposer",
+    "SkillProposalDraft",
+]

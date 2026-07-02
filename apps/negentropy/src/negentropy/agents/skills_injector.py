@@ -167,6 +167,11 @@ async def resolve_skills(
         seen.add(skill.id)
         # Phase 3：根据 parsed_specs 决定是否覆盖为历史快照。
         spec = parsed_specs.get(skill.name) or parsed_specs.get(str(skill.id)) or "*"
+        # Skill 进化发布（迁移 0084）：未显式锁版本（spec=="*"）且 active_version 已晋升时，
+        # 解析 promoted 快照（区分「最新」version 与「已晋升」active_version）。无 active_version
+        # → 退化为 "*"（当前字段），向后兼容。
+        if spec == "*" and getattr(skill, "active_version", None):
+            spec = f"=={skill.active_version}"
         snapshot = await _resolve_version_snapshot(session, skill, spec) if spec and spec != "*" else None
         if snapshot is not None:
             out.append(

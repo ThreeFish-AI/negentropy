@@ -38,6 +38,10 @@ class EvolutionSettings(BaseSettings):
         description="low-risk 提案自动进 canary（跳过 pending_approval）；False=全提案人工审批（首部署默认）。",
     )
     proposer_enabled: bool = Field(default=True, description="proposer 子开关（spawn 新提案）。")
+    skill_enabled: bool = Field(
+        default=False,
+        description="skill_template 面 proposer 子开关（GEPA 变异 prompt_template）；默认关，独立于 retrieval 面。",
+    )
 
     inspector_interval_seconds: int = Field(default=300, ge=60, description="evolution_inspector 心跳 tick 间隔（秒）")
     shadow_window_seconds: int = Field(default=3600, ge=300, description="shadow eval 聚合 active 配置的回溯窗口（秒）")

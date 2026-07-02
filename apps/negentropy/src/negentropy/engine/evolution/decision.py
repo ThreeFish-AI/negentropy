@@ -149,6 +149,18 @@ def is_noop_mutation(
     return abs(draft_semantic - active_semantic) < tol
 
 
+def is_noop_template(draft_template: str, active_template: str) -> bool:
+    """skill prompt_template 变异 noop 判定（对偶 retrieval 的 float ``is_noop_mutation``）。
+
+    归一化空白后文本一致 → no-op，应拒（综述 §3.5 防无意义探索 + 防 proposer 把「重排空白」当改进）。
+    """
+    return _normalize_template(draft_template) == _normalize_template(active_template)
+
+
+def _normalize_template(t: str) -> str:
+    return " ".join((t or "").split())
+
+
 def is_repeated_direction(
     draft_semantic: float,
     recent_negatives_semantic: list[float],
@@ -383,6 +395,7 @@ __all__ = [
     "is_noop_mutation",
     "is_repeated_direction",
     "is_canary_stale",
+    "is_noop_template",
     "decide_shadow",
     "decide_canary",
     "compute_run_regression",
