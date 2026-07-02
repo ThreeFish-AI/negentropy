@@ -51,8 +51,9 @@ from negentropy.models.evolution import (
 
 from . import eval_runner
 from . import weights as weights_mod
-from .decision import decide_canary, decide_shadow
+from .decision import REASON_STALE_CANARY, decide_canary, decide_shadow, is_canary_stale
 from .proposer import RetrievalWeightProposer
+from .queries import invalidate_canary_cache
 
 logger = get_logger("negentropy.engine.evolution.orchestrator")
 
@@ -72,11 +73,56 @@ class EvolutionOrchestrator:
         if not settings.evolution.enabled:
             return {"reaped": 0, "advanced": 0, "proposed": 0}
 
+        reaped = await self._reap_stale_canary()
         advanced = await self._advance_due_proposals()
         # proposer 仅在无在途提案时 spawn（单在途不变量）；auto_mode 关闭时也允许 spawn
         # （提案落 shadow_eval 后停在 pending_approval 待人审）。
         proposed = await self._maybe_spawn_proposer()
-        return {"reaped": 0, "advanced": advanced, "proposed": proposed}
+        return {"reaped": reaped, "advanced": advanced, "proposed": proposed}
+
+    async def _reap_stale_canary(self) -> int:
+        """强制回收超时 canary：样本不足视为未通过 → rollback（canary 已污染流量，回基线最安全）。
+
+        canary 窗口到期但候选样本不足时 ``_advance_canary`` 会 hold 续等，无此 REAP 则永久挂起。
+        超 ``max_canary_seconds`` → 强制 rollback（复用既有 ``_rollback``，零新路径）。
+        """
+        now = _utcnow()
+        max_sec = settings.evolution.max_canary_seconds
+        async with db_session.AsyncSessionLocal() as db:
+            rows = (
+                (
+                    await db.execute(
+                        sa.select(EvolutionProposal)
+                        .where(EvolutionProposal.status == STATUS_CANARY)
+                        .with_for_update(skip_locked=True)
+                        .limit(_BATCH_LIMIT)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            stale = [
+                p
+                for p in rows
+                if is_canary_stale(
+                    started_at=_parse_dt((p.canary_config or {}).get("started_at")),
+                    now=now,
+                    max_seconds=max_sec,
+                )
+            ]
+            for p in stale:
+                await self._rollback(db, p, now)
+                p.canary_metrics = {
+                    **(p.canary_metrics or {}),
+                    "reaped_reason": REASON_STALE_CANARY,
+                }
+                logger.warning(
+                    "evolution_canary_reaped_stale",
+                    proposal_id=str(p.id),
+                    max_seconds=max_sec,
+                )
+            await db.commit()
+            return len(stale)
 
     # ==================================================================
     # ADVANCE
@@ -288,6 +334,7 @@ class EvolutionOrchestrator:
         proposal.status = STATUS_PROMOTED
         proposal.decided_at = now
         weights_mod.invalidate(_TARGET_REF)
+        invalidate_canary_cache(_TARGET_REF)  # 消除 fetch_active_canary 15s 缓存脏窗口
 
     async def _rollback(self, db, proposal: EvolutionProposal, now: datetime) -> None:
         """回滚：新写一条 active=旧基线快照（origin=manual），不删候选行（保留全历史）。"""
@@ -313,6 +360,7 @@ class EvolutionOrchestrator:
         proposal.status = STATUS_ROLLED_BACK
         proposal.decided_at = now
         weights_mod.invalidate(_TARGET_REF)
+        invalidate_canary_cache(_TARGET_REF)  # 消除 fetch_active_canary 15s 缓存脏窗口
 
 
 # =============================================================================

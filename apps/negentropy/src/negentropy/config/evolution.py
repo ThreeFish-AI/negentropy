@@ -44,6 +44,11 @@ class EvolutionSettings(BaseSettings):
     canary_window_seconds: int = Field(
         default=7200, ge=600, description="canary 窗口时长（秒）；窗口结束后判 promote/rollback"
     )
+    max_canary_seconds: int = Field(
+        default=21600,
+        ge=1800,
+        description="canary 最长存活（默认 3×canary_window）；超时强制 rollback（防样本不足无限挂起）",
+    )
     canary_bucket_ratio_pct: float = Field(default=10.0, ge=1.0, le=50.0, description="金丝雀流量百分比（默认 10%）")
 
     min_samples: int = Field(default=50, ge=10, description="晋升判据最小样本量（每桶检索次数）")

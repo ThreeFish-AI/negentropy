@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 # =============================================================================
@@ -33,6 +34,7 @@ REASON_INSUFFICIENT_SAMPLES = "insufficient_samples"  # 冷启动保护
 REASON_BOUND_VIOLATION = "bound_violation"  # 超硬上下界
 REASON_CONCURRENT_INFLIGHT = "concurrent_inflight"  # 单在途冲突
 REASON_NO_CHANGE = "no_change"  # proposer 返回 None（无改进空间）
+REASON_STALE_CANARY = "stale_canary_timeout"  # canary 超时强制 rollback
 
 # =============================================================================
 # 晋升/回滚阈值常量（对齐蓝图 §4.4/§9.2，可经调用方覆盖以测试）
@@ -114,6 +116,22 @@ def pre_propose_check(*, inflight_count: int, max_inflight: int = 1) -> Decision
     return Decision("hold")
 
 
+def is_canary_stale(
+    *,
+    started_at: datetime | None,
+    now: datetime,
+    max_seconds: int,
+) -> bool:
+    """canary 是否超时应强制回收。
+
+    ``started_at`` 缺失（异常态，理论 ``_enter_canary`` 必写）→ 不回收（留人查）；
+    否则 ``now - started_at > max_seconds`` → True（强制 rollback）。
+    """
+    if started_at is None:
+        return False
+    return (now - started_at).total_seconds() > max_seconds
+
+
 # =============================================================================
 # shadow eval 判定（候选窗口 vs 基线窗口）
 # =============================================================================
@@ -184,6 +202,7 @@ __all__ = [
     "REASON_BOUND_VIOLATION",
     "REASON_CONCURRENT_INFLIGHT",
     "REASON_NO_CHANGE",
+    "REASON_STALE_CANARY",
     "MIN_SAMPLE_N",
     "HELPFUL_RATIO_MIN_IMPROVEMENT",
     "ZERO_HIT_REGRESSION_MAX",
@@ -193,6 +212,7 @@ __all__ = [
     "clamp_weight",
     "is_within_bounds",
     "pre_propose_check",
+    "is_canary_stale",
     "decide_shadow",
     "decide_canary",
 ]

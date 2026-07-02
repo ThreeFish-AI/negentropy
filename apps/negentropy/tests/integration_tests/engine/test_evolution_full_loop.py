@@ -200,3 +200,122 @@ async def test_active_config_flip_invalidates_weights_cache():
             )
             await db.commit()
         weights_mod.invalidate()
+
+
+@pytest.mark.asyncio
+async def test_reap_stale_canary_forces_rollback_and_invalidates_cache(monkeypatch):
+    """超时 canary → inspect_once REAP 强制 rollback + invalidate_canary_cache 生效。"""
+    from datetime import UTC, timedelta
+
+    from sqlalchemy import update
+
+    from negentropy.engine.evolution import orchestrator as orch_mod
+    from negentropy.engine.evolution import queries as queries_mod
+    from negentropy.engine.evolution.decision import REASON_STALE_CANARY
+    from negentropy.models.evolution import STATUS_CANARY, STATUS_ROLLED_BACK, EvolutionProposal
+
+    weights_mod.invalidate()
+    queries_mod.invalidate_canary_cache()
+    # 清理既有 target_ref="retrieval" 提案 + 本测试 MemoryConfigVersion 版本（防前次残留撞唯一索引）
+    async with db_session.AsyncSessionLocal() as db:
+        await db.execute(delete(EvolutionProposal).where(EvolutionProposal.target_ref == "retrieval"))
+        await db.execute(delete(MemoryConfigVersion).where(MemoryConfigVersion.version.like("9.9.%")))
+        await db.commit()
+    # 灰度开 + max_canary_seconds 设小，使植入的旧 canary 立即超时
+    monkeypatch.setattr(
+        "negentropy.engine.evolution.orchestrator.settings",
+        type(
+            "S",
+            (),
+            {
+                "evolution": type(
+                    "E",
+                    (),
+                    {
+                        "enabled": True,
+                        "max_canary_seconds": 60,
+                        "canary_window_seconds": 7200,
+                        "shadow_window_seconds": 3600,
+                        "min_samples": 50,
+                        "zero_hit_regression_max": 0.01,
+                        "proposer_enabled": False,  # 关 proposer，本测只验 REAP
+                        "proposer_model": None,
+                        "canary_bucket_ratio_pct": 10.0,
+                    },
+                )(),
+                "app": type("A", (), {"name": "negentropy"})(),
+            },
+        ),
+    )
+    # 植入一条 status=canary 且 started_at 远超 max_canary_seconds(60) 的提案
+    stale_started = (datetime.now(UTC) - timedelta(seconds=3600)).isoformat()
+    async with db_session.AsyncSessionLocal() as db:
+        from sqlalchemy import update as _u
+
+        await db.execute(_u(MemoryConfigVersion).where(MemoryConfigVersion.is_active.is_(True)).values(is_active=False))
+        db.add(
+            MemoryConfigVersion(
+                config_scope="retrieval",
+                version="9.9.9",
+                snapshot={"semantic_weight": 0.7, "keyword_weight": 0.3},
+                origin="manual",
+                is_active=True,
+            )
+        )
+        db.add(
+            EvolutionProposal(
+                target_kind="retrieval_config",
+                target_ref="retrieval",
+                base_version="9.9.9",
+                proposed_version="9.9.10",
+                payload={"semantic_weight": 0.6, "keyword_weight": 0.4},
+                origin="reflection",
+                status=STATUS_CANARY,
+                risk_level="low",
+                canary_config={
+                    "bucket_ratio": 100.0,
+                    "window_seconds": 7200,
+                    "started_at": stale_started,
+                    "min_samples": 50,
+                },
+            )
+        )
+        await db.commit()
+
+    # 注：target_ref="retrieval" 上现有单在途提案，故先确保无其它在途（单在途不变量）。
+    # 直接调 _reap_stale_canary（绕过 _maybe_spawn 的单在途检查）
+    orch = orch_mod.EvolutionOrchestrator()
+    reaped = await orch._reap_stale_canary()
+    assert reaped >= 1
+
+    async with db_session.AsyncSessionLocal() as db:
+        row = (
+            await db.execute(
+                __import__("sqlalchemy").select(EvolutionProposal).where(EvolutionProposal.proposed_version == "9.9.10")
+            )
+        ).scalar_one()
+        assert row.status == STATUS_ROLLED_BACK
+        assert (row.canary_metrics or {}).get("reaped_reason") == REASON_STALE_CANARY
+        # 新 active 行 = 基线快照（rollback 翻转）
+        active = (
+            await db.execute(
+                __import__("sqlalchemy").select(MemoryConfigVersion).where(MemoryConfigVersion.is_active.is_(True))
+            )
+        ).scalar_one()
+        assert active.version == "9.9.10-rollback"  # 基线 9.9.9 经 _bump_patch(suffix="rollback")
+    # canary 缓存已失效（fetch_active_canary 不应再返回该 canary）
+    queries_mod.invalidate_canary_cache()  # 测试内直接清；REAP 路径已调过
+
+    # 清理
+    async with db_session.AsyncSessionLocal() as db:
+        await db.execute(delete(EvolutionProposal).where(EvolutionProposal.proposed_version.in_(("9.9.10",))))
+        await db.execute(
+            delete(MemoryConfigVersion).where(MemoryConfigVersion.version.in_(("9.9.9", "9.9.10-rollback")))
+        )
+        await db.execute(
+            update(MemoryConfigVersion)
+            .where(MemoryConfigVersion.config_scope == "retrieval", MemoryConfigVersion.version == "0.1.0")
+            .values(is_active=True)
+        )
+        await db.commit()
+    weights_mod.invalidate()

@@ -53,6 +53,34 @@ def test_pre_propose_check_inflight_skips():
 
 
 # ---------------------------------------------------------------------------
+# P0-2：is_canary_stale（canary 超时强制回收判定）
+# ---------------------------------------------------------------------------
+
+
+def test_is_canary_stale_true_when_over_max():
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime(2026, 7, 2, 13, 0, 0, tzinfo=UTC)
+    started = now - timedelta(seconds=22000)
+    assert d.is_canary_stale(started_at=started, now=now, max_seconds=21600) is True
+
+
+def test_is_canary_stale_false_within_window():
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime(2026, 7, 2, 13, 0, 0, tzinfo=UTC)
+    started = now - timedelta(seconds=1000)
+    assert d.is_canary_stale(started_at=started, now=now, max_seconds=21600) is False
+
+
+def test_is_canary_stale_no_started_at_is_false():
+    """started_at 缺失（异常态）→ 不强回收，留人查。"""
+    from datetime import UTC, datetime
+
+    assert d.is_canary_stale(started_at=None, now=datetime(2026, 7, 2, tzinfo=UTC), max_seconds=1) is False
+
+
+# ---------------------------------------------------------------------------
 # decide_shadow（准入闸：基线样本充足 + 提案在界内）
 # ---------------------------------------------------------------------------
 

@@ -61,3 +61,27 @@ def test_resolve_canary_override_active_path():
     )
     assert snap == {"semantic_weight": 0.7}
     assert ver == "0.1.0"
+
+
+# ---------------------------------------------------------------------------
+# P0-1：bucket_key 显式分桶键（解耦 routine 路径 "system" 同桶问题）
+# ---------------------------------------------------------------------------
+
+
+def test_bucket_index_explicit_key_wins_over_user():
+    """显式 bucket_key 优先于 user_id：不同 user 同 key → 同桶（routine 路径按 routine.id 分桶）。"""
+    a = c.bucket_index(None, "user-A", bucket_key="routine-1")
+    b = c.bucket_index(None, "user-B", bucket_key="routine-1")
+    assert a == b
+    assert 0 <= a < 100
+
+
+def test_bucket_index_different_keys_likely_different_buckets():
+    """不同 bucket_key 落不同桶分布（解耦后自治 routine 不再共用同桶）。"""
+    buckets = {c.bucket_index(None, "system", bucket_key=f"routine-{i}") for i in range(20)}
+    assert len(buckets) > 1
+
+
+def test_bucket_key_none_falls_back_to_user():
+    """向后兼容：bucket_key=None → 回退 user_id（旧路径逐字节等价）。"""
+    assert c.bucket_index(None, "u", bucket_key=None) == c.bucket_index(None, "u")
