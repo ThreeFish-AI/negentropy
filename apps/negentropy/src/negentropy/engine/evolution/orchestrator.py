@@ -34,6 +34,7 @@ from negentropy.logging import get_logger
 from negentropy.models.evolution import (
     STATUS_CANARY,
     STATUS_PROMOTED,
+    STATUS_RUNTIME_CANARY,
     STATUS_SHADOW_EVAL,
     EvolutionProposal,
 )
@@ -99,7 +100,7 @@ class EvolutionOrchestrator:
                 (
                     await db.execute(
                         sa.select(EvolutionProposal)
-                        .where(EvolutionProposal.status == STATUS_CANARY)
+                        .where(EvolutionProposal.status.in_((STATUS_CANARY, STATUS_RUNTIME_CANARY)))
                         .with_for_update(skip_locked=True)
                         .limit(_BATCH_LIMIT)
                     )
@@ -216,7 +217,7 @@ class EvolutionOrchestrator:
                 (
                     await db.execute(
                         sa.select(EvolutionProposal)
-                        .where(EvolutionProposal.status.in_((STATUS_SHADOW_EVAL, STATUS_CANARY)))
+                        .where(EvolutionProposal.status.in_((STATUS_SHADOW_EVAL, STATUS_CANARY, STATUS_RUNTIME_CANARY)))
                         .with_for_update(skip_locked=True)
                         .limit(_BATCH_LIMIT)
                     )
@@ -233,6 +234,8 @@ class EvolutionOrchestrator:
                     await handler.advance_shadow(db, p, now)
                 elif p.status == STATUS_CANARY:
                     await handler.advance_canary(db, p, now)
+                elif p.status == STATUS_RUNTIME_CANARY:
+                    await handler.advance_runtime_canary(db, p, now)
                 advanced += 1
             await db.commit()
             return advanced

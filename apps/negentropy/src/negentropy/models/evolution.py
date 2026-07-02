@@ -35,8 +35,8 @@ from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin
 
 
 def sa_text_non_terminal():
-    """部分唯一索引的 WHERE 子句：status 属于非终态集。"""
-    return _sa_text("status IN ('draft','shadow_eval','pending_approval','canary')")
+    """部分唯一索引的 WHERE 子句：status 属于非终态集（含 runtime_canary）。"""
+    return _sa_text("status IN ('draft','shadow_eval','pending_approval','canary','runtime_canary')")
 
 
 def sa_text_is_active_true():
@@ -66,6 +66,7 @@ STATUS_DRAFT = "draft"
 STATUS_SHADOW_EVAL = "shadow_eval"
 STATUS_PENDING_APPROVAL = "pending_approval"
 STATUS_CANARY = "canary"
+STATUS_RUNTIME_CANARY = "runtime_canary"  # 离线门通过后的在线分桶灰度窗口（综述 §9.3 受控发布）
 STATUS_PROMOTED = "promoted"
 STATUS_REJECTED = "rejected"
 STATUS_ROLLED_BACK = "rolled_back"
@@ -75,6 +76,7 @@ PROPOSAL_NON_TERMINAL: tuple[str, ...] = (
     STATUS_SHADOW_EVAL,
     STATUS_PENDING_APPROVAL,
     STATUS_CANARY,
+    STATUS_RUNTIME_CANARY,
 )
 PROPOSAL_TERMINAL: tuple[str, ...] = (STATUS_PROMOTED, STATUS_REJECTED, STATUS_ROLLED_BACK)
 

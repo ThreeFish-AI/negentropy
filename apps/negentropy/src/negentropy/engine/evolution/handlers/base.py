@@ -46,6 +46,13 @@ class TargetHandler(ABC):
     async def maybe_spawn(self) -> int:
         """单在途（per target_ref）+ 预算守卫 → bg 调 proposer 落 shadow_eval 提案行。返回 0|1。"""
 
+    async def advance_runtime_canary(self, db, proposal, now: datetime) -> None:
+        """runtime_canary 窗口到期 → 全量晋升（综述 §9.3 受控发布，R3-b）。
+
+        默认 no-op——仅 skill 面用（retrieval 的 canary 本就在线，不进 runtime_canary 状态）。
+        """
+        return None
+
     async def recheck_longitudinal(self, db, proposal, now: datetime):
         """纵向复评（综述 §8 #3 + §10.5 + §9.3 持续再认证）。
 

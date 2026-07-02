@@ -38,7 +38,13 @@ from negentropy.engine.evolution.decision import (
     improvement_efficiency,
     is_noop_template,
 )
-from negentropy.engine.evolution.handlers._shared import _bump_patch, _emit_evolution_event, _enter_canary
+from negentropy.engine.evolution.handlers._shared import (
+    _bump_patch,
+    _emit_evolution_event,
+    _enter_canary,
+    _enter_runtime_canary,
+    _parse_dt,
+)
 from negentropy.engine.evolution.proposer import _ProposerBase
 from negentropy.engine.utils.json_extract import loads_lenient
 from negentropy.logging import get_logger
@@ -335,7 +341,12 @@ class SkillTemplateHandler:
             # SI #6 safety non-regression 前置（综述 §8 + §9.3）：安全套件零回退方可晋升
             safety_dec = await self._check_safety_nonregression(db, proposal)
             if safety_dec is None or safety_dec.action == "promote":
-                await self._promote(db, proposal, now)
+                if settings.evolution.runtime_canary_enabled:
+                    # R3-b runtime canary：离线门通过 → 进入在线分桶灰度窗口（综述 §9.3 受控发布），
+                    # 窗口到期后再全量翻 active_version（advance_runtime_canary）
+                    _enter_runtime_canary(proposal, now)
+                else:
+                    await self._promote(db, proposal, now)
             else:
                 # 安全回退属高风险，不自动晋升，交人审
                 proposal.status = STATUS_PENDING_APPROVAL
@@ -374,6 +385,19 @@ class SkillTemplateHandler:
     async def rollback(self, db, proposal: EvolutionProposal, now: datetime) -> None:
         """抽象基类契约：REAP 超时强制回滚入口。"""
         await self._rollback(db, proposal, now, reason="stale_canary_timeout")
+
+    async def advance_runtime_canary(self, db, proposal: EvolutionProposal, now: datetime) -> None:
+        """runtime_canary 窗口到期 → 全量晋升（翻 ``active_version``）。
+
+        v1 为窗口到期即晋升（综述 §8 离线门已验证；在线 error-rate 门待 ``tool_invocations
+        .canary_assignment`` 标记接入后增强）。窗口未到期 → 留 runtime_canary 续跑。
+        """
+        started_at = _parse_dt((proposal.canary_config or {}).get("started_at"))
+        window = settings.evolution.runtime_canary_window_seconds
+        if started_at is not None and (now - started_at).total_seconds() < window:
+            return  # 窗口未到期
+        await self._promote(db, proposal, now)
+        logger.info("skill_runtime_canary_finalized", proposal_id=str(proposal.id))
 
     # ==================================================================
     # 纵向复评（综述 §8 #3 longitudinal stability + §10.5 + §9.3 持续再认证）

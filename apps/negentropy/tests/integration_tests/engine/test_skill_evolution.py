@@ -82,6 +82,8 @@ async def orch(monkeypatch):
             max_proposals_per_day=8,
             max_cost_usd_daily=None,
             proposer_model=None,
+            runtime_canary_enabled=False,
+            runtime_canary_window_seconds=3600,
         ),
     )
     monkeypatch.setattr(o, "settings", settings_ns)

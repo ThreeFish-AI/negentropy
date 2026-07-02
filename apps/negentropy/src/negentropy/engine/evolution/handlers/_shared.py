@@ -63,6 +63,21 @@ def _enter_canary(proposal, now: datetime) -> None:
     proposal.decided_at = now
 
 
+def _enter_runtime_canary(proposal, now: datetime) -> None:
+    """离线门通过 → 进入 runtime_canary 在线分桶灰度窗口（综述 §9.3 受控发布，R3-b）。
+
+    候选 version 经 ``skills_injector`` 按 ``bucket_ratio`` 分桶灰度；窗口到期后
+    ``advance_runtime_canary`` 全量翻 ``active_version``。
+    """
+    proposal.status = "runtime_canary"
+    proposal.canary_config = {
+        "bucket_ratio": settings.evolution.canary_bucket_ratio_pct,
+        "window_seconds": settings.evolution.runtime_canary_window_seconds,
+        "started_at": now.isoformat(),
+    }
+    proposal.decided_at = now
+
+
 def _summarize_metrics(m: dict[str, Any] | None) -> dict[str, Any] | None:
     if not m:
         return None

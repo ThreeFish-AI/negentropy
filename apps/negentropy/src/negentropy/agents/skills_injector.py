@@ -103,6 +103,7 @@ async def resolve_skills(
     skill_refs: Iterable[str] | None,
     *,
     owner_id: str,
+    bucket_key: str | None = None,
 ) -> list[ResolvedSkill]:
     """按 name 或 UUID 列表加载 Skills，并按所有权 / 可见性过滤。
 
@@ -172,6 +173,11 @@ async def resolve_skills(
         # → 退化为 "*"（当前字段），向后兼容。
         if spec == "*" and getattr(skill, "active_version", None):
             spec = f"=={skill.active_version}"
+        # Runtime canary 灰度路由（R3-b，综述 §9.3 受控发布）：未显式锁版本 + 提供分桶键 + 该 skill
+        # 有在途 runtime_canary 提案 + 命中桶 → 解析候选 version；否则保持 active_version。显式锁版本
+        # （name@semver）不被灰度覆盖。
+        if spec.startswith("==") and bucket_key:
+            spec = await _maybe_runtime_canary_override(skill, spec, bucket_key)
         snapshot = await _resolve_version_snapshot(session, skill, spec) if spec and spec != "*" else None
         if snapshot is not None:
             out.append(
@@ -307,6 +313,30 @@ async def _resolve_version_snapshot(session, skill: Skill, spec: str) -> dict[st
             error=str(exc),
         )
         return None
+
+
+async def _maybe_runtime_canary_override(skill, current_spec: str, bucket_key: str) -> str:
+    """Runtime canary 灰度路由（R3-b，综述 §9.3 受控发布）：命中桶的会话解析候选 version。
+
+    返回 ``f"=={proposed_version}"``（命中）或 ``current_spec``（未命中 / 无在途 canary / 查询失败）。
+    惰性 import ``fetch_active_skill_canary`` + ``bucket_index`` 避免循环依赖。
+    """
+    try:
+        from negentropy.engine.evolution.canary import bucket_index
+        from negentropy.engine.evolution.queries import fetch_active_skill_canary
+
+        canary = await fetch_active_skill_canary(skill.name)
+        if not canary:
+            return current_spec
+        ratio = float(canary.get("bucket_ratio_pct") or 0.0)
+        if ratio <= 0:
+            return current_spec
+        # bucket_index 默认按 thread_id/user_id 分桶；这里用 bucket_key（session.id / routine.id）
+        if bucket_index(None, None, bucket_key=bucket_key) < ratio:
+            return f"=={canary['proposed_version']}"
+    except Exception as exc:  # noqa: BLE001
+        _logger.debug("skill_runtime_canary_override_failed", skill=skill.name, error=str(exc))
+    return current_spec
 
 
 def format_skills_block(skills: list[ResolvedSkill]) -> str:
