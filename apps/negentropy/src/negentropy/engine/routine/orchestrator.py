@@ -32,7 +32,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -40,6 +40,7 @@ from sqlalchemy.orm.attributes import set_committed_value
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.mcp import McpServer, McpTool
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
@@ -725,6 +726,26 @@ class RoutineOrchestrator:
             # 故 PLAN 相位跳过门控（置空 verification_command），Judge 纯评估方案质量；
             # IMPLEMENT/FINALIZE 相位照常跑门控。
             skip_gate_in_plan = routine.current_phase == phase_mod.PHASE_PLAN
+            # Judge 历史锚定（纵向评估）：per-routine config 覆盖全局 settings。启用时在①段只读查询
+            # floored history（不含本轮——本轮 status='evaluating'，_evaluated_history 仅取 'evaluated'），
+            # 供 evaluator 注入 Judge prompt。③段 decide() 用的那次 history 因 autoflush 含本轮、语义不同，
+            # 不可复用。锚点内「历史最优」由纯函数取 floored history max(score)，不用 routine.best_score
+            # （跨 restart 不复位、会泄漏上次尝试旧高分）。
+            cfg = routine.config or {}
+            anchor_enabled = bool(cfg.get("judge_anchor_enabled", settings.routine.judge_anchor_enabled))
+            anchor_window = max(1, int(cfg.get("judge_anchor_window") or settings.routine.judge_anchor_window))
+            anchor_history: list[SimpleNamespace] = []
+            if anchor_enabled:
+                anchor_history = [
+                    SimpleNamespace(
+                        seq=it.seq,
+                        score=it.score,
+                        verdict=it.verdict,
+                        phase=it.phase,
+                        reflection=it.reflection,
+                    )
+                    for it in await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
+                ]
             routine_eval_view = SimpleNamespace(
                 goal=routine.goal,
                 acceptance_criteria=routine.acceptance_criteria,
@@ -738,6 +759,8 @@ class RoutineOrchestrator:
                 # per-routine Judge 模型覆盖（None → 用评估器实例默认全局 task 模型）。高风险复刻类
                 # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（ISSUE-121）。
                 evaluator_model=(routine.config or {}).get("evaluator_model"),
+                # per-routine 锚点轨迹窗口覆盖（None → 用评估器默认 5）。
+                judge_anchor_window=anchor_window,
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,
@@ -748,7 +771,7 @@ class RoutineOrchestrator:
         # ② 跑 gate + LLM Judge（带整体兜底超时；gate/judge 各自亦有独立超时）
         try:
             result = await asyncio.wait_for(
-                self._evaluator.evaluate(routine_eval_view, iter_eval_view),
+                self._evaluator.evaluate(routine_eval_view, iter_eval_view, history=anchor_history or None),
                 timeout=self._eval_guard_seconds(),
             )
         except TimeoutError:
@@ -797,6 +820,13 @@ class RoutineOrchestrator:
             latest.gate_exit_code = result.gate_exit_code
             latest.status = "evaluated"
             latest.lease_expires_at = None
+            # 锚定评估审计：把 Judge 实际看到的锚点摘要 + progress_evidence 落 metrics JSONB，
+            # 供 UI/后溯对照锚定前后评分方差。沿用 merge 范式保留 eval_attempts 等既有键。
+            if result.anchor is not None:
+                latest.metrics = {
+                    **(latest.metrics or {}),
+                    "judge_anchor": {**result.anchor, "progress_evidence": result.progress_evidence},
+                }
 
             # 更新 routine 反规范化评分 + 追加反思
             routine.last_score = result.score
@@ -835,6 +865,9 @@ class RoutineOrchestrator:
                 # 防一次早期运气高点致正常振荡永远清不过历史最优 → 假阳性 no_progress 误杀。
                 # max(0,...) 防负值反向收紧；缺失键 → 0 退化原点态比较（向后兼容）。
                 no_progress_score_tolerance=max(0, int((routine.config or {}).get("no_progress_score_tolerance") or 0)),
+                # per-routine 量化振荡最小振幅（opt-in，默认 0=仅原 verdict 交替判定）。
+                # 用于「Judge 锚定降振荡后仍剧烈 thrash」的兜底；与 no_progress_tolerance 存在张力，慎用。
+                oscillation_min_amplitude=max(0, int((routine.config or {}).get("oscillation_min_amplitude") or 0)),
             )
             if phased_flow:
                 self._advance_phase_or_terminate(routine, verdict, finalize_noop=finalize_noop)
@@ -850,6 +883,10 @@ class RoutineOrchestrator:
             owner_id = routine.owner_id
             routine_goal = routine.goal
             routine_criteria = routine.acceptance_criteria
+            # 终态溯源快照（commit 后 termination_reason/status 已写定；repository_id 供同 repo 失败教训检索）。
+            routine_status_snap = routine.status
+            termination_reason_snap = routine.termination_reason
+            repository_id_snap = str(routine.repository_id) if routine.repository_id else None
             iteration_snap = {
                 "seq": latest.seq,
                 "score": latest.score,
@@ -859,6 +896,8 @@ class RoutineOrchestrator:
                 "gate_exit_code": latest.gate_exit_code,
                 "prompt": latest.prompt,
             }
+            # 检索反馈闭环锚点：本轮 dispatch 时写入 metrics.memory_injection（retrieval_log_id/memory_ids）。
+            injection_meta_snap = (latest.metrics or {}).get("memory_injection")
             history_snap = [
                 {
                     "seq": it.seq,
@@ -896,6 +935,18 @@ class RoutineOrchestrator:
                 iteration_snap,
                 history_snap,
                 was_running_before_commit,
+                routine_status=routine_status_snap,
+                termination_reason=termination_reason_snap,
+                repository_id=repository_id_snap,
+            )
+            # 检索反馈闭环（fire-and-forget）：解析本轮产出引用、回写 outcome 激活 Rocchio 调权。
+            # 不读 EvaluationResult 任何字段，与 Judge 锚定改造零冲突。
+            asyncio.create_task(
+                self._fire_reference_feedback(
+                    summary=iteration_snap.get("summary"),
+                    verdict=iteration_snap.get("verdict"),
+                    injection_meta=injection_meta_snap,
+                )
             )
 
     async def _find_routines_pending_eval(self, db: AsyncSession) -> list[UUID]:
@@ -1015,9 +1066,11 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 # prompt 在 ensure 之后构建，使 FINALIZE 具体命令与工作区上下文可引用 work_branch。
-                # 记忆注入：从 Memory Module 检索相关经验记忆。
-                memory_ctx = (
-                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
+                # 记忆注入：从 Memory Module 检索相关经验记忆 + 反馈闭环元数据（retrieval_log_id/memory_ids）。
+                memory_ctx, memory_injection_meta = (
+                    await self._retrieve_memory_context(routine)
+                    if settings.routine.memory_injection_enabled
+                    else (None, None)
                 )
                 prompt = build_prompt(
                     routine,
@@ -1032,6 +1085,8 @@ class RoutineOrchestrator:
                     phase=routine.current_phase,
                     prompt=prompt,
                     resume_session_id=routine.claude_session_id,
+                    # 反馈闭环锚点：评估期解析产出引用、回写 outcome_feedback 读取此键。
+                    metrics={"memory_injection": memory_injection_meta} if memory_injection_meta else None,
                 )
                 db.add(iteration)
                 await db.flush()  # 取 iteration.id
@@ -1101,13 +1156,11 @@ class RoutineOrchestrator:
                 mcp_meta = await self._resolve_mcp_meta(db, cwd=routine.cwd)
                 if mcp_meta:
                     it.metrics = {**(it.metrics or {}), "mcp_servers": mcp_meta}
-                # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
-                memory_ctx_approved = (
-                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
-                )
-                prompt = it.prompt or build_prompt(
-                    routine, memory_context=memory_ctx_approved, kb_retrieval=_kb_retrieval_available()
-                )
+                # 记忆注入：iteration 创建时（_dispatch_due）已写入 memory_injection meta 并把记忆
+                # 织入 prompt；此处不再重复检索——原先的 re-fetch 因 ``it.prompt`` 恒非空、
+                # ``it.prompt or build_prompt(...)`` 永不走 rebuild，属白落 retrieval log 的死代码
+                # （且会被评估期零引用规则误判 irrelevant，污染 Rocchio 调权）。
+                prompt = it.prompt or build_prompt(routine, kb_retrieval=_kb_retrieval_available())
                 launch_specs.append((it.id, routine.id, prompt, config))
                 dirty = True  # _ensure_workspace 在 routine 上写入了 worktree_path/work_branch
                 slots -= 1
@@ -1247,6 +1300,8 @@ class RoutineOrchestrator:
                     goal=routine.goal or "",
                     acceptance_criteria=routine.acceptance_criteria or "",
                     owner_id=routine.owner_id,
+                    status=routine.status,
+                    termination_reason=routine.termination_reason,
                 )
                 result = await extractor.extract_on_termination(routine_proxy, history_snap)
                 if not result.memories:
@@ -1261,6 +1316,9 @@ class RoutineOrchestrator:
                         "verdict": history[-1].verdict,
                     },
                     result=result,
+                    routine_status=routine.status,
+                    termination_reason=routine.termination_reason,
+                    repository_id=str(routine.repository_id) if routine.repository_id else None,
                 )
                 logger.info(
                     "routine_memories_extracted",
@@ -1300,6 +1358,9 @@ class RoutineOrchestrator:
         iteration_snap: dict,
         history_snap: list[dict],
         was_running_before_commit: bool,
+        routine_status: str | None = None,
+        termination_reason: str | None = None,
+        repository_id: str | None = None,
     ) -> None:
         """Fire-and-forget 记忆提取：在 commit 后发起，不阻塞 inspector handler。
 
@@ -1318,6 +1379,9 @@ class RoutineOrchestrator:
                 iteration_snap=iteration_snap,
                 history_snap=history_snap,
                 was_running_before_commit=was_running_before_commit,
+                routine_status=routine_status,
+                termination_reason=termination_reason,
+                repository_id=repository_id,
             )
         )
         self._bg_extraction_tasks.add(task)
@@ -1334,6 +1398,9 @@ class RoutineOrchestrator:
         iteration_snap: dict,
         history_snap: list[dict],
         was_running_before_commit: bool,
+        routine_status: str | None = None,
+        termination_reason: str | None = None,
+        repository_id: str | None = None,
     ) -> None:
         """后台记忆提取协程（由 ``_fire_memory_extraction`` 调度）。
 
@@ -1362,6 +1429,8 @@ class RoutineOrchestrator:
                 goal=routine_goal or "",
                 acceptance_criteria=routine_criteria or "",
                 owner_id=owner_id,
+                status=routine_status or "",
+                termination_reason=termination_reason or "",
             )
             iter_proxy = SimpleNamespace(
                 seq=iteration_snap.get("seq"),
@@ -1389,6 +1458,9 @@ class RoutineOrchestrator:
                 owner_id=owner_id,
                 iteration_snap=iteration_snap,
                 result=result,
+                routine_status=routine_status,
+                termination_reason=termination_reason,
+                repository_id=repository_id,
             )
 
             logger.info(
@@ -1412,6 +1484,9 @@ class RoutineOrchestrator:
         owner_id: str | None,
         iteration_snap: dict,
         result: MemoryExtractionResult,
+        routine_status: str | None = None,
+        termination_reason: str | None = None,
+        repository_id: str | None = None,
     ) -> None:
         """将提取的记忆通过 PostgresMemoryService 写入 Memory Module（纯数据参数版）。"""
         from negentropy.engine.factories.memory import get_memory_service
@@ -1432,6 +1507,13 @@ class RoutineOrchestrator:
                 "iteration_verdict": verdict,
                 "decay_override": decay,
             }
+            # 终态溯源（D 的识别地基）：失败 reason 让同 repo 后续 routine 可确定性检索到失败教训。
+            if routine_status is not None:
+                metadata["routine_status"] = routine_status
+            if termination_reason is not None:
+                metadata["termination_reason"] = termination_reason
+            if repository_id is not None:
+                metadata["repository_id"] = repository_id
             await mem_service.add_memory_typed(
                 user_id=owner_id or "system",
                 app_name=settings.app_name,
@@ -1439,6 +1521,9 @@ class RoutineOrchestrator:
                 content=m.content,
                 memory_type=m.memory_type,
                 metadata=metadata,
+                # 写入准入去重（综述 §4.3.1 admission）：命中既有近似记忆 → touch 既有行而非新增，
+                # 抑制同模板 routine（如每文档一个巡检）近似经验线性累积、restart 重复沉淀。
+                dedupe=True,
             )
 
     # ------------------------------------------------------------------
@@ -1468,10 +1553,18 @@ class RoutineOrchestrator:
                 texts.append(str(text))
         return "\n".join(texts)
 
-    async def _retrieve_memory_context(self, routine: Routine) -> str | None:
+    async def _retrieve_memory_context(self, routine: Routine) -> tuple[str | None, dict | None]:
         """从 Memory Module 检索与当前 routine 目标相关的经验记忆。
 
-        返回格式化的记忆文本（用于注入 prompt），或 None。
+        返回 ``(context_text, injection_meta)``：
+        - ``context_text``：格式化的记忆文本（注入 prompt），或 None；
+        - ``injection_meta``：``{"retrieval_log_id", "memory_ids"}`` 供评估期反馈闭环消费，或 None。
+          ``memory_ids`` 为注入记忆 id8 短码集，供 ``_fire_reference_feedback`` 与产出引用求交防伪引用。
+
+        两段注入：① 语义混合检索 top5（Reflexion）；② 同 repository 失败教训确定性补充——
+        按 ``metadata.repository_id`` + ``termination_reason ∈ {失败原因}`` 拉最近 2 条终态教训，
+        与语义命中按 id 去重后合并（行前缀「⚠ 失败教训」）。语义检索的 outcome 反馈只覆盖语义段
+        （retrieval_log_id 不附带在失败教训行上，避免把确定性注入计入 Rocchio 噪声统计）。
         """
         try:
             from negentropy.engine.factories.memory import get_memory_service
@@ -1484,16 +1577,23 @@ class RoutineOrchestrator:
                 query=query,
                 limit=5,
             )
-            if not response or not response.memories:
-                return None
 
             # 引用规范：每条记忆行附 Memory id 短码 + 日期 + Routine 溯源（routine_key/迭代序号），
             # 使 Executor (Claude Code) 能在产出中按「依据 Memory <id8> (<日期>)」标注来源并附原文摘录。
             lines: list[str] = []
-            for entry in response.memories[:5]:
+            memory_id8s: list[str] = []
+            retrieval_log_id: str | None = None
+            seen_id8s: set[str] = set()
+            for entry in (response.memories if response and response.memories else [])[:5]:
                 meta = entry.custom_metadata or {}
                 type_label = meta.get("memory_type", "episodic") if isinstance(meta, dict) else "episodic"
                 mem_id8 = str(getattr(entry, "id", "") or "")[:8] or "unknown"
+                memory_id8s.append(mem_id8)
+                seen_id8s.add(mem_id8)
+                # 检索日志行 ID 由 search_memory 注入 metadata（hybrid/vector 主路径），
+                # 供评估期解析产出引用、回写 outcome_feedback（激活 Rocchio 调权管道）。
+                if isinstance(meta, dict) and retrieval_log_id is None:
+                    retrieval_log_id = meta.get("retrieval_log_id")
                 date = str(getattr(entry, "timestamp", "") or "")[:10]
                 prefix = f"[{type_label}] Memory {mem_id8}" + (f" ({date})" if date else "")
                 # 从 metadata_ 提取来源信息
@@ -1506,14 +1606,133 @@ class RoutineOrchestrator:
                 content = self._memory_entry_text(entry)[:200]
                 lines.append(f"- {prefix}: {content}")
 
-            return "\n".join(lines) if lines else None
+            # ② 同 repository 失败教训确定性补充段（D）：让前一个 routine 的失败教训被后续同 repo routine
+            # 可靠看到（语义检索的 owner+app scope 不保证覆盖）。仅 repository_id 非空时触发。
+            repo_id = getattr(routine, "repository_id", None)
+            if repo_id:
+                try:
+                    failure_rows = await self._fetch_repo_failure_lessons(
+                        user_id=routine.owner_id or "system",
+                        repository_id=str(repo_id),
+                        limit=2,
+                    )
+                    for row in failure_rows:
+                        fid8 = str(row["id"])[:8]
+                        if fid8 in seen_id8s:
+                            continue  # 与语义命中去重
+                        seen_id8s.add(fid8)
+                        memory_id8s.append(fid8)
+                        content = (row.get("content") or "")[:200]
+                        lines.append(f"- ⚠ 失败教训 Memory {fid8}（{row.get('termination_reason', '')}）: {content}")
+                except Exception as exc:
+                    logger.debug("routine_repo_failure_lessons_failed", routine_id=str(routine.id), error=str(exc))
+
+            context_text = "\n".join(lines) if lines else None
+            injection_meta = (
+                {
+                    "retrieval_log_id": retrieval_log_id,
+                    "memory_ids": memory_id8s,
+                }
+                if context_text
+                else None
+            )
+            return context_text, injection_meta
         except Exception as exc:
             logger.warning(
                 "routine_memory_injection_failed",
                 routine_id=str(routine.id),
                 error=str(exc),
             )
-            return None
+            return None, None
+
+    async def _fetch_repo_failure_lessons(self, *, user_id: str, repository_id: str, limit: int = 2) -> list[dict]:
+        """拉同 repository 的失败终态教训（metadata.termination_reason ∈ 失败原因，最近 N 条）。
+
+        确定性补充检索——语义 top5 不保证覆盖同 repo 失败教训（owner/app scope + 语义偶然性 + 7 天清理）。
+        失败 reason 集对齐 decision.REASON_NO_PROGRESS/OSCILLATION/UNRECOVERABLE。raw SQL 查 JSONB metadata。
+        """
+        sql = text(
+            f"""
+            SELECT id, content, metadata #>> '{{termination_reason}}' AS termination_reason
+            FROM {NEGENTROPY_SCHEMA}.memories
+            WHERE user_id = :user_id
+              AND app_name = :app_name
+              AND metadata ->> 'repository_id' = :repository_id
+              AND metadata ->> 'termination_reason' IN ('no_progress', 'oscillation', 'unrecoverable_error')
+            ORDER BY created_at DESC
+            LIMIT :limit
+            """
+        )
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(
+                sql,
+                {
+                    "user_id": user_id,
+                    "app_name": settings.app_name,
+                    "repository_id": repository_id,
+                    "limit": limit,
+                },
+            )
+            return [dict(r._mapping) for r in result.fetchall()]
+
+    async def _fire_reference_feedback(
+        self,
+        *,
+        summary: str | None,
+        verdict: str | None,
+        injection_meta: dict | None,
+    ) -> None:
+        """解析本轮产出中的 Memory 引用，回写检索日志的 was_referenced / outcome_feedback。
+
+        闭合「检索→引用→效果」反馈环（激活既有 Rocchio 调权管道，已建成只缺反馈源）。
+        - 引用解析：``依据 Memory <id8>`` / ``[Memory <id8>, ...]``，与注入 ``memory_ids`` 前缀求交
+          防伪引用；
+        - outcome 保守映射（归因宁缺勿滥）：
+          * 有引用且 verdict∈{pass, progressing} → helpful；
+          * 注入非空且零引用 → irrelevant（检索噪声的直接信号；Rocchio 弱负反馈平滑单次误差）；
+          * 有引用但 regressed/stalled → 不写（归因歧义）。
+        - 任一环节失败 fail-soft（不阻塞评估主路径）。
+        """
+        if not settings.routine.memory_feedback_enabled or not injection_meta:
+            return
+        log_id_raw = injection_meta.get("retrieval_log_id")
+        injected_id8s = injection_meta.get("memory_ids") or []
+        if not log_id_raw or not injected_id8s:
+            return
+        try:
+            log_id = UUID(str(log_id_raw))
+        except (ValueError, TypeError, AttributeError):
+            return
+
+        # 解析产出中的引用 id8（两种格式 + 宽容变体）
+        import re
+
+        text = summary or ""
+        cited = set()
+        for pat in (
+            r"依据\s*[Mm]emory\s+([0-9a-fA-F]{8})",
+            r"\[\s*[Mm]emory\s+([0-9a-fA-F]{8})",
+            r"\b[Mm]emory\s+([0-9a-fA-F]{8})\b",
+        ):
+            cited.update(m.group(1).lower() for m in re.finditer(pat, text))
+        # 与注入集求交（防伪引用——只认本轮实际注入的记忆）
+        cited_injected = {i.lower() for i in injected_id8s} & cited
+
+        try:
+            from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+            tracker = RetrievalTracker()
+            if cited_injected:
+                await tracker.mark_referenced(log_id, reference_count=len(cited_injected))
+            # outcome 映射
+            v = (verdict or "").lower()
+            if cited_injected and v in ("pass", "progressing"):
+                await tracker.record_feedback(log_id, "helpful")
+            elif not cited_injected and v in ("pass", "progressing", "regressed", "stalled"):
+                # 注入非空但零引用：仅在被注入过、且本轮有产出 verdict 时记为噪声
+                await tracker.record_feedback(log_id, "irrelevant")
+        except Exception as exc:
+            logger.warning("routine_memory_feedback_failed", log_id=str(log_id), error=str(exc))
 
     async def _hydrate_effective_repo(self, db: AsyncSession, routine: Routine) -> None:
         """把关联 Repository 的 local_path/baseline_branch 注入内存 routine（单一事实源）。
@@ -1990,6 +2209,8 @@ class RoutineOrchestrator:
                     "score": result.score,
                     "verdict": result.verdict,
                     "reflection": result.reflection,
+                    # 锚定评估的「证据先于给分」陈述（未启用锚定时为 None）。纯加键，UI 审计可见。
+                    "progress_evidence": result.progress_evidence,
                     "prompt": _cap(result.judge_prompt or ""),
                     "raw": _cap(result.judge_raw or ""),
                     "error": result.error,

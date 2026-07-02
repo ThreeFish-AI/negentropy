@@ -527,3 +527,60 @@ class TestConsolidationHandler:
         assert result.status == "ok"
         assert isinstance(captured_params["lookback"], timedelta)
         assert captured_params["lookback"] == timedelta(hours=1)
+
+
+class TestCleanupHandler:
+    """覆盖 _run_cleanup：验证 decay_override 进 SQL、阈值/年龄透传、DELETE rowcount 返回。"""
+
+    @pytest.mark.asyncio
+    async def test_cleanup_honors_decay_override_and_returns_rowcount(self, monkeypatch):
+        """_run_cleanup 应使用内联 SQL（含 COALESCE decay_override）并返回 DELETE rowcount。
+
+        回归 SQL 存储函数原先平坦 λ=0.1 致 decay_override 沦为死配置的断点。
+        """
+        from negentropy.engine.schedulers.handlers.memory_automation import _run_cleanup
+
+        captured: dict = {}
+
+        class _Result:
+            rowcount = 7
+
+            def first(self):
+                return None
+
+        class _SpySession:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            async def execute(self, stmt, params=None):
+                # 两次执行：UPDATE（含 decay_lambda）→ DELETE（含 threshold/min_age_days）
+                captured.setdefault("calls", []).append((str(stmt), dict(params or {})))
+                return _Result()
+
+            async def commit(self):
+                pass
+
+        monkeypatch.setattr(
+            "negentropy.engine.schedulers.handlers.memory_automation.AsyncSessionLocal",
+            lambda: _SpySession(),
+        )
+
+        task = _make_task(
+            "memory_automation",
+            payload={"job_type": "cleanup_memories", "threshold": 0.1, "min_age_days": 7, "decay_lambda": 0.1},
+        )
+        result = await _run_cleanup(task)
+
+        assert result.status == "ok"
+        assert result.metrics["deleted"] == 7
+        # UPDATE 语句含 COALESCE decay_override（修复核心）
+        update_sql = captured["calls"][0][0]
+        assert "decay_override" in update_sql
+        assert captured["calls"][0][1]["decay_lambda"] == 0.1
+        # DELETE 语句透传阈值/年龄
+        delete_sql = captured["calls"][1][0]
+        assert "retention_score" in delete_sql
+        assert captured["calls"][1][1] == {"threshold": 0.1, "min_age_days": 7}

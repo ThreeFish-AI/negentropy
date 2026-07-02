@@ -308,3 +308,20 @@ class TestBuildTerminationPrompt:
         assert "迭代 #2" in prompt
         assert "succeeded" in prompt
         assert "success" in prompt
+
+    def test_termination_prompt_failure_branch_adds_three_part_instructions(self, extractor):
+        """失败 reason（no_progress/oscillation/unrecoverable_error）注入三段式教训附加指令。"""
+        history = [_FakeIteration(seq=1, score=40, verdict="stalled")]
+        for reason in ("no_progress", "oscillation", "unrecoverable_error"):
+            routine = _FakeRoutine(status="failed", termination_reason=reason)
+            prompt = IterationMemoryExtractor._build_termination_prompt(routine, history)
+            assert "失败教训专项要求" in prompt
+            assert "教训" in prompt and "根因" in prompt and "下次行动目标" in prompt
+
+    def test_termination_prompt_success_branch_no_failure_instructions(self, extractor):
+        """成功/预算类终止 reason 不注入失败教训指令。"""
+        history = [_FakeIteration(seq=1, score=92, verdict="pass")]
+        for reason in ("success", "max_iterations", "max_cost", "deadline"):
+            routine = _FakeRoutine(status="succeeded" if reason == "success" else "failed", termination_reason=reason)
+            prompt = IterationMemoryExtractor._build_termination_prompt(routine, history)
+            assert "失败教训专项要求" not in prompt

@@ -104,10 +104,10 @@ async def test_run_gate_passes_through_exit_code():
 
 
 def _parse_returns(monkeypatch, *, score, verdict, acceptance_met):
-    """把 evaluator._judge 替换为返回固定 (score,verdict,reflection,raw,acceptance_met) 的桩。"""
+    """把 evaluator._judge 替换为返回固定 (score,verdict,reflection,raw,acceptance_met,progress_evidence) 的桩。"""
 
     async def _stub(self, prompt, *, model_override=None):
-        return score, verdict, "r", "{}", acceptance_met
+        return score, verdict, "r", "{}", acceptance_met, None
 
     monkeypatch.setattr(RoutineEvaluator, "_judge", _stub)
 

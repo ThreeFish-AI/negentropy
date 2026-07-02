@@ -92,6 +92,8 @@ def test_build_routine_config_shape():
     # 巡检完成判据含「仅剩 unfixable 即 done」carve-out，threshold=100 与 Judge 评分尺度失配，
     # 故开启 accept_verdict_pass 旁路让 Judge 的 pass 成为第二成功通道（防 no_progress 误判 failed）
     assert cfg["accept_verdict_pass"] is True
+    # Judge 历史锚定显式启用：巡检 ±20 振荡的根因之一是无锚点独立重打分，锚定使评分带 delta 证据。
+    assert cfg["judge_anchor_enabled"] is True
 
 
 def test_build_routine_config_extra_override():

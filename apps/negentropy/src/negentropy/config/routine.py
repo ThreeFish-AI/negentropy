@@ -65,6 +65,20 @@ class RoutineSettings(BaseSettings):
         "退化原行为）。>0 时把「未满足 Acceptance 即封顶」由散文规则提升为引擎机制，防小模型评分越线。"
         "per-routine 可经 config.acceptance_unmet_score_cap 覆盖。",
     )
+    judge_anchor_enabled: bool = Field(
+        default=True,
+        description="启用 Judge 历史锚定（纵向评估）：评估时向 LLM-as-Judge 注入近 K 轮评分轨迹、"
+        "本次尝试历史最优与上轮反思，要求先陈述相对上轮的进展/退步证据（progress_evidence）再给分、"
+        "评分须与轨迹一致——抑制单点独立重打分导致的 ±20 天然振荡（no_progress/oscillation 误杀根因）。"
+        "首轮无历史时提示词与原版逐字节一致。per-routine 可经 config.judge_anchor_enabled 覆盖关闭。",
+    )
+    judge_anchor_window: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="锚点轨迹窗口：注入 Judge 的近 K 轮 (seq, score, verdict)。"
+        "per-routine 可经 config.judge_anchor_window 覆盖。",
+    )
     max_reflections_injected: int = Field(
         default=5, ge=1, le=50, description="注入下一次迭代 prompt 的最近反思条数（Reflexion 窗口）"
     )
@@ -285,6 +299,13 @@ class RoutineSettings(BaseSettings):
     memory_injection_enabled: bool = Field(
         default=True,
         description="启用记忆注入：派发迭代时从 Memory Module 检索相关记忆注入 prompt。",
+    )
+    memory_feedback_enabled: bool = Field(
+        default=True,
+        description="启用记忆检索反馈闭环：评估期解析产出中 `依据 Memory <id8>` 引用 → was_referenced；"
+        "并据本轮 verdict 粗粒度回写 outcome_feedback（cited+pass/progressing→helpful；"
+        "注入非空且零引用→irrelevant；cited+regressed/stalled→不写）。激活既有 Rocchio 调权管道。"
+        "Rocchio min_count=3、γ=0.15 天然平滑单次误差；关闭则不解析、不回写。",
     )
     memory_injection_max_tokens: int = Field(
         default=500,
