@@ -55,6 +55,7 @@ def sa_text_partition_holdout():
 # eval_suites.target_kind / eval_runs.target_kind —— 待评测对象类型（与 evolution 子系统
 # target_kind 语义对齐但独立白名单：评测可覆盖尚未接入进化的对象）。
 TARGET_KIND_SKILL = "skill"
+TARGET_KIND_MEMORY_PIPELINE_PROMPT = "memory_pipeline_prompt"
 TARGET_KIND_AGENT = "agent"
 TARGET_KIND_MEMORY_RETRIEVAL = "memory_retrieval"
 TARGET_KIND_KNOWLEDGE_RETRIEVAL = "knowledge_retrieval"
@@ -64,6 +65,7 @@ TARGET_KIND_PIPELINE = "pipeline"
 TARGET_KIND_KG_EXTRACTION = "kg_extraction"
 ALLOWED_EVAL_TARGET_KINDS: tuple[str, ...] = (
     TARGET_KIND_SKILL,
+    TARGET_KIND_MEMORY_PIPELINE_PROMPT,
     TARGET_KIND_AGENT,
     TARGET_KIND_MEMORY_RETRIEVAL,
     TARGET_KIND_KNOWLEDGE_RETRIEVAL,

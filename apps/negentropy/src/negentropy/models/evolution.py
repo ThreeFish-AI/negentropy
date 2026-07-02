@@ -48,10 +48,16 @@ def sa_text_is_active_true():
 # 白名单常量（代码层单一事实源；新增 target_kind 在此追加）
 # =============================================================================
 
-# target_kind —— retrieval_config（记忆检索权重）+ skill_template（Skill prompt 进化）
+# target_kind —— retrieval_config（检索权重）/ skill_template（Skill prompt）
+#                / memory_pipeline_prompt（抽取·反思·摘要 prompt）
 TARGET_KIND_RETRIEVAL_CONFIG = "retrieval_config"
 TARGET_KIND_SKILL_TEMPLATE = "skill_template"
-ALLOWED_TARGET_KINDS: tuple[str, ...] = (TARGET_KIND_RETRIEVAL_CONFIG, TARGET_KIND_SKILL_TEMPLATE)
+TARGET_KIND_MEMORY_PIPELINE_PROMPT = "memory_pipeline_prompt"
+ALLOWED_TARGET_KINDS: tuple[str, ...] = (
+    TARGET_KIND_RETRIEVAL_CONFIG,
+    TARGET_KIND_SKILL_TEMPLATE,
+    TARGET_KIND_MEMORY_PIPELINE_PROMPT,
+)
 
 # target_ref —— retrieval_config 面 = config_scope（如 "retrieval"）
 

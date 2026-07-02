@@ -42,6 +42,11 @@ class EvolutionSettings(BaseSettings):
         default=False,
         description="skill_template 面 proposer 子开关（GEPA 变异 prompt_template）；默认关，独立于 retrieval 面。",
     )
+    memory_pipeline_enabled: bool = Field(
+        default=False,
+        description="memory_pipeline_prompt 面 proposer 子开关（GEPA 变异 extractor/reflection/summarizer"
+        " prompt）；默认关。",
+    )
 
     inspector_interval_seconds: int = Field(default=300, ge=60, description="evolution_inspector 心跳 tick 间隔（秒）")
     shadow_window_seconds: int = Field(default=3600, ge=300, description="shadow eval 聚合 active 配置的回溯窗口（秒）")

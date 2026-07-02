@@ -193,6 +193,47 @@ class AgentLoopExecutor:
         return CaseOutput(body=body or "(agent 未产出)", digest=_sha12(body or ""))
 
 
+class PromptExecutor:
+    """memory_pipeline_prompt 面 executor——跑候选 prompt 抽取/反思，Judge 评产出质量。
+
+    ``target_ref`` = ``memory_config_versions.config_scope``（如 ``pipeline_prompt``）；
+    ``target_version`` = 该 scope 下的 SemVer。从 ``memory_config_versions`` 取候选 snapshot.prompt，
+    在 case 的 ``sample_text`` 上执行一次 LLM 生成，Judge 评产出（如抽取的事实是否覆盖 expected）。
+    用于把综述 §3.5 的 Evolution 范式从 skill 推广到记忆管线 prompt（第三进化面，证明 ``TargetHandler``
+    抽象 + eval 基座 target-agnostic）。
+    """
+
+    def __init__(self, *, model_override: str | None = None) -> None:
+        self._model_override = model_override
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        from negentropy.db import session as db_session
+        from negentropy.models.evolution import MemoryConfigVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(MemoryConfigVersion).where(
+                        MemoryConfigVersion.config_scope == target_ref,
+                        MemoryConfigVersion.version == target_version,
+                    )
+                )
+            ).scalar_one_or_none()
+            prompt = (dict(row.snapshot or {}).get("prompt") if row else None) or ""
+        sample_text = str((case_input or {}).get("sample_text") or (case_input or {}).get("task") or "")
+        body = await _conditioned_generate(
+            system_prompt=prompt, user_task=sample_text, model_override=self._model_override
+        )
+        return CaseOutput(body=body or "(pipeline 未产出)", digest=_sha12(body or ""))
+
+
 async def _conditioned_generate(*, system_prompt: str, user_task: str, model_override: str | None) -> str:
     """单轮 LLM 生成（system=skill prompt，user=case task）。失败返回空串。"""
     import litellm
