@@ -165,6 +165,10 @@ class MemoryRetrievalLog(Base, UUIDMixin):
     was_referenced: Mapped[bool | None] = mapped_column()
     reference_count: Mapped[int | None] = mapped_column(Integer, default=0, server_default="0")
     outcome_feedback: Mapped[str | None] = mapped_column(String(50))
+    # 进化子系统（迁移 0081）：本次检索所用的 memory_config_versions.version，供 shadow eval
+    # 按配置版本分桶对比；非进化路径写 NULL（历史行亦为 NULL）。
+    config_version: Mapped[str | None] = mapped_column(String(50))
+    strategy: Mapped[str | None] = mapped_column(String(32), comment="hybrid|vector|keyword|ilike")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     __table_args__ = (

@@ -183,6 +183,7 @@ def _bootstrap_default_handlers() -> None:
         "claude_code",
         "routine_inspector",
         "pdf_fidelity_patrol",
+        "evolution_inspector",
     ):
         try:
             __import__(f"negentropy.engine.schedulers.handlers.{module_name}")
