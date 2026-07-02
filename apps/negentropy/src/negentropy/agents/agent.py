@@ -2,6 +2,10 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.llm_request import LlmRequest
 
+from negentropy.engine.observability.tool_telemetry import (
+    make_after_tool_callback,
+    make_before_tool_callback,
+)
 from negentropy.engine.utils.action_intent import classify as classify_action_intent
 from negentropy.logging import get_logger
 
@@ -231,6 +235,9 @@ root_agent = LlmAgent(
     # Model configured via unified settings (see config/llm.py)
     model=create_root_model(),
     before_model_callback=_pick_root_model,
+    # 工具调用遥测（Phase 1 遥测地基）：灰度关时 make_* 返回 None，agent 不挂载，零开销。
+    before_tool_callback=make_before_tool_callback(),
+    after_tool_callback=make_after_tool_callback(),
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
     # Instruction 由 agents.system_prompt 经 InstructionProvider 在运行时解析；
     # DB 未命中或失败时回退到 _ROOT_INSTRUCTION 常量，永不阻塞请求。
