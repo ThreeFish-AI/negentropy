@@ -45,3 +45,14 @@ class TargetHandler(ABC):
     @abstractmethod
     async def maybe_spawn(self) -> int:
         """单在途（per target_ref）+ 预算守卫 → bg 调 proposer 落 shadow_eval 提案行。返回 0|1。"""
+
+    async def recheck_longitudinal(self, db, proposal, now: datetime):
+        """纵向复评（综述 §8 #3 + §10.5 + §9.3 持续再认证）。
+
+        默认 no-op（返回 ``skip``）——无离线 eval 基座的面（如 retrieval 用在线 window 指标）
+        不经此路径。有 eval 基座的面（skill）override：复跑 holdout 集 vs 晋升均值，drift 则回退
+        ``active_version``。返回 ``Decision``（action ∈ promote/rollback/hold/skip）。
+        """
+        from ..decision import Decision
+
+        return Decision("skip", reason="no_recheck_substrate")

@@ -66,6 +66,16 @@ class EvolutionSettings(BaseSettings):
     weight_max_step: float = Field(default=0.10, ge=0.01, le=0.5, description="单步最大变异幅度")
 
     proposer_model: str | None = Field(default=None, description="proposer 显式模型覆盖")
+    longitudinal_recheck_interval_seconds: int = Field(
+        default=86400,
+        ge=3600,
+        description="纵向复评最小间隔（秒，默认 24h）：已晋升对象每隔此窗口在 holdout 集复测一次（综述 §8 #3）",
+    )
+    longitudinal_drift_max: float = Field(
+        default=3.0,
+        ge=0.0,
+        description="纵向复评容许退化上限（复评 holdout 均值 < 晋升均值 − 此值 → 回退 active_version）",
+    )
     max_proposals_per_day: int = Field(default=8, ge=1, description="每日提案数硬上限（blueprint §9.5 预算控制）")
     max_cost_usd_daily: float | None = Field(
         default=None, ge=0.0, description="每日 LLM 成本上限（USD）；None=不限（首部署默认关）"

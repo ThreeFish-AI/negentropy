@@ -33,6 +33,7 @@ from negentropy.config import settings
 from negentropy.logging import get_logger
 from negentropy.models.evolution import (
     STATUS_CANARY,
+    STATUS_PROMOTED,
     STATUS_SHADOW_EVAL,
     EvolutionProposal,
 )
@@ -132,6 +133,75 @@ class EvolutionOrchestrator:
                 )
             await db.commit()
             return len(stale)
+
+    # ==================================================================
+    # RECHECK（纵向复评，综述 §8 #3 + §10.5 + §9.3 持续再认证）
+    # ==================================================================
+
+    async def recheck_promoted(self) -> dict[str, int]:
+        """已晋升对象周期性复评：按 ``longitudinal_recheck_interval_seconds`` due-check，
+        对有 eval 基座的面分派 ``handler.recheck_longitudinal``；drift 超阈则该 handler 回退
+        ``active_version``（survey：已晋升对象不会自动再验证，须持续再认证）。
+
+        灰度关闭时 no-op。由独立 ``longitudinal_recheck`` 调度任务驱动（默认 cron 每日，enabled=False）。
+        """
+        if not settings.evolution.enabled:
+            return {"rechecked": 0, "reverted": 0}
+        now = _utcnow()
+        interval = settings.evolution.longitudinal_recheck_interval_seconds
+        rechecked = 0
+        reverted = 0
+        async with _session() as db:
+            props = (
+                (
+                    await db.execute(
+                        sa.select(EvolutionProposal)
+                        .where(EvolutionProposal.status == STATUS_PROMOTED)
+                        .limit(_BATCH_LIMIT)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for p in props:
+                handler = self._handler_for(p.target_kind)
+                recheck_fn = getattr(handler, "recheck_longitudinal", None) if handler else None
+                if recheck_fn is None:
+                    continue  # 该面无复评基座（如 retrieval 用在线 window 指标）
+                if not await self._due_for_recheck(db, p, interval=interval, now=now):
+                    continue
+                try:
+                    dec = await recheck_fn(db, p, now)
+                    rechecked += 1
+                    if getattr(dec, "is_rollback", False):
+                        reverted += 1
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("evolution_recheck_failed", proposal_id=str(p.id), error=str(exc))
+            await db.commit()
+            return {"rechecked": rechecked, "reverted": reverted}
+
+    @staticmethod
+    async def _due_for_recheck(db, proposal, *, interval: int, now) -> bool:
+        """最近一次 scheduled holdout 复评 run 是否早于 interval（或从未复评）→ 是否 due。"""
+        from negentropy.models.eval_suite import RUN_PARTITION_HOLDOUT, RUN_TRIGGER_SCHEDULED, EvalRun
+
+        last = (
+            await db.execute(
+                sa.select(EvalRun.created_at)
+                .where(
+                    EvalRun.target_kind == proposal.target_kind,
+                    EvalRun.target_ref == proposal.target_ref,
+                    EvalRun.target_version == proposal.proposed_version,
+                    EvalRun.partition == RUN_PARTITION_HOLDOUT,
+                    EvalRun.trigger == RUN_TRIGGER_SCHEDULED,
+                )
+                .order_by(EvalRun.created_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if last is None:
+            return True
+        return (now - last).total_seconds() >= interval
 
     # ==================================================================
     # ADVANCE

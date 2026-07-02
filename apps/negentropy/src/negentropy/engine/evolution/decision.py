@@ -275,6 +275,9 @@ SKILL_HOLDOUT_REGRESSION_MAX = 0  # holdout 集：零 case 回退容忍（backwa
 SKILL_HOLDOUT_DRIFT_MAX = 1.0  # holdout 集：候选均值不得低于基线 1 分以上
 SKILL_CASE_REGRESSION_DELTA = 5.0  # 单 case 回退判定阈值（候选 < 基线 − 此值计一回退）
 
+# 纵向复评（综述 §8 #3 longitudinal stability + §10.5 + §9.3 持续再认证）
+SKILL_LONGITUDINAL_DRIFT_MAX = 3.0  # 复评 holdout 均值较晋升时退化超过此值 → 回退 active_version
+
 REASON_NO_GAIN = "no_gain"  # 候选在 visible 集无实质增益（综述 §8 held-out gain 未达）
 
 
@@ -362,6 +365,31 @@ def decide_skill_canary(
     return Decision("promote", REASON_PROMOTED, {"holdout_drift": drift})
 
 
+def decide_longitudinal_drift(
+    *,
+    promotion_mean: float,
+    recheck: _RunView,
+    drift_max: float = SKILL_LONGITUDINAL_DRIFT_MAX,
+    min_cases: int = SKILL_GATE_MIN_CASES,
+) -> Decision:
+    """纵向复评门（综述 §8 #3 longitudinal stability + §10.5 + §9.3 持续再认证）。
+
+    已晋升对象在 T_k 复跑 holdout 集，与**晋升时**（T_promote）的 holdout 均值对比：
+    - 样本不足 → ``hold``（无法判定，留待下次复评）；
+    - 复评均值 < 晋升均值 − ``drift_max`` → ``rollback``（静默退化，回退 active_version 到前一稳定版）；
+    - 否则 ``hold``（仍稳定）。
+
+    动机：晋升后系统持续变化（流量漂移、依赖变更、模型升级），一次性的晋升门不能保证长期
+    稳定——综述 §10.5 指出「experience→capability 无 scaling-law 类关系」，必须周期性复测。
+    """
+    if recheck.n_cases < min_cases:
+        return Decision("hold", REASON_INSUFFICIENT_SAMPLES, {"recheck_n": recheck.n_cases})
+    drift = promotion_mean - recheck.score_mean
+    if drift > drift_max:
+        return Decision("rollback", REASON_ROLLED_BACK, {"longitudinal_drift": drift, "max": drift_max})
+    return Decision("hold", None, {"longitudinal_drift": drift})
+
+
 __all__ = [
     "Decision",
     "REASON_PROMOTED",
@@ -389,6 +417,7 @@ __all__ = [
     "SKILL_HOLDOUT_REGRESSION_MAX",
     "SKILL_HOLDOUT_DRIFT_MAX",
     "SKILL_CASE_REGRESSION_DELTA",
+    "SKILL_LONGITUDINAL_DRIFT_MAX",
     "clamp_weight",
     "is_within_bounds",
     "pre_propose_check",
@@ -401,4 +430,5 @@ __all__ = [
     "compute_run_regression",
     "decide_skill_shadow",
     "decide_skill_canary",
+    "decide_longitudinal_drift",
 ]

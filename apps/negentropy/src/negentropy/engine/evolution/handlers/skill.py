@@ -31,6 +31,7 @@ import sqlalchemy as sa
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.evolution.decision import (
+    decide_longitudinal_drift,
     decide_skill_canary,
     decide_skill_shadow,
     is_noop_template,
@@ -361,6 +362,56 @@ class SkillTemplateHandler:
     async def rollback(self, db, proposal: EvolutionProposal, now: datetime) -> None:
         """抽象基类契约：REAP 超时强制回滚入口。"""
         await self._rollback(db, proposal, now, reason="stale_canary_timeout")
+
+    # ==================================================================
+    # 纵向复评（综述 §8 #3 longitudinal stability + §10.5 + §9.3 持续再认证）
+    # ==================================================================
+
+    async def recheck_longitudinal(self, db, proposal: EvolutionProposal, now: datetime):
+        """已晋升 skill 在 holdout 集复跑，与晋升时均值对比；drift 超阈 → 回退 active_version。
+
+        返回 ``Decision``（rollback=静默退化已回退 / hold=仍稳定 / skip=无绑定 suite）。
+        晋升时均值取自 ``proposal.canary_metrics["candidate_mean"]``（advance_canary 写入）。
+        """
+        suite = await self._find_suite(db, proposal.target_ref)
+        if suite is None:
+            from negentropy.engine.evolution.decision import Decision
+
+            return Decision("skip", reason="no_eval_suite")
+
+        recheck_run = await self._runner.run_suite(
+            db,
+            suite=suite,
+            target_kind=TARGET_KIND_SKILL,
+            target_ref=proposal.target_ref,
+            target_version=proposal.proposed_version,
+            partition=RUN_PARTITION_HOLDOUT,
+            trigger="scheduled",
+        )
+        promotion_mean = float((proposal.canary_metrics or {}).get("candidate_mean") or 0.0)
+        dec = decide_longitudinal_drift(
+            promotion_mean=promotion_mean,
+            recheck=await _run_view(db, recheck_run),
+            drift_max=settings.evolution.longitudinal_drift_max,
+        )
+        if dec.is_rollback:
+            skill = await self._load_skill(db, proposal.target_ref)
+            if skill is not None and skill.active_version == proposal.proposed_version:
+                skill.active_version = proposal.base_version  # 回退到前一稳定版
+            _emit_evolution_event(
+                proposal,
+                action="longitudinal_revert",
+                reason=dec.reason,
+                metrics={"recheck_mean": recheck_run.score_mean, "promotion_mean": promotion_mean},
+            )
+            logger.warning(
+                "skill_longitudinal_revert",
+                proposal_id=str(proposal.id),
+                recheck_mean=recheck_run.score_mean,
+                promotion_mean=promotion_mean,
+                reverted_to=proposal.base_version,
+            )
+        return dec
 
     # ==================================================================
     # SPAWN proposer
