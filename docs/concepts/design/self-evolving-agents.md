@@ -535,6 +535,23 @@ evolution_proposals
 > proposer、Phase 1 `tool_invocations` 三源遥测、eval 四表子系统、归因 job、记忆管线
 > prompt 进化。本切片基建（proposer `_ProposerBase` / decision / orchestrator）对后续面
 > 无重造，仅各面补 proposer 子类 + eval_runner + config_versions 表。
+>
+> **加固注记（2026-07，第二迭代）**：对照综述 §9.4（防 Goodhart）/§9.3（运行时控制）/§10.4
+> （自生成经验稳定性）批判性复核后补强：① canary 分桶键解耦（routine 按 routine.id、ADK 按
+> thread_id，修复自治 routine 共用 "system" 同桶致灰度沦为 0%/100%）；② stale canary REAP
+> （`max_canary_seconds` 超时强制 rollback，防样本不足无限挂起）；③ anti-collapse 多样性护栏
+> （`decide_canary` 加 distinct memory_id 覆盖率非退化判定）；④ no-op/防振荡硬护栏（proposer
+> prompt 软约束的确定性兜底）；⑤ 成本预算（`max_proposals_per_day`/`max_cost_usd_daily`）；
+> ⑥ SSE 审计事件（复用 routine bus，promote/rollback/shadow→canary 翻转可观测）。
+>
+> **延后项（YAGNI/前置条件未满）**：
+> - **target_kind 注册表分派**（P3）：当前 `_advance_shadow/_advance_canary/_promote/_rollback`
+>   仍硬编码 retrieval 面，第二面（agent/skill）接入时再抽 `TargetHandler` 基类一次到位（避免
+>   单实现期过度抽象，且本加固仍在稳定这 5 方法签名）；
+> - **frozen holdout**（P4，综述 §9.4 头号 Goodhart 防护）：需检索流量大到可同时支撑「可见训练桶
+>   + 冻结评估桶」双份样本（当前 min_samples=50/桶，holdout 需 100+/窗口）；evolution 默认关闭、
+>   流量不足，强上会致两桶都凑不够 → canary 永久 hold。anti-collapse diversity 护栏已部分覆盖
+>   （防 collapse）；等灰度跑稳、QPS 上升后单独切片。
 
 ### Phase 1：遥测 + 评测地基
 

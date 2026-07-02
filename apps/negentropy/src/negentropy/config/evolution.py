@@ -62,3 +62,7 @@ class EvolutionSettings(BaseSettings):
     weight_max_step: float = Field(default=0.10, ge=0.01, le=0.5, description="单步最大变异幅度")
 
     proposer_model: str | None = Field(default=None, description="proposer 显式模型覆盖")
+    max_proposals_per_day: int = Field(default=8, ge=1, description="每日提案数硬上限（blueprint §9.5 预算控制）")
+    max_cost_usd_daily: float | None = Field(
+        default=None, ge=0.0, description="每日 LLM 成本上限（USD）；None=不限（首部署默认关）"
+    )

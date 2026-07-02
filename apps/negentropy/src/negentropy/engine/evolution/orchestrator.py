@@ -51,9 +51,24 @@ from negentropy.models.evolution import (
 
 from . import eval_runner
 from . import weights as weights_mod
-from .decision import REASON_STALE_CANARY, decide_canary, decide_shadow, is_canary_stale
+from .decision import (
+    REASON_PROMOTED,
+    REASON_ROLLED_BACK,
+    REASON_STALE_CANARY,
+    decide_canary,
+    decide_shadow,
+    is_canary_stale,
+    is_noop_mutation,
+    is_repeated_direction,
+    pre_propose_check,
+)
 from .proposer import RetrievalWeightProposer
 from .queries import invalidate_canary_cache
+
+try:
+    from negentropy.engine.routine.bus import get_bus as _get_routine_bus
+except Exception:  # noqa: BLE001  # 防御性：bus 不可用时降级为 no-op
+    _get_routine_bus = None
 
 logger = get_logger("negentropy.engine.evolution.orchestrator")
 
@@ -183,6 +198,7 @@ class EvolutionOrchestrator:
         else:
             proposal.status = STATUS_REJECTED
             proposal.decided_at = now
+        _emit_evolution_event(proposal, action=proposal.status, reason=dec.reason)
         logger.info(
             "evolution_shadow_decided",
             proposal_id=str(proposal.id),
@@ -232,10 +248,9 @@ class EvolutionOrchestrator:
     # ==================================================================
 
     async def _maybe_spawn_proposer(self) -> int:
-        """单在途检查 + 样本充足 → bg task 调 proposer 落 shadow_eval 提案行。"""
+        """单在途 + 预算守卫 + 样本充足 → bg task 调 proposer 落 shadow_eval 提案行。"""
         if not settings.evolution.proposer_enabled:
             return 0
-        # 单在途：target_ref 已有非终态提案 → skip
         async with db_session.AsyncSessionLocal() as db:
             inflight = (
                 await db.execute(
@@ -247,7 +262,26 @@ class EvolutionOrchestrator:
                     )
                 )
             ).scalar_one()
-        if inflight and inflight > 0:
+            proposals_today = (
+                await db.execute(
+                    sa.select(sa.func.count())
+                    .select_from(EvolutionProposal)
+                    .where(
+                        EvolutionProposal.target_ref == _TARGET_REF,
+                        EvolutionProposal.created_at >= _utcnow() - _td(days=1),
+                    )
+                )
+            ).scalar_one()
+        budget = pre_propose_check(
+            inflight_count=inflight or 0,
+            proposals_today=proposals_today or 0,
+            max_proposals_per_day=settings.evolution.max_proposals_per_day,
+            # 成本数据源后续接入（proposer usage → evidence JSONB）；max_cost_usd_daily 默认 None → no-op
+            cost_today_usd=0.0,
+            max_cost_usd_daily=settings.evolution.max_cost_usd_daily,
+        )
+        if budget.action == "skip":
+            logger.info("evolution_spawn_skipped", reason=budget.reason, detail=budget.detail)
             return 0
 
         loop = asyncio.get_running_loop()
@@ -276,6 +310,16 @@ class EvolutionOrchestrator:
             )
             if draft is None:
                 return  # 冷启动 / no_change / LLM 失败 → 不提案
+
+            # no-op / 防振荡硬护栏（综述 §3.5 DGM archive）：proposer prompt 软约束的确定性兜底
+            active_sw = float(active_snapshot.get("semantic_weight", 0.7))
+            negatives_sw = [float((n.get("payload") or {}).get("semantic_weight", 0.0)) for n in recent_negatives]
+            if is_noop_mutation(draft.semantic_weight, active_sw):
+                logger.info("evolution_spawn_noop", draft=draft.semantic_weight, active=active_sw)
+                return
+            if is_repeated_direction(draft.semantic_weight, negatives_sw):
+                logger.info("evolution_spawn_oscillation", draft=draft.semantic_weight, negatives=negatives_sw)
+                return
 
             async with db_session.AsyncSessionLocal() as db:
                 # 再次确认单在途（bg 期间可能有别处入了提案）
@@ -335,6 +379,12 @@ class EvolutionOrchestrator:
         proposal.decided_at = now
         weights_mod.invalidate(_TARGET_REF)
         invalidate_canary_cache(_TARGET_REF)  # 消除 fetch_active_canary 15s 缓存脏窗口
+        _emit_evolution_event(
+            proposal,
+            action="promote",
+            reason=REASON_PROMOTED,
+            metrics=(proposal.canary_metrics or {}).get("candidate"),
+        )
 
     async def _rollback(self, db, proposal: EvolutionProposal, now: datetime) -> None:
         """回滚：新写一条 active=旧基线快照（origin=manual），不删候选行（保留全历史）。"""
@@ -361,6 +411,12 @@ class EvolutionOrchestrator:
         proposal.decided_at = now
         weights_mod.invalidate(_TARGET_REF)
         invalidate_canary_cache(_TARGET_REF)  # 消除 fetch_active_canary 15s 缓存脏窗口
+        _emit_evolution_event(
+            proposal,
+            action="rollback",
+            reason=REASON_STALE_CANARY if (proposal.canary_metrics or {}).get("reaped_reason") else REASON_ROLLED_BACK,
+            metrics=(proposal.canary_metrics or {}).get("candidate"),
+        )
 
 
 # =============================================================================
@@ -378,6 +434,46 @@ def _enter_canary(proposal: EvolutionProposal, now: datetime) -> None:
         "min_samples": settings.evolution.min_samples,
     }
     proposal.decided_at = now
+
+
+def _emit_evolution_event(
+    proposal: EvolutionProposal,
+    *,
+    action: str,
+    reason: str | None,
+    metrics: dict[str, Any] | None = None,
+) -> None:
+    """发布 evolution 状态翻转事件到 RoutineBus（SSE 复用，blueprint §11）。
+
+    fire-and-forget（``publish_nowait``，同步非阻塞）；bus 不可用 / 无订阅者 → 零副作用。
+    吞所有异常（审计事件绝不影响 promote/rollback 主流程）。
+    """
+    if _get_routine_bus is None:
+        return
+    try:
+        _get_routine_bus().publish_nowait(
+            {
+                "type": "evolution_proposal",
+                "proposal_id": str(proposal.id),
+                "target_kind": proposal.target_kind,
+                "target_ref": proposal.target_ref,
+                "action": action,  # shadow→canary | pending_approval | rejected | promote | rollback
+                "reason": reason,
+                "proposed_version": proposal.proposed_version,
+                "base_version": proposal.base_version,
+                "metrics": _summarize_metrics(metrics),
+                "ts": _utcnow().isoformat(),
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("evolution_event_emit_failed", action=action, error=str(exc))
+
+
+def _summarize_metrics(m: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not m:
+        return None
+    keys = ("zero_hit_rate", "helpful_ratio", "referenced_rate", "diversity_ratio", "sample_n")
+    return {k: m[k] for k in keys if k in m}
 
 
 async def _flip_active(
