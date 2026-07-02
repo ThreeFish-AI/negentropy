@@ -174,28 +174,29 @@ flowchart TB
 
 ## 5. 后续方向（多轮迭代拟合综述）
 
-> **Round 1+2 已完成「自我改进评测」层（SI 六目标）**。下列为**能力扩展**类拟合点，各含明确前置条件 /
-> 成本 / 边际价值评估——按 YAGNI + 最小干预原则，留作后续 dedicated round，而非强行浅实施。
+> **Round 1+2 完成评测层（SI 六目标）；Round 3 完成三项能力扩展（runtime canary / agent-loop / 第三面）**。
+> 下列为仍未触达的更细粒度增强。
 
-1. **Runtime canary 分桶注入**（边际价值低，延后）：当前 canary 用**离线 eval-suite holdout 门**
-   （综述 §8 明示离线 held-out 优于噪声在线 canary），晋升 = `active_version` 全量翻转，无「候选部分放量」
-   窗口。要加 runtime 分桶须改设计（promote 前插一个 thread 哈希分桶灰度窗口）+ `skills_injector`
-   透传 `bucket_key`。等真实 QPS 上升、需要在线信号时再做（镜像 `memory_service._resolve_effective_weights`）。
-2. **`SkillExecutor` agent-loop 执行模式**（成本高，延后）：当前 judge-the-prompt（评 prompt 质量，
-   已显式标注为 v1 语义折中）。端到端任务成功评估需每 case 起一个沙箱 Agent（MicroSandbox + 工具预算），
-   是一个 dedicated round。**扩展点已就位**：`SuiteRunner(executors={"skill": ...})` 可注入新 executor，
-   挂 `scoring_config.execution_mode="agent_loop"` 即可切换，无需改 handler。
-3. **第三进化面**（`TargetHandler` 已就位，接入 = 新 handler 子类）：每面各有前置——
-   - `agent_prompt`：需先解 ADR-3 `sync_negentropy_agents` 覆写（`agent_versions` + `active_version` 指针）。
-   - `builtin_tool_config`：需 `builtin_tool_versions` 快照表（参数级，如 top_k / timeout）。
-   - `knowledge_strategy`：需 KG eval suite（复用 `knowledge/graph/quality.py`）。
-   - `memory_pipeline_prompt`（extractor/reflection/summarizer）：需把代码常量 prompt DB 化（`memory_config_versions` 扩 scope）。
-   抽象已由 retrieval + skill 双 handler 实证，第三面接入零改 orchestrator。
-4. **真实 $-cost 提取**（SI #4 增强）：当前 `improvement_efficiency` 以 Judge 调用数代理；真实 $-cost
-   需从 litellm `response.usage` 提取 token + 模型定价表，写入 `eval_runs.cost_total`，并接
-   `pre_propose_check.cost_today_usd`（需先解 D7：ADK 侧 `tool_invocations.cost_usd` NULL）。
-5. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：当前安全套件为人建；综述 §9.3 末段要求
-   「红队自身 agent 化」（AutoRedTeamer 式持续攻击发现）。等有具体安全评测目标时接入。
+**Round 3 已落地（能力扩展）**：
+1. ✅ **Runtime canary 分桶注入**（R3-b，综述 §9.3）：`STATUS_RUNTIME_CANARY` + 离线门通过后插入在线分桶
+   灰度窗口（`fetch_active_skill_canary` + `resolve_skills` bucket_key 路由 + `expand_skill` 透传
+   session.id）+ 窗口到期全量晋升。迁移 0087 重建单在途索引纳入新状态。
+   - *仍后续*：在线 error-rate 门（待 `tool_invocations.canary_assignment` 标记接入，v1 为窗口到期即晋升）。
+2. ✅ **`SkillExecutor` agent-loop 模式**（R3-a，综述 §3）：`AgentLoopExecutor`（skill prompt 作 system
+   instruction + case task 作 user，单轮生成，Judge 评**生成产出**）+ `execution_mode="agent_loop"` 路由。
+   - *仍后续*：完整多轮 + 工具 + MicroSandbox（v1 为单轮 skill-conditioned generation）。
+3. ✅ **第三进化面**（R3-c，综述 §7）：`MemoryPipelinePromptHandler`（记忆管线 prompt 进化，复用
+   `memory_config_versions` + SuiteRunner + 双相门，promote 翻 is_active 指针）+ `PromptExecutor`。
+   **TargetHandler 三面齐备（retrieval / skill / memory_pipeline_prompt），抽象 + eval 基座 target-agnostic 实证。**
+   - *仍后续*：运行时消费接线（consolidator 读 active prompt，promote 已翻指针）；`agent_prompt`（需 ADR-3
+     Sync改造）/ `builtin_tool_config`（需 versions 表）/ `knowledge_strategy`（需 KG eval suite）三面。
+
+**仍未触达**：
+4. **真实 $-cost 提取**（SI #4 增强）：`improvement_efficiency` 以 Judge 调用数代理；真实 $-cost 需 litellm
+   `response.usage` token + 定价表 → `eval_runs.cost_total` + `pre_propose_check.cost_today_usd`（先解 D7：
+   ADK 侧 `tool_invocations.cost_usd` NULL）。
+5. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：安全套件为人建；综述要求「红队自身 agent 化」
+   （AutoRedTeamer 式持续攻击发现），等具体安全评测目标时接入。
 
 ---
 
