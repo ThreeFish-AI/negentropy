@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 # =============================================================================
@@ -33,6 +34,11 @@ REASON_INSUFFICIENT_SAMPLES = "insufficient_samples"  # 冷启动保护
 REASON_BOUND_VIOLATION = "bound_violation"  # 超硬上下界
 REASON_CONCURRENT_INFLIGHT = "concurrent_inflight"  # 单在途冲突
 REASON_NO_CHANGE = "no_change"  # proposer 返回 None（无改进空间）
+REASON_STALE_CANARY = "stale_canary_timeout"  # canary 超时强制 rollback
+REASON_NOOP_MUTATION = "noop_mutation"  # 提案与 active 差异过小
+REASON_OSCILLATION = "oscillation"  # 重复近期 rejected/rolled_back 方向
+REASON_BUDGET_PROPOSAL_CAP = "budget_proposal_cap"  # 每日提案数触顶
+REASON_BUDGET_COST_CAP = "budget_cost_cap"  # 每日成本触顶
 
 # =============================================================================
 # 晋升/回滚阈值常量（对齐蓝图 §4.4/§9.2，可经调用方覆盖以测试）
@@ -46,6 +52,9 @@ ZERO_HIT_REGRESSION_MAX = 0.01  # 容许的 zero_hit_rate 退化上限
 WEIGHT_LOWER_BOUND = 0.3
 WEIGHT_UPPER_BOUND = 0.9
 WEIGHT_MAX_STEP = 0.10
+
+# anti-collapse 多样性护栏（综述 §10.4）：候选 diversity ≥ DIVERSITY_REGRESSION_RATIO × baseline
+DIVERSITY_REGRESSION_RATIO = 0.8
 
 
 # =============================================================================
@@ -85,6 +94,7 @@ class _MetricsView(Protocol):
     helpful_ratio: float
     referenced_rate: float
     sample_n: int
+    diversity_ratio: float  # anti-collapse 指标（综述 §10.4）
 
 
 # =============================================================================
@@ -107,11 +117,62 @@ def is_within_bounds(semantic_w: float) -> bool:
 # =============================================================================
 
 
-def pre_propose_check(*, inflight_count: int, max_inflight: int = 1) -> Decision:
-    """派发新提案前守卫：单在途（每 target 至多 max_inflight 个非终态提案）。"""
+def pre_propose_check(
+    *,
+    inflight_count: int,
+    max_inflight: int = 1,
+    proposals_today: int = 0,
+    max_proposals_per_day: int | None = None,
+    cost_today_usd: float = 0.0,
+    max_cost_usd_daily: float | None = None,
+) -> Decision:
+    """派发新提案前守卫：单在途 + 每日提案数上限 + 每日成本上限（对齐 routine pre_dispatch_check 多预算范式）。
+
+    新参全默认 → 旧调用 ``pre_propose_check(inflight_count=n)`` 逐字节等价。
+    """
     if inflight_count >= max_inflight:
         return Decision("skip", REASON_CONCURRENT_INFLIGHT, {"inflight": inflight_count})
+    if max_proposals_per_day is not None and proposals_today >= max_proposals_per_day:
+        return Decision("skip", REASON_BUDGET_PROPOSAL_CAP, {"proposals_today": proposals_today})
+    if max_cost_usd_daily is not None and cost_today_usd >= max_cost_usd_daily:
+        return Decision("skip", REASON_BUDGET_COST_CAP, {"cost_today_usd": cost_today_usd})
     return Decision("hold")
+
+
+def is_noop_mutation(
+    draft_semantic: float,
+    active_semantic: float,
+    *,
+    tol: float = WEIGHT_MAX_STEP / 2,
+) -> bool:
+    """draft 与 active 的 semantic_weight 差异 < tol → no-op mutation，应拒（综述 §3.5 防无意义探索）。"""
+    return abs(draft_semantic - active_semantic) < tol
+
+
+def is_repeated_direction(
+    draft_semantic: float,
+    recent_negatives_semantic: list[float],
+    *,
+    tol: float = WEIGHT_MAX_STEP / 2,
+) -> bool:
+    """draft 与任一近期 rejected/rolled_back 的 semantic_weight 差异 < tol → 振荡，应拒（DGM archive 防重复死方向）。"""
+    return any(abs(draft_semantic - w) < tol for w in recent_negatives_semantic)
+
+
+def is_canary_stale(
+    *,
+    started_at: datetime | None,
+    now: datetime,
+    max_seconds: int,
+) -> bool:
+    """canary 是否超时应强制回收。
+
+    ``started_at`` 缺失（异常态，理论 ``_enter_canary`` 必写）→ 不回收（留人查）；
+    否则 ``now - started_at > max_seconds`` → True（强制 rollback）。
+    """
+    if started_at is None:
+        return False
+    return (now - started_at).total_seconds() > max_seconds
 
 
 # =============================================================================
@@ -158,11 +219,14 @@ def decide_canary(
     candidate: _MetricsView,
     min_samples: int = MIN_SAMPLE_N,
     zero_hit_regression_max: float = ZERO_HIT_REGRESSION_MAX,
+    diversity_regression_ratio: float | None = DIVERSITY_REGRESSION_RATIO,
 ) -> Decision:
     """金丝雀窗口结束判定：双确认（在线指标）→ promote；任一退化 → rollback。
 
     样本不足 → ``hold``（继续等，不立即 rollback，给 canary 攒样本的时间）。
     门槛比 shadow 宽：helpful_ratio 允许 0 改进（只要不下降）。
+    anti-collapse 护栏（综述 §10.4）：候选 diversity 不低于 ``diversity_regression_ratio`` × baseline，
+    否则 rollback（防优化 helpful_ratio 靠收窄检索到单一记忆簇实现）；baseline diversity=0 不触发。
     """
     if candidate.sample_n < min_samples:
         return Decision("hold", REASON_INSUFFICIENT_SAMPLES, {"candidate_n": candidate.sample_n})
@@ -172,6 +236,14 @@ def decide_canary(
         return Decision("rollback", REASON_ROLLED_BACK, {"zhr_regression": zhr_regression})
     if hr_gain < 0:
         return Decision("rollback", REASON_ROLLED_BACK, {"hr_gain": hr_gain})
+    if diversity_regression_ratio is not None and baseline.diversity_ratio > 0:
+        floor = baseline.diversity_ratio * diversity_regression_ratio
+        if candidate.diversity_ratio < floor:
+            return Decision(
+                "rollback",
+                REASON_ROLLED_BACK,
+                {"diversity_regression": candidate.diversity_ratio - baseline.diversity_ratio, "floor": floor},
+            )
     return Decision("promote", REASON_PROMOTED, {"hr_gain": hr_gain, "zhr_regression": zhr_regression})
 
 
@@ -184,15 +256,24 @@ __all__ = [
     "REASON_BOUND_VIOLATION",
     "REASON_CONCURRENT_INFLIGHT",
     "REASON_NO_CHANGE",
+    "REASON_STALE_CANARY",
+    "REASON_NOOP_MUTATION",
+    "REASON_OSCILLATION",
+    "REASON_BUDGET_PROPOSAL_CAP",
+    "REASON_BUDGET_COST_CAP",
     "MIN_SAMPLE_N",
     "HELPFUL_RATIO_MIN_IMPROVEMENT",
     "ZERO_HIT_REGRESSION_MAX",
     "WEIGHT_LOWER_BOUND",
     "WEIGHT_UPPER_BOUND",
     "WEIGHT_MAX_STEP",
+    "DIVERSITY_REGRESSION_RATIO",
     "clamp_weight",
     "is_within_bounds",
     "pre_propose_check",
+    "is_noop_mutation",
+    "is_repeated_direction",
+    "is_canary_stale",
     "decide_shadow",
     "decide_canary",
 ]

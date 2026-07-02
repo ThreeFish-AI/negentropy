@@ -38,6 +38,11 @@ class ObservabilitySettings(BaseSettings):
         default=True,
         description="Enable Langfuse export if keys are present",
     )
+    tool_telemetry_enabled: bool = Field(
+        default=False,
+        description="工具调用遥测采集总开关（默认关）。关闭时 ADK before/after_tool_callback 不挂载"
+        "（make_* 工厂返回 None）+ aggregate job no-op。灰度开启后写入 tool_invocations。",
+    )
 
     @property
     def langfuse_otlp_endpoint(self) -> str:

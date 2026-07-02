@@ -94,3 +94,60 @@ def test_enter_canary_sets_status_and_config(monkeypatch):
     assert proposal.canary_config["window_seconds"] == 3600
     assert proposal.canary_config["min_samples"] == 40
     assert proposal.canary_config["started_at"] == now.isoformat()
+
+
+# ---------------------------------------------------------------------------
+# P2-6：_emit_evolution_event（SSE 审计，复用 routine bus）
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_emit_evolution_event_publishes_to_bus():
+    """promote/rollback/shadow→canary 翻转 → bus 收到 type=evolution_proposal 事件。"""
+    from negentropy.engine.routine.bus import get_bus
+
+    bus = get_bus()
+    q = await bus.subscribe()
+    try:
+        proposal = SimpleNamespace(
+            id="p1",
+            target_kind="retrieval_config",
+            target_ref="retrieval",
+            proposed_version="0.1.1",
+            base_version="0.1.0",
+        )
+        o._emit_evolution_event(proposal, action="promote", reason="promoted")
+        evt = q.get_nowait()
+        assert evt["type"] == "evolution_proposal"
+        assert evt["action"] == "promote"
+        assert evt["reason"] == "promoted"
+        assert evt["proposal_id"] == "p1"
+    finally:
+        await bus.unsubscribe(q)
+
+
+@pytest.mark.asyncio
+async def test_emit_evolution_event_swallows_bus_error(monkeypatch):
+    """bus.publish_nowait 抛异常 → 不影响主流程（吞异常）。"""
+
+    class _BoomBus:
+        def publish_nowait(self, event):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(o, "_get_routine_bus", lambda: _BoomBus())
+    proposal = SimpleNamespace(
+        id="p2",
+        target_kind="retrieval_config",
+        target_ref="retrieval",
+        proposed_version="0.1.1",
+        base_version="0.1.0",
+    )
+    # 不抛即通过
+    o._emit_evolution_event(proposal, action="rollback", reason="rolled_back")
+
+
+def test_summarize_metrics_filters_keys():
+    m = {"zero_hit_rate": 0.3, "helpful_ratio": 0.5, "noise": "x", "sample_n": 10}
+    out = o._summarize_metrics(m)
+    assert out == {"zero_hit_rate": 0.3, "helpful_ratio": 0.5, "sample_n": 10}
+    assert o._summarize_metrics(None) is None

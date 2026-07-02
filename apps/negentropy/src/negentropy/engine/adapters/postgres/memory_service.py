@@ -653,6 +653,7 @@ class PostgresMemoryService(BaseMemoryService):
         viewer_role: str | None = None,
         config_override: dict[str, float] | None = None,
         config_version_label: str | None = None,
+        canary_bucket_key: str | None = None,
     ) -> SearchMemoryResponse:
         """基于 Query 检索相关记忆
 
@@ -680,6 +681,7 @@ class PostgresMemoryService(BaseMemoryService):
             user_id=user_id,
             config_override=config_override,
             config_version_label=config_version_label,
+            canary_bucket_key=canary_bucket_key,
         )
 
         # 生成查询向量
@@ -835,6 +837,7 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         config_override: dict[str, float] | None = None,
         config_version_label: str | None = None,
+        canary_bucket_key: str | None = None,
     ) -> tuple[float, float, str]:
         """解析本次 hybrid 检索的有效权重 + 配置版本标签。
 
@@ -842,8 +845,10 @@ class PostgresMemoryService(BaseMemoryService):
         > active 配置（``memory_config_versions`` is_active 行，30s 缓存，回退代码常量）。
         返回 ``(semantic_weight, keyword_weight, config_version_label)``。
 
-        canary 路由：按 user_id 哈希分桶（ADK search_memory 不暴露 thread_id），命中候选桶
+        canary 路由：按 ``canary_bucket_key``（缺失回退 user_id）哈希分桶，命中候选桶
         → 用候选提案的 payload 权重 + 候选版本号（供 retrieval_log 标记 → shadow eval 分桶）。
+        ``canary_bucket_key`` 解耦分桶粒度与 user 标识：routine 路径传 routine.id（自治 routine
+        不再共用 "system" 同桶）、ADK 路径传 thread_id。
         """
         if config_override:
             sw = float(config_override.get("semantic_weight", _DEFAULT_SEMANTIC_WEIGHT))
@@ -858,7 +863,7 @@ class PostgresMemoryService(BaseMemoryService):
         try:
             canary = await fetch_active_canary()
             if canary is not None:
-                bucket = canary_mod.bucket_index(None, user_id)
+                bucket = canary_mod.bucket_index(None, user_id, bucket_key=canary_bucket_key)
                 ratio = float((canary.get("canary_config") or {}).get("bucket_ratio", 0))
                 if canary_mod.should_use_candidate(bucket, ratio):
                     payload = canary.get("payload") or {}

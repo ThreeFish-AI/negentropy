@@ -19,14 +19,19 @@ def bucket_index(
     thread_id: str | None,
     user_id: str | None,
     *,
+    bucket_key: str | None = None,
     salt: str = "evolution",
 ) -> int:
     """计算 [0, 100) 桶号。
 
-    优先 ``thread_id``；缺失回退 ``user_id``；都缺 → 100（永不进 canary）。
-    确定性：同一 (thread_id|user_id) 全程同桶。
+    优先级：``bucket_key``（显式分桶键）> ``thread_id`` > ``user_id``；都缺 → 100（永不进 canary）。
+    确定性：同一键全程同桶（canary 污染防护）。
+
+    ``bucket_key`` 用于解耦「分桶粒度」与「user 标识」——routine 路径大量自治 routine 共用
+    ``user_id="system"``，若按 user_id 分桶会全落同桶使灰度沦为 0%/100%；传 ``routine.id``
+    作 bucket_key 即可按 routine 粒度正确灰度。默认 None → 回退 thread_id/user_id，旧路径逐字节等价。
     """
-    key = thread_id or user_id
+    key = bucket_key or thread_id or user_id
     if not key:
         return _NEVER_CANARY_BUCKET
     h = hashlib.sha256(f"{salt}:{key}".encode()).hexdigest()

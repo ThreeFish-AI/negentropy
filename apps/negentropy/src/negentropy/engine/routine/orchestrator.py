@@ -1576,6 +1576,9 @@ class RoutineOrchestrator:
                 user_id=routine.owner_id or "system",
                 query=query,
                 limit=5,
+                # 按 routine.id 分桶 canary：自治 routine 不再共用 "system" 同桶致灰度沦为 0%/100%；
+                # 单 routine 全程同桶=不跨迭代翻配置。
+                canary_bucket_key=str(routine.id),
             )
 
             # 引用规范：每条记忆行附 Memory id 短码 + 日期 + Routine 溯源（routine_key/迭代序号），

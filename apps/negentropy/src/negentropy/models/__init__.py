@@ -35,6 +35,7 @@ from .skill import Skill
 from .state import AppState, UserState
 from .storage import AdkArtifact, BlobObject
 from .task_model_setting import TaskModelSetting
+from .tool_telemetry import ToolInvocation, ToolStatsDaily
 from .vendor_config import VendorConfig
 
 __all__ = [
@@ -60,6 +61,9 @@ __all__ = [
     # Evolution (自进化)
     "EvolutionProposal",
     "MemoryConfigVersion",
+    # Tool Telemetry (工具调用遥测)
+    "ToolInvocation",
+    "ToolStatsDaily",
     # Action
     "Tool",
     "ToolExecution",

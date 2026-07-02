@@ -36,6 +36,7 @@ class WindowMetrics:
     zero_hit_rate: float  # zero_hit / sample_n（越低越好）
     helpful_ratio: float  # helpful / with_feedback（越高越好；无反馈→0）
     referenced_rate: float  # referenced / sample_n（越高越好）
+    diversity_ratio: float  # distinct retrieved memory_id / 非 zero_hit 样本数（防 collapse）
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -44,6 +45,7 @@ class WindowMetrics:
             "zero_hit_rate": round(self.zero_hit_rate, 4),
             "helpful_ratio": round(self.helpful_ratio, 4),
             "referenced_rate": round(self.referenced_rate, 4),
+            "diversity_ratio": round(self.diversity_ratio, 4),
         }
 
 
@@ -57,6 +59,9 @@ async def aggregate_window(
     """聚合 ``memory_retrieval_logs`` 中指定 config_version 桶、``since`` 之后的窗口指标。
 
     ``config_version=None`` → 聚合历史未标版本的行（NULL 桶）。
+    ``diversity_ratio``：distinct retrieved memory_id / 非 zero_hit 样本数（anti-collapse 护栏，
+    综述 §10.4——防优化 helpful_ratio 靠收窄检索到单一记忆簇实现）。Python 侧二次聚合 distinct
+    （窗口内行数有限，比 SQL unnest+distinct 关联写法更清晰可测）。
     """
     async with db_session.AsyncSessionLocal() as db:
         stmt = sa.select(
@@ -71,25 +76,36 @@ async def aggregate_window(
             MemoryRetrievalLog.app_name == app_name,
             MemoryRetrievalLog.created_at >= since,
         )
+        id_stmt = sa.select(MemoryRetrievalLog.retrieved_memory_ids).where(
+            MemoryRetrievalLog.app_name == app_name,
+            MemoryRetrievalLog.created_at >= since,
+        )
         if config_version is None:
             stmt = stmt.where(MemoryRetrievalLog.config_version.is_(None))
+            id_stmt = id_stmt.where(MemoryRetrievalLog.config_version.is_(None))
         else:
             stmt = stmt.where(MemoryRetrievalLog.config_version == config_version)
+            id_stmt = id_stmt.where(MemoryRetrievalLog.config_version == config_version)
         if user_id:
             stmt = stmt.where(MemoryRetrievalLog.user_id == user_id)
+            id_stmt = id_stmt.where(MemoryRetrievalLog.user_id == user_id)
         row = (await db.execute(stmt)).one()
+        id_rows = (await db.execute(id_stmt)).scalars().all()
 
     total = row.total or 0
     referenced = row.referenced or 0
     helpful = row.helpful or 0
     with_feedback = row.with_feedback or 0
     zero_hit = row.zero_hit or 0
+    distinct_mem = len({mid for ids in id_rows for mid in (ids or [])})
+    non_zero = total - zero_hit
     return WindowMetrics(
         config_version=config_version,
         sample_n=total,
         zero_hit_rate=(zero_hit / total) if total else 0.0,
         helpful_ratio=(helpful / with_feedback) if with_feedback else 0.0,
         referenced_rate=(referenced / total) if total else 0.0,
+        diversity_ratio=(distinct_mem / non_zero) if non_zero else 0.0,
     )
 
 
