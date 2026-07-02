@@ -199,6 +199,11 @@ def build_routine_config(
         # 仅 6 轮即 failed、文档被永久标 unfixable）。设 20 = 典型振荡幅度，使窗口内任一评分接近
         # 历史最优即视为「有进展/继续」，而非停滞误杀。
         "no_progress_score_tolerance": 20,
+        # Judge 历史锚定（消费见 orchestrator._do_evaluate / evaluator.evaluate）。巡检 Judge 聚合分
+        # 天然 ±20 振荡（ISSUE-128 根因之一是每轮独立重打分无历史锚点），锚定使评分带 delta 证据、
+        # 与轨迹一致。显式置 True 防全局默认未来翻转时巡检静默失锚。量化振荡（oscillation_min_amplitude）
+        # 不启用——与 no_progress_tolerance 存在张力，待锚定实测降振荡后再评估。
+        "judge_anchor_enabled": True,
     }
     if extra:
         cfg.update(extra)

@@ -725,6 +725,26 @@ class RoutineOrchestrator:
             # 故 PLAN 相位跳过门控（置空 verification_command），Judge 纯评估方案质量；
             # IMPLEMENT/FINALIZE 相位照常跑门控。
             skip_gate_in_plan = routine.current_phase == phase_mod.PHASE_PLAN
+            # Judge 历史锚定（纵向评估）：per-routine config 覆盖全局 settings。启用时在①段只读查询
+            # floored history（不含本轮——本轮 status='evaluating'，_evaluated_history 仅取 'evaluated'），
+            # 供 evaluator 注入 Judge prompt。③段 decide() 用的那次 history 因 autoflush 含本轮、语义不同，
+            # 不可复用。锚点内「历史最优」由纯函数取 floored history max(score)，不用 routine.best_score
+            # （跨 restart 不复位、会泄漏上次尝试旧高分）。
+            cfg = routine.config or {}
+            anchor_enabled = bool(cfg.get("judge_anchor_enabled", settings.routine.judge_anchor_enabled))
+            anchor_window = max(1, int(cfg.get("judge_anchor_window") or settings.routine.judge_anchor_window))
+            anchor_history: list[SimpleNamespace] = []
+            if anchor_enabled:
+                anchor_history = [
+                    SimpleNamespace(
+                        seq=it.seq,
+                        score=it.score,
+                        verdict=it.verdict,
+                        phase=it.phase,
+                        reflection=it.reflection,
+                    )
+                    for it in await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
+                ]
             routine_eval_view = SimpleNamespace(
                 goal=routine.goal,
                 acceptance_criteria=routine.acceptance_criteria,
@@ -738,6 +758,8 @@ class RoutineOrchestrator:
                 # per-routine Judge 模型覆盖（None → 用评估器实例默认全局 task 模型）。高风险复刻类
                 # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（ISSUE-121）。
                 evaluator_model=(routine.config or {}).get("evaluator_model"),
+                # per-routine 锚点轨迹窗口覆盖（None → 用评估器默认 5）。
+                judge_anchor_window=anchor_window,
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,
@@ -748,7 +770,7 @@ class RoutineOrchestrator:
         # ② 跑 gate + LLM Judge（带整体兜底超时；gate/judge 各自亦有独立超时）
         try:
             result = await asyncio.wait_for(
-                self._evaluator.evaluate(routine_eval_view, iter_eval_view),
+                self._evaluator.evaluate(routine_eval_view, iter_eval_view, history=anchor_history or None),
                 timeout=self._eval_guard_seconds(),
             )
         except TimeoutError:
@@ -797,6 +819,13 @@ class RoutineOrchestrator:
             latest.gate_exit_code = result.gate_exit_code
             latest.status = "evaluated"
             latest.lease_expires_at = None
+            # 锚定评估审计：把 Judge 实际看到的锚点摘要 + progress_evidence 落 metrics JSONB，
+            # 供 UI/后溯对照锚定前后评分方差。沿用 merge 范式保留 eval_attempts 等既有键。
+            if result.anchor is not None:
+                latest.metrics = {
+                    **(latest.metrics or {}),
+                    "judge_anchor": {**result.anchor, "progress_evidence": result.progress_evidence},
+                }
 
             # 更新 routine 反规范化评分 + 追加反思
             routine.last_score = result.score
@@ -835,6 +864,9 @@ class RoutineOrchestrator:
                 # 防一次早期运气高点致正常振荡永远清不过历史最优 → 假阳性 no_progress 误杀。
                 # max(0,...) 防负值反向收紧；缺失键 → 0 退化原点态比较（向后兼容）。
                 no_progress_score_tolerance=max(0, int((routine.config or {}).get("no_progress_score_tolerance") or 0)),
+                # per-routine 量化振荡最小振幅（opt-in，默认 0=仅原 verdict 交替判定）。
+                # 用于「Judge 锚定降振荡后仍剧烈 thrash」的兜底；与 no_progress_tolerance 存在张力，慎用。
+                oscillation_min_amplitude=max(0, int((routine.config or {}).get("oscillation_min_amplitude") or 0)),
             )
             if phased_flow:
                 self._advance_phase_or_terminate(routine, verdict, finalize_noop=finalize_noop)
@@ -1990,6 +2022,8 @@ class RoutineOrchestrator:
                     "score": result.score,
                     "verdict": result.verdict,
                     "reflection": result.reflection,
+                    # 锚定评估的「证据先于给分」陈述（未启用锚定时为 None）。纯加键，UI 审计可见。
+                    "progress_evidence": result.progress_evidence,
                     "prompt": _cap(result.judge_prompt or ""),
                     "raw": _cap(result.judge_raw or ""),
                     "error": result.error,
