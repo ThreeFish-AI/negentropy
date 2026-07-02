@@ -148,29 +148,54 @@ flowchart TB
 
 ---
 
-## 4. 与综述开放问题（§10）的对应
+## 4. 与综述开放问题（§10）的对应 + SI 六目标完成度
 
-| 综述 §10 开放问题 | 本切片状态 |
+**SI 六目标（综述 §8）—— 已全部落地（Round 1 + Round 2）**：
+
+| SI 目标 | 落地 | 产物 |
+|---|---|---|
+| #1 backward retention | ✅ | `decide_skill_canary`（holdout 零回归门） |
+| #2 held-out gain | ✅ | `decide_skill_shadow`（visible 增益门） |
+| #3 longitudinal stability | ✅ Round2 | `decide_longitudinal_drift` + `longitudinal_recheck` 调度 + drift 回退 `active_version` |
+| #4 improvement efficiency | ✅ Round2 | `improvement_efficiency`（cost_units 以 Judge 调用数代理）+ 写入 `shadow_eval_result` |
+| #5 path attribution | ✅ | `CounterfactualAttributor`（反事实 Skill Influence Pattern） |
+| #6 safety non-regression | ✅ Round2 | `EvalSuite.is_safety` + `decide_safety_nonregression`（晋升前置硬门） |
+
+**综述 §10 开放问题**：
+
+| §10 开放问题 | 状态 |
 |---|---|
 | 10.3 弱反馈下信用分配 | ✅ 部分——反事实归因给 case 级 Δ；trajectory 内子动作级归因仍后续 |
 | 10.4 自生成经验稳定性 | ⚠️ 触及——`is_noop_template` 防「重排空白当改进」；外部 grounding（独立 eval 集换血）列后续 |
-| 10.5 纵向评估 | ⚠️ 基座就位——`eval_runs` 天然形成 (target, suite) 的 version 链 T0/T1/T2；纵向复评调度未接 |
-| 10.9 部署后修改安全 | ⚠️ 触及——默认全关灰度 + 双相门；持续安全再认证（§9.3）列后续 |
+| 10.5 纵向评估 | ✅ Round2——`longitudinal_recheck` 周期复跑 holdout vs 晋升均值，drift 回退 |
+| 10.9 部署后修改安全 | ✅ 部分——默认全关灰度 + 双相门 + 安全套件非回归前置；持续红队（§9.3 末段）列后续 |
 
 ---
 
 ## 5. 后续方向（多轮迭代拟合综述）
 
-1. **Runtime canary 分桶注入**：当前 canary 用离线 eval-suite holdout 门（综述 §8 优先）；按 thread
-   分桶在线注入候选 skill 版本（镜像 `memory_service._resolve_effective_weights`）作灰度增强。
-2. **agent-loop 执行模式**：`SkillExecutor` 当前 judge-the-prompt（评 prompt 质量）；端到端任务成功
-   评估需挂 `scoring_config.execution_mode="agent_loop"`（沙箱跑真实 Agent）。
-3. **纵向 SIP-Bench 复评**：`evolution_inspector` 增排期任务，对已 promoted 的 (target, suite) 跨版本
-   重测 T0→T1→T2（综述 §8 longitudinal stability），drift 触发回滚。
-4. **效率 + 安全非回归**：SI 目标 4（cost-per-gain，接 `pre_propose_check.cost_today_usd`，需先解 D7
-   ADK 侧 cost_usd NULL）+ 目标 6（安全 eval 与改进环并行常驻，综述 §9.3）。
-5. **更多进化面**：`TargetHandler` 已抽象，第三面（agent_prompt / builtin_tool / knowledge_strategy）
-   接入只需新 handler 子类。
+> **Round 1+2 已完成「自我改进评测」层（SI 六目标）**。下列为**能力扩展**类拟合点，各含明确前置条件 /
+> 成本 / 边际价值评估——按 YAGNI + 最小干预原则，留作后续 dedicated round，而非强行浅实施。
+
+1. **Runtime canary 分桶注入**（边际价值低，延后）：当前 canary 用**离线 eval-suite holdout 门**
+   （综述 §8 明示离线 held-out 优于噪声在线 canary），晋升 = `active_version` 全量翻转，无「候选部分放量」
+   窗口。要加 runtime 分桶须改设计（promote 前插一个 thread 哈希分桶灰度窗口）+ `skills_injector`
+   透传 `bucket_key`。等真实 QPS 上升、需要在线信号时再做（镜像 `memory_service._resolve_effective_weights`）。
+2. **`SkillExecutor` agent-loop 执行模式**（成本高，延后）：当前 judge-the-prompt（评 prompt 质量，
+   已显式标注为 v1 语义折中）。端到端任务成功评估需每 case 起一个沙箱 Agent（MicroSandbox + 工具预算），
+   是一个 dedicated round。**扩展点已就位**：`SuiteRunner(executors={"skill": ...})` 可注入新 executor，
+   挂 `scoring_config.execution_mode="agent_loop"` 即可切换，无需改 handler。
+3. **第三进化面**（`TargetHandler` 已就位，接入 = 新 handler 子类）：每面各有前置——
+   - `agent_prompt`：需先解 ADR-3 `sync_negentropy_agents` 覆写（`agent_versions` + `active_version` 指针）。
+   - `builtin_tool_config`：需 `builtin_tool_versions` 快照表（参数级，如 top_k / timeout）。
+   - `knowledge_strategy`：需 KG eval suite（复用 `knowledge/graph/quality.py`）。
+   - `memory_pipeline_prompt`（extractor/reflection/summarizer）：需把代码常量 prompt DB 化（`memory_config_versions` 扩 scope）。
+   抽象已由 retrieval + skill 双 handler 实证，第三面接入零改 orchestrator。
+4. **真实 $-cost 提取**（SI #4 增强）：当前 `improvement_efficiency` 以 Judge 调用数代理；真实 $-cost
+   需从 litellm `response.usage` 提取 token + 模型定价表，写入 `eval_runs.cost_total`，并接
+   `pre_propose_check.cost_today_usd`（需先解 D7：ADK 侧 `tool_invocations.cost_usd` NULL）。
+5. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：当前安全套件为人建；综述 §9.3 末段要求
+   「红队自身 agent 化」（AutoRedTeamer 式持续攻击发现）。等有具体安全评测目标时接入。
 
 ---
 
