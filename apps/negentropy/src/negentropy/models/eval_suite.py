@@ -152,6 +152,13 @@ class EvalSuite(Base, UUIDMixin, TimestampMixin):
         server_default="0.2",
         comment="seeding 期目标 holdout 切分比例",
     )
+    is_safety: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="安全套件标记（综述 §8 #6 + §9.3）：晋升须在此集零回退，能力不得以安全退化换取",
+    )
     owner_id: Mapped[str] = mapped_column(String(255), nullable=False)
     visibility: Mapped[str] = mapped_column(
         String(16),

@@ -32,8 +32,10 @@ import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.evolution.decision import (
     decide_longitudinal_drift,
+    decide_safety_nonregression,
     decide_skill_canary,
     decide_skill_shadow,
+    improvement_efficiency,
     is_noop_template,
 )
 from negentropy.engine.evolution.handlers._shared import _bump_patch, _emit_evolution_event, _enter_canary
@@ -272,17 +274,20 @@ class SkillTemplateHandler:
             return
 
         base_run, cand_run = await self._run_pair(db, suite=suite, proposal=proposal, partition=RUN_PARTITION_VISIBLE)
+        base_view = await _run_view(db, base_run)
+        cand_view = await _run_view(db, cand_run)
+        gain = cand_view.score_mean - base_view.score_mean
         proposal.shadow_eval_result = {
             "baseline_mean": base_run.score_mean,
             "candidate_mean": cand_run.score_mean,
             "candidate_regression_count": cand_run.regression_count,
+            "improvement_efficiency": improvement_efficiency(
+                score_gain=gain, cost_units=base_view.n_cases + cand_view.n_cases
+            ),
             "decided_at": now.isoformat(),
         }
 
-        dec = decide_skill_shadow(
-            baseline=await _run_view(db, base_run),
-            candidate=await _run_view(db, cand_run),
-        )
+        dec = decide_skill_shadow(baseline=base_view, candidate=cand_view)
         if dec.action == "hold":
             # 反事实归因（综述 §8 CTA）：写回候选 visible run 的 eval_results.attribution
             try:
@@ -323,12 +328,19 @@ class SkillTemplateHandler:
             "candidate_regression_count": cand_run.regression_count,
             "decided_at": now.isoformat(),
         }
-        dec = decide_skill_canary(
-            baseline=await _run_view(db, base_run),
-            candidate=await _run_view(db, cand_run),
-        )
+        base_view = await _run_view(db, base_run)
+        cand_view = await _run_view(db, cand_run)
+        dec = decide_skill_canary(baseline=base_view, candidate=cand_view)
         if dec.is_promote:
-            await self._promote(db, proposal, now)
+            # SI #6 safety non-regression 前置（综述 §8 + §9.3）：安全套件零回退方可晋升
+            safety_dec = await self._check_safety_nonregression(db, proposal)
+            if safety_dec is None or safety_dec.action == "promote":
+                await self._promote(db, proposal, now)
+            else:
+                # 安全回退属高风险，不自动晋升，交人审
+                proposal.status = STATUS_PENDING_APPROVAL
+                proposal.decided_at = now
+                _emit_evolution_event(proposal, action=proposal.status, reason=safety_dec.reason or "safety_regression")
         elif dec.is_rollback:
             await self._rollback(db, proposal, now, reason=dec.reason)
         # hold（holdout 样本不足）→ 留 canary 续等（下次 tick 再判）
@@ -485,14 +497,53 @@ class SkillTemplateHandler:
 
     @staticmethod
     async def _find_suite(db, skill_name: str) -> EvalSuite | None:
+        """主能力套件（非安全）：latest ``is_safety=False`` suite。安全套件由
+        ``_check_safety_nonregression`` 单独处理。"""
         return (
             await db.execute(
                 sa.select(EvalSuite)
-                .where(EvalSuite.target_kind == TARGET_KIND_SKILL, EvalSuite.target_ref == skill_name)
+                .where(
+                    EvalSuite.target_kind == TARGET_KIND_SKILL,
+                    EvalSuite.target_ref == skill_name,
+                    EvalSuite.is_safety.is_(False),
+                )
                 .order_by(EvalSuite.created_at.desc())
                 .limit(1)
             )
         ).scalar_one_or_none()
+
+    async def _check_safety_nonregression(self, db, proposal: EvolutionProposal):
+        """SI #6 safety non-regression（综述 §8 + §9.3）：遍历绑定的安全套件，候选须在每个上零回退。
+
+        返回 ``Decision``（promote=全部通过 / rollback|hold=有安全套件未通过）；无安全套件 → None。
+        """
+        suites = (
+            (
+                await db.execute(
+                    sa.select(EvalSuite).where(
+                        EvalSuite.target_kind == TARGET_KIND_SKILL,
+                        EvalSuite.target_ref == proposal.target_ref,
+                        EvalSuite.is_safety.is_(True),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if not suites:
+            return None
+        last_dec = None
+        for suite in suites:
+            base_run, cand_run = await self._run_pair(
+                db, suite=suite, proposal=proposal, partition=RUN_PARTITION_HOLDOUT
+            )
+            last_dec = decide_safety_nonregression(
+                baseline=await _run_view(db, base_run),
+                candidate=await _run_view(db, cand_run),
+            )
+            if last_dec.action != "promote":
+                return last_dec  # 任一安全套件未通过即阻断
+        return last_dec
 
     async def _run_pair(
         self,

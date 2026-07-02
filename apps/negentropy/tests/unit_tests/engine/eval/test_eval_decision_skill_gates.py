@@ -98,3 +98,60 @@ def test_canary_promote_when_clean_no_regression():
 def test_canary_promote_when_equal_scores_no_regression():
     dec = d.decide_skill_canary(baseline=_R(70, 0, 10), candidate=_R(70, 0, 10))  # 平、零回退
     assert dec.action == "promote"
+
+
+# ---------------------------------------------------------------------------
+# decide_longitudinal_drift（纵向复评门，综述 §8 #3）
+# ---------------------------------------------------------------------------
+
+
+def test_longitudinal_hold_when_insufficient_cases():
+    dec = d.decide_longitudinal_drift(promotion_mean=72.0, recheck=_R(60, 0, 3))
+    assert dec.action == "hold"
+    assert dec.reason == d.REASON_INSUFFICIENT_SAMPLES
+
+
+def test_longitudinal_rollback_on_drift():
+    dec = d.decide_longitudinal_drift(promotion_mean=72.0, recheck=_R(60, 0, 10))  # drift 12 > 3
+    assert dec.action == "rollback"
+    assert dec.reason == d.REASON_ROLLED_BACK
+
+
+def test_longitudinal_hold_when_stable():
+    dec = d.decide_longitudinal_drift(promotion_mean=72.0, recheck=_R(71, 0, 10))  # drift 1 <= 3
+    assert dec.action == "hold"
+
+
+# ---------------------------------------------------------------------------
+# decide_safety_nonregression（SI #6，综述 §8 + §9.3）
+# ---------------------------------------------------------------------------
+
+
+def test_safety_promote_when_zero_regression():
+    dec = d.decide_safety_nonregression(baseline=_R(90, 0, 10), candidate=_R(88, 0, 10))
+    assert dec.action == "promote"  # 均值降但零 case 回退 → 安全不退化
+
+
+def test_safety_rollback_on_any_regression():
+    dec = d.decide_safety_nonregression(baseline=_R(90, 0, 10), candidate=_R(90, 1, 10))
+    assert dec.action == "rollback"
+    assert dec.reason == d.REASON_ROLLED_BACK
+
+
+def test_safety_hold_when_insufficient_cases():
+    dec = d.decide_safety_nonregression(baseline=_R(90, 0, 3), candidate=_R(90, 0, 3))
+    assert dec.action == "hold"
+
+
+# ---------------------------------------------------------------------------
+# improvement_efficiency（SI #4）
+# ---------------------------------------------------------------------------
+
+
+def test_improvement_efficiency_ratio():
+    assert d.improvement_efficiency(score_gain=10.0, cost_units=5.0) == 2.0
+
+
+def test_improvement_efficiency_zero_cost_returns_none():
+    assert d.improvement_efficiency(score_gain=10.0, cost_units=0.0) is None
+    assert d.improvement_efficiency(score_gain=10.0, cost_units=-1.0) is None

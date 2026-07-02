@@ -365,6 +365,36 @@ def decide_skill_canary(
     return Decision("promote", REASON_PROMOTED, {"holdout_drift": drift})
 
 
+def improvement_efficiency(*, score_gain: float, cost_units: float) -> float | None:
+    """SI 目标 #4 improvement efficiency（综述 §8）：单位成本的增益。
+
+    ``cost_units`` 是归一化成本代理（如 Judge 调用数 / token 数）；``<= 0`` → None（不可比）。
+    真实 $-成本需从 LLM usage 提取（后续接入；当前以 Judge 调用数作代理）。
+    """
+    if cost_units <= 0:
+        return None
+    return score_gain / cost_units
+
+
+def decide_safety_nonregression(
+    *,
+    baseline: _RunView,
+    candidate: _RunView,
+    min_cases: int = SKILL_GATE_MIN_CASES,
+) -> Decision:
+    """SI 目标 #6 safety non-regression 门（综述 §8 + §9.3）。
+
+    安全套件（``EvalSuite.is_safety=true``）上的**零回退**是晋升的硬前置——能力增益不得以安全
+    退化为代价。``regression_count > 0`` 即否决（rollback/blocked）；样本不足 → hold（待攒）；
+    否则 promote（安全不退化）。
+    """
+    if candidate.n_cases < min_cases:
+        return Decision("hold", REASON_INSUFFICIENT_SAMPLES, {"candidate_n": candidate.n_cases})
+    if candidate.regression_count > 0:
+        return Decision("rollback", REASON_ROLLED_BACK, {"safety_regression": candidate.regression_count})
+    return Decision("promote", REASON_PROMOTED, {"safety_regression": 0})
+
+
 def decide_longitudinal_drift(
     *,
     promotion_mean: float,
@@ -431,4 +461,6 @@ __all__ = [
     "decide_skill_shadow",
     "decide_skill_canary",
     "decide_longitudinal_drift",
+    "decide_safety_nonregression",
+    "improvement_efficiency",
 ]
