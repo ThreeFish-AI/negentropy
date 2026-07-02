@@ -152,6 +152,70 @@ class SkillExecutor:
         return CaseOutput(body=rendered or "(skill 无 prompt_template)", digest=_sha12(rendered))
 
 
+class AgentLoopExecutor:
+    """skill 面 executor（``execution_mode="agent_loop"``）——skill-conditioned 单轮生成。
+
+    与 ``SkillExecutor``（judge-the-prompt，评 prompt **文本**质量）的区别：把 ``SkillVersion``
+    快照的 ``prompt_template`` 作 **system instruction**、case 的 ``task`` 作 user，发起一次真实 LLM
+    生成，Judge 评**生成产出**而非评 prompt 文本——更贴近综述 §3「skill 指导真实任务行为」的语义。
+
+    v1 为单轮生成（无工具调用 / 沙箱）；完整 agent-loop（多轮 + 工具 + MicroSandbox）是进一步工作。
+    生成失败 fail-soft：回退空串，Judge 据此低分。
+    """
+
+    _TASK_KEY = "eval.execute"
+
+    def __init__(self, *, model_override: str | None = None) -> None:
+        self._model_override = model_override
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        from negentropy.db import session as db_session
+        from negentropy.models.skill import Skill, SkillVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(SkillVersion)
+                    .join(Skill, Skill.id == SkillVersion.skill_id)
+                    .where(Skill.name == target_ref, SkillVersion.version == target_version)
+                )
+            ).scalar_one_or_none()
+            template = (dict(row.snapshot or {}).get("prompt_template") if row else None) or ""
+        task = str((case_input or {}).get("task") or "")
+        body = await _conditioned_generate(system_prompt=template, user_task=task, model_override=self._model_override)
+        return CaseOutput(body=body or "(agent 未产出)", digest=_sha12(body or ""))
+
+
+async def _conditioned_generate(*, system_prompt: str, user_task: str, model_override: str | None) -> str:
+    """单轮 LLM 生成（system=skill prompt，user=case task）。失败返回空串。"""
+    import litellm
+
+    from negentropy.engine.utils.model_config import resolve_model_config_async
+
+    try:
+        model, kwargs = await resolve_model_config_async("eval.execute", explicit_model=model_override)
+        safe_kwargs = {k: v for k, v in kwargs.items() if k not in ("model", "messages")}
+        resp = await litellm.acompletion(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt or "(no skill instruction)"},
+                {"role": "user", "content": user_task},
+            ],
+            **safe_kwargs,
+        )
+        return resp.choices[0].message.content or ""
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("eval_agent_loop_generate_failed", error=str(exc))
+        return ""
+
+
 # =============================================================================
 # SuiteRunner
 # =============================================================================
@@ -170,12 +234,15 @@ class SuiteRunner:
         *,
         evaluator: RoutineEvaluator | None = None,
         executors: dict[str, TargetExecutor] | None = None,
+        agent_executor: TargetExecutor | None = None,
     ) -> None:
         self._evaluator = evaluator or RoutineEvaluator()
         # 默认注册 skill executor；其它 target_kind 由调用方注入
         self._executors: dict[str, TargetExecutor] = (
             executors if executors is not None else {TARGET_KIND_SKILL: SkillExecutor()}
         )
+        # ``execution_mode="agent_loop"`` 时用 agent_executor（默认 AgentLoopExecutor）
+        self._agent_executor = agent_executor or AgentLoopExecutor()
 
     # ------------------------------------------------------------------
     # 公开 API
@@ -195,7 +262,7 @@ class SuiteRunner:
         gate_cwd: str | None = None,
     ) -> EvalRun:
         """对 suite 的 ``partition`` 切片跑 Judge，返回完成的 ``EvalRun``。"""
-        executor = self._executors.get(target_kind)
+        executor = self._resolve_executor(target_kind, dict(suite.scoring_config or {}))
         if executor is None:
             return await self._fail_run(
                 session,
@@ -330,6 +397,17 @@ class SuiteRunner:
     # 内部
     # ------------------------------------------------------------------
 
+    def _resolve_executor(self, target_kind: str, cfg: dict[str, Any]) -> TargetExecutor | None:
+        """按 target_kind + ``scoring_config.execution_mode`` 选 executor。
+
+        skill 面：``execution_mode="agent_loop"`` → agent_executor（单轮 skill-conditioned 生成，
+        Judge 评**生成产出**）；否则默认 ``SkillExecutor``（judge-the-prompt，评 prompt 文本）。
+        其它 target_kind 用注入的 executors 字典。
+        """
+        if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop":
+            return self._agent_executor
+        return self._executors.get(target_kind)
+
     @staticmethod
     async def _select_cases(session: AsyncSession, *, suite_id, partition: str) -> list[EvalCase]:
         stmt = select(EvalCase).where(EvalCase.suite_id == suite_id)
@@ -459,6 +537,7 @@ __all__ = [
     "CaseOutput",
     "TargetExecutor",
     "SkillExecutor",
+    "AgentLoopExecutor",
     "SuiteRunner",
     "visible_results_query",
 ]
