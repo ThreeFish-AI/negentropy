@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
+from negentropy.engine.routine.trajectory import score_trajectory
+
 
 class _RoutineLike(Protocol):
     """决策所需的 Routine 只读视图（避免与 ORM 强耦合，便于测试注入）。"""
@@ -103,6 +105,7 @@ def decide(
     max_context_resets: int = 0,
     accept_verdict_pass: bool = False,
     no_progress_score_tolerance: int = 0,
+    oscillation_min_amplitude: int = 0,
 ) -> Decision:
     """评估后的核心决策：成功 / 终止 / 继续。
 
@@ -127,6 +130,13 @@ def decide(
             修一处感知缺陷常压低另一处总分，±20 振荡），防一次早期运气高点使正常振荡永远清不过
             历史最优 → 假阳性 no_progress 误杀。经 ``config.no_progress_score_tolerance`` 注入、
             per-routine 开启。纯函数边界：容差由调用方显式注入，decision 不读 settings。
+        oscillation_min_amplitude: 量化振荡判定的最小振幅阈值（opt-in）。默认 0 = 关闭，仅保留原
+            verdict 交替判定（``progressing↔regressed`` 反转）。>0 时追加一条**与 verdict 无关**的量化
+            分支：近 6 轮净增长≤0、振幅≥阈值、方向反转≥3 次即判振荡——修复原判定因 ``stalled`` 被过滤
+            致漏检的 thrash。⚠️ 与 ``no_progress_score_tolerance`` 存在张力：ISSUE-128 真实轨迹
+            （72→84→62→72→42→72）会被任何合理量化阈值命中，而它正是容差带刚救回的任务——故**默认关闭、
+            巡检不启用**，定位为「Judge 锚定降振荡后仍剧烈 thrash 的兜底护栏」，待锚定收窄方差后再
+            per-routine 启用。经 ``config.oscillation_min_amplitude`` 注入。纯函数边界：不读 settings。
 
     Returns:
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
@@ -157,8 +167,9 @@ def decide(
     if _is_no_progress(routine, history, no_progress_score_tolerance=no_progress_score_tolerance):
         return Decision("terminate", REASON_NO_PROGRESS)
 
-    # 5) 振荡：verdict 在 progressing/regressed 间反复横跳且分数无上升趋势
-    if _is_oscillating(history):
+    # 5) 振荡：verdict 在 progressing/regressed 间反复横跳且分数无上升趋势；
+    #    或（opt-in）量化振荡——近 6 轮振幅≥阈值且反复反转（与 verdict 无关）。
+    if _is_oscillating(history, min_amplitude=oscillation_min_amplitude):
         return Decision("terminate", REASON_OSCILLATION)
 
     return Decision("continue")
@@ -220,9 +231,34 @@ def _is_no_progress(
     return all(it.score <= threshold for it in recent)
 
 
-def _is_oscillating(history: list[_IterationLike]) -> bool:
-    """振荡判定：最近至少 4 次评分无净增长，且 verdict 在改善/退步间交替。"""
+def _is_oscillating(history: list[_IterationLike], *, min_amplitude: int = 0) -> bool:
+    """振荡判定。
+
+    两条判定，命中任一即 True：
+    1. 原 verdict 交替判定（默认，保留逐字节语义）：最近 ≥4 次评分无净增长，且 verdict 在
+       ``progressing``/``regressed`` 间反转 ≥2 次；
+    2. 量化振荡（opt-in，``min_amplitude > 0`` 时追加）：近 6 轮净增长 ≤0、振幅 ≥ ``min_amplitude``、
+       方向反转 ≥3 次——**与 verdict 无关**，修复 ``stalled`` 被原判定过滤致漏检的 thrash。
+
+    ⚠️ 与 ``no_progress_score_tolerance`` 张力详见 ``decide`` docstring；默认关闭。
+    """
     scored = [it for it in history if it.score is not None]
+    if _verdict_oscillating(scored):
+        return True
+    if min_amplitude > 0:
+        stats = score_trajectory(scored, window=6)
+        if (
+            stats.n_scored >= 6
+            and (stats.net_gain or 0) <= 0
+            and (stats.amplitude or 0) >= min_amplitude
+            and stats.flips >= 3
+        ):
+            return True
+    return False
+
+
+def _verdict_oscillating(scored: list[_IterationLike]) -> bool:
+    """原 verdict 交替判定（从 _is_oscillating 抽出，保留原语义）。"""
     if len(scored) < 4:
         return False
     recent = scored[-4:]

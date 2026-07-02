@@ -31,6 +31,7 @@ from .app import AppSettings
 from .auth import AuthSettings
 from .database import DatabaseSettings
 from .environment import EnvironmentSettings
+from .evolution import EvolutionSettings
 from .knowledge import KnowledgeSettings
 from .logging import LoggingSettings
 from .memory import MemorySettings
@@ -76,6 +77,7 @@ class Settings(BaseSettings):
             "knowledge",
             "memory",
             "routine",
+            "evolution",
         ):
             set_yaml_section(section, yaml_config.get(section, {}))
 
@@ -140,6 +142,11 @@ class Settings(BaseSettings):
     def routine(self) -> RoutineSettings:
         """Routine 长周期自主任务编排配置（Evaluator-Optimizer + Reflexion）。"""
         return RoutineSettings()
+
+    @cached_property
+    def evolution(self) -> EvolutionSettings:
+        """自进化子系统配置（GEPA 提案器 + 记忆检索参数自进化）。"""
+        return EvolutionSettings()
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -257,6 +264,7 @@ __all__ = [
     "LoggingSettings",
     "MemorySettings",
     "RoutineSettings",
+    "EvolutionSettings",
     "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",

@@ -171,7 +171,7 @@ async def test_plan_phase_skips_verification_gate():
     await _add_iteration(rid, seq=1, phase="plan")
     captured: dict = {}
 
-    async def _capture(routine_view, iter_view):
+    async def _capture(routine_view, iter_view, history=None):
         captured["vc"] = routine_view.verification_command
         return EvaluationResult(ok=True, score=40, verdict="progressing", reflection="r")
 
@@ -195,7 +195,7 @@ async def test_implement_phase_runs_verification_gate():
     await _add_iteration(rid, seq=1, phase="implement")
     captured: dict = {}
 
-    async def _capture(routine_view, iter_view):
+    async def _capture(routine_view, iter_view, history=None):
         captured["vc"] = routine_view.verification_command
         return EvaluationResult(ok=True, score=55, verdict="progressing", reflection="r", gate_exit_code=0)
 

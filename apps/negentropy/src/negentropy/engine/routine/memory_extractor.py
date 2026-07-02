@@ -135,6 +135,18 @@ _TERMINATION_EXTRACTION_PROMPT = """\
 "rationale": "为何值得记住"}}]}}
 """
 
+# 失败终态附加指令：失败轨迹须转成具体「教训/根因/下次行动目标」（综述 §3.5 negative evidence），
+# 而非散列的 pass/fail 描述。仅失败 reason（no_progress/oscillation/unrecoverable_error）注入。
+_FAILURE_BRANCH_INSTRUCTIONS = """
+
+【失败教训专项要求】
+本任务以失败终止。请额外严格按以下三段式产出失败教训记忆（type 优先 procedural 或 episodic）：
+- **教训**：本次失败揭示的具体认知（不是「任务失败了」这种无效陈述）；
+- **根因**：可定位的最深层原因（如「方案 A 在 X 条件下必然触发 Y」「遗漏了 Z 验证步骤」）；
+- **下次行动目标**：同类任务下一次具体应如何规避或先验证（可操作、可检验）。
+失败教训的价值在于让后续 routine 不再重蹈覆辙——模糊或不可执行的教训不值得记忆。
+"""
+
 # 事件压缩上限：仅取最近 N 条事件的摘要
 _MAX_CONDENSED_EVENTS = 30
 
@@ -338,7 +350,7 @@ class IterationMemoryExtractor:
 
     @staticmethod
     def _build_termination_prompt(routine: Any, history: list[Any]) -> str:
-        """构建终止时批量提取 prompt。"""
+        """构建终止时批量提取 prompt。失败终态注入三段式教训附加指令。"""
         goal = getattr(routine, "goal", "") or ""
         criteria = getattr(routine, "acceptance_criteria", "") or ""
         status = getattr(routine, "status", "") or "unknown"
@@ -357,13 +369,17 @@ class IterationMemoryExtractor:
             )
         timeline = "\n\n".join(timeline_parts) if timeline_parts else "（无迭代历史）"
 
-        return _TERMINATION_EXTRACTION_PROMPT.format(
+        prompt = _TERMINATION_EXTRACTION_PROMPT.format(
             goal=goal.strip(),
             acceptance_criteria=criteria.strip(),
             termination_status=status,
             termination_reason=reason,
             iteration_timeline=timeline[:3000],  # 控制总长度
         )
+        # 失败终态附加三段式教训指令（综述 §3.5：失败轨迹须转成具体更新目标）
+        if reason in ("no_progress", "oscillation", "unrecoverable_error"):
+            prompt += _FAILURE_BRANCH_INSTRUCTIONS
+        return prompt
 
     # ------------------------------------------------------------------
     # LLM 调用

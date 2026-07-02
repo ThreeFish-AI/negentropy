@@ -2,6 +2,7 @@ from .action import Tool, ToolExecution
 from .agent import Agent
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .builtin_tool import BuiltinTool
+from .evolution import EvolutionProposal, MemoryConfigVersion
 from .internalization import ConsolidationJob, Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpResourceTemplate, McpServer, McpTool
@@ -56,6 +57,9 @@ __all__ = [
     "MemoryAuditLog",
     "MemoryAutomationConfig",
     "ConsolidationJob",
+    # Evolution (自进化)
+    "EvolutionProposal",
+    "MemoryConfigVersion",
     # Action
     "Tool",
     "ToolExecution",
