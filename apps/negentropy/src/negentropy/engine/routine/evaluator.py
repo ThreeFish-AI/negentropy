@@ -275,6 +275,79 @@ class RoutineEvaluator:
             anchor=anchor_audit,
         )
 
+    async def judge_once(
+        self,
+        *,
+        goal: str,
+        acceptance_criteria: str,
+        summary: str,
+        verification_command: str | None = None,
+        gate_cwd: str | None = None,
+        gate_timeout: int | None = None,
+        model_override: str | None = None,
+        acceptance_unmet_score_cap: int | None = None,
+    ) -> EvaluationResult:
+        """非锚定的单次 Judge（供离线 ``SuiteRunner`` 复用，不耦合 ``_RoutineLike``）。
+
+        与 ``evaluate`` 共享 ``_run_gate`` / ``_format_gate`` / ``_judge`` / ``_parse`` 与
+        acceptance cap 逻辑，但**不构造锚定上下文**——离线 eval 不存在「上一轮」。
+        ``evaluate`` 路径逐字节不变（本方法为纯新增）。
+
+        流程：可选命令门控 → 构造非锚定 ``_JUDGE_PROMPT`` → LLM Judge → acceptance cap → 返回。
+        LLM 失败 → ``ok=False``（带 ``judge_prompt`` / ``gate_output`` 供审计）。
+
+        离线 SuiteRunner 用此方法评一个 case：``goal=case.input.task``、
+        ``acceptance_criteria=case.expected.rubric``、``summary=<目标产出>``、
+        ``verification_command=case.expected.verification_command``。
+        """
+
+        gate_exit_code: int | None = None
+        gate_output = ""
+        if verification_command:
+            gate_exit_code, gate_output = await self._run_gate(verification_command, gate_cwd, timeout=gate_timeout)
+
+        text = (summary or "").strip()[:_SUMMARY_MAX_CHARS] or "(无产出摘要)"
+        gate_section = self._format_gate(verification_command, gate_exit_code, gate_output)
+        judge_prompt = _JUDGE_PROMPT.format(
+            goal=goal,
+            acceptance_criteria=acceptance_criteria,
+            summary=text,
+            gate_section=gate_section,
+        )
+        audit_gate = gate_output or None
+
+        try:
+            score, verdict, reflection, judge_raw, acceptance_met, _pe = await self._judge(
+                judge_prompt, model_override=model_override
+            )
+        except Exception as exc:
+            logger.warning("eval_judge_once_failed", error=str(exc))
+            return EvaluationResult(
+                ok=False,
+                gate_exit_code=gate_exit_code,
+                error=str(exc),
+                judge_prompt=judge_prompt,
+                gate_output=audit_gate,
+            )
+
+        cap = acceptance_unmet_score_cap
+        if isinstance(cap, int) and cap > 0 and acceptance_met is False and score > cap:
+            logger.info("eval_score_capped_acceptance_unmet", original=score, cap=cap)
+            score = cap
+            if verdict == "pass":
+                verdict = "progressing"
+
+        return EvaluationResult(
+            ok=True,
+            score=score,
+            verdict=verdict,
+            reflection=reflection,
+            gate_exit_code=gate_exit_code,
+            judge_prompt=judge_prompt,
+            judge_raw=judge_raw,
+            gate_output=audit_gate,
+        )
+
     @staticmethod
     def _gate_cwd(routine: _RoutineLike) -> str | None:
         """门控命令的有效执行目录：优先隔离 worktree，回退 routine.cwd。

@@ -247,6 +247,109 @@ def decide_canary(
     return Decision("promote", REASON_PROMOTED, {"hr_gain": hr_gain, "zhr_regression": zhr_regression})
 
 
+# =============================================================================
+# skill_template 面：双相门（综述 §8 held-out gain + backward retention / §9.4 防 Goodhart）
+# =============================================================================
+#
+# 与 retrieval 面的「在线 window 指标门」解耦：skill 面在离线 eval suite 上作 case 级判据。
+# 两相分别落在可见集（is_frozen=false，允许拟合）与冻结 holdout 集（is_frozen=true，零回退），
+# 使综述 §9.4「冻结 holdout 结果不回流 proposer」由 SuiteRunner 的 ``visible_results_query``
+# 结构性保证、再由本双相门在裁决侧二次约束。
+
+# 门裁决阈值（硬编码常量；调用方可显式覆盖以测试）
+SKILL_GATE_MIN_CASES = 5  # 每分片最少 case 数（冷启动保护）
+SKILL_GATE_VISIBLE_GAIN_MIN = 2.0  # visible 集：候选均值 − 基线均值 ≥ 此值才放行（held-out gain）
+SKILL_HOLDOUT_REGRESSION_MAX = 0  # holdout 集：零 case 回退容忍（backward retention，零容忍）
+SKILL_HOLDOUT_DRIFT_MAX = 1.0  # holdout 集：候选均值不得低于基线 1 分以上
+SKILL_CASE_REGRESSION_DELTA = 5.0  # 单 case 回退判定阈值（候选 < 基线 − 此值计一回退）
+
+REASON_NO_GAIN = "no_gain"  # 候选在 visible 集无实质增益（综述 §8 held-out gain 未达）
+
+
+class _RunView(Protocol):
+    """eval_run 只读视图（避免与 ORM 强耦合，便于测试注入）。
+
+    ``n_cases`` = 该 run 覆盖的 case 数（partition 切片后）；``regression_count`` 由
+    ``compute_run_regression`` 相对 baseline run 计算后填入。``pass_rate`` 供后续效率/稳定性
+    度量复用（本双相门不强依赖）。
+    """
+
+    score_mean: float
+    regression_count: int
+    n_cases: int
+    pass_rate: float
+
+
+def compute_run_regression(
+    *,
+    baseline_scores: dict[str, float],
+    candidate_scores: dict[str, float],
+    delta: float = SKILL_CASE_REGRESSION_DELTA,
+) -> int:
+    """相对 baseline run，候选回退的 case 数（综述 §8 backward retention 的 case 级度量）。
+
+    仅统计两 run 都覆盖的 case；``candidate < baseline − delta`` 计为回退。
+    """
+    return sum(
+        1 for cid, cand in candidate_scores.items() if cid in baseline_scores and cand < baseline_scores[cid] - delta
+    )
+
+
+def decide_skill_shadow(
+    *,
+    baseline: _RunView,
+    candidate: _RunView,
+    visible_gain_min: float = SKILL_GATE_VISIBLE_GAIN_MIN,
+    min_cases: int = SKILL_GATE_MIN_CASES,
+) -> Decision:
+    """skill shadow eval 门（综述 §8 held-out gain）：在**可见集**（``is_frozen=false``）上
+    候选均值须较基线有实质增益。
+
+    - 样本不足 → ``hold``（继续攒 case）；
+    - 增益 < ``visible_gain_min`` → ``reject``（无实质改进，提案终止为 rejected）；
+    - 否则 ``hold``（推进 canary，在 holdout 集上跑 backward retention 门）。
+
+    可见集允许拟合（held-out gain 在可见集度量），故此处对 case 回退不设硬门——真正的零
+    回退要求在 ``decide_skill_canary`` 的 holdout 集上（综述 §9.4 防 Goodhart）。
+    """
+    if candidate.n_cases < min_cases:
+        return Decision("hold", REASON_INSUFFICIENT_SAMPLES, {"candidate_n": candidate.n_cases})
+    gain = candidate.score_mean - baseline.score_mean
+    if gain < visible_gain_min:
+        return Decision("reject", REASON_NO_GAIN, {"gain": gain, "required": visible_gain_min})
+    return Decision("hold", None, {"gain": gain})
+
+
+def decide_skill_canary(
+    *,
+    baseline: _RunView,
+    candidate: _RunView,
+    holdout_regression_max: int = SKILL_HOLDOUT_REGRESSION_MAX,
+    holdout_drift_max: float = SKILL_HOLDOUT_DRIFT_MAX,
+    min_cases: int = SKILL_GATE_MIN_CASES,
+) -> Decision:
+    """skill canary 门（综述 §8 backward retention + §9.4 防 Goodhart）：在**冻结 holdout 集**
+    （``is_frozen=true``）上候选须零 case 回退且均值不漂移。
+
+    - 样本不足 → ``hold``；
+    - ``regression_count > holdout_regression_max``（默认零容忍）→ ``rollback``；
+    - 候选均值 < 基线 − ``holdout_drift_max`` → ``rollback``；
+    - 否则 ``promote``。
+    """
+    if candidate.n_cases < min_cases:
+        return Decision("hold", REASON_INSUFFICIENT_SAMPLES, {"candidate_n": candidate.n_cases})
+    if candidate.regression_count > holdout_regression_max:
+        return Decision(
+            "rollback",
+            REASON_ROLLED_BACK,
+            {"regression_count": candidate.regression_count, "max": holdout_regression_max},
+        )
+    drift = baseline.score_mean - candidate.score_mean
+    if drift > holdout_drift_max:
+        return Decision("rollback", REASON_ROLLED_BACK, {"holdout_drift": drift, "max": holdout_drift_max})
+    return Decision("promote", REASON_PROMOTED, {"holdout_drift": drift})
+
+
 __all__ = [
     "Decision",
     "REASON_PROMOTED",
@@ -261,6 +364,7 @@ __all__ = [
     "REASON_OSCILLATION",
     "REASON_BUDGET_PROPOSAL_CAP",
     "REASON_BUDGET_COST_CAP",
+    "REASON_NO_GAIN",
     "MIN_SAMPLE_N",
     "HELPFUL_RATIO_MIN_IMPROVEMENT",
     "ZERO_HIT_REGRESSION_MAX",
@@ -268,6 +372,11 @@ __all__ = [
     "WEIGHT_UPPER_BOUND",
     "WEIGHT_MAX_STEP",
     "DIVERSITY_REGRESSION_RATIO",
+    "SKILL_GATE_MIN_CASES",
+    "SKILL_GATE_VISIBLE_GAIN_MIN",
+    "SKILL_HOLDOUT_REGRESSION_MAX",
+    "SKILL_HOLDOUT_DRIFT_MAX",
+    "SKILL_CASE_REGRESSION_DELTA",
     "clamp_weight",
     "is_within_bounds",
     "pre_propose_check",
@@ -276,4 +385,7 @@ __all__ = [
     "is_canary_stale",
     "decide_shadow",
     "decide_canary",
+    "compute_run_regression",
+    "decide_skill_shadow",
+    "decide_skill_canary",
 ]
