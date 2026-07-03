@@ -332,6 +332,7 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
                 Agent.skills,
                 Agent.tools,
                 Agent.owner_id,
+                Agent.active_version,
             )
             .where(Agent.name == agent_name)
             .limit(1)
@@ -339,9 +340,28 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
         row = result.first()
         if row is None:
             return None
-        model_value, system_prompt_value, is_enabled, skill_refs, tools_list, owner_id = row
+        model_value, system_prompt_value, is_enabled, skill_refs, tools_list, owner_id, active_version = row
         if not is_enabled:
             return None
+
+        # ADR-3 Sync改造（R8-b）：active_version 非 NULL → 读 agent_versions 快照的 system_prompt，
+        # 覆盖 agents.system_prompt（代码基线）。sync_negentropy_agents 继续覆写 system_prompt（基线），
+        # 但 active_version 指针 + agent_versions 快照不受 sync 影响（进化版本存活）。
+        # active_version = NULL → 退化原行为（system_prompt_value 不变），逐字节向后兼容。
+        if active_version:
+            from negentropy.models.agent import AgentVersion
+
+            ver_snapshot = (
+                await session.execute(
+                    select(AgentVersion.snapshot)
+                    .join(Agent, Agent.id == AgentVersion.agent_id)
+                    .where(Agent.name == agent_name, AgentVersion.version == active_version)
+                )
+            ).scalar_one_or_none()
+            if isinstance(ver_snapshot, dict):
+                evolved_prompt = ver_snapshot.get("system_prompt")
+                if evolved_prompt:
+                    system_prompt_value = evolved_prompt
 
         instruction_normalized = str(system_prompt_value).strip() if system_prompt_value else None
 

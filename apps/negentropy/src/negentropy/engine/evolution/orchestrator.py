@@ -41,6 +41,7 @@ from negentropy.models.evolution import (
 
 from .decision import REASON_STALE_CANARY, is_canary_stale
 from .handlers import (
+    AgentPromptHandler,
     BuiltinToolConfigHandler,
     KnowledgeStrategyHandler,
     MemoryPipelinePromptHandler,
@@ -75,6 +76,7 @@ class EvolutionOrchestrator:
             MemoryPipelinePromptHandler.target_kind: MemoryPipelinePromptHandler(),
             BuiltinToolConfigHandler.target_kind: BuiltinToolConfigHandler(),
             KnowledgeStrategyHandler.target_kind: KnowledgeStrategyHandler(),
+            AgentPromptHandler.target_kind: AgentPromptHandler(),
         }
 
     def _handler_for(self, target_kind: str) -> TargetHandler | None:

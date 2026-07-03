@@ -379,6 +379,36 @@ class KgExecutor:
         return CaseOutput(body=body, digest=_sha12(body))
 
 
+class AgentExecutor:
+    """agent_prompt 面 executor——judge-the-prompt v1。
+
+    ``target_ref`` = agent name；``target_version`` = ``agent_versions`` SemVer。
+    从 ``agent_versions`` 取候选 snapshot.system_prompt，作「目标产出」交 Judge 评 prompt 质量。
+    """
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        from negentropy.db import session as db_session
+        from negentropy.models.agent import Agent, AgentVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(AgentVersion)
+                    .join(Agent, Agent.id == AgentVersion.agent_id)
+                    .where(Agent.name == target_ref, AgentVersion.version == target_version)
+                )
+            ).scalar_one_or_none()
+            prompt = (dict(row.snapshot or {}).get("system_prompt") if row else None) or ""
+        return CaseOutput(body=prompt or "(no system_prompt)", digest=_sha12(prompt))
+
+
 async def _conditioned_generate(
     *, system_prompt: str, user_task: str, model_override: str | None
 ) -> tuple[str, float | None]:

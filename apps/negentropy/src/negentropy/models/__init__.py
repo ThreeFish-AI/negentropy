@@ -1,5 +1,5 @@
 from .action import Tool, ToolExecution
-from .agent import Agent
+from .agent import Agent, AgentVersion
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .builtin_tool import BuiltinTool, BuiltinToolVersion
 from .eval_suite import EvalCase, EvalResult, EvalRun, EvalSuite
@@ -114,6 +114,7 @@ __all__ = [
     # Skill & Agent
     "Skill",
     "Agent",
+    "AgentVersion",
     # Scheduled Task (统一心跳调度)
     "ScheduledTask",
     "TaskExecution",

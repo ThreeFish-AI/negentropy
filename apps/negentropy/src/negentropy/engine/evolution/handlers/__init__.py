@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from .agent_prompt import AgentPromptHandler
 from .base import TargetHandler
 from .builtin_tool import BuiltinToolConfigHandler
 from .knowledge_strategy import KnowledgeStrategyHandler
@@ -25,4 +26,5 @@ __all__ = [
     "PipelinePromptProposer",
     "BuiltinToolConfigHandler",
     "KnowledgeStrategyHandler",
+    "AgentPromptHandler",
 ]
