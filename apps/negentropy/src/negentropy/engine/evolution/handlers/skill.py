@@ -290,6 +290,7 @@ class SkillTemplateHandler:
             "improvement_efficiency": improvement_efficiency(
                 score_gain=gain, cost_units=base_view.n_cases + cand_view.n_cases
             ),
+            "candidate_cost_usd": cand_run.cost_total,  # SI #4 执行侧真实 $-cost（agent_loop 模式）
             "decided_at": now.isoformat(),
         }
 

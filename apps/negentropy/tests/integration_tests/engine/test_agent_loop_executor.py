@@ -132,3 +132,28 @@ async def test_default_mode_uses_skill_executor():
             assert run.score_mean == 40.0  # 默认 executor 无标记 → 低分
     finally:
         await _cleanup(name)
+
+
+async def test_run_cost_total_accumulates_executor_cost():
+    """SI #4：executor 返回 cost_usd → SuiteRunner 累积进 run.cost_total（真实 $-cost）。"""
+
+    class _CostExec:
+        async def execute(self, *, target_kind, target_ref, target_version, case_input):
+            return CaseOutput(body=_AGENT_MARK, digest="a" * 12, cost_usd=0.05)
+
+    name, suite = await _seed_suite(execution_mode="agent_loop")
+    try:
+        runner = SuiteRunner(executors={"skill": _DefaultSkillExec()}, agent_executor=_CostExec(), evaluator=_Eval())
+        async with db_session.AsyncSessionLocal() as db:
+            run = await runner.run_suite(
+                db,
+                suite=suite,
+                target_kind="skill",
+                target_ref=name,
+                target_version="1.0.0",
+                partition="visible",
+            )
+            await db.commit()
+            assert run.cost_total == round(0.05 * 6, 6)  # 6 case × 0.05
+    finally:
+        await _cleanup(name)

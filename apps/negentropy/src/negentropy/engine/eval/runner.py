@@ -62,6 +62,7 @@ class CaseOutput:
     body: str
     digest: str | None = None
     error: str | None = None
+    cost_usd: float | None = None  # 执行侧真实 $-cost（litellm.completion_cost；None=未提取/失败）
 
 
 class TargetExecutor(Protocol):
@@ -189,8 +190,10 @@ class AgentLoopExecutor:
             ).scalar_one_or_none()
             template = (dict(row.snapshot or {}).get("prompt_template") if row else None) or ""
         task = str((case_input or {}).get("task") or "")
-        body = await _conditioned_generate(system_prompt=template, user_task=task, model_override=self._model_override)
-        return CaseOutput(body=body or "(agent 未产出)", digest=_sha12(body or ""))
+        body, cost = await _conditioned_generate(
+            system_prompt=template, user_task=task, model_override=self._model_override
+        )
+        return CaseOutput(body=body or "(agent 未产出)", digest=_sha12(body or ""), cost_usd=cost)
 
 
 class PromptExecutor:
@@ -228,14 +231,20 @@ class PromptExecutor:
             ).scalar_one_or_none()
             prompt = (dict(row.snapshot or {}).get("prompt") if row else None) or ""
         sample_text = str((case_input or {}).get("sample_text") or (case_input or {}).get("task") or "")
-        body = await _conditioned_generate(
+        body, cost = await _conditioned_generate(
             system_prompt=prompt, user_task=sample_text, model_override=self._model_override
         )
-        return CaseOutput(body=body or "(pipeline 未产出)", digest=_sha12(body or ""))
+        return CaseOutput(body=body or "(pipeline 未产出)", digest=_sha12(body or ""), cost_usd=cost)
 
 
-async def _conditioned_generate(*, system_prompt: str, user_task: str, model_override: str | None) -> str:
-    """单轮 LLM 生成（system=skill prompt，user=case task）。失败返回空串。"""
+async def _conditioned_generate(
+    *, system_prompt: str, user_task: str, model_override: str | None
+) -> tuple[str, float | None]:
+    """单轮 LLM 生成（system=skill prompt，user=case task）。返回 ``(text, cost_usd)``。
+
+    失败返回 ``("", None)``。``cost_usd`` 经 ``litellm.completion_cost(resp)`` 提取（SI #4 真实 $-cost），
+    模型不在定价表 / 提取异常 → None（不阻塞生成）。
+    """
     import litellm
 
     from negentropy.engine.utils.model_config import resolve_model_config_async
@@ -251,10 +260,22 @@ async def _conditioned_generate(*, system_prompt: str, user_task: str, model_ove
             ],
             **safe_kwargs,
         )
-        return resp.choices[0].message.content or ""
+        text = resp.choices[0].message.content or ""
+        return text, _extract_cost_usd(resp)
     except Exception as exc:  # noqa: BLE001
         logger.warning("eval_agent_loop_generate_failed", error=str(exc))
-        return ""
+        return "", None
+
+
+def _extract_cost_usd(resp) -> float | None:
+    """从 litellm 响应提取 $-cost（``litellm.completion_cost``）；失败 → None。"""
+    try:
+        import litellm
+
+        cost = litellm.completion_cost(resp)  # 综述 §8 #4 improvement efficiency 真实成本
+        return float(cost) if cost is not None else None
+    except Exception:  # noqa: BLE001  # 模型不在定价表 / 无 usage → 静默降级
+        return None
 
 
 # =============================================================================
@@ -354,6 +375,7 @@ class SuiteRunner:
 
         scores: list[float] = []
         weights: list[float] = []
+        costs: list[float] = []  # 执行侧真实 $-cost（SI #4；judge 侧 cost 待 _judge 重构）
         passed = 0
         latencies: list[float] = []
         case_scores: dict[str, float] = {}
@@ -382,6 +404,8 @@ class SuiteRunner:
                 model_override=model_override,
             )
             latencies.append(time.monotonic() - t0)
+            if output.cost_usd is not None:
+                costs.append(output.cost_usd)
 
             score = float(res.score) if res.score is not None else 0.0
             scores.append(score)
@@ -429,6 +453,7 @@ class SuiteRunner:
         run.score_mean = round(score_mean, 4)
         run.pass_rate = round(pass_rate, 4)
         run.latency_p95 = round(latency_p95, 4) if latency_p95 is not None else None
+        run.cost_total = round(sum(costs), 6) if costs else None  # SI #4 执行侧真实 $-cost
         run.regression_count = regression_count
         run.status = RUN_STATUS_COMPLETED
         await session.flush()

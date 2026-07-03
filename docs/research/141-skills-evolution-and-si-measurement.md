@@ -174,29 +174,27 @@ flowchart TB
 
 ## 5. 后续方向（多轮迭代拟合综述）
 
-> **Round 1+2 完成评测层（SI 六目标）；Round 3 完成三项能力扩展（runtime canary / agent-loop / 第三面）**。
+> **R1+2 评测层（SI 六目标）；R3 能力扩展（runtime canary / agent-loop / 第三面）；R4 闭环增强（消费接线 / $-cost / 窗口末复评门）**。
 > 下列为仍未触达的更细粒度增强。
 
-**Round 3 已落地（能力扩展）**：
-1. ✅ **Runtime canary 分桶注入**（R3-b，综述 §9.3）：`STATUS_RUNTIME_CANARY` + 离线门通过后插入在线分桶
-   灰度窗口（`fetch_active_skill_canary` + `resolve_skills` bucket_key 路由 + `expand_skill` 透传
-   session.id）+ 窗口到期全量晋升。迁移 0087 重建单在途索引纳入新状态。
-   - *仍后续*：在线 error-rate 门（待 `tool_invocations.canary_assignment` 标记接入，v1 为窗口到期即晋升）。
-2. ✅ **`SkillExecutor` agent-loop 模式**（R3-a，综述 §3）：`AgentLoopExecutor`（skill prompt 作 system
-   instruction + case task 作 user，单轮生成，Judge 评**生成产出**）+ `execution_mode="agent_loop"` 路由。
-   - *仍后续*：完整多轮 + 工具 + MicroSandbox（v1 为单轮 skill-conditioned generation）。
-3. ✅ **第三进化面**（R3-c，综述 §7）：`MemoryPipelinePromptHandler`（记忆管线 prompt 进化，复用
-   `memory_config_versions` + SuiteRunner + 双相门，promote 翻 is_active 指针）+ `PromptExecutor`。
-   **TargetHandler 三面齐备（retrieval / skill / memory_pipeline_prompt），抽象 + eval 基座 target-agnostic 实证。**
-   - *仍后续*：运行时消费接线（consolidator 读 active prompt，promote 已翻指针）；`agent_prompt`（需 ADR-3
-     Sync改造）/ `builtin_tool_config`（需 versions 表）/ `knowledge_strategy`（需 KG eval suite）三面。
+**Round 4 已落地（闭环增强）**：
+1. ✅ **memory_pipeline 运行时消费接线**（R4-a）：`resolve_active_pipeline_prompt(scope, fallback)` +
+   `llm_fact_extractor` 读 active 进化 prompt（代码常量兜底）+ promote 失效缓存。第三面进化产物**真正被消费**。
+2. ✅ **SI #4 真实 $-cost（执行侧）**（R4-b）：`CaseOutput.cost_usd` + `_conditioned_generate` 经
+   `litellm.completion_cost` 提取 → `SuiteRunner` 累积进 `eval_runs.cost_total` + `shadow_eval_result.candidate_cost_usd`。
+   - *仍后续*：**judge 侧 $-cost**（占成本大头）需 `_judge` 重构（返回 cost，触及 routine 热路径 + 3 测试桩，留安全切片）；
+     `pre_propose_check.cost_today_usd` 接入（先解 D7 ADK 侧 `tool_invocations.cost_usd` NULL）。
+3. ✅ **runtime canary 窗口末复评门**（R4-c，综述 §9.3）：`advance_runtime_canary` 全量发布前复跑 holdout +
+   `decide_longitudinal_drift`，drift → rollback（灰度期自验证）。runtime canary 在线 error-rate 门（待
+   `tool_invocations.canary_assignment` 标记）仍后续。
 
 **仍未触达**：
-4. **真实 $-cost 提取**（SI #4 增强）：`improvement_efficiency` 以 Judge 调用数代理；真实 $-cost 需 litellm
-   `response.usage` token + 定价表 → `eval_runs.cost_total` + `pre_propose_check.cost_today_usd`（先解 D7：
-   ADK 侧 `tool_invocations.cost_usd` NULL）。
-5. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：安全套件为人建；综述要求「红队自身 agent 化」
-   （AutoRedTeamer 式持续攻击发现），等具体安全评测目标时接入。
+4. **agent-loop 完整多轮 + 工具 + MicroSandbox**（R3-a v1 为单轮 skill-conditioned generation）：需每 case
+   沙箱 Agent + 工具预算，dedicated round。
+5. **其余第三面**：`agent_prompt`（需 ADR-3 `sync_negentropy_agents` 改造）/ `builtin_tool_config`（需
+   `builtin_tool_versions` 表）/ `knowledge_strategy`（需 KG eval suite）——`TargetHandler` 抽象已就位，接入 = 新子类。
+6. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：综述要求「红队自身 agent 化」（AutoRedTeamer 式），
+   等具体安全评测目标。
 
 ---
 
