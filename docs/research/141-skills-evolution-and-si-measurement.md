@@ -174,23 +174,23 @@ flowchart TB
 
 ## 5. 后续方向（多轮迭代拟合综述）
 
-> **R1+2 评测层（SI 六目标）；R3 能力扩展（runtime canary / agent-loop / 第三面）；R4 闭环增强（消费接线 / $-cost / 窗口末复评门）；R5 judge 侧 $-cost 完整化**。
+> **R1+2 评测层（SI 六目标）；R3 能力扩展（runtime canary / agent-loop / 第三面）；R4 闭环增强（消费接线 / $-cost / 窗口末复评门）；R5 judge 侧 $-cost；R6 第四面 + 在线 error-rate 门**。
 > 下列为仍未触达的更细粒度增强。
 
-**Round 5 已落地（SI #4 完整化）**：
-- ✅ **judge 侧 $-cost `_judge` 重构**（R5）：`_judge` 返回 8 元组（+`cost_usd`/`token_total`，`litellm.completion_cost`）；
-  `EvaluationResult.cost_usd/token_total`；`evaluate()` + `judge_once()` 透传；`SuiteRunner` 累积
-  **executor + judge 全成本**进 `eval_runs.cost_total`（模型不在定价表/Faculty 路径 → 静默降级不阻塞）。
-  至此 SI #4 efficiency 真实 $-cost **端到端**（执行侧 R4-b + 判定侧 R5），3 个 `_judge` 测试桩同步 8 元组化。
+**Round 6 已落地**：
+- ✅ **builtin_tool_config 第四进化面**（R6-a，综述 §7）：`BuiltinToolConfigHandler` + 迁移 0088
+  （`builtin_tools.active_version` + `builtin_tool_versions` 快照表）+ `BuiltinToolExecutor`。
+  **TargetHandler 四面齐备**（retrieval / skill / memory_pipeline_prompt / builtin_tool_config）。
+- ✅ **runtime canary 在线 error-rate 门**（R6-b，综述 §9.3）：`tool_telemetry` 对 `expand_skill` 调用打
+  `skill_ref` + `canary_assignment`（同步缓存读，不触 DB）；`advance_runtime_canary` 在离线复评门前先跑在线门
+  （`decide_runtime_canary_online`：候选桶 error-rate 退化 → rollback）。受控发布在线信号补齐。
 
 **仍未触达**：
 1. **agent-loop 完整多轮 + 工具 + MicroSandbox**（R3-a v1 为单轮 skill-conditioned generation）：需每 case
    沙箱 Agent + 工具预算，dedicated round。
-2. **其余第三面**：`agent_prompt`（需 ADR-3 `sync_negency_agents` 改造）/ `builtin_tool_config`（需
-   `builtin_tool_versions` 表）/ `knowledge_strategy`（需 KG eval suite）——`TargetHandler` 抽象已就位，接入 = 新子类。
-3. **runtime canary 在线 error-rate 门**（待 `tool_invocations.canary_assignment` 标记接入；v1 用窗口末离线复评门）。
-4. **`pre_propose_check.cost_today_usd` 接入**（需先解 D7：ADK 侧 `tool_invocations.cost_usd` NULL）。
-5. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：综述要求「红队自身 agent 化」（AutoRedTeamer 式），
+2. **其余进化面**：`agent_prompt`（需 ADR-3 `sync_negentropy_agents` 改造）/ `knowledge_strategy`（需 KG eval suite）。
+3. **`pre_propose_check.cost_today_usd` 接入**（需先解 D7：ADK 侧 `tool_invocations.cost_usd` NULL）。
+4. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：综述要求「红队自身 agent 化」（AutoRedTeamer 式），
    等具体安全评测目标。
 
 ---
