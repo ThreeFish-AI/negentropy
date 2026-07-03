@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from .base import TargetHandler
+from .builtin_tool import BuiltinToolConfigHandler
 from .memory_pipeline import MemoryPipelinePromptHandler, PipelinePromptProposer
 from .retrieval import RetrievalConfigHandler
 from .skill import SkillProposalDraft, SkillProposer, SkillTemplateHandler
@@ -21,4 +22,5 @@ __all__ = [
     "SkillProposalDraft",
     "MemoryPipelinePromptHandler",
     "PipelinePromptProposer",
+    "BuiltinToolConfigHandler",
 ]

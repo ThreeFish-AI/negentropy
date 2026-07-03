@@ -1,7 +1,7 @@
 from .action import Tool, ToolExecution
 from .agent import Agent
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
-from .builtin_tool import BuiltinTool
+from .builtin_tool import BuiltinTool, BuiltinToolVersion
 from .eval_suite import EvalCase, EvalResult, EvalRun, EvalSuite
 from .evolution import EvolutionProposal, MemoryConfigVersion
 from .internalization import ConsolidationJob, Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
@@ -75,6 +75,7 @@ __all__ = [
     "ToolExecution",
     # Builtin Tools
     "BuiltinTool",
+    "BuiltinToolVersion",
     # Observability
     "Trace",
     # Perception (知识)

@@ -237,6 +237,40 @@ class PromptExecutor:
         return CaseOutput(body=body or "(pipeline 未产出)", digest=_sha12(body or ""), cost_usd=cost)
 
 
+class BuiltinToolExecutor:
+    """builtin_tool_config 面 executor——judge-the-config v1。
+
+    ``target_ref`` = builtin tool name；``target_version`` = ``builtin_tool_versions`` SemVer。
+    从 ``builtin_tool_versions`` 取候选 snapshot.config，序列化为「目标产出」交 Judge 评 **config 合理性**
+    （v1 非真实工具调用；真实工具执行 + Judge 评产出是后续，扩展点同 SkillExecutor）。
+    """
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        from negentropy.db import session as db_session
+        from negentropy.models.builtin_tool import BuiltinTool, BuiltinToolVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(BuiltinToolVersion)
+                    .join(BuiltinTool, BuiltinTool.id == BuiltinToolVersion.tool_id)
+                    .where(BuiltinTool.name == target_ref, BuiltinToolVersion.version == target_version)
+                )
+            ).scalar_one_or_none()
+            config = (dict(row.snapshot or {}).get("config") if row else None) or {}
+        import json as _json
+
+        body = _json.dumps(config, sort_keys=True, ensure_ascii=False)
+        return CaseOutput(body=body, digest=_sha12(body))
+
+
 async def _conditioned_generate(
     *, system_prompt: str, user_task: str, model_override: str | None
 ) -> tuple[str, float | None]:

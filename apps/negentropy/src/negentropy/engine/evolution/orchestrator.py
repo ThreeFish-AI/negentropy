@@ -40,7 +40,13 @@ from negentropy.models.evolution import (
 )
 
 from .decision import REASON_STALE_CANARY, is_canary_stale
-from .handlers import MemoryPipelinePromptHandler, RetrievalConfigHandler, SkillTemplateHandler, TargetHandler
+from .handlers import (
+    BuiltinToolConfigHandler,
+    MemoryPipelinePromptHandler,
+    RetrievalConfigHandler,
+    SkillTemplateHandler,
+    TargetHandler,
+)
 from .handlers._shared import (  # noqa: F401  (re-export：既有 orchestrator._x 引用 + 单测兼容)
     _bump_patch,
     _emit_evolution_event,
@@ -66,6 +72,7 @@ class EvolutionOrchestrator:
             RetrievalConfigHandler.target_kind: RetrievalConfigHandler(),
             SkillTemplateHandler.target_kind: SkillTemplateHandler(),
             MemoryPipelinePromptHandler.target_kind: MemoryPipelinePromptHandler(),
+            BuiltinToolConfigHandler.target_kind: BuiltinToolConfigHandler(),
         }
 
     def _handler_for(self, target_kind: str) -> TargetHandler | None:
