@@ -35,8 +35,15 @@ from negentropy.config import settings
 from negentropy.logging import get_logger
 
 from ..approval import (
+    APPROVAL_POLL_INTERVAL as _APPROVAL_POLL_INTERVAL,
+)
+from ..approval import (
+    APPROVAL_WAIT_SECONDS as _APPROVAL_TIMEOUT_SECONDS,
+)
+from ..approval import (
     ApprovalPolicy,
     consume_approval_response,
+    expire_approval,
     request_approval,
     should_request_approval,
 )
@@ -49,8 +56,8 @@ logger = get_logger("negentropy.tools.ingest")
 
 _knowledge_service: KnowledgeService | None = None
 
-_APPROVAL_TIMEOUT_SECONDS = 30.0
-_APPROVAL_POLL_INTERVAL = 0.5
+# 审批等待窗口统一收敛到 ``approval.py``（单一事实源）；此处以别名保留模块属性名,
+# 兼容既有测试对 ``_APPROVAL_TIMEOUT_SECONDS`` 的 monkeypatch。
 
 
 def _get_knowledge_service() -> KnowledgeService:
@@ -152,12 +159,16 @@ async def ingest_to_corpus(
                 break
         clear_tool_progress(tool_context, tool_call_id=approval_progress_id)
         if response is None or response.decision == "denied":
+            # 兜底清理 pending_approvals，避免超时/拒绝后遗留孤儿项致弹窗无法关闭。
+            expire_approval(tool_context, action_id)
+            timed_out = response is None
             logger.info(
                 "ingest_to_corpus_denied",
                 corpus_id=corpus_id,
-                reason=getattr(response, "reason", "timeout"),
+                reason="timeout" if timed_out else getattr(response, "reason", "denied"),
             )
-            return {"status": "failed", "error": "用户拒绝或审批超时", "corpus_id": corpus_id}
+            error_msg = "审批超时未响应（已自动取消）" if timed_out else "用户已拒绝"
+            return {"status": "failed", "error": error_msg, "corpus_id": corpus_id}
 
     # === Step 3. corpus UUID 校验 ===
     tool_call_id = (

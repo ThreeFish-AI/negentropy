@@ -74,6 +74,22 @@ ApprovalPolicyMode = Literal["always", "per_tool", "never"]
 DEFAULT_POLICY: ApprovalPolicyMode = "per_tool"
 
 
+# ----------------------------------------------------------------------------
+# 审批等待窗口（工具侧轮询参数 · 单一事实源）
+# ----------------------------------------------------------------------------
+#
+# 设计动机（审批弹窗卡死修复）：
+# - 旧值 30s 对「人类读完中风险请求 + JSON 参数再决策」远不够用，导致工具在用户
+#   点击前就超时返回、run 结束、NDJSON 流关闭，晚到的审批既无存活工具消费、又无
+#   通道回推，弹窗永久卡死。故延长为人性化窗口。
+# - 采用**模块常量**而非 settings 字段（最小干预）：ingest.py / paper.py 直接引用
+#   本处即可，无需新增配置类与 YAML 默认；如未来出现运营级调参需求再上升到 settings。
+# - 长挂 run 的代价可控：``asyncio.sleep`` 仅挂起协程、不冻结单 worker 事件循环；
+#   且工具均在审批循环**之后**才获取 KnowledgeService / 写 DB，等待期不持有重资源。
+APPROVAL_WAIT_SECONDS: float = 300.0
+APPROVAL_POLL_INTERVAL: float = 0.5
+
+
 @dataclass(frozen=True)
 class ApprovalPolicy:
     """会话级审批策略（来自前端 forwardedProps 或 session.state）。"""
@@ -240,9 +256,36 @@ def consume_approval_response(tool_context: Any, action_id: str) -> ApprovalResp
         return None
 
 
+def expire_approval(tool_context: Any, action_id: str) -> None:
+    """兜底清理某个 action_id 的审批态（``pending_approvals`` + ``approval_responses``）。
+
+    使用语义：工具在**超时未响应 / 拒绝**等「不再继续走 consume」的收尾分支调用，
+    避免遗留孤儿 ``pending_approvals`` 项——否则弹窗会因服务端状态仍在而无法关闭
+    （审批弹窗卡死根因之一）。
+
+    与 ``consume_approval_response`` 的分工：consume 是 happy-path（有响应时读取 +
+    清理并返回决策）；expire 是收尾兜底（无论有无响应,幂等地把两侧状态清干净,不返回
+    决策）。二者同为「整字典重赋值 + fail-soft」契约,并发安全语义一致。
+    """
+    if tool_context is None or not hasattr(tool_context, "state"):
+        return
+    try:
+        state = tool_context.state
+        pending = state.get("pending_approvals")
+        if isinstance(pending, dict) and action_id in pending:
+            state["pending_approvals"] = {k: v for k, v in pending.items() if k != action_id}
+        responses = state.get("approval_responses")
+        if isinstance(responses, dict) and action_id in responses:
+            state["approval_responses"] = {k: v for k, v in responses.items() if k != action_id}
+    except Exception as exc:
+        logger.warning("expire_approval_failed", action_id=action_id, error=str(exc))
+
+
 __all__ = [
     "HIGH_RISK_TOOLS",
     "DEFAULT_POLICY",
+    "APPROVAL_WAIT_SECONDS",
+    "APPROVAL_POLL_INTERVAL",
     "ApprovalPolicy",
     "ApprovalPolicyMode",
     "ApprovalRequest",
@@ -250,4 +293,5 @@ __all__ = [
     "should_request_approval",
     "request_approval",
     "consume_approval_response",
+    "expire_approval",
 ]

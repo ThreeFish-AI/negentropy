@@ -147,7 +147,9 @@ async def test_approval_denied_returns_failed() -> None:
     with patch.object(ingest_mod, "consume_approval_response", return_value=fake_response):
         out = await ingest_to_corpus(corpus_id=cid, text="hi", source_uri=None, metadata=None, tool_context=ctx)
     assert out["status"] == "failed"
-    assert "拒绝" in out["error"] or "超时" in out["error"]
+    assert "拒绝" in out["error"]
+    # 拒绝后兜底清理 pending_approvals，避免遗留孤儿项致前端弹窗无法关闭。
+    assert not ctx.state.get("pending_approvals", {})
 
 
 @pytest.mark.asyncio
@@ -166,6 +168,8 @@ async def test_approval_timeout_returns_failed(monkeypatch) -> None:
         out = await ingest_to_corpus(corpus_id=cid, text="hi", source_uri=None, metadata=None, tool_context=ctx)
     assert out["status"] == "failed"
     assert "超时" in out["error"]
+    # 超时后兜底清理 pending_approvals，避免遗留孤儿项致前端弹窗无法关闭。
+    assert not ctx.state.get("pending_approvals", {})
 
 
 # ----------------------------------------------------------------------------

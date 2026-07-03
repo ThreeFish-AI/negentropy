@@ -19,7 +19,7 @@
  * - ApprovalDialog：策略级阻断（modal 浮于对话之上，必须先决策才能继续）。
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type ApprovalRequestPayload = {
   action_id: string;
@@ -38,6 +38,12 @@ type Props = {
   pending: Record<string, ApprovalRequestPayload> | null | undefined;
   /** 用户做出决策时回调；调用方负责把响应写回 ``state.approval_responses``（通过 BFF 或对话） */
   onRespond: (actionId: string, decision: ApprovalDecision, reason?: string) => Promise<void> | void;
+  /**
+   * 逃生舱回调（可选）：ESC 键或「稍后」按钮触发，仅本地延后关闭弹窗，**不发送批准/拒绝**。
+   * 硬门语义——审批是审慎闸门，ESC 绝不映射为决策；未决请求在服务端仍存在，
+   * 刷新/切会话后由调用方决定是否复现。不传时 ESC/「稍后」不可用（弹窗仅能经决策关闭）。
+   */
+  onDismiss?: (actionId: string) => void;
 };
 
 function pickFirstRequest(
@@ -66,11 +72,25 @@ const RISK_TIER_LABEL: Record<NonNullable<ApprovalRequestPayload["risk_tier"]>, 
   high: "高风险",
 };
 
-export function ApprovalDialog({ pending, onRespond }: Props) {
+export function ApprovalDialog({ pending, onRespond, onDismiss }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const current = useMemo(() => pickFirstRequest(pending), [pending]);
+
+  // 逃生舱：ESC 键延后关闭当前审批（不发送决策）。提交中（busy）时不响应，
+  // 避免与正在飞行的决策请求竞态。
+  const currentActionId = current?.action_id ?? null;
+  useEffect(() => {
+    if (!currentActionId || !onDismiss) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || busy) return;
+      e.preventDefault();
+      onDismiss(currentActionId);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentActionId, onDismiss, busy]);
 
   if (!current) return null;
 
@@ -160,6 +180,18 @@ export function ApprovalDialog({ pending, onRespond }: Props) {
         ) : null}
 
         <div className="mt-4 flex items-center justify-end gap-2">
+          {onDismiss ? (
+            <button
+              type="button"
+              data-testid="approval-dismiss"
+              className="mr-auto rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-60"
+              onClick={() => onDismiss(current.action_id)}
+              disabled={busy}
+              title="暂时关闭此审批（不批准也不拒绝），稍后可重新处理"
+            >
+              稍后
+            </button>
+          ) : null}
           <button
             type="button"
             data-testid="approval-deny"

@@ -236,10 +236,24 @@ async def submit_approval_response(
         "responded_at": time.time(),
     }
 
+    # 权威清除 pending_approvals[action_id]（审批弹窗卡死修复 · 单一事实源）：
+    # 记录决策的同一 state_delta 内剔除该待审项。这样无论是否有存活工具正在
+    # consume（工具可能已超时返回、run 已结束、NDJSON 流已关闭），前端经
+    # scheduleSessionHydration 重取 session detail 时，adkEventsToSnapshot 浅合并出的
+    # pending_approvals 即不再含该项，弹窗随之关闭——不依赖 run 是否存活。
+    pending_existing = session.state.get("pending_approvals") if isinstance(session.state, dict) else None
+    pending_existing = dict(pending_existing) if isinstance(pending_existing, dict) else {}
+    pending_existing.pop(req.action_id, None)
+
     state_update_event = Event(
         invocation_id="p-" + str(uuid.uuid4()),
         author="user",
-        actions=EventActions(state_delta={"approval_responses": existing}),
+        actions=EventActions(
+            state_delta={
+                "approval_responses": existing,
+                "pending_approvals": pending_existing,
+            }
+        ),
     )
     await service.append_event(session=session, event=state_update_event)
 
