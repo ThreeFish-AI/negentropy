@@ -155,3 +155,27 @@ def test_improvement_efficiency_ratio():
 def test_improvement_efficiency_zero_cost_returns_none():
     assert d.improvement_efficiency(score_gain=10.0, cost_units=0.0) is None
     assert d.improvement_efficiency(score_gain=10.0, cost_units=-1.0) is None
+
+
+# ---------------------------------------------------------------------------
+# decide_runtime_canary_online（在线 error-rate 门，综述 §9.3，R6-b）
+# ---------------------------------------------------------------------------
+
+
+def test_runtime_canary_online_hold_when_insufficient_samples():
+    dec = d.decide_runtime_canary_online(candidate_err_rate=0.5, candidate_n=3, baseline_err_rate=0.1)
+    assert dec.action == "hold"
+    assert dec.reason == d.REASON_INSUFFICIENT_SAMPLES
+
+
+def test_runtime_canary_online_rollback_on_error_regression():
+    # 候选 error-rate 0.4 vs 基线 0.1 → regression 0.3 > 0.1 → rollback
+    dec = d.decide_runtime_canary_online(candidate_err_rate=0.4, candidate_n=20, baseline_err_rate=0.1)
+    assert dec.action == "rollback"
+    assert dec.reason == d.REASON_ROLLED_BACK
+
+
+def test_runtime_canary_online_promote_when_no_regression():
+    # 候选 error-rate 0.12 vs 基线 0.1 → regression 0.02 <= 0.1 → promote
+    dec = d.decide_runtime_canary_online(candidate_err_rate=0.12, candidate_n=20, baseline_err_rate=0.1)
+    assert dec.action == "promote"

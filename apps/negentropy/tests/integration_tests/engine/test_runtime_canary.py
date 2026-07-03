@@ -278,6 +278,88 @@ async def test_runtime_canary_window_end_drift_rollbacks(monkeypatch):
 
 
 # ===========================================================================
+# ①c 在线 error-rate 门：候选桶 expand_skill error-rate 退化 → rollback（R6-b）
+# ===========================================================================
+
+
+async def test_runtime_canary_online_error_rate_gate_rollbacks(monkeypatch):
+    """候选桶 expand_skill error-rate 高于基线桶 → 在线门 rollback（不全量发布）。"""
+    from datetime import UTC, datetime, timedelta
+
+    from negentropy.models.tool_telemetry import ToolInvocation
+
+    _patch_settings(monkeypatch, runtime_canary_enabled=True)
+    instance = o.EvolutionOrchestrator()
+    instance._handlers["skill_template"] = SkillTemplateHandler(
+        runner=SuiteRunner(executors={"skill": _Exec()}, evaluator=_Eval())
+    )
+    name, skill = await _seed_skill_and_suite()
+    pid = uuid.uuid4()
+    started = datetime.now(UTC) - timedelta(seconds=3600)
+    async with db_session.AsyncSessionLocal() as db:
+        # 候选桶（canary_assignment=1.1.0）：15 调用，8 error（高 error-rate）
+        for i in range(15):
+            db.add(
+                ToolInvocation(
+                    caller_kind="adk_agent",
+                    tool_kind="skill",
+                    tool_ref="expand_skill",
+                    tool_version="unversioned",
+                    skill_ref=name,
+                    status="error" if i < 8 else "success",
+                    canary_assignment="1.1.0",
+                    outcome_source="none",
+                    created_at=started + timedelta(seconds=i),
+                )
+            )
+        # 基线桶（canary_assignment=NULL）：15 调用，1 error（低 error-rate）
+        for i in range(15):
+            db.add(
+                ToolInvocation(
+                    caller_kind="adk_agent",
+                    tool_kind="skill",
+                    tool_ref="expand_skill",
+                    tool_version="unversioned",
+                    skill_ref=name,
+                    status="error" if i < 1 else "success",
+                    canary_assignment=None,
+                    outcome_source="none",
+                    created_at=started + timedelta(seconds=i),
+                )
+            )
+        db.add(
+            EvolutionProposal(
+                id=pid,
+                target_kind="skill_template",
+                target_ref=name,
+                base_version="1.0.0",
+                proposed_version="1.1.0",
+                payload={"prompt_template": "candidate-tpl"},
+                origin="reflection",
+                status="runtime_canary",
+                risk_level="low",
+                canary_config={"bucket_ratio": 50.0, "window_seconds": 3600, "started_at": started.isoformat()},
+                canary_metrics={"candidate_mean": 72.0, "baseline_mean": 70.0},
+            )
+        )
+        await db.commit()
+    try:
+        await instance.inspect_once()  # 窗口已过 → 在线门候选 error-rate 退化 → rollback
+        async with db_session.AsyncSessionLocal() as db:
+            p = (await db.execute(select(EvolutionProposal).where(EvolutionProposal.id == pid))).scalar_one()
+            assert p.status == "rolled_back"  # 在线 error-rate 门拦截
+            skill_row = (await db.execute(select(Skill).where(Skill.id == skill.id))).scalar_one()
+            assert skill_row.active_version == "1.0.0"  # 未翻
+    finally:
+        await _cleanup(name, skill.id)
+        async with db_session.AsyncSessionLocal() as db:
+            from sqlalchemy import delete
+
+            await db.execute(delete(ToolInvocation).where(ToolInvocation.skill_ref == name))
+            await db.commit()
+
+
+# ===========================================================================
 # ② 分桶路由：resolve_skills 命中桶 → 候选 version
 # ===========================================================================
 

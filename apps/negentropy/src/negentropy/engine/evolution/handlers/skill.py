@@ -32,6 +32,7 @@ import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.evolution.decision import (
     decide_longitudinal_drift,
+    decide_runtime_canary_online,
     decide_safety_nonregression,
     decide_skill_canary,
     decide_skill_shadow,
@@ -387,6 +388,43 @@ class SkillTemplateHandler:
         """抽象基类契约：REAP 超时强制回滚入口。"""
         await self._rollback(db, proposal, now, reason="stale_canary_timeout")
 
+    async def _runtime_canary_online_gate(self, db, proposal: EvolutionProposal, started_at):
+        """R6-b 在线 error-rate 门：聚合 runtime_canary 窗口内 expand_skill 真实调用（候选桶 vs 基线桶）。
+
+        ``tool_invocations`` 中 ``tool_ref='expand_skill' AND skill_ref=skill_name AND created_at >= started_at``，
+        按 ``canary_assignment`` 分桶（候选 = proposed_version；基线 = 其余/NULL）。
+        返回 ``decide_runtime_canary_online`` Decision；候选桶无数据 → None（跳过在线门，交离线复评门）。
+        """
+
+        from negentropy.models.tool_telemetry import ToolInvocation
+
+        if started_at is None:
+            return None
+        rows = (
+            await db.execute(
+                sa.select(
+                    ToolInvocation.canary_assignment,
+                    sa.func.count().label("n"),
+                    sa.func.sum(sa.case((ToolInvocation.status == "error", 1), else_=0)).label("errors"),
+                )
+                .where(
+                    ToolInvocation.tool_ref == "expand_skill",
+                    ToolInvocation.skill_ref == proposal.target_ref,
+                    ToolInvocation.created_at >= started_at,
+                )
+                .group_by(ToolInvocation.canary_assignment)
+            )
+        ).all()
+        cand = next((r for r in rows if r.canary_assignment == proposal.proposed_version), None)
+        base = next((r for r in rows if r.canary_assignment != proposal.proposed_version), None)
+        if cand is None or not cand.n:
+            return None  # 候选桶无在线数据 → 跳过在线门
+        cand_err = float((cand.errors or 0) / cand.n)
+        base_err = float((base.errors or 0) / base.n) if (base and base.n) else 0.0
+        return decide_runtime_canary_online(
+            candidate_err_rate=cand_err, candidate_n=int(cand.n), baseline_err_rate=base_err
+        )
+
     async def advance_runtime_canary(self, db, proposal: EvolutionProposal, now: datetime) -> None:
         """runtime_canary 窗口到期 → 复跑 holdout 复评门（drift→rollback，否则全量晋升）。
 
@@ -398,6 +436,19 @@ class SkillTemplateHandler:
         window = settings.evolution.runtime_canary_window_seconds
         if started_at is not None and (now - started_at).total_seconds() < window:
             return  # 窗口未到期，留 runtime_canary 续跑
+
+        # R6-b 在线 error-rate 门（综述 §9.3）：聚合 runtime_canary 窗口内 expand_skill 真实调用，
+        # 候选桶 error-rate 较基线桶退化 → rollback（捕捉离线 eval 漏掉的真实分布问题）。样本不足则
+        # 跳过在线门，交由下方离线复评门裁决。
+        online_dec = await self._runtime_canary_online_gate(db, proposal, started_at)
+        if online_dec is not None and online_dec.is_rollback:
+            await self._rollback(db, proposal, now, reason="runtime_canary_online_error")
+            logger.warning(
+                "skill_runtime_canary_online_rollback",
+                proposal_id=str(proposal.id),
+                **(online_dec.detail or {}),
+            )
+            return
 
         suite = await self._find_suite(db, proposal.target_ref)
         if suite is None:

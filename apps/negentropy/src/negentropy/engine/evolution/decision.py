@@ -278,6 +278,10 @@ SKILL_CASE_REGRESSION_DELTA = 5.0  # 单 case 回退判定阈值（候选 < 基�
 # 纵向复评（综述 §8 #3 longitudinal stability + §10.5 + §9.3 持续再认证）
 SKILL_LONGITUDINAL_DRIFT_MAX = 3.0  # 复评 holdout 均值较晋升时退化超过此值 → 回退 active_version
 
+# runtime canary 在线 error-rate 门（综述 §9.3 在线受控发布信号，R6-b）
+SKILL_RUNTIME_CANARY_MIN_SAMPLES = 10  # 候选桶最少在线样本（expand_skill 调用数）；不足则跳过在线门
+SKILL_RUNTIME_CANARY_ERR_REGRESSION_MAX = 0.1  # 候选桶 error-rate 较基线桶高出此值 → rollback（10pp）
+
 REASON_NO_GAIN = "no_gain"  # 候选在 visible 集无实质增益（综述 §8 held-out gain 未达）
 
 
@@ -420,6 +424,39 @@ def decide_longitudinal_drift(
     return Decision("hold", None, {"longitudinal_drift": drift})
 
 
+def decide_runtime_canary_online(
+    *,
+    candidate_err_rate: float,
+    candidate_n: int,
+    baseline_err_rate: float,
+    min_samples: int = SKILL_RUNTIME_CANARY_MIN_SAMPLES,
+    regression_max: float = SKILL_RUNTIME_CANARY_ERR_REGRESSION_MAX,
+) -> Decision:
+    """runtime canary 在线 error-rate 门（综述 §9.3 在线受控发布信号，R6-b）。
+
+    用真实生产 ``tool_invocations``（expand_skill 调用，按 canary_assignment 分候选桶 vs 基线桶）的
+    error-rate 作在线信号——捕捉离线 eval 套件漏掉的真实分布问题。
+
+    - 候选桶样本不足（``< min_samples``）→ ``hold``（在线信号不充分，交由离线复评门 R4-c 裁决）；
+    - 候选 error-rate 较基线高出 ``regression_max`` → ``rollback``（候选在生产中退化）；
+    - 否则 ``promote``（在线信号通过，继续离线复评门）。
+    """
+    if candidate_n < min_samples:
+        return Decision("hold", REASON_INSUFFICIENT_SAMPLES, {"candidate_n": candidate_n})
+    regression = candidate_err_rate - baseline_err_rate
+    if regression > regression_max:
+        return Decision(
+            "rollback",
+            REASON_ROLLED_BACK,
+            {
+                "online_err_regression": regression,
+                "candidate_err": candidate_err_rate,
+                "baseline_err": baseline_err_rate,
+            },
+        )
+    return Decision("promote", None, {"online_err_regression": regression})
+
+
 __all__ = [
     "Decision",
     "REASON_PROMOTED",
@@ -448,6 +485,8 @@ __all__ = [
     "SKILL_HOLDOUT_DRIFT_MAX",
     "SKILL_CASE_REGRESSION_DELTA",
     "SKILL_LONGITUDINAL_DRIFT_MAX",
+    "SKILL_RUNTIME_CANARY_MIN_SAMPLES",
+    "SKILL_RUNTIME_CANARY_ERR_REGRESSION_MAX",
     "clamp_weight",
     "is_within_bounds",
     "pre_propose_check",
@@ -463,4 +502,5 @@ __all__ = [
     "decide_longitudinal_drift",
     "decide_safety_nonregression",
     "improvement_efficiency",
+    "decide_runtime_canary_online",
 ]

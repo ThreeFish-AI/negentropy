@@ -73,6 +73,18 @@ async def _query_active_canary(target_ref: str) -> dict[str, Any] | None:
         return None
 
 
+def get_cached_skill_canary(skill_name: str) -> dict[str, Any] | None:
+    """同步读 ``_skill_canary_cache``（不触 DB）——供 tool_telemetry 热路径打 canary_assignment 标记。
+
+    返回 ``{proposed_version, bucket_ratio_pct}`` 或 None（缓存未命中/无在途 runtime_canary）。
+    缓存由 ``fetch_active_skill_canary``（异步，skills_injector 解析时填充）维护，故 tool 调用时通常已命中。
+    """
+    cached = _skill_canary_cache.get(skill_name)
+    if cached is None:
+        return None
+    return cached[0]
+
+
 def invalidate_canary_cache(target_ref: str | None = None) -> None:
     """orchestrator 进入/退出 canary 状态后调用，强一致刷新。"""
     if target_ref is None:
@@ -124,4 +136,9 @@ async def _query_active_skill_canary(skill_name: str) -> dict[str, Any] | None:
         return None
 
 
-__all__ = ["fetch_active_canary", "fetch_active_skill_canary", "invalidate_canary_cache"]
+__all__ = [
+    "fetch_active_canary",
+    "fetch_active_skill_canary",
+    "get_cached_skill_canary",
+    "invalidate_canary_cache",
+]
