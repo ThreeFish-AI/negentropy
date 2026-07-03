@@ -33,7 +33,7 @@ interface KpiRow {
 const ROUTINE_DESCRIPTION =
   "Long-horizon autonomous task execution — Engine orchestrates, Claude Code executes";
 
-/** 单行 KPI：语义色 + 中点分隔，chip 不内部断行；底部脚注保留唯一独有指标 avg iters。 */
+/** 单行 KPI：语义色 + 中点分隔，chip 不内部断行；avg iters/run 折叠为末位 chip 以维持单行。 */
 function KpiStats({ kpis }: { kpis: RoutineKpis }) {
   const rows: KpiRow[] = [
     { label: "Total", value: String(kpis.total) },
@@ -43,29 +43,27 @@ function KpiStats({ kpis }: { kpis: RoutineKpis }) {
     { label: "Failed", value: String(kpis.failed), color: "text-red-400" },
     { label: "Cancelled", value: String(kpis.cancelled), color: "text-zinc-400" },
     { label: "Total Cost", value: `$${kpis.total_cost_usd.toFixed(2)}` },
+    { label: "avg iters/run", value: String(kpis.avg_iterations) },
   ];
 
   return (
-    <>
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        {rows.map((r, i) => (
-          <Fragment key={r.label}>
-            {i > 0 && (
-              <span className="select-none text-zinc-500" aria-hidden>
-                ·
-              </span>
-            )}
-            <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
-              <span className="text-micro uppercase tracking-overline text-zinc-400">{r.label}</span>
-              <span className={`text-caption font-bold tabular-nums ${r.color ?? "text-white dark:text-zinc-100"}`}>
-                {r.value}
-              </span>
+    <div className="flex items-baseline gap-x-2">
+      {rows.map((r, i) => (
+        <Fragment key={r.label}>
+          {i > 0 && (
+            <span className="select-none text-zinc-500" aria-hidden>
+              ·
             </span>
-          </Fragment>
-        ))}
-      </div>
-      <div className="mt-2 text-micro text-zinc-400">avg {kpis.avg_iterations} iters/run</div>
-    </>
+          )}
+          <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+            <span className="text-micro uppercase tracking-overline text-zinc-400">{r.label}</span>
+            <span className={`text-caption font-bold tabular-nums ${r.color ?? "text-white dark:text-zinc-100"}`}>
+              {r.value}
+            </span>
+          </span>
+        </Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -73,12 +71,12 @@ function KpiStats({ kpis }: { kpis: RoutineKpis }) {
 function KpiTooltipContent({ kpis, loading }: { kpis: RoutineKpis | null; loading: boolean }) {
   return (
     <>
-      <p className="text-caption leading-relaxed text-zinc-400">{ROUTINE_DESCRIPTION}</p>
+      <p className="whitespace-nowrap text-caption leading-relaxed text-zinc-400">{ROUTINE_DESCRIPTION}</p>
       <div className="my-2 h-px bg-white/10" />
       {/* loading 且无数据 → 骨架占位（保持 Tooltip 形态稳定）。 */}
       {loading && !kpis ? (
-        <div className="flex flex-wrap items-center gap-2" aria-busy="true">
-          {Array.from({ length: 7 }).map((_, i) => (
+        <div className="flex items-center gap-2" aria-busy="true">
+          {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-3 w-12" />
           ))}
         </div>
@@ -110,7 +108,7 @@ export function RoutineHeader({
         <Tooltip
           side="right"
           align="start"
-          contentClassName="w-[28rem] max-w-[92vw]"
+          contentClassName="w-max max-w-[92vw]"
           triggerProps={{ "aria-label": "Routine 运行指标" }}
           content={<KpiTooltipContent kpis={kpis} loading={loading} />}
         >

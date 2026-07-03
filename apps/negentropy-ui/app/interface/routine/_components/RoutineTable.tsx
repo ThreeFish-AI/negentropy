@@ -50,7 +50,17 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <table className="w-full text-sm">
+      <table className="w-full table-fixed text-sm">
+        {/* 固定列宽：百分比合计 100%，随容器等比缩放；与 <th> 解耦，超长内容由单元格 truncate 截断。 */}
+        <colgroup>
+          <col className="w-[28%]" />
+          <col className="w-[12%]" />
+          <col className="w-[10%]" />
+          <col className="w-[9%]" />
+          <col className="w-[12%]" />
+          <col className="w-[15%]" />
+          <col className="w-[14%]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
             <th className="px-4 py-2.5 font-medium">Name</th>
@@ -70,15 +80,19 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
               className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
             >
               <td className="px-4 py-3">
-                <div className="font-medium text-foreground flex items-center gap-2">
-                  <span className="truncate">{r.display_name || r.title}</span>
+                <div className="flex min-w-0 items-center gap-2 font-medium text-foreground">
+                  <span className="min-w-0 flex-1 truncate" title={r.display_name || r.title}>
+                    {r.display_name || r.title}
+                  </span>
                   {r.key.startsWith("pdf-fidelity-patrol/") && (
                     <span className="inline-flex items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-micro font-semibold text-violet-700 dark:text-violet-300 shrink-0">
                       巡检
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-text-secondary">{r.key}</div>
+                <div className="truncate text-xs text-text-secondary" title={r.key}>
+                  {r.key}
+                </div>
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -107,25 +121,44 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                   )}
                 </div>
                 {r.termination_reason && (
-                  <div className="mt-0.5 text-xs text-text-secondary">{r.termination_reason}</div>
+                  <div className="mt-0.5 truncate text-xs text-text-secondary" title={r.termination_reason}>
+                    {r.termination_reason}
+                  </div>
                 )}
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
-                {r.iteration_count}
-                {r.max_iterations ? ` / ${r.max_iterations}` : ""}
+                <span
+                  className="block truncate"
+                  title={`${r.iteration_count}${r.max_iterations ? ` / ${r.max_iterations}` : ""}`}
+                >
+                  {r.iteration_count}
+                  {r.max_iterations ? ` / ${r.max_iterations}` : ""}
+                </span>
               </td>
               <td className={`px-4 py-3 font-semibold tabular-nums ${scoreColorClass(r.best_score)}`}>
-                {r.best_score ?? "—"}
+                <span className="block truncate" title={String(r.best_score ?? "—")}>
+                  {r.best_score ?? "—"}
+                </span>
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
-                ${r.total_cost_usd.toFixed(3)}
-                {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
+                <span
+                  className="block truncate"
+                  title={`$${r.total_cost_usd.toFixed(3)}${r.max_cost_usd ? ` / $${r.max_cost_usd}` : ""}`}
+                >
+                  ${r.total_cost_usd.toFixed(3)}
+                  {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
+                </span>
               </td>
               <td className="px-4 py-3 text-xs text-text-secondary">
-                {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                <span
+                  className="block truncate"
+                  title={r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                >
+                  {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                </span>
               </td>
               <td className="px-4 py-3 text-right">
-                <div className="flex items-center justify-end gap-3">
+                <div className="flex flex-wrap items-center justify-end gap-3">
                   {onRestart && canRestart(r.status) && (
                     <button
                       type="button"
