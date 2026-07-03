@@ -203,7 +203,7 @@ class MemoryPipelinePromptHandler:
                         MemoryConfigVersion(
                             config_scope=scope,
                             version=proposed,
-                            snapshot={"prompt": draft.prompt},
+                            snapshot={"prompt": draft.prompt_template},
                             origin=CONFIG_ORIGIN_EVOLUTION,
                             rationale=draft.rationale,
                         )
@@ -214,7 +214,7 @@ class MemoryPipelinePromptHandler:
                             target_ref=scope,
                             base_version=active_ver,
                             proposed_version=proposed,
-                            payload={"prompt": draft.prompt},
+                            payload={"prompt": draft.prompt_template},
                             origin=ORIGIN_REFLECTION,
                             rationale=draft.rationale or None,
                             status=STATUS_SHADOW_EVAL,

@@ -113,6 +113,10 @@ class AgentPromptHandler:
             agent.active_version = proposal.proposed_version
         proposal.status = STATUS_PROMOTED
         proposal.decided_at = now
+        # 失效 subagent 缓存（model_resolver 60s TTL），使 evolved system_prompt 翻指针后立即生效
+        from negentropy.config.model_resolver import invalidate_cache
+
+        invalidate_cache(prefix="subagent:")
         _emit_evolution_event(proposal, action="promote", reason="promoted")
 
     async def _rollback(self, db, proposal: EvolutionProposal, now: datetime, *, reason: str | None = None) -> None:

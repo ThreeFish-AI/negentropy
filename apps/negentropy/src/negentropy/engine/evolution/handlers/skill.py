@@ -376,12 +376,20 @@ class SkillTemplateHandler:
             skill.active_version = proposal.proposed_version
         proposal.status = STATUS_PROMOTED
         proposal.decided_at = now
+        # 失效 skill canary 缓存（queries._skill_canary_cache 15s TTL），避免 tool_telemetry 残留分桶路由
+        from negentropy.engine.evolution.queries import invalidate_canary_cache
+
+        invalidate_canary_cache(proposal.target_ref)
         _emit_evolution_event(proposal, action="promote", reason="promoted")
 
     async def _rollback(self, db, proposal: EvolutionProposal, now: datetime, *, reason: str | None) -> None:
         """回滚：active_version 保持基线（不翻）；标记 rolled_back（候选 SkillVersion 保留全历史）。"""
         proposal.status = STATUS_ROLLED_BACK
         proposal.decided_at = now
+        # 失效 skill canary 缓存（queries._skill_canary_cache 15s TTL）：回滚后停止把流量分到候选桶
+        from negentropy.engine.evolution.queries import invalidate_canary_cache
+
+        invalidate_canary_cache(proposal.target_ref)
         _emit_evolution_event(proposal, action="rollback", reason=reason or "rolled_back")
 
     async def rollback(self, db, proposal: EvolutionProposal, now: datetime) -> None:
@@ -517,6 +525,8 @@ class SkillTemplateHandler:
             skill = await self._load_skill(db, proposal.target_ref)
             if skill is not None and skill.active_version == proposal.proposed_version:
                 skill.active_version = proposal.base_version  # 回退到前一稳定版
+            proposal.status = STATUS_ROLLED_BACK
+            proposal.decided_at = now
             _emit_evolution_event(
                 proposal,
                 action="longitudinal_revert",
@@ -541,6 +551,8 @@ class SkillTemplateHandler:
                 skill = await self._load_skill(db, proposal.target_ref)
                 if skill is not None and skill.active_version == proposal.proposed_version:
                     skill.active_version = proposal.base_version
+                proposal.status = STATUS_ROLLED_BACK
+                proposal.decided_at = now
                 _emit_evolution_event(proposal, action="safety_recheck_revert", reason=safety_dec.reason)
                 logger.warning(
                     "skill_safety_recheck_revert",
@@ -577,49 +589,62 @@ class SkillTemplateHandler:
                 if not candidates:
                     return
                 for skill in candidates:
-                    active_tpl = await self._active_template(db, skill)
-                    fails = await self._fetch_failing_cases(db, skill.name)
-                    if not fails:
+                    # per-skill 隔离：单 skill 异常（proposer 失败 / uq_skill_version 冲突）不阻塞其余 skill
+                    try:
+                        await self._spawn_one(db, skill)
+                    except Exception as exc:  # noqa: BLE001
+                        await db.rollback()  # 回滚本 skill 未提交改动，使会话可复用于下一 skill
+                        logger.warning("skill_spawn_one_failed", skill=skill.name, error=str(exc))
                         continue
-                    negatives = await self._fetch_recent_negatives(db, skill.name)
-                    draft = await self._proposer.propose(
-                        skill_name=skill.name,
-                        active_template=active_tpl,
-                        failing_cases=fails,
-                        recent_negatives=negatives,
-                    )
-                    if draft is None:
-                        continue
-                    base_version = skill.active_version or skill.version
-                    proposed_version = _bump_patch(base_version)
-                    # 候选 SkillVersion（snapshot = 基线字段 + 变异 prompt_template）
-                    await self._write_candidate_version(db, skill, proposed_version, draft.prompt_template)
-                    db.add(
-                        EvolutionProposal(
-                            target_kind=self.target_kind,
-                            target_ref=skill.name,
-                            base_version=base_version,
-                            proposed_version=proposed_version,
-                            payload={"prompt_template": draft.prompt_template},
-                            origin=ORIGIN_REFLECTION,
-                            rationale=draft.rationale or None,
-                            evidence={
-                                "failing_cases": fails[:_MAX_FAIL_CASES_IN_PROMPT],
-                                "expected_effect": draft.expected_effect,
-                            },
-                            status=STATUS_SHADOW_EVAL,
-                            risk_level=RISK_LOW,
-                        )
-                    )
-                    await db.commit()
-                    logger.info(
-                        "skill_proposal_spawned",
-                        skill=skill.name,
-                        base=base_version,
-                        proposed=proposed_version,
-                    )
         except Exception as exc:
             logger.warning("skill_spawn_failed", error=str(exc))
+
+    async def _spawn_one(self, db, skill: Skill) -> None:
+        """单 skill 的 propose → 落 shadow_eval 提案 + 候选 SkillVersion（``_spawn_bg`` per-skill 调用）。
+
+        抛出的异常由 ``_spawn_bg`` 的 per-iteration try/except 捕获并隔离，不影响同 tick 其它 skill。
+        """
+        active_tpl = await self._active_template(db, skill)
+        fails = await self._fetch_failing_cases(db, skill.name)
+        if not fails:
+            return
+        negatives = await self._fetch_recent_negatives(db, skill.name)
+        draft = await self._proposer.propose(
+            skill_name=skill.name,
+            active_template=active_tpl,
+            failing_cases=fails,
+            recent_negatives=negatives,
+        )
+        if draft is None:
+            return
+        base_version = skill.active_version or skill.version
+        proposed_version = _bump_patch(base_version)
+        # 候选 SkillVersion（snapshot = 基线字段 + 变异 prompt_template）
+        await self._write_candidate_version(db, skill, proposed_version, draft.prompt_template)
+        db.add(
+            EvolutionProposal(
+                target_kind=self.target_kind,
+                target_ref=skill.name,
+                base_version=base_version,
+                proposed_version=proposed_version,
+                payload={"prompt_template": draft.prompt_template},
+                origin=ORIGIN_REFLECTION,
+                rationale=draft.rationale or None,
+                evidence={
+                    "failing_cases": fails[:_MAX_FAIL_CASES_IN_PROMPT],
+                    "expected_effect": draft.expected_effect,
+                },
+                status=STATUS_SHADOW_EVAL,
+                risk_level=RISK_LOW,
+            )
+        )
+        await db.commit()
+        logger.info(
+            "skill_proposal_spawned",
+            skill=skill.name,
+            base=base_version,
+            proposed=proposed_version,
+        )
 
     # ==================================================================
     # 内部辅助
@@ -830,10 +855,25 @@ class SkillTemplateHandler:
         ).scalar_one_or_none()
         if suite_row is None:
             return []
-        rows = (
-            await db.execute(visible_results_query(suite_id=suite_row).where(EvalResult.score < 70).limit(limit))
-        ).all()
-        return [{"score": float(r.score), "verdict": r.verdict} for r in rows]
+        from negentropy.models.eval_suite import EvalCase
+
+        # join EvalCase 取 task 文本：EvalResult 无 task 字段，proposer 反思需具体失败场景（综述 §3.5 GEPA）。
+        stmt = (
+            visible_results_query(suite_id=suite_row)
+            .join(EvalCase, EvalCase.id == EvalResult.case_id)
+            .add_columns(EvalCase.input)
+            .where(EvalResult.score < 70)
+            .limit(limit)
+        )
+        rows = (await db.execute(stmt)).all()
+        return [
+            {
+                "score": float(er.score),
+                "verdict": er.verdict,
+                "task": str((case_input or {}).get("task") or "")[:120],
+            }
+            for er, case_input in rows
+        ]
 
     @staticmethod
     async def _fetch_recent_negatives(
