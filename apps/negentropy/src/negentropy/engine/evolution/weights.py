@@ -74,8 +74,53 @@ def invalidate(config_scope: str | None = None) -> None:
     """evolution promote/rollback 写完 active 行后调用，强一致刷新缓存。"""
     if config_scope is None:
         _cache.clear()
+        _prompt_cache.clear()
     else:
         _cache.pop(config_scope, None)
+        _prompt_cache.pop(config_scope, None)
 
 
-__all__ = ["resolve_active_retrieval_config", "invalidate"]
+# =============================================================================
+# 管线 prompt 解析（memory_pipeline_prompt 面）—— consolidator 读 active prompt
+# =============================================================================
+
+# scope -> (prompt, fetched_at_monotonic)
+_prompt_cache: dict[str, tuple[str, float]] = {}
+
+
+async def resolve_active_pipeline_prompt(scope: str, fallback_prompt: str) -> str:
+    """返回该 scope 的 active 管线 prompt（``memory_config_versions`` snapshot.prompt）。
+
+    解析顺序（与检索权重同构）：DB active 行 → 回退 ``fallback_prompt``（代码常量，冷启 / 表不存在 /
+    无 active 行时）。供 consolidator（extractor/reflection/summarizer）消费 memory_pipeline_prompt 面
+    的进化产物——promote 已翻指针，此处读取即生效（30s 缓存 + ``invalidate`` 强一致刷新）。
+    """
+    now = time.monotonic()
+    cached = _prompt_cache.get(scope)
+    if cached is not None and (now - cached[1]) < _CACHE_TTL:
+        return cached[0]
+    prompt = await _fetch_active_prompt(scope, fallback_prompt)
+    _prompt_cache[scope] = (prompt, now)
+    return prompt
+
+
+async def _fetch_active_prompt(scope: str, fallback_prompt: str) -> str:
+    try:
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(MemoryConfigVersion).where(
+                        MemoryConfigVersion.config_scope == scope,
+                        MemoryConfigVersion.is_active.is_(True),
+                    )
+                )
+            ).scalar_one_or_none()
+            if row is None:
+                return fallback_prompt
+            return str((row.snapshot or {}).get("prompt") or fallback_prompt)
+    except Exception as exc:
+        logger.debug("evolution_pipeline_prompt_fetch_failed", scope=scope, error=str(exc))
+        return fallback_prompt
+
+
+__all__ = ["resolve_active_retrieval_config", "resolve_active_pipeline_prompt", "invalidate"]

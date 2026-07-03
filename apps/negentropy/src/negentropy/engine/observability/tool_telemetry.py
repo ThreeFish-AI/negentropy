@@ -153,14 +153,25 @@ def _emit_tool_invocation(
     agent_name = _safe_get_agent_name(tool_context)
     thread_id = _safe_get_thread_id(tool_context)
 
+    # 5b) R6-b runtime canary 在线信号：expand_skill 调用打 skill_ref + canary_assignment（同步缓存读，
+    # 不触 DB）。供 advance_runtime_canary 聚合候选桶 vs 基线桶的 error-rate（综述 §9.3 在线受控发布信号）。
+    tool_name = getattr(tool, "name", "unknown")
+    skill_ref: str | None = None
+    canary_assignment: str | None = None
+    if tool_name == "expand_skill" and isinstance(args, dict):
+        skill_ref = str(args.get("name") or "") or None
+        if skill_ref:
+            canary_assignment = _resolve_skill_canary_assignment_sync(skill_ref, thread_id)
+
     # 6) 构造行 + fire-and-forget
     row = ToolInvocation(
         caller_kind=caller_kind,
         agent_name=agent_name,
         thread_id=thread_id,
-        tool_kind=_resolve_tool_kind(getattr(tool, "name", "unknown")),
-        tool_ref=getattr(tool, "name", "unknown"),
+        tool_kind=_resolve_tool_kind(tool_name),
+        tool_ref=tool_name,
         tool_version="unversioned",
+        skill_ref=skill_ref,
         status=status,
         latency_ms=latency_ms,
         error_class=error_class,
@@ -168,9 +179,33 @@ def _emit_tool_invocation(
         output_digest=_make_digest(_safe_json(tool_response)),
         trace_id=trace_id,
         span_id=span_id,
+        canary_assignment=canary_assignment,
         outcome_source=OUTCOME_SOURCE_NONE,
     )
     _schedule_write(row)
+
+
+def _resolve_skill_canary_assignment_sync(skill_name: str, thread_id: str | None) -> str | None:
+    """同步判定该会话看到的 skill version（runtime canary 命中桶 → 候选 version；否则 None）。
+
+    读 ``queries._skill_canary_cache``（skills_injector 解析时异步填充）+ ``bucket_index`` 同步计算，
+    不触 DB（热路径安全）。缓存未命中 / 无在途 runtime_canary / 未命中桶 → None（记为基线桶）。
+    """
+    try:
+        from negentropy.engine.evolution.canary import bucket_index
+        from negentropy.engine.evolution.queries import get_cached_skill_canary
+
+        canary = get_cached_skill_canary(skill_name)
+        if not canary:
+            return None
+        ratio = float(canary.get("bucket_ratio_pct") or 0.0)
+        if ratio <= 0 or not thread_id:
+            return None
+        if bucket_index(None, None, bucket_key=thread_id) < ratio:
+            return str(canary.get("proposed_version") or "")
+    except Exception:  # noqa: BLE001  # 遥测热路径绝不因 canary 解析失败而中断
+        return None
+    return None
 
 
 def _schedule_write(row: ToolInvocation) -> None:

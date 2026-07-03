@@ -35,8 +35,8 @@ from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin
 
 
 def sa_text_non_terminal():
-    """部分唯一索引的 WHERE 子句：status 属于非终态集。"""
-    return _sa_text("status IN ('draft','shadow_eval','pending_approval','canary')")
+    """部分唯一索引的 WHERE 子句：status 属于非终态集（含 runtime_canary）。"""
+    return _sa_text("status IN ('draft','shadow_eval','pending_approval','canary','runtime_canary')")
 
 
 def sa_text_is_active_true():
@@ -48,9 +48,22 @@ def sa_text_is_active_true():
 # 白名单常量（代码层单一事实源；新增 target_kind 在此追加）
 # =============================================================================
 
-# target_kind —— 本次仅 retrieval_config 一值；后续 agent_prompt / skill_template 等扩展时追加
+# target_kind —— retrieval_config（检索权重）/ skill_template（Skill prompt）
+#                / memory_pipeline_prompt（抽取·反思·摘要 prompt）
 TARGET_KIND_RETRIEVAL_CONFIG = "retrieval_config"
-ALLOWED_TARGET_KINDS: tuple[str, ...] = (TARGET_KIND_RETRIEVAL_CONFIG,)
+TARGET_KIND_SKILL_TEMPLATE = "skill_template"
+TARGET_KIND_MEMORY_PIPELINE_PROMPT = "memory_pipeline_prompt"
+TARGET_KIND_BUILTIN_TOOL_CONFIG = "builtin_tool_config"
+TARGET_KIND_KNOWLEDGE_STRATEGY = "knowledge_strategy"
+TARGET_KIND_AGENT_PROMPT = "agent_prompt"
+ALLOWED_TARGET_KINDS: tuple[str, ...] = (
+    TARGET_KIND_RETRIEVAL_CONFIG,
+    TARGET_KIND_SKILL_TEMPLATE,
+    TARGET_KIND_MEMORY_PIPELINE_PROMPT,
+    TARGET_KIND_BUILTIN_TOOL_CONFIG,
+    TARGET_KIND_KNOWLEDGE_STRATEGY,
+    TARGET_KIND_AGENT_PROMPT,
+)
 
 # target_ref —— retrieval_config 面 = config_scope（如 "retrieval"）
 
@@ -65,6 +78,7 @@ STATUS_DRAFT = "draft"
 STATUS_SHADOW_EVAL = "shadow_eval"
 STATUS_PENDING_APPROVAL = "pending_approval"
 STATUS_CANARY = "canary"
+STATUS_RUNTIME_CANARY = "runtime_canary"  # 离线门通过后的在线分桶灰度窗口（综述 §9.3 受控发布）
 STATUS_PROMOTED = "promoted"
 STATUS_REJECTED = "rejected"
 STATUS_ROLLED_BACK = "rolled_back"
@@ -74,6 +88,7 @@ PROPOSAL_NON_TERMINAL: tuple[str, ...] = (
     STATUS_SHADOW_EVAL,
     STATUS_PENDING_APPROVAL,
     STATUS_CANARY,
+    STATUS_RUNTIME_CANARY,
 )
 PROPOSAL_TERMINAL: tuple[str, ...] = (STATUS_PROMOTED, STATUS_REJECTED, STATUS_ROLLED_BACK)
 

@@ -555,6 +555,18 @@ evolution_proposals
 >   + 冻结评估桶」双份样本（当前 min_samples=50/桶，holdout 需 100+/窗口）；evolution 默认关闭、
 >   流量不足，强上会致两桶都凑不够 → canary 永久 hold。anti-collapse diversity 护栏已部分覆盖
 >   （防 collapse）；等灰度跑稳、QPS 上升后单独切片。
+>
+> **第三迭代注记（2026-07，Skill 进化闭环 + TargetHandler 抽象 + eval 基座，PR [#1038](https://github.com/ThreeFish-AI/negentropy/pull/1038)）**：
+> 上方「延后项」中的 **target_kind 注册表分派（P3）** 与 **frozen holdout（P4）** 已落地——
+> ① eval 四表（迁移 0083）+ `SuiteRunner` + `CounterfactualAttributor`（反事实 Skill Influence
+> Pattern）+ `visible_results_query`（结构性排除 `partition='holdout'`，综述 §9.4 防 Goodhart）；
+> ② `TargetHandler` ABC + `RetrievalConfigHandler`（retrieval 路径 golden 测试守护逐字节等价）+
+> orchestrator 退化为薄分派层（第二面接入时一次到位，见 ADR-5）；③ `SkillTemplateHandler` +
+> `SkillProposer`（GEPA 变异 `prompt_template`）+ `skills.active_version` 发布指针（迁移 0084），
+> shadow 用 visible 集 `decide_skill_shadow` 增益门、canary 用 holdout 集 `decide_skill_canary`
+> 零回归门。综述 §8 SI 六目标中 held-out gain / backward retention / path attribution 已落地；
+> longitudinal stability / improvement efficiency / safety non-regression 仍列后续。详见
+> [141 号调研](../../research/141-skills-evolution-and-si-measurement.md)。
 
 ### Phase 1：遥测 + 评测地基
 
@@ -656,6 +668,12 @@ Routine 的 `decide()` 语义是「迭代直至验收」（no_progress/oscillati
 **推荐：条目级走既有 consolidation 高频回路，配置级走 evolution_proposals 低频门控流水线。**
 
 条目级操作（fact 写入/更新、反思生成、ACE delta、记忆淘汰）每天成百上千次，与配置级变更（参数/prompt/策略，每周个位数）频率相差约 3 个数量级，强行统一进一个状态机会使门控失去意义或成为吞吐瓶颈。风险面也不同：条目级已有 retention 衰减 / reflection 去重 / conflict 检测三重既有治理，单条劣化影响局部；配置级变更影响全局检索与写入质量，必须享受 shadow eval + canary + 人审全套保护。代价：条目级演化缺少 shadow eval 前置保护，靠 `outcome_feedback` 事后信号与治理回路兜底——这是用吞吐换保护粒度的明确取舍。
+
+### ADR-5：TargetHandler 抽象——按 target_kind 分派进化面
+
+**推荐：orchestrator 退化为薄分派层，每 target_kind 一个 `TargetHandler` 子类（advance_shadow / advance_canary / rollback / maybe_spawn）。**
+
+§10「延后项」曾裁定「第二面接入时再抽 `TargetHandler` 基类一次到位（避免单实现期过度抽象）」。第二面（skill_template）已随 PR [#1038](https://github.com/ThreeFish-AI/negentropy/pull/1038) 到达，故本抽象落地：`RetrievalConfigHandler` 把原 orchestrator 的 retrieval 硬编码逻辑原样迁入（`test_evolution_orchestrator_state_machine` golden 守护 retrieval 路径逐字节等价），`SkillTemplateHandler` 接 PR1 的 `SuiteRunner` + `decide_skill_*` 双相门 + `CounterfactualAttributor`。代价：共享辅助（`_enter_canary`/`_emit_evolution_event`/`_bump_patch` 等）抽到 `handlers/_shared.py`，handler 读各自模块的 `settings` 绑定（非 orchestrator.settings），单测须相应 patch 三处 binding；retrieval byte-equivalence 靠 golden 集成测试守护。新增第三面（agent_prompt / builtin_tool / knowledge_strategy）只需一个 handler 子类 + 注册，零改动 orchestrator。
 
 ---
 

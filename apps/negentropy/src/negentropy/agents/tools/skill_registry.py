@@ -55,6 +55,22 @@ def _resolve_owner_id(tool_context: ToolContext | None) -> str:
     return "anonymous"
 
 
+def _resolve_bucket_key(tool_context: ToolContext | None) -> str | None:
+    """从 tool_context 提取 runtime canary 分桶键（session.id 优先；综述 §9.3 受控发布）。
+
+    用于 ``expand_skill`` 灰度路由：同一 session 全程落同一桶（避免一会看候选一会看 active）。
+    无 session / 取不到 → None（不参与灰度，走 active_version）。
+    """
+    if tool_context is None:
+        return None
+    session = getattr(tool_context, "session", None)
+    if session is not None:
+        sid = getattr(session, "id", None)
+        if sid:
+            return str(sid)
+    return None
+
+
 def _layer2_disabled() -> bool:
     return os.environ.get("NEGENTROPY_SKILLS_LAYER2_ENABLED", "true").lower() in ("0", "false", "no")
 
@@ -124,9 +140,10 @@ async def expand_skill(
         return {"status": "failed", "error": "skill name is required"}
 
     owner_id = _resolve_owner_id(tool_context)
+    bucket_key = _resolve_bucket_key(tool_context)
     try:
         async with db_session.AsyncSessionLocal() as session:
-            resolved = await resolve_skills(session, [name], owner_id=owner_id)
+            resolved = await resolve_skills(session, [name], owner_id=owner_id, bucket_key=bucket_key)
         if not resolved:
             return {"status": "failed", "error": "skill_not_found", "name": name}
         skill = resolved[0]

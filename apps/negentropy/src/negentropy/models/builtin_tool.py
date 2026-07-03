@@ -13,7 +13,7 @@
 import json as _json
 from typing import Any
 
-from sqlalchemy import Boolean, Enum, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Enum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -78,10 +78,36 @@ class BuiltinTool(Base, UUIDMixin, TimestampMixin):
         default=0,
         server_default="0",
     )
+    # builtin_tool_config 进化发布指针（迁移 0088）：区分「最新」（version）与「已晋升」（active_version）。
+    # 运行时工具读 active_version 指向的 builtin_tool_versions 快照；NULL → 退化 version/当前 config。
+    active_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("name", name="builtin_tools_name_unique"),
         Index("ix_builtin_tools_owner", "owner_id"),
         Index("ix_builtin_tools_tool_type", "tool_type"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class BuiltinToolVersion(Base, UUIDMixin, TimestampMixin):
+    """builtin_tool_config 进化版本快照（迁移 0088，镜像 ``skill_versions`` 范式）。
+
+    snapshot schema：``{"config": {...}, "config_schema": {...}}``（credentials 永不入快照——脱敏边界）。
+    每个 tool 至多一行被 ``builtin_tools.active_version`` 指向（promote 翻指针）。
+    """
+
+    __tablename__ = "builtin_tool_versions"
+
+    tool_id: Mapped[str] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.builtin_tools.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    version: Mapped[str] = mapped_column(String(50), nullable=False)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+
+    __table_args__ = (
+        UniqueConstraint("tool_id", "version", name="uq_builtin_tool_version"),
+        Index("ix_builtin_tool_versions_tool_id", "tool_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )

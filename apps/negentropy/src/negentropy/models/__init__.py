@@ -1,7 +1,8 @@
 from .action import Tool, ToolExecution
-from .agent import Agent
+from .agent import Agent, AgentVersion
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
-from .builtin_tool import BuiltinTool
+from .builtin_tool import BuiltinTool, BuiltinToolVersion
+from .eval_suite import EvalCase, EvalResult, EvalRun, EvalSuite
 from .evolution import EvolutionProposal, MemoryConfigVersion
 from .internalization import ConsolidationJob, Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
@@ -61,6 +62,11 @@ __all__ = [
     # Evolution (自进化)
     "EvolutionProposal",
     "MemoryConfigVersion",
+    # Eval Suite (离线评测基座 — 综述 §8 SI 度量)
+    "EvalSuite",
+    "EvalCase",
+    "EvalRun",
+    "EvalResult",
     # Tool Telemetry (工具调用遥测)
     "ToolInvocation",
     "ToolStatsDaily",
@@ -69,6 +75,7 @@ __all__ = [
     "ToolExecution",
     # Builtin Tools
     "BuiltinTool",
+    "BuiltinToolVersion",
     # Observability
     "Trace",
     # Perception (知识)
@@ -107,6 +114,7 @@ __all__ = [
     # Skill & Agent
     "Skill",
     "Agent",
+    "AgentVersion",
     # Scheduled Task (统一心跳调度)
     "ScheduledTask",
     "TaskExecution",

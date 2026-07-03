@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import Boolean, Enum, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Enum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -34,6 +34,11 @@ class Agent(Base, UUIDMixin, TimestampMixin):
     skills: Mapped[list[str] | None] = mapped_column(JSONB, server_default="[]")
     tools: Mapped[list[str] | None] = mapped_column(JSONB, server_default="[]")
 
+    # agent_prompt 进化发布指针（迁移 0089 + ADR-3）：区分「代码基线」（system_prompt）
+    # 与「已晋升」（active_version → agent_versions 快照）。sync_negentropy_agents 只更新
+    # system_prompt（基线），_load_subagent_row 在 active_version 非 NULL 时读快照。
+    active_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     # 排序：前端拖拽排序后的持久化序号，值越小越靠前。
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
@@ -49,5 +54,28 @@ class Agent(Base, UUIDMixin, TimestampMixin):
         UniqueConstraint("name", name="agents_name_unique"),
         Index("ix_agents_owner", "owner_id"),
         Index("ix_agents_is_system", "is_system"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class AgentVersion(Base, UUIDMixin, TimestampMixin):
+    """agent_prompt 进化版本快照（迁移 0089，镜像 ``skill_versions`` 范式）。
+
+    snapshot schema：``{"system_prompt": "...", "model": "...", "skills": [...], "tools": [...]}``。
+    每个 agent 至多一行被 ``agents.active_version`` 指向（promote 翻指针）。
+    """
+
+    __tablename__ = "agent_versions"
+
+    agent_id: Mapped[str] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.agents.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    version: Mapped[str] = mapped_column(String(50), nullable=False)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+
+    __table_args__ = (
+        UniqueConstraint("agent_id", "version", name="uq_agent_version"),
+        Index("ix_agent_versions_agent_id", "agent_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
