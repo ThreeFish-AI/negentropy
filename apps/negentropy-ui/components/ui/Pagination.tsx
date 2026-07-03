@@ -29,6 +29,9 @@ export interface PaginationProps {
   /** 无限滚动「向后追加」在途时，于控件旁渲染小 spinner（不阻断翻页）。 */
   loadingMore?: boolean;
   className?: string;
+  /** 计数文案的字号类（默认 `text-micro`=10px）。调用方可覆盖为 `text-xs` 等以增大计数字号。
+   *  注意：基类不再含字号类，故此处传入的字号不会与 `text-micro` 冲突（`cn` 为朴素拼接）。 */
+  countClassName?: string;
 }
 
 /**
@@ -62,12 +65,13 @@ export function Pagination({
   disabled = false,
   loadingMore = false,
   className,
+  countClassName = "text-micro",
 }: PaginationProps) {
   // 单页（或无数据）时不渲染翻页器；若提供了 total 则仅显示一行居中计数。
   if (totalPages <= 1) {
     if (total == null) return null;
     return (
-      <div className={cn("flex justify-center text-micro tabular-nums text-text-secondary", className)}>
+      <div className={cn("flex justify-center tabular-nums text-text-secondary", countClassName, className)}>
         {countLabel(total, itemLabel)}
       </div>
     );
@@ -85,7 +89,7 @@ export function Pagination({
       className={cn("flex items-center justify-center gap-4", className)}
     >
       {total != null && (
-        <span className="text-micro tabular-nums text-text-secondary">
+        <span className={cn("tabular-nums text-text-secondary", countClassName)}>
           {countLabel(total, itemLabel)}
         </span>
       )}

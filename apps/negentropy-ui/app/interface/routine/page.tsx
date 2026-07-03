@@ -274,6 +274,8 @@ function RoutinePageInner() {
                   total={total ?? undefined}
                   itemLabel="routine"
                   disabled={loading}
+                  // 计数字号增至 12px（比页号 14px 稍小，比默认 10px 明显增大），提升可读性。
+                  countClassName="text-xs"
                 />
               </div>
             )}
