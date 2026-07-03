@@ -201,3 +201,71 @@ async def test_resolve_active_pipeline_prompt_falls_back_when_no_active():
         assert consumed == "code-constant-prompt"
     finally:
         weights_mod.invalidate(scope)
+
+
+# =============================================================================
+# 回归测试：评审缺陷修复（fix #1）——_spawn_bg 消费 draft.prompt_template
+# =============================================================================
+
+
+async def test_spawn_bg_uses_proposer_draft_prompt_template_field():
+    """回归 fix #1：_spawn_bg 消费 PipelinePromptProposer 返回的 ``SkillProposalDraft.prompt_template``。
+
+    buggy 代码读 ``draft.prompt``（slots dataclass AttributeError）→ 外层 try/except 吞掉，整条 spawn
+    中止、无 EvolutionProposal 落地；固定代码读 ``draft.prompt_template`` → 提案正常生成。
+    """
+    from negentropy.engine.eval.seed import create_suite
+    from negentropy.engine.evolution.handlers.skill import SkillProposalDraft
+
+    scope = f"spawn_{uuid.uuid4().hex[:8]}"
+    async with db_session.AsyncSessionLocal() as db:
+        await db.execute(delete(MemoryConfigVersion).where(MemoryConfigVersion.config_scope == scope))
+        db.add(
+            MemoryConfigVersion(
+                config_scope=scope,
+                version="0.1.0",
+                snapshot={"prompt": "active"},
+                origin="code_sync",
+                is_active=True,
+            )
+        )
+        await create_suite(
+            db,
+            target_kind="memory_pipeline_prompt",
+            target_ref=scope,
+            owner_id=_OWNER,
+            cases=[{"input": {"task": "t"}, "is_frozen": False}],
+            scoring_config={"pass_threshold": 70},
+            holdout_ratio=0.0,
+        )
+        await db.commit()
+
+    class _Proposer:
+        async def propose(self, *, scope_name, active_prompt):  # noqa: ARG002
+            return SkillProposalDraft(prompt_template="evolved-prompt", rationale="r")
+
+    handler = MemoryPipelinePromptHandler(
+        runner=SuiteRunner(executors={"memory_pipeline_prompt": _Exec()}, evaluator=_Eval()),
+        proposer=_Proposer(),
+    )
+    try:
+        await handler._spawn_bg()  # 直接驱动 spawn（绕过 maybe_spawn 的 enabled 检查）
+        async with db_session.AsyncSessionLocal() as db:
+            props = (
+                (await db.execute(select(EvolutionProposal).where(EvolutionProposal.target_ref == scope)))
+                .scalars()
+                .all()
+            )
+            assert len(props) == 1  # buggy: AttributeError 被外层 except 吞 → 0 提案
+            assert props[0].payload["prompt"] == "evolved-prompt"
+            cand = (
+                await db.execute(
+                    select(MemoryConfigVersion).where(
+                        MemoryConfigVersion.config_scope == scope,
+                        MemoryConfigVersion.version == props[0].proposed_version,
+                    )
+                )
+            ).scalar_one()
+            assert cand.snapshot["prompt"] == "evolved-prompt"
+    finally:
+        await _cleanup(scope)

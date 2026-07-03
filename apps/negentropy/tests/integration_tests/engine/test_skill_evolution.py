@@ -266,3 +266,43 @@ async def test_skill_evolution_rollback_path(orch, monkeypatch):
             assert skill_row.active_version == "1.0.0"  # 未翻
     finally:
         await _cleanup(skill_name, skill.id)
+
+
+# =============================================================================
+# 回归测试：评审缺陷修复（fix #8）——_spawn_bg per-iteration 隔离
+# =============================================================================
+
+
+async def test_spawn_one_failure_isolates_batch():
+    """回归 fix #8：_spawn_bg per-iteration try/except——单 skill ``_spawn_one`` 失败不中止同 tick 其余 skill。
+
+    buggy 代码整批包在一个 try/except，首个异常即跳外层 except、放弃剩余 skill（``attempted`` 只含首个或为空）。
+    固定代码抽 ``_spawn_one`` + per-iteration catch，三 skill 均被尝试。
+    """
+    handler = SkillTemplateHandler(
+        runner=SimpleNamespace(),  # _spawn_one 被 mock，runner 不实际使用
+        proposer=SimpleNamespace(),  # 绕过 SkillProposer 默认构造读 settings
+    )
+
+    async def fake_find(db):  # noqa: ARG001
+        return [
+            SimpleNamespace(name="skill_a"),
+            SimpleNamespace(name="skill_b"),
+            SimpleNamespace(name="skill_c"),
+        ]
+
+    attempted: list[str] = []
+
+    async def fake_spawn_one(db, skill):  # noqa: ARG001
+        attempted.append(skill.name)
+        if skill.name == "skill_a":
+            raise RuntimeError("simulated proposer failure")
+
+    # 实例属性覆盖（staticmethod / 实例方法）：self.xxx 经实例 __dict__ 解析，不绑 self
+    handler._find_spawning_candidates = fake_find
+    handler._spawn_one = fake_spawn_one
+
+    await handler._spawn_bg()
+
+    # 三 skill 都被尝试（skill_a 异常被 per-iteration 隔离，未阻断 b/c）
+    assert attempted == ["skill_a", "skill_b", "skill_c"]

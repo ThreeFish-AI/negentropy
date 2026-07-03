@@ -330,3 +330,68 @@ async def test_run_fails_when_budget_exceeded():
             assert "budget_exceeded" in (run.error or "")
         finally:
             await _cleanup(session, suite.id)
+
+
+# =============================================================================
+# 回归测试：评审缺陷修复（fix #3）——_fetch_failing_cases join EvalCase 取 task
+# =============================================================================
+
+
+async def test_fetch_failing_cases_includes_task():
+    """回归 fix #3：_fetch_failing_cases join EvalCase.input，返回的失败 case dict 含 task 文本。
+
+    buggy 代码仅返回 score/verdict（无 task 键），proposer 反思拿不到失败场景 → ``fails[0]["task"]`` KeyError。
+    """
+    from negentropy.engine.evolution.handlers.skill import SkillTemplateHandler
+    from negentropy.models.eval_suite import EvalCase
+
+    skill_name = f"fetchfail_{uuid.uuid4().hex[:8]}"
+    async with db_session.AsyncSessionLocal() as db:
+        suite = EvalSuite(
+            target_kind="skill",
+            target_ref=skill_name,
+            owner_id=_OWNER,
+            scoring_config={"pass_threshold": 70},
+            holdout_ratio=0.0,
+        )
+        db.add(suite)
+        await db.flush()
+        case = EvalCase(
+            suite_id=suite.id,
+            is_frozen=False,
+            input={"task": "find papers about LLM agents", "variables": {}},
+            weight=1.0,
+            source="manual",
+        )
+        db.add(case)
+        await db.flush()
+        run = EvalRun(
+            suite_id=suite.id,
+            target_kind="skill",
+            target_ref=skill_name,
+            target_version="1.0.0",
+            trigger="proposal",
+            status="completed",
+            partition="visible",
+            regression_count=0,
+            score_mean=40.0,
+        )
+        db.add(run)
+        await db.flush()
+        db.add(
+            EvalResult(
+                run_id=run.id,
+                case_id=case.id,
+                score=40.0,
+                verdict="progressing",
+                is_frozen_case=False,
+            )
+        )
+        await db.commit()
+        try:
+            fails = await SkillTemplateHandler._fetch_failing_cases(db, skill_name, limit=5)
+            assert len(fails) == 1
+            assert fails[0]["task"] == "find papers about LLM agents"  # join EvalCase 后 task 非空
+            assert fails[0]["score"] == 40.0
+        finally:
+            await _cleanup(db, suite.id)
