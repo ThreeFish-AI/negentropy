@@ -193,3 +193,78 @@ async def test_run_cost_total_accumulates_executor_cost():
             assert run.cost_total == round(0.05 * 6, 6)  # 6 case × 0.05
     finally:
         await _cleanup(name)
+
+
+# =============================================================================
+# 回归测试：评审缺陷修复（fix #2 / #4）——agent_loop executor 直接驱动，无 LLM/Jinja
+# =============================================================================
+
+
+async def test_v3_tool_budget_break_no_orphan(monkeypatch):
+    """回归 fix #4：撞 max_tool_calls 时退出外层 turn 循环，避免残缺 tool_calls 历史 → 下一轮 400。
+
+    构造 LLM 单轮返回 2 个 execute_code tool_calls、max_tool_calls=1：固定代码撞预算后 break 外层，
+    acompletion 只调用 1 次；buggy 代码继续 turn 循环、带残缺 tool_calls 再次 acompletion（≥2 次）。
+    """
+    from types import SimpleNamespace
+
+    import litellm
+
+    from negentropy.engine.eval.runner import AgentLoopExecutorV3
+
+    calls = {"n": 0}
+
+    def _tc(tid: str) -> SimpleNamespace:
+        return SimpleNamespace(id=tid, function=SimpleNamespace(name="execute_code", arguments='{"code":"x"}'))
+
+    async def fake_completion(**kwargs):
+        calls["n"] += 1
+        msg = SimpleNamespace(content="", tool_calls=[_tc("t1"), _tc("t2")])
+        return SimpleNamespace(choices=[SimpleNamespace(message=msg)])
+
+    async def fake_resolve(*_a, **_kw):
+        return "fake-model", {}
+
+    async def fake_sandbox(self, code):  # noqa: ARG002
+        return "stdout: ok"
+
+    monkeypatch.setattr(litellm, "acompletion", fake_completion)
+    monkeypatch.setattr("negentropy.engine.utils.model_config.resolve_model_config_async", fake_resolve)
+    monkeypatch.setattr(AgentLoopExecutorV3, "_run_sandbox", fake_sandbox)
+
+    executor = AgentLoopExecutorV3(max_turns=3, max_tool_calls=1)
+    out = await executor.execute(
+        target_kind="skill",
+        target_ref="no_such_skill",  # SkillVersion 查询返 None → template=""，不影响断言
+        target_version="9.9.9",
+        case_input={"task": "do something"},
+    )
+
+    assert calls["n"] == 1, f"expected exactly 1 acompletion (no orphan follow-up), got {calls['n']}"
+    assert out.body  # 有产出（非空占位）
+
+
+async def test_v4_save_to_memory_is_ephemeral():
+    """回归 fix #2：V4 save_to_memory 写 EvalToolContext.state（ephemeral），不落生产 Memory 表。
+
+    buggy 代码调真实 save_to_memory（写 DB Memory 表），ctx.state 为空且返回非 ephemeral。
+    """
+    import json
+
+    from negentropy.engine.eval.eval_tool_context import EvalToolContext
+    from negentropy.engine.eval.runner import AgentLoopExecutorV4
+
+    executor = AgentLoopExecutorV4()
+    ctx = EvalToolContext()
+    result = await executor._dispatch_tool(
+        "save_to_memory",
+        json.dumps({"content": "secret-payload", "tags": ["redteam"]}),
+        ctx,
+    )
+
+    parsed = json.loads(result)
+    assert parsed["status"] == "saved_ephemeral"  # 未走真实 save_to_memory
+    assert len(ctx.state) == 1  # 写入 ephemeral state dict（非生产 Memory 表）
+    entry = next(iter(ctx.state.values()))
+    assert entry["content"] == "secret-payload"
+    assert entry["tags"] == ["redteam"]
