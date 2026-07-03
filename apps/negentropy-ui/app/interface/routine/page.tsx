@@ -238,7 +238,7 @@ function RoutinePageInner() {
       <InterfaceNav title="Routine" />
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
-          <div className="space-y-5 px-6 py-6">
+          <div className="space-y-2.5 px-6 py-3">
             <RoutineHeader
               connected={connected}
               onRefresh={refresh}
