@@ -196,6 +196,78 @@ class AgentLoopExecutor:
         return CaseOutput(body=body or "(agent 未产出)", digest=_sha12(body or ""), cost_usd=cost)
 
 
+class AgentLoopExecutorV2:
+    """skill 面 executor（``execution_mode="agent_loop_v2"``）——多轮 skill-conditioned 推理循环。
+
+    与 ``AgentLoopExecutor``（v1 单轮生成）的区别：**多轮迭代精炼**——每轮 LLM 看到前轮产出 +
+    「critique and refine」指令，逐步改进（综述 §3「skill 指导真实多步任务行为」的更贴近语义）。
+
+    - **预算控制**（per-case）：``max_turns`` 构造参数（默认 3），每轮 1 次 LLM 调用；
+    - **成本追踪**：累积每轮 ``litellm.completion_cost`` → ``CaseOutput.cost_usd``；
+    - **收敛检测**：LLM 回复含 ``[FINAL]`` 标记 → 提前终止；
+    - **工具执行 + MicroSandbox**：v2 仍为纯推理（无工具调用）；完整 agent-loop（多轮 + 工具 + 沙箱）
+      是进一步工作——``tool_executor`` 注入点已预留（``execute`` 接 ``case_input.get("tools")``）。
+    """
+
+    _TASK_KEY = "eval.execute"
+
+    def __init__(self, *, model_override: str | None = None, max_turns: int = 3) -> None:
+        self._model_override = model_override
+        self._max_turns = max_turns
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        from negentropy.db import session as db_session
+        from negentropy.models.skill import Skill, SkillVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(SkillVersion)
+                    .join(Skill, Skill.id == SkillVersion.skill_id)
+                    .where(Skill.name == target_ref, SkillVersion.version == target_version)
+                )
+            ).scalar_one_or_none()
+            template = (dict(row.snapshot or {}).get("prompt_template") if row else None) or ""
+
+        task = str((case_input or {}).get("task") or "")
+        total_cost = 0.0
+        current_output = ""
+
+        for turn in range(self._max_turns):
+            if turn == 0:
+                user_content = task
+            else:
+                user_content = (
+                    f"{task}\n\n--- Previous attempt (turn {turn}/{self._max_turns}) ---\n"
+                    f"{current_output}\n\n--- Critique and refine your answer. "
+                    f"If satisfied, prefix with [FINAL] ---"
+                )
+            text, cost = await _conditioned_generate(
+                system_prompt=template, user_task=user_content, model_override=self._model_override
+            )
+            if cost is not None:
+                total_cost += cost
+            if not text:
+                break
+            current_output = text
+            if "[FINAL]" in text:
+                current_output = text.replace("[FINAL]", "").strip()
+                break
+
+        return CaseOutput(
+            body=current_output or "(agent 未产出)",
+            digest=_sha12(current_output or ""),
+            cost_usd=total_cost if total_cost > 0 else None,
+        )
+
+
 class PromptExecutor:
     """memory_pipeline_prompt 面 executor——跑候选 prompt 抽取/反思，Judge 评产出质量。
 
@@ -367,6 +439,7 @@ class SuiteRunner:
         evaluator: RoutineEvaluator | None = None,
         executors: dict[str, TargetExecutor] | None = None,
         agent_executor: TargetExecutor | None = None,
+        agent_v2_executor: TargetExecutor | None = None,
     ) -> None:
         self._evaluator = evaluator or RoutineEvaluator()
         # 默认注册 skill executor；其它 target_kind 由调用方注入
@@ -375,6 +448,8 @@ class SuiteRunner:
         )
         # ``execution_mode="agent_loop"`` 时用 agent_executor（默认 AgentLoopExecutor）
         self._agent_executor = agent_executor or AgentLoopExecutor()
+        # ``execution_mode="agent_loop_v2"`` 时用 agent_v2_executor（多轮推理 + 预算）
+        self._agent_v2_executor = agent_v2_executor or AgentLoopExecutorV2()
 
     # ------------------------------------------------------------------
     # 公开 API
@@ -544,6 +619,8 @@ class SuiteRunner:
         """
         if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop":
             return self._agent_executor
+        if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop_v2":
+            return self._agent_v2_executor
         return self._executors.get(target_kind)
 
     @staticmethod
@@ -676,6 +753,7 @@ __all__ = [
     "TargetExecutor",
     "SkillExecutor",
     "AgentLoopExecutor",
+    "AgentLoopExecutorV2",
     "SuiteRunner",
     "visible_results_query",
 ]

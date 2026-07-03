@@ -134,6 +134,42 @@ async def test_default_mode_uses_skill_executor():
         await _cleanup(name)
 
 
+_AGENT_V2_MARK = "AGENT_V2_MULTI_TURN_OUTPUT"
+
+
+async def test_execution_mode_agent_loop_v2_uses_v2_executor():
+    """execution_mode=agent_loop_v2 → SuiteRunner 用 agent_v2_executor（多轮推理路径）。"""
+
+    class _FakeV2Exec:
+        async def execute(self, *, target_kind, target_ref, target_version, case_input):
+            return CaseOutput(body=_AGENT_V2_MARK, digest="v" * 12, cost_usd=0.03)
+
+    name, suite = await _seed_suite(execution_mode="agent_loop_v2")
+    try:
+        runner = SuiteRunner(
+            executors={"skill": _DefaultSkillExec()},
+            agent_executor=_FakeAgentExec(),
+            agent_v2_executor=_FakeV2Exec(),
+            evaluator=_Eval(),
+        )
+        # _Eval scores 90 when _AGENT_MARK in summary; let's make it score v2 mark too
+        async with db_session.AsyncSessionLocal() as db:
+            run = await runner.run_suite(
+                db,
+                suite=suite,
+                target_kind="skill",
+                target_ref=name,
+                target_version="1.0.0",
+                partition="visible",
+            )
+            await db.commit()
+            # _Eval checks for _AGENT_MARK (not _AGENT_V2_MARK) → v2 executor body 未匹配 → 低分
+            # 但 v2 executor 确实被调用了（证明：cost_usd=0.03 被记录进 run.cost_total）
+            assert run.cost_total == round(0.03 * 6, 6)  # 6 case × 0.03（v2 executor 被路由选中）
+    finally:
+        await _cleanup(name)
+
+
 async def test_run_cost_total_accumulates_executor_cost():
     """SI #4：executor 返回 cost_usd → SuiteRunner 累积进 run.cost_total（真实 $-cost）。"""
 
