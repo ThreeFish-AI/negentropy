@@ -2,12 +2,14 @@
 
 import { ExternalLink, GitMerge, GitPullRequest, Loader2, OctagonX, RotateCcw, Trash2, X } from "lucide-react";
 
+import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { RoutineDTO } from "@/features/routine";
 
 import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
 import {
   closedBadgeClass,
+  composeStatusTitle,
   mergedBadgeClass,
   openBadgeClass,
   routineStatusClass,
@@ -51,19 +53,22 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <table className="w-full table-fixed text-sm">
-        {/* 固定列宽：百分比合计 100%，随容器等比缩放；与 <th> 解耦，超长内容由单元格 truncate 截断。 */}
+        {/* 固定列宽：百分比合计 100%，随容器等比缩放；与 <th> 解耦，超长内容由单元格 truncate 截断。
+            8 列须与下方 <thead> 的 8 个 <th> 严格对齐（数量错配不报错但会静默错位所有列）。 */}
         <colgroup>
-          <col className="w-[28%]" />
-          <col className="w-[12%]" />
-          <col className="w-[10%]" />
-          <col className="w-[9%]" />
-          <col className="w-[12%]" />
-          <col className="w-[15%]" />
-          <col className="w-[14%]" />
+          <col className="w-[20%]" /> {/* Name */}
+          <col className="w-[15%]" /> {/* ID */}
+          <col className="w-[15%]" /> {/* Status */}
+          <col className="w-[7%]" /> {/* Progress */}
+          <col className="w-[7%]" /> {/* Best Score */}
+          <col className="w-[10%]" /> {/* Cost */}
+          <col className="w-[12%]" /> {/* Updated */}
+          <col className="w-[14%]" /> {/* Actions */}
         </colgroup>
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
             <th className="px-4 py-2.5 font-medium">Name</th>
+            <th className="px-4 py-2.5 font-medium">ID</th>
             <th className="px-4 py-2.5 font-medium">Status</th>
             <th className="px-4 py-2.5 font-medium">Progress</th>
             <th className="px-4 py-2.5 font-medium">Best Score</th>
@@ -90,41 +95,55 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                     </span>
                   )}
                 </div>
-                <div className="truncate text-xs text-text-secondary" title={r.key}>
-                  {r.key}
+              </td>
+              <td className="px-4 py-3">
+                {/* 任务 ID（独立列）：约半宽截断展示，全文经 title 悬浮恢复 + 一键复制。 */}
+                <div className="flex min-w-0 items-center gap-1">
+                  <span
+                    className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary"
+                    title={r.key}
+                  >
+                    {r.key}
+                  </span>
+                  <CopyButton value={r.key} ariaLabel="复制 ID" className="shrink-0" />
                 </div>
               </td>
               <td className="px-4 py-3">
-                <div className="flex flex-wrap items-center gap-1.5">
+                {/* 状态芯片单行展示：不折行，溢出由 overflow-hidden 右缘裁切；title 悬浮显示全文。 */}
+                <div
+                  className="flex min-w-0 items-center gap-1.5 overflow-hidden"
+                  title={composeStatusTitle(r)}
+                >
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
+                    className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
                   >
                     {r.status}
                   </span>
                   {r.pr_merged && (
-                    <span className={mergedBadgeClass}>
+                    <span className={`${mergedBadgeClass} shrink-0`}>
                       <GitMerge className="h-3 w-3" aria-hidden />
                       Merged
                     </span>
                   )}
                   {r.pr_state === "closed" && (
-                    <span className={closedBadgeClass}>
+                    <span className={`${closedBadgeClass} shrink-0`}>
                       <X className="h-3 w-3" aria-hidden />
                       Closed
                     </span>
                   )}
                   {r.pr_state === "open" && (
-                    <span className={openBadgeClass}>
+                    <span className={`${openBadgeClass} shrink-0`}>
                       <GitPullRequest className="h-3 w-3" aria-hidden />
                       Open
                     </span>
                   )}
+                  {/* 终止原因：succeeded 恒配 "success"，与状态芯片冗余故略去；其余（失败原因）内联同行截断。 */}
+                  {r.termination_reason && r.termination_reason !== "success" && (
+                    <span className="min-w-0 truncate text-xs text-text-secondary">
+                      {r.termination_reason}
+                    </span>
+                  )}
                 </div>
-                {r.termination_reason && (
-                  <div className="mt-0.5 truncate text-xs text-text-secondary" title={r.termination_reason}>
-                    {r.termination_reason}
-                  </div>
-                )}
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
                 <span

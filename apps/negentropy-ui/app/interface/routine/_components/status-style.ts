@@ -22,6 +22,7 @@ import {
 
 import type {
   IterationStatus,
+  RoutineDTO,
   RoutineEventType,
   RoutineIterationEventDTO,
   RoutinePhase,
@@ -126,6 +127,25 @@ export const closedBadgeClass =
 /** 「PR 开启中（待合并）」徽章配色（sky/天蓝 = 活跃待处理；区别于 succeeded-绿/merged-紫/closed-灰/failed-红）。 */
 export const openBadgeClass =
   "inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-micro font-semibold text-sky-700 dark:text-sky-300";
+
+/** 组合 STATUS 单元格的悬浮全文（单一事实源）：状态 + PR 态 + 非冗余终止原因。
+ *
+ * 按与列表渲染一致的真值条件拼接（`succeeded` 恒配 `termination_reason="success"`，故 success 视为冗余略去），
+ * 经 `filter(Boolean)` 剔除空段，避免 `pr_state="merged"` 或 `null` 原因产生悬空的「·」分隔。
+ * 供单行截断的 STATUS 单元格以原生 `title` 悬浮恢复被裁切内容。 */
+export function composeStatusTitle(
+  r: Pick<RoutineDTO, "status" | "pr_merged" | "pr_state" | "termination_reason">,
+): string {
+  return [
+    r.status,
+    r.pr_merged ? "Merged" : null,
+    r.pr_state === "closed" ? "Closed" : null,
+    r.pr_state === "open" ? "Open" : null,
+    r.termination_reason && r.termination_reason !== "success" ? r.termination_reason : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 /** 迭代状态 → 状态点配色。 */
 export function iterationDotClass(status: IterationStatus): string {
