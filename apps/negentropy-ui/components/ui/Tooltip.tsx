@@ -63,8 +63,11 @@ export const TooltipContent = forwardRef<
         ref={ref}
         sideOffset={sideOffset}
         // 复用 MentionPopover 的浮层令牌；z-[60] 与现有浮层层级一致。
+        // 注意：宽度策略（max-w-*）不在此硬编码——本仓 cn() 为朴素拼接（无 tailwind-merge），
+        // 若基类含 max-w-sm，调用方经 contentClassName 传入的 max-w-* 无法覆盖（二者共存、由源码序决胜）。
+        // 故宽度默认下沉至 Tooltip 包装器的 contentClassName 默认值，保证可被干净覆盖。
         className={cn(
-          "z-[60] max-w-sm rounded-md border border-border bg-zinc-800 px-3 py-2 text-caption text-white shadow-lg",
+          "z-[60] rounded-md border border-border bg-zinc-800 px-3 py-2 text-caption text-white shadow-lg",
           "dark:bg-zinc-700 dark:text-zinc-100",
           className,
         )}
@@ -86,7 +89,9 @@ export function Tooltip({
   sideOffset = 6,
   delayDuration = 150,
   skipDelayDuration = 120,
-  contentClassName,
+  // 宽度策略的单一事实源（默认值）：未显式传入时沿用 max-w-sm（短文本 hug、长文本 384px 处换行）。
+  // 需背板随内容撑宽者传 "w-max max-w-[..]" 即可干净覆盖（基类已不含 max-w-*）。
+  contentClassName = "max-w-sm",
   triggerProps,
 }: TooltipProps) {
   return (
