@@ -215,6 +215,69 @@ async def test_runtime_canary_disabled_promotes_immediately(monkeypatch):
 
 
 # ===========================================================================
+# ①b 窗口末复评门：runtime_canary 窗口到期复跑 holdout，drift → rollback（不全量发布）
+# ===========================================================================
+
+
+class _DriftEval:
+    """复评时 1.1.0 holdout 打 60（drift vs 晋升均值 72）。"""
+
+    async def judge_once(self, *, goal, acceptance_criteria, summary, **_kw):
+        from negentropy.engine.routine.evaluator import EvaluationResult
+
+        m = json.loads(summary)
+        score = 60 if m.get("version") == "1.1.0" else 70
+        return EvaluationResult(
+            ok=True,
+            score=score,
+            verdict="pass" if score >= 70 else "progressing",
+            reflection="r",
+            judge_prompt="(fake)",
+            judge_raw="{}",
+        )
+
+
+async def test_runtime_canary_window_end_drift_rollbacks(monkeypatch):
+    """窗口末复评 drift（60 vs 晋升 72）→ rollback，不全量翻 active_version。"""
+    _patch_settings(monkeypatch, runtime_canary_enabled=True)
+    instance = o.EvolutionOrchestrator()
+    instance._handlers["skill_template"] = SkillTemplateHandler(
+        runner=SuiteRunner(executors={"skill": _Exec()}, evaluator=_DriftEval())
+    )
+    name, skill = await _seed_skill_and_suite()
+    pid = uuid.uuid4()
+    from datetime import UTC, datetime, timedelta
+
+    started = (datetime.now(UTC) - timedelta(seconds=7200)).isoformat()  # 窗口已过
+    async with db_session.AsyncSessionLocal() as db:
+        db.add(
+            EvolutionProposal(
+                id=pid,
+                target_kind="skill_template",
+                target_ref=name,
+                base_version="1.0.0",
+                proposed_version="1.1.0",
+                payload={"prompt_template": "candidate-tpl"},
+                origin="reflection",
+                status="runtime_canary",
+                risk_level="low",
+                canary_config={"bucket_ratio": 50.0, "window_seconds": 3600, "started_at": started},
+                canary_metrics={"candidate_mean": 72.0, "baseline_mean": 70.0},
+            )
+        )
+        await db.commit()
+    try:
+        await instance.inspect_once()  # 窗口已过 → 复评 drift → rollback
+        async with db_session.AsyncSessionLocal() as db:
+            p = (await db.execute(select(EvolutionProposal).where(EvolutionProposal.id == pid))).scalar_one()
+            assert p.status == "rolled_back"  # drift，不晋升
+            skill_row = (await db.execute(select(Skill).where(Skill.id == skill.id))).scalar_one()
+            assert skill_row.active_version == "1.0.0"  # 未翻
+    finally:
+        await _cleanup(name, skill.id)
+
+
+# ===========================================================================
 # ② 分桶路由：resolve_skills 命中桶 → 候选 version
 # ===========================================================================
 

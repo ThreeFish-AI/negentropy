@@ -387,17 +387,48 @@ class SkillTemplateHandler:
         await self._rollback(db, proposal, now, reason="stale_canary_timeout")
 
     async def advance_runtime_canary(self, db, proposal: EvolutionProposal, now: datetime) -> None:
-        """runtime_canary 窗口到期 → 全量晋升（翻 ``active_version``）。
+        """runtime_canary 窗口到期 → 复跑 holdout 复评门（drift→rollback，否则全量晋升）。
 
-        v1 为窗口到期即晋升（综述 §8 离线门已验证；在线 error-rate 门待 ``tool_invocations
-        .canary_assignment`` 标记接入后增强）。窗口未到期 → 留 runtime_canary 续跑。
+        全量发布前的最后一道自验证（综述 §9.3 受控发布 + §8 longitudinal）：窗口末复跑 holdout 集
+        对比晋升时均值（``canary_metrics.candidate_mean``），drift 超阈 → 回滚（灰度期已暴露退化），
+        否则翻 ``active_version`` 全量晋升。复用 ``decide_longitudinal_drift`` 基座。窗口未到期 → 续跑。
         """
         started_at = _parse_dt((proposal.canary_config or {}).get("started_at"))
         window = settings.evolution.runtime_canary_window_seconds
         if started_at is not None and (now - started_at).total_seconds() < window:
-            return  # 窗口未到期
-        await self._promote(db, proposal, now)
-        logger.info("skill_runtime_canary_finalized", proposal_id=str(proposal.id))
+            return  # 窗口未到期，留 runtime_canary 续跑
+
+        suite = await self._find_suite(db, proposal.target_ref)
+        if suite is None:
+            await self._promote(db, proposal, now)  # 无 suite 可复评，降级为直接晋升
+            logger.info("skill_runtime_canary_finalized", proposal_id=str(proposal.id))
+            return
+        recheck_run = await self._runner.run_suite(
+            db,
+            suite=suite,
+            target_kind=TARGET_KIND_SKILL,
+            target_ref=proposal.target_ref,
+            target_version=proposal.proposed_version,
+            partition=RUN_PARTITION_HOLDOUT,
+            trigger="scheduled",
+        )
+        promotion_mean = float((proposal.canary_metrics or {}).get("candidate_mean") or 0.0)
+        dec = decide_longitudinal_drift(
+            promotion_mean=promotion_mean,
+            recheck=await _run_view(db, recheck_run),
+            drift_max=settings.evolution.longitudinal_drift_max,
+        )
+        if dec.is_rollback:
+            await self._rollback(db, proposal, now, reason="runtime_canary_drift")
+            logger.warning(
+                "skill_runtime_canary_drift_rollback",
+                proposal_id=str(proposal.id),
+                recheck_mean=recheck_run.score_mean,
+                promotion_mean=promotion_mean,
+            )
+        else:
+            await self._promote(db, proposal, now)
+            logger.info("skill_runtime_canary_finalized", proposal_id=str(proposal.id))
 
     # ==================================================================
     # 纵向复评（综述 §8 #3 longitudinal stability + §10.5 + §9.3 持续再认证）
