@@ -4,6 +4,7 @@ import { ExternalLink, GitMerge, GitPullRequest, Loader2, OctagonX, RotateCcw, T
 
 import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TextTooltip } from "@/components/ui/TextTooltip";
 import type { RoutineDTO } from "@/features/routine";
 
 import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
@@ -56,14 +57,15 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
         {/* 固定列宽：百分比合计 100%，随容器等比缩放；与 <th> 解耦，超长内容由单元格 truncate 截断。
             8 列须与下方 <thead> 的 8 个 <th> 严格对齐（数量错配不报错但会静默错位所有列）。 */}
         <colgroup>
-          <col className="w-[20%]" /> {/* Name */}
-          <col className="w-[15%]" /> {/* ID */}
-          <col className="w-[15%]" /> {/* Status */}
+          <col className="w-[19%]" /> {/* Name */}
+          <col className="w-[14%]" /> {/* ID */}
+          <col className="w-[14%]" /> {/* Status */}
           <col className="w-[7%]" /> {/* Progress */}
           <col className="w-[7%]" /> {/* Best Score */}
           <col className="w-[10%]" /> {/* Cost */}
-          <col className="w-[12%]" /> {/* Updated */}
-          <col className="w-[14%]" /> {/* Actions */}
+          <col className="w-[10%]" /> {/* Updated */}
+          {/* Actions：预留足够宽度容纳「最多 3 个并发按钮」（Restart/Terminate 互斥，故至多 Restart+Clean Up+Full View），单行不折。 */}
+          <col className="w-[19%]" /> {/* Actions */}
         </colgroup>
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
@@ -86,9 +88,9 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
             >
               <td className="px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2 font-medium text-foreground">
-                  <span className="min-w-0 flex-1 truncate" title={r.display_name || r.title}>
-                    {r.display_name || r.title}
-                  </span>
+                  <TextTooltip content={r.display_name || r.title}>
+                    <span className="min-w-0 flex-1 truncate">{r.display_name || r.title}</span>
+                  </TextTooltip>
                   {r.key.startsWith("pdf-fidelity-patrol/") && (
                     <span className="inline-flex items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-micro font-semibold text-violet-700 dark:text-violet-300 shrink-0">
                       巡检
@@ -97,87 +99,84 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                 </div>
               </td>
               <td className="px-4 py-3">
-                {/* 任务 ID（独立列）：约半宽截断展示，全文经 title 悬浮恢复 + 一键复制。 */}
+                {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制。 */}
                 <div className="flex min-w-0 items-center gap-1">
-                  <span
-                    className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary"
-                    title={r.key}
-                  >
-                    {r.key}
-                  </span>
+                  <TextTooltip content={r.key}>
+                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">
+                      {r.key}
+                    </span>
+                  </TextTooltip>
                   <CopyButton value={r.key} ariaLabel="复制 ID" className="shrink-0" />
                 </div>
               </td>
               <td className="px-4 py-3">
-                {/* 状态芯片单行展示：不折行，溢出由 overflow-hidden 右缘裁切；title 悬浮显示全文。 */}
-                <div
-                  className="flex min-w-0 items-center gap-1.5 overflow-hidden"
-                  title={composeStatusTitle(r)}
-                >
-                  <span
-                    className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
-                  >
-                    {r.status}
-                  </span>
-                  {r.pr_merged && (
-                    <span className={`${mergedBadgeClass} shrink-0`}>
-                      <GitMerge className="h-3 w-3" aria-hidden />
-                      Merged
+                {/* 状态芯片单行展示：不折行，溢出由 overflow-hidden 右缘裁切；悬浮 Tooltip（单行）显示完整组合标题。 */}
+                <TextTooltip content={composeStatusTitle(r)}>
+                  <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
+                    >
+                      {r.status}
                     </span>
-                  )}
-                  {r.pr_state === "closed" && (
-                    <span className={`${closedBadgeClass} shrink-0`}>
-                      <X className="h-3 w-3" aria-hidden />
-                      Closed
-                    </span>
-                  )}
-                  {r.pr_state === "open" && (
-                    <span className={`${openBadgeClass} shrink-0`}>
-                      <GitPullRequest className="h-3 w-3" aria-hidden />
-                      Open
-                    </span>
-                  )}
-                  {/* 终止原因：succeeded 恒配 "success"，与状态芯片冗余故略去；其余（失败原因）内联同行截断。 */}
-                  {r.termination_reason && r.termination_reason !== "success" && (
-                    <span className="min-w-0 truncate text-xs text-text-secondary">
-                      {r.termination_reason}
-                    </span>
-                  )}
-                </div>
+                    {r.pr_merged && (
+                      <span className={`${mergedBadgeClass} shrink-0`}>
+                        <GitMerge className="h-3 w-3" aria-hidden />
+                        Merged
+                      </span>
+                    )}
+                    {r.pr_state === "closed" && (
+                      <span className={`${closedBadgeClass} shrink-0`}>
+                        <X className="h-3 w-3" aria-hidden />
+                        Closed
+                      </span>
+                    )}
+                    {r.pr_state === "open" && (
+                      <span className={`${openBadgeClass} shrink-0`}>
+                        <GitPullRequest className="h-3 w-3" aria-hidden />
+                        Open
+                      </span>
+                    )}
+                    {/* 终止原因：succeeded 恒配 "success"，与状态芯片冗余故略去；其余（失败原因）内联同行截断。 */}
+                    {r.termination_reason && r.termination_reason !== "success" && (
+                      <span className="min-w-0 truncate text-xs text-text-secondary">
+                        {r.termination_reason}
+                      </span>
+                    )}
+                  </div>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
-                <span
-                  className="block truncate"
-                  title={`${r.iteration_count}${r.max_iterations ? ` / ${r.max_iterations}` : ""}`}
-                >
-                  {r.iteration_count}
-                  {r.max_iterations ? ` / ${r.max_iterations}` : ""}
-                </span>
+                <TextTooltip content={`${r.iteration_count}${r.max_iterations ? ` / ${r.max_iterations}` : ""}`}>
+                  <span className="block truncate">
+                    {r.iteration_count}
+                    {r.max_iterations ? ` / ${r.max_iterations}` : ""}
+                  </span>
+                </TextTooltip>
               </td>
               <td className={`px-4 py-3 font-semibold tabular-nums ${scoreColorClass(r.best_score)}`}>
-                <span className="block truncate" title={String(r.best_score ?? "—")}>
-                  {r.best_score ?? "—"}
-                </span>
+                <TextTooltip content={String(r.best_score ?? "—")}>
+                  <span className="block truncate">{r.best_score ?? "—"}</span>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
-                <span
-                  className="block truncate"
-                  title={`$${r.total_cost_usd.toFixed(3)}${r.max_cost_usd ? ` / $${r.max_cost_usd}` : ""}`}
+                <TextTooltip
+                  content={`$${r.total_cost_usd.toFixed(3)}${r.max_cost_usd ? ` / $${r.max_cost_usd}` : ""}`}
                 >
-                  ${r.total_cost_usd.toFixed(3)}
-                  {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
-                </span>
+                  <span className="block truncate">
+                    ${r.total_cost_usd.toFixed(3)}
+                    {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
+                  </span>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 text-xs text-text-secondary">
-                <span
-                  className="block truncate"
-                  title={r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
-                >
-                  {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
-                </span>
+                <TextTooltip content={r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}>
+                  <span className="block truncate">
+                    {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                  </span>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 text-right">
-                <div className="flex flex-wrap items-center justify-end gap-3">
+                <div className="flex items-center justify-end gap-2 overflow-hidden">
                   {onRestart && canRestart(r.status) && (
                     <button
                       type="button"
@@ -185,7 +184,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                         e.stopPropagation();
                         onRestart(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <RotateCcw className="h-3 w-3" />
                       Restart
@@ -201,7 +200,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                         e.stopPropagation();
                         onCleanupWorktree(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline dark:text-amber-400"
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline dark:text-amber-400"
                     >
                       {cleanupBusyId === r.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -218,7 +217,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                         e.stopPropagation();
                         onTerminate(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-red-400"
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-red-400"
                     >
                       <OctagonX className="h-3 w-3" />
                       Terminate
@@ -230,7 +229,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                       e.stopPropagation();
                       onOpenFull(r);
                     }}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Full View
                     <ExternalLink className="h-3 w-3" />
