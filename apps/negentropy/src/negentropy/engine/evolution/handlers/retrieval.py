@@ -48,6 +48,7 @@ from ..decision import (
     pre_propose_check,
 )
 from ..proposer import RetrievalWeightProposer
+from ..queries import fetch_today_eval_cost as _fetch_today_eval_cost
 from ..queries import invalidate_canary_cache
 from ._shared import _bump_patch, _emit_evolution_event, _enter_canary, _td, _utcnow
 
@@ -177,8 +178,8 @@ class RetrievalConfigHandler:
             inflight_count=inflight or 0,
             proposals_today=proposals_today or 0,
             max_proposals_per_day=settings.evolution.max_proposals_per_day,
-            # 成本数据源后续接入（proposer usage → evidence JSONB）；max_cost_usd_daily 默认 None → no-op
-            cost_today_usd=0.0,
+            # R8-c D7 绕过：聚合 eval_runs.cost_total（真实 $-cost，R4-b+R5），不依赖 tool_invocations.cost_usd
+            cost_today_usd=await _fetch_today_eval_cost(),
             max_cost_usd_daily=settings.evolution.max_cost_usd_daily,
         )
         if budget.action == "skip":

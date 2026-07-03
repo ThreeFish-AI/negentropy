@@ -140,5 +140,34 @@ __all__ = [
     "fetch_active_canary",
     "fetch_active_skill_canary",
     "get_cached_skill_canary",
+    "fetch_today_eval_cost",
     "invalidate_canary_cache",
 ]
+
+
+async def fetch_today_eval_cost() -> float:
+    """聚合今日 completed eval_runs 的 cost_total（SI #4 真实 $-cost，R8-c D7 绕过）。
+
+    D7（``tool_invocations.cost_usd`` 恒 NULL）是**架构正确的**——函数调用无 LLM usage。
+    进化子系统的主导成本是 eval suite 运行（N judge calls/case >> 1 proposer call），其 $-cost
+    已由 R4-b（executor 侧）+ R5（judge 侧）写入 ``eval_runs.cost_total``。本函数聚合今日 completed
+    runs 的 SUM，作 ``pre_propose_check.cost_today_usd`` 的合理代理。
+    """
+    from negentropy.models.eval_suite import EvalRun
+
+    try:
+        async with db_session.AsyncSessionLocal() as db:
+            import datetime as _dt
+
+            since = _dt.datetime.now(_dt.UTC) - _dt.timedelta(days=1)
+            total = (
+                await db.execute(
+                    sa.select(sa.func.coalesce(sa.func.sum(EvalRun.cost_total), 0.0))
+                    .where(EvalRun.created_at >= since)
+                    .where(EvalRun.status == "completed")
+                )
+            ).scalar_one()
+            return float(total)
+    except Exception as exc:
+        logger.debug("fetch_today_eval_cost_failed", error=str(exc))
+        return 0.0
