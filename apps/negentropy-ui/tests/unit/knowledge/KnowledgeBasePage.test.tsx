@@ -252,7 +252,11 @@ describe("KnowledgeBasePage", () => {
     expect(summary).not.toHaveTextContent("chunks:");
     expect(summary.className).toContain("truncate");
     expect(summary.className).toContain("self-center");
-    expect(settingsButton.className).toContain("transition-colors");
+    // outline 按钮基类以 transition-[color,...]（任意值）声明过渡属性；
+    // cn 升级为 tailwind-merge 后同组冲突正确收敛为单一声明，断言依实际落地类。
+    expect(settingsButton.className).toContain(
+      "transition-[color,background-color,border-color,box-shadow]",
+    );
     expect(settingsButton.className).toContain("hover:bg-muted");
     expect(settingsButton.className).toContain("hover:text-foreground");
     expect(settingsButton.className).toContain("focus-visible:ring-2");
