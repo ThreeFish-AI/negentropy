@@ -391,8 +391,10 @@ class AgentLoopExecutorV3:
                 break
 
             # 执行 tool calls（仅 execute_code）
+            cap_reached = False
             for tc in tool_calls:
                 if tool_calls_made >= self._max_tool_calls:
+                    cap_reached = True
                     break
                 tool_calls_made += 1
                 fn_name = tc.function.name
@@ -408,6 +410,8 @@ class AgentLoopExecutorV3:
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": tool_result})
 
             final_text = msg.content or "(continued after tool calls)"
+            if cap_reached:
+                break  # 预算耗尽：退出 turn 循环，避免残缺 tool_calls 历史致下一轮 acompletion 400
 
         return CaseOutput(
             body=final_text or "(agent 未产出)",
@@ -583,14 +587,18 @@ class AgentLoopExecutorV4:
                 break
 
             # 多工具 dispatch（完整 ADK 工具集 via EvalToolContext）
+            cap_reached = False
             for tc in tool_calls:
                 if tool_calls_made >= self._max_tool_calls:
+                    cap_reached = True
                     break
                 tool_calls_made += 1
                 tool_result = await self._dispatch_tool(tc.function.name, tc.function.arguments, ctx)
                 messages.append({"role": "tool", "tool_call_id": tc.id, "content": tool_result})
 
             final_text = msg.content or "(continued after tool calls)"
+            if cap_reached:
+                break  # 预算耗尽：退出 turn 循环，避免残缺 tool_calls 历史致下一轮 acompletion 400
 
         return CaseOutput(
             body=final_text or "(agent 未产出)",
@@ -620,14 +628,15 @@ class AgentLoopExecutorV4:
                 )
                 return _json.dumps(result, ensure_ascii=False, default=str)
             if name == "save_to_memory":
-                from negentropy.agents.tools.internalization import save_to_memory
-
-                result = await save_to_memory(
-                    content=str(args.get("content") or ""),
-                    tags=args.get("tags"),
-                    tool_context=ctx,
-                )
-                return _json.dumps(result, ensure_ascii=False, default=str)
+                # EvalToolContext 文档承诺 save_to_memory 写 ephemeral state（不污染生产 Memory 表）。
+                # 真实 save_to_memory 会落 DB；eval（含红队 attack_generator 产出的对抗 case）改写 mock state。
+                content = str(args.get("content") or "")
+                tags = args.get("tags") or []
+                ctx.state[f"save:{ctx.function_call_id}:{len(ctx.state)}"] = {
+                    "content": content,
+                    "tags": list(tags),
+                }
+                return _json.dumps({"status": "saved_ephemeral", "chars": len(content)}, ensure_ascii=False)
             return f"Tool '{name}' not available in eval sandbox."
         except Exception as exc:  # noqa: BLE001
             logger.warning("eval_v4_tool_dispatch_failed", tool=name, error=str(exc))

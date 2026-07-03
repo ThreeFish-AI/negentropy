@@ -164,7 +164,10 @@ class LLMFactExtractor:
 
         turns_text = "\n".join(f"[{t['author']}]: {t['text']}" for t in turns)
         base_prompt = await resolve_active_pipeline_prompt(FACT_EXTRACTOR_SCOPE, _EXTRACTION_PROMPT)
-        prompt = base_prompt.format(turns=turns_text)
+        # 用 replace 而非 .format：演化 prompt（DB ``memory_config_versions``）可能含字面 {}（如 JSON
+        # 示例），.format 会抛 KeyError——此处位于 retry try 之外，异常传播至 caller 致整批静默降级
+        # PatternFactExtractor。演化 proposer 须保留 ``{turns}`` 占位符约定（见 PipelinePromptProposer）。
+        prompt = base_prompt.replace("{turns}", turns_text)
 
         last_error = None
         for attempt in range(self._max_retries):
