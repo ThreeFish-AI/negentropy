@@ -268,6 +268,172 @@ class AgentLoopExecutorV2:
         )
 
 
+# execute_code 工具定义（OpenAI tool schema；v3 唯一注册工具，避免 mock ToolContext）
+_CODE_EXEC_TOOL_DEF: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": "execute_code",
+        "description": "Execute Python code in a sandbox. Returns stdout, stderr, exit_code.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code": {"type": "string", "description": "Python code to execute"},
+            },
+            "required": ["code"],
+        },
+    },
+}
+
+
+class AgentLoopExecutorV3:
+    """skill 面 executor（``execution_mode="agent_loop_v3"``）——多轮 + execute_code（MicroSandbox）。
+
+    与 v2（纯推理多轮）的区别：注册 ``execute_code`` 工具，LLM 可在多轮循环中调用沙箱执行代码，
+    结果回灌后继续推理——最贴近综述 §3「skill 指导真实多步任务行为」的语义。
+
+    - **工具**：仅 ``execute_code``（MicroSandbox microVM 隔离）；完整 ADK 工具集（search / save 等）
+      需 mock ToolContext，留 further step。
+    - **预算**：``max_turns``（默认 3）、``max_tool_calls``（默认 5）、``max_cost_usd_per_case``（可选 cap）。
+    - **成本**：per-turn ``litellm.completion_cost`` 累积。
+    """
+
+    def __init__(
+        self,
+        *,
+        model_override: str | None = None,
+        max_turns: int = 3,
+        max_tool_calls: int = 5,
+        max_cost_usd_per_case: float | None = None,
+    ) -> None:
+        self._model_override = model_override
+        self._max_turns = max_turns
+        self._max_tool_calls = max_tool_calls
+        self._max_cost = max_cost_usd_per_case
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        import json as _json
+
+        import litellm
+
+        # 1) 载 skill prompt
+        from negentropy.db import session as db_session
+        from negentropy.engine.utils.model_config import resolve_model_config_async
+        from negentropy.models.skill import Skill, SkillVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(SkillVersion)
+                    .join(Skill, Skill.id == SkillVersion.skill_id)
+                    .where(Skill.name == target_ref, SkillVersion.version == target_version)
+                )
+            ).scalar_one_or_none()
+            template = (dict(row.snapshot or {}).get("prompt_template") if row else None) or ""
+
+        task = str((case_input or {}).get("task") or "")
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": template or "(no skill instruction)"},
+            {"role": "user", "content": task},
+        ]
+        total_cost = 0.0
+        tool_calls_made = 0
+        final_text = ""
+
+        model, kwargs = await resolve_model_config_async("eval.execute", explicit_model=self._model_override)
+        safe_kwargs = {k: v for k, v in kwargs.items() if k not in ("model", "messages", "tools", "tool_choice")}
+
+        for turn in range(self._max_turns):
+            if self._max_cost and total_cost >= self._max_cost:
+                break
+            try:
+                resp = await litellm.acompletion(
+                    model=model,
+                    messages=messages,
+                    tools=[_CODE_EXEC_TOOL_DEF],
+                    tool_choice="auto",
+                    **safe_kwargs,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("eval_v3_llm_failed", turn=turn, error=str(exc))
+                break
+
+            msg = resp.choices[0].message
+            cost = _extract_cost_usd(resp)
+            if cost is not None:
+                total_cost += cost
+
+            # litellm message 对象 → dict（含 tool_calls）
+            msg_dict: dict[str, Any] = {"role": "assistant", "content": msg.content or ""}
+            tool_calls = getattr(msg, "tool_calls", None)
+            if tool_calls:
+                msg_dict["tool_calls"] = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments,
+                        },
+                    }
+                    for tc in tool_calls
+                ]
+            messages.append(msg_dict)
+
+            if not tool_calls:
+                final_text = msg.content or ""
+                break
+
+            # 执行 tool calls（仅 execute_code）
+            for tc in tool_calls:
+                if tool_calls_made >= self._max_tool_calls:
+                    break
+                tool_calls_made += 1
+                fn_name = tc.function.name
+                if fn_name != "execute_code":
+                    tool_result = f"Error: tool '{fn_name}' not available in eval sandbox."
+                else:
+                    try:
+                        args = _json.loads(tc.function.arguments or "{}")
+                        code = str(args.get("code") or "")
+                        tool_result = await self._run_sandbox(code)
+                    except Exception as exc:  # noqa: BLE001
+                        tool_result = f"Error: {exc}"
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": tool_result})
+
+            final_text = msg.content or "(continued after tool calls)"
+
+        return CaseOutput(
+            body=final_text or "(agent 未产出)",
+            digest=_sha12(final_text or ""),
+            cost_usd=total_cost if total_cost > 0 else None,
+        )
+
+    async def _run_sandbox(self, code: str) -> str:
+        """MicroSandbox 执行代码 → stdout/stderr/exit_code 回灌。"""
+        try:
+            from negentropy.engine.sandbox import SandboxBackend, SandboxConfig, create_sandbox_runner
+
+            runner = create_sandbox_runner(backend=SandboxBackend.MICROSANDBOX, config=SandboxConfig())
+            result = await runner.execute_safe(code)
+            parts = []
+            if result.stdout:
+                parts.append(f"stdout:\n{result.stdout}")
+            if result.stderr:
+                parts.append(f"stderr:\n{result.stderr}")
+            parts.append(f"exit_code: {result.exit_code}")
+            return "\n".join(parts)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("eval_v3_sandbox_failed", error=str(exc))
+            return f"Sandbox error: {exc}"
+
+
 class PromptExecutor:
     """memory_pipeline_prompt 面 executor——跑候选 prompt 抽取/反思，Judge 评产出质量。
 
@@ -470,6 +636,7 @@ class SuiteRunner:
         executors: dict[str, TargetExecutor] | None = None,
         agent_executor: TargetExecutor | None = None,
         agent_v2_executor: TargetExecutor | None = None,
+        agent_v3_executor: TargetExecutor | None = None,
     ) -> None:
         self._evaluator = evaluator or RoutineEvaluator()
         # 默认注册 skill executor；其它 target_kind 由调用方注入
@@ -480,6 +647,8 @@ class SuiteRunner:
         self._agent_executor = agent_executor or AgentLoopExecutor()
         # ``execution_mode="agent_loop_v2"`` 时用 agent_v2_executor（多轮推理 + 预算）
         self._agent_v2_executor = agent_v2_executor or AgentLoopExecutorV2()
+        # ``execution_mode="agent_loop_v3"`` 时用 agent_v3_executor（多轮 + execute_code MicroSandbox）
+        self._agent_v3_executor = agent_v3_executor or AgentLoopExecutorV3()
 
     # ------------------------------------------------------------------
     # 公开 API
@@ -651,6 +820,8 @@ class SuiteRunner:
             return self._agent_executor
         if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop_v2":
             return self._agent_v2_executor
+        if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop_v3":
+            return self._agent_v3_executor
         return self._executors.get(target_kind)
 
     @staticmethod
@@ -784,6 +955,7 @@ __all__ = [
     "SkillExecutor",
     "AgentLoopExecutor",
     "AgentLoopExecutorV2",
+    "AgentLoopExecutorV3",
     "SuiteRunner",
     "visible_results_query",
 ]
