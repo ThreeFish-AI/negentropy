@@ -68,4 +68,18 @@ describe("buildStateDeltaFromForwardedProps", () => {
       thinking_enabled: true,
     });
   });
+
+  it("approval_policy 合法 mode → 透传（修复 ISSUE-156：此前被静默丢弃）", () => {
+    for (const mode of ["always", "per_tool", "never"] as const) {
+      const out = buildStateDeltaFromForwardedProps({ approval_policy: { mode } });
+      expect(out).toEqual({ approval_policy: { mode } });
+    }
+  });
+
+  it("approval_policy 非法 mode / 错误形状 → 不写入（fail-soft）", () => {
+    expect(buildStateDeltaFromForwardedProps({ approval_policy: { mode: "maybe" } })).toEqual({});
+    expect(buildStateDeltaFromForwardedProps({ approval_policy: { foo: "bar" } })).toEqual({});
+    expect(buildStateDeltaFromForwardedProps({ approval_policy: "per_tool" })).toEqual({});
+    expect(buildStateDeltaFromForwardedProps({ approval_policy: null })).toEqual({});
+  });
 });
