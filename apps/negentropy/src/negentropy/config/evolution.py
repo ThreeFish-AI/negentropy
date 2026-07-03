@@ -51,6 +51,10 @@ class EvolutionSettings(BaseSettings):
         default=False,
         description="builtin_tool_config 面 proposer 子开关（参数级 config 进化）；默认关。",
     )
+    knowledge_strategy_enabled: bool = Field(
+        default=False,
+        description="knowledge_strategy 面 proposer 子开关（KG 抽取 prompt/threshold 进化）；默认关。",
+    )
 
     inspector_interval_seconds: int = Field(default=300, ge=60, description="evolution_inspector 心跳 tick 间隔（秒）")
     shadow_window_seconds: int = Field(default=3600, ge=300, description="shadow eval 聚合 active 配置的回溯窗口（秒）")

@@ -54,11 +54,13 @@ TARGET_KIND_RETRIEVAL_CONFIG = "retrieval_config"
 TARGET_KIND_SKILL_TEMPLATE = "skill_template"
 TARGET_KIND_MEMORY_PIPELINE_PROMPT = "memory_pipeline_prompt"
 TARGET_KIND_BUILTIN_TOOL_CONFIG = "builtin_tool_config"
+TARGET_KIND_KNOWLEDGE_STRATEGY = "knowledge_strategy"
 ALLOWED_TARGET_KINDS: tuple[str, ...] = (
     TARGET_KIND_RETRIEVAL_CONFIG,
     TARGET_KIND_SKILL_TEMPLATE,
     TARGET_KIND_MEMORY_PIPELINE_PROMPT,
     TARGET_KIND_BUILTIN_TOOL_CONFIG,
+    TARGET_KIND_KNOWLEDGE_STRATEGY,
 )
 
 # target_ref —— retrieval_config 面 = config_scope（如 "retrieval"）

@@ -271,6 +271,42 @@ class BuiltinToolExecutor:
         return CaseOutput(body=body, digest=_sha12(body))
 
 
+class KgExecutor:
+    """knowledge_strategy 面 executor——judge-the-strategy v1。
+
+    ``target_ref`` = ``memory_config_versions.config_scope``（如 ``knowledge_strategy``）；
+    ``target_version`` = 该 scope 下的 SemVer。从 ``memory_config_versions`` 取候选 snapshot
+    （entity_prompt / relation_prompt / ann_threshold），序列化为「目标产出」交 Judge 评**策略合理性**
+    （v1 非真实 KG 抽取；真实抽取 + ``knowledge/graph/quality.py`` 综合质量分评分是后续，扩展点已就位）。
+    """
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        from negentropy.db import session as db_session
+        from negentropy.models.evolution import MemoryConfigVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(MemoryConfigVersion).where(
+                        MemoryConfigVersion.config_scope == target_ref,
+                        MemoryConfigVersion.version == target_version,
+                    )
+                )
+            ).scalar_one_or_none()
+            snapshot = dict(row.snapshot or {}) if row else {}
+        import json as _json
+
+        body = _json.dumps(snapshot, sort_keys=True, ensure_ascii=False)
+        return CaseOutput(body=body, digest=_sha12(body))
+
+
 async def _conditioned_generate(
     *, system_prompt: str, user_task: str, model_override: str | None
 ) -> tuple[str, float | None]:
