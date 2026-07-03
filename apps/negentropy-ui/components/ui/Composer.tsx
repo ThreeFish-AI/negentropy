@@ -34,6 +34,12 @@ type ComposerProps = {
    */
   onCancel?: () => void;
   /**
+   * 强制显示 Stop 按钮（逃生门）：即使 ``isGenerating=false``，只要本值为 true 且
+   * ``onCancel`` 存在，就显示 Stop。用于「有待决审批 / 通道阻塞」等非 streaming 但
+   * 用户需自救的场景（ISSUE-156 续：审批弹窗陷阱时 Send 被禁用、又无 Stop 可点）。
+   */
+  forceShowStop?: boolean;
+  /**
    * 附件 — Multi-modal 输入；空数组表示无附件。
    * 与 AG-UI Multi-modal 子集对齐（详见 docs/architecture/framework.md §9 协议规范）。
    */
@@ -83,6 +89,7 @@ export function Composer({
   thinkingSupported = true,
   onThinkingEnabledChange,
   onCancel,
+  forceShowStop = false,
   attachments,
   onAttachmentsChange,
   attachmentMaxBytes = DEFAULT_ATTACHMENT_MAX_BYTES,
@@ -298,7 +305,8 @@ export function Composer({
     onAttachmentsChange((attachments ?? []).filter((a) => a.id !== id));
   };
 
-  const showStop = Boolean(isGenerating && onCancel);
+  // Stop 显示条件：正在生成 OR 强制逃生（有待决审批/阻塞）。二者均需 onCancel 存在。
+  const showStop = Boolean((isGenerating || forceShowStop) && onCancel);
 
   return (
     <form

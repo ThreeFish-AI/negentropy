@@ -42,10 +42,13 @@ from ..approval import (
 )
 from ..approval import (
     ApprovalPolicy,
+    _stable_hash,
     consume_approval_response,
     expire_approval,
+    record_approval_denial,
     request_approval,
     should_request_approval,
+    was_recently_denied,
 )
 from .common import clear_tool_progress, emit_tool_progress
 
@@ -135,6 +138,17 @@ async def ingest_to_corpus(
         policy = ApprovalPolicy()
 
     if should_request_approval("ingest_to_corpus", policy):
+        # denial 缓存：同一 (corpus_id + 内容指纹) 近期被拒/超时过 → 直接返回 blocked、
+        # 不再弹审批，结构性掐断 LLM 重试循环（ISSUE-156 续）。
+        denial_key = f"{corpus_id}:{_stable_hash((text or '')[:256])}"
+        if was_recently_denied(tool_context, "ingest_to_corpus", denial_key):
+            logger.info("ingest_to_corpus_skipped_recently_denied", corpus_id=corpus_id)
+            return {
+                "status": "blocked",
+                "error": "用户此前已拒绝或未响应此审批，相同请求暂不重新发起。如需继续请重新发起指令。",
+                "corpus_id": corpus_id,
+            }
+
         action_id = request_approval(
             tool_context,
             tool_name="ingest_to_corpus",
@@ -161,6 +175,8 @@ async def ingest_to_corpus(
         if response is None or response.decision == "denied":
             # 兜底清理 pending_approvals，避免超时/拒绝后遗留孤儿项致弹窗无法关闭。
             expire_approval(tool_context, action_id)
+            # 记录 denial：覆盖 TTL 内同请求重试，直接返回 blocked 终结结果。
+            record_approval_denial(tool_context, "ingest_to_corpus", denial_key)
             timed_out = response is None
             logger.info(
                 "ingest_to_corpus_denied",
@@ -168,7 +184,8 @@ async def ingest_to_corpus(
                 reason="timeout" if timed_out else getattr(response, "reason", "denied"),
             )
             error_msg = "审批超时未响应（已自动取消）" if timed_out else "用户已拒绝"
-            return {"status": "failed", "error": error_msg, "corpus_id": corpus_id}
+            # 终结性 blocked（区别于 UUID 非法等 failed）：明确告诉 LLM 不要重试。
+            return {"status": "blocked", "error": error_msg, "corpus_id": corpus_id}
 
     # === Step 3. corpus UUID 校验 ===
     tool_call_id = (

@@ -99,3 +99,72 @@ async def test_run_with_fallback_degrades_when_faculty_none(monkeypatch):
     text, used = await faculty_bridge.run_with_fallback("contemplation", "task", _fallback)
     assert text == "from-litellm"
     assert used is False
+
+
+@pytest.mark.asyncio
+async def test_drive_injects_approval_policy_never(monkeypatch):
+    """_drive 预创建 session 时注入 approval_policy=never（自治 faculty 免审批门，ISSUE-156 续）。
+
+    断言 create_session 收到 state={"approval_policy":{"mode":"never"}}，且 user_id/session_id
+    透传正确；预创建失败不阻断主流程（runner 仍被调用）。
+    """
+    captured: dict = {}
+
+    class _FakeService:
+        async def create_session(self, *, app_name, user_id, session_id, state=None):
+            captured.update(app_name=app_name, user_id=user_id, session_id=session_id, state=state)
+            return object()
+
+    import negentropy.engine.factories.runner as runner_factory
+    import negentropy.engine.factories.session as session_factory
+
+    monkeypatch.setattr(session_factory, "get_session_service", lambda: _FakeService())
+
+    runner_called: list = []
+
+    class _FakeRunner:
+        app_name = "negentropy"
+
+        async def run_async(self, *, user_id, session_id, new_message):
+            runner_called.append((user_id, session_id))
+            return
+            yield  # 令本函数成为 async generator（不 yield 任何事件）
+
+    monkeypatch.setattr(runner_factory, "get_runner", lambda **kw: _FakeRunner())
+
+    result = await faculty_bridge._drive(object(), "task-prompt", user_id="u-fac")
+    assert result is None  # 空 generator → 无 final response
+    # approval_policy=never 注入到预创建 session 的 initial state
+    assert captured.get("state") == {"approval_policy": {"mode": "never"}}
+    assert captured.get("user_id") == "u-fac"
+    # runner 仍被调用（主流程不因预创建阻断）
+    assert runner_called and runner_called[0][0] == "u-fac"
+
+
+@pytest.mark.asyncio
+async def test_drive_precreate_failure_does_not_block(monkeypatch):
+    """预创建 session 抛错时降级（runner 自行建会话），不阻断 faculty 主流程。"""
+    import negentropy.engine.factories.runner as runner_factory
+    import negentropy.engine.factories.session as session_factory
+
+    class _BoomService:
+        async def create_session(self, **kw):
+            raise RuntimeError("backend down")
+
+    monkeypatch.setattr(session_factory, "get_session_service", lambda: _BoomService())
+
+    runner_called: list = []
+
+    class _FakeRunner:
+        app_name = "negentropy"
+
+        async def run_async(self, *, user_id, session_id, new_message):
+            runner_called.append(session_id)
+            return
+            yield
+
+    monkeypatch.setattr(runner_factory, "get_runner", lambda **kw: _FakeRunner())
+
+    result = await faculty_bridge._drive(object(), "task", user_id="u")
+    assert result is None
+    assert runner_called, "预创建失败后 runner 仍应被调用"

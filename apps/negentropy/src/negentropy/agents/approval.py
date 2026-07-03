@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -88,6 +89,29 @@ DEFAULT_POLICY: ApprovalPolicyMode = "per_tool"
 #   且工具均在审批循环**之后**才获取 KnowledgeService / 写 DB，等待期不持有重资源。
 APPROVAL_WAIT_SECONDS: float = 300.0
 APPROVAL_POLL_INTERVAL: float = 0.5
+
+
+# ----------------------------------------------------------------------------
+# 审批 denial 缓存（断掉重试循环 · ISSUE-156 续）
+# ----------------------------------------------------------------------------
+#
+# 设计动机：工具在审批「超时/被拒」后返回 ``failed``，LLM 看到 failed → 重试 → 再次
+# 触发审批门 → 新弹窗 → 死循环（实测一会话内 ingest_paper 被调 126 次）。denial 缓存
+# 把「同一请求被拒/超时」记录到 session.state，工具在弹审批**前**先查缓存，命中即
+# 直接返回终结性 ``blocked`` 结果、不再弹新审批——**结构性掐断循环，不依赖 LLM 自觉**。
+#
+# TTL 与 APPROVAL_WAIT_SECONDS 对齐：覆盖单 run 内瞬时重试，超期自动恢复，避免永久
+# 封锁合法重发。键含 args 指纹（调用方提供），避免误封「同工具不同内容」的合法请求。
+APPROVAL_DENIAL_TTL_SECONDS: float = 300.0
+
+
+def _stable_hash(text: str) -> str:
+    """稳定的短哈希（sha1 前 8 位），用于组合 denial_key 的 args 指纹。
+
+    用 sha1 而非内置 ``hash()``：后者跨进程 / 跨 PYTHONHASHSEED 不稳定，会让 denial
+    缓存键在「记录」与「查询」之间漂移致失效。仅取前 8 位即可满足去重辨识度。
+    """
+    return hashlib.sha1(text.encode("utf-8", errors="replace")).hexdigest()[:8]
 
 
 @dataclass(frozen=True)
@@ -281,11 +305,57 @@ def expire_approval(tool_context: Any, action_id: str) -> None:
         logger.warning("expire_approval_failed", action_id=action_id, error=str(exc))
 
 
+def record_approval_denial(tool_context: Any, tool_name: str, args_key: str) -> None:
+    """记录一次「该 tool + args 被拒/超时」的负面决议到 session.state。
+
+    写入 ``state["approval_denials"][f"{tool_name}:{args_key}"] = time.time()``。
+    后续同 key 调用经 ``was_recently_denied`` 命中后，工具应直接返回终结性 ``blocked``
+    结果、不再调 ``request_approval``——结构性掐断 LLM 的重试循环。
+
+    沿用「整字典重赋值」契约（与 request_approval / consume_approval_response 一致），
+    fail-soft（无 state 不抛）。
+    """
+    if tool_context is None or not hasattr(tool_context, "state"):
+        return
+    try:
+        state = tool_context.state
+        existing = state.get("approval_denials")
+        existing_dict = existing if isinstance(existing, dict) else {}
+        key = f"{tool_name}:{args_key}"
+        state["approval_denials"] = {**existing_dict, key: time.time()}
+    except Exception as exc:
+        logger.warning("record_approval_denial_failed", tool_name=tool_name, error=str(exc))
+
+
+def was_recently_denied(tool_context: Any, tool_name: str, args_key: str) -> bool:
+    """该 tool + args 是否在 ``APPROVAL_DENIAL_TTL_SECONDS`` 内被拒/超时过。
+
+    命中（True）→ 工具应跳过 ``request_approval``、直接返回 ``blocked`` 终结结果。
+    超期或无记录 → False（正常走审批门）。fail-soft（无 state / 无字典 → False）。
+    """
+    if tool_context is None or not hasattr(tool_context, "state"):
+        return False
+    try:
+        state = tool_context.state
+        denials = state.get("approval_denials")
+        if not isinstance(denials, dict):
+            return False
+        key = f"{tool_name}:{args_key}"
+        ts = denials.get(key)
+        if not isinstance(ts, (int, float)):
+            return False
+        return (time.time() - float(ts)) < APPROVAL_DENIAL_TTL_SECONDS
+    except Exception as exc:
+        logger.warning("was_recently_denied_failed", tool_name=tool_name, error=str(exc))
+        return False
+
+
 __all__ = [
     "HIGH_RISK_TOOLS",
     "DEFAULT_POLICY",
     "APPROVAL_WAIT_SECONDS",
     "APPROVAL_POLL_INTERVAL",
+    "APPROVAL_DENIAL_TTL_SECONDS",
     "ApprovalPolicy",
     "ApprovalPolicyMode",
     "ApprovalRequest",
@@ -294,4 +364,6 @@ __all__ = [
     "request_approval",
     "consume_approval_response",
     "expire_approval",
+    "record_approval_denial",
+    "was_recently_denied",
 ]

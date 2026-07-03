@@ -95,9 +95,26 @@ async def _drive(agent: BaseAgent, task_prompt: str, *, user_id: str) -> str | N
     from google.genai import types
 
     from negentropy.engine.factories.runner import get_runner
+    from negentropy.engine.factories.session import get_session_service
 
     runner = get_runner(agent=agent)
     session_id = str(uuid4())  # PostgresSessionService 要求 UUID 字符串
+    # 自治 faculty 调用无人在环（ISSUE-156 续）：预创建 session 并注入 approval_policy=never，
+    # 避免 InternalizationFaculty 的 ingest_paper / update_knowledge_graph 等高风险工具触发
+    # 审批门 → 无人响应 → 超时循环。app_name 取 runner.app_name 与 ADK session 查找对齐。
+    try:
+        service = get_session_service()
+        await service.create_session(
+            app_name=getattr(runner, "app_name", None) or "negentropy",
+            user_id=user_id,
+            session_id=session_id,
+            state={"approval_policy": {"mode": "never"}},
+        )
+    except Exception:
+        # 预创建失败（后端不支持 state 入参 / 会话已存在等）→ 降级：runner 自行建会话，
+        # 不阻断 faculty 主流程。approval 门退回默认 per_tool（多为只读评估，风险可控）。
+        logger.warning("faculty_bridge_precreate_session_failed", exc_info=True)
+
     content = types.Content(role="user", parts=[types.Part(text=task_prompt)])
 
     final_text = ""

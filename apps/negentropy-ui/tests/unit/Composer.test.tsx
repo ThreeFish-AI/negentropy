@@ -108,4 +108,58 @@ describe("Composer", () => {
     expect(CHAT_CONTENT_RAIL_CLASS).toContain("px-6");
     expect(CHAT_CONTENT_RAIL_CLASS).toContain("sm:px-8");
   });
+
+  it("isGenerating 时显示 Stop 并回调 onCancel", async () => {
+    const onCancel = vi.fn();
+    render(
+      <Composer
+        value="hi"
+        onChange={vi.fn()}
+        onSend={vi.fn()}
+        disabled={false}
+        isGenerating
+        onCancel={onCancel}
+      />,
+    );
+    const stop = screen.getByRole("button", { name: "Stop" });
+    await userEvent.click(stop);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("forceShowStop 在非 generating但有待决审批时也显示 Stop（逃生门）", async () => {
+    // ISSUE-156 续：审批弹窗待决时 isGenerating 可能为 false，用户仍需 Stop 自救。
+    const onCancel = vi.fn();
+    render(
+      <Composer
+        value=""
+        onChange={vi.fn()}
+        onSend={vi.fn()}
+        disabled // Send 被禁用
+        isGenerating={false}
+        forceShowStop
+        onCancel={onCancel}
+      />,
+    );
+    const stop = screen.getByRole("button", { name: "Stop" });
+    expect(stop).not.toBeDisabled();
+    await userEvent.click(stop);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+  });
+
+  it("无 onCancel 时不显示 Stop（向后兼容）", () => {
+    render(
+      <Composer
+        value="hi"
+        onChange={vi.fn()}
+        onSend={vi.fn()}
+        disabled={false}
+        isGenerating
+        // 故意不传 onCancel / forceShowStop
+      />,
+    );
+    // isGenerating 但无 onCancel → 仍回退到 Send
+    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
+  });
 });

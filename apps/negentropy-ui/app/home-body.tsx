@@ -687,23 +687,35 @@ export function HomeBody({
    * - 不引入新协议事件（RUN_STOPPED）：最小干预原则，避免污染事件流。
    */
   const handleCancelRun = useCallback(() => {
-    if (!agent) return;
-    if (typeof agent.abortRun !== "function") {
+    // 一键破局（ISSUE-156 续）：Stop 同时「清空所有待决审批弹窗」，即便 run 已结束、
+    // agent 重建前等孤儿态，用户也能即时逃生，不被卡在「Send 禁用 + 无 Stop」的陷阱。
+    if (pendingApprovals) {
+      const ids = Object.keys(pendingApprovals);
+      if (ids.length > 0) {
+        setResolvedApprovalIds((prev) => {
+          const next = new Set(prev);
+          for (const id of ids) next.add(id);
+          return next;
+        });
+      }
+    }
+    if (agent && typeof agent.abortRun === "function") {
+      userCancelledAtRef.current = Date.now();
+      // 用户主动取消时清空活跃 runId，允许后续 run 立即开始。
+      activeRunIdRef.current = null;
+      try {
+        agent.abortRun();
+      } catch (error) {
+        addLog("warn", "agent_cancel_failed", { message: String(error) });
+      }
+      // 立即同步标记 idle，避免按钮短暂回退到 streaming
+      setConnectionWithMetrics("idle");
+      addLog("info", "user_cancelled_run", { sessionId });
+    } else if (agent) {
       addLog("warn", "agent_cancel_unsupported");
-      return;
     }
-    userCancelledAtRef.current = Date.now();
-    // 用户主动取消时清空活跃 runId，允许后续 run 立即开始。
-    activeRunIdRef.current = null;
-    try {
-      agent.abortRun();
-    } catch (error) {
-      addLog("warn", "agent_cancel_failed", { message: String(error) });
-    }
-    // 立即同步标记 idle，避免按钮短暂回退到 streaming
-    setConnectionWithMetrics("idle");
-    addLog("info", "user_cancelled_run", { sessionId });
-  }, [agent, addLog, sessionId, setConnectionWithMetrics]);
+    // agent 为 null（run 已结束 / agent 重建中）时也允许「仅清空审批」逃生。
+  }, [agent, addLog, sessionId, setConnectionWithMetrics, pendingApprovals]);
 
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
@@ -1424,6 +1436,10 @@ export function HomeBody({
                 thinkingSupported={thinkingSupported}
                 onThinkingEnabledChange={handleThinkingEnabledChange}
                 onCancel={handleCancelRun}
+                forceShowStop={
+                  effectiveConnection === "blocked" ||
+                  !!(visibleApprovals && Object.keys(visibleApprovals).length > 0)
+                }
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
                 mentions={mentions}

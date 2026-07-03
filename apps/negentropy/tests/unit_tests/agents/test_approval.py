@@ -242,6 +242,63 @@ def test_approval_wait_constants_are_humane():
 
 
 # ----------------------------------------------------------------------------
+# record_approval_denial / was_recently_denied —— 重试循环结构性兜底（ISSUE-156 续）
+# ----------------------------------------------------------------------------
+
+
+def test_stable_hash_is_deterministic_and_short():
+    from negentropy.agents.approval import _stable_hash
+
+    h1 = _stable_hash("payload-A")
+    h2 = _stable_hash("payload-A")
+    h3 = _stable_hash("payload-B")
+    assert h1 == h2, "同输入应产出同哈希（跨进程稳定）"
+    assert h1 != h3, "不同输入应产出不同哈希"
+    assert len(h1) == 8
+
+
+def test_record_and_check_denial_roundtrip():
+    from negentropy.agents.approval import record_approval_denial, was_recently_denied
+
+    ctx = _Ctx()
+    assert was_recently_denied(ctx, "ingest_to_corpus", "k1") is False  # 未记录
+    record_approval_denial(ctx, "ingest_to_corpus", "k1")
+    assert was_recently_denied(ctx, "ingest_to_corpus", "k1") is True
+    # 不同 key / 不同 tool 不受影响
+    assert was_recently_denied(ctx, "ingest_to_corpus", "k2") is False
+    assert was_recently_denied(ctx, "ingest_paper", "k1") is False
+
+
+def test_denial_expires_after_ttl(monkeypatch):
+    """denial 仅在 TTL 内有效，超期自动失效（允许合法重发）。"""
+    from negentropy.agents import approval as approval_mod
+
+    ctx = _Ctx()
+    t0 = 1000.0
+    monkeypatch.setattr(approval_mod.time, "time", lambda: t0)
+    approval_mod.record_approval_denial(ctx, "ingest_paper", "ax1")
+    # TTL 内命中
+    monkeypatch.setattr(approval_mod.time, "time", lambda: t0 + approval_mod.APPROVAL_DENIAL_TTL_SECONDS - 1)
+    assert approval_mod.was_recently_denied(ctx, "ingest_paper", "ax1") is True
+    # 超期失效
+    monkeypatch.setattr(approval_mod.time, "time", lambda: t0 + approval_mod.APPROVAL_DENIAL_TTL_SECONDS + 1)
+    assert approval_mod.was_recently_denied(ctx, "ingest_paper", "ax1") is False
+
+
+def test_record_denial_fail_soft_when_no_state():
+    """None / 无 state 对象时 fail-soft，不抛错。"""
+    from negentropy.agents.approval import record_approval_denial, was_recently_denied
+
+    class _NoState:
+        pass
+
+    record_approval_denial(None, "t", "k")  # 不抛
+    record_approval_denial(_NoState(), "t", "k")
+    assert was_recently_denied(None, "t", "k") is False
+    assert was_recently_denied(_NoState(), "t", "k") is False
+
+
+# ----------------------------------------------------------------------------
 # 数据类导出契约
 # ----------------------------------------------------------------------------
 
