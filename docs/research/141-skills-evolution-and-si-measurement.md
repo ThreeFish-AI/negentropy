@@ -174,24 +174,21 @@ flowchart TB
 
 ## 5. 后续方向（多轮迭代拟合综述）
 
-> **R1+2 评测层（SI 六目标）；R3 能力扩展（runtime canary / agent-loop / 第三面）；R4 闭环增强（消费接线 / $-cost / 窗口末复评门）；R5 judge 侧 $-cost；R6 第四面 + 在线 error-rate 门**。
-> 下列为仍未触达的更细粒度增强。
+> **R1+2 评测层（SI 六目标）；R3 能力扩展；R4 闭环增强；R5 judge $-cost；R6 第四面 + 在线门；R7 第五面 + agent-loop v2**。
+> TargetHandler **五面齐备**（retrieval / skill / memory_pipeline_prompt / builtin_tool_config / knowledge_strategy）。
 
-**Round 6 已落地**：
-- ✅ **builtin_tool_config 第四进化面**（R6-a，综述 §7）：`BuiltinToolConfigHandler` + 迁移 0088
-  （`builtin_tools.active_version` + `builtin_tool_versions` 快照表）+ `BuiltinToolExecutor`。
-  **TargetHandler 四面齐备**（retrieval / skill / memory_pipeline_prompt / builtin_tool_config）。
-- ✅ **runtime canary 在线 error-rate 门**（R6-b，综述 §9.3）：`tool_telemetry` 对 `expand_skill` 调用打
-  `skill_ref` + `canary_assignment`（同步缓存读，不触 DB）；`advance_runtime_canary` 在离线复评门前先跑在线门
-  （`decide_runtime_canary_online`：候选桶 error-rate 退化 → rollback）。受控发布在线信号补齐。
+**Round 7 已落地**：
+- ✅ **knowledge_strategy 第五进化面**（R7-a，综述 §7）：`KnowledgeStrategyHandler` + `KgExecutor`，
+  版本基座复用 `memory_config_versions`；eval 指标对齐 `knowledge/graph/quality.py` 综合质量分。
+- ✅ **agent-loop v2 多轮推理 + 预算**（R7-b，综述 §3）：`AgentLoopExecutorV2`（`execution_mode="agent_loop_v2"`）：
+  多轮 critique-and-refine 推理循环 + `max_turns` 预算 + `[FINAL]` 收敛检测 + 累积 cost。比 v1 单轮更贴近
+  综述 §3 多步任务语义。完整工具 + MicroSandbox 留 further step（`tool_executor` 注入点已预留）。
 
 **仍未触达**：
-1. **agent-loop 完整多轮 + 工具 + MicroSandbox**（R3-a v1 为单轮 skill-conditioned generation）：需每 case
-   沙箱 Agent + 工具预算，dedicated round。
-2. **其余进化面**：`agent_prompt`（需 ADR-3 `sync_negentropy_agents` 改造）/ `knowledge_strategy`（需 KG eval suite）。
+1. **agent-loop 完整工具 + MicroSandbox**（v2 仍为纯推理）：需 `tool_executor` 注入 + per-case 沙箱执行 + 工具预算。
+2. **`agent_prompt` 第六面**（需 ADR-3 `sync_negentropy_agents` 改造）。
 3. **`pre_propose_check.cost_today_usd` 接入**（需先解 D7：ADK 侧 `tool_invocations.cost_usd` NULL）。
-4. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：综述要求「红队自身 agent 化」（AutoRedTeamer 式），
-   等具体安全评测目标。
+4. **持续红队 / 安全 benchmark**（SI #6 增强 + §9.3 末段）：综述要求「红队自身 agent 化」，等具体安全评测目标。
 
 ---
 
