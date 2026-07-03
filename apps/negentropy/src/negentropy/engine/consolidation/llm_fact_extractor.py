@@ -28,6 +28,9 @@ from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.consolidation.llm_fact_extractor")
 
+# memory_pipeline_prompt 进化面的 config_scope（consolidator 消费 active 进化 prompt 的键）
+FACT_EXTRACTOR_SCOPE = "fact_extractor"
+
 _VALID_FACT_TYPES = {"preference", "profile", "rule", "custom"}
 _MAX_TURNS_PER_BATCH = 10
 _MAX_CHARS_PER_BATCH = 3000
@@ -152,9 +155,16 @@ class LLMFactExtractor:
         return batches
 
     async def _extract_batch(self, turns: list[dict[str, str]]) -> list[ExtractedFact]:
-        """对一批 turns 执行 LLM 提取"""
+        """对一批 turns 执行 LLM 提取。
+
+        prompt 解析顺序（综述 §3.5 + memory_pipeline_prompt 进化面）：active 进化 prompt
+        （``memory_config_versions``）→ 回退代码常量 ``_EXTRACTION_PROMPT``。30s 缓存，promote 后即生效。
+        """
+        from negentropy.engine.evolution.weights import resolve_active_pipeline_prompt
+
         turns_text = "\n".join(f"[{t['author']}]: {t['text']}" for t in turns)
-        prompt = _EXTRACTION_PROMPT.format(turns=turns_text)
+        base_prompt = await resolve_active_pipeline_prompt(FACT_EXTRACTOR_SCOPE, _EXTRACTION_PROMPT)
+        prompt = base_prompt.format(turns=turns_text)
 
         last_error = None
         for attempt in range(self._max_retries):

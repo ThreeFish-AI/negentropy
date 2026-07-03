@@ -136,6 +136,10 @@ class MemoryPipelinePromptHandler:
         )
         proposal.status = STATUS_PROMOTED
         proposal.decided_at = now
+        # 失效管线 prompt 缓存，使 consolidator 立即读到新 active prompt（30s TTL 强一致刷新）
+        from negentropy.engine.evolution import weights as weights_mod
+
+        weights_mod.invalidate(proposal.target_ref)
         _emit_evolution_event(proposal, action="promote", reason="promoted")
 
     async def _rollback(self, db, proposal: EvolutionProposal, now: datetime, *, reason: str | None = None) -> None:

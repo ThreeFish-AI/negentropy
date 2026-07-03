@@ -180,5 +180,24 @@ async def test_memory_pipeline_evolution_flips_config_pointer(orch):
             ).scalar_one()
             assert active.version == "0.2.0"  # active 翻转到候选
             assert active.snapshot["prompt"] == "improved-prompt"
+            # R4-a 消费接线：consolidator 经 resolve_active_pipeline_prompt 读到进化后的 active prompt
+            from negentropy.engine.evolution import weights as weights_mod
+
+            weights_mod.invalidate(scope)  # promote 已 invalidate；显式再刷一次确保读到最新
+            consumed = await weights_mod.resolve_active_pipeline_prompt(scope, "fallback-prompt")
+            assert consumed == "improved-prompt"  # 端到端：进化产物被消费
     finally:
         await _cleanup(scope)
+
+
+async def test_resolve_active_pipeline_prompt_falls_back_when_no_active():
+    """无 active 行 → 回退 fallback_prompt（冷启 / 未进化的 scope）。"""
+    from negentropy.engine.evolution import weights as weights_mod
+
+    scope = f"noprompt_{uuid.uuid4().hex[:8]}"
+    weights_mod.invalidate(scope)
+    try:
+        consumed = await weights_mod.resolve_active_pipeline_prompt(scope, "code-constant-prompt")
+        assert consumed == "code-constant-prompt"
+    finally:
+        weights_mod.invalidate(scope)
