@@ -1,7 +1,9 @@
-"""Phase 4 + Phase 5 Handler 单元测试
+"""Handler 注册中心单元测试
 
 覆盖：
-- HANDLER_REGISTRY 注册的 6 个 handler 名称
+- bootstrap 完整性守门：handlers/ 目录下每个声明了 ``@register_handler`` 的模块
+  都必须被 ``_bootstrap_default_handlers`` 实际注册（防 longitudinal_recheck 漏注册类回归）
+- 每个 handler 都有对应的 descriptor（能力定义 SSOT）
 - agent_inspection 的 self_check / faculty_health / faculty_deep_check /
   scheduled_tasks_summary / unknown 分支
 - token budget gate + backoff 策略
@@ -10,7 +12,10 @@
 
 from __future__ import annotations
 
+import ast
+import pkgutil
 from datetime import timedelta
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -68,25 +73,89 @@ def _make_task(
 
 
 class TestRegistry:
-    def test_all_eight_handlers_registered(self):
-        expected = {
-            "skill_invoke",
-            "pipeline_watchdog",
-            "session_title_inspect",
-            "cache_warm",
-            "pgvector_check",
-            "agent_inspection",
-            "memory_automation",
-            "claude_code",
-        }
-        assert expected <= set(HANDLER_REGISTRY.keys())
-
     def test_list_handlers_returns_registered(self):
         names = list_handlers()
         assert "agent_inspection" in names
 
     def test_get_handler_missing_returns_none(self):
         assert get_handler("nonexistent_kind") is None
+
+
+def _handler_kinds_declared_in(module_path: Path) -> set[str]:
+    """AST 解析模块，提取所有 ``@register_handler(...)`` 声明的 kind。
+
+    覆盖两种注册形式：
+    - 字符串字面量：``@register_handler("kind")``
+    - 模块级常量：``@register_handler(KIND)`` 其中 ``KIND = "kind"`` 在模块顶层赋值
+
+    选择 AST 而非正则：对注释/格式变化免疫，且能解析常量形式
+    （如 ``pdf_fidelity_patrol.py`` 的 ``@register_handler(PATROL_HANDLER_KIND)``），
+    避免正则只匹配字面量带来的虚假安全感。
+    """
+
+    tree = ast.parse(module_path.read_text(encoding="utf-8"))
+    # 收集模块级 ``Name = "str"`` 常量赋值，供常量形式参数解析
+    const_str: dict[str, str] = {}
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            const_str[node.targets[0].id] = node.value.value
+    kinds: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            if not (
+                isinstance(dec, ast.Call)
+                and isinstance(dec.func, ast.Name)
+                and dec.func.id == "register_handler"
+                and dec.args
+            ):
+                continue
+            arg = dec.args[0]
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                kinds.add(arg.value)
+            elif isinstance(arg, ast.Name) and arg.id in const_str:
+                kinds.add(const_str[arg.id])
+    return kinds
+
+
+class TestHandlerBootstrapCompleteness:
+    """回归守门：``handlers/`` 目录下每个声明了 ``@register_handler`` 的模块，
+    都必须被 ``_bootstrap_default_handlers`` 实际注册到 ``HANDLER_REGISTRY``。
+
+    历史：``longitudinal_recheck`` 模块存在却漏入 bootstrap 元组，运行时 dispatch
+    报 ``handler_kind=... not registered``。本测试避免同类缺陷再静默通过 CI。
+
+    注意：本测试不得自行 import handler 模块来触发注册（否则会掩盖 bootstrap 元组
+    缺漏）——只读源码 AST 提取声明，再断言 bootstrap 后 ``HANDLER_REGISTRY`` 已包含。
+    """
+
+    def test_every_handler_module_is_bootstrapped(self):
+        _bootstrap_default_handlers()  # 幂等：复用 autouse fixture 已调用结果
+        registered = set(HANDLER_REGISTRY.keys())
+
+        import negentropy.engine.schedulers.handlers as pkg
+
+        missing: dict[str, set[str]] = {}
+        for module_info in pkgutil.iter_modules(pkg.__path__):
+            if module_info.ispkg:
+                continue
+            mod_path = Path(pkg.__file__).parent / f"{module_info.name}.py"
+            declared = _handler_kinds_declared_in(mod_path)
+            if declared and not (declared <= registered):
+                missing[module_info.name] = declared - registered
+        assert not missing, (
+            "以下 handler 模块声明了 @register_handler 但 bootstrap 后未注册——"
+            "请把模块名加入 _bootstrap_default_handlers 元组"
+            "(apps/negentropy/src/negentropy/engine/schedulers/handlers/__init__.py): "
+            f"{missing}"
+        )
 
 
 class TestDescriptorRegistry:
