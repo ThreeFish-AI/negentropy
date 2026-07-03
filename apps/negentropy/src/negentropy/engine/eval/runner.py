@@ -434,6 +434,223 @@ class AgentLoopExecutorV3:
             return f"Sandbox error: {exc}"
 
 
+# =============================================================================
+# AgentLoopExecutorV4 — 完整 ADK 工具集（execute_code + search + save + EvalToolContext）
+# =============================================================================
+
+# 多工具定义（OpenAI tool schema；V4 注册的完整工具集）
+_MULTI_TOOL_DEFS: list[dict[str, Any]] = [
+    _CODE_EXEC_TOOL_DEF,
+    {
+        "type": "function",
+        "function": {
+            "name": "search_knowledge_base",
+            "description": "Search the knowledge base for relevant documents.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"},
+                    "top_k": {"type": "integer", "description": "Max results (default 5)"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_to_memory",
+            "description": "Save content to memory for future reference.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "content": {"type": "string", "description": "Content to save"},
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional tags",
+                    },
+                },
+                "required": ["content"],
+            },
+        },
+    },
+]
+
+
+class AgentLoopExecutorV4:
+    """skill 面 executor（``execution_mode="agent_loop_v4"``）——完整 ADK 工具集 agent-loop。
+
+    与 V3（仅 execute_code）的区别：注册 ``execute_code`` + ``search_knowledge_base`` +
+    ``save_to_memory`` 三工具，LLM 可在多轮循环中调用**完整工具集**（search 查真实 KB、save 写
+    ephemeral、execute_code 走沙箱）——经 ``EvalToolContext`` mock 提供 ADK ToolContext 最小接口，
+    避开创建完整 ADK Runner session（综述 §3「skill 指导真实多步任务行为」最贴近语义）。
+
+    - **预算**：``max_turns``、``max_tool_calls``、``max_cost_usd_per_case``（同 V3）。
+    - **EvalToolContext**：``eval_tool_context.py`` 提供 state/session/search_memory mock。
+    """
+
+    def __init__(
+        self,
+        *,
+        model_override: str | None = None,
+        max_turns: int = 3,
+        max_tool_calls: int = 5,
+        max_cost_usd_per_case: float | None = None,
+    ) -> None:
+        self._model_override = model_override
+        self._max_turns = max_turns
+        self._max_tool_calls = max_tool_calls
+        self._max_cost = max_cost_usd_per_case
+
+    async def execute(
+        self,
+        *,
+        target_kind: str,
+        target_ref: str,
+        target_version: str,
+        case_input: dict[str, Any],
+    ) -> CaseOutput:
+        import litellm
+
+        # 1) 载 skill prompt
+        from negentropy.db import session as db_session
+        from negentropy.engine.eval.eval_tool_context import EvalToolContext
+        from negentropy.engine.utils.model_config import resolve_model_config_async
+        from negentropy.models.skill import Skill, SkillVersion
+
+        async with db_session.AsyncSessionLocal() as db:
+            row = (
+                await db.execute(
+                    select(SkillVersion)
+                    .join(Skill, Skill.id == SkillVersion.skill_id)
+                    .where(Skill.name == target_ref, SkillVersion.version == target_version)
+                )
+            ).scalar_one_or_none()
+            template = (dict(row.snapshot or {}).get("prompt_template") if row else None) or ""
+
+        task = str((case_input or {}).get("task") or "")
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": template or "(no skill instruction)"},
+            {"role": "user", "content": task},
+        ]
+        total_cost = 0.0
+        tool_calls_made = 0
+        final_text = ""
+        ctx = EvalToolContext()
+
+        model, kwargs = await resolve_model_config_async("eval.execute", explicit_model=self._model_override)
+        safe_kwargs = {k: v for k, v in kwargs.items() if k not in ("model", "messages", "tools", "tool_choice")}
+
+        for turn in range(self._max_turns):
+            if self._max_cost and total_cost >= self._max_cost:
+                break
+            try:
+                resp = await litellm.acompletion(
+                    model=model,
+                    messages=messages,
+                    tools=_MULTI_TOOL_DEFS,
+                    tool_choice="auto",
+                    **safe_kwargs,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("eval_v4_llm_failed", turn=turn, error=str(exc))
+                break
+
+            msg = resp.choices[0].message
+            cost = _extract_cost_usd(resp)
+            if cost is not None:
+                total_cost += cost
+
+            msg_dict: dict[str, Any] = {"role": "assistant", "content": msg.content or ""}
+            tool_calls = getattr(msg, "tool_calls", None)
+            if tool_calls:
+                msg_dict["tool_calls"] = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments,
+                        },
+                    }
+                    for tc in tool_calls
+                ]
+            messages.append(msg_dict)
+
+            if not tool_calls:
+                final_text = msg.content or ""
+                break
+
+            # 多工具 dispatch（完整 ADK 工具集 via EvalToolContext）
+            for tc in tool_calls:
+                if tool_calls_made >= self._max_tool_calls:
+                    break
+                tool_calls_made += 1
+                tool_result = await self._dispatch_tool(tc.function.name, tc.function.arguments, ctx)
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": tool_result})
+
+            final_text = msg.content or "(continued after tool calls)"
+
+        return CaseOutput(
+            body=final_text or "(agent 未产出)",
+            digest=_sha12(final_text or ""),
+            cost_usd=total_cost if total_cost > 0 else None,
+        )
+
+    async def _dispatch_tool(self, name: str, arguments_json: str | None, ctx: Any) -> str:
+        """按工具名 dispatch 到真实 ADK 函数（经 EvalToolContext mock）或 MicroSandbox。"""
+        import json as _json
+
+        try:
+            args = _json.loads(arguments_json or "{}")
+        except Exception:  # noqa: BLE001
+            return "Error: invalid arguments JSON"
+
+        try:
+            if name == "execute_code":
+                return await self._run_sandbox(str(args.get("code") or ""))
+            if name == "search_knowledge_base":
+                from negentropy.agents.tools.perception import search_knowledge_base
+
+                result = await search_knowledge_base(
+                    query=str(args.get("query") or ""),
+                    top_k=int(args.get("top_k") or 5),
+                    tool_context=ctx,
+                )
+                return _json.dumps(result, ensure_ascii=False, default=str)
+            if name == "save_to_memory":
+                from negentropy.agents.tools.internalization import save_to_memory
+
+                result = await save_to_memory(
+                    content=str(args.get("content") or ""),
+                    tags=args.get("tags"),
+                    tool_context=ctx,
+                )
+                return _json.dumps(result, ensure_ascii=False, default=str)
+            return f"Tool '{name}' not available in eval sandbox."
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("eval_v4_tool_dispatch_failed", tool=name, error=str(exc))
+            return f"Tool error: {exc}"
+
+    async def _run_sandbox(self, code: str) -> str:
+        """MicroSandbox（同 V3）。"""
+        try:
+            from negentropy.engine.sandbox import SandboxBackend, SandboxConfig, create_sandbox_runner
+
+            runner = create_sandbox_runner(backend=SandboxBackend.MICROSANDBOX, config=SandboxConfig())
+            result = await runner.execute_safe(code)
+            parts = []
+            if result.stdout:
+                parts.append(f"stdout:\n{result.stdout}")
+            if result.stderr:
+                parts.append(f"stderr:\n{result.stderr}")
+            parts.append(f"exit_code: {result.exit_code}")
+            return "\n".join(parts)
+        except Exception as exc:  # noqa: BLE001
+            return f"Sandbox error: {exc}"
+
+
 class PromptExecutor:
     """memory_pipeline_prompt 面 executor——跑候选 prompt 抽取/反思，Judge 评产出质量。
 
@@ -637,6 +854,7 @@ class SuiteRunner:
         agent_executor: TargetExecutor | None = None,
         agent_v2_executor: TargetExecutor | None = None,
         agent_v3_executor: TargetExecutor | None = None,
+        agent_v4_executor: TargetExecutor | None = None,
     ) -> None:
         self._evaluator = evaluator or RoutineEvaluator()
         # 默认注册 skill executor；其它 target_kind 由调用方注入
@@ -649,6 +867,8 @@ class SuiteRunner:
         self._agent_v2_executor = agent_v2_executor or AgentLoopExecutorV2()
         # ``execution_mode="agent_loop_v3"`` 时用 agent_v3_executor（多轮 + execute_code MicroSandbox）
         self._agent_v3_executor = agent_v3_executor or AgentLoopExecutorV3()
+        # ``execution_mode="agent_loop_v4"`` 时用 agent_v4_executor（完整 ADK 工具集 + EvalToolContext）
+        self._agent_v4_executor = agent_v4_executor or AgentLoopExecutorV4()
 
     # ------------------------------------------------------------------
     # 公开 API
@@ -822,6 +1042,8 @@ class SuiteRunner:
             return self._agent_v2_executor
         if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop_v3":
             return self._agent_v3_executor
+        if target_kind == TARGET_KIND_SKILL and str(cfg.get("execution_mode") or "").lower() == "agent_loop_v4":
+            return self._agent_v4_executor
         return self._executors.get(target_kind)
 
     @staticmethod
@@ -956,6 +1178,7 @@ __all__ = [
     "AgentLoopExecutor",
     "AgentLoopExecutorV2",
     "AgentLoopExecutorV3",
+    "AgentLoopExecutorV4",
     "SuiteRunner",
     "visible_results_query",
 ]
