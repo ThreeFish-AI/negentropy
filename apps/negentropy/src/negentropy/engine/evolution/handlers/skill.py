@@ -530,6 +530,29 @@ class SkillTemplateHandler:
                 promotion_mean=promotion_mean,
                 reverted_to=proposal.base_version,
             )
+            return dec
+
+        # R8-d 持续安全复评（综述 §9.3 + SI #6）：drift 未退化时，复跑 is_safety suite →
+        # decide_safety_nonregression（候选=当前 active vs 基线）；安全退化 → 回退 active_version。
+        # 复用 _check_safety_nonregression（canary 期同款逻辑）。
+        try:
+            safety_dec = await self._check_safety_nonregression(db, proposal)
+            if safety_dec is not None and safety_dec.action == "rollback":
+                skill = await self._load_skill(db, proposal.target_ref)
+                if skill is not None and skill.active_version == proposal.proposed_version:
+                    skill.active_version = proposal.base_version
+                _emit_evolution_event(proposal, action="safety_recheck_revert", reason=safety_dec.reason)
+                logger.warning(
+                    "skill_safety_recheck_revert",
+                    proposal_id=str(proposal.id),
+                    reason=safety_dec.reason,
+                )
+                from negentropy.engine.evolution.decision import Decision
+
+                return Decision("rollback", safety_dec.reason, {"safety_recheck": True})
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("skill_safety_recheck_failed", error=str(exc))
+
         return dec
 
     # ==================================================================
