@@ -182,6 +182,66 @@ def test_consume_response_handles_denied():
 
 
 # ----------------------------------------------------------------------------
+# expire_approval — 超时/拒绝兜底清理（审批弹窗卡死修复）
+# ----------------------------------------------------------------------------
+
+
+def test_expire_approval_clears_both_dicts():
+    """超时收尾：即使无响应,也把 pending + responses 两侧的该 action_id 清干净,
+    避免遗留孤儿 pending_approvals 项致前端弹窗无法关闭。"""
+    from negentropy.agents.approval import expire_approval, request_approval
+
+    ctx = _Ctx()
+    action_id = request_approval(ctx, tool_name="ingest_paper", label="op")
+    assert action_id is not None
+    # 另一条无关的 pending 项不应被误删（只剔除目标 action_id）。
+    other_id = request_approval(ctx, tool_name="write_file", label="other")
+    # 模拟迟到写回的响应也一并清理。
+    ctx.state["approval_responses"] = {
+        action_id: {"action_id": action_id, "decision": "approved", "reason": None, "responded_at": 1.0}
+    }
+
+    expire_approval(ctx, action_id)
+
+    assert action_id not in ctx.state.get("pending_approvals", {})
+    assert action_id not in ctx.state.get("approval_responses", {})
+    # 无关项保留。
+    assert other_id in ctx.state["pending_approvals"]
+
+
+def test_expire_approval_idempotent_when_absent():
+    """目标 action_id 不存在时静默无操作,不抛错(幂等)。"""
+    from negentropy.agents.approval import expire_approval
+
+    ctx = _Ctx()
+    # 无 pending / responses 时调用不应抛错。
+    expire_approval(ctx, "approval:nonexistent:deadbeef")
+    ctx.state["pending_approvals"] = {"keep": {"action_id": "keep"}}
+    expire_approval(ctx, "approval:nonexistent:deadbeef")
+    assert ctx.state["pending_approvals"] == {"keep": {"action_id": "keep"}}
+
+
+def test_expire_approval_fail_soft_when_no_state():
+    """None / 无 state 对象时 fail-soft,不抛错。"""
+    from negentropy.agents.approval import expire_approval
+
+    class _NoState:
+        pass
+
+    # 不抛异常即视为通过。
+    expire_approval(None, "a1")
+    expire_approval(_NoState(), "a1")
+
+
+def test_approval_wait_constants_are_humane():
+    """审批等待窗口应远大于旧的 30s,给人类留出充足决策时间。"""
+    from negentropy.agents.approval import APPROVAL_POLL_INTERVAL, APPROVAL_WAIT_SECONDS
+
+    assert APPROVAL_WAIT_SECONDS >= 120.0
+    assert 0 < APPROVAL_POLL_INTERVAL <= 1.0
+
+
+# ----------------------------------------------------------------------------
 # 数据类导出契约
 # ----------------------------------------------------------------------------
 

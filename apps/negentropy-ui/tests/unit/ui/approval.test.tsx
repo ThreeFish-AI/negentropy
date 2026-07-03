@@ -151,6 +151,63 @@ describe("ApprovalDialog", () => {
     expect(screen.getByTestId("approval-error")).toHaveTextContent("backend offline");
   });
 
+  it("提供 onDismiss 时渲染「稍后」按钮；点击调用 onDismiss(actionId) 且不发决策", () => {
+    const onRespond = vi.fn().mockResolvedValue(undefined);
+    const onDismiss = vi.fn();
+    render(
+      <ApprovalDialog
+        pending={{ a1: { action_id: "a1", tool_name: "ingest_paper", label: "x" } }}
+        onRespond={onRespond}
+        onDismiss={onDismiss}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("approval-dismiss"));
+    expect(onDismiss).toHaveBeenCalledWith("a1");
+    // 硬门语义：ESC/稍后 绝不发送批准/拒绝。
+    expect(onRespond).not.toHaveBeenCalled();
+  });
+
+  it("未提供 onDismiss 时不渲染「稍后」按钮（回退硬门，仅决策可关）", () => {
+    render(
+      <ApprovalDialog
+        pending={{ a1: { action_id: "a1", tool_name: "ingest_paper", label: "x" } }}
+        onRespond={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("approval-dismiss")).toBeNull();
+  });
+
+  it("ESC 键触发 onDismiss(actionId) 延后逃生，不发决策", () => {
+    const onRespond = vi.fn().mockResolvedValue(undefined);
+    const onDismiss = vi.fn();
+    render(
+      <ApprovalDialog
+        pending={{ a1: { action_id: "a1", tool_name: "ingest_paper", label: "x" } }}
+        onRespond={onRespond}
+        onDismiss={onDismiss}
+      />,
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onDismiss).toHaveBeenCalledWith("a1");
+    expect(onRespond).not.toHaveBeenCalled();
+  });
+
+  it("父级从 pending 移除该 action_id 后弹窗卸载（乐观关闭的组件级前提）", () => {
+    const { rerender, container } = render(
+      <ApprovalDialog
+        pending={{ a1: { action_id: "a1", tool_name: "ingest_paper", label: "x" } }}
+        onRespond={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("approval-dialog")).toBeTruthy();
+    // 父组件把 a1 从 visibleApprovals 过滤后传入空 dict → 弹窗关闭。
+    rerender(
+      <ApprovalDialog pending={{}} onRespond={vi.fn()} onDismiss={vi.fn()} />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("args_preview 非空时渲染预览块；空 dict 时不渲染", () => {
     const { rerender } = render(
       <ApprovalDialog

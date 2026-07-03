@@ -356,6 +356,14 @@ export function HomeBody({
     [corpora],
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // G3 审批门 · 本地「已决策/已延后」集合：
+  // 用户点击批准/拒绝或 ESC/稍后后，先乐观地把该 action_id 从展示层剔除，让弹窗
+  // 立即关闭（消除 ISSUE-064 式 silent no-op），不等待后端回填 round-trip。
+  // 后端 pending_approvals 由 approval_response 端点权威清除，scheduleSessionHydration
+  // 随后做持久对账。按 sessionId 隔离，切会话时重置（见下方 effect）。
+  const [resolvedApprovalIds, setResolvedApprovalIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(
@@ -485,31 +493,70 @@ export function HomeBody({
     () => (snapshotForDisplay?.pending_approvals as Record<string, unknown> | undefined) ?? null,
     [snapshotForDisplay],
   );
+  // 展示层：从 pending_approvals 剔除本地已决策/已延后的项，实现乐观关闭。
+  // 保留原始 pendingApprovals memo 不动（正交：数据源 vs 展示视图）。
+  const visibleApprovals = useMemo(() => {
+    if (!pendingApprovals) return null;
+    if (resolvedApprovalIds.size === 0) return pendingApprovals;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(pendingApprovals)) {
+      if (!resolvedApprovalIds.has(k)) out[k] = v;
+    }
+    return out;
+  }, [pendingApprovals, resolvedApprovalIds]);
   const { mode: approvalPolicyMode } = useApprovalPolicy();
 
   const handleApprovalRespond = useCallback(
     async (actionId: string, decision: ApprovalDecision, reason?: string) => {
       if (!sessionId || !userId) return;
-      const res = await fetch(
-        `/api/agui/sessions/${encodeURIComponent(sessionId)}/approval_response`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            app_name: APP_NAME,
-            user_id: userId,
-            action_id: actionId,
-            decision,
-            reason: reason || null,
-          }),
-        },
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(sessionId)}/approval_response`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+              action_id: actionId,
+              decision,
+              reason: reason || null,
+            }),
+          },
+        );
+      } catch (error) {
+        // 网络/上游异常：提示用户 + 重新抛出，让 ApprovalDialog 显示 approval-error
+        // 并保留弹窗（用户可 retry），不加入 resolved 集（不乐观关闭）。
+        toast.error("审批响应发送失败，请重试");
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       if (!res.ok) {
+        toast.error(`审批响应发送失败（${res.status}），请重试`);
         throw new Error(`审批响应发送失败: ${res.status}`);
       }
+      // 成功：乐观地把该项从展示层剔除（弹窗立即关闭）+ 触发回填对账 + 反馈。
+      setResolvedApprovalIds((prev) => {
+        const next = new Set(prev);
+        next.add(actionId);
+        return next;
+      });
+      scheduleSessionHydration(sessionId);
+      toast.success(decision === "approved" ? "已批准" : "已拒绝");
     },
-    [sessionId, userId],
+    [sessionId, userId, scheduleSessionHydration],
   );
+
+  // ESC / 「稍后」逃生舱（硬门语义）：仅本地延后关闭弹窗，不发送批准/拒绝、不回填。
+  // 服务端 pending_approvals 仍在，刷新/切会话后正确复现（未决闸门的合理行为）。
+  const handleApprovalDismiss = useCallback((actionId: string) => {
+    setResolvedApprovalIds((prev) => {
+      const next = new Set(prev);
+      next.add(actionId);
+      return next;
+    });
+    toast.info("已暂时关闭审批请求，稍后可在刷新或切换会话后重新处理");
+  }, []);
 
   const {
     sessions,
@@ -699,11 +746,16 @@ export function HomeBody({
     ],
   );
 
-  // Escape 分层：① 历史视图下先返回实时（抽屉不关）；② 否则关闭抽屉。
+  // Escape 分层：① 审批弹窗可见时让位给弹窗自身的 ESC（延后逃生），本 handler 早返，
+  // 避免双 window 监听竞争；② 历史视图下先返回实时（抽屉不关）；③ 否则关闭抽屉。
   // 对齐嵌套可关闭 UI 的逐层退出直觉（参考 OverlayDismissLayer 的 escape 栈语义）。
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // 审批弹窗是最高层模态，ESC 应由其独占处理（handleApprovalDismiss）。
+      if (visibleApprovals && Object.keys(visibleApprovals).length > 0) {
+        return;
+      }
       if (selectedNodeId) {
         setSelectedNodeId(null);
       } else if (showRightPanel) {
@@ -712,7 +764,7 @@ export function HomeBody({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId, showRightPanel]);
+  }, [selectedNodeId, showRightPanel, visibleApprovals]);
 
   // G2 对话搜索：Cmd/Ctrl+F 拦截浏览器默认查找，打开搜索栏。
   useEffect(() => {
@@ -756,6 +808,14 @@ export function HomeBody({
     const persisted = readPersistedRightPanel(sessionId);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowRightPanel(persisted ?? false);
+  }, [sessionId]);
+
+  // G3 审批门：切会话时重置本地「已决策/已延后」集合，避免跨会话把旧 action_id
+  // 误判为已处理。乐观关闭仅在当前会话内有意义（与上方 seeding effect 同源，
+  // 单次切换一次额外渲染可接受）。
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setResolvedApprovalIds(new Set());
   }, [sessionId]);
 
   // 状态变化时写回当前 session 的记录（toggle / X / ESC / 快捷键统一经此落盘）。
@@ -1398,10 +1458,13 @@ export function HomeBody({
         }}
       />
 
-      {/* G3 审批门：pending_approvals → modal → approval_responses 闭环 */}
+      {/* G3 审批门：pending_approvals → modal → approval_responses 闭环。
+          传入 visibleApprovals（已剔除本地已决策/已延后项）实现乐观关闭；
+          onDismiss 提供 ESC/稍后逃生（仅本地关闭，不发送决策）。 */}
       <ApprovalDialog
-        pending={pendingApprovals as Record<string, import("@/components/ui/ApprovalDialog").ApprovalRequestPayload> | null | undefined}
+        pending={visibleApprovals as Record<string, import("@/components/ui/ApprovalDialog").ApprovalRequestPayload> | null | undefined}
         onRespond={handleApprovalRespond}
+        onDismiss={handleApprovalDismiss}
       />
     </div>
   );
