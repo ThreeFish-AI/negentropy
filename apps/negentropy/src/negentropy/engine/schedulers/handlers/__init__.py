@@ -1,15 +1,10 @@
 """Handler 注册中心 — 把 ``handler_kind`` 字符串路由到具体的执行函数。
 
-Phase 4 内置 handler 清单：
-- ``skill_invoke``          — 替代旧 ``register_skill_scheduler`` tick
-- ``pipeline_watchdog``     — 替代 ``bootstrap.py`` 中的 inline ``_pipeline_watchdog_tick``
-- ``session_title_inspect`` — 替代旧 ``SessionTitleInspector.start()`` 自启
-- ``cache_warm``            — startup 一次性 → oneshot 任务
-- ``pgvector_check``        — startup 一次性 → oneshot 任务
-- ``agent_inspection``      — 24/7 自驱 Agent 巡检最小骨架
-- ``memory_automation``     — 仿生记忆自动化三作业统一入口
-- ``claude_code``           — Claude Code 任务执行
-- ``pdf_fidelity_patrol``   — PDF→Markdown 高保真自拟合巡检（1h 节奏权威）
+内置 handler 清单为 ``_bootstrap_default_handlers()`` 中的显式元组（单一事实源），
+运行时可用 ``list_handlers()`` 查询、``GET /scheduler/handlers`` 暴露给 UI。
+新增 handler：在本目录新增模块并以 ``@register_handler("kind")`` 装饰，
+同步把模块名加入 ``_bootstrap_default_handlers`` 元组——
+该不变量由 ``test_every_handler_module_is_bootstrapped`` 守门。
 
 每个 handler 是 ``async def fn(task) -> HandlerResult``，由
 ``ScheduledTaskRegistry.dispatch`` 调用。
@@ -184,6 +179,7 @@ def _bootstrap_default_handlers() -> None:
         "routine_inspector",
         "pdf_fidelity_patrol",
         "evolution_inspector",
+        "longitudinal_recheck",
         "tool_stats_aggregate",
     ):
         try:
