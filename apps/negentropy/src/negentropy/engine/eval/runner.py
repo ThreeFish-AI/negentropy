@@ -404,8 +404,10 @@ class SuiteRunner:
                 model_override=model_override,
             )
             latencies.append(time.monotonic() - t0)
-            if output.cost_usd is not None:
-                costs.append(output.cost_usd)
+            # SI #4 全成本：executor 生成 + Judge 评审（litellm.completion_cost）
+            case_cost = (output.cost_usd or 0.0) + (res.cost_usd or 0.0)
+            if case_cost > 0:
+                costs.append(case_cost)
 
             score = float(res.score) if res.score is not None else 0.0
             scores.append(score)

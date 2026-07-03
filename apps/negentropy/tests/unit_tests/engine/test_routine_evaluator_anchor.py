@@ -44,12 +44,12 @@ def _issue128_history() -> list[SimpleNamespace]:
 
 
 def _stub_judge(monkeypatch, *, capture: list[str] | None = None):
-    """桩 _judge：返回含 progress_evidence 的 6 元组，可选捕获 prompt 供两路一致性断言。"""
+    """桩 _judge：返回含 progress_evidence 的 8 元组（+cost/token），可选捕获 prompt 供两路一致性断言。"""
 
     async def _stub(self, prompt, *, model_override=None):
         if capture is not None:
             capture.append(prompt)
-        return 78, "progressing", "r", "{}", True, "上轮未达标项本轮已落实"
+        return 78, "progressing", "r", "{}", True, "上轮未达标项本轮已落实", None, None
 
     monkeypatch.setattr(RoutineEvaluator, "_judge", _stub)
 
@@ -132,7 +132,7 @@ async def test_acceptance_cap_still_applies_with_anchor(monkeypatch):
 
     async def _stub(self, prompt, *, model_override=None):
         assert _REQUIRE_ANCHOR_MARK in prompt  # 确实走了锚定路径
-        return 85, "pass", "r", "{}", False, "进展"  # acceptance_met=False
+        return 85, "pass", "r", "{}", False, "进展", None, None  # acceptance_met=False
 
     monkeypatch.setattr(RoutineEvaluator, "_judge", _stub)
     ev = RoutineEvaluator(acceptance_unmet_score_cap=50)

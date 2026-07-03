@@ -15,7 +15,7 @@ async def test_judge_once_returns_result_when_judge_succeeds(monkeypatch):
     ev = RoutineEvaluator()
 
     async def fake_judge(prompt, *, model_override=None):
-        return (85, "pass", "good", "raw-json", True, None)
+        return (85, "pass", "good", "raw-json", True, None, None, None)
 
     monkeypatch.setattr(ev, "_judge", fake_judge)
 
@@ -33,7 +33,7 @@ async def test_judge_once_caps_score_on_acceptance_unmet(monkeypatch):
     ev = RoutineEvaluator()
 
     async def fake_judge(prompt, *, model_override=None):
-        return (90, "pass", "r", "raw", False, None)  # acceptance_met False
+        return (90, "pass", "r", "raw", False, None, None, None)  # acceptance_met False
 
     monkeypatch.setattr(ev, "_judge", fake_judge)
 
@@ -48,7 +48,7 @@ async def test_judge_once_no_cap_when_acceptance_unmet_disabled(monkeypatch):
     ev = RoutineEvaluator()
 
     async def fake_judge(prompt, *, model_override=None):
-        return (90, "pass", "r", "raw", False, None)
+        return (90, "pass", "r", "raw", False, None, None, None)
 
     monkeypatch.setattr(ev, "_judge", fake_judge)
 
@@ -71,3 +71,20 @@ async def test_judge_once_fails_soft_when_judge_raises(monkeypatch):
     assert res.ok is False
     assert res.judge_prompt is not None  # 失败路径也回带 prompt 供审计
     assert res.score is None
+
+
+@pytest.mark.asyncio
+async def test_judge_once_surfaces_cost_from_judge(monkeypatch):
+    """SI #4：_judge 返回的 cost_usd/token_total 流入 EvaluationResult（judge 侧 $-cost）。"""
+    ev = RoutineEvaluator()
+
+    async def fake_judge(prompt, *, model_override=None):
+        return (85, "pass", "good", "raw", True, None, 0.0123, 420)
+
+    monkeypatch.setattr(ev, "_judge", fake_judge)
+
+    res = await ev.judge_once(goal="g", acceptance_criteria="c", summary="s")
+
+    assert res.ok is True
+    assert res.cost_usd == 0.0123  # judge 侧真实 $-cost 透传
+    assert res.token_total == 420

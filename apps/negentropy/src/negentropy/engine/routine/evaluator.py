@@ -30,6 +30,25 @@ from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.routine.evaluator")
 
+
+def _extract_cost(resp) -> tuple[float | None, int | None]:
+    """从 litellm 响应提取 ``(cost_usd, token_total)``（SI #4 真实 $-cost）。
+
+    ``litellm.completion_cost`` 依模型定价表 + ``response.usage`` 计算 USD；模型不在定价表 / 无
+    usage / 异常 → ``(None, None)``（静默降级，绝不阻塞评审）。
+    """
+    try:
+        cost = litellm.completion_cost(resp)
+        cost_usd = float(cost) if cost is not None else None
+    except Exception:  # noqa: BLE001  # 模型不在定价表 → 静默降级
+        cost_usd = None
+    try:
+        token_total = int(getattr(getattr(resp, "usage", None), "total_tokens", 0)) or None
+    except Exception:  # noqa: BLE001
+        token_total = None
+    return cost_usd, token_total
+
+
 _TASK_KEY = "routine.evaluate"
 _VALID_VERDICTS = {"pass", "progressing", "stalled", "regressed", "unrecoverable"}
 _SUMMARY_MAX_CHARS = 4000
@@ -156,6 +175,9 @@ class EvaluationResult:
     progress_evidence: str | None = None
     # 锚点上下文审计摘要（写入 iteration.metrics["judge_anchor"]）；未启用锚定时为 None。
     anchor: dict | None = None
+    # SI #4 真实 $-cost（litellm.completion_cost）；缺失（模型不在定价表/未提取）→ None。
+    cost_usd: float | None = None
+    token_total: int | None = None
 
 
 class RoutineEvaluator:
@@ -235,9 +257,16 @@ class RoutineEvaluator:
         # per-routine Judge 模型覆盖（高风险 acceptance 裁决用更强模型，缓解弱模型误判，ISSUE-121）。
         model_override = getattr(routine, "evaluator_model", None)
         try:
-            score, verdict, reflection, judge_raw, acceptance_met, progress_evidence = await self._judge(
-                judge_prompt, model_override=model_override
-            )
+            (
+                score,
+                verdict,
+                reflection,
+                judge_raw,
+                acceptance_met,
+                progress_evidence,
+                cost_usd,
+                token_total,
+            ) = await self._judge(judge_prompt, model_override=model_override)
         except Exception as exc:
             logger.warning("routine_evaluate_judge_failed", error=str(exc))
             return EvaluationResult(
@@ -273,6 +302,8 @@ class RoutineEvaluator:
             gate_output=audit_gate,
             progress_evidence=progress_evidence,
             anchor=anchor_audit,
+            cost_usd=cost_usd,
+            token_total=token_total,
         )
 
     async def judge_once(
@@ -317,9 +348,16 @@ class RoutineEvaluator:
         audit_gate = gate_output or None
 
         try:
-            score, verdict, reflection, judge_raw, acceptance_met, _pe = await self._judge(
-                judge_prompt, model_override=model_override
-            )
+            (
+                score,
+                verdict,
+                reflection,
+                judge_raw,
+                acceptance_met,
+                _pe,
+                cost_usd,
+                token_total,
+            ) = await self._judge(judge_prompt, model_override=model_override)
         except Exception as exc:
             logger.warning("eval_judge_once_failed", error=str(exc))
             return EvaluationResult(
@@ -346,6 +384,8 @@ class RoutineEvaluator:
             judge_prompt=judge_prompt,
             judge_raw=judge_raw,
             gate_output=audit_gate,
+            cost_usd=cost_usd,
+            token_total=token_total,
         )
 
     @staticmethod
@@ -421,12 +461,14 @@ class RoutineEvaluator:
 
     async def _judge(
         self, prompt: str, *, model_override: str | None = None
-    ) -> tuple[int, str, str, str, bool | None, str | None]:
+    ) -> tuple[int, str, str, str, bool | None, str | None, float | None, int | None]:
         """调用 LLM 评审，解析结构化 JSON；含指数退避重试。
 
         prompt 由调用方（``evaluate``）构造并传入，使评估失败路径也能回带 judge_prompt 供审计。
         ``model_override`` 为 per-routine Judge 模型覆盖（优先于实例级 ``explicit_model``）。
-        返回 ``(score, verdict, reflection, raw_content, acceptance_met, progress_evidence)``。
+        返回 ``(score, verdict, reflection, raw_content, acceptance_met, progress_evidence,
+        cost_usd, token_total)``：末两位为 SI #4 真实 $-cost（``litellm.completion_cost``）+
+        token 总量；模型不在定价表 / Faculty 路径无响应对象 → ``(None, None)``，不阻塞评审。
         ``progress_evidence`` 仅锚定版 prompt 产出；缺失/非锚定→None（``_parse`` 容错）。
 
         FacultyBridge（路径 A，详见 ADR 040）：当 ``settings.routine.faculty_bridge_enabled`` 开启时，
@@ -447,7 +489,7 @@ class RoutineEvaluator:
                 )
                 if text:
                     score, verdict, reflection, acceptance_met, progress_evidence = self._parse(text)
-                    return score, verdict, reflection, text, acceptance_met, progress_evidence
+                    return score, verdict, reflection, text, acceptance_met, progress_evidence, None, None
                 logger.info("routine_judge_faculty_bridge_empty_fallback_litellm")
 
         model, model_kwargs = await resolve_model_config_async(
@@ -470,7 +512,17 @@ class RoutineEvaluator:
                 )
                 content = response.choices[0].message.content
                 score, verdict, reflection, acceptance_met, progress_evidence = self._parse(content)
-                return score, verdict, reflection, content or "", acceptance_met, progress_evidence
+                cost_usd, token_total = _extract_cost(response)
+                return (
+                    score,
+                    verdict,
+                    reflection,
+                    content or "",
+                    acceptance_met,
+                    progress_evidence,
+                    cost_usd,
+                    token_total,
+                )
             except Exception as exc:
                 last_error = exc
                 logger.warning("routine_judge_retry", attempt=attempt + 1, error=str(exc))
