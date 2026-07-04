@@ -249,6 +249,6 @@ Please hold "Entropy Reduction," "Context-Driven," and "Evidence-Based Engineeri
 
 ---
 
-<p align="center">
-  <a href="./LICENSE">Apache License 2.0</a>, © 2026 <a href="https://github.com/ThreeFish-AI">ThreeFish-AI</a>
-</p>
+<div align="center">
+  <sub>Built with 🧠, ❤️, and an absurd amount of coffee by <a href="https://github.com/ThreeFish-AI">ThreeFish-AI</a> · Released under the <a href="./LICENSE">Apache License 2.0</a>.</sub>
+</div>
