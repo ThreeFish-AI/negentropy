@@ -44,6 +44,12 @@ type Props = {
    * 刷新/切会话后由调用方决定是否复现。不传时 ESC/「稍后」不可用（弹窗仅能经决策关闭）。
    */
   onDismiss?: (actionId: string) => void;
+  /**
+   * 一键延后全部（可选）：当 ``pending`` 有多条时，避免用户被迫逐条点 N 次（ISSUE-157
+   * 实测根因——多条孤儿堆叠时「点一个顶一个」体感「关不掉」）。触发后调用方一次性把
+   * 所有待审 id 加入本地「已处理」集，弹窗彻底消失。仅在 pending 条数 > 1 时渲染按钮。
+   */
+  onDismissAll?: () => void;
 };
 
 function pickFirstRequest(
@@ -72,11 +78,22 @@ const RISK_TIER_LABEL: Record<NonNullable<ApprovalRequestPayload["risk_tier"]>, 
   high: "高风险",
 };
 
-export function ApprovalDialog({ pending, onRespond, onDismiss }: Props) {
+export function ApprovalDialog({ pending, onRespond, onDismiss, onDismissAll }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const current = useMemo(() => pickFirstRequest(pending), [pending]);
+  // 多条堆叠时显示计数 + 「全部稍后」按钮（ISSUE-157：避免逐条点 N 次的「关不掉」错觉）。
+  const pendingCount = useMemo(
+    () =>
+      pending
+        ? Object.values(pending).filter(
+            (v): v is ApprovalRequestPayload => !!v && typeof v.action_id === "string",
+          ).length
+        : 0,
+    [pending],
+  );
+  const showMultiBadge = pendingCount > 1;
 
   // 逃生舱：ESC 键延后关闭当前审批（不发送决策）。提交中（busy）时不响应，
   // 避免与正在飞行的决策请求竞态。
@@ -138,6 +155,15 @@ export function ApprovalDialog({ pending, onRespond, onDismiss }: Props) {
             {RISK_TIER_LABEL[tier]}
           </span>
           <span className="text-xs font-mono text-muted-foreground">{current.tool_name}</span>
+          {showMultiBadge ? (
+            <span
+              data-testid="approval-pending-count"
+              className="ml-auto rounded-full border border-border bg-muted/60 px-2 py-0.5 text-micro font-semibold text-text-secondary"
+              title="本会话累积了多条待审批请求，可逐条处理或一键「全部稍后」"
+            >
+              共 {pendingCount} 条待审批
+            </span>
+          ) : null}
         </div>
 
         <h2 id="approval-dialog-title" className="mt-3 text-base font-semibold">
@@ -190,6 +216,18 @@ export function ApprovalDialog({ pending, onRespond, onDismiss }: Props) {
               title="暂时关闭此审批（不批准也不拒绝），稍后可重新处理"
             >
               稍后
+            </button>
+          ) : null}
+          {onDismissAll && showMultiBadge ? (
+            <button
+              type="button"
+              data-testid="approval-dismiss-all"
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-muted disabled:opacity-60"
+              onClick={onDismissAll}
+              disabled={busy}
+              title="一键延后本会话所有待审批请求（不批准也不拒绝）"
+            >
+              全部稍后
             </button>
           ) : null}
           <button

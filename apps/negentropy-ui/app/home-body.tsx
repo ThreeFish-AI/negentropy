@@ -558,6 +558,20 @@ export function HomeBody({
     toast.info("已暂时关闭审批请求，稍后可在刷新或切换会话后重新处理");
   }, []);
 
+  // 一键延后全部（ISSUE-157）：多条孤儿堆叠时，避免用户被迫逐条点 N 次（「点一个顶一个」
+  // 体感「关不掉」）。一次性把所有 pendingApprovals 的 id 加入「已处理」集，弹窗彻底消失。
+  const handleApprovalDismissAll = useCallback(() => {
+    if (!pendingApprovals) return;
+    const ids = Object.keys(pendingApprovals);
+    if (ids.length === 0) return;
+    setResolvedApprovalIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.add(id);
+      return next;
+    });
+    toast.info(`已暂时关闭 ${ids.length} 条审批请求，刷新或切换会话后可重新处理`);
+  }, [pendingApprovals]);
+
   const {
     sessions,
     sessionListView,
@@ -1481,6 +1495,7 @@ export function HomeBody({
         pending={visibleApprovals as Record<string, import("@/components/ui/ApprovalDialog").ApprovalRequestPayload> | null | undefined}
         onRespond={handleApprovalRespond}
         onDismiss={handleApprovalDismiss}
+        onDismissAll={handleApprovalDismissAll}
       />
     </div>
   );
