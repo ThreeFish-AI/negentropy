@@ -208,6 +208,38 @@ describe("ApprovalDialog", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("多条 pending 时显示计数徽章 + 「全部稍后」按钮；点击调用 onDismissAll", () => {
+    const onDismissAll = vi.fn();
+    render(
+      <ApprovalDialog
+        pending={{
+          a1: { action_id: "a1", tool_name: "ingest_paper", label: "x", requested_at: 100 },
+          a2: { action_id: "a2", tool_name: "ingest_paper", label: "y", requested_at: 200 },
+          a3: { action_id: "a3", tool_name: "ingest_paper", label: "z", requested_at: 300 },
+        }}
+        onRespond={vi.fn()}
+        onDismiss={vi.fn()}
+        onDismissAll={onDismissAll}
+      />,
+    );
+    expect(screen.getByTestId("approval-pending-count")).toHaveTextContent("共 3 条待审批");
+    fireEvent.click(screen.getByTestId("approval-dismiss-all"));
+    expect(onDismissAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("单条 pending 时不显示计数徽章与「全部稍后」按钮", () => {
+    render(
+      <ApprovalDialog
+        pending={{ a1: { action_id: "a1", tool_name: "ingest_paper", label: "x" } }}
+        onRespond={vi.fn()}
+        onDismiss={vi.fn()}
+        onDismissAll={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("approval-pending-count")).toBeNull();
+    expect(screen.queryByTestId("approval-dismiss-all")).toBeNull();
+  });
+
   it("args_preview 非空时渲染预览块；空 dict 时不渲染", () => {
     const { rerender } = render(
       <ApprovalDialog
