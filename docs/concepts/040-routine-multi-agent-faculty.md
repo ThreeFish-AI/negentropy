@@ -7,6 +7,7 @@ sidebar_position: 4.0
 >
 > - 前置：[Claude Code 集成设计](./038-claude-code-integration.md) · [The Routine System](./039-the-routine-system.md)
 > - 理论：[Routine Agent 迭代模式调研](../research/110-routine-agent-iteration.md)
+> - 渲染：本文归因在 UI 侧的呈现见 [人机交互转录 UI ADR](./041-human-machine-interaction-transcript.md)（Routine Full View × Studio 中栏统一渲染器）
 
 ---
 
