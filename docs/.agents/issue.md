@@ -2178,6 +2178,12 @@
   - 其它 app（`cognizes` / `negentropy` 主仓）若引入 `pip-audit` 步骤，应直接复用本数组式模板；
   - 周期性的 PYSEC 数据库增补会让任何使用 `pip-audit` 且依赖锁定到老旧 ML 套件（torch / transformers / numpy / scipy 等）的项目出现同类「无 fix 可升、必须 ignore」局面，须按本案的「威胁模型 + 锁版本约束」双轴评估，而非盲目跟随 CVSS 分数升级；
   - 现有 8 条历史 ignore（pygments / fastmcp / litellm）已不在本次失败报告里，下次例行升级时应核对其匹配性，避免 ignore 列表演变为僵化白名单。
+- **CVE-2026-4372 增补（2026-07-05，Dependabot alert #492）**：
+  - **新向量（区别于 PYSEC-2025-211..218）**：`CVE-2026-4372`（GHSA-29pf-2h5f-8g72，HIGH CVSS 7.8）是 `config.json._attn_implementation_internal` 注入 RCE，**绕过 `trust_remote_code=False`**——受害者仅需 `from_pretrained` 加载恶意模型即被 RCE；4.x 全线无回溯补丁，唯一修复为 `transformers>=5.3.0`。
+  - **实测升级回归**：临时移除 `<5.0.0` 钉子 → `uv lock` 解析 transformers 5.3.0；perceives 三层 smoke 验收：①import smoke 过；②引擎单测 68 passed；③1 页 PDF 实跑——**docling 2.98 在 5.3.0 下 140s 正常出文**，但 **marker-pdf 1.10.2 / surya-ocr 0.17.1 崩溃：`No module named 'transformers.onnx'`**（5.x 移除 ONNX 子模块，marker 仍 import 它）。即旧注释所谓「marker-pdf + docling 兼容交集」实为**仅 marker 阻断**，docling 已就绪。
+  - **决策**：marker-pdf 是 perceives PDF→MD 三引擎之一（高精度 OCR），不能为修 CVE 牺牲该能力；上游 marker-pdf/surya-ocr 尚未适配 transformers 5.x。故**保留 `transformers>=4.56.1,<5.0.0` 钉子**，Dependabot #492 以 `tolerable_risk` dismiss。
+  - **威胁模型复核（覆盖 CVE-2026-4372）**：perceives 零直接 import transformers，仅经 docling/marker/surya 加载其官方第一方模型 artifact（Docling Layout / TableFormer / surya 系列），无任何加载用户/第三方不可信模型 repo 或 `.pt2`/`.joblib` 缓存的代码路径；CVE-2026-4372 的 `config.json` 注入需攻击者控制被加载模型的 config，第一方官方模型不满足该前提，故风险降至「官方模型 repo 被攻陷」二阶场景，可容忍。
+  - **解锁条件**：跟踪 marker-pdf/surya-ocr 适配 transformers 5.x 的上游 release（docling 跟踪 #3090）；一旦 marker 解锁，立即抬 `transformers>=5.3.0` 重启该 CVE 修复。
 
 ---
 
