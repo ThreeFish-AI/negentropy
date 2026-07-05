@@ -431,6 +431,8 @@ def _detect_caption_anchored_figure_regions(
     except Exception:
         return []
     regions: List[LayoutRegion] = []
+    if start_page >= end_page:
+        return regions
     try:
         doc = fitz.open(pdf_path)
     except Exception:
@@ -513,6 +515,10 @@ def _detect_caption_anchored_figure_regions(
                 y1 - y0,
                 dense,
             )
+    except Exception as e:
+        # 遍历异常（mock / 特殊 PDF 的 page 下标失败等）不阻塞主流程，
+        # return 已收集的 regions（可能部分或空）。Fitz._run 继续 Phase 1/3。
+        logger.debug("caption fallback 遍历异常: %s", e)
     finally:
         doc.close()
     return regions

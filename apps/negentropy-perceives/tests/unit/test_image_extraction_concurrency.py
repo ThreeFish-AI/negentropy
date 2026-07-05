@@ -167,8 +167,10 @@ class TestFitzImageExtractorConcurrency:
         assert result.success is True
         assert result.output is not None
         assert result.output.total_count == pages * images_per_page
-        # 探测 + 每页一次 = pages + 1
-        assert len(fake_fitz.open_calls) == pages + 1
+        # 探测 + 每页一次 + caption fallback 遍历 = pages + 2
+        # （_detect_caption_anchored_figure_regions 为补 layout 漏检的矢量
+        # figure 而独立 fitz.open 一次遍历图注；layout=None 时仍调）
+        assert len(fake_fitz.open_calls) == pages + 2
         # metadata 透出并发度
         assert result.output.metadata["concurrency"] == _IMAGE_EXTRACT_CONCURRENCY
         assert result.output.metadata["page_count"] == pages
