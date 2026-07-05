@@ -132,23 +132,22 @@ export function StudioTranscript({
   const live = pending && !lastIsStreamingAssistant;
 
   // per-item 包裹：挂 data-node-id / 选中环 / 搜索高亮 / onClick（Studio 专属）。
+  // user / 非思考 assistant 文本项额外挂 ``data-testid="message-bubble"`` +
+  // ``data-message-role``，保持与旧 MessageBubble 选择器兼容（双气泡守卫等 E2E 复用）。
   const itemWrapper = (item: TranscriptItem, children: ReactNode): ReactNode => {
     const nodeId = "nodeId" in item ? item.nodeId : undefined;
-    if (!nodeId) return children;
-    const isSelected = selectedNodeId === nodeId;
-    const isHighlighted = highlightedNodeIds?.has(nodeId);
-    if (!onNodeSelect && !isSelected && !isHighlighted) {
-      // 仍需 data-node-id 供电 scrollToNodeId 定位
-      return (
-        <div data-node-id={nodeId} className="rounded-lg">
-          {children}
-        </div>
-      );
-    }
+    const isUserMsg = item.kind === "user";
+    const isAssistantMsg = item.kind === "assistant" && !item.thinking;
+    const testid = isUserMsg || isAssistantMsg ? "message-bubble" : undefined;
+    const messageRole = isUserMsg ? "user" : isAssistantMsg ? "assistant" : undefined;
+    const isSelected = nodeId ? selectedNodeId === nodeId : false;
+    const isHighlighted = nodeId ? highlightedNodeIds?.has(nodeId) : false;
     return (
       <div
         data-node-id={nodeId}
-        onClick={() => onNodeSelect?.(nodeId)}
+        data-testid={testid}
+        data-message-role={messageRole}
+        onClick={nodeId ? () => onNodeSelect?.(nodeId) : undefined}
         className={cn(
           "rounded-lg",
           isSelected && "ring-2 ring-ring",
