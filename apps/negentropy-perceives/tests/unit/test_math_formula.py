@@ -7,6 +7,7 @@ from negentropy.perceives.pdf.math_formula import (
     detect_script_type,
     has_math_unicode,
     is_math_font,
+    math_text_to_latex,
     protect_math_content,
     unicode_to_latex,
 )
@@ -426,3 +427,234 @@ class TestMathRegionDataclass:
         )
         assert region.formula_type == "block"
         assert region.equation_number == "2"
+
+
+# ============================================================
+# TestR11MathReconstruction — XCharter 字体 + 下标/上标重建
+# ============================================================
+class TestR11MathFontDetection:
+    """R11-D：XCharter 等数学字体识别。"""
+
+    def test_xcharter_math_recognized(self) -> None:
+        assert is_math_font("XCharterMathMI") is True
+
+    def test_xcharter_roman_not_math(self) -> None:
+        assert is_math_font("XCharter-Roman") is False
+
+    def test_charter_math_recognized(self) -> None:
+        assert is_math_font("CharterMath") is True
+
+
+class TestR11MathTextToLatex:
+    """R11-D：math_text_to_latex 覆盖数学字母块。"""
+
+    def test_math_italic_letters(self) -> None:
+        # 𝑈 (U+1D446) → U, 𝑡 (U+1D461) → t
+        assert math_text_to_latex("\U0001d448\U0001d461") == "Ut"
+
+    def test_math_italic_greek(self) -> None:
+        # 𝜃 (U+1D703) → \theta
+        assert math_text_to_latex("\U0001d703") == r"\theta"
+
+    def test_blackboard_bold(self) -> None:
+        # 𝔼 (U+1D53C) → \mathbb{E}
+        assert math_text_to_latex("\U0001d53c") == r"\mathbb{E}"
+
+    def test_ascii_pass_through(self) -> None:
+        assert math_text_to_latex("x = 1") == "x = 1"
+
+    def test_mixed_math_and_ascii(self) -> None:
+        # 𝑈 + ASCII + 𝑡
+        assert math_text_to_latex("\U0001d448 t") == "U t"
+
+
+class TestR11SubscriptReconstruction:
+    """R11-D：含数学字体行的下标/上标几何重建。"""
+
+    def test_inline_subscript_reconstructed(self) -> None:
+        """``The user side U_t supplies`` → 含 ``$U_{t}$``。"""
+        line = {
+            "spans": [
+                {
+                    "text": "The user side",
+                    "font": "XCharter-Roman",
+                    "size": 11.0,
+                    "origin": (100, 338.5),
+                    "bbox": [100, 329, 160, 341],
+                },
+                {
+                    "text": " \U0001d448",
+                    "font": "XCharterMathMI",
+                    "size": 10.0,
+                    "origin": (160, 338.5),
+                    "bbox": [160, 328, 170, 339],
+                },
+                {
+                    "text": "\U0001d461",
+                    "font": "XCharterMathMI",
+                    "size": 7.3,
+                    "origin": (168, 340.1),
+                    "bbox": [168, 333, 173, 340],
+                },
+                {
+                    "text": "supplies",
+                    "font": "XCharter-Roman",
+                    "size": 11.0,
+                    "origin": (173, 338.5),
+                    "bbox": [173, 329, 210, 341],
+                },
+            ],
+            "bbox": [100, 329, 210, 341],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$U_{t}$" in out
+        # 散文与 $...$ 之间应有空格分隔
+        assert "side $U_{t}$ supplies" in out
+
+    def test_inline_superscript_reconstructed(self) -> None:
+        """上标：``x^2`` 的 2 在更高 baseline。"""
+        line = {
+            "spans": [
+                {
+                    "text": "value",
+                    "font": "XCharter-Roman",
+                    "size": 11.0,
+                    "origin": (100, 100.0),
+                    "bbox": [100, 90, 130, 101],
+                },
+                {
+                    "text": " \U0001d465",
+                    "font": "XCharterMathMI",
+                    "size": 10.0,
+                    "origin": (130, 100.0),
+                    "bbox": [130, 90, 138, 101],
+                },
+                {
+                    "text": "2",
+                    "font": "XCharterMathMI",
+                    "size": 7.0,
+                    "origin": (138, 97.5),
+                    "bbox": [138, 91, 144, 98],
+                },
+            ],
+            "bbox": [100, 90, 144, 101],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$x^{2}$" in out or "$x^2$" in out
+
+    def test_non_math_block_fast_path(self) -> None:
+        """无数学字体的行：返回拼接散文（不被 math 逻辑干扰）。"""
+        line = {
+            "spans": [
+                {
+                    "text": "Hello world",
+                    "font": "XCharter-Roman",
+                    "size": 11.0,
+                    "origin": (100, 100.0),
+                    "bbox": [100, 90, 160, 101],
+                },
+                {
+                    "text": "this is prose.",
+                    "font": "XCharter-Roman",
+                    "size": 11.0,
+                    "origin": (160, 100.0),
+                    "bbox": [160, 90, 230, 101],
+                },
+            ],
+            "bbox": [100, 90, 230, 101],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$" not in out
+        assert "Hello world" in out
+
+
+class TestR11ScriptDetectionThreshold:
+    """R11-D：detect_script_type 阈值校准（XCharter 下标 ~1.6pt 偏移）。"""
+
+    def test_subscript_small_offset_detected(self) -> None:
+        """1.6pt 偏移 + ratio 0.66 → subscript（旧 2.0 阈值会漏检）。"""
+        result = detect_script_type(
+            span_size=7.3, span_origin_y=340.1, baseline_y=338.5, normal_size=11.0
+        )
+        assert result == "subscript"
+
+    def test_existing_subscript_still_works(self) -> None:
+        """5pt 偏移仍判 subscript（既有用例零回归）。"""
+        result = detect_script_type(
+            span_size=8.0, span_origin_y=105.0, baseline_y=100.0, normal_size=12.0
+        )
+        assert result == "subscript"
+
+
+# ============================================================
+# TestR11DoubleSubscriptMerge — 连续同型 sub/sup 合并（防 KaTeX Double subscript）
+# ============================================================
+class TestR11DoubleSubscriptMerge:
+    """R11-D2：连续同型下标/上标 span 合并为单个 ``_{...}``/``^{...}``。"""
+
+    def _span(self, text, font, size, oy):
+        return {
+            "text": text,
+            "font": font,
+            "size": size,
+            "origin": (100, oy),
+            "bbox": [100, oy, 120, oy + 10],
+        }
+
+    def test_two_letter_subscript_merged(self):
+        """``M_{θt}`` 不产生 ``M_{\\theta}_{t}`` 双下标。"""
+        line = {
+            "spans": [
+                self._span("M", "XCharterMathMI", 10.0, 100.0),
+                self._span("θ", "XCharterMathMI", 7.0, 102.0),
+                self._span("t", "XCharterMathMI", 7.0, 102.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$M_{\\theta t}$" in out
+        # 不产生双下标
+        assert "_{" in out and out.count("_{") == 1
+
+    def test_multichar_subscript_merged(self):
+        """``t_{i-1}`` 的 i/-/1 三个 sub span 合并为单个 ``_{i-1}``。"""
+        line = {
+            "spans": [
+                self._span("t", "XCharterMathMI", 10.0, 100.0),
+                self._span("i", "XCharterMathMI", 7.0, 102.0),
+                self._span("-", "XCharterMathMI", 7.0, 102.0),
+                self._span("1", "XCharterMathMI", 7.0, 102.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$t_{i-1}$" in out
+
+    def test_subscript_then_supcript_not_merged(self):
+        """``x_i^j``：sub 后接 sup 不合并（合法 LaTeX）。"""
+        line = {
+            "spans": [
+                self._span("x", "XCharterMathMI", 10.0, 100.0),
+                self._span("i", "XCharterMathMI", 7.0, 102.0),
+                self._span("j", "XCharterMathMI", 7.0, 98.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "_{" in out and "^{" in out
+        assert out.count("_{") == 1 and out.count("^{") == 1
+
+    def test_baseline_from_normal_size_spans(self):
+        """基线取自正文字号 span，避免下标拉低中位 baseline。"""
+        # 2 sub spans + 1 base — old median-baseline would pick sub baseline
+        line = {
+            "spans": [
+                self._span("Z", "XCharterMathMI", 10.0, 100.0),
+                self._span("s", "XCharterMathMI", 7.0, 102.0),
+                self._span("k", "XCharterMathMI", 7.0, 102.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$Z_{sk}$" in out or "$Z_{s k}$" in out
+        assert out.count("_{") == 1
