@@ -2261,6 +2261,22 @@
   4. **NFKD 折叠是 Unicode 数学↔LaTeX 跨形式去重的前提**：仅保留 ASCII 会把数学字母块（U+1D400–1D7FF）签名坍缩，须先 `unicodedata.normalize("NFKD")`；
   5. **figure caption 双源**：多数 figure caption 已烘入 region PNG 像素，wiki/ui 不宜再从 alt 渲染 figcaption（双图注）。
 
+### 第四轮迭代（R11，2026-07-05）：同基线长尾抛光（封面 icon / URL 拆分 / 引用括号 / 数学下标 / 度数）
+
+R10 闭环后继续在**同一 88 页综述基线**上做渲染态长尾抛光，挖出 R10 之后剩余的 6 类失真（A/B/B2/C/D/F）。完整逐项根因 / 修复 / 单测见 [pdf-harness-engineering-parity.md §10](./pdf-harness-engineering-parity.md#10-r11-增量self-improving-agents-综述长尾抛光同基线深化)，此处仅记跨上下文复用要点：
+
+- **D（数学下标/上标拍平）是本轮主菜，亦最难**：根因在 PyMuPDF 把 ``U_t`` 抽为「主字号 span + 更小更低 baseline 的 sub span」，plain `" ".join` 拍平为 ``𝑈𝑡``、经 `_normalize_unicode_math` 包成 ``$Ut$``（无下标）。修复需在 text_extraction `_extract_chunk` 阶段，对含数学字体的块用 `FormulaReconstructor.reconstruct_line_formulas` 逐行重建（sub/sup → ``_{...}``/``^{...}``，包 ``$...$``）。下游 formatter 的 `_normalize_unicode_math` split-and-skip 天然保留既存 ``$...$``，零冲突。
+- **D 一阶段上线即触发 25 处 Double subscript KaTeX ParseError**（``M_{\theta}_{t}``），DB 层完全不可见，仅浏览器实机暴露——再次印证「1:1 验收必须走到浏览器渲染态」。D2 用「连续同型 sub/sup 合并为单 ``_{...}``」修复。
+- **几何启发式两个易错锚点**：(a) `normal_size` 取 ``max(sizes)`` 而非众数——纯数学行 sub span 数量 > base 时众数会被拉到 sub 字号；(b) baseline 取自「正文字号 span 的 origin」而非所有 span 中位数——多 sub 行的中位 origin 会被 sub 拉低。两个锚点错任一都会致 sub 误判 normal、漏 ``_{}``。
+- **零成本红利：B/B2 修 URL 后 GFM autolink 免费恢复 278 处超链接**。修 ``https: //`` 与路径拆分后，裸 URL 由 remark-gfm 自动渲染 ``<a>``，无需额外链路。
+- **citation 年份正则的字母消歧后缀陷阱**：``\b2026\b`` 在 ``2026b`` 处无词边界，须 ``\b2026[a-z]?\b``；初版漏此致 5 处 letter-suffix 引用未收紧。
+- **同形字符的语义边界**：U+25E6 ``◦`` 在表格是 partial-support 标记（合法）、在度数位是 ``°`` 误代（缺陷），用「数字前缀」作语义守卫精准区分；``§`` 在 ``§8.2`` 是章节号、在 ``§ GitHub`` 是 icon-font mojibake，用「按钮词上下文」区分。
+- **防范要点**：
+  1. **几何启发式须锚到「正文」基准**：normal_size = max（base 最大）；baseline = 正文字号 span 的 origin。两个锚点都对「sub 主导的纯数学行」稳健。
+  2. **连续同型 sub/sup 必须合并**：per-span ``_{...}`` 会产生 ``M_{a}_{b}`` Double subscript；用 pending buffer 收集同型组、一次性 ``math_text_to_latex`` 处理（保留 ``\theta t`` 字母间空格）。
+  3. **re 的 ``\u`` 与 Python 字面量 ``\u`` 语义不同**：raw 串 ``r"◦"`` 在 re 报 ``bad escape \u``；用非 raw 串或字面字符。
+  4. **D 类改动验收看浏览器 KaTeX 错误数**，DB ``_{}`` 计数不反映双下标错误。
+
 ### 第三轮迭代（2026-05-25 端到端质量回归：断字 / 公式漏检 / 标题误判 / TOC 错乱 / 图片孤儿）
 
 第二轮收尾后切到 71 页双栏 LaTeX 论文 `50714_Agent_Harness_Engineerin.pdf` 做端到端基线回归，再次定位 5 类独立根因（与第一/二轮正交、可单独 cherry-pick）：

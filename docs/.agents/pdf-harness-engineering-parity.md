@@ -286,3 +286,54 @@ in the Era of Experience*（88 页 / A4 / LaTeX+hyperref / 数学符号密集 / 
 - **figure caption 双源风险**：多数 figure 的 caption 已烘入 figure region PNG
   （像素），故 wiki/ui 端不宜再从 alt 渲染 figcaption（会双图注）；caption 语义
   由 alt 承载（无障碍 + 去重指纹），视觉由图内像素承载。
+
+## 10. R11 增量：Self-Improving Agents 综述长尾抛光（同基线深化）
+
+### 10.1 引发背景
+
+R10 把该 88 页综述的 9 类失真闭环、各维转绿后，R11 在**同一基线 PDF** 上做「长尾抛光」——继续以浏览器逐页实机对比为唯一验收标准，挖出 R10 之后剩余的、仅在渲染态或细节层暴露的 6 类失真（A–F）。本轮**未引入新回归**：既有单测 + 新增 38 例全绿（3 例 `test_config` 失败为预先存在的环境漂移——`concurrent_requests` 默认值变更，与本轮无关）。
+
+### 10.2 六类失真修复
+
+| ID | 失真 | 责任 stage / 文件 | 修复手段 | 单测 |
+|---|---|---|---|---|
+| **R11-A** | 封面 icon-font 字形残留（``\x80 HomePage § GitHub``）| [`markdown/formatter.py`](../../apps/negentropy-perceives/src/negentropy/perceives/markdown/formatter.py) | (a) `_basic_cleanup` 加 C1 控制字符 strip（U+0080–U+009F）；(b) `_apply_typography_fixes` 加按钮词间 ``§`` icon 剥离（复用 R9 D-1b 按钮词表）| `test_formatter_r11_typography.py::TestFormatterR11CoverIconGlyph`（4）|
+| **R11-B** | URL 协议拆分 ``https: //`` | 同上 | `_apply_typography_fixes` 加 ``\b(https?:)\s+//`` → ``\1//``；压缩后裸 URL 由 remark-gfm autolink 渲染为可点击链接 | `TestFormatterR11UrlRejoin`（4）|
+| **R11-B2** | URL 路径段换行拆分 ``arxiv.org/ abs/`` | 同上 | 新增 `_URL_PATH_SPACES_RE` + `_collapse_url_path_spaces`，匹配 `https?://domain.tld` 后路径段（允许 ``/`` 两侧单空格），折叠斜杠两侧空格；完好 URL 零影响 | `TestFormatterR11UrlPathCollapse`（4）|
+| **R11-C** | 作者-年份引用括号内侧空格 ``[ Author et al., YYYY ]`` | 同上 | 新增 `_tighten_citation_bracket`：括号内容含 4 位年份（含字母消歧后缀 ``2026b``）或 ``et al.`` 时压缩内侧空格；token 记号 ``[CLS]`` / GFM 任务框 ``[ ]`` 不命中 | `TestFormatterR11CitationBracket`（7）|
+| **R11-D** | inline 数学下标/上标拍平（``U_t`` → ``$Ut$``）| [`pdf/math_formula.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pdf/math_formula.py) + [`text_extraction.py`](../../apps/negentropy-perceives/src/negentropy/perceives/pipeline/stages/pdf/text_extraction.py) | (a) `_MATH_FONT_PATTERNS` 加 ``XCharter.*Math`` / ``Charter.*Math``；(b) 新增 `math_text_to_latex`（覆盖 U+1D400–1D7FF 数学字母块，两阶段补 ``\name`` 命令空格）；(c) `detect_script_type` ``y_offset_threshold`` 2.0→1.0（XCharter 下标 drop ~1.6pt）；(d) `FormulaReconstructor.reconstruct_line_formulas` 空格感知 ``_push`` + `_extract_chunk` 对含数学字体块逐行重建；(e) **D2** 连续同型 sub/sup 合并为单 ``_{...}``（防双下标）+ ``normal_size=max(sizes)`` + baseline 取自正文字号 span（防下标拉低中位 baseline）| `test_math_formula.py::TestR11*`（13）|
+| **R11-F** | 度数符号脱离 ``45 ◦`` | `formatter.py` | `_apply_typography_fixes` 加 ``(\d)\s*◦`` → ``\1°``；表格中独立 ``◦``（partial-support 标记，Table 5）无数字前缀不受影响 | `TestFormatterR11DegreeSymbol`（3）|
+
+### 10.3 量化效果（88 页综述全本，R11c 浏览器实机 :3092）
+
+| 维度 | R10 | R11 | 状态 |
+|---|---|---|---|
+| KaTeX ParseError（浏览器）| 0 | **0** | ✅（D 一阶段曾引入 25 处 Double subscript，经 D2 修复归零）|
+| KaTeX inline 渲染 | ~147 | **494** | ✅（数学字母块 + 下标/上标还原）|
+| KaTeX display 渲染 | 15 | **15** | ✅ |
+| inline ``$...$`` 数学（DB）| 136 | **483** | ✅ |
+| 下标 ``_{}`` | 0 | **115** | ✅（D）|
+| 上标 ``^{}`` | 0 | **27** | ✅（D，含封面作者上标 ``$^{1}$`` / ``$^{\dagger}$`` 等，附带修复 R10 遗留 E 类作者上标拍平）|
+| 行内引用 ``[ Author`` 残留 | 492 | **2** | ✅（C；剩 2 为 ``[ R(τ) ]`` 数学记号，正确保留）|
+| URL ``https: //`` | 31 | **0** | ✅（B）|
+| URL 路径拆分 ``domain/ x`` | 25 | **0** | ✅（B2）|
+| 度数 ``45 ◦`` | 12 | **0** | ✅（F）|
+| 封面 ``\x80`` / ``§ GitHub`` | 1 / 1 | **0 / 0** | ✅（A）|
+| 可点击 arxiv/github 链接 | 0（URL 全坏）| **278** | ✅（B+B2 后 GFM autolink 免费恢复）|
+| 全本耗时 | 180–300s | **476s** | ⚠️ text_extraction 仅 2.4s（D 零开销），增量来自 mineru formula（186s）+ docling layout（47s）固有瓶颈，非本轮代码 |
+
+### 10.4 关键洞察（沉淀）
+
+- **D 验证盲区：DB 层「看似正确」，浏览器才暴露双下标**：D 一阶段上线后浏览器报 25 处 ``M_{\theta}_{t}`` Double subscript（连续 sub span 各自 ``_{...}``），DB markdown 层完全不可见。再次印证 §9.4「1:1 验收必须走到浏览器渲染态」。D2 用「连续同型合并 + baseline 取自正文字号」修复。
+- **几何启发式的 baseline 锚点必须锚到正文字号 span**：原 `reconstruct_line_formulas` 用所有 span origin 中位数作 baseline，纯数学行（sub span 多）会被 sub 拉低致全行误判 normal、漏 ``_{}``。改用「正文字号 span 的 origin 中位」+ ``normal_size=max(sizes)`` 后稳定。
+- **citation 年份正则需兼容字母消歧后缀**：``\b2026\b`` 在 ``2026b`` 处无词边界（``b`` 亦 word char），须 ``\b2026[a-z]?\b``。R11-C 初版漏此致 5 处 letter-suffix 引用未收紧。
+- **B/B2 后 GFM autolink 是零成本红利**：修复裸 URL 后无需额外链路，remark-gfm 自动渲染为 ``<a>``，278 处链接「免费」恢复 PDF 超链接保真。
+- **度数 ``◦`` vs 表格 ``◦`` 的语义边界**：同一字符 U+25E6 在表格是 partial-support 标记（合法）、在度数位是 ``°`` 误代（缺陷）。用「数字前缀」作语义守卫，精准区分两类用途。
+- **re 全程可用的 `\u` 陷阱**：raw 字符串 ``r"...◦..."`` 中 ``\uHHHH`` 在 re 引擎报 ``bad escape \u``（与 Python 字符串字面量语义不同），用非 raw 串或字面字符规避。
+
+### 10.5 端到端验证 Runbook（R11 增量约束）
+
+沿用 §8 三条硬约束（重启 MCP + 清 checkpoint + 浏览器实机验收）。R11 额外约束：
+
+- 改 `FormulaReconstructor` / `math_text_to_latex` / `_extract_chunk` 几何逻辑后，**必须重启 MCP + 清 `.batch_state`**（D 阶段代码高频迭代，resume 会跳过新代码——本轮曾因 checkpoint 残留触发二次任务 resume）。
+- D 类几何改动验收**必须看浏览器 KaTeX 错误数**，DB 层 ``_{}`` 计数不能反映双下标/双上标错误。
