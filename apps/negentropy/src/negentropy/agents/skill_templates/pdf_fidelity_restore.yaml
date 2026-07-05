@@ -136,7 +136,7 @@ resources:
     ref: http://localhost:3092/wiki/harness-engineering/paper/self-improving-agents-in-the-era-of-experience-a-survey-of-self-to-meta-evolution-pdf/
     title: R10 基线示例（88 页综述 wiki 渲染对照）
     lazy: true
-  - type: doc
-    ref: docs/.agents/pdf-harness-engineering-parity.md
+  - type: url
+    ref: https://github.com/ThreeFish-AI/negentropy/blob/master/docs/.agents/pdf-harness-engineering-parity.md
     title: PDF 一比一还原质量迭代（§9 R10 九项修复）
     lazy: true

@@ -172,8 +172,8 @@ RESOURCES = [
         "lazy": True,
     },
     {
-        "type": "doc",
-        "ref": "docs/.agents/pdf-harness-engineering-parity.md",
+        "type": "url",
+        "ref": "https://github.com/ThreeFish-AI/negentropy/blob/master/docs/.agents/pdf-harness-engineering-parity.md",
         "title": "PDF 一比一还原质量迭代（§9 R10 九项修复）",
         "lazy": True,
     },
