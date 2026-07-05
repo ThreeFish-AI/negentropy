@@ -7,8 +7,9 @@
  */
 
 import type { AgentRole, PlanReviewPayload, RoutineIterationEventDTO } from "@/features/routine";
+import type { Citation, ToolProgressSnapshot } from "@/types/common";
 
-import type { EventGroup, TaskStatus } from "../status-style";
+import type { EventGroup, TaskStatus } from "./status-shared";
 
 // ---------------------------------------------------------------------------
 // 工具调用细节（判别联合）—— 由 (tool_name, input, output) 派生
@@ -70,8 +71,22 @@ export type HumanReplyMode =
  */
 export type TranscriptItem =
   /** 开场「人（一核 Engine）→ 机」任务下发回合——由 iteration.prompt 合成，非事件流原始项。 */
-  | { kind: "task_dispatch"; prompt: string }
-  | { kind: "assistant"; seq: number; id: string; text: string; thinking: boolean }
+  | { kind: "task_dispatch"; prompt: string; nodeId?: string }
+  /** Studio 用户文本（人 = 真实用户，居右气泡）；Routine 不产出。 */
+  | { kind: "user"; seq: number; id: string; text: string; streaming?: boolean; nodeId?: string }
+  | {
+      kind: "assistant";
+      seq: number;
+      id: string;
+      text: string;
+      thinking: boolean;
+      streaming?: boolean;
+      /** Studio 机侧 per-agent 归因；Routine 不填（保持现有裸文观感）。 */
+      role?: AgentRole;
+      /** Studio 引用尾注（首个 text 段挂载）；Routine 不填。 */
+      citations?: Citation[];
+      nodeId?: string;
+    }
   | {
       kind: "tool";
       seq: number;
@@ -84,6 +99,11 @@ export type TranscriptItem =
       /** tool_use 无配对 tool_result 且处于在途实时态 → 仍在运行。 */
       running: boolean;
       taskStatus: TaskStatus | null;
+      /** Studio 机侧 per-agent 归因。 */
+      role?: AgentRole;
+      /** Studio 流式工具进度（state_delta 旁路）。 */
+      progress?: ToolProgressSnapshot | null;
+      nodeId?: string;
     }
   /** 连续 ≥3 个工具调用折叠为 summary 行（Conductor 范式），可展开还原。 */
   | {
@@ -94,6 +114,9 @@ export type TranscriptItem =
       /** 去重后的工具显示名集合。 */
       toolNames: string[];
       collapsed: Extract<TranscriptItem, { kind: "tool" }>[];
+      /** Studio 机侧 per-agent 归因。 */
+      role?: AgentRole;
+      nodeId?: string;
     }
   /** machine → human：CC 通过 ExitPlanMode / AskUserQuestion 向「人」提交 Plan / 问题，等待裁决。 */
   | {
@@ -107,6 +130,9 @@ export type TranscriptItem =
       body: { text?: string; questions?: unknown[] };
       /** 无配对「人」应答且处于在途实时态 → 等待中。 */
       pending: boolean;
+      /** Studio 机侧 per-agent 归因。 */
+      role?: AgentRole;
+      nodeId?: string;
     }
   /** human → machine：「人」（6 Agent）对 CC 的应答；role 标识扮演该动作的 Agent。 */
   | {
@@ -122,7 +148,10 @@ export type TranscriptItem =
       role: AgentRole;
       /** 配对的 CC 提交 seq（hook 模式无法精确配对时为 null）。 */
       requestSeq: number | null;
+      nodeId?: string;
     }
-  | { kind: "engine"; seq: number; id: string; event: RoutineIterationEventDTO; group: EventGroup }
-  | { kind: "system"; seq: number; id: string; event: RoutineIterationEventDTO }
+  | { kind: "engine"; seq: number; id: string; event: RoutineIterationEventDTO; group: EventGroup; nodeId?: string }
+  | { kind: "system"; seq: number; id: string; event: RoutineIterationEventDTO; nodeId?: string }
+  /** Studio 纯文本系统/状态/摘要行（system / turn-status / summary）；区别于 Routine 包 DTO 的 system。 */
+  | { kind: "system_note"; seq: number; id: string; text: string; nodeId?: string }
   | { kind: "truncated"; seq: number; id: string; title: string | null };

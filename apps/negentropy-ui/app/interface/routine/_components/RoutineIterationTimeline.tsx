@@ -11,7 +11,7 @@ import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfinit
 import { cn } from "@/lib/utils";
 
 import { LiveElapsed, StaticDuration } from "./ElapsedClock";
-import { MarkdownText } from "./MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 import { ACTIVE_TIMING } from "./routine-loop";
 import { iterationDotClass, phaseClass, phaseLabel, scoreColorClass, verdictClass } from "./status-style";
 

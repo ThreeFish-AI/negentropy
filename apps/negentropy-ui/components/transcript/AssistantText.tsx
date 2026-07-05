@@ -4,8 +4,9 @@ import { useState } from "react";
 import { AlertTriangle, Brain, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { MarkdownContent } from "@/components/ui/MessageBubble";
 
-import { MarkdownText } from "../MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 import type { TranscriptItem } from "./types";
 
 /** CC 自报交互异常的模式（如 AskUserQuestion 在 headless 下被 CLI 报错）——命中则红显，让断链可见。 */
@@ -30,6 +31,17 @@ export function AssistantText({ item }: { item: Extract<TranscriptItem, { kind: 
   }
   if (item.thinking) {
     return <ThinkingText text={item.text} />;
+  }
+  // Studio 引用尾注：citations 非空时走 MessageBubble.MarkdownContent（内联 [N] + 尾注块）；
+  // 否则维持 Routine 的轻量 MarkdownText（零回归）。
+  if (item.citations && item.citations.length > 0) {
+    return (
+      <MarkdownContent
+        content={item.text}
+        isStreaming={!!item.streaming}
+        citations={item.citations}
+      />
+    );
   }
   // 正文提亮至 foreground，贴合 paseo 中栏对比度
   return <MarkdownText content={item.text} className="[&_li]:text-foreground [&_p]:text-foreground" />;

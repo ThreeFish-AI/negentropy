@@ -5,7 +5,7 @@ import { ChevronRight, FileText, HelpCircle, LogOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import { MarkdownText } from "../MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 import type { CcRequestMode, TranscriptItem } from "./types";
 
 /** mode → 卡片标题 + 图标（对齐 Conductor「Review plan」/「Answer question」范式）。 */

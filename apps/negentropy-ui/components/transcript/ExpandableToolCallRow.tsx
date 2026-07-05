@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import { taskStatusDotClass, taskStatusLabel } from "../status-style";
+import { taskStatusDotClass, taskStatusLabel } from "./status-shared";
 import { deriveToolCallDetail } from "./derive-tool-detail";
 import { LucideGlyph } from "./Icon";
 import { buildToolCallDisplayModel } from "./tool-call-display";
@@ -126,6 +126,14 @@ export function ExpandableToolCallRow({ item }: { item: Extract<TranscriptItem, 
 
         {/* 运行中脉冲点 */}
         {item.running ? <span className="inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-sky-500" /> : null}
+
+        {/* Studio 流式工具进度（state_delta 旁路；缺省不渲染，零 Routine 回归） */}
+        {item.progress && typeof item.progress.percent === "number" ? (
+          <span className="flex shrink-0 items-center gap-1 text-caption tabular-nums text-text-muted">
+            {item.progress.stage ? <span className="max-w-[14ch] truncate" title={item.progress.stage}>{item.progress.stage}</span> : null}
+            <span>{Math.max(0, Math.min(100, Math.round(item.progress.percent)))}%</span>
+          </span>
+        ) : null}
 
         {/* error 标记 */}
         {item.isError ? (

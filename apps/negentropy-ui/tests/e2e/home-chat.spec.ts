@@ -514,16 +514,18 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
     timeout: 10_000,
   });
 
-  // 关键守卫：tool group + 双 text 段时，assistant message-bubble 严格 = 1（聚合到一个气泡内）
+  // 关键守卫：tool group + 双 text 段时，两个 assistant 文本气泡各渲染 1 次（无 dedup 重复），
+  // user 气泡严格 = 1。新转录 UI 把「text1 → tool → text2」按段拆为 2 个 assistant 气泡 +
+  // 独立工具行（不再聚合到单个 AssistantReplyBubble），故 assistant count = 2。
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="user"]'),
   ).toHaveCount(1);
 
-  // tool-group 渲染
-  await expect(page.getByText(/Tool|search_papers|Parallel/i).first()).toBeVisible();
+  // 工具行渲染（ExpandableToolCallRow：search_papers → humanize "Search Papers"）
+  await expect(page.getByRole("button", { name: /Search Papers|search_papers/i }).first()).toBeVisible();
 
   // reload 后保持
   await page.reload();
@@ -532,7 +534,7 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
   });
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
 });
 
 // ============================================================================
