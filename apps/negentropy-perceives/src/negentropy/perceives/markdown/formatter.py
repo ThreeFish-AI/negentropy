@@ -635,6 +635,32 @@ class MarkdownFormatter:
                 ),
                 markdown_content,
             )
+            # inline 公式重组：合并被纯数学符号分隔的相邻 $..$ 片段
+            # （_normalize_unicode_math 把数学字形独立包裹，★/≤/∈/Π 等运算符
+            # 留 $..$ 外致公式断裂，如 "$J$ ★ $(E):=$"）。仅当两 $..$ 间分隔符
+            # 仅含数学符号/希腊字母/空格（无 ASCII 字母词，挡 "$x$ and $y$"）
+            # 时合并。含 sup/log 等字母函数词的仍部分碎片（需 text_extraction
+            # 字号检测的架构改动，本 pass 不处理）。
+            _inline_math_glue = set(
+                "★☆∈∉⊆⊂⊇⊃∪∩×÷±∓∑∏∫∞≤≥<>≈≠→←↔⟶⇒⇔·•+-=,:;^_()[]/\\ \t"
+                "ΠΣΩΛΦΨΔΘαβγδεζηθικλμνξοπρστυφχψω"
+            )
+
+            def _merge_math_once(text: str) -> str:
+                pat = re.compile(r"\$([^$\n]+)\$([^\$\n]{1,12}?)\$([^$\n]+)\$")
+
+                def _mh(m: "re.Match[str]") -> str:
+                    sep = m.group(2)
+                    if sep.strip() and all(c in _inline_math_glue for c in sep):
+                        return f"${m.group(1)}{sep}{m.group(3)}$"
+                    return m.group(0)
+
+                return pat.sub(_mh, text)
+
+            prev_math = None
+            while prev_math != markdown_content:
+                prev_math = markdown_content
+                markdown_content = _merge_math_once(markdown_content)
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
