@@ -60,3 +60,4 @@ overrides:
   js-yaml: '>=4.2.0'          # @eslint/eslintrc 传递 (dev, GHSA medium)
   '@babel/core': '>=7.29.6 <8.0.0'   # @vitejs/plugin-react/next/styled-jsx peer ^7.0.0; 限 <8 避免 Babel 8 大版本跳跃破坏兼容 (GHSA low)
   esbuild: '>=0.28.1'         # vite + tsup 传递 (dev, GHSA low)
+  ts-deepmerge: '>=8.0.0'     # @copilotkitnext/react@1.51.3 传递 (negentropy-ui 运行时); 8.0.0 仅改 Object.prototype 同名键处理 (DoS 修复点), 常规 merge API 不变 — GHSA-87mf-gv2c-c62c CVE-2026-12644 (medium)
