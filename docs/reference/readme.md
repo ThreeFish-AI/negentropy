@@ -6,7 +6,7 @@
 
 ## 一、Cognizes 引擎 · `cognizes/`
 
-Agentic AI 引擎内核的验证资产：项目级 PRD/计划、五阶段（Pulse / Hippocampus / Perception / Realm / Mind / Demo）实施方案、配套 DDL 与开发/测试/CI 指南。
+Agentic AI 引擎内核的验证资产：项目级 PRD/计划、五阶段（Pulse / Hippocampus / Perception / Realm of Mind / Demo）实施方案、配套 DDL 与开发/测试/CI 指南。
 
 | 文档 | 主旨 |
 |:---|:---|
