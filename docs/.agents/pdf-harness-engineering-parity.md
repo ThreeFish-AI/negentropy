@@ -232,6 +232,13 @@ curl -X POST "http://localhost:3292/knowledge/base/{corpus}/documents/{doc}/refr
 
 ## 9. R10 增量：Self-Improving Agents 综述（88 页 / A4 双栏 LaTeX）
 
+### 9.0 基线样本（Codify 锚点）
+
+- **源 PDF**：`/Users/cm.huang/Documents/projects/aurelius/negentropy/assets/papers/source/Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution.pdf`（88 页 / A4 双栏 LaTeX）。
+- **Corpus**：Harness Engineering（`corpus_id=43bacd7e-d334-4ebe-b3f8-c724ce24ba6a`，`doc_id=9045a031-4a52-4992-b0ae-285dc76dac1a`）。
+- **wiki 渲染对照**：`http://localhost:3092/wiki/harness-engineering/paper/self-improving-agents-in-the-era-of-experience-a-survey-of-self-to-meta-evolution-pdf/`
+- **同源三件套**：Skill [`.agent/skills/pdf-fidelity-restore/SKILL.md`](../../.agent/skills/pdf-fidelity-restore/SKILL.md) + [`skill_templates/pdf_fidelity_restore.yaml`](../../apps/negentropy/src/negentropy/agents/skill_templates/pdf_fidelity_restore.yaml)（DB 重播见 migration `0090`）；巡检派生 Routine 定义 [`patrol_prompt.py`](../../apps/negentropy/src/negentropy/engine/routine/patrol_prompt.py)。本文档为该三件套的 **R10 基线示例**（巡检仍动态选文档，本 PDF 不固定为回归锚点）。
+
 ### 9.1 引发背景
 
 R9 基线是单栏教材（Agentic Design Patterns）；R10 选取 *Self-Improving Agents

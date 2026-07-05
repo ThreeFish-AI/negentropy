@@ -2260,6 +2260,7 @@
   3. **1:1 还原验收必须走到浏览器渲染态**：Q7/Q8/Q9 在 DB markdown 层均"看似正确"，仅 KaTeX/图片渲染后才暴露；
   4. **NFKD 折叠是 Unicode 数学↔LaTeX 跨形式去重的前提**：仅保留 ASCII 会把数学字母块（U+1D400–1D7FF）签名坍缩，须先 `unicodedata.normalize("NFKD")`；
   5. **figure caption 双源**：多数 figure caption 已烘入 region PNG 像素，wiki/ui 不宜再从 alt 渲染 figcaption（双图注）。
+  6. **Codify 沉淀（2026-07-05）**：本轮洞察已对齐进三件套——巡检派生 Routine 的 `PATROL_SYSTEM_PROMPT`（`engine/routine/patrol_prompt.py`）step 1 前置 `rm -rf output/.batch_state`（CLI 不暴露 `--no-resume`，只能靠清 checkpoint 生效）；Skill 双 twin（`.agent/skills/pdf-fidelity-restore/SKILL.md` + `skill_templates/pdf_fidelity_restore.yaml@1.1.0`）补「热更铁律 / 关键洞察」并修 perceives 死链，经 migration `0090` 非破坏重播到 live DB 全局技能行（`is_global`，供一核五翼）。
 
 ### 第三轮迭代（2026-05-25 端到端质量回归：断字 / 公式漏检 / 标题误判 / TOC 错乱 / 图片孤儿）
 
