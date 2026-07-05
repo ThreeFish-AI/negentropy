@@ -443,6 +443,49 @@ def _has_math_alnum_block(s: str) -> bool:
     return any(0x1D400 <= ord(c) <= 0x1D7FF for c in s)
 
 
+# R11-C：作者-年份引用括号内侧空格压缩的判定函数。
+# 命中条件——括号内容满足任一引用信号：
+#   - 含 4 位年份（``1999``–``2099``），允许尾部单个消歧小写字母（``2026b``）；
+#   - 含 ``et al.``（多作者引用）。
+# 不命中则原样返回，避免误伤 ``[CLS]`` / ``[MASK]`` / ``[note]`` 等 token 记号
+# 与 GFM 任务框 ``[ ]`` / ``[x]``（内容非空但无引用信号）。
+# 注：年份后 ``[a-z]?`` 适配 ``\citep`` 风格的 ``2026b`` / ``2025a`` 消歧后缀——
+# 单纯 ``\b2026\b`` 在 ``2026b`` 处无词边界（``b`` 亦 word char），会漏判。
+_CITATION_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}[a-z]?\b")
+_TIGHTEN_CITATION_BRACKET_MIN_LEN = 4
+
+
+# R11-B2：URL 路径段换行拆分空格折叠。
+# 匹配 ``https?://domain.tld`` 后的路径段（每段以 ``/`` 起始，允许两侧单空格
+# 容纳 PyMuPDF 换行插入的空格），由 ``_collapse_url_path_spaces`` 把斜杠两侧
+# 空格清零。完好 URL（无空格）经 ``[ \t]*/[ \t]*`` → ``/`` 等价替换零影响。
+# R11-B2 fix：用 ``[ \t]*`` 而非 ``\s*``——本 pass 经 ``protect_math_content``
+# 全文档一次性调用（仅保护 ``$...$``，不保护散文/代码块），``\s*`` 跨 ``\n`` 会让
+# 行尾裸 URL 与下一行 ``/...`` 起首融合（``.../v2\n/key`` → ``.../v2/key``）。
+# PyMuPDF 的换行插入物是单个空格，``[ \t]*`` 既能覆盖又不会跨行。
+_URL_PATH_SPACES_RE = re.compile(
+    r"https?://[\w.-]+(?:[ \t]*/[ \t]*[\w.\-~%?:@&=+,#()*]+)+"
+)
+
+
+def _collapse_url_path_spaces(m: re.Match) -> str:
+    # 仅折叠行内空格/制表符——跨行融合由外层正则的 ``[ \t]*`` 边界阻断。
+    return re.sub(r"[ \t]*/[ \t]*", "/", m.group(0))
+
+
+def _tighten_citation_bracket(m: re.Match) -> str:
+    inner = m.group(1)
+    stripped = inner.strip()
+    # 仅当首尾确有被折叠进来的空格时才需要改（避免对正常 ``[Author]`` 反复 hit）
+    if len(inner) == len(stripped):
+        return m.group(0)
+    if len(stripped) < _TIGHTEN_CITATION_BRACKET_MIN_LEN:
+        return m.group(0)
+    if _CITATION_YEAR_RE.search(stripped) or "et al." in stripped:
+        return f"[{stripped}]"
+    return m.group(0)
+
+
 class MarkdownFormatter:
     """Markdown formatting pipeline for enhancing raw Markdown output."""
 
@@ -1306,8 +1349,57 @@ class MarkdownFormatter:
                 # \u81f4 ``<!-- orphan images ... -->`` \u88ab\u7834\u574f\u4e3a\u53ef\u89c1\u5783\u573e ``<!\u2014 \u2026 \u2014>``\u3002
                 text = re.sub(r"(?<![!\-])\-\-(?![\->])", "\u2014", text)
 
+                # R11-B\uff1aURL \u534f\u8bae\u88ab\u62c6\u5206\u7a7a\u683c\u538b\u7f29 ``https: //`` \u2192 ``https://``\u3002
+                # References \u533a PyMuPDF \u62bd\u53d6 ``https://`` \u65f6\u628a ``://`` \u62c6\u4e3a
+                # ``:`` + `` //`` \u4e24\u4e2a span\uff0c``" ".join`` \u63d2\u5165\u7a7a\u683c\u3002\u538b\u7f29\u540e\u88f8 URL
+                # \u7531 remark-gfm autolink \u81ea\u52a8\u6e32\u67d3\u4e3a\u53ef\u70b9\u51fb\u94fe\u63a5\uff0c\u6062\u590d PDF \u8d85\u94fe\u63a5\u4fdd\u771f\u3002
+                text = re.sub(r"\b(https?:)\s+//", r"\1//", text)
+
+                # R11-B2\uff1aURL \u8def\u5f84\u6bb5\u88ab\u6362\u884c\u7b26\u62c6\u5206\u7a7a\u683c\u538b\u7f29\u3002
+                # ``https://arxiv.org/ abs/2604.06126`` \u2192 ``https://arxiv.org/abs/2604.06126``\u3002
+                # PyMuPDF \u5728 URL \u8def\u5f84\u6362\u884c\u5904\u63d2\u5165\u7a7a\u683c\uff08\u659c\u6760\u540e\uff09\uff0cReferences \u533a 21 \u5904\u3002
+                # \u5339\u914d ``https?://domain.tld`` \u540e\u7684\u8def\u5f84\u6bb5\uff08\u5141\u8bb8 ``/`` \u4e24\u4fa7\u5355\u7a7a\u683c\uff09\uff0c
+                # \u628a\u659c\u6760\u4e24\u4fa7\u7a7a\u683c\u5168\u90e8\u6298\u53e0\u3002\u5b8c\u597d\u7684 URL\uff08\u65e0\u7a7a\u683c\uff09\u96f6\u5f71\u54cd\u3002
+                text = _URL_PATH_SPACES_RE.sub(_collapse_url_path_spaces, text)
+
+                # R11-F\uff1a\u5ea6\u6570\u7b26\u53f7\u8131\u79bb\u4fee\u590d\u3002PDF \u4e2d ``45\u00b0`` \u88ab PyMuPDF \u62bd\u4e3a ``45 \u25e6``
+                # \uff08U+25E6 WHITE BULLET \u8bef\u4ee3 U+00B0 DEGREE SIGN\uff0c\u4e14\u4e0e\u6570\u5b57\u95f4\u591a\u7a7a\u683c\uff09\u3002
+                # \u4ec5\u5728 ``\u25e6`` \u7d27\u8ddf\u6570\u5b57\uff08\u53ef\u9009\u7a7a\u683c\uff09\u65f6\u8fd8\u539f\u4e3a ``\u00b0`` \u5e76\u8d34\u5408\u2014\u2014\u8868\u683c\u4e2d\u72ec\u7acb\u7684
+                # ``\u25e6``\uff08partial-support \u6807\u8bb0\uff0cTable 5 \u7b49\uff09\u65e0\u6570\u5b57\u524d\u7f00\uff0c\u4e0d\u53d7\u5f71\u54cd\u3002
+                # \u7528\u975e raw \u5b57\u7b26\u4e32\u8ba9 Python \u5148\u628a ``\u25e6``/``\u00b0`` \u89e3\u7801\u4e3a\u5b57\u9762\u5b57\u7b26\uff0c
+                # \u518d\u4ea4 re \u5339\u914d\uff08re \u4e0d\u652f\u6301 ``\uHHHH`` escape\uff0craw \u4e32\u4f1a\u62a5 bad escape\uff09\u3002
+                text = re.sub("(\\d)\\s*\u25e6", "\\1\u00b0", text)
+
+                # R11-A：封面按钮行 icon 字形清理。``HomePage \xa7 GitHub`` 中的 ``\xa7``
+                # 是 GitHub 图标的 icon-font mojibake（非章节号），紧邻两个已知
+                # 按钮词时剥离。前置 ``\x80`` 等已由 _basic_cleanup 的 C1 strip 清除。
+                # R11-A fix：第一组限定为封面按钮实际用词 ``HomePage|Homepage``（不再
+                # 含 ``Page|Site|Website|Demo`` 等散文常用词），并去掉 ``IGNORECASE``——
+                # 避免误伤 ``Site \xa7 Source`` / ``Page \xa7 Repository`` 等真实 ``\xa7``
+                # 章节引用（综述散文中 ``\xa7`` 是合法章节号）。封面按钮为固定 title-case，
+                # 第二组已显式列举 ``Github|GitHub`` 双大小写，case-sensitive 仍能命中。
+                text = re.sub(
+                    r"\b(HomePage|Homepage)\s*\xa7\s+"
+                    r"(Github|GitHub|Code|Project|Repository|Source|Repo|Docs|Documentation)\b",
+                    r"\1 \2",
+                    text,
+                )
+
                 # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
                 text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
+
+                # R11-C\uff1a\u4f5c\u8005-\u5e74\u4efd\u5f15\u7528\u62ec\u53f7\u5185\u4fa7\u7a7a\u683c\u538b\u7f29
+                # ``[ Nakano et al., 2022 ]`` \u2192 ``[Nakano et al., 2022]``\u3002
+                # LaTeX hyperref \u7684\u5f15\u7528\u628a ``[`` / \u94fe\u63a5\u6587\u672c / ``]`` \u62bd\u4e3a\u72ec\u7acb span\uff0c
+                # ``" ".join`` \u5728\u62ec\u53f7\u5185\u4fa7\u63d2\u5165\u7a7a\u683c\uff0c\u4e0e PDF \u4e2d\u7d27\u8d34\u6587\u672c\u7684 ``[Author, Year]``
+                # \u4e0d\u4e00\u81f4\uff08\u5168\u6587\u6570\u767e\u5904\uff09\u3002\u538b\u7f29\u540e\u88f8 URL / \u5f15\u7528\u4ea6\u66f4\u5229\u4e8e GFM \u81ea\u52a8\u94fe\u63a5\u3002
+                # \u4ec5\u5f53\u62ec\u53f7\u5185\u5bb9\u51fa\u73b0 4 \u4f4d\u5e74\u4efd\u6216 ``et al.``\uff08\u5f15\u7528\u4fe1\u53f7\uff09\u624d\u538b\u7f29\uff0c\u907f\u514d\u8bef\u4f24
+                # ``[CLS]`` / ``[MASK]`` \u7b49 token \u8bb0\u53f7\u4e0e GFM \u4efb\u52a1\u6846 ``[ ]`` / ``[x]``\u3002
+                text = re.sub(
+                    r"\[([^\[\]\n]{2,})\]",
+                    _tighten_citation_bracket,
+                    text,
+                )
 
                 # \u91cd\u7ec4 PDF \u62c6\u89e3\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff1a``Pok \u00b4 emon`` / ``Baltru \u02c7 saitis``
                 # / ``Westh \u00a8 au\u00dfer`` / ``Perdig \u02dc ao`` \u7b49\u3002PyMuPDF \u628a
@@ -1708,6 +1800,12 @@ class MarkdownFormatter:
     def _basic_cleanup(self, markdown_content: str) -> str:
         """Apply basic cleanup operations."""
         try:
+            # R11-A：清除 C1 控制字符（U+0080–U+009F）。
+            # 这些是 PDF icon-font 字形的 mojibake 残留（如封面 HomePage 按钮前的
+            # U+0080 渲染为 ），在 markdown 中无意义且破坏视觉。U+0085 (NEL)、
+            # U+008A、U+008D 等同。仅清除 C1 区段，保留 Latin-1 可见字符（U+00A0+）。
+            markdown_content = re.sub(r"[\u0080-\u009f]", "", markdown_content)
+
             lines = []
             for line in markdown_content.split("\n"):
                 cleaned_line = line.rstrip()

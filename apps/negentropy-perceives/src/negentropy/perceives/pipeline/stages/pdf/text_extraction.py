@@ -24,9 +24,23 @@ from ...models import (
     TextExtractionOutput,
 )
 from ...registry import register_tool
+from ....pdf.math_formula import FormulaReconstructor, has_math_unicode, is_math_font
 from .._base import PDFToolBase
 
 logger = logging.getLogger(__name__)
+
+
+# R11-D：FormulaReconstructor 单例。用于 _extract_chunk 中含数学字体块的
+# 下标/上标重建（``U_t`` 的 ``t`` 在 PyMuPDF 中是更小+更低的独立 span，plain
+# join 会拍平为 ``Ut``）。FormulaReconstructor 无实例状态，单例复用即可。
+_MATH_RECONSTRUCTOR: Optional[FormulaReconstructor] = None
+
+
+def _get_math_reconstructor() -> FormulaReconstructor:
+    global _MATH_RECONSTRUCTOR
+    if _MATH_RECONSTRUCTOR is None:
+        _MATH_RECONSTRUCTOR = FormulaReconstructor()
+    return _MATH_RECONSTRUCTOR
 
 
 # ---------------------------------------------------------------------------
@@ -263,15 +277,19 @@ class FitzTextExtractor(PDFToolBase):
 
                     # 从 dict 块中提取文本和字体信息
                     block_spans = []
+                    block_has_math_span = False
                     for line in block.get("lines", []):
                         for span in line.get("spans", []):
                             text = span.get("text", "").strip()
                             if text:
+                                font_name = span.get("font", "")
+                                if is_math_font(font_name) or has_math_unicode(text):
+                                    block_has_math_span = True
                                 block_spans.append(
                                     {
                                         "text": text,
                                         "size": round(span.get("size", 10), 1),
-                                        "font": span.get("font", ""),
+                                        "font": font_name,
                                         "flags": span.get("flags", 0),
                                     }
                                 )
@@ -279,7 +297,22 @@ class FitzTextExtractor(PDFToolBase):
                     if not block_spans:
                         continue
 
-                    text = " ".join(s["text"] for s in block_spans)
+                    if block_has_math_span:
+                        # R11-D：含数学字体的块按行重建，恢复 inline 数学的下标/上标
+                        # （``U_t`` 的 ``t`` 在 PyMuPDF 中是更小+更低的 span，plain join
+                        # 会拍平为 ``Ut``）。FormulaReconstructor 按字号比例 + baseline
+                        # 偏移检测 sub/sup，输出 ``$U_{t}$``，由下游 formatter 的
+                        # protect_math_content / _normalize_unicode_math split-and-skip
+                        # 原样保留。非数学块沿用 fast path 零回归。
+                        recon = _get_math_reconstructor()
+                        line_texts = []
+                        for line in block.get("lines", []):
+                            lt = recon.reconstruct_line_formulas(line)
+                            if lt:
+                                line_texts.append(lt)
+                        text = " ".join(line_texts)
+                    else:
+                        text = " ".join(s["text"] for s in block_spans)
                     text = re.sub(r"\s+", " ", text).strip()
 
                     # 重组复合编号断裂：PyMuPDF 经常把章节编号 ``3.1.1`` 拆为
