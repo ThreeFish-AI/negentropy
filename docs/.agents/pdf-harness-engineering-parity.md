@@ -234,6 +234,8 @@ curl -X POST "http://localhost:3292/knowledge/base/{corpus}/documents/{doc}/refr
 
 ### 9.0 基线样本（Codify 锚点）
 
+> **环境相关样本（非跨环境常量）**：以下源 PDF 绝对路径、`corpus_id` / `doc_id` 与 `localhost` 端口均为本机快照——源 PDF 未入库（`git ls-files | grep assets/papers` 为空），UUID 随 Postgres 实例而变，`localhost:3092` 为本机静态服务端口。跨环境复现请按各自部署替换 PDF 路径 / corpus / doc ID / wiki 域名端口。
+
 - **源 PDF**：`/Users/cm.huang/Documents/projects/aurelius/negentropy/assets/papers/source/Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution.pdf`（88 页 / A4 双栏 LaTeX）。
 - **Corpus**：Harness Engineering（`corpus_id=43bacd7e-d334-4ebe-b3f8-c724ce24ba6a`，`doc_id=9045a031-4a52-4992-b0ae-285dc76dac1a`）。
 - **wiki 渲染对照**：`http://localhost:3092/wiki/harness-engineering/paper/self-improving-agents-in-the-era-of-experience-a-survey-of-self-to-meta-evolution-pdf/`
