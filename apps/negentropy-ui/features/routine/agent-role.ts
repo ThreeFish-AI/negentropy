@@ -3,86 +3,17 @@
  *
  * 基于 event_type 推导当前步骤的执行者（Negentropy Engine / Claude Code / 五翼 Faculty）。
  * Phase 1：纯前端推导，零迁移成本；Phase 2（五翼 Faculty 接入后）改为从后端 agent_role 字段读取。
+ *
+ * 身份元信息（``AgentRole`` / ``AgentRoleMeta`` / ``AGENT_ROLE_META``）已抽离到
+ * ``@/features/agent-identity``，供 Routine 与 Studio 共用；此处 re-export 保持现有
+ * ``@/features/routine`` 引入面零改动。
  */
 
-import { Bot, BrainCircuit, Cpu, Eye, Hand, Megaphone, Sparkles, type LucideIcon } from "lucide-react";
+import type { IterationStatus, RoutineEventType } from "./types";
+import { normalizeAgentRole, type AgentRole } from "@/features/agent-identity";
 
-import type { RoutineEventType, IterationStatus } from "./types";
-
-// ---------------------------------------------------------------------------
-// 类型
-// ---------------------------------------------------------------------------
-
-/** Agent 主导人角色（当前实际参与者 + 五翼 Faculty 预留）。 */
-export type AgentRole =
-  | "engine"
-  | "claude_code"
-  | "perception"
-  | "action"
-  | "internalization"
-  | "contemplation"
-  | "influence";
-
-/** 角色元数据。 */
-export interface AgentRoleMeta {
-  /** 用户可见的显示名。 */
-  label: string;
-  /** 英文显示名。 */
-  labelEn: string;
-  /** Lucide 图标。 */
-  icon: LucideIcon;
-  /** 徽章 Tailwind 配色（深色模式安全高对比度）。 */
-  badgeClass: string;
-}
-
-// ---------------------------------------------------------------------------
-// 角色元数据映射表
-// ---------------------------------------------------------------------------
-
-export const AGENT_ROLE_META: Record<AgentRole, AgentRoleMeta> = {
-  engine: {
-    label: "Negentropy",
-    labelEn: "Negentropy",
-    icon: Cpu,
-    badgeClass: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-  },
-  claude_code: {
-    label: "Claude Code",
-    labelEn: "Claude Code",
-    icon: Bot,
-    badgeClass: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
-  },
-  perception: {
-    label: "慧眼",
-    labelEn: "Perception",
-    icon: Eye,
-    badgeClass: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-  },
-  action: {
-    label: "妙手",
-    labelEn: "Action",
-    icon: Hand,
-    badgeClass: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
-  },
-  internalization: {
-    label: "本心",
-    labelEn: "Internalization",
-    icon: BrainCircuit,
-    badgeClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  },
-  contemplation: {
-    label: "元神",
-    labelEn: "Contemplation",
-    icon: Sparkles,
-    badgeClass: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-  },
-  influence: {
-    label: "喉舌",
-    labelEn: "Influence",
-    icon: Megaphone,
-    badgeClass: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
-  },
-};
+export type { AgentRole, AgentRoleMeta } from "@/features/agent-identity";
+export { AGENT_ROLE_META, KNOWN_AGENT_ROLES, normalizeAgentRole } from "@/features/agent-identity";
 
 // ---------------------------------------------------------------------------
 // 推导函数
@@ -171,17 +102,6 @@ export function deriveIterationDriver(status: IterationStatus): AgentRole | null
   }
 }
 
-/** 已知 AgentRole 取值集合——用于校验后端 agent_role 字符串的有效性。 */
-const _KNOWN_ROLES = new Set<AgentRole>([
-  "engine",
-  "claude_code",
-  "perception",
-  "action",
-  "internalization",
-  "contemplation",
-  "influence",
-]);
-
 /**
  * 统计一组事件中各主导人的事件数。
  *
@@ -194,11 +114,9 @@ export function countAgentRoles(
 ): Array<[AgentRole, number]> {
   const counts = new Map<AgentRole, number>();
   for (const ev of events) {
-    const backendRole = ev.agent_role;
-    const role: AgentRole =
-      backendRole && _KNOWN_ROLES.has(backendRole as AgentRole)
-        ? (backendRole as AgentRole)
-        : deriveAgentRole(ev.event_type);
+    const role: AgentRole = ev.agent_role
+      ? normalizeAgentRole(ev.agent_role, deriveAgentRole(ev.event_type))
+      : deriveAgentRole(ev.event_type);
     counts.set(role, (counts.get(role) ?? 0) + 1);
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);

@@ -8,7 +8,7 @@
 
 import { Bot, Brain, Globe, Search, type LucideIcon } from "lucide-react";
 
-import { toolIcon } from "../status-style";
+import { toolIcon } from "./status-shared";
 import type { ToolCallDetail } from "./types";
 
 export function detailIcon(detail: ToolCallDetail, toolName: string): LucideIcon {

@@ -2,7 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 
-import { MarkdownText } from "../MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 import { RoleHeader } from "./message-shared";
 
 /**

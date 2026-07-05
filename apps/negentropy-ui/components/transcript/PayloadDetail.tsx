@@ -2,7 +2,7 @@
 
 import { JsonViewer } from "@/components/ui/JsonViewer";
 
-import { MarkdownText } from "../MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 
 /** 长文本字段 —— 以 Markdown 渲染（人类可读文本）。 */
 const MARKDOWN_FIELDS = new Set(["text", "reflection"]);

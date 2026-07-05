@@ -2,7 +2,7 @@
 
 import { CheckCircle2, MessageSquareReply, RefreshCw, XCircle } from "lucide-react";
 
-import { MarkdownText } from "../MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 import { BADGE_ERR, BADGE_OK, BADGE_WARN, PlanReviewBody, RoleHeader, StatusBadge } from "./message-shared";
 import type { HumanReplyMode, TranscriptItem } from "./types";
 

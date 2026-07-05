@@ -6,8 +6,8 @@ import { AlertTriangle, CheckCircle2, ChevronRight, RefreshCw, XCircle } from "l
 import { cn } from "@/lib/utils";
 import { type PlanReviewPayload, type RoutineIterationEventDTO } from "@/features/routine";
 
-import { MarkdownText } from "../MarkdownText";
-import { EVENT_GROUP_LABEL, scoreColorClass } from "../status-style";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
+import { EVENT_GROUP_LABEL, scoreColorClass } from "./status-shared";
 import {
   BADGE_ERR,
   BADGE_OK,

@@ -4,9 +4,10 @@ import { useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight, RefreshCw, XCircle, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { AGENT_ROLE_META, type AgentRole, type PlanReviewPayload } from "@/features/routine";
+import { AGENT_ROLE_META, type AgentRole } from "@/features/agent-identity";
+import type { PlanReviewPayload } from "@/features/routine";
 
-import { MarkdownText } from "../MarkdownText";
+import { MarkdownText } from "@/components/markdown/MarkdownText";
 import { LucideGlyph } from "./Icon";
 import { BADGE_BASE } from "./style";
 

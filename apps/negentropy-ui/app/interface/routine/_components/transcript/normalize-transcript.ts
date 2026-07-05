@@ -17,10 +17,15 @@
 import { deriveHumanRole } from "@/features/routine";
 import type { PlanReviewPayload, RoutineIterationEventDTO } from "@/features/routine";
 
-import { deriveTaskStatus, eventGroup } from "../status-style";
-import { deriveCcRequestMode, extractRequestBody, isCcRequestTool } from "./human-node";
-import { unwrapText } from "./payload-util";
-import type { HumanReplyMode, TranscriptItem } from "./types";
+import { collapseToolRuns } from "@/components/transcript/collapse-tool-runs";
+import { deriveTaskStatus, eventGroup } from "@/components/transcript/status-shared";
+import {
+  deriveCcRequestMode,
+  extractRequestBody,
+  isCcRequestTool,
+} from "@/components/transcript/human-node";
+import { unwrapText } from "@/components/transcript/payload-util";
+import type { HumanReplyMode, TranscriptItem } from "@/components/transcript/types";
 
 /**
  * 提取 auto_answer 事件的归一化字段（tool_use_id / tool_name / answer）。
@@ -211,46 +216,4 @@ export function normalizeTranscript(
   }
 
   return collapseToolRuns(items);
-}
-
-/**
- * 连续 ≥3 个工具调用折叠为 ``tool_summary`` 行（Conductor 范式）：减少工具刷屏。
- *
- * - 仅折叠**连续**的 ``tool`` 项（被任何非 tool 项打断即 flush）；
- * - < 3 个不折叠，原样保留；
- * - 在途运行中（``running``）的工具不参与折叠，避免折叠实时态。
- */
-function collapseToolRuns(items: TranscriptItem[]): TranscriptItem[] {
-  const out: TranscriptItem[] = [];
-  let run: Extract<TranscriptItem, { kind: "tool" }>[] = [];
-
-  const flush = () => {
-    if (run.length === 0) return;
-    if (run.length < 3) {
-      out.push(...run);
-    } else {
-      const toolNames = [...new Set(run.map((t) => t.toolName).filter(Boolean))];
-      const first = run[0];
-      out.push({
-        kind: "tool_summary",
-        seq: first.seq,
-        id: `tool-summary-${first.id}`,
-        count: run.length,
-        toolNames,
-        collapsed: run,
-      });
-    }
-    run = [];
-  };
-
-  for (const item of items) {
-    if (item.kind === "tool" && !item.running) {
-      run.push(item);
-    } else {
-      flush();
-      out.push(item);
-    }
-  }
-  flush();
-  return out;
 }
