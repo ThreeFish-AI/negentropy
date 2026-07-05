@@ -9,6 +9,7 @@
 
 import logging
 import re
+import string
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -275,6 +276,104 @@ _SUBSCRIPT_MAP: Dict[str, str] = {
     "ᵢ": "_{i}",
     "ⱼ": "_{j}",
 }
+
+# ---------------------------------------------------------------------------
+# 1b. 数学字母块（U+1D400–1D7FF Mathematical Alphanumeric Symbols）→ LaTeX
+# ---------------------------------------------------------------------------
+#
+# 背景：LaTeX 学术 PDF 经 docling/PyMuPDF 抽取后，inline 数学常被发射为该块的
+# 「孤立斜体字形」（如 ``𝑈 𝑡``、``𝐻 𝑡``、``𝜃``），既不被识别为公式也不渲染为
+# 数学体。formatter 阶段需要把这些散落字形归一为 KaTeX 可渲染的 ``$...$``。
+#
+# 注意：本组映射**不并入** ``UNICODE_TO_LATEX``，避免污染 ``has_math_unicode``
+# 与既有 ``unicode_to_latex`` 调用者（formula_extraction / docling engine）；
+# 仅供 formatter 的 ``_normalize_unicode_math`` pass 按需取用。
+
+# Latin 斜体 → 裸 ASCII（KaTeX 数学模式默认 italic，省 token）
+_MATH_ITALIC_LATIN_MAP: Dict[str, str] = {}
+for _i, _letter in enumerate(string.ascii_uppercase):  # A-Z: U+1D434..U+1D44D
+    _MATH_ITALIC_LATIN_MAP[chr(0x1D434 + _i)] = _letter
+for _i, _letter in enumerate(string.ascii_lowercase):  # a-z: U+1D44E..U+1D467
+    _cp = 0x1D44E + _i
+    if _cp == 0x1D455:  # MATHEMATICAL ITALIC SMALL H 保留位（用 U+210E 替身）
+        continue
+    _MATH_ITALIC_LATIN_MAP[chr(_cp)] = _letter
+_MATH_ITALIC_LATIN_MAP["ℎ"] = "h"  # ℎ PLANCK CONSTANT（italic h 替身）
+
+# Latin 粗体 → \mathbf{X}（保留粗体语义，常表向量 / 矩阵）
+_MATH_BOLD_LATIN_MAP: Dict[str, str] = {}
+for _i, _letter in enumerate(string.ascii_uppercase):  # A-Z: U+1D400..U+1D419
+    _MATH_BOLD_LATIN_MAP[chr(0x1D400 + _i)] = r"\mathbf{" + _letter + "}"
+for _i, _letter in enumerate(string.ascii_lowercase):  # a-z: U+1D41A..U+1D433
+    _MATH_BOLD_LATIN_MAP[chr(0x1D41A + _i)] = r"\mathbf{" + _letter + "}"
+
+# Italic Greek 小写（U+1D6FC..）→ \name（与 _GREEK_LOWER_MAP 同命令）
+_MATH_ITALIC_GREEK_LOWER_MAP: Dict[str, str] = {
+    "\U0001d6fc": r"\alpha",  # 𝛼
+    "\U0001d6fd": r"\beta",
+    "\U0001d6fe": r"\gamma",
+    "\U0001d6ff": r"\delta",
+    "\U0001d700": r"\epsilon",
+    "\U0001d701": r"\zeta",
+    "\U0001d702": r"\eta",
+    "\U0001d703": r"\theta",  # 𝜃
+    "\U0001d704": r"\iota",
+    "\U0001d705": r"\kappa",
+    "\U0001d706": r"\lambda",
+    "\U0001d707": r"\mu",
+    "\U0001d708": r"\nu",
+    "\U0001d709": r"\xi",
+    "\U0001d70b": r"\pi",  # 𝜋（U+1D70A omicron 保留，用裸 o）
+    "\U0001d70c": r"\rho",
+    "\U0001d70e": r"\sigma",  # 𝜎
+    "\U0001d70f": r"\tau",  # 𝜏
+    "\U0001d710": r"\upsilon",
+    "\U0001d711": r"\phi",
+    "\U0001d712": r"\chi",
+    "\U0001d713": r"\psi",
+    "\U0001d714": r"\omega",
+    "\U0001d716": r"\varepsilon",
+    "\U0001d717": r"\vartheta",
+    "\U0001d719": r"\varphi",
+}
+
+# Italic Greek 大写（U+1D6E2..）→ 裸 ASCII 或 \Name（与 LaTeX 数学大写 Greek 一致）
+_MATH_ITALIC_GREEK_UPPER_MAP: Dict[str, str] = {
+    "\U0001d6e2": r"A",
+    "\U0001d6e3": r"B",
+    "\U0001d6e4": r"\Gamma",
+    "\U0001d6e5": r"\Delta",
+    "\U0001d6e6": r"E",
+    "\U0001d6e7": r"Z",
+    "\U0001d6e8": r"H",
+    "\U0001d6e9": r"\Theta",
+    "\U0001d6ea": r"I",
+    "\U0001d6eb": r"K",
+    "\U0001d6ec": r"\Lambda",
+    "\U0001d6ed": r"M",
+    "\U0001d6ee": r"N",
+    "\U0001d6ef": r"\Xi",
+    "\U0001d6f0": r"O",
+    "\U0001d6f1": r"\Pi",
+    "\U0001d6f2": r"P",
+    "\U0001d6f3": r"\Sigma",
+    "\U0001d6f4": r"T",
+    "\U0001d6f5": r"\Upsilon",
+    "\U0001d6f6": r"\Phi",
+    "\U0001d6f7": r"X",
+    "\U0001d6f8": r"\Psi",
+    "\U0001d6f9": r"\Omega",
+}
+
+# 合并：所有「数学字母块」字符 → LaTeX（formatter 的 inline 数学归一 pass 取用）
+MATH_LETTER_TO_LATEX: Dict[str, str] = {}
+MATH_LETTER_TO_LATEX.update(_MATH_ITALIC_LATIN_MAP)
+MATH_LETTER_TO_LATEX.update(_MATH_BOLD_LATIN_MAP)
+MATH_LETTER_TO_LATEX.update(_MATH_ITALIC_GREEK_LOWER_MAP)
+MATH_LETTER_TO_LATEX.update(_MATH_ITALIC_GREEK_UPPER_MAP)
+
+# 散落 inline 数学字形的快速检测集
+MATH_LETTER_CHARS = frozenset(MATH_LETTER_TO_LATEX.keys())
 
 # 合并所有 Unicode→LaTeX 映射
 UNICODE_TO_LATEX: Dict[str, str] = {}

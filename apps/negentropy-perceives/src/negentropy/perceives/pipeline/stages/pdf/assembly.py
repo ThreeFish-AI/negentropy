@@ -13,6 +13,7 @@ from __future__ import annotations
 import html
 import logging
 import re
+import unicodedata
 from typing import Dict, List, Optional, Tuple
 
 from ...base import Stage, StageResult
@@ -29,6 +30,10 @@ from ...registry import register_tool
 from .._base import PDFToolBase
 
 logger = logging.getLogger(__name__)
+
+# 论文顶层结构标题 ``Part I. / Part II. ...``（罗马数字 + 句点）。用于 2.1a 段把
+# 四个 Part 归一到统一层级（H2），修复 docling 跨切片赋级不一致。
+_PART_HEADING_RE = re.compile(r"^Part\s+[IVXLCDM]+[.．:：]", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +144,13 @@ class BuiltinAssembler(PDFToolBase):
                 for formula in input_data.formulas.formulas:
                     if formula.latex and formula.page_number is not None:
                         sig = _formula_text_signature(formula.latex)
-                        if len(sig) >= 20:
+                        # 阈值降至 ≥6：短公式（如 ``A_t=⟨M,H,U,E⟩`` sig=10、
+                        # ``z_i=H_{t_i}(τ_i)`` sig=6）也需入库，供
+                        # ``_text_block_matches_formula`` 的**精确相等**快路径去重
+                        # PyMuPDF inline 文本流与 MinerU 块公式的并存副本（Q9）。
+                        # 短签名在子串匹配路径中因 ratio/≥20 门天然失活，仅参与
+                        # 精确相等去重，无假阳性放大。
+                        if len(sig) >= 6:
                             formula_text_signatures.setdefault(
                                 formula.page_number, []
                             ).append(sig)
@@ -581,7 +592,13 @@ class BuiltinAssembler(PDFToolBase):
             #     情况 A：首个标题为 H1 → 论文标题，后续标题下移一级
             #     情况 B：首个标题为 H2（学术论文常见）→ 提升为 H1 作为论文标题，
             #             后续标题也下移一级（与情况 A 相同）
-            _first_h1_seen = False
+            #
+            # auto_batch 修正：论文标题只在**首个切片**（slice_index==0）出现。切片
+            # >0 的首个标题是普通章节标题（如 ``8.`` / ``4.2`` / ``References``），
+            # 若仍走「册封论文标题」分支会被误升为 H1。故切片 >0 时预置
+            # ``_first_h1_seen=True``，使所有标题统一走「后续下移一级」路径，与切片 0
+            # 册封标题后的其余标题保持一致的层级基准（ISSUE：auto_batch 切片首标题误判 h1）。
+            _first_h1_seen = getattr(input_data, "slice_index", 0) > 0
             for elem in elements:
                 content = elem.content.strip()
                 if not content.startswith("#"):
@@ -600,6 +617,20 @@ class BuiltinAssembler(PDFToolBase):
                     new_level = min(level + 1, 5)
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
+
+            # 2.1a Part 结构标题层级归一：``Part I. / Part II. ...`` 是论文顶层结构
+            #     节点（位于编号 section 之上）。docling 跨切片对其赋级不一致
+            #     （实测同一文档 Part I–III 为 h4、Part IV 为 h3），且经上方级联后
+            #     进一步偏移。统一钉为 H2，使四个 Part 在 wiki WikiToc（h2–h4）中
+            #     呈现为一致的顶层导航节点（ISSUE：Part 标题层级不一致 / 语义偏弱）。
+            for elem in elements:
+                content = elem.content.strip()
+                if not content.startswith("#"):
+                    continue
+                level = len(content) - len(content.lstrip("#"))
+                heading_body = content[level:].strip()
+                if _PART_HEADING_RE.match(heading_body):
+                    elem.content = "## " + heading_body
 
             # 2.1b 标题质量过滤：S3 text_extraction 常将双栏正文段落
             #     误判为 H3/H4 标题。识别特征：
@@ -1156,6 +1187,10 @@ class BuiltinAssembler(PDFToolBase):
             # ``Fig. N:`` / ``Table N:`` 起手的 caption 段落时，把邻接段
             # 文本注入到 image，复用 2.6 段的 caption-vs-text 去重移除
             # 独立 caption 段落，恢复 PDF 中"图旁有 caption"视觉。
+            #
+            # ``claimed_captions``：已被某张图片认领的 caption 归一化文本集，供同页
+            # 游离 caption 兜底避免两张图抢同一段。
+            claimed_captions: set[str] = set()
             for i, img_elem in enumerate(elements):
                 if img_elem.element_type != "image" or img_elem.image is None:
                     continue
@@ -1177,8 +1212,20 @@ class BuiltinAssembler(PDFToolBase):
                     image_has_caption=bool(existing_cap),
                     next_text_block_text=next_text_content,
                 )
+                # 邻接失败兜底：同页游离 caption 关联（ISSUE：Figure N | caption
+                # 与其图片在阅读序中相隔较远——中间夹标题 / 分栏文本，邻接搜索遇
+                # 非 text 元素即中断）。当图片仍无 caption 时，在**同一页**范围内
+                # 搜索一个 ``Figure N |`` / ``Table N |`` 起手且尚未被其它图片认领
+                # 的游离 text 段，将其注入。仅在该页恰有唯一 captionless 图片时启用，
+                # 避免多图页误配（本文档 Figure 8 位于 p39：图在页首、caption 漂到
+                # ~90 行后，邻接兜底够不到）。
+                if injected is None and not existing_cap:
+                    injected = _find_same_page_orphan_caption(
+                        img_elem, elements, claimed_captions
+                    )
                 if injected is None:
                     continue
+                claimed_captions.add(_normalize_for_dedup(injected))
                 img_elem.image.caption = injected
                 img_elem.content = _image_to_markdown(img_elem.image)
                 logger.debug(
@@ -1265,7 +1312,7 @@ class BuiltinAssembler(PDFToolBase):
                             if alt_html:
                                 cap_source = html.unescape(alt_html.group(1))
                     cap_match = re.search(
-                        r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
+                        r"((?:Table|Figure)\s+\d+\s*[:.|｜∣][^\n]+)",
                         cap_source,
                         re.IGNORECASE,
                     )
@@ -1506,7 +1553,16 @@ def _formula_text_signature(s: str) -> str:
     PyMuPDF 把 LaTeX 视觉渲染区抽成"字符流文本"时，对每个字形（含上下标）
     保留为独立字符，与 MinerU 提取的 LaTeX 字符序列（同样把 ``M _ { l }``
     拆为 ``M l`` 等）经归一化后几乎完全相同。该签名作为跨形式等价锚点。
+
+    NFKD 归一（关键）：PyMuPDF 抽取的 inline 公式常为 Unicode 数学字母块字形
+    （``A 𝑡 = ⟨ 𝑀 𝜃 𝑡 ...⟩``，U+1D400–1D7FF），旧实现仅保留 ASCII 会把
+    ``𝑡/𝑀/𝐻`` 等全部丢弃，签名坍缩为 ``a``，与 MinerU 的 LaTeX 块签名
+    ``atmthtutet`` 不匹配 → 两份公式并存（同一公式既有 PyMuPDF inline 文本流
+    又有 MinerU ``$$`` 块）。NFKD 把数学字母块折叠为 ASCII 兼容字符（``𝑡→t``、
+    ``𝑀→M``、``𝔼→E``），使两种形式签名一致，R8 跨形式去重方能命中。
     """
+    # NFKD 折叠 Unicode 数学字母块 → ASCII 兼容字符（跨形式签名对齐前提）
+    s = unicodedata.normalize("NFKD", s)
     # 先剥离开 \begin{...} / \end{...} 及其紧随的列规格 {...}（版式结构噪声）
     s = re.sub(r"\\(?:begin|end)\s*\{[^{}]*\}(?:\s*\{[^{}]*\})?", "", s)
     # 剥离 \xxx LaTeX 命令
@@ -1534,14 +1590,23 @@ def _text_block_matches_formula(
     若仅满足前置条件但 ``len_ratio < 0.85``，认为公式只是被嵌入更长正文段，
     属于"公式埋在长正文段"假阳性，保守保留文本块不予过滤。
 
-    仅在公式签名 ≥20 字符且文本块归一化后 ≥20 字符时启用，
+    子串匹配仅在公式签名 ≥20 字符且文本块归一化后 ≥20 字符时启用，
     避免短公式 / 短文本互相假阳性。
+
+    精确相等快路径（Q9）：短公式（如 ``A_t = ⟨M,H,U,E⟩`` 签名仅 10 字符）的
+    PyMuPDF inline 文本流与 MinerU ``$$`` 块并存时，签名 **完全相等** 而非仅子串。
+    完全相等是极强信号——整个文本块字符级恰好等于某公式（同页），几乎不可能是
+    正文巧合。故 ``text_sig == fsig`` 且 ≥6 字符时直接判为冗余，绕过 20 字符门。
     """
     page = block.page_number
     sigs = formula_signatures.get(page)
     if not sigs:
         return False
     text_sig = _formula_text_signature(block.text or "")
+    # 精确相等快路径：文本块签名恰好等于某公式签名 → 标准的"公式被同时抽成
+    # inline 文本流 + 块公式"冗余（Q9）。要求 ≥6 字符防超短巧合。
+    if len(text_sig) >= 6 and text_sig in sigs:
+        return True
     if len(text_sig) < 20:
         return False
     for fsig in sigs:
@@ -1651,8 +1716,10 @@ def _is_caption_duplicate(text: str, caption_norm: str, all_captions: set[str]) 
     return False
 
 
+# caption 分隔符：冒号 / 句点 / 连字符 / 竖线（``Figure 8 | ...`` 是本文档及大量
+# arXiv 论文的常见写法）。含 ASCII ``|`` 与全角 ``｜`` / 数学竖线 ``∣``。
 _FIGURE_TABLE_CAPTION_RE = re.compile(
-    r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+    r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-|｜∣]",
     re.IGNORECASE,
 )
 
@@ -1744,6 +1811,54 @@ def _figure_caption_to_inject(
     if not _is_figure_or_table_caption_text(text):
         return None
     return text
+
+
+def _find_same_page_orphan_caption(
+    img_elem: "_ContentElement",
+    elements: List["_ContentElement"],
+    claimed_captions: set[str],
+) -> Optional[str]:
+    """邻接兜底失败时，在**同一页**范围内为 captionless 图片寻找游离 caption。
+
+    背景：``Figure N |`` caption 与其图片在阅读序中可能相隔很远（中间夹章节标题
+    / 分栏文本），2.5.7 的邻接搜索遇非 text 元素即中断，够不到。典型如本文档
+    Figure 8（p39）：图在页首、caption 漂到约 90 行后。
+
+    策略（保守，避免多图页误配）：
+      - 仅在该图所在页**恰有唯一** captionless 图片时启用；
+      - 仅认领该页 ``Figure N |`` / ``Table N |`` 起手、尚未被其它图片认领
+        （``claimed_captions``）的 caption 段；
+      - 该页存在 ≥2 个此类游离 caption 时不认领（无法确定对应关系，交由后续
+        dedup 保留为独立段落，不制造错配）。
+
+    Returns:
+        应注入的 caption 文本（已 strip），无合适候选时 ``None``。
+    """
+    page = img_elem.page_number
+    # 同页 captionless 图片数：>1 则放弃（无法确定 caption 归属）
+    captionless_imgs_on_page = [
+        e
+        for e in elements
+        if e.element_type == "image"
+        and e.image is not None
+        and e.page_number == page
+        and not (e.image.caption or "").strip()
+    ]
+    if len(captionless_imgs_on_page) != 1:
+        return None
+    # 同页游离 caption 候选：Figure/Table N | 起手、未被认领的 text 段
+    candidates = [
+        (e.content or "").strip()
+        for e in elements
+        if e.element_type == "text"
+        and e.block is not None
+        and e.page_number == page
+        and _is_figure_or_table_caption_text((e.content or "").strip())
+        and _normalize_for_dedup((e.content or "").strip()) not in claimed_captions
+    ]
+    if len(candidates) != 1:
+        return None
+    return candidates[0]
 
 
 def _is_running_header_footer(text: str, page_number: Optional[int] = None) -> bool:

@@ -404,6 +404,45 @@ def _strip_orphan_styles(markdown_content: str) -> str:
     return text
 
 
+# ---------------------------------------------------------------------------
+# 散落 inline 数学字形（U+1D400–1D7FF Mathematical Alphanumeric Symbols）归一
+# ---------------------------------------------------------------------------
+#
+# LaTeX 学术 PDF 经 docling/PyMuPDF 抽取后，inline 数学常被发射为「空格分隔的
+# 孤立数学斜体字形」（如 ``A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡⟩``），既不被识别为公式也不渲染
+# 为数学体。``_normalize_unicode_math`` 把这类散落字形在 formatter 末段（所有
+# 清理 pass 之后、块公式/代码块还原之前）归一为 KaTeX 可渲染的 ``$...$``。
+
+# 单独成 token 时也判为「数学运算符 / 标点」的字符集（``_wrap_math_runs`` 分类用）。
+# 故意不含 ascii ``- * # | >`` —— 它们更常是列表标记 / 表格 / 引用 / 标题，强行吸附
+# 会破坏结构；数学减号用 U+2212（−）、星号用 U+2217（∗）。
+_MATH_OP_PUNCT_CHARS: frozenset[str] = frozenset(
+    "=+·×÷±∓∗∘⋆∝⊂⊃⊆⊇∪∩∧∨¬⊕⊗≈≠≡≅∼≺≻≪≫∥⊥→←↔⟹⟸⟺⟶⟵↦⇒⇔⟨⟩⌈⌉⌊⌋()[]{},.≤≥∈∉∀∃∂∇√∞′″−"
+)
+
+# 「数字 + 可选尾标点 / 括号」token（如 ``1,`` ``42.)`` ``1)``）—— 视作可被数学 run
+# 吸附的 ATTACHABLE，避免 ``𝑡 𝑖 − 1,`` 中的 ``1,`` 因带逗号被误判 PLAIN 断开 run。
+_NUM_ATTACH_RE = re.compile(r"^[0-9]+[.,;:!?\[\](){}]*$")
+
+# inline 数学 run 内常见、但不在 ``UNICODE_TO_LATEX`` / ``MATH_LETTER_TO_LATEX``
+# 的字符兜底映射。
+_MATH_RUN_EXTRA_MAP: Dict[str, str] = {
+    "−": "-",  # U+2212 MINUS SIGN → ascii hyphen（math mode 渲染为减号）
+    "∗": r"\ast",  # U+2217 ASTERISK OPERATOR
+    "′": "'",
+    "″": "''",
+}
+
+# 数学 run 结尾的散文标点（句末句点 / 逗号等）—— 剥离到 ``$...$`` 之外，避免
+# ``$Et.$`` 这种把句末标点吞进数学的失真。group1 = 数学主体，group2 = 尾标点。
+_RUN_TRAILING_PUNCT_RE = re.compile(r"^(.*?)([.,;:!?]+)$")
+
+
+def _has_math_alnum_block(s: str) -> bool:
+    """文本是否含 U+1D400–1D7FF 数学字母块任一字符（斜体 / 粗体 / 双线体 / Greek 等）。"""
+    return any(0x1D400 <= ord(c) <= 0x1D7FF for c in s)
+
+
 class MarkdownFormatter:
     """Markdown formatting pipeline for enhancing raw Markdown output."""
 
@@ -500,6 +539,11 @@ class MarkdownFormatter:
                 markdown_content = self._restore_video_placeholders(
                     markdown_content, video_registry
                 )
+
+            # 散落 inline 数学字形（U+1D400–1D7FF）归一为 ``$...$``：必须在所有清理
+            # pass 之后、块公式 / 代码块还原之前执行——此时二者仍是占位符（天然跳过），
+            # 已有 inline ``$..$`` 由 pass 内 split-and-skip 保护。
+            markdown_content = self._normalize_unicode_math(markdown_content)
 
             # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
             # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
@@ -637,7 +681,10 @@ class MarkdownFormatter:
 
         def _replacer(match: re.Match) -> str:
             placeholder = f"%%MATHBLOCK_{uuid.uuid4().hex[:12]}%%"
-            protected[placeholder] = match.group(0)
+            # 在保护入库前清理 KaTeX 不兼容 primitive——保护后管线只见占位符，
+            # 故必须在此对真实 LaTeX 内容施加清理（``_cleanup_math_blocks`` 阶段
+            # 已是占位符，正则命不中）。见 _sanitize_katex_incompatible。
+            protected[placeholder] = self._sanitize_katex_incompatible(match.group(0))
             return placeholder
 
         # 匹配独占两行的 ``$$`` 定界符之间的块级公式
@@ -650,6 +697,19 @@ class MarkdownFormatter:
         )
         return result, protected
 
+    @staticmethod
+    def _sanitize_katex_incompatible(latex: str) -> str:
+        """剥离 KaTeX 不支持的 TeX primitive，保留可渲染主体。
+
+        docling/mineru 对 ``\\left(..\\right)`` 的冗长编码形如
+        ``\\mathopen { } \\mathclose \\bgroup \\left( .. \\aftergroup \\egroup \\right)``；
+        其中 ``\\aftergroup`` KaTeX 完全不支持 → ParseError。这些 primitive 无渲染
+        语义，逐个剥离后 ``\\left(..\\right)`` 主体照常渲染。
+        """
+        latex = re.sub(r"\\mathopen\s*\{\s*\}\s*\\mathclose", "", latex)
+        latex = re.sub(r"\\(?:aftergroup|bgroup|egroup)\b\s*", "", latex)
+        return latex
+
     def _restore_math_blocks(
         self, markdown_content: str, protected: Dict[str, str]
     ) -> str:
@@ -657,6 +717,168 @@ class MarkdownFormatter:
         for placeholder, original in protected.items():
             markdown_content = markdown_content.replace(placeholder, original)
         return markdown_content
+
+    # ------------------------------------------------------------------
+    # 散落 inline 数学字形（U+1D400–1D7FF）→ ``$...$`` 归一
+    # ------------------------------------------------------------------
+
+    def _normalize_unicode_math(self, markdown_content: str) -> str:
+        """把散落的 Unicode 数学字母块字形归一为 KaTeX 可渲染的 inline ``$...$``。
+
+        背景：LaTeX 学术 PDF 经 docling/PyMuPDF 抽取后，inline 数学常被发射为
+        「空格分隔的孤立数学斜体字形」（如 ``A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡⟩``）。本 pass
+        在 protect 之后、restore 之前对**非代码、非块公式、非标题/表格**的段落做：
+
+        1. 按空白切 token，识别「数学 run」（含数学字母 / 数学运算符 / 紧邻单字符
+           ASCII 字母数字），跨 run 合并并剔除 run 内部空白伪影；
+        2. run 内每字符经 ``MATH_LETTER_TO_LATEX`` + ``UNICODE_TO_LATEX`` + 兜底
+           映射为 LaTeX，``\\name`` 命令与后续 ASCII 字母间补空格；
+        3. 整体包裹 ``$...$``，单字符数学符号也独立包裹（``$t$ denotes``）。
+
+        已有 inline ``$...$`` 与块公式 / 代码块占位符原样跳过。
+
+        已知限制：PDF 抽取丢失了下标 / 上标的字号信息，故 ``M_{\\theta_t}`` 仅能
+        还原为 ``$M \\theta t$``（数学体渲染但下标结构不可恢复）；完整下标还原需
+        在 text_extraction 阶段基于 span 字号检测，属后续工作。
+
+        可用环境变量 ``PERCEIVES_UNICODE_MATH_NORMALIZE=0`` 整体禁用。
+        """
+        if os.environ.get("PERCEIVES_UNICODE_MATH_NORMALIZE", "1") == "0":
+            return markdown_content
+        from ..pdf.math_formula import MATH_LETTER_CHARS
+
+        if not MATH_LETTER_CHARS.intersection(markdown_content):
+            return markdown_content  # 快路径：无数学字母块字符
+        return "\n".join(
+            self._normalize_unicode_math_line(line)
+            for line in markdown_content.split("\n")
+        )
+
+    def _normalize_unicode_math_line(self, line: str) -> str:
+        stripped = line.lstrip()
+        # 跳过结构性行：标题 / 表格行 / 代码块占位符（数学字母在这些行罕见且易误包）
+        if (
+            stripped.startswith("#")
+            or stripped.startswith("|")
+            or stripped.startswith("%%CODEBLOCK_")
+        ):
+            return line
+        if not _has_math_alnum_block(line):
+            return line
+        # 块公式占位符 %%MATHBLOCK_..%% 无 ``$``；已有 inline ``$...$`` split-and-skip
+        parts = re.split(r"(\$[^$\n]+\$)", line)
+        return "".join(
+            part
+            if (len(part) >= 3 and part[0] == "$" and part[-1] == "$")
+            else self._wrap_math_runs(part)
+            for part in parts
+        )
+
+    def _wrap_math_runs(self, segment: str) -> str:
+        if not segment or not _has_math_alnum_block(segment):
+            return segment
+        tokens = segment.split(" ")
+        if len(tokens) <= 1:
+            return self._wrap_one_token(segment)
+
+        math_kind, attach_kind, plain_kind = "MATH", "ATT", "PLAIN"
+
+        def classify(tok: str) -> str:
+            if not tok:
+                return plain_kind
+            # 含数学字母块字符（斜体 / 粗体 / 双线体 / Greek 等）→ MATH
+            if _has_math_alnum_block(tok):
+                return math_kind
+            # 纯数学运算符 / 标点 token
+            if all((c in _MATH_OP_PUNCT_CHARS) or c.isspace() for c in tok):
+                return math_kind
+            # 单字符 ASCII 字母数字 —— 可被 run 吸附
+            if len(tok) == 1 and tok.isascii() and tok.isalnum():
+                return attach_kind
+            # 「数字 + 尾标点 / 括号」（1, 42.) 1)）—— 可被 run 吸附
+            if _NUM_ATTACH_RE.match(tok):
+                return attach_kind
+            return plain_kind
+
+        def wrap_run(run_str: str) -> str:
+            """包裹一个数学 run，剥离结尾散文标点（句末句点等）到 ``$...$`` 之外。"""
+            m = _RUN_TRAILING_PUNCT_RE.match(run_str)
+            if m and _has_math_alnum_block(m.group(1)):
+                return "$" + self._math_run_to_latex(m.group(1)) + "$" + m.group(2)
+            return "$" + self._math_run_to_latex(run_str) + "$"
+
+        kinds = [classify(t) for t in tokens]
+        out: List[str] = []
+        i, n = 0, len(tokens)
+        while i < n:
+            if kinds[i] == plain_kind:
+                out.append(tokens[i])
+                i += 1
+                continue
+            # 收集连续 MATH / ATTACHABLE
+            j = i
+            has_math = False
+            while j < n and kinds[j] in (math_kind, attach_kind):
+                if kinds[j] == math_kind:
+                    has_math = True
+                j += 1
+            if has_math:
+                out.append(wrap_run("".join(tokens[i:j])))
+            else:
+                # 全 ATTACHABLE（无数学字母）—— 不包裹，原样输出
+                out.extend(tokens[i:j])
+            i = j
+        return " ".join(out)
+
+    def _wrap_one_token(self, tok: str) -> str:
+        if not tok or not _has_math_alnum_block(tok):
+            return tok
+        m = _RUN_TRAILING_PUNCT_RE.match(tok)
+        if m and _has_math_alnum_block(m.group(1)):
+            return "$" + self._math_run_to_latex(m.group(1)) + "$" + m.group(2)
+        return "$" + self._math_run_to_latex(tok) + "$"
+
+    def _math_run_to_latex(self, run_text: str) -> str:
+        from ..pdf.math_formula import MATH_LETTER_TO_LATEX, UNICODE_TO_LATEX
+
+        def mapped_of(ch: str) -> str:
+            if ch in MATH_LETTER_TO_LATEX:
+                return MATH_LETTER_TO_LATEX[ch]
+            if ch in UNICODE_TO_LATEX:
+                return UNICODE_TO_LATEX[ch]
+            if ch in _MATH_RUN_EXTRA_MAP:
+                return _MATH_RUN_EXTRA_MAP[ch]
+            # 源文本中的裸花括号（如集合构造式 ``{ α | ... }``）是 KaTeX 分组符，
+            # 空格切分后跨 ``$...$`` 片段易失衡致 ParseError（``Expected '}'``）。
+            # 转义为字面 ``\{`` / ``\}``——既避免失衡，又是集合记号的正确渲染。
+            # 结构性花括号来自映射命令（``\mathbf{x}`` 等多字符串），``m == "{"``
+            # 仅当命中裸源花括号，不误伤。
+            if ch == "{":
+                return r"\{"
+            if ch == "}":
+                return r"\}"
+            return ch
+
+        # 预先把每个原字符映射为 LaTeX，再按「映射后」相邻关系补空格——
+        # 这样 ``\theta`` 后跟原字符 ``𝑡``（非 ASCII）但映射后是 ``t``（ASCII），
+        # 仍能正确补空格为 ``\theta t``，避免 ``\thetat`` 粘连。
+        mapped = [mapped_of(ch) for ch in run_text]
+        out_chars: List[str] = []
+        n = len(mapped)
+        for i, m in enumerate(mapped):
+            out_chars.append(m)
+            # 当前是 ``\name`` 命令且下一个**映射后** token 以 ASCII 字母起 → 补空格
+            if (
+                m
+                and m[0] == "\\"
+                and m[-1].isalpha()
+                and i + 1 < n
+                and mapped[i + 1]
+                and mapped[i + 1][0].isalpha()
+                and mapped[i + 1][0].isascii()
+            ):
+                out_chars.append(" ")
+        return "".join(out_chars)
 
     def _format_tables(self, markdown_content: str) -> str:
         """Format and align Markdown tables."""
@@ -938,6 +1160,60 @@ class MarkdownFormatter:
         """
         return self._UNICODE_BULLET_RE.sub(r"\1- \3", markdown_content)
 
+    # 段落中部 bullet 分隔符：两侧需有空白，按 ``\s[bullet]\s`` 切分整行。
+    _MID_BULLET_SPLIT_RE = re.compile(r"\s+[●○■□▪▫◦▶▷›▸▹·•‣]\s+")
+
+    def _split_mid_paragraph_bullets(self, markdown_content: str) -> str:
+        """把段落中部残留的多个 Unicode 项目符号拆分为独立列表项。
+
+        行首 bullet 由 :meth:`_normalize_unicode_bullets` 处理；但 PDF 抽取常把
+        原生列表 ``• 项A • 项B • 项C`` 压平进单一段落，段落**中部**的 bullet 不被
+        行首规则覆盖（R9 ``list_bullet_residue`` 中 672 个段中残留）。本 pass 把
+        ``前文 • 项A • 项B`` 拆为 ``前文`` + ``- 项A`` + ``- 项B``。
+
+        守卫（避免误伤）：
+          - 仅当单行含 **≥ 2** 个「两侧带空白」的 bullet 时才拆分（单 bullet 保守
+            保留，多为正文顺带符号）；
+          - 每个拆出的 item 必须含字母 / 数字实义字符，否则判定为 ``• • •`` 装饰型
+            省略号（如图注 ``T₀ T₁ • • • T₂``），整行原样保留；
+          - 跳过表格行（含 ``|``）、标题（``#``）、代码 / 数学占位符（``%%``）、引用
+            （``>``）——本 pass 在 ``_protect_code_blocks`` / ``_protect_math_blocks``
+            之后运行，二者已是占位符，天然跳过。
+        """
+
+        def _has_word(s: str) -> bool:
+            return any(c.isalnum() for c in s)
+
+        out_lines: List[str] = []
+        for line in markdown_content.split("\n"):
+            stripped = line.strip()
+            if (
+                not stripped
+                or "|" in line
+                or stripped.startswith("#")
+                or stripped.startswith("%%")
+                or stripped.startswith(">")
+            ):
+                out_lines.append(line)
+                continue
+            parts = self._MID_BULLET_SPLIT_RE.split(line)
+            # parts 数 = bullet 数 + 1；需 ≥ 2 个 bullet ⇒ ≥ 3 段
+            if len(parts) < 3:
+                out_lines.append(line)
+                continue
+            pre = parts[0]
+            items = parts[1:]
+            # 装饰型 ``• • •``：任一 item 无实义字符 ⇒ 整行保留
+            if not all(_has_word(it) for it in items):
+                out_lines.append(line)
+                continue
+            # 前文行：已是列表项（``- ``）则原样保留；否则作为独立段落 / 标签行
+            if pre.strip():
+                out_lines.append(pre.rstrip())
+            for it in items:
+                out_lines.append(f"- {it.strip()}")
+        return "\n".join(out_lines)
+
     def _format_lists(self, markdown_content: str) -> str:
         """Improve list formatting and nesting."""
         try:
@@ -947,6 +1223,10 @@ class MarkdownFormatter:
             # 如果不规范化，下游 react-markdown 不会把它当作 list item 渲染，
             # 而是塞到段落里造成视觉破坏（R9 量化签名 list_bullet_residue=877）。
             markdown_content = self._normalize_unicode_bullets(markdown_content)
+
+            # 段落中部残留的多 bullet（``前文 • 项A • 项B``）拆分为独立列表项，
+            # 覆盖行首规则漏掉的段中场景。
+            markdown_content = self._split_mid_paragraph_bullets(markdown_content)
 
             lines = markdown_content.split("\n")
             formatted_lines = []
@@ -1466,6 +1746,9 @@ class MarkdownFormatter:
         - 空公式块 ``$$\\n$$`` 移除
         - 单行过长的公式行截断（超过 2000 字符的行可能是重复模式残留）
         - ``\\quad`` 连续出现超过 4 次截断
+
+        注：KaTeX 不兼容 primitive（``\\aftergroup`` 等）的清理在
+        ``_protect_math_blocks`` 保护入库时施加（此阶段块公式已是占位符）。
         """
         try:
             # 移除空公式块

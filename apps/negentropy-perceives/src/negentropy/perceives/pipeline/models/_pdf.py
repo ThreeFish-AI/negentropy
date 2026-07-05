@@ -462,6 +462,10 @@ class AssemblyInput:
     code: Optional[CodeDetectionOutput] = None
     """代码检测结果。"""
 
+    slice_index: int = 0
+    """auto_batch 切片序号（从 0 开始）。仅切片 0 允许在 2.1 标题级联中「册封论文
+    标题」；切片 >0 的首个标题是普通章节标题，不得升为 H1。非分批路径恒为 0。"""
+
 
 @dataclass
 class AssemblyOutput:

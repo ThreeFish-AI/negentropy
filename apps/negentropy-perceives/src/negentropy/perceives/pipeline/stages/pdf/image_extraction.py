@@ -210,6 +210,51 @@ def _expand_figure_bbox(
         return seed_bbox
     seed_area = seed_w * seed_h
 
+    # ── Step 0: 收集"正文段落"bbox（长文本块）────────────────────────
+    # 用于 Step 1/2 排除"内容容器型"矢量/文本：figure 的装饰矢量（细线、
+    # 列标题底纹、子标签盒）绝不包裹整段正文，而论文的 Abstract 底纹框 /
+    # 侧栏底色框会包裹长段落。若一个候选矢量把某长段落包在内部，说明它是
+    # 内容容器而非 figure 装饰，吸纳它会把该正文段一并烘进图片（实测
+    # Self-Improving Agents Figure 1 的 seed 上方紧邻 Abstract 底纹框，
+    # 吸纳后整段 Abstract 被烘入 figure PNG，与正文文本重复）。
+    # 阈值 ``_LONG_PARAGRAPH_CHARS`` 远高于 short_text_max_chars（80），
+    # 确保只排除真正的正文段落，不误伤多行长标签 / caption。
+    _LONG_PARAGRAPH_CHARS = 200
+    _para_bboxes: List[Tuple[float, float, float, float]] = []
+    _blocks_for_para = (
+        text_dict.get("blocks", []) if isinstance(text_dict, dict) else []
+    )
+    for _blk in _blocks_for_para:
+        if not isinstance(_blk, dict) or _blk.get("type", 0) != 0:
+            continue
+        _bb = _blk.get("bbox")
+        if not _bb or len(_bb) < 4:
+            continue
+        _tlen = 0
+        for _ln in _blk.get("lines", []):
+            for _sp in _ln.get("spans", []):
+                _tlen += len(_sp.get("text", ""))
+        if _tlen < _LONG_PARAGRAPH_CHARS:
+            continue
+        try:
+            _para_bboxes.append(tuple(float(v) for v in _bb[:4]))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+
+    def _encloses_paragraph(dx0: float, dy0: float, dx1: float, dy1: float) -> bool:
+        """候选矩形是否包裹（≥60% 面积覆盖）某个正文长段落 → 判为内容容器。"""
+        for px0, py0, px1, py1 in _para_bboxes:
+            pw, ph = px1 - px0, py1 - py0
+            if pw <= 0 or ph <= 0:
+                continue
+            ox0, oy0 = max(dx0, px0), max(dy0, py0)
+            ox1, oy1 = min(dx1, px1), min(dy1, py1)
+            if ox1 <= ox0 or oy1 <= oy0:
+                continue
+            if (ox1 - ox0) * (oy1 - oy0) / (pw * ph) >= 0.6:
+                return True
+        return False
+
     # ── Step 1: 矢量吸纳 ────────────────────────────────────────────
     search_y_top = sy0 - vertical_search_pt
     search_y_bot = sy1 + vertical_search_pt
@@ -239,6 +284,9 @@ def _expand_figure_bbox(
         drawing_w = dx1 - dx0
         # 以 drawing 自身宽度为分母的重叠比，过滤"擦边但不相关"的横向装饰线
         if h_overlap / max(drawing_w, 1e-6) < min_drawing_h_overlap_ratio:
+            continue
+        # 内容容器排除：该矢量包裹正文长段落（如 Abstract 底纹框）→ 不吸纳
+        if _encloses_paragraph(dx0, dy0, dx1, dy1):
             continue
         ex0 = min(ex0, dx0)
         ey0 = min(ey0, dy0)

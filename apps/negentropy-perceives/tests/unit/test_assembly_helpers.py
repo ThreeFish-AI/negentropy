@@ -196,6 +196,25 @@ class TestFormulaTextSignature:
         # PyMuPDF 字符流文本经签名后应包含 LaTeX 签名（完整或前缀子串）
         assert sig_latex in sig_text or sig_text in sig_latex
 
+    def test_unicode_math_block_folds_to_ascii_signature(self) -> None:
+        """NFKD 折叠：PyMuPDF 抽取的 Unicode 数学字母块 inline 形式与 MinerU
+        LaTeX 块形式签名应一致，使 R8 跨形式去重命中（Q9：否则两份公式并存）。
+
+        旧实现仅保留 ASCII，会把 ``𝑡/𝑀/𝐻`` 全部丢弃致签名坍缩为 ``a``。
+        """
+        # PyMuPDF inline 文本流（Unicode 数学字母块 U+1D400–1D7FF）
+        text = "A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡, 𝑈 𝑡, 𝐸 𝑡 ⟩ ."
+        # MinerU LaTeX 块
+        latex = (
+            r"\mathcal { A } _ { t } = \langle M _ { \theta _ { t } } , "
+            r"H _ { t } , U _ { t } , E _ { t } \rangle ."
+        )
+        sig_text = _formula_text_signature(text)
+        sig_latex = _formula_text_signature(latex)
+        # 折叠后两者一致（均为 atmthtutet 量级），不再坍缩为单字符
+        assert sig_text == sig_latex
+        assert len(sig_text) > 5, f"签名坍缩（NFKD 未生效）：{sig_text!r}"
+
 
 class TestTextBlockMatchesFormula:
     """``_text_block_matches_formula`` 语义层兜底过滤契约。"""
@@ -239,8 +258,33 @@ class TestTextBlockMatchesFormula:
         assert _text_block_matches_formula(block, signatures) is False
 
     def test_short_signature_skipped(self) -> None:
-        """短公式签名 (<20 字符) 不参与匹配，避免假阳性。"""
-        # 短公式 ``E = mc^2`` 签名仅 ``emc2`` (4 字符)
+        """短公式签名 (<20 字符) 不参与**子串**匹配，避免假阳性。"""
+        # 短公式 ``E = mc^2`` 签名仅 ``emc2`` (4 字符)；prose 块非精确相等
         signatures = {0: [_formula_text_signature(r"E = m c ^ 2")]}
         block = self._block("Energy mass conversion E = m c squared formula")
+        assert _text_block_matches_formula(block, signatures) is False
+
+    def test_short_formula_exact_equality_deduped(self) -> None:
+        """Q9：短公式（sig 10 字符 < 20）的 PyMuPDF inline 文本流与 MinerU 块
+        并存时，签名**精确相等**应触发去重（绕过 20 字符子串门）。"""
+        latex = (
+            r"\mathcal { A } _ { t } = \langle M _ { \theta _ { t } } , "
+            r"H _ { t } , U _ { t } , E _ { t } \rangle ."
+        )
+        signatures = {4: [_formula_text_signature(latex)]}  # sig=atmthtutet (10)
+        block = self._block("A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡, 𝑈 𝑡, 𝐸 𝑡 ⟩ .", page=4)
+        assert _text_block_matches_formula(block, signatures) is True
+
+    def test_short_formula_embedded_in_prose_not_deduped(self) -> None:
+        """守卫：短公式嵌入更长正文句（非精确相等）不去重，保留正文。"""
+        latex = (
+            r"\mathcal { A } _ { t } = \langle M _ { \theta _ { t } } , "
+            r"H _ { t } , U _ { t } , E _ { t } \rangle ."
+        )
+        signatures = {4: [_formula_text_signature(latex)]}
+        block = self._block(
+            "Using the survey-wide runtime definition A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡, "
+            "𝑈 𝑡, 𝐸 𝑡 ⟩, the parameter path is the case in which the model",
+            page=4,
+        )
         assert _text_block_matches_formula(block, signatures) is False

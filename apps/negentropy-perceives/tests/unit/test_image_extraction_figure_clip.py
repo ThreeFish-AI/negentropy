@@ -304,3 +304,49 @@ class TestExpandFigureBbox:
         result = _expand_figure_bbox(seed, drawings=drawings, text_dict=text_dict)
         # 不吸纳：bbox 不变
         assert result == seed
+
+    # ──────────────────────────────────────────────────────────────
+    # T5：内容容器排除 —— 矢量包裹正文长段落（如 Abstract 底纹框）不吸纳
+    # ──────────────────────────────────────────────────────────────
+    def test_t5_content_container_drawing_excluded(self) -> None:
+        """种子上方紧邻一个"内容容器型"矢量（Abstract 底纹框），其内部包裹
+        整段正文（≥200 字符）。该矢量应被排除，不被吸纳到 figure bbox——
+        否则整段 Abstract 会被烘进 figure PNG，与正文文本重复（实测
+        Self-Improving Agents Figure 1）。"""
+        # 种子：figure 图区（y 494-734）
+        seed = (89.0, 494.0, 507.0, 734.0)
+        drawings = [
+            # Abstract 底纹框：紧邻种子上方（y 327-494），内部含长段落。
+            # 与种子水平重叠充分、垂直距 0，若无排除会被 step1 吸纳。
+            _drawing(72.0, 327.0, 523.0, 494.0),
+        ]
+        text_dict = {
+            "blocks": [
+                *self._column_paragraphs(),
+                # 底纹框内的 Abstract 长段落（978 字符 → 判定为正文段落）
+                _text_block(80.0, 340.0, 515.0, 480.0, "A" * 978),
+            ]
+        }
+        result = _expand_figure_bbox(seed, drawings=drawings, text_dict=text_dict)
+        # 关键：结果 y0 不应上移到 Abstract 底纹框（327）——底纹框被排除
+        assert result[1] >= 490.0, (
+            f"内容容器（Abstract 底纹框）未被排除：y0={result[1]:.0f} 上移到了段落区"
+        )
+
+    def test_t5b_short_label_container_still_absorbed(self) -> None:
+        """对照：矢量包裹的是**短标签**（< 200 字符）而非正文段落 → 仍正常吸纳
+        （不误伤 R7/R8 的列标题 / 子标签底盒吸纳能力）。"""
+        seed = (180.0, 482.0, 479.0, 682.0)
+        drawings = [
+            # 子标签底盒：上方 20pt，内部只有短标签文本
+            _drawing(180.0, 455.0, 479.0, 478.0),
+        ]
+        text_dict = {
+            "blocks": [
+                *self._column_paragraphs(),
+                _text_block(190.0, 460.0, 470.0, 475.0, "Context 1.0"),  # 短标签
+            ]
+        }
+        result = _expand_figure_bbox(seed, drawings=drawings, text_dict=text_dict)
+        # 短标签底盒正常吸纳：y0 上移到 455
+        assert result[1] <= 460.0, f"短标签底盒未被吸纳：y0={result[1]:.0f}"

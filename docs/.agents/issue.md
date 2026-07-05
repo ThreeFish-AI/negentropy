@@ -2246,6 +2246,21 @@
   3. **跨形式签名的最小启用长度**：字符级扁平签名 ≥20 字符是经验阈值，更低易在短公式（如 ``\alpha = 0``）上产生假阳性匹配，更高漏过中等长度公式；
   4. **临时调试 env-gated 探针**：``NE_DEBUG_FORMULA=1`` 可在二轮根因定位中快速暴露 7 公式如何在 ``add → join → format → final`` 各环节流转，确认是 ``format()`` 内部某步骤丢弃，比再加 print 高效得多。该探针修复落地后已移除。
 
+### 第三轮迭代（R10，2026-07-05）：Self-Improving Agents 综述（88 页 / 双栏 / 数学密集）
+
+以 88 页新维度 PDF 为回归基线，暴露并修复 **9 类失真**（Q6 为伪命题）。完整逐项根因 / 修复 / 单测见 [pdf-harness-engineering-parity.md §9](./pdf-harness-engineering-parity.md#9-r10-增量self-improving-agents-综述88-页--a4-双栏-latex)，此处仅记跨上下文复用要点：
+
+- **两类 auto_batch 跨切片状态泄漏**（同源根因）：
+  - **Q2 标题层级**：assembly 2.1 级联 `_first_h1_seen` 是 per-slice 局部状态，切片 N>0 首标题被误册封 H1。修复：`slice_index` 贯穿 pipeline，切片>0 不册封。
+  - **Q4 公式跨切片泄漏**：MinerU 引擎 pool 复用时 `_ensure_output_dir` 缓存目录，某切片解析失败时 `rglob` 命中前切片遗留 `content_list.json`，静默继承其全部公式/表格/图片。修复：每次 `convert()` 用独立子目录隔离。
+- **三类仅浏览器渲染态可见的失真**（DB markdown 层不可见，实机验证发现）：Q7 figure 过度捕获（`_expand_figure_bbox` 把 Abstract 底纹框烘入图）、Q8 KaTeX ParseError（裸花括号失衡 + `\aftergroup` 等不兼容 primitive）、Q9 公式双份并存（inline 文本流 + block 未去重）。
+- **防范要点**：
+  1. **auto_batch 无共享可变状态铁律**：凡引擎/组装状态在切片间复用，产物目录须 per-call 唯一，级联/册封类状态须显式接收 slice_index；
+  2. **resume 缓存 + 进程热更盲区**：改 perceives 代码验证同一 PDF，必须①重启 MCP 进程（Python 无热重载）②清 `.batch_state/` checkpoint，否则 resume 复用旧切片跳过新代码——本轮曾因此白跑 2 次 re-ingest；
+  3. **1:1 还原验收必须走到浏览器渲染态**：Q7/Q8/Q9 在 DB markdown 层均"看似正确"，仅 KaTeX/图片渲染后才暴露；
+  4. **NFKD 折叠是 Unicode 数学↔LaTeX 跨形式去重的前提**：仅保留 ASCII 会把数学字母块（U+1D400–1D7FF）签名坍缩，须先 `unicodedata.normalize("NFKD")`；
+  5. **figure caption 双源**：多数 figure caption 已烘入 region PNG 像素，wiki/ui 不宜再从 alt 渲染 figcaption（双图注）。
+
 ### 第三轮迭代（2026-05-25 端到端质量回归：断字 / 公式漏检 / 标题误判 / TOC 错乱 / 图片孤儿）
 
 第二轮收尾后切到 71 页双栏 LaTeX 论文 `50714_Agent_Harness_Engineerin.pdf` 做端到端基线回归，再次定位 5 类独立根因（与第一/二轮正交、可单独 cherry-pick）：

@@ -271,12 +271,31 @@ class TestMinerUOutputDir:
         assert output_dir.exists()
         assert output_dir.is_dir()
 
-    def test_ensure_output_dir_uses_specified(self, tmp_path: Path) -> None:
-        """指定 output_dir 时应使用该目录。"""
-        engine = MinerUEngine(output_dir=str(tmp_path / "mineru_out"))
+    def test_ensure_output_dir_uses_specified_root(self, tmp_path: Path) -> None:
+        """指定 output_dir 时在其**下**创建唯一子目录（保持切片隔离，尊重根路径）。"""
+        root = tmp_path / "mineru_out"
+        engine = MinerUEngine(output_dir=str(root))
         output_dir = engine._ensure_output_dir()
-        assert output_dir == tmp_path / "mineru_out"
         assert output_dir.exists()
+        # 实际目录是 root 下的唯一子目录，而非 root 本身
+        assert output_dir.parent == root
+        assert output_dir != root
+
+    def test_ensure_output_dir_isolated_across_calls(self, tmp_path: Path) -> None:
+        """跨 convert 调用（切片）每次得到独立目录——防止 rglob 命中前切片遗留
+        content_list.json 导致公式/表格/图片跨切片泄漏（ISSUE：auto_batch 泄漏）。"""
+        # 未指定根：两次调用目录不同
+        engine = MinerUEngine()
+        d1 = engine._ensure_output_dir()
+        d2 = engine._ensure_output_dir()
+        assert d1 != d2, "同一引擎复用时两次 convert 必须用独立目录"
+        # 指定根：两次调用在同一根下但子目录不同
+        root = tmp_path / "specified"
+        engine2 = MinerUEngine(output_dir=str(root))
+        e1 = engine2._ensure_output_dir()
+        e2 = engine2._ensure_output_dir()
+        assert e1 != e2
+        assert e1.parent == root and e2.parent == root
 
 
 # ============================================================

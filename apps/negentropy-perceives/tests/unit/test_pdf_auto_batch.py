@@ -87,6 +87,7 @@ class _PipelineCallLog:
             extract_formulas: bool = True,
             embed_images: bool = False,
             output_dir: Optional[str] = None,
+            slice_index: int = 0,
         ) -> PipelineResult:
             self.calls.append(
                 {
@@ -97,6 +98,7 @@ class _PipelineCallLog:
                     "extract_formulas": extract_formulas,
                     "embed_images": embed_images,
                     "output_dir": output_dir,
+                    "slice_index": slice_index,
                 }
             )
             i = idx["i"]
@@ -297,6 +299,9 @@ class TestRunBatchedPipeline:
             (40, 80),
             (80, 100),
         ]
+        # slice_index 与切片顺序对齐：assembly 据此决定是否「册封论文标题」
+        # （仅切片 0 册封；切片 >0 不得把首标题误升 H1）。
+        assert [c["slice_index"] for c in log.calls] == [0, 1, 2]
         # markdown 合并后包含 3 段
         assert "A" in (resp.content or "")
         assert "B" in (resp.content or "")
