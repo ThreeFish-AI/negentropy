@@ -444,7 +444,10 @@ def _detect_caption_anchored_figure_regions(
             page = doc[page_idx]
             try:
                 text_dict = page.get_text("dict")
-            except Exception:
+            except Exception as e:
+                # 单页 get_text 失败仅记日志后跳过，不阻断其他页 caption 回退；
+                # except body 含日志语句即不再匹配 B112（裸 continue 才触发）。
+                logger.debug("get_text(dict) 失败 p%d: %s", page_idx, e)
                 continue
             caption_bbox: Optional[Tuple[float, float, float, float]] = None
             caption_num: Optional[int] = None
