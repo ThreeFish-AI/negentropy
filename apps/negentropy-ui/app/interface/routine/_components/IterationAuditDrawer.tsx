@@ -125,7 +125,7 @@ export function IterationAuditDrawer({
         {loading && merged.length === 0 ? (
           <TimelineSkeleton />
         ) : merged.length > 0 ? (
-          <IterationEventTimeline events={merged} live={isInFlight} />
+          <IterationEventTimeline events={merged} live={isInFlight} openingPrompt={iteration?.prompt ?? null} />
         ) : (
           !error && <EmptyState iteration={iteration} />
         )}

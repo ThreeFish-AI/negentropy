@@ -256,6 +256,32 @@ def main() -> None:
     )
     seed_parser.add_argument("--reset", action="store_true", help="先清除旧演示数据后重建")
 
+    # backfill-session-titles subcommand（存量无语义 auto 标题一次性治理，默认 dry-run）
+    backfill_parser = subparsers.add_parser(
+        "backfill-session-titles",
+        help="存量治理：识别并清空无语义 auto 会话标题，交由巡检重新生成",
+    )
+    mode_group = backfill_parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="只扫描+打印命中，零写库（默认行为，显式可读）",
+    )
+    mode_group.add_argument(
+        "--apply",
+        action="store_true",
+        help="实际清空命中的 auto 标题（需生成侧质量门禁已上线）",
+    )
+    backfill_parser.add_argument("--limit", type=int, default=0, help="最多处理的命中数（0=不限）")
+    backfill_parser.add_argument("--batch-size", type=int, default=200, help="每批扫描大小")
+    backfill_parser.add_argument(
+        "--sleep-between-batches",
+        type=float,
+        default=2.0,
+        help="apply 模式下批间睡眠秒数（限流保护）",
+    )
+    backfill_parser.add_argument("--user", default=None, help="限定 user_id（灰度）")
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -271,6 +297,10 @@ def main() -> None:
         from negentropy.cli_seed import run_seed_demo_sync
 
         sys.exit(run_seed_demo_sync(args))
+    elif args.command == "backfill-session-titles":
+        from negentropy.cli_backfill_titles import run_backfill_sync
+
+        sys.exit(run_backfill_sync(args))
     else:
         # Default: serve
         sys.exit(_cmd_serve(args))

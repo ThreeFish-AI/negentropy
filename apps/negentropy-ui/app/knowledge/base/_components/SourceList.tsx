@@ -18,7 +18,7 @@ interface SourceListProps {
 }
 
 function getFallbackDisplayName(uri: string): string {
-  if (uri.startsWith("gs://")) {
+  if (uri.startsWith("pgblob://")) {
     const parts = uri.split("/");
     return parts[parts.length - 1] || uri;
   }

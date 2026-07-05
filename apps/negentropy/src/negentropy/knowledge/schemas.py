@@ -610,11 +610,12 @@ class DocumentResponse(BaseModel):
     file_hash: str
     original_filename: str
     display_name: str | None = None
-    gcs_uri: str
+    content_uri: str
     content_type: str | None = None
     file_size: int
     status: str
     created_at: str | None = None
+    updated_at: str | None = None
     created_by: str | None = None
     created_by_name: str | None = None
     markdown_extract_status: str = "pending"
@@ -649,7 +650,7 @@ class DocumentDetailResponse(DocumentResponse):
     """文档详情响应（含 Markdown 正文）。"""
 
     markdown_content: str | None = None
-    markdown_gcs_uri: str | None = None
+    markdown_uri: str | None = None
 
 
 class DocumentMarkdownRefreshResponse(BaseModel):

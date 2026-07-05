@@ -1,14 +1,19 @@
 import {
-  findFirstDocumentSlug,
+  buildReservedDocsTab,
+  graphHref,
+  isReservedDocsSlug,
   joinEntrySlug,
+  pubHref,
   resolveSectionView,
-  wikiApi,
+  resolveSidebarView,
   type WikiEntry,
   type WikiEntryContent,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { loadHeaderNav, wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
+import { WikiHeaderMobileNav } from "@/components/WikiHeaderMobileNav";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
@@ -16,20 +21,21 @@ import { WikiToc } from "@/components/WikiToc";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiSearchProvider } from "@/components/WikiSearchProvider";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { extractHeadings } from "@/lib/markdown-headings";
+import { stripLeadingTitleHeading } from "@/lib/strip-leading-title";
 import { buildBreadcrumbPath } from "@/lib/wiki-api";
 import { MarkdownRenderer } from "@/components/markdown/MarkdownRenderer";
 import { WikiBreadcrumb } from "@/components/WikiBreadcrumb";
-import { WikiCommentSection } from "@/components/WikiCommentSection";
 import { WikiArticleMeta } from "@/components/WikiArticleMeta";
-import { AnnotationLayer } from "@/components/annotation/AnnotationLayer";
 import { WikiFooter } from "@/components/home/WikiFooter";
-import { SearchSnippetScroller } from "@/components/SearchSnippetScroller";
 import Link from "next/link";
 import { Metadata } from "next";
 
-export const revalidate = 300;
+/**
+ * `output: export` 要求动态路由导出 generateStaticParams；
+ * 从 colocated `generate.ts` re-export（Next 仅识别 page.tsx 的导出）。
+ */
+export { generateStaticParams } from "./generate";
 
 /**
  * Wiki 文档详情页 — 渲染 Markdown 内容（支持层级路径）
@@ -66,7 +72,6 @@ export default async function WikiEntryPage({ params }: Props) {
   let navItems: WikiNavTreeItem[] = [];
   let content: WikiEntryContent | null = null;
   let status: LoadStatus = "missing";
-  let entryId: string | null = null;
 
   try {
     publication = await wikiApi.findPublicationBySlug(pubSlug);
@@ -81,7 +86,6 @@ export default async function WikiEntryPage({ params }: Props) {
         (e) => e.entry_slug === slug,
       );
       if (entry) {
-        entryId = entry.id;
         if (entry.status === "orphaned" || entry.document_id === null) {
           status = "orphaned";
         } else {
@@ -106,7 +110,7 @@ export default async function WikiEntryPage({ params }: Props) {
           文档 &quot;{slug}&quot; 的源文件已被移除或转移，条目暂时无法访问。
         </p>
         <div className="wiki-not-found-actions">
-          <Link href={`/${pubSlug}`}>← 返回 {pubSlug}</Link>
+          <Link href={pubHref(pubSlug)}>← 返回 {pubSlug}</Link>
           <Link href="/">返回首页</Link>
         </div>
       </main>
@@ -121,51 +125,72 @@ export default async function WikiEntryPage({ params }: Props) {
           文档 &quot;{slug}&quot; 不存在或未发布
         </p>
         <div className="wiki-not-found-actions">
-          <Link href={`/${pubSlug}`}>← 返回 {pubSlug}</Link>
+          <Link href={pubHref(pubSlug)}>← 返回 {pubSlug}</Link>
           <Link href="/">返回首页</Link>
         </div>
       </main>
     );
   }
 
-  const md = content?.markdown_content ?? "";
+  // 正文 Markdown 首行恒为「# {entry_title}」（后端抽取产物），与面包屑末段/页面标题重复。
+  // 渲染前剥离该首标题 H1；剥离后的同一字符串同时供 TOC（extractHeadings）与正文
+  // （MarkdownRenderer）使用，确保 rehype-slug 锚点与 TOC 不因 H1 缺席而漂移。
+  const md = stripLeadingTitleHeading(content?.markdown_content ?? "", content?.entry_title);
   const headings = status === "ok" ? extractHeadings(md) : [];
   const hasToc = headings.length >= 2;
+  const isReserved = isReservedDocsSlug(pubSlug);
   const sectionView = resolveSectionView(navItems, slug);
   const hasAnyEntry = sectionView.headerItems.length > 0;
   const breadcrumbItems = status === "ok"
     ? buildBreadcrumbPath(navItems, slug)
     : [];
 
-  const catalogItem = sectionView.activeItem;
-  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
-  const catalogName = catalogItem
-    ? (catalogItem.entry_title || catalogItem.entry_slug)
-    : null;
+  // 单一事实源：嵌套页（面包屑 > 1 段）才渲染面包屑；标题承载与 H1 模式均由此判定派生。
+  const showBreadcrumb = breadcrumbItems.length > 1;
+
+  // 左栏侧边视图：保留 pub 渲染完整文档树（README + concepts/reference/research，全页可切换），
+  // 动态 pub 维持 section 切片。
+  const sidebarView = resolveSidebarView(navItems, { fullTree: isReserved, currentSlug: slug });
 
   const sidebar = (
     <WikiSidebar
       pubSlug={pubSlug}
       publication={publication}
-      sidebarItems={sectionView.sidebarItems}
-      hasActiveItem={!!sectionView.activeItem}
+      sidebarItems={sidebarView.sidebarItems}
+      hasActiveItem={sidebarView.hasActiveItem}
       activeSlug={slug}
-      catalogTargetSlug={catalogTargetSlug}
-      catalogName={catalogName}
+      catalogTargetSlug={sidebarView.catalogTargetSlug}
+      catalogName={sidebarView.catalogName}
       searchSlot={<WikiSearchBox />}
     />
   );
 
-  const header = sectionView.headerItems.length > 0 && (
+  // 顶栏全局模型：左侧「Negentropy」纯链接，右区恒列各动态 pub 一级菜单（全页并存）。
+  const headerNav = await loadHeaderNav();
+  const reservedTab = buildReservedDocsTab({
+    reservedExists: headerNav.reservedExists,
+    isReserved,
+  });
+
+  const header = (
     <WikiHeader
       pubSlug={pubSlug}
-      items={sectionView.headerItems}
+      topNav={headerNav.topNav}
+      activePubSlug={isReserved ? undefined : pubSlug}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
-      graphTab={{ active: false, show: hasAnyEntry }}
+      reservedTab={reservedTab}
+      graphTab={{
+        active: false,
+        show: !!headerNav.graphPubSlug,
+        href: headerNav.graphPubSlug ? graphHref(headerNav.graphPubSlug) : undefined,
+      }}
     />
+  );
+
+  const mobileTopNav = (
+    <WikiHeaderMobileNav reservedTab={reservedTab} topNav={headerNav.topNav} />
   );
 
   return (
@@ -173,7 +198,8 @@ export default async function WikiEntryPage({ params }: Props) {
     <WikiLayoutShell
       sidebar={sidebar}
       hasToc={hasToc}
-      header={header || undefined}
+      header={header}
+      mobileTopNav={mobileTopNav}
       toc={hasToc ? <WikiToc headings={headings} /> : undefined}
       footer={<WikiFooter />}
     >
@@ -203,35 +229,30 @@ export default async function WikiEntryPage({ params }: Props) {
       ) : (
         content && (
           <>
-            {breadcrumbItems.length > 1 && (
+            {showBreadcrumb && (
               <WikiBreadcrumb items={breadcrumbItems} pubSlug={pubSlug} />
             )}
             <header className="wiki-doc-header">
-              <h1 className="wiki-doc-title">
-                {content.entry_title || slug}
-              </h1>
+              {/*
+                标题去重：正文首标题 H1 已在上文剥离。
+                - 嵌套页（有面包屑）：标题由面包屑末段承载，此处仅保留视觉隐藏 H1
+                  维系文档大纲 / SEO / 无障碍语义（复用 utilities 的 .sr-only）。
+                - 顶层页（无面包屑）：保留页面 H1 作为唯一可见标题，维持「标题在上、
+                  元信息在下」的布局，与嵌套页视觉一致。
+              */}
+              {showBreadcrumb ? (
+                <h1 className="sr-only">{content.entry_title || slug}</h1>
+              ) : (
+                <h1 className="wiki-doc-title">{content.entry_title || slug}</h1>
+              )}
               <WikiArticleMeta
-                entryId={entryId!}
                 authorName={content.author_name}
                 authorUrl={content.author_url}
                 publishedAt={content.published_at}
                 sourceUrl={content.source_url}
               />
             </header>
-            {entryId ? (
-              <>
-                <AnnotationLayer entryId={entryId}>
-                  <MarkdownRenderer content={md} />
-                </AnnotationLayer>
-                <SearchSnippetScroller />
-                <WikiCommentSection entryId={entryId} />
-              </>
-            ) : (
-              <>
-                <MarkdownRenderer content={md} />
-                <SearchSnippetScroller />
-              </>
-            )}
+            <MarkdownRenderer content={md} />
           </>
         )
       )}

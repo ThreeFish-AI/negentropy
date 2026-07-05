@@ -11,19 +11,122 @@ Wiki 发布 — 服务层
 
 from __future__ import annotations
 
+import os
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.knowledge._shared import effective_display_name
+from negentropy.knowledge.lifecycle_schemas import (
+    WikiEntryContentResponse,
+    WikiPublishTarget,
+)
 from negentropy.logging import get_logger
 from negentropy.models.perception import WikiPublication, WikiPublicationEntry
 
-from .revalidate import trigger_wiki_revalidate
 from .slug import is_valid_slug, slugify
 from .wiki_dao import WikiDao
+from .wiki_redeploy import trigger_wiki_redeploy
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
+
+
+def _spawn_wiki_deploy_script(
+    script_relpath: str,
+    *,
+    env_overrides: dict[str, str] | None = None,
+    spawn_log_key: str,
+    log_filename: str,
+) -> None:
+    """fire-and-forget spawn 一个相对仓库根的 wiki 部署脚本。
+
+    ``subprocess.Popen`` 脱离请求生命周期后台运行；任何异常仅 WARN，绝不冒泡
+    （``next build`` / git push 耗时且非事务性，不阻塞 publish 返回）。
+    脚本路径为固定内部相对值（``script_relpath`` 不拼接外部输入），env 仅透传
+    受信配置。
+
+    stdout/stderr 统一落盘 ``.temp/<log_filename>``（与脚本自身日志同文件，单一
+    排查入口）；脚本内另有 mkdir 并发锁串行化多次 spawn。与 ``trigger_wiki_redeploy``
+    （webhook → 云端 CI）正交：本地 spawn 用本函数、分域/云端用 webhook。
+    """
+    try:
+        import subprocess
+        from datetime import UTC, datetime
+        from pathlib import Path
+
+        # 仓库根：本文件位于 apps/negentropy/src/negentropy/knowledge/lifecycle/。
+        repo_root = Path(__file__).resolve().parents[6]
+        script_path = (repo_root / script_relpath).resolve()
+        if not script_path.is_file():
+            logger.warning("wiki_deploy_script_missing", script=str(script_path))
+            return
+
+        env = dict(os.environ)
+        if env_overrides:
+            env.update(env_overrides)
+
+        # 输出统一落盘 .temp/<log_filename>（与脚本自身日志同文件，单一排查入口）。
+        # fire-and-forget：不 wait、不阻塞 publish；父侧 fd 关闭不影响子进程继承的 fd。
+        log_path = repo_root / ".temp" / log_filename
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_fp = log_path.open("a", encoding="utf-8")
+        log_fp.write(f"\n[{datetime.now(UTC).isoformat()}] {script_relpath} spawned\n")
+        log_fp.flush()
+        logger.info(spawn_log_key, script=str(script_path), log=str(log_path))
+        subprocess.Popen(  # noqa: S603 - 固定脚本路径，env 仅透传受信配置
+            ["bash", str(script_path)],
+            cwd=str(repo_root),
+            env=env,
+            stdout=log_fp,
+            stderr=log_fp,
+            start_new_session=True,
+        )
+    except Exception as exc:  # noqa: BLE001 - 主动吞噬：spawn 失败不阻塞发布
+        logger.warning(f"{spawn_log_key}_failed", error=str(exc))
+
+
+def _spawn_pages_publish() -> None:
+    """生产目标：spawn ``publish-wiki-pages.sh``。
+
+    全链路「导出（烘焙图片）→ next build → rsync → git push 到
+    ``threefish-ai.github.io`` master」，直接更新 https://threefish-ai.github.io/。
+    目标仓库/分支/token 由 ``wiki_pages_publish`` 配置可选覆盖；缺省时脚本回退
+    ``gh auth token`` / SSH 凭证。fire-and-forget（由 ``publish(target=PRODUCTION)``
+    显式触发）。
+    """
+    from negentropy.config import settings
+
+    cfg = settings.knowledge.wiki_pages_publish
+    env_overrides: dict[str, str] = {"WIKI_PAGES_BRANCH": cfg.branch}
+    if cfg.repo:
+        env_overrides["WIKI_PAGES_REPO"] = cfg.repo
+    if cfg.token is not None:
+        token_value = cfg.token.get_secret_value()
+        if token_value:
+            env_overrides["WIKI_PAGES_TOKEN"] = token_value
+    _spawn_wiki_deploy_script(
+        cfg.script,
+        env_overrides=env_overrides,
+        spawn_log_key="wiki_pages_publish_spawned",
+        log_filename="wiki-pages-publish.log",
+    )
+
+
+def _spawn_local_wiki_rebuild() -> None:
+    """本地目标：spawn ``build-wiki-local.sh``。
+
+    「导出 ``content/`` → ``next build`` 重建 ``apps/negentropy-wiki/out/``」，
+    重建后由本地 wiki（``:3092``）serve 新产物（测试环境）。
+    fire-and-forget（由 ``publish(target=LOCAL)`` 触发，默认目标）。
+    """
+    _spawn_wiki_deploy_script(
+        "scripts/build-wiki-local.sh",
+        env_overrides=None,
+        spawn_log_key="wiki_local_rebuild_spawned",
+        log_filename="wiki-local-rebuild.log",
+    )
+
 
 # 合法主题列表
 VALID_THEMES = {"default", "book", "docs"}
@@ -31,9 +134,65 @@ VALID_THEMES = {"default", "book", "docs"}
 VALID_STATUSES = {"draft", "published", "archived"}
 
 
+def build_entry_content_response(
+    entry_id: UUID,
+    content_data: dict,
+    *,
+    entry_slug: str = "",
+) -> WikiEntryContentResponse:
+    """由 ``WikiDao.get_entry_content`` 的原始 dict 构建对外响应（单一事实源）。
+
+    解析作者信息（metadata 手动覆盖 > DocSource.author）、来源 URL、发布时间，
+    与 ``routes.wiki.get_wiki_entry_content`` 共享同一逻辑，避免双份维护漂移
+    （DRY：Wiki API 响应与静态内容包导出逐字段一致）。
+
+    Args:
+        entry_id: 条目 ID。
+        content_data: ``WikiDao.get_entry_content`` 返回的 dict（含 markdown_content /
+            title / metadata / author / source_url / entry_created_at 等）。
+        entry_slug: 条目 slug；Wiki API 因历史原因传空串，静态导出传入真实 slug。
+    """
+    metadata = content_data.get("metadata", {})
+    author_raw = metadata.get("author") or content_data.get("author")
+    author_name: str | None = None
+    author_url: str | None = None
+
+    if author_raw:
+        author_str = str(author_raw).strip()
+        explicit_url = metadata.get("author_url")
+        if explicit_url and isinstance(explicit_url, str):
+            author_url = explicit_url
+            if not author_name:
+                author_name = author_str.rstrip("/").rsplit("/", 1)[-1] if author_str.startswith("http") else author_str
+        elif author_str.startswith("http"):
+            author_url = author_str
+            author_name = author_str.rstrip("/").rsplit("/", 1)[-1]
+        else:
+            author_name = author_str
+
+    published_at: str | None = None
+    entry_created_at = content_data.get("entry_created_at")
+    if entry_created_at:
+        published_at = entry_created_at.isoformat() if hasattr(entry_created_at, "isoformat") else str(entry_created_at)
+
+    return WikiEntryContentResponse(
+        entry_id=entry_id,
+        document_id=content_data["document_id"],
+        entry_slug=entry_slug,
+        entry_title=content_data.get("title"),
+        markdown_content=content_data.get("markdown_content"),
+        document_filename=content_data.get("filename") or "",
+        author_name=author_name,
+        author_url=author_url,
+        source_url=content_data.get("source_url"),
+        published_at=published_at,
+    )
+
+
 def _resolve_doc_display_title(doc: Any) -> str:
     """决定文档在 Wiki 站点上的展示标题（单一事实源）。
 
+    委托给 :func:`negentropy.knowledge._shared.effective_display_name`，
     优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``
     （PDF / 抓取自动抽取）→ ``original_filename``（兜底）。
 
@@ -41,13 +200,7 @@ def _resolve_doc_display_title(doc: Any) -> str:
     ``routes.wiki.get_entry_content``，保证后端 entry_title 与前端
     SSG 展示一致。
     """
-    display_name = (getattr(doc, "display_name", None) or "").strip()
-    if display_name:
-        return display_name
-    meta_title = (doc.metadata_ or {}).get("title") if getattr(doc, "metadata_", None) else None
-    if isinstance(meta_title, str) and meta_title.strip():
-        return meta_title.strip()
-    return doc.original_filename
+    return effective_display_name(doc)
 
 
 class WikiPublishingService:
@@ -139,11 +292,22 @@ class WikiPublishingService:
     # 发布操作 (状态流转)
     # ------------------------------------------------------------------
 
-    async def publish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
+    async def publish(
+        self,
+        db: AsyncSession,
+        pub_id: UUID,
+        *,
+        target: WikiPublishTarget = WikiPublishTarget.LOCAL,
+    ) -> tuple[WikiPublication | None, str]:
         """触发发布：draft/published → published，递增版本号。
 
         - ``publish_mode == 'SNAPSHOT'``：同步冻结 entries 到 snapshots 表。
-        - 配置了 ``wiki_revalidate.url``：异步通知 SSG 主动 ISR revalidate（失败仅 WARN）。
+        - 始终触发 ``trigger_wiki_redeploy``（webhook → 云端 CI；本地未配置即 no-op，
+          保留云端部署回溯兼容）。
+        - 按 ``target`` fire-and-forget spawn 部署脚本（不阻塞 publish 返回）：
+          - ``LOCAL``：重建本地 wiki（``build-wiki-local.sh``，测试环境）。
+          - ``PRODUCTION``：推送到 ``threefish-ai.github.io`` master
+            （``publish-wiki-pages.sh``，生产环境）。
 
         Returns:
             ``(publication, revalidation_status)`` — revalidation_status 为
@@ -161,17 +325,26 @@ class WikiPublishingService:
             await self._freeze_snapshot(db, pub)
 
         if pub is not None:
-            revalidation = await trigger_wiki_revalidate(
+            revalidation = await trigger_wiki_redeploy(
                 publication_id=pub.id,
                 pub_slug=pub.slug,
                 app_name=pub.app_name,
                 event="publish",
             )
+            # 目标路由 spawn（fire-and-forget）：显式目标即授权，不再受
+            # wiki_pages_publish.enabled 门控。
+            if target == WikiPublishTarget.PRODUCTION:
+                _spawn_pages_publish()
+            else:
+                _spawn_local_wiki_rebuild()
 
         return pub, revalidation
 
     async def unpublish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
-        """取消发布：published → draft，并通知 SSG 主动 revalidate。
+        """取消发布：published → draft，并通知重建流水线（webhook → 云端 CI）。
+
+        wiki 纯静态化后无运行时 ISR/revalidate：``trigger_wiki_redeploy`` 仅作为
+        云端 CI 重建的旁路通知（未配置即 no-op）；实际站点产物不在本方法内更新。
 
         Returns:
             ``(publication, revalidation_status)``。
@@ -179,7 +352,7 @@ class WikiPublishingService:
         pub = await WikiDao.unpublish(db, pub_id)
         revalidation = "not_configured"
         if pub is not None:
-            revalidation = await trigger_wiki_revalidate(
+            revalidation = await trigger_wiki_redeploy(
                 publication_id=pub.id,
                 pub_slug=pub.slug,
                 app_name=pub.app_name,

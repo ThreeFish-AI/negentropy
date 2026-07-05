@@ -91,6 +91,15 @@ ALL_TASKS: tuple[TaskSlot, ...] = (
     ),
     # 注：dedup_merge / auto_link / topic_cluster 三个 step 目前为规则/嵌入驱动，
     # 不调用 LLM。未来若引入 LLM 评判，再在此处补充对应 task_key 并接入调用点。
+    # --- Evolution (global) ---
+    TaskSlot(
+        task_key="evolution.propose",
+        model_type="llm",
+        scope="global",
+        label="进化提案",
+        category="Evolution",
+        description="GEPA 式根据检索效果指标提出 hybrid 权重有界变异提案。",
+    ),
     # --- Session (global) ---
     TaskSlot(
         task_key="session.title",

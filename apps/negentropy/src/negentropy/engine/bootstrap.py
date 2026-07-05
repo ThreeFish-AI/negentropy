@@ -433,6 +433,7 @@ def apply_adk_patches():
         from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.interface.api import router as interface_router
         from negentropy.interface.models_api import router as interface_models_router
+        from negentropy.interface.repository_api import router as interface_repository_router
         from negentropy.interface.routine_api import router as interface_routine_router
         from negentropy.interface.scheduler_api import router as interface_scheduler_router
         from negentropy.interface.task_models_api import corpus_router as interface_task_models_corpus_router
@@ -573,6 +574,7 @@ def apply_adk_patches():
             app.include_router(interface_router)
             app.include_router(interface_models_router)
             app.include_router(interface_task_models_router)
+            app.include_router(interface_repository_router)
             logger.info("Interface API router mounted under /interface")
         if not any(route.path.startswith("/scheduler") for route in app.router.routes):
             app.include_router(interface_scheduler_router)

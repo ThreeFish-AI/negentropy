@@ -184,9 +184,22 @@ def _evt(
     tool_name: str | None = None,
     title: str | None = None,
     cost_usd: float | None = None,
+    agent_role: str | None = None,
 ) -> dict[str, Any]:
-    """构造一条归一化动作记录（不含 seq —— seq 由调用方按到达顺序定格）。"""
-    return {"event_type": event_type, "tool_name": tool_name, "title": title, "payload": payload, "cost_usd": cost_usd}
+    """构造一条归一化动作记录（不含 seq —— seq 由调用方按到达顺序定格）。
+
+    ``agent_role``：多 Agent 归因，标识产出此事件的 Agent 角色（详见 ADR 040）。CC 自身动作
+    （assistant/tool_use/tool_result/result/system）留 None（前端回退推导）；Engine 审阅产出
+    （plan_review）标 ``contemplation``（元神）；自动应答（auto_answer）标 ``internalization``（本心）。
+    """
+    return {
+        "event_type": event_type,
+        "tool_name": tool_name,
+        "title": title,
+        "payload": payload,
+        "cost_usd": cost_usd,
+        "agent_role": agent_role,
+    }
 
 
 def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
@@ -200,6 +213,14 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
         return [_evt("unknown", {"raw": _cap_json(raw)})]
 
     etype = raw.get("type")
+
+    # system/thinking_tokens：模型扩展思考的「逐 token 心跳」（estimated_tokens_delta=1），
+    # 无审计价值，却会以数千条 system 事件淹没 Full View 转录流（实测一次巡检迭代 4703 条），
+    # 既压垮 DB/SSE，又把真实的 tool_use/tool_result（96 条）埋没，并逼近 max_events_per_iter
+    # 上限致尾部真实事件被截断。**思考文本已由 assistant/thinking 块（见下）完整捕获**，故此处
+    # 直接丢弃该心跳，不落库、不下发 SSE。
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "thinking_tokens":
+        return []
 
     # system/init：模型、cwd、可用工具、permission_mode、session_id
     if etype == _EVT_SYSTEM and raw.get("subtype") == "init":
@@ -244,7 +265,7 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
             )
         ]
 
-    # system/plan_review：NegentropyEngine Plan 自动审阅产出
+    # system/plan_review：NegentropyEngine Plan 自动审阅产出 —— 归因元神（Contemplation）
     if etype == _EVT_SYSTEM and raw.get("subtype") == "plan_review":
         # 从 raw 中提取结构化审阅数据；若 raw 是原始审计事件则从顶层取，否则从 payload 嵌套取
         review_data = raw.get("review_result") or {}
@@ -263,10 +284,33 @@ def _normalize_stream_event(raw: dict[str, Any]) -> list[dict[str, Any]]:
                     "raw": _cap_json(raw),
                 },
                 title=f"plan_review ({review_data.get('verdict', 'unknown')}, score={review_data.get('score', '?')})",
+                agent_role="contemplation",
             )
         ]
 
-    # system/* 其余非 init/api_retry/compact_boundary/plan_review（task_started / task_completed 等）
+    # system/auto_answer：Engine 自动应答 AskUserQuestion / ExitPlanMode —— 提级为独立 event_type。
+    # ExitPlanMode 的批准归因元神（Contemplation，批准退出 plan）；结构化问题的应答归因本心
+    # （Internalization，内化目标做确定性裁决）。answer 全文不再截断（历史 500 字截断致审计不可见）。
+    if etype == _EVT_SYSTEM and raw.get("subtype") == "auto_answer":
+        tool_name = raw.get("tool_name")
+        # 与 ClaudeCodeService._EXIT_PLAN_TOOL 同值；此处为模块级函数，直接用字面量避免前向引用类。
+        is_exit_plan = isinstance(tool_name, str) and tool_name == "ExitPlanMode"
+        return [
+            _evt(
+                "auto_answer",
+                {
+                    "tool_use_id": raw.get("tool_use_id"),
+                    "tool_name": tool_name,
+                    "questions": raw.get("questions"),
+                    "answer": raw.get("answer"),
+                    "answer_preview": raw.get("answer_preview"),
+                },
+                title="auto_answer",
+                agent_role="contemplation" if is_exit_plan else "internalization",
+            )
+        ]
+
+    # system/* 其余非 init/api_retry/compact_boundary/plan_review/auto_answer（task_started / task_completed 等）
     if etype == _EVT_SYSTEM:
         subtype = raw.get("subtype") or "unknown"
         return [_evt("system", {"raw": _cap_json(raw)}, title=subtype)]
@@ -1036,6 +1080,33 @@ class ClaudeCodeService:
         return False
 
     @staticmethod
+    def _extract_plan_from_input(tool_input: dict) -> str:
+        """从 AskUserQuestion 的 tool_input 提取 CC 提交的方案全文（clean-path 评审用）。
+
+        CC 经 AskUserQuestion 提交方案时，方案写在 ``questions[].question``（与 ExitPlanMode 的
+        ``plan`` 字段不同）。本方法与 ``plan_review_hook._extract_plan_text`` 同构，供 clean-path
+        （非 deny 钩子）的 ``_plan_review_answer`` 取得方案文本，避免 PlanReviewer 收到空方案。
+        """
+        if not isinstance(tool_input, dict):
+            return ""
+        plan = tool_input.get("plan")
+        if isinstance(plan, str) and plan.strip():
+            return plan.strip()
+        qs = tool_input.get("questions")
+        parts: list[str] = []
+        if isinstance(qs, list):
+            for q in qs:
+                if isinstance(q, dict):
+                    t = q.get("question") or q.get("header") or ""
+                    if isinstance(t, str) and t.strip():
+                        parts.append(t.strip())
+                elif isinstance(q, str):
+                    parts.append(q)
+        if not parts:
+            return json.dumps(tool_input, ensure_ascii=False)
+        return "\n\n".join(parts)
+
+    @staticmethod
     def _build_stdin_user_prompt(prompt: str) -> str:
         """构建写入 stdin 的初始 user prompt 消息行（``--input-format stream-json``）。
 
@@ -1126,6 +1197,26 @@ class ClaudeCodeService:
                 "每个问题对应一个回答，保持简洁（每个回答不超过 100 字）。"
                 "如果问题有选项，回答必须是选项之一的 label 原文。"
             )
+
+            # FacultyBridge（INJECT-4，路径 A，详见 ADR 040）：开启时优先经 ADK Runner 同步调用
+            # **真实本心（Internalization）Faculty** 产出答复 JSON（内化目标、给确定性裁决）；失败/超时/
+            # 解析异常即降级到下方 litellm 直调，保证答问永不因 Faculty 不可用而中断。
+            from negentropy.config import settings as _settings
+
+            if _settings.routine.faculty_bridge_enabled:
+                with suppress(Exception):
+                    from negentropy.engine.routine.faculty_bridge import run_faculty
+
+                    fac_text = await run_faculty(
+                        "internalization",
+                        judge_prompt,
+                        timeout_seconds=min(float(_settings.routine.faculty_bridge_timeout_seconds), timeout),
+                    )
+                    if fac_text:
+                        fac_parsed = json.loads(fac_text)
+                        if isinstance(fac_parsed.get("answers"), list):
+                            return "\n".join(str(a) for a in fac_parsed["answers"])
+                    logger.info("claude_code_auto_answer_faculty_bridge_fallback_litellm")
 
             model, model_kwargs = await resolve_model_config_async(
                 ClaudeCodeService._AUTO_ANSWER_TASK_KEY,
@@ -1416,7 +1507,8 @@ class ClaudeCodeService:
                                             "subtype": "auto_answer",
                                             "tool_use_id": tool_use_id,
                                             "tool_name": tool_name,
-                                            "answer_preview": answer[:500],
+                                            "answer": answer,  # 全文（不截断），供审计完整回放
+                                            "answer_preview": answer[:500],  # 兼容旧渲染
                                         },
                                         events_holder,
                                         on_event,
@@ -1440,7 +1532,11 @@ class ClaudeCodeService:
 
                                     ctx = config.auto_answer_context or {}
                                     plan_review_enabled = ctx.get("plan_review_enabled", False)
-                                    plan_text = ctx.get("plan_summary") or result_text or ""
+                                    plan_text = (
+                                        ctx.get("plan_summary")
+                                        or result_text
+                                        or ClaudeCodeService._extract_plan_from_input(tool_input)
+                                    )
 
                                     # Fix 1：区分「Plan 提交审阅」vs「结构化选项问题」
                                     is_plan_submit = plan_review_enabled and ClaudeCodeService._is_plan_review_question(
@@ -1474,7 +1570,8 @@ class ClaudeCodeService:
                                             "subtype": "plan_review",
                                             "tool_use_id": tool_use_id,
                                             "questions": _cap_json(questions),
-                                            "answer_preview": answer[:500],
+                                            "answer": answer,  # 全文（不截断）
+                                            "answer_preview": answer[:500],  # 兼容旧渲染
                                         }
                                         if review_data:
                                             audit_event["review_result"] = review_data
@@ -1491,7 +1588,8 @@ class ClaudeCodeService:
                                             "subtype": "auto_answer",
                                             "tool_use_id": tool_use_id,
                                             "questions": _cap_json(questions),
-                                            "answer_preview": answer[:500],
+                                            "answer": answer,  # 全文（不截断），供审计完整回放
+                                            "answer_preview": answer[:500],  # 兼容旧渲染
                                         }
 
                                     msg = ClaudeCodeService._build_stdin_tool_result(tool_use_id, answer)

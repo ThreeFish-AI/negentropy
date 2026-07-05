@@ -1,6 +1,12 @@
+---
+sidebar_position: 4
+title: "Home 对话 · 主模块特性手册"
+---
 # Home / 人与 Agent 对话 · 主模块特性手册
 
 > 本手册覆盖「Home 对话」**所有主模块特性**的最小操作指引。理论与对标参考 [conversation-foundation.md](../conversation-foundation.md)，协议事实参考 [framework.md](../framework.md) §9 与 [a2ui.md](../a2ui.md)，主用户手册参见 [user-guide.md](../../user-guide.md) §3。
+>
+> 中栏对话的**回合制转录渲染**（左右分栏 / per-agent 徽章 / 类型化工具卡 / 思考引用折叠）见 [transcript-view 实操手册](./transcript-view.md)，设计架构见 [人机交互转录 UI ADR](../subsystems/041-human-machine-interaction-transcript.md)。
 
 ## 0. 入口
 

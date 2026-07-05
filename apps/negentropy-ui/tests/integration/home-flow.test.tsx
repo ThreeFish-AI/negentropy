@@ -42,6 +42,11 @@ type SessionEventPayload = {
   content?: {
     parts: Array<{ text: string }>;
   };
+  // 审批门测试：携带 state delta（如 pending_approvals），经 adkEventsToSnapshot
+  // 浅合并进 snapshot，驱动 ApprovalDialog 弹出。
+  actions?: {
+    stateDelta?: Record<string, unknown>;
+  };
 };
 
 type SubscriptionHandlers = {
@@ -505,6 +510,101 @@ describe("HomeBody integration", () => {
     );
   }, 10000);
 
+  it("审批弹窗：批准后乐观关闭并发出 approval_response（回归卡死）", async () => {
+    // 初始 detail 携带一条 pending_approvals 的 state delta → 弹窗弹出。
+    detailEvents = [
+      {
+        id: "approval-event-1",
+        runId: "s1",
+        threadId: "s1",
+        timestamp: 1000,
+        actions: {
+          stateDelta: {
+            pending_approvals: {
+              a1: {
+                action_id: "a1",
+                tool_name: "ingest_paper",
+                label: "入库论文: X",
+                risk_tier: "medium",
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    const user = userEvent.setup();
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    // 弹窗出现（快照含 pending_approvals）。
+    expect(await screen.findByTestId("approval-dialog")).toBeInTheDocument();
+
+    // 点击「批准」。
+    await user.click(screen.getByTestId("approval-approve"));
+
+    // (a) 发出 approval_response POST（decision=approved）。
+    await waitFor(() => {
+      const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [string, RequestInit | undefined]
+      >;
+      const posted = calls.find(
+        ([url, opts]) =>
+          String(url).includes("/api/agui/sessions/s1/approval_response") &&
+          opts?.method === "POST",
+      );
+      expect(posted).toBeTruthy();
+      expect(String(posted?.[1]?.body)).toContain("\"decision\":\"approved\"");
+    });
+
+    // (b) 乐观关闭：即使 detailEvents 仍含 pending（后端尚未回填），弹窗也立即消失。
+    await waitFor(() => {
+      expect(screen.queryByTestId("approval-dialog")).toBeNull();
+    });
+  }, 10000);
+
+  it("审批弹窗：ESC 延后关闭且不发送决策（硬门逃生）", async () => {
+    detailEvents = [
+      {
+        id: "approval-event-2",
+        runId: "s1",
+        threadId: "s1",
+        timestamp: 1000,
+        actions: {
+          stateDelta: {
+            pending_approvals: {
+              a2: {
+                action_id: "a2",
+                tool_name: "ingest_paper",
+                label: "入库论文: Y",
+                risk_tier: "medium",
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    const user = userEvent.setup();
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+    expect(await screen.findByTestId("approval-dialog")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    // 弹窗关闭。
+    await waitFor(() => {
+      expect(screen.queryByTestId("approval-dialog")).toBeNull();
+    });
+    // 硬门：ESC 不发送 approval_response。
+    const posted = (
+      (global.fetch as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [string, RequestInit | undefined]
+      >
+    ).some(([url]) => String(url).includes("/approval_response"));
+    expect(posted).toBe(false);
+  }, 10000);
+
   it("无 Session 时发送消息自动创建会话", async () => {
     // 覆盖 fetch mock：sessions/list 返回空列表，模拟无 Session 状态
     global.fetch = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
@@ -569,8 +669,8 @@ describe("HomeBody integration", () => {
       await screen.findByText((content) => content.includes("world")),
     ).toBeInTheDocument();
 
-    // 点击 "New" 创建新 session
-    await user.click(screen.getByRole("button", { name: "New" }));
+    // 点击「新建对话」创建新 session
+    await user.click(screen.getByRole("button", { name: "新建对话" }));
 
     // 验证创建了新 session
     await waitFor(() => {

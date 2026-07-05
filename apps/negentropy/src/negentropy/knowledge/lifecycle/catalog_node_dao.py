@@ -244,12 +244,20 @@ async def _query_tree(
         anchor = "WHERE id = :entry_id"
         anchor_params = {"entry_id": str(entry_id), "max_depth": max_depth}
 
+    # DOCUMENT_REF 节点的展示名遵循「单一事实源」：从关联 KnowledgeDocument 派生
+    # （display_name → metadata.title → original_filename），与
+    # wiki_service._resolve_doc_display_title 及前端 effectiveDisplayName 逐字对齐，
+    # 消除「左栏 entry.name / 右栏 doc.display_name」Split-Brain。FOLDER 等结构节点
+    # 仍直读 entry.name。document 被硬删（document_id ON DELETE SET NULL）时
+    # LEFT JOIN 为 NULL，COALESCE 回退 entry.name（原始兜底）。
+    doc_table = f"{NEGENTROPY_SCHEMA}.knowledge_documents"
+
     stmt = text(f"""
         WITH RECURSIVE tree AS (
             SELECT
                 id, parent_entry_id AS parent_id, name, slug_override, node_type,
                 description, position AS sort_order, config, catalog_id,
-                document_id,
+                document_id, source_corpus_id,
                 0 AS depth, ARRAY[id] AS path
             FROM {table}
             {anchor}
@@ -260,17 +268,28 @@ async def _query_tree(
             SELECT
                 n.id, n.parent_entry_id, n.name, n.slug_override, n.node_type,
                 n.description, n.position, n.config, n.catalog_id,
-                n.document_id,
+                n.document_id, n.source_corpus_id,
                 t.depth + 1, t.path || n.id
             FROM {table} n
             JOIN tree t ON n.parent_entry_id = t.id
             WHERE n.node_type IN ({types_in})
         )
-        SELECT id, parent_id, name, slug_override, node_type,
-               description, sort_order, config, catalog_id, document_id, depth, path
-        FROM tree
-        WHERE depth <= :max_depth
-        ORDER BY depth, sort_order, name
+        SELECT t.id, t.parent_id,
+            CASE
+                WHEN t.node_type = 'DOCUMENT_REF' AND t.document_id IS NOT NULL
+                    THEN COALESCE(
+                        NULLIF(TRIM(d.display_name), ''),
+                        NULLIF(TRIM(d.metadata->>'title'), ''),
+                        NULLIF(d.original_filename, ''),
+                        t.name)
+                ELSE t.name
+            END AS name,
+            t.slug_override, t.node_type, t.description, t.sort_order, t.config,
+            t.catalog_id, t.document_id, t.source_corpus_id, t.depth, t.path
+        FROM tree t
+        LEFT JOIN {doc_table} d ON d.id = t.document_id
+        WHERE t.depth <= :max_depth
+        ORDER BY t.depth, t.sort_order, name
     """)
 
     rows = (await db.execute(stmt, anchor_params)).all()
@@ -288,8 +307,9 @@ async def _query_tree(
             "config": row[7],
             "catalog_id": row[8],
             "document_id": row[9],
-            "depth": row[10],
-            "path": list(row[11]) if row[11] else [],
+            "source_corpus_id": row[10],
+            "depth": row[11],
+            "path": list(row[12]) if row[12] else [],
         }
         for row in rows
     ]

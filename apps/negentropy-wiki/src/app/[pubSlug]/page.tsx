@@ -1,24 +1,31 @@
 import {
+  buildReservedDocsTab,
   countLeafEntries,
-  findFirstDocumentSlug,
-  findIndexEntry,
+  entryHref,
+  graphHref,
+  isReservedDocsSlug,
   resolveSectionView,
-  wikiApi,
+  resolveSidebarView,
   type WikiPublication,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
+import { loadHeaderNav, wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
+import { WikiHeaderMobileNav } from "@/components/WikiHeaderMobileNav";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiSidebar } from "@/components/WikiSidebar";
 import { WikiSearchBox } from "@/components/WikiSearchBox";
 import { WikiSearchProvider } from "@/components/WikiSearchProvider";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import Link from "next/link";
 import { WikiFooter } from "@/components/home/WikiFooter";
 
-export const revalidate = 300;
+/**
+ * `output: export` 要求动态路由导出 generateStaticParams；
+ * 从 colocated `generate.ts` re-export（Next 仅识别 page.tsx 的导出）。
+ */
+export { generateStaticParams } from "./generate";
 
 /**
  * Publication 首页 — 显示层级导航树与索引入口
@@ -64,51 +71,68 @@ export default async function WikiPublicationPage({ params }: Props) {
     );
   }
 
-  const indexEntry = findIndexEntry(navItems);
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
 
-  const catalogItem = sectionView.activeItem;
-  const catalogTargetSlug = catalogItem ? findFirstDocumentSlug(catalogItem) : null;
-  const catalogName = catalogItem
-    ? (catalogItem.entry_title || catalogItem.entry_slug)
-    : null;
+  // 保留一级目录「Negentropy」：左侧标签恒在（存在保留 pub 时），当前在该 pub 时高亮；
+  // 保留 docs 目录无 KG，故其页面隐藏 Knowledge Graph 标签。
+  const isReserved = isReservedDocsSlug(pubSlug);
+
+  // 顶栏全局模型 + 左栏侧边视图（保留 pub 走全树、动态 pub 走 section 切片）。
+  const headerNav = await loadHeaderNav();
+  const sidebarView = resolveSidebarView(navItems, { fullTree: isReserved });
 
   const sidebar = (
     <WikiSidebar
       pubSlug={pubSlug}
       publication={publication}
-      sidebarItems={sectionView.sidebarItems}
-      hasActiveItem={!!sectionView.activeItem}
-      indexEntry={indexEntry}
-      catalogTargetSlug={catalogTargetSlug}
-      catalogName={catalogName}
+      sidebarItems={sidebarView.sidebarItems}
+      hasActiveItem={sidebarView.hasActiveItem}
+      indexEntry={sidebarView.indexEntry}
+      catalogTargetSlug={sidebarView.catalogTargetSlug}
+      catalogName={sidebarView.catalogName}
       searchSlot={<WikiSearchBox />}
     />
   );
 
-  const header = sectionView.headerItems.length > 0 && (
+  const reservedTab = buildReservedDocsTab({
+    reservedExists: headerNav.reservedExists,
+    isReserved,
+  });
+
+  const header = (
     <WikiHeader
       pubSlug={pubSlug}
-      items={sectionView.headerItems}
+      topNav={headerNav.topNav}
+      activePubSlug={isReserved ? undefined : pubSlug}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
-      graphTab={{ active: false, show: entriesTotal > 0 }}
+      reservedTab={reservedTab}
+      graphTab={{
+        active: false,
+        show: !!headerNav.graphPubSlug,
+        href: headerNav.graphPubSlug ? graphHref(headerNav.graphPubSlug) : undefined,
+      }}
     />
+  );
+
+  const mobileTopNav = (
+    <WikiHeaderMobileNav reservedTab={reservedTab} topNav={headerNav.topNav} />
   );
 
   return (
     <WikiSearchProvider pubSlug={pubSlug}>
-    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined} footer={<WikiFooter />}>
+    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header} mobileTopNav={mobileTopNav} footer={<WikiFooter />}>
       <header className="wiki-doc-header">
         <h1 className="wiki-doc-title">
-          {catalogName ? (
-            catalogTargetSlug ? (
-              <Link href={`/${pubSlug}/${catalogTargetSlug}`}>{catalogName}</Link>
+          {sidebarView.catalogName ? (
+            sidebarView.catalogTargetSlug ? (
+              <Link href={entryHref(pubSlug, sidebarView.catalogTargetSlug)}>
+                {sidebarView.catalogName}
+              </Link>
             ) : (
-              catalogName
+              sidebarView.catalogName
             )
           ) : (
             publication.name
@@ -130,10 +154,10 @@ export default async function WikiPublicationPage({ params }: Props) {
           </Link>
           后重新发布。
         </p>
-      ) : indexEntry ? (
+      ) : sidebarView.indexEntry ? (
         <p className="wiki-text-hint">
           请从左侧导航选择文档，或直接访问{" "}
-          <Link href={`/${pubSlug}/${indexEntry.entry_slug}`}>首页</Link>。
+          <Link href={entryHref(pubSlug, sidebarView.indexEntry.entry_slug)}>首页</Link>。
         </p>
       ) : (
         <p className="wiki-text-hint">请从左侧导航选择文档开始阅读。</p>

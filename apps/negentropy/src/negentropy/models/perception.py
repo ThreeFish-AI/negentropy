@@ -109,7 +109,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # 存储信息
-    gcs_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    content_uri: Mapped[str] = mapped_column(Text, nullable=False)
     content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -121,7 +121,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     # 预处理后的 Markdown 内容与状态
     markdown_content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    markdown_gcs_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    markdown_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     markdown_extract_status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -159,6 +159,28 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     corpus: Mapped["Corpus | None"] = relationship(back_populates="documents")
     # Phase 2: 来源记录（反向关联）
     source: Mapped["DocSource | None"] = relationship(foreign_keys=[source_id])
+
+
+# =============================================================================
+# 文档展示名解析（单一事实源内核）
+# =============================================================================
+
+
+def resolve_effective_display_name(display_name: str | None, metadata_title: Any, original_filename: str) -> str:
+    """文档展示名的纯函数解析（单一事实源内核，无 IO / 无 ORM 依赖）。
+
+    优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``（PDF / 抓取自动抽取，
+    须为非空 str）→ ``original_filename``（不可变兜底）。
+
+    供 ``_shared.effective_display_name``（ORM 级 duck-typed）与 raw-SQL dict 级场景
+    （如 ``pdf_fidelity_patrol`` handler）共同复用，避免 3-tier 回退链多处重复实现。
+    """
+    name = (display_name or "").strip()
+    if name:
+        return name
+    if isinstance(metadata_title, str) and metadata_title.strip():
+        return metadata_title.strip()
+    return original_filename
 
 
 # =============================================================================

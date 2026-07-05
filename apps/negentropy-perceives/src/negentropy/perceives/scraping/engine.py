@@ -1,17 +1,24 @@
 """核心抓取模块：HTTP / Selenium 双引擎。"""
 
+# selenium 仅在真正发起浏览器抓取时才需要：模块级导入会把 ~30-50s 的 selenium 冷启动
+# 代价强加到 perceives 进程启动链路（WebScraper 在 core/services.py 导入期即被实例化），
+# 拖慢 cli.sh 健康检查预算。故下沉到方法体内首次调用时再导入（Python import 缓存后续零成本）。
+# `from __future__ import annotations` 使 webdriver.Chrome 等注解变惰性字符串，
+# 移除模块级 webdriver 导入后不在类定义/实例化期被求值。
+from __future__ import annotations
+
 import asyncio
 import logging
 import time
-from typing import Dict, Any, List, Optional
+from typing import TYPE_CHECKING, Dict, Any, List, Optional
 from bs4 import BeautifulSoup
 import requests
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from fake_useragent import UserAgent
+
+if TYPE_CHECKING:
+    # 仅静态类型检查可见：供 webdriver.Chrome 注解引用；运行期 TYPE_CHECKING 为 False，
+    # 不触发 selenium 导入（实际导入见 _get_driver / scrape 方法体内，首次调用才加载）。
+    from selenium import webdriver
 
 from .browser import build_chrome_options
 from ..config import settings
@@ -33,6 +40,8 @@ class SeleniumScraper:
 
     def _get_driver(self) -> webdriver.Chrome:
         """获取已配置的 Chrome 驱动实例。"""
+        from selenium import webdriver  # 懒加载：见模块头注释
+
         user_agent = (
             self.ua.random if (settings.use_random_user_agent and self.ua) else None
         )
@@ -49,6 +58,11 @@ class SeleniumScraper:
         extract_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """使用 Selenium 抓取指定 URL。"""
+        from selenium.webdriver.common.by import By  # 懒加载：见模块头注释
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException
+
         try:
             self.driver = self._get_driver()
             self.driver.get(url)

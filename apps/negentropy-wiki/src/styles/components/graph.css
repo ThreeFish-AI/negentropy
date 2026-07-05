@@ -9,13 +9,15 @@
   max-width: 100%;
 }
 
-.wiki-graph-page-header {
-  padding: 1.5rem clamp(1.25rem, 4vw, 3rem) 0.5rem;
-}
-
+/* 图谱画布容器：铺满 header 以下的整个视口高度。
+ *
+ * 高度公式复用 layout.css 中 .wiki-sidebar / .wiki-toc-aside 的既有模式
+ * （height: calc(100vh - var(--wiki-header-height))），以 --wiki-header-height
+ * 为单一事实源，杜绝魔数；box-sizing: border-box（base.css）保证 1px 边框计入
+ * 高度，故 overflow: hidden 下不会撑出滚动条。版本/统计由 WikiGraphRenderer 的
+ * 左上角浮层徽标承载，不再占用独立的页头条带。 */
 .wiki-graph-canvas-wrap {
-  height: calc(100vh - 200px);
-  min-height: 480px;
+  height: calc(100vh - var(--wiki-header-height));
   width: 100%;
   position: relative;
   border: 1px solid var(--wiki-border);

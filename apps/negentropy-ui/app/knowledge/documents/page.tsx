@@ -6,7 +6,7 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
@@ -22,14 +22,29 @@ import {
   CorpusRecord,
   formatRelativeTime,
   LIBRARY_CORPUS_SEGMENT,
+  effectiveDocumentName,
+  useInlineDocumentRename,
 } from "@/features/knowledge";
+import { Check, Pencil, X } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { Pagination } from "@/components/ui/Pagination";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import {
+  tableBodyClassName,
+  tableContainerClassName,
+  tableHeaderClassName,
+  tableRowClassName,
+} from "@/components/ui/table-styles";
+import { cn } from "@/lib/utils";
+import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import { useHeartbeatPoll } from "@/hooks/useHeartbeatPoll";
 import { ImportDocumentDialog } from "./_components/ImportDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+/** 文档列表每页条数（偏移分页粒度 + 无限滚动加载粒度 + 页码跳页粒度）。 */
+const DOCUMENTS_PAGE_SIZE = 10;
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -97,20 +112,94 @@ function isTranslatable(doc: KnowledgeDocument): boolean {
 }
 
 export default function DocumentsPage() {
-  const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isTranslating, setIsTranslating] = useState(false);
+  /** 乐观覆盖：Translate accepted 的文档即时置 processing，待 refresh/心跳带回真实状态后超时清除。 */
+  const [optimisticProcessing, setOptimisticProcessing] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  // 无限滚动 + 翻页：滚动容器 ref（哨兵 / 滚动联动 observer 的 root）、程序化滚动闸门、待跳页号。
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
+
+  // 偏移分页适配器：薄包 fetchAllDocuments；响应 count 归一为 total。
+  const fetcher = useMemo<OffsetFetcher<KnowledgeDocument>>(
+    () => ({
+      kind: "offset",
+      fetchRange: async ({ offset, limit }) => {
+        const data = await fetchAllDocuments({ appName: APP_NAME, limit, offset });
+        return { items: data.items, total: data.count };
+      },
+    }),
+    [],
+  );
+
+  const list = useInfiniteList<KnowledgeDocument>({ fetcher, pageSize: DOCUMENTS_PAGE_SIZE });
+  // 乐观覆盖：对 Translate accepted 的文档叠加 translation.status=processing，使其即时显示「Translating…」。
+  const documents = useMemo(() => {
+    if (optimisticProcessing.size === 0) return list.items;
+    return list.items.map((d) =>
+      optimisticProcessing.has(d.id)
+        ? {
+            ...d,
+            metadata: {
+              ...d.metadata,
+              translation: { ...(d.metadata?.translation ?? {}), status: "processing" },
+            },
+          }
+        : d,
+    );
+  }, [list.items, optimisticProcessing]);
+  const total = list.total ?? 0;
+  const loading = list.loading;
+  const error = list.error;
+  const { refresh: listRefresh } = list;
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 偏移补齐下一页。root = 列表内容滚动容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首行的 data-infinite-page 锚点，取最靠上可见页。
+  useScrollPageSync({
+    enabled: true,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: documents.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  // 点页码跳页：先经 hook 确保该页已加载（偏移单请求补齐），再滚动到该页锚点。
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（偏移补齐后，锚点随 documents 增长后再现 → effect 重跑命中）。
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return; // 该页尚未渲染，待 documents 增长后重跑
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [list.currentPage, documents.length]);
 
   // 加载语料库列表
   const loadCorpora = useCallback(async () => {
@@ -122,37 +211,12 @@ export default function DocumentsPage() {
     }
   }, []);
 
-  // 加载文档列表（silent: 轮询路径跳过 loading 态，避免整表闪烁）
-  const loadDocuments = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!options?.silent) setLoading(true);
-      setError(null);
-      try {
-        const data = await fetchAllDocuments({
-          appName: APP_NAME,
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
-        });
-        setDocuments(data.items);
-        setTotal(data.count);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load documents");
-      } finally {
-        if (!options?.silent) setLoading(false);
-      }
-    },
-    [page, pageSize],
-  );
-
   useEffect(() => {
     loadCorpora();
   }, [loadCorpora]);
 
-  useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
-
-  // 翻译 / 导入转换进行中时按心跳节拍静默刷新列表（完成后新分录与状态自动出现）
+  // 翻译 / 导入转换进行中时按心跳节拍静默刷新列表（完成后新分录与状态自动出现）。
+  // 改由 useInfiniteList.refresh()：原地重载已加载范围、不闪空、保留当前滚动深度。
   const anyTranslating = useMemo(
     () => documents.some((doc) => getTranslationMeta(doc)?.status === "processing"),
     [documents],
@@ -164,13 +228,31 @@ export default function DocumentsPage() {
       ),
     [documents],
   );
-  const silentReload = useCallback(() => loadDocuments({ silent: true }), [loadDocuments]);
-  useHeartbeatPoll(silentReload, {
+  useHeartbeatPoll(listRefresh, {
     enabled: anyTranslating || anyExtracting,
     fireImmediately: false,
   });
 
-  const totalPages = Math.ceil(total / pageSize);
+  // 行内重命名 File Name → 写入 display_name（逻辑下沉到 useInlineDocumentRename，
+  // 与 Wiki 目录共用）。保存成功后原地重载已加载范围（缓冲由 useInfiniteList 持有），
+  // 避免与心跳轮询 / 分页互相打架。
+  const handleRenameSaved = useCallback(() => {
+    listRefresh();
+  }, [listRefresh]);
+  const {
+    editingId,
+    editDraft,
+    setEditDraft,
+    saving: renaming,
+    editInputRef,
+    startEdit,
+    cancelEdit,
+    commitEdit,
+    handleKeyDown,
+  } = useInlineDocumentRename({
+    onSaved: handleRenameSaved,
+    savingToast: "文件名称已更新",
+  });
 
   const translatableDocs = useMemo(() => documents.filter(isTranslatable), [documents]);
   const allSelected =
@@ -192,24 +274,6 @@ export default function DocumentsPage() {
     setSelectedIds(allSelected ? new Set() : new Set(translatableDocs.map((doc) => doc.id)));
   };
 
-  // 本地把指定文档置为 processing（轮询接管后续状态）
-  const markProcessingLocally = useCallback((docIds: string[]) => {
-    const idSet = new Set(docIds);
-    setDocuments((docs) =>
-      docs.map((doc) =>
-        idSet.has(doc.id)
-          ? {
-              ...doc,
-              metadata: {
-                ...(doc.metadata || {}),
-                translation: { status: "processing" } satisfies DocumentTranslationMeta,
-              },
-            }
-          : doc,
-      ),
-    );
-  }, []);
-
   const handleTranslate = async (docIds: string[], options?: { force?: boolean }) => {
     if (docIds.length === 0 || isTranslating) return;
     setIsTranslating(true);
@@ -222,7 +286,21 @@ export default function DocumentsPage() {
         toast.success(
           `Translation started: ${result.accepted.length} document${result.accepted.length !== 1 ? "s" : ""} (EN → 中文)`,
         );
-        markProcessingLocally(result.accepted);
+        // 乐观置 processing：行内即时显示「Translating…」，无需等待重拉。
+        const accepted = result.accepted;
+        setOptimisticProcessing((prev) => new Set([...prev, ...accepted]));
+        // 后端已将 accepted 文档置为 processing：原地重载带回真实状态，心跳随即接管收敛。
+        listRefresh();
+        // 兜底清除乐观覆盖（正常路径下 refresh/心跳已带回真实 processing，此超时仅防 stale）。
+        window.setTimeout(
+          () =>
+            setOptimisticProcessing((prev) => {
+              const next = new Set(prev);
+              accepted.forEach((id) => next.delete(id));
+              return next;
+            }),
+          8000,
+        );
       }
       if (result.skipped.length > 0) {
         const reasons = result.skipped
@@ -245,8 +323,8 @@ export default function DocumentsPage() {
         appName: APP_NAME,
         hardDelete: deleteHard,
       });
-      setDocuments((docs) => docs.filter((d) => d.id !== doc.id));
-      setTotal((t) => t - 1);
+      // 缓冲由 useInfiniteList 持有：原地重载已加载范围，保持总数与前缀一致。
+      listRefresh();
       setDeleteConfirm(null);
       setDeleteHard(false);
       toast.success(deleteHard ? "Document permanently deleted" : "Document deleted");
@@ -379,9 +457,9 @@ export default function DocumentsPage() {
               </button>
             </div>
           </div>
-          <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
+          <div className={cn(tableContainerClassName, "flex flex-1 flex-col")}>
             {/* 表头 */}
-            <div className="flex items-center px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
+            <div className={cn("flex items-center", tableHeaderClassName)}>
               <div className="w-8 shrink-0 flex justify-center">
                 <input
                   type="checkbox"
@@ -392,21 +470,22 @@ export default function DocumentsPage() {
                   title="Select all translatable documents"
                 />
               </div>
-              <div className="grid grid-cols-12 gap-2 flex-1">
-                <div className="col-span-3 text-center border-r border-border">File Name</div>
-                <div className="col-span-1 text-center border-r border-border">Size</div>
-                <div className="col-span-1 text-center border-r border-border">File Hash</div>
-                <div className="col-span-2 text-center border-r border-border">Corpus</div>
-                <div className="col-span-2 text-center border-r border-border">Translation</div>
-                <div className="col-span-1 text-center border-r border-border">Created By</div>
-                <div className="col-span-1 text-center border-r border-border">Created At</div>
+              <div className="grid grid-cols-13 gap-2 flex-1">
+                <div className="col-span-3 text-center">File Name</div>
+                <div className="col-span-1 text-center">Size</div>
+                <div className="col-span-1 text-center">File Hash</div>
+                <div className="col-span-2 text-center">Corpus</div>
+                <div className="col-span-2 text-center">Translation</div>
+                <div className="col-span-1 text-center">Created By</div>
+                <div className="col-span-1 text-center">Created At</div>
+                <div className="col-span-1 text-center">Updated At</div>
                 <div className="col-span-1 text-center">Actions</div>
               </div>
             </div>
 
-            {/* 内容 */}
-            <div className="flex-1 overflow-y-auto">
-              {loading ? (
+            {/* 内容 — 滚动容器同时作为无限滚动哨兵 / 滚动联动 observer 的 root。 */}
+            <div ref={scrollRootRef} className="flex-1 overflow-y-auto">
+              {loading && documents.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">
                   Loading documents...
                 </div>
@@ -417,11 +496,14 @@ export default function DocumentsPage() {
                   No documents uploaded yet
                 </div>
               ) : (
-                <div className="divide-y divide-border">
-                  {documents.map((doc) => (
+                <div className={tableBodyClassName}>
+                  {documents.map((doc, i) => (
                     <div
                       key={doc.id}
-                      className="flex items-center px-4 py-3 text-sm hover:bg-muted/30 transition-colors"
+                      data-infinite-page={
+                        i % DOCUMENTS_PAGE_SIZE === 0 ? Math.floor(i / DOCUMENTS_PAGE_SIZE) + 1 : undefined
+                      }
+                      className={cn("group flex items-center text-sm", tableRowClassName)}
                     >
                       {/* 勾选 - 固定宽 */}
                       <div className="w-8 shrink-0 flex justify-center">
@@ -438,18 +520,66 @@ export default function DocumentsPage() {
                           }
                         />
                       </div>
-                      <div className="grid grid-cols-12 gap-2 flex-1 items-center">
-                      {/* 文件名 - col-span-3 */}
+                      <div className="grid grid-cols-13 gap-2 flex-1 items-center">
+                      {/* 文件名 - col-span-3，支持就地重命名（写 display_name） */}
                       <div className="col-span-3 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate" title={doc.original_filename}>
-                            {doc.original_filename}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {doc.content_type || "Unknown"}
-                          </p>
-                        </div>
+                        {editingId === doc.id ? (
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
+                            <input
+                              ref={editInputRef}
+                              type="text"
+                              value={editDraft}
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, doc)}
+                              placeholder="留空则使用源名称"
+                              maxLength={255}
+                              disabled={renaming}
+                              aria-label="编辑文件名称"
+                              className="flex-1 min-w-0 h-6 px-1.5 text-sm rounded border border-primary/50 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              onClick={() => void commitEdit(doc)}
+                              disabled={renaming}
+                              title="保存"
+                              aria-label="保存文件名称"
+                              className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={renaming}
+                              title="取消"
+                              aria-label="取消编辑"
+                              className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="min-w-0 flex-1 flex items-center gap-1">
+                            <div className="min-w-0">
+                              <p
+                                className="font-medium text-foreground truncate"
+                                title={effectiveDocumentName(doc)}
+                              >
+                                {effectiveDocumentName(doc)}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {doc.content_type || "Unknown"}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => startEdit(doc)}
+                              title="编辑文件名称"
+                              aria-label="编辑文件名称"
+                              className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* 大小 - col-span-1 */}
@@ -491,6 +621,11 @@ export default function DocumentsPage() {
                       {/* Created At - col-span-1 */}
                       <div className="col-span-1 text-muted-foreground text-xs text-center">
                         {formatRelativeTime(doc.created_at ?? undefined)}
+                      </div>
+
+                      {/* Updated At - col-span-1（按最终修改时间倒序，故置于 Created At 之后） */}
+                      <div className="col-span-1 text-muted-foreground text-xs text-center">
+                        {formatRelativeTime(doc.updated_at ?? undefined)}
                       </div>
 
                       {/* 操作 - col-span-1 */}
@@ -565,36 +700,23 @@ export default function DocumentsPage() {
                   ))}
                 </div>
               )}
+
+              {/* 无限滚动哨兵：进入视口即追加下一页（hasMore 为否时 hook 自动停观察）。 */}
+              <div ref={sentinelRef} aria-hidden className="h-px w-full" />
             </div>
 
-            {/* 分页 */}
+            {/* 居中翻页控件（页总数 + 控件组居中成组），与无限滚动并存。 */}
             {total > 0 && (
-              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-t border-border">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">
-                    {/* 单字符串避免 JSX 文本节点相邻被 a11y 规范化为 "X document s" */}
-                    {`${total} document${total !== 1 ? "s" : ""}`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1 || loading}
-                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
-                  >
-                    Previous
-                  </button>
-                  <span className="text-xs text-muted-foreground">
-                    Page {page} / {totalPages || 1}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages || loading}
-                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
-                  >
-                    Next
-                  </button>
-                </div>
+              <div className="shrink-0 border-t border-border px-4 py-3">
+                <Pagination
+                  page={list.currentPage}
+                  totalPages={list.totalPages}
+                  onPageChange={handleGoToPage}
+                  total={total}
+                  itemLabel="document"
+                  disabled={loading}
+                  loadingMore={list.loadingMore}
+                />
               </div>
             )}
           </div>
@@ -607,13 +729,13 @@ export default function DocumentsPage() {
         onClose={() => setIsImportDialogOpen(false)}
         onImportUrl={({ url }) =>
           importDocumentUrl({ app_name: APP_NAME, url }).then((result) => {
-            void loadDocuments();
+            listRefresh();
             return result;
           })
         }
         onImportFile={({ file }) =>
           importDocumentFile({ app_name: APP_NAME, file }).then((result) => {
-            void loadDocuments();
+            listRefresh();
             return result;
           })
         }

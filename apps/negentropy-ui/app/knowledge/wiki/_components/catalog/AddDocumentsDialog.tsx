@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  fetchCatalogDocuments,
+  fetchAllCatalogDocuments,
   assignDocumentToNode,
+  effectiveDisplayName,
   KnowledgeDocument,
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
@@ -34,8 +35,10 @@ export function AddDocumentsDialog({
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetchCatalogDocuments(catalogId, { limit: 200 });
-        if (!cancelled) setDocs(res.items ?? []);
+        const items = await fetchAllCatalogDocuments(catalogId, {
+          markdownStatus: "completed",
+        });
+        if (!cancelled) setDocs(items);
       } catch (err) {
         if (!cancelled) {
           toast.error(err instanceof Error ? err.message : "加载文档失败");
@@ -53,8 +56,10 @@ export function AddDocumentsDialog({
   const filtered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     if (!kw) return docs;
-    return docs.filter((d) =>
-      d.original_filename.toLowerCase().includes(kw),
+    return docs.filter(
+      (d) =>
+        effectiveDisplayName(d).toLowerCase().includes(kw) ||
+        d.original_filename.toLowerCase().includes(kw),
     );
   }, [docs, keyword]);
 
@@ -104,7 +109,7 @@ export function AddDocumentsDialog({
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          placeholder="按文件名搜索..."
+          placeholder="按名称搜索..."
           className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 mb-3"
         />
         <div className="flex-1 overflow-y-auto border border-border rounded-md">
@@ -137,7 +142,7 @@ export function AddDocumentsDialog({
                       />
                       <div className="flex-1 min-w-0">
                         <p className="truncate font-medium">
-                          {doc.original_filename}
+                          {effectiveDisplayName(doc)}
                         </p>
                         <p className="text-micro text-muted-foreground/70 font-mono">
                           {doc.markdown_extract_status ?? "—"} ·{" "}

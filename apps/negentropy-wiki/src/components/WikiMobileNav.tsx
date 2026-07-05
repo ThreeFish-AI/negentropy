@@ -4,9 +4,11 @@ import { useState, useCallback, useEffect } from "react";
 
 interface WikiMobileNavProps {
   children: React.ReactNode;
+  /** 抽屉顶部的全站一级菜单（桌面顶栏右区的移动等价物），渲染在侧栏内容之上。 */
+  topNav?: React.ReactNode;
 }
 
-export function WikiMobileNav({ children }: WikiMobileNavProps) {
+export function WikiMobileNav({ children, topNav }: WikiMobileNavProps) {
   const [open, setOpen] = useState(false);
 
   const close = useCallback(() => setOpen(false), []);
@@ -61,6 +63,7 @@ export function WikiMobileNav({ children }: WikiMobileNavProps) {
             ✕
           </button>
         </div>
+        {topNav}
         {children}
       </aside>
     </>

@@ -34,6 +34,12 @@ type ComposerProps = {
    */
   onCancel?: () => void;
   /**
+   * 强制显示 Stop 按钮（逃生门）：即使 ``isGenerating=false``，只要本值为 true 且
+   * ``onCancel`` 存在，就显示 Stop。用于「有待决审批 / 通道阻塞」等非 streaming 但
+   * 用户需自救的场景（ISSUE-156 续：审批弹窗陷阱时 Send 被禁用、又无 Stop 可点）。
+   */
+  forceShowStop?: boolean;
+  /**
    * 附件 — Multi-modal 输入；空数组表示无附件。
    * 与 AG-UI Multi-modal 子集对齐（详见 docs/architecture/framework.md §9 协议规范）。
    */
@@ -59,6 +65,11 @@ type ComposerProps = {
   agentsError?: string | null;
   corporaLoading?: boolean;
   corporaError?: string | null;
+  /**
+   * 聚焦信号 —— 每次数值变化即令 textarea 获焦并将光标移至末尾。
+   * 供欢迎区建议词点击回填后自动聚焦；数值语义为单调递增触发器（0/undefined 表示无请求）。
+   */
+  autoFocusToken?: number;
 };
 
 const DEFAULT_ATTACHMENT_ACCEPT = ".pdf,.txt,.md,application/pdf,image/*,text/*";
@@ -78,6 +89,7 @@ export function Composer({
   thinkingSupported = true,
   onThinkingEnabledChange,
   onCancel,
+  forceShowStop = false,
   attachments,
   onAttachmentsChange,
   attachmentMaxBytes = DEFAULT_ATTACHMENT_MAX_BYTES,
@@ -90,6 +102,7 @@ export function Composer({
   agentsError,
   corporaLoading,
   corporaError,
+  autoFocusToken,
 }: ComposerProps) {
   const showModelSelect = Boolean(models && onSelectedLlmModelChange);
   const showThinkingToggle = Boolean(onThinkingEnabledChange);
@@ -124,6 +137,19 @@ export function Composer({
   useEffect(() => {
     adjustHeight();
   }, [value, adjustHeight]);
+
+  // 聚焦信号：autoFocusToken 变化（>0）时令 textarea 获焦并将光标移至末尾。
+  // 0/undefined（挂载初值）不触发，避免抢占初始焦点。
+  useEffect(() => {
+    if (!autoFocusToken || autoFocusToken <= 0) return;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.focus();
+    const end = ta.value.length;
+    if (typeof ta.setSelectionRange === "function") {
+      ta.setSelectionRange(end, end);
+    }
+  }, [autoFocusToken]);
 
   const recomputePopoverPos = useCallback(() => {
     const ta = textareaRef.current;
@@ -279,12 +305,13 @@ export function Composer({
     onAttachmentsChange((attachments ?? []).filter((a) => a.id !== id));
   };
 
-  const showStop = Boolean(isGenerating && onCancel);
+  // Stop 显示条件：正在生成 OR 强制逃生（有待决审批/阻塞）。二者均需 onCancel 存在。
+  const showStop = Boolean((isGenerating || forceShowStop) && onCancel);
 
   return (
     <form
       data-testid="composer-form"
-      className={`group/composer rounded-2xl border bg-card p-3 transition-all duration-200 ${
+      className={`group/composer rounded-3xl border bg-card p-3 transition-all duration-200 ${
         dragOver
           ? "border-primary/70 shadow-[0_0_0_2px_rgba(99,102,241,0.25)]"
           : "border-border/60 shadow-sm focus-within:shadow-md focus-within:border-primary/40"
@@ -485,6 +512,7 @@ export function Composer({
               onChange={(v) => onSelectedLlmModelChange?.(v === "" ? null : v)}
               allowClear={false}
               ariaLabel="选择主 Agent 使用的 LLM"
+              showChevron={false}
             />
           )}
           {showThinkingToggle && (

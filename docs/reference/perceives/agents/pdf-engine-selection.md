@@ -1,3 +1,7 @@
+---
+sidebar_position: 100
+title: "PDF 引擎选择决策图"
+---
 # PDF 引擎选择决策图
 
 本文档可视化 `parse_pdf_to_markdown` Pipeline 在 **Adaptive Engine Selection**

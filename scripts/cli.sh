@@ -56,7 +56,8 @@ svc_start_cmd() {
   case "$1" in
     backend)   echo "uv run negentropy serve --port 3292" ;;
     ui)        echo "node ./scripts/start-production.mjs" ;;
-    wiki)      echo "node ./scripts/start-production.mjs" ;;
+    # wiki 纯静态化后：`pnpm start` = `serve out -l 3092` 托管静态产物（无 Node 服务端）
+    wiki)      echo "pnpm start" ;;
     perceives) echo "uv run negentropy-perceives" ;;
   esac
 }
@@ -144,20 +145,55 @@ port_in_use() {
   lsof -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | grep -q .
 }
 
+# ── 健康检查预算 ─────────────────────────────────────────────────────────────────
+# 冷启动实测：perceives 因 scraping 模块级 eager 导入 selenium 需 45~90s，backend
+# （bootstrap 20+ 路由 + litellm）15~45s；原硬编码 attempts=60（≈60s）会在 perceives
+# 仍在初始化时误判超时 → start_service 清理即将就绪的进程 → 启动失败、整链中止。
+# 故按服务分级预算：perceives/backend 180s，ui/wiki 60s。可经环境变量整体覆盖：
+# NEGENTROPY_HEALTH_TIMEOUT_SECONDS（未设则取按服务默认值）。
+_svc_health_secs() {
+  local override="${NEGENTROPY_HEALTH_TIMEOUT_SECONDS:-}"
+  [ -n "$override" ] && { echo "$override"; return; }
+  case "$1" in
+    perceives|backend) echo 180 ;;
+    *)                 echo 60 ;;
+  esac
+}
+
 wait_for_health() {
   # 端口绑定 = 服务存活：去掉 `-f` 让任意 HTTP 响应（含 404/405/406）都视为就绪，
   # 兼容 FastMCP 等仅在 /mcp 子路径暴露端点、根路径 404 的服务；
   # 进程级活性仍由 `is_running` 兜底，崩溃可立即检出。
-  local name="$1" port="$2" attempts=60 i=1
-  while (( i <= attempts )); do
-    if curl -sLo /dev/null "http://localhost:${port}/" 2>/dev/null; then
+  # 返回码：0=就绪，1=进程异常退出（is_running 假），2=预算耗尽超时（进程仍存活）。
+  # 预算按壁钟计（$SECONDS 截止）而非次数：每探针 curl 受 --connect-timeout/--max-time
+  # 约束，拒绝连接即时返回，但极端下单次探针可耗数秒，按次数会漂移；壁钟保证预算即上限。
+  local name="$1" port="$2" budget deadline
+  budget="$(_svc_health_secs "$name")"
+  deadline=$(( SECONDS + budget ))
+  while (( SECONDS < deadline )); do
+    # curl 作为 if 条件，非零退出被测试吸收，不触发 errexit。
+    if curl -sLo /dev/null --connect-timeout 2 --max-time 5 \
+        "http://localhost:${port}/" 2>/dev/null; then
       return 0
     fi
     is_running "$name" || return 1
     sleep 1
-    ((i++))
   done
-  return 1
+  return 2
+}
+
+# 展示 <logf> 自字节偏移 <offset> 起新增的日志，最多取末 30 行。
+# 偏移失效（文件已滚动/截断致当前大小 < offset）时退化为整文件末 30 行。
+# `tail -c +N` 1-indexed：从第 N 字节起输出，故传 offset+1；管道尾 `|| true` 兜住
+# pipefail 下 tail 的非零退出（文件缺失等），不干扰失败诊断路径。
+_tail_this_attempt() {
+  local logf="$1" offset="$2" cur
+  cur="$(_file_size "$logf")"
+  if [ "$offset" -gt 0 ] 2>/dev/null && [ "$cur" -ge "$offset" ] 2>/dev/null; then
+    tail -c "+$(( offset + 1 ))" "$logf" 2>/dev/null | tail -30 || true
+  else
+    tail -30 "$logf" 2>/dev/null || true
+  fi
 }
 
 start_service() {
@@ -178,7 +214,12 @@ start_service() {
   fi
 
   log_info "启动 ${name} (port ${port})..."
-  _log_banner "$(log_file "$name")" "$name" "STARTING" "port $port"
+  local logf
+  logf="$(log_file "$name")"
+  # 记录 spawn 前日志字节偏移：失败时仅展示本次启动新增日志（见 _tail_this_attempt）。
+  local log_offset
+  log_offset="$(_file_size "$logf")"
+  _log_banner "$logf" "$name" "STARTING" "port $port"
 
   # 所有服务统一经 FIFO → _log_sink 落盘，由 sink 负责 3MB 滚动：
   #   Node(ui/wiki) 注入时间戳前缀(add_ts=1)；Python(backend/perceives) 自带时间戳原样透传(add_ts=0)。
@@ -188,19 +229,35 @@ start_service() {
   local fifo="/tmp/.negentropy_${name}_log_fifo"
   rm -f "$fifo"; mkfifo "$fifo"
   _log_sink "$name" "$add_ts" < "$fifo" &
+  # $! = `uv run`/node 进程；uv run 为同步包装器（随子进程退出并以子进程码退出），
+  # 故服务崩溃 → 该 PID 退出 → is_running 即假，进程级活性检测有效。
   (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$fifo" 2>&1 &
-  echo $! > "$(pid_file "$name")"   # $! = 服务进程（紧跟服务启动捕获），PID/停止语义不变
+  echo $! > "$(pid_file "$name")"
   rm -f "$fifo"
 
-  if wait_for_health "$name" "$port"; then
-    log_ok "${name} 已就绪 (PID $(cat "$(pid_file "$name")"))"
-  else
-    log_error "${name} 健康检查失败，最近日志："
-    tail -20 "$(log_file "$name")" 2>/dev/null
-    # 清理失败的孤儿进程与陈旧 PID 文件，避免 is_running 误判导致后续重试被静默跳过
-    stop_service "$name" >/dev/null 2>&1 || true
-    return 1
-  fi
+  # 健康检查三态：用 `|| health_rc=$?` 捕获返回码（set -e 下 bare $? 会被 errexit 抢先）。
+  local health_rc=0
+  wait_for_health "$name" "$port" || health_rc=$?
+  case "$health_rc" in
+    0)
+      log_ok "${name} 已就绪 (PID $(cat "$(pid_file "$name")"))"
+      ;;
+    1)
+      sleep 0.3   # 等 _log_sink 排空 FIFO→文件，取到最近启动日志
+      log_error "${name} 进程异常退出，本次启动日志（最近 30 行）："
+      _tail_this_attempt "$logf" "$log_offset"
+      # 清理失败的孤儿进程与陈旧 PID 文件，避免 is_running 误判导致后续重试被静默跳过
+      stop_service "$name" >/dev/null 2>&1 || true
+      return 1
+      ;;
+    *)
+      sleep 0.3   # 进程仍存活，需排空最近日志以诊断"卡在哪一步"
+      log_error "${name} 在 $(_svc_health_secs "$name")s 内未就绪（冷启动超预算，进程仍存活），本次启动日志（最近 30 行）："
+      _tail_this_attempt "$logf" "$log_offset"
+      stop_service "$name" >/dev/null 2>&1 || true
+      return 1
+      ;;
+  esac
 }
 
 stop_service() {
@@ -267,6 +324,19 @@ cmd_status() {
   done
 }
 
+# 尽力拉取：工作区干净才 `git pull --ff-only`；脏树直接跳过，避免触发 git 的惊吓性提示
+# （"Your local changes would be overwritten by merge" / "run git reset --hard to recover"——
+# 实为 --ff-only 安全中止，但易诱导破坏性操作）。任何失败均降级为 WARN，不阻断启动。
+_git_pull_best_effort() {
+  local dirty_rc=0
+  git -C "$REPO_ROOT" diff --quiet HEAD || dirty_rc=$?   # || 兜住 rc=1（脏树），不触发 errexit
+  if [ "$dirty_rc" -ne 0 ]; then
+    log_warn "工作区有未提交改动，跳过 git pull（提交/暂存后重试，或加 --no-pull 显式跳过）"
+    return 0
+  fi
+  git -C "$REPO_ROOT" pull --ff-only || log_warn "git pull 失败，继续使用当前代码"
+}
+
 # ── 子命令: start ────────────────────────────────────────────────────────────────
 cmd_start() {
   local no_pull=false skip_build=false
@@ -287,11 +357,11 @@ cmd_start() {
       exit 1
     fi
   done
-  log_ok "uv $(uv --version 2>/dev/null | head -1), pnpm $(pnpm --version 2>/dev/null)"
+  log_ok "$(uv --version 2>/dev/null | head -1), pnpm $(pnpm --version 2>/dev/null)"
 
   if ! $no_pull && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
     log_info "拉取最新代码..."
-    git -C "$REPO_ROOT" pull --ff-only || log_warn "git pull 失败，继续使用当前代码"
+    _git_pull_best_effort
   fi
 
   # Phase 2 — 依赖安装
@@ -329,24 +399,30 @@ cmd_start() {
   # Phase 4 — 前端构建
   if ! $skip_build; then
     log_phase "Phase 4/5: 前端构建"
-    # 依赖链：perceives（MCP 前置）→ backend（wiki SSG 数据源）
-    # backend 在 MCP 工具调用链上依赖 perceives，必须先就绪。
-    start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
-    start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
+    # 构建期零服务依赖：
+    #   - sync-wiki-content.sh 直连 PostgreSQL（不经 backend HTTP）；
+    #   - wiki next build 读本地 content/（output:"export"，零 backend/DB）；
+    #   - ui next build 不调用运行时 backend。
+    # 故 perceives/backend 统一延后到 Phase 5 按依赖链启动，构建期不占端口、无孤儿风险。
 
-    # agents-chat-core 是 ui/wiki 共享的工作区依赖，且 tsup 配置 clean:true
-    # （每次构建先清空 dist）。若任由下方并行的两个 pnpm build 各自触发 prebuild
-    # 重建，会并发清空/写入同一 dist 而偶发构建失败。故在此显式顺序重建一次，
-    # 并通过 NEGENTROPY_CORE_PREBUILT 让并行子进程的 prebuild 跳过重建。
+    # agents-chat-core 仍是 ui 的工作区依赖（wiki 纯静态化后已移除该依赖）。
+    # tsup 配置 clean:true（每次构建先清空 dist），故在此显式构建一次，并通过
+    # NEGENTROPY_CORE_PREBUILT 让 ui 的 prebuild 跳过重建。
     log_info "构建 agents-chat-core..."
     (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
       || { log_error "agents-chat-core 构建失败"; cmd_stop; exit 1; }
 
-    # NEGENTROPY_CORE_PREBUILT=1：core 已在上方构建，跳过子进程 prebuild 的并发重建。
+    # wiki 构建独立于 backend（next build 读 content/ + postbuild pagefind 索引）。
+    # 纯静态 wiki：构建前从 DB 导出已发布内容到 content/（本地 publish→restart 闭环）。
+    # 失败仅 WARN（DB 未就绪 / 未迁移 / 无已发布内容时沿用既有 content/），不阻断构建。
+    log_info "同步 Wiki 已发布内容到 content/..."
+    bash "$REPO_ROOT/scripts/sync-wiki-content.sh" \
+      || log_warn "Wiki 内容导出失败（DB 未就绪 / 未迁移 / 无已发布内容？）沿用既有 content/"
+
     log_info "构建 ui + wiki (并行)..."
     (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
     local build_ui_pid=$!
-    (cd "$REPO_ROOT/apps/negentropy-wiki" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
+    (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
     local build_wiki_pid=$!
     local _rc=0; wait "$build_ui_pid" || _rc=$?; wait "$build_wiki_pid" || _rc=$?
     (( _rc )) && { log_error "前端构建失败"; cmd_stop; exit 1; }
@@ -357,14 +433,24 @@ cmd_start() {
 
   # Phase 5 — 服务启动
   log_phase "Phase 5/5: 服务启动"
-  # 注册 trap：启动过程中 Ctrl+C 清理已启动的服务
-  trap 'log_warn "收到中断信号，清理已启动的服务..."; cmd_stop; exit 130' INT TERM
+  # EXIT trap 兜底：启动未完成时，无论 errexit 失败还是收到中断信号，都清理已启动的服务。
+  # 选用 EXIT 而非 INT/TERM：set -e 下前台命令失败时 shell 在命令边界前即 errexit 退出，
+  # INT/TERM trap 不会被触发；唯有 EXIT trap 在 errexit 退出路径上仍保证执行（bash 语义）。
+  _STARTUP_DONE=0
+  _cleanup_on_exit() {
+    trap - EXIT INT TERM          # 首行清空 trap，防 handler 重入
+    [ "${_STARTUP_DONE:-0}" = "1" ] && return 0
+    log_warn "启动未完成，清理已启动的服务..."
+    cmd_stop >/dev/null 2>&1 || true
+  }
+  trap '_cleanup_on_exit' EXIT
 
   for svc in "${ALL_SERVICES[@]}"; do
-    start_service "$svc" || { log_error "${svc} 启动失败，中止"; cmd_stop; exit 1; }
+    start_service "$svc" || { log_error "${svc} 启动失败，中止"; exit 1; }
   done
 
-  trap - INT TERM
+  _STARTUP_DONE=1
+  trap - EXIT INT TERM            # 全部成功：清除兜底，避免脚本正常退出误杀刚启动的服务
 
   echo ""
   log_ok "所有服务已启动"
@@ -417,24 +503,28 @@ cmd_logs() {
 cmd_build() {
   log_phase "仅构建（不启动）"
   run_dir_init
-  # 依赖链：perceives（MCP 前置）→ backend（wiki SSG 数据源）
-  start_service "$SVC_PERCEIVES" || log_warn "perceives 启动失败，backend 与 wiki SSG 可能降级"
-  start_service "$SVC_BACKEND" || log_warn "backend 启动失败，wiki SSG 将退化为空"
+  # 构建期零服务依赖：sync-wiki-content.sh 直连 PostgreSQL（不经 backend HTTP），
+  # wiki next build 读本地 content/（output:"export"，零 backend/DB），
+  # ui next build 不调用运行时 backend —— 全程无需启动任何服务。
+  # 纯静态 wiki：构建前从 DB 导出已发布内容（本地 publish→build 闭环）。
+  log_info "同步 Wiki 已发布内容到 content/..."
+  bash "$REPO_ROOT/scripts/sync-wiki-content.sh" \
+    || log_warn "Wiki 内容导出失败（DB 未就绪 / 未迁移 / 无已发布内容？）沿用既有 content/"
+
+  # agents-chat-core 是 ui 的工作区依赖（wiki 纯静态化后已移除该依赖）。
+  # tsup 配置 clean:true（每次构建先清空 dist），故在此显式构建一次，并通过
+  # NEGENTROPY_CORE_PREBUILT 让 ui 的 prebuild 跳过重建（与 cmd_start 一致）。
+  log_info "构建 agents-chat-core..."
+  (cd "$REPO_ROOT" && pnpm --filter @negentropy/agents-chat-core build) \
+    || { log_error "agents-chat-core 构建失败"; exit 1; }
+
   log_info "构建 ui + wiki (并行)..."
-  (cd "$REPO_ROOT/apps/negentropy-ui" && pnpm build) &
+  (cd "$REPO_ROOT/apps/negentropy-ui" && NEGENTROPY_CORE_PREBUILT=1 pnpm build) &
   local pid_ui=$!
   (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
   local pid_wiki=$!
   local _rc=0; wait "$pid_ui" || _rc=$?; wait "$pid_wiki" || _rc=$?
-  # 倒序回收，先停 backend 再停 perceives
-  if (( _rc )); then
-    log_error "前端构建失败"
-    stop_service "$SVC_BACKEND"
-    stop_service "$SVC_PERCEIVES"
-    exit 1
-  fi
-  stop_service "$SVC_BACKEND"
-  stop_service "$SVC_PERCEIVES"
+  (( _rc )) && { log_error "前端构建失败"; exit 1; }
   log_ok "前端构建完成"
 }
 

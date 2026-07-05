@@ -29,6 +29,11 @@ class Skill(Base, UUIDMixin, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(100), nullable=False, server_default="general")
     version: Mapped[str] = mapped_column(String(50), nullable=False, server_default="1.0.0")
+    # Skill 进化发布指针：区分「最新」（``version``，head）与「已晋升」（``active_version``）。
+    # 运行时 ``skills_injector.resolve_skills`` 在未显式锁版本（spec=="*"）时解析此指针指向的
+    # ``skill_versions`` 快照；为 NULL 时退化为 ``version``/当前字段（向后兼容）。
+    # 详见迁移 0084 + handlers/skill.py 的 promote（翻 active_version）。
+    active_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # 技能定义
     prompt_template: Mapped[str | None] = mapped_column(Text)

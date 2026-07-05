@@ -1,3 +1,7 @@
+---
+sidebar_position: 4
+title: "Docker Release Pipeline · 镜像构建与 Docker Hub 发布"
+---
 # Docker Release Pipeline（镜像构建与 Docker Hub 发布）
 
 本文档定义 Negentropy compose 栈 4 个自建镜像（`backend` / `perceives` / `ui` / `wiki`）的 CI/CD 流水线：PR 阶段双架构构建校验（零推送副作用），tag 发布阶段经既有 QA 门禁后多架构构建并发布至 Docker Hub `threefishai` 命名空间。与 [QA Delivery Pipeline](./qa-delivery-pipeline.md) 同属交付体系，遵循仓库「入口 workflow（策略）→ 可复用 workflow（机制）」分层约定。
@@ -108,7 +112,7 @@ docker compose up -d
 2. **首发用 prerelease 小步验证**：推 tag `negentropy-v<x.y.z>-rc.1`，验证 `docker buildx imagetools inspect threefishai/negentropy-backend:<x.y.z>-rc.1` 含 amd64+arm64 双平台；
 3. **正式发布**：推 tag `negentropy-v<x.y.z>`，联动产出 `x.y.z` / `x.y` / `latest`。
 
-> **首次发布**（`negentropy-v*` tag 数为 0、镜像仓库不存在）的专属准备——版本号 ↔ pyproject 耦合、首发陷阱速查、`negentropy doctor` 端到端自检——见 [Docker Compose 运维指引 §7.0](../docker-operations.md#7-发布运维)。
+> **首次发布**（`negentropy-v*` tag 数为 0、镜像仓库不存在）的专属准备——版本号 ↔ pyproject 耦合、首发陷阱速查、`negentropy doctor` 端到端自检——见 [Docker Compose 运维指引 §7.0](../operations/docker-operations.md#7-发布运维)。
 
 ## 相关文件
 
@@ -119,4 +123,4 @@ docker compose up -d
 
 ## 运维操作指引
 
-本文档聚焦流水线**设计**与**机制**。部署、日常运维、故障排查等操作指引详见 [Docker Compose 运维指引](../docker-operations.md)。
+本文档聚焦流水线**设计**与**机制**。部署、日常运维、故障排查等操作指引详见 [Docker Compose 运维指引](../operations/docker-operations.md)。

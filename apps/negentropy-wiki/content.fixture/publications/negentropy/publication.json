@@ -1,0 +1,16 @@
+{
+  "id": "d0c00000-0000-4000-8000-000000000000",
+  "catalog_id": "d0c00000-0000-4000-8000-000000000000",
+  "app_name": "negentropy",
+  "publish_mode": "snapshot",
+  "name": "Negentropy",
+  "slug": "negentropy",
+  "description": "熵减引擎设计概念与使用指引",
+  "status": "published",
+  "theme": "docs",
+  "version": 1,
+  "published_at": null,
+  "created_at": null,
+  "updated_at": null,
+  "entries_count": 2
+}

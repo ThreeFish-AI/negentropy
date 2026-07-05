@@ -1,3 +1,7 @@
+---
+sidebar_position: 10
+title: "Skills 基础上手"
+---
 # Skills 基础上手
 
 > 5 步从零创建一个 Skill 并让 SubAgent 用上它。

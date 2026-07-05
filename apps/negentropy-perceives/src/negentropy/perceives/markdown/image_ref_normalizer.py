@@ -120,7 +120,10 @@ def _append_orphan_images(
     orphans = [
         img
         for img in images
-        if img.filename and img.filename not in referenced_basenames
+        if img.filename
+        and img.filename not in referenced_basenames
+        and img.filename
+        not in _redundant_orphan_basenames(markdown, images, referenced_basenames)
     ]
     if not orphans:
         return markdown
@@ -131,6 +134,82 @@ def _append_orphan_images(
         appended_lines.append("")
         appended_lines.append(f"![{alt}]({image_dir}/{img.filename})")
     return markdown.rstrip() + "\n".join(appended_lines) + "\n"
+
+
+# 近全页图的最小显示面积阈值（CSS px²）。assembly._image_to_markdown 以 bbox(pt)×4/3
+# 计算显示尺寸：近全页图约 680×950 ≈ 646k px²；正文 figure 通常 <300k（如 457×365≈167k）。
+# 取 500k 仅捕获真正的 page-dominant 图，避免误伤多图正文页的合法 figure。
+_PAGE_DOMINANT_MIN_AREA = 500_000
+
+
+def _img_tag_dims(markdown: str) -> dict[str, tuple[int, int]]:
+    """从 markdown 内嵌 ``<img src width height>`` 解析每张已引用图的显示尺寸。
+
+    assembly 阶段把图渲染为 HTML img 并携带 width/height（PDF bbox 派生，最准），
+    栅格 width/height 仅在 bbox 缺失时回退。属性顺序不固定，故逐标签提取。
+    """
+    dims: dict[str, tuple[int, int]] = {}
+    for tag in re.finditer(r"<img\b[^>]*>", markdown, re.IGNORECASE):
+        attrs = tag.group(0)
+        src_m = re.search(r'\bsrc\s*=\s*["\']([^"\']+)["\']', attrs)
+        w_m = re.search(r'\bwidth\s*=\s*["\'](\d+)["\']', attrs)
+        h_m = re.search(r'\bheight\s*=\s*["\'](\d+)["\']', attrs)
+        if not (src_m and w_m and h_m):
+            continue
+        src = src_m.group(1)
+        if src.startswith("data:"):
+            continue
+        bn = PurePosixPath(src).name
+        if bn:
+            dims[bn] = (int(w_m.group(1)), int(h_m.group(1)))
+    return dims
+
+
+def _redundant_orphan_basenames(
+    markdown: str,
+    images: Sequence[ImageMeta],
+    referenced_basenames: set[str],
+) -> set[str]:
+    """识别应抑制的冗余 orphan：与某张 page-dominant 已引用图同页的 orphan 碎片。
+
+    场景：封面/整页插图页，全页大图已被正文 ``<img>`` 引用（已含全部视觉内容），
+    同页其余未引用的嵌入图对象（logo/条码/图层碎片）作为 orphan 追加会与全页图
+    视觉重复。判定：已引用图显示面积 ≥ ``_PAGE_DOMINANT_MIN_AREA`` → page-dominant；
+    其所在页的其余 orphan 判为冗余碎片，抑制不追加。
+
+    安全性：仅当确有 page-dominant 已引用图且 page_number 可用时才抑制同页 orphan；
+    否则返回空集（no-op，保留既有 loss-averse orphan 行为），不误删多图正文页合法孤立图。
+    """
+    ref_dims = _img_tag_dims(markdown)
+    if not ref_dims:
+        return set()
+
+    basename_to_page: dict[str, int] = {}
+    for img in images:
+        fn = getattr(img, "filename", None)
+        pg = getattr(img, "page_number", None)
+        if fn and pg is not None:
+            basename_to_page[fn] = pg
+    if not basename_to_page:
+        return set()  # 无 page_number 维度，无法安全按页抑制
+
+    dominant_pages: set[int] = set()
+    for bn, (w, h) in ref_dims.items():
+        if w * h >= _PAGE_DOMINANT_MIN_AREA:
+            pg = basename_to_page.get(bn)
+            if pg is not None:
+                dominant_pages.add(pg)
+    if not dominant_pages:
+        return set()
+
+    redundant: set[str] = set()
+    for img in images:
+        fn = getattr(img, "filename", None)
+        if not fn or fn in referenced_basenames:
+            continue
+        if basename_to_page.get(fn) in dominant_pages:
+            redundant.add(fn)
+    return redundant
 
 
 def _replace_image_placeholders(

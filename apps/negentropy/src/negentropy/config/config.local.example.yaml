@@ -23,8 +23,8 @@ environment:
   env: development
 
 services:
-  # 本地无 GCS 凭证：制品回退内存（inmemory）；生产保留 gcs
-  artifact_backend: inmemory
+  # 本地制品持久化到 PostgreSQL（adk_artifacts 表）；轻量场景可用 inmemory
+  artifact_backend: postgres
   # 剥离他人 GCP 项目，避免误触 VertexAI
   vertex_project_id: null
   # memory/session/credential_backend 保持 postgres：pgvector 是唯一数据存储，

@@ -1,10 +1,16 @@
 """SessionSummarizer 单测：验证异步工厂走 DB 凭证、不再回退到无 api_key 的硬编码默认。"""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from google.genai import types
 
-from negentropy.engine.summarization import _TITLE_MAX_TOKENS, SessionSummarizer
+from negentropy.engine.summarization import (
+    _TITLE_MAX_TOKENS,
+    SessionSummarizer,
+    is_semantically_vacant_title,
+)
 
 
 @pytest.mark.asyncio
@@ -98,3 +104,84 @@ def test_init_accepts_prebuilt_model_instance():
     dummy = _DummyModel()
     summarizer = SessionSummarizer(dummy)  # type: ignore[arg-type]
     assert summarizer.model is dummy
+
+
+# ---------------------------------------------------------------------------
+# 质量门禁 is_semantically_vacant_title —— 标题质量 SoT 的表驱动验证
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("title", "expected_vacant"),
+    [
+        # 生产观察到的坏标题（截图实证）
+        ("首次标题", True),
+        ("标题 v2", True),
+        ("标题v3", True),
+        ("会话标题自动生成", True),
+        ("标题自动生成", True),
+        ("无标题", True),
+        ("新对话", True),
+        ("新会话", True),
+        ("未命名", True),
+        ("未命名会话", True),
+        ("对话总结", True),
+        ("摘要", True),
+        # 英文元描述
+        ("Title", True),
+        ("Session Title", True),
+        ("Session", True),
+        ("Summary", True),
+        ("Conversation", True),
+        ("Untitled", True),
+        ("New chat", True),
+        # 复述指令
+        ("会话标题自动生成器", True),
+        # 边界
+        ("", True),
+        ("   ", True),
+        ("ab", True),
+        # 正常标题（不应误伤）
+        ("AfterShip Q3 财报查询", False),
+        ("Next.js OAuth2 setup", False),
+        ("中译英翻译请求", False),
+        ("项目进度同步", False),
+        # 含元词但有实体（回归保护：去元词后实质 >=3 即放行）
+        ("用户画像摘要", False),
+        ("会话功能设计", False),
+        ("标题渲染 bug 修复", False),
+        ("新闻聚合器", False),
+    ],
+)
+def test_is_semantically_vacant_title(title, expected_vacant):
+    assert is_semantically_vacant_title(title) is expected_vacant
+
+
+class _StubModel:
+    """桩模型：``generate_content_async`` 产出单条固定文本响应，绕过真实 LLM。"""
+
+    def __init__(self, text: str) -> None:
+        self._text = text
+
+    async def generate_content_async(self, request):  # noqa: ANN001
+        yield SimpleNamespace(content=SimpleNamespace(parts=[SimpleNamespace(text=self._text, thought=False)]))
+
+
+def _user_content(text: str) -> types.Content:
+    return types.Content(role="user", parts=[types.Part(text=text)])
+
+
+@pytest.mark.asyncio
+async def test_generate_title_rejects_vacant_llm_output():
+    """LLM 返回元描述性标题（如「会话标题自动生成」）时，质量门禁应拒绝、回退 None。"""
+    summarizer = SessionSummarizer(_StubModel("会话标题自动生成"))
+    title = await summarizer.generate_title([_user_content("帮我查 AfterShip 财报")])
+    assert title is None
+
+
+@pytest.mark.asyncio
+async def test_generate_title_accepts_semantic_llm_output():
+    """LLM 返回有实体语义的标题时正常通过门禁。"""
+    summarizer = SessionSummarizer(_StubModel("AfterShip Q3 财报查询"))
+    title = await summarizer.generate_title([_user_content("帮我查 AfterShip 财报")])
+    assert title == "AfterShip Q3 财报查询"

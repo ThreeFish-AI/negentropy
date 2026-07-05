@@ -7,12 +7,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PanelLeft, PanelRight } from "lucide-react";
+import {
+  FileText,
+  GitCompare,
+  Lightbulb,
+  PanelLeft,
+  PanelRight,
+  Telescope,
+} from "lucide-react";
 
 import { randomUUID } from "@ag-ui/client";
 import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
-import { ChatStream } from "../components/ui/ChatStream";
+import { StudioTranscript } from "../components/ui/StudioTranscript";
+import type { ChatSuggestion } from "../components/ui/ChatWelcome";
 import { Composer } from "../components/ui/Composer";
 import type { ComposerAttachment } from "../components/ui/AttachmentChip";
 import type { MentionCandidate, MentionToken } from "@negentropy/agents-chat-core/parse";
@@ -52,6 +60,41 @@ import type {
 
 export const AGENT_ID = "negentropy";
 export const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+
+/**
+ * 中栏空会话欢迎区的通用启动建议词（Doubao 式引导）。
+ * 点击卡片即把 ``prompt`` 回填 Composer 并聚焦；文案聚焦研究/写作/分析等通用场景。
+ */
+const STUDIO_SUGGESTIONS: ChatSuggestion[] = [
+  {
+    id: "research",
+    title: "调研一个主题",
+    description: "给出结构化综述与关键结论",
+    prompt: "帮我调研以下主题，给出结构化综述与关键结论：\n",
+    icon: Telescope,
+  },
+  {
+    id: "summarize",
+    title: "总结一份材料",
+    description: "提炼要点与行动项",
+    prompt: "请总结以下材料的核心要点与后续行动项：\n",
+    icon: FileText,
+  },
+  {
+    id: "compare",
+    title: "对比两个方案",
+    description: "列出优劣与取舍建议",
+    prompt: "请对比以下两个方案的优劣与取舍建议：\n方案 A：\n方案 B：\n",
+    icon: GitCompare,
+  },
+  {
+    id: "brainstorm",
+    title: "头脑风暴创意",
+    description: "围绕目标发散可行想法",
+    prompt: "围绕以下目标，帮我头脑风暴一组可行的想法：\n",
+    icon: Lightbulb,
+  },
+];
 
 /**
  * Per-session LLM 模型选择的本地持久化键（按 sessionId 命名空间隔离）。
@@ -262,6 +305,8 @@ export function HomeBody({
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
+  // 欢迎区建议词点击后触发 Composer 聚焦（单调递增信号）。
+  const [composerFocusToken, setComposerFocusToken] = useState(0);
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   // Home Composer 的 @ Mention（agent / corpus）。
   // 与 inputValue 平行存在，仅承担 ① UI 高亮 ② forwardedProps 派生。
@@ -311,6 +356,14 @@ export function HomeBody({
     [corpora],
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // G3 审批门 · 本地「已决策/已延后」集合：
+  // 用户点击批准/拒绝或 ESC/稍后后，先乐观地把该 action_id 从展示层剔除，让弹窗
+  // 立即关闭（消除 ISSUE-064 式 silent no-op），不等待后端回填 round-trip。
+  // 后端 pending_approvals 由 approval_response 端点权威清除，scheduleSessionHydration
+  // 随后做持久对账。按 sessionId 隔离，切会话时重置（见下方 effect）。
+  const [resolvedApprovalIds, setResolvedApprovalIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(
@@ -440,31 +493,84 @@ export function HomeBody({
     () => (snapshotForDisplay?.pending_approvals as Record<string, unknown> | undefined) ?? null,
     [snapshotForDisplay],
   );
+  // 展示层：从 pending_approvals 剔除本地已决策/已延后的项，实现乐观关闭。
+  // 保留原始 pendingApprovals memo 不动（正交：数据源 vs 展示视图）。
+  const visibleApprovals = useMemo(() => {
+    if (!pendingApprovals) return null;
+    if (resolvedApprovalIds.size === 0) return pendingApprovals;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(pendingApprovals)) {
+      if (!resolvedApprovalIds.has(k)) out[k] = v;
+    }
+    return out;
+  }, [pendingApprovals, resolvedApprovalIds]);
   const { mode: approvalPolicyMode } = useApprovalPolicy();
 
   const handleApprovalRespond = useCallback(
     async (actionId: string, decision: ApprovalDecision, reason?: string) => {
       if (!sessionId || !userId) return;
-      const res = await fetch(
-        `/api/agui/sessions/${encodeURIComponent(sessionId)}/approval_response`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            app_name: APP_NAME,
-            user_id: userId,
-            action_id: actionId,
-            decision,
-            reason: reason || null,
-          }),
-        },
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(sessionId)}/approval_response`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+              action_id: actionId,
+              decision,
+              reason: reason || null,
+            }),
+          },
+        );
+      } catch (error) {
+        // 网络/上游异常：提示用户 + 重新抛出，让 ApprovalDialog 显示 approval-error
+        // 并保留弹窗（用户可 retry），不加入 resolved 集（不乐观关闭）。
+        toast.error("审批响应发送失败，请重试");
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       if (!res.ok) {
+        toast.error(`审批响应发送失败（${res.status}），请重试`);
         throw new Error(`审批响应发送失败: ${res.status}`);
       }
+      // 成功：乐观地把该项从展示层剔除（弹窗立即关闭）+ 触发回填对账 + 反馈。
+      setResolvedApprovalIds((prev) => {
+        const next = new Set(prev);
+        next.add(actionId);
+        return next;
+      });
+      scheduleSessionHydration(sessionId);
+      toast.success(decision === "approved" ? "已批准" : "已拒绝");
     },
-    [sessionId, userId],
+    [sessionId, userId, scheduleSessionHydration],
   );
+
+  // ESC / 「稍后」逃生舱（硬门语义）：仅本地延后关闭弹窗，不发送批准/拒绝、不回填。
+  // 服务端 pending_approvals 仍在，刷新/切会话后正确复现（未决闸门的合理行为）。
+  const handleApprovalDismiss = useCallback((actionId: string) => {
+    setResolvedApprovalIds((prev) => {
+      const next = new Set(prev);
+      next.add(actionId);
+      return next;
+    });
+    toast.info("已暂时关闭审批请求，稍后可在刷新或切换会话后重新处理");
+  }, []);
+
+  // 一键延后全部（ISSUE-157）：多条孤儿堆叠时，避免用户被迫逐条点 N 次（「点一个顶一个」
+  // 体感「关不掉」）。一次性把所有 pendingApprovals 的 id 加入「已处理」集，弹窗彻底消失。
+  const handleApprovalDismissAll = useCallback(() => {
+    if (!pendingApprovals) return;
+    const ids = Object.keys(pendingApprovals);
+    if (ids.length === 0) return;
+    setResolvedApprovalIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.add(id);
+      return next;
+    });
+    toast.info(`已暂时关闭 ${ids.length} 条审批请求，刷新或切换会话后可重新处理`);
+  }, [pendingApprovals]);
 
   const {
     sessions,
@@ -595,23 +701,35 @@ export function HomeBody({
    * - 不引入新协议事件（RUN_STOPPED）：最小干预原则，避免污染事件流。
    */
   const handleCancelRun = useCallback(() => {
-    if (!agent) return;
-    if (typeof agent.abortRun !== "function") {
+    // 一键破局（ISSUE-156 续）：Stop 同时「清空所有待决审批弹窗」，即便 run 已结束、
+    // agent 重建前等孤儿态，用户也能即时逃生，不被卡在「Send 禁用 + 无 Stop」的陷阱。
+    if (pendingApprovals) {
+      const ids = Object.keys(pendingApprovals);
+      if (ids.length > 0) {
+        setResolvedApprovalIds((prev) => {
+          const next = new Set(prev);
+          for (const id of ids) next.add(id);
+          return next;
+        });
+      }
+    }
+    if (agent && typeof agent.abortRun === "function") {
+      userCancelledAtRef.current = Date.now();
+      // 用户主动取消时清空活跃 runId，允许后续 run 立即开始。
+      activeRunIdRef.current = null;
+      try {
+        agent.abortRun();
+      } catch (error) {
+        addLog("warn", "agent_cancel_failed", { message: String(error) });
+      }
+      // 立即同步标记 idle，避免按钮短暂回退到 streaming
+      setConnectionWithMetrics("idle");
+      addLog("info", "user_cancelled_run", { sessionId });
+    } else if (agent) {
       addLog("warn", "agent_cancel_unsupported");
-      return;
     }
-    userCancelledAtRef.current = Date.now();
-    // 用户主动取消时清空活跃 runId，允许后续 run 立即开始。
-    activeRunIdRef.current = null;
-    try {
-      agent.abortRun();
-    } catch (error) {
-      addLog("warn", "agent_cancel_failed", { message: String(error) });
-    }
-    // 立即同步标记 idle，避免按钮短暂回退到 streaming
-    setConnectionWithMetrics("idle");
-    addLog("info", "user_cancelled_run", { sessionId });
-  }, [agent, addLog, sessionId, setConnectionWithMetrics]);
+    // agent 为 null（run 已结束 / agent 重建中）时也允许「仅清空审批」逃生。
+  }, [agent, addLog, sessionId, setConnectionWithMetrics, pendingApprovals]);
 
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
@@ -654,11 +772,16 @@ export function HomeBody({
     ],
   );
 
-  // Escape 分层：① 历史视图下先返回实时（抽屉不关）；② 否则关闭抽屉。
+  // Escape 分层：① 审批弹窗可见时让位给弹窗自身的 ESC（延后逃生），本 handler 早返，
+  // 避免双 window 监听竞争；② 历史视图下先返回实时（抽屉不关）；③ 否则关闭抽屉。
   // 对齐嵌套可关闭 UI 的逐层退出直觉（参考 OverlayDismissLayer 的 escape 栈语义）。
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // 审批弹窗是最高层模态，ESC 应由其独占处理（handleApprovalDismiss）。
+      if (visibleApprovals && Object.keys(visibleApprovals).length > 0) {
+        return;
+      }
       if (selectedNodeId) {
         setSelectedNodeId(null);
       } else if (showRightPanel) {
@@ -667,7 +790,7 @@ export function HomeBody({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId, showRightPanel]);
+  }, [selectedNodeId, showRightPanel, visibleApprovals]);
 
   // G2 对话搜索：Cmd/Ctrl+F 拦截浏览器默认查找，打开搜索栏。
   useEffect(() => {
@@ -711,6 +834,14 @@ export function HomeBody({
     const persisted = readPersistedRightPanel(sessionId);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowRightPanel(persisted ?? false);
+  }, [sessionId]);
+
+  // G3 审批门：切会话时重置本地「已决策/已延后」集合，避免跨会话把旧 action_id
+  // 误判为已处理。乐观关闭仅在当前会话内有意义（与上方 seeding effect 同源，
+  // 单次切换一次额外渲染可接受）。
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setResolvedApprovalIds(new Set());
   }, [sessionId]);
 
   // 状态变化时写回当前 session 的记录（toggle / X / ESC / 快捷键统一经此落盘）。
@@ -1185,11 +1316,11 @@ export function HomeBody({
         <div
           className={`shrink-0 h-full border-r border-border bg-card transition-all duration-300 ease-in-out overflow-hidden ${
             showLeftPanel
-              ? "w-56 translate-x-0 opacity-100"
+              ? "w-64 translate-x-0 opacity-100"
               : "w-0 -translate-x-10 opacity-0"
           }`}
         >
-          <div className="w-56 h-full overflow-hidden flex flex-col">
+          <div className="w-64 h-full overflow-hidden flex flex-col">
             <SessionList
               sessions={sessions}
               activeId={sessionId}
@@ -1268,7 +1399,7 @@ export function HomeBody({
 
           {/* Chat Stream Area */}
           <div className="flex-1 overflow-hidden flex flex-col relative">
-            <ChatStream
+            <StudioTranscript
               nodes={conversationTree.roots}
               selectedNodeId={selectedNodeId}
               onNodeSelect={(id) => {
@@ -1289,6 +1420,11 @@ export function HomeBody({
               }
               highlightedNodeIds={search.matchingNodeIds}
               scrollToNodeId={search.currentMatchNodeId}
+              suggestions={STUDIO_SUGGESTIONS}
+              onSuggestionPick={(prompt) => {
+                setInputValue(prompt);
+                setComposerFocusToken((token) => token + 1);
+              }}
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
@@ -1314,6 +1450,10 @@ export function HomeBody({
                 thinkingSupported={thinkingSupported}
                 onThinkingEnabledChange={handleThinkingEnabledChange}
                 onCancel={handleCancelRun}
+                forceShowStop={
+                  effectiveConnection === "blocked" ||
+                  !!(visibleApprovals && Object.keys(visibleApprovals).length > 0)
+                }
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
                 mentions={mentions}
@@ -1324,6 +1464,7 @@ export function HomeBody({
                 agentsError={agentsError}
                 corporaLoading={corporaLoading}
                 corporaError={corporaError}
+                autoFocusToken={composerFocusToken}
               />
             </div>
           </div>
@@ -1347,10 +1488,14 @@ export function HomeBody({
         }}
       />
 
-      {/* G3 审批门：pending_approvals → modal → approval_responses 闭环 */}
+      {/* G3 审批门：pending_approvals → modal → approval_responses 闭环。
+          传入 visibleApprovals（已剔除本地已决策/已延后项）实现乐观关闭；
+          onDismiss 提供 ESC/稍后逃生（仅本地关闭，不发送决策）。 */}
       <ApprovalDialog
-        pending={pendingApprovals as Record<string, import("@/components/ui/ApprovalDialog").ApprovalRequestPayload> | null | undefined}
+        pending={visibleApprovals as Record<string, import("@/components/ui/ApprovalDialog").ApprovalRequestPayload> | null | undefined}
         onRespond={handleApprovalRespond}
+        onDismiss={handleApprovalDismiss}
+        onDismissAll={handleApprovalDismissAll}
       />
     </div>
   );

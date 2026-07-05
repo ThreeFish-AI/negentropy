@@ -1,3 +1,7 @@
+---
+sidebar_position: 8
+title: "Memory 故障排除 FAQ"
+---
 # Memory Troubleshooting Guide：故障排除 FAQ
 
 > 实测过的问题 + SQL 诊断脚本。前置阅读 [`memory-basics.md`](./memory-basics.md)。
@@ -128,7 +132,7 @@ ORDER BY created_at DESC LIMIT 20;
 
 **对策**：
 - PII 检测仅做提示，**不阻断写入或检索**
-- 误报无需修复；如需精细治理参考 [Phase 5 路线图](../../concepts/026-memory-whitepaper.md#4-未来路线phase-5)的 Presidio 计划
+- 误报无需修复；如需精细治理参考 [Phase 5 路线图](../subsystems/026-memory-whitepaper.md#4-未来路线phase-5)的 Presidio 计划
 
 ---
 

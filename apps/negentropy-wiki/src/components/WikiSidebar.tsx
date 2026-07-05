@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { WikiNavTree } from "./WikiNavTree";
-import type { WikiNavTreeItem } from "@/lib/wiki-api";
+import { entryHref, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
  * Wiki 侧边栏 — 统一 Publication 首页与文档详情页的左栏渲染。
@@ -58,7 +58,7 @@ export function WikiSidebar({
           {catalogName ? (
             catalogTargetSlug ? (
               renderBrand(
-                `/${pubSlug}/${catalogTargetSlug}`,
+                entryHref(pubSlug, catalogTargetSlug),
                 catalogName,
                 "wiki-sidebar-brand",
               )
@@ -91,7 +91,7 @@ export function WikiSidebar({
       )}
       {!isEntryPage && indexEntry && (
         <Link
-          href={`/${pubSlug}/${indexEntry.entry_slug}`}
+          href={entryHref(pubSlug, indexEntry.entry_slug)}
           className="wiki-nav-link active"
         >
           🏠 首页

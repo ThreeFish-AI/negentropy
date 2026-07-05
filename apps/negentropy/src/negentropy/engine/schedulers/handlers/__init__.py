@@ -1,14 +1,10 @@
 """Handler 注册中心 — 把 ``handler_kind`` 字符串路由到具体的执行函数。
 
-Phase 4 内置 handler 清单：
-- ``skill_invoke``          — 替代旧 ``register_skill_scheduler`` tick
-- ``pipeline_watchdog``     — 替代 ``bootstrap.py`` 中的 inline ``_pipeline_watchdog_tick``
-- ``session_title_inspect`` — 替代旧 ``SessionTitleInspector.start()`` 自启
-- ``cache_warm``            — startup 一次性 → oneshot 任务
-- ``pgvector_check``        — startup 一次性 → oneshot 任务
-- ``agent_inspection``      — 24/7 自驱 Agent 巡检最小骨架
-- ``memory_automation``     — 仿生记忆自动化三作业统一入口
-- ``claude_code``           — Claude Code 任务执行
+内置 handler 清单为 ``_bootstrap_default_handlers()`` 中的显式元组（单一事实源），
+运行时可用 ``list_handlers()`` 查询、``GET /scheduler/handlers`` 暴露给 UI。
+新增 handler：在本目录新增模块并以 ``@register_handler("kind")`` 装饰，
+同步把模块名加入 ``_bootstrap_default_handlers`` 元组——
+该不变量由 ``test_every_handler_module_is_bootstrapped`` 守门。
 
 每个 handler 是 ``async def fn(task) -> HandlerResult``，由
 ``ScheduledTaskRegistry.dispatch`` 调用。
@@ -52,6 +48,22 @@ class HandlerResult:
 
 
 HandlerFn = Callable[["ScheduledTask"], Awaitable[HandlerResult]]
+
+
+# ---------------------------------------------------------------------------
+# patrol_lifecycle 标记协议
+# ---------------------------------------------------------------------------
+# patrol（pdf_fidelity_patrol）是 fire-and-forget：handler 创建 Routine 后立即返回，
+# 「spawn 成功 ≠ Routine 成功」。若 per-tick 的 ``_finalize_execution`` 照常用
+# ``HandlerResult.status`` 写 ``ScheduledTask.last_status/last_error/consecutive_failures``，
+# 会在 Routine 数小时后真正失败时仍把 Scheduler 任务标成 success。
+#
+# 携带本标记的 tick 让出聚合状态字段的写权——这些字段的**唯一权威写者**收敛到
+# ``pdf_fidelity_patrol._propagate_patrol_outcomes``（Routine 终态传播），保证 Scheduler
+# 任务状态与所派生 Routine 的终态一致。协议常量集中于此供 handler 与 registry 共享（SSOT）。
+PATROL_LIFECYCLE_KEY = "patrol_lifecycle"
+PATROL_LIFECYCLE_IN_FLIGHT = "in_flight"  # 有 Routine 在跑（spawn / in_progress 跳过）
+PATROL_LIFECYCLE_IDLE = "idle"  # 本轮无生命周期活动（无待检 / 未配置 / 未启用）
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +177,10 @@ def _bootstrap_default_handlers() -> None:
         "memory_automation",
         "claude_code",
         "routine_inspector",
+        "pdf_fidelity_patrol",
+        "evolution_inspector",
+        "longitudinal_recheck",
+        "tool_stats_aggregate",
     ):
         try:
             __import__(f"negentropy.engine.schedulers.handlers.{module_name}")

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
+import { entryHref, isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
  * 计算「当前页祖先链」的 entry_slug 集合，用于初始化展开态。
  *
  * 仅展开包含当前页的所有上层容器节点；其余容器默认折叠（GitBook/VuePress 风格）。
+ * 保留 pub 的左栏渲染完整文档树（README + 各二级目录恒可见），当前页所在路径自动展开，
+ * 其余二级目录点击展开。
  */
 export function computeAncestorSlugs(
   items: WikiNavTreeItem[],
@@ -119,7 +121,7 @@ function WikiNavNode({
         ) : (
           <Link
             ref={linkRef}
-            href={`/${pubSlug}/${item.entry_slug}`}
+            href={entryHref(pubSlug, item.entry_slug)}
             className={`wiki-nav-link${isActive ? " active" : ""}`}
             aria-current={isActive ? "page" : undefined}
           >

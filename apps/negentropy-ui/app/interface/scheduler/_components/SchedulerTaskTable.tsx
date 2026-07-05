@@ -4,7 +4,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import type { ScheduledTaskDTO } from "@/features/scheduler";
 
 interface SchedulerTaskTableProps {
+  /** 要渲染的任务（由调用方以连续前缀形式提供，后端 updated_at 倒序）。 */
   tasks: ScheduledTaskDTO[];
+  /** 任务总数，用于表头计数；缺省回退到 tasks.length。 */
+  total?: number;
+  /** 无限滚动每页条数：每页首行挂 data-infinite-page 锚点，供翻页定位与滚动联动当前页。 */
+  pageSize?: number;
   loading: boolean;
   onToggle: (id: string, enabled: boolean) => void;
   onRun: (id: string) => void;
@@ -66,6 +71,8 @@ function SkeletonRow() {
 
 export function SchedulerTaskTable({
   tasks,
+  total,
+  pageSize,
   loading,
   onToggle,
   onRun,
@@ -74,11 +81,11 @@ export function SchedulerTaskTable({
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm">
       <div className="border-b border-border px-3 py-2 text-caption uppercase tracking-overline text-muted-foreground">
-        Tasks ({tasks.length})
+        Tasks ({total ?? tasks.length})
       </div>
-      <div className="max-h-[540px] overflow-auto">
+      <div className="overflow-x-auto">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-card text-muted-foreground z-10">
+          <thead className="bg-card text-muted-foreground">
             <tr className="border-b border-border">
               <th className="px-3 py-2 text-left font-medium">Task</th>
               <th className="px-3 py-2 text-left font-medium">Description</th>
@@ -101,9 +108,10 @@ export function SchedulerTaskTable({
                 </td>
               </tr>
             ) : (
-              tasks.map((t) => (
+              tasks.map((t, i) => (
                 <tr
                   key={t.id}
+                  data-infinite-page={pageSize && i % pageSize === 0 ? Math.floor(i / pageSize) + 1 : undefined}
                   onClick={() => onSelect(t)}
                   className="cursor-pointer border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
                 >

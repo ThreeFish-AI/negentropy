@@ -1,58 +1,53 @@
 from unittest.mock import PropertyMock, patch
 
-from negentropy.engine.factories.artifacts import get_artifact_service, reset_artifact_service
+import pytest
+
+from negentropy.engine.factories.artifacts import (
+    ArtifactBackend,
+    get_artifact_service,
+    reset_artifact_service,
+)
 
 
 def test_inmemory_factory():
-    print("Testing InMemory Factory...")
+    """inmemory 后端：返回 ADK InMemoryArtifactService。"""
     reset_artifact_service()
-    # Mock settings
     with patch("negentropy.config.Settings.artifact_service_backend", new_callable=PropertyMock) as mock_backend:
         mock_backend.return_value = "inmemory"
         service = get_artifact_service()
-        print(f"Service created: {service}")
         assert service is not None
         assert "InMemoryArtifactService" in str(type(service))
-    print("InMemory Factory Test Passed.")
 
 
-def test_gcs_factory():
-    print("Testing GCS Factory...")
+def test_postgres_factory():
+    """postgres 后端：返回自研 PostgresArtifactService。"""
     reset_artifact_service()
-
-    # Mock settings
     with patch("negentropy.config.Settings.artifact_service_backend", new_callable=PropertyMock) as mock_backend:
-        mock_backend.return_value = "gcs"
-        with patch("negentropy.config.Settings.gcs_bucket_name", new_callable=PropertyMock) as mock_bucket:
-            mock_bucket.return_value = "test-bucket"
-            # Mock google.auth.default to not raise
-            with patch("google.auth.default", return_value=(None, None)):
-                # Mock GcsArtifactService to avoid real GCS connection
-                with patch("google.adk.artifacts.GcsArtifactService") as MockGcsService:
-                    service = get_artifact_service()
-                    print(f"Service created: {service}")
-                    assert service == MockGcsService.return_value
-    print("GCS Factory Test Passed.")
+        mock_backend.return_value = "postgres"
+        service = get_artifact_service()
+        from negentropy.engine.adapters.postgres.artifact_service import PostgresArtifactService
+
+        assert isinstance(service, PostgresArtifactService)
 
 
-def test_gcs_factory_missing_bucket():
-    print("Testing GCS Factory Missing Bucket...")
+def test_unsupported_backend_raises():
+    """不支持的后端（含已退役的 gcs）应抛 ValueError。"""
     reset_artifact_service()
-
     with patch("negentropy.config.Settings.artifact_service_backend", new_callable=PropertyMock) as mock_backend:
-        mock_backend.return_value = "gcs"
-        with patch("negentropy.config.Settings.gcs_bucket_name", new_callable=PropertyMock) as mock_bucket:
-            mock_bucket.return_value = None
-            try:
-                get_artifact_service()
-                print("FAILED: Should have raised ValueError")
-            except ValueError as e:
-                print(f"Caught expected error: {e}")
-                assert "requires GCS_BUCKET_NAME" in str(e)
-    print("GCS Factory Missing Bucket Test Passed.")
+        mock_backend.return_value = "gcs"  # GCS 已退役
+        with pytest.raises(ValueError, match="Unsupported artifact backend"):
+            get_artifact_service()
+
+
+def test_backend_enum_no_gcs():
+    """ArtifactBackend 不再包含 GCS 选项。"""
+    values = {b.value for b in ArtifactBackend}
+    assert values == {"inmemory", "postgres"}
+    assert "gcs" not in values
 
 
 if __name__ == "__main__":
     test_inmemory_factory()
-    test_gcs_factory()
-    test_gcs_factory_missing_bucket()
+    test_postgres_factory()
+    test_unsupported_backend_raises()
+    test_backend_enum_no_gcs()

@@ -65,6 +65,20 @@ class RoutineSettings(BaseSettings):
         "退化原行为）。>0 时把「未满足 Acceptance 即封顶」由散文规则提升为引擎机制，防小模型评分越线。"
         "per-routine 可经 config.acceptance_unmet_score_cap 覆盖。",
     )
+    judge_anchor_enabled: bool = Field(
+        default=True,
+        description="启用 Judge 历史锚定（纵向评估）：评估时向 LLM-as-Judge 注入近 K 轮评分轨迹、"
+        "本次尝试历史最优与上轮反思，要求先陈述相对上轮的进展/退步证据（progress_evidence）再给分、"
+        "评分须与轨迹一致——抑制单点独立重打分导致的 ±20 天然振荡（no_progress/oscillation 误杀根因）。"
+        "首轮无历史时提示词与原版逐字节一致。per-routine 可经 config.judge_anchor_enabled 覆盖关闭。",
+    )
+    judge_anchor_window: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="锚点轨迹窗口：注入 Judge 的近 K 轮 (seq, score, verdict)。"
+        "per-routine 可经 config.judge_anchor_window 覆盖。",
+    )
     max_reflections_injected: int = Field(
         default=5, ge=1, le=50, description="注入下一次迭代 prompt 的最近反思条数（Reflexion 窗口）"
     )
@@ -146,6 +160,21 @@ class RoutineSettings(BaseSettings):
         default=True, description="建 worktree 前 best-effort `git fetch <remote> <baseline>`（带超时，失败不阻断）"
     )
     git_timeout_seconds: int = Field(default=120, ge=5, description="单条 git 子命令执行超时（秒）")
+
+    # --- PR 合并状态巡检（终态 routine 的 PR 是否已被人工 Merge 回写 pr_merged）---
+    # 复用运行时已授权的 gh CLI 做 `gh pr view --json state,merged`；gh 不在 PATH 时整段 no-op。
+    pr_merge_check_enabled: bool = Field(
+        default=True, description="启用终态 routine 的 PR merge 状态巡检（需后端 PATH 可用 gh；缺失则静默 no-op）"
+    )
+    pr_merge_check_interval_seconds: int = Field(
+        default=300, ge=60, le=86400, description="同一 routine 的 PR merge 状态最小重查间隔（节流，适配 25s 心跳）"
+    )
+    pr_merge_check_timeout_seconds: int = Field(
+        default=5, ge=1, le=30, description="单次 gh pr view 子进程超时（秒）；超时整组 SIGKILL"
+    )
+    pr_merge_check_batch: int = Field(
+        default=3, ge=1, le=20, description="单 tick 内 PR merge 巡检的 routine 批量上限（×超时 ≈ pass 最坏耗时）"
+    )
 
     # --- Claude Code 交互式工具自动应答（AskUserQuestion 拦截）---
     auto_answer_questions: bool = Field(
@@ -271,11 +300,93 @@ class RoutineSettings(BaseSettings):
         default=True,
         description="启用记忆注入：派发迭代时从 Memory Module 检索相关记忆注入 prompt。",
     )
+    memory_feedback_enabled: bool = Field(
+        default=True,
+        description="启用记忆检索反馈闭环：评估期解析产出中 `依据 Memory <id8>` 引用 → was_referenced；"
+        "并据本轮 verdict 粗粒度回写 outcome_feedback（cited+pass/progressing→helpful；"
+        "注入非空且零引用→irrelevant；cited+regressed/stalled→不写）。激活既有 Rocchio 调权管道。"
+        "Rocchio min_count=3、γ=0.15 天然平滑单次误差；关闭则不解析、不回写。",
+    )
     memory_injection_max_tokens: int = Field(
         default=500,
         ge=0,
         le=2000,
         description="注入 prompt 的记忆上下文最大 token 预算。",
+    )
+
+    # --- 多 Agent 归因（一核五翼 Faculty 接入 Routine 编排链）---
+    # 详见 ADR docs/concepts/040-routine-multi-agent-faculty.md。
+    # agent_role 归因（事件标注产出 Agent）始终生效、无需开关；此开关仅控制是否真正经
+    # FacultyBridge 同步调用 ADK Faculty Agent 来产出审阅/评估（路径 A）。关闭时（默认）
+    # 沿用现有 litellm 直调（PlanReviewer / RoutineEvaluator），事件仍带语义 agent_role。
+    faculty_bridge_enabled: bool = Field(
+        default=False,
+        description="启用 FacultyBridge：在 Plan 审 / 评估等注入点经 ADK Runner 同步调用真实 Faculty "
+        "Agent（元神 / 本心 / 妙手），失败/超时降级 litellm 直调。默认关闭——开启前需确保 ADK "
+        "Runner 在 Routine 编排上下文中可用且不阻塞单 worker 事件循环。",
+    )
+    faculty_bridge_timeout_seconds: int = Field(
+        default=90,
+        ge=10,
+        le=600,
+        description="FacultyBridge 单次同步调用 Faculty Agent 的超时（秒），超时即降级。",
+    )
+
+    # --- pdf-fidelity-patrol（PDF→Markdown 高保真自拟合巡检 · Scheduler Task）---
+    # 巡检 = 一个绑定「negentropy」Repository 的 Routine（worktree + FINALIZE 开 PR + 0-100
+    # 评估闭环）；其 Claude Code 会话即 NegentropyEngine，依全局技能 pdf-fidelity-restore
+    # 反复调度三系部（Contemplation 视觉对比+评分 / Action 改 perceives+重转 / Internalization
+    # 记忆）。详见 engine/routine/patrol_prompt.py 与 handlers/pdf_fidelity_patrol.py。
+    patrol_enabled: bool = Field(
+        default=False,
+        description="启用 pdf-fidelity_patrol 巡检 handler（依赖 routine.enabled；二者皆开才生效）。",
+    )
+    patrol_repo_local_path: str | None = Field(
+        default=None,
+        description="巡检 worktree 的源仓库根（引擎宿主机上 negentropy 主仓 checkout 路径）；"
+        "为空时尝试从 negentropy 包路径向上推导。无法确定则 handler 返回 not configured，"
+        "需改用 Interface/Repositories 手工注册。",
+    )
+    patrol_repo_github_url: str = Field(
+        default="https://github.com/ThreeFish-AI/negentropy",
+        description="注册到 repositories 的 GitHub 地址（展示/溯源用，非克隆来源）。",
+    )
+    patrol_baseline_branch: str = Field(
+        default="origin/feature/1.x.x",
+        description="巡检 worktree 的基线分支 + PR base（如 origin/feature/1.x.x）。",
+    )
+    patrol_input_dir: str = Field(
+        default="/tmp/negentropy-patrol",
+        description="源 PDF 暂存与候选 Markdown 输出根目录（按 doc_id 建子目录）。",
+    )
+    patrol_max_iterations_per_doc: int = Field(
+        default=400,
+        ge=1,
+        le=500,
+        description="单文档巡检 Routine 的迭代硬上限（拟合到满分或触上限即终止）。",
+    )
+    patrol_max_cost_usd_per_doc: float = Field(
+        default=1500.0,
+        ge=0.0,
+        description="单文档巡检 Routine 的成本熔断（USD）。巡检是重自治任务（opus + 扩展思考"
+        " + perceives 重转 + worktree），单轮约 $3-4；默认 1500 容许数百轮深度拟合收敛。"
+        "原 30 仅容许 ~8 轮即触顶；按需在当前基础上 ×50（400 轮 / $1500）以支持长链路自拟合。",
+    )
+    patrol_regression_sample_size: int = Field(
+        default=6,
+        ge=1,
+        le=30,
+        description="非回归基线样本数（首次巡检时分层抽取的生产 PDF 文档数）。",
+    )
+    patrol_qualified_score_threshold: int = Field(
+        default=95,
+        ge=0,
+        le=100,
+        description="巡检文档「合格」分阈值（0-100）。巡检 Routine 的 success_score_threshold 取此值——"
+        "best_score 达此值即判 done（合格）并经 decide() 判 SUCCESS；低于此值（尽力）记 unfixable。"
+        "二者皆推进文档、不再死循环（修「始终拟合同一份文档」根因）。"
+        "终态沉淀双信号：契约自报 done 或 best_score ≥ 此阈值 → done，否则 unfixable；"
+        "仅对 succeeded/failed 终态生效，cancelled 不沉淀。",
     )
 
     @classmethod

@@ -28,8 +28,8 @@ export interface BaseDrawerProps {
   /** 标题栏右侧、关闭按钮左侧的额外操作区（如 "Full View" 链接）。 */
   headerActions?: ReactNode;
   footer?: ReactNode;
-  /** 滑出方向。默认 right。 */
-  side?: "right" | "left";
+  /** 滑出方向。默认 right。bottom 为底部抽屉（模态底部 sheet，高度上限 70vh、顶部圆角）。 */
+  side?: "right" | "left" | "bottom";
   /** 面板宽度类。默认 [width:clamp(480px,66.67%,1100px)]（最小 480px / 理想视口 2/3 / 最大 1100px）。 */
   widthClassName?: string;
   closeOnBackdrop?: boolean;
@@ -68,6 +68,16 @@ export function BaseDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, closeOnEscape, onClose]);
 
+  const isBottom = side === "bottom";
+  // bottom 抽屉按高度收敛（顶部圆角 + max-h-70vh + 居中限宽），不复用水平向的 widthClassName
+  const panelClassName = isBottom
+    ? "relative flex flex-col bg-card shadow-xl outline-none max-h-[70vh] w-full max-w-5xl border-t border-border rounded-t-2xl"
+    : cn(
+        "relative flex h-full flex-col bg-card shadow-xl outline-none",
+        side === "right" ? "border-l border-border" : "border-r border-border",
+        widthClassName,
+      );
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -76,7 +86,11 @@ export function BaseDrawer({
         <div
           className={cn(
             "fixed inset-0 z-[45] flex",
-            side === "right" ? "justify-end" : "justify-start",
+            isBottom
+              ? "items-end justify-center"
+              : side === "right"
+                ? "justify-end"
+                : "justify-start",
           )}
         >
           <motion.div
@@ -94,16 +108,10 @@ export function BaseDrawer({
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             tabIndex={-1}
-            className={cn(
-              "relative flex h-full flex-col bg-card shadow-xl outline-none",
-              side === "right"
-                ? "border-l border-border"
-                : "border-r border-border",
-              widthClassName,
-            )}
-            initial={{ x: side === "right" ? "100%" : "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: side === "right" ? "100%" : "-100%" }}
+            className={panelClassName}
+            initial={isBottom ? { y: "100%" } : { x: side === "right" ? "100%" : "-100%" }}
+            animate={isBottom ? { y: 0 } : { x: 0 }}
+            exit={isBottom ? { y: "100%" } : { x: side === "right" ? "100%" : "-100%" }}
             transition={SPRING_TRANSITION}
           >
             {(title || showClose) && (

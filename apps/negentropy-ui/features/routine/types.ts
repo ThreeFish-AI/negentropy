@@ -40,11 +40,17 @@ export interface RoutineDTO {
   cwd: string | null;
   /** 隔离 worktree 的基线分支 + PR base（如 origin/feature/1.x.x）。 */
   baseline_branch: string | null;
+  /** 可选关联的已注册 Repository（单一事实源指针）；非空时由后端派生 cwd/baseline_branch。 */
+  repository_id: string | null;
   verification_command: string | null;
   status: RoutineStatus;
   termination_reason: string | null;
   current_phase: RoutinePhase | null;
   pr_url: string | null;
+  /** PR 是否已合并（true=已 Merge；null=未知/未检测，旧记录回退）。派生显示条件，非新状态值。 */
+  pr_merged: boolean | null;
+  /** PR 状态（open|closed|merged；null=未知/未检测，旧记录回退）。区分 Open 与 Closed-without-merge。 */
+  pr_state: "open" | "closed" | "merged" | null;
   /** 引擎管理的运行期：本轮隔离工作分支（routine/<key>-<ts>）。 */
   work_branch: string | null;
   /** 引擎管理的运行期：隔离 worktree 文件系统路径（= CC 实际 cwd）。 */
@@ -139,10 +145,27 @@ export type RoutineEventType =
   | "tool_result"
   | "result"
   | "plan_review"
+  | "auto_answer"
   | "gate"
   | "evaluation"
+  | "perception"
   | "_truncated"
   | "unknown";
+
+/**
+ * 多 Agent 归因角色（后端 routine_iteration_events.agent_role）。
+ *
+ * 与 ``agent-role.ts`` 的 ``AgentRole`` 同集；后端 Phase 2 落地后，前端归一化优先读此字段，
+ * 缺失时回退 ``deriveHumanRole`` 语义推导（详见 ADR 040）。
+ */
+export type EventAgentRole =
+  | "engine"
+  | "claude_code"
+  | "perception"
+  | "action"
+  | "internalization"
+  | "contemplation"
+  | "influence";
 
 /** Plan Review 事件的归一化载荷结构。 */
 export interface PlanReviewPayload {
@@ -179,6 +202,8 @@ export interface RoutineIterationEventDTO {
   /** 归一化结构化载荷（input/output/text/context/meta；字段截断到 ~16KB）。 */
   payload: Record<string, unknown>;
   cost_usd: number | null;
+  /** 多 Agent 归因（Phase 2 后端落地）：产出此事件的 Agent 角色；NULL=未归因（回退前端推导）。 */
+  agent_role?: EventAgentRole | null;
   created_at: string | null;
 }
 
@@ -242,18 +267,23 @@ export interface RoutineListResponse {
   items: RoutineDTO[];
   next_cursor: string | null;
   has_more: boolean;
+  /** 当前筛选下的全量计数（后端 COUNT）；旧后端可能缺省。 */
+  total?: number;
 }
 
 export interface IterationListResponse {
   items: RoutineIterationDTO[];
   has_more: boolean;
   next_before_seq: number | null;
+  /** 该 routine 的迭代全量计数（后端 COUNT）；旧后端可能缺省。 */
+  total?: number;
 }
 
 export interface RoutineFilters {
   status: RoutineStatus | null;
   q: string;
   is_template?: boolean | null;
+  source_task_key?: string | null;
 }
 
 /** 创建请求体 */
@@ -264,6 +294,8 @@ export interface RoutineCreatePayload {
   acceptance_criteria: string;
   cwd?: string | null;
   baseline_branch?: string | null;
+  /** 关联已注册 Repository（单一事实源指针）；选定后后端派生 cwd/baseline，二者可留空。 */
+  repository_id?: string | null;
   verification_command?: string | null;
   max_iterations?: number | null;
   max_cost_usd?: number | null;

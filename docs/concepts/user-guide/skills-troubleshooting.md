@@ -1,3 +1,7 @@
+---
+sidebar_position: 16
+title: "Skills 故障排查"
+---
 # Skills 故障排查
 
 > 按错误现象索引；找到对应症状直接看处置指引。

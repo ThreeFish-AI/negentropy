@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AgentChatMount } from "@/components/agent-chat/AgentChatMount";
-import { WikiAuthProvider } from "@/lib/auth/wiki-auth";
+
+import { HomePageThemeGuard } from "@/components/HomePageThemeGuard";
 
 /**
  * 自托管 Inter（对齐 SquareDocs 字形观感）。
@@ -31,10 +31,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-/* 主题统一为 SquareDocs 紫罗兰单一主题，仅保留外观（浅/深/系统）的 FOUC 防闪脚本 */
+/* 主题统一为 SquareDocs 紫罗兰单一主题，仅保留外观（浅/深/系统）的 FOUC 防闪脚本。
+ * 首页（路由 "/"）强制暗色：先于 localStorage 判定并直接钉 dark，杜绝「偏好浅色 →
+ * 首屏先亮后暗」的闪烁；离开首页后由 HomePageThemeGuard 从 localStorage 恢复偏好。 */
 const THEME_INIT = `
 (function(){
   try {
+    var path = location.pathname;
+    if (path === "/" || path === "") {
+      document.documentElement.setAttribute("data-color-scheme", "dark");
+      return;
+    }
     var c = localStorage.getItem('wiki:color-scheme');
     if (c && c !== 'system') document.documentElement.setAttribute('data-color-scheme', c);
   } catch(e) {}
@@ -55,17 +62,8 @@ export default function RootLayout({
         <a href="#wiki-main" className="skip-link">
           跳到主要内容
         </a>
-        <div id="wiki-root">
-          <WikiAuthProvider>
-            {children}
-            {/*
-              Agents at Wiki —— 一主五翼 6 Agents 的右下角悬浮聊天框。
-              通过 next/dynamic({ ssr:false }) 异步装载，不阻塞 SSG/ISR 首屏；
-              必须置于 WikiAuthProvider 内部，以便 ChatDrawer 读取 userId。
-            */}
-            <AgentChatMount />
-          </WikiAuthProvider>
-        </div>
+        <HomePageThemeGuard />
+        <div id="wiki-root">{children}</div>
       </body>
     </html>
   );

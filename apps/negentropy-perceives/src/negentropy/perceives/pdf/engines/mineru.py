@@ -133,7 +133,11 @@ class MinerUEngine:
                      'hybrid-http-client' / 'vlm-auto-engine' / 'hybrid-auto-engine'），
                      为 None 时根据设备自动选择。
         """
-        self._output_dir = Path(output_dir) if output_dir else None
+        # 显式根目录（调用方指定）：每次 convert 在其下开唯一子目录，保持切片隔离；
+        # None 时每次 convert 用独立系统临时目录。``_output_dir`` 由 _ensure_output_dir
+        # 每次 convert 重写为本次调用的实际目录（供 _normalize_output 读取）。
+        self._explicit_output_root = Path(output_dir) if output_dir else None
+        self._output_dir: Optional[Path] = None
         self._device = device
         self._backend = backend
         self._resolved_backend: Optional[str] = None
@@ -351,11 +355,28 @@ class MinerUEngine:
         return result
 
     def _ensure_output_dir(self) -> Path:
-        """确保输出目录存在并返回路径。
+        """为**本次** convert 创建独立的干净输出目录并返回。
 
-        若未指定输出目录，自动创建临时目录。
+        关键不变量（ISSUE：auto_batch 跨切片公式/表格/图片泄漏）：MinerU 引擎实例
+        在 engine pool 中跨切片复用；``_normalize_output`` 经 ``_find_content_list``
+        的 ``rglob`` 读取输出目录。若多个切片共用同一目录，当某切片 MinerU 解析
+        未生成 ``content_list.json`` 时，``rglob`` 会命中**前一切片遗留**的
+        ``content_list.json``，使该切片静默继承上一切片的公式/表格/图片
+        （实测 pages 21-40 切片首部逐字出现 page-5 的 Section 2 公式簇）。
+
+        修复：每次 convert 都用独立子目录（``tempfile.mkdtemp``），彻底隔离切片间
+        产物。这样 MinerU 解析失败时该切片得到干净的"空目录 → None"结果并降级
+        docling，而非污染性地继承旧产物。显式 ``output_dir`` 亦在其下创建唯一子目录，
+        保持隔离同时尊重调用方指定的根路径。
         """
-        if self._output_dir is None:
+        if self._explicit_output_root is not None:
+            self._explicit_output_root.mkdir(parents=True, exist_ok=True)
+            self._output_dir = Path(
+                tempfile.mkdtemp(
+                    prefix="mineru_call_", dir=str(self._explicit_output_root)
+                )
+            )
+        else:
             self._output_dir = Path(tempfile.mkdtemp(prefix="mineru_output_"))
         self._output_dir.mkdir(parents=True, exist_ok=True)
         return self._output_dir

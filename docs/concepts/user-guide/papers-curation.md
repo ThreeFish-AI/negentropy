@@ -1,3 +1,7 @@
+---
+sidebar_position: 18
+title: "论文自动采集（AI Agent Papers）"
+---
 # 论文自动采集（AI Agent Papers）
 
 将 arXiv 上 AI Agent 相关最新论文自动收集到 Negentropy 知识库与知识图谱，构建可被对话模块复用的研究语料库。
@@ -75,7 +79,7 @@ node apps/negentropy-ui/scripts/sign-dev-cookie.mjs \
 
 ### 步骤 4：触发 KG 抽取（schema-guided）
 
-进入 `/knowledge/graph`，选择 `agent-papers` Corpus，构建 KG 时指定 `extraction_schema=ai_paper`（参考 [`036-the-knowledge-graph.md` §Schema 引导构建](../../concepts/036-the-knowledge-graph.md)）。
+进入 `/knowledge/graph`，选择 `agent-papers` Corpus，构建 KG 时指定 `extraction_schema=ai_paper`（参考 [`036-the-knowledge-graph.md` §Schema 引导构建](../subsystems/036-the-knowledge-graph.md)）。
 
 完成后可在图谱可视化中看到：Author / Method / Concept / Dataset / Benchmark 实体节点 + 「proposes / improves / outperforms / cites / belongs_to_field」等关系。
 

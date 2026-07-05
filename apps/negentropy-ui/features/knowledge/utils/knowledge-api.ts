@@ -1344,11 +1344,13 @@ export interface KnowledgeDocument {
    * 为空 / null 时，Wiki 站点回退到 `metadata.title -> original_filename`。
    */
   display_name?: string | null;
-  gcs_uri: string;
+  content_uri: string;
   content_type: string | null;
   file_size: number;
   status: string;
   created_at: string | null;
+  /** 最终修改时间（后端 TimestampMixin 经 onupdate 自动维护）。 */
+  updated_at: string | null;
   created_by: string | null;
   created_by_name?: string | null;
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
@@ -1360,7 +1362,56 @@ export interface KnowledgeDocument {
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   markdown_content: string | null;
-  markdown_gcs_uri: string | null;
+  markdown_uri: string | null;
+}
+
+/**
+ * 文件列表语境下的「有效名称」：`display_name`（用户重命名覆盖）→ `original_filename`。
+ *
+ * 注意：与 Wiki 目录语境的 {@link effectiveDisplayName}（含 `metadata.title` 三段回退）
+ * **刻意分离** ——「File Name」列只应显示用户填的名或源文件名，不该把 PDF 自动抽取的
+ * title 污染进来；`metadata.title` 回退是 Wiki 发布语境（后端 `_resolve_doc_display_title`）的职责。
+ */
+export function effectiveDocumentName(
+  doc: Pick<KnowledgeDocument, "display_name" | "original_filename">,
+): string {
+  const displayName = (doc.display_name ?? "").trim();
+  return displayName || doc.original_filename;
+}
+
+/**
+ * Wiki 目录语境下的「有效展示名」：`display_name`（用户手填）→ `metadata.title`
+ * （PDF/抓取自动抽取）→ `original_filename`（兜底）。
+ *
+ * 优先级与后端 `_resolve_doc_display_title`、目录树 CTE（`catalog_node_dao`）一致，
+ * 保证「候选列表 → 归属列表 → 目录树节点名」三处同屏展示名完全一致。原本内联于
+ * `DocumentAssignmentSection`，现上移为唯一事实源供 `AddDocumentsDialog` 复用。
+ */
+export function effectiveDisplayName(
+  doc: Pick<KnowledgeDocument, "display_name" | "original_filename" | "metadata">,
+): string {
+  const displayName = (doc.display_name || "").trim();
+  if (displayName) return displayName;
+  const metaTitle = typeof doc.metadata?.title === "string" ? doc.metadata.title.trim() : "";
+  if (metaTitle) return metaTitle;
+  return doc.original_filename;
+}
+
+/**
+ * 判定源文档是否为 PDF —— 决定文档详情页是否展示「Markdown | PDF」切换标签。
+ *
+ * 双重判据（任一命中即视为 PDF），覆盖 MIME 缺失但扩展名为 .pdf 的历史数据：
+ *  - `content_type` 含 "pdf"（如 `application/pdf`，大小写不敏感）；
+ *  - `original_filename` 以 `.pdf` 结尾。
+ *
+ * URL / Markdown / 其他类型文档均返回 false，从而不显示 PDF 预览入口。
+ */
+export function isPdfDocument(
+  doc: Pick<KnowledgeDocument, "content_type" | "original_filename">,
+): boolean {
+  const contentType = (doc.content_type ?? "").toLowerCase();
+  if (contentType.includes("pdf")) return true;
+  return /\.pdf$/i.test(doc.original_filename ?? "");
 }
 
 export interface DocumentMarkdownRefreshResponse {
@@ -1517,6 +1568,26 @@ function documentApiBase(corpusId: string | null, documentId: string): string {
   return corpusId
     ? `/api/knowledge/base/${corpusId}/documents/${documentId}`
     : `/api/knowledge/documents/${documentId}`;
+}
+
+/**
+ * 文档原文「内联预览」URL（PDF 原文视图的 `<object>`/`<iframe>` src）。
+ *
+ * 走 BFF `/preview` 路由：复用后端 `/download` 字节、仅把 `Content-Disposition`
+ * 改写为 `inline`。库文档（corpusId=null）与 corpus 文档的路径分支由
+ * {@link documentApiBase} 统一收敛。同源请求自动携带 cookie 完成鉴权，故此处
+ * 仅需返回 URL 字符串，无需手工拼接鉴权头。
+ */
+export function documentPreviewUrl(
+  corpusId: string | null,
+  documentId: string,
+  params?: { appName?: string },
+): string {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  const qs = query.toString();
+  const base = `${documentApiBase(corpusId, documentId)}/preview`;
+  return qs ? `${base}?${qs}` : base;
 }
 
 export async function deleteDocument(
@@ -2787,6 +2858,8 @@ export interface CatalogNode {
   config: Record<string, unknown>;
   /** DOCUMENT_REF 叶子节点关联的文档 ID（FOLDER 等结构节点为 null） */
   document_id?: string | null;
+  /** DOCUMENT_REF 关联文档所属 corpus（左栏重命名文档节点时据此直连 document API 改 display_name） */
+  source_corpus_id?: string | null;
   /** CTE 计算字段：层级深度（根节点为 0） */
   depth?: number;
   /** CTE 计算字段：从根到当前节点的 ID 路径数组 */
@@ -2995,11 +3068,12 @@ export async function createCatalog(params: {
 /** 获取 Catalog 下可用文档（跨 corpus，用于 AddDocumentsDialog） */
 export async function fetchCatalogDocuments(
   catalogId: string,
-  params?: { limit?: number; offset?: number },
+  params?: { limit?: number; offset?: number; markdownStatus?: string },
 ): Promise<DocCatalogDocumentsResponse> {
   const query = new URLSearchParams();
   if (params?.limit != null) query.set("limit", String(params.limit));
   if (params?.offset != null) query.set("offset", String(params.offset));
+  if (params?.markdownStatus) query.set("markdown_status", params.markdownStatus);
   const qs = query.toString();
   const res = await fetch(
     `/api/knowledge/catalogs/${catalogId}/documents${qs ? `?${qs}` : ""}`,
@@ -3007,6 +3081,37 @@ export async function fetchCatalogDocuments(
   );
   if (!res.ok) throw new Error(`Failed to fetch catalog documents: ${res.statusText}`);
   return res.json();
+}
+
+/**
+ * 拉取 Catalog 下「全部」候选文档——以 200/页循环递增 offset 直至累计达到 total，
+ * 突破后端单次 `le=200` 上限，保证「添加文档节点」候选集不被截断。
+ *
+ * @param markdownStatus 透传 `markdown_status` 过滤（UI 默认 "completed"：仅已转换为
+ *   Markdown 的文档才可渲染为 Wiki 节点）；省略则不过滤。
+ * 上限 100 页（20000 条）兜底，防异常 total 导致死循环。
+ */
+export async function fetchAllCatalogDocuments(
+  catalogId: string,
+  opts?: { markdownStatus?: string },
+): Promise<KnowledgeDocument[]> {
+  const PAGE = 200;
+  const MAX_PAGES = 100;
+  const acc: KnowledgeDocument[] = [];
+  let offset = 0;
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const res = await fetchCatalogDocuments(catalogId, {
+      limit: PAGE,
+      offset,
+      markdownStatus: opts?.markdownStatus,
+    });
+    const items = res.items ?? [];
+    acc.push(...items);
+    const total = res.total ?? acc.length;
+    if (acc.length >= total || items.length < PAGE) break;
+    offset += PAGE;
+  }
+  return acc;
 }
 
 // ============================================================================
@@ -3104,6 +3209,14 @@ export interface WikiNavTreeResponse {
 
 export type WikiRevalidationStatus = "dispatched" | "failed" | "not_configured";
 
+/**
+ * Wiki 发布目标环境：
+ * - `local`（测试环境）：重建本地 negentropy-wiki 站点（:3092）。
+ * - `production`（生产环境）：推送到 threefish-ai.github.io master，
+ *   直接更新 https://threefish-ai.github.io/。
+ */
+export type WikiPublishTarget = "local" | "production";
+
 export interface WikiPublishActionResponse {
   publication_id: string;
   status: WikiPublicationStatus;
@@ -3112,6 +3225,10 @@ export interface WikiPublishActionResponse {
   entries_count: number;
   message: string;
   revalidation?: WikiRevalidationStatus;
+  /** 本次发布的目标环境（local/production） */
+  target?: WikiPublishTarget;
+  /** 上线站点 base URL（供「查看站点」跳转） */
+  site_url?: string | null;
 }
 
 export interface SyncFromCatalogParams {
@@ -3195,10 +3312,18 @@ export async function deleteWikiPublication(pubId: string): Promise<void> {
   if (!res.ok) throw new Error(`Failed to delete wiki publication: ${res.statusText}`);
 }
 
-/** 发布 Wiki（draft/published → published，递增版本号） */
-export async function publishWiki(pubId: string): Promise<WikiPublishActionResponse> {
+/**
+ * 发布 Wiki（draft/published → published，递增版本号）。
+ * @param target 发布目标环境，缺省 `local`（测试环境，安全侧默认）。
+ */
+export async function publishWiki(
+  pubId: string,
+  target: WikiPublishTarget = "local",
+): Promise<WikiPublishActionResponse> {
   const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/publish`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target }),
   });
   if (!res.ok) throw new Error(`Failed to publish wiki: ${res.statusText}`);
   return res.json();

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 # Lifecycle schema imports
 from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
+    WIKI_PUBLISH_TARGET_SITE_URL,
     AssignDocumentRequest,
     CatalogTreeResponse,
     CategorySuggestionResponse,
@@ -44,6 +45,7 @@ from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
     WikiEntryContentResponse,
     WikiNavTreeResponse,
     WikiPublishActionResponse,
+    WikiPublishRequest,
 )
 from negentropy.knowledge.lifecycle_schemas import SyncFromCatalogRequest as _SyncFromCatalogReq
 from negentropy.knowledge.lifecycle_schemas import SyncFromCatalogResponse as _SyncFromCatalogResp
@@ -288,17 +290,26 @@ async def delete_wiki_publication(pub_id: UUID):
 
 
 @router.post("/wiki/publications/{pub_id}/publish")
-async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
+async def publish_wiki(
+    pub_id: UUID,
+    body: WikiPublishRequest | None = None,
+) -> WikiPublishActionResponse:
     """触发发布：将 draft/published 状态转为 published，递增版本号
 
-    SSG 应用 (apps/negentropy-wiki) 在 ISR 再验证窗口内会自动拉取最新数据。
-    响应中的 revalidation 字段反映 ISR 主动通知的状态。
+    请求体 ``target`` 指定发布目标：
+      - ``local``（缺省，测试环境）：重建本地 wiki（``:3092``）。
+      - ``production``（生产环境）：推送到 ``threefish-ai.github.io`` master，
+        直接更新 https://threefish-ai.github.io/。
+
+    响应中的 ``revalidation`` 反映 webhook 派发状态；``target`` / ``site_url``
+    回填本次目标与上线站点 URL。
     """
+    target = (body or WikiPublishRequest()).target
     wiki_svc = _get_wiki_service()
 
     async with AsyncSessionLocal() as db:
         try:
-            pub, revalidation_status = await wiki_svc.publish(db, pub_id)
+            pub, revalidation_status = await wiki_svc.publish(db, pub_id, target=target)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -308,7 +319,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         doc_count = await wiki_svc.count_document_entries(db, pub_id)
         await db.commit()
 
-    logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version)
+    logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version, target=target.value)
 
     return WikiPublishActionResponse(
         publication_id=pub.id,
@@ -318,6 +329,8 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         entries_count=doc_count,
         message=f"Published successfully (v{pub.version})",
         revalidation=revalidation_status,
+        target=target.value,
+        site_url=WIKI_PUBLISH_TARGET_SITE_URL.get(target),
     )
 
 
@@ -476,7 +489,6 @@ async def get_wiki_document_asset(document_id: UUID, filename: str):
             },
         )
 
-    from negentropy.storage.gcs_client import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -500,28 +512,21 @@ async def get_wiki_document_asset(document_id: UUID, filename: str):
             detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
         )
 
-    gcs_path = DocumentStorageService._build_asset_gcs_path(
-        app_name=doc.app_name,
-        corpus_id=doc.corpus_id,
-        document_id=doc.id,
+    # 经 Service 层下载衍生资产（路径构造与 blob 解析收口在 DocumentStorageService）
+    content = await storage_service.download_extraction_asset(
+        document_id=document_id,
         filename=filename,
     )
-
-    try:
-        gcs_client = storage_service._get_gcs_client()
-        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
-        content = gcs_client.download(gcs_uri)
-    except (StorageError, ValueError) as exc:
+    if content is None:
         logger.warning(
             "wiki_asset_download_failed",
             doc_id=str(document_id),
             asset_name=filename,
-            error=str(exc),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
-        ) from exc
+        )
 
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     return StreamingResponse(
@@ -551,51 +556,10 @@ async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
 
     logger.info("api_wiki_entry_content", entry_id=str(entry_id))
 
-    # 解析作者信息：metadata 手动覆盖 > DocSource.author
-    metadata = content_data.get("metadata", {})
-    author_raw = metadata.get("author") or content_data.get("author")
-    author_name: str | None = None
-    author_url: str | None = None
+    # 作者 / 来源 / 发布时间解析统一收敛到 service 层共享助手（与静态内容包导出共用，DRY）。
+    from negentropy.knowledge.lifecycle.wiki_service import build_entry_content_response
 
-    if author_raw:
-        author_str = str(author_raw).strip()
-        # metadata 中手动指定的 author_url 优先
-        explicit_url = metadata.get("author_url")
-        if explicit_url and isinstance(explicit_url, str):
-            author_url = explicit_url
-            if not author_name:
-                if author_str.startswith("http"):
-                    author_name = author_str.rstrip("/").rsplit("/", 1)[-1]
-                else:
-                    author_name = author_str
-        elif author_str.startswith("http"):
-            # author 字段本身是 URL（如 GitHub profile），提取显示名
-            author_url = author_str
-            author_name = author_str.rstrip("/").rsplit("/", 1)[-1]
-        else:
-            author_name = author_str
-
-    # 来源 URL
-    source_url = content_data.get("source_url")
-
-    # 发布时间
-    published_at = None
-    entry_created_at = content_data.get("entry_created_at")
-    if entry_created_at:
-        published_at = entry_created_at.isoformat() if hasattr(entry_created_at, "isoformat") else str(entry_created_at)
-
-    return WikiEntryContentResponse(
-        entry_id=entry_id,
-        document_id=content_data["document_id"],
-        entry_slug="",  # 需要额外查询 entry 表获取
-        entry_title=content_data["title"],
-        markdown_content=content_data["markdown_content"],
-        document_filename=content_data["filename"] or "",
-        author_name=author_name,
-        author_url=author_url,
-        source_url=source_url,
-        published_at=published_at,
-    )
+    return build_entry_content_response(entry_id, content_data)
 
 
 # ---------------------------------------------------------------------------

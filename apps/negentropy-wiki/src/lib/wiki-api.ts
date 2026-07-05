@@ -1,23 +1,183 @@
 /**
- * Wiki API 客户端
+ * Wiki 类型与导航纯函数（client-safe）
  *
- * 用于 SSG 构建时从后端拉取 Wiki 发布数据（Publications、Entries、NavTree、Content、Graph）。
- * 运行时通过 ISR 增量再验证保持数据新鲜度。
+ * 本模块**不**导入任何 Node 专属 API（`node:fs` / `server-only`），故可被客户端
+ * 组件安全引用（类型 + 导航派生纯函数）。
+ *
+ * 数据访问单例 `wikiApi`（读取本地静态内容包的 `LocalContentClient`）定义在
+ * `./content-source`（server-only）；服务端页面/generate 从那里导入。
+ * 两者解耦是为了避免 `node:fs` 经本模块泄漏进客户端 bundle。
+ *
+ * wiki 站点纯静态化后不再直接或间接依赖主站数据库：构建期只读本地文件。
  */
 
-import type {
-  WikiEntryGraphResponse,
-  WikiGraphEntityDetailResponse,
-  WikiGraphEntityListResponse,
-  WikiGraphEntityQueryOptions,
-  WikiGraphQueryOptions,
-  WikiGraphResponse,
-} from "./wiki-graph-types";
+// ---------------------------------------------------------------------------
+// 内链 href 规范化（单一事实源）
+//
+// `next.config.ts` 设 `trailingSlash: true`，静态导出为每个路由产出目录式 HTML
+// （`/pub/entry/` → `out/pub/entry/index.html`）。故全站内链须统一带尾斜杠，
+// 方能在 nginx / static-web-server / GitHub Pages 等任意静态托管下稳定命中目录 index
+// （无尾斜杠的目录型 URL 在部分 nginx 配置——如 SPA fallback 或缺 `$uri/`——下会 404）。
+// 所有内链 href 须经此处的 helper 构造，杜绝散落的 `` `/${...}` `` 内联拼装漂移。
+// ---------------------------------------------------------------------------
 
-const API_BASE =
-  typeof process !== "undefined"
-    ? process.env.WIKI_API_BASE || "http://localhost:3292"
-    : "http://localhost:3292";
+/**
+ * 为站内绝对路径补尾斜杠；外部 URL、同页 hash、根路径原样返回。
+ *
+ * - 空 / `http(s)://` / `#` 开头 → 原样（外部链接 / 同页锚点，非路由）；
+ * - 根 `/` → 原样（避免产出 `//`，顺带保护 `/#anchor`、`/?q`）；
+ * - 其余站内路径 → 保证以 `/` 结尾（幂等），并把 query / hash 移到尾斜杠之后。
+ */
+export function ensureTrailingSlash(path: string): string {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("#")) return path;
+  // 仅对核心路径补斜杠，query / hash 原样后置
+  const queryIdx = path.indexOf("?");
+  const hashIdx = path.indexOf("#");
+  let end = path.length;
+  if (queryIdx !== -1) end = Math.min(end, queryIdx);
+  if (hashIdx !== -1) end = Math.min(end, hashIdx);
+  const core = path.slice(0, end);
+  if (core === "/" || core === "") return path;
+  const suffix = path.slice(end);
+  return core.endsWith("/") ? path : `${core}/${suffix}`;
+}
+
+/** entry 文档页 href：`/{pubSlug}/{entrySlug}/`（entrySlug 可含 Materialized Path `/`）。 */
+export function entryHref(pubSlug: string, entrySlug: string): string {
+  return ensureTrailingSlash(`/${pubSlug}/${entrySlug}`);
+}
+
+/** publication 根页 href：`/{pubSlug}/`。 */
+export function pubHref(pubSlug: string): string {
+  return ensureTrailingSlash(`/${pubSlug}`);
+}
+
+/** 知识图谱页 href：`/{pubSlug}/graph/`。 */
+export function graphHref(pubSlug: string): string {
+  return ensureTrailingSlash(`/${pubSlug}/graph`);
+}
+
+// ---------------------------------------------------------------------------
+// 保留一级目录「Negentropy」（来自仓库 docs/，由后端导出器合成进内容包）
+//
+// 单一事实源：slug / 首页 / 标签文案集中于此，供 Header 左侧保留标签与首页卡片
+// 共享，避免散落的字符串字面量漂移。与后端 ``WikiDocsSyncSettings.reserved_slug``
+// 保持一致（默认 "negentropy"）。
+// ---------------------------------------------------------------------------
+
+/** 保留 docs 一级目录的 publication slug（与后端 reserved_slug 对齐）。 */
+export const RESERVED_DOCS_SLUG = "negentropy";
+
+/** 保留 docs 一级目录首页 entry slug（docs/README.md → "readme"）。 */
+export const RESERVED_DOCS_INDEX_SLUG = "readme";
+
+/** 保留一级目录首页 href（Header 左侧标签 / 首页卡片跳转目标，目录式带尾斜杠）。 */
+export const RESERVED_DOCS_HOME = entryHref(RESERVED_DOCS_SLUG, RESERVED_DOCS_INDEX_SLUG);
+
+/** 保留一级目录的头部标签文案。 */
+export const RESERVED_DOCS_LABEL = "Negentropy";
+
+/** 判定某 publication slug 是否为保留 docs 目录（用于首页右区过滤等）。 */
+export function isReservedDocsSlug(slug: string | null | undefined): boolean {
+  return slug === RESERVED_DOCS_SLUG;
+}
+
+/**
+ * WikiHeader 左侧「Negentropy」保留标签的渲染输入。
+ *
+ * 始终为**纯链接**（无下拉）：点击直达保留 docs 首页（`/negentropy/readme`），
+ * 其二级目录由进入后的左栏完整文档树承载，而非顶栏下拉。
+ */
+export interface ReservedDocsTab {
+  show: boolean;
+  active?: boolean;
+  label?: string;
+  href: string;
+}
+
+/**
+ * 派生左侧「Negentropy」保留标签的 Header 渲染输入（单一事实源）。
+ *
+ * - `reservedExists=false` → `undefined`（保留 pub 不存在，不渲染标签）；
+ * - 否则恒纯链接，`active = isReserved`（身处保留 pub 时标签高亮）。
+ *
+ * 保留 pub 第一层只进左栏全树侧栏、不进顶栏右区/下拉；右区只含非保留 pub
+ * （见 `buildHeaderNav` 分区），故三个一级菜单全页并存且互不重复。
+ */
+export function buildReservedDocsTab(opts: {
+  reservedExists: boolean;
+  isReserved: boolean;
+}): ReservedDocsTab | undefined {
+  if (!opts.reservedExists) return undefined;
+  return {
+    show: true,
+    active: opts.isReserved,
+    label: RESERVED_DOCS_LABEL,
+    href: RESERVED_DOCS_HOME,
+  };
+}
+
+/**
+ * Header 右区一级 tab 项：携带自身所属 publication 的 slug。
+ *
+ * 顶级菜单跨多个 publication（每个非保留 pub 的 nav-tree 第一层各贡献若干项），
+ * 故每项需自带 `pubSlug` 以正确构建链接与判定激活，而非共享单一 pubSlug。
+ */
+export interface HeaderTopNavItem {
+  pubSlug: string;
+  item: WikiNavTreeItem;
+}
+
+/**
+ * 全站稳定的顶栏导航模型（单一事实源）。
+ *
+ * - `reservedExists`：保留 pub（slug=`negentropy`）是否存在 → 决定是否渲染左侧纯链接标签；
+ * - `topNav`：其余（非保留）pub 的 nav-tree 第一层 → 右区一级 tabs（每项带自身 pubSlug）；
+ * - `graphPubSlug`：首个非保留 pub 的 slug（其知识图谱可作为全站顶栏「Knowledge Graph」
+ *   入口；保留 pub 由 docs/ 合成、无 KG）。
+ *
+ * 保留 pub 第一层不进顶栏（改由左栏全树侧栏承载），与右区在 publication 维度互斥，
+ * 故同一节点不会重复出现。
+ */
+export interface HeaderNav {
+  reservedExists: boolean;
+  topNav: HeaderTopNavItem[];
+  graphPubSlug?: string;
+}
+
+/**
+ * 从所有 publication 的 nav-tree 第一层派生全站稳定的顶栏模型（client-safe 纯函数）。
+ *
+ * 遍历入参（顺序即 `listPublications` 顺序，确定性稳定）按 `isReservedDocsSlug` 分区：
+ * 命中保留 pub 仅置 `reservedExists=true`（其第一层交左栏全树渲染，不入顶栏）；
+ * 其余 pub 第一层逐项归 `topNav`（携带 pubSlug）。
+ *
+ * 该模型与当前路由无关，使顶栏在任意页面呈现一致的一级菜单集合：
+ * 「Negentropy」（左，纯链接）与各动态 pub 的一级菜单恒并存。
+ */
+export function buildHeaderNav(
+  pubNavTrees: { slug: string; items: WikiNavTreeItem[] }[],
+): HeaderNav {
+  let reservedExists = false;
+  let graphPubSlug: string | undefined;
+  const topNav: HeaderTopNavItem[] = [];
+
+  for (const { slug, items } of pubNavTrees) {
+    if (isReservedDocsSlug(slug)) {
+      reservedExists = true;
+    } else {
+      // 首个非保留 pub 作为知识图谱入口（保留 pub 由 docs/ 合成、无 KG）。
+      if (!graphPubSlug) graphPubSlug = slug;
+      for (const item of items) {
+        topNav.push({ pubSlug: slug, item });
+      }
+    }
+  }
+
+  return { reservedExists, topNav, graphPubSlug };
+}
 
 // ---------------------------------------------------------------------------
 // 类型定义
@@ -97,154 +257,6 @@ export interface WikiEntryContent {
 }
 
 // ---------------------------------------------------------------------------
-// API 客户端
-// ---------------------------------------------------------------------------
-
-class WikiApiClient {
-  private baseUrl: string;
-
-  constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || API_BASE;
-  }
-
-  private async fetch<T>(
-    path: string,
-    init?: { tags?: string[] },
-  ): Promise<T> {
-    const url = `${this.baseUrl}/knowledge/wiki${path}`;
-    const res = await fetch(url, {
-      next: {
-        revalidate: 300, // ISR: 5 分钟增量再验证
-        ...(init?.tags ? { tags: init.tags } : {}),
-      },
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) {
-      throw new Error(`Wiki API error [${res.status}] ${url}: ${await res.text()}`);
-    }
-    return res.json();
-  }
-
-  /** 列出所有已发布的 Publication */
-  async listPublications(): Promise<{ items: WikiPublication[]; total: number }> {
-    return this.fetch("/publications?status=published");
-  }
-
-  /** 获取单个 Publication 详情 */
-  async getPublication(pubId: string): Promise<WikiPublication> {
-    return this.fetch(`/publications/${pubId}`);
-  }
-
-  /** 获取 Publication 的所有条目 */
-  async getEntries(pubId: string): Promise<{ items: WikiEntry[]; total: number }> {
-    return this.fetch(`/publications/${pubId}/entries`);
-  }
-
-  /** 获取导航树 */
-  async getNavTree(pubId: string): Promise<{
-    publication_id: string;
-    nav_tree: { items: WikiNavTreeItem[] };
-  }> {
-    return this.fetch(`/publications/${pubId}/nav-tree`);
-  }
-
-  /** 获取单条条目的 Markdown 内容 */
-  async getEntryContent(entryId: string): Promise<WikiEntryContent> {
-    return this.fetch(`/entries/${entryId}/content`);
-  }
-
-  // -------------------------------------------------------------------------
-  // 辅助查询（组合原子 API，供页面组件直接调用）
-  // -------------------------------------------------------------------------
-
-  /**
-   * 通过 slug 查找已发布的 Publication
-   *
-   * 当前后端不支持 slug 直查，先列出再匹配。
-   * 后续若后端提供 `/publications?slug=xxx` 接口可直接替换实现。
-   */
-  async findPublicationBySlug(slug: string): Promise<WikiPublication | null> {
-    const result = await this.listPublications();
-    return result.items.find((p) => p.slug === slug) ?? null;
-  }
-
-  /**
-   * 通过 entry_slug 查找对应的 entry_id
-   *
-   * 当前后端不支持按 slug 查询 entry，先获取 entries 列表再匹配。
-   */
-  async findEntryId(pubId: string, entrySlug: string): Promise<string | null> {
-    const result = await this.getEntries(pubId);
-    const match = result.items.find((e) => e.entry_slug === entrySlug);
-    return match?.id ?? null;
-  }
-
-  // -------------------------------------------------------------------------
-  // 知识图谱（按 Publication 维度切片）
-  //
-  // 后端在 `/knowledge/wiki/publications/{pub_id}/graph` 系列端点上仅暴露
-  // `status='published'` 的发布；切片语义见
-  // `apps/negentropy/.../lifecycle/wiki_graph_service.py`。
-  // `revalidateTag('wiki-graph:${pub_slug}')` 由后端发布时主动触发。
-  // -------------------------------------------------------------------------
-
-  /** 获取 Publication 整体切片图谱 */
-  async getPublicationGraph(
-    pubId: string,
-    opts?: WikiGraphQueryOptions & { tag?: string },
-  ): Promise<WikiGraphResponse> {
-    const qs = new URLSearchParams();
-    if (opts?.maxNodes != null) qs.set("max_nodes", String(opts.maxNodes));
-    if (opts?.minImportance != null) qs.set("min_importance", String(opts.minImportance));
-    if (opts?.includeIsolated != null) qs.set("include_isolated", String(opts.includeIsolated));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.fetch<WikiGraphResponse>(
-      `/publications/${pubId}/graph${suffix}`,
-      opts?.tag ? { tags: [opts.tag] } : undefined,
-    );
-  }
-
-  /** 获取 Publication 实体扁平列表（分页） */
-  async getPublicationEntities(
-    pubId: string,
-    opts?: WikiGraphEntityQueryOptions & { tag?: string },
-  ): Promise<WikiGraphEntityListResponse> {
-    const qs = new URLSearchParams();
-    if (opts?.offset != null) qs.set("offset", String(opts.offset));
-    if (opts?.limit != null) qs.set("limit", String(opts.limit));
-    if (opts?.sortBy != null) qs.set("sort_by", opts.sortBy);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.fetch<WikiGraphEntityListResponse>(
-      `/publications/${pubId}/graph/entities${suffix}`,
-      opts?.tag ? { tags: [opts.tag] } : undefined,
-    );
-  }
-
-  /** 获取单实体详情（含邻居 + 提及 entries） */
-  async getPublicationEntityDetail(
-    pubId: string,
-    entityId: string,
-  ): Promise<WikiGraphEntityDetailResponse> {
-    return this.fetch<WikiGraphEntityDetailResponse>(
-      `/publications/${pubId}/graph/entities/${entityId}`,
-    );
-  }
-
-  /** 获取单 entry 的局部图（该文档涉及实体 + 一跳邻居） */
-  async getEntryGraph(
-    entryId: string,
-    opts?: { maxNodes?: number },
-  ): Promise<WikiEntryGraphResponse> {
-    const qs = new URLSearchParams();
-    if (opts?.maxNodes != null) qs.set("max_nodes", String(opts.maxNodes));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.fetch<WikiEntryGraphResponse>(`/entries/${entryId}/graph${suffix}`);
-  }
-}
-
-export const wikiApi = new WikiApiClient();
-
-// ---------------------------------------------------------------------------
 // 导航视图派生（供 Header tabs / Sidebar 子树切片复用）
 // ---------------------------------------------------------------------------
 
@@ -317,6 +329,57 @@ export function resolveSectionView(
     activeTopSlug,
     activeItem,
     sidebarItems: activeItem?.children ?? [],
+  };
+}
+
+/** 左栏侧边导航的渲染输入（供 `WikiSidebar` 消费）。 */
+export interface WikiSidebarView {
+  /** 待渲染的导航树 */
+  sidebarItems: WikiNavTreeItem[];
+  /** 是否存在激活分组（决定「该分组暂无文档」空态提示） */
+  hasActiveItem: boolean;
+  /** 侧栏品牌头显示名（null → 调用方回退 publication.name） */
+  catalogName: string | null;
+  /** 品牌头跳转目标 slug（null → 不可点击） */
+  catalogTargetSlug: string | null;
+  /** 落地页「🏠 首页」入口条目（null → 不单独渲染，由全树索引页节点承载） */
+  indexEntry: WikiNavTreeItem | null;
+}
+
+/**
+ * 单一事实源：按 `fullTree` 派生左栏侧边导航视图。
+ *
+ * - `fullTree=true`（保留 pub「Negentropy」）：采用**经典文档全树侧栏**——左栏渲染
+ *   整棵 nav 树（README + 各二级目录容器），不切片到「当前 section」；品牌头回退
+ *   publication.name（`catalogName=null`），落地页不另渲染独立「🏠 首页」
+ *   （`indexEntry=null`，由全树中的索引页节点承载，杜绝重复）。
+ * - `fullTree=false`（动态 pub）：沿用既有 section 视图——侧栏=激活第一层 section 的
+ *   子树，品牌头=激活 section 名，落地页渲染索引页入口。
+ *
+ * 与 `resolveSectionView` 正交：后者仍单独服务顶栏右区高亮（`activeTopSlug`），
+ * 其 `activeItem.children` 切片语义不被全树场景污染。
+ */
+export function resolveSidebarView(
+  items: WikiNavTreeItem[],
+  opts: { fullTree: boolean; currentSlug?: string },
+): WikiSidebarView {
+  if (opts.fullTree) {
+    return {
+      sidebarItems: items,
+      hasActiveItem: items.length > 0,
+      catalogName: null,
+      catalogTargetSlug: null,
+      indexEntry: null,
+    };
+  }
+  const section = resolveSectionView(items, opts.currentSlug);
+  const activeItem = section.activeItem;
+  return {
+    sidebarItems: section.sidebarItems,
+    hasActiveItem: !!activeItem,
+    catalogName: activeItem ? activeItem.entry_title || activeItem.entry_slug : null,
+    catalogTargetSlug: activeItem ? findFirstDocumentSlug(activeItem) : null,
+    indexEntry: findIndexEntry(items),
   };
 }
 

@@ -104,6 +104,52 @@ def test_decide_success_blocked_by_gate_timeout_sentinel():
     assert d.decide(r, it, [it]).action == "continue"
 
 
+# ---------------------------------------------------------------------------
+# accept_verdict_pass 旁路：Judge verdict=pass 亦判成功（默认关闭，opt-in 开启）
+# ---------------------------------------------------------------------------
+
+
+def test_decide_verdict_pass_triggers_success_when_optin():
+    """巡检回归（Routine 861ab544）：threshold=100 与 Judge 评分尺度「全部满足≈90-100」结构性
+    失配，score=88 恒 <100；但 acceptance 允许「仅剩 unfixable 即 done」，Judge 据此判 verdict=pass。
+    accept_verdict_pass=True 后 pass 应判成功，而非落入 no_progress 误判 failed。复现 seq=9 场景。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=None)
+    res = d.decide(r, it, [it], accept_verdict_pass=True)
+    assert res.is_terminate and res.reason == d.REASON_SUCCESS
+
+
+def test_decide_verdict_pass_not_success_by_default():
+    """向后兼容锁：默认 accept_verdict_pass=False 时，verdict=pass 但 score<threshold 不判成功，
+    保留「评分阈值是权威成功闸门」契约（对照 test_runtime_threshold_lowering_triggers_success）。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=None)
+    assert d.decide(r, it, [it]).action == "continue"
+
+
+def test_decide_verdict_pass_optin_blocked_by_failing_gate():
+    """门控守卫对 pass 旁路同样生效（ISSUE-115 回归锁）：gate 失败时即便 opt-in + verdict=pass
+    也不判成功，避免把失败验证状态误判成功。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=1)
+    assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
+
+
+def test_decide_verdict_pass_optin_blocked_by_gate_timeout():
+    """门控超时(124)≠通过（ISSUE-115）：opt-in + verdict=pass 但 gate 超时亦不判成功。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="pass", gate_exit_code=124)
+    assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
+
+
+def test_decide_verdict_pass_optin_not_triggered_when_progressing():
+    """opt-in 只认 verdict=pass：verdict=progressing 时即便 opt-in 也不判成功，照常走停滞/振荡/
+    继续判定（此处 score=88<100、单条历史 → continue）。"""
+    r = FakeRoutine(success_score_threshold=100, best_score=88)
+    it = FakeIter(score=88, verdict="progressing", gate_exit_code=None)
+    assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
+
+
 def test_decide_unrecoverable_verdict():
     r = FakeRoutine(best_score=40)
     it = FakeIter(score=40, verdict="unrecoverable")
@@ -143,6 +189,91 @@ def test_decide_no_progress_ignores_in_window_climb():
         FakeIter(seq=4, score=90, verdict="progressing"),
     ]
     assert d.decide(r, hist[-1], hist).action == "continue"
+
+
+# ---------------------------------------------------------------------------
+# no_progress_score_tolerance 容差带：Judge 聚合分天然 ±振荡的长尾任务（如巡检）防假阳性误杀
+# ---------------------------------------------------------------------------
+
+
+def test_decide_no_progress_rescued_by_score_tolerance_live_trajectory():
+    """核心回归（巡检 35ff2e9f）：真实轨迹 72→84→62→72→42→72，best=84（早期运气尖峰），
+    patience=3、窗口 [72,42,72] 点态全 ≤84 → 原逻辑误判 no_progress→failed（6 轮即挂、文档被永久
+    标 unfixable）。开启 tolerance=20 后 threshold=64，窗口内 72>64 即视为「接近最优·有进展」→ 继续。
+    success_score_threshold=95 高于全部评分，隔离成功分支、专测 no_progress 判定。"""
+    r = FakeRoutine(best_score=84, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=72, verdict="progressing"),
+        FakeIter(seq=2, score=84, verdict="progressing"),
+        FakeIter(seq=3, score=62, verdict="stalled"),
+        FakeIter(seq=4, score=72, verdict="progressing"),
+        FakeIter(seq=5, score=42, verdict="stalled"),
+        FakeIter(seq=6, score=72, verdict="progressing"),
+    ]
+    assert d.decide(r, hist[-1], hist, no_progress_score_tolerance=20).action == "continue"
+
+
+def test_decide_no_progress_tolerance_default_zero_preserves_stall():
+    """向后兼容锁:同一真实轨迹下,默认 tolerance=0(点态严格比较)仍判 no_progress 终止,
+    证明容差带为纯 opt-in、不改变既有任何 routine 的行为。"""
+    r = FakeRoutine(best_score=84, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=72, verdict="progressing"),
+        FakeIter(seq=2, score=84, verdict="progressing"),
+        FakeIter(seq=3, score=62, verdict="stalled"),
+        FakeIter(seq=4, score=72, verdict="progressing"),
+        FakeIter(seq=5, score=42, verdict="stalled"),
+        FakeIter(seq=6, score=72, verdict="progressing"),
+    ]
+    res = d.decide(r, hist[-1], hist)  # 不传 kwarg → 默认 0
+    assert res.is_terminate and res.reason == d.REASON_NO_PROGRESS
+
+
+def test_decide_no_progress_tolerance_flatline_well_below_best_still_stalls():
+    """未削弱真实停滞检测：窗口评分远低于历史最优（gap 50 > tolerance 20）时仍判停滞。
+    best=90（窗口前），窗口 [40,40,40] 全 ≤ threshold(70) → no_progress 正确触发。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=90, verdict="progressing"),
+        FakeIter(seq=2, score=40, verdict="stalled"),
+        FakeIter(seq=3, score=40, verdict="stalled"),
+        FakeIter(seq=4, score=40, verdict="stalled"),
+    ]
+    res = d.decide(r, hist[-1], hist, no_progress_score_tolerance=20)
+    assert res.is_terminate and res.reason == d.REASON_NO_PROGRESS
+
+
+def test_decide_no_progress_tolerance_boundary_exact_band_edge():
+    """边界精度锁：threshold = best - tolerance，比较为 `<= threshold`。
+    best=90、tolerance=20 → threshold=70；窗口 [70,69,70] 全 ≤70 → 停滞；
+    任一分越过边界（71>70）→ 继续。锁定 `best - tolerance` 的闭区间语义。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    base = [FakeIter(seq=1, score=90, verdict="progressing")]
+    stall = base + [
+        FakeIter(seq=2, score=70, verdict="stalled"),
+        FakeIter(seq=3, score=69, verdict="stalled"),
+        FakeIter(seq=4, score=70, verdict="stalled"),
+    ]
+    assert d.decide(r, stall[-1], stall, no_progress_score_tolerance=20).reason == d.REASON_NO_PROGRESS
+    progress = base + [
+        FakeIter(seq=2, score=70, verdict="progressing"),
+        FakeIter(seq=3, score=71, verdict="progressing"),
+        FakeIter(seq=4, score=70, verdict="progressing"),
+    ]
+    assert d.decide(r, progress[-1], progress, no_progress_score_tolerance=20).action == "continue"
+
+
+def test_decide_no_progress_tolerance_in_window_climb_still_continues():
+    """与既有 test_decide_no_progress_ignores_in_window_climb 交互守护：窗口内逐级爬升
+    （40→60→75→90，窗口前最优=40）在 tolerance=20 下照常继续，容差带不破坏爬升路径。"""
+    r = FakeRoutine(best_score=90, no_progress_patience=3, success_score_threshold=95)
+    hist = [
+        FakeIter(seq=1, score=40, verdict="progressing"),
+        FakeIter(seq=2, score=60, verdict="progressing"),
+        FakeIter(seq=3, score=75, verdict="progressing"),
+        FakeIter(seq=4, score=90, verdict="progressing"),
+    ]
+    assert d.decide(r, hist[-1], hist, no_progress_score_tolerance=20).action == "continue"
 
 
 def test_decide_oscillation():
@@ -377,3 +508,95 @@ async def test_routine_inspector_noop_when_disabled(monkeypatch):
     result = await routine_inspector_handler(_Task())
     assert result.status == "ok"
     assert "disabled" in (result.output_summary or "")
+
+
+# ---------------------------------------------------------------------------
+# 量化振荡判定（opt-in，oscillation_min_amplitude）—— P1-4
+# ---------------------------------------------------------------------------
+
+
+def _issue128_iters() -> list[d.FakeIter]:
+    """ISSUE-128 真实轨迹 72→84→62→72→42→72。"""
+    scores_verdicts = [
+        (72, "progressing"),
+        (84, "progressing"),
+        (62, "stalled"),
+        (72, "progressing"),
+        (42, "regressed"),
+        (72, "progressing"),
+    ]
+    return [FakeIter(seq=i, score=s, verdict=v) for i, (s, v) in enumerate(scores_verdicts, 1)]
+
+
+def _rising_iters() -> list[d.FakeIter]:
+    """净上升轨迹 50→70→55→80→60→85（即便振幅大也整体推进）。"""
+    pairs = [
+        (50, "progressing"),
+        (70, "progressing"),
+        (55, "regressed"),
+        (80, "progressing"),
+        (60, "regressed"),
+        (85, "pass"),
+    ]
+    return [FakeIter(seq=i, score=s, verdict=v) for i, (s, v) in enumerate(pairs, 1)]
+
+
+def test_decide_oscillation_quant_default_off_preserves_issue128_rescue():
+    """核心回归：ISSUE-128 轨迹 + tolerance=20、不传 amplitude → continue（量化振荡默认不误杀）。"""
+    iters = _issue128_iters()
+    latest = iters[-1]
+    routine = FakeRoutine(success_score_threshold=100, no_progress_patience=3)
+    decision = d.decide(
+        routine,
+        latest,
+        iters,
+        no_progress_score_tolerance=20,
+    )
+    assert decision.action == "continue"
+
+
+def test_decide_oscillation_quant_optin_catches_stalled_verdict_thrash():
+    """opt-in：同一 ISSUE-128 轨迹 + oscillation_min_amplitude=15 → terminate/REASON_OSCILLATION。"""
+    iters = _issue128_iters()
+    latest = iters[-1]
+    routine = FakeRoutine(success_score_threshold=100, no_progress_patience=3)
+    decision = d.decide(
+        routine,
+        latest,
+        iters,
+        no_progress_score_tolerance=20,
+        oscillation_min_amplitude=15,
+    )
+    assert decision.is_terminate
+    assert decision.reason == d.REASON_OSCILLATION
+
+
+def test_decide_oscillation_quant_not_triggered_when_net_gain_positive():
+    """净上升轨迹即便振幅达标也不判振荡（net_gain>0 保护探索中的正常波动）。"""
+    iters = _rising_iters()
+    latest = iters[-1]
+    routine = FakeRoutine(success_score_threshold=100, no_progress_patience=3)
+    # latest verdict=pass 但 score=85 < threshold=100，故不触发成功；落到振荡判定
+    decision = d.decide(
+        routine,
+        latest,
+        iters,
+        oscillation_min_amplitude=15,
+    )
+    assert decision.action == "continue"
+
+
+def test_decide_oscillation_verdict_path_unchanged():
+    """原 verdict 交替判定在新签名下行为不变（不传 amplitude 即原逻辑）。"""
+    # 60→50→55→45，verdict 在 progressing/regressed 间交替，net_gain=-15≤0
+    iters = [
+        FakeIter(seq=1, score=60, verdict="progressing"),
+        FakeIter(seq=2, score=50, verdict="regressed"),
+        FakeIter(seq=3, score=55, verdict="progressing"),
+        FakeIter(seq=4, score=45, verdict="regressed"),
+    ]
+    latest = iters[-1]
+    # patience 设大于历史长度，避免 no_progress（优先级更高）抢先触发，专测振荡分支。
+    routine = FakeRoutine(success_score_threshold=100, no_progress_patience=10)
+    decision = d.decide(routine, latest, iters)
+    assert decision.is_terminate and decision.reason == d.REASON_OSCILLATION

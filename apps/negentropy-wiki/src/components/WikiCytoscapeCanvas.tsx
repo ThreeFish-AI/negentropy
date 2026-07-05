@@ -88,16 +88,12 @@ interface WikiCytoscapeCanvasProps {
   pubSlug: string;
   nodes: WikiGraphNode[];
   edges: WikiGraphEdge[];
-  truncated?: boolean;
-  totalEntities?: number;
 }
 
 export function WikiCytoscapeCanvas({
   pubSlug,
   nodes,
   edges,
-  truncated = false,
-  totalEntities,
 }: WikiCytoscapeCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
@@ -217,18 +213,6 @@ export function WikiCytoscapeCanvas({
   return (
     <div className="wiki-graph-canvas-root">
       <div ref={containerRef} className="wiki-graph-canvas-stage" />
-
-      <div className="wiki-graph-canvas-overlay">
-        <span className="wiki-graph-badge">
-          {nodes.length} 节点 · {edges.length} 边 · Cytoscape
-        </span>
-        {truncated && totalEntities != null && (
-          <span className="wiki-graph-badge wiki-graph-badge-warn">
-            已按 importance 截断（共 {totalEntities} 个实体，仅显示 top-
-            {nodes.length}）
-          </span>
-        )}
-      </div>
     </div>
   );
 }

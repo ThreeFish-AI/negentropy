@@ -185,7 +185,7 @@ test("Home 双气泡守卫：单轮文本回复后 assistant message-bubble coun
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   // 等待新 session 在左侧 SessionList 中出现（label 由 createSessionLabel 截短，前缀稳定）
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   const input = page.getByPlaceholder("输入指令...");
@@ -283,7 +283,7 @@ test("Home 双气泡守卫：流式 Markdown + 终态 hydration 后 message-bubb
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill("帮我做任务分析");
   await expect(page.getByRole("button", { name: "Send" })).toBeEnabled({ timeout: 10_000 });
@@ -370,7 +370,7 @@ test.skip("Home 模型选择：刷新页面后选择保留（即使尚未 Send�
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
 
   // 选择第二个模型（不 Send）
@@ -504,7 +504,7 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill("找 LLM agent memory 论文");
   await expect(page.getByRole("button", { name: "Send" })).toBeEnabled({ timeout: 10_000 });
@@ -514,16 +514,18 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
     timeout: 10_000,
   });
 
-  // 关键守卫：tool group + 双 text 段时，assistant message-bubble 严格 = 1（聚合到一个气泡内）
+  // 关键守卫：tool group + 双 text 段时，两个 assistant 文本气泡各渲染 1 次（无 dedup 重复），
+  // user 气泡严格 = 1。新转录 UI 把「text1 → tool → text2」按段拆为 2 个 assistant 气泡 +
+  // 独立工具行（不再聚合到单个 AssistantReplyBubble），故 assistant count = 2。
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="user"]'),
   ).toHaveCount(1);
 
-  // tool-group 渲染
-  await expect(page.getByText(/Tool|search_papers|Parallel/i).first()).toBeVisible();
+  // 工具行渲染（ExpandableToolCallRow：search_papers → humanize "Search Papers"）
+  await expect(page.getByRole("button", { name: /Search Papers|search_papers/i }).first()).toBeVisible();
 
   // reload 后保持
   await page.reload();
@@ -532,7 +534,7 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
   });
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
 });
 
 // ============================================================================
@@ -561,7 +563,7 @@ test("Home URL sync：点击 + New 后 URL 应包含 ?sessionId=，刷新仍保�
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
 
   // 关键守卫 1：URL 同步带上新 sessionId（避免分享 / 书签失效）
   await expect(page).toHaveURL(new RegExp(`sessionId=${sessionId}`), {
@@ -690,7 +692,7 @@ test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 fin
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill('Reply with exactly: "Hello, test 1234"');
   await expect(page.getByRole("button", { name: "Send" })).toBeEnabled({ timeout: 10_000 });

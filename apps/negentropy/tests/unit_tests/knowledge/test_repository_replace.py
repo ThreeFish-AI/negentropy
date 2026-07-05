@@ -40,7 +40,7 @@ def test_chunks_to_insert_values_maps_fields():
     """_chunks_to_insert_values 应正确映射所有 KnowledgeChunk 字段。"""
     chunk = KnowledgeChunk(
         content="hello",
-        source_uri="gs://test/doc.pdf",
+        source_uri="pgblob://test/doc.pdf",
         chunk_index=3,
         metadata={"chunk_role": "parent"},
         embedding=[0.1, 0.2],
@@ -49,7 +49,7 @@ def test_chunks_to_insert_values_maps_fields():
     assert len(values) == 1
     v = values[0]
     assert v["content"] == "hello"
-    assert v["source_uri"] == "gs://test/doc.pdf"
+    assert v["source_uri"] == "pgblob://test/doc.pdf"
     assert v["chunk_index"] == 3
     assert v["metadata_"]["chunk_role"] == "parent"
     assert v["embedding"] == [0.1, 0.2]

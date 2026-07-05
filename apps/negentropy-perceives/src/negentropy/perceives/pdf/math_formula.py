@@ -9,6 +9,7 @@
 
 import logging
 import re
+import string
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -276,6 +277,104 @@ _SUBSCRIPT_MAP: Dict[str, str] = {
     "ⱼ": "_{j}",
 }
 
+# ---------------------------------------------------------------------------
+# 1b. 数学字母块（U+1D400–1D7FF Mathematical Alphanumeric Symbols）→ LaTeX
+# ---------------------------------------------------------------------------
+#
+# 背景：LaTeX 学术 PDF 经 docling/PyMuPDF 抽取后，inline 数学常被发射为该块的
+# 「孤立斜体字形」（如 ``𝑈 𝑡``、``𝐻 𝑡``、``𝜃``），既不被识别为公式也不渲染为
+# 数学体。formatter 阶段需要把这些散落字形归一为 KaTeX 可渲染的 ``$...$``。
+#
+# 注意：本组映射**不并入** ``UNICODE_TO_LATEX``，避免污染 ``has_math_unicode``
+# 与既有 ``unicode_to_latex`` 调用者（formula_extraction / docling engine）；
+# 仅供 formatter 的 ``_normalize_unicode_math`` pass 按需取用。
+
+# Latin 斜体 → 裸 ASCII（KaTeX 数学模式默认 italic，省 token）
+_MATH_ITALIC_LATIN_MAP: Dict[str, str] = {}
+for _i, _letter in enumerate(string.ascii_uppercase):  # A-Z: U+1D434..U+1D44D
+    _MATH_ITALIC_LATIN_MAP[chr(0x1D434 + _i)] = _letter
+for _i, _letter in enumerate(string.ascii_lowercase):  # a-z: U+1D44E..U+1D467
+    _cp = 0x1D44E + _i
+    if _cp == 0x1D455:  # MATHEMATICAL ITALIC SMALL H 保留位（用 U+210E 替身）
+        continue
+    _MATH_ITALIC_LATIN_MAP[chr(_cp)] = _letter
+_MATH_ITALIC_LATIN_MAP["ℎ"] = "h"  # ℎ PLANCK CONSTANT（italic h 替身）
+
+# Latin 粗体 → \mathbf{X}（保留粗体语义，常表向量 / 矩阵）
+_MATH_BOLD_LATIN_MAP: Dict[str, str] = {}
+for _i, _letter in enumerate(string.ascii_uppercase):  # A-Z: U+1D400..U+1D419
+    _MATH_BOLD_LATIN_MAP[chr(0x1D400 + _i)] = r"\mathbf{" + _letter + "}"
+for _i, _letter in enumerate(string.ascii_lowercase):  # a-z: U+1D41A..U+1D433
+    _MATH_BOLD_LATIN_MAP[chr(0x1D41A + _i)] = r"\mathbf{" + _letter + "}"
+
+# Italic Greek 小写（U+1D6FC..）→ \name（与 _GREEK_LOWER_MAP 同命令）
+_MATH_ITALIC_GREEK_LOWER_MAP: Dict[str, str] = {
+    "\U0001d6fc": r"\alpha",  # 𝛼
+    "\U0001d6fd": r"\beta",
+    "\U0001d6fe": r"\gamma",
+    "\U0001d6ff": r"\delta",
+    "\U0001d700": r"\epsilon",
+    "\U0001d701": r"\zeta",
+    "\U0001d702": r"\eta",
+    "\U0001d703": r"\theta",  # 𝜃
+    "\U0001d704": r"\iota",
+    "\U0001d705": r"\kappa",
+    "\U0001d706": r"\lambda",
+    "\U0001d707": r"\mu",
+    "\U0001d708": r"\nu",
+    "\U0001d709": r"\xi",
+    "\U0001d70b": r"\pi",  # 𝜋（U+1D70A omicron 保留，用裸 o）
+    "\U0001d70c": r"\rho",
+    "\U0001d70e": r"\sigma",  # 𝜎
+    "\U0001d70f": r"\tau",  # 𝜏
+    "\U0001d710": r"\upsilon",
+    "\U0001d711": r"\phi",
+    "\U0001d712": r"\chi",
+    "\U0001d713": r"\psi",
+    "\U0001d714": r"\omega",
+    "\U0001d716": r"\varepsilon",
+    "\U0001d717": r"\vartheta",
+    "\U0001d719": r"\varphi",
+}
+
+# Italic Greek 大写（U+1D6E2..）→ 裸 ASCII 或 \Name（与 LaTeX 数学大写 Greek 一致）
+_MATH_ITALIC_GREEK_UPPER_MAP: Dict[str, str] = {
+    "\U0001d6e2": r"A",
+    "\U0001d6e3": r"B",
+    "\U0001d6e4": r"\Gamma",
+    "\U0001d6e5": r"\Delta",
+    "\U0001d6e6": r"E",
+    "\U0001d6e7": r"Z",
+    "\U0001d6e8": r"H",
+    "\U0001d6e9": r"\Theta",
+    "\U0001d6ea": r"I",
+    "\U0001d6eb": r"K",
+    "\U0001d6ec": r"\Lambda",
+    "\U0001d6ed": r"M",
+    "\U0001d6ee": r"N",
+    "\U0001d6ef": r"\Xi",
+    "\U0001d6f0": r"O",
+    "\U0001d6f1": r"\Pi",
+    "\U0001d6f2": r"P",
+    "\U0001d6f3": r"\Sigma",
+    "\U0001d6f4": r"T",
+    "\U0001d6f5": r"\Upsilon",
+    "\U0001d6f6": r"\Phi",
+    "\U0001d6f7": r"X",
+    "\U0001d6f8": r"\Psi",
+    "\U0001d6f9": r"\Omega",
+}
+
+# 合并：所有「数学字母块」字符 → LaTeX（formatter 的 inline 数学归一 pass 取用）
+MATH_LETTER_TO_LATEX: Dict[str, str] = {}
+MATH_LETTER_TO_LATEX.update(_MATH_ITALIC_LATIN_MAP)
+MATH_LETTER_TO_LATEX.update(_MATH_BOLD_LATIN_MAP)
+MATH_LETTER_TO_LATEX.update(_MATH_ITALIC_GREEK_LOWER_MAP)
+MATH_LETTER_TO_LATEX.update(_MATH_ITALIC_GREEK_UPPER_MAP)
+
+# 散落 inline 数学字形的快速检测集
+MATH_LETTER_CHARS = frozenset(MATH_LETTER_TO_LATEX.keys())
+
 # 合并所有 Unicode→LaTeX 映射
 UNICODE_TO_LATEX: Dict[str, str] = {}
 UNICODE_TO_LATEX.update(_RELATION_MAP)
@@ -312,6 +411,10 @@ _MATH_FONT_PATTERNS: List[re.Pattern] = [
     re.compile(r"Fira\s*Math", re.IGNORECASE),
     re.compile(r"Libertinus\s*Math", re.IGNORECASE),
     re.compile(r"TeX\s*Gyre.*Math", re.IGNORECASE),
+    # R11-D：XCharter 数学字体族（XCharterMathMI 等，Self-Improving Agents 综述使用）。
+    # 命名形态 ``<Foundry>Math<Variant>``，统一用 ``XCharter.*Math`` 覆盖 MI/SY/EX 等变体。
+    re.compile(r"XCharter.*Math", re.IGNORECASE),
+    re.compile(r"Charter.*Math", re.IGNORECASE),
 ]
 
 
@@ -393,13 +496,51 @@ def has_math_unicode(text: str) -> bool:
     return bool(_MATH_UNICODE_CHARS.intersection(text))
 
 
+def math_text_to_latex(text: str) -> str:
+    """将文本中的 Unicode 数学符号**和**数学字母块（U+1D400–1D7FF）映射为 LaTeX。
+
+    比 :func:`unicode_to_latex` 多覆盖数学斜体 / 粗体 / Greek 字母块——
+    ``𝑈`` → ``U``、``𝑡`` → ``t``、``𝔼`` → ``E``、``𝑴`` → ``\\mathbf{M}``。
+    用于 :class:`FormulaReconstructor` 重建行内数学时输出规范 LaTeX，
+    使下游 KaTeX 直接可渲染（而非依赖浏览器对 Unicode 数学字形的兜底渲染）。
+
+    采用「先逐字符映射、再统一补空格」两阶段：在 ``\\name`` 命令（尾字符为字母）
+    与紧邻的字母起首 token 之间插入空格，避免 ``\\langleM`` / ``\\thetat`` /
+    ``\\sigma n`` 粘连致 KaTeX 把 ``\\langleM`` 当作未知命令报 ParseError。
+    命令后跟 ``\\`` 起首的另一命令无需空格（``\\`` 天然终结前一名）。
+    """
+    if not text:
+        return text
+    mapped: list[str] = []
+    for ch in text:
+        if ch in MATH_LETTER_TO_LATEX:
+            mapped.append(MATH_LETTER_TO_LATEX[ch])
+        elif ch in UNICODE_TO_LATEX:
+            mapped.append(UNICODE_TO_LATEX[ch])
+        else:
+            mapped.append(ch)
+    out: list[str] = []
+    for m in mapped:
+        if (
+            out
+            and m
+            and m[0].isalpha()
+            and out[-1]
+            and "\\" in out[-1]
+            and out[-1][-1].isalpha()
+        ):
+            out.append(" ")
+        out.append(m)
+    return "".join(out)
+
+
 def detect_script_type(
     span_size: float,
     span_origin_y: float,
     baseline_y: float,
     normal_size: float,
     size_ratio_threshold: float = 0.75,
-    y_offset_threshold: float = 2.0,
+    y_offset_threshold: float = 1.0,
 ) -> str:
     """通过字号比例和 y 偏移判断上下标类型。
 
@@ -413,6 +554,12 @@ def detect_script_type(
 
     Returns:
         "superscript", "subscript", 或 "normal"
+
+    Note:
+        R11-D：``y_offset_threshold`` 从 2.0 调到 1.0。XCharter 等字体在下标排版上
+        的 baseline drop 仅 ~1.6pt（normal=11pt / sub=7.3pt），旧 2.0 阈值会漏检，
+        把 ``U_t`` 的 ``t`` 误判为 normal 致下标拍平。1.0pt 仍远大于 italic descender
+        的 origin 抖动（descender 不动 origin_y），零回归（既有 5pt 偏移用例不变）。
     """
     if normal_size <= 0:
         return "normal"
@@ -436,6 +583,19 @@ def detect_script_type(
 # ---------------------------------------------------------------------------
 # 5. FormulaReconstructor（降级路径核心）
 # ---------------------------------------------------------------------------
+
+# R11-D2 fix：display-style 大运算符——在 ``\displaystyle`` 下字号显著大于 body，
+# ``max(sizes)`` 会把它们误选为 ``normal_size``，致 body 操作数 ratio<0.65 被判
+# superscript（见 ``detect_script_type`` 行 578 的 ``ratio < 0.65`` 兜底分支）。
+# 含 sum / product / coproduct / integral 族 / radical；用单字符判定（PyMuPDF
+# 把这类大字形拆为独立 span）。
+_DISPLAY_OPERATOR_CHARS: frozenset[str] = frozenset("∑∏∐∫∬∭∮∯∰√")
+
+
+def _is_display_operator_span(span_dict: Dict) -> bool:
+    """span 是否为单个 display-style 大运算符（∫∑∏√ 等）。"""
+    t = span_dict.get("text", "").strip()
+    return len(t) == 1 and t in _DISPLAY_OPERATOR_CHARS
 
 
 class FormulaReconstructor:
@@ -465,20 +625,108 @@ class FormulaReconstructor:
         sizes = [s.get("size", 0) for s in spans if s.get("text", "").strip()]
         if not sizes:
             return ""
-        normal_size = max(set(sizes), key=sizes.count)  # 众数
+        # R11-D2：``normal_size`` 取最大字号（base 文本最大，sub/sup 更小），
+        # 而非众数——纯数学行（所有 span 都是数学字体）若下标 span 数量多于 base
+        # （如 ``M_{\theta t}`` 2 下标 vs 1 base），众数会被下标字号拉低，致全部
+        # 被判 normal、漏 ``_{}`` 包裹。取 max 保证 base 字号被选为参照。
+        # R11-D2 fix：先排除 display-style 大运算符（∫∑∏√ 等）——它们在块公式里
+        # 字号大于 body，直接 max 会选错参照致 body 操作数被判 superscript
+        # （``$\\int^{fx}$``）。排除后无候选（纯运算符行）才回退到全量 max。
+        body_sizes = [
+            s.get("size", 0)
+            for s in spans
+            if s.get("text", "").strip() and not _is_display_operator_span(s)
+        ]
+        normal_size = max(body_sizes) if body_sizes else max(sizes)
         baseline_y = line_dict.get("bbox", [0, 0, 0, 0])[1]
 
-        # 取所有 span 的中位 y 坐标作为基线参考
-        y_origins = [
-            s.get("origin", (0, 0))[1] for s in spans if s.get("text", "").strip()
+        # R11-D2：基线取自「正文字号」span 的 origin_y（正文 baseline），而非所有
+        # span 中位数——含多个下标 span 的行（如 ``M_{\theta t}``，2/3 span 是下标）
+        # 会被下标 origin 把中位数拉低，致下标被误判 normal、漏 ``_{}`` 包裹。
+        normal_origins = [
+            s.get("origin", (0, 0))[1]
+            for s in spans
+            if s.get("text", "").strip() and round(s.get("size", 0), 1) == normal_size
         ]
-        if y_origins:
-            y_origins_sorted = sorted(y_origins)
-            baseline_y = y_origins_sorted[len(y_origins_sorted) // 2]
+        if normal_origins:
+            _nos = sorted(normal_origins)
+            baseline_y = _nos[len(_nos) // 2]
+        else:
+            y_origins = [
+                s.get("origin", (0, 0))[1] for s in spans if s.get("text", "").strip()
+            ]
+            if y_origins:
+                _ys = sorted(y_origins)
+                baseline_y = _ys[len(_ys) // 2]
 
         result_parts: list[str] = []
         in_math = False
         math_buffer: list[str] = []
+        # R11-D2：合并连续同型（sub/sup）span 为单个 ``_{...}``/``^{...}`` 组，
+        # 避免 ``M_{\theta}_{t}`` 双下标 KaTeX ParseError。``pending_*`` 缓冲当前
+        # 同型组的原始字符，flush 时一次性经 ``math_text_to_latex`` 处理（保留
+        # ``\theta t`` 字母间空格、``i-1`` 紧凑数字等正确间距）。
+        pending_script: Optional[str] = None  # "subscript" / "superscript" / None
+        pending_chars: list[str] = []
+
+        def _append_math(token: str) -> None:
+            """跨 span 的空格感知追加。
+
+            ``math_text_to_latex`` 的补空格逻辑只作用于单个 span 内部；每个 normal
+            baseline span 各自转换后直接 ``join`` 会产生 ``\\int`` + ``f`` → ``\\intf``
+            这类粘连，被 KaTeX 整体当作未知命令名（命令名对字母贪婪）报 ParseError。
+            在 ``\\name`` 命令尾（含 ``\\`` 且尾字符为字母）与紧邻字母起首 token 之间
+            补一个空格，恢复 ``\\int fx``。``_{...}`` / ``^{...}`` / ``\\`` 起首 token
+            无需空格（``\\`` 天然终结前一名，``_/^`` 非字母）。
+            """
+            if (
+                math_buffer
+                and math_buffer[-1]
+                and "\\" in math_buffer[-1]
+                and math_buffer[-1][-1].isalpha()
+                and token
+                and token[0].isalpha()
+            ):
+                math_buffer.append(" ")
+            math_buffer.append(token)
+
+        def _flush_pending() -> None:
+            nonlocal pending_script, pending_chars
+            if pending_script and pending_chars:
+                marker = "_" if pending_script == "subscript" else "^"
+                content = math_text_to_latex("".join(pending_chars))
+                _append_math(f"{marker}{{{content}}}")
+            pending_script = None
+            pending_chars = []
+
+        def _flush_math() -> None:
+            nonlocal in_math, math_buffer
+            _flush_pending()
+            if in_math and math_buffer:
+                math_content = "".join(math_buffer).strip()
+                if math_content:
+                    _push(f"${math_content}$")
+            in_math = False
+            math_buffer = []
+
+        def _push(new: str) -> None:
+            """R11-D：空格感知追加。
+
+            PyMuPDF span 文本常把词间空格放在相邻 span 的首尾（如 ``" 𝑈"``），
+            数学 span 经 ``strip`` 后丢失左空格，致散文与 ``$...$`` 粘连
+            （``side$U_t$supplies``）。在两个非空格边界之间补一个空格，
+            恢复 ``side $U_t$ supplies`` 的可读间距。
+            """
+            if not new:
+                return
+            if (
+                result_parts
+                and result_parts[-1]
+                and not result_parts[-1][-1].isspace()
+                and not new[0].isspace()
+            ):
+                result_parts.append(" ")
+            result_parts.append(new)
 
         for span in spans:
             text = span.get("text", "")
@@ -497,32 +745,27 @@ class FormulaReconstructor:
                     in_math = True
                     math_buffer = []
 
-                converted = unicode_to_latex(text)
-                if script == "superscript":
-                    converted = f"^{{{converted}}}"
-                elif script == "subscript":
-                    converted = f"_{{{converted}}}"
-                math_buffer.append(converted)
+                if script in ("subscript", "superscript"):
+                    # 同型连续 → 合并到当前组；异型 → 先 flush 再开新组
+                    if pending_script != script:
+                        _flush_pending()
+                        pending_script = script
+                    pending_chars.append(text)
+                else:
+                    # 数学正文 span（normal baseline）—— 先 flush 待并组
+                    _flush_pending()
+                    _append_math(math_text_to_latex(text))
             else:
-                if in_math:
-                    # 结束数学区域
-                    math_content = "".join(math_buffer).strip()
-                    if math_content:
-                        result_parts.append(f"${math_content}$")
-                    in_math = False
-                    math_buffer = []
+                _flush_math()
 
                 # 对普通文本中的 Unicode 数学符号也做转换
                 if has_math_unicode(text):
-                    result_parts.append(f"${unicode_to_latex(text)}$")
+                    _push(f"${math_text_to_latex(text)}$")
                 else:
-                    result_parts.append(text)
+                    _push(text)
 
         # 行末仍在数学模式
-        if in_math and math_buffer:
-            math_content = "".join(math_buffer).strip()
-            if math_content:
-                result_parts.append(f"${math_content}$")
+        _flush_math()
 
         return "".join(result_parts)
 

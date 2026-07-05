@@ -2,7 +2,7 @@ import { proxyPost } from "../../../../../_proxy";
 
 /**
  * POST /api/knowledge/base/{corpusId}/documents/{documentId}/refresh_markdown
- * Re-parse markdown content from source document in GCS
+ * Re-parse markdown content from the stored source document (PostgreSQL)
  */
 export async function POST(
   request: Request,

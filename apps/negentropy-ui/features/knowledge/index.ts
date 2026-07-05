@@ -33,6 +33,12 @@ export type {
   UseKnowledgeSearchReturnValue,
 } from "./hooks/useKnowledgeSearch";
 
+export { useInlineDocumentRename } from "./hooks/useInlineDocumentRename";
+export type {
+  UseInlineDocumentRenameOptions,
+  UseInlineDocumentRename,
+} from "./hooks/useInlineDocumentRename";
+
 // ============================================================================
 // Utils (API Functions)
 // ============================================================================
@@ -68,6 +74,8 @@ export {
   fetchDocumentChunks,
   fetchDocumentChunkDetail,
   updateDocument,
+  effectiveDocumentName,
+  effectiveDisplayName,
   updateDocumentChunk,
   regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,
@@ -103,6 +111,7 @@ export {
   fetchCatalogs,
   createCatalog,
   fetchCatalogDocuments,
+  fetchAllCatalogDocuments,
   fetchCatalogTree,
   fetchCatalogNodes,
   createCatalogNode,
@@ -234,6 +243,7 @@ export type {
   WikiNavTreeItem,
   WikiNavTreeResponse,
   WikiPublishActionResponse,
+  WikiPublishTarget,
   WikiRevalidationStatus,
   SyncFromCatalogParams,
   SyncFromCatalogResponse,
@@ -299,7 +309,6 @@ export { PipelineRunDetailPanel } from "./components/PipelineRunDetailPanel";
 export { KgRunDetailPanel } from "./components/KgRunDetailPanel";
 export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
 export { PipelineStagesBar } from "./components/PipelineStagesBar";
-export { DocumentViewDialog } from "./components/DocumentViewDialog";
 export { SeparatorsTextarea } from "./components/SeparatorsTextarea";
 export type { SeparatorsTextareaProps } from "./components/SeparatorsTextarea";
 

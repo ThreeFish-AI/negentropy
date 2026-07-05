@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -23,7 +24,7 @@ from sqlalchemy import delete, select
 import negentropy.db.session as db_session
 from negentropy.engine.claude_code.models import ClaudeCodeResult
 from negentropy.engine.routine import decision as decision_mod
-from negentropy.engine.routine import workspace
+from negentropy.engine.routine import pr_status, workspace
 from negentropy.engine.routine.evaluator import EvaluationResult
 from negentropy.engine.routine.orchestrator import RoutineOrchestrator
 from negentropy.engine.routine.workspace import WorkspaceInfo
@@ -170,7 +171,7 @@ async def test_plan_phase_skips_verification_gate():
     await _add_iteration(rid, seq=1, phase="plan")
     captured: dict = {}
 
-    async def _capture(routine_view, iter_view):
+    async def _capture(routine_view, iter_view, history=None):
         captured["vc"] = routine_view.verification_command
         return EvaluationResult(ok=True, score=40, verdict="progressing", reflection="r")
 
@@ -194,7 +195,7 @@ async def test_implement_phase_runs_verification_gate():
     await _add_iteration(rid, seq=1, phase="implement")
     captured: dict = {}
 
-    async def _capture(routine_view, iter_view):
+    async def _capture(routine_view, iter_view, history=None):
         captured["vc"] = routine_view.verification_command
         return EvaluationResult(ok=True, score=55, verdict="progressing", reflection="r", gate_exit_code=0)
 
@@ -247,6 +248,76 @@ async def test_phased_finalize_with_pr_succeeds():
             assert r.status == "succeeded"
             assert r.termination_reason == "success"
             assert r.pr_url == "https://github.com/o/r/pull/77"
+    finally:
+        await _cleanup(rid)
+
+
+async def test_patrol_finalize_noop_succeeds_without_pr():
+    """巡检 clean no-op：FINALIZE + 成功裁决 + worktree 相对基线 0 提交 + 无 PR → succeeded 无 PR。
+
+    回归 PR #1010：文档已达标（score≥阈值）、本轮未改 perceives → 候选移出 worktree（FIX 1）后
+    worktree 干净、无可交付提交 → 引擎据 0-commits 判 clean no-op 成功，不开 PR、不空转重试。
+    仅限 ``config.patrol``——普通 feature routine 的「零改动收敛」不可一概判成功（安全护栏）。
+    """
+    rid = await _make_routine(
+        config={"patrol": True},
+        current_phase="finalize",
+        baseline_branch="origin/feature/1.x.x",
+        success_score_threshold=95,
+        iteration_count=3,
+    )
+    await _add_iteration(rid, seq=1, phase="finalize", summary="文档已达标，本轮未改 perceives")
+    try:
+        orch = RoutineOrchestrator()
+        with (
+            patch.object(
+                orch._evaluator,
+                "evaluate",
+                new=AsyncMock(
+                    return_value=EvaluationResult(ok=True, score=96, verdict="pass", reflection="", gate_exit_code=None)
+                ),
+            ),
+            patch.object(orch, "_finalize_is_noop", new=AsyncMock(return_value=True)),
+        ):
+            await _evaluate_and_drain(orch)
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "succeeded"
+            assert r.termination_reason == "success"
+            assert r.pr_url is None  # 无可交付改动 → 不开 PR
+    finally:
+        await _cleanup(rid)
+
+
+async def test_patrol_finalize_with_commits_still_requires_pr():
+    """安全回归：巡检 FINALIZE + 成功裁决，但 worktree 有提交（探针 False）+ 无 PR → 仍须真实 PR，
+    留 running 在收尾重试。核心不变量：no-op 成功仅在「可证明零可交付提交」时可达。"""
+    rid = await _make_routine(
+        config={"patrol": True},
+        current_phase="finalize",
+        baseline_branch="origin/feature/1.x.x",
+        success_score_threshold=95,
+        iteration_count=3,
+    )
+    await _add_iteration(rid, seq=1, phase="finalize", summary="改了 perceives 但未输出链接")
+    try:
+        orch = RoutineOrchestrator()
+        with (
+            patch.object(
+                orch._evaluator,
+                "evaluate",
+                new=AsyncMock(
+                    return_value=EvaluationResult(ok=True, score=96, verdict="pass", reflection="", gate_exit_code=None)
+                ),
+            ),
+            patch.object(orch, "_finalize_is_noop", new=AsyncMock(return_value=False)),
+        ):
+            await _evaluate_and_drain(orch)
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.status == "running"  # 有提交但无 PR → 留收尾重试
+            assert r.current_phase == "finalize"
+            assert r.pr_url is None
     finally:
         await _cleanup(rid)
 
@@ -740,6 +811,51 @@ async def test_ensure_workspace_targets_worktree_in_build_config():
         await _cleanup(rid)
 
 
+async def test_unified_plan_stage_force_hooks_even_when_via_hook_false():
+    """根治断链：unified 闭环的 plan 段**无条件挂 PreToolUse 钩子**，即便 config.plan_review_via_hook=False。
+
+    实证 Routine 77c8a8b6：via_hook=False 致 plan 段不挂钩子、回退 reader clean stdin，而 headless
+    `claude -p` 下 AskUserQuestion 的 stdin 回灌从始无效 → CC 收 "Answer questions?" 报错、refine 永送不到。
+    修复后 plan 段强制走钩子 + plan_config.auto_answer_context.plan_review_via_hook=True（令 reader 跳过失效 stdin）。
+    """
+    import json
+
+    # worktree routine + plan_review_via_hook=False（模拟巡检配置）+ fresh（无 session）→ 命中 unified plan 段。
+    rid = await _make_routine(
+        baseline_branch="origin/feature/1.x.x",
+        cwd="/repo/root",
+        current_phase="implement",
+        config={"plan_review_via_hook": False},
+    )
+    try:
+        orch = RoutineOrchestrator()
+        info = WorkspaceInfo(path="/tmp/wt/relink-x", branch="routine/relink-x")
+        with patch("negentropy.engine.routine.workspace.ensure_worktree", new=AsyncMock(return_value=info)):
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid, with_for_update=True)
+                await orch._ensure_workspace(r)
+                await db.commit()
+            async with db_session.AsyncSessionLocal() as db:
+                r = await db.get(Routine, rid)
+                config = await orch._build_config(r, r.id)
+        # 命中 unified plan 段
+        assert config.plan_stage_config is not None, "worktree+fresh 应构建独立 plan 段"
+        plan_cfg = config.plan_stage_config
+        # ① plan 段强制挂 PreToolUse 钩子（不受 via_hook=False 影响）
+        plan_settings = json.loads(plan_cfg.settings or "{}")
+        pre = plan_settings.get("hooks", {}).get("PreToolUse", [])
+        matchers = {h.get("matcher") for h in pre}
+        assert "AskUserQuestion" in matchers, f"plan 段须挂 AskUserQuestion 钩子，实得 {matchers}"
+        assert "ExitPlanMode" in matchers, f"plan 段须挂 ExitPlanMode 钩子，实得 {matchers}"
+        # ② plan 段 auto_answer_context.plan_review_via_hook 强制 True（reader 跳过失效 stdin）
+        assert plan_cfg.auto_answer_context is not None
+        assert plan_cfg.auto_answer_context.get("plan_review_via_hook") is True
+        # ③ plan 段为只读 plan 模式
+        assert plan_cfg.permission_mode == "plan"
+    finally:
+        await _cleanup(rid)
+
+
 async def test_ensure_workspace_failure_terminates_unrecoverable():
     """worktree 创建失败 → _ensure_workspace False 且 routine 终止 unrecoverable。"""
     rid = await _make_routine(baseline_branch="origin/feature/1.x.x", cwd="/repo/root")
@@ -978,7 +1094,9 @@ async def test_build_config_kb_mcp_absent_when_unavailable(monkeypatch):
 
 async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
     """统一闭环（默认开）+ flat worktree + fresh：主 config=implement 段(acceptEdits、无评审钩子)，
-    挂载独立 plan 段(permission_mode=plan + ExitPlanMode/AskUserQuestion 真实评审钩子 + plan prompt)。"""
+    挂载独立 plan 段(permission_mode=plan)。plan 段**强制走 PreToolUse 钩子**（根治断链——headless 下
+    AskUserQuestion 的 reader clean stdin 回灌从始无效）：plan 段挂 AskUserQuestion+ExitPlanMode 钩子，
+    且 plan_config.auto_answer_context.plan_review_via_hook=True（令 reader 跳过失效 stdin）。"""
     import json as _json
 
     from negentropy.engine.routine import orchestrator as orch_mod
@@ -996,21 +1114,53 @@ async def test_build_config_unified_attaches_plan_stage(tmp_path, monkeypatch):
             main_settings = _json.loads(config.settings) if config.settings else {}
             assert not main_settings.get("hooks"), "主(implement)config 不应挂评审钩子——评审在 plan 段"
             assert config.auto_answer_context["plan_review_via_hook"] is False
-            # plan 段：permission_mode=plan、无续接、双工具真实评审钩子、plan prompt
+            # plan 段：permission_mode=plan、无续接、plan prompt
             ps = config.plan_stage_config
             assert ps is not None and ps.permission_mode == "plan"
             assert ps.resume_session_id is None
             assert ps.plan_stage_config is None  # 防自嵌套
+            # plan 段**强制挂 PreToolUse 钩子**（根治断链，不受 via_hook 控制）
+            ps_settings = _json.loads(ps.settings) if ps.settings else {}
+            ps_pre = (ps_settings.get("hooks") or {}).get("PreToolUse", [])
+            ps_matchers = {h.get("matcher") for h in ps_pre}
+            assert "AskUserQuestion" in ps_matchers and "ExitPlanMode" in ps_matchers
+            # plan 段 via_hook 强制 True（reader 跳过失效 stdin，统一委托钩子）
+            assert ps.auto_answer_context["plan_review_via_hook"] is True
+            assert config.plan_stage_prompt and "提交" in config.plan_stage_prompt
+            # ctx 文件 mode=unified、按 iteration_id 键
+            ctx = _json.loads((tmp_path / "negentropy-pr-ctx" / f"{iid}.json").read_text(encoding="utf-8"))
+            assert ctx["mode"] == "unified" and ctx["iteration_id"] == str(iid)
+    finally:
+        await _cleanup(rid)
+
+
+async def test_build_config_unified_plan_stage_via_hook_opt_in(tmp_path, monkeypatch):
+    """opt-in：per-routine config plan_review_via_hook=True → plan 段挂 PreToolUse deny 钩子
+    （AskUserQuestion + ExitPlanMode，unified 下 ExitPlanMode 跑真实评审用 full timeout）。"""
+    import json as _json
+
+    from negentropy.engine.routine import orchestrator as orch_mod
+
+    monkeypatch.setattr(orch_mod.tempfile, "gettempdir", lambda: str(tmp_path))
+    rid = await _make_routine(
+        baseline_branch="origin/feature/1.x.x",
+        cwd="/repo",
+        current_phase="implement",
+        config={"plan_review_via_hook": True},
+    )
+    try:
+        orch = RoutineOrchestrator()
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            config = await orch._build_config(r, uuid.uuid4())
+            ps = config.plan_stage_config
+            assert ps is not None and ps.permission_mode == "plan"
             pre = _json.loads(ps.settings)["hooks"]["PreToolUse"]
             matchers = {h["matcher"]: h["hooks"][0]["timeout"] for h in pre}
             assert "AskUserQuestion" in matchers and "ExitPlanMode" in matchers
             # unified：ExitPlanMode 亦跑真实评审 → 与 AskUserQuestion 同 full timeout（非 legacy 的 15）
             assert matchers["ExitPlanMode"] == matchers["AskUserQuestion"] > 15
             assert ps.auto_answer_context["plan_review_via_hook"] is True
-            assert config.plan_stage_prompt and "提交" in config.plan_stage_prompt
-            # ctx 文件 mode=unified、按 iteration_id 键
-            ctx = _json.loads((tmp_path / "negentropy-pr-ctx" / f"{iid}.json").read_text(encoding="utf-8"))
-            assert ctx["mode"] == "unified" and ctx["iteration_id"] == str(iid)
     finally:
         await _cleanup(rid)
 
@@ -1057,3 +1207,206 @@ async def test_is_plan_review_active_toggle_rollback():
         assert orch_mod._is_plan_review_active(wt_plan) is True, "legacy：仅 PLAN 相位激活评审"
     finally:
         object.__setattr__(settings.routine, "plan_review_unified_loop", True)
+
+
+# ---------------------------------------------------------------------------
+# _sync_pr_merge_status：PR 合并状态巡检 pass（mock gh 检测，真实 Postgres）
+# ---------------------------------------------------------------------------
+
+_PR_URL = "https://github.com/owner/repo/pull/123"
+
+
+async def _make_succeeded_routine_with_pr(**overrides) -> uuid.UUID:
+    """种子一个 succeeded + pr_url 的 routine（FINALIZE 后「等待人工 Merge」态）。"""
+    defaults = dict(
+        key=_key(),
+        title="PR Merge Sync Test",
+        goal="g",
+        acceptance_criteria="ac",
+        status="succeeded",
+        termination_reason="success",
+        pr_url=_PR_URL,
+        pr_state=None,
+        pr_merged=None,
+        pr_merged_checked_at=None,
+        max_iterations=5,
+        success_score_threshold=85,
+        no_progress_patience=3,
+        approval_mode="auto",
+        iteration_count=1,
+        reflections={},
+        config={},
+    )
+    defaults.update(overrides)
+    async with db_session.AsyncSessionLocal() as db:
+        r = Routine(**defaults)
+        db.add(r)
+        await db.commit()
+        return r.id
+
+
+async def test_sync_pr_merge_status_detects_merged_and_publishes():
+    """succeeded + pr_url + 未知 → gh 报 MERGED → 回写 pr_state=merged/pr_merged=True + 推 SSE，返回 1。"""
+    rid = await _make_succeeded_routine_with_pr()
+    try:
+        orch = RoutineOrchestrator()
+        publish_mock = AsyncMock()
+        with (
+            patch(
+                "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+                new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=True, state="MERGED")),
+            ),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=publish_mock),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 1
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_state == "merged"
+            assert r.pr_merged is True
+            assert r.pr_merged_checked_at is not None
+        publish_mock.assert_awaited_once()
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_skips_already_merged():
+    """pr_state=merged（终态）的 routine 不在 due 集 → 不调 gh、不推 SSE，返回 0。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="merged", pr_merged=True, pr_merged_checked_at=None)
+    fetch_mock = AsyncMock()
+    try:
+        orch = RoutineOrchestrator()
+        with (
+            patch("negentropy.engine.routine.pr_status.fetch_pr_merge_status", new=fetch_mock),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=AsyncMock()),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_closed_is_terminal_skips_recheck():
+    """pr_state=closed（终态）的 routine 不在 due 集 → 不调 gh（修掉 Closed 每 5min 复检的浪费）。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="closed", pr_merged=False, pr_merged_checked_at=None)
+    fetch_mock = AsyncMock()
+    try:
+        orch = RoutineOrchestrator()
+        with patch("negentropy.engine.routine.pr_status.fetch_pr_merge_status", new=fetch_mock):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_records_closed_unmerged():
+    """closed-without-merge → 回写 pr_state=closed/pr_merged=False + 推进 checked_at（之后停检）。"""
+    rid = await _make_succeeded_routine_with_pr()
+    try:
+        orch = RoutineOrchestrator()
+        with patch(
+            "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+            new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=False, state="CLOSED")),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0  # 非新检出 merged
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_state == "closed"
+            assert r.pr_merged is False
+            assert r.pr_merged_checked_at is not None
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_unknown_leaves_state_untouched():
+    """gh 未应答（merged=None, state=None）→ 不动 pr_state/pr_merged/checked_at，保持 due 下 tick 重试。"""
+    rid = await _make_succeeded_routine_with_pr()
+    try:
+        orch = RoutineOrchestrator()
+        with patch(
+            "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+            new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=None, state=None)),
+        ):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_state is None
+            assert r.pr_merged is None
+            assert r.pr_merged_checked_at is None  # 未应答 → 不推进节流
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_throttle_skips_recently_checked():
+    """窗口内（checked_at 距今 < interval）→ 不在 due 集 → 不调 gh。"""
+    recent = datetime.now(UTC) - timedelta(seconds=10)
+    rid = await _make_succeeded_routine_with_pr(pr_state="open", pr_merged_checked_at=recent)
+    fetch_mock = AsyncMock()
+    try:
+        orch = RoutineOrchestrator()
+        with patch("negentropy.engine.routine.pr_status.fetch_pr_merge_status", new=fetch_mock):
+            count = await orch._sync_pr_merge_status()  # noqa: SLF001
+        assert count == 0
+        fetch_mock.assert_not_called()
+    finally:
+        await _cleanup(rid)
+
+
+async def _updated_at(rid: uuid.UUID) -> datetime:
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, rid)
+        return r.updated_at
+
+
+async def test_sync_pr_merge_status_no_state_change_keeps_updated_at():
+    """重确认 Open（状态未翻转）→ 仅推进 checked_at（Core update），**不动 updated_at**（修列表乱跳）。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="open", pr_merged=False)
+    try:
+        before = await _updated_at(rid)
+        # gh 仍报 OPEN（与 before 相同 → state_changed=False）。
+        orch = RoutineOrchestrator()
+        with (
+            patch(
+                "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+                new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=False, state="OPEN")),
+            ),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=AsyncMock()),
+        ):
+            # checked_at=None（种子默认）→ 该 routine 已在 due 集，无需压缩节流窗口。
+            await orch._sync_pr_merge_status()  # noqa: SLF001
+        after = await _updated_at(rid)
+        # 无状态翻转 → Core update 不带 updated_at → updated_at 不变（修列表乱跳）
+        assert after == before
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_merged_checked_at is not None  # checked_at 仍正常推进（节流）
+    finally:
+        await _cleanup(rid)
+
+
+async def test_sync_pr_merge_status_state_change_advances_updated_at():
+    """状态翻转（open→merged）→ 显式带 updated_at → updated_at 推进（真实变更才重排）。"""
+    rid = await _make_succeeded_routine_with_pr(pr_state="open", pr_merged=False)
+    try:
+        before = await _updated_at(rid)
+        orch = RoutineOrchestrator()
+        with (
+            patch(
+                "negentropy.engine.routine.pr_status.fetch_pr_merge_status",
+                new=AsyncMock(return_value=pr_status.PrMergeStatus(merged=True, state="MERGED")),
+            ),
+            patch.object(RoutineOrchestrator, "_publish_routine", new=AsyncMock()),
+        ):
+            await orch._sync_pr_merge_status()  # noqa: SLF001
+        after = await _updated_at(rid)
+        assert after >= before
+        # merged 落库（顺带校验）
+        async with db_session.AsyncSessionLocal() as db:
+            r = await db.get(Routine, rid)
+            assert r.pr_state == "merged"
+    finally:
+        await _cleanup(rid)

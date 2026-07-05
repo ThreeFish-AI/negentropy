@@ -6,8 +6,8 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "@/lib/activity-toast";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -18,19 +18,23 @@ import type {
   KnowledgeDocumentDetail,
 } from "@/features/knowledge/utils/knowledge-api";
 import {
+  documentPreviewUrl,
   downloadDocument,
+  effectiveDocumentName,
   fetchDocumentDetail,
+  isPdfDocument,
   LIBRARY_CORPUS_SEGMENT,
   refreshDocumentMarkdown,
   updateDocument,
 } from "@/features/knowledge/utils/knowledge-api";
 import { formatRelativeTime } from "@/features/knowledge/utils/pipeline-helpers";
 import { DocumentMarkdownRenderer } from "@/features/knowledge/components/DocumentMarkdownRenderer";
+import { DocumentPdfViewer } from "@/features/knowledge/components/DocumentPdfViewer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 // ---------------------------------------------------------------------------
-// Utility helpers (mirrored from DocumentViewDialog)
+// Utility helpers（文档详情展示用，原 DocumentViewDialog 已退役并收敛至本页）
 // ---------------------------------------------------------------------------
 
 function formatFileSize(bytes: number): string {
@@ -111,7 +115,7 @@ function getMarkdownActionLabel(
     };
   }
   return {
-    label: isWorking ? "Re-Parsing..." : "Re-Parse from GCS",
+    label: isWorking ? "Re-Parsing..." : "Re-Parse",
     isResumable: false,
   };
 }
@@ -137,11 +141,23 @@ export default function DocumentDetailPage() {
     params.corpusId === LIBRARY_CORPUS_SEGMENT ? null : params.corpusId;
   const documentId = params.documentId;
 
+  // 上下文化「Back」：from 携带打开来源的站内返回路径（如 Knowledge/Base 的某 Corpus）。
+  // 站内护栏：仅接受以单个 "/" 开头的本站路径，拒绝 http(s)://、协议相对 "//"、javascript: 等外跳。
+  const searchParams = useSearchParams();
+  const fromParam = searchParams.get("from");
+  const decodedFrom = fromParam ? decodeURIComponent(fromParam) : null;
+  const safeFrom =
+    decodedFrom && /^\/(?!\/)/.test(decodedFrom) ? decodedFrom : null;
+  const backHref = safeFrom ?? "/knowledge/documents";
+  const backLabel = safeFrom ? "Back" : "Back to Documents";
+
   const [detail, setDetail] = useState<KnowledgeDocumentDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isRefreshingMarkdown, setIsRefreshingMarkdown] = useState(false);
+  // 文档预览模式：仅当源文档为 PDF 时才会出现「PDF」切换；默认 Markdown，保持现状。
+  const [viewMode, setViewMode] = useState<"markdown" | "pdf">("markdown");
 
   // Article Metadata editing state
   const [isEditingMeta, setIsEditingMeta] = useState(false);
@@ -281,18 +297,40 @@ export default function DocumentDetailPage() {
     detail?.markdown_extract_error,
   );
 
+  // 源文档是否为 PDF —— 决定是否展示「Markdown | PDF」切换。
+  const isPdf = detail ? isPdfDocument(detail) : false;
+  // 仅在 PDF 文档 + 选中 PDF 标签时渲染原文查看器；其余一律走 Markdown 分支。
+  const showPdf = isPdf && viewMode === "pdf";
+
+  // PDF「意图预取」：默认视图是 Markdown 且多数用户不会点开 PDF，故不在挂载时预取
+  // （会让所有人白白下载整份 PDF）。改在用户对 PDF 标签产生意图（hover/focus）时，
+  // 用低优先级 `<link rel=prefetch>` 预热浏览器缓存一次，使随后点击近乎秒开。
+  // 后端已为预览端点补齐 ETag/Cache-Control，预取内容可被 `<object>` 命中复用。
+  const pdfPrefetchedRef = useRef(false);
+  const prefetchPdf = useCallback(() => {
+    if (pdfPrefetchedRef.current || !isPdf) return;
+    pdfPrefetchedRef.current = true;
+    const href = documentPreviewUrl(corpusId, documentId, { appName: requestAppName });
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.as = "document"; // 原生查看器以 document/object 加载，as=document 对齐缓存分区
+    link.href = href;
+    link.setAttribute("fetchpriority", "low"); // 不与首屏 markdown 资源争抢带宽
+    document.head.appendChild(link);
+  }, [isPdf, corpusId, documentId, requestAppName]);
+
   // ---- Render ----
 
   return (
     <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
-        title={detail?.original_filename || "Document Detail"}
+        title={detail ? effectiveDocumentName(detail) : "Document Detail"}
       />
 
       {/* Action bar */}
       <div className="shrink-0 border-b border-border bg-card px-6 py-2 flex items-center gap-3">
         <Link
-          href="/knowledge/documents"
+          href={backHref}
           className={outlineButtonClassName(
             "neutral",
             "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold",
@@ -301,10 +339,48 @@ export default function DocumentDetailPage() {
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Documents
+          {backLabel}
         </Link>
 
-        <div className="flex-1" />
+        {/* 顶部中栏：Markdown | PDF 切换（仅 PDF 源文档显示，居中于操作栏） */}
+        <div className="flex flex-1 justify-center">
+          {isPdf ? (
+            <div
+              role="tablist"
+              aria-label="Document view mode"
+              className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5 text-xs font-semibold"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === "markdown"}
+                onClick={() => setViewMode("markdown")}
+                className={`rounded-md px-3 py-1 transition-colors ${
+                  viewMode === "markdown"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-text-muted hover:text-foreground"
+                }`}
+              >
+                Markdown
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewMode === "pdf"}
+                onClick={() => setViewMode("pdf")}
+                onPointerEnter={prefetchPdf}
+                onFocus={prefetchPdf}
+                className={`rounded-md px-3 py-1 transition-colors ${
+                  viewMode === "pdf"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-text-muted hover:text-foreground"
+                }`}
+              >
+                PDF
+              </button>
+            </div>
+          ) : null}
+        </div>
 
         <button
           onClick={handleRefreshMarkdown}
@@ -316,7 +392,7 @@ export default function DocumentDetailPage() {
           title={
             markdownAction.isResumable
               ? "从最后一个完成的切片继续解析（perceives auto_batch checkpoint）"
-              : "从源文档（GCS）重新解析 Markdown"
+              : "从已存储的源文档重新解析 Markdown"
           }
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -359,8 +435,8 @@ export default function DocumentDetailPage() {
               {getFileIcon(detail.content_type)}
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-xl font-semibold text-foreground" title={detail.original_filename}>
-                    {detail.original_filename}
+                  <h1 className="truncate text-xl font-semibold text-foreground" title={effectiveDocumentName(detail)}>
+                    {effectiveDocumentName(detail)}
                   </h1>
                   <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-micro font-medium ${statusBadge.bg} ${statusBadge.text}`}>
                     {statusBadge.label}
@@ -403,8 +479,8 @@ export default function DocumentDetailPage() {
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="shrink-0 text-text-muted">Storage</span>
-                <span className="truncate font-mono font-medium text-foreground" title={detail.gcs_uri}>
-                  {detail.gcs_uri ? `...${detail.gcs_uri.slice(-24)}` : "-"}
+                <span className="truncate font-mono font-medium text-foreground" title={detail.content_uri}>
+                  {detail.content_uri ? `...${detail.content_uri.slice(-24)}` : "-"}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 min-w-0">
@@ -547,41 +623,52 @@ export default function DocumentDetailPage() {
               )}
             </div>
 
-            {/* Markdown content card */}
+            {/* Content card: Markdown 解析视图 / PDF 原文视图（由顶部中栏切换） */}
             <div className="rounded-xl border border-border p-4">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">Markdown Content</h2>
+                <h2 className="text-sm font-semibold text-foreground">
+                  {showPdf ? "PDF Source" : "Markdown Content"}
+                </h2>
                 <span className="text-xs text-text-muted">
-                  {detail.markdown_extracted_at ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}` : ""}
+                  {!showPdf && detail.markdown_extracted_at
+                    ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}`
+                    : ""}
                 </span>
               </div>
 
-              <div className="rounded-lg bg-muted p-4">
-                {loadingDetail ? (
-                  <p className="text-sm text-text-muted">Loading markdown content...</p>
-                ) : detailError ? (
-                  <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
-                ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
-                  <p className="text-sm text-text-muted">
-                    Markdown extraction is running in background. This page will auto-refresh.
-                  </p>
-                ) : markdownStatus === "failed" ? (
-                  <p className="text-sm text-red-600 dark:text-red-400">
-                    {detail.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
-                  </p>
-                ) : (detail.markdown_content || "").trim().length === 0 ? (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
-                  </p>
-                ) : (
-                  <DocumentMarkdownRenderer
-                    content={detail.markdown_content || ""}
-                    corpusId={corpusId}
-                    documentId={documentId}
-                    appName={requestAppName}
-                  />
-                )}
-              </div>
+              {showPdf ? (
+                <DocumentPdfViewer
+                  src={documentPreviewUrl(corpusId, documentId, { appName: requestAppName })}
+                  filename={effectiveDocumentName(detail)}
+                />
+              ) : (
+                <div className="rounded-lg bg-muted p-4">
+                  {loadingDetail ? (
+                    <p className="text-sm text-text-muted">Loading markdown content...</p>
+                  ) : detailError ? (
+                    <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
+                  ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
+                    <p className="text-sm text-text-muted">
+                      Markdown extraction is running in background. This page will auto-refresh.
+                    </p>
+                  ) : markdownStatus === "failed" ? (
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {detail.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
+                    </p>
+                  ) : (detail.markdown_content || "").trim().length === 0 ? (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      Markdown content is empty. Click <strong>Re-Parse</strong> to regenerate from the source document.
+                    </p>
+                  ) : (
+                    <DocumentMarkdownRenderer
+                      content={detail.markdown_content || ""}
+                      corpusId={corpusId}
+                      documentId={documentId}
+                      appName={requestAppName}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : null}

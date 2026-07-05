@@ -68,6 +68,8 @@ export interface TaskExecutionDTO {
   memory_id: string | null;
   pipeline_run_id: string | null;
   thread_id: string | null;
+  /** HandlerResult.metrics 结构化产物（如巡检 routine_id/doc_id），供 UI 回链派生资源。 */
+  metrics: Record<string, unknown>;
 }
 
 export interface KpiResponse {
@@ -101,11 +103,15 @@ export interface StatsResponse {
 export interface TaskListResponse {
   items: ScheduledTaskDTO[];
   next_cursor: string | null;
+  has_more?: boolean;
+  total?: number;
 }
 
 export interface ExecutionListResponse {
   items: TaskExecutionDTO[];
   next_cursor: string | null;
+  has_more?: boolean;
+  total?: number;
 }
 
 export interface TaskDetailResponse extends ScheduledTaskDTO {
@@ -151,6 +157,26 @@ export interface HandlerDescriptor {
 
 export interface HandlerListResponse {
   items: HandlerDescriptor[];
+}
+
+/**
+ * Handler 实现源码 + 解释。
+ * 与后端 ``interface/scheduler_api.py::_build_handler_source`` 对齐，
+ * 供任务详情抽屉「实现逻辑」区展示。
+ */
+export interface HandlerSourceResponse {
+  handler_kind: string;
+  label: string;
+  description: string | null;
+  module: string | null;
+  file_path: string | null;
+  function_name: string;
+  function_lineno: number | null;
+  function_docstring: string | null;
+  module_docstring: string | null;
+  module_source: string | null;
+  function_source: string | null;
+  language: string;
 }
 
 // ---------------------------------------------------------------------------

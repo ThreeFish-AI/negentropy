@@ -1,30 +1,28 @@
-import { unstable_noStore as noStore } from "next/cache";
 import type { ComponentType } from "react";
 
 import {
+  buildHeaderNav,
+  buildReservedDocsTab,
+  entryHref,
   findFirstDocumentSlug,
-  wikiApi,
+  graphHref,
+  isReservedDocsSlug,
+  pubHref,
+  RESERVED_DOCS_HOME,
+  RESERVED_DOCS_LABEL,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { wikiApi } from "@/lib/content-source";
 import { WikiHeader } from "@/components/WikiHeader";
+import { WikiHeaderMobileNav } from "@/components/WikiHeaderMobileNav";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { ThemePreference } from "@/components/ThemePreference";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
 import { HomeCard } from "@/components/home/HomeCard";
 import { GalaxyHeroMount } from "@/components/home/GalaxyHeroMount";
 import { WikiFooter } from "@/components/home/WikiFooter";
 import { getPublicationIcon } from "@/components/home/CardIcons";
-
-// ISR: 5 分钟增量再验证
-export const revalidate = 300;
-
-/** 从 nav tree 一级节点构建跳转 href */
-function buildEntryHref(pubSlug: string, item: WikiNavTreeItem): string {
-  const target = findFirstDocumentSlug(item);
-  return target ? `/${pubSlug}/${target}` : `/${pubSlug}`;
-}
 
 export default async function WikiHomePage() {
   let publications: WikiPublication[] = [];
@@ -33,11 +31,7 @@ export default async function WikiHomePage() {
     const result = await wikiApi.listPublications();
     publications = result.items;
   } catch (err) {
-    noStore();
-    console.warn(
-      "[Wiki ISR] Failed to fetch publications (degraded to per-request SSR; will rebuild ISR on next success):",
-      err,
-    );
+    console.warn("[Wiki] Failed to load publications:", err);
   }
 
   // 并行获取每个 publication 的 nav tree，从中提取一级目录节点
@@ -52,8 +46,11 @@ export default async function WikiHomePage() {
     }),
   );
 
-  // 从 nav tree 一级节点构建 header 导航项
-  const homeLinks: { label: string; href: string }[] = [];
+  // 全站稳定的顶栏模型：保留 pub 二级目录 + 各动态 pub 一级菜单（复用已加载的 navTrees，零额外 IO）。
+  const headerNav = buildHeaderNav(
+    navTrees.map(({ pub, items }) => ({ slug: pub.slug, items })),
+  );
+
   // 从 nav tree 一级节点构建卡片数据（存储 Icon 组件引用，在 JSX 中渲染）
   const homeCards: {
     title: string;
@@ -63,12 +60,16 @@ export default async function WikiHomePage() {
   }[] = [];
 
   for (const { pub, items } of navTrees) {
+    // 保留一级目录「Negentropy」不进右区卡片：它由左侧保留标签 + 领衔卡片单独承载，
+    // 避免「左侧保留标签」与「右区普通卡片」双重出现。
+    if (isReservedDocsSlug(pub.slug)) continue;
     if (items.length > 0) {
-      // 有 nav tree 一级节点时，从中构建导航项
+      // 有 nav tree 一级节点时，从中构建卡片
       for (const item of items) {
         const title = item.entry_title || item.entry_slug;
-        const href = buildEntryHref(pub.slug, item);
-        homeLinks.push({ label: title, href });
+        // CONTAINER → DFS 首个后代 DOCUMENT；DOCUMENT → 自身。href 经 SSOT helper 带尾斜杠。
+        const firstDoc = findFirstDocumentSlug(item);
+        const href = firstDoc ? entryHref(pub.slug, firstDoc) : pubHref(pub.slug);
         homeCards.push({
           title,
           // 优先节点级描述（Catalog 节点 description）→ 回退 Publication 级描述 → 占位
@@ -79,55 +80,67 @@ export default async function WikiHomePage() {
       }
     } else {
       // nav tree 为空或 API 失败时，用 publication 自身作为兜底
-      homeLinks.push({ label: pub.name, href: `/${pub.slug}` });
       homeCards.push({
         title: pub.name,
-        href: `/${pub.slug}`,
+        href: pubHref(pub.slug),
         description: pub.description || "暂无描述",
         Icon: getPublicationIcon(pub.name),
       });
     }
   }
 
+  // 保留一级目录领衔首页卡片（置于普通卡片之前），与左侧保留标签呼应。
+  const reservedPub = publications.find((p) => isReservedDocsSlug(p.slug));
+  if (reservedPub) {
+    homeCards.unshift({
+      title: RESERVED_DOCS_LABEL,
+      href: RESERVED_DOCS_HOME,
+      description: reservedPub.description || "熵减引擎设计概念与使用指引",
+      Icon: getPublicationIcon(reservedPub.name),
+    });
+  }
+
   const firstHref = homeCards.length > 0 ? homeCards[0].href : undefined;
 
-  const firstPubSlug =
-    publications.length > 0 ? publications[0].slug : undefined;
+  // 首页不身处任何 pub：reservedTab 纯链接、不高亮，右区不高亮。
+  const reservedTab = buildReservedDocsTab({
+    reservedExists: headerNav.reservedExists,
+    isReserved: false,
+  });
+  // Knowledge Graph 标签恒指向有 KG 的动态 pub（首个非保留 pub；保留 docs 目录无 KG）。
+  const graphPubSlug = headerNav.graphPubSlug;
 
   const header = (
     <WikiHeader
-      homeLinks={homeLinks}
+      topNav={headerNav.topNav}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
-      pubSlug={firstPubSlug}
+      pubSlug={graphPubSlug}
+      reservedTab={reservedTab}
       graphTab={
-        firstPubSlug
-          ? { show: true, active: false, label: "Knowledge Graph" }
+        graphPubSlug
+          ? {
+              show: true,
+              active: false,
+              label: "Knowledge Graph",
+              href: graphHref(graphPubSlug),
+            }
           : undefined
       }
     />
   );
 
-  const sidebar = (
-    <div className="home-mobile-sidebar">
-      {homeLinks.map((link) => (
-        <a
-          key={link.href}
-          href={link.href}
-          className="home-mobile-sidebar-link"
-        >
-          {link.label}
-        </a>
-      ))}
-    </div>
+  // 移动端抽屉：全站一级菜单（保留目录领衔 + 各动态一级菜单），与桌面顶栏一致。
+  const mobileTopNav = (
+    <WikiHeaderMobileNav reservedTab={reservedTab} topNav={headerNav.topNav} />
   );
 
   return (
     <WikiLayoutShell
       variant="home"
       header={header}
-      sidebar={sidebar}
+      sidebar={null}
+      mobileTopNav={mobileTopNav}
       footer={<WikiFooter />}
     >
       <section className="home-hero">
@@ -139,7 +152,7 @@ export default async function WikiHomePage() {
           <p className="home-hero-subtext">你我的相识绝非一场零和游戏！</p>
           {firstHref && (
             <a href={firstHref} className="home-hero-cta">
-              Harness Engineering → 5min
+              Negentropy 用户手册
             </a>
           )}
         </div>

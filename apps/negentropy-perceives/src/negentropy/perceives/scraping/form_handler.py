@@ -1,12 +1,9 @@
 """表单交互与提交处理模块。"""
 
+# selenium 仅在实际操作表单时才需要，模块级导入会拖慢 perceives 启动；下沉到方法体内懒加载。
 import asyncio
 import logging
 from typing import Dict, Any, Optional
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import NoSuchElementException
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +60,9 @@ class FormHandler:
 
     async def _fill_field_selenium(self, selector: str, value: Any) -> Dict[str, Any]:
         """使用 Selenium 填充字段。"""
+        from selenium.webdriver.common.by import By  # 懒加载：见模块头注释
+        from selenium.webdriver.support.ui import Select
+
         try:
             element = self.driver_or_page.find_element(By.CSS_SELECTOR, selector)
             tag_name = element.tag_name.lower()
@@ -154,6 +154,9 @@ class FormHandler:
         self, submit_button_selector: Optional[str] = None
     ) -> Dict[str, Any]:
         """使用 Selenium 提交表单。"""
+        from selenium.webdriver.common.by import By  # 懒加载：见模块头注释
+        from selenium.common.exceptions import NoSuchElementException
+
         try:
             if submit_button_selector:
                 # Use specific submit button

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -12,7 +13,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.knowledge.types import KnowledgeRecord
 from negentropy.logging import get_logger
-from negentropy.models.perception import Knowledge
+from negentropy.models.perception import Knowledge, resolve_effective_display_name
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
 
@@ -658,11 +659,38 @@ def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[Knowled
     }
 
 
+def effective_display_name(doc: Any) -> str:
+    """文档展示名的单一事实源（ORM 级）。
+
+    优先级：``display_name``（用户手填覆盖）→ ``metadata_.title``
+    （PDF / 抓取自动抽取）→ ``original_filename``（不可变兜底）。
+
+    用于 Wiki 发布 entry_title 解析等需要「文档标题」的 ORM 级场景。
+    chunk 字典级读取方见
+    :meth:`KnowledgeRepository._infer_display_name`，二者语义对齐、须同步演进。
+    """
+    meta = getattr(doc, "metadata_", None) or {}
+    return resolve_effective_display_name(getattr(doc, "display_name", None), meta.get("title"), doc.original_filename)
+
+
+def effective_download_filename(original_filename: str, display_name: str | None) -> str:
+    """下载文件名：``display_name`` 覆盖 → ``original_filename``，并保留原扩展名。
+
+    扩展名取自物理文件名，确保下载内容与扩展名一致、可被正确打开；
+    用户名已以相同扩展名（大小写不敏感）结尾则不重复追加。URL 文档的
+    ``.md`` 收尾由调用方在拿到本结果后另行处理。
+    """
+    ext = os.path.splitext(original_filename)[1]
+    base = (display_name or "").strip() or original_filename
+    return f"{base}{ext}" if (ext and not base.lower().endswith(ext.lower())) else base
+
+
 def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> dict[str, Any]:
     chunk_stats = ((doc.metadata_ or {}).get("chunk_stats") or {}) if doc else {}
     total_retrieval_count = sum(item.retrieval_count for item in items)
     return {
         "original_filename": getattr(doc, "original_filename", None),
+        "display_name": getattr(doc, "display_name", None) or None,
         "file_size": getattr(doc, "file_size", None),
         "upload_date": doc.created_at.isoformat() if getattr(doc, "created_at", None) else None,
         "last_update_date": doc.updated_at.isoformat() if getattr(doc, "updated_at", None) else None,
@@ -711,11 +739,12 @@ def _build_document_response(
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
         display_name=getattr(doc, "display_name", None),
-        gcs_uri=doc.gcs_uri,
+        content_uri=doc.content_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,
         status=doc.status,
         created_at=doc.created_at.isoformat() if doc.created_at else None,
+        updated_at=doc.updated_at.isoformat() if doc.updated_at else None,
         created_by=doc.created_by,
         created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
         markdown_extract_status=doc.markdown_extract_status,
@@ -768,8 +797,8 @@ def _resolve_document_source_uri(doc: Any) -> str | None:
         origin_url = metadata.get("origin_url")
         if isinstance(origin_url, str) and origin_url:
             return origin_url
-    if doc.gcs_uri:
-        return doc.gcs_uri
+    if doc.content_uri:
+        return doc.content_uri
     return None
 
 
@@ -785,15 +814,20 @@ def _resolve_chunking_config_from_doc_request(
     )
 
 
-async def _extract_and_store_document_markdown_from_gcs(
+async def _reparse_document_markdown(
     *,
     document_id: UUID,
 ) -> None:
-    """从 GCS 重新加载原始文档，通过 MCP Tool 提取 Markdown 并刷新存储。
+    """从 PostgreSQL 已存储的源字节重新加载文档，经 MCP Tool 重新解析 Markdown 并刷新存储。
 
     与 ingest pipeline 共用同一条 MCP Tool 提取路径（extract_source），
     确保 Document View 的 Markdown 内容与 Chunk 内容质量一致。
+
+    作为 starlette BackgroundTask 执行（HTTP 已返回 200），故所有失败路径必须
+    自洽兜底：写 ``markdown_extract_status='failed'`` + 可读 error，绝不让异常逃逸
+    （逃逸会污染 ASGI 错误日志且前端无从感知）。
     """
+    from negentropy.storage.exceptions import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -805,12 +839,33 @@ async def _extract_and_store_document_markdown_from_gcs(
         )
         return
 
-    content = await storage_service.get_document_content(document_id=document_id)
+    # 源字节读取：存量文档（GCS 时代摄入）的 blob 可能从未回填到 PostgreSQL
+    # （迁移 0072 仅改写 URI 字符串、未迁字节）。download 对缺失 blob 抛 StorageError，
+    # 此处显式兜底为优雅失败，避免逃逸到 BackgroundTask（见 ISSUE：Re-Parse blob 缺失）。
+    try:
+        content = await storage_service.get_document_content(document_id=document_id)
+    except StorageError as exc:
+        logger.warning(
+            "document_markdown_reparse_source_blob_missing",
+            document_id=str(document_id),
+            content_uri=doc.content_uri,
+            error=str(exc),
+        )
+        await storage_service.update_markdown_extraction_status(
+            document_id=document_id,
+            status="failed",
+            error=(
+                f"源文档字节在 PostgreSQL 中缺失（content_uri={doc.content_uri}）。"
+                "该文档可能来自 GCS 时代且字节未迁移；URL 来源可经 backfill 脚本重新下载回填，"
+                "本地文件来源需重新上传。"
+            ),
+        )
+        return
     if not content:
         await storage_service.update_markdown_extraction_status(
             document_id=document_id,
             status="failed",
-            error="Source document content not found in GCS",
+            error="Source blob not found in PostgreSQL",
         )
         return
 
@@ -846,7 +901,7 @@ async def _extract_and_store_document_markdown_from_gcs(
         if not markdown_content:
             raise ValueError("Extractor returned empty markdown content")
 
-        markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+        markdown_uri, _ = await store_extracted_document_artifacts(
             document_id=document_id,
             extracted=result,
         )
@@ -854,7 +909,7 @@ async def _extract_and_store_document_markdown_from_gcs(
             "document_markdown_extraction_completed",
             document_id=str(document_id),
             markdown_size=len(markdown_content),
-            markdown_gcs_uri=markdown_gcs_uri,
+            markdown_uri=markdown_uri,
         )
     except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
         logger.error(

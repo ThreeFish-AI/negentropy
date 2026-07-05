@@ -427,7 +427,7 @@ test("聊天流式 Markdown 表格与换行在 hydration 后无需刷新即可�
 
   await page.goto("/");
 
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   await expect(page.getByText("Session pw-chat").first()).toBeVisible();
 
   await page.getByPlaceholder("输入指令...").fill("你能帮我做什么？");
@@ -697,57 +697,42 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "New" }).click();
+  await page.getByRole("button", { name: "新建对话" }).click();
   await expect(page.getByText("Session pw-searc").first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill("AfterShip 是什么？");
   await page.getByRole("button", { name: "Send" }).click();
 
+  // 新转录 UI：assistant 文本气泡 → 工具行（ExpandableToolCallRow）→ assistant 文本气泡。
+  // google_search / web_search 经 humanize → "Google Search" / "Web Search" 按钮名。
   const firstMessage = page.getByText("好的，我将使用 Google Search 获取 AfterShip 的信息。");
-  const toolGroup = page.getByText("工具并行执行");
   const summaryHeading = page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" });
-  const toolGroupButton = page.getByRole("button", { name: /工具并行执行/ });
-  const googleSearchCard = page.getByRole("button", { name: /Google Search/ }).last();
-  const webSearchCard = page.getByRole("button", { name: /Web Search/ }).last();
+  const googleSearchRow = page.getByRole("button", { name: /^Google Search$/ }).last();
+  const webSearchRow = page.getByRole("button", { name: /^Web Search$/ }).last();
 
   await expect(firstMessage).toBeVisible();
-  await expect(toolGroup).toBeVisible();
   await expect(summaryHeading).toBeVisible({ timeout: 7000 });
-  await expect(page.getByText("已完成，2 个工具")).toBeVisible();
-  await expect(page.getByText("Parameters")).toHaveCount(0);
+  // 新 UI 无 group 折叠层：两个并行工具行直接可见
+  await expect(googleSearchRow).toBeVisible();
+  await expect(webSearchRow).toBeVisible();
 
-  const getMainText = async () =>
-    page.locator("main").nth(1).evaluate((node) => node.textContent || "");
+  // 内联顺序守卫：firstMessage → 工具行 → summaryHeading（按垂直 DOM 位置，避免文本 indexOf 歧义）
   const assertInlineOrder = async () => {
-    const text = await getMainText();
-    expect(text.indexOf("好的，我将使用 Google Search 获取 AfterShip 的信息。")).toBeLessThan(
-      text.indexOf("工具并行执行"),
-    );
-    expect(text.indexOf("工具并行执行")).toBeLessThan(
-      text.indexOf("AfterShip 信息摘要"),
-    );
+    const firstBox = await firstMessage.boundingBox();
+    const googleBox = await googleSearchRow.boundingBox();
+    const summaryBox = await summaryHeading.boundingBox();
+    expect(firstBox!.y).toBeLessThan(googleBox!.y);
+    expect(googleBox!.y).toBeLessThan(summaryBox!.y);
   };
-
   await assertInlineOrder();
 
-  await toolGroupButton.click();
-  await expect(googleSearchCard).toBeVisible();
-  await expect(webSearchCard).toBeVisible();
-  await googleSearchCard.click();
-  await webSearchCard.click();
-  await expect(page.getByText("Parameters")).toHaveCount(2);
+  // 展开工具行明细（ExpandableToolCallRow 点击切换）
+  await googleSearchRow.click();
+  await webSearchRow.click();
 
   await page.reload();
 
   await expect(summaryHeading).toBeVisible({ timeout: 7000 });
   await assertInlineOrder();
-  await expect(page.getByText("工具并行执行")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" })).toBeVisible();
-  await expect(page.getByText("Parameters")).toHaveCount(0);
-
-  await toolGroupButton.click();
-  await expect(googleSearchCard).toBeVisible();
-  await expect(webSearchCard).toBeVisible();
-  await googleSearchCard.click();
-  await webSearchCard.click();
-  await expect(page.getByText("Parameters")).toHaveCount(2);
+  await expect(googleSearchRow).toBeVisible();
+  await expect(webSearchRow).toBeVisible();
 });

@@ -110,6 +110,8 @@ async def memory_search(
         query=query.strip(),
         limit=max(1, min(50, k)),
         memory_type=memory_type,
+        # 按 thread_id 分桶 canary（ADK 对话路径）；缺失回退 user_id。
+        canary_bucket_key=thread_id,
     )
     hits: list[dict[str, Any]] = []
     for entry in response.memories or []:

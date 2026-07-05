@@ -3,8 +3,10 @@ import {
   buildCorpusConfig,
   createCatalogNode,
   deleteDocument,
+  documentPreviewUrl,
   fetchDocumentDetail,
   importDocumentFile,
+  isPdfDocument,
   importDocumentUrl,
   ingestDocument,
   refreshDocumentMarkdown,
@@ -792,6 +794,62 @@ describe("库文档（corpusId=null）API 路径分支", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(String(fetchSpy.mock.calls[0][0])).toBe(
       "/api/knowledge/documents/doc-1/refresh_markdown",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PDF 源文档判定 + 内联预览 URL（文档详情页「Markdown | PDF」切换支撑）
+// ---------------------------------------------------------------------------
+
+describe("isPdfDocument", () => {
+  it("content_type 为 application/pdf 时判为 PDF", () => {
+    expect(
+      isPdfDocument({ content_type: "application/pdf", original_filename: "a.bin" }),
+    ).toBe(true);
+  });
+
+  it("content_type 大小写混合含 pdf 仍判为 PDF", () => {
+    expect(
+      isPdfDocument({ content_type: "Application/PDF", original_filename: "a" }),
+    ).toBe(true);
+  });
+
+  it("content_type 缺失但文件名以 .pdf 结尾时判为 PDF（兜底历史数据）", () => {
+    expect(
+      isPdfDocument({ content_type: null, original_filename: "report.PDF" }),
+    ).toBe(true);
+  });
+
+  it("URL / Markdown / 其他类型文档判为非 PDF", () => {
+    expect(
+      isPdfDocument({ content_type: "text/markdown", original_filename: "notes.md" }),
+    ).toBe(false);
+    expect(
+      isPdfDocument({ content_type: "text/html", original_filename: "post" }),
+    ).toBe(false);
+    expect(
+      isPdfDocument({ content_type: null, original_filename: "image.png" }),
+    ).toBe(false);
+  });
+});
+
+describe("documentPreviewUrl", () => {
+  it("corpus 文档走 corpus 作用域 /preview 路径并带 app_name", () => {
+    expect(
+      documentPreviewUrl("corpus-1", "doc-1", { appName: "negentropy" }),
+    ).toBe("/api/knowledge/base/corpus-1/documents/doc-1/preview?app_name=negentropy");
+  });
+
+  it("库文档（corpusId=null）走无 corpus 平行 /preview 路径", () => {
+    expect(
+      documentPreviewUrl(null, "doc-1", { appName: "negentropy" }),
+    ).toBe("/api/knowledge/documents/doc-1/preview?app_name=negentropy");
+  });
+
+  it("未提供 appName 时不拼接查询串", () => {
+    expect(documentPreviewUrl("corpus-1", "doc-1")).toBe(
+      "/api/knowledge/base/corpus-1/documents/doc-1/preview",
     );
   });
 });

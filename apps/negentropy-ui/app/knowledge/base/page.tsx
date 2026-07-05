@@ -12,12 +12,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
   type CorpusRecord,
   type ChunkingConfig,
-  DocumentViewDialog,
+  LIBRARY_CORPUS_SEGMENT,
   type DocumentChunkItem,
   type DocumentChunksMetadata,
   type KnowledgeDocument,
@@ -37,14 +37,24 @@ import {
   unarchiveDocument,
   downloadDocument,
   deleteDocument,
+  effectiveDocumentName,
+  formatRelativeTime,
   normalizeChunkingConfig,
   PipelineStatusBadge,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { Button } from "@/components/ui/Button";
+import { AnimatedList } from "@/components/ui/AnimatedList";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { navPillClassName, navRailContainerClassName } from "@/components/ui/nav-styles";
+import {
+  tableBodyClassName,
+  tableContainerClassName,
+  tableHeaderClassName,
+  tableRowClassName,
+} from "@/components/ui/table-styles";
+import { cn } from "@/lib/utils";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { IngestFileDialog } from "./_components/IngestFileDialog";
 import { IngestDocumentDialog } from "./_components/IngestDocumentDialog";
@@ -55,8 +65,7 @@ import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
 import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 import { DocumentMetadataPanel } from "./_components/DocumentMetadataPanel";
 import { RetrievedChunkCard } from "./_components/RetrievedChunkCard";
-import { RetrievedChunkDetailDialog } from "./_components/RetrievedChunkDetailDialog";
-import { EditChunkDialog } from "./_components/EditChunkDialog";
+import { ChunkDetailDialog } from "./_components/ChunkDetailDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 import { buildRetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
 import { formatCorpusConfigSummary, toDocumentChunkCardViewModel } from "./_components/format-utils";
@@ -68,6 +77,7 @@ type CorpusTab = "documents" | "settings" | "document-chunks";
 
 export default function KnowledgeBasePage() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const {
@@ -99,6 +109,9 @@ export default function KnowledgeBasePage() {
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsTotal, setDocumentsTotal] = useState(0);
+  const [documentsPage, setDocumentsPage] = useState(1);
+  const documentsPageSize = 10;
   const [buildingDocIds, setBuildingDocIds] = useState<Set<string>>(new Set());
 
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
@@ -128,7 +141,6 @@ export default function KnowledgeBasePage() {
   const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
-  const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
 
   const selectedCorpus = useMemo(
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
@@ -147,6 +159,14 @@ export default function KnowledgeBasePage() {
         ? buildRetrievedChunkViewModel(selectedRetrievedChunk)
         : null,
     [selectedRetrievedChunk],
+  );
+  // 选中文档 chunk 的展示视图模型：与卡片复用同一 presenter，喂给统一的 ChunkDetailDialog（编辑态）。
+  const selectedDocumentChunkCard = useMemo(
+    () =>
+      selectedDocumentChunk
+        ? toDocumentChunkCardViewModel(selectedDocumentChunk)
+        : null,
+    [selectedDocumentChunk],
   );
 
   const syncQueryState = useCallback(
@@ -203,22 +223,37 @@ export default function KnowledgeBasePage() {
     if (!selectedCorpusId) return;
     setDocumentsLoading(true);
     try {
-      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 100, offset: 0 });
+      const res = await fetchDocuments(selectedCorpusId, {
+        appName: APP_NAME,
+        limit: documentsPageSize,
+        offset: (documentsPage - 1) * documentsPageSize,
+      });
       setDocuments(res.items);
+      setDocumentsTotal(res.count);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load documents");
     } finally {
       setDocumentsLoading(false);
     }
-  }, [selectedCorpusId]);
+  }, [selectedCorpusId, documentsPage]);
 
   /** 静默刷新：更新文档列表但不显示 Loading 状态 */
   const silentLoadDocuments = useCallback(async () => {
     if (!selectedCorpusId) return;
     try {
-      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 100, offset: 0 });
+      const res = await fetchDocuments(selectedCorpusId, {
+        appName: APP_NAME,
+        limit: documentsPageSize,
+        offset: (documentsPage - 1) * documentsPageSize,
+      });
       setDocuments(res.items);
+      setDocumentsTotal(res.count);
     } catch { /* 静默刷新失败不阻断 */ }
+  }, [selectedCorpusId, documentsPage]);
+
+  // 切换语料时回到第 1 页，避免停留在新语料不存在的页码导致空列表
+  useEffect(() => {
+    setDocumentsPage(1);
   }, [selectedCorpusId]);
 
   useEffect(() => {
@@ -518,7 +553,13 @@ export default function KnowledgeBasePage() {
       } else if (action === "download") {
         await downloadDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
       } else if (action === "view") {
-        setViewingDoc(doc);
+        // 收敛到独立文档详情页（与 Knowledge/Documents 一致）。
+        // 携带编码后的返回路径 from，使详情页 Back 能原路返回当前 Corpus 的 Documents。
+        const returnPath = `/knowledge/base?view=corpus&corpusId=${selectedCorpusId}&tab=documents`;
+        const seg = doc.corpus_id ?? selectedCorpusId ?? LIBRARY_CORPUS_SEGMENT;
+        router.push(
+          `/knowledge/documents/${seg}/${doc.id}?from=${encodeURIComponent(returnPath)}`,
+        );
         return;
       } else if (action === "delete") {
         setDeletingDocument(doc);
@@ -681,7 +722,10 @@ export default function KnowledgeBasePage() {
       {corpora.length === 0 ? (
         <p className="text-xs text-muted-foreground">暂无 Corpus</p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <AnimatedList
+          className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+          staggerMs={50}
+        >
           {corpora.map((corpus) => (
             <div
               key={corpus.id}
@@ -749,7 +793,7 @@ export default function KnowledgeBasePage() {
               </div>
             </div>
           ))}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );
@@ -767,7 +811,7 @@ export default function KnowledgeBasePage() {
                   <div className="mb-2.5 text-2xl font-semibold text-foreground">
                     {retrievedChunkCards.length} Retrieved Chunks
                   </div>
-                  <div className="space-y-1.5">
+                  <AnimatedList className="space-y-1.5" staggerMs={40}>
                     {retrievedChunkCards.map((item) => (
                       <RetrievedChunkCard
                         key={`${item.id}-${item.raw.metadata?.corpus_id || "na"}`}
@@ -775,7 +819,7 @@ export default function KnowledgeBasePage() {
                         onOpen={() => setSelectedRetrievedChunk(item.raw)}
                       />
                     ))}
-                  </div>
+                  </AnimatedList>
                 </div>
               )}
 
@@ -874,40 +918,66 @@ export default function KnowledgeBasePage() {
                     </div>
                   </div>
 
-                  {documentsLoading ? (
-                    <p className="text-xs text-muted-foreground">Loading...</p>
-                  ) : documents.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No documents.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {documents.map((doc) => {
-                        const sourceType = String(doc.metadata?.source_type || "file");
-                        return (
-                          <div
-                            key={doc.id}
-                            className="rounded-lg border border-border bg-background p-3"
-                          >
-                            <div className="flex items-start justify-between gap-2">
+                  <div className={tableContainerClassName}>
+                    {/* 表头 */}
+                    <div className={cn("grid grid-cols-12 gap-2", tableHeaderClassName)}>
+                      <div className="col-span-3 text-center">Name</div>
+                      <div className="col-span-1 text-center">Source</div>
+                      <div className="col-span-1 text-center">Size</div>
+                      <div className="col-span-2 text-center">Status</div>
+                      <div className="col-span-2 text-center">Updated At</div>
+                      <div className="col-span-3 text-center">Actions</div>
+                    </div>
+
+                    {documentsLoading ? (
+                      <p className="px-4 py-6 text-center text-xs text-muted-foreground">Loading...</p>
+                    ) : documents.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-xs text-muted-foreground">No documents.</p>
+                    ) : (
+                      <div className={tableBodyClassName}>
+                        {documents.map((doc) => {
+                          const sourceType = String(doc.metadata?.source_type || "file");
+                          return (
+                            <div
+                              key={doc.id}
+                              className={cn("grid grid-cols-12 items-center gap-2", tableRowClassName)}
+                            >
+                              {/* Name —— 点击进入 document-chunks 标签页 */}
                               <button
-                                className="min-w-0 text-left"
+                                className="col-span-3 min-w-0 text-left"
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
-                                <p className="truncate text-sm font-medium">{doc.original_filename}</p>
-                                <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
-                                  <span>{sourceType} · {doc.file_size} bytes</span>
-                                  <PipelineStatusBadge
-                                    status={
-                                      buildingDocIds.has(doc.id)
-                                        ? "processing"
-                                        : doc.markdown_extract_status || doc.status
-                                    }
-                                  />
-                                </div>
+                                <p className="truncate text-sm font-medium" title={effectiveDocumentName(doc)}>
+                                  {effectiveDocumentName(doc)}
+                                </p>
                               </button>
-                              <div className="flex flex-wrap items-center justify-end gap-1">
+                              {/* Source */}
+                              <div className="col-span-1 truncate text-center text-xs text-muted-foreground" title={sourceType}>
+                                {sourceType}
+                              </div>
+                              {/* Size */}
+                              <div className="col-span-1 text-center text-xs text-muted-foreground">
+                                {doc.file_size} bytes
+                              </div>
+                              {/* Status */}
+                              <div className="col-span-2 flex justify-center">
+                                <PipelineStatusBadge
+                                  status={
+                                    buildingDocIds.has(doc.id)
+                                      ? "processing"
+                                      : doc.markdown_extract_status || doc.status
+                                  }
+                                />
+                              </div>
+                              {/* Updated At —— 列表按最终修改时间倒序 */}
+                              <div className="col-span-2 text-center text-xs text-muted-foreground">
+                                {formatRelativeTime(doc.updated_at ?? undefined)}
+                              </div>
+                              {/* Actions */}
+                              <div className="col-span-3 flex flex-wrap items-center justify-end gap-1">
                                 <button
                                   onClick={() => runDocumentAction("view", doc)}
-                                  title="在弹窗中预览文档解析后的 Markdown 正文"
+                                  title="打开文档详情页查看解析后的 Markdown 正文"
                                   className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-caption")}
                                 >
                                   View
@@ -968,11 +1038,48 @@ export default function KnowledgeBasePage() {
                                 </button>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* 分页：每页 10 条 */}
+                    {documentsTotal > 0 && (
+                      <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                        <span className="text-xs text-muted-foreground">
+                          {`${documentsTotal} document${documentsTotal !== 1 ? "s" : ""}`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={documentsPage <= 1 || documentsLoading}
+                            onClick={() => setDocumentsPage((current) => Math.max(1, current - 1))}
+                            className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
+                          >
+                            Prev
+                          </button>
+                          <span className="text-xs text-muted-foreground">
+                            {documentsPage}/{Math.max(1, Math.ceil(documentsTotal / documentsPageSize))}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={
+                              documentsPage >= Math.max(1, Math.ceil(documentsTotal / documentsPageSize)) ||
+                              documentsLoading
+                            }
+                            onClick={() =>
+                              setDocumentsPage((current) =>
+                                Math.min(Math.max(1, Math.ceil(documentsTotal / documentsPageSize)), current + 1),
+                              )
+                            }
+                            className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1010,8 +1117,6 @@ export default function KnowledgeBasePage() {
                               key={chunk.id}
                               chunk={cardModel}
                               onOpen={() => void handleSelectDocumentChunk(chunk)}
-                              density="compact"
-                              hideFooter
                               hideScores
                               showHitPrefix={false}
                               onChildChunkOpen={(childChunkId) => {
@@ -1111,15 +1216,9 @@ export default function KnowledgeBasePage() {
         )}
       </div>
 
-      <RetrievedChunkDetailDialog
+      <ChunkDetailDialog
         chunk={selectedRetrievedChunkCard}
         onClose={() => setSelectedRetrievedChunk(null)}
-      />
-
-      <DocumentViewDialog
-        isOpen={viewingDoc !== null}
-        document={viewingDoc}
-        onClose={() => setViewingDoc(null)}
       />
 
       <AddSourceDialog
@@ -1219,20 +1318,26 @@ export default function KnowledgeBasePage() {
         onConfirm={handleConfirmDeleteDocument}
       />
 
-      <EditChunkDialog
-        chunk={selectedDocumentChunk}
-        draftContent={chunkDraftContent}
-        draftEnabled={chunkDraftEnabled}
-        onDraftContentChange={setChunkDraftContent}
-        onDraftEnabledChange={setChunkDraftEnabled}
+      <ChunkDetailDialog
+        chunk={selectedDocumentChunkCard}
         onClose={() => {
           setSelectedDocumentChunk(null);
           setChunkDraftContent("");
           setChunkDraftEnabled(true);
         }}
-        onSave={() => void handleSaveDocumentChunk()}
-        onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
-        pending={chunkActionPending}
+        editable={
+          selectedDocumentChunk
+            ? {
+                draftContent: chunkDraftContent,
+                draftEnabled: chunkDraftEnabled,
+                onDraftContentChange: setChunkDraftContent,
+                onDraftEnabledChange: setChunkDraftEnabled,
+                onSave: () => void handleSaveDocumentChunk(),
+                onRegenerate: () => void handleRegenerateDocumentChunkFamily(),
+                pending: chunkActionPending,
+              }
+            : undefined
+        }
       />
     </div>
   );

@@ -22,30 +22,11 @@
   box-shadow: var(--wiki-card-shadow);
   text-decoration: none;
   color: inherit;
-  position: relative;
-  overflow: hidden;
-  transition: box-shadow 0.25s ease, transform 0.2s ease;
-}
-.home-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  background: radial-gradient(
-    400px circle at 50% 0%,
-    var(--wiki-primary-light),
-    transparent 60%
-  );
+  transition: box-shadow 0.25s ease, border-color 0.2s ease;
 }
 .home-card:hover {
-  box-shadow: var(--wiki-card-shadow), 0 8px 24px rgba(0, 0, 0, 0.1);
-  transform: translateY(-3px);
-}
-.home-card:hover::before {
-  opacity: 1;
+  border-color: var(--wiki-accent);
+  box-shadow: var(--wiki-card-shadow), 0 6px 18px rgba(20, 16, 40, 0.08);
 }
 
 .home-card--disabled {
@@ -53,11 +34,8 @@
   cursor: default;
 }
 .home-card--disabled:hover {
+  border-color: var(--wiki-border);
   box-shadow: var(--wiki-card-shadow);
-  transform: none;
-}
-.home-card--disabled:hover::before {
-  opacity: 0;
 }
 
 .home-card-icon {

@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/interface/mcp", label: MCP_HUB_LABEL },
   { href: "/interface/skills", label: "Skills" },
   { href: "/interface/tools", label: "Tools" },
+  { href: "/interface/repositories", label: "Repositories" },
   { href: "/interface/scheduler", label: "Scheduler" },
   { href: "/interface/routine", label: "Routine" },
 ];

@@ -340,10 +340,15 @@ async def ingest_paper(
     # 审批策略由前端 ApprovalPolicySelector 设置 → session.state.approval_policy 透传；
     # should_request_approval 根据策略 + HIGH_RISK_TOOLS 白名单判定是否拦截。
     from ..approval import (
+        APPROVAL_POLL_INTERVAL,
+        APPROVAL_WAIT_SECONDS,
         ApprovalPolicy,
         consume_approval_response,
+        expire_approval,
+        record_approval_denial,
         request_approval,
         should_request_approval,
+        was_recently_denied,
     )
 
     policy_payload = None
@@ -356,6 +361,16 @@ async def ingest_paper(
         policy = ApprovalPolicy()
 
     if should_request_approval("ingest_paper", policy):
+        # denial 缓存：同一 arxiv_id 近期被拒/超时过 → 直接返回 blocked、不再弹审批，
+        # 结构性掐断 LLM 重试循环（ISSUE-156 续）。
+        if was_recently_denied(tool_context, "ingest_paper", arxiv_id):
+            logger.info("ingest_paper_skipped_recently_denied", arxiv_id=arxiv_id)
+            return {
+                "status": "blocked",
+                "error": "用户此前已拒绝或未响应此审批，相同请求暂不重新发起。如需继续请重新发起指令。",
+                "arxiv_id": arxiv_id,
+            }
+
         action_id = request_approval(
             tool_context,
             tool_name="ingest_paper",
@@ -368,8 +383,8 @@ async def ingest_paper(
             # Polling 等待用户响应（前端 ApprovalDialog 写回 state.approval_responses）
             approval_progress_id = f"approval_wait:{arxiv_id}"
             _emit_tool_progress(tool_context, tool_call_id=approval_progress_id, percent=0, stage="等待用户审批")
-            max_wait = 30.0
-            interval = 0.5
+            max_wait = APPROVAL_WAIT_SECONDS
+            interval = APPROVAL_POLL_INTERVAL
             elapsed = 0.0
             response = None
             while elapsed < max_wait:
@@ -380,8 +395,19 @@ async def ingest_paper(
                     break
             _clear_tool_progress(tool_context, tool_call_id=approval_progress_id)
             if response is None or response.decision == "denied":
-                logger.info("ingest_paper_denied", arxiv_id=arxiv_id, reason=getattr(response, "reason", "timeout"))
-                return {"status": "failed", "error": "用户拒绝或审批超时", "arxiv_id": arxiv_id}
+                # 兜底清理 pending_approvals，避免超时/拒绝后遗留孤儿项致弹窗无法关闭。
+                expire_approval(tool_context, action_id)
+                # 记录 denial：覆盖 TTL 内同请求重试，直接返回 blocked 终结结果。
+                record_approval_denial(tool_context, "ingest_paper", arxiv_id)
+                timed_out = response is None
+                logger.info(
+                    "ingest_paper_denied",
+                    arxiv_id=arxiv_id,
+                    reason="timeout" if timed_out else getattr(response, "reason", "denied"),
+                )
+                error_msg = "审批超时未响应（已自动取消）" if timed_out else "用户已拒绝"
+                # 终结性 blocked（区别于 UUID 非法等 failed）：明确告诉 LLM 不要重试。
+                return {"status": "blocked", "error": error_msg, "arxiv_id": arxiv_id}
         else:
             # request_approval 返回 None（state 不可用）— 显式 fail-close
             logger.warning("approval_request_failed_fail_close", arxiv_id=arxiv_id)

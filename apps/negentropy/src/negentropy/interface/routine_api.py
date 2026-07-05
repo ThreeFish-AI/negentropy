@@ -15,6 +15,7 @@
 - POST   /routines/{id}/cancel               取消（→ cancelled）
 - POST   /routines/{id}/restart              重启（failed/cancelled → running，复位运行态 + 抬高决策水位线）
 - POST   /routines/{id}/cleanup-worktree     手动回收终态 routine 的隔离 worktree
+- POST   /routines/{id}/sync-pr              手动同步 PR 合并状态（即时回写 pr_merged → 三处 UI 显示「Merged」）
 - POST   /routines/{id}/iterations/{iid}/approve   审批通过待执行迭代
 - POST   /routines/{id}/iterations/{iid}/reject    驳回待执行迭代
 - GET    /routines/stream                    SSE 实时事件（routine + iteration）
@@ -42,12 +43,14 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm.attributes import set_committed_value
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.engine.routine import phase as phase_mod
 from negentropy.engine.routine import workspace
 from negentropy.logging import get_logger
+from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 logger = get_logger("negentropy.interface.routine_api")
@@ -123,6 +126,9 @@ class RoutineCreateRequest(BaseModel):
     acceptance_criteria: str = Field(..., min_length=1)
     cwd: str | None = None
     baseline_branch: str | None = Field(default=None, max_length=255)
+    # 可选关联的已注册 Repository（单一事实源指针）：非空时派生有效 cwd/baseline_branch，
+    # 此时 cwd/baseline_branch 手填值可留空（不复制副本）。
+    repository_id: UUID | None = None
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -144,6 +150,7 @@ class RoutineUpdateRequest(BaseModel):
     acceptance_criteria: str | None = None
     cwd: str | None = None
     baseline_branch: str | None = Field(default=None, max_length=255)
+    repository_id: UUID | None = None
     verification_command: str | None = None
     max_iterations: int | None = Field(default=None, ge=1, le=1000)
     max_cost_usd: float | None = Field(default=None, ge=0)
@@ -185,11 +192,14 @@ def _serialize_routine(
         "acceptance_criteria": r.acceptance_criteria,
         "cwd": r.cwd,
         "baseline_branch": r.baseline_branch,
+        "repository_id": str(r.repository_id) if r.repository_id else None,
         "verification_command": r.verification_command,
         "status": r.status,
         "termination_reason": r.termination_reason,
         "current_phase": r.current_phase,
         "pr_url": r.pr_url,
+        "pr_merged": r.pr_merged,
+        "pr_state": r.pr_state,
         "work_branch": r.work_branch,
         "worktree_path": r.worktree_path,
         "worktree_status": worktree_meta.get("status") if worktree_meta else None,
@@ -257,6 +267,7 @@ def _serialize_event(ev: RoutineIterationEvent) -> dict[str, Any]:
         "title": ev.title,
         "payload": ev.payload or {},
         "cost_usd": ev.cost_usd,
+        "agent_role": ev.agent_role,
         "created_at": ev.created_at.isoformat() if ev.created_at else None,
     }
 
@@ -469,37 +480,69 @@ async def list_routines(
     owner_id: str | None = Query(None),
     q: str | None = Query(None, description="按 key / title 模糊搜索"),
     is_template: bool | None = Query(None, description="过滤模板行"),
+    source_task_key: str | None = Query(
+        None, description="按 config.source_task_key 过滤（如 pdf_fidelity_patrol 派生的巡检 Routine）"
+    ),
     limit: int = Query(50, ge=1, le=200),
-    cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串"),
+    cursor: str | None = Query(None, description="上一页末尾 updated_at ISO 串（与 offset 互斥）"),
+    offset: int | None = Query(None, ge=0, description="偏移分页起点（与 cursor 互斥；翻页模式）"),
 ) -> dict[str, Any]:
-    """路由清单：多维筛选 + 基于 updated_at 的游标分页。"""
+    """路由清单：多维筛选 + 基于 ``(updated_at, id)`` 的分页（cursor 游标 / offset 偏移二选一）。"""
+    if cursor and offset is not None:
+        raise HTTPException(status_code=400, detail="cursor and offset are mutually exclusive")
+    use_offset = offset is not None
     async with db_session.AsyncSessionLocal() as db:
-        stmt = select(Routine)
+        # 收集筛选条件（不含分页约束）：行查询与 total 计数共用，避免重复逻辑。
+        conditions = []
         if status:
-            stmt = stmt.where(Routine.status == status)
+            conditions.append(Routine.status == status)
         if owner_id:
-            stmt = stmt.where(Routine.owner_id == owner_id)
+            conditions.append(Routine.owner_id == owner_id)
         if is_template is not None:
-            stmt = stmt.where(Routine.is_template == is_template)
+            conditions.append(Routine.is_template == is_template)
         if q:
             like = f"%{q}%"
-            stmt = stmt.where((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
-        if cursor:
+            conditions.append((Routine.key.ilike(like)) | (Routine.title.ilike(like)))
+        if source_task_key:
+            conditions.append(Routine.config.op("->>")("source_task_key") == source_task_key)
+
+        # 稳定排序 (updated_at DESC, id DESC)：updated_at 有 onupdate、Routine 又是高频变更列表，
+        # id 兜底消除跨页重复/跳号（兼修 cursor 模式 tie-skip）。
+        stmt = select(Routine)
+        for cond in conditions:
+            stmt = stmt.where(cond)
+        if not use_offset and cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                stmt = stmt.where(Routine.updated_at < cursor_dt)
             except ValueError:
                 raise HTTPException(status_code=400, detail="invalid cursor") from None
-        stmt = stmt.order_by(Routine.updated_at.desc()).limit(limit + 1)
+            stmt = stmt.where(Routine.updated_at < cursor_dt)
+        stmt = stmt.order_by(Routine.updated_at.desc(), Routine.id.desc())
+        if use_offset:
+            stmt = stmt.offset(offset).limit(limit)
+        else:
+            stmt = stmt.limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
-    has_more = len(rows) > limit
-    rows = rows[:limit]
-    next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
+        # total：当前筛选下的全量计数（不含分页约束），供前端 totalPages 与「共 N 条」。
+        count_stmt = select(func.count()).select_from(Routine)
+        for cond in conditions:
+            count_stmt = count_stmt.where(cond)
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+    if use_offset:
+        # offset 模式：恰好取一页（无 limit+1 探测），has_more 由 total 推导；不产 cursor。
+        has_more = (offset + limit) < total
+        next_cursor = None
+    else:
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+        next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
     return {
         "items": [_serialize_routine(r) for r in rows],
         "next_cursor": next_cursor,
         "has_more": has_more,
+        "total": total,
     }
 
 
@@ -554,12 +597,21 @@ async def list_iterations(
         stmt = stmt.order_by(RoutineIteration.seq.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
+        total = int(
+            (
+                await db.execute(
+                    select(func.count()).select_from(RoutineIteration).where(RoutineIteration.routine_id == routine_id)
+                )
+            ).scalar_one()
+        )
+
     has_more = len(rows) > limit
     rows = rows[:limit]
     return {
         "items": [_serialize_iteration(it) for it in rows],
         "has_more": has_more,
         "next_before_seq": rows[-1].seq if has_more and rows else None,
+        "total": total,
     }
 
 
@@ -620,19 +672,72 @@ def _validate_read_dirs(config: dict[str, Any] | None) -> None:
             raise HTTPException(status_code=422, detail=f"read_dir does not exist or is not a directory: '{d}'")
 
 
-@router.post("")
-async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
-    if body.cwd and not os.path.isdir(body.cwd):
-        raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
-    _validate_read_dirs(body.config)
-    # 提供了 Project Path (cwd) + Baseline Branch 时即时校验仓库/基线（早反馈）。存在性的硬约束
-    # 由 start 守卫强制（执行前提），允许 API 侧先创建草稿；前端创建可执行 routine 时已强制二者。
-    if body.cwd and body.baseline_branch:
+async def _resolve_repository(db, repository_id: UUID | None) -> Repository | None:
+    """repository_id 非空时取 Repository（缺失→422，供 API 早反馈）；否则 None。"""
+    if repository_id is None:
+        return None
+    repo = await db.get(Repository, repository_id)
+    if repo is None:
+        raise HTTPException(status_code=422, detail=f"repository not found: {repository_id}")
+    return repo
+
+
+async def _hydrate_effective_repo(db, r: Routine) -> None:
+    """把关联 Repository 的 local_path/baseline 注入内存 routine（单一事实源，不持久化）。
+
+    镜像 ``orchestrator._hydrate_effective_repo``：Repository 型 routine 的 ``cwd`` **列**恒为 NULL
+    （仅持 ``repository_id`` 指针、DB 不存副本），而 ``remove_worktree`` 读 ``routine.cwd`` 定位仓库根跑
+    ``git worktree remove`` / ``branch -D``——须先 hydrate，否则 git 块被静默跳过、worktree/分支残留。
+    ``set_committed_value`` 标记「已加载」、不进 dirty、不持久化（维持单一事实源；detached 后仍可读）。
+    """
+    if r.repository_id is None:
+        return
+    repository = await db.get(Repository, r.repository_id)
+    if repository is None:
+        return
+    eff_cwd, eff_baseline = workspace.resolve_effective_repo(r, repository)
+    set_committed_value(r, "cwd", eff_cwd)
+    set_committed_value(r, "baseline_branch", eff_baseline)
+
+
+async def _validate_effective_repo(eff_cwd: str | None, eff_baseline: str | None) -> None:
+    """二者皆有值时即时校验仓库/基线（非法转 422）。允许草稿态暂缺其一。"""
+    if eff_cwd and eff_baseline:
         try:
-            await workspace.validate_repo(body.cwd, body.baseline_branch, settings.routine)
+            await workspace.validate_repo(eff_cwd, eff_baseline, settings.routine)
         except workspace.WorkspaceError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+async def _require_effective_repo(db, r: Routine, *, validate: bool) -> None:
+    """start/resume/restart 守卫：非模板 routine 须具备有效仓库配置（repository_id 指针优先）。
+
+    缺失（手填与 Repo 皆未提供）→ 409；validate=True 时额外 workspace.validate_repo（start 用）。
+    """
+    repository = await _resolve_repository(db, r.repository_id)
+    eff_cwd, eff_baseline = workspace.resolve_effective_repo(r, repository)
+    if not (eff_cwd and eff_baseline):
+        raise HTTPException(
+            status_code=409,
+            detail="需补全 Project Path (cwd) 与 Baseline Branch，或选择已注册 Repository（隔离 worktree 的前提）",
+        )
+    if validate:
+        await _validate_effective_repo(eff_cwd, eff_baseline)
+
+
+@router.post("")
+async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
+    _validate_read_dirs(body.config)
     async with db_session.AsyncSessionLocal() as db:
+        # 解析有效仓库配置（repository_id 指针优先；否则手填 cwd/baseline）。
+        repository = await _resolve_repository(db, body.repository_id)
+        eff_cwd = repository.local_path if repository is not None else body.cwd
+        eff_baseline = repository.baseline_branch if repository is not None else body.baseline_branch
+        # 未关联 Repo 且手填 cwd 时校验目录存在（早反馈）；关联 Repo 时由 validate_repo 统一校验。
+        if repository is None and body.cwd and not os.path.isdir(body.cwd):
+            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{body.cwd}'")
+        # 即时校验有效仓库/基线（二者皆有值时）；存在性硬约束由 start 守卫强制，允许先创建草稿。
+        await _validate_effective_repo(eff_cwd, eff_baseline)
         routine = Routine(
             key=body.key,
             title=body.title,
@@ -640,6 +745,7 @@ async def create_routine(body: RoutineCreateRequest) -> dict[str, Any]:
             acceptance_criteria=body.acceptance_criteria,
             cwd=body.cwd,
             baseline_branch=body.baseline_branch,
+            repository_id=body.repository_id,
             verification_command=body.verification_command,
             status="pending",
             max_iterations=body.max_iterations
@@ -699,23 +805,26 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
                     detail=f"cannot edit {', '.join(sorted(unsafe))} while running; pause first",
                 )
 
-        # cwd 目录存在性校验（非 running 路径，unsafe 已被上方拦截）
-        if "cwd" in update_data and update_data["cwd"] and not os.path.isdir(update_data["cwd"]):
-            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{update_data['cwd']}'")
         if "config" in update_data:
             _validate_read_dirs(update_data["config"])
 
         for field_name, value in update_data.items():
             setattr(r, field_name, value)
 
-        # 校验合并后的仓库/基线（仅当二者皆有值时即时校验；强制性由 create + start 守卫保证，
-        # 允许增量编辑期间暂缺其一）。
-        if not r.is_template and r.cwd and r.baseline_branch:
+        # 解析合并后的有效仓库配置（repository_id 指针优先；否则手填 cwd/baseline）。
+        repository = await _resolve_repository(db, r.repository_id)
+        eff_cwd, eff_baseline = workspace.resolve_effective_repo(r, repository)
+        # 未关联 Repo 且手填 cwd 非空 → 校验目录存在（非 running 路径，unsafe 已被上方拦截）。
+        if repository is None and r.cwd and not os.path.isdir(r.cwd):
+            raise HTTPException(status_code=422, detail=f"cwd directory does not exist: '{r.cwd}'")
+        # 校验合并后的有效仓库/基线（仅当二者皆有值时；强制性由 create + start 守卫保证，
+        # 允许增量编辑期间暂缺其一）。模板跳过。
+        if not r.is_template:
             try:
-                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
-            except workspace.WorkspaceError as exc:
+                await _validate_effective_repo(eff_cwd, eff_baseline)
+            except HTTPException:
                 await db.rollback()
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
+                raise
 
         if r.status == "running" and update_data:
             logger.info("routine_runtime_update", routine_id=str(routine_id), fields=sorted(update_data.keys()))
@@ -739,16 +848,24 @@ async def update_routine(routine_id: UUID, body: RoutineUpdateRequest) -> dict[s
 
 @router.delete("/{routine_id}")
 async def delete_routine(routine_id: UUID) -> dict[str, Any]:
+    # ① 短会话：校验 + 读取（detached 后属性可读，供会话外回收）。
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status in _ACTIVE:
             raise HTTPException(status_code=409, detail=f"cannot delete a {r.status} routine; cancel it first")
-        # 删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort）。
-        if r.worktree_path:
-            with suppress(Exception):
-                await workspace.remove_worktree(r, settings.routine)
+        await _hydrate_effective_repo(db, r)  # 同 cleanup_worktree：hydrate 仓库根，防 git 清理被跳过
+    # ② 会话外：删除前回收隔离 worktree（行将消失，无论策略均须清，避免孤儿；best-effort；不占连接、不阻塞事件循环）。
+    if r.worktree_path:
+        with suppress(Exception):
+            await workspace.remove_worktree(r, settings.routine)
+    # ③ 短会话：删行 + 提交（保持「先回收、后删行」语义；并发已删则视作幂等成功）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            _KPI_CACHE.invalidate()
+            return {"ok": True, "deleted_routine_id": str(routine_id)}
         try:
             await db.delete(r)
             await db.commit()
@@ -775,18 +892,10 @@ async def start_routine(routine_id: UUID, body: ControlBody | None = None) -> di
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status not in ("pending", "paused"):
             raise HTTPException(status_code=409, detail=f"cannot start from status '{r.status}'")
-        # worktree 隔离守卫（执行硬前提）：可执行 routine 启动前须具备 Project Path (cwd) +
-        # Baseline Branch（保护未回填的旧行；模板不在此路径启动），并校验仓库/基线可用。
+        # worktree 隔离守卫（执行硬前提）：可执行 routine 启动前须具备有效仓库配置
+        # （repository_id 指针优先，否则手填 cwd + baseline_branch；模板不在此路径启动），并校验可用。
         if not r.is_template:
-            if not (r.cwd and r.baseline_branch):
-                raise HTTPException(
-                    status_code=409,
-                    detail="启动前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
-                )
-            try:
-                await workspace.validate_repo(r.cwd, r.baseline_branch, settings.routine)
-            except workspace.WorkspaceError as exc:
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            await _require_effective_repo(db, r, validate=True)
         r.status = "running"
         r.termination_reason = None
         await db.commit()
@@ -823,13 +932,9 @@ async def resume_routine(routine_id: UUID, body: ControlBody | None = None) -> d
             raise HTTPException(status_code=404, detail="routine not found")
         if r.status != "paused":
             raise HTTPException(status_code=409, detail=f"cannot resume from status '{r.status}'")
-        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 恢复前须具备 cwd + baseline_branch。
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 恢复前须具备有效仓库配置。
         if not r.is_template:
-            if not (r.cwd and r.baseline_branch):
-                raise HTTPException(
-                    status_code=409,
-                    detail="恢复前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
-                )
+            await _require_effective_repo(db, r, validate=False)
         r.status = "running"
         await db.commit()
         await db.refresh(r)
@@ -883,13 +988,9 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
                     status_code=409,
                     detail="deadline has passed; update or clear the deadline before restarting",
                 )
-        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 重启前须具备 cwd + baseline_branch。
+        # worktree 隔离守卫（与 start 端点对齐）：非模板 routine 重启前须具备有效仓库配置。
         if not r.is_template:
-            if not (r.cwd and r.baseline_branch):
-                raise HTTPException(
-                    status_code=409,
-                    detail="重启前需补全 Project Path (cwd) 与 Baseline Branch（隔离 worktree 的前提）",
-                )
+            await _require_effective_repo(db, r, validate=False)
 
         # 闭合上一轮遗留的全部非终态迭代（含 executed）。终态 routine 理论上不应有在途迭代，
         # 但 cancel 会保留 executed 迭代、且崩溃/reaper 竞态可能遗留孤儿；若不闭合，重启后
@@ -915,6 +1016,10 @@ async def restart_routine(routine_id: UUID, body: RestartBody | None = None) -> 
         r.claude_session_id = None
         r.current_phase = phase_mod.initial_phase(r.config)
         r.pr_url = None
+        # 复位 PR 合并状态：避免旧 PR 的 merged/state 污染新轮 PR 的检测与「Merged」/「Closed」展示。
+        r.pr_merged = None
+        r.pr_state = None
+        r.pr_merged_checked_at = None
         # 隔离 worktree：仅回收 worktree 目录、**保留终生单一工作分支**（含其检查点提交），
         # 使新一轮尝试在同一分支上从上一检查点续作（不铸新分支、不重建自基线）。下一次派发的
         # ensure_worktree 会按保留的 work_branch 重绑 worktree（本地分支存在则直接 checkout）。
@@ -939,7 +1044,11 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
 
     终态 routine（succeeded/failed/cancelled）在 worktree 仍活跃时可用于手动触发磁盘回收，
     无需等待周期巡检器。``work_branch`` 保留供审计/PR 溯源。
+
+    慢操作（git/rmtree）须在 DB 会话**外**执行：会话仅做短读 + 短写，避免长时间占用连接池连接；
+    其本身亦不阻塞事件循环（``remove_worktree`` 内 rmtree 已卸载线程池），故清理期间全站其他请求不受影响。
     """
+    # ① 短会话：校验 + 读取（worktree_path 仍非空，供会话外清理）。
     async with db_session.AsyncSessionLocal() as db:
         r = await db.get(Routine, routine_id)
         if r is None:
@@ -954,9 +1063,15 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
             )
         if not r.worktree_path:
             raise HTTPException(status_code=409, detail="worktree already cleaned up or never created")
-        # best-effort 回收：异常仅日志，不阻断。
-        with suppress(Exception):
-            await workspace.remove_worktree(r, settings.routine)
+        # Repository 型 routine 的 cwd 列为 NULL——hydrate 有效仓库根，否则 remove_worktree 找不到仓库、
+        # git worktree remove / branch -D 被静默跳过（worktree/分支残留）。
+        await _hydrate_effective_repo(db, r)
+    # ② 会话外：best-effort 回收（expire_on_commit=False → r 已 detached 但属性可读；纯 git/FS，无 DB）。
+    with suppress(Exception):
+        await workspace.remove_worktree(r, settings.routine)
+    # ③ 短会话：置空 + 提交（保持「先回收、后置空」语义）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
         r.worktree_path = None
         await db.commit()
         await db.refresh(r)
@@ -964,9 +1079,53 @@ async def cleanup_worktree(routine_id: UUID) -> dict[str, Any]:
     return _serialize_routine(r, worktree_meta=worktree_meta)
 
 
-# ---------------------------------------------------------------------------
-# 审批门控：approve / reject
-# ---------------------------------------------------------------------------
+@router.post("/{routine_id}/sync-pr")
+async def sync_pr_status(routine_id: UUID) -> dict[str, Any]:
+    """手动同步 routine 的 PR 合并状态（即时回写 ``pr_merged``，无需等~5min 心跳）。
+
+    用户在 GitHub 合并 PR 后点 PR 抽屉「同步 PR 状态」即时触发：复用 ``gh pr view --json state,merged``
+    回写 ``pr_merged`` 并经 SSE 推送，使列表 / Full View / PR 抽屉三处立即显示「Merged」。回写逻辑与
+    心跳 ``_sync_pr_merge_status`` 复用同一 ``apply_pr_merge_result``，避免两处分支漂移。
+
+    与心跳 pass 的差异：用户主动触发，故 ``gh`` 缺失/未授权/不可达时**显式 503**（心跳为静默 no-op）。
+    慢操作（gh 子进程）在 DB 会话外执行，不占连接池、不阻塞事件循环（同 cleanup-worktree 范式）。
+    """
+    from negentropy.engine.routine.pr_status import (
+        apply_pr_merge_result,
+        fetch_pr_merge_status,
+        gh_available,
+    )
+
+    # ① 短会话：校验 + 取 pr_url（会话外做 gh 子进程，不占连接池）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="routine not found")
+        if not r.pr_url:
+            raise HTTPException(status_code=409, detail="routine has no PR to sync (pr_url is empty)")
+        pr_url = r.pr_url
+
+    # ② 会话外：best-effort gh 检测（带超时）。gh 缺失或未应答 → 503（用户主动触发应显式暴露）。
+    if not gh_available():
+        raise HTTPException(status_code=503, detail="gh CLI not available on backend PATH; cannot sync PR status")
+    try:
+        st = await fetch_pr_merge_status(pr_url, timeout=float(settings.routine.pr_merge_check_timeout_seconds))
+    except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；用户面兜底 502
+        raise HTTPException(status_code=502, detail=f"PR status check failed: {exc}") from exc
+    if st.merged is None and st.state is None:
+        raise HTTPException(
+            status_code=503,
+            detail="gh could not determine PR status (unauthorized / unreachable / timeout); retry later",
+        )
+
+    # ③ 短会话：回写 + 提交 + 推 SSE（expire_on_commit=False → r 提交后仍可读）。
+    async with db_session.AsyncSessionLocal() as db:
+        r = await db.get(Routine, routine_id)
+        apply_pr_merge_result(r, st, _utcnow())
+        await db.commit()
+        await db.refresh(r)
+        await _publish_routine(r)
+    return _serialize_routine(r)
 
 
 @router.post("/{routine_id}/iterations/{iteration_id}/approve")
@@ -1054,6 +1213,8 @@ async def _publish_routine(r: Routine) -> None:
             "total_cost_usd": r.total_cost_usd,
             "current_phase": r.current_phase,
             "pr_url": r.pr_url,
+            "pr_merged": r.pr_merged,
+            "pr_state": r.pr_state,
         }
     )
 

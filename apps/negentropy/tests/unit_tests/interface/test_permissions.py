@@ -20,6 +20,7 @@ from negentropy.models.plugin import (
     Agent,
     BuiltinTool,
     McpServer,
+    Repository,
     Skill,
 )
 
@@ -43,11 +44,13 @@ class TestPluginTypeModelMap:
         assert PLUGIN_TYPE_MODEL_MAP["mcp_server"] is McpServer
         assert PLUGIN_TYPE_MODEL_MAP["skill"] is Skill
         assert PLUGIN_TYPE_MODEL_MAP["agent"] is Agent
+        assert PLUGIN_TYPE_MODEL_MAP["repository"] is Repository
         assert set(PLUGIN_TYPE_MODEL_MAP.keys()) == {
             "mcp_server",
             "skill",
             "agent",
             "builtin_tool",
+            "repository",
         }
 
 

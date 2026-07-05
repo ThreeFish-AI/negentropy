@@ -157,6 +157,7 @@ def _serialize_execution(e: TaskExecution, task: ScheduledTask | None = None) ->
         "memory_id": str(e.memory_id) if e.memory_id else None,
         "pipeline_run_id": str(e.pipeline_run_id) if e.pipeline_run_id else None,
         "thread_id": str(e.thread_id) if e.thread_id else None,
+        "metrics": e.metrics or {},
     }
 
 
@@ -229,7 +230,7 @@ async def list_tasks(
     """任务清单 + 最近 3 次执行状态（用于 ◐◐◐ 简明指示）。"""
 
     async with AsyncSessionLocal() as db:
-        stmt = select(ScheduledTask)
+        # 筛选条件（不含 cursor）：行查询与 total 计数共用。
         clauses: list[Any] = []
         if enabled is not None:
             clauses.append(ScheduledTask.enabled.is_(enabled))
@@ -249,14 +250,23 @@ async def list_tasks(
         if q:
             like = f"%{q}%"
             clauses.append((ScheduledTask.key.ilike(like)) | (ScheduledTask.display_name.ilike(like)))
+
+        # total：当前筛选下全量计数（不含 cursor），供前端 totalPages 与「共 N 条」。
+        count_stmt = select(func.count()).select_from(ScheduledTask)
+        if clauses:
+            count_stmt = count_stmt.where(and_(*clauses))
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+        stmt = select(ScheduledTask)
+        row_clauses = list(clauses)
         if cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                clauses.append(ScheduledTask.updated_at < cursor_dt)
+                row_clauses.append(ScheduledTask.updated_at < cursor_dt)
             except ValueError:
                 pass
-        if clauses:
-            stmt = stmt.where(and_(*clauses))
+        if row_clauses:
+            stmt = stmt.where(and_(*row_clauses))
         stmt = stmt.order_by(ScheduledTask.updated_at.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).scalars().all()
 
@@ -298,7 +308,7 @@ async def list_tasks(
 
         items = [_serialize_task(r, recent=recent_map.get(r.id, [])) for r in rows]
         next_cursor = rows[-1].updated_at.isoformat() if has_more and rows else None
-        return {"items": items, "next_cursor": next_cursor}
+        return {"items": items, "next_cursor": next_cursor, "has_more": has_more, "total": total}
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +353,7 @@ async def list_executions(
     cursor: str | None = Query(None, description="ISO 时间戳，按 started_at 倒序分页"),
 ) -> dict[str, Any]:
     async with AsyncSessionLocal() as db:
-        stmt = select(TaskExecution, ScheduledTask).join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
+        # 筛选条件（不含 cursor）：行查询与 total 计数共用。
         clauses: list[Any] = []
         if task_id is not None:
             clauses.append(TaskExecution.task_id == task_id)
@@ -362,21 +372,34 @@ async def list_executions(
                 clauses.append(ScheduledTask.agent_id == UUID(agent))
             except (ValueError, TypeError):
                 pass
+
+        # total：当前筛选下全量计数（不含 cursor）；filters 含 ScheduledTask 维度故同样 join。
+        count_stmt = (
+            select(func.count())
+            .select_from(TaskExecution)
+            .join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
+        )
+        if clauses:
+            count_stmt = count_stmt.where(and_(*clauses))
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+        stmt = select(TaskExecution, ScheduledTask).join(ScheduledTask, ScheduledTask.id == TaskExecution.task_id)
+        row_clauses = list(clauses)
         if cursor:
             try:
                 cursor_dt = datetime.fromisoformat(cursor)
-                clauses.append(TaskExecution.started_at < cursor_dt)
+                row_clauses.append(TaskExecution.started_at < cursor_dt)
             except ValueError:
                 pass
-        if clauses:
-            stmt = stmt.where(and_(*clauses))
+        if row_clauses:
+            stmt = stmt.where(and_(*row_clauses))
         stmt = stmt.order_by(TaskExecution.started_at.desc()).limit(limit + 1)
         rows = (await db.execute(stmt)).all()
         has_more = len(rows) > limit
         rows = rows[:limit]
         items = [_serialize_execution(e, t) for e, t in rows]
         next_cursor = rows[-1][0].started_at.isoformat() if has_more and rows else None
-        return {"items": items, "next_cursor": next_cursor}
+        return {"items": items, "next_cursor": next_cursor, "has_more": has_more, "total": total}
 
 
 # ---------------------------------------------------------------------------
@@ -583,6 +606,71 @@ async def list_handler_descriptors() -> dict[str, Any]:
 
     _bootstrap_default_handlers()  # 幂等：确保 handler 模块已 import → 描述器已注册
     return {"items": [_serialize_descriptor(d) for d in list_descriptors()]}
+
+
+def _build_handler_source(handler_kind: str) -> dict[str, Any] | None:
+    """从注册表解析 ``handler_kind`` → 返回模块源码 + docstring + descriptor 元数据。
+
+    ``handler_kind`` 仅作 ``HANDLER_REGISTRY`` 字典键查找，绝不接受/拼接文件路径，
+    故无路径穿越风险；未命中返回 ``None``（由端点转 404）。源码经 ``inspect`` 从
+    已加载模块获取——反映**实际运行中**的实现。
+
+    抽成纯函数（不触 DB）以便免 Postgres 单测，与 ``GET /handlers/{kind}/source`` 端点解耦。
+    """
+    import inspect
+
+    from negentropy.engine.schedulers.handlers import (
+        _bootstrap_default_handlers,
+        get_descriptor,
+        get_handler,
+    )
+
+    _bootstrap_default_handlers()  # 幂等：确保 handler 模块已 import → 已注册
+    fn = get_handler(handler_kind)
+    if fn is None:
+        return None
+
+    module = inspect.getmodule(fn)
+
+    def _src(obj: Any) -> str | None:
+        try:
+            return inspect.getsource(obj)
+        except (OSError, TypeError):
+            return None
+
+    try:
+        _, fn_lineno = inspect.getsourcelines(fn)
+    except (OSError, TypeError):
+        fn_lineno = None
+
+    d = get_descriptor(handler_kind)
+    raw_file = getattr(module, "__file__", None)
+    # 仅展示用：裁剪为 src/ 之后的仓库相对路径
+    file_path = raw_file.split("/src/", 1)[-1] if raw_file and "/src/" in raw_file else raw_file
+
+    return {
+        "handler_kind": handler_kind,
+        "label": d.label if d else handler_kind,
+        "description": d.description if d else None,
+        "module": module.__name__ if module else None,
+        "file_path": file_path,
+        "function_name": fn.__name__,
+        "function_lineno": fn_lineno,
+        "function_docstring": inspect.getdoc(fn),
+        "module_docstring": inspect.getdoc(module) if module else None,
+        "module_source": _src(module),  # 主体：整模块（含入口函数 + 私有 _run_* 辅助 + descriptor）
+        "function_source": _src(fn),  # 备用：仅注册入口函数
+        "language": "python",
+    }
+
+
+@router.get("/handlers/{handler_kind}/source")
+async def get_handler_source(handler_kind: str = Path(..., max_length=64)) -> dict[str, Any]:
+    """返回指定 Handler 的实现源码 + docstring + 描述（驱动 UI「实现逻辑」区）。"""
+    data = _build_handler_source(handler_kind)
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"unknown handler_kind: {handler_kind}")
+    return data
 
 
 # ---------------------------------------------------------------------------

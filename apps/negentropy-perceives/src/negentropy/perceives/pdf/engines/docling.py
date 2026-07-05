@@ -383,15 +383,24 @@ class DoclingEngine:
         )
 
         # macOS 原生 OCR 引擎（Apple Vision Framework）
+        # 注意：OcrMacOptions 仅是选项类（始终可 import），真正的运行时依赖是 ocrmac 包。
+        # 若 ocrmac 未安装却启用 mac_native OCR，docling 会在 OCR 执行阶段失败甚至挂起整个
+        # pipeline（实证：pipeline 路径 1200s 超时、batch 路径 empty 降级；见 .temp/run 日志）。
+        # 故在此探测运行时依赖：缺失则主动禁用 OCR（文本型 PDF 仍可正常抽取）并告警，
+        # 而非留下一个无法执行的 mac_native OCR 配置导致挂起。
         if device_cfg.ocr_engine == "mac_native" and self._enable_ocr:
             try:
+                import ocrmac  # noqa: F401 — 运行时依赖探测（区别于 OcrMacOptions 选项类）
                 from docling.datamodel.pipeline_options import OcrMacOptions  # type: ignore[import-untyped]
 
                 pipeline_options.ocr_options = OcrMacOptions()
                 logger.info("macOS 原生 OCR (Apple Vision Framework) 已启用")
             except ImportError:
-                logger.debug(
-                    "OcrMacOptions 不可用（需 docling[mac] 依赖），使用默认 OCR 引擎"
+                pipeline_options.do_ocr = False
+                logger.warning(
+                    "docling_mac_native_ocr_disabled：mac_native OCR 已配置但 ocrmac 运行时依赖未安装，"
+                    "已禁用 OCR 以避免 docling 挂起/失败（文本型 PDF 不受影响；扫描版 PDF 请安装 "
+                    "ocrmac：uv add 'ocrmac;sys_platform==\"darwin\"' 后启用）。"
                 )
 
         # 硬件加速配置

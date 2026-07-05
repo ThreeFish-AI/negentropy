@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -72,6 +73,45 @@ ApprovalPolicyMode = Literal["always", "per_tool", "never"]
 """
 
 DEFAULT_POLICY: ApprovalPolicyMode = "per_tool"
+
+
+# ----------------------------------------------------------------------------
+# 审批等待窗口（工具侧轮询参数 · 单一事实源）
+# ----------------------------------------------------------------------------
+#
+# 设计动机（审批弹窗卡死修复）：
+# - 旧值 30s 对「人类读完中风险请求 + JSON 参数再决策」远不够用，导致工具在用户
+#   点击前就超时返回、run 结束、NDJSON 流关闭，晚到的审批既无存活工具消费、又无
+#   通道回推，弹窗永久卡死。故延长为人性化窗口。
+# - 采用**模块常量**而非 settings 字段（最小干预）：ingest.py / paper.py 直接引用
+#   本处即可，无需新增配置类与 YAML 默认；如未来出现运营级调参需求再上升到 settings。
+# - 长挂 run 的代价可控：``asyncio.sleep`` 仅挂起协程、不冻结单 worker 事件循环；
+#   且工具均在审批循环**之后**才获取 KnowledgeService / 写 DB，等待期不持有重资源。
+APPROVAL_WAIT_SECONDS: float = 300.0
+APPROVAL_POLL_INTERVAL: float = 0.5
+
+
+# ----------------------------------------------------------------------------
+# 审批 denial 缓存（断掉重试循环 · ISSUE-156 续）
+# ----------------------------------------------------------------------------
+#
+# 设计动机：工具在审批「超时/被拒」后返回 ``failed``，LLM 看到 failed → 重试 → 再次
+# 触发审批门 → 新弹窗 → 死循环（实测一会话内 ingest_paper 被调 126 次）。denial 缓存
+# 把「同一请求被拒/超时」记录到 session.state，工具在弹审批**前**先查缓存，命中即
+# 直接返回终结性 ``blocked`` 结果、不再弹新审批——**结构性掐断循环，不依赖 LLM 自觉**。
+#
+# TTL 与 APPROVAL_WAIT_SECONDS 对齐：覆盖单 run 内瞬时重试，超期自动恢复，避免永久
+# 封锁合法重发。键含 args 指纹（调用方提供），避免误封「同工具不同内容」的合法请求。
+APPROVAL_DENIAL_TTL_SECONDS: float = 300.0
+
+
+def _stable_hash(text: str) -> str:
+    """稳定的短哈希（sha1 前 8 位），用于组合 denial_key 的 args 指纹。
+
+    用 sha1 而非内置 ``hash()``：后者跨进程 / 跨 PYTHONHASHSEED 不稳定，会让 denial
+    缓存键在「记录」与「查询」之间漂移致失效。仅取前 8 位即可满足去重辨识度。
+    """
+    return hashlib.sha1(text.encode("utf-8", errors="replace")).hexdigest()[:8]
 
 
 @dataclass(frozen=True)
@@ -240,9 +280,82 @@ def consume_approval_response(tool_context: Any, action_id: str) -> ApprovalResp
         return None
 
 
+def expire_approval(tool_context: Any, action_id: str) -> None:
+    """兜底清理某个 action_id 的审批态（``pending_approvals`` + ``approval_responses``）。
+
+    使用语义：工具在**超时未响应 / 拒绝**等「不再继续走 consume」的收尾分支调用，
+    避免遗留孤儿 ``pending_approvals`` 项——否则弹窗会因服务端状态仍在而无法关闭
+    （审批弹窗卡死根因之一）。
+
+    与 ``consume_approval_response`` 的分工：consume 是 happy-path（有响应时读取 +
+    清理并返回决策）；expire 是收尾兜底（无论有无响应,幂等地把两侧状态清干净,不返回
+    决策）。二者同为「整字典重赋值 + fail-soft」契约,并发安全语义一致。
+    """
+    if tool_context is None or not hasattr(tool_context, "state"):
+        return
+    try:
+        state = tool_context.state
+        pending = state.get("pending_approvals")
+        if isinstance(pending, dict) and action_id in pending:
+            state["pending_approvals"] = {k: v for k, v in pending.items() if k != action_id}
+        responses = state.get("approval_responses")
+        if isinstance(responses, dict) and action_id in responses:
+            state["approval_responses"] = {k: v for k, v in responses.items() if k != action_id}
+    except Exception as exc:
+        logger.warning("expire_approval_failed", action_id=action_id, error=str(exc))
+
+
+def record_approval_denial(tool_context: Any, tool_name: str, args_key: str) -> None:
+    """记录一次「该 tool + args 被拒/超时」的负面决议到 session.state。
+
+    写入 ``state["approval_denials"][f"{tool_name}:{args_key}"] = time.time()``。
+    后续同 key 调用经 ``was_recently_denied`` 命中后，工具应直接返回终结性 ``blocked``
+    结果、不再调 ``request_approval``——结构性掐断 LLM 的重试循环。
+
+    沿用「整字典重赋值」契约（与 request_approval / consume_approval_response 一致），
+    fail-soft（无 state 不抛）。
+    """
+    if tool_context is None or not hasattr(tool_context, "state"):
+        return
+    try:
+        state = tool_context.state
+        existing = state.get("approval_denials")
+        existing_dict = existing if isinstance(existing, dict) else {}
+        key = f"{tool_name}:{args_key}"
+        state["approval_denials"] = {**existing_dict, key: time.time()}
+    except Exception as exc:
+        logger.warning("record_approval_denial_failed", tool_name=tool_name, error=str(exc))
+
+
+def was_recently_denied(tool_context: Any, tool_name: str, args_key: str) -> bool:
+    """该 tool + args 是否在 ``APPROVAL_DENIAL_TTL_SECONDS`` 内被拒/超时过。
+
+    命中（True）→ 工具应跳过 ``request_approval``、直接返回 ``blocked`` 终结结果。
+    超期或无记录 → False（正常走审批门）。fail-soft（无 state / 无字典 → False）。
+    """
+    if tool_context is None or not hasattr(tool_context, "state"):
+        return False
+    try:
+        state = tool_context.state
+        denials = state.get("approval_denials")
+        if not isinstance(denials, dict):
+            return False
+        key = f"{tool_name}:{args_key}"
+        ts = denials.get(key)
+        if not isinstance(ts, (int, float)):
+            return False
+        return (time.time() - float(ts)) < APPROVAL_DENIAL_TTL_SECONDS
+    except Exception as exc:
+        logger.warning("was_recently_denied_failed", tool_name=tool_name, error=str(exc))
+        return False
+
+
 __all__ = [
     "HIGH_RISK_TOOLS",
     "DEFAULT_POLICY",
+    "APPROVAL_WAIT_SECONDS",
+    "APPROVAL_POLL_INTERVAL",
+    "APPROVAL_DENIAL_TTL_SECONDS",
     "ApprovalPolicy",
     "ApprovalPolicyMode",
     "ApprovalRequest",
@@ -250,4 +363,7 @@ __all__ = [
     "should_request_approval",
     "request_approval",
     "consume_approval_response",
+    "expire_approval",
+    "record_approval_denial",
+    "was_recently_denied",
 ]

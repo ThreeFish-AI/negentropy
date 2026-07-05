@@ -80,8 +80,7 @@ services:
   credential_backend: postgres              # inmemory | postgres | session
   memory_backend: postgres                  # inmemory | vertexai | postgres
   session_backend: postgres                 # inmemory | vertexai | database | postgres
-  artifact_backend: gcs                     # inmemory | gcs
-  gcs_bucket_name: negentropy               # GCS bucket（artifact_backend=gcs 时必填）
+  artifact_backend: postgres                # inmemory | postgres（制品持久化到 adk_artifacts 表）
   vertex_project_id: aftership-team-data    # VertexAI 项目 ID
   # vertex_location: null                  # VertexAI 区域
   # vertex_agent_engine_id: null           # VertexAI Agent Engine ID
@@ -210,6 +209,23 @@ routine:
   git_remote: origin                         # fetch / PR base 归一所用 git 远端名
   git_fetch_before_worktree: true            # 建 worktree 前 best-effort git fetch（带超时，失败不阻断）
   git_timeout_seconds: 120                   # 单条 git 子命令执行超时（秒）
+  # --- PR 合并状态巡检（终态 routine 的 PR 被 Merge 后回写 pr_merged → 三处 UI 显示「Merged」）---
+  pr_merge_check_enabled: true               # gh 不在 PATH 时整段静默 no-op（绝不崩溃心跳）
+  pr_merge_check_interval_seconds: 300       # 同一 routine 最小重查间隔（节流，适配 25s 心跳）
+  pr_merge_check_timeout_seconds: 5          # 单次 gh pr view 子进程超时；超时整组 SIGKILL
+  pr_merge_check_batch: 3                    # 单 tick 批量上限（×5s ≈ pass 最坏 15s，留足心跳余量）
+  # --- pdf-fidelity-patrol 巡检（#978）---
+  # 部署期默认开启：enabled 的种子任务真正每 1h 派生 Routine（routine.enabled 已 true）。
+  # 缺凭证/可解析仓库/已转换 PDF 文档时，Routine 创建后失败或 handler 跳过，原因写入
+  # task_executions.metrics.reason 并在 Scheduler UI 醒目展示（不 silent ok）。
+  patrol_enabled: true                       # 巡检总开关（与 routine.enabled 同范式；Field 默认 False，YAML 覆盖为 true）
+  patrol_repo_local_path: null               # null → 运行期从 negentropy 包路径自动推导仓库根；不可解析时报 repo_not_configured
+  patrol_baseline_branch: "origin/feature/1.x.x"
+  patrol_input_dir: "/tmp/negentropy-patrol"  # 源 PDF 暂存 + 候选 Markdown 输出根
+  patrol_max_iterations_per_doc: 400         # 单文档巡检 Routine 迭代硬上限（×50：原 8）
+  patrol_max_cost_usd_per_doc: 1500.0        # 单文档成本熔断（USD）；×50（原 30）容许数百轮深度拟合收敛（原 5 致 2 轮撞顶）
+  patrol_regression_sample_size: 6           # 非回归基线样本数
+  patrol_qualified_score_threshold: 95       # 巡检文档「合格」分阈值；best_score≥此值→done 推进(success_score_threshold 同步取此)，否则 unfixable 尽力(亦推进)
 
 # --- Knowledge 配置 ---
 knowledge:

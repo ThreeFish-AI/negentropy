@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -15,7 +16,7 @@ import pytest
 from fastapi import BackgroundTasks, HTTPException, UploadFile
 
 from negentropy.knowledge._shared import _resolve_chunking_config, _resolve_chunking_config_from_doc_request
-from negentropy.knowledge.routes import catalog, chunks, ingest, provenance, search, sources
+from negentropy.knowledge.routes import catalog, chunks, documents, ingest, provenance, search, sources
 from negentropy.knowledge.schemas import DocumentActionRequest, SearchRequest
 from negentropy.knowledge.types import ChunkingStrategy, KnowledgeRecord
 
@@ -57,7 +58,7 @@ async def test_list_document_chunks_success(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": "https://example.com/a"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -102,7 +103,7 @@ async def test_list_document_chunks_invalid_source(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
 
@@ -157,7 +158,7 @@ async def test_list_document_chunks_excludes_child_from_top_level(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": "https://example.com/a"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
 
@@ -190,7 +191,7 @@ async def test_sync_document_success(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": source_url},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -221,7 +222,7 @@ async def test_sync_document_rejects_non_url(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri="gs://bucket/file.pdf",
+        content_uri="pgblob://bucket/file.pdf",
     )
     fake_storage = FakeStorageService(doc=doc)
 
@@ -246,7 +247,7 @@ async def test_rebuild_document_url_requires_markdown(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": "https://example.com/doc"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc, markdown=None)
     fake_service = FakeKnowledgeService()
@@ -299,7 +300,7 @@ async def test_rebuild_document_url_success(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "url", "origin_url": source_url},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc, markdown="# m")
     fake_service = FakeKnowledgeService()
@@ -326,7 +327,7 @@ async def test_rebuild_document_file_requires_gcs(monkeypatch):
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri=None,
+        content_uri=None,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -396,12 +397,13 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
         app_name="negentropy",
         original_filename="design-spec.md",
         file_hash="",
-        gcs_uri="",
+        content_uri="",
         content_type=None,
         file_size=0,
         metadata_={},
         status="active",
         created_at=None,
+        updated_at=None,
         created_by=None,
         markdown_extract_status="pending",
         markdown_extracted_at=None,
@@ -424,11 +426,11 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
 async def test_rebuild_document_file_success(monkeypatch):
     corpus_id = uuid4()
     document_id = uuid4()
-    gcs_uri = "gs://bucket/file.md"
+    content_uri = "pgblob://bucket/file.md"
     doc = SimpleNamespace(
         id=document_id,
         metadata_={"source_type": "file"},
-        gcs_uri=gcs_uri,
+        content_uri=content_uri,
     )
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
@@ -445,7 +447,7 @@ async def test_rebuild_document_file_success(monkeypatch):
 
     assert result.status == "running"
     assert fake_service.pipeline_calls[-1]["operation"] == "rebuild_source"
-    assert fake_service.pipeline_calls[-1]["input_data"]["source_uri"] == gcs_uri
+    assert fake_service.pipeline_calls[-1]["input_data"]["source_uri"] == content_uri
 
 
 @pytest.mark.asyncio
@@ -454,7 +456,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     document_id = uuid4()
     fake_doc = SimpleNamespace(
         id=document_id,
-        gcs_uri="gs://negentropy/knowledge/context-engineering.pdf",
+        content_uri="pgblob://negentropy/knowledge/context-engineering.pdf",
         markdown_extract_status="pending",
     )
     fake_storage = FakeStorageService(doc=fake_doc)
@@ -527,7 +529,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
         content=b"%PDF-1.4 mock content",
         filename="Context Engineering.pdf",
         content_type=None,
-        source_uri=fake_doc.gcs_uri,
+        source_uri=fake_doc.content_uri,
         metadata={"document_id": str(document_id)},
         chunking_config=queued_chunking_config,
         document_id=document_id,
@@ -541,7 +543,7 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     assert chunking_config.hierarchical_parent_chunk_size == 1200
     assert chunking_config.hierarchical_child_chunk_size == 300
     assert chunking_config.hierarchical_child_overlap == 60
-    assert queued_call["source_uri"] == fake_doc.gcs_uri
+    assert queued_call["source_uri"] == fake_doc.content_uri
     assert queued_call["metadata"]["document_id"] == str(document_id)
 
 
@@ -567,3 +569,85 @@ async def test_search_route_preserves_chunk_indices_in_metadata(monkeypatch):
     assert result["items"][0]["metadata"]["chunk_index"] == "47"
     assert result["items"][0]["metadata"]["parent_chunk_index"] == "6"
     assert result["items"][0]["metadata"]["matched_child_chunks"][0]["child_chunk_index"] == "13"
+
+
+# ---------------------------------------------------------------------------
+# 文档列表：按最终修改时间倒序 + 响应暴露 updated_at
+# ---------------------------------------------------------------------------
+
+
+class _FakeListStorage:
+    """记录 list_documents 调用参数的存储服务替身。"""
+
+    def __init__(self, docs):
+        self._docs = list(docs)
+        self.list_calls: list[dict] = []
+
+    async def list_documents(self, **kwargs):
+        self.list_calls.append(kwargs)
+        return list(self._docs), len(self._docs)
+
+
+def _make_list_doc(**overrides) -> SimpleNamespace:
+    """构建 _build_document_response 所需全部字段的 ORM 文档替身。"""
+    now = datetime(2026, 6, 26, 12, 0, 0, tzinfo=UTC)
+    base = {
+        "id": uuid4(),
+        "corpus_id": None,
+        "app_name": "negentropy",
+        "file_hash": "hash-001",
+        "original_filename": "a.md",
+        "display_name": None,
+        "content_uri": "pgblob://bucket/a.md",
+        "content_type": "text/markdown",
+        "file_size": 10,
+        "status": "active",
+        "created_at": now,
+        "updated_at": now,
+        "created_by": None,
+        "markdown_extract_status": "completed",
+        "markdown_extracted_at": None,
+        "markdown_extract_error": None,
+        "metadata_": {},
+    }
+    base.update(overrides)
+    return SimpleNamespace(**base)
+
+
+def _patch_list_helpers(monkeypatch, fake_storage):
+    """统一打桩：存储服务 + 用户名/归档/源 URI 解析（均不触达 DB）。"""
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
+    monkeypatch.setattr(documents, "_resolve_user_display_names", AsyncMock(return_value={}))
+    monkeypatch.setattr(documents, "_resolve_documents_archived_set", AsyncMock(return_value=set()))
+    monkeypatch.setattr(documents, "_resolve_document_source_uri", lambda doc: None)
+
+
+@pytest.mark.asyncio
+async def test_list_all_documents_orders_by_updated_at_and_exposes_field(monkeypatch):
+    """全局文档端点：传 order_by="updated_at"，且响应 items 暴露 updated_at（ISO 串）。"""
+    updated = datetime(2026, 6, 26, 8, 30, 0, tzinfo=UTC)
+    doc = _make_list_doc(updated_at=updated)
+    fake_storage = _FakeListStorage([doc])
+    _patch_list_helpers(monkeypatch, fake_storage)
+
+    result = await documents.list_all_documents(app_name="negentropy", limit=10, offset=0)
+
+    assert fake_storage.list_calls[0]["order_by"] == "updated_at"
+    assert fake_storage.list_calls[0]["limit"] == 10
+    assert len(result.items) == 1
+    assert result.items[0].updated_at == updated.isoformat()
+
+
+@pytest.mark.asyncio
+async def test_list_corpus_documents_orders_by_updated_at(monkeypatch):
+    """语料文档端点同样按 updated_at 倒序，并透传 corpus_id 过滤。"""
+    corpus_id = uuid4()
+    doc = _make_list_doc(corpus_id=corpus_id)
+    fake_storage = _FakeListStorage([doc])
+    _patch_list_helpers(monkeypatch, fake_storage)
+
+    result = await documents.list_documents(corpus_id=corpus_id, app_name="negentropy", limit=10, offset=0)
+
+    assert fake_storage.list_calls[0]["order_by"] == "updated_at"
+    assert fake_storage.list_calls[0]["corpus_id"] == corpus_id
+    assert result.items[0].updated_at is not None

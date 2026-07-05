@@ -1,0 +1,5 @@
+{
+  "position": 4,
+  "label": "知识与图谱",
+  "description": "知识库（RAG/Chunking/Embedding）、图数据库（Neo4j/Postgres）与配套工具（Cognee/Bettafish）调研"
+}

@@ -90,9 +90,12 @@ jobs:
     with:
       run_e2e: true
 
+  wiki-qa:
+    uses: ./.github/workflows/reusable-negentropy-wiki-quality.yml
+
   package-release:
     name: Package Release Artifacts
-    needs: [backend-qa, ui-qa]
+    needs: [backend-qa, ui-qa, wiki-qa]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:

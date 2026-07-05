@@ -1,6 +1,6 @@
 ---
 id: the-pulse
-sidebar_position: 1.0
+sidebar_position: 1.1
 title: "Phase 1: The Pulse"
 last_update:
   author: Aurelius Huang

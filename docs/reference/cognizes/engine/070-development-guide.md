@@ -1,4 +1,10 @@
+---
+sidebar_position: 7.0
+title: "Cognizes 验证项目开发与维护手册"
+---
 # 开发与维护手册
+
+> ⚠️ **作用域边界**：本文档对应**外部独立验证项目** [`ThreeFish-AI/agentic-ai-cognizes`](https://github.com/ThreeFish-AI/agentic-ai-cognizes)（Cognizes 引擎内核的早期可行性验证），**非 Negentropy 主仓**。Negentropy 主仓的开发指南以 [`concepts/operations/development.md`](../../../concepts/operations/development.md) 为权威（环境搭建、工作流、数据库迁移、前后端对接）。本文档保留作历史参考，其中的仓库结构与命令不适用于主仓。
 
 ## 开发环境设置
 

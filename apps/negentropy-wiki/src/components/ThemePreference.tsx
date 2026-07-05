@@ -1,15 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 
-import { COLOR_SCHEME_KEY } from "@/lib/wiki-color-scheme";
-
-type ColorScheme = "light" | "dark" | "system";
-
-function getStoredValue(key: string, fallback: string): string {
-  if (typeof window === "undefined") return fallback;
-  return localStorage.getItem(key) ?? fallback;
-}
+import {
+  COLOR_SCHEME_KEY,
+  applyColorScheme,
+  getStoredColorScheme,
+  type ColorScheme,
+} from "@/lib/wiki-color-scheme";
 
 function subscribe(cb: () => void) {
   const handler = (e: StorageEvent) => {
@@ -27,9 +26,11 @@ function subscribeSystemDark(cb: () => void) {
 }
 
 export function ThemePreference() {
+  const pathname = usePathname();
+
   const colorScheme = useSyncExternalStore(
     subscribe,
-    () => getStoredValue(COLOR_SCHEME_KEY, "system") as ColorScheme,
+    () => getStoredColorScheme(),
     () => "system" as ColorScheme,
   );
 
@@ -42,21 +43,29 @@ export function ThemePreference() {
   );
 
   // 水合后据 localStorage 重新断言外观，兜底内联脚本/水合差异导致的 data-color-scheme 丢失。
+  // 首页由 HomePageThemeGuard 强制暗色管控：此处须跳过，避免把外观还原成 localStorage 偏好
+  // （否则会覆盖 guard 在 paint 前钉定的 dark）。
   useEffect(() => {
-    applyColorScheme(getStoredValue(COLOR_SCHEME_KEY, "system") as ColorScheme);
-  }, []);
+    if (pathname === "/" || pathname === "") return;
+    applyColorScheme(getStoredColorScheme());
+  }, [pathname]);
 
   const resolvedDark =
     colorScheme === "dark" || (colorScheme === "system" && systemDark);
 
   const handleToggle = useCallback(() => {
-    const current = getStoredValue(COLOR_SCHEME_KEY, "system") as ColorScheme;
+    const current = getStoredColorScheme();
     const isDark = current === "dark" || (current === "system" && systemDark);
     const next: "light" | "dark" = isDark ? "light" : "dark";
     localStorage.setItem(COLOR_SCHEME_KEY, next);
     applyColorScheme(next);
     window.dispatchEvent(new StorageEvent("storage", { key: COLOR_SCHEME_KEY }));
   }, [systemDark]);
+
+  // 首页强制暗色：隐藏切换按钮（不允许切回浅色）。
+  // 注意须在所有 hooks 调用之后再 early return，保证 hooks 调用顺序恒定。
+  // graph 页等 pathname≠"/" 不受影响，按钮照常渲染。
+  if (pathname === "/" || pathname === "") return null;
 
   return (
     <button
@@ -83,20 +92,4 @@ export function ThemePreference() {
       )}
     </button>
   );
-}
-
-function applyColorScheme(cs: ColorScheme) {
-  const el = document.documentElement;
-  if (cs === "system") {
-    el.removeAttribute("data-color-scheme");
-  } else {
-    el.setAttribute("data-color-scheme", cs);
-  }
-}
-
-export function initThemeFromStorage() {
-  const cs = localStorage.getItem(COLOR_SCHEME_KEY) as ColorScheme | null;
-  if (cs && cs !== "system") {
-    document.documentElement.setAttribute("data-color-scheme", cs);
-  }
 }

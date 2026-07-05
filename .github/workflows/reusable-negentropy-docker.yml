@@ -113,8 +113,8 @@ jobs:
             dockerfile: docker/frontend/Dockerfile
             build_args: "TARGET_SERVICE=negentropy-ui"
           - name: negentropy-wiki
-            dockerfile: docker/frontend/Dockerfile
-            build_args: "TARGET_SERVICE=negentropy-wiki"
+            dockerfile: docker/wiki/Dockerfile
+            build_args: ""
     steps:
       - uses: actions/checkout@v4
 

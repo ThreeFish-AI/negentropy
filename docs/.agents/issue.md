@@ -278,9 +278,9 @@
 ## ISSUE-015 Knowledge / Catalog 与 Wiki 入口的 Catalog 选择器冗余 → 单实例 Catalog 收敛（Phase 4）
 
 - **表因**：用户在 `/knowledge/catalog` 与 `/knowledge/wiki` 两个入口顶部均看到「目录：选择目录」`<CatalogSelector>` 组件组；首次进入未选择 catalog 时整页空载，显著的 UX 摩擦点；同时 KnowledgeNav 的 7 个固定 tab、Sidebar 的 5 个一级条目均未按 catalog 分支，使「选 catalog」沦为不可观测的全局态。截图来自 `/knowledge/catalog`（参见 [`apps/negentropy-ui/app/knowledge/catalog/page.tsx:11-89`](../apps/negentropy-ui/app/knowledge/catalog/page.tsx) 与 [`apps/negentropy-ui/app/knowledge/wiki/page.tsx:5,15-68`](../apps/negentropy-ui/app/knowledge/wiki/page.tsx)）。
-- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`035-the-knowledge-base.md` §13](../concepts/035-the-knowledge-base.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
+- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`035-the-knowledge-base.md` §13](../concepts/subsystems/035-the-knowledge-base.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
 - **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
-  1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../reference/wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
+  1. **架构沉淀**（本次 PR）：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../concepts/subsystems/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`wiki/ops.md` §12](../reference/wiki/ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
   2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
   3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
   4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
@@ -965,8 +965,8 @@
   - V4: 刷新后一致性 → 单气泡
 - **后续防范（Phase 2-4 路线图）**：
   1. **Phase 2 后端协议合规**：在 [`apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts`](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts) 反向代理层注入 runId（将上游 ADK Web 响应中的 `invocation_id` 映射为 `runId` 写入每个事件），让 hydration 路径不再需要 fallbackRunId 兜底。Phase 1 合成识别保留作为防御。
-  2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/concepts/0001-conversation-architecture-refactor.md`](../concepts/0001-conversation-architecture-refactor.md)。
-  3. **Phase 4 UI 交互能力增强**：Reasoning Panel + Sub-Agent 嵌套卡片 / 工具进度 + 中断/审批门 / Conversation Branching + Timeline 增强。Backlog 见 [`docs/concepts/0002-ui-interaction-enhancements.md`](../concepts/0002-ui-interaction-enhancements.md)。
+  2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/concepts/0001-conversation-architecture-refactor.md`](../concepts/design/0001-conversation-architecture-refactor.md)。
+  3. **Phase 4 UI 交互能力增强**：Reasoning Panel + Sub-Agent 嵌套卡片 / 工具进度 + 中断/审批门 / Conversation Branching + Timeline 增强。Backlog 见 [`docs/concepts/0002-ui-interaction-enhancements.md`](../concepts/design/0002-ui-interaction-enhancements.md)。
   4. **dev 模式 lifecycle 完整性 invariant 断言**（建议）：在 `useSessionProjection` 加轻量断言「同 threadId 下若同时存在 synthetic turn 与 concrete turn，前者的 assistant text 必须全被后者包含」，把这类合成 turn 退化在开发期捕捉。
 - **诊断抓手（未来再复发时）**：
   1. 浏览器开发者工具抓 `/api/agui/sessions/{id}` 响应 JSON，确认事件是否含 `runId` 字段；不含则属本 issue 复发或 Phase 2 退化。
@@ -2178,6 +2178,12 @@
   - 其它 app（`cognizes` / `negentropy` 主仓）若引入 `pip-audit` 步骤，应直接复用本数组式模板；
   - 周期性的 PYSEC 数据库增补会让任何使用 `pip-audit` 且依赖锁定到老旧 ML 套件（torch / transformers / numpy / scipy 等）的项目出现同类「无 fix 可升、必须 ignore」局面，须按本案的「威胁模型 + 锁版本约束」双轴评估，而非盲目跟随 CVSS 分数升级；
   - 现有 8 条历史 ignore（pygments / fastmcp / litellm）已不在本次失败报告里，下次例行升级时应核对其匹配性，避免 ignore 列表演变为僵化白名单。
+- **CVE-2026-4372 增补（2026-07-05，Dependabot alert #492）**：
+  - **新向量（区别于 PYSEC-2025-211..218）**：`CVE-2026-4372`（GHSA-29pf-2h5f-8g72，HIGH CVSS 7.8）是 `config.json._attn_implementation_internal` 注入 RCE，**绕过 `trust_remote_code=False`**——受害者仅需 `from_pretrained` 加载恶意模型即被 RCE；4.x 全线无回溯补丁，唯一修复为 `transformers>=5.3.0`。
+  - **实测升级回归**：临时移除 `<5.0.0` 钉子 → `uv lock` 解析 transformers 5.3.0；perceives 三层 smoke 验收：①import smoke 过；②引擎单测 68 passed；③1 页 PDF 实跑——**docling 2.98 在 5.3.0 下 140s 正常出文**，但 **marker-pdf 1.10.2 / surya-ocr 0.17.1 崩溃：`No module named 'transformers.onnx'`**（5.x 移除 ONNX 子模块，marker 仍 import 它）。即旧注释所谓「marker-pdf + docling 兼容交集」实为**仅 marker 阻断**，docling 已就绪。
+  - **决策**：marker-pdf 是 perceives PDF→MD 三引擎之一（高精度 OCR），不能为修 CVE 牺牲该能力；上游 marker-pdf/surya-ocr 尚未适配 transformers 5.x。故**保留 `transformers>=4.56.1,<5.0.0` 钉子**，Dependabot #492 以 `tolerable_risk` dismiss。
+  - **威胁模型复核（覆盖 CVE-2026-4372）**：perceives 零直接 import transformers，仅经 docling/marker/surya 加载其官方第一方模型 artifact（Docling Layout / TableFormer / surya 系列），无任何加载用户/第三方不可信模型 repo 或 `.pt2`/`.joblib` 缓存的代码路径；CVE-2026-4372 的 `config.json` 注入需攻击者控制被加载模型的 config，第一方官方模型不满足该前提，故风险降至「官方模型 repo 被攻陷」二阶场景，可容忍。
+  - **解锁条件**：跟踪 marker-pdf/surya-ocr 适配 transformers 5.x 的上游 release（docling 跟踪 #3090）；一旦 marker 解锁，立即抬 `transformers>=5.3.0` 重启该 CVE 修复。
 
 ---
 
@@ -2245,6 +2251,38 @@
   2. **占位符保护范式可复用**：``_protect_*_blocks`` / ``_restore_*_blocks`` 模式可推广到任何"内部内容不应被任何 formatter 步骤修改"的块级元素（数学块、Mermaid 块、ASCII art 等）；
   3. **跨形式签名的最小启用长度**：字符级扁平签名 ≥20 字符是经验阈值，更低易在短公式（如 ``\alpha = 0``）上产生假阳性匹配，更高漏过中等长度公式；
   4. **临时调试 env-gated 探针**：``NE_DEBUG_FORMULA=1`` 可在二轮根因定位中快速暴露 7 公式如何在 ``add → join → format → final`` 各环节流转，确认是 ``format()`` 内部某步骤丢弃，比再加 print 高效得多。该探针修复落地后已移除。
+
+### 第三轮迭代（R10，2026-07-05）：Self-Improving Agents 综述（88 页 / 双栏 / 数学密集）
+
+以 88 页新维度 PDF 为回归基线，暴露并修复 **9 类失真**（Q6 为伪命题）。完整逐项根因 / 修复 / 单测见 [pdf-harness-engineering-parity.md §9](./pdf-harness-engineering-parity.md#9-r10-增量self-improving-agents-综述88-页--a4-双栏-latex)，此处仅记跨上下文复用要点：
+
+- **两类 auto_batch 跨切片状态泄漏**（同源根因）：
+  - **Q2 标题层级**：assembly 2.1 级联 `_first_h1_seen` 是 per-slice 局部状态，切片 N>0 首标题被误册封 H1。修复：`slice_index` 贯穿 pipeline，切片>0 不册封。
+  - **Q4 公式跨切片泄漏**：MinerU 引擎 pool 复用时 `_ensure_output_dir` 缓存目录，某切片解析失败时 `rglob` 命中前切片遗留 `content_list.json`，静默继承其全部公式/表格/图片。修复：每次 `convert()` 用独立子目录隔离。
+- **三类仅浏览器渲染态可见的失真**（DB markdown 层不可见，实机验证发现）：Q7 figure 过度捕获（`_expand_figure_bbox` 把 Abstract 底纹框烘入图）、Q8 KaTeX ParseError（裸花括号失衡 + `\aftergroup` 等不兼容 primitive）、Q9 公式双份并存（inline 文本流 + block 未去重）。
+- **防范要点**：
+  1. **auto_batch 无共享可变状态铁律**：凡引擎/组装状态在切片间复用，产物目录须 per-call 唯一，级联/册封类状态须显式接收 slice_index；
+  2. **resume 缓存 + 进程热更盲区**：改 perceives 代码验证同一 PDF，必须①重启 MCP 进程（Python 无热重载）②清 `.batch_state/` checkpoint，否则 resume 复用旧切片跳过新代码——本轮曾因此白跑 2 次 re-ingest；
+  3. **1:1 还原验收必须走到浏览器渲染态**：Q7/Q8/Q9 在 DB markdown 层均"看似正确"，仅 KaTeX/图片渲染后才暴露；
+  4. **NFKD 折叠是 Unicode 数学↔LaTeX 跨形式去重的前提**：仅保留 ASCII 会把数学字母块（U+1D400–1D7FF）签名坍缩，须先 `unicodedata.normalize("NFKD")`；
+  5. **figure caption 双源**：多数 figure caption 已烘入 region PNG 像素，wiki/ui 不宜再从 alt 渲染 figcaption（双图注）。
+  6. **Codify 沉淀（2026-07-05）**：本轮洞察已对齐进三件套——巡检派生 Routine 的 `PATROL_SYSTEM_PROMPT`（`engine/routine/patrol_prompt.py`）step 1 前置 `rm -rf output/.batch_state`（CLI 不暴露 `--no-resume`，只能靠清 checkpoint 生效）；Skill 双 twin（`.agent/skills/pdf-fidelity-restore/SKILL.md` + `skill_templates/pdf_fidelity_restore.yaml@1.1.0`）补「热更铁律 / 关键洞察」并修 perceives 死链，经 migration `0090` 非破坏重播到 live DB 全局技能行（`is_global`，供一核五翼）。
+
+### 第四轮迭代（R11，2026-07-05）：同基线长尾抛光（封面 icon / URL 拆分 / 引用括号 / 数学下标 / 度数）
+
+R10 闭环后继续在**同一 88 页综述基线**上做渲染态长尾抛光，挖出 R10 之后剩余的 6 类失真（A/B/B2/C/D/F）。完整逐项根因 / 修复 / 单测见 [pdf-harness-engineering-parity.md §10](./pdf-harness-engineering-parity.md#10-r11-增量self-improving-agents-综述长尾抛光同基线深化)，此处仅记跨上下文复用要点：
+
+- **D（数学下标/上标拍平）是本轮主菜，亦最难**：根因在 PyMuPDF 把 ``U_t`` 抽为「主字号 span + 更小更低 baseline 的 sub span」，plain `" ".join` 拍平为 ``𝑈𝑡``、经 `_normalize_unicode_math` 包成 ``$Ut$``（无下标）。修复需在 text_extraction `_extract_chunk` 阶段，对含数学字体的块用 `FormulaReconstructor.reconstruct_line_formulas` 逐行重建（sub/sup → ``_{...}``/``^{...}``，包 ``$...$``）。下游 formatter 的 `_normalize_unicode_math` split-and-skip 天然保留既存 ``$...$``，零冲突。
+- **D 一阶段上线即触发 25 处 Double subscript KaTeX ParseError**（``M_{\theta}_{t}``），DB 层完全不可见，仅浏览器实机暴露——再次印证「1:1 验收必须走到浏览器渲染态」。D2 用「连续同型 sub/sup 合并为单 ``_{...}``」修复。
+- **几何启发式两个易错锚点**：(a) `normal_size` 取 ``max(sizes)`` 而非众数——纯数学行 sub span 数量 > base 时众数会被拉到 sub 字号；(b) baseline 取自「正文字号 span 的 origin」而非所有 span 中位数——多 sub 行的中位 origin 会被 sub 拉低。两个锚点错任一都会致 sub 误判 normal、漏 ``_{}``。
+- **零成本红利：B/B2 修 URL 后 GFM autolink 免费恢复 278 处超链接**。修 ``https: //`` 与路径拆分后，裸 URL 由 remark-gfm 自动渲染 ``<a>``，无需额外链路。
+- **citation 年份正则的字母消歧后缀陷阱**：``\b2026\b`` 在 ``2026b`` 处无词边界，须 ``\b2026[a-z]?\b``；初版漏此致 5 处 letter-suffix 引用未收紧。
+- **同形字符的语义边界**：U+25E6 ``◦`` 在表格是 partial-support 标记（合法）、在度数位是 ``°`` 误代（缺陷），用「数字前缀」作语义守卫精准区分；``§`` 在 ``§8.2`` 是章节号、在 ``§ GitHub`` 是 icon-font mojibake，用「按钮词上下文」区分。
+- **防范要点**：
+  1. **几何启发式须锚到「正文」基准**：normal_size = max（base 最大）；baseline = 正文字号 span 的 origin。两个锚点都对「sub 主导的纯数学行」稳健。
+  2. **连续同型 sub/sup 必须合并**：per-span ``_{...}`` 会产生 ``M_{a}_{b}`` Double subscript；用 pending buffer 收集同型组、一次性 ``math_text_to_latex`` 处理（保留 ``\theta t`` 字母间空格）。
+  3. **re 的 ``\u`` 与 Python 字面量 ``\u`` 语义不同**：raw 串 ``r"◦"`` 在 re 报 ``bad escape \u``；用非 raw 串或字面字符。
+  4. **D 类改动验收看浏览器 KaTeX 错误数**，DB ``_{}`` 计数不反映双下标错误。
 
 ### 第三轮迭代（2026-05-25 端到端质量回归：断字 / 公式漏检 / 标题误判 / TOC 错乱 / 图片孤儿）
 
@@ -2532,7 +2570,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
   1. **用户语义 vs 系统执行**：UI 入口只承载「想用什么对象」级语义，绝不把「以什么方式使用」的执行决策外溢成 N 个 Tab；任何「检索 vs 沉淀 vs 强制图谱」类二分决策应由后端 IntentClassifier 或独立 UI 入口承载。
   2. **forwardedProps 字段单一事实源**：mention 派生字段命名要与后端 state key 保持 1:1 对齐（前端 `corpus_ids` ↔ ADK state.corpus_ids ↔ tool_context.state.corpus_ids），避免多语义字段并存导致跨 turn 状态污染。
   3. **空数组清空语义**：跨 turn 残留是 BFF→ADK 链路的高频 bug 源。新增 mention 派生字段时，前端必须在每轮 turn 显式发送字段（含空数组），BFF 据空数组写入 state_delta 触发清空。
-  4. **Ingest 智能识别闭环（已落地）**：通过 `engine/utils/action_intent.py` 关键词分类器 + `agents/agent.py::_pick_root_model` 写 `state.action_intent_hint` + Root instruction「Ingest 意图分流」段 + `agents/tools/ingest.py::ingest_to_corpus` 工具 + InternalizationFaculty instruction「Ingest 触发协议」段五件套，把「沉淀」语义还给 LLM 自主决策，避免 UI 入口反弹。详见 [docs/concepts/037-federated-kg.md §5.5](../concepts/037-federated-kg.md#55-ingest-智能识别intentclassifier)。
+  4. **Ingest 智能识别闭环（已落地）**：通过 `engine/utils/action_intent.py` 关键词分类器 + `agents/agent.py::_pick_root_model` 写 `state.action_intent_hint` + Root instruction「Ingest 意图分流」段 + `agents/tools/ingest.py::ingest_to_corpus` 工具 + InternalizationFaculty instruction「Ingest 触发协议」段五件套，把「沉淀」语义还给 LLM 自主决策，避免 UI 入口反弹。详见 [docs/concepts/037-federated-kg.md §5.5](../concepts/subsystems/037-federated-kg.md#55-ingest-智能识别intentclassifier)。
 - **同类问题影响**：未来若需引入「@ Tool」「@ Memory」等新类别 mention，必须先评估能否合并到现有 `MentionKind`（如以「对象类别」而非「使用方式」为维度），避免再次发散为多 Tab。
 
 ### 后续 PR：Ingest 智能识别（IntentClassifier）实机验证记录（2026-05-27）
@@ -3011,6 +3049,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ---
 
+## ISSUE-128 巡检 Routine 被 `_is_no_progress` 假阳性误杀为 failed：点态停滞判定对 Judge 聚合分天然振荡零容忍（2026-06-29）
+
+- **表因**：PDF Fidelity Patrol 巡检 Routine `35ff2e9f-9a25-4706-be38-96fa32c35628`（PDF→Markdown 效果值守与自主拟合优化）运行**仅 6 轮、花费 $28 / $1500 预算**即 `status=failed, termination_reason=no_progress`。用户预期：这类「尽力优化型」Routine 本不该 hard-fail，只应在运行时长与优化程度上有差异。实测迭代评分轨迹 `72→84→62→72→42→72`（`best_score=84` 为 seq 2 早期尖峰），各轮 reflection 均显示实质推进（图廊去重 14→1、双栏排序修复、伪 SQL 围栏消除）。
+- **根因**：`engine/routine/decision.py::_is_no_progress` 用**点态、零容差**的 `all(score <= 窗口前最优)` 判定停滞。Judge 聚合分对「修一处 perceives 缺陷、回归压低另一处」的拟合任务天然 **±20 振荡**；`patience=3` 时窗口前最优取 `max([72,84,62])=84`（一次早期运气尖峰立起 watermark），窗口 `[72,42,72]` 全 ≤84 → 误判停滞 → `decide()` 判 `terminate/no_progress` → `_terminate` 映射 `failed`。`accept_verdict_pass=True` 旁路兜不住：该旁路仅当 `verdict=="pass"`（"仅剩 unfixable 即 done"）触发，本文档仍有可修复缺陷，Judge 正确判 `progressing/stalled` 而非 `pass`——旁路为「收敛但分低」场景设计，不覆盖「仍在修复中但分震荡」场景。`_is_oscillating` 不接力误杀（其 verdict 过滤 `stalled`、仅认 `progressing/regressed`，巡检翻转是 `progressing↔stalled`，过滤后 `len<3` 永不满足；已用真实模块复现 `oscillating=False`）。
+- **二阶影响**：误杀后 `pdf_fidelity_patrol._finalize_terminal_patrols` → `patrol_memory.persist_terminal_outcome` 因 `best_score=84<qualified_threshold=95` 且契约非 done，把文档标 `unfixable` 永久进 `skip_ids` 不再巡检——**一次假阳性永久污染文档**。主修复消除上游假阳性后，该映射对「真正耗尽预算」场景语义正确，故本次不动下游（最小干预）。
+- **处理方式**（最小干预、向后兼容）：为 `_is_no_progress` 与 `decide()` 引入 per-call 关键字参数 `no_progress_score_tolerance: int = 0`（容差带）；比较改为 `all(score <= best - tolerance)`，窗口内任一评分落在 `[best-tolerance, +∞)` 即视为「接近最优·有进展」不判停滞。`tolerance=0` 逐字节退化原行为（向后兼容）。`orchestrator.py` decide 调用点镜像 `accept_verdict_pass` 从 `config.no_progress_score_tolerance` 透传（`max(0,int(...))` 防负值）；`patrol_prompt.build_routine_config` 注入 `no_progress_score_tolerance: 20`（典型振荡幅度）。`_RoutineLike` Protocol、`_is_oscillating`、`persist_terminal_outcome`、`_terminate`、ORM、迁移均不动。
+- **后续防范**：① 任何以 LLM-as-Judge 聚合分驱动的停滞/振荡判定，须考虑该分天然波动性，点态阈值判定对振荡型收敛任务须配容差带或趋势判定，不可零容差；② 「尽力优化型」Routine（巡检）的非成功终态（no_progress/oscillation/budget）映射为 hard `failed` 是更上游的语义债——理想应有 `converged`（尽力收敛）独立终态，由 `persist_terminal_outcome` 按 best_score 判 done/unfixable，列为后续演进（需谨慎处理 `_propagate_patrol_outcomes` 的 Scheduler 状态映射，不得回归 `be3b257a`「失败不再误标成功」）；③ **更深层根因（评分口径）**：决策用分是 Evaluator Judge 基于「本轮 summary」独立重打的分，每轮无历史、无客观锚点（巡检 `verification_command=None`），与 CC 自评的累计视觉一致度 `contract.score`（口径正确、应单调趋近 100）口径错配——这是评分大幅波动甚至走低的结构性根因，治本方向是让累计 contract.score 进入决策位，需独立评估其可信度（亦 LLM 自评），列为后续演进。
+- **同类问题影响**：所有 `accept_verdict_pass=True` 类「完成判据无法被单一分数阈值捕获」的长尾 Routine；与 ISSUE-116（评分越线封顶）、ISSUE-121（弱 Judge 误判 acceptance）正交但同属 LLM-as-Judge 评分链路稳定性议题。
+- **验证**：`test_routine_decision.py` 新增 5 例（核心回归编码真实轨迹 `72→84→62→72→42→72` 断言 `continue`、向后兼容锁 tolerance=0 仍 `no_progress`、平线远低于最优仍停滞、边界精度 `best-tolerance` 闭区间、in-window-climb 守护）+ `test_pdf_fidelity_patrol_handler.py` 补 config 断言；engine 全套单测 **1043 passed**、ruff All checks passed。真实数据回放：`decide(...,no_progress_score_tolerance=20)` 由 `terminate/no_progress` 反转为 `continue`。
+
+---
+
 ## ISSUE-118 Documents 页图片把自动文件名当 figcaption 显示 + 全局技能「卡片可见 ≠ Agent 可用」
 
 - **表因**：Knowledge/Documents 页渲染 perceives 抽取的 PDF 时，无图注的图片（如论文 logo `fig_p1_1.png`）下方显示出无语义的 "fig_p1_1.png" 文本；另：把技能标记 `is_system` 仅令其在 Skills 卡片对全员可见，却未注入任何 Agent 的 Progressive Disclosure。
@@ -3260,3 +3310,164 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：① 仓库根新增 `VERSION` 文件作 SSOT（当前 `0.0.1-rc.1`）；② 新增 `scripts/sync_versions.py`（PEP 723 单文件，tomlkit 保格式写 pyproject + 行级正则写 package.json + `packaging` 规范化比对消除 `0.0.1-rc.1`↔`0.0.1rc1` 字面误报 + 对受影响 app 跑 `uv lock`），含 `sync`/`check` 两子命令；③ pre-commit `version-sync-check` local hook（只校验不 autofix）+ CI `.github/workflows/version-consistency.yml`（fail-only）双重防漂移；④ 管辖主栈 6 包（root / negentropy / negentropy-ui / negentropy-wiki / negentropy-perceives / agents-chat-core），`cognizes`/`cognizes-ui` 保持独立（pnpm-workspace.yaml 已注明其为独立项目，且 `0.1.0` 与主栈 `0.0.1-rc.1` 语义本就不同步）。
 - **后续防范**：① 改版本只动 `VERSION` 后跑 `uv run scripts/sync_versions.py sync`，勿手改清单；② 发版前确保 git tag 版本号 == `VERSION` 值（docker-operations.md 既有要求，SSOT 让清单侧自动满足）；③ CI 发布是 tag-driven，SSOT 是开发期写入、CI 仍信任 tag，二者职责正交。
 - **同类问题影响 / 已知遗留**：(1) `cognizes` 内部版本漂移未治理——`apps/cognizes/pyproject.toml`=`0.1.0`、`src/cognizes/__init__.py` `__version__`=`0.1.0`、`api/main.py` FastAPI `version`=`"1.0.0"`、`agents/claude/__init__.py` `__version__`=`0.1.0` 多处不一致，本方案刻意不动（正交边界）；若 cognizes 未来并入主栈统一发版，将其加入 sync 脚本目标列表并先治理内部漂移。(2) `perceives` 独立发 PyPI（`perceives-v*` tag）当前与主栈同 version 安全；未来若需独立演进，从脚本目标列表移除即 opt-out（清单驱动，预留正交解耦）。
+
+---
+
+## ISSUE-145 `cli.sh restart` 健康检查超预算致整链中止 + 脏树 pull 惊吓提示 + perceives 冷启动 selenium 懒加载（2026-06-22）
+
+- **表因**：`scripts/cli.sh restart` 在实机整链失败——perceives（2992）冷启动约 66s 才打印 `Starting MCP server`，而健康检查在 67s 已放弃 → `start_service` 误判"启动失败"并 `stop_service` 清理"即将就绪"的进程 → `cmd_start` Phase 5 `exit 1` → EXIT trap 中止全部已启动服务。运行日志另暴露两类缺陷：① 脏工作树下 `git pull --ff-only` 输出 `Your local changes would be overwritten by merge` / `run git reset --hard to recover`（`--ff-only` 实为安全中止，但易诱导破坏性操作）；② 健康检查失败时 `tail -20` 把上一轮运行的日志混入本次诊断，且本轮日志稀疏时只回显 STARTING banner，误导排查。
+- **根因**：① `wait_for_health` 硬编码 `attempts=60` 按次数计、每探针 `curl + sleep 1`，预算实为 `attempts × (curl + sleep)` 既可能 < 60s 也可能 >> 60s，非真正壁钟上限；perceives 冷启动 45~90s、backend 15~45s 均可超 60s。② perceives 冷启动慢的根因在 `apps/negentropy-perceives/src/negentropy/perceives/scraping/`：`core/services.py:14` 导入期即 `web_scraper = WebScraper()` → 触发 `scraping/__init__.py` → `engine.py` 模块体执行 5 处 selenium 导入（`webdriver`/`By`/`WebDriverWait`/`EC`/`TimeoutException`）+ `browser.py`/`form_handler.py`/`anti_detection.py` 另 4 处——selenium 冷启动约 30-50s。playwright 已是懒加载（仅函数内 + TYPE_CHECKING），selenium 是唯一模块级重导入。
+- **处理方式**（PR #950，`ThreeFish-AI/fix-cli-restart` → `feature/1.x.x`）：
+  - cli.sh：① 新增 `_svc_health_secs()` 按服务分级预算（perceives/backend 180s、ui/wiki 60s，`NEGENTROPY_HEALTH_TIMEOUT_SECONDS` 可整体覆盖）；② `wait_for_health` 改 **`$SECONDS` 壁钟截止**（预算即真上限）、返回码 0/1/2（就绪/进程死亡/超时），单探针 `--connect-timeout 2 --max-time 5` 仅作安全阀；③ `start_service` 用 `|| health_rc=$?` + `case` 三态分支（`set -e` 下 bare `$?` 会被 errexit 抢先，必须 `||` 兜），区分"进程异常退出"与"冷启动超预算、进程仍存活"；④ `_git_pull_best_effort` 用 `git diff --quiet HEAD` 预检（`||` 兜 rc=1），脏树跳过 + WARN，仅干净树执行 `pull --ff-only`；⑤ `_tail_this_attempt(logf, offset)` spawn 前记字节偏移，失败时 `tail -c +N | tail -30` 仅展示本次启动新增日志（偏移失效回退整文件尾部，`|| true` 兜 pipefail），分支前 `sleep 0.3` 等 `_log_sink` 排空。
+  - perceives：4 个 scraping 模块的 5 处模块级 selenium 导入下沉到方法体内（首次调用才加载，import 缓存后续零成本）；`engine.py` 补 `from __future__ import annotations` + `TYPE_CHECKING` 块（注解惰性 + 过 ruff F821）。实测修复后启动期 `sys.modules` selenium 模块数 = 0，`WebScraper()` 实例化不再触发 selenium。
+  - 同步修正 3 处单测 patch 目标（`test_form_handler.py` / `test_advanced_features.py` 的 `Select`/`ActionChains`）由已移除的模块级符号改为源模块属性（`selenium.webdriver...`），与 `test_browser_utils` 既有约定一致——懒加载符号的 patch 须指向源模块（方法内 `from X import Y` 调用期从 `sys.modules[X].Y` 取值，patch 源属性可拦截）。
+- **后续防范**：① 服务健康检查预算应按**壁钟**（`$SECONDS` 截止）而非次数——探针本身有耗时（curl/连接），按次数会漂移；② `set -euo pipefail` 下捕获函数返回码必须 `cmd || rc=$?`，bare `rc=$?` 紧跟会被 errexit 抢先；③ Python 服务冷启动慢，优先排查模块级 eager 导入的重依赖（selenium/playwright/ML 框架），下沉为函数内懒加载 + `TYPE_CHECKING` 守卫注解，既不拖慢启动又过静态检查；④ 测试 patch 懒加载符号须指向**源模块属性**而非消费方模块别名（后者已不存在）；⑤ `git pull --ff-only` 在脏树的行为虽安全但输出惊吓，交互脚本应预检脏树。
+- **同类问题影响**：任何 Python 服务在模块级 eager 导入重依赖（浏览器自动化/ML/PDF 引擎）都会拖慢进程启动，进而压垮按固定预算计的健康检查——`cli.sh wait_for_health` 是 4 服务通用探活模式，perceives 的 selenium 是典型样本，backend 的 `bootstrap.py`（litellm + 20+ 路由）属同类（本次未动，仅放宽预算兜底）。与 ISSUE-140（cli.sh Phase 3 仅 `pg_isready` 进程级探活）同属 cli.sh 探活薄弱面，但维度不同：本次是预算/冷启动时长，彼次是探活深度（角色/库级认证）。
+
+---
+
+## ISSUE-146 Wiki 发布面板 ISR 时代 UI 残留移除：三步流水线指示器 + content-status 轮询 + 「5 分钟窗口」提示均与纯静态架构脱节（2026-06-22）
+
+- **表因**：Wiki「发布」面板红框内的「保存版本 / 通知 SSG / 验证内容」三步指示器，以及「未配置主动 ISR，内容将通过 5 分钟窗口异步更新」提示，在当前架构下功能失效或主动误导——用户发布后看到「通知 SSG」「验证内容」长期停在未完成态，且误以为内容要等 5 分钟才上线。
+- **根因**：wiki 完成纯静态化（`apps/negentropy-wiki/next.config.ts` `output: "export"`，无 server runtime / API routes / ISR）后，`apps/negentropy-ui/app/knowledge/wiki/_components/WikiPublishPipeline.tsx` 的整套 ISR 语义与真实链路脱节：
+  ① **「验证内容」彻底失效**——组件轮询 `${SSG_BASE_URL}/api/content-status`，但该端点在 wiki app **根本不存在**（纯静态无 API route），且 `NEXT_PUBLIC_WIKI_SSG_BASE_URL` 从未在任何 env 配置（全仓唯一引用即在组件内）→ 轮询永不触发、`freshness` 永停 idle。
+  ② **「通知 SSG」语义错误**——真实部署机制是 `wiki_service.publish` fire-and-forget spawn `build-wiki-local.sh`（测试）/ `publish-wiki-pages.sh`（生产），不是"通知 SSG"；UI 消费的后端 `revalidation` 字段实为独立的 `trigger_wiki_redeploy` webhook 旁路返回值，而 `wiki_redeploy.url` 默认 None → 恒为 `"not_configured"`，UI 却渲染成"未配置主动 ISR"。
+  ③ **「5 分钟窗口」提示主动错误**——ISR 已退役（`docs/reference/wiki/deployment.md` 不变量："ISR 已退役——不存在运行时 5 分钟自动刷新"），不存在所谓窗口；真实机制是 spawn 脚本重建（秒级到分钟级）。
+  ④ **「保存版本」恒绿勾纯装饰**——底层版本递增/快照/回滚真实有效（`wiki_dao.py` `version += 1` + `wiki_publication_snapshots` + `ops.md` §12.3 回滚 + buildId 幂等），但作为"始终 completed"的步骤指示器不传递任何信息。
+- **处理方式**（本次 PR）：
+  - **前端**：重写 `WikiPublishPipeline.tsx`——删除三步指示器（`getSteps`/`StepDot`）、全部 `STATUS_MESSAGES`（ISR/SSG/5 分钟文案）、`/api/content-status` 轮询 + freshness 状态机、`SSG_BASE_URL`/`NEXT_PUBLIC_WIKI_SSG_BASE_URL` 依赖；改为 `action + target + version` 驱动的**单行精确状态**（publish+local：「已保存版本 vX · 已触发本地重建（:3092）」；publish+production：「已触发生产发布（GitHub Pages）」；unpublish：「已取消发布」）。`WikiPublishToolbar.tsx` 用 `pipelineAction + pipelineTarget` 替换 `pipelineRevalidation` 状态，移除 `WikiRevalidationStatus` 导入；单测同步移除 mock 中已不消费的 `revalidation` 字段（Pipeline 组件本身在单测中已 mock，无文案断言需改）。
+  - **后端死代码**：删除生产零引用的 `revalidate.py`（111 行，旧 ISR revalidate 触发器，已被 `wiki_redeploy.py` 取代）及其专测 `test_revalidate.py`；修正 `wiki_service.py` `unpublish` docstring（谎称"通知 SSG 主动 revalidate"，实为 redeploy webhook 旁路）。
+  - **契约保留**：`WikiRevalidationStatus` 类型与 `WikiPublishActionResponse.revalidation` 字段、`trigger_wiki_redeploy` webhook 旁路均保留（云端 CI 回溯兼容），仅 UI 停止以 ISR 语义消费。
+  - **文档**：修正 `ops.md` §8.1 两行 ISR 自愈/缓存过期排错描述（ISR 不复存在，纯静态站需重新发布触发重建）。
+- **后续防范**：① 架构范式迁移（如运行时 ISR → 纯静态 SSG）须同步审计 **UI / 文案 / 配置 / 文档** 四层，杜绝「代码已迁、UI 未迁」的语义漂移；② 后端字段（如 `revalidation`）被前端以过时语义渲染时，应以「真实链路」为准重写消费侧，而非保留误导性中间层；③ 删除死模块时须连带其专测与配套配置类评估（本次 `WikiRevalidateSettings` 配置类因仍被 yaml/docs 引用、爆炸半径跨 config schema，刻意保留待专项治理）。
+- **同类问题影响**：所有「运行时范式 → 构建时范式」迁移（SSR/ISR → SSG、动态 → 静态）都会留下 UI 中间层语义残骸。已识别的相邻遗留：(1) `WikiRevalidateSettings` 配置类 + `wiki_revalidate` 字段（`config/knowledge.py:61/349`）+ `config.default.yaml:218` + `docker-operations.md:220` env 表的 `NE_KNOWLEDGE_WIKI_REVALIDATE__*`——本 PR 删 `revalidate.py` 后该配置完全孤立（仅自身定义 + yaml/docs 引用，无生产消费方），建议专项 ISSUE 一并清理；(2) `docs/reference/wiki/design/knowledge-graph.md:132` 图缓存旁注「与 SSG ISR 5 分钟窗口一致」属同型 ISR 残留表述，归图 API 子系统，留待该子系统治理；(3) `issue.md` ISSUE-020（L390）记录的 ISR 缓存毒化历史保留不动，仅作回溯参考。
+
+---
+
+## ISSUE-147 docs/ → wiki 排序随机 + frontmatter 泄漏渲染
+
+- **表因**：wiki「Negentropy」一级目录的导航顺序「随机」——带数字前缀与无前缀文件交错、目录间仅字母序；且带 frontmatter 的文档页顶部会渲染出 `---` 横线与 `sidebar_position` 等裸键文本。
+- **根因**（三层）：
+  1. `wiki_docs_ingest.py` **从不解析 frontmatter**——`_extract_title` 只取 H1、`_sort_children` 只按文件名自然序排序；37 个文件里已写的 Docusaurus 风格 `sidebar_position` 是**死数据**。
+  2. wiki 渲染器 `MarkdownRenderer.tsx` 的 `remarkPlugins` 仅 `[remarkGfm, remarkMath]`，**未装 `remark-frontmatter`** → frontmatter 围栏被当作 `<hr>` + 裸段落渲染；而 ingest 又把含 frontmatter 的**全文**原样写入 `markdown_content`（`_emit` 直接 `rewrite_doc_links(raw_md)`），双重作用致泄漏。
+  3. 个别既有 frontmatter 为**非法 YAML**（`research/034-knowledge-base.md` 的 `title: Knowledge Base: RAG ...` 未加引号、冒号致 `yaml.safe_load` 抛错），即便启用解析也会**静默忽略**该文件 `sidebar_position` 使其沉底。
+- **处理方式**（本次 PR，详见 [Wiki 文档排序元数据规范](./wiki-docs-ordering.md)）：
+  1. **机制**：ingest 新增 `_parse_frontmatter`/`_read_category_json`/`_coerce_position`；`_sort_children` 改为「有效位次」主键（显式位次升序 / 索引页 `-∞` 浮顶 / 其余 `+∞` 沉末，文件名自然序 tiebreak）；标题 `frontmatter title → H1 → humanize`；`_emit` **先拆 frontmatter、只重写 body、剥离后不回填**（frontmatter 不进 `markdown_content`，同时消除围栏内链接被误改的隐患）。
+  2. **治理**：为 104 个纳入文件落定 `sidebar_position`、补 15 个 `_category_.json`；**续编各分部既有 taxonomy**（如 research 小数 taxonomy、engine 去重 `1.0` 冲突）；修复 034 非法 YAML（标题加引号）。复用既有 `pyyaml` 依赖，零新增包；不新增 feature flag（改动纯增量、零回归）。
+  3. **验证**：`build_docs_pack` 真实导出 nav-tree 逐级核验 + `pnpm build` 127 页 + 浏览器实机（侧栏顺序正确、frontmatter 不泄漏、标题取 frontmatter title）。
+- **后续防范**：① 新写文档 frontmatter 必须是**合法 YAML**——值含冒号/特殊字符须加引号，否则 `sidebar_position` 会被静默忽略（ingest 仅 WARN 不中断）；② 任何「消费 markdown frontmatter」的链路（渲染/搜索索引/链接重写）都须**先剥离围栏**再处理正文，禁止把 frontmatter 当正文传递；③ 排序位次变更用**小数中点插入**避免重排整段；DB 出版物路径（`entry_position`）与 docs 路径（`sidebar_position`/`_category_.json`）正交，互不影响。
+- **同类问题影响**：仓内其他「文件 → 站点」合成链路若引入 frontmatter 元数据，须复用本 PR 的 `_parse_frontmatter` 惯例（`isinstance(dict)` 守卫 + 失败回退原文 + 剥离不回填）。
+
+---
+
+## ISSUE-148 Memory Overview 后端检索串行 N+1 + 缺索引全表扫描
+
+- **表因**：首次加载 `/memory/overview` 各模块数据加载慢（用户感知 >5s）。页面一次性并行拉取 `/api/memory/dashboard`、`/api/memory/health`、`/api/memory/metrics`（admin）三端点（无轮询），经 Next.js BFF 代理到后端 `engine/api.py`。
+- **根因**（两层；循证：EXPLAIN ANALYZE + 实测）：
+  1. **首屏 >5s 的直接主因是 dev-only**：本机 UI 为 `next dev --webpack`，首次访问触发 webpack 按需编译路由/bundle；后端三端点实测直连 `:3292` 仅 ~20–46ms、BFF ~40ms（dev DB 极小：memories=1/facts=47/audit=11）。非后端检索瓶颈。
+  2. **但后端确有随规模放大的真实低效**（本 PR 目标）：① 串行 N+1——`/dashboard` 串行 8 次 `db.scalar()`（6 次打 memories 同一过滤）、`/health` 开 2 个独立 session、`/metrics` 7 次含 2 次相同 WHERE 重复全扫 memories；② 缺索引——`memories`/`facts`/`memory_audit_logs`/`kg_entities` 对 `app_name`(+`user_id`) 聚合全部 Seq Scan，且 `memories` 每行携带 `Vector(1536)`≈6KB，Seq Scan 把 embedding 拖过 I/O。
+- **处理方式**（本次 PR，纯查询合并 + 索引，逐字节契约不变，**不引入缓存/不引入 asyncio.gather**）：
+  1. **dashboard**（`engine/api.py`）：6 个 memories 聚合合并为单条 `select(count/avg/sum(case))`，fact/audit 各 1 条 → 8 往返降为 3。`func.count()`≡旧 `count(subquery)`、`sum(case(...,1,else_=0))`≡旧 `count(filtered subquery)`（空集 NULL→0 由 `or 0` 兜底）。
+  2. **metrics**（`memory_metrics.py`）：`retention_stmt`+`pii_stmt` WHERE 完全相同 → 合并单条，`pii_total` 复用合并行 `total`（分母等价，`pii_detection_rate` 逐字节不变）；消除一次 memories 全扫。
+  3. **health**（`health_checker.py`）：2 session→1；两个无过滤 count 用双标量子查询并入单往返；保留 `SELECT 1` 探针；双 inner try + 外层 try **保留失败粒度**（「连通 OK 但计数失败」/「会话完全不可用 db+tables 均 error」）。
+  4. **索引迁移 0073** + ORM `__table_args__` 同步：`ix_memories_app_user(app_name,user_id)`、`ix_facts_app_user`、`ix_kg_entities_app_active(app_name) WHERE is_active IS TRUE`、`ix_memory_audit_logs_app_created(app_name,created_at)`、`ix_memory_retrieval_logs_app_created`。CONCURRENTLY + `autocommit_block`（沿用 0010）+ `IF NOT EXISTS`（沿用 0029），可重入；kg 部分索引入 `env.py _IGNORED_INDEXES`（沿用仓库部分索引惯例）。
+- **关键坑（务必复用经验）**：PG **部分索引谓词证明器不会把 `is_active IS TRUE`（BooleanTest）蕴含为裸布尔 `is_active`**。最初写 `WHERE is_active` 建成的索引，对实际查询 `... AND is_active IS TRUE`（`memory_metrics.py`）**完全无法命中**（`SET enable_seqscan=off` 仍走 Seq Scan，cost 带 1e10 惩罚）。修正：部分索引谓词须与查询 `BooleanTest` 形态**逐字匹配**（改为 `WHERE is_active IS TRUE`），改后 Index Only Scan 命中。**前导列法则**同理：`(app_name,user_id)` 经前导列服务 `app_name`-only，故无需单列 `app_name` 索引；现有以 `user_id`/`corpus_id` 前导的索引对 app-scoped 查询无效。
+- **验证**：受控种子（独立 `app_name='__perf_verify__'`，覆盖 low_retention/high_importance 边界/deleted/pii/valid_until 各分支，验后清理）对比 NEW 合并查询 vs OLD 逐条查询——dashboard 三 user 维度全字段 MATCH；`dashboard.memory_count=5`(含 deleted) vs `metrics.memory_total=4`(排除 deleted)、`dashboard.fact_count=2`(过滤过期) vs `metrics.fact_count=3`(不过滤) 证差异化过滤器保留。956 engine 单测全过；alembic up/down 幂等；autogenerate 无漂移；ruff 通过。
+- **后续防范**：① 新建部分索引务必让谓词与查询布尔表达式 AST 形态一致（`IS TRUE` vs 裸布尔不互通），建索引后用 `SET enable_seqscan=off; EXPLAIN` 实测命中；② 多聚合同表同 WHERE 应合并为单条 `select(... sum(case))`（复用 `retrieval_tracker.py`/`scheduler_api.py` 惯例），勿逐条 `db.scalar`；③ 跨表计数因基数不同不能合并（笛卡尔积污染），按表拆条是下限；④ 区分「dev webpack 首屏编译慢」与「后端检索慢」——前者非后端范畴，勿误改后端；⑤ pool_size=5/max_overflow=10 下慎用 `asyncio.gather` 多 session（连接放大），优先单 session 多语句合并。
+- **同类问题影响**：knowledge 模块若新增 dashboard/metrics 聚合端点应复用本 PR 合并范式与 `(app_name,user_id)` 前导索引惯例；所有 `app_name`-scoped 聚合查询都应核查是否落到以 `user_id` 前导的既有索引（无效）。
+
+## ISSUE-149 PDF Fidelity Patrol 交付仅含 `patrol-candidate.md` 的 PR（候选产物落 worktree 被提交 + 引擎缺 no-op 终态）（2026-06-29）
+
+- **表因**：巡检 Routine（#1010）最终交付的 PR **仅含一个文件 `patrol-candidate.md`**（+676/−0），而非对 `apps/negentropy-perceives` 的代码优化——该 `.md` 是闭环步骤 1 `perceives parse-pdf -o` 的**评估用临时候选 Markdown**，根本不该进交付。
+- **根因**（三个叠加结构性缺陷）：
+  1. **候选产物落 worktree 内被 `git add -A` 提交**：`CANDIDATE_MD_FILENAME = "patrol-candidate.md"` 是**相对路径** → agent 在 worktree 根写出 → IMPLEMENT 检查点（`prompt_builder.py:199`）与 FINALIZE（`prompt_builder.py:167`）的 `git add -A` 将其提交并随 PR 推出。反证：渲染底图已正确落到 worktree 外 `/tmp/<doc_id>/render`，且 `patrol_input_dir` 配置 docstring 明示其为「源 PDF 暂存**与候选 Markdown 输出**根目录」——**相对路径是对设计意图的偏离**。
+  2. **「零代码改动」的收敛仍开 PR**：doc 早轮即 score≥合格阈值 95、无可修复缺陷 → 未改 perceives；worktree 内唯一变更就是候选 `.md`。
+  3. **引擎 FINALIZE 终态强依赖 `pr_url`**（`orchestrator._advance_phase_or_terminate`）：修缺陷 1 后无改动巡检无可提交、`gh pr create` 报「no commits between base and head」、永不产出 `pr_url` → Routine 在 FINALIZE **空转至 max_iterations(400) 才 failed**（虽 `persist_terminal_outcome` 因 best_score≥95 仍标 done，但白烧预算且终态 failed 污染 consecutive_failures）。
+- **处理方式**（PR #1012）：
+  1. **FIX1 候选移出 worktree**：`pdf_fidelity_patrol._build_patrol_routine` 将候选路径改为暂存目录内**绝对路径**（`source.pdf` 同级、worktree 之外）。写入经 bash 子进程 `-o`，不受 `read_dirs` 的 Edit-deny 限制（与 `/tmp/render` 同理）。
+  2. **FIX2 引擎 no-op 干净终态（仅 `config.patrol`）**：`orchestrator` 新增 `_finalize_is_noop`（`git rev-list --count <baseline>..HEAD == 0` → 无可交付）；`_advance_phase_or_terminate` 新增 `finalize_noop` 参数（默认 False，既有调用零变更），FINALIZE 下「无 PR + 0 提交 + 本轮成功裁决」判 succeeded 无 PR。配套 prompt（`prompt_builder` FINALIZE STEP0 守卫 + `patrol_prompt` 非回归门控补「零改动即 done 不开 PR」）。
+  3. **兜底**：`.gitignore` 忽略 `patrol-candidate.md`。
+- **关键坑（务必复用经验）**：
+  1. **「临时评估产物」与「交付物」须物理隔离**：任何 agent 在 worktree 内生成的中间产物（候选、渲染、报告），经 `git add -A` 会无条件进 commit/PR。须落到 worktree **之外**的暂存目录（如既有 `patrol_input_dir`/`/tmp`），而非靠 `.gitignore` 或「agent 自觉」——后者是软约束、终会漏。
+  2. **引擎「无 PR 即 failed」对「零改动收敛」任务是错配**：worktree routine 的 FINALIZE 终态强依赖 `pr_url`，对「达标即无需改代码」的自拟合任务会空转。no-op 成功须 **`rev-list --count` 量「提交载荷」**（精确对应 `gh pr create` 报错条件），**勿用 `git diff --quiet`**（误判工作树脏污）；且须 **合取本轮 `is_success`、严格限定 `config.patrol`**——普通 feature routine 的「零改动收敛」可能是漏提交/跑空，不可一概判成功（首要安全护栏）。核心不变量：**no-op 成功仅在「可证明零可交付提交」时可达**。
+  3. **async/sync 边界**：`_advance_phase_or_terminate` 是 sync（单 worker 事件循环禁阻塞 IO），no-op 的 git 探针须在 async 捕获点（`_do_evaluate` 内 pr_url 捕获同处）算好 bool、经参数传入 sync 方法，**勿在 sync 方法内直接调 git 子进程**。
+- **验证**：`test_pdf_fidelity_patrol_handler`（候选绝对路径 / worktree 外）、`test_routine_phase`（FINALIZE `rev-list --count` + `PR_URL=NONE` 守卫先于 push/create）、`test_patrol_prompt`（协议含「零代码改动」）、`test_routine_orchestrator` 集成（no-op 巡检→succeeded 无 PR；安全回归：有提交+无 PR→留 running 仍须真实 PR）；既有 finalize/worktree 用例 7/7 无回归；ruff lint+format 通过。
+- **后续防范**：① 新增「worktree 内生成中间产物」的 routine 须第一时间检查产物落点是否在 worktree 外；② 为「达标即完成、未必有代码改动」类任务设计 routine 时，须校验 FINALIZE 终态对「零改动」的处理（开 no-op 成功或文档化空转代价）；③ `git add -A` 是 worktree routine 的默认提交语义——任何不该进 PR 的产物都不能留在 worktree。
+- **同类问题影响**：所有派生 worktree + PR 的 routine（非仅巡检）若在 worktree 内写中间产物，都会复现「PR 含无关文件」；通用 worktree routine 若未来需要「零改动收敛」语义，可参考本 no-op 终态范式（但须各自论证安全性，本次刻意只为 patrol 开启）。
+
+## ISSUE-150 Routine 多 Agent 归因落地 + orchestrator 集成测试跨文件 DB 累积假阳性（2026-06-29）
+
+- **背景**：实施 ADR 040「一核五翼 Faculty 接入 Routine 编排链」，为 `routine_iteration_events` 加 `agent_role` 字段（migration 0078，纯加 nullable 列）、`auto_answer` 提级为独立 event_type 并去 500 字截断、新建 `FacultyBridge` 同步桥接 ADK Faculty（flag `faculty_bridge_enabled` 默认关、失败降级 litellm）。
+- **表因**：全量后端测试中 `test_routine_orchestrator.py::test_dispatch_auto_launches_and_writes_back` 偶发 `assert launched == 1` 失败为 `2`；`test_evaluate_high_score_terminates_succeeded` 偶发失败。
+- **根因**（与本次改动**无关**，循证：隔离重跑全过）：① `RoutineOrchestrator._dispatch_due()` 是**全局全表扫描**——派发**所有** running + 无在途 + 预算未尽的 routine，断言 `launched == 1` 隐含「测试库仅有本测试自己的 routine」前提；当同一 pytest 进程内 `test_routine_event_persistence.py` / `test_routine_api.py` 等先跑、向共享 `negentropy_test` 留下可派发 routine 时，`launched` 被抬到 2。② 另一例失败实为本机无有效 Gemini API key（`embedding_request_failed` / `API_KEY_INVALID`），属环境侧。`negentropy_test` 不跨 test/session 清空（见 memory「test DB accumulates across sessions」），多轮运行后累积放大。
+- **处理方式**：① 本次改动经 `py_compile` + 受影响单测（event_capture/plan_reviewer/evaluator_gate/claude_code_service）+ 集成测试（event_persistence/routine_api）+ 新增 `test_routine_faculty_bridge.py` 全绿验证；② 失败两例经「`DROP DATABASE negentropy_test` 重建 + 隔离重跑」确认 100% 通过（orchestrator 文件单独跑 41/41 过），证明为跨文件污染而非回归；③ 未改这两个历史测试的断言（不在本次 PR 范围，避免扩大改动面）。
+- **后续防范**：① 凡断言「全局计数 == N」的 routine 集成测试（`_dispatch_due` / `_reap` / `_select_*` 等全表扫描被测函数）应**相对化**（断言增量 `after - before` 或仅断言「本 routine 的迭代状态」）或在 fixture 内**自清理所有 routine**，而非依赖「库里只有我」；② 后端集成测试的「确定性验证」必须在 **fresh `negentropy_test`** 上跑（`DROP DATABASE` 后 conftest 自动重建 + alembic 到 head），同进程多文件混跑的偶发失败优先怀疑 DB 累积而非代码；③ 涉及 embedding 的测试在无 API key 环境会失败，与逻辑无关，排查时先看是否 `API_KEY_INVALID`。
+- **同类问题影响**：与 ISSUE（memory「test-db-accumulates」「routine cwd NULL」）同源——所有 Routine 全表扫描类被测函数的集成断言都有此隐患；新增 `agent_role` 字段对 `_persist_eval_events` / `_persist_events` / `_evt_to_row` 的透传已加防御性 `[:32]` 截断（与 event_type `[:24]` 同范式），migration 0078 幂等可重入（information_schema 探测，仿 0075）。
+
+## ISSUE-151 Session 列表大量无语义占位标题（「首次标题」/「标题 v2」/「会话标题自动生成」）写回 DB 且无法自愈（2026-06-30）
+
+- **表因**：Home / Studio 页 Session 列表出现大量无语义占位标题（如「首次标题」「标题 v2」「会话标题自动生…」），用户无法一眼看出对话内容；截图实证重复 6 次的「首次标题」。
+- **根因**（全链路排查确认，**非调度未触发**——反应式 `append_event`→`_schedule_title_generation` 与巡检 `session_title_inspect`（enabled=True、300s）双路径均在跑）：① 生成质量差——`summarization.generate_title` 把同一份指令文本**同时**塞进 `system_instruction` 与追加到 `contents` 末尾的 user message（prompt 双用），弱模型（fallback `gpt-5-nano`）在 history 文本稀薄时把「指令本身」当对话内容描述，输出元描述性标题；prompt 无 few-shot、无元词汇禁止；后处理只 strip/截长度无法识别此类标题。② history 提取只取最近 6 条事件的 `text` part，长会话丢失首条主题消息、工具密集会话 text 极少。③ 生产代码无占位符字面量/无 mock 泄漏（失败时只累加 `title_attempt_count` 不写 title），故这些坏标题确为 LLM 实际生成并写回。④ **存量坏标题卡死**：写回时 `title_source=auto` + 记录 `title_generated_at_event_seq`，但巡检刷新条件 `max_seq - gen_seq >= refresh_delta(默认20)` 对短会话永不可达 + `_title_skip_reason` 对已有 auto 标题非 force_refresh 返回 `already_titled`，三者叠加→坏标题无任何自愈路径。
+- **处理方式**（生成质量门禁 + 存量治理两块闭环）：① `summarization.py` 新增模块级纯函数 `is_semantically_vacant_title`（黑名单正则 + 剥离元词汇后实质 `<3` + 复述指令检测）作为**单一事实源**，并在 `generate_title` 后处理接入——命中返回 None（宁可不写也不写无语义标题，走前端 `Session <id>` 兜底）；同时重构 prompt（system 承载全部指令含 few-shot + 元词汇禁止、contents 仅末尾极简触发句，消除双用）。② `session_service._generate_title_for_session`：history 改为「首条 user + 最近 6 条」去重合并、保守纳入 `functionCall`/`functionResponse` 可读摘要、有效文本 `<8` 字符 return。③ 新增一次性回填 CLI `negentropy backfill-session-titles`（`cli_backfill_titles.py`）：keyset 分页扫描 auto 标题、Python 侧复用 SoT 判 vacant、清空 title 及溯源字段（与 `update_session_title(title=None)` 同款 metadata 形状）、per-session advisory lock + UPDATE WHERE 二次校验 `title_source='auto'` 护栏、默认 dry-run、永不碰 manual/legacy、严禁 DELETE；交巡检下一 tick 自然重新生成。④ 验证：`test_summarization.py` 38 例（含 35 条门禁表驱动）+ `test_session_title.py`/`test_title_inspector.py` 14 例全绿；CLI dry-run/apply 端到端实测（dry-run 命中 6 条含泛化识别的「唯一标题」、--apply --limit 2 成功清空并结构化日志）。
+- **后续防范**：① `is_semantically_vacant_title` 是任何回填/巡检/生成的**唯一判定源**，严禁在 SQL 或他处镜像黑名单（单一事实源）；② **部署时序硬约束**：生成侧门禁必须先于 CLI `--apply` 上线，否则清空后巡检仍会再次生成坏标题；③ 巡检的「刷新条件仅看事件增量」对短会话不友好——本 issue 以 CLI 兜底存量，未来如需巡检自愈 vacant，应在 `_process_candidate` Python 侧判定（SQL 不放宽以免 LLM 配额空耗）；④ 任何「自动生成 + 写回 + 巡检刷新」链路都必须有「劣态可识别 + 自愈路径」，避免一次错误写入永久冻结。
+- **同类问题影响**：所有「LLM 自动产物 + 写回 DB + 周期巡检」链路（如 memory/facts 自动摘要、Wiki 同步）都应复核「输出是否经质量门禁」「刷新条件是否对低增量对象失效」「劣态是否可自愈」；本 SoT 函数 `is_semantically_vacant_title` 可被未来同类链路复用。注：本机 `negentropy_test` 的 alembic_version 被更主干（live 主仓）迁移到 0080，而本工作区分支 head 仅 0079，导致 conftest `upgrade head` 报 `Can't locate revision '0080'` 阻断全部后端测试——临时 stamp 0079 跑完测试后已恢复 0080（schema 未变，仅 meta），属分支分叉的 pre-existing 环境问题，非本次改动引入。
+
+---
+
+## ISSUE-152 Judge 无历史锚点评分致 ±20 振荡、no_progress/oscillation 误杀收敛中任务（2026-07-02）
+
+- **表因**：自治 Routine 的 LLM-as-Judge 评分在迭代间剧烈振荡（典型 ±20，如 PDF 高保真巡检修一处感知缺陷常压低另一处总分），触发 `_is_no_progress` / `_is_oscillating` 把仍在收敛中的任务误判 `failed`（曾致 PDF Fidelity Patrol 仅 6 轮即 failed、文档被永久标 unfixable）。ISSUE-128 加了 `no_progress_score_tolerance` 容差带治标。
+- **根因**：`evaluator.py:37-67` 的 `_JUDGE_PROMPT` 要求 Judge 判定 verdict「较上轮有实质推进 / 退步」，**但 prompt 从未提供任何上轮信息**——Judge 每轮仅看本轮 summary 独立重打分，被要求做无输入依据的对比判断。这是综述 *Self-Improving Agents in the Era of Experience* §8「纵向评估」缺失与 §10.3「弱反馈信用分配」的直接体现：单点重打分天然 ±振荡，非单调。
+- **处理方式**（治本）：证据锚定的纵向评估（Anchored Longitudinal Judging）。① 新增 `engine/routine/trajectory.py` 纯函数（`score_trajectory` / `format_anchor_context` / `build_anchor_audit`）。② evaluator 模板增锚定版：注入近 K 轮评分轨迹 + 历史最优 + 上轮反思，追加 `progress_evidence`（先于评分完成，强制「证据先于给分」生成顺序）与评分锚定一致性两条要求（无实质退步不得低于上轮 10 分以上、无实质新进展不得高于上轮 10 分以上；**锚点非地板 / 天花板**）。③ orchestrator `_do_evaluate` ①段只读查 floored history 注入、③段 metrics.judge_anchor 审计。④ 量化振荡 opt-in（`oscillation_min_amplitude`，默认 0）作为锚定降振荡后的兜底护栏——**与容差带存在张力故默认关闭、巡检不启用**。关键不变量：锚点「历史最优」取 floored history max（非 `routine.best_score`，后者跨 restart 不复位会泄漏旧高分）；「上轮反思」取 `history[-1].reflection`（非 routine.reflections 全生命周期流）；faculty_bridge 与 litellm 两路同串注入零改动。
+- **后续防范**：任何「LLM-as-Judge + 多轮迭代」链路，若 verdict/score 语义含「较上轮」对比，则 prompt **必须**提供上轮锚点信息——禁止让模型对不存在的输入做对比判断。新增锚点上下文写入 metrics JSONB 供审计对照前后方差。
+- **同类问题影响**：所有 LLM-as-Judge 评估（含 FacultyBridge Contemplation Faculty 路径、Plan Reviewer）都应审视是否需要历史锚点；纵向评估的其余 SI 目标（retention / stability / efficiency / path attribution / safety non-regression）仍需后续补全。详见 [140 号调研](../research/self-evolution/140-experience-era-self-improvement.md)。
+
+---
+
+## ISSUE-153 `decay_override` 死配置致经验记忆约 7-8 天全灭 + 检索反馈链断裂（2026-07-02）
+
+- **表因**：Routine 经验记忆（`IterationMemoryExtractor` 提取的 procedural/episodic/semantic/fact，含巡检 done/unfixable 确定性标记）写入后约 7-8 天消失，跨 routine 的经验复用与失败教训回流形同虚设；记忆检索的 outcome 反馈管道（Rocchio 调权）从未被激活。
+- **根因**（三段叠加）：① 夜间清理任务（seed cron `0 2 * * *`）调用 SQL 函数 `cleanup_low_value_memories(0.1, 7, 0.1)`（迁移 0043），以**平坦 λ=0.1 重算全表 retention 并物理 DELETE**，完全忽略 `metadata->>'decay_override'`——而 `IterationMemoryExtractor` 的 verdict×type 衰减矩阵（λ=0.003≈230 天半衰意图）和 `MemoryGovernanceService.calculate_retention_score` 均无生产调用方，`decay_override` 沦为死配置。推演：`retention = LEAST(1, EXP(-0.1·d)·(1+ln(1+access))/5)`，access=0 时 d≈6.9 天跌破 0.1、叠加 min_age=7 天 → 第 7-8 天物理删除。② 记忆写入（`add_memory_typed`）无去重准入，同模板 routine（如每文档一个巡检）近似经验线性累积并互相霸占检索槽位。③ `依据 Memory <id8>` 引用格式只存在于 prompt 侧要求、全仓库无输出侧解析器；`memory_retrieval_logs.was_referenced` 的 `mark_referenced` 唯一调用方是 Agent 对话路径的「注入即引用」，不覆盖 Routine；`outcome_feedback` 仅手动 API 写入——而下游 Rocchio 调权管道（memory_reweight 每 6h）**已建成在跑，只缺反馈源**。
+- **处理方式**（双支柱之「经验记忆闭环补强」E/B/A/C/D）：**E**（地基）`memory_automation._run_cleanup` 弃 SQL 存储函数、改 handler 内联 SQL，λ 取 `COALESCE((metadata->>'decay_override')::float, :decay_lambda)`——零迁移（SQL 函数定义保留），无 override 记忆逐字节不变。**B** `search_memory` 四策略分支接收 `_record_access` 返回的 log_id（原被丢弃）经 `_build_search_response(retrieval_log_id=…)` 注入 entry metadata；`_retrieve_memory_context` 返回 `(context, injection_meta)`、dispatch 写 `iteration.metrics["memory_injection"]`；评估期 `_fire_reference_feedback` 解析产出引用（与注入集求交防伪引用）→ `mark_referenced` + 据 verdict 粗粒度 `record_feedback`（cited+pass/progressing→helpful；零引用→irrelevant；cited+regressed/stalled→不写）；删 `_launch_approved` 死代码检索。**A** `add_memory_typed(dedupe=True)` opt-in：命中既有近似记忆 → touch 既有行而非新增（「重复出现即重要性信号」）。**C-lite** `_build_termination_prompt` 对失败 reason 注入三段式教训指令（教训 / 根因 / 下次行动目标）；metadata 补 `termination_reason`/`routine_status`/`repository_id`。**D** `_retrieve_memory_context` 增同 repo 失败教训确定性 SQL 补充段（与语义命中按 id 去重）。
+- **后续防范**：① 任何「写入期落 metadata 配置（如 decay_override）」必须确认下游清理 / 重算路径真的读取它——配置只写不读比没有更糟（误导设计者以为已生效）。② 「检索 → 注入 → 引用 → 效果」是闭环，缺任一环则检索质量信号无法回流；新检索路径接入时必须同时接通反馈解析（`retrieval_log_id` 透传 + 产出引用解析）。③ 清理任务的 deleted 指标在修复后会骤降（带 override 记忆存活期从 ~7 天延长至设计值数月），属预期、需在 PR 说明标注避免误判回归。
+- **同类问题影响**：所有「带衰减 / TTL 的经验型数据」（facts 自动摘要、routine_iteration_events 审计、PatrolMemoryStore 确定性标记）都应复核「配置的衰减参数是否真的被清理路径读取」；所有「注入式 prompt + 期望引用」链路都应补全输出侧引用解析。详见 [140 号调研](../research/self-evolution/140-experience-era-self-improvement.md)。
+
+---
+
+## ISSUE-154 GEPA 进化提案器 + 记忆检索权重自进化第一切片落地（2026-07-02）
+
+- **表因**：四层自进化架构（docs/concepts/design/self-evolving-agents.md）长期处于「蓝图完成、代码 Day 0」状态——`engine/evolution/` 不存在、13 张进化表全无、evolution_inspector 未注册。综述要求实现「GEPA 进化提案器 + 记忆/知识参数自进化」。
+- **根因**：非 bug，是阶段性能力缺口。关键约束：agent-prompt GEPA 的证据源（Phase 1 `tool_invocations` 遥测）dormant 未建；而记忆检索面因 PR #1036 已接通 `outcome_feedback`（helpful/irrelevant），是唯一已有完整「检索→引用→反馈」遥测、可立即端到端验证 GEPA 的面。
+- **处理方式**：选记忆检索权重（semantic/keyword hybrid）面优先落地全闭环。新增 `engine/evolution/` 包（6 模块，严格对齐既有范式：decision 镜像 routine/decision.py 纯函数护栏、proposer 镜像 reflection_generator 的 LLM+容错骨架抽成 `_ProposerBase`、orchestrator 镜像 routine orchestrator 三段式 SKIP LOCKED 状态机）+ `evolution_proposals`/`memory_config_versions` 两表（迁移 0081，后者 seed 基线 v0.1.0={0.7,0.3} 与 `_DEFAULT_*_WEIGHT` 逐字节对齐）+ `memory_retrieval_logs` 加 `config_version`/`strategy` 分桶列（shadow eval 对比地基）+ `search_memory` 内部 canary 路由（按 user 桶 + 在途 canary 提案）+ `evolution_inspector` 心跳。晋升判据：候选 zero_hit_rate 不退化 AND helpful_ratio 改进 ≥0.02 AND 样本 ≥50 → canary → 在线不退化 → promote，任一退化 rollback（新写 active=基线，不删候选行）。默认全关灰度（`enabled`/`auto_mode` 均 False）。
+- **后续防范**：① 任何「LLM-as-X + 配置写回」的自进化链路，proposer **无 pattern fallback**（进化提案无合理兜底，宁可不提不乱提），与 reflection 的模板兜底刻意区分；② **配置版本表 is_active 单一性**用部分唯一索引兜底，promote/rollback 一律新写行+翻转指针、永不删旧行（保留全历史供审计与回溯）；③ 高频检索路径（search_memory）内嵌的 canary 查询必须带短 TTL 缓存（queries.py 15s），否则每次检索打 DB 拖慢 p95；④ 进化写表范围严格限白名单两表（evolution_proposals + memory_config_versions），权重三层校验（proposer clamp → 偏差过大丢弃 → DB promote 再校验 is_within_bounds）防「进化出极端权重」；⑤ 后续 agent/skill/knowledge 面接入时，复用 `_ProposerBase`/decision/orchestrator 骨架，仅扩 target_kind 白名单 + 各面 proposer 子类 + eval_runner + 专表 config_versions，**零重造**。
+- **同类问题影响**：所有「带 TTL 缓存的运行时配置解析」（如 model_resolver、未来 agent_versions active 指针）都应遵循「DB SSOT + 代码常量兜底 + invalidate 强一致」三件套；所有「高频路径内嵌的低频状态查询」都应加短缓存。详见 [140 号调研](../research/self-evolution/140-experience-era-self-improvement.md) 与 [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md)。
+
+---
+
+## ISSUE-155 `longitudinal_recheck` handler 模块漏入 bootstrap 元组，dispatch 报 `not registered`（2026-07-03）
+
+- **表因**：调度器任务「Evolution Longitudinal Recheck」（迁移 0085 seed，cron 每日 04:17）执行报 `handler_kind=longitudinal_recheck not registered`，写 failed `TaskExecution`；UI handler 下拉也不见 `Longitudinal Recheck`。
+- **根因**：handler 模块 `engine/schedulers/handlers/longitudinal_recheck.py` 已存在且实现正确（`@register_handler("longitudinal_recheck")` + `register_descriptor(...)` 齐全），但 `_bootstrap_default_handlers()`（`handlers/__init__.py`）中的**硬编码 import 元组漏了 `"longitudinal_recheck"`**。该元组是触发各 handler 装饰器副作用的**唯一入口**——模块未被 import → 装饰器未执行 → `HANDLER_REGISTRY["longitudinal_recheck"]` 缺失 → `ScheduledTaskRegistry.dispatch()`（`registry.py:333-335`）查不到 handler 报 `not registered`。**测试盲区**：`test_scheduler_handlers.py::test_all_eight_handlers_registered` 仅断言「硬编码 8 个旧 handler 是 `HANDLER_REGISTRY` 的子集」，新增 handler 不在断言集、子集断言永远通过 → 缺陷静默过 CI。DB/前端均无误（seed 幂等正确；前端从 `GET /scheduler/handlers` 动态拉取 descriptor，无硬编码清单）。
+- **处理方式**：① `_bootstrap_default_handlers` 元组在 `evolution_inspector` 后补 `longitudinal_recheck`（单行修复，import 链全 lazy 安全）。② 新增 `TestHandlerBootstrapCompleteness::test_every_handler_module_is_bootstrapped` AST 守门：`pkgutil.iter_modules` 扫 `handlers/` 目录，AST 解析每个模块的 `@register_handler(...)` 声明（覆盖字符串字面量 `"kind"` 与模块级常量 `KIND = "kind"` 两种形式——`pdf_fidelity_patrol` 即常量形式 `@register_handler(PATROL_HANDLER_KIND)`，纯正则会漏），断言 bootstrap 后全部 ∈ `HANDLER_REGISTRY`；测试自身**不** import handler 模块（否则掩盖元组缺漏）。③ 删除腐化的 `test_all_eight_handlers_registered`（名字说 eight、内容已过期两次，新守门严格更强）。④ docstring 改指针式（清单 SSOT = 元组本身 + `list_handlers()`，避免注释与代码二次分裂）。
+- **后续防范**：① **「文件存在 ≠ 运行时注册」**：任何依赖装饰器副作用 + 显式 import 清单的注册模式（handler / route / plugin），新增模块必须同步入清单——本仓库已有 AST 守门兜底「漏入清单」子类。② **遗留隐患（本次 YAGNI 不修）**：bootstrap 第 189-192 行 `try/except Exception + logger.warning` **静默吞 import 异常**——若未来某 handler 顶层 import 失败，会重现「模块在清单里但 registry 仍缺」的同类症状，仅一条 `scheduler_handler_import_failed` warning 暴露。后续可：启动期对 `ImportError/ModuleNotFoundError` 直接 re-raise，或在守门测试加「bootstrap 未对任何模块打出 import_failed」断言。③ AST 守门比正则更鲁棒（对注释/格式免疫、能解析常量形式），类似「按约定扫描目录 + 解析声明」的回归测试应优先 AST。
+- **同类问题影响**：所有「显式 import 清单 + 装饰器副作用注册」的子系统（当前 `engine/schedulers/handlers/` 是唯一一处；未来若 ADK faculty / tool / route 采纳同类模式同样适用）都应补「目录扫描 ↔ 清单 ↔ registry」三方一致性守门；新增模块时须区分三态：模块在磁盘 / 模块被 import / 装饰器副作用真正执行。
+
+---
+
+## ISSUE-156 审批弹窗 `ingest_paper`「批准」无效、无法关闭致流程卡死（2026-07-04）
+
+- **表因**：Studio 页 `ingest_paper`「中风险」审批弹窗点「批准」无反应、弹窗无法关闭、整条对话卡死；无 error、无 toast、无「提交中」——典型 silent no-op（对齐 ISSUE-064 模式）。
+- **根因**（复合式，指向同一架构缺陷——HITL 审批存活性被耦合到「工具内 30s 轮询竞速」，且清除 `pending_approvals` 的职责只存在于 happy-path 的 `consume_approval_response`）：① `ingest.py`/`paper.py` 审批门以**最多 30s** 轮询 `state.approval_responses`（`_APPROVAL_TIMEOUT_SECONDS=30.0` / `paper.py` 另有硬编码 `max_wait=30.0`），人类读完中风险请求 + JSON 参数再决策极易超 30s；② 超时后工具 `return failed` **但不清除 `pending_approvals[action_id]`** → run 结束 → NDJSON 流 `RUN_FINISHED` 终止（`ndjson-agent.ts`，终态无 resume）；③ 用户此时点批准 → `submit_approval_response` 端点只写 `approval_responses`、**不清 `pending_approvals`**，且已无存活工具 consume；④ 前端 `handleApprovalRespond` POST 后**既不 `scheduleSessionHydration` 回填、也无本地乐观关闭**（对照兄弟流程 `handleConfirmationFollowup` 提交后会 runAgent + hydration + loadSessions），即便回填服务端 `pending_approvals` 仍在；⑤ 弹窗无 ESC / 无遮罩 / 无关闭按钮，成为无法逃离的陷阱。关键机制：实时快照来自 reducer `hydrate_session`（非事件重放），`pending_approvals` 只经 `loadSessionDetail → adkEventsToSnapshot`（整字典浅合并）到达弹窗——**端点清除若无前端回填则完全无效**。
+- **处理方式**（全栈最小分层修复，四层缺一不可）：**L1 端点权威清除**——`sessions_api.submit_approval_response` 在记录决策的**同一 `state_delta`** 内剔除 `pending_approvals[action_id]`（决策场景单一事实源清除点，与 run 是否存活无关）。**L2 前端乐观关闭 + 回填**——`home-body.tsx` 新增 `resolvedApprovalIds` 集合 + `visibleApprovals` 包裹 memo（从展示层剔除已决策/已延后项，弹窗立即关闭）；`handleApprovalRespond` 成功后加集合 + `scheduleSessionHydration` 对账 + toast，失败 toast + rethrow（保留 `approval-error` 供 retry，不乐观关闭）；切会话重置集合。**L3 超时兜底 + 常量统一**——`approval.py` 新增 `APPROVAL_WAIT_SECONDS=300`（人性化窗口，`asyncio.sleep` 挂起协程不冻结单 worker）/ `APPROVAL_POLL_INTERVAL` 常量 + `expire_approval(tool_context, action_id)` helper（幂等清两侧 dict），ingest/paper 超时/拒绝分支调用它清孤儿（ingest.py 以**别名导入** `as _APPROVAL_TIMEOUT_SECONDS` 保留既有 monkeypatch 目标）；超时/拒绝文案拆分（「审批超时未响应（已自动取消）」vs「用户已拒绝」）。**L4 硬门逃生舱**——`ApprovalDialog` 加 `onDismiss` + ESC handler + 「稍后」按钮，**仅本地延后关闭、绝不发送批准/拒绝**（ESC 映射为决策是安全漏洞）；home-body 既有 ESC 监听在弹窗可见时早返避免双监听竞争。`pending_approvals` 清除点恰好三处（端点 / `consume_approval_response` / `expire_approval`），不加第四处。
+- **后续防范**：① **禁止 silent no-op**（承 ISSUE-064）——任何「看似可用却内部静默拒绝/无回填」的按钮必须补 toast/inline 反馈 + 乐观 UI；② **模态弹窗必须可逃生**——审批类硬门以「决策」为主关闭路径，但须额外提供 ESC/关闭的延后逃生，杜绝无法关闭的陷阱；③ **HITL 等待窗口须匹配人类决策时间**，30s 级轮询对人不友好，且「清除待审态」的职责不能只放在 happy-path——超时/拒绝收尾必须兜底清理，否则遗留孤儿态永久冻结 UI；④ **端点 state_delta 与前端回填是闭环**：服务端清除若无前端 hydration 触达则无效，新增「写回 state」的端点须确认前端有对应回填路径；⑤ 测试必须覆盖「弹窗关闭 / pending 清除」而非仅「回调被调用」——旧 `approval.test.tsx` 把 `onRespond` mock 成 resolve 却从不模拟后端清除，故漏检此卡死。
+- **同类问题影响**：所有 HITL 门（`ui.confirmation` 确认流、未来的 approval 类工具）都应审视「决策是否有存活消费者 + 超时是否兜底清理 + 前端是否乐观关闭 + 是否可逃生」；所有「工具内轮询等待外部信号」的模式（approval / long-running tool）都应把清理职责从 happy-path 抽出为幂等收尾 helper。改动文件：`agents/approval.py`、`engine/sessions_api.py`、`agents/tools/ingest.py`、`agents/tools/paper.py`、`app/home-body.tsx`、`components/ui/ApprovalDialog.tsx` + 对应单测/集成测试。
+
+---
+
+## ISSUE-157 审批弹窗「关掉一个又顶一个」——LLM 重试死循环 + 选择器死代码 + Stop 缺失（2026-07-04，ISSUE-156 续）
+
+- **表因**：ISSUE-156 修完「弹窗逻辑」并合并（PR #1043，实测「稍后」逐条 dismiss 确实生效），但用户**仍被困**——「无论点哪个按钮都关不掉」。实机用 React fiber + DOM 排查发现：弹窗逻辑本身没坏，**关掉一个、下一个立刻顶上来**，体感「关不掉」。
+- **根因**（三层叠加，均非 ISSUE-156 覆盖范围；实时会话实证 `ingest_paper` 出现 **126 次** / 16 超时 / 7 拒绝 / 15 failed）：① **LLM 重试死循环**——工具在审批超时/被拒时返回 `{"status":"failed"}`，LLM 看到 `failed` → 「没成功，再试」→ 又触发审批门 → 新弹窗 → goto 1。InternalizationFaculty 指令只说 `failed → 转达 error`，**无「不要重试」约束**；`tool_context.state` 跨调用持久但**无任何 denial/cooldown 机制**可掐断重复弹窗。② **用户无法自救**——Composer 仅在 `isGenerating`（streaming/connecting）显示 Stop；审批待决时连接态是 `idle`/`blocked` → `isGenerating=false` → **Send 被禁用、又无 Stop**（`showStop = Boolean(isGenerating && onCancel)`）。③ **审批策略选择器压根没生效 + 自治 faculty 仍被门控**——前端 `ApprovalPolicySelector` 的 `forwardedProps.approval_policy` 在 BFF `buildStateDeltaFromForwardedProps`（`packages/agents-chat-core/src/server/state-delta.ts`）**被静默丢弃**（无对应 handler），工具永远读到 `None` → 默认 `per_tool` → 永远拦截，**用户即使选「never」也无效**；`faculty_bridge._drive` 用全新 session 调 ADK faculty（带 ingest_paper/ingest_to_corpus），同样默认 `per_tool` → 自治 faculty 调用无人审批 → 超时循环。**关键勘误**：Routine 主链路跑 Claude Code（`runner.py:255 ClaudeCodeService.invoke`），与 ADK 审批门正交；用户的死循环在 **studio 交互式 ADK Agent**，非 Routine runner。
+- **处理方式**（三层治本，分别实施）：**Fix 1 断掉重试循环（denial 缓存 + 终结性 `blocked`）**——`approval.py` 新增 `APPROVAL_DENIAL_TTL_SECONDS=300` + `_stable_hash`（sha1 前 8 位，跨进程稳定）+ `record_approval_denial`/`was_recently_denied`（写/查 `state["approval_denials"][f"{tool}:{args_key}"]`，沿用整字典重赋值契约）；ingest.py（denial_key=`{corpus_id}:{text[:256] 哈希}`）/ paper.py（denial_key=`arxiv_id`）在 `should_request_approval` **前**先查缓存，命中直接返回 `{"status":"blocked",...}`、**不再调 `request_approval`**；超时/拒绝分支调用 `record_approval_denial` 并把返回从 `failed` 改为终结性 `blocked`；InternalizationFaculty 指令补 `blocked → 严禁重试，告知用户重新发起`。结构性把循环压到至多 1 次弹窗，**不依赖 LLM 自觉**。**Fix 2 Stop 按钮常驻 + 一键破局**——`Composer.tsx` 新增 `forceShowStop` prop，`showStop = Boolean((isGenerating || forceShowStop) && onCancel)`；`home-body.tsx` 传 `forceShowStop={blocked || 有待决审批}`；`handleCancelRun` 增强——除 `abortRun` 外，把所有 `pendingApprovals` 的 action_id 一并加入 `resolvedApprovalIds`（清空所有弹窗），即便 run 已结束的孤儿态也能即时逃生。**Fix 3 审批策略真正生效 + 自治 faculty 免门控**——3a：`state-delta.ts` 追加 `approval_policy` handler（合法 `{mode:"always"|"per_tool"|"never"}` 透传，非法 fail-soft），修复「选择器死代码」；3b：`faculty_bridge._drive` 在 `runner.run_async` 前用 `service.create_session(state={"approval_policy":{"mode":"never"}}, session_id=...)` 预创建 session，使自治 faculty 调用免审批门，失败降级不阻断主流程。
+- **后续防范**：① **HITL 重试必须有结构性兜底**——不能只靠 LLM「看到不要重试」的自觉；任何「外部信号门控 + LLM 驱动」的工具，被拒/超时后应记 negative 决议，工具入口前置查缓存，命中即返终结结果。② **「失败」状态语义需区分可重试与不可重试**——`failed` 是 LLM 的「再试一次」信号；用户拒绝/超时这类**不可重试**的失败须用独立 status（`blocked`）+ 显式反重试文案。③ **前端 forwardedProps 与后端 state_delta 是契约**——新增前端控制项必须确认 BFF `buildStateDeltaFromForwardedProps` 有对应 handler，否则就是「选择器死代码」（UI 有反应、后端无效果）。④ **「自救按钮」的显示条件不能只看 streaming**——模态/阻塞陷阱下连接态常为 idle/blocked，Stop 须基于「有待决异步态」常驻，否则用户被禁用 UI 困死。⑤ **实机排查优先于源码推演**——本 issue 的「循环」结论来自实时 DOM/fiber 读 `pending_approvals` 多 action_id + innerText 计数 `ingest_paper` 126 次，源码侧无任何线索；复杂运行时态必须用浏览器实测验证假设。
+- **同类问题影响**：所有「LLM + 外部门控」工具（approval / long-running / 外部 IO 等待）都应补「negative 决议缓存」掐断重试；所有前端 forwardedProps 字段都应核对 BFF state_delta 是否真透传；所有「禁用主按钮 + 异步态」的 UI 都应有常驻 Stop/逃生。改动文件：`agents/approval.py`、`agents/tools/ingest.py`、`agents/tools/paper.py`、`agents/faculties/internalization.py`、`engine/routine/faculty_bridge.py`、`packages/agents-chat-core/src/server/state-delta.ts`、`apps/negentropy-ui/components/ui/Composer.tsx`、`apps/negentropy-ui/app/home-body.tsx` + 对应单测（denial 缓存 / forceShowStop / state-delta 透传 / faculty_bridge 注入）。

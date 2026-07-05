@@ -6,8 +6,6 @@ import logging
 from contextlib import asynccontextmanager, contextmanager
 from typing import TYPE_CHECKING, AsyncIterator, Iterator, Optional
 
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -15,6 +13,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from playwright.async_api import Page
     from selenium.webdriver import Chrome
+    from selenium.webdriver.chrome.options import Options as ChromeOptions
 
 
 def build_chrome_options(
@@ -32,6 +31,10 @@ def build_chrome_options(
         user_agent: 自定义 User-Agent（为 None 时使用配置默认值）
         proxy_url: 代理服务器 URL
     """
+    # 懒加载：selenium 导入耗时较高（~30-50s 冷启动），仅在实际构建 Chrome 选项时才导入，
+    # 避免 perceives 启动期（仅注册工具、不发起抓取）被迫加载 selenium。
+    from selenium.webdriver.chrome.options import Options as ChromeOptions
+
     options = ChromeOptions()
 
     if headless:

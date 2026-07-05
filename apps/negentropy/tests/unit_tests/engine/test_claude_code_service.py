@@ -815,6 +815,80 @@ async def test_plan_review_answer_returns_plain_text_on_failure(monkeypatch):
     assert review_data is None
 
 
+async def test_auto_answer_question_uses_faculty_bridge_when_enabled(monkeypatch):
+    """INJECT-4（ADR 040）：faculty_bridge_enabled 开启时，_auto_answer_question 经本心 Faculty 产出答复。"""
+    from negentropy.config import settings
+
+    # RoutineSettings 为 frozen pydantic——用 object.__setattr__ 绕过 frozen，try/finally 还原（不污染其它测试）。
+    _orig = settings.routine.faculty_bridge_enabled
+    object.__setattr__(settings.routine, "faculty_bridge_enabled", True)
+    try:
+        captured: dict = {}
+
+        async def _fake_run_faculty(role, prompt, *, timeout_seconds=90.0):
+            captured["role"] = role
+            return '{"answers": ["120ms 去抖方案"]}'
+
+        import negentropy.engine.routine.faculty_bridge as fb
+
+        monkeypatch.setattr(fb, "run_faculty", _fake_run_faculty)
+
+        answer = await ClaudeCodeService._auto_answer_question(
+            [{"question": "去抖时长？"}],
+            {"goal": "g", "acceptance_criteria": "ac", "prompt": "p"},
+        )
+        assert captured["role"] == "internalization"  # 本心
+        assert answer == "120ms 去抖方案"  # 来自 Faculty 的 answers，非 litellm
+    finally:
+        object.__setattr__(settings.routine, "faculty_bridge_enabled", _orig)
+
+
+async def test_auto_answer_question_falls_back_when_faculty_returns_none(monkeypatch):
+    """INJECT-4 降级：Faculty 返回 None 时回退 litellm（mock litellm 验证降级生效）。"""
+    from unittest.mock import AsyncMock
+
+    from negentropy.config import settings
+
+    _orig = settings.routine.faculty_bridge_enabled
+    object.__setattr__(settings.routine, "faculty_bridge_enabled", True)
+    try:
+        import negentropy.engine.routine.faculty_bridge as fb
+
+        async def _none_faculty(role, prompt, *, timeout_seconds=90.0):
+            return None
+
+        monkeypatch.setattr(fb, "run_faculty", _none_faculty)
+
+        # mock litellm.acompletion 返回 answers JSON，验证降级路径被走到
+        import litellm
+
+        class _Msg:
+            content = '{"answers": ["litellm 降级答复"]}'
+
+        class _Choice:
+            message = _Msg()
+
+        class _Resp:
+            choices = [_Choice()]
+
+        async def _fake_acompletion(*args, **kwargs):
+            return _Resp()
+
+        monkeypatch.setattr(litellm, "acompletion", _fake_acompletion)
+        monkeypatch.setattr(
+            "negentropy.engine.utils.model_config.resolve_model_config_async",
+            AsyncMock(return_value=("gpt-x", {})),
+        )
+
+        answer = await ClaudeCodeService._auto_answer_question(
+            [{"question": "去抖时长？"}],
+            {"goal": "g", "acceptance_criteria": "ac", "prompt": "p"},
+        )
+        assert answer == "litellm 降级答复"
+    finally:
+        object.__setattr__(settings.routine, "faculty_bridge_enabled", _orig)
+
+
 # ---------------------------------------------------------------------------
 # 交互式 AskUserQuestion / ExitPlanMode 端到端（Fix 1+2+3+4）
 #

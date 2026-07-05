@@ -1,7 +1,9 @@
 from .action import Tool, ToolExecution
-from .agent import Agent
+from .agent import Agent, AgentVersion
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
-from .builtin_tool import BuiltinTool
+from .builtin_tool import BuiltinTool, BuiltinToolVersion
+from .eval_suite import EvalCase, EvalResult, EvalRun, EvalSuite
+from .evolution import EvolutionProposal, MemoryConfigVersion
 from .internalization import ConsolidationJob, Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpResourceTemplate, McpServer, McpTool
@@ -26,12 +28,15 @@ from .perception import (
 )
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
 from .pulse import Event, Thread
+from .repository import Repository
 from .routine import Routine, RoutineIteration
 from .scheduled_task import ScheduledTask, TaskExecution
 from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
+from .storage import AdkArtifact, BlobObject
 from .task_model_setting import TaskModelSetting
+from .tool_telemetry import ToolInvocation, ToolStatsDaily
 from .vendor_config import VendorConfig
 
 __all__ = [
@@ -54,11 +59,23 @@ __all__ = [
     "MemoryAuditLog",
     "MemoryAutomationConfig",
     "ConsolidationJob",
+    # Evolution (自进化)
+    "EvolutionProposal",
+    "MemoryConfigVersion",
+    # Eval Suite (离线评测基座 — 综述 §8 SI 度量)
+    "EvalSuite",
+    "EvalCase",
+    "EvalRun",
+    "EvalResult",
+    # Tool Telemetry (工具调用遥测)
+    "ToolInvocation",
+    "ToolStatsDaily",
     # Action
     "Tool",
     "ToolExecution",
     # Builtin Tools
     "BuiltinTool",
+    "BuiltinToolVersion",
     # Observability
     "Trace",
     # Perception (知识)
@@ -97,9 +114,12 @@ __all__ = [
     # Skill & Agent
     "Skill",
     "Agent",
+    "AgentVersion",
     # Scheduled Task (统一心跳调度)
     "ScheduledTask",
     "TaskExecution",
+    # Repository (本地仓库锚点 — 第 5 类 plugin 资源)
+    "Repository",
     # Routine (长周期自主任务迭代)
     "Routine",
     "RoutineIteration",
@@ -110,4 +130,7 @@ __all__ = [
     "VendorConfig",
     # Task Model Settings
     "TaskModelSetting",
+    # Storage (blob 对象 + ADK 制品，GCS 退役后的本地持久化)
+    "BlobObject",
+    "AdkArtifact",
 ]

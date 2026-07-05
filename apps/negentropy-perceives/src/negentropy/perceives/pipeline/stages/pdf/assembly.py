@@ -13,6 +13,7 @@ from __future__ import annotations
 import html
 import logging
 import re
+import unicodedata
 from typing import Dict, List, Optional, Tuple
 
 from ...base import Stage, StageResult
@@ -29,6 +30,10 @@ from ...registry import register_tool
 from .._base import PDFToolBase
 
 logger = logging.getLogger(__name__)
+
+# 论文顶层结构标题 ``Part I. / Part II. ...``（罗马数字 + 句点）。用于 2.1a 段把
+# 四个 Part 归一到统一层级（H2），修复 docling 跨切片赋级不一致。
+_PART_HEADING_RE = re.compile(r"^Part\s+[IVXLCDM]+[.．:：]", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +144,13 @@ class BuiltinAssembler(PDFToolBase):
                 for formula in input_data.formulas.formulas:
                     if formula.latex and formula.page_number is not None:
                         sig = _formula_text_signature(formula.latex)
-                        if len(sig) >= 20:
+                        # 阈值降至 ≥6：短公式（如 ``A_t=⟨M,H,U,E⟩`` sig=10、
+                        # ``z_i=H_{t_i}(τ_i)`` sig=6）也需入库，供
+                        # ``_text_block_matches_formula`` 的**精确相等**快路径去重
+                        # PyMuPDF inline 文本流与 MinerU 块公式的并存副本（Q9）。
+                        # 短签名在子串匹配路径中因 ratio/≥20 门天然失活，仅参与
+                        # 精确相等去重，无假阳性放大。
+                        if len(sig) >= 6:
                             formula_text_signatures.setdefault(
                                 formula.page_number, []
                             ).append(sig)
@@ -166,9 +177,17 @@ class BuiltinAssembler(PDFToolBase):
                     if _block_overlaps_special(
                         block, special_regions, iou_threshold=0.3
                     ):
-                        # 例外：``Figure N:`` / ``Table N:`` 起手的 caption
-                        # 即便几何上落入 layout figure region 也必须保留为段落
-                        # （它们是图表的语义描述，正文阅读价值高）。
+                        # figure-region 抑制本意是滤除图周矢量标签（坐标轴刻度
+                        # ``10 3 10 2 10 1``、面板标记 ``(a) (b)`` 等短碎片）。但
+                        # layout figure region 常过大，会把紧随图表的真实内容——
+                        # section 标题（``4 Corroborating Claims...``）、导言段落——
+                        # 一并吞没，致结构性内容丢失。改为按内容实质性区分而非
+                        # ``全抑制``：
+                        #   1. ``Figure N:`` / ``Table N:`` caption 恒保留；
+                        #   2. 实质文本块（含 ≥2 个 ≥3 字母英文词，涵盖标题与
+                        #      段落）放行至下方通用处理（含 byline / table-caption /
+                        #      metadata 降级守卫）；
+                        #   3. 仅抑制缺乏实质英文词的低内容碎片（轴刻度 / 面板标签）。
                         if _is_figure_or_table_caption_text(block.text):
                             elements.append(
                                 _ContentElement(
@@ -179,7 +198,9 @@ class BuiltinAssembler(PDFToolBase):
                                     block=block,
                                 )
                             )
-                        continue
+                            continue
+                        if _is_low_content_figure_label(block.text):
+                            continue
                     # 字符级签名兜底：剔除 PyMuPDF 把公式视觉渲染区抽成
                     # "字符流文本"产生的冗余文本块（典型如长式 ``M_l = f_long(...)``
                     # 的 PyMuPDF 字符序列与 MinerU LaTeX 经签名归一化后等价）
@@ -332,15 +353,30 @@ class BuiltinAssembler(PDFToolBase):
                                 break
                     if _skip:
                         continue
+                    # 边界修正：截断引擎误纳的尾部章节标题/引言正文
+                    _kept_code, _tail_text = _split_code_tail_section(
+                        code_block.code or ""
+                    )
                     elements.append(
                         _ContentElement(
                             reading_order=code_block.reading_order,
                             page_number=code_block.page_number,
                             element_type="code",
-                            content=_code_block_to_markdown(code_block),
+                            content=_code_block_to_markdown(
+                                code_block, code_override=_kept_code
+                            ),
                             code_block=code_block,
                         )
                     )
+                    if _tail_text:
+                        elements.append(
+                            _ContentElement(
+                                reading_order=code_block.reading_order + 0.5,
+                                page_number=code_block.page_number,
+                                element_type="text",
+                                content=_tail_text,
+                            )
+                        )
 
             # 图片：落入表格 bbox 的散落图片（如表格内 logo）应予跳过，
             # 因为表格的 Markdown 版本已包含完整文本内容。
@@ -483,22 +519,44 @@ class BuiltinAssembler(PDFToolBase):
                 if is_two_col:
                     _SUBSTANTIAL_W_PT = 100.0
                     _MIN_SUBSTANTIAL_PER_COL = 3
+                    # fitz/PyMuPDF 常把整栏正文合并为单个「高块」（宽~栏宽、高数百
+                    # pt）。这种块每栏仅 1 个，宽度可能略超 full_width_thr 被排除，
+                    # 致「每栏 ≥3 实质元素」校验误判真双栏正文页为单栏，进而按 y0
+                    # 排序把右栏（y0 较小）排到左栏之前（ISSUE: 双栏章节序错乱）。
+                    # 增加高度路径：每栏存在高度 ≥250pt 的块即视为实质栏
+                    # （正文栏块通常 280pt+；标题页摘要块 ~195pt 不致误判）。
+                    _TALL_BLOCK_H_PT = 250.0
                     full_width_thr = x_range * 0.7
                     col0_substantial = 0
                     col1_substantial = 0
+                    col0_tall = False
+                    col1_tall = False
                     for _, bx in items:
                         w = bx[2] - bx[0]
-                        if w < _SUBSTANTIAL_W_PT or w > full_width_thr:
-                            continue
+                        h = bx[3] - bx[1]
                         xc = (bx[0] + bx[2]) / 2
-                        if xc < split_x:
-                            col0_substantial += 1
-                        else:
-                            col1_substantial += 1
-                    if (
-                        col0_substantial < _MIN_SUBSTANTIAL_PER_COL
-                        or col1_substantial < _MIN_SUBSTANTIAL_PER_COL
-                    ):
+                        left = xc < split_x
+                        if _SUBSTANTIAL_W_PT <= w <= full_width_thr:
+                            if left:
+                                col0_substantial += 1
+                            else:
+                                col1_substantial += 1
+                        if h >= _TALL_BLOCK_H_PT:
+                            if left:
+                                col0_tall = True
+                            else:
+                                col1_tall = True
+                    col0_ok = col0_substantial >= _MIN_SUBSTANTIAL_PER_COL or col0_tall
+                    col1_ok = col1_substantial >= _MIN_SUBSTANTIAL_PER_COL or col1_tall
+                    if not (col0_ok and col1_ok):
+                        is_two_col = False
+
+                    # 行优先守卫：两栏均无≥250pt 高块时，页面是横排多元素区
+                    # （典型：3 栏作者块 / 标题页装饰），count-path 会误判为双栏
+                    # 并按列优先排序，把同 y0 横排的作者重排成列序、破坏阅读序
+                    # （ISSUE: 作者块乱序）。仅当至少一栏有高块（真双栏正文）才
+                    # 保留列优先；否则降级行优先 (y0, x0)。body 正文页有高块不受影响。
+                    if is_two_col and not (col0_tall or col1_tall):
                         is_two_col = False
 
                 for elem, bbox in items:
@@ -514,7 +572,7 @@ class BuiltinAssembler(PDFToolBase):
 
             def _sort_key(
                 elem: _ContentElement,
-            ) -> Tuple[int, int, float, float, int]:
+            ) -> Tuple[int, int, float, float, float]:
                 page = elem.page_number if elem.page_number is not None else 0
                 page = max(0, page)
                 col = _column_map.get(id(elem), 0)
@@ -534,7 +592,13 @@ class BuiltinAssembler(PDFToolBase):
             #     情况 A：首个标题为 H1 → 论文标题，后续标题下移一级
             #     情况 B：首个标题为 H2（学术论文常见）→ 提升为 H1 作为论文标题，
             #             后续标题也下移一级（与情况 A 相同）
-            _first_h1_seen = False
+            #
+            # auto_batch 修正：论文标题只在**首个切片**（slice_index==0）出现。切片
+            # >0 的首个标题是普通章节标题（如 ``8.`` / ``4.2`` / ``References``），
+            # 若仍走「册封论文标题」分支会被误升为 H1。故切片 >0 时预置
+            # ``_first_h1_seen=True``，使所有标题统一走「后续下移一级」路径，与切片 0
+            # 册封标题后的其余标题保持一致的层级基准（ISSUE：auto_batch 切片首标题误判 h1）。
+            _first_h1_seen = getattr(input_data, "slice_index", 0) > 0
             for elem in elements:
                 content = elem.content.strip()
                 if not content.startswith("#"):
@@ -553,6 +617,20 @@ class BuiltinAssembler(PDFToolBase):
                     new_level = min(level + 1, 5)
                     new_content = "#" * new_level + content[level:]
                     elem.content = new_content
+
+            # 2.1a Part 结构标题层级归一：``Part I. / Part II. ...`` 是论文顶层结构
+            #     节点（位于编号 section 之上）。docling 跨切片对其赋级不一致
+            #     （实测同一文档 Part I–III 为 h4、Part IV 为 h3），且经上方级联后
+            #     进一步偏移。统一钉为 H2，使四个 Part 在 wiki WikiToc（h2–h4）中
+            #     呈现为一致的顶层导航节点（ISSUE：Part 标题层级不一致 / 语义偏弱）。
+            for elem in elements:
+                content = elem.content.strip()
+                if not content.startswith("#"):
+                    continue
+                level = len(content) - len(content.lstrip("#"))
+                heading_body = content[level:].strip()
+                if _PART_HEADING_RE.match(heading_body):
+                    elem.content = "## " + heading_body
 
             # 2.1b 标题质量过滤：S3 text_extraction 常将双栏正文段落
             #     误判为 H3/H4 标题。识别特征：
@@ -690,6 +768,55 @@ class BuiltinAssembler(PDFToolBase):
                 except ImportError:
                     pass
 
+            # 2.1.2 同页同编号算法块跨类型去重：多引擎（PyMuPDF 文本块 /
+            #   docling/marker code 块 / code_detection algorithm 块）可能各自
+            #   产出同一 "Algorithm N" 的内容，导致同一算法在候选 markdown 中
+            #   重复出现（如纯文本标题 + 乱码内容文本 + fortran 块 + algorithm
+            #   块）。策略：(a) 同 (页码, 编号) 的算法 code 块仅保留内容最长者；
+            #   (b) 同页已存在算法 code 块时，移除同页冗余文本块——含同编号
+            #   Algorithm 标题的（标题重复），或含算法行号模式（≥2 个 "N:"，
+            #   PyMuPDF 字符流常把算法多行挤成乱码文本）。
+            _algo_num_re = re.compile(r"Algorithm\s+(\d+)", re.IGNORECASE)
+            _algo_code_by_key: Dict[Tuple[int, str], List[int]] = {}
+            for _i, _e in enumerate(elements):
+                if _i in _algo_remove or _e.element_type != "code":
+                    continue
+                _m = _algo_num_re.search(_e.content or "")
+                if not _m:
+                    continue
+                _algo_code_by_key.setdefault((_e.page_number, _m.group(1)), []).append(
+                    _i
+                )
+            # (a) 同页同编号算法 code 块：保留内容最长者
+            for _idxs in _algo_code_by_key.values():
+                if len(_idxs) <= 1:
+                    continue
+                _ranked = sorted(
+                    _idxs,
+                    key=lambda i: len((elements[i].content or "").strip()),
+                    reverse=True,
+                )
+                for _i in _ranked[1:]:
+                    _algo_remove.add(_i)
+            # (b) 同页存在算法 code 块时，移除同页冗余文本块
+            _algo_page_nums: Dict[int, set] = {}
+            for _pg, _num in _algo_code_by_key:
+                _algo_page_nums.setdefault(_pg, set()).add(_num)
+            for _i, _e in enumerate(elements):
+                if _i in _algo_remove or _e.element_type != "text" or not _e.block:
+                    continue
+                _nums = _algo_page_nums.get(_e.page_number)
+                if not _nums:
+                    continue
+                _content = _e.block.text or ""
+                _m2 = _algo_num_re.search(_content)
+                if (
+                    (_m2 and _m2.group(1) in _nums)
+                    or re.search(r"(?:^|\n)\s*\d+:\s", _content)
+                    or len(re.findall(r"\d+:\s", _content)) >= 2
+                ):
+                    _algo_remove.add(_i)
+
             if _algo_remove:
                 elements = [e for i, e in enumerate(elements) if i not in _algo_remove]
                 # 新增的算法代码块需要在排序后的位置插入，重新排序
@@ -720,7 +847,24 @@ class BuiltinAssembler(PDFToolBase):
                             if re.search(r"\(\s*" + re.escape(eq_num) + r"\s*\)", text):
                                 matched = True
                         # 策略 2：数学符号 + LaTeX 关键词匹配（短公式或无编号场景）
-                        if not matched and formula.formula_type == "block":
+                        #   - block 短公式 / 无编号块公式（数学符号 + 名称双条件）；
+                        #   - inline 独立短块（整段文本即公式，≤ 40 字符）——仅当文本元素
+                        #     本身为公式而非散文段落时整体替换，避免误吞 prose；inline
+                        #     希腊变量（α/β/θ）无 block 数学符号，放宽为"名称匹配即可"。
+                        #   LaTeX 名经希腊字母 / 运算符 unicode 映射桥接文本层字形
+                        #   （``\alpha``↔``α``、``\theta``↔``θ``、``\approx``↔``≈``）。
+                        is_block = formula.formula_type == "block"
+                        # inline 独立短块：整段即公式。≤ 40 字符直接放；40 < len ≤ 60
+                        # 时要求高数学字形密度（≥ 2 个 greek/运算符特征字形），确认整段
+                        # 确为公式而非散文片段。仅独立块、不触 prose 段落，零损坏风险。
+                        _MATH_GLYPHS = set(
+                            "αβγδεζηθικλμνξπρστυφχψωΔΘΛΣΦΨΩΓ×÷≈≤≥≠∈∉⊂⊆⊃⊇∪∩∀∃∑∏∫∂∇"
+                        )
+                        _glyph_density = sum(1 for c in text if c in _MATH_GLYPHS)
+                        is_inline_short = formula.formula_type == "inline" and (
+                            len(text) <= 40 or (len(text) <= 60 and _glyph_density >= 2)
+                        )
+                        if not matched and (is_block or is_inline_short):
                             _math_symbols = [
                                 "→",
                                 "∑",
@@ -749,13 +893,71 @@ class BuiltinAssembler(PDFToolBase):
                                     "\\dots",
                                     "\\text",
                                     "\\tag",
+                                    "\\mathrm",
                                 )
                             ]
-                            _name_match = any(
-                                n.lower() in text.lower() for n in _latex_names
-                            )
-                            if _has_math and _name_match:
-                                matched = True
+                            # LaTeX 命令名 → unicode 字形（greek 字母 / 运算符）
+                            _LATEX_GLYPH = {
+                                "alpha": "α",
+                                "beta": "β",
+                                "gamma": "γ",
+                                "delta": "δ",
+                                "theta": "θ",
+                                "phi": "φ",
+                                "varphi": "ϕ",
+                                "psi": "ψ",
+                                "omega": "ω",
+                                "lambda": "λ",
+                                "mu": "μ",
+                                "sigma": "σ",
+                                "epsilon": "ε",
+                                "eta": "η",
+                                "zeta": "ζ",
+                                "nu": "ν",
+                                "tau": "τ",
+                                "rho": "ρ",
+                                "kappa": "κ",
+                                "chi": "χ",
+                                "Phi": "Φ",
+                                "Theta": "Θ",
+                                "Omega": "Ω",
+                                "Gamma": "Γ",
+                                "Delta": "Δ",
+                                "Lambda": "Λ",
+                                "Sigma": "Σ",
+                                "Psi": "Ψ",
+                                "approx": "≈",
+                                "times": "×",
+                                "cdot": "·",
+                                "le": "≤",
+                                "ge": "≥",
+                                "ne": "≠",
+                                "sum": "∑",
+                                "in": "∈",
+                                "cup": "∪",
+                                "cap": "∩",
+                                "subseteq": "⊆",
+                                "rightarrow": "→",
+                            }
+
+                            def _name_in_text(name: str) -> bool:
+                                # 仅认 unicode 字形（α/θ/≈/×/≤ 等）——这些字形几乎不出现在
+                                # 非数学散文。丢弃 ascii 名 substring 路径，避免 ``\in``→"in"
+                                # 误匹配 "Introduction"/"training" 等通用子串致短段被整体替换。
+                                if not name:
+                                    return False
+                                glyph = _LATEX_GLYPH.get(name) or _LATEX_GLYPH.get(
+                                    name.lower()
+                                )
+                                return glyph is not None and glyph in text
+
+                            _name_match = any(_name_in_text(n) for n in _latex_names)
+                            if is_block:
+                                if _has_math and _name_match:
+                                    matched = True
+                            else:  # inline 独立短块
+                                if _name_match and _latex_names:
+                                    matched = True
                         if matched:
                             formula_md = _formula_to_markdown(formula)
                             elem.content = formula_md
@@ -985,6 +1187,10 @@ class BuiltinAssembler(PDFToolBase):
             # ``Fig. N:`` / ``Table N:`` 起手的 caption 段落时，把邻接段
             # 文本注入到 image，复用 2.6 段的 caption-vs-text 去重移除
             # 独立 caption 段落，恢复 PDF 中"图旁有 caption"视觉。
+            #
+            # ``claimed_captions``：已被某张图片认领的 caption 归一化文本集，供同页
+            # 游离 caption 兜底避免两张图抢同一段。
+            claimed_captions: set[str] = set()
             for i, img_elem in enumerate(elements):
                 if img_elem.element_type != "image" or img_elem.image is None:
                     continue
@@ -1006,8 +1212,20 @@ class BuiltinAssembler(PDFToolBase):
                     image_has_caption=bool(existing_cap),
                     next_text_block_text=next_text_content,
                 )
+                # 邻接失败兜底：同页游离 caption 关联（ISSUE：Figure N | caption
+                # 与其图片在阅读序中相隔较远——中间夹标题 / 分栏文本，邻接搜索遇
+                # 非 text 元素即中断）。当图片仍无 caption 时，在**同一页**范围内
+                # 搜索一个 ``Figure N |`` / ``Table N |`` 起手且尚未被其它图片认领
+                # 的游离 text 段，将其注入。仅在该页恰有唯一 captionless 图片时启用，
+                # 避免多图页误配（本文档 Figure 8 位于 p39：图在页首、caption 漂到
+                # ~90 行后，邻接兜底够不到）。
+                if injected is None and not existing_cap:
+                    injected = _find_same_page_orphan_caption(
+                        img_elem, elements, claimed_captions
+                    )
                 if injected is None:
                     continue
+                claimed_captions.add(_normalize_for_dedup(injected))
                 img_elem.image.caption = injected
                 img_elem.content = _image_to_markdown(img_elem.image)
                 logger.debug(
@@ -1094,16 +1312,29 @@ class BuiltinAssembler(PDFToolBase):
                             if alt_html:
                                 cap_source = html.unescape(alt_html.group(1))
                     cap_match = re.search(
-                        r"((?:Table|Figure)\s+\d+[:.][^\n]+)",
+                        r"((?:Table|Figure)\s+\d+\s*[:.|｜∣][^\n]+)",
                         cap_source,
                         re.IGNORECASE,
                     )
                     if cap_match:
                         cap_text = cap_match.group(1)
-                        cap_norm = _normalize_for_dedup(cap_text)
-                        if cap_norm in _seen_caption:
+                        # 同编号 Figure/Table caption 不论长短只保留首份：
+                        # 不同源（docling/PyMuPDF）常给出完整版与截断版，整段
+                        # 归一化文本不同会漏去重，改以 "figure N" / "table N"
+                        # 编号作去重键（编号在论文中唯一，不会误伤不同图表）。
+                        _cap_num = re.match(
+                            r"(?:Table|Figure)\s+\d+", cap_text, re.IGNORECASE
+                        )
+                        cap_key = (
+                            _cap_num.group(0).lower()
+                            if _cap_num
+                            else _normalize_for_dedup(cap_text)
+                        )
+                        # 仅对 text 元素去重：image 元素即使 caption 重复也保留，
+                        # 避免同编号 caption 已记录时把图片本身丢弃。
+                        if cap_key in _seen_caption and elem.element_type == "text":
                             continue
-                        _seen_caption.add(cap_norm)
+                        _seen_caption.add(cap_key)
                 _dd.append(elem)
             elements = _dd
 
@@ -1132,12 +1363,29 @@ class BuiltinAssembler(PDFToolBase):
                 def caption(self) -> Optional[str]:
                     return self._img.caption
 
+                # 暴露几何/页码信息，供 image_ref_normalizer 做"同页 page-dominant
+                # 大图抑制冗余 orphan 碎片"判定（如封面全页图 + 同页噪声碎片）。
+                @property
+                def width(self) -> Optional[int]:
+                    return getattr(self._img, "width", None)
+
+                @property
+                def height(self) -> Optional[int]:
+                    return getattr(self._img, "height", None)
+
+                @property
+                def page_number(self) -> Optional[int]:
+                    return getattr(self._img, "page_number", None)
+
             adapted_images = [_ImageMetaAdapter(img) for img in images]
             markdown = normalize_image_references(markdown, adapted_images)
 
             # 5. Markdown 格式化
             formatter = MarkdownFormatter()
             markdown = formatter.format(markdown)
+
+            # 6. 参考文献节条目分段（多条目连段 → 每条独占段落）
+            markdown = _segment_references_section(markdown)
 
             word_count = len(markdown.split())
 
@@ -1197,7 +1445,7 @@ class _ContentElement:
 
     def __init__(
         self,
-        reading_order: int,
+        reading_order: float,
         page_number: int,
         element_type: str,
         content: str,
@@ -1296,13 +1544,27 @@ def _formula_text_signature(s: str) -> str:
     用于跨形式公式去重：
       - LaTeX 命令 ``\\xxx`` 全部剥除（``\\theta``、``\\in``、``\\wedge`` 等
         无文本字符等价，丢弃即可）；
+      - ``\\begin{...}{...}`` / ``\\end{...}`` 排版结构（如 ``\\begin{array}{r}``
+        的 ``array``/``r``/``l``/``c`` 列规格）整段剥除——这些是版式噪声而非
+        公式语义字符，混入会膨胀 fsig 致碎片文本块的覆盖率失真；
       - 大括号 / 下标符号 / 标点 / 空白 / Unicode 数学符号 全部丢弃；
       - 仅保留 ASCII 字母数字。
 
     PyMuPDF 把 LaTeX 视觉渲染区抽成"字符流文本"时，对每个字形（含上下标）
     保留为独立字符，与 MinerU 提取的 LaTeX 字符序列（同样把 ``M _ { l }``
     拆为 ``M l`` 等）经归一化后几乎完全相同。该签名作为跨形式等价锚点。
+
+    NFKD 归一（关键）：PyMuPDF 抽取的 inline 公式常为 Unicode 数学字母块字形
+    （``A 𝑡 = ⟨ 𝑀 𝜃 𝑡 ...⟩``，U+1D400–1D7FF），旧实现仅保留 ASCII 会把
+    ``𝑡/𝑀/𝐻`` 等全部丢弃，签名坍缩为 ``a``，与 MinerU 的 LaTeX 块签名
+    ``atmthtutet`` 不匹配 → 两份公式并存（同一公式既有 PyMuPDF inline 文本流
+    又有 MinerU ``$$`` 块）。NFKD 把数学字母块折叠为 ASCII 兼容字符（``𝑡→t``、
+    ``𝑀→M``、``𝔼→E``），使两种形式签名一致，R8 跨形式去重方能命中。
     """
+    # NFKD 折叠 Unicode 数学字母块 → ASCII 兼容字符（跨形式签名对齐前提）
+    s = unicodedata.normalize("NFKD", s)
+    # 先剥离开 \begin{...} / \end{...} 及其紧随的列规格 {...}（版式结构噪声）
+    s = re.sub(r"\\(?:begin|end)\s*\{[^{}]*\}(?:\s*\{[^{}]*\})?", "", s)
     # 剥离 \xxx LaTeX 命令
     s = re.sub(r"\\[a-zA-Z]+\*?", "", s)
     # 仅保留 ASCII 字母数字
@@ -1328,23 +1590,42 @@ def _text_block_matches_formula(
     若仅满足前置条件但 ``len_ratio < 0.85``，认为公式只是被嵌入更长正文段，
     属于"公式埋在长正文段"假阳性，保守保留文本块不予过滤。
 
-    仅在公式签名 ≥20 字符且文本块归一化后 ≥20 字符时启用，
+    子串匹配仅在公式签名 ≥20 字符且文本块归一化后 ≥20 字符时启用，
     避免短公式 / 短文本互相假阳性。
+
+    精确相等快路径（Q9）：短公式（如 ``A_t = ⟨M,H,U,E⟩`` 签名仅 10 字符）的
+    PyMuPDF inline 文本流与 MinerU ``$$`` 块并存时，签名 **完全相等** 而非仅子串。
+    完全相等是极强信号——整个文本块字符级恰好等于某公式（同页），几乎不可能是
+    正文巧合。故 ``text_sig == fsig`` 且 ≥6 字符时直接判为冗余，绕过 20 字符门。
     """
     page = block.page_number
     sigs = formula_signatures.get(page)
     if not sigs:
         return False
     text_sig = _formula_text_signature(block.text or "")
+    # 精确相等快路径：文本块签名恰好等于某公式签名 → 标准的"公式被同时抽成
+    # inline 文本流 + 块公式"冗余（Q9）。要求 ≥6 字符防超短巧合。
+    if len(text_sig) >= 6 and text_sig in sigs:
+        return True
     if len(text_sig) < 20:
         return False
     for fsig in sigs:
-        if fsig not in text_sig:
-            continue
-        # 子串匹配 → 进一步判定长度比例，过滤"公式埋在长正文段"假阳性
-        len_ratio = len(fsig) / max(len(text_sig), 1)
-        if len_ratio >= 0.85:
-            return True
+        # 正向：完整公式签名是文本块签名的子串（PyMuPDF 把整个公式视觉区
+        # 抽成一段字符流文本，签名与公式 LaTeX 几乎全等）。
+        if fsig in text_sig:
+            # 子串匹配 → 进一步判定长度比例，过滤"公式埋在长正文段"假阳性
+            len_ratio = len(fsig) / max(len(text_sig), 1)
+            if len_ratio >= 0.85:
+                return True
+        # 反向：文本块签名是公式签名的子串（PyMuPDF 把一个公式视觉区拆成
+        # 多个碎片文本块，每块签名是完整公式签名的片段，正向 fsig-in-text_sig
+        # 因 fsig 更长而失配）。要求文本块覆盖公式签名的较大比例(≥0.4)，
+        # 避免短巧合子串误杀正文——公式签名为密集字母数字串、无词边界，
+        # 正文连写词几乎不可能 ≥20 字符地落入其中，FP 风险极低。
+        if text_sig in fsig:
+            coverage = len(text_sig) / max(len(fsig), 1)
+            if coverage >= 0.4:
+                return True
     return False
 
 
@@ -1435,8 +1716,10 @@ def _is_caption_duplicate(text: str, caption_norm: str, all_captions: set[str]) 
     return False
 
 
+# caption 分隔符：冒号 / 句点 / 连字符 / 竖线（``Figure 8 | ...`` 是本文档及大量
+# arXiv 论文的常见写法）。含 ASCII ``|`` 与全角 ``｜`` / 数学竖线 ``∣``。
 _FIGURE_TABLE_CAPTION_RE = re.compile(
-    r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+    r"^\s*(Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-|｜∣]",
     re.IGNORECASE,
 )
 
@@ -1452,6 +1735,47 @@ def _is_figure_or_table_caption_text(text: str) -> bool:
     if not text:
         return False
     return bool(_FIGURE_TABLE_CAPTION_RE.match(text))
+
+
+def _is_low_content_figure_label(text: str) -> bool:
+    """判断落入 figure region 的文本块是否是缺乏实质内容的图周碎片。
+
+    ``_block_overlaps_special`` 命中后，caption 已恒保留；本函数用于进一步区分
+    "真实内容块"与"图周矢量标签碎片"，三信号判定：
+
+    - 信号 A（缺实质英文词）：坐标轴刻度（``10 3 10 2 10 1``、``1 K 10 K``、
+      ``10 −1``）、面板标记（``(a) (b)``）、单字轴标题（``Residual δ F``）——0~1 个
+      ≥3 字母英文词。
+    - 信号 C（2 词轴标题碎片）：``Training Step`` / ``Train Loss`` / ``Eval Loss`` /
+      ``Training Step Δ`` 等——≤2 个 ≥3 字母英文词、且**无**章节编号前缀
+      （``4.2 Behavioral Evidence`` / ``A Related Work`` 起首带编号 → 放行）、**无**
+      句末标点。真实短标题多带章节编号或句末标点，且罕见落入 figure region。
+    - 信号 B（刻度序列）：即便跟 2 词轴标题（``1 2 4 8 16 32 Feature index j``、
+      ``10 20 30 Task index k``），出现 ≥3 个**相邻**纯数字 token（仅由空白/逗号/
+      分号分隔）即为坐标轴刻度序列。要求"相邻 ≥3"以避免误伤正文里散落的章节引用
+      （``Sec. 3 ... Sec. 3``、``sections 3, 4``）与型号 ``4M``/``210B``/``GPT-4``。
+
+    真实 section 标题与导言段落（``4 Corroborating Claims...``、``We now verify
+    the claims of Sec. 3 ... Following the structure of Sec. 3 ...``）三信号均不
+    命中，予以保留。
+    """
+    if not text:
+        return True
+    t = text.strip()
+    words = re.findall(r"[A-Za-z]{3,}", text)
+    # 信号 A + C：短碎片（≤2 个 ≥3 字母英文词）且非"章节编号前缀 / 句末标点"形态
+    if len(words) <= 2:
+        # 章节编号前缀要求编号后跟 ≥2 字母英文词（'4.2 Behavioral Evidence'/'A Related Work'），
+        # 避免把 '10 −1'（−1 非字母）、'1 B 300 M 20 M'（B/M 单字母）这类刻度/图例
+        # 噪声误判为 section 编号。
+        has_section_prefix = bool(
+            re.match(r"^(?:\d+(?:\.\d+)*|[A-Z])\s+[A-Za-z]{2,}", t)
+        )
+        has_terminal_punct = bool(re.search(r"[.!?][\"')\]]*\s*$", t))
+        if not has_section_prefix and not has_terminal_punct:
+            return True
+    # 信号 B：相邻纯数字序列（≥3 个）= 坐标轴刻度
+    return bool(re.search(r"\d+(?:\.\d+)?(?:[\s,;]+\d+(?:\.\d+)?){2,}", text))
 
 
 def _figure_caption_to_inject(
@@ -1487,6 +1811,54 @@ def _figure_caption_to_inject(
     if not _is_figure_or_table_caption_text(text):
         return None
     return text
+
+
+def _find_same_page_orphan_caption(
+    img_elem: "_ContentElement",
+    elements: List["_ContentElement"],
+    claimed_captions: set[str],
+) -> Optional[str]:
+    """邻接兜底失败时，在**同一页**范围内为 captionless 图片寻找游离 caption。
+
+    背景：``Figure N |`` caption 与其图片在阅读序中可能相隔很远（中间夹章节标题
+    / 分栏文本），2.5.7 的邻接搜索遇非 text 元素即中断，够不到。典型如本文档
+    Figure 8（p39）：图在页首、caption 漂到约 90 行后。
+
+    策略（保守，避免多图页误配）：
+      - 仅在该图所在页**恰有唯一** captionless 图片时启用；
+      - 仅认领该页 ``Figure N |`` / ``Table N |`` 起手、尚未被其它图片认领
+        （``claimed_captions``）的 caption 段；
+      - 该页存在 ≥2 个此类游离 caption 时不认领（无法确定对应关系，交由后续
+        dedup 保留为独立段落，不制造错配）。
+
+    Returns:
+        应注入的 caption 文本（已 strip），无合适候选时 ``None``。
+    """
+    page = img_elem.page_number
+    # 同页 captionless 图片数：>1 则放弃（无法确定 caption 归属）
+    captionless_imgs_on_page = [
+        e
+        for e in elements
+        if e.element_type == "image"
+        and e.image is not None
+        and e.page_number == page
+        and not (e.image.caption or "").strip()
+    ]
+    if len(captionless_imgs_on_page) != 1:
+        return None
+    # 同页游离 caption 候选：Figure/Table N | 起手、未被认领的 text 段
+    candidates = [
+        (e.content or "").strip()
+        for e in elements
+        if e.element_type == "text"
+        and e.block is not None
+        and e.page_number == page
+        and _is_figure_or_table_caption_text((e.content or "").strip())
+        and _normalize_for_dedup((e.content or "").strip()) not in claimed_captions
+    ]
+    if len(candidates) != 1:
+        return None
+    return candidates[0]
 
 
 def _is_running_header_footer(text: str, page_number: Optional[int] = None) -> bool:
@@ -1611,6 +1983,13 @@ def _is_toc_table_text(text: str) -> bool:
     """
     if not text:
         return False
+    # 带 "Table N:" / "Figure N:" / "表 N:" caption 的结果表绝非目录（TOC）。
+    # 结果表常含数值列（如 P_drop=0.1 形似章节号、BLEU/params 整数形似页码），
+    # 会误命中下方的 section_no_rows / page_no_rows 启发式而被当成 TOC 丢弃
+    # （如 Attention 论文 Table 3 架构变体表）。caption 起手即排除。
+    first_line = text.split("\n", 1)[0].strip()
+    if re.match(r"^(?:Table|Figure|Tab\.|Fig\.|表|图)\s*\d", first_line, re.IGNORECASE):
+        return False
     lines = [ln for ln in text.split("\n") if ln.strip().startswith("|")]
     if len(lines) < 3:
         return False
@@ -1629,20 +2008,161 @@ def _is_toc_table_text(text: str) -> bool:
     return has_toc_signature and page_no_rows >= 2
 
 
+_TABLE_CAPTION_CELL_RE = re.compile(r"^Table\s+S?\d+\s+\S")
+
+
+def _emit_gfm_separator(ncols: int) -> str:
+    """生成 ncols 列的 GFM 表格分隔符行。"""
+    return "| " + " | ".join("---" for _ in range(max(ncols, 1))) + " |"
+
+
+def _strip_caption_row_from_grid(md: str) -> tuple[str, Optional[str]]:
+    """从 GFM 表格网格中剥离被引擎误并入表头的 ``Table N`` caption。
+
+    部分引擎（如 docling）会把表格标题塞进 markdown 表头，两种形态：
+    A. caption 占首格、真实列标题右移一格、数据行首格全空 → 删除首列；
+    B. 表头所有格均为同一 caption（广播）、真实表头沦为首个数据行 → 提升。
+
+    返回 (清洗后 md, 抽出的 caption)；非表格或无 caption 污染时原样返回并
+    caption=None。重建表格使用统一 GFM 间距并对单元格内 ``|`` 转义以保合法。
+    """
+    if not md or "|" not in md:
+        return md, None
+    lines = md.split("\n")
+    sep_re = re.compile(r"^\s*\|[\s\-:|]+\|\s*$")
+
+    def is_sep(ln: str) -> bool:
+        return bool(sep_re.match(ln))
+
+    def parse_cells(ln: str) -> list[str]:
+        s = ln.strip()
+        if not s.startswith("|"):
+            return []
+        s = s[1:-1] if s.endswith("|") else s[1:]
+        return [c.strip() for c in s.split("|")]
+
+    def emit_row(cells: list[str]) -> str:
+        return "| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |"
+
+    # 定位表头行（| 起始、非分隔符、紧跟分隔符行）
+    hi = None
+    for i, ln in enumerate(lines):
+        if (
+            ln.strip().startswith("|")
+            and not is_sep(ln)
+            and i + 1 < len(lines)
+            and is_sep(lines[i + 1])
+        ):
+            hi = i
+            break
+    if hi is None:
+        return md, None
+
+    header = parse_cells(lines[hi])
+    if not header or not _TABLE_CAPTION_CELL_RE.match(header[0]):
+        return md, None
+
+    sep_idx = hi + 1
+    data_idxs: list[int] = []
+    j = sep_idx + 1
+    while j < len(lines):
+        if not lines[j].strip().startswith("|") or is_sep(lines[j]):
+            break
+        data_idxs.append(j)
+        j += 1
+    if not data_idxs:
+        return md, None
+
+    before = lines[:hi]
+    after = lines[data_idxs[-1] + 1 :]
+    nonempty_header = [c for c in header if c]
+
+    # 形态 B：广播 caption（所有非空表头格相同）→ 提升首个数据行为表头
+    if len(nonempty_header) >= 2 and len(set(nonempty_header)) == 1:
+        caption = nonempty_header[0]
+        new_header = parse_cells(lines[data_idxs[0]])
+        new_data = [parse_cells(lines[k]) for k in data_idxs[1:]]
+        rebuilt = [emit_row(new_header), _emit_gfm_separator(len(new_header))]
+        rebuilt.extend(emit_row(r) for r in new_data)
+        return "\n".join(before + rebuilt + after), caption
+
+    # 形态 A：caption 在首格 → 删首列（caption 已由 _TABLE_CAPTION_CELL_RE
+    # 强匹配 ``Table N + 描述文本`` 确认；兼容 caption 过长折行使数据行首格
+    # 沦为 caption 残片的情况，故不要求数据行首格为空）
+    if len(header) >= 2:
+        caption = header[0]
+        new_header = header[1:]
+        new_data = [parse_cells(lines[k])[1:] for k in data_idxs]
+        rebuilt = [emit_row(new_header), _emit_gfm_separator(len(new_header))]
+        rebuilt.extend(emit_row(r) for r in new_data)
+        return "\n".join(before + rebuilt + after), caption
+
+    return md, None
+
+
 def _table_to_markdown(table: ExtractedTable) -> str:
     """将表格转换为 Markdown（带可选标题）。
 
-    当 table.markdown 已包含 caption 文本时，不再额外添加，
-    避免 table 元素内部出现重复标题。
+    先用 ``_strip_caption_row_from_grid`` 清洗被引擎误并入表头的 ``Table N``
+    caption（避免标题被复制为首行或吞进表头导致列错位），再把 caption 还原为
+    表格上方的粗体段落。当 markdown 首行已等于 caption 文本时不重复添加。
     """
-    md = table.markdown
+    md, grid_caption = _strip_caption_row_from_grid(table.markdown)
+    # 显式 table.caption → 粗体段落（保留原行为）
     if table.caption and table.caption.strip():
         cap_stripped = table.caption.strip()
         # 检查 markdown 首行是否已包含 caption 文本
         first_line = md.split("\n", 1)[0].strip() if md else ""
         if first_line != cap_stripped:
             return f"**{cap_stripped}**\n\n{md}"
+        return md
+    # 从网格剥离出的 caption → 纯文本段落：与正文 caption 风格一致，且首字符
+    # 非 ``*``/``-``/``+``，避免 MarkdownFormatter._format_lists 把 ``**`` 起
+    # 手的粗体行首个 ``*`` 误判为列表标记而改写成 ``- *...``。
+    if grid_caption:
+        return f"{grid_caption}\n\n{md}"
     return md
+
+
+def _segment_references_section(markdown: str) -> str:
+    """对 References 节做条目分段（每条文献独占一段）。
+
+    学术 PDF 的参考文献常被引擎抽为逐行/连段文本块：多条目挤在同一段、且 PDF
+    行尾换行被提成段落断词。本函数定位 ``## References`` 标题到下一标题之间的
+    内容，按 Springer 作者-年份制的条目起点切分：非逗号前导的空白 + ``Surname
+    Initials`` 紧跟 ``,``（多作者列表首作者）或 ``(``（直接接年份），从而把每
+    条文献拆为独立段落。找不到 References 节、节内条目 <3、或任何异常时原样返回。
+    """
+    lines = markdown.split("\n")
+    start = None
+    for i, ln in enumerate(lines):
+        if re.match(r"^#{0,6}\s*References\s*$", ln.strip()):
+            start = i
+            break
+    if start is None:
+        return markdown
+    end = len(lines)
+    end_marker = re.compile(
+        r"^(?:#{1,6}\s|(?:Publisher'?s Note|Authors? and Affiliations|"
+        r"Author Information|Acknowledg|Funding|Author contributions|"
+        r"Conflict of [Ii]nterest|Ethics?|Data [Aa]vailab|Code [Aa]vailab|"
+        r"Statistics|Appendix)\b)"
+    )
+    for j in range(start + 1, len(lines)):
+        if end_marker.match(lines[j].strip()):
+            end = j
+            break
+    body = [ln.strip() for ln in lines[start + 1 : end] if ln.strip()]
+    if not body:
+        return markdown
+    text = " ".join(body)
+    split_re = re.compile(r"(?<!,)\s+(?=[A-Z][A-Za-zÀ-ÿ’'\-]+ [A-Z]{1,3}(?:,|\s*\())")
+    entries = [p.strip() for p in split_re.split(text) if p.strip()]
+    if len(entries) < 3:
+        return markdown
+    rebuilt = [lines[start], ""] + entries
+    tail = [""] + lines[end:] if end < len(lines) else []
+    return "\n".join(lines[:start] + rebuilt + tail)
 
 
 def _sanitize_latex(latex: str) -> str:
@@ -1922,7 +2442,9 @@ _CODE_LANG_HEADER_MAP = {
 """
 
 
-def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
+def _code_block_to_markdown(
+    code_block: ExtractedCodeBlock, code_override: Optional[str] = None
+) -> str:
     """将代码块转换为 Markdown 代码围栏。
 
     R9 修复：docling 部分 PDF 上把代码块首行 lang 名字（如 ``Python``）当作
@@ -1935,8 +2457,11 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
       允许尾随空白）→ 提升为 fence info string，从 body 移除首行。
 
     不在 :data:`_CODE_LANG_HEADER_MAP` 中的首行不会被吞掉，避免误删合法代码。
+
+    ``code_override`` 非空时替代 ``code_block.code`` 作为 body，供调用方对 code
+    body 做预处理（如截断引擎误纳的尾部章节标题/正文）后再走 lang 头推断。
     """
-    code = code_block.code or ""
+    code = code_override if code_override is not None else (code_block.code or "")
     lang = (code_block.language or "").strip().lower()
 
     # 拆首行用于 lang 头识别
@@ -1965,6 +2490,59 @@ def _code_block_to_markdown(code_block: ExtractedCodeBlock) -> str:
         return f"```{inferred_lang}\n{rest}\n```"
 
     return f"```\n{code}\n```"
+
+
+def _split_code_tail_section(code: str) -> Tuple[str, str]:
+    """检测 code body 尾部被引擎误纳的章节标题块并截断。
+
+    docling/marker 有时把代码块后续的章节标题（上下装饰线 + "N Title"）或图表
+    caption（``Figure N:`` / ``Table N:``）连同后续正文一起纳入同一 code body。
+    检测首处边界并在其前截断：返回 ``(kept_code, tail_text)``，kept_code 为算法/
+    代码主体；tail_text 为误纳尾部清洗后的正文（去掉装饰线与裸章节标题行——裸
+    标题/重复 caption 通常在块外已有规范版本，由后续 2.7 去重处理）。识别两类
+    边界，取最早者：(1) "装饰线(≥10 个 -/=) + 数字标题"；(2) 行首 ``Figure N:``
+    / ``Table N:`` caption。无边界则 ``(code, "")``。
+    """
+    if not code:
+        return code, ""
+    _starts = []
+    m1 = re.search(r"\n[-=]{10,}\s*\n\d+\s+[A-Z][^\n]*", code)
+    if m1:
+        _starts.append(m1.start())
+    # code 块尾部误纳的图表 caption（行首 Figure N: / Table N:）
+    m2 = re.search(
+        r"\n\s*(?:Figure|Fig\.?|Table|Tab\.?)\s+\d+\s*[:.\-]",
+        code,
+        re.IGNORECASE,
+    )
+    if m2:
+        _starts.append(m2.start())
+    if not _starts:
+        return code, ""
+    _cut = min(_starts)
+    kept = code[:_cut].rstrip()
+    tail_raw = code[_cut:].strip()
+    # 按 PDF 硬换行拆行、过滤装饰线/裸标题后，把连续正文行用空格合并为单一
+    # 段落（PDF 为版面宽度而插入的硬换行不应在 markdown 中断成多段）；仅真正
+    # 空行（PDF 段落边界）才切分为新段落，段落间以空行分隔。
+    _paragraphs: List[str] = []
+    _cur: List[str] = []
+    for ln in tail_raw.split("\n"):
+        s = ln.strip()
+        if not s:
+            if _cur:
+                _paragraphs.append(" ".join(_cur))
+                _cur = []
+            continue
+        if re.match(r"^[-=]{10,}$", s):
+            continue  # 装饰线
+        if re.match(r"^\d+\s+[A-Z][^\n]{15,}$", s):
+            continue  # 裸章节标题行（冗余，块外已有 ## 版本）
+        _cur.append(s)
+    if _cur:
+        _paragraphs.append(" ".join(_cur))
+    tail_text = "\n\n".join(_paragraphs).strip()
+    return kept, tail_text
 
 
 # PDF 点（pt）→ CSS 像素（px）转换因子：

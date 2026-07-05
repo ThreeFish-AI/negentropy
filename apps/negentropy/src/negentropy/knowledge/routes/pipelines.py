@@ -330,7 +330,7 @@ async def retry_pipeline_run(
 
     # 复用原 run 的分块配置；缺失时 execute_ingest_file_pipeline 兜底 self._chunking_config
     chunking_config = _build_chunking_config(original_input.get("chunking_config"))
-    final_source_uri = original_input.get("source_uri") or doc.gcs_uri
+    final_source_uri = original_input.get("source_uri") or doc.content_uri
 
     new_run_id = await service.create_pipeline(
         app_name=resolved_app,

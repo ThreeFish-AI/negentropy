@@ -1,0 +1,5 @@
+{
+  "position": 10,
+  "label": "设计 RFC",
+  "description": "跨子系统的横向设计决策与 RFC（SSO / 可观测性 / QA 流水线 / Docker 发布 / 浏览器 MCP / 自进化 / Skills / 会话架构重塑 / UI 交互增强）"
+}

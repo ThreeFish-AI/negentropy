@@ -171,7 +171,7 @@ export function ToolCard({
           )}
         </div>
         <p
-          className="mb-1 ml-6 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-text-muted line-clamp-4"
+          className="mb-1 pl-6 pr-2 h-20 min-w-0 overflow-hidden break-words text-sm leading-5 text-text-muted line-clamp-4"
           title={tool.description || "No description"}
         >
           {tool.description || "No description"}

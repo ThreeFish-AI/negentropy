@@ -58,6 +58,105 @@ _HOMOGENEOUS_PAIRS = frozenset(
 )
 
 
+# 运行页眉/页脚剥离：PDF 每页顶部/底部的 running header（如文档短标题）会被文本
+# 抽取引擎逐页当作文体保留，在 Markdown 中形成同一短独立行重复数十次的噪声。
+# ``_strip_running_headers`` 仅剥离「单行 + 简短 + 逐字完全相同 + 出现 ≥
+# ``_RUNNING_HEADER_MIN_REPEAT`` 次」的行；阈值刻意远高于正常正文短行的复现次数
+# （实测正文短行最高复现 2 次），从而零误伤。
+_RUNNING_HEADER_MIN_REPEAT = 6
+_RUNNING_HEADER_MAX_LEN = 80
+
+
+# 伪代码块降级：抽取引擎（docling 等）偶把带边框的自然语言横幅（版权 / 关键词 /
+# 署名横幅，形如 ``© Keywords: … © Github: …``）误判为 YAML / 代码块。此类内容
+# 不含任何真实代码特征，且常含 ``©`` / ``®`` / ``™`` 商标版权符——后者在真实源码
+# 与 YAML 中几乎不出现。``_demote_non_code_fences`` 仅当围栏块「含商标符且无任一
+# 强代码信号」时剥离围栏还原为普通段落；判定刻意保守，对真代码 / 真 YAML 零误伤。
+_NON_CODE_FENCE_TRIGGER = re.compile(r"[©®™]")
+_NON_CODE_FENCE_CODE_SIGNALS = (
+    re.compile(r"[{}]"),  # 花括号（绝大多数编程语言）
+    re.compile(r";"),  # 分号（C 系 / SQL / JS 语句终止）
+    re.compile(r"->|=>|::"),  # 箭头 / 作用域解析
+    re.compile(r"==|!=|<=|>="),  # 比较运算符
+    re.compile(r"""["'][^"'\n]{1,80}["']"""),  # 引号字符串
+    re.compile(r"(?<!:)//|/\*|\*/"),  # C 系注释（排除 URL ``https://`` 的 ``//``）
+)
+
+
+# 跨行断字复合词守护：``([a-z]+)- ([a-z]+)`` 合并规则（行 910 附近）默认把所有
+# ``word- word`` 当软断字合并为 ``wordword``，对 ``sur- vey→survey`` 正确，但对
+# 语义复合词跨行（``high- level`` 源 ``high-level``）误并为 ``highlevel``。当连字符
+# 左侧为下列「几乎只作复合词前缀、极少是某单词软断字碎片」的完整词时，保留连字符
+# → ``high-level``。刻意排除 over/per/pro/con/com/dis/pre/re/for/out/off 等「既可
+# 独立成词又常作软断字碎片」（performance/process/former/overall/react）的高频词，
+# 避免把 ``per- formance`` 误留为 ``per-formance``。
+_COMPOUND_HYPHEN_PREFIXES = frozenset(
+    {
+        # 体量 / 位置
+        "high",
+        "low",
+        "mid",
+        "long",
+        "short",
+        "deep",
+        "wide",
+        "near",
+        "far",
+        "top",
+        "full",
+        "half",
+        "thin",
+        "thick",
+        "front",
+        "back",
+        "side",
+        "end",
+        # 真伪 / 开闭
+        "real",
+        "open",
+        "closed",
+        "fake",
+        "true",
+        # 动作
+        "pull",
+        "push",
+        # 技术语义
+        "repository",
+        "state",
+        "agent",
+        "code",
+        "model",
+        "multi",
+        "cross",
+        "inter",
+        "intra",
+        "self",
+        "single",
+        "double",
+        "triple",
+        "fine",
+        "gross",
+        "net",
+        "large",
+        # 程度 / 性状
+        "well",
+        "ill",
+        "hard",
+        "soft",
+        "hot",
+        "cold",
+        "fast",
+        "slow",
+        "stale",
+        "clean",
+        "dirty",
+        "dry",
+        "wet",
+        "raw",
+    }
+)
+
+
 # R10-D19 守护词表：em-dash 风格 ``word - connector ...`` 中的常见 RHS 连接词。
 # Why: D19 的 ``word - word`` 合并对学术 PDF 表格 cell / Reference 内的跨行断字
 # （``Scalabil - ity`` → ``Scalability``）有效，但对正文中的 em-dash 风格
@@ -305,6 +404,88 @@ def _strip_orphan_styles(markdown_content: str) -> str:
     return text
 
 
+# ---------------------------------------------------------------------------
+# 散落 inline 数学字形（U+1D400–1D7FF Mathematical Alphanumeric Symbols）归一
+# ---------------------------------------------------------------------------
+#
+# LaTeX 学术 PDF 经 docling/PyMuPDF 抽取后，inline 数学常被发射为「空格分隔的
+# 孤立数学斜体字形」（如 ``A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡⟩``），既不被识别为公式也不渲染
+# 为数学体。``_normalize_unicode_math`` 把这类散落字形在 formatter 末段（所有
+# 清理 pass 之后、块公式/代码块还原之前）归一为 KaTeX 可渲染的 ``$...$``。
+
+# 单独成 token 时也判为「数学运算符 / 标点」的字符集（``_wrap_math_runs`` 分类用）。
+# 故意不含 ascii ``- * # | >`` —— 它们更常是列表标记 / 表格 / 引用 / 标题，强行吸附
+# 会破坏结构；数学减号用 U+2212（−）、星号用 U+2217（∗）。
+_MATH_OP_PUNCT_CHARS: frozenset[str] = frozenset(
+    "=+·×÷±∓∗∘⋆∝⊂⊃⊆⊇∪∩∧∨¬⊕⊗≈≠≡≅∼≺≻≪≫∥⊥→←↔⟹⟸⟺⟶⟵↦⇒⇔⟨⟩⌈⌉⌊⌋()[]{},.≤≥∈∉∀∃∂∇√∞′″−"
+)
+
+# 「数字 + 可选尾标点 / 括号」token（如 ``1,`` ``42.)`` ``1)``）—— 视作可被数学 run
+# 吸附的 ATTACHABLE，避免 ``𝑡 𝑖 − 1,`` 中的 ``1,`` 因带逗号被误判 PLAIN 断开 run。
+_NUM_ATTACH_RE = re.compile(r"^[0-9]+[.,;:!?\[\](){}]*$")
+
+# inline 数学 run 内常见、但不在 ``UNICODE_TO_LATEX`` / ``MATH_LETTER_TO_LATEX``
+# 的字符兜底映射。
+_MATH_RUN_EXTRA_MAP: Dict[str, str] = {
+    "−": "-",  # U+2212 MINUS SIGN → ascii hyphen（math mode 渲染为减号）
+    "∗": r"\ast",  # U+2217 ASTERISK OPERATOR
+    "′": "'",
+    "″": "''",
+}
+
+# 数学 run 结尾的散文标点（句末句点 / 逗号等）—— 剥离到 ``$...$`` 之外，避免
+# ``$Et.$`` 这种把句末标点吞进数学的失真。group1 = 数学主体，group2 = 尾标点。
+_RUN_TRAILING_PUNCT_RE = re.compile(r"^(.*?)([.,;:!?]+)$")
+
+
+def _has_math_alnum_block(s: str) -> bool:
+    """文本是否含 U+1D400–1D7FF 数学字母块任一字符（斜体 / 粗体 / 双线体 / Greek 等）。"""
+    return any(0x1D400 <= ord(c) <= 0x1D7FF for c in s)
+
+
+# R11-C：作者-年份引用括号内侧空格压缩的判定函数。
+# 命中条件——括号内容满足任一引用信号：
+#   - 含 4 位年份（``1999``–``2099``），允许尾部单个消歧小写字母（``2026b``）；
+#   - 含 ``et al.``（多作者引用）。
+# 不命中则原样返回，避免误伤 ``[CLS]`` / ``[MASK]`` / ``[note]`` 等 token 记号
+# 与 GFM 任务框 ``[ ]`` / ``[x]``（内容非空但无引用信号）。
+# 注：年份后 ``[a-z]?`` 适配 ``\citep`` 风格的 ``2026b`` / ``2025a`` 消歧后缀——
+# 单纯 ``\b2026\b`` 在 ``2026b`` 处无词边界（``b`` 亦 word char），会漏判。
+_CITATION_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}[a-z]?\b")
+_TIGHTEN_CITATION_BRACKET_MIN_LEN = 4
+
+
+# R11-B2：URL 路径段换行拆分空格折叠。
+# 匹配 ``https?://domain.tld`` 后的路径段（每段以 ``/`` 起始，允许两侧单空格
+# 容纳 PyMuPDF 换行插入的空格），由 ``_collapse_url_path_spaces`` 把斜杠两侧
+# 空格清零。完好 URL（无空格）经 ``[ \t]*/[ \t]*`` → ``/`` 等价替换零影响。
+# R11-B2 fix：用 ``[ \t]*`` 而非 ``\s*``——本 pass 经 ``protect_math_content``
+# 全文档一次性调用（仅保护 ``$...$``，不保护散文/代码块），``\s*`` 跨 ``\n`` 会让
+# 行尾裸 URL 与下一行 ``/...`` 起首融合（``.../v2\n/key`` → ``.../v2/key``）。
+# PyMuPDF 的换行插入物是单个空格，``[ \t]*`` 既能覆盖又不会跨行。
+_URL_PATH_SPACES_RE = re.compile(
+    r"https?://[\w.-]+(?:[ \t]*/[ \t]*[\w.\-~%?:@&=+,#()*]+)+"
+)
+
+
+def _collapse_url_path_spaces(m: re.Match) -> str:
+    # 仅折叠行内空格/制表符——跨行融合由外层正则的 ``[ \t]*`` 边界阻断。
+    return re.sub(r"[ \t]*/[ \t]*", "/", m.group(0))
+
+
+def _tighten_citation_bracket(m: re.Match) -> str:
+    inner = m.group(1)
+    stripped = inner.strip()
+    # 仅当首尾确有被折叠进来的空格时才需要改（避免对正常 ``[Author]`` 反复 hit）
+    if len(inner) == len(stripped):
+        return m.group(0)
+    if len(stripped) < _TIGHTEN_CITATION_BRACKET_MIN_LEN:
+        return m.group(0)
+    if _CITATION_YEAR_RE.search(stripped) or "et al." in stripped:
+        return f"[{stripped}]"
+    return m.group(0)
+
+
 class MarkdownFormatter:
     """Markdown formatting pipeline for enhancing raw Markdown output."""
 
@@ -371,6 +552,9 @@ class MarkdownFormatter:
             if self.options.get("fix_spacing", True):
                 markdown_content = self._normalize_paragraph_breaks(markdown_content)
 
+            # 剥离逐字高频重复的运行页眉/页脚独立行（如 PDF 短标题每页残留）
+            markdown_content = self._strip_running_headers(markdown_content)
+
             # 近似段落去重（跨引擎内容重复）
             markdown_content = self._deduplicate_approximate_paragraphs(
                 markdown_content
@@ -399,6 +583,11 @@ class MarkdownFormatter:
                     markdown_content, video_registry
                 )
 
+            # 散落 inline 数学字形（U+1D400–1D7FF）归一为 ``$...$``：必须在所有清理
+            # pass 之后、块公式 / 代码块还原之前执行——此时二者仍是占位符（天然跳过），
+            # 已有 inline ``$..$`` 由 pass 内 split-and-skip 保护。
+            markdown_content = self._normalize_unicode_math(markdown_content)
+
             # 还原块级数学公式占位符（须在 _cleanup_math_blocks 之后，
             # 这样数学块整体仍由本管线统一治理，但 LaTeX 主体内容不被修改）
             markdown_content = self._restore_math_blocks(
@@ -413,6 +602,152 @@ class MarkdownFormatter:
         except Exception as e:
             logger.warning(f"Error post-processing Markdown: {str(e)}")
             return markdown_content
+
+    def format_fidelity_safe(self, markdown_content: str) -> str:
+        """仅运行「内容保全型」保真 pass，跳过可能误删正文的 pass。
+
+        与全量 :meth:`format` 的区别：**不跑** ``_deduplicate_approximate_paragraphs``
+        （近似段落去重）与 ``_apply_typography_fixes`` 等会改写/删除正文的 pass。
+        引擎/批处理路径（auto_batch 合并产物）的正文（如参考文献）条目结构高度
+        相似（共享 ``arXiv`` / ``Proceedings`` / 年份等词），全量 format 的 Jaccard
+        去重会把后续条目误判为近似重复而删除（实测删去参考 [477]/[478] 标题）。
+
+        仅保留两类定点修复，二者均不删除合法正文：
+        - ``_format_code_blocks``：降级伪代码块（含 ``_demote_non_code_fences``）；
+        - ``_strip_running_headers``：剥离逐字高频 / 与标题同文的运行页眉独立行。
+
+        用于 :mod:`ops.pdf` 各返回路径对最终 markdown 的轻量后处理。
+        """
+        try:
+            markdown_content = self._format_code_blocks(markdown_content)
+            markdown_content = self._strip_running_headers(markdown_content)
+            markdown_content = self._strip_orphan_lang_labels(markdown_content)
+            # 标题行内无空格软断字合并：PDF 双栏标题跨行（"Parame-\nters"）经
+            # docling 抽取常残留为无空格 "Parame-ters"（连字符直接接续），不命中
+            # _apply_typography_fixes 的带空格 `word- word` 规则（且本 fidelity-safe
+            # 路径不调用该函数）。仅对 ^#+ 标题行、连字符左全小写≥3 且非复合词前缀
+            # （_COMPOUND_HYPHEN_PREFIXES）时合并；合成词（Self-improvement /
+            # System-level）左侧首字母大写或属前缀白名单，不被匹配，保留连字符。
+            # 大写首字母（Title Case 标题）也覆盖：PDF 标题 "Model Parame-ters"
+            # 中 "Parame" 以大写 P 起，[a-z]{3,} 不匹配。放宽 left 至 [A-Z]?[a-z]{2,}。
+            # 合成词保护用 left.lower() 匹配 _COMPOUND_HYPHEN_PREFIXES + 标题高频
+            # 合成词补集（system/task/meta 等，防误并 System-level/Task-bounded）。
+            _title_compound_extra = frozenset(
+                {
+                    "system",
+                    "task",
+                    "meta",
+                    "data",
+                    "user",
+                    "action",
+                    "decision",
+                    "problem",
+                    "experience",
+                    "knowledge",
+                    "policy",
+                    "memory",
+                    "skill",
+                    "tool",
+                    "trace",
+                    "parameter",
+                    "value",
+                    "sample",
+                    "rule",
+                    "base",
+                    "test",
+                    "table",
+                    "chain",
+                    "step",
+                    "web",
+                }
+            )
+
+            def _title_soft_hyphen_mh(mm: "re.Match[str]") -> str:
+                left, right = mm.group(1), mm.group(2)
+                low = left.lower()
+                if low in _COMPOUND_HYPHEN_PREFIXES or low in _title_compound_extra:
+                    return f"{left}-{right}"
+                return f"{left}{right}"
+
+            markdown_content = re.sub(
+                r"(?m)^(#{1,6}\s.*)$",
+                lambda m: re.sub(
+                    r"\b([A-Z]?[a-z]{2,})-([a-z]{2,})\b",
+                    _title_soft_hyphen_mh,
+                    m.group(1),
+                ),
+                markdown_content,
+            )
+            # inline 公式重组：合并被纯数学符号分隔的相邻 $..$ 片段
+            # （_normalize_unicode_math 把数学字形独立包裹，★/≤/∈/Π 等运算符
+            # 留 $..$ 外致公式断裂，如 "$J$ ★ $(E):=$"）。仅当两 $..$ 间分隔符
+            # 仅含数学符号/希腊字母/空格（无 ASCII 字母词，挡 "$x$ and $y$"）
+            # 时合并。含 sup/log 等字母函数词的仍部分碎片（需 text_extraction
+            # 字号检测的架构改动，本 pass 不处理）。
+            _inline_math_glue = set(
+                "★☆∈∉⊆⊂⊇⊃∪∩×÷±∓∑∏∫∞≤≥<>≈≠→←↔⟶⇒⇔·•+-=,:;^_()[]/\\ \t"
+                "ΠΣΩΛΦΨΔΘαβγδεζηθικλμνξοπρστυφχψω"
+            )
+
+            def _merge_math_once(text: str) -> str:
+                pat = re.compile(r"\$([^$\n]+)\$([^\$\n]{1,12}?)\$([^$\n]+)\$")
+
+                def _mh(m: "re.Match[str]") -> str:
+                    sep = m.group(2)
+                    if sep.strip() and all(c in _inline_math_glue for c in sep):
+                        return f"${m.group(1)}{sep}{m.group(3)}$"
+                    return m.group(0)
+
+                return pat.sub(_mh, text)
+
+            prev_math = None
+            while prev_math != markdown_content:
+                prev_math = markdown_content
+                markdown_content = _merge_math_once(markdown_content)
+            return markdown_content
+        except Exception as e:
+            logger.warning(f"Error in fidelity-safe formatting: {str(e)}")
+            return markdown_content
+
+    def _strip_orphan_lang_labels(self, markdown_content: str) -> str:
+        """移除 fence 外孤立的纯语言字面行（如独立成段的 ``python``）。
+
+        抽取引擎（docling 等）偶把代码块的 lang 名字面作为独立文本行输出、
+        或在围栏修复后遗留裸 lang 行，表现为 fenced code 块之后紧跟一至多行
+        仅含语言名（``python`` / ``fortran`` / ``json`` 等）的孤立段落，破坏
+        排版。本 pass 先用占位符保护所有 fenced 代码块（含其 ``​```lang``
+        info string 行），再删除正文中"整行仅为已知语言名"的孤立行，最后还原
+        代码块，确保不误删围栏 info string 与真实代码内容。
+        """
+        protected: Dict[str, str] = {}
+
+        def _protect(match: re.Match) -> str:
+            key = f"%%ORPHANLANG_{len(protected)}%%"
+            protected[key] = match.group(0)
+            return key
+
+        # 保护所有 fenced 代码块整体（含首行 ```lang 与内容）
+        text = re.sub(
+            r"^```[^\n]*\n.*?^```[ \t]*$",
+            _protect,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        # 删除 fence 外整行仅为已知代码语言名的孤立行（大小写不敏感）。
+        # 仅收录歧义性低的编程语言名，排除 "text" 等常见英文单词避免误删正文。
+        _lang_names = (
+            "python|fortran|algorithm|javascript|typescript|java|kotlin|"
+            "golang|rust|ruby|php|perl|scala|swift|cpp|csharp|matlab|"
+            "yaml|toml|dockerfile|makefile|graphql|protobuf"
+        )
+        text = re.sub(
+            rf"(?im)^[ \t]*(?:{_lang_names})[ \t]*$\n?",
+            "",
+            text,
+        )
+        for key, block in protected.items():
+            text = text.replace(key, block)
+        return text
 
     def _protect_code_blocks(self, markdown_content: str) -> Tuple[str, Dict[str, str]]:
         """提取所有 fenced 代码块并替换为占位符，防止格式化管线修改其内容。
@@ -471,7 +806,10 @@ class MarkdownFormatter:
 
         def _replacer(match: re.Match) -> str:
             placeholder = f"%%MATHBLOCK_{uuid.uuid4().hex[:12]}%%"
-            protected[placeholder] = match.group(0)
+            # 在保护入库前清理 KaTeX 不兼容 primitive——保护后管线只见占位符，
+            # 故必须在此对真实 LaTeX 内容施加清理（``_cleanup_math_blocks`` 阶段
+            # 已是占位符，正则命不中）。见 _sanitize_katex_incompatible。
+            protected[placeholder] = self._sanitize_katex_incompatible(match.group(0))
             return placeholder
 
         # 匹配独占两行的 ``$$`` 定界符之间的块级公式
@@ -484,6 +822,19 @@ class MarkdownFormatter:
         )
         return result, protected
 
+    @staticmethod
+    def _sanitize_katex_incompatible(latex: str) -> str:
+        """剥离 KaTeX 不支持的 TeX primitive，保留可渲染主体。
+
+        docling/mineru 对 ``\\left(..\\right)`` 的冗长编码形如
+        ``\\mathopen { } \\mathclose \\bgroup \\left( .. \\aftergroup \\egroup \\right)``；
+        其中 ``\\aftergroup`` KaTeX 完全不支持 → ParseError。这些 primitive 无渲染
+        语义，逐个剥离后 ``\\left(..\\right)`` 主体照常渲染。
+        """
+        latex = re.sub(r"\\mathopen\s*\{\s*\}\s*\\mathclose", "", latex)
+        latex = re.sub(r"\\(?:aftergroup|bgroup|egroup)\b\s*", "", latex)
+        return latex
+
     def _restore_math_blocks(
         self, markdown_content: str, protected: Dict[str, str]
     ) -> str:
@@ -491,6 +842,168 @@ class MarkdownFormatter:
         for placeholder, original in protected.items():
             markdown_content = markdown_content.replace(placeholder, original)
         return markdown_content
+
+    # ------------------------------------------------------------------
+    # 散落 inline 数学字形（U+1D400–1D7FF）→ ``$...$`` 归一
+    # ------------------------------------------------------------------
+
+    def _normalize_unicode_math(self, markdown_content: str) -> str:
+        """把散落的 Unicode 数学字母块字形归一为 KaTeX 可渲染的 inline ``$...$``。
+
+        背景：LaTeX 学术 PDF 经 docling/PyMuPDF 抽取后，inline 数学常被发射为
+        「空格分隔的孤立数学斜体字形」（如 ``A 𝑡 = ⟨ 𝑀 𝜃 𝑡, 𝐻 𝑡⟩``）。本 pass
+        在 protect 之后、restore 之前对**非代码、非块公式、非标题/表格**的段落做：
+
+        1. 按空白切 token，识别「数学 run」（含数学字母 / 数学运算符 / 紧邻单字符
+           ASCII 字母数字），跨 run 合并并剔除 run 内部空白伪影；
+        2. run 内每字符经 ``MATH_LETTER_TO_LATEX`` + ``UNICODE_TO_LATEX`` + 兜底
+           映射为 LaTeX，``\\name`` 命令与后续 ASCII 字母间补空格；
+        3. 整体包裹 ``$...$``，单字符数学符号也独立包裹（``$t$ denotes``）。
+
+        已有 inline ``$...$`` 与块公式 / 代码块占位符原样跳过。
+
+        已知限制：PDF 抽取丢失了下标 / 上标的字号信息，故 ``M_{\\theta_t}`` 仅能
+        还原为 ``$M \\theta t$``（数学体渲染但下标结构不可恢复）；完整下标还原需
+        在 text_extraction 阶段基于 span 字号检测，属后续工作。
+
+        可用环境变量 ``PERCEIVES_UNICODE_MATH_NORMALIZE=0`` 整体禁用。
+        """
+        if os.environ.get("PERCEIVES_UNICODE_MATH_NORMALIZE", "1") == "0":
+            return markdown_content
+        from ..pdf.math_formula import MATH_LETTER_CHARS
+
+        if not MATH_LETTER_CHARS.intersection(markdown_content):
+            return markdown_content  # 快路径：无数学字母块字符
+        return "\n".join(
+            self._normalize_unicode_math_line(line)
+            for line in markdown_content.split("\n")
+        )
+
+    def _normalize_unicode_math_line(self, line: str) -> str:
+        stripped = line.lstrip()
+        # 跳过结构性行：标题 / 表格行 / 代码块占位符（数学字母在这些行罕见且易误包）
+        if (
+            stripped.startswith("#")
+            or stripped.startswith("|")
+            or stripped.startswith("%%CODEBLOCK_")
+        ):
+            return line
+        if not _has_math_alnum_block(line):
+            return line
+        # 块公式占位符 %%MATHBLOCK_..%% 无 ``$``；已有 inline ``$...$`` split-and-skip
+        parts = re.split(r"(\$[^$\n]+\$)", line)
+        return "".join(
+            part
+            if (len(part) >= 3 and part[0] == "$" and part[-1] == "$")
+            else self._wrap_math_runs(part)
+            for part in parts
+        )
+
+    def _wrap_math_runs(self, segment: str) -> str:
+        if not segment or not _has_math_alnum_block(segment):
+            return segment
+        tokens = segment.split(" ")
+        if len(tokens) <= 1:
+            return self._wrap_one_token(segment)
+
+        math_kind, attach_kind, plain_kind = "MATH", "ATT", "PLAIN"
+
+        def classify(tok: str) -> str:
+            if not tok:
+                return plain_kind
+            # 含数学字母块字符（斜体 / 粗体 / 双线体 / Greek 等）→ MATH
+            if _has_math_alnum_block(tok):
+                return math_kind
+            # 纯数学运算符 / 标点 token
+            if all((c in _MATH_OP_PUNCT_CHARS) or c.isspace() for c in tok):
+                return math_kind
+            # 单字符 ASCII 字母数字 —— 可被 run 吸附
+            if len(tok) == 1 and tok.isascii() and tok.isalnum():
+                return attach_kind
+            # 「数字 + 尾标点 / 括号」（1, 42.) 1)）—— 可被 run 吸附
+            if _NUM_ATTACH_RE.match(tok):
+                return attach_kind
+            return plain_kind
+
+        def wrap_run(run_str: str) -> str:
+            """包裹一个数学 run，剥离结尾散文标点（句末句点等）到 ``$...$`` 之外。"""
+            m = _RUN_TRAILING_PUNCT_RE.match(run_str)
+            if m and _has_math_alnum_block(m.group(1)):
+                return "$" + self._math_run_to_latex(m.group(1)) + "$" + m.group(2)
+            return "$" + self._math_run_to_latex(run_str) + "$"
+
+        kinds = [classify(t) for t in tokens]
+        out: List[str] = []
+        i, n = 0, len(tokens)
+        while i < n:
+            if kinds[i] == plain_kind:
+                out.append(tokens[i])
+                i += 1
+                continue
+            # 收集连续 MATH / ATTACHABLE
+            j = i
+            has_math = False
+            while j < n and kinds[j] in (math_kind, attach_kind):
+                if kinds[j] == math_kind:
+                    has_math = True
+                j += 1
+            if has_math:
+                out.append(wrap_run("".join(tokens[i:j])))
+            else:
+                # 全 ATTACHABLE（无数学字母）—— 不包裹，原样输出
+                out.extend(tokens[i:j])
+            i = j
+        return " ".join(out)
+
+    def _wrap_one_token(self, tok: str) -> str:
+        if not tok or not _has_math_alnum_block(tok):
+            return tok
+        m = _RUN_TRAILING_PUNCT_RE.match(tok)
+        if m and _has_math_alnum_block(m.group(1)):
+            return "$" + self._math_run_to_latex(m.group(1)) + "$" + m.group(2)
+        return "$" + self._math_run_to_latex(tok) + "$"
+
+    def _math_run_to_latex(self, run_text: str) -> str:
+        from ..pdf.math_formula import MATH_LETTER_TO_LATEX, UNICODE_TO_LATEX
+
+        def mapped_of(ch: str) -> str:
+            if ch in MATH_LETTER_TO_LATEX:
+                return MATH_LETTER_TO_LATEX[ch]
+            if ch in UNICODE_TO_LATEX:
+                return UNICODE_TO_LATEX[ch]
+            if ch in _MATH_RUN_EXTRA_MAP:
+                return _MATH_RUN_EXTRA_MAP[ch]
+            # 源文本中的裸花括号（如集合构造式 ``{ α | ... }``）是 KaTeX 分组符，
+            # 空格切分后跨 ``$...$`` 片段易失衡致 ParseError（``Expected '}'``）。
+            # 转义为字面 ``\{`` / ``\}``——既避免失衡，又是集合记号的正确渲染。
+            # 结构性花括号来自映射命令（``\mathbf{x}`` 等多字符串），``m == "{"``
+            # 仅当命中裸源花括号，不误伤。
+            if ch == "{":
+                return r"\{"
+            if ch == "}":
+                return r"\}"
+            return ch
+
+        # 预先把每个原字符映射为 LaTeX，再按「映射后」相邻关系补空格——
+        # 这样 ``\theta`` 后跟原字符 ``𝑡``（非 ASCII）但映射后是 ``t``（ASCII），
+        # 仍能正确补空格为 ``\theta t``，避免 ``\thetat`` 粘连。
+        mapped = [mapped_of(ch) for ch in run_text]
+        out_chars: List[str] = []
+        n = len(mapped)
+        for i, m in enumerate(mapped):
+            out_chars.append(m)
+            # 当前是 ``\name`` 命令且下一个**映射后** token 以 ASCII 字母起 → 补空格
+            if (
+                m
+                and m[0] == "\\"
+                and m[-1].isalpha()
+                and i + 1 < n
+                and mapped[i + 1]
+                and mapped[i + 1][0].isalpha()
+                and mapped[i + 1][0].isascii()
+            ):
+                out_chars.append(" ")
+        return "".join(out_chars)
 
     def _format_tables(self, markdown_content: str) -> str:
         """Format and align Markdown tables."""
@@ -632,6 +1145,36 @@ class MarkdownFormatter:
             logger.warning(f"Error formatting links: {str(e)}")
             return markdown_content
 
+    def _demote_non_code_fences(self, markdown_content: str) -> str:
+        """剥离实为自然语言横幅的伪代码块围栏，还原为普通段落。
+
+        抽取引擎（docling 等）偶把带边框的自然语言横幅（版权 / 关键词 / 署名
+        横幅，形如 ``© Keywords: … © Github: <url>``）误判为 YAML / 代码块。
+        此类内容不含任何真实代码特征（无花括号 / 分号 / 箭头 / 比较运算符 /
+        引号字符串 / C 系注释），且常含 ``©`` / ``®`` / ``™`` 商标版权符——后者
+        在真实源码与 YAML 中几乎不出现。
+
+        本 pass 对满足「含商标符 ``©/®/™`` 且无任一强代码信号」的围栏块剥离
+        围栏、还原为普通段落；其余围栏块原样保留。判定刻意保守，避免误降级
+        真代码 / 真 YAML（真 YAML 不含商标符）。
+        """
+
+        def _is_code_like(content: str) -> bool:
+            return any(pat.search(content) for pat in _NON_CODE_FENCE_CODE_SIGNALS)
+
+        def _demote(m: re.Match) -> str:
+            content = m.group(1)
+            if _NON_CODE_FENCE_TRIGGER.search(content) and not _is_code_like(content):
+                return content.strip("\n")
+            return m.group(0)
+
+        return re.sub(
+            r"^```[^\n]*\n(.*?)^```\s*$",
+            _demote,
+            markdown_content,
+            flags=re.MULTILINE | re.DOTALL,
+        )
+
     def _format_code_blocks(self, markdown_content: str) -> str:
         """Enhance code block formatting with language detection.
 
@@ -643,6 +1186,9 @@ class MarkdownFormatter:
         and none of the regex patterns here can match.
         """
         try:
+            # 先把实为自然语言横幅（含 ©/®/™ 且无代码特征）的伪代码块降级为普通段落
+            markdown_content = self._demote_non_code_fences(markdown_content)
+
             # 修复连续的代码围栏标记：```LANG\n``` filename → ```\n filename
             markdown_content = re.sub(
                 r"^```(\w*)\n```[ \t]*(\S.*?)$",
@@ -739,6 +1285,60 @@ class MarkdownFormatter:
         """
         return self._UNICODE_BULLET_RE.sub(r"\1- \3", markdown_content)
 
+    # 段落中部 bullet 分隔符：两侧需有空白，按 ``\s[bullet]\s`` 切分整行。
+    _MID_BULLET_SPLIT_RE = re.compile(r"\s+[●○■□▪▫◦▶▷›▸▹·•‣]\s+")
+
+    def _split_mid_paragraph_bullets(self, markdown_content: str) -> str:
+        """把段落中部残留的多个 Unicode 项目符号拆分为独立列表项。
+
+        行首 bullet 由 :meth:`_normalize_unicode_bullets` 处理；但 PDF 抽取常把
+        原生列表 ``• 项A • 项B • 项C`` 压平进单一段落，段落**中部**的 bullet 不被
+        行首规则覆盖（R9 ``list_bullet_residue`` 中 672 个段中残留）。本 pass 把
+        ``前文 • 项A • 项B`` 拆为 ``前文`` + ``- 项A`` + ``- 项B``。
+
+        守卫（避免误伤）：
+          - 仅当单行含 **≥ 2** 个「两侧带空白」的 bullet 时才拆分（单 bullet 保守
+            保留，多为正文顺带符号）；
+          - 每个拆出的 item 必须含字母 / 数字实义字符，否则判定为 ``• • •`` 装饰型
+            省略号（如图注 ``T₀ T₁ • • • T₂``），整行原样保留；
+          - 跳过表格行（含 ``|``）、标题（``#``）、代码 / 数学占位符（``%%``）、引用
+            （``>``）——本 pass 在 ``_protect_code_blocks`` / ``_protect_math_blocks``
+            之后运行，二者已是占位符，天然跳过。
+        """
+
+        def _has_word(s: str) -> bool:
+            return any(c.isalnum() for c in s)
+
+        out_lines: List[str] = []
+        for line in markdown_content.split("\n"):
+            stripped = line.strip()
+            if (
+                not stripped
+                or "|" in line
+                or stripped.startswith("#")
+                or stripped.startswith("%%")
+                or stripped.startswith(">")
+            ):
+                out_lines.append(line)
+                continue
+            parts = self._MID_BULLET_SPLIT_RE.split(line)
+            # parts 数 = bullet 数 + 1；需 ≥ 2 个 bullet ⇒ ≥ 3 段
+            if len(parts) < 3:
+                out_lines.append(line)
+                continue
+            pre = parts[0]
+            items = parts[1:]
+            # 装饰型 ``• • •``：任一 item 无实义字符 ⇒ 整行保留
+            if not all(_has_word(it) for it in items):
+                out_lines.append(line)
+                continue
+            # 前文行：已是列表项（``- ``）则原样保留；否则作为独立段落 / 标签行
+            if pre.strip():
+                out_lines.append(pre.rstrip())
+            for it in items:
+                out_lines.append(f"- {it.strip()}")
+        return "\n".join(out_lines)
+
     def _format_lists(self, markdown_content: str) -> str:
         """Improve list formatting and nesting."""
         try:
@@ -748,6 +1348,10 @@ class MarkdownFormatter:
             # 如果不规范化，下游 react-markdown 不会把它当作 list item 渲染，
             # 而是塞到段落里造成视觉破坏（R9 量化签名 list_bullet_residue=877）。
             markdown_content = self._normalize_unicode_bullets(markdown_content)
+
+            # 段落中部残留的多 bullet（``前文 • 项A • 项B``）拆分为独立列表项，
+            # 覆盖行首规则漏掉的段中场景。
+            markdown_content = self._split_mid_paragraph_bullets(markdown_content)
 
             lines = markdown_content.split("\n")
             formatted_lines = []
@@ -821,10 +1425,63 @@ class MarkdownFormatter:
             from ..pdf.math_formula import protect_math_content
 
             def _typography_inner(text: str) -> str:
-                text = re.sub(r"(?<!\-)\-\-(?!\-)", "\u2014", text)
+                # \u8d1f\u5411\u65ad\u8a00\u6269\u5c55\uff1a``<!--`` / ``-->`` \u7b49 HTML \u6ce8\u91ca\u5b9a\u754c\u7b26\u4e2d\u7684 ``--``
+                # \u4e0d\u8f6c\u4e3a em-dash\uff08lookbehind \u589e ``!``\u3001lookahead \u589e ``>``\uff09\u3002
+                # code block / LaTeX \u5df2\u7531 protect \u6d41\u7a0b\u4fdd\u62a4\uff0cHTML \u6ce8\u91ca\u6b64\u524d\u6f0f\u7f51\uff0c
+                # \u81f4 ``<!-- orphan images ... -->`` \u88ab\u7834\u574f\u4e3a\u53ef\u89c1\u5783\u573e ``<!\u2014 \u2026 \u2014>``\u3002
+                text = re.sub(r"(?<![!\-])\-\-(?![\->])", "\u2014", text)
+
+                # R11-B\uff1aURL \u534f\u8bae\u88ab\u62c6\u5206\u7a7a\u683c\u538b\u7f29 ``https: //`` \u2192 ``https://``\u3002
+                # References \u533a PyMuPDF \u62bd\u53d6 ``https://`` \u65f6\u628a ``://`` \u62c6\u4e3a
+                # ``:`` + `` //`` \u4e24\u4e2a span\uff0c``" ".join`` \u63d2\u5165\u7a7a\u683c\u3002\u538b\u7f29\u540e\u88f8 URL
+                # \u7531 remark-gfm autolink \u81ea\u52a8\u6e32\u67d3\u4e3a\u53ef\u70b9\u51fb\u94fe\u63a5\uff0c\u6062\u590d PDF \u8d85\u94fe\u63a5\u4fdd\u771f\u3002
+                text = re.sub(r"\b(https?:)\s+//", r"\1//", text)
+
+                # R11-B2\uff1aURL \u8def\u5f84\u6bb5\u88ab\u6362\u884c\u7b26\u62c6\u5206\u7a7a\u683c\u538b\u7f29\u3002
+                # ``https://arxiv.org/ abs/2604.06126`` \u2192 ``https://arxiv.org/abs/2604.06126``\u3002
+                # PyMuPDF \u5728 URL \u8def\u5f84\u6362\u884c\u5904\u63d2\u5165\u7a7a\u683c\uff08\u659c\u6760\u540e\uff09\uff0cReferences \u533a 21 \u5904\u3002
+                # \u5339\u914d ``https?://domain.tld`` \u540e\u7684\u8def\u5f84\u6bb5\uff08\u5141\u8bb8 ``/`` \u4e24\u4fa7\u5355\u7a7a\u683c\uff09\uff0c
+                # \u628a\u659c\u6760\u4e24\u4fa7\u7a7a\u683c\u5168\u90e8\u6298\u53e0\u3002\u5b8c\u597d\u7684 URL\uff08\u65e0\u7a7a\u683c\uff09\u96f6\u5f71\u54cd\u3002
+                text = _URL_PATH_SPACES_RE.sub(_collapse_url_path_spaces, text)
+
+                # R11-F\uff1a\u5ea6\u6570\u7b26\u53f7\u8131\u79bb\u4fee\u590d\u3002PDF \u4e2d ``45\u00b0`` \u88ab PyMuPDF \u62bd\u4e3a ``45 \u25e6``
+                # \uff08U+25E6 WHITE BULLET \u8bef\u4ee3 U+00B0 DEGREE SIGN\uff0c\u4e14\u4e0e\u6570\u5b57\u95f4\u591a\u7a7a\u683c\uff09\u3002
+                # \u4ec5\u5728 ``\u25e6`` \u7d27\u8ddf\u6570\u5b57\uff08\u53ef\u9009\u7a7a\u683c\uff09\u65f6\u8fd8\u539f\u4e3a ``\u00b0`` \u5e76\u8d34\u5408\u2014\u2014\u8868\u683c\u4e2d\u72ec\u7acb\u7684
+                # ``\u25e6``\uff08partial-support \u6807\u8bb0\uff0cTable 5 \u7b49\uff09\u65e0\u6570\u5b57\u524d\u7f00\uff0c\u4e0d\u53d7\u5f71\u54cd\u3002
+                # \u7528\u975e raw \u5b57\u7b26\u4e32\u8ba9 Python \u5148\u628a ``\u25e6``/``\u00b0`` \u89e3\u7801\u4e3a\u5b57\u9762\u5b57\u7b26\uff0c
+                # \u518d\u4ea4 re \u5339\u914d\uff08re \u4e0d\u652f\u6301 ``\uHHHH`` escape\uff0craw \u4e32\u4f1a\u62a5 bad escape\uff09\u3002
+                text = re.sub("(\\d)\\s*\u25e6", "\\1\u00b0", text)
+
+                # R11-A：封面按钮行 icon 字形清理。``HomePage \xa7 GitHub`` 中的 ``\xa7``
+                # 是 GitHub 图标的 icon-font mojibake（非章节号），紧邻两个已知
+                # 按钮词时剥离。前置 ``\x80`` 等已由 _basic_cleanup 的 C1 strip 清除。
+                # R11-A fix：第一组限定为封面按钮实际用词 ``HomePage|Homepage``（不再
+                # 含 ``Page|Site|Website|Demo`` 等散文常用词），并去掉 ``IGNORECASE``——
+                # 避免误伤 ``Site \xa7 Source`` / ``Page \xa7 Repository`` 等真实 ``\xa7``
+                # 章节引用（综述散文中 ``\xa7`` 是合法章节号）。封面按钮为固定 title-case，
+                # 第二组已显式列举 ``Github|GitHub`` 双大小写，case-sensitive 仍能命中。
+                text = re.sub(
+                    r"\b(HomePage|Homepage)\s*\xa7\s+"
+                    r"(Github|GitHub|Code|Project|Repository|Source|Repo|Docs|Documentation)\b",
+                    r"\1 \2",
+                    text,
+                )
 
                 # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
                 text = re.sub(r"\[\s+(\d+(?:\s*,\s*\d+)*)\s+\]", r"[\1]", text)
+
+                # R11-C\uff1a\u4f5c\u8005-\u5e74\u4efd\u5f15\u7528\u62ec\u53f7\u5185\u4fa7\u7a7a\u683c\u538b\u7f29
+                # ``[ Nakano et al., 2022 ]`` \u2192 ``[Nakano et al., 2022]``\u3002
+                # LaTeX hyperref \u7684\u5f15\u7528\u628a ``[`` / \u94fe\u63a5\u6587\u672c / ``]`` \u62bd\u4e3a\u72ec\u7acb span\uff0c
+                # ``" ".join`` \u5728\u62ec\u53f7\u5185\u4fa7\u63d2\u5165\u7a7a\u683c\uff0c\u4e0e PDF \u4e2d\u7d27\u8d34\u6587\u672c\u7684 ``[Author, Year]``
+                # \u4e0d\u4e00\u81f4\uff08\u5168\u6587\u6570\u767e\u5904\uff09\u3002\u538b\u7f29\u540e\u88f8 URL / \u5f15\u7528\u4ea6\u66f4\u5229\u4e8e GFM \u81ea\u52a8\u94fe\u63a5\u3002
+                # \u4ec5\u5f53\u62ec\u53f7\u5185\u5bb9\u51fa\u73b0 4 \u4f4d\u5e74\u4efd\u6216 ``et al.``\uff08\u5f15\u7528\u4fe1\u53f7\uff09\u624d\u538b\u7f29\uff0c\u907f\u514d\u8bef\u4f24
+                # ``[CLS]`` / ``[MASK]`` \u7b49 token \u8bb0\u53f7\u4e0e GFM \u4efb\u52a1\u6846 ``[ ]`` / ``[x]``\u3002
+                text = re.sub(
+                    r"\[([^\[\]\n]{2,})\]",
+                    _tighten_citation_bracket,
+                    text,
+                )
 
                 # \u91cd\u7ec4 PDF \u62c6\u89e3\u7684\u7ec4\u5408\u53d8\u97f3\u7b26\u53f7\uff1a``Pok \u00b4 emon`` / ``Baltru \u02c7 saitis``
                 # / ``Westh \u00a8 au\u00dfer`` / ``Perdig \u02dc ao`` \u7b49\u3002PyMuPDF \u628a
@@ -846,7 +1503,21 @@ class MarkdownFormatter:
                 # \u901a\u8fc7 ``(?<![a-zA-Z]-)`` \u5b88\u62a4\uff1a\u5339\u914d\u524d\u7f00 ``[a-z]+`` \u8d77\u59cb\u4f4d\u7f6e\u7684\u524d
                 # 2 \u5b57\u7b26\u82e5\u5df2\u662f ``<letter>-``\uff08\u5373\u4f4d\u4e8e\u65e2\u6709 hyphen \u94fe\u4e2d\uff09\uff0c\u8df3\u8fc7\u5408\u5e76\uff1b
                 # \u4ec5\u5bf9\u72ec\u7acb\u5355\u8bcd\u7684 wrap-hyphen \u5b9e\u65bd\u5408\u5e76\u3002
-                text = re.sub(r"\b(?<![a-zA-Z]-)([a-z]+)- ([a-z]+)\b", r"\1\2", text)
+                #
+                # \u590d\u5408\u8bcd\u5b88\u62a4\uff1a\u8fde\u5b57\u7b26\u5de6\u4fa7\u82e5\u4e3a\u5b8c\u6574\u5355\u8bcd\uff08\u89c1
+                # ``_COMPOUND_HYPHEN_PREFIXES``\uff09\uff0c\u5c5e\u8bed\u4e49\u8fde\u5b57\u7b26\u8de8\u884c\uff0c\u4fdd\u7559\u4e3a
+                # ``high-level``\uff1b\u5426\u5219\u89c6\u4e3a\u884c\u5c3e\u8f6f\u65ad\u5b57\uff08``sur- vey``\uff09\u5408\u5e76\u4e3a ``survey``\u3002
+                def _merge_wrap_hyphen(m: re.Match) -> str:
+                    left, right = m.group(1), m.group(2)
+                    if left in _COMPOUND_HYPHEN_PREFIXES:
+                        return f"{left}-{right}"
+                    return f"{left}{right}"
+
+                text = re.sub(
+                    r"\b(?<![a-zA-Z]-)([a-z]+)- ([a-z]+)\b",
+                    _merge_wrap_hyphen,
+                    text,
+                )
                 # R10-D21 \u7eed\uff1a\u590d\u5408\u94fe wrap \u7a7a\u683c\u6536\u5c3e\u3002\u547d\u4e2d\u5b88\u62a4\u540e\u4fdd\u7559\u7684 ``acting- interacting``
                 # \u4ecd\u542b\u4e00\u4e2a\u591a\u4f59\u7a7a\u683c\uff0c\u9700\u628a ``<lowercase>-<space>+<lowercase>`` \u4e2d\u7684\u7a7a\u683c
                 # \u6536\u7d27\u4e3a\u96f6\uff0c\u628a ``acting- interacting`` \u53d8\u6210 ``acting-interacting``\u3002
@@ -1103,10 +1774,32 @@ class MarkdownFormatter:
         def _is_caption(text: str) -> bool:
             return bool(_caption_re.match(text.strip()))
 
+        # 参考文献条目：``[N] 作者. 标题. …``。学术 PDF 的 References 条目结构高度
+        # 相似（共享 ``arXiv`` / ``Proceedings`` / 年份 / 人名 / ``pages`` 等词），
+        # Jaccard 极易越过 0.6 阈值，把后续条目误判为重复而删除（实测参考 [477] 被吞）。
+        # 参考条目由唯一编号 ``[N]`` 标识、语义独立，一律豁免去重。
+        _reference_re = re.compile(r"^\[\d+\]")
+
+        def _is_reference_entry(text: str) -> bool:
+            return bool(_reference_re.match(text.strip()))
+
         for para in paragraphs:
             # 块级公式段落始终保留，不参与 Jaccard 相似度比较，
             # 也不污染后续段落的对比基线。
             if _is_math_block(para):
+                kept.append(para)
+                continue
+            # 图片段落（HTML ``<img>``）结构性关键，绝不作为近似重复被删除：
+            # 其 alt 文本与独立文本 caption 段高度重合（Jaccard 易 > 0.6），当文本
+            # caption 段排在 <img> 之前时，<img> 段会被误判为"跨引擎重复段"删除，
+            # 致整张图从 Markdown 消失（实测 Fig 15/16 因此丢失）。始终保留 <img> 段；
+            # 仍把其指纹加入 seen，使后续冗余文本 caption 段被正常去重。
+            if "<img" in para:
+                kept.append(para)
+                seen_fingerprints.append(_fingerprint(para))
+                continue
+            # 参考文献条目（[N] 起首）唯一编号、语义独立，绝不参与近似去重
+            if _is_reference_entry(para):
                 kept.append(para)
                 continue
             # caption 精确相邻去重：仅当上一保留段为相同 caption 时跳过
@@ -1140,9 +1833,61 @@ class MarkdownFormatter:
 
         return "\n\n".join(kept)
 
+    def _strip_running_headers(self, markdown_content: str) -> str:
+        """移除逐字高频重复的运行页眉/页脚独立行。
+
+        PDF 每页的 running header（如短标题 "Code as Agent Harness"）会被文本
+        抽取引擎当作文体逐页保留，在 Markdown 中形成同一短行重复数十次的噪声。
+        此 pass 剥离满足全部条件的行：单行、简短（≤ ``_RUNNING_HEADER_MAX_LEN``）、
+        逐字完全相同、出现 ≥ ``_RUNNING_HEADER_MIN_REPEAT`` 次。
+
+        保守性：仅作用于 ``\\n{2,}`` 切分后的单行短段，要求逐字相等且复现次数
+        远高于正常文档中任何合法短行（实测正文短行最高复现 2 次），故对正文零
+        误伤；带 ``#`` 前缀的标题字符串与裸页眉不同，亦不受影响。代码块 / 数学
+        块在管线中先于此 pass 被替换为占位符（``%%CODEBLOCK_…%%`` / ``$$…$$``），
+        故不会误删块内同名行。
+        """
+        paragraphs = re.split(r"\n{2,}", markdown_content)
+        if len(paragraphs) < _RUNNING_HEADER_MIN_REPEAT:
+            return markdown_content
+
+        counts: Dict[str, int] = {}
+        for para in paragraphs:
+            s = para.strip()
+            if not s or "\n" in s or len(s) > _RUNNING_HEADER_MAX_LEN:
+                continue
+            # 跳过结构化行：标题 / 已保护占位符 / HTML 标签 / 代码围栏 / 表格行
+            if s.startswith(("#", "%%", "<", "```", "|")):
+                continue
+            counts[s] = counts.get(s, 0) + 1
+
+        headers = {
+            text for text, n in counts.items() if n >= _RUNNING_HEADER_MIN_REPEAT
+        }
+        # 补捉分片(batch)格式化后的残余页眉：auto_batch 逐片格式化已剥离片中
+        # 大量页眉，合并后全文档残留的少量同文页眉 count 可能 < 阈值而漏网。
+        # 「与文档 H1 标题同文的裸独立行」几乎必为运行页眉（带 ``#`` 前缀的真正
+        # 标题字符串不同，不会被剥离），零误伤地把这类残余一并移除。
+        _title_match = re.search(r"^#\s+(.+)$", markdown_content, re.MULTILINE)
+        if _title_match:
+            _title = _title_match.group(1).strip()
+            if _title and "\n" not in _title and len(_title) <= _RUNNING_HEADER_MAX_LEN:
+                headers.add(_title)
+        if not headers:
+            return markdown_content
+
+        kept = [p for p in paragraphs if p.strip() not in headers]
+        return "\n\n".join(kept)
+
     def _basic_cleanup(self, markdown_content: str) -> str:
         """Apply basic cleanup operations."""
         try:
+            # R11-A：清除 C1 控制字符（U+0080–U+009F）。
+            # 这些是 PDF icon-font 字形的 mojibake 残留（如封面 HomePage 按钮前的
+            # U+0080 渲染为 ），在 markdown 中无意义且破坏视觉。U+0085 (NEL)、
+            # U+008A、U+008D 等同。仅清除 C1 区段，保留 Latin-1 可见字符（U+00A0+）。
+            markdown_content = re.sub(r"[\u0080-\u009f]", "", markdown_content)
+
             lines = []
             for line in markdown_content.split("\n"):
                 cleaned_line = line.rstrip()
@@ -1181,6 +1926,9 @@ class MarkdownFormatter:
         - 空公式块 ``$$\\n$$`` 移除
         - 单行过长的公式行截断（超过 2000 字符的行可能是重复模式残留）
         - ``\\quad`` 连续出现超过 4 次截断
+
+        注：KaTeX 不兼容 primitive（``\\aftergroup`` 等）的清理在
+        ``_protect_math_blocks`` 保护入库时施加（此阶段块公式已是占位符）。
         """
         try:
             # 移除空公式块

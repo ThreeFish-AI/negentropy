@@ -49,16 +49,12 @@ interface WikiD3ForceCanvasProps {
   pubSlug: string;
   nodes: WikiGraphNode[];
   edges: WikiGraphEdge[];
-  truncated?: boolean;
-  totalEntities?: number;
 }
 
 export function WikiD3ForceCanvas({
   pubSlug,
   nodes,
   edges,
-  truncated = false,
-  totalEntities,
 }: WikiD3ForceCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -309,18 +305,6 @@ export function WikiD3ForceCanvas({
             )}
           </g>
         </svg>
-      </div>
-
-      <div className="wiki-graph-canvas-overlay">
-        <span className="wiki-graph-badge">
-          {nodes.length} 节点 · {edges.length} 边 · d3 SVG
-        </span>
-        {truncated && totalEntities != null && (
-          <span className="wiki-graph-badge wiki-graph-badge-warn">
-            已按 importance 截断（共 {totalEntities} 个实体，仅显示 top-
-            {nodes.length}）
-          </span>
-        )}
       </div>
     </div>
   );

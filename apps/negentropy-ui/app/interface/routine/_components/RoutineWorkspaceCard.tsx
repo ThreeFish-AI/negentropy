@@ -29,6 +29,8 @@ interface RoutineWorkspaceCardProps {
   >;
   onCleanup: () => void;
   cleanupBusy?: boolean;
+  /** 抽屉内渲染：省去 CollapsibleSection 标题/折叠壳，仅渲染状态徽标 + 内容（标题由抽屉头提供）。 */
+  bare?: boolean;
 }
 
 /**
@@ -42,40 +44,34 @@ interface RoutineWorkspaceCardProps {
  *
  * 清理按钮仅对终态 routine（succeeded/failed/cancelled）+ active/orphaned 状态可见。
  */
-export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: RoutineWorkspaceCardProps) {
+export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy, bare = false }: RoutineWorkspaceCardProps) {
   if (!routine.baseline_branch) return null;
 
   const ws = (routine.worktree_status ?? "none") as WorktreeStatus;
   const canCleanup = canCleanupWorktree(routine.status, routine.worktree_path);
 
-  return (
-    <CollapsibleSection
-      title={
-        <>
-          <FolderTree className="h-3.5 w-3.5" />
-          Isolated Workspace
-        </>
-      }
-      headerExtra={
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
-            worktreeStatusClass(ws),
-          )}
-        >
-          {/* 状态指示点 */}
-          <span
-            className={cn(
-              "inline-block h-1.5 w-1.5 rounded-full",
-              ws === "active" && "bg-emerald-500 animate-pulse",
-              ws === "cleaned" && "bg-muted-foreground/40",
-              ws === "orphaned" && "bg-amber-500",
-            )}
-          />
-          {worktreeStatusLabel(ws)}
-        </span>
-      }
+  const statusBadge = (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+        worktreeStatusClass(ws),
+      )}
     >
+      {/* 状态指示点 */}
+      <span
+        className={cn(
+          "inline-block h-1.5 w-1.5 rounded-full",
+          ws === "active" && "bg-emerald-500 animate-pulse",
+          ws === "cleaned" && "bg-muted-foreground/40",
+          ws === "orphaned" && "bg-amber-500",
+        )}
+      />
+      {worktreeStatusLabel(ws)}
+    </span>
+  );
+
+  const body = (
+    <>
       {/* 信息网格 */}
       <dl className="grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-[auto_1fr]">
         <dt className="text-text-secondary">Baseline</dt>
@@ -125,6 +121,29 @@ export function RoutineWorkspaceCard({ routine, onCleanup, cleanupBusy }: Routin
           )}
         </div>
       )}
+    </>
+  );
+
+  if (bare) {
+    return (
+      <div className="space-y-3">
+        <div>{statusBadge}</div>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <CollapsibleSection
+      title={
+        <>
+          <FolderTree className="h-3.5 w-3.5" />
+          Isolated Workspace
+        </>
+      }
+      headerExtra={statusBadge}
+    >
+      {body}
     </CollapsibleSection>
   );
 }

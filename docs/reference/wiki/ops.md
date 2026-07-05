@@ -1,12 +1,28 @@
+---
+sidebar_position: 2
+title: "Negentropy Wiki 运维指引"
+---
 # Negentropy Wiki 运维指引
 
 > **适用对象**: 负责部署、监控和维护 Negentropy Wiki 知识库发布站点的运维工程师
 >
-> **相关文档**: [架构设计](../../concepts/framework.md) | [知识库设计](../../concepts/035-the-knowledge-base.md)
+> **相关文档**: [架构设计](../../concepts/framework.md) | [知识库设计](../../concepts/subsystems/035-the-knowledge-base.md)
 
 ---
 
 ## 1. 概述
+
+> ⚠️ **架构演进（纯静态化）**：`negentropy-wiki` 已由 "SSG + ISR + 运行时后端 API 代理"
+> **解耦为纯静态站点**（`output: export`）。内容来自仓库内 `apps/negentropy-wiki/content/`
+> 静态内容包（主站 publish 经 CI 导出并提交）；构建期只读本地文件，运行时**无 Node
+> 服务端、无后端、无数据库依赖**，可由任意静态托管提供服务。
+>
+> 📦 **独立部署与内容同步的权威指引见 [`deployment.md`](./deployment.md)**（Docker / 静态托管 +
+> 本地主站内容同步到远程 wiki 的 step-by-step）。下文 §2.1/§2.3/§3.1/§5/§6/§8/§11 描述的
+> ISR / `WIKI_API_BASE` / `start-production.mjs` / `rewrites` 等**已作废**（故障排除请改看
+> [`deployment.md` §5](./deployment.md#5-验证与故障排除)），实际形态见
+> [`deployment.md`](./deployment.md) 与 [`docker/wiki/Dockerfile`](../../../docker/wiki/Dockerfile)。
+> §12（Catalog/发布版本运维）仍适用。
 
 ### 1.1 定位
 
@@ -20,9 +36,11 @@ Negentropy Wiki 是 Negentropy 平台的知识库文档发布站点，负责将�
 
 ### 1.2 核心特性
 
-- **SSG + ISR**: 静态生成 + 增量再验证，兼顾性能与数据新鲜度
-- **主题系统**: 3 套预设主题 + 深色模式自动适配
-- **零运行时数据库**: 宺全依赖后端 API，- **轻量依赖**: 仅 Next.js + React 核心库
+- **纯静态导出（`output: export`）**：构建期预渲染所有页面，运行时**无 Node 服务端、无后端、无数据库依赖**
+- **静态内容包**：内容来自仓库内 `content/`（主站 publish 经 CI/本地导出）；内容更新 = 重建
+- **客户端全文搜索（Pagefind）** + **静态知识图谱**：构建期索引/烘焙，浏览器端运行
+- **主题系统**：3 套预设主题 + 深色模式自动适配
+- **轻量依赖**：仅 Next.js + React 核心库
 
 ---
 
@@ -67,7 +85,7 @@ flowchart LR
 | `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染                                       |
 | `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`       | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
 
-> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅运行时 `fetch` + ISR，无新增持久化或部署形态。
+> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅构建期 `fetch` + 重建（运行时 ISR 已退役，见 [§5](#5-构建部署与内容刷新)），无新增持久化或部署形态。
 
 ### 2.3 数据流
 
@@ -142,80 +160,21 @@ async rewrites() {
 
 ---
 
-## 5. 构建与部署
+## 5. 构建、部署与内容刷新
 
-### 5.1 构建
+> 纯静态化后，本节由 [`deployment.md`](./deployment.md) 权威承载，此处仅列要点。
 
-```bash
-# SSG 构建（需后端 API 可用）
-pnpm build
+- **构建**：`pnpm --filter negentropy-wiki build`（`output: export` → `apps/negentropy-wiki/out/`，含 `out/pagefind/` 搜索索引）；内容来自 `apps/negentropy-wiki/content/` 静态内容包。
+- **部署**：Docker（[`docker/wiki/Dockerfile`](../../../docker/wiki/Dockerfile)，`static-web-server` 托管，无 Node 运行时）或任意静态托管（nginx/CDN/GitHub Pages 直接托管 `out/`）。详见 [`deployment.md` §2](./deployment.md#2-独立部署-negentropy-wiki)。
+- **内容刷新**：**纯静态 = 必须重建才更新**（ISR 已退役）。主站 publish 后需「导出 → 重建」：本地 `./scripts/sync-wiki-content.sh` + 重建，或 CI 自动（`wiki-content-export.yml`）。详见 [`deployment.md` §3](./deployment.md#3-内容同步与发布)。
 
-# 输出：
-# .next/           - Next.js 构建产物
-# .next/standalone/ - 独立可运行的 Node.js 应用
-```
-
-### 5.2 本地预览
-
-```bash
-# 启动构建后的应用（由 scripts/start-production.mjs 注入 PORT=3092、HOSTNAME=localhost）
-pnpm start
-
-# 访问 http://localhost:3092（可通过 `PORT` 环境变量覆盖，与 `dev` 默认端口保持一致）
-```
-
-> `pnpm start` 内部通过 `scripts/start-production.mjs` 包装 Next.js standalone 入口：在临时目录中 symlink 回填 `.next/static/` 与 `public/`（standalone 模式不会自动拷贝这两类静态资产），并注入默认端口，避免裸 `node .next/standalone/server.js` 因 cwd 漂移导致 `/_next/static/*` 被动态路由 `[pubSlug]/[...entrySlug]` 吞并的回归。
-
-### 5.3 Docker 部署
-
-```dockerfile
-# Dockerfile 示例
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-COPY . .
-RUN pnpm build
-
-FROM node:20-alpine
-WORKDIR /app
-# standalone 产物不包含 .next/static 与 public，需显式 COPY 至 server.js 邻近路径
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-ENV PORT=3092 HOSTNAME=0.0.0.0
-EXPOSE 3092
-CMD ["node", "server.js"]
-```
-
-> 容器镜像通过 `COPY` 直接把静态资产放到 standalone 目录下（与宿主机 `scripts/start-production.mjs` 的 symlink 同构），因此容器内可直接运行 `node server.js`，无需额外执行 wrapper 脚本。
-
-### 5.4 生产环境检查清单
-
-- [ ] 设置 `WIKI_API_BASE` 环境变量（后端生产地址）
-- [ ] 配置 CDN 缓存策略（ISR 页面建议缓存 300s）
-- [ ] 配置健康检查端点（可选）
-- [ ] 设置日志收集（stdout/stderr）
+> ⚠️ 下方历史章节（§6 ISR 缓存策略）描述的 `revalidate: 300` / 运行时回源**已作废**，保留目录仅为锚点兼容；实际机制见上。
 
 ---
 
-## 6. ISR 缓存策略
+## 6. ISR 缓存策略（已作废）
 
-### 6.1 机制说明
-
-- **revalidate: 300** (5 分钟)
-- 用户访问页面时，若缓存超过 5 分钟：
-  1. 立即返回缓存的 HTML
-  2. 后台异步触发重新生成
-  3. 下次访问返回新内容
-
-### 6.2 缓存更新场景
-
-| 场景                 | 行为                                    |
-| -------------------- | --------------------------------------- |
-| 后端新增 Publication | 下次构建时自动收录，或通过 ISR 自然更新 |
-| 后端更新内容         | 5 分钟内 ISR 自动刷新                   |
-| 需要立即生效         | 重新部署或清除 CDN 缓存                 |
+> 纯静态化（`output: export`）后**不再有 ISR**。内容更新统一走「导出 + 重建」，见 [§5](#5-构建部署与内容刷新) 与 [`deployment.md` §3.6](./deployment.md#36-内容刷新语义)。
 
 ---
 
@@ -238,7 +197,7 @@ CMD ["node", "server.js"]
 <html lang="zh-CN" data-theme="default">
 ```
 
-> **TODO**: 未来应根据 Publication 配置动态切换主题。
+> **后续增强**：未来可根据 Publication 配置动态切换主题。
 
 ### 7.3 深色模式
 
@@ -262,10 +221,10 @@ CMD ["node", "server.js"]
 
 | 问题                                              | 可能原因                                                                                                   | 解决方案                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 构建期告警 "Failed to fetch publications"         | 后端 API 不可达（WARN 级，不阻断构建）                                                                     | 后端暂不可达时 SSG 渲染空首页，首次请求由 ISR 自动自愈（5 分钟窗口）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性                                                                                                                                                                                                    |
-| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（详见 [docs/issue.md ISSUE-020](../../agents/issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
+| 构建期告警 "Failed to fetch publications"         | 后端 API 不可达（WARN 级，不阻断构建）                                                                     | 后端暂不可达时 SSG 渲染空首页（纯静态站、无运行时自愈，需重新「发布」触发重建）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性                                                                                                                                                                                                    |
+| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（历史，纯静态化前；详见 [docs/issue.md ISSUE-020](../../agents/issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
 | 页面显示 "Wiki 未找到"                            | Publication 未发布或 slug 错误                                                                             | 检查后端 Publication 状态                                                                                                                                                                                                                                                                                                                |
-| 页面内容不更新                                    | ISR 缓存未过期                                                                                             | 等待 5 分钟或重新部署                                                                                                                                                                                                                                                                                                                    |
+| 页面内容不更新                                    | 未重新发布/重建（纯静态站）                                                                                | wiki 为纯静态站（`output: export`），重新「发布」触发 fire-and-forget 重建后即更新；无运行时缓存自愈                                                                                                                                                                                                                                                                                                                    |
 | 深色模式样式异常                                  | 浏览器未启用深色模式                                                                                       | 检查系统深色模式设置                                                                                                                                                                                                                                                                                                                     |
 | Markdown 渲染异常                                 | 不支持的语法                                                                                               | 检查 markdown.ts 支持的语法子集                                                                                                                                                                                                                                                                                                          |
 
@@ -324,7 +283,7 @@ curl ${WIKI_API_BASE}/knowledge/wiki/publications?status=published
 
 ## 12. 单实例 Catalog 与 Wiki 发布版本管理运维
 
-> **架构依据**：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../../concepts/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量)
+> **架构依据**：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../../concepts/subsystems/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量)
 > **关联 Issue**：[`issue.md` ISSUE-015](../../agents/issue.md#issue-015)
 > **适用版本**：Phase 4（Migration 0007/0008）落地后
 
@@ -504,7 +463,7 @@ SELECT COUNT(*) FROM wiki_publications
 COMMIT;
 ```
 
-回退后需手动触发 Wiki 站点 ISR revalidate（具体方式参考 [§5 部署 / 构建 / 缓存](#5-部署--构建--缓存)）。
+回退后需手动触发 Wiki 站点重建（具体方式参考 [§5 构建、部署与内容刷新](#5-构建部署与内容刷新)）。
 
 ### 12.4 故障应对
 

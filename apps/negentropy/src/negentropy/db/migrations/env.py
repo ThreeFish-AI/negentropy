@@ -86,6 +86,7 @@ _IGNORED_INDEXES = frozenset(
         "idx_consolidation_jobs_status",  # consolidation_jobs 索引由迁移 0044 持有
         "idx_consolidation_jobs_thread",  # 同上
         "idx_consolidation_jobs_pending",  # 部分索引 (WHERE status = 'pending')，同上
+        "ix_kg_entities_app_active",  # 部分索引 (WHERE is_active)，由迁移 0073 持有
     }
 )
 

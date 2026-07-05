@@ -7,6 +7,7 @@ type FetchMock = Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<
 
 export interface KnowledgeBasePageLocalMocks {
   replaceMock: VitestMock;
+  pushMock: VitestMock;
   useKnowledgeBaseMock: VitestMock;
   loadCorpusMock: VitestMock;
   loadCorporaMock: VitestMock;
@@ -21,7 +22,6 @@ export interface KnowledgeBasePageLocalMocks {
   updateDocumentChunkMock: VitestMock;
   regenerateDocumentChunkFamilyMock: VitestMock;
   searchAcrossCorporaMock: VitestMock;
-  documentViewDialogMock: VitestMock;
   fetchMock: FetchMock;
   syncDocumentMock: VitestMock;
   rebuildDocumentMock: VitestMock;
@@ -300,6 +300,7 @@ export function resetKnowledgeBasePageLocalMocks(
   mocks: KnowledgeBasePageLocalMocks,
 ): void {
   mocks.replaceMock.mockReset();
+  mocks.pushMock.mockReset();
   mocks.useKnowledgeBaseMock.mockReset();
   mocks.loadCorpusMock.mockReset();
   mocks.loadCorporaMock.mockReset();
@@ -314,7 +315,6 @@ export function resetKnowledgeBasePageLocalMocks(
   mocks.updateDocumentChunkMock.mockReset();
   mocks.regenerateDocumentChunkFamilyMock.mockReset();
   mocks.searchAcrossCorporaMock.mockReset();
-  mocks.documentViewDialogMock.mockReset();
   mocks.fetchMock.mockReset();
   mocks.syncDocumentMock.mockReset();
   mocks.rebuildDocumentMock.mockReset();

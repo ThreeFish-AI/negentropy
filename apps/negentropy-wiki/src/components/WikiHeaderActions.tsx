@@ -1,9 +1,7 @@
 "use client";
 
 /**
- * Wiki 头部右侧操作区 — GitHub 仓库链接
- *
- * 用户菜单（登录/登出）已迁至 WikiUserMenu 组件。
+ * Wiki 头部右侧操作区 — GitHub 仓库链接（纯静态，无登录态）。
  */
 export function WikiHeaderActions() {
   return (

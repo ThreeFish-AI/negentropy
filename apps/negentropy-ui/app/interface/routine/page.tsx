@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { ErrorBanner } from "@/components/ui/ErrorState";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
+import { Pagination } from "@/components/ui/Pagination";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
   cleanupWorktree,
@@ -22,9 +23,7 @@ import type {
 
 import { ClockProvider } from "./_components/ClockProvider";
 import { RoutineEditDrawer, drawerKey, type DrawerMode } from "./_components/RoutineEditDrawer";
-import { RoutineFilterBar } from "./_components/RoutineFilterBar";
 import { RoutineHeader } from "./_components/RoutineHeader";
-import { RoutineKpiStrip } from "./_components/RoutineKpiStrip";
 import { RoutineTable } from "./_components/RoutineTable";
 import { useRestartRoutine } from "./_components/useRestartRoutine";
 import { useTerminateRoutine } from "./_components/useTerminateRoutine";
@@ -41,6 +40,15 @@ function RoutinePageInner() {
   // null = 抽屉关闭；"create" = 新建；否则由 ?sel 派生的 routine-edit。
   const [createOpen, setCreateOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
+  // 行内 Clean Up 在途 routine id（null=无）；按钮 busy/disabled + spinner，防二次点击。
+  const [cleanupBusyId, setCleanupBusyId] = useState<string | null>(null);
+
+  // SSE ghost-reopen 守卫：镜像 selected 供异步 SSE 回调读取「抽屉是否仍打开」，
+  // 关闭时在 closeDetail 内同步清空，杜绝 stale-id 事件在 setSelected 提交前重开抽屉（§2）。
+  const selectedRef = useRef<RoutineDTO | null>(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   const { confirm, confirmDialog } = useConfirmDialog();
   const {
@@ -51,9 +59,14 @@ function RoutinePageInner() {
     refresh,
     applyRoutineEvent,
     applyIterationEvent,
+    currentPage,
+    total,
+    totalPages,
+    goToPage,
   } = useRoutineLive(filters);
 
-  // 时钟仅在有运行中任务时滴答（无在途零开销）。
+  // 时钟仅在有运行中任务时滴答（列表行用绝对时间、不消费时钟；此值仅控制 ClockProvider 心跳，
+  // 切片后按「当前页是否含运行中任务」判定，保守且无可见副作用）。
   const clockActive = useMemo(() => routines.some((r) => r.status === "running"), [routines]);
 
   // 刷新当前选中详情（含迭代）。
@@ -110,6 +123,10 @@ function RoutinePageInner() {
   );
 
   const closeDetail = useCallback(() => {
+    // 乐观即时关闭：与 openDetail 对称，使 drawerMode 立即变 null、抽屉卸载，
+    // 规避 Next.js 同路由纯 query nav 下 useSearchParams 反应式不可靠（深链冷启动场景，§1）。
+    selectedRef.current = null; // 同步清空：覆盖 setSelected(null) 提交前的微秒级竞态窗，配合 SSE 守卫杜绝 ghost 重开
+    setSelected(null);
     const next = new URLSearchParams(sp.toString());
     next.delete("sel");
     router.replace(`?${next.toString()}`, { scroll: false });
@@ -126,11 +143,15 @@ function RoutinePageInner() {
   const { connected } = useRoutineStream({
     onRoutineEvent: (ev) => {
       applyRoutineEvent();
-      if (selId && ev.id === selId) void refreshSelected(selId);
+      // 以实际打开的 routine（selectedRef）为准，而非 URL 的 selId——后者在深链冷启动场景下可能 stale，
+      // 会用旧 id 把已乐观关闭的抽屉重新打开（ghost-reopen，§2）。
+      const id = selectedRef.current?.id;
+      if (id && ev.id === id) void refreshSelected(id);
     },
     onIterationEvent: (ev) => {
       applyIterationEvent(ev);
-      if (selId && (ev.routine_id === selId || ev.id === selId)) void refreshSelected(selId);
+      const id = selectedRef.current?.id;
+      if (id && (ev.routine_id === id || ev.id === id)) void refreshSelected(id);
     },
   });
 
@@ -179,6 +200,7 @@ function RoutinePageInner() {
   };
 
   const handleCleanupWorktree = async (r: RoutineDTO) => {
+    setCleanupBusyId(r.id);
     try {
       await cleanupWorktree(r.id);
       toast.success("Worktree cleaned up");
@@ -186,6 +208,8 @@ function RoutinePageInner() {
       if (selId === r.id) void refreshSelected(r.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to clean up worktree");
+    } finally {
+      setCleanupBusyId(null);
     }
   };
 
@@ -214,16 +238,20 @@ function RoutinePageInner() {
       <InterfaceNav title="Routine" />
       <div className="flex-1 overflow-auto">
         <ClockProvider active={clockActive}>
-          <div className="space-y-5 px-6 py-6">
-            <RoutineHeader connected={connected} onRefresh={refresh} loading={loading} onCreate={() => setCreateOpen(true)} onFromPreset={() => router.push("/interface/routine/templates")} />
+          <div className="space-y-2.5 px-6 py-3">
+            <RoutineHeader
+              connected={connected}
+              onRefresh={refresh}
+              loading={loading}
+              onCreate={() => setCreateOpen(true)}
+              onFromPreset={() => router.push("/interface/routine/templates")}
+              kpis={kpis}
+              // 筛选变更由 useInfiniteList 自动 reset 回第 1 页
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
 
             {error && <ErrorBanner message={error} />}
-
-            <RoutineKpiStrip kpis={kpis} loading={loading} />
-
-            <div className="min-w-[200px]">
-              <RoutineFilterBar filters={filters} onChange={setFilters} />
-            </div>
 
             <RoutineTable
               routines={routines}
@@ -233,7 +261,24 @@ function RoutinePageInner() {
               onRestart={requestRestart}
               onTerminate={requestTerminate}
               onCleanupWorktree={handleCleanupWorktree}
+              cleanupBusyId={cleanupBusyId}
             />
+
+            {/* 居中翻页控件（页总数 + 控件组居中成组）；sticky 底栏始终可达。 */}
+            {routines.length > 0 && (
+              <div className="sticky bottom-0 -mx-6 border-t border-border bg-muted/95 px-6 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                <Pagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  total={total ?? undefined}
+                  itemLabel="routine"
+                  disabled={loading}
+                  // 计数字号增至 12px（比页号 14px 稍小，比默认 10px 明显增大），提升可读性。
+                  countClassName="text-xs"
+                />
+              </div>
+            )}
           </div>
         </ClockProvider>
       </div>

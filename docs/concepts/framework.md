@@ -1,11 +1,15 @@
+---
+sidebar_position: 1.0
+title: "架构设计方案 · 一核五翼总览"
+---
 # 架构设计方案 (Architecture Framework)
 
 > 本文档是 Negentropy 系统的**架构设计单一权威参考**，基于代码事实与工程实践，描述系统的设计原理、组件结构与扩展范式。
 >
 > - 项目概览与快速上手：[README.md](../../README.md)
-> - 开发指南：[Development Guide](./development.md)
+> - 开发指南：[Development Guide](operations/development.md)
 > - QA 与发布流水线：[QA Pipeline](./design/qa-delivery-pipeline.md)
-> - 工程变更日志：[Engineering Changelog](./engineering-changelog.md)
+> - 工程变更日志：[Engineering Changelog](operations/engineering-changelog.md)
 
 ---
 
@@ -109,7 +113,7 @@ graph TB
 | **negentropy-ui** (前端)   | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS                         | `pnpm`                      | [`app/layout.tsx`](../../apps/negentropy-ui/app/layout.tsx)               |
 | **negentropy-wiki** (Wiki) | Next.js, TypeScript                                                                           | `pnpm`                      | [`src/`](../../apps/negentropy-wiki/src/)                                 |
 
-应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [development.md](./development.md) §项目结构。
+应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [development.md](operations/development.md) §项目结构。
 
 
 ---

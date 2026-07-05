@@ -9,7 +9,10 @@ FROM python:3.13-slim AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /build
+# 与 runtime stage 同路径（/app）：uv 生成的 console_script shebang 与 editable install
+# 的 .pth 会被固化为该绝对路径，builder/runtime 一致方能在 runtime 正确解析（否则 exec 报
+# "no such file or directory"、容器退出码 255）。
+WORKDIR /app
 
 # 先复制依赖声明与 README（pyproject.toml 引用 README.md，hatchling 构建需要）
 COPY apps/negentropy-perceives/pyproject.toml apps/negentropy-perceives/uv.lock apps/negentropy-perceives/README.md ./
@@ -32,8 +35,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# 从 builder 复制虚拟环境
-COPY --from=builder /build/.venv /app/.venv
+# 从 builder 复制虚拟环境（builder/runtime 同为 /app，确保 console_script shebang 生效）
+COPY --from=builder /app/.venv /app/.venv
+# 复制应用源码（editable install 的 .pth 指向 /app/src，runtime 须就位）
+COPY --from=builder /app/src ./src/
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app" \

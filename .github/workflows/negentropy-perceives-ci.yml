@@ -194,6 +194,13 @@ jobs:
             --ignore-vuln PYSEC-2025-217
             --ignore-vuln PYSEC-2025-218
 
+            # transformers <5.3.0 模型加载路径 RCE（CVE-2026-4372：恶意 config.json 绕过
+            # trust_remote_code）；本项目不直接调用 transformers（经 docling / marker-pdf /
+            # surya 间接依赖），且仅加载第一方模型 artifact、不加载不可信 HF 仓库，攻击向量
+            # 不可达；transformers 锁定 <5.0.0 受 marker-pdf / docling 兼容交集制约（与上方
+            # PYSEC-2025-211..218 同约束），待交集支持 5.3.0+ 后升级
+            --ignore-vuln CVE-2026-4372
+
             # torch 2.10.0 本地内存破坏 / DoS，需攻击者构造恶意 tensor / pt2 文件；
             # 本项目仅加载第一方模型 artifact，无不可信输入路径，upstream 暂无 fix
             --ignore-vuln PYSEC-2025-189

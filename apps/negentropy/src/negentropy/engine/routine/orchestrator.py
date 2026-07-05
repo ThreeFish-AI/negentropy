@@ -32,14 +32,17 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.mcp import McpServer, McpTool
+from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 from . import decision as decision_mod
@@ -252,6 +255,10 @@ def _is_plan_review_active(routine: Routine) -> bool:
     """
     if not (settings.routine.auto_answer_questions and settings.routine.plan_review_enabled):
         return False
+    # per-routine 关闭开关：config.plan_review_enabled=False 时跳过评审钩子（如 pdf-fidelity-patrol
+    # 这种指令式紧凑闭环任务，无需 Plan 审批门控；亦避免 headless deny→is_error 致交互报错）。
+    if not bool((routine.config or {}).get("plan_review_enabled", True)):
+        return False
     if settings.routine.plan_review_unified_loop:
         return phase_mod.is_worktree_routine(routine)
     return bool(
@@ -349,12 +356,22 @@ class RoutineOrchestrator:
     # 主入口
     # ------------------------------------------------------------------
     async def inspect_once(self) -> dict[str, int]:
-        """单次巡检：reap(孤儿迭代 + worktree) → evaluate → dispatch。返回各阶段计数（供 handler 汇报）。"""
+        """单次巡检：reap(孤儿迭代 + worktree) → sync(PR 合并状态) → evaluate → dispatch。
+
+        返回各阶段计数（供 handler 汇报 + task_executions 观测）。
+        """
         reaped = await self._reap_orphans()
         cleaned = await self._reap_workspaces()
+        pr_synced = await self._sync_pr_merge_status()
         evaluated = await self._evaluate_and_decide()
         launched = await self._dispatch_due()
-        return {"reaped": reaped, "cleaned": cleaned, "evaluated": evaluated, "launched": launched}
+        return {
+            "reaped": reaped,
+            "cleaned": cleaned,
+            "pr_synced": pr_synced,
+            "evaluated": evaluated,
+            "launched": launched,
+        }
 
     # ------------------------------------------------------------------
     # (a) REAP
@@ -431,12 +448,15 @@ class RoutineOrchestrator:
 
         分支保留：仅 succeeded 删本地分支（PR 已在 origin，无碍）；failed/cancelled 一律
         ``keep_branch=True`` 保留本地分支与检查点提交，使其重启可从上一检查点续作（单一分支不变量）。
+
+        慢操作（git/rmtree）须在 DB 会话**外**逐个执行：会话仅做短查 + 批量短写，避免单个会话横跨
+        最多 ``_BATCH_LIMIT`` 个串行回收而长期占用连接池连接；rmtree 已卸载线程池，回收期不阻塞事件循环。
         """
         policy = settings.routine.worktree_cleanup
         if policy == "never":
             return 0
         statuses = ("succeeded",) if policy == "on_success" else ("succeeded", "failed", "cancelled")
-        cleaned = 0
+        # ① 短会话：拉取待清理 routine（expire_on_commit=False → detached 后属性可读）。
         async with db_session.AsyncSessionLocal() as db:
             rows = (
                 (
@@ -449,15 +469,124 @@ class RoutineOrchestrator:
                 .scalars()
                 .all()
             )
+            # Repository 型 routine 的 cwd 列为 NULL——会话内先 hydrate 有效仓库根，否则会话外 remove_worktree
+            # 找不到仓库、git worktree remove / branch -D 被静默跳过（worktree/分支残留）。
             for r in rows:
-                with suppress(Exception):
-                    await workspace.remove_worktree(r, settings.routine, keep_branch=(r.status != "succeeded"))
-                r.worktree_path = None
-                cleaned += 1
-            await db.commit()
+                await self._hydrate_effective_repo(db, r)
+        # ② 会话外：逐个 best-effort 回收（纯 git/FS、无 DB；不占连接、不阻塞事件循环）。
+        for r in rows:
+            with suppress(Exception):
+                await workspace.remove_worktree(r, settings.routine, keep_branch=(r.status != "succeeded"))
+        # ③ 短会话：批量置空 + 提交（保持「先回收、后置空」语义）。
+        if rows:
+            async with db_session.AsyncSessionLocal() as db:
+                await db.execute(update(Routine).where(Routine.id.in_([r.id for r in rows])).values(worktree_path=None))
+                await db.commit()
+        cleaned = len(rows)
         if cleaned:
             logger.info("routine_reaped_workspaces", count=cleaned, policy=policy)
         return cleaned
+
+    async def _sync_pr_merge_status(self) -> int:
+        """巡检终态 routine 的 PR 状态（open/closed/merged）并回写 ``pr_state``（best-effort，绝不阻塞/崩溃心跳）。
+
+        复用既有 ``gh`` CLI（仓库 GitHub 集成的唯一事实源）做只读 ``gh pr view --json state,mergedAt``：
+        succeeded + pr_url 的 routine 在 FINALIZE 后处于「等待人工 Merge」态，人在 GitHub 合并/关闭后，
+        本 pass 回写 ``pr_state`` 并经 SSE 推送 merged，使列表 / Full View / PR 抽屉三处显示「Merged」/「Closed」。
+
+        可降级（对齐 AGENTS.md「不引入新问题」）：``gh`` 缺失/未授权/超时/坏 URL → ``pr_status`` 返回
+        unknown（state=None），本 pass 静默跳过（不写、不推进 ``checked_at``，保持 due 下 tick 重试）；
+        心跳永不因本 pass 崩溃（双层兜底：pr_status 不抛 + 本 pass 单层 ``except Exception``）。
+
+        due 集 = succeeded ∧ pr_url 非空 ∧ pr_state 未达终态（NULL 或 open）∧ 距上次检测 > 节流间隔。
+        Open（可能后续合并）继续复检；Merged/Closed 终态排除（顺带修掉 Closed 每 5min 复检的浪费）。
+
+        **不污染 updated_at**：写回用 Core ``update()``（绕过 ORM ``onupdate=func.now()``），仅当
+        ``pr_state`` 实际翻转时才把 ``updated_at`` 纳入 SET —— 纯节流水位线推进不再刷新 updated_at，
+        避免这些 routine 在列表（按 updated_at 排序）里反复乱跳。
+
+        返回本轮新检出「已合并」的 routine 数（推 SSE 的次数）。详见 ``pr_status.fetch_pr_merge_status``。
+        """
+        if not settings.routine.pr_merge_check_enabled:
+            return 0
+        from . import pr_status  # 延迟导入：避免 import 期 which('gh') 探测进入与 PR 无关的测试路径
+
+        cutoff = _utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
+        batch = settings.routine.pr_merge_check_batch
+        timeout = float(settings.routine.pr_merge_check_timeout_seconds)
+
+        # ① 短会话：拉取 due routine 的 (id, pr_url, pr_state)（expire_on_commit=False → detached 后可读）。
+        async with db_session.AsyncSessionLocal() as db:
+            rows = (
+                await db.execute(
+                    select(Routine.id, Routine.pr_url, Routine.pr_state)
+                    .where(
+                        Routine.status == "succeeded",
+                        Routine.pr_url.is_not(None),
+                        # due = 未达终态（NULL 未知 或 open 仍可后续合并）；merged/closed 终态排除。
+                        or_(Routine.pr_state.is_(None), Routine.pr_state == "open"),
+                        or_(
+                            Routine.pr_merged_checked_at.is_(None),
+                            Routine.pr_merged_checked_at < cutoff,
+                        ),
+                    )
+                    .order_by(Routine.pr_merged_checked_at.asc().nullsfirst())
+                    .limit(batch)
+                )
+            ).all()
+        if not rows:
+            return 0
+
+        # ② 会话外：best-effort 检测每个 PR（gh 子进程带超时；pr_status 契约为绝不抛）。
+        checks: list[tuple[UUID, str | None, pr_status.PrMergeStatus]] = []
+        for rid, pr_url, before_state in rows:
+            url = pr_url or ""
+            # 坏 URL 预筛：归一化为终态 closed（落库停检，杜绝永滞 due 集）；before_state 供翻转判定。
+            if not pr_status.is_valid_pr_url(url):
+                checks.append((rid, before_state, pr_status.PrMergeStatus(merged=False, state="CLOSED")))
+                continue
+            try:
+                st = await pr_status.fetch_pr_merge_status(url, timeout=timeout)
+            except Exception as exc:  # noqa: BLE001 — pr_status 契约为不抛；双保险兜底，护心跳
+                logger.warning("routine_pr_merge_check_failed", routine_id=str(rid), error=str(exc))
+                st = pr_status.PrMergeStatus(merged=None, state=None)
+            checks.append((rid, before_state, st))
+
+        # ③ 短会话：Core update 回写 + 提交；仅「新检出 merged」者推 SSE。
+        # **不污染 updated_at**：Routine.updated_at 带 ORM ``onupdate=func.now()``，Core update 仍会触发它
+        # （实证：见探针），故对「未翻转」分支显式 ``updated_at = Routine.updated_at`` 自引用保形——
+        # 仅状态实际翻转时才置为 now（列表只在 PR 真正合并/关闭时才重排，不随节流推进乱跳）。
+        # WHERE 含 status/pr_url 守卫：restart/cancel/pr_url 清理等使其脱离 due → UPDATE 匹配 0 行（no-op）。
+        merged_ids: list[UUID] = []
+        now = _utcnow()
+        async with db_session.AsyncSessionLocal() as db:
+            for rid, before_state, st in checks:
+                new_state, changed = pr_status.compute_pr_write(before_state, st)
+                if new_state is None:
+                    continue  # gh 未应答 → 不写，保持 due 下 tick 重试
+                vals: dict[str, Any] = {
+                    "pr_state": new_state,
+                    "pr_merged": new_state == "merged",
+                    "pr_merged_checked_at": now,
+                    # 显式 updated_at：翻转→now；未翻转→自引用保形（绕过 onupdate，不刷 updated_at）。
+                    "updated_at": now if changed else Routine.updated_at,
+                }
+                await db.execute(
+                    update(Routine)
+                    .where(Routine.id == rid, Routine.status == "succeeded", Routine.pr_url.is_not(None))
+                    .values(**vals)
+                )
+                if new_state == "merged" and changed:
+                    merged_ids.append(rid)
+            await db.commit()
+            for rid in merged_ids:
+                r = await db.get(Routine, rid)
+                if r is not None:
+                    with suppress(Exception):
+                        await self._publish_routine(r)
+        if merged_ids:
+            logger.info("routine_pr_merge_detected", count=len(merged_ids))
+        return len(merged_ids)
 
     # ------------------------------------------------------------------
     # (b) EVALUATE + DECIDE
@@ -590,11 +719,33 @@ class RoutineOrchestrator:
             if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
                 await self._reset_evaluating_to_executed(routine_id, iteration_id)
                 return
+            # 注入有效仓库配置（repository_id → cwd），使 gate cwd 快照（worktree_path 回退）正确。
+            await self._hydrate_effective_repo(db, routine)
             # PLAN 相位仅产出方案、未落盘任何实现，运行验证门控（如 uv run pytest）既无意义、
             # 又徒增 gate 超时延迟，且把「无实现自然失败」的门控输出喂给 Judge 会错误压低方案评分。
             # 故 PLAN 相位跳过门控（置空 verification_command），Judge 纯评估方案质量；
             # IMPLEMENT/FINALIZE 相位照常跑门控。
             skip_gate_in_plan = routine.current_phase == phase_mod.PHASE_PLAN
+            # Judge 历史锚定（纵向评估）：per-routine config 覆盖全局 settings。启用时在①段只读查询
+            # floored history（不含本轮——本轮 status='evaluating'，_evaluated_history 仅取 'evaluated'），
+            # 供 evaluator 注入 Judge prompt。③段 decide() 用的那次 history 因 autoflush 含本轮、语义不同，
+            # 不可复用。锚点内「历史最优」由纯函数取 floored history max(score)，不用 routine.best_score
+            # （跨 restart 不复位、会泄漏上次尝试旧高分）。
+            cfg = routine.config or {}
+            anchor_enabled = bool(cfg.get("judge_anchor_enabled", settings.routine.judge_anchor_enabled))
+            anchor_window = max(1, int(cfg.get("judge_anchor_window") or settings.routine.judge_anchor_window))
+            anchor_history: list[SimpleNamespace] = []
+            if anchor_enabled:
+                anchor_history = [
+                    SimpleNamespace(
+                        seq=it.seq,
+                        score=it.score,
+                        verdict=it.verdict,
+                        phase=it.phase,
+                        reflection=it.reflection,
+                    )
+                    for it in await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
+                ]
             routine_eval_view = SimpleNamespace(
                 goal=routine.goal,
                 acceptance_criteria=routine.acceptance_criteria,
@@ -608,6 +759,8 @@ class RoutineOrchestrator:
                 # per-routine Judge 模型覆盖（None → 用评估器实例默认全局 task 模型）。高风险复刻类
                 # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（ISSUE-121）。
                 evaluator_model=(routine.config or {}).get("evaluator_model"),
+                # per-routine 锚点轨迹窗口覆盖（None → 用评估器默认 5）。
+                judge_anchor_window=anchor_window,
             )
             iter_eval_view = SimpleNamespace(
                 exec_status=latest.exec_status,
@@ -618,7 +771,7 @@ class RoutineOrchestrator:
         # ② 跑 gate + LLM Judge（带整体兜底超时；gate/judge 各自亦有独立超时）
         try:
             result = await asyncio.wait_for(
-                self._evaluator.evaluate(routine_eval_view, iter_eval_view),
+                self._evaluator.evaluate(routine_eval_view, iter_eval_view, history=anchor_history or None),
                 timeout=self._eval_guard_seconds(),
             )
         except TimeoutError:
@@ -629,12 +782,16 @@ class RoutineOrchestrator:
             routine = await db.get(Routine, routine_id, with_for_update=True)
             latest = await db.get(RoutineIteration, iteration_id)
             if routine is None or routine.status != "running" or latest is None or latest.status != "evaluating":
+                # 注：此分支不读 cwd/baseline，无需 hydrate。
                 # 评估期间状态被改写（pause/cancel/reaped）→ 丢弃本次结果；仍 evaluating 则回退 executed
                 if latest is not None and latest.status == "evaluating":
                     latest.status = "executed"
                     latest.lease_expires_at = None
                     await db.commit()
                 return
+
+            # 注入有效仓库配置（repository_id → baseline），早于下方 is_worktree_routine 判定。
+            await self._hydrate_effective_repo(db, routine)
 
             if not result.ok:
                 # 评估失败：记录 + 计数；超阈值终止，否则回退 executed 供下轮重评（保留 eval_attempts）
@@ -663,6 +820,13 @@ class RoutineOrchestrator:
             latest.gate_exit_code = result.gate_exit_code
             latest.status = "evaluated"
             latest.lease_expires_at = None
+            # 锚定评估审计：把 Judge 实际看到的锚点摘要 + progress_evidence 落 metrics JSONB，
+            # 供 UI/后溯对照锚定前后评分方差。沿用 merge 范式保留 eval_attempts 等既有键。
+            if result.anchor is not None:
+                latest.metrics = {
+                    **(latest.metrics or {}),
+                    "judge_anchor": {**result.anchor, "progress_evidence": result.progress_evidence},
+                }
 
             # 更新 routine 反规范化评分 + 追加反思
             routine.last_score = result.score
@@ -675,16 +839,38 @@ class RoutineOrchestrator:
 
             # FINALIZE 相位：从本轮 summary 捕获 PR 链接（一次性，幂等）。
             phased_flow = phase_mod.is_worktree_routine(routine) or phase_mod.is_phased(routine.config)
-            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE and not routine.pr_url:
-                routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+            finalize_noop = False
+            if phased_flow and routine.current_phase == phase_mod.PHASE_FINALIZE:
+                if not routine.pr_url:
+                    routine.pr_url = phase_mod.extract_pr_url(latest.summary)
+                # 巡检专属 clean no-op 探针：无 PR 且 worktree 相对基线 0 提交 → 无可交付改动
+                # （文档已达标、本轮未改 perceives）。严格限定 ``config.patrol``——普通 feature routine 的
+                # 「零改动收敛」语义不同（可能漏提交/跑空），不可一概判成功（首要安全护栏）。仅在 no-pr
+                # 路径触探针，避免常态 PR-captured 路径多跑一次 git 子进程。
+                if not routine.pr_url and bool((routine.config or {}).get("patrol")):
+                    finalize_noop = await self._finalize_is_noop(routine)
 
             # 决策（仅取「本次尝试」窗口 seq > eval_floor_seq，重启后旧迭代不污染停滞/振荡判定）。
             history = await self._evaluated_history(db, routine_id, floor=routine.eval_floor_seq)
             verdict = decision_mod.decide(
-                routine, latest, history, max_context_resets=settings.routine.context_reset_max
+                routine,
+                latest,
+                history,
+                max_context_resets=settings.routine.context_reset_max,
+                # per-routine 开启「Judge verdict=pass 亦判成功」旁路（config.accept_verdict_pass）：
+                # 用于完成判据无法被单一分数阈值捕获的任务（如巡检 threshold=100 与 Judge 评分尺度失配）。
+                accept_verdict_pass=bool((routine.config or {}).get("accept_verdict_pass")),
+                # per-routine 停滞判定分数容差带（config.no_progress_score_tolerance）：
+                # 用于 Judge 聚合分天然 ±振荡的长尾任务（如巡检：修一处感知缺陷常压低另一处总分），
+                # 防一次早期运气高点致正常振荡永远清不过历史最优 → 假阳性 no_progress 误杀。
+                # max(0,...) 防负值反向收紧；缺失键 → 0 退化原点态比较（向后兼容）。
+                no_progress_score_tolerance=max(0, int((routine.config or {}).get("no_progress_score_tolerance") or 0)),
+                # per-routine 量化振荡最小振幅（opt-in，默认 0=仅原 verdict 交替判定）。
+                # 用于「Judge 锚定降振荡后仍剧烈 thrash」的兜底；与 no_progress_tolerance 存在张力，慎用。
+                oscillation_min_amplitude=max(0, int((routine.config or {}).get("oscillation_min_amplitude") or 0)),
             )
             if phased_flow:
-                self._advance_phase_or_terminate(routine, verdict)
+                self._advance_phase_or_terminate(routine, verdict, finalize_noop=finalize_noop)
             elif verdict.is_terminate:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_SUCCESS)
 
@@ -697,6 +883,10 @@ class RoutineOrchestrator:
             owner_id = routine.owner_id
             routine_goal = routine.goal
             routine_criteria = routine.acceptance_criteria
+            # 终态溯源快照（commit 后 termination_reason/status 已写定；repository_id 供同 repo 失败教训检索）。
+            routine_status_snap = routine.status
+            termination_reason_snap = routine.termination_reason
+            repository_id_snap = str(routine.repository_id) if routine.repository_id else None
             iteration_snap = {
                 "seq": latest.seq,
                 "score": latest.score,
@@ -706,6 +896,8 @@ class RoutineOrchestrator:
                 "gate_exit_code": latest.gate_exit_code,
                 "prompt": latest.prompt,
             }
+            # 检索反馈闭环锚点：本轮 dispatch 时写入 metrics.memory_injection（retrieval_log_id/memory_ids）。
+            injection_meta_snap = (latest.metrics or {}).get("memory_injection")
             history_snap = [
                 {
                     "seq": it.seq,
@@ -743,6 +935,18 @@ class RoutineOrchestrator:
                 iteration_snap,
                 history_snap,
                 was_running_before_commit,
+                routine_status=routine_status_snap,
+                termination_reason=termination_reason_snap,
+                repository_id=repository_id_snap,
+            )
+            # 检索反馈闭环（fire-and-forget）：解析本轮产出引用、回写 outcome 激活 Rocchio 调权。
+            # 不读 EvaluationResult 任何字段，与 Judge 锚定改造零冲突。
+            asyncio.create_task(
+                self._fire_reference_feedback(
+                    summary=iteration_snap.get("summary"),
+                    verdict=iteration_snap.get("verdict"),
+                    injection_meta=injection_meta_snap,
+                )
             )
 
     async def _find_routines_pending_eval(self, db: AsyncSession) -> list[UUID]:
@@ -806,6 +1010,9 @@ class RoutineOrchestrator:
             for routine in routines:
                 if slots <= 0:
                     break
+                # 注入有效仓库配置（repository_id 指针 → cwd/baseline）——必须早于下方 baseline
+                # 守卫、is_phased/is_worktree 判定与 _ensure_workspace。
+                await self._hydrate_effective_repo(db, routine)
                 # 已有非终态迭代 → 跳过（每 routine 单在途）
                 if await self._has_active_iteration(db, routine.id):
                     continue
@@ -859,9 +1066,11 @@ class RoutineOrchestrator:
                     await self._publish_routine(routine)
                     continue
                 # prompt 在 ensure 之后构建，使 FINALIZE 具体命令与工作区上下文可引用 work_branch。
-                # 记忆注入：从 Memory Module 检索相关经验记忆。
-                memory_ctx = (
-                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
+                # 记忆注入：从 Memory Module 检索相关经验记忆 + 反馈闭环元数据（retrieval_log_id/memory_ids）。
+                memory_ctx, memory_injection_meta = (
+                    await self._retrieve_memory_context(routine)
+                    if settings.routine.memory_injection_enabled
+                    else (None, None)
                 )
                 prompt = build_prompt(
                     routine,
@@ -876,6 +1085,8 @@ class RoutineOrchestrator:
                     phase=routine.current_phase,
                     prompt=prompt,
                     resume_session_id=routine.claude_session_id,
+                    # 反馈闭环锚点：评估期解析产出引用、回写 outcome_feedback 读取此键。
+                    metrics={"memory_injection": memory_injection_meta} if memory_injection_meta else None,
                 )
                 db.add(iteration)
                 await db.flush()  # 取 iteration.id
@@ -930,6 +1141,8 @@ class RoutineOrchestrator:
                 routine = await db.get(Routine, it.routine_id)
                 if routine is None:
                     continue
+                # 注入有效仓库配置（repository_id → cwd/baseline），早于 _ensure_workspace / _build_config。
+                await self._hydrate_effective_repo(db, routine)
                 # 确保隔离 worktree 就绪（待审批迭代在此刻才创建工作区）。失败 → 终止 routine +
                 # 闭合该迭代为 aborted，跳过 launch。
                 if not await self._ensure_workspace(routine):
@@ -943,13 +1156,11 @@ class RoutineOrchestrator:
                 mcp_meta = await self._resolve_mcp_meta(db, cwd=routine.cwd)
                 if mcp_meta:
                     it.metrics = {**(it.metrics or {}), "mcp_servers": mcp_meta}
-                # 记忆注入：待审批迭代在 approve 时重建 prompt（含最新记忆上下文）。
-                memory_ctx_approved = (
-                    await self._retrieve_memory_context(routine) if settings.routine.memory_injection_enabled else None
-                )
-                prompt = it.prompt or build_prompt(
-                    routine, memory_context=memory_ctx_approved, kb_retrieval=_kb_retrieval_available()
-                )
+                # 记忆注入：iteration 创建时（_dispatch_due）已写入 memory_injection meta 并把记忆
+                # 织入 prompt；此处不再重复检索——原先的 re-fetch 因 ``it.prompt`` 恒非空、
+                # ``it.prompt or build_prompt(...)`` 永不走 rebuild，属白落 retrieval log 的死代码
+                # （且会被评估期零引用规则误判 irrelevant，污染 Rocchio 调权）。
+                prompt = it.prompt or build_prompt(routine, kb_retrieval=_kb_retrieval_available())
                 launch_specs.append((it.id, routine.id, prompt, config))
                 dirty = True  # _ensure_workspace 在 routine 上写入了 worktree_path/work_branch
                 slots -= 1
@@ -987,12 +1198,41 @@ class RoutineOrchestrator:
             return seq == 1
         return False  # auto
 
-    def _advance_phase_or_terminate(self, routine: Routine, verdict: decision_mod.Decision) -> None:
+    async def _finalize_is_noop(self, routine: Routine) -> bool:
+        """FINALIZE 无可交付提交判定：worktree 相对基线 0 commits ahead → True（clean no-op）。
+
+        语义对齐 ``gh pr create`` 的「no commits between base and head」报错条件：用
+        ``rev-list --count <baseline>..HEAD == 0`` 度量「可建 PR 的提交载荷」，**不用**
+        ``git diff --quiet``（误判工作树脏污）。``baseline`` 取 ``routine.baseline_branch`` 原值
+        （worktree 据该 remote-tracking ref 建立）。rc≠0/解析失败 → 保守 False（绝不把不确定当成功）。
+
+        仅用于巡检（``config.patrol``）的「文档已达标、本轮零代码改动」干净收尾——避免修复候选
+        产物移出 worktree 后，无改动巡检在 FINALIZE 空转至 max_iterations 才 failed。
+        """
+        wt = getattr(routine, "worktree_path", None)
+        base = getattr(routine, "baseline_branch", None)
+        if not wt or not base:
+            return False
+        rc, out, _ = await workspace._run_git(
+            ["-C", wt, "rev-list", "--count", f"{base}..HEAD"],
+            timeout=float(settings.routine.git_timeout_seconds),
+        )
+        if rc != 0:
+            return False
+        try:
+            return int(out.strip() or "0") == 0
+        except ValueError:
+            return False
+
+    def _advance_phase_or_terminate(
+        self, routine: Routine, verdict: decision_mod.Decision, *, finalize_noop: bool = False
+    ) -> None:
         """相位化工作流：按相位解释 decision 的 SUCCESS，否则照常终止。
 
         - PLAN：非成功守卫（如不可恢复）照常终止；否则（成功或继续）推进到 IMPLEMENT；
         - IMPLEMENT：SUCCESS → 推进到 FINALIZE（不终止）；其它终止守卫 → failed；
-        - FINALIZE：一旦捕获 ``pr_url`` 即 succeeded（交人工 Merge）；否则非成功守卫 → failed，
+        - FINALIZE：捕获 ``pr_url`` 即 succeeded；或（``finalize_noop`` 且本轮成功裁决）判
+          clean no-op succeeded（无可交付改动、不开 PR）；否则非成功守卫 → failed，
           其余留在 FINALIZE 重试建 PR。
         """
         phase = routine.current_phase
@@ -1004,6 +1244,12 @@ class RoutineOrchestrator:
                 routine.current_phase = phase_mod.PHASE_IMPLEMENT
         elif phase == phase_mod.PHASE_FINALIZE:
             if routine.pr_url:
+                self._terminate(routine, decision_mod.REASON_SUCCESS)
+            elif finalize_noop and is_success:
+                # clean no-op：FINALIZE + 成功裁决 + worktree 相对基线 0 commits ahead + 无 PR
+                # → 无可交付改动（如文档已高保真、本轮未改 perceives）。判 succeeded 无 PR，不空转重试。
+                # 核心不变量：no-op 成功仅在「可证明零可交付提交」时可达（有提交者 finalize_noop=False，
+                # 仍须真实 pr_url 才成功）；且须合取本轮 is_success——非成功裁决绝不被 no-op 掩盖。
                 self._terminate(routine, decision_mod.REASON_SUCCESS)
             elif verdict.is_terminate and not is_success:
                 self._terminate(routine, verdict.reason or decision_mod.REASON_UNRECOVERABLE)
@@ -1054,6 +1300,8 @@ class RoutineOrchestrator:
                     goal=routine.goal or "",
                     acceptance_criteria=routine.acceptance_criteria or "",
                     owner_id=routine.owner_id,
+                    status=routine.status,
+                    termination_reason=routine.termination_reason,
                 )
                 result = await extractor.extract_on_termination(routine_proxy, history_snap)
                 if not result.memories:
@@ -1068,6 +1316,9 @@ class RoutineOrchestrator:
                         "verdict": history[-1].verdict,
                     },
                     result=result,
+                    routine_status=routine.status,
+                    termination_reason=routine.termination_reason,
+                    repository_id=str(routine.repository_id) if routine.repository_id else None,
                 )
                 logger.info(
                     "routine_memories_extracted",
@@ -1107,6 +1358,9 @@ class RoutineOrchestrator:
         iteration_snap: dict,
         history_snap: list[dict],
         was_running_before_commit: bool,
+        routine_status: str | None = None,
+        termination_reason: str | None = None,
+        repository_id: str | None = None,
     ) -> None:
         """Fire-and-forget 记忆提取：在 commit 后发起，不阻塞 inspector handler。
 
@@ -1125,6 +1379,9 @@ class RoutineOrchestrator:
                 iteration_snap=iteration_snap,
                 history_snap=history_snap,
                 was_running_before_commit=was_running_before_commit,
+                routine_status=routine_status,
+                termination_reason=termination_reason,
+                repository_id=repository_id,
             )
         )
         self._bg_extraction_tasks.add(task)
@@ -1141,6 +1398,9 @@ class RoutineOrchestrator:
         iteration_snap: dict,
         history_snap: list[dict],
         was_running_before_commit: bool,
+        routine_status: str | None = None,
+        termination_reason: str | None = None,
+        repository_id: str | None = None,
     ) -> None:
         """后台记忆提取协程（由 ``_fire_memory_extraction`` 调度）。
 
@@ -1169,6 +1429,8 @@ class RoutineOrchestrator:
                 goal=routine_goal or "",
                 acceptance_criteria=routine_criteria or "",
                 owner_id=owner_id,
+                status=routine_status or "",
+                termination_reason=termination_reason or "",
             )
             iter_proxy = SimpleNamespace(
                 seq=iteration_snap.get("seq"),
@@ -1196,6 +1458,9 @@ class RoutineOrchestrator:
                 owner_id=owner_id,
                 iteration_snap=iteration_snap,
                 result=result,
+                routine_status=routine_status,
+                termination_reason=termination_reason,
+                repository_id=repository_id,
             )
 
             logger.info(
@@ -1219,6 +1484,9 @@ class RoutineOrchestrator:
         owner_id: str | None,
         iteration_snap: dict,
         result: MemoryExtractionResult,
+        routine_status: str | None = None,
+        termination_reason: str | None = None,
+        repository_id: str | None = None,
     ) -> None:
         """将提取的记忆通过 PostgresMemoryService 写入 Memory Module（纯数据参数版）。"""
         from negentropy.engine.factories.memory import get_memory_service
@@ -1239,6 +1507,13 @@ class RoutineOrchestrator:
                 "iteration_verdict": verdict,
                 "decay_override": decay,
             }
+            # 终态溯源（D 的识别地基）：失败 reason 让同 repo 后续 routine 可确定性检索到失败教训。
+            if routine_status is not None:
+                metadata["routine_status"] = routine_status
+            if termination_reason is not None:
+                metadata["termination_reason"] = termination_reason
+            if repository_id is not None:
+                metadata["repository_id"] = repository_id
             await mem_service.add_memory_typed(
                 user_id=owner_id or "system",
                 app_name=settings.app_name,
@@ -1246,6 +1521,9 @@ class RoutineOrchestrator:
                 content=m.content,
                 memory_type=m.memory_type,
                 metadata=metadata,
+                # 写入准入去重（综述 §4.3.1 admission）：命中既有近似记忆 → touch 既有行而非新增，
+                # 抑制同模板 routine（如每文档一个巡检）近似经验线性累积、restart 重复沉淀。
+                dedupe=True,
             )
 
     # ------------------------------------------------------------------
@@ -1275,10 +1553,18 @@ class RoutineOrchestrator:
                 texts.append(str(text))
         return "\n".join(texts)
 
-    async def _retrieve_memory_context(self, routine: Routine) -> str | None:
+    async def _retrieve_memory_context(self, routine: Routine) -> tuple[str | None, dict | None]:
         """从 Memory Module 检索与当前 routine 目标相关的经验记忆。
 
-        返回格式化的记忆文本（用于注入 prompt），或 None。
+        返回 ``(context_text, injection_meta)``：
+        - ``context_text``：格式化的记忆文本（注入 prompt），或 None；
+        - ``injection_meta``：``{"retrieval_log_id", "memory_ids"}`` 供评估期反馈闭环消费，或 None。
+          ``memory_ids`` 为注入记忆 id8 短码集，供 ``_fire_reference_feedback`` 与产出引用求交防伪引用。
+
+        两段注入：① 语义混合检索 top5（Reflexion）；② 同 repository 失败教训确定性补充——
+        按 ``metadata.repository_id`` + ``termination_reason ∈ {失败原因}`` 拉最近 2 条终态教训，
+        与语义命中按 id 去重后合并（行前缀「⚠ 失败教训」）。语义检索的 outcome 反馈只覆盖语义段
+        （retrieval_log_id 不附带在失败教训行上，避免把确定性注入计入 Rocchio 噪声统计）。
         """
         try:
             from negentropy.engine.factories.memory import get_memory_service
@@ -1290,17 +1576,27 @@ class RoutineOrchestrator:
                 user_id=routine.owner_id or "system",
                 query=query,
                 limit=5,
+                # 按 routine.id 分桶 canary：自治 routine 不再共用 "system" 同桶致灰度沦为 0%/100%；
+                # 单 routine 全程同桶=不跨迭代翻配置。
+                canary_bucket_key=str(routine.id),
             )
-            if not response or not response.memories:
-                return None
 
             # 引用规范：每条记忆行附 Memory id 短码 + 日期 + Routine 溯源（routine_key/迭代序号），
             # 使 Executor (Claude Code) 能在产出中按「依据 Memory <id8> (<日期>)」标注来源并附原文摘录。
             lines: list[str] = []
-            for entry in response.memories[:5]:
+            memory_id8s: list[str] = []
+            retrieval_log_id: str | None = None
+            seen_id8s: set[str] = set()
+            for entry in (response.memories if response and response.memories else [])[:5]:
                 meta = entry.custom_metadata or {}
                 type_label = meta.get("memory_type", "episodic") if isinstance(meta, dict) else "episodic"
                 mem_id8 = str(getattr(entry, "id", "") or "")[:8] or "unknown"
+                memory_id8s.append(mem_id8)
+                seen_id8s.add(mem_id8)
+                # 检索日志行 ID 由 search_memory 注入 metadata（hybrid/vector 主路径），
+                # 供评估期解析产出引用、回写 outcome_feedback（激活 Rocchio 调权管道）。
+                if isinstance(meta, dict) and retrieval_log_id is None:
+                    retrieval_log_id = meta.get("retrieval_log_id")
                 date = str(getattr(entry, "timestamp", "") or "")[:10]
                 prefix = f"[{type_label}] Memory {mem_id8}" + (f" ({date})" if date else "")
                 # 从 metadata_ 提取来源信息
@@ -1313,14 +1609,154 @@ class RoutineOrchestrator:
                 content = self._memory_entry_text(entry)[:200]
                 lines.append(f"- {prefix}: {content}")
 
-            return "\n".join(lines) if lines else None
+            # ② 同 repository 失败教训确定性补充段（D）：让前一个 routine 的失败教训被后续同 repo routine
+            # 可靠看到（语义检索的 owner+app scope 不保证覆盖）。仅 repository_id 非空时触发。
+            repo_id = getattr(routine, "repository_id", None)
+            if repo_id:
+                try:
+                    failure_rows = await self._fetch_repo_failure_lessons(
+                        user_id=routine.owner_id or "system",
+                        repository_id=str(repo_id),
+                        limit=2,
+                    )
+                    for row in failure_rows:
+                        fid8 = str(row["id"])[:8]
+                        if fid8 in seen_id8s:
+                            continue  # 与语义命中去重
+                        seen_id8s.add(fid8)
+                        memory_id8s.append(fid8)
+                        content = (row.get("content") or "")[:200]
+                        lines.append(f"- ⚠ 失败教训 Memory {fid8}（{row.get('termination_reason', '')}）: {content}")
+                except Exception as exc:
+                    logger.debug("routine_repo_failure_lessons_failed", routine_id=str(routine.id), error=str(exc))
+
+            context_text = "\n".join(lines) if lines else None
+            injection_meta = (
+                {
+                    "retrieval_log_id": retrieval_log_id,
+                    "memory_ids": memory_id8s,
+                }
+                if context_text
+                else None
+            )
+            return context_text, injection_meta
         except Exception as exc:
             logger.warning(
                 "routine_memory_injection_failed",
                 routine_id=str(routine.id),
                 error=str(exc),
             )
-            return None
+            return None, None
+
+    async def _fetch_repo_failure_lessons(self, *, user_id: str, repository_id: str, limit: int = 2) -> list[dict]:
+        """拉同 repository 的失败终态教训（metadata.termination_reason ∈ 失败原因，最近 N 条）。
+
+        确定性补充检索——语义 top5 不保证覆盖同 repo 失败教训（owner/app scope + 语义偶然性 + 7 天清理）。
+        失败 reason 集对齐 decision.REASON_NO_PROGRESS/OSCILLATION/UNRECOVERABLE。raw SQL 查 JSONB metadata。
+        """
+        sql = text(
+            f"""
+            SELECT id, content, metadata #>> '{{termination_reason}}' AS termination_reason
+            FROM {NEGENTROPY_SCHEMA}.memories
+            WHERE user_id = :user_id
+              AND app_name = :app_name
+              AND metadata ->> 'repository_id' = :repository_id
+              AND metadata ->> 'termination_reason' IN ('no_progress', 'oscillation', 'unrecoverable_error')
+            ORDER BY created_at DESC
+            LIMIT :limit
+            """
+        )
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(
+                sql,
+                {
+                    "user_id": user_id,
+                    "app_name": settings.app_name,
+                    "repository_id": repository_id,
+                    "limit": limit,
+                },
+            )
+            return [dict(r._mapping) for r in result.fetchall()]
+
+    async def _fire_reference_feedback(
+        self,
+        *,
+        summary: str | None,
+        verdict: str | None,
+        injection_meta: dict | None,
+    ) -> None:
+        """解析本轮产出中的 Memory 引用，回写检索日志的 was_referenced / outcome_feedback。
+
+        闭合「检索→引用→效果」反馈环（激活既有 Rocchio 调权管道，已建成只缺反馈源）。
+        - 引用解析：``依据 Memory <id8>`` / ``[Memory <id8>, ...]``，与注入 ``memory_ids`` 前缀求交
+          防伪引用；
+        - outcome 保守映射（归因宁缺勿滥）：
+          * 有引用且 verdict∈{pass, progressing} → helpful；
+          * 注入非空且零引用 → irrelevant（检索噪声的直接信号；Rocchio 弱负反馈平滑单次误差）；
+          * 有引用但 regressed/stalled → 不写（归因歧义）。
+        - 任一环节失败 fail-soft（不阻塞评估主路径）。
+        """
+        if not settings.routine.memory_feedback_enabled or not injection_meta:
+            return
+        log_id_raw = injection_meta.get("retrieval_log_id")
+        injected_id8s = injection_meta.get("memory_ids") or []
+        if not log_id_raw or not injected_id8s:
+            return
+        try:
+            log_id = UUID(str(log_id_raw))
+        except (ValueError, TypeError, AttributeError):
+            return
+
+        # 解析产出中的引用 id8（两种格式 + 宽容变体）
+        import re
+
+        text = summary or ""
+        cited = set()
+        for pat in (
+            r"依据\s*[Mm]emory\s+([0-9a-fA-F]{8})",
+            r"\[\s*[Mm]emory\s+([0-9a-fA-F]{8})",
+            r"\b[Mm]emory\s+([0-9a-fA-F]{8})\b",
+        ):
+            cited.update(m.group(1).lower() for m in re.finditer(pat, text))
+        # 与注入集求交（防伪引用——只认本轮实际注入的记忆）
+        cited_injected = {i.lower() for i in injected_id8s} & cited
+
+        try:
+            from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+            tracker = RetrievalTracker()
+            if cited_injected:
+                await tracker.mark_referenced(log_id, reference_count=len(cited_injected))
+            # outcome 映射
+            v = (verdict or "").lower()
+            if cited_injected and v in ("pass", "progressing"):
+                await tracker.record_feedback(log_id, "helpful")
+            elif not cited_injected and v in ("pass", "progressing", "regressed", "stalled"):
+                # 注入非空但零引用：仅在被注入过、且本轮有产出 verdict 时记为噪声
+                await tracker.record_feedback(log_id, "irrelevant")
+        except Exception as exc:
+            logger.warning("routine_memory_feedback_failed", log_id=str(log_id), error=str(exc))
+
+    async def _hydrate_effective_repo(self, db: AsyncSession, routine: Routine) -> None:
+        """把关联 Repository 的 local_path/baseline_branch 注入内存 routine（单一事实源）。
+
+        Routine 仅持 ``repository_id`` 指针、不存 cwd/baseline 副本；本方法在 dispatch / evaluate
+        装载 routine 后、**任何** ``is_worktree_routine`` / baseline 判定与 ``ensure_worktree`` 之前
+        调用，用 ``set_committed_value`` 把有效 cwd/baseline 写入内存对象——该 API 将值标记为
+        「已从 DB 加载」，**不进 session.dirty**，故同事务对 ``worktree_path``/``work_branch``/评分等
+        的 commit 不会把派生值持久化进 ``routines`` 行（DB 中 cwd/baseline_branch 保持原值，避免副本）。
+
+        ``repository_id`` 为空 → no-op（沿用手填 cwd/baseline_branch）；Repository 已删（FK SET NULL
+        竞态）→ 回退手填值，不抛。
+        """
+        if routine.repository_id is None:
+            return
+        repository = await db.get(Repository, routine.repository_id)
+        if repository is None:
+            return
+        eff_cwd, eff_baseline = workspace.resolve_effective_repo(routine, repository)
+        set_committed_value(routine, "cwd", eff_cwd)
+        set_committed_value(routine, "baseline_branch", eff_baseline)
 
     async def _ensure_workspace(self, routine: Routine) -> bool:
         """worktree routine：确保隔离 worktree 就绪并把 ``worktree_path``/``work_branch`` 写回
@@ -1416,15 +1852,25 @@ class RoutineOrchestrator:
         # CC settings.json 基底：源码只读 deny（read_dirs 非空时）。Plan Review 钩子按 unified/legacy 分别注入。
         settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
         plan_review_active = _is_plan_review_active(routine)
-        # 统一闭环：worktree routine + 开关开。主 config = implement 段；plan 段独立挂载（见文末）。
-        unified = bool(settings.routine.plan_review_unified_loop and phase_mod.is_worktree_routine(routine))
+        # Plan 审批通道：``via_hook`` 仅影响 **legacy（非 unified）** 路径——=True 挂 PreToolUse deny 钩子、
+        # =False 回退 reader clean stdin。**unified 闭环的 plan 段已强制走钩子（见文末，不受此值控制）**，
+        # 因 headless 下 AskUserQuestion 的 stdin 回灌从始无效（ISSUE-123）。注意：reader clean stdin 仅对
+        # ExitPlanMode 可用、对 AskUserQuestion 无效，故勿据「stdin 应答」假设 plan 段可不挂钩子。
+        via_hook = bool((routine.config or {}).get("plan_review_via_hook", False))
+        # 统一闭环：worktree + 全局开关开 + per-routine 未关闭。主 config = implement 段；plan 段独立挂载（见文末）。
+        unified = bool(
+            settings.routine.plan_review_unified_loop
+            and phase_mod.is_worktree_routine(routine)
+            and bool((routine.config or {}).get("plan_review_enabled", True))
+        )
         # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
         review_timeout = int(
             (routine.config or {}).get("plan_review_timeout_seconds") or settings.routine.plan_review_timeout_seconds
         )
         # Legacy 路径（统一闭环关）：评审钩子直接注入主 config（PLAN 相位，ISSUE-123 原行为；
         # ExitPlanMode 仅消噪不评审）。unified 路径：钩子注入独立 plan 段（见文末），主 config 不挂钩子。
-        if plan_review_active and not unified:
+        if plan_review_active and not unified and via_hook:
+            # legacy + deny 钩子通道（opt-in）：via_hook=False 时不挂钩子，改由 reader clean stdin 应答。
             ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="legacy")
             pre = settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
             pre.extend(_plan_review_hook_pre(ctx_path, review_timeout, exit_plan_full_review=False))
@@ -1461,9 +1907,9 @@ class RoutineOrchestrator:
                 "acceptance_criteria": routine.acceptance_criteria,
                 "phase": routine.current_phase or "",
                 "plan_review_enabled": settings.routine.plan_review_enabled,
-                # 主 config 在 unified 下为 implement 段、不做评审，故 via_hook 仅在 legacy 评审激活时为真
-                # （置真令交互式 reader 跳过对 AskUserQuestion 无效且会重复评审的内联 plan-review 应答分支）。
-                "plan_review_via_hook": plan_review_active and not unified,
+                # 主 config 在 unified 下为 implement 段、不做评审；legacy 评审激活且走 deny 钩子时置真，
+                # 令交互式 reader 跳过内联 plan-review 应答（避免与钩子重复）；via_hook=False 时 reader 走 clean stdin。
+                "plan_review_via_hook": plan_review_active and not unified and via_hook,
                 "plan_review_model": settings.routine.plan_review_model,
                 "plan_review_timeout": settings.routine.plan_review_timeout_seconds,
                 "reflections": (
@@ -1473,6 +1919,15 @@ class RoutineOrchestrator:
         # 统一闭环：构建迭代内独立 plan 段（permission_mode=plan + 真实评审钩子），**仅 fresh（无续接会话）**触发；
         # 续接迭代沿用单段 implement（方案已批准、会话续接，无需重评审）。上下文耗尽清空会话后下轮会重新 plan。
         if unified and plan_review_active and not routine.claude_session_id:
+            # plan 段评审通道**强制走 PreToolUse 钩子**（不再受 per-routine via_hook 控制）——根治断链
+            # （实证 Routine 77c8a8b6：via_hook=False 致 plan 段不挂钩子、回退 reader clean stdin，而
+            # headless `claude -p` 下 AskUserQuestion 的 stdin tool_result **从始无效**——CLI 即时报
+            # `is_error "Answer questions?"`、不读 stdin，refine 永送不到 CC，CC 困惑重试空耗 turns）。
+            # 纠正历史错误论断：所谓「clean stdin 经 DB 19 例 ExitPlanMode 应答证明可用」混淆了
+            # ExitPlanMode（stdin 可用）与 AskUserQuestion（stdin 无效）——而 PLAN prompt 约束 CC 用
+            # AskUserQuestion 提交方案（见 plan_review_hook._extract_plan_text），恰走失效那条。
+            # plan 段评审是引擎核心机制、headless 下唯有 PreToolUse 钩子可工作，不应被 per-routine
+            # via_hook=False 关闭——故此处无条件挂钩子（exit_plan_full_review=True：ExitPlanMode 亦真审）。
             plan_settings_obj: dict = json.loads(_build_readonly_settings(read_dirs)) if read_dirs else {}
             plan_ctx_path = _write_plan_review_ctx(routine, iteration_id, mode="unified")
             plan_pre = plan_settings_obj.setdefault("hooks", {}).setdefault("PreToolUse", [])
@@ -1485,7 +1940,9 @@ class RoutineOrchestrator:
             plan_config.plan_stage_prompt = None
             if config.auto_answer_context is not None:
                 _ac = dict(config.auto_answer_context)
-                _ac["plan_review_via_hook"] = True  # plan 段确由钩子评审
+                # 强制 True：plan 段评审已统一委托钩子，令交互式 reader **跳过**失效的内联
+                # _plan_review_answer（AskUserQuestion stdin 回灌），避免 reader 与钩子双写/重复评审。
+                _ac["plan_review_via_hook"] = True
                 _ac["phase"] = phase_mod.PHASE_PLAN
                 plan_config.auto_answer_context = _ac
             config.plan_stage_config = plan_config
@@ -1672,6 +2129,8 @@ class RoutineOrchestrator:
                 "total_cost_usd": routine.total_cost_usd,
                 "current_phase": routine.current_phase,
                 "pr_url": routine.pr_url,
+                "pr_merged": routine.pr_merged,
+                "pr_state": routine.pr_state,
             }
         )
 
@@ -1737,6 +2196,8 @@ class RoutineOrchestrator:
                         "output": _cap(result.gate_output or ""),
                     },
                     "cost_usd": None,
+                    # 多 Agent 归因：命令门控属行动系 → 妙手（Action）。详见 ADR 040。
+                    "agent_role": "action",
                 }
             )
             seq += 1
@@ -1751,11 +2212,15 @@ class RoutineOrchestrator:
                     "score": result.score,
                     "verdict": result.verdict,
                     "reflection": result.reflection,
+                    # 锚定评估的「证据先于给分」陈述（未启用锚定时为 None）。纯加键，UI 审计可见。
+                    "progress_evidence": result.progress_evidence,
                     "prompt": _cap(result.judge_prompt or ""),
                     "raw": _cap(result.judge_raw or ""),
                     "error": result.error,
                 },
                 "cost_usd": None,
+                # 多 Agent 归因：LLM-as-Judge 评估反思属思辨系 → 元神（Contemplation）。
+                "agent_role": "contemplation",
             }
         )
         rows = [
@@ -1769,6 +2234,7 @@ class RoutineOrchestrator:
                 "title": e["title"][:255] if e["title"] else None,
                 "payload": e["payload"],
                 "cost_usd": e["cost_usd"],
+                "agent_role": e.get("agent_role"),
             }
             for e in events
         ]

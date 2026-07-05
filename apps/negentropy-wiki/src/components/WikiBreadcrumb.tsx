@@ -1,3 +1,5 @@
+import { entryHref } from "@/lib/wiki-api";
+
 interface BreadcrumbItem {
   label: string;
   slug: string | null;
@@ -17,7 +19,7 @@ export function WikiBreadcrumb({ items, pubSlug }: WikiBreadcrumbProps) {
         <span key={i}>
           {i > 0 && <span className="wiki-doc-breadcrumb-sep">›</span>}
           {item.slug ? (
-            <a href={`/${pubSlug}/${item.slug}`} className="wiki-doc-breadcrumb-link">
+            <a href={entryHref(pubSlug, item.slug)} className="wiki-doc-breadcrumb-link">
               {item.label}
             </a>
           ) : (

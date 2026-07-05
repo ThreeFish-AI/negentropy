@@ -17,6 +17,7 @@ from negentropy.models.plugin import (
     PluginPermission,
     PluginPermissionType,
     PluginVisibility,
+    Repository,
     Skill,
 )
 
@@ -29,6 +30,7 @@ PLUGIN_TYPE_MODEL_MAP = {
     "skill": Skill,
     "agent": Agent,
     "builtin_tool": BuiltinTool,
+    "repository": Repository,
 }
 
 

@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList, type ClientFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 import type { GraphBuildRunRecord } from "@/features/knowledge";
 
 const BUILD_HISTORY_PAGE_SIZE = 5;
@@ -51,20 +54,65 @@ interface BuildHistoryListProps {
 }
 
 export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListProps) {
-  const [page, setPage] = useState(0);
-  // 采用 React 19 推荐的「render 期间根据 props 调整 state」范式（替代 useEffect+setState
-  // 的级联渲染），当底层数据刷新时同步重置分页索引。
-  // 参考：https://react.dev/learn/you-might-not-need-an-effect
-  //
-  // 比较对象选择 `runs` 引用而非 `runs.length`：父组件的 `useMemo(() => …, [payload])`
-  // 在 payload 改变（切换语料库 / 时间穿梭 / 构建后重拉）时整体重建 `runs` 数组。
-  // 若按长度比较，两个语料库恰好拥有等长构建历史时切换不会触发重置，用户会停留在
-  // 例如「第 2 页」却看着另一个语料库的数据。引用比较覆盖一切刷新场景。
-  const [prevRuns, setPrevRuns] = useState(runs);
-  if (prevRuns !== runs) {
-    setPrevRuns(runs);
-    setPage(0);
-  }
+  // 无限滚动 + 翻页：滚动容器 ref（哨兵 / 滚动联动 observer 的 root）、程序化滚动闸门、待跳页号。
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
+
+  // 客户端模式：全量 runs 已在内存，仅做渐进切片（零网络、total 精确）。
+  // deps:[runs] —— 父组件 `useMemo(() => …, [payload])` 在切换语料库 / 时间穿梭 /
+  // 构建后重拉时整体重建 runs 数组（引用变化），useInfiniteList 据此 reset 回第 1 页，
+  // 覆盖此前「render 期间引用比较重置 page」的全部刷新场景。
+  const fetcher = useMemo<ClientFetcher<GraphBuildRunRecord>>(
+    () => ({ kind: "client", items: runs }),
+    [runs],
+  );
+  const list = useInfiniteList<GraphBuildRunRecord>({
+    fetcher,
+    pageSize: BUILD_HISTORY_PAGE_SIZE,
+    deps: [runs],
+  });
+  const pageRuns = list.items;
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 渐进揭示下一页。root = 列表内嵌滚动容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首项的 data-infinite-page 锚点，取最靠上可见页。
+  useScrollPageSync({
+    enabled: true,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: pageRuns.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  // 点页码跳页：客户端切片即时揭示该页，再滚动到该页锚点。
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动（揭示更多页后锚点再现 → effect 重跑命中）。
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return;
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [list.currentPage, pageRuns.length]);
 
   if (!runs.length) {
     return (
@@ -74,17 +122,18 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
     );
   }
 
-  const totalPages = Math.max(1, Math.ceil(runs.length / BUILD_HISTORY_PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages - 1);
-  const start = currentPage * BUILD_HISTORY_PAGE_SIZE;
-  const pageRuns = runs.slice(start, start + BUILD_HISTORY_PAGE_SIZE);
   const showPager = runs.length > BUILD_HISTORY_PAGE_SIZE;
 
   return (
     <div className="mt-3 space-y-2">
-      {pageRuns.map((run) => (
+      {/* 内嵌滚动容器同时作为无限滚动哨兵 / 滚动联动 observer 的 root。 */}
+      <div ref={scrollRootRef} className="max-h-[360px] space-y-2 overflow-y-auto">
+      {pageRuns.map((run, i) => (
         <div
           key={run.run_id}
+          data-infinite-page={
+            i % BUILD_HISTORY_PAGE_SIZE === 0 ? Math.floor(i / BUILD_HISTORY_PAGE_SIZE) + 1 : undefined
+          }
           className="rounded-lg border border-border p-3"
         >
           <div className="flex items-center justify-between">
@@ -127,28 +176,18 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
           )}
         </div>
       ))}
+        {/* 无限滚动哨兵：进入视口即揭示下一页（hasMore 为否时 hook 自动停观察）。 */}
+        <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+      </div>
       {showPager && (
-        <div className="mt-2 flex items-center justify-between text-micro text-text-muted">
-          <button
-            type="button"
-            disabled={currentPage === 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="rounded border border-border px-2 py-0.5 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            上一页
-          </button>
-          <span>
-            第 {currentPage + 1} / {totalPages} 页 · 共 {runs.length} 条
-          </span>
-          <button
-            type="button"
-            disabled={currentPage >= totalPages - 1}
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            className="rounded border border-border px-2 py-0.5 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            下一页
-          </button>
-        </div>
+        <Pagination
+          page={list.currentPage}
+          totalPages={list.totalPages}
+          onPageChange={handleGoToPage}
+          total={list.total ?? undefined}
+          itemLabel="run"
+          loadingMore={list.loadingMore}
+        />
       )}
     </div>
   );

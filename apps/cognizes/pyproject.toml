@@ -192,6 +192,10 @@ packages = ["src/cognizes"]             # 要打包的源码目录: src layout �
 constraint-dependencies = [
     "starlette>=1.3.1",     # 11 个 high/medium CVE (需 google-adk>=2.2.0 解锁 1.x; 0.x 无回溯补丁)
     "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf: wheel 内 OpenSSL 漏洞 (high)
+    "joserfc>=1.6.7",       # CVE-2026-48990: b64=false RFC7797 JWS payload 绕过 JWSRegistry 大小限制 (authlib → joserfc 间接)
+    "msgpack>=1.2.1",       # GHSA-6v7p-g79w-8964: Unpacker 复用后 OOB 读/crash (locust dev → msgpack 反序列化 DoS)
+    "python-socketio>=5.16.2", # CVE-2026-48804: 二进制附件堆积 DoS (locust dev → python-socketio)
+    "python-engineio>=4.13.2", # CVE-2026-48802/48809: 无界线程分配 + payload 大小未强制 DoS (locust dev → python-engineio)
 ]
 
 # ==============================================================================

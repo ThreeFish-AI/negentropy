@@ -142,7 +142,7 @@ export function SystemMetricsPanel({ metrics, loading }: SystemMetricsPanelProps
         <div>
           <GroupTitle>Retention Distribution</GroupTitle>
           <div className="h-28 w-full rounded-xl border border-border bg-muted/20 p-2">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={retentionData} margin={{ top: 4, right: 8, bottom: 0, left: -24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis

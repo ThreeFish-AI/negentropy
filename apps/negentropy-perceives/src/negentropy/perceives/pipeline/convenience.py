@@ -135,6 +135,15 @@ def _build_assembly_input(
         raise ValueError(
             "assembly 输入缺失或类型不符：preprocessing Stage 未产出 PreprocessingOutput"
         )
+    # slice_index 由 run_pdf_pipeline 注入 PreprocessingInput.config，供 assembly
+    # 2.1 标题级联判定是否「册封论文标题」（仅切片 0 册封）。
+    slice_index = 0
+    cfg = getattr(initial_input, "config", None)
+    if isinstance(cfg, dict):
+        try:
+            slice_index = int(cfg.get("slice_index", 0) or 0)
+        except (TypeError, ValueError):
+            slice_index = 0
     return AssemblyInput(
         preprocessing=preprocessing,
         layout=_unwrap(results.get("layout_analysis")),
@@ -143,6 +152,7 @@ def _build_assembly_input(
         formulas=_unwrap(results.get("formula_extraction")),
         images=_unwrap(results.get("image_extraction")),
         code=_unwrap(results.get("code_detection")),
+        slice_index=slice_index,
     )
 
 
@@ -450,6 +460,7 @@ async def run_pdf_pipeline(
     extract_formulas: bool = True,
     embed_images: bool = False,
     output_dir: Optional[str] = None,
+    slice_index: int = 0,
 ) -> PipelineResult:
     """执行 PDF -> Markdown 完整管线。
 
@@ -461,6 +472,10 @@ async def run_pdf_pipeline(
         extract_formulas: 是否提取公式
         embed_images: 是否嵌入图片
         output_dir: 输出目录
+        slice_index: auto_batch 切片序号（从 0 开始）。仅切片 0 允许在 assembly
+            2.1 级联中「册封论文标题」（首个 H1/H2 视为标题）；切片 >0 的首个标题
+            是普通章节标题，不得册封——否则每切片首标题被误升为 H1（ISSUE：
+            auto_batch 下 4.2 / 8 / References 误判 h1）。
 
     Returns:
         PipelineResult 包含 Markdown 内容和统计数据
@@ -508,6 +523,8 @@ async def run_pdf_pipeline(
             "extract_formulas": extract_formulas,
             "embed_images": embed_images,
             "output_dir": output_dir,
+            # auto_batch 切片序号：assembly 2.1 标题级联据此决定是否「册封论文标题」
+            "slice_index": slice_index,
         },
     )
 
@@ -544,6 +561,13 @@ async def run_pdf_pipeline(
     image_output = _unwrap(stage_results.get("image_extraction"))
     code_output = _unwrap(stage_results.get("code_detection"))
     assembly_output = _unwrap(stage_results.get("assembly"))
+
+    # PDF /Title 在预处理 Stage 已抽取（PreprocessingOutput.metadata["title"]）但历史在此被丢弃；
+    # 透传进 PipelineResult.metadata，供下游（文档标题回填 / 巡检命名）复用（Fix B1）。
+    _pdf_title = ""
+    if isinstance(preprocessing_output, PreprocessingOutput):
+        _raw_title = preprocessing_output.metadata.get("title")
+        _pdf_title = str(_raw_title).strip() if _raw_title else ""
 
     # 如果有 assembly 输出，直接使用
     if assembly_output and isinstance(assembly_output, AssemblyOutput):
@@ -590,7 +614,10 @@ async def run_pdf_pipeline(
             stage_results={
                 k: _serialize_stage_result(v) for k, v in stage_results.items()
             },
-            metadata=assembly_output.metadata,
+            metadata={
+                **assembly_output.metadata,
+                **({"title": _pdf_title} if _pdf_title else {}),
+            },
             image_assets=image_assets,
         )
 
@@ -603,6 +630,7 @@ async def run_pdf_pipeline(
             success=True,
             markdown=text_output.full_text,
             word_count=text_output.word_count,
+            metadata={"title": _pdf_title} if _pdf_title else {},
             characteristics=(
                 preprocessing_output.characteristics
                 if isinstance(preprocessing_output, PreprocessingOutput)

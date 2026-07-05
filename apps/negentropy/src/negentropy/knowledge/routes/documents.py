@@ -8,17 +8,19 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request, status
+from fastapi.responses import Response, StreamingResponse
 from pydantic import ValidationError  # noqa: F401
 
+from negentropy.knowledge._http_range import build_etag, decide_range_response
 from negentropy.knowledge._shared import (
     _build_document_response,
-    _extract_and_store_document_markdown_from_gcs,
     _get_service,
+    _reparse_document_markdown,
     _resolve_document_source_uri,
     _resolve_documents_archived_set,
     _resolve_user_display_names,
+    effective_download_filename,
 )
 from negentropy.knowledge.api_helpers import _resolve_app_name
 from negentropy.knowledge.schemas import (
@@ -51,6 +53,26 @@ from negentropy.knowledge.lifecycle_schemas import (  # noqa: F401
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter()
 
+# 原文（PDF 等）下载/预览的缓存策略：内容按 file_hash 内容寻址、强 ETag 保证正确性，
+# 故允许浏览器短期缓存以加速「Markdown↔PDF 切换 / 在新标签打开 / 重访」，过期后
+# 凭 If-None-Match 廉价 304 校验。不使用 `immutable`——同一 document_id 可被重传。
+DOWNLOAD_CACHE_CONTROL = "private, max-age=300, must-revalidate"
+
+# 是否对原文预览/下载启用 HTTP Range（206）。
+#
+# 现状：库内 PDF 均为非线性化（非 Fast Web View）。一旦声明 `Accept-Ranges`，浏览器
+# 原生 PDF 查看器会切到「范围请求」模式；对非线性化文档它无法只靠前缀渲染首页，转而
+# 先发一次全量 GET（看到 Accept-Ranges 后中止）再用一连串范围请求分块取回整文，每块都
+# 多走一遍 浏览器→BFF→后端→PG 往返 —— 首屏反而比「单次顺序下载」更慢（实测回归）。
+#
+# 故默认关闭 Range：首屏回到单次全量下载（与改动前一致），而「二次打开快」由条件缓存
+# （ETag/304/Cache-Control）保证，与 Range 相互独立、不受影响。
+#
+# 注：Range 决策机制（`_http_range`）与按需切片读取（`download_blob_range_by_uri`）保留
+# 但暂不触发；待后续「入库线性化」落地后，可改为按文档（已线性化才开）开启，实现真正的
+# 渐进式首屏。
+PREVIEW_RANGE_ENABLED = False
+
 
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
 async def list_documents(
@@ -80,6 +102,7 @@ async def list_documents(
         app_name=resolved_app,
         limit=limit,
         offset=offset,
+        order_by="updated_at",
     )
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
@@ -123,6 +146,7 @@ async def list_all_documents(
         app_name=resolved_app,
         limit=limit,
         offset=offset,
+        order_by="updated_at",
     )
 
     unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
@@ -191,7 +215,7 @@ async def _get_document_detail_impl(
         file_hash=doc.file_hash,
         original_filename=doc.original_filename,
         display_name=doc.display_name,
-        gcs_uri=doc.gcs_uri,
+        content_uri=doc.content_uri,
         content_type=doc.content_type,
         file_size=doc.file_size,
         status=doc.status,
@@ -204,7 +228,7 @@ async def _get_document_detail_impl(
         archived=archived,
         metadata=doc.metadata_ or {},
         markdown_content=markdown_content,
-        markdown_gcs_uri=doc.markdown_gcs_uri,
+        markdown_uri=doc.markdown_uri,
     )
 
 
@@ -308,7 +332,7 @@ async def _refresh_document_markdown_impl(
     payload: DocumentMarkdownRefreshRequest,
     background_tasks: BackgroundTasks,
 ) -> DocumentMarkdownRefreshResponse:
-    """从 GCS 源文档重新解析 Markdown 并刷新存储。"""
+    """从已存储的源文档（PostgreSQL）重新解析 Markdown 并刷新存储。"""
     resolved_app = _resolve_app_name(payload.app_name)
 
     from negentropy.storage.service import DocumentStorageService
@@ -331,7 +355,7 @@ async def _refresh_document_markdown_impl(
         error=None,
     )
     background_tasks.add_task(
-        _extract_and_store_document_markdown_from_gcs,
+        _reparse_document_markdown,
         document_id=document_id,
     )
 
@@ -470,7 +494,7 @@ async def refresh_document_markdown(
     payload: DocumentMarkdownRefreshRequest,
     background_tasks: BackgroundTasks,
 ) -> DocumentMarkdownRefreshResponse:
-    """从 GCS 源文档重新解析 Markdown 并刷新存储。"""
+    """从已存储的源文档（PostgreSQL）重新解析 Markdown 并刷新存储。"""
     return await _refresh_document_markdown_impl(
         document_id=document_id,
         corpus_id=corpus_id,
@@ -519,7 +543,7 @@ async def delete_document(
         corpus_id: 知识库 ID
         document_id: 文档 ID
         app_name: 应用名称
-        hard_delete: 是否同时删除 GCS 中的原始文件（默认软删除）
+        hard_delete: 是否同时删除存储后端（PostgreSQL blob）中的原始文件（默认软删除）
     """
     await _delete_document_impl(
         document_id=document_id,
@@ -531,14 +555,24 @@ async def delete_document(
 
 async def _download_document_impl(
     *,
+    request: Request,
     document_id: UUID,
     corpus_id: UUID | None,
     app_name: str | None,
 ):
-    """下载文档原始文件，返回 StreamingResponse（带 Content-Disposition 头）。"""
+    """下载/预览文档原始文件。
+
+    - **URL 源文档**：返回其 Markdown 正文（``text/markdown``，``attachment``），不施加
+      Range —— 显示内容与历史完全一致。
+    - **二进制源文档（PDF 等）**：支持 HTTP Range（``206``）与条件缓存（``ETag`` /
+      ``If-None-Match`` → ``304``；越界 → ``416``），并补齐 ``Accept-Ranges`` /
+      ``Content-Length`` / ``Last-Modified`` / ``Cache-Control``。使浏览器原生 PDF 查看器
+      可渐进式渲染大文件、并跨视图切换复用缓存。``Content-Disposition`` 固定 ``attachment``
+      （预览场景由 BFF 代理改写为 ``inline``，下载按钮行为不变）。
+    """
     resolved_app = _resolve_app_name(app_name)
 
-    from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -559,23 +593,87 @@ async def _download_document_impl(
     metadata = doc.metadata_ or {}
     is_url_doc = metadata.get("source_type") == "url"
 
-    # 下载文件内容
-    try:
-        if is_url_doc:
+    # 文件名跟随用户重命名：display_name 覆盖 → original_filename，
+    # 并保留 original_filename 的扩展名，确保下载内容与扩展名一致可正确打开。
+    filename = effective_download_filename(doc.original_filename, doc.display_name)
+    if is_url_doc and not filename.lower().endswith(".md"):
+        filename = f"{filename}.md"
+    encoded_filename = urllib.parse.quote(filename)
+    content_disposition = f"attachment; filename*=UTF-8''{encoded_filename}"
+
+    # URL 源文档：返回 Markdown 正文（不支持 Range，行为与历史一致）。
+    if is_url_doc:
+        try:
             markdown_text = await storage_service.get_document_markdown(document_id)
-            if not markdown_text:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document markdown content not found"},
-                )
-            content = markdown_text.encode("utf-8")
-        else:
-            content = await storage_service.get_document_content(document_id)
-            if content is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document content not found"},
-                )
+        except StorageError as exc:
+            logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
+            ) from exc
+        if not markdown_text:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document markdown content not found"},
+            )
+        return StreamingResponse(
+            BytesIO(markdown_text.encode("utf-8")),
+            media_type="text/markdown; charset=utf-8",
+            headers={"Content-Disposition": content_disposition},
+        )
+
+    # 二进制源文档：Range + 条件缓存协商。
+    media_type = doc.content_type or "application/octet-stream"
+    total_size = doc.file_size
+    if not total_size:
+        # file_size 理论 NOT NULL；异常存量数据回退按 blob 实际大小。
+        try:
+            total_size = await storage_service.get_blob_size_by_uri(doc.content_uri) or 0
+        except StorageError as exc:
+            logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
+            ) from exc
+
+    decision = decide_range_response(
+        total_size=total_size,
+        etag=build_etag(doc.file_hash),
+        last_modified=doc.updated_at,
+        cache_control=DOWNLOAD_CACHE_CONTROL,
+        content_type=media_type,
+        range_header=request.headers.get("range"),
+        if_range=request.headers.get("if-range"),
+        if_none_match=request.headers.get("if-none-match"),
+        if_modified_since=request.headers.get("if-modified-since"),
+        enable_range=PREVIEW_RANGE_ENABLED,
+    )
+    headers = dict(decision.headers)
+    headers["Content-Disposition"] = content_disposition
+
+    # 304 / 416：无 body（416 头已含 Content-Range: bytes */{total}）。
+    if decision.status_code in (status.HTTP_304_NOT_MODIFIED, status.HTTP_416_RANGE_NOT_SATISFIABLE):
+        return Response(status_code=decision.status_code, headers=headers)
+
+    try:
+        if decision.spec is not None:
+            # 206：只读所需切片（PostgreSQL substring 部分读，不入整块内存）。
+            chunk = await storage_service.download_blob_range_by_uri(
+                doc.content_uri, decision.spec.start, decision.spec.length
+            )
+            return Response(
+                content=chunk,
+                status_code=status.HTTP_206_PARTIAL_CONTENT,
+                media_type=media_type,
+                headers=headers,
+            )
+        # 200 全量：复用既有读取路径，与「下载」按钮字节完全一致。
+        content = await storage_service.get_document_content(document_id)
+        if content is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document content not found"},
+            )
     except StorageError as exc:
         logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
         raise HTTPException(
@@ -583,38 +681,34 @@ async def _download_document_impl(
             detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
         ) from exc
 
-    # 编码文件名以支持中文
-    filename = doc.original_filename
-    if is_url_doc and not filename.lower().endswith(".md"):
-        filename = f"{filename}.md"
-    encoded_filename = urllib.parse.quote(filename)
-
     return StreamingResponse(
         BytesIO(content),
-        media_type="text/markdown; charset=utf-8" if is_url_doc else (doc.content_type or "application/octet-stream"),
-        headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
-        },
+        media_type=media_type,
+        headers=headers,
     )
 
 
 @router.get("/base/{corpus_id}/documents/{document_id}/download")
 async def download_document(
+    request: Request,
     corpus_id: UUID,
     document_id: UUID,
     app_name: str | None = Query(default=None),
 ):
-    """下载文档原始文件
+    """下载/预览文档原始文件（支持 Range + 条件缓存）
 
     Args:
+        request: 用于读取 Range / 条件请求头
         corpus_id: 知识库 ID
         document_id: 文档 ID
         app_name: 应用名称
 
     Returns:
-        StreamingResponse: 文件流（带 Content-Disposition 头）
+        Response: 200 全量 / 206 分段 / 304 未改动 / 416 区间不可满足
     """
-    return await _download_document_impl(document_id=document_id, corpus_id=corpus_id, app_name=app_name)
+    return await _download_document_impl(
+        request=request, document_id=document_id, corpus_id=corpus_id, app_name=app_name
+    )
 
 
 async def _get_document_asset_impl(
@@ -626,12 +720,11 @@ async def _get_document_asset_impl(
 ):
     """获取文档的衍生资产文件（图片等）。
 
-    从 GCS 的 ``derived/{document_id}/assets/`` 路径下载指定资产并流式返回。
+    从存储后端（PostgreSQL blob）的 ``derived/{document_id}/assets/`` 路径下载指定资产并流式返回。
     资产内容不可变，设置长期缓存。
     """
     resolved_app = _resolve_app_name(app_name)
 
-    from negentropy.storage.gcs_client import StorageError
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -655,29 +748,21 @@ async def _get_document_asset_impl(
             detail={"code": "INVALID_ASSET_NAME", "message": "Asset name is empty"},
         )
 
-    # 直接构造 GCS 路径并下载（避免第二次文档查询）
-    gcs_path = DocumentStorageService._build_asset_gcs_path(
-        app_name=doc.app_name,
-        corpus_id=doc.corpus_id,
-        document_id=doc.id,
+    # 经 Service 层下载衍生资产（路径构造与 blob 解析收口在 DocumentStorageService）
+    content = await storage_service.download_extraction_asset(
+        document_id=document_id,
         filename=safe_filename,
     )
-
-    try:
-        gcs_client = storage_service._get_gcs_client()
-        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
-        content = gcs_client.download(gcs_uri)
-    except (StorageError, ValueError) as exc:
+    if content is None:
         logger.warning(
             "asset_download_failed",
             doc_id=str(document_id),
             asset_name=safe_filename,
-            error=str(exc),
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
-        ) from exc
+        )
 
     content_type = mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
     # 清洗 header 用文件名，防止注入

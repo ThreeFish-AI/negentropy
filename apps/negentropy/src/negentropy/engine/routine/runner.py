@@ -572,6 +572,7 @@ class RoutineRunner:
         for i, evt in enumerate(events):
             title = evt.get("title")
             tool_name = evt.get("tool_name")
+            agent_role = evt.get("agent_role")
             rows.append(
                 {
                     "iteration_id": iteration_id,
@@ -582,6 +583,7 @@ class RoutineRunner:
                     "title": str(title)[:255] if title is not None else None,
                     "payload": evt.get("payload") or {},
                     "cost_usd": evt.get("cost_usd"),
+                    "agent_role": str(agent_role)[:32] if agent_role is not None else None,
                 }
             )
         if not rows:

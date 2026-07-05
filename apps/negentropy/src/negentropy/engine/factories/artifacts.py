@@ -3,28 +3,26 @@ ArtifactsFactory: 统一的 ArtifactService 后端工厂
 
 采用 Strategy + Factory 模式，根据配置动态选择 ArtifactService 实现：
 - inmemory: ADK 内置 InMemoryArtifactService (开发/测试)
-- gcs: ADK 内置 GcsArtifactService (生产环境)
+- postgres: 自研 PostgresArtifactService，持久化到 adk_artifacts 表 (生产/本地)
 """
 
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING
 
-import google.auth
 from google.adk.artifacts import BaseArtifactService
 
 from negentropy.config import settings
+from negentropy.logging import get_logger
 
-if TYPE_CHECKING:
-    pass
+logger = get_logger("negentropy.engine.factories.artifacts")
 
 
 class ArtifactBackend(str, Enum):
     """支持的 ArtifactService 后端类型"""
 
     INMEMORY = "inmemory"
-    GCS = "gcs"
+    POSTGRES = "postgres"
 
 
 def create_inmemory_artifact_service() -> BaseArtifactService:
@@ -34,27 +32,21 @@ def create_inmemory_artifact_service() -> BaseArtifactService:
     return InMemoryArtifactService()
 
 
-def create_gcs_artifact_service() -> BaseArtifactService:
-    """创建 GCS 后端"""
-    from google.adk.artifacts import GcsArtifactService
+def create_postgres_artifact_service() -> BaseArtifactService:
+    """创建 PostgreSQL 后端（自研，默认制品持久化）。
 
-    if not settings.gcs_bucket_name:
-        raise ValueError("GCS ArtifactService requires GCS_BUCKET_NAME to be set")
+    制品持久化到 ``adk_artifacts`` 表（bytea 存储），无需任何外部凭证 / bucket，
+    与 memory/session 的 postgres 后端同库（pgvector 唯一数据存储哲学）。
+    """
+    from negentropy.engine.adapters.postgres.artifact_service import PostgresArtifactService
 
-    # verify credentials exist
-    try:
-        google.auth.default()
-    except google.auth.exceptions.DefaultCredentialsError:
-        msg = "GCS ArtifactService requires Google Cloud credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS)"
-        raise ValueError(msg) from None
-
-    return GcsArtifactService(bucket_name=settings.gcs_bucket_name)
+    return PostgresArtifactService()
 
 
 # 后端创建函数映射表 (Strategy Pattern)
 _BACKEND_FACTORIES = {
     ArtifactBackend.INMEMORY: create_inmemory_artifact_service,
-    ArtifactBackend.GCS: create_gcs_artifact_service,
+    ArtifactBackend.POSTGRES: create_postgres_artifact_service,
 }
 
 # 模块级单例缓存
@@ -66,7 +58,7 @@ def get_artifact_service(backend: str | None = None) -> BaseArtifactService:
     获取 ArtifactService 实例 (工厂函数)
 
     Args:
-        backend: 后端类型，可选值：inmemory, gcs
+        backend: 后端类型，可选值：inmemory, postgres
                  若为 None，则从 settings.artifact_service_backend 读取
 
     Returns:
@@ -113,5 +105,5 @@ __all__ = [
     "get_artifact_service",
     "reset_artifact_service",
     "create_inmemory_artifact_service",
-    "create_gcs_artifact_service",
+    "create_postgres_artifact_service",
 ]

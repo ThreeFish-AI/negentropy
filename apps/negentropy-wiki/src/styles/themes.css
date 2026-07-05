@@ -33,8 +33,18 @@
     transparent 70%
   );
 
-  /* Footer 更深 */
+  /* Footer 更深 —— 显式钉死深色页脚 token，防 system-dark 漏浅色 */
   --wiki-footer-bg: #0a0a0b;
+  --wiki-footer-text: #ffffff;
+  --wiki-footer-text-secondary: rgba(255, 255, 255, 0.66);
+  --wiki-footer-border: rgba(255, 255, 255, 0.1);
+
+  /* Hero —— 深空平铺（Galaxy 画布覆盖其上）+ 白字 / 白边描边 CTA，浅色改造在深色零回归 */
+  --wiki-hero-base: #140d24;
+  --wiki-hero-text: #ffffff;
+  --wiki-hero-cta-bg: transparent;
+  --wiki-hero-cta-color: #ffffff;
+  --wiki-hero-cta-border: #ffffff;
 
   /* Callout 深色覆写 */
   --wiki-note-bg: rgba(210, 168, 255, 0.1);
@@ -77,6 +87,15 @@
       transparent 70%
     );
     --wiki-footer-bg: #0a0a0b;
+    --wiki-footer-text: #ffffff;
+    --wiki-footer-text-secondary: rgba(255, 255, 255, 0.66);
+    --wiki-footer-border: rgba(255, 255, 255, 0.1);
+    /* Hero —— 深空平铺 + 白字 / 白边 CTA（与显式深色块保持一致，防 system-dark 漏浅色） */
+    --wiki-hero-base: #140d24;
+    --wiki-hero-text: #ffffff;
+    --wiki-hero-cta-bg: transparent;
+    --wiki-hero-cta-color: #ffffff;
+    --wiki-hero-cta-border: #ffffff;
     --wiki-note-bg: rgba(210, 168, 255, 0.1);
     --wiki-warn-text: #fbbf24;
     --wiki-warn-bg: rgba(245, 158, 11, 0.12);

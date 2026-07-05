@@ -82,6 +82,197 @@ class WikiRevalidateSettings(BaseModel):
     )
 
 
+class WikiRedeploySettings(BaseModel):
+    """Wiki 静态站点「内容导出 + 重建」触发配置。
+
+    wiki 纯静态化后不再有运行时 ISR；publish/unpublish 完成后，后端通过本配置
+    指向的触发端点（如 GitHub ``repository_dispatch`` 或自建 webhook）驱动 CI：
+    重新导出静态内容包 → 提交 ``content/`` → 重建并重新部署 wiki。
+
+    所有字段可选；未配置 ``url`` 则跳过（等价被动，等下一次定时/手动重建）。
+    """
+
+    url: str | None = Field(
+        default=None,
+        description=(
+            "触发端点 URL。GitHub repository_dispatch 形如 https://api.github.com/repos/{owner}/{repo}/dispatches。"
+        ),
+    )
+    event_type: str = Field(
+        default="wiki_content_export",
+        description="repository_dispatch 的 event_type（CI workflow 据此筛选）。",
+    )
+    token: SecretStr | None = Field(
+        default=None,
+        description="触发端点鉴权 token（GitHub dispatch 需 PAT/GITHUB_TOKEN，Bearer 头）。",
+    )
+    secret: SecretStr | None = Field(
+        default=None,
+        description="可选 HMAC 签名密钥（自建 webhook 鉴权用）。未配置则跳过签名头。",
+    )
+    timeout_seconds: float = Field(
+        default=5.0,
+        description="单次 POST 超时秒数。失败仅 WARN 不阻塞发布。",
+    )
+
+
+class WikiExportSettings(BaseModel):
+    """Wiki 静态内容导出配置。
+
+    wiki 纯静态站独立部署，运行期不连主站 DB。导出 entry markdown 时，内嵌的
+    衍生资产图片（``/api/documents/{doc}/assets/{file}``）需重写为可被 wiki
+    站点访问的绝对 URL。
+
+    GCS 退役（#932）后，资产字节存于主站 PostgreSQL，由主站公开端点
+    ``/knowledge/wiki/documents/{doc}/assets/{file}`` 提供（从 bytea 流式返回）。
+    ``asset_base_url`` 即该端点的主站可达前缀。
+
+    图片处理有两条互斥路径：
+
+    - ``bake_assets=True``（**自包含**，公网 Pages / 本地主站推荐）：导出期把资产
+      **字节**写入 ``content/assets/{doc}/{file}`` 静态文件，markdown 图片改为
+      相对路径 ``/assets/{doc}/{file}``。产物零主站依赖，可发布到任意公网静态托管
+      （如 GitHub Pages），即使主站不公网可达图片也正常显示。
+    - ``bake_assets=False`` + ``asset_base_url``（**URL 重写**，分域反代部署）：
+      图片重写为 ``{asset_base_url}/knowledge/wiki/documents/{doc}/assets/{file}``
+      绝对 URL（``asset_base_url`` 为空则为同源相对路径）。运行期由主站端点供图，
+      要求主站对访客可达。
+    """
+
+    bake_assets: bool = Field(
+        default=False,
+        description=(
+            "True：导出期把图片字节烘焙为 content/assets/ 静态文件、markdown 改相对路径"
+            "（自包含、零主站依赖，公网 Pages 部署推荐）；False：走 asset_base_url URL 重写。"
+        ),
+    )
+    asset_base_url: str | None = Field(
+        default=None,
+        description=(
+            "bake_assets=False 时生效：主站可达前缀，把 wiki markdown 资产图片重写为绝对 URL，"
+            "例如 https://api.example.com。末尾斜杠自动去除。"
+        ),
+    )
+
+
+class WikiDocsSyncSettings(BaseModel):
+    """仓库 ``docs/`` → wiki「保留一级目录 Negentropy」同步配置。
+
+    与 ``wiki_export`` 正交：``wiki_export`` 序列化主站 DB 已发布内容；本块把仓库
+    ``docs/`` 公开子集合成为一个**保留 Publication**（slug=``negentropy``）注入同一
+    静态内容包。导出器（``export_wiki_content.py``）在完整 repo checkout 中运行，
+    故 ``docs/`` 在盘可读；合成产物随既有 ``content/`` 交付链路下发，无新增运行期依赖。
+
+    取舍：``docs/`` 非 DB 内容、与 wiki 应用同仓，故由导出步骤一次性烘焙为静态条目，
+    使「同步并发布」天然附带刷新 docs，且 wiki 端零改动地复用既有内容包 schema 与路由。
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="True 时导出期把 docs/ 公开子集合成为保留 Publication 注入内容包；False 关闭。",
+    )
+    docs_root: str | None = Field(
+        default=None,
+        description="docs/ 绝对路径；缺省时由 resolve_docs_root 经哨兵探测自动定位仓库 docs/。",
+    )
+    include_dirs: list[str] = Field(
+        default_factory=lambda: ["concepts", "reference", "research"],
+        description="纳入同步的 docs/ 一级子目录（公开子集）。",
+    )
+    include_root_readme: bool = Field(
+        default=True,
+        description="是否把 docs/README.md 作为保留 Publication 首页（slug=readme）。",
+    )
+    exclude_dirs: list[str] = Field(
+        default_factory=lambda: [".agents", "i18n"],
+        description="排除的 docs/ 一级子目录（内部协议/截图、国际化）。",
+    )
+    exclude_dir_names: list[str] = Field(
+        default_factory=lambda: ["zh-CN"],
+        description="任意层级按目录名排除的目录（如嵌套 locale 目录），与 i18n 排除意图一致。",
+    )
+    exclude_suffixes: list[str] = Field(
+        default_factory=lambda: [".zh.md"],
+        description="按文件名后缀排除（如 locale 变体 *.zh.md），避免重复 slug 与多语噪声。",
+    )
+    reserved_slug: str = Field(
+        default="negentropy",
+        description="保留 Publication 的 slug（站内一级目录路由前缀 /<slug>/...）。",
+    )
+    reserved_name: str = Field(
+        default="Negentropy",
+        description="保留 Publication 显示名（首页卡片 / 头部标签）。",
+    )
+    reserved_description: str | None = Field(
+        default="熵减引擎设计概念与使用指引",
+        description="保留 Publication 描述（首页卡片副文）。",
+    )
+    github_owner: str = Field(
+        default="ThreeFish-AI",
+        description="源码/仓库链接重写目标 owner（GitHub blob URL）。",
+    )
+    github_repo: str = Field(
+        default="negentropy",
+        description="源码/仓库链接重写目标 repo（GitHub blob URL）。",
+    )
+    github_ref: str = Field(
+        default="master",
+        description="GitHub blob 链接的 ref（分支/标签/SHA）；CI 可经 env 覆盖为 commit SHA 得永久链接。",
+    )
+    github_docs_prefix: str = Field(
+        default="docs",
+        description="docs/ 在仓库内的路径前缀，用于解析指向 docs 外/未纳入文档的 GitHub 兜底链接。",
+    )
+
+
+class WikiPagesPublishSettings(BaseModel):
+    """Wiki 本地自动发布到静态托管（如 GitHub Pages）配置。
+
+    适用「主站纯本地（DB 不公网暴露）→ publish 后本地导出+构建+推送到独立 Pages 仓库」
+    场景：云端 CI 连不上本地 DB，故由后端在 publish 后**后台 spawn** 本地脚本
+    （``script``）完成「导出（烘焙图片）→ next build → 推 out/ 到目标仓库分支」。
+
+    与 ``wiki_redeploy``（webhook → 云端 CI）正交：本地用本块、分域/云端用 webhook。
+
+    **默认 ``enabled=False``** —— 不影响生产与现有 publish 流程；仅本地显式开启。
+    spawn 为 fire-and-forget（不阻塞 publish 返回、失败仅 WARN）。
+
+    注：新「发布」入口以显式 ``target=production`` 触发 ``_spawn_pages_publish``，
+    不再受 ``enabled`` 门控（目标即授权）；``enabled`` 保留为遗留自动发布开关，
+    供未接入新 UI 的旧流程兼容。
+    """
+
+    enabled: bool = Field(
+        default=False,
+        description=(
+            "遗留自动发布开关：True 时任意 publish 后后台 spawn script 推送到 Pages。"
+            "新「发布」入口以显式 target=production 触发，不再读取本字段。默认关闭。"
+        ),
+    )
+    script: str = Field(
+        default="scripts/publish-wiki-pages.sh",
+        description="发布脚本路径（相对仓库根）。仅 enabled 时执行。",
+    )
+    repo: str | None = Field(
+        default=None,
+        description=(
+            "目标 Pages 仓库（透传脚本 env WIKI_PAGES_REPO），SSH 或 HTTPS URL，"
+            "如 https://github.com/ThreeFish-AI/threefish-ai.github.io.git。"
+        ),
+    )
+    branch: str = Field(
+        default="master",
+        description="目标 Pages 分支（透传脚本 env WIKI_PAGES_BRANCH；user/org pages 默认 master）。",
+    )
+    token: SecretStr | None = Field(
+        default=None,
+        description=(
+            "可选 GitHub PAT/token（透传脚本 env WIKI_PAGES_TOKEN），用于 HTTPS 推送，"
+            "免 SSH key。缺省时脚本回退 `gh auth token` 或 SSH 凭证。"
+        ),
+    )
+
+
 class KnowledgeMcpSettings(BaseModel):
     """知识库检索 MCP 端点配置（供 Routine 的 Claude Code 经 streamable-HTTP 接入）。
 
@@ -133,12 +324,42 @@ class KnowledgeSettings(BaseSettings):
         le=1024,
         description="Knowledge 文件上传大小上限 (MB)。",
     )
+    extraction_max_concurrency: int = Field(
+        default=1,
+        ge=1,
+        description=(
+            "同一 (MCP server, source_kind) 维度的最大并发提取调用数。"
+            "perceives 重引擎（docling/mineru/marker）每引擎仅 1 个 worker 且全局共享，"
+            "单机 MPS 上并发 PDF 提取会互相争抢 GPU/worker 致切片超时级联；默认 1（严格串行，"
+            "最稳），多 worker/多 perceives 实例可经 NE_KNOWLEDGE_EXTRACTION_MAX_CONCURRENCY 调大。"
+        ),
+    )
+    extraction_queue_timeout_seconds: int = Field(
+        default=3600,
+        ge=1,
+        description=(
+            "提取调用在并发闸门排队等待的上限秒数；超时则该 target 失败"
+            "（failure_category=concurrency_queue_timeout），交由 failover/上层处理，避免无限空等。"
+        ),
+    )
 
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,
     )
     wiki_revalidate: WikiRevalidateSettings = Field(
         default_factory=WikiRevalidateSettings,
+    )
+    wiki_redeploy: WikiRedeploySettings = Field(
+        default_factory=WikiRedeploySettings,
+    )
+    wiki_export: WikiExportSettings = Field(
+        default_factory=WikiExportSettings,
+    )
+    wiki_docs_sync: WikiDocsSyncSettings = Field(
+        default_factory=WikiDocsSyncSettings,
+    )
+    wiki_pages_publish: WikiPagesPublishSettings = Field(
+        default_factory=WikiPagesPublishSettings,
     )
     feature_flags: KnowledgeFeatureFlags = Field(
         default_factory=KnowledgeFeatureFlags,

@@ -56,7 +56,18 @@ class CatalogAssignmentDao:
         doc_result = await db.execute(select(KnowledgeDocument).where(KnowledgeDocument.id == document_id))
         doc = doc_result.scalar_one_or_none()
         source_corpus_id = doc.corpus_id if doc else None
-        doc_name = (doc.original_filename or str(document_id)) if doc else str(document_id)
+        # 名称优先级与 wiki_service._resolve_doc_display_title 及前端
+        # effectiveDisplayName 对齐（display_name → metadata.title → original_filename），
+        # 保证 assign 初始名与读路径（catalog tree CTE 派生）自洽；此 name 仅在
+        # document 被硬删（orphaned）后作为左栏兜底显示。
+        if doc is not None:
+            display_name = (getattr(doc, "display_name", None) or "").strip()
+            meta = getattr(doc, "metadata_", None) or {}
+            meta_title_raw = meta.get("title") if isinstance(meta, dict) else None
+            meta_title = meta_title_raw.strip() if isinstance(meta_title_raw, str) and meta_title_raw.strip() else ""
+            doc_name = display_name or meta_title or doc.original_filename or str(document_id)
+        else:
+            doc_name = str(document_id)
 
         # 查询兄弟节点中最大 position，确保新 DOCUMENT_REF 获得递增排序值
         # （避免全部默认 0 导致前端拖拽排序分数索引坍缩）

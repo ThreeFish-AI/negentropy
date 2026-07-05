@@ -163,6 +163,11 @@ def build_prompt(
         wb = getattr(routine, "work_branch", None) or "<work_branch>"
         parts.append(
             "# 收尾 (Finalize)\n验收标准已达标，现在隔离 worktree 内进行收尾交付：\n"
+            f"0. **先判定有无可交付改动**：`git rev-list --count {base}..HEAD`——\n"
+            "   - 输出为 `0`（无提交，如本文档已达标、本轮未改任何代码）：**跳过下列 push/PR**，"
+            "在最终回复**第一行**单独输出 `PR_URL=NONE`（无代码交付）后直接收尾——"
+            "引擎据 worktree 相对基线 0 提交判定为 clean no-op 成功，无需 PR；\n"
+            "   - 输出 ≥ `1`：继续下列建 PR 步骤；\n"
             "1. 运行 `uv run ruff check` 与 `uv run pytest`，修复全部失败；\n"
             "2. `git add -A` 后按仓库规范 `git commit`（**切勿**推送 master/main 等主分支）；\n"
             f"3. 推送工作分支到远端：`git push -u origin {wb}`；\n"

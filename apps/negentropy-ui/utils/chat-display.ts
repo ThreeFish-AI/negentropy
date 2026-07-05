@@ -118,6 +118,7 @@ function createToolEntry(toolNode: ConversationNode): ToolExecutionEntry {
     nodeId: toolNode.id,
     resultNodeId: resultNode?.id,
     name: formatToolName(name),
+    rawName: name,
     args: String(toolNode.payload.args || ""),
     result:
       typeof resultNode?.payload.content === "string"

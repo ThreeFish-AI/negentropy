@@ -1326,7 +1326,17 @@ class KnowledgeRepository:
 
     @staticmethod
     def _infer_display_name(metadata: dict[str, Any] | None) -> str | None:
-        raw = (metadata or {}).get("original_filename")
+        """从 chunk metadata 推断展示名（dict 级读取方）。
+
+        优先 ``display_name``（用户重命名覆盖，由
+        :meth:`DocumentStorageService.update_document_display_name` 回填）→
+        回退 ``original_filename``。与 ``_shared.effective_display_name``（ORM 级）
+        语义对齐，二者须同步演进。
+        """
+        m = metadata or {}
+        raw = m.get("display_name")
+        if not (isinstance(raw, str) and raw.strip()):
+            raw = m.get("original_filename")
         return raw if isinstance(raw, str) and raw.strip() else None
 
     @staticmethod

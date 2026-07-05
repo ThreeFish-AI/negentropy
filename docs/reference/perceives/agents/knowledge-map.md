@@ -1,3 +1,7 @@
+---
+sidebar_position: 100
+title: "Knowledge Map · 知识索引"
+---
 # Knowledge Map（知识索引）
 
 本项目所有文档与关键模块的索引入口，按主题分组。文档目录变更时**必须**

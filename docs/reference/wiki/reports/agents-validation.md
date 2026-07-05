@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+title: "Agents at Wiki · 浏览器回归验证报告"
+---
 # Agents at Wiki —— 浏览器回归验证报告
 
 > Plan: `~/.claude/plans/system-instruction-you-are-working-hidden-knuth.md`

@@ -133,7 +133,7 @@ def infer_source_type(
     raw = (metadata or {}).get("source_type")
     if raw in {"file", "url", "text", "unknown"}:
         return raw
-    if source_uri and source_uri.startswith("gs://"):
+    if source_uri and source_uri.startswith("pgblob://"):
         return "file"
     if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
         return "url"

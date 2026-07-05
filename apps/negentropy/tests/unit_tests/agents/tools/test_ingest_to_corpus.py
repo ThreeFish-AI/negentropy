@@ -135,8 +135,8 @@ async def test_no_corpus_ids_state_rejected() -> None:
 
 
 @pytest.mark.asyncio
-async def test_approval_denied_returns_failed() -> None:
-    """always 模式 + 用户拒绝 → failed。"""
+async def test_approval_denied_returns_blocked() -> None:
+    """always 模式 + 用户拒绝 → 终结性 blocked（区别于 failed，避免诱发 LLM 重试）。"""
     from negentropy.agents.tools import ingest as ingest_mod
     from negentropy.agents.tools.ingest import ingest_to_corpus
 
@@ -146,13 +146,17 @@ async def test_approval_denied_returns_failed() -> None:
     fake_response = MagicMock(decision="denied", reason="user_clicked_no")
     with patch.object(ingest_mod, "consume_approval_response", return_value=fake_response):
         out = await ingest_to_corpus(corpus_id=cid, text="hi", source_uri=None, metadata=None, tool_context=ctx)
-    assert out["status"] == "failed"
-    assert "拒绝" in out["error"] or "超时" in out["error"]
+    assert out["status"] == "blocked"
+    assert "拒绝" in out["error"]
+    # 拒绝后兜底清理 pending_approvals，避免遗留孤儿项致前端弹窗无法关闭。
+    assert not ctx.state.get("pending_approvals", {})
+    # 拒绝记入 denial 缓存，用于掐断 LLM 重试循环。
+    assert ctx.state.get("approval_denials"), "denial 缓存应已记录"
 
 
 @pytest.mark.asyncio
-async def test_approval_timeout_returns_failed(monkeypatch) -> None:
-    """always 模式 + 30s 内无响应 → timeout failed；测试用短超时避免拖慢。"""
+async def test_approval_timeout_returns_blocked(monkeypatch) -> None:
+    """always 模式 + 短超时内无响应 → 终结性 blocked；测试用短超时避免拖慢。"""
     from negentropy.agents.tools import ingest as ingest_mod
     from negentropy.agents.tools.ingest import ingest_to_corpus
 
@@ -164,8 +168,38 @@ async def test_approval_timeout_returns_failed(monkeypatch) -> None:
 
     with patch.object(ingest_mod, "consume_approval_response", return_value=None):
         out = await ingest_to_corpus(corpus_id=cid, text="hi", source_uri=None, metadata=None, tool_context=ctx)
-    assert out["status"] == "failed"
+    assert out["status"] == "blocked"
     assert "超时" in out["error"]
+    # 超时后兜底清理 pending_approvals，避免遗留孤儿项致前端弹窗无法关闭。
+    assert not ctx.state.get("pending_approvals", {})
+    # 超时同样记入 denial 缓存。
+    assert ctx.state.get("approval_denials"), "denial 缓存应已记录"
+
+
+@pytest.mark.asyncio
+async def test_approval_denial_cache_short_circuits_retry() -> None:
+    """同请求被拒后，LLM 若重试 → 命中 denial 缓存，直接返回 blocked、不再弹审批。
+
+    ISSUE-156 续「断掉重试循环」的结构性兜底：不依赖 LLM 自觉。
+    """
+    from negentropy.agents.tools import ingest as ingest_mod
+    from negentropy.agents.tools.ingest import ingest_to_corpus
+
+    cid = str(uuid4())
+    ctx = _FakeToolContext(corpus_ids=[cid], approval_mode="always")
+
+    # 第一次：拒绝
+    fake_response = MagicMock(decision="denied", reason="user_clicked_no")
+    with patch.object(ingest_mod, "consume_approval_response", return_value=fake_response):
+        out1 = await ingest_to_corpus(corpus_id=cid, text="payload-A", source_uri=None, metadata=None, tool_context=ctx)
+    assert out1["status"] == "blocked"
+
+    # 第二次：同请求 → 应被 denial 缓存短路，request_approval 不应被再次调用。
+    with patch.object(ingest_mod, "request_approval", return_value="should-not-be-called") as spy_req:
+        out2 = await ingest_to_corpus(corpus_id=cid, text="payload-A", source_uri=None, metadata=None, tool_context=ctx)
+        assert spy_req.call_count == 0, "命中 denial 缓存后不应再调 request_approval"
+    assert out2["status"] == "blocked"
+    assert "此前已拒绝" in out2["error"]
 
 
 # ----------------------------------------------------------------------------

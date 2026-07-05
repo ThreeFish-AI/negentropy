@@ -5,53 +5,83 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { useInfiniteList, type OffsetFetcher } from "@/hooks/useInfiniteList";
 
 import { fetchKpis, fetchRoutines } from "../api";
 import type { RoutineDTO, RoutineFilters, RoutineKpis } from "../types";
 
+/** 列表每页条数（游标无限滚动的加载粒度 + 页码跳页粒度）。 */
+export const ROUTINE_PAGE_SIZE = 10;
+
 /**
  * Routine 列表 + KPI 数据 hook。
  *
- * - 依据 filters 拉取列表与 KPI；
- * - 暴露 ``refresh()`` 供控制动作 / SSE 事件后手动刷新；
- * - ``bump`` 计数器允许外部（SSE）触发去抖刷新。
+ * 列表由 [[useInfiniteList]] **偏移分页**驱动（``offset`` 模式）：每页 ``ROUTINE_PAGE_SIZE``
+ * 条、按后端 ``updated_at`` 倒序，``total`` 为无上限全量计数 → 可翻阅所有 Routine（无 50 条上限）。
+ * 该页以「纯翻页」呈现：``routines`` 仅暴露**当前页切片**（``items[(page-1)*size, page*size)``），
+ * 不再做无限滚动追加；KPI 独立拉取（统计全量，不受列表 limit 影响）。
+ * ``refresh()`` 供控制动作 / SSE 去抖刷新：原地重载当前页 + 重拉 KPI，不闪空。
  */
 export function useRoutineData(filters: Partial<RoutineFilters>) {
-  const [routines, setRoutines] = useState<RoutineDTO[]>([]);
   const [kpis, setKpis] = useState<RoutineKpis | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [kpiError, setKpiError] = useState<string | null>(null);
 
-  // 序列化 filters 以稳定 effect 依赖
-  const filterKey = JSON.stringify({
-    status: filters.status ?? null,
-    q: filters.q ?? "",
-    is_template: filters.is_template ?? null,
+  const fetcher = useMemo<OffsetFetcher<RoutineDTO, Partial<RoutineFilters>>>(
+    () => ({
+      kind: "offset",
+      fetchRange: async ({ offset, limit, filters: f, signal }) => {
+        const r = await fetchRoutines(f ?? {}, { limit, offset, signal });
+        return { items: r.items, total: r.total ?? r.items.length };
+      },
+    }),
+    [],
+  );
+
+  const list = useInfiniteList<RoutineDTO, Partial<RoutineFilters>>({
+    fetcher,
+    pageSize: ROUTINE_PAGE_SIZE,
+    filters,
   });
-  const reqIdRef = useRef(0);
 
-  const load = useCallback(async () => {
-    const reqId = ++reqIdRef.current;
-    setLoading(true);
-    setError(null);
+  const loadKpis = useCallback(async () => {
     try {
-      const [listRes, kpiRes] = await Promise.all([fetchRoutines(filters), fetchKpis()]);
-      if (reqId !== reqIdRef.current) return; // 过期请求丢弃
-      setRoutines(listRes.items);
-      setKpis(kpiRes);
+      setKpis(await fetchKpis());
+      setKpiError(null);
     } catch (err) {
-      if (reqId !== reqIdRef.current) return;
-      setError(err instanceof Error ? err.message : "Failed to load routines");
-    } finally {
-      if (reqId === reqIdRef.current) setLoading(false);
+      setKpiError(err instanceof Error ? err.message : "Failed to load KPIs");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey]);
+  }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadKpis();
+  }, [loadKpis]);
 
-  return { routines, kpis, loading, error, refresh: load };
+  const { refresh: listRefresh } = list;
+  const refresh = useCallback(() => {
+    listRefresh();
+    void loadKpis();
+  }, [listRefresh, loadKpis]);
+
+  // 纯翻页：仅暴露当前页切片（连续前缀缓冲由 useInfiniteList 内部维护）。
+  const pageStart = (list.currentPage - 1) * ROUTINE_PAGE_SIZE;
+  const routines = list.items.slice(pageStart, pageStart + ROUTINE_PAGE_SIZE);
+
+  return {
+    routines,
+    kpis,
+    loading: list.loading,
+    error: list.error ?? kpiError,
+    refresh,
+    // 翻页控制（loadMore/hasMore/loadingMore 透传保留，纯翻页 UI 不再使用，最小化上层改动）
+    currentPage: list.currentPage,
+    total: list.total,
+    totalPages: list.totalPages,
+    goToPage: list.goToPage,
+    loadMore: list.loadMore,
+    hasMore: list.hasMore,
+    loadingMore: list.loadingMore,
+    pageSize: ROUTINE_PAGE_SIZE,
+  };
 }

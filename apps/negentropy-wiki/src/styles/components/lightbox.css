@@ -1,0 +1,71 @@
+/* =========================================================================
+   Wiki Lightbox — 图片全页最大化遮罩
+   复用 tokens.css 的 design tokens；overlay 范式参照 search-modal.css。
+   暗色遮罩主题无关，浅色 / 深色模式均正确，无需 data-color-scheme 分支。
+   ========================================================================= */
+
+.wiki-lightbox-root {
+  position: fixed;
+  inset: 0;
+  z-index: 110; /* 高于搜索 modal 的 100 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+  background: rgba(0, 0, 0, 0.82);
+  cursor: zoom-out; /* 暗示点击空白处关闭 */
+  animation: wiki-lightbox-fade-in 0.15s ease;
+}
+
+@keyframes wiki-lightbox-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.wiki-lightbox-image {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: var(--wiki-radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  cursor: zoom-out; /* 再点图片关闭 */
+  animation: wiki-lightbox-zoom-in 0.18s ease;
+}
+
+@keyframes wiki-lightbox-zoom-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.wiki-lightbox-close {
+  position: absolute;
+  top: 2vh;
+  right: 2vw;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: var(--wiki-radius);
+  background: rgba(0, 0, 0, 0.42);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.wiki-lightbox-close:hover {
+  background: rgba(0, 0, 0, 0.64);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
+/* 尊重「减少动态」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .wiki-lightbox-root,
+  .wiki-lightbox-image {
+    animation: none;
+  }
+}

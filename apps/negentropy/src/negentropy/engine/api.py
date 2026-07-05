@@ -33,7 +33,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, text, union
+from sqlalchemy import case, func, select, text, union
 
 from negentropy.auth.deps import get_current_user, get_optional_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
@@ -250,70 +250,43 @@ async def get_memory_dashboard(
             audit_filters.append(MemoryAuditLog.user_id == user_id)
             fact_filters.append(Fact.user_id == user_id)
 
-        # 用户数
-        user_count = await db.scalar(select(func.count(func.distinct(Memory.user_id))).where(*memory_filters))
-
-        # 记忆总数
-        memory_count = await db.scalar(
-            select(func.count()).select_from(select(Memory).where(*memory_filters).subquery())
-        )
-
-        # Facts 数量
         now = datetime.now(UTC)
+
+        # memories 上 6 个聚合共享同一 memory_filters，合并为单条 select 单次往返
+        # （count/avg/sum(case)）。语义与原逐条 count/avg 等价：
+        # - memory_count: func.count() == 旧 count(subquery)
+        # - low/high: sum(case(...,1,else_=0)) == 旧 count(filtered subquery)（空集 NULL→0 由 `or 0` 兜底）
+        mem_stmt = select(
+            func.count(func.distinct(Memory.user_id)).label("user_count"),
+            func.count().label("memory_count"),
+            func.avg(Memory.retention_score).label("avg_retention"),
+            func.avg(Memory.importance_score).label("avg_importance"),
+            func.sum(case((Memory.retention_score < 0.1, 1), else_=0)).label("low_retention"),
+            func.sum(case((Memory.importance_score >= 0.7, 1), else_=0)).label("high_importance"),
+        ).where(*memory_filters)
+        mem_row = (await db.execute(mem_stmt)).one()
+
+        # Facts 数量（保留 valid_until 有效期过滤；去掉多余 subquery wrap）
         fact_count = await db.scalar(
-            select(func.count()).select_from(
-                select(Fact)
-                .where(
-                    *fact_filters,
-                    (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
-                )
-                .subquery()
-            )
-        )
-
-        # 平均 retention_score
-        avg_retention = await db.scalar(select(func.avg(Memory.retention_score)).where(*memory_filters))
-
-        # 平均 importance_score
-        avg_importance = await db.scalar(select(func.avg(Memory.importance_score)).where(*memory_filters))
-
-        # 低保留记忆数 (retention_score < 0.1)
-        low_retention_count = await db.scalar(
-            select(func.count()).select_from(
-                select(Memory)
-                .where(
-                    *memory_filters,
-                    Memory.retention_score < 0.1,
-                )
-                .subquery()
-            )
-        )
-
-        # 高重要性记忆数 (importance_score >= 0.7)
-        high_importance_count = await db.scalar(
-            select(func.count()).select_from(
-                select(Memory)
-                .where(
-                    *memory_filters,
-                    Memory.importance_score >= 0.7,
-                )
-                .subquery()
+            select(func.count())
+            .select_from(Fact)
+            .where(
+                *fact_filters,
+                (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
             )
         )
 
         # 近期审计数
-        recent_audit_count = await db.scalar(
-            select(func.count()).select_from(select(MemoryAuditLog).where(*audit_filters).subquery())
-        )
+        recent_audit_count = await db.scalar(select(func.count()).select_from(MemoryAuditLog).where(*audit_filters))
 
     return MemoryDashboardResponse(
-        user_count=user_count or 0,
-        memory_count=memory_count or 0,
+        user_count=mem_row.user_count or 0,
+        memory_count=mem_row.memory_count or 0,
         fact_count=fact_count or 0,
-        avg_retention_score=round(float(avg_retention or 0), 4),
-        avg_importance_score=round(float(avg_importance or 0), 4),
-        low_retention_count=low_retention_count or 0,
-        high_importance_count=high_importance_count or 0,
+        avg_retention_score=round(float(mem_row.avg_retention or 0), 4),
+        avg_importance_score=round(float(mem_row.avg_importance or 0), 4),
+        low_retention_count=mem_row.low_retention or 0,
+        high_importance_count=mem_row.high_importance or 0,
         recent_audit_count=recent_audit_count or 0,
     )
 

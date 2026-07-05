@@ -98,16 +98,12 @@ interface WikiForceGraphCanvasProps {
   pubSlug: string;
   nodes: WikiGraphNode[];
   edges: WikiGraphEdge[];
-  truncated?: boolean;
-  totalEntities?: number;
 }
 
 export function WikiForceGraphCanvas({
   pubSlug,
   nodes,
   edges,
-  truncated = false,
-  totalEntities,
 }: WikiForceGraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -229,18 +225,6 @@ export function WikiForceGraphCanvas({
             cooldownTicks={200}
             d3AlphaDecay={0.03}
           />
-        )}
-      </div>
-
-      <div className="wiki-graph-canvas-overlay">
-        <span className="wiki-graph-badge">
-          {nodes.length} 节点 · {edges.length} 边 · ForceGraph 2D
-        </span>
-        {truncated && totalEntities != null && (
-          <span className="wiki-graph-badge wiki-graph-badge-warn">
-            已按 importance 截断（共 {totalEntities} 个实体，仅显示 top-
-            {nodes.length}）
-          </span>
         )}
       </div>
     </div>

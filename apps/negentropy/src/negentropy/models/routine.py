@@ -42,7 +42,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin
+from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, fk
 
 
 class Routine(Base, UUIDMixin, TimestampMixin):
@@ -68,6 +68,10 @@ class Routine(Base, UUIDMixin, TimestampMixin):
     key: Mapped[str] = mapped_column(String(192), unique=True, nullable=False)
     owner_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     agent_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    # 可选关联的已注册 Repository（单一事实源指针）：非空时由 worktree.resolve_effective_repo
+    # 派生有效 cwd(=local_path)/baseline_branch；为空则回退手填的 cwd/baseline_branch。
+    # ondelete=SET NULL：删除 Repository 仅解除关联，不级联删 Routine。
+    repository_id: Mapped[UUID | None] = mapped_column(fk("repositories", ondelete="SET NULL"), nullable=True)
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -128,6 +132,26 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         nullable=True,
         comment="FINALIZE 阶段创建的 PR 链接；非空 + succeeded 表示等待人工 Merge",
     )
+    # PR 合并状态回写（与 status 正交，不改状态机）：succeeded + pr_url 后由巡检心跳或
+    # 手动「同步 PR 状态」经 ``gh pr view`` 检测回填。pr_merged=True 即「已 Merge」。
+    pr_merged: Mapped[bool | None] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="PR 是否已 merge（null=未知/未检测；与 status 正交，不改状态机）",
+    )
+    # PR 权威状态（gh pr view --json state）：open|closed|merged（null=未知/未检测）。
+    # 与 pr_merged 正交持久化以区分 Open 与 Closed-without-merge（两者 pr_merged 均为 False）；
+    # pr_merged 为派生反规范化布尔（= pr_state=='merged'），沿用 best_score/last_score 同范式。
+    pr_state: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="PR 状态 open|closed|merged（null=未知/未检测；与 status 正交）",
+    )
+    pr_merged_checked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="上次 gh pr view 检测时间；节流用（同一 routine 最小重查间隔）",
+    )
 
     # --- 运行期状态（反规范化，加速守卫判定）---
     iteration_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
@@ -166,6 +190,7 @@ class Routine(Base, UUIDMixin, TimestampMixin):
         Index("ix_routines_status", "status"),
         Index("ix_routines_owner", "owner_id"),
         Index("ix_routines_is_template", "is_template"),
+        Index("ix_routines_repository_id", "repository_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -290,12 +315,17 @@ class RoutineIterationEvent(Base, UUIDMixin):
     event_type: Mapped[str] = mapped_column(
         String(24),
         nullable=False,
-        comment="system|assistant|tool_use|tool_result|result|gate|evaluation",
+        comment="system|assistant|tool_use|tool_result|result|gate|evaluation|auto_answer|perception",
     )
     tool_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # 多 Agent 归因（一核五翼）：标识产出此事件的 Agent 角色。NULL=未归因（旧数据/CC 自身动作可回退前端推导）。
+    # 取值与前端 features/routine/agent-role.ts 的 AgentRole 对齐：
+    # engine|claude_code|perception|action|internalization|contemplation|influence
+    # 详见 ADR docs/concepts/040-routine-multi-agent-faculty.md
+    agent_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

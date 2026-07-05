@@ -18,7 +18,7 @@ from negentropy.knowledge.ingestion.extraction import (
     _extract_image_assets_from_content_items,
     _extract_markdown_image_refs,
     _guess_image_content_type,
-    _is_gcs_uri,
+    _is_blob_uri,
     _merge_extraction_assets,
     _mime_to_extension,
     _normalize_assets,
@@ -263,11 +263,11 @@ class TestMergeExtractionAssets:
 
     def test_structured_with_uri_not_overwritten(self):
         merged = _merge_extraction_assets(
-            [ExtractionAsset(name="img.png", content_type="image/png", uri="gs://bucket/img.png")],
+            [ExtractionAsset(name="img.png", content_type="image/png", uri="pgblob://bucket/img.png")],
             [ExtractionAsset(name="img.png", content_type="image/png", data_base64="content")],
         )
         assert len(merged) == 1
-        assert merged[0].uri == "gs://bucket/img.png"
+        assert merged[0].uri == "pgblob://bucket/img.png"
         assert merged[0].data_base64 is None
 
     def test_both_empty(self):
@@ -285,7 +285,7 @@ class TestMergeExtractionAssets:
         names = [a.name for a in merged]
         assert names == ["existing.png", "new1.png", "new2.png"]
 
-    def test_backfill_when_structured_has_non_gcs_uri(self):
+    def test_backfill_when_structured_has_non_content_uri(self):
         """非 GCS URI 时允许用 content_items 数据回填。"""
         merged = _merge_extraction_assets(
             [ExtractionAsset(name="img.png", content_type="image/png", uri="file:///tmp/img.png")],
@@ -305,19 +305,19 @@ class TestMergeExtractionAssets:
         assert len(merged) == 1
         assert merged[0].data_base64 == "content_data"
 
-    def test_no_backfill_when_structured_has_gcs_uri(self):
+    def test_no_backfill_when_structured_has_content_uri(self):
         """GCS URI 时不回填。"""
         merged = _merge_extraction_assets(
-            [ExtractionAsset(name="img.png", content_type="image/png", uri="gs://bucket/path/img.png")],
+            [ExtractionAsset(name="img.png", content_type="image/png", uri="pgblob://bucket/path/img.png")],
             [ExtractionAsset(name="img.png", content_type="image/png", data_base64="should_not_use")],
         )
         assert len(merged) == 1
         assert merged[0].data_base64 is None
-        assert merged[0].uri == "gs://bucket/path/img.png"
+        assert merged[0].uri == "pgblob://bucket/path/img.png"
 
 
 # ---------------------------------------------------------------------------
-# _extract_base64_from_asset & _is_gcs_uri
+# _extract_base64_from_asset & _is_blob_uri
 # ---------------------------------------------------------------------------
 
 
@@ -347,24 +347,24 @@ class TestExtractBase64FromAsset:
         assert _extract_base64_from_asset({"data_base64": 123, "data": "ok"}) == "ok"
 
     def test_returns_none_when_empty(self):
-        assert _extract_base64_from_asset({"uri": "gs://bucket/img.png"}) is None
+        assert _extract_base64_from_asset({"uri": "pgblob://bucket/img.png"}) is None
 
 
-class TestIsGcsUri:
-    def test_gcs_uri(self):
-        assert _is_gcs_uri("gs://bucket/path/file.png") is True
+class TestIsBlobUri:
+    def test_blob_uri(self):
+        assert _is_blob_uri("pgblob://bucket/path/file.png") is True
 
     def test_http_uri(self):
-        assert _is_gcs_uri("https://example.com/file.png") is False
+        assert _is_blob_uri("https://example.com/file.png") is False
 
     def test_file_uri(self):
-        assert _is_gcs_uri("file:///tmp/file.png") is False
+        assert _is_blob_uri("file:///tmp/file.png") is False
 
     def test_none(self):
-        assert _is_gcs_uri(None) is False
+        assert _is_blob_uri(None) is False
 
     def test_empty_string(self):
-        assert _is_gcs_uri("") is False
+        assert _is_blob_uri("") is False
 
 
 # ---------------------------------------------------------------------------
@@ -466,7 +466,7 @@ class TestExtractEnhancedImageAssets:
 
 class TestPersistExtractedAssets:
     @pytest.mark.asyncio
-    async def test_uploads_asset_with_non_gcs_uri_and_data(self):
+    async def test_uploads_asset_with_non_content_uri_and_data(self):
         """有非 GCS URI 但有 data_base64 时，应上传到 GCS。"""
         doc_id = uuid4()
         asset = ExtractionAsset(
@@ -478,23 +478,23 @@ class TestPersistExtractedAssets:
 
         mock_storage = AsyncMock()
         mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
-        mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
+        mock_storage.upload_extraction_asset.return_value = "pgblob://bucket/assets/img.png"
 
         with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
         assert len(result) == 1
-        assert result[0]["uri"] == "gs://bucket/assets/img.png"
+        assert result[0]["uri"] == "pgblob://bucket/assets/img.png"
         mock_storage.upload_extraction_asset.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_skips_upload_for_gcs_uri(self):
+    async def test_skips_upload_for_content_uri(self):
         """已有 GCS URI 时不重复上传。"""
         doc_id = uuid4()
         asset = ExtractionAsset(
             name="img.png",
             content_type="image/png",
-            uri="gs://bucket/existing/img.png",
+            uri="pgblob://bucket/existing/img.png",
         )
 
         mock_storage = AsyncMock()
@@ -503,7 +503,7 @@ class TestPersistExtractedAssets:
         with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
-        assert result[0]["uri"] == "gs://bucket/existing/img.png"
+        assert result[0]["uri"] == "pgblob://bucket/existing/img.png"
         mock_storage.upload_extraction_asset.assert_not_called()
 
     @pytest.mark.asyncio
@@ -518,12 +518,12 @@ class TestPersistExtractedAssets:
 
         mock_storage = AsyncMock()
         mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
-        mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
+        mock_storage.upload_extraction_asset.return_value = "pgblob://bucket/assets/img.png"
 
         with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
-        assert result[0]["uri"] == "gs://bucket/assets/img.png"
+        assert result[0]["uri"] == "pgblob://bucket/assets/img.png"
         mock_storage.upload_extraction_asset.assert_called_once()
 
     @pytest.mark.asyncio
@@ -542,11 +542,11 @@ class TestPersistExtractedAssets:
         mock_storage.get_document.return_value = SimpleNamespace(
             metadata_={
                 "extracted_assets": [
-                    {"name": "stale.png", "uri": "gs://bucket/assets/stale.png", "content_type": "image/png"}
+                    {"name": "stale.png", "uri": "pgblob://bucket/assets/stale.png", "content_type": "image/png"}
                 ]
             }
         )
-        mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
+        mock_storage.upload_extraction_asset.return_value = "pgblob://bucket/assets/img.png"
 
         with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
@@ -555,7 +555,7 @@ class TestPersistExtractedAssets:
             {
                 "name": "img.png",
                 "content_type": "image/png",
-                "uri": "gs://bucket/assets/img.png",
+                "uri": "pgblob://bucket/assets/img.png",
                 "source": "enhanced_output_directory",
             }
         ]
@@ -563,7 +563,7 @@ class TestPersistExtractedAssets:
             document_id=doc_id,
             metadata_patch={"extracted_assets": result},
         )
-        mock_storage.delete_gcs_uri.assert_awaited_once_with(gcs_uri="gs://bucket/assets/stale.png")
+        mock_storage.delete_blob.assert_awaited_once_with(content_uri="pgblob://bucket/assets/stale.png")
 
     @pytest.mark.asyncio
     async def test_clears_manifest_when_assets_empty(self):
@@ -572,7 +572,7 @@ class TestPersistExtractedAssets:
         mock_storage.get_document.return_value = SimpleNamespace(
             metadata_={
                 "extracted_assets": [
-                    {"name": "stale.png", "uri": "gs://bucket/assets/stale.png", "content_type": "image/png"}
+                    {"name": "stale.png", "uri": "pgblob://bucket/assets/stale.png", "content_type": "image/png"}
                 ]
             }
         )
@@ -585,4 +585,4 @@ class TestPersistExtractedAssets:
             document_id=doc_id,
             metadata_patch={"extracted_assets": []},
         )
-        mock_storage.delete_gcs_uri.assert_awaited_once_with(gcs_uri="gs://bucket/assets/stale.png")
+        mock_storage.delete_blob.assert_awaited_once_with(content_uri="pgblob://bucket/assets/stale.png")

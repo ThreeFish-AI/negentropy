@@ -35,10 +35,20 @@ from negentropy.config import settings
 from negentropy.logging import get_logger
 
 from ..approval import (
+    APPROVAL_POLL_INTERVAL as _APPROVAL_POLL_INTERVAL,
+)
+from ..approval import (
+    APPROVAL_WAIT_SECONDS as _APPROVAL_TIMEOUT_SECONDS,
+)
+from ..approval import (
     ApprovalPolicy,
+    _stable_hash,
     consume_approval_response,
+    expire_approval,
+    record_approval_denial,
     request_approval,
     should_request_approval,
+    was_recently_denied,
 )
 from .common import clear_tool_progress, emit_tool_progress
 
@@ -49,8 +59,8 @@ logger = get_logger("negentropy.tools.ingest")
 
 _knowledge_service: KnowledgeService | None = None
 
-_APPROVAL_TIMEOUT_SECONDS = 30.0
-_APPROVAL_POLL_INTERVAL = 0.5
+# 审批等待窗口统一收敛到 ``approval.py``（单一事实源）；此处以别名保留模块属性名,
+# 兼容既有测试对 ``_APPROVAL_TIMEOUT_SECONDS`` 的 monkeypatch。
 
 
 def _get_knowledge_service() -> KnowledgeService:
@@ -128,6 +138,17 @@ async def ingest_to_corpus(
         policy = ApprovalPolicy()
 
     if should_request_approval("ingest_to_corpus", policy):
+        # denial 缓存：同一 (corpus_id + 内容指纹) 近期被拒/超时过 → 直接返回 blocked、
+        # 不再弹审批，结构性掐断 LLM 重试循环（ISSUE-156 续）。
+        denial_key = f"{corpus_id}:{_stable_hash((text or '')[:256])}"
+        if was_recently_denied(tool_context, "ingest_to_corpus", denial_key):
+            logger.info("ingest_to_corpus_skipped_recently_denied", corpus_id=corpus_id)
+            return {
+                "status": "blocked",
+                "error": "用户此前已拒绝或未响应此审批，相同请求暂不重新发起。如需继续请重新发起指令。",
+                "corpus_id": corpus_id,
+            }
+
         action_id = request_approval(
             tool_context,
             tool_name="ingest_to_corpus",
@@ -152,12 +173,19 @@ async def ingest_to_corpus(
                 break
         clear_tool_progress(tool_context, tool_call_id=approval_progress_id)
         if response is None or response.decision == "denied":
+            # 兜底清理 pending_approvals，避免超时/拒绝后遗留孤儿项致弹窗无法关闭。
+            expire_approval(tool_context, action_id)
+            # 记录 denial：覆盖 TTL 内同请求重试，直接返回 blocked 终结结果。
+            record_approval_denial(tool_context, "ingest_to_corpus", denial_key)
+            timed_out = response is None
             logger.info(
                 "ingest_to_corpus_denied",
                 corpus_id=corpus_id,
-                reason=getattr(response, "reason", "timeout"),
+                reason="timeout" if timed_out else getattr(response, "reason", "denied"),
             )
-            return {"status": "failed", "error": "用户拒绝或审批超时", "corpus_id": corpus_id}
+            error_msg = "审批超时未响应（已自动取消）" if timed_out else "用户已拒绝"
+            # 终结性 blocked（区别于 UUID 非法等 failed）：明确告诉 LLM 不要重试。
+            return {"status": "blocked", "error": error_msg, "corpus_id": corpus_id}
 
     # === Step 3. corpus UUID 校验 ===
     tool_call_id = (

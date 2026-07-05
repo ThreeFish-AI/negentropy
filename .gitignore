@@ -222,6 +222,15 @@ coverage/
 .next/
 out/
 
+# apps/negentropy-wiki 静态内容包：真实导出内容环境相关、不入 git。
+# content/ 整体忽略——由 sync-wiki-content.sh / CI 导出真实内容写入（覆盖式 _reset）。
+# 开发种子 fixture 独立存放于 content.fixture/（入 git），构建期经 content-source.ts
+# 三级解析兜底（content/ 缺失时回退 content.fixture/）。详见 docs/reference/wiki/deployment.md。
+apps/negentropy-wiki/content/
+# wiki 烘焙图片镜像：prebuild/predev 经 sync-assets.mjs 同步 content/assets/ → public/assets/，
+# 随后 next build 自动复制 public/ → out/。产物环境相关（源于 content/），不入 git。
+apps/negentropy-wiki/public/assets/
+
 .DS_Store
 *.pem
 
@@ -265,6 +274,12 @@ apps/cognizes-ui/.yarn/*
 apps/negentropy-ui/.auth/
 apps/negentropy-ui/.userdata/
 
+# Playwright run outputs（每次 test 运行重新生成；不应纳入版本追踪）
+apps/negentropy-ui/test-results/
+apps/negentropy-ui/playwright-report/
+apps/negentropy-ui/blob-report/
+apps/negentropy-ui/playwright/.cache/
+
 # KG verification artifacts
 .kg-verify/
 
@@ -274,3 +289,7 @@ apps/negentropy-ui/.userdata/
 .gitignore
 output/
 benchmarks/runs/
+
+# PDF Fidelity Patrol 临时候选产物（评估用重转 Markdown，正常落 worktree 外暂存目录；
+# 此条兜底 agent 路径漂移误在 worktree 写候选的极端场景，确保其永不进 commit/PR）
+patrol-candidate.md

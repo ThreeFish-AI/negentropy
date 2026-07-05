@@ -6,14 +6,16 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   fetchCatalogNodeDocuments,
   unassignDocumentFromNode,
-  updateDocument,
-  KnowledgeDocument,
+  useInlineDocumentRename,
+  effectiveDisplayName,
+  type KnowledgeDocument,
 } from "@/features/knowledge";
 import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { Button } from "@/components/ui/Button";
 import { toast } from "@/lib/activity-toast";
 import { Plus, Trash2, Pencil, Check, X } from "./icons";
 import { AddDocumentsDialog } from "./AddDocumentsDialog";
@@ -21,31 +23,23 @@ import { AddDocumentsDialog } from "./AddDocumentsDialog";
 interface DocumentAssignmentSectionProps {
   nodeId: string;
   catalogId: string;
-}
-
-/** 决定 Wiki 站点上显示的标题（优先级与后端 _resolve_doc_display_title 一致）。
- *  display_name（用户手填）→ metadata.title（PDF/抓取自动抽取）→ original_filename（兜底）。 */
-function effectiveDisplayName(doc: KnowledgeDocument): string {
-  const displayName = (doc.display_name || "").trim();
-  if (displayName) return displayName;
-  const metaTitle = typeof doc.metadata?.title === "string" ? doc.metadata.title.trim() : "";
-  if (metaTitle) return metaTitle;
-  return doc.original_filename;
+  /** 整棵 Wiki 目录树范围内已添加的文档 ID 集合——由 NodeDetailPanel 从全树
+   *  DOCUMENT_REF 节点派生，保证「一篇文档全站仅出现一次」，灰显防止二次添加。 */
+  existingDocIds: Set<string>;
+  /** 文档归属变更（改名 / 增删）后通知父级刷新目录树——CTE 派生的节点名需即时反映 */
+  onUpdate?: () => void;
 }
 
 export function DocumentAssignmentSection({
   nodeId,
   catalogId,
+  existingDocIds,
+  onUpdate,
 }: DocumentAssignmentSectionProps) {
   const { confirm, confirmDialog } = useConfirmDialog();
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  // 行内编辑态：正在编辑的文档 id
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [saving, setSaving] = useState(false);
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -63,14 +57,6 @@ export function DocumentAssignmentSection({
     void refresh();
   }, [refresh]);
 
-  // 编辑态挂载后自动聚焦
-  useEffect(() => {
-    if (editingId) {
-      editInputRef.current?.focus();
-      editInputRef.current?.select();
-    }
-  }, [editingId]);
-
   const handleRemove = useCallback(
     async (docId: string, filename: string) => {
       const confirmed = await confirm({
@@ -84,77 +70,54 @@ export function DocumentAssignmentSection({
         await unassignDocumentFromNode(catalogId, nodeId, docId);
         toast.success("已移除");
         await refresh();
+        // 左栏目录树的 DOCUMENT_REF 节点随之消失，需同步刷新
+        onUpdate?.();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "移除失败");
       }
     },
-    [catalogId, confirm, nodeId, refresh],
+    [catalogId, confirm, nodeId, refresh, onUpdate],
   );
 
   const handleAdded = useCallback(() => {
     void refresh();
-  }, [refresh]);
+    onUpdate?.();
+  }, [refresh, onUpdate]);
 
-  const startEdit = useCallback((doc: KnowledgeDocument) => {
-    setEditingId(doc.id);
-    setEditDraft(doc.display_name ?? "");
-  }, []);
-
-  const cancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditDraft("");
-  }, []);
-
-  const commitEdit = useCallback(
-    async (doc: KnowledgeDocument) => {
-      const trimmed = editDraft.trim() || null;
-      // 无变化时静默退出
-      if (trimmed === (doc.display_name ?? null)) {
-        cancelEdit();
-        return;
-      }
-      setSaving(true);
-      try {
-        await updateDocument(doc.corpus_id, doc.id, { display_name: trimmed });
-        toast.success("保存成功，下次发布生效");
-        setEditingId(null);
-        setEditDraft("");
-        await refresh();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "保存失败");
-      } finally {
-        setSaving(false);
-      }
+  // 行内重命名 display_name（逻辑下沉到 useInlineDocumentRename，与 Documents 页共用）
+  const {
+    editingId,
+    editDraft,
+    setEditDraft,
+    saving,
+    editInputRef,
+    startEdit,
+    cancelEdit,
+    commitEdit,
+    handleKeyDown,
+  } = useInlineDocumentRename({
+    // 保存后回写本组件文档列表，并通知父级刷新目录树（CTE 对 DOCUMENT_REF 派生同一展示名）
+    onSaved: async () => {
+      await refresh();
+      onUpdate?.();
     },
-    [cancelEdit, editDraft, refresh],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, doc: KnowledgeDocument) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        void commitEdit(doc);
-      } else if (e.key === "Escape") {
-        cancelEdit();
-      }
-    },
-    [cancelEdit, commitEdit],
-  );
+  });
 
   return (
-    <div className="px-5 py-4 border-t border-border">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <div className="flex min-h-0 flex-1 flex-col border-t border-border px-5 py-4">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           归属文档 ({docs.length})
         </h3>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
+          leftIcon={<Plus className="h-3 w-3" />}
           onClick={() => setAdding(true)}
           disabled={!catalogId}
-          className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Plus className="h-3 w-3" />
           添加文档
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -162,7 +125,7 @@ export function DocumentAssignmentSection({
       ) : docs.length === 0 ? (
         <p className="text-xs text-muted-foreground/60 italic">暂无归属文档</p>
       ) : (
-        <ul className="space-y-1 max-h-[280px] overflow-y-auto">
+        <ul className="space-y-1 min-h-0 flex-1 overflow-y-auto">
           {docs.map((doc) => {
             const isEditing = editingId === doc.id;
             const effectiveName = effectiveDisplayName(doc);
@@ -192,7 +155,7 @@ export function DocumentAssignmentSection({
                         onClick={() => void commitEdit(doc)}
                         disabled={saving}
                         title="保存"
-                        className="p-0.5 rounded text-muted-foreground hover:text-green-600 disabled:opacity-50"
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>
@@ -200,7 +163,7 @@ export function DocumentAssignmentSection({
                         onClick={cancelEdit}
                         disabled={saving}
                         title="取消"
-                        className="p-0.5 rounded text-muted-foreground hover:text-red-500 disabled:opacity-50"
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -227,14 +190,14 @@ export function DocumentAssignmentSection({
                     <button
                       onClick={() => startEdit(doc)}
                       title="编辑 Wiki 显示名称"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-opacity"
+                      className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus:opacity-100 group-hover:opacity-100"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     <button
                       onClick={() => handleRemove(doc.id, doc.original_filename)}
                       title="从节点移除"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-opacity"
+                      className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -250,7 +213,7 @@ export function DocumentAssignmentSection({
         <AddDocumentsDialog
           nodeId={nodeId}
           catalogId={catalogId}
-          existingDocIds={new Set(docs.map((d) => d.id))}
+          existingDocIds={existingDocIds}
           onClose={() => setAdding(false)}
           onAdded={handleAdded}
         />

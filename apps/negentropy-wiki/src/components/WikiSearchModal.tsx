@@ -5,11 +5,9 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useMemo,
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import type { WikiSearchResultItem } from "@/lib/search-types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,67 +20,58 @@ interface WikiSearchModalProps {
   initialQuery?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Debounce hook：通过 effect 同步最新回调，避免在 render 期间写 ref */
-function useDebouncedCallback(
-  fn: (q: string) => void,
-  delayMs: number,
-): (q: string) => void {
-  const fnRef = useRef(fn);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    fnRef.current = fn;
-  }, [fn]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  return useCallback(
-    (q: string) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => fnRef.current(q), delayMs);
-    },
-    [delayMs],
-  );
+/** Pagefind 检索结果（仅取展示所需字段）。 */
+interface PagefindSearchResult {
+  url: string;
+  excerpt: string;
+  title: string | null;
 }
 
-/** 在 snippet 文本中高亮 query 关键词 */
-function highlightSnippet(
-  snippet: string,
-  query: string,
-): Array<{ text: string; highlight: boolean }> {
-  if (!query.trim()) return [{ text: snippet, highlight: false }];
+/** Pagefind 运行时模块的最小子集（构建期产物，无 TS 类型）。 */
+interface PagefindModule {
+  init: () => Promise<unknown>;
+  search: (query: string) => Promise<{
+    results: Array<{ id: string; score: number; data: () => Promise<PagefindSearchResult> }>;
+  }>;
+}
 
-  const terms = query
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  if (!terms.length) return [{ text: snippet, highlight: false }];
+// ---------------------------------------------------------------------------
+// Pagefind 懒加载
+//
+// Pagefind 索引由 postbuild（`pagefind --site out`）生成到 `out/pagefind/`，
+// 仅存在于**构建产物**中。运行时通过绝对路径 `/pagefind/pagefind.js` 懒加载；
+// 用变量名 + `@vite-ignore` 阻止打包器静态解析（产物路径在构建后才存在）。
+// `next dev` 无该产物 → import 抛错 → 由调用方 catch 优雅降级。
+// ---------------------------------------------------------------------------
 
-  const pattern = new RegExp(`(${terms.join("|")})`, "gi");
-  const parts: Array<{ text: string; highlight: boolean }> = [];
-  let lastIndex = 0;
+const PAGEFIND_ENTRY = "/pagefind/pagefind.js";
+let pagefindPromise: Promise<PagefindModule> | null = null;
 
-  for (const match of snippet.matchAll(new RegExp(pattern.source, "gi"))) {
-    const idx = match.index ?? 0;
-    if (idx > lastIndex) {
-      parts.push({ text: snippet.slice(lastIndex, idx), highlight: false });
-    }
-    parts.push({ text: match[0], highlight: true });
-    lastIndex = idx + match[0].length;
+/**
+ * 运行时动态 import，对打包器不可见。
+ *
+ * Pagefind 产物 `/pagefind/pagefind.js` 仅在构建后存在于 `out/`，构建期不存在，
+ * 若用静态 `import()` 会被 Turbopack 尝试解析而报 module not found。
+ * 用 `new Function` 构造的 importer 不在静态分析范围内，运行时才求值。
+ */
+const runtimeImport = new Function(
+  "specifier",
+  "return import(specifier)",
+) as (specifier: string) => Promise<PagefindModule>;
+
+function loadPagefind(): Promise<PagefindModule> {
+  if (!pagefindPromise) {
+    pagefindPromise = runtimeImport(PAGEFIND_ENTRY)
+      .then((mod) => {
+        if (typeof mod.init === "function") mod.init();
+        return mod;
+      })
+      .catch((err) => {
+        pagefindPromise = null;
+        throw err;
+      });
   }
-  if (lastIndex < snippet.length) {
-    parts.push({ text: snippet.slice(lastIndex), highlight: false });
-  }
-  return parts.length ? parts : [{ text: snippet, highlight: false }];
+  return pagefindPromise;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,31 +80,29 @@ function highlightSnippet(
 
 export function WikiSearchModal({
   onClose,
-  pubSlug,
   initialQuery = "",
 }: WikiSearchModalProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<WikiSearchResultItem[]>([]);
+  const [results, setResults] = useState<PagefindSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
   const [searched, setSearched] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const resultsRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const reqIdRef = useRef(0);
 
-  // 挂载时聚焦输入框，卸载时把焦点归还触发器（组件由 WikiSearchProvider
-  // 条件渲染控制挂载/卸载，故初始 state 已为最新 initialQuery，无需 effect 重置）
+  // 挂载时聚焦输入框，卸载时把焦点归还触发器
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     requestAnimationFrame(() => inputRef.current?.focus());
     return () => {
-      // 恢复焦点到打开 modal 前的元素（可访问性：键盘/读屏用户不丢失焦点）
       previouslyFocused?.focus?.();
     };
   }, []);
 
-  // Body scroll lock（组件挂载即锁定，卸载时恢复）
+  // Body scroll lock
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -123,63 +110,53 @@ export function WikiSearchModal({
     };
   }, []);
 
-  // 执行搜索
-  const doSearch = useCallback(
-    async (q: string) => {
-      const trimmed = q.trim();
-      if (!trimmed) {
-        // 清空输入：取消挂起的 in-flight 请求，避免其返回后回填已清空的界面
-        abortRef.current?.abort();
-        setResults([]);
-        setSearched(false);
-        setLoading(false);
-        return;
-      }
-
-      // 取消上一次请求
+  // 执行搜索（Pagefind 客户端检索）
+  const doSearch = useCallback(async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
       abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+      setResults([]);
+      setSearched(false);
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
-      try {
-        const res = await fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pubSlug, query: trimmed }),
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          console.error("[WikiSearch] API error:", res.status);
-          setResults([]);
-        } else {
-          const data = await res.json();
-          setResults(data.items || []);
-        }
-      } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          console.error("[WikiSearch] fetch error:", err);
-          setResults([]);
-        }
-      } finally {
+    const reqId = ++reqIdRef.current;
+    setLoading(true);
+    setUnavailable(false);
+    try {
+      const pagefind = await loadPagefind();
+      const search = await pagefind.search(trimmed);
+      // 取分数最高的前若干条；并发拉取每个结果的展示数据。
+      const top = search.results.slice(0, 12);
+      const dataResults = await Promise.all(top.map((r) => r.data()));
+      if (reqId !== reqIdRef.current) return; // 已有更新的查询，丢弃本次结果
+      setResults(dataResults);
+    } catch (err) {
+      if (reqId !== reqIdRef.current) return;
+      console.warn("[WikiSearch] Pagefind unavailable:", err);
+      setResults([]);
+      setUnavailable(true);
+    } finally {
+      if (reqId === reqIdRef.current) {
         setLoading(false);
         setSearched(true);
         setActiveIndex(-1);
       }
-    },
-    [pubSlug],
-  );
+    }
+  }, []);
 
-  // Debounced search
-  const debouncedSearch = useDebouncedCallback(doSearch, 300);
+  // Debounce（300ms）封装：避免在 render 期写 ref。
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  // 输入变化时触发 debounce search
   const handleInputChange = useCallback(
     (value: string) => {
       setQuery(value);
-      debouncedSearch(value);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => doSearch(value), 300);
     },
-    [debouncedSearch],
+    [doSearch],
   );
 
   // Escape 关闭
@@ -191,18 +168,16 @@ export function WikiSearchModal({
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  // 跳转到结果页
+  // 跳转到结果页（Pagefind 的 url 已含尾斜杠，直接导航）
   const handleNavigate = useCallback(
-    (item: WikiSearchResultItem) => {
-      const snippetParam = encodeURIComponent(item.snippet.slice(0, 60));
-      const url = `${item.wikiUrl}?search_snippet=${snippetParam}`;
+    (item: PagefindSearchResult) => {
       onClose();
-      window.location.href = url;
+      window.location.href = item.url;
     },
     [onClose],
   );
 
-  // 键盘导航（在 dialog 内的 keydown）
+  // 键盘导航
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "ArrowDown") {
@@ -213,25 +188,16 @@ export function WikiSearchModal({
         setActiveIndex((i) => Math.max(i - 1, -1));
       } else if (e.key === "Enter" && activeIndex >= 0 && results[activeIndex]) {
         e.preventDefault();
-        const item = results[activeIndex];
-        handleNavigate(item);
+        handleNavigate(results[activeIndex]);
       }
     },
     [results, activeIndex, handleNavigate],
   );
 
-  // 计算分数最大值用于归一化（combined 为后端融合分数）
-  const maxScore = useMemo(() => {
-    if (!results.length) return 0;
-    return Math.max(...results.map((r) => r.scores?.combined ?? 0), 0.001);
-  }, [results]);
-
-  // 使用 createPortal 将模态框挂载到 body，避免受侧栏 CSS 影响
   return createPortal(
     <div
       className="wiki-search-modal-root"
       onClick={(e) => {
-        // 点击背景关闭（仅 overlay，不包含 dialog 内容）
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -276,7 +242,7 @@ export function WikiSearchModal({
         </div>
 
         {/* Results */}
-        <div className="wiki-search-dialog-results" ref={resultsRef}>
+        <div className="wiki-search-dialog-results">
           {loading && (
             <div className="wiki-search-dialog-loading">
               {[1, 2, 3].map((i) => (
@@ -285,52 +251,37 @@ export function WikiSearchModal({
             </div>
           )}
 
-          {!loading && searched && results.length === 0 && (
+          {!loading && unavailable && (
+            <div className="wiki-search-dialog-empty">
+              搜索索引暂不可用（需在站点构建后生成）。
+            </div>
+          )}
+
+          {!loading && !unavailable && searched && results.length === 0 && (
             <div className="wiki-search-dialog-empty">
               未找到与「{query}」相关的文档片段
             </div>
           )}
 
           {!loading &&
-            results.map((item, idx) => {
-              const score = item.scores?.combined ?? 0;
-              const scorePct = Math.round((score / maxScore) * 100);
-              const parts = highlightSnippet(item.snippet, query);
-
-              return (
-                <button
-                  key={item.id}
-                  className="wiki-search-result"
-                  data-active={idx === activeIndex}
-                  onClick={() => handleNavigate(item)}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                >
-                  <div className="wiki-search-result-title">
-                    {item.entryTitle}
-                  </div>
-                  <div className="wiki-search-result-snippet">
-                    {parts.map((p, i) =>
-                      p.highlight ? (
-                        <mark key={i}>{p.text}</mark>
-                      ) : (
-                        <span key={i}>{p.text}</span>
-                      ),
-                    )}
-                  </div>
-                  <div className="wiki-search-result-meta">
-                    <div
-                      className="wiki-search-result-score"
-                      style={{ width: `${Math.max(scorePct, 8)}%` }}
-                    />
-                    {item.sourceUri && (
-                      <span className="wiki-search-result-source">
-                        {item.sourceUri.split("/").pop()}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+            results.map((item, idx) => (
+              <button
+                key={item.url + idx}
+                className="wiki-search-result"
+                data-active={idx === activeIndex}
+                onClick={() => handleNavigate(item)}
+                onMouseEnter={() => setActiveIndex(idx)}
+              >
+                <div className="wiki-search-result-title">
+                  {item.title || item.url}
+                </div>
+                {/* Pagefind excerpt 已含 <mark> 高亮，安全渲染自有静态内容 */}
+                <div
+                  className="wiki-search-result-snippet"
+                  dangerouslySetInnerHTML={{ __html: item.excerpt }}
+                />
+              </button>
+            ))}
         </div>
 
         {/* Footer */}

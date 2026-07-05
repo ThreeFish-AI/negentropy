@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { WikiNavTreeItem } from "@/features/knowledge";
+import { Folder, FileText } from "./catalog/icons";
 
 interface WikiEntriesListProps {
   navTree: WikiNavTreeItem[];
@@ -44,7 +45,7 @@ function flattenNavTree(
 export function WikiEntriesList({
   navTree,
   loading,
-  emptyHint = "暂无条目，点击「从 Catalog 同步」拉取",
+  emptyHint = "暂无条目，点击「发布」拉取",
 }: WikiEntriesListProps) {
   const flat = useMemo(() => {
     const out: FlatItem[] = [];
@@ -69,16 +70,18 @@ export function WikiEntriesList({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background divide-y divide-border max-h-[420px] overflow-y-auto">
+    <div className="rounded-lg border border-border bg-background divide-y divide-border">
       {flat.map((item) => (
         <div
           key={item.key}
           className="flex items-center gap-2 px-3 py-1.5 text-sm"
           style={{ paddingLeft: `${item.depth * 16 + 12}px` }}
         >
-          <span className="text-muted-foreground text-xs">
-            {item.isContainer ? "📁" : "📄"}
-          </span>
+          {item.isContainer ? (
+            <Folder className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+          ) : (
+            <FileText className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+          )}
           <span
             className={`truncate ${
               item.isContainer

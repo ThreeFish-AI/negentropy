@@ -1,12 +1,16 @@
+---
+sidebar_position: 6
+title: "自进化 Agents Team 系统技术方案"
+---
 # 自进化 Agents Team 系统技术方案
 
 > 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。
 >
 > 设计核心锚定：
-> - 调研基础：[自进化 Agents Team 调研](../../research/130-self-evolving-agents-team.md)
-> - 理论先例：[Routine 迭代模式调研](../../research/110-routine-agent-iteration.md)
-> - 子系统参考：[Routine 系统](../039-the-routine-system.md)、[Skills 设计](./skills.md)、[可观测性](./observability-genai.md)
-> - 记忆/知识参考：[记忆系统](../025-the-memory-system.md)、[记忆白皮书](../026-memory-whitepaper.md)、[知识库](../035-the-knowledge-base.md)、[知识图谱](../036-the-knowledge-graph.md)
+> - 调研基础：[自进化 Agents Team 调研](../../research/self-evolution/130-self-evolving-agents-team.md)
+> - 理论先例：[Routine 迭代模式调研](../../research/self-evolution/110-routine-agent-iteration.md)
+> - 子系统参考：[Routine 系统](../subsystems/039-the-routine-system.md)、[Skills 设计](./skills.md)、[可观测性](./observability-genai.md)
+> - 记忆/知识参考：[记忆系统](../subsystems/025-the-memory-system.md)、[记忆白皮书](../subsystems/026-memory-whitepaper.md)、[知识库](../subsystems/035-the-knowledge-base.md)、[知识图谱](../subsystems/036-the-knowledge-graph.md)
 > - 权威源：[engine/routine/decision.py](../../../apps/negentropy/src/negentropy/engine/routine/decision.py)（护栏范式）、[models/skill.py](../../../apps/negentropy/src/negentropy/models/skill.py)（版本快照范式）
 
 ---
@@ -24,7 +28,7 @@
 
 **总纲**：进化 = 数据变更（DB 白名单字段），框架 = 代码（变更唯一通道 Git PR 人工 Merge，复用 Routine `pr_url` 产 PR 等待人工 Merge 的既有先例）。
 
-记忆/知识系统兼具**进化基质（substrate）**（反思、playbook、采收用例的沉淀介质）与**进化客体（object）**（自身配置可被进化回路优化）双重角色——概念定义见[调研报告 §6.1](../../research/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)，回路边界裁定见 ADR-4。
+记忆/知识系统兼具**进化基质（substrate）**（反思、playbook、采收用例的沉淀介质）与**进化客体（object）**（自身配置可被进化回路优化）双重角色——概念定义见[调研报告 §6.1](../../research/self-evolution/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)，回路边界裁定见 ADR-4。
 
 **范围外**：模型权重训练/微调、框架代码的自动合并。
 
@@ -241,7 +245,7 @@ eval_results
 复用 [engine/routine/evaluator.py](../../../apps/negentropy/src/negentropy/engine/routine/evaluator.py) 范式：LLM-as-Judge（`resolve_model_config_async` + `litellm.acompletion` + JSON 结构化输出 + 指数退避）+ 可选客观门控命令锚定评分。
 
 记忆/知识 suite 不重建 runner：
-- **记忆检索 suite**：[026 白皮书](../026-memory-whitepaper.md)已有 LoCoMo-mini / LongMemEval-mini CI 基线（recall 0.933 / 0.867），**注册为 `eval_suites` 行纳管**（`target_kind=memory_retrieval`，gate 命令即现有 CI 脚本）；
+- **记忆检索 suite**：[026 白皮书](../subsystems/026-memory-whitepaper.md)已有 LoCoMo-mini / LongMemEval-mini CI 基线（recall 0.933 / 0.867），**注册为 `eval_suites` 行纳管**（`target_kind=memory_retrieval`，gate 命令即现有 CI 脚本）；
 - **KG 抽取 suite**：复用 [knowledge/graph/quality.py](../../../apps/negentropy/src/negentropy/knowledge/graph/quality.py) 的综合质量分（完整性/覆盖/置信度/证据四维加权）+ [metrics.py](../../../apps/negentropy/src/negentropy/knowledge/graph/metrics.py) 构建指标（`chunks_fallback` / `over_extraction_chunks` / `entity_density_p95`）作客观门控——对齐"可选 gate 命令锚定评分"既有设计。
 
 ### 4.3 Golden Set 双轨（Goodhart 防护）
@@ -364,7 +368,7 @@ perceives 的 `competition_mode` 从「运行时每次竞争」升格为「进�
 
 ### 7.1 双重角色与回路边界（ADR-4 的展开）
 
-记忆/知识系统兼具**基质**与**客体**双角色（定义见[调研报告 §6.1](../../research/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)）。工程上的关键裁定是**分轨**：
+记忆/知识系统兼具**基质**与**客体**双角色（定义见[调研报告 §6.1](../../research/self-evolution/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)）。工程上的关键裁定是**分轨**：
 
 - **条目级演化（基质侧，高频）**：fact 写入/更新、反思生成、ACE 式 delta 沉淀、记忆淘汰——继续走既有 consolidation 回路（`consolidation_jobs` 队列 + `reflection_worker`），**不进** `evolution_proposals` 状态机。条目级操作每天成百上千次，状态机门控会成为瓶颈；且其已有 retention / dedup / conflict 三重治理。Letta sleep-time compute<sup>[[12]](#ref12)</sup> 证明离线巩固窗口是该回路的正确调度时机——`consolidation_jobs` 即既有实现；
 - **配置级进化（客体侧，低频）**：检索参数、遗忘 λ、管线 prompt、抽取策略的变更——走 `evolution_proposals` 统一状态机，享受 shadow eval / canary / 人审门控全套保护。
@@ -517,11 +521,53 @@ evolution_proposals
 | Jinja2 沙箱 + enforcement_mode | 提案验证阶段前置执行 |
 | Root Agent fallback 永存 | `_dynamic_instruction` 既有「永不阻塞请求」语义是最后防线 |
 | 进化提案不直写记忆/知识条目内容 | `target_kind` 白名单只含配置类——防 ASI06 记忆投毒经进化通道注入（MINJA query-only 攻击实证<sup>[[11]](#ref11)</sup>；SSGM 演化/执行解耦原则<sup>[[10]](#ref10)</sup>） |
-| 遗忘 λ 与删除阈值有硬下限 | 代码常量下限，提案超界即拒——防"进化出激进遗忘"复刻 SEAL 式灾难性遗忘（[调研报告 §2.4](../../research/130-self-evolving-agents-team.md)） |
+| 遗忘 λ 与删除阈值有硬下限 | 代码常量下限，提案超界即拒——防"进化出激进遗忘"复刻 SEAL 式灾难性遗忘（[调研报告 §2.4](../../research/self-evolution/130-self-evolving-agents-team.md)） |
 
 ---
 
 ## 10. 演进路线
+
+> **实现进度注记（2026-07）**：Phase 3 记忆检索权重面第一切片已落地——`engine/evolution/`
+> 子系统骨架（decision 纯函数护栏 / canary 路由 / weights 配置解析 / GEPA proposer /
+> **Phase 1 遥测地基也已落地**——`tool_invocations` 事实表 + `tool_stats_daily` 聚合表
+> （迁移 0082）+ ADK `before/after_tool_callback` 采集器（fire-and-forget，灰度 `tool_telemetry_enabled`）
+> + `tool_stats_aggregate` 每日聚合 job。这是后续 agent/skill/knowledge 面 GEPA 的共同证据源。
+> eval_runner 窗口指标对比 / orchestrator 状态机）+ `evolution_proposals` +
+> `memory_config_versions` 两表（迁移 0081）+ `memory_retrieval_logs` 加 `config_version`
+> 分桶列 + `search_memory` canary 路由 + `evolution_inspector` 心跳。默认全关灰度
+> （`settings.evolution.enabled`/`auto_mode`）。**明确留后续**：agent/skill/knowledge 面
+> proposer、Phase 1 `tool_invocations` 三源遥测、eval 四表子系统、归因 job、记忆管线
+> prompt 进化。本切片基建（proposer `_ProposerBase` / decision / orchestrator）对后续面
+> 无重造，仅各面补 proposer 子类 + eval_runner + config_versions 表。
+>
+> **加固注记（2026-07，第二迭代）**：对照综述 §9.4（防 Goodhart）/§9.3（运行时控制）/§10.4
+> （自生成经验稳定性）批判性复核后补强：① canary 分桶键解耦（routine 按 routine.id、ADK 按
+> thread_id，修复自治 routine 共用 "system" 同桶致灰度沦为 0%/100%）；② stale canary REAP
+> （`max_canary_seconds` 超时强制 rollback，防样本不足无限挂起）；③ anti-collapse 多样性护栏
+> （`decide_canary` 加 distinct memory_id 覆盖率非退化判定）；④ no-op/防振荡硬护栏（proposer
+> prompt 软约束的确定性兜底）；⑤ 成本预算（`max_proposals_per_day`/`max_cost_usd_daily`）；
+> ⑥ SSE 审计事件（复用 routine bus，promote/rollback/shadow→canary 翻转可观测）。
+>
+> **延后项（YAGNI/前置条件未满）**：
+> - **target_kind 注册表分派**（P3）：当前 `_advance_shadow/_advance_canary/_promote/_rollback`
+>   仍硬编码 retrieval 面，第二面（agent/skill）接入时再抽 `TargetHandler` 基类一次到位（避免
+>   单实现期过度抽象，且本加固仍在稳定这 5 方法签名）；
+> - **frozen holdout**（P4，综述 §9.4 头号 Goodhart 防护）：需检索流量大到可同时支撑「可见训练桶
+>   + 冻结评估桶」双份样本（当前 min_samples=50/桶，holdout 需 100+/窗口）；evolution 默认关闭、
+>   流量不足，强上会致两桶都凑不够 → canary 永久 hold。anti-collapse diversity 护栏已部分覆盖
+>   （防 collapse）；等灰度跑稳、QPS 上升后单独切片。
+>
+> **第三迭代注记（2026-07，Skill 进化闭环 + TargetHandler 抽象 + eval 基座，PR [#1038](https://github.com/ThreeFish-AI/negentropy/pull/1038)）**：
+> 上方「延后项」中的 **target_kind 注册表分派（P3）** 与 **frozen holdout（P4）** 已落地——
+> ① eval 四表（迁移 0083）+ `SuiteRunner` + `CounterfactualAttributor`（反事实 Skill Influence
+> Pattern）+ `visible_results_query`（结构性排除 `partition='holdout'`，综述 §9.4 防 Goodhart）；
+> ② `TargetHandler` ABC + `RetrievalConfigHandler`（retrieval 路径 golden 测试守护逐字节等价）+
+> orchestrator 退化为薄分派层（第二面接入时一次到位，见 ADR-5）；③ `SkillTemplateHandler` +
+> `SkillProposer`（GEPA 变异 `prompt_template`）+ `skills.active_version` 发布指针（迁移 0084），
+> shadow 用 visible 集 `decide_skill_shadow` 增益门、canary 用 holdout 集 `decide_skill_canary`
+> 零回归门。综述 §8 SI 六目标中 held-out gain / backward retention / path attribution 已落地；
+> longitudinal stability / improvement efficiency / safety non-regression 仍列后续。详见
+> [141 号调研](../../research/self-evolution/141-skills-evolution-and-si-measurement.md)。
 
 ### Phase 1：遥测 + 评测地基
 
@@ -623,6 +669,12 @@ Routine 的 `decide()` 语义是「迭代直至验收」（no_progress/oscillati
 **推荐：条目级走既有 consolidation 高频回路，配置级走 evolution_proposals 低频门控流水线。**
 
 条目级操作（fact 写入/更新、反思生成、ACE delta、记忆淘汰）每天成百上千次，与配置级变更（参数/prompt/策略，每周个位数）频率相差约 3 个数量级，强行统一进一个状态机会使门控失去意义或成为吞吐瓶颈。风险面也不同：条目级已有 retention 衰减 / reflection 去重 / conflict 检测三重既有治理，单条劣化影响局部；配置级变更影响全局检索与写入质量，必须享受 shadow eval + canary + 人审全套保护。代价：条目级演化缺少 shadow eval 前置保护，靠 `outcome_feedback` 事后信号与治理回路兜底——这是用吞吐换保护粒度的明确取舍。
+
+### ADR-5：TargetHandler 抽象——按 target_kind 分派进化面
+
+**推荐：orchestrator 退化为薄分派层，每 target_kind 一个 `TargetHandler` 子类（advance_shadow / advance_canary / rollback / maybe_spawn）。**
+
+§10「延后项」曾裁定「第二面接入时再抽 `TargetHandler` 基类一次到位（避免单实现期过度抽象）」。第二面（skill_template）已随 PR [#1038](https://github.com/ThreeFish-AI/negentropy/pull/1038) 到达，故本抽象落地：`RetrievalConfigHandler` 把原 orchestrator 的 retrieval 硬编码逻辑原样迁入（`test_evolution_orchestrator_state_machine` golden 守护 retrieval 路径逐字节等价），`SkillTemplateHandler` 接 PR1 的 `SuiteRunner` + `decide_skill_*` 双相门 + `CounterfactualAttributor`。代价：共享辅助（`_enter_canary`/`_emit_evolution_event`/`_bump_patch` 等）抽到 `handlers/_shared.py`，handler 读各自模块的 `settings` 绑定（非 orchestrator.settings），单测须相应 patch 三处 binding；retrieval byte-equivalence 靠 golden 集成测试守护。新增第三面（agent_prompt / builtin_tool / knowledge_strategy）只需一个 handler 子类 + 注册，零改动 orchestrator。
 
 ---
 

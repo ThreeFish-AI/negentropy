@@ -11,6 +11,7 @@ import {
   CatalogNode,
   fetchCatalogTree,
   updateCatalogNode,
+  updateDocument,
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
 
@@ -125,10 +126,20 @@ export function useCatalogTree({ catalogId }: UseCatalogTreeOptions) {
     async (nodeId: string, newName: string) => {
       if (!catalogId) return;
       try {
-        await updateCatalogNode(catalogId, nodeId, {
-          name: newName,
-          slug: slugify(newName),
-        });
+        const node = nodes.find((n) => n.id === nodeId);
+        // 文档节点：改名 = 改文档显示名（单一事实源，复用已验证的 document API；
+        // CTE 读路径已对 DOCUMENT_REF 派生同一展示名，refresh 后左栏即时同步）。
+        if (node?.document_id && node?.source_corpus_id) {
+          await updateDocument(node.source_corpus_id, node.document_id, {
+            display_name: newName,
+          });
+        } else {
+          // 结构节点（FOLDER 等）：entry.name 仍是 SSOT
+          await updateCatalogNode(catalogId, nodeId, {
+            name: newName,
+            slug: slugify(newName),
+          });
+        }
         toast.success(`已重命名为「${newName}」`);
         await refresh();
       } catch (err) {
@@ -136,7 +147,7 @@ export function useCatalogTree({ catalogId }: UseCatalogTreeOptions) {
         throw err;
       }
     },
-    [catalogId, refresh],
+    [catalogId, nodes, refresh],
   );
 
   const moveNode = useCallback(

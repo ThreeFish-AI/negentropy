@@ -4,33 +4,39 @@ import { ThemePreference } from "@/components/ThemePreference";
 import { WikiGraphRenderer } from "@/components/WikiGraphRenderer";
 import { WikiHeader } from "@/components/WikiHeader";
 import { WikiHeaderActions } from "@/components/WikiHeaderActions";
-import { WikiUserMenu } from "@/components/WikiUserMenu";
+import { WikiHeaderMobileNav } from "@/components/WikiHeaderMobileNav";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import {
+  buildReservedDocsTab,
   countLeafEntries,
+  graphHref,
+  isReservedDocsSlug,
+  pubHref,
   resolveSectionView,
-  wikiApi,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { loadHeaderNav, wikiApi } from "@/lib/content-source";
 import type { WikiGraphResponse } from "@/lib/wiki-graph-types";
 
 /**
  * Publication 知识图谱页 — /:pubSlug/graph
  *
- * 数据流：
- *   - 服务端 `wikiApi.getPublicationGraph(pub.id)` 拉取按 Publication 切片
- *     的图谱 JSON（节点 + 边）；
- *   - ISR 5 分钟 + ``wiki-graph:${pubSlug}`` tag，后端 publish 时通过
- *     ``/api/revalidate`` webhook 主动刷新；
- *   - 客户端组件 `WikiGraphCanvas` 自带 ``"use client"``，Sigma WebGL bundle
+ * 数据流（纯静态化）：
+ *   - 构建期 `wikiApi.getPublicationGraph(pub.id)` 从静态内容包读取按
+ *     Publication 切片、已烘焙为静态 JSON 的图谱数据（节点 + 边）；
+ *   - 客户端组件 `WikiGraphRenderer` 自带 ``"use client"``，Sigma WebGL bundle
  *     会被 Next.js 自动拆分进本路由的客户端 chunk，SSR 阶段不引入。
  *
  * 图谱页使用全宽布局（variant="home"），无 sidebar / TOC，canvas 占满
  * viewport 宽度以最大化图谱可视化空间。
  */
 
-export const revalidate = 300;
+/**
+ * `output: export` 要求动态路由导出 generateStaticParams；Graph 与 Publication
+ * 首页共用 `[pubSlug]` 段，复用父级参数生成（Next 仅识别 page.tsx 的导出）。
+ */
+export { generateStaticParams } from "../generate";
 
 interface Props {
   params: Promise<{ pubSlug: string }>;
@@ -49,9 +55,7 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
     if (publication) {
       const [navResult, graphResult] = await Promise.all([
         wikiApi.getNavTree(publication.id),
-        wikiApi.getPublicationGraph(publication.id, {
-          tag: `wiki-graph:${pubSlug}`,
-        }),
+        wikiApi.getPublicationGraph(publication.id),
       ]);
       navItems = navResult.nav_tree?.items || [];
       graph = graphResult;
@@ -78,43 +82,45 @@ export default async function WikiPublicationGraphPage({ params }: Props) {
   const entriesTotal = countLeafEntries(navItems);
   const sectionView = resolveSectionView(navItems);
 
-  const header = sectionView.headerItems.length > 0 && (
+  const isReserved = isReservedDocsSlug(pubSlug);
+
+  // 顶栏全局模型：左侧「Negentropy」纯链接，右区恒列各动态 pub 一级菜单（全页并存）。
+  const headerNav = await loadHeaderNav();
+  const reservedTab = buildReservedDocsTab({
+    reservedExists: headerNav.reservedExists,
+    isReserved,
+  });
+
+  const header = (
     <WikiHeader
       pubSlug={pubSlug}
-      items={sectionView.headerItems}
+      topNav={headerNav.topNav}
+      activePubSlug={isReserved ? undefined : pubSlug}
       activeTopSlug={sectionView.activeTopSlug}
       headerSlot={<ThemePreference />}
       actions={<WikiHeaderActions />}
-      userMenu={<WikiUserMenu />}
-      graphTab={{ active: true, show: entriesTotal > 0 }}
+      reservedTab={reservedTab}
+      graphTab={{
+        active: pubSlug === headerNav.graphPubSlug,
+        show: !!headerNav.graphPubSlug,
+        href: headerNav.graphPubSlug ? graphHref(headerNav.graphPubSlug) : undefined,
+      }}
     />
+  );
+
+  const mobileTopNav = (
+    <WikiHeaderMobileNav reservedTab={reservedTab} topNav={headerNav.topNav} />
   );
 
   return (
     <WikiLayoutShell
       sidebar={<></>}
       hasToc={false}
-      header={header || undefined}
+      header={header}
+      mobileTopNav={mobileTopNav}
       variant="home"
     >
       <div className="wiki-graph-page">
-        <header className="wiki-graph-page-header">
-          <div className="wiki-doc-meta">
-            版本 v{publication.version}
-            {graph && graph.nodes.length > 0 && (
-              <>
-                {" · "}
-                {graph.nodes.length} 节点 · {graph.edges.length} 边
-                {graph.truncated && graph.total_entities > graph.nodes.length && (
-                  <>
-                    {" · "}共 {graph.total_entities} 实体
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </header>
-
         <WikiGraphBody
           pubSlug={pubSlug}
           publication={publication}
@@ -137,13 +143,18 @@ interface WikiGraphBodyProps {
   graphError: string | null;
 }
 
-function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
+function WikiGraphBody({
+  pubSlug,
+  publication,
+  graph,
+  graphError,
+}: WikiGraphBodyProps) {
   if (graphError) {
     return (
       <div className="wiki-graph-error">
         <p className="wiki-text-hint">
           图谱数据暂时不可用，请稍后重试或返回
-          <Link href={`/${pubSlug}`} style={{ marginLeft: "0.3em" }}>
+          <Link href={pubHref(pubSlug)} style={{ marginLeft: "0.3em" }}>
             Publication 首页
           </Link>
           。
@@ -181,6 +192,7 @@ function WikiGraphBody({ pubSlug, graph, graphError }: WikiGraphBodyProps) {
     <div className="wiki-graph-canvas-wrap">
       <WikiGraphRenderer
         pubSlug={pubSlug}
+        version={publication.version}
         nodes={graph.nodes}
         edges={graph.edges}
         truncated={graph.truncated}

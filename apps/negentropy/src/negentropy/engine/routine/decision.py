@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
 
+from negentropy.engine.routine.trajectory import score_trajectory
+
 
 class _RoutineLike(Protocol):
     """决策所需的 Routine 只读视图（避免与 ORM 强耦合，便于测试注入）。"""
@@ -101,6 +103,9 @@ def decide(
     *,
     now: datetime | None = None,
     max_context_resets: int = 0,
+    accept_verdict_pass: bool = False,
+    no_progress_score_tolerance: int = 0,
+    oscillation_min_amplitude: int = 0,
 ) -> Decision:
     """评估后的核心决策：成功 / 终止 / 继续。
 
@@ -113,15 +118,38 @@ def decide(
             的失败被视为"可自愈"，不计入连续执行失败——runaway 由 Runner 侧重置计数上限兜底）。
             默认 0 = 关闭该豁免，退化为原行为（向后兼容）。纯函数边界：上限由调用方显式注入，
             decision 不读 settings。
+        accept_verdict_pass: 为 True 时，Judge 的 ``verdict == "pass"``（验收标准达成·可终止）亦
+            判为成功（仍需门控通过）。默认 False 以保留「评分阈值是权威成功闸门」契约——避免在
+            常规 routine 上让 LLM-as-Judge 的 pass 单方面越过阈值触发不可逆成功。仅用于完成判据无法
+            被单一分数阈值捕获的任务（如巡检：``success_score_threshold=100`` 与 Judge 评分尺度
+            「全部满足≈90-100」结构性失配，且 acceptance 允许「仅剩 unfixable 即 done」由 Judge
+            在 <100 分判 pass）——这类任务经 ``config.accept_verdict_pass=True`` 显式开启旁路。
+        no_progress_score_tolerance: 停滞判定的分数容差带（>0 时，窗口内评分落在
+            ``[历史最优 - tolerance, +∞)`` 即视为「接近最优·有进展」，不判停滞）。默认 0 = 点态
+            严格比较，退化为原行为（向后兼容）。仅用于 Judge 聚合分天然 ±振荡的长尾任务（如巡检：
+            修一处感知缺陷常压低另一处总分，±20 振荡），防一次早期运气高点使正常振荡永远清不过
+            历史最优 → 假阳性 no_progress 误杀。经 ``config.no_progress_score_tolerance`` 注入、
+            per-routine 开启。纯函数边界：容差由调用方显式注入，decision 不读 settings。
+        oscillation_min_amplitude: 量化振荡判定的最小振幅阈值（opt-in）。默认 0 = 关闭，仅保留原
+            verdict 交替判定（``progressing↔regressed`` 反转）。>0 时追加一条**与 verdict 无关**的量化
+            分支：近 6 轮净增长≤0、振幅≥阈值、方向反转≥3 次即判振荡——修复原判定因 ``stalled`` 被过滤
+            致漏检的 thrash。⚠️ 与 ``no_progress_score_tolerance`` 存在张力：ISSUE-128 真实轨迹
+            （72→84→62→72→42→72）会被任何合理量化阈值命中，而它正是容差带刚救回的任务——故**默认关闭、
+            巡检不启用**，定位为「Judge 锚定降振荡后仍剧烈 thrash 的兜底护栏」，待锚定收窄方差后再
+            per-routine 启用。经 ``config.oscillation_min_amplitude`` 注入。纯函数边界：不读 settings。
 
     Returns:
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
+        成功由「score 达阈值」OR「accept_verdict_pass 且 verdict=pass」触发（均需门控通过）。
     """
     now = now or _utcnow()
 
-    # 1) 成功：评分达标 AND（无门控 或 门控通过）
-    if latest.score is not None and latest.score >= routine.success_score_threshold:
-        if latest.gate_exit_code in (None, 0):
+    # 1) 成功：评分达标 OR（accept_verdict_pass 时）Judge 显式判 pass；均需门控通过（或无门控）。
+    # pass 是 Judge 的权威完成裁决（"达到验收标准，可终止"）。门控检查置外层（gate∉{None,0} 时整块
+    # 跳过），保护 ISSUE-115「门控超时/失败≠门控通过」——对 pass 旁路同样适用，避免误判成功。
+    if latest.gate_exit_code in (None, 0):
+        score_met = latest.score is not None and latest.score >= routine.success_score_threshold
+        if score_met or (accept_verdict_pass and latest.verdict == "pass"):
             return Decision("terminate", REASON_SUCCESS)
 
     # 2) 不可恢复：judge 显式判定 / 连续执行失败 / 连续评估失败
@@ -135,12 +163,13 @@ def decide(
     if budget.is_terminate:
         return budget
 
-    # 4) 进度停滞：最近 N 次评分均未超过历史最优
-    if _is_no_progress(routine, history):
+    # 4) 进度停滞：最近 N 次评分均未（含容差带）超过历史最优
+    if _is_no_progress(routine, history, no_progress_score_tolerance=no_progress_score_tolerance):
         return Decision("terminate", REASON_NO_PROGRESS)
 
-    # 5) 振荡：verdict 在 progressing/regressed 间反复横跳且分数无上升趋势
-    if _is_oscillating(history):
+    # 5) 振荡：verdict 在 progressing/regressed 间反复横跳且分数无上升趋势；
+    #    或（opt-in）量化振荡——近 6 轮振幅≥阈值且反复反转（与 verdict 无关）。
+    if _is_oscillating(history, min_amplitude=oscillation_min_amplitude):
         return Decision("terminate", REASON_OSCILLATION)
 
     return Decision("continue")
@@ -170,11 +199,22 @@ def _consecutive_exec_failures(history: list[_IterationLike], *, max_context_res
     return count
 
 
-def _is_no_progress(routine: _RoutineLike, history: list[_IterationLike]) -> bool:
+def _is_no_progress(
+    routine: _RoutineLike,
+    history: list[_IterationLike],
+    *,
+    no_progress_score_tolerance: int = 0,
+) -> bool:
     """最近 ``no_progress_patience`` 次评分无一超过「窗口之前」的历史最优则视为停滞。
 
     基线取最近窗口之前的迭代最优分（``routine.best_score`` 含窗口自身，直接比较会恒真）；
     需窗口之前另有评分历史方可能触发，不足时不判停滞（给探索留出空间）。
+
+    ``no_progress_score_tolerance``（容差带）：窗口内任一评分落在
+    ``[best - tolerance, +∞)`` 即视为「接近历史最优·有进展」，不判停滞。默认 ``0`` 退化为
+    点态严格比较（``<= best``，逐字节向后兼容）。用于 Judge 聚合分天然 ±振荡的长尾任务
+    （如巡检：修一处感知缺陷常压低另一处总分，±20 振荡），防一次早期运气高点（watermark）
+    使正常振荡永远清不过 → 假阳性 no_progress 误杀正在收敛的任务。
     """
     patience = routine.no_progress_patience
     if patience <= 0:
@@ -182,17 +222,43 @@ def _is_no_progress(routine: _RoutineLike, history: list[_IterationLike]) -> boo
     scored = [it for it in history if it.score is not None]
     if len(scored) < patience:
         return False
-    # 基线 = 最近窗口之前的迭代最优分；窗口内若创出新高即视为有进展。
+    # 基线 = 最近窗口之前的迭代最优分；窗口内若创出新高（含容差带内接近最优）即视为有进展。
     best = max((it.score for it in scored[:-patience]), default=None)
     if best is None:
         return False  # 窗口前无评分历史 → 不判停滞
     recent = scored[-patience:]
-    return all(it.score <= best for it in recent)
+    threshold = best - no_progress_score_tolerance
+    return all(it.score <= threshold for it in recent)
 
 
-def _is_oscillating(history: list[_IterationLike]) -> bool:
-    """振荡判定：最近至少 4 次评分无净增长，且 verdict 在改善/退步间交替。"""
+def _is_oscillating(history: list[_IterationLike], *, min_amplitude: int = 0) -> bool:
+    """振荡判定。
+
+    两条判定，命中任一即 True：
+    1. 原 verdict 交替判定（默认，保留逐字节语义）：最近 ≥4 次评分无净增长，且 verdict 在
+       ``progressing``/``regressed`` 间反转 ≥2 次；
+    2. 量化振荡（opt-in，``min_amplitude > 0`` 时追加）：近 6 轮净增长 ≤0、振幅 ≥ ``min_amplitude``、
+       方向反转 ≥3 次——**与 verdict 无关**，修复 ``stalled`` 被原判定过滤致漏检的 thrash。
+
+    ⚠️ 与 ``no_progress_score_tolerance`` 张力详见 ``decide`` docstring；默认关闭。
+    """
     scored = [it for it in history if it.score is not None]
+    if _verdict_oscillating(scored):
+        return True
+    if min_amplitude > 0:
+        stats = score_trajectory(scored, window=6)
+        if (
+            stats.n_scored >= 6
+            and (stats.net_gain or 0) <= 0
+            and (stats.amplitude or 0) >= min_amplitude
+            and stats.flips >= 3
+        ):
+            return True
+    return False
+
+
+def _verdict_oscillating(scored: list[_IterationLike]) -> bool:
+    """原 verdict 交替判定（从 _is_oscillating 抽出，保留原语义）。"""
     if len(scored) < 4:
         return False
     recent = scored[-4:]

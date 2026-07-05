@@ -14,9 +14,10 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -25,6 +26,8 @@ from sqlalchemy import delete, func, select
 
 import negentropy.db.session as db_session
 from negentropy.interface.routine_api import router
+from negentropy.models.plugin_common import PluginVisibility
+from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
 
 pytestmark = pytest.mark.asyncio
@@ -153,6 +156,75 @@ async def test_full_crud_and_control_lifecycle(git_repo):
             assert (await c.get(f"/routines/{rid}")).status_code == 404
     finally:
         await _cleanup("itest_api_")
+
+
+async def test_list_offset_pagination_and_cursor_compat():
+    """offset 分页：翻页三段不重叠/连续、total 无上限、has_more/next_cursor 正确；cursor 路径兼容；二者同传 400。
+
+    历史脉络：#1023 前前端「客户端拉全量」受后端默认 limit=50 限制只能见最近 50 条；本次为
+    「纯翻页」新增 offset 随机访问，并以 (updated_at, id) 稳定排序消除跨页漂移。
+    """
+    app = _app()
+    prefix = f"itest_off_{uuid.uuid4().hex[:8]}"
+    base = datetime(2026, 1, 1, tzinfo=UTC)
+    try:
+        # 直接入库造 25 条（不同 updated_at、非模板），避免 25 次 POST；前缀唯一以相对化 total。
+        async with db_session.AsyncSessionLocal() as db:
+            for i in range(25):
+                db.add(
+                    Routine(
+                        key=f"{prefix}_{i:02d}",
+                        title=f"{prefix} {i}",
+                        goal="g",
+                        acceptance_criteria="ac",
+                        status="pending",
+                        is_template=False,
+                        updated_at=base + timedelta(minutes=i),
+                    )
+                )
+            await db.commit()
+
+        async with _client(app) as c:
+            common = {"q": prefix, "is_template": "false"}
+            # offset 分页：每页 10，共 3 页（10 / 10 / 5）
+            p1 = (await c.get("/routines", params={**common, "limit": 10, "offset": 0})).json()
+            assert p1["total"] == 25  # 无上限全量计数（不受 limit 影响）
+            assert p1["has_more"] is True
+            assert p1["next_cursor"] is None  # offset 模式不产 cursor
+            assert len(p1["items"]) == 10
+
+            p2 = (await c.get("/routines", params={**common, "limit": 10, "offset": 10})).json()
+            assert len(p2["items"]) == 10
+            assert p2["has_more"] is True
+
+            p3 = (await c.get("/routines", params={**common, "limit": 10, "offset": 20})).json()
+            assert len(p3["items"]) == 5
+            assert p3["has_more"] is False
+
+            # 三页互不重叠、合并去重为 25；updated_at 倒序 → 第 1 页恰为最新 10 条（key 15..24）。
+            all_ids = [it["id"] for it in p1["items"] + p2["items"] + p3["items"]]
+            assert len(set(all_ids)) == 25
+            assert {it["key"] for it in p1["items"]} == {f"{prefix}_{i:02d}" for i in range(15, 25)}
+
+            # offset 越界 → 空页，total 不变
+            p4 = (await c.get("/routines", params={"q": prefix, "limit": 10, "offset": 999})).json()
+            assert p4["items"] == []
+            assert p4["has_more"] is False
+            assert p4["total"] == 25
+
+            # cursor 路径（无 offset）仍兼容：has_more 时返回 next_cursor（ISO）
+            bc = (await c.get("/routines", params={"q": prefix, "limit": 10})).json()
+            assert len(bc["items"]) == 10
+            assert bc["has_more"] is True
+            assert bc["next_cursor"] is not None
+
+            # cursor + offset 同传 → 400 互斥
+            bad = await c.get("/routines", params={"q": prefix, "cursor": bc["next_cursor"], "offset": 0})
+            assert bad.status_code == 400
+    finally:
+        async with db_session.AsyncSessionLocal() as db:
+            await db.execute(delete(Routine).where(Routine.key.like(f"{prefix}%")))
+            await db.commit()
 
 
 async def test_iteration_approve_reject():
@@ -560,3 +632,84 @@ async def test_runtime_safe_fields_update_while_running(git_repo):
             assert res.json()["goal"] == "paused goal"
     finally:
         await _cleanup("itest_api_")
+
+
+# ---------------------------------------------------------------------------
+# cleanup-worktree：Repository 型 routine 须 hydrate 仓库根才能真正清理（回归）
+# ---------------------------------------------------------------------------
+
+
+async def test_cleanup_worktree_hydrates_repository_and_removes_branch(git_repo, tmp_path):
+    """Repository 型 routine（cwd 列 NULL）的 cleanup-worktree 须 hydrate 仓库根，真正执行
+    git worktree remove + 删本地工作分支。
+
+    回归：修复前 ``remove_worktree`` 读 ``routine.cwd``（DB 列）= NULL → git 块整段被跳过，
+    worktree 仍在 repo 注册、工作分支残留（即"没清理干净"）。
+    """
+    key = _key()
+    work_branch = f"routine/itest-{uuid.uuid4().hex[:8]}"
+    wt_path = str(tmp_path / "wt")
+    # 预置真实 worktree + 工作分支（模拟引擎派发产物）
+    subprocess.run(["git", "-C", git_repo, "worktree", "add", "-b", work_branch, wt_path, "main"], check=True)
+    assert (
+        subprocess.run(
+            ["git", "-C", git_repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{work_branch}"]
+        ).returncode
+        == 0
+    )
+
+    app = _app()
+    repo_id = None
+    try:
+        # Repository（local_path=git_repo）+ 终态 Routine（repository_id 指针；cwd 列 NULL，复现 bug 条件）
+        async with db_session.AsyncSessionLocal() as db:
+            repo = Repository(
+                owner_id="itest",
+                visibility=PluginVisibility.PRIVATE,
+                name=key,
+                github_url="https://example.invalid/itest",
+                local_path=git_repo,
+                baseline_branch="main",
+            )
+            db.add(repo)
+            await db.commit()
+            await db.refresh(repo)
+            repo_id = repo.id
+            r = Routine(
+                key=key,
+                title="T",
+                goal="g",
+                acceptance_criteria="a",
+                status="succeeded",
+                repository_id=repo.id,
+                cwd=None,
+                baseline_branch=None,
+                worktree_path=wt_path,
+                work_branch=work_branch,
+            )
+            db.add(r)
+            await db.commit()
+            rid = str(r.id)
+
+        async with _client(app) as c:
+            resp = await c.post(f"/routines/{rid}/cleanup-worktree")
+            assert resp.status_code == 200, resp.text
+
+        # worktree 目录已删
+        assert not os.path.isdir(wt_path)
+        # git worktree 注册已清除（修复前残留）
+        wt_list = subprocess.run(["git", "-C", git_repo, "worktree", "list"], capture_output=True, text=True).stdout
+        assert wt_path not in wt_list
+        # 本地工作分支已删（修复前残留）
+        rc = subprocess.run(
+            ["git", "-C", git_repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{work_branch}"]
+        ).returncode
+        assert rc != 0
+    finally:
+        await _cleanup("itest_api_")
+        if repo_id is not None:
+            async with db_session.AsyncSessionLocal() as db:
+                await db.execute(delete(Repository).where(Repository.id == repo_id))
+                await db.commit()
+        subprocess.run(["git", "-C", git_repo, "worktree", "prune"], capture_output=True)
+        subprocess.run(["git", "-C", git_repo, "branch", "-D", work_branch], capture_output=True)

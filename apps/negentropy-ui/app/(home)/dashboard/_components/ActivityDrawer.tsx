@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { X } from "lucide-react";
 
 import { useActivityLog } from "@/hooks/useActivityLog";
+import type { ActivityEntry } from "@/hooks/useActivityLog";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { Pagination } from "@/components/ui/Pagination";
+import { useInfiniteList, type ClientFetcher } from "@/hooks/useInfiniteList";
+import { useInfiniteScrollSentinel, useScrollPageSync } from "@/hooks/useInfiniteScrollSentinel";
 
 import {
   LEVEL_OPTIONS,
@@ -24,29 +28,78 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
   const { entries, levelFilter, setLevelFilter, reload, clear, totalCount } =
     useActivityLog();
 
-  const [currentPage, setCurrentPage] = useState(1);
+  // 抽屉内滚动容器 ref（哨兵 / 滚动联动 observer 的 root，须为抽屉内 overflow 层，非 viewport）、
+  // 程序化滚动闸门、待跳页号——镜像 Routine 样板。
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollRef = useRef(false);
+  const pendingPageRef = useRef<number | null>(null);
+
+  // 客户端模式：entries 全量已在内存（localStorage 派生 + level 本地筛选）；
+  // 仅做渐进切片，total 精确，无网络。level 变化作为 filters → 自动 reset 回第 1 页。
+  const fetcher = useMemo<ClientFetcher<ActivityEntry>>(
+    () => ({ kind: "client", items: entries }),
+    [entries],
+  );
+  const list = useInfiniteList<ActivityEntry, { level: string | null }>({
+    fetcher,
+    pageSize: PAGE_SIZE,
+    filters: { level: levelFilter },
+    enabled: open,
+  });
+
+  // 无限滚动哨兵：滚到底（提前 200px）→ 揭示下一页。root = 抽屉内 overflow 容器。
+  const { sentinelRef } = useInfiniteScrollSentinel({
+    onReach: list.loadMore,
+    enabled: list.hasMore && !list.loadingMore && !list.loading,
+    root: scrollRootRef,
+  });
+
+  // 滚动联动当前页高亮：观测每页首项的 data-infinite-page 锚点。
+  useScrollPageSync({
+    enabled: open,
+    onPageChange: list.goToPage,
+    root: scrollRootRef,
+    rescanKey: list.items.length,
+    programmaticRef: programmaticScrollRef,
+  });
+
+  const handleGoToPage = useCallback(
+    (target: number) => {
+      pendingPageRef.current = target;
+      programmaticScrollRef.current = true; // 抑制 observer 回写，防跳页与联动互相递归
+      list.goToPage(target);
+    },
+    [list],
+  );
+
+  // 待跳页锚点出现即平滑滚动到该页首项（抽屉内 root 限定查询范围）。
+  const { currentPage } = list;
+  const itemsLen = list.items.length;
+  useEffect(() => {
+    const target = pendingPageRef.current;
+    if (target == null) return;
+    const anchor = scrollRootRef.current?.querySelector<HTMLElement>(`[data-infinite-page="${target}"]`);
+    if (!anchor) return;
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingPageRef.current = null;
+    const t = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [currentPage, itemsLen]);
 
   const handleLevelChange = useCallback(
     (level: typeof levelFilter) => {
-      setLevelFilter(level);
-      setCurrentPage(1);
+      setLevelFilter(level); // 列表由 filters 变化自动 reset 回第 1 页
     },
     [setLevelFilter],
   );
 
   const handleClose = useCallback(() => {
-    setCurrentPage(1);
     onClose();
   }, [onClose]);
 
   if (!open) return null;
-
-  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const pagedEntries = entries.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
 
   return (
     <div
@@ -127,13 +180,14 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
           </div>
         </header>
 
-        {/* Body */}
-        <div className="flex-1 overflow-auto px-4 py-3">
-          {pagedEntries.length ? (
+        {/* Body — 抽屉内滚动容器（哨兵 / 滚动联动 root） */}
+        <div ref={scrollRootRef} className="flex-1 overflow-auto px-4 py-3">
+          {list.items.length ? (
             <ul className="space-y-2">
-              {pagedEntries.map((entry) => (
+              {list.items.map((entry, i) => (
                 <li
                   key={entry.id}
+                  data-infinite-page={i % PAGE_SIZE === 0 ? Math.floor(i / PAGE_SIZE) + 1 : undefined}
                   className="flex items-start gap-3 rounded-lg border border-border bg-background p-3 shadow-sm"
                 >
                   <span
@@ -168,38 +222,24 @@ export function ActivityDrawer({ open, onClose }: ActivityDrawerProps) {
               they occur across the platform.
             </div>
           )}
+
+          {/* 无限滚动哨兵：进入视口即揭示下一页。 */}
+          <div ref={sentinelRef} aria-hidden className="h-px w-full" />
         </div>
 
-        {/* Pagination */}
-        {entries.length > PAGE_SIZE ? (
-          <div className="flex items-center justify-between border-t border-border px-4 py-1.5">
-            <button
-              type="button"
-              disabled={safePage <= 1}
-              onClick={() =>
-                setCurrentPage(Math.max(1, safePage - 1))
-              }
-              aria-label="Previous page"
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
-            <span className="text-micro font-medium text-muted-foreground">
-              {safePage} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={safePage >= totalPages}
-              onClick={() =>
-                setCurrentPage(Math.min(totalPages, safePage + 1))
-              }
-              aria-label="Next page"
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+        {/* Pagination — 居中统一控件（计数文案沿用「entries」语义） */}
+        {entries.length > 0 && (
+          <div className="border-t border-border px-4 py-1.5">
+            <Pagination
+              page={list.currentPage}
+              totalPages={list.totalPages}
+              onPageChange={handleGoToPage}
+              total={list.total ?? undefined}
+              itemLabel="entry"
+              loadingMore={list.loadingMore}
+            />
           </div>
-        ) : null}
+        )}
       </aside>
     </div>
   );

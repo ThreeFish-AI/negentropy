@@ -12,7 +12,7 @@ packages = ["src/negentropy"]
 
 [project]
 name = "negentropy"
-version = "0.0.1-rc.1"
+version = "0.0.1-rc.2"
 description = "An entropy-reducing 'cultivation' system for AI agents."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
@@ -28,12 +28,12 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-http>=1.37.0,<2.0.0",  # OTLP HTTP/protobuf span exporter — TracingManager / LiteLLM otel callback / ADK _get_otel_span_exporter 均依赖此包
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
-    "pydantic-settings[yaml]>=2.12.0",  # Configuration management with YAML support
+    "pydantic-settings[yaml]>=2.14.2",  # Configuration management with YAML support; >=2.14.2 修复 GHSA-4xgf-cpjx-pc3j (NestedSecretsSettingsSource 跟随 secrets_dir 外符号链接致本地文件读)
     "pyyaml>=6.0.2",                # YAML parser for configuration files
     # LLM & AI Services
     "litellm>=1.84.0",              # Unified interface for various LLM providers (>=1.84.0 修复 GHSA-4xpc-pv4p-pm3w critical Host Header Injection 鉴权绕过; 兼容 1.83.7 的 SQLi/SSTI/MCP-RCE 修复 GHSA-9566-... / 90 / 88 / 89)
-    # Google Cloud Services
-    "google-cloud-storage>=3.8.0",  # Object storage for artifacts
+    # Google Cloud Services（GCS 退役：artifact/document blob 已迁至 PostgreSQL，不再直接依赖 google-cloud-storage；
+    # 该包仍经 google-adk 传递安装，但 negentropy 自身无任何直接引用）
     "google-auth>=2.48.0",          # Authentication for Google services
     "google-cloud-logging>=3.13.0", # Cloud Logging integration
     "httpx>=0.27.0",                # Async HTTP client for OAuth
@@ -152,6 +152,7 @@ override-dependencies = [
 constraint-dependencies = [
     # ── 既有约束 ──
     "authlib>=1.7.1",       # GHSA-jj8c-mmj3-mmgv: OIDC Open Redirect + OAuth client cache CSRF (+ 保留历史 CVE-2026-27962 等防御)
+    "joserfc>=1.6.7",       # CVE-2026-48990: b64=false RFC7797 JWS payload 绕过 JWSRegistry 大小限制 (authlib → joserfc 间接)
     "pyasn1>=0.6.3",        # CVE-2026-30922: unbounded recursion DoS
     "pyjwt>=2.13.0",        # PYSEC-2026-175/177/178/179 + CVE-2026-32597: unknown crit header extensions
     "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf: wheel 内 OpenSSL 漏洞 (high); 兼容 46.0.7 的 buffer overflow/subgroup/DNS constraint 防御

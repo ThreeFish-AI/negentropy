@@ -131,7 +131,7 @@ describe("WikiEntriesList 渲染", () => {
   it("空数组渲染默认 emptyHint 文案", () => {
     render(<WikiEntriesList navTree={[]} loading={false} />);
     expect(
-      screen.getByText("暂无条目，点击「从 Catalog 同步」拉取"),
+      screen.getByText("暂无条目，点击「发布」拉取"),
     ).toBeInTheDocument();
   });
 });

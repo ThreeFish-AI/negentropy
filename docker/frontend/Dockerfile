@@ -1,8 +1,9 @@
 # =============================================================================
-# Negentropy Frontend — Multi-stage Dockerfile (Shared for UI & Wiki)
+# Negentropy Frontend — Multi-stage Dockerfile (UI only)
 # =============================================================================
-# Node 22 + pnpm monorepo 构建 Next.js standalone 输出
-# 通过 TARGET_SERVICE build arg 区分 negentropy-ui / negentropy-wiki
+# Node 22 + pnpm monorepo 构建 Next.js standalone 输出。
+# 仅用于 negentropy-ui（主聊天前端，需 Node 运行时）。
+# negentropy-wiki 已迁移至 docker/wiki/Dockerfile（纯静态托管，无 Node 运行时）。
 # =============================================================================
 
 ARG TARGET_SERVICE=negentropy-ui

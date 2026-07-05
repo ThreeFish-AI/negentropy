@@ -952,7 +952,7 @@ export function McpServerCard({
           </div>
 
           <p
-            className="mb-1 ml-6 h-[60px] min-w-0 w-full overflow-hidden text-sm leading-5 text-text-muted line-clamp-3"
+            className="mb-1 pl-6 pr-2 h-[60px] min-w-0 overflow-hidden text-sm leading-5 text-text-muted line-clamp-3"
             title={summaryDescription}
           >
             {summaryDescription}

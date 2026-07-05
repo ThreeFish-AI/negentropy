@@ -68,7 +68,10 @@ _INSTRUCTION = (
    返回的 `status` 字段告知用户结果：
    - `success` → 报告写入 chunk 数；
    - `failed` → 转达 error 字段给用户；
-   - `degraded` → 告知用户写入暂时不可用，已缓存待重试。
+   - `degraded` → 告知用户写入暂时不可用，已缓存待重试；
+   - `blocked` → **用户已拒绝或未响应审批**。**严禁重试该操作**（系统已缓存该拒绝,
+     重复调用会被直接挡回）。明确告知用户「该操作未执行」,并请用户在需要时**重新
+     发起指令**——只有用户主动重发才会清除拒绝缓存。
 
 ## 越权防御提示 (Authority Guard)
 严禁向 `state.corpus_ids` 之外的 Corpus 调用 `ingest_to_corpus`——工具会

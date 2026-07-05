@@ -39,7 +39,10 @@ async def routine_inspector_handler(task) -> HandlerResult:
         result = await get_orchestrator().inspect_once()
         return HandlerResult(
             status="ok",
-            output_summary=(f"reaped={result['reaped']} evaluated={result['evaluated']} launched={result['launched']}"),
+            output_summary=(
+                f"reaped={result['reaped']} cleaned={result['cleaned']} "
+                f"pr_synced={result['pr_synced']} evaluated={result['evaluated']} launched={result['launched']}"
+            ),
             metrics=result,
         )
     except Exception as exc:

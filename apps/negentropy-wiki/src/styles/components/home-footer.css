@@ -1,7 +1,19 @@
-/* Wiki 页脚 — 全站深色 */
+/* Wiki 页脚 —— 浅色主题与页面同色自洽（贴 Squaredops：纯白 + 发丝线 + 低噪深字）；
+   深色 themes.css 覆写为深色。全站统一（首页 / 内容页同款）。 */
 .wiki-footer {
   background: var(--wiki-footer-bg);
   color: var(--wiki-footer-text);
+  border-top: 1px solid var(--wiki-footer-border); /* 发丝线分隔正文↔页脚 */
+  /*
+   * Footer 渲染在 .wiki-layout 之外、作为其兄弟节点（父为全宽的 #wiki-root，见
+   * WikiLayoutShell.tsx）——使左 .wiki-sidebar / 右 .wiki-toc-aside 的 sticky 脱粘
+   * 下边界（= 直接父 .wiki-layout 的 content box 底）精确落在 footer 顶部，滚到页底时
+   * 左右栏底边停在页脚上边界，绝不遮盖页脚（对齐 Docusaurus / VitePress / Stripe Docs）。
+   *
+   * #wiki-root 全宽无 max-width/padding，footer 作为 block 默认撑满视口，无需 full-bleed
+   * 出血计算（旧 width:100vw + 负 margin 在 Windows 经典滚动条下会被 body overflow-x:clip
+   * 硬切右端并整体左移，已移除）。内容居中由 .wiki-footer-inner 的 max-width:1200px 承担。
+   */
 }
 
 .wiki-footer-inner {

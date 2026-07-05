@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
 
@@ -126,6 +127,9 @@ class CatalogNodeResponse(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     # DOCUMENT_REF 叶子节点携带的文档 ID（FOLDER / CATEGORY / COLLECTION 为 None）
     document_id: UUID | None = None
+    # DOCUMENT_REF 关联文档所属 corpus（FK 冗余）：前端重命名文档节点时据此直连
+    # document API 改 display_name，与 document_id 同生命周期（document 硬删时随其清空）
+    source_corpus_id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     # 展开字段
@@ -297,6 +301,36 @@ class WikiNavTreeResponse(BaseModel):
     nav_tree: dict[str, Any]  # 嵌套树结构
 
 
+class WikiPublishTarget(str, Enum):
+    """Wiki 发布目标环境。
+
+    - ``LOCAL``：测试环境，导出 ``content/`` + ``next build`` 重建本地
+      ``apps/negentropy-wiki/out/``，由本地 wiki（``:3092``）serve。
+    - ``PRODUCTION``：生产环境，执行 ``publish-wiki-pages.sh`` 全链路
+      （导出烘焙 + ``next build`` + rsync + git push 到 ``threefish-ai.github.io``
+      ``master``），直接更新 https://threefish-ai.github.io/。
+    """
+
+    LOCAL = "local"
+    PRODUCTION = "production"
+
+
+# 发布目标 → 上线后站点 base URL（供前端「查看站点」跳转）。
+WIKI_PUBLISH_TARGET_SITE_URL: dict[WikiPublishTarget, str] = {
+    WikiPublishTarget.LOCAL: "http://localhost:3092",
+    WikiPublishTarget.PRODUCTION: "https://threefish-ai.github.io",
+}
+
+
+class WikiPublishRequest(BaseModel):
+    """发布请求体。
+
+    ``target`` 缺省为 ``local``（安全侧默认：不触碰生产站点）。
+    """
+
+    target: WikiPublishTarget = WikiPublishTarget.LOCAL
+
+
 class WikiPublishActionResponse(BaseModel):
     """发布操作响应"""
 
@@ -307,6 +341,9 @@ class WikiPublishActionResponse(BaseModel):
     entries_count: int
     message: str
     revalidation: str = "not_configured"  # Literal["dispatched", "failed", "not_configured"]
+    # 本次发布的目标环境（local/production）与上线站点 URL（供前端「查看站点」）。
+    target: str = WikiPublishTarget.LOCAL.value
+    site_url: str | None = None
 
 
 class SyncFromCatalogRequest(BaseModel):

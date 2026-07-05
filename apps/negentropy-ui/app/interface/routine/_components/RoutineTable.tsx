@@ -1,12 +1,21 @@
 "use client";
 
-import { ExternalLink, OctagonX, RotateCcw, Trash2 } from "lucide-react";
+import { ExternalLink, GitMerge, GitPullRequest, Loader2, OctagonX, RotateCcw, Trash2, X } from "lucide-react";
 
+import { CopyButton } from "@/components/ui/CopyButton";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TextTooltip } from "@/components/ui/TextTooltip";
 import type { RoutineDTO } from "@/features/routine";
 
 import { canCancel, canCleanupWorktree, canRestart } from "./routine-controls";
-import { routineStatusClass, scoreColorClass } from "./status-style";
+import {
+  closedBadgeClass,
+  composeStatusTitle,
+  mergedBadgeClass,
+  openBadgeClass,
+  routineStatusClass,
+  scoreColorClass,
+} from "./status-style";
 
 interface RoutineTableProps {
   routines: RoutineDTO[];
@@ -19,9 +28,11 @@ interface RoutineTableProps {
   onTerminate?: (r: RoutineDTO) => void;
   /** 终态 + worktree 活跃时行内清理 worktree。 */
   onCleanupWorktree?: (r: RoutineDTO) => void;
+  /** 正在清理的 routine id（行内按钮 busy/disabled + spinner，防二次点击；null 表示无在途）。 */
+  cleanupBusyId?: string | null;
 }
 
-export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree }: RoutineTableProps) {
+export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestart, onTerminate, onCleanupWorktree, cleanupBusyId }: RoutineTableProps) {
   if (loading && routines.length === 0) {
     return (
       <div className="space-y-2">
@@ -42,10 +53,24 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <table className="w-full text-sm">
+      <table className="w-full table-fixed text-sm">
+        {/* 固定列宽：百分比合计 100%，随容器等比缩放；与 <th> 解耦，超长内容由单元格 truncate 截断。
+            8 列须与下方 <thead> 的 8 个 <th> 严格对齐（数量错配不报错但会静默错位所有列）。 */}
+        <colgroup>
+          <col className="w-[19%]" /> {/* Name */}
+          <col className="w-[14%]" /> {/* ID */}
+          <col className="w-[14%]" /> {/* Status */}
+          <col className="w-[7%]" /> {/* Progress */}
+          <col className="w-[7%]" /> {/* Best Score */}
+          <col className="w-[10%]" /> {/* Cost */}
+          <col className="w-[10%]" /> {/* Updated */}
+          {/* Actions：预留足够宽度容纳「最多 3 个并发按钮」（Restart/Terminate 互斥，故至多 Restart+Clean Up+Full View），单行不折。 */}
+          <col className="w-[19%]" /> {/* Actions */}
+        </colgroup>
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-overline text-text-secondary">
             <th className="px-4 py-2.5 font-medium">Name</th>
+            <th className="px-4 py-2.5 font-medium">ID</th>
             <th className="px-4 py-2.5 font-medium">Status</th>
             <th className="px-4 py-2.5 font-medium">Progress</th>
             <th className="px-4 py-2.5 font-medium">Best Score</th>
@@ -62,35 +87,96 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
               className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40"
             >
               <td className="px-4 py-3">
-                <div className="font-medium text-foreground">{r.display_name || r.title}</div>
-                <div className="text-xs text-text-secondary">{r.key}</div>
+                <div className="flex min-w-0 items-center gap-2 font-medium text-foreground">
+                  <TextTooltip content={r.display_name || r.title}>
+                    <span className="min-w-0 flex-1 truncate">{r.display_name || r.title}</span>
+                  </TextTooltip>
+                  {r.key.startsWith("pdf-fidelity-patrol/") && (
+                    <span className="inline-flex items-center rounded-full bg-violet-500/10 px-1.5 py-0.5 text-micro font-semibold text-violet-700 dark:text-violet-300 shrink-0">
+                      巡检
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="px-4 py-3">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
-                >
-                  {r.status}
-                </span>
-                {r.termination_reason && (
-                  <div className="mt-0.5 text-xs text-text-secondary">{r.termination_reason}</div>
-                )}
+                {/* 任务 ID（独立列）：约半宽截断展示，全文经悬浮单行恢复 + 一键复制。 */}
+                <div className="flex min-w-0 items-center gap-1">
+                  <TextTooltip content={r.key}>
+                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">
+                      {r.key}
+                    </span>
+                  </TextTooltip>
+                  <CopyButton value={r.key} ariaLabel="复制 ID" className="shrink-0" />
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                {/* 状态芯片单行展示：不折行，溢出由 overflow-hidden 右缘裁切；悬浮 Tooltip（单行）显示完整组合标题。 */}
+                <TextTooltip content={composeStatusTitle(r)}>
+                  <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${routineStatusClass(r.status)}`}
+                    >
+                      {r.status}
+                    </span>
+                    {r.pr_merged && (
+                      <span className={`${mergedBadgeClass} shrink-0`}>
+                        <GitMerge className="h-3 w-3" aria-hidden />
+                        Merged
+                      </span>
+                    )}
+                    {r.pr_state === "closed" && (
+                      <span className={`${closedBadgeClass} shrink-0`}>
+                        <X className="h-3 w-3" aria-hidden />
+                        Closed
+                      </span>
+                    )}
+                    {r.pr_state === "open" && (
+                      <span className={`${openBadgeClass} shrink-0`}>
+                        <GitPullRequest className="h-3 w-3" aria-hidden />
+                        Open
+                      </span>
+                    )}
+                    {/* 终止原因：succeeded 恒配 "success"，与状态芯片冗余故略去；其余（失败原因）内联同行截断。 */}
+                    {r.termination_reason && r.termination_reason !== "success" && (
+                      <span className="min-w-0 truncate text-xs text-text-secondary">
+                        {r.termination_reason}
+                      </span>
+                    )}
+                  </div>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
-                {r.iteration_count}
-                {r.max_iterations ? ` / ${r.max_iterations}` : ""}
+                <TextTooltip content={`${r.iteration_count}${r.max_iterations ? ` / ${r.max_iterations}` : ""}`}>
+                  <span className="block truncate">
+                    {r.iteration_count}
+                    {r.max_iterations ? ` / ${r.max_iterations}` : ""}
+                  </span>
+                </TextTooltip>
               </td>
               <td className={`px-4 py-3 font-semibold tabular-nums ${scoreColorClass(r.best_score)}`}>
-                {r.best_score ?? "—"}
+                <TextTooltip content={String(r.best_score ?? "—")}>
+                  <span className="block truncate">{r.best_score ?? "—"}</span>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 tabular-nums text-text-secondary">
-                ${r.total_cost_usd.toFixed(3)}
-                {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
+                <TextTooltip
+                  content={`$${r.total_cost_usd.toFixed(3)}${r.max_cost_usd ? ` / $${r.max_cost_usd}` : ""}`}
+                >
+                  <span className="block truncate">
+                    ${r.total_cost_usd.toFixed(3)}
+                    {r.max_cost_usd ? <span className="text-text-secondary"> / ${r.max_cost_usd}</span> : null}
+                  </span>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 text-xs text-text-secondary">
-                {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                <TextTooltip content={r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}>
+                  <span className="block truncate">
+                    {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                  </span>
+                </TextTooltip>
               </td>
               <td className="px-4 py-3 text-right">
-                <div className="flex items-center justify-end gap-3">
+                <div className="flex items-center justify-end gap-2 overflow-hidden">
                   {onRestart && canRestart(r.status) && (
                     <button
                       type="button"
@@ -98,7 +184,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                         e.stopPropagation();
                         onRestart(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <RotateCcw className="h-3 w-3" />
                       Restart
@@ -107,13 +193,20 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                   {onCleanupWorktree && canCleanupWorktree(r.status, r.worktree_path) && (
                     <button
                       type="button"
+                      disabled={cleanupBusyId === r.id}
+                      aria-busy={cleanupBusyId === r.id || undefined}
+                      aria-label={`Clean Up worktree for ${r.display_name || r.title}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onCleanupWorktree(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-amber-400"
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-amber-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline dark:text-amber-400"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      {cleanupBusyId === r.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
                       Clean Up
                     </button>
                   )}
@@ -124,7 +217,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                         e.stopPropagation();
                         onTerminate(r);
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-red-400"
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded text-[11px] font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-red-400"
                     >
                       <OctagonX className="h-3 w-3" />
                       Terminate
@@ -136,7 +229,7 @@ export function RoutineTable({ routines, loading, onSelect, onOpenFull, onRestar
                       e.stopPropagation();
                       onOpenFull(r);
                     }}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary underline-offset-4 transition-colors hover:bg-muted/50 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Full View
                     <ExternalLink className="h-3 w-3" />

@@ -26,6 +26,7 @@ export type {
   PayloadFieldSchema,
   HandlerDescriptor,
   HandlerListResponse,
+  HandlerSourceResponse,
   TaskWritePayload,
 } from "./types";
 
@@ -39,6 +40,7 @@ export {
   runTaskNow,
   toggleTaskEnabled,
   fetchHandlers,
+  fetchHandlerSource,
   createTask,
   updateTask,
   deleteTask,

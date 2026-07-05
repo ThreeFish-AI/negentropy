@@ -1,0 +1,21 @@
+# =============================================================================
+# Negentropy Wiki — 独立部署 compose（验证独立性）
+# =============================================================================
+# 仅含 wiki 服务，无 backend / ui / postgres。用于证明 wiki 已彻底切断对主站
+# 与数据库的运行时依赖：
+#
+#     docker compose -f docker-compose.wiki.yml up --build
+#
+# 完整栈部署仍用根 docker-compose.yml（wiki 在其中已无 depends_on）。
+# =============================================================================
+
+services:
+  wiki:
+    image: threefishai/negentropy-wiki:${NEGENTROPY_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: docker/wiki/Dockerfile
+    container_name: negentropy-wiki-standalone
+    ports:
+      - "3092:80"
+    restart: unless-stopped

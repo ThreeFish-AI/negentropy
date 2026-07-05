@@ -9,9 +9,24 @@ from negentropy.engine.routine.orchestrator import (
     RoutineOrchestrator,
     _build_readonly_settings,
     _build_scope_system_prompt,
+    _is_plan_review_active,
     _normalize_read_dirs,
 )
 from negentropy.engine.routine.prompt_builder import build_prompt
+
+
+def test_plan_review_per_routine_opt_out():
+    """config.plan_review_enabled=False 跳过 Plan Review（巡检等指令式任务用，规避 headless deny→is_error）。"""
+    # worktree routine（baseline_branch 非空）默认启用评审
+    r_on = SimpleNamespace(current_phase=phase_mod.PHASE_PLAN, baseline_branch="origin/feature/1.x.x", config={})
+    assert _is_plan_review_active(r_on) is True
+    # per-routine 关闭 → 跳过
+    r_off = SimpleNamespace(
+        current_phase=phase_mod.PHASE_PLAN,
+        baseline_branch="origin/feature/1.x.x",
+        config={"plan_review_enabled": False},
+    )
+    assert _is_plan_review_active(r_off) is False
 
 
 def test_initial_phase_phased_vs_flat():
@@ -101,6 +116,20 @@ def test_build_prompt_worktree_finalize_uses_pr_view_before_create():
     assert "复用" in p  # 明确指示复用既存链接
     # gh pr view 须出现在 gh pr create 之前（先查后建）
     assert p.index("gh pr view") < p.index("gh pr create")
+
+
+def test_build_prompt_worktree_finalize_noop_guard():
+    """FINALIZE 无可交付守卫：先 `git rev-list --count <base>..HEAD` 判有无提交——
+    为 0（如巡检文档已达标、本轮未改代码）则跳过 push/PR、输出 ``PR_URL=NONE`` 直接收尾。
+    引擎的 rev-list 探针是权威闸门；此 prompt 守卫仅省一轮 ``gh pr create`` 报错空转。
+    回归 PR #1010（巡检交付仅含 patrol-candidate.md 的 PR）。"""
+    p = build_prompt(_wt_routine(current_phase="finalize"))
+    assert "rev-list --count" in p
+    assert "feature/1.x.x..HEAD" in p  # base 已归一（origin/ 剥离）
+    assert "PR_URL=NONE" in p  # 无可交付的惰性 sentinel（extract_pr_url 不识别）
+    # 守卫须在 push/gh pr create 之前（先判有无提交）
+    assert p.index("rev-list --count") < p.index("git push")
+    assert p.index("rev-list --count") < p.index("gh pr create")
 
 
 def test_build_prompt_worktree_implement_injects_checkpoint_commit():

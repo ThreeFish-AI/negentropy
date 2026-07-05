@@ -39,7 +39,8 @@ Markdown，并通过浏览器逐页对比将差异修复至完全一致。
    - **渲染层**：`DocumentMarkdownRenderer` / sanitize schema / `DocumentImage`（图片宽高、表格、KaTeX、代码高亮、figure/figcaption、TOC 锚点）。
    - **摄取层**：图片链接重写、资产存储、元数据（`knowledge/ingestion/extraction.py`、`knowledge/_shared.py`）。
    - **管线层**：perceives 引擎选型、分批边界、跨片合并（图片去重、边界图注补救）、图片分辨率与显示尺寸提取（`perceives/ops/pdf.py`）。
-   改后经 `refresh_markdown` 重摄取或重载页面，复核该项。
+   - **热更铁律（改 perceives `src/` 后必做，否则改动不生效）**：① 重启 perceives MCP 进程（Python 无热重载）；② 清 checkpoint `rm -rf <output_dir>/output/.batch_state/*`（auto_batch resume 按 PDF 内容 SHA-1 缓存切片，不清则复用旧切片、跳过新代码，且完成异常快）。
+   改后经 `refresh_markdown` 重摄取或重载页面（**已清 checkpoint**），复核该项。
 8. **循环**：重复 6–7，直到逐页校验清单全绿；保留关键页源 PDF vs 渲染 Markdown 对比截图为证。
 
 ## 逐页校验清单
@@ -53,6 +54,12 @@ Markdown，并通过浏览器逐页对比将差异修复至完全一致。
 - [ ] 代码块语言识别与高亮正确
 - [ ] 脚注 / 注释完整
 
+## 关键洞察（R10 沉淀）
+
+- **auto_batch 切片间无共享可变状态**：引擎实例在 pool 复用时产物落盘目录须 per-call 唯一（`tempfile.mkdtemp`）；级联/册封类状态（如 `_first_h1_seen`）须显式接收 `slice_index`，否则跨切片泄漏（标题层级错乱 / 公式重现）。
+- **1:1 验收必须走到浏览器渲染态**：figure 过度捕获、KaTeX ParseError、公式双份等缺陷在 DB markdown 层不可见，仅浏览器渲染后暴露。
+- **figure 图注双源风险**：多数图注已烘入 figure region PNG 像素，故 wiki/ui **不得**再从 `alt` 渲染 `figcaption`（会双图注）；caption 语义由 `alt` 承载（无障碍 + 去重指纹），视觉由图内像素承载。
+
 ## 反模式（严禁）
 
 - 跳过逐页核对即声明完成；
@@ -62,3 +69,10 @@ Markdown，并通过浏览器逐页对比将差异修复至完全一致。
 ## 完成判据
 
 逐页校验清单全绿 + 关键页对比截图留证 + 整本 PDF 在 Documents 页可读性与一致性达最佳。
+
+## 资源 / 基线示例（R10）
+
+- 基线 PDF：`Self-Improving Agents in the Era of Experience: A Survey of Self- to Meta-Evolution.pdf`（88 页 / A4 双栏 LaTeX；corpus「Harness Engineering」）。
+- 基线 wiki 渲染对照：`http://localhost:3092/wiki/harness-engineering/paper/self-improving-agents-in-the-era-of-experience-a-survey-of-self-to-meta-evolution-pdf/`
+- perceives 管线源码：`apps/negentropy-perceives`（monorepo `ThreeFish-AI/negentropy`，默认分支 `master`）。
+- 迭代记录：`docs/.agents/pdf-harness-engineering-parity.md` §9（R10 九项修复）。

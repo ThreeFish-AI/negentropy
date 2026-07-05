@@ -22,7 +22,7 @@ async def test_tracker_get_stage_output_persist_mode_replace():
     """persist_mode=replace 时 persist stage 应包含 replaced_count 和 mode='replace'。"""
     dao = FakePipelineDao()
     tracker = PipelineTracker(dao=dao, app_name="test", operation="replace_source", run_id="run-replace-1")
-    await tracker.start({"corpus_id": str(uuid4()), "source_uri": "gs://test/doc.pdf"})
+    await tracker.start({"corpus_id": str(uuid4()), "source_uri": "pgblob://test/doc.pdf"})
 
     # Simulate what _ingest_text_with_tracker does for persist_mode="replace"
     await tracker.start_stage("chunk")

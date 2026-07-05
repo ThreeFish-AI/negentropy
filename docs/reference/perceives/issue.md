@@ -1,3 +1,7 @@
+---
+sidebar_position: 100
+title: "Issue 处理档案"
+---
 # Issue 处理档案
 
 > 记录已处理的 Issue 摘要，便于同类问题跨上下文复用。

@@ -182,6 +182,123 @@ def test_consume_response_handles_denied():
 
 
 # ----------------------------------------------------------------------------
+# expire_approval — 超时/拒绝兜底清理（审批弹窗卡死修复）
+# ----------------------------------------------------------------------------
+
+
+def test_expire_approval_clears_both_dicts():
+    """超时收尾：即使无响应,也把 pending + responses 两侧的该 action_id 清干净,
+    避免遗留孤儿 pending_approvals 项致前端弹窗无法关闭。"""
+    from negentropy.agents.approval import expire_approval, request_approval
+
+    ctx = _Ctx()
+    action_id = request_approval(ctx, tool_name="ingest_paper", label="op")
+    assert action_id is not None
+    # 另一条无关的 pending 项不应被误删（只剔除目标 action_id）。
+    other_id = request_approval(ctx, tool_name="write_file", label="other")
+    # 模拟迟到写回的响应也一并清理。
+    ctx.state["approval_responses"] = {
+        action_id: {"action_id": action_id, "decision": "approved", "reason": None, "responded_at": 1.0}
+    }
+
+    expire_approval(ctx, action_id)
+
+    assert action_id not in ctx.state.get("pending_approvals", {})
+    assert action_id not in ctx.state.get("approval_responses", {})
+    # 无关项保留。
+    assert other_id in ctx.state["pending_approvals"]
+
+
+def test_expire_approval_idempotent_when_absent():
+    """目标 action_id 不存在时静默无操作,不抛错(幂等)。"""
+    from negentropy.agents.approval import expire_approval
+
+    ctx = _Ctx()
+    # 无 pending / responses 时调用不应抛错。
+    expire_approval(ctx, "approval:nonexistent:deadbeef")
+    ctx.state["pending_approvals"] = {"keep": {"action_id": "keep"}}
+    expire_approval(ctx, "approval:nonexistent:deadbeef")
+    assert ctx.state["pending_approvals"] == {"keep": {"action_id": "keep"}}
+
+
+def test_expire_approval_fail_soft_when_no_state():
+    """None / 无 state 对象时 fail-soft,不抛错。"""
+    from negentropy.agents.approval import expire_approval
+
+    class _NoState:
+        pass
+
+    # 不抛异常即视为通过。
+    expire_approval(None, "a1")
+    expire_approval(_NoState(), "a1")
+
+
+def test_approval_wait_constants_are_humane():
+    """审批等待窗口应远大于旧的 30s,给人类留出充足决策时间。"""
+    from negentropy.agents.approval import APPROVAL_POLL_INTERVAL, APPROVAL_WAIT_SECONDS
+
+    assert APPROVAL_WAIT_SECONDS >= 120.0
+    assert 0 < APPROVAL_POLL_INTERVAL <= 1.0
+
+
+# ----------------------------------------------------------------------------
+# record_approval_denial / was_recently_denied —— 重试循环结构性兜底（ISSUE-156 续）
+# ----------------------------------------------------------------------------
+
+
+def test_stable_hash_is_deterministic_and_short():
+    from negentropy.agents.approval import _stable_hash
+
+    h1 = _stable_hash("payload-A")
+    h2 = _stable_hash("payload-A")
+    h3 = _stable_hash("payload-B")
+    assert h1 == h2, "同输入应产出同哈希（跨进程稳定）"
+    assert h1 != h3, "不同输入应产出不同哈希"
+    assert len(h1) == 8
+
+
+def test_record_and_check_denial_roundtrip():
+    from negentropy.agents.approval import record_approval_denial, was_recently_denied
+
+    ctx = _Ctx()
+    assert was_recently_denied(ctx, "ingest_to_corpus", "k1") is False  # 未记录
+    record_approval_denial(ctx, "ingest_to_corpus", "k1")
+    assert was_recently_denied(ctx, "ingest_to_corpus", "k1") is True
+    # 不同 key / 不同 tool 不受影响
+    assert was_recently_denied(ctx, "ingest_to_corpus", "k2") is False
+    assert was_recently_denied(ctx, "ingest_paper", "k1") is False
+
+
+def test_denial_expires_after_ttl(monkeypatch):
+    """denial 仅在 TTL 内有效，超期自动失效（允许合法重发）。"""
+    from negentropy.agents import approval as approval_mod
+
+    ctx = _Ctx()
+    t0 = 1000.0
+    monkeypatch.setattr(approval_mod.time, "time", lambda: t0)
+    approval_mod.record_approval_denial(ctx, "ingest_paper", "ax1")
+    # TTL 内命中
+    monkeypatch.setattr(approval_mod.time, "time", lambda: t0 + approval_mod.APPROVAL_DENIAL_TTL_SECONDS - 1)
+    assert approval_mod.was_recently_denied(ctx, "ingest_paper", "ax1") is True
+    # 超期失效
+    monkeypatch.setattr(approval_mod.time, "time", lambda: t0 + approval_mod.APPROVAL_DENIAL_TTL_SECONDS + 1)
+    assert approval_mod.was_recently_denied(ctx, "ingest_paper", "ax1") is False
+
+
+def test_record_denial_fail_soft_when_no_state():
+    """None / 无 state 对象时 fail-soft，不抛错。"""
+    from negentropy.agents.approval import record_approval_denial, was_recently_denied
+
+    class _NoState:
+        pass
+
+    record_approval_denial(None, "t", "k")  # 不抛
+    record_approval_denial(_NoState(), "t", "k")
+    assert was_recently_denied(None, "t", "k") is False
+    assert was_recently_denied(_NoState(), "t", "k") is False
+
+
+# ----------------------------------------------------------------------------
 # 数据类导出契约
 # ----------------------------------------------------------------------------
 

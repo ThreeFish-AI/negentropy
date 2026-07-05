@@ -42,29 +42,50 @@ const WikiCytoscapeCanvas = dynamic(
 type RendererId = "sigma" | "3d" | "d3" | "force-graph" | "cytoscape";
 
 // 切换器配置（label / title 与主站 page.tsx 切换器对齐）。后续主站渲染器增减时，
-// 在此数组同步增删即可。
-const RENDERERS: { id: RendererId; label: string; title: string }[] = [
-  { id: "d3", label: "d3-force", title: "d3-force 力导向 + SVG 渲染" },
+// 在此数组同步增删即可。`suffix` 为左上角浮层徽标中显示的引擎名（与各渲染器历史
+// 文案一一对应），随当前选中引擎切换。
+const RENDERERS: {
+  id: RendererId;
+  label: string;
+  title: string;
+  suffix: string;
+}[] = [
+  {
+    id: "d3",
+    label: "d3-force",
+    title: "d3-force 力导向 + SVG 渲染",
+    suffix: "d3 SVG",
+  },
   {
     id: "3d",
     label: "3D",
     title: "3D WebGL（three.js + d3-force-3d，支持三维旋转）",
+    suffix: "3D WebGL",
   },
   {
     id: "sigma",
     label: "Sigma",
     title: "Sigma.js v3 WebGL 渲染（高性能，适合大图，默认引擎）",
+    suffix: "Sigma WebGL",
   },
   {
     id: "force-graph",
     label: "Force Graph",
     title: "react-force-graph-2d（粒子流动效果，视觉表现力强）",
+    suffix: "ForceGraph 2D",
   },
-  { id: "cytoscape", label: "Cytoscape", title: "Cytoscape.js + fCoSE 布局" },
+  {
+    id: "cytoscape",
+    label: "Cytoscape",
+    title: "Cytoscape.js + fCoSE 布局",
+    suffix: "Cytoscape",
+  },
 ];
 
 interface WikiGraphRendererProps {
   pubSlug: string;
+  /** Publication 版本号，与统计一起渲染于左上角浮层徽标 */
+  version: number;
   nodes: WikiGraphNode[];
   edges: WikiGraphEdge[];
   truncated: boolean;
@@ -73,13 +94,18 @@ interface WikiGraphRendererProps {
 
 export function WikiGraphRenderer({
   pubSlug,
+  version,
   nodes,
   edges,
   truncated,
   totalEntities,
 }: WikiGraphRendererProps) {
   const [renderer, setRenderer] = useState<RendererId>("d3");
-  const common = { pubSlug, nodes, edges, truncated, totalEntities };
+  // 统计数据对 5 个引擎完全相同（仅引擎名后缀不同），故浮层徽标上提至本父组件，
+  // 作为版本/统计的单一事实源；各画布组件不再各自重复渲染 overlay。
+  const common = { pubSlug, nodes, edges };
+  const activeSuffix =
+    RENDERERS.find((r) => r.id === renderer)?.suffix ?? renderer;
 
   return (
     <div className="wiki-graph-render-root">
@@ -100,6 +126,18 @@ export function WikiGraphRenderer({
             {r.label}
           </button>
         ))}
+      </div>
+
+      <div className="wiki-graph-canvas-overlay">
+        <span className="wiki-graph-badge">
+          v{version} · {nodes.length} 节点 · {edges.length} 边 · {activeSuffix}
+        </span>
+        {truncated && totalEntities != null && (
+          <span className="wiki-graph-badge wiki-graph-badge-warn">
+            已按 importance 截断（共 {totalEntities} 个实体，仅显示 top-
+            {nodes.length}）
+          </span>
+        )}
       </div>
 
       {renderer === "sigma" && <WikiGraphCanvas {...common} />}
