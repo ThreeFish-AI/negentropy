@@ -21,6 +21,13 @@ export type Side = "left" | "right";
 export interface TranscriptPolicy {
   /** item → 物理对齐侧。 */
   align(item: TranscriptItem): Side;
+  /**
+   * turn 间距判定的发言人分组（机制层 ``gapClass`` 据此决定 16px 换方间距）；缺省沿用 ``align``。
+   * ROUTINE 用三分（cc/human/engine）保历史 ``TranscriptView`` 等价——``engine`` 与
+   * ``human_reply``/``task_dispatch`` 都居右但分属不同 speaker，须以 speaker 维度（而非 align
+   * 二态）触发换方间距；STUDIO 无此三分语义，缺省回落 align。
+   */
+  turnGroup?(item: TranscriptItem): string;
   /** 机侧 item 是否在上方渲染 per-agent 徽章；返回 null 表示不渲染。 */
   roleHeaderFor(item: TranscriptItem, prev: TranscriptItem | null): AgentRole | null;
   /** 在途尾部 ``WorkingIndicator`` 标签解析（可选；缺省沿用 Routine 逻辑）。 */
@@ -33,6 +40,11 @@ export const ROUTINE_POLICY: TranscriptPolicy = {
     item.kind === "human_reply" || item.kind === "task_dispatch" || item.kind === "engine"
       ? "right"
       : "left",
+  turnGroup: (item) => {
+    if (item.kind === "human_reply" || item.kind === "task_dispatch") return "human";
+    if (item.kind === "engine") return "engine";
+    return "cc";
+  },
   roleHeaderFor: () => null,
   workingLabel: (last) => (last?.kind === "cc_request" && last.pending ? "Planning…" : "Working…"),
 };

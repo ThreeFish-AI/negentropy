@@ -12,8 +12,8 @@
 import { collapseToolRuns, type TranscriptItem } from "@/components/transcript";
 import { agentRoleFromAuthor, type AgentRole } from "@/features/agent-identity";
 import { extractCitationsFromToolCalls } from "@/utils/citation-parser";
-import type { Citation, ToolProgressMap } from "@/types/common";
-import type { ChatDisplayBlock, ToolExecutionEntry } from "@/types/a2ui";
+import type { Citation, ToolCallInfo, ToolProgressMap } from "@/types/common";
+import type { AssistantReplyDisplayBlock, ChatDisplayBlock, ToolExecutionEntry } from "@/types/a2ui";
 
 /** 工具入参 JSON 串 → 对象（兜底空对象，避免 derive-tool-detail 退化为 generic{input:string}）。 */
 function parseToolInput(args: string | undefined): unknown {
@@ -26,15 +26,35 @@ function parseToolInput(args: string | undefined): unknown {
   }
 }
 
-/** 取 assistant-reply 块的引用尾注：优先用已聚合的 message.citations，否则从 toolCalls 重提。 */
-function replyCitations(message: {
-  citations?: Citation[];
-  toolCalls?: Array<{ result?: string }>;
-}): Citation[] | undefined {
+/**
+ * 取 assistant-reply 块的引用尾注（复刻旧 ``AssistantReplyBubble`` 范式）。
+ *
+ * 优先用已聚合的 ``message.citations``；否则从 ``block.segments`` 的 tool-group 段聚合
+ * ``ToolCallInfo[]``（``search_knowledge_base`` / ``search_knowledge_graph_with_papers``
+ * 的 ``rawName`` + ``result`` JSON）后调 ``extractCitationsFromToolCalls``。注意
+ * ``buildChatDisplayBlocks`` 不在 ``ChatMessage`` 上挂 ``toolCalls``/``citations``，
+ * 故必须从 segments 重提；且工具名须取 ``rawName``（``name`` 已被 formatToolName 人性化，
+ * 不再匹配 citation 工具的原始名）。
+ */
+function replyCitations(
+  message: { citations?: Citation[] },
+  segments: AssistantReplyDisplayBlock["segments"],
+): Citation[] | undefined {
   if (message.citations && message.citations.length > 0) return message.citations;
-  const extracted = extractCitationsFromToolCalls(
-    message.toolCalls as Parameters<typeof extractCitationsFromToolCalls>[0],
-  );
+  const toolCalls: ToolCallInfo[] = [];
+  for (const segment of segments) {
+    if (segment.kind !== "tool-group") continue;
+    for (const tool of segment.tools) {
+      toolCalls.push({
+        id: tool.id,
+        name: tool.rawName || tool.name,
+        args: tool.args,
+        result: tool.result,
+        status: tool.status,
+      });
+    }
+  }
+  const extracted = extractCitationsFromToolCalls(toolCalls);
   return extracted.length > 0 ? extracted : undefined;
 }
 
@@ -119,7 +139,7 @@ export function buildStudioTranscript(
 
       case "assistant-reply": {
         const role = agentRoleFromAuthor(block.message.author);
-        const citations = replyCitations(block.message);
+        const citations = replyCitations(block.message, block.segments);
         let citationsAttached = false;
         for (const segment of block.segments) {
           switch (segment.kind) {

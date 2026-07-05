@@ -190,6 +190,8 @@ describe("buildStudioTranscript", () => {
     if (items[0].kind === "tool_summary") {
       expect(items[0].count).toBe(4);
       expect(items[0].toolNames).toEqual(["read"]);
+      // 折叠行透传首个 tool 的 role，避免后续同 role 机侧 item 重复刷徽章
+      expect(items[0].role).toBe("claude_code");
     }
   });
 
@@ -206,6 +208,36 @@ describe("buildStudioTranscript", () => {
     expect(items).toHaveLength(2);
     if (items[0].kind === "assistant") expect(items[0].citations).toEqual([citation]);
     if (items[1].kind === "assistant") expect(items[1].citations).toBeUndefined();
+  });
+
+  it("citations 从 tool-group 段聚合（search_knowledge_base result → 首个 text 段），复刻 AssistantReplyBubble", () => {
+    // 真实管道里 name 已被 formatToolName 人性化、rawName 保留原始名（citation 工具匹配依据）。
+    // 回归守卫：旧实现误读 message.toolCalls（恒 undefined）致 citations 丢失。
+    const kbResult = JSON.stringify({
+      results: [
+        { citation_id: 1, formatted_citation: "Author A, Title One, 2024.", arxiv_id: "2401.00001" },
+      ],
+    });
+    const items = buildStudioTranscript([
+      assistantReplyBlock(
+        [
+          assistantTextSegment("见 [1]"),
+          toolGroupSegment([
+            toolEntry("Search Knowledge Base", { rawName: "search_knowledge_base", result: kbResult }),
+          ]),
+          assistantTextSegment("更多上下文"),
+        ],
+        "NegentropyEngine",
+      ),
+    ]);
+    // text1 → assistant(citations)；tool-group → tool；text2 → assistant(无 citations)
+    expect(items.map((i) => i.kind)).toEqual(["assistant", "tool", "assistant"]);
+    if (items[0].kind === "assistant") {
+      expect(items[0].citations).toHaveLength(1);
+      expect(items[0].citations?.[0]?.id).toBe(1);
+      expect(items[0].citations?.[0]?.text).toBe("Author A, Title One, 2024.");
+    }
+    if (items[2].kind === "assistant") expect(items[2].citations).toBeUndefined();
   });
 
   it("streaming text 段透传 streaming 标志", () => {

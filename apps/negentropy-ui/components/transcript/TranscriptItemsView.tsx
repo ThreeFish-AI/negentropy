@@ -23,10 +23,16 @@ import { WorkingIndicator } from "./WorkingIndicator";
 import type { TranscriptPolicy } from "./policy";
 import type { TranscriptItem } from "./types";
 
-/** turn 间距节奏（单一事实源）：换方 16px、连续工具行 4px、其余同方 8px、首项无间距。 */
+/**
+ * turn 间距节奏（单一事实源）：换方 16px、连续工具行 4px、其余同方 8px、首项无间距。
+ *
+ * 「换方」判据取 ``policy.turnGroup``（缺省回落 ``align``）：ROUTINE 用三分 speaker
+ * （cc/human/engine）保留历史等价，STUDIO 用 align 二态。
+ */
 function gapClass(item: TranscriptItem, prev: TranscriptItem | null, policy: TranscriptPolicy): string {
   if (!prev) return "";
-  if (policy.align(item) !== policy.align(prev)) return "mt-4";
+  const group = policy.turnGroup ?? policy.align;
+  if (group(item) !== group(prev)) return "mt-4";
   if (item.kind === "tool" && prev.kind === "tool") return "mt-1";
   return "mt-2";
 }

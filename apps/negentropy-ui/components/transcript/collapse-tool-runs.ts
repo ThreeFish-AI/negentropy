@@ -28,6 +28,9 @@ export function collapseToolRuns(items: TranscriptItem[]): TranscriptItem[] {
         count: run.length,
         toolNames,
         collapsed: run,
+        // 透传首个 tool 的 role：Studio 折叠行后同 role 机侧 item 不重复刷徽章
+        // （policy.machineRoleOf 据此参与分组）；Routine 的 tool 无 role，透传 undefined 无副作用。
+        role: first.role,
       });
     }
     run = [];
