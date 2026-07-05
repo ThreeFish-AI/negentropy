@@ -1,5 +1,6 @@
 ---
 sidebar_position: 20
+title: "管理后台"
 ---
 # 管理后台
 

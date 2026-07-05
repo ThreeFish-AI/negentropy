@@ -1,5 +1,6 @@
 ---
 sidebar_position: 11
+title: "Skills 进阶用法"
 ---
 # Skills 进阶用法
 

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+title: "认识 Negentropy"
 ---
 # 认识 Negentropy
 

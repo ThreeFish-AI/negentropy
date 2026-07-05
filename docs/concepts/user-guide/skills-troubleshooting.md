@@ -1,5 +1,6 @@
 ---
 sidebar_position: 16
+title: "Skills 故障排查"
 ---
 # Skills 故障排查
 

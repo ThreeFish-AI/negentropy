@@ -1,5 +1,6 @@
 ---
-sidebar_position: 7
+sidebar_position: 6
+title: "Memory 自动化调度与运维"
 ---
 # Memory Automation Guide：自动化调度与运维
 

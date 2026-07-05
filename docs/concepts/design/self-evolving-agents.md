@@ -1,15 +1,16 @@
 ---
-sidebar_position: 100
+sidebar_position: 6
+title: "自进化 Agents Team 系统技术方案"
 ---
 # 自进化 Agents Team 系统技术方案
 
 > 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。
 >
 > 设计核心锚定：
-> - 调研基础：[自进化 Agents Team 调研](../../research/130-self-evolving-agents-team.md)
-> - 理论先例：[Routine 迭代模式调研](../../research/110-routine-agent-iteration.md)
-> - 子系统参考：[Routine 系统](../039-the-routine-system.md)、[Skills 设计](./skills.md)、[可观测性](./observability-genai.md)
-> - 记忆/知识参考：[记忆系统](../025-the-memory-system.md)、[记忆白皮书](../026-memory-whitepaper.md)、[知识库](../035-the-knowledge-base.md)、[知识图谱](../036-the-knowledge-graph.md)
+> - 调研基础：[自进化 Agents Team 调研](../../research/self-evolution/130-self-evolving-agents-team.md)
+> - 理论先例：[Routine 迭代模式调研](../../research/self-evolution/110-routine-agent-iteration.md)
+> - 子系统参考：[Routine 系统](../subsystems/039-the-routine-system.md)、[Skills 设计](./skills.md)、[可观测性](./observability-genai.md)
+> - 记忆/知识参考：[记忆系统](../subsystems/025-the-memory-system.md)、[记忆白皮书](../subsystems/026-memory-whitepaper.md)、[知识库](../subsystems/035-the-knowledge-base.md)、[知识图谱](../subsystems/036-the-knowledge-graph.md)
 > - 权威源：[engine/routine/decision.py](../../../apps/negentropy/src/negentropy/engine/routine/decision.py)（护栏范式）、[models/skill.py](../../../apps/negentropy/src/negentropy/models/skill.py)（版本快照范式）
 
 ---
@@ -27,7 +28,7 @@ sidebar_position: 100
 
 **总纲**：进化 = 数据变更（DB 白名单字段），框架 = 代码（变更唯一通道 Git PR 人工 Merge，复用 Routine `pr_url` 产 PR 等待人工 Merge 的既有先例）。
 
-记忆/知识系统兼具**进化基质（substrate）**（反思、playbook、采收用例的沉淀介质）与**进化客体（object）**（自身配置可被进化回路优化）双重角色——概念定义见[调研报告 §6.1](../../research/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)，回路边界裁定见 ADR-4。
+记忆/知识系统兼具**进化基质（substrate）**（反思、playbook、采收用例的沉淀介质）与**进化客体（object）**（自身配置可被进化回路优化）双重角色——概念定义见[调研报告 §6.1](../../research/self-evolution/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)，回路边界裁定见 ADR-4。
 
 **范围外**：模型权重训练/微调、框架代码的自动合并。
 
@@ -244,7 +245,7 @@ eval_results
 复用 [engine/routine/evaluator.py](../../../apps/negentropy/src/negentropy/engine/routine/evaluator.py) 范式：LLM-as-Judge（`resolve_model_config_async` + `litellm.acompletion` + JSON 结构化输出 + 指数退避）+ 可选客观门控命令锚定评分。
 
 记忆/知识 suite 不重建 runner：
-- **记忆检索 suite**：[026 白皮书](../026-memory-whitepaper.md)已有 LoCoMo-mini / LongMemEval-mini CI 基线（recall 0.933 / 0.867），**注册为 `eval_suites` 行纳管**（`target_kind=memory_retrieval`，gate 命令即现有 CI 脚本）；
+- **记忆检索 suite**：[026 白皮书](../subsystems/026-memory-whitepaper.md)已有 LoCoMo-mini / LongMemEval-mini CI 基线（recall 0.933 / 0.867），**注册为 `eval_suites` 行纳管**（`target_kind=memory_retrieval`，gate 命令即现有 CI 脚本）；
 - **KG 抽取 suite**：复用 [knowledge/graph/quality.py](../../../apps/negentropy/src/negentropy/knowledge/graph/quality.py) 的综合质量分（完整性/覆盖/置信度/证据四维加权）+ [metrics.py](../../../apps/negentropy/src/negentropy/knowledge/graph/metrics.py) 构建指标（`chunks_fallback` / `over_extraction_chunks` / `entity_density_p95`）作客观门控——对齐"可选 gate 命令锚定评分"既有设计。
 
 ### 4.3 Golden Set 双轨（Goodhart 防护）
@@ -367,7 +368,7 @@ perceives 的 `competition_mode` 从「运行时每次竞争」升格为「进�
 
 ### 7.1 双重角色与回路边界（ADR-4 的展开）
 
-记忆/知识系统兼具**基质**与**客体**双角色（定义见[调研报告 §6.1](../../research/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)）。工程上的关键裁定是**分轨**：
+记忆/知识系统兼具**基质**与**客体**双角色（定义见[调研报告 §6.1](../../research/self-evolution/130-self-evolving-agents-team.md#61-双重角色进化的基质与客体)）。工程上的关键裁定是**分轨**：
 
 - **条目级演化（基质侧，高频）**：fact 写入/更新、反思生成、ACE 式 delta 沉淀、记忆淘汰——继续走既有 consolidation 回路（`consolidation_jobs` 队列 + `reflection_worker`），**不进** `evolution_proposals` 状态机。条目级操作每天成百上千次，状态机门控会成为瓶颈；且其已有 retention / dedup / conflict 三重治理。Letta sleep-time compute<sup>[[12]](#ref12)</sup> 证明离线巩固窗口是该回路的正确调度时机——`consolidation_jobs` 即既有实现；
 - **配置级进化（客体侧，低频）**：检索参数、遗忘 λ、管线 prompt、抽取策略的变更——走 `evolution_proposals` 统一状态机，享受 shadow eval / canary / 人审门控全套保护。
@@ -520,7 +521,7 @@ evolution_proposals
 | Jinja2 沙箱 + enforcement_mode | 提案验证阶段前置执行 |
 | Root Agent fallback 永存 | `_dynamic_instruction` 既有「永不阻塞请求」语义是最后防线 |
 | 进化提案不直写记忆/知识条目内容 | `target_kind` 白名单只含配置类——防 ASI06 记忆投毒经进化通道注入（MINJA query-only 攻击实证<sup>[[11]](#ref11)</sup>；SSGM 演化/执行解耦原则<sup>[[10]](#ref10)</sup>） |
-| 遗忘 λ 与删除阈值有硬下限 | 代码常量下限，提案超界即拒——防"进化出激进遗忘"复刻 SEAL 式灾难性遗忘（[调研报告 §2.4](../../research/130-self-evolving-agents-team.md)） |
+| 遗忘 λ 与删除阈值有硬下限 | 代码常量下限，提案超界即拒——防"进化出激进遗忘"复刻 SEAL 式灾难性遗忘（[调研报告 §2.4](../../research/self-evolution/130-self-evolving-agents-team.md)） |
 
 ---
 
@@ -566,7 +567,7 @@ evolution_proposals
 > shadow 用 visible 集 `decide_skill_shadow` 增益门、canary 用 holdout 集 `decide_skill_canary`
 > 零回归门。综述 §8 SI 六目标中 held-out gain / backward retention / path attribution 已落地；
 > longitudinal stability / improvement efficiency / safety non-regression 仍列后续。详见
-> [141 号调研](../../research/141-skills-evolution-and-si-measurement.md)。
+> [141 号调研](../../research/self-evolution/141-skills-evolution-and-si-measurement.md)。
 
 ### Phase 1：遥测 + 评测地基
 

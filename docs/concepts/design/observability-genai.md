@@ -1,5 +1,6 @@
 ---
-sidebar_position: 100
+sidebar_position: 2
+title: "GenAI 可观测性 · OpenTelemetry GenAI Semantic Conventions 落地"
 ---
 # GenAI 可观测性 · OpenTelemetry GenAI Semantic Conventions 落地
 

@@ -1,0 +1,5 @@
+{
+  "position": 11,
+  "label": "DDL Schema",
+  "description": "引擎各子系统（Hippocampus 记忆 / Perception 感知 / Knowledge Graph）的数据库 DDL 参考"
+}

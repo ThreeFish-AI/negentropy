@@ -1,21 +1,22 @@
 ---
-sidebar_position: 100
+sidebar_position: 5
+title: "浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备"
 ---
 # 浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备
 
 > 本文遵循 [AGENTS.md](../../../AGENTS.md) 的协作协议与循证要求。设计核心锚定：
-> - 选型论证与横向盘点：[浏览器操作 MCP 调研](../../research/120-browser-automation-mcp.md)
+> - 选型论证与横向盘点：[浏览器操作 MCP 调研](../../research/self-evolution/120-browser-automation-mcp.md)
 > - 浏览器实机验证协议（A 类交互 / B 类自治）：[browser-validation.md](../../.agents/browser-validation.md)
 > - 全系统 MCP 注入的单一事实源：`builtin_tools(claude_code).config.mcp_config`（参见 [claude_code handler](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/claude_code.py)）
 
 ## 1. 目标与约束
 
 - **目标**：把一款浏览器操作 MCP 作为**全系统默认配备**内置——既在 [Interface / MCP](../user-guide/interface.md) 卡片中以「Built-In」呈现，又为**所有 Routine 任务**在运行时提供浏览器工具，用于**实机回归验证**。
-- **选型结论**：**Playwright MCP**（`@playwright/mcp`，stdio · headless · isolated）。完整对标见[调研文档](../../research/120-browser-automation-mcp.md)，要点：可在自治无人后台运行（Routine 场景刚需），工具面为"驱动 + 断言"贴合回归，且最大化复用本仓既有的 Playwright + dev-cookie 基础设施。
+- **选型结论**：**Playwright MCP**（`@playwright/mcp`，stdio · headless · isolated）。完整对标见[调研文档](../../research/self-evolution/120-browser-automation-mcp.md)，要点：可在自治无人后台运行（Routine 场景刚需），工具面为"驱动 + 断言"贴合回归，且最大化复用本仓既有的 Playwright + dev-cookie 基础设施。
 - **约束**：
   - **Single Source of Truth**：传输规格在迁移中**单一定义**，同时供目录卡片与全局注入复用，杜绝 Split-Brain。
   - **最小干预**：复用既有的 Claude Code MCP 注入链路（`mcp_config`），不新建 ADK→MCP 直连桥。
-  - **确定性**：版本钉死（`@playwright/mcp@0.0.75`），契合 [Routine 确定性加固](../039-the-routine-system.md)（ISSUE-114/116）的工程取向。
+  - **确定性**：版本钉死（`@playwright/mcp@0.0.75`），契合 [Routine 确定性加固](../subsystems/039-the-routine-system.md)（ISSUE-114/116）的工程取向。
   - **优雅降级**：运行时若缺 Node/npx/浏览器，MCP 连接失败仅告警跳过，不阻断主流程。
 
 ## 2. 架构总览：单一注入点，三入口汇聚
@@ -127,8 +128,8 @@ acceptance_criteria:
 
 ## 9. 相关文档
 
-- [浏览器操作 MCP 调研（选型论证）](../../research/120-browser-automation-mcp.md)
+- [浏览器操作 MCP 调研（选型论证）](../../research/self-evolution/120-browser-automation-mcp.md)
 - [浏览器实机验证协议](../../.agents/browser-validation.md)
-- [Claude Code 集成（BuiltinTool）](../038-claude-code-integration.md)
-- [Routine 长周期自主任务系统](../039-the-routine-system.md)
+- [Claude Code 集成（BuiltinTool）](../subsystems/038-claude-code-integration.md)
+- [Routine 长周期自主任务系统](../subsystems/039-the-routine-system.md)
 - [Interface 用户指南 §6.3 MCP Server 管理](../user-guide/interface.md)

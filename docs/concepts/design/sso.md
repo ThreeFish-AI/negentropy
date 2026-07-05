@@ -1,5 +1,6 @@
 ---
-sidebar_position: 100
+sidebar_position: 1
+title: "单点登录（SSO）方案：Google OAuth + 用户权限管理"
 ---
 # 单点登录 (SSO) 方案：Google OAuth + 用户权限管理
 

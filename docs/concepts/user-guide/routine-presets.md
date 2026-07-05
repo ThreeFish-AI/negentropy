@@ -1,5 +1,6 @@
 ---
 sidebar_position: 17
+title: "Routine 预设模版"
 ---
 # Routine 预设模版
 
@@ -166,6 +167,6 @@ YAML 必填字段：`preset_id`、`display_name`、`description`、`category`、
 
 ## 相关文档
 
-- [Routine 系统架构](../039-the-routine-system.md) — 完整的设计与实现文档
-- [Routine Agent 迭代模式调研](../../research/110-routine-agent-iteration.md) — Reflexion / Self-Refine / LATS 等理论基础
+- [Routine 系统架构](../subsystems/039-the-routine-system.md) — 完整的设计与实现文档
+- [Routine Agent 迭代模式调研](../../research/self-evolution/110-routine-agent-iteration.md) — Reflexion / Self-Refine / LATS 等理论基础
 - [Skills 模板系统](./skills-templates.md) — 类似的模板导入模式（Skill 领域）

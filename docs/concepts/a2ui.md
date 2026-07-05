@@ -1,5 +1,6 @@
 ---
-sidebar_position: 100
+sidebar_position: 1.2
+title: "A2UI · Agent-to-UI 协议校正与 Chat 页落地方案"
 ---
 # AGUI / A2UI 协议校正与 Chat 页落地方案
 
@@ -213,7 +214,7 @@ flowchart TD
 
 ## 4. Chat 页落地方式
 
-> 中栏的回合制转录 UI（左右分栏 + per-agent 徽章 + 类型化工具卡）设计见 [人机交互转录 UI ADR](./041-human-machine-interaction-transcript.md)，实操见 [实操手册](./user-guide/transcript-view.md)。
+> 中栏的回合制转录 UI（左右分栏 + per-agent 徽章 + 类型化工具卡）设计见 [人机交互转录 UI ADR](subsystems/041-human-machine-interaction-transcript.md)，实操见 [实操手册](./user-guide/transcript-view.md)。
 
 ### 4.1 为什么是聊天优先
 

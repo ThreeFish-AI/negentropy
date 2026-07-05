@@ -1,5 +1,6 @@
 ---
 sidebar_position: 13
+title: "Skills · 版本锚定与历史快照"
 ---
 # Skills · 版本锚定与历史快照（Phase 3）
 

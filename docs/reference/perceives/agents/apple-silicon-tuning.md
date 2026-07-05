@@ -1,5 +1,6 @@
 ---
 sidebar_position: 100
+title: "Apple Silicon PDF Pipeline 调优指南"
 ---
 # Apple Silicon PDF Pipeline 调优指南
 

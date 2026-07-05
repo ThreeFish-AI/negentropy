@@ -1,9 +1,10 @@
 ---
 sidebar_position: 5
+title: "Memory 入门 · 5 分钟上手"
 ---
 # Memory User-Guide：5 分钟上手
 
-> 本文聚焦"概念入门 + UI 导航"。深入设计原理见 [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md)；理论支撑见 [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md)；API 集成见 [`memory-integration.md`](./memory-integration.md)。
+> 本文聚焦"概念入门 + UI 导航"。深入设计原理见 [`025-the-memory-system.md`](../subsystems/025-the-memory-system.md)；理论支撑见 [`026-memory-whitepaper.md`](../subsystems/026-memory-whitepaper.md)；API 集成见 [`memory-integration.md`](./memory-integration.md)。
 
 ---
 
@@ -50,7 +51,7 @@ flowchart LR
 
 ## 2.5 高级特性（默认开箱即用）
 
-5 个高级特性现已**默认全部启用**（开箱即用），并各自带运行时安全闸，必要时可一键关闭。详细工程契约见 [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md) §10 与 [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md) §4。
+5 个高级特性现已**默认全部启用**（开箱即用），并各自带运行时安全闸，必要时可一键关闭。详细工程契约见 [`025-the-memory-system.md`](../subsystems/025-the-memory-system.md) §10 与 [`026-memory-whitepaper.md`](../subsystems/026-memory-whitepaper.md) §4。
 
 | 特性                      | 配置项（YAML / 环境变量）                       | 默认       | 运行时安全闸                                              | 性能成本                                         |
 | ------------------------- | ----------------------------------------------- | ---------- | -------------------------------------------------------- | ------------------------------------------------ |
@@ -166,4 +167,4 @@ memory:
 - 工程师 → [`memory-integration.md`](./memory-integration.md)
 - 运维 → [`memory-automation.md`](./memory-automation.md)
 - 故障排除 → [`memory-troubleshooting.md`](./memory-troubleshooting.md)
-- 架构师 → [`025-the-memory-system.md`](../../concepts/025-the-memory-system.md) + [`026-memory-whitepaper.md`](../../concepts/026-memory-whitepaper.md)
+- 架构师 → [`025-the-memory-system.md`](../subsystems/025-the-memory-system.md) + [`026-memory-whitepaper.md`](../subsystems/026-memory-whitepaper.md)

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 19
+title: "常见问题 FAQ"
 ---
 # 常见问题
 
@@ -136,15 +137,15 @@ Wiki 使用 ISR 机制，最长 5 分钟自动更新。如需立即更新，可�
 | 文档                                           | 路径                                           | 说明                               |
 | :--------------------------------------------- | :--------------------------------------------- | :--------------------------------- |
 | **用户手册**（本文档）                         | [docs/user-guide.md](../../user-guide.md)      | 面向最终用户的使用指南             |
-| [开发指南](../development.md)                  | `docs/concepts/development.md`                 | 环境搭建、开发工作流、数据库迁移   |
+| [开发指南](../operations/development.md)                  | `docs/concepts/development.md`                 | 环境搭建、开发工作流、数据库迁移   |
 | [架构设计](../framework.md)                    | `docs/concepts/framework.md`                   | 一核五翼架构、流水线编排、设计模式 |
-| [知识系统](../035-the-knowledge-base.md)       | `docs/concepts/035-the-knowledge-base.md`      | 知识管理模块的详细设计             |
-| [记忆系统](../025-the-memory-system.md)        | `docs/concepts/025-the-memory-system.md`       | 记忆生命周期与治理机制             |
-| [知识图谱](../036-the-knowledge-graph.md)      | `docs/concepts/036-the-knowledge-graph.md`     | 图建模与查询实现                   |
+| [知识系统](../subsystems/035-the-knowledge-base.md)       | `docs/concepts/035-the-knowledge-base.md`      | 知识管理模块的详细设计             |
+| [记忆系统](../subsystems/025-the-memory-system.md)        | `docs/concepts/025-the-memory-system.md`       | 记忆生命周期与治理机制             |
+| [知识图谱](../subsystems/036-the-knowledge-graph.md)      | `docs/concepts/036-the-knowledge-graph.md`     | 图建模与查询实现                   |
 | [SSO 集成](../design/sso.md)                   | `docs/concepts/design/sso.md`                  | Google OAuth 认证配置              |
 | [QA 流水线](../design/qa-delivery-pipeline.md) | `docs/concepts/design/qa-delivery-pipeline.md` | 质量门禁与发布流程                 |
 | [Wiki 运维](../../reference/wiki/ops.md)       | `docs/reference/wiki/ops.md`                   | Wiki 站点的部署与运维              |
-| [工程变更日志](../engineering-changelog.md)    | `docs/concepts/engineering-changelog.md`       | 里程碑与基线变更记录               |
+| [工程变更日志](../operations/engineering-changelog.md)    | `docs/concepts/engineering-changelog.md`       | 里程碑与基线变更记录               |
 | [AI 协作协议](../../../AGENTS.md)              | `AGENTS.md`                                    | Agent 协作准则与工程规范           |
 
 ---
