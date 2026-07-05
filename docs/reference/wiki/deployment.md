@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+title: "Negentropy Wiki 独立部署与内容同步指引"
 ---
 # Negentropy Wiki 独立部署与内容同步指引
 

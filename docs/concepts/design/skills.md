@@ -1,5 +1,6 @@
 ---
-sidebar_position: 100
+sidebar_position: 7
+title: "Skills 模块 · Agent Skills 在 Negentropy 的工程实现"
 ---
 # Skills 模块（Agent Skills 在 Negentropy 的工程实现）
 

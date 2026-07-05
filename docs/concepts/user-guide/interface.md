@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+title: "Interface 能力接入"
 ---
 # Interface 能力接入
 

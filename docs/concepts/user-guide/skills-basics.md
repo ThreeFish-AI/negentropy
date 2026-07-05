@@ -1,5 +1,6 @@
 ---
 sidebar_position: 10
+title: "Skills 基础上手"
 ---
 # Skills 基础上手
 

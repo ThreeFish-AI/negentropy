@@ -1,5 +1,6 @@
 ---
 sidebar_position: 12
+title: "Skills · 一键导入模板"
 ---
 # Skills · 一键导入模板（From Template）
 

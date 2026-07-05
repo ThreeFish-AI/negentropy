@@ -1,9 +1,10 @@
 ---
 sidebar_position: 4.5
+title: "人机交互转录对话 · 实操手册"
 ---
 # 人机交互转录对话 · 实操手册
 
-> 本手册覆盖 **两处「人机交互」回合制转录对话界面** 的实操：① Home / Studio **中栏**（你与一核五翼 + Claude Code 对话）；② Routine 任务 **Iterations Full View**（一核五翼 6 Agent 与 Claude Code 的协作审计）。设计架构见 [人机交互转录 UI ADR](../041-human-machine-interaction-transcript.md)，主对话特性（模型选择 / 附件 / 搜索 / 引用）见 [chat-essentials](./chat-essentials.md)。
+> 本手册覆盖 **两处「人机交互」回合制转录对话界面** 的实操：① Home / Studio **中栏**（你与一核五翼 + Claude Code 对话）；② Routine 任务 **Iterations Full View**（一核五翼 6 Agent 与 Claude Code 的协作审计）。设计架构见 [人机交互转录 UI ADR](../subsystems/041-human-machine-interaction-transcript.md)，主对话特性（模型选择 / 附件 / 搜索 / 引用）见 [chat-essentials](./chat-essentials.md)。
 
 ---
 
@@ -125,7 +126,7 @@ Routine 详情页 → Iteration 时间线卡片 → 点「Full View」→ 右侧
 - 迭代进行中时，顶部显 `LIVE` 脉冲，新事件实时插入；末项 `Working…` 表示机侧仍在工作。
 - 最终态重渲染时补齐 gate / evaluation。
 
-> Routine 的概念与编排详见 [The Routine System](../039-the-routine-system.md) 与 [多 Agent 归因](../040-routine-multi-agent-faculty.md)；开箱预设见 [routine-presets](./routine-presets.md)。
+> Routine 的概念与编排详见 [The Routine System](../subsystems/039-the-routine-system.md) 与 [多 Agent 归因](../subsystems/040-routine-multi-agent-faculty.md)；开箱预设见 [routine-presets](./routine-presets.md)。
 
 ## 4. 常见疑问 FAQ
 

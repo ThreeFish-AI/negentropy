@@ -1,5 +1,6 @@
 ---
 sidebar_position: 14
+title: "Skills · AI Agent Paper Hunter 端到端"
 ---
 # Skills · AI Agent Paper Hunter 端到端
 

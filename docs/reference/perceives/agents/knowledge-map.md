@@ -1,5 +1,6 @@
 ---
 sidebar_position: 100
+title: "Knowledge Map · 知识索引"
 ---
 # Knowledge Map（知识索引）
 

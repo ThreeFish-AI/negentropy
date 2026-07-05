@@ -1,5 +1,6 @@
 ---
 sidebar_position: 100
+title: "Issue 处理档案"
 ---
 # Issue 处理档案
 
