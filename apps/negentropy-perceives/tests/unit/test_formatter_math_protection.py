@@ -61,6 +61,38 @@ class TestFormatterMathProtection:
         assert "$\\alpha \\in \\mathbb{R}$" in result
         assert "$$f(x) = \\sum_{i=1}^{n} x_i^2$$" in result
 
+    def test_katex_incompatible_primitives_cleaned(self) -> None:
+        r"""docling/mineru 对 ``\left(..\right)`` 的冗长编码含 KaTeX 不支持的
+        ``\aftergroup`` / ``\bgroup`` / ``\egroup`` / 空 ``\mathopen{}\mathclose``，
+        会致 ParseError。``_sanitize_katex_incompatible`` 应剥离这些 primitive，
+        保留 ``\left(..\right)`` 主体。"""
+        latex = (
+            "$$\n\\begin{array} { r } { H = \\Phi \\mathopen { } \\mathclose "
+            "\\bgroup \\left( H , z \\aftergroup \\egroup \\right) . } "
+            "\\end{array}\n$$"
+        )
+        result = self.formatter._sanitize_katex_incompatible(latex)
+        assert "\\aftergroup" not in result
+        assert "\\bgroup" not in result
+        assert "\\egroup" not in result
+        assert "\\mathopen" not in result
+        # \left( .. \right) 主体保留
+        assert "\\left(" in result and "\\right)" in result
+
+    def test_katex_primitives_cleaned_through_full_pipeline(self) -> None:
+        r"""完整 format() 管线：块公式经 protect（清理 primitive）→ restore 后，
+        产物不再含 KaTeX 不兼容 primitive，且 ``\left(..\right)`` 保留。"""
+        md = (
+            "Intro text.\n\n"
+            "$$\n{ H = \\Phi \\mathopen { } \\mathclose \\bgroup "
+            "\\left( H , z \\aftergroup \\egroup \\right) . }\n$$\n\nOutro."
+        )
+        result = self.formatter.format(md)
+        assert "\\aftergroup" not in result
+        assert "\\bgroup" not in result
+        assert "\\mathopen" not in result
+        assert "\\left(" in result and "\\right)" in result
+
     def test_adjacent_similar_math_blocks_all_preserved(self) -> None:
         """同章节相邻的多条公式（共享大量变量与运算符令牌）必须全部保留，
         不得被 ``_deduplicate_approximate_paragraphs`` 的 Jaccard 相似度
