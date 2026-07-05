@@ -1,7 +1,7 @@
 ---
 id: user-guide
 sidebar_position: 3
-title: User Guide
+title: "User Guide · 用户指南"
 description: Negentropy Perceives MCP Server 用户指南，涵盖快速入门、MCP Server 部署配置、6 个 MCP 工具参考、Python SDK 编程接口、高级使用场景及开发者命令速查。
 last_update:
   author: Aurelius

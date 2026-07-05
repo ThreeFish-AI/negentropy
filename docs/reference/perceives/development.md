@@ -1,7 +1,7 @@
 ---
 id: development
 sidebar_position: 2
-title: Development
+title: "Development · 开发指南"
 description: 开发环境配置、项目结构、测试体系、MCP 工具开发规范、Pipeline 编排框架、CI/CD 工作流与编码最佳实践
 last_update:
   author: Aurelius

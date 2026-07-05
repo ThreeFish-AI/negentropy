@@ -1,8 +1,8 @@
 ---
 id: framework
 sidebar_position: 1
-title: Framework
-description: Engineering Architecture Design Framework
+title: "Framework · 架构设计"
+description: "Perceives MCP Server 工程架构：五层分层、Pipeline 编排与 6 个 MCP 工具的接入设计"
 last_update:
   author: Aurelius
   date: 2026-04-04

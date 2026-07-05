@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
 title: "Agent Sandbox 正交分析：Microsandbox / Wasmtime / Firecracker / Vertex"
+description: "四路线正交深剖（Microsandbox / Wasmtime / Firecracker / Vertex），080 综述的工程化深挖"
 ---
 # **AI Agent 代码执行环境的正交分析报告：Microsandbox、Wasmtime、Firecracker 与 Google Vertex AI Agent Engine**
 

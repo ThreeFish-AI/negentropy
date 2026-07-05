@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
 title: "Agent Sandbox 综述：五大技术路线正交剖析"
+description: "五大技术路线综述（Microsandbox / Wasmtime / Firecracker / gVisor / Vertex），Agent 代码执行环境的入门全景"
 id: agent-sandbox
 last_update:
   author: Aurelius Huang
