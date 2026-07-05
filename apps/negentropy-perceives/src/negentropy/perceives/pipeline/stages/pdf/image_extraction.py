@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -53,6 +54,18 @@ _RENDER_ZOOM = _RENDER_DPI / 72.0
 # 避免视图中"光栅位图 + 散落矢量标签"双轨损耗。0.8 阈值保留 20% 边距
 # 余量以兼容 layout 与 raster bbox 的±几 pt 偏差。
 _FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8
+
+# 图注锚点回退（caption-anchored fallback）：当 layout_analysis 对某页
+# 漏检 figure region（典型场景：纯矢量 / 混合 media 的流程图、封面总览图，
+# docling/MinerU 这类版面分析器常见盲区），但该页文字层存在 "Figure N |"
+# 图注时，基于图注 line-bbox 上方区域 + 矢量绘制密度构造回退 figure
+# region，复用 _render_figure_regions 渲染。种子 bbox 不必精确 —— 现有
+# _expand_figure_bbox 会进一步吸纳邻近矢量与短文本块完成视觉对齐。
+_CAPTION_FBACK_RE = re.compile(r"^(?:Figure|Fig\.?)\s+(\d+)\s*[|：︱Ｉ]")
+_CAPTION_FBACK_SEED_UP_PT = 200.0   # 种子向上高度（pt），_expand_figure_bbox 会再扩展
+_CAPTION_FBACK_MAX_HEIGHT_PT = 360.0  # 图注 y0 上方最多取 360pt（防跨页误抓）
+_CAPTION_FBACK_TOP_MARGIN_PT = 36.0  # 页面顶部安全边距
+_CAPTION_FBACK_MIN_DRAWINGS = 6      # 候选区域内矢量绘制数下限（挡纯正文页）
 
 
 def _is_decorative_raster_bbox(
@@ -371,6 +384,135 @@ def _expand_figure_bbox(
 # ---------------------------------------------------------------------------
 # 矢量图形区域渲染
 # ---------------------------------------------------------------------------
+
+
+def _drawing_intersects_rect(
+    drawing: Dict[str, Any],
+    rect: Tuple[float, float, float, float],
+) -> bool:
+    """判断矢量绘制项是否与目标矩形相交（矢量密度校验用）。"""
+    r = drawing.get("rect")
+    if r is None:
+        return False
+    try:
+        if hasattr(r, "x0"):
+            dx0, dy0, dx1, dy1 = r.x0, r.y0, r.x1, r.y1
+        else:
+            dx0, dy0, dx1, dy1 = tuple(r)[:4]
+    except Exception:
+        return False
+    rx0, ry0, rx1, ry1 = rect
+    return not (dx1 <= rx0 or dx0 >= rx1 or dy1 <= ry0 or dy0 >= ry1)
+
+
+def _detect_caption_anchored_figure_regions(
+    pdf_path: str,
+    covered_pages: Set[int],
+    start_page: int,
+    end_page: int,
+) -> List[LayoutRegion]:
+    """图注锚点回退：为 layout 漏检的纯矢量/混合 figure 补 figure region。
+
+    扫描 ``[start_page, end_page)`` 内**未被 layout 覆盖**（不在
+    ``covered_pages``）的页面文字层，定位 "Figure N |" 图注 line；取该 line
+    的 bbox 作为 figure x 范围、图注顶部 y0 上方 _SEED_UP_PT 作为种子
+    y 范围（图在图注上方），并要求候选区域内矢量绘制数 ≥
+    _MIN_DRAWINGS（挡住纯正文页 —— fitz get_drawings 不含字形，正文页
+    几乎无矢量绘制）。种子 bbox 不必精确：_expand_figure_bbox 会进一步
+    吸纳邻近矢量与短文本块完成视觉对齐。
+
+    Returns:
+        构造的回退 LayoutRegion 列表（region_type="figure"，带 caption 元数据）。
+    """
+    from ....pdf._imports import import_fitz
+
+    try:
+        fitz = import_fitz()
+    except Exception:
+        return []
+    regions: List[LayoutRegion] = []
+    try:
+        doc = fitz.open(pdf_path)
+    except Exception:
+        return []
+    try:
+        for page_idx in range(start_page, end_page):
+            if page_idx in covered_pages:
+                continue
+            page = doc[page_idx]
+            try:
+                text_dict = page.get_text("dict")
+            except Exception:
+                continue
+            caption_bbox: Optional[Tuple[float, float, float, float]] = None
+            caption_num: Optional[int] = None
+            for block in text_dict.get("blocks", []):
+                if block.get("type") != 0:
+                    continue
+                for line in block.get("lines", []):
+                    spans = line.get("spans", [])
+                    if not spans:
+                        continue
+                    head_text = "".join(s.get("text", "") for s in spans).strip()
+                    m = _CAPTION_FBACK_RE.match(head_text)
+                    if m:
+                        caption_bbox = tuple(line.get("bbox", (0, 0, 0, 0)))
+                        caption_num = int(m.group(1))
+                        break
+                if caption_bbox:
+                    break
+            if not caption_bbox or caption_num is None:
+                continue
+            cx0, cy_top, cx1, _cy_bottom = caption_bbox
+            page_rect = page.rect
+            # 图注 line 可能仅 "Figure N |" 前缀较窄：以中点为栏中心，
+            # 左右各扩 1/4 页宽近似该栏（双栏论文的栏内 figure）。
+            if cx1 - cx0 < page_rect.width * 0.25:
+                mid = (cx0 + cx1) / 2
+                col_half = page_rect.width / 4
+                cx0 = max(0.0, mid - col_half)
+                cx1 = min(page_rect.width, mid + col_half)
+            # 种子 y 范围：图注顶部上方 _SEED_UP_PT（不越顶部边距/上限）
+            up = min(_CAPTION_FBACK_SEED_UP_PT, _CAPTION_FBACK_MAX_HEIGHT_PT)
+            y0 = max(_CAPTION_FBACK_TOP_MARGIN_PT, cy_top - up)
+            y1 = cy_top
+            if y1 - y0 < 30:
+                continue
+            candidate = (cx0, y0, cx1, y1)
+            try:
+                drawings = page.get_drawings()
+            except Exception:
+                drawings = []
+            dense = sum(1 for d in drawings if _drawing_intersects_rect(d, candidate))
+            if dense < _CAPTION_FBACK_MIN_DRAWINGS:
+                logger.debug(
+                    "caption fallback p%d Fig%d: 矢量密度不足 %d<%d，跳过",
+                    page_idx, caption_num, dense, _CAPTION_FBACK_MIN_DRAWINGS,
+                )
+                continue
+            regions.append(
+                LayoutRegion(
+                    region_type="figure",
+                    bbox=candidate,
+                    page_number=page_idx,
+                    confidence=0.5,
+                    metadata={
+                        "caption": f"Figure {caption_num}",
+                        "source": "caption_anchored_fallback",
+                    },
+                )
+            )
+            logger.info(
+                "caption fallback 补 figure region p%d Fig%d (%.0fx%.0f pt, %d drawings)",
+                page_idx,
+                caption_num,
+                cx1 - cx0,
+                y1 - y0,
+                dense,
+            )
+    finally:
+        doc.close()
+    return regions
 
 
 async def _render_figure_regions(
@@ -757,6 +899,7 @@ class FitzImageExtractor(PDFToolBase):
             # ── Phase 2: 矢量图形渲染（新增）─────────────────────────
             rendered_images: List[ExtractedImage] = []
             raster_drop_indices: Set[int] = set()
+            figure_regions: List[LayoutRegion] = []
             if layout is not None and isinstance(layout, LayoutAnalysisOutput):
                 figure_regions = [
                     r
@@ -766,16 +909,28 @@ class FitzImageExtractor(PDFToolBase):
                     and (r.bbox[2] - r.bbox[0]) > 0
                     and (r.bbox[3] - r.bbox[1]) > 0
                 ]
-                if figure_regions:
-                    rendered_images, raster_drop_indices = await _render_figure_regions(
-                        pdf_path=pdf_path,
-                        figure_regions=figure_regions,
-                        raster_images=raster_images,
-                        start_page=start_page,
-                        end_page=end_page,
-                        output_dir=output_dir,
-                        sem=sem,
-                    )
+            # 图注锚点回退：为 layout 漏检的纯矢量/混合 figure 补 figure region
+            # （典型场景：survey/论文封面总览图、纯矢量流程图；docling 这类
+            # 版面分析器对前部页面的常见盲区）。复用 _render_figure_regions 渲染。
+            covered_pages = {r.page_number for r in figure_regions}
+            fallback_regions = _detect_caption_anchored_figure_regions(
+                pdf_path=pdf_path,
+                covered_pages=covered_pages,
+                start_page=start_page,
+                end_page=end_page,
+            )
+            if fallback_regions:
+                figure_regions.extend(fallback_regions)
+            if figure_regions:
+                rendered_images, raster_drop_indices = await _render_figure_regions(
+                    pdf_path=pdf_path,
+                    figure_regions=figure_regions,
+                    raster_images=raster_images,
+                    start_page=start_page,
+                    end_page=end_page,
+                    output_dir=output_dir,
+                    sem=sem,
+                )
 
             # ── Phase 3: 合并 + 排序 + 分配 reading_order ──────────
             # 剔除被 figure region 整体替代的 raster（避免双轨重复）
