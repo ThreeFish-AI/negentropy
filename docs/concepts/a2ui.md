@@ -213,6 +213,8 @@ flowchart TD
 
 ## 4. Chat 页落地方式
 
+> 中栏的回合制转录 UI（左右分栏 + per-agent 徽章 + 类型化工具卡）设计见 [人机交互转录 UI ADR](./041-human-machine-interaction-transcript.md)，实操见 [实操手册](./user-guide/transcript-view.md)。
+
 ### 4.1 为什么是聊天优先
 
 Chat 页的主任务是“阅读并参与对话”，不是“调试节点树”。如果把 turn、状态、结构性事件直接放在主车道，会破坏用户对“我说了什么、智能体回了什么”的基本心智。
