@@ -63,7 +63,10 @@ export interface ToolExecutionEntry {
   id: string;
   nodeId: string;
   resultNodeId?: string;
+  /** 人类可读工具名（formatToolName 后）。 */
   name: string;
+  /** 原始工具名（未格式化）——供按工具名分派的渲染器（如转录 UI 的工具明细）使用。 */
+  rawName: string;
   args: string;
   result?: string;
   status: ToolCallStatus;

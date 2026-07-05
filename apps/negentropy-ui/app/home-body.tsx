@@ -19,7 +19,7 @@ import {
 import { randomUUID } from "@ag-ui/client";
 import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
-import { ChatStream } from "../components/ui/ChatStream";
+import { StudioTranscript } from "../components/ui/StudioTranscript";
 import type { ChatSuggestion } from "../components/ui/ChatWelcome";
 import { Composer } from "../components/ui/Composer";
 import type { ComposerAttachment } from "../components/ui/AttachmentChip";
@@ -1399,7 +1399,7 @@ export function HomeBody({
 
           {/* Chat Stream Area */}
           <div className="flex-1 overflow-hidden flex flex-col relative">
-            <ChatStream
+            <StudioTranscript
               nodes={conversationTree.roots}
               selectedNodeId={selectedNodeId}
               onNodeSelect={(id) => {
