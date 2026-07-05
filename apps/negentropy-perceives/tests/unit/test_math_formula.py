@@ -658,3 +658,85 @@ class TestR11DoubleSubscriptMerge:
         out = FormulaReconstructor().reconstruct_line_formulas(line)
         assert "$Z_{sk}$" in out or "$Z_{s k}$" in out
         assert out.count("_{") == 1
+
+
+# ============================================================
+# TestR11DisplayOperatorNormalSize — display 大运算符不致 normal_size 选错
+# ============================================================
+class TestR11DisplayOperatorNormalSize:
+    """R11-D2 fix：``normal_size = max(sizes)`` 会把 display-style 大运算符
+    （∫∑∏√ 等，块公式中字号大于 body）选为参照，致 body 操作数 ratio<0.65 被判
+    superscript。修复：排除 display-operator 字形后再取 max。"""
+
+    def _span(self, text, font, size, oy):
+        return {
+            "text": text,
+            "font": font,
+            "size": size,
+            "origin": (100, oy),
+            "bbox": [100, oy, 120, oy + 10],
+        }
+
+    def test_integral_not_treats_operands_as_superscript(self):
+        """``[∫ 14pt, f 7pt, x 7pt]`` → ``$\\int fx$``，而非 ``$\\int^{fx}$``。"""
+        line = {
+            "spans": [
+                self._span("∫", "XCharterMathMI", 14.0, 100.0),
+                self._span("f", "XCharterMathMI", 7.0, 100.0),
+                self._span("x", "XCharterMathMI", 7.0, 100.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$\\int fx$" in out
+        # 操作数不得被判上标
+        assert "^{" not in out
+
+    def test_sum_not_treats_operand_as_superscript(self):
+        """``[∑ 16pt, x 10pt]`` → ``$\\sum x$``，而非 ``$\\sum^{x}$``。"""
+        line = {
+            "spans": [
+                self._span("∑", "XCharterMathMI", 16.0, 100.0),
+                self._span("x", "XCharterMathMI", 10.0, 100.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$\\sum x$" in out
+        assert "^{" not in out
+
+    def test_sqrt_not_treats_operand_as_superscript(self):
+        """``[√ 18pt, dx 9pt]`` → ``$\\sqrt dx$``，而非 ``$\\sqrt^{dx}$``。"""
+        line = {
+            "spans": [
+                self._span("√", "XCharterMathMI", 18.0, 100.0),
+                self._span("dx", "XCharterMathMI", 9.0, 100.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$\\sqrt dx$" in out
+        assert "^{" not in out
+
+    def test_operator_then_greek_no_double_space(self):
+        """``∫`` + ``θ`` → ``\\int\\theta``（``\\`` 天然终结前一名，无需空格）。"""
+        line = {
+            "spans": [
+                self._span("∫", "XCharterMathMI", 14.0, 100.0),
+                self._span("θ", "XCharterMathMI", 9.0, 100.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$\\int\\theta$" in out
+
+    def test_pure_operator_line_still_renders(self):
+        """纯运算符行（排除后无候选）回退到全量 max，仍能产出有效 LaTeX。"""
+        line = {
+            "spans": [
+                self._span("∑", "XCharterMathMI", 16.0, 100.0),
+            ],
+            "bbox": [100, 95, 130, 105],
+        }
+        out = FormulaReconstructor().reconstruct_line_formulas(line)
+        assert "$\\sum$" in out

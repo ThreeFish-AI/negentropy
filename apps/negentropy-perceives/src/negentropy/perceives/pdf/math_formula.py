@@ -584,6 +584,19 @@ def detect_script_type(
 # 5. FormulaReconstructor（降级路径核心）
 # ---------------------------------------------------------------------------
 
+# R11-D2 fix：display-style 大运算符——在 ``\displaystyle`` 下字号显著大于 body，
+# ``max(sizes)`` 会把它们误选为 ``normal_size``，致 body 操作数 ratio<0.65 被判
+# superscript（见 ``detect_script_type`` 行 578 的 ``ratio < 0.65`` 兜底分支）。
+# 含 sum / product / coproduct / integral 族 / radical；用单字符判定（PyMuPDF
+# 把这类大字形拆为独立 span）。
+_DISPLAY_OPERATOR_CHARS: frozenset[str] = frozenset("∑∏∐∫∬∭∮∯∰√")
+
+
+def _is_display_operator_span(span_dict: Dict) -> bool:
+    """span 是否为单个 display-style 大运算符（∫∑∏√ 等）。"""
+    t = span_dict.get("text", "").strip()
+    return len(t) == 1 and t in _DISPLAY_OPERATOR_CHARS
+
 
 class FormulaReconstructor:
     """基于 PyMuPDF ``get_text("dict")`` 的公式重建器。
@@ -616,7 +629,15 @@ class FormulaReconstructor:
         # 而非众数——纯数学行（所有 span 都是数学字体）若下标 span 数量多于 base
         # （如 ``M_{\theta t}`` 2 下标 vs 1 base），众数会被下标字号拉低，致全部
         # 被判 normal、漏 ``_{}`` 包裹。取 max 保证 base 字号被选为参照。
-        normal_size = max(sizes)
+        # R11-D2 fix：先排除 display-style 大运算符（∫∑∏√ 等）——它们在块公式里
+        # 字号大于 body，直接 max 会选错参照致 body 操作数被判 superscript
+        # （``$\\int^{fx}$``）。排除后无候选（纯运算符行）才回退到全量 max。
+        body_sizes = [
+            s.get("size", 0)
+            for s in spans
+            if s.get("text", "").strip() and not _is_display_operator_span(s)
+        ]
+        normal_size = max(body_sizes) if body_sizes else max(sizes)
         baseline_y = line_dict.get("bbox", [0, 0, 0, 0])[1]
 
         # R11-D2：基线取自「正文字号」span 的 origin_y（正文 baseline），而非所有
@@ -648,12 +669,33 @@ class FormulaReconstructor:
         pending_script: Optional[str] = None  # "subscript" / "superscript" / None
         pending_chars: list[str] = []
 
+        def _append_math(token: str) -> None:
+            """跨 span 的空格感知追加。
+
+            ``math_text_to_latex`` 的补空格逻辑只作用于单个 span 内部；每个 normal
+            baseline span 各自转换后直接 ``join`` 会产生 ``\\int`` + ``f`` → ``\\intf``
+            这类粘连，被 KaTeX 整体当作未知命令名（命令名对字母贪婪）报 ParseError。
+            在 ``\\name`` 命令尾（含 ``\\`` 且尾字符为字母）与紧邻字母起首 token 之间
+            补一个空格，恢复 ``\\int fx``。``_{...}`` / ``^{...}`` / ``\\`` 起首 token
+            无需空格（``\\`` 天然终结前一名，``_/^`` 非字母）。
+            """
+            if (
+                math_buffer
+                and math_buffer[-1]
+                and "\\" in math_buffer[-1]
+                and math_buffer[-1][-1].isalpha()
+                and token
+                and token[0].isalpha()
+            ):
+                math_buffer.append(" ")
+            math_buffer.append(token)
+
         def _flush_pending() -> None:
             nonlocal pending_script, pending_chars
             if pending_script and pending_chars:
                 marker = "_" if pending_script == "subscript" else "^"
                 content = math_text_to_latex("".join(pending_chars))
-                math_buffer.append(f"{marker}{{{content}}}")
+                _append_math(f"{marker}{{{content}}}")
             pending_script = None
             pending_chars = []
 
@@ -712,7 +754,7 @@ class FormulaReconstructor:
                 else:
                     # 数学正文 span（normal baseline）—— 先 flush 待并组
                     _flush_pending()
-                    math_buffer.append(math_text_to_latex(text))
+                    _append_math(math_text_to_latex(text))
             else:
                 _flush_math()
 

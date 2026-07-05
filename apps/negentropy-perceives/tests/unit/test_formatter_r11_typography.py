@@ -142,6 +142,26 @@ class TestFormatterR11UrlPathCollapse:
         result = self.formatter._apply_typography_fixes(md)
         assert "openreview.net/forum?id=MSXbrNExax" in result
 
+    def test_url_not_fused_across_newline(self) -> None:
+        """``\\s*`` 跨 ``\\n`` 会让行尾 URL 与下一行 ``/...`` 起首融合；用 ``[ \\t]*`` 阻断。
+
+        本 pass 经 ``protect_math_content`` 全文档一次性调用（不保护散文/代码块），
+        故正则边界必须止于行内。"""
+        md = "Configure the endpoint at https://api.example.com/v2\n/key for authentication."
+        result = self.formatter._apply_typography_fixes(md)
+        # URL 与下一行不得跨行融合
+        assert "https://api.example.com/v2/key" not in result
+        # 行尾 URL 与下一行 ``/key`` 各自原样保留（换行仍在）
+        assert "https://api.example.com/v2" in result
+        assert "\n/key for authentication." in result
+
+    def test_url_above_code_block_first_line_slash_not_eaten(self) -> None:
+        """URL 紧邻围栏代码块、代码首行以 ``/`` 起首时，代码行不得被吞进 URL。"""
+        md = "See https://docs.example.com/v3\n```bash\n/install.sh\n```"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "https://docs.example.com/v3/install.sh" not in result
+        assert "/install.sh" in result
+
 
 class TestFormatterR11DegreeSymbol:
     """R11-F：度数符号脱离修复 ``45 ◦`` → ``45°``。"""
@@ -200,3 +220,24 @@ class TestFormatterR11CoverIconGlyph:
         result = self.formatter._apply_typography_fixes(md)
         assert "§8.2" in result
         assert "§ References" in result
+
+    def test_prose_section_between_words_not_deleted(self) -> None:
+        """R11-A fix：第一组限定 ``HomePage|Homepage`` + 去 IGNORECASE 后，散文中
+        ``<Word> § <Word>`` 的真实章节号不被删除、两词不被粘连。"""
+        cases = [
+            "see the Site § Source code section",
+            "Demo § Docs",
+            "Page § Repository",
+            "the Website § Project boundaries",
+        ]
+        for md in cases:
+            result = self.formatter._apply_typography_fixes(md)
+            assert "§" in result, f"§ was deleted in: {md!r} -> {result!r}"
+            assert md in result, f" prose corrupted: {md!r} -> {result!r}"
+
+    def test_lowercase_prose_section_not_deleted(self) -> None:
+        """case-sensitive 后 ``homepage § source`` 类小写散文不命中按钮词。"""
+        md = "on the home page § source code note"
+        result = self.formatter._apply_typography_fixes(md)
+        assert "§" in result
+        assert md in result

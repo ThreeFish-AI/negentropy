@@ -458,12 +458,19 @@ _TIGHTEN_CITATION_BRACKET_MIN_LEN = 4
 # R11-B2：URL 路径段换行拆分空格折叠。
 # 匹配 ``https?://domain.tld`` 后的路径段（每段以 ``/`` 起始，允许两侧单空格
 # 容纳 PyMuPDF 换行插入的空格），由 ``_collapse_url_path_spaces`` 把斜杠两侧
-# 空格清零。完好 URL（无空格）经 ``\s*/\s*`` → ``/`` 等价替换零影响。
-_URL_PATH_SPACES_RE = re.compile(r"https?://[\w.-]+(?:\s*/\s*[\w.\-~%?:@&=+,#()*]+)+")
+# 空格清零。完好 URL（无空格）经 ``[ \t]*/[ \t]*`` → ``/`` 等价替换零影响。
+# R11-B2 fix：用 ``[ \t]*`` 而非 ``\s*``——本 pass 经 ``protect_math_content``
+# 全文档一次性调用（仅保护 ``$...$``，不保护散文/代码块），``\s*`` 跨 ``\n`` 会让
+# 行尾裸 URL 与下一行 ``/...`` 起首融合（``.../v2\n/key`` → ``.../v2/key``）。
+# PyMuPDF 的换行插入物是单个空格，``[ \t]*`` 既能覆盖又不会跨行。
+_URL_PATH_SPACES_RE = re.compile(
+    r"https?://[\w.-]+(?:[ \t]*/[ \t]*[\w.\-~%?:@&=+,#()*]+)+"
+)
 
 
 def _collapse_url_path_spaces(m: re.Match) -> str:
-    return re.sub(r"\s*/\s*", "/", m.group(0))
+    # 仅折叠行内空格/制表符——跨行融合由外层正则的 ``[ \t]*`` 边界阻断。
+    return re.sub(r"[ \t]*/[ \t]*", "/", m.group(0))
 
 
 def _tighten_citation_bracket(m: re.Match) -> str:
@@ -1366,13 +1373,16 @@ class MarkdownFormatter:
                 # R11-A：封面按钮行 icon 字形清理。``HomePage \xa7 GitHub`` 中的 ``\xa7``
                 # 是 GitHub 图标的 icon-font mojibake（非章节号），紧邻两个已知
                 # 按钮词时剥离。前置 ``\x80`` 等已由 _basic_cleanup 的 C1 strip 清除。
-                # 仅在按钮词之间命中，避免误伤 ``\xa78.2`` / ``\xa7 References`` 等章节引用。
+                # R11-A fix：第一组限定为封面按钮实际用词 ``HomePage|Homepage``（不再
+                # 含 ``Page|Site|Website|Demo`` 等散文常用词），并去掉 ``IGNORECASE``——
+                # 避免误伤 ``Site \xa7 Source`` / ``Page \xa7 Repository`` 等真实 ``\xa7``
+                # 章节引用（综述散文中 ``\xa7`` 是合法章节号）。封面按钮为固定 title-case，
+                # 第二组已显式列举 ``Github|GitHub`` 双大小写，case-sensitive 仍能命中。
                 text = re.sub(
-                    r"\b(HomePage|Homepage|Page|Site|Website|Demo)\s*\xa7\s+"
+                    r"\b(HomePage|Homepage)\s*\xa7\s+"
                     r"(Github|GitHub|Code|Project|Repository|Source|Repo|Docs|Documentation)\b",
                     r"\1 \2",
                     text,
-                    flags=re.IGNORECASE,
                 )
 
                 # \u5f15\u7528\u7f16\u53f7\u7a7a\u683c\u538b\u7f29\uff1a"[ 103 ]" \u2192 "[103]"\uff0c"[ 95, 99, 105 ]" \u2192 "[95, 99, 105]"
