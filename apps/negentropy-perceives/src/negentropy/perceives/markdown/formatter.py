@@ -579,6 +579,62 @@ class MarkdownFormatter:
             markdown_content = self._format_code_blocks(markdown_content)
             markdown_content = self._strip_running_headers(markdown_content)
             markdown_content = self._strip_orphan_lang_labels(markdown_content)
+            # 标题行内无空格软断字合并：PDF 双栏标题跨行（"Parame-\nters"）经
+            # docling 抽取常残留为无空格 "Parame-ters"（连字符直接接续），不命中
+            # _apply_typography_fixes 的带空格 `word- word` 规则（且本 fidelity-safe
+            # 路径不调用该函数）。仅对 ^#+ 标题行、连字符左全小写≥3 且非复合词前缀
+            # （_COMPOUND_HYPHEN_PREFIXES）时合并；合成词（Self-improvement /
+            # System-level）左侧首字母大写或属前缀白名单，不被匹配，保留连字符。
+            # 大写首字母（Title Case 标题）也覆盖：PDF 标题 "Model Parame-ters"
+            # 中 "Parame" 以大写 P 起，[a-z]{3,} 不匹配。放宽 left 至 [A-Z]?[a-z]{2,}。
+            # 合成词保护用 left.lower() 匹配 _COMPOUND_HYPHEN_PREFIXES + 标题高频
+            # 合成词补集（system/task/meta 等，防误并 System-level/Task-bounded）。
+            _title_compound_extra = frozenset(
+                {
+                    "system",
+                    "task",
+                    "meta",
+                    "data",
+                    "user",
+                    "action",
+                    "decision",
+                    "problem",
+                    "experience",
+                    "knowledge",
+                    "policy",
+                    "memory",
+                    "skill",
+                    "tool",
+                    "trace",
+                    "parameter",
+                    "value",
+                    "sample",
+                    "rule",
+                    "base",
+                    "test",
+                    "table",
+                    "chain",
+                    "step",
+                    "web",
+                }
+            )
+
+            def _title_soft_hyphen_mh(mm: "re.Match[str]") -> str:
+                left, right = mm.group(1), mm.group(2)
+                low = left.lower()
+                if low in _COMPOUND_HYPHEN_PREFIXES or low in _title_compound_extra:
+                    return f"{left}-{right}"
+                return f"{left}{right}"
+
+            markdown_content = re.sub(
+                r"(?m)^(#{1,6}\s.*)$",
+                lambda m: re.sub(
+                    r"\b([A-Z]?[a-z]{2,})-([a-z]{2,})\b",
+                    _title_soft_hyphen_mh,
+                    m.group(1),
+                ),
+                markdown_content,
+            )
             return markdown_content
         except Exception as e:
             logger.warning(f"Error in fidelity-safe formatting: {str(e)}")

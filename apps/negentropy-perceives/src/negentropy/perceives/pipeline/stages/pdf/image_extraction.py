@@ -62,10 +62,10 @@ _FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8
 # region，复用 _render_figure_regions 渲染。种子 bbox 不必精确 —— 现有
 # _expand_figure_bbox 会进一步吸纳邻近矢量与短文本块完成视觉对齐。
 _CAPTION_FBACK_RE = re.compile(r"^(?:Figure|Fig\.?)\s+(\d+)\s*[|：︱Ｉ]")
-_CAPTION_FBACK_SEED_UP_PT = 200.0   # 种子向上高度（pt），_expand_figure_bbox 会再扩展
+_CAPTION_FBACK_SEED_UP_PT = 200.0  # 种子向上高度（pt），_expand_figure_bbox 会再扩展
 _CAPTION_FBACK_MAX_HEIGHT_PT = 360.0  # 图注 y0 上方最多取 360pt（防跨页误抓）
 _CAPTION_FBACK_TOP_MARGIN_PT = 36.0  # 页面顶部安全边距
-_CAPTION_FBACK_MIN_DRAWINGS = 6      # 候选区域内矢量绘制数下限（挡纯正文页）
+_CAPTION_FBACK_MIN_DRAWINGS = 6  # 候选区域内矢量绘制数下限（挡纯正文页）
 
 
 def _is_decorative_raster_bbox(
@@ -487,7 +487,10 @@ def _detect_caption_anchored_figure_regions(
             if dense < _CAPTION_FBACK_MIN_DRAWINGS:
                 logger.debug(
                     "caption fallback p%d Fig%d: 矢量密度不足 %d<%d，跳过",
-                    page_idx, caption_num, dense, _CAPTION_FBACK_MIN_DRAWINGS,
+                    page_idx,
+                    caption_num,
+                    dense,
+                    _CAPTION_FBACK_MIN_DRAWINGS,
                 )
                 continue
             regions.append(
